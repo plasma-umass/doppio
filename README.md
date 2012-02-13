@@ -1,6 +1,9 @@
 Coffee-JVM: A JVM in Coffeescript
----------------------------------
+=================================
+Mid-term project for [CS 691ST, Spring 2012](http://plasma.cs.umass.edu/emery/grad-systems)
 
-Todos:
-  * everything (populate this with things as they arise)
+TODOs
+-----
+ - choose a sexier name
+ - everything else (populate this with things as they arise)
 
