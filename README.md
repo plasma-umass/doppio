@@ -1,6 +1,7 @@
 Coffee-JVM: A JVM in Coffeescript
 =================================
-Mid-term project for [CS 691ST, Spring 2012](http://plasma.cs.umass.edu/emery/grad-systems)
+[Mid-term project](http://plasma.cs.umass.edu/emery/grad-systems-project-1) 
+for [CS 691ST, Spring 2012](http://plasma.cs.umass.edu/emery/grad-systems)
 
 TODOs
 -----
