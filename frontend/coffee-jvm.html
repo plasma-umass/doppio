@@ -1,0 +1,26 @@
+<html>
+<head>
+	<title>Coffee-JVM: A JVM in Coffeescript</title>
+	<style type="text/css">
+		body {margin: 1em;}
+		#main {height: 50%;}
+		textarea {width:40%; height: 100%; font-family: monospace;}
+		#source {float:left; }
+		#go_button {float: left; width:10%; height: 20%; margin: 8% 1em;}
+	</style>
+	<script type="text/javascript" src="frontend.js"></script>
+</head>
+<body>
+	<h1>Coffee-JVM</h1>
+	<p id='main'>
+	<textarea id='source'>class Test {
+  public static void main(String[] args) {
+    // enter code here
+  }
+}</textarea>
+	<button id='go_button' type='button'>Compile and Run</button>
+	<textarea id='output' readonly='readonly'>Output from System.out and System.err will appear here.</textarea>
+	</p>
+	Check the <a href="https://github.com/int3/coffee-jvm">project page</a> for the latest updates.
+</body>
+</html>
