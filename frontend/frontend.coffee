@@ -19,6 +19,5 @@ compile_source = (java_source) ->
 	}
 
 $(document).ready ->
-	window.BlobBuilder ?= window.WebKitBlobBuilder  # support for Chrome
 	$('#go_button').click (event) ->
 		compile_source $('#source').val()
