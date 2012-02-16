@@ -1,0 +1,42 @@
+
+# things assigned to root will be available outside this module
+root = exports ? this 
+
+method_reference = (bytes_array,idx) ->
+  class_ref = read_uint(bytes_array.splice(0,2))
+  method_sig = read_uint(bytes_array.splice(0,2))
+  return [{'method_reference':[class_ref,method_sig]}, bytes_array]
+
+class_reference = (bytes_array,idx) ->
+  class_name = read_uint(bytes_array.splice(0,2))
+  return [{'class_reference': class_name}, bytes_array]
+
+const_string = (bytes_array,idx) ->
+  strlen = read_uint(bytes_array.splice(0,2))
+  #TODO: this doesn't actually decode the real unicode repr. But it'll work for ascii...
+  rawstr = (String.fromCharCode(c) for c in bytes_array.splice(0,strlen)).join('')
+  return [rawstr,bytes_array]
+
+method_signature = (bytes_array) ->
+  meth_name = read_uint(bytes_array.splice(0,2))
+  type_name = read_uint(bytes_array.splice(0,2))
+  return [{'method_signature':[meth_name,type_name]},bytes_array]
+
+class root.ConstantPool
+  constructor: () ->
+    @constant_pool = [null]  # indexes from 1, so we'll pad the array
+  
+  parse: (bytes_array) ->
+    #TODO: fill this in for the rest of the tags
+    constant_tags = {10: method_reference, 7: class_reference, 1: const_string, 12: method_signature}
+    cp_count = read_uint(bytes_array.splice(0,2))
+    for _ in [1...cp_count]
+      tag = bytes_array.shift()
+      throw "invalid tag: #{tag}" unless 1 <= tag <= 12
+      [val,bytes_array] = constant_tags[tag](bytes_array)
+      @constant_pool.push val
+    return bytes_array
+  
+  condense: () ->
+    #TODO: straighten out the references in the array (preserving indices)
+    return @constant_pool
