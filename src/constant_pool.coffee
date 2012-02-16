@@ -2,16 +2,21 @@
 # things assigned to root will be available outside this module
 root = exports ? this 
 
-method_reference = (bytes_array,idx) ->
+method_reference = (bytes_array) ->
   class_ref = read_uint(bytes_array.splice(0,2))
   method_sig = read_uint(bytes_array.splice(0,2))
   return [{'method_reference':[class_ref,method_sig]}, bytes_array]
 
-class_reference = (bytes_array,idx) ->
+field_reference = (bytes_array) ->
+  class_ref = read_uint(bytes_array.splice(0,2))
+  field_sig = read_uint(bytes_array.splice(0,2))
+  return [{'field_reference':[class_ref,field_sig]}, bytes_array]
+
+class_reference = (bytes_array) ->
   class_name = read_uint(bytes_array.splice(0,2))
   return [{'class_reference': class_name}, bytes_array]
 
-const_string = (bytes_array,idx) ->
+const_string = (bytes_array) ->
   strlen = read_uint(bytes_array.splice(0,2))
   #TODO: this doesn't actually decode the real unicode repr. But it'll work for ascii...
   rawstr = (String.fromCharCode(c) for c in bytes_array.splice(0,strlen)).join('')
@@ -28,7 +33,9 @@ class root.ConstantPool
   
   parse: (bytes_array) ->
     #TODO: fill this in for the rest of the tags
-    constant_tags = {10: method_reference, 7: class_reference, 1: const_string, 12: method_signature}
+    constant_tags = {
+      10: method_reference, 7: class_reference, 1: const_string, 12: method_signature, 9:field_reference
+    }
     cp_count = read_uint(bytes_array.splice(0,2))
     for _ in [1...cp_count]
       tag = bytes_array.shift()

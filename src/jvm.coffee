@@ -6,11 +6,14 @@ class Method
   parse: (bytes_array) ->
     @access_flags = read_uint(bytes_array.splice(0,2))
     @name_ref = read_uint(bytes_array.splice(0,2))
+    throw "Method.parse: Invalid constant_pool name reference" if @name_ref == 0 
     @desc_ref = read_uint(bytes_array.splice(0,2))
+    throw "Method.parse: Invalid constant_pool name reference" if @desc_ref == 0
     num_attrs = read_uint(bytes_array.splice(0,2))
     @attrs = (new Attribute for _ in [0...num_attrs])
     for attr in @attrs
       bytes_array = attr.parse(bytes_array)
+    # only attrs on methods should be Code, Exceptions, Synthetic, and Deprecated
     return bytes_array
 
 class ClassFile
@@ -33,9 +36,11 @@ class ClassFile
     @interfaces = (read_u2() for _ in [0...isize])
     # fields of this class
     num_fields = read_u2()
+    #TODO: replace the new Method call with something for fields (method_info and field_info look the same)
     @fields = (new Method for _ in [0...num_fields])
     for f in @fields
       bytes_array = f.parse(bytes_array)
+    console.log this  #TODO: figure out why methods shows up here?!
     # class methods
     num_methods = read_u2()
     @methods = (new Method for _ in [0...num_methods])
@@ -52,9 +57,6 @@ class ClassFile
 root.run_jvm = (bytecode_string, print_func) ->
   bytes_array = (bytecode_string.charCodeAt(i) for i in [0...bytecode_string.length])
   print_func "Running the bytecode now...\n"
-  try
-    class_data = new ClassFile(bytes_array)
-  catch error
-    print_func "Error in header: #{error}\n"
+  class_data = new ClassFile(bytes_array)
   print_func "JVM run finished.\n"
   console.log class_data

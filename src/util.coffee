@@ -15,6 +15,8 @@ root.read_uint = (bytes) ->
 class root.Attribute
   parse: (bytes_array) ->
     @name_idx = read_uint(bytes_array.slice(0,2))
+    throw "Invalid constant_pool reference" if @name_idx == 0
     attr_len = read_uint(bytes_array.slice(0,4))
-    @info = bytes_array.slice(0,attr_len)
+    #TODO: make sure we need to mask here
+    @info = (b&0xFF for b in bytes_array.slice(0,attr_len))
     return bytes_array
