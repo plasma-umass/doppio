@@ -3,18 +3,14 @@
 _ ?= require './third_party/underscore-min.js'
 
 # things assigned to root will be available outside this module
-root = exports ? this
-
-# global-level because the frontend calls this on the raw data in the AJAX response
-root.parse_bytecode = (bytecode_string) -> 
-  (bytecode_string.charCodeAt(i) & 0xFF for i in [0...bytecode_string.length])
+root = exports ? this 
 
 read_uint = (bytes) -> 
   n = bytes.length-1
   # sum up the byte values shifted left to the right alignment.
   # Javascript is dumb when it comes to actual shifting, so you have to do it manually.
   # (see http://stackoverflow.com/questions/337355/javascript-bitwise-shift-of-long-long-number)
-  _.reduce(bytes[i]*Math.pow(2,8*(n-i)) for i in [0..n], ((a,b) -> a+b), 0)
+  _.reduce((bytes[i]&0xFF)*Math.pow(2,8*(n-i)) for i in [0..n], ((a,b) -> a+b), 0)
 
 parse_classfile = (bytes_array) ->
   idx = 0  # fancy closure hides the increments
@@ -46,8 +42,9 @@ parse_classfile = (bytes_array) ->
   class_data['attrs'] = bytes_array[idx...(idx+=asize)]
   return class_data
 
-
-root.run_jvm = (bytes_array, print_func) ->
+# main function that gets called from the frontend
+root.run_jvm = (bytecode_string, print_func) ->
+  bytes_array = (bytecode_string.charCodeAt(i) for i in [0...bytecode_string.length])
   print_func "Running the bytecode now...\n"
   try
     class_data = parse_classfile bytes_array

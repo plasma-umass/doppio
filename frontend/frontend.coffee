@@ -16,7 +16,6 @@ compile_source = (java_source) ->
     data: { pw: 'coffee', source: java_source }
     dataType: 'text'
     beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
-    dataFilter: (data,type) -> parse_bytecode(data)
     success: run_bytecode
     error: (jqXHR, textStatus, errorThrown) -> 
       $('#output').text("AJAX error: #{errorThrown}")
