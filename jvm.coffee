@@ -28,5 +28,10 @@ check_header = (bytes_array) ->
   super_class  = read_uint(bytes_array[14+constant_pool_size...16+constant_pool_size])
   # etc.
 
-root.run_jvm = (bytes_array) ->
-  constant_pool = check_header bytes_array
+root.run_jvm = (bytes_array, print_func) ->
+  print_func "Running the bytecode now...\n"
+  try
+    constant_pool = check_header bytes_array
+  catch error
+    print_func "Error in header: #{error}"
+  print_func "JVM run finished.\n"

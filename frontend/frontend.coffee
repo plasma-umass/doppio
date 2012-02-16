@@ -3,8 +3,10 @@ button_idle_text = 'Compile and Run'
 
 run_bytecode = (bytecode) ->
   $('#go_button').text('Running...')
-  $('#output').text(bytecode.toString())
-  alert "TODO: actually implement the JVM"
+  # this is a silly hack to pass a "print"-like function to our JVM
+  output = $('#output')[0]
+  output.value = ''
+  run_jvm(bytecode, (msg) -> output.value += msg)
   $('#go_button').text(button_idle_text)
 
 compile_source = (java_source) ->
