@@ -37,7 +37,7 @@ const_float = (bytes_array) ->
   sign = (uint32 &       0x80000000)>>>31
   exponent = (uint32 &   0x7F800000)>>>23
   significand = uint32 & 0x007FFFFF
-  single = Math.pow(-1,sign)*significand*Math.pow(2,-23)*Math.pow(2,exponent-127)
+  single = Math.pow(-1,sign)*(1+significand*Math.pow(2,-23))*Math.pow(2,exponent-127)
   return [single,bytes_array]
 
 class root.ConstantPool
