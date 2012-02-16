@@ -3,7 +3,7 @@ button_idle_text = 'Compile and Run'
 
 run_bytecode = (bytecode) ->
 	$('#go_button').text('Running...')
-	$('#output').text(bytecode)
+	$('#output').text(bytecode.toString())
 	alert "TODO: actually implement the JVM"
 	$('#go_button').text(button_idle_text)
 
@@ -12,6 +12,9 @@ compile_source = (java_source) ->
 	$.ajax 'http://www.cs.umass.edu/~ccarey/javac/', {
 		type: 'POST'
 		data: { pw: 'coffee', source: java_source }
+		dataType: 'text'
+		beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
+		dataFilter: (data,type) -> parse_bytecode(data)
 		success: run_bytecode
 		error: (jqXHR, textStatus, errorThrown) -> 
 			$('#output').text("AJAX error: #{errorThrown}")
@@ -19,5 +22,6 @@ compile_source = (java_source) ->
 	}
 
 $(document).ready ->
+	$('#go_button').text(button_idle_text)
 	$('#go_button').click (event) ->
 		compile_source $('#source').val()
