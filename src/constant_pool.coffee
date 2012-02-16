@@ -32,6 +32,14 @@ const_int32 = (bytes_array) ->
   int32 = -(1 + ~uint32)  # convert to signed integer
   return [int32,bytes_array]
 
+const_float = (bytes_array) ->
+  uint32 = read_uint(bytes_array.splice(0,4))
+  sign = (uint32 &       0x80000000)>>>31
+  exponent = (uint32 &   0x7F800000)>>>23
+  significand = uint32 & 0x007FFFFF
+  single = Math.pow(-1,sign)*significand*Math.pow(2,-23)*Math.pow(2,exponent-127)
+  return [single,bytes_array]
+
 class root.ConstantPool
   constructor: () ->
     @constant_pool = [null]  # indexes from 1, so we'll pad the array
@@ -40,7 +48,7 @@ class root.ConstantPool
     #TODO: fill this in for the rest of the tags
     constant_tags = {
       10: method_reference, 7: class_reference, 1: const_string, 12: method_signature, 
-      9:field_reference, 3: const_int32
+      9:field_reference,4: const_float, 3: const_int32
     }
     cp_count = read_uint(bytes_array.splice(0,2))
     for _ in [1...cp_count]
