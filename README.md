@@ -11,3 +11,8 @@ TODOs
  - choose a sexier name
  - everything else (populate this with things as they arise)
 
+Useful Links
+------------
+ - [JVM Opcodes](http://java.sun.com/docs/books/jvms/second_edition/html/Mnemonics.doc.html)
+ - [.class file spec](http://java.sun.com/docs/books/jvms/second_edition/html/ClassFile.doc.html)
+ - [Wikipedia's .class file page](http://en.wikipedia.org/wiki/Java_class_file)
