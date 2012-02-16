@@ -27,6 +27,11 @@ method_signature = (bytes_array) ->
   type_name = read_uint(bytes_array.splice(0,2))
   return [{'method_signature':[meth_name,type_name]},bytes_array]
 
+const_int32 = (bytes_array) ->
+  uint32 = read_uint(bytes_array.splice(0,4))
+  int32 = -(1 + ~uint32)  # convert to signed integer
+  return [int32,bytes_array]
+
 class root.ConstantPool
   constructor: () ->
     @constant_pool = [null]  # indexes from 1, so we'll pad the array
@@ -34,7 +39,8 @@ class root.ConstantPool
   parse: (bytes_array) ->
     #TODO: fill this in for the rest of the tags
     constant_tags = {
-      10: method_reference, 7: class_reference, 1: const_string, 12: method_signature, 9:field_reference
+      10: method_reference, 7: class_reference, 1: const_string, 12: method_signature, 
+      9:field_reference, 3: const_int32
     }
     cp_count = read_uint(bytes_array.splice(0,2))
     for _ in [1...cp_count]

@@ -1,6 +1,6 @@
 
 # things assigned to root will be available outside this module
-root = exports ? this 
+root = exports ? this
 
 class Method
   parse: (bytes_array) ->
