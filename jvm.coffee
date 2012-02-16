@@ -5,6 +5,7 @@ _ ?= require './third_party/underscore-min.js'
 # things assigned to root will be available outside this module
 root = exports ? this
 
+# global-level because the frontend calls this on the raw data in the AJAX response
 root.parse_bytecode = (bytecode_string) -> 
   (bytecode_string.charCodeAt(i) & 0xFF for i in [0...bytecode_string.length])
 
@@ -16,16 +17,26 @@ read_uint = (bytes) ->
   _.reduce(bytes[i]*Math.pow(2,8*(n-i)) for i in [0..n], ((a,b) -> a+b), 0)
 
 check_header = (bytes_array) ->
-  throw "Bytecode too short" if bytes_array.length < 10
-  throw "Magic number invalid" if read_uint(bytes_array[0...4]) != 0xCAFEBABE
-  # minor_version = read_uint(bytes_array[4...6])
-  throw "Major version invalid" unless 45 <= read_uint(bytes_array[6...8]) <= 51
-  # constant_pool size (don't know why it's plus one, but it's in the spec)
-  constant_pool_size = read_uint(bytes_array[8...10])-1
-  constant_pool = bytes_array[10...10+constant_pool_size]
-  access_flags = read_uint(bytes_array[10+constant_pool_size...12+constant_pool_size])
-  this_class   = read_uint(bytes_array[12+constant_pool_size...14+constant_pool_size])
-  super_class  = read_uint(bytes_array[14+constant_pool_size...16+constant_pool_size])
+  idx = 0  # fancy closure hides the increments
+  read_u2 = -> read_uint(bytes_array[idx...(idx+=2)])
+  read_u4 = -> read_uint(bytes_array[idx...(idx+=4)])
+  throw "Magic number invalid" if read_u4() != 0xCAFEBABE
+  minor_version = read_u2()  # unused, but it increments idx
+  throw "Major version invalid" unless 45 <= read_u2() <= 51
+  # constant pool contains things like ints and strings and the class name
+  cpsize = read_u2()-1  # don't know why it's plus one, but it's in the spec
+  constant_pool = bytes_array[idx...(idx+=cpsize)]
+  # bitmask for {public,final,super,interface,abstract} class modifier
+  access_flags = read_u2
+  # indices into constant_pool for this and super classes. super_class == 0 for Object
+  this_class   = read_u2
+  super_class  = read_u2
+  # direct interfaces of this class
+  isize = read_u2
+  interfaces = bytes_array[idx...(idx+=isize)]
+  # fields of this class
+  fsize = read_u2
+  fields = bytes_array[idx...(idx+=fsize)]
   # etc.
 
 root.run_jvm = (bytes_array, print_func) ->
