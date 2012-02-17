@@ -3,17 +3,13 @@
 root = exports ? this
 
 class Method
-  parse: (bytes_array) ->
+  parse: (bytes_array,constant_pool) ->
     @access_flags = read_uint(bytes_array.splice(0,2))
-    @name_ref = read_uint(bytes_array.splice(0,2))
-    throw "Method.parse: Invalid constant_pool name reference" if @name_ref == 0 
-    @desc_ref = read_uint(bytes_array.splice(0,2))
-    throw "Method.parse: Invalid constant_pool name reference" if @desc_ref == 0
-    num_attrs = read_uint(bytes_array.splice(0,2))
-    @attrs = (new Attribute for _ in [0...num_attrs])
-    for attr in @attrs
-      bytes_array = attr.parse(bytes_array)
-    # only attrs on methods should be Code, Exceptions, Synthetic, and Deprecated
+    @name = constant_pool[read_uint(bytes_array.splice(0,2))]
+    throw "Method.parse: Invalid constant_pool name reference" unless @name
+    @signature = constant_pool[read_uint(bytes_array.splice(0,2))]
+    throw "Method.parse: Invalid constant_pool signature reference" unless @signature
+    [@attrs,bytes_array] = make_attributes(bytes_array,constant_pool)
     return bytes_array
 
 class ClassFile
@@ -28,9 +24,9 @@ class ClassFile
     @constant_pool = cp.condense()
     # bitmask for {public,final,super,interface,abstract} class modifier
     @access_flags = read_u2()
-    # indices into constant_pool for this and super classes. super_class == 0 for Object?
-    @this_class  = read_u2()
-    @super_class = read_u2()
+    # indices into constant_pool for this and super classes.
+    @this_class  = @constant_pool[@constant_pool[read_u2()]['class_reference']]
+    @super_class = @constant_pool[@constant_pool[read_u2()]['class_reference']]
     # direct interfaces of this class
     isize = read_u2()
     @interfaces = (read_u2() for _ in [0...isize])
@@ -39,19 +35,15 @@ class ClassFile
     #TODO: replace the new Method call with something for fields (method_info and field_info look the same)
     @fields = (new Method for _ in [0...num_fields])
     for f in @fields
-      bytes_array = f.parse(bytes_array)
-    console.log this  #TODO: figure out why methods shows up here?!
+      bytes_array = f.parse(bytes_array,@constant_pool)
     # class methods
     num_methods = read_u2()
     @methods = (new Method for _ in [0...num_methods])
     for m in @methods
-      bytes_array = m.parse(bytes_array)
+      bytes_array = m.parse(bytes_array,@constant_pool)
     # class attributes
-    num_attrs = read_u2()
-    @attrs = (new Attribute for _ in [0...num_attrs])
-    for attr in @attrs
-      bytes_array = attr.parse(bytes_array)
-    console.log "leftover bytes:", bytes_array
+    [@attrs,bytes_array] = make_attributes(bytes_array,@constant_pool)
+    throw "Leftover bytes in classfile: #{bytes_array}" if bytes_array.length > 0
 
 # main function that gets called from the frontend
 root.run_jvm = (bytecode_string, print_func) ->
