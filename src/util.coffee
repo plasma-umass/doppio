@@ -7,12 +7,14 @@ root = exports ? this
 
 sum = (list) -> _.reduce(list, ((a,b) -> a+b), 0)
 
+# implments x<<n without the braindead javascript << operator
+# (see http://stackoverflow.com/questions/337355/javascript-bitwise-shift-of-long-long-number)
+root.lshift = (x,n) -> x*Math.pow(2,n)
+
 root.read_uint = (bytes) -> 
   n = bytes.length-1
   # sum up the byte values shifted left to the right alignment.
-  # Javascript is dumb when it comes to actual shifting, so you have to do it manually.
-  # (see http://stackoverflow.com/questions/337355/javascript-bitwise-shift-of-long-long-number)
-  sum((bytes[i]&0xFF)*Math.pow(2,8*(n-i)) for i in [0..n])
+  sum(lshift(bytes[i]&0xFF,8*(n-i)) for i in [0..n])
 
 class ExceptionHandler
   parse: (bytes_array,constant_pool) ->

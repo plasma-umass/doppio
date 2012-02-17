@@ -5,32 +5,32 @@ root = exports ? this
 method_reference = (bytes_array) ->
   class_ref = read_uint(bytes_array.splice(0,2))
   method_sig = read_uint(bytes_array.splice(0,2))
-  return [{'method_reference':[class_ref,method_sig]}, bytes_array]
+  return [{'method_reference':[class_ref,method_sig]}, 1, bytes_array]
 
 field_reference = (bytes_array) ->
   class_ref = read_uint(bytes_array.splice(0,2))
   field_sig = read_uint(bytes_array.splice(0,2))
-  return [{'field_reference':[class_ref,field_sig]}, bytes_array]
+  return [{'field_reference':[class_ref,field_sig]}, 1, bytes_array]
 
 class_reference = (bytes_array) ->
   class_name = read_uint(bytes_array.splice(0,2))
-  return [{'class_reference': class_name}, bytes_array]
+  return [{'class_reference': class_name}, 1, bytes_array]
 
 const_string = (bytes_array) ->
   strlen = read_uint(bytes_array.splice(0,2))
   #TODO: this doesn't actually decode the real unicode repr. But it'll work for ascii...
   rawstr = (String.fromCharCode(c) for c in bytes_array.splice(0,strlen)).join('')
-  return [rawstr,bytes_array]
+  return [rawstr,1,bytes_array]
 
 method_signature = (bytes_array) ->
   meth_name = read_uint(bytes_array.splice(0,2))
   type_name = read_uint(bytes_array.splice(0,2))
-  return [{'method_signature':[meth_name,type_name]},bytes_array]
+  return [{'method_signature':[meth_name,type_name]},1,bytes_array]
 
 const_int32 = (bytes_array) ->
   uint32 = read_uint(bytes_array.splice(0,4))
   int32 = -(1 + ~uint32)  # convert to signed integer
-  return [int32,bytes_array]
+  return [int32,1,bytes_array]
 
 const_float = (bytes_array) ->
   uint32 = read_uint(bytes_array.splice(0,4))
@@ -38,29 +38,25 @@ const_float = (bytes_array) ->
   exponent = (uint32 &   0x7F800000)>>>23
   significand = uint32 & 0x007FFFFF
   single = Math.pow(-1,sign)*(1+significand*Math.pow(2,-23))*Math.pow(2,exponent-127)
-  return [single,bytes_array]
+  return [single,1,bytes_array]
 
 const_long = (bytes_array) ->
   uint64 = read_uint(bytes_array.splice(0,8))
   int64 = -(1 + ~uint64)  # convert to signed integer
-  return [int64,bytes_array]
+  return [int64,2,bytes_array]
 
 const_double = (bytes_array) -> #untested...
   #a hack since bitshifting in js is 32bit
   uint32_a = read_uint(bytes_array.splice(0,4))
   uint32_b = read_uint(bytes_array.splice(0,4))
-  
-  sign = (uint32_a &       0x80000000)>>>31
-  exponent = (uint32_a &   0x7FF00000)>>>20
-  significand = uint32_a & 0x000FFFFF
-  significand = (significand)*Math.pow(2,32)+uint32_b
+  console.log "parts:", uint32_a, uint32_b
+  sign     = (uint32_a & 0x80000000)>>>31
+  exponent = (uint32_a & 0x7FF00000)>>>20
+  significand = lshift(uint32_a & 0x000FFFFF, 32) + uint32_b
   double = Math.pow(-1,sign)*(1+significand*Math.pow(2,-52))*Math.pow(2,exponent-1023)
-  return [double,bytes_array]
+  return [double,2,bytes_array]
 
 class root.ConstantPool
-  constructor: () ->
-    @constant_pool = [null]  # indexes from 1, so we'll pad the array
-  
   parse: (bytes_array) ->
     #TODO: fill this in for the rest of the tags
     constant_tags = {
@@ -69,13 +65,14 @@ class root.ConstantPool
       9:field_reference, 10: method_reference, 12: method_signature
     }
     cp_count = read_uint(bytes_array.splice(0,2))
-    for _ in [1...cp_count]
+    @constant_pool = (null for _ in [0...cp_count])
+    idx = 1  # CP indexing starts at zero
+    while idx < cp_count
       tag = bytes_array.shift()
-      if(tag==0)
-        continue
       throw "invalid tag: #{tag}" unless 1 <= tag <= 12
-      [val,bytes_array] = constant_tags[tag](bytes_array)
-      @constant_pool.push val
+      [val,size,bytes_array] = constant_tags[tag](bytes_array)
+      @constant_pool[idx] = val
+      idx += size
     return bytes_array
   
   condense: () ->
