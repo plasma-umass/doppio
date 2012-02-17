@@ -13,8 +13,12 @@ field_reference = (bytes_array) ->
   return [{'field_reference':[class_ref,field_sig]}, 1, bytes_array]
 
 class_reference = (bytes_array) ->
-  class_name = read_uint(bytes_array.splice(0,2))
-  return [{'class_reference': class_name}, 1, bytes_array]
+  class_name_ref = read_uint(bytes_array.splice(0,2))
+  return [{'class_reference': class_name_ref}, 1, bytes_array]
+
+string_reference = (bytes_array) ->
+  str_ref = read_uint(bytes_array.splice(0,2))
+  return [{'string_reference': str_ref}, 1, bytes_array]
 
 const_string = (bytes_array) ->
   strlen = read_uint(bytes_array.splice(0,2))
@@ -29,7 +33,7 @@ method_signature = (bytes_array) ->
 
 const_int32 = (bytes_array) ->
   uint32 = read_uint(bytes_array.splice(0,4))
-  int32 = -(1 + ~uint32)  # convert to signed integer
+  int32 = -(1 + ~uint32)  # convert to signed integer ONLY FOR 32 BITS
   return [int32,1,bytes_array]
 
 const_float = (bytes_array) ->
@@ -41,15 +45,17 @@ const_float = (bytes_array) ->
   return [single,1,bytes_array]
 
 const_long = (bytes_array) ->
-  uint64 = read_uint(bytes_array.splice(0,8))
-  int64 = -(1 + ~uint64)  # convert to signed integer
+  int64 = read_uint(bytes_array.splice(0,8))
+  # this makes me feel dirty. I hate Javscript's lack of (real) bitwise operators
+  s = padleft(int64.toString(2),64,'0')
+  if s[0] == '1'
+    int64 = -(1 + bitwise_not(int64,64))
   return [int64,2,bytes_array]
 
 const_double = (bytes_array) -> #untested...
   #a hack since bitshifting in js is 32bit
   uint32_a = read_uint(bytes_array.splice(0,4))
   uint32_b = read_uint(bytes_array.splice(0,4))
-  console.log "parts:", uint32_a, uint32_b
   sign     = (uint32_a & 0x80000000)>>>31
   exponent = (uint32_a & 0x7FF00000)>>>20
   significand = lshift(uint32_a & 0x000FFFFF, 32) + uint32_b
@@ -61,7 +67,7 @@ class root.ConstantPool
     #TODO: fill this in for the rest of the tags
     constant_tags = {
       1: const_string, 3: const_int32, 4: const_float, 5: const_long,
-      6: const_double, 7: class_reference, 
+      6: const_double, 7: class_reference, 8: string_reference,
       9:field_reference, 10: method_reference, 12: method_signature
     }
     cp_count = read_uint(bytes_array.splice(0,2))
