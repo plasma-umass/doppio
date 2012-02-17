@@ -11,6 +11,15 @@ class Method
     throw "Method.parse: Invalid constant_pool signature reference" unless @signature
     [@attrs,bytes_array] = make_attributes(bytes_array,constant_pool)
     return bytes_array
+  
+  run: () ->
+    code = @attrs[0].code  #TODO: make this less brittle, maybe with typeof
+    until code.length == 0
+      c = code.shift()&0xFF
+      console.log c
+      op = opcodes[c]
+      code = op.take_args(code)
+      console.log op.name, op.args
 
 class ClassFile
   constructor: (bytes_array) ->
@@ -50,5 +59,8 @@ root.run_jvm = (bytecode_string, print_func) ->
   bytes_array = (bytecode_string.charCodeAt(i) for i in [0...bytecode_string.length])
   print_func "Running the bytecode now...\n"
   class_data = new ClassFile(bytes_array)
-  print_func "JVM run finished.\n"
   console.log class_data
+  # try to look at the opcodes
+  for m in class_data.methods
+    m.run()
+  print_func "JVM run finished.\n"

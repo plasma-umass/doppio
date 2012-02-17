@@ -7,6 +7,11 @@ method_reference = (bytes_array) ->
   method_sig = read_uint(bytes_array.splice(0,2))
   return [{'method_reference':[class_ref,method_sig]}, 1, bytes_array]
 
+interface_method_reference = (bytes_array) ->
+  class_ref = read_uint(bytes_array.splice(0,2))
+  method_sig = read_uint(bytes_array.splice(0,2))
+  return [{'interface_method_reference':[class_ref,iface_sig]}, 1, bytes_array]
+
 field_reference = (bytes_array) ->
   class_ref = read_uint(bytes_array.splice(0,2))
   field_sig = read_uint(bytes_array.splice(0,2))
@@ -52,7 +57,7 @@ const_long = (bytes_array) ->
     int64 = -(1 + bitwise_not(int64,64))
   return [int64,2,bytes_array]
 
-const_double = (bytes_array) -> #untested...
+const_double = (bytes_array) ->
   #a hack since bitshifting in js is 32bit
   uint32_a = read_uint(bytes_array.splice(0,4))
   uint32_b = read_uint(bytes_array.splice(0,4))
@@ -64,11 +69,10 @@ const_double = (bytes_array) -> #untested...
 
 class root.ConstantPool
   parse: (bytes_array) ->
-    #TODO: fill this in for the rest of the tags
     constant_tags = {
       1: const_string, 3: const_int32, 4: const_float, 5: const_long,
-      6: const_double, 7: class_reference, 8: string_reference,
-      9:field_reference, 10: method_reference, 12: method_signature
+      6: const_double, 7: class_reference, 8: string_reference, 9: field_reference,
+      10: method_reference, 11: interface_method_reference, 12: method_signature
     }
     cp_count = read_uint(bytes_array.splice(0,2))
     @constant_pool = (null for _ in [0...cp_count])
