@@ -5,9 +5,9 @@ root = exports ? this
 class Method
   parse: (bytes_array,constant_pool) ->
     @access_flags = read_uint(bytes_array.splice(0,2))
-    @name = constant_pool[read_uint(bytes_array.splice(0,2))]
+    @name = constant_pool.get(read_uint(bytes_array.splice(0,2))).value
     throw "Method.parse: Invalid constant_pool name reference" unless @name
-    @signature = constant_pool[read_uint(bytes_array.splice(0,2))]
+    @signature = constant_pool.get(read_uint(bytes_array.splice(0,2))).value
     throw "Method.parse: Invalid constant_pool signature reference" unless @signature
     [@attrs,bytes_array] = make_attributes(bytes_array,constant_pool)
     return bytes_array
@@ -28,14 +28,15 @@ class ClassFile
     throw "Magic number invalid" if read_u4() != 0xCAFEBABE
     minor_version = read_u2()  # unused, but it cuts off two bytes
     throw "Major version invalid" unless 45 <= read_u2() <= 51
-    cp = new ConstantPool
-    bytes_array = cp.parse(bytes_array)
-    @constant_pool = cp.condense()
+    @constant_pool = new ConstantPool
+    bytes_array = @constant_pool.parse(bytes_array)
     # bitmask for {public,final,super,interface,abstract} class modifier
     @access_flags = read_u2()
     # indices into constant_pool for this and super classes.
-    @this_class  = @constant_pool[@constant_pool[read_u2()]['class_reference']]
-    @super_class = @constant_pool[@constant_pool[read_u2()]['class_reference']]
+    this_class_ref = @constant_pool.get(read_u2()).value.class_reference
+    super_class_ref = @constant_pool.get(read_u2()).value.class_reference
+    @this_class  = @constant_pool.get(this_class_ref).value
+    @super_class = @constant_pool.get(super_class_ref).value
     # direct interfaces of this class
     isize = read_u2()
     @interfaces = (read_u2() for _ in [0...isize])

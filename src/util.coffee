@@ -35,7 +35,8 @@ class ExceptionHandler
     @end_pc     = read_uint(bytes_array.splice(0,2))
     @handler_pc = read_uint(bytes_array.splice(0,2))
     cti = read_uint(bytes_array.splice(0,2))
-    @catch_type = if cti==0 then "<all>" else constant_pool[constant_pool[cti]['class_reference']]
+    catch_type_ref = constant_pool.get(cti).value.class_reference
+    @catch_type = if cti==0 then "<all>" else constant_pool.get(catch_type_ref).value
     return bytes_array
   
 class Code
@@ -64,7 +65,7 @@ class LineNumberTable extends Array
 
 class SourceFile
   parse: (bytes_array,constant_pool) ->
-    @source_file = constant_pool[read_uint(bytes_array.splice(0,2))]
+    @source_file = constant_pool.get(read_uint(bytes_array.splice(0,2))).value
     return bytes_array
 
 root.make_attributes = (bytes_array,constant_pool) ->
@@ -73,7 +74,7 @@ root.make_attributes = (bytes_array,constant_pool) ->
   num_attrs = read_uint(bytes_array.splice(0,2))
   attrs = []
   for _ in [0...num_attrs]
-    name = constant_pool[read_uint(bytes_array.splice(0,2))]
+    name = constant_pool.get(read_uint(bytes_array.splice(0,2))).value
     throw "Attribute.parse: Invalid constant_pool reference: '#{name}'" unless name
     attr_len = read_uint(bytes_array.splice(0,4))  # unused
     attr = new attr_types[name]

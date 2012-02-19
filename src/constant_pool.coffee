@@ -75,16 +75,16 @@ class root.ConstantPool
       10: method_reference, 11: interface_method_reference, 12: method_signature
     }
     cp_count = read_uint(bytes_array.splice(0,2))
-    @constant_pool = (null for _ in [0...cp_count])
+    @constant_pool = []
     idx = 1  # CP indexing starts at zero
     while idx < cp_count
       tag = bytes_array.shift()
       throw "invalid tag: #{tag}" unless 1 <= tag <= 12
-      [val,size,bytes_array] = constant_tags[tag](bytes_array)
-      @constant_pool[idx] = val
+      tag_func = constant_tags[tag]
+      [val,size,bytes_array] = tag_func(bytes_array)
+      @constant_pool[idx] = { type: tag_func.name, value: val }
       idx += size
     return bytes_array
   
-  condense: () ->
-    #TODO: straighten out the references in the array (preserving indices)
-    return @constant_pool
+  get: (idx) ->
+    return @constant_pool[idx]
