@@ -33,8 +33,8 @@ class ClassFile
     # bitmask for {public,final,super,interface,abstract} class modifier
     @access_flags = read_u2()
     # indices into constant_pool for this and super classes.
-    this_class_ref = @constant_pool.get(read_u2()).value.class_reference
-    super_class_ref = @constant_pool.get(read_u2()).value.class_reference
+    this_class_ref = @constant_pool.get(read_u2()).value
+    super_class_ref = @constant_pool.get(read_u2()).value
     @this_class  = @constant_pool.get(this_class_ref).value
     @super_class = @constant_pool.get(super_class_ref).value
     # direct interfaces of this class
@@ -55,6 +55,11 @@ class ClassFile
     [@attrs,bytes_array] = make_attributes(bytes_array,@constant_pool)
     throw "Leftover bytes in classfile: #{bytes_array}" if bytes_array.length > 0
 
+decompile = (class_file) ->
+    constant_pool = class_file.constant_pool
+    constant_pool.each (idx, entry) ->
+      console.log("const ##{idx} = #{entry.type}\t#{entry.value};")
+
 # main function that gets called from the frontend
 root.run_jvm = (bytecode_string, print_func) ->
   bytes_array = (bytecode_string.charCodeAt(i) for i in [0...bytecode_string.length])
@@ -65,3 +70,4 @@ root.run_jvm = (bytecode_string, print_func) ->
   for m in class_data.methods
     m.run()
   print_func "JVM run finished.\n"
+  decompile(class_data)

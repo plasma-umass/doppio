@@ -5,41 +5,41 @@ root = exports ? this
 method_reference = (bytes_array) ->
   class_ref = read_uint(bytes_array.splice(0,2))
   method_sig = read_uint(bytes_array.splice(0,2))
-  return [{'method_reference':[class_ref,method_sig]}, 1, bytes_array]
+  return ['Method', [class_ref,method_sig], 1, bytes_array]
 
 interface_method_reference = (bytes_array) ->
   class_ref = read_uint(bytes_array.splice(0,2))
   method_sig = read_uint(bytes_array.splice(0,2))
-  return [{'interface_method_reference':[class_ref,iface_sig]}, 1, bytes_array]
+  return ['InterfaceMethod', [class_ref,iface_sig], 1, bytes_array]
 
 field_reference = (bytes_array) ->
   class_ref = read_uint(bytes_array.splice(0,2))
   field_sig = read_uint(bytes_array.splice(0,2))
-  return [{'field_reference':[class_ref,field_sig]}, 1, bytes_array]
+  return ['Field', [class_ref,field_sig], 1, bytes_array]
 
 class_reference = (bytes_array) ->
   class_name_ref = read_uint(bytes_array.splice(0,2))
-  return [{'class_reference': class_name_ref}, 1, bytes_array]
+  return ['Class', class_name_ref, 1, bytes_array]
 
 string_reference = (bytes_array) ->
   str_ref = read_uint(bytes_array.splice(0,2))
-  return [{'string_reference': str_ref}, 1, bytes_array]
+  return ['String', str_ref, 1, bytes_array]
 
 const_string = (bytes_array) ->
   strlen = read_uint(bytes_array.splice(0,2))
   #TODO: this doesn't actually decode the real unicode repr. But it'll work for ascii...
   rawstr = (String.fromCharCode(c) for c in bytes_array.splice(0,strlen)).join('')
-  return [rawstr,1,bytes_array]
+  return ['Asciz', rawstr, 1, bytes_array]
 
 method_signature = (bytes_array) ->
   meth_name = read_uint(bytes_array.splice(0,2))
   type_name = read_uint(bytes_array.splice(0,2))
-  return [{'method_signature':[meth_name,type_name]},1,bytes_array]
+  return ['NameAndType', [meth_name,type_name],1,bytes_array]
 
 const_int32 = (bytes_array) ->
   uint32 = read_uint(bytes_array.splice(0,4))
   int32 = -(1 + ~uint32)  # convert to signed integer ONLY FOR 32 BITS
-  return [int32,1,bytes_array]
+  return ['int', int32, 1, bytes_array]
 
 const_float = (bytes_array) ->
   uint32 = read_uint(bytes_array.splice(0,4))
@@ -47,7 +47,7 @@ const_float = (bytes_array) ->
   exponent = (uint32 &   0x7F800000)>>>23
   significand = uint32 & 0x007FFFFF
   single = Math.pow(-1,sign)*(1+significand*Math.pow(2,-23))*Math.pow(2,exponent-127)
-  return [single,1,bytes_array]
+  return ['float', single,1,bytes_array]
 
 const_long = (bytes_array) ->
   int64 = read_uint(bytes_array.splice(0,8))
@@ -55,7 +55,7 @@ const_long = (bytes_array) ->
   s = padleft(int64.toString(2),64,'0')
   if s[0] == '1'
     int64 = -(1 + bitwise_not(int64,64))
-  return [int64,2,bytes_array]
+  return ['long', int64,2,bytes_array]
 
 const_double = (bytes_array) ->
   #a hack since bitshifting in js is 32bit
@@ -65,7 +65,7 @@ const_double = (bytes_array) ->
   exponent = (uint32_a & 0x7FF00000)>>>20
   significand = lshift(uint32_a & 0x000FFFFF, 32) + uint32_b
   double = Math.pow(-1,sign)*(1+significand*Math.pow(2,-52))*Math.pow(2,exponent-1023)
-  return [double,2,bytes_array]
+  return ['double', double,2,bytes_array]
 
 class root.ConstantPool
   parse: (bytes_array) ->
@@ -74,17 +74,21 @@ class root.ConstantPool
       6: const_double, 7: class_reference, 8: string_reference, 9: field_reference,
       10: method_reference, 11: interface_method_reference, 12: method_signature
     }
-    cp_count = read_uint(bytes_array.splice(0,2))
-    @constant_pool = []
+    @cp_count = read_uint(bytes_array.splice(0,2))
+    # constant_pool works like an array, but not all indices have values
+    @constant_pool = {}
     idx = 1  # CP indexing starts at zero
-    while idx < cp_count
+    while idx < @cp_count
       tag = bytes_array.shift()
       throw "invalid tag: #{tag}" unless 1 <= tag <= 12
-      tag_func = constant_tags[tag]
-      [val,size,bytes_array] = tag_func(bytes_array)
-      @constant_pool[idx] = { type: tag_func.name, value: val }
+      [type,val,size,bytes_array] = constant_tags[tag](bytes_array)
+      @constant_pool[idx] = { type: type, value: val }
       idx += size
     return bytes_array
   
   get: (idx) ->
     return @constant_pool[idx]
+
+  each: (fn) ->
+    for i in [0..@cp_count] when i of @constant_pool
+      fn(i, @constant_pool[i])
