@@ -2,11 +2,14 @@
 <head>
 	<title>Coffee-JVM: A JVM in Coffeescript</title>
 	<style type="text/css">
-		body {margin: 1em;}
-		#main {height: 50%;}
-		textarea {width:40%; height: 100%; font-family: monospace;}
-		#source {float:left; }
-		#go_button {float: left; width:10%; height: 20%; margin: 8% 1em;}
+    html, body, div, span, h1, h2, h3 {margin:0;padding:0;border:0}
+		#main {margin: 0 auto;width:960px;}
+    h1#title {float:left;margin:10px;}
+		textarea {width:100%;font-family: monospace;margin:0 0 15px 0;}
+    textarea#source { height: 38%; }
+    textarea#decompiler_output { height: 22%; }
+    textarea#output { height: 12%; }
+		#go_button {padding:10px 30px;float:right;line-height:10px}
 	</style>
 	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
 	<script type="text/javascript" src="../third_party/underscore-min.js"></script>
@@ -17,16 +20,17 @@
 	<script type="text/javascript" src="frontend.js"></script>
 </head>
 <body>
-	<h1>Coffee-JVM</h1>
-	<p id='main'>
+	<div id='main'>
+    <h1 id='title'>Coffee-JVM</h1>
+    <button id='go_button' type='button'></button>
 	<textarea id='source'>class Test {
   public static void main(String[] args) {
     // enter code here
   }
 }</textarea>
-	<button id='go_button' type='button'></button>
+  <textarea id='decompiler_output' readonly='readonly'>Decompiled bytecode will appear here.</textarea>
 	<textarea id='output' readonly='readonly'>Output from System.out and System.err will appear here.</textarea>
-	</p>
-	Check the <a href="https://github.com/int3/coffee-jvm">project page</a> for the latest updates.
+  Check the <a href="https://github.com/int3/coffee-jvm">project page</a> for the latest updates.
+	</div>
 </body>
 </html>

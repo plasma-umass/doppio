@@ -6,7 +6,10 @@ run_bytecode = (bytecode) ->
   # this is a silly hack to pass a "print"-like function to our JVM
   output = $('#output')[0]
   output.value = ''
-  run_jvm(bytecode, (msg) -> output.value += msg)
+  decompiler_output = $('#decompiler_output')[0]
+  decompiler_output.value = ''
+  run_jvm(bytecode, ((msg) -> output.value += msg),
+          ((msg) -> decompiler_output.value += msg))
   $('#go_button').text(button_idle_text)
 
 compile_source = (java_source) ->

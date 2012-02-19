@@ -57,11 +57,13 @@ class ClassFile
 
 decompile = (class_file) ->
     constant_pool = class_file.constant_pool
+    rv = ""
     constant_pool.each (idx, entry) ->
-      console.log("const ##{idx} = #{entry.type}\t#{entry.value};")
+      rv += "const ##{idx} = #{entry.type}\t#{entry.value};\n"
+    return rv
 
 # main function that gets called from the frontend
-root.run_jvm = (bytecode_string, print_func) ->
+root.run_jvm = (bytecode_string, print_func, decompile_print_func) ->
   bytes_array = (bytecode_string.charCodeAt(i) for i in [0...bytecode_string.length])
   print_func "Running the bytecode now...\n"
   class_data = new ClassFile(bytes_array)
@@ -70,4 +72,4 @@ root.run_jvm = (bytecode_string, print_func) ->
   for m in class_data.methods
     m.run()
   print_func "JVM run finished.\n"
-  decompile(class_data)
+  decompile_print_func decompile(class_data)
