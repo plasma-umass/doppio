@@ -65,7 +65,7 @@ class LineNumberTable extends Array
 
 class SourceFile
   parse: (bytes_array,constant_pool) ->
-    @source_file = constant_pool.get(read_uint(bytes_array.splice(0,2))).value
+    @name = constant_pool.get(read_uint(bytes_array.splice(0,2))).value
     return bytes_array
 
 root.make_attributes = (bytes_array,constant_pool) ->

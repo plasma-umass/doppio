@@ -26,8 +26,9 @@ class ClassFile
     read_u2 = -> read_uint(bytes_array.splice(0,2))
     read_u4 = -> read_uint(bytes_array.splice(0,4))
     throw "Magic number invalid" if read_u4() != 0xCAFEBABE
-    minor_version = read_u2()  # unused, but it cuts off two bytes
-    throw "Major version invalid" unless 45 <= read_u2() <= 51
+    @minor_version = read_u2()
+    @major_version = read_u2()
+    throw "Major version invalid" unless 45 <= @major_version <= 51
     @constant_pool = new ConstantPool
     bytes_array = @constant_pool.parse(bytes_array)
     # bitmask for {public,final,super,interface,abstract} class modifier
@@ -56,11 +57,17 @@ class ClassFile
     throw "Leftover bytes in classfile: #{bytes_array}" if bytes_array.length > 0
 
 decompile = (class_file) ->
-    constant_pool = class_file.constant_pool
-    rv = ""
-    constant_pool.each (idx, entry) ->
-      rv += "const ##{idx} = #{entry.type}\t#{entry.value};\n"
-    return rv
+  canonical = (str) -> str.replace /\//g, '.'
+  rv = ""
+  source_file = _.find(class_file.attrs, (attr) -> attr.constructor.name == 'SourceFile')
+  rv += "class #{class_file.this_class} extends #{canonical class_file.super_class}\n"
+  rv += "  SourceFile: \"#{source_file.name}\"\n" if source_file
+  rv += "  minor version: #{class_file.minor_version}\n"
+  rv += "  major version: #{class_file.major_version}\n"
+  rv += "  Constant pool:\n"
+  class_file.constant_pool.each (idx, entry) ->
+    rv += "const ##{idx} = #{entry.type}\t#{entry.value};\n"
+  return rv
 
 # main function that gets called from the frontend
 root.run_jvm = (bytecode_string, print_func, decompile_print_func) ->
