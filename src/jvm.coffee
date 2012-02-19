@@ -33,11 +33,8 @@ class ClassFile
     bytes_array = @constant_pool.parse(bytes_array)
     # bitmask for {public,final,super,interface,abstract} class modifier
     @access_flags = read_u2()
-    # indices into constant_pool for this and super classes.
-    this_class_ref = @constant_pool.get(read_u2()).value
-    super_class_ref = @constant_pool.get(read_u2()).value
-    @this_class  = @constant_pool.get(this_class_ref).value
-    @super_class = @constant_pool.get(super_class_ref).value
+    @this_class  = @constant_pool.deref(read_u2()).value
+    @super_class = @constant_pool.deref(read_u2()).value
     # direct interfaces of this class
     isize = read_u2()
     @interfaces = (read_u2() for _ in [0...isize])

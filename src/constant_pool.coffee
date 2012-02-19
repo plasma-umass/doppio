@@ -89,6 +89,9 @@ class root.ConstantPool
   get: (idx) ->
     return @constant_pool[idx]
 
+  deref: (idx) ->
+    return @constant_pool[@constant_pool[idx].value]
+
   each: (fn) ->
     for i in [0..@cp_count] when i of @constant_pool
       fn(i, @constant_pool[i])

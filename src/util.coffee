@@ -35,8 +35,7 @@ class ExceptionHandler
     @end_pc     = read_uint(bytes_array.splice(0,2))
     @handler_pc = read_uint(bytes_array.splice(0,2))
     cti = read_uint(bytes_array.splice(0,2))
-    catch_type_ref = constant_pool.get(cti).value.class_reference
-    @catch_type = if cti==0 then "<all>" else constant_pool.get(catch_type_ref).value
+    @catch_type = if cti==0 then "<all>" else constant_pool.deref(cti).value
     return bytes_array
   
 class Code
