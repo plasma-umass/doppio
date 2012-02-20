@@ -2,23 +2,70 @@
 # things assigned to root will be available outside this module
 root = exports ? this
 
-class Method
+class AbstractMethodField
+  """ Subclasses need to implement parse_descriptor(String) """
   parse: (bytes_array,constant_pool) ->
     @access_flags = parse_flags(read_uint(bytes_array.splice(0,2)))
     @name = constant_pool.get(read_uint(bytes_array.splice(0,2))).value
     throw "Method.parse: Invalid constant_pool name reference" unless @name
-    @signature = constant_pool.get(read_uint(bytes_array.splice(0,2))).value
-    throw "Method.parse: Invalid constant_pool signature reference" unless @signature
+    raw_descriptor = constant_pool.get(read_uint(bytes_array.splice(0,2))).value
+    throw "Method.parse: Invalid constant_pool descriptor reference" unless raw_descriptor
+    @parse_descriptor raw_descriptor
     [@attrs,bytes_array] = make_attributes(bytes_array,constant_pool)
     return bytes_array
+  
+  parse_field_type: (char_array) ->
+    c = char_array.shift()
+    switch c
+      when 'B' then { type: 'byte' }
+      when 'C' then { type: 'char' }
+      when 'D' then { type: 'double' }
+      when 'F' then { type: 'float' }
+      when 'I' then { type: 'int' }
+      when 'J' then { type: 'long' }
+      when 'L'
+        {
+          type: 'reference'
+          referent: {
+            type: 'class' # not technically a legal type
+            class_name: (c while c = char_array.shift() != ';').join()
+          }
+        }
+      when 'S' then { type: 'short' }
+      when 'Z' then { type: 'boolean' }
+      when '[' then {
+        type: 'reference'
+        referent: @parse_field_type char_array
+      }
+      else
+        char_array.unshift(c)
+        return null
 
+class Method extends AbstractMethodField
   get_code: ->
     if @access_flags.native or @access_flags.abstract
       throw "Method does not have associated code!"
     return _.find(@attrs, (a) -> a.constructor.name == "Code")
+
+  parse_descriptor: (raw_descriptor) ->
+    raw_descriptor = raw_descriptor.split ''
+    throw "Invalid descriptor #{raw_descriptor}" if raw_descriptor.shift() != '('
+    @param_types = # apparently making this a one-liner makes this undefined. CS bug?
+      while field = @parse_field_type raw_descriptor
+        field
+    throw "Invalid descriptor #{raw_descriptor}" if raw_descriptor.shift() != ')'
+    if raw_descriptor[0] == 'V'
+      raw_descriptor.shift()
+      @return_type = { type: 'void' }
+    else
+      @return_type = @parse_field_type raw_descriptor
   
   run: () ->
     throw 'NYI'
+
+class Field extends AbstractMethodField
+  parse_descriptor: (raw_descriptor) ->
+    # TODO implement this
 
 class ClassFile
   constructor: (bytes_array) ->
@@ -32,15 +79,15 @@ class ClassFile
     bytes_array = @constant_pool.parse(bytes_array)
     # bitmask for {public,final,super,interface,abstract} class modifier
     @access_flags = read_u2()
-    @this_class  = @constant_pool.deref(read_u2()).value
-    @super_class = @constant_pool.deref(read_u2()).value
+    @this_class  = @constant_pool.get(read_u2()).deref()
+    @super_class = @constant_pool.get(read_u2()).deref()
     # direct interfaces of this class
     isize = read_u2()
     @interfaces = (read_u2() for _ in [0...isize])
     # fields of this class
     num_fields = read_u2()
     #TODO: replace the new Method call with something for fields (method_info and field_info look the same)
-    @fields = (new Method for _ in [0...num_fields])
+    @fields = (new Field for _ in [0...num_fields])
     for f in @fields
       bytes_array = f.parse(bytes_array,@constant_pool)
     # class methods
@@ -61,15 +108,53 @@ decompile = (class_file) ->
   rv += "  minor version: #{class_file.minor_version}\n"
   rv += "  major version: #{class_file.major_version}\n"
   rv += "  Constant pool:\n"
-  class_file.constant_pool.each (idx, entry) ->
-    rv += "const ##{idx} = #{entry.type}\t#{entry.value};\n"
 
+  format = (entry) ->
+    val = entry.value
+    switch entry.type
+      when 'Method', 'InterfaceMethod', 'Field'
+        "##{val.class_ref.value}.##{val.sig.value}"
+      when 'NameAndType' then "##{val.meth_ref.value}:##{val.type_ref.value}"
+      else (if entry.deref? then "#" else "") + val
+
+  format_extra_info = (type, info) ->
+    switch type
+      when 'Method', 'InterfaceMethod', 'Field'
+        "#{info.class}.#{info.sig.name}:#{info.sig.type}"
+      when 'NameAndType' then "#{info.name}:#{info.type}"
+      else info
+
+  pool = class_file.constant_pool
+  pool.each (idx, entry) ->
+    rv += "const ##{idx} = #{entry.type}\t#{format entry};"
+    extra_info = entry.deref?()
+    rv += "\t// " + (format_extra_info entry.type, extra_info) if extra_info
+    rv += "\n"
+  rv += "\n"
+
+  rv += "{\n"
   for m in class_file.methods
-    m.get_code().each_opcode((idx, oc) ->
-      rv += "#{idx}: #{oc.name}"
-      rv += "\t#{oc.method_spec.value}" if oc.constructor.name == 'InvokeOpcode'
+    rv +=
+      if m.access_flags.public then 'public '
+      else if m.access_flags.protected then 'protected '
+      else if m.access_flags.private then 'private '
+      else ''
+    rv += if m.access_flags.static then 'static ' else ''
+    # TODO other flags
+    rv += (m.return_type?.type or "") + " "
+    rv += m.name
+    rv += "(#{p.type for p in m.param_types});"
+    rv += "\n"
+    rv += "  Code:\n"
+    code = m.get_code()
+    rv += "   Stack=#{code.max_stack}, Locals=#{code.max_locals}, Args_size=#{m.param_types.length}\n"
+    code.each_opcode((idx, oc) ->
+      rv += "   #{idx}:\t#{oc.name}"
+      rv += "   \t##{oc.method_spec_ref}" if oc.constructor.name == 'InvokeOpcode'
       rv += "\n"
     )
+    rv += "\n\n"
+  rv += "}"
 
   return rv
 
