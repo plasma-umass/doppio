@@ -34,7 +34,7 @@ class LoadOpcode extends Opcode
     @constant_ref = code_array.get_uint(@byte_count)
     @constant = constant_pool.get @constant_ref
 
-class LoadOpcode extends Opcode
+class BranchOpcode extends Opcode
   take_args: (code_array) ->
     @offset = code_array.get_uint(2)
 

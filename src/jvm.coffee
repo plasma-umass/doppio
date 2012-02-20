@@ -87,7 +87,7 @@ class ClassFile
     # fields of this class
     num_fields = read_u2()
     #TODO: replace the new Method call with something for fields (method_info and field_info look the same)
-    @fields = (new Method for _ in [0...num_fields])
+    @fields = (new Field for _ in [0...num_fields])
     for f in @fields
       bytes_array = f.parse(bytes_array,@constant_pool)
     # class methods
