@@ -55,13 +55,32 @@ class ExceptionHandler
     @catch_type = if cti==0 then "<all>" else constant_pool.deref(cti).value
     return bytes_array
   
+class BytesArray
+  constructor: (@raw_array) ->
+    @index = 0
+
+  has_bytes: -> @index < @raw_array.length
+
+  get_uint8: -> @raw_array[@index++]
+
+  get_uint16: ->
+    rv = read_uint @raw_array.slice(@index, @index+2)
+    @index += 2
+    return rv
+
+  get_uint32: ->
+    rv = read_uint @raw_array.slice(@index, @index+4)
+    @index += 4
+    return rv
+
 class Code
   parse: (bytes_array,constant_pool) ->
     @max_stack = read_uint(bytes_array.splice(0,2))
     @max_locals = read_uint(bytes_array.splice(0,2))
-    code_len = read_uint(bytes_array.splice(0,4))
-    throw "Attribute._parse_code: Code length is zero" if code_len == 0
-    @opcodes = @parse_code bytes_array.splice(0,code_len), constant_pool
+    @code_len = read_uint(bytes_array.splice(0,4))
+    throw "Attribute._parse_code: Code length is zero" if @code_len == 0
+    code_array = new BytesArray bytes_array.splice(0, @code_len)
+    @opcodes = @parse_code code_array, constant_pool
     except_len = read_uint(bytes_array.splice(0,2))
     @exception_handlers = (new ExceptionHandler for _ in [0...except_len])
     for eh in @exception_handlers
@@ -71,11 +90,18 @@ class Code
     return bytes_array
 
   parse_code: (bytes_array, constant_pool) ->
-    until bytes_array.length == 0
-      c = bytes_array.shift()&0xFF
+    rv = {}
+    while bytes_array.has_bytes()
+      op_index = bytes_array.index
+      c = bytes_array.get_uint8()&0xFF
       op = opcodes[c]
       bytes_array = op.take_args(bytes_array, constant_pool)
-      op
+      rv[op_index] = op
+    return rv
+
+  each_opcode: (fn) ->
+    for i in [0..@code_len] when i of @opcodes
+      fn(i, @opcodes[i])
 
 class LineNumberTable extends Array
   parse: (bytes_array,constant_pool) ->

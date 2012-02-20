@@ -10,23 +10,23 @@ class Opcode
 
 class LocalVarOpcode extends Opcode
   take_args: (code_array) ->
-    @var_num = code_array.shift()
+    @var_num = code_array.get_uint8()
     return code_array
 
 class FieldOpcode extends Opcode
   take_args: (code_array) ->
-    @field_spec = code_array.shift()
-    @descriptor = code_array.shift()
+    @field_spec = code_array.get_uint8()
+    @descriptor = code_array.get_uint8()
     return code_array
 
 class InvokeOpcode extends Opcode
   take_args: (code_array, constant_pool) ->
-    @method_spec = constant_pool.get(read_uint(code_array.splice(0, 2)))
+    @method_spec = constant_pool.get code_array.get_uint16()
     return code_array
 
 class LoadOpcode extends Opcode
   take_args: (code_array, constant_pool) ->
-    @constant = constant_pool.get(code_array.shift())
+    @constant = constant_pool.get code_array.get_uint8()
     return code_array
 
 root.opcodes = {

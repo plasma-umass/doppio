@@ -65,10 +65,11 @@ decompile = (class_file) ->
     rv += "const ##{idx} = #{entry.type}\t#{entry.value};\n"
 
   for m in class_file.methods
-    for oc in m.get_code().opcodes
-      rv += oc.name
+    m.get_code().each_opcode((idx, oc) ->
+      rv += "#{idx}: #{oc.name}"
       rv += "\t#{oc.method_spec.value}" if oc.constructor.name == 'InvokeOpcode'
       rv += "\n"
+    )
 
   return rv
 
