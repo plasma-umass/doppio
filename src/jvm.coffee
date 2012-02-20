@@ -3,34 +3,37 @@
 root = exports ? this
 
 class Method
-  parse: (bytes_array) ->
-    @access_flags = read_uint(bytes_array.splice(0,2))
-    @name_ref = read_uint(bytes_array.splice(0,2))
-    throw "Method.parse: Invalid constant_pool name reference" if @name_ref == 0 
-    @desc_ref = read_uint(bytes_array.splice(0,2))
-    throw "Method.parse: Invalid constant_pool name reference" if @desc_ref == 0
-    num_attrs = read_uint(bytes_array.splice(0,2))
-    @attrs = (new Attribute for _ in [0...num_attrs])
-    for attr in @attrs
-      bytes_array = attr.parse(bytes_array)
-    # only attrs on methods should be Code, Exceptions, Synthetic, and Deprecated
+  parse: (bytes_array,constant_pool) ->
+    @access_flags = parse_flags(read_uint(bytes_array.splice(0,2)))
+    @name = constant_pool.get(read_uint(bytes_array.splice(0,2))).value
+    throw "Method.parse: Invalid constant_pool name reference" unless @name
+    @signature = constant_pool.get(read_uint(bytes_array.splice(0,2))).value
+    throw "Method.parse: Invalid constant_pool signature reference" unless @signature
+    [@attrs,bytes_array] = make_attributes(bytes_array,constant_pool)
     return bytes_array
+
+  get_code: ->
+    if @access_flags.native or @access_flags.abstract
+      throw "Method does not have associated code!"
+    return _.find(@attrs, (a) -> a.constructor.name == "Code")
+  
+  run: () ->
+    throw 'NYI'
 
 class ClassFile
   constructor: (bytes_array) ->
     read_u2 = -> read_uint(bytes_array.splice(0,2))
     read_u4 = -> read_uint(bytes_array.splice(0,4))
     throw "Magic number invalid" if read_u4() != 0xCAFEBABE
-    minor_version = read_u2()  # unused, but it cuts off two bytes
-    throw "Major version invalid" unless 45 <= read_u2() <= 51
-    cp = new ConstantPool
-    bytes_array = cp.parse(bytes_array)
-    @constant_pool = cp.condense()
+    @minor_version = read_u2()
+    @major_version = read_u2()
+    throw "Major version invalid" unless 45 <= @major_version <= 51
+    @constant_pool = new ConstantPool
+    bytes_array = @constant_pool.parse(bytes_array)
     # bitmask for {public,final,super,interface,abstract} class modifier
     @access_flags = read_u2()
-    # indices into constant_pool for this and super classes. super_class == 0 for Object?
-    @this_class  = read_u2()
-    @super_class = read_u2()
+    @this_class  = @constant_pool.deref(read_u2()).value
+    @super_class = @constant_pool.deref(read_u2()).value
     # direct interfaces of this class
     isize = read_u2()
     @interfaces = (read_u2() for _ in [0...isize])
@@ -39,24 +42,45 @@ class ClassFile
     #TODO: replace the new Method call with something for fields (method_info and field_info look the same)
     @fields = (new Method for _ in [0...num_fields])
     for f in @fields
-      bytes_array = f.parse(bytes_array)
-    console.log this  #TODO: figure out why methods shows up here?!
+      bytes_array = f.parse(bytes_array,@constant_pool)
     # class methods
     num_methods = read_u2()
     @methods = (new Method for _ in [0...num_methods])
     for m in @methods
-      bytes_array = m.parse(bytes_array)
+      bytes_array = m.parse(bytes_array,@constant_pool)
     # class attributes
-    num_attrs = read_u2()
-    @attrs = (new Attribute for _ in [0...num_attrs])
-    for attr in @attrs
-      bytes_array = attr.parse(bytes_array)
-    console.log "leftover bytes:", bytes_array
+    [@attrs,bytes_array] = make_attributes(bytes_array,@constant_pool)
+    throw "Leftover bytes in classfile: #{bytes_array}" if bytes_array.length > 0
+
+decompile = (class_file) ->
+  canonical = (str) -> str.replace /\//g, '.'
+  rv = ""
+  source_file = _.find(class_file.attrs, (attr) -> attr.constructor.name == 'SourceFile')
+  rv += "class #{class_file.this_class} extends #{canonical class_file.super_class}\n"
+  rv += "  SourceFile: \"#{source_file.name}\"\n" if source_file
+  rv += "  minor version: #{class_file.minor_version}\n"
+  rv += "  major version: #{class_file.major_version}\n"
+  rv += "  Constant pool:\n"
+  class_file.constant_pool.each (idx, entry) ->
+    rv += "const ##{idx} = #{entry.type}\t#{entry.value};\n"
+
+  for m in class_file.methods
+    m.get_code().each_opcode((idx, oc) ->
+      rv += "#{idx}: #{oc.name}"
+      rv += "\t#{oc.method_spec.value}" if oc.constructor.name == 'InvokeOpcode'
+      rv += "\n"
+    )
+
+  return rv
 
 # main function that gets called from the frontend
-root.run_jvm = (bytecode_string, print_func) ->
+root.run_jvm = (bytecode_string, print_func, decompile_print_func) ->
   bytes_array = (bytecode_string.charCodeAt(i) for i in [0...bytecode_string.length])
   print_func "Running the bytecode now...\n"
   class_data = new ClassFile(bytes_array)
-  print_func "JVM run finished.\n"
   console.log class_data
+  # try to look at the opcodes
+  #for m in class_data.methods
+    #m.run()
+  print_func "JVM run finished.\n"
+  decompile_print_func decompile(class_data)
