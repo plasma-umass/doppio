@@ -2,23 +2,70 @@
 # things assigned to root will be available outside this module
 root = exports ? this
 
-class Method
+class AbstractMethodField
+  """ Subclasses need to implement parse_descriptor(String) """
   parse: (bytes_array,constant_pool) ->
     @access_flags = parse_flags(read_uint(bytes_array.splice(0,2)))
     @name = constant_pool.get(read_uint(bytes_array.splice(0,2))).value
     throw "Method.parse: Invalid constant_pool name reference" unless @name
-    @signature = constant_pool.get(read_uint(bytes_array.splice(0,2))).value
-    throw "Method.parse: Invalid constant_pool signature reference" unless @signature
+    raw_descriptor = constant_pool.get(read_uint(bytes_array.splice(0,2))).value
+    throw "Method.parse: Invalid constant_pool descriptor reference" unless raw_descriptor
+    @parse_descriptor raw_descriptor
     [@attrs,bytes_array] = make_attributes(bytes_array,constant_pool)
     return bytes_array
+  
+  parse_field_type: (char_array) ->
+    c = char_array.shift()
+    switch c
+      when 'B' then { type: 'byte' }
+      when 'C' then { type: 'char' }
+      when 'D' then { type: 'double' }
+      when 'F' then { type: 'float' }
+      when 'I' then { type: 'int' }
+      when 'J' then { type: 'long' }
+      when 'L'
+        {
+          type: 'reference'
+          referent: {
+            type: 'class' # not technically a legal type
+            class_name: (c while c = char_array.shift() != ';').join()
+          }
+        }
+      when 'S' then { type: 'short' }
+      when 'Z' then { type: 'boolean' }
+      when '[' then {
+        type: 'reference'
+        referent: @parse_field_type char_array
+      }
+      else
+        char_array.unshift(c)
+        return null
 
+class Method extends AbstractMethodField
   get_code: ->
     if @access_flags.native or @access_flags.abstract
       throw "Method does not have associated code!"
     return _.find(@attrs, (a) -> a.constructor.name == "Code")
+
+  parse_descriptor: (raw_descriptor) ->
+    raw_descriptor = raw_descriptor.split ''
+    throw "Invalid descriptor #{raw_descriptor}" if raw_descriptor.shift() != '('
+    @param_types = # apparently making this a one-liner makes this undefined. CS bug?
+      while field = @parse_field_type raw_descriptor
+        field
+    throw "Invalid descriptor #{raw_descriptor}" if raw_descriptor.shift() != ')'
+    if raw_descriptor == 'V'
+      raw_descriptor.shift()
+      @return_type = { type: 'void' }
+    else
+      @return_type = @parse_field_type raw_descriptor
   
   run: () ->
     throw 'NYI'
+
+class Field extends AbstractMethodField
+  parse_descriptor: (raw_descriptor) ->
+    # TODO implement this
 
 class ClassFile
   constructor: (bytes_array) ->
@@ -65,9 +112,11 @@ decompile = (class_file) ->
     rv += "const ##{idx} = #{entry.type}\t#{entry.value};\n"
 
   for m in class_file.methods
-    m.get_code().each_opcode((idx, oc) ->
-      rv += "#{idx}: #{oc.name}"
-      rv += "\t#{oc.method_spec.value}" if oc.constructor.name == 'InvokeOpcode'
+    code = m.get_code()
+    rv += "Stack=#{code.max_stack}, Locals=#{code.max_locals}, Args_size=#{m.param_types.length}\n"
+    code.each_opcode((idx, oc) ->
+      rv += "   #{idx}:\t#{oc.name}"
+      rv += "   \t#{oc.method_spec.value}" if oc.constructor.name == 'InvokeOpcode'
       rv += "\n"
     )
 
