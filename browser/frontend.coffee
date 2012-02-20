@@ -10,7 +10,7 @@ process_bytecode = (bytecode_string) ->
   disassembly.value = disassemble(class_data)
   output = $('#output')[0]
   output.value = ''
-  run_jvm class_data, (msg) -> output.value += msg
+  jvm.run class_data, (msg) -> output.value += msg
   $('#go_button').text(button_idle_text)
 
 compile_source = (java_source) ->

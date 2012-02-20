@@ -1,7 +1,3 @@
-
-# things assigned to root will be available outside this module
-root = exports ? this 
-
 class Opcode
   constructor: (@name, @byte_count=1) ->
 
@@ -38,7 +34,7 @@ class BranchOpcode extends Opcode
   take_args: (code_array) ->
     @offset = code_array.get_uint(2)
 
-root.opcodes = {
+@opcodes = {
   00: new Opcode 'nop'
   01: new Opcode 'aconst_null'
   02: new Opcode 'iconst_m1'
@@ -241,3 +237,5 @@ root.opcodes = {
   200: new Opcode 'goto_w'
   201: new Opcode 'jsr_w'
 }
+
+module?.exports = @opcodes

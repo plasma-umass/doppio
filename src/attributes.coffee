@@ -4,22 +4,22 @@ root = exports ? this
 
 class ExceptionHandler
   parse: (bytes_array,constant_pool) ->
-    @start_pc   = read_uint(bytes_array.splice(0,2))
-    @end_pc     = read_uint(bytes_array.splice(0,2))
-    @handler_pc = read_uint(bytes_array.splice(0,2))
-    cti = read_uint(bytes_array.splice(0,2))
+    @start_pc   = util.read_uint(bytes_array.splice(0,2))
+    @end_pc     = util.read_uint(bytes_array.splice(0,2))
+    @handler_pc = util.read_uint(bytes_array.splice(0,2))
+    cti = util.read_uint(bytes_array.splice(0,2))
     @catch_type = if cti==0 then "<all>" else constant_pool.deref(cti).value
     return bytes_array
 
 class Code
   parse: (bytes_array,constant_pool) ->
-    @max_stack = read_uint(bytes_array.splice(0,2))
-    @max_locals = read_uint(bytes_array.splice(0,2))
-    @code_len = read_uint(bytes_array.splice(0,4))
+    @max_stack = util.read_uint(bytes_array.splice(0,2))
+    @max_locals = util.read_uint(bytes_array.splice(0,2))
+    @code_len = util.read_uint(bytes_array.splice(0,4))
     throw "Attribute._parse_code: Code length is zero" if @code_len == 0
-    code_array = new BytesArray bytes_array.splice(0, @code_len)
+    code_array = new util.BytesArray bytes_array.splice(0, @code_len)
     @opcodes = @parse_code code_array, constant_pool
-    except_len = read_uint(bytes_array.splice(0,2))
+    except_len = util.read_uint(bytes_array.splice(0,2))
     @exception_handlers = (new ExceptionHandler for _ in [0...except_len])
     for eh in @exception_handlers
       bytes_array = eh.parse(bytes_array,constant_pool)
@@ -43,24 +43,24 @@ class Code
 
 class LineNumberTable extends Array
   parse: (bytes_array,constant_pool) ->
-    lnt_len = read_uint(bytes_array.splice(0,2))
+    lnt_len = util.read_uint(bytes_array.splice(0,2))
     for _ in [0...lnt_len]
-      spc = read_uint(bytes_array.splice(0,2))
-      ln = read_uint(bytes_array.splice(0,2))
+      spc = util.read_uint(bytes_array.splice(0,2))
+      ln = util.read_uint(bytes_array.splice(0,2))
       this.push {'start_pc': spc,'line_number': ln}
     return bytes_array
 
 class SourceFile
   parse: (bytes_array,constant_pool) ->
-    @name = constant_pool.get(read_uint(bytes_array.splice(0,2))).value
+    @name = constant_pool.get(util.read_uint(bytes_array.splice(0,2))).value
     return bytes_array
 
 class StackMapTable
   # this is a dud class. Merely used to consume the correct number of input bytes.
   parse: (bytes_array, constant_pool) ->
-    @name_ref = read_uint(bytes_array.splice(0, 2))
-    @length = read_uint(bytes_array.splice(0, 4))
-    @num_entries = read_uint(bytes_array.splice(0, 2))
+    @name_ref = util.read_uint(bytes_array.splice(0, 2))
+    @length = util.read_uint(bytes_array.splice(0, 4))
+    @num_entries = util.read_uint(bytes_array.splice(0, 2))
     @parse_entries bytes_array for i in [0..@num_entries]
     return bytes_array
 
@@ -92,20 +92,22 @@ class StackMapTable
     tag = bytes_array.shift()
     bytes_array.splice(0, 2) if tag == 7
 
-root.make_attributes = (bytes_array,constant_pool) ->
+@make_attributes = (bytes_array,constant_pool) ->
   #TODO: add classes for additional attr types
   attr_types = {
     'Code': Code, 'LineNumberTable': LineNumberTable, 'SourceFile': SourceFile,
     'StackMapTable': StackMapTable
   }
-  num_attrs = read_uint(bytes_array.splice(0,2))
+  num_attrs = util.read_uint(bytes_array.splice(0,2))
   attrs = []
   for _ in [0...num_attrs]
-    name = constant_pool.get(read_uint(bytes_array.splice(0,2))).value
+    name = constant_pool.get(util.read_uint(bytes_array.splice(0,2))).value
     throw "Attribute.parse: Invalid constant_pool reference: '#{name}'" unless name
-    attr_len = read_uint(bytes_array.splice(0,4))  # unused
+    attr_len = util.read_uint(bytes_array.splice(0,4))  # unused
     throw "NYI: attr_type #{name}" if not attr_types[name]?
     attr = new attr_types[name]
     bytes_array = attr.parse(bytes_array,constant_pool)
     attrs.push attr
   return [attrs,bytes_array]
+
+module?.exports = @make_attributes
