@@ -118,6 +118,7 @@ class StackMapTable
     @length = read_uint(bytes_array.splice(0, 4))
     @num_entries = read_uint(bytes_array.splice(0, 2))
     @parse_entries bytes_array for i in [0..@num_entries]
+    return bytes_array
 
   parse_entries: (bytes_array) ->
     frame_type = bytes_array.shift()
