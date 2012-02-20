@@ -21,12 +21,14 @@ class FieldOpcode extends Opcode
 
 class InvokeOpcode extends Opcode
   take_args: (code_array, constant_pool) ->
-    @method_spec = constant_pool.get code_array.get_uint16()
+    @method_spec_ref = code_array.get_uint16()
+    @method_spec = constant_pool.get @method_spec_ref
     return code_array
 
 class LoadOpcode extends Opcode
   take_args: (code_array, constant_pool) ->
-    @constant = constant_pool.get code_array.get_uint8()
+    @constant_ref = code_array.get_uint8()
+    @constant = constant_pool.get @constant_ref
     return code_array
 
 root.opcodes = {
