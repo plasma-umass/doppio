@@ -29,6 +29,23 @@ root.read_uint = (bytes) ->
   # sum up the byte values shifted left to the right alignment.
   sum(lshift(bytes[i]&0xFF,8*(n-i)) for i in [0..n])
 
+root.parse_flags = (flag_byte) ->
+  {
+    public:       flag_byte & 0x1
+    private:      flag_byte & 0x2
+    protected:    flag_byte & 0x4
+    static:       flag_byte & 0x8
+    final:        flag_byte & 0x10
+    synchronized: flag_byte & 0x20
+    super:        flag_byte & 0x20
+    volatile:     flag_byte & 0x40
+    transient:    flag_byte & 0x80
+    native:       flag_byte & 0x100
+    interface:    flag_byte & 0x200
+    abstract:     flag_byte & 0x400
+    strict:       flag_byte & 0x800
+  }
+
 class ExceptionHandler
   parse: (bytes_array,constant_pool) ->
     @start_pc   = read_uint(bytes_array.splice(0,2))
@@ -44,7 +61,7 @@ class Code
     @max_locals = read_uint(bytes_array.splice(0,2))
     code_len = read_uint(bytes_array.splice(0,4))
     throw "Attribute._parse_code: Code length is zero" if code_len == 0
-    @code = bytes_array.splice(0,code_len)
+    @opcodes = @parse_code bytes_array.splice(0,code_len), constant_pool
     except_len = read_uint(bytes_array.splice(0,2))
     @exception_handlers = (new ExceptionHandler for _ in [0...except_len])
     for eh in @exception_handlers
@@ -52,6 +69,13 @@ class Code
     # yes, there are even attrs on attrs. BWOM... BWOM...
     [@attrs,bytes_array] = make_attributes(bytes_array,constant_pool)
     return bytes_array
+
+  parse_code: (bytes_array, constant_pool) ->
+    until bytes_array.length == 0
+      c = bytes_array.shift()&0xFF
+      op = opcodes[c]
+      bytes_array = op.take_args(bytes_array, constant_pool)
+      op
 
 class LineNumberTable extends Array
   parse: (bytes_array,constant_pool) ->

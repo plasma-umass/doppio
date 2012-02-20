@@ -4,22 +4,21 @@ root = exports ? this
 
 class Method
   parse: (bytes_array,constant_pool) ->
-    @access_flags = read_uint(bytes_array.splice(0,2))
+    @access_flags = parse_flags(read_uint(bytes_array.splice(0,2)))
     @name = constant_pool.get(read_uint(bytes_array.splice(0,2))).value
     throw "Method.parse: Invalid constant_pool name reference" unless @name
     @signature = constant_pool.get(read_uint(bytes_array.splice(0,2))).value
     throw "Method.parse: Invalid constant_pool signature reference" unless @signature
     [@attrs,bytes_array] = make_attributes(bytes_array,constant_pool)
     return bytes_array
+
+  get_code: ->
+    if @access_flags.native or @access_flags.abstract
+      throw "Method does not have associated code!"
+    return _.find(@attrs, (a) -> a.constructor.name == "Code")
   
   run: () ->
-    code = @attrs[0].code  #TODO: make this less brittle, maybe with typeof
-    until code.length == 0
-      c = code.shift()&0xFF
-      console.log c
-      op = opcodes[c]
-      code = op.take_args(code)
-      console.log op.name, op.args
+    throw 'NYI'
 
 class ClassFile
   constructor: (bytes_array) ->
@@ -64,6 +63,13 @@ decompile = (class_file) ->
   rv += "  Constant pool:\n"
   class_file.constant_pool.each (idx, entry) ->
     rv += "const ##{idx} = #{entry.type}\t#{entry.value};\n"
+
+  for m in class_file.methods
+    for oc in m.get_code().opcodes
+      rv += oc.name
+      rv += "\t#{oc.method_spec.value}" if oc.constructor.name == 'InvokeOpcode'
+      rv += "\n"
+
   return rv
 
 # main function that gets called from the frontend
@@ -73,7 +79,7 @@ root.run_jvm = (bytecode_string, print_func, decompile_print_func) ->
   class_data = new ClassFile(bytes_array)
   console.log class_data
   # try to look at the opcodes
-  for m in class_data.methods
-    m.run()
+  #for m in class_data.methods
+    #m.run()
   print_func "JVM run finished.\n"
   decompile_print_func decompile(class_data)
