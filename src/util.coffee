@@ -165,3 +165,5 @@ root.make_attributes = (bytes_array,constant_pool) ->
     bytes_array = attr.parse(bytes_array,constant_pool)
     attrs.push attr
   return [attrs,bytes_array]
+
+root.is_string = (obj) -> typeof obj == 'string' or obj instanceof String

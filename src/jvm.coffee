@@ -115,14 +115,14 @@ decompile = (class_file) ->
       when 'Method', 'InterfaceMethod', 'Field'
         "##{val.class_ref.value}.##{val.sig.value}"
       when 'NameAndType' then "##{val.meth_ref.value}:##{val.type_ref.value}"
-      else (if entry.deref? then "#" else "") + val
+      else ((if entry.deref? then "#" else "") + val).replace /\n/g, "\\n"
 
   format_extra_info = (type, info) ->
     switch type
       when 'Method', 'InterfaceMethod', 'Field'
         "#{info.class}.#{info.sig.name}:#{info.sig.type}"
       when 'NameAndType' then "#{info.name}:#{info.type}"
-      else info
+      else info.replace /\n/g, "\\n" if is_string info
 
   pool = class_file.constant_pool
   pool.each (idx, entry) ->
