@@ -61,16 +61,10 @@ class BytesArray
 
   has_bytes: -> @index < @raw_array.length
 
-  get_uint8: -> @raw_array[@index++]
-
-  get_uint16: ->
-    rv = read_uint @raw_array.slice(@index, @index+2)
-    @index += 2
-    return rv
-
-  get_uint32: ->
-    rv = read_uint @raw_array.slice(@index, @index+4)
-    @index += 4
+  get_uint: (bytes_count) ->
+    return @raw_array[@index++] if bytes_count == 1
+    rv = read_uint @raw_array.slice(@index, @index+bytes_count)
+    @index += bytes_count
     return rv
 
 class Code
@@ -95,7 +89,7 @@ class Code
       op_index = bytes_array.index
       c = bytes_array.get_uint8()&0xFF
       op = opcodes[c]
-      bytes_array = op.take_args(bytes_array, constant_pool)
+      op.take_args(bytes_array, constant_pool)
       rv[op_index] = op
     return rv
 
