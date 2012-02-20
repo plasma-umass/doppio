@@ -1,1 +1,4 @@
 *.js
+*.swp
+*.un~
+*.class

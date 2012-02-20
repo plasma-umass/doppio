@@ -7,15 +7,17 @@
     h1#title {float:left;margin:10px;}
 		textarea {width:100%;font-family: monospace;margin:0 0 15px 0;}
     textarea#source { height: 10%; }
-    textarea#decompiler_output { height: 50%; }
+    textarea#disassembly { height: 50%; }
     textarea#output { height: 12%; }
     #go_button {padding:10px 30px;float:right;line-height:10px}
   </style>
   <script type="text/javascript" src="../third_party/jquery-1.7.1.min.js"></script>
   <script type="text/javascript" src="../third_party/underscore-min.js"></script>
   <script type="text/javascript" src="../src/util.js"></script>
+  <script type="text/javascript" src="../src/attributes.js"></script>
   <script type="text/javascript" src="../src/constant_pool.js"></script>
   <script type="text/javascript" src="../src/opcodes.js"></script>
+  <script type="text/javascript" src="../src/disassembler.js"></script>
   <script type="text/javascript" src="../src/jvm.js"></script>
   <script type="text/javascript" src="frontend.js"></script>
 </head>
@@ -28,7 +30,7 @@
     // enter code here
   }
 }</textarea>
-  <textarea id='decompiler_output' readonly='readonly'>Decompiled bytecode will appear here.</textarea>
+  <textarea id='disassembly' readonly='readonly'>Disassembled bytecode will appear here.</textarea>
   <textarea id='output' readonly='readonly'>Output from System.out and System.err will appear here.</textarea>
   Check the <a href="https://github.com/int3/coffee-jvm">project page</a> for the latest updates.
 </div>
