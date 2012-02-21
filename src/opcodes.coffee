@@ -34,6 +34,8 @@ class BranchOpcode extends Opcode
   take_args: (code_array) ->
     @offset = code_array.get_uint(2)
 
+# these objects are used as prototypes for the parsed instructions in the
+# classfile
 @opcodes = {
   00: new Opcode 'nop'
   01: new Opcode 'aconst_null'

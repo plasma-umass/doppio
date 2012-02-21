@@ -57,9 +57,10 @@ util ?= require './util.js'
     code.each_opcode((idx, oc) ->
       rv += "   #{idx}:\t#{oc.name}"
       rv += switch oc.constructor.name
-        when 'InvokeOpcode' then "   \t##{oc.method_spec_ref}"
-        when 'ClassOpcode' then "   \t##{oc.class_ref}"
-        when 'FieldOpcode' then "   \t##{oc.descriptor_ref}"
+        when 'InvokeOpcode' then "   \t##{oc.method_spec_ref};"
+        when 'ClassOpcode' then "   \t##{oc.class_ref};"
+        when 'FieldOpcode' then "   \t##{oc.descriptor_ref};"
+        when 'BranchOpcode' then "   \t#{oc.offset}"
         else ""
       rv += "\n"
     )
