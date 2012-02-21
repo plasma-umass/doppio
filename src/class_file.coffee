@@ -25,18 +25,19 @@ class AbstractMethodField
       when 'F' then { type: 'float' }
       when 'I' then { type: 'int' }
       when 'J' then { type: 'long' }
-      when 'L'
-        {
-          type: 'reference'
-          referent: {
-            type: 'class' # not technically a legal type
-            class_name: (c while c = char_array.shift() != ';').join()
-          }
+      when 'L' then {
+        type: 'reference'
+        ref_type: 'class'
+        referent: {
+          type: 'class' # not technically a legal type
+          class_name: (c while (c = char_array.shift()) != ';').join('')
         }
+      }
       when 'S' then { type: 'short' }
       when 'Z' then { type: 'boolean' }
       when '[' then {
         type: 'reference'
+        ref_type: 'array'
         referent: @parse_field_type char_array
       }
       else

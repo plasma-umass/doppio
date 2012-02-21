@@ -12,8 +12,8 @@ util ?= require './util'
       return "#{flag} " if access_flags[flag]
     ""
 
-  rv = ""
   source_file = _.find(class_file.attrs, (attr) -> attr.constructor.name == 'SourceFile')
+  rv = "Compiled from \"#{source_file.name}\"\n"
   rv += access_string class_file.access_flags
   rv += "class #{canonical class_file.this_class} extends #{canonical class_file.super_class}\n"
   rv += "  SourceFile: \"#{source_file.name}\"\n" if source_file
@@ -44,6 +44,12 @@ util ?= require './util'
     rv += "\n"
   rv += "\n"
 
+  pp_type = (field_type) ->
+    return canonical(field_type.class_name) if field_type.type is 'class'
+    return field_type.type unless field_type.type is 'reference'
+    return pp_type(field_type.referent) + '[]' if field_type.ref_type is 'array'
+    return pp_type field_type.referent
+
   rv += "{\n"
   for m in class_file.methods
     rv += access_string m.access_flags
@@ -54,7 +60,7 @@ util ?= require './util'
     else
       rv += (m.return_type?.type or "") + " "
       rv += m.name
-    rv += "(#{p.type for p in m.param_types});"
+    rv += "(#{pp_type(p) for p in m.param_types});"
     rv += "\n"
     unless m.access_flags.native or m.access_flags.abstract
       rv += "  Code:\n"

@@ -12,7 +12,7 @@ Dir.glob("#{test_dir}/*.java") do |src|
   `coffee #{here_dir}/../console/disassembler.coffee <#{test_dir}/#{name}.class >#{ours}`
   `javap -c -verbose -classpath #{test_dir} #{name} >#{ref}`
   errors = `#{here_dir}/cleandiff.sh #{ref} #{ours}`
-  if errors
+  if errors.match /\S/
     puts "Differences found in #{name}: -reference, +ours"
     puts errors
   else
