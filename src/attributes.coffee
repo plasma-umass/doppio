@@ -1,7 +1,7 @@
 
 # pull in external modules
 _ ?= require '../third_party/underscore-min.js'
-util ?= require './util.js'
+util ?= require './util'
 opcodes ?= require './opcodes'
 
 # things assigned to root will be available outside this module
@@ -63,35 +63,38 @@ class SourceFile
 class StackMapTable
   # this is a dud class. Merely used to consume the correct number of input bytes.
   parse: (bytes_array, constant_pool) ->
-    @name_ref = util.read_uint(bytes_array.splice(0, 2))
-    @length = util.read_uint(bytes_array.splice(0, 4))
     @num_entries = util.read_uint(bytes_array.splice(0, 2))
-    @parse_entries bytes_array for i in [0..@num_entries]
+    @entries = (@parse_entries bytes_array for i in [0...@num_entries])
     return bytes_array
 
   parse_entries: (bytes_array) ->
     frame_type = bytes_array.shift()
-    switch frame_type
-      when 0 <= frame_type < 64
-        break # same_frame
-      when 64 <= frame_type < 128
-        @parse_verification_type_info bytes_array
-      when 247
-        bytes_array.splice(0, 2)
-        @parse_verification_type_info bytes_array
-      when 248 <= frame_type < 251
-        bytes_array.splice(0, 2)
-      when 251
-        bytes_array.splice(0, 2)
-      when 252 <= frame_type < 255
-        bytes_array.splice(0, 2)
-        @parse_verification_type_info bytes_array for i in [0...frame_type-251]
-      when 255
-        bytes_array.splice(0, 2)
-        num_locals = bytes_array.splice(0, 2)
-        @parse_verification_type_info bytes_array for i in [0...num_locals]
-        num_stack_items = bytes_array.splice(0, 2)
-        @parse_verification_type_info bytes_array for i in [0...num_stack_items]
+    if 0 <= frame_type < 64
+      { frame_type: frame_type, frame_name: 'same' }
+    else if 64 <= frame_type < 128
+      @parse_verification_type_info bytes_array
+      { frame_type: frame_type, frame_name: 'same_locals_1_stack_item' }
+    else if frame_type == 247
+      bytes_array.splice(0, 2)
+      @parse_verification_type_info bytes_array
+      { frame_type: frame_type, frame_name: 'same_locals_1_stack_item_extended' }
+    else if 248 <= frame_type < 251
+      bytes_array.splice(0, 2)
+      { frame_type: frame_type, frame_name: 'chop' }
+    else if frame_type == 251
+      bytes_array.splice(0, 2)
+      { frame_type: frame_type, frame_name: 'same_frame_extended' }
+    else if 252 <= frame_type < 255
+      bytes_array.splice(0, 2)
+      @parse_verification_type_info bytes_array for i in [0...frame_type-251]
+      { frame_type: frame_type, frame_name: 'append' }
+    else if frame_type == 255
+      bytes_array.splice(0, 2)
+      num_locals = util.read_uint bytes_array.splice(0, 2)
+      @parse_verification_type_info bytes_array for i in [0...num_locals]
+      num_stack_items = util.read_uint bytes_array.splice(0, 2)
+      @parse_verification_type_info bytes_array for i in [0...num_stack_items]
+      { frame_type: frame_type, frame_name: 'full_frame' }
 
   parse_verification_type_info: (bytes_array) ->
     tag = bytes_array.shift()
@@ -107,7 +110,6 @@ root.make_attributes = (bytes_array,constant_pool) ->
   attrs = []
   for _ in [0...num_attrs]
     name = constant_pool.get(util.read_uint(bytes_array.splice(0,2))).value
-    throw "Attribute.parse: Invalid constant_pool reference: '#{name}'" unless name
     attr_len = util.read_uint(bytes_array.splice(0,4))  # unused
     throw "NYI: attr_type #{name}" if not attr_types[name]?
     attr = new attr_types[name]

@@ -3,7 +3,7 @@
 
 # pull in external modules
 _ ?= require '../third_party/underscore-min.js'
-util ?= require './util.js'
+util ?= require './util'
 
 """
 All objects in the constant pool have the properties @type and @value.
@@ -144,7 +144,8 @@ class @ConstantPool
       idx += size
     return bytes_array
   
-  get: (idx) -> @constant_pool[idx]
+  get: (idx) -> @constant_pool[idx] ?
+                  throw new Error("Invalid constant_pool reference: #{idx}")
 
   each: (fn) ->
     for i in [0..@cp_count] when i of @constant_pool

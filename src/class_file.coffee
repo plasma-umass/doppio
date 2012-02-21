@@ -11,9 +11,7 @@ class AbstractMethodField
   parse: (bytes_array,constant_pool) ->
     @access_flags = util.parse_flags(util.read_uint(bytes_array.splice(0,2)))
     @name = constant_pool.get(util.read_uint(bytes_array.splice(0,2))).value
-    throw "Method.parse: Invalid constant_pool name reference" unless @name
     raw_descriptor = constant_pool.get(util.read_uint(bytes_array.splice(0,2))).value
-    throw "Method.parse: Invalid constant_pool descriptor reference" unless raw_descriptor
     @parse_descriptor raw_descriptor
     [@attrs,bytes_array] = make_attributes(bytes_array,constant_pool)
     return bytes_array

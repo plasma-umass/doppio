@@ -3,7 +3,7 @@
 
 # pull in external modules
 _ ?= require '../third_party/underscore-min.js'
-util ?= require './util.js'
+util ?= require './util'
 
 @disassemble = (class_file) ->
   canonical = (str) -> str.replace /\//g, '.'
