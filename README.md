@@ -7,3 +7,12 @@ Use [Coffeescript v1.2.0](http://coffeescript.org/) (which is the default versio
 Run `coffee -wc */*.coffee &` to auto-gen scripts as you go.
 
 Use the [wiki](https://github.com/int3/coffee-jvm/wiki) for TODOs, links to resources, etc.
+
+Usage
+-----
+
+A browser frontend is available at `browser/coffee-jvm.html`.
+
+The disassembler can also be used from the console. E.g.
+
+    cat test/Println.java | coffee console/disassembler.coffee
