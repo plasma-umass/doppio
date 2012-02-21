@@ -1,6 +1,7 @@
 
 # things assigned to root will be available outside this module
 root = exports ? this
+_ ?= require './third_party/underscore-min.js'
 
 class AbstractMethodField
   """ Subclasses need to implement parse_descriptor(String) """
@@ -60,8 +61,20 @@ class Method extends AbstractMethodField
     else
       @return_type = @parse_field_type raw_descriptor
   
-  run: () ->
-    throw 'NYI'
+  run: (runtime_state) ->
+    caller = runtime_state.meta_stack[0].stack
+    stack = (caller.pop() for i in [0...@param_types.length])
+    runtime_state.meta_stack.push(new StackFrame([],stack))
+    code = @get_code().opcodes
+    while true
+      op = code[runtime_state.curr_pc()]
+      op.execute runtime_state
+      runtime_state.inc_pc() #warning, every code steps one
+      if op.name.match /.*return/
+        sf = runtime_state.meta_stack.pop()
+        caller.push sf.stack.pop() if op.name isnt 'return'
+        break
+
 
 class Field extends AbstractMethodField
   parse_descriptor: (raw_descriptor) ->
@@ -99,11 +112,38 @@ class root.ClassFile
     [@attrs,bytes_array] = make_attributes(bytes_array,@constant_pool)
     throw "Leftover bytes in classfile: #{bytes_array}" if bytes_array.length > 0
 
+class StackFrame
+  constructor: (@locals,@stack) ->
+    @pc=0
+
+class RuntimeState
+  constructor: (@constant_pool, initial_args) ->
+    @meta_stack = [new StackFrame(['fake','frame'],initial_args)]
+  cl: (idx) -> #current locals
+    _.last(@meta_stack).locals[idx]
+  put_cl: (idx,val) ->
+    _.last(@meta_stack).locals[idx] = val
+  push: (args...) -> #operator for current stack
+    #alert "pushing: #{args}" #good for debug (console.log is teh sux)
+    for v in args
+      @meta_stack[@meta_stack.length-1].stack.push v
+  pop: () -> #operator for current stack
+    v = @meta_stack[@meta_stack.length-1].stack.pop()
+    #alert "popping: #{v}" #good for debug
+    v
+  curr_pc: () ->
+    _.last(@meta_stack).pc
+  goto_pc: (pc) ->
+    _.last(@meta_stack).pc = pc
+  inc_pc: () ->
+    _.last(@meta_stack).pc += 1
+    
+
 # main function that gets called from the frontend
 root.run_jvm = (class_data, print_func) ->
   print_func "Running the bytecode now...\n"
   console.log class_data
-  # try to look at the opcodes
-  #for m in class_data.methods
-    #m.run()
+  main = _.find(class_data.methods, (m) -> m.name == "main")
+  rs = new RuntimeState(class_data.constant_pool, [9])
+  main.run(rs) #maybe add some UI for args to main
   print_func "JVM run finished.\n"
