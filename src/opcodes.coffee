@@ -51,8 +51,8 @@ class BranchOpcode extends Opcode
   13: new Opcode 'fconst_2'
   14: new Opcode 'dconst_0'
   15: new Opcode 'dconst_1'
-  16: new Opcode 'bipush'
-  17: new Opcode 'sipush'
+  16: new Opcode 'bipush', 1
+  17: new Opcode 'sipush', 2
   18: new LoadOpcode 'ldc'
   19: new LoadOpcode 'ldc_w', 2
   20: new LoadOpcode 'ldc2_w', 2
@@ -222,7 +222,7 @@ class BranchOpcode extends Opcode
   184: new InvokeOpcode 'invokestatic'
   184: new InvokeOpcode 'invokeinterface'
   187: new ClassOpcode 'new'
-  188: new Opcode 'newarray'
+  188: new Opcode 'newarray', 1
   189: new ClassOpcode 'anewarray'
   190: new Opcode 'arraylength'
   191: new Opcode 'athrow'
@@ -231,7 +231,7 @@ class BranchOpcode extends Opcode
   194: new Opcode 'monitorenter'
   195: new Opcode 'monitorexit'
   196: new Opcode 'wide'
-  197: new Opcode 'multianewarray'
+  197: new Opcode 'multianewarray', 3
   198: new BranchOpcode 'ifnull'
   199: new BranchOpcode 'ifnonnull'
   200: new Opcode 'goto_w'
