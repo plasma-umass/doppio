@@ -58,4 +58,11 @@ class root.BytesArray
     @index += bytes_count
     return rv
 
+  get_int: (bytes_count) ->
+    uint = @get_uint(bytes_count)
+    if uint > Math.pow(2, 8 * (bytes_count - 1))
+      uint - Math.pow(2, 8 * bytes_count)
+    else
+      uint
+
 root.is_string = (obj) -> typeof obj == 'string' or obj instanceof String

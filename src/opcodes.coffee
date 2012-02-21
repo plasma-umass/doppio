@@ -37,8 +37,7 @@ class BranchOpcode extends Opcode
     super name, params
 
   take_args: (code_array) ->
-    # TODO this should be a signed int
-    @offset = code_array.get_uint(@byte_count)
+    @offset = code_array.get_int(@byte_count)
 
 # these objects are used as prototypes for the parsed instructions in the
 # classfile
