@@ -49,36 +49,32 @@ util ?= require './util'
     rv += access_string m.access_flags
     rv += if m.access_flags.static then 'static ' else ''
     # TODO other flags
-    if m.name is '<init>'  # constructors are special-cased
-      rv += canonical(class_file.this_class)
-    else
-      rv += (m.return_type?.type or "") + " "
-      rv += m.name
+    rv += (m.return_type?.type or "") + " "
+    rv += m.name
     rv += "(#{p.type for p in m.param_types});"
     rv += "\n"
     unless m.access_flags.native or m.access_flags.abstract
       rv += "  Code:\n"
       code = m.get_code()
-      args_size = m.param_types.length + (if m.access_flags.static then 0 else 1)  # nonstatic methods get 'this'
-      rv += "   Stack=#{code.max_stack}, Locals=#{code.max_locals}, Args_size=#{args_size}\n"
+      rv += "   Stack=#{code.max_stack}, Locals=#{code.max_locals}, Args_size=#{m.param_types.length}\n"
       code.each_opcode((idx, oc) ->
         rv += "   #{idx}:\t#{oc.name}"
-        #TODO: add the appropriate comments for the refs here (as in the constant pool)
         rv += switch oc.constructor.name
-          when 'InvokeOpcode' then "\t##{oc.method_spec_ref}; //"
-          when 'ClassOpcode' then "\t##{oc.class_ref}; //"
-          when 'FieldOpcode' then "\t##{oc.descriptor_ref}; //"
+          when 'InvokeOpcode' then "\t##{oc.method_spec_ref};"
+          when 'ClassOpcode' then "\t##{oc.class_ref};"
+          when 'FieldOpcode' then "\t##{oc.descriptor_ref};"
           when 'BranchOpcode' then "\t#{idx + oc.offset}"
           when 'LocalVarOpcode' then "\t#{oc.var_num}"
-          when 'LoadOpcode' then "\t##{oc.constant_ref}; //"
+          when 'LoadOpcode' then "\t##{oc.constant_ref};"
           else ""
         rv += "\n"
       )
+      rv += "\n"
       for attr in code.attrs
         switch attr.constructor.name
           when 'LineNumberTable'
-            rv += "  LineNumberTable: \n"
-            rv += "   line #{entry.line_number}: #{entry.start_pc}\n" for entry in attr
+            rv += "  LineNumberTable:\n"
+            rv += "   line#{entry.line_number}: #{entry.start_pc}\n" for entry in attr
             rv += "\n"
           when 'StackMapTable'
             rv += "  StackMapTable: number_of_entries = #{attr.num_entries}\n"
