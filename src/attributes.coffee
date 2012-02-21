@@ -2,7 +2,7 @@
 # pull in external modules
 _ ?= require '../third_party/underscore-min.js'
 util ?= require './util.js'
-opcodes = require './opcodes'
+opcodes ?= require './opcodes'
 
 # things assigned to root will be available outside this module
 root = this 

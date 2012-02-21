@@ -1,5 +1,5 @@
 class Opcode
-  constructor: (@name, @byte_count=0) ->
+  constructor: (@name, @execute=((rs) ->), @byte_count=0) ->
 
   take_args: (code_array) ->
     @args = [code_array.get_uint(1) for i in [0...@byte_count]]
@@ -38,12 +38,12 @@ class BranchOpcode extends Opcode
   00: new Opcode 'nop'
   01: new Opcode 'aconst_null'
   02: new Opcode 'iconst_m1'
-  03: new Opcode 'iconst_0'
-  04: new Opcode 'iconst_1'
-  05: new Opcode 'iconst_2'
-  06: new Opcode 'iconst_3'
-  07: new Opcode 'iconst_4'
-  08: new Opcode 'iconst_5'
+  03: new Opcode 'iconst_0', (rs) -> rs.push 0
+  04: new Opcode 'iconst_1', (rs) -> rs.push 1
+  05: new Opcode 'iconst_2', (rs) -> rs.push 2
+  06: new Opcode 'iconst_3', (rs) -> rs.push 3
+  07: new Opcode 'iconst_4', (rs) -> rs.push 4
+  08: new Opcode 'iconst_5', (rs) -> rs.push 5
   09: new Opcode 'lconst_0'
   10: new Opcode 'lconst_1'
   11: new Opcode 'fconst_0'
@@ -61,9 +61,9 @@ class BranchOpcode extends Opcode
   23: new LocalVarOpcode 'fload'
   24: new LocalVarOpcode 'dload'
   25: new LocalVarOpcode 'aload'
-  26: new Opcode 'iload_0'
-  27: new Opcode 'iload_1'
-  28: new Opcode 'iload_2'
+  26: new Opcode 'iload_0', (rs) -> rs.push(rs.cl(0))
+  27: new Opcode 'iload_1', (rs) -> rs.push(rs.cl(1))
+  28: new Opcode 'iload_2', (rs) -> rs.push(rs.cl(2))
   29: new Opcode 'iload_3'
   30: new Opcode 'lload_0'
   31: new Opcode 'lload_1'
@@ -77,7 +77,7 @@ class BranchOpcode extends Opcode
   39: new Opcode 'dload_1'
   40: new Opcode 'dload_2'
   41: new Opcode 'dload_3'
-  42: new Opcode 'aload_0'
+  42: new Opcode 'aload_0', (rs) -> rs.push(rs.cl(0))
   43: new Opcode 'aload_1'
   44: new Opcode 'aload_2'
   45: new Opcode 'aload_3'
@@ -94,10 +94,10 @@ class BranchOpcode extends Opcode
   56: new LocalVarOpcode 'fstore'
   57: new LocalVarOpcode 'dstore'
   58: new LocalVarOpcode 'astore'
-  59: new Opcode 'istore_0'
-  60: new Opcode 'istore_1'
-  61: new Opcode 'istore_2'
-  62: new Opcode 'istore_3'
+  59: new Opcode 'istore_0', (rs) -> rs.put_cl(0,rs.pop())
+  60: new Opcode 'istore_1', (rs) -> rs.put_cl(1,rs.pop())
+  61: new Opcode 'istore_2', (rs) -> rs.put_cl(2,rs.pop())
+  62: new Opcode 'istore_3', (rs) -> rs.put_cl(3,rs.pop())
   63: new Opcode 'lstore_0'
   64: new Opcode 'lstore_1'
   65: new Opcode 'lstore_2'
@@ -131,7 +131,7 @@ class BranchOpcode extends Opcode
   093: new Opcode 'dup2_x1'
   094: new Opcode 'dup2_x2'
   095: new Opcode 'swap'
-  096: new Opcode 'iadd'
+  096: new Opcode 'iadd', (rs) -> rs.push(rs.pop()+rs.pop())
   097: new Opcode 'ladd'
   098: new Opcode 'fadd'
   099: new Opcode 'dadd'

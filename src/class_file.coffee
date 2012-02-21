@@ -2,8 +2,9 @@
 # pull in external modules
 _ ?= require '../third_party/underscore-min.js'
 util ?= require './util'
-ConstantPool = require './constant_pool'
-make_attributes = require './attributes'
+ConstantPool ?= require './constant_pool'
+make_attributes ?= require './attributes'
+runtime ?= require './runtime'
 
 class AbstractMethodField
   """ Subclasses need to implement parse_descriptor(String) """
@@ -63,8 +64,19 @@ class Method extends AbstractMethodField
     else
       @return_type = @parse_field_type raw_descriptor
   
-  run: () ->
-    throw 'NYI'
+  run: (runtime_state) ->
+    caller = runtime_state.meta_stack[0].stack
+    stack = (caller.pop() for i in [0...@param_types.length])
+    runtime_state.meta_stack.push(new runtime.StackFrame([],stack))
+    code = @get_code().opcodes
+    while true
+      op = code[runtime_state.curr_pc()]
+      op.execute runtime_state
+      runtime_state.inc_pc() #warning, every code steps one
+      if op.name.match /.*return/
+        sf = runtime_state.meta_stack.pop()
+        caller.push sf.stack.pop() if op.name isnt 'return'
+        break
 
 class Field extends AbstractMethodField
   parse_descriptor: (raw_descriptor) ->
