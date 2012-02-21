@@ -10,8 +10,8 @@ class LocalVarOpcode extends Opcode
 
 class FieldOpcode extends Opcode
   take_args: (code_array) ->
-    @field_spec = code_array.get_uint(1)
-    @descriptor = code_array.get_uint(1)
+    @field_spec_ref = code_array.get_uint(1)
+    @descriptor_ref = code_array.get_uint(1)
 
 class ClassOpcode extends Opcode
   take_args: (code_array, constant_pool) ->
@@ -53,7 +53,7 @@ class BranchOpcode extends Opcode
   15: new Opcode 'dconst_1'
   16: new Opcode 'bipush', 1
   17: new Opcode 'sipush', 2
-  18: new LoadOpcode 'ldc'
+  18: new LoadOpcode 'ldc', 1
   19: new LoadOpcode 'ldc_w', 2
   20: new LoadOpcode 'ldc2_w', 2
   21: new LocalVarOpcode 'iload'
@@ -220,7 +220,7 @@ class BranchOpcode extends Opcode
   182: new InvokeOpcode 'invokevirtual'
   183: new InvokeOpcode 'invokespecial'
   184: new InvokeOpcode 'invokestatic'
-  184: new InvokeOpcode 'invokeinterface'
+  185: new InvokeOpcode 'invokeinterface'
   187: new ClassOpcode 'new'
   188: new Opcode 'newarray', 1
   189: new ClassOpcode 'anewarray'

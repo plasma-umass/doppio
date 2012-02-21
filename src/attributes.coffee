@@ -13,7 +13,7 @@ class ExceptionHandler
     @end_pc     = util.read_uint(bytes_array.splice(0,2))
     @handler_pc = util.read_uint(bytes_array.splice(0,2))
     cti = util.read_uint(bytes_array.splice(0,2))
-    @catch_type = if cti==0 then "<all>" else constant_pool.deref(cti).value
+    @catch_type = if cti==0 then "<all>" else constant_pool.get(cti).deref()
     return bytes_array
 
 class Code
@@ -85,13 +85,13 @@ class StackMapTable
         bytes_array.splice(0, 2)
       when 252 <= frame_type < 255
         bytes_array.splice(0, 2)
-        @parse_verification_type_info bytes_array for i in range[0..frame_type-251]
+        @parse_verification_type_info bytes_array for i in [0...frame_type-251]
       when 255
         bytes_array.splice(0, 2)
         num_locals = bytes_array.splice(0, 2)
-        @parse_verification_type_info bytes_array for i in range[0..num_locals]
+        @parse_verification_type_info bytes_array for i in [0...num_locals]
         num_stack_items = bytes_array.splice(0, 2)
-        @parse_verification_type_info bytes_array for i in range[0..num_stack_items]
+        @parse_verification_type_info bytes_array for i in [0...num_stack_items]
 
   parse_verification_type_info: (bytes_array) ->
     tag = bytes_array.shift()

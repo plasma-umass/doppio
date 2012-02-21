@@ -56,7 +56,11 @@ util ?= require './util.js'
     rv += "   Stack=#{code.max_stack}, Locals=#{code.max_locals}, Args_size=#{m.param_types.length}\n"
     code.each_opcode((idx, oc) ->
       rv += "   #{idx}:\t#{oc.name}"
-      rv += "   \t##{oc.method_spec_ref}" if oc.constructor.name == 'InvokeOpcode'
+      rv += switch oc.constructor.name
+        when 'InvokeOpcode' then "   \t##{oc.method_spec_ref}"
+        when 'ClassOpcode' then "   \t##{oc.class_ref}"
+        when 'FieldOpcode' then "   \t##{oc.descriptor_ref}"
+        else ""
       rv += "\n"
     )
     rv += "\n\n"
