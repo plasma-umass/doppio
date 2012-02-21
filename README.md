@@ -21,9 +21,10 @@ Testing
 -------
 
 Check if the parser is doing the right thing by comparing the disassembler's
-output with `javap`:
+output with that of `javap`:
 
-    javap -c -verbose test/Println.java > tmp1
+    javac test/Println.java
+    javap -c -verbose test/Println > tmp1
     cat test/Println.class java | coffee console/disassembler.coffee > tmp2
     tools/cleandiff.sh tmp1 tmp2
 
