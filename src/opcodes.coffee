@@ -151,7 +151,7 @@ class BranchOpcode extends Opcode
   113: new Opcode 'lrem'
   114: new Opcode 'frem'
   115: new Opcode 'drem'
-  116: new Opcode '.....ineg'
+  116: new Opcode 'ineg'
   117: new Opcode 'lneg'
   118: new Opcode 'fneg'
   119: new Opcode 'dneg'
