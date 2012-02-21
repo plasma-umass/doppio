@@ -25,7 +25,7 @@ output with that of `javap`:
 
     javac test/Println.java
     javap -c -verbose test/Println > tmp1
-    cat test/Println.class java | coffee console/disassembler.coffee > tmp2
+    cat test/Println.class | coffee console/disassembler.coffee > tmp2
     tools/cleandiff.sh tmp1 tmp2
 
 There will be a number of differences shown as we do not output everything that
