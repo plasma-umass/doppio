@@ -3,7 +3,7 @@
 _ ?= require './third_party/underscore-min.js'
 
 # things assigned to root will be available outside this module
-root = exports ? this 
+root = exports ? this.util = {}
 
 sum = (list) -> _.reduce(list, ((a,b) -> a+b), 0)
 
@@ -27,7 +27,7 @@ root.bitwise_not = (x,nbits) ->
 root.read_uint = (bytes) -> 
   n = bytes.length-1
   # sum up the byte values shifted left to the right alignment.
-  sum(lshift(bytes[i]&0xFF,8*(n-i)) for i in [0..n])
+  sum(root.lshift(bytes[i]&0xFF,8*(n-i)) for i in [0..n])
 
 root.parse_flags = (flag_byte) ->
   {
@@ -54,7 +54,7 @@ class root.BytesArray
 
   get_uint: (bytes_count) ->
     return @raw_array[@index++] if bytes_count == 1
-    rv = read_uint @raw_array.slice(@index, @index+bytes_count)
+    rv = root.read_uint @raw_array.slice(@index, @index+bytes_count)
     @index += bytes_count
     return rv
 

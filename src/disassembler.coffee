@@ -1,8 +1,11 @@
 
-# things assigned to root will be available outside this module
-root = exports ? this 
+# Export a single 'disassemble' function.
 
-root.disassemble = (class_file) ->
+# pull in external modules
+_ ?= require '../third_party/underscore-min.js'
+util ?= require './util.js'
+
+@disassemble = (class_file) ->
   canonical = (str) -> str.replace /\//g, '.'
   rv = ""
   source_file = _.find(class_file.attrs, (attr) -> attr.constructor.name == 'SourceFile')
@@ -25,7 +28,7 @@ root.disassemble = (class_file) ->
       when 'Method', 'InterfaceMethod', 'Field'
         "#{info.class}.#{info.sig.name}:#{info.sig.type}"
       when 'NameAndType' then "#{info.name}:#{info.type}"
-      else info.replace /\n/g, "\\n" if is_string info
+      else info.replace /\n/g, "\\n" if util.is_string info
 
   pool = class_file.constant_pool
   pool.each (idx, entry) ->
@@ -60,3 +63,5 @@ root.disassemble = (class_file) ->
   rv += "}"
 
   return rv
+
+module?.exports = @disassemble

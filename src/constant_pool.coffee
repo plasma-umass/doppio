@@ -1,6 +1,9 @@
 
-# things assigned to root will be available outside this module
-root = exports ? this 
+# Export a single 'ConstantPool' constructor.
+
+# pull in external modules
+_ ?= require '../third_party/underscore-min.js'
+util ?= require './util.js'
 
 """
 All objects in the constant pool have the properties @type and @value.
@@ -12,7 +15,7 @@ class SimpleReference
   constructor: (@constant_pool, @value) ->
 
   @from_bytes: (bytes_array, constant_pool) ->
-    value = read_uint(bytes_array.splice(0,2))
+    value = util.read_uint(bytes_array.splice(0,2))
     ref = new @ constant_pool, value
     return [ref, 1, bytes_array]
 
@@ -67,7 +70,7 @@ class ConstString
   constructor: (@value) -> @type = 'Asciz'
 
   @from_bytes: (bytes_array) ->
-    strlen = read_uint(bytes_array.splice(0,2))
+    strlen = util.read_uint(bytes_array.splice(0,2))
     #TODO: this doesn't actually decode the real unicode repr. But it'll work for ascii...
     value = (String.fromCharCode(c) for c in bytes_array.splice(0,strlen)).join('')
     const_string = new @ value
@@ -77,7 +80,7 @@ class ConstInt32
   constructor: (@value) -> @type = 'int'
 
   @from_bytes: (bytes_array) ->
-    uint32 = read_uint(bytes_array.splice(0,4))
+    uint32 = util.read_uint(bytes_array.splice(0,4))
     value = -(1 + ~uint32)  # convert to signed integer ONLY FOR 32 BITS
     int32 = new @ value
     return [int32, 1, bytes_array]
@@ -86,7 +89,7 @@ class ConstFloat
   constructor: (@value) -> @type = 'float'
 
   @from_bytes: (bytes_array) ->
-    uint32 = read_uint(bytes_array.splice(0,4))
+    uint32 = util.read_uint(bytes_array.splice(0,4))
     sign = (uint32 &       0x80000000)>>>31
     exponent = (uint32 &   0x7F800000)>>>23
     significand = uint32 & 0x007FFFFF
@@ -98,11 +101,11 @@ class ConstLong
   constructor: (@value) -> @type = 'long'
 
   @from_bytes: (bytes_array) ->
-    int64 = read_uint(bytes_array.splice(0,8))
+    int64 = util.read_uint(bytes_array.splice(0,8))
     # this makes me feel dirty. I hate Javscript's lack of (real) bitwise operators
-    s = padleft(int64.toString(2),64,'0')
+    s = util.padleft(int64.toString(2),64,'0')
     if s[0] == '1'
-      int64 = -(1 + bitwise_not(int64,64))
+      int64 = -(1 + util.bitwise_not(int64,64))
     value = int64
     long = new @ value
     return [long, 2, bytes_array]
@@ -112,23 +115,23 @@ class ConstDouble
 
   @from_bytes: (bytes_array) ->
     #a hack since bitshifting in js is 32bit
-    uint32_a = read_uint(bytes_array.splice(0,4))
-    uint32_b = read_uint(bytes_array.splice(0,4))
+    uint32_a = util.read_uint(bytes_array.splice(0,4))
+    uint32_b = util.read_uint(bytes_array.splice(0,4))
     sign     = (uint32_a & 0x80000000)>>>31
     exponent = (uint32_a & 0x7FF00000)>>>20
-    significand = lshift(uint32_a & 0x000FFFFF, 32) + uint32_b
+    significand = util.lshift(uint32_a & 0x000FFFFF, 32) + uint32_b
     value = Math.pow(-1,sign)*(1+significand*Math.pow(2,-52))*Math.pow(2,exponent-1023)
     double = new @ value
     return [double, 2, bytes_array]
 
-class root.ConstantPool
+class @ConstantPool
   parse: (bytes_array) ->
     constant_tags = {
       1: ConstString, 3: ConstInt32, 4: ConstFloat, 5: ConstLong,
       6: ConstDouble, 7: ClassReference, 8: StringReference, 9: FieldReference,
       10: MethodReference, 11: InterfaceMethodReference, 12: MethodSignature
     }
-    @cp_count = read_uint(bytes_array.splice(0,2))
+    @cp_count = util.read_uint(bytes_array.splice(0,2))
     # constant_pool works like an array, but not all indices have values
     @constant_pool = {}
     idx = 1  # CP indexing starts at zero
@@ -146,3 +149,5 @@ class root.ConstantPool
   each: (fn) ->
     for i in [0..@cp_count] when i of @constant_pool
       fn(i, @constant_pool[i])
+
+module?.exports = @ConstantPool
