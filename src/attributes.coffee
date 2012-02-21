@@ -61,7 +61,6 @@ class SourceFile
     return bytes_array
 
 class StackMapTable
-  # this is a dud class. Merely used to consume the correct number of input bytes.
   parse: (bytes_array, constant_pool) ->
     @num_entries = util.read_uint(bytes_array.splice(0, 2))
     @entries = (@parse_entries bytes_array for i in [0...@num_entries])

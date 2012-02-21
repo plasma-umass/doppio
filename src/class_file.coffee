@@ -45,8 +45,6 @@ class AbstractMethodField
 
 class Method extends AbstractMethodField
   get_code: ->
-    if @access_flags.native or @access_flags.abstract
-      throw "Method does not have associated code!"
     return _.find(@attrs, (a) -> a.constructor.name == "Code")
 
   parse_descriptor: (raw_descriptor) ->
