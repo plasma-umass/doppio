@@ -1,0 +1,58 @@
+public class Println extends java.lang.Object
+  SourceFile: "Println.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#6.#15;	//  java/lang/Object.<init>:()V
+const #2 = Field	#16.#17;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #3 = String	#18;	//  I'm a string, and I got printed!
+const #4 = Method	#19.#20;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #5 = class	#21;	//  Println
+const #6 = class	#22;	//  java/lang/Object
+const #7 = Asciz	<init>;
+const #8 = Asciz	()V;
+const #9 = Asciz	Code;
+const #10 = Asciz	LineNumberTable;
+const #11 = Asciz	main;
+const #12 = Asciz	([Ljava/lang/String;)V;
+const #13 = Asciz	SourceFile;
+const #14 = Asciz	Println.java;
+const #15 = NameAndType	#7:#8;//  <init>:()V
+const #16 = class	#23;	//  java/lang/System
+const #17 = NameAndType	#24:#25;//  out:Ljava/io/PrintStream;
+const #18 = Asciz	I'm a string, and I got printed!;
+const #19 = class	#26;	//  java/io/PrintStream
+const #20 = NameAndType	#27:#28;//  println:(Ljava/lang/String;)V
+const #21 = Asciz	Println;
+const #22 = Asciz	java/lang/Object;
+const #23 = Asciz	java/lang/System;
+const #24 = Asciz	out;
+const #25 = Asciz	Ljava/io/PrintStream;;
+const #26 = Asciz	java/io/PrintStream;
+const #27 = Asciz	println;
+const #28 = Asciz	(Ljava/lang/String;)V;
+
+{
+public Println();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //
+   4:	return
+  LineNumberTable: 
+   line 2: 0
+
+
+public static void main(reference);
+  Code:
+   Stack=2, Locals=1, Args_size=1
+   0:	getstatic	#2; //
+   3:	ldc	#3; //
+   5:	invokevirtual	#4; //
+   8:	return
+  LineNumberTable: 
+   line 4: 0
+   line 5: 8
+
+
+}
