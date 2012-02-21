@@ -93,7 +93,7 @@ class @ClassFile
     @constant_pool = new ConstantPool
     bytes_array = @constant_pool.parse(bytes_array)
     # bitmask for {public,final,super,interface,abstract} class modifier
-    @access_flags = read_u2()
+    @access_flags = util.parse_flags read_u2()
     @this_class  = @constant_pool.get(read_u2()).deref()
     @super_class = @constant_pool.get(read_u2()).deref()
     # direct interfaces of this class

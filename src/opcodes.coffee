@@ -1,5 +1,7 @@
 class Opcode
-  constructor: (@name, @execute=((rs) ->), @byte_count=0) ->
+  constructor: (@name, params={}) ->
+    @execute = params.execute ? ((rs) ->)
+    @byte_count = params.byte_count ? 0
 
   take_args: (code_array) ->
     @args = [code_array.get_uint(1) for i in [0...@byte_count]]
@@ -27,12 +29,16 @@ class InvokeOpcode extends Opcode
 
 class LoadOpcode extends Opcode
   take_args: (code_array, constant_pool) ->
-    @constant_ref = code_array.get_uint(@byte_count)
+    @constant_ref = code_array.get_uint @byte_count
     @constant = constant_pool.get @constant_ref
 
 class BranchOpcode extends Opcode
+  constructor: (name, params={ byte_count: 2 }) ->
+    super name, params
+
   take_args: (code_array) ->
-    @offset = code_array.get_uint(2)
+    # TODO this should be a signed int
+    @offset = code_array.get_uint(@byte_count)
 
 # these objects are used as prototypes for the parsed instructions in the
 # classfile
@@ -40,12 +46,12 @@ class BranchOpcode extends Opcode
   00: new Opcode 'nop'
   01: new Opcode 'aconst_null'
   02: new Opcode 'iconst_m1'
-  03: new Opcode 'iconst_0', (rs) -> rs.push 0
-  04: new Opcode 'iconst_1', (rs) -> rs.push 1
-  05: new Opcode 'iconst_2', (rs) -> rs.push 2
-  06: new Opcode 'iconst_3', (rs) -> rs.push 3
-  07: new Opcode 'iconst_4', (rs) -> rs.push 4
-  08: new Opcode 'iconst_5', (rs) -> rs.push 5
+  03: new Opcode 'iconst_0', { execute: (rs) -> rs.push 0 }
+  04: new Opcode 'iconst_1', { execute: (rs) -> rs.push 1 }
+  05: new Opcode 'iconst_2', { execute: (rs) -> rs.push 2 }
+  06: new Opcode 'iconst_3', { execute: (rs) -> rs.push 3 }
+  07: new Opcode 'iconst_4', { execute: (rs) -> rs.push 4 }
+  08: new Opcode 'iconst_5', { execute: (rs) -> rs.push 5 }
   09: new Opcode 'lconst_0'
   10: new Opcode 'lconst_1'
   11: new Opcode 'fconst_0'
@@ -53,19 +59,19 @@ class BranchOpcode extends Opcode
   13: new Opcode 'fconst_2'
   14: new Opcode 'dconst_0'
   15: new Opcode 'dconst_1'
-  16: new Opcode 'bipush', 1
-  17: new Opcode 'sipush', 2
-  18: new LoadOpcode 'ldc', 1
-  19: new LoadOpcode 'ldc_w', 2
-  20: new LoadOpcode 'ldc2_w', 2
+  16: new Opcode 'bipush', { byte_count: 1 }
+  17: new Opcode 'sipush', { byte_count: 2 }
+  18: new LoadOpcode 'ldc', { byte_count: 1 }
+  19: new LoadOpcode 'ldc_w', { byte_count: 2 }
+  20: new LoadOpcode 'ldc2_w', { byte_count: 2 }
   21: new LocalVarOpcode 'iload'
   22: new LocalVarOpcode 'lload'
   23: new LocalVarOpcode 'fload'
   24: new LocalVarOpcode 'dload'
   25: new LocalVarOpcode 'aload'
-  26: new Opcode 'iload_0', (rs) -> rs.push(rs.cl(0))
-  27: new Opcode 'iload_1', (rs) -> rs.push(rs.cl(1))
-  28: new Opcode 'iload_2', (rs) -> rs.push(rs.cl(2))
+  26: new Opcode 'iload_0', { execute: (rs) -> rs.push(rs.cl(0)) }
+  27: new Opcode 'iload_1', { execute: (rs) -> rs.push(rs.cl(1)) }
+  28: new Opcode 'iload_2', { execute: (rs) -> rs.push(rs.cl(2)) }
   29: new Opcode 'iload_3'
   30: new Opcode 'lload_0'
   31: new Opcode 'lload_1'
@@ -79,7 +85,7 @@ class BranchOpcode extends Opcode
   39: new Opcode 'dload_1'
   40: new Opcode 'dload_2'
   41: new Opcode 'dload_3'
-  42: new Opcode 'aload_0', (rs) -> rs.push(rs.cl(0))
+  42: new Opcode 'aload_0', { execute: (rs) -> rs.push(rs.cl(0)) }
   43: new Opcode 'aload_1'
   44: new Opcode 'aload_2'
   45: new Opcode 'aload_3'
@@ -96,10 +102,10 @@ class BranchOpcode extends Opcode
   56: new LocalVarOpcode 'fstore'
   57: new LocalVarOpcode 'dstore'
   58: new LocalVarOpcode 'astore'
-  59: new Opcode 'istore_0', (rs) -> rs.put_cl(0,rs.pop())
-  60: new Opcode 'istore_1', (rs) -> rs.put_cl(1,rs.pop())
-  61: new Opcode 'istore_2', (rs) -> rs.put_cl(2,rs.pop())
-  62: new Opcode 'istore_3', (rs) -> rs.put_cl(3,rs.pop())
+  59: new Opcode 'istore_0', { execute: (rs) -> rs.put_cl(0,rs.pop()) }
+  60: new Opcode 'istore_1', { execute: (rs) -> rs.put_cl(1,rs.pop()) }
+  61: new Opcode 'istore_2', { execute: (rs) -> rs.put_cl(2,rs.pop()) }
+  62: new Opcode 'istore_3', { execute: (rs) -> rs.put_cl(3,rs.pop()) }
   63: new Opcode 'lstore_0'
   64: new Opcode 'lstore_1'
   65: new Opcode 'lstore_2'
@@ -133,7 +139,7 @@ class BranchOpcode extends Opcode
   093: new Opcode 'dup2_x1'
   094: new Opcode 'dup2_x2'
   095: new Opcode 'swap'
-  096: new Opcode 'iadd', (rs) -> rs.push(rs.pop()+rs.pop())
+  096: new Opcode 'iadd', { execute: (rs) -> rs.push(rs.pop()+rs.pop()) }
   097: new Opcode 'ladd'
   098: new Opcode 'fadd'
   099: new Opcode 'dadd'
@@ -169,7 +175,7 @@ class BranchOpcode extends Opcode
   129: new Opcode 'lor'
   130: new Opcode 'ixor'
   131: new Opcode 'lxor'
-  132: new Opcode 'iinc', 2
+  132: new Opcode 'iinc', { byte_count: 2 }
   133: new Opcode 'i2l'
   134: new Opcode 'i2f'
   135: new Opcode 'i2d'
@@ -204,7 +210,7 @@ class BranchOpcode extends Opcode
   164: new BranchOpcode 'if_icmple'
   165: new BranchOpcode 'if_acmpeq'
   166: new BranchOpcode 'if_acmpne'
-  167: new Opcode 'goto'
+  167: new BranchOpcode 'goto'
   168: new Opcode 'jsr'
   169: new LocalVarOpcode 'ret'
   170: new Opcode 'tableswitch'
@@ -224,7 +230,7 @@ class BranchOpcode extends Opcode
   184: new InvokeOpcode 'invokestatic'
   185: new InvokeOpcode 'invokeinterface'
   187: new ClassOpcode 'new'
-  188: new Opcode 'newarray', 1
+  188: new Opcode 'newarray', { byte_count: 1 }
   189: new ClassOpcode 'anewarray'
   190: new Opcode 'arraylength'
   191: new Opcode 'athrow'
@@ -233,10 +239,10 @@ class BranchOpcode extends Opcode
   194: new Opcode 'monitorenter'
   195: new Opcode 'monitorexit'
   196: new Opcode 'wide'
-  197: new Opcode 'multianewarray', 3
+  197: new Opcode 'multianewarray', { byte_count: 3 }
   198: new BranchOpcode 'ifnull'
   199: new BranchOpcode 'ifnonnull'
-  200: new Opcode 'goto_w'
+  200: new BranchOpcode 'goto_w', { byte_count: 4 }
   201: new Opcode 'jsr_w'
 }
 

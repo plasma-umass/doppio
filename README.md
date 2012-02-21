@@ -15,4 +15,18 @@ A browser frontend is available at `browser/coffee-jvm.html`.
 
 The disassembler can also be used from the console. E.g.
 
-    cat test/Println.java | coffee console/disassembler.coffee
+    cat test/Println.class | coffee console/disassembler.coffee
+
+Testing
+-------
+
+Check if the parser is doing the right thing by comparing the disassembler's
+output with `javap`:
+
+    javap -c -verbose test/Println.java > tmp1
+    cat test/Println.class java | coffee console/disassembler.coffee > tmp2
+    tools/cleandiff.sh tmp1 tmp2
+
+There will be a number of differences shown as we do not output everything that
+javap does. However, differences in the constant pool and opcode sections are
+probably indicative of bugs.

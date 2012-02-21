@@ -24,7 +24,7 @@ class SimpleReference
     pool_obj.deref?() or pool_obj.value
 
 class ClassReference extends SimpleReference
-  constructor: (@constant_pool, @value) -> @type = 'Class'
+  constructor: (@constant_pool, @value) -> @type = 'class'
 
 class StringReference extends SimpleReference
   constructor: (@constant_pool, @value) -> @type = 'String'
