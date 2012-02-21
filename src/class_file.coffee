@@ -1,3 +1,10 @@
+
+# pull in external modules
+_ ?= require '../third_party/underscore-min.js'
+util ?= require './util'
+ConstantPool = require './constant_pool'
+make_attributes = require './attributes'
+
 class AbstractMethodField
   """ Subclasses need to implement parse_descriptor(String) """
   parse: (bytes_array,constant_pool) ->

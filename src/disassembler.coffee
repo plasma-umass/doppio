@@ -1,6 +1,10 @@
 
 # Export a single 'disassemble' function.
 
+# pull in external modules
+_ ?= require '../third_party/underscore-min.js'
+util ?= require './util.js'
+
 @disassemble = (class_file) ->
   canonical = (str) -> str.replace /\//g, '.'
   rv = ""

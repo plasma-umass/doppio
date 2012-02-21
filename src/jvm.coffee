@@ -1,4 +1,8 @@
 
+# pull in external modules
+_ ?= require '../third_party/underscore-min.js'
+util ?= require './util.js'
+
 # things assigned to root will be available outside this module
 root = exports ? this.jvm = {}
 

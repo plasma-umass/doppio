@@ -1,6 +1,11 @@
 
+# pull in external modules
+_ ?= require '../third_party/underscore-min.js'
+util ?= require './util.js'
+opcodes = require './opcodes'
+
 # things assigned to root will be available outside this module
-root = exports ? this 
+root = this 
 
 class ExceptionHandler
   parse: (bytes_array,constant_pool) ->
@@ -24,7 +29,7 @@ class Code
     for eh in @exception_handlers
       bytes_array = eh.parse(bytes_array,constant_pool)
     # yes, there are even attrs on attrs. BWOM... BWOM...
-    [@attrs,bytes_array] = make_attributes(bytes_array,constant_pool)
+    [@attrs,bytes_array] = root.make_attributes(bytes_array,constant_pool)
     return bytes_array
 
   parse_code: (bytes_array, constant_pool) ->
@@ -92,7 +97,7 @@ class StackMapTable
     tag = bytes_array.shift()
     bytes_array.splice(0, 2) if tag == 7
 
-@make_attributes = (bytes_array,constant_pool) ->
+root.make_attributes = (bytes_array,constant_pool) ->
   #TODO: add classes for additional attr types
   attr_types = {
     'Code': Code, 'LineNumberTable': LineNumberTable, 'SourceFile': SourceFile,
@@ -110,4 +115,4 @@ class StackMapTable
     attrs.push attr
   return [attrs,bytes_array]
 
-module?.exports = @make_attributes
+module?.exports = root.make_attributes
