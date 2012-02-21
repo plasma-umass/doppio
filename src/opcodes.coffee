@@ -1,8 +1,8 @@
 class Opcode
-  constructor: (@name, @byte_count=1) ->
+  constructor: (@name, @byte_count=0) ->
 
   take_args: (code_array) ->
-    @args = [code_array.get_uint(1) for i in [0..@byte_count]]
+    @args = [code_array.get_uint(1) for i in [0...@byte_count]]
 
 class LocalVarOpcode extends Opcode
   take_args: (code_array) ->
@@ -151,7 +151,7 @@ class BranchOpcode extends Opcode
   113: new Opcode 'lrem'
   114: new Opcode 'frem'
   115: new Opcode 'drem'
-  116: new Opcode '.....ineg'
+  116: new Opcode 'ineg'
   117: new Opcode 'lneg'
   118: new Opcode 'fneg'
   119: new Opcode 'dneg'
