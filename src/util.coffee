@@ -60,8 +60,8 @@ class root.BytesArray
 
   get_int: (bytes_count) ->
     uint = @get_uint(bytes_count)
-    if uint > Math.pow(2, 8 * (bytes_count - 1))
-      uint - Math.pow(2, 8 * bytes_count)
+    if uint > Math.pow 2, 8 * bytes_count - 1
+      uint - Math.pow 2, 8 * bytes_count
     else
       uint
 

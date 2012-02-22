@@ -37,7 +37,16 @@ class BranchOpcode extends Opcode
     super name, params
 
   take_args: (code_array) ->
-    @offset = code_array.get_int(@byte_count)
+    @offset = code_array.get_int @byte_count
+
+class PushOpcode extends Opcode
+  take_args: (code_array) ->
+    @value = code_array.get_int @byte_count
+
+class IIncOpcode extends Opcode
+  take_args: (code_array) ->
+    @index = code_array.get_uint 1
+    @const = code_array.get_int 1
 
 # these objects are used as prototypes for the parsed instructions in the
 # classfile
@@ -58,8 +67,8 @@ class BranchOpcode extends Opcode
   13: new Opcode 'fconst_2'
   14: new Opcode 'dconst_0'
   15: new Opcode 'dconst_1'
-  16: new Opcode 'bipush', { byte_count: 1 }
-  17: new Opcode 'sipush', { byte_count: 2 }
+  16: new PushOpcode 'bipush', { byte_count: 1 }
+  17: new PushOpcode 'sipush', { byte_count: 2 }
   18: new LoadOpcode 'ldc', { byte_count: 1 }
   19: new LoadOpcode 'ldc_w', { byte_count: 2 }
   20: new LoadOpcode 'ldc2_w', { byte_count: 2 }
@@ -174,7 +183,7 @@ class BranchOpcode extends Opcode
   129: new Opcode 'lor'
   130: new Opcode 'ixor'
   131: new Opcode 'lxor'
-  132: new Opcode 'iinc', { byte_count: 2 }
+  132: new IIncOpcode 'iinc'
   133: new Opcode 'i2l'
   134: new Opcode 'i2f'
   135: new Opcode 'i2d'

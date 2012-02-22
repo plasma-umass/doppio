@@ -27,6 +27,9 @@ util ?= require './util'
       when 'Method', 'InterfaceMethod', 'Field'
         "##{val.class_ref.value}.##{val.sig.value}"
       when 'NameAndType' then "##{val.meth_ref.value}:##{val.type_ref.value}"
+      when 'float' then val.toFixed(5) + "f"
+      when 'double' then val + "d"
+      when 'long' then val + "l"
       else ((if entry.deref? then "#" else "") + val).replace /\n/g, "\\n"
 
   format_extra_info = (type, info) ->
@@ -77,6 +80,8 @@ util ?= require './util'
           when 'BranchOpcode' then "\t#{idx + oc.offset}"
           when 'LocalVarOpcode' then "\t#{oc.var_num}"
           when 'LoadOpcode' then "\t##{oc.constant_ref};"
+          when 'PushOpcode' then "\t#{oc.value}"
+          when 'IIncOpcode' then "\t#{oc.index}, #{oc.const}"
           else ""
         rv += "\n"
       )
