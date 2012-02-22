@@ -67,9 +67,10 @@ class Method extends AbstractMethodField
     runtime_state.meta_stack.push(new runtime.StackFrame([],stack))
     code = @get_code().opcodes
     while true
+      console.log "#{runtime_state.curr_pc()} -> stack: [#{runtime_state.meta_stack[1].stack}], local: [#{runtime_state.meta_stack[1].locals}]"
       op = code[runtime_state.curr_pc()]
       op.execute runtime_state
-      runtime_state.inc_pc() #warning, every code steps one
+      runtime_state.inc_pc(1 + op.byte_count)  # just moves to the next opcode
       if op.name.match /.*return/
         sf = runtime_state.meta_stack.pop()
         caller.push sf.stack.pop() if op.name isnt 'return'

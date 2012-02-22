@@ -1,26 +1,44 @@
 class Opcode
   constructor: (@name, params={}) ->
-    @execute = params.execute ? ((rs) ->)
+    @execute = params.execute ? @_execute
     @byte_count = params.byte_count ? 0
 
   take_args: (code_array) ->
     @args = [code_array.get_uint(1) for i in [0...@byte_count]]
+  
+  _execute: (rs) -> console.log "#{@name} is a NOP"
 
 class LocalVarOpcode extends Opcode
+  constructor: (name, params) ->
+    super name, params
+    @byte_count = 1
+
   take_args: (code_array) ->
     @var_num = code_array.get_uint(1)
 
 class FieldOpcode extends Opcode
+  constructor: (name, params) ->
+    super name, params
+    @byte_count = 2
+    
   take_args: (code_array) ->
     @field_spec_ref = code_array.get_uint(1)
     @descriptor_ref = code_array.get_uint(1)
 
 class ClassOpcode extends Opcode
+  constructor: (name, params) ->
+    super name, params
+    @byte_count = 2
+    
   take_args: (code_array, constant_pool) ->
     @class_ref = code_array.get_uint(2)
     @class = constant_pool.get(@class_ref).deref()
 
 class InvokeOpcode extends Opcode
+  constructor: (name, params) ->
+    super name, params
+    @byte_count = 2
+    
   take_args: (code_array, constant_pool) ->
     @method_spec_ref = code_array.get_uint(2)
     # invokeinterface has two redundant bytes
@@ -31,6 +49,8 @@ class LoadOpcode extends Opcode
   take_args: (code_array, constant_pool) ->
     @constant_ref = code_array.get_uint @byte_count
     @constant = constant_pool.get @constant_ref
+  
+  _execute: (rs) -> rs.push @constant.value
 
 class BranchOpcode extends Opcode
   constructor: (name, params={ byte_count: 2 }) ->
@@ -43,10 +63,23 @@ class PushOpcode extends Opcode
   take_args: (code_array) ->
     @value = code_array.get_int @byte_count
 
+  _execute: (rs) -> rs.push @value
+
 class IIncOpcode extends Opcode
+  constructor: (name, params) ->
+    super name, params
+    @byte_count = 2
+    
   take_args: (code_array) ->
     @index = code_array.get_uint 1
     @const = code_array.get_int 1
+
+  _execute: (rs) -> rs.put_cl(@index,rs.cl(@index)+@const)
+
+class StoreOpcode extends Opcode
+  _execute: (rs) -> 
+    idx = parseInt @name[7]  # sneaky hack, works for name =~ /.store_\d/
+    rs.put_cl(idx,rs.pop())
 
 # these objects are used as prototypes for the parsed instructions in the
 # classfile
@@ -105,27 +138,27 @@ class IIncOpcode extends Opcode
   51: new Opcode 'baload'
   52: new Opcode 'caload'
   53: new Opcode 'saload'
-  54: new LocalVarOpcode 'istore'
-  55: new LocalVarOpcode 'lstore'
-  56: new LocalVarOpcode 'fstore'
-  57: new LocalVarOpcode 'dstore'
+  54: new LocalVarOpcode 'istore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
+  55: new LocalVarOpcode 'lstore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
+  56: new LocalVarOpcode 'fstore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
+  57: new LocalVarOpcode 'dstore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
   58: new LocalVarOpcode 'astore'
-  59: new Opcode 'istore_0', { execute: (rs) -> rs.put_cl(0,rs.pop()) }
-  60: new Opcode 'istore_1', { execute: (rs) -> rs.put_cl(1,rs.pop()) }
-  61: new Opcode 'istore_2', { execute: (rs) -> rs.put_cl(2,rs.pop()) }
-  62: new Opcode 'istore_3', { execute: (rs) -> rs.put_cl(3,rs.pop()) }
-  63: new Opcode 'lstore_0'
-  64: new Opcode 'lstore_1'
-  65: new Opcode 'lstore_2'
-  66: new Opcode 'lstore_3'
-  67: new Opcode 'fstore_0'
-  68: new Opcode 'fstore_1'
-  69: new Opcode 'fstore_2'
-  70: new Opcode 'fstore_3'
-  71: new Opcode 'dstore_0'
-  72: new Opcode 'dstore_1'
-  73: new Opcode 'dstore_2'
-  74: new Opcode 'dstore_3'
+  59: new StoreOpcode 'istore_0'
+  60: new StoreOpcode 'istore_1'
+  61: new StoreOpcode 'istore_2'
+  62: new StoreOpcode 'istore_3'
+  63: new StoreOpcode 'lstore_0'
+  64: new StoreOpcode 'lstore_1'
+  65: new StoreOpcode 'lstore_2'
+  66: new StoreOpcode 'lstore_3'
+  67: new StoreOpcode 'fstore_0'
+  68: new StoreOpcode 'fstore_1'
+  69: new StoreOpcode 'fstore_2'
+  70: new StoreOpcode 'fstore_3'
+  71: new StoreOpcode 'dstore_0'
+  72: new StoreOpcode 'dstore_1'
+  73: new StoreOpcode 'dstore_2'
+  74: new StoreOpcode 'dstore_3'
   75: new Opcode 'astore_0'
   76: new Opcode 'astore_1'
   77: new Opcode 'astore_2'

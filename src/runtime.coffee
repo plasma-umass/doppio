@@ -13,16 +13,13 @@ class root.RuntimeState
   put_cl: (idx,val) ->
     _.last(@meta_stack).locals[idx] = val
   push: (args...) -> #operator for current stack
-    #alert "pushing: #{args}" #good for debug (console.log is teh sux)
     for v in args
       @meta_stack[@meta_stack.length-1].stack.push v
   pop: () -> #operator for current stack
-    v = @meta_stack[@meta_stack.length-1].stack.pop()
-    #alert "popping: #{v}" #good for debug
-    v
+    @meta_stack[@meta_stack.length-1].stack.pop()
   curr_pc: () ->
     _.last(@meta_stack).pc
   goto_pc: (pc) ->
     _.last(@meta_stack).pc = pc
-  inc_pc: () ->
-    _.last(@meta_stack).pc += 1
+  inc_pc: (n) ->
+    _.last(@meta_stack).pc += n
