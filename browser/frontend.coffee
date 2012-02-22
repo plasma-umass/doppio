@@ -27,6 +27,9 @@ compile_source = (java_source) ->
   }
 
 $(document).ready ->
+  editor = ace.edit('source')
+  JavaMode = require("ace/mode/java").Mode
+  editor.getSession().setMode new JavaMode
   $('#go_button').text(button_idle_text)
   $('#go_button').click (event) ->
-    compile_source $('#source').val()
+    compile_source editor.getSession().getValue()
