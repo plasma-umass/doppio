@@ -6,7 +6,7 @@ public class OMember {
     this.str = a;
     this.dbl = b;
   }
-	public static void main(String[] args) {
+  public static void main(String[] args) {
     OMember quux = new OMember("hello",-9.322);
-	}
+  }
 }

@@ -6,7 +6,7 @@ public class OMethod {
   private int foo(double x) {
     return (int)x;
   }
-	public static void main(String[] args) {
+  public static void main(String[] args) {
     OMethod quux = new OMethod("hello",-9.322);
-	}
+  }
 }
