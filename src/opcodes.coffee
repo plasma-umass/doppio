@@ -43,7 +43,8 @@ class InvokeOpcode extends Opcode
     @method_spec_ref = code_array.get_uint(2)
     # invokeinterface has two redundant bytes
     code_array.index += 2 if @name == 'invokeinterface'
-    @method_spec = constant_pool.get(@method_spec_ref).deref()
+    method_spec = constant_pool.get(@method_spec_ref).deref()
+    @method_name = method_spec.sig.name
 
 class LoadOpcode extends Opcode
   take_args: (code_array, constant_pool) ->
@@ -122,7 +123,7 @@ class StoreOpcode extends Opcode
   35: new Opcode 'fload_1'
   36: new Opcode 'fload_2'
   37: new Opcode 'fload_3'
-  38: new Opcode 'dload_0'
+  38: new Opcode 'dload_0', { execute: (rs) -> rs.push(rs.cl(0)) }
   39: new Opcode 'dload_1'
   40: new Opcode 'dload_2'
   41: new Opcode 'dload_3'
@@ -171,7 +172,7 @@ class StoreOpcode extends Opcode
   84: new Opcode 'bastore'
   85: new Opcode 'castore'
   86: new Opcode 'sastore'
-  87: new Opcode 'pop'
+  87: new Opcode 'pop', { execute: (rs) -> rs.pop() }
   88: new Opcode 'pop2'
   089: new Opcode 'dup'
   090: new Opcode 'dup_x1'
@@ -226,7 +227,7 @@ class StoreOpcode extends Opcode
   139: new Opcode 'f2i'
   140: new Opcode 'f2l'
   141: new Opcode 'f2d'
-  142: new Opcode 'd2i'
+  142: new Opcode 'd2i', { execute: (rs) -> rs.push(Math.floor(rs.pop())) }
   143: new Opcode 'd2l'
   144: new Opcode 'd2f'
   145: new Opcode 'i2b'
@@ -268,7 +269,7 @@ class StoreOpcode extends Opcode
   181: new FieldOpcode 'putfield'
   182: new InvokeOpcode 'invokevirtual'
   183: new InvokeOpcode 'invokespecial'
-  184: new InvokeOpcode 'invokestatic'
+  184: new InvokeOpcode 'invokestatic', { execute: (rs)-> rs.method_by_name(@method_name).run(rs)}
   185: new InvokeOpcode 'invokeinterface'
   187: new ClassOpcode 'new'
   188: new Opcode 'newarray', { byte_count: 1 }

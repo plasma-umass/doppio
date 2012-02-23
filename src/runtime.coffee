@@ -6,20 +6,24 @@ class root.StackFrame
     @pc=0
 
 class root.RuntimeState
-  constructor: (@constant_pool, @print, initial_args) ->
+  constructor: (@class_data, @print, initial_args) ->
     @meta_stack = [new root.StackFrame(['fake','frame'],initial_args)]
+  curr_frame: () -> _.last(@meta_stack)
   cl: (idx) -> #current locals
-    _.last(@meta_stack).locals[idx]
+    @curr_frame().locals[idx]
   put_cl: (idx,val) ->
-    _.last(@meta_stack).locals[idx] = val
+    @curr_frame().locals[idx] = val
   push: (args...) -> #operator for current stack
+    cs = @curr_frame().stack
     for v in args
-      @meta_stack[@meta_stack.length-1].stack.push v
+      cs.push v
   pop: () -> #operator for current stack
-    @meta_stack[@meta_stack.length-1].stack.pop()
+    @curr_frame().stack.pop()
   curr_pc: () ->
-    _.last(@meta_stack).pc
+    @curr_frame().pc
   goto_pc: (pc) ->
-    _.last(@meta_stack).pc = pc
+    @curr_frame().pc = pc
   inc_pc: (n) ->
-    _.last(@meta_stack).pc += n
+    @curr_frame().pc += n
+  method_by_name: (name) ->
+    _.find(@class_data.methods, (m) -> m.name == name)

@@ -10,8 +10,7 @@ root = exports ? this.jvm = {}
 root.run = (class_data, print_func, cmdline_args) ->
   console.log cmdline_args
   console.log class_data
-  rs = new runtime.RuntimeState(class_data.constant_pool, print_func, [cmdline_args])
-  main_method = _.find(class_data.methods, (m) -> m.name == 'main')
+  rs = new runtime.RuntimeState(class_data, print_func, [cmdline_args])
   print_func "State initialized.\n"
-  main_method.run(rs)
+  rs.method_by_name('main').run(rs)
   print_func "JVM run finished.\n"

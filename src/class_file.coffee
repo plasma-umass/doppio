@@ -55,6 +55,8 @@ class Method extends AbstractMethodField
       while field = @parse_field_type raw_descriptor
         field
     throw "Invalid descriptor #{raw_descriptor}" if raw_descriptor.shift() != ')'
+    @num_args = @param_types.length
+    @num_args++ unless @access_flags.static # nonstatic methods get 'this'
     if raw_descriptor[0] == 'V'
       raw_descriptor.shift()
       @return_type = { type: 'void' }
@@ -62,12 +64,13 @@ class Method extends AbstractMethodField
       @return_type = @parse_field_type raw_descriptor
   
   run: (runtime_state) ->
-    caller = runtime_state.meta_stack[0].stack
-    stack = (caller.pop() for i in [0...@param_types.length])
-    runtime_state.meta_stack.push(new runtime.StackFrame([],stack))
+    caller = runtime_state.curr_frame().stack
+    params = (caller.pop() for i in [0...@num_args])
+    runtime_state.meta_stack.push(new runtime.StackFrame(params,[]))
     code = @get_code().opcodes
     while true
-      console.log "#{runtime_state.curr_pc()} -> stack: [#{runtime_state.meta_stack[1].stack}], local: [#{runtime_state.meta_stack[1].locals}]"
+      cf = runtime_state.curr_frame()
+      console.log "#{runtime_state.curr_pc()} -> stack: [#{cf.stack}], local: [#{cf.locals}]"
       op = code[runtime_state.curr_pc()]
       op.execute runtime_state
       if op.name.match /.*return/
