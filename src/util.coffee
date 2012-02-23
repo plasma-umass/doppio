@@ -5,7 +5,7 @@ _ ?= require './third_party/underscore-min.js'
 # things assigned to root will be available outside this module
 root = exports ? this.util = {}
 
-sum = (list) -> _.reduce(list, ((a,b) -> a+b), 0)
+root.sum = (list) -> _.reduce(list, ((a,b) -> a+b), 0)
 
 root.padleft = (str,len,fillchar) ->
   throw "fillchar can only be length 1" unless fillchar.length == 1
@@ -27,7 +27,7 @@ root.bitwise_not = (x,nbits) ->
 root.read_uint = (bytes) -> 
   n = bytes.length-1
   # sum up the byte values shifted left to the right alignment.
-  sum(root.lshift(bytes[i]&0xFF,8*(n-i)) for i in [0..n])
+  root.sum(root.lshift(bytes[i]&0xFF,8*(n-i)) for i in [0..n])
 
 root.parse_flags = (flag_byte) ->
   {

@@ -8,22 +8,27 @@ class root.StackFrame
 class root.RuntimeState
   constructor: (@class_data, @print, initial_args) ->
     @meta_stack = [new root.StackFrame(['fake','frame'],initial_args)]
+
   curr_frame: () -> _.last(@meta_stack)
-  cl: (idx) -> #current locals
-    @curr_frame().locals[idx]
-  put_cl: (idx,val) ->
-    @curr_frame().locals[idx] = val
-  push: (args...) -> #operator for current stack
+
+  cl: (idx) -> @curr_frame().locals[idx]
+
+  put_cl: (idx,val) -> @curr_frame().locals[idx] = val
+  # useful for category 2 values (longs, doubles)
+  put_cl2: (idx,val) -> @put_cl(idx,val); @put_cl(idx+1,undefined)
+
+  push: (args...) ->
     cs = @curr_frame().stack
     for v in args
       cs.push v
-  pop: () -> #operator for current stack
-    @curr_frame().stack.pop()
-  curr_pc: () ->
-    @curr_frame().pc
-  goto_pc: (pc) ->
-    @curr_frame().pc = pc
-  inc_pc: (n) ->
-    @curr_frame().pc += n
-  method_by_name: (name) ->
-    _.find(@class_data.methods, (m) -> m.name == name)
+
+  pop: () -> @curr_frame().stack.pop()
+  # useful for category 2 values (longs, doubles)
+  pop2: () -> v = @pop(); @pop(); v
+
+  # program counter manipulation
+  curr_pc: ()   -> @curr_frame().pc
+  goto_pc: (pc) -> @curr_frame().pc = pc
+  inc_pc:  (n)  -> @curr_frame().pc += n
+
+  method_by_name: (name) -> _.find(@class_data.methods, (m)-> m.name is name)

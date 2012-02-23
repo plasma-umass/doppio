@@ -62,10 +62,18 @@ class Method extends AbstractMethodField
       @return_type = { type: 'void' }
     else
       @return_type = @parse_field_type raw_descriptor
+
+  take_params: (caller_stack) ->
+    params = []
+    type_size = (t) -> (if t in ['double','long'] then 2 else 1)
+    n_bytes = util.sum(type_size(p.type) for p in @param_types)
+    n_bytes++ unless @access_flags.static
+    console.log n_bytes
+    caller_stack.splice(caller_stack.length-n_bytes,n_bytes)
   
   run: (runtime_state) ->
-    caller = runtime_state.curr_frame().stack
-    params = (caller.pop() for i in [0...@num_args])
+    caller_stack = runtime_state.curr_frame().stack
+    params = @take_params caller_stack
     runtime_state.meta_stack.push(new runtime.StackFrame(params,[]))
     code = @get_code().opcodes
     while true
@@ -74,8 +82,12 @@ class Method extends AbstractMethodField
       op = code[runtime_state.curr_pc()]
       op.execute runtime_state
       if op.name.match /.*return/
-        sf = runtime_state.meta_stack.pop()
-        caller.push sf.stack.pop() if op.name isnt 'return'
+        s = runtime_state.meta_stack.pop().stack
+        if op.name in ['ireturn','freturn','areturn']
+          caller_stack.push s.pop()
+        else if op.name in ['lreturn','dreturn']
+          caller_stack.push s.pop()
+          caller_stack.push undefined
         break
       runtime_state.inc_pc(1 + op.byte_count)  # just moves to the next opcode
 

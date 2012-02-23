@@ -51,7 +51,9 @@ class LoadOpcode extends Opcode
     @constant_ref = code_array.get_uint @byte_count
     @constant = constant_pool.get @constant_ref
   
-  _execute: (rs) -> rs.push @constant.value
+  _execute: (rs) -> 
+    rs.push @constant.value
+    rs.push undefined if @byte_count is 2
 
 class BranchOpcode extends Opcode
   constructor: (name, params={ byte_count: 2 }) ->
@@ -114,7 +116,7 @@ class StoreOpcode extends Opcode
   26: new Opcode 'iload_0', { execute: (rs) -> rs.push(rs.cl(0)) }
   27: new Opcode 'iload_1', { execute: (rs) -> rs.push(rs.cl(1)) }
   28: new Opcode 'iload_2', { execute: (rs) -> rs.push(rs.cl(2)) }
-  29: new Opcode 'iload_3'
+  29: new Opcode 'iload_3', { execute: (rs) -> rs.push(rs.cl(3)) }
   30: new Opcode 'lload_0'
   31: new Opcode 'lload_1'
   32: new Opcode 'lload_2'
@@ -123,7 +125,7 @@ class StoreOpcode extends Opcode
   35: new Opcode 'fload_1'
   36: new Opcode 'fload_2'
   37: new Opcode 'fload_3'
-  38: new Opcode 'dload_0', { execute: (rs) -> rs.push(rs.cl(0)) }
+  38: new Opcode 'dload_0', { execute: (rs) -> rs.push(rs.cl(0),undefined) }
   39: new Opcode 'dload_1'
   40: new Opcode 'dload_2'
   41: new Opcode 'dload_3'
@@ -140,9 +142,9 @@ class StoreOpcode extends Opcode
   52: new Opcode 'caload'
   53: new Opcode 'saload'
   54: new LocalVarOpcode 'istore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
-  55: new LocalVarOpcode 'lstore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
+  55: new LocalVarOpcode 'lstore', { execute: (rs) -> rs.put_cl2(@var_num,rs.pop2()) }
   56: new LocalVarOpcode 'fstore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
-  57: new LocalVarOpcode 'dstore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
+  57: new LocalVarOpcode 'dstore', { execute: (rs) -> rs.put_cl2(@var_num,rs.pop2()) }
   58: new LocalVarOpcode 'astore'
   59: new StoreOpcode 'istore_0'
   60: new StoreOpcode 'istore_1'
@@ -173,7 +175,7 @@ class StoreOpcode extends Opcode
   85: new Opcode 'castore'
   86: new Opcode 'sastore'
   87: new Opcode 'pop', { execute: (rs) -> rs.pop() }
-  88: new Opcode 'pop2'
+  88: new Opcode 'pop2', { execute: (rs) -> rs.pop2() }
   089: new Opcode 'dup'
   090: new Opcode 'dup_x1'
   091: new Opcode 'dup_x2'
@@ -182,9 +184,9 @@ class StoreOpcode extends Opcode
   094: new Opcode 'dup2_x2'
   095: new Opcode 'swap'
   096: new Opcode 'iadd', { execute: (rs) -> rs.push(rs.pop()+rs.pop()) }
-  097: new Opcode 'ladd'
-  098: new Opcode 'fadd'
-  099: new Opcode 'dadd'
+  097: new Opcode 'ladd', { execute: (rs) -> rs.push(rs.pop2()+rs.pop2()) }
+  098: new Opcode 'fadd', { execute: (rs) -> rs.push(rs.pop()+rs.pop()) }
+  099: new Opcode 'dadd', { execute: (rs) -> rs.push(rs.pop2()+rs.pop2()) }
   100: new Opcode 'isub'
   101: new Opcode 'lsub'
   102: new Opcode 'fsub'
@@ -227,7 +229,7 @@ class StoreOpcode extends Opcode
   139: new Opcode 'f2i'
   140: new Opcode 'f2l'
   141: new Opcode 'f2d'
-  142: new Opcode 'd2i', { execute: (rs) -> rs.push(Math.floor(rs.pop())) }
+  142: new Opcode 'd2i', { execute: (rs) -> rs.push(Math.floor(rs.pop2())) }
   143: new Opcode 'd2l'
   144: new Opcode 'd2f'
   145: new Opcode 'i2b'
