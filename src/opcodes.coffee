@@ -193,18 +193,18 @@ class StoreVarOpcode extends StoreOpcode
   86: new Opcode 'sastore'
   87: new Opcode 'pop', { execute: (rs) -> rs.pop() }
   88: new Opcode 'pop2', { execute: (rs) -> rs.pop2() }
-  089: new Opcode 'dup'
+  089: new Opcode 'dup', { execute: (rs) -> v=rs.pop(); rs.push(v,v) }
   090: new Opcode 'dup_x1'
   091: new Opcode 'dup_x2'
-  092: new Opcode 'dup2'
+  092: new Opcode 'dup2', {execute: (rs) -> v2=rs.pop(); v1=rs.pop(); rs.push(v1,v2,v1,v2)}
   093: new Opcode 'dup2_x1'
   094: new Opcode 'dup2_x2'
-  095: new Opcode 'swap'
+  095: new Opcode 'swap', {execute: (rs) -> v2=rs.pop(); v1=rs.pop(); rs.push(v2,v1)}
   096: new Opcode 'iadd', { execute: (rs) -> rs.push(rs.pop()+rs.pop()) }
   097: new Opcode 'ladd', { execute: (rs) -> rs.push(rs.pop2()+rs.pop2()) }
   098: new Opcode 'fadd', { execute: (rs) -> rs.push(rs.pop()+rs.pop()) }
   099: new Opcode 'dadd', { execute: (rs) -> rs.push(rs.pop2()+rs.pop2()) }
-  100: new Opcode 'isub'
+  100: new Opcode 'isub', { execute: (rs) -> rs.push(rs.pop()-rs.pop()) }
   101: new Opcode 'lsub'
   102: new Opcode 'fsub'
   103: new Opcode 'dsub'

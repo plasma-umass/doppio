@@ -74,11 +74,12 @@ class Method extends AbstractMethodField
     caller_stack = runtime_state.curr_frame().stack
     params = @take_params caller_stack
     runtime_state.meta_stack.push(new runtime.StackFrame(params,[]))
+    runtime_state.print "entering method #{@name}"
     code = @get_code().opcodes
     while true
       cf = runtime_state.curr_frame()
       op = code[runtime_state.curr_pc()]
-      console.log "before #{op.name} -> stack: [#{cf.stack}], local: [#{cf.locals}]"
+      runtime_state.print "before #{op.name} -> stack: [#{cf.stack}], local: [#{cf.locals}]"
       op.execute runtime_state
       if op.name.match /.*return/
         s = runtime_state.meta_stack.pop().stack

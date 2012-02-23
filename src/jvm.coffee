@@ -8,9 +8,5 @@ root = exports ? this.jvm = {}
 
 # main function that gets called from the frontend
 root.run = (class_data, print_func, cmdline_args) ->
-  console.log cmdline_args
-  console.log class_data
   rs = new runtime.RuntimeState(class_data, print_func, [cmdline_args])
-  print_func "State initialized.\n"
   rs.method_by_name('main').run(rs)
-  print_func "JVM run finished.\n"
