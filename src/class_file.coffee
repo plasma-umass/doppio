@@ -70,11 +70,11 @@ class Method extends AbstractMethodField
       console.log "#{runtime_state.curr_pc()} -> stack: [#{runtime_state.meta_stack[1].stack}], local: [#{runtime_state.meta_stack[1].locals}]"
       op = code[runtime_state.curr_pc()]
       op.execute runtime_state
-      runtime_state.inc_pc(1 + op.byte_count)  # just moves to the next opcode
       if op.name.match /.*return/
         sf = runtime_state.meta_stack.pop()
         caller.push sf.stack.pop() if op.name isnt 'return'
         break
+      runtime_state.inc_pc(1 + op.byte_count)  # just moves to the next opcode
 
 class Field extends AbstractMethodField
   parse_descriptor: (raw_descriptor) ->

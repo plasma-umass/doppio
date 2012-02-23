@@ -6,7 +6,7 @@ class root.StackFrame
     @pc=0
 
 class root.RuntimeState
-  constructor: (@constant_pool, initial_args) ->
+  constructor: (@constant_pool, @print, initial_args) ->
     @meta_stack = [new root.StackFrame(['fake','frame'],initial_args)]
   cl: (idx) -> #current locals
     _.last(@meta_stack).locals[idx]
