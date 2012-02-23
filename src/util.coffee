@@ -53,7 +53,6 @@ class root.BytesArray
   has_bytes: -> @index < @raw_array.length
 
   get_uint: (bytes_count) ->
-    return @raw_array[@index++] if bytes_count == 1
     rv = root.read_uint @raw_array.slice(@index, @index+bytes_count)
     @index += bytes_count
     return rv
