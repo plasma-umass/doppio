@@ -68,7 +68,6 @@ class Method extends AbstractMethodField
     type_size = (t) -> (if t in ['double','long'] then 2 else 1)
     n_bytes = util.sum(type_size(p.type) for p in @param_types)
     n_bytes++ unless @access_flags.static
-    console.log n_bytes
     caller_stack.splice(caller_stack.length-n_bytes,n_bytes)
   
   run: (runtime_state) ->

@@ -3,16 +3,16 @@ root = exports ? this.runtime = {}
 
 class root.StackFrame
   constructor: (@locals,@stack) ->
-    @pc=0
+    @pc = 0
 
 class root.RuntimeState
   constructor: (@class_data, @print, initial_args) ->
     @meta_stack = [new root.StackFrame(['fake','frame'],initial_args)]
+    @heap = []
 
   curr_frame: () -> _.last(@meta_stack)
 
   cl: (idx) -> @curr_frame().locals[idx]
-
   put_cl: (idx,val) -> @curr_frame().locals[idx] = val
   # useful for category 2 values (longs, doubles)
   put_cl2: (idx,val) -> @put_cl(idx,val); @put_cl(idx+1,undefined)

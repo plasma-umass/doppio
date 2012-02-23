@@ -40,8 +40,8 @@ class InvokeOpcode extends Opcode
 
 class LoadConstantOpcode extends Opcode
   take_args: (code_array, constant_pool) ->
-    constant_ref = code_array.get_uint @byte_count
-    @constant = constant_pool.get constant_ref
+    @constant_ref = code_array.get_uint @byte_count
+    @constant = constant_pool.get @constant_ref
   
   _execute: (rs) -> 
     rs.push @constant.value
