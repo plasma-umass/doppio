@@ -10,8 +10,7 @@ Getting & Building the Code
 
 After `git clone`, do
 
-    git submodule init
-    git submodule update --recursive
+    git submodule update --init --recursive
 
 Use [Coffeescript v1.2.0](http://coffeescript.org/) (which is the default version you get from npm).
 Run `coffee -wc */*.coffee &` to auto-gen scripts as you go.
