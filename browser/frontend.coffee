@@ -5,7 +5,7 @@ class_data = undefined
 
 process_bytecode = (bytecode_string) ->
   $('#go_button').text('Parsing...')
-  bytes_array = (bytecode_string.charCodeAt(i) for i in [0...bytecode_string.length])
+  bytes_array = (bytecode_string.charCodeAt(i) & 0xff for i in [0...bytecode_string.length])
   class_data = new ClassFile(bytes_array)
   $('#disassembly').val disassemble(class_data)
   $('#run_button').removeAttr('disabled')

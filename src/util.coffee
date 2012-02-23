@@ -27,7 +27,7 @@ root.bitwise_not = (x,nbits) ->
 root.read_uint = (bytes) -> 
   n = bytes.length-1
   # sum up the byte values shifted left to the right alignment.
-  root.sum(root.lshift(bytes[i]&0xFF,8*(n-i)) for i in [0..n])
+  root.sum(root.lshift(bytes[i],8*(n-i)) for i in [0..n])
 
 root.parse_flags = (flag_byte) ->
   {
