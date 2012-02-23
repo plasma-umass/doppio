@@ -39,3 +39,13 @@ $(document).ready ->
   $('#go_button').text(button_idle_text)
   $('#go_button').click (ev) -> compile_source editor.getSession().getValue()
   $('#run_button').click (ev) -> run_jvm()
+  $('#srcfile').change (ev) ->
+    f = ev.target.files[0]
+    reader = new FileReader
+    reader.onerror = (e) ->
+      switch e.target.error.code
+        when e.target.error.NOT_FOUND_ERR then alert "404'd"
+        when e.target.error.NOT_READABLE_ERR then alert "unreadable"
+        when e.target.error.SECURITY_ERR then alert "only works with --allow-file-access-from-files"
+    reader.onload = (e) -> editor.getSession().setValue(e.target.result)
+    reader.readAsText(f)
