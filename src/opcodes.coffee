@@ -8,14 +8,6 @@ class Opcode
   
   _execute: (rs) -> console.log "#{@name} is a NOP"
 
-class LocalVarOpcode extends Opcode
-  constructor: (name, params) ->
-    super name, params
-    @byte_count = 1
-
-  take_args: (code_array) ->
-    @var_num = code_array.get_uint(1)
-
 class FieldOpcode extends Opcode
   constructor: (name, params) ->
     super name, params
@@ -46,10 +38,10 @@ class InvokeOpcode extends Opcode
     method_spec = constant_pool.get(@method_spec_ref).deref()
     @method_name = method_spec.sig.name
 
-class LoadOpcode extends Opcode
+class LoadConstantOpcode extends Opcode
   take_args: (code_array, constant_pool) ->
-    @constant_ref = code_array.get_uint @byte_count
-    @constant = constant_pool.get @constant_ref
+    constant_ref = code_array.get_uint @byte_count
+    @constant = constant_pool.get constant_ref
   
   _execute: (rs) -> 
     rs.push @constant.value
@@ -79,10 +71,35 @@ class IIncOpcode extends Opcode
 
   _execute: (rs) -> rs.put_cl(@index,rs.cl(@index)+@const)
 
+class LoadOpcode extends Opcode
+  take_args: (code_array) ->
+    @var_num = parseInt @name[6]  # sneaky hack, works for name =~ /.load_\d/
+  _execute: (rs) ->
+    rs.push rs.cl(@var_num)
+    rs.push undefined if @name.match /[ld]load/
+
+class LoadVarOpcode extends LoadOpcode
+  constructor: (name, params) ->
+    super name, params
+    @byte_count = 1
+  take_args: (code_array) ->
+    @var_num = code_array.get_uint(1)
+
 class StoreOpcode extends Opcode
+  take_args: (code_array) ->
+    @var_num = parseInt @name[7]  # sneaky hack, works for name =~ /.store_\d/
   _execute: (rs) -> 
-    idx = parseInt @name[7]  # sneaky hack, works for name =~ /.store_\d/
-    rs.put_cl(idx,rs.pop())
+    if @name.match /[ld]store/
+      rs.put_cl2(@var_num,rs.pop2())
+    else
+      rs.put_cl(@var_num,rs.pop())
+
+class StoreVarOpcode extends StoreOpcode
+  constructor: (name, params) ->
+    super name, params
+    @byte_count = 1
+  take_args: (code_array) ->
+    @var_num = code_array.get_uint(1)
 
 # these objects are used as prototypes for the parsed instructions in the
 # classfile
@@ -105,34 +122,34 @@ class StoreOpcode extends Opcode
   15: new Opcode 'dconst_1'
   16: new PushOpcode 'bipush', { byte_count: 1 }
   17: new PushOpcode 'sipush', { byte_count: 2 }
-  18: new LoadOpcode 'ldc', { byte_count: 1 }
-  19: new LoadOpcode 'ldc_w', { byte_count: 2 }
-  20: new LoadOpcode 'ldc2_w', { byte_count: 2 }
-  21: new LocalVarOpcode 'iload'
-  22: new LocalVarOpcode 'lload'
-  23: new LocalVarOpcode 'fload'
-  24: new LocalVarOpcode 'dload'
-  25: new LocalVarOpcode 'aload'
-  26: new Opcode 'iload_0', { execute: (rs) -> rs.push(rs.cl(0)) }
-  27: new Opcode 'iload_1', { execute: (rs) -> rs.push(rs.cl(1)) }
-  28: new Opcode 'iload_2', { execute: (rs) -> rs.push(rs.cl(2)) }
-  29: new Opcode 'iload_3', { execute: (rs) -> rs.push(rs.cl(3)) }
-  30: new Opcode 'lload_0'
-  31: new Opcode 'lload_1'
-  32: new Opcode 'lload_2'
-  33: new Opcode 'lload_3'
-  34: new Opcode 'fload_0'
-  35: new Opcode 'fload_1'
-  36: new Opcode 'fload_2'
-  37: new Opcode 'fload_3'
-  38: new Opcode 'dload_0', { execute: (rs) -> rs.push(rs.cl(0),undefined) }
-  39: new Opcode 'dload_1'
-  40: new Opcode 'dload_2'
-  41: new Opcode 'dload_3'
-  42: new Opcode 'aload_0', { execute: (rs) -> rs.push(rs.cl(0)) }
-  43: new Opcode 'aload_1'
-  44: new Opcode 'aload_2'
-  45: new Opcode 'aload_3'
+  18: new LoadConstantOpcode 'ldc', { byte_count: 1 }
+  19: new LoadConstantOpcode 'ldc_w', { byte_count: 2 }
+  20: new LoadConstantOpcode 'ldc2_w', { byte_count: 2 }
+  21: new LoadVarOpcode 'iload'
+  22: new LoadVarOpcode 'lload'
+  23: new LoadVarOpcode 'fload'
+  24: new LoadVarOpcode 'dload'
+  25: new LoadVarOpcode 'aload'
+  26: new LoadOpcode 'iload_0'
+  27: new LoadOpcode 'iload_1'
+  28: new LoadOpcode 'iload_2'
+  29: new LoadOpcode 'iload_3'
+  30: new LoadOpcode 'lload_0'
+  31: new LoadOpcode 'lload_1'
+  32: new LoadOpcode 'lload_2'
+  33: new LoadOpcode 'lload_3'
+  34: new LoadOpcode 'fload_0'
+  35: new LoadOpcode 'fload_1'
+  36: new LoadOpcode 'fload_2'
+  37: new LoadOpcode 'fload_3'
+  38: new LoadOpcode 'dload_0'
+  39: new LoadOpcode 'dload_1'
+  40: new LoadOpcode 'dload_2'
+  41: new LoadOpcode 'dload_3'
+  42: new LoadOpcode 'aload_0'
+  43: new LoadOpcode 'aload_1'
+  44: new LoadOpcode 'aload_2'
+  45: new LoadOpcode 'aload_3'
   46: new Opcode 'iaload'
   47: new Opcode 'laload'
   48: new Opcode 'faload'
@@ -141,11 +158,11 @@ class StoreOpcode extends Opcode
   51: new Opcode 'baload'
   52: new Opcode 'caload'
   53: new Opcode 'saload'
-  54: new LocalVarOpcode 'istore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
-  55: new LocalVarOpcode 'lstore', { execute: (rs) -> rs.put_cl2(@var_num,rs.pop2()) }
-  56: new LocalVarOpcode 'fstore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
-  57: new LocalVarOpcode 'dstore', { execute: (rs) -> rs.put_cl2(@var_num,rs.pop2()) }
-  58: new LocalVarOpcode 'astore'
+  54: new StoreVarOpcode 'istore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
+  55: new StoreVarOpcode 'lstore', { execute: (rs) -> rs.put_cl2(@var_num,rs.pop2()) }
+  56: new StoreVarOpcode 'fstore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
+  57: new StoreVarOpcode 'dstore', { execute: (rs) -> rs.put_cl2(@var_num,rs.pop2()) }
+  58: new StoreVarOpcode 'astore'
   59: new StoreOpcode 'istore_0'
   60: new StoreOpcode 'istore_1'
   61: new StoreOpcode 'istore_2'
@@ -223,7 +240,7 @@ class StoreOpcode extends Opcode
   133: new Opcode 'i2l'
   134: new Opcode 'i2f'
   135: new Opcode 'i2d'
-  136: new Opcode 'l2i'
+  136: new Opcode 'l2i', {execute: (rs) -> rs.push(rs.pop2())}  #TODO: truncate to 32 bit int
   137: new Opcode 'l2f'
   138: new Opcode 'l2d'
   139: new Opcode 'f2i'
@@ -256,7 +273,7 @@ class StoreOpcode extends Opcode
   166: new BranchOpcode 'if_acmpne'
   167: new BranchOpcode 'goto'
   168: new Opcode 'jsr'
-  169: new LocalVarOpcode 'ret'
+  169: new Opcode 'ret', { byte_count: 1 }
   170: new Opcode 'tableswitch'
   171: new Opcode 'lookupswitch'
   172: new Opcode 'ireturn'

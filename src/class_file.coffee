@@ -78,8 +78,8 @@ class Method extends AbstractMethodField
     code = @get_code().opcodes
     while true
       cf = runtime_state.curr_frame()
-      console.log "#{runtime_state.curr_pc()} -> stack: [#{cf.stack}], local: [#{cf.locals}]"
       op = code[runtime_state.curr_pc()]
+      console.log "before #{op.name} -> stack: [#{cf.stack}], local: [#{cf.locals}]"
       op.execute runtime_state
       if op.name.match /.*return/
         s = runtime_state.meta_stack.pop().stack

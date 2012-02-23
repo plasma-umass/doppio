@@ -24,7 +24,7 @@ class root.RuntimeState
 
   pop: () -> @curr_frame().stack.pop()
   # useful for category 2 values (longs, doubles)
-  pop2: () -> v = @pop(); @pop(); v
+  pop2: () -> @pop(); @pop()
 
   # program counter manipulation
   curr_pc: ()   -> @curr_frame().pc
