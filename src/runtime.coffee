@@ -15,7 +15,7 @@ class root.RuntimeState
   cl: (idx) -> @curr_frame().locals[idx]
   put_cl: (idx,val) -> @curr_frame().locals[idx] = val
   # useful for category 2 values (longs, doubles)
-  put_cl2: (idx,val) -> @put_cl(idx,val); @put_cl(idx+1,undefined)
+  put_cl2: (idx,val) -> @put_cl(idx,val); @put_cl(idx+1,null)
 
   push: (args...) ->
     cs = @curr_frame().stack

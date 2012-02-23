@@ -106,20 +106,20 @@ class StoreVarOpcode extends StoreOpcode
 @opcodes = {
   00: new Opcode 'nop'
   01: new Opcode 'aconst_null'
-  02: new Opcode 'iconst_m1'
+  02: new Opcode 'iconst_m1', { execute: (rs) -> rs.push -1 }
   03: new Opcode 'iconst_0', { execute: (rs) -> rs.push 0 }
   04: new Opcode 'iconst_1', { execute: (rs) -> rs.push 1 }
   05: new Opcode 'iconst_2', { execute: (rs) -> rs.push 2 }
   06: new Opcode 'iconst_3', { execute: (rs) -> rs.push 3 }
   07: new Opcode 'iconst_4', { execute: (rs) -> rs.push 4 }
   08: new Opcode 'iconst_5', { execute: (rs) -> rs.push 5 }
-  09: new Opcode 'lconst_0'
-  10: new Opcode 'lconst_1'
-  11: new Opcode 'fconst_0'
-  12: new Opcode 'fconst_1'
-  13: new Opcode 'fconst_2'
-  14: new Opcode 'dconst_0'
-  15: new Opcode 'dconst_1'
+  09: new Opcode 'lconst_0', { execute: (rs) -> rs.push 0, null }
+  10: new Opcode 'lconst_1', { execute: (rs) -> rs.push 1, null }
+  11: new Opcode 'fconst_0', { execute: (rs) -> rs.push 0 }
+  12: new Opcode 'fconst_1', { execute: (rs) -> rs.push 1 }
+  13: new Opcode 'fconst_2', { execute: (rs) -> rs.push 2 }
+  14: new Opcode 'dconst_0', { execute: (rs) -> rs.push 0, null }
+  15: new Opcode 'dconst_1', { execute: (rs) -> rs.push 1, null }
   16: new PushOpcode 'bipush', { byte_count: 1 }
   17: new PushOpcode 'sipush', { byte_count: 2 }
   18: new LoadConstantOpcode 'ldc', { byte_count: 1 }
@@ -200,18 +200,19 @@ class StoreVarOpcode extends StoreOpcode
   093: new Opcode 'dup2_x1'
   094: new Opcode 'dup2_x2'
   095: new Opcode 'swap', {execute: (rs) -> v2=rs.pop(); v1=rs.pop(); rs.push(v2,v1)}
+  # TODO handle overflow?
   096: new Opcode 'iadd', { execute: (rs) -> rs.push(rs.pop()+rs.pop()) }
-  097: new Opcode 'ladd', { execute: (rs) -> rs.push(rs.pop2()+rs.pop2()) }
+  097: new Opcode 'ladd', { execute: (rs) -> rs.push(rs.pop2()+rs.pop2(), null) }
   098: new Opcode 'fadd', { execute: (rs) -> rs.push(rs.pop()+rs.pop()) }
-  099: new Opcode 'dadd', { execute: (rs) -> rs.push(rs.pop2()+rs.pop2()) }
+  099: new Opcode 'dadd', { execute: (rs) -> rs.push(rs.pop2()+rs.pop2(), null) }
   100: new Opcode 'isub', { execute: (rs) -> rs.push(rs.pop()-rs.pop()) }
-  101: new Opcode 'lsub'
-  102: new Opcode 'fsub'
-  103: new Opcode 'dsub'
-  104: new Opcode 'imul'
-  105: new Opcode 'lmul'
-  106: new Opcode 'fmul'
-  107: new Opcode 'dmul'
+  101: new Opcode 'lsub', { execute: (rs) -> rs.push(rs.pop2()-rs.pop2(), null) }
+  102: new Opcode 'fsub', { execute: (rs) -> rs.push(rs.pop()-rs.pop()) }
+  103: new Opcode 'dsub', { execute: (rs) -> rs.push(rs.pop2()-rs.pop2(), null) }
+  104: new Opcode 'imul', { execute: (rs) -> rs.push(rs.pop2()*rs.pop2()) }
+  105: new Opcode 'lmul', { execute: (rs) -> rs.push(rs.pop2()*rs.pop2(), null) }
+  106: new Opcode 'fmul', { execute: (rs) -> rs.push(rs.pop2()*rs.pop2()) }
+  107: new Opcode 'dmul', { execute: (rs) -> rs.push(rs.pop2()*rs.pop2(), null) }
   108: new Opcode 'idiv'
   109: new Opcode 'ldiv'
   110: new Opcode 'fdiv'
@@ -220,22 +221,22 @@ class StoreVarOpcode extends StoreOpcode
   113: new Opcode 'lrem'
   114: new Opcode 'frem'
   115: new Opcode 'drem'
-  116: new Opcode 'ineg'
-  117: new Opcode 'lneg'
-  118: new Opcode 'fneg'
-  119: new Opcode 'dneg'
+  116: new Opcode 'ineg', { execute: (rs) -> rs.push(-rs.pop()) }
+  117: new Opcode 'lneg', { execute: (rs) -> rs.push(-rs.pop2()) }
+  118: new Opcode 'fneg', { execute: (rs) -> rs.push(-rs.pop()) }
+  119: new Opcode 'dneg', { execute: (rs) -> rs.push(-rs.pop2()) }
   120: new Opcode 'ishl'
   121: new Opcode 'lshl'
   122: new Opcode 'ishr'
   123: new Opcode 'lshr'
   124: new Opcode 'iushr'
   125: new Opcode 'lushr'
-  126: new Opcode 'iand'
-  127: new Opcode 'land'
-  128: new Opcode 'ior'
-  129: new Opcode 'lor'
-  130: new Opcode 'ixor'
-  131: new Opcode 'lxor'
+  126: new Opcode 'iand', { execute: (rs) -> rs.push(rs.pop()&rs.pop()) }
+  127: new Opcode 'land', { execute: (rs) -> rs.push(rs.pop2()&rs.pop2(), null) }
+  128: new Opcode 'ior', { execute: (rs) -> rs.push(rs.pop()|rs.pop()) }
+  129: new Opcode 'lor', { execute: (rs) -> rs.push(rs.pop2()|rs.pop2(), null) }
+  130: new Opcode 'ixor', { execute: (rs) -> rs.push(rs.pop()^rs.pop()) }
+  131: new Opcode 'lxor', { execute: (rs) -> rs.push(rs.pop2()^rs.pop2(), null) }
   132: new IIncOpcode 'iinc'
   133: new Opcode 'i2l'
   134: new Opcode 'i2f'
