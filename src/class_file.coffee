@@ -78,7 +78,7 @@ class Method extends AbstractMethodField
 
 class Field extends AbstractMethodField
   parse_descriptor: (raw_descriptor) ->
-    # TODO implement this
+    @type = @parse_field_type raw_descriptor.split ''
 
 class @ClassFile
   constructor: (bytes_array) ->

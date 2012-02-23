@@ -8,9 +8,9 @@ util ?= require './util'
 @disassemble = (class_file) ->
   canonical = (str) -> str.replace /\//g, '.'
   access_string = (access_flags) ->
-    for flag in [ 'public', 'protected', 'private' ]
-      return "#{flag} " if access_flags[flag]
-    ""
+    # TODO other flags
+    ordered_flags = [ 'public', 'protected', 'private', 'static' ]
+    privacy = (("#{flag} " if access_flags[flag]) for flag in ordered_flags).join ''
 
   source_file = _.find(class_file.attrs, (attr) -> attr.constructor.name == 'SourceFile')
   rv = "Compiled from \"#{source_file.name}\"\n"
@@ -54,10 +54,12 @@ util ?= require './util'
     return pp_type field_type.referent
 
   rv += "{\n"
+
+  for f in class_file.fields
+    rv += "#{access_string f.access_flags} #{pp_type(f.type)} #{f.name};\n\n\n"
+
   for m in class_file.methods
     rv += access_string m.access_flags
-    rv += if m.access_flags.static then 'static ' else ''
-    # TODO other flags
     if m.name is '<init>'  # constructors are special-cased
       rv += canonical(class_file.this_class)
     else
@@ -96,8 +98,8 @@ util ?= require './util'
             for entry in attr.entries
               rv += "   frame_type = #{entry.frame_type} /* #{entry.frame_name} */\n"
             rv += "\n"
-
     rv += "\n"
+
   rv += "}"
 
   return rv
