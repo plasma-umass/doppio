@@ -99,11 +99,26 @@ class StackMapTable
     tag = bytes_array.shift()
     bytes_array.splice(0, 2) if tag == 7
 
+class LocalVariableTable
+  parse: (bytes_array, constant_pool) ->
+    @num_entries = util.read_uint bytes_array.splice 0, 2
+    @entries = (@parse_entries bytes_array for i in [0...@num_entries])
+    return bytes_array
+
+  parse_entries: (bytes_array) ->
+    {
+      start_pc: util.read_uint bytes_array.splice 0, 2
+      length: util.read_uint bytes_array.splice 0, 2
+      name_ref: util.read_uint bytes_array.splice 0, 2
+      descriptor_ref: util.read_uint bytes_array.splice 0, 2
+      ref: util.read_uint bytes_array.splice 0, 2
+    }
+
 root.make_attributes = (bytes_array,constant_pool) ->
   #TODO: add classes for additional attr types
   attr_types = {
     'Code': Code, 'LineNumberTable': LineNumberTable, 'SourceFile': SourceFile,
-    'StackMapTable': StackMapTable
+    'StackMapTable': StackMapTable, 'LocalVariableTable': LocalVariableTable
   }
   num_attrs = util.read_uint(bytes_array.splice(0,2))
   attrs = []
