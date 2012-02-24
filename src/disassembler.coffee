@@ -93,12 +93,19 @@ opcodes ?= require './opcodes'
           when 'LineNumberTable'
             rv += "  LineNumberTable:\n"
             rv += "   line #{entry.line_number}: #{entry.start_pc}\n" for entry in attr
-            rv += "\n"
           when 'StackMapTable'
             rv += "  StackMapTable: number_of_entries = #{attr.num_entries}\n"
             for entry in attr.entries
               rv += "   frame_type = #{entry.frame_type} /* #{entry.frame_name} */\n"
-            rv += "\n"
+              rv += "     offset_delta = #{entry.offset_delta}\n" if entry.offset_delta?
+              rv += "     locals = [ #{entry.locals.join(', ')} ]\n" if entry.locals?
+          when 'LocalVariableTable'
+            rv += "  LocalVariableTable:\n"
+            rv += "   Start  Length  Slot  Name   Signature\n"
+            for entry in attr.entries
+              rv += "   #{entry.start_pc}      #{entry.length}      #{entry.ref}"
+              rv += "#{entry.name}      #{entry.descriptor}\n"
+        rv += "\n"
     rv += "\n"
 
   rv += "}"
