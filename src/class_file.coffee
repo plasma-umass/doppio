@@ -4,6 +4,7 @@ _ ?= require '../third_party/underscore-min.js'
 util ?= require './util'
 ConstantPool ?= require './constant_pool'
 make_attributes ?= require './attributes'
+opcodes ?= require './opcodes'
 runtime ?= require './runtime'
 
 class AbstractMethodField
@@ -80,7 +81,7 @@ class Method extends AbstractMethodField
       cf = runtime_state.curr_frame()
       pc = runtime_state.curr_pc()
       op = code[pc]
-      runtime_state.print "before #{op.name} -> stack: [#{cf.stack}], local: [#{cf.locals}]"
+      runtime_state.print "before #{op.name} -> stack: [#{cf.stack}], local: [#{cf.locals}]\n"
       op.execute runtime_state
       if op.name.match /.*return/
         s = runtime_state.meta_stack.pop().stack
@@ -90,7 +91,7 @@ class Method extends AbstractMethodField
           caller_stack.push s.pop()
           caller_stack.push null
         break
-      if pc == runtime_state.curr_pc() # unless we encountered a branch instr
+      unless op instanceof opcodes.BranchOpcode
         runtime_state.inc_pc(1 + op.byte_count)  # move to the next opcode
 
 class Field extends AbstractMethodField

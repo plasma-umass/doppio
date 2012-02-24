@@ -1,4 +1,6 @@
-class Opcode
+root = exports ? this.opcodes = {}
+
+class root.Opcode
   constructor: (@name, params={}) ->
     @execute = params.execute ? @_execute
     @byte_count = params.byte_count ? 0
@@ -8,7 +10,7 @@ class Opcode
   
   _execute: (rs) -> console.log "#{@name} is a NOP"
 
-class FieldOpcode extends Opcode
+class root.FieldOpcode extends root.Opcode
   constructor: (name, params) ->
     super name, params
     @byte_count = 2
@@ -17,7 +19,7 @@ class FieldOpcode extends Opcode
     @field_spec_ref = code_array.get_uint(1)
     @descriptor_ref = code_array.get_uint(1)
 
-class ClassOpcode extends Opcode
+class root.ClassOpcode extends root.Opcode
   constructor: (name, params) ->
     super name, params
     @byte_count = 2
@@ -26,7 +28,7 @@ class ClassOpcode extends Opcode
     @class_ref = code_array.get_uint(2)
     @class = constant_pool.get(@class_ref).deref()
 
-class InvokeOpcode extends Opcode
+class root.InvokeOpcode extends root.Opcode
   constructor: (name, params) ->
     super name, params
     @byte_count = 2
@@ -38,7 +40,7 @@ class InvokeOpcode extends Opcode
     method_spec = constant_pool.get(@method_spec_ref).deref()
     @method_name = method_spec.sig.name
 
-class LoadConstantOpcode extends Opcode
+class root.LoadConstantOpcode extends root.Opcode
   take_args: (code_array, constant_pool) ->
     @constant_ref = code_array.get_uint @byte_count
     @constant = constant_pool.get @constant_ref
@@ -47,7 +49,7 @@ class LoadConstantOpcode extends Opcode
     rs.push @constant.value
     rs.push undefined if @byte_count is 2
 
-class BranchOpcode extends Opcode
+class root.BranchOpcode extends root.Opcode
   constructor: (name, params={}) ->
     params.byte_count ?= 2
     super name, params
@@ -55,13 +57,30 @@ class BranchOpcode extends Opcode
   take_args: (code_array) ->
     @offset = code_array.get_int @byte_count
 
-class PushOpcode extends Opcode
+class root.UnaryBranchOpcode extends root.BranchOpcode
+  constructor: (name, params) ->
+    super name, {
+      execute: (rs) ->
+        v = rs.pop()
+        rs.inc_pc(if params.cmp v then @offset else 1 + @byte_count)
+    }
+
+class root.BinaryBranchOpcode extends root.BranchOpcode
+  constructor: (name, params) ->
+    super name, {
+      execute: (rs) ->
+        v2 = rs.pop()
+        v1 = rs.pop()
+        rs.inc_pc(if params.cmp v1,v2 then @offset else 1 + @byte_count)
+    }
+
+class root.PushOpcode extends root.Opcode
   take_args: (code_array) ->
     @value = code_array.get_int @byte_count
 
   _execute: (rs) -> rs.push @value
 
-class IIncOpcode extends Opcode
+class root.IIncOpcode extends root.Opcode
   constructor: (name, params) ->
     super name, params
     @byte_count = 2
@@ -72,7 +91,7 @@ class IIncOpcode extends Opcode
 
   _execute: (rs) -> rs.put_cl(@index,rs.cl(@index)+@const)
 
-class LoadOpcode extends Opcode
+class root.LoadOpcode extends root.Opcode
   take_args: (code_array) ->
     @var_num = parseInt @name[6]  # sneaky hack, works for name =~ /.load_\d/
 
@@ -80,7 +99,7 @@ class LoadOpcode extends Opcode
     rs.push rs.cl(@var_num)
     rs.push undefined if @name.match /[ld]load/
 
-class LoadVarOpcode extends LoadOpcode
+class root.LoadVarOpcode extends root.LoadOpcode
   constructor: (name, params) ->
     super name, params
     @byte_count = 1
@@ -88,7 +107,7 @@ class LoadVarOpcode extends LoadOpcode
   take_args: (code_array) ->
     @var_num = code_array.get_uint(1)
 
-class StoreOpcode extends Opcode
+class root.StoreOpcode extends root.Opcode
   take_args: (code_array) ->
     @var_num = parseInt @name[7]  # sneaky hack, works for name =~ /.store_\d/
 
@@ -98,7 +117,7 @@ class StoreOpcode extends Opcode
     else
       rs.put_cl(@var_num,rs.pop())
 
-class StoreVarOpcode extends StoreOpcode
+class root.StoreVarOpcode extends root.StoreOpcode
   constructor: (name, params) ->
     super name, params
     @byte_count = 1
@@ -107,209 +126,208 @@ class StoreVarOpcode extends StoreOpcode
 
 # these objects are used as prototypes for the parsed instructions in the
 # classfile
-@opcodes = {
-  00: new Opcode 'nop'
-  01: new Opcode 'aconst_null'
-  02: new Opcode 'iconst_m1', { execute: (rs) -> rs.push -1 }
-  03: new Opcode 'iconst_0', { execute: (rs) -> rs.push 0 }
-  04: new Opcode 'iconst_1', { execute: (rs) -> rs.push 1 }
-  05: new Opcode 'iconst_2', { execute: (rs) -> rs.push 2 }
-  06: new Opcode 'iconst_3', { execute: (rs) -> rs.push 3 }
-  07: new Opcode 'iconst_4', { execute: (rs) -> rs.push 4 }
-  08: new Opcode 'iconst_5', { execute: (rs) -> rs.push 5 }
-  09: new Opcode 'lconst_0', { execute: (rs) -> rs.push 0, null }
-  10: new Opcode 'lconst_1', { execute: (rs) -> rs.push 1, null }
-  11: new Opcode 'fconst_0', { execute: (rs) -> rs.push 0 }
-  12: new Opcode 'fconst_1', { execute: (rs) -> rs.push 1 }
-  13: new Opcode 'fconst_2', { execute: (rs) -> rs.push 2 }
-  14: new Opcode 'dconst_0', { execute: (rs) -> rs.push 0, null }
-  15: new Opcode 'dconst_1', { execute: (rs) -> rs.push 1, null }
-  16: new PushOpcode 'bipush', { byte_count: 1 }
-  17: new PushOpcode 'sipush', { byte_count: 2 }
-  18: new LoadConstantOpcode 'ldc', { byte_count: 1 }
-  19: new LoadConstantOpcode 'ldc_w', { byte_count: 2 }
-  20: new LoadConstantOpcode 'ldc2_w', { byte_count: 2 }
-  21: new LoadVarOpcode 'iload', { execute: (rs) -> rs.push rs.cl(@var_num) }
-  22: new LoadVarOpcode 'lload'
-  23: new LoadVarOpcode 'fload'
-  24: new LoadVarOpcode 'dload'
-  25: new LoadVarOpcode 'aload'
-  26: new LoadOpcode 'iload_0'
-  27: new LoadOpcode 'iload_1'
-  28: new LoadOpcode 'iload_2'
-  29: new LoadOpcode 'iload_3'
-  30: new LoadOpcode 'lload_0'
-  31: new LoadOpcode 'lload_1'
-  32: new LoadOpcode 'lload_2'
-  33: new LoadOpcode 'lload_3'
-  34: new LoadOpcode 'fload_0'
-  35: new LoadOpcode 'fload_1'
-  36: new LoadOpcode 'fload_2'
-  37: new LoadOpcode 'fload_3'
-  38: new LoadOpcode 'dload_0'
-  39: new LoadOpcode 'dload_1'
-  40: new LoadOpcode 'dload_2'
-  41: new LoadOpcode 'dload_3'
-  42: new LoadOpcode 'aload_0'
-  43: new LoadOpcode 'aload_1'
-  44: new LoadOpcode 'aload_2'
-  45: new LoadOpcode 'aload_3'
-  46: new Opcode 'iaload'
-  47: new Opcode 'laload'
-  48: new Opcode 'faload'
-  49: new Opcode 'daload'
-  50: new Opcode 'aaload'
-  51: new Opcode 'baload'
-  52: new Opcode 'caload'
-  53: new Opcode 'saload'
-  54: new StoreVarOpcode 'istore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
-  55: new StoreVarOpcode 'lstore', { execute: (rs) -> rs.put_cl2(@var_num,rs.pop2()) }
-  56: new StoreVarOpcode 'fstore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
-  57: new StoreVarOpcode 'dstore', { execute: (rs) -> rs.put_cl2(@var_num,rs.pop2()) }
-  58: new StoreVarOpcode 'astore'
-  59: new StoreOpcode 'istore_0'
-  60: new StoreOpcode 'istore_1'
-  61: new StoreOpcode 'istore_2'
-  62: new StoreOpcode 'istore_3'
-  63: new StoreOpcode 'lstore_0'
-  64: new StoreOpcode 'lstore_1'
-  65: new StoreOpcode 'lstore_2'
-  66: new StoreOpcode 'lstore_3'
-  67: new StoreOpcode 'fstore_0'
-  68: new StoreOpcode 'fstore_1'
-  69: new StoreOpcode 'fstore_2'
-  70: new StoreOpcode 'fstore_3'
-  71: new StoreOpcode 'dstore_0'
-  72: new StoreOpcode 'dstore_1'
-  73: new StoreOpcode 'dstore_2'
-  74: new StoreOpcode 'dstore_3'
-  75: new Opcode 'astore_0'
-  76: new Opcode 'astore_1'
-  77: new Opcode 'astore_2'
-  78: new Opcode 'astore_3'
-  79: new Opcode 'iastore'
-  80: new Opcode 'lastore'
-  81: new Opcode 'fastore'
-  82: new Opcode 'dastore'
-  83: new Opcode 'aastore'
-  84: new Opcode 'bastore'
-  85: new Opcode 'castore'
-  86: new Opcode 'sastore'
-  87: new Opcode 'pop', { execute: (rs) -> rs.pop() }
-  88: new Opcode 'pop2', { execute: (rs) -> rs.pop2() }
-  089: new Opcode 'dup', { execute: (rs) -> v=rs.pop(); rs.push(v,v) }
-  090: new Opcode 'dup_x1'
-  091: new Opcode 'dup_x2'
-  092: new Opcode 'dup2', {execute: (rs) -> v2=rs.pop(); v1=rs.pop(); rs.push(v1,v2,v1,v2)}
-  093: new Opcode 'dup2_x1'
-  094: new Opcode 'dup2_x2'
-  095: new Opcode 'swap', {execute: (rs) -> v2=rs.pop(); v1=rs.pop(); rs.push(v2,v1)}
+root.opcodes = {
+  00: new root.Opcode 'nop'
+  01: new root.Opcode 'aconst_null'
+  02: new root.Opcode 'iconst_m1', { execute: (rs) -> rs.push -1 }
+  03: new root.Opcode 'iconst_0', { execute: (rs) -> rs.push 0 }
+  04: new root.Opcode 'iconst_1', { execute: (rs) -> rs.push 1 }
+  05: new root.Opcode 'iconst_2', { execute: (rs) -> rs.push 2 }
+  06: new root.Opcode 'iconst_3', { execute: (rs) -> rs.push 3 }
+  07: new root.Opcode 'iconst_4', { execute: (rs) -> rs.push 4 }
+  08: new root.Opcode 'iconst_5', { execute: (rs) -> rs.push 5 }
+  09: new root.Opcode 'lconst_0', { execute: (rs) -> rs.push 0, null }
+  10: new root.Opcode 'lconst_1', { execute: (rs) -> rs.push 1, null }
+  11: new root.Opcode 'fconst_0', { execute: (rs) -> rs.push 0 }
+  12: new root.Opcode 'fconst_1', { execute: (rs) -> rs.push 1 }
+  13: new root.Opcode 'fconst_2', { execute: (rs) -> rs.push 2 }
+  14: new root.Opcode 'dconst_0', { execute: (rs) -> rs.push 0, null }
+  15: new root.Opcode 'dconst_1', { execute: (rs) -> rs.push 1, null }
+  16: new root.PushOpcode 'bipush', { byte_count: 1 }
+  17: new root.PushOpcode 'sipush', { byte_count: 2 }
+  18: new root.LoadConstantOpcode 'ldc', { byte_count: 1 }
+  19: new root.LoadConstantOpcode 'ldc_w', { byte_count: 2 }
+  20: new root.LoadConstantOpcode 'ldc2_w', { byte_count: 2 }
+  21: new root.LoadVarOpcode 'iload', { execute: (rs) -> rs.push rs.cl(@var_num) }
+  22: new root.LoadVarOpcode 'lload'
+  23: new root.LoadVarOpcode 'fload'
+  24: new root.LoadVarOpcode 'dload'
+  25: new root.LoadVarOpcode 'aload'
+  26: new root.LoadOpcode 'iload_0'
+  27: new root.LoadOpcode 'iload_1'
+  28: new root.LoadOpcode 'iload_2'
+  29: new root.LoadOpcode 'iload_3'
+  30: new root.LoadOpcode 'lload_0'
+  31: new root.LoadOpcode 'lload_1'
+  32: new root.LoadOpcode 'lload_2'
+  33: new root.LoadOpcode 'lload_3'
+  34: new root.LoadOpcode 'fload_0'
+  35: new root.LoadOpcode 'fload_1'
+  36: new root.LoadOpcode 'fload_2'
+  37: new root.LoadOpcode 'fload_3'
+  38: new root.LoadOpcode 'dload_0'
+  39: new root.LoadOpcode 'dload_1'
+  40: new root.LoadOpcode 'dload_2'
+  41: new root.LoadOpcode 'dload_3'
+  42: new root.LoadOpcode 'aload_0'
+  43: new root.LoadOpcode 'aload_1'
+  44: new root.LoadOpcode 'aload_2'
+  45: new root.LoadOpcode 'aload_3'
+  46: new root.Opcode 'iaload'
+  47: new root.Opcode 'laload'
+  48: new root.Opcode 'faload'
+  49: new root.Opcode 'daload'
+  50: new root.Opcode 'aaload'
+  51: new root.Opcode 'baload'
+  52: new root.Opcode 'caload'
+  53: new root.Opcode 'saload'
+  54: new root.StoreVarOpcode 'istore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
+  55: new root.StoreVarOpcode 'lstore', { execute: (rs) -> rs.put_cl2(@var_num,rs.pop2()) }
+  56: new root.StoreVarOpcode 'fstore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
+  57: new root.StoreVarOpcode 'dstore', { execute: (rs) -> rs.put_cl2(@var_num,rs.pop2()) }
+  58: new root.StoreVarOpcode 'astore'
+  59: new root.StoreOpcode 'istore_0'
+  60: new root.StoreOpcode 'istore_1'
+  61: new root.StoreOpcode 'istore_2'
+  62: new root.StoreOpcode 'istore_3'
+  63: new root.StoreOpcode 'lstore_0'
+  64: new root.StoreOpcode 'lstore_1'
+  65: new root.StoreOpcode 'lstore_2'
+  66: new root.StoreOpcode 'lstore_3'
+  67: new root.StoreOpcode 'fstore_0'
+  68: new root.StoreOpcode 'fstore_1'
+  69: new root.StoreOpcode 'fstore_2'
+  70: new root.StoreOpcode 'fstore_3'
+  71: new root.StoreOpcode 'dstore_0'
+  72: new root.StoreOpcode 'dstore_1'
+  73: new root.StoreOpcode 'dstore_2'
+  74: new root.StoreOpcode 'dstore_3'
+  75: new root.Opcode 'astore_0'
+  76: new root.Opcode 'astore_1'
+  77: new root.Opcode 'astore_2'
+  78: new root.Opcode 'astore_3'
+  79: new root.Opcode 'iastore'
+  80: new root.Opcode 'lastore'
+  81: new root.Opcode 'fastore'
+  82: new root.Opcode 'dastore'
+  83: new root.Opcode 'aastore'
+  84: new root.Opcode 'bastore'
+  85: new root.Opcode 'castore'
+  86: new root.Opcode 'sastore'
+  87: new root.Opcode 'pop', { execute: (rs) -> rs.pop() }
+  88: new root.Opcode 'pop2', { execute: (rs) -> rs.pop2() }
+  089: new root.Opcode 'dup', { execute: (rs) -> v=rs.pop(); rs.push(v,v) }
+  090: new root.Opcode 'dup_x1'
+  091: new root.Opcode 'dup_x2'
+  092: new root.Opcode 'dup2', {execute: (rs) -> v2=rs.pop(); v1=rs.pop(); rs.push(v1,v2,v1,v2)}
+  093: new root.Opcode 'dup2_x1'
+  094: new root.Opcode 'dup2_x2'
+  095: new root.Opcode 'swap', {execute: (rs) -> v2=rs.pop(); v1=rs.pop(); rs.push(v2,v1)}
   # TODO handle overflow?
-  096: new Opcode 'iadd', { execute: (rs) -> rs.push(rs.pop()+rs.pop()) }
-  097: new Opcode 'ladd', { execute: (rs) -> rs.push(rs.pop2()+rs.pop2(), null) }
-  098: new Opcode 'fadd', { execute: (rs) -> rs.push(rs.pop()+rs.pop()) }
-  099: new Opcode 'dadd', { execute: (rs) -> rs.push(rs.pop2()+rs.pop2(), null) }
-  100: new Opcode 'isub', { execute: (rs) -> rs.push(rs.pop()-rs.pop()) }
-  101: new Opcode 'lsub', { execute: (rs) -> rs.push(rs.pop2()-rs.pop2(), null) }
-  102: new Opcode 'fsub', { execute: (rs) -> rs.push(rs.pop()-rs.pop()) }
-  103: new Opcode 'dsub', { execute: (rs) -> rs.push(rs.pop2()-rs.pop2(), null) }
-  104: new Opcode 'imul', { execute: (rs) -> rs.push(rs.pop2()*rs.pop2()) }
-  105: new Opcode 'lmul', { execute: (rs) -> rs.push(rs.pop2()*rs.pop2(), null) }
-  106: new Opcode 'fmul', { execute: (rs) -> rs.push(rs.pop2()*rs.pop2()) }
-  107: new Opcode 'dmul', { execute: (rs) -> rs.push(rs.pop2()*rs.pop2(), null) }
-  108: new Opcode 'idiv'
-  109: new Opcode 'ldiv'
-  110: new Opcode 'fdiv'
-  111: new Opcode 'ddiv'
-  112: new Opcode 'irem'
-  113: new Opcode 'lrem'
-  114: new Opcode 'frem'
-  115: new Opcode 'drem'
-  116: new Opcode 'ineg', { execute: (rs) -> rs.push(-rs.pop()) }
-  117: new Opcode 'lneg', { execute: (rs) -> rs.push(-rs.pop2()) }
-  118: new Opcode 'fneg', { execute: (rs) -> rs.push(-rs.pop()) }
-  119: new Opcode 'dneg', { execute: (rs) -> rs.push(-rs.pop2()) }
-  120: new Opcode 'ishl'
-  121: new Opcode 'lshl'
-  122: new Opcode 'ishr'
-  123: new Opcode 'lshr'
-  124: new Opcode 'iushr'
-  125: new Opcode 'lushr'
-  126: new Opcode 'iand', { execute: (rs) -> rs.push(rs.pop()&rs.pop()) }
-  127: new Opcode 'land', { execute: (rs) -> rs.push(rs.pop2()&rs.pop2(), null) }
-  128: new Opcode 'ior', { execute: (rs) -> rs.push(rs.pop()|rs.pop()) }
-  129: new Opcode 'lor', { execute: (rs) -> rs.push(rs.pop2()|rs.pop2(), null) }
-  130: new Opcode 'ixor', { execute: (rs) -> rs.push(rs.pop()^rs.pop()) }
-  131: new Opcode 'lxor', { execute: (rs) -> rs.push(rs.pop2()^rs.pop2(), null) }
-  132: new IIncOpcode 'iinc'
-  133: new Opcode 'i2l'
-  134: new Opcode 'i2f'
-  135: new Opcode 'i2d'
-  136: new Opcode 'l2i', {execute: (rs) -> rs.push(rs.pop2())}  #TODO: truncate to 32 bit int
-  137: new Opcode 'l2f'
-  138: new Opcode 'l2d'
-  139: new Opcode 'f2i'
-  140: new Opcode 'f2l'
-  141: new Opcode 'f2d'
-  142: new Opcode 'd2i', { execute: (rs) -> rs.push(Math.floor(rs.pop2())) }
-  143: new Opcode 'd2l'
-  144: new Opcode 'd2f'
-  145: new Opcode 'i2b'
-  146: new Opcode 'i2c'
-  147: new Opcode 'i2s'
-  148: new Opcode 'lcmp'
-  149: new Opcode 'fcmpl'
-  150: new Opcode 'fcmpg'
-  151: new Opcode 'dcmpl'
-  152: new Opcode 'dcmpg'
-  153: new BranchOpcode 'ifeq'
-  154: new BranchOpcode 'ifne'
-  155: new BranchOpcode 'iflt'
-  156: new BranchOpcode 'ifge'
-  157: new BranchOpcode 'ifgt'
-  158: new BranchOpcode 'ifle'
-  159: new BranchOpcode 'if_icmpeq'
-  160: new BranchOpcode 'if_icmpne'
-  161: new BranchOpcode 'if_icmplt'
-  162: new BranchOpcode 'if_icmpge', { execute: (rs) -> v2=rs.pop(); v1=rs.pop(); rs.inc_pc(@offset) if v1 >= v2 }
-  163: new BranchOpcode 'if_icmpgt'
-  164: new BranchOpcode 'if_icmple'
-  165: new BranchOpcode 'if_acmpeq'
-  166: new BranchOpcode 'if_acmpne'
-  167: new BranchOpcode 'goto', { execute: (rs) -> rs.inc_pc(@offset) }
-  168: new Opcode 'jsr'
-  169: new Opcode 'ret', { byte_count: 1 }
-  170: new Opcode 'tableswitch'
-  171: new Opcode 'lookupswitch'
-  172: new Opcode 'ireturn'
-  173: new Opcode 'lreturn'
-  174: new Opcode 'freturn'
-  175: new Opcode 'dreturn'
-  176: new Opcode 'areturn'
-  177: new Opcode 'return'
-  178: new FieldOpcode 'getstatic'
-  179: new FieldOpcode 'putstatic'
-  180: new FieldOpcode 'getfield'
-  181: new FieldOpcode 'putfield'
-  182: new InvokeOpcode 'invokevirtual'
-  183: new InvokeOpcode 'invokespecial'
-  184: new InvokeOpcode 'invokestatic', { execute: (rs)-> rs.method_by_name(@method_name).run(rs)}
-  185: new InvokeOpcode 'invokeinterface'
-  187: new ClassOpcode 'new'
-  188: new Opcode 'newarray', { byte_count: 1 }
-  189: new ClassOpcode 'anewarray'
-  190: new Opcode 'arraylength'
-  191: new Opcode 'athrow'
-  192: new ClassOpcode 'checkcast'
-  193: new ClassOpcode 'instanceof'
-  194: new Opcode 'monitorenter'
-  195: new Opcode 'monitorexit'
-  196: new Opcode 'wide'
-  197: new Opcode 'multianewarray', { byte_count: 3 }
-  198: new BranchOpcode 'ifnull'
-  199: new BranchOpcode 'ifnonnull'
-  200: new BranchOpcode 'goto_w', { byte_count: 4 }
-  201: new Opcode 'jsr_w'
+  096: new root.Opcode 'iadd', { execute: (rs) -> rs.push(rs.pop()+rs.pop()) }
+  097: new root.Opcode 'ladd', { execute: (rs) -> rs.push(rs.pop2()+rs.pop2(), null) }
+  098: new root.Opcode 'fadd', { execute: (rs) -> rs.push(rs.pop()+rs.pop()) }
+  099: new root.Opcode 'dadd', { execute: (rs) -> rs.push(rs.pop2()+rs.pop2(), null) }
+  100: new root.Opcode 'isub', { execute: (rs) -> rs.push(-rs.pop()+rs.pop()) }
+  101: new root.Opcode 'lsub', { execute: (rs) -> rs.push(-rs.pop2()+rs.pop2(), null) }
+  102: new root.Opcode 'fsub', { execute: (rs) -> rs.push(-rs.pop()+rs.pop()) }
+  103: new root.Opcode 'dsub', { execute: (rs) -> rs.push(-rs.pop2()+rs.pop2(), null) }
+  104: new root.Opcode 'imul', { execute: (rs) -> rs.push(rs.pop2()*rs.pop2()) }
+  105: new root.Opcode 'lmul', { execute: (rs) -> rs.push(rs.pop2()*rs.pop2(), null) }
+  106: new root.Opcode 'fmul', { execute: (rs) -> rs.push(rs.pop2()*rs.pop2()) }
+  107: new root.Opcode 'dmul', { execute: (rs) -> rs.push(rs.pop2()*rs.pop2(), null) }
+  108: new root.Opcode 'idiv'
+  109: new root.Opcode 'ldiv'
+  110: new root.Opcode 'fdiv'
+  111: new root.Opcode 'ddiv'
+  # TODO throw an ArithmeticException if modulus is zero
+  112: new root.Opcode 'irem', { execute: (rs) -> v2=rs.pop(); v1=rs.pop(); rs.push(v1%v2) }
+  113: new root.Opcode 'lrem'
+  114: new root.Opcode 'frem'
+  115: new root.Opcode 'drem'
+  116: new root.Opcode 'ineg', { execute: (rs) -> rs.push(-rs.pop()) }
+  117: new root.Opcode 'lneg', { execute: (rs) -> rs.push(-rs.pop2()) }
+  118: new root.Opcode 'fneg', { execute: (rs) -> rs.push(-rs.pop()) }
+  119: new root.Opcode 'dneg', { execute: (rs) -> rs.push(-rs.pop2()) }
+  120: new root.Opcode 'ishl'
+  121: new root.Opcode 'lshl'
+  122: new root.Opcode 'ishr'
+  123: new root.Opcode 'lshr'
+  124: new root.Opcode 'iushr'
+  125: new root.Opcode 'lushr'
+  126: new root.Opcode 'iand', { execute: (rs) -> rs.push(rs.pop()&rs.pop()) }
+  127: new root.Opcode 'land', { execute: (rs) -> rs.push(rs.pop2()&rs.pop2(), null) }
+  128: new root.Opcode 'ior', { execute: (rs) -> rs.push(rs.pop()|rs.pop()) }
+  129: new root.Opcode 'lor', { execute: (rs) -> rs.push(rs.pop2()|rs.pop2(), null) }
+  130: new root.Opcode 'ixor', { execute: (rs) -> rs.push(rs.pop()^rs.pop()) }
+  131: new root.Opcode 'lxor', { execute: (rs) -> rs.push(rs.pop2()^rs.pop2(), null) }
+  132: new root.IIncOpcode 'iinc'
+  133: new root.Opcode 'i2l'
+  134: new root.Opcode 'i2f'
+  135: new root.Opcode 'i2d'
+  136: new root.Opcode 'l2i', {execute: (rs) -> rs.push(rs.pop2())}  #TODO: truncate to 32 bit int
+  137: new root.Opcode 'l2f'
+  138: new root.Opcode 'l2d'
+  139: new root.Opcode 'f2i'
+  140: new root.Opcode 'f2l'
+  141: new root.Opcode 'f2d'
+  142: new root.Opcode 'd2i', { execute: (rs) -> rs.push(Math.floor(rs.pop2())) }
+  143: new root.Opcode 'd2l'
+  144: new root.Opcode 'd2f'
+  145: new root.Opcode 'i2b'
+  146: new root.Opcode 'i2c'
+  147: new root.Opcode 'i2s'
+  148: new root.Opcode 'lcmp'
+  149: new root.Opcode 'fcmpl'
+  150: new root.Opcode 'fcmpg'
+  151: new root.Opcode 'dcmpl'
+  152: new root.Opcode 'dcmpg'
+  153: new root.UnaryBranchOpcode 'ifeq', { cmp: (v) -> v == 0 }
+  154: new root.UnaryBranchOpcode 'ifne', { cmp: (v) -> v != 0 }
+  155: new root.UnaryBranchOpcode 'iflt', { cmp: (v) -> v < 0 }
+  156: new root.UnaryBranchOpcode 'ifge', { cmp: (v) -> v >= 0 }
+  157: new root.UnaryBranchOpcode 'ifgt', { cmp: (v) -> v > 0 }
+  158: new root.UnaryBranchOpcode 'ifle', { cmp: (v) -> v <= 0 }
+  159: new root.BinaryBranchOpcode 'if_icmpeq', { cmp: (v1, v2) -> v1 == v2 }
+  160: new root.BinaryBranchOpcode 'if_icmpne', { cmp: (v1, v2) -> v1 != v2 }
+  161: new root.BinaryBranchOpcode 'if_icmplt', { cmp: (v1, v2) -> v1 < v2 }
+  162: new root.BinaryBranchOpcode 'if_icmpge', { cmp: (v1, v2) -> v1 >= v2 }
+  163: new root.BinaryBranchOpcode 'if_icmpgt', { cmp: (v1, v2) -> v1 > v2 }
+  164: new root.BinaryBranchOpcode 'if_icmple', { cmp: (v1, v2) -> v1 <= v2 }
+  165: new root.BranchOpcode 'if_acmpeq'
+  166: new root.BranchOpcode 'if_acmpne'
+  167: new root.BranchOpcode 'goto', { execute: (rs) -> rs.inc_pc(@offset) }
+  168: new root.Opcode 'jsr'
+  169: new root.Opcode 'ret', { byte_count: 1 }
+  170: new root.Opcode 'tableswitch'
+  171: new root.Opcode 'lookupswitch'
+  172: new root.Opcode 'ireturn'
+  173: new root.Opcode 'lreturn'
+  174: new root.Opcode 'freturn'
+  175: new root.Opcode 'dreturn'
+  176: new root.Opcode 'areturn'
+  177: new root.Opcode 'return'
+  178: new root.FieldOpcode 'getstatic'
+  179: new root.FieldOpcode 'putstatic'
+  180: new root.FieldOpcode 'getfield'
+  181: new root.FieldOpcode 'putfield'
+  182: new root.InvokeOpcode 'invokevirtual'
+  183: new root.InvokeOpcode 'invokespecial'
+  184: new root.InvokeOpcode 'invokestatic', { execute: (rs)-> rs.method_by_name(@method_name).run(rs)}
+  185: new root.InvokeOpcode 'invokeinterface'
+  187: new root.ClassOpcode 'new'
+  188: new root.Opcode 'newarray', { byte_count: 1 }
+  189: new root.ClassOpcode 'anewarray'
+  190: new root.Opcode 'arraylength'
+  191: new root.Opcode 'athrow'
+  192: new root.ClassOpcode 'checkcast'
+  193: new root.ClassOpcode 'instanceof'
+  194: new root.Opcode 'monitorenter'
+  195: new root.Opcode 'monitorexit'
+  196: new root.Opcode 'wide'
+  197: new root.Opcode 'multianewarray', { byte_count: 3 }
+  198: new root.BranchOpcode 'ifnull'
+  199: new root.BranchOpcode 'ifnonnull'
+  200: new root.BranchOpcode 'goto_w', { byte_count: 4 }
+  201: new root.Opcode 'jsr_w'
 }
-
-module?.exports = @opcodes

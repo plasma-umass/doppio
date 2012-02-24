@@ -37,7 +37,7 @@ class Code
     while bytes_array.has_bytes()
       op_index = bytes_array.index
       c = bytes_array.get_uint(1)
-      op = Object.create(opcodes[c])
+      op = Object.create(opcodes.opcodes[c])
       op.take_args(bytes_array, constant_pool)
       rv[op_index] = op
     return rv
