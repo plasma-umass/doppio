@@ -4,6 +4,7 @@
 # pull in external modules
 _ ?= require '../third_party/underscore-min.js'
 util ?= require './util'
+opcodes ?= require './opcodes'
 
 @disassemble = (class_file) ->
   canonical = (str) -> str.replace /\//g, '.'
@@ -74,16 +75,16 @@ util ?= require './util'
       code.each_opcode((idx, oc) ->
         rv += "   #{idx}:\t#{oc.name}"
         #TODO: add the appropriate comments for the refs here (as in the constant pool)
-        rv += switch oc.constructor.name
-          when 'InvokeOpcode' then "\t##{oc.method_spec_ref};"
-          when 'ClassOpcode' then "\t##{oc.class_ref};"
-          when 'FieldOpcode' then "\t##{oc.descriptor_ref};"
-          when 'BranchOpcode' then "\t#{idx + oc.offset}"
-          when 'LoadVarOpcode' then "\t#{oc.var_num}"
-          when 'StoreVarOpcode' then "\t#{oc.var_num}"
-          when 'LoadConstantOpcode' then "\t##{oc.constant_ref};"
-          when 'PushOpcode' then "\t#{oc.value}"
-          when 'IIncOpcode' then "\t#{oc.index}, #{oc.const}"
+        rv += 
+          if oc instanceof opcodes.InvokeOpcode then "\t##{oc.method_spec_ref};"
+          else if oc instanceof opcodes.ClassOpcode then "\t##{oc.class_ref};"
+          else if oc instanceof opcodes.FieldOpcode then "\t##{oc.descriptor_ref};"
+          else if oc instanceof opcodes.BranchOpcode then "\t#{idx + oc.offset}"
+          else if oc instanceof opcodes.LoadVarOpcode then "\t#{oc.var_num}"
+          else if oc instanceof opcodes.StoreVarOpcode then "\t#{oc.var_num}"
+          else if oc instanceof opcodes.LoadConstantOpcode then "\t##{oc.constant_ref};"
+          else if oc instanceof opcodes.PushOpcode then "\t#{oc.value}"
+          else if oc instanceof opcodes.IIncOpcode then "\t#{oc.index}, #{oc.const}"
           else ""
         rv += "\n"
       )
