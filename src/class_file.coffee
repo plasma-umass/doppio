@@ -78,7 +78,8 @@ class Method extends AbstractMethodField
     code = @get_code().opcodes
     while true
       cf = runtime_state.curr_frame()
-      op = code[runtime_state.curr_pc()]
+      pc = runtime_state.curr_pc()
+      op = code[pc]
       runtime_state.print "before #{op.name} -> stack: [#{cf.stack}], local: [#{cf.locals}]"
       op.execute runtime_state
       if op.name.match /.*return/
@@ -87,9 +88,10 @@ class Method extends AbstractMethodField
           caller_stack.push s.pop()
         else if op.name in ['lreturn','dreturn']
           caller_stack.push s.pop()
-          caller_stack.push undefined
+          caller_stack.push null
         break
-      runtime_state.inc_pc(1 + op.byte_count)  # just moves to the next opcode
+      if pc == runtime_state.curr_pc() # unless we encountered a branch instr
+        runtime_state.inc_pc(1 + op.byte_count)  # move to the next opcode
 
 class Field extends AbstractMethodField
   parse_descriptor: (raw_descriptor) ->

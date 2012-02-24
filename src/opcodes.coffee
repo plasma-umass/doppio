@@ -48,7 +48,8 @@ class LoadConstantOpcode extends Opcode
     rs.push undefined if @byte_count is 2
 
 class BranchOpcode extends Opcode
-  constructor: (name, params={ byte_count: 2 }) ->
+  constructor: (name, params={}) ->
+    params.byte_count ?= 2
     super name, params
 
   take_args: (code_array) ->
@@ -74,6 +75,7 @@ class IIncOpcode extends Opcode
 class LoadOpcode extends Opcode
   take_args: (code_array) ->
     @var_num = parseInt @name[6]  # sneaky hack, works for name =~ /.load_\d/
+
   _execute: (rs) ->
     rs.push rs.cl(@var_num)
     rs.push undefined if @name.match /[ld]load/
@@ -82,12 +84,14 @@ class LoadVarOpcode extends LoadOpcode
   constructor: (name, params) ->
     super name, params
     @byte_count = 1
+
   take_args: (code_array) ->
     @var_num = code_array.get_uint(1)
 
 class StoreOpcode extends Opcode
   take_args: (code_array) ->
     @var_num = parseInt @name[7]  # sneaky hack, works for name =~ /.store_\d/
+
   _execute: (rs) -> 
     if @name.match /[ld]store/
       rs.put_cl2(@var_num,rs.pop2())
@@ -125,7 +129,7 @@ class StoreVarOpcode extends StoreOpcode
   18: new LoadConstantOpcode 'ldc', { byte_count: 1 }
   19: new LoadConstantOpcode 'ldc_w', { byte_count: 2 }
   20: new LoadConstantOpcode 'ldc2_w', { byte_count: 2 }
-  21: new LoadVarOpcode 'iload'
+  21: new LoadVarOpcode 'iload', { execute: (rs) -> rs.push rs.cl(@var_num) }
   22: new LoadVarOpcode 'lload'
   23: new LoadVarOpcode 'fload'
   24: new LoadVarOpcode 'dload'
@@ -267,12 +271,12 @@ class StoreVarOpcode extends StoreOpcode
   159: new BranchOpcode 'if_icmpeq'
   160: new BranchOpcode 'if_icmpne'
   161: new BranchOpcode 'if_icmplt'
-  162: new BranchOpcode 'if_icmpge'
+  162: new BranchOpcode 'if_icmpge', { execute: (rs) -> v2=rs.pop(); v1=rs.pop(); rs.inc_pc(@offset) if v1 >= v2 }
   163: new BranchOpcode 'if_icmpgt'
   164: new BranchOpcode 'if_icmple'
   165: new BranchOpcode 'if_acmpeq'
   166: new BranchOpcode 'if_acmpne'
-  167: new BranchOpcode 'goto'
+  167: new BranchOpcode 'goto', { execute: (rs) -> rs.inc_pc(@offset) }
   168: new Opcode 'jsr'
   169: new Opcode 'ret', { byte_count: 1 }
   170: new Opcode 'tableswitch'
