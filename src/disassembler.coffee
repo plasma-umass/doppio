@@ -22,6 +22,8 @@ opcodes ?= require './opcodes'
   rv += "  major version: #{class_file.major_version}\n"
   rv += "  Constant pool:\n"
 
+  # format the entries for displaying the constant pool. e.g. as '#5.#6' or
+  # '3.14159f'
   format = (entry) ->
     val = entry.value
     switch entry.type
@@ -33,7 +35,11 @@ opcodes ?= require './opcodes'
       when 'long' then val + "l"
       else ((if entry.deref? then "#" else "") + val).replace /\n/g, "\\n"
 
-  format_extra_info = (type, info) ->
+  # if :entry is a reference, display its referent in a comment
+  format_extra_info = (entry) ->
+    type = entry.type
+    info = entry.deref?()
+    return "" unless info
     switch type
       when 'Method', 'InterfaceMethod', 'Field'
         "\t//  #{info.class}.#{info.sig.name}:#{info.sig.type}"
@@ -42,12 +48,10 @@ opcodes ?= require './opcodes'
 
   pool = class_file.constant_pool
   pool.each (idx, entry) ->
-    rv += "const ##{idx} = #{entry.type}\t#{format entry};"
-    extra_info = entry.deref?()
-    rv += format_extra_info entry.type, extra_info if extra_info
-    rv += "\n"
+    rv += "const ##{idx} = #{entry.type}\t#{format entry};#{format_extra_info entry}\n"
   rv += "\n"
 
+  # pretty-print our field types, e.g. as 'PackageName.ClassName[][]'
   pp_type = (field_type) ->
     return canonical(field_type.class_name) if field_type.type is 'class'
     return field_type.type unless field_type.type is 'reference'
@@ -74,14 +78,17 @@ opcodes ?= require './opcodes'
       rv += "   Stack=#{code.max_stack}, Locals=#{code.max_locals}, Args_size=#{m.num_args}\n"
       code.each_opcode((idx, oc) ->
         rv += "   #{idx}:\t#{oc.name}"
-        #TODO: add the appropriate comments for the refs here (as in the constant pool)
         rv += 
-          if oc instanceof opcodes.InvokeOpcode then "\t##{oc.method_spec_ref};"
-          else if oc instanceof opcodes.ClassOpcode then "\t##{oc.class_ref};"
-          else if oc instanceof opcodes.FieldOpcode then "\t##{oc.descriptor_ref};"
+          if oc instanceof opcodes.InvokeOpcode
+            "\t##{oc.method_spec_ref};#{format_extra_info pool.get oc.method_spec_ref}"
+          else if oc instanceof opcodes.ClassOpcode
+            "\t##{oc.class_ref};#{format_extra_info pool.get oc.class_ref}"
+          else if oc instanceof opcodes.FieldOpcode
+            "\t##{oc.field_spec_ref};#{format_extra_info pool.get oc.field_spec_ref}"
           else if oc instanceof opcodes.BranchOpcode then "\t#{idx + oc.offset}"
           else if oc instanceof opcodes.LoadVarOpcode then "\t#{oc.var_num}"
           else if oc instanceof opcodes.StoreVarOpcode then "\t#{oc.var_num}"
+          # TODO: add comments for this constant pool ref as well
           else if oc instanceof opcodes.LoadConstantOpcode then "\t##{oc.constant_ref};"
           else if oc instanceof opcodes.PushOpcode then "\t#{oc.value}"
           else if oc instanceof opcodes.IIncOpcode then "\t#{oc.index}, #{oc.const}"

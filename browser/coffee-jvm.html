@@ -3,13 +3,21 @@
   <title>Coffee-JVM: A JVM in Coffeescript</title>
   <style type="text/css">
     html, body, div, span, h1, h2, h3 {margin:0;padding:0;border:0}
+    * { -moz-box-sizing: border-box;
+        -webkit-box-sizing: border-box;
+        box-sizing: border-box; }
     #main {margin: 1em 2em;  width:1210px;}
     h1#title {float:left;margin:10px;}
-		textarea {font-family: monospace;margin:0 0 15px 0;}
+    pre {
+      font-family: monospace;
+      font-size: 8pt;
+      border: 1px solid #ccc;margin:0 0 15px 0;padding:5px;
+      overflow: scroll;
+    }
     div#source { width:620px; height:50%;
       position:relative;border: 1px solid #ccc; float: left;}
-    textarea#disassembly { height: 50%; }
-    textarea#output { height: 12%; width:100%;}
+    pre#disassembly { height: 50%; }
+    pre#output { height: 12%; width:100%;}
     button {padding:10px 30px;line-height:10px; float: left;}
     input#cmdline {margin: 7px 0px;}
   </style>
@@ -37,15 +45,15 @@
     // enter code here
   }
 }</div>
-  <textarea id='disassembly' readonly='readonly' cols=80>Disassembled bytecode will appear here.
-  </textarea>
+  <pre id='disassembly'>Disassembled bytecode will appear here.
+  </pre>
   <div style='clear:both'></div>
   <button id='go_button' type='button'></button>
   <button id='run_button' type='button' disabled>Run with args:</button>
   <input id='cmdline' type='text' value='cmd line args'></input>
   <div style='clear:both'></div>
-  <textarea id='output' readonly='readonly'>Output from System.out and System.err will appear here.
-  </textarea>
+  <pre id='output'>Output from System.out and System.err will appear here.
+  </pre>
   Check the <a href="https://github.com/int3/coffee-jvm">project page</a> for the latest updates.
 </div>
 </body>

@@ -15,9 +15,9 @@ class root.FieldOpcode extends root.Opcode
     super name, params
     @byte_count = 2
     
-  take_args: (code_array) ->
-    @field_spec_ref = code_array.get_uint(1)
-    @descriptor_ref = code_array.get_uint(1)
+  take_args: (code_array, constant_pool) ->
+    @field_spec_ref = code_array.get_uint(2)
+    @field_spec = constant_pool.get(@field_spec_ref).deref()
 
 class root.ClassOpcode extends root.Opcode
   constructor: (name, params) ->
