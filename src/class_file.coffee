@@ -75,13 +75,14 @@ class Method extends AbstractMethodField
     caller_stack = runtime_state.curr_frame().stack
     params = @take_params caller_stack
     runtime_state.meta_stack.push(new runtime.StackFrame(params,[]))
-    runtime_state.print "entering method #{@name}"
+    runtime_state.print "entering method #{@name}\n"
     code = @get_code().opcodes
     while true
       cf = runtime_state.curr_frame()
       pc = runtime_state.curr_pc()
       op = code[pc]
-      runtime_state.print "before #{op.name} -> stack: [#{cf.stack}], local: [#{cf.locals}]\n"
+      runtime_state.print "stack: [#{cf.stack}], local: [#{cf.locals}]\n"
+      runtime_state.print "-> #{pc}: #{op.name}\n"
       op.execute runtime_state
       if op.name.match /.*return/
         s = runtime_state.meta_stack.pop().stack
@@ -93,6 +94,7 @@ class Method extends AbstractMethodField
         break
       unless op instanceof opcodes.BranchOpcode
         runtime_state.inc_pc(1 + op.byte_count)  # move to the next opcode
+    runtime_state.print "stack: [#{cf.stack}], local: [#{cf.locals}]\n"
 
 class Field extends AbstractMethodField
   parse_descriptor: (raw_descriptor) ->
