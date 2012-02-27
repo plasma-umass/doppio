@@ -232,9 +232,9 @@ root.opcodes = {
   101: new root.Opcode 'lsub', { execute: (rs) -> rs.push(-rs.pop2()+rs.pop2(), null) }
   102: new root.Opcode 'fsub', { execute: (rs) -> rs.push(-rs.pop()+rs.pop()) }
   103: new root.Opcode 'dsub', { execute: (rs) -> rs.push(-rs.pop2()+rs.pop2(), null) }
-  104: new root.Opcode 'imul', { execute: (rs) -> rs.push(rs.pop2()*rs.pop2()) }
+  104: new root.Opcode 'imul', { execute: (rs) -> rs.push(rs.pop()*rs.pop()) }
   105: new root.Opcode 'lmul', { execute: (rs) -> rs.push(rs.pop2()*rs.pop2(), null) }
-  106: new root.Opcode 'fmul', { execute: (rs) -> rs.push(rs.pop2()*rs.pop2()) }
+  106: new root.Opcode 'fmul', { execute: (rs) -> rs.push(rs.pop()*rs.pop()) }
   107: new root.Opcode 'dmul', { execute: (rs) -> rs.push(rs.pop2()*rs.pop2(), null) }
   108: new root.Opcode 'idiv'
   109: new root.Opcode 'ldiv'
@@ -301,12 +301,12 @@ root.opcodes = {
   169: new root.Opcode 'ret', { byte_count: 1 }
   170: new root.Opcode 'tableswitch'
   171: new root.Opcode 'lookupswitch'
-  172: new root.Opcode 'ireturn'
-  173: new root.Opcode 'lreturn'
-  174: new root.Opcode 'freturn'
-  175: new root.Opcode 'dreturn'
-  176: new root.Opcode 'areturn'
-  177: new root.Opcode 'return'
+  172: new root.Opcode 'ireturn', { execute: (rs) -> }  # explicitly make these NOPs
+  173: new root.Opcode 'lreturn', { execute: (rs) -> }
+  174: new root.Opcode 'freturn', { execute: (rs) -> }
+  175: new root.Opcode 'dreturn', { execute: (rs) -> }
+  176: new root.Opcode 'areturn', { execute: (rs) -> }
+  177: new root.Opcode 'return', { execute: (rs) -> }
   178: new root.FieldOpcode 'getstatic'
   179: new root.FieldOpcode 'putstatic'
   180: new root.FieldOpcode 'getfield'
