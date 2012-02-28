@@ -1,4 +1,5 @@
-
+#TODO: find some way to load local files from the browser
+#  - the File API worked for the frontend (assuming the right flags are set)
 fs ?= require 'fs'
 jvm ?= require './jvm'
 ClassFile ?= require './class_file'
@@ -7,6 +8,7 @@ ClassFile ?= require './class_file'
 root = exports ? this.runtime = {}
 
 load_external = (cls) ->
+  #TODO: get a real relative path
   bytecode_string = fs.readFileSync "./third_party/#{cls}.class", 'binary'
   bytes_array = (bytecode_string.charCodeAt(i) for i in [0...bytecode_string.length])
   new ClassFile bytes_array
