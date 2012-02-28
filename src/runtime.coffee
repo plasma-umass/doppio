@@ -1,12 +1,24 @@
+
+fs ?= require 'fs'
+jvm ?= require './jvm'
+ClassFile ?= require './class_file'
+
 # things assigned to root will be available outside this module
 root = exports ? this.runtime = {}
+
+load_external = (cls) ->
+  bytecode_string = fs.readFileSync "./third_party/#{cls}.class", 'binary'
+  bytes_array = (bytecode_string.charCodeAt(i) for i in [0...bytecode_string.length])
+  new ClassFile bytes_array
 
 class root.StackFrame
   constructor: (@locals,@stack) ->
     @pc = 0
 
 class root.RuntimeState
-  constructor: (@class_data, @print, initial_args) ->
+  constructor: (class_data, @print, initial_args) ->
+    @classes = {}
+    @classes[class_data.this_class] = class_data
     @meta_stack = [new root.StackFrame(['fake','frame'],initial_args)]
     @heap = []
 
@@ -31,4 +43,9 @@ class root.RuntimeState
   goto_pc: (pc) -> @curr_frame().pc = pc
   inc_pc:  (n)  -> @curr_frame().pc += n
 
-  method_by_name: (name) -> _.find(@class_data.methods, (m)-> m.name is name)
+  method_lookup: (cls,name) ->
+    unless @classes[cls]
+      #TODO: fetch the relevant class file, make a ClassFile, put it in @classes[cls]
+      @classes[cls] = load_external cls
+    throw "class #{cls} not found!" unless @classes[cls]
+    _.find(@classes[cls].methods, (m)-> m.name is name)

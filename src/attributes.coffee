@@ -134,21 +134,33 @@ class LocalVariableTable
       ref: util.read_uint bytes_array.splice 0, 2
     }
 
+class Exceptions
+  parse: (bytes_array, constant_pool) ->
+    @num_exceptions = util.read_uint bytes_array.splice 0, 2
+    @exception_refs = (util.read_uint(bytes_array.splice(0,2)) for i in [0...@num_exceptions])
+    return bytes_array
+
 root.make_attributes = (bytes_array,constant_pool) ->
   #TODO: add classes for additional attr types
   attr_types = {
     'Code': Code, 'LineNumberTable': LineNumberTable, 'SourceFile': SourceFile,
-    'StackMapTable': StackMapTable, 'LocalVariableTable': LocalVariableTable
+    'StackMapTable': StackMapTable, 'LocalVariableTable': LocalVariableTable,
+    'ConstantValue': 'NYI', 'Exceptions': Exceptions, 'InnerClasses': 'NYI',
+    'Synthetic': 'NYI', 'Deprecated': 'NYI'
   }
   num_attrs = util.read_uint(bytes_array.splice(0,2))
   attrs = []
   for _ in [0...num_attrs]
     name = constant_pool.get(util.read_uint(bytes_array.splice(0,2))).value
-    attr_len = util.read_uint(bytes_array.splice(0,4))  # unused
-    throw "NYI: attr_type #{name}" if not attr_types[name]?
-    attr = new attr_types[name]
-    bytes_array = attr.parse(bytes_array,constant_pool)
-    attrs.push attr
+    attr_len = util.read_uint(bytes_array.splice(0,4))  # unused if the attr is defined
+    if attr_types[name]?
+      throw "NYI: attr_type #{name}" if attr_types[name] is 'NYI'
+      attr = new attr_types[name]
+      bytes_array = attr.parse(bytes_array,constant_pool)
+      attrs.push attr
+    else # we must silently ignore other attrs
+      #console.log "ignoring #{attr_len} bytes for attr #{name}"
+      bytes_array.splice(0, attr_len)
   return [attrs,bytes_array]
 
 module?.exports = root.make_attributes

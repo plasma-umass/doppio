@@ -38,6 +38,7 @@ class root.InvokeOpcode extends root.Opcode
     # invokeinterface has two redundant bytes
     code_array.index += 2 if @name == 'invokeinterface'
     method_spec = constant_pool.get(@method_spec_ref).deref()
+    @class_name = method_spec.class
     @method_name = method_spec.sig.name
 
 class root.LoadConstantOpcode extends root.Opcode
@@ -312,10 +313,10 @@ root.opcodes = {
   180: new root.FieldOpcode 'getfield'
   181: new root.FieldOpcode 'putfield'
   182: new root.InvokeOpcode 'invokevirtual'
-  183: new root.InvokeOpcode 'invokespecial'
-  184: new root.InvokeOpcode 'invokestatic', { execute: (rs)-> rs.method_by_name(@method_name).run(rs)}
+  183: new root.InvokeOpcode 'invokespecial',{ execute: (rs)-> rs.method_lookup(@class_name,@method_name).run(rs)}
+  184: new root.InvokeOpcode 'invokestatic', { execute: (rs)-> rs.method_lookup(@class_name,@method_name).run(rs)}
   185: new root.InvokeOpcode 'invokeinterface'
-  187: new root.ClassOpcode 'new'
+  187: new root.ClassOpcode 'new', { execute: (rs) -> rs.push @class }
   188: new root.Opcode 'newarray', { byte_count: 1 }
   189: new root.ClassOpcode 'anewarray'
   190: new root.Opcode 'arraylength'

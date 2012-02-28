@@ -9,4 +9,4 @@ root = exports ? this.jvm = {}
 # main function that gets called from the frontend
 root.run = (class_data, print_func, cmdline_args) ->
   rs = new runtime.RuntimeState(class_data, print_func, [cmdline_args])
-  rs.method_by_name('main').run(rs)
+  rs.method_lookup(class_data.this_class,'main').run(rs)
