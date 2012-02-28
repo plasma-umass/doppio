@@ -3,11 +3,15 @@ button_idle_text = 'Compile and Parse'
 # stores the parsed ClassFile object
 class_data = undefined
 
+html_escape = (str) ->
+  str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+     .replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
 process_bytecode = (bytecode_string) ->
   $('#go_button').text('Parsing...')
   bytes_array = (bytecode_string.charCodeAt(i) & 0xff for i in [0...bytecode_string.length])
   class_data = new ClassFile(bytes_array)
-  $('#disassembly').html disassemble(class_data)
+  $('#disassembly').html html_escape(disassemble(class_data))
   $('#run_button').removeAttr('disabled')
   $('#go_button').text(button_idle_text)
 
@@ -15,8 +19,9 @@ run_jvm = () ->
   # this is a silly hack to pass a "print"-like function to our JVM
   output = $('#output')[0]
   output.innerText = ''
+  print = (msg) -> output.innerText += msg
   $('#run_button').text('Running...')
-  jvm.run class_data, ((msg) -> output.innerText += msg), $('#cmdline').val().split(' ')
+  jvm.run class_data, print, $('#cmdline').val().split(' ')
   $('#run_button').text('Run with args:')
 
 compile_source = (java_source) ->
