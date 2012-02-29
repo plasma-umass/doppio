@@ -5,7 +5,6 @@ util ?= require './util'
 ConstantPool ?= require './constant_pool'
 make_attributes ?= require './attributes'
 opcodes ?= require './opcodes'
-runtime ?= require './runtime'
 
 class AbstractMethodField
   """ Subclasses need to implement parse_descriptor(String) """

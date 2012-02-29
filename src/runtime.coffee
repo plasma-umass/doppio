@@ -1,16 +1,25 @@
-#TODO: find some way to load local files from the browser
-#  - the File API worked for the frontend (assuming the right flags are set)
-fs ?= require 'fs'
-jvm ?= require './jvm'
+
 ClassFile ?= require './class_file'
 
 # things assigned to root will be available outside this module
 root = exports ? this.runtime = {}
 
 load_external = (cls) ->
-  #TODO: get a real relative path
-  bytecode_string = fs.readFileSync "./third_party/#{cls}.class", 'binary'
-  bytes_array = (bytecode_string.charCodeAt(i) for i in [0...bytecode_string.length])
+  #python -m SimpleHTTPServer 8000
+  cf_url = "http://localhost:8000/third_party/#{cls}.class"
+  bytecode_string = ''
+  $.ajax cf_url, {
+    type: 'GET'
+    dataType: 'text'
+    async: false
+    beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
+    success: (data) -> bytecode_string = data
+    error: (jqXHR, textStatus, errorThrown) -> 
+      $('#output').text("AJAX error: #{errorThrown}")
+      $('#go_button').text('Compile')
+  }
+
+  bytes_array = (bytecode_string.charCodeAt(i) & 0xff for i in [0...bytecode_string.length])
   new ClassFile bytes_array
 
 class root.StackFrame
