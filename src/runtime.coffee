@@ -54,6 +54,21 @@ class root.RuntimeState
   goto_pc: (pc) -> @curr_frame().pc = pc
   inc_pc:  (n)  -> @curr_frame().pc += n
 
+  # heap manipulation
+  heap_new: (cls) ->
+    obj = new Object
+    obj.type = cls
+    @heap.push obj
+    @push(@heap.length - 1)
+  heap_put: (field_spec) ->
+    val = if field_spec.sig.type in ['J','D'] then @pop2() else @pop()
+    obj = @heap[@pop()]
+    obj[field_spec.sig.name] = val
+  heap_get: (field_spec, oref) ->
+    val = @heap[oref][field_spec.sig.name]
+    @push val
+    @push null if field_spec.sig.type in ['J','D']
+
   method_lookup: (cls,name) ->
     unless @classes[cls]
       #TODO: fetch the relevant class file, make a ClassFile, put it in @classes[cls]

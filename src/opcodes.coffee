@@ -203,10 +203,10 @@ root.opcodes = {
   72: new root.StoreOpcode 'dstore_1'
   73: new root.StoreOpcode 'dstore_2'
   74: new root.StoreOpcode 'dstore_3'
-  75: new root.Opcode 'astore_0'
-  76: new root.Opcode 'astore_1'
-  77: new root.Opcode 'astore_2'
-  78: new root.Opcode 'astore_3'
+  75: new root.StoreOpcode 'astore_0'
+  76: new root.StoreOpcode 'astore_1'
+  77: new root.StoreOpcode 'astore_2'
+  78: new root.StoreOpcode 'astore_3'
   79: new root.Opcode 'iastore'
   80: new root.Opcode 'lastore'
   81: new root.Opcode 'fastore'
@@ -263,7 +263,7 @@ root.opcodes = {
   130: new root.Opcode 'ixor', { execute: (rs) -> rs.push(rs.pop()^rs.pop()) }
   131: new root.Opcode 'lxor', { execute: (rs) -> rs.push(rs.pop2()^rs.pop2(), null) }
   132: new root.IIncOpcode 'iinc'
-  133: new root.Opcode 'i2l'
+  133: new root.Opcode 'i2l', {execute: (rs) -> rs.push(rs.pop(), null)}
   134: new root.Opcode 'i2f'
   135: new root.Opcode 'i2d'
   136: new root.Opcode 'l2i', {execute: (rs) -> rs.push(rs.pop2())}  #TODO: truncate to 32 bit int
@@ -310,13 +310,13 @@ root.opcodes = {
   177: new root.Opcode 'return', { execute: (rs) -> }
   178: new root.FieldOpcode 'getstatic'
   179: new root.FieldOpcode 'putstatic'
-  180: new root.FieldOpcode 'getfield'
-  181: new root.FieldOpcode 'putfield'
+  180: new root.FieldOpcode 'getfield', {execute: (rs)-> rs.heap_get @field_spec, rs.pop() }
+  181: new root.FieldOpcode 'putfield', {execute: (rs)-> rs.heap_put @field_spec }
   182: new root.InvokeOpcode 'invokevirtual'
   183: new root.InvokeOpcode 'invokespecial',{ execute: (rs)-> rs.method_lookup(@class_name,@method_name).run(rs)}
   184: new root.InvokeOpcode 'invokestatic', { execute: (rs)-> rs.method_lookup(@class_name,@method_name).run(rs)}
   185: new root.InvokeOpcode 'invokeinterface'
-  187: new root.ClassOpcode 'new', { execute: (rs) -> rs.push @class }
+  187: new root.ClassOpcode 'new', { execute: (rs) -> rs.heap_new @class }
   188: new root.Opcode 'newarray', { byte_count: 1 }
   189: new root.ClassOpcode 'anewarray'
   190: new root.Opcode 'arraylength'
