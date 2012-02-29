@@ -19,7 +19,7 @@ Usage
 -----
 
 Run `python -m SimpleHTTPServer 8000` in the project root, 
-then access the browser frontend at `http://localhost:8000/`.
+then access the browser frontend at [localhost:8000](http://localhost:8000/).
 
 The code can also be run from the console. E.g.
 
