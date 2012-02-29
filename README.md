@@ -18,11 +18,13 @@ Run `coffee -wc */*.coffee &` to auto-gen scripts as you go.
 Usage
 -----
 
-A browser frontend is available at `browser/coffee-jvm.html`.
+Run `python -m SimpleHTTPServer 8000` in the project root, 
+then access the browser frontend at `http://localhost:8000/`.
 
-The disassembler can also be used from the console. E.g.
+The code can also be run from the console. E.g.
 
     coffee console/disassembler.coffee <test/Println.class
+    coffee console/runner.coffee <test/Println.class
 
 Testing
 -------
