@@ -94,8 +94,8 @@ class root.RuntimeState
   init_field: (field) ->
     if field.type.type is 'reference' and field.type.ref_type is 'class'
       @init_object field.type.referent.class_name
-    else if field.type.type in ['int','float','double','long']
-      0  # numbers default to zero
+    else if field.type.type in ['int','float','double','long','boolean','char','short']
+      0  # numbers default to zero/false
     else if field.type.type is 'reference' and field.type.ref_type is 'array'
       @init_array field.type.referent.type
     else

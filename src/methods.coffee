@@ -83,25 +83,35 @@ class root.Method extends AbstractMethodField
     else
       @return_type = @parse_field_type raw_descriptor
 
-  take_params: (caller_stack) ->
-    params = []
+  param_bytes: () ->
     type_size = (t) -> (if t in ['double','long'] then 2 else 1)
     n_bytes = util.sum(type_size(p.type) for p in @param_types)
     n_bytes++ unless @access_flags.static
+    n_bytes
+
+  take_params: (caller_stack) ->
+    params = []
+    n_bytes = @param_bytes()
     caller_stack.splice(caller_stack.length-n_bytes,n_bytes)
   
-  run: (runtime_state) ->
+  run: (runtime_state,virtual=false) ->
     caller_stack = runtime_state.curr_frame().stack
+    if virtual  # dirty hack to bounce up the inheritance tree
+      oref = caller_stack[caller_stack.length-@param_bytes()]
+      obj = runtime_state.heap[oref]
+      obj = runtime_state.string_pool[oref] unless obj  # oof
+      m_spec = {class: obj.type, sig: {name:@name, type:@raw_descriptor}}
+      m = runtime_state.method_lookup(m_spec)
+      throw "abstract method got called: #{@name}#{@raw_descriptor}" if m.access_flags.abstract
+      return m.run(runtime_state)
     params = @take_params caller_stack
     runtime_state.meta_stack.push(new runtime.StackFrame(params,[]))
-    runtime_state.print "entering method #{@name}\n"
+    runtime_state.print "entering method #{@name}#{@raw_descriptor}\n"
     if @access_flags.native
       throw "native method NYI: #{@name}" unless native_methods[@name]
       native_methods[@name](runtime_state)
       runtime_state.meta_stack.pop()
       return
-    if @access_flags.abstract
-      throw "abstract method got called: #{@name}#{@raw_descriptor}"
     code = @get_code().opcodes
     while true
       cf = runtime_state.curr_frame()

@@ -310,7 +310,7 @@ root.opcodes = {
   179: new root.FieldOpcode 'putstatic'
   180: new root.FieldOpcode 'getfield', {execute: (rs)-> rs.heap_get @field_spec, rs.pop() }
   181: new root.FieldOpcode 'putfield', {execute: (rs)-> rs.heap_put @field_spec }
-  182: new root.InvokeOpcode 'invokevirtual',{ execute: (rs)-> rs.method_lookup(@method_spec).run(rs)}
+  182: new root.InvokeOpcode 'invokevirtual',{ execute: (rs)-> rs.method_lookup(@method_spec).run(rs,true)}
   183: new root.InvokeOpcode 'invokespecial',{ execute: (rs)-> rs.method_lookup(@method_spec).run(rs)}
   184: new root.InvokeOpcode 'invokestatic', { execute: (rs)-> rs.method_lookup(@method_spec).run(rs)}
   185: new root.InvokeOpcode 'invokeinterface'
