@@ -5,22 +5,17 @@ ClassFile ?= require './class_file'
 root = exports ? this.runtime = {}
 
 load_external = (cls) ->
-  #python -m SimpleHTTPServer 8000
-  cf_url = "http://localhost:8000/third_party/#{cls}.class"
   bytecode_string = ''
-  $.ajax cf_url, {
+  $.ajax "http://localhost:8000/third_party/#{cls}.class", {
     type: 'GET'
     dataType: 'text'
     async: false
     beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
     success: (data) -> bytecode_string = data
     error: (jqXHR, textStatus, errorThrown) -> 
-      $('#output').text("AJAX error: #{errorThrown}")
-      $('#go_button').text('Compile')
+      throw "AJAX error when loading class #{cls}: #{errorThrown}"
   }
-
-  bytes_array = (bytecode_string.charCodeAt(i) & 0xff for i in [0...bytecode_string.length])
-  new ClassFile bytes_array
+  new ClassFile (bytecode_string.charCodeAt(i) & 0xff for i in [0...bytecode_string.length])
 
 class root.StackFrame
   constructor: (@locals,@stack) ->
