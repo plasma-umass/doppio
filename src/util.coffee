@@ -19,7 +19,7 @@ root.padleft = (str,len,fillchar) ->
 root.lshift = (x,n) -> x*Math.pow(2,n)
 
 root.bitwise_not = (x,nbits) ->
-  s = padleft(x.toString(2),nbits,'0')
+  s = root.padleft(x.toString(2),nbits,'0')
   # may the computer gods have mercy on our souls...
   not_s = s.replace(/1/g,'x').replace(/0/g,'1').replace(/x/g,'0')
   return parseInt(not_s,2)
