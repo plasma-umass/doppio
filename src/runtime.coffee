@@ -72,7 +72,7 @@ class root.RuntimeState
     obj = @string_pool[oref] unless obj #megahack
     throw "undefined heap reference: #{oref}" unless obj
     name = field_spec.sig.name
-    obj[name] = @init_field(@field_lookup(field_spec)) unless name in obj
+    obj[name] = @init_field(@field_lookup(field_spec)) unless name[obj] is undefined
     @push obj[name]
     @push null if field_spec.sig.type in ['J','D']
 
