@@ -71,7 +71,6 @@ class root.RuntimeState
     obj = @heap[oref]
     obj = @string_pool[oref] unless obj #megahack
     throw "undefined heap reference: #{oref}" unless obj
-    throw "heap object type mismatch" unless obj.type is field_spec['class']
     name = field_spec.sig.name
     obj[name] = @init_field(@field_lookup(field_spec)) unless name in obj
     @push obj[name]
@@ -88,9 +87,17 @@ class root.RuntimeState
     @heap.push {'type':cls}
     @heap.length - 1
 
+  init_array: (type) ->
+    @heap.push {'type':"[#{type}]", 'array':[]}
+    @heap.length - 1
+
   init_field: (field) ->
     if field.type.type is 'reference' and field.type.ref_type is 'class'
       @init_object field.type.referent.class_name
+    else if field.type.type in ['int','float','double','long']
+      0  # numbers default to zero
+    else if field.type.type is 'reference' and field.type.ref_type is 'array'
+      @init_array field.type.referent.type
     else
       throw "I don't know what to do with non-class static fields"
 
