@@ -154,13 +154,19 @@ class InnerClasses
       inner_access_flags: util.read_uint bytes_array.splice 0, 2
     }
 
+class ConstantValue
+  parse: (bytes_array, constant_pool) ->
+    @ref = util.read_uint bytes_array.splice 0, 2
+    @value = constant_pool.get(@ref).value
+    return bytes_array
+
 root.make_attributes = (bytes_array,constant_pool) ->
   #TODO: add classes for NYI attr types
   attr_types = {
     'Code': Code, 'LineNumberTable': LineNumberTable, 'SourceFile': SourceFile,
     'StackMapTable': StackMapTable, 'LocalVariableTable': LocalVariableTable,
-    'ConstantValue': 'NYI', 'Exceptions': Exceptions, 'InnerClasses': InnerClasses,
-    'Synthetic': 'NYI'
+    'ConstantValue': ConstantValue, 'Exceptions': Exceptions,
+    'InnerClasses': InnerClasses, 'Synthetic': 'NYI'
   }
   num_attrs = util.read_uint(bytes_array.splice(0,2))
   attrs = []
