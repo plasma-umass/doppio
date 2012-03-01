@@ -37,6 +37,7 @@ class root.RuntimeState
       if c.type is 'String'
         str = class_data.constant_pool.constant_pool[c.value].value
         cls = @class_lookup 'java/lang/String'
+        #TODO: actually make a real string object here (as in `new String(str);`)
         @string_pool[c.value] = {'type': 'java/lang/String', 'value':str}
 
   curr_frame: () -> _.last(@meta_stack)
