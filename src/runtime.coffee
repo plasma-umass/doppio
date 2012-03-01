@@ -32,6 +32,12 @@ class root.RuntimeState
     @classes[class_data.this_class] = class_data
     @meta_stack = [new root.StackFrame(['fake','frame'],initial_args)]
     @heap = []
+    @string_pool = {}
+    class_data.constant_pool.each (i,c) =>
+      if c.type is 'String'
+        str = class_data.constant_pool.constant_pool[c.value].value
+        cls = @class_lookup 'java/lang/String'
+        @string_pool[c.value] = {'type': 'java/lang/String', 'value':str}
 
   curr_frame: () -> _.last(@meta_stack)
 
@@ -55,26 +61,37 @@ class root.RuntimeState
   inc_pc:  (n)  -> @curr_frame().pc += n
 
   # heap manipulation
-  heap_new: (cls) ->
-    obj = new Object
-    obj.type = cls
-    @heap.push obj
-    @push(@heap.length - 1)
+  heap_new: (cls) -> @push @init_object(cls)
   heap_put: (field_spec) ->
     val = if field_spec.sig.type in ['J','D'] then @pop2() else @pop()
     obj = @heap[@pop()]
     obj[field_spec.sig.name] = val
   heap_get: (field_spec, oref) ->
-    val = @heap[oref][field_spec.sig.name]
-    @push val
+    obj = @heap[oref]
+    obj = @string_pool[oref] unless obj #megahack
+    throw "undefined heap reference: #{oref}" unless obj
+    throw "heap object type mismatch" unless obj.type is field_spec['class']
+    name = field_spec.sig.name
+    obj[name] = @init_field(@field_lookup(field_spec)) unless name in obj
+    @push obj[name]
     @push null if field_spec.sig.type in ['J','D']
 
   # static stuff
   static_get: (field_spec) ->
-    c = @class_lookup(field_spec.class)
-    val = _.find(c.fields, (f)-> f.name is field_spec.sig.name)
-    #TODO: possibly initialize this value, and push it on the stack
-    console.log val
+    field = @field_lookup field_spec
+    field.static_value = @init_field(field) unless field.static_value
+    @push field.static_value
+
+  init_object: (cls) ->
+    @class_lookup cls
+    @heap.push {'type':cls}
+    @heap.length - 1
+
+  init_field: (field) ->
+    if field.type.type is 'reference' and field.type.ref_type is 'class'
+      @init_object field.type.referent.class_name
+    else
+      throw "I don't know what to do with non-class static fields"
 
   class_lookup: (cls) ->
     unless @classes[cls]
@@ -83,6 +100,23 @@ class root.RuntimeState
     throw "class #{cls} not found!" unless @classes[cls]
     @classes[cls]
 
-  method_lookup: (cls,name) ->
-    c = @class_lookup cls
-    _.find(c.methods, (m)-> m.name is name)
+  method_lookup: (method_spec) ->
+    c = @class_lookup(method_spec.class)
+    while true
+      ms = (m for m in c.methods when m.name is method_spec.sig.name)
+      ms = (m for m in ms when m.raw_descriptor is method_spec.sig.type) unless ms.length == 1
+      throw "too many method choices" if ms.length > 1
+      break if ms[0] or not c['super_class']
+      c = @class_lookup(c.super_class)
+    throw "no such method found: #{method_spec.sig.name}" unless ms[0]
+    console.log c['this_class']
+    ms[0]
+
+  field_lookup: (field_spec) ->
+    c = @class_lookup(field_spec.class)
+    while true
+      field = _.find(c.fields, (f)-> f.name is field_spec.sig.name)
+      break if field or not c['super_class']
+      c = @class_lookup(c.super_class)
+    throw "no such field found: #{field_spec.sig.name}" unless field
+    field

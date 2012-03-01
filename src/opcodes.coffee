@@ -37,9 +37,7 @@ class root.InvokeOpcode extends root.Opcode
     @method_spec_ref = code_array.get_uint(2)
     # invokeinterface has two redundant bytes
     code_array.index += 2 if @name == 'invokeinterface'
-    method_spec = constant_pool.get(@method_spec_ref).deref()
-    @class_name = method_spec.class
-    @method_name = method_spec.sig.name
+    @method_spec = constant_pool.get(@method_spec_ref).deref()
 
 class root.LoadConstantOpcode extends root.Opcode
   take_args: (code_array, constant_pool) ->
@@ -312,9 +310,9 @@ root.opcodes = {
   179: new root.FieldOpcode 'putstatic'
   180: new root.FieldOpcode 'getfield', {execute: (rs)-> rs.heap_get @field_spec, rs.pop() }
   181: new root.FieldOpcode 'putfield', {execute: (rs)-> rs.heap_put @field_spec }
-  182: new root.InvokeOpcode 'invokevirtual'
-  183: new root.InvokeOpcode 'invokespecial',{ execute: (rs)-> rs.method_lookup(@class_name,@method_name).run(rs)}
-  184: new root.InvokeOpcode 'invokestatic', { execute: (rs)-> rs.method_lookup(@class_name,@method_name).run(rs)}
+  182: new root.InvokeOpcode 'invokevirtual',{ execute: (rs)-> rs.method_lookup(@method_spec).run(rs)}
+  183: new root.InvokeOpcode 'invokespecial',{ execute: (rs)-> rs.method_lookup(@method_spec).run(rs)}
+  184: new root.InvokeOpcode 'invokestatic', { execute: (rs)-> rs.method_lookup(@method_spec).run(rs)}
   185: new root.InvokeOpcode 'invokeinterface'
   187: new root.ClassOpcode 'new', { execute: (rs) -> rs.heap_new @class }
   188: new root.Opcode 'newarray', { byte_count: 1 }
@@ -323,12 +321,12 @@ root.opcodes = {
   191: new root.Opcode 'athrow'
   192: new root.ClassOpcode 'checkcast'
   193: new root.ClassOpcode 'instanceof'
-  194: new root.Opcode 'monitorenter'
-  195: new root.Opcode 'monitorexit'
+  194: new root.Opcode 'monitorenter', { execute: (rs)-> rs.pop() }  #TODO: actually implement locks?
+  195: new root.Opcode 'monitorexit',  { execute: (rs)-> rs.pop() }  #TODO: actually implement locks?
   196: new root.Opcode 'wide'
   197: new root.Opcode 'multianewarray', { byte_count: 3 }
-  198: new root.BranchOpcode 'ifnull'
-  199: new root.BranchOpcode 'ifnonnull'
+  198: new root.UnaryBranchOpcode 'ifnull', { cmp: (v) -> v < 0 }
+  199: new root.UnaryBranchOpcode 'ifnonnull', { cmp: (v) -> v >= 0 }
   200: new root.BranchOpcode 'goto_w', { byte_count: 4 }
   201: new root.Opcode 'jsr_w'
 }

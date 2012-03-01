@@ -11,8 +11,8 @@ class AbstractMethodField
   parse: (bytes_array,constant_pool) ->
     @access_flags = util.parse_flags(util.read_uint(bytes_array.splice(0,2)))
     @name = constant_pool.get(util.read_uint(bytes_array.splice(0,2))).value
-    raw_descriptor = constant_pool.get(util.read_uint(bytes_array.splice(0,2))).value
-    @parse_descriptor raw_descriptor
+    @raw_descriptor = constant_pool.get(util.read_uint(bytes_array.splice(0,2))).value
+    @parse_descriptor @raw_descriptor
     [@attrs,bytes_array] = make_attributes(bytes_array,constant_pool)
     return bytes_array
   
@@ -73,13 +73,14 @@ class Method extends AbstractMethodField
     params = @take_params caller_stack
     runtime_state.meta_stack.push(new runtime.StackFrame(params,[]))
     runtime_state.print "entering method #{@name}\n"
+    throw "native method NYI: #{@name}" if @access_flags.native
     code = @get_code().opcodes
     while true
       cf = runtime_state.curr_frame()
       pc = runtime_state.curr_pc()
       op = code[pc]
       runtime_state.print "stack: [#{cf.stack}], local: [#{cf.locals}]\n"
-      runtime_state.print "-> #{pc}: #{op.name}\n"
+      runtime_state.print "#{@name}:#{pc} => #{op.name}\n"
       op.execute runtime_state
       if op.name.match /.*return/
         s = runtime_state.meta_stack.pop().stack
@@ -96,6 +97,8 @@ class Method extends AbstractMethodField
 class Field extends AbstractMethodField
   parse_descriptor: (raw_descriptor) ->
     @type = @parse_field_type raw_descriptor.split ''
+    if @access_flags.static
+      @static_value = null  # loaded in when getstatic is called
 
 class @ClassFile
   constructor: (bytes_array) ->
