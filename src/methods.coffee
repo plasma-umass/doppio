@@ -55,9 +55,9 @@ class root.Field extends AbstractMethodField
 native_methods = {
   'arraycopy': ((runtime_state) -> 
     args = runtime_state.curr_frame().locals
-    src_array = runtime_state.heap[args[0]].array
+    src_array = runtime_state.get_obj(args[0]).array
     src_pos = args[1]
-    dest_array = runtime_state.heap[args[2]].array
+    dest_array = runtime_state.get_obj(args[2]).array
     dest_pos = args[3]
     length = args[4]
     j = dest_pos
@@ -98,8 +98,7 @@ class root.Method extends AbstractMethodField
     caller_stack = runtime_state.curr_frame().stack
     if virtual  # dirty hack to bounce up the inheritance tree
       oref = caller_stack[caller_stack.length-@param_bytes()]
-      obj = runtime_state.heap[oref]
-      obj = runtime_state.string_pool[oref] unless obj  # oof
+      obj = runtime_state.get_obj(oref)
       m_spec = {class: obj.type, sig: {name:@name, type:@raw_descriptor}}
       m = runtime_state.method_lookup(m_spec)
       throw "abstract method got called: #{@name}#{@raw_descriptor}" if m.access_flags.abstract
@@ -107,6 +106,7 @@ class root.Method extends AbstractMethodField
     params = @take_params caller_stack
     runtime_state.meta_stack.push(new runtime.StackFrame(params,[]))
     runtime_state.print "entering method #{@name}#{@raw_descriptor}\n"
+    console.log "entering method #{@name}#{@raw_descriptor}"
     if @access_flags.native
       throw "native method NYI: #{@name}" unless native_methods[@name]
       native_methods[@name](runtime_state)
@@ -119,6 +119,8 @@ class root.Method extends AbstractMethodField
       op = code[pc]
       runtime_state.print "stack: [#{cf.stack}], local: [#{cf.locals}]\n"
       runtime_state.print "#{@name}:#{pc} => #{op.name}\n"
+      console.log "stack: [#{cf.stack}], local: [#{cf.locals}]"
+      console.log "#{@name}:#{pc} => #{op.name}"
       op.execute runtime_state
       if op.name.match /.*return/
         s = runtime_state.meta_stack.pop().stack
@@ -131,3 +133,4 @@ class root.Method extends AbstractMethodField
       unless op instanceof opcodes.BranchOpcode
         runtime_state.inc_pc(1 + op.byte_count)  # move to the next opcode
     runtime_state.print "stack: [#{cf.stack}], local: [#{cf.locals}]\n"
+    console.log "stack: [#{cf.stack}], local: [#{cf.locals}]"

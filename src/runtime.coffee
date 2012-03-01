@@ -38,7 +38,10 @@ class root.RuntimeState
         str = class_data.constant_pool.constant_pool[c.value].value
         cls = @class_lookup 'java/lang/String'
         #TODO: actually make a real string object here (as in `new String(str);`)
-        @string_pool[c.value] = {'type': 'java/lang/String', 'value':str}
+        str_obj = {'type':'java/lang/String', 'value':@init_array('char'), 'count':str.length}
+        str_obj.value.array = str
+        @string_pool[c.value] = str_obj
+
 
   curr_frame: () -> _.last(@meta_stack)
 
@@ -62,17 +65,22 @@ class root.RuntimeState
   inc_pc:  (n)  -> @curr_frame().pc += n
 
   # heap manipulation
+  get_obj: (oref) ->
+    obj = @heap[oref]
+    obj = @string_pool[oref] unless obj #megahack
+    throw "undefined heap/string reference: #{oref}" unless obj
+    obj
   heap_new: (cls) -> @push @init_object(cls)
   heap_put: (field_spec) ->
     val = if field_spec.sig.type in ['J','D'] then @pop2() else @pop()
     obj = @heap[@pop()]
+    console.log "setting #{field_spec.sig.name} = #{val} on obj of type #{obj.type}"
     obj[field_spec.sig.name] = val
   heap_get: (field_spec, oref) ->
-    obj = @heap[oref]
-    obj = @string_pool[oref] unless obj #megahack
-    throw "undefined heap reference: #{oref}" unless obj
+    obj = @get_obj(oref)
     name = field_spec.sig.name
     obj[name] = @init_field(@field_lookup(field_spec)) if obj[name] is undefined
+    console.log "getting #{name} from obj of type #{obj.type}: #{obj[name]}"
     @push obj[name]
     @push null if field_spec.sig.type in ['J','D']
 
@@ -80,6 +88,7 @@ class root.RuntimeState
   static_get: (field_spec) ->
     field = @field_lookup field_spec
     field.static_value = @init_field(field) unless field.static_value
+    console.log field.static_value
     @push field.static_value
 
   init_object: (cls) ->
