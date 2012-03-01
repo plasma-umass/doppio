@@ -26,7 +26,7 @@ run_jvm = () ->
 
 compile_source = (java_source) ->
   $('#go_button').text('Compiling...')
-  $.ajax 'http://www.cs.umass.edu/~ccarey/javac/', {
+  $.ajax 'http://people.cs.umass.edu/~ccarey/javac/', {
     type: 'POST'
     data: { pw: 'coffee', source: java_source }
     dataType: 'text'

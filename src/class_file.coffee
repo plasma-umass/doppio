@@ -51,7 +51,7 @@ class Method extends AbstractMethodField
   parse_descriptor: (raw_descriptor) ->
     raw_descriptor = raw_descriptor.split ''
     throw "Invalid descriptor #{raw_descriptor}" if raw_descriptor.shift() != '('
-    @param_types = (field while @parse_field_type raw_descriptor)
+    @param_types = (field while (field = @parse_field_type raw_descriptor))
     throw "Invalid descriptor #{raw_descriptor}" if raw_descriptor.shift() != ')'
     @num_args = @param_types.length
     @num_args++ unless @access_flags.static # nonstatic methods get 'this'
