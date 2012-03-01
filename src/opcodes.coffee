@@ -308,7 +308,7 @@ root.opcodes = {
   175: new root.Opcode 'dreturn', { execute: (rs) -> }
   176: new root.Opcode 'areturn', { execute: (rs) -> }
   177: new root.Opcode 'return', { execute: (rs) -> }
-  178: new root.FieldOpcode 'getstatic'
+  178: new root.FieldOpcode 'getstatic', {execute: (rs)-> rs.static_get @field_spec }
   179: new root.FieldOpcode 'putstatic'
   180: new root.FieldOpcode 'getfield', {execute: (rs)-> rs.heap_get @field_spec, rs.pop() }
   181: new root.FieldOpcode 'putfield', {execute: (rs)-> rs.heap_put @field_spec }

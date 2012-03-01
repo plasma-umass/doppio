@@ -69,9 +69,20 @@ class root.RuntimeState
     @push val
     @push null if field_spec.sig.type in ['J','D']
 
-  method_lookup: (cls,name) ->
+  # static stuff
+  static_get: (field_spec) ->
+    c = @class_lookup(field_spec.class)
+    val = _.find(c.fields, (f)-> f.name is field_spec.sig.name)
+    #TODO: possibly initialize this value, and push it on the stack
+    console.log val
+
+  class_lookup: (cls) ->
     unless @classes[cls]
       #TODO: fetch the relevant class file, make a ClassFile, put it in @classes[cls]
       @classes[cls] = load_external cls
     throw "class #{cls} not found!" unless @classes[cls]
-    _.find(@classes[cls].methods, (m)-> m.name is name)
+    @classes[cls]
+
+  method_lookup: (cls,name) ->
+    c = @class_lookup cls
+    _.find(c.methods, (m)-> m.name is name)

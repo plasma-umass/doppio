@@ -140,13 +140,27 @@ class Exceptions
     @exception_refs = (util.read_uint(bytes_array.splice(0,2)) for i in [0...@num_exceptions])
     return bytes_array
 
+class InnerClasses
+  parse: (bytes_array, constant_pool) ->
+    num_classes = util.read_uint bytes_array.splice 0, 2
+    @classes = (@parse_class bytes_array, constant_pool for i in [0...num_classes])
+    return bytes_array
+
+  parse_class: (bytes_array, constant_pool) ->
+    {
+      inner_info_index: util.read_uint bytes_array.splice 0, 2
+      outer_info_index: util.read_uint bytes_array.splice 0, 2
+      inner_name_index: util.read_uint bytes_array.splice 0, 2
+      inner_access_flags: util.read_uint bytes_array.splice 0, 2
+    }
+
 root.make_attributes = (bytes_array,constant_pool) ->
-  #TODO: add classes for additional attr types
+  #TODO: add classes for NYI attr types
   attr_types = {
     'Code': Code, 'LineNumberTable': LineNumberTable, 'SourceFile': SourceFile,
     'StackMapTable': StackMapTable, 'LocalVariableTable': LocalVariableTable,
-    'ConstantValue': 'NYI', 'Exceptions': Exceptions, 'InnerClasses': 'NYI',
-    'Synthetic': 'NYI', 'Deprecated': 'NYI'
+    'ConstantValue': 'NYI', 'Exceptions': Exceptions, 'InnerClasses': InnerClasses,
+    'Synthetic': 'NYI'
   }
   num_attrs = util.read_uint(bytes_array.splice(0,2))
   attrs = []
