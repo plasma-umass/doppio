@@ -55,17 +55,18 @@ class root.Field extends AbstractMethodField
       @static_value = null  # loaded in when getstatic is called
 
 native_methods = {
-  'arraycopy': ((runtime_state) -> 
-    args = runtime_state.curr_frame().locals
-    src_array = runtime_state.get_obj(args[0]).array
+  'arraycopy': ((rs) -> 
+    args = rs.curr_frame().locals
+    src_array = rs.get_obj(args[0]).array
     src_pos = args[1]
-    dest_array = runtime_state.get_obj(args[2]).array
+    dest_array = rs.get_obj(args[2]).array
     dest_pos = args[3]
     length = args[4]
     j = dest_pos
     for i in [src_pos...src_pos+length]
       dest_array[j++] = src_array[i]
     )
+  'java/lang/StrictMath::pow(DD)D': (rs) -> rs.push Math.pow(rs.cl(0),rs.cl(2)), null
 }
 
 class root.Method extends AbstractMethodField
@@ -105,34 +106,35 @@ class root.Method extends AbstractMethodField
       m = runtime_state.method_lookup(m_spec)
       throw "abstract method got called: #{@name}#{@raw_descriptor}" if m.access_flags.abstract
       return m.run(runtime_state)
+    sig = "#{@class_name}::#{@name}#{@raw_descriptor}"
     params = @take_params caller_stack
     runtime_state.meta_stack.push(new runtime.StackFrame(params,[]))
-    runtime_state.print "entering method #{@name}#{@raw_descriptor}\n"
-    console.log "entering method #{@name}#{@raw_descriptor}"
+    console.log "entering method #{sig}"
     if @access_flags.native
-      throw "native method NYI: #{@name}" unless native_methods[@name]
-      native_methods[@name](runtime_state)
-      runtime_state.meta_stack.pop()
-      return
+      throw "native method NYI: #{sig}" unless native_methods[sig]
+      native_methods[sig](runtime_state)
+      s = runtime_state.meta_stack.pop().stack
+      switch s.length
+        when 2 then runtime_state.push s[0], s[1]; return
+        when 1 then runtime_state.push s[0]; return
+        when 0 then return
+      throw "too many items on the stack after native method #{sig}"
     code = @get_code().opcodes
     while true
       cf = runtime_state.curr_frame()
       pc = runtime_state.curr_pc()
       op = code[pc]
-      runtime_state.print "stack: [#{cf.stack}], local: [#{cf.locals}]\n"
-      runtime_state.print "#{@name}:#{pc} => #{op.name}\n"
       console.log "stack: [#{cf.stack}], local: [#{cf.locals}]"
       console.log "#{@name}:#{pc} => #{op.name}"
       op.execute runtime_state
       if op.name.match /.*return/
         s = runtime_state.meta_stack.pop().stack
         if op.name in ['ireturn','freturn','areturn']
-          caller_stack.push s.pop()
+          caller_stack.push s[0]
         else if op.name in ['lreturn','dreturn']
-          caller_stack.push s.pop()
+          caller_stack.push s[0]
           caller_stack.push null
         break
       unless op instanceof opcodes.BranchOpcode
         runtime_state.inc_pc(1 + op.byte_count)  # move to the next opcode
-    runtime_state.print "stack: [#{cf.stack}], local: [#{cf.locals}]\n"
-    console.log "stack: [#{cf.stack}], local: [#{cf.locals}]"
+    console.log "stack: [#{cf.stack}], local: [#{cf.locals}] (method end)"

@@ -264,8 +264,8 @@ root.opcodes = {
   131: new root.Opcode 'lxor', { execute: (rs) -> rs.push(rs.pop2()^rs.pop2(), null) }
   132: new root.IIncOpcode 'iinc'
   133: new root.Opcode 'i2l', {execute: (rs) -> rs.push(rs.pop(), null)}
-  134: new root.Opcode 'i2f'
-  135: new root.Opcode 'i2d'
+  134: new root.Opcode 'i2f', {execute: (rs) -> rs.push rs.pop() }
+  135: new root.Opcode 'i2d', {execute: (rs) -> rs.push(rs.pop(), null)}
   136: new root.Opcode 'l2i', {execute: (rs) -> rs.push(rs.pop2())}  #TODO: truncate to 32 bit int
   137: new root.Opcode 'l2f'
   138: new root.Opcode 'l2d'
