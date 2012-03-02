@@ -10,6 +10,8 @@ root = exports ? this.methods = {}
 
 class AbstractMethodField
   """ Subclasses need to implement parse_descriptor(String) """
+  constructor: (@class_name) ->
+
   parse: (bytes_array,constant_pool) ->
     @access_flags = util.parse_flags(util.read_uint(bytes_array.splice(0,2)))
     @name = constant_pool.get(util.read_uint(bytes_array.splice(0,2))).value

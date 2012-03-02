@@ -28,12 +28,12 @@ class @ClassFile
     @interfaces = (read_u2() for _ in [0...isize])
     # fields of this class
     num_fields = read_u2()
-    @fields = (new methods.Field for _ in [0...num_fields])
+    @fields = (new methods.Field(@this_class) for _ in [0...num_fields])
     for f in @fields
       bytes_array = f.parse(bytes_array,@constant_pool)
     # class methods
     num_methods = read_u2()
-    @methods = (new methods.Method for _ in [0...num_methods])
+    @methods = (new methods.Method(@this_class) for _ in [0...num_methods])
     for m in @methods
       bytes_array = m.parse(bytes_array,@constant_pool)
     # class attributes
