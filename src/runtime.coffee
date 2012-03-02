@@ -25,7 +25,15 @@ class root.RuntimeState
   constructor: (class_data, @print, initial_args) ->
     @classes = {}
     @classes[class_data.this_class] = class_data
-    @heap = []
+    @heap = {}
+    # add the string references to the heap, in a semi-hacky way
+    cp = class_data.constant_pool
+    str_refs = []
+    cp.each (i,c) -> str_refs.push c.value if c.type is 'String'
+    # make sure the strings get allocated after their refs
+    @high_heap_ref = if str_refs.length > 0 then _.max(str_refs) else 0
+    for sr in str_refs
+      @heap[sr] = @heap[@init_string(cp.get(sr).value)]
     args = @init_array('java/lang/String',(@init_string(a) for a in initial_args))
     @meta_stack = [new root.StackFrame(['fake','frame'],[args])]
 
@@ -52,10 +60,12 @@ class root.RuntimeState
 
   # heap manipulation
   get_obj: (oref) ->
-    obj = @heap[oref]
-    obj = @string_pool[oref] unless obj #megahack
-    throw "undefined heap/string reference: #{oref}" unless obj
-    obj
+    throw "undefined heap reference: #{oref}" unless @heap[oref]
+    @heap[oref]
+  set_obj: (obj) ->
+    @heap[++@high_heap_ref] = obj
+    @high_heap_ref
+
   heap_new: (cls) -> @push @init_object(cls)
   heap_put: (field_spec) ->
     val = if field_spec.sig.type in ['J','D'] then @pop2() else @pop()
@@ -77,21 +87,15 @@ class root.RuntimeState
     console.log field.static_value
     @push field.static_value
 
+  # heap object initialization
   init_object: (cls) ->
     @class_lookup cls
-    @heap.push {'type':cls}
-    @heap.length - 1
-
-  init_array: (type,arr=[]) ->
-    @heap.push {'type':"[#{type}]", 'array':arr}
-    @heap.length - 1
-
+    @set_obj {'type':cls}
+  init_array: (type,arr=[]) -> @set_obj {'type':"[#{type}]", 'array':arr}
   init_string: (str) ->
     #TODO: actually make a real string object here (as in `new String(str);`)
     c_ref = @init_array('char',arr=(str.charCodeAt(i) for i in [0...str.length]))
-    @heap.push {'type':'java/lang/String', 'value':c_ref, 'count':str.length}
-    @heap.length - 1
-
+    @set_obj {'type':'java/lang/String', 'value':c_ref, 'count':str.length}
   init_field: (field) ->
     if field.type.type is 'reference' and field.type.ref_type is 'class'
       @init_object field.type.referent.class_name
@@ -102,6 +106,7 @@ class root.RuntimeState
     else
       throw "I don't know what to do with non-class static fields"
 
+  # lookup methods
   class_lookup: (cls) ->
     unless @classes[cls]
       # fetch the relevant class file, make a ClassFile, put it in @classes[cls]
@@ -109,7 +114,6 @@ class root.RuntimeState
       @classes[cls] = load_external cls
     throw "class #{cls} not found!" unless @classes[cls]
     @classes[cls]
-
   method_lookup: (method_spec) ->
     c = @class_lookup(method_spec.class)
     while true
@@ -121,7 +125,6 @@ class root.RuntimeState
     throw "no such method found: #{method_spec.sig.name}" unless ms[0]
     console.log c['this_class']
     ms[0]
-
   field_lookup: (field_spec) ->
     c = @class_lookup(field_spec.class)
     while true
