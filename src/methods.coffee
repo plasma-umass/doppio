@@ -55,7 +55,7 @@ class root.Field extends AbstractMethodField
       @static_value = null  # loaded in when getstatic is called
 
 native_methods = {
-  'arraycopy': ((rs) -> 
+  'java/lang/System::arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V': ((rs) -> 
     args = rs.curr_frame().locals
     src_array = rs.get_obj(args[0]).array
     src_pos = args[1]
