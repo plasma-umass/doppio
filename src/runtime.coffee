@@ -25,18 +25,9 @@ class root.RuntimeState
   constructor: (class_data, @print, initial_args) ->
     @classes = {}
     @classes[class_data.this_class] = class_data
-    @meta_stack = [new root.StackFrame(['fake','frame'],initial_args)]
     @heap = []
-    @string_pool = {}
-    class_data.constant_pool.each (i,c) =>
-      if c.type is 'String'
-        str = class_data.constant_pool.constant_pool[c.value].value
-        cls = @class_lookup 'java/lang/String'
-        #TODO: actually make a real string object here (as in `new String(str);`)
-        str_obj = {'type':'java/lang/String', 'value':@init_array('char'), 'count':str.length}
-        str_obj.value.array = str
-        @string_pool[c.value] = str_obj
-
+    args = @init_array('java/lang/String',(@init_string(a) for a in initial_args))
+    @meta_stack = [new root.StackFrame(['fake','frame'],[args])]
 
   curr_frame: () -> _.last(@meta_stack)
 
@@ -91,8 +82,14 @@ class root.RuntimeState
     @heap.push {'type':cls}
     @heap.length - 1
 
-  init_array: (type) ->
-    @heap.push {'type':"[#{type}]", 'array':[]}
+  init_array: (type,arr=[]) ->
+    @heap.push {'type':"[#{type}]", 'array':arr}
+    @heap.length - 1
+
+  init_string: (str) ->
+    #TODO: actually make a real string object here (as in `new String(str);`)
+    c_ref = @init_array('char',arr=(str.charCodeAt(i) for i in [0...str.length]))
+    @heap.push {'type':'java/lang/String', 'value':c_ref, 'count':str.length}
     @heap.length - 1
 
   init_field: (field) ->
@@ -107,7 +104,8 @@ class root.RuntimeState
 
   class_lookup: (cls) ->
     unless @classes[cls]
-      #TODO: fetch the relevant class file, make a ClassFile, put it in @classes[cls]
+      # fetch the relevant class file, make a ClassFile, put it in @classes[cls]
+      console.log "loading new class: #{cls}"
       @classes[cls] = load_external cls
     throw "class #{cls} not found!" unless @classes[cls]
     @classes[cls]
