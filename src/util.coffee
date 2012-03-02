@@ -14,6 +14,11 @@ root.padleft = (str,len,fillchar) ->
     str = fillchar + str
   return str
 
+root.cmp = (a,b) ->
+  return 0  if a == b
+  return -1 if a < b
+  return 1
+
 # implments x<<n without the braindead javascript << operator
 # (see http://stackoverflow.com/questions/337355/javascript-bitwise-shift-of-long-long-number)
 root.lshift = (x,n) -> x*Math.pow(2,n)
