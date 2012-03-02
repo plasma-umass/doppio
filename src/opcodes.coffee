@@ -1,3 +1,5 @@
+
+util ?= require './util'
 root = exports ? this.opcodes = {}
 
 class root.Opcode
@@ -8,7 +10,7 @@ class root.Opcode
   take_args: (code_array) ->
     @args = [code_array.get_uint(1) for i in [0...@byte_count]]
   
-  _execute: (rs) -> console.log "#{@name} is a NOP"
+  _execute: (rs) -> throw "#{@name} is a NOP"
 
 class root.FieldOpcode extends root.Opcode
   constructor: (name, params) ->
@@ -172,14 +174,14 @@ root.opcodes = {
   43: new root.LoadOpcode 'aload_1'
   44: new root.LoadOpcode 'aload_2'
   45: new root.LoadOpcode 'aload_3'
-  46: new root.Opcode 'iaload'
+  46: new root.Opcode 'iaload', { execute: (rs) -> i=rs.pop(); rs.push rs.get_obj(rs.pop()).array[i] }
   47: new root.Opcode 'laload'
-  48: new root.Opcode 'faload'
+  48: new root.Opcode 'faload', { execute: (rs) -> i=rs.pop(); rs.push rs.get_obj(rs.pop()).array[i] }
   49: new root.Opcode 'daload'
-  50: new root.Opcode 'aaload'
-  51: new root.Opcode 'baload'
-  52: new root.Opcode 'caload'
-  53: new root.Opcode 'saload'
+  50: new root.Opcode 'aaload', { execute: (rs) -> i=rs.pop(); rs.push rs.get_obj(rs.pop()).array[i] }
+  51: new root.Opcode 'baload', { execute: (rs) -> i=rs.pop(); rs.push rs.get_obj(rs.pop()).array[i] }
+  52: new root.Opcode 'caload', { execute: (rs) -> i=rs.pop(); rs.push rs.get_obj(rs.pop()).array[i] }
+  53: new root.Opcode 'saload', { execute: (rs) -> i=rs.pop(); rs.push rs.get_obj(rs.pop()).array[i] }
   54: new root.StoreVarOpcode 'istore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
   55: new root.StoreVarOpcode 'lstore', { execute: (rs) -> rs.put_cl2(@var_num,rs.pop2()) }
   56: new root.StoreVarOpcode 'fstore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
@@ -235,7 +237,7 @@ root.opcodes = {
   105: new root.Opcode 'lmul', { execute: (rs) -> rs.push(rs.pop2()*rs.pop2(), null) }
   106: new root.Opcode 'fmul', { execute: (rs) -> rs.push(rs.pop()*rs.pop()) }
   107: new root.Opcode 'dmul', { execute: (rs) -> rs.push(rs.pop2()*rs.pop2(), null) }
-  108: new root.Opcode 'idiv'
+  108: new root.Opcode 'idiv', { execute: (rs) -> rs.push(rs.pop()/rs.pop()) }  #TODO: do int division!
   109: new root.Opcode 'ldiv'
   110: new root.Opcode 'fdiv'
   111: new root.Opcode 'ddiv'
@@ -276,7 +278,7 @@ root.opcodes = {
   145: new root.Opcode 'i2b'
   146: new root.Opcode 'i2c'
   147: new root.Opcode 'i2s'
-  148: new root.Opcode 'lcmp'
+  148: new root.Opcode 'lcmp', { execute: (rs) -> rs.push util.cmp(rs.pop2(),rs.pop2()) }
   149: new root.Opcode 'fcmpl'
   150: new root.Opcode 'fcmpg'
   151: new root.Opcode 'dcmpl'
