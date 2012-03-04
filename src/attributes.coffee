@@ -179,7 +179,7 @@ root.make_attributes = (bytes_array,constant_pool) ->
       bytes_array = attr.parse(bytes_array,constant_pool)
       attrs.push attr
     else # we must silently ignore other attrs
-      #console.log "ignoring #{attr_len} bytes for attr #{name}"
+      console.log "ignoring #{attr_len} bytes for attr #{name}"
       bytes_array.splice(0, attr_len)
   return [attrs,bytes_array]
 
