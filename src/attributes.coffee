@@ -114,7 +114,7 @@ class StackMapTable
       }
 
   parse_verification_type_info: (bytes_array) ->
-    tag = util.read_uint bytes_array.shift()
+    tag = bytes_array.shift()
     bytes_array.splice(0, 2) if tag == 7
     tag_to_type = [ 'int', 'float', 'long', 'double', 'null', 'this', 'object', 'uninitialized' ]
     tag_to_type[tag]
