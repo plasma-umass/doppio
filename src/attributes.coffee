@@ -62,62 +62,65 @@ class SourceFile
 
 class StackMapTable
   parse: (bytes_array, constant_pool) ->
+    parse_entries = ->
+      frame_type = bytes_array.shift()
+      if 0 <= frame_type < 64
+        { frame_type: frame_type, frame_name: 'same' }
+      else if 64 <= frame_type < 128
+        { 
+          frame_type: frame_type
+          frame_name: 'same_locals_1_stack_item'
+          verification_info: parse_verification_type_info()
+        }
+      else if frame_type == 247
+        {
+          frame_type: frame_type
+          frame_name: 'same_locals_1_stack_item_extended'
+          offset_delta: util.read_uint bytes_array.splice(0, 2)
+          verification_info: parse_verification_type_info()
+        }
+      else if 248 <= frame_type < 251
+        {
+          frame_type: frame_type
+          frame_name: 'chop'
+          offset_delta: util.read_uint bytes_array.splice(0, 2)
+        }
+      else if frame_type == 251
+        {
+          frame_type: frame_type
+          frame_name: 'same_frame_extended'
+          offset_delta: util.read_uint bytes_array.splice(0, 2)
+        }
+      else if 252 <= frame_type < 255
+        {
+          frame_type: frame_type
+          frame_name: 'append'
+          offset_delta: util.read_uint bytes_array.splice(0, 2)
+          locals: parse_verification_type_info() for i in [0...frame_type-251]
+        }
+      else if frame_type == 255
+        {
+          frame_type: frame_type
+          frame_name: 'full_frame'
+          offset_delta: util.read_uint bytes_array.splice(0, 2)
+          num_locals: num_locals = util.read_uint bytes_array.splice(0, 2)
+          locals: parse_verification_type_info() for i in [0...num_locals]
+          num_stack_items: num_stack_items = util.read_uint bytes_array.splice(0, 2)
+          stack: parse_verification_type_info() for i in [0...num_stack_items]
+        }
+
+    parse_verification_type_info = ->
+      tag = bytes_array.shift()
+      if tag == 7
+        'class' + constant_pool.get(util.read_uint bytes_array.splice(0, 2)).deref()
+      else
+        tag_to_type = [ 'top', 'int', 'float', 'long', 'double', 'null', 'this', 'object', 'uninitialized' ]
+        tag_to_type[tag]
+
     @num_entries = util.read_uint(bytes_array.splice(0, 2))
-    @entries = (@parse_entries bytes_array for i in [0...@num_entries])
+    @entries = (parse_entries() for i in [0...@num_entries])
     return bytes_array
 
-  parse_entries: (bytes_array) ->
-    frame_type = bytes_array.shift()
-    if 0 <= frame_type < 64
-      { frame_type: frame_type, frame_name: 'same' }
-    else if 64 <= frame_type < 128
-      { 
-        frame_type: frame_type
-        frame_name: 'same_locals_1_stack_item'
-        verification_info: @parse_verification_type_info bytes_array
-      }
-    else if frame_type == 247
-      {
-        frame_type: frame_type
-        frame_name: 'same_locals_1_stack_item_extended'
-        offset_delta: util.read_uint bytes_array.splice(0, 2)
-        verification_info: @parse_verification_type_info bytes_array
-      }
-    else if 248 <= frame_type < 251
-      {
-        frame_type: frame_type
-        frame_name: 'chop'
-        offset_delta: util.read_uint bytes_array.splice(0, 2)
-      }
-    else if frame_type == 251
-      {
-        frame_type: frame_type
-        frame_name: 'same_frame_extended'
-        offset_delta: util.read_uint bytes_array.splice(0, 2)
-      }
-    else if 252 <= frame_type < 255
-      {
-        frame_type: frame_type
-        frame_name: 'append'
-        offset_delta: util.read_uint bytes_array.splice(0, 2)
-        locals: @parse_verification_type_info bytes_array for i in [0...frame_type-251]
-      }
-    else if frame_type == 255
-      {
-        frame_type: frame_type
-        frame_name: 'full_frame'
-        offset_delta: util.read_uint bytes_array.splice(0, 2)
-        num_locals: num_locals = util.read_uint bytes_array.splice(0, 2)
-        locals: @parse_verification_type_info bytes_array for i in [0...num_locals]
-        num_stack_items: num_stack_items = util.read_uint bytes_array.splice(0, 2)
-        stack: @parse_verification_type_info bytes_array for i in [0...num_stack_items]
-      }
-
-  parse_verification_type_info: (bytes_array) ->
-    tag = bytes_array.shift()
-    bytes_array.splice(0, 2) if tag == 7
-    tag_to_type = [ 'int', 'float', 'long', 'double', 'null', 'this', 'object', 'uninitialized' ]
-    tag_to_type[tag]
 
 class LocalVariableTable
   parse: (bytes_array, constant_pool) ->
