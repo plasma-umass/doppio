@@ -9,21 +9,21 @@ html_escape = (str) ->
 
 # Read in a binary classfile synchronously. Return an array of bytes.
 read_classfile = (cls) ->
- rv = ''
+ rv = []
  $.ajax "http://localhost:8000/third_party/#{cls}.class", {
    type: 'GET'
    dataType: 'text'
    async: false
    beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
-   success: (data) -> rv = data
+   success: (data) -> rv = util.bytestr_to_array data
    error: (jqXHR, textStatus, errorThrown) ->
      throw "AJAX error when loading class #{cls}: #{errorThrown}"
  }
- (rv.charCodeAt(i) & 0xff for i in [0...rv.length])
+ rv
 
 process_bytecode = (bytecode_string) ->
   $('#go_button').text('Parsing...')
-  bytes_array = (bytecode_string.charCodeAt(i) & 0xff for i in [0...bytecode_string.length])
+  bytes_array = util.bytestr_to_array bytecode_string
   class_data = new ClassFile(bytes_array)
   $('#disassembly').html html_escape(disassemble(class_data))
   $('#run_button').removeAttr('disabled')

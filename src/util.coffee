@@ -1,6 +1,6 @@
 
 # pull in external modules
-_ ?= require './third_party/underscore-min.js'
+_ ?= require '../third_party/underscore-min.js'
 
 # things assigned to root will be available outside this module
 root = exports ? this.util = {}
@@ -33,6 +33,9 @@ root.read_uint = (bytes) ->
   n = bytes.length-1
   # sum up the byte values shifted left to the right alignment.
   root.sum(root.lshift(bytes[i],8*(n-i)) for i in [0..n])
+
+root.bytestr_to_array = (bytecode_string) ->
+  (bytecode_string.charCodeAt(i) & 0xFF for i in [0...bytecode_string.length])
 
 root.parse_flags = (flag_byte) ->
   {

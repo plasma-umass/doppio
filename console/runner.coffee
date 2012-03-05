@@ -1,10 +1,10 @@
 fs = require 'fs'
 jvm = require '../src/jvm'
+util = require '../src/util'
 ClassFile = require '../src/class_file'
 
 read_binary_file = (filename) ->
-  bytecode_string = fs.readFileSync filename, 'binary'
-  (bytecode_string.charCodeAt(i) for i in [0...bytecode_string.length])
+  util.bytestr_to_array fs.readFileSync(filename, 'binary')
 
 read_classfile = (cls) -> read_binary_file "third_party/#{cls}.class"
 
