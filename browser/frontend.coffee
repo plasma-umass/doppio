@@ -7,6 +7,20 @@ html_escape = (str) ->
   str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
      .replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
+# Read in a binary classfile synchronously. Return an array of bytes.
+read_classfile = (cls) ->
+ rv = ''
+ $.ajax "http://localhost:8000/third_party/#{cls}.class", {
+   type: 'GET'
+   dataType: 'text'
+   async: false
+   beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
+   success: (data) -> rv = data
+   error: (jqXHR, textStatus, errorThrown) ->
+     throw "AJAX error when loading class #{cls}: #{errorThrown}"
+ }
+ (rv.charCodeAt(i) & 0xff for i in [0...rv.length])
+
 process_bytecode = (bytecode_string) ->
   $('#go_button').text('Parsing...')
   bytes_array = (bytecode_string.charCodeAt(i) & 0xff for i in [0...bytecode_string.length])
@@ -21,7 +35,7 @@ run_jvm = () ->
   output.innerText = ''
   print = (msg) -> output.innerText += msg
   $('#run_button').text('Running...')
-  jvm.run class_data, print, $('#cmdline').val().split(' ')
+  jvm.run class_data, print, read_classfile, $('#cmdline').val().split(' ')
   $('#run_button').text('Run with args:')
 
 compile_source = (java_source) ->

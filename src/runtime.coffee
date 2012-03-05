@@ -4,25 +4,12 @@ ClassFile ?= require './class_file'
 # things assigned to root will be available outside this module
 root = exports ? this.runtime = {}
 
-load_external = (cls) ->
-  bytecode_string = ''
-  $.ajax "http://localhost:8000/third_party/#{cls}.class", {
-    type: 'GET'
-    dataType: 'text'
-    async: false
-    beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
-    success: (data) -> bytecode_string = data
-    error: (jqXHR, textStatus, errorThrown) -> 
-      throw "AJAX error when loading class #{cls}: #{errorThrown}"
-  }
-  new ClassFile (bytecode_string.charCodeAt(i) & 0xff for i in [0...bytecode_string.length])
-
 class root.StackFrame
   constructor: (@locals,@stack) ->
     @pc = 0
 
 class root.RuntimeState
-  constructor: (class_data, @print, initial_args) ->
+  constructor: (class_data, @print, @read_classfile, initial_args) ->
     @classes = {}
     @classes[class_data.this_class] = class_data
     @heap = {}
@@ -111,7 +98,7 @@ class root.RuntimeState
     unless @classes[cls]
       # fetch the relevant class file, make a ClassFile, put it in @classes[cls]
       console.log "loading new class: #{cls}"
-      @classes[cls] = load_external cls
+      @classes[cls] = new ClassFile @read_classfile cls
     throw "class #{cls} not found!" unless @classes[cls]
     @classes[cls]
   method_lookup: (method_spec) ->
