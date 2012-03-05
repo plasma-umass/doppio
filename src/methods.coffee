@@ -115,10 +115,14 @@ class root.Method extends AbstractMethodField
       native_methods[sig](runtime_state)
       s = runtime_state.meta_stack.pop().stack
       switch s.length
-        when 2 then runtime_state.push s[0], s[1]; return
-        when 1 then runtime_state.push s[0]; return
-        when 0 then return
-      throw "too many items on the stack after native method #{sig}"
+        when 2 then runtime_state.push s[0], s[1]
+        when 1 then runtime_state.push s[0]
+        when 0 then break
+        else
+          throw "too many items on the stack after native method #{sig}"
+      cf = runtime_state.curr_frame()
+      console.log "stack: [#{cf.stack}], local: [#{cf.locals}] (method end)"
+      return
     code = @get_code().opcodes
     while true
       cf = runtime_state.curr_frame()
