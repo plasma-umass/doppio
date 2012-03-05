@@ -54,6 +54,11 @@ class root.RuntimeState
     @high_heap_ref
 
   heap_new: (cls) -> @push @init_object(cls)
+  heap_newarray: (type_code,len) -> 
+    arr_types = {4:'boolean',5:'char',6:'float',7:'double',8:'byte',9:'short',10:'int',11:'long'}
+    throw "invalid array typecode: #{type_code}" unless arr_types[type_code]
+    arr = (0 for _ in [0...len])
+    @push @init_array(arr_types[type_code],arr)
   heap_put: (field_spec) ->
     val = if field_spec.sig.type in ['J','D'] then @pop2() else @pop()
     obj = @heap[@pop()]
@@ -110,7 +115,6 @@ class root.RuntimeState
       break if ms[0] or not c['super_class']
       c = @class_lookup(c.super_class)
     throw "no such method found: #{method_spec.sig.name}" unless ms[0]
-    console.log c['this_class']
     ms[0]
   field_lookup: (field_spec) ->
     c = @class_lookup(field_spec.class)
