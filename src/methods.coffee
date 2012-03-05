@@ -109,7 +109,8 @@ class root.Method extends AbstractMethodField
     sig = "#{@class_name}::#{@name}#{@raw_descriptor}"
     params = @take_params caller_stack
     runtime_state.meta_stack.push(new runtime.StackFrame(params,[]))
-    console.log "entering method #{sig}"
+    padding = (' ' for _ in [2...runtime_state.meta_stack.length]).join('')
+    console.log "#{padding}entering method #{sig}"
     if @access_flags.native
       throw "native method NYI: #{sig}" unless native_methods[sig]
       native_methods[sig](runtime_state)
@@ -121,15 +122,15 @@ class root.Method extends AbstractMethodField
         else
           throw "too many items on the stack after native method #{sig}"
       cf = runtime_state.curr_frame()
-      console.log "stack: [#{cf.stack}], local: [#{cf.locals}] (method end)"
+      console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}] (method end)"
       return
     code = @get_code().opcodes
     while true
       cf = runtime_state.curr_frame()
       pc = runtime_state.curr_pc()
       op = code[pc]
-      console.log "stack: [#{cf.stack}], local: [#{cf.locals}]"
-      console.log "#{@name}:#{pc} => #{op.name}"
+      console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}]"
+      console.log "#{padding}#{@name}:#{pc} => #{op.name}"
       op.execute runtime_state
       if op.name.match /.*return/
         s = runtime_state.meta_stack.pop().stack
@@ -141,4 +142,4 @@ class root.Method extends AbstractMethodField
         break
       unless op instanceof opcodes.BranchOpcode
         runtime_state.inc_pc(1 + op.byte_count)  # move to the next opcode
-    console.log "stack: [#{cf.stack}], local: [#{cf.locals}] (method end)"
+    console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}] (method end)"
