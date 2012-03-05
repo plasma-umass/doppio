@@ -1,3 +1,4 @@
+#!/usr/bin/env coffee
 fs = require 'fs'
 jvm = require '../src/jvm'
 util = require '../src/util'
@@ -8,6 +9,8 @@ read_binary_file = (filename) ->
 
 read_classfile = (cls) -> read_binary_file "third_party/#{cls}.class"
 
-class_data = new ClassFile read_binary_file '/dev/stdin'
+# first two are 'coffee', 'scriptname.coffee'
+fname = if process.argv.length > 2 then process.argv[2] else '/dev/stdin'
+class_data = new ClassFile read_binary_file(fname)
 
 jvm.run class_data, console.log, read_classfile, []

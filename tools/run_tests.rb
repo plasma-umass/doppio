@@ -9,7 +9,7 @@ test_dir = "#{here_dir}/../test"
 Dir.glob("#{test_dir}/*.java") do |src|
   name = src.match(/(\w+)\.java/)[1]
   `javac #{src}` unless File.exists? "#{test_dir}/#{name}.class"
-  `coffee #{here_dir}/../console/disassembler.coffee <#{test_dir}/#{name}.class >#{ours}`
+  `#{here_dir}/../console/disassembler.coffee #{test_dir}/#{name}.class >#{ours}`
   `javap -c -verbose -private -classpath #{test_dir} #{name} >#{ref}`
   errors = `#{here_dir}/cleandiff.sh #{ref} #{ours}`
   if errors.match /\S/
