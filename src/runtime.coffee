@@ -78,8 +78,13 @@ class root.RuntimeState
   static_get: (field_spec) ->
     field = @field_lookup field_spec
     field.static_value = @init_field(field) unless field.static_value
-    console.log field.static_value
+    console.log "getting #{field_spec.sig.name} from class #{field_spec.class}: #{field.static_value}"
     @push field.static_value
+  static_put: (field_spec) ->
+    val = if field_spec.sig.type in ['J','D'] then @pop2() else @pop()
+    field = @field_lookup field_spec
+    field.static_value = val
+    console.log "setting #{field_spec.sig.name} = #{val} on class #{field_spec.class}"
 
   # heap object initialization
   init_object: (cls) ->
