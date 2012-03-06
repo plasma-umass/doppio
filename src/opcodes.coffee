@@ -170,7 +170,7 @@ class root.TableSwitchOpcode extends root.SwitchOpcode
 # classfile
 root.opcodes = {
   00: new root.Opcode 'nop'
-  01: new root.Opcode 'aconst_null'
+  01: new root.Opcode 'aconst_null', { execute: (rs) -> rs.push 0 }
   02: new root.Opcode 'iconst_m1', { execute: (rs) -> rs.push -1 }
   03: new root.Opcode 'iconst_0', { execute: (rs) -> rs.push 0 }
   04: new root.Opcode 'iconst_1', { execute: (rs) -> rs.push 1 }
@@ -320,10 +320,10 @@ root.opcodes = {
   146: new root.Opcode 'i2c'
   147: new root.Opcode 'i2s'
   148: new root.Opcode 'lcmp', { execute: (rs) -> rs.push util.cmp(rs.pop2(),rs.pop2()) }
-  149: new root.Opcode 'fcmpl'
-  150: new root.Opcode 'fcmpg'
-  151: new root.Opcode 'dcmpl'
-  152: new root.Opcode 'dcmpg'
+  149: new root.Opcode 'fcmpl', { execute: (rs) -> rs.push util.cmp(rs.pop(), rs.pop()) ? -1 }
+  150: new root.Opcode 'fcmpg', { execute: (rs) -> rs.push util.cmp(rs.pop(), rs.pop()) ? 1 }
+  151: new root.Opcode 'dcmpl', { execute: (rs) -> rs.push util.cmp(rs.pop2(), rs.pop2()) ? -1 }
+  152: new root.Opcode 'dcmpg', { execute: (rs) -> rs.push util.cmp(rs.pop2(), rs.pop2()) ? 1 }
   153: new root.UnaryBranchOpcode 'ifeq', { cmp: (v) -> v == 0 }
   154: new root.UnaryBranchOpcode 'ifne', { cmp: (v) -> v != 0 }
   155: new root.UnaryBranchOpcode 'iflt', { cmp: (v) -> v < 0 }

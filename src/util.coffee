@@ -17,7 +17,8 @@ root.padleft = (str,len,fillchar) ->
 root.cmp = (a,b) ->
   return 0  if a == b
   return -1 if a < b
-  return 1
+  return 1 if a > b
+  return null # this will occur if either a or b is NaN
 
 # implments x<<n without the braindead javascript << operator
 # (see http://stackoverflow.com/questions/337355/javascript-bitwise-shift-of-long-long-number)
