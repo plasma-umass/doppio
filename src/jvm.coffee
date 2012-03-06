@@ -14,7 +14,8 @@ root.run = (class_data, print_func, load_func, cmdline_args) ->
     rs.method_lookup(main_spec).run(rs)
   catch e
     cf = rs.curr_frame()
+    heap_str = ("#{i}: #{rs.heap[i].type}" for i in [1...rs.heap.length]).join(', ')
     console.error "Runtime Exception!\n" +
       "stack: [#{cf.stack}], local: [#{cf.locals}], " +
-      "heap: {" + ("#{k}: #{v.type}" for k, v of rs.heap).join(', ') + "}\n"
+      "heap: {#{heap_str}}\n"
     throw e

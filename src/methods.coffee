@@ -68,8 +68,14 @@ native_methods = {
     )
   'java/lang/StrictMath::pow(DD)D': (rs) -> rs.push Math.pow(rs.cl(0),rs.cl(2)), null
   'java/lang/System::initProperties(Ljava/util/Properties;)Ljava/util/Properties;': ((rs) ->
-    props = rs.get_obj(rs.curr_frame().locals[0])
-    throw "initProperties is NYI!!!!"
+    p_ref = rs.curr_frame().locals[0]
+    props = rs.get_obj(p_ref)
+    console.log "initProperties is NYI, so expect anything referencing system props to break"
+    # properties to set:
+    #  java.version,java.vendor,java.vendor.url,java.home,java.class.version,java.class.path,
+    #  os.name,os.arch,os.version,file.separator,path.separator,line.separator,
+    #  user.name,user.home,user.dir     
+    rs.push p_ref
     )
 }
 
@@ -103,7 +109,8 @@ class root.Method extends AbstractMethodField
   
   run: (runtime_state,virtual=false) ->
     caller_stack = runtime_state.curr_frame().stack
-    if virtual  # dirty hack to bounce up the inheritance tree
+    if virtual and @class_name isnt 'java/lang/String'  # avoid redirect shenanigans, ok because String is final
+      # dirty hack to bounce up the inheritance tree, to make sure we call the method on the most specific type
       oref = caller_stack[caller_stack.length-@param_bytes()]
       obj = runtime_state.get_obj(oref)
       m_spec = {class: obj.type, sig: {name:@name, type:@raw_descriptor}}

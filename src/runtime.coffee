@@ -12,17 +12,19 @@ class root.RuntimeState
   constructor: (class_data, @print, @read_classfile, initial_args) ->
     @classes = {}
     @classes[class_data.this_class] = class_data
-    @heap = {}
-    # add the string references to the heap, in a semi-hacky way
-    cp = class_data.constant_pool
-    str_refs = []
-    cp.each (i,c) -> str_refs.push c.value if c.type is 'String'
-    # make sure the strings get allocated after their refs
-    @high_heap_ref = if str_refs.length > 0 then _.max(str_refs) else 0
-    for sr in str_refs
-      @heap[sr] = @heap[@init_string(cp.get(sr).value)]
+    @heap = [null]
+    @heapify_strings class_data
     args = @init_array('java/lang/String',(@init_string(a) for a in initial_args))
     @meta_stack = [new root.StackFrame(['fake','frame'],[args])]
+
+  heapify_strings: (cdata) ->
+    # add the string references to the heap, in a semi-hacky way
+    cdata.string_redirect = {}
+    cp = cdata.constant_pool
+    str_refs = []
+    cp.each (i,c) -> str_refs.push c.value if c.type is 'String'
+    for sr in str_refs
+      cdata.string_redirect[sr] = @init_string(cp.get(sr).value)
 
   curr_frame: () -> _.last(@meta_stack)
 
@@ -50,8 +52,8 @@ class root.RuntimeState
     throw new Error "undefined heap reference: #{oref}" unless @heap[oref]
     @heap[oref]
   set_obj: (obj) ->
-    @heap[++@high_heap_ref] = obj
-    @high_heap_ref
+    @heap.push obj
+    @heap.length - 1
 
   heap_new: (cls) -> @push @init_object(cls)
   heap_newarray: (type,len) ->
@@ -67,6 +69,9 @@ class root.RuntimeState
     console.log "setting #{field_spec.sig.name} = #{val} on obj of type #{obj.type}"
     obj[field_spec.sig.name] = val
   heap_get: (field_spec, oref) ->
+    if field_spec.sig.type is 'java/lang/String'
+      cls = @class_lookup(field_spec.class)
+      oref = cls.string_redirect[oref]
     obj = @get_obj(oref)
     name = field_spec.sig.name
     obj[name] = @init_field(@field_lookup(field_spec)) if obj[name] is undefined
@@ -92,7 +97,6 @@ class root.RuntimeState
     @set_obj {'type':cls}
   init_array: (type,arr=[]) -> @set_obj {'type':"[#{type}", 'array':arr}
   init_string: (str) ->
-    #TODO: actually make a real string object here (as in `new String(str);`)
     c_ref = @init_array('char',arr=(str.charCodeAt(i) for i in [0...str.length]))
     @set_obj {'type':'java/lang/String', 'value':c_ref, 'count':str.length}
   init_field: (field) ->
@@ -111,6 +115,7 @@ class root.RuntimeState
       # fetch the relevant class file, make a ClassFile, put it in @classes[cls]
       console.log "loading new class: #{cls}"
       @classes[cls] = new ClassFile @read_classfile cls
+      @heapify_strings @classes[cls]
       if cls is 'java/lang/System'  # zomg hardcode
         @method_lookup({'class': cls, 'sig': {'name': 'initializeSystemClass'}}).run(this)
     throw "class #{cls} not found!" unless @classes[cls]
