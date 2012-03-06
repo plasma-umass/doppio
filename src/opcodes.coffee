@@ -368,8 +368,8 @@ root.opcodes = {
   195: new root.Opcode 'monitorexit',  { execute: (rs)-> rs.pop() }  #TODO: actually implement locks?
   196: new root.Opcode 'wide'
   197: new root.Opcode 'multianewarray', { byte_count: 3 }
-  198: new root.UnaryBranchOpcode 'ifnull', { cmp: (v) -> v < 0 }
-  199: new root.UnaryBranchOpcode 'ifnonnull', { cmp: (v) -> v >= 0 }
+  198: new root.UnaryBranchOpcode 'ifnull', { cmp: (v) -> v <= 0 }
+  199: new root.UnaryBranchOpcode 'ifnonnull', { cmp: (v) -> v > 0 }
   200: new root.BranchOpcode 'goto_w', { byte_count: 4 }
   201: new root.Opcode 'jsr_w'
 }
