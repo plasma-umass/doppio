@@ -104,6 +104,8 @@ class root.RuntimeState
       # fetch the relevant class file, make a ClassFile, put it in @classes[cls]
       console.log "loading new class: #{cls}"
       @classes[cls] = new ClassFile @read_classfile cls
+      if cls is 'java/lang/System'  # zomg hardcode
+        @method_lookup({'class': cls, 'sig': {'name': 'initializeSystemClass'}}).run(this)
     throw "class #{cls} not found!" unless @classes[cls]
     @classes[cls]
   method_lookup: (method_spec) ->
