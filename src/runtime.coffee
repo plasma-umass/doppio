@@ -133,3 +133,34 @@ class root.RuntimeState
       c = @class_lookup(c.super_class)
     throw "no such field found: #{field_spec.sig.name}" unless field
     field
+
+  # casting and such
+  is_subclass: (class1, class2) ->
+    return true if class1['this_class'] is class2['this_class']
+    return false unless class1['super_class']  # it's java/lang/Object, can't go further
+    return @is_subclass(@class_lookup(class1.super_class),class2)
+  has_interface: (cls, iface) ->
+    for i in cls.interfaces
+      iface_name = constant_pool.get(i).deref()
+      return true if iface_name is iface['this_class']
+    return false
+  check_cast: (type1, type2) ->
+    if type1[0] is '['  # array type
+      if type2[0] is '['
+        t1 = type1.slice(1)
+        t2 = type2.slice(1)
+        return true if t2 is t1  # technically only for primitives, but this works
+        return check_cast(t1,t2)
+      c2 = @class_lookup(type2)
+      return type2 is 'java/lang/Object' unless c2.access_flags.interface
+      return type2 in ['java/lang/Cloneable','java/io/Serializable']
+    # not an array
+    return false if type2[0] is '['
+    c1 = @class_lookup(type1)
+    c2 = @class_lookup(type2)
+    unless c1.access_flags.interface
+      return @is_subclass(c1,c2) unless c2.access_flags.interface
+      return @has_interface(c1,c2)
+    # c1 is an interface
+    return type2 is 'java/lang/Object' unless c2.access_flags.interface
+    return @is_subclass(c1,c2)  # technically they're interfaces, but we don't care

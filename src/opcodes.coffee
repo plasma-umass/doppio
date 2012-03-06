@@ -228,7 +228,7 @@ root.opcodes = {
   55: new root.StoreVarOpcode 'lstore', { execute: (rs) -> rs.put_cl2(@var_num,rs.pop2()) }
   56: new root.StoreVarOpcode 'fstore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
   57: new root.StoreVarOpcode 'dstore', { execute: (rs) -> rs.put_cl2(@var_num,rs.pop2()) }
-  58: new root.StoreVarOpcode 'astore'
+  58: new root.StoreVarOpcode 'astore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
   59: new root.StoreOpcode 'istore_0'
   60: new root.StoreOpcode 'istore_1'
   61: new root.StoreOpcode 'istore_2'
@@ -251,16 +251,16 @@ root.opcodes = {
   78: new root.StoreOpcode 'astore_3'
   79: new root.Opcode 'iastore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
   80: new root.Opcode 'lastore'
-  81: new root.Opcode 'fastore'
+  81: new root.Opcode 'fastore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
   82: new root.Opcode 'dastore'
-  83: new root.Opcode 'aastore'
-  84: new root.Opcode 'bastore'
-  85: new root.Opcode 'castore'
-  86: new root.Opcode 'sastore'
+  83: new root.Opcode 'aastore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
+  84: new root.Opcode 'bastore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
+  85: new root.Opcode 'castore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
+  86: new root.Opcode 'sastore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
   87: new root.Opcode 'pop', { execute: (rs) -> rs.pop() }
   88: new root.Opcode 'pop2', { execute: (rs) -> rs.pop2() }
   089: new root.Opcode 'dup', { execute: (rs) -> v=rs.pop(); rs.push(v,v) }
-  090: new root.Opcode 'dup_x1'
+  090: new root.Opcode 'dup_x1', { execute: (rs) -> v1=rs.pop(); v2=rs.pop(); rs.push(v1,v2,v1) }
   091: new root.Opcode 'dup_x2'
   092: new root.Opcode 'dup2', {execute: (rs) -> v2=rs.pop(); v1=rs.pop(); rs.push(v1,v2,v1,v2)}
   093: new root.Opcode 'dup2_x1'
@@ -292,11 +292,11 @@ root.opcodes = {
   117: new root.Opcode 'lneg', { execute: (rs) -> rs.push -rs.pop2(), null }
   118: new root.Opcode 'fneg', { execute: (rs) -> rs.push -rs.pop() }
   119: new root.Opcode 'dneg', { execute: (rs) -> rs.push -rs.pop2(), null }
-  120: new root.Opcode 'ishl'
+  120: new root.Opcode 'ishl', { execute: (rs) -> s=rs.pop()&0x1F; rs.push(rs.pop()<<s) }
   121: new root.Opcode 'lshl'
-  122: new root.Opcode 'ishr'
+  122: new root.Opcode 'ishr', { execute: (rs) -> s=rs.pop()&0x1F; rs.push(rs.pop()>>>s) }
   123: new root.Opcode 'lshr'
-  124: new root.Opcode 'iushr'
+  124: new root.Opcode 'iushr', { execute: (rs) -> s=rs.pop()&0x1F; rs.push(rs.pop()>>s) }
   125: new root.Opcode 'lushr'
   126: new root.Opcode 'iand', { execute: (rs) -> rs.push(rs.pop()&rs.pop()) }
   127: new root.Opcode 'land', { execute: (rs) -> rs.push(rs.pop2()&rs.pop2(), null) }
@@ -337,8 +337,8 @@ root.opcodes = {
   162: new root.BinaryBranchOpcode 'if_icmpge', { cmp: (v1, v2) -> v1 >= v2 }
   163: new root.BinaryBranchOpcode 'if_icmpgt', { cmp: (v1, v2) -> v1 > v2 }
   164: new root.BinaryBranchOpcode 'if_icmple', { cmp: (v1, v2) -> v1 <= v2 }
-  165: new root.BranchOpcode 'if_acmpeq'
-  166: new root.BranchOpcode 'if_acmpne'
+  165: new root.BinaryBranchOpcode 'if_acmpeq', { cmp: (v1, v2) -> v1 == v2 }
+  166: new root.BinaryBranchOpcode 'if_acmpne', { cmp: (v1, v2) -> v1 != v2 }
   167: new root.BranchOpcode 'goto', { execute: (rs) -> rs.inc_pc(@offset) }
   168: new root.Opcode 'jsr'
   169: new root.Opcode 'ret', { byte_count: 1 }
@@ -363,7 +363,7 @@ root.opcodes = {
   189: new root.ClassOpcode 'anewarray', { execute: (rs) -> rs.heap_newarray @class, rs.pop() }
   190: new root.Opcode 'arraylength', { execute: (rs) -> rs.push rs.get_obj(rs.pop()).array.length }
   191: new root.Opcode 'athrow'
-  192: new root.ClassOpcode 'checkcast'
+  192: new root.ClassOpcode 'checkcast', { execute: (rs) -> o=rs.pop(); rs.push o if rs.check_cast(rs.get_obj(o).type,@class) }
   193: new root.ClassOpcode 'instanceof'
   194: new root.Opcode 'monitorenter', { execute: (rs)-> rs.pop() }  #TODO: actually implement locks?
   195: new root.Opcode 'monitorexit',  { execute: (rs)-> rs.pop() }  #TODO: actually implement locks?
