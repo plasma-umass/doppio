@@ -363,8 +363,8 @@ root.opcodes = {
   189: new root.ClassOpcode 'anewarray', { execute: (rs) -> rs.heap_newarray @class, rs.pop() }
   190: new root.Opcode 'arraylength', { execute: (rs) -> rs.push rs.get_obj(rs.pop()).array.length }
   191: new root.Opcode 'athrow'
-  192: new root.ClassOpcode 'checkcast', { execute: (rs) -> o=rs.pop(); rs.push o if rs.check_cast(rs.get_obj(o).type,@class) }
-  193: new root.ClassOpcode 'instanceof', { execute: (rs) -> o=rs.pop(); rs.push if o>0 then rs.check_cast(rs.get_obj(o).type,@class)+0 else 0 }
+  192: new root.ClassOpcode 'checkcast', { execute: (rs) -> o=rs.pop(); rs.push o if rs.check_cast(o,@class) }
+  193: new root.ClassOpcode 'instanceof', { execute: (rs) -> o=rs.pop(); rs.push if o>0 then rs.check_cast(o,@class)+0 else 0 }
   194: new root.Opcode 'monitorenter', { execute: (rs)-> rs.pop() }  #TODO: actually implement locks?
   195: new root.Opcode 'monitorexit',  { execute: (rs)-> rs.pop() }  #TODO: actually implement locks?
   196: new root.Opcode 'wide', { take_args: -> throw new Error "wide instr NYI" }

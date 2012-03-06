@@ -67,6 +67,7 @@ native_methods = {
       dest_array[j++] = src_array[i]
     )
   'java/lang/StrictMath::pow(DD)D': (rs) -> rs.push Math.pow(rs.cl(0),rs.cl(2)), null
+  'java/lang/Object::registerNatives()V': (rs) -> # NOP
   'java/lang/System::initProperties(Ljava/util/Properties;)Ljava/util/Properties;': ((rs) ->
     p_ref = rs.curr_frame().locals[0]
     props = rs.get_obj(p_ref)
