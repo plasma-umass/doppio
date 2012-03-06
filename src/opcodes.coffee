@@ -125,24 +125,10 @@ class root.StoreVarOpcode extends root.StoreOpcode
   take_args: (code_array) ->
     @var_num = code_array.get_uint(1)
 
-class root.LookupSwitchOpcode extends root.BranchOpcode
+class root.SwitchOpcode extends root.BranchOpcode
   constructor: (name, params) ->
     super name, params
     @byte_count = null
-
-  take_args: (code_array, constant_pool) ->
-    # account for padding that ensures alignment
-    padding_size = (4 - code_array.index % 4) % 4
-    code_array.index += padding_size
-    @_default = code_array.get_int(4)
-    @npairs = code_array.get_int(4)
-    @offsets ={}
-    for [0...@npairs]
-      match = code_array.get_int(4)
-      offset = code_array.get_int(4)
-      @offsets[match] = offset
-    console.error @offsets
-    @byte_count = padding_size + 8 * (@npairs + 1)
 
   execute: (rs) ->
     key = rs.pop()
@@ -150,6 +136,35 @@ class root.LookupSwitchOpcode extends root.BranchOpcode
       rs.inc_pc @offsets[key]
     else
       rs.inc_pc @_default
+
+class root.LookupSwitchOpcode extends root.SwitchOpcode
+  take_args: (code_array, constant_pool) ->
+    # account for padding that ensures alignment
+    padding_size = (4 - code_array.index % 4) % 4
+    code_array.index += padding_size
+    @_default = code_array.get_int(4)
+    @npairs = code_array.get_int(4)
+    @offsets = {}
+    for [0...@npairs]
+      match = code_array.get_int(4)
+      offset = code_array.get_int(4)
+      @offsets[match] = offset
+    @byte_count = padding_size + 8 * (@npairs + 1)
+
+class root.TableSwitchOpcode extends root.SwitchOpcode
+  take_args: (code_array, constant_pool) ->
+    # account for padding that ensures alignment
+    padding_size = (4 - code_array.index % 4) % 4
+    code_array.index += padding_size
+    @_default = code_array.get_int(4)
+    @low = code_array.get_int(4)
+    @high = code_array.get_int(4)
+    @offsets = {}
+    total_offsets = @high - @low + 1
+    for i in [0...total_offsets]
+      offset = code_array.get_int(4)
+      @offsets[@low + i] = offset
+    @byte_count = padding_size + 12 + 4 * total_offsets
 
 # these objects are used as prototypes for the parsed instructions in the
 # classfile
@@ -326,7 +341,7 @@ root.opcodes = {
   167: new root.BranchOpcode 'goto', { execute: (rs) -> rs.inc_pc(@offset) }
   168: new root.Opcode 'jsr'
   169: new root.Opcode 'ret', { byte_count: 1 }
-  170: new root.Opcode 'tableswitch'
+  170: new root.TableSwitchOpcode 'tableswitch'
   171: new root.LookupSwitchOpcode 'lookupswitch'
   172: new root.Opcode 'ireturn', { execute: (rs) -> }  # explicitly make these NOPs
   173: new root.Opcode 'lreturn', { execute: (rs) -> }

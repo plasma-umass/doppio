@@ -85,11 +85,11 @@ opcodes ?= require './opcodes'
             "\t##{oc.class_ref};#{format_extra_info pool.get oc.class_ref}"
           else if oc instanceof opcodes.FieldOpcode
             "\t##{oc.field_spec_ref};#{format_extra_info pool.get oc.field_spec_ref}"
-          else if oc instanceof opcodes.LookupSwitchOpcode
-            # this must come before BranchOpcode because LookupSwitchOpcode is
-            # a subclass of BranchOpcode
+          else if oc instanceof opcodes.SwitchOpcode
+            # this must come before BranchOpcode because SwitchOpcode is a
+            # subclass of BranchOpcode
             "{\n" +
-              ("\t\t#{match}: #{idx + offset};\n" for match, offset of oc.offsets) +
+              ("\t\t#{match}: #{idx + offset};\n" for match, offset of oc.offsets).join('') +
             "\t\tdefault: #{idx + oc._default} }"
           else if oc instanceof opcodes.BranchOpcode then "\t#{idx + oc.offset}"
           else if oc instanceof opcodes.LoadVarOpcode then "\t#{oc.var_num}"
