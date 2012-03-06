@@ -359,7 +359,7 @@ root.opcodes = {
   185: new root.InvokeOpcode 'invokeinterface'
   187: new root.ClassOpcode 'new', { execute: (rs) -> rs.heap_new @class }
   188: new root.Opcode 'newarray', { byte_count: 1, execute: (rs) -> rs.heap_newarray @args[0], rs.pop() }
-  189: new root.ClassOpcode 'anewarray'
+  189: new root.ClassOpcode 'anewarray', { execute: (rs) -> rs.heap_newarray @class, rs.pop() }
   190: new root.Opcode 'arraylength', { execute: (rs) -> rs.push rs.get_obj(rs.pop()).array.length }
   191: new root.Opcode 'athrow'
   192: new root.ClassOpcode 'checkcast'

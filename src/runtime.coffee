@@ -54,11 +54,13 @@ class root.RuntimeState
     @high_heap_ref
 
   heap_new: (cls) -> @push @init_object(cls)
-  heap_newarray: (type_code,len) -> 
-    arr_types = {4:'boolean',5:'char',6:'float',7:'double',8:'byte',9:'short',10:'int',11:'long'}
-    throw "invalid array typecode: #{type_code}" unless arr_types[type_code]
+  heap_newarray: (type,len) ->
+    if typeof type is 'number'
+      arr_types = {4:'boolean',5:'char',6:'float',7:'double',8:'byte',9:'short',10:'int',11:'long'}
+      throw "invalid array typecode: #{type}" unless arr_types[type]
+      type = arr_types[type]
     arr = (0 for _ in [0...len])
-    @push @init_array(arr_types[type_code],arr)
+    @push @init_array(type,arr)
   heap_put: (field_spec) ->
     val = if field_spec.sig.type in ['J','D'] then @pop2() else @pop()
     obj = @heap[@pop()]
@@ -83,7 +85,7 @@ class root.RuntimeState
   init_object: (cls) ->
     @class_lookup cls
     @set_obj {'type':cls}
-  init_array: (type,arr=[]) -> @set_obj {'type':"[#{type}]", 'array':arr}
+  init_array: (type,arr=[]) -> @set_obj {'type':"[#{type}", 'array':arr}
   init_string: (str) ->
     #TODO: actually make a real string object here (as in `new String(str);`)
     c_ref = @init_array('char',arr=(str.charCodeAt(i) for i in [0...str.length]))
