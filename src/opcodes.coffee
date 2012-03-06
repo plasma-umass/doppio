@@ -4,7 +4,7 @@ root = exports ? this.opcodes = {}
 
 class root.Opcode
   constructor: (@name, params={}) ->
-    @execute = params.execute ? @_execute
+    @execute ?= params.execute ? @_execute
     @byte_count = params.byte_count ? 0
 
   take_args: (code_array) ->
@@ -124,6 +124,32 @@ class root.StoreVarOpcode extends root.StoreOpcode
     @byte_count = 1
   take_args: (code_array) ->
     @var_num = code_array.get_uint(1)
+
+class root.LookupSwitchOpcode extends root.BranchOpcode
+  constructor: (name, params) ->
+    super name, params
+    @byte_count = null
+
+  take_args: (code_array, constant_pool) ->
+    # account for padding that ensures alignment
+    padding_size = (4 - code_array.index % 4) % 4
+    code_array.index += padding_size
+    @_default = code_array.get_int(4)
+    @npairs = code_array.get_int(4)
+    @offsets ={}
+    for [0...@npairs]
+      match = code_array.get_int(4)
+      offset = code_array.get_int(4)
+      @offsets[match] = offset
+    console.error @offsets
+    @byte_count = padding_size + 8 * (@npairs + 1)
+
+  execute: (rs) ->
+    key = rs.pop()
+    if @offsets[key]?
+      rs.inc_pc @offsets[key]
+    else
+      rs.inc_pc @_default
 
 # these objects are used as prototypes for the parsed instructions in the
 # classfile
@@ -301,7 +327,7 @@ root.opcodes = {
   168: new root.Opcode 'jsr'
   169: new root.Opcode 'ret', { byte_count: 1 }
   170: new root.Opcode 'tableswitch'
-  171: new root.Opcode 'lookupswitch'
+  171: new root.LookupSwitchOpcode 'lookupswitch'
   172: new root.Opcode 'ireturn', { execute: (rs) -> }  # explicitly make these NOPs
   173: new root.Opcode 'lreturn', { execute: (rs) -> }
   174: new root.Opcode 'freturn', { execute: (rs) -> }
