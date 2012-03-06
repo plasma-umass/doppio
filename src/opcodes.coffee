@@ -319,11 +319,11 @@ root.opcodes = {
   145: new root.Opcode 'i2b'
   146: new root.Opcode 'i2c'
   147: new root.Opcode 'i2s'
-  148: new root.Opcode 'lcmp', { execute: (rs) -> rs.push util.cmp(rs.pop2(),rs.pop2()) }
-  149: new root.Opcode 'fcmpl', { execute: (rs) -> rs.push util.cmp(rs.pop(), rs.pop()) ? -1 }
-  150: new root.Opcode 'fcmpg', { execute: (rs) -> rs.push util.cmp(rs.pop(), rs.pop()) ? 1 }
-  151: new root.Opcode 'dcmpl', { execute: (rs) -> rs.push util.cmp(rs.pop2(), rs.pop2()) ? -1 }
-  152: new root.Opcode 'dcmpg', { execute: (rs) -> rs.push util.cmp(rs.pop2(), rs.pop2()) ? 1 }
+  148: new root.Opcode 'lcmp', { execute: (rs) -> v2=rs.pop2(); rs.push util.cmp(rs.pop2(),v2), null }
+  149: new root.Opcode 'fcmpl', { execute: (rs) -> v2=rs.pop(); rs.push util.cmp(rs.pop(),v2) ? -1 }
+  150: new root.Opcode 'fcmpg', { execute: (rs) -> v2=rs.pop(); rs.push util.cmp(rs.pop(),v2) ? 1 }
+  151: new root.Opcode 'dcmpl', { execute: (rs) -> v2=rs.pop2(); rs.push util.cmp(rs.pop2(),v2) ? -1, null }
+  152: new root.Opcode 'dcmpg', { execute: (rs) -> v2=rs.pop2(); rs.push util.cmp(rs.pop2(),v2) ? 1, null }
   153: new root.UnaryBranchOpcode 'ifeq', { cmp: (v) -> v == 0 }
   154: new root.UnaryBranchOpcode 'ifne', { cmp: (v) -> v != 0 }
   155: new root.UnaryBranchOpcode 'iflt', { cmp: (v) -> v < 0 }
