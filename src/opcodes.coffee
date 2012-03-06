@@ -207,7 +207,7 @@ root.opcodes = {
   76: new root.StoreOpcode 'astore_1'
   77: new root.StoreOpcode 'astore_2'
   78: new root.StoreOpcode 'astore_3'
-  79: new root.Opcode 'iastore'
+  79: new root.Opcode 'iastore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
   80: new root.Opcode 'lastore'
   81: new root.Opcode 'fastore'
   82: new root.Opcode 'dastore'
