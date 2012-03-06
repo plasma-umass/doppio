@@ -47,7 +47,7 @@ class root.RuntimeState
 
   # heap manipulation
   get_obj: (oref) ->
-    throw "undefined heap reference: #{oref}" unless @heap[oref]
+    throw new Error "undefined heap reference: #{oref}" unless @heap[oref]
     @heap[oref]
   set_obj: (obj) ->
     @heap[++@high_heap_ref] = obj
