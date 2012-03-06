@@ -155,7 +155,7 @@ class root.RuntimeState
         t1 = type1.slice(1)
         t2 = type2.slice(1)
         return true if t2 is t1  # technically only for primitives, but this works
-        return check_cast(t1,t2)
+        return @check_cast(t1,t2)
       c2 = @class_lookup(type2)
       return type2 is 'java/lang/Object' unless c2.access_flags.interface
       return type2 in ['java/lang/Cloneable','java/io/Serializable']
