@@ -84,13 +84,13 @@ opcodes ?= require './opcodes'
 
   for m in class_file.methods
     rv += access_string m.access_flags
-    if m.name is '<init>'  # constructors are special-cased
-      rv += canonical(class_file.this_class)
-    else
-      rv += (m.return_type?.type or "") + " "
-      rv += m.name
-    rv += "(#{pp_type(p) for p in m.param_types});"
-    rv += "\n"
+    rv +=
+      # initializers are special-cased
+      if m.name is '<init>' then canonical(class_file.this_class) # class init
+      else if m.name is '<clinit>' then "{}" # interface init
+      else (m.return_type?.type or "") + " " + m.name
+    rv += "(#{pp_type(p) for p in m.param_types})" unless m.name is '<clinit>'
+    rv += ";\n"
     unless m.access_flags.native or m.access_flags.abstract
       rv += "  Code:\n"
       code = m.get_code()
