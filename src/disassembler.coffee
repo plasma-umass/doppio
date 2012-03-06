@@ -58,6 +58,25 @@ opcodes ?= require './opcodes'
     return pp_type(field_type.referent) + '[]' if field_type.ref_type is 'array'
     return pp_type field_type.referent
 
+  extra_info_printers =
+    InvokeOpcode: -> 
+      "\t##{@method_spec_ref};#{format_extra_info pool.get @method_spec_ref}"
+    ClassOpcode: ->
+      "\t##{@class_ref};#{format_extra_info pool.get @class_ref}"
+    FieldOpcode: ->
+      "\t##{@field_spec_ref};#{format_extra_info pool.get @field_spec_ref}"
+    SwitchOpcode: (idx) ->
+      "{\n" +
+        ("\t\t#{match}: #{idx + offset};\n" for match, offset of @offsets).join('') +
+      "\t\tdefault: #{idx + @_default} }"
+    BranchOpcode: (idx) -> "\t#{idx + @offset}"
+    LoadVarOpcode: -> "\t#{@var_num}"
+    StoreVarOpcode: -> "\t#{@var_num}"
+    # TODO: add comments for this constant pool ref as well
+    LoadConstantOpcode: -> "\t##{@constant_ref};"
+    PushOpcode: -> "\t#{@value}"
+    IIncOpcode: -> "\t#{@index}, #{@const}"
+
   rv += "{\n"
 
   for f in class_file.fields
@@ -78,27 +97,7 @@ opcodes ?= require './opcodes'
       rv += "   Stack=#{code.max_stack}, Locals=#{code.max_locals}, Args_size=#{m.num_args}\n"
       code.each_opcode((idx, oc) ->
         rv += "   #{idx}:\t#{oc.name}"
-        rv += 
-          if oc instanceof opcodes.InvokeOpcode
-            "\t##{oc.method_spec_ref};#{format_extra_info pool.get oc.method_spec_ref}"
-          else if oc instanceof opcodes.ClassOpcode
-            "\t##{oc.class_ref};#{format_extra_info pool.get oc.class_ref}"
-          else if oc instanceof opcodes.FieldOpcode
-            "\t##{oc.field_spec_ref};#{format_extra_info pool.get oc.field_spec_ref}"
-          else if oc instanceof opcodes.SwitchOpcode
-            # this must come before BranchOpcode because SwitchOpcode is a
-            # subclass of BranchOpcode
-            "{\n" +
-              ("\t\t#{match}: #{idx + offset};\n" for match, offset of oc.offsets).join('') +
-            "\t\tdefault: #{idx + oc._default} }"
-          else if oc instanceof opcodes.BranchOpcode then "\t#{idx + oc.offset}"
-          else if oc instanceof opcodes.LoadVarOpcode then "\t#{oc.var_num}"
-          else if oc instanceof opcodes.StoreVarOpcode then "\t#{oc.var_num}"
-          # TODO: add comments for this constant pool ref as well
-          else if oc instanceof opcodes.LoadConstantOpcode then "\t##{oc.constant_ref};"
-          else if oc instanceof opcodes.PushOpcode then "\t#{oc.value}"
-          else if oc instanceof opcodes.IIncOpcode then "\t#{oc.index}, #{oc.const}"
-          else ""
+        rv += (util.lookup_handler extra_info_printers, oc, idx) || ""
         rv += "\n"
       )
       for attr in code.attrs
