@@ -5,7 +5,7 @@ ClassFile ?= require './class_file'
 root = exports ? this.runtime = {}
 
 class root.StackFrame
-  constructor: (@locals,@stack) ->
+  constructor: (@class_name,@locals,@stack) ->
     @pc = 0
 
 class root.RuntimeState
@@ -15,10 +15,10 @@ class root.RuntimeState
     @heap = [null]
     args = @init_array('java/lang/String',(@init_string(a) for a in initial_args))
     @heapify_strings class_data
-    @meta_stack = [new root.StackFrame(['fake','frame'],[args])]
+    @meta_stack = [new root.StackFrame('fake frame',[],[args])]
     @method_lookup({'class': class_data.this_class, 'sig': {'name': '<clinit>'}}).run(this)
 
-  heapify_strings: (cdata) ->
+  heapify_strings: (cdata) ->  #TODO: do this on-demand in string_redirect
     # add the string references to the heap, in a semi-hacky way
     cdata.string_redirect = {}
     cp = cdata.constant_pool
@@ -27,6 +27,13 @@ class root.RuntimeState
     for sr in str_refs
       cdata.string_redirect[sr] = @init_string(cp.get(sr).value)
       console.log "heapifying #{sr} -> #{cdata.string_redirect[sr]} : '#{cp.get(sr).value}'"
+
+  string_redirect: (oref,cls) ->
+    cdata = @class_lookup(cls)
+    if cdata.string_redirect[oref]
+      console.log "redirecting #{oref} -> #{cdata.string_redirect[oref]}"
+      oref = cdata.string_redirect[oref]
+    return oref
 
   curr_frame: () -> _.last(@meta_stack)
 
@@ -71,10 +78,6 @@ class root.RuntimeState
     console.log "setting #{field_spec.sig.name} = #{val} on obj of type #{obj.type}"
     obj[field_spec.sig.name] = val
   heap_get: (field_spec, oref) ->
-    if field_spec.sig.type is 'Ljava/lang/String;'
-      cls = @class_lookup(field_spec.class)
-      console.log "redirecting #{oref} -> #{cls.string_redirect[oref]}"
-      oref = cls.string_redirect[oref]
     obj = @get_obj(oref)
     name = field_spec.sig.name
     obj[name] = @init_field(@field_lookup(field_spec)) if obj[name] is undefined
@@ -85,10 +88,6 @@ class root.RuntimeState
   # static stuff
   static_get: (field_spec) ->
     val = @field_lookup(field_spec).static_value
-    if field_spec.sig.type is 'Ljava/lang/String;'
-      cls = @class_lookup(field_spec.class)
-      console.log "redirecting #{val} -> #{cls.string_redirect[val]}"
-      val = cls.string_redirect[val]
     console.log "getting #{field_spec.sig.name} from class #{field_spec.class}: #{val}"
     @push val
   static_put: (field_spec) ->

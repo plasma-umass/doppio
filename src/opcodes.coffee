@@ -44,12 +44,19 @@ class root.InvokeOpcode extends root.Opcode
 
 class root.LoadConstantOpcode extends root.Opcode
   take_args: (code_array, constant_pool) ->
+    @cls = constant_pool.cls
+    throw new Error "asdflajsdhfa" unless @cls
     @constant_ref = code_array.get_uint @byte_count
     @constant = constant_pool.get @constant_ref
   
-  _execute: (rs) -> 
-    rs.push @constant.value
-    rs.push undefined if @byte_count is 2
+  _execute: (rs) ->
+    val = @constant.value
+    val = rs.string_redirect(val, @cls) if @constant.type is 'String'
+    if @constant.type is 'class'
+      jvm_str = rs.get_obj(rs.string_redirect(val,@cls))
+      carr = rs.get_obj(jvm_str.value).array
+      val = rs.set_obj({'type':'java/lang/Class','name':(String.fromCharCode(c) for c in carr).join('')})
+    rs.push val
 
 class root.BranchOpcode extends root.Opcode
   constructor: (name, params={}) ->
@@ -320,11 +327,11 @@ root.opcodes = {
   145: new root.Opcode 'i2b', { execute: (rs) -> }  #TODO: truncate to 8 bits
   146: new root.Opcode 'i2c', { execute: (rs) -> }  #TODO: truncate to 8 bits
   147: new root.Opcode 'i2s', { execute: (rs) -> }  #TODO: truncate to 16 bits
-  148: new root.Opcode 'lcmp', { execute: (rs) -> v2=rs.pop2(); rs.push util.cmp(rs.pop2(),v2), null }
+  148: new root.Opcode 'lcmp', { execute: (rs) -> v2=rs.pop2(); rs.push util.cmp(rs.pop2(),v2) }
   149: new root.Opcode 'fcmpl', { execute: (rs) -> v2=rs.pop(); rs.push util.cmp(rs.pop(),v2) ? -1 }
   150: new root.Opcode 'fcmpg', { execute: (rs) -> v2=rs.pop(); rs.push util.cmp(rs.pop(),v2) ? 1 }
-  151: new root.Opcode 'dcmpl', { execute: (rs) -> v2=rs.pop2(); rs.push util.cmp(rs.pop2(),v2) ? -1, null }
-  152: new root.Opcode 'dcmpg', { execute: (rs) -> v2=rs.pop2(); rs.push util.cmp(rs.pop2(),v2) ? 1, null }
+  151: new root.Opcode 'dcmpl', { execute: (rs) -> v2=rs.pop2(); rs.push util.cmp(rs.pop2(),v2) ? -1 }
+  152: new root.Opcode 'dcmpg', { execute: (rs) -> v2=rs.pop2(); rs.push util.cmp(rs.pop2(),v2) ? 1 }
   153: new root.UnaryBranchOpcode 'ifeq', { cmp: (v) -> v == 0 }
   154: new root.UnaryBranchOpcode 'ifne', { cmp: (v) -> v != 0 }
   155: new root.UnaryBranchOpcode 'iflt', { cmp: (v) -> v < 0 }
@@ -363,7 +370,7 @@ root.opcodes = {
   189: new root.ClassOpcode 'anewarray', { execute: (rs) -> rs.heap_newarray @class, rs.pop() }
   190: new root.Opcode 'arraylength', { execute: (rs) -> rs.push rs.get_obj(rs.pop()).array.length }
   191: new root.Opcode 'athrow'
-  192: new root.ClassOpcode 'checkcast', { execute: (rs) -> o=rs.pop(); rs.push o if rs.check_cast(o,@class) }
+  192: new root.ClassOpcode 'checkcast', { execute: (rs) -> o=rs.pop(); rs.push o if o<=0 or rs.check_cast(o,@class) }
   193: new root.ClassOpcode 'instanceof', { execute: (rs) -> o=rs.pop(); rs.push if o>0 then rs.check_cast(o,@class)+0 else 0 }
   194: new root.Opcode 'monitorenter', { execute: (rs)-> rs.pop() }  #TODO: actually implement locks?
   195: new root.Opcode 'monitorexit',  { execute: (rs)-> rs.pop() }  #TODO: actually implement locks?

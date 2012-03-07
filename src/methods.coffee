@@ -66,8 +66,28 @@ native_methods = {
     for i in [src_pos...src_pos+length]
       dest_array[j++] = src_array[i]
     )
+  'java/io/FileSystem::getFileSystem()Ljava/io/FileSystem;': (rs) -> rs.push 0
   'java/lang/StrictMath::pow(DD)D': (rs) -> rs.push Math.pow(rs.cl(0),rs.cl(2)), null
   'java/lang/Object::registerNatives()V': (rs) -> # NOP
+  'java/lang/System::registerNatives()V': (rs) -> # NOP
+  'java/lang/Class::registerNatives()V': (rs) -> # NOP
+  'sun/misc/Unsafe::registerNatives()V': (rs) -> # NOP
+  'sun/misc/VM::initialize()V': (rs) ->  # NOP???
+  'sun/reflect/Reflection::getCallerClass(I)Ljava/lang/Class;': ((rs) ->
+    frames_to_skip = rs.curr_frame().locals[0]
+    #TODO: disregard frames assoc. with java.lang.reflect.Method.invoke() and its implementation
+    cls = rs.meta_stack[rs.meta_stack.length-1-frames_to_skip].class_name
+    rs.push rs.set_obj({'type':'java/lang/Class', 'name':cls})
+    )
+  'java/lang/System::currentTimeMillis()J': (rs) -> rs.push (new Date).getTime(), null
+  'java/lang/Class::getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;': ((rs) ->
+    str = rs.get_obj(rs.curr_frame().locals[0])
+    carr = rs.get_obj(str.value).array
+    cobj = {'type':'java/lang/Class', 'name': (String.fromCharCode(c) for c in carr).join('') }
+    rs.push rs.set_obj(cobj)
+    )
+  'java/lang/Class::getClassLoader0()Ljava/lang/ClassLoader;': (rs) -> rs.push 0  # we don't need no stinkin classloaders
+  'java/lang/Class::desiredAssertionStatus0(Ljava/lang/Class;)Z': (rs) -> rs.push 0 # we don't need no stinkin asserts
   'java/lang/System::initProperties(Ljava/util/Properties;)Ljava/util/Properties;': ((rs) ->
     p_ref = rs.curr_frame().locals[0]
     props = rs.get_obj(p_ref)
@@ -110,7 +130,7 @@ class root.Method extends AbstractMethodField
   
   run: (runtime_state,virtual=false) ->
     caller_stack = runtime_state.curr_frame().stack
-    if virtual and @class_name isnt 'java/lang/String'  # avoid redirect shenanigans, ok because String is final
+    if virtual # and @class_name isnt 'java/lang/String'  # avoid redirect shenanigans, ok because String is final
       # dirty hack to bounce up the inheritance tree, to make sure we call the method on the most specific type
       oref = caller_stack[caller_stack.length-@param_bytes()]
       obj = runtime_state.get_obj(oref)
@@ -120,7 +140,7 @@ class root.Method extends AbstractMethodField
       return m.run(runtime_state)
     sig = "#{@class_name}::#{@name}#{@raw_descriptor}"
     params = @take_params caller_stack
-    runtime_state.meta_stack.push(new runtime.StackFrame(params,[]))
+    runtime_state.meta_stack.push(new runtime.StackFrame(@class_name,params,[]))
     padding = (' ' for _ in [2...runtime_state.meta_stack.length]).join('')
     console.log "#{padding}entering method #{sig}"
     if @access_flags.native

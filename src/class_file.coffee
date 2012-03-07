@@ -20,6 +20,7 @@ class @ClassFile
     # bitmask for {public,final,super,interface,abstract} class modifier
     @access_flags = util.parse_flags read_u2()
     @this_class  = @constant_pool.get(read_u2()).deref()
+    @constant_pool.cls = @this_class  #hax
     # super reference is 0 when there's no super (basically just java.lang.Object)
     super_ref = read_u2()
     @super_class = @constant_pool.get(super_ref).deref() unless super_ref is 0
