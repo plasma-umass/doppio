@@ -13,6 +13,7 @@ class root.RuntimeState
     @classes = {}
     @classes[class_data.this_class] = class_data
     @heap = [null]
+    @string_pool = {}  # for interned strings and string literals
     args = @init_array('java/lang/String',(@init_string(a) for a in initial_args))
     @meta_stack = [new root.StackFrame('fake frame',[],[args])]
     @method_lookup({'class': class_data.this_class, 'sig': {'name': '<clinit>'}}).run(this)
@@ -22,9 +23,9 @@ class root.RuntimeState
     unless cdata.string_redirect[oref]
       cstr = cdata.constant_pool.get(oref)
       throw new Error "can't redirect const string at #{oref}" unless cstr and cstr.type is 'Asciz'
-      cdata.string_redirect[oref] = @init_string(cstr.value)
+      cdata.string_redirect[oref] = @init_string(cstr.value,true)
       console.log "heapifying #{oref} -> #{cdata.string_redirect[oref]} : '#{cstr.value}'"
-    console.log "redirecting #{oref} -> #{cdata.string_redirect[oref]}"
+    #console.log "redirecting #{oref} -> #{cdata.string_redirect[oref]}"
     return cdata.string_redirect[oref]
 
   curr_frame: () -> _.last(@meta_stack)
@@ -93,9 +94,12 @@ class root.RuntimeState
     @class_lookup cls
     @set_obj {'type':cls}
   init_array: (type,arr=[]) -> @set_obj {'type':"[#{type}", 'array':arr}
-  init_string: (str) ->
+  init_string: (str,intern=false) ->
+    return @string_pool[str] if intern and @string_pool[str]
     c_ref = @init_array('char',arr=(str.charCodeAt(i) for i in [0...str.length]))
-    @set_obj {'type':'java/lang/String', 'value':c_ref, 'count':str.length}
+    s_ref = @set_obj {'type':'java/lang/String', 'value':c_ref, 'count':str.length}
+    @string_pool[str] = s_ref if intern
+    return s_ref
   init_field: (field) ->
     if field.type.type is 'reference' and field.type.ref_type is 'class'
       @init_object field.type.referent.class_name
@@ -148,13 +152,12 @@ class root.RuntimeState
       return true if iface_name is iface['this_class']
     return false
   check_cast: (oref, classname) ->
-    #TODO: fix?
     return @_check_cast(@get_obj(oref).type,classname)
   _check_cast: (type1, type2) ->
     if type1[0] is '['  # array type
       if type2[0] is '['
-        t1 = type1.slice(1)
-        t2 = type2.slice(1)
+        t1 = util.unarray(type1)
+        t2 = util.unarray(type2)
         return true if t2 is t1  # technically only for primitives, but this works
         return @_check_cast(t1,t2)
       c2 = @class_lookup(type2)

@@ -39,7 +39,9 @@ class root.InvokeOpcode extends root.Opcode
   take_args: (code_array, constant_pool) ->
     @method_spec_ref = code_array.get_uint(2)
     # invokeinterface has two redundant bytes
-    code_array.index += 2 if @name == 'invokeinterface'
+    if @name == 'invokeinterface'
+      code_array.index += 2
+      @byte_count += 2
     @method_spec = constant_pool.get(@method_spec_ref).deref()
 
 class root.LoadConstantOpcode extends root.Opcode
@@ -376,10 +378,10 @@ root.opcodes = {
   179: new root.FieldOpcode 'putstatic', {execute: (rs)-> rs.static_put @field_spec }
   180: new root.FieldOpcode 'getfield', {execute: (rs)-> rs.heap_get @field_spec, rs.pop() }
   181: new root.FieldOpcode 'putfield', {execute: (rs)-> rs.heap_put @field_spec }
-  182: new root.InvokeOpcode 'invokevirtual',{ execute: (rs)-> rs.method_lookup(@method_spec).run(rs,true)}
-  183: new root.InvokeOpcode 'invokespecial',{ execute: (rs)-> rs.method_lookup(@method_spec).run(rs)}
-  184: new root.InvokeOpcode 'invokestatic', { execute: (rs)-> rs.method_lookup(@method_spec).run(rs)}
-  185: new root.InvokeOpcode 'invokeinterface'
+  182: new root.InvokeOpcode 'invokevirtual',  { execute: (rs)-> rs.method_lookup(@method_spec).run(rs,true)}
+  183: new root.InvokeOpcode 'invokespecial',  { execute: (rs)-> rs.method_lookup(@method_spec).run(rs)}
+  184: new root.InvokeOpcode 'invokestatic',   { execute: (rs)-> rs.method_lookup(@method_spec).run(rs)}
+  185: new root.InvokeOpcode 'invokeinterface',{ execute: (rs)-> rs.method_lookup(@method_spec).run(rs,true)}
   187: new root.ClassOpcode 'new', { execute: (rs) -> rs.heap_new @class }
   188: new root.Opcode 'newarray', { byte_count: 1, execute: (rs) -> rs.heap_newarray @args[0], rs.pop() }
   189: new root.ClassOpcode 'anewarray', { execute: (rs) -> rs.heap_newarray @class, rs.pop() }
