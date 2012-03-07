@@ -57,8 +57,15 @@ class root.Field extends AbstractMethodField
 trapped_methods = {
   'java/lang/System::setJavaLangAccess()V': (rs) -> #NOP
   'java/lang/System::loadLibrary(Ljava/lang/String;)V': (rs) -> console.log "warning: library loads are NYI"
+  'java/lang/ThreadLocal::<clinit>()V': (rs) -> #NOP
+  'java/lang/ThreadLocal::<init>()V': (rs) -> #NOP
+  'java/util/concurrent/atomic/AtomicInteger::<clinit>()V': (rs) -> #NOP
+  'java/util/concurrent/atomic/AtomicInteger::compareAndSet(II)Z': (rs) -> rs.push 1  # always true
+  'sun/misc/Unsafe::getUnsafe()Lsun/misc/Unsafe;': ((rs) -> # avoid reflection
+    rs.static_get({'class':'sun/misc/Unsafe','sig':{'name':'theUnsafe'}}))
+  'java/util/concurrent/atomic/AtomicReferenceFieldUpdater::newUpdater(Ljava/lang/Class;Ljava/lang/Class;Ljava/lang/String;)Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;': (rs) -> rs.push 0 # null
 }
-
+  
 native_methods = {
   'java/lang/System::arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V': ((rs) -> 
     args = rs.curr_frame().locals
@@ -88,12 +95,13 @@ native_methods = {
     rs.push util.lshift(sign,63)+util.lshift(exp+1023,52)+sig
     )
   'java/security/AccessController::doPrivileged(Ljava/security/PrivilegedAction;)Ljava/lang/Object;': ((rs) ->
-    action = rs.get_obj(rs.curr_frame().locals[0])
-    rs.method_lookup({'class': action.type, 'sig': {'name': 'run'}}).run(rs)
+    oref = rs.curr_frame().locals[0]
+    action = rs.get_obj(oref)
+    m = rs.method_lookup({'class': action.type, 'sig': {'name': 'run','type':'()Ljava/lang/Object;'}})
+    rs.push oref unless m.access_flags.static
+    m.run(rs,m.access_flags.virtual)
     )
-  #'java/lang/Thread::currentThread()Ljava/lang/Thread;': ((rs) -> )
   'java/io/FileSystem::getFileSystem()Ljava/io/FileSystem;': (rs) -> rs.heap_new('java/io/UnixFileSystem')
-  'java/io/UnixFileSystem::initIDs()V': (rs) -> # NOP???
   'java/lang/StrictMath::pow(DD)D': (rs) -> rs.push Math.pow(rs.cl(0),rs.cl(2)), null
   'sun/misc/VM::initialize()V': (rs) ->  # NOP???
   'sun/reflect/Reflection::getCallerClass(I)Ljava/lang/Class;': ((rs) ->
@@ -120,6 +128,10 @@ native_methods = {
     #  os.name,os.arch,os.version,file.separator,path.separator,line.separator,
     #  user.name,user.home,user.dir     
     rs.push p_ref
+    )
+  'java/lang/System::setIn0(Ljava/io/InputStream;)V': ((rs) -> 
+    rs.push rs.curr_frame().locals[0] # move oref to the stack
+    rs.static_put {'class':'java/lang/System','sig':{'name':'in'}}
     )
 }
 
@@ -151,7 +163,7 @@ class root.Method extends AbstractMethodField
     n_bytes = @param_bytes()
     caller_stack.splice(caller_stack.length-n_bytes,n_bytes)
   
-  run_manually: (runtime_state, func) ->
+  run_manually: (runtime_state, func, padding='') ->
     func(runtime_state)
     s = runtime_state.meta_stack.pop().stack
     switch s.length
@@ -160,8 +172,8 @@ class root.Method extends AbstractMethodField
       when 0 then break
       else
         throw "too many items on the stack after manual method #{sig}"
-    #cf = runtime_state.curr_frame()
-    #console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}] (method end)"
+    cf = runtime_state.curr_frame()
+    console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}] (method end)"
 
   run: (runtime_state,virtual=false) ->
     caller_stack = runtime_state.curr_frame().stack
@@ -182,18 +194,18 @@ class root.Method extends AbstractMethodField
     if trapped_methods[sig]
       return @run_manually(runtime_state,trapped_methods[sig])
     if @access_flags.native
-      if sig.indexOf('::registerNatives()V',1) >= 0  # we don't need to register native methods
-        return @run_manually(runtime_state,(rs)->)
+      if sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
+        return @run_manually(runtime_state,((rs)->),padding)  # these are all just NOPs
       throw "native method NYI: #{sig}" unless native_methods[sig]
-      return @run_manually(runtime_state,native_methods[sig])
+      return @run_manually(runtime_state,native_methods[sig],padding)
     # main eval loop: execute each opcode, using the pc to iterate through
     code = @get_code().opcodes
     while true
       cf = runtime_state.curr_frame()
       pc = runtime_state.curr_pc()
       op = code[pc]
-      #console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}]"
-      #console.log "#{padding}#{@name}:#{pc} => #{op.name}"
+      console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}]"
+      console.log "#{padding}#{@name}:#{pc} => #{op.name}"
       op.execute runtime_state
       if op.name.match /.*return/
         s = runtime_state.meta_stack.pop().stack
@@ -205,4 +217,4 @@ class root.Method extends AbstractMethodField
         break
       unless op instanceof opcodes.BranchOpcode
         runtime_state.inc_pc(1 + op.byte_count)  # move to the next opcode
-    #console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}] (method end)"
+    console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}] (method end)"
