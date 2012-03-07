@@ -91,11 +91,13 @@ class root.PushOpcode extends root.Opcode
 class root.IIncOpcode extends root.Opcode
   constructor: (name, params) ->
     super name, params
-    @byte_count = 2
     
-  take_args: (code_array) ->
-    @index = code_array.get_uint 1
-    @const = code_array.get_int 1
+  take_args: (code_array, constant_pool, @wide=false) ->
+    @name += "_w" if @wide
+    arg_size = if @wide then 2 else 1
+    @byte_count = 2 * arg_size
+    @index = code_array.get_uint arg_size
+    @const = code_array.get_int arg_size
 
   _execute: (rs) -> rs.put_cl(@index,rs.cl(@index)+@const)
 
@@ -110,10 +112,11 @@ class root.LoadOpcode extends root.Opcode
 class root.LoadVarOpcode extends root.LoadOpcode
   constructor: (name, params) ->
     super name, params
-    @byte_count = 1
 
-  take_args: (code_array) ->
-    @var_num = code_array.get_uint(1)
+  take_args: (code_array, constant_pool, @wide=false) ->
+    @name += "_w" if @wide
+    @byte_count = arg_size = if @wide then 2 else 1
+    @var_num = code_array.get_uint arg_size
 
 class root.StoreOpcode extends root.Opcode
   take_args: (code_array) ->
@@ -128,9 +131,11 @@ class root.StoreOpcode extends root.Opcode
 class root.StoreVarOpcode extends root.StoreOpcode
   constructor: (name, params) ->
     super name, params
-    @byte_count = 1
-  take_args: (code_array) ->
-    @var_num = code_array.get_uint(1)
+
+  take_args: (code_array, constant_pool, @wide=false) ->
+    @name += "_w" if @wide
+    @byte_count = arg_size = if @wide then 2 else 1
+    @var_num = code_array.get_uint arg_size
 
 class root.SwitchOpcode extends root.BranchOpcode
   constructor: (name, params) ->
@@ -373,7 +378,6 @@ root.opcodes = {
   193: new root.ClassOpcode 'instanceof', { execute: (rs) -> o=rs.pop(); rs.push if o>0 then rs.check_cast(o,@class)+0 else 0 }
   194: new root.Opcode 'monitorenter', { execute: (rs)-> rs.pop() }  #TODO: actually implement locks?
   195: new root.Opcode 'monitorexit',  { execute: (rs)-> rs.pop() }  #TODO: actually implement locks?
-  196: new root.Opcode 'wide', { take_args: -> throw new Error "wide instr NYI" }
   197: new root.Opcode 'multianewarray', { byte_count: 3 }
   198: new root.UnaryBranchOpcode 'ifnull', { cmp: (v) -> v <= 0 }
   199: new root.UnaryBranchOpcode 'ifnonnull', { cmp: (v) -> v > 0 }

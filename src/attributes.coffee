@@ -36,10 +36,13 @@ class Code
     rv = {}
     while bytes_array.has_bytes()
       op_index = bytes_array.index
-      c = bytes_array.get_uint(1)
-      throw "unknown opcode code: #{c}" unless opcodes.opcodes[c]
-      op = Object.create(opcodes.opcodes[c])
-      op.take_args(bytes_array, constant_pool)
+      c = bytes_array.get_uint 1
+      wide = c == 196
+      if wide # wide opcode needs to be handled specially
+        c = bytes_array.get_uint 1
+      throw "unknown opcode code: #{c}" unless opcodes.opcodes[c]?
+      op = Object.create opcodes.opcodes[c]
+      op.take_args bytes_array, constant_pool, wide
       rv[op_index] = op
     return rv
 
