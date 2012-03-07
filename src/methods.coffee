@@ -54,6 +54,11 @@ class root.Field extends AbstractMethodField
     if @access_flags.static
       @static_value = null  # loaded in when getstatic is called
 
+trapped_methods = {
+  'java/lang/System::setJavaLangAccess()V': (rs) -> #NOP
+  'java/lang/System::loadLibrary(Ljava/lang/String;)V': (rs) -> console.log "warning: library loads are NYI"
+}
+
 native_methods = {
   'java/lang/System::arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V': ((rs) -> 
     args = rs.curr_frame().locals
@@ -82,6 +87,11 @@ native_methods = {
     sig = (d_val/Math.pow(2,exp)-1)/Math.pow(2,-52)
     rs.push util.lshift(sign,63)+util.lshift(exp+1023,52)+sig
     )
+  'java/security/AccessController::doPrivileged(Ljava/security/PrivilegedAction;)Ljava/lang/Object;': ((rs) ->
+    action = rs.get_obj(rs.curr_frame().locals[0])
+    rs.method_lookup({'class': action.type, 'sig': {'name': 'run'}}).run(rs)
+    )
+  #'java/lang/Thread::currentThread()Ljava/lang/Thread;': ((rs) -> )
   'java/io/FileSystem::getFileSystem()Ljava/io/FileSystem;': (rs) -> rs.heap_new('java/io/UnixFileSystem')
   'java/io/UnixFileSystem::initIDs()V': (rs) -> # NOP???
   'java/lang/StrictMath::pow(DD)D': (rs) -> rs.push Math.pow(rs.cl(0),rs.cl(2)), null
@@ -141,9 +151,21 @@ class root.Method extends AbstractMethodField
     n_bytes = @param_bytes()
     caller_stack.splice(caller_stack.length-n_bytes,n_bytes)
   
+  run_manually: (runtime_state, func) ->
+    func(runtime_state)
+    s = runtime_state.meta_stack.pop().stack
+    switch s.length
+      when 2 then runtime_state.push s[0], s[1]
+      when 1 then runtime_state.push s[0]
+      when 0 then break
+      else
+        throw "too many items on the stack after manual method #{sig}"
+    #cf = runtime_state.curr_frame()
+    #console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}] (method end)"
+
   run: (runtime_state,virtual=false) ->
     caller_stack = runtime_state.curr_frame().stack
-    if virtual # and @class_name isnt 'java/lang/String'  # avoid redirect shenanigans, ok because String is final
+    if virtual
       # dirty hack to bounce up the inheritance tree, to make sure we call the method on the most specific type
       oref = caller_stack[caller_stack.length-@param_bytes()]
       obj = runtime_state.get_obj(oref)
@@ -156,27 +178,22 @@ class root.Method extends AbstractMethodField
     runtime_state.meta_stack.push(new runtime.StackFrame(@class_name,params,[]))
     padding = (' ' for _ in [2...runtime_state.meta_stack.length]).join('')
     console.log "#{padding}entering method #{sig}"
+    # check for trapped and native methods, run those manually
+    if trapped_methods[sig]
+      return @run_manually(runtime_state,trapped_methods[sig])
     if @access_flags.native
-      unless sig.indexOf('::registerNatives()V',1) >= 0  # we don't need to register native methods
-        throw "native method NYI: #{sig}" unless native_methods[sig]
-        native_methods[sig](runtime_state)
-      s = runtime_state.meta_stack.pop().stack
-      switch s.length
-        when 2 then runtime_state.push s[0], s[1]
-        when 1 then runtime_state.push s[0]
-        when 0 then break
-        else
-          throw "too many items on the stack after native method #{sig}"
-      cf = runtime_state.curr_frame()
-      console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}] (method end)"
-      return
+      if sig.indexOf('::registerNatives()V',1) >= 0  # we don't need to register native methods
+        return @run_manually(runtime_state,(rs)->)
+      throw "native method NYI: #{sig}" unless native_methods[sig]
+      return @run_manually(runtime_state,native_methods[sig])
+    # main eval loop: execute each opcode, using the pc to iterate through
     code = @get_code().opcodes
     while true
       cf = runtime_state.curr_frame()
       pc = runtime_state.curr_pc()
       op = code[pc]
-      console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}]"
-      console.log "#{padding}#{@name}:#{pc} => #{op.name}"
+      #console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}]"
+      #console.log "#{padding}#{@name}:#{pc} => #{op.name}"
       op.execute runtime_state
       if op.name.match /.*return/
         s = runtime_state.meta_stack.pop().stack
@@ -188,4 +205,4 @@ class root.Method extends AbstractMethodField
         break
       unless op instanceof opcodes.BranchOpcode
         runtime_state.inc_pc(1 + op.byte_count)  # move to the next opcode
-    console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}] (method end)"
+    #console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}] (method end)"
