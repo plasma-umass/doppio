@@ -100,7 +100,8 @@ class root.IIncOpcode extends root.Opcode
       arg_size = 2
       @byte_count = 5
     else
-      @byte_count = arg_size = 1
+      arg_size = 1
+      @byte_count = 2
     @index = code_array.get_uint arg_size
     @const = code_array.get_int arg_size
 
