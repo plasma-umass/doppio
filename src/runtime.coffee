@@ -18,13 +18,17 @@ class root.RuntimeState
     @meta_stack = [new root.StackFrame('fake frame',[],[args])]
     @method_lookup({'class': class_data.this_class, 'sig': {'name': '<clinit>'}}).run(this)
 
+  # string stuff
+  jvm2js_str: (jvm_str) ->
+    carr = @get_obj(jvm_str.value).array
+    (String.fromCharCode(c) for c in carr).join('')
   string_redirect: (oref,cls) ->
     cdata = @class_lookup(cls)
     unless cdata.string_redirect[oref]
       cstr = cdata.constant_pool.get(oref)
       throw new Error "can't redirect const string at #{oref}" unless cstr and cstr.type is 'Asciz'
       cdata.string_redirect[oref] = @init_string(cstr.value,true)
-      console.log "heapifying #{oref} -> #{cdata.string_redirect[oref]} : '#{cstr.value}'"
+      #console.log "heapifying #{oref} -> #{cdata.string_redirect[oref]} : '#{cstr.value}'"
     #console.log "redirecting #{oref} -> #{cdata.string_redirect[oref]}"
     return cdata.string_redirect[oref]
 
@@ -118,8 +122,8 @@ class root.RuntimeState
       @classes[cls] = new ClassFile @read_classfile cls
       # run class initialization code
       @method_lookup({'class': cls, 'sig': {'name': '<clinit>'}}).run(this)
-      if cls is 'java/lang/System'  # zomg hardcode
-        @method_lookup({'class': cls, 'sig': {'name': 'initializeSystemClass'}}).run(this)
+      #if cls is 'java/lang/System'  # zomg hardcode
+      #  @method_lookup({'class': cls, 'sig': {'name': 'initializeSystemClass'}}).run(this)
     throw "class #{cls} not found!" unless @classes[cls]
     @classes[cls]
   method_lookup: (method_spec) ->

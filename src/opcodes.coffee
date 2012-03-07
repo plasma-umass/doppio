@@ -55,8 +55,7 @@ class root.LoadConstantOpcode extends root.Opcode
     val = rs.string_redirect(val, @cls) if @constant.type is 'String'
     if @constant.type is 'class'
       jvm_str = rs.get_obj(rs.string_redirect(val,@cls))
-      carr = rs.get_obj(jvm_str.value).array
-      val = rs.set_obj({'type':'java/lang/Class','name':(String.fromCharCode(c) for c in carr).join('')})
+      val = rs.set_obj({'type':'java/lang/Class','name':rs.jvm2js_str(jvm_str)})
     rs.push val
 
 class root.BranchOpcode extends root.Opcode

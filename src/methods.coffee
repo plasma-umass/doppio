@@ -65,6 +65,10 @@ trapped_methods = {
     rs.static_get({'class':'sun/misc/Unsafe','sig':{'name':'theUnsafe'}}))
   'java/util/concurrent/atomic/AtomicReferenceFieldUpdater::newUpdater(Ljava/lang/Class;Ljava/lang/Class;Ljava/lang/String;)Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;': (rs) -> rs.push 0 # null
   'java/nio/charset/Charset$3::run()Ljava/lang/Object;': (rs) -> rs.push 0 # null
+  'java/lang/Class::newInstance0()Ljava/lang/Object;': ((rs) -> #implemented here to avoid reflection
+    classname = rs.get_obj(rs.curr_frame().locals[0]).name
+    rs.push rs.init_object(classname)
+    )
 }
   
 native_methods = {
@@ -112,6 +116,13 @@ native_methods = {
     rs.push rs.set_obj({'type':'java/lang/Class', 'name':cls})
     )
   'java/lang/System::currentTimeMillis()J': (rs) -> rs.push (new Date).getTime(), null
+  'java/lang/String::intern()Ljava/lang/String;': ((rs) -> 
+    str_ref = rs.curr_frame().locals[0]
+    js_str = rs.jvm2js_str(rs.get_obj(str_ref))
+    unless rs.string_pool[js_str]
+      rs.string_pool[js_str] = str_ref
+    rs.push rs.string_pool[js_str]
+    )
   'java/lang/Class::getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;': ((rs) ->
     str = rs.get_obj(rs.curr_frame().locals[0])
     carr = rs.get_obj(str.value).array
@@ -121,6 +132,12 @@ native_methods = {
   'java/lang/Object::getClass()Ljava/lang/Class;': (rs) -> rs.push rs.set_obj({'type':'java/lang/Class', 'name':'java/lang/Object'})
   'java/lang/Class::getClassLoader0()Ljava/lang/ClassLoader;': (rs) -> rs.push 0  # we don't need no stinkin classloaders
   'java/lang/Class::desiredAssertionStatus0(Ljava/lang/Class;)Z': (rs) -> rs.push 0 # we don't need no stinkin asserts
+  'java/lang/Class::forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;': ((rs) ->
+    jvm_str = rs.get_obj(rs.curr_frame().locals[0])
+    classname = rs.jvm2js_str(jvm_str).replace(/\./g,'/')
+    throw "Class.forName0: Failed to load #{classname}" unless rs.class_lookup(classname)
+    rs.push rs.set_obj({'type':'java/lang/Class', 'name':classname})
+    )
   'java/lang/System::initProperties(Ljava/util/Properties;)Ljava/util/Properties;': ((rs) ->
     p_ref = rs.curr_frame().locals[0]
     m = rs.method_lookup({'class':'java/util/Properties','sig':{'name':'setProperty'}})
