@@ -94,6 +94,11 @@ root.lookup_handler = (handlers, object, args...) ->
 class root.ReturnException
   constructor: (@values...) ->
 
-class root.ThrowException
+class root.JavaException
   # yeah, naming gets a little confusing here
-  constructor: (@exception) ->
+  constructor: (rs, @exception_ref) ->
+    @exception = rs.get_obj @exception_ref
+    # CS' inheritance mechanism doesn't allow us to inherit from
+    # Error.prototype without instantiating it. Hence this hack is necessary to
+    # allow us to get the stacktrace at the correct position.
+    @stack = (new Error).stack

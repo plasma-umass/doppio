@@ -243,11 +243,13 @@ class root.Method extends AbstractMethodField
           runtime_state.meta_stack.pop()
           caller_stack.push e.values...
           break
-        else if e instanceof util.ThrowException
+        else if e instanceof util.JavaException
           exception_handlers = @get_code().exception_handlers
           handler = _.find exception_handlers, (eh) ->
-            eh.start_pc <= pc < eh.end_pc and eh.catch_type == e.exception.type
+            eh.start_pc <= pc < eh.end_pc and
+              (eh.catch_type == e.exception.type or eh.catch_type == "<all>")
           if handler?
+            runtime_state.push e.exception_ref
             runtime_state.goto_pc handler.handler_pc
             continue
           else # abrupt method invocation completion

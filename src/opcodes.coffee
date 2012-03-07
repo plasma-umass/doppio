@@ -386,7 +386,7 @@ root.opcodes = {
   188: new root.Opcode 'newarray', { byte_count: 1, execute: (rs) -> rs.heap_newarray @args[0], rs.pop() }
   189: new root.ClassOpcode 'anewarray', { execute: (rs) -> rs.heap_newarray @class, rs.pop() }
   190: new root.Opcode 'arraylength', { execute: (rs) -> rs.push rs.get_obj(rs.pop()).array.length }
-  191: new root.Opcode 'athrow', { execute: (rs) -> throw new util.ThrowException rs.get_obj rs.pop() }
+  191: new root.Opcode 'athrow', { execute: (rs) -> throw new util.JavaException rs, rs.pop() }
   192: new root.ClassOpcode 'checkcast', { execute: (rs) -> o=rs.pop(); rs.push o if o<=0 or rs.check_cast(o,@class) }
   193: new root.ClassOpcode 'instanceof', { execute: (rs) -> o=rs.pop(); rs.push if o>0 then rs.check_cast(o,@class)+0 else 0 }
   194: new root.Opcode 'monitorenter', { execute: (rs)-> rs.pop() }  #TODO: actually implement locks?
