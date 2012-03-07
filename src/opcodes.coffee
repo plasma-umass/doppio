@@ -4,7 +4,7 @@ root = exports ? this.opcodes = {}
 
 class root.Opcode
   constructor: (@name, params={}) ->
-    (@[prop] ?= val for prop, val of params)
+    (@[prop] = val for prop, val of params)
     @execute ?= @_execute
     @byte_count = params.byte_count ? 0
 
