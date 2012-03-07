@@ -148,13 +148,12 @@ class root.RuntimeState
       return true if iface_name is iface['this_class']
     return false
   check_cast: (oref, classname) ->
-    #TODO: fix?
     return @_check_cast(@get_obj(oref).type,classname)
   _check_cast: (type1, type2) ->
     if type1[0] is '['  # array type
       if type2[0] is '['
-        t1 = type1.slice(1)
-        t2 = type2.slice(1)
+        t1 = util.unarray(type1)
+        t2 = util.unarray(type2)
         return true if t2 is t1  # technically only for primitives, but this works
         return @_check_cast(t1,t2)
       c2 = @class_lookup(type2)

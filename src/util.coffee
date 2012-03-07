@@ -38,6 +38,12 @@ root.read_uint = (bytes) ->
 root.bytestr_to_array = (bytecode_string) ->
   (bytecode_string.charCodeAt(i) & 0xFF for i in [0...bytecode_string.length])
 
+root.unarray = (typestr) -> # strips one level of array from type sig
+  if typestr[1] is 'L' and typestr[typestr.length-1] is ';'
+    typestr.slice(2,typestr.length-1)
+  else
+    typestr.slice(1)
+
 root.parse_flags = (flag_byte) ->
   {
     public:       flag_byte & 0x1
