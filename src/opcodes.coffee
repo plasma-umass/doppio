@@ -45,7 +45,6 @@ class root.InvokeOpcode extends root.Opcode
 class root.LoadConstantOpcode extends root.Opcode
   take_args: (code_array, constant_pool) ->
     @cls = constant_pool.cls
-    throw new Error "asdflajsdhfa" unless @cls
     @constant_ref = code_array.get_uint @byte_count
     @constant = constant_pool.get @constant_ref
   
