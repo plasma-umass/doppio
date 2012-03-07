@@ -17,6 +17,7 @@ class @ClassFile
     throw "Major version invalid" unless 45 <= @major_version <= 51
     @constant_pool = new ConstantPool
     bytes_array = @constant_pool.parse(bytes_array)
+    @string_redirect = {}  # used by the runtime state to keep track of const string refs
     # bitmask for {public,final,super,interface,abstract} class modifier
     @access_flags = util.parse_flags read_u2()
     @this_class  = @constant_pool.get(read_u2()).deref()

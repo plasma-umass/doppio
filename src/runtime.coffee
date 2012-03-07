@@ -14,23 +14,16 @@ class root.RuntimeState
     @classes[class_data.this_class] = class_data
     @heap = [null]
     args = @init_array('java/lang/String',(@init_string(a) for a in initial_args))
-    @heapify_strings class_data
     @meta_stack = [new root.StackFrame('fake frame',[],[args])]
     @method_lookup({'class': class_data.this_class, 'sig': {'name': '<clinit>'}}).run(this)
 
-  heapify_strings: (cdata) ->  #TODO: do this on-demand in string_redirect
-    # add the string references to the heap, in a semi-hacky way
-    cdata.string_redirect = {}
-    cp = cdata.constant_pool
-    str_refs = []
-    cp.each (i,c) -> str_refs.push c.value if c.type in ['String','class']
-    for sr in str_refs
-      cdata.string_redirect[sr] = @init_string(cp.get(sr).value)
-      console.log "heapifying #{sr} -> #{cdata.string_redirect[sr]} : '#{cp.get(sr).value}'"
-
   string_redirect: (oref,cls) ->
     cdata = @class_lookup(cls)
-    throw new Error "can't redirect const string at #{oref}" unless cdata.string_redirect[oref]
+    unless cdata.string_redirect[oref]
+      cstr = cdata.constant_pool.get(oref)
+      throw new Error "can't redirect const string at #{oref}" unless cstr and cstr.type is 'Asciz'
+      cdata.string_redirect[oref] = @init_string(cstr.value)
+      console.log "heapifying #{oref} -> #{cdata.string_redirect[oref]} : '#{cstr.value}'"
     console.log "redirecting #{oref} -> #{cdata.string_redirect[oref]}"
     return cdata.string_redirect[oref]
 
@@ -74,26 +67,26 @@ class root.RuntimeState
   heap_put: (field_spec) ->
     val = if field_spec.sig.type in ['J','D'] then @pop2() else @pop()
     obj = @heap[@pop()]
-    console.log "setting #{field_spec.sig.name} = #{val} on obj of type #{obj.type}"
+    #console.log "setting #{field_spec.sig.name} = #{val} on obj of type #{obj.type}"
     obj[field_spec.sig.name] = val
   heap_get: (field_spec, oref) ->
     obj = @get_obj(oref)
     name = field_spec.sig.name
     obj[name] = @init_field(@field_lookup(field_spec)) if obj[name] is undefined
-    console.log "getting #{name} from obj of type #{obj.type}: #{obj[name]}"
+    #console.log "getting #{name} from obj of type #{obj.type}: #{obj[name]}"
     @push obj[name]
     @push null if field_spec.sig.type in ['J','D']
 
   # static stuff
   static_get: (field_spec) ->
     val = @field_lookup(field_spec).static_value
-    console.log "getting #{field_spec.sig.name} from class #{field_spec.class}: #{val}"
+    #console.log "getting #{field_spec.sig.name} from class #{field_spec.class}: #{val}"
     @push val
   static_put: (field_spec) ->
     val = if field_spec.sig.type in ['J','D'] then @pop2() else @pop()
     field = @field_lookup field_spec
     field.static_value = val
-    console.log "setting #{field_spec.sig.name} = #{val} on class #{field_spec.class}"
+    #console.log "setting #{field_spec.sig.name} = #{val} on class #{field_spec.class}"
 
   # heap object initialization
   init_object: (cls) ->
@@ -119,7 +112,7 @@ class root.RuntimeState
       # fetch the relevant class file, make a ClassFile, put it in @classes[cls]
       console.log "loading new class: #{cls}"
       @classes[cls] = new ClassFile @read_classfile cls
-      @heapify_strings @classes[cls]
+      # run class initialization code
       @method_lookup({'class': cls, 'sig': {'name': '<clinit>'}}).run(this)
       if cls is 'java/lang/System'  # zomg hardcode
         @method_lookup({'class': cls, 'sig': {'name': 'initializeSystemClass'}}).run(this)
