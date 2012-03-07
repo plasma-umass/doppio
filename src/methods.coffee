@@ -64,6 +64,7 @@ trapped_methods = {
   'sun/misc/Unsafe::getUnsafe()Lsun/misc/Unsafe;': ((rs) -> # avoid reflection
     rs.static_get({'class':'sun/misc/Unsafe','sig':{'name':'theUnsafe'}}))
   'java/util/concurrent/atomic/AtomicReferenceFieldUpdater::newUpdater(Ljava/lang/Class;Ljava/lang/Class;Ljava/lang/String;)Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;': (rs) -> rs.push 0 # null
+  'java/nio/charset/Charset$3::run()Ljava/lang/Object;': (rs) -> rs.push 0 # null
 }
   
 native_methods = {
@@ -117,16 +118,21 @@ native_methods = {
     cobj = {'type':'java/lang/Class', 'name': (String.fromCharCode(c) for c in carr).join('') }
     rs.push rs.set_obj(cobj)
     )
+  'java/lang/Object::getClass()Ljava/lang/Class;': (rs) -> rs.push rs.set_obj({'type':'java/lang/Class', 'name':'java/lang/Object'})
   'java/lang/Class::getClassLoader0()Ljava/lang/ClassLoader;': (rs) -> rs.push 0  # we don't need no stinkin classloaders
   'java/lang/Class::desiredAssertionStatus0(Ljava/lang/Class;)Z': (rs) -> rs.push 0 # we don't need no stinkin asserts
   'java/lang/System::initProperties(Ljava/util/Properties;)Ljava/util/Properties;': ((rs) ->
     p_ref = rs.curr_frame().locals[0]
-    props = rs.get_obj(p_ref)
-    console.log "initProperties is NYI, so expect anything referencing system props to break"
+    m = rs.method_lookup({'class':'java/util/Properties','sig':{'name':'setProperty'}})
     # properties to set:
     #  java.version,java.vendor,java.vendor.url,java.home,java.class.version,java.class.path,
     #  os.name,os.arch,os.version,file.separator,path.separator,line.separator,
-    #  user.name,user.home,user.dir     
+    #  user.name,user.home,user.dir
+    props = {'file.encoding':'US_ASCII','java.vendor':'Coffee-JVM'}
+    for k,v of props
+      rs.push p_ref, rs.init_string(k,true), rs.init_string(v,true)
+      m.run(rs)
+      rs.pop()  # we don't care about the return value
     rs.push p_ref
     )
   'java/lang/System::setIn0(Ljava/io/InputStream;)V': ((rs) -> 
@@ -204,6 +210,7 @@ class root.Method extends AbstractMethodField
       cf = runtime_state.curr_frame()
       pc = runtime_state.curr_pc()
       op = code[pc]
+      throw "#{@name}:#{pc} => (null)" unless op
       console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}]"
       console.log "#{padding}#{@name}:#{pc} => #{op.name}"
       op.execute runtime_state
