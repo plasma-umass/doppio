@@ -157,9 +157,9 @@ class root.Method extends AbstractMethodField
     padding = (' ' for _ in [2...runtime_state.meta_stack.length]).join('')
     console.log "#{padding}entering method #{sig}"
     if @access_flags.native
-      return if sig.indexOf('::registerNatives()V',1) >= 0  # we don't need to register native methods
-      throw "native method NYI: #{sig}" unless native_methods[sig]
-      native_methods[sig](runtime_state)
+      unless sig.indexOf('::registerNatives()V',1) >= 0  # we don't need to register native methods
+        throw "native method NYI: #{sig}" unless native_methods[sig]
+        native_methods[sig](runtime_state)
       s = runtime_state.meta_stack.pop().stack
       switch s.length
         when 2 then runtime_state.push s[0], s[1]
