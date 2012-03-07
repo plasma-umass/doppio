@@ -66,12 +66,25 @@ native_methods = {
     for i in [src_pos...src_pos+length]
       dest_array[j++] = src_array[i]
     )
-  'java/io/FileSystem::getFileSystem()Ljava/io/FileSystem;': (rs) -> rs.push 0
+  'java/lang/Float::floatToRawIntBits(F)I': ((rs) ->  #note: not tested for weird values
+    f_val = rs.curr_frame().locals[0]
+    sign = if f_val < 0 then 1 else 0
+    f_val = Math.abs(f_val)
+    exp = Math.floor(Math.log(f_val)/Math.LN2)
+    sig = (f_val/Math.pow(2,exp)-1)/Math.pow(2,-23)
+    rs.push (sign<<31)+((exp+127)<<23)+sig
+    )
+  'java/lang/Double::doubleToRawLongBits(D)J': ((rs) ->#note: not tested at all
+    d_val = rs.curr_frame().locals[0]
+    sign = if d_val < 0 then 1 else 0
+    d_val = Math.abs(d_val)
+    exp = Math.floor(Math.log(d_val)/Math.LN2)
+    sig = (d_val/Math.pow(2,exp)-1)/Math.pow(2,-52)
+    rs.push util.lshift(sign,63)+util.lshift(exp+1023,52)+sig
+    )
+  'java/io/FileSystem::getFileSystem()Ljava/io/FileSystem;': (rs) -> rs.heap_new('java/io/UnixFileSystem')
+  'java/io/UnixFileSystem::initIDs()V': (rs) -> # NOP???
   'java/lang/StrictMath::pow(DD)D': (rs) -> rs.push Math.pow(rs.cl(0),rs.cl(2)), null
-  'java/lang/Object::registerNatives()V': (rs) -> # NOP
-  'java/lang/System::registerNatives()V': (rs) -> # NOP
-  'java/lang/Class::registerNatives()V': (rs) -> # NOP
-  'sun/misc/Unsafe::registerNatives()V': (rs) -> # NOP
   'sun/misc/VM::initialize()V': (rs) ->  # NOP???
   'sun/reflect/Reflection::getCallerClass(I)Ljava/lang/Class;': ((rs) ->
     frames_to_skip = rs.curr_frame().locals[0]
@@ -144,8 +157,9 @@ class root.Method extends AbstractMethodField
     padding = (' ' for _ in [2...runtime_state.meta_stack.length]).join('')
     console.log "#{padding}entering method #{sig}"
     if @access_flags.native
-      throw "native method NYI: #{sig}" unless native_methods[sig]
-      native_methods[sig](runtime_state)
+      unless sig.indexOf('::registerNatives()V',1) >= 0  # we don't need to register native methods
+        throw "native method NYI: #{sig}" unless native_methods[sig]
+        native_methods[sig](runtime_state)
       s = runtime_state.meta_stack.pop().stack
       switch s.length
         when 2 then runtime_state.push s[0], s[1]

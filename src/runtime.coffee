@@ -23,17 +23,16 @@ class root.RuntimeState
     cdata.string_redirect = {}
     cp = cdata.constant_pool
     str_refs = []
-    cp.each (i,c) -> str_refs.push c.value if c.type is 'String'
+    cp.each (i,c) -> str_refs.push c.value if c.type in ['String','class']
     for sr in str_refs
       cdata.string_redirect[sr] = @init_string(cp.get(sr).value)
       console.log "heapifying #{sr} -> #{cdata.string_redirect[sr]} : '#{cp.get(sr).value}'"
 
   string_redirect: (oref,cls) ->
     cdata = @class_lookup(cls)
-    if cdata.string_redirect[oref]
-      console.log "redirecting #{oref} -> #{cdata.string_redirect[oref]}"
-      oref = cdata.string_redirect[oref]
-    return oref
+    throw new Error "can't redirect const string at #{oref}" unless cdata.string_redirect[oref]
+    console.log "redirecting #{oref} -> #{cdata.string_redirect[oref]}"
+    return cdata.string_redirect[oref]
 
   curr_frame: () -> _.last(@meta_stack)
 
