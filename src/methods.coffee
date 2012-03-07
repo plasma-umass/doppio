@@ -189,20 +189,19 @@ class root.Method extends AbstractMethodField
     # main eval loop: execute each opcode, using the pc to iterate through
     code = @get_code().opcodes
     while true
-      cf = runtime_state.curr_frame()
-      pc = runtime_state.curr_pc()
-      op = code[pc]
-      #console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}]"
-      #console.log "#{padding}#{@name}:#{pc} => #{op.name}"
-      op.execute runtime_state
-      if op.name.match /.*return/
-        s = runtime_state.meta_stack.pop().stack
-        if op.name in ['ireturn','freturn','areturn']
-          caller_stack.push s[0]
-        else if op.name in ['lreturn','dreturn']
-          caller_stack.push s[0]
-          caller_stack.push null
-        break
-      unless op instanceof opcodes.BranchOpcode
-        runtime_state.inc_pc(1 + op.byte_count)  # move to the next opcode
+      try
+        cf = runtime_state.curr_frame()
+        pc = runtime_state.curr_pc()
+        op = code[pc]
+        #console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}]"
+        #console.log "#{padding}#{@name}:#{pc} => #{op.name}"
+        op.execute runtime_state
+        unless op instanceof opcodes.BranchOpcode
+          runtime_state.inc_pc(1 + op.byte_count)  # move to the next opcode
+      catch e
+        if e instanceof util.ReturnException
+          runtime_state.meta_stack.pop()
+          caller_stack.push e.values...
+          break
+        throw e
     #console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}] (method end)"

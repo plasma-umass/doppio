@@ -84,3 +84,6 @@ root.lookup_handler = (handlers, object, args...) ->
     handler = handlers[obj.constructor.name]
     return handler.apply object, args if handler
     obj = Object.getPrototypeOf obj
+
+class root.ReturnException
+  constructor: (@values...) ->
