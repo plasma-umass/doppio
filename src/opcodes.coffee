@@ -93,9 +93,12 @@ class root.IIncOpcode extends root.Opcode
     super name, params
     
   take_args: (code_array, constant_pool, @wide=false) ->
-    @name += "_w" if @wide
-    arg_size = if @wide then 2 else 1
-    @byte_count = 2 * arg_size
+    if @wide
+      @name += "_w"
+      arg_size = 2
+      @byte_count = 5
+    else
+      @byte_count = arg_size = 1
     @index = code_array.get_uint arg_size
     @const = code_array.get_int arg_size
 
@@ -114,9 +117,13 @@ class root.LoadVarOpcode extends root.LoadOpcode
     super name, params
 
   take_args: (code_array, constant_pool, @wide=false) ->
-    @name += "_w" if @wide
-    @byte_count = arg_size = if @wide then 2 else 1
-    @var_num = code_array.get_uint arg_size
+    if @wide
+      @name += "_w"
+      @byte_count = 3
+      @var_num = code_array.get_uint 2
+    else
+      @byte_count = 1
+      @var_num = code_array.get_uint 1
 
 class root.StoreOpcode extends root.Opcode
   take_args: (code_array) ->
@@ -133,9 +140,13 @@ class root.StoreVarOpcode extends root.StoreOpcode
     super name, params
 
   take_args: (code_array, constant_pool, @wide=false) ->
-    @name += "_w" if @wide
-    @byte_count = arg_size = if @wide then 2 else 1
-    @var_num = code_array.get_uint arg_size
+    if @wide
+      @name += "_w"
+      @byte_count = 3
+      @var_num = code_array.get_uint 2
+    else
+      @byte_count = 1
+      @var_num = code_array.get_uint 1
 
 class root.SwitchOpcode extends root.BranchOpcode
   constructor: (name, params) ->
@@ -373,7 +384,7 @@ root.opcodes = {
   188: new root.Opcode 'newarray', { byte_count: 1, execute: (rs) -> rs.heap_newarray @args[0], rs.pop() }
   189: new root.ClassOpcode 'anewarray', { execute: (rs) -> rs.heap_newarray @class, rs.pop() }
   190: new root.Opcode 'arraylength', { execute: (rs) -> rs.push rs.get_obj(rs.pop()).array.length }
-  191: new root.Opcode 'athrow'
+  191: new root.Opcode 'athrow', { execute: (rs) -> throw new util.ThrowException rs.get_obj rs.pop() }
   192: new root.ClassOpcode 'checkcast', { execute: (rs) -> o=rs.pop(); rs.push o if o<=0 or rs.check_cast(o,@class) }
   193: new root.ClassOpcode 'instanceof', { execute: (rs) -> o=rs.pop(); rs.push if o>0 then rs.check_cast(o,@class)+0 else 0 }
   194: new root.Opcode 'monitorenter', { execute: (rs)-> rs.pop() }  #TODO: actually implement locks?

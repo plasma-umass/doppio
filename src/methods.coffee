@@ -121,6 +121,10 @@ native_methods = {
     #  user.name,user.home,user.dir     
     rs.push p_ref
     )
+  'java/lang/Throwable::fillInStackTrace()Ljava/lang/Throwable;': (rs) ->
+    #TODO possibly filter out the java calls from our own call stack.
+    # at the moment, this is effectively a NOP.
+    rs.push rs.curr_frame().locals[0]
 }
 
 class root.Method extends AbstractMethodField
@@ -176,7 +180,7 @@ class root.Method extends AbstractMethodField
     sig = "#{@class_name}::#{@name}#{@raw_descriptor}"
     params = @take_params caller_stack
     runtime_state.meta_stack.push(new runtime.StackFrame(@class_name,params,[]))
-    padding = (' ' for _ in [2...runtime_state.meta_stack.length]).join('')
+    padding = (' ' for [2...runtime_state.meta_stack.length]).join('')
     console.log "#{padding}entering method #{sig}"
     # check for trapped and native methods, run those manually
     if trapped_methods[sig]
@@ -203,5 +207,15 @@ class root.Method extends AbstractMethodField
           runtime_state.meta_stack.pop()
           caller_stack.push e.values...
           break
-        throw e
+        else if e instanceof util.ThrowException
+          exception_handlers = @get_code().exception_handlers
+          handler = _.find exception_handlers, (eh) ->
+            eh.start_pc <= pc < eh.end_pc and eh.catch_type == e.exception.type
+          if handler?
+            runtime_state.goto_pc handler.handler_pc
+            continue
+          else # abrupt method invocation completion
+            runtime_state.meta_stack.pop()
+            throw e
+        throw e # JVM Error
     #console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}] (method end)"

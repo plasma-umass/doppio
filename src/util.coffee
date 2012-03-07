@@ -87,3 +87,7 @@ root.lookup_handler = (handlers, object, args...) ->
 
 class root.ReturnException
   constructor: (@values...) ->
+
+class root.ThrowException
+  # yeah, naming gets a little confusing here
+  constructor: (@exception) ->
