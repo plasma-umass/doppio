@@ -132,6 +132,7 @@ native_methods = {
   'java/lang/Object::getClass()Ljava/lang/Class;': (rs) -> rs.push rs.set_obj({'type':'java/lang/Class', 'name':'java/lang/Object'})
   'java/lang/Class::getClassLoader0()Ljava/lang/ClassLoader;': (rs) -> rs.push 0  # we don't need no stinkin classloaders
   'java/lang/Class::desiredAssertionStatus0(Ljava/lang/Class;)Z': (rs) -> rs.push 0 # we don't need no stinkin asserts
+  'java/lang/Class::getName0()Ljava/lang/String;': (rs) -> rs.push rs.init_string(rs.get_obj(rs.curr_frame().locals[0]).name)
   'java/lang/Class::forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;': ((rs) ->
     jvm_str = rs.get_obj(rs.curr_frame().locals[0])
     classname = rs.jvm2js_str(jvm_str).replace(/\./g,'/')
@@ -214,7 +215,7 @@ class root.Method extends AbstractMethodField
       return m.run(runtime_state)
     sig = "#{@class_name}::#{@name}#{@raw_descriptor}"
     params = @take_params caller_stack
-    runtime_state.meta_stack.push(new runtime.StackFrame(@class_name,params,[]))
+    runtime_state.meta_stack.push(new runtime.StackFrame(sig,params,[]))
     padding = (' ' for [2...runtime_state.meta_stack.length]).join('')
     console.log "#{padding}entering method #{sig}"
     # check for trapped and native methods, run those manually

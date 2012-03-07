@@ -23,4 +23,7 @@ root.run = (class_data, print_func, load_func, cmdline_args) ->
     heap_str = ("#{i}: #{rs.heap[i].type}" for i in [1...rs.heap.length]).join(', ')
     console.error "stack: [#{cf.stack}], local: [#{cf.locals}], " +
       "heap: {#{heap_str}}"
-    console.error e.stack
+    if e instanceof util.JavaException
+      console.error e.stack
+    else
+      console.error e

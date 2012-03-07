@@ -5,7 +5,7 @@ ClassFile ?= require './class_file'
 root = exports ? this.runtime = {}
 
 class root.StackFrame
-  constructor: (@class_name,@locals,@stack) ->
+  constructor: (@trace_name,@locals,@stack) ->
     @pc = 0
 
 class root.RuntimeState
@@ -15,7 +15,7 @@ class root.RuntimeState
     @heap = [null]
     @string_pool = {}  # for interned strings and string literals
     args = @init_array('java/lang/String',(@init_string(a) for a in initial_args))
-    @meta_stack = [new root.StackFrame('fake frame',[],[args])]
+    @meta_stack = [new root.StackFrame('<ground>',[],[args])]
     @method_lookup({'class': class_data.this_class, 'sig': {'name': '<clinit>'}}).run(this)
 
   # string stuff
@@ -122,8 +122,8 @@ class root.RuntimeState
       @classes[cls] = new ClassFile @read_classfile cls
       # run class initialization code
       @method_lookup({'class': cls, 'sig': {'name': '<clinit>'}}).run(this)
-      #if cls is 'java/lang/System'  # zomg hardcode
-      #  @method_lookup({'class': cls, 'sig': {'name': 'initializeSystemClass'}}).run(this)
+      if cls is 'java/lang/System'  # zomg hardcode
+        @method_lookup({'class': cls, 'sig': {'name': 'initializeSystemClass'}}).run(this)
     throw "class #{cls} not found!" unless @classes[cls]
     @classes[cls]
   method_lookup: (method_spec) ->

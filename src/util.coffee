@@ -101,4 +101,5 @@ class root.JavaException
     # CS' inheritance mechanism doesn't allow us to inherit from
     # Error.prototype without instantiating it. Hence this hack is necessary to
     # allow us to get the stacktrace at the correct position.
-    @stack = (new Error).stack
+    #@stack = (new Error).stack
+    @stack = (sf.trace_name for sf in rs.meta_stack).join('\n')
