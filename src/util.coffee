@@ -102,4 +102,10 @@ class root.JavaException
     # Error.prototype without instantiating it. Hence this hack is necessary to
     # allow us to get the stacktrace at the correct position.
     #@stack = (new Error).stack
-    @stack = (sf.trace_name for sf in rs.meta_stack).join('\n')
+    @stack = []
+    for sf in rs.meta_stack.slice(1)
+      cls = sf.method.class_name
+      source_file = _.find(rs.class_lookup(cls).attrs, (attr) -> attr.constructor.name == 'SourceFile').name
+      line_nums = sf.method.get_code().attrs[0]
+      ln = _.first(row.line_number for i,row of line_nums when row.start_pc <= sf.pc)
+      @stack.push {'op':sf.pc, 'line':ln, 'file':source_file, 'method':sf.method.name, 'cls':cls}

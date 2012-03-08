@@ -24,6 +24,10 @@ root.run = (class_data, print_func, load_func, cmdline_args) ->
     console.error "stack: [#{cf.stack}], local: [#{cf.locals}], " +
       "heap: {#{heap_str}}"
     if e instanceof util.JavaException
-      console.error e.stack
+      e_type = rs.get_obj(e.exception.cause).type
+      detail = rs.jvm2js_str(rs.get_obj(e.exception.detailMessage))
+      console.error "Exception in thread \"main\" #{e_type}: #{detail}"
+      for entry in e.stack
+        console.error "\tat #{entry.cls}.#{entry.method}(#{entry.file}:#{entry.line}, code #{entry.op})"
     else
       console.error e

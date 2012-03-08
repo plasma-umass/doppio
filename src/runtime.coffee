@@ -5,7 +5,7 @@ ClassFile ?= require './class_file'
 root = exports ? this.runtime = {}
 
 class root.StackFrame
-  constructor: (@trace_name,@locals,@stack) ->
+  constructor: (@method,@locals,@stack) ->
     @pc = 0
 
 class root.RuntimeState
@@ -15,7 +15,7 @@ class root.RuntimeState
     @heap = [null]
     @string_pool = {}  # for interned strings and string literals
     args = @init_array('java/lang/String',(@init_string(a) for a in initial_args))
-    @meta_stack = [new root.StackFrame('<ground>',[],[args])]
+    @meta_stack = [new root.StackFrame(null,[],[args])]  # start with a bogus ground state
     @method_lookup({'class': class_data.this_class, 'sig': {'name': '<clinit>'}}).run(this)
 
   # string stuff

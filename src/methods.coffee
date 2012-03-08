@@ -203,6 +203,8 @@ class root.Method extends AbstractMethodField
     cf = runtime_state.curr_frame()
     console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}] (method end)"
 
+  signature: () -> "#{@class_name}::#{@name}#{@raw_descriptor}"
+
   run: (runtime_state,virtual=false) ->
     caller_stack = runtime_state.curr_frame().stack
     if virtual
@@ -213,9 +215,9 @@ class root.Method extends AbstractMethodField
       m = runtime_state.method_lookup(m_spec)
       throw "abstract method got called: #{@name}#{@raw_descriptor}" if m.access_flags.abstract
       return m.run(runtime_state)
-    sig = "#{@class_name}::#{@name}#{@raw_descriptor}"
+    sig = @signature()
     params = @take_params caller_stack
-    runtime_state.meta_stack.push(new runtime.StackFrame(sig,params,[]))
+    runtime_state.meta_stack.push(new runtime.StackFrame(this,params,[]))
     padding = (' ' for [2...runtime_state.meta_stack.length]).join('')
     console.log "#{padding}entering method #{sig}"
     # check for trapped and native methods, run those manually
