@@ -56,7 +56,7 @@ class root.Field extends AbstractMethodField
 
 trapped_methods = {
   'java/lang/System::setJavaLangAccess()V': (rs) -> #NOP
-  'java/lang/System::loadLibrary(Ljava/lang/String;)V': (rs) -> console.log "warning: library loads are NYI"
+  'java/lang/System::loadLibrary(Ljava/lang/String;)V': (rs) -> console.log "warning: library loads are NYI" if rs.debug > 0
   'java/lang/System::adjustPropertiesForBackwardCompatibility(Ljava/util/Properties;)V': (rs) -> #NOP (apple-java specific?)
   'java/lang/ThreadLocal::<clinit>()V': (rs) -> #NOP
   'java/lang/ThreadLocal::<init>()V': (rs) -> #NOP
@@ -230,7 +230,7 @@ class root.Method extends AbstractMethodField
       else
         throw "too many items on the stack after manual method #{sig}"
     cf = runtime_state.curr_frame()
-    console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}] (manual method end)"
+    console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}] (manual method end)" if runtime_state.debug > 0
 
   run: (runtime_state,virtual=false) ->
     caller_stack = runtime_state.curr_frame().stack
@@ -247,7 +247,7 @@ class root.Method extends AbstractMethodField
     params = @take_params caller_stack
     runtime_state.meta_stack.push(new runtime.StackFrame(this,params,[]))
     padding = (' ' for [2...runtime_state.meta_stack.length]).join('')
-    console.log "#{padding}entering method #{sig}"
+    console.log "#{padding}entering method #{sig}" if runtime_state.debug > 0
     # check for trapped and native methods, run those manually
     if trapped_methods[sig]
       return @run_manually(runtime_state,trapped_methods[sig],padding)
@@ -264,8 +264,9 @@ class root.Method extends AbstractMethodField
         pc = runtime_state.curr_pc()
         op = code[pc]
         throw "#{@name}:#{pc} => (null)" unless op
-        console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}]"
-        console.log "#{padding}#{@name}:#{pc} => #{op.name}"
+        if runtime_state.debug > 0
+          console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}]"
+          console.log "#{padding}#{@name}:#{pc} => #{op.name}"
         op.execute runtime_state
         unless op instanceof opcodes.BranchOpcode
           runtime_state.inc_pc(1 + op.byte_count)  # move to the next opcode
@@ -287,4 +288,4 @@ class root.Method extends AbstractMethodField
             runtime_state.meta_stack.pop()
             throw e
         throw e # JVM Error
-    console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}] (method end)"
+    console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}] (method end)" if runtime_state.debug > 0
