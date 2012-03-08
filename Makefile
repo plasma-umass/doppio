@@ -1,7 +1,7 @@
 run: test_files
 	for testfile in $(wildcard test/*.class); do \
 		echo running $$testfile; \
-		coffee console/runner.coffee $$testfile; \
+		coffee console/runner.coffee $$testfile --debug=warn; \
 	done
 
 disasm: test_files test/.make_target_1

@@ -7,7 +7,7 @@ ClassFile = require '../src/class_file'
 optimist = require 'optimist'
 {argv} = optimist
 
-optimist.usage('Usage: $0 [--debug=debug|warn|error|none]')
+optimist.usage('Usage: $0 [args for JVM] [--debug=debug|warn|error|none]')
 
 return optimist.showHelp() if argv.help
 
@@ -27,4 +27,4 @@ read_classfile = (cls) ->
 fname = argv._[0] or '/dev/stdin'
 class_data = new ClassFile read_binary_file(fname)
 
-jvm.run class_data, console.log, read_classfile, [], argv.debug
+jvm.run class_data, console.log, read_classfile, argv._.slice(1), argv.debug
