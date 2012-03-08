@@ -7,7 +7,8 @@ ClassFile = require '../src/class_file'
 read_binary_file = (filename) ->
   util.bytestr_to_array fs.readFileSync(filename, 'binary')
 
-read_classfile = (cls) -> read_binary_file "third_party/#{cls}.class"
+relpath = process.argv[1].replace(/\/[^\/]*$/, '')
+read_classfile = (cls) -> read_binary_file "#{relpath}/../third_party/#{cls}.class"
 
 # first two are 'coffee', 'scriptname.coffee'
 fname = if process.argv.length > 2 then process.argv[2] else '/dev/stdin'
