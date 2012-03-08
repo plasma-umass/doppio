@@ -33,7 +33,8 @@ show_stacktrace = (rs,e) ->
   e_type = rs.get_obj(e.exception.cause).type
   detail = rs.jvm2js_str(rs.get_obj(e.exception.detailMessage))
   console.error "Exception in thread \"main\" #{e_type}: #{detail}"
-  for entry in e.stack
+  for i in [e.stack.length-1..0] by -1
+    entry = e.stack[i]
     console.error "\tat #{entry.cls}.#{entry.method}(#{entry.file}:#{entry.line}, code #{entry.op})"
 
 # main function that gets called from the frontend
@@ -51,4 +52,4 @@ root.run = (class_data, print_func, load_func, cmdline_args, debug) ->
     else
       console.error "\nInternal JVM Error!"
       show_state(rs)
-      console.error e.stack? or e
+      console.error e.stack or e
