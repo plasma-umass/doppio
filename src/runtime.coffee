@@ -3,6 +3,8 @@ ClassFile ?= require './class_file'
 
 # things assigned to root will be available outside this module
 root = exports ? this.runtime = {}
+util ?= require './util'
+{debug,warn,error} = util
 
 class root.StackFrame
   constructor: (@method,@locals,@stack) ->
@@ -118,7 +120,7 @@ class root.RuntimeState
   class_lookup: (cls) ->
     unless @classes[cls]
       # fetch the relevant class file, make a ClassFile, put it in @classes[cls]
-      console.log "loading new class: #{cls}"
+      debug "loading new class: #{cls}"
       @classes[cls] = new ClassFile @read_classfile cls
       # run class initialization code
       @method_lookup({'class': cls, 'sig': {'name': '<clinit>'}}).run(this)

@@ -109,3 +109,17 @@ class root.JavaException
       line_nums = sf.method.get_code().attrs[0]
       ln = _.last(row.line_number for i,row of line_nums when row.start_pc <= sf.pc)
       @stack.push {'op':sf.pc, 'line':ln, 'file':source_file, 'method':sf.method.name, 'cls':cls}
+
+# logging helpers
+
+DEBUG_LEVEL = 'warn'
+
+root.log = (level, message) ->
+  levels = [ 'debug', 'warn', 'error', 'none' ]
+  console.log message if levels.indexOf(level) >= levels.indexOf(DEBUG_LEVEL)
+
+root.debug = (message) -> root.log 'debug', message
+
+root.warn = (message) -> root.log 'warn', message
+
+root.error = (message) -> root.log 'error', message

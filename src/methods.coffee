@@ -4,6 +4,7 @@ _ ?= require '../third_party/underscore-min.js'
 util ?= require './util'
 opcodes ?= require './opcodes'
 make_attributes ?= require './attributes'
+{debug,warn,error} = util
 
 # things assigned to root will be available outside this module
 root = exports ? this.methods = {}
@@ -56,7 +57,7 @@ class root.Field extends AbstractMethodField
 
 trapped_methods = {
   'java/lang/System::setJavaLangAccess()V': (rs) -> #NOP
-  'java/lang/System::loadLibrary(Ljava/lang/String;)V': (rs) -> console.log "warning: library loads are NYI"
+  'java/lang/System::loadLibrary(Ljava/lang/String;)V': (rs) -> warn "warning: library loads are NYI"
   'java/lang/System::adjustPropertiesForBackwardCompatibility(Ljava/util/Properties;)V': (rs) -> #NOP (apple-java specific?)
   'java/lang/ThreadLocal::<clinit>()V': (rs) -> #NOP
   'java/lang/ThreadLocal::<init>()V': (rs) -> #NOP
@@ -230,14 +231,14 @@ class root.Method extends AbstractMethodField
       else
         throw "too many items on the stack after manual method #{sig}"
     cf = runtime_state.curr_frame()
-    console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}] (manual method end)"
+    debug "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}] (manual method end)"
 
   run: (runtime_state,virtual=false) ->
     caller_stack = runtime_state.curr_frame().stack
     if virtual
       # dirty hack to bounce up the inheritance tree, to make sure we call the method on the most specific type
       oref = caller_stack[caller_stack.length-@param_bytes()]
-      console.error "undef'd oref: (#{caller_stack})[-#{@param_bytes()}] (#{@class_name}::#{@name}#{@raw_descriptor})" unless oref
+      error "undef'd oref: (#{caller_stack})[-#{@param_bytes()}] (#{@class_name}::#{@name}#{@raw_descriptor})" unless oref
       obj = runtime_state.get_obj(oref)
       m_spec = {class: obj.type, sig: {name:@name, type:@raw_descriptor}}
       m = runtime_state.method_lookup(m_spec)
@@ -247,7 +248,7 @@ class root.Method extends AbstractMethodField
     params = @take_params caller_stack
     runtime_state.meta_stack.push(new runtime.StackFrame(this,params,[]))
     padding = (' ' for [2...runtime_state.meta_stack.length]).join('')
-    console.log "#{padding}entering method #{sig}"
+    debug "#{padding}entering method #{sig}"
     # check for trapped and native methods, run those manually
     if trapped_methods[sig]
       return @run_manually(runtime_state,trapped_methods[sig],padding)
@@ -264,8 +265,8 @@ class root.Method extends AbstractMethodField
         pc = runtime_state.curr_pc()
         op = code[pc]
         throw "#{@name}:#{pc} => (null)" unless op
-        console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}]"
-        console.log "#{padding}#{@name}:#{pc} => #{op.name}"
+        debug "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}]"
+        debug "#{padding}#{@name}:#{pc} => #{op.name}"
         op.execute runtime_state
         unless op instanceof opcodes.BranchOpcode
           runtime_state.inc_pc(1 + op.byte_count)  # move to the next opcode
@@ -287,4 +288,4 @@ class root.Method extends AbstractMethodField
             runtime_state.meta_stack.pop()
             throw e
         throw e # JVM Error
-    console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}] (method end)"
+    debug "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}] (method end)"
