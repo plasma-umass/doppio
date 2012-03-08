@@ -12,7 +12,7 @@ disasm: $(CLASSES) $(DISASMS)
 test/%.disasm: test/%.class
 	javap -c -verbose -private test/$* >test/$*.disasm
 
-test/%.class:
+test/%.class: test/%.java
 	javac test/$*.java
 
 test/%.runout: test/%.class
