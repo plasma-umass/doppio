@@ -261,31 +261,32 @@ class root.Method extends AbstractMethodField
     code = @get_code().opcodes
     while true
       try
-        cf = runtime_state.curr_frame()
-        pc = runtime_state.curr_pc()
+        rs = runtime_state
+        cf = rs.curr_frame()
+        pc = rs.curr_pc()
         op = code[pc]
         throw "#{@name}:#{pc} => (null)" unless op
         debug "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}]"
         debug "#{padding}#{@name}:#{pc} => #{op.name}"
-        op.execute runtime_state
+        op.execute rs
         unless op instanceof opcodes.BranchOpcode
-          runtime_state.inc_pc(1 + op.byte_count)  # move to the next opcode
+          rs.inc_pc(1 + op.byte_count)  # move to the next opcode
       catch e
         if e instanceof util.ReturnException
-          runtime_state.meta_stack.pop()
+          rs.meta_stack.pop()
           caller_stack.push e.values...
           break
         else if e instanceof util.JavaException
           exception_handlers = @get_code().exception_handlers
           handler = _.find exception_handlers, (eh) ->
             eh.start_pc <= pc < eh.end_pc and
-              (eh.catch_type == e.exception.type or eh.catch_type == "<all>")
+              (eh.catch_type == "<all>" or rs.is_castable e.exception.type, eh.catch_type)
           if handler?
-            runtime_state.push e.exception_ref
-            runtime_state.goto_pc handler.handler_pc
+            rs.push e.exception_ref
+            rs.goto_pc handler.handler_pc
             continue
           else # abrupt method invocation completion
-            runtime_state.meta_stack.pop()
+            rs.meta_stack.pop()
             throw e
         throw e # JVM Error
     debug "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}] (method end)"

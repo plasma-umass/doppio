@@ -157,9 +157,14 @@ class root.RuntimeState
       iface_name = constant_pool.get(i).deref()
       return true if iface_name is iface['this_class']
     return false
+
+  # Retrieves the heap object referenced by :oref, and returns a boolean
+  # indicating if it can be casted to (i.e. is an instance of) :classname.
   check_cast: (oref, classname) ->
-    return @_check_cast(@get_obj(oref).type,classname)
-  _check_cast: (type1, type2) ->
+    return @is_castable(@get_obj(oref).type,classname)
+
+  # Returns a boolean indicating if :type1 is an instance of :type2.
+  is_castable: (type1, type2) ->
     if type1[0] is '['  # array type
       if type2[0] is '['
         t1 = util.unarray(type1)

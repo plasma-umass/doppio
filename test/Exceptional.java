@@ -9,7 +9,7 @@ public class Exceptional {
       throw new RuntimeException("bad morning");
     }
     catch (Exception e) {
-      System.out.println("We should not reach this? Apparently the real JVM does...");
+      System.out.println("Caught RuntimeException as a subclass of Exception.");
     }
   }
   public static void main(String[] args) {
@@ -34,6 +34,13 @@ public class Exceptional {
       }
       finally {
         b += 1200;
+      }
+
+      try {
+        throw new Error("I'm the gingerbread man");
+      }
+      catch (Exception e) {
+        System.out.println("We should never reach this -- Error is not a subclass of Exception");
       }
   }
 }
