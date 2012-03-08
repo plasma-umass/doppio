@@ -11,7 +11,12 @@ relpath = process.argv[1].replace(/\/[^\/]*$/, '')
 read_classfile = (cls) -> read_binary_file "#{relpath}/../third_party/#{cls}.class"
 
 # first two are 'coffee', 'scriptname.coffee'
-fname = if process.argv.length > 2 then process.argv[2] else '/dev/stdin'
-class_data = new ClassFile read_binary_file(fname)
+if process.argv.length > 2
+	fname = process.argv[2]
+	args = process.argv.slice(3)
+else
+    fname = '/dev/stdin'
+    args = process.argv.slice(2)
 
-jvm.run class_data, console.log, read_classfile, []
+class_data = new ClassFile read_binary_file(fname)
+jvm.run class_data, console.log, read_classfile, args
