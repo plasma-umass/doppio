@@ -5,7 +5,11 @@ public class Fib {
     return fib(n-1) + fib(n-2);
   }
   public static void main(String[] args) {
-    int n = Integer.parseInt(args[0]);
-    System.out.println("fib("+n+") = "+fib(n));
+  	if (args.length > 0) {
+    	int n = Integer.parseInt(args[0]);
+    	System.out.println("fib("+n+") = "+fib(n));
+    } else {
+    	System.out.println("usage: java Fib <number>");
+    }
   }
 }
