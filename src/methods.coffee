@@ -280,7 +280,7 @@ class root.Method extends AbstractMethodField
           exception_handlers = @get_code().exception_handlers
           handler = _.find exception_handlers, (eh) ->
             eh.start_pc <= pc < eh.end_pc and
-              (eh.catch_type == "<all>" or rs.is_castable e.exception.type, eh.catch_type)
+              (eh.catch_type == "<any>" or rs.is_castable e.exception.type, eh.catch_type)
           if handler?
             rs.push e.exception_ref
             rs.goto_pc handler.handler_pc

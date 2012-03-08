@@ -13,7 +13,7 @@ class ExceptionHandler
     @end_pc     = util.read_uint(bytes_array.splice(0,2))
     @handler_pc = util.read_uint(bytes_array.splice(0,2))
     cti = util.read_uint(bytes_array.splice(0,2))
-    @catch_type = if cti==0 then "<all>" else constant_pool.get(cti).deref()
+    @catch_type = if cti==0 then "<any>" else constant_pool.get(cti).deref()
     return bytes_array
 
 class Code
@@ -74,14 +74,14 @@ class StackMapTable
         { 
           frame_type: frame_type
           frame_name: 'same_locals_1_stack_item'
-          verification_info: parse_verification_type_info()
+          stack: parse_verification_type_info()
         }
       else if frame_type == 247
         {
           frame_type: frame_type
           frame_name: 'same_locals_1_stack_item_extended'
           offset_delta: util.read_uint bytes_array.splice(0, 2)
-          verification_info: parse_verification_type_info()
+          stack: parse_verification_type_info()
         }
       else if 248 <= frame_type < 251
         {
@@ -116,7 +116,8 @@ class StackMapTable
     parse_verification_type_info = ->
       tag = bytes_array.shift()
       if tag == 7
-        'class' + constant_pool.get(util.read_uint bytes_array.splice(0, 2)).deref()
+        cls = constant_pool.get(util.read_uint bytes_array.splice(0, 2)).deref()
+        'class ' + (if /\w/.test cls[0] then cls else "\"#{cls}\"")
       else
         tag_to_type = [ 'top', 'int', 'float', 'double', 'long', 'null', 'this', 'object', 'uninitialized' ]
         tag_to_type[tag]

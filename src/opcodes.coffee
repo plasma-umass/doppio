@@ -40,7 +40,8 @@ class root.InvokeOpcode extends root.Opcode
     @method_spec_ref = code_array.get_uint(2)
     # invokeinterface has two redundant bytes
     if @name == 'invokeinterface'
-      code_array.index += 2
+      @count = code_array.get_uint 1
+      code_array.index++
       @byte_count += 2
     @method_spec = constant_pool.get(@method_spec_ref).deref()
 

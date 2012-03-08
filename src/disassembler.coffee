@@ -60,7 +60,9 @@ opcodes ?= require './opcodes'
 
   extra_info_printers =
     InvokeOpcode: -> 
-      "\t##{@method_spec_ref};#{format_extra_info pool.get @method_spec_ref}"
+      "\t##{@method_spec_ref}" +
+      (if @name == 'invokeinterface' then ",  #{@count}" else "") +
+      ";#{format_extra_info pool.get @method_spec_ref}"
     ClassOpcode: ->
       "\t##{@class_ref};#{format_extra_info pool.get @class_ref}"
     FieldOpcode: ->
@@ -86,8 +88,8 @@ opcodes ?= require './opcodes'
     rv += access_string m.access_flags
     rv +=
       # initializers are special-cased
-      if m.name is '<init>' then canonical(class_file.this_class) # class init
-      else if m.name is '<clinit>' then "{}" # interface init
+      if m.name is '<init>' then canonical(class_file.this_class) # instance init
+      else if m.name is '<clinit>' then "{}" # class init
       else (m.return_type?.type or "") + " " + m.name
     rv += "(#{pp_type(p) for p in m.param_types})" unless m.name is '<clinit>'
     rv += ";\n"
@@ -95,11 +97,21 @@ opcodes ?= require './opcodes'
       rv += "  Code:\n"
       code = m.get_code()
       rv += "   Stack=#{code.max_stack}, Locals=#{code.max_locals}, Args_size=#{m.num_args}\n"
-      code.each_opcode((idx, oc) ->
+      code.each_opcode (idx, oc) ->
         rv += "   #{idx}:\t#{oc.name}"
         rv += (util.lookup_handler extra_info_printers, oc, idx) || ""
         rv += "\n"
-      )
+      if code.exception_handlers.length > 0
+        # For printing columns.
+        fixed_width = (num, width) ->
+          num_str = num.toString()
+          (" " for [0...width-num_str.length]).join('') + num_str
+        rv += "  Exception table:\n"
+        rv += "   from   to  target type\n"
+        for eh in code.exception_handlers
+          rv += (fixed_width eh[item], 6 for item in ['start_pc', 'end_pc', 'handler_pc']).join ''
+          rv += "   #{if eh.catch_type[0] == '<' then 'any' else "Class #{eh.catch_type}\n"}\n"
+        rv += "\n"
       for attr in code.attrs
         switch attr.constructor.name
           when 'LineNumberTable'
@@ -111,6 +123,7 @@ opcodes ?= require './opcodes'
               rv += "   frame_type = #{entry.frame_type} /* #{entry.frame_name} */\n"
               rv += "     offset_delta = #{entry.offset_delta}\n" if entry.offset_delta?
               rv += "     locals = [ #{entry.locals.join(', ')} ]\n" if entry.locals?
+              rv += "     stack = [ #{entry.stack} ]\n" if entry.stack?
           when 'LocalVariableTable'
             rv += "  LocalVariableTable:\n"
             rv += "   Start  Length  Slot  Name   Signature\n"
