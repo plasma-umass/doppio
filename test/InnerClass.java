@@ -1,4 +1,5 @@
 // test inner classes
+package test;
 public abstract class InnerClass {
   public abstract void run();
   public static void runFunctor(InnerClass a){

@@ -1,4 +1,5 @@
 // Generate wide opcodes.
+package test;
 public class Wide {
   public static void main(String[] args) {
     int number = 1;

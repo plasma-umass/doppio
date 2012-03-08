@@ -1,3 +1,4 @@
+package test;
 public class Exceptional {
   public static void throwingFunc() throws Exception {
     int x = 0;

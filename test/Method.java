@@ -1,4 +1,5 @@
 // tests static methods
+package test;
 public class Method {
   static int foo(double x, long y) {
     return (int)x + (int)y;

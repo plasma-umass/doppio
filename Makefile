@@ -1,25 +1,24 @@
-run: test_files
-	for testfile in $(wildcard test/*.class); do \
-		echo running $$testfile; \
-		coffee console/runner.coffee $$testfile --debug=warn; \
-	done
+SOURCES = $(wildcard test/*.java)
+DISASMS = $(SOURCES:.java=.disasm)
+RUNOUTS = $(SOURCES:.java=.runout)
+CLASSES = $(SOURCES:.java=.class)
 
-disasm: test_files test/.make_target_1
+all: run disasm
 
-test/.make_target_1: test/*.class
-	for testfile in $?; do \
-		cls=$${testfile%.*}; \
-		echo "Disassembling $$cls"; \
-		javap -c -verbose $$cls > $$cls.disasm; \
-	done
-	touch test/.make_target_1
+run: $(CLASSES) $(RUNOUTS)
 
-test_files: test/.make_target_0
+disasm: $(CLASSES) $(DISASMS)
 
-test/.make_target_0: test/*.java
-	javac $?
-	touch test/.make_target_0
+test/%.disasm: test/%.class
+	javap -c -verbose -private test/$* >test/$*.disasm
+
+test/%.class:
+	javac test/$*.java
+
+test/%.runout: test/%.class
+	java test/$* 2>&1 >test/$*.runout
 
 clean:
-	rm test/.make_target_*
-	rm test/*.disasm
+	rm -f test/*.class
+	rm -f test/*.disasm
+	rm -f test/*.runout

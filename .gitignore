@@ -2,6 +2,6 @@
 *.swp
 *.un~
 *.class
-.make_target_*
+*.runout
 *.disasm
 node_modules

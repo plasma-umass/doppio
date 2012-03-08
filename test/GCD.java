@@ -1,4 +1,5 @@
 // compute greatest common divisor
+package test;
 public class GCD {
   public static void main(String[] args) {
     int a = 144;

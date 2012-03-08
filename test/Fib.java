@@ -1,4 +1,5 @@
 // compute fibonacci sequence
+package test;
 public class Fib {
   static long fib(long n) {
     if (n < 2) return 1;

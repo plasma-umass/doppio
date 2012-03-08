@@ -21,7 +21,7 @@ read_classfile = (cls) ->
   for p in classpath
     data = read_binary_file "#{p}/#{cls}.class"
     return data if data?
-  throw "Could not find class: #{cls}"
+  throw "Could not find class: #{cls} in path: [#{classpath}]"
 
 # first two are 'coffee', 'scriptname.coffee'
 fname = argv._[0] or '/dev/stdin'

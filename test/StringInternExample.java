@@ -1,4 +1,5 @@
 //comparing Strings with and without intern()ing.
+package test;
 public class StringInternExample {
     private static char[] chars =
         {'A', ' ', 'S', 't', 'r', 'i', 'n', 'g'};

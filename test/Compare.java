@@ -1,3 +1,4 @@
+package test;
 public class Compare {
   public static void main(String[] args) {
   	long foo = System.currentTimeMillis();

@@ -1,4 +1,5 @@
 // tests Object creation and members
+package test;
 public class OMember {
   String str;
   double dbl;

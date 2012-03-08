@@ -1,4 +1,5 @@
 // excercise some numeric types
+package test;
 public class Numbers {
   public static void main(String[] args) {
     int a = -4;

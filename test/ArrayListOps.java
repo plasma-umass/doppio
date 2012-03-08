@@ -1,5 +1,5 @@
+package test;
 import java.util.*;
-
 public class ArrayListOps {
   public static void main(String[] args) {
     List<Integer> lst = new ArrayList<Integer>();

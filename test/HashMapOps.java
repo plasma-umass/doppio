@@ -1,4 +1,5 @@
 // test basic hash map operations
+package test;
 import java.util.HashMap;
 public class HashMapOps {
   public static void main(String[] args) {

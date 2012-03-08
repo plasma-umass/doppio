@@ -1,4 +1,5 @@
 // test basic array operations
+package test;
 public class ArrayOps {
   public static void main(String[] args) {
     int[] foo = {5,4,3,2,1};

@@ -1,4 +1,5 @@
 // concatenate strings
+package test;
 public class ConcatStrings {
   public static void main(String[] args) {
     String a = "hello";

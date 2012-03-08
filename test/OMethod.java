@@ -1,4 +1,5 @@
 // tests Object creation and methods
+package test;
 public class OMethod {
   public OMethod(String a, double b) {
     int bar = foo(b);

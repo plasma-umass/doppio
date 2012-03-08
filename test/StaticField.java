@@ -1,4 +1,5 @@
 // test static field init
+package test;
 public class StaticField {
   static int foo = 6;
   static String bar = "bar";
