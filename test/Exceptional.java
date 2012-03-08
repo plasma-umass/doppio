@@ -8,7 +8,7 @@ public class Exceptional {
       throw new RuntimeException("bad morning");
     }
     catch (Exception e) {
-      System.out.println("We should not reach this.");
+      System.out.println("We should not reach this? Apparently the real JVM does...");
     }
   }
   public static void main(String[] args) {
