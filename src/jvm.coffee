@@ -45,4 +45,4 @@ root.run = (class_data, print_func, load_func, cmdline_args) ->
       for entry in e.stack
         console.error "\tat #{entry.cls}.#{entry.method}(#{entry.file}:#{entry.line}, code #{entry.op})"
     else
-      console.error e
+      console.error e.stack
