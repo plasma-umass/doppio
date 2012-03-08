@@ -57,6 +57,7 @@ class root.Field extends AbstractMethodField
 trapped_methods = {
   'java/lang/System::setJavaLangAccess()V': (rs) -> #NOP
   'java/lang/System::loadLibrary(Ljava/lang/String;)V': (rs) -> console.log "warning: library loads are NYI"
+  'java/lang/System::adjustPropertiesForBackwardCompatibility(Ljava/util/Properties;)V': (rs) -> #NOP (apple-java specific?)
   'java/lang/ThreadLocal::<clinit>()V': (rs) -> #NOP
   'java/lang/ThreadLocal::<init>()V': (rs) -> #NOP
   'java/util/concurrent/atomic/AtomicInteger::<clinit>()V': (rs) -> #NOP
@@ -65,6 +66,7 @@ trapped_methods = {
     rs.static_get({'class':'sun/misc/Unsafe','sig':{'name':'theUnsafe'}}))
   'java/util/concurrent/atomic/AtomicReferenceFieldUpdater::newUpdater(Ljava/lang/Class;Ljava/lang/Class;Ljava/lang/String;)Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;': (rs) -> rs.push 0 # null
   'java/nio/charset/Charset$3::run()Ljava/lang/Object;': (rs) -> rs.push 0 # null
+  'java/nio/Bits::byteOrder()Ljava/nio/ByteOrder;': (rs) -> rs.static_get {'class':'java/nio/ByteOrder','sig':{'name':'LITTLE_ENDIAN'}}
   'java/lang/Class::newInstance0()Ljava/lang/Object;': ((rs) -> #implemented here to avoid reflection
     classname = rs.get_obj(rs.curr_frame().locals[0]).name
     rs.push (oref = rs.init_object(classname))
@@ -160,8 +162,16 @@ native_methods = {
     # at the moment, this is effectively a NOP.
     rs.push rs.curr_frame().locals[0]
   'java/lang/System::setIn0(Ljava/io/InputStream;)V': ((rs) -> 
-    rs.push rs.curr_frame().locals[0] # move oref to the stack
+    rs.push rs.curr_frame().locals[0] # move oref to the stack for static_put
     rs.static_put {'class':'java/lang/System','sig':{'name':'in'}}
+    )
+  'java/lang/System::setOut0(Ljava/io/PrintStream;)V': ((rs) ->
+    rs.push rs.curr_frame().locals[0] # move oref to the stack for static_put
+    rs.static_put {'class':'java/lang/System','sig':{'name':'out'}}
+    )
+  'java/lang/System::setErr0(Ljava/io/PrintStream;)V': ((rs) ->
+    rs.push rs.curr_frame().locals[0] # move oref to the stack for static_put
+    rs.static_put {'class':'java/lang/System','sig':{'name':'err'}}
     )
 }
 
@@ -203,28 +213,27 @@ class root.Method extends AbstractMethodField
       else
         throw "too many items on the stack after manual method #{sig}"
     cf = runtime_state.curr_frame()
-    console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}] (method end)"
-
-  signature: () -> "#{@class_name}::#{@name}#{@raw_descriptor}"
+    console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}] (manual method end)"
 
   run: (runtime_state,virtual=false) ->
     caller_stack = runtime_state.curr_frame().stack
     if virtual
       # dirty hack to bounce up the inheritance tree, to make sure we call the method on the most specific type
       oref = caller_stack[caller_stack.length-@param_bytes()]
+      console.error "undef'd oref: (#{caller_stack})[-#{@param_bytes()}] (#{@class_name}::#{@name}#{@raw_descriptor})" unless oref
       obj = runtime_state.get_obj(oref)
       m_spec = {class: obj.type, sig: {name:@name, type:@raw_descriptor}}
       m = runtime_state.method_lookup(m_spec)
       throw "abstract method got called: #{@name}#{@raw_descriptor}" if m.access_flags.abstract
       return m.run(runtime_state)
-    sig = @signature()
+    sig = "#{@class_name}::#{@name}#{@raw_descriptor}"
     params = @take_params caller_stack
     runtime_state.meta_stack.push(new runtime.StackFrame(this,params,[]))
     padding = (' ' for [2...runtime_state.meta_stack.length]).join('')
     console.log "#{padding}entering method #{sig}"
     # check for trapped and native methods, run those manually
     if trapped_methods[sig]
-      return @run_manually(runtime_state,trapped_methods[sig])
+      return @run_manually(runtime_state,trapped_methods[sig],padding)
     if @access_flags.native
       if sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
         return @run_manually(runtime_state,((rs)->),padding)  # these are all just NOPs
@@ -261,4 +270,4 @@ class root.Method extends AbstractMethodField
             runtime_state.meta_stack.pop()
             throw e
         throw e # JVM Error
-    #console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}] (method end)"
+    console.log "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}] (method end)"
