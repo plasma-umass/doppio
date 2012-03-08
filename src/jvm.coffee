@@ -28,7 +28,10 @@ root.run = (class_data, print_func, load_func, cmdline_args) ->
         console.error " #{i},#{i+1}: String \"#{rs.jvm2js_str(rs.heap[i+1])}\""
         ++i
       else if obj.type is 'java/lang/String'
-        console.error " #{i}: String \"#{rs.jvm2js_str(obj)}\""
+        try
+          console.error " #{i}: String \"#{rs.jvm2js_str(obj)}\""
+        catch err
+          console.error " #{i}: String (null value)"
       else if obj.type[0] is '['
         console.error " #{i}: #{obj.type.slice(1)}[#{obj.array.length}]"
       else
