@@ -112,11 +112,15 @@ class root.JavaException
 
 # logging helpers
 
-DEBUG_LEVEL = 'warn'
+root.DEBUG_LEVEL ?= 'debug'
 
 root.log = (level, message) ->
   levels = [ 'debug', 'warn', 'error', 'none' ]
-  console.log message if levels.indexOf(level) >= levels.indexOf(DEBUG_LEVEL)
+  if levels.indexOf(level) >= levels.indexOf(root.DEBUG_LEVEL)
+    if level == 'debug'
+      console.log message
+    else
+      console[level] message
 
 root.debug = (message) -> root.log 'debug', message
 

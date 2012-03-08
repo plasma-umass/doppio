@@ -9,8 +9,10 @@ read_binary_file = (filename) ->
   return null unless path.existsSync filename
   util.bytestr_to_array fs.readFileSync(filename, 'binary')
 
+relpath = process.argv[1].replace(/\/[^\/]*$/, '')
+
 read_classfile = (cls) ->
-  classpath = [ "third_party/classes" ]
+  classpath = [ "#{path.dirname process.argv[1]}/../third_party/classes" ]
   classpath.push(path.dirname process.argv[2]) if process.argv[2]?
   for p in classpath
     data = read_binary_file "#{p}/#{cls}.class"
