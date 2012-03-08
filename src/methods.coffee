@@ -77,6 +77,18 @@ trapped_methods = {
     rs.method_lookup({'class':classname,'sig':{'name':'<init>'}}).run(rs)
     rs.push oref
     )
+  'java/io/PrintStream::write(Ljava/lang/String;)V': ((rs) ->
+    args = rs.curr_frame().locals
+    str = rs.jvm2js_str(rs.get_obj(args[1]))
+    rs.static_get {'class':'java/lang/System','sig':{'name':'out'}}; sysout = rs.pop()
+    rs.static_get {'class':'java/lang/System','sig':{'name':'err'}}; syserr = rs.pop()
+    if args[0] is sysout
+      rs.print str
+    else if args[0] is syserr
+      rs.print str
+    else
+      throw "You tried to write to a PrintStream that wasn't System.out or System.err! For shame!"
+    )
 }
   
 native_methods = {
