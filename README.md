@@ -14,7 +14,7 @@ After `git clone`, do
 
 Most programs need the Java Class Library. On OS X Lion it can be found at
 
-  /System/Library/Frameworks/JavaVM.framework/Classes
+    /System/Library/Frameworks/JavaVM.framework/Classes/classes.jar
 
 Unzip it into `third_party/classes`.
 
