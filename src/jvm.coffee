@@ -20,9 +20,20 @@ root.run = (class_data, print_func, load_func, cmdline_args) ->
       console.error "\nInternal JVM Error!"
 
     cf = rs.curr_frame()
-    heap_str = ("#{i}: #{rs.heap[i].type}" for i in [1...rs.heap.length]).join(', ')
-    console.error "stack: [#{cf.stack}], local: [#{cf.locals}], " +
-      "heap: {#{heap_str}}"
+    console.error "stack: [#{cf.stack}], local: [#{cf.locals}], heap:"
+    i = 1
+    while i < rs.heap.length
+      obj = rs.heap[i]
+      if obj.type is '[char' and rs.heap[i+1] and rs.heap[i+1].type is 'java/lang/String'
+        console.error " #{i},#{i+1}: String \"#{rs.jvm2js_str(rs.heap[i+1])}\""
+        ++i
+      else if obj.type is 'java/lang/String'
+        console.error " #{i}: String \"#{rs.jvm2js_str(obj)}\""
+      else if obj.type[0] is '['
+        console.error " #{i}: #{obj.type.slice(1)}[#{obj.array.length}]"
+      else
+        console.error " #{i}: #{rs.heap[i].type}"
+      ++i
     if e instanceof util.JavaException
       e_type = rs.get_obj(e.exception.cause).type
       detail = rs.jvm2js_str(rs.get_obj(e.exception.detailMessage))
