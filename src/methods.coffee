@@ -60,6 +60,10 @@ trapped_methods = {
   'java/lang/System::adjustPropertiesForBackwardCompatibility(Ljava/util/Properties;)V': (rs) -> #NOP (apple-java specific?)
   'java/lang/ThreadLocal::<clinit>()V': (rs) -> #NOP
   'java/lang/ThreadLocal::<init>()V': (rs) -> #NOP
+  'java/lang/Thread::<clinit>()V': (rs) -> #NOP
+  'java/lang/Thread::getThreadGroup()Ljava/lang/ThreadGroup;': (rs) -> rs.push rs.set_obj({'type':'java/lang/ThreadGroup'}) # mock
+  'java/lang/ThreadGroup::add(Ljava/lang/Thread;)V': (rs) -> #NOP (used in System init code, on mock objects)
+  'java/lang/Terminator::setup()V': (rs) -> #NOP
   'java/util/concurrent/atomic/AtomicInteger::<clinit>()V': (rs) -> #NOP
   'java/util/concurrent/atomic/AtomicInteger::compareAndSet(II)Z': (rs) -> rs.push 1  # always true
   'sun/misc/Unsafe::getUnsafe()Lsun/misc/Unsafe;': ((rs) -> # avoid reflection
@@ -133,6 +137,7 @@ native_methods = {
     cobj = {'type':'java/lang/Class', 'name': (String.fromCharCode(c) for c in carr).join('') }
     rs.push rs.set_obj(cobj)
     )
+  'java/lang/Thread::currentThread()Ljava/lang/Thread;': (rs) -> rs.push rs.set_obj({'type':'java/lang/Thread'}) # mock thread
   'java/lang/Object::getClass()Ljava/lang/Class;': (rs) -> rs.push rs.set_obj({'type':'java/lang/Class', 'name':'java/lang/Object'})
   'java/lang/Class::getClassLoader0()Ljava/lang/ClassLoader;': (rs) -> rs.push 0  # we don't need no stinkin classloaders
   'java/lang/Class::desiredAssertionStatus0(Ljava/lang/Class;)Z': (rs) -> rs.push 0 # we don't need no stinkin asserts
