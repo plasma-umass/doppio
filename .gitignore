@@ -2,3 +2,5 @@
 *.swp
 *.un~
 *.class
+.make_target_*
+*.disasm

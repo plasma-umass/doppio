@@ -35,6 +35,9 @@ The code can also be run from the console. E.g.
 Testing
 -------
 
-Run the automated test-runner:
+Run the automated test-runner to check disassembly output:
 
     ./tools/run_tests.rb
+
+To run the VM itself on all test files, do `make run`. No automatic
+checks are done on the correctness of the output.
