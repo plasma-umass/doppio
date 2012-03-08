@@ -67,7 +67,9 @@ trapped_methods = {
   'java/nio/charset/Charset$3::run()Ljava/lang/Object;': (rs) -> rs.push 0 # null
   'java/lang/Class::newInstance0()Ljava/lang/Object;': ((rs) -> #implemented here to avoid reflection
     classname = rs.get_obj(rs.curr_frame().locals[0]).name
-    rs.push rs.init_object(classname)
+    rs.push (oref = rs.init_object(classname))
+    rs.method_lookup({'class':classname,'sig':{'name':'<init>'}}).run(rs)
+    rs.push oref
     )
 }
   
