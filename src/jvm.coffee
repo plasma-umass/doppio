@@ -51,4 +51,4 @@ root.run = (class_data, print_func, load_func, cmdline_args, debug) ->
     else
       console.error "\nInternal JVM Error!"
       show_state(rs)
-      console.error e.stack
+      console.error e.stack? or e

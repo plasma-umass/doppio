@@ -32,6 +32,8 @@ The code can also be run from the console. E.g.
     coffee console/disassembler.coffee <test/Println.class
     coffee console/runner.coffee <test/Println.class
 
+It requires the `optimist` node module.
+
 Testing
 -------
 

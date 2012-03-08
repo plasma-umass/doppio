@@ -4,22 +4,27 @@ path = require 'path'
 jvm = require '../src/jvm'
 util = require '../src/util'
 ClassFile = require '../src/class_file'
+optimist = require 'optimist'
+{argv} = optimist
+
+optimist.usage('Usage: $0 [--debug=debug|warn|error|none]')
+
+return optimist.showHelp() if argv.help
 
 read_binary_file = (filename) ->
   return null unless path.existsSync filename
   util.bytestr_to_array fs.readFileSync(filename, 'binary')
 
-relpath = process.argv[1].replace(/\/[^\/]*$/, '')
-
 read_classfile = (cls) ->
-  classpath = [ "#{path.dirname process.argv[1]}/../third_party/classes" ]
-  classpath.push(path.dirname process.argv[2]) if process.argv[2]?
+  classpath = [ "#{__dirname}/../third_party/classes" ]
+  classpath.push(path.dirname argv._[0]) if argv._[0]?
   for p in classpath
     data = read_binary_file "#{p}/#{cls}.class"
     return data if data?
+  throw "Could not find class: #{cls}"
 
 # first two are 'coffee', 'scriptname.coffee'
-fname = if process.argv.length > 2 then process.argv[2] else '/dev/stdin'
+fname = argv._[0] or '/dev/stdin'
 class_data = new ClassFile read_binary_file(fname)
 
-jvm.run class_data, console.log, read_classfile, []
+jvm.run class_data, console.log, read_classfile, [], argv.debug
