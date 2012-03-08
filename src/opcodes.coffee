@@ -57,6 +57,7 @@ class root.LoadConstantOpcode extends root.Opcode
       jvm_str = rs.get_obj(rs.string_redirect(val,@cls))
       val = rs.set_obj({'type':'java/lang/Class','name':rs.jvm2js_str(jvm_str)})
     rs.push val
+    rs.push null if @name is 'ldc2_w'
 
 class root.BranchOpcode extends root.Opcode
   constructor: (name, params={}) ->
