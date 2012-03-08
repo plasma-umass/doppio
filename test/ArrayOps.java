@@ -7,5 +7,9 @@ public class ArrayOps {
     System.arraycopy(foo,0,bar,0,5);
     foo[2] = 30;
     int c = bar[2];
+    for (int i = 0; i < foo.length; i++)
+        System.out.println(foo[i]);
+    for (int i = 0; i < bar.length; i++)
+        System.out.println(bar[i]);
   }
 }

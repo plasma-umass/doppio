@@ -8,5 +8,7 @@ public class HashMapOps {
     foo.put("hello",604);
     int a = foo.get("hello");
     int b = foo.get("world");
+    System.out.println("hello is " + a);
+    System.out.println("world is " + b);
   }
 }
