@@ -21,7 +21,8 @@ root.run = (class_data, print_func, load_func, cmdline_args) ->
 
     cf = rs.curr_frame()
     console.error "stack: [#{cf.stack}], local: [#{cf.locals}], heap:"
-    i = 1
+    i = Math.max(1,rs.heap.length-30)  # because the heap can get huge
+    console.error " ...omitted heap entries..." if i > 1
     while i < rs.heap.length
       obj = rs.heap[i]
       if obj.type is '[char' and rs.heap[i+1] and rs.heap[i+1].type is 'java/lang/String'
