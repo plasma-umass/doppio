@@ -10,7 +10,7 @@ html_escape = (str) ->
 # Read in a binary classfile synchronously. Return an array of bytes.
 read_classfile = (cls) ->
  rv = []
- $.ajax "http://localhost:8000/third_party/#{cls}.class", {
+ $.ajax "http://localhost:8000/third_party/classes/#{cls}.class", {
    type: 'GET'
    dataType: 'text'
    async: false

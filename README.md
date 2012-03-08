@@ -12,6 +12,12 @@ After `git clone`, do
 
     git submodule update --init --recursive
 
+Most programs need the Java Class Library. On OS X Lion it can be found at
+
+  /System/Library/Frameworks/JavaVM.framework/Classes
+
+Unzip it into `third_party/classes`.
+
 Use [Coffeescript v1.2.0](http://coffeescript.org/) (which is the default version you get from npm).
 Run `coffee -wc */*.coffee &` to auto-gen scripts as you go.
 
