@@ -16,14 +16,12 @@ read_binary_file = (filename) ->
   util.bytestr_to_array fs.readFileSync(filename, 'binary')
 
 read_classfile = (cls) ->
-  classpath = [ "#{__dirname}/../third_party/classes" ]
-  classpath.push(path.dirname argv._[0]) if argv._[0]?
+  classpath = [ "#{__dirname}/../third_party/classes", "." ]
   for p in classpath
     data = read_binary_file "#{p}/#{cls}.class"
     return data if data?
   throw new Error "Could not find class: #{cls} in path: [#{classpath}]"
 
-# first two are 'coffee', 'scriptname.coffee'
 fname = argv._[0] or '/dev/stdin'
 class_data = new ClassFile read_binary_file(fname)
 

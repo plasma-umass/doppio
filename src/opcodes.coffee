@@ -1,6 +1,6 @@
 
 util ?= require './util'
-{java_throw} = util
+{java_throw, ext_classname} = util
 root = exports ? this.opcodes = {}
 
 class root.Opcode
@@ -399,7 +399,15 @@ root.opcodes = {
   189: new root.ClassOpcode 'anewarray', { execute: (rs) -> rs.heap_newarray @class, rs.pop() }
   190: new root.Opcode 'arraylength', { execute: (rs) -> rs.push rs.get_obj(rs.pop()).array.length }
   191: new root.Opcode 'athrow', { execute: (rs) -> throw new util.JavaException rs, rs.pop() }
-  192: new root.ClassOpcode 'checkcast', { execute: (rs) -> o=rs.pop(); rs.push o if o<=0 or rs.check_cast(o,@class) } # TODO throw an exception if o is null
+  192: new root.ClassOpcode 'checkcast', { execute: (rs) ->
+    o = rs.pop()
+    if o == 0 or rs.check_cast(o,@class)
+      rs.push o
+    else
+      target_class = ext_classname @class # class we wish to cast to
+      candidate_class = if o != 0 then ext_classname rs.get_obj(o).type else "null"
+      java_throw rs, 'java/lang/ClassCastException', "#{candidate_class} cannot be cast to #{target_class}"
+  }
   193: new root.ClassOpcode 'instanceof', { execute: (rs) -> o=rs.pop(); rs.push if o>0 then rs.check_cast(o,@class)+0 else 0 }
   194: new root.Opcode 'monitorenter', { execute: (rs)-> rs.pop() }  #TODO: actually implement locks?
   195: new root.Opcode 'monitorexit',  { execute: (rs)-> rs.pop() }  #TODO: actually implement locks?

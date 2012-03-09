@@ -3,7 +3,7 @@
 _ ?= require '../third_party/underscore-min.js'
 runtime ?= require './runtime'
 util ?= require './util'
-{debug,warn,error} = util
+{debug,warn,error,ext_classname} = util
 
 # things assigned to root will be available outside this module
 root = exports ? this.jvm = {}
@@ -33,7 +33,7 @@ show_stacktrace = (rs,e) ->
   e_type = rs.get_obj(e.exception.cause).type
   detail_ref = e.exception.detailMessage
   detail = if detail_ref then rs.jvm2js_str rs.get_obj detail_ref else ''
-  console.error "Exception in thread \"main\" #{e_type}: #{detail}"
+  console.error "Exception in thread \"main\" #{ext_classname e_type}: #{detail}"
   for i in [e.stack.length-1..0] by -1
     entry = e.stack[i]
     console.error "\tat #{entry.cls}.#{entry.method}(#{entry.file}:#{entry.line}, code #{entry.op})"

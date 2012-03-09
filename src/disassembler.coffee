@@ -5,9 +5,9 @@
 _ ?= require '../third_party/underscore-min.js'
 util ?= require './util'
 opcodes ?= require './opcodes'
+{ext_classname} = util
 
 @disassemble = (class_file) ->
-  canonical = (str) -> str.replace /\//g, '.'
   access_string = (access_flags) ->
     # TODO other flags
     ordered_flags = [ 'public', 'protected', 'private', 'static' ]
@@ -16,7 +16,7 @@ opcodes ?= require './opcodes'
   source_file = _.find(class_file.attrs, (attr) -> attr.constructor.name == 'SourceFile')
   rv = "Compiled from \"#{source_file.name}\"\n"
   rv += access_string class_file.access_flags
-  rv += "class #{canonical class_file.this_class} extends #{canonical class_file.super_class}\n"
+  rv += "class #{ext_classname class_file.this_class} extends #{ext_classname class_file.super_class}\n"
   rv += "  SourceFile: \"#{source_file.name}\"\n" if source_file
   rv += "  minor version: #{class_file.minor_version}\n"
   rv += "  major version: #{class_file.major_version}\n"
@@ -53,7 +53,7 @@ opcodes ?= require './opcodes'
 
   # pretty-print our field types, e.g. as 'PackageName.ClassName[][]'
   pp_type = (field_type) ->
-    return canonical(field_type.class_name) if field_type.type is 'class'
+    return ext_classname field_type.class_name if field_type.type is 'class'
     return field_type.type unless field_type.type is 'reference'
     return pp_type(field_type.referent) + '[]' if field_type.ref_type is 'array'
     return pp_type field_type.referent
@@ -88,7 +88,7 @@ opcodes ?= require './opcodes'
     rv += access_string m.access_flags
     rv +=
       # initializers are special-cased
-      if m.name is '<init>' then canonical(class_file.this_class) # instance init
+      if m.name is '<init>' then ext_classname class_file.this_class # instance init
       else if m.name is '<clinit>' then "{}" # class init
       else (m.return_type?.type or "") + " " + m.name
     rv += "(#{pp_type(p) for p in m.param_types})" unless m.name is '<clinit>'

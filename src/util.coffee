@@ -135,3 +135,7 @@ root.debug = (message) -> root.log 'debug', message
 root.warn = (message) -> root.log 'warn', message
 
 root.error = (message) -> root.log 'error', message
+
+# Java classes are represented internally with slashes as delimiters.
+# This gives us the external representation using dots instead.
+root.ext_classname = (str) -> str.replace /\//g, '.'
