@@ -10,7 +10,7 @@ opcodes ?= require './opcodes'
 @disassemble = (class_file) ->
   access_string = (access_flags) ->
     # TODO other flags
-    ordered_flags = [ 'public', 'protected', 'private', 'static' ]
+    ordered_flags = [ 'public', 'protected', 'private', 'static', 'abstract' ]
     privacy = (("#{flag} " if access_flags[flag]) for flag in ordered_flags).join ''
 
   source_file = _.find(class_file.attrs, (attr) -> attr.constructor.name == 'SourceFile')
