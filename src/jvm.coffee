@@ -31,7 +31,8 @@ show_state = (rs) ->
 
 show_stacktrace = (rs,e) ->
   e_type = rs.get_obj(e.exception.cause).type
-  detail = rs.jvm2js_str(rs.get_obj(e.exception.detailMessage))
+  detail_ref = e.exception.detailMessage
+  detail = if detail_ref then rs.jvm2js_str rs.get_obj detail_ref else ''
   console.error "Exception in thread \"main\" #{e_type}: #{detail}"
   for i in [e.stack.length-1..0] by -1
     entry = e.stack[i]

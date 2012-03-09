@@ -136,7 +136,7 @@ class root.RuntimeState
       throw "too many method choices" if ms.length > 1
       break if ms[0] or not c['super_class']
       c = @class_lookup(c.super_class)
-    throw "no such method found: #{method_spec.sig.name}" unless ms[0]
+    throw "no such method found in #{method_spec.class}: #{method_spec.sig.name}" unless ms[0]
     ms[0]
   field_lookup: (field_spec) ->
     c = @class_lookup(field_spec.class)

@@ -1,5 +1,6 @@
 
 util ?= require './util'
+{java_throw} = util
 root = exports ? this.opcodes = {}
 
 class root.Opcode
@@ -193,6 +194,15 @@ class root.TableSwitchOpcode extends root.SwitchOpcode
       @offsets[@low + i] = offset
     @byte_count = padding_size + 12 + 4 * total_offsets
 
+int_div = (rs, a, b) ->
+  java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b == 0
+  result = a / b
+  # round towards zero
+  Math[if result > 0 then 'floor' else 'ceil'](result)
+  # TODO spec: "if the dividend is the negative integer of largest possible magnitude
+  # for the int type, and the divisor is -1, then overflow occurs, and the
+  # result is equal to the dividend."
+
 # these objects are used as prototypes for the parsed instructions in the
 # classfile
 root.opcodes = {
@@ -305,10 +315,10 @@ root.opcodes = {
   105: new root.Opcode 'lmul', { execute: (rs) -> rs.push(rs.pop2()*rs.pop2(), null) }
   106: new root.Opcode 'fmul', { execute: (rs) -> rs.push(rs.pop()*rs.pop()) }
   107: new root.Opcode 'dmul', { execute: (rs) -> rs.push(rs.pop2()*rs.pop2(), null) }
-  108: new root.Opcode 'idiv', { execute: (rs) -> rs.push(rs.pop()/rs.pop()) }          #TODO: do int division!
-  109: new root.Opcode 'ldiv', { execute: (rs) -> rs.push(rs.pop2()/rs.pop2(), null) }  #TODO: do int division!
-  110: new root.Opcode 'fdiv', { execute: (rs) -> rs.push(rs.pop()/rs.pop()) }
-  111: new root.Opcode 'ddiv', { execute: (rs) -> rs.push(rs.pop2()/rs.pop2(), null) }
+  108: new root.Opcode 'idiv', { execute: (rs) -> v=rs.pop();rs.push(int_div rs, rs.pop(), v) }
+  109: new root.Opcode 'ldiv', { execute: (rs) -> v=rs.pop2();rs.push(int_div(rs, rs.pop2(), v), null) }
+  110: new root.Opcode 'fdiv', { execute: (rs) -> v=rs.pop();rs.push(rs.pop()/v) }
+  111: new root.Opcode 'ddiv', { execute: (rs) -> v=rs.pop2();rs.push(rs.pop2()/v, null) }
   # TODO throw an ArithmeticException if modulus is zero
   112: new root.Opcode 'irem', { execute: (rs) -> v2=rs.pop();  rs.push rs.pop() %v2 }
   113: new root.Opcode 'lrem', { execute: (rs) -> v2=rs.pop2(); rs.push rs.pop2()%v2, null }
