@@ -78,6 +78,7 @@ opcodes ?= require './opcodes'
     LoadConstantOpcode: -> "\t##{@constant_ref};"
     PushOpcode: -> "\t#{@value}"
     IIncOpcode: -> "\t#{@index}, #{@const}"
+    NewArrayOpcode: -> "\t#{@element_type}"
 
   rv += "{\n"
 

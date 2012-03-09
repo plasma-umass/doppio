@@ -2,7 +2,7 @@
 
 def show_errors(name,type,errors)
   if errors.match /\S/
-    puts "Differences found #{type} test for #{name}: -reference, +ours"
+    puts "Differences found in #{type} test for #{name}: -reference, +ours"
     puts errors
   else
     puts "#{name} passes #{type} test"

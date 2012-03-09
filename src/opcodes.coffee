@@ -194,6 +194,16 @@ class root.TableSwitchOpcode extends root.SwitchOpcode
       @offsets[@low + i] = offset
     @byte_count = padding_size + 12 + 4 * total_offsets
 
+class root.NewArrayOpcode extends root.Opcode
+  constructor: (name, params) ->
+    super name, params
+    @byte_count = 1
+    @arr_types = {4:'boolean',5:'char',6:'float',7:'double',8:'byte',9:'short',10:'int',11:'long'}
+
+  take_args: (code_array,constant_pool) ->
+    type_code = code_array.get_uint 1
+    @element_type = @arr_types[type_code]
+
 int_div = (rs, a, b) ->
   java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b == 0
   result = a / b
@@ -395,7 +405,7 @@ root.opcodes = {
   184: new root.InvokeOpcode 'invokestatic',   { execute: (rs)-> rs.method_lookup(@method_spec).run(rs)}
   185: new root.InvokeOpcode 'invokeinterface',{ execute: (rs)-> rs.method_lookup(@method_spec).run(rs,true)}
   187: new root.ClassOpcode 'new', { execute: (rs) -> rs.heap_new @class }
-  188: new root.Opcode 'newarray', { byte_count: 1, execute: (rs) -> rs.heap_newarray @args[0], rs.pop() }
+  188: new root.NewArrayOpcode 'newarray', { execute: (rs) -> rs.heap_newarray @element_type, rs.pop() }
   189: new root.ClassOpcode 'anewarray', { execute: (rs) -> rs.heap_newarray @class, rs.pop() }
   190: new root.Opcode 'arraylength', { execute: (rs) -> rs.push rs.get_obj(rs.pop()).array.length }
   191: new root.Opcode 'athrow', { execute: (rs) -> throw new util.JavaException rs, rs.pop() }
