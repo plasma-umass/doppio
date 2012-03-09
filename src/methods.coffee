@@ -240,6 +240,7 @@ class root.Method extends AbstractMethodField
       oref = caller_stack[caller_stack.length-@param_bytes()]
       error "undef'd oref: (#{caller_stack})[-#{@param_bytes()}] (#{@class_name}::#{@name}#{@raw_descriptor})" unless oref
       obj = runtime_state.get_obj(oref)
+      throw "Tried to call a method on an array: (#{obj.type}).#{@name}#{@raw_descriptor}. This is NYI!" if obj.type[0] is '['
       m_spec = {class: obj.type, sig: {name:@name, type:@raw_descriptor}}
       m = runtime_state.method_lookup(m_spec)
       throw "abstract method got called: #{@name}#{@raw_descriptor}" if m.access_flags.abstract
