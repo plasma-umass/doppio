@@ -24,5 +24,6 @@ read_classfile = (cls) ->
 
 fname = argv._[0] or '/dev/stdin'
 class_data = new ClassFile read_binary_file(fname)
+java_cmd_args = (arg.toString() for arg in argv._[1..])
 
-jvm.run class_data, console.log, read_classfile, argv._.slice(1), argv.debug
+jvm.run class_data, console.log, read_classfile, java_cmd_args, argv.debug
