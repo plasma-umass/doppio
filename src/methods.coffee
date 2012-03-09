@@ -4,7 +4,7 @@ _ ?= require '../third_party/underscore-min.js'
 util ?= require './util'
 opcodes ?= require './opcodes'
 make_attributes ?= require './attributes'
-{debug,warn,error} = util
+{log,debug,error} = util
 
 # things assigned to root will be available outside this module
 root = exports ? this.methods = {}
@@ -57,7 +57,7 @@ class root.Field extends AbstractMethodField
 
 trapped_methods = {
   'java/lang/System::setJavaLangAccess()V': (rs) -> #NOP
-  'java/lang/System::loadLibrary(Ljava/lang/String;)V': (rs) -> warn "warning: library loads are NYI"
+  'java/lang/System::loadLibrary(Ljava/lang/String;)V': (rs) -> error "warning: library loads are NYI"
   'java/lang/System::adjustPropertiesForBackwardCompatibility(Ljava/util/Properties;)V': (rs) -> #NOP (apple-java specific?)
   'java/lang/ThreadLocal::<clinit>()V': (rs) -> #NOP
   'java/lang/ThreadLocal::<init>()V': (rs) -> #NOP

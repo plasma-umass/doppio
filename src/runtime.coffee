@@ -4,14 +4,16 @@ ClassFile ?= require './class_file'
 # things assigned to root will be available outside this module
 root = exports ? this.runtime = {}
 util ?= require './util'
-{debug,warn,error} = util
+{log,debug,error} = util
+
+trace = (msg) -> log 9, msg
 
 class root.StackFrame
   constructor: (@method,@locals,@stack) ->
     @pc = 0
 
 class root.RuntimeState
-  constructor: (class_data, @print, @read_classfile, initial_args, @debug) ->
+  constructor: (class_data, @print, @read_classfile, initial_args) ->
     @classes = {}
     @classes[class_data.this_class] = class_data
     @heap = [null]
@@ -30,8 +32,8 @@ class root.RuntimeState
       cstr = cdata.constant_pool.get(oref)
       throw new Error "can't redirect const string at #{oref}" unless cstr and cstr.type is 'Asciz'
       cdata.string_redirect[oref] = @init_string(cstr.value,true)
-      console.log "heapifying #{oref} -> #{cdata.string_redirect[oref]} : '#{cstr.value}'" if @debug > 1
-    console.log "redirecting #{oref} -> #{cdata.string_redirect[oref]}" if @debug > 1
+      trace "heapifying #{oref} -> #{cdata.string_redirect[oref]} : '#{cstr.value}'"
+    trace "redirecting #{oref} -> #{cdata.string_redirect[oref]}"
     return cdata.string_redirect[oref]
 
   curr_frame: () -> _.last(@meta_stack)
@@ -74,26 +76,26 @@ class root.RuntimeState
   heap_put: (field_spec) ->
     val = if field_spec.sig.type in ['J','D'] then @pop2() else @pop()
     obj = @heap[@pop()]
-    console.log "setting #{field_spec.sig.name} = #{val} on obj of type #{obj.type}" if @debug > 1
+    trace "setting #{field_spec.sig.name} = #{val} on obj of type #{obj.type}"
     obj[field_spec.sig.name] = val
   heap_get: (field_spec, oref) ->
     obj = @get_obj(oref)
     name = field_spec.sig.name
     obj[name] = @init_field(@field_lookup(field_spec)) if obj[name] is undefined
-    console.log "getting #{name} from obj of type #{obj.type}: #{obj[name]}" if @debug > 1
+    trace "getting #{name} from obj of type #{obj.type}: #{obj[name]}"
     @push obj[name]
     @push null if field_spec.sig.type in ['J','D']
 
   # static stuff
   static_get: (field_spec) ->
     val = @field_lookup(field_spec).static_value
-    console.log "getting #{field_spec.sig.name} from class #{field_spec.class}: #{val}" if @debug > 1
+    trace "getting #{field_spec.sig.name} from class #{field_spec.class}: #{val}"
     @push val
   static_put: (field_spec) ->
     val = if field_spec.sig.type in ['J','D'] then @pop2() else @pop()
     field = @field_lookup field_spec
     field.static_value = val
-    console.log "setting #{field_spec.sig.name} = #{val} on class #{field_spec.class}" if @debug > 1
+    trace "setting #{field_spec.sig.name} = #{val} on class #{field_spec.class}"
 
   # heap object initialization
   init_object: (cls) ->
@@ -120,7 +122,7 @@ class root.RuntimeState
   class_lookup: (cls) ->
     unless @classes[cls]
       # fetch the relevant class file, make a ClassFile, put it in @classes[cls]
-      debug "loading new class: #{cls}"
+      trace "loading new class: #{cls}"
       @classes[cls] = new ClassFile @read_classfile cls
       # run class initialization code
       @method_lookup({'class': cls, 'sig': {'name': '<clinit>'}}).run(this)

@@ -120,21 +120,17 @@ root.java_throw = (rs, cls, msg) ->
 
 # logging helpers
 
-root.DEBUG_LEVEL ?= 'debug'
+root.DEBUG = 10
+root.ERROR = 1
+root.log_level ?= root.DEBUG
 
 root.log = (level, message) ->
-  levels = [ 'debug', 'warn', 'error', 'none' ]
-  if levels.indexOf(level) >= levels.indexOf(root.DEBUG_LEVEL)
-    if level == 'debug'
-      console.log message
-    else
-      console[level] message
+  if level <= root.log_level
+    console[if level == 1 then 'error' else 'log'] message
 
-root.debug = (message) -> root.log 'debug', message
+root.debug = (message) -> root.log root.DEBUG, message
 
-root.warn = (message) -> root.log 'warn', message
-
-root.error = (message) -> root.log 'error', message
+root.error = (message) -> root.log root.ERROR, message
 
 # Java classes are represented internally with slashes as delimiters.
 # This gives us the external representation using dots instead.

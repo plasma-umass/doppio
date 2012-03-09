@@ -3,7 +3,7 @@
 _ ?= require '../third_party/underscore-min.js'
 runtime ?= require './runtime'
 util ?= require './util'
-{debug,warn,error,ext_classname} = util
+{log,debug,error,ext_classname} = util
 
 # things assigned to root will be available outside this module
 root = exports ? this.jvm = {}
@@ -39,8 +39,7 @@ show_stacktrace = (rs,e) ->
     console.error "\tat #{entry.cls}.#{entry.method}(#{entry.file}:#{entry.line}, code #{entry.op})"
 
 # main function that gets called from the frontend
-root.run = (class_data, print_func, load_func, cmdline_args, debug) ->
-  if debug? then util.DEBUG_LEVEL = debug
+root.run = (class_data, print_func, load_func, cmdline_args) ->
   rs = new runtime.RuntimeState(class_data, print_func, load_func, cmdline_args)
   main_spec = {'class': class_data.this_class, 'sig': {'name': 'main'}}
   try

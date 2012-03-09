@@ -22,7 +22,7 @@ Dir.glob("#{test_dir}/*.java") do |src|
   `#{here_dir}/../console/disassembler.coffee #{test_dir}/#{name}.class >#{ours_dis}`
   show_errors(name,'disasm',`#{here_dir}/cleandiff.sh #{test_dir}/#{name}.disasm #{ours_dis}`)
   # compare runtime output
-  `#{here_dir}/../console/runner.coffee #{test_dir}/#{name}.class --debug=error 2>&1 >#{ours_run}`
+  `#{here_dir}/../console/runner.coffee #{test_dir}/#{name}.class --log=error 2>&1 >#{ours_run}`
   show_errors(name,'runtime',`diff -U0 #{test_dir}/#{name}.runout #{ours_run} | sed '1,2d'`)
 end
 File.unlink ours_dis,ours_run
