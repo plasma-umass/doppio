@@ -217,6 +217,11 @@ int_div = (rs, a, b) ->
   # for the int type, and the divisor is -1, then overflow occurs, and the
   # result is equal to the dividend."
 
+# Wrap a number to a 32-bit value, with overflow if necessary.
+wrap_int = (a) ->
+  a = (a + Math.pow 2, 32) % Math.pow 2, 32
+  util.uint2int a, 4
+
 # these objects are used as prototypes for the parsed instructions in the
 # classfile
 root.opcodes = {
@@ -317,11 +322,11 @@ root.opcodes = {
   094: new root.Opcode 'dup2_x2'
   095: new root.Opcode 'swap', {execute: (rs) -> v2=rs.pop(); v1=rs.pop(); rs.push(v2,v1)}
   # TODO handle overflow?
-  096: new root.Opcode 'iadd', { execute: (rs) -> rs.push(rs.pop()+rs.pop()) }
+  096: new root.Opcode 'iadd', { execute: (rs) -> rs.push wrap_int(rs.pop()+rs.pop()) }
   097: new root.Opcode 'ladd', { execute: (rs) -> rs.push(rs.pop2()+rs.pop2(), null) }
   098: new root.Opcode 'fadd', { execute: (rs) -> rs.push(rs.pop()+rs.pop()) }
   099: new root.Opcode 'dadd', { execute: (rs) -> rs.push(rs.pop2()+rs.pop2(), null) }
-  100: new root.Opcode 'isub', { execute: (rs) -> rs.push(-rs.pop()+rs.pop()) }
+  100: new root.Opcode 'isub', { execute: (rs) -> rs.push wrap_int(-rs.pop()+rs.pop()) }
   101: new root.Opcode 'lsub', { execute: (rs) -> rs.push(-rs.pop2()+rs.pop2(), null) }
   102: new root.Opcode 'fsub', { execute: (rs) -> rs.push(-rs.pop()+rs.pop()) }
   103: new root.Opcode 'dsub', { execute: (rs) -> rs.push(-rs.pop2()+rs.pop2(), null) }

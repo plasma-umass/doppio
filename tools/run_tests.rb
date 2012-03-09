@@ -47,7 +47,9 @@ Dir.glob("#{test_dir}/#{cls}.java") do |src|
   if run_runner
     # compare runtime output
     `#{here_dir}/../console/runner.coffee #{test_dir}/#{name}.class --log=error 2>&1 >#{ours_run}`
-    show_errors(name,'runtime',`diff -U0 #{test_dir}/#{name}.runout #{ours_run} | sed '1,2d'`)
+    # -a forces diff to treat file as text. necessary because jvm screwups can
+    # cause weird output that confuses diff
+    show_errors(name,'runtime',`diff -U0 -a #{test_dir}/#{name}.runout #{ours_run} | sed '1,2d'`)
   end
 end
 

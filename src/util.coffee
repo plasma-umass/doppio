@@ -20,7 +20,7 @@ root.cmp = (a,b) ->
   return 1 if a > b
   return null # this will occur if either a or b is NaN
 
-# implments x<<n without the braindead javascript << operator
+# implements x<<n without the braindead javascript << operator
 # (see http://stackoverflow.com/questions/337355/javascript-bitwise-shift-of-long-long-number)
 root.lshift = (x,n) -> x*Math.pow(2,n)
 
@@ -34,6 +34,12 @@ root.read_uint = (bytes) ->
   n = bytes.length-1
   # sum up the byte values shifted left to the right alignment.
   root.sum(root.lshift(bytes[i],8*(n-i)) for i in [0..n])
+
+root.uint2int = (uint, bytes_count) ->
+  if uint > Math.pow 2, 8 * bytes_count - 1
+    uint - Math.pow 2, 8 * bytes_count
+  else
+    uint
 
 root.bytestr_to_array = (bytecode_string) ->
   (bytecode_string.charCodeAt(i) & 0xFF for i in [0...bytecode_string.length])
@@ -73,11 +79,7 @@ class root.BytesArray
     return rv
 
   get_int: (bytes_count) ->
-    uint = @get_uint(bytes_count)
-    if uint > Math.pow 2, 8 * bytes_count - 1
-      uint - Math.pow 2, 8 * bytes_count
-    else
-      uint
+    uint = root.uint2int @get_uint(bytes_count), bytes_count
 
 root.is_string = (obj) -> typeof obj == 'string' or obj instanceof String
 

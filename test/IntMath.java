@@ -22,12 +22,20 @@ public class IntMath {
     runOps(5, 3);
     runOps(-5, 3);
     runOps(5, -3);
+    runOps(Integer.MAX_VALUE, Integer.MAX_VALUE);
+    runOps(Integer.MAX_VALUE, Integer.MIN_VALUE);
+    runOps(Integer.MIN_VALUE, Integer.MAX_VALUE);
+    runOps(Integer.MIN_VALUE, Integer.MIN_VALUE);
   }
 
   public static void runOps(int a, int b) {
-    int c = b / a;
-    System.out.println(b + " / " + a + " = " + c);
-    c = b % a;
-    System.out.println(b + " % " + a + " = " + c);
+    int c = a + b;
+    System.out.println(a + " + " + b + " = " + c);
+    c = a - b;
+    System.out.println(a + " - " + b + " = " + c);
+    c = a / b;
+    System.out.println(a + " / " + b + " = " + c);
+    c = a % b;
+    System.out.println(a + " % " + b + " = " + c);
   }
 }
