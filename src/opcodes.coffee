@@ -204,6 +204,10 @@ class root.NewArrayOpcode extends root.Opcode
     type_code = code_array.get_uint 1
     @element_type = @arr_types[type_code]
 
+int_mod = (rs, a, b) ->
+  java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b == 0
+  a % b
+
 int_div = (rs, a, b) ->
   java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b == 0
   result = a / b
@@ -329,9 +333,8 @@ root.opcodes = {
   109: new root.Opcode 'ldiv', { execute: (rs) -> v=rs.pop2();rs.push(int_div(rs, rs.pop2(), v), null) }
   110: new root.Opcode 'fdiv', { execute: (rs) -> v=rs.pop();rs.push(rs.pop()/v) }
   111: new root.Opcode 'ddiv', { execute: (rs) -> v=rs.pop2();rs.push(rs.pop2()/v, null) }
-  # TODO throw an ArithmeticException if modulus is zero
-  112: new root.Opcode 'irem', { execute: (rs) -> v2=rs.pop();  rs.push rs.pop() %v2 }
-  113: new root.Opcode 'lrem', { execute: (rs) -> v2=rs.pop2(); rs.push rs.pop2()%v2, null }
+  112: new root.Opcode 'irem', { execute: (rs) -> v2=rs.pop();  rs.push int_mod(rs,rs.pop(),v2) }
+  113: new root.Opcode 'lrem', { execute: (rs) -> v2=rs.pop2(); rs.push int_mod(rs,rs.pop2(),v2), null }
   114: new root.Opcode 'frem', { execute: (rs) -> v2=rs.pop();  rs.push rs.pop() %v2 }
   115: new root.Opcode 'drem', { execute: (rs) -> v2=rs.pop2(); rs.push rs.pop2()%v2, null }
   116: new root.Opcode 'ineg', { execute: (rs) -> rs.push -rs.pop() }
