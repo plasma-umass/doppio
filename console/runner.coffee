@@ -14,7 +14,6 @@ exports.read_classfile = (cls) ->
   for p in classpath
     data = exports.read_binary_file "#{p}/#{cls}.class"
     return data if data?
-  throw new Error "Could not find class: #{cls} in path: [#{classpath}]"
 
 if require.main == module
   optimist = require 'optimist'

@@ -4,7 +4,7 @@ ClassFile ?= require './class_file'
 # things assigned to root will be available outside this module
 root = exports ? this.runtime = {}
 util ?= require './util'
-{log,debug,error} = util
+{log,debug,error,java_throw} = util
 
 trace = (msg) -> log 9, msg
 
@@ -117,7 +117,9 @@ class root.RuntimeState
     unless @classes[cls]
       # fetch the relevant class file, make a ClassFile, put it in @classes[cls]
       trace "loading new class: #{cls}"
-      @classes[cls] = new ClassFile @read_classfile cls
+      data = @read_classfile cls
+      java_throw @, 'java/lang/NoClassDefFoundError', cls unless data?
+      @classes[cls] = new ClassFile data
       # run class initialization code
       @method_lookup({'class': cls, 'sig': {'name': '<clinit>'}}).run(this)
       if cls is 'java/lang/System'  # zomg hardcode
