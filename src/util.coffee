@@ -137,3 +137,22 @@ root.error = (message) -> root.log root.ERROR, message
 # Java classes are represented internally with slashes as delimiters.
 # This gives us the external representation using dots instead.
 root.ext_classname = (str) -> str.replace /\//g, '.'
+
+# Parse Java's pseudo-UTF-8 strings. (spec 4.4.7)
+root.bytes2str = (bytes) ->
+  idx = 0
+  char_array =
+    while idx < bytes.length
+      x = bytes[idx++]
+      String.fromCharCode(
+        if x <= 0x7f
+          x
+        else if x <= 0xdf
+          y = bytes[idx++]
+          root.lshift(x & 0x1f, 6) + (y & 0x3f)
+        else
+          y = bytes[idx++]
+          z = bytes[idx++]
+          root.lshift(x & 0xf, 12) + root.lshift(y & 0x3f, 6) + (z & 0x3f)
+      )
+  char_array.join ''

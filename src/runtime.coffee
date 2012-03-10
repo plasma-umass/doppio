@@ -25,7 +25,7 @@ class root.RuntimeState
   # string stuff
   jvm2js_str: (jvm_str) ->
     carr = @get_obj(jvm_str.value).array
-    (String.fromCharCode(c) for c in carr).join('')
+    util.bytes2str carr
   string_redirect: (oref,cls) ->
     cdata = @class_lookup(cls)
     unless cdata.string_redirect[oref]

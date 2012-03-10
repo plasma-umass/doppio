@@ -71,8 +71,7 @@ class ConstString
 
   @from_bytes: (bytes_array) ->
     strlen = util.read_uint(bytes_array.splice(0,2))
-    #TODO: this doesn't actually decode the real unicode repr. But it'll work for ascii...
-    value = (String.fromCharCode(c) for c in bytes_array.splice(0,strlen)).join('')
+    value = util.bytes2str bytes_array.splice(0,strlen)
     const_string = new @ value
     return [const_string, 1, bytes_array]
 
