@@ -11,14 +11,14 @@ class root.Opcode
 
   take_args: (code_array) ->
     @args = [code_array.get_uint(1) for i in [0...@byte_count]]
-  
+
   _execute: (rs) -> throw "#{@name} is a NOP"
 
 class root.FieldOpcode extends root.Opcode
   constructor: (name, params) ->
     super name, params
     @byte_count = 2
-    
+
   take_args: (code_array, constant_pool) ->
     @field_spec_ref = code_array.get_uint(2)
     @field_spec = constant_pool.get(@field_spec_ref).deref()
@@ -27,7 +27,7 @@ class root.ClassOpcode extends root.Opcode
   constructor: (name, params) ->
     super name, params
     @byte_count = 2
-    
+
   take_args: (code_array, constant_pool) ->
     @class_ref = code_array.get_uint(2)
     @class = constant_pool.get(@class_ref).deref()
@@ -36,7 +36,7 @@ class root.InvokeOpcode extends root.Opcode
   constructor: (name, params) ->
     super name, params
     @byte_count = 2
-    
+
   take_args: (code_array, constant_pool) ->
     @method_spec_ref = code_array.get_uint(2)
     # invokeinterface has two redundant bytes
@@ -51,7 +51,7 @@ class root.LoadConstantOpcode extends root.Opcode
     @cls = constant_pool.cls
     @constant_ref = code_array.get_uint @byte_count
     @constant = constant_pool.get @constant_ref
-  
+
   _execute: (rs) ->
     val = @constant.value
     val = rs.string_redirect(val, @cls) if @constant.type is 'String'
@@ -95,7 +95,7 @@ class root.PushOpcode extends root.Opcode
 class root.IIncOpcode extends root.Opcode
   constructor: (name, params) ->
     super name, params
-    
+
   take_args: (code_array, constant_pool, @wide=false) ->
     if @wide
       @name += "_w"
