@@ -348,9 +348,9 @@ root.opcodes = {
   119: new root.Opcode 'dneg', { execute: (rs) -> rs.push -rs.pop2(), null }
   120: new root.Opcode 'ishl', { execute: (rs) -> s=rs.pop()&0x1F; rs.push(rs.pop()<<s) }
   121: new root.Opcode 'lshl'
-  122: new root.Opcode 'ishr', { execute: (rs) -> s=rs.pop()&0x1F; rs.push(rs.pop()>>>s) }
+  122: new root.Opcode 'ishr', { execute: (rs) -> s=rs.pop()&0x1F; rs.push(rs.pop()>>s) }
   123: new root.Opcode 'lshr'
-  124: new root.Opcode 'iushr', { execute: (rs) -> s=rs.pop()&0x1F; rs.push(rs.pop()>>s) }
+  124: new root.Opcode 'iushr', { execute: (rs) -> s=rs.pop()&0x1F; rs.push(rs.pop()>>>s) }
   125: new root.Opcode 'lushr'
   126: new root.Opcode 'iand', { execute: (rs) -> rs.push(rs.pop()&rs.pop()) }
   127: new root.Opcode 'land', { execute: (rs) -> rs.push(rs.pop2()&rs.pop2(), null) }
