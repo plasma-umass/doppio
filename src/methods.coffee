@@ -277,8 +277,7 @@ class root.Method extends AbstractMethodField
         debug "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}]"
         debug "#{padding}#{@name}:#{pc} => #{op.name}"
         op.execute rs
-        unless op instanceof opcodes.BranchOpcode
-          rs.inc_pc(1 + op.byte_count)  # move to the next opcode
+        rs.inc_pc(1 + op.byte_count)  # move to the next opcode
       catch e
         if e instanceof util.BranchException
           rs.goto_pc e.dst_pc

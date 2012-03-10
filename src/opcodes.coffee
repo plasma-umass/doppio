@@ -1,6 +1,6 @@
 
 util ?= require './util'
-{java_throw, ext_classname} = util
+{java_throw, ext_classname,BranchException,ReturnException,JavaException} = util
 root = exports ? this.opcodes = {}
 
 class root.Opcode
@@ -74,7 +74,7 @@ class root.UnaryBranchOpcode extends root.BranchOpcode
     super name, {
       execute: (rs) ->
         v = rs.pop()
-        rs.inc_pc(if params.cmp v then @offset else 1 + @byte_count)
+        throw new BranchException rs.curr_pc() + @offset if params.cmp v
     }
 
 class root.BinaryBranchOpcode extends root.BranchOpcode
@@ -83,7 +83,7 @@ class root.BinaryBranchOpcode extends root.BranchOpcode
       execute: (rs) ->
         v2 = rs.pop()
         v1 = rs.pop()
-        rs.inc_pc(if params.cmp v1,v2 then @offset else 1 + @byte_count)
+        throw new BranchException rs.curr_pc() + @offset if params.cmp v1, v2
     }
 
 class root.PushOpcode extends root.Opcode
@@ -160,10 +160,9 @@ class root.SwitchOpcode extends root.BranchOpcode
 
   execute: (rs) ->
     key = rs.pop()
-    if @offsets[key]?
-      rs.inc_pc @offsets[key]
-    else
-      rs.inc_pc @_default
+    throw new BranchException(
+      rs.curr_pc() + if @offsets[key]? then @offsets[key] else @_default
+    )
 
 class root.LookupSwitchOpcode extends root.SwitchOpcode
   take_args: (code_array, constant_pool) ->
@@ -402,17 +401,17 @@ root.opcodes = {
   164: new root.BinaryBranchOpcode 'if_icmple', { cmp: (v1, v2) -> v1 <= v2 }
   165: new root.BinaryBranchOpcode 'if_acmpeq', { cmp: (v1, v2) -> v1 == v2 }
   166: new root.BinaryBranchOpcode 'if_acmpne', { cmp: (v1, v2) -> v1 != v2 }
-  167: new root.BranchOpcode 'goto', { execute: (rs) -> rs.inc_pc(@offset) }
-  168: new root.BranchOpcode 'jsr', { execute: (rs) -> rs.push(rs.curr_pc()+@byte_count+1);rs.inc_pc @offset }
-  169: new root.Opcode 'ret', { byte_count: 1, execute: (rs) -> throw new util.BranchException rs.cl @args[0] }
+  167: new root.BranchOpcode 'goto', { execute: (rs) -> throw new BranchException rs.curr_pc() + @offset }
+  168: new root.BranchOpcode 'jsr', { execute: (rs) -> rs.push(rs.curr_pc()+@byte_count+1); throw new BranchException rs.curr_pc() + @offset }
+  169: new root.Opcode 'ret', { byte_count: 1, execute: (rs) -> throw new BranchException rs.cl @args[0] }
   170: new root.TableSwitchOpcode 'tableswitch'
   171: new root.LookupSwitchOpcode 'lookupswitch'
-  172: new root.Opcode 'ireturn', { execute: (rs) -> throw new util.ReturnException rs.curr_frame().stack[0] }
-  173: new root.Opcode 'lreturn', { execute: (rs) -> throw new util.ReturnException rs.curr_frame().stack[0], null }
-  174: new root.Opcode 'freturn', { execute: (rs) -> throw new util.ReturnException rs.curr_frame().stack[0] }
-  175: new root.Opcode 'dreturn', { execute: (rs) -> throw new util.ReturnException rs.curr_frame().stack[0], null }
-  176: new root.Opcode 'areturn', { execute: (rs) -> throw new util.ReturnException rs.curr_frame().stack[0] }
-  177: new root.Opcode 'return', { execute: (rs) -> throw new util.ReturnException }
+  172: new root.Opcode 'ireturn', { execute: (rs) -> throw new ReturnException rs.curr_frame().stack[0] }
+  173: new root.Opcode 'lreturn', { execute: (rs) -> throw new ReturnException rs.curr_frame().stack[0], null }
+  174: new root.Opcode 'freturn', { execute: (rs) -> throw new ReturnException rs.curr_frame().stack[0] }
+  175: new root.Opcode 'dreturn', { execute: (rs) -> throw new ReturnException rs.curr_frame().stack[0], null }
+  176: new root.Opcode 'areturn', { execute: (rs) -> throw new ReturnException rs.curr_frame().stack[0] }
+  177: new root.Opcode 'return', { execute: (rs) -> throw new ReturnException }
   178: new root.FieldOpcode 'getstatic', {execute: (rs)-> rs.static_get @field_spec }
   179: new root.FieldOpcode 'putstatic', {execute: (rs)-> rs.static_put @field_spec }
   180: new root.FieldOpcode 'getfield', {execute: (rs)-> rs.heap_get @field_spec, rs.pop() }
@@ -425,7 +424,7 @@ root.opcodes = {
   188: new root.NewArrayOpcode 'newarray', { execute: (rs) -> rs.heap_newarray @element_type, rs.pop() }
   189: new root.ClassOpcode 'anewarray', { execute: (rs) -> rs.heap_newarray @class, rs.pop() }
   190: new root.Opcode 'arraylength', { execute: (rs) -> rs.push rs.get_obj(rs.pop()).array.length }
-  191: new root.Opcode 'athrow', { execute: (rs) -> throw new util.JavaException rs, rs.pop() }
+  191: new root.Opcode 'athrow', { execute: (rs) -> throw new JavaException rs, rs.pop() }
   192: new root.ClassOpcode 'checkcast', { execute: (rs) ->
     o = rs.pop()
     if o == 0 or rs.check_cast(o,@class)
