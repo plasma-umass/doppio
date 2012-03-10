@@ -93,6 +93,10 @@ trapped_methods = {
     else
       throw "You tried to write to a PrintStream that wasn't System.out or System.err! For shame!"
     )
+  'java/lang/ref/Reference::<clinit>()V': (rs) -> #NOP
+  'java/util/concurrent/locks/AbstractQueuedSynchronizer::<clinit>()V': (rs) -> #NOP
+  'java/util/concurrent/locks/AbstractQueuedSynchronizer::compareAndSetState(II)Z': (rs) -> rs.push 1 # always true
+  'java/util/concurrent/locks/AbstractQueuedSynchronizer::release(I)Z': (rs) -> rs.push 1 # always true
 }
   
 native_methods = {
@@ -276,7 +280,10 @@ class root.Method extends AbstractMethodField
         unless op instanceof opcodes.BranchOpcode
           rs.inc_pc(1 + op.byte_count)  # move to the next opcode
       catch e
-        if e instanceof util.ReturnException
+        if e instanceof util.BranchException
+          rs.goto_pc e.dst_pc
+          continue
+        else if e instanceof util.ReturnException
           rs.meta_stack.pop()
           caller_stack.push e.values...
           break

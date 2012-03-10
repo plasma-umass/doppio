@@ -69,7 +69,7 @@ class root.RuntimeState
   heap_newarray: (type,len) -> @push @init_array(type,(0 for _ in [0...len]))
   heap_put: (field_spec) ->
     val = if field_spec.sig.type in ['J','D'] then @pop2() else @pop()
-    obj = @heap[@pop()]
+    obj = @get_obj @pop()
     trace "setting #{field_spec.sig.name} = #{val} on obj of type #{obj.type}"
     obj[field_spec.sig.name] = val
   heap_get: (field_spec, oref) ->

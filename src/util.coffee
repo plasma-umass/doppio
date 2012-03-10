@@ -93,6 +93,9 @@ root.lookup_handler = (handlers, object, args...) ->
     return handler.apply object, args if handler
     obj = Object.getPrototypeOf obj
 
+class root.BranchException
+  constructor: (@dst_pc) ->
+
 class root.ReturnException
   constructor: (@values...) ->
 

@@ -403,8 +403,8 @@ root.opcodes = {
   165: new root.BinaryBranchOpcode 'if_acmpeq', { cmp: (v1, v2) -> v1 == v2 }
   166: new root.BinaryBranchOpcode 'if_acmpne', { cmp: (v1, v2) -> v1 != v2 }
   167: new root.BranchOpcode 'goto', { execute: (rs) -> rs.inc_pc(@offset) }
-  168: new root.Opcode 'jsr'
-  169: new root.Opcode 'ret', { byte_count: 1 }
+  168: new root.BranchOpcode 'jsr', { execute: (rs) -> rs.push(rs.curr_pc()+@byte_count+1);rs.inc_pc @offset }
+  169: new root.Opcode 'ret', { byte_count: 1, execute: (rs) -> throw new util.BranchException rs.cl @args[0] }
   170: new root.TableSwitchOpcode 'tableswitch'
   171: new root.LookupSwitchOpcode 'lookupswitch'
   172: new root.Opcode 'ireturn', { execute: (rs) -> throw new util.ReturnException rs.curr_frame().stack[0] }
