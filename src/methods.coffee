@@ -57,7 +57,10 @@ class root.Field extends AbstractMethodField
 
 trapped_methods = {
   'java/lang/System::setJavaLangAccess()V': (rs) -> #NOP
-  'java/lang/System::loadLibrary(Ljava/lang/String;)V': (rs) -> error "warning: library loads are NYI"
+  'java/lang/System::loadLibrary(Ljava/lang/String;)V': (rs) ->
+      args = rs.curr_frame().locals
+      lib = rs.jvm2js_str rs.get_obj args[0]
+      error "Attempt to load library '#{lib}' failed: library loads are NYI"
   'java/lang/System::adjustPropertiesForBackwardCompatibility(Ljava/util/Properties;)V': (rs) -> #NOP (apple-java specific?)
   'java/lang/ThreadLocal::<clinit>()V': (rs) -> #NOP
   'java/lang/ThreadLocal::<init>()V': (rs) -> #NOP
