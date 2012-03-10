@@ -9,5 +9,6 @@ public class OMember {
   }
   public static void main(String[] args) {
     OMember quux = new OMember("hello",-9.322);
+    System.out.println(quux.str);
   }
 }

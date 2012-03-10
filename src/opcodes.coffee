@@ -204,15 +204,16 @@ class root.NewArrayOpcode extends root.Opcode
     type_code = code_array.get_uint 1
     @element_type = @arr_types[type_code]
 
+towards_zero = (a) ->
+  Math[if a > 0 then 'floor' else 'ceil'](a)
+
 int_mod = (rs, a, b) ->
   java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b == 0
   a % b
 
 int_div = (rs, a, b) ->
   java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b == 0
-  result = a / b
-  # round towards zero
-  Math[if result > 0 then 'floor' else 'ceil'](result)
+  towards_zero a / b
   # TODO spec: "if the dividend is the negative integer of largest possible magnitude
   # for the int type, and the divisor is -1, then overflow occurs, and the
   # result is equal to the dividend."
@@ -221,6 +222,14 @@ int_div = (rs, a, b) ->
 wrap_int = (a) ->
   a = (a + Math.pow 2, 32) % Math.pow 2, 32
   util.uint2int a, 4
+
+float2int = (a) ->
+  INT_MAX = Math.pow(2, 31) - 1
+  INT_MIN = - Math.pow 2, 31
+  if a == NaN then 0
+  else unless a == Infinity or a == -Infinity then towards_zero a
+  else if a > 0 then INT_MAX
+  else INT_MIN
 
 # these objects are used as prototypes for the parsed instructions in the
 # classfile
@@ -305,9 +314,9 @@ root.opcodes = {
   77: new root.StoreOpcode 'astore_2'
   78: new root.StoreOpcode 'astore_3'
   79: new root.Opcode 'iastore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
-  80: new root.Opcode 'lastore'
+  80: new root.Opcode 'lastore', {execute: (rs) -> v=rs.pop2();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
   81: new root.Opcode 'fastore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
-  82: new root.Opcode 'dastore'
+  82: new root.Opcode 'dastore', {execute: (rs) -> v=rs.pop2();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
   83: new root.Opcode 'aastore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
   84: new root.Opcode 'bastore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
   85: new root.Opcode 'castore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
@@ -365,10 +374,10 @@ root.opcodes = {
   136: new root.Opcode 'l2i', { execute: (rs) -> rs.push rs.pop2() }  #TODO: truncate to 32 bit int
   137: new root.Opcode 'l2f', { execute: (rs) -> rs.push rs.pop2() }
   138: new root.Opcode 'l2d', { execute: (rs) -> }
-  139: new root.Opcode 'f2i', { execute: (rs) -> rs.push Math.floor(rs.pop()) }
+  139: new root.Opcode 'f2i', { execute: (rs) -> rs.push float2int rs.pop() }
   140: new root.Opcode 'f2l', { execute: (rs) -> rs.push Math.floor(rs.pop()), null }
   141: new root.Opcode 'f2d', { execute: (rs) -> rs.push null }
-  142: new root.Opcode 'd2i', { execute: (rs) -> rs.push Math.floor(rs.pop2()) }
+  142: new root.Opcode 'd2i', { execute: (rs) -> rs.push float2int rs.pop2() }
   143: new root.Opcode 'd2l', { execute: (rs) -> rs.push Math.floor(rs.pop2()), null }
   144: new root.Opcode 'd2f', { execute: (rs) -> rs.push rs.pop2() }
   145: new root.Opcode 'i2b', { execute: (rs) -> }  #TODO: truncate to 8 bits

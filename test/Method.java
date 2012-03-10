@@ -5,6 +5,6 @@ public class Method {
     return (int)x + (int)y;
   }
   public static void main(String[] args) {
-    foo(3.14,500L);
+    System.out.println(foo(3.14,500L));
   }
 }

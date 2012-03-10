@@ -1,11 +1,11 @@
 package test;
 public class Compare {
   public static void main(String[] args) {
-  	long foo = System.currentTimeMillis();
+    long foo = System.currentTimeMillis();
     if (foo < 0L) {
-    	int a = 10000;
+      System.out.println(10000);
     } else {
-    	int a = 99999;
+      System.out.println(99999);
     }
   }
 }

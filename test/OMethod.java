@@ -3,6 +3,7 @@ package test;
 public class OMethod {
   public OMethod(String a, double b) {
     int bar = foo(b);
+    System.out.println(bar);
   }
   private int foo(double x) {
     return (int)x;
