@@ -96,6 +96,13 @@ trapped_methods = {
   'java/util/concurrent/locks/AbstractQueuedSynchronizer::release(I)Z': (rs) -> rs.push 1 # always true
 }
   
+doPrivileged = (rs) ->
+  oref = rs.curr_frame().locals[0]
+  action = rs.get_obj(oref)
+  m = rs.method_lookup({'class': action.type, 'sig': {'name': 'run','type':'()Ljava/lang/Object;'}})
+  rs.push oref unless m.access_flags.static
+  m.run(rs,m.access_flags.virtual)
+
 native_methods = {
   'java/lang/System::arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V': ((rs) -> 
     args = rs.curr_frame().locals
@@ -124,13 +131,8 @@ native_methods = {
     sig = (d_val/Math.pow(2,exp)-1)/Math.pow(2,-52)
     rs.push util.lshift(sign,63)+util.lshift(exp+1023,52)+sig, null
     )
-  'java/security/AccessController::doPrivileged(Ljava/security/PrivilegedAction;)Ljava/lang/Object;': ((rs) ->
-    oref = rs.curr_frame().locals[0]
-    action = rs.get_obj(oref)
-    m = rs.method_lookup({'class': action.type, 'sig': {'name': 'run','type':'()Ljava/lang/Object;'}})
-    rs.push oref unless m.access_flags.static
-    m.run(rs,m.access_flags.virtual)
-    )
+  'java/security/AccessController::doPrivileged(Ljava/security/PrivilegedAction;)Ljava/lang/Object;': doPrivileged
+  'java/security/AccessController::doPrivileged(Ljava/security/PrivilegedExceptionAction;)Ljava/lang/Object;': doPrivileged
   'java/io/FileSystem::getFileSystem()Ljava/io/FileSystem;': (rs) -> rs.heap_new('java/io/UnixFileSystem')
   'java/lang/StrictMath::pow(DD)D': (rs) -> rs.push Math.pow(rs.cl(0),rs.cl(2)), null
   'sun/misc/VM::initialize()V': (rs) ->  # NOP???
@@ -208,6 +210,10 @@ native_methods = {
   'java/io/FileOutputStream::writeBytes([BII)V': (rs) ->
     args = rs.curr_frame().locals
     rs.print rs.jvm_carr2js_str(args[1], args[2], args[3])
+  'java/lang/Object::hashCode()I': (rs) ->
+    # return heap reference. XXX need to change this if we ever implement
+    # GC that moves stuff around.
+    rs.push rs.curr_frame().locals[0]
 }
 
 array_methods =
