@@ -160,7 +160,9 @@ native_methods = {
     rs.push rs.set_obj(cobj)
     )
   'java/lang/Thread::currentThread()Ljava/lang/Thread;': (rs) -> rs.push rs.set_obj({'type':'java/lang/Thread'}) # mock thread
-  'java/lang/Object::getClass()Ljava/lang/Class;': (rs) -> rs.push rs.set_obj({'type':'java/lang/Class', 'name':'java/lang/Object'})
+  'java/lang/Object::getClass()Ljava/lang/Class;': (rs) ->
+    _this = rs.get_obj(rs.curr_frame().locals[0])
+    rs.push rs.set_obj({'type':'java/lang/Class', 'name':util.ext_classname _this.type})
   'java/lang/Class::getClassLoader0()Ljava/lang/ClassLoader;': (rs) -> rs.push 0  # we don't need no stinkin classloaders
   'java/lang/Class::desiredAssertionStatus0(Ljava/lang/Class;)Z': (rs) -> rs.push 0 # we don't need no stinkin asserts
   'java/lang/Class::getName0()Ljava/lang/String;': (rs) -> rs.push rs.init_string(rs.get_obj(rs.curr_frame().locals[0]).name)
