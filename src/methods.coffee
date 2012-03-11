@@ -52,7 +52,7 @@ class AbstractMethodField
         return null
 
 class root.Field extends AbstractMethodField
-  parse_descriptor: (raw_descriptor) ->
+  parse_descriptor: (@raw_descriptor) ->
     @type = @parse_field_type raw_descriptor.split ''
     if @access_flags.static
       @static_value = null  # loaded in when getstatic is called
