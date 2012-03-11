@@ -126,6 +126,8 @@ format_extra_info = (entry) ->
     when 'NameAndType' then "//  #{info.name}:#{info.type}"
     else "\t//  " + escape_whitespace info if util.is_string info
 
+primitive_types = {'Z':'boolean','C':'char','F':'float','D':'double','B':'byte','S':'short','I':'int','J':'long'}
+
 root.opcode_annotators =
   InvokeOpcode: (idx, pool) ->
     "\t##{@method_spec_ref}" +
@@ -146,4 +148,4 @@ root.opcode_annotators =
   LoadConstantOpcode: -> "\t##{@constant_ref};"
   PushOpcode: -> "\t#{@value}"
   IIncOpcode: -> "\t#{@index}, #{@const}"
-  NewArrayOpcode: -> "\t#{@element_type}"
+  NewArrayOpcode: -> "\t#{primitive_types[@element_type]}"
