@@ -33,7 +33,7 @@ root.disassemble = (class_file) ->
       when 'float' then val.toFixed(5) + "f"
       when 'double' then val + "d"
       when 'long' then val + "l"
-      else ((if entry.deref? then "#" else "") + val).replace /\n/g, "\\n"
+      else escape_whitespace ((if entry.deref? then "#" else "") + val)
 
   pool = class_file.constant_pool
   pool.each (idx, entry) ->
@@ -105,6 +105,15 @@ root.disassemble = (class_file) ->
 
   return rv
 
+escape_whitespace = (str) ->
+ str.replace /\s/g, (c) ->
+   switch c
+     when "\n" then "\\n"
+     when "\r" then "\\r"
+     when "\t" then "\\t"
+     when "\v" then "\\v"
+     when "\f" then "\\f"
+     else c
 
 # if :entry is a reference, display its referent in a comment
 format_extra_info = (entry) ->
@@ -115,7 +124,7 @@ format_extra_info = (entry) ->
     when 'Method', 'InterfaceMethod', 'Field'
       "\t//  #{info.class}.#{info.sig.name}:#{info.sig.type}"
     when 'NameAndType' then "//  #{info.name}:#{info.type}"
-    else "\t//  " + info.replace /\n/g, "\\n" if util.is_string info
+    else "\t//  " + escape_whitespace info if util.is_string info
 
 root.opcode_annotators =
   InvokeOpcode: (idx, pool) ->
