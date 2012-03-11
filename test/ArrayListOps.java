@@ -11,6 +11,6 @@ public class ArrayListOps {
     another_lst.add(5);
     lst.addAll(another_lst);
     for (Integer i : lst) 
-      System.out.print(i);
+      System.out.println(i);
   }
 }

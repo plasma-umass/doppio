@@ -202,6 +202,14 @@ native_methods = {
     rs.push rs.curr_frame().locals[0] # move oref to the stack for static_put
     rs.static_put {'class':'java/lang/System','sig':{'name':'err'}}
     )
+  'java/lang/Class::getComponentType()Ljava/lang/Class;': (rs) ->
+    type = rs.get_obj(rs.curr_frame().locals[0]).name
+    component_type = /\[+(.*)/.exec(type)[1]
+    rs.push rs.set_obj type:'java/lang/Class', name:component_type
+  'java/lang/reflect/Array::newArray(Ljava/lang/Class;I)Ljava/lang/Object;': (rs) ->
+    type = rs.get_obj(rs.curr_frame().locals[0]).name
+    len = rs.curr_frame().locals[0]
+    rs.heap_newarray util.int_classname type, len
 }
 
 array_methods =

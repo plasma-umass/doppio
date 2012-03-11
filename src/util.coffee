@@ -137,9 +137,10 @@ root.debug = (message) -> root.log root.DEBUG, message
 
 root.error = (message) -> root.log root.ERROR, message
 
-# Java classes are represented internally with slashes as delimiters.
-# This gives us the external representation using dots instead.
+# Java classes are represented internally using slashes as delimiters.
+# These helper functions convert between the two representations.
 root.ext_classname = (str) -> str.replace /\//g, '.'
+root.int_classname = (str) -> str.replace /\./g, '/'
 
 # Parse Java's pseudo-UTF-8 strings. (spec 4.4.7)
 root.bytes2str = (bytes) ->
