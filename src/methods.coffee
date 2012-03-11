@@ -179,7 +179,7 @@ native_methods = {
     #  java.version,java.vendor,java.vendor.url,java.home,java.class.version,java.class.path,
     #  os.name,os.arch,os.version,file.separator,path.separator,line.separator,
     #  user.name,user.home,user.dir
-    props = {'file.encoding':'US_ASCII','java.vendor':'Coffee-JVM'}
+    props = {'file.encoding':'US_ASCII','java.vendor':'Coffee-JVM','line.separator':'\n'}
     for k,v of props
       rs.push p_ref, rs.init_string(k,true), rs.init_string(v,true)
       m.run(rs)
@@ -210,6 +210,9 @@ native_methods = {
     type = rs.get_obj(rs.curr_frame().locals[0]).obj.name
     len = rs.curr_frame().locals[0]
     rs.heap_newarray util.int_classname type, len
+  'java/io/FileOutputStream::writeBytes([BII)V': (rs) ->
+    args = rs.curr_frame().locals
+    rs.print rs.jvm_carr2js_str(args[1], args[2], args[3])
 }
 
 array_methods =

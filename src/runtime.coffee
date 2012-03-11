@@ -24,8 +24,10 @@ class root.RuntimeState
 
   # string stuff
   jvm2js_str: (jvm_str) ->
-    carr = @get_obj(jvm_str.obj.value).obj.array
-    (util.bytes2str carr).substr(jvm_str.offset ? 0, jvm_str.count)
+    @jvm_carr2js_str(jvm_str.obj.value, jvm_str.offset, jvm_str.count)
+  jvm_carr2js_str: (arr_ref, offset, count) ->
+    carr = @get_obj(arr_ref).obj.array
+    (util.bytes2str carr).substr(offset ? 0, count)
   string_redirect: (oref,cls) ->
     cdata = @class_lookup(cls)
     unless cdata.string_redirect[oref]
