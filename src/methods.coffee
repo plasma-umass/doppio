@@ -64,11 +64,6 @@ trapped_methods = {
       lib = rs.jvm2js_str rs.get_obj args[0]
       error "Attempt to load library '#{lib}' failed: library loads are NYI"
   'java/lang/System::adjustPropertiesForBackwardCompatibility(Ljava/util/Properties;)V': (rs) -> #NOP (apple-java specific?)
-  'java/lang/ThreadLocal::<clinit>()V': (rs) -> #NOP
-  'java/lang/ThreadLocal::<init>()V': (rs) -> #NOP
-  'java/lang/Thread::<clinit>()V': (rs) -> #NOP
-  'java/lang/Thread::getThreadGroup()Ljava/lang/ThreadGroup;': (rs) -> rs.push rs.set_obj 'java/lang/ThreadGroup' # mock
-  'java/lang/ThreadGroup::add(Ljava/lang/Thread;)V': (rs) -> #NOP (used in System init code, on mock objects)
   'java/lang/Terminator::setup()V': (rs) -> #NOP
   'java/util/concurrent/atomic/AtomicInteger::<clinit>()V': (rs) -> #NOP
   'java/util/concurrent/atomic/AtomicInteger::compareAndSet(II)Z': (rs) -> rs.push 1  # always true
