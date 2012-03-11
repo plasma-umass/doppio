@@ -24,7 +24,7 @@ show_state = (rs) ->
       catch err
         debug " #{i}: String (null value)"
     else if obj.type[0] is '['
-      debug " #{i}: #{obj.type.slice(1)}[#{obj.array.length}]"
+      debug " #{i}: #{obj.type.slice(1)}[#{obj.obj.array.length}]"
     else
       debug " #{i}: #{rs.heap[i].type}"
     ++i

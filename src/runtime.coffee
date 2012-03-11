@@ -24,7 +24,7 @@ class root.RuntimeState
 
   # string stuff
   jvm2js_str: (jvm_str) ->
-    carr = @get_obj(jvm_str.value).array
+    carr = @get_obj(jvm_str.obj.value).obj.array
     (util.bytes2str carr).substr(jvm_str.offset ? 0, jvm_str.count)
   string_redirect: (oref,cls) ->
     cdata = @class_lookup(cls)
@@ -61,8 +61,8 @@ class root.RuntimeState
   get_obj: (oref) ->
     java_throw @, 'java/lang/NullPointerException', '' unless @heap[oref]?
     @heap[oref]
-  set_obj: (obj) ->
-    @heap.push obj
+  set_obj: (type, obj={}) ->
+    @heap.push type: type, obj: obj
     @heap.length - 1
 
   heap_new: (cls) -> @push @init_object(cls)
@@ -71,13 +71,13 @@ class root.RuntimeState
     val = if field_spec.sig.type in ['J','D'] then @pop2() else @pop()
     obj = @get_obj @pop()
     trace "setting #{field_spec.sig.name} = #{val} on obj of type #{obj.type}"
-    obj[field_spec.sig.name] = val
+    obj.obj[field_spec.sig.name] = val
   heap_get: (field_spec, oref) ->
     obj = @get_obj(oref)
     name = field_spec.sig.name
-    obj[name] = @init_field(@field_lookup(field_spec)) if obj[name] is undefined
-    trace "getting #{name} from obj of type #{obj.type}: #{obj[name]}"
-    @push obj[name]
+    obj.obj[name] = @init_field(@field_lookup(field_spec)) if obj.obj[name] is undefined
+    trace "getting #{name} from obj of type #{obj.type}: #{obj.obj[name]}"
+    @push obj.obj[name]
     @push null if field_spec.sig.type in ['J','D']
 
   # static stuff
@@ -94,12 +94,12 @@ class root.RuntimeState
   # heap object initialization
   init_object: (cls) ->
     @class_lookup cls
-    @set_obj {'type':cls}
-  init_array: (type,arr=[]) -> @set_obj {'type':"[#{type}", 'array':arr}
+    @set_obj cls
+  init_array: (type,arr=[]) -> @set_obj "[#{type}", {'array':arr}
   init_string: (str,intern=false) ->
     return @string_pool[str] if intern and @string_pool[str]
     c_ref = @init_array('char',arr=(str.charCodeAt(i) for i in [0...str.length]))
-    s_ref = @set_obj {'type':'java/lang/String', 'value':c_ref, 'count':str.length}
+    s_ref = @set_obj 'java/lang/String', {'value':c_ref, 'count':str.length}
     @string_pool[str] = s_ref if intern
     return s_ref
   init_field: (field) ->

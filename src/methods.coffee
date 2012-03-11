@@ -67,7 +67,7 @@ trapped_methods = {
   'java/lang/ThreadLocal::<clinit>()V': (rs) -> #NOP
   'java/lang/ThreadLocal::<init>()V': (rs) -> #NOP
   'java/lang/Thread::<clinit>()V': (rs) -> #NOP
-  'java/lang/Thread::getThreadGroup()Ljava/lang/ThreadGroup;': (rs) -> rs.push rs.set_obj({'type':'java/lang/ThreadGroup'}) # mock
+  'java/lang/Thread::getThreadGroup()Ljava/lang/ThreadGroup;': (rs) -> rs.push rs.set_obj 'java/lang/ThreadGroup' # mock
   'java/lang/ThreadGroup::add(Ljava/lang/Thread;)V': (rs) -> #NOP (used in System init code, on mock objects)
   'java/lang/Terminator::setup()V': (rs) -> #NOP
   'java/util/concurrent/atomic/AtomicInteger::<clinit>()V': (rs) -> #NOP
@@ -78,7 +78,7 @@ trapped_methods = {
   'java/nio/charset/Charset$3::run()Ljava/lang/Object;': (rs) -> rs.push 0 # null
   'java/nio/Bits::byteOrder()Ljava/nio/ByteOrder;': (rs) -> rs.static_get {'class':'java/nio/ByteOrder','sig':{'name':'LITTLE_ENDIAN'}}
   'java/lang/Class::newInstance0()Ljava/lang/Object;': ((rs) -> #implemented here to avoid reflection
-    classname = rs.get_obj(rs.curr_frame().locals[0]).name
+    classname = rs.get_obj(rs.curr_frame().locals[0]).obj.name
     rs.push (oref = rs.init_object(classname))
     rs.method_lookup({'class':classname,'sig':{'name':'<init>'}}).run(rs)
     rs.push oref
@@ -104,9 +104,9 @@ trapped_methods = {
 native_methods = {
   'java/lang/System::arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V': ((rs) -> 
     args = rs.curr_frame().locals
-    src_array = rs.get_obj(args[0]).array
+    src_array = rs.get_obj(args[0]).obj.array
     src_pos = args[1]
-    dest_array = rs.get_obj(args[2]).array
+    dest_array = rs.get_obj(args[2]).obj.array
     dest_pos = args[3]
     length = args[4]
     j = dest_pos
@@ -143,7 +143,7 @@ native_methods = {
     frames_to_skip = rs.curr_frame().locals[0]
     #TODO: disregard frames assoc. with java.lang.reflect.Method.invoke() and its implementation
     cls = rs.meta_stack[rs.meta_stack.length-1-frames_to_skip].class_name
-    rs.push rs.set_obj({'type':'java/lang/Class', 'name':cls})
+    rs.push rs.set_obj 'java/lang/Class', { name:cls }
     )
   'java/lang/System::currentTimeMillis()J': (rs) -> rs.push (new Date).getTime(), null
   'java/lang/String::intern()Ljava/lang/String;': ((rs) -> 
@@ -155,22 +155,22 @@ native_methods = {
     )
   'java/lang/Class::getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;': ((rs) ->
     str = rs.get_obj(rs.curr_frame().locals[0])
-    carr = rs.get_obj(str.value).array
-    cobj = {'type':'java/lang/Class', 'name': (String.fromCharCode(c) for c in carr).join('') }
-    rs.push rs.set_obj(cobj)
+    carr = rs.get_obj(str.obj.value).obj.array
+    name = (String.fromCharCode(c) for c in carr).join('') # XXX convert to unicode
+    rs.push rs.set_obj 'java/lang/Class', { name: name }
     )
-  'java/lang/Thread::currentThread()Ljava/lang/Thread;': (rs) -> rs.push rs.set_obj({'type':'java/lang/Thread'}) # mock thread
+  'java/lang/Thread::currentThread()Ljava/lang/Thread;': (rs) -> rs.push rs.set_obj 'java/lang/Thread' # mock thread
   'java/lang/Object::getClass()Ljava/lang/Class;': (rs) ->
     _this = rs.get_obj(rs.curr_frame().locals[0])
-    rs.push rs.set_obj({'type':'java/lang/Class', 'name':util.ext_classname _this.type})
+    rs.push rs.set_obj 'java/lang/Class', { name:util.ext_classname _this.type}
   'java/lang/Class::getClassLoader0()Ljava/lang/ClassLoader;': (rs) -> rs.push 0  # we don't need no stinkin classloaders
   'java/lang/Class::desiredAssertionStatus0(Ljava/lang/Class;)Z': (rs) -> rs.push 0 # we don't need no stinkin asserts
-  'java/lang/Class::getName0()Ljava/lang/String;': (rs) -> rs.push rs.init_string(rs.get_obj(rs.curr_frame().locals[0]).name)
+  'java/lang/Class::getName0()Ljava/lang/String;': (rs) -> rs.push rs.init_string(rs.get_obj(rs.curr_frame().locals[0]).obj.name)
   'java/lang/Class::forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;': ((rs) ->
     jvm_str = rs.get_obj(rs.curr_frame().locals[0])
     classname = rs.jvm2js_str(jvm_str).replace(/\./g,'/')
     throw "Class.forName0: Failed to load #{classname}" unless rs.class_lookup(classname)
-    rs.push rs.set_obj({'type':'java/lang/Class', 'name':classname})
+    rs.push rs.set_obj 'java/lang/Class', { name:classname }
     )
   'java/lang/System::initProperties(Ljava/util/Properties;)Ljava/util/Properties;': ((rs) ->
     p_ref = rs.curr_frame().locals[0]
@@ -203,11 +203,11 @@ native_methods = {
     rs.static_put {'class':'java/lang/System','sig':{'name':'err'}}
     )
   'java/lang/Class::getComponentType()Ljava/lang/Class;': (rs) ->
-    type = rs.get_obj(rs.curr_frame().locals[0]).name
+    type = rs.get_obj(rs.curr_frame().locals[0]).obj.name
     component_type = /\[+(.*)/.exec(type)[1]
-    rs.push rs.set_obj type:'java/lang/Class', name:component_type
+    rs.push rs.set_obj 'java/lang/Class', name:component_type
   'java/lang/reflect/Array::newArray(Ljava/lang/Class;I)Ljava/lang/Object;': (rs) ->
-    type = rs.get_obj(rs.curr_frame().locals[0]).name
+    type = rs.get_obj(rs.curr_frame().locals[0]).obj.name
     len = rs.curr_frame().locals[0]
     rs.heap_newarray util.int_classname type, len
 }
@@ -215,7 +215,7 @@ native_methods = {
 array_methods =
   'getClass()Ljava/lang/Class;': (rs) ->
     _this = rs.get_obj(rs.curr_frame().locals[0])
-    rs.push rs.set_obj({'type':'java/lang/Class', 'name':util.ext_classname _this.type})
+    rs.push rs.set_obj 'java/lang/Class', {name:util.ext_classname _this.type}
 
 class root.Method extends AbstractMethodField
   get_code: ->

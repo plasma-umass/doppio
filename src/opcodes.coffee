@@ -57,7 +57,7 @@ class root.LoadConstantOpcode extends root.Opcode
     val = rs.string_redirect(val, @cls) if @constant.type is 'String'
     if @constant.type is 'class'
       jvm_str = rs.get_obj(rs.string_redirect(val,@cls))
-      val = rs.set_obj({'type':'java/lang/Class','name':rs.jvm2js_str(jvm_str)})
+      val = rs.set_obj 'java/lang/Class', name:rs.jvm2js_str(jvm_str)
     rs.push val
     rs.push null if @name is 'ldc2_w'
 
@@ -279,14 +279,14 @@ root.opcodes = {
   43: new root.LoadOpcode 'aload_1'
   44: new root.LoadOpcode 'aload_2'
   45: new root.LoadOpcode 'aload_3'
-  46: new root.Opcode 'iaload', { execute: (rs) -> i=rs.pop(); rs.push rs.get_obj(rs.pop()).array[i] }
+  46: new root.Opcode 'iaload', { execute: (rs) -> i=rs.pop(); rs.push rs.get_obj(rs.pop()).obj.array[i] }
   47: new root.Opcode 'laload'
-  48: new root.Opcode 'faload', { execute: (rs) -> i=rs.pop(); rs.push rs.get_obj(rs.pop()).array[i] }
+  48: new root.Opcode 'faload', { execute: (rs) -> i=rs.pop(); rs.push rs.get_obj(rs.pop()).obj.array[i] }
   49: new root.Opcode 'daload'
-  50: new root.Opcode 'aaload', { execute: (rs) -> i=rs.pop(); rs.push rs.get_obj(rs.pop()).array[i] }
-  51: new root.Opcode 'baload', { execute: (rs) -> i=rs.pop(); rs.push rs.get_obj(rs.pop()).array[i] }
-  52: new root.Opcode 'caload', { execute: (rs) -> i=rs.pop(); rs.push rs.get_obj(rs.pop()).array[i] }
-  53: new root.Opcode 'saload', { execute: (rs) -> i=rs.pop(); rs.push rs.get_obj(rs.pop()).array[i] }
+  50: new root.Opcode 'aaload', { execute: (rs) -> i=rs.pop(); rs.push rs.get_obj(rs.pop()).obj.array[i] }
+  51: new root.Opcode 'baload', { execute: (rs) -> i=rs.pop(); rs.push rs.get_obj(rs.pop()).obj.array[i] }
+  52: new root.Opcode 'caload', { execute: (rs) -> i=rs.pop(); rs.push rs.get_obj(rs.pop()).obj.array[i] }
+  53: new root.Opcode 'saload', { execute: (rs) -> i=rs.pop(); rs.push rs.get_obj(rs.pop()).obj.array[i] }
   54: new root.StoreVarOpcode 'istore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
   55: new root.StoreVarOpcode 'lstore', { execute: (rs) -> rs.put_cl2(@var_num,rs.pop2()) }
   56: new root.StoreVarOpcode 'fstore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
@@ -312,14 +312,14 @@ root.opcodes = {
   76: new root.StoreOpcode 'astore_1'
   77: new root.StoreOpcode 'astore_2'
   78: new root.StoreOpcode 'astore_3'
-  79: new root.Opcode 'iastore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
-  80: new root.Opcode 'lastore', {execute: (rs) -> v=rs.pop2();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
-  81: new root.Opcode 'fastore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
-  82: new root.Opcode 'dastore', {execute: (rs) -> v=rs.pop2();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
-  83: new root.Opcode 'aastore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
-  84: new root.Opcode 'bastore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
-  85: new root.Opcode 'castore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
-  86: new root.Opcode 'sastore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
+  79: new root.Opcode 'iastore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).obj.array[i]=v }
+  80: new root.Opcode 'lastore', {execute: (rs) -> v=rs.pop2();i=rs.pop();rs.get_obj(rs.pop()).obj.array[i]=v }
+  81: new root.Opcode 'fastore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).obj.array[i]=v }
+  82: new root.Opcode 'dastore', {execute: (rs) -> v=rs.pop2();i=rs.pop();rs.get_obj(rs.pop()).obj.array[i]=v }
+  83: new root.Opcode 'aastore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).obj.array[i]=v }
+  84: new root.Opcode 'bastore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).obj.array[i]=v }
+  85: new root.Opcode 'castore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).obj.array[i]=v }
+  86: new root.Opcode 'sastore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).obj.array[i]=v }
   87: new root.Opcode 'pop', { execute: (rs) -> rs.pop() }
   88: new root.Opcode 'pop2', { execute: (rs) -> rs.pop2() }
   089: new root.Opcode 'dup', { execute: (rs) -> v=rs.pop(); rs.push(v,v) }
@@ -423,7 +423,7 @@ root.opcodes = {
   187: new root.ClassOpcode 'new', { execute: (rs) -> rs.heap_new @class }
   188: new root.NewArrayOpcode 'newarray', { execute: (rs) -> rs.heap_newarray @element_type, rs.pop() }
   189: new root.ClassOpcode 'anewarray', { execute: (rs) -> rs.heap_newarray "L#{@class};", rs.pop() }
-  190: new root.Opcode 'arraylength', { execute: (rs) -> rs.push rs.get_obj(rs.pop()).array.length }
+  190: new root.Opcode 'arraylength', { execute: (rs) -> rs.push rs.get_obj(rs.pop()).obj.array.length }
   191: new root.Opcode 'athrow', { execute: (rs) -> throw new JavaException rs, rs.pop() }
   192: new root.ClassOpcode 'checkcast', { execute: (rs) ->
     o = rs.pop()
