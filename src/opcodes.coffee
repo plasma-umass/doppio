@@ -355,9 +355,9 @@ root.opcodes = {
   118: new root.Opcode 'fneg', { execute: (rs) -> rs.push -rs.pop() }
   119: new root.Opcode 'dneg', { execute: (rs) -> rs.push -rs.pop2(), null }
   120: new root.Opcode 'ishl', { execute: (rs) -> s=rs.pop()&0x1F; rs.push(rs.pop()<<s) }
-  121: new root.Opcode 'lshl'
+  121: new root.Opcode 'lshl', { execute: (rs) -> s=rs.pop()&0x3F; rs.push(util.lshift(rs.pop2(),s),null) }
   122: new root.Opcode 'ishr', { execute: (rs) -> s=rs.pop()&0x1F; rs.push(rs.pop()>>s) }
-  123: new root.Opcode 'lshr'
+  123: new root.Opcode 'lshr', { execute: (rs) -> s=rs.pop()&0x3F; rs.push(rs.pop2()>>s, null) } # XXX this will not work if the shifted number is > 32 bits in size
   124: new root.Opcode 'iushr', { execute: (rs) -> s=rs.pop()&0x1F; rs.push(rs.pop()>>>s) }
   125: new root.Opcode 'lushr'
   126: new root.Opcode 'iand', { execute: (rs) -> rs.push(rs.pop()&rs.pop()) }

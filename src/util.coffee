@@ -152,10 +152,10 @@ root.bytes2str = (bytes) ->
           x
         else if x <= 0xdf
           y = bytes[idx++]
-          root.lshift(x & 0x1f, 6) + (y & 0x3f)
+          (x & 0x1f << 6) + (y & 0x3f)
         else
           y = bytes[idx++]
           z = bytes[idx++]
-          root.lshift(x & 0xf, 12) + root.lshift(y & 0x3f, 6) + (z & 0x3f)
+          (x & 0xf << 12) + (y & 0x3f << 6) + (z & 0x3f)
       )
   char_array.join ''

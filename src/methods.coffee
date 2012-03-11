@@ -125,7 +125,7 @@ native_methods = {
     d_val = Math.abs(d_val)
     exp = Math.floor(Math.log(d_val)/Math.LN2)
     sig = (d_val/Math.pow(2,exp)-1)/Math.pow(2,-52)
-    rs.push util.lshift(sign,63)+util.lshift(exp+1023,52)+sig
+    rs.push util.lshift(sign,63)+util.lshift(exp+1023,52)+sig, null
     )
   'java/security/AccessController::doPrivileged(Ljava/security/PrivilegedAction;)Ljava/lang/Object;': ((rs) ->
     oref = rs.curr_frame().locals[0]
