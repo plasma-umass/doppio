@@ -197,7 +197,7 @@ class root.NewArrayOpcode extends root.Opcode
   constructor: (name, params) ->
     super name, params
     @byte_count = 1
-    @arr_types = {4:'boolean',5:'char',6:'float',7:'double',8:'byte',9:'short',10:'int',11:'long'}
+    @arr_types = {4:'Z',5:'C',6:'F',7:'D',8:'B',9:'S',10:'I',11:'J'}
 
   take_args: (code_array,constant_pool) ->
     type_code = code_array.get_uint 1
@@ -422,7 +422,7 @@ root.opcodes = {
   185: new root.InvokeOpcode 'invokeinterface',{ execute: (rs)-> rs.method_lookup(@method_spec).run(rs,true)}
   187: new root.ClassOpcode 'new', { execute: (rs) -> rs.heap_new @class }
   188: new root.NewArrayOpcode 'newarray', { execute: (rs) -> rs.heap_newarray @element_type, rs.pop() }
-  189: new root.ClassOpcode 'anewarray', { execute: (rs) -> rs.heap_newarray @class, rs.pop() }
+  189: new root.ClassOpcode 'anewarray', { execute: (rs) -> rs.heap_newarray "L#{@class};", rs.pop() }
   190: new root.Opcode 'arraylength', { execute: (rs) -> rs.push rs.get_obj(rs.pop()).array.length }
   191: new root.Opcode 'athrow', { execute: (rs) -> throw new JavaException rs, rs.pop() }
   192: new root.ClassOpcode 'checkcast', { execute: (rs) ->

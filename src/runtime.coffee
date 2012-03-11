@@ -168,7 +168,7 @@ class root.RuntimeState
         t1 = util.unarray(type1)
         t2 = util.unarray(type2)
         return true if t2 is t1  # technically only for primitives, but this works
-        return @_check_cast(t1,t2)
+        return @is_castable(t1,t2)
       c2 = @class_lookup(type2)
       return type2 is 'java/lang/Object' unless c2.access_flags.interface
       return type2 in ['java/lang/Cloneable','java/io/Serializable']

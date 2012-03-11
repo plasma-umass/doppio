@@ -204,6 +204,11 @@ native_methods = {
     )
 }
 
+array_methods =
+  'getClass()Ljava/lang/Class;': (rs) ->
+    _this = rs.get_obj(rs.curr_frame().locals[0])
+    rs.push rs.set_obj({'type':'java/lang/Class', 'name':util.ext_classname _this.type})
+
 class root.Method extends AbstractMethodField
   get_code: ->
     return _.find(@attrs, (a) -> a.constructor.name == "Code")
@@ -236,48 +241,17 @@ class root.Method extends AbstractMethodField
   # distinguish [null] from [].
   pa = (a) -> a.map((e)->if e? then e else '!')
 
-  run_manually: (runtime_state, func, padding='') ->
-    func(runtime_state)
+  run_manually: (func, runtime_state, args...) ->
+    func runtime_state, args...
     s = runtime_state.meta_stack.pop().stack
-    switch s.length
-      when 2 then runtime_state.push s[0], s[1]
-      when 1 then runtime_state.push s[0]
-      when 0 then break
-      else
-        throw "too many items on the stack after manual method #{sig}"
-    cf = runtime_state.curr_frame()
-    debug "#{padding}stack: [#{pa cf.stack}], local: [#{pa cf.locals}] (manual method end)"
+    throw "too many items on the stack after manual method #{sig}" unless s.length <= 2
+    runtime_state.push s...
 
-  run: (runtime_state,virtual=false) ->
-    caller_stack = runtime_state.curr_frame().stack
-    if virtual
-      # dirty hack to bounce up the inheritance tree, to make sure we call the method on the most specific type
-      oref = caller_stack[caller_stack.length-@param_bytes()]
-      error "undef'd oref: (#{caller_stack})[-#{@param_bytes()}] (#{@class_name}::#{@name}#{@raw_descriptor})" unless oref
-      obj = runtime_state.get_obj(oref)
-      throw "Tried to call a method on an array: (#{obj.type}).#{@name}#{@raw_descriptor}. This is NYI!" if obj.type[0] is '['
-      m_spec = {class: obj.type, sig: {name:@name, type:@raw_descriptor}}
-      m = runtime_state.method_lookup(m_spec)
-      throw "abstract method got called: #{@name}#{@raw_descriptor}" if m.access_flags.abstract
-      return m.run(runtime_state)
-    sig = "#{@class_name}::#{@name}#{@raw_descriptor}"
-    params = @take_params caller_stack
-    runtime_state.meta_stack.push(new runtime.StackFrame(this,params,[]))
-    padding = (' ' for [2...runtime_state.meta_stack.length]).join('')
-    debug "#{padding}entering method #{sig}"
-    # check for trapped and native methods, run those manually
-    if trapped_methods[sig]
-      return @run_manually(runtime_state,trapped_methods[sig],padding)
-    if @access_flags.native
-      if sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
-        return @run_manually(runtime_state,((rs)->),padding)  # these are all just NOPs
-      throw "native method NYI: #{sig}" unless native_methods[sig]
-      return @run_manually(runtime_state,native_methods[sig],padding)
+  run_bytecode: (rs, padding) ->
     # main eval loop: execute each opcode, using the pc to iterate through
     code = @get_code().opcodes
     while true
       try
-        rs = runtime_state
         cf = rs.curr_frame()
         pc = rs.curr_pc()
         op = code[pc]
@@ -294,7 +268,7 @@ class root.Method extends AbstractMethodField
           continue
         else if e instanceof util.ReturnException
           rs.meta_stack.pop()
-          caller_stack.push e.values...
+          rs.push e.values...
           break
         else if e instanceof util.JavaException
           exception_handlers = @get_code().exception_handlers
@@ -309,4 +283,42 @@ class root.Method extends AbstractMethodField
             rs.meta_stack.pop()
             throw e
         throw e # JVM Error
+
+  run: (runtime_state,virtual=false) ->
+    caller_stack = runtime_state.curr_frame().stack
+    unless @access_flags.static
+      oref = caller_stack[caller_stack.length-@param_bytes()]
+      error "undef'd oref: (#{caller_stack})[-#{@param_bytes()}] (#{@class_name}::#{@name}#{@raw_descriptor})" unless oref
+      obj = runtime_state.get_obj(oref)
+      is_array = obj.type[0] == '['
+    if virtual and not is_array
+      # dirty hack to bounce up the inheritance tree, to make sure we call the method on the most specific type
+      m_spec = {class: obj.type, sig: {name:@name, type:@raw_descriptor}}
+      m = runtime_state.method_lookup(m_spec)
+      throw "abstract method got called: #{@name}#{@raw_descriptor}" if m.access_flags.abstract
+      return m.run(runtime_state)
+    sig = "#{@class_name}::#{@name}#{@raw_descriptor}"
+    params = @take_params caller_stack
+    runtime_state.meta_stack.push(new runtime.StackFrame(this,params,[]))
+    padding = (' ' for [2...runtime_state.meta_stack.length]).join('')
+    debug "#{padding}entering method #{sig}"
+    # check for trapped and native methods, run those manually
+    if is_array
+      [__,brackets,component_type] = /(\[*)(.*)/.exec(obj.type)
+      # ensure component type is loaded if it is a class
+      if component_type[0] == 'L'
+        runtime_state.class_lookup component_type[1...component_type.length-1]
+      @run_manually array_methods[@name+@raw_descriptor], runtime_state
+    else if trapped_methods[sig]
+      @run_manually trapped_methods[sig], runtime_state
+    else if @access_flags.native
+      if sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
+        @run_manually ((rs)->), runtime_state # these are all just NOPs
+      else if native_methods[sig]
+        @run_manually native_methods[sig], runtime_state
+      else
+        throw "native method NYI: #{sig}"
+    else
+      @run_bytecode runtime_state, padding
+    cf = runtime_state.curr_frame()
     debug "#{padding}stack: [#{pa cf.stack}], local: [#{pa cf.locals}] (method end)"
