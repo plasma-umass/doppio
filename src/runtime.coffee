@@ -59,7 +59,7 @@ class root.RuntimeState
 
   # heap manipulation
   get_obj: (oref) ->
-    java_throw @, 'java/lang/NullPointerException', '' unless @heap[oref]
+    java_throw @, 'java/lang/NullPointerException', '' unless @heap[oref]?
     @heap[oref]
   set_obj: (obj) ->
     @heap.push obj

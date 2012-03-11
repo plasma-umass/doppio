@@ -230,6 +230,10 @@ class root.Method extends AbstractMethodField
     n_bytes = @param_bytes()
     caller_stack.splice(caller_stack.length-n_bytes,n_bytes)
   
+  # used by run and run_manually to print arrays for debugging. we need this to
+  # distinguish [null] from [].
+  pa = (a) -> a.map((e)->if e? then e else '!')
+
   run_manually: (runtime_state, func, padding='') ->
     func(runtime_state)
     s = runtime_state.meta_stack.pop().stack
@@ -240,7 +244,7 @@ class root.Method extends AbstractMethodField
       else
         throw "too many items on the stack after manual method #{sig}"
     cf = runtime_state.curr_frame()
-    debug "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}] (manual method end)"
+    debug "#{padding}stack: [#{pa cf.stack}], local: [#{pa cf.locals}] (manual method end)"
 
   run: (runtime_state,virtual=false) ->
     caller_stack = runtime_state.curr_frame().stack
@@ -276,7 +280,7 @@ class root.Method extends AbstractMethodField
         pc = rs.curr_pc()
         op = code[pc]
         throw "#{@name}:#{pc} => (null)" unless op
-        debug "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}]"
+        debug "#{padding}stack: [#{pa cf.stack}], local: [#{pa cf.locals}]"
         annotation =
           util.lookup_handler(opcode_annotators, op, pc, rs.class_lookup(@class_name).constant_pool) or ""
         debug "#{padding}#{@name}:#{pc} => #{op.name}" + annotation
@@ -303,4 +307,4 @@ class root.Method extends AbstractMethodField
             rs.meta_stack.pop()
             throw e
         throw e # JVM Error
-    debug "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}] (method end)"
+    debug "#{padding}stack: [#{pa cf.stack}], local: [#{pa cf.locals}] (method end)"
