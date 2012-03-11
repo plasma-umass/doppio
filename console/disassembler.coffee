@@ -1,7 +1,7 @@
 #!/usr/bin/env coffee
 fs = require 'fs'
 util = require '../src/util'
-disassemble = require '../src/disassembler'
+{disassemble} = require '../src/disassembler'
 ClassFile = require '../src/class_file'
 
 # first two are 'coffee', 'scriptname.coffee'

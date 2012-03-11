@@ -25,7 +25,7 @@ process_bytecode = (bytecode_string) ->
   $('#go_button').text('Parsing...')
   bytes_array = util.bytestr_to_array bytecode_string
   class_data = new ClassFile(bytes_array)
-  $('#disassembly').html html_escape(disassemble(class_data))
+  $('#disassembly').html html_escape(disassembler.disassemble(class_data))
   $('#run_button').removeAttr('disabled')
   $('#go_button').text(button_idle_text)
 

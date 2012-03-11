@@ -1,5 +1,5 @@
 
-# Export a single 'disassemble' function.
+root = exports ? this.disassembler = {}
 
 # pull in external modules
 _ ?= require '../third_party/underscore-min.js'
@@ -7,7 +7,7 @@ util ?= require './util'
 opcodes ?= require './opcodes'
 {ext_classname} = util
 
-@disassemble = (class_file) ->
+root.disassemble = (class_file) ->
   access_string = (access_flags) ->
     # TODO other flags
     ordered_flags = [ 'public', 'protected', 'private', 'static', 'abstract' ]
@@ -35,17 +35,6 @@ opcodes ?= require './opcodes'
       when 'long' then val + "l"
       else ((if entry.deref? then "#" else "") + val).replace /\n/g, "\\n"
 
-  # if :entry is a reference, display its referent in a comment
-  format_extra_info = (entry) ->
-    type = entry.type
-    info = entry.deref?()
-    return "" unless info
-    switch type
-      when 'Method', 'InterfaceMethod', 'Field'
-        "\t//  #{info.class}.#{info.sig.name}:#{info.sig.type}"
-      when 'NameAndType' then "//  #{info.name}:#{info.type}"
-      else "\t//  " + info.replace /\n/g, "\\n" if util.is_string info
-
   pool = class_file.constant_pool
   pool.each (idx, entry) ->
     rv += "const ##{idx} = #{entry.type}\t#{format entry};#{format_extra_info entry}\n"
@@ -57,28 +46,6 @@ opcodes ?= require './opcodes'
     return field_type.type unless field_type.type is 'reference'
     return pp_type(field_type.referent) + '[]' if field_type.ref_type is 'array'
     return pp_type field_type.referent
-
-  extra_info_printers =
-    InvokeOpcode: -> 
-      "\t##{@method_spec_ref}" +
-      (if @name == 'invokeinterface' then ",  #{@count}" else "") +
-      ";#{format_extra_info pool.get @method_spec_ref}"
-    ClassOpcode: ->
-      "\t##{@class_ref};#{format_extra_info pool.get @class_ref}"
-    FieldOpcode: ->
-      "\t##{@field_spec_ref};#{format_extra_info pool.get @field_spec_ref}"
-    SwitchOpcode: (idx) ->
-      "{\n" +
-        ("\t\t#{match}: #{idx + offset};\n" for match, offset of @offsets).join('') +
-      "\t\tdefault: #{idx + @_default} }"
-    BranchOpcode: (idx) -> "\t#{idx + @offset}"
-    LoadVarOpcode: -> "\t#{@var_num}"
-    StoreVarOpcode: -> "\t#{@var_num}"
-    # TODO: add comments for this constant pool ref as well
-    LoadConstantOpcode: -> "\t##{@constant_ref};"
-    PushOpcode: -> "\t#{@value}"
-    IIncOpcode: -> "\t#{@index}, #{@const}"
-    NewArrayOpcode: -> "\t#{@element_type}"
 
   rv += "{\n"
 
@@ -100,7 +67,7 @@ opcodes ?= require './opcodes'
       rv += "   Stack=#{code.max_stack}, Locals=#{code.max_locals}, Args_size=#{m.num_args}\n"
       code.each_opcode (idx, oc) ->
         rv += "   #{idx}:\t#{oc.name}"
-        rv += (util.lookup_handler extra_info_printers, oc, idx) || ""
+        rv += (util.lookup_handler root.opcode_annotators, oc, idx, pool) || ""
         rv += "\n"
       if code.exception_handlers.length > 0
         # For printing columns.
@@ -138,4 +105,36 @@ opcodes ?= require './opcodes'
 
   return rv
 
-module?.exports = @disassemble
+
+# if :entry is a reference, display its referent in a comment
+format_extra_info = (entry) ->
+  type = entry.type
+  info = entry.deref?()
+  return "" unless info
+  switch type
+    when 'Method', 'InterfaceMethod', 'Field'
+      "\t//  #{info.class}.#{info.sig.name}:#{info.sig.type}"
+    when 'NameAndType' then "//  #{info.name}:#{info.type}"
+    else "\t//  " + info.replace /\n/g, "\\n" if util.is_string info
+
+root.opcode_annotators =
+  InvokeOpcode: (idx, pool) ->
+    "\t##{@method_spec_ref}" +
+    (if @name == 'invokeinterface' then ",  #{@count}" else "") +
+    ";#{format_extra_info pool.get @method_spec_ref}"
+  ClassOpcode: (idx, pool) ->
+    "\t##{@class_ref};#{format_extra_info pool.get @class_ref}"
+  FieldOpcode: (idx, pool) ->
+    "\t##{@field_spec_ref};#{format_extra_info pool.get @field_spec_ref}"
+  SwitchOpcode: (idx) ->
+    "{\n" +
+      ("\t\t#{match}: #{idx + offset};\n" for match, offset of @offsets).join('') +
+    "\t\tdefault: #{idx + @_default} }"
+  BranchOpcode: (idx) -> "\t#{idx + @offset}"
+  LoadVarOpcode: -> "\t#{@var_num}"
+  StoreVarOpcode: -> "\t#{@var_num}"
+  # TODO: add comments for this constant pool ref as well
+  LoadConstantOpcode: -> "\t##{@constant_ref};"
+  PushOpcode: -> "\t#{@value}"
+  IIncOpcode: -> "\t#{@index}, #{@const}"
+  NewArrayOpcode: -> "\t#{@element_type}"

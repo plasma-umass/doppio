@@ -4,7 +4,9 @@ _ ?= require '../third_party/underscore-min.js'
 util ?= require './util'
 opcodes ?= require './opcodes'
 make_attributes ?= require './attributes'
+disassembler ?= require './disassembler'
 {log,debug,error} = util
+{opcode_annotators} = disassembler
 
 # things assigned to root will be available outside this module
 root = exports ? this.methods = {}
@@ -275,7 +277,9 @@ class root.Method extends AbstractMethodField
         op = code[pc]
         throw "#{@name}:#{pc} => (null)" unless op
         debug "#{padding}stack: [#{cf.stack}], local: [#{cf.locals}]"
-        debug "#{padding}#{@name}:#{pc} => #{op.name}"
+        annotation =
+          util.lookup_handler(opcode_annotators, op, pc, rs.class_lookup(@class_name).constant_pool) or ""
+        debug "#{padding}#{@name}:#{pc} => #{op.name}" + annotation
         op.execute rs
         rs.inc_pc(1 + op.byte_count)  # move to the next opcode
       catch e
