@@ -24,7 +24,7 @@ class root.RuntimeState
 
   # string stuff
   jvm2js_str: (jvm_str) ->
-    @jvm_carr2js_str(jvm_str.obj.value, jvm_str.offset, jvm_str.count)
+    @jvm_carr2js_str(jvm_str.obj.value, jvm_str.obj.offset, jvm_str.obj.count)
   jvm_carr2js_str: (arr_ref, offset, count) ->
     carr = @get_obj(arr_ref).obj.array
     (util.bytes2str carr).substr(offset ? 0, count)

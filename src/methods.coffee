@@ -177,7 +177,7 @@ native_methods = {
     m = rs.method_lookup({'class':'java/util/Properties','sig':{'name':'setProperty'}})
     # properties to set:
     #  java.version,java.vendor,java.vendor.url,java.home,java.class.version,java.class.path,
-    #  os.name,os.arch,os.version,file.separator,path.separator,line.separator,
+    #  os.name,os.arch,os.version,file.separator,path.separator,
     #  user.name,user.home,user.dir
     props = {'file.encoding':'US_ASCII','java.vendor':'Coffee-JVM','line.separator':'\n'}
     for k,v of props

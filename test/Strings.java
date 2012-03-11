@@ -20,9 +20,12 @@ public class Strings {
     System.out.println(a.length());
     System.out.println(a.substring(4,6));
     System.out.println(a.toString());
+    System.out.println(d);
     System.out.println(d.trim());
     System.out.println(a.replace('a','z'));
     System.out.println(String.valueOf(1));
+    // sans newlines
+    System.out.print(1); System.out.print(2); System.out.print(3);
     //System.out.println(String.valueOf(1.5));
     //System.out.format("%s ", "asdf");
   }
