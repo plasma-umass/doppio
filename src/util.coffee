@@ -132,13 +132,13 @@ root.DEBUG = 10
 root.ERROR = 1
 root.log_level ?= root.DEBUG
 
-root.log = (level, message) ->
+root.log = (level, msgs...) ->
   if level <= root.log_level
-    console[if level == 1 then 'error' else 'log'] message
+    console[if level == 1 then 'error' else 'log'] msgs...
 
-root.debug = (message) -> root.log root.DEBUG, message
+root.debug = (msgs...) -> root.log root.DEBUG, msgs...
 
-root.error = (message) -> root.log root.ERROR, message
+root.error = (msgs...) -> root.log root.ERROR, msgs...
 
 # Java classes are represented internally using slashes as delimiters.
 # These helper functions convert between the two representations.
