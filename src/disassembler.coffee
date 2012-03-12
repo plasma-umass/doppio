@@ -18,6 +18,14 @@ root.disassemble = (class_file) ->
   rv += access_string class_file.access_flags
   rv += "class #{ext_classname class_file.this_class} extends #{ext_classname class_file.super_class}\n"
   rv += "  SourceFile: \"#{source_file.name}\"\n" if source_file
+  inner_classes = (attr for attr in class_file.attrs when attr.constructor.name is 'InnerClasses')
+  for icls in inner_classes
+    rv += "  InnerClass:\n"
+    for cls in icls.classes
+      if cls.outer_info_index <= 0  # it's an anonymous class
+        rv += "   ##{cls.inner_info_index};\n"
+      else  # it's a named inner class
+        rv += "   ##{cls.inner_name_index}= ##{cls.inner_info_index} of ##{cls.inner_access_flags};\n"
   rv += "  minor version: #{class_file.minor_version}\n"
   rv += "  major version: #{class_file.major_version}\n"
   rv += "  Constant pool:\n"
