@@ -157,7 +157,7 @@ class root.RuntimeState
     return @is_subclass(@class_lookup(class1.super_class),class2)
   has_interface: (cls, iface) ->
     for i in cls.interfaces
-      iface_name = constant_pool.get(i).deref()
+      iface_name = cls.constant_pool.get(i).deref()
       return true if iface_name is iface['this_class']
     return false
 
