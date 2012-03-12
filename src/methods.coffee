@@ -63,6 +63,10 @@ o = (fn_name, fn) -> fn_name: fn_name, fn: fn
 trapped_methods =
   java:
     lang:
+      ref:
+        SoftReference: [
+          o 'get()Ljava/lang/Object;', (rs) -> rs.push 0 # null, because we don't actually use SoftReferences
+        ]
       Class: [
         o 'newInstance0()L!/!/Object;', (rs) -> #implemented here to avoid reflection
             classname = rs.get_obj(rs.curr_frame().locals[0]).fields.name
@@ -70,10 +74,6 @@ trapped_methods =
             rs.method_lookup({'class':classname,'sig':{'name':'<init>'}}).run(rs)
             rs.push oref
       ]
-      ref:
-        Reference: [
-          o '<clinit>()V', (rs) -> #NOP
-        ]
       System: [
         o 'setJavaLangAccess()V', (rs) -> # NOP
         o 'loadLibrary(L!/!/String;)V', (rs) ->
@@ -239,7 +239,17 @@ native_methods =
             rs.static_put {'class':'java/lang/System','sig':{'name':'err'}}
       ]
       Thread: [
-        o 'currentThread()L!/!/!;', (rs) -> rs.push rs.set_obj 'java/lang/Thread' # mock thread
+        o 'currentThread()L!/!/!;', (rs) ->  # essentially a singleton for the main thread mock object
+            unless rs.main_thread?
+              rs.push (g_ref = rs.init_object 'java/lang/ThreadGroup')
+              # have to run the private ThreadGroup constructor
+              rs.method_lookup({class: 'java/lang/ThreadGroup', sig: {name:'<init>',type:'()V'}}).run(rs)
+              rs.main_thread = rs.set_obj 'java/lang/Thread', { priority: 1, group: g_ref }
+              rs.field_lookup({class: 'java/lang/Thread', sig: {name:'threadSeqNumber'}}).static_value = 0
+            rs.push rs.main_thread
+        o 'setPriority0(I)V', (rs) -> # NOP
+        o 'isAlive()Z', (rs) -> rs.push 0 # always false
+        o 'start0()V', (rs) -> # NOP
       ]
       Throwable: [
         o 'fillInStackTrace()L!/!/!;', (rs) ->
@@ -251,6 +261,7 @@ native_methods =
       AccessController: [
         o 'doPrivileged(L!/!/PrivilegedAction;)L!/lang/Object;', doPrivileged
         o 'doPrivileged(L!/!/PrivilegedExceptionAction;)L!/lang/Object;', doPrivileged
+        o 'getStackAccessControlContext()Ljava/security/AccessControlContext;', (rs) -> rs.push 0  # null
       ]
     io:
       FileSystem: [

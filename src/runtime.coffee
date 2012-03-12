@@ -89,7 +89,9 @@ class root.RuntimeState
   static_get: (field_spec) ->
     val = @field_lookup(field_spec).static_value
     trace "getting #{field_spec.sig.name} from class #{field_spec.class}: #{val}"
+    val = 0 unless val?
     @push val
+    @push null if field_spec.sig.type in ['J','D']
   static_put: (field_spec) ->
     val = if field_spec.sig.type in ['J','D'] then @pop2() else @pop()
     field = @field_lookup field_spec
@@ -125,13 +127,13 @@ class root.RuntimeState
       data = @read_classfile cls
       java_throw @, 'java/lang/NoClassDefFoundError', cls unless data?
       @classes[cls] = new ClassFile data
-      old_loglevel = util.log_level  # suppress logging for init stuff
-      util.log_level = util.ERROR
+      #old_loglevel = util.log_level  # suppress logging for init stuff
+      #util.log_level = util.ERROR
       # run class initialization code
-      @method_lookup({'class': cls, 'sig': {'name': '<clinit>'}}).run(this)
+      @method_lookup({class: cls, sig: {name: '<clinit>', type: '()V'}}).run(this)
       if cls is 'java/lang/System'  # zomg hardcode
         @method_lookup({'class': cls, 'sig': {'name': 'initializeSystemClass'}}).run(this)
-      util.log_level = old_loglevel  # resume logging
+      #util.log_level = old_loglevel  # resume logging
     throw "class #{cls} not found!" unless @classes[cls]
     @classes[cls]
   method_lookup: (method_spec) ->
