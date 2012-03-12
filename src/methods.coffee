@@ -64,7 +64,7 @@ trapped_methods =
   java:
     lang:
       Class: [
-        o 'newInstance0()Ljava/lang/Object;', (rs) -> #implemented here to avoid reflection
+        o 'newInstance0()L!/!/Object;', (rs) -> #implemented here to avoid reflection
             classname = rs.get_obj(rs.curr_frame().locals[0]).obj.name
             rs.push (oref = rs.init_object(classname))
             rs.method_lookup({'class':classname,'sig':{'name':'<init>'}}).run(rs)
@@ -76,11 +76,11 @@ trapped_methods =
         ]
       System: [
         o 'setJavaLangAccess()V', (rs) -> # NOP
-        o 'loadLibrary(Ljava/lang/String;)V', (rs) ->
+        o 'loadLibrary(L!/!/String;)V', (rs) ->
             args = rs.curr_frame().locals
             lib = rs.jvm2js_str rs.get_obj args[0]
             error "Attempt to load library '#{lib}' failed: library loads are NYI"
-        o 'adjustPropertiesForBackwardCompatibility(Ljava/util/Properties;)V', (rs) -> #NOP (apple-java specific?)
+        o 'adjustPropertiesForBackwardCompatibility(L!/util/Properties;)V', (rs) -> #NOP (apple-java specific?)
       ]
       Terminator: [
         o 'setup()V', (rs) -> #NOP
@@ -93,7 +93,7 @@ trapped_methods =
             o 'compareAndSet(II)Z', (rs) -> rs.push 1  # always true
           ]
           AtomicReferenceFieldUpdater: [
-            o 'newUpdater(Ljava/lang/Class;Ljava/lang/Class;Ljava/lang/String;)Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;', (rs) -> rs.push 0 # null
+            o 'newUpdater(L!/lang/Class;L!/lang/Class;L!/lang/String;)L!/!/!/!/!;', (rs) -> rs.push 0 # null
           ]
         locks:
           AbstractQueuedSynchronizer: [
@@ -104,14 +104,14 @@ trapped_methods =
     nio:
       charset:
         Charset$3: [
-          o 'run()Ljava/lang/Object;', (rs) -> rs.push 0 # null
+          o 'run()L!/lang/Object;', (rs) -> rs.push 0 # null
         ]
       Bits: [
-        o 'byteOrder()Ljava/nio/ByteOrder;', (rs) -> rs.static_get {'class':'java/nio/ByteOrder','sig':{'name':'LITTLE_ENDIAN'}}
+        o 'byteOrder()L!/!/ByteOrder;', (rs) -> rs.static_get {'class':'java/nio/ByteOrder','sig':{'name':'LITTLE_ENDIAN'}}
       ]
     io:
       PrintStream: [
-        o 'write(Ljava/lang/String;)V', (rs) ->
+        o 'write(L!/lang/String;)V', (rs) ->
             args = rs.curr_frame().locals
             str = rs.jvm2js_str(rs.get_obj(args[1]))
             rs.static_get {'class':'java/lang/System','sig':{'name':'out'}}; sysout = rs.pop()
@@ -126,7 +126,7 @@ trapped_methods =
   sun:
     misc:
       Unsafe: [
-        o 'getUnsafe()Lsun/misc/Unsafe;', (rs) -> # avoid reflection
+        o 'getUnsafe()L!/!/!;', (rs) -> # avoid reflection
             rs.static_get({'class':'sun/misc/Unsafe','sig':{'name':'theUnsafe'}})
       ]
   
@@ -141,20 +141,20 @@ native_methods =
   java:
     lang:
       Class: [
-        o 'getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;', (rs) ->
+        o 'getPrimitiveClass(L!/!/String;)L!/!/!;', (rs) ->
             str = rs.get_obj(rs.curr_frame().locals[0])
             carr = rs.get_obj(str.obj.value).obj.array
             name = (String.fromCharCode(c) for c in carr).join('') # XXX convert to unicode
             rs.push rs.set_obj 'java/lang/Class', { name: name }
-        o 'getClassLoader0()Ljava/lang/ClassLoader;', (rs) -> rs.push 0  # we don't need no stinkin classloaders
-        o 'desiredAssertionStatus0(Ljava/lang/Class;)Z', (rs) -> rs.push 0 # we don't need no stinkin asserts
-        o 'getName0()Ljava/lang/String;', (rs) -> rs.push rs.init_string(rs.get_obj(rs.curr_frame().locals[0]).obj.name)
-        o 'forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;', (rs) ->
+        o 'getClassLoader0()L!/!/ClassLoader;', (rs) -> rs.push 0  # we don't need no stinkin classloaders
+        o 'desiredAssertionStatus0(L!/!/!;)Z', (rs) -> rs.push 0 # we don't need no stinkin asserts
+        o 'getName0()L!/!/String;', (rs) -> rs.push rs.init_string(rs.get_obj(rs.curr_frame().locals[0]).obj.name)
+        o 'forName0(L!/!/String;ZL!/!/ClassLoader;)L!/!/!;', (rs) ->
             jvm_str = rs.get_obj(rs.curr_frame().locals[0])
             classname = rs.jvm2js_str(jvm_str).replace(/\./g,'/')
             throw "Class.forName0: Failed to load #{classname}" unless rs.class_lookup(classname)
             rs.push rs.set_obj 'java/lang/Class', { name:classname }
-        o 'getComponentType()Ljava/lang/Class;', (rs) ->
+        o 'getComponentType()L!/!/!;', (rs) ->
             type = rs.get_obj(rs.curr_frame().locals[0]).obj.name
             component_type = /\[+(.*)/.exec(type)[1]
             rs.push rs.set_obj 'java/lang/Class', name:component_type
@@ -178,7 +178,7 @@ native_methods =
             rs.push util.lshift(sign,63)+util.lshift(exp+1023,52)+sig, null
       ]
       Object: [
-        o 'getClass()Ljava/lang/Class;', (rs) ->
+        o 'getClass()L!/!/Class;', (rs) ->
             _this = rs.get_obj(rs.curr_frame().locals[0])
             rs.push rs.set_obj 'java/lang/Class', { name:util.ext_classname _this.type}
         o 'hashCode()I', (rs) ->
@@ -188,16 +188,16 @@ native_methods =
       ]
       reflect:
         Array: [
-          o 'newArray(Ljava/lang/Class;I)Ljava/lang/Object;', (rs) ->
-            type = rs.get_obj(rs.curr_frame().locals[0]).obj.name
-            len = rs.curr_frame().locals[0]
-            rs.heap_newarray util.int_classname type, len
+          o 'newArray(L!/!/Class;I)L!/!/Object;', (rs) ->
+              type = rs.get_obj(rs.curr_frame().locals[0]).obj.name
+              len = rs.curr_frame().locals[0]
+              rs.heap_newarray util.int_classname type, len
         ]
       StrictMath: [
         o 'pow(DD)D', (rs) -> rs.push Math.pow(rs.cl(0),rs.cl(2)), null
       ]
       String: [
-        o 'intern()Ljava/lang/String;', (rs) -> 
+        o 'intern()L!/!/!;', (rs) ->
             str_ref = rs.curr_frame().locals[0]
             js_str = rs.jvm2js_str(rs.get_obj(str_ref))
             unless rs.string_pool[js_str]
@@ -205,7 +205,7 @@ native_methods =
               rs.push rs.string_pool[js_str]
       ]
       System: [
-        o 'arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V', (rs) -> 
+        o 'arraycopy(L!/!/Object;IL!/!/Object;II)V', (rs) ->
             args = rs.curr_frame().locals
             src_array = rs.get_obj(args[0]).obj.array
             src_pos = args[1]
@@ -216,7 +216,7 @@ native_methods =
             for i in [src_pos...src_pos+length]
               dest_array[j++] = src_array[i]
         o 'currentTimeMillis()J', (rs) -> rs.push (new Date).getTime(), null
-        o 'initProperties(Ljava/util/Properties;)Ljava/util/Properties;', (rs) ->
+        o 'initProperties(L!/util/Properties;)L!/util/Properties;', (rs) ->
             p_ref = rs.curr_frame().locals[0]
             m = rs.method_lookup({'class':'java/util/Properties','sig':{'name':'setProperty'}})
             # properties to set:
@@ -229,33 +229,33 @@ native_methods =
               m.run(rs)
               rs.pop()  # we don't care about the return value
             rs.push p_ref
-        o 'setIn0(Ljava/io/InputStream;)V', (rs) -> 
+        o 'setIn0(L!/io/InputStream;)V', (rs) ->
             rs.push rs.curr_frame().locals[0] # move oref to the stack for static_put
             rs.static_put {'class':'java/lang/System','sig':{'name':'in'}}
-        o 'setOut0(Ljava/io/PrintStream;)V', (rs) ->
+        o 'setOut0(L!/io/PrintStream;)V', (rs) ->
             rs.push rs.curr_frame().locals[0] # move oref to the stack for static_put
             rs.static_put {'class':'java/lang/System','sig':{'name':'out'}}
-        o 'setErr0(Ljava/io/PrintStream;)V', (rs) ->
+        o 'setErr0(L!/io/PrintStream;)V', (rs) ->
             rs.push rs.curr_frame().locals[0] # move oref to the stack for static_put
             rs.static_put {'class':'java/lang/System','sig':{'name':'err'}}
       ]
       Thread: [
-        o 'currentThread()Ljava/lang/Thread;', (rs) -> rs.push rs.set_obj 'java/lang/Thread' # mock thread
+        o 'currentThread()L!/!/!;', (rs) -> rs.push rs.set_obj 'java/lang/Thread' # mock thread
       ]
       Throwable: [
-        o 'fillInStackTrace()Ljava/lang/Throwable;', (rs) ->
+        o 'fillInStackTrace()L!/!/!;', (rs) ->
             #TODO possibly filter out the java calls from our own call stack.
             # at the moment, this is effectively a NOP.
             rs.push rs.curr_frame().locals[0]
       ]
     security:
       AccessController: [
-        o 'doPrivileged(Ljava/security/PrivilegedAction;)Ljava/lang/Object;', doPrivileged
-        o 'doPrivileged(Ljava/security/PrivilegedExceptionAction;)Ljava/lang/Object;', doPrivileged
+        o 'doPrivileged(L!/!/PrivilegedAction;)L!/lang/Object;', doPrivileged
+        o 'doPrivileged(L!/!/PrivilegedExceptionAction;)L!/lang/Object;', doPrivileged
       ]
     io:
       FileSystem: [
-        o 'getFileSystem()Ljava/io/FileSystem;', (rs) -> rs.heap_new('java/io/UnixFileSystem')
+        o 'getFileSystem()L!/!/!;', (rs) -> rs.heap_new('java/io/UnixFileSystem')
       ]
       FileOutputStream: [
         o 'writeBytes([BII)V', (rs) ->
@@ -278,16 +278,27 @@ native_methods =
 
 flatten_pkg = (pkg) ->
   result = {}
-  for pkg_name, inner_pkg of pkg
-    if inner_pkg instanceof Array
-      for method in inner_pkg
-        {fn_name, fn} = method
-        result["#{pkg_name}::#{fn_name}"] = fn
-    else
-      flattened_inner = flatten_pkg inner_pkg
-      for name, method of flattened_inner
-        fullname = "#{pkg_name}/#{name}"
-        result[fullname] = method
+  pkg_name_arr = []
+  rec_flatten = (pkg) ->
+    for pkg_name, inner_pkg of pkg
+      pkg_name_arr.push pkg_name
+      if inner_pkg instanceof Array
+        for method in inner_pkg
+          {fn_name, fn} = method
+          # expand out the '!'s in the method names
+          fn_name = fn_name.replace /!|;/g, (->
+            depth = 0
+            (c) ->
+              if c == '!' then pkg_name_arr[depth++]
+              else if c == ';' then depth = 0; c
+              else c
+          )()
+          full_name = "#{pkg_name_arr.join '/'}::#{fn_name}"
+          result[full_name] = fn
+      else
+        flattened_inner = rec_flatten inner_pkg
+      pkg_name_arr.pop pkg_name
+  rec_flatten pkg
   result
   
 trapped_methods = flatten_pkg trapped_methods
