@@ -142,16 +142,15 @@ native_methods =
     lang:
       Class: [
         o 'getPrimitiveClass(L!/!/String;)L!/!/!;', (rs) ->
-            str = rs.get_obj(rs.curr_frame().locals[0])
-            carr = rs.get_obj(str.obj.value).obj.array
-            name = (String.fromCharCode(c) for c in carr).join('') # XXX convert to unicode
+            str_ref = rs.get_obj(rs.curr_frame().locals[0])
+            name = rs.jvm2js_str str_ref
             rs.push rs.set_obj 'java/lang/Class', { name: name }
         o 'getClassLoader0()L!/!/ClassLoader;', (rs) -> rs.push 0  # we don't need no stinkin classloaders
         o 'desiredAssertionStatus0(L!/!/!;)Z', (rs) -> rs.push 0 # we don't need no stinkin asserts
         o 'getName0()L!/!/String;', (rs) -> rs.push rs.init_string(rs.get_obj(rs.curr_frame().locals[0]).obj.name)
         o 'forName0(L!/!/String;ZL!/!/ClassLoader;)L!/!/!;', (rs) ->
             jvm_str = rs.get_obj(rs.curr_frame().locals[0])
-            classname = rs.jvm2js_str(jvm_str).replace(/\./g,'/')
+            classname = util.int_classname rs.jvm2js_str(jvm_str)
             throw "Class.forName0: Failed to load #{classname}" unless rs.class_lookup(classname)
             rs.push rs.set_obj 'java/lang/Class', { name:classname }
         o 'getComponentType()L!/!/!;', (rs) ->
