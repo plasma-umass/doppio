@@ -57,44 +57,78 @@ class root.Field extends AbstractMethodField
     if @access_flags.static
       @static_value = null  # loaded in when getstatic is called
 
-trapped_methods = {
-  'java/lang/System::setJavaLangAccess()V': (rs) -> #NOP
-  'java/lang/System::loadLibrary(Ljava/lang/String;)V': (rs) ->
-      args = rs.curr_frame().locals
-      lib = rs.jvm2js_str rs.get_obj args[0]
-      error "Attempt to load library '#{lib}' failed: library loads are NYI"
-  'java/lang/System::adjustPropertiesForBackwardCompatibility(Ljava/util/Properties;)V': (rs) -> #NOP (apple-java specific?)
-  'java/lang/Terminator::setup()V': (rs) -> #NOP
-  'java/util/concurrent/atomic/AtomicInteger::<clinit>()V': (rs) -> #NOP
-  'java/util/concurrent/atomic/AtomicInteger::compareAndSet(II)Z': (rs) -> rs.push 1  # always true
-  'sun/misc/Unsafe::getUnsafe()Lsun/misc/Unsafe;': ((rs) -> # avoid reflection
-    rs.static_get({'class':'sun/misc/Unsafe','sig':{'name':'theUnsafe'}}))
-  'java/util/concurrent/atomic/AtomicReferenceFieldUpdater::newUpdater(Ljava/lang/Class;Ljava/lang/Class;Ljava/lang/String;)Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;': (rs) -> rs.push 0 # null
-  'java/nio/charset/Charset$3::run()Ljava/lang/Object;': (rs) -> rs.push 0 # null
-  'java/nio/Bits::byteOrder()Ljava/nio/ByteOrder;': (rs) -> rs.static_get {'class':'java/nio/ByteOrder','sig':{'name':'LITTLE_ENDIAN'}}
-  'java/lang/Class::newInstance0()Ljava/lang/Object;': ((rs) -> #implemented here to avoid reflection
-    classname = rs.get_obj(rs.curr_frame().locals[0]).obj.name
-    rs.push (oref = rs.init_object(classname))
-    rs.method_lookup({'class':classname,'sig':{'name':'<init>'}}).run(rs)
-    rs.push oref
-    )
-  'java/io/PrintStream::write(Ljava/lang/String;)V': ((rs) ->
-    args = rs.curr_frame().locals
-    str = rs.jvm2js_str(rs.get_obj(args[1]))
-    rs.static_get {'class':'java/lang/System','sig':{'name':'out'}}; sysout = rs.pop()
-    rs.static_get {'class':'java/lang/System','sig':{'name':'err'}}; syserr = rs.pop()
-    if args[0] is sysout
-      rs.print str
-    else if args[0] is syserr
-      rs.print str
-    else
-      throw "You tried to write to a PrintStream that wasn't System.out or System.err! For shame!"
-    )
-  'java/lang/ref/Reference::<clinit>()V': (rs) -> #NOP
-  'java/util/concurrent/locks/AbstractQueuedSynchronizer::<clinit>()V': (rs) -> #NOP
-  'java/util/concurrent/locks/AbstractQueuedSynchronizer::compareAndSetState(II)Z': (rs) -> rs.push 1 # always true
-  'java/util/concurrent/locks/AbstractQueuedSynchronizer::release(I)Z': (rs) -> rs.push 1 # always true
-}
+# convenience function. idea taken from coffeescript's grammar
+o = (fn_name, fn) -> fn_name: fn_name, fn: fn
+
+trapped_methods =
+  java:
+    lang:
+      Class: [
+        o 'newInstance0()Ljava/lang/Object;', (rs) -> #implemented here to avoid reflection
+            classname = rs.get_obj(rs.curr_frame().locals[0]).obj.name
+            rs.push (oref = rs.init_object(classname))
+            rs.method_lookup({'class':classname,'sig':{'name':'<init>'}}).run(rs)
+            rs.push oref
+      ]
+      ref:
+        Reference: [
+          o '<clinit>()V', (rs) -> #NOP
+        ]
+      System: [
+        o 'setJavaLangAccess()V', (rs) -> # NOP
+        o 'loadLibrary(Ljava/lang/String;)V', (rs) ->
+            args = rs.curr_frame().locals
+            lib = rs.jvm2js_str rs.get_obj args[0]
+            error "Attempt to load library '#{lib}' failed: library loads are NYI"
+        o 'adjustPropertiesForBackwardCompatibility(Ljava/util/Properties;)V', (rs) -> #NOP (apple-java specific?)
+      ]
+      Terminator: [
+        o 'setup()V', (rs) -> #NOP
+      ]
+    util:
+      concurrent:
+        atomic:
+          AtomicInteger: [
+            o '<clinit>()V', (rs) -> #NOP
+            o 'compareAndSet(II)Z', (rs) -> rs.push 1  # always true
+          ]
+          AtomicReferenceFieldUpdater: [
+            o 'newUpdater(Ljava/lang/Class;Ljava/lang/Class;Ljava/lang/String;)Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;', (rs) -> rs.push 0 # null
+          ]
+        locks:
+          AbstractQueuedSynchronizer: [
+            o '<clinit>()V', (rs) -> #NOP
+            o 'compareAndSetState(II)Z', (rs) -> rs.push 1 # always true
+            o 'release(I)Z', (rs) -> rs.push 1 # always true
+          ]
+    nio:
+      charset:
+        Charset$3: [
+          o 'run()Ljava/lang/Object;', (rs) -> rs.push 0 # null
+        ]
+      Bits: [
+        o 'byteOrder()Ljava/nio/ByteOrder;', (rs) -> rs.static_get {'class':'java/nio/ByteOrder','sig':{'name':'LITTLE_ENDIAN'}}
+      ]
+    io:
+      PrintStream: [
+        o 'write(Ljava/lang/String;)V', (rs) ->
+            args = rs.curr_frame().locals
+            str = rs.jvm2js_str(rs.get_obj(args[1]))
+            rs.static_get {'class':'java/lang/System','sig':{'name':'out'}}; sysout = rs.pop()
+            rs.static_get {'class':'java/lang/System','sig':{'name':'err'}}; syserr = rs.pop()
+            if args[0] is sysout
+              rs.print str
+            else if args[0] is syserr
+              rs.print str
+            else
+              throw "You tried to write to a PrintStream that wasn't System.out or System.err! For shame!"
+      ]
+  sun:
+    misc:
+      Unsafe: [
+        o 'getUnsafe()Lsun/misc/Unsafe;', (rs) -> # avoid reflection
+            rs.static_get({'class':'sun/misc/Unsafe','sig':{'name':'theUnsafe'}})
+      ]
   
 doPrivileged = (rs) ->
   oref = rs.curr_frame().locals[0]
@@ -103,118 +137,161 @@ doPrivileged = (rs) ->
   rs.push oref unless m.access_flags.static
   m.run(rs,m.access_flags.virtual)
 
-native_methods = {
-  'java/lang/System::arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V': ((rs) -> 
-    args = rs.curr_frame().locals
-    src_array = rs.get_obj(args[0]).obj.array
-    src_pos = args[1]
-    dest_array = rs.get_obj(args[2]).obj.array
-    dest_pos = args[3]
-    length = args[4]
-    j = dest_pos
-    for i in [src_pos...src_pos+length]
-      dest_array[j++] = src_array[i]
-    )
-  'java/lang/Float::floatToRawIntBits(F)I': ((rs) ->  #note: not tested for weird values
-    f_val = rs.curr_frame().locals[0]
-    sign = if f_val < 0 then 1 else 0
-    f_val = Math.abs(f_val)
-    exp = Math.floor(Math.log(f_val)/Math.LN2)
-    sig = (f_val/Math.pow(2,exp)-1)/Math.pow(2,-23)
-    rs.push (sign<<31)+((exp+127)<<23)+sig
-    )
-  'java/lang/Double::doubleToRawLongBits(D)J': ((rs) ->#note: not tested at all
-    d_val = rs.curr_frame().locals[0]
-    sign = if d_val < 0 then 1 else 0
-    d_val = Math.abs(d_val)
-    exp = Math.floor(Math.log(d_val)/Math.LN2)
-    sig = (d_val/Math.pow(2,exp)-1)/Math.pow(2,-52)
-    rs.push util.lshift(sign,63)+util.lshift(exp+1023,52)+sig, null
-    )
-  'java/security/AccessController::doPrivileged(Ljava/security/PrivilegedAction;)Ljava/lang/Object;': doPrivileged
-  'java/security/AccessController::doPrivileged(Ljava/security/PrivilegedExceptionAction;)Ljava/lang/Object;': doPrivileged
-  'java/io/FileSystem::getFileSystem()Ljava/io/FileSystem;': (rs) -> rs.heap_new('java/io/UnixFileSystem')
-  'java/lang/StrictMath::pow(DD)D': (rs) -> rs.push Math.pow(rs.cl(0),rs.cl(2)), null
-  'sun/misc/VM::initialize()V': (rs) ->  # NOP???
-  'sun/reflect/Reflection::getCallerClass(I)Ljava/lang/Class;': ((rs) ->
-    frames_to_skip = rs.curr_frame().locals[0]
-    #TODO: disregard frames assoc. with java.lang.reflect.Method.invoke() and its implementation
-    cls = rs.meta_stack[rs.meta_stack.length-1-frames_to_skip].class_name
-    rs.push rs.set_obj 'java/lang/Class', { name:cls }
-    )
-  'java/lang/System::currentTimeMillis()J': (rs) -> rs.push (new Date).getTime(), null
-  'java/lang/String::intern()Ljava/lang/String;': ((rs) -> 
-    str_ref = rs.curr_frame().locals[0]
-    js_str = rs.jvm2js_str(rs.get_obj(str_ref))
-    unless rs.string_pool[js_str]
-      rs.string_pool[js_str] = str_ref
-    rs.push rs.string_pool[js_str]
-    )
-  'java/lang/Class::getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;': ((rs) ->
-    str = rs.get_obj(rs.curr_frame().locals[0])
-    carr = rs.get_obj(str.obj.value).obj.array
-    name = (String.fromCharCode(c) for c in carr).join('') # XXX convert to unicode
-    rs.push rs.set_obj 'java/lang/Class', { name: name }
-    )
-  'java/lang/Thread::currentThread()Ljava/lang/Thread;': (rs) -> rs.push rs.set_obj 'java/lang/Thread' # mock thread
-  'java/lang/Object::getClass()Ljava/lang/Class;': (rs) ->
-    _this = rs.get_obj(rs.curr_frame().locals[0])
-    rs.push rs.set_obj 'java/lang/Class', { name:util.ext_classname _this.type}
-  'java/lang/Class::getClassLoader0()Ljava/lang/ClassLoader;': (rs) -> rs.push 0  # we don't need no stinkin classloaders
-  'java/lang/Class::desiredAssertionStatus0(Ljava/lang/Class;)Z': (rs) -> rs.push 0 # we don't need no stinkin asserts
-  'java/lang/Class::getName0()Ljava/lang/String;': (rs) -> rs.push rs.init_string(rs.get_obj(rs.curr_frame().locals[0]).obj.name)
-  'java/lang/Class::forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;': ((rs) ->
-    jvm_str = rs.get_obj(rs.curr_frame().locals[0])
-    classname = rs.jvm2js_str(jvm_str).replace(/\./g,'/')
-    throw "Class.forName0: Failed to load #{classname}" unless rs.class_lookup(classname)
-    rs.push rs.set_obj 'java/lang/Class', { name:classname }
-    )
-  'java/lang/System::initProperties(Ljava/util/Properties;)Ljava/util/Properties;': ((rs) ->
-    p_ref = rs.curr_frame().locals[0]
-    m = rs.method_lookup({'class':'java/util/Properties','sig':{'name':'setProperty'}})
-    # properties to set:
-    #  java.version,java.vendor,java.vendor.url,java.home,java.class.version,java.class.path,
-    #  os.name,os.arch,os.version,file.separator,path.separator,
-    #  user.name,user.home,user.dir
-    props = {'file.encoding':'US_ASCII','java.vendor':'Coffee-JVM','line.separator':'\n'}
-    for k,v of props
-      rs.push p_ref, rs.init_string(k,true), rs.init_string(v,true)
-      m.run(rs)
-      rs.pop()  # we don't care about the return value
-    rs.push p_ref
-    )
-  'java/lang/Throwable::fillInStackTrace()Ljava/lang/Throwable;': (rs) ->
-    #TODO possibly filter out the java calls from our own call stack.
-    # at the moment, this is effectively a NOP.
-    rs.push rs.curr_frame().locals[0]
-  'java/lang/System::setIn0(Ljava/io/InputStream;)V': ((rs) -> 
-    rs.push rs.curr_frame().locals[0] # move oref to the stack for static_put
-    rs.static_put {'class':'java/lang/System','sig':{'name':'in'}}
-    )
-  'java/lang/System::setOut0(Ljava/io/PrintStream;)V': ((rs) ->
-    rs.push rs.curr_frame().locals[0] # move oref to the stack for static_put
-    rs.static_put {'class':'java/lang/System','sig':{'name':'out'}}
-    )
-  'java/lang/System::setErr0(Ljava/io/PrintStream;)V': ((rs) ->
-    rs.push rs.curr_frame().locals[0] # move oref to the stack for static_put
-    rs.static_put {'class':'java/lang/System','sig':{'name':'err'}}
-    )
-  'java/lang/Class::getComponentType()Ljava/lang/Class;': (rs) ->
-    type = rs.get_obj(rs.curr_frame().locals[0]).obj.name
-    component_type = /\[+(.*)/.exec(type)[1]
-    rs.push rs.set_obj 'java/lang/Class', name:component_type
-  'java/lang/reflect/Array::newArray(Ljava/lang/Class;I)Ljava/lang/Object;': (rs) ->
-    type = rs.get_obj(rs.curr_frame().locals[0]).obj.name
-    len = rs.curr_frame().locals[0]
-    rs.heap_newarray util.int_classname type, len
-  'java/io/FileOutputStream::writeBytes([BII)V': (rs) ->
-    args = rs.curr_frame().locals
-    rs.print rs.jvm_carr2js_str(args[1], args[2], args[3])
-  'java/lang/Object::hashCode()I': (rs) ->
-    # return heap reference. XXX need to change this if we ever implement
-    # GC that moves stuff around.
-    rs.push rs.curr_frame().locals[0]
-}
+native_methods =
+  java:
+    lang:
+      Class: [
+        o 'getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;', (rs) ->
+            str = rs.get_obj(rs.curr_frame().locals[0])
+            carr = rs.get_obj(str.obj.value).obj.array
+            name = (String.fromCharCode(c) for c in carr).join('') # XXX convert to unicode
+            rs.push rs.set_obj 'java/lang/Class', { name: name }
+        o 'getClassLoader0()Ljava/lang/ClassLoader;', (rs) -> rs.push 0  # we don't need no stinkin classloaders
+        o 'desiredAssertionStatus0(Ljava/lang/Class;)Z', (rs) -> rs.push 0 # we don't need no stinkin asserts
+        o 'getName0()Ljava/lang/String;', (rs) -> rs.push rs.init_string(rs.get_obj(rs.curr_frame().locals[0]).obj.name)
+        o 'forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;', (rs) ->
+            jvm_str = rs.get_obj(rs.curr_frame().locals[0])
+            classname = rs.jvm2js_str(jvm_str).replace(/\./g,'/')
+            throw "Class.forName0: Failed to load #{classname}" unless rs.class_lookup(classname)
+            rs.push rs.set_obj 'java/lang/Class', { name:classname }
+        o 'getComponentType()Ljava/lang/Class;', (rs) ->
+            type = rs.get_obj(rs.curr_frame().locals[0]).obj.name
+            component_type = /\[+(.*)/.exec(type)[1]
+            rs.push rs.set_obj 'java/lang/Class', name:component_type
+      ],
+      Float: [
+        o 'floatToRawIntBits(F)I', (rs) ->  #note: not tested for weird values
+            f_val = rs.curr_frame().locals[0]
+            sign = if f_val < 0 then 1 else 0
+            f_val = Math.abs(f_val)
+            exp = Math.floor(Math.log(f_val)/Math.LN2)
+            sig = (f_val/Math.pow(2,exp)-1)/Math.pow(2,-23)
+            rs.push (sign<<31)+((exp+127)<<23)+sig
+      ]
+      Double: [
+        o 'doubleToRawLongBits(D)J', (rs) ->#note: not tested at all
+            d_val = rs.curr_frame().locals[0]
+            sign = if d_val < 0 then 1 else 0
+            d_val = Math.abs(d_val)
+            exp = Math.floor(Math.log(d_val)/Math.LN2)
+            sig = (d_val/Math.pow(2,exp)-1)/Math.pow(2,-52)
+            rs.push util.lshift(sign,63)+util.lshift(exp+1023,52)+sig, null
+      ]
+      Object: [
+        o 'getClass()Ljava/lang/Class;', (rs) ->
+            _this = rs.get_obj(rs.curr_frame().locals[0])
+            rs.push rs.set_obj 'java/lang/Class', { name:util.ext_classname _this.type}
+        o 'hashCode()I', (rs) ->
+            # return heap reference. XXX need to change this if we ever implement
+            # GC that moves stuff around.
+            rs.push rs.curr_frame().locals[0]
+      ]
+      reflect:
+        Array: [
+          o 'newArray(Ljava/lang/Class;I)Ljava/lang/Object;', (rs) ->
+            type = rs.get_obj(rs.curr_frame().locals[0]).obj.name
+            len = rs.curr_frame().locals[0]
+            rs.heap_newarray util.int_classname type, len
+        ]
+      StrictMath: [
+        o 'pow(DD)D', (rs) -> rs.push Math.pow(rs.cl(0),rs.cl(2)), null
+      ]
+      String: [
+        o 'intern()Ljava/lang/String;', (rs) -> 
+            str_ref = rs.curr_frame().locals[0]
+            js_str = rs.jvm2js_str(rs.get_obj(str_ref))
+            unless rs.string_pool[js_str]
+              rs.string_pool[js_str] = str_ref
+              rs.push rs.string_pool[js_str]
+      ]
+      System: [
+        o 'arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V', (rs) -> 
+            args = rs.curr_frame().locals
+            src_array = rs.get_obj(args[0]).obj.array
+            src_pos = args[1]
+            dest_array = rs.get_obj(args[2]).obj.array
+            dest_pos = args[3]
+            length = args[4]
+            j = dest_pos
+            for i in [src_pos...src_pos+length]
+              dest_array[j++] = src_array[i]
+        o 'currentTimeMillis()J', (rs) -> rs.push (new Date).getTime(), null
+        o 'initProperties(Ljava/util/Properties;)Ljava/util/Properties;', (rs) ->
+            p_ref = rs.curr_frame().locals[0]
+            m = rs.method_lookup({'class':'java/util/Properties','sig':{'name':'setProperty'}})
+            # properties to set:
+            #  java.version,java.vendor,java.vendor.url,java.home,java.class.version,java.class.path,
+            #  os.name,os.arch,os.version,file.separator,path.separator,
+            #  user.name,user.home,user.dir
+            props = {'file.encoding':'US_ASCII','java.vendor':'Coffee-JVM','line.separator':'\n'}
+            for k,v of props
+              rs.push p_ref, rs.init_string(k,true), rs.init_string(v,true)
+              m.run(rs)
+              rs.pop()  # we don't care about the return value
+            rs.push p_ref
+        o 'setIn0(Ljava/io/InputStream;)V', (rs) -> 
+            rs.push rs.curr_frame().locals[0] # move oref to the stack for static_put
+            rs.static_put {'class':'java/lang/System','sig':{'name':'in'}}
+        o 'setOut0(Ljava/io/PrintStream;)V', (rs) ->
+            rs.push rs.curr_frame().locals[0] # move oref to the stack for static_put
+            rs.static_put {'class':'java/lang/System','sig':{'name':'out'}}
+        o 'setErr0(Ljava/io/PrintStream;)V', (rs) ->
+            rs.push rs.curr_frame().locals[0] # move oref to the stack for static_put
+            rs.static_put {'class':'java/lang/System','sig':{'name':'err'}}
+      ]
+      Thread: [
+        o 'currentThread()Ljava/lang/Thread;', (rs) -> rs.push rs.set_obj 'java/lang/Thread' # mock thread
+      ]
+      Throwable: [
+        o 'fillInStackTrace()Ljava/lang/Throwable;', (rs) ->
+            #TODO possibly filter out the java calls from our own call stack.
+            # at the moment, this is effectively a NOP.
+            rs.push rs.curr_frame().locals[0]
+      ]
+    security:
+      AccessController: [
+        o 'doPrivileged(Ljava/security/PrivilegedAction;)Ljava/lang/Object;', doPrivileged
+        o 'doPrivileged(Ljava/security/PrivilegedExceptionAction;)Ljava/lang/Object;', doPrivileged
+      ]
+    io:
+      FileSystem: [
+        o 'getFileSystem()Ljava/io/FileSystem;', (rs) -> rs.heap_new('java/io/UnixFileSystem')
+      ]
+      FileOutputStream: [
+        o 'writeBytes([BII)V', (rs) ->
+            args = rs.curr_frame().locals
+            rs.print rs.jvm_carr2js_str(args[1], args[2], args[3])
+      ]
+  sun:
+    misc:
+      VM: [
+        o 'initialize()V', (rs) ->  # NOP???
+      ]
+    reflect:
+      Reflection: [
+        o 'getCallerClass(I)Ljava/lang/Class;', (rs) ->
+            frames_to_skip = rs.curr_frame().locals[0]
+            #TODO: disregard frames assoc. with java.lang.reflect.Method.invoke() and its implementation
+            cls = rs.meta_stack[rs.meta_stack.length-1-frames_to_skip].class_name
+            rs.push rs.set_obj 'java/lang/Class', { name:cls }
+      ]
+
+flatten_pkg = (pkg) ->
+  result = {}
+  for pkg_name, inner_pkg of pkg
+    if inner_pkg instanceof Array
+      for method in inner_pkg
+        {fn_name, fn} = method
+        result["#{pkg_name}::#{fn_name}"] = fn
+    else
+      flattened_inner = flatten_pkg inner_pkg
+      for name, method of flattened_inner
+        fullname = "#{pkg_name}/#{name}"
+        result[fullname] = method
+  result
+  
+trapped_methods = flatten_pkg trapped_methods
+native_methods = flatten_pkg native_methods
 
 array_methods =
   'getClass()Ljava/lang/Class;': (rs) ->
