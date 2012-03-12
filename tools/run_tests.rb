@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'optparse'
+require 'tempfile'
 
 def show_errors(name,type,errors)
   if errors.match /\S/
@@ -40,18 +41,19 @@ test_dir = "#{here_dir}/../test"
 Dir.glob("#{test_dir}/#{cls}.java") do |src|
   name = src.match(/(\w+)\.java/)[1]
   if run_disasm
-    # compare disas output
-    `#{here_dir}/../console/disassembler.coffee #{test_dir}/#{name}.class >#{ours_dis}`
-    show_errors(name,'disasm',`#{here_dir}/cleandiff.sh #{test_dir}/#{name}.disasm #{ours_dis}`)
+    Tempfile.open('disasm') do |f|
+      # compare disas output
+      `#{here_dir}/../console/disassembler.coffee #{test_dir}/#{name}.class >#{f.path()}`
+      show_errors(name,'disasm',`#{here_dir}/cleandiff.sh #{test_dir}/#{name}.disasm #{f.path()}`)
+    end
   end
   if run_runner
-    # compare runtime output
-    `#{here_dir}/../console/runner.coffee #{test_dir}/#{name}.class --log=error 2>&1 >#{ours_run}`
-    # -a forces diff to treat file as text. necessary because jvm screwups can
-    # cause weird output that confuses diff
-    show_errors(name,'runtime',`diff -U0 -a #{test_dir}/#{name}.runout #{ours_run} | sed '1,2d'`)
+    Tempfile.open('disasm') do |f|
+      # compare runtime output
+      `#{here_dir}/../console/runner.coffee #{test_dir}/#{name}.class --log=error 2>&1 >#{f.path()}`
+      # -a forces diff to treat file as text. necessary because jvm screwups can
+      # cause weird output that confuses diff
+      show_errors(name,'runtime',`diff -U0 -a #{test_dir}/#{name}.runout #{f.path()} | sed '1,2d'`)
+    end
   end
 end
-
-File.unlink ours_dis if File.exists? ours_dis
-File.unlink ours_run if File.exists? ours_run
