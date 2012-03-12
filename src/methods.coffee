@@ -65,7 +65,7 @@ trapped_methods =
     lang:
       Class: [
         o 'newInstance0()L!/!/Object;', (rs) -> #implemented here to avoid reflection
-            classname = rs.get_obj(rs.curr_frame().locals[0]).obj.name
+            classname = rs.get_obj(rs.curr_frame().locals[0]).fields.name
             rs.push (oref = rs.init_object(classname))
             rs.method_lookup({'class':classname,'sig':{'name':'<init>'}}).run(rs)
             rs.push oref
@@ -147,14 +147,14 @@ native_methods =
             rs.push rs.set_obj 'java/lang/Class', { name: name }
         o 'getClassLoader0()L!/!/ClassLoader;', (rs) -> rs.push 0  # we don't need no stinkin classloaders
         o 'desiredAssertionStatus0(L!/!/!;)Z', (rs) -> rs.push 0 # we don't need no stinkin asserts
-        o 'getName0()L!/!/String;', (rs) -> rs.push rs.init_string(rs.get_obj(rs.curr_frame().locals[0]).obj.name)
+        o 'getName0()L!/!/String;', (rs) -> rs.push rs.init_string(rs.get_obj(rs.curr_frame().locals[0]).fields.name)
         o 'forName0(L!/!/String;ZL!/!/ClassLoader;)L!/!/!;', (rs) ->
             jvm_str = rs.get_obj(rs.curr_frame().locals[0])
             classname = util.int_classname rs.jvm2js_str(jvm_str)
             throw "Class.forName0: Failed to load #{classname}" unless rs.class_lookup(classname)
             rs.push rs.set_obj 'java/lang/Class', { name:classname }
         o 'getComponentType()L!/!/!;', (rs) ->
-            type = rs.get_obj(rs.curr_frame().locals[0]).obj.name
+            type = rs.get_obj(rs.curr_frame().locals[0]).fields.name
             component_type = /\[+(.*)/.exec(type)[1]
             rs.push rs.set_obj 'java/lang/Class', name:component_type
       ],
@@ -188,7 +188,7 @@ native_methods =
       reflect:
         Array: [
           o 'newArray(L!/!/Class;I)L!/!/Object;', (rs) ->
-              type = rs.get_obj(rs.curr_frame().locals[0]).obj.name
+              type = rs.get_obj(rs.curr_frame().locals[0]).fields.name
               len = rs.curr_frame().locals[0]
               rs.heap_newarray util.int_classname type, len
         ]
@@ -206,9 +206,9 @@ native_methods =
       System: [
         o 'arraycopy(L!/!/Object;IL!/!/Object;II)V', (rs) ->
             args = rs.curr_frame().locals
-            src_array = rs.get_obj(args[0]).obj.array
+            src_array = rs.get_obj(args[0]).array
             src_pos = args[1]
-            dest_array = rs.get_obj(args[2]).obj.array
+            dest_array = rs.get_obj(args[2]).array
             dest_pos = args[3]
             length = args[4]
             j = dest_pos

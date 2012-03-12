@@ -24,9 +24,9 @@ class root.RuntimeState
 
   # string stuff
   jvm2js_str: (jvm_str) ->
-    @jvm_carr2js_str(jvm_str.obj.value, jvm_str.obj.offset, jvm_str.obj.count)
+    @jvm_carr2js_str(jvm_str.fields.value, jvm_str.fields.offset, jvm_str.fields.count)
   jvm_carr2js_str: (arr_ref, offset, count) ->
-    carr = @get_obj(arr_ref).obj.array
+    carr = @get_obj(arr_ref).array
     (util.bytes2str carr).substr(offset ? 0, count)
   string_redirect: (oref,cls) ->
     cdata = @class_lookup(cls)
@@ -64,7 +64,10 @@ class root.RuntimeState
     java_throw @, 'java/lang/NullPointerException', '' unless @heap[oref]?
     @heap[oref]
   set_obj: (type, obj={}) ->
-    @heap.push type: type, obj: obj
+    if obj instanceof Array
+      @heap.push type: type, array: obj
+    else
+      @heap.push type: type, fields: obj
     @heap.length - 1
 
   heap_new: (cls) -> @push @init_object(cls)
@@ -73,13 +76,13 @@ class root.RuntimeState
     val = if field_spec.sig.type in ['J','D'] then @pop2() else @pop()
     obj = @get_obj @pop()
     trace "setting #{field_spec.sig.name} = #{val} on obj of type #{obj.type}"
-    obj.obj[field_spec.sig.name] = val
+    obj.fields[field_spec.sig.name] = val
   heap_get: (field_spec, oref) ->
     obj = @get_obj(oref)
     name = field_spec.sig.name
-    obj.obj[name] = @init_field(@field_lookup(field_spec)) if obj.obj[name] is undefined
-    trace "getting #{name} from obj of type #{obj.type}: #{obj.obj[name]}"
-    @push obj.obj[name]
+    obj.fields[name] = @init_field(@field_lookup(field_spec)) if obj.fields[name] is undefined
+    trace "getting #{name} from obj of type #{obj.type}: #{obj.fields[name]}"
+    @push obj.fields[name]
     @push null if field_spec.sig.type in ['J','D']
 
   # static stuff
@@ -97,7 +100,7 @@ class root.RuntimeState
   init_object: (cls) ->
     @class_lookup cls
     @set_obj cls
-  init_array: (type,arr=[]) -> @set_obj "[#{type}", {'array':arr}
+  init_array: (type,arr=[]) -> @set_obj "[#{type}", arr
   init_string: (str,intern=false) ->
     return @string_pool[str] if intern and @string_pool[str]
     c_ref = @init_array('char',arr=(str.charCodeAt(i) for i in [0...str.length]))
