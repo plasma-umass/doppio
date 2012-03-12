@@ -157,3 +157,4 @@ root.opcode_annotators =
   PushOpcode: -> "\t#{@value}"
   IIncOpcode: -> "\t#{@index}, #{@const}"
   NewArrayOpcode: -> "\t#{primitive_types[@element_type]}"
+  MultiArrayOpcode: -> "\t##{@class_ref},  #{@dim};"

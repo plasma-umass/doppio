@@ -203,6 +203,24 @@ class root.NewArrayOpcode extends root.Opcode
     type_code = code_array.get_uint 1
     @element_type = @arr_types[type_code]
 
+class root.MultiArrayOpcode extends root.Opcode
+  constructor: (name, params={}) ->
+    params.byte_count ?= 3
+    super name, params
+
+  take_args: (code_array, constant_pool) ->
+    @class_ref = code_array.get_uint 2
+    @class = constant_pool.get(@class_ref).deref()
+    @dim = code_array.get_uint 1
+
+  execute: (rs) ->
+    counts = rs.curr_frame().stack.splice(rs.length-@dim)
+    init_arr = (curr_dim) =>
+      return 0 if curr_dim == @dim
+      type = @class[curr_dim..]
+      rs.set_obj type, (init_arr(curr_dim+1) for [0...counts[curr_dim]])
+    rs.push init_arr 0
+
 towards_zero = (a) ->
   Math[if a > 0 then 'floor' else 'ceil'](a)
 
@@ -437,7 +455,7 @@ root.opcodes = {
   193: new root.ClassOpcode 'instanceof', { execute: (rs) -> o=rs.pop(); rs.push if o>0 then rs.check_cast(o,@class)+0 else 0 }
   194: new root.Opcode 'monitorenter', { execute: (rs)-> rs.pop() }  #TODO: actually implement locks?
   195: new root.Opcode 'monitorexit',  { execute: (rs)-> rs.pop() }  #TODO: actually implement locks?
-  197: new root.Opcode 'multianewarray', { byte_count: 3 }
+  197: new root.MultiArrayOpcode 'multianewarray'
   198: new root.UnaryBranchOpcode 'ifnull', { cmp: (v) -> v <= 0 }
   199: new root.UnaryBranchOpcode 'ifnonnull', { cmp: (v) -> v > 0 }
   200: new root.BranchOpcode 'goto_w', { byte_count: 4 }
