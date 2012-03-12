@@ -27,15 +27,15 @@ class @ClassFile
     @super_class = @constant_pool.get(super_ref).deref() unless super_ref is 0
     # direct interfaces of this class
     isize = read_u2()
-    @interfaces = (read_u2() for _ in [0...isize])
+    @interfaces = (read_u2() for [0...isize])
     # fields of this class
     num_fields = read_u2()
-    @fields = (new methods.Field(@this_class) for _ in [0...num_fields])
+    @fields = (new methods.Field(@this_class) for [0...num_fields])
     for f in @fields
       bytes_array = f.parse(bytes_array,@constant_pool)
     # class methods
     num_methods = read_u2()
-    @methods = (new methods.Method(@this_class) for _ in [0...num_methods])
+    @methods = (new methods.Method(@this_class) for [0...num_methods])
     for m in @methods
       bytes_array = m.parse(bytes_array,@constant_pool)
     # class attributes

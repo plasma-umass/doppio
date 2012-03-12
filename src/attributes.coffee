@@ -25,7 +25,7 @@ class Code
     code_array = new util.BytesArray bytes_array.splice(0, @code_len)
     @opcodes = @parse_code code_array, constant_pool
     except_len = util.read_uint(bytes_array.splice(0,2))
-    @exception_handlers = (new ExceptionHandler for _ in [0...except_len])
+    @exception_handlers = (new ExceptionHandler for [0...except_len])
     for eh in @exception_handlers
       bytes_array = eh.parse(bytes_array,constant_pool)
     # yes, there are even attrs on attrs. BWOM... BWOM...
@@ -53,7 +53,7 @@ class Code
 class LineNumberTable extends Array
   parse: (bytes_array,constant_pool) ->
     lnt_len = util.read_uint(bytes_array.splice(0,2))
-    for _ in [0...lnt_len]
+    for [0...lnt_len]
       spc = util.read_uint(bytes_array.splice(0,2))
       ln = util.read_uint(bytes_array.splice(0,2))
       this.push {'start_pc': spc,'line_number': ln}
@@ -178,7 +178,7 @@ root.make_attributes = (bytes_array,constant_pool) ->
   }
   num_attrs = util.read_uint(bytes_array.splice(0,2))
   attrs = []
-  for _ in [0...num_attrs]
+  for [0...num_attrs]
     name = constant_pool.get(util.read_uint(bytes_array.splice(0,2))).value
     attr_len = util.read_uint(bytes_array.splice(0,4))  # unused if the attr is defined
     if attr_types[name]?
