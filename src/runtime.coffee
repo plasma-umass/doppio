@@ -122,10 +122,13 @@ class root.RuntimeState
       data = @read_classfile cls
       java_throw @, 'java/lang/NoClassDefFoundError', cls unless data?
       @classes[cls] = new ClassFile data
+      old_loglevel = util.log_level  # suppress logging for init stuff
+      util.log_level = util.ERROR
       # run class initialization code
       @method_lookup({'class': cls, 'sig': {'name': '<clinit>'}}).run(this)
       if cls is 'java/lang/System'  # zomg hardcode
         @method_lookup({'class': cls, 'sig': {'name': 'initializeSystemClass'}}).run(this)
+      util.log_level = old_loglevel  # resume logging
     throw "class #{cls} not found!" unless @classes[cls]
     @classes[cls]
   method_lookup: (method_spec) ->

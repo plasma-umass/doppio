@@ -25,8 +25,8 @@ public class Strings {
     System.out.println(a.replace('a','z'));
     System.out.println(String.valueOf(1));
     // sans newlines
-    System.out.print(1); System.out.print(2); System.out.print(3);
-    //System.out.println(String.valueOf(1.5));
-    //System.out.format("%s ", "asdf");
+    System.out.print(1); System.out.print(2); System.out.println(3);
+    System.out.println(String.valueOf(1.5));
+    System.out.format("%s is asdf", "asdf");
   }
 }
