@@ -73,6 +73,9 @@ trapped_methods =
             rs.push (oref = rs.init_object(classname))
             rs.method_lookup({'class':classname,'sig':{'name':'<init>'}}).run(rs)
             rs.push oref
+        o 'forName(L!/!/String;)L!/!/!;', (rs) -> #again, to avoid reflection
+            classname = rs.jvm2js_str rs.get_obj(rs.curr_frame().locals[0])
+            rs.push rs.init_object 'java/lang/Class', { name:classname }
       ]
       System: [
         o 'setJavaLangAccess()V', (rs) -> # NOP
@@ -104,14 +107,14 @@ trapped_methods =
             o 'compareAndSetState(II)Z', (rs) -> rs.push 1 # always true
             o 'release(I)Z', (rs) -> rs.push 1 # always true
           ]
+      Currency: [
+        o '<clinit>()V', (rs) -> #NOP, because it uses lots of reflection and we don't need it
+      ]
       ResourceBundle: [
-        o 'getBundle(Ljava/lang/String;Ljava/util/Locale;Ljava/util/ResourceBundle$Control;)Ljava/util/ResourceBundle;', (rs) ->
-            # load in the right ResourceBundle based on the locale
+        o 'getBundle(L!/lang/String;L!/!/Locale;L!/!/ResourceBundle$Control;)L!/!/!;', (rs) ->
+            # load in the default ResourceBundle (ignores locale)
             args = rs.curr_frame().locals
-            base = rs.jvm2js_str(rs.get_obj(args[0]))
-            locale = rs.get_obj(args[1])
-            lang = rs.jvm2js_str(rs.get_obj(locale.fields.language))
-            classname = util.int_classname "#{base}_#{lang}"
+            classname = util.int_classname rs.jvm2js_str(rs.get_obj(args[0]))
             rs.push (b_ref = rs.init_object classname)
             rs.method_lookup({class: classname, sig: {name:'<init>',type:'()V'}}).run(rs)
             rs.push b_ref
@@ -146,7 +149,7 @@ trapped_methods =
       ]
     util:
       LocaleServiceProviderPool: [
-        o 'getPool(Ljava/lang/Class;)Lsun/util/LocaleServiceProviderPool;', (rs) -> 
+        o 'getPool(Ljava/lang/Class;)L!/!/!;', (rs) -> 
             # make a mock
             rs.push rs.init_object 'sun/util/LocaleServiceProviderPool'
         o 'hasProviders()Z', (rs) -> rs.push 0  # false, we can't provide anything
