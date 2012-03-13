@@ -51,5 +51,9 @@ public class LongMath {
     System.out.println(a + " << " + b + " = " + c);
     c = a >> b;
     System.out.println(a + " >> " + b + " = " + c);
+    c = a | b;
+    System.out.println(a + " | " + b + " = " + c);
+    c = a ^ b;
+    System.out.println(a + " ^ " + b + " = " + c);
   }
 }
