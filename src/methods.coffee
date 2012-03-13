@@ -1,6 +1,7 @@
 
 # pull in external modules
 _ ?= require '../third_party/underscore-min.js'
+gLong ?= require '../third_party/gLong.js'
 util ?= require './util'
 opcodes ?= require './opcodes'
 make_attributes ?= require './attributes'
@@ -217,11 +218,11 @@ native_methods =
       Double: [
         o 'doubleToRawLongBits(D)J', (rs) ->#note: not tested at all
             d_val = rs.curr_frame().locals[0]
-            sign = if d_val < 0 then 1 else 0
+            sign = gLong.fromInt(if d_val < 0 then 1 else 0)
             d_val = Math.abs(d_val)
-            exp = Math.floor(Math.log(d_val)/Math.LN2)
-            sig = (d_val/Math.pow(2,exp)-1)/Math.pow(2,-52)
-            rs.push util.lshift(sign,63)+util.lshift(exp+1023,52)+sig, null
+            exp = gLong.fromNumber(Math.floor(Math.log(d_val)/Math.LN2)+1023)
+            sig = gLong.fromNumber((d_val/Math.pow(2,exp)-1)/Math.pow(2,-52))
+            rs.push sign.shiftLeft(63).add(exp.shiftLeft(52)).add(sig), null
       ]
       Object: [
         o 'getClass()L!/!/Class;', (rs) ->
@@ -261,7 +262,7 @@ native_methods =
             j = dest_pos
             for i in [src_pos...src_pos+length]
               dest_array[j++] = src_array[i]
-        o 'currentTimeMillis()J', (rs) -> rs.push (new Date).getTime(), null
+        o 'currentTimeMillis()J', (rs) -> rs.push gLong.fromNumber((new Date).getTime()), null
         o 'initProperties(L!/util/Properties;)L!/util/Properties;', (rs) ->
             p_ref = rs.curr_frame().locals[0]
             m = rs.method_lookup({'class':'java/util/Properties','sig':{'name':'setProperty'}})
@@ -396,7 +397,7 @@ class root.Method extends AbstractMethodField
   
   # used by run and run_manually to print arrays for debugging. we need this to
   # distinguish [null] from [].
-  pa = (a) -> a.map((e)->if e? then e else '!')
+  pa = (a) -> a.map((e)->if e? then (if e instanceof gLong then "#{e}L" else e) else '!')
 
   run_manually: (func, runtime_state, args...) ->
     func runtime_state, args...

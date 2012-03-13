@@ -3,6 +3,7 @@
 
 # pull in external modules
 _ ?= require '../third_party/underscore-min.js'
+gLong ?= require '../third_party/gLong.js'
 util ?= require './util'
 
 """
@@ -100,7 +101,9 @@ class ConstLong
   constructor: (@value) -> @type = 'long'
 
   @from_bytes: (bytes_array) ->
-    value = util.read_int(bytes_array.splice(0,8))
+    high = util.read_uint(bytes_array.splice(0,4))
+    low = util.read_uint(bytes_array.splice(0,4))
+    value = gLong.fromBits(low,high)
     long = new @ value
     return [long, 2, bytes_array]
 

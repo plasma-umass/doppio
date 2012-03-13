@@ -1,4 +1,5 @@
 
+gLong ?= require '../third_party/gLong.js'
 util ?= require './util'
 {java_throw, ext_classname,BranchException,ReturnException,JavaException} = util
 root = exports ? this.opcodes = {}
@@ -115,7 +116,7 @@ class root.LoadOpcode extends root.Opcode
 
   _execute: (rs) ->
     rs.push rs.cl(@var_num)
-    rs.push undefined if @name.match /[ld]load/
+    rs.push null if @name.match /[ld]load/
 
 class root.LoadVarOpcode extends root.LoadOpcode
   constructor: (name, params) ->
@@ -242,6 +243,14 @@ int_div = (rs, a, b) ->
   # for the int type, and the divisor is -1, then overflow occurs, and the
   # result is equal to the dividend."
 
+long_mod = (rs, a, b) ->
+  java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b.isZero()
+  a.modulo(b)
+
+long_div = (rs, a, b) ->
+  java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b.isZero()
+  a.div(b)
+
 float2int = (a) ->
   INT_MAX = Math.pow(2, 31) - 1
   INT_MIN = - Math.pow 2, 31
@@ -271,8 +280,8 @@ root.opcodes = {
   06: new root.Opcode 'iconst_3', { execute: (rs) -> rs.push 3 }
   07: new root.Opcode 'iconst_4', { execute: (rs) -> rs.push 4 }
   08: new root.Opcode 'iconst_5', { execute: (rs) -> rs.push 5 }
-  09: new root.Opcode 'lconst_0', { execute: (rs) -> rs.push 0, null }
-  10: new root.Opcode 'lconst_1', { execute: (rs) -> rs.push 1, null }
+  09: new root.Opcode 'lconst_0', { execute: (rs) -> rs.push gLong.fromInt(0), null }
+  10: new root.Opcode 'lconst_1', { execute: (rs) -> rs.push gLong.fromInt(1), null }
   11: new root.Opcode 'fconst_0', { execute: (rs) -> rs.push 0 }
   12: new root.Opcode 'fconst_1', { execute: (rs) -> rs.push 1 }
   13: new root.Opcode 'fconst_2', { execute: (rs) -> rs.push 2 }
@@ -360,58 +369,58 @@ root.opcodes = {
   095: new root.Opcode 'swap', {execute: (rs) -> v2=rs.pop(); v1=rs.pop(); rs.push(v2,v1)}
   # TODO handle overflow?
   096: new root.Opcode 'iadd', { execute: (rs) -> rs.push wrap_int(rs.pop()+rs.pop()) }
-  097: new root.Opcode 'ladd', { execute: (rs) -> rs.push(rs.pop2()+rs.pop2(), null) }
+  097: new root.Opcode 'ladd', { execute: (rs) -> rs.push(rs.pop2().add(rs.pop2()), null) }
   098: new root.Opcode 'fadd', { execute: (rs) -> rs.push(rs.pop()+rs.pop()) }
   099: new root.Opcode 'dadd', { execute: (rs) -> rs.push(rs.pop2()+rs.pop2(), null) }
   100: new root.Opcode 'isub', { execute: (rs) -> rs.push wrap_int(-rs.pop()+rs.pop()) }
-  101: new root.Opcode 'lsub', { execute: (rs) -> rs.push(-rs.pop2()+rs.pop2(), null) }
+  101: new root.Opcode 'lsub', { execute: (rs) -> rs.push(rs.pop2().negate().add(rs.pop2()), null) }
   102: new root.Opcode 'fsub', { execute: (rs) -> rs.push(-rs.pop()+rs.pop()) }
   103: new root.Opcode 'dsub', { execute: (rs) -> rs.push(-rs.pop2()+rs.pop2(), null) }
   104: new root.Opcode 'imul', { execute: (rs) -> rs.push(rs.pop()*rs.pop()) }
-  105: new root.Opcode 'lmul', { execute: (rs) -> rs.push(rs.pop2()*rs.pop2(), null) }
+  105: new root.Opcode 'lmul', { execute: (rs) -> rs.push(rs.pop2().multiply(rs.pop2()), null) }
   106: new root.Opcode 'fmul', { execute: (rs) -> rs.push(rs.pop()*rs.pop()) }
   107: new root.Opcode 'dmul', { execute: (rs) -> rs.push(rs.pop2()*rs.pop2(), null) }
   108: new root.Opcode 'idiv', { execute: (rs) -> v=rs.pop();rs.push(int_div rs, rs.pop(), v) }
-  109: new root.Opcode 'ldiv', { execute: (rs) -> v=rs.pop2();rs.push(int_div(rs, rs.pop2(), v), null) }
+  109: new root.Opcode 'ldiv', { execute: (rs) -> v=rs.pop2();rs.push(long_div(rs, rs.pop2(), v), null) }
   110: new root.Opcode 'fdiv', { execute: (rs) -> v=rs.pop();rs.push(rs.pop()/v) }
   111: new root.Opcode 'ddiv', { execute: (rs) -> v=rs.pop2();rs.push(rs.pop2()/v, null) }
   112: new root.Opcode 'irem', { execute: (rs) -> v2=rs.pop();  rs.push int_mod(rs,rs.pop(),v2) }
-  113: new root.Opcode 'lrem', { execute: (rs) -> v2=rs.pop2(); rs.push int_mod(rs,rs.pop2(),v2), null }
+  113: new root.Opcode 'lrem', { execute: (rs) -> v2=rs.pop2(); rs.push long_mod(rs,rs.pop2(),v2), null }
   114: new root.Opcode 'frem', { execute: (rs) -> v2=rs.pop();  rs.push rs.pop() %v2 }
   115: new root.Opcode 'drem', { execute: (rs) -> v2=rs.pop2(); rs.push rs.pop2()%v2, null }
   116: new root.Opcode 'ineg', { execute: (rs) -> rs.push -rs.pop() }
-  117: new root.Opcode 'lneg', { execute: (rs) -> rs.push -rs.pop2(), null }
+  117: new root.Opcode 'lneg', { execute: (rs) -> rs.push rs.pop2().negate(), null }
   118: new root.Opcode 'fneg', { execute: (rs) -> rs.push -rs.pop() }
   119: new root.Opcode 'dneg', { execute: (rs) -> rs.push -rs.pop2(), null }
   120: new root.Opcode 'ishl', { execute: (rs) -> s=rs.pop()&0x1F; rs.push(rs.pop()<<s) }
-  121: new root.Opcode 'lshl', { execute: (rs) -> s=rs.pop()&0x3F; rs.push(util.lshift(rs.pop2(),s),null) }
+  121: new root.Opcode 'lshl', { execute: (rs) -> s=rs.pop()&0x3F; rs.push(rs.pop2().shiftLeft(gLong.fromInt(s)),null) }
   122: new root.Opcode 'ishr', { execute: (rs) -> s=rs.pop()&0x1F; rs.push(rs.pop()>>s) }
-  123: new root.Opcode 'lshr', { execute: (rs) -> s=rs.pop()&0x3F; rs.push(rs.pop2()>>s, null) } # XXX this will not work if the shifted number is > 32 bits in size
+  123: new root.Opcode 'lshr', { execute: (rs) -> s=rs.pop()&0x3F; rs.push(rs.pop2().shiftRight(gLong.fromInt(s)), null) }
   124: new root.Opcode 'iushr', { execute: (rs) -> s=rs.pop()&0x1F; rs.push(rs.pop()>>>s) }
-  125: new root.Opcode 'lushr', { execute: (rs) -> s=rs.pop()&0x3F; rs.push(rs.pop2()>>>s, null)} # XXX same issue as lshr
+  125: new root.Opcode 'lushr', { execute: (rs) -> s=rs.pop()&0x3F; rs.push(rs.pop2().shiftRightUnsigned(gLong.fromInt(s)), null)}
   126: new root.Opcode 'iand', { execute: (rs) -> rs.push(rs.pop()&rs.pop()) }
-  127: new root.Opcode 'land', { execute: (rs) -> rs.push(rs.pop2()&rs.pop2(), null) }
+  127: new root.Opcode 'land', { execute: (rs) -> rs.push(rs.pop2().and(rs.pop2()), null) }
   128: new root.Opcode 'ior',  { execute: (rs) -> rs.push(rs.pop()|rs.pop()) }
-  129: new root.Opcode 'lor',  { execute: (rs) -> rs.push(rs.pop2()|rs.pop2(), null) }
+  129: new root.Opcode 'lor',  { execute: (rs) -> rs.push(rs.pop2().or(rs.pop2()), null) }
   130: new root.Opcode 'ixor', { execute: (rs) -> rs.push(rs.pop()^rs.pop()) }
-  131: new root.Opcode 'lxor', { execute: (rs) -> rs.push(rs.pop2()^rs.pop2(), null) }
+  131: new root.Opcode 'lxor', { execute: (rs) -> rs.push(rs.pop2().xor(rs.pop2()), null) }
   132: new root.IIncOpcode 'iinc'
-  133: new root.Opcode 'i2l', { execute: (rs) -> rs.push null }
+  133: new root.Opcode 'i2l', { execute: (rs) -> rs.push gLong.fromNumber(rs.pop()), null }
   134: new root.Opcode 'i2f', { execute: (rs) -> }
   135: new root.Opcode 'i2d', { execute: (rs) -> rs.push null }
-  136: new root.Opcode 'l2i', { execute: (rs) -> rs.push rs.pop2()|0 }  # hackishly truncate to 32 bit int
-  137: new root.Opcode 'l2f', { execute: (rs) -> rs.push rs.pop2() }
-  138: new root.Opcode 'l2d', { execute: (rs) -> }
+  136: new root.Opcode 'l2i', { execute: (rs) -> rs.push rs.pop2().toInt() }
+  137: new root.Opcode 'l2f', { execute: (rs) -> rs.push rs.pop2().toNumber() }
+  138: new root.Opcode 'l2d', { execute: (rs) -> rs.push rs.pop2().toNumber(), null }
   139: new root.Opcode 'f2i', { execute: (rs) -> rs.push float2int rs.pop() }
-  140: new root.Opcode 'f2l', { execute: (rs) -> rs.push Math.floor(rs.pop()), null }
+  140: new root.Opcode 'f2l', { execute: (rs) -> rs.push gLong.fromNumber(rs.pop()), null }
   141: new root.Opcode 'f2d', { execute: (rs) -> rs.push null }
   142: new root.Opcode 'd2i', { execute: (rs) -> rs.push float2int rs.pop2() }
-  143: new root.Opcode 'd2l', { execute: (rs) -> rs.push Math.floor(rs.pop2()), null }
+  143: new root.Opcode 'd2l', { execute: (rs) -> rs.push gLong.fromNumber(rs.pop2()), null }
   144: new root.Opcode 'd2f', { execute: (rs) -> rs.push rs.pop2() }  #TODO: truncate?
   145: new root.Opcode 'i2b', { execute: (rs) -> rs.push truncate rs.pop(), 8 }
   146: new root.Opcode 'i2c', { execute: (rs) -> rs.push truncate rs.pop(), 8 }
   147: new root.Opcode 'i2s', { execute: (rs) -> rs.push truncate rs.pop(), 16 }
-  148: new root.Opcode 'lcmp', { execute: (rs) -> v2=rs.pop2(); rs.push util.cmp(rs.pop2(),v2) }
+  148: new root.Opcode 'lcmp', { execute: (rs) -> v2=rs.pop2(); rs.push rs.pop2().compare(v2) }
   149: new root.Opcode 'fcmpl', { execute: (rs) -> v2=rs.pop(); rs.push util.cmp(rs.pop(),v2) ? -1 }
   150: new root.Opcode 'fcmpg', { execute: (rs) -> v2=rs.pop(); rs.push util.cmp(rs.pop(),v2) ? 1 }
   151: new root.Opcode 'dcmpl', { execute: (rs) -> v2=rs.pop2(); rs.push util.cmp(rs.pop2(),v2) ? -1 }
