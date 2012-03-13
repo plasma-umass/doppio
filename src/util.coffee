@@ -90,6 +90,13 @@ class root.BytesArray
 
 root.is_string = (obj) -> typeof obj == 'string' or obj instanceof String
 
+root.num_to_string = (num,is_decimal) ->
+  s = num.toString()
+  return s unless is_decimal
+  return num.toFixed(1) unless s.match(/\./)?
+  #TODO: cap the number of decimal places to 7
+  return s.replace(/e/,'E').replace(/\+/,'')
+
 # Walks up the prototype chain of :object looking for an entry in the :handlers
 # dict that match its constructor's name. If it finds one, it calls that handler
 # with :object bound to `this` and :args as the arguments.
