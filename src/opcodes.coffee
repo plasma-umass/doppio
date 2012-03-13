@@ -242,11 +242,6 @@ int_div = (rs, a, b) ->
   # for the int type, and the divisor is -1, then overflow occurs, and the
   # result is equal to the dividend."
 
-# Wrap a number to a 32-bit value, with overflow if necessary.
-wrap_int = (a) ->
-  a = (a + Math.pow 2, 32) % Math.pow 2, 32
-  util.uint2int a, 4
-
 float2int = (a) ->
   INT_MAX = Math.pow(2, 31) - 1
   INT_MIN = - Math.pow 2, 31
@@ -256,6 +251,13 @@ float2int = (a) ->
   else unless a == Infinity or a == -Infinity then towards_zero a
   else if a > 0 then INT_MAX
   else INT_MIN
+
+# sign-preserving number truncate, with overflow and such
+truncate = (a, n_bits) ->
+  a = (a + Math.pow 2, n_bits) % Math.pow 2, n_bits
+  util.uint2int a, n_bits/8
+
+wrap_int = (a) -> truncate a, 32
 
 # these objects are used as prototypes for the parsed instructions in the
 # classfile
@@ -405,10 +407,10 @@ root.opcodes = {
   141: new root.Opcode 'f2d', { execute: (rs) -> rs.push null }
   142: new root.Opcode 'd2i', { execute: (rs) -> rs.push float2int rs.pop2() }
   143: new root.Opcode 'd2l', { execute: (rs) -> rs.push Math.floor(rs.pop2()), null }
-  144: new root.Opcode 'd2f', { execute: (rs) -> rs.push rs.pop2() }
-  145: new root.Opcode 'i2b', { execute: (rs) -> }  #TODO: truncate to 8 bits
-  146: new root.Opcode 'i2c', { execute: (rs) -> }  #TODO: truncate to 8 bits
-  147: new root.Opcode 'i2s', { execute: (rs) -> }  #TODO: truncate to 16 bits
+  144: new root.Opcode 'd2f', { execute: (rs) -> rs.push rs.pop2() }  #TODO: truncate?
+  145: new root.Opcode 'i2b', { execute: (rs) -> rs.push truncate rs.pop(), 8 }
+  146: new root.Opcode 'i2c', { execute: (rs) -> rs.push truncate rs.pop(), 8 }
+  147: new root.Opcode 'i2s', { execute: (rs) -> rs.push truncate rs.pop(), 16 }
   148: new root.Opcode 'lcmp', { execute: (rs) -> v2=rs.pop2(); rs.push util.cmp(rs.pop2(),v2) }
   149: new root.Opcode 'fcmpl', { execute: (rs) -> v2=rs.pop(); rs.push util.cmp(rs.pop(),v2) ? -1 }
   150: new root.Opcode 'fcmpg', { execute: (rs) -> v2=rs.pop(); rs.push util.cmp(rs.pop(),v2) ? 1 }

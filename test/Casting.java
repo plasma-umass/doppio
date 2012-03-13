@@ -9,12 +9,14 @@ public class Casting {
       System.out.println((double)a);
       System.out.println((float)a);
       System.out.println((short)a);
+      System.out.println((byte)a);
       a = -a;
       System.out.println(a);
       System.out.println((long)a);
       System.out.println((double)a);
       System.out.println((float)a);
       System.out.println((short)a);
+      System.out.println((byte)a);
     }
     {
       long a = 8888888888888L;
