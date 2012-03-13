@@ -251,6 +251,8 @@ float2int = (a) ->
   INT_MAX = Math.pow(2, 31) - 1
   INT_MIN = - Math.pow 2, 31
   if a == NaN then 0
+  else if a > INT_MAX then INT_MAX  # these two cases handle d2i issues
+  else if a < INT_MIN then INT_MIN
   else unless a == Infinity or a == -Infinity then towards_zero a
   else if a > 0 then INT_MAX
   else INT_MIN
@@ -395,7 +397,7 @@ root.opcodes = {
   133: new root.Opcode 'i2l', { execute: (rs) -> rs.push null }
   134: new root.Opcode 'i2f', { execute: (rs) -> }
   135: new root.Opcode 'i2d', { execute: (rs) -> rs.push null }
-  136: new root.Opcode 'l2i', { execute: (rs) -> rs.push rs.pop2() }  #TODO: truncate to 32 bit int
+  136: new root.Opcode 'l2i', { execute: (rs) -> rs.push rs.pop2()|0 }  # hackishly truncate to 32 bit int
   137: new root.Opcode 'l2f', { execute: (rs) -> rs.push rs.pop2() }
   138: new root.Opcode 'l2d', { execute: (rs) -> }
   139: new root.Opcode 'f2i', { execute: (rs) -> rs.push float2int rs.pop() }
