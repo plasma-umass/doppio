@@ -221,6 +221,13 @@ class root.MultiArrayOpcode extends root.Opcode
       rs.set_obj type, (init_arr(curr_dim+1) for [0...counts[curr_dim]])
     rs.push init_arr 0
 
+class root.ArrayLoadOpcode extends root.Opcode
+  execute: (rs) ->
+    idx = rs.pop()
+    array = rs.get_obj(rs.pop()).array
+    java_throw rs, 'java/lang/ArrayIndexOutOfBoundsException', "#{idx} not in [0,#{array.length})" unless 0 <= idx < array.length
+    rs.push array[idx]
+
 towards_zero = (a) ->
   Math[if a > 0 then 'floor' else 'ceil'](a)
 
@@ -297,14 +304,14 @@ root.opcodes = {
   43: new root.LoadOpcode 'aload_1'
   44: new root.LoadOpcode 'aload_2'
   45: new root.LoadOpcode 'aload_3'
-  46: new root.Opcode 'iaload', { execute: (rs) -> i=rs.pop(); rs.push rs.get_obj(rs.pop()).array[i] }
+  46: new root.ArrayLoadOpcode 'iaload'
   47: new root.Opcode 'laload'
-  48: new root.Opcode 'faload', { execute: (rs) -> i=rs.pop(); rs.push rs.get_obj(rs.pop()).array[i] }
+  48: new root.ArrayLoadOpcode 'faload'
   49: new root.Opcode 'daload'
-  50: new root.Opcode 'aaload', { execute: (rs) -> i=rs.pop(); rs.push rs.get_obj(rs.pop()).array[i] }
-  51: new root.Opcode 'baload', { execute: (rs) -> i=rs.pop(); rs.push rs.get_obj(rs.pop()).array[i] }
-  52: new root.Opcode 'caload', { execute: (rs) -> i=rs.pop(); rs.push rs.get_obj(rs.pop()).array[i] }
-  53: new root.Opcode 'saload', { execute: (rs) -> i=rs.pop(); rs.push rs.get_obj(rs.pop()).array[i] }
+  50: new root.ArrayLoadOpcode 'aaload'
+  51: new root.ArrayLoadOpcode 'baload'
+  52: new root.ArrayLoadOpcode 'caload'
+  53: new root.ArrayLoadOpcode 'saload'
   54: new root.StoreVarOpcode 'istore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
   55: new root.StoreVarOpcode 'lstore', { execute: (rs) -> rs.put_cl2(@var_num,rs.pop2()) }
   56: new root.StoreVarOpcode 'fstore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
