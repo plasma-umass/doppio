@@ -3,19 +3,21 @@ package test;
 public class Casting {
   public static void main(String[] args) {
     {
-      int a = 8;
+      int a = 999999;
       System.out.println(a);
       System.out.println((long)a);
       System.out.println((double)a);
       System.out.println((float)a);
+      System.out.println((short)a);
       a = -a;
       System.out.println(a);
       System.out.println((long)a);
       System.out.println((double)a);
       System.out.println((float)a);
+      System.out.println((short)a);
     }
     {
-      long a = 8L;
+      long a = 8888888888888L;
       System.out.println(a);
       System.out.println((int)a);
       System.out.println((double)a);
@@ -27,7 +29,7 @@ public class Casting {
       System.out.println((float)a);
     }
     {
-      double a = 8.0;
+      double a = 777777777777.0;
       System.out.println(a);
       System.out.println((long)a);
       System.out.println((int)a);
@@ -39,7 +41,7 @@ public class Casting {
       System.out.println((float)a);
     }
     {
-      float a = 8.0f;
+      float a = 6666666.0f;
       System.out.println(a);
       System.out.println((long)a);
       System.out.println((double)a);
