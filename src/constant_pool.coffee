@@ -100,12 +100,7 @@ class ConstLong
   constructor: (@value) -> @type = 'long'
 
   @from_bytes: (bytes_array) ->
-    int64 = util.read_uint(bytes_array.splice(0,8))
-    # this makes me feel dirty. I hate Javscript's lack of (real) bitwise operators
-    s = util.padleft(int64.toString(2),64,'0')
-    if s[0] == '1'
-      int64 = -(1 + util.bitwise_not(int64,64))
-    value = int64
+    value = util.read_int(bytes_array.splice(0,8))
     long = new @ value
     return [long, 2, bytes_array]
 

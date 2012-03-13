@@ -35,6 +35,13 @@ root.read_uint = (bytes) ->
   # sum up the byte values shifted left to the right alignment.
   root.sum(root.lshift(bytes[i],8*(n-i)) for i in [0..n])
 
+root.read_int = (bytes) ->
+  s = (util.padleft(bytes[i].toString(2),8,'0') for i in [0...bytes.length]).join('')
+  if s[0] == '1'
+    not_s = s.replace(/1/g,'x').replace(/0/g,'1').replace(/x/g,'0')
+    return -(1 + parseInt(not_s,2))
+  return parseInt(s,2)
+
 root.uint2int = (uint, bytes_count) ->
   if uint > Math.pow 2, 8 * bytes_count - 1
     uint - Math.pow 2, 8 * bytes_count
