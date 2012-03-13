@@ -90,7 +90,10 @@ trapped_methods =
         atomic:
           AtomicInteger: [
             o '<clinit>()V', (rs) -> #NOP
-            o 'compareAndSet(II)Z', (rs) -> rs.push 1  # always true
+            o 'compareAndSet(II)Z', (rs) -> 
+              args = rs.curr_frame().locals
+              rs.get_obj(args[0]).fields.value = args[2];  # we don't need to compare, just set
+              rs.push 1  # always true, because we only have one thread
           ]
           AtomicReferenceFieldUpdater: [
             o 'newUpdater(L!/lang/Class;L!/lang/Class;L!/lang/String;)L!/!/!/!/!;', (rs) -> rs.push 0 # null
@@ -101,6 +104,18 @@ trapped_methods =
             o 'compareAndSetState(II)Z', (rs) -> rs.push 1 # always true
             o 'release(I)Z', (rs) -> rs.push 1 # always true
           ]
+      ResourceBundle: [
+        o 'getBundle(Ljava/lang/String;Ljava/util/Locale;Ljava/util/ResourceBundle$Control;)Ljava/util/ResourceBundle;', (rs) ->
+            # load in the right ResourceBundle based on the locale
+            args = rs.curr_frame().locals
+            base = rs.jvm2js_str(rs.get_obj(args[0]))
+            locale = rs.get_obj(args[1])
+            lang = rs.jvm2js_str(rs.get_obj(locale.fields.language))
+            classname = util.int_classname "#{base}_#{lang}"
+            rs.push (b_ref = rs.init_object classname)
+            rs.method_lookup({class: classname, sig: {name:'<init>',type:'()V'}}).run(rs)
+            rs.push b_ref
+      ]
     nio:
       charset:
         Charset$3: [
@@ -128,6 +143,13 @@ trapped_methods =
       Unsafe: [
         o 'getUnsafe()L!/!/!;', (rs) -> # avoid reflection
             rs.static_get({'class':'sun/misc/Unsafe','sig':{'name':'theUnsafe'}})
+      ]
+    util:
+      LocaleServiceProviderPool: [
+        o 'getPool(Ljava/lang/Class;)Lsun/util/LocaleServiceProviderPool;', (rs) -> 
+            # make a mock
+            rs.push rs.init_object 'sun/util/LocaleServiceProviderPool'
+        o 'hasProviders()Z', (rs) -> rs.push 0  # false, we can't provide anything
       ]
   
 doPrivileged = (rs) ->
@@ -244,7 +266,7 @@ native_methods =
               rs.push (g_ref = rs.init_object 'java/lang/ThreadGroup')
               # have to run the private ThreadGroup constructor
               rs.method_lookup({class: 'java/lang/ThreadGroup', sig: {name:'<init>',type:'()V'}}).run(rs)
-              rs.main_thread = rs.set_obj 'java/lang/Thread', { priority: 1, group: g_ref }
+              rs.main_thread = rs.set_obj 'java/lang/Thread', { priority: 1, group: g_ref, threadLocals: 0 }
               rs.field_lookup({class: 'java/lang/Thread', sig: {name:'threadSeqNumber'}}).static_value = 0
             rs.push rs.main_thread
         o 'setPriority0(I)V', (rs) -> # NOP
@@ -369,7 +391,7 @@ class root.Method extends AbstractMethodField
         debug "#{padding}stack: [#{pa cf.stack}], local: [#{pa cf.locals}]"
         annotation =
           util.lookup_handler(opcode_annotators, op, pc, rs.class_lookup(@class_name).constant_pool) or ""
-        debug "#{padding}#{@name}:#{pc} => #{op.name}" + annotation
+        debug "#{padding}#{@class_name}::#{@name}:#{pc} => #{op.name}" + annotation
         op.execute rs
         rs.inc_pc(1 + op.byte_count)  # move to the next opcode
       catch e
