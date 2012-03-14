@@ -93,7 +93,10 @@ class ConstFloat
     sign = (uint32 &       0x80000000)>>>31
     exponent = (uint32 &   0x7F800000)>>>23
     significand = uint32 & 0x007FFFFF
-    value = Math.pow(-1,sign)*(1+significand*Math.pow(2,-23))*Math.pow(2,exponent-127)
+    if exponent is 0  # we must denormalize!
+      value = Math.pow(-1,sign)*significand*Math.pow(2,-149)
+    else
+      value = Math.pow(-1,sign)*(1+significand*Math.pow(2,-23))*Math.pow(2,exponent-127)
     float = new @ value
     return [float, 1, bytes_array]
 
@@ -117,7 +120,10 @@ class ConstDouble
     sign     = (uint32_a & 0x80000000)>>>31
     exponent = (uint32_a & 0x7FF00000)>>>20
     significand = util.lshift(uint32_a & 0x000FFFFF, 32) + uint32_b
-    value = Math.pow(-1,sign)*(1+significand*Math.pow(2,-52))*Math.pow(2,exponent-1023)
+    if exponent is 0  # we must denormalize!
+      value = Math.pow(-1,sign)*significand*Math.pow(2,-1074)
+    else
+      value = Math.pow(-1,sign)*(1+significand*Math.pow(2,-52))*Math.pow(2,exponent-1023)
     double = new @ value
     return [double, 2, bytes_array]
 
