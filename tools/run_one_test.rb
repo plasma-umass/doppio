@@ -6,9 +6,9 @@ def show_errors(name,type,errors)
   if errors.match /\S/
     puts "Differences found in #{type} test for #{name}: -reference, +ours"
     puts errors
-  else
-    puts "#{name} passes #{type} test"
+    return true
   end
+  puts "#{name} passes #{type} test"
 end
 
 if ARGV[0].nil?
@@ -24,7 +24,7 @@ name = src.match(/(\w+)\.java/)[1]
 Tempfile.open('disasm') do |f|
   # compare disas output
   `#{here_dir}/../console/disassembler.coffee #{test_dir}/#{name}.class >#{f.path()}`
-  show_errors(name,'disasm',`#{here_dir}/cleandiff.sh #{test_dir}/#{name}.disasm #{f.path()}`)
+  exit if show_errors(name,'disasm',`#{here_dir}/cleandiff.sh #{test_dir}/#{name}.disasm #{f.path()}`)
 end
 Tempfile.open('runtime') do |f|
   # compare runtime output
