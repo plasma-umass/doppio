@@ -8,6 +8,8 @@ test: $(RESULTS)
 	cat $(RESULTS)
 	@rm -f $(RESULTS)
 
+java: $(CLASSES) $(DISASMS) $(RUNOUTS)
+
 test/%.result: test/%.class test/%.disasm test/%.runout
 	tools/run_one_test.rb test/$* >test/$*.result
 
