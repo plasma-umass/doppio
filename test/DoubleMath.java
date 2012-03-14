@@ -19,9 +19,9 @@ public class DoubleMath {
       System.out.println("Caught ArithmeticException as expected: " + e.getMessage());
     }
 
-    runOps(5, 3);
-    runOps(-5, 3);
-    runOps(5, -3);
+    runOps(5, 4);
+    runOps(-5, 4);
+    runOps(5, -4);
     runOps(Double.MAX_VALUE, Double.MAX_VALUE);
     runOps(Double.MAX_VALUE, Double.MIN_VALUE);
     runOps(Double.MIN_VALUE, Double.MAX_VALUE);

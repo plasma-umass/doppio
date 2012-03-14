@@ -90,11 +90,10 @@ class root.BytesArray
 
 root.is_string = (obj) -> typeof obj == 'string' or obj instanceof String
 
-root.num_to_string = (num,is_decimal) ->
+root.decimal_to_string = (num) ->
   s = num.toString()
-  return s unless is_decimal
   return num.toFixed(1) unless s.match(/\./)?
-  # cap the number of decimal places to 7
+  # cap the number of decimal places to 7 (technically only valid for floats, but whatevs)
   dec = parseFloat(s.match(/\d+\.\d+/)[0]).toFixed(7)
   dec = dec.replace(/0+$/,'').replace(/\.$/,'.0')  # remove trailing zeros
   s = s.replace(/\d+\.\d+/,dec)

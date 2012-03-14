@@ -19,13 +19,13 @@ public class FloatMath {
       System.out.println("Caught ArithmeticException as expected: " + e.getMessage());
     }
 
-    runOps(5, 3);
-    runOps(-5, 3);
-    runOps(5, -3);
+    runOps(5, 4);
+    runOps(-5, 4);
+    runOps(5, -4);
     runOps(Float.MAX_VALUE, Float.MAX_VALUE);
-    runOps(Float.MAX_VALUE, Float.MIN_VALUE);
-    runOps(Float.MIN_VALUE, Float.MAX_VALUE);
-    runOps(Float.MIN_VALUE, Float.MIN_VALUE);
+    runOps(Float.MAX_VALUE, 1E-30f);
+    runOps(1E-30f, Float.MAX_VALUE);
+    runOps(1E-30f, 1E-30f);
 
   }
 
