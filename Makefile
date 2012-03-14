@@ -2,12 +2,14 @@ SOURCES = $(wildcard test/*.java)
 DISASMS = $(SOURCES:.java=.disasm)
 RUNOUTS = $(SOURCES:.java=.runout)
 CLASSES = $(SOURCES:.java=.class)
+RESULTS = $(SOURCES:.java=.result)
 
-all: run disasm
+test: $(RESULTS)
+	cat $(RESULTS)
+	@rm -f $(RESULTS)
 
-run: $(CLASSES) $(RUNOUTS)
-
-disasm: $(CLASSES) $(DISASMS)
+test/%.result: test/%.class test/%.disasm test/%.runout
+	tools/run_one_test.rb test/$* >test/$*.result
 
 test/%.disasm: test/%.class
 	javap -c -verbose -private test/$* >test/$*.disasm
@@ -20,6 +22,6 @@ test/%.runout: test/%.class
 	-java test/$* 2>&1 >test/$*.runout
 
 clean:
-	rm -f test/*.class
-	rm -f test/*.disasm
-	rm -f test/*.runout
+	@rm -f *.class $(DISASMS) $(RUNOUTS) $(RESULTS)
+
+.SECONDARY: $(CLASSES) $(DISASMS) $(RUNOUTS)

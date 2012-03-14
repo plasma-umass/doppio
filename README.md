@@ -40,5 +40,5 @@ Testing
 
 Run the automated test-runner to check runtime and disassembler output:
 
-    ./tools/run_tests.rb
+    make test
 
