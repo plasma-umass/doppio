@@ -30,17 +30,25 @@ root.disassemble = (class_file) ->
   rv += "  major version: #{class_file.major_version}\n"
   rv += "  Constant pool:\n"
 
+  # format floats and doubles in the javap way
+  format_decimal = (val,type_char) ->
+    m = val.toString().match /(-?\d+)(\.\d+)?(?:e\+?(-?\d+))?/
+    str = m[1] + (if m[2] then m[2] else '.0')
+    str = parseFloat(str).toFixed(7) if type_char is 'f' and m[2]?.length > 8
+    str = str.replace(/0+$/,'').replace(/\.$/,'.0')
+    str += "E#{m[3]}" if m[3]?
+    str + type_char
+
   # format the entries for displaying the constant pool. e.g. as '#5.#6' or
   # '3.14159f'
-  format_decimal = (val) -> val.toFixed(5).replace(/0+$/,'').replace(/\.$/,'.0')
   format = (entry) ->
     val = entry.value
     switch entry.type
       when 'Method', 'InterfaceMethod', 'Field'
         "##{val.class_ref.value}.##{val.sig.value}"
       when 'NameAndType' then "##{val.meth_ref.value}:##{val.type_ref.value}"
-      when 'float' then format_decimal(val) + "f"
-      when 'double' then format_decimal(val) + "d"
+      when 'float' then format_decimal val, 'f'
+      when 'double' then format_decimal val, 'd'
       when 'long' then val + "l"
       else escape_whitespace ((if entry.deref? then "#" else "") + val)
 
