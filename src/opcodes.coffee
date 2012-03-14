@@ -119,9 +119,6 @@ class root.LoadOpcode extends root.Opcode
     rs.push null if @name.match /[ld]load/
 
 class root.LoadVarOpcode extends root.LoadOpcode
-  constructor: (name, params) ->
-    super name, params
-
   take_args: (code_array, constant_pool, @wide=false) ->
     if @wide
       @name += "_w"
@@ -228,6 +225,7 @@ class root.ArrayLoadOpcode extends root.Opcode
     array = rs.get_obj(rs.pop()).array
     java_throw rs, 'java/lang/ArrayIndexOutOfBoundsException', "#{idx} not in [0,#{array.length})" unless 0 <= idx < array.length
     rs.push array[idx]
+    rs.push null if @name.match /[ld]aload/
 
 towards_zero = (a) ->
   Math[if a > 0 then 'floor' else 'ceil'](a)
@@ -299,7 +297,7 @@ root.opcodes = {
   18: new root.LoadConstantOpcode 'ldc', { byte_count: 1 }
   19: new root.LoadConstantOpcode 'ldc_w', { byte_count: 2 }
   20: new root.LoadConstantOpcode 'ldc2_w', { byte_count: 2 }
-  21: new root.LoadVarOpcode 'iload', { execute: (rs) -> rs.push rs.cl(@var_num) }
+  21: new root.LoadVarOpcode 'iload'
   22: new root.LoadVarOpcode 'lload'
   23: new root.LoadVarOpcode 'fload'
   24: new root.LoadVarOpcode 'dload'
@@ -325,9 +323,9 @@ root.opcodes = {
   44: new root.LoadOpcode 'aload_2'
   45: new root.LoadOpcode 'aload_3'
   46: new root.ArrayLoadOpcode 'iaload'
-  47: new root.Opcode 'laload'
+  47: new root.ArrayLoadOpcode 'laload'
   48: new root.ArrayLoadOpcode 'faload'
-  49: new root.Opcode 'daload'
+  49: new root.ArrayLoadOpcode 'daload'
   50: new root.ArrayLoadOpcode 'aaload'
   51: new root.ArrayLoadOpcode 'baload'
   52: new root.ArrayLoadOpcode 'caload'
