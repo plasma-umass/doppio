@@ -268,6 +268,13 @@ truncate = (a, n_bits) ->
 
 wrap_int = (a) -> truncate a, 32
 
+wrap_float = (a) ->
+  return Infinity if a > 3.40282346638528860e+38
+  return 0 if 0 < a < 1.40129846432481707e-45
+  return -Infinity if a < -3.40282346638528860e+38
+  return 0 if 0 > a > -1.40129846432481707e-45
+  a
+
 # these objects are used as prototypes for the parsed instructions in the
 # classfile
 root.opcodes = {
@@ -367,22 +374,21 @@ root.opcodes = {
   093: new root.Opcode 'dup2_x1'
   094: new root.Opcode 'dup2_x2'
   095: new root.Opcode 'swap', {execute: (rs) -> v2=rs.pop(); v1=rs.pop(); rs.push(v2,v1)}
-  # TODO handle overflow?
   096: new root.Opcode 'iadd', { execute: (rs) -> rs.push wrap_int(rs.pop()+rs.pop()) }
   097: new root.Opcode 'ladd', { execute: (rs) -> rs.push(rs.pop2().add(rs.pop2()), null) }
-  098: new root.Opcode 'fadd', { execute: (rs) -> rs.push(rs.pop()+rs.pop()) }
+  098: new root.Opcode 'fadd', { execute: (rs) -> rs.push wrap_float(rs.pop()+rs.pop()) }
   099: new root.Opcode 'dadd', { execute: (rs) -> rs.push(rs.pop2()+rs.pop2(), null) }
   100: new root.Opcode 'isub', { execute: (rs) -> rs.push wrap_int(-rs.pop()+rs.pop()) }
   101: new root.Opcode 'lsub', { execute: (rs) -> rs.push(rs.pop2().negate().add(rs.pop2()), null) }
-  102: new root.Opcode 'fsub', { execute: (rs) -> rs.push(-rs.pop()+rs.pop()) }
+  102: new root.Opcode 'fsub', { execute: (rs) -> rs.push wrap_float(-rs.pop()+rs.pop()) }
   103: new root.Opcode 'dsub', { execute: (rs) -> rs.push(-rs.pop2()+rs.pop2(), null) }
   104: new root.Opcode 'imul', { execute: (rs) -> rs.push(rs.pop()*rs.pop()) }
   105: new root.Opcode 'lmul', { execute: (rs) -> rs.push(rs.pop2().multiply(rs.pop2()), null) }
-  106: new root.Opcode 'fmul', { execute: (rs) -> rs.push(rs.pop()*rs.pop()) }
+  106: new root.Opcode 'fmul', { execute: (rs) -> rs.push wrap_float(rs.pop()*rs.pop()) }
   107: new root.Opcode 'dmul', { execute: (rs) -> rs.push(rs.pop2()*rs.pop2(), null) }
   108: new root.Opcode 'idiv', { execute: (rs) -> v=rs.pop();rs.push(int_div rs, rs.pop(), v) }
   109: new root.Opcode 'ldiv', { execute: (rs) -> v=rs.pop2();rs.push(long_div(rs, rs.pop2(), v), null) }
-  110: new root.Opcode 'fdiv', { execute: (rs) -> v=rs.pop();rs.push(rs.pop()/v) }
+  110: new root.Opcode 'fdiv', { execute: (rs) -> v=rs.pop();rs.push wrap_float(rs.pop()/v) }
   111: new root.Opcode 'ddiv', { execute: (rs) -> v=rs.pop2();rs.push(rs.pop2()/v, null) }
   112: new root.Opcode 'irem', { execute: (rs) -> v2=rs.pop();  rs.push int_mod(rs,rs.pop(),v2) }
   113: new root.Opcode 'lrem', { execute: (rs) -> v2=rs.pop2(); rs.push long_mod(rs,rs.pop2(),v2), null }
@@ -416,7 +422,7 @@ root.opcodes = {
   141: new root.Opcode 'f2d', { execute: (rs) -> rs.push null }
   142: new root.Opcode 'd2i', { execute: (rs) -> rs.push float2int rs.pop2() }
   143: new root.Opcode 'd2l', { execute: (rs) -> rs.push gLong.fromNumber(rs.pop2()), null }
-  144: new root.Opcode 'd2f', { execute: (rs) -> rs.push rs.pop2() }  #TODO: truncate?
+  144: new root.Opcode 'd2f', { execute: (rs) -> rs.push wrap_float rs.pop2() }
   145: new root.Opcode 'i2b', { execute: (rs) -> rs.push truncate rs.pop(), 8 }
   146: new root.Opcode 'i2c', { execute: (rs) -> rs.push truncate rs.pop(), 8 }
   147: new root.Opcode 'i2s', { execute: (rs) -> rs.push truncate rs.pop(), 16 }

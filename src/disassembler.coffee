@@ -32,14 +32,15 @@ root.disassemble = (class_file) ->
 
   # format the entries for displaying the constant pool. e.g. as '#5.#6' or
   # '3.14159f'
+  format_decimal = (val) -> val.toFixed(5).replace(/0+$/,'').replace(/\.$/,'.0')
   format = (entry) ->
     val = entry.value
     switch entry.type
       when 'Method', 'InterfaceMethod', 'Field'
         "##{val.class_ref.value}.##{val.sig.value}"
       when 'NameAndType' then "##{val.meth_ref.value}:##{val.type_ref.value}"
-      when 'float' then util.num_to_string(val,true) + "f"
-      when 'double' then util.num_to_string(val,true) + "d"
+      when 'float' then format_decimal(val) + "f"
+      when 'double' then format_decimal(val) + "d"
       when 'long' then val + "l"
       else escape_whitespace ((if entry.deref? then "#" else "") + val)
 

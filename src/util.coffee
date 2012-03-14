@@ -94,7 +94,10 @@ root.num_to_string = (num,is_decimal) ->
   s = num.toString()
   return s unless is_decimal
   return num.toFixed(1) unless s.match(/\./)?
-  #TODO: cap the number of decimal places to 7
+  # cap the number of decimal places to 7
+  dec = parseFloat(s.match(/\d+\.\d+/)[0]).toFixed(7)
+  dec = dec.replace(/0+$/,'').replace(/\.$/,'.0')  # remove trailing zeros
+  s = s.replace(/\d+\.\d+/,dec)
   return s.replace(/e/,'E').replace(/\+/,'')
 
 # Walks up the prototype chain of :object looking for an entry in the :handlers
