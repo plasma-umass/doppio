@@ -12,7 +12,7 @@ def show_errors(name,type,errors)
 end
 
 if ARGV[0].nil?
-  puts "Usage: $0 TestCase"
+  puts "Usage: #{$0} TestCase"
   exit -1
 end
 
