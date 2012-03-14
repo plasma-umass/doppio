@@ -23,5 +23,18 @@ public class ArrayOps {
       }
       System.out.println();
     }
+
+    // all kinds of array loads
+    long[] larr = new long[3];
+    short[] sarr = new short[4];
+    byte[] barr = new byte[5];
+    float[] farr = new float[6];
+    double[] darr = new double[7];
+    darr[6] = 8.3;
+    farr[5] = (float)darr[6];
+    barr[4] = (byte)farr[5];
+    sarr[3] = (short)barr[4];
+    larr[2] = (long)sarr[3];
+    darr[1] = (double)larr[2];
   }
 }

@@ -27,7 +27,21 @@ public class FloatMath {
     runOps(1E-30f, Float.MAX_VALUE);
     runOps(1E-30f, 1E-30f);
 
+    test_flops();
   }
+
+    static float test_flops(){
+        // force javac to use fload <n>, freturn, etc.
+        float a = 0f;
+        float b = 2f;
+        float c = Float.MAX_VALUE;
+        float d = 5f;
+        float e = -432112341.4f;
+        float f = Float.MIN_VALUE;
+        a = 5463f;
+        float[] foo = {a,b,c,d,e,f};
+        return foo[3];
+    }
 
   public static void runOps(float a, float b) {
     float c = a + b;

@@ -26,7 +26,22 @@ public class DoubleMath {
     runOps(Double.MAX_VALUE, Double.MIN_VALUE);
     runOps(Double.MIN_VALUE, Double.MAX_VALUE);
     runOps(Double.MIN_VALUE, Double.MIN_VALUE);
+
+    test_dops();
   }
+
+  static double test_dops(){
+        // force javac to use dload <n>, dreturn, etc.
+        double a = 0f;
+        double b = 2f;
+        double c = Double.MAX_VALUE;
+        double d = 5f;
+        double e = -432112341.4f;
+        double f = Double.MIN_VALUE;
+        a = 5463f;
+        double[] foo = {a,b,c,d,e,f};
+        return foo[3];
+    }
 
   public static void runOps(double a, double b) {
     double c = a + b;
