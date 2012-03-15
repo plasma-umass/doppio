@@ -29,13 +29,10 @@ process_bytecode = (bytecode_string) ->
   $('#run_button').removeAttr('disabled')
   $('#go_button').text(button_idle_text)
 
-run_jvm = () ->
-  # this is a silly hack to pass a "print"-like function to our JVM
-  output = $('#output')[0]
-  output.innerText = ''
-  print = (msg) -> output.innerText += msg
+run_jvm = (rs) ->
   $('#run_button').text('Running...')
-  jvm.run class_data, print, read_classfile, $('#cmdline').val().split(' ')
+  $('#output')[0].innerText = ''
+  jvm.run_class(rs, class_data, $('#cmdline').val().split(' '))
   $('#run_button').text('Run with args:')
 
 compile_source = (java_source) ->
@@ -52,12 +49,22 @@ compile_source = (java_source) ->
   }
 
 $(document).ready ->
+  # initialize the editor
   editor = ace.edit('source')
   JavaMode = require("ace/mode/java").Mode
   editor.getSession().setMode new JavaMode
+  # set up the compile/parse button
   $('#go_button').text(button_idle_text)
   $('#go_button').click (ev) -> compile_source editor.getSession().getValue()
-  $('#run_button').click (ev) -> run_jvm()
+  # this is a silly hack to pass a "print"-like function to our JVM
+  output = $('#output')[0]
+  print = (msg) -> output.innerText += msg
+  # make the runtime state (lives as long as the page lives)
+  util.log_level = 0
+  rs = new runtime.RuntimeState(print, read_classfile)
+  # set up the run button
+  $('#run_button').click (ev) -> run_jvm(rs)
+  # set up the local file loader
   $('#srcfile').change (ev) ->
     f = ev.target.files[0]
     reader = new FileReader
