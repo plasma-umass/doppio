@@ -13,8 +13,6 @@ class root.Opcode
   take_args: (code_array) ->
     @args = [code_array.get_uint(1) for i in [0...@byte_count]]
 
-  _execute: (rs) -> throw "#{@name} is a NOP"
-
 class root.FieldOpcode extends root.Opcode
   constructor: (name, params) ->
     super name, params
@@ -273,10 +271,13 @@ wrap_float = (a) ->
   return 0 if 0 > a > -1.40129846432481707e-45
   a
 
+jsr = (rs) ->
+  rs.push(rs.curr_pc()+@byte_count+1); throw new BranchException rs.curr_pc() + @offset
+
 # these objects are used as prototypes for the parsed instructions in the
 # classfile
 root.opcodes = {
-  00: new root.Opcode 'nop'
+  00: new root.Opcode 'nop', { execute: -> }
   01: new root.Opcode 'aconst_null', { execute: (rs) -> rs.push 0 }
   02: new root.Opcode 'iconst_m1', { execute: (rs) -> rs.push -1 }
   03: new root.Opcode 'iconst_0', { execute: (rs) -> rs.push 0 }
@@ -444,7 +445,7 @@ root.opcodes = {
   165: new root.BinaryBranchOpcode 'if_acmpeq', { cmp: (v1, v2) -> v1 == v2 }
   166: new root.BinaryBranchOpcode 'if_acmpne', { cmp: (v1, v2) -> v1 != v2 }
   167: new root.BranchOpcode 'goto', { execute: (rs) -> throw new BranchException rs.curr_pc() + @offset }
-  168: new root.BranchOpcode 'jsr', { execute: (rs) -> rs.push(rs.curr_pc()+@byte_count+1); throw new BranchException rs.curr_pc() + @offset }
+  168: new root.BranchOpcode 'jsr', { execute: (rs) -> jsr.call @, rs }
   169: new root.Opcode 'ret', { byte_count: 1, execute: (rs) -> throw new BranchException rs.cl @args[0] }
   170: new root.TableSwitchOpcode 'tableswitch'
   171: new root.LookupSwitchOpcode 'lookupswitch'
@@ -482,6 +483,6 @@ root.opcodes = {
   197: new root.MultiArrayOpcode 'multianewarray'
   198: new root.UnaryBranchOpcode 'ifnull', { cmp: (v) -> v <= 0 }
   199: new root.UnaryBranchOpcode 'ifnonnull', { cmp: (v) -> v > 0 }
-  200: new root.BranchOpcode 'goto_w', { byte_count: 4 }
-  201: new root.Opcode 'jsr_w'
+  200: new root.BranchOpcode 'goto_w', { byte_count: 4, execute: (rs) -> throw new BranchException rs.curr_pc() + @offset }
+  201: new root.BranchOpcode 'jsr_w', { byte_count: 4, execute: (rs) -> jsr.call @, rs }
 }
