@@ -367,10 +367,10 @@ root.opcodes = {
   88: new root.Opcode 'pop2', { execute: (rs) -> rs.pop2() }
   089: new root.Opcode 'dup', { execute: (rs) -> v=rs.pop(); rs.push(v,v) }
   090: new root.Opcode 'dup_x1', { execute: (rs) -> v1=rs.pop(); v2=rs.pop(); rs.push(v1,v2,v1) }
-  091: new root.Opcode 'dup_x2'
-  092: new root.Opcode 'dup2', {execute: (rs) -> v2=rs.pop(); v1=rs.pop(); rs.push(v1,v2,v1,v2)}
-  093: new root.Opcode 'dup2_x1'
-  094: new root.Opcode 'dup2_x2'
+  091: new root.Opcode 'dup_x2', {execute: (rs) -> [v1,v2,v3]=[rs.pop(),rs.pop(),rs.pop()];rs.push(v1,v3,v2,v1)}
+  092: new root.Opcode 'dup2', {execute: (rs) -> v1=rs.pop(); v2=rs.pop(); rs.push(v2,v1,v2,v1)}
+  093: new root.Opcode 'dup2_x1', {execute: (rs) -> [v1,v2,v3]=[rs.pop(),rs.pop(),rs.pop()];rs.push(v2,v1,v3,v2,v1)}
+  094: new root.Opcode 'dup2_x2', {execute: (rs) -> [v1,v2,v3,v4]=[rs.pop(),rs.pop(),rs.pop(),rs.pop()];rs.push(v2,v1,v4,v3,v2,v1)}
   095: new root.Opcode 'swap', {execute: (rs) -> v2=rs.pop(); v1=rs.pop(); rs.push(v2,v1)}
   096: new root.Opcode 'iadd', { execute: (rs) -> rs.push wrap_int(rs.pop()+rs.pop()) }
   097: new root.Opcode 'ladd', { execute: (rs) -> rs.push(rs.pop2().add(rs.pop2()), null) }

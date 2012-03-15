@@ -27,21 +27,35 @@ public class DoubleMath {
     runOps(Double.MIN_VALUE, Double.MAX_VALUE);
     runOps(Double.MIN_VALUE, Double.MIN_VALUE);
 
-    test_dops();
+    for (double d : test_dops()) {
+      System.out.println(d);
+    }
+
+    System.out.println(returnDouble());
   }
 
-  static double test_dops(){
-        // force javac to use dload <n>, dreturn, etc.
-        double a = 0f;
-        double b = 2f;
-        double c = Double.MAX_VALUE;
-        double d = 5f;
-        double e = -432112341.4f;
-        double f = Double.MIN_VALUE;
-        a = 5463f;
-        double[] foo = {a,b,c,d,e,f};
-        return foo[3];
-    }
+  static double[] test_dops(){
+    // force javac to use dload <n>, etc.
+    double a = 0f;
+    double b = 2f;
+    double c = Double.MAX_VALUE;
+    double d = 5f;
+    double e = -432112341.4f;
+    double f = Double.MIN_VALUE;
+    a = 5463f;
+    double[] foo = {a,b,c,d,e,f,0,0};
+    // dcmpl, dcmpg
+    if (a < b)
+      foo[6] = 6f;
+    if (c > d)
+      foo[7] = 6f;
+    return foo;
+  }
+
+  static double returnDouble() {
+    // force usage of dreturn
+    return Math.PI;
+  }
 
   public static void runOps(double a, double b) {
     double c = a + b;
