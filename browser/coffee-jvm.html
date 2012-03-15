@@ -19,7 +19,7 @@
     pre#disassembly { height: 50%; }
     pre#output { height: 20%; width:100%;}
     button {padding:10px 30px;line-height:10px; float: left;}
-    input#cmdline {margin: 7px 0px;}
+    input#cmdline {margin: 7px 0px; float: left;}
   </style>
   <script type="text/javascript" src="../third_party/jquery-1.7.1.min.js"></script>
   <script type="text/javascript" src="../third_party/underscore-min.js"></script>
@@ -53,6 +53,7 @@
   <button id='go_button' type='button'></button>
   <button id='run_button' type='button' disabled>Run with args:</button>
   <input id='cmdline' type='text' value='cmd line args'></input>
+  <button id='clear_heap' type='button'>Clear 0 heap entries</button>
   <div style='clear:both'></div>
   <pre id='output'>Output from System.out and System.err will appear here.
   </pre>

@@ -32,8 +32,11 @@ process_bytecode = (bytecode_string) ->
 run_jvm = (rs) ->
   $('#run_button').text('Running...')
   $('#output')[0].innerText = ''
-  jvm.run_class(rs, class_data, $('#cmdline').val().split(' '))
+  args = $('#cmdline').val().split(' ')
+  args = [] if args is ['']
+  jvm.run_class(rs, class_data, args)
   $('#run_button').text('Run with args:')
+  $('#clear_heap').text("Clear #{rs.heap.length-1} heap entries")
 
 compile_source = (java_source) ->
   $('#go_button').text('Compiling...')
@@ -49,6 +52,7 @@ compile_source = (java_source) ->
   }
 
 $(document).ready ->
+  util.log_level = 0
   # initialize the editor
   editor = ace.edit('source')
   JavaMode = require("ace/mode/java").Mode
@@ -56,14 +60,16 @@ $(document).ready ->
   # set up the compile/parse button
   $('#go_button').text(button_idle_text)
   $('#go_button').click (ev) -> compile_source editor.getSession().getValue()
-  # this is a silly hack to pass a "print"-like function to our JVM
+  # convenience for making new runtime states
   output = $('#output')[0]
-  print = (msg) -> output.innerText += msg
-  # make the runtime state (lives as long as the page lives)
-  util.log_level = 0
-  rs = new runtime.RuntimeState(print, read_classfile)
-  # set up the run button
-  $('#run_button').click (ev) -> run_jvm(rs)
+  make_rs = () -> new runtime.RuntimeState(((msg) -> output.innerText += msg), read_classfile)
+  # set up heap clearance
+  $('#clear_heap').click (ev) ->
+    $('#run_button').off('click')
+    rs = make_rs()  # blow the old state away
+    $('#clear_heap').text("Clear #{rs.heap.length-1} heap entries")
+    $('#run_button').on('click', (ev) -> run_jvm(rs))
+  $('#clear_heap').click()  # creates a runtime state
   # set up the local file loader
   $('#srcfile').change (ev) ->
     f = ev.target.files[0]
