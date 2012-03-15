@@ -75,7 +75,9 @@ root.disassemble = (class_file) ->
       # initializers are special-cased
       if m.name is '<init>' then ext_classname class_file.this_class # instance init
       else if m.name is '<clinit>' then "{}" # class init
-      else (m.return_type?.type or "") + " " + m.name
+      else
+        ret_type = if m.return_type? then pp_type m.return_type else ""
+        ret_type + " " + m.name
     rv += "(#{pp_type(p) for p in m.param_types})" unless m.name is '<clinit>'
     rv += ";\n"
     unless m.access_flags.native or m.access_flags.abstract

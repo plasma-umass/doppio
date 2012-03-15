@@ -119,7 +119,7 @@ class StackMapTable
         cls = constant_pool.get(util.read_uint bytes_array.splice(0, 2)).deref()
         'class ' + (if /\w/.test cls[0] then cls else "\"#{cls}\"")
       else
-        tag_to_type = [ 'top', 'int', 'float', 'double', 'long', 'null', 'this', 'object', 'uninitialized' ]
+        tag_to_type = [ 'bogus', 'int', 'float', 'double', 'long', 'null', 'this', 'object', 'uninitialized' ]
         tag_to_type[tag]
 
     @num_entries = util.read_uint(bytes_array.splice(0, 2))
