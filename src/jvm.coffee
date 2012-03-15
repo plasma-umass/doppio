@@ -40,8 +40,12 @@ show_stacktrace = (rs,e) ->
 
 # main function that gets called from the frontend
 root.run = (class_data, print_func, load_func, cmdline_args) ->
-  rs = new runtime.RuntimeState(class_data, print_func, load_func, cmdline_args)
+  rs = new runtime.RuntimeState(print_func, load_func)
+  root.run_class(rs,class_data,cmdline_args)
+
+root.run_class = (rs, class_data, cmdline_args) ->
   main_spec = {'class': class_data.this_class, 'sig': {'name': 'main'}}
+  rs.initialize(class_data,cmdline_args)
   try
     rs.method_lookup(main_spec).run(rs)
   catch e

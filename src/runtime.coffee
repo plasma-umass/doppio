@@ -13,11 +13,13 @@ class root.StackFrame
     @pc = 0
 
 class root.RuntimeState
-  constructor: (class_data, @print, @read_classfile, initial_args) ->
+  constructor: (@print, @read_classfile) ->
     @classes = {}
-    @classes[class_data.this_class] = class_data
     @heap = [null]
     @string_pool = {}  # for interned strings and string literals
+
+  initialize: (class_data, initial_args) ->
+    @classes[class_data.this_class] = class_data
     args = @init_array('java/lang/String',(@init_string(a) for a in initial_args))
     @meta_stack = [new root.StackFrame(null,[],[args])]  # start with a bogus ground state
     @method_lookup({'class': class_data.this_class, 'sig': {'name': '<clinit>'}}).run(this)

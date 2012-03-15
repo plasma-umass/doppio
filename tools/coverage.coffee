@@ -25,11 +25,15 @@ util.log_level = 0
 test_dir = "#{__dirname}/../test"
 files = fs.readdirSync test_dir
 
-for file in files when path.extname(file) == '.java'
-  classfile = "#{path.basename file, '.java'}.class"
-  console.log "Running #{classfile}..." unless print_usage
-  class_data = new ClassFile runner.read_binary_file "#{test_dir}/#{classfile}"
-  jvm.run class_data, (->), runner.read_classfile, []
+# load in all the test class files
+cs = (new ClassFile runner.read_binary_file "#{test_dir}/#{path.basename file, '.java'}.class" \
+        for file in files when path.extname(file) == '.java')
+# make the runtime state
+rs = new runtime.RuntimeState((->), runner.read_classfile)
+# run each class, reusing the same heap and string pool and class info
+for c in cs
+  console.log "running #{c.this_class}..." unless print_usage
+  jvm.run_class(rs, c, [])
 
 unused_count = 0
 for _, op of opcodes.opcodes
