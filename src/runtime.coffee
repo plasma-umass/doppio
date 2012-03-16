@@ -16,7 +16,9 @@ class root.RuntimeState
   constructor: (@print, @read_classfile) ->
     @classes = {}
     @heap = [null]
-    @string_pool = {}  # for interned strings and string literals
+    # for interned strings and string literals
+    @string_pool = {}
+    @string_redirector = {}
 
   initialize: (class_data, initial_args) ->
     @classes[class_data.this_class] = class_data
@@ -31,14 +33,15 @@ class root.RuntimeState
     carr = @get_obj(arr_ref).array
     (util.bytes2str carr).substr(offset ? 0, count)
   string_redirect: (oref,cls) ->
+    key = "#{cls}::#{oref}"
     cdata = @class_lookup(cls)
-    unless cdata.string_redirect[oref]
+    unless @string_redirector[key]
       cstr = cdata.constant_pool.get(oref)
       throw new Error "can't redirect const string at #{oref}" unless cstr and cstr.type is 'Asciz'
-      cdata.string_redirect[oref] = @init_string(cstr.value,true)
-      trace "heapifying #{oref} -> #{cdata.string_redirect[oref]} : '#{cstr.value}'"
-    trace "redirecting #{oref} -> #{cdata.string_redirect[oref]}"
-    return cdata.string_redirect[oref]
+      @string_redirector[key] = @init_string(cstr.value,true)
+      trace "heapifying #{oref} -> #{@string_redirector[key]} : '#{cstr.value}'"
+    trace "redirecting #{oref} -> #{@string_redirector[key]}"
+    return @string_redirector[key]
 
   curr_frame: () -> _.last(@meta_stack)
 
