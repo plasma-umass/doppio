@@ -3,35 +3,28 @@ button_idle_text = 'Compile and Parse'
 # stores the parsed ClassFile object
 class_data = undefined
 
-html_escape = (str) ->
-  str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
-     .replace(/</g, '&lt;').replace(/>/g, '&gt;')
-
 # Read in a binary classfile synchronously. Return an array of bytes.
 read_classfile = (cls) ->
- rv = null
- classpath = [ "http://localhost:8000", "http://localhost:8000/third_party/classes" ]
- try_path = (path) ->
-   $.ajax "#{path}/#{cls}.class", {
-     type: 'GET'
-     dataType: 'text'
-     async: false
-     beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
-     success: (data) -> rv = util.bytestr_to_array data
-   }
- for path in classpath
-   try_path path
-   if rv is not null then break
-
- if rv is null
-   throw "AJAX error when loading class #{cls}"
- rv
+  rv = null
+  classpath = [ "http://localhost:8000", "http://localhost:8000/third_party/classes" ]
+  try_path = (path) ->
+    $.ajax "#{path}/#{cls}.class", {
+      type: 'GET'
+      dataType: 'text'
+      async: false
+      beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
+      success: (data) -> rv = util.bytestr_to_array data
+    }
+  for path in classpath
+    try_path path
+    return rv unless rv is null
+  throw "AJAX error when loading class #{cls}"
 
 process_bytecode = (bytecode_string) ->
   $('#go_button').text('Parsing...')
   bytes_array = util.bytestr_to_array bytecode_string
   class_data = new ClassFile(bytes_array)
-  $('#disassembly').html html_escape(disassembler.disassemble(class_data))
+  $('#disassembly').text disassembler.disassemble class_data
   $('#run_button').removeAttr('disabled')
   $('#go_button').text(button_idle_text)
 

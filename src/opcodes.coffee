@@ -11,7 +11,7 @@ class root.Opcode
     @byte_count = params.byte_count ? 0
 
   take_args: (code_array) ->
-    @args = [code_array.get_uint(1) for i in [0...@byte_count]]
+    @args = (code_array.get_uint(1) for [0...@byte_count])
 
 class root.FieldOpcode extends root.Opcode
   constructor: (name, params) ->
@@ -445,7 +445,7 @@ root.opcodes = {
   165: new root.BinaryBranchOpcode 'if_acmpeq', { cmp: (v1, v2) -> v1 == v2 }
   166: new root.BinaryBranchOpcode 'if_acmpne', { cmp: (v1, v2) -> v1 != v2 }
   167: new root.BranchOpcode 'goto', { execute: (rs) -> throw new BranchException rs.curr_pc() + @offset }
-  168: new root.BranchOpcode 'jsr', { execute: (rs) -> jsr.call @, rs }
+  168: new root.BranchOpcode 'jsr', { execute: jsr }
   169: new root.Opcode 'ret', { byte_count: 1, execute: (rs) -> throw new BranchException rs.cl @args[0] }
   170: new root.TableSwitchOpcode 'tableswitch'
   171: new root.LookupSwitchOpcode 'lookupswitch'
@@ -484,5 +484,5 @@ root.opcodes = {
   198: new root.UnaryBranchOpcode 'ifnull', { cmp: (v) -> v <= 0 }
   199: new root.UnaryBranchOpcode 'ifnonnull', { cmp: (v) -> v > 0 }
   200: new root.BranchOpcode 'goto_w', { byte_count: 4, execute: (rs) -> throw new BranchException rs.curr_pc() + @offset }
-  201: new root.BranchOpcode 'jsr_w', { byte_count: 4, execute: (rs) -> jsr.call @, rs }
+  201: new root.BranchOpcode 'jsr_w', { byte_count: 4, execute: jsr }
 }

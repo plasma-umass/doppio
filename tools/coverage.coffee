@@ -15,11 +15,11 @@ op_stats = {}
 
 for num, op of opcodes.opcodes
   op_stats[op.name] = 0
-  op.execute = ((old_fn) ->
+  old_fn = op.execute
+  op.execute = do (old_fn) ->
     (rs) ->
       op_stats[@name]++
       old_fn.call @, rs
-  )(op.execute)
 
 util.log_level = 0
 test_dir = "#{__dirname}/../test"

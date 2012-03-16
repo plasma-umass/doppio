@@ -344,13 +344,12 @@ flatten_pkg = (pkg) ->
         for method in inner_pkg
           {fn_name, fn} = method
           # expand out the '!'s in the method names
-          fn_name = fn_name.replace /!|;/g, (->
+          fn_name = fn_name.replace /!|;/g, do ->
             depth = 0
             (c) ->
               if c == '!' then pkg_name_arr[depth++]
               else if c == ';' then depth = 0; c
               else c
-          )()
           full_name = "#{pkg_name_arr.join '/'}::#{fn_name}"
           result[full_name] = fn
       else
