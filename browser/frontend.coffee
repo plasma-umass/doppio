@@ -9,16 +9,22 @@ html_escape = (str) ->
 
 # Read in a binary classfile synchronously. Return an array of bytes.
 read_classfile = (cls) ->
- rv = []
- $.ajax "http://localhost:8000/third_party/classes/#{cls}.class", {
-   type: 'GET'
-   dataType: 'text'
-   async: false
-   beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
-   success: (data) -> rv = util.bytestr_to_array data
-   error: (jqXHR, textStatus, errorThrown) ->
-     throw "AJAX error when loading class #{cls}: #{errorThrown}"
- }
+ rv = null
+ classpath = [ "http://localhost:8000", "http://localhost:8000/third_party/classes" ]
+ try_path = (path) ->
+   $.ajax "#{path}/#{cls}.class", {
+     type: 'GET'
+     dataType: 'text'
+     async: false
+     beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
+     success: (data) -> rv = util.bytestr_to_array data
+   }
+ for path in classpath
+   try_path path
+   if rv is not null then break
+
+ if rv is null
+   throw "AJAX error when loading class #{cls}"
  rv
 
 process_bytecode = (bytecode_string) ->
