@@ -361,11 +361,6 @@ flatten_pkg = (pkg) ->
 trapped_methods = flatten_pkg trapped_methods
 native_methods = flatten_pkg native_methods
 
-array_methods =
-  'getClass()Ljava/lang/Class;': (rs) ->
-    _this = rs.get_obj(rs.curr_frame().locals[0])
-    rs.push rs.set_obj 'java/lang/Class', {name:util.ext_classname _this.type}
-
 class root.Method extends AbstractMethodField
   get_code: ->
     return _.find(@attrs, (a) -> a.constructor.name == "Code")
@@ -443,13 +438,11 @@ class root.Method extends AbstractMethodField
 
   run: (runtime_state,virtual=false) ->
     caller_stack = runtime_state.curr_frame().stack
-    unless @access_flags.static
+    if virtual
+      # dirty hack to bounce up the inheritance tree, to make sure we call the method on the most specific type
       oref = caller_stack[caller_stack.length-@param_bytes()]
       error "undef'd oref: (#{caller_stack})[-#{@param_bytes()}] (#{@class_name}::#{@name}#{@raw_descriptor})" unless oref
       obj = runtime_state.get_obj(oref)
-      is_array = obj.type[0] == '['
-    if virtual and not is_array
-      # dirty hack to bounce up the inheritance tree, to make sure we call the method on the most specific type
       m_spec = {class: obj.type, sig: {name:@name, type:@raw_descriptor}}
       m = runtime_state.method_lookup(m_spec)
       throw "abstract method got called: #{@name}#{@raw_descriptor}" if m.access_flags.abstract
@@ -460,13 +453,7 @@ class root.Method extends AbstractMethodField
     padding = (' ' for [2...runtime_state.meta_stack.length]).join('')
     debug "#{padding}entering method #{sig}"
     # check for trapped and native methods, run those manually
-    if is_array
-      [__,brackets,component_type] = /(\[*)(.*)/.exec(obj.type)
-      # ensure component type is loaded if it is a class
-      if component_type[0] == 'L'
-        runtime_state.class_lookup component_type[1...component_type.length-1]
-      @run_manually array_methods[@name+@raw_descriptor], runtime_state
-    else if trapped_methods[sig]
+    if trapped_methods[sig]
       @run_manually trapped_methods[sig], runtime_state
     else if @access_flags.native
       if sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0

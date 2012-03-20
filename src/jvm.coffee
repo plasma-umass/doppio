@@ -15,7 +15,7 @@ show_state = (rs) ->
   debug " ...omitted heap entries..." if i > 1
   while i < rs.heap.length
     obj = rs.heap[i]
-    if obj.type is '[char' and rs.heap[i+1] and rs.heap[i+1].type is 'java/lang/String'
+    if obj.type is '[C' and rs.heap[i+1] and rs.heap[i+1].type is 'java/lang/String'
       debug " #{i},#{i+1}: String \"#{rs.jvm2js_str(rs.heap[i+1])}\""
       ++i
     else if obj.type is 'java/lang/String'

@@ -22,7 +22,7 @@ class root.RuntimeState
 
   initialize: (class_data, initial_args) ->
     @classes[class_data.this_class] = class_data
-    args = @init_array('java/lang/String',(@init_string(a) for a in initial_args))
+    args = @set_obj('[Ljava/lang/String;',(@init_string(a) for a in initial_args))
     @meta_stack = [new root.StackFrame(null,[],[args])]  # start with a bogus ground state
     @method_lookup({'class': class_data.this_class, 'sig': {'name': '<clinit>'}}).run(this)
 
@@ -69,14 +69,14 @@ class root.RuntimeState
     java_throw @, 'java/lang/NullPointerException', '' unless @heap[oref]?
     @heap[oref]
   set_obj: (type, obj={}) ->
-    if obj instanceof Array
+    if util.is_array type
       @heap.push type: type, array: obj
     else
       @heap.push type: type, fields: obj
     @heap.length - 1
 
   heap_new: (cls) -> @push @init_object(cls)
-  heap_newarray: (type,len) -> @push @init_array(type,(0 for [0...len]))
+  heap_newarray: (type,len) -> @push @set_obj("[#{type}",(0 for [0...len]))
   heap_put: (field_spec) ->
     val = if field_spec.sig.type in ['J','D'] then @pop2() else @pop()
     obj = @get_obj @pop()
@@ -107,10 +107,9 @@ class root.RuntimeState
   init_object: (cls) ->
     @class_lookup cls
     @set_obj cls
-  init_array: (type,arr=[]) -> @set_obj "[#{type}", arr
   init_string: (str,intern=false) ->
     return @string_pool[str] if intern and @string_pool[str]
-    c_ref = @init_array('char',arr=(str.charCodeAt(i) for i in [0...str.length]))
+    c_ref = @set_obj('[C',(str.charCodeAt(i) for i in [0...str.length]))
     s_ref = @set_obj 'java/lang/String', {'value':c_ref, 'count':str.length}
     @string_pool[str] = s_ref if intern
     return s_ref
@@ -120,7 +119,7 @@ class root.RuntimeState
     else if field.type.type in ['int','float','double','long','boolean','char','short']
       0  # numbers default to zero/false
     else if field.type.type is 'reference' and field.type.ref_type is 'array'
-      @init_array field.raw_descriptor[1..]
+      @set_obj field.raw_descriptor
     else
       throw "I don't know what to do with non-class static fields"
 
@@ -129,16 +128,30 @@ class root.RuntimeState
     unless @classes[cls]
       # fetch the relevant class file, make a ClassFile, put it in @classes[cls]
       trace "loading new class: #{cls}"
-      data = @read_classfile cls
-      java_throw @, 'java/lang/NoClassDefFoundError', cls unless data?
-      @classes[cls] = new ClassFile data
-      #old_loglevel = util.log_level  # suppress logging for init stuff
-      #util.log_level = util.ERROR
-      # run class initialization code
-      @method_lookup({class: cls, sig: {name: '<clinit>', type: '()V'}}).run(this)
-      if cls is 'java/lang/System'  # zomg hardcode
-        @method_lookup({'class': cls, 'sig': {'name': 'initializeSystemClass'}}).run(this)
-      #util.log_level = old_loglevel  # resume logging
+      if util.is_array cls
+        @classes[cls] =
+          constant_pool: new ConstantPool
+          access_flags: {}
+          this_class: cls
+          super_class: 'java/lang/Object'
+          interfaces: []
+          fields: []
+          methods: []
+          attrs: []
+        component = util.unarray cls
+        if util.is_array component or util.is_class component
+          @class_lookup component
+      else
+        data = @read_classfile cls
+        java_throw @, 'java/lang/NoClassDefFoundError', cls unless data?
+        @classes[cls] = new ClassFile data
+        #old_loglevel = util.log_level  # suppress logging for init stuff
+        #util.log_level = util.ERROR
+        # run class initialization code
+        @method_lookup({class: cls, sig: {name: '<clinit>', type: '()V'}}).run(this)
+        if cls is 'java/lang/System'  # zomg hardcode
+          @method_lookup({'class': cls, 'sig': {'name': 'initializeSystemClass'}}).run(this)
+        #util.log_level = old_loglevel  # resume logging
     throw "class #{cls} not found!" unless @classes[cls]
     @classes[cls]
   method_lookup: (method_spec) ->
@@ -178,17 +191,21 @@ class root.RuntimeState
 
   # Returns a boolean indicating if :type1 is an instance of :type2.
   is_castable: (type1, type2) ->
-    if type1[0] is '['  # array type
-      if type2[0] is '['
+    if util.is_array type1
+      if util.is_array type2
         t1 = util.unarray(type1)
         t2 = util.unarray(type2)
-        return true if t2 is t1  # technically only for primitives, but this works
-        return @is_castable(t1,t2)
+        if util.is_array t1 and util.is_array t2
+          return @is_castable(t1,t2)
+        else if util.is_class t1 and util.is_class t2
+          return @is_castable(util.class_from_type t1,util.class_from_type t2)
+        else
+          return t2 == t1
       c2 = @class_lookup(type2)
       return type2 is 'java/lang/Object' unless c2.access_flags.interface
       return type2 in ['java/lang/Cloneable','java/io/Serializable']
     # not an array
-    return false if type2[0] is '['
+    return false if util.is_array type2
     c1 = @class_lookup(type1)
     c2 = @class_lookup(type2)
     unless c1.access_flags.interface
