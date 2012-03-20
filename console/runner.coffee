@@ -31,6 +31,20 @@ if require.main == module
   fname = argv._[0] or '/dev/stdin'
   class_data = new ClassFile exports.read_binary_file fname
   stdout = process.stdout.write.bind process.stdout
+  stdin  = process.openStdin()
+  tty = require('tty')
+  tty.setRawMode true
+  read_stdin = (n_bytes, resume) ->
+    buffer = []
+    stdin.on 'keypress', (str,key) ->
+      b = str.charCodeAt(0)  # TODO: unicode?
+      buffer.push b
+      if buffer.length is n_bytes or b is 4  # 04 -> EOF
+        stdin.removeAllListeners 'keypress'
+        tty.setRawMode false
+        resume buffer
+        process.exit 0  # because apparently it won't die otherwise
+
   java_cmd_args = (arg.toString() for arg in argv._[1..])
 
-  jvm.run class_data, stdout, exports.read_classfile, java_cmd_args
+  jvm.run class_data, stdout, read_stdin, exports.read_classfile, java_cmd_args

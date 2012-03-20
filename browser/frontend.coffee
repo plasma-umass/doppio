@@ -61,7 +61,7 @@ $(document).ready ->
   $('#go_button').click (ev) -> compile_source editor.getSession().getValue()
   # convenience for making new runtime states
   output = $('#output')[0]
-  make_rs = () -> new runtime.RuntimeState(((msg) -> output.innerText += msg), read_classfile)
+  make_rs = () -> new runtime.RuntimeState(((msg) -> output.innerText += msg), (->), read_classfile)
   # set up heap clearance
   $('#clear_heap').click (ev) ->
     $('#run_button').off('click')

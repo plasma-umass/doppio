@@ -29,7 +29,7 @@ files = fs.readdirSync test_dir
 cs = (new ClassFile runner.read_binary_file "#{test_dir}/#{path.basename file, '.java'}.class" \
         for file in files when path.extname(file) == '.java')
 # make the runtime state
-rs = new runtime.RuntimeState((->), runner.read_classfile)
+rs = new runtime.RuntimeState((->), (->), runner.read_classfile)
 # run each class, reusing the same heap and string pool and class info
 for c in cs
   console.log "running #{c.this_class}..." unless print_usage

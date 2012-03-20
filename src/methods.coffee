@@ -320,6 +320,24 @@ native_methods =
             args = rs.curr_frame().locals
             rs.print rs.jvm_carr2js_str(args[1], args[2], args[3])
       ]
+      FileInputStream: [
+        o 'readBytes([BII)I', (rs) ->
+            if rs.resuming_stack?
+              rs.resuming_stack = null
+              rs.push rs.secret_stash
+              rs.secret_stash = null
+            else
+              args = rs.curr_frame().locals
+              [offset,n_bytes] = args[2..3]
+              resume = (bytes) ->  # callback that gets run after we yield
+                rs.get_obj(args[1]).array[offset...offset+bytes.length] = bytes
+                rs.secret_stash = bytes.length
+                rs.resuming_stack = 1  # <-- index into the meta_stack of the frame we're resuming
+                rs.meta_stack[1].pc += 3  # move past the invoke opcode
+                rs.meta_stack[1].method.run(rs)  # this will only end when the JVM gets back to main...
+              rs.async_input n_bytes, resume
+              throw new util.YieldException
+      ]
   sun:
     misc:
       VM: [
@@ -422,6 +440,9 @@ class root.Method extends AbstractMethodField
           rs.meta_stack.pop()
           rs.push e.values...
           break
+        else if e instanceof util.YieldException
+          debug "yielding from #{@class_name}::#{@name}#{@raw_descriptor}"
+          throw e  # leave everything as-is
         else if e instanceof util.JavaException
           exception_handlers = @get_code().exception_handlers
           handler = _.find exception_handlers, (eh) ->
@@ -437,21 +458,32 @@ class root.Method extends AbstractMethodField
         throw e # JVM Error
 
   run: (runtime_state,virtual=false) ->
-    caller_stack = runtime_state.curr_frame().stack
-    if virtual
-      # dirty hack to bounce up the inheritance tree, to make sure we call the method on the most specific type
-      oref = caller_stack[caller_stack.length-@param_bytes()]
-      error "undef'd oref: (#{caller_stack})[-#{@param_bytes()}] (#{@class_name}::#{@name}#{@raw_descriptor})" unless oref
-      obj = runtime_state.get_obj(oref)
-      m_spec = {class: obj.type, sig: {name:@name, type:@raw_descriptor}}
-      m = runtime_state.method_lookup(m_spec)
-      throw "abstract method got called: #{@name}#{@raw_descriptor}" if m.access_flags.abstract
-      return m.run(runtime_state)
     sig = "#{@class_name}::#{@name}#{@raw_descriptor}"
-    params = @take_params caller_stack
-    runtime_state.meta_stack.push(new runtime.StackFrame(this,params,[]))
-    padding = (' ' for [2...runtime_state.meta_stack.length]).join('')
-    debug "#{padding}entering method #{sig}"
+    if runtime_state.resuming_stack?
+      frame_idx = runtime_state.resuming_stack
+      runtime_state.resuming_stack += 1
+      caller_stack = runtime_state.meta_stack[frame_idx-1]
+      padding = (' ' for [1...frame_idx]).join('')
+      unless frame_idx is runtime_state.meta_stack.length - 1
+        next_frame = runtime_state.meta_stack[frame_idx+1]
+        next_frame.pc += 3  # move past the invoke opcode
+        next_frame.method.run(runtime_state)
+      debug "#{padding}re-entering method #{sig}"
+    else    
+      caller_stack = runtime_state.curr_frame().stack
+      if virtual
+        # dirty hack to bounce up the inheritance tree, to make sure we call the method on the most specific type
+        oref = caller_stack[caller_stack.length-@param_bytes()]
+        error "undef'd oref: (#{caller_stack})[-#{@param_bytes()}] (#{@class_name}::#{@name}#{@raw_descriptor})" unless oref
+        obj = runtime_state.get_obj(oref)
+        m_spec = {class: obj.type, sig: {name:@name, type:@raw_descriptor}}
+        m = runtime_state.method_lookup(m_spec)
+        throw "abstract method got called: #{@name}#{@raw_descriptor}" if m.access_flags.abstract
+        return m.run(runtime_state)
+      params = @take_params caller_stack
+      runtime_state.meta_stack.push(new runtime.StackFrame(this,params,[]))
+      padding = (' ' for [2...runtime_state.meta_stack.length]).join('')
+      debug "#{padding}entering method #{sig}"
     # check for trapped and native methods, run those manually
     if trapped_methods[sig]
       @run_manually trapped_methods[sig], runtime_state
@@ -466,3 +498,5 @@ class root.Method extends AbstractMethodField
       @run_bytecode runtime_state, padding
     cf = runtime_state.curr_frame()
     debug "#{padding}stack: [#{pa cf.stack}], local: [#{pa cf.locals}] (method end)"
+
+  resume: (runtime_state, pc) ->

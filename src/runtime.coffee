@@ -13,7 +13,7 @@ class root.StackFrame
     @pc = 0
 
 class root.RuntimeState
-  constructor: (@print, @read_classfile) ->
+  constructor: (@print, @async_input, @read_classfile) ->
     @classes = {}
     @heap = [null]
     # for interned strings and string literals

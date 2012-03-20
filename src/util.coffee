@@ -117,6 +117,8 @@ class root.BranchException
 class root.ReturnException
   constructor: (@values...) ->
 
+class root.YieldException
+
 class root.JavaException
   constructor: (rs, @exception_ref) ->
     @exception = rs.get_obj @exception_ref
