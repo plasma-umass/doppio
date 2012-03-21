@@ -48,3 +48,5 @@ if require.main == module
   java_cmd_args = (arg.toString() for arg in argv._[1..])
 
   jvm.run class_data, stdout, read_stdin, exports.read_classfile, java_cmd_args
+  tty.setRawMode false
+  process.exit 0  # because apparently it won't die otherwise
