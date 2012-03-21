@@ -59,23 +59,6 @@ root.unarray = (typestr) -> typestr.slice(1) # strips one level of array from ty
 
 root.class_from_type = (typestr) -> typestr[1...typestr.length-1] # LClassName; -> ClassName
 
-root.is_primitive = (typestr) ->
-  typestr.length == 1 and typestr in ['B', 'C', 'D', 'F', 'I', 'J', 'S', 'Z']
-
-# XXX some code duplication with methods.coffee
-root.ext_type = (typestr) ->
-  switch typestr[0]
-    when 'B' then 'byte'
-    when 'C' then 'char'
-    when 'D' then 'double'
-    when 'F' then 'float'
-    when 'I' then 'int'
-    when 'J' then 'long'
-    when 'L' then root.ext_classname root.class_from_type typestr
-    when 'S' then 'short'
-    when 'Z' then 'boolean'
-    when '[' then root.ext_classname typestr
-
 root.parse_flags = (flag_byte) ->
   {
     public:       flag_byte & 0x1

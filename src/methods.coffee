@@ -6,8 +6,10 @@ util ?= require './util'
 opcodes ?= require './opcodes'
 make_attributes ?= require './attributes'
 disassembler ?= require './disassembler'
+types ?= require './types'
 {log,debug,error} = util
 {opcode_annotators} = disassembler
+{t} = types
 
 # things assigned to root will be available outside this module
 root = exports ? this.methods = {}
@@ -70,14 +72,13 @@ trapped_methods =
         ]
       Class: [
         o 'newInstance0()L!/!/Object;', (rs) -> #implemented here to avoid reflection
-            classname = util.class_from_type rs.get_obj(rs.curr_frame().locals[0]).fields.$type
+            classname = rs.get_obj(rs.curr_frame().locals[0]).fields.$type.toClassString()
             rs.push (oref = rs.init_object(classname))
             rs.method_lookup({'class':classname,'sig':{'name':'<init>'}}).run(rs)
             rs.push oref
         o 'forName(L!/!/String;)L!/!/!;', (rs) -> #again, to avoid reflection
             classname = rs.jvm2js_str rs.get_obj(rs.curr_frame().locals[0])
-            type = "L#{utils.int_classname classname};"
-            rs.push rs.set_obj 'java/lang/Class', { $type: type, name: 0 }
+            rs.push rs.set_obj 'java/lang/Class', { $type: new types.ClassType(classname), name: 0 }
       ]
       System: [
         o 'setJavaLangAccess()V', (rs) -> # NOP
@@ -193,53 +194,44 @@ native_methods =
         o 'getPrimitiveClass(L!/!/String;)L!/!/!;', (rs) ->
             str_ref = rs.get_obj(rs.curr_frame().locals[0])
             name = rs.jvm2js_str str_ref
-            name_map =
-              byte: 'B'
-              char: 'C'
-              double: 'D'
-              float: 'F'
-              int: 'I'
-              long: 'J'
-              short: 'S'
-              boolean: 'Z'
-            rs.push rs.set_obj 'java/lang/Class', { $type: name_map[name], name:0 }
+            rs.push rs.set_obj 'java/lang/Class', { $type: new types.PrimitiveType(name), name:0 }
         o 'getClassLoader0()L!/!/ClassLoader;', (rs) -> rs.push 0  # we don't need no stinkin classloaders
         o 'desiredAssertionStatus0(L!/!/!;)Z', (rs) -> rs.push 0 # we don't need no stinkin asserts
         o 'getName0()L!/!/String;', (rs) ->
             type = rs.get_obj(rs.curr_frame().locals[0]).fields.$type
-            rs.push rs.init_string(util.ext_type type)
+            rs.push rs.init_string(type.toExternalString())
         o 'forName0(L!/!/String;ZL!/!/ClassLoader;)L!/!/!;', (rs) ->
             jvm_str = rs.get_obj(rs.curr_frame().locals[0])
             classname = util.int_classname rs.jvm2js_str(jvm_str)
             throw "Class.forName0: Failed to load #{classname}" unless rs.class_lookup(classname)
-            rs.push rs.set_obj 'java/lang/Class', { $type:"L#{classname};", name:0 }
+            rs.push rs.set_obj 'java/lang/Class', { $type: new types.ClassType(classname), name:0 }
         o 'getComponentType()L!/!/!;', (rs) ->
             type = rs.get_obj(rs.curr_frame().locals[0]).fields.$type
-            if not util.is_array type
+            if not (type instanceof types.ArrayType)
               rs.push 0
               return
-            component_type = util.unarray type
-            rs.push rs.set_obj 'java/lang/Class', $type:component_type, name: 0
+            rs.push rs.set_obj 'java/lang/Class', $type:type.component_type, name: 0
         o 'isInterface()Z', (rs) ->
             type = rs.get_obj(rs.curr_frame().locals[0]).fields.$type
-            if not util.is_class type
+            if not (type instanceof types.ClassType)
               rs.push 0
               return
-            cls = rs.class_lookup util.class_from_type type
+            cls = rs.class_lookup type.toClassString()
             rs.push cls.access_flags.interface + 0
         o 'isPrimitive()Z', (rs) ->
             type = rs.get_obj(rs.curr_frame().locals[0]).fields.$type
-            rs.push util.is_primitive(type) + 0
+            rs.push (type instanceof types.PrimitiveType) + 0
         o 'getSuperclass()L!/!/!;', (rs) ->
             type = rs.get_obj(rs.curr_frame().locals[0]).fields.$type
-            if util.is_primitive(type) or type == 'V' or type == 'Ljava/lang/Object;'
+            if (type instanceof types.PrimitiveType) or
+               (type instanceof types.VoidType) or type == 'Ljava/lang/Object;'
               rs.push 0
               return
-            cls = rs.class_lookup util.class_from_type type
+            cls = rs.class_lookup type.toClassString()
             if cls.access_flags.interface
               rs.push 0
               return
-            rs.push rs.set_obj 'java/lang/Class', $type: "L#{cls.super_class};", name: 0
+            rs.push rs.set_obj 'java/lang/Class', $type: new types.ClassType(cls.super_class), name: 0
       ],
       Float: [
         o 'floatToRawIntBits(F)I', (rs) ->  #note: not tested for weird values
@@ -262,8 +254,9 @@ native_methods =
       Object: [
         o 'getClass()L!/!/Class;', (rs) ->
             _this = rs.get_obj(rs.curr_frame().locals[0])
-            type = if util.is_array _this.type then _this.type else "L#{_this.type};"
-            rs.push rs.set_obj 'java/lang/Class', { $type: type, name: 0 }
+            # XXX temporary eventually this should just pass the type object
+            type = if _this.type[0] == '[' then _this.type else "L#{_this.type};"
+            rs.push rs.set_obj 'java/lang/Class', { $type: t(type), name: 0 }
         o 'hashCode()I', (rs) ->
             # return heap reference. XXX need to change this if we ever implement
             # GC that moves stuff around.
@@ -274,7 +267,8 @@ native_methods =
           o 'newArray(L!/!/Class;I)L!/!/Object;', (rs) ->
               type = rs.get_obj(rs.curr_frame().locals[0]).fields.$type
               len = rs.curr_frame().locals[1]
-              rs.heap_newarray type, len
+              # XXX eventually this should just pass the type object
+              rs.heap_newarray type.toString(), len
         ]
       StrictMath: [
         o 'pow(DD)D', (rs) -> rs.push Math.pow(rs.cl(0),rs.cl(2)), null
@@ -384,8 +378,9 @@ native_methods =
         o 'getCallerClass(I)Ljava/lang/Class;', (rs) ->
             frames_to_skip = rs.curr_frame().locals[0]
             #TODO: disregard frames assoc. with java.lang.reflect.Method.invoke() and its implementation
-            cls = rs.meta_stack[rs.meta_stack.length-1-frames_to_skip].class_name
-            rs.push rs.set_obj 'java/lang/Class', { $type:"L#{cls};", name: 0 }
+            cls = rs.meta_stack[rs.meta_stack.length-1-frames_to_skip].toClassString()
+            type = if cls[0] == '[' then cls else "L#{cls};"
+            rs.push rs.set_obj 'java/lang/Class', { $type: t(type), name: 0 }
       ]
 
 flatten_pkg = (pkg) ->
