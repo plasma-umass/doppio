@@ -6,7 +6,7 @@ root = exports ? this.runtime = {}
 util ?= require './util'
 types ?= require './types'
 {log,debug,error,java_throw} = util
-{t} = types
+{t,c2t} = types
 
 trace = (msg) -> log 9, msg
 
@@ -189,16 +189,10 @@ class root.RuntimeState
   # Retrieves the heap object referenced by :oref, and returns a boolean
   # indicating if it can be casted to (i.e. is an instance of) :classname.
   check_cast: (oref, classname) ->
-    return @is_castable(@get_obj(oref).type,classname)
+    return @is_castable(c2t(@get_obj(oref).type),c2t(classname))
 
   # Returns a boolean indicating if :type1 is an instance of :type2.
   is_castable: (type1, type2) ->
-    x = (type) ->
-      if type[0] == '[' then t type
-      else new types.ClassType type
-    type1 = if type1 instanceof types.Type then type1 else x type1
-    type2 = if type2 instanceof types.Type then type2 else x type2
-
     if (type1 instanceof types.PrimitiveType) or (type2 instanceof types.PrimitiveType)
       return type1 == type2
     if type1 instanceof types.ArrayType

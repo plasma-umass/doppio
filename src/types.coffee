@@ -27,6 +27,12 @@ root.t = (type_str) ->
   else
     throw new Error "Unrecognized type string: #{type_str}"
 
+# another convenience function, for converting class names to
+# array types / class types
+root.c2t = (type_str) ->
+  if type_str[0] == '[' then root.t type_str
+  else new types.ClassType type_str
+
 class root.Type
   valueOf: -> @toString()
 

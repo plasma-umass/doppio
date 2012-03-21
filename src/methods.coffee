@@ -9,7 +9,7 @@ disassembler ?= require './disassembler'
 types ?= require './types'
 {log,debug,error} = util
 {opcode_annotators} = disassembler
-{t} = types
+{t,c2t} = types
 
 # things assigned to root will be available outside this module
 root = exports ? this.methods = {}
@@ -478,7 +478,7 @@ class root.Method extends AbstractMethodField
           exception_handlers = @get_code().exception_handlers
           handler = _.find exception_handlers, (eh) ->
             eh.start_pc <= pc < eh.end_pc and
-              (eh.catch_type == "<any>" or rs.is_castable e.exception.type, eh.catch_type)
+              (eh.catch_type == "<any>" or rs.is_castable c2t(e.exception.type), c2t(eh.catch_type))
           if handler?
             rs.push e.exception_ref
             rs.goto_pc handler.handler_pc
