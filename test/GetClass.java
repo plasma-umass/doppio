@@ -11,7 +11,11 @@ public class GetClass {
     System.out.println(x.getClass().getName());
     System.out.println(xArr.getClass().getName());
     System.out.println(iArr.getClass().getName());
+    System.out.println(iArr.getClass().getComponentType());
+    System.out.println(iArr.getClass().getComponentType().getComponentType());
     System.out.println(multiArr.getClass().getName());
+    System.out.println(multiArr.getClass().getComponentType());
+    System.out.println(multiArr.getClass().getSuperclass());
   }
 
 }
