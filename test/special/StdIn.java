@@ -7,7 +7,7 @@ public class StdIn {
     try {
       inChar = System.in.read();
       System.out.print("You entered ");
-      System.out.println(inChar);
+      System.out.println((char)inChar);
     }
     catch (IOException e){
       System.out.println("Error reading from user");
