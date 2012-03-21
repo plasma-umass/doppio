@@ -195,10 +195,10 @@ class root.RuntimeState
       if util.is_array type2
         t1 = util.unarray(type1)
         t2 = util.unarray(type2)
-        if util.is_array t1 and util.is_array t2
+        if util.is_array(t1) and util.is_array(t2)
           return @is_castable(t1,t2)
-        else if util.is_class t1 and util.is_class t2
-          return @is_castable(util.class_from_type t1,util.class_from_type t2)
+        else if util.is_class(t1) and util.is_class(t2)
+          return @is_castable(util.class_from_type(t1),util.class_from_type(t2))
         else
           return t2 == t1
       c2 = @class_lookup(type2)

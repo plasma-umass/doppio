@@ -57,7 +57,7 @@ root.is_class = (typestr) -> typestr[0] == 'L'
 
 root.unarray = (typestr) -> typestr.slice(1) # strips one level of array from type sig
 
-root.class_from_type = (typestr) -> typestr[1...typestr.length] # LClassName; -> ClassName
+root.class_from_type = (typestr) -> typestr[1...typestr.length-1] # LClassName; -> ClassName
 
 root.parse_flags = (flag_byte) ->
   {
