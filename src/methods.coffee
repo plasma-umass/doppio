@@ -9,7 +9,7 @@ disassembler ?= require './disassembler'
 types ?= require './types'
 {log,debug,error} = util
 {opcode_annotators} = disassembler
-{t,c2t} = types
+{c2t} = types
 
 # things assigned to root will be available outside this module
 root = exports ? this.methods = {}
@@ -254,9 +254,7 @@ native_methods =
       Object: [
         o 'getClass()L!/!/Class;', (rs) ->
             _this = rs.get_obj(rs.curr_frame().locals[0])
-            # XXX temporary eventually this should just pass the type object
-            type = if _this.type[0] == '[' then _this.type else "L#{_this.type};"
-            rs.push rs.set_obj 'java/lang/Class', { $type: t(type), name: 0 }
+            rs.push rs.set_obj 'java/lang/Class', { $type: c2t(_this.type), name: 0 }
         o 'hashCode()I', (rs) ->
             # return heap reference. XXX need to change this if we ever implement
             # GC that moves stuff around.
@@ -267,8 +265,7 @@ native_methods =
           o 'newArray(L!/!/Class;I)L!/!/Object;', (rs) ->
               type = rs.get_obj(rs.curr_frame().locals[0]).fields.$type
               len = rs.curr_frame().locals[1]
-              # XXX eventually this should just pass the type object
-              rs.heap_newarray type.toString(), len
+              rs.heap_newarray type, len
         ]
       StrictMath: [
         o 'pow(DD)D', (rs) -> rs.push Math.pow(rs.cl(0),rs.cl(2)), null
@@ -379,8 +376,7 @@ native_methods =
             frames_to_skip = rs.curr_frame().locals[0]
             #TODO: disregard frames assoc. with java.lang.reflect.Method.invoke() and its implementation
             cls = rs.meta_stack[rs.meta_stack.length-1-frames_to_skip].toClassString()
-            type = if cls[0] == '[' then cls else "L#{cls};"
-            rs.push rs.set_obj 'java/lang/Class', { $type: t(type), name: 0 }
+            rs.push rs.set_obj 'java/lang/Class', { $type: c2t(cls), name: 0 }
       ]
 
 flatten_pkg = (pkg) ->

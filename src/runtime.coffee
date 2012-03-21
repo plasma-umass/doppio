@@ -6,7 +6,7 @@ root = exports ? this.runtime = {}
 util ?= require './util'
 types ?= require './types'
 {log,debug,error,java_throw} = util
-{t,c2t} = types
+{c2t} = types
 
 trace = (msg) -> log 9, msg
 
@@ -192,6 +192,7 @@ class root.RuntimeState
     return @is_castable(c2t(@get_obj(oref).type),c2t(classname))
 
   # Returns a boolean indicating if :type1 is an instance of :type2.
+  # :type1 and :type2 should both be instances of types.Type.
   is_castable: (type1, type2) ->
     if (type1 instanceof types.PrimitiveType) or (type2 instanceof types.PrimitiveType)
       return type1 == type2

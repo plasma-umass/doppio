@@ -15,13 +15,13 @@ external2internal = {}
 external2internal[v]=k for k,v of internal2external
 
 # convenience function for generating type from string
-root.t = (type_str) ->
+t = (type_str) ->
   if type_str of internal2external
     return new root.PrimitiveType internal2external[type_str]
   else if type_str == 'V'
     return new root.VoidType
   else if type_str[0] == '[' # array
-    return new root.ArrayType root.t type_str[1..]
+    return new root.ArrayType t type_str[1..]
   else if type_str[0] == 'L' # class
     return new root.ClassType type_str[1...type_str.length-1]
   else
@@ -30,7 +30,7 @@ root.t = (type_str) ->
 # another convenience function, for converting class names to
 # array types / class types
 root.c2t = (type_str) ->
-  if type_str[0] == '[' then root.t type_str
+  if type_str[0] == '[' then t type_str
   else new types.ClassType type_str
 
 class root.Type
