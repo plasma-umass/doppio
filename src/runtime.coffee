@@ -116,12 +116,10 @@ class root.RuntimeState
     @string_pool[str] = s_ref if intern
     return s_ref
   init_field: (field) ->
-    if field.type.type is 'reference' and field.type.ref_type is 'class'
-      @init_object field.type.referent.class_name
-    else if field.type.type in ['int','float','double','long','boolean','char','short']
+    if (field.type instanceof types.ClassType) or (field.type instanceof types.ArrayType)
+      @init_object field.type.toClassString()
+    else if field.type instanceof types.PrimitiveType
       0  # numbers default to zero/false
-    else if field.type.type is 'reference' and field.type.ref_type is 'array'
-      @set_obj field.raw_descriptor
     else
       throw "I don't know what to do with non-class static fields"
 

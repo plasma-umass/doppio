@@ -9,7 +9,7 @@ disassembler ?= require './disassembler'
 types ?= require './types'
 {log,debug,error} = util
 {opcode_annotators} = disassembler
-{c2t} = types
+{str2type,carr2type,c2t} = types
 
 # things assigned to root will be available outside this module
 root = exports ? this.methods = {}
@@ -25,38 +25,10 @@ class AbstractMethodField
     @parse_descriptor @raw_descriptor
     [@attrs,bytes_array] = make_attributes(bytes_array,constant_pool)
     return bytes_array
-  
-  parse_field_type: (char_array) ->
-    c = char_array.shift()
-    switch c
-      when 'B' then { type: 'byte' }
-      when 'C' then { type: 'char' }
-      when 'D' then { type: 'double' }
-      when 'F' then { type: 'float' }
-      when 'I' then { type: 'int' }
-      when 'J' then { type: 'long' }
-      when 'L' then {
-        type: 'reference'
-        ref_type: 'class'
-        referent: {
-          type: 'class' # not technically a legal type
-          class_name: (c while (c = char_array.shift()) != ';').join('')
-        }
-      }
-      when 'S' then { type: 'short' }
-      when 'Z' then { type: 'boolean' }
-      when '[' then {
-        type: 'reference'
-        ref_type: 'array'
-        referent: @parse_field_type char_array
-      }
-      else
-        char_array.unshift(c)
-        return null
 
 class root.Field extends AbstractMethodField
   parse_descriptor: (@raw_descriptor) ->
-    @type = @parse_field_type raw_descriptor.split ''
+    @type = str2type raw_descriptor
     if @access_flags.static
       @static_value = null  # loaded in when getstatic is called
 
@@ -411,21 +383,16 @@ class root.Method extends AbstractMethodField
     return _.find(@attrs, (a) -> a.constructor.name == "Code")
 
   parse_descriptor: (raw_descriptor) ->
-    raw_descriptor = raw_descriptor.split ''
-    throw "Invalid descriptor #{raw_descriptor}" if raw_descriptor.shift() != '('
-    @param_types = (field while (field = @parse_field_type raw_descriptor))
-    throw "Invalid descriptor #{raw_descriptor}" if raw_descriptor.shift() != ')'
+    [__,param_str,return_str] = /\(([^)]*)\)(.*)/.exec(raw_descriptor)
+    param_carr = param_str.split ''
+    @param_types = (field while (field = carr2type param_carr))
     @num_args = @param_types.length
     @num_args++ unless @access_flags.static # nonstatic methods get 'this'
-    if raw_descriptor[0] == 'V'
-      raw_descriptor.shift()
-      @return_type = { type: 'void' }
-    else
-      @return_type = @parse_field_type raw_descriptor
+    @return_type = str2type return_str
 
   param_bytes: () ->
-    type_size = (t) -> (if t in ['double','long'] then 2 else 1)
-    n_bytes = util.sum(type_size(p.type) for p in @param_types)
+    type_size = (t) -> (if t.toString() in ['D','J'] then 2 else 1)
+    n_bytes = util.sum(type_size(p) for p in @param_types)
     n_bytes++ unless @access_flags.static
     n_bytes
 

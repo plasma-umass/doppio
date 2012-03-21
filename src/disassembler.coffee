@@ -59,10 +59,8 @@ root.disassemble = (class_file) ->
 
   # pretty-print our field types, e.g. as 'PackageName.ClassName[][]'
   pp_type = (field_type) ->
-    return ext_classname field_type.class_name if field_type.type is 'class'
-    return field_type.type unless field_type.type is 'reference'
-    return pp_type(field_type.referent) + '[]' if field_type.ref_type is 'array'
-    return pp_type field_type.referent
+    if field_type instanceof types.ArrayType then pp_type(field_type.component_type) + '[]'
+    else field_type.toExternalString()
 
   rv += "{\n"
 
