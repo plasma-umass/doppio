@@ -50,7 +50,7 @@ trapped_methods =
             rs.push oref
         o 'forName(L!/!/String;)L!/!/!;', (rs) -> #again, to avoid reflection
             classname = rs.jvm2js_str rs.get_obj(rs.curr_frame().locals[0])
-            rs.push rs.set_obj 'java/lang/Class', { $type: new types.ClassType(classname), name: 0 }
+            rs.push rs.init_class_object classname
       ]
       System: [
         o 'setJavaLangAccess()V', (rs) -> # NOP
@@ -93,6 +93,11 @@ trapped_methods =
             rs.push (b_ref = rs.init_object classname)
             rs.method_lookup({class: classname, sig: {name:'<init>',type:'()V'}}).run(rs)
             rs.push b_ref
+      ]
+      EnumSet: [
+        o 'getUniverse(L!/lang/Class;)[L!/lang/Enum;', (rs) ->
+            rs.push rs.curr_frame().locals[0]
+            rs.method_lookup({class: 'java/lang/Class', sig: {name:'getEnumConstants',type:'()[Ljava/lang/Object;'}}).run(rs)
       ]
     nio:
       charset:
@@ -164,9 +169,11 @@ native_methods =
     lang:
       Class: [
         o 'getPrimitiveClass(L!/!/String;)L!/!/!;', (rs) ->
-            str_ref = rs.get_obj(rs.curr_frame().locals[0])
-            name = rs.jvm2js_str str_ref
-            rs.push rs.set_obj 'java/lang/Class', { $type: new types.PrimitiveType(name), name:0 }
+            name = rs.jvm2js_str rs.get_obj(rs.curr_frame().locals[0])
+            # make the class manually, because rs.init_class_object tries to load the class
+            cref = rs.set_obj 'java/lang/Class', { $type: new types.PrimitiveType(name), name:0 }
+            rs.class_objects[name] = cref
+            rs.push cref
         o 'getClassLoader0()L!/!/ClassLoader;', (rs) -> rs.push 0  # we don't need no stinkin classloaders
         o 'desiredAssertionStatus0(L!/!/!;)Z', (rs) -> rs.push 0 # we don't need no stinkin asserts
         o 'getName0()L!/!/String;', (rs) ->
@@ -176,13 +183,13 @@ native_methods =
             jvm_str = rs.get_obj(rs.curr_frame().locals[0])
             classname = util.int_classname rs.jvm2js_str(jvm_str)
             throw "Class.forName0: Failed to load #{classname}" unless rs.class_lookup(classname)
-            rs.push rs.set_obj 'java/lang/Class', { $type: new types.ClassType(classname), name:0 }
+            rs.push rs.init_class_object classname
         o 'getComponentType()L!/!/!;', (rs) ->
             type = rs.get_obj(rs.curr_frame().locals[0]).fields.$type
             if not (type instanceof types.ArrayType)
               rs.push 0
               return
-            rs.push rs.set_obj 'java/lang/Class', $type:type.component_type, name: 0
+            rs.push rs.init_class_object type.component_type.toString()
         o 'isInterface()Z', (rs) ->
             type = rs.get_obj(rs.curr_frame().locals[0]).fields.$type
             if not (type instanceof types.ClassType)
@@ -203,7 +210,7 @@ native_methods =
             if cls.access_flags.interface
               rs.push 0
               return
-            rs.push rs.set_obj 'java/lang/Class', $type: new types.ClassType(cls.super_class), name: 0
+            rs.push rs.init_class_object(cls.super_class)
       ],
       Float: [
         o 'floatToRawIntBits(F)I', (rs) ->  #note: not tested for weird values
@@ -226,11 +233,14 @@ native_methods =
       Object: [
         o 'getClass()L!/!/Class;', (rs) ->
             _this = rs.get_obj(rs.curr_frame().locals[0])
-            rs.push rs.set_obj 'java/lang/Class', { $type: c2t(_this.type), name: 0 }
+            rs.push rs.init_class_object _this.type
         o 'hashCode()I', (rs) ->
             # return heap reference. XXX need to change this if we ever implement
             # GC that moves stuff around.
             rs.push rs.curr_frame().locals[0]
+        o 'clone()L!/!/!;', (rs) ->
+            _this = rs.get_obj(rs.curr_frame().locals[0])
+            rs.push rs.set_obj _this.type, _this.fields
       ]
       reflect:
         Array: [
@@ -348,7 +358,7 @@ native_methods =
             frames_to_skip = rs.curr_frame().locals[0]
             #TODO: disregard frames assoc. with java.lang.reflect.Method.invoke() and its implementation
             cls = rs.meta_stack[rs.meta_stack.length-1-frames_to_skip].toClassString()
-            rs.push rs.set_obj 'java/lang/Class', { $type: c2t(cls), name: 0 }
+            rs.push rs.init_class_object cls
       ]
 
 flatten_pkg = (pkg) ->
