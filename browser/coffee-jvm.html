@@ -21,6 +21,8 @@
     button {padding:10px 30px;line-height:10px; float: left;}
     input#cmdline {margin: 7px 0px; float: left;}
   </style>
+  <!-- TODO: decide on a ui theme and make the page sexy -->
+  <link rel='stylesheet' type="text/css" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/themes/smoothness/jquery-ui.css">
   <script type="text/javascript" src="../third_party/jquery-1.7.1.min.js"></script>
   <script type="text/javascript" src="../third_party/underscore-min.js"></script>
   <script type="text/javascript" src="../third_party/gLong.js"></script>
@@ -35,9 +37,13 @@
   <script type="text/javascript" src="../src/jvm.js"></script>
   <script type="text/javascript" src="../third_party/ace/build/src/ace.js"></script>
   <script type="text/javascript" src="../third_party/ace/build/src/mode-java.js"></script>
+  <script type="text/javascript" src="../third_party/jquery-ui-1.8.18.min.js"></script>
   <script type="text/javascript" src="frontend.js"></script>
 </head>
 <body>
+<div id='input_dialog' title='Input for System.in'>
+  <label for='sysin'></label><input type='text' name='sysin' />
+</div>
 <div id='main'>
   <h1 id='title'>Coffee-JVM</h1>
   <input type="file" id="srcfile" name="file" />
