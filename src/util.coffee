@@ -92,13 +92,21 @@ class root.BytesArray
 
 root.is_string = (obj) -> typeof obj == 'string' or obj instanceof String
 
-root.decimal_to_string = (num) ->
-  s = num.toString()
-  return num.toFixed(1) unless s.match(/\./)?
-  # cap the number of decimal places to 7 (technically only valid for floats, but whatevs)
-  dec = parseFloat(s.match(/\d+\.\d+/)[0]).toFixed(7)
-  dec = dec.replace(/0+$/,'').replace(/\.$/,'.0')  # remove trailing zeros
-  s = s.replace(/\d+\.\d+/,dec)
+root.decimal_to_string = (num, precision) ->
+  if num == Number.MIN_VALUE
+    s = num.toPrecision(2)
+  else
+    s = num.toString()
+    if s.indexOf('e') == -1 and Math.abs(num) > Math.pow(10, 7)
+      exp_len = s.length - (if num < 0 then 2 else 1)
+      s = num.toExponential(Math.min(exp_len, precision-1))
+    else if s.indexOf('.') == -1
+      s = num.toFixed(1)
+    else
+      # cap the number of decimal places
+      dec = parseFloat(s.match(/\d+\.\d+/)[0]).toPrecision(precision)
+      dec = dec.replace(/0+$/,'').replace(/\.$/,'.0')  # remove trailing zeros
+      s = s.replace(/\d+\.\d+/,dec)
   return s.replace(/e/,'E').replace(/\+/,'')
 
 # Walks up the prototype chain of :object looking for an entry in the :handlers

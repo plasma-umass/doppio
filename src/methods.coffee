@@ -122,21 +122,30 @@ trapped_methods =
         o '<clinit>()V', (rs) -> #NOP
         o '<init>(F)V', (rs) ->
             args = rs.curr_frame().locals
-            rs.get_obj(args[0]).fields.js_value = args[1]
+            _this = rs.get_obj(rs.curr_frame().locals[0])
+            _this.fields.$value = args[1]
+            _this.fields.$precision = 8
         o '<init>(D)V', (rs) ->
             args = rs.curr_frame().locals
-            rs.get_obj(args[0]).fields.js_value = args[1]
+            _this = rs.get_obj(rs.curr_frame().locals[0])
+            _this.fields.$value = args[1]
+            _this.fields.$precision = 17
         o 'toString()Ljava/lang/String;', (rs) ->
-            val = rs.get_obj(rs.curr_frame().locals[0]).fields.js_value
-            rs.push rs.init_string util.decimal_to_string(val)
+            _this = rs.get_obj(rs.curr_frame().locals[0])
+            val = _this.fields.$value
+            precision = _this.fields.$precision
+            rs.push rs.init_string util.decimal_to_string(val, precision)
         o 'toJavaFormatString()Ljava/lang/String;', (rs) ->
-            val = rs.get_obj(rs.curr_frame().locals[0]).fields.js_value
-            rs.push rs.init_string util.decimal_to_string(val)
+            _this = rs.get_obj(rs.curr_frame().locals[0])
+            val = _this.fields.$value
+            precision = _this.fields.$precision
+            rs.push rs.init_string util.decimal_to_string(val, precision)
         o 'appendTo(Ljava/lang/Appendable;)V', (rs) ->
             args = rs.curr_frame().locals
-            val = rs.get_obj(args[0]).fields.js_value
+            val = rs.get_obj(args[0]).fields.$value
+            precision = rs.get_obj(args[0]).fields.$precision
             rs.push args[1]
-            rs.push rs.init_string util.decimal_to_string(val)
+            rs.push rs.init_string util.decimal_to_string(val, precision)
             cls = if rs.check_cast(args[1],'java/lang/StringBuilder') then 'java/lang/StringBuilder' else 'java/lang/StringBuffer'
             rs.method_lookup({class:cls,sig:{name:'append',type:"(Ljava/lang/String;)L#{cls};"}}).run(rs,true)
       ]
