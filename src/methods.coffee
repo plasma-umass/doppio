@@ -498,5 +498,3 @@ class root.Method extends AbstractMethodField
       @run_bytecode runtime_state, padding
     cf = runtime_state.curr_frame()
     debug "#{padding}stack: [#{pa cf.stack}], local: [#{pa cf.locals}] (method end)"
-
-  resume: (runtime_state, pc) ->
