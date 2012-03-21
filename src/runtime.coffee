@@ -4,7 +4,9 @@ ClassFile ?= require './class_file'
 # things assigned to root will be available outside this module
 root = exports ? this.runtime = {}
 util ?= require './util'
+types ?= require './types'
 {log,debug,error,java_throw} = util
+{t} = types
 
 trace = (msg) -> log 9, msg
 
@@ -191,26 +193,27 @@ class root.RuntimeState
 
   # Returns a boolean indicating if :type1 is an instance of :type2.
   is_castable: (type1, type2) ->
-    if util.is_array type1
-      if util.is_array type2
-        t1 = util.unarray(type1)
-        t2 = util.unarray(type2)
-        if util.is_array(t1) and util.is_array(t2)
-          return @is_castable(t1,t2)
-        else if util.is_class(t1) and util.is_class(t2)
-          return @is_castable(util.class_from_type(t1),util.class_from_type(t2))
-        else
-          return t2 == t1
-      c2 = @class_lookup(type2)
-      return type2 is 'java/lang/Object' unless c2.access_flags.interface
-      return type2 in ['java/lang/Cloneable','java/io/Serializable']
+    x = (type) ->
+      if type[0] == '[' then t type
+      else new types.ClassType type
+    type1 = if type1 instanceof types.Type then type1 else x type1
+    type2 = if type2 instanceof types.Type then type2 else x type2
+
+    if (type1 instanceof types.PrimitiveType) or (type2 instanceof types.PrimitiveType)
+      return type1 == type2
+    if type1 instanceof types.ArrayType
+      if type2 instanceof types.ArrayType
+        return @is_castable(type1.component_type, type2.component_type)
+      c2 = @class_lookup(type2.class_name)
+      return type2.class_name is 'java/lang/Object' unless c2.access_flags.interface
+      return type2.class_name in ['java/lang/Cloneable','java/io/Serializable']
     # not an array
-    return false if util.is_array type2
-    c1 = @class_lookup(type1)
-    c2 = @class_lookup(type2)
+    return false if type2 instanceof types.ArrayType
+    c1 = @class_lookup(type1.class_name)
+    c2 = @class_lookup(type2.class_name)
     unless c1.access_flags.interface
       return @is_subclass(c1,c2) unless c2.access_flags.interface
       return @has_interface(c1,c2)
     # c1 is an interface
-    return type2 is 'java/lang/Object' unless c2.access_flags.interface
+    return type2.class_name is 'java/lang/Object' unless c2.access_flags.interface
     return @is_subclass(c1,c2)  # technically they're interfaces, but we don't care

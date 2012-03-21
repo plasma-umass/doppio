@@ -27,17 +27,17 @@ root.t = (type_str) ->
   else
     throw new Error "Unrecognized type string: #{type_str}"
 
-class Type
+class root.Type
   valueOf: -> @toString()
 
-class root.PrimitiveType extends Type
+class root.PrimitiveType extends root.Type
   constructor: (@name) ->
 
   toString: -> external2internal[@name]
 
   toExternalString: -> @name
 
-class root.ArrayType extends Type
+class root.ArrayType extends root.Type
   constructor: (@component_type) ->
 
   toString: -> "[#{@component_type}"
@@ -46,7 +46,7 @@ class root.ArrayType extends Type
 
   toExternalString: -> util.ext_classname @toString()
 
-class root.ClassType
+class root.ClassType extends root.Type
   constructor: (@class_name) ->
 
   toString: -> "L#{@class_name};"
@@ -55,4 +55,4 @@ class root.ClassType
 
   toExternalString: -> util.ext_classname @class_name
 
-class root.VoidType extends Type
+class root.VoidType extends root.Type
