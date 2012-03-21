@@ -257,7 +257,7 @@ native_methods =
             js_str = rs.jvm2js_str(rs.get_obj(str_ref))
             unless rs.string_pool[js_str]
               rs.string_pool[js_str] = str_ref
-              rs.push rs.string_pool[js_str]
+            rs.push rs.string_pool[js_str]
       ]
       System: [
         o 'arraycopy(L!/!/Object;IL!/!/Object;II)V', (rs) ->
