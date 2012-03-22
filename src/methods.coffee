@@ -191,7 +191,7 @@ native_methods =
             if not (type instanceof types.ArrayType)
               rs.push 0
               return
-            rs.push rs.init_class_object type.component_type.toString()
+            rs.push rs.init_class_object type.component_type.toClassString()
         o 'isInterface()Z', (rs, _this) ->
             if not (_this.fields.$type instanceof types.ClassType)
               rs.push 0
