@@ -195,7 +195,7 @@ class root.RuntimeState
   # :type1 and :type2 should both be instances of types.Type.
   is_castable: (type1, type2) ->
     if (type1 instanceof types.PrimitiveType) or (type2 instanceof types.PrimitiveType)
-      return type1 == type2
+      return type1.name == type2.name  # since types are created on the fly, we can have different Type objects for the same type
     if type1 instanceof types.ArrayType
       if type2 instanceof types.ArrayType
         return @is_castable(type1.component_type, type2.component_type)
