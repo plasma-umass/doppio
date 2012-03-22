@@ -114,6 +114,9 @@ root.lookup_handler = (handlers, object, args...) ->
 class root.BranchException
   constructor: (@dst_pc) ->
 
+class root.HaltException
+  constructor: (@exit_code) ->
+
 class root.ReturnException
   constructor: (@values...) ->
 

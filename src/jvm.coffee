@@ -53,6 +53,8 @@ root.run_class = (rs, class_data, cmdline_args) ->
       console.error "\nUncaught Java Exception"
       show_state(rs)
       show_stacktrace(rs,e)
+    else if e instanceof util.HaltException
+      console.error "\nExited with code #{e.exit_code}" unless e.exit_code is 0
     else unless e instanceof util.YieldException
       console.error "\nInternal JVM Error!"
       show_state(rs)
