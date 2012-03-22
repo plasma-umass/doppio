@@ -236,7 +236,8 @@ native_methods =
             # GC that moves stuff around.
             _this.ref
         o 'clone()L!/!/!;', (rs, _this) ->
-            rs.set_obj _this.type, _this.fields
+            if util.is_array _this.type then rs.set_obj _this.type, _this.array
+            else rs.set_obj _this.type, _this.fields
       ]
       reflect:
         Array: [
