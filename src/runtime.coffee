@@ -108,7 +108,7 @@ class root.RuntimeState
     @class_lookup cls
     @set_obj cls
   init_string: (str,intern=false) ->
-    return @string_pool[str] if intern and @string_pool[str]
+    return @string_pool[str] if intern and @string_pool[str]? and typeof @string_pool[str] isnt 'function'
     c_ref = @set_obj('[C',(str.charCodeAt(i) for i in [0...str.length]))
     s_ref = @set_obj 'java/lang/String', {'value':c_ref, 'count':str.length}
     @string_pool[str] = s_ref if intern
