@@ -157,6 +157,7 @@ commands =
 javac <source file>    -- Compile Java source.
 java <class> [args...] -- Run with command-line arguments.
 javap <class>          -- Display disassembly.
+edit <file>            -- Edit a file.
 ls                     -- List all files.
 rm <file>              -- Delete a file.
 clear_heap             -- Clear the heap.
