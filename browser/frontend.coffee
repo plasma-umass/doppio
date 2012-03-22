@@ -64,11 +64,13 @@ $(document).ready ->
     if ext == 'java'
       reader.onload = (e) ->
         save_file f.name, e.target.result
+        controller.message "File '#{f.name}' saved.", 'success'
         editor.getSession().setValue(e.target.result)
       reader.readAsText(f)
     else if ext == 'class'
       reader.onload = (e) ->
         save_file f.name, e.target.result
+        controller.message "File '#{f.name}' saved.", 'success'
         editor.getSession().setValue("/*\n * Binary file: #{f.name}\n */")
         process_bytecode e.target.result
       reader.readAsBinaryString(f)
