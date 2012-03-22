@@ -91,17 +91,18 @@ $(document).ready ->
           return false unless class_data?
           stdout = (str) -> report str, true # no reprompting
           rs ?= new runtime.RuntimeState(stdout, user_input, read_classfile)
-          jvm.run_class(rs, class_data, args, -> report(true))
-        when 'heap_size'
-          "There are #{rs?.heap.length-1 or 0} heap entries."
+          jvm.run_class(rs, class_data, args, ->
+            $('#heap_size').text rs.heap.length-1
+            controller.reprompt()
+          )
         when 'clear_heap'
           rs = null
+          $('#heap_size').text 0
           "Heap cleared."
         when 'help'
           """
 javac -- Compile and display disassembly.
 java [args...] -- Run with command-line arguments.
-heap_size -- Number of entries on the heap.
 clear_heap -- Clear the heap.
           """
         else
