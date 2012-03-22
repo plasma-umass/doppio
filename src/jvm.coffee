@@ -39,19 +39,22 @@ show_stacktrace = (rs,e) ->
     rs.print "\tat #{entry.cls}.#{entry.method}(#{entry.file}:#{entry.line}, code #{entry.op})\n"
 
 # main function that gets called from the frontend
-root.run_class = (rs, class_data, cmdline_args) ->
+root.run_class = (rs, class_data, cmdline_args, cb) ->
   main_spec = {'class': class_data.this_class, 'sig': {'name': 'main'}}
   rs.initialize(class_data,cmdline_args)
   run = ->
     try
       rs.method_lookup(main_spec).run(rs)
+      cb?()
     catch e
       if e instanceof util.JavaException
         console.error "\nUncaught Java Exception"
         show_state(rs)
         show_stacktrace(rs,e)
+        cb?()
       else if e instanceof util.HaltException
         console.error "\nExited with code #{e.exit_code}" unless e.exit_code is 0
+        cb?()
       else if e instanceof util.YieldException
         e.condition ->
           rs.resuming_stack = 1  # <-- index into the meta_stack of the frame we're resuming
@@ -61,4 +64,5 @@ root.run_class = (rs, class_data, cmdline_args) ->
         console.error "\nInternal JVM Error!"
         show_state(rs)
         console.error e.stack or e
+        cb?()
   run()

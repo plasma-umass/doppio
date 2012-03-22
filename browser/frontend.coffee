@@ -2,6 +2,7 @@
 button_idle_text = 'Compile and Parse'
 # stores the parsed ClassFile object
 class_data = undefined
+controller = null
 
 # Read in a binary classfile synchronously. Return an array of bytes.
 read_classfile = (cls) ->
@@ -21,33 +22,19 @@ read_classfile = (cls) ->
   throw "AJAX error when loading class #{cls}"
 
 process_bytecode = (bytecode_string) ->
-  $('#go_button').text('Parsing...')
   bytes_array = util.bytestr_to_array bytecode_string
   class_data = new ClassFile(bytes_array)
-  $('#disassembly').text disassembler.disassemble class_data
-  $('#run_button').removeAttr('disabled')
-  $('#go_button').text(button_idle_text)
 
-run_jvm = (rs) ->
-  $('#run_button').text('Running...')
-  $('#output')[0].innerText = ''
-  args = $('#cmdline').val().split(' ')
-  args = [] if args is ['']
-  jvm.run_class(rs, class_data, args)
-  $('#run_button').text('Run with args:')
-  $('#clear_heap').text("Clear #{rs.heap.length-1} heap entries")
-
-compile_source = (java_source) ->
+compile_source = (java_source, cb) ->
   $('#go_button').text('Compiling...')
   $.ajax 'http://people.cs.umass.edu/~ccarey/javac/', {
     type: 'POST'
     data: { pw: 'coffee', source: java_source }
     dataType: 'text'
     beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
-    success:  process_bytecode
+    success:  (data) -> process_bytecode(data); cb?(disassembler.disassemble class_data)
     error: (jqXHR, textStatus, errorThrown) -> 
-      $('#output').text("AJAX error: #{errorThrown}")
-      $('#go_button').text('Compile')
+      cb?("AJAX error: #{errorThrown}")
   }
 
 $(document).ready ->
@@ -56,32 +43,6 @@ $(document).ready ->
   editor = ace.edit('source')
   JavaMode = require("ace/mode/java").Mode
   editor.getSession().setMode new JavaMode
-  # set up the compile/parse button
-  $('#go_button').text(button_idle_text)
-  $('#go_button').click (ev) -> compile_source editor.getSession().getValue()
-  # convenience for making new runtime states
-  output = $('#output')[0]
-  # use a jquery dialog for async system.in
-  $('#input_dialog').dialog {autoOpen:false}
-  user_input = (n_bytes, resume) ->
-    d = $('#input_dialog')
-    d.children('label').text "Enter up to #{n_bytes} bytes:"
-    d.dialog
-      autoOpen: true
-      modal: true
-      buttons:
-        Input: () -> 
-          $(this).dialog 'close'
-          str = d.children('input').val()
-          resume (str.charCodeAt(i) for i in [0...Math.min(n_bytes,str.length)])
-  make_rs = () -> new runtime.RuntimeState(((msg) -> output.innerText += msg), user_input, read_classfile)
-  # set up heap clearance
-  $('#clear_heap').click (ev) ->
-    $('#run_button').off('click')
-    rs = make_rs()  # blow the old state away
-    $('#clear_heap').text("Clear #{rs.heap.length-1} heap entries")
-    $('#run_button').on('click', (ev) -> run_jvm(rs))
-  $('#clear_heap').click()  # creates a runtime state
   # set up the local file loaders
   $('#srcfile').change (ev) ->
     f = ev.target.files[0]
@@ -105,3 +66,50 @@ $(document).ready ->
       editor.getSession().setValue("/*\n * Binary file: #{f.name}\n */")
       process_bytecode e.target.result
     reader.readAsBinaryString(f)
+
+  controller = null
+  java_handler = null
+  showPrompt = null
+  user_input = (n_bytes, resume) ->
+    oldPrompt = controller.promptLabel
+    controller.promptLabel = '> '
+    controller.reprompt()
+    java_handler = (line, report) ->
+      java_handler = null
+      resume (line.charCodeAt(i) for i in [0...Math.min(n_bytes,line.length)])
+      controller.promptLabel = oldPrompt
+      true
+
+  jqconsole = $('#console')
+  rs = null
+  controller = jqconsole.console
+    promptLabel: 'coffee-jvm > '
+    commandHandle: (line, report) ->
+      return java_handler(line, report) if java_handler?
+      [cmd,args...] = line.split ' '
+      switch cmd
+        when 'javac'
+          compile_source editor.getSession().getValue(), report
+        when 'java'
+          return false unless class_data?
+          stdout = (str) -> report str, true # no reprompting
+          rs ?= new runtime.RuntimeState(stdout, user_input, read_classfile)
+          jvm.run_class(rs, class_data, args, -> report(true))
+        when 'heap_size'
+          "There are #{rs?.heap.length-1 or 0} heap entries."
+        when 'clear_heap'
+          rs = null
+          "Heap cleared."
+        when 'help'
+          """
+javac -- Compile and display disassembly.
+java [args...] -- Run with command-line arguments.
+heap_size -- Number of entries on the heap.
+clear_heap -- Clear the heap.
+          """
+        else
+          "Unknown command #{cmd}. Enter 'help' for a list of commands."
+    autofocus: true
+    animateScroll: true
+    promptHistory: true
+    welcomeMessage: "Enter 'help' for a list of commands."
