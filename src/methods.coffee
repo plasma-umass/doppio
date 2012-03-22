@@ -189,8 +189,8 @@ native_methods =
             rs.init_class_object classname
         o 'getComponentType()L!/!/!;', (rs, _this) ->
             type = _this.fields.$type
-            return null unless type instanceof types.ArrayType
-            rs.init_class_object type.component_type.toString()
+            return null unless (type instanceof types.ArrayType)
+            rs.init_class_object type.component_type.toClassString()
         o 'isInterface()Z', (rs, _this) ->
             return false unless _this.fields.$type instanceof types.ClassType
             cls = rs.class_lookup _this.fields.$type.toClassString()
