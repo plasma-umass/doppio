@@ -87,7 +87,7 @@ class root.RuntimeState
   heap_get: (field_spec, oref) ->
     obj = @get_obj(oref)
     name = field_spec.sig.name
-    obj.fields[name] = @init_field(@field_lookup(field_spec)) if obj.fields[name] is undefined
+    obj.fields[name] = 0 if obj.fields[name] is undefined
     trace "getting #{name} from obj of type #{obj.type}: #{obj.fields[name]}"
     @push obj.fields[name]
     @push null if field_spec.sig.type in ['J','D']
@@ -113,13 +113,6 @@ class root.RuntimeState
     s_ref = @set_obj 'java/lang/String', {'value':c_ref, 'count':str.length}
     @string_pool[str] = s_ref if intern
     return s_ref
-  init_field: (field) ->
-    if (field.type instanceof types.ClassType) or (field.type instanceof types.ArrayType)
-      @init_object field.type.toClassString()
-    else if field.type instanceof types.PrimitiveType
-      0  # numbers default to zero/false
-    else
-      throw "I don't know what to do with non-class static fields"
   init_class_object: (type) ->
     unless @class_objects[type]?
       @class_objects[type] = @set_obj 'java/lang/Class', { $type: type, name: 0 }
