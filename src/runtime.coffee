@@ -78,8 +78,8 @@ class root.RuntimeState
       @heap.push type: type, fields: obj, ref: @heap.length
     @heap.length - 1
 
-  heap_new: (cls) -> @push @init_object(cls)
-  heap_newarray: (type,len) -> @push @set_obj("[#{type}",(0 for [0...len]))
+  heap_new: (cls) -> @init_object(cls)
+  heap_newarray: (type,len) -> @set_obj("[#{type}",(0 for [0...len]))
   heap_put: (field_spec) ->
     val = if field_spec.sig.type in ['J','D'] then @pop2() else @pop()
     obj = @get_obj @pop()
@@ -95,11 +95,9 @@ class root.RuntimeState
 
   # static stuff
   static_get: (field_spec) ->
-    val = @field_lookup(field_spec).static_value
+    val = @field_lookup(field_spec).static_value ? 0
     trace "getting #{field_spec.sig.name} from class #{field_spec.class}: #{val}"
-    val = 0 unless val?
-    @push val
-    @push null if field_spec.sig.type in ['J','D']
+    val
   static_put: (field_spec) ->
     val = if field_spec.sig.type in ['J','D'] then @pop2() else @pop()
     field = @field_lookup field_spec

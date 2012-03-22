@@ -48,17 +48,17 @@ trapped_methods =
     lang:
       ref:
         SoftReference: [
-          o 'get()Ljava/lang/Object;', (rs) -> rs.push 0 # null, because we don't actually use SoftReferences
+          o 'get()Ljava/lang/Object;', (rs) -> null
         ]
       Class: [
         o 'newInstance0()L!/!/Object;', (rs, _this) -> #implemented here to avoid reflection
             classname = _this.fields.$type.toClassString()
             rs.push (oref = rs.init_object(classname))
             rs.method_lookup({'class':classname,'sig':{'name':'<init>'}}).run(rs)
-            rs.push oref
+            oref
         o 'forName(L!/!/String;)L!/!/!;', (rs, jvm_str) -> #again, to avoid reflection
             classname = rs.jvm2js_str jvm_str
-            rs.push rs.init_class_object classname
+            rs.init_class_object classname
       ]
       System: [
         o 'setJavaLangAccess()V', (rs) -> # NOP
@@ -71,7 +71,7 @@ trapped_methods =
         o 'setup()V', (rs) -> #NOP
       ]
       StringCoding: [
-        o 'deref(L!/!/ThreadLocal;)L!/!/Object;', (rs) -> rs.push 0  # null
+        o 'deref(L!/!/ThreadLocal;)L!/!/Object;', (rs) -> null
         o 'set(L!/!/ThreadLocal;L!/!/Object;)V', (rs) -> # NOP
       ]
     util:
@@ -81,16 +81,16 @@ trapped_methods =
             o '<clinit>()V', (rs) -> #NOP
             o 'compareAndSet(II)Z', (rs, _this, expect, update) ->
                 _this.fields.value = update;  # we don't need to compare, just set
-                rs.push 1  # always true, because we only have one thread
+                true # always true, because we only have one thread
           ]
           AtomicReferenceFieldUpdater: [
-            o 'newUpdater(L!/lang/Class;L!/lang/Class;L!/lang/String;)L!/!/!/!/!;', (rs) -> rs.push 0 # null
+            o 'newUpdater(L!/lang/Class;L!/lang/Class;L!/lang/String;)L!/!/!/!/!;', (rs) -> null
           ]
         locks:
           AbstractQueuedSynchronizer: [
             o '<clinit>()V', (rs) -> #NOP
-            o 'compareAndSetState(II)Z', (rs) -> rs.push 1 # always true
-            o 'release(I)Z', (rs) -> rs.push 1 # always true
+            o 'compareAndSetState(II)Z', (rs) -> true
+            o 'release(I)Z', (rs) -> true
           ]
       Currency: [
         o '<clinit>()V', (rs) -> #NOP, because it uses lots of reflection and we don't need it
@@ -103,25 +103,25 @@ trapped_methods =
         o 'getUniverse(L!/lang/Class;)[L!/lang/Enum;', (rs) ->
             rs.push rs.curr_frame().locals[0]
             rs.method_lookup({class: 'java/lang/Class', sig: {name:'getEnumConstants',type:'()[Ljava/lang/Object;'}}).run(rs)
+            rs.pop()
       ]
     nio:
       charset:
         Charset$3: [
-          o 'run()L!/lang/Object;', (rs) -> rs.push 0 # null
+          o 'run()L!/lang/Object;', (rs) -> null
         ]
       Bits: [
         o 'byteOrder()L!/!/ByteOrder;', (rs) -> rs.static_get {'class':'java/nio/ByteOrder','sig':{'name':'LITTLE_ENDIAN'}}
       ]
     io:
       PrintStream: [
-        o 'write(L!/lang/String;)V', (rs) ->
-            args = rs.curr_frame().locals
-            str = rs.jvm2js_str(rs.get_obj(args[1]))
-            rs.static_get {'class':'java/lang/System','sig':{'name':'out'}}; sysout = rs.pop()
-            rs.static_get {'class':'java/lang/System','sig':{'name':'err'}}; syserr = rs.pop()
-            if args[0] is sysout
+        o 'write(L!/lang/String;)V', (rs, _this, jvm_str) ->
+            str = rs.jvm2js_str(jvm_str)
+            sysout = rs.static_get {'class':'java/lang/System','sig':{'name':'out'}}
+            syserr = rs.static_get {'class':'java/lang/System','sig':{'name':'err'}}
+            if _this.ref is sysout
               rs.print str
-            else if args[0] is syserr
+            else if _this.ref is syserr
               rs.print str
             else
               throw "You tried to write to a PrintStream that wasn't System.out or System.err! For shame!"
@@ -139,11 +139,11 @@ trapped_methods =
         o 'toString()Ljava/lang/String;', (rs, _this) ->
             val = _this.fields.$value
             precision = _this.fields.$precision
-            rs.push rs.init_string util.decimal_to_string(val, precision)
+            rs.init_string util.decimal_to_string(val, precision)
         o 'toJavaFormatString()Ljava/lang/String;', (rs, _this) ->
             val = _this.fields.$value
             precision = _this.fields.$precision
-            rs.push rs.init_string util.decimal_to_string(val, precision)
+            rs.init_string util.decimal_to_string(val, precision)
         o 'appendTo(Ljava/lang/Appendable;)V', (rs, _this, buf) ->
             val = _this.fields.$value
             precision = _this.fields.$precision
@@ -160,8 +160,8 @@ trapped_methods =
       LocaleServiceProviderPool: [
         o 'getPool(Ljava/lang/Class;)L!/!/!;', (rs) -> 
             # make a mock
-            rs.push rs.init_object 'sun/util/LocaleServiceProviderPool'
-        o 'hasProviders()Z', (rs) -> rs.push 0  # false, we can't provide anything
+            rs.init_object 'sun/util/LocaleServiceProviderPool'
+        o 'hasProviders()Z', (rs) -> false  # we can't provide anything
       ]
   
 doPrivileged = (rs) ->
@@ -170,6 +170,7 @@ doPrivileged = (rs) ->
   m = rs.method_lookup({'class': action.type, 'sig': {'name': 'run','type':'()Ljava/lang/Object;'}})
   rs.push oref unless m.access_flags.static
   m.run(rs,m.access_flags.virtual)
+  rs.pop()
 
 native_methods =
   java:
@@ -177,41 +178,35 @@ native_methods =
       Class: [
         o 'getPrimitiveClass(L!/!/String;)L!/!/!;', (rs, jvm_str) ->
             name = rs.jvm2js_str jvm_str
-            rs.push rs.init_class_object name
-        o 'getClassLoader0()L!/!/ClassLoader;', (rs) -> rs.push 0  # we don't need no stinkin classloaders
-        o 'desiredAssertionStatus0(L!/!/!;)Z', (rs) -> rs.push 0 # we don't need no stinkin asserts
+            rs.init_class_object name
+        o 'getClassLoader0()L!/!/ClassLoader;', (rs) -> null  # we don't need no stinkin classloaders
+        o 'desiredAssertionStatus0(L!/!/!;)Z', (rs) -> false # we don't need no stinkin asserts
         o 'getName0()L!/!/String;', (rs, _this) ->
-            rs.push rs.init_string(_this.fields.$type.toExternalString())
+            rs.init_string(_this.fields.$type.toExternalString())
         o 'forName0(L!/!/String;ZL!/!/ClassLoader;)L!/!/!;', (rs, jvm_str) ->
             classname = util.int_classname rs.jvm2js_str(jvm_str)
             throw "Class.forName0: Failed to load #{classname}" unless rs.class_lookup(classname)
-            rs.push rs.init_class_object classname
+            rs.init_class_object classname
         o 'getComponentType()L!/!/!;', (rs, _this) ->
             type = _this.fields.$type
-            if not (type instanceof types.ArrayType)
-              rs.push 0
-              return
-            rs.push rs.init_class_object type.component_type.toString()
+            return null unless type instanceof types.ArrayType
+            rs.init_class_object type.component_type.toString()
         o 'isInterface()Z', (rs, _this) ->
-            if not (_this.fields.$type instanceof types.ClassType)
-              rs.push 0
-              return
+            return false unless _this.fields.$type instanceof types.ClassType
             cls = rs.class_lookup _this.fields.$type.toClassString()
-            rs.push cls.access_flags.interface + 0
+            cls.access_flags.interface
         o 'isPrimitive()Z', (rs, _this) ->
-            rs.push (_this.fields.$type instanceof types.PrimitiveType) + 0
+            _this.fields.$type instanceof types.PrimitiveType
         o 'isArray()Z', (rs, _this) ->
-            rs.push (_this.fields.$type instanceof types.ArrayType) + 0
+            _this.fields.$type instanceof types.ArrayType
         o 'getSuperclass()L!/!/!;', (rs, _this) ->
             type = _this.fields.$type
             if (type instanceof types.PrimitiveType) or
                (type instanceof types.VoidType) or type == 'Ljava/lang/Object;'
-              rs.push 0
-              return
+              return null
             cls = rs.class_lookup type.toClassString()
             if cls.access_flags.interface
-              rs.push 0
-              return
+              return null
             rs.push rs.init_class_object(cls.super_class)
       ],
       Float: [
@@ -220,7 +215,7 @@ native_methods =
             f_val = Math.abs(f_val)
             exp = Math.floor(Math.log(f_val)/Math.LN2)
             sig = (f_val/Math.pow(2,exp)-1)/Math.pow(2,-23)
-            rs.push (sign<<31)+((exp+127)<<23)+sig
+            (sign<<31)+((exp+127)<<23)+sig
       ]
       Double: [
         o 'doubleToRawLongBits(D)J', (rs, d_val) ->#note: not tested at all
@@ -228,17 +223,17 @@ native_methods =
             d_val = Math.abs(d_val)
             exp = gLong.fromNumber(Math.floor(Math.log(d_val)/Math.LN2)+1023)
             sig = gLong.fromNumber((d_val/Math.pow(2,exp)-1)/Math.pow(2,-52))
-            rs.push sign.shiftLeft(63).add(exp.shiftLeft(52)).add(sig), null
+            sign.shiftLeft(63).add(exp.shiftLeft(52)).add(sig)
       ]
       Object: [
         o 'getClass()L!/!/Class;', (rs, _this) ->
-            rs.push rs.init_class_object _this.type
+            rs.init_class_object _this.type
         o 'hashCode()I', (rs, _this) ->
             # return heap reference. XXX need to change this if we ever implement
             # GC that moves stuff around.
-            rs.push _this.ref
+            _this.ref
         o 'clone()L!/!/!;', (rs, _this) ->
-            rs.push rs.set_obj _this.type, _this.fields
+            rs.set_obj _this.type, _this.fields
       ]
       reflect:
         Array: [
@@ -249,21 +244,21 @@ native_methods =
         o 'halt0(I)V', (rs) -> throw new util.HaltException(rs.curr_frame().locals[0])
       ]
       StrictMath: [
-        o 'pow(DD)D', (rs) -> rs.push Math.pow(rs.cl(0),rs.cl(2)), null
+        o 'pow(DD)D', (rs) -> Math.pow(rs.cl(0),rs.cl(2))
       ]
       String: [
         o 'intern()L!/!/!;', (rs, _this) ->
             js_str = rs.jvm2js_str(_this)
             unless rs.string_pool[js_str]
               rs.string_pool[js_str] = str_ref
-            rs.push rs.string_pool[js_str]
+            rs.string_pool[js_str]
       ]
       System: [
         o 'arraycopy(L!/!/Object;IL!/!/Object;II)V', (rs, src, src_pos, dest, dest_pos, length) ->
             j = dest_pos
             for i in [src_pos...src_pos+length]
               dest.array[j++] = src.array[i]
-        o 'currentTimeMillis()J', (rs) -> rs.push gLong.fromNumber((new Date).getTime()), null
+        o 'currentTimeMillis()J', (rs) -> gLong.fromNumber((new Date).getTime())
         o 'initProperties(L!/util/Properties;)L!/util/Properties;', (rs, props) ->
             m = rs.method_lookup({'class':'java/util/Properties','sig':{'name':'setProperty'}})
             # properties to set:
@@ -275,7 +270,7 @@ native_methods =
               rs.push props.ref, rs.init_string(k,true), rs.init_string(v,true)
               m.run(rs)
               rs.pop()  # we don't care about the return value
-            rs.push props.ref
+            props.ref
         o 'setIn0(L!/io/InputStream;)V', (rs) ->
             rs.push rs.curr_frame().locals[0] # move oref to the stack for static_put
             rs.static_put {'class':'java/lang/System','sig':{'name':'in'}}
@@ -294,22 +289,22 @@ native_methods =
               rs.method_lookup({class: 'java/lang/ThreadGroup', sig: {name:'<init>',type:'()V'}}).run(rs)
               rs.main_thread = rs.set_obj 'java/lang/Thread', { priority: 1, group: g_ref, threadLocals: 0 }
               rs.field_lookup({class: 'java/lang/Thread', sig: {name:'threadSeqNumber'}}).static_value = 0
-            rs.push rs.main_thread
+            rs.main_thread
         o 'setPriority0(I)V', (rs) -> # NOP
-        o 'isAlive()Z', (rs) -> rs.push 0 # always false
+        o 'isAlive()Z', (rs) -> false
         o 'start0()V', (rs) -> # NOP
       ]
       Throwable: [
         o 'fillInStackTrace()L!/!/!;', (rs, _this) ->
             #TODO possibly filter out the java calls from our own call stack.
             # at the moment, this is effectively a NOP.
-            rs.push _this.ref
+            _this.ref
       ]
     security:
       AccessController: [
         o 'doPrivileged(L!/!/PrivilegedAction;)L!/lang/Object;', doPrivileged
         o 'doPrivileged(L!/!/PrivilegedExceptionAction;)L!/lang/Object;', doPrivileged
-        o 'getStackAccessControlContext()Ljava/security/AccessControlContext;', (rs) -> rs.push 0  # null
+        o 'getStackAccessControlContext()Ljava/security/AccessControlContext;', (rs) -> null
       ]
     io:
       FileSystem: [
@@ -323,8 +318,9 @@ native_methods =
         o 'readBytes([BII)I', (rs) ->
             if rs.resuming_stack?
               rs.resuming_stack = null
-              rs.push rs.secret_stash
+              rv = rs.secret_stash
               rs.secret_stash = null
+              rv
             else
               args = rs.curr_frame().locals
               [offset,n_bytes] = args[2..3]
@@ -350,7 +346,7 @@ native_methods =
         o 'getCallerClass(I)Ljava/lang/Class;', (rs, frames_to_skip) ->
             #TODO: disregard frames assoc. with java.lang.reflect.Method.invoke() and its implementation
             cls = rs.meta_stack[rs.meta_stack.length-1-frames_to_skip].toClassString()
-            rs.push rs.init_class_object cls
+            rs.init_class_object cls
       ]
 
 flatten_pkg = (pkg) ->
@@ -407,7 +403,7 @@ class root.Method extends AbstractMethodField
   # distinguish [null] from [].
   pa = (a) -> a.map((e)->if e? then (if e instanceof gLong then "#{e}L" else e) else '!')
 
-  run_manually: (func, rs, args...) ->
+  run_manually: (func, rs) ->
     params = rs.curr_frame().locals.slice(0) # make a copy
     # if we have objects, dereference them
     converted_params = []
@@ -419,10 +415,12 @@ class root.Method extends AbstractMethodField
         converted_params.push(if p == 0 then 0 else rs.get_obj p)
       else
         converted_params.push p
-    func rs, converted_params...
-    s = rs.meta_stack.pop().stack
-    throw "too many items on the stack after manual method #{sig}" unless s.length <= 2
-    rs.push s...
+    rv = func rs, converted_params...
+    rs.meta_stack.pop()
+    unless @return_type instanceof types.VoidType
+      if @return_type.toString() == 'J' then rs.push rv # longs are stored as objects
+      else rs.push rv + 0 # cast booleans, etc to a Number
+      rs.push null if @return_type.toString() in [ 'J', 'D' ]
 
   run_bytecode: (rs, padding) ->
     # main eval loop: execute each opcode, using the pc to iterate through

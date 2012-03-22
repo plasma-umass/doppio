@@ -151,7 +151,7 @@ root.java_throw = (rs, cls, msg) ->
   method_spec =
     class: cls
     sig: { name: '<init>', type: '(Ljava/lang/String;)V' }
-  rs.heap_new cls # new
+  rs.push rs.heap_new cls # new
   v=rs.pop(); rs.push(v,v) # dup
   rs.push rs.init_string msg # ldc
   rs.method_lookup(method_spec).run(rs) # invokespecial
