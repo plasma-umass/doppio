@@ -21,6 +21,7 @@ class root.RuntimeState
     # for interned strings and string literals
     @string_pool = {}
     @string_redirector = {}
+    @class_objects = {}  # each java/lang/Class is like an interned string, only stored once
 
   initialize: (class_data, initial_args) ->
     @classes[class_data.this_class] = class_data
@@ -122,6 +123,10 @@ class root.RuntimeState
       0  # numbers default to zero/false
     else
       throw "I don't know what to do with non-class static fields"
+  init_class_object: (cls) ->
+    unless @class_objects[cls]?
+      @class_objects[cls] = @set_obj 'java/lang/Class', { $type: c2t(cls), name: 0 }
+    return @class_objects[cls]
 
   # lookup methods
   class_lookup: (cls) ->

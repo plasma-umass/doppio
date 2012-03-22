@@ -56,7 +56,7 @@ class root.LoadConstantOpcode extends root.Opcode
     val = rs.string_redirect(val, @cls) if @constant.type is 'String'
     if @constant.type is 'class'
       jvm_str = rs.get_obj(rs.string_redirect(val,@cls))
-      val = rs.set_obj 'java/lang/Class', name:rs.jvm2js_str(jvm_str)
+      val = rs.init_class_object rs.jvm2js_str(jvm_str)
     rs.push val
     rs.push null if @name is 'ldc2_w'
 

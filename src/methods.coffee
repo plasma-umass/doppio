@@ -32,6 +32,14 @@ class root.Field extends AbstractMethodField
     if @access_flags.static
       @static_value = null  # loaded in when getstatic is called
 
+getBundle = (rs) ->
+  # load in the default ResourceBundle (ignores locale)
+  args = rs.curr_frame().locals
+  classname = util.int_classname rs.jvm2js_str(rs.get_obj(args[0]))
+  rs.push (b_ref = rs.init_object classname)
+  rs.method_lookup({class: classname, sig: {name:'<init>',type:'()V'}}).run(rs)
+  rs.push b_ref
+
 # convenience function. idea taken from coffeescript's grammar
 o = (fn_name, fn) -> fn_name: fn_name, fn: fn
 
@@ -50,7 +58,7 @@ trapped_methods =
             rs.push oref
         o 'forName(L!/!/String;)L!/!/!;', (rs, jvm_str) -> #again, to avoid reflection
             classname = rs.jvm2js_str jvm_str
-            rs.push rs.set_obj 'java/lang/Class', { $type: new types.ClassType(classname), name: 0 }
+            rs.push rs.init_class_object classname
       ]
       System: [
         o 'setJavaLangAccess()V', (rs) -> # NOP
@@ -61,6 +69,10 @@ trapped_methods =
       ]
       Terminator: [
         o 'setup()V', (rs) -> #NOP
+      ]
+      StringCoding: [
+        o 'deref(L!/!/ThreadLocal;)L!/!/Object;', (rs) -> rs.push 0  # null
+        o 'set(L!/!/ThreadLocal;L!/!/Object;)V', (rs) -> # NOP
       ]
     util:
       concurrent:
@@ -84,13 +96,13 @@ trapped_methods =
         o '<clinit>()V', (rs) -> #NOP, because it uses lots of reflection and we don't need it
       ]
       ResourceBundle: [
-        o 'getBundle(L!/lang/String;L!/!/Locale;L!/!/ResourceBundle$Control;)L!/!/!;', (rs) ->
-            # load in the default ResourceBundle (ignores locale)
-            args = rs.curr_frame().locals
-            classname = util.int_classname rs.jvm2js_str(rs.get_obj(args[0]))
-            rs.push (b_ref = rs.init_object classname)
-            rs.method_lookup({class: classname, sig: {name:'<init>',type:'()V'}}).run(rs)
-            rs.push b_ref
+        o 'getBundle(L!/lang/String;L!/!/Locale;L!/!/ResourceBundle$Control;)L!/!/!;', getBundle
+        o 'getBundle(L!/lang/String;)L!/!/!;', getBundle
+      ]
+      EnumSet: [
+        o 'getUniverse(L!/lang/Class;)[L!/lang/Enum;', (rs) ->
+            rs.push rs.curr_frame().locals[0]
+            rs.method_lookup({class: 'java/lang/Class', sig: {name:'getEnumConstants',type:'()[Ljava/lang/Object;'}}).run(rs)
       ]
     nio:
       charset:
@@ -165,30 +177,31 @@ native_methods =
       Class: [
         o 'getPrimitiveClass(L!/!/String;)L!/!/!;', (rs, jvm_str) ->
             name = rs.jvm2js_str jvm_str
-            rs.push rs.set_obj 'java/lang/Class', { $type: new types.PrimitiveType(name), name:0 }
+            rs.push rs.init_class_object name
         o 'getClassLoader0()L!/!/ClassLoader;', (rs) -> rs.push 0  # we don't need no stinkin classloaders
         o 'desiredAssertionStatus0(L!/!/!;)Z', (rs) -> rs.push 0 # we don't need no stinkin asserts
         o 'getName0()L!/!/String;', (rs, _this) ->
-            type = _this.fields.$type
-            rs.push rs.init_string(type.toExternalString())
+            rs.push rs.init_string(_this.fields.$type.toExternalString())
         o 'forName0(L!/!/String;ZL!/!/ClassLoader;)L!/!/!;', (rs, jvm_str) ->
             classname = util.int_classname rs.jvm2js_str(jvm_str)
             throw "Class.forName0: Failed to load #{classname}" unless rs.class_lookup(classname)
-            rs.push rs.set_obj 'java/lang/Class', { $type: new types.ClassType(classname), name:0 }
+            rs.push rs.init_class_object classname
         o 'getComponentType()L!/!/!;', (rs, _this) ->
             type = _this.fields.$type
             if not (type instanceof types.ArrayType)
               rs.push 0
               return
-            rs.push rs.set_obj 'java/lang/Class', $type:type.component_type, name: 0
+            rs.push rs.init_class_object type.component_type.toString()
         o 'isInterface()Z', (rs, _this) ->
             if not (_this.fields.$type instanceof types.ClassType)
               rs.push 0
               return
-            cls = rs.class_lookup type.toClassString()
+            cls = rs.class_lookup _this.fields.$type.toClassString()
             rs.push cls.access_flags.interface + 0
         o 'isPrimitive()Z', (rs, _this) ->
             rs.push (_this.fields.$type instanceof types.PrimitiveType) + 0
+        o 'isArray()Z', (rs, _this) ->
+            rs.push (_this.fields.$type instanceof types.ArrayType) + 0
         o 'getSuperclass()L!/!/!;', (rs, _this) ->
             type = _this.fields.$type
             if (type instanceof types.PrimitiveType) or
@@ -199,7 +212,7 @@ native_methods =
             if cls.access_flags.interface
               rs.push 0
               return
-            rs.push rs.set_obj 'java/lang/Class', $type: new types.ClassType(cls.super_class), name: 0
+            rs.push rs.init_class_object(cls.super_class)
       ],
       Float: [
         o 'floatToRawIntBits(F)I', (rs, f_val) ->  #note: not tested for weird values
@@ -219,17 +232,22 @@ native_methods =
       ]
       Object: [
         o 'getClass()L!/!/Class;', (rs, _this) ->
-            rs.push rs.set_obj 'java/lang/Class', { $type: c2t(_this.type), name: 0 }
+            rs.push rs.init_class_object _this.type
         o 'hashCode()I', (rs, _this) ->
             # return heap reference. XXX need to change this if we ever implement
             # GC that moves stuff around.
             rs.push _this.ref
+        o 'clone()L!/!/!;', (rs, _this) ->
+            rs.push rs.set_obj _this.type, _this.fields
       ]
       reflect:
         Array: [
           o 'newArray(L!/!/Class;I)L!/!/Object;', (rs, _this, len) ->
               rs.heap_newarray _this.fields.$type, len
         ]
+      Shutdown: [
+        o 'halt0(I)V', (rs) -> throw new util.HaltException(rs.curr_frame().locals[0])
+      ]
       StrictMath: [
         o 'pow(DD)D', (rs) -> rs.push Math.pow(rs.cl(0),rs.cl(2)), null
       ]
@@ -319,6 +337,9 @@ native_methods =
               rs.async_input n_bytes, resume
               throw new util.YieldException
       ]
+      ObjectStreamClass: [
+        o 'initNative()V', (rs) ->  # NOP
+      ]
   sun:
     misc:
       VM: [
@@ -329,7 +350,7 @@ native_methods =
         o 'getCallerClass(I)Ljava/lang/Class;', (rs, frames_to_skip) ->
             #TODO: disregard frames assoc. with java.lang.reflect.Method.invoke() and its implementation
             cls = rs.meta_stack[rs.meta_stack.length-1-frames_to_skip].toClassString()
-            rs.push rs.set_obj 'java/lang/Class', { $type: c2t(cls), name: 0 }
+            rs.push rs.init_class_object cls
       ]
 
 flatten_pkg = (pkg) ->
