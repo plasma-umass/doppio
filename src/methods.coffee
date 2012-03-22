@@ -437,7 +437,7 @@ class root.Method extends AbstractMethodField
     @return_type = str2type return_str
 
   reflector: (rs) ->
-    rv = rs.set_obj 'java/lang/reflect/Method', {
+    rs.set_obj 'java/lang/reflect/Method', {
       # XXX: missing checkedExceptions, annotations, parameterAnnotations, annotationDefault
       clazz: rs.init_class_object c2t @class_name
       name: rs.init_string @name, true
@@ -447,8 +447,6 @@ class root.Method extends AbstractMethodField
       slot: parseInt((i for i,v of rs.class_lookup(@class_name).methods when v is @)[0])
       signature: rs.init_string @raw_descriptor
     }
-    console.log '>>>', @name, @raw_descriptor, rs.get_obj(rv).fields
-    rv
 
   param_bytes: () ->
     type_size = (t) -> (if t.toString() in ['D','J'] then 2 else 1)
