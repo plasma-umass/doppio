@@ -141,6 +141,15 @@ trapped_methods =
             else
               throw "You tried to write to a PrintStream that wasn't System.out or System.err! For shame!"
       ]
+    util:
+      ResourceBundle: [
+        o 'getClassContext()[L!/lang/Class;', (rs) ->
+            arr = []
+            for frame in [rs.meta_stack.length-1..0] by -1
+              cls = frame.method.class_name
+              arr.push rs.init_class_object c2t cls
+              rs.set_obj "[Ljava/lang/Class", arr
+      ]
   sun:
     misc:
       FloatingDecimal: [
@@ -381,6 +390,7 @@ native_methods =
         o 'ensureClassInitialized(Ljava/lang/Class;)V', (rs,_this,cls) -> 
             rs.class_lookup(cls.fields.$type.toClassString())
         o 'staticFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.fields.slot)
+        o 'objectFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.fields.slot)
         o 'staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;', (rs,_this,field) ->
             rs.set_obj rs.get_obj(field.fields.clazz).fields.$type.toClassString()
         o 'getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
