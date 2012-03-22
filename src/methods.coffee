@@ -441,7 +441,7 @@ class root.Method extends AbstractMethodField
       # XXX: missing checkedExceptions, annotations, parameterAnnotations, annotationDefault
       clazz: rs.init_class_object c2t @class_name
       name: rs.init_string @name, true
-      parameter_types: rs.set_obj "[Ljava/lang/Class;", (rs.init_class_object f.type for f in @param_types)
+      parameterTypes: rs.set_obj "[Ljava/lang/Class;", (rs.init_class_object f.type for f in @param_types)
       returnType: rs.init_class_object @return_type
       modifiers: @access_byte
       slot: parseInt((i for i,v of rs.class_lookup(@class_name).methods when v is @)[0])
