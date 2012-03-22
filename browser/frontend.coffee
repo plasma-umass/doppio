@@ -1,9 +1,3 @@
-# what the go_button should say when we're not doing anything
-button_idle_text = 'Compile and Parse'
-# stores the parsed ClassFile object
-class_data = undefined
-controller = null
-
 # Read in a binary classfile synchronously. Return an array of bytes.
 read_classfile = (cls) ->
   rv = null
@@ -23,16 +17,21 @@ read_classfile = (cls) ->
 
 process_bytecode = (bytecode_string) ->
   bytes_array = util.bytestr_to_array bytecode_string
-  class_data = new ClassFile(bytes_array)
+  new ClassFile(bytes_array)
 
-compile_source = (java_source, cb) ->
-  $('#go_button').text('Compiling...')
+compile_source = (fname, cb) ->
+  source = localStorage["file::#{fname}"]
+  return cb "Could not find file '#{fname}'" unless source?
   $.ajax 'http://people.cs.umass.edu/~ccarey/javac/', {
     type: 'POST'
-    data: { pw: 'coffee', source: java_source }
+    data: { pw: 'coffee', source: source }
     dataType: 'text'
     beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
-    success:  (data) -> process_bytecode(data); cb?(disassembler.disassemble class_data)
+    success:  (data) ->
+      class_name = fname.split('.')[0]
+      localStorage["file::#{class_name}.class"] = data
+      class_data = process_bytecode(data)
+      cb?(true)
     error: (jqXHR, textStatus, errorThrown) -> 
       cb?("AJAX error: #{errorThrown}")
   }
@@ -54,7 +53,9 @@ $(document).ready ->
         when e.target.error.SECURITY_ERR then alert "only works with --allow-file-access-from-files"
     ext = f.name.split('.')[1]
     if ext == 'java'
-      reader.onload = (e) -> editor.getSession().setValue(e.target.result)
+      reader.onload = (e) ->
+        localStorage["file::#{f.name}"] = e.target.result
+        editor.getSession().setValue(e.target.result)
       reader.readAsText(f)
     else if ext == 'class'
       reader.onload = (e) ->
@@ -66,7 +67,6 @@ $(document).ready ->
 
   controller = null
   java_handler = null
-  showPrompt = null
   user_input = (n_bytes, resume) ->
     oldPrompt = controller.promptLabel
     controller.promptLabel = '> '
@@ -86,24 +86,54 @@ $(document).ready ->
       [cmd,args...] = line.split ' '
       switch cmd
         when 'javac'
-          compile_source editor.getSession().getValue(), report
+          return "Usage: javac <source file>" unless args[0]?
+          compile_source args[0], report
         when 'java'
-          return false unless class_data?
+          return "Usage: java class [args...]" unless args[0]?
+          class_data = process_bytecode localStorage["file::#{args[0]}.class"]
+          return "Could not find class '#{args[0]}'" unless class_data?
           stdout = (str) -> report str, true # no reprompting
           rs ?= new runtime.RuntimeState(stdout, user_input, read_classfile)
           jvm.run_class(rs, class_data, args, ->
             $('#heap_size').text rs.heap.length-1
             controller.reprompt()
           )
+        when 'javap'
+          return "Usage: javap class" unless args[0]?
+          class_data = process_bytecode localStorage["file::#{args[0]}.class"]
+          return "Could not find class '#{args[0]}'" unless class_data?
+          report(disassembler.disassemble class_data)
         when 'clear_heap'
           rs = null
           $('#heap_size').text 0
           "Heap cleared."
+        when 'ls'
+          (name[6..] for name, contents of localStorage when name[..5] == 'file::').join '\n'
+        when 'edit'
+          data = localStorage["file::#{args[0]}"]
+          return "No such file '#{args[0]}'." unless data
+          editor.getSession().setValue(data)
+          true
+        when 'rm'
+          return "Usage: rm <file>" unless args[0]?
+          # technically we should look only for keys starting with 'file::', but at the
+          # moment they are the only kinds of keys we use
+          if args[0] == '*' then localStorage.clear()
+          else localStorage.removeItem("file::#{args[0]}")
+          true
+        when 'save'
+          return "Usage: save <file>" unless args[0]?
+          localStorage["file::#{args[0]}"] = editor.getSession().getValue()
+          "File saved as '#{args[0]}'."
         when 'help'
           """
-javac -- Compile and display disassembly.
-java [args...] -- Run with command-line arguments.
-clear_heap -- Clear the heap.
+javac <source file>    -- Compile Java source.
+java <class> [args...] -- Run with command-line arguments.
+javap <class>          -- Display disassembly.
+ls                     -- List all files.
+save <file>            -- Save editor contents as <file>.
+rm <file>              -- Delete a file.
+clear_heap             -- Clear the heap.
           """
         else
           "Unknown command #{cmd}. Enter 'help' for a list of commands."
