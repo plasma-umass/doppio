@@ -20,7 +20,8 @@ class @ClassFile
     @constant_pool = new ConstantPool
     bytes_array = @constant_pool.parse(bytes_array)
     # bitmask for {public,final,super,interface,abstract} class modifier
-    @access_flags = util.parse_flags read_u2()
+    @access_byte = read_u2()
+    @access_flags = util.parse_flags @access_byte
     @this_class  = @constant_pool.get(read_u2()).deref()
     @constant_pool.cls = @this_class  #hax
     # super reference is 0 when there's no super (basically just java.lang.Object)

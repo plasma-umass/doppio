@@ -19,7 +19,8 @@ class AbstractMethodField
   constructor: (@class_name) ->
 
   parse: (bytes_array,constant_pool) ->
-    @access_flags = util.parse_flags(util.read_uint(bytes_array.splice(0,2)))
+    @access_byte = util.read_uint(bytes_array.splice(0,2))
+    @access_flags = util.parse_flags @access_byte
     @name = constant_pool.get(util.read_uint(bytes_array.splice(0,2))).value
     @raw_descriptor = constant_pool.get(util.read_uint(bytes_array.splice(0,2))).value
     @parse_descriptor @raw_descriptor
@@ -56,9 +57,6 @@ trapped_methods =
             rs.push (oref = rs.init_object(classname))
             rs.method_lookup({'class':classname,'sig':{'name':'<init>'}}).run(rs)
             oref
-        o 'forName(L!/!/String;)L!/!/!;', (rs, jvm_str) -> #again, to avoid reflection
-            classname = rs.jvm2js_str jvm_str
-            rs.init_class_object c2t util.int_classname classname
       ]
       Object: [
         o '<clinit>()V', (rs) -> # NOP, for efficiency reasons
@@ -99,7 +97,7 @@ trapped_methods =
             o 'release(I)Z', (rs) -> true
           ]
       Currency: [
-        o '<clinit>()V', (rs) -> #NOP, because it uses lots of reflection and we don't need it
+        o 'getInstance(Ljava/lang/String;)Ljava/util/Currency;', (rs) -> null # because it uses lots of reflection and we don't need it
       ]
       ResourceBundle: [
         o 'getBundle(L!/lang/String;L!/!/Locale;L!/!/ResourceBundle$Control;)L!/!/!;', getBundle
@@ -158,10 +156,6 @@ trapped_methods =
             cls = if rs.check_cast(buf.ref,'java/lang/StringBuilder') then 'java/lang/StringBuilder' else 'java/lang/StringBuffer'
             rs.method_lookup({class:cls,sig:{name:'append',type:"(Ljava/lang/String;)L#{cls};"}}).run(rs,true)
       ]
-      Unsafe: [
-        o 'getUnsafe()L!/!/!;', (rs) -> # avoid reflection
-            rs.static_get({'class':'sun/misc/Unsafe','sig':{'name':'theUnsafe'}})
-      ]
     util:
       LocaleServiceProviderPool: [
         o 'getPool(Ljava/lang/Class;)L!/!/!;', (rs) -> 
@@ -177,6 +171,17 @@ doPrivileged = (rs) ->
   rs.push oref unless m.access_flags.static
   m.run(rs,m.access_flags.virtual)
   rs.pop()
+
+make_field = (rs,f) -> 
+  rs.set_obj 'java/lang/reflect/Field', {  
+    # XXX this leaves out 'slot' and 'annotations'
+    clazz: rs.init_class_object c2t f.class_name
+    name: rs.init_string f.name, true
+    type: rs.init_class_object f.type
+    modifiers: f.access_byte
+    slot: parseInt((i for i,v of rs.class_lookup(f.class_name).fields when v is f)[0])
+    signature: rs.init_string f.raw_descriptor
+  }
 
 native_methods =
   java:
@@ -214,6 +219,11 @@ native_methods =
             if cls.access_flags.interface
               return null
             rs.init_class_object c2t cls.super_class
+        o 'getDeclaredFields0(Z)[Ljava/lang/reflect/Field;', (rs, _this, public_only) ->
+            fields = rs.class_lookup(_this.fields.$type.toClassString()).fields
+            fields = (f for f in fields when f.access_flags.public) if public_only
+            rs.class_lookup 'java/lang/reflect/Field'
+            rs.set_obj('[Ljava/lang/reflect/Field;',(make_field(rs,f) for f in fields))
       ],
       Float: [
         o 'floatToRawIntBits(F)I', (rs, f_val) ->  #note: not tested for weird values
@@ -350,7 +360,7 @@ native_methods =
         o 'getBooleanAttributes0(Ljava/io/File;)I', (rs, _this, file) ->
             try
               fs = require 'fs'
-            catch e
+            catch e  #TODO: add a browser-friendly interface to the localstorage psuedo-fs
               util.java_throw 'java/lang/UnsupportedOperationException', 'Filesystem ops are not supported in the browser'
             stats = fs.statSync rs.jvm2js_str rs.get_obj file.fields.path
             return 0 unless stats?
@@ -361,12 +371,24 @@ native_methods =
       VM: [
         o 'initialize()V', (rs) ->  # NOP???
       ]
+      Unsafe: [
+        o 'ensureClassInitialized(Ljava/lang/Class;)V', (rs,_this,cls) -> 
+            rs.class_lookup(cls.fields.$type.toClassString())
+        o 'staticFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.fields.slot)
+        o 'staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;', (rs,_this,field) ->
+            rs.set_obj rs.get_obj(field.fields.clazz).fields.$type.toClassString()
+        o 'getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
+            f = rs.class_lookup(obj.type).fields[offset.toInt()]
+            f.static_value
+      ]
     reflect:
       Reflection: [
         o 'getCallerClass(I)Ljava/lang/Class;', (rs, frames_to_skip) ->
             #TODO: disregard frames assoc. with java.lang.reflect.Method.invoke() and its implementation
             cls = rs.meta_stack[rs.meta_stack.length-1-frames_to_skip].method.class_name
             rs.init_class_object c2t cls
+        o 'getClassAccessFlags(Ljava/lang/Class;)I', (rs, _this) ->
+            rs.class_lookup(_this.fields.$type.toClassString()).access_byte
       ]
 
 flatten_pkg = (pkg) ->
@@ -432,7 +454,7 @@ class root.Method extends AbstractMethodField
     for p, idx in params
       if (@param_types[idx] instanceof types.ClassType) or
          (@param_types[idx] instanceof types.ArrayType)
-        converted_params.push(if p == 0 then 0 else rs.get_obj p)
+        converted_params.push(if p == 0 then null else rs.get_obj p)
       else
         converted_params.push p
     rv = func rs, converted_params...
