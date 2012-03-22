@@ -121,10 +121,10 @@ class root.RuntimeState
       0  # numbers default to zero/false
     else
       throw "I don't know what to do with non-class static fields"
-  init_class_object: (cls) ->
-    unless @class_objects[cls]?
-      @class_objects[cls] = @set_obj 'java/lang/Class', { $type: c2t(cls), name: 0 }
-    return @class_objects[cls]
+  init_class_object: (type) ->
+    unless @class_objects[type]?
+      @class_objects[type] = @set_obj 'java/lang/Class', { $type: type, name: 0 }
+    return @class_objects[type]
 
   # lookup methods
   class_lookup: (cls) ->

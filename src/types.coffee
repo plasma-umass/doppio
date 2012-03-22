@@ -36,8 +36,6 @@ root.carr2type = (carr) ->
 # array types / class types
 root.c2t = (type_str) ->
   if type_str[0] == '[' then root.str2type type_str
-  else if internal2external[type_str]? then new root.PrimitiveType internal2external[type_str]
-  else if external2internal[type_str]? then new root.PrimitiveType type_str
   else new root.ClassType type_str
 
 class root.Type
@@ -47,8 +45,6 @@ class root.PrimitiveType extends root.Type
   constructor: (@name) ->
 
   toString: -> external2internal[@name]
-
-  toClassString: -> @toString()
 
   toExternalString: -> @name
 

@@ -1,7 +1,10 @@
 
 gLong ?= require '../third_party/gLong.js'
 util ?= require './util'
+types ?= require './types'
 {java_throw, ext_classname,BranchException,ReturnException,JavaException} = util
+{c2t} = types
+
 root = exports ? this.opcodes = {}
 
 class root.Opcode
@@ -56,7 +59,7 @@ class root.LoadConstantOpcode extends root.Opcode
     val = rs.string_redirect(val, @cls) if @constant.type is 'String'
     if @constant.type is 'class'
       jvm_str = rs.get_obj(rs.string_redirect(val,@cls))
-      val = rs.init_class_object rs.jvm2js_str(jvm_str)
+      val = rs.init_class_object c2t rs.jvm2js_str(jvm_str)
     rs.push val
     rs.push null if @name is 'ldc2_w'
 

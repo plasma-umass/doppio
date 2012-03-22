@@ -58,7 +58,7 @@ trapped_methods =
             oref
         o 'forName(L!/!/String;)L!/!/!;', (rs, jvm_str) -> #again, to avoid reflection
             classname = rs.jvm2js_str jvm_str
-            rs.init_class_object classname
+            rs.init_class_object c2t util.int_classname classname
       ]
       System: [
         o 'setJavaLangAccess()V', (rs) -> # NOP
@@ -69,6 +69,9 @@ trapped_methods =
       ]
       Terminator: [
         o 'setup()V', (rs) -> #NOP
+      ]
+      Throwable: [
+        o 'printStackTrace(L!/io/PrintWriter;)V', (rs) -> # NOP, since we didn't fill in anything
       ]
       StringCoding: [
         o 'deref(L!/!/ThreadLocal;)L!/!/Object;', (rs) -> null
@@ -178,7 +181,7 @@ native_methods =
       Class: [
         o 'getPrimitiveClass(L!/!/String;)L!/!/!;', (rs, jvm_str) ->
             name = rs.jvm2js_str jvm_str
-            rs.init_class_object name
+            rs.init_class_object new types.PrimitiveType name
         o 'getClassLoader0()L!/!/ClassLoader;', (rs) -> null  # we don't need no stinkin classloaders
         o 'desiredAssertionStatus0(L!/!/!;)Z', (rs) -> false # we don't need no stinkin asserts
         o 'getName0()L!/!/String;', (rs, _this) ->
@@ -186,11 +189,11 @@ native_methods =
         o 'forName0(L!/!/String;ZL!/!/ClassLoader;)L!/!/!;', (rs, jvm_str) ->
             classname = util.int_classname rs.jvm2js_str(jvm_str)
             throw "Class.forName0: Failed to load #{classname}" unless rs.class_lookup(classname)
-            rs.init_class_object classname
+            rs.init_class_object c2t util.int_classname classname
         o 'getComponentType()L!/!/!;', (rs, _this) ->
             type = _this.fields.$type
             return null unless (type instanceof types.ArrayType)
-            rs.init_class_object type.component_type.toClassString()
+            rs.init_class_object type.component_type
         o 'isInterface()Z', (rs, _this) ->
             return false unless _this.fields.$type instanceof types.ClassType
             cls = rs.class_lookup _this.fields.$type.toClassString()
@@ -207,7 +210,7 @@ native_methods =
             cls = rs.class_lookup type.toClassString()
             if cls.access_flags.interface
               return null
-            rs.init_class_object(cls.super_class)
+            rs.init_class_object c2t cls.super_class
       ],
       Float: [
         o 'floatToRawIntBits(F)I', (rs, f_val) ->  #note: not tested for weird values
@@ -227,7 +230,7 @@ native_methods =
       ]
       Object: [
         o 'getClass()L!/!/Class;', (rs, _this) ->
-            rs.init_class_object _this.type
+            rs.init_class_object c2t _this.type
         o 'hashCode()I', (rs, _this) ->
             # return heap reference. XXX need to change this if we ever implement
             # GC that moves stuff around.
@@ -345,8 +348,8 @@ native_methods =
       Reflection: [
         o 'getCallerClass(I)Ljava/lang/Class;', (rs, frames_to_skip) ->
             #TODO: disregard frames assoc. with java.lang.reflect.Method.invoke() and its implementation
-            cls = rs.meta_stack[rs.meta_stack.length-1-frames_to_skip].toClassString()
-            rs.init_class_object cls
+            cls = rs.meta_stack[rs.meta_stack.length-1-frames_to_skip].method.class_name
+            rs.init_class_object c2t cls
       ]
 
 flatten_pkg = (pkg) ->
