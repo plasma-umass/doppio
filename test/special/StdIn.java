@@ -1,4 +1,4 @@
-package test;
+package test.special;
 import java.io.IOException;
 public class StdIn {
   public static void main(String[] args) {

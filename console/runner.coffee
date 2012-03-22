@@ -47,4 +47,5 @@ if require.main == module
 
   java_cmd_args = (arg.toString() for arg in argv._[1..])
 
-  jvm.run class_data, stdout, read_stdin, exports.read_classfile, java_cmd_args
+  rs = new runtime.RuntimeState(stdout, read_stdin, exports.read_classfile)
+  jvm.run_class rs, class_data, java_cmd_args

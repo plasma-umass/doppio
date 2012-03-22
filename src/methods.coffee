@@ -296,6 +296,12 @@ native_methods =
         o 'setPriority0(I)V', (rs) -> # NOP
         o 'isAlive()Z', (rs) -> false
         o 'start0()V', (rs) -> # NOP
+        o 'sleep(J)V', (rs, millis) ->
+            if rs.resuming_stack?
+              rs.resuming_stack = null
+            else
+              throw new util.YieldException (cb) ->
+                setTimeout(cb, millis.toNumber())
       ]
       Throwable: [
         o 'fillInStackTrace()L!/!/!;', (rs, _this) ->
@@ -327,14 +333,11 @@ native_methods =
             else
               args = rs.curr_frame().locals
               [offset,n_bytes] = args[2..3]
-              resume = (bytes) ->  # callback that gets run after we yield
-                rs.get_obj(args[1]).array[offset...offset+bytes.length] = bytes
-                rs.secret_stash = bytes.length
-                rs.resuming_stack = 1  # <-- index into the meta_stack of the frame we're resuming
-                rs.meta_stack[1].pc += 3  # move past the invoke opcode
-                rs.meta_stack[1].method.run(rs)  # this will only end when the JVM gets back to main...
-              rs.async_input n_bytes, resume
-              throw new util.YieldException
+              throw new util.YieldException (cb) ->
+                rs.async_input n_bytes, (bytes) ->
+                  rs.get_obj(args[1]).array[offset...offset+bytes.length] = bytes
+                  rs.secret_stash = bytes.length
+                  cb()
       ]
       ObjectStreamClass: [
         o 'initNative()V', (rs) ->  # NOP

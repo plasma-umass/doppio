@@ -129,6 +129,7 @@ class root.ReturnException
   constructor: (@values...) ->
 
 class root.YieldException
+  constructor: (@condition) ->
 
 class root.JavaException
   constructor: (rs, @exception_ref) ->
