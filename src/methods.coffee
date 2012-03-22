@@ -288,7 +288,7 @@ native_methods =
             #  java.version,java.vendor,java.vendor.url,java.home,java.class.version,java.class.path,
             #  os.name,os.arch,os.version,file.separator,path.separator,
             #  user.name,user.home,user.dir
-            properties = {'file.encoding':'US_ASCII','java.vendor':'Coffee-JVM','line.separator':'\n'}
+            properties = {'file.encoding':'US_ASCII','java.vendor':'DoppioVM','line.separator':'\n'}
             for k,v of properties
               rs.push props.ref, rs.init_string(k,true), rs.init_string(v,true)
               m.run(rs)

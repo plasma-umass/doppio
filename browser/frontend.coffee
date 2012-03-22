@@ -77,7 +77,7 @@ $(document).ready ->
 
   jqconsole = $('#console')
   controller = jqconsole.console
-    promptLabel: 'coffee-jvm > '
+    promptLabel: 'doppio > '
     commandHandle: (line, report) ->
       [cmd,args...] = line.split ' '
       handler = commands[cmd]
