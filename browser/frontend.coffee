@@ -103,10 +103,9 @@ $(document).ready ->
   $('#save_btn').click ->
     fname = $('#filename').val()
     save_file fname, editor.getSession().getValue()
-    # XXX send this as a msg to jqconsole
-    alert "File saved as '#{fname}'."
-    $('#ide').hide()
-    $('#console').show().click() # click to restore focus
+    controller.message("File saved as '#{fname}'.", 'success')
+    $('#ide').fadeOut 'fast', ->
+      $('#console').fadeIn('fast').click() # click to restore focus
 
 commands =
   javac: (args, report) ->
@@ -136,15 +135,15 @@ commands =
   edit: (args) ->
     data = load_file args[0]
     return "No such file '#{args[0]}'." unless data
-    $('#console').hide()
-    $('#filename').val args[0]
-    $('#ide').show()
-    # initialize the editor. technically we only need to do this once, but more
-    # than once is fine too
-    editor = ace.edit('source')
-    JavaMode = require("ace/mode/java").Mode
-    editor.getSession().setMode new JavaMode
-    editor.getSession().setValue(data)
+    $('#console').fadeOut 'fast', ->
+      $('#filename').val args[0]
+      $('#ide').fadeIn('fast')
+      # initialize the editor. technically we only need to do this once, but more
+      # than once is fine too
+      editor = ace.edit('source')
+      JavaMode = require("ace/mode/java").Mode
+      editor.getSession().setMode new JavaMode
+      editor.getSession().setValue(data)
     true
   rm: (args) ->
     return "Usage: rm <file>" unless args[0]?

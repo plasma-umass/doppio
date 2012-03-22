@@ -498,6 +498,14 @@
             }
         };
 
+        extern.message = function (msg, type) {
+          if (type == 'success')
+            commandResult(msg, 'jquery-console-message-success');
+          else if (type == 'error')
+            commandResult(msg, 'jquery-console-message-error');
+          else
+            commandResult(msg);
+        }
         extern.reprompt = function() { commandResult(); }
 
         ////////////////////////////////////////////////////////////////////////
