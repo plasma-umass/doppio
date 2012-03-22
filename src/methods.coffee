@@ -317,7 +317,7 @@ native_methods =
       ]
     io:
       FileSystem: [
-        o 'getFileSystem()L!/!/!;', (rs) -> rs.heap_new('java/io/UnixFileSystem')
+        o 'getFileSystem()L!/!/!;', (rs) -> rs.init_object('java/io/UnixFileSystem')
       ]
       FileOutputStream: [
         o 'writeBytes([BII)V', (rs, _this, bytes, offset, len) ->

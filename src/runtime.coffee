@@ -78,7 +78,6 @@ class root.RuntimeState
       @heap.push type: type, fields: obj, ref: @heap.length
     @heap.length - 1
 
-  heap_new: (cls) -> @init_object(cls)
   heap_newarray: (type,len) -> @set_obj("[#{type}",(0 for [0...len]))
   heap_put: (field_spec) ->
     val = if field_spec.sig.type in ['J','D'] then @pop2() else @pop()
