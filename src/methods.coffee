@@ -33,6 +33,17 @@ class root.Field extends AbstractMethodField
     if @access_flags.static
       @static_value = null  # loaded in when getstatic is called
 
+  reflector: (rs) ->
+    rs.set_obj 'java/lang/reflect/Field', {  
+      # XXX this leaves out 'slot' and 'annotations'
+      clazz: rs.init_class_object c2t @class_name
+      name: rs.init_string @name, true
+      type: rs.init_class_object @type
+      modifiers: @access_byte
+      slot: parseInt((i for i,v of rs.class_lookup(@class_name).fields when v is @)[0])
+      signature: rs.init_string @raw_descriptor
+    }
+
 getBundle = (rs) ->
   # load in the default ResourceBundle (ignores locale)
   args = rs.curr_frame().locals
@@ -172,17 +183,6 @@ doPrivileged = (rs) ->
   m.run(rs,m.access_flags.virtual)
   rs.pop()
 
-make_field = (rs,f) -> 
-  rs.set_obj 'java/lang/reflect/Field', {  
-    # XXX this leaves out 'slot' and 'annotations'
-    clazz: rs.init_class_object c2t f.class_name
-    name: rs.init_string f.name, true
-    type: rs.init_class_object f.type
-    modifiers: f.access_byte
-    slot: parseInt((i for i,v of rs.class_lookup(f.class_name).fields when v is f)[0])
-    signature: rs.init_string f.raw_descriptor
-  }
-
 native_methods =
   java:
     lang:
@@ -223,7 +223,13 @@ native_methods =
             fields = rs.class_lookup(_this.fields.$type.toClassString()).fields
             fields = (f for f in fields when f.access_flags.public) if public_only
             rs.class_lookup 'java/lang/reflect/Field'
-            rs.set_obj('[Ljava/lang/reflect/Field;',(make_field(rs,f) for f in fields))
+            rs.set_obj('[Ljava/lang/reflect/Field;',(f.reflector(rs) for f in fields))
+        o 'getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;', (rs, _this, public_only) ->
+            methods = rs.class_lookup(_this.fields.$type.toClassString()).methods
+            methods = (m for m in methods when m.access_flags.public) if public_only
+            rs.class_lookup 'java/lang/reflect/Method'
+            rs.set_obj('[Ljava/lang/reflect/Method;',(m.reflector(rs) for m in methods))
+        o 'getModifiers()I', (rs, _this) -> rs.class_lookup(_this.fields.$type.toClassString()).access_byte
       ],
       Float: [
         o 'floatToRawIntBits(F)I', (rs, f_val) ->  #note: not tested for weird values
@@ -422,13 +428,25 @@ class root.Method extends AbstractMethodField
   get_code: ->
     return _.find(@attrs, (a) -> a.constructor.name == "Code")
 
-  parse_descriptor: (raw_descriptor) ->
-    [__,param_str,return_str] = /\(([^)]*)\)(.*)/.exec(raw_descriptor)
+  parse_descriptor: (@raw_descriptor) ->
+    [__,param_str,return_str] = /\(([^)]*)\)(.*)/.exec(@raw_descriptor)
     param_carr = param_str.split ''
     @param_types = (field while (field = carr2type param_carr))
     @num_args = @param_types.length
     @num_args++ unless @access_flags.static # nonstatic methods get 'this'
     @return_type = str2type return_str
+
+  reflector: (rs) ->
+    rs.set_obj 'java/lang/reflect/Method', {
+      # XXX: missing checkedExceptions, annotations, parameterAnnotations, annotationDefault
+      clazz: rs.init_class_object c2t @class_name
+      name: rs.init_string @name, true
+      parameterTypes: rs.set_obj "[Ljava/lang/Class;", (rs.init_class_object f.type for f in @param_types)
+      returnType: rs.init_class_object @return_type
+      modifiers: @access_byte
+      slot: parseInt((i for i,v of rs.class_lookup(@class_name).methods when v is @)[0])
+      signature: rs.init_string @raw_descriptor
+    }
 
   param_bytes: () ->
     type_size = (t) -> (if t.toString() in ['D','J'] then 2 else 1)
