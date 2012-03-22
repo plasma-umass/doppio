@@ -38,7 +38,7 @@ getBundle = (rs) ->
   classname = util.int_classname rs.jvm2js_str(rs.get_obj(args[0]))
   rs.push (b_ref = rs.init_object classname)
   rs.method_lookup({class: classname, sig: {name:'<init>',type:'()V'}}).run(rs)
-  rs.push b_ref
+  b_ref
 
 # convenience function. idea taken from coffeescript's grammar
 o = (fn_name, fn) -> fn_name: fn_name, fn: fn
@@ -207,7 +207,7 @@ native_methods =
             cls = rs.class_lookup type.toClassString()
             if cls.access_flags.interface
               return null
-            rs.push rs.init_class_object(cls.super_class)
+            rs.init_class_object(cls.super_class)
       ],
       Float: [
         o 'floatToRawIntBits(F)I', (rs, f_val) ->  #note: not tested for weird values
