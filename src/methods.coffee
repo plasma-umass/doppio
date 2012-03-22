@@ -60,6 +60,9 @@ trapped_methods =
             classname = rs.jvm2js_str jvm_str
             rs.init_class_object c2t util.int_classname classname
       ]
+      Object: [
+        o '<clinit>()V', (rs) -> # NOP, for efficiency reasons
+      ]
       System: [
         o 'setJavaLangAccess()V', (rs) -> # NOP
         o 'loadLibrary(L!/!/String;)V', (rs, jvm_str) ->
@@ -342,6 +345,16 @@ native_methods =
       ]
       ObjectStreamClass: [
         o 'initNative()V', (rs) ->  # NOP
+      ]
+      UnixFileSystem: [
+        o 'getBooleanAttributes0(Ljava/io/File;)I', (rs, _this, file) ->
+            try
+              fs = require 'fs'
+            catch e
+              util.java_throw 'java/lang/UnsupportedOperationException', 'Filesystem ops are not supported in the browser'
+            stats = fs.statSync rs.jvm2js_str rs.get_obj file.fields.path
+            return 0 unless stats?
+            if stats.isFile() then 3 else if stats.isDirectory() then 5 else 1
       ]
   sun:
     misc:
