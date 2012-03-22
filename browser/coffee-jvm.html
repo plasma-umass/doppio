@@ -6,7 +6,7 @@
     * { -moz-box-sizing: border-box;
         -webkit-box-sizing: border-box;
         box-sizing: border-box; }
-    #main {margin: 1em 2em;  width:1210px;}
+    #main {margin: 0 auto;  width:900px;}
     h1#title {float:left;margin:10px;}
     pre, div#console {
       font-family: monospace;
@@ -14,7 +14,7 @@
       border: 1px solid #ccc;margin:0;padding:5px;
       overflow: scroll;
     }
-    div#source { width:620px; height:70%;
+    div#source { width:100%; height:70%;
       position:relative;border: 1px solid #ccc; float: left;}
 
     div#console { height: 70%; padding:0 }
@@ -31,10 +31,6 @@
     div#console div.jquery-console-message-success
      { color:#187718; padding:0.1em; }
     div#console span.jquery-console-prompt-label { font-weight:bold }
-
-    pre#output { height: 20%; width:100%;}
-    button {padding:10px 30px;line-height:10px; float: left;}
-    input#cmdline {margin: 7px 0px; float: left;}
   </style>
   <!-- TODO: decide on a ui theme and make the page sexy -->
   <link rel='stylesheet' type="text/css" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/themes/smoothness/jquery-ui.css">
@@ -63,11 +59,15 @@
   <div style='clear:both'></div>
   <label for='file'>Load file:</label><input type="file" id="file" name="file" />
   <div style='clear:both'></div>
-  <div id='source'>class Test {
+  <div id='ide' style='display:none'>
+    <div id='source'>class Test {
   public static void main(String[] args) {
     // enter code here
   }
 }</div>
+    <label for='filename'>Save As:</label><input type='text' id='filename'/>
+    <button id='save_btn'>Save &amp; Close</button>
+  </div>
   <div id='console'></div>
   <div style='clear:both'></div>
   Check the <a href="https://github.com/int3/coffee-jvm">project page</a> for the latest updates.
