@@ -1,7 +1,6 @@
 # To be initialized on document load
 user_input = null
 controller = null
-commands   = null
 # For caching the runtime state across program runs
 rs = null
 
@@ -98,58 +97,57 @@ $(document).ready ->
       controller.promptLabel = oldPrompt
       true
 
-  commands =
-    javac: (args, report) ->
-      return "Usage: javac <source file>" unless args[0]?
-      compile_source args[0], report
-    java: (args, report) ->
-      return "Usage: java class [args...]" unless args[0]?
-      class_data = process_bytecode localStorage["file::#{args[0]}.class"]
-      return "Could not find class '#{args[0]}'" unless class_data?
-      stdout = (str) -> report str, true # no reprompting
-      rs ?= new runtime.RuntimeState(stdout, user_input, read_classfile)
-      jvm.run_class(rs, class_data, args, ->
-        $('#heap_size').text rs.heap.length-1
-        controller.reprompt()
-      )
-    javap: (args) ->
-      return "Usage: javap class" unless args[0]?
-      class_data = process_bytecode localStorage["file::#{args[0]}.class"]
-      return "Could not find class '#{args[0]}'" unless class_data?
-      disassembler.disassemble class_data
-    clear_heap: (args) ->
-      rs = null
-      $('#heap_size').text 0
-      "Heap cleared."
-    ls: (args) ->
-      (name[6..] for name, contents of localStorage when name[..5] == 'file::').join '\n'
-    edit: (args) ->
-      data = localStorage["file::#{args[0]}"]
-      return "No such file '#{args[0]}'." unless data
-      editor.getSession().setValue(data)
-      true
-    rm: (args) ->
-      return "Usage: rm <file>" unless args[0]?
-      # technically we should look only for keys starting with 'file::', but at the
-      # moment they are the only kinds of keys we use
-      if args[0] == '*' then localStorage.clear()
-      else localStorage.removeItem("file::#{args[0]}")
-      true
-    save: (args) ->
-      return "Usage: save <file>" unless args[0]?
-      localStorage["file::#{args[0]}"] = editor.getSession().getValue()
-      "File saved as '#{args[0]}'."
-    help: (args) ->
-      """
-  javac <source file>    -- Compile Java source.
-  java <class> [args...] -- Run with command-line arguments.
-  javap <class>          -- Display disassembly.
-  ls                     -- List all files.
-  edit <file>            -- Edit <file> in the editor.
-  save <file>            -- Save editor contents as <file>.
-  rm <file>              -- Delete a file.
-  clear_heap             -- Clear the heap.
-      """
+commands =
+  javac: (args, report) ->
+    return "Usage: javac <source file>" unless args[0]?
+    compile_source args[0], report
+  java: (args, report) ->
+    return "Usage: java class [args...]" unless args[0]?
+    class_data = process_bytecode localStorage["file::#{args[0]}.class"]
+    return "Could not find class '#{args[0]}'" unless class_data?
+    stdout = (str) -> report str, true # no reprompting
+    rs ?= new runtime.RuntimeState(stdout, user_input, read_classfile)
+    jvm.run_class(rs, class_data, args, ->
+      $('#heap_size').text rs.heap.length-1
+      controller.reprompt()
+    )
+  javap: (args) ->
+    return "Usage: javap class" unless args[0]?
+    class_data = process_bytecode localStorage["file::#{args[0]}.class"]
+    return "Could not find class '#{args[0]}'" unless class_data?
+    disassembler.disassemble class_data
+  clear_heap: (args) ->
+    rs = null
+    $('#heap_size').text 0
+    "Heap cleared."
+  ls: (args) ->
+    (name[6..] for name, contents of localStorage when name[..5] == 'file::').join '\n'
+  edit: (args) ->
+    data = localStorage["file::#{args[0]}"]
+    return "No such file '#{args[0]}'." unless data
+    editor.getSession().setValue(data)
+    true
+  rm: (args) ->
+    return "Usage: rm <file>" unless args[0]?
+    # technically we should look only for keys starting with 'file::', but at the
+    # moment they are the only kinds of keys we use
+    if args[0] == '*' then localStorage.clear()
+    else localStorage.removeItem("file::#{args[0]}")
+    true
+  save: (args) ->
+    return "Usage: save <file>" unless args[0]?
+    localStorage["file::#{args[0]}"] = editor.getSession().getValue()
+    "File saved as '#{args[0]}'."
+  help: (args) ->
+    """
+javac <source file>    -- Compile Java source.
+java <class> [args...] -- Run with command-line arguments.
+javap <class>          -- Display disassembly.
+ls                     -- List all files.
+save <file>            -- Save editor contents as <file>.
+rm <file>              -- Delete a file.
+clear_heap             -- Clear the heap.
+    """
 
 tabComplete = ->
   promptText = controller.promptText()
