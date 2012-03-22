@@ -250,7 +250,7 @@ native_methods =
         o 'intern()L!/!/!;', (rs, _this) ->
             js_str = rs.jvm2js_str(_this)
             unless rs.string_pool[js_str]
-              rs.string_pool[js_str] = str_ref
+              rs.string_pool[js_str] = _this.ref
             rs.string_pool[js_str]
       ]
       System: [
