@@ -44,7 +44,7 @@ $(document).ready ->
   JavaMode = require("ace/mode/java").Mode
   editor.getSession().setMode new JavaMode
   # set up the local file loaders
-  $('#srcfile').change (ev) ->
+  $('#file').change (ev) ->
     f = ev.target.files[0]
     reader = new FileReader
     reader.onerror = (e) ->
@@ -52,20 +52,17 @@ $(document).ready ->
         when e.target.error.NOT_FOUND_ERR then alert "404'd"
         when e.target.error.NOT_READABLE_ERR then alert "unreadable"
         when e.target.error.SECURITY_ERR then alert "only works with --allow-file-access-from-files"
-    reader.onload = (e) -> editor.getSession().setValue(e.target.result)
-    reader.readAsText(f)
-  $('#classfile').change (ev) ->
-    f = ev.target.files[0]
-    reader = new FileReader
-    reader.onerror = (e) ->
-      switch e.target.error.code
-        when e.target.error.NOT_FOUND_ERR then alert "404'd"
-        when e.target.error.NOT_READABLE_ERR then alert "unreadable"
-        when e.target.error.SECURITY_ERR then alert "only works with --allow-file-access-from-files"
-    reader.onload = (e) ->
-      editor.getSession().setValue("/*\n * Binary file: #{f.name}\n */")
-      process_bytecode e.target.result
-    reader.readAsBinaryString(f)
+    ext = f.name.split('.')[1]
+    if ext == 'java'
+      reader.onload = (e) -> editor.getSession().setValue(e.target.result)
+      reader.readAsText(f)
+    else if ext == 'class'
+      reader.onload = (e) ->
+        editor.getSession().setValue("/*\n * Binary file: #{f.name}\n */")
+        process_bytecode e.target.result
+      reader.readAsBinaryString(f)
+    else
+      alert 'Unrecognized file type!'
 
   controller = null
   java_handler = null
