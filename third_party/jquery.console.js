@@ -58,6 +58,8 @@
             40: nextHistory,
             // backspace
             8:  backDelete,
+            // tab
+            9:  tabComplete,
             // delete
             46: forwardDelete,
             // end
@@ -66,7 +68,7 @@
             36: moveToStart,
             // return
             13: commandTrigger,
-            // tab
+            // alt
             18: doNothing
         };
         var ctrlCodes = {
@@ -305,7 +307,7 @@
         function isIgnorableKey(e) {
             // for now just filter alt+tab that we receive on some platforms when
             // user switches windows (goes away from the browser)
-            return ((e.keyCode == keyCodes.tab || e.keyCode == 192) && e.altKey);
+            return ((e.keyCode == 9 || e.keyCode == 192) && e.altKey);
         };
 
         ////////////////////////////////////////////////////////////////////////
@@ -604,6 +606,51 @@
         };
 
         function doNothing() {};
+
+        function tabComplete() {
+          var args = promptText.split(' ');
+          var cmd = args[0];
+          function validExtension(fname) {
+            var ext = fname.split('.')[1];
+            if (cmd === 'javac')
+              return ext == 'java';
+            if (cmd === 'javap' || cmd === 'java')
+              return ext == 'class';
+            return true;
+          }
+          function keepExt() { return cmd !== 'javap' && cmd !== 'java'; }
+          function longestPrefix(lst) {
+            if (lst.length === 0) return "";
+            prefix = lst[0];
+            // slow, but should be fine with our small number of files
+            for (var i = 1; i < lst.length; i++) {
+              for (var j = 0; j < prefix.length; j++) {
+                if (prefix[j] !== lst[i][j]) {
+                  prefix = prefix.substr(0, j-1);
+                  break;
+                }
+              }
+            }
+            return prefix;
+          }
+          lastArg = args[args.length-1];
+          var potentialCompletions = [];
+          for (var i=0; i<localStorage.length; i++) {
+            var key = localStorage.key(i);
+            if (key.substr(0, 6) !== 'file::') continue;
+            var fname = key.substr(6);
+            if (!validExtension(fname)) continue;
+            if (fname.substr(0, lastArg.length) === lastArg) {
+              var completion;
+              if (!keepExt()) completion = fname.split('.')[0];
+              else completion = fname;
+              potentialCompletions.push(completion);
+            }
+          }
+          prefix = longestPrefix(potentialCompletions);
+          additionalText = prefix.substr(lastArg.length);
+          extern.promptText(promptText + additionalText);
+        }
 
         extern.promptText = function(text){
             if (text) {
