@@ -388,6 +388,15 @@ native_methods =
             f.static_value
       ]
     reflect:
+      NativeMethodAccessorImpl: [
+        o 'invoke0(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;', (rs,m,obj,params) ->
+            cls = rs.get_obj(m.fields.clazz).fields.$type.toClassString()
+            method = rs.class_lookup(cls).methods[m.fields.slot]
+            rs.push obj.ref unless method.access_flags.static
+            rs.push params.array...
+            method.run(rs)
+            rs.pop()
+      ]
       Reflection: [
         o 'getCallerClass(I)Ljava/lang/Class;', (rs, frames_to_skip) ->
             #TODO: disregard frames assoc. with java.lang.reflect.Method.invoke() and its implementation
