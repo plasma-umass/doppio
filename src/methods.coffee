@@ -43,20 +43,19 @@ trapped_methods =
           o 'get()Ljava/lang/Object;', (rs) -> rs.push 0 # null, because we don't actually use SoftReferences
         ]
       Class: [
-        o 'newInstance0()L!/!/Object;', (rs) -> #implemented here to avoid reflection
-            classname = rs.get_obj(rs.curr_frame().locals[0]).fields.$type.toClassString()
+        o 'newInstance0()L!/!/Object;', (rs, _this) -> #implemented here to avoid reflection
+            classname = _this.fields.$type.toClassString()
             rs.push (oref = rs.init_object(classname))
             rs.method_lookup({'class':classname,'sig':{'name':'<init>'}}).run(rs)
             rs.push oref
-        o 'forName(L!/!/String;)L!/!/!;', (rs) -> #again, to avoid reflection
-            classname = rs.jvm2js_str rs.get_obj(rs.curr_frame().locals[0])
+        o 'forName(L!/!/String;)L!/!/!;', (rs, jvm_str) -> #again, to avoid reflection
+            classname = rs.jvm2js_str jvm_str
             rs.push rs.set_obj 'java/lang/Class', { $type: new types.ClassType(classname), name: 0 }
       ]
       System: [
         o 'setJavaLangAccess()V', (rs) -> # NOP
-        o 'loadLibrary(L!/!/String;)V', (rs) ->
-            args = rs.curr_frame().locals
-            lib = rs.jvm2js_str rs.get_obj args[0]
+        o 'loadLibrary(L!/!/String;)V', (rs, jvm_str) ->
+            lib = rs.jvm2js_str jvm_str
             error "Attempt to load library '#{lib}' failed: library loads are NYI"
         o 'adjustPropertiesForBackwardCompatibility(L!/util/Properties;)V', (rs) -> #NOP (apple-java specific?)
       ]
@@ -68,10 +67,9 @@ trapped_methods =
         atomic:
           AtomicInteger: [
             o '<clinit>()V', (rs) -> #NOP
-            o 'compareAndSet(II)Z', (rs) -> 
-              args = rs.curr_frame().locals
-              rs.get_obj(args[0]).fields.value = args[2];  # we don't need to compare, just set
-              rs.push 1  # always true, because we only have one thread
+            o 'compareAndSet(II)Z', (rs, _this, expect, update) ->
+                _this.fields.value = update;  # we don't need to compare, just set
+                rs.push 1  # always true, because we only have one thread
           ]
           AtomicReferenceFieldUpdater: [
             o 'newUpdater(L!/lang/Class;L!/lang/Class;L!/lang/String;)L!/!/!/!/!;', (rs) -> rs.push 0 # null
@@ -120,33 +118,26 @@ trapped_methods =
     misc:
       FloatingDecimal: [
         o '<clinit>()V', (rs) -> #NOP
-        o '<init>(F)V', (rs) ->
-            args = rs.curr_frame().locals
-            _this = rs.get_obj(rs.curr_frame().locals[0])
-            _this.fields.$value = args[1]
+        o '<init>(F)V', (rs, _this, f) ->
+            _this.fields.$value = f
             _this.fields.$precision = 8
-        o '<init>(D)V', (rs) ->
-            args = rs.curr_frame().locals
-            _this = rs.get_obj(rs.curr_frame().locals[0])
-            _this.fields.$value = args[1]
+        o '<init>(D)V', (rs, _this, d) ->
+            _this.fields.$value = d
             _this.fields.$precision = 17
-        o 'toString()Ljava/lang/String;', (rs) ->
-            _this = rs.get_obj(rs.curr_frame().locals[0])
+        o 'toString()Ljava/lang/String;', (rs, _this) ->
             val = _this.fields.$value
             precision = _this.fields.$precision
             rs.push rs.init_string util.decimal_to_string(val, precision)
-        o 'toJavaFormatString()Ljava/lang/String;', (rs) ->
-            _this = rs.get_obj(rs.curr_frame().locals[0])
+        o 'toJavaFormatString()Ljava/lang/String;', (rs, _this) ->
             val = _this.fields.$value
             precision = _this.fields.$precision
             rs.push rs.init_string util.decimal_to_string(val, precision)
-        o 'appendTo(Ljava/lang/Appendable;)V', (rs) ->
-            args = rs.curr_frame().locals
-            val = rs.get_obj(args[0]).fields.$value
-            precision = rs.get_obj(args[0]).fields.$precision
-            rs.push args[1]
+        o 'appendTo(Ljava/lang/Appendable;)V', (rs, _this, buf) ->
+            val = _this.fields.$value
+            precision = _this.fields.$precision
+            rs.push buf.ref
             rs.push rs.init_string util.decimal_to_string(val, precision)
-            cls = if rs.check_cast(args[1],'java/lang/StringBuilder') then 'java/lang/StringBuilder' else 'java/lang/StringBuffer'
+            cls = if rs.check_cast(buf.ref,'java/lang/StringBuilder') then 'java/lang/StringBuilder' else 'java/lang/StringBuffer'
             rs.method_lookup({class:cls,sig:{name:'append',type:"(Ljava/lang/String;)L#{cls};"}}).run(rs,true)
       ]
       Unsafe: [
@@ -172,38 +163,34 @@ native_methods =
   java:
     lang:
       Class: [
-        o 'getPrimitiveClass(L!/!/String;)L!/!/!;', (rs) ->
-            str_ref = rs.get_obj(rs.curr_frame().locals[0])
-            name = rs.jvm2js_str str_ref
+        o 'getPrimitiveClass(L!/!/String;)L!/!/!;', (rs, jvm_str) ->
+            name = rs.jvm2js_str jvm_str
             rs.push rs.set_obj 'java/lang/Class', { $type: new types.PrimitiveType(name), name:0 }
         o 'getClassLoader0()L!/!/ClassLoader;', (rs) -> rs.push 0  # we don't need no stinkin classloaders
         o 'desiredAssertionStatus0(L!/!/!;)Z', (rs) -> rs.push 0 # we don't need no stinkin asserts
-        o 'getName0()L!/!/String;', (rs) ->
-            type = rs.get_obj(rs.curr_frame().locals[0]).fields.$type
+        o 'getName0()L!/!/String;', (rs, _this) ->
+            type = _this.fields.$type
             rs.push rs.init_string(type.toExternalString())
-        o 'forName0(L!/!/String;ZL!/!/ClassLoader;)L!/!/!;', (rs) ->
-            jvm_str = rs.get_obj(rs.curr_frame().locals[0])
+        o 'forName0(L!/!/String;ZL!/!/ClassLoader;)L!/!/!;', (rs, jvm_str) ->
             classname = util.int_classname rs.jvm2js_str(jvm_str)
             throw "Class.forName0: Failed to load #{classname}" unless rs.class_lookup(classname)
             rs.push rs.set_obj 'java/lang/Class', { $type: new types.ClassType(classname), name:0 }
-        o 'getComponentType()L!/!/!;', (rs) ->
-            type = rs.get_obj(rs.curr_frame().locals[0]).fields.$type
+        o 'getComponentType()L!/!/!;', (rs, _this) ->
+            type = _this.fields.$type
             if not (type instanceof types.ArrayType)
               rs.push 0
               return
             rs.push rs.set_obj 'java/lang/Class', $type:type.component_type, name: 0
-        o 'isInterface()Z', (rs) ->
-            type = rs.get_obj(rs.curr_frame().locals[0]).fields.$type
-            if not (type instanceof types.ClassType)
+        o 'isInterface()Z', (rs, _this) ->
+            if not (_this.fields.$type instanceof types.ClassType)
               rs.push 0
               return
             cls = rs.class_lookup type.toClassString()
             rs.push cls.access_flags.interface + 0
-        o 'isPrimitive()Z', (rs) ->
-            type = rs.get_obj(rs.curr_frame().locals[0]).fields.$type
-            rs.push (type instanceof types.PrimitiveType) + 0
-        o 'getSuperclass()L!/!/!;', (rs) ->
-            type = rs.get_obj(rs.curr_frame().locals[0]).fields.$type
+        o 'isPrimitive()Z', (rs, _this) ->
+            rs.push (_this.fields.$type instanceof types.PrimitiveType) + 0
+        o 'getSuperclass()L!/!/!;', (rs, _this) ->
+            type = _this.fields.$type
             if (type instanceof types.PrimitiveType) or
                (type instanceof types.VoidType) or type == 'Ljava/lang/Object;'
               rs.push 0
@@ -215,8 +202,7 @@ native_methods =
             rs.push rs.set_obj 'java/lang/Class', $type: new types.ClassType(cls.super_class), name: 0
       ],
       Float: [
-        o 'floatToRawIntBits(F)I', (rs) ->  #note: not tested for weird values
-            f_val = rs.curr_frame().locals[0]
+        o 'floatToRawIntBits(F)I', (rs, f_val) ->  #note: not tested for weird values
             sign = if f_val < 0 then 1 else 0
             f_val = Math.abs(f_val)
             exp = Math.floor(Math.log(f_val)/Math.LN2)
@@ -224,8 +210,7 @@ native_methods =
             rs.push (sign<<31)+((exp+127)<<23)+sig
       ]
       Double: [
-        o 'doubleToRawLongBits(D)J', (rs) ->#note: not tested at all
-            d_val = rs.curr_frame().locals[0]
+        o 'doubleToRawLongBits(D)J', (rs, d_val) ->#note: not tested at all
             sign = gLong.fromInt(if d_val < 0 then 1 else 0)
             d_val = Math.abs(d_val)
             exp = gLong.fromNumber(Math.floor(Math.log(d_val)/Math.LN2)+1023)
@@ -233,57 +218,46 @@ native_methods =
             rs.push sign.shiftLeft(63).add(exp.shiftLeft(52)).add(sig), null
       ]
       Object: [
-        o 'getClass()L!/!/Class;', (rs) ->
-            _this = rs.get_obj(rs.curr_frame().locals[0])
+        o 'getClass()L!/!/Class;', (rs, _this) ->
             rs.push rs.set_obj 'java/lang/Class', { $type: c2t(_this.type), name: 0 }
-        o 'hashCode()I', (rs) ->
+        o 'hashCode()I', (rs, _this) ->
             # return heap reference. XXX need to change this if we ever implement
             # GC that moves stuff around.
-            rs.push rs.curr_frame().locals[0]
+            rs.push _this.ref
       ]
       reflect:
         Array: [
-          o 'newArray(L!/!/Class;I)L!/!/Object;', (rs) ->
-              type = rs.get_obj(rs.curr_frame().locals[0]).fields.$type
-              len = rs.curr_frame().locals[1]
-              rs.heap_newarray type, len
+          o 'newArray(L!/!/Class;I)L!/!/Object;', (rs, _this, len) ->
+              rs.heap_newarray _this.fields.$type, len
         ]
       StrictMath: [
         o 'pow(DD)D', (rs) -> rs.push Math.pow(rs.cl(0),rs.cl(2)), null
       ]
       String: [
-        o 'intern()L!/!/!;', (rs) ->
-            str_ref = rs.curr_frame().locals[0]
-            js_str = rs.jvm2js_str(rs.get_obj(str_ref))
+        o 'intern()L!/!/!;', (rs, _this) ->
+            js_str = rs.jvm2js_str(_this)
             unless rs.string_pool[js_str]
               rs.string_pool[js_str] = str_ref
             rs.push rs.string_pool[js_str]
       ]
       System: [
-        o 'arraycopy(L!/!/Object;IL!/!/Object;II)V', (rs) ->
-            args = rs.curr_frame().locals
-            src_array = rs.get_obj(args[0]).array
-            src_pos = args[1]
-            dest_array = rs.get_obj(args[2]).array
-            dest_pos = args[3]
-            length = args[4]
+        o 'arraycopy(L!/!/Object;IL!/!/Object;II)V', (rs, src, src_pos, dest, dest_pos, length) ->
             j = dest_pos
             for i in [src_pos...src_pos+length]
-              dest_array[j++] = src_array[i]
+              dest.array[j++] = src.array[i]
         o 'currentTimeMillis()J', (rs) -> rs.push gLong.fromNumber((new Date).getTime()), null
-        o 'initProperties(L!/util/Properties;)L!/util/Properties;', (rs) ->
-            p_ref = rs.curr_frame().locals[0]
+        o 'initProperties(L!/util/Properties;)L!/util/Properties;', (rs, props) ->
             m = rs.method_lookup({'class':'java/util/Properties','sig':{'name':'setProperty'}})
             # properties to set:
             #  java.version,java.vendor,java.vendor.url,java.home,java.class.version,java.class.path,
             #  os.name,os.arch,os.version,file.separator,path.separator,
             #  user.name,user.home,user.dir
-            props = {'file.encoding':'US_ASCII','java.vendor':'Coffee-JVM','line.separator':'\n'}
-            for k,v of props
-              rs.push p_ref, rs.init_string(k,true), rs.init_string(v,true)
+            properties = {'file.encoding':'US_ASCII','java.vendor':'Coffee-JVM','line.separator':'\n'}
+            for k,v of properties
+              rs.push props.ref, rs.init_string(k,true), rs.init_string(v,true)
               m.run(rs)
               rs.pop()  # we don't care about the return value
-            rs.push p_ref
+            rs.push props.ref
         o 'setIn0(L!/io/InputStream;)V', (rs) ->
             rs.push rs.curr_frame().locals[0] # move oref to the stack for static_put
             rs.static_put {'class':'java/lang/System','sig':{'name':'in'}}
@@ -308,10 +282,10 @@ native_methods =
         o 'start0()V', (rs) -> # NOP
       ]
       Throwable: [
-        o 'fillInStackTrace()L!/!/!;', (rs) ->
+        o 'fillInStackTrace()L!/!/!;', (rs, _this) ->
             #TODO possibly filter out the java calls from our own call stack.
             # at the moment, this is effectively a NOP.
-            rs.push rs.curr_frame().locals[0]
+            rs.push _this.ref
       ]
     security:
       AccessController: [
@@ -324,9 +298,8 @@ native_methods =
         o 'getFileSystem()L!/!/!;', (rs) -> rs.heap_new('java/io/UnixFileSystem')
       ]
       FileOutputStream: [
-        o 'writeBytes([BII)V', (rs) ->
-            args = rs.curr_frame().locals
-            rs.print rs.jvm_carr2js_str(args[1], args[2], args[3])
+        o 'writeBytes([BII)V', (rs, _this, bytes, offset, len) ->
+            rs.print rs.jvm_carr2js_str(bytes.ref, offset, len)
       ]
       FileInputStream: [
         o 'readBytes([BII)I', (rs) ->
@@ -353,8 +326,7 @@ native_methods =
       ]
     reflect:
       Reflection: [
-        o 'getCallerClass(I)Ljava/lang/Class;', (rs) ->
-            frames_to_skip = rs.curr_frame().locals[0]
+        o 'getCallerClass(I)Ljava/lang/Class;', (rs, frames_to_skip) ->
             #TODO: disregard frames assoc. with java.lang.reflect.Method.invoke() and its implementation
             cls = rs.meta_stack[rs.meta_stack.length-1-frames_to_skip].toClassString()
             rs.push rs.set_obj 'java/lang/Class', { $type: c2t(cls), name: 0 }
@@ -414,11 +386,22 @@ class root.Method extends AbstractMethodField
   # distinguish [null] from [].
   pa = (a) -> a.map((e)->if e? then (if e instanceof gLong then "#{e}L" else e) else '!')
 
-  run_manually: (func, runtime_state, args...) ->
-    func runtime_state, args...
-    s = runtime_state.meta_stack.pop().stack
+  run_manually: (func, rs, args...) ->
+    params = rs.curr_frame().locals.slice(0) # make a copy
+    # if we have objects, dereference them
+    converted_params = []
+    if not @access_flags.static
+      converted_params.push rs.get_obj params.shift()
+    for p, idx in params
+      if (@param_types[idx] instanceof types.ClassType) or
+         (@param_types[idx] instanceof types.ArrayType)
+        converted_params.push(if p == 0 then 0 else rs.get_obj p)
+      else
+        converted_params.push p
+    func rs, converted_params...
+    s = rs.meta_stack.pop().stack
     throw "too many items on the stack after manual method #{sig}" unless s.length <= 2
-    runtime_state.push s...
+    rs.push s...
 
   run_bytecode: (rs, padding) ->
     # main eval loop: execute each opcode, using the pc to iterate through

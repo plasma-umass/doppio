@@ -72,9 +72,9 @@ class root.RuntimeState
     @heap[oref]
   set_obj: (type, obj={}) ->
     if util.is_array type
-      @heap.push type: type, array: obj
+      @heap.push type: type, array: obj, ref: @heap.length
     else
-      @heap.push type: type, fields: obj
+      @heap.push type: type, fields: obj, ref: @heap.length
     @heap.length - 1
 
   heap_new: (cls) -> @push @init_object(cls)
