@@ -41,7 +41,7 @@ process_bytecode = (bytecode_string) ->
 
 compile_source = (fname) ->
   source = load_file fname
-  controller.message "Could not find file '#{fname}'.", 'error' unless source?
+  return controller.message "Could not find file '#{fname}'.", 'error' unless source?
   $.ajax 'http://people.cs.umass.edu/~ccarey/javac/', {
     type: 'POST'
     data: { pw: 'coffee', source: source }
@@ -93,7 +93,7 @@ $(document).ready ->
       if cmd == '' then return true
       handler = commands[cmd]
       if handler? then handler(args)
-      else "Unknown command #{cmd}. Enter 'help' for a list of commands."
+      else "Unknown command '#{cmd}'. Enter 'help' for a list of commands."
     tabComplete: tabComplete
     autofocus: true
     animateScroll: true
@@ -131,7 +131,7 @@ commands =
   java: (args, cb) ->
     return "Usage: java class [args...]" unless args[0]?
     raw_data = load_file "#{args[0]}.class"
-    return "Could not find class '#{args[0]}'." unless raw_data?
+    return ["Could not find class '#{args[0]}'.",'error'] unless raw_data?
     class_data = process_bytecode raw_data
     stdout = (str) -> controller.message str, '', true # noreprompt
     rs ?= new runtime.RuntimeState(stdout, user_input, read_classfile)
@@ -142,7 +142,7 @@ commands =
   javap: (args) ->
     return "Usage: javap class" unless args[0]?
     raw_data = load_file "#{args[0]}.class"
-    return "Could not find class '#{args[0]}'." unless raw_data?
+    return ["Could not find class '#{args[0]}'.",'error'] unless raw_data?
     class_data = process_bytecode raw_data
     disassembler.disassemble class_data
   clear_heap: (args) ->
@@ -150,7 +150,7 @@ commands =
     $('#heap_size').text 0
     "Heap cleared."
   ls: (args) ->
-    (name[6..] for name, contents of localStorage when name[..5] == 'file::').join '\n'
+    (name[6..] for name, contents of localStorage when name[..5] == 'file::').sort().join '\n'
   edit: (args) ->
     data = load_file(args[0]) or defaultFile
     $('#console').fadeOut 'fast', ->

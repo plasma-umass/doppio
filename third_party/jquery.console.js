@@ -223,6 +223,7 @@
             promptBox.append(prompt);
             inner.append(promptBox);
             updatePromptDisplay();
+            lastMsg = null;
         };
 
         ////////////////////////////////////////////////////////////////////////
@@ -479,6 +480,11 @@
             acceptInput = true;
         }
 
+        var type2css = {
+          success: 'jquery-console-message-success',
+          error: 'jquery-console-message-error'
+        };
+
         ////////////////////////////////////////////////////////////////////////
         // Reset the prompt in invalid command
         function commandResult(msg,className,noreprompt) {
@@ -487,24 +493,16 @@
             if (typeof msg == 'string') {
                 message(msg,className,noreprompt);
             } else if ($.isArray(msg)) {
-                for (var x in msg) {
-                    var ret = msg[x];
-                    message(ret.msg,ret.className);
-                }
+                message(msg[0],type2css[msg[1]]);
             } else { // Assume it's a DOM node or jQuery object.
               inner.append(msg);
             }
             if (!noreprompt) {
-              lastMsg = null;
               newPromptBox();
             }
         };
 
         extern.message = function (msg, type, noreprompt) {
-          var type2css = {
-            success: 'jquery-console-message-success',
-            error: 'jquery-console-message-error'
-          };
           commandResult(msg, type2css[type], noreprompt);
         }
         extern.reprompt = function() { commandResult(); }
