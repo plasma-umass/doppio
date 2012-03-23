@@ -1,5 +1,9 @@
-Coffee-JVM: A JVM in Coffeescript
+DoppioVM: A JVM in Coffeescript
 =================================
+
+_Doppio_ is a double shot of espresso. In this case it's also a JVM written in
+Coffeescript.
+
 [Mid-term project](http://plasma.cs.umass.edu/emery/grad-systems-project-1) 
 for [CS 691ST, Spring 2012](http://plasma.cs.umass.edu/emery/grad-systems).
 
