@@ -332,6 +332,9 @@ native_methods =
               m.run(rs)
               rs.pop()  # we don't care about the return value
             props.ref
+        o 'nanoTime()J', (rs) ->
+            # we don't actually have nanosecond precision
+            gLong.fromNumber((new Date).getTime()).multiply(gLong.fromNumber(1000000))
         o 'setIn0(L!/io/InputStream;)V', (rs) ->
             rs.push rs.curr_frame().locals[0] # move oref to the stack for static_put
             rs.static_put {'class':'java/lang/System','sig':{'name':'in'}}
@@ -387,6 +390,7 @@ native_methods =
             rs.print rs.jvm_carr2js_str(bytes.ref, offset, len)
       ]
       FileInputStream: [
+        o 'available()I', (rs) -> 1 # TODO
         o 'readBytes([BII)I', (rs) ->
             if rs.resuming_stack?
               rs.resuming_stack = null
@@ -422,12 +426,22 @@ native_methods =
             js_str = rs.jvm2js_str jvm_path_str
             rs.init_string path.resolve path.normalize js_str
       ]
+    util:
+      concurrent:
+        atomic:
+          AtomicLong: [
+            o 'VMSupportsCS8()Z', -> true
+          ]
   sun:
     misc:
       VM: [
         o 'initialize()V', (rs) ->  # NOP???
       ]
       Unsafe: [
+        o 'compareAndSwapLong(Ljava/lang/Object;JJJ)Z', (rs, _this, obj, offset, expected, x) ->
+            field_name = rs.class_lookup(obj.type).fields[offset.toInt()]
+            obj.fields[field_name] = x.ref
+            true
         o 'ensureClassInitialized(Ljava/lang/Class;)V', (rs,_this,cls) -> 
             rs.class_lookup(cls.fields.$type.toClassString())
         o 'staticFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.fields.slot)

@@ -73,13 +73,13 @@ $(document).ready ->
       reader.onload = (e) ->
         save_file f.name, e.target.result
         controller.message "File '#{f.name}' saved.", 'success'
-        editor.getSession().setValue(e.target.result)
+        editor.getSession?().setValue(e.target.result)
       reader.readAsText(f)
     else if ext == 'class'
       reader.onload = (e) ->
         save_file f.name, e.target.result
         controller.message "File '#{f.name}' saved.", 'success'
-        editor.getSession().setValue("/*\n * Binary file: #{f.name}\n */")
+        editor.getSession?().setValue("/*\n * Binary file: #{f.name}\n */")
         process_bytecode e.target.result
       reader.readAsBinaryString(f)
     else
@@ -107,15 +107,14 @@ $(document).ready ->
     oldHandle = controller.commandHandle
     controller.commandHandle = (line) ->
       controller.commandHandle = oldHandle
-      resume (line.charCodeAt(i) for i in [0...Math.min(n_bytes,line.length)])
       controller.promptLabel = oldPrompt
-      true
+      resume (line.charCodeAt(i) for i in [0...Math.min(n_bytes,line.length)])
 
   close_editor = ->
     $('#ide').fadeOut 'fast', ->
       $('#console').fadeIn('fast').click() # click to restore focus
 
-  $('#save_btn').click ->
+  $('#save_btn').click (e) ->
     fname = $('#filename').val()
     save_file fname, editor.getSession().getValue()
     controller.message("File saved as '#{fname}'.", 'success')
