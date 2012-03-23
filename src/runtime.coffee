@@ -164,15 +164,14 @@ class root.RuntimeState
       break if method or not c['super_class']
       c = @class_lookup(c.super_class)
     return method if method?
-    ifaces = cls.interfaces[0..] # make a copy
+    ifaces = (cls.constant_pool.get(i).deref() for i in cls.interfaces)
     while ifaces.length > 0
-      iface = ifaces.shift()
-      iface_name = cls.constant_pool.get(iface).deref()
+      iface_name = ifaces.shift()
       ifc = @class_lookup iface_name
       method = filter_methods ifc.methods
       break if method?
-      ifaces.push.apply ifc.interfaces
-    throw "no such method found in #{method_spec.class}: #{method_spec.sig.name}" unless method
+      ifaces.push.apply (ifc.constant_pool.get(i).deref() for i in ifc.interfaces)
+    throw "no such method found in #{method_spec.class}: #{method_spec.sig.name}#{method_spec.sig.type}" unless method
     method
   field_lookup: (field_spec) ->
     c = @class_lookup(field_spec.class)
@@ -180,7 +179,7 @@ class root.RuntimeState
       field = _.find(c.fields, (f)-> f.name is field_spec.sig.name)
       break if field or not c['super_class']
       c = @class_lookup(c.super_class)
-    throw "no such field found: #{field_spec.sig.name}" unless field
+    throw "no such field found: #{field_spec.sig.name}#{field_spec.sig.type}" unless field
     field
 
   # casting and such
