@@ -293,13 +293,14 @@ native_methods =
             for i in [src_pos...src_pos+length]
               dest.array[j++] = src.array[i]
         o 'currentTimeMillis()J', (rs) -> gLong.fromNumber((new Date).getTime())
+        o 'identityHashCode(L!/!/Object;)I', (x) -> x.ref
         o 'initProperties(L!/util/Properties;)L!/util/Properties;', (rs, props) ->
             m = rs.method_lookup({'class':'java/util/Properties','sig':{'name':'setProperty'}})
             # properties to set:
             #  java.version,java.vendor,java.vendor.url,java.home,java.class.version,java.class.path,
             #  os.name,os.arch,os.version,file.separator,path.separator,
             #  user.name,user.home,user.dir
-            properties = {'file.encoding':'US_ASCII','java.vendor':'DoppioVM','line.separator':'\n'}
+            properties = {'java.home':'/', 'file.encoding':'US_ASCII','java.vendor':'DoppioVM','line.separator':'\n'}
             for k,v of properties
               rs.push props.ref, rs.init_string(k,true), rs.init_string(v,true)
               m.run(rs)
