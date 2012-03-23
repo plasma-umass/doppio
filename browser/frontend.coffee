@@ -82,6 +82,7 @@ $(document).ready ->
     promptLabel: 'doppio > '
     commandHandle: (line, report) ->
       [cmd,args...] = line.split ' '
+      if cmd == '' then return true
       handler = commands[cmd]
       if handler? then handler(args, report)
       else "Unknown command #{cmd}. Enter 'help' for a list of commands."
@@ -111,8 +112,9 @@ $(document).ready ->
     save_file fname, editor.getSession().getValue()
     controller.message("File saved as '#{fname}'.", 'success')
     close_editor()
+    e.preventDefault()
 
-  $('#save_btn').click -> close_editor()
+  $('#close_btn').click (e) -> close_editor(); e.preventDefault()
 
 commands =
   javac: (args, report) ->
@@ -140,7 +142,7 @@ commands =
   ls: (args) ->
     (name[6..] for name, contents of localStorage when name[..5] == 'file::').join '\n'
   edit: (args) ->
-    data = load_file args[0]
+    data = load_file(args[0]) or defaultFile
     $('#console').fadeOut 'fast', ->
       $('#filename').val args[0]
       $('#ide').fadeIn('fast')
@@ -149,7 +151,7 @@ commands =
       editor = ace.edit('source')
       JavaMode = require("ace/mode/java").Mode
       editor.getSession().setMode new JavaMode
-      editor.getSession().setValue(data) if data?
+      editor.getSession().setValue(data)
     true
   rm: (args) ->
     return "Usage: rm <file>" unless args[0]?
@@ -215,3 +217,12 @@ longestCommmonPrefix = (lst) ->
         prefix = prefix.substr(0, idx)
         break
   prefix
+
+defaultFile =
+  """
+  class Test {
+    public static void main(String[] args) {
+      // enter code here
+    }
+  }
+  """
