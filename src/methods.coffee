@@ -606,8 +606,9 @@ class root.Method extends AbstractMethodField
       runtime_state.resuming_stack++
       if virtual
         cf = runtime_state.curr_frame()
-        runtime_state.resuming_stack--
-        return cf.method.run(runtime_state) unless cf.method is @
+        unless cf.method is @
+          runtime_state.resuming_stack--
+          return cf.method.run(runtime_state)
       if runtime_state.resuming_stack == runtime_state.meta_stack.length - 1
         runtime_state.resuming_stack = null
     else
