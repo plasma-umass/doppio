@@ -56,7 +56,33 @@ getBundle = (rs) ->
 o = (fn_name, fn) -> fn_name: fn_name, fn: fn
 
 trapped_methods =
+  javax:
+    swing:
+      JFrame: [
+        o '<init>()V', ->
+      ]
   java:
+    awt:
+      Component: [
+        o '<clinit>()V', ->
+        o 'setBoundsOp(I)V', (rs, _this, op) -> _this.fields.boundsOp = op
+        o 'getBoundsOp()I', (rs, _this) -> _this.fields.boundsOp
+        o 'reshape(IIII)V', -> # TODO
+      ]
+      Container: [
+        o '<clinit>()V', ->
+      ]
+      Frame: [
+        o '<clinit>()V', ->
+      ]
+      Window: [
+        o '<clinit>()V', ->
+        o 'show()V', (rs, _this) ->
+            # XXX fails: _this does not even seem to be a Window
+            rs.push _this, 200
+            rs.method_lookup({class:'java/awt/Window',sig:{name:'postWindowEvent',type:'(I)V'}}).run(rs)
+            console.log 'showing window!'
+      ]
     lang:
       ref:
         SoftReference: [
@@ -293,13 +319,14 @@ native_methods =
             for i in [src_pos...src_pos+length]
               dest.array[j++] = src.array[i]
         o 'currentTimeMillis()J', (rs) -> gLong.fromNumber((new Date).getTime())
+        o 'identityHashCode(L!/!/Object;)I', (x) -> x.ref
         o 'initProperties(L!/util/Properties;)L!/util/Properties;', (rs, props) ->
             m = rs.method_lookup({'class':'java/util/Properties','sig':{'name':'setProperty'}})
             # properties to set:
             #  java.version,java.vendor,java.vendor.url,java.home,java.class.version,java.class.path,
             #  os.name,os.arch,os.version,file.separator,path.separator,
             #  user.name,user.home,user.dir
-            properties = {'file.encoding':'US_ASCII','java.vendor':'DoppioVM','line.separator':'\n'}
+            properties = {'java.home':'/', 'file.encoding':'US_ASCII','java.vendor':'DoppioVM','line.separator':'\n'}
             for k,v of properties
               rs.push props.ref, rs.init_string(k,true), rs.init_string(v,true)
               m.run(rs)
@@ -325,6 +352,7 @@ native_methods =
               rs.field_lookup({class: 'java/lang/Thread', sig: {name:'threadSeqNumber'}}).static_value = 0
             rs.main_thread
         o 'setPriority0(I)V', (rs) -> # NOP
+        o 'holdsLock(L!/!/Object;)Z', -> true
         o 'isAlive()Z', (rs) -> false
         o 'start0()V', (rs) -> # NOP
         o 'sleep(J)V', (rs, millis) ->
@@ -348,7 +376,11 @@ native_methods =
       ]
     io:
       FileSystem: [
-        o 'getFileSystem()L!/!/!;', (rs) -> rs.init_object('java/io/UnixFileSystem')
+        o 'getFileSystem()L!/!/!;', (rs) ->
+            cache = rs.init_object 'java/io/ExpiringCache'
+            rs.push cache
+            rs.method_lookup({class: 'java/io/ExpiringCache', sig: {name:'<init>',type:'()V'}}).run(rs)
+            rs.init_object('java/io/UnixFileSystem', cache: cache)
       ]
       FileOutputStream: [
         o 'writeBytes([BII)V', (rs, _this, bytes, offset, len) ->
@@ -382,6 +414,13 @@ native_methods =
             stats = fs.statSync rs.jvm2js_str rs.get_obj file.fields.path
             return 0 unless stats?
             if stats.isFile() then 3 else if stats.isDirectory() then 5 else 1
+        o 'canonicalize0(L!/lang/String;)L!/lang/String;', (rs, _this, jvm_path_str) ->
+            try
+              path = require 'path'
+            catch e
+              util.java_throw 'java/lang/UnsupportedOperationException', 'Filesystem ops are not supported in the browser'
+            js_str = rs.jvm2js_str jvm_path_str
+            rs.init_string path.resolve path.normalize js_str
       ]
   sun:
     misc:
