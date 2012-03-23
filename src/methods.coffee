@@ -402,7 +402,7 @@ native_methods =
             rs.print rs.jvm_carr2js_str(bytes.ref, offset, len)
       ]
       FileInputStream: [
-        o 'available()I', (rs) -> 1 # TODO
+        o 'available()I', (rs) -> 0 # we never buffer anything, so this is always zero
         o 'readBytes([BII)I', (rs, _this, byte_arr, offset, n_bytes) ->
             result = null # will be filled in after the yield
             rs.curr_frame().resume = -> result

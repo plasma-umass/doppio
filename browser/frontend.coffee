@@ -108,6 +108,7 @@ $(document).ready ->
     controller.commandHandle = (line) ->
       controller.commandHandle = oldHandle
       controller.promptLabel = oldPrompt
+      line += "\n" # so BufferedReader knows it has a full line
       resume (line.charCodeAt(i) for i in [0...Math.min(n_bytes,line.length)])
 
   close_editor = ->
