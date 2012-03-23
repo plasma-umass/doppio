@@ -211,11 +211,11 @@ doPrivileged = (rs) ->
   rs.pop()
 
 # properties to set:
-#  java.version,java.vendor.url,java.class.version,java.class.path,
-#  os.name,os.arch,os.version,user.name,user.home,user.dir
+#  java.version,java.vendor.url,java.class.version,java.class.path,os.name,os.arch,os.version
 system_properties = {
   'java.home':'/', 'file.encoding':'US_ASCII','java.vendor':'DoppioVM',
   'line.separator':'\n', 'file.separator':'/', 'path.separator':':',
+  'user.dir':'.','user.home':'.','user.name':'DoppioUser',
   # this one must point to a valid rt.jar file
   'sun.boot.class.path': '/Developer/Applications/Utilities/Application Loader.app/Contents/MacOS/itms/java/lib/rt.jar'
 }
