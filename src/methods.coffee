@@ -210,6 +210,16 @@ doPrivileged = (rs) ->
   m.run(rs,m.access_flags.virtual)
   rs.pop()
 
+# properties to set:
+#  java.version,java.vendor.url,java.class.version,java.class.path,
+#  os.name,os.arch,os.version,user.name,user.home,user.dir
+system_properties = {
+  'java.home':'/', 'file.encoding':'US_ASCII','java.vendor':'DoppioVM',
+  'line.separator':'\n', 'file.separator':'/', 'path.separator':':',
+  # this one must point to a valid rt.jar file
+  'sun.boot.class.path': '/Developer/Applications/Utilities/Application Loader.app/Contents/MacOS/itms/java/lib/rt.jar'
+}
+
 native_methods =
   java:
     lang:
@@ -322,12 +332,7 @@ native_methods =
         o 'identityHashCode(L!/!/Object;)I', (x) -> x.ref
         o 'initProperties(L!/util/Properties;)L!/util/Properties;', (rs, props) ->
             m = rs.method_lookup({'class':'java/util/Properties','sig':{'name':'setProperty'}})
-            # properties to set:
-            #  java.version,java.vendor,java.vendor.url,java.home,java.class.version,java.class.path,
-            #  os.name,os.arch,os.version,file.separator,path.separator,
-            #  user.name,user.home,user.dir
-            properties = {'java.home':'/', 'file.encoding':'US_ASCII','java.vendor':'DoppioVM','line.separator':'\n'}
-            for k,v of properties
+            for k,v of system_properties
               rs.push props.ref, rs.init_string(k,true), rs.init_string(v,true)
               m.run(rs)
               rs.pop()  # we don't care about the return value
@@ -378,10 +383,19 @@ native_methods =
     io:
       FileSystem: [
         o 'getFileSystem()L!/!/!;', (rs) ->
-            cache = rs.init_object 'java/io/ExpiringCache'
-            rs.push cache
-            rs.method_lookup({class: 'java/io/ExpiringCache', sig: {name:'<init>',type:'()V'}}).run(rs)
-            rs.init_object('java/io/UnixFileSystem', cache: cache)
+            # TODO: avoid making a new FS object each time this gets called? seems to happen naturally in java/io/File...
+            cache1 = rs.init_object 'java/io/ExpiringCache'
+            cache2 = rs.init_object 'java/io/ExpiringCache'
+            cache_init = rs.method_lookup({class: 'java/io/ExpiringCache', sig: {name:'<init>',type:'()V'}})
+            rs.push cache1, cache2
+            cache_init.run(rs)
+            cache_init.run(rs)
+            rs.init_object 'java/io/UnixFileSystem', {
+              cache: cache1, javaHomePrefixCache: cache2
+              slash: system_properties['file.separator'].charCodeAt(0)
+              colon: system_properties['path.separator'].charCodeAt(0)
+              javaHome: rs.init_string(system_properties['java.home'], true)
+            }
       ]
       FileOutputStream: [
         o 'writeBytes([BII)V', (rs, _this, bytes, offset, len) ->
