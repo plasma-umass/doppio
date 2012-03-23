@@ -188,8 +188,10 @@ class root.RuntimeState
     return @is_subclass(@class_lookup(class1.super_class),class2)
   has_interface: (cls, iface) ->
     for i in cls.interfaces
-      iface_name = cls.constant_pool.get(i).deref()
-      return true if iface_name is iface['this_class']
+      cls_iface = @class_lookup cls.constant_pool.get(i).deref()
+      return true if cls_iface['this_class'] is iface['this_class']
+      if cls_iface['super_class']
+        return true if @has_interface(@class_lookup(cls_iface.super_class),iface)
     return false
 
   # Retrieves the heap object referenced by :oref, and returns a boolean
