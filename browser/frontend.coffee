@@ -130,8 +130,9 @@ commands =
     compile_source args[0], report
   java: (args, report) ->
     return "Usage: java class [args...]" unless args[0]?
-    class_data = process_bytecode load_file "#{args[0]}.class"
-    return "Could not find class '#{args[0]}'" unless class_data?
+    raw_data = load_file "#{args[0]}.class"
+    return "Could not find class '#{args[0]}'." unless raw_data?
+    class_data = process_bytecode raw_data
     stdout = (str) -> report str, true # no reprompting
     rs ?= new runtime.RuntimeState(stdout, user_input, read_classfile)
     jvm.run_class(rs, class_data, args[1..], ->
@@ -140,8 +141,9 @@ commands =
     )
   javap: (args) ->
     return "Usage: javap class" unless args[0]?
-    class_data = process_bytecode load_file "#{args[0]}.class"
-    return "Could not find class '#{args[0]}'" unless class_data?
+    raw_data = load_file "#{args[0]}.class"
+    return "Could not find class '#{args[0]}'." unless raw_data?
+    class_data = process_bytecode raw_data
     disassembler.disassemble class_data
   clear_heap: (args) ->
     rs = null
