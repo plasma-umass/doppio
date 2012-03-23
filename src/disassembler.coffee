@@ -22,10 +22,12 @@ root.disassemble = (class_file) ->
   for icls in inner_classes
     rv += "  InnerClass:\n"
     for cls in icls.classes
+      flags = util.parse_flags cls.inner_access_flags
+      access = ((f+' ' if flags[f]) for f in [ 'public', 'protected', 'private', 'abstract' ]).join ''
       if cls.outer_info_index <= 0  # it's an anonymous class
-        rv += "   ##{cls.inner_info_index};\n"
+        rv += "   #{access}##{cls.inner_info_index};\n"
       else  # it's a named inner class
-        rv += "   ##{cls.inner_name_index}= ##{cls.inner_info_index} of ##{cls.inner_access_flags};\n"
+        rv += "   #{access}##{cls.inner_name_index}= ##{cls.inner_info_index} of ##{cls.outer_info_index};\n"
   rv += "  minor version: #{class_file.minor_version}\n"
   rv += "  major version: #{class_file.major_version}\n"
   rv += "  Constant pool:\n"
