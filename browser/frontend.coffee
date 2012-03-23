@@ -39,9 +39,9 @@ process_bytecode = (bytecode_string) ->
   bytes_array = util.bytestr_to_array bytecode_string
   new ClassFile(bytes_array)
 
-compile_source = (fname, cb) ->
+compile_source = (fname) ->
   source = load_file fname
-  return cb "Could not find file '#{fname}'" unless source?
+  controller.message "Could not find file '#{fname}'.", 'error' unless source?
   $.ajax 'http://people.cs.umass.edu/~ccarey/javac/', {
     type: 'POST'
     data: { pw: 'coffee', source: source }
@@ -51,9 +51,9 @@ compile_source = (fname, cb) ->
       class_name = fname.split('.')[0]
       save_file "#{class_name}.class", data
       class_data = process_bytecode(data)
-      cb?(true)
+      controller.reprompt()
     error: (jqXHR, textStatus, errorThrown) -> 
-      cb?("AJAX error: #{errorThrown}")
+      controller.message "AJAX error: #{errorThrown}", 'error'
   }
 
 $(document).ready ->
@@ -88,11 +88,11 @@ $(document).ready ->
   jqconsole = $('#console')
   controller = jqconsole.console
     promptLabel: 'doppio > '
-    commandHandle: (line, report) ->
+    commandHandle: (line) ->
       [cmd,args...] = line.split ' '
       if cmd == '' then return true
       handler = commands[cmd]
-      if handler? then handler(args, report)
+      if handler? then handler(args)
       else "Unknown command #{cmd}. Enter 'help' for a list of commands."
     tabComplete: tabComplete
     autofocus: true
@@ -105,7 +105,7 @@ $(document).ready ->
     controller.promptLabel = '> '
     controller.reprompt()
     oldHandle = controller.commandHandle
-    controller.commandHandle = (line, report) ->
+    controller.commandHandle = (line) ->
       controller.commandHandle = oldHandle
       resume (line.charCodeAt(i) for i in [0...Math.min(n_bytes,line.length)])
       controller.promptLabel = oldPrompt
@@ -125,15 +125,15 @@ $(document).ready ->
   $('#close_btn').click (e) -> close_editor(); e.preventDefault()
 
 commands =
-  javac: (args, report) ->
+  javac: (args, cb) ->
     return "Usage: javac <source file>" unless args[0]?
-    compile_source args[0], report
-  java: (args, report) ->
+    compile_source args[0], cb
+  java: (args, cb) ->
     return "Usage: java class [args...]" unless args[0]?
     raw_data = load_file "#{args[0]}.class"
     return "Could not find class '#{args[0]}'." unless raw_data?
     class_data = process_bytecode raw_data
-    stdout = (str) -> report str, true # no reprompting
+    stdout = (str) -> controller.message str, '', true # noreprompt
     rs ?= new runtime.RuntimeState(stdout, user_input, read_classfile)
     jvm.run_class(rs, class_data, args[1..], ->
       $('#heap_size').text rs.heap.length-1
@@ -172,6 +172,13 @@ commands =
     true
   emacs: -> "Try 'vim'."
   vim: -> "Try 'emacs'."
+  time: (args) ->
+    start = (new Date).getTime()
+    controller.onreprompt = ->
+      controller.onreprompt = null
+      end = (new Date).getTime()
+      controller.message "\nCommand took a total of #{end-start}ms to run.", '', true
+    commands[args.shift()](args)
   help: (args) ->
     """
     javac <source file>    -- Compile Java source.
@@ -181,15 +188,17 @@ commands =
     ls                     -- List all files.
     rm <file>              -- Delete a file.
     clear_heap             -- Clear the heap.
+    time                   -- Measure how long it takes to run a command.
     """
 
 tabComplete = ->
   promptText = controller.promptText()
   args = promptText.split ' '
-  prefix = longestCommmonPrefix(
+  getCompletions = (args) ->
     if args.length is 1 then commandCompletions args[0]
+    else if args[0] is 'time' then getCompletions(args[1..])
     else fileNameCompletions args[0], args
-  )
+  prefix = longestCommmonPrefix(getCompletions(args))
   return if prefix == ''
   # delete existing text so we can do case correction
   promptText = promptText.substr(0, promptText.length - _.last(args).length)

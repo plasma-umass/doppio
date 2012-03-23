@@ -207,6 +207,8 @@
         ////////////////////////////////////////////////////////////////////////
         // Make a new prompt box
         function newPromptBox() {
+            if (typeof extern.onreprompt === 'function')
+              extern.onreprompt();
             column = 0;
             promptText = '';
             ringn = 0; // Reset the position of the history ring
@@ -443,8 +445,8 @@
                   else continuedText = promptText;
                 } else continuedText = undefined;
                 if (continuedText) text = continuedText;
-                var ret = extern.commandHandle(text,function(msgs, noreprompt){
-                    commandResult(msgs, null, noreprompt);
+                var ret = extern.commandHandle(text,function(msgs){
+                    commandResult(msgs, null);
                 });
                 if (extern.continuedPrompt && !continuedText)
                   continuedText = promptText;
@@ -498,13 +500,12 @@
             }
         };
 
-        extern.message = function (msg, type) {
-          if (type == 'success')
-            commandResult(msg, 'jquery-console-message-success');
-          else if (type == 'error')
-            commandResult(msg, 'jquery-console-message-error');
-          else
-            commandResult(msg);
+        extern.message = function (msg, type, noreprompt) {
+          var type2css = {
+            success: 'jquery-console-message-success',
+            error: 'jquery-console-message-error'
+          };
+          commandResult(msg, type2css[type], noreprompt);
         }
         extern.reprompt = function() { commandResult(); }
 
