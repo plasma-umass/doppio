@@ -230,6 +230,21 @@ get_field_from_offset = (rs, cls, offset) ->
     cls = rs.class_lookup(cls.super_class)
   cls.fields[offset]
 
+get_filesystem_module = (module_name) ->
+  # used for things like 'fs' and 'path'
+  try
+    mod = require module_name
+  catch e  #TODO: add a browser-friendly interface to the localstorage psuedo-fs
+    util.java_throw 'java/lang/UnsupportedOperationException', 'Filesystem ops are not supported in the browser'
+  mod
+
+stat_file = (fname) ->
+  fs = get_filesystem_module 'fs'
+  try 
+    fs.statSync(fname)
+  catch e
+    null
+
 native_methods =
   java:
     lang:
@@ -414,6 +429,14 @@ native_methods =
       FileInputStream: [
         o 'available()I', (rs) -> 0 # we never buffer anything, so this is always zero
         o 'readBytes([BII)I', (rs, _this, byte_arr, offset, n_bytes) ->
+            if _this.fields.$file?
+              # this is a real file that we've already opened
+              fs = get_filesystem_module 'fs'
+              data = fs.readSync(_this.fields.$file, n_bytes)[0]
+              byte_arr.array[offset...offset+data.length] = (data.charCodeAt(i) for i in [0...data.length])
+              return data.length
+            # reading from System.in, do it async
+            console.log '>>> reading from Stdin now!'
             result = null # will be filled in after the yield
             rs.curr_frame().resume = -> result
             throw new util.YieldException (cb) ->
@@ -421,24 +444,25 @@ native_methods =
                 byte_arr.array[offset...offset+bytes.length] = bytes
                 result = bytes.length
                 cb()
+        o 'open(Ljava/lang/String;)V', (rs, _this, filename) -> 
+            fs = get_filesystem_module 'fs'
+            _this.fields.$file = fs.openSync rs.jvm2js_str(filename), 'r'
+        o 'close0()V', (rs, _this) -> _this.fields.$file = null
       ]
       ObjectStreamClass: [
         o 'initNative()V', (rs) ->  # NOP
       ]
       UnixFileSystem: [
         o 'getBooleanAttributes0(Ljava/io/File;)I', (rs, _this, file) ->
-            try
-              fs = require 'fs'
-            catch e  #TODO: add a browser-friendly interface to the localstorage psuedo-fs
-              util.java_throw 'java/lang/UnsupportedOperationException', 'Filesystem ops are not supported in the browser'
-            stats = fs.statSync rs.jvm2js_str rs.get_obj file.fields.path
+            stats = stat_file rs.jvm2js_str rs.get_obj file.fields.path
             return 0 unless stats?
             if stats.isFile() then 3 else if stats.isDirectory() then 5 else 1
+        o 'getLastModifiedTime(Ljava/io/File;)J', (rs, _this, file) ->
+            stats = stat_file rs.jvm2js_str rs.get_obj file.fields.path
+            util.java_throw 'java/io/FileNotFoundException' unless stats?
+            gLong.fromNumber (new Date(stats.mtime)).getTime()
         o 'canonicalize0(L!/lang/String;)L!/lang/String;', (rs, _this, jvm_path_str) ->
-            try
-              path = require 'path'
-            catch e
-              util.java_throw 'java/lang/UnsupportedOperationException', 'Filesystem ops are not supported in the browser'
+            path = get_filesystem_module 'path'
             js_str = rs.jvm2js_str jvm_path_str
             rs.init_string path.resolve path.normalize js_str
       ]
@@ -448,6 +472,11 @@ native_methods =
           AtomicLong: [
             o 'VMSupportsCS8()Z', -> true
           ]
+      zip:
+        ZipFile: [
+          o 'open(Ljava/lang/String;IJZ)J', (rs,fname,mode,mtime,use_mmap) ->
+              throw "Zipfile loading is NYI. Tried to open: #{rs.jvm2js_str(fname)}"
+        ]
   sun:
     misc:
       VM: [
