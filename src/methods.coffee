@@ -220,6 +220,12 @@ system_properties = {
   'sun.boot.class.path': '/Developer/Applications/Utilities/Application Loader.app/Contents/MacOS/itms/java/lib/rt.jar'
 }
 
+get_field_from_offset = (rs, cls, offset) ->
+  until cls.fields[offset]?
+    throw "field #{offset} doesn't exist in class #{cls.this_class}" unless cls.super_class?
+    cls = rs.class_lookup(cls.super_class)
+  cls.fields[offset]
+
 native_methods =
   java:
     lang:
@@ -455,8 +461,13 @@ native_methods =
         o 'staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;', (rs,_this,field) ->
             rs.set_obj rs.get_obj(field.fields.clazz).fields.$type.toClassString()
         o 'getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
-            f = rs.class_lookup(obj.type).fields[offset.toInt()]
-            f.static_value
+            f = get_field_from_offset rs, rs.class_lookup(obj.type), offset.toInt()
+            return f.static_value if f.access_flags.static
+            obj.fields[f.name] ? 0
+        o 'getObject(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
+            f = get_field_from_offset rs, rs.class_lookup(obj.type), offset.toInt()
+            return f.static_value if f.access_flags.static
+            obj.fields[f.name] ? 0
       ]
     reflect:
       NativeMethodAccessorImpl: [
