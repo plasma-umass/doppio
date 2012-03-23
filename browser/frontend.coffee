@@ -134,7 +134,7 @@ commands =
     return "Could not find class '#{args[0]}'" unless class_data?
     stdout = (str) -> report str, true # no reprompting
     rs ?= new runtime.RuntimeState(stdout, user_input, read_classfile)
-    jvm.run_class(rs, class_data, args, ->
+    jvm.run_class(rs, class_data, args[1..], ->
       $('#heap_size').text rs.heap.length-1
       controller.reprompt()
     )
