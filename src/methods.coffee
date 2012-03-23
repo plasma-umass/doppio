@@ -63,8 +63,25 @@ trapped_methods =
       ]
   java:
     awt:
+      Component: [
+        o '<clinit>()V', ->
+        o 'setBoundsOp(I)V', (rs, _this, op) -> _this.fields.boundsOp = op
+        o 'getBoundsOp()I', (rs, _this) -> _this.fields.boundsOp
+        o 'reshape(IIII)V', -> # TODO
+      ]
+      Container: [
+        o '<clinit>()V', ->
+      ]
       Frame: [
         o '<clinit>()V', ->
+      ]
+      Window: [
+        o '<clinit>()V', ->
+        o 'show()V', (rs, _this) ->
+            # XXX fails: _this does not even seem to be a Window
+            rs.push _this, 200
+            rs.method_lookup({class:'java/awt/Window',sig:{name:'postWindowEvent',type:'(I)V'}}).run(rs)
+            console.log 'showing window!'
       ]
     lang:
       ref:
@@ -335,6 +352,7 @@ native_methods =
               rs.field_lookup({class: 'java/lang/Thread', sig: {name:'threadSeqNumber'}}).static_value = 0
             rs.main_thread
         o 'setPriority0(I)V', (rs) -> # NOP
+        o 'holdsLock(L!/!/Object;)Z', -> true
         o 'isAlive()Z', (rs) -> false
         o 'start0()V', (rs) -> # NOP
         o 'sleep(J)V', (rs, millis) ->
@@ -396,6 +414,13 @@ native_methods =
             stats = fs.statSync rs.jvm2js_str rs.get_obj file.fields.path
             return 0 unless stats?
             if stats.isFile() then 3 else if stats.isDirectory() then 5 else 1
+        o 'canonicalize0(L!/lang/String;)L!/lang/String;', (rs, _this, jvm_path_str) ->
+            try
+              path = require 'path'
+            catch e
+              util.java_throw 'java/lang/UnsupportedOperationException', 'Filesystem ops are not supported in the browser'
+            js_str = rs.jvm2js_str jvm_path_str
+            rs.init_string path.resolve path.normalize js_str
       ]
   sun:
     misc:
