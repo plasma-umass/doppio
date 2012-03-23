@@ -89,11 +89,14 @@ $(document).ready ->
   controller = jqconsole.console
     promptLabel: 'doppio > '
     commandHandle: (line) ->
-      [cmd,args...] = line.split ' '
+      [cmd,args...] = line.split /\s+/
       if cmd == '' then return true
       handler = commands[cmd]
-      if handler? then handler(args)
-      else "Unknown command '#{cmd}'. Enter 'help' for a list of commands."
+      try
+        if handler? then handler(args)
+        else "Unknown command '#{cmd}'. Enter 'help' for a list of commands."
+      catch e
+        false
     tabComplete: tabComplete
     autofocus: true
     animateScroll: true
@@ -196,7 +199,7 @@ commands =
 
 tabComplete = ->
   promptText = controller.promptText()
-  args = promptText.split ' '
+  args = promptText.split /\s+/
   getCompletions = (args) ->
     if args.length is 1 then commandCompletions args[0]
     else if args[0] is 'time' then getCompletions(args[1..])
