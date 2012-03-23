@@ -25,15 +25,11 @@ class @ClassFile
     @this_class  = @constant_pool.get(read_u2()).deref()
     @constant_pool.cls = @this_class  #hax
     # super reference is 0 when there's no super (basically just java.lang.Object)
-    # we also manually override the superclass if this is an interface
     super_ref = read_u2()
     @super_class = @constant_pool.get(super_ref).deref() unless super_ref is 0
     # direct interfaces of this class
     isize = read_u2()
     @interfaces = (read_u2() for [0...isize])
-    if @access_flags.interface and isize > 0
-      throw "too many superinterfaces for #{@this_class}" if isize isnt 1
-      @super_class = @constant_pool.get(@interfaces[0]).deref()
     # fields of this class
     num_fields = read_u2()
     @fields = (new methods.Field(@this_class) for [0...num_fields])

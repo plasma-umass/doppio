@@ -186,12 +186,11 @@ class root.RuntimeState
     return true if class1['this_class'] is class2['this_class']
     return false unless class1['super_class']  # it's java/lang/Object, can't go further
     return @is_subclass(@class_lookup(class1.super_class),class2)
-  has_interface: (cls, iface) ->
-    for i in cls.interfaces
-      cls_iface = @class_lookup cls.constant_pool.get(i).deref()
-      return true if cls_iface['this_class'] is iface['this_class']
-      if cls_iface['super_class']
-        return true if @has_interface(@class_lookup(cls_iface.super_class),iface)
+  is_subinterface: (iface1, iface2) ->
+    return true if iface1['this_class'] is iface2['this_class']
+    for i in iface1.interfaces
+      super_iface =  @class_lookup iface1.constant_pool.get(i).deref()
+      return true if @is_subinterface super_iface, iface2
     return false
 
   # Retrieves the heap object referenced by :oref, and returns a boolean
@@ -216,7 +215,7 @@ class root.RuntimeState
     c2 = @class_lookup(type2.class_name)
     unless c1.access_flags.interface
       return @is_subclass(c1,c2) unless c2.access_flags.interface
-      return @has_interface(c1,c2)
+      return @is_subinterface(c1,c2)  # does class c1 support interface c2?
     # c1 is an interface
     return type2.class_name is 'java/lang/Object' unless c2.access_flags.interface
-    return @is_subclass(c1,c2)  # technically they're interfaces, but we don't care
+    return @is_subinterface(c1,c2)

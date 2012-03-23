@@ -9,16 +9,19 @@ opcodes ?= require './opcodes'
 
 root.disassemble = (class_file) ->
   access_string = (access_flags) ->
-    return 'interface ' if access_flags.interface
-    ordered_flags = [ 'public', 'protected', 'private', 'static', 'abstract' ]
+    ordered_flags = [ 'public', 'protected', 'private', 'static' ]
+    ordered_flags.push 'abstract' unless access_flags.interface
     privacy = (("#{flag} " if access_flags[flag]) for flag in ordered_flags).join ''
 
   source_file = _.find(class_file.attrs, (attr) -> attr.constructor.name == 'SourceFile')
+  ifaces = (ext_classname(class_file.constant_pool.get(i).deref()) for i in class_file.interfaces).join ','
   rv = "Compiled from \"#{source_file.name}\"\n"
   rv += access_string class_file.access_flags
-  rv += "class #{ext_classname class_file.this_class} extends #{ext_classname class_file.super_class}"
-  ifaces = (ext_classname(class_file.constant_pool.get(i).deref()) for i in class_file.interfaces).join ', '
-  rv += if (ifaces and not class_file.access_flags.interface) then " implements #{ifaces}\n" else '\n'
+  if class_file.access_flags.interface
+    rv += "interface #{ext_classname class_file.this_class} extends #{ifaces}\n"
+  else
+    rv += "class #{ext_classname class_file.this_class} extends #{ext_classname class_file.super_class}"
+    rv += if (ifaces and not class_file.access_flags.interface) then " implements #{ifaces}\n" else '\n'
   rv += "  SourceFile: \"#{source_file.name}\"\n" if source_file
   inner_classes = (attr for attr in class_file.attrs when attr.constructor.name is 'InnerClasses')
   for icls in inner_classes
