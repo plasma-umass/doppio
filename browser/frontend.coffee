@@ -6,7 +6,15 @@ editor = null
 rs = null
 
 # convenience functions for reading files from localStorage.
-save_file = (fname, data) -> localStorage["file::#{fname}"] = data
+save_file = (fname, data) ->
+  # inefficient but whatever
+  lower = "file::#{fname.toLowerCase()}"
+  for i in [0...localStorage.length] by 1
+    key = localStorage.key(i)
+    if key.toLowerCase() is lower
+      localStorage.removeItem key
+      break
+  localStorage["file::#{fname}"] = data
 load_file = (fname) -> localStorage["file::#{fname}"]
 delete_file = (fname) -> localStorage.removeItem "file::#{fname}"
 
@@ -180,8 +188,10 @@ tabComplete = ->
     if args.length is 1 then commandCompletions args[0]
     else fileNameCompletions args[0], args
   )
-  additionalText = prefix.substr(_.last(args).length)
-  controller.promptText(promptText + additionalText)
+  return if prefix == ''
+  # delete existing text so we can do case correction
+  promptText = promptText.substr(0, promptText.length - _.last(args).length)
+  controller.promptText(promptText + prefix)
 
 commandCompletions = (cmd) ->
   (name for name, handler of commands when name.substr(0, cmd.length) is cmd)
@@ -193,14 +203,14 @@ fileNameCompletions = (cmd, args) ->
     else if cmd is 'javap' or cmd is 'java' then ext is 'class'
     else true
   keepExt = -> return cmd isnt 'javap' and cmd isnt 'java'
-  lastArg = _.last(args)
+  lastArg = _.last(args).toLowerCase()
   potentialCompletions = []
   for i in [0...localStorage.length] by 1
     key = localStorage.key(i)
     continue unless key.substr(0, 6) is 'file::'
     fname = key.substr(6)
     continue unless validExtension(fname)
-    if (fname.substr(0, lastArg.length) is lastArg)
+    if (fname.substr(0, lastArg.length).toLowerCase() is lastArg)
       potentialCompletions.push(
         if not keepExt() then fname.split('.')[0]
         else fname
@@ -212,8 +222,9 @@ longestCommmonPrefix = (lst) ->
   prefix = lst[0]
   # slow, but should be fine with our small number of completions
   for word in lst
+    lower = word.toLowerCase()
     for c, idx in prefix
-      if (c isnt word[idx])
+      if (c.toLowerCase() isnt lower[idx])
         prefix = prefix.substr(0, idx)
         break
   prefix
