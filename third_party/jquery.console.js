@@ -74,10 +74,10 @@
         var ctrlCodes = {
             // C-a
             65: moveToStart,
-            // C-e
-            69: moveToEnd,
             // C-d
             68: forwardDelete,
+            // C-e
+            69: moveToEnd,
             // C-n
             78: nextHistory,
             // C-p
@@ -372,7 +372,11 @@
         };
 
         function forwardDelete() {
-            if (deleteCharAtPos())
+            if (promptText.length == 0) {
+                if (extern.commandHandle)
+                    extern.commandHandle('\0');
+            }
+            else if (deleteCharAtPos())
                 updatePromptDisplay();
         };
 
