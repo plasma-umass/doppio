@@ -57,8 +57,7 @@ root.run_class = (rs, class_data, cmdline_args, cb) ->
         cb?()
       else if e instanceof util.YieldException
         e.condition ->
-          rs.resuming_stack = 1  # <-- index into the meta_stack of the frame we're resuming
-          rs.meta_stack[1].pc += 3  # move past the invoke opcode
+          rs.resuming_stack = 0  # <-- index into the meta_stack of the frame we're resuming
           run()
       else
         console.error "\nInternal JVM Error!"

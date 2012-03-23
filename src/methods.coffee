@@ -499,8 +499,7 @@ trapped_methods = flatten_pkg trapped_methods
 native_methods = flatten_pkg native_methods
 
 class root.Method extends AbstractMethodField
-  get_code: ->
-    return _.find(@attrs, (a) -> a.constructor.name == "Code")
+  get_code: -> _.find(@attrs, (a) -> a.constructor.name == "Code")
 
   parse_descriptor: (@raw_descriptor) ->
     [__,param_str,return_str] = /\(([^)]*)\)(.*)/.exec(@raw_descriptor)
@@ -597,18 +596,13 @@ class root.Method extends AbstractMethodField
         throw e # JVM Error
 
   run: (runtime_state,virtual=false) ->
-    sig = "#{@class_name}::#{@name}#{@raw_descriptor}"
     if runtime_state.resuming_stack?
-      frame_idx = runtime_state.resuming_stack
-      runtime_state.resuming_stack += 1
-      caller_stack = runtime_state.meta_stack[frame_idx-1]
-      padding = (' ' for [1...frame_idx]).join('')
-      unless frame_idx is runtime_state.meta_stack.length - 1
-        next_frame = runtime_state.meta_stack[frame_idx+1]
-        next_frame.pc += 3  # move past the invoke opcode
-        next_frame.method.run(runtime_state)
-      debug "#{padding}re-entering method #{sig}"
-    else    
+      runtime_state.resuming_stack++
+      if virtual
+        cf = runtime_state.curr_frame()
+        runtime_state.resuming_stack--
+        return cf.method.run(runtime_state) unless cf.method is @
+    else
       caller_stack = runtime_state.curr_frame().stack
       if virtual
         # dirty hack to bounce up the inheritance tree, to make sure we call the method on the most specific type
@@ -622,7 +616,8 @@ class root.Method extends AbstractMethodField
       params = @take_params caller_stack
       runtime_state.meta_stack.push(new runtime.StackFrame(this,params,[]))
       padding = (' ' for [2...runtime_state.meta_stack.length]).join('')
-      debug "#{padding}entering method #{sig}"
+    sig = "#{@class_name}::#{@name}#{@raw_descriptor}"
+    debug "#{padding}entering method #{sig}"
     # check for trapped and native methods, run those manually
     if trapped_methods[sig]
       @run_manually trapped_methods[sig], runtime_state

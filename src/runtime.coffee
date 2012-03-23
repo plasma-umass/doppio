@@ -46,7 +46,9 @@ class root.RuntimeState
     trace "redirecting #{oref} -> #{@string_redirector[key]}"
     return @string_redirector[key]
 
-  curr_frame: () -> _.last(@meta_stack)
+  curr_frame: () ->
+    if @resuming_stack? then @meta_stack[@resuming_stack]
+    else _.last(@meta_stack)
 
   cl: (idx) -> @curr_frame().locals[idx]
   put_cl: (idx,val) -> @curr_frame().locals[idx] = val
