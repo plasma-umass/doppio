@@ -150,15 +150,28 @@ class root.RuntimeState
     throw "class #{cls} not found!" unless @classes[cls]
     @classes[cls]
   method_lookup: (method_spec) ->
-    c = @class_lookup(method_spec.class)
-    while true
-      ms = (m for m in c.methods when m.name is method_spec.sig.name)
+    cls = @class_lookup(method_spec.class)
+    filter_methods = (methods) ->
+      ms = (m for m in methods when m.name is method_spec.sig.name)
       ms = (m for m in ms when m.raw_descriptor is method_spec.sig.type) unless ms.length == 1
       throw "too many method choices" if ms.length > 1
-      break if ms[0] or not c['super_class']
+      ms[0]
+    c = cls
+    while true
+      method = filter_methods c.methods
+      break if method or not c['super_class']
       c = @class_lookup(c.super_class)
-    throw "no such method found in #{method_spec.class}: #{method_spec.sig.name}" unless ms[0]
-    ms[0]
+    return method if method?
+    ifaces = cls.interfaces[0..] # make a copy
+    while ifaces.length > 0
+      iface = ifaces.shift()
+      iface_name = cls.constant_pool.get(iface).deref()
+      ifc = @class_lookup iface_name
+      method = filter_methods ifc.methods
+      break if method?
+      ifaces.push.apply ifc.interfaces
+    throw "no such method found in #{method_spec.class}: #{method_spec.sig.name}" unless method
+    method
   field_lookup: (field_spec) ->
     c = @class_lookup(field_spec.class)
     while true
