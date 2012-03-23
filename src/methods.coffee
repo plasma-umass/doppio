@@ -359,11 +359,9 @@ native_methods =
         o 'isAlive()Z', (rs) -> false
         o 'start0()V', (rs) -> # NOP
         o 'sleep(J)V', (rs, millis) ->
-            if rs.resuming_stack?
-              rs.resuming_stack = null
-            else
-              throw new util.YieldException (cb) ->
-                setTimeout(cb, millis.toNumber())
+            rs.curr_frame().resume = -> # NOP
+            throw new util.YieldException (cb) ->
+              setTimeout(cb, millis.toNumber())
       ]
       Throwable: [
         o 'fillInStackTrace()L!/!/!;', (rs, _this) ->
@@ -391,20 +389,14 @@ native_methods =
       ]
       FileInputStream: [
         o 'available()I', (rs) -> 1 # TODO
-        o 'readBytes([BII)I', (rs) ->
-            if rs.resuming_stack?
-              rs.resuming_stack = null
-              rv = rs.secret_stash
-              rs.secret_stash = null
-              rv
-            else
-              args = rs.curr_frame().locals
-              [offset,n_bytes] = args[2..3]
-              throw new util.YieldException (cb) ->
-                rs.async_input n_bytes, (bytes) ->
-                  rs.get_obj(args[1]).array[offset...offset+bytes.length] = bytes
-                  rs.secret_stash = bytes.length
-                  cb()
+        o 'readBytes([BII)I', (rs, _this, byte_arr, offset, n_bytes) ->
+            result = null # will be filled in after the yield
+            rs.curr_frame().resume = -> result
+            throw new util.YieldException (cb) ->
+              rs.async_input n_bytes, (bytes) ->
+                byte_arr.array[offset...offset+bytes.length] = bytes
+                result = bytes.length
+                cb()
       ]
       ObjectStreamClass: [
         o 'initNative()V', (rs) ->  # NOP
@@ -602,6 +594,8 @@ class root.Method extends AbstractMethodField
         cf = runtime_state.curr_frame()
         runtime_state.resuming_stack--
         return cf.method.run(runtime_state) unless cf.method is @
+      if runtime_state.resuming_stack == runtime_state.meta_stack.length - 1
+        runtime_state.resuming_stack = null
     else
       caller_stack = runtime_state.curr_frame().stack
       if virtual
@@ -615,11 +609,15 @@ class root.Method extends AbstractMethodField
         return m.run(runtime_state)
       params = @take_params caller_stack
       runtime_state.meta_stack.push(new runtime.StackFrame(this,params,[]))
-      padding = (' ' for [2...runtime_state.meta_stack.length]).join('')
+    padding = (' ' for [2...runtime_state.meta_stack.length]).join('')
     sig = "#{@class_name}::#{@name}#{@raw_descriptor}"
     debug "#{padding}entering method #{sig}"
     # check for trapped and native methods, run those manually
-    if trapped_methods[sig]
+    cf = runtime_state.curr_frame()
+    if cf.resume? # we are resuming from a yield, and this was a manually run method
+      @run_manually cf.resume, runtime_state
+      cf.resume = null
+    else if trapped_methods[sig]
       @run_manually trapped_methods[sig], runtime_state
     else if @access_flags.native
       if sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
