@@ -102,12 +102,17 @@ $(document).ready ->
       controller.promptLabel = oldPrompt
       true
 
+  close_editor = ->
+    $('#ide').fadeOut 'fast', ->
+      $('#console').fadeIn('fast').click() # click to restore focus
+
   $('#save_btn').click ->
     fname = $('#filename').val()
     save_file fname, editor.getSession().getValue()
     controller.message("File saved as '#{fname}'.", 'success')
-    $('#ide').fadeOut 'fast', ->
-      $('#console').fadeIn('fast').click() # click to restore focus
+    close_editor()
+
+  $('#save_btn').click -> close_editor()
 
 commands =
   javac: (args, report) ->
@@ -136,7 +141,6 @@ commands =
     (name[6..] for name, contents of localStorage when name[..5] == 'file::').join '\n'
   edit: (args) ->
     data = load_file args[0]
-    return "No such file '#{args[0]}'." unless data
     $('#console').fadeOut 'fast', ->
       $('#filename').val args[0]
       $('#ide').fadeIn('fast')
@@ -145,7 +149,7 @@ commands =
       editor = ace.edit('source')
       JavaMode = require("ace/mode/java").Mode
       editor.getSession().setMode new JavaMode
-      editor.getSession().setValue(data)
+      editor.getSession().setValue(data) if data?
     true
   rm: (args) ->
     return "Usage: rm <file>" unless args[0]?
@@ -154,15 +158,17 @@ commands =
     if args[0] == '*' then localStorage.clear()
     else delete_file args[0]
     true
+  emacs: -> "Try 'vim'."
+  vim: -> "Try 'emacs'."
   help: (args) ->
     """
-javac <source file>    -- Compile Java source.
-java <class> [args...] -- Run with command-line arguments.
-javap <class>          -- Display disassembly.
-edit <file>            -- Edit a file.
-ls                     -- List all files.
-rm <file>              -- Delete a file.
-clear_heap             -- Clear the heap.
+    javac <source file>    -- Compile Java source.
+    java <class> [args...] -- Run with command-line arguments.
+    javap <class>          -- Display disassembly.
+    edit <file>            -- Edit a file.
+    ls                     -- List all files.
+    rm <file>              -- Delete a file.
+    clear_heap             -- Clear the heap.
     """
 
 tabComplete = ->
