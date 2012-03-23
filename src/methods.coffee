@@ -113,6 +113,7 @@ trapped_methods =
       ResourceBundle: [
         o 'getBundle(L!/lang/String;L!/!/Locale;L!/!/ResourceBundle$Control;)L!/!/!;', getBundle
         o 'getBundle(L!/lang/String;)L!/!/!;', getBundle
+        o 'getLoader()L!/lang/ClassLoader;', (rs) -> rs.set_obj 'java/lang/ClassLoader', {} # mock
       ]
       EnumSet: [
         o 'getUniverse(L!/lang/Class;)[L!/lang/Enum;', (rs) ->
@@ -202,6 +203,8 @@ native_methods =
             type = _this.fields.$type
             return null unless (type instanceof types.ArrayType)
             rs.init_class_object type.component_type
+        o 'isAssignableFrom(L!/!/!;)Z', (rs, _this, cls) ->
+            rs.is_castable cls.fields.$type, _this.fields.$type
         o 'isInterface()Z', (rs, _this) ->
             return false unless _this.fields.$type instanceof types.ClassType
             cls = rs.class_lookup _this.fields.$type.toClassString()
@@ -230,6 +233,14 @@ native_methods =
             rs.class_lookup 'java/lang/reflect/Method'
             rs.set_obj('[Ljava/lang/reflect/Method;',(m.reflector(rs) for m in methods))
         o 'getModifiers()I', (rs, _this) -> rs.class_lookup(_this.fields.$type.toClassString()).access_byte
+      ],
+      ClassLoader: [
+        o 'findLoadedClass0(L!/!/String;)L!/!/Class;', (rs, _this, name) ->
+            rs.class_objects[util.int_classname rs.jvm2js_str name]
+        o 'findBootstrapClass(L!/!/String;)L!/!/Class;', (rs, _this, name) ->
+            cls = util.int_classname rs.jvm2js_str name
+            rs.class_lookup cls
+            rs.init_class_object c2t cls
       ],
       Float: [
         o 'floatToRawIntBits(F)I', (rs, f_val) ->  #note: not tested for weird values
