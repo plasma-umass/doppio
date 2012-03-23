@@ -56,7 +56,16 @@ getBundle = (rs) ->
 o = (fn_name, fn) -> fn_name: fn_name, fn: fn
 
 trapped_methods =
+  javax:
+    swing:
+      JFrame: [
+        o '<init>()V', ->
+      ]
   java:
+    awt:
+      Frame: [
+        o '<clinit>()V', ->
+      ]
     lang:
       ref:
         SoftReference: [
@@ -349,7 +358,11 @@ native_methods =
       ]
     io:
       FileSystem: [
-        o 'getFileSystem()L!/!/!;', (rs) -> rs.init_object('java/io/UnixFileSystem')
+        o 'getFileSystem()L!/!/!;', (rs) ->
+            cache = rs.init_object 'java/io/ExpiringCache'
+            rs.push cache
+            rs.method_lookup({class: 'java/io/ExpiringCache', sig: {name:'<init>',type:'()V'}}).run(rs)
+            rs.init_object('java/io/UnixFileSystem', cache: cache)
       ]
       FileOutputStream: [
         o 'writeBytes([BII)V', (rs, _this, bytes, offset, len) ->
