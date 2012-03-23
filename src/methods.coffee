@@ -141,15 +141,6 @@ trapped_methods =
             else
               throw "You tried to write to a PrintStream that wasn't System.out or System.err! For shame!"
       ]
-    util:
-      ResourceBundle: [
-        o 'getClassContext()[L!/lang/Class;', (rs) ->
-            arr = []
-            for frame in [rs.meta_stack.length-1..0] by -1
-              cls = frame.method.class_name
-              arr.push rs.init_class_object c2t cls
-              rs.set_obj "[Ljava/lang/Class", arr
-      ]
   sun:
     misc:
       FloatingDecimal: [
