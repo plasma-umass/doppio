@@ -452,7 +452,7 @@ native_methods =
               # this is a real file that we've already opened
               data = fs.readSync(_this.fields.$file, n_bytes)[0]
               byte_arr.array[offset...offset+data.length] = (data.charCodeAt(i) for i in [0...data.length])
-              return data.length
+              return if data.length == 0 and n_bytes isnt 0 then -1 else data.length
             # reading from System.in, do it async
             console.log '>>> reading from Stdin now!'
             result = null # will be filled in after the yield
