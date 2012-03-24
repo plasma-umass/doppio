@@ -52,6 +52,12 @@ $(document).ready ->
   # set up the local file loaders
   $('#file').change (ev) ->
     f = ev.target.files[0]
+    unless FileReader?
+      controller.message """
+        Your browser doesn't support file loading.
+        Try using the editor to create files instead.
+        """, "error"
+      return
     reader = new FileReader
     reader.onerror = (e) ->
       switch e.target.error.code
@@ -59,21 +65,19 @@ $(document).ready ->
         when e.target.error.NOT_READABLE_ERR then alert "unreadable"
         when e.target.error.SECURITY_ERR then alert "only works with --allow-file-access-from-files"
     ext = f.name.split('.')[1]
-    if ext == 'java'
-      reader.onload = (e) ->
-        (new DoppioFile f.name).write(e.target.result).save()
-        controller.message "File '#{f.name}' saved.", 'success'
-        editor.getSession?().setValue(e.target.result)
-      reader.readAsText(f)
-    else if ext == 'class'
+    if ext == 'class'
       reader.onload = (e) ->
         (new DoppioFile f.name).write(e.target.result).save()
         controller.message "File '#{f.name}' saved.", 'success'
         editor.getSession?().setValue("/*\n * Binary file: #{f.name}\n */")
         process_bytecode e.target.result
       reader.readAsBinaryString(f)
-    else
-      alert 'Unrecognized file type!'
+    else # assume a text file
+      reader.onload = (e) ->
+        (new DoppioFile f.name).write(e.target.result).save()
+        controller.message "File '#{f.name}' saved.", 'success'
+        editor.getSession?().setValue(e.target.result)
+      reader.readAsText(f)
 
   jqconsole = $('#console')
   controller = jqconsole.console
@@ -158,8 +162,13 @@ commands =
       # initialize the editor. technically we only need to do this once, but more
       # than once is fine too
       editor = ace.edit('source')
-      JavaMode = require("ace/mode/java").Mode
-      editor.getSession().setMode new JavaMode
+      ext = args[0].split('.')[1]
+      if ext is 'java'
+        JavaMode = require("ace/mode/java").Mode
+        editor.getSession().setMode(new JavaMode)
+      else
+        TextMode = require("ace/mode/text").Mode
+        editor.getSession().setMode(new TextMode)
       editor.getSession().setValue(data)
     true
   mv: (args) ->
