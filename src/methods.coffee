@@ -319,6 +319,12 @@ native_methods =
             exp = gLong.fromNumber(Math.floor(Math.log(d_val)/Math.LN2)+1023)
             sig = gLong.fromNumber((d_val/Math.pow(2,exp)-1)/Math.pow(2,-52))
             sign.shiftLeft(63).add(exp.shiftLeft(52)).add(sig)
+        o 'longBitsToDouble(J)D', (rs, l_val) ->
+            s = if l_val.shiftRight(63).equals(gLong.fromInt(0)) then 1 else -1
+            e = l_val.shiftRight(52).and(gLong.fromInt(0x7ff))
+            m = if e == 0 then l_val.and(gLong.fromNumber(0xfffffffffffff))
+                                    .or(gLong.fromNumber(0x10000000000000))
+            Math.pow(2, e * 1075) * s * m # we're not handling the NaN / Inf cases
       ]
       Object: [
         o 'getClass()L!/!/Class;', (rs, _this) ->
@@ -482,6 +488,17 @@ native_methods =
       ]
       ObjectStreamClass: [
         o 'initNative()V', (rs) ->  # NOP
+      ]
+      RandomAccessFile: [
+        o 'open(Ljava/lang/String;I)V', (rs, _this, name, mode) ->
+            mode_str = 'r'
+            mode_str += 'w' if mode & 2 # there's also the sync flag but we're ignoring that
+            # TODO make this an object so we can write back
+            fname = rs.jvm2js_str(name)
+            error "Attempting to use #{fname} as a RandomAccessFile -- may not be correct!"
+            _this.fields.$file = fs.readFileSync fname
+        o 'length()J', (rs, _this) -> _this.fields.$file.length
+        o 'close0()V', (rs) ->
       ]
       UnixFileSystem: [
         o 'getBooleanAttributes0(Ljava/io/File;)I', (rs, _this, file) ->
