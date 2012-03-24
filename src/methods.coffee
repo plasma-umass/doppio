@@ -63,23 +63,15 @@ trapped_methods =
         SoftReference: [
           o 'get()Ljava/lang/Object;', (rs) -> null
         ]
-      #Class: [
-      #  o 'newInstance0()L!/!/Object;', (rs, _this) -> #implemented here to avoid reflection
-      #      classname = _this.fields.$type.toClassString()
-      #      rs.push (oref = rs.init_object(classname))
-      #      rs.method_lookup({'class':classname,'sig':{'name':'<init>'}}).run(rs)
-      #      oref
-      #]
       Object: [
         o '<clinit>()V', (rs) -> # NOP, for efficiency reasons
       ]
       System: [
-        o 'setJavaLangAccess()V', (rs) -> # NOP
-        o 'loadLibrary(L!/!/String;)V', (rs, jvm_str) -> # NOP
-        o 'adjustPropertiesForBackwardCompatibility(L!/util/Properties;)V', (rs) -> #NOP (apple-java specific?)
+        o 'loadLibrary(L!/!/String;)V', (rs) -> # NOP, because we don't support loading external libraries
+        o 'adjustPropertiesForBackwardCompatibility(L!/util/Properties;)V', (rs) -> # NOP (apple-java specific)
       ]
       Terminator: [
-        o 'setup()V', (rs) -> #NOP
+        o 'setup()V', (rs) -> # NOP, because we don't support threads
       ]
       Throwable: [
         o 'printStackTrace(L!/io/PrintWriter;)V', (rs) -> # NOP, since we didn't fill in anything
@@ -110,9 +102,8 @@ trapped_methods =
         o 'getInstance(Ljava/lang/String;)Ljava/util/Currency;', (rs) -> null # because it uses lots of reflection and we don't need it
       ]
       ResourceBundle: [
-        o 'getBundle(L!/lang/String;L!/!/Locale;L!/!/ResourceBundle$Control;)L!/!/!;', getBundle
-        o 'getBundle(L!/lang/String;)L!/!/!;', getBundle
-        o 'getLoader()L!/lang/ClassLoader;', (rs) -> rs.init_object 'java/lang/ClassLoader' # mock
+        o 'getBundleImpl(L!/lang/String;L!/!/Locale;L!/lang/ClassLoader;L!/!/!$Control;)L!/!/!;', getBundle
+        o 'getLoader()L!/lang/ClassLoader;', (rs) -> null
       ]
       EnumSet: [
         o 'getUniverse(L!/lang/Class;)[L!/lang/Enum;', (rs) ->
