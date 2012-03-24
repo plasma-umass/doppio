@@ -91,7 +91,7 @@ $(document).ready ->
     autofocus: true
     animateScroll: true
     promptHistory: true
-    welcomeMessage: "Enter 'help' for a list of commands."
+    welcomeMessage: "Enter 'help' for a list of commands. Ctrl-D is EOF."
 
   user_input = (n_bytes, resume) ->
     oldPrompt = controller.promptLabel

@@ -199,6 +199,15 @@ trapped_methods =
             cls = if rs.check_cast(buf.ref,'java/lang/StringBuilder') then 'java/lang/StringBuilder' else 'java/lang/StringBuffer'
             rs.method_lookup({class:cls,sig:{name:'append',type:"(Ljava/lang/String;)L#{cls};"}}).run(rs,true)
       ]
+      JavaLangAccess: [
+        o 'registerShutdownHook(ILjava/lang/Runnable;)V', (rs) ->
+            # XXX should probably not be a NOP -- maybe we should call
+            # the runnable ourselves before quit
+      ]
+      SharedSecrets: [
+        o 'getJavaLangAccess()L!/!/JavaLangAccess;', (rs) ->
+            rs.init_object 'sun/misc/JavaLangAccess' # XXX should probably intern this
+      ]
     util:
       LocaleServiceProviderPool: [
         o 'getPool(Ljava/lang/Class;)L!/!/!;', (rs) -> 
@@ -413,6 +422,10 @@ native_methods =
         o 'getStackAccessControlContext()Ljava/security/AccessControlContext;', (rs) -> null
       ]
     io:
+      Console: [
+        o 'encoding()L!/lang/String;', -> null
+        o 'istty()Z', -> true
+      ]
       FileSystem: [
         o 'getFileSystem()L!/!/!;', (rs) ->
             # TODO: avoid making a new FS object each time this gets called? seems to happen naturally in java/io/File...
@@ -687,7 +700,7 @@ class root.Method extends AbstractMethodField
         obj = runtime_state.get_obj(oref)
         m_spec = {class: obj.type, sig: {name:@name, type:@raw_descriptor}}
         m = runtime_state.method_lookup(m_spec)
-        throw "abstract method got called: #{@name}#{@raw_descriptor}" if m.access_flags.abstract
+        #throw "abstract method got called: #{@name}#{@raw_descriptor}" if m.access_flags.abstract
         return m.run(runtime_state)
       params = @take_params caller_stack
       runtime_state.meta_stack.push(new runtime.StackFrame(this,params,[]))
