@@ -7,6 +7,8 @@ opcodes ?= require './opcodes'
 make_attributes ?= require './attributes'
 disassembler ?= require './disassembler'
 types ?= require './types'
+path = node.path ? require 'path'
+fs = node.fs ? require 'fs'
 {log,debug,error} = util
 {opcode_annotators} = disassembler
 {str2type,carr2type,c2t} = types
@@ -229,17 +231,9 @@ get_field_from_offset = (rs, cls, offset) ->
     cls = rs.class_lookup(cls.super_class)
   cls.fields[offset]
 
-get_filesystem_module = (module_name) ->
-  # used for things like 'fs' and 'path'
-  try
-    mod = require module_name
-  catch e
-    util.java_throw 'java/lang/UnsupportedOperationException', 'Filesystem ops are not supported in the browser'
-  mod
-
 stat_file = (fname) ->
   try 
-    rs.fs.statSync(fname)
+    fs.statSync(fname)
   catch e
     null
 
@@ -429,7 +423,7 @@ native_methods =
         o 'read()I', (rs, _this) ->
             if _this.fields.$file?
               # this is a real file that we've already opened
-              data = rs.fs.readSync(_this.fields.$file, 1)[0]
+              data = fs.readSync(_this.fields.$file, 1)[0]
               return if data.length == 0 then -1 else data.charCodeAt(0)
             # reading from System.in, do it async
             console.log '>>> reading from Stdin now!'
@@ -442,7 +436,7 @@ native_methods =
         o 'readBytes([BII)I', (rs, _this, byte_arr, offset, n_bytes) ->
             if _this.fields.$file?
               # this is a real file that we've already opened
-              data = rs.fs.readSync(_this.fields.$file, n_bytes)[0]
+              data = fs.readSync(_this.fields.$file, n_bytes)[0]
               byte_arr.array[offset...offset+data.length] = (data.charCodeAt(i) for i in [0...data.length])
               return data.length
             # reading from System.in, do it async
@@ -455,7 +449,7 @@ native_methods =
                 result = bytes.length
                 cb()
         o 'open(Ljava/lang/String;)V', (rs, _this, filename) -> 
-            _this.fields.$file = rs.fs.openSync rs.jvm2js_str(filename), 'r'
+            _this.fields.$file = fs.openSync rs.jvm2js_str(filename), 'r'
         o 'close0()V', (rs, _this) -> _this.fields.$file = null
       ]
       ObjectStreamClass: [
@@ -471,7 +465,6 @@ native_methods =
             util.java_throw 'java/io/FileNotFoundException' unless stats?
             gLong.fromNumber (new Date(stats.mtime)).getTime()
         o 'canonicalize0(L!/lang/String;)L!/lang/String;', (rs, _this, jvm_path_str) ->
-            path = get_filesystem_module 'path'
             js_str = rs.jvm2js_str jvm_path_str
             rs.init_string path.resolve path.normalize js_str
       ]

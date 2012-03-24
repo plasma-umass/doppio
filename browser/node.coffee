@@ -1,6 +1,8 @@
-root = this
+root = @node = {}
 
-class root.DoppioFile # File is a native browser thing
+win = window
+
+class win.DoppioFile # File is a native browser thing
   constructor: (@name) ->
     @pos = 0
     @mtime = (new Date).getTime()
@@ -9,7 +11,7 @@ class root.DoppioFile # File is a native browser thing
     raw_data = localStorage["file::#{fname?.toLowerCase()}"]
     return null unless raw_data
     data = JSON.parse raw_data
-    file = new root.DoppioFile fname
+    file = new win.DoppioFile fname
     file[k] = v for k, v of data 
     file
 
@@ -32,8 +34,8 @@ class root.DoppioFile # File is a native browser thing
 
 class Stat
   constructor: (fname) ->
-    @file = root.DoppioFile.load fname
-    @mtime = file.mtime
+    @file = win.DoppioFile.load fname
+    @mtime = @file.mtime
 
   isFile: -> true # currently we only support files
 
@@ -42,8 +44,13 @@ class Stat
 root.fs =
   statSync: (fname) -> new Stat(fname)
 
-  openSync: (fname) -> root.DoppioFile.load fname
+  openSync: (fname) -> win.DoppioFile.load fname
 
   readSync: (file, length) ->
     data = file.read(length)
     [data, data.length]
+
+root.path =
+  normalize: (path) -> path
+
+  resolve: (path) -> path
