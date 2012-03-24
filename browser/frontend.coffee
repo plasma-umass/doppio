@@ -5,19 +5,6 @@ editor = null
 # For caching the runtime state across program runs
 rs = null
 
-# convenience functions for reading files from localStorage.
-save_file = (fname, data) ->
-  # inefficient but whatever
-  lower = "file::#{fname.toLowerCase()}"
-  for i in [0...localStorage.length] by 1
-    key = localStorage.key(i)
-    if key.toLowerCase() is lower
-      localStorage.removeItem key
-      break
-  localStorage["file::#{fname}"] = data
-load_file = (fname) -> localStorage["file::#{fname}"]
-delete_file = (fname) -> localStorage.removeItem "file::#{fname}"
-
 # Read in a binary classfile synchronously. Return an array of bytes.
 read_classfile = (cls) ->
   rv = null
@@ -40,7 +27,7 @@ process_bytecode = (bytecode_string) ->
   new ClassFile(bytes_array)
 
 compile_source = (fname) ->
-  source = load_file fname
+  source = DoppioFile.load(fname).read()
   return controller.message "Could not find file '#{fname}'.", 'error' unless source?
   $.ajax 'http://people.cs.umass.edu/~ccarey/javac/', {
     type: 'POST'
@@ -49,7 +36,7 @@ compile_source = (fname) ->
     beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
     success:  (data) ->
       class_name = fname.split('.')[0]
-      save_file "#{class_name}.class", data
+      (new DoppioFile "#{class_name}.class").write(data).save()
       class_data = process_bytecode(data)
       controller.reprompt()
     error: (jqXHR, textStatus, errorThrown) -> 
@@ -71,13 +58,13 @@ $(document).ready ->
     ext = f.name.split('.')[1]
     if ext == 'java'
       reader.onload = (e) ->
-        save_file f.name, e.target.result
+        (new DoppioFile f.name).write(e.target.result).save()
         controller.message "File '#{f.name}' saved.", 'success'
         editor.getSession?().setValue(e.target.result)
       reader.readAsText(f)
     else if ext == 'class'
       reader.onload = (e) ->
-        save_file f.name, e.target.result
+        (new DoppioFile f.name).write(e.target.result).save()
         controller.message "File '#{f.name}' saved.", 'success'
         editor.getSession?().setValue("/*\n * Binary file: #{f.name}\n */")
         process_bytecode e.target.result
@@ -96,7 +83,7 @@ $(document).ready ->
         if handler? then handler(args)
         else "Unknown command '#{cmd}'. Enter 'help' for a list of commands."
       catch e
-        false
+        controller.message e.toString(), 'error'
     tabComplete: tabComplete
     autofocus: true
     animateScroll: true
@@ -123,7 +110,7 @@ $(document).ready ->
 
   $('#save_btn').click (e) ->
     fname = $('#filename').val()
-    save_file fname, editor.getSession().getValue()
+    (new DoppioFile fname).write(editor.getSession().getValue()).save()
     controller.message("File saved as '#{fname}'.", 'success')
     close_editor()
     e.preventDefault()
@@ -136,7 +123,7 @@ commands =
     compile_source args[0], cb
   java: (args, cb) ->
     return "Usage: java class [args...]" unless args[0]?
-    raw_data = load_file "#{args[0]}.class"
+    raw_data = DoppioFile.load("#{args[0]}.class").read()
     return ["Could not find class '#{args[0]}'.",'error'] unless raw_data?
     class_data = process_bytecode raw_data
     stdout = (str) -> controller.message str, '', true # noreprompt
@@ -147,7 +134,7 @@ commands =
     )
   javap: (args) ->
     return "Usage: javap class" unless args[0]?
-    raw_data = load_file "#{args[0]}.class"
+    raw_data = DoppioFile.load("#{args[0]}.class").read()
     return ["Could not find class '#{args[0]}'.",'error'] unless raw_data?
     class_data = process_bytecode raw_data
     disassembler.disassemble class_data
@@ -156,9 +143,12 @@ commands =
     $('#heap_size').text 0
     "Heap cleared."
   ls: (args) ->
-    (name[6..] for name, contents of localStorage when name[..5] == 'file::').sort().join '\n'
+    files =
+      for key, file of localStorage when key[..5] == 'file::'
+        DoppioFile.load key[6..]
+    (f.name for f in files).sort().join '\n'
   edit: (args) ->
-    data = load_file(args[0]) or defaultFile
+    data = DoppioFile.load(args[0])?.read() or defaultFile
     $('#console').fadeOut 'fast', ->
       $('#filename').val args[0]
       $('#ide').fadeIn('fast')
@@ -174,7 +164,7 @@ commands =
     # technically we should look only for keys starting with 'file::', but at the
     # moment they are the only kinds of keys we use
     if args[0] == '*' then localStorage.clear()
-    else delete_file args[0]
+    else DoppioFile.delete args[0]
     true
   emacs: -> "Try 'vim'."
   vim: -> "Try 'emacs'."
@@ -225,12 +215,12 @@ fileNameCompletions = (cmd, args) ->
   for i in [0...localStorage.length] by 1
     key = localStorage.key(i)
     continue unless key.substr(0, 6) is 'file::'
-    fname = key.substr(6)
-    continue unless validExtension(fname)
-    if (fname.substr(0, lastArg.length).toLowerCase() is lastArg)
+    file = DoppioFile.load key.substr(6) # hack
+    continue unless validExtension(file.name)
+    if (file.name.substr(0, lastArg.length).toLowerCase() is lastArg)
       potentialCompletions.push(
-        if not keepExt() then fname.split('.')[0]
-        else fname
+        if not keepExt() then file.name.split('.')[0]
+        else file.name
       )
   potentialCompletions
 
