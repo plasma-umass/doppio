@@ -153,13 +153,13 @@ class root.RuntimeState
         @classes[cls] =
           file: new ClassFile(data), 
           obj:  @set_obj(c2t('java/lang/Class'), { $type: type, name: 0 })
-        #old_loglevel = util.log_level  # suppress logging for init stuff
-        #util.log_level = util.ERROR
+        old_loglevel = util.log_level  # suppress logging for init stuff
+        util.log_level = util.ERROR
         # run class initialization code
         @method_lookup({class: cls, sig: {name: '<clinit>', type: '()V'}}).run(this)
         if cls is 'java/lang/System'  # zomg hardcode
           @method_lookup({'class': cls, 'sig': {'name': 'initializeSystemClass'}}).run(this)
-        #util.log_level = old_loglevel  # resume logging
+        util.log_level = old_loglevel  # resume logging
     c = @classes[cls]
     throw "class #{cls} not found!" unless c?
     if get_obj then c.obj else c.file

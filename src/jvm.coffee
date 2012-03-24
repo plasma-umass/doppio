@@ -64,7 +64,6 @@ root.run_class = (rs, class_data, cmdline_args, cb) ->
       else
         console.error "\nInternal JVM Error!"
         show_state(rs)
-        console.error e.stack or e
         cb?()
-        throw e  # so we get the JS traceback
+        throw e  # so we get the JS traceback? TODO: figure out why this doesn't print the trace
   run()

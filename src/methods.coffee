@@ -57,53 +57,25 @@ getBundle = (rs, base_name) ->
 o = (fn_name, fn) -> fn_name: fn_name, fn: fn
 
 trapped_methods =
-  javax:
-    swing:
-      JFrame: [
-        o '<init>()V', ->
-      ]
   java:
-    awt:
-      Component: [
-        o '<clinit>()V', ->
-        o 'setBoundsOp(I)V', (rs, _this, op) -> _this.fields.boundsOp = op
-        o 'getBoundsOp()I', (rs, _this) -> _this.fields.boundsOp
-        o 'reshape(IIII)V', -> # TODO
-      ]
-      Container: [
-        o '<clinit>()V', ->
-      ]
-      Frame: [
-        o '<clinit>()V', ->
-      ]
-      Window: [
-        o '<clinit>()V', ->
-        o 'show()V', (rs, _this) ->
-            # XXX fails: _this does not even seem to be a Window
-            rs.push _this, 200
-            rs.method_lookup({class:'java/awt/Window',sig:{name:'postWindowEvent',type:'(I)V'}}).run(rs)
-            console.log 'showing window!'
-      ]
     lang:
       ref:
         SoftReference: [
           o 'get()Ljava/lang/Object;', (rs) -> null
         ]
-      Class: [
-        o 'newInstance0()L!/!/Object;', (rs, _this) -> #implemented here to avoid reflection
-            classname = _this.fields.$type.toClassString()
-            rs.push (oref = rs.init_object(classname))
-            rs.method_lookup({'class':classname,'sig':{'name':'<init>'}}).run(rs)
-            oref
-      ]
+      #Class: [
+      #  o 'newInstance0()L!/!/Object;', (rs, _this) -> #implemented here to avoid reflection
+      #      classname = _this.fields.$type.toClassString()
+      #      rs.push (oref = rs.init_object(classname))
+      #      rs.method_lookup({'class':classname,'sig':{'name':'<init>'}}).run(rs)
+      #      oref
+      #]
       Object: [
         o '<clinit>()V', (rs) -> # NOP, for efficiency reasons
       ]
       System: [
         o 'setJavaLangAccess()V', (rs) -> # NOP
-        o 'loadLibrary(L!/!/String;)V', (rs, jvm_str) ->
-            lib = rs.jvm2js_str jvm_str
-            error "Attempt to load library '#{lib}' failed: library loads are NYI"
+        o 'loadLibrary(L!/!/String;)V', (rs, jvm_str) -> # NOP
         o 'adjustPropertiesForBackwardCompatibility(L!/util/Properties;)V', (rs) -> #NOP (apple-java specific?)
       ]
       Terminator: [
@@ -279,7 +251,7 @@ native_methods =
                (type instanceof types.VoidType) or type == 'Ljava/lang/Object;'
               return null
             cls = rs.class_lookup type
-            if cls.access_flags.interface
+            if cls.access_flags.interface or not cls.super_class?
               return null
             rs.class_lookup cls.super_class, true
         o 'getDeclaredFields0(Z)[Ljava/lang/reflect/Field;', (rs, _this, public_only) ->
@@ -290,6 +262,11 @@ native_methods =
             methods = rs.class_lookup(_this.fields.$type).methods
             methods = (m for m in methods when m.access_flags.public) if public_only
             rs.init_object('[Ljava/lang/reflect/Method;',(m.reflector(rs) for m in methods))
+        o 'getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;', (rs, _this, public_only) ->
+            methods = rs.class_lookup(_this.fields.$type).methods
+            methods = (m for m in methods when m.name is '<init>')
+            methods = (m for m in methods when m.access_flags.public) if public_only
+            rs.init_object('[Ljava/lang/reflect/Constructor;',(m.reflector(rs,true) for m in methods))
         o 'getModifiers()I', (rs, _this) -> rs.class_lookup(_this.fields.$type).access_byte
       ],
       ClassLoader: [
@@ -575,6 +552,15 @@ native_methods =
             method.run(rs)
             rs.pop()
       ]
+      NativeConstructorAccessorImpl: [
+        o 'newInstance0(Ljava/lang/reflect/Constructor;[Ljava/lang/Object;)Ljava/lang/Object;', (rs,m,params) ->
+            type = rs.get_obj(m.fields.clazz).fields.$type
+            method = rs.class_lookup(type).methods[m.fields.slot]
+            rs.push (oref = rs.set_obj type, {})
+            rs.push params.array... if params?
+            method.run(rs)
+            oref
+      ]
       Reflection: [
         o 'getCallerClass(I)Ljava/lang/Class;', (rs, frames_to_skip) ->
             #TODO: disregard frames assoc. with java.lang.reflect.Method.invoke() and its implementation
@@ -622,8 +608,9 @@ class root.Method extends AbstractMethodField
     @num_args++ unless @access_flags.static # nonstatic methods get 'this'
     @return_type = str2type return_str
 
-  reflector: (rs) ->
-    rs.init_object 'java/lang/reflect/Method', {
+  reflector: (rs, is_constructor=false) ->
+    typestr = if is_constructor then 'java/lang/reflect/Constructor' else 'java/lang/reflect/Method'
+    rs.init_object typestr, {
       # XXX: missing checkedExceptions, annotations, parameterAnnotations, annotationDefault
       clazz: rs.class_lookup(@class_type, true)
       name: rs.init_string @name, true
