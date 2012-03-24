@@ -427,6 +427,19 @@ native_methods =
       ]
       FileInputStream: [
         o 'available()I', (rs) -> 0 # we never buffer anything, so this is always zero
+        o 'read()I', (rs, _this) ->
+            if _this.fields.$file?
+              # this is a real file that we've already opened
+              data = rs.fs.readSync(_this.fields.$file, 1)[0]
+              return if data.length == 0 then -1 else data.charCodeAt(0)
+            # reading from System.in, do it async
+            console.log '>>> reading from Stdin now!'
+            data = null # will be filled in after the yield
+            rs.curr_frame().resume = ->
+              if data.length == 0 then -1 else data.charCodeAt(0)
+            throw new util.YieldException (cb) ->
+              rs.async_input 1, (byte) ->
+                data = byte
         o 'readBytes([BII)I', (rs, _this, byte_arr, offset, n_bytes) ->
             if _this.fields.$file?
               # this is a real file that we've already opened
