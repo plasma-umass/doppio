@@ -408,6 +408,7 @@ native_methods =
     security:
       AccessController: [
         o 'doPrivileged(L!/!/PrivilegedAction;)L!/lang/Object;', doPrivileged
+        o 'doPrivileged(L!/!/PrivilegedAction;L!/!/AccessControlContext;)L!/lang/Object;', doPrivileged
         o 'doPrivileged(L!/!/PrivilegedExceptionAction;)L!/lang/Object;', doPrivileged
         o 'getStackAccessControlContext()Ljava/security/AccessControlContext;', (rs) -> null
       ]

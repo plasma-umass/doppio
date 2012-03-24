@@ -9,7 +9,7 @@ opcodes ?= require './opcodes'
 
 root.disassemble = (class_file) ->
   access_string = (access_flags) ->
-    ordered_flags = [ 'public', 'protected', 'private', 'static' ]
+    ordered_flags = [ 'public', 'protected', 'private', 'static', 'final' ]
     ordered_flags.push 'abstract' unless access_flags.interface
     privacy = (("#{flag} " if access_flags[flag]) for flag in ordered_flags).join ''
 
@@ -72,7 +72,11 @@ root.disassemble = (class_file) ->
   rv += "{\n"
 
   for f in class_file.fields
-    rv += "#{access_string f.access_flags} #{pp_type(f.type)} #{f.name};\n\n\n"
+    rv += "#{access_string f.access_flags} #{pp_type(f.type)} #{f.name};\n"
+    const_attr = _.find(f.attrs, (attr) -> attr.constructor.name == 'ConstantValue')
+    entry = pool.get(const_attr.ref)
+    rv += "  Constant value: #{entry.type} #{entry.deref?() or entry.value}\n" if const_attr?
+    rv += "\n\n"
 
   for m in class_file.methods
     rv += access_string m.access_flags

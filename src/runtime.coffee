@@ -156,7 +156,8 @@ class root.RuntimeState
     cls = @class_lookup(method_spec.class)
     filter_methods = (methods) ->
       ms = (m for m in methods when m.name is method_spec.sig.name)
-      ms = (m for m in ms when m.raw_descriptor is method_spec.sig.type) unless ms.length == 1
+      unless ms.length == 1 and not method_spec.sig.type?
+        ms = (m for m in ms when m.raw_descriptor is method_spec.sig.type)
       throw "too many method choices" if ms.length > 1
       ms[0]
     c = cls
