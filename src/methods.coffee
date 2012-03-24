@@ -44,10 +44,9 @@ class root.Field extends AbstractMethodField
       signature: rs.init_string @raw_descriptor
     }
 
-getBundle = (rs) ->
+getBundle = (rs, base_name) ->
   # load in the default ResourceBundle (ignores locale)
-  args = rs.curr_frame().locals
-  classname = util.int_classname rs.jvm2js_str(rs.get_obj(args[0]))
+  classname = util.int_classname rs.jvm2js_str(base_name)
   rs.push (b_ref = rs.init_object classname)
   rs.method_lookup({class: classname, sig: {name:'<init>',type:'()V'}}).run(rs)
   b_ref

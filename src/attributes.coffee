@@ -168,13 +168,16 @@ class ConstantValue
     @value = constant_pool.get(@ref).value
     return bytes_array
 
+class Synthetic
+  parse: (bytes_array) -> bytes_array # NOP
+
 root.make_attributes = (bytes_array,constant_pool) ->
   #TODO: add classes for NYI attr types
   attr_types = {
     'Code': Code, 'LineNumberTable': LineNumberTable, 'SourceFile': SourceFile,
     'StackMapTable': StackMapTable, 'LocalVariableTable': LocalVariableTable,
     'ConstantValue': ConstantValue, 'Exceptions': Exceptions,
-    'InnerClasses': InnerClasses, 'Synthetic': 'NYI'
+    'InnerClasses': InnerClasses, 'Synthetic': Synthetic
   }
   num_attrs = util.read_uint(bytes_array.splice(0,2))
   attrs = []
@@ -182,7 +185,6 @@ root.make_attributes = (bytes_array,constant_pool) ->
     name = constant_pool.get(util.read_uint(bytes_array.splice(0,2))).value
     attr_len = util.read_uint(bytes_array.splice(0,4))  # unused if the attr is defined
     if attr_types[name]?
-      throw "NYI: attr_type #{name}" if attr_types[name] is 'NYI'
       attr = new attr_types[name]
       bytes_array = attr.parse(bytes_array,constant_pool)
       attrs.push attr

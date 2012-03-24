@@ -137,7 +137,10 @@ class root.JavaException
     @stack = []
     for sf in rs.meta_stack.slice(1)
       cls = sf.method.class_name
-      source_file = _.find(rs.class_lookup(cls).attrs, (attr) -> attr.constructor.name == 'SourceFile').name
+      attrs = rs.class_lookup(cls).attrs
+      source_file =
+        if attrs.filter((attr) -> attr.constructor.name == 'Synthetic') then 'Synthetic'
+        else _.find(attrs, (attr) -> attr.constructor.name == 'SourceFile').name
       line_nums = sf.method.get_code()?.attrs[0]
       if line_nums?
         ln = _.last(row.line_number for i,row of line_nums when row.start_pc <= sf.pc)
