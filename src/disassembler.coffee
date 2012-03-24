@@ -74,8 +74,9 @@ root.disassemble = (class_file) ->
   for f in class_file.fields
     rv += "#{access_string f.access_flags} #{pp_type(f.type)} #{f.name};\n"
     const_attr = _.find(f.attrs, (attr) -> attr.constructor.name == 'ConstantValue')
-    entry = pool.get(const_attr.ref)
-    rv += "  Constant value: #{entry.type} #{entry.deref?() or entry.value}\n" if const_attr?
+    if const_attr?
+      entry = pool.get(const_attr.ref)
+      rv += "  Constant value: #{entry.type} #{entry.deref?() or entry.value}\n"
     rv += "\n\n"
 
   for m in class_file.methods
