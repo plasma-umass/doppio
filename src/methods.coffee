@@ -496,8 +496,15 @@ native_methods =
             # TODO make this an object so we can write back
             fname = rs.jvm2js_str(name)
             error "Attempting to use #{fname} as a RandomAccessFile -- may not be correct!"
-            _this.fields.$file = fs.readFileSync fname
-        o 'length()J', (rs, _this) -> _this.fields.$file.length
+            _this.fields.$file = fs.readFileSync fname, 'binary'
+        o 'length()J', (rs, _this) -> gLong.fromNumber _this.fields.$file.length
+        o 'seek(J)V', (rs, _this, pos) -> _this.fields.$pos = pos
+        o 'readBytes([BII)I', (rs, _this, bytes_arr, offset, len) ->
+            pos = (_this.fields.$pos ?= 0)
+            data = _this.fields.$file.slice(pos, len)
+            bytes_arr.array[offset...offset+data.length] = (data.charCodeAt(i) for i in [0...data.length])
+            _this.fields.$pos += data.length
+            return if data.length == 0 and len isnt 0 then -1 else data.length
         o 'close0()V', (rs) ->
       ]
       UnixFileSystem: [
