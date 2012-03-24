@@ -387,8 +387,23 @@ native_methods =
       ]
       Throwable: [
         o 'fillInStackTrace()L!/!/!;', (rs, _this) ->
-            #TODO possibly filter out the java calls from our own call stack.
-            # at the moment, this is effectively a NOP.
+            # we aren't creating the actual Java objects -- we're using our own
+            # representation.
+            _this.fields.$stack = stack = []
+            # we don't want to include the stack frames that were created by
+            # the construction of this exception
+            for sf in rs.meta_stack.slice(1) when sf.locals[0] isnt _this.ref
+              cls = sf.method.class_name
+              attrs = rs.class_lookup(cls).attrs
+              source_file =
+                if attrs.filter((attr) -> attr.constructor.name == 'Synthetic') then 'Synthetic'
+                else _.find(attrs, (attr) -> attr.constructor.name == 'SourceFile').name
+              line_nums = sf.method.get_code()?.attrs[0]
+              if line_nums?
+                ln = _.last(row.line_number for i,row of line_nums when row.start_pc <= sf.pc)
+              else
+                ln = 'unknown'
+              stack.push {'op':sf.pc, 'line':ln, 'file':source_file, 'method':sf.method.name, 'cls':cls}
             _this.ref
       ]
     security:

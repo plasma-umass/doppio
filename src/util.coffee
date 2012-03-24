@@ -134,19 +134,6 @@ class root.YieldException
 class root.JavaException
   constructor: (rs, @exception_ref) ->
     @exception = rs.get_obj @exception_ref
-    @stack = []
-    for sf in rs.meta_stack.slice(1)
-      cls = sf.method.class_name
-      attrs = rs.class_lookup(cls).attrs
-      source_file =
-        if attrs.filter((attr) -> attr.constructor.name == 'Synthetic') then 'Synthetic'
-        else _.find(attrs, (attr) -> attr.constructor.name == 'SourceFile').name
-      line_nums = sf.method.get_code()?.attrs[0]
-      if line_nums?
-        ln = _.last(row.line_number for i,row of line_nums when row.start_pc <= sf.pc)
-      else
-        ln = 'unknown'
-      @stack.push {'op':sf.pc, 'line':ln, 'file':source_file, 'method':sf.method.name, 'cls':cls}
 
 # Simulate the throwing of a Java exception with message :msg. Not very DRY --
 # code here is essentially copied from the opcodes themselves -- but

@@ -34,8 +34,9 @@ show_stacktrace = (rs,e) ->
   detail_ref = e.exception.fields.detailMessage
   detail = if detail_ref then rs.jvm2js_str rs.get_obj detail_ref else ''
   rs.print "Exception in thread \"main\" #{ext_classname e_type}: #{detail}\n"
-  for i in [e.stack.length-1..0] by -1
-    entry = e.stack[i]
+  stack = e.exception.fields.$stack
+  for i in [stack.length-1..0] by -1
+    entry = stack[i]
     rs.print "\tat #{entry.cls}.#{entry.method}(#{entry.file}:#{entry.line}, code #{entry.op})\n"
 
 # main function that gets called from the frontend
