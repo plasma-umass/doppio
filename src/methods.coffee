@@ -483,7 +483,14 @@ native_methods =
                 result = bytes.length
                 cb()
         o 'open(Ljava/lang/String;)V', (rs, _this, filename) -> 
-            _this.fields.$file = fs.openSync rs.jvm2js_str(filename), 'r'
+            try
+              _this.fields.$file = fs.openSync rs.jvm2js_str(filename), 'r'
+            catch e
+              if e.code == 'ENOENT'
+                util.java_throw rs, 'java/lang/FileNotFoundException',
+                  "Could not open file #{filename}"
+              else
+                throw e
         o 'close0()V', (rs, _this) -> _this.fields.$file = null
       ]
       ObjectStreamClass: [

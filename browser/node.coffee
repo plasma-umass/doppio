@@ -44,7 +44,13 @@ class Stat
 root.fs =
   statSync: (fname) -> new Stat(fname)
 
-  openSync: (fname) -> win.DoppioFile.load fname
+  openSync: (fname) ->
+    f = win.DoppioFile.load fname
+    unless f?
+      err = new Error
+      err.code = 'ENOENT'
+      throw err
+    f
 
   readSync: (file, length) ->
     data = file.read(length)
