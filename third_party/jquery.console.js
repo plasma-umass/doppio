@@ -450,9 +450,7 @@
                   else continuedText = promptText;
                 } else continuedText = undefined;
                 if (continuedText) text = continuedText;
-                var ret = extern.commandHandle(text,function(msgs){
-                    commandResult(msgs, null);
-                });
+                var ret = extern.commandHandle(text);
                 if (extern.continuedPrompt && !continuedText)
                   continuedText = promptText;
                 if (typeof ret == 'boolean') {

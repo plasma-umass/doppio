@@ -481,6 +481,12 @@ native_methods =
           AtomicLong: [
             o 'VMSupportsCS8()Z', -> true
           ]
+      TimeZone: [
+        o 'getSystemTimeZoneID(L!/lang/String;L!/lang/String;)L!/lang/String;', (rs, java_home, country) ->
+            rs.init_string 'GMT' # XXX not sure what the local value is
+        o 'getSystemGMTOffsetID()L!/lang/String;', (rs) ->
+            null # XXX may not be correct
+      ]
       zip:
         ZipFile: [
           o 'open(Ljava/lang/String;IJZ)J', (rs,fname,mode,mtime,use_mmap) ->

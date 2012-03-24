@@ -89,14 +89,15 @@ class root.RuntimeState
   heap_get: (field_spec, oref) ->
     obj = @get_obj(oref)
     name = field_spec.sig.name
-    obj.fields[name] = 0 if obj.fields[name] is undefined
+    obj.fields[name] ?= if field_spec.sig.type is 'J' then gLong.fromInt(0) else 0
     trace "getting #{name} from obj of type #{obj.type}: #{obj.fields[name]}"
     @push obj.fields[name]
     @push null if field_spec.sig.type in ['J','D']
 
   # static stuff
   static_get: (field_spec) ->
-    val = @field_lookup(field_spec).static_value ? 0
+    val = @field_lookup(field_spec).static_value
+    val ?= if field_spec.sig.type is 'J' then gLong.fromInt(0) else 0
     trace "getting #{field_spec.sig.name} from class #{field_spec.class}: #{val}"
     val
   static_put: (field_spec) ->
