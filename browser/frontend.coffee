@@ -235,7 +235,7 @@ fileNameCompletions = (cmd, args) ->
     key = localStorage.key(i)
     continue unless key.substr(0, 6) is 'file::'
     file = DoppioFile.load key.substr(6) # hack
-    continue unless validExtension(file.name)
+    continue unless file? and validExtension(file.name)
     if (file.name.substr(0, lastArg.length).toLowerCase() is lastArg)
       potentialCompletions.push(
         if not keepExt() then file.name.split('.')[0]
