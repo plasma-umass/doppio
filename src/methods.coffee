@@ -234,14 +234,13 @@ get_filesystem_module = (module_name) ->
   # used for things like 'fs' and 'path'
   try
     mod = require module_name
-  catch e  #TODO: add a browser-friendly interface to the localstorage psuedo-fs
+  catch e
     util.java_throw 'java/lang/UnsupportedOperationException', 'Filesystem ops are not supported in the browser'
   mod
 
 stat_file = (fname) ->
-  fs = get_filesystem_module 'fs'
   try 
-    fs.statSync(fname)
+    rs.fs.statSync(fname)
   catch e
     null
 
@@ -431,8 +430,7 @@ native_methods =
         o 'readBytes([BII)I', (rs, _this, byte_arr, offset, n_bytes) ->
             if _this.fields.$file?
               # this is a real file that we've already opened
-              fs = get_filesystem_module 'fs'
-              data = fs.readSync(_this.fields.$file, n_bytes)[0]
+              data = rs.fs.readSync(_this.fields.$file, n_bytes)[0]
               byte_arr.array[offset...offset+data.length] = (data.charCodeAt(i) for i in [0...data.length])
               return data.length
             # reading from System.in, do it async
@@ -445,8 +443,7 @@ native_methods =
                 result = bytes.length
                 cb()
         o 'open(Ljava/lang/String;)V', (rs, _this, filename) -> 
-            fs = get_filesystem_module 'fs'
-            _this.fields.$file = fs.openSync rs.jvm2js_str(filename), 'r'
+            _this.fields.$file = rs.fs.openSync rs.jvm2js_str(filename), 'r'
         o 'close0()V', (rs, _this) -> _this.fields.$file = null
       ]
       ObjectStreamClass: [

@@ -2,6 +2,7 @@ root = this
 
 class root.DoppioFile # File is a native browser thing
   constructor: (@name) ->
+    @pos = 0
     @mtime = (new Date).getTime()
 
   @load: (fname) ->
@@ -12,7 +13,11 @@ class root.DoppioFile # File is a native browser thing
     file[k] = v for k, v of data 
     file
 
-  read: -> @data
+  read: (length) ->
+    return @data unless length?
+    rv = @data.substr(@pos, length)
+    @pos += length
+    rv
 
   write: (@data) -> @
 
@@ -40,5 +45,5 @@ root.fs =
   openSync: (fname) -> root.DoppioFile.load fname
 
   readSync: (file, length) ->
-    data = root.DoppioFile.read()[0...length]
+    data = file.read(length)
     [data, data.length]

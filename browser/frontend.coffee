@@ -127,7 +127,7 @@ commands =
     return ["Could not find class '#{args[0]}'.",'error'] unless raw_data?
     class_data = process_bytecode raw_data
     stdout = (str) -> controller.message str, '', true # noreprompt
-    rs ?= new runtime.RuntimeState(stdout, user_input, read_classfile)
+    rs ?= new runtime.RuntimeState(stdout, user_input, fs, read_classfile)
     jvm.run_class(rs, class_data, args[1..], ->
       $('#heap_size').text rs.heap.length-1
       controller.reprompt()
