@@ -37,7 +37,7 @@ class root.Field extends AbstractMethodField
 
   reflector: (rs) ->
     rs.init_object 'java/lang/reflect/Field', {  
-      # XXX this leaves out 'slot' and 'annotations'
+      # XXX this leaves out 'annotations'
       clazz: rs.class_lookup(@class_type,true)
       name: rs.init_string @name, true
       type: rs.class_lookup @type, true
@@ -140,7 +140,7 @@ trapped_methods =
       ResourceBundle: [
         o 'getBundle(L!/lang/String;L!/!/Locale;L!/!/ResourceBundle$Control;)L!/!/!;', getBundle
         o 'getBundle(L!/lang/String;)L!/!/!;', getBundle
-        o 'getLoader()L!/lang/ClassLoader;', (rs) -> rs.set_obj 'java/lang/ClassLoader', {} # mock
+        o 'getLoader()L!/lang/ClassLoader;', (rs) -> rs.init_object 'java/lang/ClassLoader' # mock
       ]
       EnumSet: [
         o 'getUniverse(L!/lang/Class;)[L!/lang/Enum;', (rs) ->
@@ -627,7 +627,7 @@ class root.Method extends AbstractMethodField
       # XXX: missing checkedExceptions, annotations, parameterAnnotations, annotationDefault
       clazz: rs.class_lookup(@class_type, true)
       name: rs.init_string @name, true
-      parameterTypes: rs.set_obj "[Ljava/lang/Class;", (rs.class_lookup(f.type,true) for f in @param_types)
+      parameterTypes: rs.init_object "[Ljava/lang/Class;", (rs.class_lookup(f,true) for f in @param_types)
       returnType: rs.class_lookup @return_type, true
       modifiers: @access_byte
       slot: parseInt((i for i,v of rs.class_lookup(@class_type).methods when v is @)[0])

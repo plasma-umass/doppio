@@ -149,8 +149,7 @@ class root.RuntimeState
         @classes[type] = {file: '<primitive>', obj: @set_obj(c2t('java/lang/Class'), { $type: type, name: 0 })}
       else
         data = @read_classfile cls
-        #java_throw @, 'java/lang/NoClassDefFoundError', cls unless data?
-        thrown "no class def found: #{cls}" unless data?
+        java_throw @, 'java/lang/NoClassDefFoundError', cls unless data?
         @classes[cls] =
           file: new ClassFile(data), 
           obj:  @set_obj(c2t('java/lang/Class'), { $type: type, name: 0 })

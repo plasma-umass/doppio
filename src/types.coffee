@@ -67,7 +67,7 @@ class root.ClassType extends root.Type
 
   toExternalString: -> util.ext_classname @class_name
 
-class root.VoidType extends root.Type
+class root.VoidType extends root.PrimitiveType
   toString: -> 'V'
 
   toExternalString: -> 'void'
