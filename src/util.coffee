@@ -51,14 +51,6 @@ root.uint2int = (uint, bytes_count) ->
 root.bytestr_to_array = (bytecode_string) ->
   (bytecode_string.charCodeAt(i) & 0xFF for i in [0...bytecode_string.length])
 
-root.is_array = (typestr) -> typestr[0] == '['
-
-root.is_class = (typestr) -> typestr[0] == 'L'
-
-root.unarray = (typestr) -> typestr.slice(1) # strips one level of array from type sig
-
-root.class_from_type = (typestr) -> typestr[1...typestr.length-1] # LClassName; -> ClassName
-
 root.parse_flags = (flag_byte) ->
   {
     public:       flag_byte & 0x1

@@ -18,7 +18,7 @@ root = exports ? this.methods = {}
 
 class AbstractMethodField
   """ Subclasses need to implement parse_descriptor(String) """
-  constructor: (@class_name) ->
+  constructor: (@class_type) ->
 
   parse: (bytes_array,constant_pool) ->
     @access_byte = util.read_uint(bytes_array.splice(0,2))
@@ -36,13 +36,13 @@ class root.Field extends AbstractMethodField
       @static_value = null  # loaded in when getstatic is called
 
   reflector: (rs) ->
-    rs.set_obj 'java/lang/reflect/Field', {  
+    rs.init_object 'java/lang/reflect/Field', {  
       # XXX this leaves out 'slot' and 'annotations'
-      clazz: rs.init_class_object c2t @class_name
+      clazz: rs.class_lookup(@class_type,true)
       name: rs.init_string @name, true
-      type: rs.init_class_object @type
+      type: rs.class_lookup @type, true
       modifiers: @access_byte
-      slot: parseInt((i for i,v of rs.class_lookup(@class_name).fields when v is @)[0])
+      slot: parseInt((i for i,v of rs.class_lookup(@class_type).fields when v is @)[0])
       signature: rs.init_string @raw_descriptor
     }
 
@@ -219,7 +219,7 @@ trapped_methods =
 doPrivileged = (rs) ->
   oref = rs.curr_frame().locals[0]
   action = rs.get_obj(oref)
-  m = rs.method_lookup({'class': action.type, 'sig': {'name': 'run','type':'()Ljava/lang/Object;'}})
+  m = rs.method_lookup({'class': action.type.toClassString(), 'sig': {'name': 'run','type':'()Ljava/lang/Object;'}})
   rs.push oref unless m.access_flags.static
   m.run(rs,m.access_flags.virtual)
   rs.pop()
@@ -250,26 +250,24 @@ native_methods =
   java:
     lang:
       Class: [
-        o 'getPrimitiveClass(L!/!/String;)L!/!/!;', (rs, jvm_str) ->
-            name = rs.jvm2js_str jvm_str
-            rs.init_class_object new types.PrimitiveType name
+        o 'getPrimitiveClass(L!/!/String;)L!/!/!;', (rs, jvm_str) -> 
+            rs.class_lookup(new types.PrimitiveType(rs.jvm2js_str(jvm_str)), true)
         o 'getClassLoader0()L!/!/ClassLoader;', (rs) -> null  # we don't need no stinkin classloaders
         o 'desiredAssertionStatus0(L!/!/!;)Z', (rs) -> false # we don't need no stinkin asserts
         o 'getName0()L!/!/String;', (rs, _this) ->
             rs.init_string(_this.fields.$type.toExternalString())
         o 'forName0(L!/!/String;ZL!/!/ClassLoader;)L!/!/!;', (rs, jvm_str) ->
-            classname = util.int_classname rs.jvm2js_str(jvm_str)
-            throw "Class.forName0: Failed to load #{classname}" unless rs.class_lookup(classname)
-            rs.init_class_object c2t util.int_classname classname
+            type = c2t util.int_classname rs.jvm2js_str(jvm_str)
+            rs.class_lookup type, true
         o 'getComponentType()L!/!/!;', (rs, _this) ->
             type = _this.fields.$type
             return null unless (type instanceof types.ArrayType)
-            rs.init_class_object type.component_type
+            rs.class_lookup type.component_type, true
         o 'isAssignableFrom(L!/!/!;)Z', (rs, _this, cls) ->
             rs.is_castable cls.fields.$type, _this.fields.$type
         o 'isInterface()Z', (rs, _this) ->
             return false unless _this.fields.$type instanceof types.ClassType
-            cls = rs.class_lookup _this.fields.$type.toClassString()
+            cls = rs.class_lookup _this.fields.$type
             cls.access_flags.interface
         o 'isPrimitive()Z', (rs, _this) ->
             _this.fields.$type instanceof types.PrimitiveType
@@ -280,29 +278,27 @@ native_methods =
             if (type instanceof types.PrimitiveType) or
                (type instanceof types.VoidType) or type == 'Ljava/lang/Object;'
               return null
-            cls = rs.class_lookup type.toClassString()
+            cls = rs.class_lookup type
             if cls.access_flags.interface
               return null
-            rs.init_class_object c2t cls.super_class
+            rs.class_lookup cls.super_class, true
         o 'getDeclaredFields0(Z)[Ljava/lang/reflect/Field;', (rs, _this, public_only) ->
-            fields = rs.class_lookup(_this.fields.$type.toClassString()).fields
+            fields = rs.class_lookup(_this.fields.$type).fields
             fields = (f for f in fields when f.access_flags.public) if public_only
-            rs.class_lookup 'java/lang/reflect/Field'
-            rs.set_obj('[Ljava/lang/reflect/Field;',(f.reflector(rs) for f in fields))
+            rs.init_object('[Ljava/lang/reflect/Field;',(f.reflector(rs) for f in fields))
         o 'getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;', (rs, _this, public_only) ->
-            methods = rs.class_lookup(_this.fields.$type.toClassString()).methods
+            methods = rs.class_lookup(_this.fields.$type).methods
             methods = (m for m in methods when m.access_flags.public) if public_only
-            rs.class_lookup 'java/lang/reflect/Method'
-            rs.set_obj('[Ljava/lang/reflect/Method;',(m.reflector(rs) for m in methods))
-        o 'getModifiers()I', (rs, _this) -> rs.class_lookup(_this.fields.$type.toClassString()).access_byte
+            rs.init_object('[Ljava/lang/reflect/Method;',(m.reflector(rs) for m in methods))
+        o 'getModifiers()I', (rs, _this) -> rs.class_lookup(_this.fields.$type).access_byte
       ],
       ClassLoader: [
         o 'findLoadedClass0(L!/!/String;)L!/!/Class;', (rs, _this, name) ->
-            rs.class_objects[util.int_classname rs.jvm2js_str name]
+            type = c2t util.int_classname rs.jvm2js_str name
+            rs.class_lookup type, true
         o 'findBootstrapClass(L!/!/String;)L!/!/Class;', (rs, _this, name) ->
-            cls = util.int_classname rs.jvm2js_str name
-            rs.class_lookup cls
-            rs.init_class_object c2t cls
+            type = c2t util.int_classname rs.jvm2js_str name
+            rs.class_lookup type, true
       ],
       Float: [
         o 'floatToRawIntBits(F)I', (rs, f_val) ->  #note: not tested for weird values
@@ -328,13 +324,13 @@ native_methods =
       ]
       Object: [
         o 'getClass()L!/!/Class;', (rs, _this) ->
-            rs.init_class_object c2t _this.type
+            rs.class_lookup _this.type, true
         o 'hashCode()I', (rs, _this) ->
             # return heap reference. XXX need to change this if we ever implement
             # GC that moves stuff around.
             _this.ref
         o 'clone()L!/!/!;', (rs, _this) ->
-            if util.is_array _this.type then rs.set_obj _this.type, _this.array
+            if _this.type instanceof types.ArrayType then rs.set_obj _this.type, _this.array
             else rs.set_obj _this.type, _this.fields
       ]
       reflect:
@@ -388,7 +384,7 @@ native_methods =
               rs.push (g_ref = rs.init_object 'java/lang/ThreadGroup')
               # have to run the private ThreadGroup constructor
               rs.method_lookup({class: 'java/lang/ThreadGroup', sig: {name:'<init>',type:'()V'}}).run(rs)
-              rs.main_thread = rs.set_obj 'java/lang/Thread', { priority: 1, group: g_ref, threadLocals: 0 }
+              rs.main_thread = rs.init_object 'java/lang/Thread', { priority: 1, group: g_ref, threadLocals: 0 }
               rs.field_lookup({class: 'java/lang/Thread', sig: {name:'threadSeqNumber'}}).static_value = 0
             rs.main_thread
         o 'setPriority0(I)V', (rs) -> # NOP
@@ -408,7 +404,7 @@ native_methods =
             # we don't want to include the stack frames that were created by
             # the construction of this exception
             for sf in rs.meta_stack.slice(1) when sf.locals[0] isnt _this.ref
-              cls = sf.method.class_name
+              cls = sf.method.class_type
               attrs = rs.class_lookup(cls).attrs
               source_file =
                 _.find(attrs, (attr) -> attr.constructor.name == 'SourceFile')?.name or 'unknown'
@@ -555,11 +551,11 @@ native_methods =
             obj.fields[field_name] = x.ref
             true
         o 'ensureClassInitialized(Ljava/lang/Class;)V', (rs,_this,cls) -> 
-            rs.class_lookup(cls.fields.$type.toClassString())
+            rs.class_lookup(cls.fields.$type)
         o 'staticFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.fields.slot)
         o 'objectFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.fields.slot)
         o 'staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;', (rs,_this,field) ->
-            rs.set_obj rs.get_obj(field.fields.clazz).fields.$type.toClassString()
+            rs.set_obj rs.get_obj(field.fields.clazz).fields.$type
         o 'getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
             f = get_field_from_offset rs, rs.class_lookup(obj.type), offset.toInt()
             return f.static_value if f.access_flags.static
@@ -572,8 +568,8 @@ native_methods =
     reflect:
       NativeMethodAccessorImpl: [
         o 'invoke0(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;', (rs,m,obj,params) ->
-            cls = rs.get_obj(m.fields.clazz).fields.$type.toClassString()
-            method = rs.class_lookup(cls).methods[m.fields.slot]
+            type = rs.get_obj(m.fields.clazz).fields.$type
+            method = rs.class_lookup(type).methods[m.fields.slot]
             rs.push obj.ref unless method.access_flags.static
             rs.push params.array...
             method.run(rs)
@@ -582,10 +578,10 @@ native_methods =
       Reflection: [
         o 'getCallerClass(I)Ljava/lang/Class;', (rs, frames_to_skip) ->
             #TODO: disregard frames assoc. with java.lang.reflect.Method.invoke() and its implementation
-            cls = rs.meta_stack[rs.meta_stack.length-1-frames_to_skip].method.class_name
-            rs.init_class_object c2t cls
+            type = rs.meta_stack[rs.meta_stack.length-1-frames_to_skip].method.class_type
+            rs.class_lookup type, true
         o 'getClassAccessFlags(Ljava/lang/Class;)I', (rs, _this) ->
-            rs.class_lookup(_this.fields.$type.toClassString()).access_byte
+            rs.class_lookup(_this.fields.$type).access_byte
       ]
 
 flatten_pkg = (pkg) ->
@@ -627,14 +623,14 @@ class root.Method extends AbstractMethodField
     @return_type = str2type return_str
 
   reflector: (rs) ->
-    rs.set_obj 'java/lang/reflect/Method', {
+    rs.init_object 'java/lang/reflect/Method', {
       # XXX: missing checkedExceptions, annotations, parameterAnnotations, annotationDefault
-      clazz: rs.init_class_object c2t @class_name
+      clazz: rs.class_lookup(@class_type, true)
       name: rs.init_string @name, true
-      parameterTypes: rs.set_obj "[Ljava/lang/Class;", (rs.init_class_object f.type for f in @param_types)
-      returnType: rs.init_class_object @return_type
+      parameterTypes: rs.set_obj "[Ljava/lang/Class;", (rs.class_lookup(f.type,true) for f in @param_types)
+      returnType: rs.class_lookup @return_type, true
       modifiers: @access_byte
-      slot: parseInt((i for i,v of rs.class_lookup(@class_name).methods when v is @)[0])
+      slot: parseInt((i for i,v of rs.class_lookup(@class_type).methods when v is @)[0])
       signature: rs.init_string @raw_descriptor
     }
 
@@ -683,8 +679,8 @@ class root.Method extends AbstractMethodField
         throw "#{@name}:#{pc} => (null)" unless op
         debug "#{padding}stack: [#{pa cf.stack}], local: [#{pa cf.locals}]"
         annotation =
-          util.lookup_handler(opcode_annotators, op, pc, rs.class_lookup(@class_name).constant_pool) or ""
-        debug "#{padding}#{@class_name}::#{@name}:#{pc} => #{op.name}" + annotation
+          util.lookup_handler(opcode_annotators, op, pc, rs.class_lookup(@class_type).constant_pool) or ""
+        debug "#{padding}#{@class_type.toClassString()}::#{@name}:#{pc} => #{op.name}" + annotation
         op.execute rs
         rs.inc_pc(1 + op.byte_count)  # move to the next opcode
       catch e
@@ -696,13 +692,13 @@ class root.Method extends AbstractMethodField
           rs.push e.values...
           break
         else if e instanceof util.YieldException
-          debug "yielding from #{@class_name}::#{@name}#{@raw_descriptor}"
+          debug "yielding from #{@class_type.toClassString()}::#{@name}#{@raw_descriptor}"
           throw e  # leave everything as-is
         else if e instanceof util.JavaException
           exception_handlers = @get_code().exception_handlers
           handler = _.find exception_handlers, (eh) ->
             eh.start_pc <= pc < eh.end_pc and
-              (eh.catch_type == "<any>" or rs.is_castable c2t(e.exception.type), c2t(eh.catch_type))
+              (eh.catch_type == "<any>" or rs.is_castable e.exception.type, c2t(eh.catch_type))
           if handler?
             rs.push e.exception_ref
             rs.goto_pc handler.handler_pc
@@ -713,6 +709,7 @@ class root.Method extends AbstractMethodField
         throw e # JVM Error
 
   run: (runtime_state,virtual=false) ->
+    sig = "#{@class_type.toClassString()}::#{@name}#{@raw_descriptor}"
     if runtime_state.resuming_stack?
       runtime_state.resuming_stack++
       if virtual
@@ -727,16 +724,15 @@ class root.Method extends AbstractMethodField
       if virtual
         # dirty hack to bounce up the inheritance tree, to make sure we call the method on the most specific type
         oref = caller_stack[caller_stack.length-@param_bytes()]
-        error "undef'd oref: (#{caller_stack})[-#{@param_bytes()}] (#{@class_name}::#{@name}#{@raw_descriptor})" unless oref
+        error "undef'd oref: (#{caller_stack})[-#{@param_bytes()}] (#{sig})" unless oref
         obj = runtime_state.get_obj(oref)
-        m_spec = {class: obj.type, sig: {name:@name, type:@raw_descriptor}}
+        m_spec = {class: obj.type.toClassString(), sig: {name:@name, type:@raw_descriptor}}
         m = runtime_state.method_lookup(m_spec)
         #throw "abstract method got called: #{@name}#{@raw_descriptor}" if m.access_flags.abstract
         return m.run(runtime_state)
       params = @take_params caller_stack
       runtime_state.meta_stack.push(new runtime.StackFrame(this,params,[]))
     padding = (' ' for [2...runtime_state.meta_stack.length]).join('')
-    sig = "#{@class_name}::#{@name}#{@raw_descriptor}"
     debug "#{padding}entering method #{sig}"
     # check for trapped and native methods, run those manually
     cf = runtime_state.curr_frame()

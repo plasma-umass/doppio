@@ -2,7 +2,7 @@
 gLong ?= require '../third_party/gLong.js'
 util ?= require './util'
 types ?= require './types'
-{java_throw, ext_classname,BranchException,ReturnException,JavaException} = util
+{java_throw,BranchException,ReturnException,JavaException} = util
 {c2t} = types
 
 root = exports ? this.opcodes = {}
@@ -59,7 +59,7 @@ class root.LoadConstantOpcode extends root.Opcode
     val = rs.string_redirect(val, @cls) if @constant.type is 'String'
     if @constant.type is 'class'
       jvm_str = rs.get_obj(rs.string_redirect(val,@cls))
-      val = rs.init_class_object c2t rs.jvm2js_str(jvm_str)
+      val = rs.class_lookup c2t(rs.jvm2js_str(jvm_str)), true
     rs.push val
     rs.push null if @name is 'ldc2_w'
 
@@ -216,8 +216,8 @@ class root.MultiArrayOpcode extends root.Opcode
     counts = rs.curr_frame().stack.splice(rs.length-@dim)
     init_arr = (curr_dim) =>
       return 0 if curr_dim == @dim
-      type = @class[curr_dim..]
-      rs.set_obj type, (init_arr(curr_dim+1) for [0...counts[curr_dim]])
+      typestr = @class[curr_dim..]
+      rs.init_object typestr, (init_arr(curr_dim+1) for [0...counts[curr_dim]])
     rs.push init_arr 0
 
 class root.ArrayLoadOpcode extends root.Opcode
@@ -476,8 +476,8 @@ root.opcodes = {
     if o == 0 or rs.check_cast(o,@class)
       rs.push o
     else
-      target_class = ext_classname @class # class we wish to cast to
-      candidate_class = if o != 0 then ext_classname rs.get_obj(o).type else "null"
+      target_class = c2t(@class).toExternalString() # class we wish to cast to
+      candidate_class = if o != 0 then rs.get_obj(o).type.toExternalString() else "null"
       java_throw rs, 'java/lang/ClassCastException', "#{candidate_class} cannot be cast to #{target_class}"
   }
   193: new root.ClassOpcode 'instanceof', { execute: (rs) -> o=rs.pop(); rs.push if o>0 then rs.check_cast(o,@class)+0 else 0 }

@@ -35,7 +35,8 @@ root.carr2type = (carr) ->
 # another convenience function, for converting class names to
 # array types / class types
 root.c2t = (type_str) ->
-  if type_str[0] == '[' then root.str2type type_str
+  if type_str instanceof root.Type then throw "#{type_str} is already a Type"
+  else if type_str[0] == '[' then root.str2type type_str
   else new root.ClassType type_str
 
 class root.Type

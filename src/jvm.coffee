@@ -3,7 +3,7 @@
 _ ?= require '../third_party/underscore-min.js'
 runtime ?= require './runtime'
 util ?= require './util'
-{log,debug,error,ext_classname} = util
+{log,debug,error} = util
 
 # things assigned to root will be available outside this module
 root = exports ? this.jvm = {}
@@ -15,25 +15,26 @@ show_state = (rs) ->
   debug " ...omitted heap entries..." if i > 1
   while i < rs.heap.length
     obj = rs.heap[i]
-    if obj.type is '[C' and rs.heap[i+1] and rs.heap[i+1].type is 'java/lang/String'
+    typestr = obj.type.toString()
+    if typestr is '[C' and rs.heap[i+1] and rs.heap[i+1].type.toClassString() is 'java/lang/String'
       debug " #{i},#{i+1}: String \"#{rs.jvm2js_str(rs.heap[i+1])}\""
       ++i
-    else if obj.type is 'java/lang/String'
+    else if typestr is 'Ljava/lang/String;'
       try
         debug " #{i}: String \"#{rs.jvm2js_str(obj)}\""
       catch err
         debug " #{i}: String (null value)"
-    else if obj.type[0] is '['
-      debug " #{i}: #{obj.type.slice(1)}[#{obj.array.length}]"
+    else if typestr[0] is '['
+      debug " #{i}: #{obj.type.component_type}[#{obj.array.length}]"
     else
-      debug " #{i}: #{rs.heap[i].type}"
+      debug " #{i}: #{typestr}"
     ++i
 
 show_stacktrace = (rs,e) ->
   e_type = rs.get_obj(e.exception.fields.cause).type
   detail_ref = e.exception.fields.detailMessage
   detail = if detail_ref then rs.jvm2js_str rs.get_obj detail_ref else ''
-  rs.print "Exception in thread \"main\" #{ext_classname e_type}: #{detail}\n"
+  rs.print "Exception in thread \"main\" #{e_type.toExternalString()}: #{detail}\n"
   stack = e.exception.fields.$stack
   for i in [stack.length-1..0] by -1
     entry = stack[i]
@@ -41,7 +42,7 @@ show_stacktrace = (rs,e) ->
 
 # main function that gets called from the frontend
 root.run_class = (rs, class_data, cmdline_args, cb) ->
-  main_spec = {'class': class_data.this_class, 'sig': {'name': 'main'}}
+  main_spec = {'class': class_data.this_class.toClassString(), 'sig': {'name': 'main'}}
   rs.initialize(class_data,cmdline_args)
   run = ->
     try

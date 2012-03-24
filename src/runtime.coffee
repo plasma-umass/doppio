@@ -21,13 +21,17 @@ class root.RuntimeState
     # for interned strings and string literals
     @string_pool = {}
     @string_redirector = {}
-    @class_objects = {}  # each java/lang/Class is like an interned string, only stored once
 
   initialize: (class_data, initial_args) ->
-    @classes[class_data.this_class] = class_data
-    args = @set_obj('[Ljava/lang/String;',(@init_string(a) for a in initial_args))
+    type = class_data.this_class
+    cls = type.toClassString()
+    @classes[cls] = { 
+      file: class_data, 
+      obj: @set_obj c2t('java/lang/Class'), { $type: type, name: 0 }
+    }
+    args = @set_obj(c2t('[Ljava/lang/String;'),(@init_string(a) for a in initial_args))
     @meta_stack = [new root.StackFrame(null,[],[args])]  # start with a bogus ground state
-    @method_lookup({'class': class_data.this_class, 'sig': {'name': '<clinit>'}}).run(this)
+    @method_lookup({'class': cls, 'sig': {'name': '<clinit>'}}).run(this)
 
   # string stuff
   jvm2js_str: (jvm_str) ->
@@ -37,7 +41,7 @@ class root.RuntimeState
     (util.bytes2str carr).substr(offset ? 0, count)
   string_redirect: (oref,cls) ->
     key = "#{cls}::#{oref}"
-    cdata = @class_lookup(cls)
+    cdata = @class_lookup(c2t(cls))
     unless @string_redirector[key]
       cstr = cdata.constant_pool.get(oref)
       throw new Error "can't redirect const string at #{oref}" unless cstr and cstr.type is 'Asciz'
@@ -74,13 +78,13 @@ class root.RuntimeState
     java_throw @, 'java/lang/NullPointerException', '' unless @heap[oref]?
     @heap[oref]
   set_obj: (type, obj={}) ->
-    if util.is_array type
+    if type instanceof types.ArrayType
       @heap.push type: type, array: obj, ref: @heap.length
     else
       @heap.push type: type, fields: obj, ref: @heap.length
     @heap.length - 1
 
-  heap_newarray: (type,len) -> @set_obj("[#{type}",(0 for [0...len]))
+  heap_newarray: (type,len) -> @set_obj(c2t("[#{type}"),(0 for [0...len]))
   heap_put: (field_spec) ->
     val = if field_spec.sig.type in ['J','D'] then @pop2() else @pop()
     obj = @get_obj @pop()
@@ -108,41 +112,48 @@ class root.RuntimeState
 
   # heap object initialization
   init_object: (cls, obj) ->
-    @class_lookup cls
-    @set_obj cls, obj
+    type = c2t(cls)
+    @class_lookup type
+    @set_obj type, obj
   init_string: (str,intern=false) ->
     return @string_pool[str] if intern and @string_pool[str]? and typeof @string_pool[str] isnt 'function'
-    c_ref = @set_obj('[C',(str.charCodeAt(i) for i in [0...str.length]))
-    s_ref = @set_obj 'java/lang/String', {'value':c_ref, 'count':str.length}
+    c_ref = @set_obj c2t('[C'), (str.charCodeAt(i) for i in [0...str.length])
+    s_ref = @set_obj c2t('java/lang/String'), {'value':c_ref, 'count':str.length}
     @string_pool[str] = s_ref if intern
     return s_ref
-  init_class_object: (type) ->
-    unless @class_objects[type]?
-      @class_objects[type] = @set_obj 'java/lang/Class', { $type: type, name: 0 }
-    return @class_objects[type]
 
   # lookup methods
-  class_lookup: (cls) ->
-    unless @classes[cls]
+  class_lookup: (type,get_obj=false) ->
+    throw "class_lookup needs a type object, got #{typeof type}: #{type}" unless type instanceof types.Type
+    cls = type.toClassString?() ? type.toString()
+    unless @classes[cls]?
       # fetch the relevant class file, make a ClassFile, put it in @classes[cls]
       trace "loading new class: #{cls}"
-      if util.is_array cls
-        @classes[cls] =
+      if type instanceof types.ArrayType
+        class_file =
           constant_pool: new ConstantPool
           access_flags: {}
-          this_class: cls
-          super_class: 'java/lang/Object'
+          this_class: type
+          super_class: c2t('java/lang/Object')
           interfaces: []
           fields: []
           methods: []
           attrs: []
-        component = util.unarray cls
-        if util.is_array component or util.is_class component
+        @classes[cls] = 
+          file: class_file, 
+          obj: @set_obj(c2t('java/lang/Class'), { $type: type, name: 0 })
+        component = type.component_type
+        if component instanceof types.ArrayType or component instanceof types.ClassType
           @class_lookup component
+      else if type instanceof types.PrimitiveType
+        @classes[type] = {file: '<primitive>', obj: @set_obj(c2t('java/lang/Class'), { $type: type, name: 0 })}
       else
         data = @read_classfile cls
-        java_throw @, 'java/lang/NoClassDefFoundError', cls unless data?
-        @classes[cls] = new ClassFile data
+        #java_throw @, 'java/lang/NoClassDefFoundError', cls unless data?
+        thrown "no class def found: #{cls}" unless data?
+        @classes[cls] =
+          file: new ClassFile(data), 
+          obj:  @set_obj(c2t('java/lang/Class'), { $type: type, name: 0 })
         #old_loglevel = util.log_level  # suppress logging for init stuff
         #util.log_level = util.ERROR
         # run class initialization code
@@ -150,10 +161,11 @@ class root.RuntimeState
         if cls is 'java/lang/System'  # zomg hardcode
           @method_lookup({'class': cls, 'sig': {'name': 'initializeSystemClass'}}).run(this)
         #util.log_level = old_loglevel  # resume logging
-    throw "class #{cls} not found!" unless @classes[cls]
-    @classes[cls]
+    c = @classes[cls]
+    throw "class #{cls} not found!" unless c?
+    if get_obj then c.obj else c.file
   method_lookup: (method_spec) ->
-    cls = @class_lookup(method_spec.class)
+    cls = @class_lookup(c2t(method_spec.class))
     filter_methods = (methods) ->
       ms = (m for m in methods when m.name is method_spec.sig.name)
       unless ms.length == 1 and not method_spec.sig.type?
@@ -166,17 +178,17 @@ class root.RuntimeState
       break if method or not c['super_class']
       c = @class_lookup(c.super_class)
     return method if method?
-    ifaces = (cls.constant_pool.get(i).deref() for i in cls.interfaces)
+    ifaces = (c2t(cls.constant_pool.get(i).deref()) for i in cls.interfaces)
     while ifaces.length > 0
       iface_name = ifaces.shift()
       ifc = @class_lookup iface_name
       method = filter_methods ifc.methods
       break if method?
-      ifaces.push.apply (ifc.constant_pool.get(i).deref() for i in ifc.interfaces)
+      ifaces.push.apply (c2t(ifc.constant_pool.get(i).deref()) for i in ifc.interfaces)
     throw "no such method found in #{method_spec.class}: #{method_spec.sig.name}#{method_spec.sig.type}" unless method
     method
   field_lookup: (field_spec) ->
-    c = @class_lookup(field_spec.class)
+    c = @class_lookup(c2t(field_spec.class))
     while true
       field = _.find(c.fields, (f)-> f.name is field_spec.sig.name)
       break if field or not c['super_class']
@@ -192,7 +204,7 @@ class root.RuntimeState
   is_subinterface: (iface1, iface2) ->
     return true if iface1['this_class'] is iface2['this_class']
     for i in iface1.interfaces
-      super_iface =  @class_lookup iface1.constant_pool.get(i).deref()
+      super_iface =  @class_lookup c2t(iface1.constant_pool.get(i).deref())
       return true if @is_subinterface super_iface, iface2
     return false unless iface1['super_class']  # it's java/lang/Object, can't go further
     return @is_subinterface @class_lookup(iface1.super_class), iface2
@@ -200,7 +212,7 @@ class root.RuntimeState
   # Retrieves the heap object referenced by :oref, and returns a boolean
   # indicating if it can be casted to (i.e. is an instance of) :classname.
   check_cast: (oref, classname) ->
-    @is_castable(c2t(@get_obj(oref).type),c2t(classname))
+    @is_castable(@get_obj(oref).type,c2t(classname))
 
   # Returns a boolean indicating if :type1 is an instance of :type2.
   # :type1 and :type2 should both be instances of types.Type.
@@ -210,13 +222,13 @@ class root.RuntimeState
     if type1 instanceof types.ArrayType
       if type2 instanceof types.ArrayType
         return @is_castable(type1.component_type, type2.component_type)
-      c2 = @class_lookup(type2.class_name)
+      c2 = @class_lookup(type2)
       return type2.class_name is 'java/lang/Object' unless c2.access_flags.interface
       return type2.class_name in ['java/lang/Cloneable','java/io/Serializable']
     # not an array
     return false if type2 instanceof types.ArrayType
-    c1 = @class_lookup(type1.class_name)
-    c2 = @class_lookup(type2.class_name)
+    c1 = @class_lookup(type1)
+    c2 = @class_lookup(type2)
     unless c1.access_flags.interface
       return @is_subclass(c1,c2) unless c2.access_flags.interface
       return @is_subinterface(c1,c2)  # does class c1 support interface c2?

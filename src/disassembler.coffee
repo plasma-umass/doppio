@@ -5,7 +5,6 @@ root = exports ? this.disassembler = {}
 _ ?= require '../third_party/underscore-min.js'
 util ?= require './util'
 opcodes ?= require './opcodes'
-{ext_classname} = util
 
 root.disassemble = (class_file) ->
   access_string = (access_flags) ->
@@ -14,13 +13,13 @@ root.disassemble = (class_file) ->
     privacy = (("#{flag} " if access_flags[flag]) for flag in ordered_flags).join ''
 
   source_file = _.find(class_file.attrs, (attr) -> attr.constructor.name == 'SourceFile')
-  ifaces = (ext_classname(class_file.constant_pool.get(i).deref()) for i in class_file.interfaces).join ','
+  ifaces = (class_file.constant_pool.get(i).deref().toExternalString() for i in class_file.interfaces).join ','
   rv = "Compiled from \"#{source_file.name}\"\n"
   rv += access_string class_file.access_flags
   if class_file.access_flags.interface
-    rv += "interface #{ext_classname class_file.this_class} extends #{ifaces}\n"
+    rv += "interface #{class_file.this_class.toExternalString()} extends #{ifaces}\n"
   else
-    rv += "class #{ext_classname class_file.this_class} extends #{ext_classname class_file.super_class}"
+    rv += "class #{class_file.this_class.toExternalString()} extends #{class_file.super_class.toExternalString()}"
     rv += if (ifaces and not class_file.access_flags.interface) then " implements #{ifaces}\n" else '\n'
   rv += "  SourceFile: \"#{source_file.name}\"\n" if source_file
   inner_classes = (attr for attr in class_file.attrs when attr.constructor.name is 'InnerClasses')
@@ -83,7 +82,7 @@ root.disassemble = (class_file) ->
     rv += access_string m.access_flags
     rv +=
       # initializers are special-cased
-      if m.name is '<init>' then ext_classname class_file.this_class # instance init
+      if m.name is '<init>' then class_file.this_class.toExternalString() # instance init
       else if m.name is '<clinit>' then "{}" # class init
       else
         ret_type = if m.return_type? then pp_type m.return_type else ""
