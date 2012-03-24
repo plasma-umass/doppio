@@ -47,11 +47,14 @@
 </head>
 <body>
 <div id='main'>
-  <h1 id='title'>DoppioVM</h1>
-  <form class='form-inline' style='margin: 8px 0 3px 0'>
-    <label for='file' class='control-label'>Load file:</label>
-    <input type="file" id="file"/>
-  </form>
+  <header class='page-header'>
+    <h1 id='title' style='float:left'>DoppioVM</h1>
+    <form class='form-inline' style='margin: 8px 0 3px 0;float:right'>
+      <label for='file' class='control-label'>Load file:</label>
+      <input type="file" id="file"/>
+    </form>
+    <h1>&nbsp;</h1>
+  </header>
   <div id='ide' style='display:none'>
     <div id='source'></div>
     <!-- the Ace editor affects document flow weirdly, hence this hack -->
