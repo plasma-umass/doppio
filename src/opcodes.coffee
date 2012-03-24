@@ -280,16 +280,16 @@ jsr = (rs) ->
 # these objects are used as prototypes for the parsed instructions in the
 # classfile
 root.opcodes = {
-  00: new root.Opcode 'nop', { execute: -> }
-  01: new root.Opcode 'aconst_null', { execute: (rs) -> rs.push 0 }
-  02: new root.Opcode 'iconst_m1', { execute: (rs) -> rs.push -1 }
-  03: new root.Opcode 'iconst_0', { execute: (rs) -> rs.push 0 }
-  04: new root.Opcode 'iconst_1', { execute: (rs) -> rs.push 1 }
-  05: new root.Opcode 'iconst_2', { execute: (rs) -> rs.push 2 }
-  06: new root.Opcode 'iconst_3', { execute: (rs) -> rs.push 3 }
-  07: new root.Opcode 'iconst_4', { execute: (rs) -> rs.push 4 }
-  08: new root.Opcode 'iconst_5', { execute: (rs) -> rs.push 5 }
-  09: new root.Opcode 'lconst_0', { execute: (rs) -> rs.push gLong.fromInt(0), null }
+  0: new root.Opcode 'nop', { execute: -> }
+  1: new root.Opcode 'aconst_null', { execute: (rs) -> rs.push 0 }
+  2: new root.Opcode 'iconst_m1', { execute: (rs) -> rs.push -1 }
+  3: new root.Opcode 'iconst_0', { execute: (rs) -> rs.push 0 }
+  4: new root.Opcode 'iconst_1', { execute: (rs) -> rs.push 1 }
+  5: new root.Opcode 'iconst_2', { execute: (rs) -> rs.push 2 }
+  6: new root.Opcode 'iconst_3', { execute: (rs) -> rs.push 3 }
+  7: new root.Opcode 'iconst_4', { execute: (rs) -> rs.push 4 }
+  8: new root.Opcode 'iconst_5', { execute: (rs) -> rs.push 5 }
+  9: new root.Opcode 'lconst_0', { execute: (rs) -> rs.push gLong.fromInt(0), null }
   10: new root.Opcode 'lconst_1', { execute: (rs) -> rs.push gLong.fromInt(1), null }
   11: new root.Opcode 'fconst_0', { execute: (rs) -> rs.push 0 }
   12: new root.Opcode 'fconst_1', { execute: (rs) -> rs.push 1 }
@@ -369,17 +369,17 @@ root.opcodes = {
   86: new root.Opcode 'sastore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
   87: new root.Opcode 'pop', { execute: (rs) -> rs.pop() }
   88: new root.Opcode 'pop2', { execute: (rs) -> rs.pop2() }
-  089: new root.Opcode 'dup', { execute: (rs) -> v=rs.pop(); rs.push(v,v) }
-  090: new root.Opcode 'dup_x1', { execute: (rs) -> v1=rs.pop(); v2=rs.pop(); rs.push(v1,v2,v1) }
-  091: new root.Opcode 'dup_x2', {execute: (rs) -> [v1,v2,v3]=[rs.pop(),rs.pop(),rs.pop()];rs.push(v1,v3,v2,v1)}
-  092: new root.Opcode 'dup2', {execute: (rs) -> v1=rs.pop(); v2=rs.pop(); rs.push(v2,v1,v2,v1)}
-  093: new root.Opcode 'dup2_x1', {execute: (rs) -> [v1,v2,v3]=[rs.pop(),rs.pop(),rs.pop()];rs.push(v2,v1,v3,v2,v1)}
-  094: new root.Opcode 'dup2_x2', {execute: (rs) -> [v1,v2,v3,v4]=[rs.pop(),rs.pop(),rs.pop(),rs.pop()];rs.push(v2,v1,v4,v3,v2,v1)}
-  095: new root.Opcode 'swap', {execute: (rs) -> v2=rs.pop(); v1=rs.pop(); rs.push(v2,v1)}
-  096: new root.Opcode 'iadd', { execute: (rs) -> rs.push wrap_int(rs.pop()+rs.pop()) }
-  097: new root.Opcode 'ladd', { execute: (rs) -> rs.push(rs.pop2().add(rs.pop2()), null) }
-  098: new root.Opcode 'fadd', { execute: (rs) -> rs.push wrap_float(rs.pop()+rs.pop()) }
-  099: new root.Opcode 'dadd', { execute: (rs) -> rs.push(rs.pop2()+rs.pop2(), null) }
+  89: new root.Opcode 'dup', { execute: (rs) -> v=rs.pop(); rs.push(v,v) }
+  90: new root.Opcode 'dup_x1', { execute: (rs) -> v1=rs.pop(); v2=rs.pop(); rs.push(v1,v2,v1) }
+  91: new root.Opcode 'dup_x2', {execute: (rs) -> [v1,v2,v3]=[rs.pop(),rs.pop(),rs.pop()];rs.push(v1,v3,v2,v1)}
+  92: new root.Opcode 'dup2', {execute: (rs) -> v1=rs.pop(); v2=rs.pop(); rs.push(v2,v1,v2,v1)}
+  93: new root.Opcode 'dup2_x1', {execute: (rs) -> [v1,v2,v3]=[rs.pop(),rs.pop(),rs.pop()];rs.push(v2,v1,v3,v2,v1)}
+  94: new root.Opcode 'dup2_x2', {execute: (rs) -> [v1,v2,v3,v4]=[rs.pop(),rs.pop(),rs.pop(),rs.pop()];rs.push(v2,v1,v4,v3,v2,v1)}
+  95: new root.Opcode 'swap', {execute: (rs) -> v2=rs.pop(); v1=rs.pop(); rs.push(v2,v1)}
+  96: new root.Opcode 'iadd', { execute: (rs) -> rs.push wrap_int(rs.pop()+rs.pop()) }
+  97: new root.Opcode 'ladd', { execute: (rs) -> rs.push(rs.pop2().add(rs.pop2()), null) }
+  98: new root.Opcode 'fadd', { execute: (rs) -> rs.push wrap_float(rs.pop()+rs.pop()) }
+  99: new root.Opcode 'dadd', { execute: (rs) -> rs.push(rs.pop2()+rs.pop2(), null) }
   100: new root.Opcode 'isub', { execute: (rs) -> rs.push wrap_int(-rs.pop()+rs.pop()) }
   101: new root.Opcode 'lsub', { execute: (rs) -> rs.push(rs.pop2().negate().add(rs.pop2()), null) }
   102: new root.Opcode 'fsub', { execute: (rs) -> rs.push wrap_float(-rs.pop()+rs.pop()) }
