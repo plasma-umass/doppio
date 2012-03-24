@@ -66,4 +66,5 @@ root.run_class = (rs, class_data, cmdline_args, cb) ->
         show_state(rs)
         console.error e.stack or e
         cb?()
+        throw e  # so we get the JS traceback
   run()
