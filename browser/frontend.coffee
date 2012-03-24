@@ -159,6 +159,12 @@ commands =
       editor.getSession().setMode new JavaMode
       editor.getSession().setValue(data)
     true
+  mv: (args) ->
+    f = DoppioFile.load args[0]
+    f.name = args[1]
+    f.save()
+    DoppioFile.delete args[0]
+    true
   rm: (args) ->
     return "Usage: rm <file>" unless args[0]?
     # technically we should look only for keys starting with 'file::', but at the
