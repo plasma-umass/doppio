@@ -2,25 +2,28 @@
 user_input = null
 controller = null
 editor = null
-# For caching the runtime state across program runs
-rs = null
+
+class_cache = {}
 
 # Read in a binary classfile synchronously. Return an array of bytes.
 read_classfile = (cls) ->
-  rv = null
-  classpath = [ "http://localhost:8000", "http://localhost:8000/third_party/classes" ]
-  try_path = (path) ->
-    $.ajax "#{path}/#{cls}.class", {
-      type: 'GET'
-      dataType: 'text'
-      async: false
-      beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
-      success: (data) -> rv = util.bytestr_to_array data
-    }
-  for path in classpath
-    try_path path
-    return rv unless rv is null
-  throw "AJAX error when loading class #{cls}"
+  unless class_cache[cls]?
+    classpath = [ "http://localhost:8000", "http://localhost:8000/third_party/classes" ]
+    try_path = (path) ->
+      rv = null
+      $.ajax "#{path}/#{cls}.class", {
+        type: 'GET'
+        dataType: 'text'
+        async: false
+        beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
+        success: (data) -> rv = util.bytestr_to_array data
+      }
+      rv
+    for path in classpath
+      class_cache[cls] = try_path path
+      break if class_cache[cls]?
+  throw "AJAX error when loading class #{cls}" unless class_cache[cls]?
+  class_cache[cls].slice(0) # return a copy
 
 process_bytecode = (bytecode_string) ->
   bytes_array = util.bytestr_to_array bytecode_string
@@ -127,9 +130,8 @@ commands =
     return ["Could not find class '#{args[0]}'.",'error'] unless raw_data?
     class_data = process_bytecode raw_data
     stdout = (str) -> controller.message str, '', true # noreprompt
-    rs ?= new runtime.RuntimeState(stdout, user_input, fs, read_classfile)
+    rs = new runtime.RuntimeState(stdout, user_input, fs, read_classfile)
     jvm.run_class(rs, class_data, args[1..], ->
-      $('#heap_size').text rs.heap.length-1
       controller.reprompt()
     )
   javap: (args) ->
@@ -138,10 +140,11 @@ commands =
     return ["Could not find class '#{args[0]}'.",'error'] unless raw_data?
     class_data = process_bytecode raw_data
     disassembler.disassemble class_data
-  clear_heap: (args) ->
-    rs = null
-    $('#heap_size').text 0
-    "Heap cleared."
+  list_cache: ->
+    (name for name of class_cache).join '\n'
+  clear_cache: (args) ->
+    class_cache = {}
+    "Cache cleared."
   ls: (args) ->
     files =
       for key, file of localStorage when key[..5] == 'file::'
@@ -189,7 +192,8 @@ commands =
     edit <file>            -- Edit a file.
     ls                     -- List all files.
     rm <file>              -- Delete a file.
-    clear_heap             -- Clear the heap.
+    list_cache             -- List the cached class data.
+    clear_cache            -- Clear the cached class data.
     time                   -- Measure how long it takes to run a command.
     """
 
