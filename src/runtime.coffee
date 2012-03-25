@@ -100,14 +100,17 @@ class root.RuntimeState
 
   # static stuff
   static_get: (field_spec) ->
-    val = @field_lookup(field_spec).static_value
+    f = @field_lookup(field_spec)
+    obj = @get_obj @class_lookup(f.class_type, true)
+    val = obj.fields[f.name]
     val ?= if field_spec.sig.type is 'J' then gLong.fromInt(0) else 0
     trace "getting #{field_spec.sig.name} from class #{field_spec.class}: #{val}"
     val
   static_put: (field_spec) ->
     val = if field_spec.sig.type in ['J','D'] then @pop2() else @pop()
-    field = @field_lookup field_spec
-    field.static_value = val
+    f = @field_lookup(field_spec)
+    obj = @get_obj @class_lookup(f.class_type, true)
+    obj.fields[f.name] = val
     trace "setting #{field_spec.sig.name} = #{val} on class #{field_spec.class}"
 
   # heap object initialization

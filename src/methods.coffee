@@ -32,8 +32,6 @@ class AbstractMethodField
 class root.Field extends AbstractMethodField
   parse_descriptor: (@raw_descriptor) ->
     @type = str2type raw_descriptor
-    if @access_flags.static
-      @static_value = null  # loaded in when getstatic is called
 
   reflector: (rs) ->
     rs.init_object 'java/lang/reflect/Field', {  
@@ -348,7 +346,8 @@ native_methods =
               # have to run the private ThreadGroup constructor
               rs.method_lookup({class: 'java/lang/ThreadGroup', sig: {name:'<init>',type:'()V'}}).run(rs)
               rs.main_thread = rs.init_object 'java/lang/Thread', { priority: 1, group: g_ref, threadLocals: 0 }
-              rs.field_lookup({class: 'java/lang/Thread', sig: {name:'threadSeqNumber'}}).static_value = 0
+              rs.push 0  # set up for static_put
+              rs.static_put {class:'java/lang/Thread', sig:{name:'threadSeqNumber'}}
             rs.main_thread
         o 'setPriority0(I)V', (rs) -> # NOP
         o 'holdsLock(L!/!/Object;)Z', -> true
@@ -526,11 +525,11 @@ native_methods =
             rs.set_obj rs.get_obj(field.fields.clazz).fields.$type
         o 'getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
             f = get_field_from_offset rs, rs.class_lookup(obj.type), offset.toInt()
-            return f.static_value if f.access_flags.static
+            return rs.static_get({class:obj.type.toClassString(),sig:{name:f.name}}) if f.access_flags.static
             obj.fields[f.name] ? 0
         o 'getObject(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
             f = get_field_from_offset rs, rs.class_lookup(obj.type), offset.toInt()
-            return f.static_value if f.access_flags.static
+            return rs.static_get({class:obj.type.toClassString(),sig:{name:f.name}}) if f.access_flags.static
             obj.fields[f.name] ? 0
       ]
     reflect:
