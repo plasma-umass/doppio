@@ -219,6 +219,9 @@ commands =
         java FileRead
         java Lzw c foo foo_lzw (use 'cat' or 'edit' to see the result)
         java Lzw d foo_lzw foo
+
+      After running these programs, use 'list_cache' to see the Java Class
+      Library files that they depended upon.
     """
   emacs: -> "Try 'vim'."
   vim: -> "Try 'emacs'."
