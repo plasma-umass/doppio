@@ -131,10 +131,11 @@ trapped_methods =
               rs.print str
             else
               throw "You tried to write to a PrintStream that wasn't System.out or System.err! For shame!"
-            # For the browser implementation -- the DOM doesn't get repainted
-            # unless we give the event loop a chance to spin.
-            rs.curr_frame().resume = -> # NOP
-            throw new util.YieldException (cb) -> setTimeout(cb, 0)
+            if node?
+              # For the browser implementation -- the DOM doesn't get repainted
+              # unless we give the event loop a chance to spin.
+              rs.curr_frame().resume = -> # NOP
+              throw new util.YieldException (cb) -> setTimeout(cb, 0)
       ]
   sun:
     misc:
