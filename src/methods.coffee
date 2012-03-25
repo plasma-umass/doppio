@@ -485,6 +485,10 @@ native_methods =
         o 'canonicalize0(L!/lang/String;)L!/lang/String;', (rs, _this, jvm_path_str) ->
             js_str = rs.jvm2js_str jvm_path_str
             rs.init_string path.resolve path.normalize js_str
+        o 'list(Ljava/io/File;)[Ljava/lang/String;', (rs, _this, file) ->
+            fname = rs.jvm2js_str file.fields.path
+            files = fs.readdirSync(path)
+            rs.init_object('[Ljava/lang/String;',(rs.init_string(f) for f in files))
       ]
     util:
       concurrent:
