@@ -29,7 +29,7 @@ process_bytecode = (bytecode_string) ->
   bytes_array = util.bytestr_to_array bytecode_string
   new ClassFile(bytes_array)
 
-compile_source = (fname) ->
+compile_source = (fname, quiet) ->
   source = DoppioFile.load(fname).read()
   return controller.message "Could not find file '#{fname}'.", 'error' unless source?
   $.ajax 'http://people.cs.umass.edu/~ccarey/javac/', {
@@ -41,7 +41,8 @@ compile_source = (fname) ->
       class_name = fname.split('.')[0]
       (new DoppioFile "#{class_name}.class").write(data).save()
       class_data = process_bytecode(data)
-      controller.reprompt()
+      unless quiet
+        controller.reprompt()
     error: (jqXHR, textStatus, errorThrown) -> 
       controller.message "AJAX error: #{errorThrown}", 'error'
   }
@@ -190,6 +191,35 @@ commands =
     if args[0] == '*' then localStorage.clear()
     else DoppioFile.delete args[0]
     true
+  load_demos: ->
+    demos = ['special/DiffPrint.class', 'special/Chatterbot.java', 'special/Lzw.java',
+      'special/RegexTestHarness.java', 'special/FileRead.java', 'special/foo',
+      'special/bar']
+    for demo in demos
+      $.ajax "http://localhost:8000/test/#{demo}", {
+        type: 'GET'
+        dataType: 'text'
+        async: false
+        beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
+        success: (data) ->
+          fname = _.last(demo.split '/')
+          (new DoppioFile fname).write(data).save()
+          controller.message "Loaded '#{fname}'.\n", 'success', true
+        error: ->
+          fname = _.last(demo.split '/')
+          controller.message "Could not load '#{fname}'.\n", 'error', true
+      }
+    controller.message """
+      All files should have been loaded.
+
+      After compiling them, you may wish to try the following commands:
+        java Chatterbot
+        java DiffPrint foo bar
+        java RegexTestHarness
+        java FileRead
+        java Lzw c foo foo_lzw (use 'cat' or 'edit' to see the result)
+        java Lzw d foo_lzw foo
+    """
   emacs: -> "Try 'vim'."
   vim: -> "Try 'emacs'."
   time: (args) ->
@@ -201,15 +231,25 @@ commands =
     commands[args.shift()](args)
   help: (args) ->
     """
-    javac <source file>    -- Compile Java source.
-    java <class> [args...] -- Run with command-line arguments.
-    javap <class>          -- Display disassembly.
-    edit <file>            -- Edit a file.
-    ls                     -- List all files.
-    rm <file>              -- Delete a file.
-    list_cache             -- List the cached class data.
-    clear_cache            -- Clear the cached class data.
-    time                   -- Measure how long it takes to run a command.
+    Ctrl-D is EOF.
+
+    Java-related commands:
+      javac <source file>    -- Compile Java source.
+      java <class> [args...] -- Run with command-line arguments.
+      javap <class>          -- Display disassembly.
+      time                   -- Measure how long it takes to run a command.
+
+    File management:
+      load_demos             -- Load all demos.
+      cat <file>             -- Display a file in the console.
+      edit <file>            -- Edit a file.
+      ls                     -- List all files.
+      mv <src> <dst>         -- Move / rename a file.
+      rm <file>              -- Delete a file.
+
+    Cache management:
+      list_cache             -- List the cached class files.
+      clear_cache            -- Clear the cached class files.
     """
 
 tabComplete = ->
