@@ -63,9 +63,6 @@ trapped_methods =
         SoftReference: [
           o 'get()Ljava/lang/Object;', (rs) -> null
         ]
-      Object: [
-        o '<clinit>()V', (rs) -> # NOP, for efficiency reasons
-      ]
       System: [
         o 'loadLibrary(L!/!/String;)V', (rs) -> # NOP, because we don't support loading external libraries
         o 'adjustPropertiesForBackwardCompatibility(L!/util/Properties;)V', (rs) -> # NOP (apple-java specific)
