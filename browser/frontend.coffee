@@ -117,7 +117,9 @@ $(document).ready ->
 
   $('#save_btn').click (e) ->
     fname = $('#filename').val()
-    (new DoppioFile fname).write(editor.getSession().getValue()).save()
+    contents = editor.getSession().getValue()
+    contents += '\n' unless contents[contents.length-1] == '\n'
+    (new DoppioFile fname).write(contents).save()
     controller.message("File saved as '#{fname}'.", 'success')
     close_editor()
     e.preventDefault()
