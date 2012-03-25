@@ -194,8 +194,8 @@ get_field_from_offset = (rs, cls, offset) ->
   cls.fields[offset]
 
 stat_file = (fname) ->
-  try 
-    fs.statSync(fname)
+  try
+    if util.is_string(fname) then fs.statSync(fname) else fs.fstatSync(fname)
   catch e
     null
 
@@ -440,13 +440,13 @@ native_methods =
                 byte_arr.array[offset...offset+bytes.length] = bytes
                 result = bytes.length
                 cb()
-        o 'open(Ljava/lang/String;)V', (rs, _this, filename) -> 
-            try
-              _this.fields.$file = fs.openSync rs.jvm2js_str(filename), 'r'
+        o 'open(Ljava/lang/String;)V', (rs, _this, filename) ->
+            filepath = rs.jvm2js_str(filename)
+            try  # TODO: actually look at the mode
+              _this.fields.$file = fs.openSync filepath, 'r'
             catch e
               if e.code == 'ENOENT'
-                util.java_throw rs, 'java/lang/FileNotFoundException',
-                  "Could not open file #{filename}"
+                util.java_throw rs, 'java/lang/FileNotFoundException', "Could not open file #{filepath}"
               else
                 throw e
         o 'close0()V', (rs, _this) -> _this.fields.$file = null
@@ -455,23 +455,26 @@ native_methods =
         o 'initNative()V', (rs) ->  # NOP
       ]
       RandomAccessFile: [
-        o 'open(Ljava/lang/String;I)V', (rs, _this, name, mode) ->
-            mode_str = 'r'
-            mode_str += 'w' if mode & 2 # there's also the sync flag but we're ignoring that
-            # TODO make this an object so we can write back
-            fname = rs.jvm2js_str(name)
-            _this.fields.$file = fs.readFileSync fname, 'binary'
-        o 'length()J', (rs, _this) -> gLong.fromNumber _this.fields.$file.length
+        o 'open(Ljava/lang/String;I)V', (rs, _this, filename, mode) ->
+            filepath = rs.jvm2js_str(filename)
+            try  # TODO: actually look at the mode
+              _this.fields.$file = fs.openSync filepath, 'r'
+            catch e
+              if e.code == 'ENOENT'
+                util.java_throw rs, 'java/lang/FileNotFoundException', "Could not open file #{filepath}"
+              else
+                throw e
+            _this.fields.$pos = 0
+        o 'length()J', (rs, _this) ->
+            stats = stat_file _this.fields.$file
+            gLong.fromNumber stats.size
         o 'seek(J)V', (rs, _this, pos) -> _this.fields.$pos = pos
-        o 'readBytes([BII)I', (rs, _this, bytes_arr, offset, len) ->
-            pos = (_this.fields.$pos ?= 0)
-            data = _this.fields.$file.substr(pos.toInt(), len)
-            # don't use the CS splice syntax here, can result in 'apply overflow'
-            for i in [0...data.length] by 1
-              bytes_arr.array[offset+i] = data.charCodeAt(i)
-            _this.fields.$pos = pos.add(gLong.fromInt(data.length))
+        o 'readBytes([BII)I', (rs, _this, byte_arr, offset, len) ->
+            pos = _this.fields.$pos.toNumber()
+            data = fs.readSync(_this.fields.$file, len, pos, 'utf8')[0]
+            byte_arr.array[offset...offset+data.length] = (data.charCodeAt(i) for i in [0...data.length])
             return if data.length == 0 and len isnt 0 then -1 else data.length
-        o 'close0()V', (rs) ->
+        o 'close0()V', (rs, _this) -> _this.fields.$file = null
       ]
       UnixFileSystem: [
         o 'getBooleanAttributes0(Ljava/io/File;)I', (rs, _this, file) ->
