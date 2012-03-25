@@ -412,7 +412,9 @@ native_methods =
               fs.writeSync(_this.fields.$file, new Buffer(bytes.array), offset, len)
               return
             rs.print rs.jvm_carr2js_str(bytes.ref, offset, len)
-        o 'close0()V', (rs, _this) -> _this.fields.$file = null
+        o 'close0()V', (rs, _this) ->
+            fs.closeSync(_this.fields.$file)
+            _this.fields.$file = null
       ]
       FileInputStream: [
         o 'available()I', (rs, _this) ->
@@ -459,7 +461,7 @@ native_methods =
               _this.fields.$pos = 0
             catch e
               if e.code == 'ENOENT'
-                util.java_throw rs, 'java/lang/FileNotFoundException', "Could not open file #{filepath}"
+                util.java_throw rs, 'java/io/FileNotFoundException', "Could not open file #{filepath}"
               else
                 throw e
         o 'close0()V', (rs, _this) -> _this.fields.$file = null
@@ -474,7 +476,7 @@ native_methods =
               _this.fields.$file = fs.openSync filepath, 'r'
             catch e
               if e.code == 'ENOENT'
-                util.java_throw rs, 'java/lang/FileNotFoundException', "Could not open file #{filepath}"
+                util.java_throw rs, 'java/io/FileNotFoundException', "Could not open file #{filepath}"
               else
                 throw e
             _this.fields.$pos = 0

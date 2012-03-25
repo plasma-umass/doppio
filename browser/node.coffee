@@ -2,26 +2,26 @@ root = @node = {}
 
 win = window
 
+# made global for convenience -- name collision is unlikely
 class win.DoppioFile # File is a native browser thing
   constructor: (@name) ->
-    @pos = 0
     @mtime = (new Date).getTime()
+    @data = ""
 
   @load: (fname) ->
-    raw_data = localStorage["file::#{fname?.toLowerCase()}"]
-    return null unless raw_data
-    data = JSON.parse raw_data
+    rawData = localStorage["file::#{fname?.toLowerCase()}"]
+    return null unless rawData
+    data = JSON.parse rawData
     file = new win.DoppioFile fname
     file[k] = v for k, v of data 
     file
 
-  read: (length) ->
+  read: (length, pos) ->
     return @data unless length?
-    rv = @data.substr(@pos, length)
-    @pos += length
+    rv = @data.substr(pos, length)
     rv
 
-  write: (@data) -> @
+  write: (newData) -> @data += newData; @
 
   save: ->
     localStorage["file::#{@name.toLowerCase()}"] = JSON.stringify
@@ -32,9 +32,17 @@ class win.DoppioFile # File is a native browser thing
 
   @delete: (fname) -> localStorage.removeItem "file::#{fname.toLowerCase()}"
 
+# this is a global in Node.JS as well
+class win.Buffer
+  constructor: (@array) ->
+
+  getByteAt: (i) -> util.int2uint @array[i], 1
+
 class Stat
-  constructor: (fname) ->
-    @file = win.DoppioFile.load fname
+  @fromPath: (path) -> new Stat win.DoppioFile.load path
+
+  constructor: (@file) ->
+    @size = @file.data.length
     @mtime = @file.mtime
 
   isFile: -> true # currently we only support files
@@ -42,19 +50,30 @@ class Stat
   isDirectory: -> false
 
 root.fs =
-  statSync: (fname) -> new Stat(fname)
+  statSync: (fname) -> Stat.fromPath fname
 
-  openSync: (fname) ->
-    f = win.DoppioFile.load fname
-    unless f?
-      err = new Error
-      err.code = 'ENOENT'
-      throw err
-    f
+  fstatSync: (fp) -> new Stat(fp)
 
-  readSync: (file, length) ->
-    data = file.read(length)
+  openSync: (fname, mode) ->
+    if 'r' in mode
+      f = win.DoppioFile.load fname
+      unless f?
+        err = new Error
+        err.code = 'ENOENT'
+        throw err
+      f
+    else # XXX assuming write
+      new DoppioFile fname
+
+  readSync: (file, length, pos, encoding) ->
+    data = file.read(length, pos)
     [data, data.length]
+
+  writeSync: (file, buffer, offset, len) ->
+    # TODO flush occasionally?
+    file.write((String.fromCharCode(buffer.getByteAt i) for i in [offset...offset+len]).join '')
+
+  closeSync: (file) -> file.save()
 
 root.path =
   normalize: (path) -> path

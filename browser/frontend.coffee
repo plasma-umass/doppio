@@ -171,6 +171,10 @@ commands =
         editor.getSession().setMode(new TextMode)
       editor.getSession().setValue(data)
     true
+  cat: (args) ->
+    fname = args[0]
+    return "Usage: cat <file>" unless fname?
+    DoppioFile.load(fname).read()
   mv: (args) ->
     f = DoppioFile.load args[0]
     f.name = args[1]
