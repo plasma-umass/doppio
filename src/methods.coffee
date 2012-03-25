@@ -473,6 +473,7 @@ native_methods =
             pos = _this.fields.$pos.toNumber()
             data = fs.readSync(_this.fields.$file, len, pos, 'utf8')[0]
             byte_arr.array[offset...offset+data.length] = (data.charCodeAt(i) for i in [0...data.length])
+            _this.fields.$pos = gLong.fromNumber(pos+data.length)
             return if data.length == 0 and len isnt 0 then -1 else data.length
         o 'close0()V', (rs, _this) -> _this.fields.$file = null
       ]
