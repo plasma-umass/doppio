@@ -88,13 +88,13 @@ class root.RuntimeState
   heap_put: (field_spec) ->
     val = if field_spec.sig.type in ['J','D'] then @pop2() else @pop()
     obj = @get_obj @pop()
-    trace "setting #{field_spec.sig.name} = #{val} on obj of type #{obj.type}"
+    trace "setting #{field_spec.sig.name} = #{val} on obj of type #{obj.type.toClassString()}"
     obj.fields[field_spec.sig.name] = val
   heap_get: (field_spec, oref) ->
     obj = @get_obj(oref)
     name = field_spec.sig.name
     obj.fields[name] ?= if field_spec.sig.type is 'J' then gLong.fromInt(0) else 0
-    trace "getting #{name} from obj of type #{obj.type}: #{obj.fields[name]}"
+    trace "getting #{name} from obj of type #{obj.type.toClassString()}: #{obj.fields[name]}"
     @push obj.fields[name]
     @push null if field_spec.sig.type in ['J','D']
 
