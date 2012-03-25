@@ -38,7 +38,7 @@ show_stacktrace = (rs,e) ->
   stack = e.exception.fields.$stack
   for i in [stack.length-1..0] by -1
     entry = stack[i]
-    rs.print "\tat #{entry.cls.toClassString()}.#{entry.method}(#{entry.file}:#{entry.line}, code #{entry.op})\n"
+    rs.print "\tat #{entry.cls.toExternalString()}.#{entry.method}(#{entry.file}:#{entry.line})\n"
 
 # main function that gets called from the frontend
 root.run_class = (rs, class_data, cmdline_args, cb) ->

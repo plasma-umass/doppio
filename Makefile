@@ -21,7 +21,7 @@ test/%.class: test/%.java
 
 # some tests may throw exceptions. The '-' flag tells make to carry on anyway.
 test/%.runout: test/%.class
-	-java test/$* 2>&1 >test/$*.runout
+	-java test/$* &>test/$*.runout
 
 clean:
 	@rm -f *.class $(DISASMS) $(RUNOUTS) $(RESULTS)
