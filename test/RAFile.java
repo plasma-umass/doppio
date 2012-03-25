@@ -11,8 +11,16 @@ class RAFile {
     byte[] b = new byte[10];
 
     f.read(b, 5, 5);
+    printBytes(b);
 
+    f.seek(0);
+    f.read(b,0,10);
+    printBytes(b);
+
+  }
+  static void printBytes(byte[] b) {
     for (int i=0; i<b.length; i++) 
-      System.out.println(b[i]);
+      System.out.print(b[i]+" ");
+    System.out.println();
   }
 }
