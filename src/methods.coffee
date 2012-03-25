@@ -89,12 +89,6 @@ trapped_methods =
           AtomicReferenceFieldUpdater: [
             o 'newUpdater(L!/lang/Class;L!/lang/Class;L!/lang/String;)L!/!/!/!/!;', (rs) -> null
           ]
-        locks:
-          AbstractQueuedSynchronizer: [
-            o '<clinit>()V', (rs) -> #NOP
-            o 'compareAndSetState(II)Z', (rs) -> true
-            o 'release(I)Z', (rs) -> true
-          ]
       Currency: [
         o 'getInstance(Ljava/lang/String;)Ljava/util/Currency;', (rs) -> null # because it uses lots of reflection and we don't need it
       ]
