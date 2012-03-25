@@ -467,9 +467,11 @@ native_methods =
         o 'seek(J)V', (rs, _this, pos) -> _this.fields.$pos = pos
         o 'readBytes([BII)I', (rs, _this, bytes_arr, offset, len) ->
             pos = (_this.fields.$pos ?= 0)
-            data = _this.fields.$file.slice(pos, len)
-            bytes_arr.array[offset...offset+data.length] = (data.charCodeAt(i) for i in [0...data.length])
-            _this.fields.$pos += data.length
+            data = _this.fields.$file.substr(pos.toInt(), len)
+            # don't use the CS splice syntax here, can result in 'apply overflow'
+            for i in [0...data.length] by 1
+              bytes_arr.array[offset+i] = data.charCodeAt(i)
+            _this.fields.$pos = pos.add(gLong.fromInt(data.length))
             return if data.length == 0 and len isnt 0 then -1 else data.length
         o 'close0()V', (rs) ->
       ]
