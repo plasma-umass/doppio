@@ -145,7 +145,8 @@ class LocalVariableTable
 class Exceptions
   parse: (bytes_array, constant_pool) ->
     @num_exceptions = util.read_uint bytes_array.splice 0, 2
-    @exception_refs = (util.read_uint(bytes_array.splice(0,2)) for i in [0...@num_exceptions])
+    exc_refs = (util.read_uint(bytes_array.splice(0,2)) for i in [0...@num_exceptions])
+    @exceptions = (constant_pool.get(ref).deref() for ref in exc_refs)
     return bytes_array
 
 class InnerClasses

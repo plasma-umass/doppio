@@ -68,6 +68,10 @@ root.disassemble = (class_file) ->
     if field_type instanceof types.ArrayType then pp_type(field_type.component_type) + '[]'
     else field_type.toExternalString()
 
+  print_excs = (exc_attr) ->
+    excs = exc_attr.exceptions
+    "   throws " + (util.ext_classname e for e in excs).join ', '
+
   rv += "{\n"
 
   for f in class_file.fields
@@ -88,6 +92,7 @@ root.disassemble = (class_file) ->
         ret_type = if m.return_type? then pp_type m.return_type else ""
         ret_type + " " + m.name
     rv += "(#{pp_type(p) for p in m.param_types})" unless m.name is '<clinit>'
+    rv += print_excs exc_attr if exc_attr = _.find(m.attrs, (a) -> a.constructor.name == 'Exceptions')
     rv += ";\n"
     unless m.access_flags.native or m.access_flags.abstract
       rv += "  Code:\n"
@@ -126,10 +131,10 @@ root.disassemble = (class_file) ->
             for entry in attr.entries
               rv += "   #{entry.start_pc}      #{entry.length}      #{entry.ref}"
               rv += "#{entry.name}      #{entry.descriptor}\n"
-        rv += "\n"
+      rv += "  Exceptions:\n#{print_excs exc_attr}\n" if exc_attr
     rv += "\n"
 
-  rv += "}"
+  rv += "}\n"
 
   return rv
 
