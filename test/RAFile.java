@@ -1,8 +1,10 @@
+package test;
+
 import java.io.*;
 
 class RAFile {
   public static void main(String[] args) throws Exception {
-    RandomAccessFile f = new RandomAccessFile("RAFile.java", "r");
+    RandomAccessFile f = new RandomAccessFile("./test/RAFile.java", "r");
 
     f.seek(20);
 

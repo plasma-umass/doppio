@@ -461,7 +461,6 @@ native_methods =
             mode_str += 'w' if mode & 2 # there's also the sync flag but we're ignoring that
             # TODO make this an object so we can write back
             fname = rs.jvm2js_str(name)
-            error "Attempting to use #{fname} as a RandomAccessFile -- may not be correct!"
             _this.fields.$file = fs.readFileSync fname, 'binary'
         o 'length()J', (rs, _this) -> gLong.fromNumber _this.fields.$file.length
         o 'seek(J)V', (rs, _this, pos) -> _this.fields.$pos = pos
