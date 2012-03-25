@@ -271,18 +271,21 @@ native_methods =
       ],
       Float: [
         o 'floatToRawIntBits(F)I', (rs, f_val) ->  #note: not tested for weird values
+            return 0 if f_val is 0
             sign = if f_val < 0 then 1 else 0
             f_val = Math.abs(f_val)
             exp = Math.floor(Math.log(f_val)/Math.LN2)
-            sig = (f_val/Math.pow(2,exp)-1)/Math.pow(2,-23)
+            sig = (f_val/Math.pow(2,exp)-1)*Math.pow(2,23)
             (sign<<31)+((exp+127)<<23)+sig
       ]
       Double: [
-        o 'doubleToRawLongBits(D)J', (rs, d_val) ->#note: not tested at all
+        o 'doubleToRawLongBits(D)J', (rs, d_val) ->
+            return gLong.fromInt(0) if d_val is 0 or isNaN(d_val) or not isFinite(d_val)
             sign = gLong.fromInt(if d_val < 0 then 1 else 0)
             d_val = Math.abs(d_val)
-            exp = gLong.fromNumber(Math.floor(Math.log(d_val)/Math.LN2)+1023)
-            sig = gLong.fromNumber((d_val/Math.pow(2,exp)-1)/Math.pow(2,-52))
+            exp = gLong.fromNumber(Math.floor(Math.log(d_val)/Math.LN2))
+            sig = gLong.fromNumber((d_val/Math.pow(2,exp.toInt())-1)*Math.pow(2,52))
+            exp = exp.add(gLong.fromInt(1023))
             sign.shiftLeft(63).add(exp.shiftLeft(52)).add(sig)
         o 'longBitsToDouble(J)D', (rs, l_val) ->
             s = if l_val.shiftRight(63).equals(gLong.fromInt(0)) then 1 else -1
@@ -515,6 +518,10 @@ native_methods =
         o 'initialize()V', (rs) ->  # NOP???
       ]
       Unsafe: [
+        o 'compareAndSwapInt(Ljava/lang/Object;JII)Z', (rs, _this, obj, offset, expected, x) ->
+            field_name = rs.class_lookup(obj.type).fields[offset.toInt()]
+            obj.fields[field_name] = x.ref
+            true
         o 'compareAndSwapLong(Ljava/lang/Object;JJJ)Z', (rs, _this, obj, offset, expected, x) ->
             field_name = rs.class_lookup(obj.type).fields[offset.toInt()]
             obj.fields[field_name] = x.ref
