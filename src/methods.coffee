@@ -84,9 +84,6 @@ trapped_methods =
                 _this.fields.value = update;  # we don't need to compare, just set
                 true # always true, because we only have one thread
           ]
-          AtomicReferenceFieldUpdater: [
-            o 'newUpdater(L!/lang/Class;L!/lang/Class;L!/lang/String;)L!/!/!/!/!;', (rs) -> null
-          ]
       Currency: [
         o 'getInstance(Ljava/lang/String;)Ljava/util/Currency;', (rs) -> null # because it uses lots of reflection and we don't need it
       ]
@@ -407,15 +404,26 @@ native_methods =
             }
       ]
       FileOutputStream: [
+        o 'open(L!/lang/String;)V', (rs, _this, fname) ->
+            jvm_str = rs.jvm2js_str fname
+            _this.fields.$file = fs.openSync jvm_str, 'w'
         o 'writeBytes([BII)V', (rs, _this, bytes, offset, len) ->
+            if _this.fields.$file?
+              fs.writeSync(_this.fields.$file, new Buffer(bytes.array), offset, len)
+              return
             rs.print rs.jvm_carr2js_str(bytes.ref, offset, len)
+        o 'close0()V', (rs, _this) -> _this.fields.$file = null
       ]
       FileInputStream: [
-        o 'available()I', (rs) -> 0 # we never buffer anything, so this is always zero
+        o 'available()I', (rs, _this) ->
+            return 0 if not _this.fields.$file? # no buffering for stdin
+            stats = fs.fstatSync _this.fields.$file
+            stats.size - _this.fields.$pos
         o 'read()I', (rs, _this) ->
             if _this.fields.$file?
               # this is a real file that we've already opened
-              data = fs.readSync(_this.fields.$file, 1)[0]
+              data = fs.readSync(_this.fields.$file, 1, _this.fields.$pos)[0]
+              _this.fields.$pos++
               return if data.length == 0 then -1 else data.charCodeAt(0)
             # reading from System.in, do it async
             console.log '>>> reading from Stdin now!'
@@ -428,7 +436,11 @@ native_methods =
         o 'readBytes([BII)I', (rs, _this, byte_arr, offset, n_bytes) ->
             if _this.fields.$file?
               # this is a real file that we've already opened
-              data = fs.readSync(_this.fields.$file, n_bytes)[0]
+              pos = _this.fields.$pos
+              data = fs.readSync(_this.fields.$file, n_bytes, pos, 'binary')[0]
+              # not clear why, but sometimes node doesn't move the file pointer,
+              # so we do it here ourselves
+              _this.fields.$pos += data.length
               byte_arr.array[offset...offset+data.length] = (data.charCodeAt(i) for i in [0...data.length])
               return if data.length == 0 and n_bytes isnt 0 then -1 else data.length
             # reading from System.in, do it async
@@ -444,6 +456,7 @@ native_methods =
             filepath = rs.jvm2js_str(filename)
             try  # TODO: actually look at the mode
               _this.fields.$file = fs.openSync filepath, 'r'
+              _this.fields.$pos = 0
             catch e
               if e.code == 'ENOENT'
                 util.java_throw rs, 'java/lang/FileNotFoundException', "Could not open file #{filepath}"
@@ -517,13 +530,17 @@ native_methods =
         o 'initialize()V', (rs) ->  # NOP???
       ]
       Unsafe: [
+        o 'compareAndSwapObject(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z', (rs, _this, obj, offset, expected, x) ->
+            field_name = rs.class_lookup(obj.type).fields[offset.toInt()]
+            obj.fields[field_name] = x?.ref or 0
+            true
         o 'compareAndSwapInt(Ljava/lang/Object;JII)Z', (rs, _this, obj, offset, expected, x) ->
             field_name = rs.class_lookup(obj.type).fields[offset.toInt()]
-            obj.fields[field_name] = x.ref
+            obj.fields[field_name] = x
             true
         o 'compareAndSwapLong(Ljava/lang/Object;JJJ)Z', (rs, _this, obj, offset, expected, x) ->
             field_name = rs.class_lookup(obj.type).fields[offset.toInt()]
-            obj.fields[field_name] = x.ref
+            obj.fields[field_name] = x
             true
         o 'ensureClassInitialized(Ljava/lang/Class;)V', (rs,_this,cls) -> 
             rs.class_lookup(cls.fields.$type)
@@ -640,12 +657,15 @@ class root.Method extends AbstractMethodField
     converted_params = []
     if not @access_flags.static
       converted_params.push rs.get_obj params.shift()
-    for p, idx in params
+    param_idx = 0
+    for p, idx in @param_types
+      p = params[param_idx]
       if (@param_types[idx] instanceof types.ClassType) or
          (@param_types[idx] instanceof types.ArrayType)
         converted_params.push(if p == 0 then null else rs.get_obj p)
       else
         converted_params.push p
+      param_idx += if (@param_types[idx].toString() in ['J', 'D']) then 2 else 1
     rv = func rs, converted_params...
     rs.meta_stack.pop()
     unless @return_type instanceof types.VoidType

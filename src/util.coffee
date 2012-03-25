@@ -48,6 +48,9 @@ root.uint2int = (uint, bytes_count) ->
   else
     uint
 
+root.int2uint = (int, bytes_count) ->
+  if int < 0 then int + Math.pow 2, bytes_count * 8 else int
+
 root.bytestr_to_array = (bytecode_string) ->
   (bytecode_string.charCodeAt(i) & 0xFF for i in [0...bytecode_string.length])
 
@@ -164,7 +167,7 @@ root.bytes2str = (bytes) ->
   idx = 0
   char_array =
     while idx < bytes.length
-      x = bytes[idx++]
+      x = root.int2uint bytes[idx++], 1
       String.fromCharCode(
         if x <= 0x7f
           x
