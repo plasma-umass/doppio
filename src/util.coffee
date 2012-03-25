@@ -92,6 +92,7 @@ root.decimal_to_string = (num, precision) ->
     if s.indexOf('e') == -1 and Math.abs(num) > Math.pow(10, 7)
       exp_len = s.length - (if num < 0 then 2 else 1)
       s = num.toExponential(Math.min(exp_len, precision-1))
+      s = s.replace(/\.?0+e/,'e')  # remove trailing zeros before exponent
     else if s.indexOf('.') == -1
       s = num.toFixed(1)
     else
