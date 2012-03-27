@@ -1,0 +1,18 @@
+# 
+# %W% %E%
+#
+# Copyright (c) 2002, Oracle and/or its affiliates. All rights reserved.
+# ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+#
+# List all Sun provided connector providers here. If there
+# are providers that are only available on a particular OS
+# then prefix the line with #[OS] and they will automatically
+# uncommented by the build process - see make/jpda/front/Makefile.
+#
+com.sun.tools.jdi.SunCommandLineLauncher
+com.sun.tools.jdi.RawCommandLineLauncher
+com.sun.tools.jdi.SocketAttachingConnector
+com.sun.tools.jdi.SocketListeningConnector
+#[windows]com.sun.tools.jdi.SharedMemoryAttachingConnector
+#[windows]com.sun.tools.jdi.SharedMemoryListeningConnector
+com.sun.tools.jdi.ProcessAttachingConnector

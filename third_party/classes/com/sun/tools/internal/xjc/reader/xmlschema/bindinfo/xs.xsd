@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ Copyright (c) 1997, 2008, Oracle and/or its affiliates. All rights reserved.
+ ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-->
+
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" targetNamespace="http://www.w3.org/2001/XMLSchema" xmlns:jaxb="http://java.sun.com/xml/ns/jaxb" xmlns:xjc="http://java.sun.com/xml/ns/jaxb/xjc">
+  <xs:import namespace="http://java.sun.com/xml/ns/jaxb" schemaLocation="binding.xsd"/>
+  <xs:import namespace="http://java.sun.com/xml/ns/jaxb/xjc" schemaLocation="xjc.xsd"/>
+  <xs:element name="annotation">
+    <xs:complexType>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="xs:appinfo"/>
+        <xs:element ref="xs:documentation"/>
+      </xs:choice>
+      <xs:attributeGroup ref="jaxb:anyAttributes"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="appinfo">
+    <xs:complexType mixed="true">
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:any processContents="lax" />
+      </xs:choice>
+      <xs:attributeGroup ref="jaxb:anyAttributes"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="documentation">
+    <xs:complexType mixed="true">
+      <xs:sequence>
+        <xs:any minOccurs="0" maxOccurs="unbounded" processContents="skip"/>
+      </xs:sequence>
+      <xs:attributeGroup ref="jaxb:anyAttributes"/>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

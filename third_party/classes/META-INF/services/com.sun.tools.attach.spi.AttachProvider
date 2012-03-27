@@ -1,0 +1,15 @@
+#
+# %W% %E%
+#
+# Copyright (c) 2002, Oracle and/or its affiliates. All rights reserved.
+# ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+#
+# List all Sun provided attach providers here. If there
+# are providers that are only available on a particular OS
+# then prefix the line with #[OS] and they will automatically
+# uncommented by the build process.
+#
+#[solaris]sun.tools.attach.SolarisAttachProvider
+#[windows]sun.tools.attach.WindowsAttachProvider
+sun.tools.attach.MacosxAttachProvider
+#[linux]sun.tools.attach.LinuxAttachProvider

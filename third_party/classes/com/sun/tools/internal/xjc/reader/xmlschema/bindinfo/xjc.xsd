@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ Copyright (c) 1997, 2008, Oracle and/or its affiliates. All rights reserved.
+ ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-->
+
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" targetNamespace="http://java.sun.com/xml/ns/jaxb/xjc" xmlns:jaxb="http://java.sun.com/xml/ns/jaxb" xmlns:xjc="http://java.sun.com/xml/ns/jaxb/xjc">
+  <xs:import namespace="http://java.sun.com/xml/ns/jaxb" schemaLocation="binding.xsd"/>
+  <xs:import namespace="http://www.w3.org/2001/XMLSchema" schemaLocation="xs.xsd"/>
+  <xs:element name="smartWildcardDefaultBinding">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="simple">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="treatRestrictionLikeNewType">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="noMarshaller">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="noUnmarshaller">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="noValidator">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="substitutable">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="noValidatingUnmarshaller">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="superClass">
+    <xs:complexType>
+      <xs:attribute name="name" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="superInterface">
+    <xs:complexType>
+      <xs:attribute name="name" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:complexType name="javaTypeContent">
+    <xs:attribute name="name" use="required"/>
+    <xs:attribute name="adapter" use="required"/>
+  </xs:complexType>
+  <xs:element name="javaType" type="xjc:javaTypeContent"/>
+  <xs:group name="globalJavaType">
+    <xs:sequence>
+      <xs:element name="javaType">
+        <xs:complexType>
+          <xs:complexContent>
+            <xs:extension base="xjc:javaTypeContent">
+              <xs:attribute name="xmlType" use="required" type="xs:QName"/>
+            </xs:extension>
+          </xs:complexContent>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+
+  <xs:element name="allowMixedTypeExtensions" type="xs:boolean" />
+  
+  <xs:element name="generateElementProperty" type="xs:boolean" />
+  <xs:element name="dom">
+    <xs:complexType>
+      <xs:attribute name="type" default="w3c"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="serializable">
+    <xs:complexType>
+      <xs:attribute name="uid" type="xs:long"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="typeSubstitution">
+    <xs:complexType>
+      <xs:attribute name="type" use="required">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="complex"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

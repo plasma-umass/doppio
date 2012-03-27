@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ Copyright (c) 1997, 2008, Oracle and/or its affiliates. All rights reserved.
+ ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-->
+
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" targetNamespace="http://java.sun.com/xml/ns/jaxb/xjc" xmlns:xjc="http://java.sun.com/xml/ns/jaxb/xjc">
+  <xs:import schemaLocation="bindingfile.xsd"/>
+  <xs:element name="serializable">
+    <xs:complexType>
+      <xs:attribute name="uid" type="xs:long"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="superClass">
+    <xs:complexType>
+      <xs:attribute name="name" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="noMarshaller">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="noUnmarshaller">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="noValidator">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="noValidatingUnmarshaller">
+    <xs:complexType/>
+  </xs:element>
+</xs:schema>
