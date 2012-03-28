@@ -4,6 +4,8 @@ RUNOUTS = $(SOURCES:.java=.runout)
 CLASSES = $(SOURCES:.java=.class)
 RESULTS = $(SOURCES:.java=.result)
 GIT_REV = $(shell git rev-parse HEAD)
+# the order here is important: must match the order of includes
+#   in the browser frontend html.
 JS_SRCS = third_party/underscore-min.js \
 	third_party/gLong.js \
 	browser/node.js \
