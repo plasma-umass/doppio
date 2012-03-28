@@ -49,11 +49,11 @@ clean:
 release:
 	git submodule update --init --recursive
 	coffee -c */*.coffee
-	cpp -DRELEASE -P browser/coffee-jvm.html build/index.html
 	for src in $(JS_SRCS); do \
 		cat $${src}; \
 		echo ";"; \
 	done | uglifyjs --no-mangle --unsafe > build/compressed.js
+	rsync -a browser/coffee-jvm.html build/index.html
 	rsync third_party/bootstrap/css/bootstrap.min.css build/bootstrap.min.css
 	rsync -a test/special build/test/
 	javac build/test/special/*.java
