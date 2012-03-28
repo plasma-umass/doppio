@@ -5,3 +5,4 @@
 *.runout
 *.disasm
 node_modules
+.DS_store
