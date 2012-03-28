@@ -8,7 +8,7 @@ class_cache = {}
 # Read in a binary classfile synchronously. Return an array of bytes.
 read_classfile = (cls) ->
   unless class_cache[cls]?
-    classpath = [ "http://localhost:8000", "http://localhost:8000/third_party/classes" ]
+    classpath = [ "", "third_party/classes" ]
     try_path = (path) ->
       rv = null
       $.ajax "#{path}/#{cls}.class", {
@@ -196,7 +196,7 @@ commands =
       'special/RegexTestHarness.java', 'special/FileRead.java', 'special/foo',
       'special/bar']
     for demo in demos
-      $.ajax "http://localhost:8000/test/#{demo}", {
+      $.ajax "test/#{demo}", {
         type: 'GET'
         dataType: 'text'
         async: false

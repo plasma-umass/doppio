@@ -25,25 +25,31 @@
     div#console span.jquery-console-prompt-label { font-weight:bold }
     label { margin-right: 5px; }
   </style>
-  <link rel='stylesheet' type="text/css" href="../third_party/bootstrap/css/bootstrap.min.css">
-  <script type="text/javascript" src="../third_party/jquery-1.7.1.min.js"></script>
-  <script type="text/javascript" src="../third_party/underscore-min.js"></script>
-  <script type="text/javascript" src="../third_party/gLong.js"></script>
-  <script type="text/javascript" src="node.js"></script>
-  <script type="text/javascript" src="../src/util.js"></script>
-  <script type="text/javascript" src="../src/types.js"></script>
-  <script type="text/javascript" src="../src/opcodes.js"></script>
-  <script type="text/javascript" src="../src/attributes.js"></script>
-  <script type="text/javascript" src="../src/constant_pool.js"></script>
-  <script type="text/javascript" src="../src/disassembler.js"></script>
-  <script type="text/javascript" src="../src/methods.js"></script>
-  <script type="text/javascript" src="../src/class_file.js"></script>
-  <script type="text/javascript" src="../src/runtime.js"></script>
-  <script type="text/javascript" src="../src/jvm.js"></script>
-  <script type="text/javascript" src="../third_party/ace/build/src/ace.js"></script>
-  <script type="text/javascript" src="../third_party/ace/build/src/mode-java.js"></script>
-  <script type="text/javascript" src="../third_party/jquery.console.js"></script>
-  <script type="text/javascript" src="frontend.js"></script>
+#ifndef RELEASE
+  <link rel='stylesheet' type="text/css" href="third_party/bootstrap/css/bootstrap.min.css">i
+  <script type="text/javascript" src="third_party/jquery-1.7.1.min.js"></script>
+  <script type="text/javascript" src="third_party/underscore-min.js"></script>
+  <script type="text/javascript" src="third_party/gLong.js"></script>
+  <script type="text/javascript" src="browser/node.js"></script>
+  <script type="text/javascript" src="src/util.js"></script>
+  <script type="text/javascript" src="src/types.js"></script>
+  <script type="text/javascript" src="src/opcodes.js"></script>
+  <script type="text/javascript" src="src/attributes.js"></script>
+  <script type="text/javascript" src="src/constant_pool.js"></script>
+  <script type="text/javascript" src="src/disassembler.js"></script>
+  <script type="text/javascript" src="src/methods.js"></script>
+  <script type="text/javascript" src="src/class_file.js"></script>
+  <script type="text/javascript" src="src/runtime.js"></script>
+  <script type="text/javascript" src="src/jvm.js"></script>
+  <script type="text/javascript" src="third_party/ace/build/src/ace.js"></script>
+  <script type="text/javascript" src="third_party/ace/build/src/mode-java.js"></script>
+  <script type="text/javascript" src="third_party/jquery.console.js"></script>
+  <script type="text/javascript" src="browser/frontend.js"></script>
+#else
+  <link rel='stylesheet' type="text/css" href="bootstrap.min.css">
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+  <script type="text/javascript" src="compressed.js"></script>
+#endif
 </head>
 <body>
 <div id='main'>
