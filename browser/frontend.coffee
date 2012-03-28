@@ -20,10 +20,11 @@ read_classfile = (cls) ->
       }
       rv
     for path in classpath
-      class_cache[cls] = try_path path
-      break if class_cache[cls]?
-  throw "AJAX error when loading class #{cls}" unless class_cache[cls]?
-  class_cache[cls].slice(0) # return a copy
+      data = try_path path
+      if data?
+        class_cache[cls] = new ClassFile data
+        break
+  class_cache[cls]
 
 process_bytecode = (bytecode_string) ->
   bytes_array = util.bytestr_to_array bytecode_string
@@ -40,7 +41,6 @@ compile_source = (fname, quiet) ->
     success:  (data) ->
       class_name = fname.split('.')[0]
       (new DoppioFile "#{class_name}.class").write(data).save()
-      class_data = process_bytecode(data)
       unless quiet
         controller.reprompt()
     error: (jqXHR, textStatus, errorThrown) -> 

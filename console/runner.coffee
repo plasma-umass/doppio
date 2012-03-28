@@ -13,7 +13,7 @@ exports.read_classfile = (cls) ->
   classpath = [ ".", "#{__dirname}/../third_party/classes" ]
   for p in classpath
     data = exports.read_binary_file "#{p}/#{cls}.class"
-    return data if data?
+    return new ClassFile data if data?
 
 if require.main == module
   optimist = require 'optimist'

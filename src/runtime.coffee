@@ -1,6 +1,4 @@
 
-ClassFile ?= require './class_file'
-
 # things assigned to root will be available outside this module
 root = exports ? this.runtime = {}
 util ?= require './util'
@@ -130,7 +128,7 @@ class root.RuntimeState
     throw "class_lookup needs a type object, got #{typeof type}: #{type}" unless type instanceof types.Type
     cls = type.toClassString?() ? type.toString()
     unless @classes[cls]?
-      # fetch the relevant class file, make a ClassFile, put it in @classes[cls]
+      # fetch the relevant class file, put it in @classes[cls]
       trace "loading new class: #{cls}"
       if type instanceof types.ArrayType
         class_file =
@@ -151,10 +149,10 @@ class root.RuntimeState
       else if type instanceof types.PrimitiveType
         @classes[type] = {file: '<primitive>', obj: @set_obj(c2t('java/lang/Class'), { $type: type, name: 0 })}
       else
-        data = @read_classfile cls
-        java_throw @, 'java/lang/NoClassDefFoundError', cls unless data?
+        class_file = @read_classfile cls
+        java_throw @, 'java/lang/NoClassDefFoundError', cls unless class_file?
         @classes[cls] =
-          file: new ClassFile(data), 
+          file: class_file
           obj:  @set_obj(c2t('java/lang/Class'), { $type: type, name: 0 })
         old_loglevel = util.log_level  # suppress logging for init stuff
         util.log_level = util.ERROR
