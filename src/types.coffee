@@ -40,34 +40,34 @@ root.c2t = (type_str) ->
   else new root.ClassType type_str
 
 class root.Type
-  valueOf: -> @toString()
+  toString: -> @valueOf()
 
 class root.PrimitiveType extends root.Type
   constructor: (@name) ->
 
-  toString: -> external2internal[@name]
+  valueOf: -> external2internal[@name]
 
   toExternalString: -> @name
 
 class root.ArrayType extends root.Type
   constructor: (@component_type) ->
 
-  toString: -> "[#{@component_type}"
+  valueOf: -> "[#{@component_type}"
 
-  toClassString: -> @toString()
+  toClassString: -> @valueOf()
 
-  toExternalString: -> util.ext_classname @toString()
+  toExternalString: -> util.ext_classname @valueOf()
 
 class root.ClassType extends root.Type
   constructor: (@class_name) ->
 
-  toString: -> "L#{@class_name};"
+  valueOf: -> "L#{@class_name};"
 
   toClassString: -> @class_name
 
   toExternalString: -> util.ext_classname @class_name
 
 class root.VoidType extends root.PrimitiveType
-  toString: -> 'V'
+  valueOf: -> 'V'
 
   toExternalString: -> 'void'

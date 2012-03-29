@@ -150,7 +150,7 @@ root.ERROR = 1
 root.log_level ?= root.DEBUG
 
 root.log = (level, msgs...) ->
-  if level <= root.log_level
+  if not RELEASE? and level <= root.log_level
     console[if level == 1 then 'error' else 'log'] msgs...
 
 root.debug = (msgs...) -> root.log root.DEBUG, msgs...

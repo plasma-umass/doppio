@@ -53,7 +53,7 @@ release:
 	for src in $(JS_SRCS); do \
 		cat $${src}; \
 		echo ";"; \
-	done | uglifyjs --no-mangle --unsafe > build/compressed.js
+	done | uglifyjs --define RELEASE --no-mangle --unsafe > build/compressed.js
 	rsync third_party/bootstrap/css/bootstrap.min.css build/bootstrap.min.css
 	rsync -a test/special build/test/
 	javac build/test/special/*.java
