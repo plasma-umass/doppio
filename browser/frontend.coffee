@@ -10,10 +10,19 @@ $.ajax "browser/mini-rt.tar", {
   dataType: 'text'
   beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
   success: (data) ->
-    untar util.bytestr_to_array(data), (path, file) ->
+    file_count = 0
+    done = false
+    untar util.bytestr_to_array(data), ((path, file) ->
+      file_count++
       cls = /third_party\/classes\/([^.]*).class/.exec(path)[1]
-      class_cache[cls] = new ClassFile file
-      console.log "Loading #{cls}"
+      setTimeout (->
+        class_cache[cls] = new ClassFile file
+        controller.message "Loaded #{cls}\n", 'success', true
+        controller.reprompt() if --file_count == 0 and done
+      ), 0),
+      ->
+        done = true
+        controller.reprompt() if file_count == 0
   error: (jqXHR, textStatus, errorThrown) ->
     console.error errorThrown
 }
