@@ -6,11 +6,9 @@ _ ?= require '../third_party/underscore-min.js'
 gLong ?= require '../third_party/gLong.js'
 util ?= require './util'
 
-"""
-All objects in the constant pool have the properties @type and @value.
-*Reference and NameAndType objects all have a @deref method, which resolves
-all child references to their values (i.e. discarding @type).
-"""
+# All objects in the constant pool have the properties @type and @value.
+# *Reference and NameAndType objects all have a @deref method, which resolves
+# all child references to their values (i.e. discarding @type).
 
 class SimpleReference
   constructor: (@constant_pool, @value) ->

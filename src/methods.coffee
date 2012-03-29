@@ -17,7 +17,7 @@ fs = node?.fs ? require 'fs'
 root = exports ? this.methods = {}
 
 class AbstractMethodField
-  """ Subclasses need to implement parse_descriptor(String) """
+  # Subclasses need to implement parse_descriptor(String)
   constructor: (@class_type) ->
 
   parse: (bytes_array,constant_pool) ->
@@ -683,9 +683,9 @@ class root.Method extends AbstractMethodField
         cf = rs.curr_frame()
         pc = rs.curr_pc()
         op = code[pc]
-        throw "#{@name}:#{pc} => (null)" unless op
-        debug "#{padding}stack: [#{pa cf.stack}], local: [#{pa cf.locals}]"
         unless RELEASE?
+          throw "#{@name}:#{pc} => (null)" unless op
+          debug "#{padding}stack: [#{pa cf.stack}], local: [#{pa cf.locals}]"
           annotation =
             util.lookup_handler(opcode_annotators, op, pc, rs.class_lookup(@class_type).constant_pool) or ""
           debug "#{padding}#{@class_type.toClassString()}::#{@name}:#{pc} => #{op.name}" + annotation

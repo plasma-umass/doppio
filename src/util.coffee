@@ -168,6 +168,7 @@ root.bytes2str = (bytes) ->
   char_array =
     while idx < bytes.length
       x = root.int2uint bytes[idx++], 1
+      break if x == 0
       String.fromCharCode(
         if x <= 0x7f
           x
