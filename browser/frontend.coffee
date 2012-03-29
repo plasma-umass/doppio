@@ -31,6 +31,7 @@ process_bytecode = (bytecode_string) ->
   new ClassFile(bytes_array)
 
 compile_source = (fname, quiet) ->
+  throw 'Sorry, the compiler has been disabled.' if RELEASE?
   source = DoppioFile.load(fname).read()
   return controller.message "Could not find file '#{fname}'.", 'error' unless source?
   $.ajax 'http://people.cs.umass.edu/~ccarey/javac/', {
