@@ -59,6 +59,5 @@ release:
 	rsync third_party/bootstrap/css/bootstrap.min.css build/bootstrap.min.css
 	rsync -a test/special build/test/
 	javac build/test/special/*.java
-	ln -fs third_party build/third_party
 
 .SECONDARY: $(CLASSES) $(DISASMS) $(RUNOUTS)
