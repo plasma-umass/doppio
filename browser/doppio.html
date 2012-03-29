@@ -25,7 +25,11 @@
     div#console span.jquery-console-prompt-label { font-weight:bold }
     label { margin-right: 5px; }
   </style>
-#ifndef RELEASE
+#ifdef RELEASE
+  <link rel='stylesheet' type="text/css" href="bootstrap.min.css">
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+  <script type="text/javascript" src="compressed.js"></script>
+#else
   <link rel='stylesheet' type="text/css" href="third_party/bootstrap/css/bootstrap.min.css">i
   <script type="text/javascript" src="third_party/jquery-1.7.1.min.js"></script>
   <script type="text/javascript" src="third_party/underscore-min.js"></script>
@@ -45,13 +49,12 @@
   <script type="text/javascript" src="third_party/ace/build/src/mode-java.js"></script>
   <script type="text/javascript" src="third_party/jquery.console.js"></script>
   <script type="text/javascript" src="browser/frontend.js"></script>
-#else
-  <link rel='stylesheet' type="text/css" href="bootstrap.min.css">
-  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
-  <script type="text/javascript" src="compressed.js"></script>
 #endif
 </head>
 <body>
+#ifdef RELEASE
+  <a href="https://github.com/int3/doppio"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://a248.e.akamai.net/assets.github.com/img/abad93f42020b733148435e2cd92ce15c542d320/687474703a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f677265656e5f3030373230302e706e67" alt="Fork me on GitHub"></a>
+#endif
 <div id='main'>
   <header class='page-header'>
     <h1 id='title' style='float:left'>DoppioVM</h1>
@@ -84,11 +87,6 @@
     Console is based off <a
       href="https://github.com/chrisdone/jquery-console">Chris Done's jquery-console</a>,
     and editing is provided by <a href="https://github.com/ajaxorg/ace">Ace</a>.
-  </p>
-  <p>
-    Found a bug? Have a request? Hit the
-    <a  href="https://github.com/int3/doppio">project page</a> for issues and
-    pull requests.
   </p>
 </div>
 </body>
