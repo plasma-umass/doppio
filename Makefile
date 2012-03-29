@@ -21,6 +21,7 @@ BROWSER_SRCS = third_party/underscore-min.js \
 	third_party/ace/build/src/ace.js \
 	third_party/ace/build/src/mode-java.js \
 	third_party/jquery.console.js \
+	browser/untar.coffee \
 	browser/frontend.coffee
 
 test: $(RESULTS)
@@ -58,6 +59,7 @@ release:
 	done | uglifyjs --define RELEASE --no-mangle --unsafe > build/compressed.js
 	rsync third_party/bootstrap/css/bootstrap.min.css build/bootstrap.min.css
 	rsync -a test/special build/test/
+	rsync -a browser/mini-rt.tar build/browser/mini-rt.tar
 	javac build/test/special/*.java
 
 .SECONDARY: $(CLASSES) $(DISASMS) $(RUNOUTS)

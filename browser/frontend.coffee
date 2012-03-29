@@ -5,6 +5,19 @@ editor = null
 
 class_cache = {}
 
+$.ajax "browser/mini-rt.tar", {
+  type: 'GET'
+  dataType: 'text'
+  beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
+  success: (data) ->
+    untar util.bytestr_to_array(data), (path, file) ->
+      cls = /third_party\/classes\/([^.]*).class/.exec(path)[1]
+      class_cache[cls] = new ClassFile file
+      console.log "Loading #{cls}"
+  error: (jqXHR, textStatus, errorThrown) ->
+    console.error errorThrown
+}
+
 # Read in a binary classfile synchronously. Return an array of bytes.
 read_classfile = (cls) ->
   unless class_cache[cls]?
