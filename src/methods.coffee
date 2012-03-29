@@ -685,9 +685,10 @@ class root.Method extends AbstractMethodField
         op = code[pc]
         throw "#{@name}:#{pc} => (null)" unless op
         debug "#{padding}stack: [#{pa cf.stack}], local: [#{pa cf.locals}]"
-        annotation =
-          util.lookup_handler(opcode_annotators, op, pc, rs.class_lookup(@class_type).constant_pool) or ""
-        debug "#{padding}#{@class_type.toClassString()}::#{@name}:#{pc} => #{op.name}" + annotation
+        unless RELEASE?
+          annotation =
+            util.lookup_handler(opcode_annotators, op, pc, rs.class_lookup(@class_type).constant_pool) or ""
+          debug "#{padding}#{@class_type.toClassString()}::#{@name}:#{pc} => #{op.name}" + annotation
         op.execute rs
         rs.inc_pc(1 + op.byte_count)  # move to the next opcode
       catch e

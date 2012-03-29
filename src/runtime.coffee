@@ -59,8 +59,7 @@ class root.RuntimeState
 
   push: (args...) ->
     cs = @curr_frame().stack
-    for v in args
-      cs.push v
+    Array::push.apply cs, args
 
   pop: () -> @curr_frame().stack.pop()
   # useful for category 2 values (longs, doubles)

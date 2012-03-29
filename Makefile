@@ -3,26 +3,25 @@ DISASMS = $(SOURCES:.java=.disasm)
 RUNOUTS = $(SOURCES:.java=.runout)
 CLASSES = $(SOURCES:.java=.class)
 RESULTS = $(SOURCES:.java=.result)
-GIT_REV = $(shell git rev-parse HEAD)
 # the order here is important: must match the order of includes
 #   in the browser frontend html.
-JS_SRCS = third_party/underscore-min.js \
+BROWSER_SRCS = third_party/underscore-min.js \
 	third_party/gLong.js \
-	browser/node.js \
-	src/util.js \
-	src/types.js \
-	src/opcodes.js \
-	src/attributes.js \
-	src/constant_pool.js \
-	src/disassembler.js \
-	src/methods.js \
-	src/class_file.js \
-	src/runtime.js \
-	src/jvm.js \
+	browser/node.coffee \
+	src/util.coffee \
+	src/types.coffee \
+	src/opcodes.coffee \
+	src/attributes.coffee \
+	src/constant_pool.coffee \
+	src/disassembler.coffee \
+	src/methods.coffee \
+	src/class_file.coffee \
+	src/runtime.coffee \
+	src/jvm.coffee \
 	third_party/ace/build/src/ace.js \
 	third_party/ace/build/src/mode-java.js \
 	third_party/jquery.console.js \
-	browser/frontend.js
+	browser/frontend.coffee
 
 test: $(RESULTS)
 	cat $(RESULTS)
@@ -48,10 +47,13 @@ clean:
 
 release:
 	git submodule update --init --recursive
-	coffee -c */*.coffee
 	cpp -P -DRELEASE browser/doppio.html build/index.html
-	for src in $(JS_SRCS); do \
-		cat $${src}; \
+	for src in $(BROWSER_SRCS); do \
+		if [ "$${src##*.}" == "coffee" ]; then \
+			cat $${src} | gsed -r "s/^ *(debug|trace).*$$//" | coffee --stdio --print; \
+		else \
+			cat $${src}; \
+		fi; \
 		echo ";"; \
 	done | uglifyjs --define RELEASE --no-mangle --unsafe > build/compressed.js
 	rsync third_party/bootstrap/css/bootstrap.min.css build/bootstrap.min.css
