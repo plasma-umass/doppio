@@ -15,7 +15,10 @@ $.ajax "browser/mini-rt.tar", {
     done = false
     bar = $('#progress > .bar')
     preloading_file = $('#preloading-file')
+    start_untar = (new Date).getTime()
     on_complete = ->
+      end_untar = (new Date).getTime()
+      console.log "Untarring took a total of #{end_untar-start_untar}ms."
       $('#overlay').fadeOut 'slow'
       $('#progress-container').fadeOut 'slow'
     update_bar = _.throttle ((percent, path) ->
