@@ -9,6 +9,23 @@
       font-size: 8pt;
       margin-bottom: 1.5em;
     }
+    div#overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      background:#fff;
+      filter:alpha(opacity=50);
+      height:100%;
+      -khtml-opacity:0.5;
+      -moz-opacity:0.5;
+      opacity:0.5;
+      text-shadow:0 0 0 #000;
+      width:100%;
+    }
+    div#progress-container { position:absolute;top:0;left:0;height:100%;width:100%; }
+    div#progress-container div {z-index:99999}
+    div#progress-box { position:relative;top:40%;margin:0 auto;width:300px; }
+    div#preloading-file { padding-left: 10px; white-space: nowrap; }
     div#console > pre { margin: 0; padding: 0 }
     div#source { width:100%; height:70%;
       position:relative;border: 1px solid #ccc; float: left;}
@@ -27,11 +44,23 @@
     div#console span.jquery-console-prompt-label { font-weight:bold }
     label { margin-right: 5px; }
   </style>
+
   <link rel='stylesheet' type="text/css" href="bootstrap.min.css">
   <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
   <script type="text/javascript" src="compressed.js"></script>
 </head>
 <body>
+  <a href="https://github.com/int3/doppio"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://a248.e.akamai.net/assets.github.com/img/abad93f42020b733148435e2cd92ce15c542d320/687474703a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f677265656e5f3030373230302e706e67" alt="Fork me on GitHub"></a>
+<div id='progress-container'>
+  <div id='progress-box'>
+    <div id='progress' class='progress progress-striped active'>
+      <div class='bar' style='width:0%'></div>
+    </div>
+    <div id='preloading-file'></div>
+  </div>
+</div>
+<div id='overlay'>
+</div>
 <div id='main'>
   <header class='page-header'>
     <h1 id='title' style='float:left'>DoppioVM</h1>
@@ -64,11 +93,6 @@
     Console is based off <a
       href="https://github.com/chrisdone/jquery-console">Chris Done's jquery-console</a>,
     and editing is provided by <a href="https://github.com/ajaxorg/ace">Ace</a>.
-  </p>
-  <p>
-    Found a bug? Have a request? Hit the
-    <a  href="https://github.com/int3/doppio">project page</a> for issues and
-    pull requests.
   </p>
 </div>
 </body>
