@@ -413,6 +413,7 @@ native_methods =
               return
             rs.print rs.jvm_carr2js_str(bytes.ref, offset, len)
         o 'close0()V', (rs, _this) ->
+            return unless _this.fields.$file?
             fs.closeSync(_this.fields.$file)
             _this.fields.$file = null
       ]
@@ -424,7 +425,7 @@ native_methods =
         o 'read()I', (rs, _this) ->
             if _this.fields.$file?
               # this is a real file that we've already opened
-              data = fs.readSync(_this.fields.$file, 1, _this.fields.$pos)[0]
+              data = fs.readSync(_this.fields.$file, 1, _this.fields.$pos, 'binary')[0]
               _this.fields.$pos++
               return if data.length == 0 then -1 else data.charCodeAt(0)
             # reading from System.in, do it async
@@ -524,7 +525,15 @@ native_methods =
       zip:
         ZipFile: [
           o 'open(Ljava/lang/String;IJZ)J', (rs,fname,mode,mtime,use_mmap) ->
-              throw "Zipfile loading is NYI. Tried to open: #{rs.jvm2js_str(fname)}"
+              jvm_str = rs.jvm2js_str fname
+              rs.set_file_descriptor fs.openSync jvm_str, 'r'
+          o 'getTotal(J)I', (rs, fd_long) ->
+              zipfile = rs.get_file_descriptor fd_long
+              fs.fstatSync(zipfile).size
+          o 'getEntry(JLjava/lang/String;Z)J', (rs, fd_long, name, add_slash) ->
+              entry_name = rs.jvm2js_str name
+              error "NYI Warning: Trying to read entry '#{entry_name}' from ZipFile  Returning zero."
+              gLong.fromInt 0
         ]
   sun:
     misc:

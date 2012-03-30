@@ -19,6 +19,9 @@ class root.RuntimeState
     # for interned strings and string literals
     @string_pool = {}
     @string_redirector = {}
+    # map file descriptor ints to descript objects.
+    # we have a dud object because fds should never be zero
+    @file_descriptors = [ null ]
 
   initialize: (class_data, initial_args) ->
     type = class_data.this_class
@@ -47,6 +50,12 @@ class root.RuntimeState
       trace "heapifying #{oref} -> #{@string_redirector[key]} : '#{cstr.value}'"
     trace "redirecting #{oref} -> #{@string_redirector[key]}"
     return @string_redirector[key]
+
+  set_file_descriptor: (fd_obj) ->
+    @file_descriptors.push fd_obj
+    gLong.fromInt(@file_descriptors.length - 1)
+  get_file_descriptor: (fd_long) ->
+    @file_descriptors[fd_long.toInt()]
 
   curr_frame: () ->
     if @resuming_stack? then @meta_stack[@resuming_stack]
