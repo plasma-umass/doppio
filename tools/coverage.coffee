@@ -2,13 +2,16 @@
 
 fs = require 'fs'
 path = require 'path'
+optimist = require 'optimist'
 jvm = require '../src/jvm'
 util = require '../src/util'
 ClassFile = require '../src/class_file'
 runner = require '../console/runner'
 opcodes = require '../src/opcodes'
 
-print_usage = false  #TODO: make this a flag with optimist
+{argv} = optimist
+
+print_usage = argv['print-usage']
 
 # monkeypatch opcode parsing
 op_stats = {}
@@ -32,16 +35,17 @@ cs = (new ClassFile runner.read_binary_file "#{test_dir}/#{path.basename file, '
 rs = new runtime.RuntimeState((->), (->), runner.read_classfile)
 # run each class, reusing the same heap and string pool and class info
 for c in cs
-  console.log "running #{c.this_class}..." unless print_usage
+  console.log "running #{c.this_class.toClassString()}..." unless print_usage
   jvm.run_class(rs, c, [])
 
-unused_count = 0
-for _, op of opcodes.opcodes
-  if not print_usage and op_stats[op.name] is 0
+if not print_usage
+  unused_count = 0
+  for _, op of opcodes.opcodes when op_stats[op.name] is 0
     unused_count++
     console.log op.name
-  if print_usage
-    console.log op_stats[op.name],op.name
-
-if not print_usage and unused_count > 0
-  console.log "#{unused_count} instructions have yet to be tested."
+  if unused_count > 0
+    console.log "#{unused_count} instructions have yet to be tested."
+else
+  op_array = (op for _, op of opcodes.opcodes)
+  op_array.sort (a, b) -> op_stats[b.name] - op_stats[a.name]
+  console.log op_stats[op.name], op.name for op in op_array
