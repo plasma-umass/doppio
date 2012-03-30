@@ -112,12 +112,16 @@ class root.IIncOpcode extends root.Opcode
   _execute: (rs) -> rs.put_cl(@index,rs.cl(@index)+@const)
 
 class root.LoadOpcode extends root.Opcode
+  constructor: (name, params={}) ->
+    params.execute ?=
+      if name.match /[ld]load/
+        (rs) -> rs.push rs.cl(@var_num), null
+      else
+        (rs) -> rs.push rs.cl(@var_num)
+    super name, params
+
   take_args: (code_array) ->
     @var_num = parseInt @name[6]  # sneaky hack, works for name =~ /.load_\d/
-
-  _execute: (rs) ->
-    rs.push rs.cl(@var_num)
-    rs.push null if @name.match /[ld]load/
 
 class root.LoadVarOpcode extends root.LoadOpcode
   take_args: (code_array, constant_pool, @wide=false) ->
@@ -130,14 +134,16 @@ class root.LoadVarOpcode extends root.LoadOpcode
       @var_num = code_array.get_uint 1
 
 class root.StoreOpcode extends root.Opcode
+  constructor: (name, params={}) ->
+    params.execute ?=
+      if name.match /[ld]store/
+        (rs) -> rs.put_cl2(@var_num,rs.pop2())
+      else
+        (rs) -> rs.put_cl(@var_num,rs.pop())
+    super name, params
+
   take_args: (code_array) ->
     @var_num = parseInt @name[7]  # sneaky hack, works for name =~ /.store_\d/
-
-  _execute: (rs) -> 
-    if @name.match /[ld]store/
-      rs.put_cl2(@var_num,rs.pop2())
-    else
-      rs.put_cl(@var_num,rs.pop())
 
 class root.StoreVarOpcode extends root.StoreOpcode
   constructor: (name, params) ->
