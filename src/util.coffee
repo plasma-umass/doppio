@@ -147,7 +147,7 @@ root.java_throw = (rs, cls, msg) ->
 
 root.DEBUG = 10
 root.ERROR = 1
-root.log_level ?= 0 # none at all, by default
+root.log_level ?= root.ERROR
 
 root.log = (level, msgs...) ->
   if level <= root.log_level
