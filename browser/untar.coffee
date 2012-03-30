@@ -3,9 +3,11 @@ root = this
 util ?= require '../src/util'
 
 root.untar = (bytes, cb, done_cb) ->
+  total_len = bytes.length
   next_file = ->
     [path,body] = shift_file(bytes)
-    cb path, body
+    percent = 1 - bytes.length / total_len
+    cb percent, path, body
     if bytes[0] != 0
       setTimeout next_file, 0
     else

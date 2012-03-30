@@ -2,6 +2,7 @@
 user_input = null
 controller = null
 editor = null
+progress = null
 
 class_cache = {}
 
@@ -12,17 +13,29 @@ $.ajax "browser/mini-rt.tar", {
   success: (data) ->
     file_count = 0
     done = false
-    untar util.bytestr_to_array(data), ((path, file) ->
+    bar = $('#progress > .bar')
+    preloading_file = $('#preloading-file')
+    on_complete = ->
+      $('#overlay').fadeOut 'slow'
+      $('#progress-container').fadeOut 'slow'
+    update_bar = _.throttle ((percent, path) ->
+      # +10% hack to make the bar appear fuller before fading kicks in
+      display_perc = Math.min Math.ceil(percent*100) + 10, 100
+      bar.width "#{display_perc}%", 150
+      preloading_file.text(
+        if display_perc < 100 then "Loading #{_.last path.split '/'}"  else "Done!"))
+
+    untar util.bytestr_to_array(data), ((percent, path, file) ->
       file_count++
+      update_bar(percent, path)
       cls = /third_party\/classes\/([^.]*).class/.exec(path)[1]
       setTimeout (->
         class_cache[cls] = new ClassFile file
-        controller.message "Loaded #{cls}\n", 'success', true
-        controller.reprompt() if --file_count == 0 and done
+        on_complete() if --file_count == 0 and done
       ), 0),
       ->
         done = true
-        controller.reprompt() if file_count == 0
+        on_complete() if file_count == 0
   error: (jqXHR, textStatus, errorThrown) ->
     console.error errorThrown
 }
