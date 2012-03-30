@@ -87,7 +87,6 @@ compile_source = (fname, quiet) ->
   }
 
 $(document).ready ->
-  util.log_level = 0
   editor = $('#editor')
   # set up the local file loaders
   $('#file').change (ev) ->
