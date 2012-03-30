@@ -7,6 +7,7 @@ RESULTS = $(SOURCES:.java=.result)
 #   in the browser frontend html.
 BROWSER_SRCS = third_party/underscore-min.js \
 	third_party/gLong.js \
+	browser/util.coffee \
 	browser/node.coffee \
 	src/util.coffee \
 	src/types.coffee \

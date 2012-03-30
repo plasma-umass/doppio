@@ -32,7 +32,7 @@ $.ajax "browser/mini-rt.tar", {
       file_count++
       update_bar(percent, path)
       cls = /third_party\/classes\/([^.]*).class/.exec(path)[1]
-      setTimeout (->
+      asyncExecute (->
         class_cache[cls] = new ClassFile file
         on_complete() if --file_count == 0 and done
       ), 0),

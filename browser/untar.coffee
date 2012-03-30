@@ -9,10 +9,10 @@ root.untar = (bytes, cb, done_cb) ->
     percent = 1 - bytes.length / total_len
     cb percent, path, body
     if bytes[0] != 0
-      setTimeout next_file, 0
+      asyncExecute next_file
     else
       done_cb?()
-  setTimeout  next_file, 0
+  asyncExecute next_file, 0
 
 shift_file = (bytes) ->
   header = bytes.splice(0, 512)
