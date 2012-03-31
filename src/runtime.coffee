@@ -133,6 +133,18 @@ class root.RuntimeState
 
   # lookup methods
   class_lookup: (type,get_obj=false) ->
+    c = @_class_lookup type
+    unless c
+      cls = (type.toClassString?() ? type.toString())
+      java_throw @, 'java/lang/NoClassDefFoundError', cls
+    if get_obj then c.obj else c.file
+  dyn_class_lookup: (type, get_obj=false) ->
+    c = @_class_lookup type
+    unless c
+      cls = (type.toClassString?() ? type.toString())
+      java_throw @, 'java/lang/ClassNotFoundException', cls
+    if get_obj then c.obj else c.file
+  _class_lookup: (type) ->
     throw new Error "class_lookup needs a type object, got #{typeof type}: #{type}" unless type instanceof types.Type
     cls = type.toClassString?() ? type.toString()
     unless @classes[cls]?
@@ -153,12 +165,12 @@ class root.RuntimeState
           obj: @set_obj(c2t('java/lang/Class'), { $type: type, name: 0 })
         component = type.component_type
         if component instanceof types.ArrayType or component instanceof types.ClassType
-          @class_lookup component
+          @_class_lookup component
       else if type instanceof types.PrimitiveType
         @classes[type] = {file: '<primitive>', obj: @set_obj(c2t('java/lang/Class'), { $type: type, name: 0 })}
       else
         class_file = @read_classfile cls
-        java_throw @, 'java/lang/NoClassDefFoundError', cls unless class_file?
+        return unless class_file?
         @classes[cls] =
           file: class_file
           obj:  @set_obj(c2t('java/lang/Class'), { $type: type, name: 0 })
@@ -170,8 +182,6 @@ class root.RuntimeState
           @method_lookup({'class': cls, 'sig': {'name': 'initializeSystemClass'}}).run(this)
         util.log_level = old_loglevel  # resume logging
     c = @classes[cls]
-    throw "class #{cls} not found!" unless c?
-    if get_obj then c.obj else c.file
   method_lookup: (method_spec) ->
     filter_methods = (cls) ->
       ms = (m for m in cls.methods when m.name is method_spec.sig.name)
@@ -180,12 +190,16 @@ class root.RuntimeState
       throw "too many method choices" if ms.length > 1
       ms[0]
     method = @find_in_classes c2t(method_spec.class), filter_methods
-    throw "no such method found in #{method_spec.class}: #{method_spec.sig.name}#{method_spec.sig.type}" unless method
+    unless method
+      java_throw @, 'java/lang/NoSuchMethodError',
+        "No such method found in #{method_spec.class}: #{method_spec.sig.name}#{method_spec.sig.type}"
     method
   field_lookup: (field_spec) ->
     field = @find_in_classes c2t(field_spec.class),
       (c) -> _.find(c.fields, (f)-> f.name is field_spec.sig.name)
-    throw new Error "no such field found in #{field_spec.class}: #{field_spec.sig.name}#{field_spec.sig.type}" unless field
+    unless field
+      java_throw @, 'java/lang/NoSuchFieldError',
+        "No such field found in #{field_spec.class}: #{field_spec.sig.name}#{field_spec.sig.type}"
     field
   find_in_classes: (type, filter_fn) ->
     t = type

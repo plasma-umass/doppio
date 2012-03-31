@@ -88,8 +88,8 @@ trapped_methods =
         o 'getInstance(Ljava/lang/String;)Ljava/util/Currency;', (rs) -> null # because it uses lots of reflection and we don't need it
       ]
       ResourceBundle: [
-        o 'getBundleImpl(L!/lang/String;L!/!/Locale;L!/lang/ClassLoader;L!/!/!$Control;)L!/!/!;', getBundle
-        o 'getLoader()L!/lang/ClassLoader;', (rs) -> null
+        o 'getLoader()L!/lang/ClassLoader;', (rs) ->
+            rs.set_obj c2t 'java/lang/ClassLoader'
       ]
       EnumSet: [
         o 'getUniverse(L!/lang/Class;)[L!/lang/Enum;', (rs) ->
@@ -250,10 +250,16 @@ native_methods =
       ClassLoader: [
         o 'findLoadedClass0(L!/!/String;)L!/!/Class;', (rs, _this, name) ->
             type = c2t util.int_classname rs.jvm2js_str name
-            rs.class_lookup type, true
+            rv = null
+            try
+              rv = rs.class_lookup type, true
+            catch e
+              unless e instanceof util.JavaException # assuming a NoClassDefFoundError
+                throw e
+            rv
         o 'findBootstrapClass(L!/!/String;)L!/!/Class;', (rs, _this, name) ->
             type = c2t util.int_classname rs.jvm2js_str name
-            rs.class_lookup type, true
+            rs.dyn_class_lookup type, true
       ],
       Float: [
         o 'floatToRawIntBits(F)I', (rs, f_val) ->  #note: not tested for weird values
@@ -680,8 +686,12 @@ class root.Method extends AbstractMethodField
       else
         converted_params.push p
       param_idx += if (@param_types[idx].toString() in ['J', 'D']) then 2 else 1
-    rv = func rs, converted_params...
-    rs.meta_stack.pop()
+    try
+      rv = func rs, converted_params...
+    finally
+      # func may throw a JavaException (if it cannot handle it internally).
+      # In this case, pop the stack anyway but don't push a return value.
+      rs.meta_stack.pop()
     unless @return_type instanceof types.VoidType
       if @return_type.toString() == 'J' then rs.push rv # longs are stored as objects
       else rs.push rv + 0 # cast booleans, etc to a Number
@@ -720,10 +730,12 @@ class root.Method extends AbstractMethodField
             eh.start_pc <= pc < eh.end_pc and
               (eh.catch_type == "<any>" or rs.is_castable e.exception.type, c2t(eh.catch_type))
           if handler?
+            debug "caught exception as subclass of #{handler.catch_type}"
             rs.push e.exception_ref
             rs.goto_pc handler.handler_pc
             continue
           else # abrupt method invocation completion
+            debug "exception not caught, terminating #{@name}"
             rs.meta_stack.pop()
             throw e
         throw e # JVM Error

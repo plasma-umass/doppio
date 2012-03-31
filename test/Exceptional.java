@@ -1,4 +1,7 @@
 package test;
+
+import java.io.*;
+
 public class Exceptional {
   public static void throwingFunc() throws Exception {
     int x = 0;
@@ -34,6 +37,15 @@ public class Exceptional {
       }
       finally {
         b += 1200;
+      }
+
+      // check that natively thrown errors are handled properly
+      int a = 10;
+      try {
+        new FileReader("./NonExistentFile!!!");
+      }
+      catch (Exception e) {
+        System.out.println(a);
       }
 
       try {
