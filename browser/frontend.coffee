@@ -193,15 +193,15 @@ commands =
   ls: (args) ->
     (node.fs.readdirSync '.').sort().join '\n'
   edit: (args) ->
-    data = DoppioFile.load(args[0])?.read() or defaultFile
+    data = if args[0]? then DoppioFile.load(args[0]).read() else defaultFile
     $('#console').fadeOut 'fast', ->
       $('#filename').val args[0]
       $('#ide').fadeIn('fast')
       # initialize the editor. technically we only need to do this once, but more
       # than once is fine too
       editor = ace.edit('source')
-      ext = args[0].split('.')[1]
-      if ext is 'java'
+      ext = args[0]?.split('.')[1]
+      if ext is 'java' or not args[0]?
         JavaMode = require("ace/mode/java").Mode
         editor.getSession().setMode(new JavaMode)
       else
