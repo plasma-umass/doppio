@@ -695,7 +695,7 @@ class root.Method extends AbstractMethodField
         cf = rs.curr_frame()
         pc = rs.curr_pc()
         op = code[pc]
-        unless RELEASE?
+        unless RELEASE? or util.log_level <= util.ERROR
           throw "#{@name}:#{pc} => (null)" unless op
           debug "#{padding}stack: [#{pa cf.stack}], local: [#{pa cf.locals}]"
           annotation =
