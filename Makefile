@@ -47,9 +47,23 @@ test/%.runout: test/%.class
 clean:
 	@rm -f *.class $(DISASMS) $(RUNOUTS) $(RESULTS)
 
-release:
+
+DEMO_SRCS = $(wildcard test/special/*.java)
+DEMO_CLASSES = $(DEMO_SRCS:.java=.class)
+
+release: build/index.html build/compressed.js browser/mini-rt.tar $(DEMO_CLASSES)
 	git submodule update --init --recursive
+	rsync third_party/bootstrap/css/bootstrap.min.css build/bootstrap.min.css
+	rsync -a test/special build/test/
+	rsync -a browser/mini-rt.tar build/browser/mini-rt.tar
+
+test/special/%.class: test/special/%.java
+	javac build/test/special/*.java
+
+build/index.html: browser/doppio.html
 	cpp -P -DRELEASE browser/doppio.html build/index.html
+
+build/compressed.js: $(BROWSER_SRCS)
 	for src in $(BROWSER_SRCS); do \
 		if [ "$${src##*.}" == "coffee" ]; then \
 			cat $${src} | gsed -r "s/^ *(debug|trace).*$$//" | coffee --stdio --print; \
@@ -58,9 +72,8 @@ release:
 		fi; \
 		echo ";"; \
 	done | uglifyjs --define RELEASE --no-mangle --unsafe > build/compressed.js
-	rsync third_party/bootstrap/css/bootstrap.min.css build/bootstrap.min.css
-	rsync -a test/special build/test/
-	rsync -a browser/mini-rt.tar build/browser/mini-rt.tar
-	javac build/test/special/*.java
 
-.SECONDARY: $(CLASSES) $(DISASMS) $(RUNOUTS)
+browser/mini-rt.tar: tools/preload
+	tools/make-rt.sh
+
+.SECONDARY: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES)
