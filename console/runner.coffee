@@ -19,7 +19,7 @@ if require.main == module
   optimist = require 'optimist'
   {argv} = optimist
 
-  optimist.usage('Usage: $0 /path/to/classfile [args for JVM] [--log=[0-10]|debug|error]')
+  optimist.usage('Usage: $0 /path/to/classfile --java=[args for JVM] [--log=[0-10]|debug|error]')
 
   return optimist.showHelp() if argv.help
 
@@ -45,7 +45,7 @@ if require.main == module
         resume buffer
         process.exit 0  # a bit of a hack: stdin is open, so it doesn't want to exit normally
 
-  java_cmd_args = (arg.toString() for arg in argv._[1..])
+  java_cmd_args = (argv.java?.split /\s+/) or []
 
   rs = new runtime.RuntimeState(stdout, read_stdin, exports.read_classfile)
   jvm.run_class rs, class_data, java_cmd_args

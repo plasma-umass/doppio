@@ -133,7 +133,7 @@ class root.RuntimeState
 
   # lookup methods
   class_lookup: (type,get_obj=false) ->
-    throw "class_lookup needs a type object, got #{typeof type}: #{type}" unless type instanceof types.Type
+    throw new Error "class_lookup needs a type object, got #{typeof type}: #{type}" unless type instanceof types.Type
     cls = type.toClassString?() ? type.toString()
     unless @classes[cls]?
       # fetch the relevant class file, put it in @classes[cls]
@@ -173,36 +173,36 @@ class root.RuntimeState
     throw "class #{cls} not found!" unless c?
     if get_obj then c.obj else c.file
   method_lookup: (method_spec) ->
-    cls = @class_lookup(c2t(method_spec.class))
-    filter_methods = (methods) ->
-      ms = (m for m in methods when m.name is method_spec.sig.name)
+    filter_methods = (cls) ->
+      ms = (m for m in cls.methods when m.name is method_spec.sig.name)
       unless ms.length == 1 and not method_spec.sig.type?
         ms = (m for m in ms when m.raw_descriptor is method_spec.sig.type)
       throw "too many method choices" if ms.length > 1
       ms[0]
-    c = cls
-    while true
-      method = filter_methods c.methods
-      break if method or not c['super_class']
-      c = @class_lookup(c.super_class)
-    return method if method?
+    method = @find_in_classes c2t(method_spec.class), filter_methods
+    throw "no such method found in #{method_spec.class}: #{method_spec.sig.name}#{method_spec.sig.type}" unless method
+    method
+  field_lookup: (field_spec) ->
+    field = @find_in_classes c2t(field_spec.class),
+      (c) -> _.find(c.fields, (f)-> f.name is field_spec.sig.name)
+    throw new Error "no such field found in #{field_spec.class}: #{field_spec.sig.name}#{field_spec.sig.type}" unless field
+    field
+  find_in_classes: (type, filter_fn) ->
+    t = type
+    while t
+      cls = @class_lookup(t)
+      prop = filter_fn cls # property
+      return prop if prop?
+      t = cls.super_class
+    cls = @class_lookup(type)
     ifaces = (c2t(cls.constant_pool.get(i).deref()) for i in cls.interfaces)
     while ifaces.length > 0
       iface_name = ifaces.shift()
       ifc = @class_lookup iface_name
-      method = filter_methods ifc.methods
-      break if method?
-      ifaces.push.apply (c2t(ifc.constant_pool.get(i).deref()) for i in ifc.interfaces)
-    throw "no such method found in #{method_spec.class}: #{method_spec.sig.name}#{method_spec.sig.type}" unless method
-    method
-  field_lookup: (field_spec) ->
-    c = @class_lookup(c2t(field_spec.class))
-    while true
-      field = _.find(c.fields, (f)-> f.name is field_spec.sig.name)
-      break if field or not c['super_class']
-      c = @class_lookup(c.super_class)
-    throw "no such field found: #{field_spec.sig.name}#{field_spec.sig.type}" unless field
-    field
+      prop = filter_fn ifc
+      return prop if prop?
+      Array::push.apply ifaces,
+        (c2t(ifc.constant_pool.get(i).deref()) for i in ifc.interfaces)
 
   # casting and such
   is_subclass: (class1, class2) ->
