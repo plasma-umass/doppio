@@ -9,6 +9,7 @@ class win.DoppioFile # File is a native browser thing
     @data = ""
 
   @load: (fname) ->
+    fname = root.path.resolve fname
     rawData = localStorage["file::#{fname?.toLowerCase()}"]
     return null unless rawData
     data = JSON.parse rawData
@@ -18,8 +19,7 @@ class win.DoppioFile # File is a native browser thing
 
   read: (length, pos) ->
     return @data unless length?
-    rv = @data.substr(pos, length)
-    rv
+    @data.substr(pos, length)
 
   write: (newData) -> @data += newData; @
 
@@ -34,20 +34,36 @@ class win.DoppioFile # File is a native browser thing
 
 # this is a global in Node.JS as well
 class win.Buffer
-  constructor: (@array) ->
+  constructor: (obj) ->
+    if obj instanceof Array
+      @array = obj
+    else # assume num
+      @array = new Array obj
 
-  getByteAt: (i) -> util.int2uint @array[i], 1
+  readUInt8: (i) -> util.int2uint @array[i], 1
 
 class Stat
-  @fromPath: (path) -> new Stat win.DoppioFile.load path
+  @fromPath: (path) ->
+    if path == '.'
+      stat = new Stat
+      stat.size = 1
+      stat.mtime = (new Date).getTime()
+      stat.is_file = false
+      stat.is_directory = true
+      stat
+    else
+      new Stat win.DoppioFile.load path
 
   constructor: (@file) ->
-    @size = @file.data.length
-    @mtime = @file.mtime
+    if @file?
+      @size = @file.data.length
+      @mtime = @file.mtime
+      @is_file = true
+      @is_directory = false
 
-  isFile: -> true # currently we only support files
+  isFile: -> @is_file
 
-  isDirectory: -> false
+  isDirectory: -> @is_directory
 
 root.fs =
   statSync: (fname) -> Stat.fromPath fname
@@ -65,17 +81,29 @@ root.fs =
     else # XXX assuming write
       new DoppioFile fname
 
-  readSync: (file, length, pos, encoding) ->
+  readSync: (file, buf, offset, length, pos) ->
     data = file.read(length, pos)
-    [data, data.length]
+    for d, i in data
+      buf.array[offset+i] = data.charCodeAt(i) & 0xFF
+    data.length
 
   writeSync: (file, buffer, offset, len) ->
     # TODO flush occasionally?
-    file.write((String.fromCharCode(buffer.getByteAt i) for i in [offset...offset+len]).join '')
+    file.write((String.fromCharCode(buffer.readUInt8 i) for i in [offset...offset+len]).join '')
 
   closeSync: (file) -> file.save()
+
+  readdirSync: (path) ->
+    for key, file of localStorage when key[..5] == 'file::'
+      (DoppioFile.load key[6..]).name
 
 root.path =
   normalize: (path) -> path
 
-  resolve: (path) -> path
+  resolve: (path) ->
+    components = path.split '/'
+    for c, idx in components
+      if c == '.'
+        # when we implement dirs, this will resolve to the cwd
+        components[idx] = ''
+    (c for c in components when c != '').join '/'

@@ -191,10 +191,7 @@ commands =
     class_cache = {}
     "Cache cleared."
   ls: (args) ->
-    files =
-      for key, file of localStorage when key[..5] == 'file::'
-        DoppioFile.load key[6..]
-    (f.name for f in files when f?).sort().join '\n'
+    (node.fs.readdirSync '.').sort().join '\n'
   edit: (args) ->
     data = DoppioFile.load(args[0])?.read() or defaultFile
     $('#console').fadeOut 'fast', ->

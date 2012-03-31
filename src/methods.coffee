@@ -423,11 +423,12 @@ native_methods =
             stats = fs.fstatSync _this.fields.$file
             stats.size - _this.fields.$pos
         o 'read()I', (rs, _this) ->
-            if _this.fields.$file?
+            if (file = _this.fields.$file)?
               # this is a real file that we've already opened
-              data = fs.readSync(_this.fields.$file, 1, _this.fields.$pos, 'binary')[0]
+              buf = new Buffer((fs.fstatSync file).size)
+              bytes_read = fs.readSync(file, buf, 0, 1, _this.fields.$pos)
               _this.fields.$pos++
-              return if data.length == 0 then -1 else data.charCodeAt(0)
+              return if bytes_read == 0 then -1 else buf.readUInt8(0)
             # reading from System.in, do it async
             console.log '>>> reading from Stdin now!'
             data = null # will be filled in after the yield
@@ -440,12 +441,13 @@ native_methods =
             if _this.fields.$file?
               # this is a real file that we've already opened
               pos = _this.fields.$pos
-              data = fs.readSync(_this.fields.$file, n_bytes, pos, 'binary')[0]
+              buf = new Buffer n_bytes
+              bytes_read = fs.readSync(_this.fields.$file, buf, 0, n_bytes, pos)
               # not clear why, but sometimes node doesn't move the file pointer,
               # so we do it here ourselves
-              _this.fields.$pos += data.length
-              byte_arr.array[offset...offset+data.length] = (data.charCodeAt(i) for i in [0...data.length])
-              return if data.length == 0 and n_bytes isnt 0 then -1 else data.length
+              _this.fields.$pos += bytes_read
+              byte_arr.array[offset...offset+bytes_read] = (buf.readUInt8(i) for i in [0...bytes_read])
+              return if bytes_read == 0 and n_bytes isnt 0 then -1 else bytes_read
             # reading from System.in, do it async
             console.log '>>> reading from Stdin now!'
             result = null # will be filled in after the yield
@@ -487,10 +489,11 @@ native_methods =
         o 'seek(J)V', (rs, _this, pos) -> _this.fields.$pos = pos
         o 'readBytes([BII)I', (rs, _this, byte_arr, offset, len) ->
             pos = _this.fields.$pos.toNumber()
-            data = fs.readSync(_this.fields.$file, len, pos, 'utf8')[0]
-            byte_arr.array[offset...offset+data.length] = (data.charCodeAt(i) for i in [0...data.length])
-            _this.fields.$pos = gLong.fromNumber(pos+data.length)
-            return if data.length == 0 and len isnt 0 then -1 else data.length
+            buf = new Buffer len
+            bytes_read = fs.readSync(_this.fields.$file, buf, 0, len, pos)
+            byte_arr.array[offset...offset+bytes_read] = (buf.readUInt8(i) for i in [0...bytes_read])
+            _this.fields.$pos = gLong.fromNumber(pos+bytes_read)
+            return if bytes_read == 0 and len isnt 0 then -1 else bytes_read
         o 'close0()V', (rs, _this) -> _this.fields.$file = null
       ]
       UnixFileSystem: [
