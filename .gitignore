@@ -5,5 +5,7 @@
 *.runout
 *.disasm
 node_modules
+build
 index.html
 .DS_store
+browser/mini-rt.tar

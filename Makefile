@@ -3,6 +3,8 @@ DISASMS = $(SOURCES:.java=.disasm)
 RUNOUTS = $(SOURCES:.java=.runout)
 CLASSES = $(SOURCES:.java=.class)
 RESULTS = $(SOURCES:.java=.result)
+DEMO_SRCS = $(wildcard test/special/*.java)
+DEMO_CLASSES = $(DEMO_SRCS:.java=.class)
 # the order here is important: must match the order of includes
 #   in the browser frontend html.
 BROWSER_SRCS = third_party/underscore-min.js \
@@ -46,13 +48,11 @@ test/%.runout: test/%.class
 
 clean:
 	@rm -f *.class $(DISASMS) $(RUNOUTS) $(RESULTS)
-
-
-DEMO_SRCS = $(wildcard test/special/*.java)
-DEMO_CLASSES = $(DEMO_SRCS:.java=.class)
+	@rm -rf build/* browser/mini-rt.jar $(DEMO_CLASSES)
 
 release: build/index.html build/compressed.js browser/mini-rt.tar $(DEMO_CLASSES)
 	git submodule update --init --recursive
+	mkdir -p build/browser
 	rsync third_party/bootstrap/css/bootstrap.min.css build/bootstrap.min.css
 	rsync -a test/special build/test/
 	rsync -a browser/mini-rt.tar build/browser/mini-rt.tar
