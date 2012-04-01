@@ -775,8 +775,9 @@ class root.Method extends AbstractMethodField
       # this case, pop the stack anyway but don't push a return value.
       # YieldExceptions should just terminate the function without popping the
       # stack.
-      throw e unless e instanceof util.JavaException
-      return rs.meta_stack.pop()
+      if e instanceof util.JavaException
+        rs.meta_stack.pop()
+      throw e
     rs.meta_stack.pop()
     unless @return_type instanceof types.VoidType
       if @return_type.toString() == 'J' then rs.push rv # longs are stored as objects
