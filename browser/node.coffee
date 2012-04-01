@@ -115,11 +115,10 @@ root.path =
   normalize: (path) -> path
 
   resolve: (path) ->
+    absolute = path[0] == '/'
     components = path.split '/'
     for c, idx in components
-      if c == '.'
-        # when we implement dirs, this will resolve to the cwd
-        components[idx] = ''
-    # remove repeated //s, but take care not to remove a slash at the beginning
-    # if one exists (i.e. indicating root.)
-    (c for c, idx in components when c != '' or idx == 0).join '/'
+      components[idx] = '' if c == '.'
+    # remove repeated //s
+    path = (c for c, idx in components when c != '').join '/'
+    (if absolute then '/' else '') + path
