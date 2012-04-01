@@ -544,20 +544,22 @@ native_methods =
           o 'initFields(J)V', (rs, _this, jzentry) ->
               ze = rs.get_zip_descriptor jzentry
               _this.fields.name = rs.init_string ze.name
-              _this.fields.time = gLong.fromInt ze.stat.mtime
               _this.fields.size = gLong.fromInt ze.stat.size
         ]
         ZipFile: [
           o 'open(Ljava/lang/String;IJZ)J', (rs,fname,mode,mtime,use_mmap) ->
-              js_str = rs.jvm2js_str fname
+              js_str = path.resolve rs.jvm2js_str fname
               if js_str == system_properties['sun.boot.class.path']
                 error "Simulating ZipFile based on classes.jar..."
               else
-                throw "Tried to open #{fname}: ZipFile is not actually implemented."
+                throw "Tried to open #{js_str}: ZipFile is not actually implemented."
               rs.set_zip_descriptor
                 name: 'special', path: 'third_party/classes/'
           o 'close(J)V', (rs, jzfile) -> rs.free_zip_descriptor jzfile
           o 'getTotal(J)I', (rs, jzfile) ->
+              if node?
+                # yep, hardcoded. though I'm not sure a correct value actually matters...
+                return 21090
               zipfile = rs.get_zip_descriptor jzfile
               unless zipfile.size?
                 entries = []
@@ -577,6 +579,16 @@ native_methods =
               zf = rs.get_zip_descriptor jzfile
               entry_name = rs.jvm2js_str name
               fullpath = "#{zf.path}#{entry_name}"
+              if node?
+                file = read_raw_class fullpath
+                return gLong.fromInt 0 unless file
+                return rs.set_zip_descriptor
+                         fullpath: fullpath
+                         name: entry_name
+                         file: file
+                         stat: {
+                           size: file.length
+                         }
               try
                 file = fs.openSync fullpath, 'r'
               catch e
@@ -596,9 +608,14 @@ native_methods =
           o 'getMethod(J)I', (rs, jzentry) -> 0 # STORED (i.e. uncompressed)
           o 'read(JJJ[BII)I', (rs, jzfile, jzentry, pos, byte_arr, offset, len) ->
               ze = rs.get_zip_descriptor jzentry
-              buf = new Buffer len
-              bytes_read = fs.readSync(ze.file, buf, offset, len, pos.toInt())
-              byte_arr.array[offset...offset+bytes_read] = (buf.readUInt8(i) for i in [0...bytes_read])
+              if node?
+                pos_int = pos.toInt()
+                bytes_read = Math.max(ze.file.length - pos_int, len)
+                byte_arr.array[offset...offset+bytes_read] = ze.file[pos_int...pos_int+bytes_read]
+              else
+                buf = new Buffer len
+                bytes_read = fs.readSync(ze.file, buf, 0, len, pos.toInt())
+                byte_arr.array[offset...offset+bytes_read] = (buf.readUInt8(i) for i in [0...bytes_read])
               return if bytes_read == 0 and len isnt 0 then -1 else bytes_read
         ]
   sun:
@@ -836,7 +853,10 @@ class root.Method extends AbstractMethodField
       else if native_methods[sig]
         @run_manually native_methods[sig], runtime_state
       else
-        throw "native method NYI: #{sig}"
+        try
+          util.java_throw runtime_state, 'java/lang/Error', "native method NYI: #{sig}"
+        finally
+          runtime_state.meta_stack.pop()
     else
       @run_bytecode runtime_state, padding
     cf = runtime_state.curr_frame()

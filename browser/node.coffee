@@ -30,7 +30,9 @@ class win.DoppioFile # File is a native browser thing
       mtime: @mtime
     @
 
-  @delete: (fname) -> localStorage.removeItem "file::#{fname.toLowerCase()}"
+  @delete: (fname) ->
+    fname = root.path.resolve fname
+    localStorage.removeItem "file::#{fname.toLowerCase()}"
 
 # this is a global in Node.JS as well
 class win.Buffer
@@ -44,7 +46,7 @@ class win.Buffer
 
 class Stat
   @fromPath: (path) ->
-    if path == '.'
+    if path == ''
       stat = new Stat
       stat.size = 1
       stat.mtime = (new Date).getTime()
@@ -68,11 +70,21 @@ class Stat
   isDirectory: -> @is_directory
 
 root.fs =
-  statSync: (fname) -> Stat.fromPath fname
+  statSync: (fname) ->
+    fname = root.path.resolve fname
+    unless fname is '/System/Library/Frameworks/JavaVM.framework/Classes/classes.jar'
+      return Stat.fromPath fname
+    stat = new Stat
+    stat.size = 21090
+    stat.mtime = (new Date).getTime() - 10000
+    stat.is_file = true
+    stat.is_directory = false
+    stat
 
   fstatSync: (fp) -> new Stat(fp)
 
   openSync: (fname, mode) ->
+    fname = root.path.resolve fname
     if 'r' in mode
       f = win.DoppioFile.load fname
       unless f?
@@ -108,4 +120,6 @@ root.path =
       if c == '.'
         # when we implement dirs, this will resolve to the cwd
         components[idx] = ''
-    (c for c in components when c != '').join '/'
+    # remove repeated //s, but take care not to remove a slash at the beginning
+    # if one exists (i.e. indicating root.)
+    (c for c, idx in components when c != '' or idx == 0).join '/'

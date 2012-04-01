@@ -1,3 +1,5 @@
+root = this
+
 # To be initialized on document load
 user_input = null
 controller = null
@@ -5,6 +7,7 @@ editor = null
 progress = null
 
 class_cache = {}
+raw_cache = {}
 
 $.ajax "browser/mini-rt.tar", {
   type: 'GET'
@@ -32,6 +35,7 @@ $.ajax "browser/mini-rt.tar", {
       file_count++
       update_bar(percent, path)
       cls = /third_party\/classes\/([^.]*).class/.exec(path)[1]
+      raw_cache[path] = file[0..]
       asyncExecute (->
         class_cache[cls] = new ClassFile file
         on_complete() if --file_count == 0 and done
@@ -63,6 +67,18 @@ read_classfile = (cls) ->
         class_cache[cls] = new ClassFile data
         break
   class_cache[cls]
+
+root.read_raw_class = (path) ->
+  unless raw_cache[path]?
+    data = null
+    $.ajax path, {
+      type: 'GET'
+      dataType: 'text'
+      async: false
+      beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
+      success: (data) -> raw_cache[path] = util.bytestr_to_array data
+    }
+  raw_cache[path]
 
 process_bytecode = (bytecode_string) ->
   bytes_array = util.bytestr_to_array bytecode_string
