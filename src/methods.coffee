@@ -580,6 +580,14 @@ native_methods =
               entry_name = rs.jvm2js_str name
               fullpath = "#{zf.path}#{entry_name}"
               if node?
+                if _.last(fullpath) == '/'
+                  # directory. not sure this value is actually used so just return a mock...
+                  return rs.set_zip_descriptor
+                           fullpath: fullpath
+                           name: entry_name
+                           stat: {
+                             size: 4
+                           }
                 file = read_raw_class fullpath
                 return gLong.fromInt 0 unless file
                 return rs.set_zip_descriptor

@@ -32,10 +32,15 @@ $.ajax "browser/mini-rt.tar", {
         if display_perc < 100 then "Loading #{_.last path.split '/'}"  else "Done!"))
 
     untar util.bytestr_to_array(data), ((percent, path, file) ->
-      file_count++
       update_bar(percent, path)
-      cls = /third_party\/classes\/([^.]*).class/.exec(path)[1]
       raw_cache[path] = file[0..]
+      base_dir = 'third_party/classes/'
+      [base,ext] = path.split('.')
+      unless ext is 'class'
+        on_complete() if percent == 100
+        return
+      file_count++
+      cls = base.substr(base_dir.length)
       asyncExecute (->
         class_cache[cls] = new ClassFile file
         on_complete() if --file_count == 0 and done
@@ -47,37 +52,37 @@ $.ajax "browser/mini-rt.tar", {
     console.error errorThrown
 }
 
+try_path = (path) ->
+  rv = null
+  $.ajax path, {
+    type: 'GET'
+    dataType: 'text'
+    async: false
+    beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
+    success: (data) -> rv = util.bytestr_to_array data
+  }
+  rv
+
 # Read in a binary classfile synchronously. Return an array of bytes.
 read_classfile = (cls) ->
   unless class_cache[cls]?
     classpath = [ "", "third_party/classes/" ]
-    try_path = (path) ->
-      rv = null
-      $.ajax "#{path}#{cls}.class", {
-        type: 'GET'
-        dataType: 'text'
-        async: false
-        beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
-        success: (data) -> rv = util.bytestr_to_array data
-      }
-      rv
     for path in classpath
-      data = try_path path
+      fullpath = "#{path}#{cls}.class"
+      if fullpath of raw_cache
+        class_cache[cls] = new ClassFile raw_cache[fullpath]
+        break
+      data = try_path fullpath
       if data?
+        raw_cache[fullpath] = data
         class_cache[cls] = new ClassFile data
         break
   class_cache[cls]
 
 root.read_raw_class = (path) ->
   unless raw_cache[path]?
-    data = null
-    $.ajax path, {
-      type: 'GET'
-      dataType: 'text'
-      async: false
-      beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
-      success: (data) -> raw_cache[path] = util.bytestr_to_array data
-    }
+    data = try_path path
+    raw_cache[path] = data if data?
   raw_cache[path]
 
 process_bytecode = (bytecode_string) ->
@@ -202,8 +207,9 @@ commands =
     class_data = process_bytecode raw_data
     disassembler.disassemble class_data
   list_cache: ->
-    (name for name of class_cache).join '\n'
+    (name for name of raw_cache).join '\n'
   clear_cache: (args) ->
+    raw_cache = {}
     class_cache = {}
     "Cache cleared."
   ls: (args) ->
