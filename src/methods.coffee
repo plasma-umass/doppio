@@ -516,7 +516,7 @@ native_methods =
             js_str = rs.jvm2js_str jvm_path_str
             rs.init_string path.resolve path.normalize js_str
         o 'list(Ljava/io/File;)[Ljava/lang/String;', (rs, _this, file) ->
-            fname = rs.jvm2js_str file.fields.path
+            path = rs.jvm2js_str rs.get_obj file.fields.path
             files = fs.readdirSync(path)
             rs.init_object('[Ljava/lang/String;',(rs.init_string(f) for f in files))
       ]
@@ -554,6 +554,7 @@ native_methods =
                 throw "Tried to open #{fname}: ZipFile is not actually implemented."
               rs.set_zip_descriptor
                 name: 'special', path: 'third_party/classes/'
+          o 'close(J)V', (rs, jzfile) -> rs.free_zip_descriptor jzfile
           o 'getTotal(J)I', (rs, zd_long) ->
               zipfile = rs.get_zip_descriptor zd_long
               unless zipfile.size?
