@@ -63,11 +63,11 @@
   <script type="text/javascript" src="src/class_file.js"></script>
   <script type="text/javascript" src="src/runtime.js"></script>
   <script type="text/javascript" src="src/jvm.js"></script>
-  <script type="text/javascript" src="third_party/ace/build/src/ace.js"></script>
-  <script type="text/javascript" src="third_party/ace/build/src/mode-java.js"></script>
   <script type="text/javascript" src="third_party/jquery.console.js"></script>
   <script type="text/javascript" src="browser/untar.js"></script>
   <script type="text/javascript" src="browser/frontend.js"></script>
+  <script type="text/javascript" src="third_party/ace/build/src/ace.js"></script>
+  <script type="text/javascript" src="third_party/ace/build/src/mode-java.js"></script>
 #endif
 </head>
 <body>
@@ -118,5 +118,8 @@
     and editing is provided by <a href="https://github.com/ajaxorg/ace">Ace</a>.
   </p>
 </div>
+#ifdef RELEASE
+<script type="text/javascript" src="ace.js"></script>
+#endif
 </body>
 </html>

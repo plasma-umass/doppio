@@ -21,11 +21,15 @@ BROWSER_SRCS = third_party/underscore-min.js \
 	src/class_file.coffee \
 	src/runtime.coffee \
 	src/jvm.coffee \
-	third_party/ace/build/src/ace.js \
-	third_party/ace/build/src/mode-java.js \
 	third_party/jquery.console.js \
 	browser/untar.coffee \
 	browser/frontend.coffee
+
+# they don't survive uglifyjs and are already minified, so include them
+# separately. also, this allows us to put them at the end of the document to
+# reduce load time.
+ACE_SRCS = third_party/ace/build/src/ace.js \
+	third_party/ace/build/src/mode-java.js
 
 test: $(RESULTS)
 	cat $(RESULTS)
@@ -50,7 +54,7 @@ clean:
 	@rm -f *.class $(DISASMS) $(RUNOUTS) $(RESULTS)
 	@rm -rf build/* browser/mini-rt.jar $(DEMO_CLASSES)
 
-release: build/index.html build/compressed.js browser/mini-rt.tar $(DEMO_CLASSES)
+release: build/index.html build/compressed.js browser/mini-rt.tar build/ace.js $(DEMO_CLASSES)
 	git submodule update --init --recursive
 	mkdir -p build/browser
 	rsync third_party/bootstrap/css/bootstrap.min.css build/bootstrap.min.css
@@ -72,6 +76,9 @@ build/compressed.js: $(BROWSER_SRCS)
 		fi; \
 		echo ";"; \
 	done | uglifyjs --define RELEASE --no-mangle --unsafe > build/compressed.js
+
+build/ace.js: $(ACE_SRCS)
+	cat $(ACE_SRCS) > build/ace.js
 
 browser/mini-rt.tar: tools/preload
 	tools/make-rt.sh
