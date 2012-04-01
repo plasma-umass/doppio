@@ -15,13 +15,13 @@ class root.StackFrame
 class root.RuntimeState
   constructor: (@print, @async_input, @read_classfile) ->
     @classes = {}
+    # we have a dud object because pointers should never be zero
     @heap = [null]
     # for interned strings and string literals
     @string_pool = {}
     @string_redirector = {}
-    # map file descriptor ints to descript objects.
-    # we have a dud object because fds should never be zero
-    @file_descriptors = [ null ]
+    # map zip descriptor ints to descriptor objects.
+    @zip_descriptors = [null]
 
   initialize: (class_data, initial_args) ->
     type = class_data.this_class
@@ -51,11 +51,13 @@ class root.RuntimeState
     trace "redirecting #{oref} -> #{@string_redirector[key]}"
     return @string_redirector[key]
 
-  set_file_descriptor: (fd_obj) ->
-    @file_descriptors.push fd_obj
-    gLong.fromInt(@file_descriptors.length - 1)
-  get_file_descriptor: (fd_long) ->
-    @file_descriptors[fd_long.toInt()]
+  set_zip_descriptor: (zd_obj) ->
+    @zip_descriptors.push zd_obj
+    gLong.fromInt(@zip_descriptors.length - 1)
+  get_zip_descriptor: (zd_long) ->
+    @zip_descriptors[zd_long.toInt()]
+  free_zip_descriptor: (zd_long) ->
+    delete @zip_descriptors[zd_long.toInt()]
 
   curr_frame: () ->
     if @resuming_stack? then @meta_stack[@resuming_stack]

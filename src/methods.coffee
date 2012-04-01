@@ -87,16 +87,17 @@ trapped_methods =
       Currency: [
         o 'getInstance(Ljava/lang/String;)Ljava/util/Currency;', (rs) -> null # because it uses lots of reflection and we don't need it
       ]
-      ResourceBundle: [
-        o 'getLoader()L!/lang/ClassLoader;', (rs) ->
-            rs.set_obj c2t 'java/lang/ClassLoader'
-      ]
       EnumSet: [
         o 'getUniverse(L!/lang/Class;)[L!/lang/Enum;', (rs) ->
             rs.push rs.curr_frame().locals[0]
             rs.method_lookup({class: 'java/lang/Class', sig: {name:'getEnumConstants',type:'()[Ljava/lang/Object;'}}).run(rs)
             rs.pop()
       ]
+      jar:
+        JarFile: [
+          o 'maybeInstantiateVerifier()V', (rs, _this) ->
+              _this.fields.verify = 0 # false; pretend verification is unnecessary
+        ]
     nio:
       charset:
         Charset$3: [
@@ -180,8 +181,7 @@ system_properties = {
   'java.home':'/', 'file.encoding':'US_ASCII','java.vendor':'DoppioVM',
   'line.separator':'\n', 'file.separator':'/', 'path.separator':':',
   'user.dir':'.','user.home':'.','user.name':'DoppioUser',
-  # this one must point to a valid rt.jar file
-  'sun.boot.class.path': '/Developer/Applications/Utilities/Application Loader.app/Contents/MacOS/itms/java/lib/rt.jar'
+  'sun.boot.class.path': '/System/Library/Frameworks/JavaVM.framework/Classes/classes.jar'
 }
 
 get_field_from_offset = (rs, cls, offset) ->
@@ -386,6 +386,7 @@ native_methods =
         o 'doPrivileged(L!/!/PrivilegedAction;)L!/lang/Object;', doPrivileged
         o 'doPrivileged(L!/!/PrivilegedAction;L!/!/AccessControlContext;)L!/lang/Object;', doPrivileged
         o 'doPrivileged(L!/!/PrivilegedExceptionAction;)L!/lang/Object;', doPrivileged
+        o 'doPrivileged(L!/!/PrivilegedExceptionAction;L!/!/AccessControlContext;)L!/lang/Object;', doPrivileged
         o 'getStackAccessControlContext()Ljava/security/AccessControlContext;', (rs) -> null
       ]
     io:
@@ -525,6 +526,11 @@ native_methods =
           AtomicLong: [
             o 'VMSupportsCS8()Z', -> true
           ]
+      ResourceBundle: [
+        o 'getClassContext()[L!/lang/Class;', (rs) ->
+            # XXX should walk up the meta_stack and fill in the array properly
+            rs.init_object '[Ljava/lang/Class;', [null,null,null]
+      ]
       TimeZone: [
         o 'getSystemTimeZoneID(L!/lang/String;L!/lang/String;)L!/lang/String;', (rs, java_home, country) ->
             rs.init_string 'GMT' # XXX not sure what the local value is
@@ -532,17 +538,66 @@ native_methods =
             null # XXX may not be correct
       ]
       zip:
+        ZipEntry: [
+          o 'initFields(J)V', (rs, _this, zd_long) ->
+              ze = rs.get_zip_descriptor zd_long
+              _this.fields.name = rs.init_string ze.name
+              _this.fields.time = gLong.fromInt ze.stat.mtime
+              _this.fields.size = gLong.fromInt ze.stat.size
+        ]
         ZipFile: [
           o 'open(Ljava/lang/String;IJZ)J', (rs,fname,mode,mtime,use_mmap) ->
-              jvm_str = rs.jvm2js_str fname
-              rs.set_file_descriptor fs.openSync jvm_str, 'r'
-          o 'getTotal(J)I', (rs, fd_long) ->
-              zipfile = rs.get_file_descriptor fd_long
-              fs.fstatSync(zipfile).size
-          o 'getEntry(JLjava/lang/String;Z)J', (rs, fd_long, name, add_slash) ->
+              js_str = rs.jvm2js_str fname
+              if js_str == system_properties['sun.boot.class.path']
+                error "Simulating ZipFile based on classes.jar..."
+              else
+                throw "Tried to open #{fname}: ZipFile is not actually implemented."
+              rs.set_zip_descriptor
+                name: 'special', path: 'third_party/classes/'
+          o 'getTotal(J)I', (rs, zd_long) ->
+              zipfile = rs.get_zip_descriptor zd_long
+              unless zipfile.size?
+                entries = []
+                add_entries = (dir) ->
+                  curr_dir_entries = fs.readdirSync dir
+                  for e in curr_dir_entries
+                    fullpath = "#{dir}/#{e}"
+                    stat = fs.statSync fullpath
+                    if stat.isDirectory()
+                      add_entries fullpath
+                    else
+                      entries.push e
+                add_entries zipfile.path
+                zipfile.size = entries.length
+              zipfile.size
+          o 'getEntry(JLjava/lang/String;Z)J', (rs, zd_long, name, add_slash) ->
+              zf = rs.get_zip_descriptor zd_long
               entry_name = rs.jvm2js_str name
-              error "NYI Warning: Trying to read entry '#{entry_name}' from ZipFile  Returning zero."
-              gLong.fromInt 0
+              fullpath = "#{zf.path}#{entry_name}"
+              try
+                file = fs.openSync fullpath, 'r'
+              catch e
+                return gLong.fromInt 0
+              rs.set_zip_descriptor
+                fullpath: fullpath
+                name: entry_name
+                file: file
+                stat: fs.fstatSync file
+          o 'freeEntry(JJ)V', (rs, jzfile, jzentry) -> rs.free_zip_descriptor jzentry
+          o 'getCSize(J)J', (rs, jzentry) ->
+              ze = rs.get_zip_descriptor jzentry
+              gLong.fromInt ze.stat.size # pretend compressed size = actual size?
+          o 'getSize(J)J', (rs, jzentry) ->
+              ze = rs.get_zip_descriptor jzentry
+              gLong.fromInt ze.stat.size
+          o 'getMethod(J)I', (rs, jzentry) -> 0 # STORED (i.e. uncompressed)
+          o 'read(JJJ[BII)I', (rs, jzfile, jzentry, pos, byte_arr, offset, len) ->
+              zf = rs.get_zip_descriptor jzfile
+              ze = rs.get_zip_descriptor jzentry
+              buf = new Buffer len
+              bytes_read = fs.readSync(ze.file, buf, offset, len, pos)
+              byte_arr.array[offset...offset+bytes_read] = (buf.readUInt8(i) for i in [0...bytes_read])
+              return if bytes_read == 0 and len isnt 0 then -1 else bytes_read
         ]
   sun:
     misc:
