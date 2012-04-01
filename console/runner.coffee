@@ -45,7 +45,7 @@ if require.main == module
         resume buffer
         process.exit 0  # a bit of a hack: stdin is open, so it doesn't want to exit normally
 
-  java_cmd_args = (argv.java?.split /\s+/) or []
+  java_cmd_args = (argv.java?.toString().split /\s+/) or []
 
   rs = new runtime.RuntimeState(stdout, read_stdin, exports.read_classfile)
   jvm.run_class rs, class_data, java_cmd_args
