@@ -52,7 +52,9 @@ class Stat
       stat.is_directory = true
       stat
     else
-      new Stat win.DoppioFile.load path
+      file = win.DoppioFile.load path
+      return null unless file?
+      new Stat file
 
   constructor: (@file) ->
     if @file?
