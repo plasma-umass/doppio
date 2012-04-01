@@ -191,34 +191,38 @@ class root.RuntimeState
         ms = (m for m in ms when m.raw_descriptor is method_spec.sig.type)
       throw "too many method choices" if ms.length > 1
       ms[0]
-    method = @find_in_classes c2t(method_spec.class), filter_methods
-    unless method
-      java_throw @, 'java/lang/NoSuchMethodError',
-        "No such method found in #{method_spec.class}: #{method_spec.sig.name}#{method_spec.sig.type}"
-    method
-  field_lookup: (field_spec) ->
-    field = @find_in_classes c2t(field_spec.class),
-      (c) -> _.find(c.fields, (f)-> f.name is field_spec.sig.name)
-    unless field
-      java_throw @, 'java/lang/NoSuchFieldError',
-        "No such field found in #{field_spec.class}: #{field_spec.sig.name}#{field_spec.sig.type}"
-    field
-  find_in_classes: (type, filter_fn) ->
+    type = c2t method_spec.class
     t = type
     while t
       cls = @class_lookup(t)
-      prop = filter_fn cls # property
-      return prop if prop?
+      method = filter_methods cls
+      return method if method?
       t = cls.super_class
     cls = @class_lookup(type)
     ifaces = (c2t(cls.constant_pool.get(i).deref()) for i in cls.interfaces)
     while ifaces.length > 0
       iface_name = ifaces.shift()
       ifc = @class_lookup iface_name
-      prop = filter_fn ifc
-      return prop if prop?
+      method = filter_methods ifc
+      return method if method?
       Array::push.apply ifaces,
         (c2t(ifc.constant_pool.get(i).deref()) for i in ifc.interfaces)
+    java_throw @, 'java/lang/NoSuchMethodError',
+      "No such method found in #{method_spec.class}: #{method_spec.sig.name}::#{method_spec.sig.type}"
+  field_lookup: (field_spec) ->
+    filter_field = (c) -> _.find(c.fields, (f)-> f.name is field_spec.sig.name)
+    t = c2t field_spec.class
+    while t
+      cls = @class_lookup(t)
+      field = filter_field cls
+      return field if field?
+      ifaces = (c2t(cls.constant_pool.get(i).deref()) for i in cls.interfaces)
+      for ifc in ifaces
+        field = filter_field @class_lookup ifc
+        return field if field?
+      t = cls.super_class
+    java_throw @, 'java/lang/NoSuchFieldError',
+      "No such field found in #{field_spec.class}: #{field_spec.sig.name}::#{field_spec.sig.type}"
 
   # casting and such
   is_subclass: (class1, class2) ->
