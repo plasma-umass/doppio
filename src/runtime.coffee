@@ -178,8 +178,12 @@ class root.RuntimeState
           obj:  @set_obj(c2t('java/lang/Class'), { $type: type, name: 0 })
         old_loglevel = util.log_level  # suppress logging for init stuff
         util.log_level = util.ERROR
-        # run class initialization code
-        @method_lookup({class: cls, sig: {name: '<clinit>', type: '()V'}}).run(this)
+        # Run class initialization code. We don't want to call this more than
+        # once per class, so don't do dynamic lookup. See spec 5.5.
+        clinit = (m for m in class_file.methods when m.name is '<clinit>')[0]
+        if class_file.super_class
+          @_class_lookup class_file.super_class
+        clinit?.run(this)
         if cls is 'java/lang/System'  # zomg hardcode
           @method_lookup({'class': cls, 'sig': {'name': 'initializeSystemClass'}}).run(this)
         util.log_level = old_loglevel  # resume logging
