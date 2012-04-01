@@ -296,6 +296,7 @@ native_methods =
         o 'clone()L!/!/!;', (rs, _this) ->
             if _this.type instanceof types.ArrayType then rs.set_obj _this.type, _this.array
             else rs.set_obj _this.type, _this.fields
+        o 'notifyAll()V', -> #NOP
       ]
       reflect:
         Array: [
@@ -596,7 +597,7 @@ native_methods =
               zf = rs.get_zip_descriptor jzfile
               ze = rs.get_zip_descriptor jzentry
               buf = new Buffer len
-              bytes_read = fs.readSync(ze.file, buf, offset, len, pos)
+              bytes_read = fs.readSync(ze.file, buf, offset, len, pos.toInt())
               byte_arr.array[offset...offset+bytes_read] = (buf.readUInt8(i) for i in [0...bytes_read])
               return if bytes_read == 0 and len isnt 0 then -1 else bytes_read
         ]
