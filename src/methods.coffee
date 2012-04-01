@@ -762,10 +762,14 @@ class root.Method extends AbstractMethodField
       param_idx += if (@param_types[idx].toString() in ['J', 'D']) then 2 else 1
     try
       rv = func rs, converted_params...
-    finally
-      # func may throw a JavaException (if it cannot handle it internally).
-      # In this case, pop the stack anyway but don't push a return value.
-      rs.meta_stack.pop()
+    catch e
+      # func may throw a JavaException (if it cannot handle it internally).  In
+      # this case, pop the stack anyway but don't push a return value.
+      # YieldExceptions should just terminate the function without popping the
+      # stack.
+      throw e unless e instanceof util.JavaException
+      return rs.meta_stack.pop()
+    rs.meta_stack.pop()
     unless @return_type instanceof types.VoidType
       if @return_type.toString() == 'J' then rs.push rv # longs are stored as objects
       else rs.push rv + 0 # cast booleans, etc to a Number
