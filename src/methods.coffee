@@ -181,6 +181,7 @@ system_properties = {
   'java.home':'/', 'file.encoding':'US_ASCII','java.vendor':'DoppioVM',
   'line.separator':'\n', 'file.separator':'/', 'path.separator':':',
   'user.dir':'.','user.home':'.','user.name':'DoppioUser',
+  # we don't actually load from this file, but it has to look like a valid filename
   'sun.boot.class.path': '/System/Library/Frameworks/JavaVM.framework/Classes/classes.jar'
 }
 
@@ -540,8 +541,8 @@ native_methods =
       ]
       zip:
         ZipEntry: [
-          o 'initFields(J)V', (rs, _this, zd_long) ->
-              ze = rs.get_zip_descriptor zd_long
+          o 'initFields(J)V', (rs, _this, jzentry) ->
+              ze = rs.get_zip_descriptor jzentry
               _this.fields.name = rs.init_string ze.name
               _this.fields.time = gLong.fromInt ze.stat.mtime
               _this.fields.size = gLong.fromInt ze.stat.size
@@ -556,8 +557,8 @@ native_methods =
               rs.set_zip_descriptor
                 name: 'special', path: 'third_party/classes/'
           o 'close(J)V', (rs, jzfile) -> rs.free_zip_descriptor jzfile
-          o 'getTotal(J)I', (rs, zd_long) ->
-              zipfile = rs.get_zip_descriptor zd_long
+          o 'getTotal(J)I', (rs, jzfile) ->
+              zipfile = rs.get_zip_descriptor jzfile
               unless zipfile.size?
                 entries = []
                 add_entries = (dir) ->
@@ -572,8 +573,8 @@ native_methods =
                 add_entries zipfile.path
                 zipfile.size = entries.length
               zipfile.size
-          o 'getEntry(JLjava/lang/String;Z)J', (rs, zd_long, name, add_slash) ->
-              zf = rs.get_zip_descriptor zd_long
+          o 'getEntry(JLjava/lang/String;Z)J', (rs, jzfile, name, add_slash) ->
+              zf = rs.get_zip_descriptor jzfile
               entry_name = rs.jvm2js_str name
               fullpath = "#{zf.path}#{entry_name}"
               try
@@ -594,7 +595,6 @@ native_methods =
               gLong.fromInt ze.stat.size
           o 'getMethod(J)I', (rs, jzentry) -> 0 # STORED (i.e. uncompressed)
           o 'read(JJJ[BII)I', (rs, jzfile, jzentry, pos, byte_arr, offset, len) ->
-              zf = rs.get_zip_descriptor jzfile
               ze = rs.get_zip_descriptor jzentry
               buf = new Buffer len
               bytes_read = fs.readSync(ze.file, buf, offset, len, pos.toInt())
