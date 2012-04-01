@@ -40,12 +40,11 @@ public class Exceptional {
       }
 
       // check that natively thrown errors are handled properly
-      int a = 10;
       try {
         new FileReader("./NonExistentFile!!!");
       }
       catch (Exception e) {
-        System.out.println(a);
+        System.out.println("Non existent file does not exist");
       }
 
       try {
