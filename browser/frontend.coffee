@@ -5,6 +5,8 @@ user_input = null
 controller = null
 editor = null
 progress = null
+# to be initialized in release build
+javac_class = null
 
 class_cache = {}
 raw_cache = {}
@@ -52,6 +54,15 @@ $.ajax "browser/mini-rt.tar", {
     console.error errorThrown
 }
 
+if RELEASE?
+  $.ajax "third_party/classes/sun/tools/javac/Main.class", {
+    type: 'GET'
+    dataType: 'text'
+    beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
+    success: (data) ->
+      javac_class = process_bytecode data
+  }
+
 try_path = (path) ->
   rv = null
   $.ajax path, {
@@ -90,7 +101,6 @@ process_bytecode = (bytecode_string) ->
   new ClassFile(bytes_array)
 
 compile_source = (fname, quiet) ->
-  throw 'Sorry, the compiler has been disabled.' if RELEASE?
   source = DoppioFile.load(fname).read()
   return controller.message "Could not find file '#{fname}'.", 'error' unless source?
   $.ajax 'http://people.cs.umass.edu/~ccarey/javac/', {
@@ -188,8 +198,12 @@ $(document).ready ->
 
 commands =
   javac: (args, cb) ->
-    return "Usage: javac <source file>" unless args[0]?
-    compile_source args[0], cb
+    unless RELEASE?
+      return "Usage: javac <source file>" unless args[0]?
+      return compile_source args[0], cb
+    stdout = (str) -> controller.message str, '', true # noreprompt
+    rs = new runtime.RuntimeState(stdout, user_input, read_classfile)
+    jvm.run_class(rs, javac_class, args, -> controller.reprompt())
   java: (args, cb) ->
     return "Usage: java class [args...]" unless args[0]?
     raw_data = DoppioFile.load("#{args[0]}.class").read()
