@@ -188,6 +188,7 @@ class root.RuntimeState
           @method_lookup({'class': cls, 'sig': {'name': 'initializeSystemClass'}}).run(this)
         util.log_level = old_loglevel  # resume logging
     c = @classes[cls]
+  # spec 5.4.3.3, 5.4.3.4
   method_lookup: (method_spec) ->
     filter_methods = (cls) ->
       ms = (m for m in cls.methods when m.name is method_spec.sig.name)
@@ -213,20 +214,25 @@ class root.RuntimeState
         (c2t(ifc.constant_pool.get(i).deref()) for i in ifc.interfaces)
     java_throw @, 'java/lang/NoSuchMethodError',
       "No such method found in #{method_spec.class}: #{method_spec.sig.name}::#{method_spec.sig.type}"
+  # spec 5.4.3.2
   field_lookup: (field_spec) ->
     filter_field = (c) -> _.find(c.fields, (f)-> f.name is field_spec.sig.name)
-    t = c2t field_spec.class
-    while t
-      cls = @class_lookup(t)
-      field = filter_field cls
-      return field if field?
-      ifaces = (c2t(cls.constant_pool.get(i).deref()) for i in cls.interfaces)
-      for ifc in ifaces
-        field = filter_field @class_lookup ifc
-        return field if field?
-      t = cls.super_class
+    field = @_field_lookup field_spec.class, filter_field
+    return field if field?
     java_throw @, 'java/lang/NoSuchFieldError',
       "No such field found in #{field_spec.class}: #{field_spec.sig.name}::#{field_spec.sig.type}"
+  _field_lookup: (class_name, filter_fn) ->
+    t = c2t class_name
+    while t
+      cls = @class_lookup(t)
+      field = filter_fn cls
+      return field if field?
+      ifaces = (cls.constant_pool.get(i).deref() for i in cls.interfaces)
+      for ifc in ifaces
+        field = @_field_lookup ifc, filter_fn
+        return field if field?
+      t = cls.super_class
+    null
 
   # casting and such
   is_subclass: (class1, class2) ->
