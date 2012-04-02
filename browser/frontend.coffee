@@ -77,7 +77,7 @@ try_path = (path) ->
 # Read in a binary classfile synchronously. Return an array of bytes.
 read_classfile = (cls) ->
   unless class_cache[cls]?
-    classpath = [ "", "third_party/classes/" ]
+    classpath = [ "third_party/classes/", "" ]
     for path in classpath
       fullpath = "#{path}#{cls}.class"
       if fullpath of raw_cache
