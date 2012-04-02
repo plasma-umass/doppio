@@ -518,8 +518,8 @@ native_methods =
             js_str = rs.jvm2js_str jvm_path_str
             rs.init_string path.resolve path.normalize js_str
         o 'list(Ljava/io/File;)[Ljava/lang/String;', (rs, _this, file) ->
-            path = rs.jvm2js_str rs.get_obj file.fields.path
-            files = fs.readdirSync(path)
+            pth = rs.jvm2js_str rs.get_obj file.fields.path
+            files = fs.readdirSync(pth)
             rs.init_object('[Ljava/lang/String;',(rs.init_string(f) for f in files))
       ]
     util:
