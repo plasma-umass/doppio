@@ -320,7 +320,7 @@ native_methods =
       System: [
         o 'arraycopy(L!/!/Object;IL!/!/Object;II)V', (rs, src, src_pos, dest, dest_pos, length) ->
             j = dest_pos
-            for i in [src_pos...src_pos+length]
+            for i in [src_pos...src_pos+length] by 1
               dest.array[j++] = src.array[i]
         o 'currentTimeMillis()J', (rs) -> gLong.fromNumber((new Date).getTime())
         o 'identityHashCode(L!/!/Object;)I', (x) -> x.ref
@@ -455,7 +455,7 @@ native_methods =
               # not clear why, but sometimes node doesn't move the file pointer,
               # so we do it here ourselves
               _this.fields.$pos += bytes_read
-              byte_arr.array[offset...offset+bytes_read] = (buf.readUInt8(i) for i in [0...bytes_read])
+              byte_arr.array[offset+i] = buf.readUInt8(i) for i in [0...bytes_read] by 1
               return if bytes_read == 0 and n_bytes isnt 0 then -1 else bytes_read
             # reading from System.in, do it async
             console.log '>>> reading from Stdin now!'
@@ -463,7 +463,7 @@ native_methods =
             rs.curr_frame().resume = -> result
             throw new util.YieldException (cb) ->
               rs.async_input n_bytes, (bytes) ->
-                byte_arr.array[offset...offset+bytes.length] = bytes
+                byte_arr.array[offset+idx] = b for b, idx in bytes
                 result = bytes.length
                 cb()
         o 'open(Ljava/lang/String;)V', (rs, _this, filename) ->
@@ -500,7 +500,7 @@ native_methods =
             pos = _this.fields.$pos.toNumber()
             buf = new Buffer len
             bytes_read = fs.readSync(_this.fields.$file, buf, 0, len, pos)
-            byte_arr.array[offset...offset+bytes_read] = (buf.readUInt8(i) for i in [0...bytes_read])
+            byte_arr.array[offset+i] = buf.readUInt8(i) for i in [0...bytes_read] by 1
             _this.fields.$pos = gLong.fromNumber(pos+bytes_read)
             return if bytes_read == 0 and len isnt 0 then -1 else bytes_read
         o 'close0()V', (rs, _this) -> _this.fields.$file = null
@@ -619,11 +619,11 @@ native_methods =
               if node?
                 pos_int = pos.toInt()
                 bytes_read = Math.max(ze.file.length - pos_int, len)
-                byte_arr.array[offset...offset+bytes_read] = ze.file[pos_int...pos_int+bytes_read]
+                byte_arr.array[offset+i] = ze.file[pos_int+i] for i in [0...bytes_read] by 1
               else
                 buf = new Buffer len
                 bytes_read = fs.readSync(ze.file, buf, 0, len, pos.toInt())
-                byte_arr.array[offset...offset+bytes_read] = (buf.readUInt8(i) for i in [0...bytes_read])
+                byte_arr.array[offset+i] = buf.readUInt8(i) for i in [0...bytes_read] by 1
               return if bytes_read == 0 and len isnt 0 then -1 else bytes_read
         ]
   sun:
