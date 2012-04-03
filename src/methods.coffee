@@ -273,7 +273,7 @@ native_methods =
       ]
       Double: [
         o 'doubleToRawLongBits(D)J', (rs, d_val) ->
-            return gLong.fromInt(0) if d_val is 0 or isNaN(d_val) or not isFinite(d_val)
+            return gLong.ZERO if d_val is 0 or isNaN(d_val) or not isFinite(d_val)
             sign = gLong.fromInt(if d_val < 0 then 1 else 0)
             d_val = Math.abs(d_val)
             exp = gLong.fromNumber(Math.floor(Math.log(d_val)/Math.LN2))
@@ -281,7 +281,7 @@ native_methods =
             exp = exp.add(gLong.fromInt(1023))
             sign.shiftLeft(63).add(exp.shiftLeft(52)).add(sig)
         o 'longBitsToDouble(J)D', (rs, l_val) ->
-            s = if l_val.shiftRight(63).equals(gLong.fromInt(0)) then 1 else -1
+            s = if l_val.shiftRight(63).equals(gLong.ZERO) then 1 else -1
             e = l_val.shiftRight(52).and(gLong.fromInt(0x7ff))
             m = if e == 0 then l_val.and(gLong.fromNumber(0xfffffffffffff))
                                     .or(gLong.fromNumber(0x10000000000000))
@@ -589,7 +589,7 @@ native_methods =
                              size: 4
                            }
                 file = read_raw_class fullpath
-                return gLong.fromInt 0 unless file
+                return gLong.ZERO unless file
                 return rs.set_zip_descriptor
                          fullpath: fullpath
                          name: entry_name
@@ -600,7 +600,7 @@ native_methods =
               try
                 file = fs.openSync fullpath, 'r'
               catch e
-                return gLong.fromInt 0
+                return gLong.ZERO
               rs.set_zip_descriptor
                 fullpath: fullpath
                 name: entry_name

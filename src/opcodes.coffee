@@ -295,8 +295,8 @@ root.opcodes = {
   6: new root.Opcode 'iconst_3', { execute: (rs) -> rs.push 3 }
   7: new root.Opcode 'iconst_4', { execute: (rs) -> rs.push 4 }
   8: new root.Opcode 'iconst_5', { execute: (rs) -> rs.push 5 }
-  9: new root.Opcode 'lconst_0', { execute: (rs) -> rs.push gLong.fromInt(0), null }
-  10: new root.Opcode 'lconst_1', { execute: (rs) -> rs.push gLong.fromInt(1), null }
+  9: new root.Opcode 'lconst_0', { execute: (rs) -> rs.push gLong.ZERO, null }
+  10: new root.Opcode 'lconst_1', { execute: (rs) -> rs.push gLong.ONE, null }
   11: new root.Opcode 'fconst_0', { execute: (rs) -> rs.push 0 }
   12: new root.Opcode 'fconst_1', { execute: (rs) -> rs.push 1 }
   13: new root.Opcode 'fconst_2', { execute: (rs) -> rs.push 2 }
