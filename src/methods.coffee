@@ -325,7 +325,10 @@ native_methods =
         o 'currentTimeMillis()J', (rs) -> gLong.fromNumber((new Date).getTime())
         o 'identityHashCode(L!/!/Object;)I', (x) -> x.ref
         o 'initProperties(L!/util/Properties;)L!/util/Properties;', (rs, props) ->
-            m = rs.method_lookup({'class':'java/util/Properties','sig':{'name':'setProperty'}})
+            m = rs.method_lookup(class: 'java/util/Properties', sig: {
+              name:'setProperty',
+              type:'(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;'
+            })
             for k,v of system_properties
               rs.push props.ref, rs.init_string(k,true), rs.init_string(v,true)
               m.run(rs)

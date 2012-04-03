@@ -5,8 +5,6 @@ user_input = null
 controller = null
 editor = null
 progress = null
-# to be initialized in release build
-javac_class = null
 
 class_cache = {}
 raw_cache = {}
@@ -59,11 +57,13 @@ if RELEASE?
     type: 'GET'
     dataType: 'text'
     beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
-    success: (data) ->
-      javac_class = process_bytecode data
+    success: (data) -> class_cache['!javac'] = process_bytecode data
   }
 
 try_path = (path) ->
+  # hack. we should implement proper directories
+  local_file = DoppioFile.load _.last(path.split '/')
+  return util.bytestr_to_array local_file.data if local_file?
   rv = null
   $.ajax path, {
     type: 'GET'
@@ -140,7 +140,6 @@ $(document).ready ->
         (new DoppioFile f.name).write(e.target.result).save()
         controller.message "File '#{f.name}' saved.", 'success'
         editor.getSession?().setValue("/*\n * Binary file: #{f.name}\n */")
-        process_bytecode e.target.result
         $('#console').click() # click to restore focus
       reader.readAsBinaryString(f)
     else # assume a text file
@@ -205,23 +204,18 @@ commands =
       return compile_source args[0], cb
     stdout = (str) -> controller.message str, '', true # noreprompt
     rs = new runtime.RuntimeState(stdout, user_input, read_classfile)
-    jvm.run_class(rs, javac_class, args, -> controller.reprompt())
+    # hack: use a special class name that won't clash with real ones
+    jvm.run_class(rs, '!javac', args, -> controller.reprompt())
   java: (args, cb) ->
     return "Usage: java class [args...]" unless args[0]?
-    raw_data = DoppioFile.load("#{args[0]}.class").read()
-    return ["Could not find class '#{args[0]}'.",'error'] unless raw_data?
-    class_data = process_bytecode raw_data
     stdout = (str) -> controller.message str, '', true # noreprompt
     rs = new runtime.RuntimeState(stdout, user_input, read_classfile)
-    jvm.run_class(rs, class_data, args[1..], ->
-      controller.reprompt()
-    )
+    jvm.run_class(rs, args[0], args[1..], -> controller.reprompt())
   javap: (args) ->
     return "Usage: javap class" unless args[0]?
     raw_data = DoppioFile.load("#{args[0]}.class").read()
     return ["Could not find class '#{args[0]}'.",'error'] unless raw_data?
-    class_data = process_bytecode raw_data
-    disassembler.disassemble class_data
+    disassembler.disassemble process_bytecode raw_data
   list_cache: ->
     (name for name of raw_cache).join '\n'
   clear_cache: (args) ->

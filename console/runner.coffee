@@ -28,8 +28,7 @@ if require.main == module
   else if argv.log? # assume a number
     util.log_level = argv.log + 0
 
-  fname = argv._[0] or '/dev/stdin'
-  class_data = new ClassFile exports.read_binary_file fname
+  cname = argv._[0]
   stdout = process.stdout.write.bind process.stdout
   read_stdin = (n_bytes, resume) ->
     buffer = []
@@ -48,4 +47,4 @@ if require.main == module
   java_cmd_args = (argv.java?.toString().split /\s+/) or []
 
   rs = new runtime.RuntimeState(stdout, read_stdin, exports.read_classfile)
-  jvm.run_class rs, class_data, java_cmd_args
+  jvm.run_class rs, cname, java_cmd_args

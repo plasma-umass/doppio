@@ -28,7 +28,7 @@ Tempfile.open('disasm') do |f|
 end
 Tempfile.open('runtime') do |f|
   # compare runtime output
-  `#{here_dir}/../console/runner.coffee #{test_dir}/#{name}.class --log=error 2>&1 >#{f.path()}`
+  `#{here_dir}/../console/runner.coffee #{cls} --log=error 2>&1 >#{f.path()}`
   # -a forces diff to treat file as text. necessary because jvm screwups can
   # cause weird output that confuses diff
   show_errors(name,'runtime',`diff -U0 -a #{test_dir}/#{name}.runout #{f.path()} | sed '1,2d'`)

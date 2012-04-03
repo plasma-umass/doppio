@@ -37,7 +37,7 @@ then access the browser frontend at [localhost:8000](http://localhost:8000/).
 The code can also be run from the console. For example:
 
     ./console/disassembler.coffee test/Println.class
-    ./console/runner.coffee test/Println.class
+    ./console/runner.coffee test/Println
 
 Testing
 -------

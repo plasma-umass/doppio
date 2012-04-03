@@ -23,16 +23,10 @@ class root.RuntimeState
     # map zip descriptor ints to descriptor objects.
     @zip_descriptors = [null]
 
-  initialize: (class_data, initial_args) ->
-    type = class_data.this_class
-    cls = type.toClassString()
-    @classes[cls] = { 
-      file: class_data, 
-      obj: @set_obj c2t('java/lang/Class'), { $type: type, name: 0 }
-    }
+  initialize: (class_name, initial_args) ->
     args = @set_obj(c2t('[Ljava/lang/String;'),(@init_string(a) for a in initial_args))
     @meta_stack = [new root.StackFrame(null,[],[args])]  # start with a bogus ground state
-    @method_lookup({'class': cls, 'sig': {'name': '<clinit>'}}).run(this)
+    @class_lookup c2t class_name
 
   # string stuff
   jvm2js_str: (jvm_str) ->
@@ -185,17 +179,15 @@ class root.RuntimeState
           @_class_lookup class_file.super_class
         clinit?.run(this)
         if cls is 'java/lang/System'  # zomg hardcode
-          @method_lookup({'class': cls, 'sig': {'name': 'initializeSystemClass'}}).run(this)
+          @method_lookup(class: cls, sig: {name: 'initializeSystemClass', type:'()V'}).run(this)
         util.log_level = old_loglevel  # resume logging
     c = @classes[cls]
   # spec 5.4.3.3, 5.4.3.4
   method_lookup: (method_spec) ->
     filter_methods = (cls) ->
-      ms = (m for m in cls.methods when m.name is method_spec.sig.name)
-      unless ms.length == 1 and not method_spec.sig.type?
-        ms = (m for m in ms when m.raw_descriptor is method_spec.sig.type)
-      throw "too many method choices" if ms.length > 1
-      ms[0]
+      for m in cls.methods
+        return m if m.name is method_spec.sig.name and
+               m.raw_descriptor is method_spec.sig.type
     type = c2t method_spec.class
     t = type
     while t

@@ -41,9 +41,9 @@ show_stacktrace = (rs,e) ->
     rs.print "\tat #{entry.cls.toExternalString()}.#{entry.method}(#{entry.file}:#{entry.line})\n"
 
 # main function that gets called from the frontend
-root.run_class = (rs, class_data, cmdline_args, cb) ->
-  main_spec = {'class': class_data.this_class.toClassString(), 'sig': {'name': 'main'}}
-  rs.initialize(class_data,cmdline_args)
+root.run_class = (rs, class_name, cmdline_args, cb) ->
+  main_spec = class: class_name, sig: {name: 'main', type: '([Ljava/lang/String;)V'}
+  rs.initialize(class_name,cmdline_args)
   run = ->
     try
       rs.method_lookup(main_spec).run(rs)
