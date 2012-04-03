@@ -127,7 +127,7 @@ $(document).ready ->
         Your browser doesn't support file loading.
         Try using the editor to create files instead.
         """, "error"
-      return
+      return $('#console').click() # click to restore focus
     reader = new FileReader
     reader.onerror = (e) ->
       switch e.target.error.code
@@ -141,12 +141,14 @@ $(document).ready ->
         controller.message "File '#{f.name}' saved.", 'success'
         editor.getSession?().setValue("/*\n * Binary file: #{f.name}\n */")
         process_bytecode e.target.result
+        $('#console').click() # click to restore focus
       reader.readAsBinaryString(f)
     else # assume a text file
       reader.onload = (e) ->
         (new DoppioFile f.name).write(e.target.result).save()
         controller.message "File '#{f.name}' saved.", 'success'
         editor.getSession?().setValue(e.target.result)
+        $('#console').click() # click to restore focus
       reader.readAsText(f)
 
   jqconsole = $('#console')
@@ -352,7 +354,7 @@ tabComplete = ->
     else if args[0] is 'time' then getCompletions(args[1..])
     else fileNameCompletions args[0], args
   prefix = longestCommmonPrefix(getCompletions(args))
-  return if prefix == ''
+  return if prefix == ''  # TODO: if we're tab-completing a blank, show all options
   # delete existing text so we can do case correction
   promptText = promptText.substr(0, promptText.length - _.last(args).length)
   controller.promptText(promptText + prefix)
@@ -362,36 +364,25 @@ commandCompletions = (cmd) ->
 
 fileNameCompletions = (cmd, args) ->
   validExtension = (fname) ->
-    ext = fname.split('.')[1]
+    dot = fname.lastIndexOf('.')
+    ext = if dot is -1 then '' else fname.slice(dot+1)
     if cmd is 'javac' then ext is 'java'
     else if cmd is 'javap' or cmd is 'java' then ext is 'class'
     else true
-  keepExt = -> return cmd isnt 'javap' and cmd isnt 'java'
-  lastArg = _.last(args).toLowerCase()
-  potentialCompletions = []
+  chopExt = args.length == 2 and (cmd is 'javap' or cmd is 'java')
+  lastArg = new RegExp('^'+_.last(args),flags='i')
+  completions = []
   for i in [0...localStorage.length] by 1
     key = localStorage.key(i)
     continue unless key.substr(0, 6) is 'file::'
     file = DoppioFile.load key.substr(6) # hack
     continue unless file? and validExtension(file.name)
-    if (file.name.substr(0, lastArg.length).toLowerCase() is lastArg)
-      potentialCompletions.push(
-        if not keepExt() then file.name.split('.')[0]
-        else file.name
-      )
-  potentialCompletions
+    if file.name.match(lastArg)?
+      completions.push(if chopExt then file.name.split('.',1)[0] else file.name)
+  completions
 
-longestCommmonPrefix = (lst) ->
-  return "" if lst.length is 0
-  prefix = lst[0]
-  # slow, but should be fine with our small number of completions
-  for word in lst
-    lower = word.toLowerCase()
-    for c, idx in prefix
-      if (c.toLowerCase() isnt lower[idx])
-        prefix = prefix.substr(0, idx)
-        break
-  prefix
+# use the awesome greedy regex hack, from http://stackoverflow.com/a/1922153/10601
+longestCommmonPrefix = (lst) -> lst.join(' ').match(/^(\S*)\S*(?: \1\S*)*$/i)[1]
 
 defaultFile =
   """
