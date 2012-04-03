@@ -61,11 +61,6 @@ trapped_methods =
             rs.method_lookup({class: 'java/lang/Class', sig: 'getEnumConstants()[Ljava/lang/Object;'}).run(rs)
             rs.pop()
       ]
-      jar:
-        JarFile: [
-          o 'maybeInstantiateVerifier()V', (rs, _this) ->
-              _this.fields.verify = 0 # false; pretend verification is unnecessary
-        ]
     nio:
       charset:
         Charset$3: [
@@ -498,6 +493,10 @@ native_methods =
           AtomicLong: [
             o 'VMSupportsCS8()Z', -> true
           ]
+      jar:
+        JarFile: [
+          o 'getMetaInfEntryNames()[L!/lang/String;', (rs) -> null  # we don't do verification
+        ]
       ResourceBundle: [
         o 'getClassContext()[L!/lang/Class;', (rs) ->
             # XXX should walk up the meta_stack and fill in the array properly
