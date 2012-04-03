@@ -170,29 +170,21 @@ class root.RuntimeState
         @classes[cls] =
           file: class_file
           obj:  @set_obj(c2t('java/lang/Class'), { $type: type, name: 0 })
-        old_loglevel = util.log_level  # suppress logging for init stuff
-        util.log_level = util.ERROR
         # Run class initialization code. We don't want to call this more than
         # once per class, so don't do dynamic lookup. See spec 5.5.
-        clinit = (m for m in class_file.methods when m.name is '<clinit>')[0]
         if class_file.super_class
           @_class_lookup class_file.super_class
-        clinit?.run(this)
+        class_file.methods['<clinit>()V']?.run(this)
         if cls is 'java/lang/System'  # zomg hardcode
           @method_lookup(class: cls, sig: 'initializeSystemClass()V').run(this)
-        util.log_level = old_loglevel  # resume logging
     c = @classes[cls]
   # spec 5.4.3.3, 5.4.3.4
   method_lookup: (method_spec) ->
-    filter_methods = (cls) ->
-      for m in cls.methods
-        return m if m.name is method_spec.sig.name and
-               m.raw_descriptor is method_spec.sig.type
     type = c2t method_spec.class
     t = type
     while t
       cls = @class_lookup(t)
-      method = filter_methods cls
+      method = cls.methods[method_spec.sig]
       return method if method?
       t = cls.super_class
     cls = @class_lookup(type)
@@ -200,7 +192,7 @@ class root.RuntimeState
     while ifaces.length > 0
       iface_name = ifaces.shift()
       ifc = @class_lookup iface_name
-      method = filter_methods ifc
+      method = ifc.methods[method_spec.sig]
       return method if method?
       Array::push.apply ifaces,
         (c2t(ifc.constant_pool.get(i).deref()) for i in ifc.interfaces)

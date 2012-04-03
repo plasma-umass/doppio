@@ -35,13 +35,15 @@ class @ClassFile
     # fields of this class
     num_fields = read_u2()
     @fields = (new methods.Field(@this_class) for [0...num_fields])
-    for f in @fields
-      bytes_array = f.parse(bytes_array,@constant_pool)
+    for f,i in @fields
+      bytes_array = f.parse(bytes_array,@constant_pool,i)
     # class methods
     num_methods = read_u2()
-    @methods = (new methods.Method(@this_class) for [0...num_methods])
-    for m in @methods
-      bytes_array = m.parse(bytes_array,@constant_pool)
+    @methods = {}
+    for i in [0...num_methods] by 1
+      m = new methods.Method(@this_class)
+      bytes_array = m.parse(bytes_array,@constant_pool,i)
+      @methods[m.name + m.raw_descriptor] = m
     # class attributes
     [@attrs,bytes_array] = make_attributes(bytes_array,@constant_pool)
     throw "Leftover bytes in classfile: #{bytes_array}" if bytes_array.length > 0

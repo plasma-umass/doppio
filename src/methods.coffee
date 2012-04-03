@@ -20,7 +20,7 @@ class AbstractMethodField
   # Subclasses need to implement parse_descriptor(String)
   constructor: (@class_type) ->
 
-  parse: (bytes_array,constant_pool) ->
+  parse: (bytes_array,constant_pool,@idx) ->
     @access_byte = util.read_uint(bytes_array.splice(0,2))
     @access_flags = util.parse_flags @access_byte
     @name = constant_pool.get(util.read_uint(bytes_array.splice(0,2))).value
@@ -40,7 +40,7 @@ class root.Field extends AbstractMethodField
       name: rs.init_string @name, true
       type: rs.class_lookup @type, true
       modifiers: @access_byte
-      slot: parseInt((i for i,v of rs.class_lookup(@class_type).fields when v is @)[0])
+      slot: @idx
       signature: rs.init_string @raw_descriptor
     }
 
@@ -239,11 +239,11 @@ native_methods =
             rs.init_object('[Ljava/lang/reflect/Field;',(f.reflector(rs) for f in fields))
         o 'getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;', (rs, _this, public_only) ->
             methods = rs.class_lookup(_this.fields.$type).methods
-            methods = (m for m in methods when m.access_flags.public) if public_only
+            methods = (m for sig, m of methods when m.access_flags.public or not public_only)
             rs.init_object('[Ljava/lang/reflect/Method;',(m.reflector(rs) for m in methods))
         o 'getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;', (rs, _this, public_only) ->
             methods = rs.class_lookup(_this.fields.$type).methods
-            methods = (m for m in methods when m.name is '<init>')
+            methods = (m for sig, m of methods when m.name is '<init>')
             methods = (m for m in methods when m.access_flags.public) if public_only
             rs.init_object('[Ljava/lang/reflect/Constructor;',(m.reflector(rs,true) for m in methods))
         o 'getModifiers()I', (rs, _this) -> rs.class_lookup(_this.fields.$type).access_byte
@@ -654,18 +654,18 @@ native_methods =
             rs.set_obj rs.get_obj(field.fields.clazz).fields.$type
         o 'getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
             f = get_field_from_offset rs, rs.class_lookup(obj.type), offset.toInt()
-            return rs.static_get({class:obj.type.toClassString(),sig:{name:f.name}}) if f.access_flags.static
+            return rs.static_get({class:obj.type.toClassString(),name:f.name}) if f.access_flags.static
             obj.fields[f.name] ? 0
         o 'getObject(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
             f = get_field_from_offset rs, rs.class_lookup(obj.type), offset.toInt()
-            return rs.static_get({class:obj.type.toClassString(),sig:{name:f.name}}) if f.access_flags.static
+            return rs.static_get({class:obj.type.toClassString(),name:f.name}) if f.access_flags.static
             obj.fields[f.name] ? 0
       ]
     reflect:
       NativeMethodAccessorImpl: [
         o 'invoke0(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;', (rs,m,obj,params) ->
             type = rs.get_obj(m.fields.clazz).fields.$type
-            method = rs.class_lookup(type).methods[m.fields.slot]
+            method = (method for sig, method of rs.class_lookup(type).methods when method.idx is m.fields.slot)[0]
             rs.push obj.ref unless method.access_flags.static
             rs.push params.array...
             method.run(rs)
@@ -674,7 +674,7 @@ native_methods =
       NativeConstructorAccessorImpl: [
         o 'newInstance0(Ljava/lang/reflect/Constructor;[Ljava/lang/Object;)Ljava/lang/Object;', (rs,m,params) ->
             type = rs.get_obj(m.fields.clazz).fields.$type
-            method = rs.class_lookup(type).methods[m.fields.slot]
+            method = (method for sig, method of rs.class_lookup(type).methods when method.idx is m.fields.slot)[0]
             rs.push (oref = rs.set_obj type, {})
             rs.push params.array... if params?
             method.run(rs)
@@ -736,7 +736,7 @@ class root.Method extends AbstractMethodField
       parameterTypes: rs.init_object "[Ljava/lang/Class;", (rs.class_lookup(f,true) for f in @param_types)
       returnType: rs.class_lookup @return_type, true
       modifiers: @access_byte
-      slot: parseInt((i for i,v of rs.class_lookup(@class_type).methods when v is @)[0])
+      slot: @idx
       signature: rs.init_string @raw_descriptor
     }
 

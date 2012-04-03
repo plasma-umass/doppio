@@ -82,7 +82,7 @@ root.disassemble = (class_file) ->
       rv += "  Constant value: #{entry.type} #{entry.deref?() or entry.value}\n"
     rv += "\n\n"
 
-  for m in class_file.methods
+  for sig, m of class_file.methods
     rv += access_string m.access_flags
     rv +=
       # initializers are special-cased
