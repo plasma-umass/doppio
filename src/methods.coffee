@@ -48,7 +48,7 @@ getBundle = (rs, base_name) ->
   # load in the default ResourceBundle (ignores locale)
   classname = util.int_classname rs.jvm2js_str(base_name)
   rs.push (b_ref = rs.init_object classname)
-  rs.method_lookup({class: classname, sig: {name:'<init>',type:'()V'}}).run(rs)
+  rs.method_lookup({class: classname, sig: '<init>()V'}).run(rs)
   b_ref
 
 # convenience function. idea taken from coffeescript's grammar
@@ -90,7 +90,7 @@ trapped_methods =
       EnumSet: [
         o 'getUniverse(L!/lang/Class;)[L!/lang/Enum;', (rs) ->
             rs.push rs.curr_frame().locals[0]
-            rs.method_lookup({class: 'java/lang/Class', sig: {name:'getEnumConstants',type:'()[Ljava/lang/Object;'}}).run(rs)
+            rs.method_lookup({class: 'java/lang/Class', sig: 'getEnumConstants()[Ljava/lang/Object;'}).run(rs)
             rs.pop()
       ]
       jar:
@@ -104,14 +104,14 @@ trapped_methods =
           o 'run()L!/lang/Object;', (rs) -> null
         ]
       Bits: [
-        o 'byteOrder()L!/!/ByteOrder;', (rs) -> rs.static_get {'class':'java/nio/ByteOrder','sig':{'name':'LITTLE_ENDIAN'}}
+        o 'byteOrder()L!/!/ByteOrder;', (rs) -> rs.static_get {class:'java/nio/ByteOrder',name:'LITTLE_ENDIAN'}
       ]
     io:
       PrintStream: [
         o 'write(L!/lang/String;)V', (rs, _this, jvm_str) ->
             str = rs.jvm2js_str(jvm_str)
-            sysout = rs.static_get {'class':'java/lang/System','sig':{'name':'out'}}
-            syserr = rs.static_get {'class':'java/lang/System','sig':{'name':'err'}}
+            sysout = rs.static_get class:'java/lang/System', name:'out'
+            syserr = rs.static_get class:'java/lang/System', name:'err'
             if _this.ref is sysout
               rs.print str
             else if _this.ref is syserr
@@ -148,7 +148,7 @@ trapped_methods =
             rs.push buf.ref
             rs.push rs.init_string util.decimal_to_string(val, precision)
             cls = if rs.check_cast(buf.ref,'java/lang/StringBuilder') then 'java/lang/StringBuilder' else 'java/lang/StringBuffer'
-            rs.method_lookup({class:cls,sig:{name:'append',type:"(Ljava/lang/String;)L#{cls};"}}).run(rs,true)
+            rs.method_lookup(class:cls, sig:"append(Ljava/lang/String;)L#{cls};").run(rs,true)
       ]
       JavaLangAccess: [
         o 'registerShutdownHook(ILjava/lang/Runnable;)V', (rs) ->
@@ -170,7 +170,7 @@ trapped_methods =
 doPrivileged = (rs) ->
   oref = rs.curr_frame().locals[0]
   action = rs.get_obj(oref)
-  m = rs.method_lookup({'class': action.type.toClassString(), 'sig': {'name': 'run','type':'()Ljava/lang/Object;'}})
+  m = rs.method_lookup(class: action.type.toClassString(), sig: 'run()Ljava/lang/Object;')
   rs.push oref unless m.access_flags.static
   m.run(rs,m.access_flags.virtual)
   rs.pop()
@@ -325,10 +325,9 @@ native_methods =
         o 'currentTimeMillis()J', (rs) -> gLong.fromNumber((new Date).getTime())
         o 'identityHashCode(L!/!/Object;)I', (x) -> x.ref
         o 'initProperties(L!/util/Properties;)L!/util/Properties;', (rs, props) ->
-            m = rs.method_lookup(class: 'java/util/Properties', sig: {
-              name:'setProperty',
-              type:'(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;'
-            })
+            m = rs.method_lookup
+              class: 'java/util/Properties'
+              sig: 'setProperty(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;'
             for k,v of system_properties
               rs.push props.ref, rs.init_string(k,true), rs.init_string(v,true)
               m.run(rs)
@@ -339,23 +338,23 @@ native_methods =
             gLong.fromNumber((new Date).getTime()).multiply(gLong.fromNumber(1000000))
         o 'setIn0(L!/io/InputStream;)V', (rs) ->
             rs.push rs.curr_frame().locals[0] # move oref to the stack for static_put
-            rs.static_put {'class':'java/lang/System','sig':{'name':'in'}}
+            rs.static_put {class:'java/lang/System', name:'in'}
         o 'setOut0(L!/io/PrintStream;)V', (rs) ->
             rs.push rs.curr_frame().locals[0] # move oref to the stack for static_put
-            rs.static_put {'class':'java/lang/System','sig':{'name':'out'}}
+            rs.static_put {class:'java/lang/System', name:'out'}
         o 'setErr0(L!/io/PrintStream;)V', (rs) ->
             rs.push rs.curr_frame().locals[0] # move oref to the stack for static_put
-            rs.static_put {'class':'java/lang/System','sig':{'name':'err'}}
+            rs.static_put {class:'java/lang/System', name:'err'}
       ]
       Thread: [
         o 'currentThread()L!/!/!;', (rs) ->  # essentially a singleton for the main thread mock object
             unless rs.main_thread?
               rs.push (g_ref = rs.init_object 'java/lang/ThreadGroup')
               # have to run the private ThreadGroup constructor
-              rs.method_lookup({class: 'java/lang/ThreadGroup', sig: {name:'<init>',type:'()V'}}).run(rs)
+              rs.method_lookup({class: 'java/lang/ThreadGroup', sig: '<init>()V'}).run(rs)
               rs.main_thread = rs.init_object 'java/lang/Thread', { priority: 1, group: g_ref, threadLocals: 0 }
               rs.push 0  # set up for static_put
-              rs.static_put {class:'java/lang/Thread', sig:{name:'threadSeqNumber'}}
+              rs.static_put {class:'java/lang/Thread', name:'threadSeqNumber'}
             rs.main_thread
         o 'setPriority0(I)V', (rs) -> # NOP
         o 'holdsLock(L!/!/Object;)Z', -> true
@@ -404,7 +403,7 @@ native_methods =
             # TODO: avoid making a new FS object each time this gets called? seems to happen naturally in java/io/File...
             cache1 = rs.init_object 'java/io/ExpiringCache'
             cache2 = rs.init_object 'java/io/ExpiringCache'
-            cache_init = rs.method_lookup({class: 'java/io/ExpiringCache', sig: {name:'<init>',type:'()V'}})
+            cache_init = rs.method_lookup({class: 'java/io/ExpiringCache', sig: '<init>()V'})
             rs.push cache1, cache2
             cache_init.run(rs)
             cache_init.run(rs)
@@ -848,7 +847,7 @@ class root.Method extends AbstractMethodField
         oref = caller_stack[caller_stack.length-@param_bytes()]
         error "undef'd oref: (#{caller_stack})[-#{@param_bytes()}] (#{sig})" unless oref
         obj = runtime_state.get_obj(oref)
-        m_spec = {class: obj.type.toClassString(), sig: {name:@name, type:@raw_descriptor}}
+        m_spec = {class: obj.type.toClassString(), sig: @name + @raw_descriptor}
         m = runtime_state.method_lookup(m_spec)
         #throw "abstract method got called: #{@name}#{@raw_descriptor}" if m.access_flags.abstract
         return m.run(runtime_state)

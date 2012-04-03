@@ -42,7 +42,7 @@ show_stacktrace = (rs,e) ->
 
 # main function that gets called from the frontend
 root.run_class = (rs, class_name, cmdline_args, cb) ->
-  main_spec = class: class_name, sig: {name: 'main', type: '([Ljava/lang/String;)V'}
+  main_spec = class: class_name, sig: 'main([Ljava/lang/String;)V'
   rs.initialize(class_name,cmdline_args)
   run = ->
     try

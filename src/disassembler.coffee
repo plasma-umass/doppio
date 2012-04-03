@@ -154,8 +154,10 @@ format_extra_info = (entry) ->
   info = entry.deref?()
   return "" unless info
   switch type
-    when 'Method', 'InterfaceMethod', 'Field'
-      "\t//  #{info.class}.#{info.sig.name}:#{info.sig.type}"
+    when 'Method', 'InterfaceMethod'
+      "\t//  #{info.class}.#{info.sig}"
+    when 'Field'
+      "\t//  #{info.class}.#{info.name}:#{info.type}"
     when 'NameAndType' then "//  #{info.name}:#{info.type}"
     else "\t//  " + escape_whitespace info if util.is_string info
 

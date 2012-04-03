@@ -36,9 +36,10 @@ class AbstractMethodFieldReference
     return [ref, 1, bytes_array]
 
   deref: ->
+    sig = @value.sig.deref()
     {
       class: @value.class_ref.deref()
-      sig: @value.sig.deref()
+      sig: sig.name + sig.type
     }
 
 class MethodReference extends AbstractMethodFieldReference
@@ -49,6 +50,14 @@ class InterfaceMethodReference extends AbstractMethodFieldReference
 
 class FieldReference extends AbstractMethodFieldReference
   constructor: (@constant_pool, @value) -> @type = 'Field'
+
+  deref: ->
+    sig = @value.sig.deref()
+    {
+      class: @value.class_ref.deref()
+      name: sig.name
+      type: sig.type
+    }
 
 class MethodSignature
   constructor: (@constant_pool, @value) -> @type = 'NameAndType'

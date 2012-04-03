@@ -464,7 +464,7 @@ root.opcodes = {
   175: new root.Opcode 'dreturn', { execute: (rs) -> throw new ReturnException rs.curr_frame().stack[0], null }
   176: new root.Opcode 'areturn', { execute: (rs) -> throw new ReturnException rs.curr_frame().stack[0] }
   177: new root.Opcode 'return', { execute: (rs) -> throw new ReturnException }
-  178: new root.FieldOpcode 'getstatic', {execute: (rs)-> rs.push rs.static_get @field_spec; rs.push null if @field_spec.sig.type in ['J','D']}
+  178: new root.FieldOpcode 'getstatic', {execute: (rs)-> rs.push rs.static_get @field_spec; rs.push null if @field_spec.type in ['J','D']}
   179: new root.FieldOpcode 'putstatic', {execute: (rs)-> rs.static_put @field_spec }
   180: new root.FieldOpcode 'getfield', {execute: (rs)-> rs.heap_get @field_spec, rs.pop() }
   181: new root.FieldOpcode 'putfield', {execute: (rs)-> rs.heap_put @field_spec }

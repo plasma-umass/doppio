@@ -88,32 +88,32 @@ class root.RuntimeState
 
   heap_newarray: (type,len) -> @set_obj(c2t("[#{type}"),(0 for [0...len]))
   heap_put: (field_spec) ->
-    val = if field_spec.sig.type in ['J','D'] then @pop2() else @pop()
+    val = if field_spec.type in ['J','D'] then @pop2() else @pop()
     obj = @get_obj @pop()
-    trace "setting #{field_spec.sig.name} = #{val} on obj of type #{obj.type.toClassString()}"
-    obj.fields[field_spec.sig.name] = val
+    trace "setting #{field_spec.name} = #{val} on obj of type #{obj.type.toClassString()}"
+    obj.fields[field_spec.name] = val
   heap_get: (field_spec, oref) ->
     obj = @get_obj(oref)
-    name = field_spec.sig.name
-    obj.fields[name] ?= if field_spec.sig.type is 'J' then gLong.fromInt(0) else 0
+    name = field_spec.name
+    obj.fields[name] ?= if field_spec.type is 'J' then gLong.fromInt(0) else 0
     trace "getting #{name} from obj of type #{obj.type.toClassString()}: #{obj.fields[name]}"
     @push obj.fields[name]
-    @push null if field_spec.sig.type in ['J','D']
+    @push null if field_spec.type in ['J','D']
 
   # static stuff
-  static_get: (field_spec) ->
+  static_get:(field_spec) ->
     f = @field_lookup(field_spec)
     obj = @get_obj @class_lookup(f.class_type, true)
     val = obj.fields[f.name]
-    val ?= if field_spec.sig.type is 'J' then gLong.fromInt(0) else 0
-    trace "getting #{field_spec.sig.name} from class #{field_spec.class}: #{val}"
+    val ?= if field_spec.type is 'J' then gLong.fromInt(0) else 0
+    trace "getting #{field_spec.name} from class #{field_spec.class}: #{val}"
     val
   static_put: (field_spec) ->
-    val = if field_spec.sig.type in ['J','D'] then @pop2() else @pop()
+    val = if field_spec.type in ['J','D'] then @pop2() else @pop()
     f = @field_lookup(field_spec)
     obj = @get_obj @class_lookup(f.class_type, true)
     obj.fields[f.name] = val
-    trace "setting #{field_spec.sig.name} = #{val} on class #{field_spec.class}"
+    trace "setting #{field_spec.name} = #{val} on class #{field_spec.class}"
 
   # heap object initialization
   init_object: (cls, obj) ->
@@ -179,7 +179,7 @@ class root.RuntimeState
           @_class_lookup class_file.super_class
         clinit?.run(this)
         if cls is 'java/lang/System'  # zomg hardcode
-          @method_lookup(class: cls, sig: {name: 'initializeSystemClass', type:'()V'}).run(this)
+          @method_lookup(class: cls, sig: 'initializeSystemClass()V').run(this)
         util.log_level = old_loglevel  # resume logging
     c = @classes[cls]
   # spec 5.4.3.3, 5.4.3.4
@@ -205,14 +205,14 @@ class root.RuntimeState
       Array::push.apply ifaces,
         (c2t(ifc.constant_pool.get(i).deref()) for i in ifc.interfaces)
     java_throw @, 'java/lang/NoSuchMethodError',
-      "No such method found in #{method_spec.class}: #{method_spec.sig.name}::#{method_spec.sig.type}"
+      "No such method found in #{method_spec.class}: #{method_spec.sig}"
   # spec 5.4.3.2
   field_lookup: (field_spec) ->
-    filter_field = (c) -> _.find(c.fields, (f)-> f.name is field_spec.sig.name)
+    filter_field = (c) -> _.find(c.fields, (f)-> f.name is field_spec.name)
     field = @_field_lookup field_spec.class, filter_field
     return field if field?
     java_throw @, 'java/lang/NoSuchFieldError',
-      "No such field found in #{field_spec.class}: #{field_spec.sig.name}::#{field_spec.sig.type}"
+      "No such field found in #{field_spec.class}: #{field_spec.name}"
   _field_lookup: (class_name, filter_fn) ->
     t = c2t class_name
     while t

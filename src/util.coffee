@@ -135,9 +135,7 @@ class root.JavaException
 # code here is essentially copied from the opcodes themselves -- but
 # constructing the opcodes manually is inelegant too.
 root.java_throw = (rs, cls, msg) ->
-  method_spec =
-    class: cls
-    sig: { name: '<init>', type: '(Ljava/lang/String;)V' }
+  method_spec = class: cls, sig: '<init>(Ljava/lang/String;)V'
   v = rs.init_object cls # new
   rs.push(v,v,rs.init_string msg) # dup, ldc
   rs.method_lookup(method_spec).run(rs) # invokespecial
