@@ -95,7 +95,7 @@ class root.RuntimeState
   heap_get: (field_spec, oref) ->
     obj = @get_obj(oref)
     name = field_spec.name
-    obj.fields[name] ?= if field_spec.type is 'J' then gLong.fromInt(0) else 0
+    obj.fields[name] ?= if field_spec.type is 'J' then gLong.ZERO else 0
     trace "getting #{name} from obj of type #{obj.type.toClassString()}: #{obj.fields[name]}"
     @push obj.fields[name]
     @push null if field_spec.type in ['J','D']
@@ -105,7 +105,7 @@ class root.RuntimeState
     f = @field_lookup(field_spec)
     obj = @get_obj @class_lookup(f.class_type, true)
     val = obj.fields[f.name]
-    val ?= if field_spec.type is 'J' then gLong.fromInt(0) else 0
+    val ?= if field_spec.type is 'J' then gLong.ZERO else 0
     trace "getting #{field_spec.name} from class #{field_spec.class}: #{val}"
     val
   static_put: (field_spec) ->
