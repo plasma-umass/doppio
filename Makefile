@@ -17,6 +17,7 @@ BROWSER_SRCS = third_party/underscore-min.js \
 	src/attributes.coffee \
 	src/constant_pool.coffee \
 	src/disassembler.coffee \
+	src/natives.coffee \
 	src/methods.coffee \
 	src/class_file.coffee \
 	src/runtime.coffee \
