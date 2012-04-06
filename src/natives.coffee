@@ -316,7 +316,7 @@ native_methods =
               # have to run the private ThreadGroup constructor
               rs.method_lookup({class: 'java/lang/ThreadGroup', sig: '<init>()V'}).run(rs)
               rs.main_thread = rs.init_object 'java/lang/Thread', { priority: 1, group: g_ref, threadLocals: 0 }
-              rs.push 0  # set up for static_put
+              rs.push gLong.ZERO, null  # set up for static_put
               rs.static_put {class:'java/lang/Thread', name:'threadSeqNumber'}
             rs.main_thread
         o 'setPriority0(I)V', (rs) -> # NOP
