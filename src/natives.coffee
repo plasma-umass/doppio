@@ -89,30 +89,6 @@ trapped_methods =
       ]
   sun:
     misc:
-      FloatingDecimal: [
-        o '<clinit>()V', (rs) -> #NOP
-        o '<init>(F)V', (rs, _this, f) ->
-            _this.fields.$value = f
-            _this.fields.$precision = 8
-        o '<init>(D)V', (rs, _this, d) ->
-            _this.fields.$value = d
-            _this.fields.$precision = 17
-        o 'toString()Ljava/lang/String;', (rs, _this) ->
-            val = _this.fields.$value
-            precision = _this.fields.$precision
-            rs.init_string util.decimal_to_string(val, precision)
-        o 'toJavaFormatString()Ljava/lang/String;', (rs, _this) ->
-            val = _this.fields.$value
-            precision = _this.fields.$precision
-            rs.init_string util.decimal_to_string(val, precision)
-        o 'appendTo(Ljava/lang/Appendable;)V', (rs, _this, buf) ->
-            val = _this.fields.$value
-            precision = _this.fields.$precision
-            rs.push buf.ref
-            rs.push rs.init_string util.decimal_to_string(val, precision)
-            cls = if rs.check_cast(buf.ref,'java/lang/StringBuilder') then 'java/lang/StringBuilder' else 'java/lang/StringBuffer'
-            rs.method_lookup(class:cls, sig:"append(Ljava/lang/String;)L#{cls};").run(rs,true)
-      ]
       JavaLangAccess: [
         o 'registerShutdownHook(ILjava/lang/Runnable;)V', (rs) ->
             # XXX should probably not be a NOP -- maybe we should call
@@ -226,29 +202,22 @@ native_methods =
             rs.dyn_class_lookup type, true
       ],
       Float: [
-        o 'floatToRawIntBits(F)I', (rs, f_val) ->  #note: not tested for weird values
-            return 0 if f_val is 0
-            sign = if f_val < 0 then 1 else 0
-            f_val = Math.abs(f_val)
-            exp = Math.floor(Math.log(f_val)/Math.LN2)
-            sig = (f_val/Math.pow(2,exp)-1)*Math.pow(2,23)
-            (sign<<31)+((exp+127)<<23)+sig
+        o 'floatToRawIntBits(F)I', (rs, f_val) ->
+            f_view = new Float32Array [f_val]
+            i_view = new Int32Array f_view.buffer
+            i_view[0]
       ]
       Double: [
         o 'doubleToRawLongBits(D)J', (rs, d_val) ->
-            return gLong.ZERO if d_val is 0 or isNaN(d_val) or not isFinite(d_val)
-            sign = if d_val < 0 then gLong.ONE else gLong.ZERO
-            d_val = Math.abs(d_val)
-            exp = gLong.fromNumber(Math.floor(Math.log(d_val)/Math.LN2))
-            sig = gLong.fromNumber((d_val/Math.pow(2,exp.toInt())-1)*Math.pow(2,52))
-            exp = exp.add(gLong.fromInt(1023))
-            sign.shiftLeft(63).add(exp.shiftLeft(52)).add(sig)
+            d_view = new Float64Array [d_val]
+            i_view = new Uint32Array d_view.buffer
+            gLong.fromBits i_view[0], i_view[1]
         o 'longBitsToDouble(J)D', (rs, l_val) ->
-            s = if l_val.shiftRight(63).equals(gLong.ZERO) then 1 else -1
-            e = l_val.shiftRight(52).and(gLong.fromInt(0x7ff))
-            m = if e == 0 then l_val.and(gLong.fromNumber(0xfffffffffffff))
-                                    .or(gLong.fromNumber(0x10000000000000))
-            Math.pow(2, e * 1075) * s * m # we're not handling the NaN / Inf cases
+            i_view = new Uint32Array 2
+            i_view[0] = l_val.getLowBitsUnsigned()
+            i_view[1] = l_val.getHighBits()
+            d_view = new Float64Array i_view.buffer
+            d_view[0]
       ]
       Object: [
         o 'getClass()L!/!/Class;', (rs, _this) ->
