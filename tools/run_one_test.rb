@@ -4,11 +4,11 @@ require 'tempfile'
 
 def show_errors(name,type,errors)
   if errors.match /\S/
-    puts "Differences found in #{type} test for #{name}: -reference, +ours"
+    puts "\nDifferences found in #{type} test for #{name}: -reference, +ours"
     puts errors
     return true
   end
-  puts "#{name} passes #{type} test"
+  print "\u2713" # check mark
 end
 
 if ARGV[0].nil?
