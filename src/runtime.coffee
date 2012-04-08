@@ -1,5 +1,4 @@
-
-# things assigned to root will be available outside this module
+# Things assigned to root will be available outside this module.
 root = exports ? this.runtime = {}
 util ?= require './util'
 types ?= require './types'
@@ -12,28 +11,32 @@ class root.StackFrame
   constructor: (@method,@locals,@stack) ->
     @pc = 0
 
+# Contains all the mutable state of the Java program.
 class root.RuntimeState
   constructor: (@print, @async_input, @read_classfile) ->
     @classes = {}
-    # we have a dud object because pointers should never be zero
-    @heap = [null]
-    # for interned strings and string literals
+    @heap = [null] # We have a dud object because pointers should never be zero.
     @string_pool = {}
     @string_redirector = {}
-    # map zip descriptor ints to descriptor objects.
     @zip_descriptors = [null]
 
+  # Init the first class, and put the command-line args on the stack for use by
+  # its main method.
   initialize: (class_name, initial_args) ->
     args = @set_obj(c2t('[Ljava/lang/String;'),(@init_string(a) for a in initial_args))
     @meta_stack = [new root.StackFrame(null,[],[args])]  # start with a bogus ground state
     @class_lookup c2t class_name
 
-  # string stuff
+  # Convert a Java String object into an equivalent JS one.
   jvm2js_str: (jvm_str) ->
     @jvm_carr2js_str(jvm_str.fields.value, jvm_str.fields.offset, jvm_str.fields.count)
+  # Convert :count chars starting from :offset in a Java character array into a
+  # JS string
   jvm_carr2js_str: (arr_ref, offset, count) ->
     carr = @get_obj(arr_ref).array
     (util.bytes2str carr).substr(offset ? 0, count)
+  # Convert references to strings in the constant pool to the heap address of
+  # an interned String.
   string_redirect: (oref,cls) ->
     key = "#{cls}::#{oref}"
     cdata = @class_lookup(c2t(cls))
@@ -45,6 +48,7 @@ class root.RuntimeState
     trace "redirecting #{oref} -> #{@string_redirector[key]}"
     return @string_redirector[key]
 
+  # Used by ZipFile to return unique zip file descriptor IDs.
   set_zip_descriptor: (zd_obj) ->
     @zip_descriptors.push zd_obj
     gLong.fromInt(@zip_descriptors.length - 1)
@@ -59,23 +63,22 @@ class root.RuntimeState
 
   cl: (idx) -> @curr_frame().locals[idx]
   put_cl: (idx,val) -> @curr_frame().locals[idx] = val
-  # useful for category 2 values (longs, doubles)
+  # Category 2 values (longs, doubles) take two slots in Java. Since we only
+  # need one slot to represent a double in JS, we pad it with a null.
   put_cl2: (idx,val) -> @put_cl(idx,val); @put_cl(idx+1,null)
 
   push: (args...) ->
     cs = @curr_frame().stack
     Array::push.apply cs, args
-
   pop: () -> @curr_frame().stack.pop()
-  # useful for category 2 values (longs, doubles)
-  pop2: () -> @pop(); @pop()
+  pop2: () -> @pop(); @pop() # For category 2 values.
 
-  # program counter manipulation
+  # Program counter manipulation.
   curr_pc: ()   -> @curr_frame().pc
   goto_pc: (pc) -> @curr_frame().pc = pc
   inc_pc:  (n)  -> @curr_frame().pc += n
 
-  # heap manipulation
+  # Heap manipulation.
   get_obj: (oref) ->
     java_throw @, 'java/lang/NullPointerException', '' unless @heap[oref]?
     @heap[oref]
@@ -101,7 +104,7 @@ class root.RuntimeState
     @push null if field_spec.type in ['J','D']
 
   # static stuff
-  static_get:(field_spec) ->
+  static_get: (field_spec) ->
     f = @field_lookup(field_spec)
     obj = @get_obj @class_lookup(f.class_type, true)
     val = obj.fields[f.name]
@@ -127,24 +130,29 @@ class root.RuntimeState
     @string_pool[str] = s_ref if intern
     return s_ref
 
-  # lookup methods
+  # Tries to obtain the class of type :type. Called by the bootstrap class loader.
+  # Throws a NoClassDefFoundError on failure.
   class_lookup: (type,get_obj=false) ->
     c = @_class_lookup type
     unless c
       cls = (type.toClassString?() ? type.toString())
       java_throw @, 'java/lang/NoClassDefFoundError', cls
     if get_obj then c.obj else c.file
+  # Tries to obtain the class of type :type. Called by reflective methods, e.g.
+  # `Class.forName`, `ClassLoader.findSystemClass`, and `ClassLoader.loadClass`.
+  # Throws a ClassNotFoundException on failure.
   dyn_class_lookup: (type, get_obj=false) ->
     c = @_class_lookup type
     unless c
       cls = (type.toClassString?() ? type.toString())
       java_throw @, 'java/lang/ClassNotFoundException', cls
     if get_obj then c.obj else c.file
+  # Fetch the relevant class file. Returns `undefined` if it cannot be found.
+  # Results are cached in `@classes`.
   _class_lookup: (type) ->
     throw new Error "class_lookup needs a type object, got #{typeof type}: #{type}" unless type instanceof types.Type
     cls = type.toClassString?() ? type.toString()
     unless @classes[cls]?
-      # fetch the relevant class file, put it in @classes[cls]
       trace "loading new class: #{cls}"
       if type instanceof types.ArrayType
         class_file =
@@ -170,15 +178,19 @@ class root.RuntimeState
         @classes[cls] =
           file: class_file
           obj:  @set_obj(c2t('java/lang/Class'), { $type: type, name: 0 })
-        # Run class initialization code. We don't want to call this more than
-        # once per class, so don't do dynamic lookup. See spec 5.5.
+        # Run class initialization code. Superclasses get init'ed first.  We
+        # don't want to call this more than once per class, so don't do dynamic
+        # lookup. See spec [2.17.4][1].
+        # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/Concepts.doc.html#19075
         if class_file.super_class
           @_class_lookup class_file.super_class
         class_file.methods['<clinit>()V']?.run(this)
         if cls is 'java/lang/System'  # zomg hardcode
           @method_lookup(class: cls, sig: 'initializeSystemClass()V').run(this)
     c = @classes[cls]
-  # spec 5.4.3.3, 5.4.3.4
+  # Spec [5.4.3.3][1], [5.4.3.4][2].
+  # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#79473
+  # [2]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#78621
   method_lookup: (method_spec) ->
     type = c2t method_spec.class
     t = type
@@ -198,7 +210,8 @@ class root.RuntimeState
         (c2t(ifc.constant_pool.get(i).deref()) for i in ifc.interfaces)
     java_throw @, 'java/lang/NoSuchMethodError',
       "No such method found in #{method_spec.class}: #{method_spec.sig}"
-  # spec 5.4.3.2
+  # Spec [5.4.3.2][1].
+  # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#77678
   field_lookup: (field_spec) ->
     filter_field = (c) -> _.find(c.fields, (f)-> f.name is field_spec.name)
     field = @_field_lookup field_spec.class, filter_field
