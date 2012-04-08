@@ -55,12 +55,6 @@ trapped_methods =
       Currency: [
         o 'getInstance(Ljava/lang/String;)Ljava/util/Currency;', (rs) -> null # because it uses lots of reflection and we don't need it
       ]
-      EnumSet: [
-        o 'getUniverse(L!/lang/Class;)[L!/lang/Enum;', (rs) ->
-            rs.push rs.curr_frame().locals[0]
-            rs.method_lookup({class: 'java/lang/Class', sig: 'getEnumConstants()[Ljava/lang/Object;'}).run(rs)
-            rs.pop()
-      ]
     nio:
       charset:
         Charset$3: [
@@ -68,24 +62,6 @@ trapped_methods =
         ]
       Bits: [
         o 'byteOrder()L!/!/ByteOrder;', (rs) -> rs.static_get {class:'java/nio/ByteOrder',name:'LITTLE_ENDIAN'}
-      ]
-    io:
-      PrintStream: [
-        o 'write(L!/lang/String;)V', (rs, _this, jvm_str) ->
-            str = rs.jvm2js_str(jvm_str)
-            sysout = rs.static_get class:'java/lang/System', name:'out'
-            syserr = rs.static_get class:'java/lang/System', name:'err'
-            if _this.ref is sysout
-              rs.print str
-            else if _this.ref is syserr
-              rs.print str
-            else
-              throw "You tried to write to a PrintStream that wasn't System.out or System.err! For shame!"
-            if node?
-              # For the browser implementation -- the DOM doesn't get repainted
-              # unless we give the event loop a chance to spin.
-              rs.curr_frame().resume = -> # NOP
-              throw new util.YieldException (cb) -> setTimeout(cb, 0)
       ]
   sun:
     misc:
@@ -355,6 +331,11 @@ native_methods =
               fs.writeSync(_this.fields.$file, new Buffer(bytes.array), offset, len)
               return
             rs.print rs.jvm_carr2js_str(bytes.ref, offset, len)
+            if node?
+              # For the browser implementation -- the DOM doesn't get repainted
+              # unless we give the event loop a chance to spin.
+              rs.curr_frame().resume = -> # NOP
+              throw new util.YieldException (cb) -> setTimeout(cb, 0)
         o 'close0()V', (rs, _this) ->
             return unless _this.fields.$file?
             fs.closeSync(_this.fields.$file)
