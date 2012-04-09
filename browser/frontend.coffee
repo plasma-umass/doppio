@@ -16,8 +16,6 @@ $.ajax "browser/mini-rt.tar", {
   success: (data) ->
     file_count = 0
     done = false
-    bar = $('#progress > .bar')
-    preloading_file = $('#preloading-file')
     start_untar = (new Date).getTime()
     on_complete = ->
       end_untar = (new Date).getTime()
@@ -25,6 +23,8 @@ $.ajax "browser/mini-rt.tar", {
       $('#overlay').fadeOut 'slow'
       $('#progress-container').fadeOut 'slow'
     update_bar = _.throttle ((percent, path) ->
+      bar ?= $('#progress > .bar')
+      preloading_file ?= $('#preloading-file')
       # +10% hack to make the bar appear fuller before fading kicks in
       display_perc = Math.min Math.ceil(percent*100) + 10, 100
       bar.width "#{display_perc}%", 150
