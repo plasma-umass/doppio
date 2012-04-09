@@ -48,4 +48,16 @@ class @ClassFile
     [@attrs,bytes_array] = make_attributes(bytes_array,@constant_pool)
     throw "Leftover bytes in classfile: #{bytes_array}" if bytes_array.length > 0
 
+  @for_array_type: (type) ->
+    class_file = Object.create ClassFile.prototype # avoid calling the constructor
+    class_file.constant_pool = new ConstantPool
+    class_file.access_flags = {}
+    class_file.this_class = type
+    class_file.super_class = c2t('java/lang/Object')
+    class_file.interfaces = []
+    class_file.fields = []
+    class_file.methods = []
+    class_file.attrs = []
+    class_file
+
 module?.exports = @ClassFile

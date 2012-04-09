@@ -2,6 +2,7 @@
 root = exports ? this.runtime = {}
 util ?= require './util'
 types ?= require './types'
+ClassFile ?= require './class_file'
 {log,debug,error,java_throw} = util
 {c2t} = types
 
@@ -155,18 +156,10 @@ class root.RuntimeState
     unless @classes[cls]?
       trace "loading new class: #{cls}"
       if type instanceof types.ArrayType
-        class_file =
-          constant_pool: new ConstantPool
-          access_flags: {}
-          this_class: type
-          super_class: c2t('java/lang/Object')
-          interfaces: []
-          fields: []
-          methods: []
-          attrs: []
-        @classes[cls] = 
-          file: class_file, 
-          obj: @set_obj(c2t('java/lang/Class'), { $type: type, name: 0 })
+        class_file = ClassFile.for_array_type type
+        @classes[cls] =
+          file: class_file
+          obj:  @set_obj(c2t('java/lang/Class'), { $type: type, name: 0 })
         component = type.component_type
         if component instanceof types.ArrayType or component instanceof types.ClassType
           @_class_lookup component
@@ -186,8 +179,8 @@ class root.RuntimeState
           @_class_lookup class_file.super_class
         class_file.methods['<clinit>()V']?.run(this)
         if cls is 'java/lang/System'  # zomg hardcode
-          @method_lookup(class: cls, sig: 'initializeSystemClass()V').run(this)
-    c = @classes[cls]
+          class_file.methods['initializeSystemClass()V'].run(this)
+    @classes[cls]
   # Spec [5.4.3.3][1], [5.4.3.4][2].
   # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#79473
   # [2]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#78621
