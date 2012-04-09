@@ -479,14 +479,14 @@ root.opcodes = {
   191: new root.Opcode 'athrow', { execute: (rs) -> throw new JavaException rs, rs.pop() }
   192: new root.ClassOpcode 'checkcast', { execute: (rs) ->
     o = rs.pop()
-    if o == 0 or rs.check_cast(o,@class)
+    if o == 0 or types.check_cast(rs,o,@class)
       rs.push o
     else
       target_class = c2t(@class).toExternalString() # class we wish to cast to
       candidate_class = if o != 0 then rs.get_obj(o).type.toExternalString() else "null"
       java_throw rs, 'java/lang/ClassCastException', "#{candidate_class} cannot be cast to #{target_class}"
   }
-  193: new root.ClassOpcode 'instanceof', { execute: (rs) -> o=rs.pop(); rs.push if o>0 then rs.check_cast(o,@class)+0 else 0 }
+  193: new root.ClassOpcode 'instanceof', { execute: (rs) -> o=rs.pop(); rs.push if o>0 then types.check_cast(rs,o,@class)+0 else 0 }
   194: new root.Opcode 'monitorenter', { execute: (rs)-> rs.pop() }  #TODO: actually implement locks?
   195: new root.Opcode 'monitorexit',  { execute: (rs)-> rs.pop() }  #TODO: actually implement locks?
   197: new root.MultiArrayOpcode 'multianewarray'

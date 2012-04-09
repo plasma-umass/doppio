@@ -130,7 +130,7 @@ native_methods =
             return null unless (type instanceof types.ArrayType)
             rs.class_lookup type.component_type, true
         o 'isAssignableFrom(L!/!/!;)Z', (rs, _this, cls) ->
-            rs.is_castable cls.fields.$type, _this.fields.$type
+            types.is_castable rs, cls.fields.$type, _this.fields.$type
         o 'isInterface()Z', (rs, _this) ->
             return false unless _this.fields.$type instanceof types.ClassType
             cls = rs.class_lookup _this.fields.$type

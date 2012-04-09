@@ -145,7 +145,7 @@ class root.Method extends AbstractMethodField
           exception_handlers = @get_code().exception_handlers
           handler = _.find exception_handlers, (eh) ->
             eh.start_pc <= pc < eh.end_pc and
-              (eh.catch_type == "<any>" or rs.is_castable e.exception.type, c2t(eh.catch_type))
+              (eh.catch_type == "<any>" or types.is_castable rs, e.exception.type, c2t(eh.catch_type))
           if handler?
             debug "caught exception as subclass of #{handler.catch_type}"
             rs.push e.exception_ref
