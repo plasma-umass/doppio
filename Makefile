@@ -5,6 +5,8 @@ CLASSES = $(SOURCES:.java=.class)
 RESULTS = $(SOURCES:.java=.result)
 DEMO_SRCS = $(wildcard test/special/*.java)
 DEMO_CLASSES = $(DEMO_SRCS:.java=.class)
+BROWSER_HTML = $(wildcard browser/*.html)
+BUILD_HTML = $(addprefix build/, $(notdir $(filter-out _%.c, $(BROWSER_HTML))))
 # the order here is important: must match the order of includes
 #   in the browser frontend html.
 BROWSER_SRCS = third_party/underscore-min.js \
@@ -25,7 +27,6 @@ BROWSER_SRCS = third_party/underscore-min.js \
 	third_party/jquery.console.js \
 	browser/untar.coffee \
 	browser/frontend.coffee
-
 # they don't survive uglifyjs and are already minified, so include them
 # separately. also, this allows us to put them at the end of the document to
 # reduce load time.
@@ -56,18 +57,25 @@ clean:
 	@rm -f *.class $(DISASMS) $(RUNOUTS) $(RESULTS)
 	@rm -rf build/* browser/mini-rt.jar $(DEMO_CLASSES)
 
-release: build/index.html build/compressed.js browser/mini-rt.tar build/ace.js $(DEMO_CLASSES)
+release: $(BUILD_HTML) build/compressed.js browser/mini-rt.tar build/ace.js $(DEMO_CLASSES)
 	git submodule update --init --recursive
 	mkdir -p build/browser
 	rsync third_party/bootstrap/css/bootstrap.min.css build/bootstrap.min.css
 	rsync -a test/special build/test/
 	rsync -a browser/mini-rt.tar build/browser/mini-rt.tar
 
+# docs need to be generated in one shot so docco can create the full jumplist.
+# This is slow, so we have it as a separate target (even though it is needed
+# for a full release build).
+docs:
+	docco $(filter %.coffee, $(BROWSER_SRCS))
+	mv docs build/
+
 test/special/%.class: test/special/%.java
 	javac build/test/special/*.java
 
-build/index.html: browser/doppio.html
-	cpp -P -DRELEASE browser/doppio.html build/index.html
+build/%.html: $(BROWSER_HTML)
+	cpp -P -DRELEASE browser/$*.html build/$*.html
 
 build/compressed.js: $(BROWSER_SRCS)
 	for src in $(BROWSER_SRCS); do \
