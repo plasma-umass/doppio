@@ -85,6 +85,15 @@ class root.BytesArray
   get_int: (bytes_count) ->
     uint = root.uint2int @get_uint(bytes_count), bytes_count
 
+  read: (bytes_count) ->
+    rv = @raw_array[@index...@index+bytes_count]
+    @index += bytes_count
+    rv
+
+  peek: -> @raw_array[@index]
+
+  size: -> @raw_array.length
+
 root.is_string = (obj) -> typeof obj == 'string' or obj instanceof String
 
 root.decimal_to_string = (num, precision) ->

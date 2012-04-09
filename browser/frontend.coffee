@@ -31,7 +31,7 @@ $.ajax "browser/mini-rt.tar", {
       preloading_file.text(
         if display_perc < 100 then "Loading #{_.last path.split '/'}"  else "Done!"))
 
-    untar util.bytestr_to_array(data), ((percent, path, file) ->
+    untar new util.BytesArray(util.bytestr_to_array data), ((percent, path, file) ->
       update_bar(percent, path)
       raw_cache[path] = file[0..]
       base_dir = 'third_party/classes/'
