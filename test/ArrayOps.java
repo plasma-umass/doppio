@@ -36,5 +36,8 @@ public class ArrayOps {
     sarr[3] = (short)barr[4];
     larr[2] = (long)sarr[3];
     darr[1] = (double)larr[2];
+    // check that we initialized our long array with gLong objects
+    larr[0] = 2 + larr[1];
+    System.out.println("OK");
   }
 }

@@ -90,7 +90,11 @@ class root.RuntimeState
       @heap.push type: type, fields: obj, ref: @heap.length
     @heap.length - 1
 
-  heap_newarray: (type,len) -> @set_obj(c2t("[#{type}"),(0 for [0...len]))
+  heap_newarray: (type,len) ->
+    if type == 'J'
+      @set_obj(c2t("[J"),(gLong.ZERO for i in [0...len] by 1))
+    else
+      @set_obj(c2t("[#{type}"),(0 for i in [0...len] by 1))
   heap_put: (field_spec) ->
     val = if field_spec.type in ['J','D'] then @pop2() else @pop()
     obj = @get_obj @pop()
