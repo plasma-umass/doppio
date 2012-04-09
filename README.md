@@ -1,13 +1,15 @@
 DoppioVM: A JVM in Coffeescript
 =================================
 
-_Doppio_ is a double shot of espresso. In this case it's also a JVM written in
-Coffeescript.
+_Doppio_ is a double shot of espresso.
+In this case it's also a JVM written in [Coffeescript](http://coffeescript.org/).
 
-[Mid-term project](http://plasma.cs.umass.edu/emery/grad-systems-project-1) 
-for [CS 691ST, Spring 2012](http://plasma.cs.umass.edu/emery/grad-systems).
+It began life as a [Mid-term project](http://plasma.cs.umass.edu/emery/grad-systems-project-1) 
+for [CS 691ST, Spring 2012](http://plasma.cs.umass.edu/emery/grad-systems)
+at [UMass Amherst](http://www.cs.umass.edu/).
 
-Use the [wiki](https://github.com/int3/coffee-jvm/wiki) for TODOs, links to resources, etc.
+To try Doppio now, head to the [live demo page](http://int3.github.com/doppio/).
+
 
 Getting & Building the Code
 ---------------------------
@@ -31,8 +33,11 @@ If you want to run the console-based frontend, you'll need the `optimist` node.j
 Usage
 -----
 
-Run `python -m SimpleHTTPServer 8000` in the project root, 
-then access the browser frontend at [localhost:8000](http://localhost:8000/).
+To run Doppio on localhost, run `. startup.sh`, or start the browser frontend manually:
+
+    python -m SimpleHTTPServer 8000 &
+    cpp -P browser/doppio.html index.html
+    open http://localhost:8000/
 
 The code can also be run from the console. For example:
 
@@ -46,3 +51,4 @@ Run the automated test-runner to check runtime and disassembler output:
 
     make test
 
+The tests can take a while to complete, so consider running them in parallel (`make -j4`).
