@@ -28,8 +28,29 @@
     div#source { width:100%; height:70%;
       position:relative;border: 1px solid #ccc; float: left;}
     div#console { height: 70%; padding:0; }
-    div#console pre.jquery-console-focus span.jquery-console-cursor
-     { background:#ccc; color:#eee; font-weight:bold }
+    @-webkit-keyframes blinker {
+      0% { opacity: 1.0; }
+      50% { opacity: 1.0; }
+      51% { opacity: 0.0; }
+      100% { opacity: 0.0; }
+    }
+    @-moz-keyframes blinker {
+      0% { opacity: 1.0; }
+      50% { opacity: 1.0; }
+      51% { opacity: 0.0; }
+      100% { opacity: 0.0; }
+    }
+    div#console pre.jquery-console-focus span.jquery-console-cursor {
+      background:#ccc; color:#eee; font-weight:bold;
+      -webkit-animation-name: blinker;
+      -webkit-animation-iteration-count: infinite;
+      -webkit-animation-timing-function: cubic-bezier(1.0,0,0,1.0);
+      -webkit-animation-duration: 1s;
+      -moz-animation-name: blinker;
+      -moz-animation-iteration-count: infinite;
+      -moz-animation-timing-function: cubic-bezier(1.0,0,0,1.0);
+      -moz-animation-duration: 1s;
+    }
     div#console pre.jquery-console-inner
      { width:100%; height:100%; padding: 0.5em;
        overflow:auto }
