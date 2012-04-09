@@ -1,0 +1,368 @@
+<!DOCTYPE html>  <html> <head>   <title>frontend.coffee</title>   <meta http-equiv="content-type" content="text/html; charset=UTF-8">   <link rel="stylesheet" media="all" href="docco.css" /> </head> <body>   <div id="container">     <div id="background"></div>            <div id="jump_to">         Jump To &hellip;         <div id="jump_wrapper">           <div id="jump_page">                                           <a class="source" href="frontend.html">                 frontend.coffee               </a>                                           <a class="source" href="node.html">                 node.coffee               </a>                                           <a class="source" href="untar.html">                 untar.coffee               </a>                                           <a class="source" href="util.html">                 util.coffee               </a>                                           <a class="source" href="attributes.html">                 attributes.coffee               </a>                                           <a class="source" href="class_file.html">                 class_file.coffee               </a>                                           <a class="source" href="constant_pool.html">                 constant_pool.coffee               </a>                                           <a class="source" href="disassembler.html">                 disassembler.coffee               </a>                                           <a class="source" href="jvm.html">                 jvm.coffee               </a>                                           <a class="source" href="methods.html">                 methods.coffee               </a>                                           <a class="source" href="natives.html">                 natives.coffee               </a>                                           <a class="source" href="opcodes.html">                 opcodes.coffee               </a>                                           <a class="source" href="runtime.html">                 runtime.coffee               </a>                                           <a class="source" href="types.html">                 types.coffee               </a>                                           <a class="source" href="util.html">                 util.coffee               </a>                        </div>         </div>       </div>          <table cellpadding="0" cellspacing="0">       <thead>         <tr>           <th class="docs">             <h1>               frontend.coffee             </h1>           </th>           <th class="code">           </th>         </tr>       </thead>       <tbody>                               <tr id="section-1">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-1">&#182;</a>               </div>                            </td>             <td class="code">               <div class="highlight"><pre><span class="nv">root = </span><span class="k">this</span></pre></div>             </td>           </tr>                               <tr id="section-2">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-2">&#182;</a>               </div>               <p>To be initialized on document load</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">user_input = </span><span class="kc">null</span>
+<span class="nv">controller = </span><span class="kc">null</span>
+<span class="nv">editor = </span><span class="kc">null</span>
+<span class="nv">progress = </span><span class="kc">null</span>
+
+<span class="nv">class_cache = </span><span class="p">{}</span>
+<span class="nv">raw_cache = </span><span class="p">{}</span>
+
+<span class="nx">$</span><span class="p">.</span><span class="nx">ajax</span> <span class="s2">&quot;browser/mini-rt.tar&quot;</span><span class="p">,</span> <span class="p">{</span>
+  <span class="nv">type: </span><span class="s1">&#39;GET&#39;</span>
+  <span class="nv">dataType: </span><span class="s1">&#39;text&#39;</span>
+  <span class="nv">beforeSend: </span><span class="nf">(jqXHR) -&gt;</span> <span class="nx">jqXHR</span><span class="p">.</span><span class="nx">overrideMimeType</span><span class="p">(</span><span class="s1">&#39;text/plain; charset=x-user-defined&#39;</span><span class="p">)</span>
+  <span class="nv">success: </span><span class="nf">(data) -&gt;</span>
+    <span class="nv">file_count = </span><span class="mi">0</span>
+    <span class="nv">done = </span><span class="kc">false</span>
+    <span class="nv">start_untar = </span><span class="p">(</span><span class="k">new</span> <span class="nb">Date</span><span class="p">).</span><span class="nx">getTime</span><span class="p">()</span>
+    <span class="nv">on_complete = </span><span class="o">-&gt;</span>
+      <span class="nv">end_untar = </span><span class="p">(</span><span class="k">new</span> <span class="nb">Date</span><span class="p">).</span><span class="nx">getTime</span><span class="p">()</span>
+      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span> <span class="s2">&quot;Untarring took a total of #{end_untar-start_untar}ms.&quot;</span>
+      <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#overlay&#39;</span><span class="p">).</span><span class="nx">fadeOut</span> <span class="s1">&#39;slow&#39;</span>
+      <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#progress-container&#39;</span><span class="p">).</span><span class="nx">fadeOut</span> <span class="s1">&#39;slow&#39;</span>
+    <span class="nv">update_bar = </span><span class="nx">_</span><span class="p">.</span><span class="nx">throttle</span> <span class="p">(</span><span class="nf">(percent, path) -&gt;</span>
+      <span class="nx">bar</span> <span class="o">?=</span> <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#progress &gt; .bar&#39;</span><span class="p">)</span>
+      <span class="nx">preloading_file</span> <span class="o">?=</span> <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#preloading-file&#39;</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-3">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-3">&#182;</a>               </div>               <p>+10% hack to make the bar appear fuller before fading kicks in</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nv">display_perc = </span><span class="nb">Math</span><span class="p">.</span><span class="nx">min</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">ceil</span><span class="p">(</span><span class="nx">percent</span><span class="o">*</span><span class="mi">100</span><span class="p">)</span> <span class="o">+</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">100</span>
+      <span class="nx">bar</span><span class="p">.</span><span class="nx">width</span> <span class="s2">&quot;#{display_perc}%&quot;</span><span class="p">,</span> <span class="mi">150</span>
+      <span class="nx">preloading_file</span><span class="p">.</span><span class="nx">text</span><span class="p">(</span>
+        <span class="k">if</span> <span class="nx">display_perc</span> <span class="o">&lt;</span> <span class="mi">100</span> <span class="k">then</span> <span class="s2">&quot;Loading #{_.last path.split &#39;/&#39;}&quot;</span>  <span class="k">else</span> <span class="s2">&quot;Done!&quot;</span><span class="p">))</span>
+
+    <span class="nx">untar</span> <span class="k">new</span> <span class="nx">util</span><span class="p">.</span><span class="nx">BytesArray</span><span class="p">(</span><span class="nx">util</span><span class="p">.</span><span class="nx">bytestr_to_array</span> <span class="nx">data</span><span class="p">),</span> <span class="p">(</span><span class="nf">(percent, path, file) -&gt;</span>
+      <span class="nx">update_bar</span><span class="p">(</span><span class="nx">percent</span><span class="p">,</span> <span class="nx">path</span><span class="p">)</span>
+      <span class="nx">raw_cache</span><span class="p">[</span><span class="nx">path</span><span class="p">]</span> <span class="o">=</span> <span class="nx">file</span><span class="p">[</span><span class="mi">0</span><span class="p">..]</span>
+      <span class="nv">base_dir = </span><span class="s1">&#39;third_party/classes/&#39;</span>
+      <span class="p">[</span><span class="nx">base</span><span class="p">,</span><span class="nx">ext</span><span class="p">]</span> <span class="o">=</span> <span class="nx">path</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+      <span class="nx">unless</span> <span class="nx">ext</span> <span class="o">is</span> <span class="s1">&#39;class&#39;</span>
+        <span class="nx">on_complete</span><span class="p">()</span> <span class="k">if</span> <span class="nx">percent</span> <span class="o">==</span> <span class="mi">100</span>
+        <span class="k">return</span>
+      <span class="nx">file_count</span><span class="o">++</span>
+      <span class="nv">cls = </span><span class="nx">base</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="nx">base_dir</span><span class="p">.</span><span class="nx">length</span><span class="p">)</span>
+      <span class="nx">asyncExecute</span> <span class="p">(</span><span class="o">-&gt;</span>
+        <span class="nx">class_cache</span><span class="p">[</span><span class="nx">cls</span><span class="p">]</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">ClassFile</span> <span class="nx">file</span>
+        <span class="nx">on_complete</span><span class="p">()</span> <span class="k">if</span> <span class="o">--</span><span class="nx">file_count</span> <span class="o">==</span> <span class="mi">0</span> <span class="o">and</span> <span class="nx">done</span>
+      <span class="p">),</span> <span class="mi">0</span><span class="p">),</span>
+      <span class="o">-&gt;</span>
+        <span class="nv">done = </span><span class="kc">true</span>
+        <span class="nx">on_complete</span><span class="p">()</span> <span class="k">if</span> <span class="nx">file_count</span> <span class="o">==</span> <span class="mi">0</span>
+  <span class="nv">error: </span><span class="nf">(jqXHR, textStatus, errorThrown) -&gt;</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">error</span> <span class="nx">errorThrown</span>
+<span class="p">}</span>
+
+<span class="k">if</span> <span class="nx">RELEASE</span><span class="o">?</span>
+  <span class="nx">$</span><span class="p">.</span><span class="nx">ajax</span> <span class="s2">&quot;third_party/classes/sun/tools/javac/Main.class&quot;</span><span class="p">,</span> <span class="p">{</span>
+    <span class="nv">type: </span><span class="s1">&#39;GET&#39;</span>
+    <span class="nv">dataType: </span><span class="s1">&#39;text&#39;</span>
+    <span class="nv">beforeSend: </span><span class="nf">(jqXHR) -&gt;</span> <span class="nx">jqXHR</span><span class="p">.</span><span class="nx">overrideMimeType</span><span class="p">(</span><span class="s1">&#39;text/plain; charset=x-user-defined&#39;</span><span class="p">)</span>
+    <span class="nv">success: </span><span class="nf">(data) -&gt;</span> <span class="nx">class_cache</span><span class="p">[</span><span class="s1">&#39;!javac&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nx">process_bytecode</span> <span class="nx">data</span>
+  <span class="p">}</span>
+
+<span class="nv">try_path = </span><span class="nf">(path) -&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-4">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-4">&#182;</a>               </div>               <p>hack. we should implement proper directories</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">local_file = </span><span class="nx">DoppioFile</span><span class="p">.</span><span class="nx">load</span> <span class="nx">_</span><span class="p">.</span><span class="nx">last</span><span class="p">(</span><span class="nx">path</span><span class="p">.</span><span class="nx">split</span> <span class="s1">&#39;/&#39;</span><span class="p">)</span>
+  <span class="k">return</span> <span class="nx">util</span><span class="p">.</span><span class="nx">bytestr_to_array</span> <span class="nx">local_file</span><span class="p">.</span><span class="nx">data</span> <span class="k">if</span> <span class="nx">local_file</span><span class="o">?</span>
+  <span class="nv">rv = </span><span class="kc">null</span>
+  <span class="nx">$</span><span class="p">.</span><span class="nx">ajax</span> <span class="nx">path</span><span class="p">,</span> <span class="p">{</span>
+    <span class="nv">type: </span><span class="s1">&#39;GET&#39;</span>
+    <span class="nv">dataType: </span><span class="s1">&#39;text&#39;</span>
+    <span class="nv">async: </span><span class="kc">false</span>
+    <span class="nv">beforeSend: </span><span class="nf">(jqXHR) -&gt;</span> <span class="nx">jqXHR</span><span class="p">.</span><span class="nx">overrideMimeType</span><span class="p">(</span><span class="s1">&#39;text/plain; charset=x-user-defined&#39;</span><span class="p">)</span>
+    <span class="nv">success: </span><span class="nf">(data) -&gt;</span> <span class="nv">rv = </span><span class="nx">util</span><span class="p">.</span><span class="nx">bytestr_to_array</span> <span class="nx">data</span>
+  <span class="p">}</span>
+  <span class="nx">rv</span></pre></div>             </td>           </tr>                               <tr id="section-5">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-5">&#182;</a>               </div>               <p>Read in a binary classfile synchronously. Return an array of bytes.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">read_classfile = </span><span class="nf">(cls) -&gt;</span>
+  <span class="nx">unless</span> <span class="nx">class_cache</span><span class="p">[</span><span class="nx">cls</span><span class="p">]</span><span class="o">?</span>
+    <span class="nv">classpath = </span><span class="p">[</span> <span class="s2">&quot;third_party/classes/&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span> <span class="p">]</span>
+    <span class="k">for</span> <span class="nx">path</span> <span class="k">in</span> <span class="nx">classpath</span>
+      <span class="nv">fullpath = </span><span class="s2">&quot;#{path}#{cls}.class&quot;</span>
+      <span class="k">if</span> <span class="nx">fullpath</span> <span class="k">of</span> <span class="nx">raw_cache</span>
+        <span class="nx">class_cache</span><span class="p">[</span><span class="nx">cls</span><span class="p">]</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">ClassFile</span> <span class="nx">raw_cache</span><span class="p">[</span><span class="nx">fullpath</span><span class="p">]</span>
+        <span class="k">break</span>
+      <span class="nv">data = </span><span class="nx">try_path</span> <span class="nx">fullpath</span>
+      <span class="k">if</span> <span class="nx">data</span><span class="o">?</span>
+        <span class="nx">raw_cache</span><span class="p">[</span><span class="nx">fullpath</span><span class="p">]</span> <span class="o">=</span> <span class="nx">data</span>
+        <span class="nx">class_cache</span><span class="p">[</span><span class="nx">cls</span><span class="p">]</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">ClassFile</span> <span class="nx">data</span>
+        <span class="k">break</span>
+  <span class="nx">class_cache</span><span class="p">[</span><span class="nx">cls</span><span class="p">]</span>
+
+<span class="nv">root.read_raw_class = </span><span class="nf">(path) -&gt;</span>
+  <span class="nx">unless</span> <span class="nx">raw_cache</span><span class="p">[</span><span class="nx">path</span><span class="p">]</span><span class="o">?</span>
+    <span class="nv">data = </span><span class="nx">try_path</span> <span class="nx">path</span>
+    <span class="nx">raw_cache</span><span class="p">[</span><span class="nx">path</span><span class="p">]</span> <span class="o">=</span> <span class="nx">data</span> <span class="k">if</span> <span class="nx">data</span><span class="o">?</span>
+  <span class="nx">raw_cache</span><span class="p">[</span><span class="nx">path</span><span class="p">]</span>
+
+<span class="nv">process_bytecode = </span><span class="nf">(bytecode_string) -&gt;</span>
+  <span class="nv">bytes_array = </span><span class="nx">util</span><span class="p">.</span><span class="nx">bytestr_to_array</span> <span class="nx">bytecode_string</span>
+  <span class="k">new</span> <span class="nx">ClassFile</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">)</span>
+
+<span class="nv">compile_source = </span><span class="nf">(fname, quiet) -&gt;</span>
+  <span class="nv">source = </span><span class="nx">DoppioFile</span><span class="p">.</span><span class="nx">load</span><span class="p">(</span><span class="nx">fname</span><span class="p">).</span><span class="nx">read</span><span class="p">()</span>
+  <span class="k">return</span> <span class="nx">controller</span><span class="p">.</span><span class="nx">message</span> <span class="s2">&quot;Could not find file &#39;#{fname}&#39;.&quot;</span><span class="p">,</span> <span class="s1">&#39;error&#39;</span> <span class="nx">unless</span> <span class="nx">source</span><span class="o">?</span>
+  <span class="nx">$</span><span class="p">.</span><span class="nx">ajax</span> <span class="s1">&#39;http://people.cs.umass.edu/~ccarey/javac/&#39;</span><span class="p">,</span> <span class="p">{</span>
+    <span class="nv">type: </span><span class="s1">&#39;POST&#39;</span>
+    <span class="nv">data: </span><span class="p">{</span> <span class="nv">pw: </span><span class="s1">&#39;coffee&#39;</span><span class="p">,</span> <span class="nv">source: </span><span class="nx">source</span> <span class="p">}</span>
+    <span class="nv">dataType: </span><span class="s1">&#39;text&#39;</span>
+    <span class="nv">beforeSend: </span><span class="nf">(jqXHR) -&gt;</span> <span class="nx">jqXHR</span><span class="p">.</span><span class="nx">overrideMimeType</span><span class="p">(</span><span class="s1">&#39;text/plain; charset=x-user-defined&#39;</span><span class="p">)</span>
+    <span class="nv">success: </span> <span class="nf">(data) -&gt;</span>
+      <span class="nv">class_name = </span><span class="nx">fname</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="p">(</span><span class="k">new</span> <span class="nx">DoppioFile</span> <span class="s2">&quot;#{class_name}.class&quot;</span><span class="p">).</span><span class="nx">write</span><span class="p">(</span><span class="nx">data</span><span class="p">).</span><span class="nx">save</span><span class="p">()</span>
+      <span class="nx">unless</span> <span class="nx">quiet</span>
+        <span class="nx">controller</span><span class="p">.</span><span class="nx">reprompt</span><span class="p">()</span>
+    <span class="nv">error: </span><span class="nf">(jqXHR, textStatus, errorThrown) -&gt;</span> 
+      <span class="nx">controller</span><span class="p">.</span><span class="nx">message</span> <span class="s2">&quot;AJAX error: #{errorThrown}&quot;</span><span class="p">,</span> <span class="s1">&#39;error&#39;</span>
+  <span class="p">}</span>
+
+<span class="nx">$</span><span class="p">(</span><span class="nb">document</span><span class="p">).</span><span class="nx">ready</span> <span class="o">-&gt;</span>
+  <span class="nv">editor = </span><span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#editor&#39;</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-6">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-6">&#182;</a>               </div>               <p>set up the local file loaders</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#file&#39;</span><span class="p">).</span><span class="nx">change</span> <span class="nf">(ev) -&gt;</span>
+    <span class="nv">f = </span><span class="nx">ev</span><span class="p">.</span><span class="nx">target</span><span class="p">.</span><span class="nx">files</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="nx">unless</span> <span class="nx">FileReader</span><span class="o">?</span>
+      <span class="nx">controller</span><span class="p">.</span><span class="nx">message</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        Your browser doesn&#39;t support file loading.</span>
+<span class="s2">        Try using the editor to create files instead.</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;error&quot;</span>
+      <span class="k">return</span> <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#console&#39;</span><span class="p">).</span><span class="nx">click</span><span class="p">()</span> <span class="c1"># click to restore focus</span>
+    <span class="nv">reader = </span><span class="k">new</span> <span class="nx">FileReader</span>
+    <span class="nv">reader.onerror = </span><span class="nf">(e) -&gt;</span>
+      <span class="k">switch</span> <span class="nx">e</span><span class="p">.</span><span class="nx">target</span><span class="p">.</span><span class="nx">error</span><span class="p">.</span><span class="nx">code</span>
+        <span class="k">when</span> <span class="nx">e</span><span class="p">.</span><span class="nx">target</span><span class="p">.</span><span class="nx">error</span><span class="p">.</span><span class="nx">NOT_FOUND_ERR</span> <span class="k">then</span> <span class="nx">alert</span> <span class="s2">&quot;404&#39;d&quot;</span>
+        <span class="k">when</span> <span class="nx">e</span><span class="p">.</span><span class="nx">target</span><span class="p">.</span><span class="nx">error</span><span class="p">.</span><span class="nx">NOT_READABLE_ERR</span> <span class="k">then</span> <span class="nx">alert</span> <span class="s2">&quot;unreadable&quot;</span>
+        <span class="k">when</span> <span class="nx">e</span><span class="p">.</span><span class="nx">target</span><span class="p">.</span><span class="nx">error</span><span class="p">.</span><span class="nx">SECURITY_ERR</span> <span class="k">then</span> <span class="nx">alert</span> <span class="s2">&quot;only works with --allow-file-access-from-files&quot;</span>
+    <span class="nv">ext = </span><span class="nx">f</span><span class="p">.</span><span class="nx">name</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nx">ext</span> <span class="o">==</span> <span class="s1">&#39;class&#39;</span>
+      <span class="nv">reader.onload = </span><span class="nf">(e) -&gt;</span>
+        <span class="p">(</span><span class="k">new</span> <span class="nx">DoppioFile</span> <span class="nx">f</span><span class="p">.</span><span class="nx">name</span><span class="p">).</span><span class="nx">write</span><span class="p">(</span><span class="nx">e</span><span class="p">.</span><span class="nx">target</span><span class="p">.</span><span class="nx">result</span><span class="p">).</span><span class="nx">save</span><span class="p">()</span>
+        <span class="nx">controller</span><span class="p">.</span><span class="nx">message</span> <span class="s2">&quot;File &#39;#{f.name}&#39; saved.&quot;</span><span class="p">,</span> <span class="s1">&#39;success&#39;</span>
+        <span class="nx">editor</span><span class="p">.</span><span class="nx">getSession</span><span class="o">?</span><span class="p">().</span><span class="nx">setValue</span><span class="p">(</span><span class="s2">&quot;/*\n * Binary file: #{f.name}\n */&quot;</span><span class="p">)</span>
+        <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#console&#39;</span><span class="p">).</span><span class="nx">click</span><span class="p">()</span> <span class="c1"># click to restore focus</span>
+      <span class="nx">reader</span><span class="p">.</span><span class="nx">readAsBinaryString</span><span class="p">(</span><span class="nx">f</span><span class="p">)</span>
+    <span class="k">else</span> <span class="c1"># assume a text file</span>
+      <span class="nv">reader.onload = </span><span class="nf">(e) -&gt;</span>
+        <span class="p">(</span><span class="k">new</span> <span class="nx">DoppioFile</span> <span class="nx">f</span><span class="p">.</span><span class="nx">name</span><span class="p">).</span><span class="nx">write</span><span class="p">(</span><span class="nx">e</span><span class="p">.</span><span class="nx">target</span><span class="p">.</span><span class="nx">result</span><span class="p">).</span><span class="nx">save</span><span class="p">()</span>
+        <span class="nx">controller</span><span class="p">.</span><span class="nx">message</span> <span class="s2">&quot;File &#39;#{f.name}&#39; saved.&quot;</span><span class="p">,</span> <span class="s1">&#39;success&#39;</span>
+        <span class="nx">editor</span><span class="p">.</span><span class="nx">getSession</span><span class="o">?</span><span class="p">().</span><span class="nx">setValue</span><span class="p">(</span><span class="nx">e</span><span class="p">.</span><span class="nx">target</span><span class="p">.</span><span class="nx">result</span><span class="p">)</span>
+        <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#console&#39;</span><span class="p">).</span><span class="nx">click</span><span class="p">()</span> <span class="c1"># click to restore focus</span>
+      <span class="nx">reader</span><span class="p">.</span><span class="nx">readAsText</span><span class="p">(</span><span class="nx">f</span><span class="p">)</span>
+
+  <span class="nv">jqconsole = </span><span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#console&#39;</span><span class="p">)</span>
+  <span class="nv">controller = </span><span class="nx">jqconsole</span><span class="p">.</span><span class="nx">console</span>
+    <span class="nv">promptLabel: </span><span class="s1">&#39;doppio &gt; &#39;</span>
+    <span class="nv">commandHandle: </span><span class="nf">(line) -&gt;</span>
+      <span class="p">[</span><span class="nx">cmd</span><span class="p">,</span><span class="nx">args</span><span class="p">...]</span> <span class="o">=</span> <span class="nx">line</span><span class="p">.</span><span class="nx">split</span> <span class="sr">/\s+/</span>
+      <span class="k">if</span> <span class="nx">cmd</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span> <span class="k">then</span> <span class="k">return</span> <span class="kc">true</span>
+      <span class="nv">handler = </span><span class="nx">commands</span><span class="p">[</span><span class="nx">cmd</span><span class="p">]</span>
+      <span class="k">try</span>
+        <span class="k">if</span> <span class="nx">handler</span><span class="o">?</span> <span class="k">then</span> <span class="nx">handler</span><span class="p">(</span><span class="nx">args</span><span class="p">)</span>
+        <span class="k">else</span> <span class="s2">&quot;Unknown command &#39;#{cmd}&#39;. Enter &#39;help&#39; for a list of commands.&quot;</span>
+      <span class="k">catch</span> <span class="nx">e</span>
+        <span class="nx">controller</span><span class="p">.</span><span class="nx">message</span> <span class="nx">e</span><span class="p">.</span><span class="nx">toString</span><span class="p">(),</span> <span class="s1">&#39;error&#39;</span>
+    <span class="nv">tabComplete: </span><span class="nx">tabComplete</span>
+    <span class="nv">autofocus: </span><span class="kc">true</span>
+    <span class="nv">animateScroll: </span><span class="kc">true</span>
+    <span class="nv">promptHistory: </span><span class="kc">true</span>
+    <span class="nv">welcomeMessage: </span><span class="s2">&quot;Enter &#39;help&#39; for a list of commands. Ctrl-D is EOF.&quot;</span>
+
+  <span class="nv">user_input = </span><span class="nf">(n_bytes, resume) -&gt;</span>
+    <span class="nv">oldPrompt = </span><span class="nx">controller</span><span class="p">.</span><span class="nx">promptLabel</span>
+    <span class="nv">controller.promptLabel = </span><span class="s1">&#39;&gt; &#39;</span>
+    <span class="nx">controller</span><span class="p">.</span><span class="nx">reprompt</span><span class="p">()</span>
+    <span class="nv">oldHandle = </span><span class="nx">controller</span><span class="p">.</span><span class="nx">commandHandle</span>
+    <span class="nv">controller.commandHandle = </span><span class="nf">(line) -&gt;</span>
+      <span class="nv">controller.commandHandle = </span><span class="nx">oldHandle</span>
+      <span class="nv">controller.promptLabel = </span><span class="nx">oldPrompt</span>
+      <span class="k">if</span> <span class="nx">line</span> <span class="o">==</span> <span class="s1">&#39;\0&#39;</span> <span class="c1"># EOF</span>
+        <span class="nx">resume</span> <span class="mi">0</span>
+      <span class="k">else</span>
+        <span class="nx">line</span> <span class="o">+=</span> <span class="s2">&quot;\n&quot;</span> <span class="c1"># so BufferedReader knows it has a full line</span>
+        <span class="nx">resume</span> <span class="p">(</span><span class="nx">line</span><span class="p">.</span><span class="nx">charCodeAt</span><span class="p">(</span><span class="nx">i</span><span class="p">)</span> <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">...</span><span class="nb">Math</span><span class="p">.</span><span class="nx">min</span><span class="p">(</span><span class="nx">n_bytes</span><span class="p">,</span><span class="nx">line</span><span class="p">.</span><span class="nx">length</span><span class="p">)])</span>
+
+  <span class="nv">close_editor = </span><span class="o">-&gt;</span>
+    <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#ide&#39;</span><span class="p">).</span><span class="nx">fadeOut</span> <span class="s1">&#39;fast&#39;</span><span class="p">,</span> <span class="o">-&gt;</span>
+      <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#console&#39;</span><span class="p">).</span><span class="nx">fadeIn</span><span class="p">(</span><span class="s1">&#39;fast&#39;</span><span class="p">).</span><span class="nx">click</span><span class="p">()</span> <span class="c1"># click to restore focus</span>
+
+  <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#save_btn&#39;</span><span class="p">).</span><span class="nx">click</span> <span class="nf">(e) -&gt;</span>
+    <span class="nv">fname = </span><span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#filename&#39;</span><span class="p">).</span><span class="nx">val</span><span class="p">()</span>
+    <span class="nv">contents = </span><span class="nx">editor</span><span class="p">.</span><span class="nx">getSession</span><span class="p">().</span><span class="nx">getValue</span><span class="p">()</span>
+    <span class="nx">contents</span> <span class="o">+=</span> <span class="s1">&#39;\n&#39;</span> <span class="nx">unless</span> <span class="nx">contents</span><span class="p">[</span><span class="nx">contents</span><span class="p">.</span><span class="nx">length</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;\n&#39;</span>
+    <span class="p">(</span><span class="k">new</span> <span class="nx">DoppioFile</span> <span class="nx">fname</span><span class="p">).</span><span class="nx">write</span><span class="p">(</span><span class="nx">contents</span><span class="p">).</span><span class="nx">save</span><span class="p">()</span>
+    <span class="nx">controller</span><span class="p">.</span><span class="nx">message</span><span class="p">(</span><span class="s2">&quot;File saved as &#39;#{fname}&#39;.&quot;</span><span class="p">,</span> <span class="s1">&#39;success&#39;</span><span class="p">)</span>
+    <span class="nx">close_editor</span><span class="p">()</span>
+    <span class="nx">e</span><span class="p">.</span><span class="nx">preventDefault</span><span class="p">()</span>
+
+  <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#close_btn&#39;</span><span class="p">).</span><span class="nx">click</span> <span class="nf">(e) -&gt;</span> <span class="nx">close_editor</span><span class="p">();</span> <span class="nx">e</span><span class="p">.</span><span class="nx">preventDefault</span><span class="p">()</span>
+
+<span class="nv">commands =</span>
+  <span class="nv">javac: </span><span class="nf">(args, cb) -&gt;</span>
+    <span class="nx">unless</span> <span class="nx">RELEASE</span><span class="o">?</span>
+      <span class="k">return</span> <span class="s2">&quot;Usage: javac &lt;source file&gt;&quot;</span> <span class="nx">unless</span> <span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">?</span>
+      <span class="k">return</span> <span class="nx">compile_source</span> <span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nx">cb</span>
+    <span class="nv">stdout = </span><span class="nf">(str) -&gt;</span> <span class="nx">controller</span><span class="p">.</span><span class="nx">message</span> <span class="nx">str</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="kc">true</span> <span class="c1"># noreprompt</span>
+    <span class="nv">rs = </span><span class="k">new</span> <span class="nx">runtime</span><span class="p">.</span><span class="nx">RuntimeState</span><span class="p">(</span><span class="nx">stdout</span><span class="p">,</span> <span class="nx">user_input</span><span class="p">,</span> <span class="nx">read_classfile</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-7">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-7">&#182;</a>               </div>               <p>hack: use a special class name that won't clash with real ones</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nx">jvm</span><span class="p">.</span><span class="nx">run_class</span><span class="p">(</span><span class="nx">rs</span><span class="p">,</span> <span class="s1">&#39;!javac&#39;</span><span class="p">,</span> <span class="nx">args</span><span class="p">,</span> <span class="o">-&gt;</span> <span class="nx">controller</span><span class="p">.</span><span class="nx">reprompt</span><span class="p">())</span>
+  <span class="nv">java: </span><span class="nf">(args, cb) -&gt;</span>
+    <span class="k">return</span> <span class="s2">&quot;Usage: java class [args...]&quot;</span> <span class="nx">unless</span> <span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">?</span>
+    <span class="nv">stdout = </span><span class="nf">(str) -&gt;</span> <span class="nx">controller</span><span class="p">.</span><span class="nx">message</span> <span class="nx">str</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="kc">true</span> <span class="c1"># noreprompt</span>
+    <span class="nv">rs = </span><span class="k">new</span> <span class="nx">runtime</span><span class="p">.</span><span class="nx">RuntimeState</span><span class="p">(</span><span class="nx">stdout</span><span class="p">,</span> <span class="nx">user_input</span><span class="p">,</span> <span class="nx">read_classfile</span><span class="p">)</span>
+    <span class="nx">jvm</span><span class="p">.</span><span class="nx">run_class</span><span class="p">(</span><span class="nx">rs</span><span class="p">,</span> <span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nx">args</span><span class="p">[</span><span class="mi">1</span><span class="p">..],</span> <span class="o">-&gt;</span> <span class="nx">controller</span><span class="p">.</span><span class="nx">reprompt</span><span class="p">())</span>
+  <span class="nv">javap: </span><span class="nf">(args) -&gt;</span>
+    <span class="k">return</span> <span class="s2">&quot;Usage: javap class&quot;</span> <span class="nx">unless</span> <span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">?</span>
+    <span class="nv">raw_data = </span><span class="nx">DoppioFile</span><span class="p">.</span><span class="nx">load</span><span class="p">(</span><span class="s2">&quot;#{args[0]}.class&quot;</span><span class="p">).</span><span class="nx">read</span><span class="p">()</span>
+    <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;Could not find class &#39;#{args[0]}&#39;.&quot;</span><span class="p">,</span><span class="s1">&#39;error&#39;</span><span class="p">]</span> <span class="nx">unless</span> <span class="nx">raw_data</span><span class="o">?</span>
+    <span class="nx">disassembler</span><span class="p">.</span><span class="nx">disassemble</span> <span class="nx">process_bytecode</span> <span class="nx">raw_data</span>
+  <span class="nv">list_cache: </span><span class="o">-&gt;</span>
+    <span class="p">(</span><span class="nx">name</span> <span class="k">for</span> <span class="nx">name</span> <span class="k">of</span> <span class="nx">raw_cache</span><span class="p">).</span><span class="nx">join</span> <span class="s1">&#39;\n&#39;</span>
+  <span class="nv">clear_cache: </span><span class="nf">(args) -&gt;</span>
+    <span class="nv">raw_cache = </span><span class="p">{}</span>
+    <span class="nv">class_cache = </span><span class="p">{}</span>
+    <span class="s2">&quot;Cache cleared.&quot;</span>
+  <span class="nv">ls: </span><span class="nf">(args) -&gt;</span>
+    <span class="p">(</span><span class="nx">node</span><span class="p">.</span><span class="nx">fs</span><span class="p">.</span><span class="nx">readdirSync</span> <span class="s1">&#39;.&#39;</span><span class="p">).</span><span class="nx">sort</span><span class="p">().</span><span class="nx">join</span> <span class="s1">&#39;\n&#39;</span>
+  <span class="nv">edit: </span><span class="nf">(args) -&gt;</span>
+    <span class="nv">data = </span><span class="k">if</span> <span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">?</span> <span class="k">then</span> <span class="nx">DoppioFile</span><span class="p">.</span><span class="nx">load</span><span class="p">(</span><span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]).</span><span class="nx">read</span><span class="p">()</span> <span class="k">else</span> <span class="nx">defaultFile</span>
+    <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#console&#39;</span><span class="p">).</span><span class="nx">fadeOut</span> <span class="s1">&#39;fast&#39;</span><span class="p">,</span> <span class="o">-&gt;</span>
+      <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#filename&#39;</span><span class="p">).</span><span class="nx">val</span> <span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#ide&#39;</span><span class="p">).</span><span class="nx">fadeIn</span><span class="p">(</span><span class="s1">&#39;fast&#39;</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-8">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-8">&#182;</a>               </div>               <p>initialize the editor. technically we only need to do this once, but more
+than once is fine too</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nv">editor = </span><span class="nx">ace</span><span class="p">.</span><span class="nx">edit</span><span class="p">(</span><span class="s1">&#39;source&#39;</span><span class="p">)</span>
+      <span class="nx">editor</span><span class="p">.</span><span class="nx">setTheme</span> <span class="s1">&#39;ace/theme/twilight&#39;</span>
+      <span class="nv">ext = </span><span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">?</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+      <span class="k">if</span> <span class="nx">ext</span> <span class="o">is</span> <span class="s1">&#39;java&#39;</span> <span class="o">or</span> <span class="o">not</span> <span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">?</span>
+        <span class="nv">JavaMode = </span><span class="nx">require</span><span class="p">(</span><span class="s2">&quot;ace/mode/java&quot;</span><span class="p">).</span><span class="nx">Mode</span>
+        <span class="nx">editor</span><span class="p">.</span><span class="nx">getSession</span><span class="p">().</span><span class="nx">setMode</span><span class="p">(</span><span class="k">new</span> <span class="nx">JavaMode</span><span class="p">)</span>
+      <span class="k">else</span>
+        <span class="nv">TextMode = </span><span class="nx">require</span><span class="p">(</span><span class="s2">&quot;ace/mode/text&quot;</span><span class="p">).</span><span class="nx">Mode</span>
+        <span class="nx">editor</span><span class="p">.</span><span class="nx">getSession</span><span class="p">().</span><span class="nx">setMode</span><span class="p">(</span><span class="k">new</span> <span class="nx">TextMode</span><span class="p">)</span>
+      <span class="nx">editor</span><span class="p">.</span><span class="nx">getSession</span><span class="p">().</span><span class="nx">setValue</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span>
+    <span class="kc">true</span>
+  <span class="nv">cat: </span><span class="nf">(args) -&gt;</span>
+    <span class="nv">fname = </span><span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="s2">&quot;Usage: cat &lt;file&gt;&quot;</span> <span class="nx">unless</span> <span class="nx">fname</span><span class="o">?</span>
+    <span class="nx">DoppioFile</span><span class="p">.</span><span class="nx">load</span><span class="p">(</span><span class="nx">fname</span><span class="p">).</span><span class="nx">read</span><span class="p">()</span>
+  <span class="nv">mv: </span><span class="nf">(args) -&gt;</span>
+    <span class="nv">f = </span><span class="nx">DoppioFile</span><span class="p">.</span><span class="nx">load</span> <span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="nv">f.name = </span><span class="nx">args</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="nx">f</span><span class="p">.</span><span class="nx">save</span><span class="p">()</span>
+    <span class="nx">DoppioFile</span><span class="p">.</span><span class="k">delete</span> <span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="kc">true</span>
+  <span class="nv">rm: </span><span class="nf">(args) -&gt;</span>
+    <span class="k">return</span> <span class="s2">&quot;Usage: rm &lt;file&gt;&quot;</span> <span class="nx">unless</span> <span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">?</span></pre></div>             </td>           </tr>                               <tr id="section-9">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-9">&#182;</a>               </div>               <p>technically we should look only for keys starting with 'file::', but at the
+moment they are the only kinds of keys we use</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="k">if</span> <span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;*&#39;</span> <span class="k">then</span> <span class="nx">localStorage</span><span class="p">.</span><span class="nx">clear</span><span class="p">()</span>
+    <span class="k">else</span> <span class="nx">DoppioFile</span><span class="p">.</span><span class="k">delete</span> <span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="kc">true</span>
+  <span class="nv">load_demos: </span><span class="o">-&gt;</span>
+    <span class="nv">demos = </span><span class="p">[</span><span class="s1">&#39;special/DiffPrint.class&#39;</span><span class="p">,</span> <span class="s1">&#39;special/Chatterbot.java&#39;</span><span class="p">,</span> <span class="s1">&#39;special/Lzw.java&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;special/RegexTestHarness.java&#39;</span><span class="p">,</span> <span class="s1">&#39;special/FileRead.java&#39;</span><span class="p">,</span> <span class="s1">&#39;special/foo&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;special/bar&#39;</span><span class="p">]</span>
+    <span class="k">for</span> <span class="nx">demo</span> <span class="k">in</span> <span class="nx">demos</span>
+      <span class="nx">$</span><span class="p">.</span><span class="nx">ajax</span> <span class="s2">&quot;test/#{demo}&quot;</span><span class="p">,</span> <span class="p">{</span>
+        <span class="nv">type: </span><span class="s1">&#39;GET&#39;</span>
+        <span class="nv">dataType: </span><span class="s1">&#39;text&#39;</span>
+        <span class="nv">async: </span><span class="kc">false</span>
+        <span class="nv">beforeSend: </span><span class="nf">(jqXHR) -&gt;</span> <span class="nx">jqXHR</span><span class="p">.</span><span class="nx">overrideMimeType</span><span class="p">(</span><span class="s1">&#39;text/plain; charset=x-user-defined&#39;</span><span class="p">)</span>
+        <span class="nv">success: </span><span class="nf">(data) -&gt;</span>
+          <span class="nv">fname = </span><span class="nx">_</span><span class="p">.</span><span class="nx">last</span><span class="p">(</span><span class="nx">demo</span><span class="p">.</span><span class="nx">split</span> <span class="s1">&#39;/&#39;</span><span class="p">)</span>
+          <span class="p">(</span><span class="k">new</span> <span class="nx">DoppioFile</span> <span class="nx">fname</span><span class="p">).</span><span class="nx">write</span><span class="p">(</span><span class="nx">data</span><span class="p">).</span><span class="nx">save</span><span class="p">()</span>
+          <span class="nx">controller</span><span class="p">.</span><span class="nx">message</span> <span class="s2">&quot;Loaded &#39;#{fname}&#39;.\n&quot;</span><span class="p">,</span> <span class="s1">&#39;success&#39;</span><span class="p">,</span> <span class="kc">true</span>
+        <span class="nv">error: </span><span class="o">-&gt;</span>
+          <span class="nv">fname = </span><span class="nx">_</span><span class="p">.</span><span class="nx">last</span><span class="p">(</span><span class="nx">demo</span><span class="p">.</span><span class="nx">split</span> <span class="s1">&#39;/&#39;</span><span class="p">)</span>
+          <span class="nx">controller</span><span class="p">.</span><span class="nx">message</span> <span class="s2">&quot;Could not load &#39;#{fname}&#39;.\n&quot;</span><span class="p">,</span> <span class="s1">&#39;error&#39;</span><span class="p">,</span> <span class="kc">true</span>
+      <span class="p">}</span>
+    <span class="nx">controller</span><span class="p">.</span><span class="nx">message</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">      All files should have been loaded.</span>
+
+<span class="s2">      After compiling them, you may wish to try the following commands:</span>
+<span class="s2">        java Chatterbot</span>
+<span class="s2">        java DiffPrint foo bar</span>
+<span class="s2">        java RegexTestHarness</span>
+<span class="s2">        java FileRead</span>
+<span class="s2">        java Lzw c foo foo_lzw (use &#39;cat&#39; or &#39;edit&#39; to see the result)</span>
+<span class="s2">        java Lzw d foo_lzw foo</span>
+
+<span class="s2">      After running these programs, use &#39;list_cache&#39; to see the Java Class</span>
+<span class="s2">      Library files that they depended upon.</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+  <span class="nv">emacs: </span><span class="o">-&gt;</span> <span class="s2">&quot;Try &#39;vim&#39;.&quot;</span>
+  <span class="nv">vim: </span><span class="o">-&gt;</span> <span class="s2">&quot;Try &#39;emacs&#39;.&quot;</span>
+  <span class="nv">time: </span><span class="nf">(args) -&gt;</span>
+    <span class="nv">start = </span><span class="p">(</span><span class="k">new</span> <span class="nb">Date</span><span class="p">).</span><span class="nx">getTime</span><span class="p">()</span>
+    <span class="nv">controller.onreprompt = </span><span class="o">-&gt;</span>
+      <span class="nv">controller.onreprompt = </span><span class="kc">null</span>
+      <span class="nv">end = </span><span class="p">(</span><span class="k">new</span> <span class="nb">Date</span><span class="p">).</span><span class="nx">getTime</span><span class="p">()</span>
+      <span class="nx">controller</span><span class="p">.</span><span class="nx">message</span> <span class="s2">&quot;\nCommand took a total of #{end-start}ms to run.&quot;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="kc">true</span>
+    <span class="nx">commands</span><span class="p">[</span><span class="nx">args</span><span class="p">.</span><span class="nx">shift</span><span class="p">()](</span><span class="nx">args</span><span class="p">)</span>
+  <span class="nv">profile: </span><span class="nf">(args) -&gt;</span>
+    <span class="nv">count = </span><span class="mi">0</span>
+    <span class="nv">runs = </span><span class="mi">5</span>
+    <span class="nv">duration = </span><span class="mi">0</span>
+    <span class="nv">time_once = </span><span class="o">-&gt;</span>
+      <span class="nv">start = </span><span class="p">(</span><span class="k">new</span> <span class="nb">Date</span><span class="p">).</span><span class="nx">getTime</span><span class="p">()</span>
+      <span class="nv">controller.onreprompt = </span><span class="o">-&gt;</span>
+        <span class="nx">unless</span> <span class="nx">count</span> <span class="o">&lt;</span> <span class="nx">runs</span>
+          <span class="nv">controller.onreprompt = </span><span class="kc">null</span>
+          <span class="nx">controller</span><span class="p">.</span><span class="nx">message</span> <span class="s2">&quot;\n#{args[0]} took an average of #{duration/runs}ms.&quot;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="kc">true</span>
+          <span class="k">return</span>
+        <span class="nv">end = </span><span class="p">(</span><span class="k">new</span> <span class="nb">Date</span><span class="p">).</span><span class="nx">getTime</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nx">count</span><span class="o">++</span> <span class="o">==</span> <span class="mi">0</span> <span class="c1"># first one to warm the cache</span>
+          <span class="k">return</span> <span class="nx">time_once</span><span class="p">()</span>
+        <span class="nx">duration</span> <span class="o">+=</span> <span class="nx">end</span> <span class="o">-</span> <span class="nx">start</span>
+        <span class="nx">time_once</span><span class="p">()</span>
+      <span class="nx">commands</span><span class="p">[</span><span class="s1">&#39;java&#39;</span><span class="p">](</span><span class="nx">args</span><span class="p">)</span>
+    <span class="nx">time_once</span><span class="p">()</span>
+  <span class="nv">help: </span><span class="nf">(args) -&gt;</span>
+    <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    Ctrl-D is EOF.</span>
+
+<span class="s2">    Java-related commands:</span>
+<span class="s2">      javac &lt;source file&gt;    -- Compile Java source.</span>
+<span class="s2">      java &lt;class&gt; [args...] -- Run with command-line arguments.</span>
+<span class="s2">      javap &lt;class&gt;          -- Display disassembly.</span>
+<span class="s2">      time                   -- Measure how long it takes to run a command.</span>
+
+<span class="s2">    File management:</span>
+<span class="s2">      load_demos             -- Load all demos.</span>
+<span class="s2">      cat &lt;file&gt;             -- Display a file in the console.</span>
+<span class="s2">      edit &lt;file&gt;            -- Edit a file.</span>
+<span class="s2">      ls                     -- List all files.</span>
+<span class="s2">      mv &lt;src&gt; &lt;dst&gt;         -- Move / rename a file.</span>
+<span class="s2">      rm &lt;file&gt;              -- Delete a file.</span>
+
+<span class="s2">    Cache management:</span>
+<span class="s2">      list_cache             -- List the cached class files.</span>
+<span class="s2">      clear_cache            -- Clear the cached class files.</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+
+<span class="nv">tabComplete = </span><span class="o">-&gt;</span>
+  <span class="nv">promptText = </span><span class="nx">controller</span><span class="p">.</span><span class="nx">promptText</span><span class="p">()</span>
+  <span class="nv">args = </span><span class="nx">promptText</span><span class="p">.</span><span class="nx">split</span> <span class="sr">/\s+/</span>
+  <span class="nv">getCompletions = </span><span class="nf">(args) -&gt;</span>
+    <span class="k">if</span> <span class="nx">args</span><span class="p">.</span><span class="nx">length</span> <span class="o">is</span> <span class="mi">1</span> <span class="k">then</span> <span class="nx">commandCompletions</span> <span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span> <span class="k">if</span> <span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">is</span> <span class="s1">&#39;time&#39;</span> <span class="k">then</span> <span class="nx">getCompletions</span><span class="p">(</span><span class="nx">args</span><span class="p">[</span><span class="mi">1</span><span class="p">..])</span>
+    <span class="k">else</span> <span class="nx">fileNameCompletions</span> <span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nx">args</span>
+  <span class="nv">prefix = </span><span class="nx">longestCommmonPrefix</span><span class="p">(</span><span class="nx">getCompletions</span><span class="p">(</span><span class="nx">args</span><span class="p">))</span>
+  <span class="k">return</span> <span class="k">if</span> <span class="nx">prefix</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span>  <span class="c1"># TODO: if we&#39;re tab-completing a blank, show all options</span></pre></div>             </td>           </tr>                               <tr id="section-10">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-10">&#182;</a>               </div>               <p>delete existing text so we can do case correction</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">promptText = </span><span class="nx">promptText</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nx">promptText</span><span class="p">.</span><span class="nx">length</span> <span class="o">-</span> <span class="nx">_</span><span class="p">.</span><span class="nx">last</span><span class="p">(</span><span class="nx">args</span><span class="p">).</span><span class="nx">length</span><span class="p">)</span>
+  <span class="nx">controller</span><span class="p">.</span><span class="nx">promptText</span><span class="p">(</span><span class="nx">promptText</span> <span class="o">+</span> <span class="nx">prefix</span><span class="p">)</span>
+
+<span class="nv">commandCompletions = </span><span class="nf">(cmd) -&gt;</span>
+  <span class="p">(</span><span class="nx">name</span> <span class="k">for</span> <span class="nx">name</span><span class="p">,</span> <span class="nx">handler</span> <span class="k">of</span> <span class="nx">commands</span> <span class="k">when</span> <span class="nx">name</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nx">cmd</span><span class="p">.</span><span class="nx">length</span><span class="p">)</span> <span class="o">is</span> <span class="nx">cmd</span><span class="p">)</span>
+
+<span class="nv">fileNameCompletions = </span><span class="nf">(cmd, args) -&gt;</span>
+  <span class="nv">validExtension = </span><span class="nf">(fname) -&gt;</span>
+    <span class="nv">dot = </span><span class="nx">fname</span><span class="p">.</span><span class="nx">lastIndexOf</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+    <span class="nv">ext = </span><span class="k">if</span> <span class="nx">dot</span> <span class="o">is</span> <span class="o">-</span><span class="mi">1</span> <span class="k">then</span> <span class="s1">&#39;&#39;</span> <span class="k">else</span> <span class="nx">fname</span><span class="p">.</span><span class="nx">slice</span><span class="p">(</span><span class="nx">dot</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nx">cmd</span> <span class="o">is</span> <span class="s1">&#39;javac&#39;</span> <span class="k">then</span> <span class="nx">ext</span> <span class="o">is</span> <span class="s1">&#39;java&#39;</span>
+    <span class="k">else</span> <span class="k">if</span> <span class="nx">cmd</span> <span class="o">is</span> <span class="s1">&#39;javap&#39;</span> <span class="o">or</span> <span class="nx">cmd</span> <span class="o">is</span> <span class="s1">&#39;java&#39;</span> <span class="k">then</span> <span class="nx">ext</span> <span class="o">is</span> <span class="s1">&#39;class&#39;</span>
+    <span class="k">else</span> <span class="kc">true</span>
+  <span class="nv">chopExt = </span><span class="nx">args</span><span class="p">.</span><span class="nx">length</span> <span class="o">==</span> <span class="mi">2</span> <span class="o">and</span> <span class="p">(</span><span class="nx">cmd</span> <span class="o">is</span> <span class="s1">&#39;javap&#39;</span> <span class="o">or</span> <span class="nx">cmd</span> <span class="o">is</span> <span class="s1">&#39;java&#39;</span><span class="p">)</span>
+  <span class="nv">lastArg = </span><span class="k">new</span> <span class="nb">RegExp</span><span class="p">(</span><span class="s1">&#39;^&#39;</span><span class="o">+</span><span class="nx">_</span><span class="p">.</span><span class="nx">last</span><span class="p">(</span><span class="nx">args</span><span class="p">),</span><span class="nx">flags</span><span class="o">=</span><span class="s1">&#39;i&#39;</span><span class="p">)</span>
+  <span class="nv">completions = </span><span class="p">[]</span>
+  <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">...</span><span class="nx">localStorage</span><span class="p">.</span><span class="nx">length</span><span class="p">]</span> <span class="k">by</span> <span class="mi">1</span>
+    <span class="nv">key = </span><span class="nx">localStorage</span><span class="p">.</span><span class="nx">key</span><span class="p">(</span><span class="nx">i</span><span class="p">)</span>
+    <span class="k">continue</span> <span class="nx">unless</span> <span class="nx">key</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span> <span class="o">is</span> <span class="s1">&#39;file::&#39;</span>
+    <span class="nv">file = </span><span class="nx">DoppioFile</span><span class="p">.</span><span class="nx">load</span> <span class="nx">key</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span> <span class="c1"># hack</span>
+    <span class="k">continue</span> <span class="nx">unless</span> <span class="nx">file</span><span class="o">?</span> <span class="o">and</span> <span class="nx">validExtension</span><span class="p">(</span><span class="nx">file</span><span class="p">.</span><span class="nx">name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nx">file</span><span class="p">.</span><span class="nx">name</span><span class="p">.</span><span class="nx">match</span><span class="p">(</span><span class="nx">lastArg</span><span class="p">)</span><span class="o">?</span>
+      <span class="nx">completions</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="k">if</span> <span class="nx">chopExt</span> <span class="k">then</span> <span class="nx">file</span><span class="p">.</span><span class="nx">name</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">else</span> <span class="nx">file</span><span class="p">.</span><span class="nx">name</span><span class="p">)</span>
+  <span class="nx">completions</span></pre></div>             </td>           </tr>                               <tr id="section-11">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-11">&#182;</a>               </div>               <p>use the awesome greedy regex hack, from http://stackoverflow.com/a/1922153/10601</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">longestCommmonPrefix = </span><span class="nf">(lst) -&gt;</span> <span class="nx">lst</span><span class="p">.</span><span class="nx">join</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">).</span><span class="nx">match</span><span class="p">(</span><span class="sr">/^(\S*)\S*(?: \1\S*)*$/i</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+
+<span class="nv">defaultFile =</span>
+  <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">  class Test {</span>
+<span class="s2">    public static void main(String[] args) {</span>
+<span class="s2">      // enter code here</span>
+<span class="s2">    }</span>
+<span class="s2">  }</span>
+<span class="s2">  &quot;&quot;&quot;</span>
+
+</pre></div>             </td>           </tr>                </tbody>     </table>   </div> </body> </html> 

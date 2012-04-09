@@ -1,0 +1,116 @@
+<!DOCTYPE html>  <html> <head>   <title>node.coffee</title>   <meta http-equiv="content-type" content="text/html; charset=UTF-8">   <link rel="stylesheet" media="all" href="docco.css" /> </head> <body>   <div id="container">     <div id="background"></div>            <div id="jump_to">         Jump To &hellip;         <div id="jump_wrapper">           <div id="jump_page">                                           <a class="source" href="frontend.html">                 frontend.coffee               </a>                                           <a class="source" href="node.html">                 node.coffee               </a>                                           <a class="source" href="untar.html">                 untar.coffee               </a>                                           <a class="source" href="util.html">                 util.coffee               </a>                                           <a class="source" href="attributes.html">                 attributes.coffee               </a>                                           <a class="source" href="class_file.html">                 class_file.coffee               </a>                                           <a class="source" href="constant_pool.html">                 constant_pool.coffee               </a>                                           <a class="source" href="disassembler.html">                 disassembler.coffee               </a>                                           <a class="source" href="jvm.html">                 jvm.coffee               </a>                                           <a class="source" href="methods.html">                 methods.coffee               </a>                                           <a class="source" href="natives.html">                 natives.coffee               </a>                                           <a class="source" href="opcodes.html">                 opcodes.coffee               </a>                                           <a class="source" href="runtime.html">                 runtime.coffee               </a>                                           <a class="source" href="types.html">                 types.coffee               </a>                                           <a class="source" href="util.html">                 util.coffee               </a>                        </div>         </div>       </div>          <table cellpadding="0" cellspacing="0">       <thead>         <tr>           <th class="docs">             <h1>               node.coffee             </h1>           </th>           <th class="code">           </th>         </tr>       </thead>       <tbody>                               <tr id="section-1">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-1">&#182;</a>               </div>                            </td>             <td class="code">               <div class="highlight"><pre><span class="nv">root = </span><span class="vi">@node = </span><span class="p">{}</span>
+
+<span class="nv">win = </span><span class="nb">window</span></pre></div>             </td>           </tr>                               <tr id="section-2">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-2">&#182;</a>               </div>               <p>made global for convenience -- name collision is unlikely</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="k">class</span> <span class="nx">win</span><span class="p">.</span><span class="nx">DoppioFile</span> <span class="c1"># File is a native browser thing</span>
+  <span class="nv">constructor: </span><span class="nf">(@name) -&gt;</span>
+    <span class="vi">@mtime = </span><span class="p">(</span><span class="k">new</span> <span class="nb">Date</span><span class="p">).</span><span class="nx">getTime</span><span class="p">()</span>
+    <span class="vi">@data = </span><span class="s2">&quot;&quot;</span>
+
+  <span class="vi">@load: </span><span class="nf">(fname) -&gt;</span>
+    <span class="nv">fname = </span><span class="nx">root</span><span class="p">.</span><span class="nx">path</span><span class="p">.</span><span class="nx">resolve</span> <span class="nx">fname</span>
+    <span class="nv">rawData = </span><span class="nx">localStorage</span><span class="p">[</span><span class="s2">&quot;file::#{fname?.toLowerCase()}&quot;</span><span class="p">]</span>
+    <span class="k">return</span> <span class="kc">null</span> <span class="nx">unless</span> <span class="nx">rawData</span>
+    <span class="nv">data = </span><span class="nx">JSON</span><span class="p">.</span><span class="nx">parse</span> <span class="nx">rawData</span>
+    <span class="nv">file = </span><span class="k">new</span> <span class="nx">win</span><span class="p">.</span><span class="nx">DoppioFile</span> <span class="nx">fname</span>
+    <span class="nx">file</span><span class="p">[</span><span class="nx">k</span><span class="p">]</span> <span class="o">=</span> <span class="nx">v</span> <span class="k">for</span> <span class="nx">k</span><span class="p">,</span> <span class="nx">v</span> <span class="k">of</span> <span class="nx">data</span> 
+    <span class="nx">file</span>
+
+  <span class="nv">read: </span><span class="nf">(length, pos) -&gt;</span>
+    <span class="k">return</span> <span class="nx">@data</span> <span class="nx">unless</span> <span class="nx">length</span><span class="o">?</span>
+    <span class="nx">@data</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="nx">pos</span><span class="p">,</span> <span class="nx">length</span><span class="p">)</span>
+
+  <span class="nv">write: </span><span class="nf">(newData) -&gt;</span> <span class="nx">@data</span> <span class="o">+=</span> <span class="nx">newData</span><span class="p">;</span> <span class="err">@</span>
+
+  <span class="nv">save: </span><span class="o">-&gt;</span>
+    <span class="nx">localStorage</span><span class="p">[</span><span class="s2">&quot;file::#{@name.toLowerCase()}&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span>
+      <span class="nv">name: </span><span class="nx">@name</span>
+      <span class="nv">data: </span><span class="nx">@data</span>
+      <span class="nv">mtime: </span><span class="nx">@mtime</span>
+    <span class="err">@</span>
+
+  <span class="vi">@delete: </span><span class="nf">(fname) -&gt;</span>
+    <span class="nv">fname = </span><span class="nx">root</span><span class="p">.</span><span class="nx">path</span><span class="p">.</span><span class="nx">resolve</span> <span class="nx">fname</span>
+    <span class="nx">localStorage</span><span class="p">.</span><span class="nx">removeItem</span> <span class="s2">&quot;file::#{fname.toLowerCase()}&quot;</span></pre></div>             </td>           </tr>                               <tr id="section-3">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-3">&#182;</a>               </div>               <p>this is a global in Node.JS as well</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="k">class</span> <span class="nx">win</span><span class="p">.</span><span class="nx">Buffer</span>
+  <span class="nv">constructor: </span><span class="nf">(obj) -&gt;</span>
+    <span class="k">if</span> <span class="nx">obj</span> <span class="k">instanceof</span> <span class="nb">Array</span>
+      <span class="vi">@array = </span><span class="nx">obj</span>
+    <span class="k">else</span> <span class="c1"># assume num</span>
+      <span class="vi">@array = </span><span class="k">new</span> <span class="nb">Array</span> <span class="nx">obj</span>
+
+  <span class="nv">readUInt8: </span><span class="nf">(i) -&gt;</span> <span class="nx">util</span><span class="p">.</span><span class="nx">int2uint</span> <span class="nx">@array</span><span class="p">[</span><span class="nx">i</span><span class="p">],</span> <span class="mi">1</span>
+
+<span class="k">class</span> <span class="nx">Stat</span>
+  <span class="vi">@fromPath: </span><span class="nf">(path) -&gt;</span>
+    <span class="k">if</span> <span class="nx">path</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span>
+      <span class="nv">stat = </span><span class="k">new</span> <span class="nx">Stat</span>
+      <span class="nv">stat.size = </span><span class="mi">1</span>
+      <span class="nv">stat.mtime = </span><span class="p">(</span><span class="k">new</span> <span class="nb">Date</span><span class="p">).</span><span class="nx">getTime</span><span class="p">()</span>
+      <span class="nv">stat.is_file = </span><span class="kc">false</span>
+      <span class="nv">stat.is_directory = </span><span class="kc">true</span>
+      <span class="nx">stat</span>
+    <span class="k">else</span>
+      <span class="nv">file = </span><span class="nx">win</span><span class="p">.</span><span class="nx">DoppioFile</span><span class="p">.</span><span class="nx">load</span> <span class="nx">path</span>
+      <span class="k">return</span> <span class="kc">null</span> <span class="nx">unless</span> <span class="nx">file</span><span class="o">?</span>
+      <span class="k">new</span> <span class="nx">Stat</span> <span class="nx">file</span>
+
+  <span class="nv">constructor: </span><span class="nf">(@file) -&gt;</span>
+    <span class="k">if</span> <span class="nx">@file</span><span class="o">?</span>
+      <span class="vi">@size = </span><span class="nx">@file</span><span class="p">.</span><span class="nx">data</span><span class="p">.</span><span class="nx">length</span>
+      <span class="vi">@mtime = </span><span class="nx">@file</span><span class="p">.</span><span class="nx">mtime</span>
+      <span class="vi">@is_file = </span><span class="kc">true</span>
+      <span class="vi">@is_directory = </span><span class="kc">false</span>
+
+  <span class="nv">isFile: </span><span class="o">-&gt;</span> <span class="nx">@is_file</span>
+
+  <span class="nv">isDirectory: </span><span class="o">-&gt;</span> <span class="nx">@is_directory</span>
+
+<span class="nv">root.fs =</span>
+  <span class="nv">statSync: </span><span class="nf">(fname) -&gt;</span>
+    <span class="nv">fname = </span><span class="nx">root</span><span class="p">.</span><span class="nx">path</span><span class="p">.</span><span class="nx">resolve</span> <span class="nx">fname</span>
+    <span class="nx">unless</span> <span class="nx">fname</span> <span class="o">is</span> <span class="s1">&#39;/System/Library/Frameworks/JavaVM.framework/Classes/classes.jar&#39;</span>
+      <span class="k">return</span> <span class="nx">Stat</span><span class="p">.</span><span class="nx">fromPath</span> <span class="nx">fname</span>
+    <span class="nv">stat = </span><span class="k">new</span> <span class="nx">Stat</span>
+    <span class="nv">stat.size = </span><span class="mi">21090</span>
+    <span class="nv">stat.mtime = </span><span class="p">(</span><span class="k">new</span> <span class="nb">Date</span><span class="p">).</span><span class="nx">getTime</span><span class="p">()</span> <span class="o">-</span> <span class="mi">10000</span>
+    <span class="nv">stat.is_file = </span><span class="kc">true</span>
+    <span class="nv">stat.is_directory = </span><span class="kc">false</span>
+    <span class="nx">stat</span>
+
+  <span class="nv">fstatSync: </span><span class="nf">(fp) -&gt;</span> <span class="k">new</span> <span class="nx">Stat</span><span class="p">(</span><span class="nx">fp</span><span class="p">)</span>
+
+  <span class="nv">openSync: </span><span class="nf">(fname, mode) -&gt;</span>
+    <span class="nv">fname = </span><span class="nx">root</span><span class="p">.</span><span class="nx">path</span><span class="p">.</span><span class="nx">resolve</span> <span class="nx">fname</span>
+    <span class="k">if</span> <span class="s1">&#39;r&#39;</span> <span class="k">in</span> <span class="nx">mode</span>
+      <span class="nv">f = </span><span class="nx">win</span><span class="p">.</span><span class="nx">DoppioFile</span><span class="p">.</span><span class="nx">load</span> <span class="nx">fname</span>
+      <span class="nx">unless</span> <span class="nx">f</span><span class="o">?</span>
+        <span class="nv">err = </span><span class="k">new</span> <span class="nb">Error</span>
+        <span class="nv">err.code = </span><span class="s1">&#39;ENOENT&#39;</span>
+        <span class="k">throw</span> <span class="nx">err</span>
+      <span class="nx">f</span>
+    <span class="k">else</span> <span class="c1"># XXX assuming write</span>
+      <span class="k">new</span> <span class="nx">DoppioFile</span> <span class="nx">fname</span>
+
+  <span class="nv">readSync: </span><span class="nf">(file, buf, offset, length, pos) -&gt;</span>
+    <span class="nv">data = </span><span class="nx">file</span><span class="p">.</span><span class="nx">read</span><span class="p">(</span><span class="nx">length</span><span class="p">,</span> <span class="nx">pos</span><span class="p">)</span>
+    <span class="k">for</span> <span class="nx">d</span><span class="p">,</span> <span class="nx">i</span> <span class="k">in</span> <span class="nx">data</span>
+      <span class="nx">buf</span><span class="p">.</span><span class="nx">array</span><span class="p">[</span><span class="nx">offset</span><span class="o">+</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="nx">data</span><span class="p">.</span><span class="nx">charCodeAt</span><span class="p">(</span><span class="nx">i</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0xFF</span>
+    <span class="nx">data</span><span class="p">.</span><span class="nx">length</span>
+
+  <span class="nv">writeSync: </span><span class="nf">(file, buffer, offset, len) -&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-4">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-4">&#182;</a>               </div>               <p>TODO flush occasionally?</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nx">file</span><span class="p">.</span><span class="nx">write</span><span class="p">((</span><span class="nb">String</span><span class="p">.</span><span class="nx">fromCharCode</span><span class="p">(</span><span class="nx">buffer</span><span class="p">.</span><span class="nx">readUInt8</span> <span class="nx">i</span><span class="p">)</span> <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="nx">offset</span><span class="p">...</span><span class="nx">offset</span><span class="o">+</span><span class="nx">len</span><span class="p">]).</span><span class="nx">join</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+  <span class="nv">closeSync: </span><span class="nf">(file) -&gt;</span> <span class="nx">file</span><span class="p">.</span><span class="nx">save</span><span class="p">()</span>
+
+  <span class="nv">readdirSync: </span><span class="nf">(path) -&gt;</span>
+    <span class="k">for</span> <span class="nx">key</span><span class="p">,</span> <span class="nx">file</span> <span class="k">of</span> <span class="nx">localStorage</span> <span class="k">when</span> <span class="nx">key</span><span class="p">[..</span><span class="mi">5</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;file::&#39;</span>
+      <span class="p">(</span><span class="nx">DoppioFile</span><span class="p">.</span><span class="nx">load</span> <span class="nx">key</span><span class="p">[</span><span class="mi">6</span><span class="p">..]).</span><span class="nx">name</span>
+
+<span class="nv">root.path =</span>
+  <span class="nv">normalize: </span><span class="nf">(path) -&gt;</span> <span class="nx">path</span>
+
+  <span class="nv">resolve: </span><span class="nf">(path) -&gt;</span>
+    <span class="nv">absolute = </span><span class="nx">path</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;/&#39;</span>
+    <span class="nv">components = </span><span class="nx">path</span><span class="p">.</span><span class="nx">split</span> <span class="s1">&#39;/&#39;</span>
+    <span class="k">for</span> <span class="nx">c</span><span class="p">,</span> <span class="nx">idx</span> <span class="k">in</span> <span class="nx">components</span>
+      <span class="nx">components</span><span class="p">[</span><span class="nx">idx</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span> <span class="k">if</span> <span class="nx">c</span> <span class="o">==</span> <span class="s1">&#39;.&#39;</span></pre></div>             </td>           </tr>                               <tr id="section-5">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-5">&#182;</a>               </div>               <p>remove repeated //s</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nv">path = </span><span class="p">(</span><span class="nx">c</span> <span class="k">for</span> <span class="nx">c</span><span class="p">,</span> <span class="nx">idx</span> <span class="k">in</span> <span class="nx">components</span> <span class="k">when</span> <span class="nx">c</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">).</span><span class="nx">join</span> <span class="s1">&#39;/&#39;</span>
+    <span class="p">(</span><span class="k">if</span> <span class="nx">absolute</span> <span class="k">then</span> <span class="s1">&#39;/&#39;</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="nx">path</span>
+
+</pre></div>             </td>           </tr>                </tbody>     </table>   </div> </body> </html> 
