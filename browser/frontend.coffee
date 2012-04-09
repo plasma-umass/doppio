@@ -232,6 +232,7 @@ commands =
       # initialize the editor. technically we only need to do this once, but more
       # than once is fine too
       editor = ace.edit('source')
+      editor.setTheme 'ace/theme/twilight'
       ext = args[0]?.split('.')[1]
       if ext is 'java' or not args[0]?
         JavaMode = require("ace/mode/java").Mode

@@ -30,7 +30,8 @@ BROWSER_SRCS = third_party/underscore-min.js \
 # separately. also, this allows us to put them at the end of the document to
 # reduce load time.
 ACE_SRCS = third_party/ace/build/src/ace.js \
-	third_party/ace/build/src/mode-java.js
+	third_party/ace/build/src/mode-java.js \
+	third_party/ace/build/src/theme-twilight.js
 
 test: $(RESULTS)
 	cat $(RESULTS)
@@ -79,7 +80,10 @@ build/compressed.js: $(BROWSER_SRCS)
 	done | uglifyjs --define RELEASE --no-mangle --unsafe > build/compressed.js
 
 build/ace.js: $(ACE_SRCS)
-	cat $(ACE_SRCS) > build/ace.js
+	for src in $(ACE_SRCS); do \
+		cat $${src}; \
+		echo ";"; \
+	done > build/ace.js
 
 browser/mini-rt.tar: tools/preload
 	tools/make-rt.sh
