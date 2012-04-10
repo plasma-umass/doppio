@@ -21,6 +21,8 @@ The code has been tested on the latest versions of Chrome, Firefox, and Safari,
 but should run on any browser that supports [LocalStorage][localstorage] and
 [Typed Arrays][typed].
 
+Check out the [demo!](.)
+
 -------------
 
 # Notes on Architecture
