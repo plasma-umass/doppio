@@ -12,13 +12,6 @@ fs = node?.fs ? require 'fs'
 # things assigned to root will be available outside this module
 root = exports ? this.natives = {}
 
-getBundle = (rs, base_name) ->
-  # load in the default ResourceBundle (ignores locale)
-  classname = util.int_classname rs.jvm2js_str(base_name)
-  rs.push (b_ref = rs.init_object classname)
-  rs.method_lookup({class: classname, sig: '<init>()V'}).run(rs)
-  b_ref
-
 # convenience function. idea taken from coffeescript's grammar
 o = (fn_name, fn) -> fn_name: fn_name, fn: fn
 
