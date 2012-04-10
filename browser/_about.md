@@ -76,12 +76,12 @@ asynchronous function.
 
 We wished to collect the disassembler's logic in one place instead of spreading
 it among all the opcode classes. In static languages, the Visitor pattern is
-usually used to achieve this, but we can't employ it here since Coffeescript it
-lacks the necessary static typing the method overloading.  Instead, we
+usually used to achieve this, but we can't employ it here since Coffeescript
+lacks the necessary static typing and method overloading features. Instead, we
 collected our opcode handlers in one hash table and then [traversed the
-prototype chain ourselves][lookup].  However, since this is significantly
-slower than a native traversal, the core VM code remains as a method on the
-opcode itself.
+prototype chain ourselves][lookup]. However, since this is significantly slower
+than a native traversal, the core VM code remains as a method on the opcode
+itself.
 
 -------------
 
