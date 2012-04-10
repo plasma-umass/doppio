@@ -25,7 +25,7 @@ but should run on any browser that supports [LocalStorage][localstorage] and
 
 # Notes on Architecture
 
-## Library Support
+### Library Support
 
 Doppio was built with the goal of supporting as much of the Java Class Library
 as possible. Since a complete reimplementation would be prohibitive, we instead
@@ -46,7 +46,7 @@ entire JCL in it. (It would also make for a slow download.) Instead we pre-load
 a small, commonly-used subset of the JCL, and obtain the remainder as necessary
 via AJAX requests to the server.
 
-## Primitives
+### Primitives
 
 Emulating primitives was slightly tricky, since Javascript only exposes the
 64-bit double as its sole numeric primitive. Ints and floats are easy enough to
@@ -54,7 +54,7 @@ emulate with a double, but large 64-bit longs can't fit into the 52 bits of
 precision provided by a double. Fortunately, this problem has already been
 tackled in the [Google Closure library][long].
 
-## Asynchronity
+### Asynchronity
 
 While we do not emulate threads, we still wanted to handle blocking operations,
 particularly for standard input. Since the browser DOM is largely asynchronous,
@@ -70,7 +70,7 @@ spin. To allow the user to see output as it gets printed (instead of only at
 program termination), printing to standard out was constructed as an
 asynchronous function.
 
-## Code Organization
+### Code Organization
 
 We wished to collect the disassembler's logic in one place instead of spreading
 it among all the opcode classes. In static languages, the Visitor pattern is
@@ -93,6 +93,20 @@ the conversion of stack operations to direct assignments, as well as
 [Emscripten's 'Relooper' algorithm][emscripten]. Contributions are definitely
 welcome!
 
+-------------
+
+# Credits
+
+Doppio uses the [jQuery][jq] and [Underscore.js][under] libraries. Editing is
+provided by the [Ace editor][ace], and the console is a fork based off [Chris
+Done's jquery-console][jqconsole]. Layout is based off Twitter's
+[Bootstrap][bootstrap].  The font for 'Doppio' is [Bitter][bitter] from Google
+Web Fonts, and the coffee icon is by Maximilian Becker, from [The Noun
+Project][tnp] collection.
+
+Doppio itself is the work of [CJ Carey][cj], [Jez Ng][jez], and [Jonny
+Leahey][jleahey], and is MIT Licensed.
+
 [sys-sem]: http://plasma.cs.umass.edu/emery/grad-systems
 [diff]: https://github.com/int3/doppio/blob/master/test/special/Diff.java
 [lzw]: https://github.com/int3/doppio/blob/master/test/special/Lzw.java
@@ -101,3 +115,13 @@ welcome!
 [long]: http://closure-library.googlecode.com/svn/docs/class_goog_math_Long.html
 [lookup]: https://github.com/int3/doppio/blob/a59ac5dd04157a24ad1ac57f380ad08a47d40b8c/src/util.coffee#L117
 [emscripten]: http://dl.acm.org/citation.cfm?id=2048224
+[jq]: http://jquery.com/
+[under]: http://documentcloud.github.com/underscore/
+[ace]: https://github.com/ajaxorg/ace
+[jqconsole]: https://github.com/chrisdone/jquery-console
+[bootstrap]: http://twitter.github.com/bootstrap/
+[bitter]: http://www.google.com/webfonts/specimen/Bitter
+[tnp]: http://thenounproject.com/
+[cj]: https://github.com/perimosocordiae
+[jez]: http://discontinuously.com/
+[jleahey]: https://github.com/jleahey
