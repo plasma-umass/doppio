@@ -2,13 +2,15 @@
 
 require 'tempfile'
 
+$check_mark = [0x2714].pack('U*')  # hack to display it correctly in ruby1.8
+
 def show_errors(name,type,errors)
   if errors.match /\S/
     puts "\nDifferences found in #{type} test for #{name}: -reference, +ours"
     puts errors
     return true
   end
-  print "\u2713" # check mark
+  print $check_mark
 end
 
 if ARGV[0].nil?
