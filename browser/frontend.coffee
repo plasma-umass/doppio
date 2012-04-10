@@ -53,24 +53,6 @@ $.ajax "browser/mini-rt.tar", {
     console.error errorThrown
 }
 
-demo_files = ['special/DiffPrint.class', 'special/Chatterbot.java',
-  'special/Chatterbot.class', 'special/Lzw.java', 'special/Lzw.class',
-  'special/RegexTestHarness.java', 'special/RegexTestHarness.class',
-  'special/FileRead.java', 'special/Fib.java', 'special/foo', 'special/bar']
-for demo in demo_files
-  $.ajax "test/#{demo}", {
-    type: 'GET'
-    dataType: 'text'
-    async: false
-    beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
-    success: (data) ->
-      fname = _.last(demo.split '/')
-      (new DoppioFile fname).write(data).save()
-    error: ->
-      fname = _.last(demo.split '/')
-      controller.message "Could not load '#{fname}'.\n", 'error', true
-  }
-
 if RELEASE?
   $.ajax "third_party/classes/sun/tools/javac/Main.class", {
     type: 'GET'
@@ -186,6 +168,24 @@ $(document).ready ->
     animateScroll: true
     promptHistory: true
     welcomeMessage: "Enter 'help' for a list of commands. Ctrl-D is EOF."
+
+  demo_files = ['special/DiffPrint.class', 'special/Chatterbot.java',
+  'special/Chatterbot.class', 'special/Lzw.java', 'special/Lzw.class',
+  'special/RegexTestHarness.java', 'special/RegexTestHarness.class',
+  'special/FileRead.java', 'special/Fib.java', 'special/foo', 'special/bar']
+  for demo in demo_files
+    $.ajax "test/#{demo}", {
+      type: 'GET'
+      dataType: 'text'
+      async: false
+      beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
+      success: (data) ->
+        fname = _.last(demo.split '/')
+        (new DoppioFile fname).write(data).save()
+      error: ->
+        fname = _.last(demo.split '/')
+        controller.message "Could not load '#{fname}'.\n", 'error', true
+    }
 
   user_input = (n_bytes, resume) ->
     oldPrompt = controller.promptLabel
