@@ -5,8 +5,8 @@ CLASSES = $(SOURCES:.java=.class)
 RESULTS = $(SOURCES:.java=.result)
 DEMO_SRCS = $(wildcard test/special/*.java)
 DEMO_CLASSES = $(DEMO_SRCS:.java=.class)
-BROWSER_HTML = $(wildcard browser/*.html)
-BUILD_HTML = $(addprefix build/, $(notdir $(filter-out _%.c, $(BROWSER_HTML))))
+BROWSER_HTML = $(wildcard browser/[^_]*.html)
+BUILD_HTML = $(addprefix build/, $(notdir $(BROWSER_HTML)))
 # the order here is important: must match the order of includes
 #   in the browser frontend html.
 BROWSER_SRCS = third_party/underscore-min.js \
@@ -74,6 +74,11 @@ docs:
 test/special/%.class: test/special/%.java
 	javac build/test/special/*.java
 
+browser/_about.html: browser/_about.md
+	tools/markdown.rb $? > $@
+
+build/about.html: browser/_about.html
+
 build/%.html: $(BROWSER_HTML)
 	cpp -P -DRELEASE browser/$*.html build/$*.html
 
@@ -97,3 +102,4 @@ browser/mini-rt.tar: tools/preload
 	tools/make-rt.sh
 
 .SECONDARY: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES)
+.INTERMEDIATE: browser/_about.html
