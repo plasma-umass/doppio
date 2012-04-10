@@ -574,7 +574,10 @@ native_methods =
   sun:
     misc:
       VM: [
-        o 'initialize()V', (rs, _this) ->
+        o 'initialize()V', (rs) ->
+            vm_cls = rs.class_lookup c2t 'sun/misc/VM'
+            # this only applies to Java 7
+            return unless vm_cls.major_version >= 51
             # hack! make savedProps refer to the system props
             rs.push rs.static_get {class:'java/lang/System',name:'props'}
             rs.static_put {class:'sun/misc/VM',name:'savedProps'}
