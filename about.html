@@ -3,11 +3,11 @@
 <html>
 <head>
   <title>DoppioVM: A JVM in Coffeescript</title>
+  <link href='http://fonts.googleapis.com/css?family=Bitter' rel='stylesheet' type='text/css'>
+  <link rel='stylesheet' type="text/css" href="browser/style.css">
   <style type="text/css">
     #main {margin: 0 auto;  width:800px;}
   </style>
-
-  <link rel='stylesheet' type="text/css" href="bootstrap.min.css">
   <script type="text/javascript">
     var _gaq = _gaq || [];
     _gaq.push(['_setAccount', 'UA-19272049-5']);
@@ -18,17 +18,17 @@
       var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
     })();
 </script>
-
-
-
 </head>
 <body style='padding-top:60px'>
+<a href="https://github.com/int3/doppio">
+  <img style="position: fixed; top: 0; right: 0; border: 0;z-index:9999"
+  src="browser/ribbon.png" alt="Fork me on GitHub">
+</a>
 
-  <a href="https://github.com/int3/doppio"><img style="position: absolute; top: 0; right: 0; border: 0;z-index:9999" src="https://a248.e.akamai.net/assets.github.com/img/abad93f42020b733148435e2cd92ce15c542d320/687474703a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f677265656e5f3030373230302e706e67" alt="Fork me on GitHub"></a>
 <div class="navbar navbar-fixed-top">
   <div class="navbar-inner">
     <div class="container">
-      <a class='brand' href='about.html'>Doppio</a>
+      <a class='brand bitter' href='about.html'>Doppio</a>
       <ul class='nav'>
         <li><a href='about.html'>About</a></li>
         <li><a href='.'>Demo</a></li>
@@ -39,31 +39,126 @@
 </div>
 <div id='main'>
   <div class='hero-unit'>
-    <h1>Doppio</h1>
-    <p>Java on Coffeescript.</p>
+    <object data='browser/coffee.svg' type='image/svg+xml'
+      style='float:right;display:inline-block;margin-top:-50px'
+      viewBox='0 0 200px 190px' preserveAspectRatio='xMinYMin meet'
+      width='200px' height='190px'></object>
+    <h1 style='display:inline-block;margin-bottom:10px' class='bitter'>Doppio</h1>
+    <p class='bitter'>Java on Coffeescript.</p>
   </div>
-  <h1>About</h1>
-  <p>
-  Doppio is Italian for 'double', and is another name for a double espresso.
-  Doppio started out as the mid-term project for a <a href="#">Graduate Systems
-    Seminar.</a> It has since taken on a life of its own, and is complete
-  enough to run an old version of the Java compiler. Here's what is supported
-  thus far:
-  <ul>
-    <li>All 200 opcodes</li>
-    <li>Exact emulation of Java's primitive types, include the 64-bit long</li>
-    <li>Generics</li>
-    <li>Most of the Reflection API</li>
-    <li>File and Standard I/O</li>
-  </ul>
-  </p>
-  <h1>Architecture</h1>
-  <p>
-  Doppio is designed to run both on the console and the browser. System calls
-  in the console are handled by Node.JS. In the browser, we emulate a simple
-  LocalStorage-backed filesystem with an API very similar to Node's, so the
-  same code can operate in both environments.
-  </p>
+<h1>About</h1>
+
+<p>Doppio is a project to get Java running in the browser without any plug-ins.
+Right now it comprises a fairly complete VM and an implementation of the
+<code>javap</code> bytecode disassembler.  (Doppio is also the Italian word for 'double',
+and is another name for a double espresso.)</p>
+
+<p>Doppio started out as the mid-term project for a <a href="http://plasma.cs.umass.edu/emery/grad-systems">Graduate Systems
+Seminar.</a> It has since taken on a life of its own, and is complete
+enough to run implementations of <a href="https://github.com/int3/doppio/blob/master/test/special/Diff.java">GNU Diff</a>, <a href="https://github.com/int3/doppio/blob/master/test/special/Lzw.java">LZW compression</a>, and
+the Java 4 compiler. Here's what's supported thus far:</p>
+
+<ul>
+<li>All 200 opcodes</li>
+<li>Exact emulation of Java's primitive types, include the 64-bit long</li>
+<li>Generics</li>
+<li>Most of the Reflection API</li>
+<li>File and Standard I/O</li>
+<li>Major JDK libraries such as String, Pattern, and HashMap.</li>
+</ul>
+
+
+<p>The code has been tested on the latest versions of Chrome, Firefox, and Safari,
+but should run on any browser that supports <a href="http://www.w3.org/TR/webstorage/#the-localstorage-attribute">LocalStorage</a> and
+<a href="http://www.khronos.org/registry/typedarray/specs/latest/">Typed Arrays</a>.</p>
+
+<p>Check out the <a href=".">demo!</a></p>
+
+<hr />
+
+<h1>Notes on Architecture</h1>
+
+<h3>Library Support</h3>
+
+<p>Doppio was built with the goal of supporting as much of the Java Class Library
+as possible. Since a complete reimplementation would be prohibitive, we instead
+trap the native method calls that most of the JCL relies on, emulating them in
+Coffeescript. To make this emulation easier, we implemeted a quasi-DSL that
+automatically converted our parameters and return values between Java and
+Coffeescript (Javascript) types. Coffeescript's terseness definitely benefited
+us here, making the result more readable than it would have been in plain
+Javascript.</p>
+
+<p>Doppio is designed to run both on the console and the browser. In the console
+implementation, system calls are handled by Node.JS. In the browser, we emulate
+a simple LocalStorage-backed filesystem with an API very similar to Node's, so
+the same code can operate in both environments.</p>
+
+<p>However, since LocalStorage has a storage limit of 5MB, we cannot store the
+entire JCL in it. (It would also make for a slow download.) Instead we pre-load
+a small, commonly-used subset of the JCL, and obtain the remainder as necessary
+via AJAX requests to the server.</p>
+
+<h3>Primitives</h3>
+
+<p>Emulating primitives was slightly tricky, since Javascript only exposes the
+64-bit double as its sole numeric primitive. Ints and floats are easy enough to
+emulate with a double, but large 64-bit longs can't fit into the 52 bits of
+precision provided by a double. Fortunately, this problem has already been
+tackled in the <a href="http://closure-library.googlecode.com/svn/docs/class_goog_math_Long.html">Google Closure library</a>.</p>
+
+<h3>Asynchronity</h3>
+
+<p>While we do not emulate threads, we still wanted to handle blocking operations,
+particularly for standard input. Since the browser DOM is largely asynchronous,
+blocking operations have to be emulated via async callbacks. We solved this by
+implementing a 'yield' construct: upon encountering a blocking function, we
+throw a <code>YieldException</code> to pause the VM. This exception would also contain the
+asynchronous function that we are waiting on, which eventually calls the VM and
+resumes the program.</p>
+
+<p>Conversely, the browser does not expect most functions to take very long to
+run, and so repainting does not occur until the event loop gets a chance to
+spin. To allow the user to see output as it gets printed (instead of only at
+program termination), printing to standard out was constructed as an
+asynchronous function.</p>
+
+<h3>Code Organization</h3>
+
+<p>We wished to collect the disassembler's logic in one place instead of spreading
+it among all the opcode classes. In static languages, the Visitor pattern is
+usually used to achieve this, but we can't employ it here since Coffeescript it
+lacks the necessary static typing the method overloading.  Instead, we
+collected our opcode handlers in one hash table and then <a href="https://github.com/int3/doppio/blob/a59ac5dd04157a24ad1ac57f380ad08a47d40b8c/src/util.coffee#L117">traversed the
+prototype chain ourselves</a>.  However, since this is significantly
+slower than a native traversal, the core VM code remains as a method on the
+opcode itself.</p>
+
+<hr />
+
+<h1>Roadmap</h1>
+
+<p>Improving speed is our next goal. Doppio currently interprets the bytecode
+naively, fetching each one from a dict and executing them in turn. We aim to
+gradually replace the interpreter by a compiler, which would remove the
+overhead of decoding. It would also allow us to implement optimizations such as
+the conversion of stack operations to direct assignments, as well as
+<a href="http://dl.acm.org/citation.cfm?id=2048224">Emscripten's 'Relooper' algorithm</a>. Contributions are definitely
+welcome!</p>
+
+<hr />
+
+<h1>Credits</h1>
+
+<p>Doppio uses the <a href="http://jquery.com/">jQuery</a> and <a href="http://documentcloud.github.com/underscore/">Underscore.js</a> libraries. Editing is
+provided by the <a href="https://github.com/ajaxorg/ace">Ace editor</a>, and the console is a fork based off <a href="https://github.com/chrisdone/jquery-console">Chris
+Done's jquery-console</a>. Layout is based off Twitter's
+<a href="http://twitter.github.com/bootstrap/">Bootstrap</a>.  The font for 'Doppio' is <a href="http://www.google.com/webfonts/specimen/Bitter">Bitter</a> from Google
+Web Fonts, and the coffee icon is by Maximilian Becker, from <a href="http://thenounproject.com/">The Noun
+Project</a> collection.</p>
+
+<p>Doppio itself is the work of <a href="https://github.com/perimosocordiae">CJ Carey</a>, <a href="http://discontinuously.com/">Jez Ng</a>, and <a href="https://github.com/jleahey">Jonny
+Leahey</a>, and is MIT Licensed.</p>
 </div>
 </body>
 </html>

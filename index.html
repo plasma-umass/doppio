@@ -3,6 +3,8 @@
 <html>
 <head>
   <title>DoppioVM: A JVM in Coffeescript</title>
+  <link href='http://fonts.googleapis.com/css?family=Bitter' rel='stylesheet' type='text/css'>
+  <link rel='stylesheet' type="text/css" href="browser/style.css">
   <style type="text/css">
     #main {margin: 0 auto;  width:900px;}
     pre, div#console {
@@ -29,7 +31,7 @@
     div#console > pre { margin: 0; padding: 0; background: #222; color: #ccc; }
     div#source { width:100%; height:70%;
       position:relative;border: 1px solid #ccc; float: left;}
-    div#console { height: 70%; padding:0; }
+    div#console { height: 75%; padding:0; }
     @-webkit-keyframes blinker {
       0% { opacity: 1.0; }
       50% { opacity: 1.0; }
@@ -62,7 +64,6 @@
     label { margin-right: 5px; }
   </style>
 
-  <link rel='stylesheet' type="text/css" href="bootstrap.min.css">
   <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
   <script type="text/javascript" src="compressed.js"></script>
   <script type="text/javascript">
@@ -77,7 +78,6 @@
 </script>
 </head>
 <body style='padding-top:40px'>
-  <a href="https://github.com/int3/doppio"><img style="position: absolute; top: 0; right: 0; border: 0;z-index:9999" src="https://a248.e.akamai.net/assets.github.com/img/abad93f42020b733148435e2cd92ce15c542d320/687474703a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f677265656e5f3030373230302e706e67" alt="Fork me on GitHub"></a>
 <div id='progress-container'>
   <div id='progress-box'>
     <div id='progress' class='progress progress-striped active' style='background:#ccc'>
@@ -88,10 +88,15 @@
 </div>
 <div id='overlay'>
 </div>
+<a href="https://github.com/int3/doppio">
+  <img style="position: fixed; top: 0; right: 0; border: 0;z-index:9999"
+  src="browser/ribbon.png" alt="Fork me on GitHub">
+</a>
+
 <div class="navbar navbar-fixed-top">
   <div class="navbar-inner">
     <div class="container">
-      <a class='brand' href='about.html'>Doppio</a>
+      <a class='brand bitter' href='about.html'>Doppio</a>
       <ul class='nav'>
         <li><a href='about.html'>About</a></li>
         <li><a href='.'>Demo</a></li>
@@ -102,7 +107,7 @@
 </div>
 <div id='main'>
   <header class='page-header'>
-    <h1 id='title' style='float:left'>DoppioVM</h1>
+    <h1 id='title' style='float:left' class='bitter'>DoppioVM</h1>
     <form class='form-inline' style='margin: 8px 0 3px 0;float:right'>
       <label for='file' class='control-label'>Load file:</label>
       <input type="file" id="file"/>
@@ -122,17 +127,6 @@
   </div>
 
   <div id='console'></div>
-  <div style='clear:both'></div>
-  <p>
-    By
-      <a href="https://github.com/perimosocordiae">CJ Carey</a>,
-      <a href="http://www.discontinuously.com/">Jez Ng</a>, and
-      <a href="https://github.com/jleahey">Jonny Leahey</a>.
-
-    Console is based off <a
-      href="https://github.com/chrisdone/jquery-console">Chris Done's jquery-console</a>,
-    and editing is provided by <a href="https://github.com/ajaxorg/ace">Ace</a>.
-  </p>
 </div>
 <script type="text/javascript" src="ace.js"></script>
 </body>
