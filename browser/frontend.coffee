@@ -22,6 +22,7 @@ $.ajax "browser/mini-rt.tar", {
       console.log "Untarring took a total of #{end_untar-start_untar}ms."
       $('#overlay').fadeOut 'slow'
       $('#progress-container').fadeOut 'slow'
+      $('#console').click()
     update_bar = _.throttle ((percent, path) ->
       bar ?= $('#progress > .bar')
       preloading_file ?= $('#preloading-file')
@@ -163,7 +164,7 @@ $(document).ready ->
       catch e
         controller.message e.toString(), 'error'
     tabComplete: tabComplete
-    autofocus: true
+    autofocus: false
     animateScroll: true
     promptHistory: true
     welcomeMessage: "Enter 'help' for a list of commands. Ctrl-D is EOF."
