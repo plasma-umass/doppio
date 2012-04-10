@@ -41,29 +41,31 @@ show_stacktrace = (rs,e) ->
     rs.print "\tat #{entry.cls.toExternalString()}.#{entry.method}(#{entry.file}:#{entry.line})\n"
 
 # main function that gets called from the frontend
-root.run_class = (rs, class_name, cmdline_args, cb) ->
+root.run_class = (rs, class_name, cmdline_args, done_cb) ->
   main_spec = class: class_name, sig: 'main([Ljava/lang/String;)V'
-  rs.initialize(class_name,cmdline_args)
-  run = ->
+  yielded = false
+  run = (fn) ->
     try
-      rs.method_lookup(main_spec).run(rs)
-      cb?()
+      fn()
+      true
     catch e
       if e instanceof util.JavaException
         console.error "\nUncaught Java Exception"
         show_state(rs)
         show_stacktrace(rs,e)
-        cb?()
       else if e instanceof util.HaltException
         console.error "\nExited with code #{e.exit_code}" unless e.exit_code is 0
-        cb?()
       else if e instanceof util.YieldException
+        yielded = true
         e.condition ->
           rs.resuming_stack = 0  # <-- index into the meta_stack of the frame we're resuming
           run()
       else
         console.error "\nInternal JVM Error!"
         show_state(rs)
-        cb?()
-        throw e  # so we get the JS traceback? TODO: figure out why this doesn't print the trace
-  run()
+        console.log e.stack
+      false
+  # we're assuming that initialize() never yields
+  (run -> rs.initialize(class_name,cmdline_args)) and
+  (run -> rs.method_lookup(main_spec).run(rs))
+  done_cb?() unless yielded
