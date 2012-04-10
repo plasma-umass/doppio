@@ -1,11 +1,11 @@
 <html>
 <head>
   <title>DoppioVM: A JVM in Coffeescript</title>
+  <link href='http://fonts.googleapis.com/css?family=Bitter' rel='stylesheet' type='text/css'>
+  <link rel='stylesheet' type="text/css" href="browser/style.css">
   <style type="text/css">
     #main {margin: 0 auto;  width:800px;}
   </style>
-#ifdef RELEASE
-  <link rel='stylesheet' type="text/css" href="bootstrap.min.css">
   <script type="text/javascript">
     var _gaq = _gaq || [];
     _gaq.push(['_setAccount', 'UA-19272049-5']);
@@ -16,9 +16,6 @@
       var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
     })();
 </script>
-#else
-  <link rel='stylesheet' type="text/css" href="third_party/bootstrap/css/bootstrap.min.css">
-#endif
 </head>
 <body style='padding-top:60px'>
 #include "_navbar.html"
@@ -28,8 +25,8 @@
       style='float:right;display:inline-block;margin-top:-50px'
       viewBox='0 0 200px 190px' preserveAspectRatio='xMinYMin meet'
       width='200px' height='190px'></object>
-    <h1 style='display:inline-block'>Doppio</h1>
-    <p>Java on Coffeescript.</p>
+    <h1 style='display:inline-block;margin-bottom:10px' class='bitter'>Doppio</h1>
+    <p class='bitter'>Java on Coffeescript.</p>
   </div>
 #include "_about.html"
 </div>

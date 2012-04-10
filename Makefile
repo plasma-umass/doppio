@@ -57,10 +57,10 @@ clean:
 	@rm -f *.class $(DISASMS) $(RUNOUTS) $(RESULTS)
 	@rm -rf build/* browser/mini-rt.jar $(DEMO_CLASSES)
 
-release: $(BUILD_HTML) build/compressed.js browser/mini-rt.tar build/ace.js $(DEMO_CLASSES)
+release: $(BUILD_HTML) build/compressed.js browser/mini-rt.tar build/ace.js \
+	build/browser/style.css $(DEMO_CLASSES)
 	git submodule update --init --recursive
 	mkdir -p build/browser
-	rsync third_party/bootstrap/css/bootstrap.min.css build/bootstrap.min.css
 	rsync -a test/special build/test/
 	rsync browser/mini-rt.tar build/browser/mini-rt.tar
 	rsync browser/*.svg build/browser/
@@ -99,6 +99,9 @@ build/ace.js: $(ACE_SRCS)
 		cat $${src}; \
 		echo ";"; \
 	done > build/ace.js
+
+build/browser/style.css: third_party/bootstrap/css/bootstrap.min.css browser/style.css
+	cat $? > $@
 
 browser/mini-rt.tar: tools/preload
 	tools/make-rt.sh

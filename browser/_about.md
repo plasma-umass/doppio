@@ -21,6 +21,8 @@ The code has been tested on the latest versions of Chrome, Firefox, and Safari,
 but should run on any browser that supports [LocalStorage][localstorage] and
 [Typed Arrays][typed].
 
+-------------
+
 # Notes on Architecture
 
 ## Library Support
@@ -78,6 +80,8 @@ collected our opcode handlers in one hash table and then [traversed the
 prototype chain ourselves][lookup].  However, since this is significantly
 slower than a native traversal, the core VM code remains as a method on the
 opcode itself.
+
+-------------
 
 # Roadmap
 
