@@ -36,7 +36,7 @@ Usage
 To run Doppio on localhost, run `. startup.sh`, or start the browser frontend manually:
 
     python -m SimpleHTTPServer 8000 &
-    cpp -P browser/doppio.html index.html
+    cpp -P browser/index.html index.html
     open http://localhost:8000/
 
 The code can also be run from the console. For example:

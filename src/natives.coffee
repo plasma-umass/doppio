@@ -12,13 +12,6 @@ fs = node?.fs ? require 'fs'
 # things assigned to root will be available outside this module
 root = exports ? this.natives = {}
 
-getBundle = (rs, base_name) ->
-  # load in the default ResourceBundle (ignores locale)
-  classname = util.int_classname rs.jvm2js_str(base_name)
-  rs.push (b_ref = rs.init_object classname)
-  rs.method_lookup({class: classname, sig: '<init>()V'}).run(rs)
-  b_ref
-
 # convenience function. idea taken from coffeescript's grammar
 o = (fn_name, fn) -> fn_name: fn_name, fn: fn
 
@@ -37,6 +30,24 @@ trapped_methods =
         o 'setup()V', (rs) -> # NOP, because we don't support threads
       ]
       Throwable: [
+        o 'fillInStackTrace()L!/!/!;', (rs, _this) ->
+            # we aren't creating the actual Java objects -- we're using our own
+            # representation.
+            _this.fields.$stack = stack = []
+            # we don't want to include the stack frames that were created by
+            # the construction of this exception
+            for sf in rs.meta_stack.slice(1) when sf.locals[0] isnt _this.ref
+              cls = sf.method.class_type
+              attrs = rs.class_lookup(cls).attrs
+              source_file =
+                _.find(attrs, (attr) -> attr.constructor.name == 'SourceFile')?.name or 'unknown'
+              line_nums = sf.method.get_code()?.attrs[0]
+              if line_nums?
+                ln = _.last(row.line_number for i,row of line_nums when row.start_pc <= sf.pc)
+              else
+                ln = 'unknown'
+              stack.push {'op':sf.pc, 'line':ln, 'file':source_file, 'method':sf.method.name, 'cls':cls}
+            _this.ref
         o 'printStackTrace(L!/io/PrintWriter;)V', (rs) -> # NOP, since we didn't fill in anything
       ]
       StringCoding: [
@@ -101,10 +112,31 @@ system_properties = {
 }
 
 get_field_from_offset = (rs, cls, offset) ->
+  classname = cls.this_class.toClassString()
   until cls.fields[offset]?
-    throw "field #{offset} doesn't exist in class #{cls.this_class}" unless cls.super_class?
+    unless cls.super_class?
+      util.java_throw rs, 'java/lang/NullPointerException', "field #{offset} doesn't exist in class #{classname}"
     cls = rs.class_lookup(cls.super_class)
   cls.fields[offset]
+
+get_value_from_offset = (rs, obj, offset) ->
+  if obj.type instanceof types.ArrayType
+    return obj.array[offset.toInt()]
+  f = get_field_from_offset rs, rs.class_lookup(obj.type), offset.toInt()
+  return rs.static_get({class:obj.type.toClassString(),name:f.name}) if f.access_flags.static
+  obj.fields[f.name] ? 0
+
+set_value_from_offset = (rs, obj, offset, value) ->
+  o = offset.toInt()
+  if obj.type instanceof types.ArrayType
+    obj.array[o] = value
+  else
+    f = get_field_from_offset rs, rs.class_lookup(obj.type), o
+    if f.access_flags.static
+      rs.push value
+      rs.static_put({class:obj.type.toClassString(),name:f.name})
+    else
+      obj.fields[f.name] = value
 
 stat_file = (fname) ->
   try
@@ -212,6 +244,9 @@ native_methods =
           o 'newArray(L!/!/Class;I)L!/!/Object;', (rs, _this, len) ->
               rs.heap_newarray _this.fields.$type, len
         ]
+      Runtime: [
+        o 'availableProcessors()I', () -> 1
+      ]
       Shutdown: [
         o 'halt0(I)V', (rs) -> throw new util.HaltException(rs.curr_frame().locals[0])
       ]
@@ -273,26 +308,6 @@ native_methods =
             throw new util.YieldException (cb) ->
               setTimeout(cb, millis.toNumber())
       ]
-      Throwable: [
-        o 'fillInStackTrace()L!/!/!;', (rs, _this) ->
-            # we aren't creating the actual Java objects -- we're using our own
-            # representation.
-            _this.fields.$stack = stack = []
-            # we don't want to include the stack frames that were created by
-            # the construction of this exception
-            for sf in rs.meta_stack.slice(1) when sf.locals[0] isnt _this.ref
-              cls = sf.method.class_type
-              attrs = rs.class_lookup(cls).attrs
-              source_file =
-                _.find(attrs, (attr) -> attr.constructor.name == 'SourceFile')?.name or 'unknown'
-              line_nums = sf.method.get_code()?.attrs[0]
-              if line_nums?
-                ln = _.last(row.line_number for i,row of line_nums when row.start_pc <= sf.pc)
-              else
-                ln = 'unknown'
-              stack.push {'op':sf.pc, 'line':ln, 'file':source_file, 'method':sf.method.name, 'cls':cls}
-            _this.ref
-      ]
     security:
       AccessController: [
         o 'doPrivileged(L!/!/PrivilegedAction;)L!/lang/Object;', doPrivileged
@@ -326,6 +341,17 @@ native_methods =
         o 'open(L!/lang/String;)V', (rs, _this, fname) ->
             jvm_str = rs.jvm2js_str fname
             _this.fields.$file = fs.openSync jvm_str, 'w'
+        o 'writeBytes([BIIZ)V', (rs, _this, bytes, offset, len, append) ->
+            if _this.fields.$file?
+              # appends by default in the browser, not sure in actual node.js impl
+              fs.writeSync(_this.fields.$file, new Buffer(bytes.array), offset, len)
+              return
+            rs.print rs.jvm_carr2js_str(bytes.ref, offset, len)
+            if node?
+              # For the browser implementation -- the DOM doesn't get repainted
+              # unless we give the event loop a chance to spin.
+              rs.curr_frame().resume = -> # NOP
+              throw new util.YieldException (cb) -> setTimeout(cb, 0)
         o 'writeBytes([BII)V', (rs, _this, bytes, offset, len) ->
             if _this.fields.$file?
               fs.writeSync(_this.fields.$file, new Buffer(bytes.array), offset, len)
@@ -548,20 +574,27 @@ native_methods =
   sun:
     misc:
       VM: [
-        o 'initialize()V', (rs) ->  # NOP???
+        o 'initialize()V', (rs, _this) ->
+            # hack! make savedProps refer to the system props
+            rs.push rs.static_get {class:'java/lang/System',name:'props'}
+            rs.static_put {class:'sun/misc/VM',name:'savedProps'}
       ]
       Unsafe: [
+        o 'addressSize()I', (rs, _this) -> 4 # either 4 or 8
+        o 'allocateMemory(J)J', (rs, _this, size) -> gLong.ZERO
+        o 'freeMemory(J)V', (rs, _this, address) -> # NOP
+        o 'putLong(JJ)V', (rs, _this, address, value) -> # NOP
+        o 'getByte(J)B', (rs, _this, address) -> 0x08 # shim to force little endianness
+        o 'arrayBaseOffset(Ljava/lang/Class;)I', (rs, _this, cls) -> 0
+        o 'arrayIndexScale(Ljava/lang/Class;)I', (rs, _this, cls) -> 1
         o 'compareAndSwapObject(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z', (rs, _this, obj, offset, expected, x) ->
-            field_name = rs.class_lookup(obj.type).fields[offset.toInt()]
-            obj.fields[field_name] = x?.ref or 0
+            set_value_from_offset rs, obj, offset, (x?.ref or 0)
             true
         o 'compareAndSwapInt(Ljava/lang/Object;JII)Z', (rs, _this, obj, offset, expected, x) ->
-            field_name = rs.class_lookup(obj.type).fields[offset.toInt()]
-            obj.fields[field_name] = x
+            set_value_from_offset rs, obj, offset, x
             true
         o 'compareAndSwapLong(Ljava/lang/Object;JJJ)Z', (rs, _this, obj, offset, expected, x) ->
-            field_name = rs.class_lookup(obj.type).fields[offset.toInt()]
-            obj.fields[field_name] = x
+            set_value_from_offset rs, obj, offset, x
             true
         o 'ensureClassInitialized(Ljava/lang/Class;)V', (rs,_this,cls) -> 
             rs.class_lookup(cls.fields.$type)
@@ -570,13 +603,11 @@ native_methods =
         o 'staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;', (rs,_this,field) ->
             rs.set_obj rs.get_obj(field.fields.clazz).fields.$type
         o 'getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
-            f = get_field_from_offset rs, rs.class_lookup(obj.type), offset.toInt()
-            return rs.static_get({class:obj.type.toClassString(),name:f.name}) if f.access_flags.static
-            obj.fields[f.name] ? 0
+            get_value_from_offset rs, obj, offset
         o 'getObject(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
-            f = get_field_from_offset rs, rs.class_lookup(obj.type), offset.toInt()
-            return rs.static_get({class:obj.type.toClassString(),name:f.name}) if f.access_flags.static
-            obj.fields[f.name] ? 0
+            get_value_from_offset rs, obj, offset
+        o 'putOrderedObject(Ljava/lang/Object;JLjava/lang/Object;)V', (rs,_this,obj,offset,new_obj) ->
+            set_value_from_offset rs, obj, offset, (new_obj?.ref or 0)
       ]
     reflect:
       NativeMethodAccessorImpl: [

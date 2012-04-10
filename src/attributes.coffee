@@ -76,6 +76,8 @@ class StackMapTable
           frame_name: 'same_locals_1_stack_item'
           stack: parse_verification_type_info()
         }
+      else if 128 <= frame_type < 247
+        # reserve for future use
       else if frame_type == 247
         {
           frame_type: frame_type
@@ -173,21 +175,25 @@ class Synthetic
   parse: (bytes_array) -> bytes_array # NOP
 
 root.make_attributes = (bytes_array,constant_pool) ->
-  #TODO: add classes for NYI attr types
   attr_types = {
     'Code': Code, 'LineNumberTable': LineNumberTable, 'SourceFile': SourceFile,
     'StackMapTable': StackMapTable, 'LocalVariableTable': LocalVariableTable,
     'ConstantValue': ConstantValue, 'Exceptions': Exceptions,
-    'InnerClasses': InnerClasses, 'Synthetic': Synthetic
+    'InnerClasses': InnerClasses, 'Synthetic': Synthetic,
   }
   num_attrs = util.read_uint(bytes_array.splice(0,2))
   attrs = []
   for [0...num_attrs]
     name = constant_pool.get(util.read_uint(bytes_array.splice(0,2))).value
-    attr_len = util.read_uint(bytes_array.splice(0,4))  # unused if the attr is defined
+    attr_len = util.read_uint(bytes_array.splice(0,4))
     if attr_types[name]?
       attr = new attr_types[name]
+      old_len = bytes_array.length
       bytes_array = attr.parse(bytes_array,constant_pool)
+      new_len = bytes_array.length
+      if old_len - new_len != attr_len
+        #throw new Error "#{name} attribute didn't consume all bytes"
+        bytes_array.splice(0, attr_len - old_len + new_len)
       attrs.push attr
     else # we must silently ignore other attrs
       # console.log "ignoring #{attr_len} bytes for attr #{name}"
