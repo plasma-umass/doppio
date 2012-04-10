@@ -1,16 +1,19 @@
 // compute fibonacci sequence
 package test;
 public class Fib {
-  static long fib(long n) {
-    if (n < 2) return 1;
-    return fib(n-1) + fib(n-2);
-  }
   public static void main(String[] args) {
-  	if (args.length > 0) {
-    	int n = Integer.parseInt(args[0]);
-    	System.out.println("fib("+n+") = "+fib(n));
-    } else {
-    	System.out.println("usage: java Fib <number>");
+    int n;
+    if (args.length > 0)
+      n = Integer.parseInt(args[0]);
+    else
+      n = 20;
+    int a = 1;
+    int b = 1;
+    for (int i = 0; i < n - 2; i++) {
+      int tmp = b;
+      b += a;
+      a = tmp;
     }
+    System.out.println("fib(" + n + ") = " + b);
   }
 }
