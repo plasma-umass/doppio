@@ -13,7 +13,8 @@ root.disassemble = (class_file) ->
     privacy = (("#{flag} " if access_flags[flag]) for flag in ordered_flags).join ''
 
   source_file = _.find(class_file.attrs, (attr) -> attr.constructor.name == 'SourceFile')
-  ifaces = (class_file.constant_pool.get(i).deref().toExternalString() for i in class_file.interfaces).join ','
+  ifaces = (class_file.constant_pool.get(i).deref() for i in class_file.interfaces)
+  ifaces = ((if util.is_string(i) then i else i.toExternalString()) for i in ifaces).join ','
   rv = "Compiled from \"#{source_file.name}\"\n"
   rv += access_string class_file.access_flags
   if class_file.access_flags.interface
