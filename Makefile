@@ -78,7 +78,7 @@ test/special/%.class: test/special/%.java
 	javac build/test/special/*.java
 
 browser/_about.html: browser/_about.md
-	tools/markdown.rb $? > $@
+	rdiscount $? > $@
 
 build/about.html: browser/_about.html
 
