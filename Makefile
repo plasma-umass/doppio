@@ -63,7 +63,8 @@ release: $(BUILD_HTML) build/compressed.js browser/mini-rt.tar build/ace.js $(DE
 	rsync third_party/bootstrap/css/bootstrap.min.css build/bootstrap.min.css
 	rsync -a test/special build/test/
 	rsync browser/mini-rt.tar build/browser/mini-rt.tar
-	rsync browser/coffee.svg build/browser/coffee.svg
+	rsync browser/*.svg build/browser/
+	rsync browser/*.png build/browser/
 
 # docs need to be generated in one shot so docco can create the full jumplist.
 # This is slow, so we have it as a separate target (even though it is needed
@@ -80,7 +81,7 @@ browser/_about.html: browser/_about.md
 
 build/about.html: browser/_about.html
 
-build/%.html: $(BROWSER_HTML)
+build/%.html: $(BROWSER_HTML) $(wildcard browser/_*.html)
 	cpp -P -DRELEASE browser/$*.html build/$*.html
 
 build/compressed.js: $(BROWSER_SRCS)
