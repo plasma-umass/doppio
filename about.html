@@ -127,12 +127,12 @@ asynchronous function.</p>
 
 <p>We wished to collect the disassembler's logic in one place instead of spreading
 it among all the opcode classes. In static languages, the Visitor pattern is
-usually used to achieve this, but we can't employ it here since Coffeescript it
-lacks the necessary static typing the method overloading.  Instead, we
+usually used to achieve this, but we can't employ it here since Coffeescript
+lacks the necessary static typing and method overloading features. Instead, we
 collected our opcode handlers in one hash table and then <a href="https://github.com/int3/doppio/blob/a59ac5dd04157a24ad1ac57f380ad08a47d40b8c/src/util.coffee#L117">traversed the
-prototype chain ourselves</a>.  However, since this is significantly
-slower than a native traversal, the core VM code remains as a method on the
-opcode itself.</p>
+prototype chain ourselves</a>. However, since this is significantly slower
+than a native traversal, the core VM code remains as a method on the opcode
+itself.</p>
 
 <hr />
 
