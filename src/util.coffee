@@ -55,7 +55,7 @@ root.bytestr_to_array = (bytecode_string) ->
   (bytecode_string.charCodeAt(i) & 0xFF for i in [0...bytecode_string.length])
 
 root.parse_flags = (flag_byte) ->
-  {
+  flags = {
     public:       flag_byte & 0x1
     private:      flag_byte & 0x2
     protected:    flag_byte & 0x4
@@ -70,6 +70,10 @@ root.parse_flags = (flag_byte) ->
     abstract:     flag_byte & 0x400
     strict:       flag_byte & 0x800
   }
+  # quick sanity check
+  s = root.sum(1 for f in ['public','private','protected'] when flags[f] != 0)
+  throw new Error "Too many access flags, invalid classfile parse" if s > 1
+  flags
 
 class root.BytesArray
   constructor: (@raw_array) ->
