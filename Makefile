@@ -71,6 +71,7 @@ release: $(BUILD_HTML) build/compressed.js browser/mini-rt.tar build/ace.js \
 # for a full release build).
 docs:
 	docco $(filter %.coffee, $(BROWSER_SRCS))
+	rm -rf build/docs
 	mv docs build/
 
 test/special/%.class: test/special/%.java
