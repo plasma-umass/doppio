@@ -167,6 +167,8 @@ native_methods =
             return false unless _this.fields.$type instanceof types.ClassType
             cls = rs.class_lookup _this.fields.$type
             cls.access_flags.interface
+        o 'isInstance(L!/!/Object;)Z', (rs, _this, obj) ->
+            return types.is_castable rs, obj.type, _this.fields.$type
         o 'isPrimitive()Z', (rs, _this) ->
             _this.fields.$type instanceof types.PrimitiveType
         o 'isArray()Z', (rs, _this) ->
@@ -193,6 +195,12 @@ native_methods =
             methods = (m for sig, m of methods when m.name is '<init>')
             methods = (m for m in methods when m.access_flags.public) if public_only
             rs.init_object('[Ljava/lang/reflect/Constructor;',(m.reflector(rs,true) for m in methods))
+        o 'getInterfaces()[L!/!/!;', (rs, _this) ->
+            cls = rs.class_lookup(_this.fields.$type)
+            ifaces = (cls.constant_pool.get(i).deref() for i in cls.interfaces)
+            ifaces = ((if util.is_string(i) then c2t(i) else i) for i in ifaces)
+            iface_objs = (rs.class_lookup(iface,true) for iface in ifaces)
+            rs.init_object('[Ljava/lang/Class;',iface_objs)
         o 'getModifiers()I', (rs, _this) -> rs.class_lookup(_this.fields.$type).access_byte
       ],
       ClassLoader: [
