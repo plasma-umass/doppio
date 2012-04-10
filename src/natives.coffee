@@ -49,6 +49,7 @@ trapped_methods =
               stack.push {'op':sf.pc, 'line':ln, 'file':source_file, 'method':sf.method.name, 'cls':cls}
             _this.ref
         o 'printStackTrace(L!/io/PrintWriter;)V', (rs) -> # NOP, since we didn't fill in anything
+        o 'getStackTraceDepth()I', (rs, _this) -> _this.fields.$stack.length
       ]
       StringCoding: [
         o 'deref(L!/!/ThreadLocal;)L!/!/Object;', (rs) -> null
