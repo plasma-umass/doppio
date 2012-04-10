@@ -38,7 +38,7 @@ test: $(RESULTS)
 	cat $(RESULTS)
 	@rm -f $(RESULTS)
 
-java: $(CLASSES) $(DISASMS) $(RUNOUTS)
+java: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES)
 
 test/%.result: test/%.class test/%.disasm test/%.runout
 	tools/run_one_test.rb test/$* >test/$*.result
