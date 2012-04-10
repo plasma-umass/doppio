@@ -53,6 +53,24 @@ $.ajax "browser/mini-rt.tar", {
     console.error errorThrown
 }
 
+demo_files = ['special/DiffPrint.class', 'special/Chatterbot.java',
+  'special/Chatterbot.class', 'special/Lzw.java', 'special/Lzw.class',
+  'special/RegexTestHarness.java', 'special/RegexTestHarness.class',
+  'special/FileRead.java', 'special/Fib.java', 'special/foo', 'special/bar']
+for demo in demo_files
+  $.ajax "test/#{demo}", {
+    type: 'GET'
+    dataType: 'text'
+    async: false
+    beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
+    success: (data) ->
+      fname = _.last(demo.split '/')
+      (new DoppioFile fname).write(data).save()
+    error: ->
+      fname = _.last(demo.split '/')
+      controller.message "Could not load '#{fname}'.\n", 'error', true
+  }
+
 if RELEASE?
   $.ajax "third_party/classes/sun/tools/javac/Main.class", {
     type: 'GET'
@@ -260,37 +278,29 @@ commands =
     if args[0] == '*' then localStorage.clear()
     else DoppioFile.delete args[0]
     true
-  load_demos: ->
-    demos = ['special/DiffPrint.class', 'special/Chatterbot.java', 'special/Lzw.java',
-      'special/RegexTestHarness.java', 'special/FileRead.java', 'special/foo',
-      'special/bar']
-    for demo in demos
-      $.ajax "test/#{demo}", {
-        type: 'GET'
-        dataType: 'text'
-        async: false
-        beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
-        success: (data) ->
-          fname = _.last(demo.split '/')
-          (new DoppioFile fname).write(data).save()
-          controller.message "Loaded '#{fname}'.\n", 'success', true
-        error: ->
-          fname = _.last(demo.split '/')
-          controller.message "Could not load '#{fname}'.\n", 'error', true
-      }
+  list_demos: ->
     controller.message """
-      All files should have been loaded.
+      We have loaded a bunch of source and class files -- the class files are
+      for Java programs using modern Java features that the provided Java 4
+      compiler does not support. You can inspect these files using the
+      commands 'ls', 'cat', and 'edit'.
 
-      After compiling them, you may wish to try the following commands:
+      You may wish to try the following commands:
+        javac FileRead.java
+        javac Fib.java
+        java FileRead
+        java Fib <num>
         java Chatterbot
         java DiffPrint foo bar
         java RegexTestHarness
-        java FileRead
-        java Lzw c foo foo_lzw (use 'cat' or 'edit' to see the result)
-        java Lzw d foo_lzw foo
+        java Lzw c foo foo_lzw (compress)
+        java Lzw d foo_lzw foo (decompress)
 
       After running these programs, use 'list_cache' to see the Java Class
       Library files that they depended upon.
+
+      You can also upload your own files using the uploader above the top-right
+      corner of the console.
     """
   emacs: -> "Try 'vim'."
   vim: -> "Try 'emacs'."
@@ -323,14 +333,15 @@ commands =
     """
     Ctrl-D is EOF.
 
+    Lost? Try typing 'list_demos' to see what you can do.
+
     Java-related commands:
-      javac <source file>    -- Compile Java source.
+      javac <source file>    -- Invoke the Java 4 compiler.
       java <class> [args...] -- Run with command-line arguments.
       javap <class>          -- Display disassembly.
       time                   -- Measure how long it takes to run a command.
 
     File management:
-      load_demos             -- Load all demos.
       cat <file>             -- Display a file in the console.
       edit <file>            -- Edit a file.
       ls                     -- List all files.
