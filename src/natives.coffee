@@ -389,13 +389,13 @@ native_methods =
               _this.fields.$pos++
               return if bytes_read == 0 then -1 else buf.readUInt8(0)
             # reading from System.in, do it async
-            console.log '>>> reading from Stdin now!'
             data = null # will be filled in after the yield
             rs.curr_frame().resume = ->
               if data.length == 0 then -1 else data.charCodeAt(0)
             throw new util.YieldException (cb) ->
               rs.async_input 1, (byte) ->
                 data = byte
+                cb()
         o 'readBytes([BII)I', (rs, _this, byte_arr, offset, n_bytes) ->
             if _this.fields.$file?
               # this is a real file that we've already opened
@@ -408,7 +408,6 @@ native_methods =
               byte_arr.array[offset+i] = buf.readUInt8(i) for i in [0...bytes_read] by 1
               return if bytes_read == 0 and n_bytes isnt 0 then -1 else bytes_read
             # reading from System.in, do it async
-            console.log '>>> reading from Stdin now!'
             result = null # will be filled in after the yield
             rs.curr_frame().resume = -> result
             throw new util.YieldException (cb) ->

@@ -31,18 +31,10 @@ if require.main == module
   cname = argv._[0]
   stdout = process.stdout.write.bind process.stdout
   read_stdin = (n_bytes, resume) ->
-    buffer = []
-    stdin = process.openStdin()
-    tty = require('tty')
-    tty.setRawMode true  # so we can catch EOF and single keystrokes
-    stdin.on 'keypress', (str,key) ->
-      b = str.charCodeAt(0)  # TODO: unicode?
-      buffer.push b
-      if buffer.length is n_bytes or b is 4  # 04 -> EOF
-        stdin.removeAllListeners 'keypress'
-        tty.setRawMode false  # important! otherwise, we won't be able to send ctrl-c to the process
-        resume buffer
-        process.exit 0  # a bit of a hack: stdin is open, so it doesn't want to exit normally
+    process.stdin.resume()
+    process.stdin.once 'data', (data) ->
+      process.stdin.pause()
+      resume data
 
   java_cmd_args = (argv.java?.toString().split /\s+/) or []
 
