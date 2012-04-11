@@ -30,16 +30,6 @@ show_state = (rs) ->
       debug " #{i}: #{typestr}"
     ++i
 
-show_stacktrace = (rs,e) ->
-  e_type = rs.get_obj(e.exception.fields.cause).type
-  detail_ref = e.exception.fields.detailMessage
-  detail = if detail_ref then rs.jvm2js_str rs.get_obj detail_ref else ''
-  rs.print "Exception in thread \"main\" #{e_type.toExternalString()}: #{detail}\n"
-  stack = e.exception.fields.$stack
-  for i in [stack.length-1..0] by -1
-    entry = stack[i]
-    rs.print "\tat #{entry.cls.toExternalString()}.#{entry.method}(#{entry.file}:#{entry.line})\n"
-
 # main function that gets called from the frontend
 root.run_class = (rs, class_name, cmdline_args, done_cb) ->
   main_spec = class: class_name, sig: 'main([Ljava/lang/String;)V'

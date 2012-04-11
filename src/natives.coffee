@@ -53,7 +53,8 @@ trapped_methods =
               }
             stack.reverse()
             _this.ref
-        o 'getStackTraceDepth()I', (rs, _this) -> _this.fields.$stack.length
+        o 'getStackTraceDepth()I', (rs, _this) ->
+            rs.get_obj(_this.fields.stackTrace).array.length
       ]
       StringCoding: [
         o 'deref(L!/!/ThreadLocal;)L!/!/Object;', (rs) -> null
