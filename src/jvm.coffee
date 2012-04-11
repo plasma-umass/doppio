@@ -43,11 +43,14 @@ show_stacktrace = (rs,e) ->
 # main function that gets called from the frontend
 root.run_class = (rs, class_name, cmdline_args, done_cb) ->
   main_spec = class: class_name, sig: 'main([Ljava/lang/String;)V'
-  yielded = false
-  run = (fn) ->
+  run = (fns...) ->
     try
-      fn()
-      true
+      fns[0]()
+      fns.shift()
+      if fns.length > 0
+        run fns...
+      else
+        done_cb?()
     catch e
       if e instanceof util.JavaException
         console.error "\nUncaught Java Exception"
@@ -56,16 +59,14 @@ root.run_class = (rs, class_name, cmdline_args, done_cb) ->
       else if e instanceof util.HaltException
         console.error "\nExited with code #{e.exit_code}" unless e.exit_code is 0
       else if e instanceof util.YieldException
-        yielded = true
         e.condition ->
           rs.resuming_stack = 0  # <-- index into the meta_stack of the frame we're resuming
-          run()
+          run fns...
       else
         console.error "\nInternal JVM Error!"
         show_state(rs)
-        console.log e.stack
-      false
-  # we're assuming that initialize() never yields
-  (run -> rs.initialize(class_name,cmdline_args)) and
-  (run -> rs.method_lookup(main_spec).run(rs))
-  done_cb?() unless yielded
+        console.error e.stack
+      unless e instanceof util.YieldException
+        done_cb?()
+  run (-> rs.initialize(class_name,cmdline_args)),
+      (-> rs.method_lookup(main_spec).run(rs))
