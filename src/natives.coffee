@@ -576,7 +576,7 @@ native_methods =
               ze = rs.get_zip_descriptor jzentry
               if node?
                 pos_int = pos.toInt()
-                bytes_read = Math.max(ze.file.length - pos_int, len)
+                bytes_read = Math.min(ze.file.length - pos_int, len)
                 byte_arr.array[offset+i] = ze.file[pos_int+i] for i in [0...bytes_read] by 1
               else
                 buf = new Buffer len
