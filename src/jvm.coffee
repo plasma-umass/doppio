@@ -53,9 +53,10 @@ root.run_class = (rs, class_name, cmdline_args, done_cb) ->
         done_cb?()
     catch e
       if e instanceof util.JavaException
-        console.error "\nUncaught Java Exception"
+        debug "\nUncaught Java Exception"
         show_state(rs)
-        show_stacktrace(rs,e)
+        rs.push e.exception.ref
+        rs.method_lookup(class: 'java/lang/Throwable', sig: 'printStackTrace()V').run(rs)
       else if e instanceof util.HaltException
         console.error "\nExited with code #{e.exit_code}" unless e.exit_code is 0
       else if e instanceof util.YieldException

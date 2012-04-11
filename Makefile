@@ -102,7 +102,7 @@ build/ace.js: $(ACE_SRCS)
 	done > build/ace.js
 
 build/browser/style.css: third_party/bootstrap/css/bootstrap.min.css browser/style.css
-	cat $? > $@
+	cat $^ > $@
 
 browser/mini-rt.tar: tools/preload
 	tools/make-rt.sh

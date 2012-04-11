@@ -31,9 +31,8 @@ trapped_methods =
       ]
       Throwable: [
         o 'fillInStackTrace()L!/!/!;', (rs, _this) ->
-            # we aren't creating the actual Java objects -- we're using our own
-            # representation.
-            _this.fields.$stack = stack = []
+            stack = []
+            _this.fields.stackTrace = rs.init_object "[Ljava/lang/StackTraceElement;", stack
             # we don't want to include the stack frames that were created by
             # the construction of this exception
             for sf in rs.meta_stack.slice(1) when sf.locals[0] isnt _this.ref
@@ -45,10 +44,15 @@ trapped_methods =
               if line_nums?
                 ln = _.last(row.line_number for i,row of line_nums when row.start_pc <= sf.pc)
               else
-                ln = 'unknown'
-              stack.push {'op':sf.pc, 'line':ln, 'file':source_file, 'method':sf.method.name, 'cls':cls}
+                ln = -1
+              stack.push rs.init_object "java/lang/StackTraceElement", {
+                declaringClass: rs.init_string cls.toClassString()
+                methodName: rs.init_string sf.method.name
+                fileName: rs.init_string source_file
+                lineNumber: ln
+              }
+            stack.reverse()
             _this.ref
-        o 'printStackTrace(L!/io/PrintWriter;)V', (rs) -> # NOP, since we didn't fill in anything
         o 'getStackTraceDepth()I', (rs, _this) -> _this.fields.$stack.length
       ]
       StringCoding: [
