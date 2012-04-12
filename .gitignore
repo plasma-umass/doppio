@@ -3,6 +3,7 @@
 *.un~
 *.class
 *.runout
+*.result
 *.disasm
 node_modules
 build
