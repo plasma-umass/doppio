@@ -114,7 +114,9 @@ system_properties = {
   'line.separator':'\n', 'file.separator':'/', 'path.separator':':',
   'user.dir':'.','user.home':'.','user.name':'DoppioUser',
   # we don't actually load from this file, but it has to look like a valid filename
-  'sun.boot.class.path': '/System/Library/Frameworks/JavaVM.framework/Classes/classes.jar'
+  'sun.boot.class.path': '/System/Library/Frameworks/JavaVM.framework/Classes/classes.jar',
+  # this doesn't actually exist in our classes.jar, but no other GraphicsEnvironment does either
+  'java.awt.graphicsenv': 'sun.awt.X11GraphicsEnvironment'
 }
 
 get_field_from_offset = (rs, cls, offset) ->
