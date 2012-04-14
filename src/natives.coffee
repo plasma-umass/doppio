@@ -18,10 +18,6 @@ o = (fn_name, fn) -> fn_name: fn_name, fn: fn
 trapped_methods =
   java:
     lang:
-      ref:
-        SoftReference: [
-          o 'get()Ljava/lang/Object;', (rs) -> null
-        ]
       System: [
         o 'loadLibrary(L!/!/String;)V', (rs) -> # NOP, because we don't support loading external libraries
         o 'adjustPropertiesForBackwardCompatibility(L!/util/Properties;)V', (rs) -> # NOP (apple-java specific)
@@ -56,12 +52,6 @@ trapped_methods =
               }
             stack.reverse()
             _this.ref
-        o 'getStackTraceDepth()I', (rs, _this) ->
-            rs.get_obj(_this.fields.stackTrace).array.length
-      ]
-      StringCoding: [
-        o 'deref(L!/!/ThreadLocal;)L!/!/Object;', (rs) -> null
-        o 'set(L!/!/ThreadLocal;L!/!/Object;)V', (rs) -> # NOP
       ]
     util:
       concurrent:
@@ -76,26 +66,8 @@ trapped_methods =
         o 'getInstance(Ljava/lang/String;)Ljava/util/Currency;', (rs) -> null # because it uses lots of reflection and we don't need it
       ]
     nio:
-      charset:
-        Charset$3: [
-          o 'run()L!/lang/Object;', (rs) -> null
-        ]
       Bits: [
         o 'byteOrder()L!/!/ByteOrder;', (rs) -> rs.static_get {class:'java/nio/ByteOrder',name:'LITTLE_ENDIAN'}
-      ]
-  sun:
-    misc:
-      JavaLangAccess: [
-        o 'registerShutdownHook(ILjava/lang/Runnable;)V', (rs) ->
-            # XXX should probably not be a NOP -- maybe we should call
-            # the runnable ourselves before quit
-      ]
-    util:
-      LocaleServiceProviderPool: [
-        o 'getPool(Ljava/lang/Class;)L!/!/!;', (rs) -> 
-            # make a mock
-            rs.init_object 'sun/util/LocaleServiceProviderPool'
-        o 'hasProviders()Z', (rs) -> false  # we can't provide anything
       ]
   
 doPrivileged = (rs) ->
