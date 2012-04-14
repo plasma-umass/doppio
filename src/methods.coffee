@@ -148,6 +148,7 @@ class root.Method extends AbstractMethodField
               (eh.catch_type == "<any>" or types.is_castable rs, e.exception.type, c2t(eh.catch_type))
           if handler?
             debug "caught exception as subclass of #{handler.catch_type}"
+            rs.curr_frame().stack = []  # clear out anything on the stack; it was made during the try block
             rs.push e.exception_ref
             rs.goto_pc handler.handler_pc
             continue
