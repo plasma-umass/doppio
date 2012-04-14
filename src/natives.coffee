@@ -37,9 +37,12 @@ trapped_methods =
             # the construction of this exception
             for sf in rs.meta_stack.slice(1) when sf.locals[0] isnt _this.ref
               cls = sf.method.class_type
-              attrs = rs.class_lookup(cls).attrs
-              source_file =
-                _.find(attrs, (attr) -> attr.constructor.name == 'SourceFile')?.name or 'unknown'
+              unless _this.type.toClassString() is 'java/lang/NoClassDefFoundError'
+                attrs = rs.class_lookup(cls).attrs
+                source_file =
+                  _.find(attrs, (attr) -> attr.constructor.name == 'SourceFile')?.name or 'unknown'
+              else
+                source_file = 'unknown'
               line_nums = sf.method.get_code()?.attrs[0]
               if line_nums?
                 ln = _.last(row.line_number for i,row of line_nums when row.start_pc <= sf.pc)
