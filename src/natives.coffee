@@ -90,10 +90,6 @@ trapped_methods =
             # XXX should probably not be a NOP -- maybe we should call
             # the runnable ourselves before quit
       ]
-      SharedSecrets: [
-        o 'getJavaLangAccess()L!/!/JavaLangAccess;', (rs) ->
-            rs.init_object 'sun/misc/JavaLangAccess' # XXX should probably intern this
-      ]
     util:
       LocaleServiceProviderPool: [
         o 'getPool(Ljava/lang/Class;)L!/!/!;', (rs) -> 
