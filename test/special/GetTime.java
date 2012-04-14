@@ -1,3 +1,5 @@
+
+package test.special;
 import java.util.Calendar;
 
 // this test is under 'special' since it never returns the same

@@ -2,7 +2,7 @@
 // this is almost identical to the copy in test/, but the
 // hardcoded filename is changed so that it works in the browser.
 
-package test;
+package test.special;
 import java.io.*;
 public class FileRead {
   public static void main(String[] args) {
