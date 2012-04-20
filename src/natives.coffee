@@ -288,8 +288,8 @@ native_methods =
             rs.main_thread
         o 'setPriority0(I)V', (rs) -> # NOP
         o 'holdsLock(L!/!/Object;)Z', -> true
-        o 'isAlive()Z', (rs) -> false
-        o 'start0()V', (rs) -> # NOP
+        o 'isAlive()Z', (rs, _this) -> _this.fields.$isAlive ? false
+        o 'start0()V', (rs, _this) -> _this.fields.$isAlive = true
         o 'sleep(J)V', (rs, millis) ->
             rs.curr_frame().resume = -> # NOP
             throw new util.YieldException (cb) ->
