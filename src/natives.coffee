@@ -81,7 +81,7 @@ doPrivileged = (rs) ->
 # properties to set:
 #  java.version,java.vendor.url,java.class.version,java.class.path,os.name,os.arch,os.version
 system_properties = {
-  'java.home':'/', 'file.encoding':'US_ASCII','java.vendor':'DoppioVM',
+  'java.home':'third_party/java_home/', 'file.encoding':'US_ASCII','java.vendor':'DoppioVM',
   'line.separator':'\n', 'file.separator':'/', 'path.separator':':',
   'user.dir':'.','user.home':'.','user.name':'DoppioUser',
   # we don't actually load from this file, but it has to look like a valid filename
@@ -446,7 +446,10 @@ native_methods =
             rs.init_string path.resolve path.normalize js_str
         o 'list(Ljava/io/File;)[Ljava/lang/String;', (rs, _this, file) ->
             pth = rs.jvm2js_str rs.get_obj file.fields.path
-            files = fs.readdirSync(pth)
+            try
+              files = fs.readdirSync(pth)
+            catch e
+              return null
             rs.init_object('[Ljava/lang/String;',(rs.init_string(f) for f in files))
       ]
     util:
@@ -558,6 +561,14 @@ native_methods =
               return if bytes_read == 0 and len isnt 0 then -1 else bytes_read
         ]
   sun:
+    awt:
+      X11GraphicsEnvironment: [
+        o 'initDisplay(Z)V', (rs, glxRequested) -> console.log "TODO: Initialize display"
+      ]
+    font:
+      FontManager: [
+        o 'initIDs(Z)V', (rs) -> console.log "TODO: FontManager::initIDs"
+      ]
     misc:
       VM: [
         o 'initialize()V', (rs) ->
