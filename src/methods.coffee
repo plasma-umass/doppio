@@ -49,7 +49,10 @@ class root.Method extends AbstractMethodField
   parse_descriptor: (@raw_descriptor) ->
     [__,param_str,return_str] = /\(([^)]*)\)(.*)/.exec(@raw_descriptor)
     param_carr = param_str.split ''
+    type_size = (t) -> (if t.toString() in ['D','J'] then 2 else 1)
     @param_types = (field while (field = carr2type param_carr))
+    @param_bytes = util.sum(type_size(p) for p in @param_types)
+    @param_bytes++ unless @access_flags.static
     @num_args = @param_types.length
     @num_args++ unless @access_flags.static # nonstatic methods get 'this'
     @return_type = str2type return_str
@@ -67,16 +70,9 @@ class root.Method extends AbstractMethodField
       signature: rs.init_string @raw_descriptor
     }
 
-  param_bytes: () ->
-    type_size = (t) -> (if t.toString() in ['D','J'] then 2 else 1)
-    n_bytes = util.sum(type_size(p) for p in @param_types)
-    n_bytes++ unless @access_flags.static
-    n_bytes
-
   take_params: (caller_stack) ->
     params = []
-    n_bytes = @param_bytes()
-    caller_stack.splice(caller_stack.length-n_bytes,n_bytes)
+    caller_stack.splice(caller_stack.length-@param_bytes, @param_bytes)
   
   # used by run and run_manually to print arrays for debugging. we need this to
   # distinguish [null] from [].
@@ -172,8 +168,8 @@ class root.Method extends AbstractMethodField
       caller_stack = runtime_state.curr_frame().stack
       if virtual
         # dirty hack to bounce up the inheritance tree, to make sure we call the method on the most specific type
-        oref = caller_stack[caller_stack.length-@param_bytes()]
-        error "undef'd oref: (#{caller_stack})[-#{@param_bytes()}] (#{sig})" unless oref
+        oref = caller_stack[caller_stack.length-@param_bytes]
+        error "undef'd oref: (#{caller_stack})[-#{@param_bytes}] (#{sig})" unless oref
         obj = runtime_state.get_obj(oref)
         m_spec = {class: obj.type.toClassString(), sig: @name + @raw_descriptor}
         m = runtime_state.method_lookup(m_spec)
