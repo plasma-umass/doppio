@@ -27,6 +27,7 @@ class AbstractMethodField
     @raw_descriptor = constant_pool.get(util.read_uint(bytes_array.splice(0,2))).value
     @parse_descriptor @raw_descriptor
     [@attrs,bytes_array] = make_attributes(bytes_array,constant_pool)
+    @code = _.find(@attrs, (a) -> a.constructor.name == "Code")
     return bytes_array
 
 class root.Field extends AbstractMethodField
@@ -45,8 +46,6 @@ class root.Field extends AbstractMethodField
     }
 
 class root.Method extends AbstractMethodField
-  get_code: -> _.find(@attrs, (a) -> a.constructor.name == "Code")
-
   parse_descriptor: (@raw_descriptor) ->
     [__,param_str,return_str] = /\(([^)]*)\)(.*)/.exec(@raw_descriptor)
     param_carr = param_str.split ''
@@ -116,14 +115,14 @@ class root.Method extends AbstractMethodField
 
   run_bytecode: (rs, padding) ->
     # main eval loop: execute each opcode, using the pc to iterate through
-    code = @get_code().opcodes
+    code = @code.opcodes
     while true
       try
-        cf = rs.curr_frame()
         pc = rs.curr_pc()
         op = code[pc]
         unless RELEASE? or util.log_level <= util.ERROR
           throw "#{@name}:#{pc} => (null)" unless op
+          cf = rs.curr_frame()
           debug "#{padding}stack: [#{pa cf.stack}], local: [#{pa cf.locals}]"
           annotation =
             util.lookup_handler(opcode_annotators, op, pc, rs.class_lookup(@class_type).constant_pool) or ""
@@ -142,7 +141,7 @@ class root.Method extends AbstractMethodField
           debug "yielding from #{@class_type.toClassString()}::#{@name}#{@raw_descriptor}"
           throw e  # leave everything as-is
         else if e instanceof util.JavaException
-          exception_handlers = @get_code().exception_handlers
+          exception_handlers = @code.exception_handlers
           handler = _.find exception_handlers, (eh) ->
             eh.start_pc <= pc < eh.end_pc and
               (eh.catch_type == "<any>" or types.is_castable rs, e.exception.type, c2t(eh.catch_type))

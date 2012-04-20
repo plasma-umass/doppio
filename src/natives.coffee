@@ -39,7 +39,7 @@ trapped_methods =
                   _.find(attrs, (attr) -> attr.constructor.name == 'SourceFile')?.name or 'unknown'
               else
                 source_file = 'unknown'
-              line_nums = sf.method.get_code()?.attrs[0]
+              line_nums = sf.method.code?.attrs[0]
               if line_nums?
                 ln = _.last(row.line_number for i,row of line_nums when row.start_pc <= sf.pc)
               else

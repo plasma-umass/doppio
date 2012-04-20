@@ -97,7 +97,7 @@ root.disassemble = (class_file) ->
     rv += ";\n"
     unless m.access_flags.native or m.access_flags.abstract
       rv += "  Code:\n"
-      code = m.get_code()
+      code = m.code
       rv += "   Stack=#{code.max_stack}, Locals=#{code.max_locals}, Args_size=#{m.num_args}\n"
       code.each_opcode (idx, oc) ->
         rv += "   #{idx}:\t#{oc.name}"

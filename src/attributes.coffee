@@ -33,7 +33,7 @@ class Code
     return bytes_array
 
   parse_code: (bytes_array, constant_pool) ->
-    rv = {}
+    rv = new Array @code_len
     while bytes_array.has_bytes()
       op_index = bytes_array.index
       c = bytes_array.get_uint 1
