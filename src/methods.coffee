@@ -71,8 +71,13 @@ class root.Method extends AbstractMethodField
     }
 
   take_params: (caller_stack) ->
-    params = []
-    caller_stack.splice(caller_stack.length-@param_bytes, @param_bytes)
+    params = new Array @param_bytes
+    start = caller_stack.length - @param_bytes
+    for i in [0...@param_bytes] by 1
+      params[i] = caller_stack[start + i]
+    # this is faster than splice()
+    caller_stack.length -= @param_bytes
+    params
   
   # used by run and run_manually to print arrays for debugging. we need this to
   # distinguish [null] from [].
