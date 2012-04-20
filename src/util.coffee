@@ -76,10 +76,9 @@ root.parse_flags = (flag_byte) ->
   flags
 
 class root.BytesArray
-  constructor: (@raw_array) ->
-    @index = 0
+  constructor: (@raw_array, @index=0, @end=@raw_array.length) ->
 
-  has_bytes: -> @index < @raw_array.length
+  has_bytes: -> @index < @end
 
   get_uint: (bytes_count) ->
     rv = root.read_uint @raw_array.slice(@index, @index+bytes_count)
@@ -96,7 +95,14 @@ class root.BytesArray
 
   peek: -> @raw_array[@index]
 
-  size: -> @raw_array.length
+  size: -> @end - @index
+
+  to_array: -> @raw_array[@index...@end]
+
+  splice: (len) ->
+    arr = new root.BytesArray @raw_array, @index, @index+len
+    @index += len
+    arr
 
 root.is_string = (obj) -> typeof obj == 'string' or obj instanceof String
 

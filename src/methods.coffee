@@ -26,9 +26,10 @@ class AbstractMethodField
     @name = constant_pool.get(util.read_uint(bytes_array.splice(0,2))).value
     @raw_descriptor = constant_pool.get(util.read_uint(bytes_array.splice(0,2))).value
     @parse_descriptor @raw_descriptor
-    [@attrs,bytes_array] = make_attributes(bytes_array,constant_pool)
+    bytes_array = new util.BytesArray bytes_array
+    [@attrs, bytes_array] = make_attributes(bytes_array,constant_pool)
     @code = _.find(@attrs, (a) -> a.constructor.name == "Code")
-    return bytes_array
+    return bytes_array.to_array()
 
 class root.Field extends AbstractMethodField
   parse_descriptor: (@raw_descriptor) ->

@@ -45,8 +45,9 @@ class @ClassFile
       bytes_array = m.parse(bytes_array,@constant_pool,i)
       @methods[m.name + m.raw_descriptor] = m
     # class attributes
+    bytes_array = new util.BytesArray bytes_array
     [@attrs,bytes_array] = make_attributes(bytes_array,@constant_pool)
-    throw "Leftover bytes in classfile: #{bytes_array}" if bytes_array.length > 0
+    throw "Leftover bytes in classfile: #{bytes_array}" if bytes_array.has_bytes()
 
   @for_array_type: (type) ->
     class_file = Object.create ClassFile.prototype # avoid calling the constructor
