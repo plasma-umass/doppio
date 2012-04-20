@@ -69,6 +69,11 @@ trapped_methods =
       Bits: [
         o 'byteOrder()L!/!/ByteOrder;', (rs) -> rs.static_get {class:'java/nio/ByteOrder',name:'LITTLE_ENDIAN'}
       ]
+      charset:
+        Charset$3: [
+          # this is trapped and NOP'ed for speed
+          o 'run()L!/lang/Object;', (rs) -> null
+        ]
   
 doPrivileged = (rs) ->
   oref = rs.curr_frame().locals[0]
