@@ -306,8 +306,10 @@ commands =
   vim: -> "Try 'emacs'."
   time: (args) ->
     start = (new Date).getTime()
+    console.profile args[0]
     controller.onreprompt = ->
       controller.onreprompt = null
+      console.profileEnd()
       end = (new Date).getTime()
       controller.message "\nCommand took a total of #{end-start}ms to run.", '', true
     commands[args.shift()](args)
