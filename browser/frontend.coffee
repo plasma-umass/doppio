@@ -1,6 +1,7 @@
 root = this
 
 # To be initialized on document load
+stdout = null
 user_input = null
 controller = null
 editor = null
@@ -59,6 +60,12 @@ if RELEASE?
     dataType: 'text'
     beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
     success: (data) -> class_cache['!javac'] = process_bytecode data
+  }
+  $.ajax "third_party/classes/com/sun/tools/script/shell/Main.class", {
+    type: 'GET'
+    dataType: 'text'
+    beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
+    success: (data) -> class_cache['!rhino'] = process_bytecode data
   }
 
 try_path = (path) ->
@@ -187,6 +194,8 @@ $(document).ready ->
         controller.message "Could not load '#{fname}'.\n", 'error', true
     }
 
+  stdout = (str) -> controller.message str, '', true # noreprompt
+
   user_input = (n_bytes, resume) ->
     oldPrompt = controller.promptLabel
     controller.promptLabel = ''
@@ -221,13 +230,11 @@ commands =
     unless RELEASE?
       return "Usage: javac <source file>" unless args[0]?
       return compile_source args[0], cb
-    stdout = (str) -> controller.message str, '', true # noreprompt
     rs = new runtime.RuntimeState(stdout, user_input, read_classfile)
     # hack: use a special class name that won't clash with real ones
     jvm.run_class(rs, '!javac', args, -> controller.reprompt())
   java: (args, cb) ->
     return "Usage: java class [args...]" unless args[0]?
-    stdout = (str) -> controller.message str, '', true # noreprompt
     rs = new runtime.RuntimeState(stdout, user_input, read_classfile)
     jvm.run_class(rs, args[0], args[1..], -> controller.reprompt())
   javap: (args) ->
@@ -235,6 +242,9 @@ commands =
     raw_data = DoppioFile.load("#{args[0]}.class").read()
     return ["Could not find class '#{args[0]}'.",'error'] unless raw_data?
     disassembler.disassemble process_bytecode raw_data
+  rhino: (args, cb) ->
+    rs = new runtime.RuntimeState(stdout, user_input, read_classfile)
+    jvm.run_class(rs, '!rhino', args, -> controller.reprompt())
   list_cache: ->
     (name for name of raw_cache).join '\n'
   clear_cache: (args) ->
