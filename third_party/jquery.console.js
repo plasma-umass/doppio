@@ -215,8 +215,17 @@
             enableInput();
             promptBox = $('<div class="jquery-console-prompt-box"></div>');
             var label = $('<span class="jquery-console-prompt-label"></span>');
-            var labelText = extern.continuedPrompt? extern.continuedPromptLabel :
-                                                    extern.promptLabel;
+            var labelText = extern.continuedPrompt ? extern.continuedPromptLabel :
+                                                     extern.promptLabel;
+            if (lastMsg) {
+              var text = lastMsg.text();
+              if (_.last(text) !== '\n') {
+                var lines = text.split('\n');
+                labelText = _.last(lines) + labelText;
+                lines.length--;
+                lastMsg.text(lines.join('\n'));
+              }
+            }
             promptBox.append(label.text(labelText).show());
             label.html(label.html().replace(' ','&nbsp;'));
             prompt = $('<span class="jquery-console-prompt"></span>');

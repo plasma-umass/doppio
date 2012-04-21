@@ -189,7 +189,7 @@ $(document).ready ->
 
   user_input = (n_bytes, resume) ->
     oldPrompt = controller.promptLabel
-    controller.promptLabel = '> '
+    controller.promptLabel = ''
     controller.reprompt()
     oldHandle = controller.commandHandle
     controller.commandHandle = (line) ->
