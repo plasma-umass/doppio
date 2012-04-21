@@ -4,31 +4,31 @@
 
 <span class="k">class</span> <span class="nx">ExceptionHandler</span>
   <span class="nv">parse: </span><span class="nf">(bytes_array,constant_pool) -&gt;</span>
-    <span class="vi">@start_pc   = </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
-    <span class="vi">@end_pc     = </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
-    <span class="vi">@handler_pc = </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
-    <span class="nv">cti = </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
+    <span class="vi">@start_pc   = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
+    <span class="vi">@end_pc     = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
+    <span class="vi">@handler_pc = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
+    <span class="nv">cti = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
     <span class="vi">@catch_type = </span><span class="k">if</span> <span class="nx">cti</span><span class="o">==</span><span class="mi">0</span> <span class="k">then</span> <span class="s2">&quot;&lt;any&gt;&quot;</span> <span class="k">else</span> <span class="nx">constant_pool</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">cti</span><span class="p">).</span><span class="nx">deref</span><span class="p">()</span>
     <span class="k">return</span> <span class="nx">bytes_array</span>
 
 <span class="k">class</span> <span class="nx">Code</span>
   <span class="nv">parse: </span><span class="nf">(bytes_array,constant_pool) -&gt;</span>
-    <span class="vi">@max_stack = </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
-    <span class="vi">@max_locals = </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
-    <span class="vi">@code_len = </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+    <span class="vi">@max_stack = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
+    <span class="vi">@max_locals = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
+    <span class="vi">@code_len = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">4</span>
     <span class="k">throw</span> <span class="s2">&quot;Attribute._parse_code: Code length is zero&quot;</span> <span class="k">if</span> <span class="nx">@code_len</span> <span class="o">==</span> <span class="mi">0</span>
-    <span class="nv">code_array = </span><span class="k">new</span> <span class="nx">util</span><span class="p">.</span><span class="nx">BytesArray</span> <span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nx">@code_len</span><span class="p">)</span>
+    <span class="nv">code_array = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="nx">@code_len</span><span class="p">)</span>
     <span class="vi">@opcodes = </span><span class="nx">@parse_code</span> <span class="nx">code_array</span><span class="p">,</span> <span class="nx">constant_pool</span>
-    <span class="nv">except_len = </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
+    <span class="nv">except_len = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
     <span class="vi">@exception_handlers = </span><span class="p">(</span><span class="k">new</span> <span class="nx">ExceptionHandler</span> <span class="k">for</span> <span class="p">[</span><span class="mi">0</span><span class="p">...</span><span class="nx">except_len</span><span class="p">])</span>
     <span class="k">for</span> <span class="nx">eh</span> <span class="k">in</span> <span class="nx">@exception_handlers</span>
-      <span class="nv">bytes_array = </span><span class="nx">eh</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">,</span><span class="nx">constant_pool</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-4">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-4">&#182;</a>               </div>               <p>yes, there are even attrs on attrs. BWOM... BWOM...</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="p">[</span><span class="nx">@attrs</span><span class="p">,</span><span class="nx">bytes_array</span><span class="p">]</span> <span class="o">=</span> <span class="nx">root</span><span class="p">.</span><span class="nx">make_attributes</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">,</span><span class="nx">constant_pool</span><span class="p">)</span>
+      <span class="nv">bytes_array = </span><span class="nx">eh</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">,</span><span class="nx">constant_pool</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-4">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-4">&#182;</a>               </div>               <p>yes, there are even attrs on attrs. BWOM... BWOM...</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="vi">@attrs = </span><span class="nx">root</span><span class="p">.</span><span class="nx">make_attributes</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">,</span><span class="nx">constant_pool</span><span class="p">)</span>
     <span class="k">return</span> <span class="nx">bytes_array</span>
 
   <span class="nv">parse_code: </span><span class="nf">(bytes_array, constant_pool) -&gt;</span>
-    <span class="nv">rv = </span><span class="p">{}</span>
+    <span class="nv">rv = </span><span class="k">new</span> <span class="nb">Array</span> <span class="nx">@code_len</span>
     <span class="k">while</span> <span class="nx">bytes_array</span><span class="p">.</span><span class="nx">has_bytes</span><span class="p">()</span>
-      <span class="nv">op_index = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">index</span>
+      <span class="nv">op_index = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">pos</span><span class="p">()</span>
       <span class="nv">c = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">1</span>
       <span class="nv">wide = </span><span class="nx">c</span> <span class="o">==</span> <span class="mi">196</span>
       <span class="k">if</span> <span class="nx">wide</span> <span class="c1"># wide opcode needs to be handled specially</span>
@@ -45,22 +45,22 @@
 
 <span class="k">class</span> <span class="nx">LineNumberTable</span> <span class="k">extends</span> <span class="nb">Array</span>
   <span class="nv">parse: </span><span class="nf">(bytes_array,constant_pool) -&gt;</span>
-    <span class="nv">lnt_len = </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
+    <span class="nv">lnt_len = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
     <span class="k">for</span> <span class="p">[</span><span class="mi">0</span><span class="p">...</span><span class="nx">lnt_len</span><span class="p">]</span>
-      <span class="nv">spc = </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
-      <span class="nv">ln = </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
+      <span class="nv">spc = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
+      <span class="nv">ln = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
       <span class="k">this</span><span class="p">.</span><span class="nx">push</span> <span class="p">{</span><span class="s1">&#39;start_pc&#39;</span><span class="o">:</span> <span class="nx">spc</span><span class="p">,</span><span class="s1">&#39;line_number&#39;</span><span class="o">:</span> <span class="nx">ln</span><span class="p">}</span>
     <span class="k">return</span> <span class="nx">bytes_array</span>
 
 <span class="k">class</span> <span class="nx">SourceFile</span>
   <span class="nv">parse: </span><span class="nf">(bytes_array,constant_pool) -&gt;</span>
-    <span class="vi">@name = </span><span class="nx">constant_pool</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">))).</span><span class="nx">value</span>
+    <span class="vi">@name = </span><span class="nx">constant_pool</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span><span class="p">).</span><span class="nx">value</span>
     <span class="k">return</span> <span class="nx">bytes_array</span>
 
 <span class="k">class</span> <span class="nx">StackMapTable</span>
   <span class="nv">parse: </span><span class="nf">(bytes_array, constant_pool) -&gt;</span>
     <span class="nv">parse_entries = </span><span class="o">-&gt;</span>
-      <span class="nv">frame_type = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">shift</span><span class="p">()</span>
+      <span class="nv">frame_type = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">1</span>
       <span class="k">if</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="nx">frame_type</span> <span class="o">&lt;</span> <span class="mi">64</span>
         <span class="p">{</span> <span class="nv">frame_type: </span><span class="nx">frame_type</span><span class="p">,</span> <span class="nv">frame_name: </span><span class="s1">&#39;same&#39;</span> <span class="p">}</span>
       <span class="k">else</span> <span class="k">if</span> <span class="mi">64</span> <span class="o">&lt;=</span> <span class="nx">frame_type</span> <span class="o">&lt;</span> <span class="mi">128</span>
@@ -69,119 +69,123 @@
           <span class="nv">frame_name: </span><span class="s1">&#39;same_locals_1_stack_item&#39;</span>
           <span class="nv">stack: </span><span class="nx">parse_verification_type_info</span><span class="p">()</span>
         <span class="p">}</span>
-      <span class="k">else</span> <span class="k">if</span> <span class="nx">frame_type</span> <span class="o">==</span> <span class="mi">247</span>
+      <span class="k">else</span> <span class="k">if</span> <span class="mi">128</span> <span class="o">&lt;=</span> <span class="nx">frame_type</span> <span class="o">&lt;</span> <span class="mi">247</span></pre></div>             </td>           </tr>                               <tr id="section-5">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-5">&#182;</a>               </div>               <p>reserve for future use</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="k">else</span> <span class="k">if</span> <span class="nx">frame_type</span> <span class="o">==</span> <span class="mi">247</span>
         <span class="p">{</span>
           <span class="nv">frame_type: </span><span class="nx">frame_type</span>
           <span class="nv">frame_name: </span><span class="s1">&#39;same_locals_1_stack_item_extended&#39;</span>
-          <span class="nv">offset_delta: </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span> <span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+          <span class="nv">offset_delta: </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
           <span class="nv">stack: </span><span class="nx">parse_verification_type_info</span><span class="p">()</span>
         <span class="p">}</span>
       <span class="k">else</span> <span class="k">if</span> <span class="mi">248</span> <span class="o">&lt;=</span> <span class="nx">frame_type</span> <span class="o">&lt;</span> <span class="mi">251</span>
         <span class="p">{</span>
           <span class="nv">frame_type: </span><span class="nx">frame_type</span>
           <span class="nv">frame_name: </span><span class="s1">&#39;chop&#39;</span>
-          <span class="nv">offset_delta: </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span> <span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+          <span class="nv">offset_delta: </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
         <span class="p">}</span>
       <span class="k">else</span> <span class="k">if</span> <span class="nx">frame_type</span> <span class="o">==</span> <span class="mi">251</span>
         <span class="p">{</span>
           <span class="nv">frame_type: </span><span class="nx">frame_type</span>
           <span class="nv">frame_name: </span><span class="s1">&#39;same_frame_extended&#39;</span>
-          <span class="nv">offset_delta: </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span> <span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+          <span class="nv">offset_delta: </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
         <span class="p">}</span>
       <span class="k">else</span> <span class="k">if</span> <span class="mi">252</span> <span class="o">&lt;=</span> <span class="nx">frame_type</span> <span class="o">&lt;</span> <span class="mi">255</span>
         <span class="p">{</span>
           <span class="nv">frame_type: </span><span class="nx">frame_type</span>
           <span class="nv">frame_name: </span><span class="s1">&#39;append&#39;</span>
-          <span class="nv">offset_delta: </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span> <span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+          <span class="nv">offset_delta: </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
           <span class="nv">locals: </span><span class="nx">parse_verification_type_info</span><span class="p">()</span> <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">...</span><span class="nx">frame_type</span><span class="o">-</span><span class="mi">251</span><span class="p">]</span>
         <span class="p">}</span>
       <span class="k">else</span> <span class="k">if</span> <span class="nx">frame_type</span> <span class="o">==</span> <span class="mi">255</span>
         <span class="p">{</span>
           <span class="nv">frame_type: </span><span class="nx">frame_type</span>
           <span class="nv">frame_name: </span><span class="s1">&#39;full_frame&#39;</span>
-          <span class="nv">offset_delta: </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span> <span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-          <span class="nv">num_locals: num_locals = </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span> <span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+          <span class="nv">offset_delta: </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
+          <span class="nv">num_locals: num_locals = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
           <span class="nv">locals: </span><span class="nx">parse_verification_type_info</span><span class="p">()</span> <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">...</span><span class="nx">num_locals</span><span class="p">]</span>
-          <span class="nv">num_stack_items: num_stack_items = </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span> <span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+          <span class="nv">num_stack_items: num_stack_items = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
           <span class="nv">stack: </span><span class="nx">parse_verification_type_info</span><span class="p">()</span> <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">...</span><span class="nx">num_stack_items</span><span class="p">]</span>
         <span class="p">}</span>
 
     <span class="nv">parse_verification_type_info = </span><span class="o">-&gt;</span>
-      <span class="nv">tag = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">shift</span><span class="p">()</span>
+      <span class="nv">tag = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">1</span>
       <span class="k">if</span> <span class="nx">tag</span> <span class="o">==</span> <span class="mi">7</span>
-        <span class="nv">cls = </span><span class="nx">constant_pool</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span> <span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)).</span><span class="nx">deref</span><span class="p">()</span>
+        <span class="nv">cls = </span><span class="nx">constant_pool</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span><span class="p">).</span><span class="nx">deref</span><span class="p">()</span>
         <span class="s1">&#39;class &#39;</span> <span class="o">+</span> <span class="p">(</span><span class="k">if</span> <span class="sr">/\w/</span><span class="p">.</span><span class="nx">test</span> <span class="nx">cls</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">then</span> <span class="nx">cls</span> <span class="k">else</span> <span class="s2">&quot;\&quot;#{cls}\&quot;&quot;</span><span class="p">)</span>
       <span class="k">else</span>
         <span class="nv">tag_to_type = </span><span class="p">[</span> <span class="s1">&#39;bogus&#39;</span><span class="p">,</span> <span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="s1">&#39;float&#39;</span><span class="p">,</span> <span class="s1">&#39;double&#39;</span><span class="p">,</span> <span class="s1">&#39;long&#39;</span><span class="p">,</span> <span class="s1">&#39;null&#39;</span><span class="p">,</span> <span class="s1">&#39;this&#39;</span><span class="p">,</span> <span class="s1">&#39;object&#39;</span><span class="p">,</span> <span class="s1">&#39;uninitialized&#39;</span> <span class="p">]</span>
         <span class="nx">tag_to_type</span><span class="p">[</span><span class="nx">tag</span><span class="p">]</span>
 
-    <span class="vi">@num_entries = </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+    <span class="vi">@num_entries = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
     <span class="vi">@entries = </span><span class="p">(</span><span class="nx">parse_entries</span><span class="p">()</span> <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">...</span><span class="nx">@num_entries</span><span class="p">])</span>
     <span class="k">return</span> <span class="nx">bytes_array</span>
 
 
 <span class="k">class</span> <span class="nx">LocalVariableTable</span>
   <span class="nv">parse: </span><span class="nf">(bytes_array, constant_pool) -&gt;</span>
-    <span class="vi">@num_entries = </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span> <span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span>
+    <span class="vi">@num_entries = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
     <span class="vi">@entries = </span><span class="p">(</span><span class="nx">@parse_entries</span> <span class="nx">bytes_array</span><span class="p">,</span> <span class="nx">constant_pool</span> <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">...</span><span class="nx">@num_entries</span><span class="p">])</span>
     <span class="k">return</span> <span class="nx">bytes_array</span>
 
   <span class="nv">parse_entries: </span><span class="nf">(bytes_array, constant_pool) -&gt;</span>
     <span class="p">{</span>
-      <span class="nv">start_pc: </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span> <span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span>
-      <span class="nv">length: </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span> <span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span>
-      <span class="nv">name: </span><span class="nx">constant_pool</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span> <span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">).</span><span class="nx">value</span>
-      <span class="nv">descriptor: </span><span class="nx">constant_pool</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span> <span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">).</span><span class="nx">value</span>
-      <span class="nv">ref: </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span> <span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span>
+      <span class="nv">start_pc: </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
+      <span class="nv">length: </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
+      <span class="nv">name: </span><span class="nx">constant_pool</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span><span class="p">).</span><span class="nx">value</span>
+      <span class="nv">descriptor: </span><span class="nx">constant_pool</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span><span class="p">).</span><span class="nx">value</span>
+      <span class="nv">ref: </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
     <span class="p">}</span>
 
 <span class="k">class</span> <span class="nx">Exceptions</span>
   <span class="nv">parse: </span><span class="nf">(bytes_array, constant_pool) -&gt;</span>
-    <span class="vi">@num_exceptions = </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span> <span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span>
-    <span class="nv">exc_refs = </span><span class="p">(</span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span> <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">...</span><span class="nx">@num_exceptions</span><span class="p">])</span>
+    <span class="vi">@num_exceptions = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
+    <span class="nv">exc_refs = </span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span> <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">...</span><span class="nx">@num_exceptions</span><span class="p">])</span>
     <span class="vi">@exceptions = </span><span class="p">(</span><span class="nx">constant_pool</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">ref</span><span class="p">).</span><span class="nx">deref</span><span class="p">()</span> <span class="k">for</span> <span class="nx">ref</span> <span class="k">in</span> <span class="nx">exc_refs</span><span class="p">)</span>
     <span class="k">return</span> <span class="nx">bytes_array</span>
 
 <span class="k">class</span> <span class="nx">InnerClasses</span>
   <span class="nv">parse: </span><span class="nf">(bytes_array, constant_pool) -&gt;</span>
-    <span class="nv">num_classes = </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span> <span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span>
+    <span class="nv">num_classes = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
     <span class="vi">@classes = </span><span class="p">(</span><span class="nx">@parse_class</span> <span class="nx">bytes_array</span><span class="p">,</span> <span class="nx">constant_pool</span> <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">...</span><span class="nx">num_classes</span><span class="p">])</span>
     <span class="k">return</span> <span class="nx">bytes_array</span>
 
   <span class="nv">parse_class: </span><span class="nf">(bytes_array, constant_pool) -&gt;</span>
     <span class="p">{</span>
-      <span class="nv">inner_info_index: </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span> <span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span>
-      <span class="nv">outer_info_index: </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span> <span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span>
-      <span class="nv">inner_name_index: </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span> <span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span>
-      <span class="nv">inner_access_flags: </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span> <span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span>
+      <span class="nv">inner_info_index: </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
+      <span class="nv">outer_info_index: </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
+      <span class="nv">inner_name_index: </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
+      <span class="nv">inner_access_flags: </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
     <span class="p">}</span>
 
 <span class="k">class</span> <span class="nx">ConstantValue</span>
   <span class="nv">parse: </span><span class="nf">(bytes_array, constant_pool) -&gt;</span>
-    <span class="vi">@ref = </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span> <span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span>
+    <span class="vi">@ref = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
     <span class="vi">@value = </span><span class="nx">constant_pool</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">@ref</span><span class="p">).</span><span class="nx">value</span>
     <span class="k">return</span> <span class="nx">bytes_array</span>
 
 <span class="k">class</span> <span class="nx">Synthetic</span>
   <span class="nv">parse: </span><span class="nf">(bytes_array) -&gt;</span> <span class="nx">bytes_array</span> <span class="c1"># NOP</span>
 
-<span class="nv">root.make_attributes = </span><span class="nf">(bytes_array,constant_pool) -&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-5">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-5">&#182;</a>               </div>               <p>TODO: add classes for NYI attr types</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">attr_types = </span><span class="p">{</span>
+<span class="nv">root.make_attributes = </span><span class="nf">(bytes_array,constant_pool) -&gt;</span>
+  <span class="nv">attr_types = </span><span class="p">{</span>
     <span class="s1">&#39;Code&#39;</span><span class="o">:</span> <span class="nx">Code</span><span class="p">,</span> <span class="s1">&#39;LineNumberTable&#39;</span><span class="o">:</span> <span class="nx">LineNumberTable</span><span class="p">,</span> <span class="s1">&#39;SourceFile&#39;</span><span class="o">:</span> <span class="nx">SourceFile</span><span class="p">,</span>
     <span class="s1">&#39;StackMapTable&#39;</span><span class="o">:</span> <span class="nx">StackMapTable</span><span class="p">,</span> <span class="s1">&#39;LocalVariableTable&#39;</span><span class="o">:</span> <span class="nx">LocalVariableTable</span><span class="p">,</span>
     <span class="s1">&#39;ConstantValue&#39;</span><span class="o">:</span> <span class="nx">ConstantValue</span><span class="p">,</span> <span class="s1">&#39;Exceptions&#39;</span><span class="o">:</span> <span class="nx">Exceptions</span><span class="p">,</span>
-    <span class="s1">&#39;InnerClasses&#39;</span><span class="o">:</span> <span class="nx">InnerClasses</span><span class="p">,</span> <span class="s1">&#39;Synthetic&#39;</span><span class="o">:</span> <span class="nx">Synthetic</span>
+    <span class="s1">&#39;InnerClasses&#39;</span><span class="o">:</span> <span class="nx">InnerClasses</span><span class="p">,</span> <span class="s1">&#39;Synthetic&#39;</span><span class="o">:</span> <span class="nx">Synthetic</span><span class="p">,</span>
   <span class="p">}</span>
-  <span class="nv">num_attrs = </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
+  <span class="nv">num_attrs = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
   <span class="nv">attrs = </span><span class="p">[]</span>
   <span class="k">for</span> <span class="p">[</span><span class="mi">0</span><span class="p">...</span><span class="nx">num_attrs</span><span class="p">]</span>
-    <span class="nv">name = </span><span class="nx">constant_pool</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">))).</span><span class="nx">value</span>
-    <span class="nv">attr_len = </span><span class="nx">util</span><span class="p">.</span><span class="nx">read_uint</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>  <span class="c1"># unused if the attr is defined</span>
+    <span class="nv">name = </span><span class="nx">constant_pool</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span><span class="p">).</span><span class="nx">value</span>
+    <span class="nv">attr_len = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">4</span>
     <span class="k">if</span> <span class="nx">attr_types</span><span class="p">[</span><span class="nx">name</span><span class="p">]</span><span class="o">?</span>
       <span class="nv">attr = </span><span class="k">new</span> <span class="nx">attr_types</span><span class="p">[</span><span class="nx">name</span><span class="p">]</span>
+      <span class="nv">old_len = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">size</span><span class="p">()</span>
       <span class="nv">bytes_array = </span><span class="nx">attr</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">,</span><span class="nx">constant_pool</span><span class="p">)</span>
+      <span class="nv">new_len = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">size</span><span class="p">()</span>
+      <span class="k">if</span> <span class="nx">old_len</span> <span class="o">-</span> <span class="nx">new_len</span> <span class="o">!=</span> <span class="nx">attr_len</span></pre></div>             </td>           </tr>                               <tr id="section-6">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-6">&#182;</a>               </div>               <p>throw new Error "#{name} attribute didn't consume all bytes"</p>             </td>             <td class="code">               <div class="highlight"><pre>        <span class="nx">bytes_array</span><span class="p">.</span><span class="nx">skip</span> <span class="nx">attr_len</span> <span class="o">-</span> <span class="nx">old_len</span> <span class="o">+</span> <span class="nx">new_len</span>
       <span class="nx">attrs</span><span class="p">.</span><span class="nx">push</span> <span class="nx">attr</span>
-    <span class="k">else</span> <span class="c1"># we must silently ignore other attrs</span></pre></div>             </td>           </tr>                               <tr id="section-6">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-6">&#182;</a>               </div>               <p>console.log "ignoring #{attr_len} bytes for attr #{name}"</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">bytes_array</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nx">attr_len</span><span class="p">)</span>
-  <span class="k">return</span> <span class="p">[</span><span class="nx">attrs</span><span class="p">,</span><span class="nx">bytes_array</span><span class="p">]</span>
+    <span class="k">else</span> <span class="c1"># we must silently ignore other attrs</span></pre></div>             </td>           </tr>                               <tr id="section-7">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-7">&#182;</a>               </div>               <p>console.log "ignoring #{attr_len} bytes for attr #{name}"</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">bytes_array</span><span class="p">.</span><span class="nx">skip</span> <span class="nx">attr_len</span>
+  <span class="k">return</span> <span class="nx">attrs</span>
 
 <span class="nx">module</span><span class="o">?</span><span class="p">.</span><span class="nv">exports = </span><span class="nx">root</span><span class="p">.</span><span class="nx">make_attributes</span>
 

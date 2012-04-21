@@ -7,7 +7,7 @@
 <span class="nv">root.untar = </span><span class="nf">(bytes, cb, done_cb) -&gt;</span>
   <span class="nv">next_file = </span><span class="o">-&gt;</span>
     <span class="p">[</span><span class="nx">path</span><span class="p">,</span><span class="nx">body</span><span class="p">]</span> <span class="o">=</span> <span class="nx">shift_file</span><span class="p">(</span><span class="nx">bytes</span><span class="p">)</span>
-    <span class="nv">percent = </span><span class="nx">bytes</span><span class="p">.</span><span class="nx">index</span> <span class="err">/ bytes.size()</span>
+    <span class="nv">percent = </span><span class="nx">bytes</span><span class="p">.</span><span class="nx">pos</span><span class="p">()</span> <span class="o">/</span> <span class="nx">bytes</span><span class="p">.</span><span class="nx">size</span><span class="p">()</span>
     <span class="nx">cb</span> <span class="nx">percent</span><span class="p">,</span> <span class="nx">path</span><span class="p">,</span> <span class="nx">body</span>
     <span class="k">if</span> <span class="nx">bytes</span><span class="p">.</span><span class="nx">peek</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">0</span>
       <span class="nx">asyncExecute</span> <span class="nx">next_file</span>

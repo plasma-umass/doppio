@@ -23,41 +23,33 @@
       <span class="nx">debug</span> <span class="s2">&quot; #{i}: #{obj.type.component_type}[#{obj.array.length}]&quot;</span>
     <span class="k">else</span>
       <span class="nx">debug</span> <span class="s2">&quot; #{i}: #{typestr}&quot;</span>
-    <span class="o">++</span><span class="nx">i</span>
-
-<span class="nv">show_stacktrace = </span><span class="nf">(rs,e) -&gt;</span>
-  <span class="nv">e_type = </span><span class="nx">rs</span><span class="p">.</span><span class="nx">get_obj</span><span class="p">(</span><span class="nx">e</span><span class="p">.</span><span class="nx">exception</span><span class="p">.</span><span class="nx">fields</span><span class="p">.</span><span class="nx">cause</span><span class="p">).</span><span class="nx">type</span>
-  <span class="nv">detail_ref = </span><span class="nx">e</span><span class="p">.</span><span class="nx">exception</span><span class="p">.</span><span class="nx">fields</span><span class="p">.</span><span class="nx">detailMessage</span>
-  <span class="nv">detail = </span><span class="k">if</span> <span class="nx">detail_ref</span> <span class="k">then</span> <span class="nx">rs</span><span class="p">.</span><span class="nx">jvm2js_str</span> <span class="nx">rs</span><span class="p">.</span><span class="nx">get_obj</span> <span class="nx">detail_ref</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
-  <span class="nx">rs</span><span class="p">.</span><span class="nx">print</span> <span class="s2">&quot;Exception in thread \&quot;main\&quot; #{e_type.toExternalString()}: #{detail}\n&quot;</span>
-  <span class="nv">stack = </span><span class="nx">e</span><span class="p">.</span><span class="nx">exception</span><span class="p">.</span><span class="nx">fields</span><span class="p">.</span><span class="nx">$stack</span>
-  <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="nx">stack</span><span class="p">.</span><span class="nx">length</span><span class="o">-</span><span class="mi">1</span><span class="p">..</span><span class="mi">0</span><span class="p">]</span> <span class="k">by</span> <span class="o">-</span><span class="mi">1</span>
-    <span class="nv">entry = </span><span class="nx">stack</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span>
-    <span class="nx">rs</span><span class="p">.</span><span class="nx">print</span> <span class="s2">&quot;\tat #{entry.cls.toExternalString()}.#{entry.method}(#{entry.file}:#{entry.line})\n&quot;</span></pre></div>             </td>           </tr>                               <tr id="section-4">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-4">&#182;</a>               </div>               <p>main function that gets called from the frontend</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">root.run_class = </span><span class="nf">(rs, class_name, cmdline_args, cb) -&gt;</span>
+    <span class="o">++</span><span class="nx">i</span></pre></div>             </td>           </tr>                               <tr id="section-4">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-4">&#182;</a>               </div>               <p>main function that gets called from the frontend</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">root.run_class = </span><span class="nf">(rs, class_name, cmdline_args, done_cb) -&gt;</span>
   <span class="nv">main_spec = </span><span class="k">class</span><span class="o">:</span> <span class="nx">class_name</span><span class="p">,</span> <span class="nv">sig: </span><span class="s1">&#39;main([Ljava/lang/String;)V&#39;</span>
-  <span class="nx">rs</span><span class="p">.</span><span class="nx">initialize</span><span class="p">(</span><span class="nx">class_name</span><span class="p">,</span><span class="nx">cmdline_args</span><span class="p">)</span>
-  <span class="nv">run = </span><span class="o">-&gt;</span>
+  <span class="nv">run = </span><span class="nf">(fns...) -&gt;</span>
     <span class="k">try</span>
-      <span class="nx">rs</span><span class="p">.</span><span class="nx">method_lookup</span><span class="p">(</span><span class="nx">main_spec</span><span class="p">).</span><span class="nx">run</span><span class="p">(</span><span class="nx">rs</span><span class="p">)</span>
-      <span class="nx">cb</span><span class="o">?</span><span class="p">()</span>
+      <span class="nx">fns</span><span class="p">[</span><span class="mi">0</span><span class="p">]()</span>
+      <span class="nx">fns</span><span class="p">.</span><span class="nx">shift</span><span class="p">()</span>
+      <span class="k">if</span> <span class="nx">fns</span><span class="p">.</span><span class="nx">length</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="nx">run</span> <span class="nx">fns</span><span class="p">...</span>
+      <span class="k">else</span>
+        <span class="nx">done_cb</span><span class="o">?</span><span class="p">()</span>
     <span class="k">catch</span> <span class="nx">e</span>
       <span class="k">if</span> <span class="nx">e</span> <span class="k">instanceof</span> <span class="nx">util</span><span class="p">.</span><span class="nx">JavaException</span>
-        <span class="nx">console</span><span class="p">.</span><span class="nx">error</span> <span class="s2">&quot;\nUncaught Java Exception&quot;</span>
+        <span class="nx">debug</span> <span class="s2">&quot;\nUncaught Java Exception&quot;</span>
         <span class="nx">show_state</span><span class="p">(</span><span class="nx">rs</span><span class="p">)</span>
-        <span class="nx">show_stacktrace</span><span class="p">(</span><span class="nx">rs</span><span class="p">,</span><span class="nx">e</span><span class="p">)</span>
-        <span class="nx">cb</span><span class="o">?</span><span class="p">()</span>
+        <span class="nx">rs</span><span class="p">.</span><span class="nx">push</span> <span class="nx">rs</span><span class="p">.</span><span class="nx">main_thread</span><span class="p">,</span> <span class="nx">e</span><span class="p">.</span><span class="nx">exception</span><span class="p">.</span><span class="nx">ref</span></pre></div>             </td>           </tr>                               <tr id="section-5">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-5">&#182;</a>               </div>               <p>util.log_level = 10</p>             </td>             <td class="code">               <div class="highlight"><pre>        <span class="nx">rs</span><span class="p">.</span><span class="nx">method_lookup</span><span class="p">(</span><span class="k">class</span><span class="o">:</span> <span class="s1">&#39;java/lang/Thread&#39;</span><span class="p">,</span> <span class="nv">sig: </span><span class="s1">&#39;dispatchUncaughtException(Ljava/lang/Throwable;)V&#39;</span><span class="p">).</span><span class="nx">run</span><span class="p">(</span><span class="nx">rs</span><span class="p">)</span>
       <span class="k">else</span> <span class="k">if</span> <span class="nx">e</span> <span class="k">instanceof</span> <span class="nx">util</span><span class="p">.</span><span class="nx">HaltException</span>
         <span class="nx">console</span><span class="p">.</span><span class="nx">error</span> <span class="s2">&quot;\nExited with code #{e.exit_code}&quot;</span> <span class="nx">unless</span> <span class="nx">e</span><span class="p">.</span><span class="nx">exit_code</span> <span class="o">is</span> <span class="mi">0</span>
-        <span class="nx">cb</span><span class="o">?</span><span class="p">()</span>
       <span class="k">else</span> <span class="k">if</span> <span class="nx">e</span> <span class="k">instanceof</span> <span class="nx">util</span><span class="p">.</span><span class="nx">YieldException</span>
         <span class="nx">e</span><span class="p">.</span><span class="nx">condition</span> <span class="o">-&gt;</span>
           <span class="nv">rs.resuming_stack = </span><span class="mi">0</span>  <span class="c1"># &lt;-- index into the meta_stack of the frame we&#39;re resuming</span>
-          <span class="nx">run</span><span class="p">()</span>
+          <span class="nx">run</span> <span class="nx">fns</span><span class="p">...</span>
       <span class="k">else</span>
         <span class="nx">console</span><span class="p">.</span><span class="nx">error</span> <span class="s2">&quot;\nInternal JVM Error!&quot;</span>
-        <span class="nx">show_state</span><span class="p">(</span><span class="nx">rs</span><span class="p">)</span>
-        <span class="nx">cb</span><span class="o">?</span><span class="p">()</span>
-        <span class="k">throw</span> <span class="nx">e</span>  <span class="c1"># so we get the JS traceback? TODO: figure out why this doesn&#39;t print the trace</span>
-  <span class="nx">run</span><span class="p">()</span>
+        <span class="nx">show_state</span><span class="p">(</span><span class="nx">rs</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-6">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-6">&#182;</a>               </div>               <p>console.error e.stack</p>             </td>             <td class="code">               <div class="highlight"><pre>        <span class="k">throw</span> <span class="nx">e</span>
+      <span class="nx">unless</span> <span class="nx">e</span> <span class="k">instanceof</span> <span class="nx">util</span><span class="p">.</span><span class="nx">YieldException</span>
+        <span class="nx">done_cb</span><span class="o">?</span><span class="p">()</span>
+  <span class="nx">run</span> <span class="p">(</span><span class="o">-&gt;</span> <span class="nx">rs</span><span class="p">.</span><span class="nx">initialize</span><span class="p">(</span><span class="nx">class_name</span><span class="p">,</span><span class="nx">cmdline_args</span><span class="p">)),</span>
+      <span class="p">(</span><span class="o">-&gt;</span> <span class="nx">rs</span><span class="p">.</span><span class="nx">method_lookup</span><span class="p">(</span><span class="nx">main_spec</span><span class="p">).</span><span class="nx">run</span><span class="p">(</span><span class="nx">rs</span><span class="p">))</span>
 
 </pre></div>             </td>           </tr>                </tbody>     </table>   </div> </body> </html> 

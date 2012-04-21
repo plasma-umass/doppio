@@ -6,7 +6,7 @@
     <span class="vi">@data = </span><span class="s2">&quot;&quot;</span>
 
   <span class="vi">@load: </span><span class="nf">(fname) -&gt;</span>
-    <span class="nv">fname = </span><span class="nx">root</span><span class="p">.</span><span class="nx">path</span><span class="p">.</span><span class="nx">resolve</span> <span class="nx">fname</span>
+    <span class="nv">fname = </span><span class="nx">basename</span> <span class="nx">root</span><span class="p">.</span><span class="nx">path</span><span class="p">.</span><span class="nx">resolve</span> <span class="nx">fname</span>
     <span class="nv">rawData = </span><span class="nx">localStorage</span><span class="p">[</span><span class="s2">&quot;file::#{fname?.toLowerCase()}&quot;</span><span class="p">]</span>
     <span class="k">return</span> <span class="kc">null</span> <span class="nx">unless</span> <span class="nx">rawData</span>
     <span class="nv">data = </span><span class="nx">JSON</span><span class="p">.</span><span class="nx">parse</span> <span class="nx">rawData</span>
@@ -28,7 +28,7 @@
     <span class="err">@</span>
 
   <span class="vi">@delete: </span><span class="nf">(fname) -&gt;</span>
-    <span class="nv">fname = </span><span class="nx">root</span><span class="p">.</span><span class="nx">path</span><span class="p">.</span><span class="nx">resolve</span> <span class="nx">fname</span>
+    <span class="nv">fname = </span><span class="nx">basename</span> <span class="nx">root</span><span class="p">.</span><span class="nx">path</span><span class="p">.</span><span class="nx">resolve</span> <span class="nx">fname</span>
     <span class="nx">localStorage</span><span class="p">.</span><span class="nx">removeItem</span> <span class="s2">&quot;file::#{fname.toLowerCase()}&quot;</span></pre></div>             </td>           </tr>                               <tr id="section-3">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-3">&#182;</a>               </div>               <p>this is a global in Node.JS as well</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="k">class</span> <span class="nx">win</span><span class="p">.</span><span class="nx">Buffer</span>
   <span class="nv">constructor: </span><span class="nf">(obj) -&gt;</span>
     <span class="k">if</span> <span class="nx">obj</span> <span class="k">instanceof</span> <span class="nb">Array</span>
@@ -112,5 +112,7 @@
     <span class="k">for</span> <span class="nx">c</span><span class="p">,</span> <span class="nx">idx</span> <span class="k">in</span> <span class="nx">components</span>
       <span class="nx">components</span><span class="p">[</span><span class="nx">idx</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span> <span class="k">if</span> <span class="nx">c</span> <span class="o">==</span> <span class="s1">&#39;.&#39;</span></pre></div>             </td>           </tr>                               <tr id="section-5">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-5">&#182;</a>               </div>               <p>remove repeated //s</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nv">path = </span><span class="p">(</span><span class="nx">c</span> <span class="k">for</span> <span class="nx">c</span><span class="p">,</span> <span class="nx">idx</span> <span class="k">in</span> <span class="nx">components</span> <span class="k">when</span> <span class="nx">c</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">).</span><span class="nx">join</span> <span class="s1">&#39;/&#39;</span>
     <span class="p">(</span><span class="k">if</span> <span class="nx">absolute</span> <span class="k">then</span> <span class="s1">&#39;/&#39;</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="nx">path</span>
+
+<span class="nv">basename = </span><span class="nf">(path) -&gt;</span> <span class="nx">_</span><span class="p">.</span><span class="nx">last</span> <span class="nx">path</span><span class="p">.</span><span class="nx">split</span> <span class="s1">&#39;/&#39;</span>
 
 </pre></div>             </td>           </tr>                </tbody>     </table>   </div> </body> </html> 
