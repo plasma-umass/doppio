@@ -321,7 +321,7 @@ commands =
       controller.onreprompt = null
       console.profileEnd()
       end = (new Date).getTime()
-      controller.message "\nCommand took a total of #{end-start}ms to run.", '', true
+      controller.message "\nCommand took a total of #{end-start}ms to run.\n", '', true
     commands[args.shift()](args)
   profile: (args) ->
     count = 0
@@ -332,14 +332,14 @@ commands =
       controller.onreprompt = ->
         unless count < runs
           controller.onreprompt = null
-          controller.message "\n#{args[0]} took an average of #{duration/runs}ms.", '', true
+          controller.message "\n#{args[0]} took an average of #{duration/runs}ms.\n", '', true
           return
         end = (new Date).getTime()
         if count++ == 0 # first one to warm the cache
           return time_once()
         duration += end - start
         time_once()
-      commands['java'](args)
+      commands[args.shift()](args)
     time_once()
   help: (args) ->
     """
