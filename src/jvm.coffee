@@ -57,7 +57,8 @@ root.run_class = (rs, class_name, cmdline_args, done_cb) ->
       else
         console.error "\nInternal JVM Error!"
         show_state(rs)
-        console.error e.stack
+        #console.error e.stack
+        throw e
       unless e instanceof util.YieldException
         done_cb?()
   run (-> rs.initialize(class_name,cmdline_args)),

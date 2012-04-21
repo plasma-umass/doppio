@@ -7,7 +7,7 @@ asyncExecute = this.asyncExecute ? (require './util').asyncExecute
 root.untar = (bytes, cb, done_cb) ->
   next_file = ->
     [path,body] = shift_file(bytes)
-    percent = bytes.index / bytes.size()
+    percent = bytes.pos() / bytes.size()
     cb percent, path, body
     if bytes.peek() != 0
       asyncExecute next_file

@@ -44,7 +44,7 @@ class root.InvokeOpcode extends root.Opcode
     # invokeinterface has two redundant bytes
     if @name == 'invokeinterface'
       @count = code_array.get_uint 1
-      code_array.index++
+      code_array.skip 1
       @byte_count += 2
     @method_spec = constant_pool.get(@method_spec_ref).deref()
 
@@ -172,8 +172,8 @@ class root.SwitchOpcode extends root.BranchOpcode
 class root.LookupSwitchOpcode extends root.SwitchOpcode
   take_args: (code_array, constant_pool) ->
     # account for padding that ensures alignment
-    padding_size = (4 - code_array.index % 4) % 4
-    code_array.index += padding_size
+    padding_size = (4 - code_array.pos() % 4) % 4
+    code_array.skip padding_size
     @_default = code_array.get_int(4)
     @npairs = code_array.get_int(4)
     @offsets = {}
@@ -186,8 +186,8 @@ class root.LookupSwitchOpcode extends root.SwitchOpcode
 class root.TableSwitchOpcode extends root.SwitchOpcode
   take_args: (code_array, constant_pool) ->
     # account for padding that ensures alignment
-    padding_size = (4 - code_array.index % 4) % 4
-    code_array.index += padding_size
+    padding_size = (4 - code_array.pos() % 4) % 4
+    code_array.skip padding_size
     @_default = code_array.get_int(4)
     @low = code_array.get_int(4)
     @high = code_array.get_int(4)

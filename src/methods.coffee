@@ -21,15 +21,13 @@ class AbstractMethodField
   constructor: (@class_type) ->
 
   parse: (bytes_array,constant_pool,@idx) ->
-    @access_byte = util.read_uint(bytes_array.splice(0,2))
+    @access_byte = bytes_array.get_uint 2
     @access_flags = util.parse_flags @access_byte
-    @name = constant_pool.get(util.read_uint(bytes_array.splice(0,2))).value
-    @raw_descriptor = constant_pool.get(util.read_uint(bytes_array.splice(0,2))).value
+    @name = constant_pool.get(bytes_array.get_uint 2).value
+    @raw_descriptor = constant_pool.get(bytes_array.get_uint 2).value
     @parse_descriptor @raw_descriptor
-    bytes_array = new util.BytesArray bytes_array
-    [@attrs, bytes_array] = make_attributes(bytes_array,constant_pool)
+    @attrs = make_attributes(bytes_array,constant_pool)
     @code = _.find(@attrs, (a) -> a.constructor.name == "Code")
-    return bytes_array.to_array()
 
 class root.Field extends AbstractMethodField
   parse_descriptor: (@raw_descriptor) ->

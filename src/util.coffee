@@ -76,32 +76,35 @@ root.parse_flags = (flag_byte) ->
   flags
 
 class root.BytesArray
-  constructor: (@raw_array, @index=0, @end=@raw_array.length) ->
+  constructor: (@raw_array, @start=0, @end=@raw_array.length) ->
+    @_index = 0
 
-  has_bytes: -> @index < @end
+  pos: -> @_index
+
+  skip: (bytes_count) -> @_index += bytes_count
+
+  has_bytes: -> @start + @_index < @end
 
   get_uint: (bytes_count) ->
-    rv = root.read_uint @raw_array.slice(@index, @index+bytes_count)
-    @index += bytes_count
+    rv = root.read_uint @raw_array.slice(@start + @_index, @start + @_index + bytes_count)
+    @_index += bytes_count
     return rv
 
   get_int: (bytes_count) ->
     uint = root.uint2int @get_uint(bytes_count), bytes_count
 
   read: (bytes_count) ->
-    rv = @raw_array[@index...@index+bytes_count]
-    @index += bytes_count
+    rv = @raw_array[@start+@_index...@start+@_index+bytes_count]
+    @_index += bytes_count
     rv
 
-  peek: -> @raw_array[@index]
+  peek: -> @raw_array[@start+@_index]
 
-  size: -> @end - @index
-
-  to_array: -> @raw_array[@index...@end]
+  size: -> @end - @start - @_index
 
   splice: (len) ->
-    arr = new root.BytesArray @raw_array, @index, @index+len
-    @index += len
+    arr = new root.BytesArray @raw_array, @start+@_index, @start+@_index+len
+    @_index += len
     arr
 
 root.is_string = (obj) -> typeof obj == 'string' or obj instanceof String

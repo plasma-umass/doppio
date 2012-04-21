@@ -14,7 +14,7 @@ class SimpleReference
   constructor: (@constant_pool, @value) ->
 
   @from_bytes: (bytes_array, constant_pool) ->
-    value = util.read_uint(bytes_array.splice(0,2))
+    value = bytes_array.get_uint 2
     ref = new @ constant_pool, value
     return [ref, 1, bytes_array]
 
@@ -78,8 +78,8 @@ class ConstString
   constructor: (@value) -> @type = 'Asciz'
 
   @from_bytes: (bytes_array) ->
-    strlen = util.read_uint(bytes_array.splice(0,2))
-    value = util.bytes2str bytes_array.splice(0,strlen)
+    strlen = bytes_array.get_uint 2
+    value = util.bytes2str bytes_array.read(strlen)
     const_string = new @ value
     return [const_string, 1, bytes_array]
 
@@ -87,7 +87,7 @@ class ConstInt32
   constructor: (@value) -> @type = 'int'
 
   @from_bytes: (bytes_array) ->
-    uint32 = util.read_uint(bytes_array.splice(0,4))
+    uint32 = bytes_array.get_uint 4
     value = -(1 + ~uint32)  # convert to signed integer ONLY FOR 32 BITS
     int32 = new @ value
     return [int32, 1, bytes_array]
@@ -96,7 +96,7 @@ class ConstFloat
   constructor: (@value) -> @type = 'float'
 
   @from_bytes: (bytes_array) ->
-    uint32 = util.read_uint(bytes_array.splice(0,4))
+    uint32 = bytes_array.get_uint 4
     sign = (uint32 &       0x80000000)>>>31
     exponent = (uint32 &   0x7F800000)>>>23
     significand = uint32 & 0x007FFFFF
@@ -111,8 +111,8 @@ class ConstLong
   constructor: (@value) -> @type = 'long'
 
   @from_bytes: (bytes_array) ->
-    high = util.read_uint(bytes_array.splice(0,4))
-    low = util.read_uint(bytes_array.splice(0,4))
+    high = bytes_array.get_uint 4
+    low = bytes_array.get_uint 4
     value = gLong.fromBits(low,high)
     long = new @ value
     return [long, 2, bytes_array]
@@ -122,8 +122,8 @@ class ConstDouble
 
   @from_bytes: (bytes_array) ->
     #a hack since bitshifting in js is 32bit
-    uint32_a = util.read_uint(bytes_array.splice(0,4))
-    uint32_b = util.read_uint(bytes_array.splice(0,4))
+    uint32_a = bytes_array.get_uint 4
+    uint32_b = bytes_array.get_uint 4
     sign     = (uint32_a & 0x80000000)>>>31
     exponent = (uint32_a & 0x7FF00000)>>>20
     significand = util.lshift(uint32_a & 0x000FFFFF, 32) + uint32_b
@@ -141,12 +141,12 @@ class @ConstantPool
       6: ConstDouble, 7: ClassReference, 8: StringReference, 9: FieldReference,
       10: MethodReference, 11: InterfaceMethodReference, 12: MethodSignature
     }
-    @cp_count = util.read_uint(bytes_array.splice(0,2))
+    @cp_count = bytes_array.get_uint 2
     # constant_pool works like an array, but not all indices have values
     @constant_pool = {}
     idx = 1  # CP indexing starts at zero
     while idx < @cp_count
-      tag = bytes_array.shift()
+      tag = bytes_array.get_uint 1
       throw "invalid tag: #{tag}" unless 1 <= tag <= 12
       [pool_obj,size,bytes_array] =
         constant_tags[tag].from_bytes(bytes_array, @constant_pool)

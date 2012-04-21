@@ -29,14 +29,13 @@ class Code
     for eh in @exception_handlers
       bytes_array = eh.parse(bytes_array,constant_pool)
     # yes, there are even attrs on attrs. BWOM... BWOM...
-    [@attrs,bytes_array] = root.make_attributes(bytes_array,constant_pool)
+    @attrs = root.make_attributes(bytes_array,constant_pool)
     return bytes_array
 
   parse_code: (bytes_array, constant_pool) ->
     rv = new Array @code_len
-    start_idx = bytes_array.index
     while bytes_array.has_bytes()
-      op_index = bytes_array.index - start_idx
+      op_index = bytes_array.pos()
       c = bytes_array.get_uint 1
       wide = c == 196
       if wide # wide opcode needs to be handled specially
@@ -194,11 +193,11 @@ root.make_attributes = (bytes_array,constant_pool) ->
       new_len = bytes_array.size()
       if old_len - new_len != attr_len
         #throw new Error "#{name} attribute didn't consume all bytes"
-        bytes_array.index += attr_len - old_len + new_len
+        bytes_array.skip attr_len - old_len + new_len
       attrs.push attr
     else # we must silently ignore other attrs
       # console.log "ignoring #{attr_len} bytes for attr #{name}"
-      bytes_array.index += attr_len
-  return [attrs,bytes_array]
+      bytes_array.skip attr_len
+  return attrs
 
 module?.exports = root.make_attributes
