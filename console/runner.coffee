@@ -40,20 +40,24 @@ if require.main == module
   if argv.profile
     timings = {}
     call_counts = {}
-    old_fn = methods.Method::run_bytecode
-    methods.Method::run_bytecode = do (old_fn) ->
-      ->
-        m = rs.curr_frame().method
-        fn_name = "#{m.class_type.toClassString()}::#{m.name}"
-        timings[fn_name] ?= 0
-        call_counts[fn_name] ?= 0
+    profiled_fn = (old_fn) -> ->
+      method = rs.curr_frame().method
+      caller = rs.meta_stack[rs.meta_stack.length-2].method
+      fn_sig = (fn) -> "#{fn.class_type.toClassString()}::#{fn.name}"
+      method_name = fn_sig method
+      hash = "#{if caller? then fn_sig caller else "program"}|#{method_name}"
+      timings[hash] ?= 0
+      call_counts[method_name] ?= 0
 
-        start = (new Date).getTime()
-        old_fn.call this, arguments...
-        end = (new Date).getTime()
+      start = (new Date).getTime()
+      old_fn.call this, arguments...
+      end = (new Date).getTime()
 
-        timings[fn_name] += end - start
-        call_counts[fn_name]++
+      timings[hash] += end - start
+      call_counts[method_name]++
+
+    methods.Method::run_bytecode = profiled_fn(methods.Method::run_bytecode)
+    methods.Method::run_manually = profiled_fn(methods.Method::run_manually)
 
   java_cmd_args = (argv.java?.toString().split /\s+/) or []
 
@@ -61,8 +65,19 @@ if require.main == module
   jvm.run_class rs, cname, java_cmd_args
 
   if argv.profile
-    arr = (name: k, total: v, counts:call_counts[k] for k, v of timings)
-    arr.sort (a, b) -> b.total - a.total
-    for entry in arr[0..20]
-      avg = entry.total / entry.counts
-      console.log "#{entry.name}: #{entry.total}ms / #{entry.counts} = #{avg.toPrecision 5}ms"
+    self_timings = {}
+    total_timings = {}
+    for k, v of timings
+      [caller,method] = k.split "|"
+      self_timings[method]  ?= 0
+      self_timings[caller]  ?= 0
+      total_timings[method] ?= 0
+      self_timings[method]  += v
+      self_timings[caller]  -= v
+      total_timings[method] += v
+    arr = (name: k, total: total_timings[k], self: v, counts:call_counts[k] for k, v of self_timings)
+    arr.sort (a, b) -> b.self - a.self
+    console.log ['total','self','calls','self ms/call','name'].join '\t'
+    for entry in arr[0..30]
+      avg = entry.self / entry.counts
+      console.log "#{entry.total}\t#{entry.self}\t#{entry.counts}\t#{avg.toFixed 1}\t#{entry.name}"
