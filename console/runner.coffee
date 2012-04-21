@@ -35,6 +35,9 @@ if require.main == module
     util.log_level = argv.log + 0
 
   cname = argv._[0]
+  cname = cname[0...-6] if cname[-6..] is '.class'
+  return optimist.showHelp() unless cname?
+
   stdout = process.stdout.write.bind process.stdout
   read_stdin = (n_bytes, resume) ->
     process.stdin.resume()
