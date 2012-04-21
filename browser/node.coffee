@@ -9,7 +9,7 @@ class win.DoppioFile # File is a native browser thing
     @data = ""
 
   @load: (fname) ->
-    fname = root.path.resolve fname
+    fname = basename root.path.resolve fname
     rawData = localStorage["file::#{fname?.toLowerCase()}"]
     return null unless rawData
     data = JSON.parse rawData
@@ -31,7 +31,7 @@ class win.DoppioFile # File is a native browser thing
     @
 
   @delete: (fname) ->
-    fname = root.path.resolve fname
+    fname = basename root.path.resolve fname
     localStorage.removeItem "file::#{fname.toLowerCase()}"
 
 # this is a global in Node.JS as well
@@ -122,3 +122,5 @@ root.path =
     # remove repeated //s
     path = (c for c, idx in components when c != '').join '/'
     (if absolute then '/' else '') + path
+
+basename = (path) -> _.last path.split '/'

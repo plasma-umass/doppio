@@ -3,7 +3,7 @@ DISASMS = $(SOURCES:.java=.disasm)
 RUNOUTS = $(SOURCES:.java=.runout)
 CLASSES = $(SOURCES:.java=.class)
 RESULTS = $(SOURCES:.java=.result)
-DEMO_SRCS = $(wildcard test/special/*.java)
+DEMO_SRCS = $(wildcard test/special/*.java) test/FileRead.java
 DEMO_CLASSES = $(DEMO_SRCS:.java=.class)
 BROWSER_HTML = $(wildcard browser/[^_]*.html)
 BUILD_HTML = $(addprefix build/, $(notdir $(BROWSER_HTML)))
@@ -61,7 +61,7 @@ release: $(BUILD_HTML) build/compressed.js browser/mini-rt.tar build/ace.js \
 	build/browser/style.css $(DEMO_CLASSES)
 	git submodule update --init --recursive
 	mkdir -p build/browser
-	rsync -a test/special build/test/
+	rsync -R $(DEMO_SRCS) $(DEMO_CLASSES) test/special/foo test/special/bar build/
 	rsync browser/mini-rt.tar build/browser/mini-rt.tar
 	rsync browser/*.svg build/browser/
 	rsync browser/*.png build/browser/
