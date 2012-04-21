@@ -20,7 +20,12 @@ if require.main == module
   optimist = require 'optimist'
   {argv} = optimist
 
-  optimist.usage('Usage: $0 /path/to/classfile --java=[args for JVM] [--log=[0-10]|debug|error]')
+  optimist.usage '''
+  Usage: $0 /path/to/classfile
+    --java=[args for JVM]
+    [--log=[0-10]|debug|error]
+    [--profile]
+  '''
 
   return optimist.showHelp() if argv.help
 
