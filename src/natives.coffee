@@ -92,7 +92,8 @@ system_properties = {
   # we don't actually load from this file, but it has to look like a valid filename
   'sun.boot.class.path': '/System/Library/Frameworks/JavaVM.framework/Classes/classes.jar',
   # this doesn't actually exist in our classes.jar, but no other GraphicsEnvironment does either
-  'java.awt.graphicsenv': 'sun.awt.X11GraphicsEnvironment'
+  'java.awt.graphicsenv': 'sun.awt.X11GraphicsEnvironment',
+  'useJavaUtilZip': 'true'  # hack for sun6javac, avoid ZipFileIndex shenanigans
 }
 
 get_field_from_offset = (rs, cls, offset) ->
@@ -492,20 +493,18 @@ native_methods =
                 # yep, hardcoded. though I'm not sure a correct value actually matters...
                 return 21090
               zipfile = rs.get_zip_descriptor jzfile
-              unless zipfile.size?
-                entries = []
+              unless zipfile.entries?
+                zipfile.entries = {}
                 add_entries = (dir) ->
                   curr_dir_entries = fs.readdirSync dir
-                  for e in curr_dir_entries
-                    fullpath = "#{dir}/#{e}"
+                  for name in curr_dir_entries
+                    fullpath = "#{dir}/#{name}"
                     stat = fs.statSync fullpath
+                    zipfile.entries[fullpath] = rs.set_zip_descriptor {fullpath,name,stat}
                     if stat.isDirectory()
                       add_entries fullpath
-                    else
-                      entries.push e
                 add_entries zipfile.path
-                zipfile.size = entries.length
-              zipfile.size
+              _.keys(zipfile.entries).length
           o 'getEntry(JLjava/lang/String;Z)J', (rs, jzfile, name, add_slash) ->
               zf = rs.get_zip_descriptor jzfile
               entry_name = rs.jvm2js_str name
@@ -528,15 +527,18 @@ native_methods =
                          stat: {
                            size: file.length
                          }
-              try
-                file = fs.openSync fullpath, 'r'
-              catch e
-                return gLong.ZERO
-              rs.set_zip_descriptor
-                fullpath: fullpath
-                name: entry_name
-                file: file
-                stat: fs.fstatSync file
+              if zf.entries?[fullpath]?
+                zf.entries[fullpath]
+              else
+                gLong.ZERO
+          o 'getNextEntry(JI)J', (rs, jzfile, idx) ->
+              zf = rs.get_zip_descriptor jzfile
+              entry_array = _.values(zf.entries)
+              return gLong.ZERO unless 0 <= idx < entry_array.length
+              entry_array[idx]
+          o 'getZipMessage(J)Ljava/lang/String;', (rs, jzfile) ->
+              zf = rs.get_zip_descriptor jzfile
+              rs.init_string "not sure what to say here... ZipFile::getZipMessage"
           o 'freeEntry(JJ)V', (rs, jzfile, jzentry) -> rs.free_zip_descriptor jzentry
           o 'getCSize(J)J', (rs, jzentry) ->
               ze = rs.get_zip_descriptor jzentry
@@ -547,13 +549,14 @@ native_methods =
           o 'getMethod(J)I', (rs, jzentry) -> 0 # STORED (i.e. uncompressed)
           o 'read(JJJ[BII)I', (rs, jzfile, jzentry, pos, byte_arr, offset, len) ->
               ze = rs.get_zip_descriptor jzentry
+              file = ze.file ? fs.openSync ze.fullpath, 'r'
               if node?
                 pos_int = pos.toInt()
-                bytes_read = Math.min(ze.file.length - pos_int, len)
-                byte_arr.array[offset+i] = ze.file[pos_int+i] for i in [0...bytes_read] by 1
+                bytes_read = Math.min(file.length - pos_int, len)
+                byte_arr.array[offset+i] = file[pos_int+i] for i in [0...bytes_read] by 1
               else
                 buf = new Buffer len
-                bytes_read = fs.readSync(ze.file, buf, 0, len, pos.toInt())
+                bytes_read = fs.readSync(file, buf, 0, len, pos.toInt())
                 byte_arr.array[offset+i] = buf.readUInt8(i) for i in [0...bytes_read] by 1
               return if bytes_read == 0 and len isnt 0 then -1 else bytes_read
         ]
