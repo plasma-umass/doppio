@@ -31,19 +31,19 @@
       position:relative;border: 1px solid #ccc; float: left;}
     div#console { height: 75%; padding:0; }
     @-webkit-keyframes blinker {
-      0% { opacity: 1.0; }
-      50% { opacity: 1.0; }
-      51% { opacity: 0.0; }
-      100% { opacity: 0.0; }
+      0% { background:#ccc; color:#222; }
+      50% { background:#ccc; color:#222; }
+      51% { background:#222; color:#ccc; }
+      100% { background:#222; color:#ccc; }
     }
     @-moz-keyframes blinker {
-      0% { opacity: 1.0; }
-      50% { opacity: 1.0; }
-      51% { opacity: 0.0; }
-      100% { opacity: 0.0; }
+      0% { background:#ccc; color:#222; }
+      50% { background:#ccc; color:#222; }
+      51% { background:#222; color:#ccc; }
+      100% { background:#222; color:#ccc; }
     }
     div#console pre.jquery-console-focus span.jquery-console-cursor {
-      background:#ccc; color:#eee; font-weight:bold;
+      background:#ccc; color:#222;
       -webkit-animation-name: blinker;
       -webkit-animation-iteration-count: infinite;
       -webkit-animation-timing-function: cubic-bezier(1.0,0,0,1.0);
@@ -58,7 +58,6 @@
        overflow:auto }
     div#console div.jquery-console-prompt-box
      { color:#ccc; }
-    div#console span.jquery-console-prompt-label { font-weight:bold }
     label { margin-right: 5px; }
   </style>
 #ifdef RELEASE
