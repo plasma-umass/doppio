@@ -91,7 +91,7 @@ class root.BytesArray
     return rv
 
   get_int: (bytes_count) ->
-    uint = root.uint2int @get_uint(bytes_count), bytes_count
+    root.uint2int @get_uint(bytes_count), bytes_count
 
   read: (bytes_count) ->
     rv = @raw_array[@start+@_index...@start+@_index+bytes_count]

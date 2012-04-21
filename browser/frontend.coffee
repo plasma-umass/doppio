@@ -34,7 +34,7 @@ $.ajax "browser/mini-rt.tar", {
 
     untar new util.BytesArray(util.bytestr_to_array data), ((percent, path, file) ->
       update_bar(percent, path)
-      raw_cache[path] = file[0..]
+      raw_cache[path] = file
       base_dir = 'third_party/classes/'
       [base,ext] = path.split('.')
       unless ext is 'class'
