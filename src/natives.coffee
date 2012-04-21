@@ -45,7 +45,7 @@ trapped_methods =
               else
                 ln = -1
               stack.push rs.init_object "java/lang/StackTraceElement", {
-                declaringClass: rs.init_string cls.toClassString()
+                declaringClass: rs.init_string util.ext_classname cls.toClassString()
                 methodName: rs.init_string sf.method.name
                 fileName: rs.init_string source_file
                 lineNumber: ln
@@ -282,15 +282,7 @@ native_methods =
             rs.static_put {class:'java/lang/System', name:'err'}
       ]
       Thread: [
-        o 'currentThread()L!/!/!;', (rs) ->  # essentially a singleton for the main thread mock object
-            unless rs.main_thread?
-              rs.push (g_ref = rs.init_object 'java/lang/ThreadGroup')
-              # have to run the private ThreadGroup constructor
-              rs.method_lookup({class: 'java/lang/ThreadGroup', sig: '<init>()V'}).run(rs)
-              rs.main_thread = rs.init_object 'java/lang/Thread', { priority: 1, group: g_ref, threadLocals: 0 }
-              rs.push gLong.ZERO, null  # set up for static_put
-              rs.static_put {class:'java/lang/Thread', name:'threadSeqNumber'}
-            rs.main_thread
+        o 'currentThread()L!/!/!;', (rs) -> rs.main_thread # essentially a singleton for the main thread mock object
         o 'setPriority0(I)V', (rs) -> # NOP
         o 'holdsLock(L!/!/Object;)Z', -> true
         o 'isAlive()Z', (rs, _this) -> _this.fields.$isAlive ? false

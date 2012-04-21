@@ -45,8 +45,9 @@ root.run_class = (rs, class_name, cmdline_args, done_cb) ->
       if e instanceof util.JavaException
         debug "\nUncaught Java Exception"
         show_state(rs)
-        rs.push e.exception.ref
-        rs.method_lookup(class: 'java/lang/Throwable', sig: 'printStackTrace()V').run(rs)
+        rs.push rs.main_thread, e.exception.ref
+        #util.log_level = 10
+        rs.method_lookup(class: 'java/lang/Thread', sig: 'dispatchUncaughtException(Ljava/lang/Throwable;)V').run(rs)
       else if e instanceof util.HaltException
         console.error "\nExited with code #{e.exit_code}" unless e.exit_code is 0
       else if e instanceof util.YieldException

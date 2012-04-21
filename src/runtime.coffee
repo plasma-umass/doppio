@@ -24,8 +24,20 @@ class root.RuntimeState
   # Init the first class, and put the command-line args on the stack for use by
   # its main method.
   initialize: (class_name, initial_args) ->
+    # initialize thread objects
+    @meta_stack = [new root.StackFrame null,[],[]]
+    @push (g_ref = @init_object 'java/lang/ThreadGroup')
+    @method_lookup({class: 'java/lang/ThreadGroup', sig: '<init>()V'}).run(this)
+    @main_thread = @init_object 'java/lang/Thread',
+      name: @init_carr 'main'
+      priority: 1
+      group: g_ref
+      threadLocals: 0
+    @push gLong.ZERO, null  # set up for static_put
+    @static_put {class:'java/lang/Thread', name:'threadSeqNumber'}
     args = @set_obj(c2t('[Ljava/lang/String;'),(@init_string(a) for a in initial_args))
-    @meta_stack = [new root.StackFrame(null,[],[args])]  # start with a bogus ground state
+    # prepare meta_stack for main(String[] args)
+    @meta_stack = [new root.StackFrame(null,[],[args])]
     @class_lookup c2t class_name
 
   # Convert a Java String object into an equivalent JS one.
@@ -130,10 +142,11 @@ class root.RuntimeState
     @set_obj type, obj
   init_string: (str,intern=false) ->
     return @string_pool[str] if intern and @string_pool[str]? and typeof @string_pool[str] isnt 'function'
-    c_ref = @set_obj c2t('[C'), (str.charCodeAt(i) for i in [0...str.length])
+    c_ref = @init_carr str
     s_ref = @set_obj c2t('java/lang/String'), {'value':c_ref, 'count':str.length}
     @string_pool[str] = s_ref if intern
     return s_ref
+  init_carr: (str) -> @set_obj c2t('[C'), (str.charCodeAt(i) for i in [0...str.length])
 
   # Tries to obtain the class of type :type. Called by the bootstrap class loader.
   # Throws a NoClassDefFoundError on failure.
