@@ -7,13 +7,6 @@ root = exports ? this.util = {}
 
 root.sum = (list) -> _.reduce(list, ((a,b) -> a+b), 0)
 
-root.padleft = (str,len,fillchar) ->
-  throw "fillchar can only be length 1" unless fillchar.length == 1
-  # I hate this.
-  until str.length >= len
-    str = fillchar + str
-  return str
-
 root.cmp = (a,b) ->
   return 0  if a == b
   return -1 if a < b
@@ -24,23 +17,10 @@ root.cmp = (a,b) ->
 # (see http://stackoverflow.com/questions/337355/javascript-bitwise-shift-of-long-long-number)
 root.lshift = (x,n) -> x*Math.pow(2,n)
 
-root.bitwise_not = (x,nbits) ->
-  s = root.padleft(x.toString(2),nbits,'0')
-  # may the computer gods have mercy on our souls...
-  not_s = s.replace(/1/g,'x').replace(/0/g,'1').replace(/x/g,'0')
-  return parseInt(not_s,2)
-
 root.read_uint = (bytes) -> 
   n = bytes.length-1
   # sum up the byte values shifted left to the right alignment.
   root.sum(root.lshift(bytes[i],8*(n-i)) for i in [0..n])
-
-root.read_int = (bytes) ->
-  s = (util.padleft(bytes[i].toString(2),8,'0') for i in [0...bytes.length]).join('')
-  if s[0] == '1'
-    not_s = s.replace(/1/g,'x').replace(/0/g,'1').replace(/x/g,'0')
-    return -(1 + parseInt(not_s,2))
-  return parseInt(s,2)
 
 root.uint2int = (uint, bytes_count) ->
   if uint > Math.pow 2, 8 * bytes_count - 1
@@ -108,24 +88,6 @@ class root.BytesArray
     arr
 
 root.is_string = (obj) -> typeof obj == 'string' or obj instanceof String
-
-root.decimal_to_string = (num, precision) ->
-  if num == Number.MIN_VALUE
-    s = num.toPrecision(2)
-  else
-    s = num.toString()
-    if s.indexOf('e') == -1 and Math.abs(num) > Math.pow(10, 7)
-      exp_len = s.length - (if num < 0 then 2 else 1)
-      s = num.toExponential(Math.min(exp_len, precision-1))
-      s = s.replace(/\.?0+e/,'e')  # remove trailing zeros before exponent
-    else if s.indexOf('.') == -1
-      s = num.toFixed(1)
-    else
-      # cap the number of decimal places
-      dec = parseFloat(s.match(/\d+\.\d+/)[0]).toPrecision(precision)
-      dec = dec.replace(/0+$/,'').replace(/\.$/,'.0')  # remove trailing zeros
-      s = s.replace(/\d+\.\d+/,dec)
-  return s.replace(/e/,'E').replace(/\+/,'')
 
 # Walks up the prototype chain of :object looking for an entry in the :handlers
 # dict that match its constructor's name. If it finds one, it calls that handler
