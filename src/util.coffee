@@ -150,8 +150,7 @@ class root.YieldException
   constructor: (@condition) ->
 
 class root.JavaException
-  constructor: (rs, @exception_ref) ->
-    @exception = rs.get_obj @exception_ref
+  constructor: (rs, @exception) ->
 
 # Simulate the throwing of a Java exception with message :msg. Not very DRY --
 # code here is essentially copied from the opcodes themselves -- but

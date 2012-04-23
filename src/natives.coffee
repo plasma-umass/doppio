@@ -31,7 +31,7 @@ trapped_methods =
             _this.fields.stackTrace = rs.init_object "[Ljava/lang/StackTraceElement;", stack
             # we don't want to include the stack frames that were created by
             # the construction of this exception
-            for sf in rs.meta_stack.slice(1) when sf.locals[0] isnt _this.ref
+            for sf in rs.meta_stack.slice(1) when sf.locals[0] isnt _this
               cls = sf.method.class_type
               unless _this.type.toClassString() is 'java/lang/NoClassDefFoundError'
                 attrs = rs.class_lookup(cls).attrs
@@ -51,7 +51,7 @@ trapped_methods =
                 lineNumber: ln
               }
             stack.reverse()
-            _this.ref
+            _this
       ]
     util:
       concurrent:
@@ -76,10 +76,9 @@ trapped_methods =
         ]
   
 doPrivileged = (rs) ->
-  oref = rs.curr_frame().locals[0]
-  action = rs.get_obj(oref)
+  action = rs.curr_frame().locals[0]
   m = rs.method_lookup(class: action.type.toClassString(), sig: 'run()Ljava/lang/Object;')
-  rs.push oref unless m.access_flags.static
+  rs.push action unless m.access_flags.static
   m.run(rs,m.access_flags.virtual)
   rs.pop()
 
@@ -224,8 +223,7 @@ native_methods =
         o 'getClass()L!/!/Class;', (rs, _this) ->
             rs.class_lookup _this.type, true
         o 'hashCode()I', (rs, _this) ->
-            # return heap reference. XXX need to change this if we ever implement
-            # GC that moves stuff around.
+            # return the pseudo heap reference, essentially a unique id
             _this.ref
         o 'clone()L!/!/!;', (rs, _this) ->
             if _this.type instanceof types.ArrayType then rs.set_obj _this.type, _this.array
@@ -250,7 +248,7 @@ native_methods =
         o 'intern()L!/!/!;', (rs, _this) ->
             js_str = rs.jvm2js_str(_this)
             unless rs.string_pool[js_str]
-              rs.string_pool[js_str] = _this.ref
+              rs.string_pool[js_str] = _this
             rs.string_pool[js_str]
       ]
       System: [
@@ -265,21 +263,21 @@ native_methods =
               class: 'java/util/Properties'
               sig: 'setProperty(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;'
             for k,v of system_properties
-              rs.push props.ref, rs.init_string(k,true), rs.init_string(v,true)
+              rs.push props, rs.init_string(k,true), rs.init_string(v,true)
               m.run(rs)
               rs.pop()  # we don't care about the return value
-            props.ref
+            props
         o 'nanoTime()J', (rs) ->
             # we don't actually have nanosecond precision
             gLong.fromNumber((new Date).getTime()).multiply(gLong.fromNumber(1000000))
-        o 'setIn0(L!/io/InputStream;)V', (rs) ->
-            rs.push rs.curr_frame().locals[0] # move oref to the stack for static_put
+        o 'setIn0(L!/io/InputStream;)V', (rs, stream) ->
+            rs.push stream
             rs.static_put {class:'java/lang/System', name:'in'}
-        o 'setOut0(L!/io/PrintStream;)V', (rs) ->
-            rs.push rs.curr_frame().locals[0] # move oref to the stack for static_put
+        o 'setOut0(L!/io/PrintStream;)V', (rs, stream) ->
+            rs.push stream
             rs.static_put {class:'java/lang/System', name:'out'}
-        o 'setErr0(L!/io/PrintStream;)V', (rs) ->
-            rs.push rs.curr_frame().locals[0] # move oref to the stack for static_put
+        o 'setErr0(L!/io/PrintStream;)V', (rs, stream) ->
+            rs.push stream
             rs.static_put {class:'java/lang/System', name:'err'}
       ]
       Thread: [
@@ -331,7 +329,7 @@ native_methods =
               # appends by default in the browser, not sure in actual node.js impl
               fs.writeSync(_this.fields.$file, new Buffer(bytes.array), offset, len)
               return
-            rs.print rs.jvm_carr2js_str(bytes.ref, offset, len)
+            rs.print rs.jvm_carr2js_str(bytes, offset, len)
             if node?
               # For the browser implementation -- the DOM doesn't get repainted
               # unless we give the event loop a chance to spin.
@@ -341,7 +339,7 @@ native_methods =
             if _this.fields.$file?
               fs.writeSync(_this.fields.$file, new Buffer(bytes.array), offset, len)
               return
-            rs.print rs.jvm_carr2js_str(bytes.ref, offset, len)
+            rs.print rs.jvm_carr2js_str(bytes, offset, len)
             if node?
               # For the browser implementation -- the DOM doesn't get repainted
               # unless we give the event loop a chance to spin.
@@ -432,18 +430,18 @@ native_methods =
       ]
       UnixFileSystem: [
         o 'getBooleanAttributes0(Ljava/io/File;)I', (rs, _this, file) ->
-            stats = stat_file rs.jvm2js_str rs.get_obj file.fields.path
+            stats = stat_file rs.jvm2js_str file.fields.path
             return 0 unless stats?
             if stats.isFile() then 3 else if stats.isDirectory() then 5 else 1
         o 'getLastModifiedTime(Ljava/io/File;)J', (rs, _this, file) ->
-            stats = stat_file rs.jvm2js_str rs.get_obj file.fields.path
+            stats = stat_file rs.jvm2js_str file.fields.path
             util.java_throw 'java/io/FileNotFoundException' unless stats?
             gLong.fromNumber (new Date(stats.mtime)).getTime()
         o 'canonicalize0(L!/lang/String;)L!/lang/String;', (rs, _this, jvm_path_str) ->
             js_str = rs.jvm2js_str jvm_path_str
             rs.init_string path.resolve path.normalize js_str
         o 'list(Ljava/io/File;)[Ljava/lang/String;', (rs, _this, file) ->
-            pth = rs.jvm2js_str rs.get_obj file.fields.path
+            pth = rs.jvm2js_str file.fields.path
             try
               files = fs.readdirSync(pth)
             catch e
@@ -588,7 +586,7 @@ native_methods =
         o 'arrayBaseOffset(Ljava/lang/Class;)I', (rs, _this, cls) -> 0
         o 'arrayIndexScale(Ljava/lang/Class;)I', (rs, _this, cls) -> 1
         o 'compareAndSwapObject(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z', (rs, _this, obj, offset, expected, x) ->
-            set_value_from_offset rs, obj, offset, (x?.ref or 0)
+            set_value_from_offset rs, obj, offset, x
             true
         o 'compareAndSwapInt(Ljava/lang/Object;JII)Z', (rs, _this, obj, offset, expected, x) ->
             set_value_from_offset rs, obj, offset, x
@@ -601,38 +599,38 @@ native_methods =
         o 'staticFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.fields.slot)
         o 'objectFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.fields.slot)
         o 'staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;', (rs,_this,field) ->
-            rs.set_obj rs.get_obj(field.fields.clazz).fields.$type
+            rs.set_obj field.fields.clazz.fields.$type
         o 'getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
             get_value_from_offset rs, obj, offset
         o 'getObject(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
             get_value_from_offset rs, obj, offset
         o 'putOrderedObject(Ljava/lang/Object;JLjava/lang/Object;)V', (rs,_this,obj,offset,new_obj) ->
-            set_value_from_offset rs, obj, offset, (new_obj?.ref or 0)
+            set_value_from_offset rs, obj, offset, new_obj
       ]
     reflect:
       NativeMethodAccessorImpl: [
         o 'invoke0(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;', (rs,m,obj,params) ->
-            type = rs.get_obj(m.fields.clazz).fields.$type
+            type = m.fields.clazz.fields.$type
             method = (method for sig, method of rs.class_lookup(type).methods when method.idx is m.fields.slot)[0]
-            rs.push obj.ref unless method.access_flags.static
+            rs.push obj unless method.access_flags.static
             rs.push params.array...
             method.run(rs)
             rs.pop()
       ]
       NativeConstructorAccessorImpl: [
         o 'newInstance0(Ljava/lang/reflect/Constructor;[Ljava/lang/Object;)Ljava/lang/Object;', (rs,m,params) ->
-            type = rs.get_obj(m.fields.clazz).fields.$type
+            type = m.fields.clazz.fields.$type
             method = (method for sig, method of rs.class_lookup(type).methods when method.idx is m.fields.slot)[0]
-            rs.push (oref = rs.set_obj type, {})
+            rs.push (obj = rs.set_obj type, {})
             rs.push params.array... if params?
             method.run(rs)
-            oref
+            obj
       ]
       Reflection: [
         o 'getCallerClass(I)Ljava/lang/Class;', (rs, frames_to_skip) ->
             #TODO: disregard frames assoc. with java.lang.reflect.Method.invoke() and its implementation
             type = rs.meta_stack[rs.meta_stack.length-1-frames_to_skip].method.class_type
-            rs.class_lookup type, true
+            rs.class_lookup(type, true)
         o 'getClassAccessFlags(Ljava/lang/Class;)I', (rs, _this) ->
             rs.class_lookup(_this.fields.$type).access_byte
       ]

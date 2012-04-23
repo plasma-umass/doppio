@@ -10,25 +10,9 @@ root = exports ? this.jvm = {}
 
 show_state = (rs) ->
   cf = rs.curr_frame()
-  debug "stack: [#{cf.stack}], local: [#{cf.locals}], heap:"
-  i = Math.max(1,rs.heap.length-30)  # because the heap can get huge
-  debug " ...omitted heap entries..." if i > 1
-  while i < rs.heap.length
-    obj = rs.heap[i]
-    typestr = obj.type.toString()
-    if typestr is '[C' and rs.heap[i+1] and rs.heap[i+1].type.toClassString() is 'java/lang/String'
-      debug " #{i},#{i+1}: String \"#{rs.jvm2js_str(rs.heap[i+1])}\""
-      ++i
-    else if typestr is 'Ljava/lang/String;'
-      try
-        debug " #{i}: String \"#{rs.jvm2js_str(obj)}\""
-      catch err
-        debug " #{i}: String (null value)"
-    else if typestr[0] is '['
-      debug " #{i}: #{obj.type.component_type}[#{obj.array.length}]"
-    else
-      debug " #{i}: #{typestr}"
-    ++i
+  s = ((if x?.ref? then x.ref else x) for x in cf.stack)
+  l = ((if x?.ref? then x.ref else x) for x in cf.locals)
+  debug "stack: [#{s}], locals: [#{l}]"
 
 # main function that gets called from the frontend
 root.run_class = (rs, class_name, cmdline_args, done_cb) ->
@@ -45,7 +29,7 @@ root.run_class = (rs, class_name, cmdline_args, done_cb) ->
       if e instanceof util.JavaException
         debug "\nUncaught Java Exception"
         show_state(rs)
-        rs.push rs.main_thread, e.exception.ref
+        rs.push rs.main_thread, e.exception
         #util.log_level = 10
         rs.method_lookup(class: 'java/lang/Thread', sig: 'dispatchUncaughtException(Ljava/lang/Throwable;)V').run(rs)
       else if e instanceof util.HaltException

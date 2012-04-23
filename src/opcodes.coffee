@@ -56,9 +56,10 @@ class root.LoadConstantOpcode extends root.Opcode
 
   _execute: (rs) ->
     val = @constant.value
-    val = rs.string_redirect(val, @cls) if @constant.type is 'String'
+    if @constant.type is 'String'
+      val = rs.string_redirect(val, @cls)
     if @constant.type is 'class'
-      jvm_str = rs.get_obj(rs.string_redirect(val,@cls))
+      jvm_str = rs.string_redirect(val,@cls)
       val = rs.class_lookup c2t(rs.jvm2js_str(jvm_str)), true
     rs.push val
     rs.push null if @name is 'ldc2_w'
@@ -229,7 +230,7 @@ class root.MultiArrayOpcode extends root.Opcode
 class root.ArrayLoadOpcode extends root.Opcode
   execute: (rs) ->
     idx = rs.pop()
-    array = rs.get_obj(rs.pop()).array
+    array = rs.pop().array
     java_throw rs, 'java/lang/ArrayIndexOutOfBoundsException', "#{idx} not in [0,#{array.length})" unless 0 <= idx < array.length
     rs.push array[idx]
     rs.push null if @name.match /[ld]aload/
@@ -287,7 +288,7 @@ jsr = (rs) ->
 # classfile
 root.opcodes = {
   0: new root.Opcode 'nop', { execute: -> }
-  1: new root.Opcode 'aconst_null', { execute: (rs) -> rs.push 0 }
+  1: new root.Opcode 'aconst_null', { execute: (rs) -> rs.push null }
   2: new root.Opcode 'iconst_m1', { execute: (rs) -> rs.push -1 }
   3: new root.Opcode 'iconst_0', { execute: (rs) -> rs.push 0 }
   4: new root.Opcode 'iconst_1', { execute: (rs) -> rs.push 1 }
@@ -365,14 +366,14 @@ root.opcodes = {
   76: new root.StoreOpcode 'astore_1'
   77: new root.StoreOpcode 'astore_2'
   78: new root.StoreOpcode 'astore_3'
-  79: new root.Opcode 'iastore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
-  80: new root.Opcode 'lastore', {execute: (rs) -> v=rs.pop2();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
-  81: new root.Opcode 'fastore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
-  82: new root.Opcode 'dastore', {execute: (rs) -> v=rs.pop2();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
-  83: new root.Opcode 'aastore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
-  84: new root.Opcode 'bastore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
-  85: new root.Opcode 'castore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
-  86: new root.Opcode 'sastore', {execute: (rs) -> v=rs.pop();i=rs.pop();rs.get_obj(rs.pop()).array[i]=v }
+  79: new root.Opcode 'iastore', {execute: (rs) -> v=rs.pop(); i=rs.pop();rs.pop().array[i]=v }
+  80: new root.Opcode 'lastore', {execute: (rs) -> v=rs.pop2();i=rs.pop();rs.pop().array[i]=v }
+  81: new root.Opcode 'fastore', {execute: (rs) -> v=rs.pop(); i=rs.pop();rs.pop().array[i]=v }
+  82: new root.Opcode 'dastore', {execute: (rs) -> v=rs.pop2();i=rs.pop();rs.pop().array[i]=v }
+  83: new root.Opcode 'aastore', {execute: (rs) -> v=rs.pop(); i=rs.pop();rs.pop().array[i]=v }
+  84: new root.Opcode 'bastore', {execute: (rs) -> v=rs.pop(); i=rs.pop();rs.pop().array[i]=v }
+  85: new root.Opcode 'castore', {execute: (rs) -> v=rs.pop(); i=rs.pop();rs.pop().array[i]=v }
+  86: new root.Opcode 'sastore', {execute: (rs) -> v=rs.pop(); i=rs.pop();rs.pop().array[i]=v }
   87: new root.Opcode 'pop', { execute: (rs) -> rs.pop() }
   88: new root.Opcode 'pop2', { execute: (rs) -> rs.pop2() }
   89: new root.Opcode 'dup', { execute: (rs) -> v=rs.pop(); rs.push(v,v) }
@@ -477,23 +478,23 @@ root.opcodes = {
   187: new root.ClassOpcode 'new', { execute: (rs) -> rs.push rs.init_object @class }
   188: new root.NewArrayOpcode 'newarray', { execute: (rs) -> rs.push rs.heap_newarray @element_type, rs.pop() }
   189: new root.ClassOpcode 'anewarray', { execute: (rs) -> rs.push rs.heap_newarray "L#{@class};", rs.pop() }
-  190: new root.Opcode 'arraylength', { execute: (rs) -> rs.push rs.get_obj(rs.pop()).array.length }
+  190: new root.Opcode 'arraylength', { execute: (rs) -> rs.push rs.pop().array.length }
   191: new root.Opcode 'athrow', { execute: (rs) -> throw new JavaException rs, rs.pop() }
   192: new root.ClassOpcode 'checkcast', { execute: (rs) ->
     o = rs.pop()
-    if o == 0 or types.check_cast(rs,o,@class)
+    if (not o?) or types.check_cast(rs,o,@class)
       rs.push o
     else
       target_class = c2t(@class).toExternalString() # class we wish to cast to
-      candidate_class = if o != 0 then rs.get_obj(o).type.toExternalString() else "null"
+      candidate_class = if o? then o.type.toExternalString() else "null"
       java_throw rs, 'java/lang/ClassCastException', "#{candidate_class} cannot be cast to #{target_class}"
   }
-  193: new root.ClassOpcode 'instanceof', { execute: (rs) -> o=rs.pop(); rs.push if o>0 then types.check_cast(rs,o,@class)+0 else 0 }
+  193: new root.ClassOpcode 'instanceof', { execute: (rs) -> o=rs.pop(); rs.push if o? then types.check_cast(rs,o,@class)+0 else 0 }
   194: new root.Opcode 'monitorenter', { execute: (rs)-> rs.pop() }  #TODO: actually implement locks?
   195: new root.Opcode 'monitorexit',  { execute: (rs)-> rs.pop() }  #TODO: actually implement locks?
   197: new root.MultiArrayOpcode 'multianewarray'
-  198: new root.UnaryBranchOpcode 'ifnull', { cmp: (v) -> v <= 0 }
-  199: new root.UnaryBranchOpcode 'ifnonnull', { cmp: (v) -> v > 0 }
+  198: new root.UnaryBranchOpcode 'ifnull', { cmp: (v) -> not v? }
+  199: new root.UnaryBranchOpcode 'ifnonnull', { cmp: (v) -> v? }
   200: new root.BranchOpcode 'goto_w', { byte_count: 4, execute: (rs) -> throw new BranchException rs.curr_pc() + @offset }
   201: new root.BranchOpcode 'jsr_w', { byte_count: 4, execute: jsr }
 }

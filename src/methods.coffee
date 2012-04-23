@@ -78,24 +78,17 @@ class root.Method extends AbstractMethodField
     caller_stack.length -= @param_bytes
     params
   
-  # used by run and run_manually to print arrays for debugging. we need this to
-  # distinguish [null] from [].
-  pa = (a) -> a.map((e)->if e? then (if e instanceof gLong then "#{e}L" else e) else '!')
+  # used by run and run_manually to print arrays for debugging.
+  pa = (a) -> a.map((e)->if e?.ref? then "*#{e.ref}" else (if e instanceof gLong then "#{e}L" else e))
 
   run_manually: (func, rs) ->
     params = rs.curr_frame().locals.slice(0) # make a copy
-    # if we have objects, dereference them
     converted_params = []
     if not @access_flags.static
-      converted_params.push rs.get_obj params.shift()
+      converted_params.push params.shift()
     param_idx = 0
     for p, idx in @param_types
-      p = params[param_idx]
-      if (@param_types[idx] instanceof types.ClassType) or
-         (@param_types[idx] instanceof types.ArrayType)
-        converted_params.push(if p == 0 then null else rs.get_obj p)
-      else
-        converted_params.push p
+      converted_params.push params[param_idx]
       param_idx += if (@param_types[idx].toString() in ['J', 'D']) then 2 else 1
     try
       rv = func rs, converted_params...
@@ -109,8 +102,8 @@ class root.Method extends AbstractMethodField
       throw e
     rs.meta_stack.pop()
     unless @return_type instanceof types.VoidType
-      if @return_type.toString() == 'J' then rs.push rv # longs are stored as objects
-      else rs.push rv + 0 # cast booleans, etc to a Number
+      if @return_type.toString() == 'Z' then rs.push rv + 0 # cast booleans to a Number
+      else rs.push rv
       rs.push null if @return_type.toString() in [ 'J', 'D' ]
 
   run_bytecode: (rs, padding) ->
@@ -148,7 +141,7 @@ class root.Method extends AbstractMethodField
           if handler?
             debug "caught exception as subclass of #{handler.catch_type}"
             rs.curr_frame().stack = []  # clear out anything on the stack; it was made during the try block
-            rs.push e.exception_ref
+            rs.push e.exception
             rs.goto_pc handler.handler_pc
             continue
           else # abrupt method invocation completion
@@ -172,9 +165,9 @@ class root.Method extends AbstractMethodField
       caller_stack = runtime_state.curr_frame().stack
       if virtual
         # dirty hack to bounce up the inheritance tree, to make sure we call the method on the most specific type
-        oref = caller_stack[caller_stack.length-@param_bytes]
-        error "undef'd oref: (#{caller_stack})[-#{@param_bytes}] (#{sig})" unless oref
-        obj = runtime_state.get_obj(oref)
+        obj = caller_stack[caller_stack.length-@param_bytes]
+        unless caller_stack.length-@param_bytes >= 0 and obj?
+          error "undef'd object: (#{caller_stack})[-#{@param_bytes}] (#{sig})"
         m_spec = {class: obj.type.toClassString(), sig: @name + @raw_descriptor}
         m = runtime_state.method_lookup(m_spec)
         #throw "abstract method got called: #{@name}#{@raw_descriptor}" if m.access_flags.abstract

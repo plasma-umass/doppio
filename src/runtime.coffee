@@ -8,6 +8,11 @@ ClassFile ?= require './class_file'
 
 trace = (msg) -> log 9, msg
 
+initial_value = (type_str) ->
+  if type_str is 'J' then gLong.ZERO
+  else if type_str[0] in ['[','L'] then null
+  else 0 
+
 class root.StackFrame
   constructor: (@method,@locals,@stack) ->
     @pc = 0
@@ -16,7 +21,7 @@ class root.StackFrame
 class root.RuntimeState
   constructor: (@print, @async_input, @read_classfile) ->
     @classes = {}
-    @heap = [null] # We have a dud object because pointers should never be zero.
+    @high_oref = 1
     @string_pool = {}
     @string_redirector = {}
     @zip_descriptors = [null]
@@ -26,13 +31,13 @@ class root.RuntimeState
   initialize: (class_name, initial_args) ->
     # initialize thread objects
     @meta_stack = [new root.StackFrame null,[],[]]
-    @push (g_ref = @init_object 'java/lang/ThreadGroup')
+    @push (group = @init_object 'java/lang/ThreadGroup')
     @method_lookup({class: 'java/lang/ThreadGroup', sig: '<init>()V'}).run(this)
     @main_thread = @init_object 'java/lang/Thread',
       name: @init_carr 'main'
       priority: 1
-      group: g_ref
-      threadLocals: 0
+      group: group
+      threadLocals: null
     @push gLong.ZERO, null  # set up for static_put
     @static_put {class:'java/lang/Thread', name:'threadSeqNumber'}
     args = @set_obj(c2t('[Ljava/lang/String;'),(@init_string(a) for a in initial_args))
@@ -45,11 +50,10 @@ class root.RuntimeState
     @jvm_carr2js_str(jvm_str.fields.value, jvm_str.fields.offset, jvm_str.fields.count)
   # Convert :count chars starting from :offset in a Java character array into a
   # JS string
-  jvm_carr2js_str: (arr_ref, offset, count) ->
-    carr = @get_obj(arr_ref).array
+  jvm_carr2js_str: (jvm_arr, offset, count) ->
+    carr = jvm_arr.array
     (util.bytes2str carr).substr(offset ? 0, count)
-  # Convert references to strings in the constant pool to the heap address of
-  # an interned String.
+  # Convert references to strings in the constant pool to an interned String
   string_redirect: (oref,cls) ->
     key = "#{cls}::#{oref}"
     cdata = @class_lookup(c2t(cls))
@@ -57,8 +61,8 @@ class root.RuntimeState
       cstr = cdata.constant_pool.get(oref)
       throw new Error "can't redirect const string at #{oref}" unless cstr and cstr.type is 'Asciz'
       @string_redirector[key] = @init_string(cstr.value,true)
-      trace "heapifying #{oref} -> #{@string_redirector[key]} : '#{cstr.value}'"
-    trace "redirecting #{oref} -> #{@string_redirector[key]}"
+      trace "heapifying #{oref} -> #{@string_redirector[key].ref} : '#{cstr.value}'"
+    trace "redirecting #{oref} -> #{@string_redirector[key].ref}"
     return @string_redirector[key]
 
   # Used by ZipFile to return unique zip file descriptor IDs.
@@ -92,30 +96,27 @@ class root.RuntimeState
   inc_pc:  (n)  -> @curr_frame().pc += n
 
   # Heap manipulation.
-  get_obj: (oref) ->
-    java_throw @, 'java/lang/NullPointerException', '' unless @heap[oref]?
-    @heap[oref]
   set_obj: (type, obj={}) ->
     if type instanceof types.ArrayType
-      @heap.push type: type, array: obj, ref: @heap.length
+      {type: type, array: obj, ref: @high_oref++}
     else
-      @heap.push type: type, fields: obj, ref: @heap.length
-    @heap.length - 1
+      {type: type, fields: obj, ref: @high_oref++}
 
   heap_newarray: (type,len) ->
     if type == 'J'
       @set_obj(c2t("[J"),(gLong.ZERO for i in [0...len] by 1))
-    else
+    else if type[0] == 'L'  # array of object
+      @set_obj(c2t("[#{type}"),(null for i in [0...len] by 1))
+    else  # numeric array
       @set_obj(c2t("[#{type}"),(0 for i in [0...len] by 1))
   heap_put: (field_spec) ->
     val = if field_spec.type in ['J','D'] then @pop2() else @pop()
-    obj = @get_obj @pop()
+    obj = @pop()
     trace "setting #{field_spec.name} = #{val} on obj of type #{obj.type.toClassString()}"
     obj.fields[field_spec.name] = val
-  heap_get: (field_spec, oref) ->
-    obj = @get_obj(oref)
+  heap_get: (field_spec, obj) ->
     name = field_spec.name
-    obj.fields[name] ?= if field_spec.type is 'J' then gLong.ZERO else 0
+    obj.fields[name] ?= initial_value field_spec.type
     trace "getting #{name} from obj of type #{obj.type.toClassString()}: #{obj.fields[name]}"
     @push obj.fields[name]
     @push null if field_spec.type in ['J','D']
@@ -123,15 +124,15 @@ class root.RuntimeState
   # static stuff
   static_get: (field_spec) ->
     f = @field_lookup(field_spec)
-    obj = @get_obj @class_lookup(f.class_type, true)
+    obj = @class_lookup(f.class_type, true)
     val = obj.fields[f.name]
-    val ?= if field_spec.type is 'J' then gLong.ZERO else 0
+    val ?= initial_value f.type.toString()
     trace "getting #{field_spec.name} from class #{field_spec.class}: #{val}"
     val
   static_put: (field_spec) ->
     val = if field_spec.type in ['J','D'] then @pop2() else @pop()
     f = @field_lookup(field_spec)
-    obj = @get_obj @class_lookup(f.class_type, true)
+    obj = @class_lookup(f.class_type, true)
     obj.fields[f.name] = val
     trace "setting #{field_spec.name} = #{val} on class #{field_spec.class}"
 
@@ -142,10 +143,10 @@ class root.RuntimeState
     @set_obj type, obj
   init_string: (str,intern=false) ->
     return @string_pool[str] if intern and @string_pool[str]? and typeof @string_pool[str] isnt 'function'
-    c_ref = @init_carr str
-    s_ref = @set_obj c2t('java/lang/String'), {'value':c_ref, 'count':str.length}
-    @string_pool[str] = s_ref if intern
-    return s_ref
+    carr = @init_carr str
+    jvm_str = @set_obj c2t('java/lang/String'), {'value':carr, 'count':str.length}
+    @string_pool[str] = jvm_str if intern
+    return jvm_str
   init_carr: (str) -> @set_obj c2t('[C'), (str.charCodeAt(i) for i in [0...str.length])
 
   # Tries to obtain the class of type :type. Called by the bootstrap class loader.
@@ -176,18 +177,18 @@ class root.RuntimeState
         class_file = ClassFile.for_array_type type
         @classes[cls] =
           file: class_file
-          obj:  @set_obj(c2t('java/lang/Class'), { $type: type, name: 0 })
+          obj:  @set_obj(c2t('java/lang/Class'), { $type: type })
         component = type.component_type
         if component instanceof types.ArrayType or component instanceof types.ClassType
           @_class_lookup component
       else if type instanceof types.PrimitiveType
-        @classes[type] = {file: '<primitive>', obj: @set_obj(c2t('java/lang/Class'), { $type: type, name: 0 })}
+        @classes[type] = {file: '<primitive>', obj: @set_obj(c2t('java/lang/Class'), { $type: type })}
       else
         class_file = @read_classfile cls
         return unless class_file?
         @classes[cls] =
           file: class_file
-          obj:  @set_obj(c2t('java/lang/Class'), { $type: type, name: 0 })
+          obj:  @set_obj(c2t('java/lang/Class'), { $type: type })
         # Run class initialization code. Superclasses get init'ed first.  We
         # don't want to call this more than once per class, so don't do dynamic
         # lookup. See spec [2.17.4][1].

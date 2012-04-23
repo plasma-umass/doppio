@@ -86,10 +86,9 @@ is_subinterface = (rs, iface1, iface2) ->
   return false unless iface1['super_class']  # it's java/lang/Object, can't go further
   return is_subinterface rs, rs.class_lookup(iface1.super_class), iface2
 
-# Retrieves the heap object referenced by :oref, and returns a boolean
-# indicating if it can be casted to (i.e. is an instance of) :classname.
-root.check_cast = (rs, oref, classname) ->
-  root.is_castable(rs, rs.get_obj(oref).type, root.c2t(classname))
+# true if :obj can be casted to (i.e. is an instance of) :classname.
+root.check_cast = (rs, obj, classname) ->
+  root.is_castable(rs, obj.type, root.c2t(classname))
 
 # Returns a boolean indicating if :type1 is an instance of :type2.
 # :type1 and :type2 should both be instances of types.Type.
