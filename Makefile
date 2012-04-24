@@ -62,6 +62,7 @@ release: $(BUILD_HTML) build/compressed.js browser/mini-rt.tar build/ace.js \
 	git submodule update --init --recursive
 	mkdir -p build/browser
 	rsync -R $(DEMO_SRCS) $(DEMO_CLASSES) test/special/foo test/special/bar build/
+	rsync -a test/special build/test
 	rsync browser/mini-rt.tar build/browser/mini-rt.tar
 	rsync browser/*.svg build/browser/
 	rsync browser/*.png build/browser/

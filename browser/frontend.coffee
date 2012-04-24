@@ -89,12 +89,12 @@ read_classfile = (cls) ->
     for path in classpath
       fullpath = "#{path}#{cls}.class"
       if fullpath of raw_cache
+        continue if raw_cache[fullpath] == null # we tried this path previously & it failed
         class_cache[cls] = new ClassFile raw_cache[fullpath]
         break
-      data = try_path fullpath
-      if data?
-        raw_cache[fullpath] = data
-        class_cache[cls] = new ClassFile data
+      raw_cache[fullpath] = try_path fullpath
+      if raw_cache[fullpath]?
+        class_cache[cls] = new ClassFile raw_cache[fullpath]
         break
   class_cache[cls]
 
@@ -246,7 +246,7 @@ commands =
     rs = new runtime.RuntimeState(stdout, user_input, read_classfile)
     jvm.run_class(rs, '!rhino', args, -> controller.reprompt())
   list_cache: ->
-    (name for name of raw_cache).join '\n'
+    ((if val? then '' else '-') + name for name, val of raw_cache).join '\n'
   clear_cache: (args) ->
     raw_cache = {}
     class_cache = {}
