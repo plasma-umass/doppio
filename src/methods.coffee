@@ -101,7 +101,7 @@ class root.Method extends AbstractMethodField
         rs.meta_stack.pop()
       throw e
     rs.meta_stack.pop()
-    unless @return_type instanceof types.VoidType
+    unless @return_type.toString() == 'V'
       if @return_type.toString() == 'Z' then rs.push rv + 0 # cast booleans to a Number
       else rs.push rv
       rs.push null if @return_type.toString() in [ 'J', 'D' ]

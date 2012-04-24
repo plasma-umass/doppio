@@ -9,6 +9,7 @@ internal2external =
   I: 'int'
   J: 'long'
   S: 'short'
+  V: 'void'
   Z: 'boolean'
 
 external2internal = {}
@@ -22,8 +23,6 @@ root.carr2type = (carr) ->
   return null unless c?
   if c of internal2external
     new root.PrimitiveType internal2external[c]
-  else if c == 'V'
-    new root.VoidType
   else if c == 'L'
     new root.ClassType((c while (c = carr.shift()) != ';').join(''))
   else if c == '['
@@ -66,12 +65,6 @@ class root.ClassType extends root.Type
   toClassString: -> @class_name
 
   toExternalString: -> util.ext_classname @class_name
-
-class root.VoidType extends root.PrimitiveType
-  valueOf: -> 'V'
-
-  toExternalString: -> 'void'
-
 
 is_subclass = (rs, class1, class2) ->
   return true if class1['this_class'] is class2['this_class']
