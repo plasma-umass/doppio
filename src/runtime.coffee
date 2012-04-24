@@ -96,6 +96,9 @@ class root.RuntimeState
   inc_pc:  (n)  -> @curr_frame().pc += n
 
   # Heap manipulation.
+  check_null: (obj) ->
+    java_throw @, 'java/lang/NullPointerException', '' unless obj?
+    obj
   set_obj: (type, obj={}) ->
     if type instanceof types.ArrayType
       {type: type, array: obj, ref: @high_oref++}

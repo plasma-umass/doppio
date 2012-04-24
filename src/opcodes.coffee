@@ -478,7 +478,7 @@ root.opcodes = {
   187: new root.ClassOpcode 'new', { execute: (rs) -> rs.push rs.init_object @class }
   188: new root.NewArrayOpcode 'newarray', { execute: (rs) -> rs.push rs.heap_newarray @element_type, rs.pop() }
   189: new root.ClassOpcode 'anewarray', { execute: (rs) -> rs.push rs.heap_newarray "L#{@class};", rs.pop() }
-  190: new root.Opcode 'arraylength', { execute: (rs) -> rs.push rs.pop().array.length }
+  190: new root.Opcode 'arraylength', { execute: (rs) -> rs.push rs.check_null(rs.pop()).array.length }
   191: new root.Opcode 'athrow', { execute: (rs) -> throw new JavaException rs, rs.pop() }
   192: new root.ClassOpcode 'checkcast', { execute: (rs) ->
     o = rs.pop()
