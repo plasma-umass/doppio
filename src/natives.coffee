@@ -479,33 +479,35 @@ native_methods =
           o 'open(Ljava/lang/String;IJZ)J', (rs,fname,mode,mtime,use_mmap) ->
               js_str = path.resolve rs.jvm2js_str fname
               if js_str == system_properties['sun.boot.class.path']
+                return rs.classes_jar if rs.classes_jar?
                 error "Simulating ZipFile based on classes.jar..."
               else
                 throw "Tried to open #{js_str}: ZipFile is not actually implemented."
-              rs.set_zip_descriptor
-                name: 'special', path: 'third_party/classes/'
+              base = 'third_party/classes'
+              zipfile = { name: 'special', fullpath: base, entries: {} }        
+              add_entries = (dir) ->
+                curr_dir_entries = fs.readdirSync "#{base}/#{dir}"
+                for e in curr_dir_entries
+                  name = "#{dir}#{e}"
+                  fullpath = "#{base}/#{name}"
+                  stat = fs.statSync fullpath
+                  zipfile.entries[fullpath] = rs.set_zip_descriptor {fullpath,name,stat}
+                  if stat.isDirectory()
+                    add_entries name+'/'
+              add_entries ''
+              rs.classes_jar = rs.set_zip_descriptor zipfile  # save it
+              rs.classes_jar
           o 'close(J)V', (rs, jzfile) -> rs.free_zip_descriptor jzfile
           o 'getTotal(J)I', (rs, jzfile) ->
               if node?
                 # yep, hardcoded. though I'm not sure a correct value actually matters...
                 return 21090
               zipfile = rs.get_zip_descriptor jzfile
-              unless zipfile.entries?
-                zipfile.entries = {}
-                add_entries = (dir) ->
-                  curr_dir_entries = fs.readdirSync dir
-                  for name in curr_dir_entries
-                    fullpath = "#{dir}/#{name}"
-                    stat = fs.statSync fullpath
-                    zipfile.entries[fullpath] = rs.set_zip_descriptor {fullpath,name,stat}
-                    if stat.isDirectory()
-                      add_entries fullpath
-                add_entries zipfile.path
               _.keys(zipfile.entries).length
           o 'getEntry(JLjava/lang/String;Z)J', (rs, jzfile, name, add_slash) ->
               zf = rs.get_zip_descriptor jzfile
               entry_name = rs.jvm2js_str name
-              fullpath = "#{zf.path}#{entry_name}"
+              fullpath = "#{zf.fullpath}/#{entry_name}"
               if node?
                 if _.last(fullpath) == '/'
                   # directory. not sure this value is actually used so just return a mock...
@@ -524,7 +526,7 @@ native_methods =
                          stat: {
                            size: file.length
                          }
-              if zf.entries?[fullpath]?
+              if zf.entries[fullpath]?
                 zf.entries[fullpath]
               else
                 gLong.ZERO
