@@ -72,7 +72,7 @@ class root.RuntimeState
   get_zip_descriptor: (zd_long) ->
     @zip_descriptors[zd_long.toInt()]
   free_zip_descriptor: (zd_long) ->
-    delete @zip_descriptors[zd_long.toInt()]
+    #delete @zip_descriptors[zd_long.toInt()]
 
   curr_frame: () ->
     if @resuming_stack? then @meta_stack[@resuming_stack]
