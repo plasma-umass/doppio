@@ -142,7 +142,9 @@ class root.RuntimeState
     @class_lookup type
     @set_obj type, obj
   init_string: (str,intern=false) ->
-    return @string_pool[str] if intern and @string_pool[str]? and typeof @string_pool[str] isnt 'function'
+    # this is a bit of a kludge: if the string we want to intern is __proto__ or a function name, 
+    #  we fail to intern it.
+    return @string_pool[str] if intern and @string_pool[str]?.type?.toClassString?() is 'java/lang/String'
     carr = @init_carr str
     jvm_str = @set_obj c2t('java/lang/String'), {'value':carr, 'count':str.length}
     @string_pool[str] = jvm_str if intern
