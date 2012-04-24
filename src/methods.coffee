@@ -79,7 +79,11 @@ class root.Method extends AbstractMethodField
     params
   
   # used by run and run_manually to print arrays for debugging.
-  pa = (a) -> a.map((e)->if e?.ref? then "*#{e.ref}" else (if e instanceof gLong then "#{e}L" else e))
+  pa = (a) -> a.map (e)->
+    return '!' unless e?
+    return "*#{e.ref}" if e.ref?
+    return "#{e}L" if e instanceof gLong
+    e
 
   run_manually: (func, rs) ->
     params = rs.curr_frame().locals.slice(0) # make a copy
