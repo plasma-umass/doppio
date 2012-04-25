@@ -38,6 +38,25 @@ public class ArrayOps {
     darr[1] = (double)larr[2];
     // check that we initialized our long array with gLong objects
     larr[0] = 2 + larr[1];
+
+    // null checks
+    int[] baz = null;
+
+    try {
+      System.out.println(baz.length);
+    }
+    catch (NullPointerException e) { }
+
+    try {
+      baz[0] = 0;
+    }
+    catch (NullPointerException e) { }
+
+    try {
+      System.out.println(baz[0]);
+    }
+    catch (NullPointerException e) { }
+
     System.out.println("OK");
   }
 }
