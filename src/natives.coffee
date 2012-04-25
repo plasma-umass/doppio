@@ -414,6 +414,7 @@ native_methods =
               else
                 throw e
             _this.fields.$pos = 0
+        o 'getFilePointer()J', (rs, _this) -> gLong.fromNumber _this.fields.$file
         o 'length()J', (rs, _this) ->
             stats = stat_file _this.fields.$file
             gLong.fromNumber stats.size
