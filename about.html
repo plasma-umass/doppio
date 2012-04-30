@@ -107,6 +107,16 @@ emulate with a double, but large 64-bit longs can't fit into the 52 bits of
 precision provided by a double. Fortunately, this problem has already been
 tackled in the <a href="http://closure-library.googlecode.com/svn/docs/class_goog_math_Long.html">Google Closure library</a>.</p>
 
+<h3>Objects (Heap Management)</h3>
+
+<p>JVM objects are mapped to JS objects with the same field names, bundled inside a
+larger object that contains some metadata. Instead of simulating an actual heap,
+we pass JS object references around. Thus, garbage collection is automatically
+handled by the Javascript engine's GC. However, since Java methods like
+<code>hashCode</code> require each <code>Object</code> to have a unique ID, we store an
+auto-incremented <code>ref</code> field in each object's metadata that acts as an imaginary
+heap address.</p>
+
 <h3>Asynchronity</h3>
 
 <p>While we do not emulate threads, we still wanted to handle blocking operations,
