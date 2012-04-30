@@ -23,21 +23,35 @@ Most programs need the Java Class Library. On OS X Lion:
     cd third_party/classes
     unzip /System/Library/Frameworks/JavaVM.framework/Classes/classes.jar
 
-Use [Coffeescript v1.2.0](http://coffeescript.org/) (which is the default version you get from npm).
+Use [Coffeescript v1.2.0](http://coffeescript.org/):
+
+    npm install -g coffee-script@1.2.0
+
 Run `coffee -wc */*.coffee &` to auto-generate javascript sources if you make any changes to the code.
 
 If you want to run the console-based frontend, you'll need the `optimist` node.js library:
 
     npm install optimist
     
+To build the release copy of the code, you'll need [rdiscount][rdisc] as well.
+
+[rdisc]: https://github.com/rtomayko/rdiscount
+
 Usage
 -----
 
 To run Doppio on localhost, run `. startup.sh`, or start the browser frontend manually:
 
+    cpp -P -traditional-cpp browser/index.html index.html
     python -m SimpleHTTPServer 8000 &
-    cpp -P browser/index.html index.html
-    open http://localhost:8000/
+
+To get the optimized release version:
+
+    make release
+    cd build
+    python -m SimpleHTTPServer 8000 &
+
+Then point your browser to http://localhost:8000/.
 
 The code can also be run from the console. For example:
 

@@ -1,3 +1,6 @@
+COFFEEC = coffee # path to coffeescript compiler
+UGLIFYJS = node_modules/uglify-js/bin/uglifyjs
+
 SOURCES = $(wildcard test/*.java)
 DISASMS = $(SOURCES:.java=.disasm)
 RUNOUTS = $(SOURCES:.java=.runout)
@@ -84,17 +87,17 @@ browser/_about.html: browser/_about.md
 build/about.html: browser/_about.html
 
 build/%.html: $(BROWSER_HTML) $(wildcard browser/_*.html)
-	cpp -P -DRELEASE browser/$*.html build/$*.html
+	cpp -P -traditional-cpp -DRELEASE browser/$*.html build/$*.html
 
 build/compressed.js: $(BROWSER_SRCS)
 	for src in $(BROWSER_SRCS); do \
 		if [ "$${src##*.}" == "coffee" ]; then \
-			cat $${src} | gsed -r "s/^ *(debug|trace).*$$//" | coffee --stdio --print; \
+			cat $${src} | gsed -r "s/^ *(debug|trace).*$$//" | $(COFFEEC) --stdio --print; \
 		else \
 			cat $${src}; \
 		fi; \
 		echo ";"; \
-	done | uglifyjs --define RELEASE --no-mangle --unsafe > build/compressed.js
+	done | $(UGLIFYJS) --define RELEASE --no-mangle --unsafe > build/compressed.js
 
 build/ace.js: $(ACE_SRCS)
 	for src in $(ACE_SRCS); do \
@@ -107,6 +110,9 @@ build/browser/style.css: third_party/bootstrap/css/bootstrap.min.css browser/sty
 
 browser/mini-rt.tar: tools/preload
 	tools/make-rt.sh
+
+$(UGLIFYJS):
+	npm install https://github.com/downloads/int3/UglifyJS/uglify.tar.gz
 
 .SECONDARY: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES)
 .INTERMEDIATE: browser/_about.html
