@@ -174,7 +174,30 @@ $(document).ready ->
     autofocus: false
     animateScroll: true
     promptHistory: true
-    welcomeMessage: "Enter 'help' for a list of commands. Ctrl-D is EOF."
+    welcomeMessage: """
+      Welcome to Doppio! You may wish to try the following Java programs:
+        rhino
+        javac FileRead.java
+        javac Fib.java
+        java FileRead
+        java Fib <num>
+        java Chatterbot
+        java DiffPrint foo bar
+        java RegexTestHarness
+        java Lzw c foo foo_lzw (compress)
+        java Lzw d foo_lzw foo (decompress)
+
+      The .java files can be inspected by typing `edit [filename]`.
+
+      You can also upload your own files using the uploader above the top-right
+      corner of the console.
+
+      The provided Java compiler is for Java 4, so programs using modern Java
+      features (e.g. varargs) will not compile. However, you can still run them
+      by compiling them locally and uploading their classfiles.
+
+      Enter 'help' for full a list of commands. Ctrl-D is EOF.
+      """
 
   demo_files = ['special/DiffPrint.class', 'special/Chatterbot.java',
   'special/Chatterbot.class', 'special/Lzw.java', 'special/Lzw.class',
@@ -288,30 +311,6 @@ commands =
     if args[0] == '*' then localStorage.clear()
     else DoppioFile.delete args[0]
     true
-  list_demos: ->
-    controller.message """
-      We have loaded a bunch of source and class files -- the class files are
-      for Java programs using modern Java features that the provided Java 4
-      compiler does not support. You can inspect these files using the
-      commands 'ls', 'cat', and 'edit'.
-
-      You may wish to try the following commands:
-        javac FileRead.java
-        javac Fib.java
-        java FileRead
-        java Fib <num>
-        java Chatterbot
-        java DiffPrint foo bar
-        java RegexTestHarness
-        java Lzw c foo foo_lzw (compress)
-        java Lzw d foo_lzw foo (decompress)
-
-      After running these programs, use 'list_cache' to see the Java Class
-      Library files that they depended upon.
-
-      You can also upload your own files using the uploader above the top-right
-      corner of the console.
-    """
   emacs: -> "Try 'vim'."
   vim: -> "Try 'emacs'."
   time: (args) ->
@@ -344,8 +343,6 @@ commands =
   help: (args) ->
     """
     Ctrl-D is EOF.
-
-    Lost? Try typing 'list_demos' to see what you can do.
 
     Java-related commands:
       javac <source file>    -- Invoke the Java 4 compiler.
