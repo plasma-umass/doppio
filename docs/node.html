@@ -3,11 +3,11 @@
 <span class="nv">win = </span><span class="nb">window</span></pre></div>             </td>           </tr>                               <tr id="section-2">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-2">&#182;</a>               </div>               <p>made global for convenience -- name collision is unlikely</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="k">class</span> <span class="nx">win</span><span class="p">.</span><span class="nx">DoppioFile</span> <span class="c1"># File is a native browser thing</span>
   <span class="nv">constructor: </span><span class="nf">(@name) -&gt;</span>
     <span class="vi">@mtime = </span><span class="p">(</span><span class="k">new</span> <span class="nb">Date</span><span class="p">).</span><span class="nx">getTime</span><span class="p">()</span>
-    <span class="vi">@data = </span><span class="s2">&quot;&quot;</span>
+    <span class="vi">@data = </span><span class="s">&quot;&quot;</span>
 
   <span class="vi">@load: </span><span class="nf">(fname) -&gt;</span>
     <span class="nv">fname = </span><span class="nx">basename</span> <span class="nx">root</span><span class="p">.</span><span class="nx">path</span><span class="p">.</span><span class="nx">resolve</span> <span class="nx">fname</span>
-    <span class="nv">rawData = </span><span class="nx">localStorage</span><span class="p">[</span><span class="s2">&quot;file::#{fname?.toLowerCase()}&quot;</span><span class="p">]</span>
+    <span class="nv">rawData = </span><span class="nx">localStorage</span><span class="p">[</span><span class="s">&quot;file::</span><span class="si">#{</span><span class="nx">fname</span><span class="o">?</span><span class="p">.</span><span class="nx">toLowerCase</span><span class="p">()</span><span class="si">}</span><span class="s">&quot;</span><span class="p">]</span>
     <span class="k">return</span> <span class="kc">null</span> <span class="nx">unless</span> <span class="nx">rawData</span>
     <span class="nv">data = </span><span class="nx">JSON</span><span class="p">.</span><span class="nx">parse</span> <span class="nx">rawData</span>
     <span class="nv">file = </span><span class="k">new</span> <span class="nx">win</span><span class="p">.</span><span class="nx">DoppioFile</span> <span class="nx">fname</span>
@@ -18,18 +18,18 @@
     <span class="k">return</span> <span class="nx">@data</span> <span class="nx">unless</span> <span class="nx">length</span><span class="o">?</span>
     <span class="nx">@data</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="nx">pos</span><span class="p">,</span> <span class="nx">length</span><span class="p">)</span>
 
-  <span class="nv">write: </span><span class="nf">(newData) -&gt;</span> <span class="nx">@data</span> <span class="o">+=</span> <span class="nx">newData</span><span class="p">;</span> <span class="err">@</span>
+  <span class="nv">write: </span><span class="nf">(newData) -&gt;</span> <span class="nx">@data</span> <span class="o">+=</span> <span class="nx">newData</span><span class="p">;</span> <span class="nx">@</span>
 
   <span class="nv">save: </span><span class="o">-&gt;</span>
-    <span class="nx">localStorage</span><span class="p">[</span><span class="s2">&quot;file::#{@name.toLowerCase()}&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span>
+    <span class="nx">localStorage</span><span class="p">[</span><span class="s">&quot;file::</span><span class="si">#{</span><span class="nx">@name</span><span class="p">.</span><span class="nx">toLowerCase</span><span class="p">()</span><span class="si">}</span><span class="s">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span>
       <span class="nv">name: </span><span class="nx">@name</span>
       <span class="nv">data: </span><span class="nx">@data</span>
       <span class="nv">mtime: </span><span class="nx">@mtime</span>
-    <span class="err">@</span>
+    <span class="nx">@</span>
 
   <span class="vi">@delete: </span><span class="nf">(fname) -&gt;</span>
     <span class="nv">fname = </span><span class="nx">basename</span> <span class="nx">root</span><span class="p">.</span><span class="nx">path</span><span class="p">.</span><span class="nx">resolve</span> <span class="nx">fname</span>
-    <span class="nx">localStorage</span><span class="p">.</span><span class="nx">removeItem</span> <span class="s2">&quot;file::#{fname.toLowerCase()}&quot;</span></pre></div>             </td>           </tr>                               <tr id="section-3">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-3">&#182;</a>               </div>               <p>this is a global in Node.JS as well</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="k">class</span> <span class="nx">win</span><span class="p">.</span><span class="nx">Buffer</span>
+    <span class="nx">localStorage</span><span class="p">.</span><span class="nx">removeItem</span> <span class="s">&quot;file::</span><span class="si">#{</span><span class="nx">fname</span><span class="p">.</span><span class="nx">toLowerCase</span><span class="p">()</span><span class="si">}</span><span class="s">&quot;</span></pre></div>             </td>           </tr>                               <tr id="section-3">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-3">&#182;</a>               </div>               <p>this is a global in Node.JS as well</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="k">class</span> <span class="nx">win</span><span class="p">.</span><span class="nx">Buffer</span>
   <span class="nv">constructor: </span><span class="nf">(obj) -&gt;</span>
     <span class="k">if</span> <span class="nx">obj</span> <span class="k">instanceof</span> <span class="nb">Array</span>
       <span class="vi">@array = </span><span class="nx">obj</span>
@@ -40,7 +40,7 @@
 
 <span class="k">class</span> <span class="nx">Stat</span>
   <span class="vi">@fromPath: </span><span class="nf">(path) -&gt;</span>
-    <span class="k">if</span> <span class="nx">path</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span>
+    <span class="k">if</span> <span class="nx">path</span> <span class="o">==</span> <span class="s">&#39;&#39;</span>
       <span class="nv">stat = </span><span class="k">new</span> <span class="nx">Stat</span>
       <span class="nv">stat.size = </span><span class="mi">1</span>
       <span class="nv">stat.mtime = </span><span class="p">(</span><span class="k">new</span> <span class="nb">Date</span><span class="p">).</span><span class="nx">getTime</span><span class="p">()</span>
@@ -66,7 +66,7 @@
 <span class="nv">root.fs =</span>
   <span class="nv">statSync: </span><span class="nf">(fname) -&gt;</span>
     <span class="nv">fname = </span><span class="nx">root</span><span class="p">.</span><span class="nx">path</span><span class="p">.</span><span class="nx">resolve</span> <span class="nx">fname</span>
-    <span class="nx">unless</span> <span class="nx">fname</span> <span class="o">is</span> <span class="s1">&#39;/System/Library/Frameworks/JavaVM.framework/Classes/classes.jar&#39;</span>
+    <span class="nx">unless</span> <span class="nx">fname</span> <span class="o">is</span> <span class="s">&#39;/System/Library/Frameworks/JavaVM.framework/Classes/classes.jar&#39;</span>
       <span class="k">return</span> <span class="nx">Stat</span><span class="p">.</span><span class="nx">fromPath</span> <span class="nx">fname</span>
     <span class="nv">stat = </span><span class="k">new</span> <span class="nx">Stat</span>
     <span class="nv">stat.size = </span><span class="mi">21090</span>
@@ -79,11 +79,11 @@
 
   <span class="nv">openSync: </span><span class="nf">(fname, mode) -&gt;</span>
     <span class="nv">fname = </span><span class="nx">root</span><span class="p">.</span><span class="nx">path</span><span class="p">.</span><span class="nx">resolve</span> <span class="nx">fname</span>
-    <span class="k">if</span> <span class="s1">&#39;r&#39;</span> <span class="k">in</span> <span class="nx">mode</span>
+    <span class="k">if</span> <span class="s">&#39;r&#39;</span> <span class="k">in</span> <span class="nx">mode</span>
       <span class="nv">f = </span><span class="nx">win</span><span class="p">.</span><span class="nx">DoppioFile</span><span class="p">.</span><span class="nx">load</span> <span class="nx">fname</span>
       <span class="nx">unless</span> <span class="nx">f</span><span class="o">?</span>
         <span class="nv">err = </span><span class="k">new</span> <span class="nb">Error</span>
-        <span class="nv">err.code = </span><span class="s1">&#39;ENOENT&#39;</span>
+        <span class="nv">err.code = </span><span class="s">&#39;ENOENT&#39;</span>
         <span class="k">throw</span> <span class="nx">err</span>
       <span class="nx">f</span>
     <span class="k">else</span> <span class="c1"># XXX assuming write</span>
@@ -95,24 +95,24 @@
       <span class="nx">buf</span><span class="p">.</span><span class="nx">array</span><span class="p">[</span><span class="nx">offset</span><span class="o">+</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="nx">data</span><span class="p">.</span><span class="nx">charCodeAt</span><span class="p">(</span><span class="nx">i</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0xFF</span>
     <span class="nx">data</span><span class="p">.</span><span class="nx">length</span>
 
-  <span class="nv">writeSync: </span><span class="nf">(file, buffer, offset, len) -&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-4">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-4">&#182;</a>               </div>               <p>TODO flush occasionally?</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nx">file</span><span class="p">.</span><span class="nx">write</span><span class="p">((</span><span class="nb">String</span><span class="p">.</span><span class="nx">fromCharCode</span><span class="p">(</span><span class="nx">buffer</span><span class="p">.</span><span class="nx">readUInt8</span> <span class="nx">i</span><span class="p">)</span> <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="nx">offset</span><span class="p">...</span><span class="nx">offset</span><span class="o">+</span><span class="nx">len</span><span class="p">]).</span><span class="nx">join</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+  <span class="nv">writeSync: </span><span class="nf">(file, buffer, offset, len) -&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-4">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-4">&#182;</a>               </div>               <p>TODO flush occasionally?</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nx">file</span><span class="p">.</span><span class="nx">write</span><span class="p">((</span><span class="nb">String</span><span class="p">.</span><span class="nx">fromCharCode</span><span class="p">(</span><span class="nx">buffer</span><span class="p">.</span><span class="nx">readUInt8</span> <span class="nx">i</span><span class="p">)</span> <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="nx">offset</span><span class="p">...</span><span class="nx">offset</span><span class="o">+</span><span class="nx">len</span><span class="p">]).</span><span class="nx">join</span> <span class="s">&#39;&#39;</span><span class="p">)</span>
 
   <span class="nv">closeSync: </span><span class="nf">(file) -&gt;</span> <span class="nx">file</span><span class="p">.</span><span class="nx">save</span><span class="p">()</span>
 
   <span class="nv">readdirSync: </span><span class="nf">(path) -&gt;</span>
-    <span class="k">for</span> <span class="nx">key</span><span class="p">,</span> <span class="nx">file</span> <span class="k">of</span> <span class="nx">localStorage</span> <span class="k">when</span> <span class="nx">key</span><span class="p">[..</span><span class="mi">5</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;file::&#39;</span>
+    <span class="k">for</span> <span class="nx">key</span><span class="p">,</span> <span class="nx">file</span> <span class="k">of</span> <span class="nx">localStorage</span> <span class="k">when</span> <span class="nx">key</span><span class="p">[..</span><span class="mi">5</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;file::&#39;</span>
       <span class="p">(</span><span class="nx">DoppioFile</span><span class="p">.</span><span class="nx">load</span> <span class="nx">key</span><span class="p">[</span><span class="mi">6</span><span class="p">..]).</span><span class="nx">name</span>
 
 <span class="nv">root.path =</span>
   <span class="nv">normalize: </span><span class="nf">(path) -&gt;</span> <span class="nx">path</span>
 
   <span class="nv">resolve: </span><span class="nf">(path) -&gt;</span>
-    <span class="nv">absolute = </span><span class="nx">path</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;/&#39;</span>
-    <span class="nv">components = </span><span class="nx">path</span><span class="p">.</span><span class="nx">split</span> <span class="s1">&#39;/&#39;</span>
+    <span class="nv">absolute = </span><span class="nx">path</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;/&#39;</span>
+    <span class="nv">components = </span><span class="nx">path</span><span class="p">.</span><span class="nx">split</span> <span class="s">&#39;/&#39;</span>
     <span class="k">for</span> <span class="nx">c</span><span class="p">,</span> <span class="nx">idx</span> <span class="k">in</span> <span class="nx">components</span>
-      <span class="nx">components</span><span class="p">[</span><span class="nx">idx</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span> <span class="k">if</span> <span class="nx">c</span> <span class="o">==</span> <span class="s1">&#39;.&#39;</span></pre></div>             </td>           </tr>                               <tr id="section-5">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-5">&#182;</a>               </div>               <p>remove repeated //s</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nv">path = </span><span class="p">(</span><span class="nx">c</span> <span class="k">for</span> <span class="nx">c</span><span class="p">,</span> <span class="nx">idx</span> <span class="k">in</span> <span class="nx">components</span> <span class="k">when</span> <span class="nx">c</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">).</span><span class="nx">join</span> <span class="s1">&#39;/&#39;</span>
-    <span class="p">(</span><span class="k">if</span> <span class="nx">absolute</span> <span class="k">then</span> <span class="s1">&#39;/&#39;</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="nx">path</span>
+      <span class="nx">components</span><span class="p">[</span><span class="nx">idx</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;&#39;</span> <span class="k">if</span> <span class="nx">c</span> <span class="o">==</span> <span class="s">&#39;.&#39;</span></pre></div>             </td>           </tr>                               <tr id="section-5">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-5">&#182;</a>               </div>               <p>remove repeated //s</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nv">path = </span><span class="p">(</span><span class="nx">c</span> <span class="k">for</span> <span class="nx">c</span><span class="p">,</span> <span class="nx">idx</span> <span class="k">in</span> <span class="nx">components</span> <span class="k">when</span> <span class="nx">c</span> <span class="o">!=</span> <span class="s">&#39;&#39;</span><span class="p">).</span><span class="nx">join</span> <span class="s">&#39;/&#39;</span>
+    <span class="p">(</span><span class="k">if</span> <span class="nx">absolute</span> <span class="k">then</span> <span class="s">&#39;/&#39;</span> <span class="k">else</span> <span class="s">&#39;&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="nx">path</span>
 
-<span class="nv">basename = </span><span class="nf">(path) -&gt;</span> <span class="nx">_</span><span class="p">.</span><span class="nx">last</span> <span class="nx">path</span><span class="p">.</span><span class="nx">split</span> <span class="s1">&#39;/&#39;</span>
+<span class="nv">basename = </span><span class="nf">(path) -&gt;</span> <span class="nx">_</span><span class="p">.</span><span class="nx">last</span> <span class="nx">path</span><span class="p">.</span><span class="nx">split</span> <span class="s">&#39;/&#39;</span>
 
 </pre></div>             </td>           </tr>                </tbody>     </table>   </div> </body> </html> 
