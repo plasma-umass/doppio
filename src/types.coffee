@@ -1,3 +1,17 @@
+# We have to deal with three different string representations of types. First,
+# there's the 'external' type representation that we usually use with when
+# writing in Java -- 'byte', 'char', etc. Then there's the 'internal' type
+# representation which is more compact: all primitive types get shortened into a
+# single character, and array types are denoted by a '[' prefixed to their
+# component types. Non-array classes have their types are denoted by an 'L'
+# prefix and a ';' suffix. This format allows multiple type strings to be
+# concatenated together and still give an unambiguous parse.
+#
+# Finally, there are what we call 'class strings'. For ordinary (non-array)
+# classes, this is just their class name, sans prefix and suffix. For array
+# classes, this is identical to their 'internal' type representation.
+#
+# Rather confusing, I know.
 
 root = exports ? this.types = {}
 
