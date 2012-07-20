@@ -18,12 +18,19 @@ After `git clone`, do
 
     git submodule update --init --recursive
 
-Most programs need the Java Class Library. On OS X Lion:
+Java programs need the Java Class Library. This generally lives in
+an archive named `rt.jar`, which comes with the JRE. Note that you
+do not need a JDK to run Doppio, but our automated tests do require
+a Java compiler and disassembler (`javac` and `javap`, respectively).
+To provide the JCL for Doppio, simply unzip the class library in
+`third_party/classes`.
+
+On OS X Lion, `rt.jar` is confusingly named `classes.jar`:
 
     cd third_party/classes
     unzip /System/Library/Frameworks/JavaVM.framework/Classes/classes.jar
 
-Use [Coffeescript v1.2.0](http://coffeescript.org/):
+Use [Coffeescript v1.2.0][coffee]:
 
     npm install -g coffee-script@1.2.0
 
@@ -32,9 +39,14 @@ Run `coffee -wc */*.coffee &` to auto-generate javascript sources if you make an
 If you want to run the console-based frontend, you'll need the `optimist` node.js library:
 
     npm install optimist
-    
+   
 To build the release copy of the code, you'll need [rdiscount][rdisc] as well.
 
+Finally, to ensure that everything is set up properly, run:
+
+    make test
+
+[coffee]: http://coffeescript.org/
 [rdisc]: https://github.com/rtomayko/rdiscount
 
 Usage
