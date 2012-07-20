@@ -220,7 +220,7 @@ class root.MultiArrayOpcode extends root.Opcode
     @dim = code_array.get_uint 1
 
   execute: (rs) ->
-    counts = rs.curr_frame().stack.splice(rs.length-@dim)
+    counts = rs.curr_frame().stack.splice(-@dim,@dim)
     init_arr = (curr_dim) =>
       return 0 if curr_dim == @dim
       typestr = @class[curr_dim..]

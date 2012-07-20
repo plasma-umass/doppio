@@ -1,6 +1,10 @@
 // test basic array operations
 package test;
 public class ArrayOps {
+  short[][][] foo3;
+  public ArrayOps(){
+    foo3 = new short[3][2][];
+  }
   public static void main(String[] args) {
     int[] foo = {5,4,3,2,1};
     int a = foo.length;
@@ -15,6 +19,7 @@ public class ArrayOps {
 
     // multidimensional array (multianewarray)
     Integer[][] foo2 = new Integer[5][5];
+    ArrayOps ao = new ArrayOps();
 
     for (int i = 0; i < foo2.length; i++)  {
       for (int j = 0; j < foo2[i].length; j++) {
