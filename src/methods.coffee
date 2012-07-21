@@ -197,6 +197,8 @@ class root.Method extends AbstractMethodField
           util.java_throw runtime_state, 'java/lang/Error', "native method NYI: #{sig}"
         finally
           runtime_state.meta_stack.pop()
+    else if @access_flags.abstract
+      throw "called abstract method: #{sig}"
     else
       @run_bytecode runtime_state, padding
     cf = runtime_state.curr_frame()
