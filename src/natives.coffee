@@ -199,7 +199,15 @@ native_methods =
         o 'findBootstrapClass(L!/!/String;)L!/!/Class;', (rs, _this, name) ->
             type = c2t util.int_classname rs.jvm2js_str name
             rs.dyn_class_lookup type, true
+        o 'getCaller(I)L!/!/Class;', (rs, i) ->
+            type = rs.meta_stack[rs.meta_stack.length-1-i].method.class_type
+            rs.class_lookup(type, true)
+
       ],
+      Compiler: [
+        o 'disable()V', (rs, _this) -> #NOP
+        o 'enable()V', (rs, _this) -> #NOP
+      ]
       Float: [
         o 'floatToRawIntBits(F)I', (rs, f_val) ->
             f_view = new Float32Array [f_val]
@@ -429,6 +437,11 @@ native_methods =
         o 'close0()V', (rs, _this) -> _this.fields.$file = null
       ]
       UnixFileSystem: [
+        o 'checkAccess(Ljava/io/File;I)Z', (rs, _this, file, access) ->
+            stats = stat_file rs.jvm2js_str file.fields.path
+            return false unless stats?
+            mode = stats.mode & 511
+            true  # TODO: actually use the mode, checking if we're the owner or in group
         o 'getBooleanAttributes0(Ljava/io/File;)I', (rs, _this, file) ->
             stats = stat_file rs.jvm2js_str file.fields.path
             return 0 unless stats?
