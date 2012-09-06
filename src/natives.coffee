@@ -18,6 +18,10 @@ o = (fn_name, fn) -> fn_name: fn_name, fn: fn
 trapped_methods =
   java:
     lang:
+      ref:
+        Reference$ReferenceHandler: [
+          o 'run()V', (rs) -> # NOP, because don't do our own GC
+        ]
       System: [
         o 'loadLibrary(L!/!/String;)V', (rs) -> # NOP, because we don't support loading external libraries
         o 'adjustPropertiesForBackwardCompatibility(L!/util/Properties;)V', (rs) -> # NOP (apple-java specific)
@@ -287,12 +291,16 @@ native_methods =
             rs.push stream
             rs.static_put {class:'java/lang/System', name:'err'}
       ]
-      Thread: [
+      Thread: [  #TODO: implement threads with a GIL
         o 'currentThread()L!/!/!;', (rs) -> rs.main_thread # essentially a singleton for the main thread mock object
         o 'setPriority0(I)V', (rs) -> # NOP
         o 'holdsLock(L!/!/Object;)Z', -> true
         o 'isAlive()Z', (rs, _this) -> _this.fields.$isAlive ? false
-        o 'start0()V', (rs, _this) -> _this.fields.$isAlive = true
+        o 'start0()V', (rs, _this) -> 
+            _this.fields.$isAlive = true
+            # call the thread's run() method. For now, we hand control completely to this thread.
+            rs.push _this
+            rs.method_lookup({class: _this.type.toClassString(), sig: 'run()V'}).run(rs)
         o 'sleep(J)V', (rs, millis) ->
             rs.curr_frame().resume = -> # NOP
             throw new util.YieldException (cb) ->

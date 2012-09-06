@@ -40,10 +40,15 @@ class root.RuntimeState
       threadLocals: null
     @push gLong.ZERO, null  # set up for static_put
     @static_put {class:'java/lang/Thread', name:'threadSeqNumber'}
+
+    # initialize the system class
+    @class_lookup c2t 'java/lang/System'
+
     args = @set_obj(c2t('[Ljava/lang/String;'),(@init_string(a) for a in initial_args))
     # prepare meta_stack for main(String[] args)
     @meta_stack = [new root.StackFrame(null,[],[args])]
     @class_lookup c2t class_name
+    debug "### finished runtime state initialization ###"
 
   # Convert a Java String object into an equivalent JS one.
   jvm2js_str: (jvm_str) ->
