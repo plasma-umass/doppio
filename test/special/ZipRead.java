@@ -7,7 +7,7 @@ import com.sun.tools.javac.zip.ZipFileIndex;
 public class ZipRead {
 
   // Edit this to point to rt.jar
-  public static final String RT_PATH = "/Applicgggations/Xcode.app/Contents/Applications/Application Loader.app/Contents/MacOS/itms/java/lib/rt.jar";
+  public static final String RT_PATH = "/Applications/Xcode.app/Contents/Applications/Application Loader.app/Contents/MacOS/itms/java/lib/rt.jar";
 
   public static void main(String[] args) throws IOException {
       File zip = new File(RT_PATH);
