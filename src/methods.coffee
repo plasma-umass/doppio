@@ -171,7 +171,7 @@ class root.Method extends AbstractMethodField
         # dirty hack to bounce up the inheritance tree, to make sure we call the method on the most specific type
         obj = caller_stack[caller_stack.length-@param_bytes]
         unless caller_stack.length-@param_bytes >= 0 and obj?
-          error "undef'd object: (#{caller_stack})[-#{@param_bytes}] (#{sig})"
+          util.java_throw runtime_state, 'java/lang/Error', "undef'd object: (#{caller_stack})[-#{@param_bytes}] (#{sig})"
         m_spec = {class: obj.type.toClassString(), sig: @name + @raw_descriptor}
         m = runtime_state.method_lookup(m_spec)
         #throw "abstract method got called: #{@name}#{@raw_descriptor}" if m.access_flags.abstract
@@ -179,18 +179,20 @@ class root.Method extends AbstractMethodField
       params = @take_params caller_stack
       runtime_state.meta_stack.push(new runtime.StackFrame(this,params,[]))
     padding = (' ' for [2...runtime_state.meta_stack.length]).join('')
-    debug "#{padding}entering method #{sig}"
     # check for trapped and native methods, run those manually
     cf = runtime_state.curr_frame()
     if cf.resume? # we are resuming from a yield, and this was a manually run method
+      debug "#{padding}resuming method #{sig}"
       @run_manually cf.resume, runtime_state
       cf.resume = null
     else if trapped_methods[sig]
+      debug "#{padding}entering trapped method #{sig}"
       @run_manually trapped_methods[sig], runtime_state
     else if @access_flags.native
       if sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
         @run_manually ((rs)->), runtime_state # these are all just NOPs
       else if native_methods[sig]
+        debug "#{padding}entering native method #{sig}"
         @run_manually native_methods[sig], runtime_state
       else
         try
@@ -198,8 +200,9 @@ class root.Method extends AbstractMethodField
         finally
           runtime_state.meta_stack.pop()
     else if @access_flags.abstract
-      throw "called abstract method: #{sig}"
+      util.java_throw runtime_state, 'java/lang/Error', "called abstract method: #{sig}"
     else
+      debug "#{padding}entering method #{sig}"
       @run_bytecode runtime_state, padding
     cf = runtime_state.curr_frame()
     debug "#{padding}stack: [#{pa cf.stack}], local: [#{pa cf.locals}] (method end)"
