@@ -30,6 +30,11 @@ On OS X Lion, `rt.jar` is confusingly named `classes.jar`:
     cd third_party/classes
     unzip /System/Library/Frameworks/JavaVM.framework/Classes/classes.jar
 
+We've opted to patch the `java.util.zip` package with [Jazzlib](http://jazzlib.sourceforge.net/),
+a pure-Java third-party implementation.
+Download [the classes][jazzlib] and copy them over the files in
+`third_party/classes/java/util/zip/`.
+
 Use [Coffeescript v1.2.0][coffee]:
 
     npm install -g coffee-script@1.2.0
@@ -48,6 +53,7 @@ Finally, to ensure that everything is set up properly, run:
 
 [coffee]: http://coffeescript.org/
 [rdisc]: https://github.com/rtomayko/rdiscount
+[jazzlib]: http://sourceforge.net/projects/jazzlib/files/jazzlib/0.07/jazzlib-binary-0.07-juz.zip/download
 
 Usage
 -----
