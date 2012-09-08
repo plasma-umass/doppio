@@ -4,6 +4,7 @@ _ ?= require '../third_party/underscore-min.js'
 gLong ?= require '../third_party/gLong.js'
 util ?= require './util'
 types ?= require './types'
+runtime ?= require './runtime'
 path = node?.path ? require 'path'
 fs = node?.fs ? require 'fs'
 {log,debug,error} = util
@@ -35,7 +36,8 @@ trapped_methods =
             _this.fields.stackTrace = rs.init_object "[Ljava/lang/StackTraceElement;", stack
             # we don't want to include the stack frames that were created by
             # the construction of this exception
-            for sf in rs.meta_stack.slice(1) when sf.locals[0] isnt _this
+            cstack = rs.meta_stack()._cs.slice(1)
+            for sf in cstack when sf.locals[0] isnt _this
               cls = sf.method.class_type
               unless _this.type.toClassString() is 'java/lang/NoClassDefFoundError'
                 attrs = rs.class_lookup(cls).attrs
@@ -204,7 +206,7 @@ native_methods =
             type = c2t util.int_classname rs.jvm2js_str name
             rs.dyn_class_lookup type, true
         o 'getCaller(I)L!/!/Class;', (rs, i) ->
-            type = rs.meta_stack[rs.meta_stack.length-1-i].method.class_type
+            type = rs.meta_stack().get_caller(i).method.class_type
             rs.class_lookup(type, true)
 
       ],
@@ -239,7 +241,19 @@ native_methods =
         o 'clone()L!/!/!;', (rs, _this) ->
             if _this.type instanceof types.ArrayType then rs.set_obj _this.type, _this.array
             else rs.set_obj _this.type, _this.fields
-        o 'notifyAll()V', -> #NOP
+        o 'notify()V', (rs, _this) ->
+            return unless rs.lock_refs[_this]?  # if it's not an active monitor, no one cares
+            unless rs.lock_refs[_this] is rs.curr_thread
+              owner = rs.jvm_carr2js_str rs.lock_refs[_this].fields.name
+              util.java_throw rs, 'java/lang/IllegalMonitorStateException', "Thread '#{owner}' owns this monitor"
+            if rs.waiting_threads[_this]? and (t = rs.waiting_threads[_this].shift())?
+              # yield execution to t
+              throw "TODO: yield execution to t"
+        #o 'notifyAll()V', (rs, _this) ->
+        o 'wait(J)V', (rs, _this, timeout) ->
+            unless timeout is gLong.ZERO
+              error "TODO(Object::wait): respect the timeout param (#{timeout})"
+            rs.wait _this
       ]
       reflect:
         Array: [
@@ -291,20 +305,67 @@ native_methods =
             rs.push stream
             rs.static_put {class:'java/lang/System', name:'err'}
       ]
-      Thread: [  #TODO: implement threads with a GIL
-        o 'currentThread()L!/!/!;', (rs) -> rs.main_thread # essentially a singleton for the main thread mock object
+      Thread: [
+        o 'currentThread()L!/!/!;', (rs) -> rs.curr_thread
         o 'setPriority0(I)V', (rs) -> # NOP
-        o 'holdsLock(L!/!/Object;)Z', -> true
+        o 'holdsLock(L!/!/Object;)Z', (rs, obj) -> rs.curr_thread is rs.lock_refs[obj.ref]
         o 'isAlive()Z', (rs, _this) -> _this.fields.$isAlive ? false
-        o 'start0()V', (rs, _this) -> 
+        o 'start0()V', (rs, _this) ->
+            # bookkeeping
             _this.fields.$isAlive = true
-            # call the thread's run() method. For now, we hand control completely to this thread.
-            rs.push _this
-            rs.method_lookup({class: _this.type.toClassString(), sig: 'run()V'}).run(rs)
+            _this.fields.$meta_stack = new runtime.CallStack()
+            rs.thread_pool.push _this
+            spawning_thread = rs.curr_thread
+            my_name = rs.jvm_carr2js_str _this.fields.name
+            orig_name = rs.jvm_carr2js_str spawning_thread.fields.name
+            rs.curr_frame().resume = -> # thread cleanup
+              debug "TE: deleting #{my_name} after resume"
+              _this.fields.$isAlive = false
+              rs.thread_pool.splice rs.thread_pool.indexOf(_this), 1
+            debug "TE: starting #{my_name} from #{orig_name}"
+
+            # handler for any yields that come from our started thread
+            resume_thread = (cb) ->
+              debug "TE: thread #{my_name} was paused"
+              rs.curr_thread = spawning_thread
+              rs.curr_frame().resume = ->
+                debug "TE: not cleaning up #{my_name} after resume"
+                _this.fields.$isAlive = false
+              cb ->
+                debug "TE: actually resuming #{rs.jvm_carr2js_str rs.curr_thread.fields.name}"
+                rs.meta_stack().resuming_stack = 1  # the first method called, likely Thread::run()
+                try
+                  rs.curr_frame().method.run(rs, true)
+                catch e
+                  throw e unless e instanceof util.YieldException
+                  resume_thread e.condition
+
+            # actually start the thread
+            throw new util.YieldException (cb) ->
+              spawning_thread.fields.$resume = cb
+              rs.curr_thread = _this            
+              # call the thread's run() method.
+              rs.push _this
+              try
+                rs.method_lookup({class: _this.type.toClassString(), sig: 'run()V'}).run(rs)
+              catch e
+                throw e unless e instanceof util.YieldException
+                resume_thread e.condition
+                rs.curr_thread.fields.$isAlive = false
+                rs.thread_pool.splice rs.thread_pool.indexOf(rs.curr_thread), 1
+              debug "TE: finished running #{rs.jvm_carr2js_str rs.curr_thread.fields.name}"
+
+              # yield to a paused thread
+              yieldee = (y for y in rs.thread_pool when y isnt rs.curr_thread).pop()
+              if yieldee?
+                rs.curr_thread = yieldee
+                rs.curr_thread.fields.$resume()
+            
         o 'sleep(J)V', (rs, millis) ->
-            rs.curr_frame().resume = -> # NOP
+            rs.curr_frame().resume = -> # NOP, return immediately after sleeping
             throw new util.YieldException (cb) ->
               setTimeout(cb, millis.toNumber())
+        #o 'yield()V', (rs) -> #TODO: similar to sleep, except pass control to another thread
       ]
     security:
       AccessController: [
@@ -562,7 +623,8 @@ native_methods =
       Reflection: [
         o 'getCallerClass(I)Ljava/lang/Class;', (rs, frames_to_skip) ->
             #TODO: disregard frames assoc. with java.lang.reflect.Method.invoke() and its implementation
-            type = rs.meta_stack[rs.meta_stack.length-1-frames_to_skip].method.class_type
+            caller = rs.meta_stack().get_caller(frames_to_skip)
+            type = caller.method.class_type
             rs.class_lookup(type, true)
         o 'getClassAccessFlags(Ljava/lang/Class;)I', (rs, _this) ->
             rs.class_lookup(_this.fields.$type).access_byte

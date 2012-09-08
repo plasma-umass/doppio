@@ -490,8 +490,26 @@ root.opcodes = {
       java_throw rs, 'java/lang/ClassCastException', "#{candidate_class} cannot be cast to #{target_class}"
   }
   193: new root.ClassOpcode 'instanceof', { execute: (rs) -> o=rs.pop(); rs.push if o? then types.check_cast(rs,o,@class)+0 else 0 }
-  194: new root.Opcode 'monitorenter', { execute: (rs)-> rs.pop() }  #TODO: actually implement locks?
-  195: new root.Opcode 'monitorexit',  { execute: (rs)-> rs.pop() }  #TODO: actually implement locks?
+  194: new root.Opcode 'monitorenter', { execute: (rs)-> 
+    monitor = rs.pop()
+    if (locked_thread = rs.lock_refs[monitor])?
+      if locked_thread is rs.curr_thread
+        rs.lock_counts[monitor]++  # increment lock counter, to only unlock at zero
+      else
+        rs.wait monitor
+    else  # this lock not held by any thread
+      rs.lock_refs[monitor] = rs.curr_thread
+      rs.lock_counts[monitor] = 1
+  }
+  195: new root.Opcode 'monitorexit',  { execute: (rs)->
+    monitor = rs.pop()
+    if (locked_thread = rs.lock_refs[monitor])? and locked_thread is rs.curr_thread
+      rs.lock_counts[monitor]--
+      if rs.lock_counts[monitor] == 0
+        delete rs.lock_refs[monitor]
+    else
+      java_throw rs, 'java/lang/IllegalMonitorStateException', "Tried to monitorexit on lock not held by current thread"
+  }
   197: new root.MultiArrayOpcode 'multianewarray'
   198: new root.UnaryBranchOpcode 'ifnull', { cmp: (v) -> not v? }
   199: new root.UnaryBranchOpcode 'ifnonnull', { cmp: (v) -> v? }

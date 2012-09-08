@@ -102,9 +102,11 @@ class root.Method extends AbstractMethodField
       # YieldExceptions should just terminate the function without popping the
       # stack.
       if e instanceof util.JavaException
-        rs.meta_stack.pop()
+        rs.meta_stack().pop()
+      else if e instanceof util.YieldException
+        debug "yielding from #{@class_type.toClassString()}::#{@name}#{@raw_descriptor}"
       throw e
-    rs.meta_stack.pop()
+    rs.meta_stack().pop()
     unless @return_type.toString() == 'V'
       if @return_type.toString() == 'Z' then rs.push rv + 0 # cast booleans to a Number
       else rs.push rv
@@ -131,7 +133,7 @@ class root.Method extends AbstractMethodField
           rs.goto_pc e.dst_pc
           continue
         else if e instanceof util.ReturnException
-          rs.meta_stack.pop()
+          rs.meta_stack().pop()
           rs.push e.values...
           break
         else if e instanceof util.YieldException
@@ -150,21 +152,23 @@ class root.Method extends AbstractMethodField
             continue
           else # abrupt method invocation completion
             debug "exception not caught, terminating #{@name}"
-            rs.meta_stack.pop()
+            rs.meta_stack().pop()
             throw e
         throw e # JVM Error
 
   run: (runtime_state,virtual=false) ->
     sig = "#{@class_type.toClassString()}::#{@name}#{@raw_descriptor}"
-    if runtime_state.resuming_stack?
-      runtime_state.resuming_stack++
+    ms = runtime_state.meta_stack()
+    if ms.resuming_stack?
+      debug "resuming at ", sig
+      ms.resuming_stack++
       if virtual
-        cf = runtime_state.curr_frame()
+        cf = ms.curr_frame()
         unless cf.method is @
-          runtime_state.resuming_stack--
+          ms.resuming_stack--
           return cf.method.run(runtime_state)
-      if runtime_state.resuming_stack == runtime_state.meta_stack.length - 1
-        runtime_state.resuming_stack = null
+      if ms.resuming_stack == ms.length() - 1
+        ms.resuming_stack = null
     else
       caller_stack = runtime_state.curr_frame().stack
       if virtual
@@ -177,8 +181,8 @@ class root.Method extends AbstractMethodField
         #throw "abstract method got called: #{@name}#{@raw_descriptor}" if m.access_flags.abstract
         return m.run(runtime_state)
       params = @take_params caller_stack
-      runtime_state.meta_stack.push(new runtime.StackFrame(this,params,[]))
-    padding = (' ' for [2...runtime_state.meta_stack.length]).join('')
+      ms.push(new runtime.StackFrame(this,params,[]))
+    padding = (' ' for [2...ms.length()]).join('')
     # check for trapped and native methods, run those manually
     cf = runtime_state.curr_frame()
     if cf.resume? # we are resuming from a yield, and this was a manually run method
@@ -198,7 +202,7 @@ class root.Method extends AbstractMethodField
         try
           util.java_throw runtime_state, 'java/lang/Error', "native method NYI: #{sig}"
         finally
-          runtime_state.meta_stack.pop()
+          runtime_state.meta_stack().pop()
     else if @access_flags.abstract
       util.java_throw runtime_state, 'java/lang/Error', "called abstract method: #{sig}"
     else

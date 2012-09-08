@@ -50,7 +50,7 @@ if require.main == module
     call_counts = {}
     profiled_fn = (old_fn) -> ->
       method = rs.curr_frame().method
-      caller = rs.meta_stack[rs.meta_stack.length-2].method
+      caller = rs.meta_stack().get_caller(1).method
       fn_sig = (fn) -> "#{fn.class_type.toClassString()}::#{fn.name}"
       method_name = fn_sig method
       hash = "#{if caller? then fn_sig caller else "program"}|#{method_name}"

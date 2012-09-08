@@ -13,6 +13,23 @@ initial_value = (type_str) ->
   else if type_str[0] in ['[','L'] then null
   else 0 
 
+class root.CallStack
+  constructor: (initial_stack) ->
+    @_cs = [new root.StackFrame null,[],[]]
+    if initial_stack?
+      @_cs[0].stack = initial_stack
+    @resuming_stack = null
+
+  length: -> @_cs.length
+  push: (sf) -> @_cs.push sf
+  pop: -> @_cs.pop()
+
+  curr_frame: ->
+    if @resuming_stack? then @_cs[@resuming_stack]
+    else _.last(@_cs)
+
+  get_caller: (frames_to_skip) -> @_cs[@_cs.length-1-frames_to_skip]
+
 class root.StackFrame
   constructor: (@method,@locals,@stack) ->
     @pc = 0
@@ -24,31 +41,64 @@ class root.RuntimeState
     @high_oref = 1
     @string_pool = {}
     @string_redirector = {}
-
-  # Init the first class, and put the command-line args on the stack for use by
-  # its main method.
-  initialize: (class_name, initial_args) ->
+    @lock_refs = {}  # map from monitor -> thread object
+    @lock_counts = {}  # map from monitor -> count
+    @waiting_threads = {}  # map from monitor -> list of waiting thread objects
+    @thread_pool = []
     # initialize thread objects
-    @meta_stack = [new root.StackFrame null,[],[]]
+    @curr_thread = {fields: $meta_stack: new root.CallStack()}
     @push (group = @init_object 'java/lang/ThreadGroup')
     @method_lookup({class: 'java/lang/ThreadGroup', sig: '<init>()V'}).run(this)
-    @main_thread = @init_object 'java/lang/Thread',
+
+    ct = @init_object 'java/lang/Thread',
       name: @init_carr 'main'
       priority: 1
       group: group
       threadLocals: null
     @push gLong.ZERO, null  # set up for static_put
     @static_put {class:'java/lang/Thread', name:'threadSeqNumber'}
+    ct.fields.$meta_stack = @meta_stack()
+    @curr_thread = ct
+    @curr_thread.fields.$isAlive = true
+    @thread_pool.push @curr_thread
 
+  meta_stack: -> @curr_thread.fields.$meta_stack
+
+  # Init the first class, and put the command-line args on the stack for use by
+  # its main method.
+  initialize: (class_name, initial_args) ->
     # initialize the system class
-    @class_lookup c2t 'java/lang/System'
-
-    args = @set_obj(c2t('[Ljava/lang/String;'),(@init_string(a) for a in initial_args))
-    # prepare meta_stack for main(String[] args)
-    @meta_stack = [new root.StackFrame(null,[],[args])]
+    @class_lookup(c2t 'java/lang/System').methods['initializeSystemClass()V'].run(this)
     @class_lookup c2t class_name
+
+    # prepare meta_stack for main(String[] args)
+    args = @set_obj(c2t('[Ljava/lang/String;'),(@init_string(a) for a in initial_args))
+    @curr_thread.fields.$meta_stack = new root.CallStack [args]
     debug "### finished runtime state initialization ###"
 
+  wait: (monitor) ->
+    # add current thread to wait queue
+    if @waiting_threads[monitor]?
+      @waiting_threads[monitor].push @curr_thread
+    else
+      @waiting_threads[monitor] = [@curr_thread]
+    # yield execution, to the locking thread if possible
+    if @lock_refs[monitor]?
+      yieldee = @lock_refs[monitor]
+    else # just take any old thread
+      yieldee = (y for y in @thread_pool when y isnt @curr_thread).pop()
+      unless yieldee?
+        java_throw @, 'java/lang/Error', "tried to wait when no other thread was available"
+    debug "TE: yielding #{@jvm_carr2js_str @curr_thread.fields.name} to #{@jvm_carr2js_str yieldee.fields.name}"
+    my_thread = @curr_thread
+    @curr_frame().resume = -> @curr_thread = my_thread
+    rs = this
+    throw new util.YieldException (cb) ->
+      my_thread.fields.$resume = cb
+      rs.curr_thread = yieldee
+      debug "TE: about to resume #{rs.jvm_carr2js_str yieldee.fields.name}"
+      yieldee.fields.$resume()
+  
   # Convert a Java String object into an equivalent JS one.
   jvm2js_str: (jvm_str) ->
     @jvm_carr2js_str(jvm_str.fields.value, jvm_str.fields.offset, jvm_str.fields.count)
@@ -78,9 +128,7 @@ class root.RuntimeState
   free_zip_descriptor: (zd_long) ->
     #delete @zip_descriptors[zd_long.toInt()]
 
-  curr_frame: () ->
-    if @resuming_stack? then @meta_stack[@resuming_stack]
-    else _.last(@meta_stack)
+  curr_frame: -> @meta_stack().curr_frame()
 
   cl: (idx) -> @curr_frame().locals[idx]
   put_cl: (idx,val) -> @curr_frame().locals[idx] = val
@@ -195,7 +243,7 @@ class root.RuntimeState
       else
         class_file = @read_classfile cls
         return unless class_file?
-        @classes[cls] =
+        @classes[cls] = c =
           file: class_file
           obj:  @set_obj(c2t('java/lang/Class'), { $type: type })
         # Run class initialization code. Superclasses get init'ed first.  We
@@ -204,10 +252,20 @@ class root.RuntimeState
         # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/Concepts.doc.html#19075
         if class_file.super_class
           @_class_lookup class_file.super_class
+        # flag to let us know if we need to resume into <clinit> after a yield
+        c.in_progress = true
         class_file.methods['<clinit>()V']?.run(this)
-        if cls is 'java/lang/System'  # zomg hardcode
-          class_file.methods['initializeSystemClass()V'].run(this)
+        delete c.in_progress  # no need to keep this around
+    else if @meta_stack().resuming_stack?
+      c = @classes[cls]
+      if c.file.super_class
+        @_class_lookup c.file.super_class
+      if c.in_progress?  # need to resume <clinit>
+        debug "resuming an in_progress class initialization"
+        delete c.in_progress
+        c.file.methods['<clinit>()V']?.run(this)
     @classes[cls]
+    
   # Spec [5.4.3.3][1], [5.4.3.4][2].
   # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#79473
   # [2]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#78621
