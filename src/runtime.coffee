@@ -24,7 +24,6 @@ class root.RuntimeState
     @high_oref = 1
     @string_pool = {}
     @string_redirector = {}
-    @zip_descriptors = [null]
 
   # Init the first class, and put the command-line args on the stack for use by
   # its main method.
