@@ -89,11 +89,12 @@ doPrivileged = (rs) ->
   rs.pop()
 
 # properties to set:
-#  java.version,java.vendor.url,java.class.version,java.class.path,os.name,os.arch,os.version
+#  java.version,java.vendor.url,java.class.version,java.class.path,os.arch,os.version
 system_properties = {
   'java.home':'third_party/java_home/', 'file.encoding':'US_ASCII','java.vendor':'DoppioVM',
   'line.separator':'\n', 'file.separator':'/', 'path.separator':':',
   'user.dir':'.','user.home':'.','user.name':'DoppioUser',
+  'os.name':'Doppio',
   # we don't actually load from this file, but it has to look like a valid filename
   'sun.boot.class.path': '/System/Library/Frameworks/JavaVM.framework/Classes/classes.jar',
   # this doesn't actually exist in our classes.jar, but no other GraphicsEnvironment does either
