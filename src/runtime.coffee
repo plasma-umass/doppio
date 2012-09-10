@@ -76,19 +76,31 @@ class root.RuntimeState
     @curr_thread.fields.$meta_stack = new root.CallStack [args]
     debug "### finished runtime state initialization ###"
 
-  wait: (monitor) ->
+  show_state: () ->
+    cf = @curr_frame()
+    if cf?
+      s = ((if x?.ref? then x.ref else x) for x in cf.stack)
+      l = ((if x?.ref? then x.ref else x) for x in cf.locals)
+      debug "stack: [#{s}], locals: [#{l}]"
+    else
+      error "current frame is undefined. meta_stack looks like:", @meta_stack()
+
+  wait: (monitor, yieldee) ->
     # add current thread to wait queue
     if @waiting_threads[monitor]?
       @waiting_threads[monitor].push @curr_thread
     else
       @waiting_threads[monitor] = [@curr_thread]
     # yield execution, to the locking thread if possible
-    if @lock_refs[monitor]?
+    unless yieldee?
       yieldee = @lock_refs[monitor]
-    else # just take any old thread
+    @yield yieldee
+    
+  yield: (yieldee) ->
+    unless yieldee?
       yieldee = (y for y in @thread_pool when y isnt @curr_thread).pop()
       unless yieldee?
-        java_throw @, 'java/lang/Error', "tried to wait when no other thread was available"
+        java_throw @, 'java/lang/Error', "tried to yield when no other thread was available"
     debug "TE: yielding #{@jvm_carr2js_str @curr_thread.fields.name} to #{@jvm_carr2js_str yieldee.fields.name}"
     my_thread = @curr_thread
     @curr_frame().resume = -> @curr_thread = my_thread
@@ -265,7 +277,7 @@ class root.RuntimeState
         delete c.in_progress
         c.file.methods['<clinit>()V']?.run(this)
     @classes[cls]
-    
+
   # Spec [5.4.3.3][1], [5.4.3.4][2].
   # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#79473
   # [2]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#78621

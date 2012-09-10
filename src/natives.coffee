@@ -248,9 +248,14 @@ native_methods =
               owner = rs.jvm_carr2js_str rs.lock_refs[_this].fields.name
               util.java_throw rs, 'java/lang/IllegalMonitorStateException', "Thread '#{owner}' owns this monitor"
             if rs.waiting_threads[_this]? and (t = rs.waiting_threads[_this].shift())?
-              # yield execution to t
-              throw "TODO: yield execution to t"
-        #o 'notifyAll()V', (rs, _this) ->
+              rs.wait _this, t  # wait on _this, yield to t
+        o 'notifyAll()V', (rs, _this) ->  # exactly the same as notify(), for now
+            return unless rs.lock_refs[_this]?  # if it's not an active monitor, no one cares
+            unless rs.lock_refs[_this] is rs.curr_thread
+              owner = rs.jvm_carr2js_str rs.lock_refs[_this].fields.name
+              util.java_throw rs, 'java/lang/IllegalMonitorStateException', "Thread '#{owner}' owns this monitor"
+            if rs.waiting_threads[_this]? and (t = rs.waiting_threads[_this].shift())?
+              rs.wait _this, t  # wait on _this, yield to t
         o 'wait(J)V', (rs, _this, timeout) ->
             unless timeout is gLong.ZERO
               error "TODO(Object::wait): respect the timeout param (#{timeout})"
@@ -350,23 +355,40 @@ native_methods =
               try
                 rs.method_lookup({class: _this.type.toClassString(), sig: 'run()V'}).run(rs)
               catch e
-                throw e unless e instanceof util.YieldException
-                resume_thread e.condition
-                rs.curr_thread.fields.$isAlive = false
-                rs.thread_pool.splice rs.thread_pool.indexOf(rs.curr_thread), 1
+                if e instanceof util.JavaException
+                  debug "\nUncaught Java Exception"
+                  rs.show_state()
+                  rs.push rs.curr_thread, e.exception
+                  rs.method_lookup(class: 'java/lang/Thread', sig: 'dispatchUncaughtException(Ljava/lang/Throwable;)V').run(rs)
+                  return
+                else if e instanceof util.HaltException
+                  console.error "\nExited with code #{e.exit_code}" unless e.exit_code is 0
+                  return
+                else if e instanceof util.YieldException
+                  resume_thread e.condition
+                  rs.curr_thread.fields.$isAlive = false
+                  rs.thread_pool.splice rs.thread_pool.indexOf(rs.curr_thread), 1
+                else
+                  console.log "\nInternal JVM Error!", e.stack
+                  rs.show_state()
+                  return
               debug "TE: finished running #{rs.jvm_carr2js_str rs.curr_thread.fields.name}"
 
               # yield to a paused thread
               yieldee = (y for y in rs.thread_pool when y isnt rs.curr_thread).pop()
               if yieldee?
                 rs.curr_thread = yieldee
+                debug "TE: about to resume #{rs.jvm_carr2js_str rs.curr_thread.fields.name}"
                 rs.curr_thread.fields.$resume()
             
         o 'sleep(J)V', (rs, millis) ->
             rs.curr_frame().resume = -> # NOP, return immediately after sleeping
             throw new util.YieldException (cb) ->
               setTimeout(cb, millis.toNumber())
-        #o 'yield()V', (rs) -> #TODO: similar to sleep, except pass control to another thread
+        o 'yield()V', (rs, _this) ->
+            unless _this is rs.curr_thread
+              util.java_throw rs, 'java/lang/Error', "tried to yield non-current thread"
+            rs.yield()
       ]
     security:
       AccessController: [
