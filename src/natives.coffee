@@ -316,6 +316,10 @@ native_methods =
         o 'setPriority0(I)V', (rs) -> # NOP
         o 'holdsLock(L!/!/Object;)Z', (rs, obj) -> rs.curr_thread is rs.lock_refs[obj.ref]
         o 'isAlive()Z', (rs, _this) -> _this.fields.$isAlive ? false
+        o 'isInterrupted(Z)Z', (rs, _this, clear_flag) ->
+            tmp = _this.fields.$isInterrupted ? false
+            _this.fields.$isInterrupted = false if clear_flag
+            tmp
         o 'start0()V', (rs, _this) ->
             # bookkeeping
             _this.fields.$isAlive = true
