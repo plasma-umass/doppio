@@ -36,5 +36,11 @@ if [ -z "$CSVER" ] || [[ "$CSVER" < "1.2.0" ]]; then
   npm install -g coffee-script@1.2.0
 fi
 
+#TODO: check for this before installing
+npm install optimist
+
+echo "Using `javac -version` to generate classfiles"
+make java
+
 echo "Your environment should now be set up correctly."
 echo "Run 'make test' (optionally with -j4) to test Doppio."
