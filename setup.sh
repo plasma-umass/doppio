@@ -22,6 +22,13 @@ ls
 cp java/util/zip/*.class ../classes/java/util/zip/
 cd .. && rm -rf jazzlib
 
+if [ -z "$JAVA_HOME" ]; then
+  jh_tmp=`locate lib/currency.data | head -1`
+  jh_tmp="$(dirname "$jh_tmp"|tail -1)"
+  JAVA_HOME="$(dirname "$jh_tmp"|tail -1)"
+fi
+ln -sf "$JAVA_HOME" java_home
+
 cd ..  # back to start
 
 # Intentionally fail if node doesn't exist.
