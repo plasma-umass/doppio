@@ -368,6 +368,10 @@ native_methods =
                 else if e instanceof util.HaltException
                   console.error "\nExited with code #{e.exit_code}" unless e.exit_code is 0
                   return
+                else if e instanceof util.YieldIOException
+                  return e.condition ->
+                    rs.meta_stack().resuming_stack = 1
+                    rs.curr_frame().method.run(rs, true)
                 else if e instanceof util.YieldException
                   resume_thread e.condition
                   rs.curr_thread.fields.$isAlive = false
@@ -387,7 +391,7 @@ native_methods =
             
         o 'sleep(J)V', (rs, millis) ->
             rs.curr_frame().resume = -> # NOP, return immediately after sleeping
-            throw new util.YieldException (cb) ->
+            throw new util.YieldIOException (cb) ->
               setTimeout(cb, millis.toNumber())
         o 'yield()V', (rs, _this) ->
             unless _this is rs.curr_thread
@@ -437,7 +441,7 @@ native_methods =
               # For the browser implementation -- the DOM doesn't get repainted
               # unless we give the event loop a chance to spin.
               rs.curr_frame().resume = -> # NOP
-              throw new util.YieldException (cb) -> setTimeout(cb, 0)
+              throw new util.YieldIOException (cb) -> setTimeout(cb, 0)
         o 'writeBytes([BII)V', (rs, _this, bytes, offset, len) ->
             if _this.fields.$file?
               fs.writeSync(_this.fields.$file, new Buffer(bytes.array), offset, len)
@@ -447,7 +451,7 @@ native_methods =
               # For the browser implementation -- the DOM doesn't get repainted
               # unless we give the event loop a chance to spin.
               rs.curr_frame().resume = -> # NOP
-              throw new util.YieldException (cb) -> setTimeout(cb, 0)
+              throw new util.YieldIOException (cb) -> setTimeout(cb, 0)
         o 'close0()V', (rs, _this) ->
             return unless _this.fields.$file?
             fs.closeSync(_this.fields.$file)
@@ -469,7 +473,7 @@ native_methods =
             data = null # will be filled in after the yield
             rs.curr_frame().resume = ->
               if data.length == 0 then -1 else data.charCodeAt(0)
-            throw new util.YieldException (cb) ->
+            throw new util.YieldIOException (cb) ->
               rs.async_input 1, (byte) ->
                 data = byte
                 cb()
@@ -487,7 +491,7 @@ native_methods =
             # reading from System.in, do it async
             result = null # will be filled in after the yield
             rs.curr_frame().resume = -> result
-            throw new util.YieldException (cb) ->
+            throw new util.YieldIOException (cb) ->
               rs.async_input n_bytes, (bytes) ->
                 byte_arr.array[offset+idx] = b for b, idx in bytes
                 result = bytes.length

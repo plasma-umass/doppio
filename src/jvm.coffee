@@ -20,7 +20,7 @@ run = (rs, fn) ->
       rs.method_lookup(class: 'java/lang/Thread', sig: 'dispatchUncaughtException(Ljava/lang/Throwable;)V').run(rs)
     else if e instanceof util.HaltException
       console.error "\nExited with code #{e.exit_code}" unless e.exit_code is 0
-    else if e instanceof util.YieldException
+    else if e instanceof util.YieldIOException or e instanceof util.YieldException
       return e.condition ->
         rs.meta_stack().resuming_stack = 0  # <-- index into the meta_stack of the frame we're resuming
         run rs, fn

@@ -111,6 +111,9 @@ class root.ReturnException
 class root.YieldException
   constructor: (@condition) ->
 
+class root.YieldIOException
+  constructor: (@condition) ->
+
 class root.JavaException
   constructor: (rs, @exception) ->
 
