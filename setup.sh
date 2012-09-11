@@ -15,7 +15,7 @@ echo "Extracting the Java class library from: $JCL"
 unzip -qq -d classes/ "$JCL"
 
 echo "patching the class library with Jazzlib"
-mkdir jazzlib && cd jazzlib
+mkdir -p jazzlib && cd jazzlib
 wget -q "http://downloads.sourceforge.net/project/jazzlib/jazzlib/0.07/jazzlib-binary-0.07-juz.zip"
 unzip -qq "jazzlib-binary-0.07-juz.zip"
 ls
