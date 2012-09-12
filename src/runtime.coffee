@@ -11,7 +11,7 @@ trace = (msg) -> log 9, msg
 initial_value = (type_str) ->
   if type_str is 'J' then gLong.ZERO
   else if type_str[0] in ['[','L'] then null
-  else 0 
+  else 0
 
 class root.CallStack
   constructor: (initial_stack) ->
@@ -209,8 +209,8 @@ class root.RuntimeState
     @class_lookup type
     @set_obj type, obj
   init_string: (str,intern=false) ->
-    # this is a bit of a kludge: if the string we want to intern is __proto__ or a function name, 
-    #  we fail to intern it.
+    # this is a bit of a kludge: if the string we want to intern is __proto__ or a function name,
+    # we fail to intern it.
     return @string_pool[str] if intern and @string_pool[str]?.type?.toClassString?() is 'java/lang/String'
     carr = @init_carr str
     jvm_str = @set_obj c2t('java/lang/String'), {'value':carr, 'count':str.length}

@@ -19,7 +19,7 @@ root.cmp = (a,b) ->
 # (see http://stackoverflow.com/questions/337355/javascript-bitwise-shift-of-long-long-number)
 root.lshift = (x,n) -> x*Math.pow(2,n)
 
-root.read_uint = (bytes) -> 
+root.read_uint = (bytes) ->
   n = bytes.length-1
   # sum up the byte values shifted left to the right alignment.
   root.sum(root.lshift(bytes[i],8*(n-i)) for i in [0..n])

@@ -231,7 +231,8 @@ class root.ArrayLoadOpcode extends root.Opcode
   execute: (rs) ->
     idx = rs.pop()
     array = rs.check_null(rs.pop()).array
-    java_throw rs, 'java/lang/ArrayIndexOutOfBoundsException', "#{idx} not in [0,#{array.length})" unless 0 <= idx < array.length
+    java_throw rs, 'java/lang/ArrayIndexOutOfBoundsException',
+      "#{idx} not in [0,#{array.length})" unless 0 <= idx < array.length
     rs.push array[idx]
     rs.push null if @name.match /[ld]aload/
 
@@ -464,7 +465,7 @@ root.opcodes = {
   174: new root.Opcode 'freturn', { execute: (rs) -> throw new ReturnException rs.curr_frame().stack[0] }
   175: new root.Opcode 'dreturn', { execute: (rs) -> throw new ReturnException rs.curr_frame().stack[0], null }
   176: new root.Opcode 'areturn', { execute: (rs) -> throw new ReturnException rs.curr_frame().stack[0] }
-  177: new root.Opcode 'return', { execute: (rs) -> 
+  177: new root.Opcode 'return', { execute: (rs) ->
     throw new Error("too many values on stack for void return") if rs.curr_frame().stack.length > 0
     throw new ReturnException }
   178: new root.FieldOpcode 'getstatic', {execute: (rs)-> rs.push rs.static_get @field_spec; rs.push null if @field_spec.type in ['J','D']}
@@ -490,7 +491,7 @@ root.opcodes = {
       java_throw rs, 'java/lang/ClassCastException', "#{candidate_class} cannot be cast to #{target_class}"
   }
   193: new root.ClassOpcode 'instanceof', { execute: (rs) -> o=rs.pop(); rs.push if o? then types.check_cast(rs,o,@class)+0 else 0 }
-  194: new root.Opcode 'monitorenter', { execute: (rs)-> 
+  194: new root.Opcode 'monitorenter', { execute: (rs)->
     monitor = rs.pop()
     if (locked_thread = rs.lock_refs[monitor])?
       if locked_thread is rs.curr_thread

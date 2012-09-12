@@ -121,7 +121,7 @@ compile_source = (fname, quiet) ->
       (new DoppioFile "#{class_name}.class").write(data).save()
       unless quiet
         controller.reprompt()
-    error: (jqXHR, textStatus, errorThrown) -> 
+    error: (jqXHR, textStatus, errorThrown) ->
       controller.message "AJAX error: #{errorThrown}", 'error'
   }
 

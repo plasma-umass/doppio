@@ -138,7 +138,7 @@ native_methods =
   java:
     lang:
       Class: [
-        o 'getPrimitiveClass(L!/!/String;)L!/!/!;', (rs, jvm_str) -> 
+        o 'getPrimitiveClass(L!/!/String;)L!/!/!;', (rs, jvm_str) ->
             rs.class_lookup(new types.PrimitiveType(rs.jvm2js_str(jvm_str)), true)
         o 'getClassLoader0()L!/!/ClassLoader;', (rs) -> null  # we don't need no stinkin classloaders
         o 'desiredAssertionStatus0(L!/!/!;)Z', (rs) -> false # we don't need no stinkin asserts
@@ -352,7 +352,7 @@ native_methods =
             # actually start the thread
             throw new util.YieldException (cb) ->
               spawning_thread.fields.$resume = cb
-              rs.curr_thread = _this            
+              rs.curr_thread = _this
               # call the thread's run() method.
               rs.push _this
               try
@@ -618,7 +618,7 @@ native_methods =
         o 'compareAndSwapLong(Ljava/lang/Object;JJJ)Z', (rs, _this, obj, offset, expected, x) ->
             set_value_from_offset rs, obj, offset, x
             true
-        o 'ensureClassInitialized(Ljava/lang/Class;)V', (rs,_this,cls) -> 
+        o 'ensureClassInitialized(Ljava/lang/Class;)V', (rs,_this,cls) ->
             rs.class_lookup(cls.fields.$type)
         o 'staticFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.fields.slot)
         o 'objectFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.fields.slot)

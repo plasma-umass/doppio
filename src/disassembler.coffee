@@ -140,14 +140,14 @@ root.disassemble = (class_file) ->
   return rv
 
 escape_whitespace = (str) ->
- str.replace /\s/g, (c) ->
-   switch c
-     when "\n" then "\\n"
-     when "\r" then "\\r"
-     when "\t" then "\\t"
-     when "\v" then "\\v"
-     when "\f" then "\\f"
-     else c
+  str.replace /\s/g, (c) ->
+    switch c
+      when "\n" then "\\n"
+      when "\r" then "\\r"
+      when "\t" then "\\t"
+      when "\v" then "\\v"
+      when "\f" then "\\f"
+      else c
 
 # if :entry is a reference, display its referent in a comment
 format_extra_info = (entry) ->
@@ -162,7 +162,7 @@ format_extra_info = (entry) ->
     when 'NameAndType' then "//  #{info.name}:#{info.type}"
     else "\t//  " + escape_whitespace info if util.is_string info
 
-primitive_types = {'Z':'boolean','C':'char','F':'float','D':'double','B':'byte','S':'short','I':'int','J':'long'}
+primitive_types = {Z:'boolean',C:'char',F:'float',D:'double',B:'byte',S:'short',I:'int',J:'long'}
 
 root.opcode_annotators =
   InvokeOpcode: (idx, pool) ->

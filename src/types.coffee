@@ -101,7 +101,8 @@ root.check_cast = (rs, obj, classname) ->
 # :type1 and :type2 should both be instances of types.Type.
 root.is_castable = (rs, type1, type2) ->
   if (type1 instanceof types.PrimitiveType) or (type2 instanceof types.PrimitiveType)
-    return type1.name == type2.name  # since types are created on the fly, we can have different Type objects for the same type
+    # since types are created on the fly, we can have different Type objects for the same type
+    return type1.name == type2.name
   if type1 instanceof types.ArrayType
     if type2 instanceof types.ArrayType
       return root.is_castable(rs, type1.component_type, type2.component_type)

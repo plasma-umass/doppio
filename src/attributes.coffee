@@ -5,7 +5,7 @@ util ?= require './util'
 opcodes ?= require './opcodes'
 
 # things assigned to root will be available outside this module
-root = this 
+root = this
 
 class ExceptionHandler
   parse: (bytes_array,constant_pool) ->
@@ -71,7 +71,7 @@ class StackMapTable
       if 0 <= frame_type < 64
         { frame_type: frame_type, frame_name: 'same' }
       else if 64 <= frame_type < 128
-        { 
+        {
           frame_type: frame_type
           frame_name: 'same_locals_1_stack_item'
           stack: parse_verification_type_info()

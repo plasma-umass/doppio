@@ -17,7 +17,9 @@ run = (rs, fn) ->
       rs.show_state()
       rs.push rs.curr_thread, e.exception
       #util.log_level = 10
-      rs.method_lookup(class: 'java/lang/Thread', sig: 'dispatchUncaughtException(Ljava/lang/Throwable;)V').run(rs)
+      rs.method_lookup(
+        class: 'java/lang/Thread'
+        sig: 'dispatchUncaughtException(Ljava/lang/Throwable;)V').run(rs)
     else if e instanceof util.HaltException
       console.error "\nExited with code #{e.exit_code}" unless e.exit_code is 0
     else if e instanceof util.YieldIOException or e instanceof util.YieldException

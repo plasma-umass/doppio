@@ -14,7 +14,7 @@ class win.DoppioFile # File is a native browser thing
     return null unless rawData
     data = JSON.parse rawData
     file = new win.DoppioFile fname
-    file[k] = v for k, v of data 
+    file[k] = v for k, v of data
     file
 
   read: (length, pos) ->
