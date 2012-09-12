@@ -6,7 +6,7 @@ DISASMS = $(SOURCES:.java=.disasm)
 RUNOUTS = $(SOURCES:.java=.runout)
 CLASSES = $(SOURCES:.java=.class)
 RESULTS = $(SOURCES:.java=.result)
-DEMO_SRCS = $(wildcard test/special/*.java) test/FileRead.java
+DEMO_SRCS = $(wildcard test/special/*.java) test/FileRead.java test/Fib.java
 DEMO_CLASSES = $(DEMO_SRCS:.java=.class)
 BROWSER_HTML = $(wildcard browser/[^_]*.html)
 BUILD_HTML = $(addprefix build/, $(notdir $(BROWSER_HTML)))
@@ -90,9 +90,15 @@ build/%.html: $(BROWSER_HTML) $(wildcard browser/_*.html)
 	cpp -P -traditional-cpp -DRELEASE browser/$*.html build/$*.html
 
 build/compressed.js: $(BROWSER_SRCS)
+	if command -v gsed >/dev/null; then \
+		SED="gsed"; \
+	else \
+		SED="sed"; \
+	fi; \
 	for src in $(BROWSER_SRCS); do \
 		if [ "$${src##*.}" == "coffee" ]; then \
-			cat $${src} | gsed -r "s/^ *(debug|trace).*$$//" | $(COFFEEC) --stdio --print; \
+			$(: `` is essentially Coffeescript's equivalent of Python's 'pass') \
+			cat $${src} | $$SED -r "s/^( *)(debug|trace).*$$/\1\`\`/" | $(COFFEEC) --stdio --print; \
 		else \
 			cat $${src}; \
 		fi; \
@@ -106,13 +112,11 @@ build/ace.js: $(ACE_SRCS)
 	done > build/ace.js
 
 build/browser/style.css: third_party/bootstrap/css/bootstrap.min.css browser/style.css
+	mkdir -p build/browser
 	cat $^ > $@
 
 browser/mini-rt.tar: tools/preload
 	tools/make-rt.sh
-
-$(UGLIFYJS):
-	npm install https://github.com/downloads/int3/UglifyJS/uglify.tar.gz
 
 .SECONDARY: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES)
 .INTERMEDIATE: browser/_about.html

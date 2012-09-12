@@ -202,7 +202,7 @@ $(document).ready ->
   demo_files = ['special/DiffPrint.class', 'special/Chatterbot.java',
   'special/Chatterbot.class', 'special/Lzw.java', 'special/Lzw.class',
   'special/RegexTestHarness.java', 'special/RegexTestHarness.class',
-  './FileRead.java', 'special/Fib.java', 'special/foo', 'special/bar']
+  './FileRead.java', './Fib.java', 'special/foo', 'special/bar']
   for demo in demo_files
     $.ajax "test/#{demo}", {
       type: 'GET'

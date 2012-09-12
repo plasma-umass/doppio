@@ -61,13 +61,12 @@ Usage
 To run Doppio on localhost, run `. startup.sh`, or start the browser frontend manually:
 
     cpp -P -traditional-cpp browser/index.html index.html
-    python -m SimpleHTTPServer 8000 &
+    ruby webrick.rb --dev
 
 To get the optimized release version:
 
     make release
-    cd build
-    python -m SimpleHTTPServer 8000 &
+    ruby webrick.rb --release
 
 Then point your browser to http://localhost:8000/.
 

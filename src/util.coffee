@@ -1,3 +1,5 @@
+unless exports?
+  this.require = ->
 
 # pull in external modules
 _ ?= require '../third_party/underscore-min.js'

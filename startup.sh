@@ -2,9 +2,8 @@
 # user@host$ . startup.sh
 # This runs the commands in your current terminal session.
 
-python -m SimpleHTTPServer 8000 &
+ruby webrick.rb &
 coffee -wc */*.coffee &
-make java
 make browser/mini-rt.tar
 sleep 1  # make sure we have time to compile everything
 cpp -P browser/index.html index.html
