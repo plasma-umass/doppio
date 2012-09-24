@@ -162,7 +162,7 @@ $(document).ready ->
   controller = jqconsole.console
     promptLabel: 'doppio > '
     commandHandle: (line) ->
-      [cmd,args...] = line.split /\s+/
+      [cmd,args...] = line.trim().split /\s+/
       if cmd == '' then return true
       handler = commands[cmd]
       try
