@@ -45,6 +45,8 @@ if require.main == module
       process.stdin.pause()
       resume data
 
+  rs = new runtime.RuntimeState(stdout, read_stdin, exports.read_classfile)
+  
   if argv.profile
     timings = {}
     call_counts = {}
@@ -69,7 +71,6 @@ if require.main == module
 
   java_cmd_args = (argv.java?.toString().split /\s+/) or []
 
-  rs = new runtime.RuntimeState(stdout, read_stdin, exports.read_classfile)
   jvm.run_class rs, cname, java_cmd_args
 
   if argv.profile
