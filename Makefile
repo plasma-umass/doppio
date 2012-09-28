@@ -37,7 +37,11 @@ ACE_SRCS = third_party/ace/build/src/ace.js \
 	third_party/ace/build/src/mode-java.js \
 	third_party/ace/build/src/theme-twilight.js
 
-test: $(RESULTS)
+jre: third_party/classes/java/lang/String.class
+third_party/classes/java/lang/String.class:
+	$(error Java class library not found. Unzip it to third_party/classes/)
+
+test: jre $(RESULTS)
 	cat $(RESULTS)
 	@rm -f $(RESULTS)
 
