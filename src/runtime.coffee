@@ -67,11 +67,15 @@ class root.RuntimeState
   # Init the first class, and put the command-line args on the stack for use by
   # its main method.
   initialize: (class_name, initial_args) ->
-    # initialize the system class
-    @class_lookup(c2t 'java/lang/System').methods['initializeSystemClass()V'].run(this)
+    unless @system_initialized?
+      # initialize the system class
+      @class_lookup(c2t 'java/lang/System').methods['initializeSystemClass()V'].run(this)
+      @system_initialized = true
+
+    # load the main class (which calls <clinit>, if needed)
     @class_lookup c2t class_name
 
-    # prepare meta_stack for main(String[] args)
+    # prepare the call stack for main(String[] args)
     args = @set_obj(c2t('[Ljava/lang/String;'),(@init_string(a) for a in initial_args))
     @curr_thread.fields.$meta_stack = new root.CallStack [args]
     debug "### finished runtime state initialization ###"
