@@ -16,24 +16,30 @@ fi
 
 cd third_party
 
-for name in rt classes; do
-  JCL=`locate "/$name.jar" | head -1`
-  if [ "$JCL" ]; then break; fi
-done
+# check for the JCL
+if [ ! -f classes/java/lang/Object.class ]; then
+  for name in rt classes; do
+    JCL=`locate "/$name.jar" | head -1`
+    if [ "$JCL" ]; then break; fi
+  done
 
-echo "Extracting the Java class library from: $JCL"
-unzip -qq -d classes/ "$JCL"
-
-echo "patching the class library with Jazzlib"
-mkdir -p jazzlib && cd jazzlib
-if ! command -v wget >/dev/null && [ -n "$PKGMGR" ]; then
-    $PKGMGR wget
+  echo "Extracting the Java class library from: $JCL"
+  unzip -qq -d classes/ "$JCL"
 fi
-wget -q "http://downloads.sourceforge.net/project/jazzlib/jazzlib/0.07/jazzlib-binary-0.07-juz.zip"
-unzip -qq "jazzlib-binary-0.07-juz.zip"
-ls
-cp java/util/zip/*.class ../classes/java/util/zip/
-cd .. && rm -rf jazzlib
+
+# check for jazzlib
+if [ ! -f classes/java/util/zip/DeflaterEngine.class ]; then
+  echo "patching the class library with Jazzlib"
+  mkdir -p jazzlib && cd jazzlib
+  if ! command -v wget >/dev/null && [ -n "$PKGMGR" ]; then
+      $PKGMGR wget
+  fi
+  wget -q "http://downloads.sourceforge.net/project/jazzlib/jazzlib/0.07/jazzlib-binary-0.07-juz.zip"
+  unzip -qq "jazzlib-binary-0.07-juz.zip"
+
+  cp java/util/zip/*.class ../classes/java/util/zip/
+  cd .. && rm -rf jazzlib
+fi
 
 if [ -z "$JAVA_HOME" ]; then
   jh_tmp=`locate lib/currency.data | head -1`
