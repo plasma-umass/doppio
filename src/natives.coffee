@@ -80,7 +80,7 @@ trapped_methods =
           # this is trapped and NOP'ed for speed
           o 'run()L!/lang/Object;', (rs) -> null
         ]
-  
+
 doPrivileged = (rs) ->
   action = rs.curr_frame().locals[0]
   m = rs.method_lookup(class: action.type.toClassString(), sig: 'run()Ljava/lang/Object;')
@@ -273,6 +273,7 @@ native_methods =
       ]
       StrictMath: [
         o 'pow(DD)D', (rs) -> Math.pow(rs.cl(0),rs.cl(2))
+        o 'floor(D)D', (rs, d_val) -> Math.floor(d_val)
       ]
       String: [
         o 'intern()L!/!/!;', (rs, _this) ->
@@ -387,7 +388,7 @@ native_methods =
                 rs.curr_thread = yieldee
                 debug "TE: about to resume #{rs.jvm_carr2js_str rs.curr_thread.fields.name}"
                 rs.curr_thread.fields.$resume()
-            
+
         o 'sleep(J)V', (rs, millis) ->
             rs.curr_frame().resume = -> # NOP, return immediately after sleeping
             throw new util.YieldIOException (cb) ->
