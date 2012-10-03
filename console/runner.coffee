@@ -22,10 +22,13 @@ if require.main == module
   {argv} = optimist
 
   optimist.usage '''
-  Usage: $0 [--classpath path1:...:pathn] /path/to/classfile
+  Usage: $0 /path/to/classfile
+  Optional flags:
+    --classpath=[path1:...:pathn]
     --java=[args for JVM]
-    [--log=[0-10]|debug|error]
-    [--profile]
+    --log=[0-10]|debug|error
+    --profile
+    --help
   '''
 
   return optimist.showHelp() if argv.help
@@ -36,8 +39,7 @@ if require.main == module
     util.log_level = argv.log + 0
 
   if argv.classpath?
-    classpath = argv.classpath.split(":")
-    classpath.push("#{__dirname}/../third_party/classes")
+    classpath = argv.classpath.split(':').concat classpath
 
   cname = argv._[0]
   cname = cname[0...-6] if cname[-6..] is '.class'
