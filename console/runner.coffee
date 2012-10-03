@@ -39,7 +39,8 @@ if require.main == module
     util.log_level = argv.log + 0
 
   if argv.classpath?
-    classpath = argv.classpath.split(':').concat classpath
+    classpath = argv.classpath.split ':'
+    classpath.push "#{__dirname}/../third_party/classes"
 
   cname = argv._[0]
   cname = cname[0...-6] if cname[-6..] is '.class'
