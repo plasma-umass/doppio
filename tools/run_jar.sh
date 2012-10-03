@@ -15,8 +15,7 @@ unzip -qq $jarfile -d $tmpdir
 toolsdir="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 runner="$toolsdir/../console/runner.coffee"
 
-pushd $tmpdir
-mainclass=`grep 'Main-Class' META-INF/MANIFEST.MF | cut -d' ' -f2 | tr '.' '/'`
+mainclass=`grep 'Main-Class' $tmpdir/META-INF/MANIFEST.MF | cut -d' ' -f2 | tr '.' '/'`
 # strange hack to remove trailing carriage returns
 mainclass="${mainclass%"${mainclass##*[![:space:]]}"}"
 
@@ -27,7 +26,6 @@ fi
 
 shift
 set +e
-$runner $mainclass $@
-popd
+$runner $mainclass $@ --classpath $tmpdir
 
 rm -rf $tmpdir
