@@ -6,12 +6,13 @@ util = require '../src/util'
 ClassFile = require '../src/class_file'
 methods = require '../src/methods'
 
+classpath = [ ".", "#{__dirname}/../third_party/classes" ]
+
 exports.read_binary_file = (filename) ->
   return null unless path.existsSync filename
   util.bytestr_to_array fs.readFileSync(filename, 'binary')
 
 exports.read_classfile = (cls) ->
-  classpath = [ ".", "#{__dirname}/../third_party/classes" ]
   for p in classpath
     data = exports.read_binary_file "#{p}/#{cls}.class"
     return new ClassFile data if data?
@@ -21,7 +22,7 @@ if require.main == module
   {argv} = optimist
 
   optimist.usage '''
-  Usage: $0 /path/to/classfile
+  Usage: $0 [--classpath path1:...:pathn] /path/to/classfile
     --java=[args for JVM]
     [--log=[0-10]|debug|error]
     [--profile]
@@ -33,6 +34,10 @@ if require.main == module
     util.log_level = util[argv.log.toUpperCase()]
   else if argv.log? # assume a number
     util.log_level = argv.log + 0
+
+  if argv.classpath?
+    classpath = argv.classpath.split(":")
+    classpath.push("#{__dirname}/../third_party/classes")
 
   cname = argv._[0]
   cname = cname[0...-6] if cname[-6..] is '.class'
@@ -46,7 +51,7 @@ if require.main == module
       resume data
 
   rs = new runtime.RuntimeState(stdout, read_stdin, exports.read_classfile)
-  
+
   if argv.profile
     timings = {}
     call_counts = {}
