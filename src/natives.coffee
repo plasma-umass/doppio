@@ -95,7 +95,7 @@ system_properties = {
   'line.separator':'\n', 'file.separator':'/', 'path.separator':':',
   'user.dir':'.','user.home':'.','user.name':'DoppioUser',
   'os.name':'Doppio',
-  'sun.boot.class.path': 'third_party/java_home/lib/rt.jar',
+  'sun.boot.class.path': 'third_party/classes:third_party/java_home/lib/rt.jar',
   # this doesn't actually exist in our classes.jar, but no other GraphicsEnvironment does either
   'java.awt.graphicsenv': 'sun.awt.X11GraphicsEnvironment',
   'useJavaUtilZip': 'true'  # hack for sun6javac, avoid ZipFileIndex shenanigans
