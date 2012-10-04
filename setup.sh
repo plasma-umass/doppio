@@ -18,7 +18,7 @@ cd third_party
 
 # check for the JCL
 if [ ! -f classes/java/lang/Object.class ]; then
-  for name in rt classes; do
+  for name in classes rt; do
     JCL=`locate "/$name.jar" | head -1`
     if [ "$JCL" ]; then break; fi
   done
