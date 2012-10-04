@@ -155,7 +155,9 @@ class root.Method extends AbstractMethodField
             rs.meta_stack().pop()
             throw e
         throw e # JVM Error
-    return null
+    # Must explicitly return here, to avoid Coffeescript accumulating an array of
+    #  the return values of rs.inc_pc
+    return
 
   run: (runtime_state,virtual=false) ->
     sig = "#{@class_type.toClassString()}::#{@name}#{@raw_descriptor}"
