@@ -267,6 +267,7 @@ native_methods =
         ]
       Runtime: [
         o 'availableProcessors()I', () -> 1
+        o 'gc()V', () -> # No universal way of forcing browser to GC.
       ]
       Shutdown: [
         o 'halt0(I)V', (rs) -> throw new util.HaltException(rs.curr_frame().locals[0])
@@ -274,6 +275,8 @@ native_methods =
       StrictMath: [
         o 'pow(DD)D', (rs) -> Math.pow(rs.cl(0),rs.cl(2))
         o 'floor(D)D', (rs, d_val) -> Math.floor(d_val)
+        o 'cos(D)D', (rs, d_val) -> Math.cos(d_val)
+        o 'sin(D)D', (rs, d_val) -> Math.sin(d_val)
       ]
       String: [
         o 'intern()L!/!/!;', (rs, _this) ->
