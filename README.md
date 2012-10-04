@@ -72,8 +72,9 @@ Then point your browser to http://localhost:8000/.
 
 The code can also be run from the console. For example:
 
-    ./console/disassembler.coffee test/Println.class
-    ./console/runner.coffee test/Println
+    ./console/disassembler.coffee test/Fib.class
+    ./console/runner.coffee test/Fib
+    ./console/runner.coffee test/Fib --java=7  # passes an argument to the JVM
 
 Testing
 -------

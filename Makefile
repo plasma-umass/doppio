@@ -33,9 +33,9 @@ BROWSER_SRCS = third_party/underscore-min.js \
 # they don't survive uglifyjs and are already minified, so include them
 # separately. also, this allows us to put them at the end of the document to
 # reduce load time.
-ACE_SRCS = third_party/ace/build/src/ace.js \
-	third_party/ace/build/src/mode-java.js \
-	third_party/ace/build/src/theme-twilight.js
+ACE_SRCS = third_party/ace/src-min/ace.js \
+	third_party/ace/src-min/mode-java.js \
+	third_party/ace/src-min/theme-twilight.js
 
 jre: third_party/classes/java/lang/String.class
 third_party/classes/java/lang/String.class:
@@ -62,6 +62,7 @@ test/%.runout: test/%.class
 
 clean:
 	@rm -f *.class $(DISASMS) $(RUNOUTS) $(RESULTS)
+	@rm -f src/*.js browser/*.js console/*.js tools/*.js
 	@rm -rf build/* browser/mini-rt.jar $(DEMO_CLASSES)
 
 release: $(BUILD_HTML) build/compressed.js browser/mini-rt.tar build/ace.js \
