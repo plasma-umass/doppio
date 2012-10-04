@@ -313,7 +313,7 @@ native_methods =
       Thread: [
         o 'currentThread()L!/!/!;', (rs) -> rs.curr_thread
         o 'setPriority0(I)V', (rs) -> # NOP
-        o 'holdsLock(L!/!/Object;)Z', (rs, obj) -> rs.curr_thread is rs.lock_refs[obj.ref]
+        o 'holdsLock(L!/!/Object;)Z', (rs, obj) -> rs.curr_thread is rs.lock_refs[obj]
         o 'isAlive()Z', (rs, _this) -> _this.fields.$isAlive ? false
         o 'isInterrupted(Z)Z', (rs, _this, clear_flag) ->
             tmp = _this.fields.$isInterrupted ? false
