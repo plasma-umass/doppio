@@ -62,6 +62,7 @@ test/%.runout: test/%.class
 
 clean:
 	@rm -f *.class $(DISASMS) $(RUNOUTS) $(RESULTS)
+	@rm -f src/*.js browser/*.js console/*.js tools/*.js
 	@rm -rf build/* browser/mini-rt.jar $(DEMO_CLASSES)
 
 release: $(BUILD_HTML) build/compressed.js browser/mini-rt.tar build/ace.js \
