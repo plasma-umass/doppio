@@ -155,6 +155,7 @@ class root.Method extends AbstractMethodField
             rs.meta_stack().pop()
             throw e
         throw e # JVM Error
+    return null
 
   run: (runtime_state,virtual=false) ->
     sig = "#{@class_type.toClassString()}::#{@name}#{@raw_descriptor}"

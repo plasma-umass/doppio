@@ -95,7 +95,7 @@ system_properties = {
   'line.separator':'\n', 'file.separator':'/', 'path.separator':':',
   'user.dir':'.','user.home':'.','user.name':'DoppioUser',
   'os.name':'Doppio',
-  'sun.boot.class.path': 'third_party/java_home/lib/rt.jar',
+  'sun.boot.class.path': 'third_party/classes:third_party/java_home/lib/rt.jar',
   # this doesn't actually exist in our classes.jar, but no other GraphicsEnvironment does either
   'java.awt.graphicsenv': 'sun.awt.X11GraphicsEnvironment',
   'useJavaUtilZip': 'true'  # hack for sun6javac, avoid ZipFileIndex shenanigans
@@ -314,7 +314,7 @@ native_methods =
       Thread: [
         o 'currentThread()L!/!/!;', (rs) -> rs.curr_thread
         o 'setPriority0(I)V', (rs) -> # NOP
-        o 'holdsLock(L!/!/Object;)Z', (rs, obj) -> rs.curr_thread is rs.lock_refs[obj.ref]
+        o 'holdsLock(L!/!/Object;)Z', (rs, obj) -> rs.curr_thread is rs.lock_refs[obj]
         o 'isAlive()Z', (rs, _this) -> _this.fields.$isAlive ? false
         o 'isInterrupted(Z)Z', (rs, _this, clear_flag) ->
             tmp = _this.fields.$isInterrupted ? false
