@@ -276,10 +276,7 @@ native_methods =
         o 'abs(D)D', (rs, d_val) -> Math.abs(d_val)
         o 'abs(F)F', (rs, f_val) -> Math.abs(f_val)
         o 'abs(I)I', (rs, i_val) -> Math.abs(i_val)
-        o 'abs(L)L', (rs, l_val) ->
-            if l_val.isNegative
-              return l_val.negate
-            return l_val
+        o 'abs(L)L', (rs, l_val) -> if l_val.isNegative then l_val.negate else l_val
         o 'acos(D)D', (rs, d_val) -> Math.acos(d_val)
         o 'asin(D)D', (rs, d_val) -> Math.asin(d_val)
         o 'atan(D)D', (rs, d_val) -> Math.atan(d_val)
@@ -292,17 +289,11 @@ native_methods =
         o 'max(DD)D', (rs, a, b) -> Math.max(a, b)
         o 'max(FF)F', (rs, a, b) -> Math.max(a, b)
         o 'max(II)I', (rs, a, b) -> Math.max(a, b)
-        o 'max(LL)L', (rs, a, b) ->
-            if a.greaterThan(b)
-              return a
-            return b
+        o 'max(LL)L', (rs, a, b) -> if a.greaterThan(b) then a else b
         o 'min(DD)D', (rs, a, b) -> Math.min(a, b)
         o 'min(FF)F', (rs, a, b) -> Math.min(a, b)
         o 'min(II)I', (rs, a, b) -> Math.min(a, b)
-        o 'min(LL)L', (rs, a, b) ->
-            if a.lessThan(b)
-              return a
-            return b
+        o 'min(LL)L', (rs, a, b) -> if a.lessThan(b) then a else b
         o 'pow(DD)D', (rs) -> Math.pow(rs.cl(0),rs.cl(2))
         o 'random()D', (rs) -> Math.random()
         o 'rint(D)D', (rs, d_val) -> Math.round(d_val)
