@@ -273,10 +273,44 @@ native_methods =
         o 'halt0(I)V', (rs) -> throw new util.HaltException(rs.curr_frame().locals[0])
       ]
       StrictMath: [
-        o 'pow(DD)D', (rs) -> Math.pow(rs.cl(0),rs.cl(2))
-        o 'floor(D)D', (rs, d_val) -> Math.floor(d_val)
+        o 'abs(D)D', (rs, d_val) -> Math.abs(d_val)
+        o 'abs(F)F', (rs, f_val) -> Math.abs(f_val)
+        o 'abs(I)I', (rs, i_val) -> Math.abs(i_val)
+        o 'abs(L)L', (rs, l_val) ->
+            if l_val.isNegative
+              return l_val.negate
+            return l_val
+        o 'acos(D)D', (rs, d_val) -> Math.acos(d_val)
+        o 'asin(D)D', (rs, d_val) -> Math.asin(d_val)
+        o 'atan(D)D', (rs, d_val) -> Math.atan(d_val)
+        o 'atan2(DD)D', (rs, y, x) -> Math.atan2(y, x)
+        o 'ceil(D)D', (rs, d_val) -> Math.ceil(d_val)
         o 'cos(D)D', (rs, d_val) -> Math.cos(d_val)
+        o 'exp(D)D', (rs, d_val) -> Math.exp(d_val)
+        o 'floor(D)D', (rs, d_val) -> Math.floor(d_val)
+        o 'log(D)D', (rs, d_val) -> Math.log(d_val)
+        o 'max(DD)D', (rs, a, b) -> Math.max(a, b)
+        o 'max(FF)F', (rs, a, b) -> Math.max(a, b)
+        o 'max(II)I', (rs, a, b) -> Math.max(a, b)
+        o 'max(LL)L', (rs, a, b) ->
+            if a.greaterThan(b)
+              return a
+            return b
+        o 'min(DD)D', (rs, a, b) -> Math.min(a, b)
+        o 'min(FF)F', (rs, a, b) -> Math.min(a, b)
+        o 'min(II)I', (rs, a, b) -> Math.min(a, b)
+        o 'min(LL)L', (rs, a, b) ->
+          if a.lessThan(b)
+            return a
+          return b
+        o 'pow(DD)D', (rs) -> Math.pow(rs.cl(0),rs.cl(2))
+        o 'random()D', (rs) -> Math.random()
+        o 'rint(D)D', (rs, d_val) -> Math.round(d_val)
+        o 'round(D)L'. (rs. d_val) -> gLong.fromNumber(Math.round(d_val))
+        o 'round(F)I', (rs, d_val) -> Math.round(d_val)
         o 'sin(D)D', (rs, d_val) -> Math.sin(d_val)
+        o 'sqrt(D)D', (rs, d_val) -> Math.sqrt(d_val)
+        o 'tan(D)D', (rs, d_val) -> Math.tan(d_val)
       ]
       String: [
         o 'intern()L!/!/!;', (rs, _this) ->
