@@ -506,6 +506,19 @@ native_methods =
               else
                 throw e
         o 'close0()V', (rs, _this) -> _this.fields.$file = null
+        o 'skip(J)J', (rs, _this, n_bytes) ->
+            if (file = _this.fields.$file)?
+              bytes_left = fs.fstatSync(file).size - _this.fields.$pos
+              to_skip = Math.min(n_bytes.toNumber(), bytes_left)
+              _this.fields.$pos += to_skip
+              return gLong.fromNumber(to_skip)
+            # reading from System.in, do it async
+            num_skipped = null # will be filled in after the yield
+            rs.curr_frame().resume = -> gLong.fromNumber(num_skipped)
+            throw new util.YieldIOException (cb) ->
+              rs.async_input n_bytes.toNumber(), (bytes) ->
+                num_skipped = bytes.length  # we don't care about what the input actually was
+                cb()
       ]
       ObjectStreamClass: [
         o 'initNative()V', (rs) ->  # NOP
