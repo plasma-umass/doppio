@@ -259,14 +259,12 @@ long_div = (rs, a, b) ->
   a.div(b)
 
 float2int = (a) ->
-  INT_MAX = Math.pow(2, 31) - 1
-  INT_MIN = - Math.pow 2, 31
   if a == NaN then 0
-  else if a > INT_MAX then INT_MAX  # these two cases handle d2i issues
-  else if a < INT_MIN then INT_MIN
+  else if a > util.INT_MAX then util.INT_MAX  # these two cases handle d2i issues
+  else if a < util.INT_MIN then util.INT_MIN
   else unless a == Infinity or a == -Infinity then towards_zero a
-  else if a > 0 then INT_MAX
-  else INT_MIN
+  else if a > 0 then util.INT_MAX
+  else util.INT_MIN
 
 # sign-preserving number truncate, with overflow and such
 truncate = (a, n_bits) ->
@@ -404,7 +402,9 @@ root.opcodes = {
   113: new root.Opcode 'lrem', { execute: (rs) -> v2=rs.pop2(); rs.push long_mod(rs,rs.pop2(),v2), null }
   114: new root.Opcode 'frem', { execute: (rs) -> v2=rs.pop();  rs.push rs.pop() %v2 }
   115: new root.Opcode 'drem', { execute: (rs) -> v2=rs.pop2(); rs.push rs.pop2()%v2, null }
-  116: new root.Opcode 'ineg', { execute: (rs) -> rs.push -rs.pop() }
+  116: new root.Opcode 'ineg', { execute: (rs) ->
+    i_val = rs.pop();
+    rs.push if i_val == util.INT_MIN then i_val else -i_val }
   117: new root.Opcode 'lneg', { execute: (rs) -> rs.push rs.pop2().negate(), null }
   118: new root.Opcode 'fneg', { execute: (rs) -> rs.push -rs.pop() }
   119: new root.Opcode 'dneg', { execute: (rs) -> rs.push -rs.pop2(), null }

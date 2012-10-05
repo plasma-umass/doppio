@@ -7,6 +7,10 @@ _ ?= require '../third_party/underscore-min.js'
 # things assigned to root will be available outside this module
 root = exports ? this.util = {}
 
+root.INT_MAX = Math.pow(2, 31) - 1
+
+root.INT_MIN = - Math.pow 2, 31
+
 root.sum = (list) -> _.reduce(list, ((a,b) -> a+b), 0)
 
 root.cmp = (a,b) ->

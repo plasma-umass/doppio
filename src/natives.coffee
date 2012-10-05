@@ -273,10 +273,18 @@ native_methods =
         o 'halt0(I)V', (rs) -> throw new util.HaltException(rs.curr_frame().locals[0])
       ]
       StrictMath: [
-        o 'abs(D)D', (rs, d_val) -> Math.abs(d_val)
-        o 'abs(F)F', (rs, f_val) -> Math.abs(f_val)
-        o 'abs(I)I', (rs, i_val) -> Math.abs(i_val)
-        o 'abs(L)L', (rs, l_val) -> if l_val.isNegative then l_val.negate else l_val
+        o 'abs(D)D', (rs, d_val) ->
+            error "double"
+            Math.abs(d_val)
+        o 'abs(F)F', (rs, f_val) ->
+            error "float"
+            Math.abs(f_val)
+        o 'abs(I)I', (rs, i_val) ->
+            error i_val
+            if i_val == util.INT_MIN then util.INT_MIN else Math.abs(i_val)
+        o 'abs(L)L', (rs, l_val) ->
+            error "long"
+            if l_val.isNegative then l_val.negate else l_val
         o 'acos(D)D', (rs, d_val) -> Math.acos(d_val)
         o 'asin(D)D', (rs, d_val) -> Math.asin(d_val)
         o 'atan(D)D', (rs, d_val) -> Math.atan(d_val)
