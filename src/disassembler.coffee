@@ -40,10 +40,11 @@ root.disassemble = (class_file) ->
   # format floats and doubles in the javap way
   format_decimal = (val,type_char) ->
     m = val.toString().match /(-?\d+)(\.\d+)?(?:e\+?(-?\d+))?/
-    str = m[1] + (if m[2] then m[2] else '.0')
-    str = parseFloat(str).toFixed(7) if type_char is 'f' and m[2]?.length > 8
-    str = str.replace(/0+$/,'').replace(/\.$/,'.0')
-    str += "E#{m[3]}" if m[3]?
+    if m is not null
+      str = m[1] + (if m[2] then m[2] else '.0')
+      str = parseFloat(str).toFixed(7) if type_char is 'f' and m[2]?.length > 8
+      str = str.replace(/0+$/,'').replace(/\.$/,'.0')
+      str += "E#{m[3]}" if m[3]?
     str + type_char
 
   # format the entries for displaying the constant pool. e.g. as '#5.#6' or
