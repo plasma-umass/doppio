@@ -300,14 +300,14 @@ native_methods =
         o 'min(FF)F', (rs, a, b) -> Math.min(a, b)
         o 'min(II)I', (rs, a, b) -> Math.min(a, b)
         o 'min(LL)L', (rs, a, b) ->
-          if a.lessThan(b)
-            return a
-          return b
+            if a.lessThan(b)
+              return a
+            return b
         o 'pow(DD)D', (rs) -> Math.pow(rs.cl(0),rs.cl(2))
         o 'random()D', (rs) -> Math.random()
         o 'rint(D)D', (rs, d_val) -> Math.round(d_val)
-        o 'round(D)L'. (rs. d_val) -> gLong.fromNumber(Math.round(d_val))
-        o 'round(F)I', (rs, d_val) -> Math.round(d_val)
+        o 'round(D)L', (rs, d_val) -> gLong.fromNumber(Math.round(d_val))
+        o 'round(F)I', (rs, f_val) -> Math.round(f_val)
         o 'sin(D)D', (rs, d_val) -> Math.sin(d_val)
         o 'sqrt(D)D', (rs, d_val) -> Math.sqrt(d_val)
         o 'tan(D)D', (rs, d_val) -> Math.tan(d_val)
