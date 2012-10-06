@@ -39,8 +39,11 @@ root.disassemble = (class_file) ->
 
   # format floats and doubles in the javap way
   format_decimal = (val,type_char) ->
-    m = val.toString().match /(-?\d+)(\.\d+)?(?:e\+?(-?\d+))?/
-    if m is not null
+    valStr = val.toString()
+    if valStr.match(/-?Infinity/)
+      str = valStr
+    else
+      m = valStr.match /(-?\d+)(\.\d+)?(?:e\+?(-?\d+))?/
       str = m[1] + (if m[2] then m[2] else '.0')
       str = parseFloat(str).toFixed(7) if type_char is 'f' and m[2]?.length > 8
       str = str.replace(/0+$/,'').replace(/\.$/,'.0')
