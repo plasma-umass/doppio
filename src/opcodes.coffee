@@ -230,9 +230,11 @@ class root.MultiArrayOpcode extends root.Opcode
 class root.ArrayLoadOpcode extends root.Opcode
   execute: (rs) ->
     idx = rs.pop()
-    array = rs.check_null(rs.pop()).array
-    java_throw(rs, 'java/lang/ArrayIndexOutOfBoundsException',
-      "#{idx} not in [0,#{array.length})") unless 0 <= idx < array.length
+    obj = rs.check_null(rs.pop())
+    array = obj.array
+    unless 0 <= idx < array.length
+      java_throw(rs, 'java/lang/ArrayIndexOutOfBoundsException',
+        "#{idx} not in length #{array.length} array of type #{obj.type.toClassString()}")
     rs.push array[idx]
     rs.push null if @name.match /[ld]aload/
 
