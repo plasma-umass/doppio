@@ -13,7 +13,7 @@ root.INT_MIN = -root.INT_MAX - 1 # -2^31
 
 root.FLOAT_POS_INFINITY = Math.pow(2,128)
 
-root.FLOAT_NEG_INFINITY = -1*Math.pow(2,128)
+root.FLOAT_NEG_INFINITY = -1*root.FLOAT_POS_INFINITY
 
 # sign-preserving number truncate, with overflow and such
 root.truncate = (a, n_bits) ->
