@@ -109,7 +109,7 @@ root.fs =
 
   readdirSync: (path) ->
     for key, file of localStorage when key[..5] == 'file::'
-      (DoppioFile.load key[6..]).name
+      DoppioFile.load(key[6..]).name
 
 root.path =
   normalize: (path) -> path
