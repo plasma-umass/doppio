@@ -80,7 +80,7 @@ trapped_methods =
           # this is trapped and NOP'ed for speed
           o 'run()L!/lang/Object;', (rs) -> null
         ]
-  
+
 doPrivileged = (rs) ->
   action = rs.curr_frame().locals[0]
   m = rs.method_lookup(class: action.type.toClassString(), sig: 'run()Ljava/lang/Object;')
@@ -267,12 +267,44 @@ native_methods =
         ]
       Runtime: [
         o 'availableProcessors()I', () -> 1
+        o 'gc()V', () ->
+            # No universal way of forcing browser to GC, so we yield in hopes
+            # that the browser will use it as an opportunity to GC.
+            throw new util.YieldIOException(cb) -> setTimeout(cb, 0)
       ]
       Shutdown: [
         o 'halt0(I)V', (rs) -> throw new util.HaltException(rs.curr_frame().locals[0])
       ]
       StrictMath: [
+        o 'abs(D)D', (rs, d_val) -> Math.abs(d_val)
+        o 'abs(F)F', (rs, f_val) -> Math.abs(f_val)
+        o 'abs(I)I', (rs, i_val) -> if i_val == util.INT_MIN then util.INT_MIN else Math.abs(i_val)
+        o 'abs(L)L', (rs, l_val) -> if l_val.isNegative then l_val.negate else l_val
+        o 'acos(D)D', (rs, d_val) -> Math.acos(d_val)
+        o 'asin(D)D', (rs, d_val) -> Math.asin(d_val)
+        o 'atan(D)D', (rs, d_val) -> Math.atan(d_val)
+        o 'atan2(DD)D', (rs, y, x) -> Math.atan2(y, x)
+        o 'ceil(D)D', (rs, d_val) -> Math.ceil(d_val)
+        o 'cos(D)D', (rs, d_val) -> Math.cos(d_val)
+        o 'exp(D)D', (rs, d_val) -> Math.exp(d_val)
+        o 'floor(D)D', (rs, d_val) -> Math.floor(d_val)
+        o 'log(D)D', (rs, d_val) -> Math.log(d_val)
+        o 'max(DD)D', (rs, a, b) -> Math.max(a, b)
+        o 'max(FF)F', (rs, a, b) -> Math.max(a, b)
+        o 'max(II)I', (rs, a, b) -> Math.max(a, b)
+        o 'max(LL)L', (rs, a, b) -> if a.greaterThan(b) then a else b
+        o 'min(DD)D', (rs, a, b) -> Math.min(a, b)
+        o 'min(FF)F', (rs, a, b) -> Math.min(a, b)
+        o 'min(II)I', (rs, a, b) -> Math.min(a, b)
+        o 'min(LL)L', (rs, a, b) -> if a.lessThan(b) then a else b
         o 'pow(DD)D', (rs) -> Math.pow(rs.cl(0),rs.cl(2))
+        o 'random()D', (rs) -> Math.random()
+        o 'rint(D)D', (rs, d_val) -> Math.round(d_val)
+        o 'round(D)L', (rs, d_val) -> gLong.fromNumber(Math.round(d_val))
+        o 'round(F)I', (rs, f_val) -> util.wrap_int Math.round(f_val)
+        o 'sin(D)D', (rs, d_val) -> Math.sin(d_val)
+        o 'sqrt(D)D', (rs, d_val) -> Math.sqrt(d_val)
+        o 'tan(D)D', (rs, d_val) -> Math.tan(d_val)
       ]
       String: [
         o 'intern()L!/!/!;', (rs, _this) ->
@@ -387,7 +419,7 @@ native_methods =
                 rs.curr_thread = yieldee
                 debug "TE: about to resume #{rs.jvm_carr2js_str rs.curr_thread.fields.name}"
                 rs.curr_thread.fields.$resume()
-            
+
         o 'sleep(J)V', (rs, millis) ->
             rs.curr_frame().resume = -> # NOP, return immediately after sleeping
             throw new util.YieldIOException (cb) ->

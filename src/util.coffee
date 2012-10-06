@@ -7,6 +7,21 @@ _ ?= require '../third_party/underscore-min.js'
 # things assigned to root will be available outside this module
 root = exports ? this.util = {}
 
+root.INT_MAX = Math.pow(2, 31) - 1
+
+root.INT_MIN = -root.INT_MAX - 1 # -2^31
+
+root.FLOAT_POS_INFINITY = Math.pow(2,128)
+
+root.FLOAT_NEG_INFINITY = -1*root.FLOAT_POS_INFINITY
+
+# sign-preserving number truncate, with overflow and such
+root.truncate = (a, n_bits) ->
+  a = (a + Math.pow 2, n_bits) % Math.pow 2, n_bits
+  util.uint2int a, n_bits/8
+
+root.wrap_int = (a) -> util.truncate a, 32
+
 root.sum = (list) -> _.reduce(list, ((a,b) -> a+b), 0)
 
 root.cmp = (a,b) ->
