@@ -1,68 +1,39 @@
 #!/usr/bin/env coffee
-fs = require 'fs'
-path = require 'path'
 readline = require 'readline'
+{argv} = require 'optimist'
 jvm = require '../src/jvm'
-util = require '../src/util'
-ClassFile = require '../src/class_file'
-methods = require '../src/methods'
-
-classpath = [ ".", "#{__dirname}/../third_party/classes" ]
-
-exports.read_binary_file = (filename) ->
-  return null unless path.existsSync filename
-  util.bytestr_to_array fs.readFileSync(filename, 'binary')
-
-exports.read_classfile = (cls) ->
-  for p in classpath
-    data = exports.read_binary_file "#{p}/#{cls}.class"
-    return new ClassFile data if data?
+{read_classfile} = require './runner'
 
 repl_run = (rs, cname, args) ->
   cname = cname[0...-6] if cname[-6..] is '.class'
-  args ?= []
   jvm.run_class rs, cname, args
 
+read_stdin = (n_bytes, resume) ->
+  process.stdin.resume()
+  process.stdin.once 'data', (data) ->
+    process.stdin.pause()
+    resume data
+
 if require.main == module
-  optimist = require 'optimist'
-  {argv} = optimist
+  # initialize the RuntimeState
+  write_stdout = process.stdout.write.bind process.stdout
+  rs = new runtime.RuntimeState(write_stdout, read_stdin, read_classfile)
 
-  optimist.usage '''
-  Usage: $0
-  Optional flags:
-    --classpath=[path1:...:pathn]
-    --help
-  '''
-
-  return optimist.showHelp() if argv.help
-
-  if argv.classpath?
-    classpath = argv.classpath.split ':'
-    classpath.push "#{__dirname}/../third_party/classes"
-
-  stdout = process.stdout
+  # create the REPL
   stdin = process.openStdin()
+  repl = readline.createInterface stdin, process.stdout
 
-  write_stdout = stdout.write.bind process.stdout
-  read_stdin = (n_bytes, resume) ->
-    process.stdin.resume()
-    process.stdin.once 'data', (data) ->
-      process.stdin.pause()
-      resume data
-
-  rs = new runtime.RuntimeState(write_stdout, read_stdin, exports.read_classfile)
-
-  repl = readline.createInterface stdin, stdout
-
+  # set up handlers
   repl.on 'close', ->
     repl.output.write '\n'
     repl.input.destroy()
   repl.on 'line', (line) ->
     toks = line.split /\s+/
-    if toks.length > 0
+    if toks?[0]?.length > 0
       repl_run rs, toks[0], toks[1..]
-    repl.output.write '\n'
+      repl.output.write '\n'
     repl.prompt()
+
+  # set the prompt, display it, and begin the loop
   repl.setPrompt 'doppio> '
   repl.prompt()
-
