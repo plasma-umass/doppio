@@ -8,7 +8,7 @@ make_attributes ?= require './attributes'
 disassembler ?= require './disassembler'
 types ?= require './types'
 natives ?= require './natives'
-{log,debug,error} = util
+{log,vtrace,trace,debug,error} = util
 {opcode_annotators} = disassembler
 {str2type,carr2type,c2t} = types
 {native_methods,trapped_methods} = natives
@@ -103,8 +103,8 @@ class root.Method extends AbstractMethodField
       # stack.
       if e instanceof util.JavaException
         rs.meta_stack().pop()
-      else if e instanceof util.YieldException
-        debug "yielding from #{@class_type.toClassString()}::#{@name}#{@raw_descriptor}"
+      else if e instanceof util.YieldException or e instanceof util.YieldIOException
+        trace "yielding from #{@class_type.toClassString()}::#{@name}#{@raw_descriptor}"
       throw e
     rs.meta_stack().pop()
     unless @return_type.toString() == 'V'
@@ -119,13 +119,13 @@ class root.Method extends AbstractMethodField
       try
         pc = rs.curr_pc()
         op = code[pc]
-        unless RELEASE? or util.log_level <= util.ERROR
+        unless RELEASE? or util.log_level < util.STRACE
           throw "#{@name}:#{pc} => (null)" unless op
           cf = rs.curr_frame()
-          debug "#{padding}stack: [#{pa cf.stack}], local: [#{pa cf.locals}]"
+          vtrace "#{padding}stack: [#{pa cf.stack}], local: [#{pa cf.locals}]"
           annotation =
             util.lookup_handler(opcode_annotators, op, pc, rs.class_lookup(@class_type).constant_pool) or ""
-          debug "#{padding}#{@class_type.toClassString()}::#{@name}:#{pc} => #{op.name}" + annotation
+          vtrace "#{padding}#{@class_type.toClassString()}::#{@name}:#{pc} => #{op.name}" + annotation
         op.execute rs
         rs.inc_pc(1 + op.byte_count)  # move to the next opcode
       catch e
@@ -136,8 +136,8 @@ class root.Method extends AbstractMethodField
           rs.meta_stack().pop()
           rs.push e.values...
           break
-        else if e instanceof util.YieldException
-          debug "yielding from #{@class_type.toClassString()}::#{@name}#{@raw_descriptor}"
+        else if e instanceof util.YieldException or e instanceof util.YieldIOException
+          trace "yielding from #{@class_type.toClassString()}::#{@name}#{@raw_descriptor}"
           throw e  # leave everything as-is
         else if e instanceof util.JavaException
           exception_handlers = @code.exception_handlers
@@ -145,13 +145,13 @@ class root.Method extends AbstractMethodField
             eh.start_pc <= pc < eh.end_pc and
               (eh.catch_type == "<any>" or types.is_castable rs, e.exception.type, c2t(eh.catch_type))
           if handler?
-            debug "caught exception as subclass of #{handler.catch_type}"
+            trace "caught exception as subclass of #{handler.catch_type}"
             rs.curr_frame().stack = []  # clear out anything on the stack; it was made during the try block
             rs.push e.exception
             rs.goto_pc handler.handler_pc
             continue
           else # abrupt method invocation completion
-            debug "exception not caught, terminating #{@name}"
+            trace "exception not caught, terminating #{@name}"
             rs.meta_stack().pop()
             throw e
         throw e # JVM Error
@@ -163,7 +163,7 @@ class root.Method extends AbstractMethodField
     sig = "#{@class_type.toClassString()}::#{@name}#{@raw_descriptor}"
     ms = runtime_state.meta_stack()
     if ms.resuming_stack?
-      debug "resuming at ", sig
+      trace "resuming at ", sig
       ms.resuming_stack++
       if virtual
         cf = ms.curr_frame()
@@ -191,17 +191,17 @@ class root.Method extends AbstractMethodField
     # check for trapped and native methods, run those manually
     cf = runtime_state.curr_frame()
     if cf.resume? # we are resuming from a yield, and this was a manually run method
-      debug "#{padding}resuming method #{sig}"
+      trace "#{padding}resuming method #{sig}"
       @run_manually cf.resume, runtime_state
       cf.resume = null
     else if trapped_methods[sig]
-      debug "#{padding}entering trapped method #{sig}"
+      trace "#{padding}entering trapped method #{sig}"
       @run_manually trapped_methods[sig], runtime_state
     else if @access_flags.native
       if sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
         @run_manually ((rs)->), runtime_state # these are all just NOPs
       else if native_methods[sig]
-        debug "#{padding}entering native method #{sig}"
+        trace "#{padding}entering native method #{sig}"
         @run_manually native_methods[sig], runtime_state
       else
         try
@@ -211,7 +211,7 @@ class root.Method extends AbstractMethodField
     else if @access_flags.abstract
       util.java_throw runtime_state, 'java/lang/Error', "called abstract method: #{sig}"
     else
-      debug "#{padding}entering method #{sig}"
+      trace "#{padding}entering method #{sig}"
       @run_bytecode runtime_state, padding
     cf = runtime_state.curr_frame()
-    debug "#{padding}stack: [#{pa cf.stack}], local: [#{pa cf.locals}] (method end)"
+    vtrace "#{padding}stack: [#{pa cf.stack}], local: [#{pa cf.locals}] (method end)"

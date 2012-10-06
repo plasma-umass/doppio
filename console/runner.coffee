@@ -26,17 +26,14 @@ if require.main == module
   Optional flags:
     --classpath=[path1:...:pathn]
     --java=[args for JVM]
-    --log=[0-10]|debug|error
+    --log=[0-10]|vtrace|trace|debug|error
     --profile
     --help
   '''
 
   return optimist.showHelp() if argv.help
 
-  if argv.log == 'debug' or argv.log == 'error'
-    util.log_level = util[argv.log.toUpperCase()]
-  else if argv.log? # assume a number
-    util.log_level = argv.log + 0
+  util.log_level = util[argv.log?.toUpperCase()] ? (argv.log? + 0)
 
   if argv.classpath?
     classpath = argv.classpath.split ':'

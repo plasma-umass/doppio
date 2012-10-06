@@ -145,8 +145,9 @@ root.java_throw = (rs, cls, msg) ->
   throw new root.JavaException rs, rs.pop() # athrow
 
 # logging helpers
-
-root.DEBUG = 10
+root.VTRACE = 10
+root.TRACE = 9
+root.DEBUG = 5
 root.ERROR = 1
 root.log_level ?= root.ERROR
 
@@ -154,8 +155,9 @@ root.log = (level, msgs...) ->
   if level <= root.log_level
     console[if level == 1 then 'error' else 'log'] msgs...
 
+root.vtrace = (msgs...) -> root.log root.VTRACE, msgs...
+root.trace = (msgs...) -> root.log root.TRACE, msgs...
 root.debug = (msgs...) -> root.log root.DEBUG, msgs...
-
 root.error = (msgs...) -> root.log root.ERROR, msgs...
 
 # Java classes are represented internally using slashes as delimiters.

@@ -3,10 +3,8 @@ root = exports ? this.runtime = {}
 util ?= require './util'
 types ?= require './types'
 ClassFile ?= require './class_file'
-{log,debug,error,java_throw} = util
+{log,vtrace,trace,debug,error,java_throw} = util
 {c2t} = types
-
-trace = (msg) -> log 9, msg
 
 initial_value = (type_str) ->
   if type_str is 'J' then gLong.ZERO
@@ -71,6 +69,7 @@ class root.RuntimeState
       # initialize the system class
       @class_lookup(c2t 'java/lang/System').methods['initializeSystemClass()V'].run(this)
       @system_initialized = true
+      debug "### finished system class initialization ###"
 
     # load the main class (which calls <clinit>, if needed)
     @class_lookup c2t class_name
@@ -85,7 +84,7 @@ class root.RuntimeState
     if cf?
       s = ((if x?.ref? then x.ref else x) for x in cf.stack)
       l = ((if x?.ref? then x.ref else x) for x in cf.locals)
-      debug "stack: [#{s}], locals: [#{l}]"
+      debug "showing current state: stack: [#{s}], locals: [#{l}]"
     else
       error "current frame is undefined. meta_stack looks like:", @meta_stack()
 
@@ -132,7 +131,7 @@ class root.RuntimeState
       throw new Error "can't redirect const string at #{oref}" unless cstr and cstr.type is 'Asciz'
       @string_redirector[key] = @init_string(cstr.value,true)
       trace "heapifying #{oref} -> #{@string_redirector[key].ref} : '#{cstr.value}'"
-    trace "redirecting #{oref} -> #{@string_redirector[key].ref}"
+    vtrace "redirecting #{oref} -> #{@string_redirector[key].ref}"
     return @string_redirector[key]
 
   # Used by ZipFile to return unique zip file descriptor IDs.
@@ -183,12 +182,12 @@ class root.RuntimeState
   heap_put: (field_spec) ->
     val = if field_spec.type in ['J','D'] then @pop2() else @pop()
     obj = @pop()
-    trace "setting #{field_spec.name} = #{val} on obj of type #{obj.type.toClassString()}"
+    vtrace "setting #{field_spec.name} = #{val} on obj of type #{obj.type.toClassString()}"
     obj.fields[field_spec.name] = val
   heap_get: (field_spec, obj) ->
     name = field_spec.name
     obj.fields[name] ?= initial_value field_spec.type
-    trace "getting #{name} from obj of type #{obj.type.toClassString()}: #{obj.fields[name]}"
+    vtrace "getting #{name} from obj of type #{obj.type.toClassString()}: #{obj.fields[name]}"
     @push obj.fields[name]
     @push null if field_spec.type in ['J','D']
 
@@ -198,14 +197,14 @@ class root.RuntimeState
     obj = @class_lookup(f.class_type, true)
     val = obj.fields[f.name]
     val ?= initial_value f.type.toString()
-    trace "getting #{field_spec.name} from class #{field_spec.class}: #{val}"
+    vtrace "getting #{field_spec.name} from class #{field_spec.class}: #{val}"
     val
   static_put: (field_spec) ->
     val = if field_spec.type in ['J','D'] then @pop2() else @pop()
     f = @field_lookup(field_spec)
     obj = @class_lookup(f.class_type, true)
     obj.fields[f.name] = val
-    trace "setting #{field_spec.name} = #{val} on class #{field_spec.class}"
+    vtrace "setting #{field_spec.name} = #{val} on class #{field_spec.class}"
 
   # heap object initialization
   init_object: (cls, obj) ->
@@ -277,7 +276,7 @@ class root.RuntimeState
       if c.file.super_class
         @_class_lookup c.file.super_class
       if c.in_progress?  # need to resume <clinit>
-        debug "resuming an in_progress class initialization"
+        trace "resuming an in_progress class initialization"
         delete c.in_progress
         c.file.methods['<clinit>()V']?.run(this)
     @classes[cls]

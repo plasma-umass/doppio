@@ -16,7 +16,6 @@ run = (rs, fn) ->
       debug "\nUncaught Java Exception"
       rs.show_state()
       rs.push rs.curr_thread, e.exception
-      #util.log_level = 10
       rs.method_lookup(
         class: 'java/lang/Thread'
         sig: 'dispatchUncaughtException(Ljava/lang/Throwable;)V').run(rs)
