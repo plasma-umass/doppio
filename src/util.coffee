@@ -1,4 +1,4 @@
-unless exports?
+unless exports?truncate
   this.require = ->
 
 # pull in external modules
@@ -9,7 +9,14 @@ root = exports ? this.util = {}
 
 root.INT_MAX = Math.pow(2, 31) - 1
 
-root.INT_MIN = - Math.pow 2, 31
+root.INT_MIN = -root.INT_MAX - 1 # -2^31
+
+# sign-preserving number truncate, with overflow and such
+root.truncate = (a, n_bits) ->
+  a = (a + Math.pow 2, n_bits) % Math.pow 2, n_bits
+  util.uint2int a, n_bits/8
+
+root.wrap_int = (a) -> util.truncate a, 32
 
 root.sum = (list) -> _.reduce(list, ((a,b) -> a+b), 0)
 

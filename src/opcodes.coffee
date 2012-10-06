@@ -266,13 +266,6 @@ float2int = (a) ->
   else if a > 0 then util.INT_MAX
   else util.INT_MIN
 
-# sign-preserving number truncate, with overflow and such
-truncate = (a, n_bits) ->
-  a = (a + Math.pow 2, n_bits) % Math.pow 2, n_bits
-  util.uint2int a, n_bits/8
-
-wrap_int = (a) -> truncate a, 32
-
 wrap_float = (a) ->
   return Infinity if a > 3.40282346638528860e+38
   return 0 if 0 < a < 1.40129846432481707e-45
@@ -382,11 +375,11 @@ root.opcodes = {
   93: new root.Opcode 'dup2_x1', {execute: (rs) -> [v1,v2,v3]=[rs.pop(),rs.pop(),rs.pop()];rs.push(v2,v1,v3,v2,v1)}
   94: new root.Opcode 'dup2_x2', {execute: (rs) -> [v1,v2,v3,v4]=[rs.pop(),rs.pop(),rs.pop(),rs.pop()];rs.push(v2,v1,v4,v3,v2,v1)}
   95: new root.Opcode 'swap', {execute: (rs) -> v2=rs.pop(); v1=rs.pop(); rs.push(v2,v1)}
-  96: new root.Opcode 'iadd', { execute: (rs) -> rs.push wrap_int(rs.pop()+rs.pop()) }
+  96: new root.Opcode 'iadd', { execute: (rs) -> rs.push util.wrap_int(rs.pop()+rs.pop()) }
   97: new root.Opcode 'ladd', { execute: (rs) -> rs.push(rs.pop2().add(rs.pop2()), null) }
   98: new root.Opcode 'fadd', { execute: (rs) -> rs.push wrap_float(rs.pop()+rs.pop()) }
   99: new root.Opcode 'dadd', { execute: (rs) -> rs.push(rs.pop2()+rs.pop2(), null) }
-  100: new root.Opcode 'isub', { execute: (rs) -> rs.push wrap_int(-rs.pop()+rs.pop()) }
+  100: new root.Opcode 'isub', { execute: (rs) -> rs.push util.wrap_int(-rs.pop()+rs.pop()) }
   101: new root.Opcode 'lsub', { execute: (rs) -> rs.push(rs.pop2().negate().add(rs.pop2()), null) }
   102: new root.Opcode 'fsub', { execute: (rs) -> rs.push wrap_float(-rs.pop()+rs.pop()) }
   103: new root.Opcode 'dsub', { execute: (rs) -> rs.push(-rs.pop2()+rs.pop2(), null) }
@@ -433,9 +426,9 @@ root.opcodes = {
   142: new root.Opcode 'd2i', { execute: (rs) -> rs.push float2int rs.pop2() }
   143: new root.Opcode 'd2l', { execute: (rs) -> rs.push gLong.fromNumber(rs.pop2()), null }
   144: new root.Opcode 'd2f', { execute: (rs) -> rs.push wrap_float rs.pop2() }
-  145: new root.Opcode 'i2b', { execute: (rs) -> rs.push truncate rs.pop(), 8 }
-  146: new root.Opcode 'i2c', { execute: (rs) -> rs.push truncate rs.pop(), 8 }
-  147: new root.Opcode 'i2s', { execute: (rs) -> rs.push truncate rs.pop(), 16 }
+  145: new root.Opcode 'i2b', { execute: (rs) -> rs.push util.truncate rs.pop(), 8 }
+  146: new root.Opcode 'i2c', { execute: (rs) -> rs.push util.truncate rs.pop(), 8 }
+  147: new root.Opcode 'i2s', { execute: (rs) -> rs.push util.truncate rs.pop(), 16 }
   148: new root.Opcode 'lcmp', { execute: (rs) -> v2=rs.pop2(); rs.push rs.pop2().compare(v2) }
   149: new root.Opcode 'fcmpl', { execute: (rs) -> v2=rs.pop(); rs.push util.cmp(rs.pop(),v2) ? -1 }
   150: new root.Opcode 'fcmpg', { execute: (rs) -> v2=rs.pop(); rs.push util.cmp(rs.pop(),v2) ? 1 }
