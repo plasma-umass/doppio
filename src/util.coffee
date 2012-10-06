@@ -1,4 +1,4 @@
-unless exports?truncate
+unless exports?
   this.require = ->
 
 # pull in external modules
@@ -10,6 +10,10 @@ root = exports ? this.util = {}
 root.INT_MAX = Math.pow(2, 31) - 1
 
 root.INT_MIN = -root.INT_MAX - 1 # -2^31
+
+root.FLOAT_POS_INFINITY = Math.pow(2,128)
+
+root.FLOAT_NEG_INFINITY = -1*Math.pow(2,128)
 
 # sign-preserving number truncate, with overflow and such
 root.truncate = (a, n_bits) ->

@@ -40,6 +40,12 @@ root.disassemble = (class_file) ->
   # format floats and doubles in the javap way
   format_decimal = (val,type_char) ->
     valStr = val.toString()
+    if type_char == 'f'
+      if val is util.FLOAT_POS_INFINITY
+        valStr = "Infinity"
+      else if val is util.FLOAT_NEG_INFINITY
+        valStr = "-Infinity"
+
     if valStr.match(/-?Infinity/)
       str = valStr
     else
