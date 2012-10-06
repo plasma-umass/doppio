@@ -54,19 +54,18 @@ $.ajax "browser/mini-rt.tar", {
     console.error errorThrown
 }
 
-if RELEASE?
-  $.ajax "third_party/classes/sun/tools/javac/Main.class", {
-    type: 'GET'
-    dataType: 'text'
-    beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
-    success: (data) -> class_cache['!javac'] = process_bytecode data
-  }
-  $.ajax "third_party/classes/com/sun/tools/script/shell/Main.class", {
-    type: 'GET'
-    dataType: 'text'
-    beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
-    success: (data) -> class_cache['!rhino'] = process_bytecode data
-  }
+$.ajax "third_party/classes/sun/tools/javac/Main.class", {
+  type: 'GET'
+  dataType: 'text'
+  beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
+  success: (data) -> class_cache['!javac'] = process_bytecode data
+}
+$.ajax "third_party/classes/com/sun/tools/script/shell/Main.class", {
+  type: 'GET'
+  dataType: 'text'
+  beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
+  success: (data) -> class_cache['!rhino'] = process_bytecode data
+}
 
 try_path = (path) ->
   # hack. we should implement proper directories
@@ -107,23 +106,6 @@ root.read_raw_class = (path) ->
 process_bytecode = (bytecode_string) ->
   bytes_array = util.bytestr_to_array bytecode_string
   new ClassFile(bytes_array)
-
-compile_source = (fname, quiet) ->
-  source = DoppioFile.load(fname).read()
-  return controller.message "Could not find file '#{fname}'.", 'error' unless source?
-  $.ajax 'http://people.cs.umass.edu/~ccarey/javac/', {
-    type: 'POST'
-    data: { pw: 'coffee', source: source }
-    dataType: 'text'
-    beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
-    success:  (data) ->
-      class_name = fname.split('.')[0]
-      (new DoppioFile "#{class_name}.class").write(data).save()
-      unless quiet
-        controller.reprompt()
-    error: (jqXHR, textStatus, errorThrown) ->
-      controller.message "AJAX error: #{errorThrown}", 'error'
-  }
 
 $(document).ready ->
   editor = $('#editor')
@@ -251,9 +233,6 @@ $(document).ready ->
 
 commands =
   javac: (args, cb) ->
-    unless RELEASE?
-      return "Usage: javac <source file>" unless args[0]?
-      return compile_source args[0], cb
     rs = new runtime.RuntimeState(stdout, user_input, read_classfile)
     # hack: use a special class name that won't clash with real ones
     jvm.run_class(rs, '!javac', args, -> controller.reprompt())
@@ -276,7 +255,7 @@ commands =
     class_cache = {}
     "Cache cleared."
   ls: (args) ->
-    (node.fs.readdirSync '.').sort().join '\n'
+    node.fs.readdirSync('.').sort().join '\n'
   edit: (args) ->
     data = if args[0]? then DoppioFile.load(args[0]).read() else defaultFile
     $('#console').fadeOut 'fast', ->
