@@ -173,6 +173,8 @@ class root.RuntimeState
       {type: type, fields: obj, ref: @high_oref++}
 
   heap_newarray: (type,len) ->
+    if len < 0
+      java_throw @, 'java/lang/NegativeArraySizeException', "Tried to init [#{type} array with length #{len}"
     if type == 'J'
       @set_obj(c2t("[J"),(gLong.ZERO for i in [0...len] by 1))
     else if type[0] == 'L'  # array of object
