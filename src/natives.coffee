@@ -239,8 +239,11 @@ native_methods =
             # return the pseudo heap reference, essentially a unique id
             _this.ref
         o 'clone()L!/!/!;', (rs, _this) ->
-            if _this.type instanceof types.ArrayType then rs.set_obj _this.type, _this.array
-            else rs.set_obj _this.type, _this.fields
+            # note: we don't clone the type, because they're effectively immutable
+            if _this.type instanceof types.ArrayType
+              rs.set_obj _this.type, _.clone(_this.array)
+            else
+              rs.set_obj _this.type, _.clone(_this.fields)
         o 'notify()V', (rs, _this) ->
             return unless rs.lock_refs[_this]?  # if it's not an active monitor, no one cares
             unless rs.lock_refs[_this] is rs.curr_thread
