@@ -429,11 +429,11 @@ root.opcodes = {
   143: new root.Opcode 'd2l', { execute: (rs) ->
     d_val = rs.pop2();
     if d_val is Number.POSITIVE_INFINITY
-      rs.push gLong.MAX_VALUE
+      rs.push gLong.MAX_VALUE, null
     else if d_val is Number.NEGATIVE_INFINITY
-      rs.push gLong.MIN_VALUE
+      rs.push gLong.MIN_VALUE, null
     else
-      rs.push gLong.fromNumber(d_val, null) }
+      rs.push gLong.fromNumber(d_val), null }
   144: new root.Opcode 'd2f', { execute: (rs) -> rs.push wrap_float rs.pop2() }
   145: new root.Opcode 'i2b', { execute: (rs) -> rs.push util.truncate rs.pop(), 8 }
   146: new root.Opcode 'i2c', { execute: (rs) -> rs.push rs.pop()&0xFFFF }  # 16-bit unsigned integer
