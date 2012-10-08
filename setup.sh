@@ -7,6 +7,13 @@ git submodule update --init --recursive
 PLATFORM=`uname -s`
 PKGMGR=""
 
+# locate's db may not exist
+if locate -S >/dev/null 2>&1; then
+  FIND="locate"
+else
+  FIND="find / -name"
+fi
+
 if [ "$PLATFORM" = "Darwin" ]; then
     if command -v brew; then
         echo "Found the homebrew package manager."
@@ -19,7 +26,7 @@ cd third_party
 # check for the JCL
 if [ ! -f classes/java/lang/Object.class ]; then
   for name in classes rt; do
-    JCL=`locate "/$name.jar" | head -1`
+    JCL=`$FIND "$name.jar" 2>/dev/null | head -1`
     if [ "$JCL" ]; then break; fi
   done
 
@@ -42,7 +49,7 @@ if [ ! -f classes/java/util/zip/DeflaterEngine.class ]; then
 fi
 
 if [ -z "$JAVA_HOME" ]; then
-  jh_tmp=`locate lib/currency.data | head -1`
+  jh_tmp=`$FIND lib/currency.data 2>/dev/null | head -1`
   jh_tmp="$(dirname "$jh_tmp"|tail -1)"
   JAVA_HOME="$(dirname "$jh_tmp"|tail -1)"
 fi
