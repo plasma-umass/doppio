@@ -436,7 +436,7 @@ root.opcodes = {
       rs.push gLong.fromNumber(d_val, null) }
   144: new root.Opcode 'd2f', { execute: (rs) -> rs.push wrap_float rs.pop2() }
   145: new root.Opcode 'i2b', { execute: (rs) -> rs.push util.truncate rs.pop(), 8 }
-  146: new root.Opcode 'i2c', { execute: (rs) -> rs.push util.truncate rs.pop(), 8 }
+  146: new root.Opcode 'i2c', { execute: (rs) -> rs.push rs.pop()&0xFFFF }  # 16-bit unsigned integer
   147: new root.Opcode 'i2s', { execute: (rs) -> rs.push util.truncate rs.pop(), 16 }
   148: new root.Opcode 'lcmp', { execute: (rs) -> v2=rs.pop2(); rs.push rs.pop2().compare(v2) }
   149: new root.Opcode 'fcmpl', { execute: (rs) -> v2=rs.pop(); rs.push util.cmp(rs.pop(),v2) ? -1 }
