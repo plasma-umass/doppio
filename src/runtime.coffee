@@ -86,7 +86,7 @@ class root.RuntimeState
       l = ((if x?.ref? then x.ref else x) for x in cf.locals)
       debug "showing current state: method '#{cf.method?.name}', stack: [#{s}], locals: [#{l}]"
     else
-      error "current frame is undefined. meta_stack looks like:", @meta_stack()
+      debug "current frame is undefined. meta_stack: #{@meta_stack()}"
 
   wait: (monitor, yieldee) ->
     # add current thread to wait queue
