@@ -103,7 +103,7 @@ root.fs =
 
   writeSync: (file, buffer, offset, len) ->
     # TODO flush occasionally?
-    file.write((String.fromCharCode(buffer.readUInt8 i) for i in [offset...offset+len]).join '')
+    file.write(String.fromCharCode(buffer.readUInt8(i) for i in [offset...offset+len] by 1).join '')
 
   closeSync: (file) -> file.save()
 

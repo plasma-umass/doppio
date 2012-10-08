@@ -214,7 +214,7 @@ $(document).ready ->
         resume 0
       else
         line += "\n" # so BufferedReader knows it has a full line
-        resume (line.charCodeAt(i) for i in [0...Math.min(n_bytes,line.length)])
+        resume (line.charCodeAt(i) for i in [0...Math.min(n_bytes,line.length)] by 1)
 
   close_editor = ->
     $('#ide').fadeOut 'fast', ->

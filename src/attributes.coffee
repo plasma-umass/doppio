@@ -102,7 +102,7 @@ class StackMapTable
           frame_type: frame_type
           frame_name: 'append'
           offset_delta: bytes_array.get_uint 2
-          locals: parse_verification_type_info() for i in [0...frame_type-251]
+          locals: parse_verification_type_info() for i in [0...frame_type-251] by 1
         }
       else if frame_type == 255
         {
@@ -110,9 +110,9 @@ class StackMapTable
           frame_name: 'full_frame'
           offset_delta: bytes_array.get_uint 2
           num_locals: num_locals = bytes_array.get_uint 2
-          locals: parse_verification_type_info() for i in [0...num_locals]
+          locals: parse_verification_type_info() for i in [0...num_locals] by 1
           num_stack_items: num_stack_items = bytes_array.get_uint 2
-          stack: parse_verification_type_info() for i in [0...num_stack_items]
+          stack: parse_verification_type_info() for i in [0...num_stack_items] by 1
         }
 
     parse_verification_type_info = ->
@@ -125,14 +125,14 @@ class StackMapTable
         tag_to_type[tag]
 
     @num_entries = bytes_array.get_uint 2
-    @entries = (parse_entries() for i in [0...@num_entries])
+    @entries = (parse_entries() for i in [0...@num_entries] by 1)
     return bytes_array
 
 
 class LocalVariableTable
   parse: (bytes_array, constant_pool) ->
     @num_entries = bytes_array.get_uint 2
-    @entries = (@parse_entries bytes_array, constant_pool for i in [0...@num_entries])
+    @entries = (@parse_entries bytes_array, constant_pool for i in [0...@num_entries] by 1)
     return bytes_array
 
   parse_entries: (bytes_array, constant_pool) ->
@@ -147,14 +147,14 @@ class LocalVariableTable
 class Exceptions
   parse: (bytes_array, constant_pool) ->
     @num_exceptions = bytes_array.get_uint 2
-    exc_refs = (bytes_array.get_uint 2 for i in [0...@num_exceptions])
+    exc_refs = (bytes_array.get_uint 2 for i in [0...@num_exceptions] by 1)
     @exceptions = (constant_pool.get(ref).deref() for ref in exc_refs)
     return bytes_array
 
 class InnerClasses
   parse: (bytes_array, constant_pool) ->
     num_classes = bytes_array.get_uint 2
-    @classes = (@parse_class bytes_array, constant_pool for i in [0...num_classes])
+    @classes = (@parse_class bytes_array, constant_pool for i in [0...num_classes] by 1)
     return bytes_array
 
   parse_class: (bytes_array, constant_pool) ->

@@ -48,9 +48,10 @@ class root.Method extends AbstractMethodField
   parse_descriptor: (@raw_descriptor) ->
     [__,param_str,return_str] = /\(([^)]*)\)(.*)/.exec(@raw_descriptor)
     param_carr = param_str.split ''
-    type_size = (t) -> (if t.toString() in ['D','J'] then 2 else 1)
     @param_types = (field while (field = carr2type param_carr))
-    @param_bytes = util.sum(type_size(p) for p in @param_types)
+    @param_bytes = 0
+    for p in @param_types
+      @param_bytes += if p.toString() in ['D','J'] then 2 else 1
     @param_bytes++ unless @access_flags.static
     @num_args = @param_types.length
     @num_args++ unless @access_flags.static # nonstatic methods get 'this'

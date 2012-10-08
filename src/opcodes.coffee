@@ -57,12 +57,12 @@ class root.LoadConstantOpcode extends root.Opcode
   _execute: (rs) ->
     val = @constant.value
     if @constant.type is 'String'
-      val = rs.string_redirect(val, @cls)
-    if @constant.type is 'class'
+      rs.push rs.string_redirect(val, @cls)
+    else if @constant.type is 'class'
       jvm_str = rs.string_redirect(val,@cls)
-      val = rs.class_lookup c2t(rs.jvm2js_str(jvm_str)), true
-    rs.push val
-    rs.push null if @name is 'ldc2_w'
+      rs.push rs.class_lookup(c2t(rs.jvm2js_str(jvm_str)), true)
+    else
+      rs.push val
 
 class root.BranchOpcode extends root.Opcode
   constructor: (name, params={}) ->
@@ -194,7 +194,7 @@ class root.TableSwitchOpcode extends root.SwitchOpcode
     @high = code_array.get_int(4)
     @offsets = {}
     total_offsets = @high - @low + 1
-    for i in [0...total_offsets]
+    for i in [0...total_offsets] by 1
       offset = code_array.get_int(4)
       @offsets[@low + i] = offset
     @byte_count = padding_size + 12 + 4 * total_offsets
@@ -301,7 +301,7 @@ root.opcodes = {
   17: new root.PushOpcode 'sipush', { byte_count: 2 }
   18: new root.LoadConstantOpcode 'ldc', { byte_count: 1 }
   19: new root.LoadConstantOpcode 'ldc_w', { byte_count: 2 }
-  20: new root.LoadConstantOpcode 'ldc2_w', { byte_count: 2 }
+  20: new root.LoadConstantOpcode 'ldc2_w', { byte_count: 2, execute: ((rs) -> rs.push @constant.value, null) }
   21: new root.LoadVarOpcode 'iload'
   22: new root.LoadVarOpcode 'lload'
   23: new root.LoadVarOpcode 'fload'
@@ -416,7 +416,7 @@ root.opcodes = {
   130: new root.Opcode 'ixor', { execute: (rs) -> rs.push(rs.pop()^rs.pop()) }
   131: new root.Opcode 'lxor', { execute: (rs) -> rs.push(rs.pop2().xor(rs.pop2()), null) }
   132: new root.IIncOpcode 'iinc'
-  133: new root.Opcode 'i2l', { execute: (rs) -> rs.push gLong.fromNumber(rs.pop()), null }
+  133: new root.Opcode 'i2l', { execute: (rs) -> rs.push gLong.fromInt(rs.pop()), null }
   134: new root.Opcode 'i2f', { execute: (rs) -> }
   135: new root.Opcode 'i2d', { execute: (rs) -> rs.push null }
   136: new root.Opcode 'l2i', { execute: (rs) -> rs.push rs.pop2().toInt() }
