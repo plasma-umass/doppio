@@ -26,12 +26,12 @@ name = src.match(/(\w+)\.java/)[1]
 Tempfile.open('disasm') do |f|
   # compare disas output
   `#{here_dir}/../console/disassembler.coffee #{test_dir}/#{name}.class >#{f.path()}`
-  exit if show_errors(name,'disasm',`#{here_dir}/cleandiff.sh #{test_dir}/#{name}.disasm #{f.path()}`)
+  exit false if show_errors(name,'disasm',`#{here_dir}/cleandiff.sh #{test_dir}/#{name}.disasm #{f.path()}`)
 end
 Tempfile.open('runtime') do |f|
   # compare runtime output
   `#{here_dir}/../console/runner.coffee #{cls} --log=error 2>&1 >#{f.path()}`
   # -a forces diff to treat file as text. necessary because jvm screwups can
   # cause weird output that confuses diff
-  show_errors(name,'runtime',`diff -U0 -a #{test_dir}/#{name}.runout #{f.path()} | sed '1,2d'`)
+  exit false if show_errors(name,'runtime',`diff -U0 -a #{test_dir}/#{name}.runout #{f.path()} | sed '1,2d'`)
 end
