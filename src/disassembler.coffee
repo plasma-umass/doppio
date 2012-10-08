@@ -20,7 +20,7 @@ root.disassemble = (class_file) ->
   if class_file.access_flags.interface
     rv += "interface #{class_file.this_class.toExternalString()} extends #{ifaces}\n"
   else
-    rv += "class #{class_file.this_class.toExternalString()} extends #{class_file.super_class.toExternalString()}"
+    rv += "class #{class_file.this_class.toExternalString()} extends #{class_file.super_class?.toExternalString()}"
     rv += if (ifaces and not class_file.access_flags.interface) then " implements #{ifaces}\n" else '\n'
   rv += "  SourceFile: \"#{source_file.name}\"\n" if source_file
   inner_classes = (attr for attr in class_file.attrs when attr.constructor.name is 'InnerClasses')

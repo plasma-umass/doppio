@@ -1,33 +1,28 @@
 unless exports?
   this.require = ->
 
-# pull in external modules
-_ ?= require '../third_party/underscore-min.js'
-
 # things assigned to root will be available outside this module
 root = exports ? this.util = {}
 
 root.INT_MAX = Math.pow(2, 31) - 1
-
 root.INT_MIN = -root.INT_MAX - 1 # -2^31
 
 root.FLOAT_POS_INFINITY = Math.pow(2,128)
-
 root.FLOAT_NEG_INFINITY = -1*root.FLOAT_POS_INFINITY
 
 # sign-preserving number truncate, with overflow and such
 root.truncate = (a, n_bits) ->
-  a = (a + Math.pow 2, n_bits) % Math.pow 2, n_bits
-  util.uint2int a, n_bits/8
+  max_val = Math.pow 2, n_bits
+  a = (a + max_val) % max_val
+  a -= max_val if a > Math.pow(2, n_bits-1)
+  a
 
 root.wrap_int = (a) -> util.truncate a, 32
-
-root.sum = (list) -> _.reduce(list, ((a,b) -> a+b), 0)
 
 root.cmp = (a,b) ->
   return 0  if a == b
   return -1 if a < b
-  return 1 if a > b
+  return 1  if a > b
   return null # this will occur if either a or b is NaN
 
 # implements x<<n without the braindead javascript << operator
@@ -37,11 +32,15 @@ root.lshift = (x,n) -> x*Math.pow(2,n)
 root.read_uint = (bytes) ->
   n = bytes.length-1
   # sum up the byte values shifted left to the right alignment.
-  root.sum(root.lshift(bytes[i],8*(n-i)) for i in [0..n])
+  sum = 0
+  for i in [0..n] by 1
+    sum += root.lshift(bytes[i],8*(n-i))
+  sum
 
 root.uint2int = (uint, bytes_count) ->
-  if uint > Math.pow 2, 8 * bytes_count - 1
-    uint - Math.pow 2, 8 * bytes_count
+  n_bits = 8 * bytes_count
+  if uint > Math.pow(2, n_bits - 1)
+    uint - Math.pow(2, n_bits)
   else
     uint
 
@@ -49,10 +48,9 @@ root.int2uint = (int, bytes_count) ->
   if int < 0 then int + Math.pow 2, bytes_count * 8 else int
 
 root.bytestr_to_array = (bytecode_string) ->
-  (bytecode_string.charCodeAt(i) & 0xFF for i in [0...bytecode_string.length])
+  (bytecode_string.charCodeAt(i) & 0xFF for i in [0...bytecode_string.length] by 1)
 
-root.parse_flags = (flag_byte) ->
-  flags = {
+root.parse_flags = (flag_byte) -> {
     public:       flag_byte & 0x1
     private:      flag_byte & 0x2
     protected:    flag_byte & 0x4
@@ -67,10 +65,6 @@ root.parse_flags = (flag_byte) ->
     abstract:     flag_byte & 0x400
     strict:       flag_byte & 0x800
   }
-  # quick sanity check
-  s = root.sum(1 for f in ['public','private','protected'] when flags[f] != 0)
-  throw new Error "Too many access flags, invalid classfile parse" if s > 1
-  flags
 
 class root.BytesArray
   constructor: (@raw_array, @start=0, @end=@raw_array.length) ->

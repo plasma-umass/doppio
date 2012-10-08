@@ -120,8 +120,7 @@ class root.RuntimeState
   # Convert :count chars starting from :offset in a Java character array into a
   # JS string
   jvm_carr2js_str: (jvm_arr, offset, count) ->
-    carr = jvm_arr.array
-    (util.bytes2str carr).substr(offset ? 0, count)
+    util.bytes2str(jvm_arr.array).substr(offset ? 0, count)
   # Convert references to strings in the constant pool to an interned String
   string_redirect: (oref,cls) ->
     key = "#{cls}::#{oref}"
@@ -221,7 +220,7 @@ class root.RuntimeState
     jvm_str = @set_obj c2t('java/lang/String'), {'value':carr, 'count':str.length}
     @string_pool[str] = jvm_str if intern
     return jvm_str
-  init_carr: (str) -> @set_obj c2t('[C'), (str.charCodeAt(i) for i in [0...str.length])
+  init_carr: (str) -> @set_obj c2t('[C'), (str.charCodeAt(i) for i in [0...str.length] by 1)
 
   # Tries to obtain the class of type :type. Called by the bootstrap class loader.
   # Throws a NoClassDefFoundError on failure.
