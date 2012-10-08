@@ -426,7 +426,14 @@ root.opcodes = {
   140: new root.Opcode 'f2l', { execute: (rs) -> rs.push gLong.fromNumber(rs.pop()), null }
   141: new root.Opcode 'f2d', { execute: (rs) -> rs.push null }
   142: new root.Opcode 'd2i', { execute: (rs) -> rs.push float2int rs.pop2() }
-  143: new root.Opcode 'd2l', { execute: (rs) -> rs.push gLong.fromNumber(rs.pop2()), null }
+  143: new root.Opcode 'd2l', { execute: (rs) ->
+    d_val = rs.pop2();
+    if d_val is Number.POSITIVE_INFINITY
+      rs.push gLong.MAX_VALUE
+    else if d_val is Number.NEGATIVE_INFINITY
+      rs.push gLong.MIN_VALUE
+    else
+      rs.push gLong.fromNumber(d_val, null) }
   144: new root.Opcode 'd2f', { execute: (rs) -> rs.push wrap_float rs.pop2() }
   145: new root.Opcode 'i2b', { execute: (rs) -> rs.push util.truncate rs.pop(), 8 }
   146: new root.Opcode 'i2c', { execute: (rs) -> rs.push util.truncate rs.pop(), 8 }

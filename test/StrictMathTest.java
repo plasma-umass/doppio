@@ -119,10 +119,6 @@ public class StrictMathTest {
 
     // static double cos(double a)
     // Returns the trigonometric cosine of an angle.
-    for (i=0; i < d_vals.length; i++) {
-      d_results[i] = StrictMath.cos(d_vals[i]);
-    }
-    results("double cos(double a)", d_results);
 
     // static double cosh(double x)
     // Returns the hyperbolic cosine of a double value.
@@ -308,11 +304,6 @@ public class StrictMathTest {
 
     // static double sin(double a)
     // Returns the trigonometric sine of an angle.
-    for (i=0; i < d_vals.length; i++) {
-      d_results[i] = StrictMath.sin(d_vals[i]);
-    }
-    results("double sin(double a)", d_results);
-
     // static double sinh(double x)
     // Returns the hyperbolic sine of a double value.
 
@@ -325,10 +316,6 @@ public class StrictMathTest {
 
     // static double tan(double a)
     // Returns the trigonometric tangent of an angle.
-    for (i=0; i < d_vals.length; i++) {
-      d_results[i] = StrictMath.tan(d_vals[i]);
-    }
-    results("double tan(double a)", d_results);
 
     // static double tanh(double x)
     // Returns the hyperbolic tangent of a double value.
