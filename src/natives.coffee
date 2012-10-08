@@ -13,6 +13,22 @@ fs = node?.fs ? require 'fs'
 # things assigned to root will be available outside this module
 root = exports ? this.natives = {}
 
+system_properties = {
+  'java.home':'third_party/java_home/', 'file.encoding':'US_ASCII','java.vendor':'DoppioVM',
+  'java.version': '1.6', 'java.vendor.url': 'https://github.com/int3/doppio',
+  'java.class.version': '50.0', 'java.class.path': '.',
+  'line.separator':'\n', 'file.separator':'/', 'path.separator':':',
+  'user.dir':'.','user.home':'.','user.name':'DoppioUser',
+  'os.name':'Doppio', 'os.arch': 'js', 'os.version': '0',
+  'sun.boot.class.path': 'third_party/classes:third_party/java_home/lib/rt.jar',
+  'java.awt.headless': 'true',
+  'useJavaUtilZip': 'true'  # hack for sun6javac, avoid ZipFileIndex shenanigans
+}
+
+get_property = (rs, jvm_key, _default) ->
+  val = system_properties[rs.jvm2js_str(jvm_key)]
+  if val? then rs.init_string(val, true) else _default
+
 # convenience function. idea taken from coffeescript's grammar
 o = (fn_name, fn) -> fn_name: fn_name, fn: fn
 
@@ -26,6 +42,8 @@ trapped_methods =
       System: [
         o 'loadLibrary(L!/!/String;)V', (rs) -> # NOP, because we don't support loading external libraries
         o 'adjustPropertiesForBackwardCompatibility(L!/util/Properties;)V', (rs) -> # NOP (apple-java specific)
+        o 'getProperty(L!/!/String;)L!/!/String;', get_property
+        o 'getProperty(L!/!/String;L!/!/String;)L!/!/String;', get_property
       ]
       Terminator: [
         o 'setup()V', (rs) -> # NOP, because we don't support threads
@@ -87,19 +105,6 @@ doPrivileged = (rs) ->
   rs.push action unless m.access_flags.static
   m.run(rs,m.access_flags.virtual)
   rs.pop()
-
-# properties to set:
-#  java.version,java.vendor.url,java.class.version,java.class.path,os.arch,os.version
-system_properties = {
-  'java.home':'third_party/java_home/', 'file.encoding':'US_ASCII','java.vendor':'DoppioVM',
-  'line.separator':'\n', 'file.separator':'/', 'path.separator':':',
-  'user.dir':'.','user.home':'.','user.name':'DoppioUser',
-  'os.name':'Doppio',
-  'sun.boot.class.path': 'third_party/classes:third_party/java_home/lib/rt.jar',
-  # this doesn't actually exist in our classes.jar, but no other GraphicsEnvironment does either
-  'java.awt.graphicsenv': 'sun.awt.X11GraphicsEnvironment',
-  'useJavaUtilZip': 'true'  # hack for sun6javac, avoid ZipFileIndex shenanigans
-}
 
 get_field_from_offset = (rs, cls, offset) ->
   classname = cls.this_class.toClassString()
@@ -323,15 +328,7 @@ native_methods =
               dest.array[j++] = src.array[i]
         o 'currentTimeMillis()J', (rs) -> gLong.fromNumber((new Date).getTime())
         o 'identityHashCode(L!/!/Object;)I', (x) -> x.ref
-        o 'initProperties(L!/util/Properties;)L!/util/Properties;', (rs, props) ->
-            m = rs.method_lookup
-              class: 'java/util/Properties'
-              sig: 'setProperty(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;'
-            for k,v of system_properties
-              rs.push props, rs.init_string(k,true), rs.init_string(v,true)
-              m.run(rs)
-              rs.pop()  # we don't care about the return value
-            props
+        o 'initProperties(L!/util/Properties;)L!/util/Properties;', (rs, props) -> # NOP, we trap the getProperty call
         o 'nanoTime()J', (rs) ->
             # we don't actually have nanosecond precision
             gLong.fromNumber((new Date).getTime()).multiply(gLong.fromNumber(1000000))
