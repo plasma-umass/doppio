@@ -15,7 +15,9 @@ run = (rs, fn, done_cb) ->
     return true
   catch e
     if e instanceof util.JavaException
-      error "\nUncaught #{e.exception.type.toClassString()}: #{rs.jvm2js_str e.exception.fields.detailMessage}"
+      error "\nUncaught #{e.exception.type.toClassString()}"
+      msg = e.exception.fields.detailMessage
+      error "\t#{rs.jvm2js_str msg}" if msg?
       rs.show_state()
       rs.push rs.curr_thread, e.exception
       rs.method_lookup(
