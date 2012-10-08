@@ -33,7 +33,11 @@ if require.main == module
 
   return optimist.showHelp() if argv.help
 
-  util.log_level = util[argv.log?.toUpperCase()] ? (argv.log? + 0)
+  util.log_level = 
+    if argv.log?
+      util[argv.log?.toUpperCase()] ? (argv.log? + 0)
+    else
+      util.ERROR
 
   if argv.classpath?
     classpath = argv.classpath.split ':'
