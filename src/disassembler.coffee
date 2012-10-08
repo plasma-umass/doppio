@@ -2,7 +2,7 @@
 root = exports ? this.disassembler = {}
 
 # pull in external modules
-_ = require '../third_party/underscore-min.js'
+_ = require '../third_party/_.js'
 util = require './util'
 types = require './types'
 opcodes = require './opcodes'

@@ -1,16 +1,15 @@
 
 # pull in external modules
-_ = require '../third_party/underscore-min.js'
+_ = require '../third_party/_.js'
 util = require './util'
-ConstantPool = require './constant_pool'
-make_attributes = require './attributes'
+ConstantPool = require './ConstantPool'
+attributes = require './attributes'
 opcodes = require './opcodes'
 methods = require './methods'
 types = require './types'
 {c2t} = types
-root = exports ? window
 
-class @ClassFile
+class ClassFile
   # All class attributes should not be modified (e.g. by a running program)
   # once it has been constructed.
   constructor: (bytes_array) ->
@@ -45,7 +44,7 @@ class @ClassFile
       m.parse(bytes_array,@constant_pool,i)
       @methods[m.name + m.raw_descriptor] = m
     # class attributes
-    @attrs = make_attributes(bytes_array,@constant_pool)
+    @attrs = attributes.make_attributes(bytes_array,@constant_pool)
     throw "Leftover bytes in classfile: #{bytes_array}" if bytes_array.has_bytes()
 
   @for_array_type: (type) ->
@@ -60,4 +59,7 @@ class @ClassFile
     class_file.attrs = []
     class_file
 
-module?.exports = @ClassFile
+if module?
+  module.exports = ClassFile
+else
+  window.ClassFile = ClassFile

@@ -5,7 +5,7 @@ types = require './types'
 {java_throw,BranchException,ReturnException,JavaException} = util
 {c2t} = types
 
-root = exports ? this.opcodes = {}
+root = exports ? window.opcodes = {}
 
 class root.Opcode
   constructor: (@name, params={}) ->

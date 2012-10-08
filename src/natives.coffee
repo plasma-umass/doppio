@@ -1,6 +1,6 @@
 
 # pull in external modules
-_ = require '../third_party/underscore-min.js'
+_ = require '../third_party/_.js'
 gLong = require '../third_party/gLong.js'
 util = require './util'
 types = require './types'

@@ -1,6 +1,6 @@
 
 # pull in external modules
-_ = require '../third_party/underscore-min.js'
+_ = require '../third_party/_.js'
 runtime = require './runtime'
 util = require './util'
 {log,debug,error} = util

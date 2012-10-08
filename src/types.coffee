@@ -13,7 +13,7 @@
 #
 # Rather confusing, I know.
 
-root = exports ? window.types = {}
+root = exports ? window.types ?= {}
 util = require './util'
 
 internal2external =

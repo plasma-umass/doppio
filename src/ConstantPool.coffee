@@ -2,7 +2,7 @@
 # Export a single 'ConstantPool' constructor.
 
 # pull in external modules
-_ = require '../third_party/underscore-min.js'
+_ = require '../third_party/_.js'
 gLong = require '../third_party/gLong.js'
 util = require './util'
 
@@ -134,7 +134,7 @@ class ConstDouble
     double = new @ value
     return [double, 2, bytes_array]
 
-class @ConstantPool
+class ConstantPool
   parse: (bytes_array) ->
     constant_tags = {
       1: ConstString, 3: ConstInt32, 4: ConstFloat, 5: ConstLong,
@@ -161,4 +161,7 @@ class @ConstantPool
     for i in [0..@cp_count] when i of @constant_pool
       fn(i, @constant_pool[i])
 
-module?.exports = @ConstantPool
+if module?
+  module.exports = ConstantPool
+else
+  window.ConstantPool = ConstantPool

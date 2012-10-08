@@ -3,7 +3,7 @@ fs = require 'fs'
 path = require 'path'
 jvm = require '../src/jvm'
 util = require '../src/util'
-ClassFile = require '../src/class_file'
+ClassFile = require '../src/ClassFile'
 methods = require '../src/methods'
 runtime = require '../src/runtime'
 

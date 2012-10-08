@@ -1,11 +1,11 @@
 
 # pull in external modules
-_ = require '../third_party/underscore-min.js'
+_ = require '../third_party/_.js'
 util = require './util'
 opcodes = require './opcodes'
 
 # things assigned to root will be available outside this module
-root = this
+root = exports ? window.attributes ?= {}
 
 class ExceptionHandler
   parse: (bytes_array,constant_pool) ->
@@ -200,5 +200,3 @@ root.make_attributes = (bytes_array,constant_pool) ->
       # console.log "ignoring #{attr_len} bytes for attr #{name}"
       bytes_array.skip attr_len
   return attrs
-
-module?.exports = root.make_attributes

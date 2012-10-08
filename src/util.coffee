@@ -1,11 +1,9 @@
-unless exports?
-  window.require = ->
 
 # pull in external modules
-_ = require '../third_party/underscore-min.js'
+_ = require '../third_party/_.js'
 
 # things assigned to root will be available outside this module
-root = exports ? window.util = {}
+root = exports ? window.util ?= {}
 
 root.INT_MAX = Math.pow(2, 31) - 1
 root.INT_MIN = -root.INT_MAX - 1 # -2^31
