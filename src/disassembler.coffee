@@ -2,9 +2,10 @@
 root = exports ? this.disassembler = {}
 
 # pull in external modules
-_ ?= require '../third_party/underscore-min.js'
-util ?= require './util'
-opcodes ?= require './opcodes'
+_ = require '../third_party/underscore-min.js'
+util = require './util'
+types = require './types'
+opcodes = require './opcodes'
 
 root.disassemble = (class_file) ->
   access_string = (access_flags) ->
@@ -128,7 +129,7 @@ root.disassemble = (class_file) ->
         switch attr.constructor.name
           when 'LineNumberTable'
             rv += "  LineNumberTable:\n"
-            rv += "   line #{entry.line_number}: #{entry.start_pc}\n" for entry in attr
+            rv += "   line #{entry.line_number}: #{entry.start_pc}\n" for entry in attr.entries
           when 'StackMapTable'
             rv += "  StackMapTable: number_of_entries = #{attr.num_entries}\n"
             for entry in attr.entries

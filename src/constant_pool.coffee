@@ -2,9 +2,9 @@
 # Export a single 'ConstantPool' constructor.
 
 # pull in external modules
-_ ?= require '../third_party/underscore-min.js'
-gLong ?= require '../third_party/gLong.js'
-util ?= require './util'
+_ = require '../third_party/underscore-min.js'
+gLong = require '../third_party/gLong.js'
+util = require './util'
 
 # All objects in the constant pool have the properties @type and @value.
 # *Reference and NameAndType objects all have a @deref method, which resolves

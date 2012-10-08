@@ -1,7 +1,7 @@
 
-gLong ?= require '../third_party/gLong.js'
-util ?= require './util'
-types ?= require './types'
+gLong = require '../third_party/gLong.js'
+util = require './util'
+types = require './types'
 {java_throw,BranchException,ReturnException,JavaException} = util
 {c2t} = types
 

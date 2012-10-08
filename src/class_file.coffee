@@ -1,13 +1,14 @@
 
 # pull in external modules
-_ ?= require '../third_party/underscore-min.js'
-util ?= require './util'
-ConstantPool ?= require './constant_pool'
-make_attributes ?= require './attributes'
-opcodes ?= require './opcodes'
-methods ?= require './methods'
-types ?= require './types'
+_ = require '../third_party/underscore-min.js'
+util = require './util'
+ConstantPool = require './constant_pool'
+make_attributes = require './attributes'
+opcodes = require './opcodes'
+methods = require './methods'
+types = require './types'
 {c2t} = types
+root = exports ? window
 
 class @ClassFile
   # All class attributes should not be modified (e.g. by a running program)

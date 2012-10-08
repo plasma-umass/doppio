@@ -1,6 +1,6 @@
 root = this
 
-util ?= require '../src/util'
+util = require '../src/util'
 
 asyncExecute = this.asyncExecute ? (require './util').asyncExecute
 

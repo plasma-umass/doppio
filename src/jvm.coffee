@@ -1,8 +1,8 @@
 
 # pull in external modules
-_ ?= require '../third_party/underscore-min.js'
-runtime ?= require './runtime'
-util ?= require './util'
+_ = require '../third_party/underscore-min.js'
+runtime = require './runtime'
+util = require './util'
 {log,debug,error} = util
 
 # things assigned to root will be available outside this module

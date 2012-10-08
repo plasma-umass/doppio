@@ -1,13 +1,14 @@
 
 # pull in external modules
-_ ?= require '../third_party/underscore-min.js'
-gLong ?= require '../third_party/gLong.js'
-util ?= require './util'
-opcodes ?= require './opcodes'
-make_attributes ?= require './attributes'
-disassembler ?= require './disassembler'
-types ?= require './types'
-natives ?= require './natives'
+_ = require '../third_party/underscore-min.js'
+gLong = require '../third_party/gLong.js'
+util = require './util'
+opcodes = require './opcodes'
+make_attributes = require './attributes'
+disassembler = require './disassembler'
+types = require './types'
+natives = require './natives'
+runtime = require './runtime'
 {log,vtrace,trace,debug,error} = util
 {opcode_annotators} = disassembler
 {str2type,carr2type,c2t} = types
