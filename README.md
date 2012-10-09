@@ -35,9 +35,9 @@ a pure-Java third-party implementation.
 Download [the classes][jazzlib] and copy them over the files in
 `third_party/classes/java/util/zip/`.
 
-Use [Coffeescript v1.2.0][coffee]:
+Use [Coffeescript v1.3.3][coffee]:
 
-    npm install -g coffee-script@1.2.0
+    npm install -g coffee-script@1.3.3
 
 Run `coffee -wc */*.coffee &` to auto-generate javascript sources if you make any changes to the code.
 
