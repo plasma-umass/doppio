@@ -5,7 +5,6 @@ root = exports ? this.disassembler = {}
 _ = require '../third_party/_.js'
 util = require './util'
 types = require './types'
-opcodes = require './opcodes'
 
 root.disassemble = (class_file) ->
   access_string = (access_flags) ->
