@@ -3,10 +3,14 @@ util = require './util'
 
 root = exports ? window.opcodes = {}
 
+INDENT_SIZE = 4
+
 class RuntimeState
   constructor: ->
     @_cs = []
     @locals = []
+    @var_count = 0
+
     @blocks = []
     @block_start_idxs = []
     @new_block 0
@@ -41,17 +45,18 @@ class RuntimeState
         @blocks[d1].in.push idx
         @blocks[d2].in.push idx
 
-    @compile_block(@blocks[0])
+    @compile_block(@blocks[0], 1)
 
-  compile_block: (block) ->
+  compile_block: (block, indent) ->
+    indentation = (" " for i in [0...INDENT_SIZE * indent] by 1).join ''
     if block.in.length <= 1 && block.out.length == 2
-      "if (#{block.cond.condFn block.cond.expr}) {\n#{
-        @compile_block @blocks[block.out[1]]
-      }\n} else {\n#{
-        @compile_block @blocks[block.out[0]]
-      }\n}"
+      "#{indentation}if (#{block.cond.condFn block.cond.expr}) {\n#{
+        @compile_block @blocks[block.out[1]], indent + 1
+      }\n#{indentation}} else {\n#{
+        @compile_block @blocks[block.out[0]], indent + 1
+      }\n#{indentation}}"
     else
-      "#{block}"
+      indentation + block
 
 class BasicBlock
   constructor: ->
@@ -71,6 +76,16 @@ class Primitive extends Expr
 
   toString: -> @val
 
+class Variable extends Expr
+
+  constructor: (id) ->
+    @strId = ""
+    while id >= 0
+      @strId = String.fromCharCode((id % 26) + 97) # 97 = 'a'
+      id -= 26
+
+  toString: -> @strId
+
 class BinaryOp extends Expr
   constructor: (@op_func, @left, @right) ->
 
@@ -78,7 +93,7 @@ class BinaryOp extends Expr
 
 opcodes = {
   nop: { execute: -> }
-  aconst_null: { execute: (rs) -> rs.push null }
+  aconst_null: { execute: (rs) -> rs.push new Primitive null }
   iconst_m1: { execute: (rs) -> rs.push new Primitive -1 }
   iconst_0: { execute: (rs) -> rs.push new Primitive 0 }
   iconst_1: { execute: (rs) -> rs.push new Primitive 1 }
@@ -118,10 +133,24 @@ root.compile = (class_file) ->
           if m.name is '<init>' then class_name
           else if m.name is '<clinit>' then '__clinit__'
           else m.name
+
         rs = new RuntimeState
+
+        vars = []
+        params_size = 0
+        for p in m.param_types
+          vars.push new Variable rs.var_count++
+          if p.toString() in ['D','J']
+            rs.put_cl2 params_size, _.last vars
+            params_size += 2
+          else
+            rs.put_cl params_size, _.last vars
+            params_size++
+
         m.code.each_opcode (idx, oc) ->
           opcodes[oc.name]?.execute rs, oc, idx
-        "#{name}: function() {\n#{rs.compile()}\n},"
+        "#{name}: function(#{vars.join ", "}) {\n#{rs.compile()}\n},"
+
   "var #{class_name} = {\n#{methods.join "\n"}\n};\n"
 
 # TODO: move to a separate file
