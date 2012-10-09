@@ -64,9 +64,9 @@ set +e  # in case coffee doesn't exist, we can recover
 CSVER=`coffee --version | fmt -1 | grep '[0-9]\+\.[0-9]\+'`
 set -e
 
-if [ -z "$CSVER" ] || [[ "$CSVER" < "1.2.0" ]]; then
-  echo "Installing coffeescript ver. 1.2.0"
-  npm install -g coffee-script@1.2.0
+if [ -z "$CSVER" ] || [[ "$CSVER" < "1.3.3" ]]; then
+  echo "Installing coffeescript ver. 1.3.3"
+  npm install -g coffee-script@1.3.3
 fi
 
 #TODO: check for these before installing

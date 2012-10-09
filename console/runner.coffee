@@ -56,8 +56,11 @@ if require.main == module
       resume data
 
   rs = new runtime.RuntimeState(stdout, read_stdin, exports.read_classfile)
+  java_cmd_args = (argv.java?.toString().split /\s+/) or []
 
   if argv.profile
+    if argv.profile is 'hot'
+      jvm.run_class rs, cname, java_cmd_args
     timings = {}
     call_counts = {}
     profiled_fn = (old_fn) -> ->
@@ -79,8 +82,6 @@ if require.main == module
     methods.Method::run_bytecode = profiled_fn(methods.Method::run_bytecode)
     methods.Method::run_manually = profiled_fn(methods.Method::run_manually)
 
-  java_cmd_args = (argv.java?.toString().split /\s+/) or []
-
   jvm.run_class rs, cname, java_cmd_args
 
   if argv.profile
@@ -96,6 +97,7 @@ if require.main == module
       total_timings[method] += v
     arr = (name: k, total: total_timings[k], self: v, counts:call_counts[k] for k, v of self_timings)
     arr.sort (a, b) -> b.self - a.self
+    console.log "\nProfiler results: #{total_timings["#{cname}::main"]} ms total"
     console.log ['total','self','calls','self ms/call','name'].join '\t'
     for entry in arr[0..30]
       avg = entry.self / entry.counts

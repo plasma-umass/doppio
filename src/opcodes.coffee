@@ -398,7 +398,7 @@ root.opcodes = {
   114: new root.Opcode 'frem', { execute: (rs) -> v2=rs.pop();  rs.push rs.pop() %v2 }
   115: new root.Opcode 'drem', { execute: (rs) -> v2=rs.pop2(); rs.push rs.pop2()%v2, null }
   116: new root.Opcode 'ineg', { execute: (rs) ->
-    i_val = rs.pop();
+    i_val = rs.pop()
     rs.push if i_val == util.INT_MIN then i_val else -i_val }
   117: new root.Opcode 'lneg', { execute: (rs) -> rs.push rs.pop2().negate(), null }
   118: new root.Opcode 'fneg', { execute: (rs) -> rs.push -rs.pop() }
@@ -427,7 +427,7 @@ root.opcodes = {
   141: new root.Opcode 'f2d', { execute: (rs) -> rs.push null }
   142: new root.Opcode 'd2i', { execute: (rs) -> rs.push float2int rs.pop2() }
   143: new root.Opcode 'd2l', { execute: (rs) ->
-    d_val = rs.pop2();
+    d_val = rs.pop2()
     if d_val is Number.POSITIVE_INFINITY
       rs.push gLong.MAX_VALUE, null
     else if d_val is Number.NEGATIVE_INFINITY
