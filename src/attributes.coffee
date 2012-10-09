@@ -1,11 +1,11 @@
 
 # pull in external modules
-_ ?= require '../third_party/underscore-min.js'
-util ?= require './util'
-opcodes ?= require './opcodes'
+_ = require '../third_party/_.js'
+util = require './util'
+opcodes = require './opcodes'
 
 # things assigned to root will be available outside this module
-root = this
+root = exports ? window.attributes ?= {}
 
 class ExceptionHandler
   parse: (bytes_array,constant_pool) ->
@@ -50,13 +50,14 @@ class Code
     for i in [0..@code_len] when i of @opcodes
       fn(i, @opcodes[i])
 
-class LineNumberTable extends Array
+class LineNumberTable
   parse: (bytes_array,constant_pool) ->
+    @entries = []
     lnt_len = bytes_array.get_uint 2
     for [0...lnt_len]
       spc = bytes_array.get_uint 2
       ln = bytes_array.get_uint 2
-      this.push {'start_pc': spc,'line_number': ln}
+      @entries.push {'start_pc': spc,'line_number': ln}
     return bytes_array
 
 class SourceFile
@@ -199,5 +200,3 @@ root.make_attributes = (bytes_array,constant_pool) ->
       # console.log "ignoring #{attr_len} bytes for attr #{name}"
       bytes_array.skip attr_len
   return attrs
-
-module?.exports = root.make_attributes

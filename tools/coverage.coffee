@@ -5,7 +5,7 @@ path = require 'path'
 optimist = require 'optimist'
 jvm = require '../src/jvm'
 util = require '../src/util'
-ClassFile = require '../src/class_file'
+ClassFile = require '../src/ClassFile'
 runner = require '../console/runner'
 opcodes = require '../src/opcodes'
 

@@ -25,8 +25,8 @@ $.ajax "browser/mini-rt.tar", {
       $('#progress-container').fadeOut 'slow'
       $('#console').click()
     update_bar = _.throttle ((percent, path) ->
-      bar ?= $('#progress > .bar')
-      preloading_file ?= $('#preloading-file')
+      bar = $('#progress > .bar')
+      preloading_file = $('#preloading-file')
       # +10% hack to make the bar appear fuller before fading kicks in
       display_perc = Math.min Math.ceil(percent*100), 100
       bar.width "#{display_perc}%", 150

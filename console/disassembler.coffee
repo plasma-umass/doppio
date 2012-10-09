@@ -2,7 +2,7 @@
 fs = require 'fs'
 util = require '../src/util'
 {disassemble} = require '../src/disassembler'
-ClassFile = require '../src/class_file'
+ClassFile = require '../src/ClassFile'
 
 # first two are 'coffee', 'scriptname.coffee'
 fname = if process.argv.length > 2 then process.argv[2] else '/dev/stdin'

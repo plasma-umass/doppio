@@ -13,7 +13,8 @@
 #
 # Rather confusing, I know.
 
-root = exports ? this.types = {}
+root = exports ? window.types ?= {}
+util = require './util'
 
 internal2external =
   B: 'byte'
@@ -100,17 +101,17 @@ root.check_cast = (rs, obj, classname) ->
 # Returns a boolean indicating if :type1 is an instance of :type2.
 # :type1 and :type2 should both be instances of types.Type.
 root.is_castable = (rs, type1, type2) ->
-  if (type1 instanceof types.PrimitiveType) or (type2 instanceof types.PrimitiveType)
+  if (type1 instanceof root.PrimitiveType) or (type2 instanceof root.PrimitiveType)
     # since types are created on the fly, we can have different Type objects for the same type
     return type1.name == type2.name
-  if type1 instanceof types.ArrayType
-    if type2 instanceof types.ArrayType
+  if type1 instanceof root.ArrayType
+    if type2 instanceof root.ArrayType
       return root.is_castable(rs, type1.component_type, type2.component_type)
     c2 = rs.class_lookup(type2)
     return type2.class_name is 'java/lang/Object' unless c2.access_flags.interface
     return type2.class_name in ['java/lang/Cloneable','java/io/Serializable']
   # not an array
-  return false if type2 instanceof types.ArrayType
+  return false if type2 instanceof root.ArrayType
   c1 = rs.class_lookup(type1)
   c2 = rs.class_lookup(type2)
   unless c1.access_flags.interface

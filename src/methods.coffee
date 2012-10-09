@@ -1,13 +1,14 @@
 
 # pull in external modules
-_ ?= require '../third_party/underscore-min.js'
-gLong ?= require '../third_party/gLong.js'
-util ?= require './util'
-opcodes ?= require './opcodes'
-make_attributes ?= require './attributes'
-disassembler ?= require './disassembler'
-types ?= require './types'
-natives ?= require './natives'
+_ = require '../third_party/_.js'
+gLong = require '../third_party/gLong.js'
+util = require './util'
+opcodes = require './opcodes'
+attributes = require './attributes'
+disassembler = require './disassembler'
+types = require './types'
+natives = require './natives'
+runtime = require './runtime'
 {log,vtrace,trace,debug,error} = util
 {opcode_annotators} = disassembler
 {str2type,carr2type,c2t} = types
@@ -26,7 +27,7 @@ class AbstractMethodField
     @name = constant_pool.get(bytes_array.get_uint 2).value
     @raw_descriptor = constant_pool.get(bytes_array.get_uint 2).value
     @parse_descriptor @raw_descriptor
-    @attrs = make_attributes(bytes_array,constant_pool)
+    @attrs = attributes.make_attributes(bytes_array,constant_pool)
     @code = _.find(@attrs, (a) -> a.constructor.name == "Code")
 
 class root.Field extends AbstractMethodField

@@ -3,8 +3,9 @@ fs = require 'fs'
 path = require 'path'
 jvm = require '../src/jvm'
 util = require '../src/util'
-ClassFile = require '../src/class_file'
+ClassFile = require '../src/ClassFile'
 methods = require '../src/methods'
+runtime = require '../src/runtime'
 
 classpath = [ ".", "#{__dirname}/../third_party/classes" ]
 
@@ -33,7 +34,7 @@ if require.main == module
 
   return optimist.showHelp() if argv.help
 
-  util.log_level = 
+  util.log_level =
     if argv.log?
       util[argv.log?.toUpperCase()] ? (argv.log? + 0)
     else

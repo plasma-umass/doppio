@@ -1,10 +1,10 @@
 
 # pull in external modules
-_ ?= require '../third_party/underscore-min.js'
-gLong ?= require '../third_party/gLong.js'
-util ?= require './util'
-types ?= require './types'
-runtime ?= require './runtime'
+_ = require '../third_party/_.js'
+gLong = require '../third_party/gLong.js'
+util = require './util'
+types = require './types'
+runtime = require './runtime'
 path = node?.path ? require 'path'
 fs = node?.fs ? require 'fs'
 {log,debug,error} = util
@@ -63,7 +63,7 @@ trapped_methods =
                   _.find(attrs, (attr) -> attr.constructor.name == 'SourceFile')?.name or 'unknown'
               else
                 source_file = 'unknown'
-              line_nums = sf.method.code?.attrs[0]
+              line_nums = sf.method.code?.attrs[0].entries
               if line_nums?
                 ln = _.last(row.line_number for i,row of line_nums when row.start_pc <= sf.pc)
               else

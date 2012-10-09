@@ -1,8 +1,9 @@
-unless exports?
-  this.require = ->
+
+# pull in external modules
+_ = require '../third_party/_.js'
 
 # things assigned to root will be available outside this module
-root = exports ? this.util = {}
+root = exports ? window.util ?= {}
 
 root.INT_MAX = Math.pow(2, 31) - 1
 root.INT_MIN = -root.INT_MAX - 1 # -2^31
@@ -17,7 +18,7 @@ root.truncate = (a, n_bits) ->
   a -= max_val if a > Math.pow(2, n_bits-1)
   a
 
-root.wrap_int = (a) -> util.truncate a, 32
+root.wrap_int = (a) -> root.truncate a, 32
 
 root.cmp = (a,b) ->
   return 0  if a == b

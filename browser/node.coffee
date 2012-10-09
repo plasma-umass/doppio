@@ -1,6 +1,6 @@
-root = @node = {}
-
 win = window
+
+root = win.node = {}
 
 # made global for convenience -- name collision is unlikely
 class win.DoppioFile # File is a native browser thing
@@ -122,5 +122,9 @@ root.path =
     # remove repeated //s
     path = (c for c, idx in components when c != '').join '/'
     (if absolute then '/' else '') + path
+
+win.require = (path) ->
+  [name, ext] = (basename path).split '.'
+  window[name] ?= {}
 
 basename = (path) -> _.last path.split '/'

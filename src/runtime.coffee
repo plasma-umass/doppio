@@ -1,8 +1,11 @@
 # Things assigned to root will be available outside this module.
-root = exports ? this.runtime = {}
-util ?= require './util'
-types ?= require './types'
-ClassFile ?= require './class_file'
+root = exports ? window.runtime ?= {}
+
+_ = require '../third_party/_.js'
+gLong = require '../third_party/gLong.js'
+util = require './util'
+types = require './types'
+ClassFile = require './ClassFile'
 {log,vtrace,trace,debug,error,java_throw} = util
 {c2t} = types
 
