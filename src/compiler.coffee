@@ -1,3 +1,4 @@
+_ = require '../third_party/_.js'
 util = require './util'
 
 root = exports ? window.opcodes = {}
@@ -5,16 +6,63 @@ root = exports ? window.opcodes = {}
 class RuntimeState
   constructor: ->
     @_cs = []
-    @blocks = []
     @locals = []
-    @current_block = ''
+    @blocks = []
+    @block_start_idxs = []
+    @new_block 0
+
   push: (sf) -> @_cs.push sf
   pop: -> @_cs.pop()
   cl: (idx) -> @locals[idx]
   put_cl: (idx, val) -> @locals[idx] = val
   put_cl2: (idx,val) -> @put_cl(idx,val); @put_cl(idx+1,null)
-  finish_block: (str) -> @blocks.push @current_block; @current_block = ''
-  compile: -> @blocks.join '\n'
+
+  add_cond: (condFn, expr, dest1, dest2) ->
+    @current_block().cond = { condFn: condFn, expr: expr, dest1: dest1, dest2: dest2 }
+    @new_block dest1
+
+  new_block: (start_idx) ->
+    @blocks.push new BasicBlock
+    @block_start_idxs.push(start_idx)
+
+  current_block: -> _.last @blocks
+
+  instr_idx2block: (idx) ->
+    for blockStartIdx, i in @block_start_idxs
+      return i - 1 if idx < blockStartIdx
+    return @blocks.length - 1
+
+  compile: ->
+    for block, idx in @blocks
+      if block.cond?
+        d1 = @instr_idx2block block.cond.dest1
+        d2 = @instr_idx2block block.cond.dest2
+        block.out.push d1, d2
+        @blocks[d1].in.push idx
+        @blocks[d2].in.push idx
+
+    @compile_block(@blocks[0])
+
+  compile_block: (block) ->
+    if block.in.length <= 1 && block.out.length == 2
+      "if (#{block.cond.condFn block.cond.expr}) {\n#{
+        @compile_block @blocks[block.out[1]]
+      }\n} else {\n#{
+        @compile_block @blocks[block.out[0]]
+      }\n}"
+    else
+      "#{block}"
+
+class BasicBlock
+  constructor: ->
+    @in = []
+    @out = []
+    @lines = []
+    @cond = null
+
+  add_line: (line) -> @lines.push line
+
+  toString: -> @lines.join "\n"
 
 class Expr
 
@@ -38,7 +86,7 @@ opcodes = {
   iconst_3: { execute: (rs) -> rs.push new Primitive 3 }
   iconst_4: { execute: (rs) -> rs.push new Primitive 4 }
   iconst_5: { execute: (rs) -> rs.push new Primitive 5 }
-  lconst_0: { execute: (rs) -> rs.push new Primitive(gLong.ZERO), null }
+  lconst_0: { execute: (rs) -> rs.push new Primitive("gLong.ZERO"), null }
   istore_0: { execute: (rs) -> rs.put_cl 0, rs.pop() }
   istore_1: { execute: (rs) -> rs.put_cl 1, rs.pop() }
   istore_2: { execute: (rs) -> rs.put_cl 2, rs.pop() }
@@ -51,12 +99,14 @@ opcodes = {
   imul: { execute: (rs) -> rs.push new BinaryOp ((a,b) ->
     "gLong.fromInt(#{a}).multiply(gLong.fromInt(#{b})).toInt()"), rs.pop(), rs.pop()
   }
-  'ireturn': { execute: (rs) ->
+  ifge: { execute: (rs, op, idx) -> rs.add_cond(
+    ((a) -> "#{a} >= 0"), rs.pop(), idx + op.byte_count + 1, op.offset + idx) }
+  'ireturn': { execute: (rs, op, idx) ->
     rv = rs.pop()
-    rs.current_block += "return #{rv};"
-    rs.finish_block()
+    rs.current_block().add_line "return #{rv};"
+    rs.new_block(idx + op.byte_count)
   }
-  'return': { execute: (rs) -> rs.current_block += 'return;'; rs.finish_block() }
+  'return': { execute: (rs, op, idx) -> rs.current_block().add_line 'return;'; }
 }
 
 root.compile = (class_file) ->
@@ -70,8 +120,8 @@ root.compile = (class_file) ->
           else m.name
         rs = new RuntimeState
         m.code.each_opcode (idx, oc) ->
-          opcodes[oc.name]?.execute rs, oc
-        "#{name}: function {\n#{rs.compile()}\n},"
+          opcodes[oc.name]?.execute rs, oc, idx
+        "#{name}: function() {\n#{rs.compile()}\n},"
   "var #{class_name} = {\n#{methods.join "\n"}\n};\n"
 
 # TODO: move to a separate file
