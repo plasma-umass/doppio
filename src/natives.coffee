@@ -611,14 +611,6 @@ native_methods =
             null # XXX may not be correct
       ]
   sun:
-    awt:
-      X11GraphicsEnvironment: [
-        o 'initDisplay(Z)V', (rs, glxRequested) -> console.log "TODO: Initialize display"
-      ]
-    font:
-      FontManager: [
-        o 'initIDs(Z)V', (rs) -> console.log "TODO: FontManager::initIDs"
-      ]
     misc:
       VM: [
         o 'initialize()V', (rs) ->
