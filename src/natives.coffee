@@ -275,10 +275,11 @@ native_methods =
         ]
       Runtime: [
         o 'availableProcessors()I', () -> 1
-        o 'gc()V', () ->
+        o 'gc()V', (rs) ->
             # No universal way of forcing browser to GC, so we yield in hopes
             # that the browser will use it as an opportunity to GC.
-            throw new util.YieldIOException(cb) -> setTimeout(cb, 0)
+            rs.curr_frame().resume = -> # NOP
+            throw new util.YieldIOException (cb) -> setTimeout(cb, 0)
       ]
       Shutdown: [
         o 'halt0(I)V', (rs) -> throw new util.HaltException(rs.curr_frame().locals[0])
