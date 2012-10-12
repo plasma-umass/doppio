@@ -1,128 +1,83 @@
 _ = require '../third_party/_.js'
 util = require './util'
 
-root = exports ? window.opcodes = {}
+class BasicBlock
+  constructor: (@start_idx) ->
+    @opcodes = []
+    @stack = []
+    @external_stack_count = 0
 
-INDENT_SIZE = 4
-
-class RuntimeState
-  constructor: ->
-    @_cs = []
-    @locals = []
-    @var_count = 0
-
-    @blocks = []
-    @block_start_idxs = []
-    @new_block 0
-
-  push: (sf) -> @_cs.push sf
-  pop: -> @_cs.pop()
-  cl: (idx) -> @locals[idx]
-  put_cl: (idx, val) -> @locals[idx] = val
-  put_cl2: (idx,val) -> @put_cl(idx,val); @put_cl(idx+1,null)
-
-  add_cond: (condFn, expr, dest1, dest2) ->
-    @current_block().cond = { condFn: condFn, expr: expr, dest1: dest1, dest2: dest2 }
-    @new_block dest1
-
-  new_block: (start_idx) ->
-    @blocks.push new BasicBlock
-    @block_start_idxs.push(start_idx)
-
-  current_block: -> _.last @blocks
-
-  instr_idx2block: (idx) ->
-    for blockStartIdx, i in @block_start_idxs
-      return i - 1 if idx < blockStartIdx
-    return @blocks.length - 1
+  push: (args...) -> @stack.push.apply @stack, args
+  pop: ->
+    if @stack.length > 0
+      @stack.pop()
+    else
+      # not correct; I think it needs some liveness analysis
+      "S#{@external_stack_count++}"
 
   compile: ->
-    for block, idx in @blocks
-      if block.cond?
-        d1 = @instr_idx2block block.cond.dest1
-        d2 = @instr_idx2block block.cond.dest2
-        block.out.push d1, d2
-        @blocks[d1].in.push idx
-        @blocks[d2].in.push idx
+    instr_idx = @start_idx
+    body = ""
+    for op in @opcodes
+      compiled_str = compile_fns[op.name]?.compile.call(op, @, instr_idx)
+      body += "#{compiled_str};\n" if compiled_str?
+      instr_idx += op.byte_count + 1
+    """
+    case #{@start_idx}:
+    // #{op.name for op in @opcodes}
+    #{body}
+    """
 
-    @compile_block(@blocks[0], 1)
-
-  compile_block: (block, indent) ->
-    indentation = (" " for i in [0...INDENT_SIZE * indent] by 1).join ''
-    if block.in.length <= 1 && block.out.length == 2
-      "#{indentation}if (#{block.cond.condFn block.cond.expr}) {\n#{
-        @compile_block @blocks[block.out[1]], indent + 1
-      }\n#{indentation}} else {\n#{
-        @compile_block @blocks[block.out[0]], indent + 1
-      }\n#{indentation}}"
-    else
-      indentation + block
-
-class BasicBlock
-  constructor: ->
-    @in = []
-    @out = []
-    @lines = []
-    @cond = null
-
-  add_line: (line) -> @lines.push line
-
-  toString: -> @lines.join "\n"
-
-class Expr
-
-class Primitive extends Expr
-  constructor: (@val) ->
-
-  toString: -> @val
-
-class Variable extends Expr
-
-  constructor: (id) ->
-    @strId = ""
-    while id >= 0
-      @strId = String.fromCharCode((id % 26) + 97) # 97 = 'a'
-      id -= 26
-
-  toString: -> @strId
-
-class BinaryOp extends Expr
-  constructor: (@op_func, @left, @right) ->
-
-  toString: -> @op_func(@left, @right)
-
-opcodes = {
-  nop: { execute: -> }
-  aconst_null: { execute: (rs) -> rs.push new Primitive null }
-  iconst_m1: { execute: (rs) -> rs.push new Primitive -1 }
-  iconst_0: { execute: (rs) -> rs.push new Primitive 0 }
-  iconst_1: { execute: (rs) -> rs.push new Primitive 1 }
-  iconst_2: { execute: (rs) -> rs.push new Primitive 2 }
-  iconst_3: { execute: (rs) -> rs.push new Primitive 3 }
-  iconst_4: { execute: (rs) -> rs.push new Primitive 4 }
-  iconst_5: { execute: (rs) -> rs.push new Primitive 5 }
-  lconst_0: { execute: (rs) -> rs.push new Primitive("gLong.ZERO"), null }
-  istore_0: { execute: (rs) -> rs.put_cl 0, rs.pop() }
-  istore_1: { execute: (rs) -> rs.put_cl 1, rs.pop() }
-  istore_2: { execute: (rs) -> rs.put_cl 2, rs.pop() }
-  istore_3: { execute: (rs) -> rs.put_cl 3, rs.pop() }
-  iload_0: { execute: (rs) -> rs.push rs.cl(0) }
-  iload_1: { execute: (rs) -> rs.push rs.cl(1) }
-  iload_2: { execute: (rs) -> rs.push rs.cl(2) }
-  iload_3: { execute: (rs) -> rs.push rs.cl(3) }
-  iadd: { execute: (rs) -> rs.push new BinaryOp ((a,b) -> "wrap_int(#{a}+#{b})"), rs.pop(), rs.pop() }
-  imul: { execute: (rs) -> rs.push new BinaryOp ((a,b) ->
-    "gLong.fromInt(#{a}).multiply(gLong.fromInt(#{b})).toInt()"), rs.pop(), rs.pop()
-  }
-  ifge: { execute: (rs, op, idx) -> rs.add_cond(
-    ((a) -> "#{a} >= 0"), rs.pop(), idx + op.byte_count + 1, op.offset + idx) }
-  'ireturn': { execute: (rs, op, idx) ->
-    rv = rs.pop()
-    rs.current_block().add_line "return #{rv};"
-    rs.new_block(idx + op.byte_count)
-  }
-  'return': { execute: (rs, op, idx) -> rs.current_block().add_line 'return;'; }
+compile_fns = {
+  nop: { compile: -> }
+  aconst_null: { compile: (b) -> b.push "null"; null }
+  iconst_m1: { compile: (b) -> b.push "-1"; null }
+  iconst_0: { compile: (b) -> b.push "0"; null }
+  iconst_1: { compile: (b) -> b.push "1"; null }
+  iconst_2: { compile: (b) -> b.push "2"; null }
+  iconst_3: { compile: (b) -> b.push "3"; null }
+  iconst_4: { compile: (b) -> b.push "4"; null }
+  iconst_5: { compile: (b) -> b.push "5"; null }
+  lconst_0: { compile: (b) -> b.push "gLong.ZERO", null; null }
+  istore_0: { compile: (b) -> "L0 = #{b.pop()}" }
+  istore_1: { compile: (b) -> "L1 = #{b.pop()}" }
+  istore_2: { compile: (b) -> "L2 = #{b.pop()}" }
+  istore_3: { compile: (b) -> "L3 = #{b.pop()}" }
+  iload_0: { compile: (b) -> b.push "L0"; null }
+  iload_1: { compile: (b) -> b.push "L1"; null }
+  iload_2: { compile: (b) -> b.push "L2"; null }
+  iload_3: { compile: (b) -> b.push "L3"; null }
+  iadd: { compile: (b) -> b.push "wrap_int(#{b.pop()}+#{b.pop()})"; null }
+  imul: { compile: (b) -> b.push "gLong.fromInt(#{b.pop()}).multiply(gLong.fromInt(#{b.pop()})).toInt()"; null }
+  ifge: { compile: (b, idx) -> "if (#{b.pop()} >= 0) { label = #{@offset + idx}; continue }" }
+  ireturn: { compile: (b) -> "return #{b.pop()}" }
+  'return': { compile: (b) -> "return"; }
 }
+
+# partition the opcodes into basic blocks
+get_blocks_for_method = (m) ->
+  targets = [0]
+  m.code.each_opcode (idx, oc) ->
+    # ret is the only instruction that does not have an 'offset' field.
+    # however, it will only jump to locations that follow jsr, so we do
+    # not need to worry about it
+    if oc.offset?
+      targets.push idx + oc.byte_count + 1, idx + oc.offset
+
+  targets.sort()
+  # dedup
+  labels = []
+  for target, i in targets
+    if i == 0 or targets[i-1] != target
+      labels.push target
+
+  blocks = (new BasicBlock idx for idx in labels)
+  current_block = -1
+  m.code.each_opcode (idx, oc) ->
+    current_block++ if idx in labels
+    blocks[current_block].opcodes.push oc
+
+  blocks
 
 root.compile = (class_file) ->
   class_name = class_file.this_class.toExternalString()
@@ -134,22 +89,25 @@ root.compile = (class_file) ->
           else if m.name is '<clinit>' then '__clinit__'
           else m.name
 
-        rs = new RuntimeState
-
-        vars = []
+        param_names = []
         params_size = 0
         for p in m.param_types
-          vars.push new Variable rs.var_count++
+          param_names.push "L#{params_size}"
           if p.toString() in ['D','J']
-            rs.put_cl2 params_size, _.last vars
             params_size += 2
           else
-            rs.put_cl params_size, _.last vars
             params_size++
 
-        m.code.each_opcode (idx, oc) ->
-          opcodes[oc.name]?.execute rs, oc, idx
-        "#{name}: function(#{vars.join ", "}) {\n#{rs.compile()}\n},"
+        """
+        #{name}: function(#{param_names.join ", "}) {
+          var label = 0;
+          while (true) {
+            switch (label) {
+#{(block.compile() for block in get_blocks_for_method m).join ""}
+            };
+          };
+        },
+        """
 
   "var #{class_name} = {\n#{methods.join "\n"}\n};\n"
 
