@@ -136,15 +136,6 @@ class root.RuntimeState
     vtrace "redirecting #{oref} -> #{@string_redirector[key].ref}"
     return @string_redirector[key]
 
-  # Used by ZipFile to return unique zip file descriptor IDs.
-  set_zip_descriptor: (zd_obj) ->
-    @zip_descriptors.push zd_obj
-    gLong.fromInt(@zip_descriptors.length - 1)
-  get_zip_descriptor: (zd_long) ->
-    @zip_descriptors[zd_long.toInt()]
-  free_zip_descriptor: (zd_long) ->
-    #delete @zip_descriptors[zd_long.toInt()]
-
   curr_frame: -> @meta_stack().curr_frame()
 
   cl: (idx) -> @curr_frame().locals[idx]
