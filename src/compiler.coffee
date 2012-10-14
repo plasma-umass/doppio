@@ -185,11 +185,8 @@ compile_class_handlers =
 
     b.stack.length -= method.param_bytes
 
-    invoke_str = "rs.method_lookup(#{JSON.stringify @method_spec}, [#{params.join ","}])"
-    if @name in ['invokevirtual', 'invokeinterface']
-      invoke_str += ".run(rs, true)"
-    else
-      invoke_str += ".run(rs)"
+    virtual = @name in ['invokevirtual', 'invokeinterface']
+    invoke_str = "rs.method_lookup(#{JSON.stringify @method_spec}).run(rs, #{virtual}, [#{params.join ","}])"
 
     unless method.return_type.toString() is 'V'
       temp = b.new_temp()
@@ -233,11 +230,38 @@ compile_obj_handlers = {
   sastore: {compile: (b) -> v=b.pop(); i=b.pop();"b.check_null(#{b.pop()}).array[#{i}]=#{v}"}
   pop: {compile: (b) -> b.pop()}
   pop2: {compile: (b) -> b.pop2()}
+  # TODO: avoid duplicating non-primitive expressions so as to save on computation
   dup: {compile: (b) -> v = b.pop(); b.push(v, v)}
-
-  iadd: { compile: (b) -> b.push "wrap_int(#{b.pop()}+#{b.pop()})"; }
-  isub: { compile: (b) -> b.push "wrap_int(-#{b.pop()}+#{b.pop()})"; }
-  imul: { compile: (b) -> b.push "gLong.fromInt(#{b.pop()}).multiply(gLong.fromInt(#{b.pop()})).toInt()"; }
+  dup_x1: { compile: (b) -> v1=b.pop(); v2=b.pop(); b.push(v1,v2,v1) }
+  dup_x2: {compile: (b) -> [v1,v2,v3]=[b.pop(),b.pop(),b.pop()];b.push(v1,v3,v2,v1)}
+  dup2: {compile: (b) -> v1=b.pop(); v2=b.pop(); b.push(v2,v1,v2,v1)}
+  dup2_x1: {compile: (b) -> [v1,v2,v3]=[b.pop(),b.pop(),b.pop()];b.push(v2,v1,v3,v2,v1)}
+  dup2_x2: {compile: (b) -> [v1,v2,v3,v4]=[b.pop(),b.pop(),b.pop(),b.pop()];b.push(v2,v1,v4,v3,v2,v1)}
+  swap: {compile: (b) -> v2=b.pop(); v1=b.pop(); b.push(v2,v1)}
+  iadd: { compile: (b) -> b.push "wrap_int(#{b.pop()}+#{b.pop()})" }
+  ladd: { compile: (b) -> b.push2 "#{b.pop2()}.add(#{b.pop2()})" }
+  fadd: { compile: (b) -> b.push "wrap_float(#{b.pop()}+#{b.pop()})" }
+  dadd: { compile: (b) -> b.push2 "#{b.pop()}+#{b.pop()}" }
+  isub: { compile: (b) -> b.push "wrap_int(-#{b.pop()}+#{b.pop()})" }
+  lsub: { compile: (b) -> b.push2 "#{b.pop2()}.add(#{b.pop2()})" }
+  fsub: { compile: (b) -> b.push "wrap_float(-#{b.pop()}+#{b.pop()})" }
+  dsub: { compile: (b) -> b.push2 "-#{b.pop()}+#{b.pop()}" }
+  imul: { compile: (b) -> b.push "gLong.fromInt(#{b.pop()}).multiply(gLong.fromInt(#{b.pop()})).toInt()" }
+  lmul: { compile: (b) -> b.push2 "#{b.pop2()}.multiply(#{b.pop2()})" }
+  fmul: { compile: (b) -> b.push "wrap_float(#{b.pop()}*#{b.pop()})" }
+  dmul: { compile: (b) -> b.push2 "#{b.pop2()}*#{b.pop2()}" }
+  idiv: { compile: (b) -> v=b.pop();b.push "int_div(rs, #{b.pop()}, #{v})" }
+  ldiv: { compile: (b) -> v=b.pop2();b.push2 "long_div(rs, #{b.pop2()}, #{v})" }
+  fdiv: { compile: (b) -> v=b.pop();b.push "wrap_float(#{b.pop()}/#{v})" }
+  ddiv: { compile: (b) -> v=b.pop2();b.push2 "#{b.pop2()}/#{v}" }
+  irem: { compile: (b) -> v2=b.pop();  b.push "int_mod(rs,#{b.pop()},#{v2})" }
+  lrem: { compile: (b) -> v2=b.pop2(); b.push2 "long_mod(rs,#{b.pop2()},#{v2})" }
+  frem: { compile: (b) -> v2=b.pop();  b.push "#{rs.pop()}%#{v2}" }
+  drem: { compile: (b) -> v2=b.pop2(); b.push2 "#{rs.pop2()}%#{v2}" }
+  ineg: { compile: (b) -> b.push "((var i_val = #{b.pop()}) == util.INT_MIN ? i_val : -i_val)" }
+  lneg: { compile: (b) -> b.push2 "#{b.pop2()}.negate()" }
+  fneg: { compile: (b) -> b.push "-#{b.pop()}" }
+  dneg: { compile: (b) -> b.push2 "-#{rs.pop2()}" }
 
   ireturn: { compile: (b) -> b.add_line "return #{b.pop()}" }
   lreturn: { compile: (b) -> b.add_line "return #{b.pop2()}" }
