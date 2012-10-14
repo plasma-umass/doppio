@@ -110,7 +110,9 @@ class root.IIncOpcode extends root.Opcode
     @index = code_array.get_uint arg_size
     @const = code_array.get_int arg_size
 
-  _execute: (rs) -> rs.put_cl(@index,rs.cl(@index)+@const)
+  _execute: (rs) ->
+    v = rs.cl(@index)+@const
+    rs.put_cl @index, util.wrap_int(v)
 
 class root.LoadOpcode extends root.Opcode
   constructor: (name, params={}) ->

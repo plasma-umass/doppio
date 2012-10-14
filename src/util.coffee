@@ -18,7 +18,13 @@ root.truncate = (a, n_bits) ->
   a -= max_val if a > Math.pow(2, n_bits-1)
   a
 
-root.wrap_int = (a) -> root.truncate a, 32
+root.wrap_int = (a) -> 
+  if a > root.INT_MAX
+    root.INT_MIN + (a - root.INT_MAX) - 1
+  else if a < root.INT_MIN
+    root.INT_MAX - (root.INT_MIN - a) + 1
+  else
+    a
 
 root.cmp = (a,b) ->
   return 0  if a == b
