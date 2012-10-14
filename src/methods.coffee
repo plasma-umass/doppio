@@ -31,7 +31,7 @@ class AbstractMethodField
     @code = _.find(@attrs, (a) -> a.constructor.name == "Code")
 
 class root.Field extends AbstractMethodField
-  parse_descriptor: (@raw_descriptor) ->
+  parse_descriptor: (raw_descriptor) ->
     @type = str2type raw_descriptor
 
   reflector: (rs) ->
@@ -46,8 +46,8 @@ class root.Field extends AbstractMethodField
     }
 
 class root.Method extends AbstractMethodField
-  parse_descriptor: (@raw_descriptor) ->
-    [__,param_str,return_str] = /\(([^)]*)\)(.*)/.exec(@raw_descriptor)
+  parse_descriptor: (raw_descriptor) ->
+    [__,param_str,return_str] = /\(([^)]*)\)(.*)/.exec(raw_descriptor)
     param_carr = param_str.split ''
     @param_types = (field while (field = carr2type param_carr))
     @param_bytes = 0
