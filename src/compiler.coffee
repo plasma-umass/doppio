@@ -64,6 +64,8 @@ class BasicBlock
   new_temp: -> @block_chain.new_temp()
 
   compile_epilogue: ->
+    # copy our stack / local values into appropriately-named vars so that they
+    # can be accessed from other blocks
     for s, i in @stack when s?
       continue if s == "s#{i}"
       @add_line "s#{i} = #{s}"
@@ -85,6 +87,8 @@ class BasicBlock
         util.lookup_handler compile_class_handlers, op, @, instr_idx
       instr_idx += op.byte_count + 1
 
+    # branching instructions will print the epilogue before they branch; return
+    # instructions obviate the need for one
     unless op.offset? or (op.name.indexOf 'return') != -1
       @compile_epilogue()
 
@@ -94,11 +98,12 @@ class BasicBlock
       // #{op.name for op in @opcodes}
       #{@body}
       """
-    next_cases =
-      for idx in @next
-        next_block = @block_chain.get_block_from_instr idx
-        unless next_block.visited
-          next_block.compile @stack[..], @locals[..]
+    for idx in @next
+      next_block = @block_chain.get_block_from_instr idx
+      unless next_block.visited
+        # java bytecode verification ensures that the stack height and stack /
+        # local table types match up across blocks
+        next_block.compile @stack[..], @locals[..]
 
 cmpMap =
   eq: '='
@@ -153,17 +158,16 @@ compile_class_handlers =
         else
           "#{cmpMap[cmpCode]} 0"
     b.next.push @offset + idx
-    b.add_line "if (#{b.pop()} #{cond}) { label = #{@offset + idx}"
+    v = b.pop()
     b.compile_epilogue()
-    b.add_line "continue }"
+    b.add_line "if (#{v} #{cond}) { label = #{@offset + idx}; continue }"
   BinaryBranchOpcode: (b, idx) ->
     cmpCode = @name[7..]
     b.next.push @offset + idx
     v2 = b.pop()
     v1 = b.pop()
-    b.add_line "if (#{v1} #{cmpMap[cmpCode]} #{v2}) { label = #{@offset + idx}"
     b.compile_epilogue()
-    b.add_line "continue }"
+    b.add_line "if (#{v1} #{cmpMap[cmpCode]} #{v2}) { label = #{@offset + idx}; continue }"
   InvokeOpcode: (b, idx) ->
     method = new Method # kludge
     method.access_flags = { static: @name == 'invokestatic' }
@@ -329,8 +333,14 @@ root.compile = (class_file) ->
         #{name}: function(#{param_names.join ", "}) {
           var label = 0;
           #{if temps.length > 0 then "var #{temps.join ", "};" else ""}
-          #{"var " + (("l#{i}" for i in [0...m.code.max_locals]).join ", ") + ";" if m.code.max_locals > 0}
-          #{"var " + (("s#{i}" for i in [0...m.code.max_stack]).join ", ") + ";" if m.code.max_stack > 0}
+          #{if m.code.max_locals > 0
+              "var " + (("l#{i}" for i in [0...m.code.max_locals]).join ", ") + ";"
+            else
+              ""}
+          #{if m.code.max_stack > 0
+              "var " + (("s#{i}" for i in [0...m.code.max_stack]).join ", ") + ";"
+            else
+              ""}
           while (true) {
             switch (label) {
 #{(b.compiled_str for b in block_chain.blocks).join ""}
