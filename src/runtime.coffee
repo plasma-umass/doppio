@@ -41,7 +41,6 @@ class root.RuntimeState
     @classes = {}
     @high_oref = 1
     @string_pool = {}
-    @string_redirector = {}
     @lock_refs = {}  # map from monitor -> thread object
     @lock_counts = {}  # map from monitor -> count
     @waiting_threads = {}  # map from monitor -> list of waiting thread objects
@@ -124,17 +123,6 @@ class root.RuntimeState
   # JS string
   jvm_carr2js_str: (jvm_arr, offset, count) ->
     util.bytes2str(jvm_arr.array).substr(offset ? 0, count)
-  # Convert references to strings in the constant pool to an interned String
-  string_redirect: (oref,cls) ->
-    key = "#{cls}::#{oref}"
-    cdata = @class_lookup(c2t(cls))
-    unless @string_redirector[key]
-      cstr = cdata.constant_pool.get(oref)
-      throw new Error "can't redirect const string at #{oref}" unless cstr and cstr.type is 'Asciz'
-      @string_redirector[key] = @init_string(cstr.value,true)
-      trace "heapifying #{oref} -> #{@string_redirector[key].ref} : '#{cstr.value}'"
-    vtrace "redirecting #{oref} -> #{@string_redirector[key].ref}"
-    return @string_redirector[key]
 
   curr_frame: -> @meta_stack().curr_frame()
 

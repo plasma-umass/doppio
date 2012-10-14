@@ -53,16 +53,16 @@ class root.LoadConstantOpcode extends root.Opcode
     @cls = constant_pool.cls
     @constant_ref = code_array.get_uint @byte_count
     @constant = constant_pool.get @constant_ref
+    @str_constant = constant_pool.get @constant.value if @constant.type in ['String', 'class']
 
   _execute: (rs) ->
-    val = @constant.value
-    if @constant.type is 'String'
-      rs.push rs.string_redirect(val, @cls)
-    else if @constant.type is 'class'
-      jvm_str = rs.string_redirect(val,@cls)
-      rs.push rs.class_lookup(c2t(rs.jvm2js_str(jvm_str)), true)
-    else
-      rs.push val
+    switch @constant.type
+      when 'String'
+        rs.push rs.init_string(@str_constant.value, true)
+      when 'class'
+        rs.push rs.class_lookup(c2t(@str_constant.value), true)
+      else
+        rs.push @constant.value
 
 class root.BranchOpcode extends root.Opcode
   constructor: (name, params={}) ->
