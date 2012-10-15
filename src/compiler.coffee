@@ -201,7 +201,8 @@ compile_class_handlers =
     b.stack.length -= method.param_bytes
 
     virtual = @name in ['invokevirtual', 'invokeinterface']
-    b.add_line "rs.method_lookup(#{JSON.stringify @method_spec}).run(rs, #{virtual}, [#{params.join ","}])"
+    b.add_line "rs.push(#{params.join ','})"
+    b.add_line "rs.method_lookup(#{JSON.stringify @method_spec}).run(rs, #{virtual})"
 
     unless method.return_type.toString() is 'V'
       temp = b.new_temp()
