@@ -108,7 +108,7 @@ class BasicBlock
         next_block.compile @stack[..], @locals[..]
 
 cmpMap =
-  eq: '='
+  eq: '=='
   ne: '!=='
   lt: '<'
   ge: '>='
