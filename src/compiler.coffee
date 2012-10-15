@@ -59,8 +59,17 @@ class BasicBlock
   push2: (values...) -> @stack.push v, null for v in values
   pop: -> @stack.pop()
   pop2: -> rv = @stack.pop(); @stack.pop(); rv
-  put_cl: (idx, v) -> @locals[idx] = v
-  put_cl2: (idx, v) -> @locals[idx] = v; @locals[idx+1] = null
+  put_cl: (idx, v) ->
+    if v?.match? /l\d+/
+      @add_line "l#{idx} = #{v}"
+      v = "l#{idx}"
+    @locals[idx] = v
+  put_cl2: (idx, v) ->
+    if v?.match? /l\d+/
+      @add_line "l#{idx} = #{v}"
+      v = "l#{idx}"
+    @locals[idx] = v
+    @locals[idx+1] = null
   cl: (idx) -> @locals[idx]
   add_line: (line) -> @body += line + ";\n"
   new_temp: -> @block_chain.new_temp()
