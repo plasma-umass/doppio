@@ -192,18 +192,17 @@ compile_class_handlers =
     b.stack.length -= method.param_bytes
 
     virtual = @name in ['invokevirtual', 'invokeinterface']
-    invoke_str = "rs.method_lookup(#{JSON.stringify @method_spec}).run(rs, #{virtual}, [#{params.join ","}])"
+    b.add_line "rs.method_lookup(#{JSON.stringify @method_spec}).run(rs, #{virtual}, [#{params.join ","}])"
 
     unless method.return_type.toString() is 'V'
       temp = b.new_temp()
-      invoke_str = "#{temp} = #{invoke_str}"
 
       if method.return_type.toString() in ['D', 'J']
+        b.add_line "#{temp} = rs.pop2()"
         b.push2 temp
       else
+        b.add_line "#{temp} = rs.pop()"
         b.push temp
-
-    b.add_line invoke_str
 
 compile_obj_handlers = {
   aconst_null: { compile: (b) -> b.push "null"; }
@@ -221,11 +220,6 @@ compile_obj_handlers = {
   fconst_2: { compile: (b) -> b.push "2"; }
   dconst_0: { compile: (b) -> b.push2 "0"; }
   dconst_1: { compile: (b) -> b.push2 "1"; }
-  istore: { compile: (b) -> b.put_cl(@var_num, b.pop()) }
-  lstore: { compile: (b) -> b.put_cl2(@var_num, b.pop2()) }
-  fstore: { compile: (b) -> b.put_cl(@var_num, b.pop()) }
-  dstore: { compile: (b) -> b.put_cl2(@var_num, b.pop2()) }
-  astore: { compile: (b) -> b.put_cl(@var_num, b.pop()) }
   iastore: {compile: (b) -> v=b.pop(); i=b.pop();"b.check_null(#{b.pop()}).array[#{i}]=#{v}"}
   lastore: {compile: (b) -> v=b.pop2();i=b.pop();"b.check_null(#{b.pop()}).array[#{i}]=#{v}"}
   fastore: {compile: (b) -> v=b.pop(); i=b.pop();"b.check_null(#{b.pop()}).array[#{i}]=#{v}"}
@@ -269,6 +263,8 @@ compile_obj_handlers = {
   fneg: { compile: (b) -> b.push "-#{b.pop()}" }
   dneg: { compile: (b) -> b.push2 "-#{rs.pop2()}" }
 
+  iinc: { compile: (b) -> b.put_cl @index, "wrap_int(#{b.cl(@index)}+#{@const})" }
+
   ireturn: { compile: (b) -> b.add_line "return #{b.pop()}" }
   lreturn: { compile: (b) -> b.add_line "return #{b.pop2()}" }
   freturn: { compile: (b) -> b.add_line "return #{b.pop()}" }
@@ -291,6 +287,12 @@ compile_obj_handlers = {
     temp = b.new_temp()
     b.add_line "#{temp} = rs.init_object(#{JSON.stringify @class})"
     b.push temp }
+
+  goto: { compile: (b, idx) -> 
+    b.next = [@offset + idx]
+    b.compile_epilogue()
+    b.add_line "label = #{@offset + idx}; continue"
+  }
 
   goto_w: { compile: (b, idx) ->
     b.next = [@offset + idx]
