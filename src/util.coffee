@@ -18,7 +18,50 @@ root.truncate = (a, n_bits) ->
   a -= max_val if a > Math.pow(2, n_bits-1)
   a
 
-root.wrap_int = (a) -> root.truncate a, 32
+root.wrap_int = (a) -> 
+  if a > root.INT_MAX
+    root.INT_MIN + (a - root.INT_MAX) - 1
+  else if a < root.INT_MIN
+    root.INT_MAX - (root.INT_MIN - a) + 1
+  else
+    a
+
+towards_zero = (a) ->
+  Math[if a > 0 then 'floor' else 'ceil'](a)
+
+root.int_mod = (rs, a, b) ->
+  root.java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b == 0
+  a % b
+
+root.int_div = (rs, a, b) ->
+  root.java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b == 0
+  towards_zero a / b
+  # TODO spec: "if the dividend is the negative integer of largest possible magnitude
+  # for the int type, and the divisor is -1, then overflow occurs, and the
+  # result is equal to the dividend."
+
+root.long_mod = (rs, a, b) ->
+  root.java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b.isZero()
+  a.modulo(b)
+
+root.long_div = (rs, a, b) ->
+  root.java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b.isZero()
+  a.div(b)
+
+root.float2int = (a) ->
+  if a == NaN then 0
+  else if a > root.INT_MAX then root.INT_MAX  # these two cases handle d2i issues
+  else if a < root.INT_MIN then root.INT_MIN
+  else unless a == Infinity or a == -Infinity then towards_zero a
+  else if a > 0 then root.INT_MAX
+  else root.INT_MIN
+
+root.wrap_float = (a) ->
+  return Infinity if a > 3.40282346638528860e+38
+  return 0 if 0 < a < 1.40129846432481707e-45
+  return -Infinity if a < -3.40282346638528860e+38
+  return 0 if 0 > a > -1.40129846432481707e-45
+  a
 
 root.cmp = (a,b) ->
   return 0  if a == b

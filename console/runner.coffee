@@ -82,7 +82,7 @@ if require.main == module
     methods.Method::run_bytecode = profiled_fn(methods.Method::run_bytecode)
     methods.Method::run_manually = profiled_fn(methods.Method::run_manually)
 
-  jvm.run_class rs, cname, java_cmd_args
+  jvm.run_class rs, cname, java_cmd_args, null, argv.compile
 
   if argv.profile
     self_timings = {}

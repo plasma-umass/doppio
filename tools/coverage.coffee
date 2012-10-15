@@ -8,6 +8,7 @@ util = require '../src/util'
 ClassFile = require '../src/ClassFile'
 runner = require '../console/runner'
 opcodes = require '../src/opcodes'
+runtime = require '../src/runtime'
 
 {argv} = optimist
 

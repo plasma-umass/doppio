@@ -53,16 +53,16 @@ class root.LoadConstantOpcode extends root.Opcode
     @cls = constant_pool.cls
     @constant_ref = code_array.get_uint @byte_count
     @constant = constant_pool.get @constant_ref
+    @str_constant = constant_pool.get @constant.value if @constant.type in ['String', 'class']
 
   _execute: (rs) ->
-    val = @constant.value
-    if @constant.type is 'String'
-      rs.push rs.string_redirect(val, @cls)
-    else if @constant.type is 'class'
-      jvm_str = rs.string_redirect(val,@cls)
-      rs.push rs.class_lookup(c2t(rs.jvm2js_str(jvm_str)), true)
-    else
-      rs.push val
+    switch @constant.type
+      when 'String'
+        rs.push rs.init_string(@str_constant.value, true)
+      when 'class'
+        rs.push rs.class_lookup(c2t(@str_constant.value), true)
+      else
+        rs.push @constant.value
 
 class root.BranchOpcode extends root.Opcode
   constructor: (name, params={}) ->
@@ -110,7 +110,9 @@ class root.IIncOpcode extends root.Opcode
     @index = code_array.get_uint arg_size
     @const = code_array.get_int arg_size
 
-  _execute: (rs) -> rs.put_cl(@index,rs.cl(@index)+@const)
+  _execute: (rs) ->
+    v = rs.cl(@index)+@const
+    rs.put_cl @index, util.wrap_int(v)
 
 class root.LoadOpcode extends root.Opcode
   constructor: (name, params={}) ->
@@ -238,43 +240,6 @@ class root.ArrayLoadOpcode extends root.Opcode
     rs.push array[idx]
     rs.push null if @name.match /[ld]aload/
 
-towards_zero = (a) ->
-  Math[if a > 0 then 'floor' else 'ceil'](a)
-
-int_mod = (rs, a, b) ->
-  java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b == 0
-  a % b
-
-int_div = (rs, a, b) ->
-  java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b == 0
-  towards_zero a / b
-  # TODO spec: "if the dividend is the negative integer of largest possible magnitude
-  # for the int type, and the divisor is -1, then overflow occurs, and the
-  # result is equal to the dividend."
-
-long_mod = (rs, a, b) ->
-  java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b.isZero()
-  a.modulo(b)
-
-long_div = (rs, a, b) ->
-  java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b.isZero()
-  a.div(b)
-
-float2int = (a) ->
-  if a == NaN then 0
-  else if a > util.INT_MAX then util.INT_MAX  # these two cases handle d2i issues
-  else if a < util.INT_MIN then util.INT_MIN
-  else unless a == Infinity or a == -Infinity then towards_zero a
-  else if a > 0 then util.INT_MAX
-  else util.INT_MIN
-
-wrap_float = (a) ->
-  return Infinity if a > 3.40282346638528860e+38
-  return 0 if 0 < a < 1.40129846432481707e-45
-  return -Infinity if a < -3.40282346638528860e+38
-  return 0 if 0 > a > -1.40129846432481707e-45
-  a
-
 jsr = (rs) ->
   rs.push(rs.curr_pc()+@byte_count+1); throw new BranchException rs.curr_pc() + @offset
 
@@ -379,22 +344,22 @@ root.opcodes = {
   95: new root.Opcode 'swap', {execute: (rs) -> v2=rs.pop(); v1=rs.pop(); rs.push(v2,v1)}
   96: new root.Opcode 'iadd', { execute: (rs) -> rs.push util.wrap_int(rs.pop()+rs.pop()) }
   97: new root.Opcode 'ladd', { execute: (rs) -> rs.push(rs.pop2().add(rs.pop2()), null) }
-  98: new root.Opcode 'fadd', { execute: (rs) -> rs.push wrap_float(rs.pop()+rs.pop()) }
+  98: new root.Opcode 'fadd', { execute: (rs) -> rs.push util.wrap_float(rs.pop()+rs.pop()) }
   99: new root.Opcode 'dadd', { execute: (rs) -> rs.push(rs.pop2()+rs.pop2(), null) }
   100: new root.Opcode 'isub', { execute: (rs) -> rs.push util.wrap_int(-rs.pop()+rs.pop()) }
   101: new root.Opcode 'lsub', { execute: (rs) -> rs.push(rs.pop2().negate().add(rs.pop2()), null) }
-  102: new root.Opcode 'fsub', { execute: (rs) -> rs.push wrap_float(-rs.pop()+rs.pop()) }
+  102: new root.Opcode 'fsub', { execute: (rs) -> rs.push util.wrap_float(-rs.pop()+rs.pop()) }
   103: new root.Opcode 'dsub', { execute: (rs) -> rs.push(-rs.pop2()+rs.pop2(), null) }
   104: new root.Opcode 'imul', { execute: (rs) -> rs.push gLong.fromInt(rs.pop()).multiply(gLong.fromInt rs.pop()).toInt() }
   105: new root.Opcode 'lmul', { execute: (rs) -> rs.push(rs.pop2().multiply(rs.pop2()), null) }
-  106: new root.Opcode 'fmul', { execute: (rs) -> rs.push wrap_float(rs.pop()*rs.pop()) }
+  106: new root.Opcode 'fmul', { execute: (rs) -> rs.push util.wrap_float(rs.pop()*rs.pop()) }
   107: new root.Opcode 'dmul', { execute: (rs) -> rs.push(rs.pop2()*rs.pop2(), null) }
-  108: new root.Opcode 'idiv', { execute: (rs) -> v=rs.pop();rs.push(int_div rs, rs.pop(), v) }
-  109: new root.Opcode 'ldiv', { execute: (rs) -> v=rs.pop2();rs.push(long_div(rs, rs.pop2(), v), null) }
-  110: new root.Opcode 'fdiv', { execute: (rs) -> v=rs.pop();rs.push wrap_float(rs.pop()/v) }
+  108: new root.Opcode 'idiv', { execute: (rs) -> v=rs.pop();rs.push(util.int_div rs, rs.pop(), v) }
+  109: new root.Opcode 'ldiv', { execute: (rs) -> v=rs.pop2();rs.push(util.long_div(rs, rs.pop2(), v), null) }
+  110: new root.Opcode 'fdiv', { execute: (rs) -> v=rs.pop();rs.push util.wrap_float(rs.pop()/v) }
   111: new root.Opcode 'ddiv', { execute: (rs) -> v=rs.pop2();rs.push(rs.pop2()/v, null) }
-  112: new root.Opcode 'irem', { execute: (rs) -> v2=rs.pop();  rs.push int_mod(rs,rs.pop(),v2) }
-  113: new root.Opcode 'lrem', { execute: (rs) -> v2=rs.pop2(); rs.push long_mod(rs,rs.pop2(),v2), null }
+  112: new root.Opcode 'irem', { execute: (rs) -> v2=rs.pop();  rs.push util.int_mod(rs,rs.pop(),v2) }
+  113: new root.Opcode 'lrem', { execute: (rs) -> v2=rs.pop2(); rs.push util.long_mod(rs,rs.pop2(),v2), null }
   114: new root.Opcode 'frem', { execute: (rs) -> v2=rs.pop();  rs.push rs.pop() %v2 }
   115: new root.Opcode 'drem', { execute: (rs) -> v2=rs.pop2(); rs.push rs.pop2()%v2, null }
   116: new root.Opcode 'ineg', { execute: (rs) ->
@@ -422,10 +387,10 @@ root.opcodes = {
   136: new root.Opcode 'l2i', { execute: (rs) -> rs.push rs.pop2().toInt() }
   137: new root.Opcode 'l2f', { execute: (rs) -> rs.push rs.pop2().toNumber() }
   138: new root.Opcode 'l2d', { execute: (rs) -> rs.push rs.pop2().toNumber(), null }
-  139: new root.Opcode 'f2i', { execute: (rs) -> rs.push float2int rs.pop() }
+  139: new root.Opcode 'f2i', { execute: (rs) -> rs.push util.float2int rs.pop() }
   140: new root.Opcode 'f2l', { execute: (rs) -> rs.push gLong.fromNumber(rs.pop()), null }
   141: new root.Opcode 'f2d', { execute: (rs) -> rs.push null }
-  142: new root.Opcode 'd2i', { execute: (rs) -> rs.push float2int rs.pop2() }
+  142: new root.Opcode 'd2i', { execute: (rs) -> rs.push util.float2int rs.pop2() }
   143: new root.Opcode 'd2l', { execute: (rs) ->
     d_val = rs.pop2()
     if d_val is Number.POSITIVE_INFINITY
@@ -434,7 +399,7 @@ root.opcodes = {
       rs.push gLong.MIN_VALUE, null
     else
       rs.push gLong.fromNumber(d_val), null }
-  144: new root.Opcode 'd2f', { execute: (rs) -> rs.push wrap_float rs.pop2() }
+  144: new root.Opcode 'd2f', { execute: (rs) -> rs.push util.wrap_float rs.pop2() }
   145: new root.Opcode 'i2b', { execute: (rs) -> rs.push util.truncate rs.pop(), 8 }
   146: new root.Opcode 'i2c', { execute: (rs) -> rs.push rs.pop()&0xFFFF }  # 16-bit unsigned integer
   147: new root.Opcode 'i2s', { execute: (rs) -> rs.push util.truncate rs.pop(), 16 }

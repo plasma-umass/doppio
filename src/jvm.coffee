@@ -39,7 +39,18 @@ run = (rs, fn, done_cb) ->
       return false
 
 # main function that gets called from the frontend
-root.run_class = (rs, class_name, cmdline_args, done_cb) ->
+root.run_class = (rs, class_name, cmdline_args, done_cb, compile=false) ->
   main_spec = class: class_name, sig: 'main([Ljava/lang/String;)V'
   if run rs, (-> rs.initialize(class_name,cmdline_args))
-    run rs, (-> rs.method_lookup(main_spec).run(rs)), done_cb
+    if compile
+      # hacky way to test compiled code
+      compiler = require './compiler'
+      {c2t} = require './types'
+      console.log "compiling #{class_name}"
+      eval compiler.compile(rs.class_lookup(c2t(class_name)))
+      console.log "running #{class_name}::main"
+      gLong = require '../third_party/gLong.js'
+      run rs, (-> eval "#{class_name.replace(/\//g,'_')}.main(rs,rs.pop())")
+    else
+      # normal case
+      run rs, (-> rs.method_lookup(main_spec).run(rs)), done_cb
