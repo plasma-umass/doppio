@@ -247,11 +247,11 @@ compile_obj_handlers = {
   dup2_x1: {compile: (b) -> [v1,v2,v3]=[b.pop(),b.pop(),b.pop()];b.push(v2,v1,v3,v2,v1)}
   dup2_x2: {compile: (b) -> [v1,v2,v3,v4]=[b.pop(),b.pop(),b.pop(),b.pop()];b.push(v2,v1,v4,v3,v2,v1)}
   swap: {compile: (b) -> v2=b.pop(); v1=b.pop(); b.push(v2,v1)}
-  iadd: { compile: (b) -> b.push "wrap_int(#{b.pop()}+#{b.pop()})" }
+  iadd: { compile: (b) -> b.push "util.wrap_int(#{b.pop()}+#{b.pop()})" }
   ladd: { compile: (b) -> b.push2 "#{b.pop2()}.add(#{b.pop2()})" }
   fadd: { compile: (b) -> b.push "wrap_float(#{b.pop()}+#{b.pop()})" }
   dadd: { compile: (b) -> b.push2 "#{b.pop()}+#{b.pop()}" }
-  isub: { compile: (b) -> b.push "wrap_int(-#{b.pop()}+#{b.pop()})" }
+  isub: { compile: (b) -> b.push "util.wrap_int(-#{b.pop()}+#{b.pop()})" }
   lsub: { compile: (b) -> b.push2 "#{b.pop2()}.add(#{b.pop2()})" }
   fsub: { compile: (b) -> b.push "wrap_float(-#{b.pop()}+#{b.pop()})" }
   dsub: { compile: (b) -> b.push2 "-#{b.pop()}+#{b.pop()}" }
@@ -272,7 +272,7 @@ compile_obj_handlers = {
   fneg: { compile: (b) -> b.push "-#{b.pop()}" }
   dneg: { compile: (b) -> b.push2 "-#{rs.pop2()}" }
 
-  iinc: { compile: (b) -> b.put_cl @index, "wrap_int(#{b.cl(@index)}+#{@const})" }
+  iinc: { compile: (b) -> b.put_cl @index, "util.wrap_int(#{b.cl(@index)}+#{@const})" }
 
   ireturn: { compile: (b) -> b.add_line "return #{b.pop()}" }
   lreturn: { compile: (b) -> b.add_line "return #{b.pop2()}" }
