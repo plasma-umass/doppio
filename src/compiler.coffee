@@ -271,7 +271,7 @@ compile_obj_handlers = {
   ineg: { compile: (b) -> b.push "((var i_val = #{b.pop()}) == util.INT_MIN ? i_val : -i_val)" }
   lneg: { compile: (b) -> b.push2 "#{b.pop2()}.negate()" }
   fneg: { compile: (b) -> b.push "-#{b.pop()}" }
-  dneg: { compile: (b) -> b.push2 "-#{rs.pop2()}" }
+  dneg: { compile: (b) -> b.push2 "-#{b.pop2()}" }
 
   iinc: { compile: (b) -> b.put_cl @index, "util.wrap_int(#{b.cl(@index)}+#{@const})" }
 
