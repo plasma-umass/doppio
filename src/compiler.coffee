@@ -302,7 +302,7 @@ compile_obj_handlers = {
 }
 
 root.compile = (class_file) ->
-  class_name = class_file.this_class.toExternalString()
+  class_name = class_file.this_class.toExternalString().replace /\./g, '_'
   methods =
     for sig, m of class_file.methods
       unless m.access_flags.native or m.access_flags.abstract
