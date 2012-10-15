@@ -2,6 +2,8 @@ _ = require '../third_party/_.js'
 util = require './util'
 {Method} = require './methods'
 
+root = exports ? this.compiler = {}
+
 class BlockChain
 
   constructor: (method) ->
@@ -356,10 +358,11 @@ root.compile = (class_file) ->
   """
 
 # TODO: move to a separate file
-fs = require 'fs'
-ClassFile = require '../src/ClassFile'
-fname = if process.argv.length > 2 then process.argv[2] else '/dev/stdin'
-bytes_array = util.bytestr_to_array fs.readFileSync(fname, 'binary')
-class_data = new ClassFile bytes_array
+if require.main == module
+  fs = require 'fs'
+  ClassFile = require '../src/ClassFile'
+  fname = if process.argv.length > 2 then process.argv[2] else '/dev/stdin'
+  bytes_array = util.bytestr_to_array fs.readFileSync(fname, 'binary')
+  class_data = new ClassFile bytes_array
 
-console.log root.compile class_data
+  console.log root.compile class_data
