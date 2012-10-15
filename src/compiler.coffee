@@ -270,12 +270,27 @@ compile_obj_handlers = {
   lrem: { compile: (b) -> v2=b.pop2(); b.push2 "util.long_mod(rs,#{b.pop2()},#{v2})" }
   frem: { compile: (b) -> v2=b.pop();  b.push "#{b.pop()}%#{v2}" }
   drem: { compile: (b) -> v2=b.pop2(); b.push2 "#{b.pop2()}%#{v2}" }
-  ineg: { compile: (b) -> b.push "((var i_val = #{b.pop()}) == util.INT_MIN ? i_val : -i_val)" }
-  lneg: { compile: (b) -> b.push2 "#{b.pop2()}.negate()" }
+  ineg: { compile: (b) -> b.push "-#{b.pop()}" }  # doesn't handle int_min edge case
+  lneg: { compile: (b) -> b.push2 "(#{b.pop2()}).negate()" }
   fneg: { compile: (b) -> b.push "-#{b.pop()}" }
   dneg: { compile: (b) -> b.push2 "-#{b.pop2()}" }
 
   iinc: { compile: (b) -> b.put_cl @index, "util.wrap_int(#{b.cl(@index)}+#{@const})" }
+  i2l: { compile: (b) -> b.push2 "gLong.fromInt(#{b.pop()})" }
+  i2f: { compile: (b) -> }
+  i2d: { compile: (b) -> b.push null }
+  l2i: { compile: (b) -> b.push "(#{b.pop2()}).toInt()" }
+  l2f: { compile: (b) -> b.push "(#{b.pop2()}).toNumber()" }
+  l2d: { compile: (b) -> b.push2 "(#{b.pop2()}).toNumber()" }
+  f2i: { compile: (b) -> b.push "util.float2int(#{b.pop()})" }
+  f2l: { compile: (b) -> b.push2 "gLong.fromNumber(#{b.pop()})" }
+  f2d: { compile: (b) -> b.push null }
+  d2i: { compile: (b) -> b.push "util.float2int(#{b.pop2()})" }
+  d2l: { compile: (b) -> b.push2 "gLong.fromNumber(#{b.pop2()})" }  # doesn't handle +/- inf edge cases
+  d2f: { compile: (b) -> b.push "util.wrap_float(#{b.pop2()})" }
+  i2b: { compile: (b) -> b.push "util.truncate(#{b.pop()}, 8)" }
+  i2c: { compile: (b) -> b.push "#{b.pop()}&0xFFFF" }
+  i2s: { compile: (b) -> b.push "util.truncate(#{b.pop()}, 16)" }
 
   ireturn: { compile: (b) -> b.add_line "return #{b.pop()}" }
   lreturn: { compile: (b) -> b.add_line "return #{b.pop2()}" }

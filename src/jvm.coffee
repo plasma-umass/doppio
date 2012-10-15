@@ -49,6 +49,7 @@ root.run_class = (rs, class_name, cmdline_args, done_cb, compile=false) ->
       console.log "compiling #{class_name}"
       eval compiler.compile(rs.class_lookup(c2t(class_name)))
       console.log "running #{class_name}::main"
+      gLong = require '../third_party/gLong.js'
       run rs, (-> eval "#{class_name.replace(/\//g,'_')}.main(rs,rs.pop())")
     else
       # normal case
