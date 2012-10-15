@@ -58,7 +58,7 @@ class BasicBlock
   push: (values...) -> @stack.push.apply @stack, values
   push2: (values...) -> @stack.push v, null for v in values
   pop: -> @stack.pop()
-  pop2: -> rv = @stack.pop(); @stack.pop(); rv
+  pop2: -> @stack.pop(); @stack.pop()
   put_cl: (idx, v) ->
     if v?.match? /l\d+/
       @add_line "l#{idx} = #{v}"
@@ -144,6 +144,8 @@ compile_class_handlers =
       # this may not be side-effect independent if we can change classloaders at
       # runtime, but for now we can assume it is
       b.push "rs.class_lookup(c2t('#{@str_constant.value}')), true)"
+    else if @name is 'ldc2_w'
+      b.push2 val
     else
       b.push val
   ArrayLoadOpcode: (b) ->
