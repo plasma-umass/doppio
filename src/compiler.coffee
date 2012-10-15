@@ -250,24 +250,24 @@ compile_obj_handlers = {
   swap: {compile: (b) -> v2=b.pop(); v1=b.pop(); b.push(v2,v1)}
   iadd: { compile: (b) -> b.push "util.wrap_int(#{b.pop()}+#{b.pop()})" }
   ladd: { compile: (b) -> b.push2 "#{b.pop2()}.add(#{b.pop2()})" }
-  fadd: { compile: (b) -> b.push "wrap_float(#{b.pop()}+#{b.pop()})" }
+  fadd: { compile: (b) -> b.push "util.wrap_float(#{b.pop()}+#{b.pop()})" }
   dadd: { compile: (b) -> b.push2 "#{b.pop()}+#{b.pop()}" }
   isub: { compile: (b) -> b.push "util.wrap_int(-#{b.pop()}+#{b.pop()})" }
   lsub: { compile: (b) -> b.push2 "#{b.pop2()}.add(#{b.pop2()})" }
-  fsub: { compile: (b) -> b.push "wrap_float(-#{b.pop()}+#{b.pop()})" }
+  fsub: { compile: (b) -> b.push "util.wrap_float(-#{b.pop()}+#{b.pop()})" }
   dsub: { compile: (b) -> b.push2 "-#{b.pop()}+#{b.pop()}" }
   imul: { compile: (b) -> b.push "gLong.fromInt(#{b.pop()}).multiply(gLong.fromInt(#{b.pop()})).toInt()" }
   lmul: { compile: (b) -> b.push2 "#{b.pop2()}.multiply(#{b.pop2()})" }
-  fmul: { compile: (b) -> b.push "wrap_float(#{b.pop()}*#{b.pop()})" }
+  fmul: { compile: (b) -> b.push "util.wrap_float(#{b.pop()}*#{b.pop()})" }
   dmul: { compile: (b) -> b.push2 "#{b.pop2()}*#{b.pop2()}" }
-  idiv: { compile: (b) -> v=b.pop();b.push "int_div(rs, #{b.pop()}, #{v})" }
-  ldiv: { compile: (b) -> v=b.pop2();b.push2 "long_div(rs, #{b.pop2()}, #{v})" }
-  fdiv: { compile: (b) -> v=b.pop();b.push "wrap_float(#{b.pop()}/#{v})" }
+  idiv: { compile: (b) -> v=b.pop();b.push "util.int_div(rs, #{b.pop()}, #{v})" }
+  ldiv: { compile: (b) -> v=b.pop2();b.push2 "util.long_div(rs, #{b.pop2()}, #{v})" }
+  fdiv: { compile: (b) -> v=b.pop();b.push "util.wrap_float(#{b.pop()}/#{v})" }
   ddiv: { compile: (b) -> v=b.pop2();b.push2 "#{b.pop2()}/#{v}" }
-  irem: { compile: (b) -> v2=b.pop();  b.push "int_mod(rs,#{b.pop()},#{v2})" }
-  lrem: { compile: (b) -> v2=b.pop2(); b.push2 "long_mod(rs,#{b.pop2()},#{v2})" }
-  frem: { compile: (b) -> v2=b.pop();  b.push "#{rs.pop()}%#{v2}" }
-  drem: { compile: (b) -> v2=b.pop2(); b.push2 "#{rs.pop2()}%#{v2}" }
+  irem: { compile: (b) -> v2=b.pop();  b.push "util.int_mod(rs,#{b.pop()},#{v2})" }
+  lrem: { compile: (b) -> v2=b.pop2(); b.push2 "util.long_mod(rs,#{b.pop2()},#{v2})" }
+  frem: { compile: (b) -> v2=b.pop();  b.push "#{b.pop()}%#{v2}" }
+  drem: { compile: (b) -> v2=b.pop2(); b.push2 "#{b.pop2()}%#{v2}" }
   ineg: { compile: (b) -> b.push "((var i_val = #{b.pop()}) == util.INT_MIN ? i_val : -i_val)" }
   lneg: { compile: (b) -> b.push2 "#{b.pop2()}.negate()" }
   fneg: { compile: (b) -> b.push "-#{b.pop()}" }
