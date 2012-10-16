@@ -121,7 +121,7 @@ build/browser/style.css: third_party/bootstrap/css/bootstrap.min.css browser/sty
 	cat $^ > $@
 
 browser/mini-rt.tar: tools/preload
-	tools/make-rt.sh
+	COPYFILE_DISABLE=true && tar -c -T tools/preload -f browser/mini-rt.tar
 
 .SECONDARY: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES)
 .INTERMEDIATE: browser/_about.html
