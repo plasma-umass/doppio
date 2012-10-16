@@ -2,7 +2,7 @@
 # user@host$ . startup.sh
 # This runs the commands in your current terminal session.
 
-ruby webrick.rb --dev &
+tools/webrick.rb --dev &
 coffee -wc */*.coffee &
 make browser/mini-rt.tar
 sleep 1  # make sure we have time to compile everything

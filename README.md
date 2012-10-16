@@ -58,15 +58,15 @@ Finally, to ensure that everything is set up properly, run:
 Usage
 -----
 
-To run Doppio on localhost, run `. startup.sh`, or start the browser frontend manually:
+To run Doppio on localhost, run `. tools/startup.sh`, or start the browser frontend manually:
 
     cpp -P -traditional-cpp browser/index.html index.html
-    ruby webrick.rb --dev
+    tools/webrick.rb --dev
 
 To get the optimized release version:
 
     make release
-    ruby webrick.rb --release
+    tools/webrick.rb --release
 
 Then point your browser to http://localhost:8000/.
 
