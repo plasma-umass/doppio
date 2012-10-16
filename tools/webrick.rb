@@ -14,9 +14,9 @@ end
   
 if ARGV[0] == '--dev'
   puts "Starting WEBrick in dev mode"
-  start_webrick(:DocumentRoot => "#{__FILE__}/..",
+  start_webrick(:DocumentRoot => "#{File.dirname __FILE__}/..",
                 :Port         => 8000)
 else
-  start_webrick(:DocumentRoot => "#{__FILE__}/../build",
+  start_webrick(:DocumentRoot => "#{File.dirname __FILE__}/../build",
                 :Port         => 8000)
 end
