@@ -28,23 +28,61 @@ $.fn.console = () ->
 
   outBuffer = ""
   bufferSize = 1024
+  serverPort = 8000
+  serverHost = "localhost"
+  uploading = false
+  commands = ["ls"]
 
-  nopCommandHandle = (line) ->
-    return
+  errorCommandHandle = (line) ->
+    sendErrorToServer "Command handle called before it was set."
 
   sendBufferToServer = ->
-    if outBuffer.length != 0
+    if outBuffer.length != 0 and !uploading
+      uploading = true
       # Send to server.
+      $.ajax({
+        type: "POST"
+        url: "message"
+        data: outBuffer
+      }).done(->
+        uploading = false
+        # In case we prevented further uploads...
+        if outputBuffer.length > bufferSize
+          sendBufferToServer
+      )
       # Empty buffer.
       outBuffer = ""
 
     return
 
   sendErrorToServer = (text) ->
+    # Errors aren't buffered; send 'em immediately.
+    $.ajax({
+      type: "POST"
+      url: "error"
+      data: text
+    })
+    return
+
+  sendCompleteToServer = ->
+    if !uploading
+      $.ajax({
+        type: "POST"
+        url: "complete"
+      })
+    else # Need to wait for upload to complete.
+      setTimeout sendCompleteToServer 100
     return
 
 
   runNextCommand = ->
+    if commands.length > 0
+      extern.commandHandle commands.pop()
+    else
+      # We're done. The browser can be killed now.
+      # Empty buffer first.
+      sendBufferToServer
+      sendCompleteToServer
 
   extern.reset = () ->
     # NOP
@@ -60,12 +98,12 @@ $.fn.console = () ->
       outBuffer += msg
     else if $.isArray msg
       outBuffer += msg[0]
-    # jQuery console assumes input is a DOM node or something.
     else
+      # jQuery console assumes input is a DOM node or something.
       outBuffer += msg
 
     if outBuffer.length >= bufferSize
-      sendBufferToServer outBuffer
+      sendBufferToServer
 
     if !noreprompt
       extern.reprompt
@@ -75,13 +113,14 @@ $.fn.console = () ->
   extern.reprompt = () ->
     # Clear buffer.
     sendBufferToServer
-
-    # Yield JS thread for at least 100ms. On resume, call 'runNextCommand'.
-    setTimeout runNextCommand, 100
+    # Yield thread before next command.
+    setTimeout runNextCommand 10
 
   extern.promptText = (text) ->
+    # We don't support promptText, since tests aren't supposed to be
+    # interactive.
     sendErrorToServer "PromptText called during a test."
 
-  extern.commandHandle = nopCommandHandle
+  extern.commandHandle = errorCommandHandle
 
   return extern
