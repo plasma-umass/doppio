@@ -116,6 +116,29 @@ class BasicBlock
         # local table types match up across blocks
         next_block.compile @stack[..], @locals[..]
 
+class Expr
+
+  constructor: (str, subexps...) ->
+    @fragments = str.split /($\d+)/
+    for frag, i in @fragments
+      if /$\d+/.test frag
+        @fragments[i] = subexps[parseInt frag[1..], 10]
+
+  eval: (b) ->
+    temp = b.new_temp()
+    b.add_line "$0 = #{@}", temp
+    new Primitive b
+
+  toString: -> @fragments.join ''
+
+class Primitive extends Expr
+
+  constructor: (@str) ->
+
+  eval: -> @
+
+  toString: -> @str
+
 cmpMap =
   eq: '=='
   ne: '!=='
@@ -217,29 +240,30 @@ compile_class_handlers =
         b.push temp
 
 compile_obj_handlers = {
-  aconst_null: { compile: (b) -> b.push "null"; }
-  iconst_m1: { compile: (b) -> b.push "-1"; }
-  iconst_0: { compile: (b) -> b.push "0"; }
-  iconst_1: { compile: (b) -> b.push "1"; }
-  iconst_2: { compile: (b) -> b.push "2"; }
-  iconst_3: { compile: (b) -> b.push "3"; }
-  iconst_4: { compile: (b) -> b.push "4"; }
-  iconst_5: { compile: (b) -> b.push "5"; }
-  lconst_0: { compile: (b) -> b.push2 "gLong.ZERO"; }
-  lconst_1: { compile: (b) -> b.push2 "gLong.ONE"; }
-  fconst_0: { compile: (b) -> b.push "0"; }
-  fconst_1: { compile: (b) -> b.push "1"; }
-  fconst_2: { compile: (b) -> b.push "2"; }
-  dconst_0: { compile: (b) -> b.push2 "0"; }
-  dconst_1: { compile: (b) -> b.push2 "1"; }
-  iastore: {compile: (b) -> v=b.pop(); i=b.pop();"b.check_null(#{b.pop()}).array[#{i}]=#{v}"}
-  lastore: {compile: (b) -> v=b.pop2();i=b.pop();"b.check_null(#{b.pop()}).array[#{i}]=#{v}"}
-  fastore: {compile: (b) -> v=b.pop(); i=b.pop();"b.check_null(#{b.pop()}).array[#{i}]=#{v}"}
-  dastore: {compile: (b) -> v=b.pop2();i=b.pop();"b.check_null(#{b.pop()}).array[#{i}]=#{v}"}
-  aastore: {compile: (b) -> v=b.pop(); i=b.pop();"b.check_null(#{b.pop()}).array[#{i}]=#{v}"}
-  bastore: {compile: (b) -> v=b.pop(); i=b.pop();"b.check_null(#{b.pop()}).array[#{i}]=#{v}"}
-  castore: {compile: (b) -> v=b.pop(); i=b.pop();"b.check_null(#{b.pop()}).array[#{i}]=#{v}"}
-  sastore: {compile: (b) -> v=b.pop(); i=b.pop();"b.check_null(#{b.pop()}).array[#{i}]=#{v}"}
+  aconst_null: { compile: (b) -> b.push new Primitive "null"; }
+  iconst_m1: { compile: (b) -> b.push new Primitive "-1"; }
+  iconst_0: { compile: (b) -> b.push new Primitive "0"; }
+  iconst_1: { compile: (b) -> b.push new Primitive "1"; }
+  iconst_2: { compile: (b) -> b.push new Primitive "2"; }
+  iconst_3: { compile: (b) -> b.push new Primitive "3"; }
+  iconst_4: { compile: (b) -> b.push new Primitive "4"; }
+  iconst_5: { compile: (b) -> b.push new Primitive "5"; }
+  lconst_0: { compile: (b) -> b.push2 new Primitive "gLong.ZERO"; }
+  lconst_1: { compile: (b) -> b.push2 new Primitive "gLong.ONE"; }
+  fconst_0: { compile: (b) -> b.push new Primitive "0"; }
+  fconst_1: { compile: (b) -> b.push new Primitive "1"; }
+  fconst_2: { compile: (b) -> b.push new Primitive "2"; }
+  dconst_0: { compile: (b) -> b.push2 new Primitive "0"; }
+  dconst_1: { compile: (b) -> b.push2 new Primitive "1"; }
+  # the *astore commands don't work yet...
+  iastore: {compile: (b) -> b.add_line "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
+  lastore: {compile: (b) -> b.add_line "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop2()}
+  fastore: {compile: (b) -> b.add_line "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
+  dastore: {compile: (b) -> b.add_line "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop2()}
+  aastore: {compile: (b) -> b.add_line "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
+  bastore: {compile: (b) -> b.add_line "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
+  castore: {compile: (b) -> b.add_line "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
+  sastore: {compile: (b) -> b.add_line "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
   pop: {compile: (b) -> b.pop()}
   pop2: {compile: (b) -> b.pop2()}
   # TODO: avoid duplicating non-primitive expressions so as to save on computation
@@ -250,14 +274,14 @@ compile_obj_handlers = {
   dup2_x1: {compile: (b) -> [v1,v2,v3]=[b.pop(),b.pop(),b.pop()];b.push(v2,v1,v3,v2,v1)}
   dup2_x2: {compile: (b) -> [v1,v2,v3,v4]=[b.pop(),b.pop(),b.pop(),b.pop()];b.push(v2,v1,v4,v3,v2,v1)}
   swap: {compile: (b) -> v2=b.pop(); v1=b.pop(); b.push(v2,v1)}
-  iadd: { compile: (b) -> b.push "util.wrap_int(#{b.pop()}+#{b.pop()})" }
-  ladd: { compile: (b) -> b.push2 "#{b.pop2()}.add(#{b.pop2()})" }
-  fadd: { compile: (b) -> b.push "util.wrap_float(#{b.pop()}+#{b.pop()})" }
-  dadd: { compile: (b) -> b.push2 "#{b.pop()}+#{b.pop()}" }
-  isub: { compile: (b) -> b.push "util.wrap_int(-#{b.pop()}+#{b.pop()})" }
-  lsub: { compile: (b) -> b.push2 "#{b.pop2()}.add(#{b.pop2()})" }
-  fsub: { compile: (b) -> b.push "util.wrap_float(-#{b.pop()}+#{b.pop()})" }
-  dsub: { compile: (b) -> b.push2 "-#{b.pop()}+#{b.pop()}" }
+  iadd: { compile: (b) -> b.push new Expr "util.wrap_int($0+$1)",b.pop(),b.pop() }
+  ladd: { compile: (b) -> b.push2 new Expr "$0.add($1)",b.pop2(),b.pop2() }
+  fadd: { compile: (b) -> b.push new Expr "util.wrap_float($0+$1)",b.pop(),b.pop() }
+  dadd: { compile: (b) -> b.push2 new Expr "$0+$1",b.pop(),b.pop() }
+  isub: { compile: (b) -> b.push new Expr "util.wrap_int($1-$0)",b.pop(),b.pop() }
+  lsub: { compile: (b) -> b.push2 new Expr "$1.subtract($0)",b.pop2(),b.pop2() }
+  fsub: { compile: (b) -> b.push new Expr "util.wrap_float($1-$0)",b.pop(),b.pop() }
+  dsub: { compile: (b) -> b.push2 new Expr "$1-$0",b.pop2(),b.pop2() }
   imul: { compile: (b) -> b.push "gLong.fromInt(#{b.pop()}).multiply(gLong.fromInt(#{b.pop()})).toInt()" }
   lmul: { compile: (b) -> b.push2 "#{b.pop2()}.multiply(#{b.pop2()})" }
   fmul: { compile: (b) -> b.push "util.wrap_float(#{b.pop()}*#{b.pop()})" }
@@ -315,7 +339,7 @@ compile_obj_handlers = {
     b.add_line "#{temp} = rs.init_object(#{JSON.stringify @class})"
     b.push temp }
 
-  goto: { compile: (b, idx) -> 
+  goto: { compile: (b, idx) ->
     b.next = [@offset + idx]
     b.compile_epilogue()
     b.add_line "label = #{@offset + idx}; continue"
