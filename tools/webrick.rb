@@ -56,6 +56,10 @@ def start_webrick(config = {}, mountHandlers = false)
     trap(signal) {server.shutdown}
   }
 
+  # third_party's location is the same for all configurations, so manually
+  # fix it in place.
+  server.mount("/third_party", HTTPServlet::FileHandler, "#{File.dirname __FILE__}/../third_party", {:FancyIndexing=>true})
+
   if mountHandlers
     server.mount "/message", MessageHandler
     server.mount "/error", ErrorHandler
@@ -67,22 +71,25 @@ def start_webrick(config = {}, mountHandlers = false)
 end
 
 mountHandlers = false
-documentRoot = "#{File.dirname __FILE__}/.."
+doppioRoot = "#{File.dirname __FILE__}/.."
+
 if ARGV[0] == '--dev'
   puts "Starting WEBrick in dev mode"
+  documentRoot = doppioRoot
 elsif ARGV[0] == '--benchmark'
   puts "Starting WEBrick in benchmark mode"
-  if not File.readable?(ARGV[1])
-    puts "ERROR: Cannot read benchmark file " + ARGV[1]
-    exit
-  else
-    file = File.new(ARGV[1], "r")
-    contents = file.read()
-    mountHandlers = true
-    documentRoot += "/build"
-  end
+  #if not File.readable?(ARGV[1])
+  #  puts "ERROR: Cannot read benchmark file " + ARGV[1]
+  #  exit
+  #else
+  #  file = File.new(ARGV[1], "r")
+  #  contents = file.read()
+  mountHandlers = true
+  documentRoot = doppioRoot + "/build"
+  #end
 else
-  documentRoot += "/build"
+  documentRoot = doppioRoot + "/build"
 end
+
 start_webrick({:DocumentRoot => documentRoot,
                :Port         => 8000}, mountHandlers)
