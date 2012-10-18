@@ -4,7 +4,7 @@ SHELL := /bin/bash
 
 # Can be overridden on the command line. This is the name of the tar.gz file
 # produced when you run `make dist'.
-DIST_NAME = Doppio_`date +'%y-%m-%d'`.tar.gz
+DIST_NAME = $(shell echo "Doppio_`date +'%y-%m-%d'`.tar.gz")
 
 # DEPENDENCIES
 COFFEEC  := node_modules/coffee-script/bin/coffee
@@ -68,6 +68,17 @@ ACE_SRCS = third_party/ace/src-min/ace.js \
 # TARGETS
 ################################################################################
 
+# Builds a release version of Doppio without the documentation.
+release: dependencies $(RLS_BUILD_DIR)/browser $(RLS_BUILD_HTML) \
+	$(RLS_BUILD_DIR)/compressed.js browser/mini-rt.tar $(RLS_BUILD_DIR)/ace.js \
+	$(RLS_BUILD_DIR)/browser/style.css $(DEMO_CLASSES)
+	git submodule update --init --recursive
+	rsync -R $(DEMO_SRCS) $(DEMO_CLASSES) test/special/foo test/special/bar $(RLS_BUILD_DIR)/
+	rsync -a test/special $(RLS_BUILD_DIR)/test
+	rsync browser/mini-rt.tar $(RLS_BUILD_DIR)/browser/mini-rt.tar
+	rsync browser/*.svg $(RLS_BUILD_DIR)/browser/
+	rsync browser/*.png $(RLS_BUILD_DIR)/browser/
+
 # Installs or checks for any required dependencies.
 dependencies: $(COFFEEC) $(UGLIFYJS) $(OPTIMIST) $(JAZZLIB) $(JRE) $(DOCCO)
 $(COFFEEC):
@@ -111,22 +122,11 @@ dist: $(DIST_NAME)
 $(DIST_NAME): release docs
 	tar czf $(DIST_NAME) $(RLS_BUILD_DIR)
 
-# Builds a release version of Doppio without the documentation.
-release: dependencies $(RLS_BUILD_DIR)/browser $(RLS_BUILD_HTML) \
-	$(RLS_BUILD_DIR)/compressed.js browser/mini-rt.tar $(RLS_BUILD_DIR)/ace.js \
-	$(RLS_BUILD_DIR)/browser/style.css $(DEMO_CLASSES)
-	git submodule update --init --recursive
-	rsync -R $(DEMO_SRCS) $(DEMO_CLASSES) test/special/foo test/special/bar $(RLS_BUILD_DIR)/
-	rsync -a test/special $(RLS_BUILD_DIR)/test
-	rsync browser/mini-rt.tar $(RLS_BUILD_DIR)/browser/mini-rt.tar
-	rsync browser/*.svg $(RLS_BUILD_DIR)/browser/
-	rsync browser/*.png $(RLS_BUILD_DIR)/browser/
-
 # docs need to be generated in one shot so docco can create the full jumplist.
 # This is slow, so we have it as a separate target (even though it is needed
 # for a full release build).
 docs: dependencies $(RLS_BUILD_DIR)
-	$(DOCCO) $(filter %.coffee, $(BROWSER_SRCS))
+	$(DOCCO) $(filter %.coffee, $(release_BROWSER_SRCS))
 	rm -rf $(RLS_BUILD_DIR)/docs
 	mv docs $(RLS_BUILD_DIR)
 
@@ -141,7 +141,6 @@ $(RLS_BUILD_DIR) $(BMK_BUILD_DIR) build/%/browser::
 	mkdir -p $@
 
 browser/_about.html: browser/_about.md
-	echo "HI"
 	rdiscount $? > $@
 browser/about.html: browser/_about.html
 
