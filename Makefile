@@ -25,10 +25,10 @@ DEMO_CLASSES = $(DEMO_SRCS:.java=.class)
 
 # HTML
 BROWSER_HTML = $(wildcard browser/[^_]*.html)
-RLS_BUILD_DIR = build/release
-BMK_BUILD_DIR = build/benchmark
-RLS_BUILD_HTML = $(addprefix $(RLS_BUILD_DIR)/, $(notdir $(BROWSER_HTML)))
-BMK_BUILD_HTML = $(addprefix $(BMK_BUILD_DIR)/, $(notdir $(BROWSER_HTML)))
+release_BUILD_DIR = build/release
+benchmark_BUILD_DIR = build/benchmark
+release_BUILD_HTML = $(addprefix $(release_BUILD_DIR)/, $(notdir $(BROWSER_HTML)))
+benchmark_BUILD_HTML = $(addprefix $(benchmark_BUILD_DIR)/, $(notdir $(BROWSER_HTML)))
 
 # SCRIPTS
 # the order here is important: must match the order of includes
@@ -67,17 +67,11 @@ ACE_SRCS = third_party/ace/src-min/ace.js \
 ################################################################################
 # TARGETS
 ################################################################################
+#.PHONY: release benchmark dependencies clean java test dist docs build_release build_benchmark
 
 # Builds a release version of Doppio without the documentation.
-release: dependencies $(RLS_BUILD_DIR)/browser $(RLS_BUILD_HTML) \
-	$(RLS_BUILD_DIR)/compressed.js browser/mini-rt.tar $(RLS_BUILD_DIR)/ace.js \
-	$(RLS_BUILD_DIR)/browser/style.css $(DEMO_CLASSES)
-	git submodule update --init --recursive
-	rsync -R $(DEMO_SRCS) $(DEMO_CLASSES) test/special/foo test/special/bar $(RLS_BUILD_DIR)/
-	rsync -a test/special $(RLS_BUILD_DIR)/test
-	rsync browser/mini-rt.tar $(RLS_BUILD_DIR)/browser/mini-rt.tar
-	rsync browser/*.svg $(RLS_BUILD_DIR)/browser/
-	rsync browser/*.png $(RLS_BUILD_DIR)/browser/
+release: release.build
+benchmark: benchmark.build
 
 # Installs or checks for any required dependencies.
 dependencies: $(COFFEEC) $(UGLIFYJS) $(OPTIMIST) $(JAZZLIB) $(JRE) $(DOCCO)
@@ -120,15 +114,15 @@ clean:
 # Builds a distributable version of Doppio.
 dist: $(DIST_NAME)
 $(DIST_NAME): release docs
-	tar czf $(DIST_NAME) $(RLS_BUILD_DIR)
+	tar czf $(DIST_NAME) $(release_BUILD_DIR)
 
 # docs need to be generated in one shot so docco can create the full jumplist.
 # This is slow, so we have it as a separate target (even though it is needed
 # for a full release build).
-docs: dependencies $(RLS_BUILD_DIR)
+docs: dependencies $(release_BUILD_DIR)
 	$(DOCCO) $(filter %.coffee, $(release_BROWSER_SRCS))
-	rm -rf $(RLS_BUILD_DIR)/docs
-	mv docs $(RLS_BUILD_DIR)
+	rm -rf $(release_BUILD_DIR)/docs
+	mv docs $(release_BUILD_DIR)
 
 browser/mini-rt.tar: tools/preload
 	COPYFILE_DISABLE=true && tar -c -T tools/preload -f $@
@@ -137,17 +131,17 @@ browser/mini-rt.tar: tools/preload
 # BUILD DIRECTORY TARGETS
 ################################################################################
 # Double colon: Can execute multiple times in one `make' invocation.
-$(RLS_BUILD_DIR) $(BMK_BUILD_DIR) build/%/browser::
+$(release_BUILD_DIR) $(benchmark_BUILD_DIR) build/%/browser::
 	mkdir -p $@
 
 browser/_about.html: browser/_about.md
 	rdiscount $? > $@
 browser/about.html: browser/_about.html
 
-$(RLS_BUILD_DIR)/%.html $(BMK_BUILD_DIR)/%.html: $(BROWSER_HTML) $(wildcard browser/_*.html)
+$(release_BUILD_DIR)/%.html $(benchmark_BUILD_DIR)/%.html: $(BROWSER_HTML) $(wildcard browser/_*.html)
 	cpp -P -traditional-cpp -DRELEASE browser/$*.html $@
 
-build/%/compressed.js: $(BROWSER_SRCS)
+build/%/compressed.js: $(%_BROWSER_SRCS)
 	if command -v gsed >/dev/null; then \
 		SED="gsed"; \
 	else \
@@ -177,3 +171,14 @@ build/%/browser/style.css: third_party/bootstrap/css/bootstrap.min.css \
 
 # Never delete these files in the event of a failure.
 .SECONDARY: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES)
+
+.SECONDEXPANSION:
+%.build: dependencies $$($$*_BUILD_DIR) $$($$*_BUILD_DIR)/browser $$($$*_BUILD_HTML) \
+	$$($$*_BUILD_DIR)/compressed.js browser/mini-rt.tar $$($$*_BUILD_DIR)/ace.js \
+	$$($$*_BUILD_DIR)/browser/style.css $(DEMO_CLASSES)
+	git submodule update --init --recursive
+	rsync -R $(DEMO_SRCS) $(DEMO_CLASSES) test/special/foo test/special/bar $($*_BUILD_DIR)/
+	rsync -a test/special $($*_BUILD_DIR)/test
+	rsync browser/*.svg $($*_BUILD_DIR)/browser/
+	rsync browser/*.png $($*_BUILD_DIR)/browser/
+	rsync browser/mini-rt.tar $($*_BUILD_DIR)/browser/mini-rt.tar
