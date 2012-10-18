@@ -52,7 +52,7 @@ class BasicBlock
     @stack = []
     @locals = []
     @next = []
-    @body = ""
+    @stmts = []
     @visited = false
 
   push: (values...) -> @stack.push.apply @stack, values
@@ -60,35 +60,51 @@ class BasicBlock
   pop: -> @stack.pop()
   pop2: -> @stack.pop(); @stack.pop()
   put_cl: (idx, v) ->
-    if v?.match? /l\d+/
-      @add_line "l#{idx} = #{v}"
-      v = "l#{idx}"
     @locals[idx] = v
   put_cl2: (idx, v) ->
-    if v?.match? /l\d+/
-      @add_line "l#{idx} = #{v}"
-      v = "l#{idx}"
     @locals[idx] = v
     @locals[idx+1] = null
   cl: (idx) -> @locals[idx]
-  add_line: (line) -> @body += line + ";\n"
+  add_stmt: (stmt) -> @stmts.push stmt
   new_temp: -> @block_chain.new_temp()
 
   compile_epilogue: ->
     # copy our stack / local values into appropriately-named vars so that they
     # can be accessed from other blocks
-    for s, i in @stack when s?
-      continue if s == "s#{i}"
-      @add_line "s#{i} = #{s}"
-      @stack[i] = "s#{i}"
+    rv = []
+    for blk_id in @next
+      block = @block_chain.get_block_from_instr blk_id
+      for s, i in @stack when s?
+        unless /^\$\d+$/.test s
+          temp = @new_temp()
+          rv.push new Move temp, s
+          @stack[i] = temp
+        rv.push new Move block.in_stack[i], @stack[i] if block.in_stack[i]?
 
-    for l, i in @locals when l?
-      continue if l == "l#{i}"
-      @add_line "l#{i} = #{l}"
-      @locals[i] = "l#{i}"
+      for l, i in @locals when l?
+        unless /^\$\d+$/.test l
+          temp = @new_temp()
+          rv.push new Move temp, l
+          @locals[i] = temp
+        rv.push new Move block.in_locals[i], @locals[i] if block.in_locals[i]?
+    rv
 
-  compile: (@stack = @stack, @locals = @locals) ->
+  compile: (prev_stack, prev_locals) ->
+    return if @visited
+
     @visited = true
+
+    # the first block has its local vars set from the function params
+    unless @start_idx == 0
+      @stack =
+        for s in prev_stack
+          if s? then @new_temp() else null
+      @locals =
+        for l in prev_locals
+          if l? then @new_temp() else null
+      # dup the stack / locals so the next pass can retrieve our input variables
+      @in_stack = @stack[..]
+      @in_locals = @locals[..]
 
     instr_idx = @start_idx
     for op in @opcodes
@@ -101,20 +117,58 @@ class BasicBlock
     # branching instructions will print the epilogue before they branch; return
     # instructions obviate the need for one
     unless op.offset? or (op.name.indexOf 'return') != -1
-      @compile_epilogue()
+      @add_stmt => @compile_epilogue()
+
+    for idx in @next
+      next_block = @block_chain.get_block_from_instr idx
+      # java bytecode verification ensures that the stack height and stack /
+      # local table types match up across blocks
+      next_block.compile @stack, @locals
+
+    linearized_stmts = ""
+    linearize = (arr) ->
+      for s in arr
+        if _.isFunction s
+          linearize s()
+        else
+          linearized_stmts += s + ";\n"
+    linearize @stmts
 
     @compiled_str =
       """
       case #{@start_idx}:
       // #{op.name for op in @opcodes}
-      #{@body}
+      #{linearized_stmts}
       """
-    for idx in @next
-      next_block = @block_chain.get_block_from_instr idx
-      unless next_block.visited
-        # java bytecode verification ensures that the stack height and stack /
-        # local table types match up across blocks
-        next_block.compile @stack[..], @locals[..]
+
+class Expr
+
+  constructor: (str, subexps...) ->
+    @fragments = str.split /(\$\d+)/
+    for frag, i in @fragments
+      if /\$\d+/.test frag
+        @fragments[i] = subexps[parseInt frag[1..], 10]
+
+  eval: (b) ->
+    temp = b.new_temp()
+    b.add_stmt "$0 = #{@}", temp
+    new Primitive b
+
+  toString: -> @fragments.join ''
+
+class Primitive extends Expr
+
+  constructor: (@str) ->
+
+  eval: -> @
+
+  toString: -> @str
+
+class Move
+
+  constructor: (@dest, @src) ->
+
+  toString: -> "#{@dest} = #{@src}"
 
 cmpMap =
   eq: '=='
@@ -150,7 +204,7 @@ compile_class_handlers =
       b.push val
   ArrayLoadOpcode: (b) ->
     temp = b.new_temp()
-    b.add_line """
+    b.add_stmt """
     var idx = #{b.pop()};
     var obj = rs.check_null(#{b.pop()});
     var array = obj.array;
@@ -172,15 +226,15 @@ compile_class_handlers =
           "#{cmpMap[cmpCode]} 0"
     b.next.push @offset + idx
     v = b.pop()
-    b.compile_epilogue()
-    b.add_line "if (#{v} #{cond}) { label = #{@offset + idx}; continue }"
+    b.add_stmt -> b.compile_epilogue()
+    b.add_stmt "if (#{v} #{cond}) { label = #{@offset + idx}; continue }"
   BinaryBranchOpcode: (b, idx) ->
     cmpCode = @name[7..]
     b.next.push @offset + idx
     v2 = b.pop()
     v1 = b.pop()
-    b.compile_epilogue()
-    b.add_line "if (#{v1} #{cmpMap[cmpCode]} #{v2}) { label = #{@offset + idx}; continue }"
+    b.add_stmt -> b.compile_epilogue()
+    b.add_stmt "if (#{v1} #{cmpMap[cmpCode]} #{v2}) { label = #{@offset + idx}; continue }"
   InvokeOpcode: (b, idx) ->
     method = new Method # kludge
     method.access_flags = { static: @name == 'invokestatic' }
@@ -203,43 +257,44 @@ compile_class_handlers =
     b.stack.length -= method.param_bytes
 
     virtual = @name in ['invokevirtual', 'invokeinterface']
-    b.add_line "rs.push(#{params.join ','})"
-    b.add_line "rs.method_lookup(#{JSON.stringify @method_spec}).run(rs, #{virtual})"
+    b.add_stmt "rs.push(#{params.join ','})"
+    b.add_stmt "rs.method_lookup(#{JSON.stringify @method_spec}).run(rs, #{virtual})"
 
     unless method.return_type.toString() is 'V'
       temp = b.new_temp()
 
       if method.return_type.toString() in ['D', 'J']
-        b.add_line "#{temp} = rs.pop2()"
+        b.add_stmt new Move "#{temp} = rs.pop2()"
         b.push2 temp
       else
-        b.add_line "#{temp} = rs.pop()"
+        b.add_stmt "#{temp} = rs.pop()"
         b.push temp
 
 compile_obj_handlers = {
-  aconst_null: { compile: (b) -> b.push "null"; }
-  iconst_m1: { compile: (b) -> b.push "-1"; }
-  iconst_0: { compile: (b) -> b.push "0"; }
-  iconst_1: { compile: (b) -> b.push "1"; }
-  iconst_2: { compile: (b) -> b.push "2"; }
-  iconst_3: { compile: (b) -> b.push "3"; }
-  iconst_4: { compile: (b) -> b.push "4"; }
-  iconst_5: { compile: (b) -> b.push "5"; }
-  lconst_0: { compile: (b) -> b.push2 "gLong.ZERO"; }
-  lconst_1: { compile: (b) -> b.push2 "gLong.ONE"; }
-  fconst_0: { compile: (b) -> b.push "0"; }
-  fconst_1: { compile: (b) -> b.push "1"; }
-  fconst_2: { compile: (b) -> b.push "2"; }
-  dconst_0: { compile: (b) -> b.push2 "0"; }
-  dconst_1: { compile: (b) -> b.push2 "1"; }
-  iastore: {compile: (b) -> v=b.pop(); i=b.pop();"b.check_null(#{b.pop()}).array[#{i}]=#{v}"}
-  lastore: {compile: (b) -> v=b.pop2();i=b.pop();"b.check_null(#{b.pop()}).array[#{i}]=#{v}"}
-  fastore: {compile: (b) -> v=b.pop(); i=b.pop();"b.check_null(#{b.pop()}).array[#{i}]=#{v}"}
-  dastore: {compile: (b) -> v=b.pop2();i=b.pop();"b.check_null(#{b.pop()}).array[#{i}]=#{v}"}
-  aastore: {compile: (b) -> v=b.pop(); i=b.pop();"b.check_null(#{b.pop()}).array[#{i}]=#{v}"}
-  bastore: {compile: (b) -> v=b.pop(); i=b.pop();"b.check_null(#{b.pop()}).array[#{i}]=#{v}"}
-  castore: {compile: (b) -> v=b.pop(); i=b.pop();"b.check_null(#{b.pop()}).array[#{i}]=#{v}"}
-  sastore: {compile: (b) -> v=b.pop(); i=b.pop();"b.check_null(#{b.pop()}).array[#{i}]=#{v}"}
+  aconst_null: { compile: (b) -> b.push new Primitive "null"; }
+  iconst_m1: { compile: (b) -> b.push new Primitive "-1"; }
+  iconst_0: { compile: (b) -> b.push new Primitive "0"; }
+  iconst_1: { compile: (b) -> b.push new Primitive "1"; }
+  iconst_2: { compile: (b) -> b.push new Primitive "2"; }
+  iconst_3: { compile: (b) -> b.push new Primitive "3"; }
+  iconst_4: { compile: (b) -> b.push new Primitive "4"; }
+  iconst_5: { compile: (b) -> b.push new Primitive "5"; }
+  lconst_0: { compile: (b) -> b.push2 new Primitive "gLong.ZERO"; }
+  lconst_1: { compile: (b) -> b.push2 new Primitive "gLong.ONE"; }
+  fconst_0: { compile: (b) -> b.push new Primitive "0"; }
+  fconst_1: { compile: (b) -> b.push new Primitive "1"; }
+  fconst_2: { compile: (b) -> b.push new Primitive "2"; }
+  dconst_0: { compile: (b) -> b.push2 new Primitive "0"; }
+  dconst_1: { compile: (b) -> b.push2 new Primitive "1"; }
+  # the *astore commands don't work yet...
+  iastore: {compile: (b) -> b.add_stmt "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
+  lastore: {compile: (b) -> b.add_stmt "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop2()}
+  fastore: {compile: (b) -> b.add_stmt "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
+  dastore: {compile: (b) -> b.add_stmt "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop2()}
+  aastore: {compile: (b) -> b.add_stmt "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
+  bastore: {compile: (b) -> b.add_stmt "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
+  castore: {compile: (b) -> b.add_stmt "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
+  sastore: {compile: (b) -> b.add_stmt "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
   pop: {compile: (b) -> b.pop()}
   pop2: {compile: (b) -> b.pop2()}
   # TODO: avoid duplicating non-primitive expressions so as to save on computation
@@ -250,14 +305,14 @@ compile_obj_handlers = {
   dup2_x1: {compile: (b) -> [v1,v2,v3]=[b.pop(),b.pop(),b.pop()];b.push(v2,v1,v3,v2,v1)}
   dup2_x2: {compile: (b) -> [v1,v2,v3,v4]=[b.pop(),b.pop(),b.pop(),b.pop()];b.push(v2,v1,v4,v3,v2,v1)}
   swap: {compile: (b) -> v2=b.pop(); v1=b.pop(); b.push(v2,v1)}
-  iadd: { compile: (b) -> b.push "util.wrap_int(#{b.pop()}+#{b.pop()})" }
-  ladd: { compile: (b) -> b.push2 "#{b.pop2()}.add(#{b.pop2()})" }
-  fadd: { compile: (b) -> b.push "util.wrap_float(#{b.pop()}+#{b.pop()})" }
-  dadd: { compile: (b) -> b.push2 "#{b.pop()}+#{b.pop()}" }
-  isub: { compile: (b) -> b.push "util.wrap_int(-#{b.pop()}+#{b.pop()})" }
-  lsub: { compile: (b) -> b.push2 "#{b.pop2()}.add(#{b.pop2()})" }
-  fsub: { compile: (b) -> b.push "util.wrap_float(-#{b.pop()}+#{b.pop()})" }
-  dsub: { compile: (b) -> b.push2 "-#{b.pop()}+#{b.pop()}" }
+  iadd: { compile: (b) -> b.push new Expr "util.wrap_int($0+$1)",b.pop(),b.pop() }
+  ladd: { compile: (b) -> b.push2 new Expr "$0.add($1)",b.pop2(),b.pop2() }
+  fadd: { compile: (b) -> b.push new Expr "util.wrap_float($0+$1)",b.pop(),b.pop() }
+  dadd: { compile: (b) -> b.push2 new Expr "$0+$1",b.pop(),b.pop() }
+  isub: { compile: (b) -> b.push new Expr "util.wrap_int($1-$0)",b.pop(),b.pop() }
+  lsub: { compile: (b) -> b.push2 new Expr "$1.subtract($0)",b.pop2(),b.pop2() }
+  fsub: { compile: (b) -> b.push new Expr "util.wrap_float($1-$0)",b.pop(),b.pop() }
+  dsub: { compile: (b) -> b.push2 new Expr "$1-$0",b.pop2(),b.pop2() }
   imul: { compile: (b) -> b.push "gLong.fromInt(#{b.pop()}).multiply(gLong.fromInt(#{b.pop()})).toInt()" }
   lmul: { compile: (b) -> b.push2 "#{b.pop2()}.multiply(#{b.pop2()})" }
   fmul: { compile: (b) -> b.push "util.wrap_float(#{b.pop()}*#{b.pop()})" }
@@ -292,39 +347,39 @@ compile_obj_handlers = {
   i2c: { compile: (b) -> b.push "#{b.pop()}&0xFFFF" }
   i2s: { compile: (b) -> b.push "util.truncate(#{b.pop()}, 16)" }
 
-  ireturn: { compile: (b) -> b.add_line "return #{b.pop()}" }
-  lreturn: { compile: (b) -> b.add_line "return #{b.pop2()}" }
-  freturn: { compile: (b) -> b.add_line "return #{b.pop()}" }
-  dreturn: { compile: (b) -> b.add_line "return #{b.pop2()}" }
-  areturn: { compile: (b) -> b.add_line "return #{b.pop()}" }
-  'return': { compile: (b) -> b.add_line "return" }
+  ireturn: { compile: (b) -> b.add_stmt "return #{b.pop()}" }
+  lreturn: { compile: (b) -> b.add_stmt "return #{b.pop2()}" }
+  freturn: { compile: (b) -> b.add_stmt "return #{b.pop()}" }
+  dreturn: { compile: (b) -> b.add_stmt "return #{b.pop2()}" }
+  areturn: { compile: (b) -> b.add_stmt "return #{b.pop()}" }
+  'return': { compile: (b) -> b.add_stmt "return" }
 
   arraylength: { compile: (b) ->
     t = b.new_temp()
-    b.add_line "#{t} = rs.check_null(#{b.pop()}).array.length"
+    b.add_stmt "#{t} = rs.check_null(#{b.pop()}).array.length"
     b.push t
   }
 
   getstatic: { compile: (b) ->
     temp = b.new_temp()
-    b.add_line "#{temp} = rs.static_get(#{JSON.stringify @field_spec})"
+    b.add_stmt "#{temp} = rs.static_get(#{JSON.stringify @field_spec})"
     if @field_spec.type in ['J','D'] then b.push2 temp else b.push temp }
 
   'new': { compile: (b) ->
     temp = b.new_temp()
-    b.add_line "#{temp} = rs.init_object(#{JSON.stringify @class})"
+    b.add_stmt "#{temp} = rs.init_object(#{JSON.stringify @class})"
     b.push temp }
 
-  goto: { compile: (b, idx) -> 
+  goto: { compile: (b, idx) ->
     b.next = [@offset + idx]
-    b.compile_epilogue()
-    b.add_line "label = #{@offset + idx}; continue"
+    b.add_stmt -> b.compile_epilogue()
+    b.add_stmt "label = #{@offset + idx}; continue"
   }
 
   goto_w: { compile: (b, idx) ->
     b.next = [@offset + idx]
-    b.compile_epilogue()
-    b.add_line "label = #{@offset + idx}; continue"
+    b.add_stmt -> b.compile_epilogue()
+    b.add_stmt "label = #{@offset + idx}; continue"
   }
 }
 
@@ -364,14 +419,6 @@ root.compile = (class_file) ->
         #{name}: function(#{param_names.join ", "}) {
           var label = 0;
           #{if temps.length > 0 then "var #{temps.join ", "};" else ""}
-          #{if m.code.max_locals > 0
-              "var " + (("l#{i}" for i in [0...m.code.max_locals]).join ", ") + ";"
-            else
-              ""}
-          #{if m.code.max_stack > 0
-              "var " + (("s#{i}" for i in [0...m.code.max_stack]).join ", ") + ";"
-            else
-              ""}
           while (true) {
             switch (label) {
 #{(b.compiled_str for b in block_chain.blocks).join ""}
