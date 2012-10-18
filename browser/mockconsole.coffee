@@ -1,19 +1,3 @@
-#(function($){
-#    $.fn.console = function(config){
-#        if (config === undefined) config = {};
-# var extern = {};
-# extern.reset = function(){
-# extern.notice = function(msg,style){
-# extern.message = function (msg, type, noreprompt) {
-# extern.reprompt = function() { commandResult(); }
-# extern.promptText = function(text)
-# extern.promptLabel = "> ";
-# extern.continuedPromptLabel = "> ";
-# extern.commandHandle = config.commandHandle;
-# extern.inner = inner;
-# extern.typer = typer;
-# extern.scrollToBottom = scrollToBottom;
-
 # jQuery module for a mock console that can be controlled through automated
 # tests.
 #
@@ -24,103 +8,172 @@
 
 $ = jQuery
 
-$.fn.console = () ->
-
+$.fn.console = (config) ->
   outBuffer = ""
   bufferSize = 1024
-  serverPort = 8000
-  serverHost = "localhost"
+  commands = []
   uploading = false
-  commands = ["ls"]
 
-  errorCommandHandle = (line) ->
-    sendErrorToServer "Command handle called before it was set."
+  # Helper function for making errors purty.
+  getErrorDetails = (url, type, data, textStatus, errorThrown) ->
+    "Error during HTTP " + type + " to server.\n" +
+    "---------------------------------\n" +
+    "Details:\n" +
+    "  URL: " + url + "\n" +
+    "  Error Type: " + textStatus + "\n" +
+    "  Additional Error Info: " + errorThrown + "\n" +
+    "  Data: '" + data + "'\n"
+
+  # All errors involving GET/PUT statements during benchmarks indicate failure.
+  getFromServer = (url, doneFn) ->
+    $.ajax({
+      url: url
+    }).done(doneFn).fail(
+      (data, textStatus, errorThrown) ->
+        printErrorInBrowser(
+          getErrorDetails(url, "POST", data, textStatus, errorThrown))
+    )
+
+  postToServer = (url, data, doneFn) ->
+    $.ajax({
+      type: "POST"
+      url: url
+      data: outBuffer
+    }).done(doneFn).fail(
+      (data, textStatus, errorThrown) ->
+        printErrorInBrowser(
+          getErrorDetails(url, "POST", data, textStatus, errorThrown))
+    )
 
   sendBufferToServer = ->
     if outBuffer.length != 0 and !uploading
       uploading = true
       # Send to server.
-      $.ajax({
-        type: "POST"
-        url: "message"
-        data: outBuffer
-      }).done(->
-        uploading = false
-        # In case we prevented further uploads...
-        if outputBuffer.length > bufferSize
-          sendBufferToServer
+      postToServer("message", outBuffer,
+        (->
+          uploading = false
+          # In case we prevented further uploads...
+          if outBuffer.length > bufferSize
+            sendBufferToServer()
+        )
       )
       # Empty buffer.
       outBuffer = ""
 
-    return
+  printInBrowser = (msg, className) ->
+    mesg = $('<div class="jquery-console-message"></div>');
+    if className
+      mesg.addClass(className)
+    mesg.text(msg)
+    mesg.hide();
+    inner.append(mesg);
+    mesg.show();
 
-  sendErrorToServer = (text) ->
-    # Errors aren't buffered; send 'em immediately.
-    $.ajax({
-      type: "POST"
-      url: "error"
-      data: text
-    })
-    return
+  printErrorInBrowser = (msg) ->
+    printInBrowser(msg, "jquery-console-message-error")
 
-  sendCompleteToServer = ->
+  error = (text) ->
+    # We don't buffer errors.
+    printErrorInBrowser text
+    postToServer("error", text)
+    # A single error invalidates benchmark results. Fail fast.
+    complete()
+
+  # Tells the server we are done benchmarking and halts all command processing.
+  complete = ->
     if !uploading
-      $.ajax({
-        type: "POST"
-        url: "complete"
-      })
-    else # Need to wait for upload to complete.
-      setTimeout sendCompleteToServer 100
-    return
+      postToServer "complete"
+      commands = []
+    else # Need to wait for buffer upload to complete.
+      setTimeout complete 100
 
+  message = (text) ->
+    outBuffer += text
+    if outBuffer.length >= bufferSize
+      sendBufferToServer()
 
   runNextCommand = ->
+    # Clear the buffer before we run another command.
+    sendBufferToServer()
+
     if commands.length > 0
-      extern.commandHandle commands.pop()
+      command = commands.pop()
+      printInBrowser extern.promptLabel + command
+      ret = extern.commandHandle command
+      # Emulate jQuery console's behavior for different return types.
+      if typeof ret == "boolean"
+        if ret
+          # Command succeeded without a result.
+          extern.reprompt()
+        else
+          # Command failed.
+          error "Command \"" + command + "\" failed."
+          extern.reprompt()
+      else if typeof ret == "string"
+        extern.message ret
+      else if typeof ret == "object" && ret.length
+        extern.message ret
+      else
+        extern.reprompt()
     else
       # We're done. The browser can be killed now.
-      # Empty buffer first.
-      sendBufferToServer
-      sendCompleteToServer
+      complete()
 
-  extern.reset = () ->
-    # NOP
-    return
+  extern = {}
 
-  extern.notice = (msg, style) ->
+  extern.promptLabel = config.promptLabel ? "> "
+
+  # The default command handler.
+  errorCommandHandle = (line) ->
+    error "Command handle called before it was set."
+
+  extern.commandHandle = config.commandHandle ? errorCommandHandle
+
+  extern.reset = ->
     # NOP
-    return
+
+  extern.notice = ->
+    # NOP
 
   extern.message = (msg, type, noreprompt) ->
-    # Emulates behavior of jQuery console.
-    if typeof msg == 'string'
-      outBuffer += msg
-    else if $.isArray msg
-      outBuffer += msg[0]
+    if $.isArray msg
+      message msg[0]
     else
-      # jQuery console assumes input is a DOM node or something.
-      outBuffer += msg
-
-    if outBuffer.length >= bufferSize
-      sendBufferToServer
+      # TODO: jQuery console supports DOM nodes, so there could be a DOM node
+      # here...
+      message msg
 
     if !noreprompt
-      extern.reprompt
-
-    return
+      extern.reprompt()
 
   extern.reprompt = () ->
-    # Clear buffer.
-    sendBufferToServer
-    # Yield thread before next command.
-    setTimeout runNextCommand 10
+    setTimeout(runNextCommand, 10)
 
   extern.promptText = (text) ->
-    # We don't support promptText, since tests aren't supposed to be
-    # interactive.
-    sendErrorToServer "PromptText called during a test."
+    error "PromptText called during a non-interactive test."
 
-  extern.commandHandle = errorCommandHandle
+
+  # Set up the console for printing stuff.
+  container = $(this);
+  inner = $('<pre class="jquery-console-inner"></div>');
+  container.append(inner)
+  printInBrowser(
+    "Doppio Automated Benchmark Mode\n" +
+    "-------------------------------\n" +
+    "Doppio will only print fatal errors and running commands to this " +
+    "console. All other output is sent to the benchmark server.\n\n"
+  )
+
+  # Grab commands.
+  getFromServer("commands",
+    ((data) ->
+      commands = $.parseJSON(data)
+      error("Retrieved commands are not in an array format.") if not $.isArray commands
+    )
+  )
+
+  # TODO: Somehow figure out when Doppio has finished loading to launch first
+  #       command.
+  setTimeout((-> extern.reprompt()), 10000)
 
   return extern
