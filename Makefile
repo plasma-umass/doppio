@@ -1,5 +1,9 @@
+# Force the use of bash for shell statements. If we don't do this, many Linux
+# variants will use sh.
+SHELL := /bin/bash
+
 COFFEEC = coffee # path to coffeescript compiler
-UGLIFYJS = ~/node_modules/uglify-js/bin/uglifyjs
+UGLIFYJS = uglifyjs
 
 SOURCES = $(wildcard test/*.java)
 DISASMS = $(SOURCES:.java=.disasm)
