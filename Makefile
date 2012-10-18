@@ -50,11 +50,11 @@ COMMON_BROWSER_SRCS = third_party/_.js \
 	src/jvm.coffee \
 	browser/untar.coffee
 # Release uses the actual jQuery console.
-RLS_BROWSER_SRCS = $(COMMON_BROWSER_SRCS) \
+release_BROWSER_SRCS = $(COMMON_BROWSER_SRCS) \
 	third_party/jquery.console.js \
 	browser/frontend.coffee
 # Benchmark uses the mock jQuery console.
-BMK_BROWSER_SRCS = $(COMMON_BROWSER_SRCS) \
+benchmark_BROWSER_SRCS = $(COMMON_BROWSER_SRCS) \
 	browser/mockconsole.coffee \
 	browser/frontend.coffee
 # they don't survive uglifyjs and are already minified, so include them
@@ -112,7 +112,8 @@ $(DIST_NAME): release docs
 	tar czf $(DIST_NAME) $(RLS_BUILD_DIR)
 
 # Builds a release version of Doppio without the documentation.
-release: dependencies $(RLS_BUILD_DIR)/browser $(RLS_BUILD_HTML) $(RLS_BUILD_DIR)/compressed.js browser/mini-rt.tar build/ace.js \
+release: dependencies $(RLS_BUILD_DIR)/browser $(RLS_BUILD_HTML) \
+	$(RLS_BUILD_DIR)/compressed.js browser/mini-rt.tar $(RLS_BUILD_DIR)/ace.js \
 	$(RLS_BUILD_DIR)/browser/style.css $(DEMO_CLASSES)
 	git submodule update --init --recursive
 	rsync -R $(DEMO_SRCS) $(DEMO_CLASSES) test/special/foo test/special/bar $(RLS_BUILD_DIR)/
@@ -140,8 +141,9 @@ $(RLS_BUILD_DIR) $(BMK_BUILD_DIR) build/%/browser::
 	mkdir -p $@
 
 browser/_about.html: browser/_about.md
+	echo "HI"
 	rdiscount $? > $@
-build/%/about.html: browser/_about.html
+browser/about.html: browser/_about.html
 
 $(RLS_BUILD_DIR)/%.html $(BMK_BUILD_DIR)/%.html: $(BROWSER_HTML) $(wildcard browser/_*.html)
 	cpp -P -traditional-cpp -DRELEASE browser/$*.html $@
@@ -152,7 +154,7 @@ build/%/compressed.js: $(BROWSER_SRCS)
 	else \
 		SED="sed"; \
 	fi; \
-	for src in $(BROWSER_SRCS); do \
+	for src in $($(*)_BROWSER_SRCS); do \
 		if [ "$${src##*.}" == "coffee" ]; then \
 			$(: `` is essentially Coffeescript's equivalent of Python's 'pass') \
 			cat $${src} | $$SED -r "s/^( *)(debug|trace).*$$/\1\`\`/" | $(COFFEEC) --stdio --print; \
@@ -176,6 +178,3 @@ build/%/browser/style.css: third_party/bootstrap/css/bootstrap.min.css \
 
 # Never delete these files in the event of a failure.
 .SECONDARY: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES)
-# Tell Make that _about.html is an intermediate file. Prevents unnecessary
-# recompilation if it is not present.
-.INTERMEDIATE: browser/_about.html
