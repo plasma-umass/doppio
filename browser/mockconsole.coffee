@@ -13,6 +13,7 @@ $.fn.console = (config) ->
   bufferSize = 1024
   commands = []
   uploading = false
+  isComplete = false
 
   # Helper function for making errors purty.
   getErrorDetails = (url, type, data, textStatus, errorThrown) ->
@@ -81,11 +82,16 @@ $.fn.console = (config) ->
 
   # Tells the server we are done benchmarking and halts all command processing.
   complete = ->
+    if isComplete
+      return
     if !uploading
+      isComplete = true
+      printInBrowser "\nTest complete. The browser will be killed now. Have " +
+                     "a wonderful day! :)\n"
       postToServer "complete"
       commands = []
     else # Need to wait for buffer upload to complete.
-      setTimeout complete 100
+      setTimeout complete, 10
 
   message = (text) ->
     outBuffer += text
@@ -168,12 +174,13 @@ $.fn.console = (config) ->
   getFromServer("commands",
     ((data) ->
       commands = $.parseJSON(data)
-      error("Retrieved commands are not in an array format.") if not $.isArray commands
+      if not $.isArray commands
+        error("Retrieved commands are not in an array format.")
     )
   )
 
-  # TODO: Somehow figure out when Doppio has finished loading to launch first
-  #       command.
-  setTimeout((-> extern.reprompt()), 10000)
+  # When the console is 'clicked', the test begins. Doppio automatically clicks
+  # the console when loading completes.
+  container.click(-> extern.reprompt())
 
   return extern
