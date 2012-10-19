@@ -5,182 +5,281 @@ require 'ostruct'
 
 include WEBrick
 
-class CommandsHandler < HTTPServlet::AbstractServlet
+# We are a servlet for the WEBRick server that we are creating.
+class DoppioServer
+  attr_accessor :server
 
-  def do_GET(request, response)
-    response.status = 200
-    response['Content-Type'] = "text/html"
-    response.body = "[\"ls\"]"
+  module Mode
+    DEV = 0
+    BMK = 1
+    REL = 2
   end
 
-end
+  ##############################################################################
+  # Attributes
+  ##############################################################################
 
-class MessageHandler < HTTPServlet::AbstractServlet
-
-  def do_POST(request, response)
-    puts "Message:"
-    puts request
-    response.status = 200
-    response['Content-Type'] = "text/html"
-    response.body = "Success."
+  # Contains all of the command line options.
+  def options
+    @options
   end
-
-end
-
-class CompleteHandler < HTTPServlet::AbstractServlet
-
-  def do_POST(request, response)
-    puts "Complete:"
-    puts request
-    response.status = 200
-    response['Content-Type'] = "text/html"
-    response.body = "Success."
-  end
-
-end
-
-class ErrorHandler < HTTPServlet::AbstractServlet
-
-  def do_POST(request, response)
-    puts "Error:"
-    puts request
-    response.status = 200
-    response['Content-Type'] = "text/html"
-    response.body = "Success."
-  end
-
-end
-
-def start_webrick(config = {}, mountHandlers = false)
-  server = HTTPServer.new(config)
-  ['INT', 'TERM'].each {|signal|
-    trap(signal) {server.shutdown}
-  }
-
-  # third_party's location is the same for all configurations, so manually
-  # fix it in place.
-  server.mount("/third_party", HTTPServlet::FileHandler, "#{File.dirname __FILE__}/../third_party", {:FancyIndexing=>true})
-
-  if mountHandlers
-    server.mount "/message", MessageHandler
-    server.mount "/error", ErrorHandler
-    server.mount "/complete", CompleteHandler
-    server.mount "/commands", CommandsHandler
-  end
-
-  server.start
-end
-
-module Mode
-  DEV = 0
-  BMK = 1
-  REL = 2
-end
-
-options = OpenStruct.new
-options.verbosity = 1
-options.mode = Mode::REL
-
-opts = OptionParser.new do |opts|
-  opts.banner = "Usage: webrick.rb -[r|d|b [scripts] -w [browsers]] [options]"
-
-  opts.on("-r", "--release", "Host Doppio in release mode") do |r|
+  # While long, this performs all of the needed sanity checks for command line
+  # options.
+  def options=(args)
+    options = OpenStruct.new
+    # Defaults.
+    options.verbosity = 1
     options.mode = Mode::REL
-  end
+    options.mounts = []
 
-  opts.on("-d", "--dev", "Host Doppio in development mode") do |d|
-    options.mode = Mode::DEV
-  end
+    opts = OptionParser.new do |opts|
+      opts.banner = "Usage: webrick.rb -[r|d|b [scripts] -w [browsers]] " +
+                    "[options]"
 
-  opts.on("-b", "--benchmark script1,script2,...", Array, "Host Doppio in " +
-    "benchmark mode with the specified benchmark scripts") do |scripts|
-    if scripts.empty?
-      opts.abort "You must specify at least one benchmark script."
-    end
-    scripts.each do |script|
-      if !File::readable? script
-        opts.abort "Unable to read benchmark script " + script + "."
-      elsif !File::file? script
-        opts.abort "Not a file: " + script
+      opts.on("-r", "--release", "Host Doppio in release mode") do |r|
+        options.mode = Mode::REL
       end
-    end
 
-    options.mode = Mode::BMK
-    options.scripts = scripts
-  end
+      opts.on("-d", "--dev", "Host Doppio in development mode") do |d|
+        options.mode = Mode::DEV
+      end
 
-  opts.on("-w", "--browser browser1,browser2,...", Array, "Run benchmarking " +
-    "scripts in the given browsers") do |browsers|
-    if browsers.empty?
-      opts.abort "You must specify at least one browser."
-    end
-
-    browsers.each do |browser|
-      if !File::exists? browser
-        opts.abort "File not found: " + browser
-      elsif !File::file? browser
-        # If it's a Mac application, it's a folder ending in .app.
-        if !File::directory? browser or !browser.split('.').last == 'app'
-          opts.abort "Not a file or Mac application: " + browser
+      opts.on("-b", "--benchmark script1,script2,...", Array, "Host Doppio " +
+        "in benchmark mode with the specified benchmark scripts") do |scripts|
+        if scripts.empty?
+          opts.abort "You must specify at least one benchmark script."
         end
-      elsif !File::executable? browser
-        opts.abort "The following browser is not executable: " + browser
+        scripts.each do |script|
+          if !File::readable? script
+            opts.abort "Unable to read benchmark script " + script + "."
+          elsif !File::file? script
+            opts.abort "Not a file: " + script
+          end
+        end
+
+        options.mode = Mode::BMK
+        options.scripts = scripts
+      end
+
+      opts.on("-w", "--browser browser1,browser2,...", Array, "Run " +
+        "benchmarking scripts in the given browsers") do |browsers|
+        if browsers.empty?
+          opts.abort "You must specify at least one browser."
+        end
+        # Map return value of loop back into browsers array.
+        browsers.collect! do |browser|
+          # See if we can find it on the path.
+          errorMsg = ''
+          error = false
+          paths = ENV['PATH'].split(':')
+          # For Mac users.
+          paths.unshift('/Applications')
+          # Current directory takes second priority.
+          paths.unshift('.')
+          # Absolute path takes first priority.
+          paths.unshift('')
+          browserPath = ""
+
+          # Finds the true browserPath, or sets error to 'true' with an optional
+          # error message.
+          # Ugly, but it works! 8D
+          paths.each do |path|
+            if path != ''
+              browserPath = path + "/" + browser
+            else
+              browserPath = browser
+            end
+
+            # Bad if File exists.
+            if !File::exists? browserPath
+              # NOP
+            # Bad if not a file and not a directory that is a Mac application.
+            elsif !File::file? browserPath and (!File::directory? browserPath or
+              !browserPath.split('.').last == 'app')
+              errorMsg = "Not a file or Mac application: " + browserPath
+            # Bad if it's not executable, whether a file or a Mac app directory.
+            elsif !File::executable? browserPath
+              errorMsg = "The following browser is not executable: " +
+                         browserPath
+            else
+              # It's either a Mac application or an executable file, which is
+              # what we want.
+              error = false
+              break
+            end
+
+            # Last ditch effort: Is it a .app w/o the extension?
+            newBp = browserPath + ".app"
+            if File::directory? newBp and File::executable? newBp
+              browserPath = newBp
+              error = false
+              break
+            end
+
+            # Loop didn't terminate yet. We encountered an error.
+            error = true
+          end
+
+          if error
+            if errorMsg != ""
+              opts.abort errorMsg
+            else
+              opts.abort "Unable to find browser: " + browser
+            end
+          end
+          browserPath
+        end
+        options.browsers = browsers
+      end
+
+      opts.on("-m", "--mount path1,path2,...", Array, "Mounts the specified " +
+        "paths to their directory's name (e.g. `/home/jvilk/Files' => /Files)") do |paths|
+        paths.each do |path|
+          if !File.directory? path
+            opts.abort "The following is not a directory: " + path
+          elsif !File.readable? path
+            opts.abort "You do not have read access to directory " + path
+          end
+        end
+        options.mounts = paths
+      end
+
+      opts.separator ""
+      opts.separator "Common options:"
+
+      opts.on_tail("-h", "--help", "Show this message") do
+        puts opts
+        exit
+      end
+
+      opts.on_tail("-v", "--verbosity N", OptionParser::DecimalInteger,
+        "Specify the level of verbosity [0-3]") do |v|
+        if v > 3 || v < 0
+          opts.abort "Invalid verbosity option (verbosity should be in the "+
+                     "range [0-3])."
+        end
+        options.verbosity = v
       end
     end
-    options.browsers = browsers
-  end
+    opts.parse!(ARGV)
 
-  opts.on("-m", "--mount path1,path2,...", Array, "Mounts the specified " +
-    "paths to their directory's name (e.g. `/home/jvilk/Files' => /Files)") do |paths|
-    paths.each do |path|
-      if !File.directory? path
-        opts.abort "The following is not a directory: " + path
-      elsif !File.readable? path
-        opts.abort "You do not have read access to directory " + path
-      end
+    # Sanity checks. Need to specify *browsers* and *scripts* for benchmark
+    # mode.
+    if options.mode == Mode::BMK and (options.browsers == nil or
+      options.scripts == nil)
+      abort "In benchmark mode, you must specify at least one browser and at " +
+            "least one script."
     end
-    options.mounts = paths
+
+    @options = options
+    p3 "Input options: "
+    p3 options
   end
 
-  opts.separator ""
-  opts.separator "Common options:"
+  ##############################################################################
+  # WEBRick Request Handlers
+  ##############################################################################
 
-  opts.on_tail("-h", "--help", "Show this message") do
-    puts opts
-    exit
-  end
+  class DoppioServlet < HTTPServlet::AbstractServlet
+    attr_accessor :outer
 
-  opts.on_tail("-v", "--verbosity N", OptionParser::DecimalInteger, "Specify " +
-    "the level of verbosity [0-3]") do |v|
-    if v > 3 || v < 0
-      opts.abort "Invalid verbosity option " + v + "."
+    # Initialize with reference to outer class.
+    def initialize(server, outer)
+      @outer = outer
     end
-    options.verbosity = v
+
+    def do_GET(request, response)
+      # Shift for commands.
+      response.status = 200
+      response['Content-Type'] = 'text/html'
+      response.body = '["ls"]'
+    end
+
+    def do_POST(request, response)
+      puts "Message:"
+      puts request
+      response.status = 200
+      response['Content-Type'] = "text/html"
+      response.body = "Success."
+    end
+
+  end
+
+  ##############################################################################
+  # Other Methods
+  ##############################################################################
+  def initialize(args)
+    self.options = args
+  end
+
+  def Mode2String(mode)
+    case mode
+    when Mode::DEV
+      return 'development'
+    when Mode::BMK
+      return 'benchmark'
+    else
+      return 'release'
+    end
+  end
+
+  # Handles printing at various verbosities.
+  def p1(message)
+    pn(1, message)
+  end
+  def p2(message)
+    pn(2, message)
+  end
+  def p3(message)
+    pn(3, message)
+  end
+  def pn(n, message)
+    if n <= options.verbosity
+      puts message
+    end
+  end
+
+  def start()
+    doppioRoot = "#{File.dirname __FILE__}/.."
+    documentRoot = doppioRoot
+    case @options.mode
+    when Mode::REL
+      documentRoot = doppioRoot + "/build/release"
+    when Mode::BMK
+      documentRoot = doppioRoot + "/build/benchmark"
+    end
+
+    p1 "Creating server in " + Mode2String(@options.mode) + " mode."
+
+    @server = HTTPServer.new({:DocumentRoot => documentRoot,
+                             :Port         => 8000})
+    ['INT', 'TERM'].each {|signal|
+      trap(signal) {@server.shutdown}
+    }
+
+    # Benchmark mount points for communicating with the mock console.
+    if @options.mode == Mode::BMK
+      @server.mount "/message", DoppioServlet, self
+      @server.mount "/error", DoppioServlet, self
+      @server.mount "/complete", DoppioServlet, self
+      @server.mount "/commands", DoppioServlet, self
+    end
+
+    # third_party's location is the same for all configurations, so manually
+    # fix it in place.
+    @options.mounts.push doppioRoot + "/third_party"
+    @options.mounts.each do |mount|
+      # Get mount point. No, this is not portable...
+      mPoint = "/" + mount.split('/').last
+      p2 "Mounting " + mount + " at " + mPoint
+      @server.mount(mPoint, HTTPServlet::FileHandler,
+        mount, {:FancyIndexing=>true})
+    end
+
+    p1 "Starting server."
+    @server.start
   end
 end
 
-opts.parse!(ARGV)
-
-mountHandlers = false
-doppioRoot = "#{File.dirname __FILE__}/.."
-
-if ARGV[0] == '--dev'
-  puts "Starting WEBrick in dev mode"
-  documentRoot = doppioRoot
-elsif ARGV[0] == '--benchmark'
-  puts "Starting WEBrick in benchmark mode"
-  #if not File.readable?(ARGV[1])
-  #  puts "ERROR: Cannot read benchmark file " + ARGV[1]
-  #  exit
-  #else
-  #  file = File.new(ARGV[1], "r")
-  #  contents = file.read()
-  mountHandlers = true
-  documentRoot = doppioRoot + "/build/benchmark"
-  #end
-else
-  documentRoot = doppioRoot + "/build/release"
-end
-
-#start_webrick({:DocumentRoot => documentRoot,
-#               :Port         => 8000}, mountHandlers)
+doppio = DoppioServer.new(ARGV)
+doppio.start()
