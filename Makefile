@@ -64,14 +64,23 @@ ACE_SRCS = third_party/ace/src-min/ace.js \
 	third_party/ace/src-min/mode-java.js \
 	third_party/ace/src-min/theme-twilight.js
 
+# Variable setting that is conditional on the target
+ifeq ($(MAKECMDGOALS),benchmark)
+BUILD_DIR = $(benchmark_BUILD_DIR)
+BUILD_HTML = $(benchmark_BUILD_HTML)
+else
+BUILD_DIR = $(release_BUILD_DIR)
+BUILD_HTML = $(release_BUILD_HTML)
+endif
+
 ################################################################################
 # TARGETS
 ################################################################################
 #.PHONY: release benchmark dependencies clean java test dist docs build_release build_benchmark
 
-# Builds a release version of Doppio without the documentation.
-release: release.build
-benchmark: benchmark.build
+# Builds a release or benchmark version of Doppio without the documentation.
+release: build
+benchmark: build
 
 # Installs or checks for any required dependencies.
 dependencies: $(COFFEEC) $(UGLIFYJS) $(OPTIMIST) $(JAZZLIB) $(JRE) $(DOCCO)
@@ -131,23 +140,23 @@ browser/mini-rt.tar: tools/preload
 # BUILD DIRECTORY TARGETS
 ################################################################################
 # Double colon: Can execute multiple times in one `make' invocation.
-$(release_BUILD_DIR) $(benchmark_BUILD_DIR) build/%/browser::
+$(BUILD_DIR) $(BUILD_DIR)/browser::
 	mkdir -p $@
 
 browser/_about.html: browser/_about.md
 	rdiscount $? > $@
 browser/about.html: browser/_about.html
 
-$(release_BUILD_DIR)/%.html $(benchmark_BUILD_DIR)/%.html: $(BROWSER_HTML) $(wildcard browser/_*.html)
+$(BUILD_DIR)/%.html: $(BROWSER_HTML) $(wildcard browser/_*.html)
 	cpp -P -traditional-cpp -DRELEASE browser/$*.html $@
 
-build/%/compressed.js: $(%_BROWSER_SRCS)
+$(BUILD_DIR)/compressed.js: $(BROWSER_SRCS)
 	if command -v gsed >/dev/null; then \
 		SED="gsed"; \
 	else \
 		SED="sed"; \
 	fi; \
-	for src in $($(*)_BROWSER_SRCS); do \
+	for src in $(BROWSER_SRCS); do \
 		if [ "$${src##*.}" == "coffee" ]; then \
 			$(: `` is essentially Coffeescript's equivalent of Python's 'pass') \
 			cat $${src} | $$SED -r "s/^( *)(debug|trace).*$$/\1\`\`/" | $(COFFEEC) --stdio --print; \
@@ -156,29 +165,27 @@ build/%/compressed.js: $(%_BROWSER_SRCS)
 		fi; \
 		echo ";"; \
 	done | $(UGLIFYJS) --define RELEASE --no-mangle --unsafe > $@
-	if [ ! -s $@ ]; then echo "Coffeescript compilation error"; rm -f $@; fail; fi
 
-build/%/ace.js: $(ACE_SRCS)
+$(BUILD_DIR)/ace.js: $(ACE_SRCS)
 	for src in $(ACE_SRCS); do \
 		cat $${src}; \
 		echo ";"; \
 	done > $@
 
 # The | prevents the rule from being included in $^.
-build/%/browser/style.css: third_party/bootstrap/css/bootstrap.min.css \
-	browser/style.css | build/%/browser
+$(BUILD_DIR)/browser/style.css: third_party/bootstrap/css/bootstrap.min.css \
+	browser/style.css | $(BUILD_DIR)/browser
 	cat $^ > $@
 
 # Never delete these files in the event of a failure.
 .SECONDARY: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES)
 
-.SECONDEXPANSION:
-%.build: dependencies $$($$*_BUILD_DIR) $$($$*_BUILD_DIR)/browser $$($$*_BUILD_HTML) \
-	$$($$*_BUILD_DIR)/compressed.js browser/mini-rt.tar $$($$*_BUILD_DIR)/ace.js \
-	$$($$*_BUILD_DIR)/browser/style.css $(DEMO_CLASSES)
+build: dependencies $(BUILD_DIR) $(BUILD_DIR)/browser $(BUILD_HTML) \
+	$(BUILD_DIR)/compressed.js browser/mini-rt.tar $(BUILD_DIR)/ace.js \
+	$(BUILD_DIR)/browser/style.css $(DEMO_CLASSES)
 	git submodule update --init --recursive
-	rsync -R $(DEMO_SRCS) $(DEMO_CLASSES) test/special/foo test/special/bar $($*_BUILD_DIR)/
-	rsync -a test/special $($*_BUILD_DIR)/test
-	rsync browser/*.svg $($*_BUILD_DIR)/browser/
-	rsync browser/*.png $($*_BUILD_DIR)/browser/
-	rsync browser/mini-rt.tar $($*_BUILD_DIR)/browser/mini-rt.tar
+	rsync -R $(DEMO_SRCS) $(DEMO_CLASSES) test/special/foo test/special/bar $(BUILD_DIR)/
+	rsync -a test/special $(BUILD_DIR)/test
+	rsync browser/*.svg $(BUILD_DIR)/browser/
+	rsync browser/*.png $(BUILD_DIR)/browser/
+	rsync browser/mini-rt.tar $(BUILD_DIR)/browser/mini-rt.tar
