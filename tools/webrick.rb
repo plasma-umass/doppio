@@ -85,10 +85,10 @@ elsif ARGV[0] == '--benchmark'
   #  file = File.new(ARGV[1], "r")
   #  contents = file.read()
   mountHandlers = true
-  documentRoot = doppioRoot + "/build"
+  documentRoot = doppioRoot + "/build/benchmark"
   #end
 else
-  documentRoot = doppioRoot + "/build"
+  documentRoot = doppioRoot + "/build/release"
 end
 
 start_webrick({:DocumentRoot => documentRoot,
