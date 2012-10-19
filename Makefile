@@ -68,19 +68,30 @@ ACE_SRCS = third_party/ace/src-min/ace.js \
 ifeq ($(MAKECMDGOALS),benchmark)
 BUILD_DIR = $(benchmark_BUILD_DIR)
 BUILD_HTML = $(benchmark_BUILD_HTML)
+BROWSER_SRCS = $(benchmark_BROWSER_SRCS)
 else
 BUILD_DIR = $(release_BUILD_DIR)
 BUILD_HTML = $(release_BUILD_HTML)
+BROWSER_SRCS = $(release_BROWSER_SRCS)
 endif
 
 ################################################################################
 # TARGETS
 ################################################################################
-#.PHONY: release benchmark dependencies clean java test dist docs build_release build_benchmark
+# Protect non-file-based targets from not functioning if a file with the
+# target's name is present.
+.PHONY: release benchmark dist dependencies java test clean docs build
 
 # Builds a release or benchmark version of Doppio without the documentation.
+# These targets differ in the variables that are set before they are run; see
+# MAKECMDGOALS above.
 release: build
 benchmark: build
+
+# Builds a distributable version of Doppio.
+dist: $(DIST_NAME)
+$(DIST_NAME): release docs
+	tar czf $(DIST_NAME) $(release_BUILD_DIR)
 
 # Installs or checks for any required dependencies.
 dependencies: $(COFFEEC) $(UGLIFYJS) $(OPTIMIST) $(JAZZLIB) $(JRE) $(DOCCO)
@@ -119,11 +130,6 @@ clean:
 	@rm -f src/*.js browser/*.js console/*.js tools/*.js
 	@rm -rf build/* browser/mini-rt.jar $(DEMO_CLASSES)
 	@rm -f index.html
-
-# Builds a distributable version of Doppio.
-dist: $(DIST_NAME)
-$(DIST_NAME): release docs
-	tar czf $(DIST_NAME) $(release_BUILD_DIR)
 
 # docs need to be generated in one shot so docco can create the full jumplist.
 # This is slow, so we have it as a separate target (even though it is needed
@@ -177,9 +183,6 @@ $(BUILD_DIR)/browser/style.css: third_party/bootstrap/css/bootstrap.min.css \
 	browser/style.css | $(BUILD_DIR)/browser
 	cat $^ > $@
 
-# Never delete these files in the event of a failure.
-.SECONDARY: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES)
-
 build: dependencies $(BUILD_DIR) $(BUILD_DIR)/browser $(BUILD_HTML) \
 	$(BUILD_DIR)/compressed.js browser/mini-rt.tar $(BUILD_DIR)/ace.js \
 	$(BUILD_DIR)/browser/style.css $(DEMO_CLASSES)
@@ -189,3 +192,6 @@ build: dependencies $(BUILD_DIR) $(BUILD_DIR)/browser $(BUILD_HTML) \
 	rsync browser/*.svg $(BUILD_DIR)/browser/
 	rsync browser/*.png $(BUILD_DIR)/browser/
 	rsync browser/mini-rt.tar $(BUILD_DIR)/browser/mini-rt.tar
+
+# Never delete these files in the event of a failure.
+.SECONDARY: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES)
