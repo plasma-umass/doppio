@@ -28,12 +28,13 @@ class BlockChain
         labels.push target
 
     for idx, i in labels
-      @blocks.push new BasicBlock @, idx
+      block = new BasicBlock @, idx
+      @blocks.push block
       @instr2block[idx] = i
       # we initially assume all blocks are connected linearly.
       # compiling the individual instructions will adjust this as needed.
       if @blocks.length > 1
-        @blocks[@blocks.length - 2].next.push idx
+        @blocks[@blocks.length - 2].next.push block
 
     current_block = -1
     method.code.each_opcode (idx, oc) =>
@@ -41,10 +42,29 @@ class BlockChain
       block = @blocks[current_block]
       block.opcodes.push oc
 
+    @param_names = ['rs']
+    params_size = 0
+    unless method.access_flags.static
+      param_name = @new_temp()
+      @param_names.push param_name
+      @blocks[0].put_cl(params_size++, param_name)
+
+    for p in method.param_types
+      param_name = @new_temp()
+      @param_names.push param_name
+      if p.toString() in ['D','J']
+        @blocks[0].put_cl2(params_size, param_name)
+        params_size += 2
+      else
+        @blocks[0].put_cl(params_size++, param_name)
+
   get_block_from_instr: (idx) -> @blocks[@instr2block[idx]]
 
-  new_temp: -> "$#{@temp_count++}"
-  get_all_temps: -> ("$#{i}" for i in [0...@temp_count])
+  new_temp: -> new Temp @temp_count++
+  get_all_temps: -> (new Temp i for i in [0...@temp_count])
+
+  compile: ->
+    @blocks[0].compile()
 
 class BasicBlock
   constructor: (@block_chain, @start_idx) ->
@@ -52,6 +72,7 @@ class BasicBlock
     @stack = []
     @locals = []
     @next = []
+    @prev = []
     @stmts = []
     @visited = false
 
@@ -68,26 +89,58 @@ class BasicBlock
   add_stmt: (stmt) -> @stmts.push stmt
   new_temp: -> @block_chain.new_temp()
 
+  entryFromVar: (v) ->
+    if v instanceof StackVar
+      expr = @stack[v.id]
+    else
+      expr = @locals[v.id]
+
+  forEachVar: (cb) ->
+    for s, i in @stack when s?
+      new_s = new StackVar i
+      cb new_s
+
+    for l, i in @locals when l?
+      new_l = new LocalVar i
+      cb new_l
+
   compile_epilogue: ->
     # copy our stack / local values into appropriately-named vars so that they
     # can be accessed from other blocks
     rv = []
-    for blk_id in @next
-      block = @block_chain.get_block_from_instr blk_id
-      for s, i in @stack when s?
-        unless /^\$\d+$/.test s
-          temp = @new_temp()
-          rv.push new Move temp, s
-          @stack[i] = temp
-        rv.push new Move block.in_stack[i], @stack[i] if block.in_stack[i]?
 
-      for l, i in @locals when l?
-        unless /^\$\d+$/.test l
-          temp = @new_temp()
-          rv.push new Move temp, l
-          @locals[i] = temp
-        rv.push new Move block.in_locals[i], @locals[i] if block.in_locals[i]?
-    rv
+    postordered = []
+    visited = {}
+    clobbered = {}
+    replacements = {}
+    traverse = (v) =>
+      return if visited[v]
+      visited[v] = true
+
+      expr = @entryFromVar v
+
+      unless expr instanceof Primitive and v.equals expr
+        clobbered[v] = true
+        replacer = (d) =>
+          return d unless (d instanceof StackVar or d instanceof LocalVar) and not d.equals v
+          if clobbered[d]
+            unless replacements[d]
+              replacements[d] = @new_temp()
+              rv.push new Move replacements[d], d
+            return replacements[d]
+          traverse d
+          d
+
+        if expr instanceof Expr
+          expr.replace replacer
+        else
+          expr = replacer expr
+
+        postordered.push new Move v, expr
+      
+    @forEachVar traverse
+
+    rv.concat postordered.reverse()
 
   compile: (prev_stack, prev_locals) ->
     return if @visited
@@ -97,14 +150,11 @@ class BasicBlock
     # the first block has its local vars set from the function params
     unless @start_idx == 0
       @stack =
-        for s in prev_stack
-          if s? then @new_temp() else null
+        for s,i in prev_stack
+          if s? then new StackVar i else null
       @locals =
-        for l in prev_locals
-          if l? then @new_temp() else null
-      # dup the stack / locals so the next pass can retrieve our input variables
-      @in_stack = @stack[..]
-      @in_locals = @locals[..]
+        for l,i in prev_locals
+          if l? then new LocalVar i else null
 
     instr_idx = @start_idx
     for op in @opcodes
@@ -119,8 +169,7 @@ class BasicBlock
     unless op.offset? or (op.name.indexOf 'return') != -1
       @add_stmt => @compile_epilogue()
 
-    for idx in @next
-      next_block = @block_chain.get_block_from_instr idx
+    for next_block in @next
       # java bytecode verification ensures that the stack height and stack /
       # local table types match up across blocks
       next_block.compile @stack, @locals
@@ -151,18 +200,51 @@ class Expr
 
   eval: (b) ->
     temp = b.new_temp()
-    b.add_stmt "$0 = #{@}", temp
+    b.add_stmt new Expr "$0 = #{@}", temp
     new Primitive b
 
   toString: -> @fragments.join ''
 
-class Primitive extends Expr
+  replace: (cb) ->
+    for frag, i in @fragments
+      if frag instanceof Temp
+        @fragments[i] = cb frag
+      else if frag instanceof Expr
+        frag.replace cb
+
+  get_dependencies: ->
+    temps = []
+    for frag in @fragments
+      if frag instanceof Expr
+        temps.concat frag.get_dependencies()
+      else if frag instanceof Temp
+        temps.push frag
+    temps
+
+
+class Primitive
 
   constructor: (@str) ->
 
   eval: -> @
 
   toString: -> @str
+
+  equals: (p) -> p.toString() == @toString()
+
+class Temp extends Primitive
+
+  constructor: (@id) ->
+
+  toString: -> "$#{@id}"
+
+class StackVar extends Temp
+
+  toString: -> "s#{@id}"
+
+class LocalVar extends Temp
+
+  toString: -> "l#{@id}"
 
 class Move
 
@@ -204,15 +286,15 @@ compile_class_handlers =
       b.push val
   ArrayLoadOpcode: (b) ->
     temp = b.new_temp()
-    b.add_stmt """
-    var idx = #{b.pop()};
-    var obj = rs.check_null(#{b.pop()});
+    b.add_stmt new Expr """
+    var idx = $0;
+    var obj = rs.check_null($1);
     var array = obj.array;
     if (!(0 <= idx && idx < array.length))
       java_throw(rs, 'java/lang/ArrayIndexOutOfBoundsException',
         idx + " not in length " + array.length + " array of type " + obj.type.toClassString());
-    #{temp} = array[idx]
-    """
+    $2 = array[idx]
+    """, b.pop(), b.pop(), temp
     if @name.match /[ld]aload/ then b.push2 temp else b.push temp
   UnaryBranchOpcode: (b, idx) ->
     cmpCode = @name[2..]
@@ -224,17 +306,14 @@ compile_class_handlers =
           "!== null"
         else
           "#{cmpMap[cmpCode]} 0"
-    b.next.push @offset + idx
-    v = b.pop()
+    b.next.push b.block_chain.get_block_from_instr @offset + idx
     b.add_stmt -> b.compile_epilogue()
-    b.add_stmt "if (#{v} #{cond}) { label = #{@offset + idx}; continue }"
+    b.add_stmt new Expr "if ($0 #{cond}) { label = #{@offset + idx}; continue }", b.pop()
   BinaryBranchOpcode: (b, idx) ->
     cmpCode = @name[7..]
-    b.next.push @offset + idx
-    v2 = b.pop()
-    v1 = b.pop()
+    b.next.push b.block_chain.get_block_from_instr @offset + idx
     b.add_stmt -> b.compile_epilogue()
-    b.add_stmt "if (#{v1} #{cmpMap[cmpCode]} #{v2}) { label = #{@offset + idx}; continue }"
+    b.add_stmt new Expr "if ($1 #{cmpMap[cmpCode]} $0) { label = #{@offset + idx}; continue }",b.pop(),b.pop()
   InvokeOpcode: (b, idx) ->
     method = new Method # kludge
     method.access_flags = { static: @name == 'invokestatic' }
@@ -264,10 +343,10 @@ compile_class_handlers =
       temp = b.new_temp()
 
       if method.return_type.toString() in ['D', 'J']
-        b.add_stmt new Move "#{temp} = rs.pop2()"
+        b.add_stmt new Move temp, "rs.pop2()"
         b.push2 temp
       else
-        b.add_stmt "#{temp} = rs.pop()"
+        b.add_stmt new Move temp, "rs.pop()"
         b.push temp
 
 compile_obj_handlers = {
@@ -286,15 +365,14 @@ compile_obj_handlers = {
   fconst_2: { compile: (b) -> b.push new Primitive "2"; }
   dconst_0: { compile: (b) -> b.push2 new Primitive "0"; }
   dconst_1: { compile: (b) -> b.push2 new Primitive "1"; }
-  # the *astore commands don't work yet...
-  iastore: {compile: (b) -> b.add_stmt "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
-  lastore: {compile: (b) -> b.add_stmt "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop2()}
-  fastore: {compile: (b) -> b.add_stmt "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
-  dastore: {compile: (b) -> b.add_stmt "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop2()}
-  aastore: {compile: (b) -> b.add_stmt "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
-  bastore: {compile: (b) -> b.add_stmt "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
-  castore: {compile: (b) -> b.add_stmt "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
-  sastore: {compile: (b) -> b.add_stmt "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
+  iastore: {compile: (b) -> b.add_stmt new Expr "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
+  lastore: {compile: (b) -> b.add_stmt new Expr "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop2()}
+  fastore: {compile: (b) -> b.add_stmt new Expr "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
+  dastore: {compile: (b) -> b.add_stmt new Expr "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop2()}
+  aastore: {compile: (b) -> b.add_stmt new Expr "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
+  bastore: {compile: (b) -> b.add_stmt new Expr "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
+  castore: {compile: (b) -> b.add_stmt new Expr "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
+  sastore: {compile: (b) -> b.add_stmt new Expr "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
   pop: {compile: (b) -> b.pop()}
   pop2: {compile: (b) -> b.pop2()}
   # TODO: avoid duplicating non-primitive expressions so as to save on computation
@@ -356,28 +434,30 @@ compile_obj_handlers = {
 
   arraylength: { compile: (b) ->
     t = b.new_temp()
-    b.add_stmt "#{t} = rs.check_null(#{b.pop()}).array.length"
+    b.add_stmt new Move t, new Expr "rs.check_null($0).array.length", b.pop()
     b.push t
   }
 
   getstatic: { compile: (b) ->
-    temp = b.new_temp()
-    b.add_stmt "#{temp} = rs.static_get(#{JSON.stringify @field_spec})"
-    if @field_spec.type in ['J','D'] then b.push2 temp else b.push temp }
+    t = b.new_temp()
+    b.add_stmt new Move t, "rs.static_get(#{JSON.stringify @field_spec})"
+    if @field_spec.type in ['J','D'] then b.push2 t else b.push t
+  }
 
   'new': { compile: (b) ->
-    temp = b.new_temp()
-    b.add_stmt "#{temp} = rs.init_object(#{JSON.stringify @class})"
-    b.push temp }
+    t = b.new_temp()
+    b.add_stmt new Move t, "rs.init_object(#{JSON.stringify @class})"
+    b.push t
+  }
 
   goto: { compile: (b, idx) ->
-    b.next = [@offset + idx]
+    b.next = [b.block_chain.get_block_from_instr @offset + idx]
     b.add_stmt -> b.compile_epilogue()
     b.add_stmt "label = #{@offset + idx}; continue"
   }
 
   goto_w: { compile: (b, idx) ->
-    b.next = [@offset + idx]
+    b.next = [b.block_chain.get_block_from_instr @offset + idx]
     b.add_stmt -> b.compile_epilogue()
     b.add_stmt "label = #{@offset + idx}; continue"
   }
@@ -395,28 +475,12 @@ root.compile = (class_file) ->
 
         block_chain = new BlockChain m
 
-        param_names = ['rs']
-        params_size = 0
-        unless m.access_flags.static
-          param_name = block_chain.new_temp()
-          param_names.push param_name
-          block_chain.blocks[0].put_cl(params_size++, param_name)
-
-        for p in m.param_types
-          param_name = block_chain.new_temp()
-          param_names.push param_name
-          if p.toString() in ['D','J']
-            block_chain.blocks[0].put_cl2(params_size, param_name)
-            params_size += 2
-          else
-            block_chain.blocks[0].put_cl(params_size++, param_name)
-
-        block_chain.blocks[0].compile()
+        block_chain.compile()
 
         temps = block_chain.get_all_temps()
 
         """
-        #{name}: function(#{param_names.join ", "}) {
+        #{name}: function(#{block_chain.param_names.join ", "}) {
           var label = 0;
           #{if temps.length > 0 then "var #{temps.join ", "};" else ""}
           while (true) {
