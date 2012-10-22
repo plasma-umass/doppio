@@ -408,7 +408,7 @@ compile_obj_handlers = {
   fneg: { compile: (b) -> b.push new Expr "-$0",b.pop() }
   dneg: { compile: (b) -> b.push2 new Expr "-$0",b.pop2() }
 
-  iinc: { compile: (b) -> b.put_cl @index, new Expr "util.wrap_int($0)",b.cl(@index)+@const }
+  iinc: { compile: (b) -> b.put_cl @index, new Expr "util.wrap_int($0+$1)",b.cl(@index),@const }
   i2l: { compile: (b) -> b.push2 new Expr "gLong.fromInt($0)",b.pop() }
   i2f: { compile: (b) -> }
   i2d: { compile: (b) -> b.push null }
@@ -483,6 +483,14 @@ root.compile = (class_file) ->
         #{name}: function(#{block_chain.param_names.join ", "}) {
           var label = 0;
           #{if temps.length > 0 then "var #{temps.join ", "};" else ""}
+          #{if m.code.max_locals > 0
+              "var " + (("l#{i}" for i in [0...m.code.max_locals]).join ", ") + ";"
+            else
+              ""}
+          #{if m.code.max_stack > 0
+              "var " + (("s#{i}" for i in [0...m.code.max_stack]).join ", ") + ";"
+            else
+              ""}
           while (true) {
             switch (label) {
 #{(b.compiled_str for b in block_chain.blocks).join ""}
