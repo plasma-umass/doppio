@@ -329,24 +329,10 @@ compile_class_handlers =
     method.access_flags = { static: @name == 'invokestatic' }
     method.parse_descriptor @method_spec.sig
 
-    p_idx = b.stack.length - method.param_bytes
-
-    unless @name == 'invokestatic'
-      params = [ b.stack[p_idx++] ]
-    else
-      params = []
-
     for t in method.param_types
-      params.push b.stack[p_idx]
-      if t.toString() in ['D','J']
-        p_idx += 2
-      else
-        p_idx++
-
-    b.stack.length -= method.param_bytes
-
     virtual = @name in ['invokevirtual', 'invokeinterface']
-    b.add_stmt "rs.push(#{params.join ','})"
+    params = b.stack.splice(-method.param_bytes)
+    b.add_stmt "rs.push(#{p ? 'null' for p in params})"
     b.add_stmt "rs.method_lookup(#{JSON.stringify @method_spec}).run(rs, #{virtual})"
 
     unless method.return_type.toString() is 'V'
