@@ -329,7 +329,6 @@ compile_class_handlers =
     method.access_flags = { static: @name == 'invokestatic' }
     method.parse_descriptor @method_spec.sig
 
-    for t in method.param_types
     virtual = @name in ['invokevirtual', 'invokeinterface']
     params = b.stack.splice(-method.param_bytes)
     b.add_stmt "rs.push(#{p ? 'null' for p in params})"
