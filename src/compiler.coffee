@@ -447,6 +447,12 @@ compile_obj_handlers = {
     b.push t
   }
 
+  anewarray: { compile: (b) -> 
+    t = b.new_temp()
+    b.add_stmt new Assignment t, new Expr "rs.heap_newarray('L#{@class};', $0)", b.pop()
+    b.push t
+  }
+
   goto: { compile: (b, idx) ->
     b.next = [b.block_chain.get_block_from_instr @offset + idx]
     b.add_stmt -> b.compile_epilogue()
