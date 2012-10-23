@@ -126,7 +126,7 @@ class BasicBlock
           if clobbered[d]
             unless replacements[d]
               replacements[d] = @new_temp()
-              rv.push new Move replacements[d], d
+              rv.push new Assignment replacements[d], d
             return replacements[d]
           traverse d
           d
@@ -136,7 +136,7 @@ class BasicBlock
         else
           expr = replacer expr
 
-        postordered.push new Move v, expr
+        postordered.push new Assignment v, expr
       
     @forEachVar traverse
 
@@ -246,7 +246,7 @@ class LocalVar extends Temp
 
   toString: -> "l#{@id}"
 
-class Move
+class Assignment
 
   constructor: (@dest, @src) ->
 
@@ -353,10 +353,10 @@ compile_class_handlers =
       temp = b.new_temp()
 
       if method.return_type.toString() in ['D', 'J']
-        b.add_stmt new Move temp, "rs.pop2()"
+        b.add_stmt new Assignment temp, "rs.pop2()"
         b.push2 temp
       else
-        b.add_stmt new Move temp, "rs.pop()"
+        b.add_stmt new Assignment temp, "rs.pop()"
         b.push temp
 
 compile_obj_handlers = {
@@ -444,19 +444,19 @@ compile_obj_handlers = {
 
   arraylength: { compile: (b) ->
     t = b.new_temp()
-    b.add_stmt new Move t, new Expr "rs.check_null($0).array.length", b.pop()
+    b.add_stmt new Assignment t, new Expr "rs.check_null($0).array.length", b.pop()
     b.push t
   }
 
   getstatic: { compile: (b) ->
     t = b.new_temp()
-    b.add_stmt new Move t, "rs.static_get(#{JSON.stringify @field_spec})"
+    b.add_stmt new Assignment t, "rs.static_get(#{JSON.stringify @field_spec})"
     if @field_spec.type in ['J','D'] then b.push2 t else b.push t
   }
 
   'new': { compile: (b) ->
     t = b.new_temp()
-    b.add_stmt new Move t, "rs.init_object(#{JSON.stringify @class})"
+    b.add_stmt new Assignment t, "rs.init_object(#{JSON.stringify @class})"
     b.push t
   }
 
