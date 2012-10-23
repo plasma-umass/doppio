@@ -160,8 +160,10 @@ class BasicBlock
     for op in @opcodes
       if (handler = compile_obj_handlers[op.name]?.compile)?
         handler.call(op, @, instr_idx)
+      else if (handler = util.lookup_handler(compile_class_handlers, op))?
+        handler.apply op, [@, instr_idx]
       else
-        util.lookup_handler compile_class_handlers, op, @, instr_idx
+        console.error "XXX missing #{op.constructor.name}: #{op.name}"
       instr_idx += op.byte_count + 1
 
     # branching instructions will print the epilogue before they branch; return

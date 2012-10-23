@@ -145,14 +145,19 @@ class root.BytesArray
 root.is_string = (obj) -> typeof obj == 'string' or obj instanceof String
 
 # Walks up the prototype chain of :object looking for an entry in the :handlers
-# dict that match its constructor's name. If it finds one, it calls that handler
-# with :object bound to `this` and :args as the arguments.
-root.lookup_handler = (handlers, object, args...) ->
+# dict that match its constructor's name.
+root.lookup_handler = (handlers, object) ->
   obj = object
   while obj?
     handler = handlers[obj.constructor.name]
-    return handler.apply object, args if handler
+    return handler if handler
     obj = Object.getPrototypeOf obj
+  return null
+
+# Runs root.lookup_handler, and if it finds one, it calls that handler
+# with :object bound to `this` and :args as the arguments.
+root.call_handler = (handlers, object, args...) ->
+  root.lookup_handler(handlers,object)?.apply object, args
 
 class root.BranchException
   constructor: (@dst_pc) ->

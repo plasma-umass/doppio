@@ -126,7 +126,7 @@ class root.Method extends AbstractMethodField
           cf = rs.curr_frame()
           vtrace "#{padding}stack: [#{pa cf.stack}], local: [#{pa cf.locals}]"
           annotation =
-            util.lookup_handler(opcode_annotators, op, pc, rs.class_lookup(@class_type).constant_pool) or ""
+            util.call_handler(opcode_annotators, op, pc, rs.class_lookup(@class_type).constant_pool) or ""
           vtrace "#{padding}#{@class_type.toClassString()}::#{@name}:#{pc} => #{op.name}" + annotation
         op.execute rs
         rs.inc_pc(1 + op.byte_count)  # move to the next opcode
