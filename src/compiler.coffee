@@ -361,14 +361,14 @@ compile_obj_handlers = {
   fconst_2: { compile: (b) -> b.push new Primitive "2"; }
   dconst_0: { compile: (b) -> b.push2 new Primitive "0"; }
   dconst_1: { compile: (b) -> b.push2 new Primitive "1"; }
-  iastore: {compile: (b) -> b.add_stmt new Expr "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
-  lastore: {compile: (b) -> b.add_stmt new Expr "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop2()}
-  fastore: {compile: (b) -> b.add_stmt new Expr "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
-  dastore: {compile: (b) -> b.add_stmt new Expr "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop2()}
-  aastore: {compile: (b) -> b.add_stmt new Expr "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
-  bastore: {compile: (b) -> b.add_stmt new Expr "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
-  castore: {compile: (b) -> b.add_stmt new Expr "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
-  sastore: {compile: (b) -> b.add_stmt new Expr "b.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
+  iastore: {compile: (b) -> b.add_stmt new Expr "rs.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
+  lastore: {compile: (b) -> b.add_stmt new Expr "rs.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop2()}
+  fastore: {compile: (b) -> b.add_stmt new Expr "rs.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
+  dastore: {compile: (b) -> b.add_stmt new Expr "rs.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop2()}
+  aastore: {compile: (b) -> b.add_stmt new Expr "rs.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
+  bastore: {compile: (b) -> b.add_stmt new Expr "rs.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
+  castore: {compile: (b) -> b.add_stmt new Expr "rs.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
+  sastore: {compile: (b) -> b.add_stmt new Expr "rs.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
   pop: {compile: (b) -> b.pop()}
   pop2: {compile: (b) -> b.pop2()}
   # TODO: avoid duplicating non-primitive expressions so as to save on computation
