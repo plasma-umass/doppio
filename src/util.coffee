@@ -1,6 +1,7 @@
 
 # pull in external modules
 _ = require '../third_party/_.js'
+gLong = require '../third_party/gLong.js'
 
 # things assigned to root will be available outside this module
 root = exports ? window.util ?= {}
@@ -141,6 +142,11 @@ class root.BytesArray
     arr = new root.BytesArray @raw_array, @start+@_index, @start+@_index+len
     @_index += len
     arr
+
+root.initial_value = (type_str) ->
+  if type_str is 'J' then gLong.ZERO
+  else if type_str[0] in ['[','L'] then null
+  else 0
 
 root.is_string = (obj) -> typeof obj == 'string' or obj instanceof String
 

@@ -6,13 +6,8 @@ gLong = require '../third_party/gLong.js'
 util = require './util'
 types = require './types'
 ClassFile = require './ClassFile'
-{log,vtrace,trace,debug,error,java_throw} = util
+{log,vtrace,trace,debug,error,java_throw,initial_value} = util
 {c2t} = types
-
-initial_value = (type_str) ->
-  if type_str is 'J' then gLong.ZERO
-  else if type_str[0] in ['[','L'] then null
-  else 0
 
 class root.CallStack
   constructor: (initial_stack) ->
