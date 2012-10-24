@@ -1,6 +1,7 @@
 _ = require '../third_party/_.js'
 util = require './util'
 {Method} = require './methods'
+{c2t} = require './types'
 
 root = exports ? this.compiler = {}
 
@@ -429,16 +430,35 @@ compile_obj_handlers = {
   areturn: { compile: (b) -> b.add_stmt "return #{b.pop()}" }
   'return': { compile: (b) -> b.add_stmt "return" }
 
-  arraylength: { compile: (b) ->
-    t = b.new_temp()
-    b.add_stmt new Assignment t, new Expr "rs.check_null($0).array.length", b.pop()
-    b.push t
-  }
-
   getstatic: { compile: (b) ->
     t = b.new_temp()
     b.add_stmt new Assignment t, "rs.static_get(#{JSON.stringify @field_spec})"
     if @field_spec.type in ['J','D'] then b.push2 t else b.push t
+  }
+
+  putstatic: { compile: (b) ->
+    val = if @field_spec.type in ['J','D'] then b.pop2() else b.pop()
+    b.add_stmt new Expr """
+      var f = rs.field_lookup(#{JSON.stringify @field_spec});
+      rs.class_lookup(f.class_type, true).fields[f.name] = $0
+    """, val
+  }
+  
+  getfield: { compile: (b) ->
+    t = b.new_temp()
+    name = JSON.stringify @field_spec.name
+    init = util.initial_value @field_spec.type
+    b.add_stmt new Expr """
+      var f = $0.fields;
+      if (f[#{name}] == null) { f[#{name}] = #{init}; }
+      $1 = f[#{name}]
+    """, b.pop(), t
+    if @field_spec.type in ['J','D'] then b.push2 t else b.push t    
+  }
+  
+  putfield: { compile: (b) ->
+    val = if @field_spec.type in ['J','D'] then b.pop2() else b.pop()
+    b.add_stmt new Assignment new Expr("$0.fields[#{JSON.stringify @field_spec.name}]", b.pop()), val
   }
 
   'new': { compile: (b) ->
@@ -447,10 +467,35 @@ compile_obj_handlers = {
     b.push t
   }
 
+  newarray: { compile: (b) -> 
+    t = b.new_temp()
+    b.add_stmt new Assignment t, new Expr "rs.heap_newarray('#{@element_type}', $0)", b.pop()
+    b.push t
+  }
+  
   anewarray: { compile: (b) -> 
     t = b.new_temp()
     b.add_stmt new Assignment t, new Expr "rs.heap_newarray('L#{@class};', $0)", b.pop()
     b.push t
+  }
+
+  arraylength: { compile: (b) ->
+    t = b.new_temp()
+    b.add_stmt new Assignment t, new Expr "rs.check_null($0).array.length", b.pop()
+    b.push t
+  }
+
+  athrow: { compile: (b) -> b.add_stmt new Expr "throw new util.JavaException(rs, $0)", b.pop() }
+
+  checkcast: { compile: (b) ->
+    target_class = c2t(@class).toExternalString()
+    obj = b.pop()
+    b.add_stmt new Expr """
+        if (($0 != null) && !types.check_cast(rs, $0, #{JSON.stringify @class})) {
+          var candidate_class = $0.type.toExternalString();
+          java_throw(rs, 'java/lang/ClassCastException', candidate_class+" cannot be cast to #{target_class}");
+        }""", obj
+    b.push obj
   }
 
   goto: { compile: (b, idx) ->
