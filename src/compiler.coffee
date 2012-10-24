@@ -364,9 +364,9 @@ compile_obj_handlers = {
   dconst_0: { compile: (b) -> b.push2 new Primitive "0"; }
   dconst_1: { compile: (b) -> b.push2 new Primitive "1"; }
   iastore: {compile: (b) -> b.add_stmt new Expr "rs.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
-  lastore: {compile: (b) -> b.add_stmt new Expr "rs.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop2()}
+  lastore: {compile: (b) -> b.add_stmt new Expr "rs.check_null($2).array[$1]=$0",b.pop2(),b.pop(),b.pop()}
   fastore: {compile: (b) -> b.add_stmt new Expr "rs.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
-  dastore: {compile: (b) -> b.add_stmt new Expr "rs.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop2()}
+  dastore: {compile: (b) -> b.add_stmt new Expr "rs.check_null($2).array[$1]=$0",b.pop2(),b.pop(),b.pop()}
   aastore: {compile: (b) -> b.add_stmt new Expr "rs.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
   bastore: {compile: (b) -> b.add_stmt new Expr "rs.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
   castore: {compile: (b) -> b.add_stmt new Expr "rs.check_null($2).array[$1]=$0",b.pop(),b.pop(),b.pop()}
