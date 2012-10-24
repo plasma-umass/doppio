@@ -454,7 +454,7 @@ root.opcodes = {
       rs.push o
     else
       target_class = c2t(@class).toExternalString() # class we wish to cast to
-      candidate_class = if o? then o.type.toExternalString() else "null"
+      candidate_class = o.type.toExternalString()
       java_throw rs, 'java/lang/ClassCastException', "#{candidate_class} cannot be cast to #{target_class}"
   }
   193: new root.ClassOpcode 'instanceof', { execute: (rs) -> o=rs.pop(); rs.push if o? then types.check_cast(rs,o,@class)+0 else 0 }
