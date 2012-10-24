@@ -498,6 +498,24 @@ compile_obj_handlers = {
     b.push obj
   }
 
+  multianewarray: { compile: (b) ->
+    t = b.new_temp()
+    counts = b.stack.splice(-@dim,@dim)
+    def = util.initial_value @class[@dim..]
+    b.add_stmt new Expr """
+    var counts = [#{counts}];
+    function init_arr(curr_dim) {
+      if (curr_dim === #{@dim}) return #{def};
+      var dimension = [];
+      for (var _i = 0; _i < counts[curr_dim]; _i++)
+        dimension.push(init_arr(curr_dim + 1));
+      return rs.init_object(#{JSON.stringify @class}.slice(curr_dim), dimension);
+    }
+    $0 = init_arr(0)
+    """, t
+    b.push t
+  }
+
   goto: { compile: (b, idx) ->
     b.next = [b.block_chain.get_block_from_instr @offset + idx]
     b.add_stmt -> b.compile_epilogue()
