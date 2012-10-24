@@ -45,9 +45,9 @@ root.run_class = (rs, class_name, cmdline_args, done_cb, compile=false) ->
     if compile
       # hacky way to test compiled code
       compiler = require './compiler'
-      {c2t} = require './types'
+      types = require './types'
       console.log "compiling #{class_name}"
-      eval compiler.compile(rs.class_lookup(c2t(class_name)))
+      eval compiler.compile(rs.class_lookup(types.c2t(class_name)))
       console.log "running #{class_name}::main"
       gLong = require '../third_party/gLong.js'
       run rs, (-> eval "#{class_name.replace(/\//g,'_')}.main(rs,rs.pop())")
