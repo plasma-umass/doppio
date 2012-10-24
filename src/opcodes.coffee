@@ -223,8 +223,9 @@ class root.MultiArrayOpcode extends root.Opcode
 
   execute: (rs) ->
     counts = rs.curr_frame().stack.splice(-@dim,@dim)
+    def = util.initial_value @class[@dim..]
     init_arr = (curr_dim) =>
-      return 0 if curr_dim == @dim
+      return def if curr_dim == @dim
       typestr = @class[curr_dim..]
       rs.init_object typestr, (init_arr(curr_dim+1) for [0...counts[curr_dim]])
     rs.push init_arr 0
