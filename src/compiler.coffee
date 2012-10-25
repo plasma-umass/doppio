@@ -415,6 +415,18 @@ compile_obj_handlers = {
   fneg: { compile: (b) -> b.push new Expr "-$0",b.pop() }
   dneg: { compile: (b) -> b.push2 new Expr "-$0",b.pop2() }
 
+  ishl: { compile: (b) -> b.push new Expr "($1<<($0&0x1F))", b.pop(), b.pop() }
+  lshl: { compile: (b) -> b.push new Expr "$1.shiftLeft(gLong.fromInt($0&0x3F))", b.pop(), b.pop2() }
+  ishr: { compile: (b) -> b.push new Expr "($1>>($0&0x1F))", b.pop(), b.pop() }
+  lshr: { compile: (b) -> b.push new Expr "$1.shiftRight(gLong.fromInt($0&0x3F))", b.pop(), b.pop2() }
+  iushr: { compile: (b) -> b.push new Expr "($1>>>($0&0x1F))", b.pop(), b.pop() }
+  lushr: { compile: (b) -> b.push new Expr "$1.shiftRightUnsigned(gLong.fromInt($0&0x3F))", b.pop(), b.pop2() }
+  iand: { compile: (b) -> b.push new Expr "($0&$1)", b.pop(), b.pop() }
+  land: { compile: (b) -> b.push2 new Expr "$0.and($1)", b.pop2(), b.pop2() }
+  ior:  { compile: (b) -> b.push new Expr "($0|$1)", b.pop(), b.pop() }
+  lor:  { compile: (b) -> b.push2 new Expr "$0.or($1)", b.pop2(), b.pop2() }
+  ixor: { compile: (b) -> b.push new Expr "($0^$1)", b.pop(), b.pop() }
+  lxor: { compile: (b) -> b.push2 new Expr "$0.xor($1)", b.pop2(), b.pop2() }
   iinc: { compile: (b) -> b.put_cl @index, new Expr "util.wrap_int($0+$1)",b.cl(@index),@const }
   i2l: { compile: (b) -> b.push2 new Expr "gLong.fromInt($0)",b.pop() }
   i2f: { compile: (b) -> }
@@ -431,6 +443,11 @@ compile_obj_handlers = {
   i2b: { compile: (b) -> b.push new Expr "util.truncate($0, 8)",b.pop() }
   i2c: { compile: (b) -> b.push new Expr "$0 & 0xFFFF",b.pop() }
   i2s: { compile: (b) -> b.push new Expr "util.truncate($0, 16)",b.pop() }
+  lcmp: { compile: (b) -> b.push new Expr "$1.compare($0)", b.pop2(), b.pop2() }
+  fcmpl: { compile: (b) -> b.push new Expr "((r = util.cmp($1,$0)) != null ? r : -1)", b.pop(), b.pop() }
+  fcmpg: { compile: (b) -> b.push new Expr "((r = util.cmp($1,$0)) != null ? r : 1)", b.pop(), b.pop() }
+  dcmpl: { compile: (b) -> b.push new Expr "((r = util.cmp($1,$0)) != null ? r : -1)", b.pop2(), b.pop2() }
+  dcmpg: { compile: (b) -> b.push new Expr "((r = util.cmp($1,$0)) != null ? r : 1)", b.pop2(), b.pop2() }
 
   ireturn: { compile: (b) -> b.add_stmt "return #{b.pop()}" }
   lreturn: { compile: (b) -> b.add_stmt "return #{b.pop2()}" }
