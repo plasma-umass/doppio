@@ -419,8 +419,8 @@ compile_obj_handlers = {
   d2i: { compile: (b) -> b.push new Expr "util.float2int($0)",b.pop2() }
   d2l: { compile: (b) -> b.push2 new Expr "gLong.fromNumber($0)",b.pop2() }  # doesn't handle +/- inf edge cases
   d2f: { compile: (b) -> b.push new Expr "util.wrap_float($0)",b.pop2() }
-  i2b: { compile: (b) -> b.push new Expr "util.truncate($0, 8)",b.pop2() }
-  i2c: { compile: (b) -> b.push "$0&0xFFFF",b.pop() }
+  i2b: { compile: (b) -> b.push new Expr "util.truncate($0, 8)",b.pop() }
+  i2c: { compile: (b) -> b.push new Expr "$0 & 0xFFFF",b.pop() }
   i2s: { compile: (b) -> b.push new Expr "util.truncate($0, 16)",b.pop() }
 
   ireturn: { compile: (b) -> b.add_stmt "return #{b.pop()}" }
