@@ -1,4 +1,5 @@
 _ = require '../third_party/_.js'
+gLong = require '../third_party/gLong.js'
 util = require './util'
 {Method} = require './methods'
 {c2t} = require './types'
@@ -273,6 +274,9 @@ escapeStr = (str) ->
      .replace(/[\r]/g, '\\r')
      .replace(/[\t]/g, '\\t')
 
+# JS's maximum representable integer
+max_number = gLong.fromNumber(Math.pow(2,53))
+
 compile_class_handlers =
   PushOpcode: (b) -> b.push @value
   StoreOpcode: (b) ->
@@ -294,7 +298,12 @@ compile_class_handlers =
       # runtime, but for now we can assume it is
       b.push "rs.class_lookup(c2t('#{@str_constant.value}')), true)"
     else if @name is 'ldc2_w'
-      b.push2 val
+      if val?.greaterThan?(max_number)
+        b.push2 "gLong.fromBits(#{val.getLowBits()},#{val.getHighBits()})"
+      else if val?.toNumber?
+        b.push2 "gLong.fromNumber(#{val})"
+      else
+        b.push2 val
     else
       b.push val
   ArrayLoadOpcode: (b) ->
