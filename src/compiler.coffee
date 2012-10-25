@@ -393,28 +393,27 @@ compile_obj_handlers = {
   iadd: { compile: (b) -> b.push new Expr "util.wrap_int($0+$1)",b.pop(),b.pop() }
   ladd: { compile: (b) -> b.push2 new Expr "$0.add($1)",b.pop2(),b.pop2() }
   fadd: { compile: (b) -> b.push new Expr "util.wrap_float($0+$1)",b.pop(),b.pop() }
-  dadd: { compile: (b) -> b.push2 new Expr "$0+$1",b.pop(),b.pop() }
+  dadd: { compile: (b) -> b.push2 new Expr "($0+$1)",b.pop(),b.pop() }
   isub: { compile: (b) -> b.push new Expr "util.wrap_int($1-$0)",b.pop(),b.pop() }
   lsub: { compile: (b) -> b.push2 new Expr "$1.subtract($0)",b.pop2(),b.pop2() }
   fsub: { compile: (b) -> b.push new Expr "util.wrap_float($1-$0)",b.pop(),b.pop() }
-  dsub: { compile: (b) -> b.push2 new Expr "$1-$0",b.pop2(),b.pop2() }
+  dsub: { compile: (b) -> b.push2 new Expr "($1-$0)",b.pop2(),b.pop2() }
   imul: { compile: (b) -> b.push new Expr "gLong.fromInt($0).multiply(gLong.fromInt($1)).toInt()",b.pop(),b.pop() }
   lmul: { compile: (b) -> b.push2 new Expr "$0.multiply($1)",b.pop2(),b.pop2() }
   fmul: { compile: (b) -> b.push new Expr "util.wrap_float($0*$1)",b.pop(),b.pop() }
-  dmul: { compile: (b) -> b.push2 new Expr "$0*$1",b.pop2(),b.pop2() }
+  dmul: { compile: (b) -> b.push2 new Expr "($0*$1)",b.pop2(),b.pop2() }
   idiv: { compile: (b) -> b.push new Expr "util.int_div(rs, $1, $0)",b.pop(),b.pop() }
   ldiv: { compile: (b) -> b.push2 new Expr "util.long_div(rs, $1, $0)",b.pop2(),b.pop2() }
   fdiv: { compile: (b) -> b.push new Expr "util.wrap_float($1/$0)",b.pop(),b.pop() }
-  ddiv: { compile: (b) -> b.push2 new Expr "$1/$0",b.pop2(),b.pop2() }
+  ddiv: { compile: (b) -> b.push2 new Expr "($1/$0)",b.pop2(),b.pop2() }
   irem: { compile: (b) -> b.push new Expr "util.int_mod(rs,$1,$0)",b.pop(),b.pop() }
   lrem: { compile: (b) -> b.push2 new Expr "util.long_mod(rs,$1,$0)",b.pop2(),b.pop2() }
-  frem: { compile: (b) -> b.push new Expr "$1%$0",b.pop(),b.pop() }
-  drem: { compile: (b) -> b.push2 new Expr "$1%$0",b.pop2(),b.pop2() }
-  ineg: { compile: (b) -> b.push new Expr "-$0",b.pop() }  # doesn't handle int_min edge case
+  frem: { compile: (b) -> b.push new Expr "($1%$0)",b.pop(),b.pop() }
+  drem: { compile: (b) -> b.push2 new Expr "($1%$0)",b.pop2(),b.pop2() }
+  ineg: { compile: (b) -> b.push new Expr "(-$0)",b.pop() }  # doesn't handle int_min edge case
   lneg: { compile: (b) -> b.push2 new Expr "$0.negate()",b.pop2() }
-  fneg: { compile: (b) -> b.push new Expr "-$0",b.pop() }
-  dneg: { compile: (b) -> b.push2 new Expr "-$0",b.pop2() }
-
+  fneg: { compile: (b) -> b.push new Expr "(-$0)",b.pop() }
+  dneg: { compile: (b) -> b.push2 new Expr "(-$0)",b.pop2() }
   ishl: { compile: (b) -> b.push new Expr "($1<<($0&0x1F))", b.pop(), b.pop() }
   lshl: { compile: (b) -> b.push new Expr "$1.shiftLeft(gLong.fromInt($0&0x3F))", b.pop(), b.pop2() }
   ishr: { compile: (b) -> b.push new Expr "($1>>($0&0x1F))", b.pop(), b.pop() }
@@ -441,7 +440,7 @@ compile_obj_handlers = {
   d2l: { compile: (b) -> b.push2 new Expr "gLong.fromNumber($0)",b.pop2() }  # doesn't handle +/- inf edge cases
   d2f: { compile: (b) -> b.push new Expr "util.wrap_float($0)",b.pop2() }
   i2b: { compile: (b) -> b.push new Expr "util.truncate($0, 8)",b.pop() }
-  i2c: { compile: (b) -> b.push new Expr "$0 & 0xFFFF",b.pop() }
+  i2c: { compile: (b) -> b.push new Expr "($0 & 0xFFFF)",b.pop() }
   i2s: { compile: (b) -> b.push new Expr "util.truncate($0, 16)",b.pop() }
   lcmp: { compile: (b) -> b.push new Expr "$1.compare($0)", b.pop2(), b.pop2() }
   fcmpl: { compile: (b) -> b.push new Expr "((r = util.cmp($1,$0)) != null ? r : -1)", b.pop(), b.pop() }
