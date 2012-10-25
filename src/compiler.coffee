@@ -426,7 +426,8 @@ compile_obj_handlers = {
   lor:  { compile: (b) -> b.push2 new Expr "$0.or($1)", b.pop2(), b.pop2() }
   ixor: { compile: (b) -> b.push new Expr "($0^$1)", b.pop(), b.pop() }
   lxor: { compile: (b) -> b.push2 new Expr "$0.xor($1)", b.pop2(), b.pop2() }
-  iinc: { compile: (b) -> b.put_cl @index, new Expr "util.wrap_int($0+$1)",b.cl(@index),@const }
+  iinc:   { compile: (b) -> b.put_cl @index, new Expr "util.wrap_int($0+$1)",b.cl(@index),@const }
+  iinc_w: { compile: (b) -> b.put_cl @index, new Expr "util.wrap_int($0+$1)",b.cl(@index),@const }
   i2l: { compile: (b) -> b.push2 new Expr "gLong.fromInt($0)",b.pop() }
   i2f: { compile: (b) -> }
   i2d: { compile: (b) -> b.push null }
