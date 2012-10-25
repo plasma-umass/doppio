@@ -313,7 +313,7 @@ compile_class_handlers =
     var obj = rs.check_null($1);
     var array = obj.array;
     if (!(0 <= idx && idx < array.length))
-      java_throw(rs, 'java/lang/ArrayIndexOutOfBoundsException',
+      util.java_throw(rs, 'java/lang/ArrayIndexOutOfBoundsException',
         idx + " not in length " + array.length + " array of type " + obj.type.toClassString());
     $2 = array[idx]
     """, b.pop(), b.pop(), temp
@@ -518,8 +518,7 @@ compile_obj_handlers = {
     obj = b.pop()
     b.add_stmt new Expr """
         if (($0 != null) && !types.check_cast(rs, $0, #{JSON.stringify @class})) {
-          var candidate_class = $0.type.toExternalString();
-          java_throw(rs, 'java/lang/ClassCastException', candidate_class+" cannot be cast to #{target_class}");
+          util.java_throw(rs, 'java/lang/ClassCastException', $0.type.toExternalString()+" cannot be cast to #{target_class}");
         }""", obj
     b.push obj
   }
