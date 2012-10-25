@@ -410,10 +410,10 @@ compile_obj_handlers = {
   lrem: { compile: (b) -> b.push2 new Expr "util.long_mod(rs,$1,$0)",b.pop2(),b.pop2() }
   frem: { compile: (b) -> b.push new Expr "($1%$0)",b.pop(),b.pop() }
   drem: { compile: (b) -> b.push2 new Expr "($1%$0)",b.pop2(),b.pop2() }
-  ineg: { compile: (b) -> b.push new Expr "(-$0)",b.pop() }  # doesn't handle int_min edge case
+  ineg: { compile: (b) -> b.push new Expr "-$0",b.pop() }  # doesn't handle int_min edge case
   lneg: { compile: (b) -> b.push2 new Expr "$0.negate()",b.pop2() }
-  fneg: { compile: (b) -> b.push new Expr "(-$0)",b.pop() }
-  dneg: { compile: (b) -> b.push2 new Expr "(-$0)",b.pop2() }
+  fneg: { compile: (b) -> b.push new Expr "-$0",b.pop() }
+  dneg: { compile: (b) -> b.push2 new Expr "-$0",b.pop2() }
   ishl: { compile: (b) -> b.push new Expr "($1<<($0&0x1F))", b.pop(), b.pop() }
   lshl: { compile: (b) -> b.push new Expr "$1.shiftLeft(gLong.fromInt($0&0x3F))", b.pop(), b.pop2() }
   ishr: { compile: (b) -> b.push new Expr "($1>>($0&0x1F))", b.pop(), b.pop() }
