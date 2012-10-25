@@ -523,6 +523,14 @@ compile_obj_handlers = {
     b.push obj
   }
 
+  'instanceof': { compile: (b) ->
+    t = b.new_temp()
+    b.add_stmt new Assignment t, new Expr """
+      ($0 == null)? 0 : types.check_cast(rs,$0,#{JSON.stringify @class})+0
+    """, b.pop()
+    b.push t
+  }
+
   multianewarray: { compile: (b) ->
     t = b.new_temp()
     counts = b.stack.splice(-@dim,@dim)
