@@ -1,10 +1,8 @@
 
 # pull in external modules
-_ = require '../third_party/_.js'
-runtime = require './runtime'
-util = require './util'
-{log,debug,error} = require './logging'
-{HaltException,YieldException,JavaException} = require './exceptions'
+require './runtime'
+{debug,error} = require './logging'
+exceptions = require './exceptions'
 
 # things assigned to root will be available outside this module
 root = exports ? this.jvm = {}
@@ -15,7 +13,7 @@ run = (rs, fn, done_cb) ->
     done_cb?()
     return true
   catch e
-    if e instanceof YieldException
+    if e instanceof exceptions.YieldException
       retval = null
       e.condition ->
         rs.meta_stack().resuming_stack = 0  # <-- index into the meta_stack of the frame we're resuming
@@ -37,10 +35,11 @@ root.run_class = (rs, class_name, cmdline_args, done_cb, compile=false) ->
     if compile
       # hacky way to test compiled code
       compiler = require './compiler'
+      util = require './util'
       types = require './types'
-      console.log "compiling #{class_name}"
+      debug "compiling #{class_name}"
       eval compiler.compile(rs.class_lookup(types.c2t(class_name)))
-      console.log "running #{class_name}::main"
+      debug "running #{class_name}::main"
       gLong = require '../third_party/gLong.js'
       run rs, (-> eval "#{class_name.replace(/\//g,'_')}.main(rs,rs.pop())")
     else
