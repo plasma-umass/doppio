@@ -5,9 +5,10 @@ gLong = require '../third_party/gLong.js'
 util = require './util'
 types = require './types'
 runtime = require './runtime'
+exceptions = require './exceptions'
+{log,debug,error} = require './logging'
 path = node?.path ? require 'path'
 fs = node?.fs ? require 'fs'
-{log,debug,error} = util
 {c2t} = types
 
 # things assigned to root will be available outside this module
@@ -110,7 +111,7 @@ get_field_from_offset = (rs, cls, offset) ->
   classname = cls.this_class.toClassString()
   until cls.fields[offset]?
     unless cls.super_class?
-      util.java_throw rs, 'java/lang/NullPointerException', "field #{offset} doesn't exist in class #{classname}"
+      exceptions.java_throw rs, 'java/lang/NullPointerException', "field #{offset} doesn't exist in class #{classname}"
     cls = rs.class_lookup(cls.super_class)
   cls.fields[offset]
 
@@ -204,7 +205,7 @@ native_methods =
             try
               rv = rs.class_lookup type, true
             catch e
-              unless e instanceof util.JavaException # assuming a NoClassDefFoundError
+              unless e instanceof exceptions.JavaException # assuming a NoClassDefFoundError
                 throw e
             rv
         o 'findBootstrapClass(L!/!/String;)L!/!/Class;', (rs, _this, name) ->
@@ -253,14 +254,14 @@ native_methods =
             return unless rs.lock_refs[_this]?  # if it's not an active monitor, no one cares
             unless rs.lock_refs[_this] is rs.curr_thread
               owner = rs.jvm_carr2js_str rs.lock_refs[_this].fields.name
-              util.java_throw rs, 'java/lang/IllegalMonitorStateException', "Thread '#{owner}' owns this monitor"
+              exceptions.java_throw rs, 'java/lang/IllegalMonitorStateException', "Thread '#{owner}' owns this monitor"
             if rs.waiting_threads[_this]? and (t = rs.waiting_threads[_this].shift())?
               rs.wait _this, t  # wait on _this, yield to t
         o 'notifyAll()V', (rs, _this) ->  # exactly the same as notify(), for now
             return unless rs.lock_refs[_this]?  # if it's not an active monitor, no one cares
             unless rs.lock_refs[_this] is rs.curr_thread
               owner = rs.jvm_carr2js_str rs.lock_refs[_this].fields.name
-              util.java_throw rs, 'java/lang/IllegalMonitorStateException', "Thread '#{owner}' owns this monitor"
+              exceptions.java_throw rs, 'java/lang/IllegalMonitorStateException', "Thread '#{owner}' owns this monitor"
             if rs.waiting_threads[_this]? and (t = rs.waiting_threads[_this].shift())?
               rs.wait _this, t  # wait on _this, yield to t
         o 'wait(J)V', (rs, _this, timeout) ->
@@ -279,10 +280,10 @@ native_methods =
             # No universal way of forcing browser to GC, so we yield in hopes
             # that the browser will use it as an opportunity to GC.
             rs.curr_frame().resume = -> # NOP
-            throw new util.YieldIOException (cb) -> setTimeout(cb, 0)
+            throw new exceptions.YieldIOException (cb) -> setTimeout(cb, 0)
       ]
       Shutdown: [
-        o 'halt0(I)V', (rs) -> throw new util.HaltException(rs.curr_frame().locals[0])
+        o 'halt0(I)V', (rs) -> throw new exceptions.HaltException(rs.curr_frame().locals[0])
       ]
       StrictMath: [
         o 'acos(D)D', (rs, d_val) -> Math.acos(d_val)
@@ -361,11 +362,11 @@ native_methods =
                 try
                   rs.curr_frame().method.run(rs, true)
                 catch e
-                  throw e unless e instanceof util.YieldException
+                  throw e unless e instanceof exceptions.YieldException
                   resume_thread e.condition
 
             # actually start the thread
-            throw new util.YieldException (cb) ->
+            throw new exceptions.YieldException (cb) ->
               spawning_thread.fields.$resume = cb
               rs.curr_thread = _this
               # call the thread's run() method.
@@ -373,20 +374,20 @@ native_methods =
               try
                 rs.method_lookup({class: _this.type.toClassString(), sig: 'run()V'}).run(rs)
               catch e
-                if e instanceof util.JavaException
+                if e instanceof exceptions.JavaException
                   debug "\nUncaught Java Exception"
                   rs.show_state()
                   rs.push rs.curr_thread, e.exception
                   rs.method_lookup(class: 'java/lang/Thread', sig: 'dispatchUncaughtException(Ljava/lang/Throwable;)V').run(rs)
                   return
-                else if e instanceof util.HaltException
+                else if e instanceof exceptions.HaltException
                   console.error "\nExited with code #{e.exit_code}" unless e.exit_code is 0
                   return
-                else if e instanceof util.YieldIOException
+                else if e instanceof exceptions.YieldIOException
                   return e.condition ->
                     rs.meta_stack().resuming_stack = 1
                     rs.curr_frame().method.run(rs, true)
-                else if e instanceof util.YieldException
+                else if e instanceof exceptions.YieldException
                   resume_thread e.condition
                   rs.curr_thread.fields.$isAlive = false
                   rs.thread_pool.splice rs.thread_pool.indexOf(rs.curr_thread), 1
@@ -405,11 +406,11 @@ native_methods =
 
         o 'sleep(J)V', (rs, millis) ->
             rs.curr_frame().resume = -> # NOP, return immediately after sleeping
-            throw new util.YieldIOException (cb) ->
+            throw new exceptions.YieldIOException (cb) ->
               setTimeout(cb, millis.toNumber())
         o 'yield()V', (rs, _this) ->
             unless _this is rs.curr_thread
-              util.java_throw rs, 'java/lang/Error', "tried to yield non-current thread"
+              exceptions.java_throw rs, 'java/lang/Error', "tried to yield non-current thread"
             rs.yield()
       ]
     security:
@@ -455,7 +456,7 @@ native_methods =
               # For the browser implementation -- the DOM doesn't get repainted
               # unless we give the event loop a chance to spin.
               rs.curr_frame().resume = -> # NOP
-              throw new util.YieldIOException (cb) -> setTimeout(cb, 0)
+              throw new exceptions.YieldIOException (cb) -> setTimeout(cb, 0)
         o 'writeBytes([BII)V', (rs, _this, bytes, offset, len) ->
             if _this.fields.$file?
               fs.writeSync(_this.fields.$file, new Buffer(bytes.array), offset, len)
@@ -465,7 +466,7 @@ native_methods =
               # For the browser implementation -- the DOM doesn't get repainted
               # unless we give the event loop a chance to spin.
               rs.curr_frame().resume = -> # NOP
-              throw new util.YieldIOException (cb) -> setTimeout(cb, 0)
+              throw new exceptions.YieldIOException (cb) -> setTimeout(cb, 0)
         o 'close0()V', (rs, _this) ->
             return unless _this.fields.$file?
             fs.closeSync(_this.fields.$file)
@@ -487,7 +488,7 @@ native_methods =
             data = null # will be filled in after the yield
             rs.curr_frame().resume = ->
               if data.length == 0 then -1 else data.charCodeAt(0)
-            throw new util.YieldIOException (cb) ->
+            throw new exceptions.YieldIOException (cb) ->
               rs.async_input 1, (byte) ->
                 data = byte
                 cb()
@@ -505,7 +506,7 @@ native_methods =
             # reading from System.in, do it async
             result = null # will be filled in after the yield
             rs.curr_frame().resume = -> result
-            throw new util.YieldIOException (cb) ->
+            throw new exceptions.YieldIOException (cb) ->
               rs.async_input n_bytes, (bytes) ->
                 byte_arr.array[offset+idx] = b for b, idx in bytes
                 result = bytes.length
@@ -517,7 +518,7 @@ native_methods =
               _this.fields.$pos = 0
             catch e
               if e.code == 'ENOENT'
-                util.java_throw rs, 'java/io/FileNotFoundException', "Could not open file #{filepath}"
+                exceptions.java_throw rs, 'java/io/FileNotFoundException', "Could not open file #{filepath}"
               else
                 throw e
         o 'close0()V', (rs, _this) -> _this.fields.$file = null
@@ -530,7 +531,7 @@ native_methods =
             # reading from System.in, do it async
             num_skipped = null # will be filled in after the yield
             rs.curr_frame().resume = -> gLong.fromNumber(num_skipped)
-            throw new util.YieldIOException (cb) ->
+            throw new exceptions.YieldIOException (cb) ->
               rs.async_input n_bytes.toNumber(), (bytes) ->
                 num_skipped = bytes.length  # we don't care about what the input actually was
                 cb()
@@ -545,7 +546,7 @@ native_methods =
               _this.fields.$file = fs.openSync filepath, 'r'
             catch e
               if e.code == 'ENOENT'
-                util.java_throw rs, 'java/io/FileNotFoundException', "Could not open file #{filepath}"
+                exceptions.java_throw rs, 'java/io/FileNotFoundException', "Could not open file #{filepath}"
               else
                 throw e
             _this.fields.$pos = 0
@@ -576,7 +577,7 @@ native_methods =
         o 'getLastModifiedTime(Ljava/io/File;)J', (rs, _this, file) ->
             filepath = rs.jvm2js_str file.fields.path
             stats = stat_file filepath
-            util.java_throw(rs, 'java/io/FileNotFoundException', "Could not stat file #{filepath}") unless stats?
+            exceptions.java_throw(rs, 'java/io/FileNotFoundException', "Could not stat file #{filepath}") unless stats?
             gLong.fromNumber (new Date(stats.mtime)).getTime()
         o 'canonicalize0(L!/lang/String;)L!/lang/String;', (rs, _this, jvm_path_str) ->
             js_str = rs.jvm2js_str jvm_path_str

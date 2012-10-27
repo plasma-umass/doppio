@@ -2,7 +2,7 @@
 gLong = require '../third_party/gLong.js'
 util = require './util'
 types = require './types'
-{java_throw,BranchException,ReturnException,JavaException} = util
+{java_throw,BranchException,ReturnException,JavaException} = require './exceptions'
 {c2t} = types
 
 root = exports ? window.opcodes = {}

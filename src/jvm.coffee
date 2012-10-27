@@ -3,7 +3,8 @@
 _ = require '../third_party/_.js'
 runtime = require './runtime'
 util = require './util'
-{log,debug,error} = util
+{log,debug,error} = require './logging'
+{HaltException,YieldException,JavaException} = require './exceptions'
 
 # things assigned to root will be available outside this module
 root = exports ? this.jvm = {}
@@ -14,7 +15,7 @@ run = (rs, fn, done_cb) ->
     done_cb?()
     return true
   catch e
-    if e instanceof util.JavaException
+    if e instanceof JavaException
       error "\nUncaught #{e.exception.type.toClassString()}"
       msg = e.exception.fields.detailMessage
       error "\t#{rs.jvm2js_str msg}" if msg?
@@ -23,9 +24,9 @@ run = (rs, fn, done_cb) ->
       rs.method_lookup(
         class: 'java/lang/Thread'
         sig: 'dispatchUncaughtException(Ljava/lang/Throwable;)V').run(rs)
-    else if e instanceof util.HaltException
+    else if e instanceof HaltException
       console.error "\nExited with code #{e.exit_code}" unless e.exit_code is 0
-    else if e instanceof util.YieldIOException or e instanceof util.YieldException
+    else if e instanceof YieldException
       retval = null
       e.condition ->
         rs.meta_stack().resuming_stack = 0  # <-- index into the meta_stack of the frame we're resuming
@@ -34,7 +35,7 @@ run = (rs, fn, done_cb) ->
     else
       error "\nInternal JVM Error: #{e?.stack}"
       rs.show_state()
-    unless e instanceof util.YieldIOException or e instanceof util.YieldException
+    unless e instanceof YieldException
       done_cb?()
       return false
 

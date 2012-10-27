@@ -9,7 +9,8 @@ disassembler = require './disassembler'
 types = require './types'
 natives = require './natives'
 runtime = require './runtime'
-{log,vtrace,trace,debug,error} = util
+{YieldException,JavaException} = require './exceptions'
+{log,vtrace,trace,debug,error,debug_vars} = require './logging'
 {opcode_annotators} = disassembler
 {str2type,carr2type,c2t} = types
 {native_methods,trapped_methods} = natives
@@ -98,9 +99,9 @@ class root.Method extends AbstractMethodField
       # this case, pop the stack anyway but don't push a return value.
       # YieldExceptions should just terminate the function without popping the
       # stack.
-      if e instanceof util.JavaException
+      if e instanceof JavaException
         rs.meta_stack().pop()
-      else if e instanceof util.YieldException or e instanceof util.YieldIOException
+      else if e instanceof YieldException
         trace "yielding from #{@full_signature()}"
       throw e
     rs.meta_stack().pop()
@@ -119,7 +120,7 @@ class root.Method extends AbstractMethodField
       op = code[pc]
       unless RELEASE? or util.log_level < util.STRACE
         throw "#{@name}:#{pc} => (null)" unless op
-        vtrace "#{padding}stack: [#{util.debug_vars cf.stack}], local: [#{util.debug_vars cf.locals}]"
+        vtrace "#{padding}stack: [#{debug_vars cf.stack}], local: [#{debug_vars cf.locals}]"
         annotation =
           util.call_handler(opcode_annotators, op, pc, rs.class_lookup(@class_type).constant_pool) or ""
         vtrace "#{padding}#{@class_type.toClassString()}::#{@name}:#{pc} => #{op.name}" + annotation
@@ -127,30 +128,8 @@ class root.Method extends AbstractMethodField
         op.execute rs
         cf.pc += 1 + op.byte_count  # move to the next opcode
       catch e
-        if e instanceof util.BranchException
-          cf.pc = e.dst_pc
-        else if e instanceof util.ReturnException
-          vtrace "#{padding}stack: [#{util.debug_vars cf.stack}], local: [#{util.debug_vars cf.locals}] (method end)"
-          rs.meta_stack().pop()
-          rs.push e.values...
-          break
-        else if e instanceof util.YieldException or e instanceof util.YieldIOException
-          trace "yielding from #{@class_type.toClassString()}::#{@name}#{@raw_descriptor}"
-          throw e  # leave everything as-is
-        else if e instanceof util.JavaException
-          exception_handlers = @code.exception_handlers
-          handler = _.find exception_handlers, (eh) ->
-            eh.start_pc <= pc < eh.end_pc and
-              (eh.catch_type == "<any>" or types.is_castable rs, e.exception.type, c2t(eh.catch_type))
-          if handler?
-            trace "caught exception as subclass of #{handler.catch_type}"
-            cf.stack = []  # clear out anything on the stack; it was made during the try block
-            rs.push e.exception
-            cf.pc = handler.handler_pc
-          else # abrupt method invocation completion
-            trace "exception not caught, terminating #{@name}"
-            rs.meta_stack().pop()
-            throw e
+        if e.caught?
+          break if e.caught(rs, @, padding)
         else
           throw e # JVM Error
     # Must explicitly return here, to avoid Coffeescript accumulating an array of
