@@ -260,16 +260,6 @@ cmpMap =
   gt: '>'
   le: '<='
 
-escapeStr = (str) ->
-  str.replace(/[\\]/g, '\\\\')
-     .replace(/[\"]/g, '\\\"')
-     .replace(/[\/]/g, '\\/')
-     .replace(/[\b]/g, '\\b')
-     .replace(/[\f]/g, '\\f')
-     .replace(/[\n]/g, '\\n')
-     .replace(/[\r]/g, '\\r')
-     .replace(/[\t]/g, '\\t')
-
 # JS's maximum representable integer
 max_number = gLong.fromNumber(Math.pow(2,53))
 
@@ -288,7 +278,7 @@ compile_class_handlers =
   LoadConstantOpcode: (b) ->
     val = @constant.value
     if @constant.type is 'String'
-      b.push "rs.init_string('#{escapeStr @str_constant.value}', true)"
+      b.push "rs.init_string(#{JSON.stringify @str_constant.value}, true)"
     else if @constant.type is 'class'
       # this may not be side-effect independent if we can change classloaders at
       # runtime, but for now we can assume it is
