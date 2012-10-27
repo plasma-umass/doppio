@@ -120,15 +120,15 @@ class root.Method extends AbstractMethodField
     code = @code.opcodes
     cf = rs.curr_frame()
     while true
+      pc = cf.pc
+      op = code[pc]
+      unless RELEASE? or util.log_level < util.STRACE
+        throw "#{@name}:#{pc} => (null)" unless op
+        vtrace "#{padding}stack: [#{pa cf.stack}], local: [#{pa cf.locals}]"
+        annotation =
+          util.call_handler(opcode_annotators, op, pc, rs.class_lookup(@class_type).constant_pool) or ""
+        vtrace "#{padding}#{@class_type.toClassString()}::#{@name}:#{pc} => #{op.name}" + annotation
       try
-        pc = cf.pc
-        op = code[pc]
-        unless RELEASE? or util.log_level < util.STRACE
-          throw "#{@name}:#{pc} => (null)" unless op
-          vtrace "#{padding}stack: [#{pa cf.stack}], local: [#{pa cf.locals}]"
-          annotation =
-            util.call_handler(opcode_annotators, op, pc, rs.class_lookup(@class_type).constant_pool) or ""
-          vtrace "#{padding}#{@class_type.toClassString()}::#{@name}:#{pc} => #{op.name}" + annotation
         op.execute rs
         cf.pc += 1 + op.byte_count  # move to the next opcode
       catch e
