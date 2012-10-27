@@ -9,7 +9,6 @@ disassembler = require './disassembler'
 types = require './types'
 natives = require './natives'
 runtime = require './runtime'
-{YieldException,JavaException} = require './exceptions'
 {log,vtrace,trace,debug,error,debug_vars} = require './logging'
 {opcode_annotators} = disassembler
 {str2type,carr2type,c2t} = types
@@ -95,14 +94,7 @@ class root.Method extends AbstractMethodField
     try
       rv = func rs, converted_params...
     catch e
-      # func may throw a JavaException (if it cannot handle it internally).  In
-      # this case, pop the stack anyway but don't push a return value.
-      # YieldExceptions should just terminate the function without popping the
-      # stack.
-      if e instanceof JavaException
-        rs.meta_stack().pop()
-      else if e instanceof YieldException
-        trace "yielding from #{@full_signature()}"
+      e.caught?(rs, @)  # handles stack pop, if it's a JavaException
       throw e
     rs.meta_stack().pop()
     ret_type = @return_type.toString()

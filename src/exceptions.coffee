@@ -38,7 +38,7 @@ class root.JavaException
   constructor: (@exception) ->
   caught: (rs, method) ->
     cf = rs.curr_frame()
-    exception_handlers = method.code.exception_handlers
+    exception_handlers = method.code?.exception_handlers
     etype = @exception.type
     handler = _.find exception_handlers, (eh) ->
       eh.start_pc <= cf.pc < eh.end_pc and
@@ -49,10 +49,10 @@ class root.JavaException
       rs.push @exception
       cf.pc = handler.handler_pc
       return false
-    else # abrupt method invocation completion
-      logging.trace "exception not caught, terminating #{method.name}"
-      rs.meta_stack().pop()
-      throw @
+    # abrupt method invocation completion
+    logging.trace "exception not caught, terminating #{method.name}"
+    rs.meta_stack().pop()
+    throw @
 
 # Simulate the throwing of a Java exception with message :msg. Not very DRY --
 # code here is essentially copied from the opcodes themselves -- but
