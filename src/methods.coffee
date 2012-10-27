@@ -58,6 +58,8 @@ class root.Method extends AbstractMethodField
     @num_args++ unless @access_flags.static # nonstatic methods get 'this'
     @return_type = str2type return_str
 
+  full_signature: -> "#{@class_type.toClassString()}::#{@name}#{@raw_descriptor}"
+
   reflector: (rs, is_constructor=false) ->
     typestr = if is_constructor then 'java/lang/reflect/Constructor' else 'java/lang/reflect/Method'
     rs.init_object typestr, {
@@ -99,7 +101,7 @@ class root.Method extends AbstractMethodField
       if e instanceof util.JavaException
         rs.meta_stack().pop()
       else if e instanceof util.YieldException or e instanceof util.YieldIOException
-        trace "yielding from #{@class_type.toClassString()}::#{@name}#{@raw_descriptor}"
+        trace "yielding from #{@full_signature()}"
       throw e
     rs.meta_stack().pop()
     ret_type = @return_type.toString()
@@ -156,7 +158,7 @@ class root.Method extends AbstractMethodField
     return
 
   run: (runtime_state,virtual=false) ->
-    sig = "#{@class_type.toClassString()}::#{@name}#{@raw_descriptor}"
+    sig = @full_signature()
     ms = runtime_state.meta_stack()
     if ms.resuming_stack?
       trace "resuming at ", sig
