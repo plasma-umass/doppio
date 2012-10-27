@@ -185,10 +185,10 @@ class root.Method extends AbstractMethodField
         unless caller_stack.length-@param_bytes >= 0 and obj?
           util.java_throw runtime_state, 'java/lang/NullPointerException',
             "null 'this' in virtual lookup for #{sig}"
-        m_spec = {class: obj.type.toClassString(), sig: @name + @raw_descriptor}
-        m = runtime_state.method_lookup(m_spec)
-        #throw "abstract method got called: #{@name}#{@raw_descriptor}" if m.access_flags.abstract
-        return m.run(runtime_state)
+        return runtime_state.method_lookup({
+            class: obj.type.toClassString(), 
+            sig: @name + @raw_descriptor
+          }).run(runtime_state)
       params = @take_params caller_stack
       ms.push(new runtime.StackFrame(this,params,[]))
     padding = (' ' for [2...ms.length()]).join('')
