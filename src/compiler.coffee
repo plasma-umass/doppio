@@ -184,7 +184,7 @@ class BasicBlock
       next_block = @block_chain.get_block_from_instr handler.handler_pc
       @add_stmt """
         } catch (e) {
-          if (!(e instanceof util.JavaException)) throw e
+          if (!(e instanceof exceptions.JavaException)) throw e
       """
       if handler.catch_type == "<any>"
         @add_stmt "rs.push(e.exception); label = #{handler.handler_pc}; continue\n}"
@@ -329,7 +329,7 @@ compile_class_handlers =
     var obj = rs.check_null($1);
     var array = obj.array;
     if (!(0 <= idx && idx < array.length))
-      util.java_throw(rs, 'java/lang/ArrayIndexOutOfBoundsException',
+      exceptions.java_throw(rs, 'java/lang/ArrayIndexOutOfBoundsException',
         idx + " not in length " + array.length + " array of type " + obj.type.toClassString());
     $2 = array[idx]
     """, b.pop(), b.pop(), temp
@@ -529,14 +529,14 @@ compile_obj_handlers = {
     b.push t
   }
 
-  athrow: { compile: (b) -> b.add_stmt new Expr "throw new util.JavaException($0)", b.pop() }
+  athrow: { compile: (b) -> b.add_stmt new Expr "throw new exceptions.JavaException($0)", b.pop() }
 
   checkcast: { compile: (b) ->
     target_class = c2t(@class).toExternalString()
     obj = b.pop()
     b.add_stmt new Expr """
         if (($0 != null) && !types.check_cast(rs, $0, #{JSON.stringify @class})) {
-          util.java_throw(rs, 'java/lang/ClassCastException', $0.type.toExternalString()+" cannot be cast to #{target_class}");
+          exceptions.java_throw(rs, 'java/lang/ClassCastException', $0.type.toExternalString()+" cannot be cast to #{target_class}");
         }""", obj
     b.push obj
   }
@@ -625,7 +625,7 @@ root.compile = (class_file) ->
 # TODO: move to a separate file
 if require.main == module
   fs = require 'fs'
-  ClassFile = require '../src/ClassFile'
+  ClassFile = require './ClassFile'
   fname = if process.argv.length > 2 then process.argv[2] else '/dev/stdin'
   bytes_array = util.bytestr_to_array fs.readFileSync(fname, 'binary')
   class_data = new ClassFile bytes_array
