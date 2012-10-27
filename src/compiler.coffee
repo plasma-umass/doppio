@@ -22,6 +22,12 @@ class BlockChain
       if oc.offset?
         targets.push idx + oc.byte_count + 1, idx + oc.offset
 
+    # organize exception handlers, adding targets as needed
+    try_locations = {}
+    for handler in method.code.exception_handlers
+      try_locations[handler.start_pc] = {name: 'try', byte_count: -1, handler: handler}
+      targets.push handler.start_pc, handler.handler_pc
+
     targets.sort((a,b) -> a - b)
     labels = _.uniq(targets)
 
@@ -38,6 +44,9 @@ class BlockChain
     method.code.each_opcode (idx, oc) =>
       current_block++ if idx in labels
       block = @blocks[current_block]
+      if try_locations[idx]?
+        block.opcodes.push try_locations[idx]
+        block.has_try = try_locations[idx].handler
       block.opcodes.push oc
 
     @param_names = ['rs']
@@ -140,16 +149,17 @@ class BasicBlock
 
     rv.concat postordered.reverse()
 
-  compile: (prev_stack, prev_locals) ->
+  compile: (prev_stack, prev_locals, exc_catcher=false) ->
     return if @visited
 
     @visited = true
 
     # the first block has its local vars set from the function params
     unless @start_idx == 0
-      @stack =
-        for s,i in prev_stack
-          if s? then new StackVar i else null
+      unless exc_catcher
+        @stack =
+          for s,i in prev_stack
+            if s? then new StackVar i else null
       @locals =
         for l,i in prev_locals
           if l? then new LocalVar i else null
@@ -168,6 +178,26 @@ class BasicBlock
     # instructions obviate the need for one
     unless op.offset? or (op.name.indexOf 'return') != -1
       @add_stmt => @compile_epilogue()
+
+    # catch any try blocks
+    if (handler = @has_try)?
+      next_block = @block_chain.get_block_from_instr handler.handler_pc
+      @add_stmt """
+        } catch (e) {
+          if (!(e instanceof util.JavaException)) throw e
+      """
+      if handler.catch_type == "<any>"
+        @add_stmt "rs.push(e.exception); label = #{handler.handler_pc}; continue\n}"
+      else
+        @add_stmt """
+          if (types.is_castable(rs, e.exception.type, types.c2t(#{JSON.stringify handler.catch_type}))) {
+            rs.push(e.exception); label = #{handler.handler_pc}; continue;
+          } else {
+            throw e;
+          }\n}
+        """
+      next_block.stack = ["rs.pop()"]
+      next_block.compile @stack, @locals, true
 
     for next_block in @next
       # java bytecode verification ensures that the stack height and stack /
@@ -343,6 +373,8 @@ compile_class_handlers =
         b.push temp
 
 compile_obj_handlers = {
+  # pseudo-opcode, generates the beginning of a try block
+  'try': { compile: (b) -> b.add_stmt "try { //" }
   aconst_null: { compile: (b) -> b.push new Primitive "null"; }
   iconst_m1: { compile: (b) -> b.push new Primitive "-1"; }
   iconst_0: { compile: (b) -> b.push new Primitive "0"; }
