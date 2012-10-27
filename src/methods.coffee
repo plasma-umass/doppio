@@ -94,7 +94,7 @@ class root.Method extends AbstractMethodField
     try
       rv = func rs, converted_params...
     catch e
-      e.caught?(rs, @)  # handles stack pop, if it's a JavaException
+      e.method_catch_handler?(rs, @)  # handles stack pop, if it's a JavaException
       throw e
     rs.meta_stack().pop()
     ret_type = @return_type.toString()
@@ -120,8 +120,8 @@ class root.Method extends AbstractMethodField
         op.execute rs
         cf.pc += 1 + op.byte_count  # move to the next opcode
       catch e
-        if e.caught?
-          break if e.caught(rs, @, padding)
+        if e.method_catch_handler?
+          break if e.method_catch_handler(rs, @, padding)
         else
           throw e # JVM Error
     # Must explicitly return here, to avoid Coffeescript accumulating an array of cf.pc values

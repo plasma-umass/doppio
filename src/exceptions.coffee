@@ -9,17 +9,19 @@ root = exports ? window.exceptions ?= {}
 
 class root.BranchException
   constructor: (@dst_pc) ->
-  caught: (rs, method) ->
+  method_catch_handler: (rs, method) ->
     rs.goto_pc(@dst_pc)
     return false
 
 class root.HaltException
   constructor: (@exit_code) ->
+  toplevel_catch_handler: () ->
+    console.error "\nExited with code #{@exit_code}" unless @exit_code is 0
 
 
 class root.ReturnException
   constructor: (@values...) ->
-  caught: (rs, method, padding) ->
+  method_catch_handler: (rs, method, padding) ->
     cf = rs.meta_stack().pop()
     logging.vtrace "#{padding}stack: [#{logging.debug_vars cf.stack}], local: [#{logging.debug_vars cf.locals}] (end method #{method.name})"
     rs.push @values...
@@ -27,7 +29,7 @@ class root.ReturnException
 
 class root.YieldException
   constructor: (@condition) ->
-  caught: (rs, method) ->
+  method_catch_handler: (rs, method) ->
     logging.trace "yielding from #{method.full_signature()}"
     throw @
 
@@ -36,7 +38,8 @@ class root.YieldIOException extends root.YieldException
 
 class root.JavaException
   constructor: (@exception) ->
-  caught: (rs, method) ->
+
+  method_catch_handler: (rs, method) ->
     cf = rs.curr_frame()
     exception_handlers = method.code?.exception_handlers
     etype = @exception.type
@@ -53,6 +56,16 @@ class root.JavaException
     logging.trace "exception not caught, terminating #{method.name}"
     rs.meta_stack().pop()
     throw @
+
+  toplevel_catch_handler: (rs) ->
+    logging.error "\nUncaught #{@exception.type.toClassString()}"
+    msg = @exception.fields.detailMessage
+    logging.error "\t#{rs.jvm2js_str msg}" if msg?
+    rs.show_state()
+    rs.push rs.curr_thread, @exception
+    rs.method_lookup(
+      class: 'java/lang/Thread'
+      sig: 'dispatchUncaughtException(Ljava/lang/Throwable;)V').run(rs)
 
 # Simulate the throwing of a Java exception with message :msg. Not very DRY --
 # code here is essentially copied from the opcodes themselves -- but
