@@ -23,11 +23,7 @@ class BlockChain
         targets.push idx + oc.byte_count + 1, idx + oc.offset
 
     targets.sort((a,b) -> a - b)
-    # dedup
-    labels = []
-    for target, i in targets
-      if i == 0 or targets[i-1] != target
-        labels.push target
+    labels = _.uniq(targets)
 
     for idx, i in labels
       block = new BasicBlock @, idx
