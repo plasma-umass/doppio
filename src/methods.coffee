@@ -198,22 +198,24 @@ class root.Method extends AbstractMethodField
       trace "#{padding}resuming method #{sig}"
       @run_manually cf.resume, runtime_state
       cf.resume = null
-    else if trapped_methods[sig]
+      return
+    if trapped_methods[sig]
       trace "#{padding}entering trapped method #{sig}"
-      @run_manually trapped_methods[sig], runtime_state
-    else if @access_flags.native
+      return @run_manually trapped_methods[sig], runtime_state
+    if @access_flags.native
       if sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
-        @run_manually ((rs)->), runtime_state # these are all just NOPs
-      else if native_methods[sig]
+        ms.pop() # these are all just NOPs
+        return
+      if native_methods[sig]
         trace "#{padding}entering native method #{sig}"
-        @run_manually native_methods[sig], runtime_state
-      else
-        try
-          util.java_throw runtime_state, 'java/lang/Error', "native method NYI: #{sig}"
-        finally
-          runtime_state.meta_stack().pop()
-    else if @access_flags.abstract
+        return @run_manually native_methods[sig], runtime_state
+      try
+        util.java_throw runtime_state, 'java/lang/Error', "native method NYI: #{sig}"
+      finally
+        runtime_state.meta_stack().pop()
+    if @access_flags.abstract
       util.java_throw runtime_state, 'java/lang/Error', "called abstract method: #{sig}"
-    else
-      trace "#{padding}entering method #{sig}"
-      @run_bytecode runtime_state, padding
+
+    # Finally, the normal case: running a Java method
+    trace "#{padding}entering method #{sig}"
+    @run_bytecode runtime_state, padding
