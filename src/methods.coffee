@@ -79,13 +79,6 @@ class root.Method extends AbstractMethodField
     # this is faster than splice()
     caller_stack.length -= @param_bytes
     params
-  
-  # used by run and run_manually to print arrays for debugging.
-  pa = (a) -> a.map (e)->
-    return '!' unless e?
-    return "*#{e.ref}" if e.ref?
-    return "#{e}L" if e instanceof gLong
-    e
 
   run_manually: (func, rs) ->
     params = rs.curr_frame().locals.slice(0) # make a copy
@@ -124,7 +117,7 @@ class root.Method extends AbstractMethodField
       op = code[pc]
       unless RELEASE? or util.log_level < util.STRACE
         throw "#{@name}:#{pc} => (null)" unless op
-        vtrace "#{padding}stack: [#{pa cf.stack}], local: [#{pa cf.locals}]"
+        vtrace "#{padding}stack: [#{util.debug_vars cf.stack}], local: [#{util.debug_vars cf.locals}]"
         annotation =
           util.call_handler(opcode_annotators, op, pc, rs.class_lookup(@class_type).constant_pool) or ""
         vtrace "#{padding}#{@class_type.toClassString()}::#{@name}:#{pc} => #{op.name}" + annotation
@@ -134,9 +127,8 @@ class root.Method extends AbstractMethodField
       catch e
         if e instanceof util.BranchException
           cf.pc = e.dst_pc
-          continue
         else if e instanceof util.ReturnException
-          vtrace "#{padding}stack: [#{pa cf.stack}], local: [#{pa cf.locals}] (method end)"
+          vtrace "#{padding}stack: [#{util.debug_vars cf.stack}], local: [#{util.debug_vars cf.locals}] (method end)"
           rs.meta_stack().pop()
           rs.push e.values...
           break
@@ -153,12 +145,12 @@ class root.Method extends AbstractMethodField
             cf.stack = []  # clear out anything on the stack; it was made during the try block
             rs.push e.exception
             cf.pc = handler.handler_pc
-            continue
           else # abrupt method invocation completion
             trace "exception not caught, terminating #{@name}"
             rs.meta_stack().pop()
             throw e
-        throw e # JVM Error
+        else
+          throw e # JVM Error
     # Must explicitly return here, to avoid Coffeescript accumulating an array of
     #  the return values of rs.inc_pc
     return

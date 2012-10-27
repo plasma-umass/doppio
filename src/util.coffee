@@ -165,6 +165,13 @@ root.lookup_handler = (handlers, object) ->
 root.call_handler = (handlers, object, args...) ->
   root.lookup_handler(handlers,object)?.apply object, args
 
+# used for debugging the stack and local variables
+root.debug_vars = (arr) -> arr.map (e)->
+  return '!' unless e?
+  return "*#{e.ref}" if e.ref?
+  return "#{e}L" if e instanceof gLong
+  e
+
 class root.BranchException
   constructor: (@dst_pc) ->
 
