@@ -374,16 +374,7 @@ native_methods =
               try
                 rs.method_lookup({class: _this.type.toClassString(), sig: 'run()V'}).run(rs)
               catch e
-                if e instanceof exceptions.JavaException
-                  debug "\nUncaught Java Exception"
-                  rs.show_state()
-                  rs.push rs.curr_thread, e.exception
-                  rs.method_lookup(class: 'java/lang/Thread', sig: 'dispatchUncaughtException(Ljava/lang/Throwable;)V').run(rs)
-                  return
-                else if e instanceof exceptions.HaltException
-                  console.error "\nExited with code #{e.exit_code}" unless e.exit_code is 0
-                  return
-                else if e instanceof exceptions.YieldIOException
+                if e instanceof exceptions.YieldIOException
                   return e.condition ->
                     rs.meta_stack().resuming_stack = 1
                     rs.curr_frame().method.run(rs, true)
@@ -392,6 +383,7 @@ native_methods =
                   rs.curr_thread.fields.$isAlive = false
                   rs.thread_pool.splice rs.thread_pool.indexOf(rs.curr_thread), 1
                 else
+                  return e.toplevel_catch_handler(rs) if e.toplevel_catch_handler?
                   console.log "\nInternal JVM Error!", e.stack
                   rs.show_state()
                   return
