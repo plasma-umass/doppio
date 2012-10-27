@@ -188,7 +188,7 @@ class root.YieldIOException
   constructor: (@condition) ->
 
 class root.JavaException
-  constructor: (rs, @exception) ->
+  constructor: (@exception) ->
 
 # Simulate the throwing of a Java exception with message :msg. Not very DRY --
 # code here is essentially copied from the opcodes themselves -- but
@@ -198,7 +198,7 @@ root.java_throw = (rs, cls, msg) ->
   v = rs.init_object cls # new
   rs.push(v,v,rs.init_string msg) # dup, ldc
   rs.method_lookup(method_spec).run(rs) # invokespecial
-  throw new root.JavaException rs, rs.pop() # athrow
+  throw new root.JavaException rs.pop() # athrow
 
 # logging helpers
 root.VTRACE = 10

@@ -529,7 +529,7 @@ compile_obj_handlers = {
     b.push t
   }
 
-  athrow: { compile: (b) -> b.add_stmt new Expr "throw new util.JavaException(rs, $0)", b.pop() }
+  athrow: { compile: (b) -> b.add_stmt new Expr "throw new util.JavaException($0)", b.pop() }
 
   checkcast: { compile: (b) ->
     target_class = c2t(@class).toExternalString()
