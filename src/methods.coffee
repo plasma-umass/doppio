@@ -93,9 +93,9 @@ class root.Method extends AbstractMethodField
     if not @access_flags.static
       converted_params.push params.shift()
     param_idx = 0
-    for p, idx in @param_types
+    for p in @param_types
       converted_params.push params[param_idx]
-      param_idx += if (@param_types[idx].toString() in ['J', 'D']) then 2 else 1
+      param_idx += if (p.toString() in ['J', 'D']) then 2 else 1
     try
       rv = func rs, converted_params...
     catch e
@@ -109,32 +109,34 @@ class root.Method extends AbstractMethodField
         trace "yielding from #{@class_type.toClassString()}::#{@name}#{@raw_descriptor}"
       throw e
     rs.meta_stack().pop()
-    unless @return_type.toString() == 'V'
-      if @return_type.toString() == 'Z' then rs.push rv + 0 # cast booleans to a Number
+    ret_type = @return_type.toString()
+    unless ret_type == 'V'
+      if ret_type == 'Z' then rs.push rv + 0 # cast booleans to a Number
       else rs.push rv
-      rs.push null if @return_type.toString() in [ 'J', 'D' ]
+      rs.push null if ret_type in [ 'J', 'D' ]
 
   run_bytecode: (rs, padding) ->
     # main eval loop: execute each opcode, using the pc to iterate through
     code = @code.opcodes
+    cf = rs.curr_frame()
     while true
       try
-        pc = rs.curr_pc()
+        pc = cf.pc
         op = code[pc]
         unless RELEASE? or util.log_level < util.STRACE
           throw "#{@name}:#{pc} => (null)" unless op
-          cf = rs.curr_frame()
           vtrace "#{padding}stack: [#{pa cf.stack}], local: [#{pa cf.locals}]"
           annotation =
             util.call_handler(opcode_annotators, op, pc, rs.class_lookup(@class_type).constant_pool) or ""
           vtrace "#{padding}#{@class_type.toClassString()}::#{@name}:#{pc} => #{op.name}" + annotation
         op.execute rs
-        rs.inc_pc(1 + op.byte_count)  # move to the next opcode
+        cf.pc += 1 + op.byte_count  # move to the next opcode
       catch e
         if e instanceof util.BranchException
-          rs.goto_pc e.dst_pc
+          cf.pc = e.dst_pc
           continue
         else if e instanceof util.ReturnException
+          vtrace "#{padding}stack: [#{pa cf.stack}], local: [#{pa cf.locals}] (method end)"
           rs.meta_stack().pop()
           rs.push e.values...
           break
@@ -148,9 +150,9 @@ class root.Method extends AbstractMethodField
               (eh.catch_type == "<any>" or types.is_castable rs, e.exception.type, c2t(eh.catch_type))
           if handler?
             trace "caught exception as subclass of #{handler.catch_type}"
-            rs.curr_frame().stack = []  # clear out anything on the stack; it was made during the try block
+            cf.stack = []  # clear out anything on the stack; it was made during the try block
             rs.push e.exception
-            rs.goto_pc handler.handler_pc
+            cf.pc = handler.handler_pc
             continue
           else # abrupt method invocation completion
             trace "exception not caught, terminating #{@name}"
@@ -215,5 +217,3 @@ class root.Method extends AbstractMethodField
     else
       trace "#{padding}entering method #{sig}"
       @run_bytecode runtime_state, padding
-    cf = runtime_state.curr_frame()
-    vtrace "#{padding}stack: [#{pa cf.stack}], local: [#{pa cf.locals}] (method end)"
