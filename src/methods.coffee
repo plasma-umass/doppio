@@ -132,8 +132,7 @@ class root.Method extends AbstractMethodField
           break if e.caught(rs, @, padding)
         else
           throw e # JVM Error
-    # Must explicitly return here, to avoid Coffeescript accumulating an array of
-    #  the return values of rs.inc_pc
+    # Must explicitly return here, to avoid Coffeescript accumulating an array of cf.pc values
     return
 
   run: (runtime_state,virtual=false) ->
