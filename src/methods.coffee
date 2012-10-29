@@ -9,7 +9,9 @@ disassembler = require './disassembler'
 types = require './types'
 natives = require './natives'
 runtime = require './runtime'
-{log,vtrace,trace,debug,error,debug_vars} = require './logging'
+logging = require './logging'
+{vtrace,trace,debug_vars} = logging
+{java_throw} = require './exceptions'
 {opcode_annotators} = disassembler
 {str2type,carr2type,c2t} = types
 {native_methods,trapped_methods} = natives
@@ -110,7 +112,7 @@ class root.Method extends AbstractMethodField
     while true
       pc = cf.pc
       op = code[pc]
-      unless RELEASE? or util.log_level < util.STRACE
+      unless RELEASE? or logging.log_level < logging.STRACE
         throw "#{@name}:#{pc} => (null)" unless op
         vtrace "#{padding}stack: [#{debug_vars cf.stack}], local: [#{debug_vars cf.locals}]"
         annotation =
@@ -147,7 +149,7 @@ class root.Method extends AbstractMethodField
         # method on the most specific type
         obj = caller_stack[caller_stack.length-@param_bytes]
         unless caller_stack.length-@param_bytes >= 0 and obj?
-          util.java_throw runtime_state, 'java/lang/NullPointerException',
+          java_throw runtime_state, 'java/lang/NullPointerException',
             "null 'this' in virtual lookup for #{sig}"
         return runtime_state.method_lookup({
             class: obj.type.toClassString(), 
@@ -174,11 +176,11 @@ class root.Method extends AbstractMethodField
         trace "#{padding}entering native method #{sig}"
         return @run_manually native_methods[sig], runtime_state
       try
-        util.java_throw runtime_state, 'java/lang/Error', "native method NYI: #{sig}"
+        java_throw runtime_state, 'java/lang/Error', "native method NYI: #{sig}"
       finally
         runtime_state.meta_stack().pop()
     if @access_flags.abstract
-      util.java_throw runtime_state, 'java/lang/Error', "called abstract method: #{sig}"
+      java_throw runtime_state, 'java/lang/Error', "called abstract method: #{sig}"
 
     # Finally, the normal case: running a Java method
     trace "#{padding}entering method #{sig}"
