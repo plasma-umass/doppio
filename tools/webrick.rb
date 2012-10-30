@@ -417,7 +417,9 @@ class DoppioServer
       @server.start
     end
     sleep 1
-    getCurrentExperiment().start()
+    if @options::mode == Mode::BMK
+      getCurrentExperiment().start()
+    end
     Process.wait(@serverpid)
   end
 end
