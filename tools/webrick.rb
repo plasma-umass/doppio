@@ -7,12 +7,18 @@ include WEBrick
 
 # We are a servlet for the WEBRick server that we are creating.
 class DoppioServer
-  attr_accessor :server
+  attr_accessor :server, :serverpid, :expIndex, :experiments
 
   module Mode
     DEV = 0
     BMK = 1
     REL = 2
+  end
+
+  module Browser
+    CHROME = "chrome"
+    FIREFOX = "firefox"
+    OPERA = "opera"
   end
 
   ##############################################################################
@@ -31,10 +37,11 @@ class DoppioServer
     options.verbosity = 1
     options.mode = Mode::REL
     options.mounts = []
+    options.logdir = "./logs"
 
     opts = OptionParser.new do |opts|
-      opts.banner = "Usage: webrick.rb -[r|d|b [scripts] -w [browsers] -o " +
-                    "[outputfile]] [options]"
+      opts.banner = "Usage: webrick.rb -[r|d|b [scripts] -w [browsers] -e " +
+                    "[experiment]] [options]"
 
       opts.on("-r", "--release", "Host Doppio in release mode") do |r|
         options.mode = Mode::REL
@@ -61,13 +68,26 @@ class DoppioServer
         options.scripts = scripts
       end
 
-      opts.on("-w", "--browser browser1,browser2,...", Array, "Run " +
-        "benchmarking scripts in the given browsers") do |browsers|
+      opts.on("-w", "--browser browsername:browser1,browsername:browser2,...",
+        Array, "Run benchmarking scripts in the given browsers. Recognized " +
+        "browsers are [firefox|chrome|opera].") do |browsers|
         if browsers.empty?
           opts.abort "You must specify at least one browser."
         end
         # Map return value of loop back into browsers array.
         browsers.collect! do |browser|
+          spBrowser = browser.split(':')
+          browserName = spBrowser[0]
+          # Gross
+          case browserName
+          when Browser::FIREFOX
+          when Browser::OPERA
+          when Browser::CHROME
+          else
+            opts.abort "ERROR: Invalid browser type: " + browserName
+          end
+
+          browserFilename = spBrowser[1]
           # See if we can find it on the path.
           errorMsg = ''
           error = false
@@ -85,9 +105,9 @@ class DoppioServer
           # Ugly, but it works! 8D
           paths.each do |path|
             if path != ''
-              browserPath = path + "/" + browser
+              browserPath = path + "/" + browserFilename
             else
-              browserPath = browser
+              browserPath = browserFilename
             end
 
             # Bad if File exists.
@@ -124,17 +144,17 @@ class DoppioServer
             if errorMsg != ""
               opts.abort errorMsg
             else
-              opts.abort "Unable to find browser: " + browser
+              opts.abort "Unable to find browser: " + browserFilename
             end
           end
-          browserPath
+          browserName + ":" + browserPath
         end
         options.browsers = browsers
       end
 
-      opts.on("-o", "--output file", "Specifies an output file for benchmark " +
-        "tests.") do |o|
-        options.output = o
+      opts.on("-e", "--experiment name", "Specifies the name of the  " +
+        "experiment. Used for log file naming.") do |e|
+        options.exp = e
       end
 
       opts.on("-m", "--mount path1,path2,...", Array, "Mounts the specified " +
@@ -171,9 +191,33 @@ class DoppioServer
     # Sanity checks. Need to specify *browsers* and *scripts* for benchmark
     # mode.
     if options.mode == Mode::BMK and (options.browsers == nil or
-      options.scripts == nil or options.output == nil)
+      options.scripts == nil or options.exp == nil)
       abort "In benchmark mode, you must specify at least one browser, at " +
-            "least one script, and an output file."
+            "least one script, and an experiment name."
+    end
+
+    # Create needed Experiment objects.
+    if options.mode == Mode::BMK
+      # Create log directory if needed.
+      fullLogDir = options.logdir + "/" + options.exp
+      Dir::mkdir(options.logdir) unless File::exists? options.logdir
+      Dir::mkdir(fullLogDir) unless File::exists? fullLogDir
+
+      logNum = 0
+
+      options.browsers.each do |browser|
+        options.scripts.each do |script|
+          logFile = fullLogDir + "/log" + logNum.to_s +
+            ".log"
+          if File::exists? logFile
+            puts "ERROR: Log file exists: " + logFile
+            exit()
+          end
+
+          @experiments.push(Experiment.new(self, browser, script, logFile))
+          logNum += 1
+        end
+      end
     end
 
     @options = options
@@ -182,30 +226,115 @@ class DoppioServer
   end
 
   ##############################################################################
+  # Experiment Class + Experiment Helper Methods
+  ##############################################################################
+  def addExperiment(exp)
+    @experiments.push(exp)
+  end
+
+  def getCurrentExperiment()
+    @experiments[@expIndex]
+  end
+
+  def nextExperiment()
+    # Stop the current experiment.
+    getCurrentExperiment().stop()
+    # Advance to the next experiment.
+    @expIndex += 1
+    # Check if we are done experimenting.
+    if @expIndex >= @experiments.length
+      @server.stop()
+      return
+    end
+    # Start the next experiment.
+    getCurrentExperiment().start()
+  end
+
+  class Experiment
+    attr_accessor :outer, :browserPath, :browserName, :browserPid, :script, :logfile
+
+    def getMainExecutableName()
+      case @browserName
+      when Browser::FIREFOX then 'firefox'
+      when Browser::CHROME then 'Google Chrome'
+      when Browser::OPERA then 'Opera'
+      end
+    end
+
+    def initialize(outer, browser, script, logfile)
+      @outer = outer
+      spBrowser = browser.split(':')
+      @browserName = spBrowser[0]
+      @browserPath = spBrowser[1]
+      @browserPid = nil
+      @script = File.read(script)
+      @logfile = File.new(logfile, "w")
+    end
+
+    def start()
+      # Print starting line.
+      writeMessage("EXPERIMENT BEGIN: " + Time.now.to_s + "\n")
+      # Flush this process's buffer. WEBRick runs in a separate process with its
+      # own buffer for this file, so this prevents out-of-order writes.
+      @logfile.flush()
+      # Launch the browser.
+      @browserPid = spawn('open', '-a', @browserPath, 'http://localhost:8000/')
+    end
+
+    def stop()
+      # Print ending line.
+      writeMessage("\nEXPERIMENT END: " + Time.now.to_s + "\n")
+      # Close the logfile.
+      @logfile.close()
+      # Kill the browser.
+      system('killall', getMainExecutableName())
+    end
+
+    def writeMessage(txt)
+      @outer.p3 "MESSAGE: " + txt
+      @logfile.write(txt)
+    end
+
+    def writeError(error)
+      @outer.p3 "ERROR: " + error
+      @logfile.write("DOPPIO EXPERIMENT ERROR: " + error + "\n")
+    end
+  end
+
+  ##############################################################################
   # WEBRick Request Handlers
   ##############################################################################
-
   class DoppioServlet < HTTPServlet::AbstractServlet
-    attr_accessor :outer
+    attr_accessor :path, :outer
 
     # Initialize with reference to outer class.
-    def initialize(server, outer)
+    def initialize(server, path, outer)
+      @path = path
       @outer = outer
     end
 
     def do_GET(request, response)
-      # Shift for commands.
       response.status = 200
       response['Content-Type'] = 'text/html'
-      response.body = '["ls"]'
+      response.body = @outer.getCurrentExperiment().script
     end
 
     def do_POST(request, response)
-      puts "Message:"
-      puts request
+      body = request.body()
       response.status = 200
       response['Content-Type'] = "text/html"
       response.body = "Success."
+
+      exp = @outer.getCurrentExperiment()
+
+      case @path
+      when "/complete"
+        @outer.nextExperiment()
+      when "/message"
+        exp.writeMessage(body)
+      when "/error"
+        exp.writeError(body)
+      end
     end
 
   end
@@ -214,6 +343,8 @@ class DoppioServer
   # Other Methods
   ##############################################################################
   def initialize(args)
+    @expIndex = 0
+    @experiments = []
     self.options = args
   end
 
@@ -257,17 +388,17 @@ class DoppioServer
     p1 "Creating server in " + Mode2String(@options.mode) + " mode."
 
     @server = HTTPServer.new({:DocumentRoot => documentRoot,
-                             :Port         => 8000})
+                              :Port         => 8000})
     ['INT', 'TERM'].each {|signal|
       trap(signal) {@server.shutdown}
     }
 
     # Benchmark mount points for communicating with the mock console.
     if @options.mode == Mode::BMK
-      @server.mount "/message", DoppioServlet, self
-      @server.mount "/error", DoppioServlet, self
-      @server.mount "/complete", DoppioServlet, self
-      @server.mount "/commands", DoppioServlet, self
+      @server.mount "/message", DoppioServlet, "/message", self
+      @server.mount "/error", DoppioServlet, "/error", self
+      @server.mount "/complete", DoppioServlet, "/complete", self
+      @server.mount "/commands", DoppioServlet, "/commands", self
     end
 
     # third_party's location is the same for all configurations, so manually
@@ -282,7 +413,12 @@ class DoppioServer
     end
 
     p1 "Starting server."
-    @server.start
+    @serverpid = fork do
+      @server.start
+    end
+    sleep 1
+    getCurrentExperiment().start()
+    Process.wait(@serverpid)
   end
 end
 
