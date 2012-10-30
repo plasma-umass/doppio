@@ -33,8 +33,8 @@ class DoppioServer
     options.mounts = []
 
     opts = OptionParser.new do |opts|
-      opts.banner = "Usage: webrick.rb -[r|d|b [scripts] -w [browsers]] " +
-                    "[options]"
+      opts.banner = "Usage: webrick.rb -[r|d|b [scripts] -w [browsers] -o " +
+                    "[outputfile]] [options]"
 
       opts.on("-r", "--release", "Host Doppio in release mode") do |r|
         options.mode = Mode::REL
@@ -132,6 +132,11 @@ class DoppioServer
         options.browsers = browsers
       end
 
+      opts.on("-o", "--output file", "Specifies an output file for benchmark " +
+        "tests.") do |o|
+        options.output = o
+      end
+
       opts.on("-m", "--mount path1,path2,...", Array, "Mounts the specified " +
         "paths to their directory's name (e.g. `/home/jvilk/Files' => /Files)") do |paths|
         paths.each do |path|
@@ -166,9 +171,9 @@ class DoppioServer
     # Sanity checks. Need to specify *browsers* and *scripts* for benchmark
     # mode.
     if options.mode == Mode::BMK and (options.browsers == nil or
-      options.scripts == nil)
-      abort "In benchmark mode, you must specify at least one browser and at " +
-            "least one script."
+      options.scripts == nil or options.output == nil)
+      abort "In benchmark mode, you must specify at least one browser, at " +
+            "least one script, and an output file."
     end
 
     @options = options
