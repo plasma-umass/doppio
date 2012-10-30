@@ -6,13 +6,10 @@ gLong = require '../third_party/gLong.js'
 util = require './util'
 types = require './types'
 ClassFile = require './ClassFile'
-{log,vtrace,trace,debug,error,java_throw} = util
+{log,vtrace,trace,debug,error} = require './logging'
+{java_throw,YieldException} = require './exceptions'
+{initial_value} = util
 {c2t} = types
-
-initial_value = (type_str) ->
-  if type_str is 'J' then gLong.ZERO
-  else if type_str[0] in ['[','L'] then null
-  else 0
 
 class root.CallStack
   constructor: (initial_stack) ->
@@ -110,7 +107,7 @@ class root.RuntimeState
     my_thread = @curr_thread
     @curr_frame().resume = -> @curr_thread = my_thread
     rs = this
-    throw new util.YieldException (cb) ->
+    throw new YieldException (cb) ->
       my_thread.fields.$resume = cb
       rs.curr_thread = yieldee
       debug "TE: about to resume #{rs.jvm_carr2js_str yieldee.fields.name}"

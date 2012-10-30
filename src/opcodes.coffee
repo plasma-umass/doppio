@@ -2,7 +2,7 @@
 gLong = require '../third_party/gLong.js'
 util = require './util'
 types = require './types'
-{java_throw,BranchException,ReturnException,JavaException} = util
+{java_throw,BranchException,ReturnException,JavaException} = require './exceptions'
 {c2t} = types
 
 root = exports ? window.opcodes = {}
@@ -223,8 +223,9 @@ class root.MultiArrayOpcode extends root.Opcode
 
   execute: (rs) ->
     counts = rs.curr_frame().stack.splice(-@dim,@dim)
+    def = util.initial_value @class[@dim..]
     init_arr = (curr_dim) =>
-      return 0 if curr_dim == @dim
+      return def if curr_dim == @dim
       typestr = @class[curr_dim..]
       rs.init_object typestr, (init_arr(curr_dim+1) for [0...counts[curr_dim]])
     rs.push init_arr 0
@@ -447,14 +448,14 @@ root.opcodes = {
   188: new root.NewArrayOpcode 'newarray', { execute: (rs) -> rs.push rs.heap_newarray @element_type, rs.pop() }
   189: new root.ClassOpcode 'anewarray', { execute: (rs) -> rs.push rs.heap_newarray "L#{@class};", rs.pop() }
   190: new root.Opcode 'arraylength', { execute: (rs) -> rs.push rs.check_null(rs.pop()).array.length }
-  191: new root.Opcode 'athrow', { execute: (rs) -> throw new JavaException rs, rs.pop() }
+  191: new root.Opcode 'athrow', { execute: (rs) -> throw new JavaException rs.pop() }
   192: new root.ClassOpcode 'checkcast', { execute: (rs) ->
     o = rs.pop()
     if (not o?) or types.check_cast(rs,o,@class)
       rs.push o
     else
       target_class = c2t(@class).toExternalString() # class we wish to cast to
-      candidate_class = if o? then o.type.toExternalString() else "null"
+      candidate_class = o.type.toExternalString()
       java_throw rs, 'java/lang/ClassCastException', "#{candidate_class} cannot be cast to #{target_class}"
   }
   193: new root.ClassOpcode 'instanceof', { execute: (rs) -> o=rs.pop(); rs.push if o? then types.check_cast(rs,o,@class)+0 else 0 }

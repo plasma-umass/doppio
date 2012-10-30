@@ -9,7 +9,9 @@ disassembler = require './disassembler'
 types = require './types'
 natives = require './natives'
 runtime = require './runtime'
-{log,vtrace,trace,debug,error} = util
+logging = require './logging'
+{vtrace,trace,debug_vars} = logging
+{java_throw} = require './exceptions'
 {opcode_annotators} = disassembler
 {str2type,carr2type,c2t} = types
 {native_methods,trapped_methods} = natives
@@ -58,6 +60,8 @@ class root.Method extends AbstractMethodField
     @num_args++ unless @access_flags.static # nonstatic methods get 'this'
     @return_type = str2type return_str
 
+  full_signature: -> "#{@class_type.toClassString()}::#{@name}#{@raw_descriptor}"
+
   reflector: (rs, is_constructor=false) ->
     typestr = if is_constructor then 'java/lang/reflect/Constructor' else 'java/lang/reflect/Method'
     rs.init_object typestr, {
@@ -79,13 +83,6 @@ class root.Method extends AbstractMethodField
     # this is faster than splice()
     caller_stack.length -= @param_bytes
     params
-  
-  # used by run and run_manually to print arrays for debugging.
-  pa = (a) -> a.map (e)->
-    return '!' unless e?
-    return "*#{e.ref}" if e.ref?
-    return "#{e}L" if e instanceof gLong
-    e
 
   run_manually: (func, rs) ->
     params = rs.curr_frame().locals.slice(0) # make a copy
@@ -93,76 +90,47 @@ class root.Method extends AbstractMethodField
     if not @access_flags.static
       converted_params.push params.shift()
     param_idx = 0
-    for p, idx in @param_types
+    for p in @param_types
       converted_params.push params[param_idx]
-      param_idx += if (@param_types[idx].toString() in ['J', 'D']) then 2 else 1
+      param_idx += if (p.toString() in ['J', 'D']) then 2 else 1
     try
       rv = func rs, converted_params...
     catch e
-      # func may throw a JavaException (if it cannot handle it internally).  In
-      # this case, pop the stack anyway but don't push a return value.
-      # YieldExceptions should just terminate the function without popping the
-      # stack.
-      if e instanceof util.JavaException
-        rs.meta_stack().pop()
-      else if e instanceof util.YieldException or e instanceof util.YieldIOException
-        trace "yielding from #{@class_type.toClassString()}::#{@name}#{@raw_descriptor}"
+      e.method_catch_handler?(rs, @)  # handles stack pop, if it's a JavaException
       throw e
     rs.meta_stack().pop()
-    unless @return_type.toString() == 'V'
-      if @return_type.toString() == 'Z' then rs.push rv + 0 # cast booleans to a Number
+    ret_type = @return_type.toString()
+    unless ret_type == 'V'
+      if ret_type == 'Z' then rs.push rv + 0 # cast booleans to a Number
       else rs.push rv
-      rs.push null if @return_type.toString() in [ 'J', 'D' ]
+      rs.push null if ret_type in [ 'J', 'D' ]
 
   run_bytecode: (rs, padding) ->
     # main eval loop: execute each opcode, using the pc to iterate through
     code = @code.opcodes
+    cf = rs.curr_frame()
     while true
+      pc = cf.pc
+      op = code[pc]
+      unless RELEASE? or logging.log_level < logging.STRACE
+        throw "#{@name}:#{pc} => (null)" unless op
+        vtrace "#{padding}stack: [#{debug_vars cf.stack}], local: [#{debug_vars cf.locals}]"
+        annotation =
+          util.call_handler(opcode_annotators, op, pc, rs.class_lookup(@class_type).constant_pool) or ""
+        vtrace "#{padding}#{@class_type.toClassString()}::#{@name}:#{pc} => #{op.name}" + annotation
       try
-        pc = rs.curr_pc()
-        op = code[pc]
-        unless RELEASE? or util.log_level < util.STRACE
-          throw "#{@name}:#{pc} => (null)" unless op
-          cf = rs.curr_frame()
-          vtrace "#{padding}stack: [#{pa cf.stack}], local: [#{pa cf.locals}]"
-          annotation =
-            util.lookup_handler(opcode_annotators, op, pc, rs.class_lookup(@class_type).constant_pool) or ""
-          vtrace "#{padding}#{@class_type.toClassString()}::#{@name}:#{pc} => #{op.name}" + annotation
         op.execute rs
-        rs.inc_pc(1 + op.byte_count)  # move to the next opcode
+        cf.pc += 1 + op.byte_count  # move to the next opcode
       catch e
-        if e instanceof util.BranchException
-          rs.goto_pc e.dst_pc
-          continue
-        else if e instanceof util.ReturnException
-          rs.meta_stack().pop()
-          rs.push e.values...
-          break
-        else if e instanceof util.YieldException or e instanceof util.YieldIOException
-          trace "yielding from #{@class_type.toClassString()}::#{@name}#{@raw_descriptor}"
-          throw e  # leave everything as-is
-        else if e instanceof util.JavaException
-          exception_handlers = @code.exception_handlers
-          handler = _.find exception_handlers, (eh) ->
-            eh.start_pc <= pc < eh.end_pc and
-              (eh.catch_type == "<any>" or types.is_castable rs, e.exception.type, c2t(eh.catch_type))
-          if handler?
-            trace "caught exception as subclass of #{handler.catch_type}"
-            rs.curr_frame().stack = []  # clear out anything on the stack; it was made during the try block
-            rs.push e.exception
-            rs.goto_pc handler.handler_pc
-            continue
-          else # abrupt method invocation completion
-            trace "exception not caught, terminating #{@name}"
-            rs.meta_stack().pop()
-            throw e
-        throw e # JVM Error
-    # Must explicitly return here, to avoid Coffeescript accumulating an array of
-    #  the return values of rs.inc_pc
+        if e.method_catch_handler?
+          break if e.method_catch_handler(rs, @, padding)
+        else
+          throw e # JVM Error
+    # Must explicitly return here, to avoid Coffeescript accumulating an array of cf.pc values
     return
 
   run: (runtime_state,virtual=false) ->
-    sig = "#{@class_type.toClassString()}::#{@name}#{@raw_descriptor}"
+    sig = @full_signature()
     ms = runtime_state.meta_stack()
     if ms.resuming_stack?
       trace "resuming at ", sig
@@ -181,12 +149,12 @@ class root.Method extends AbstractMethodField
         # method on the most specific type
         obj = caller_stack[caller_stack.length-@param_bytes]
         unless caller_stack.length-@param_bytes >= 0 and obj?
-          util.java_throw runtime_state, 'java/lang/Error',
-            "undef'd object: (#{caller_stack})[-#{@param_bytes}] (#{sig})"
-        m_spec = {class: obj.type.toClassString(), sig: @name + @raw_descriptor}
-        m = runtime_state.method_lookup(m_spec)
-        #throw "abstract method got called: #{@name}#{@raw_descriptor}" if m.access_flags.abstract
-        return m.run(runtime_state)
+          java_throw runtime_state, 'java/lang/NullPointerException',
+            "null 'this' in virtual lookup for #{sig}"
+        return runtime_state.method_lookup({
+            class: obj.type.toClassString(), 
+            sig: @name + @raw_descriptor
+          }).run(runtime_state)
       params = @take_params caller_stack
       ms.push(new runtime.StackFrame(this,params,[]))
     padding = (' ' for [2...ms.length()]).join('')
@@ -196,24 +164,24 @@ class root.Method extends AbstractMethodField
       trace "#{padding}resuming method #{sig}"
       @run_manually cf.resume, runtime_state
       cf.resume = null
-    else if trapped_methods[sig]
+      return
+    if trapped_methods[sig]
       trace "#{padding}entering trapped method #{sig}"
-      @run_manually trapped_methods[sig], runtime_state
-    else if @access_flags.native
+      return @run_manually trapped_methods[sig], runtime_state
+    if @access_flags.native
       if sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
-        @run_manually ((rs)->), runtime_state # these are all just NOPs
-      else if native_methods[sig]
+        ms.pop() # these are all just NOPs
+        return
+      if native_methods[sig]
         trace "#{padding}entering native method #{sig}"
-        @run_manually native_methods[sig], runtime_state
-      else
-        try
-          util.java_throw runtime_state, 'java/lang/Error', "native method NYI: #{sig}"
-        finally
-          runtime_state.meta_stack().pop()
-    else if @access_flags.abstract
-      util.java_throw runtime_state, 'java/lang/Error', "called abstract method: #{sig}"
-    else
-      trace "#{padding}entering method #{sig}"
-      @run_bytecode runtime_state, padding
-    cf = runtime_state.curr_frame()
-    vtrace "#{padding}stack: [#{pa cf.stack}], local: [#{pa cf.locals}] (method end)"
+        return @run_manually native_methods[sig], runtime_state
+      try
+        java_throw runtime_state, 'java/lang/Error', "native method NYI: #{sig}"
+      finally
+        runtime_state.meta_stack().pop()
+    if @access_flags.abstract
+      java_throw runtime_state, 'java/lang/Error', "called abstract method: #{sig}"
+
+    # Finally, the normal case: running a Java method
+    trace "#{padding}entering method #{sig}"
+    @run_bytecode runtime_state, padding

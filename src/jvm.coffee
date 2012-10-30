@@ -1,9 +1,8 @@
 
 # pull in external modules
-_ = require '../third_party/_.js'
-runtime = require './runtime'
-util = require './util'
-{log,debug,error} = util
+require './runtime'
+{debug,error} = require './logging'
+exceptions = require './exceptions'
 
 # things assigned to root will be available outside this module
 root = exports ? this.jvm = {}
@@ -14,27 +13,18 @@ run = (rs, fn, done_cb) ->
     done_cb?()
     return true
   catch e
-    if e instanceof util.JavaException
-      error "\nUncaught #{e.exception.type.toClassString()}"
-      msg = e.exception.fields.detailMessage
-      error "\t#{rs.jvm2js_str msg}" if msg?
-      rs.show_state()
-      rs.push rs.curr_thread, e.exception
-      rs.method_lookup(
-        class: 'java/lang/Thread'
-        sig: 'dispatchUncaughtException(Ljava/lang/Throwable;)V').run(rs)
-    else if e instanceof util.HaltException
-      console.error "\nExited with code #{e.exit_code}" unless e.exit_code is 0
-    else if e instanceof util.YieldIOException or e instanceof util.YieldException
+    if e instanceof exceptions.YieldException
       retval = null
       e.condition ->
         rs.meta_stack().resuming_stack = 0  # <-- index into the meta_stack of the frame we're resuming
         retval = run rs, fn, done_cb
       return retval
     else
-      error "\nInternal JVM Error: #{e?.stack}"
-      rs.show_state()
-    unless e instanceof util.YieldIOException or e instanceof util.YieldException
+      if e.toplevel_catch_handler?
+        e.toplevel_catch_handler(rs)
+      else
+        error "\nInternal JVM Error: #{e?.stack}"
+        rs.show_state()
       done_cb?()
       return false
 
@@ -45,10 +35,11 @@ root.run_class = (rs, class_name, cmdline_args, done_cb, compile=false) ->
     if compile
       # hacky way to test compiled code
       compiler = require './compiler'
-      {c2t} = require './types'
-      console.log "compiling #{class_name}"
-      eval compiler.compile(rs.class_lookup(c2t(class_name)))
-      console.log "running #{class_name}::main"
+      util = require './util'
+      types = require './types'
+      debug "compiling #{class_name}"
+      eval compiler.compile(rs.class_lookup(types.c2t(class_name)))
+      debug "running #{class_name}::main"
       gLong = require '../third_party/gLong.js'
       run rs, (-> eval "#{class_name.replace(/\//g,'_')}.main(rs,rs.pop())")
     else

@@ -1,6 +1,8 @@
 
 # pull in external modules
 _ = require '../third_party/_.js'
+gLong = require '../third_party/gLong.js'
+{java_throw} =  require './exceptions'
 
 # things assigned to root will be available outside this module
 root = exports ? window.util ?= {}
@@ -30,22 +32,22 @@ towards_zero = (a) ->
   Math[if a > 0 then 'floor' else 'ceil'](a)
 
 root.int_mod = (rs, a, b) ->
-  root.java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b == 0
+  java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b == 0
   a % b
 
 root.int_div = (rs, a, b) ->
-  root.java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b == 0
+  java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b == 0
   towards_zero a / b
   # TODO spec: "if the dividend is the negative integer of largest possible magnitude
   # for the int type, and the divisor is -1, then overflow occurs, and the
   # result is equal to the dividend."
 
 root.long_mod = (rs, a, b) ->
-  root.java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b.isZero()
+  java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b.isZero()
   a.modulo(b)
 
 root.long_div = (rs, a, b) ->
-  root.java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b.isZero()
+  java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b.isZero()
   a.div(b)
 
 root.float2int = (a) ->
@@ -142,61 +144,27 @@ class root.BytesArray
     @_index += len
     arr
 
+root.initial_value = (type_str) ->
+  if type_str is 'J' then gLong.ZERO
+  else if type_str[0] in ['[','L'] then null
+  else 0
+
 root.is_string = (obj) -> typeof obj == 'string' or obj instanceof String
 
 # Walks up the prototype chain of :object looking for an entry in the :handlers
-# dict that match its constructor's name. If it finds one, it calls that handler
-# with :object bound to `this` and :args as the arguments.
-root.lookup_handler = (handlers, object, args...) ->
+# dict that match its constructor's name.
+root.lookup_handler = (handlers, object) ->
   obj = object
   while obj?
     handler = handlers[obj.constructor.name]
-    return handler.apply object, args if handler
+    return handler if handler
     obj = Object.getPrototypeOf obj
+  return null
 
-class root.BranchException
-  constructor: (@dst_pc) ->
-
-class root.HaltException
-  constructor: (@exit_code) ->
-
-class root.ReturnException
-  constructor: (@values...) ->
-
-class root.YieldException
-  constructor: (@condition) ->
-
-class root.YieldIOException
-  constructor: (@condition) ->
-
-class root.JavaException
-  constructor: (rs, @exception) ->
-
-# Simulate the throwing of a Java exception with message :msg. Not very DRY --
-# code here is essentially copied from the opcodes themselves -- but
-# constructing the opcodes manually is inelegant too.
-root.java_throw = (rs, cls, msg) ->
-  method_spec = class: cls, sig: '<init>(Ljava/lang/String;)V'
-  v = rs.init_object cls # new
-  rs.push(v,v,rs.init_string msg) # dup, ldc
-  rs.method_lookup(method_spec).run(rs) # invokespecial
-  throw new root.JavaException rs, rs.pop() # athrow
-
-# logging helpers
-root.VTRACE = 10
-root.TRACE = 9
-root.DEBUG = 5
-root.ERROR = 1
-root.log_level ?= root.ERROR
-
-root.log = (level, msgs...) ->
-  if level <= root.log_level
-    console[if level == 1 then 'error' else 'log'] msgs...
-
-root.vtrace = (msgs...) -> root.log root.VTRACE, msgs...
-root.trace = (msgs...) -> root.log root.TRACE, msgs...
-root.debug = (msgs...) -> root.log root.DEBUG, msgs...
-root.error = (msgs...) -> root.log root.ERROR, msgs...
+# Runs root.lookup_handler, and if it finds one, it calls that handler
+# with :object bound to `this` and :args as the arguments.
+root.call_handler = (handlers, object, args...) ->
+  root.lookup_handler(handlers,object)?.apply object, args
 
 # Java classes are represented internally using slashes as delimiters.
 # These helper functions convert between the two representations.

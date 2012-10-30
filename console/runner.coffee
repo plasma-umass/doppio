@@ -3,6 +3,7 @@ fs = require 'fs'
 path = require 'path'
 jvm = require '../src/jvm'
 util = require '../src/util'
+logging = require '../src/logging'
 ClassFile = require '../src/ClassFile'
 methods = require '../src/methods'
 runtime = require '../src/runtime'
@@ -34,11 +35,11 @@ if require.main == module
 
   return optimist.showHelp() if argv.help
 
-  util.log_level =
+  logging.log_level =
     if argv.log?
-      util[argv.log?.toUpperCase()] ? (argv.log? + 0)
+      logging[argv.log?.toUpperCase()] ? (argv.log? + 0)
     else
-      util.ERROR
+      logging.ERROR
 
   if argv.classpath?
     classpath = argv.classpath.split ':'

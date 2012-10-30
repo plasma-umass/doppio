@@ -111,7 +111,7 @@ root.disassemble = (class_file) ->
       rv += "   Stack=#{code.max_stack}, Locals=#{code.max_locals}, Args_size=#{m.num_args}\n"
       code.each_opcode (idx, oc) ->
         rv += "   #{idx}:\t#{oc.name}"
-        rv += (util.lookup_handler root.opcode_annotators, oc, idx, pool) || ""
+        rv += util.call_handler(root.opcode_annotators, oc, idx, pool) or ''
         rv += "\n"
       if code.exception_handlers.length > 0
         # For printing columns.
