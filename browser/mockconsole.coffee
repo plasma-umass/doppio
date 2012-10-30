@@ -103,7 +103,7 @@ $.fn.console = (config) ->
     sendBufferToServer()
 
     if commands.length > 0
-      command = commands.pop()
+      command = commands.shift()
       printInBrowser extern.promptLabel + command
       ret = extern.commandHandle command
       # Emulate jQuery console's behavior for different return types.
