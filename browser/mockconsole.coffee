@@ -36,6 +36,7 @@ $.fn.console = (config) ->
     )
 
   postToServer = (url, data, doneFn) ->
+    alert('"' + outBuffer + '"')
     $.ajax({
       type: "POST"
       url: url
@@ -116,9 +117,9 @@ $.fn.console = (config) ->
           error "Command \"" + command + "\" failed."
           extern.reprompt()
       else if typeof ret == "string"
-        extern.message ret
+        extern.message(ret + "\n")
       else if typeof ret == "object" && ret.length
-        extern.message ret
+        extern.message(ret + "\n")
       else
         extern.reprompt()
     else
