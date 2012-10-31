@@ -274,9 +274,6 @@ class DoppioServer
     def start()
       # Print starting line.
       writeMessage("EXPERIMENT BEGIN: " + Time.now.to_s + "\n")
-      # Flush this process's buffer. WEBRick runs in a separate process with its
-      # own buffer for this file, so this prevents out-of-order writes.
-      @logfile.flush()
       # Launch the browser.
       @browserPid = spawn('open', '-a', @browserPath, 'http://localhost:8000/')
     end
@@ -293,11 +290,13 @@ class DoppioServer
     def writeMessage(txt)
       @outer.p3 "MESSAGE: " + txt
       @logfile.write(txt)
+      @logfile.flush()
     end
 
     def writeError(error)
       @outer.p3 "ERROR: " + error
       @logfile.write("DOPPIO EXPERIMENT ERROR: " + error + "\n")
+      @logfile.flush()
     end
   end
 
