@@ -71,7 +71,7 @@ class DoppioServer
 
       opts.on("-w", "--browser browsername:browser1,browsername:browser2,...",
         Array, "Run benchmarking scripts in the given browsers. Recognized " +
-        "browsers are [firefox|chrome|opera].") do |browsers|
+        "browsers are [firefox|chrome|opera|safari].") do |browsers|
         if browsers.empty?
           opts.abort "You must specify at least one browser."
         end
