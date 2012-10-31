@@ -89,6 +89,9 @@ endif
 # MAKECMDGOALS above.
 release: build
 benchmark: build
+development: browser/mini-rt.tar
+	$(COFFEEC) -c */*.coffee
+	cpp -P browser/index.html index.html
 
 # Builds a distributable version of Doppio.
 dist: $(DIST_NAME)

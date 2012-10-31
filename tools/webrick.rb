@@ -152,7 +152,7 @@ class DoppioServer
         options.browsers = browsers
       end
 
-      opts.on("-e", "--experiment name", "Specifies the name of the  " +
+      opts.on("-e", "--experiment name", "Specifies the name of the " +
         "experiment. Used for log file naming.") do |e|
         options.exp = e
       end
@@ -274,6 +274,8 @@ class DoppioServer
     def start()
       # Print starting line.
       writeMessage("EXPERIMENT BEGIN: " + Time.now.to_s + "\n")
+      writeMessage("BROWSER: " + @browserName + ":" + @browserPath + "\n")
+      writeMessage("SCRIPT: " + @script + "\n")
       # Launch the browser.
       @browserPid = spawn('open', '-a', @browserPath, 'http://localhost:8000/')
     end
