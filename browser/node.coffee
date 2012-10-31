@@ -9,6 +9,8 @@ class win.DoppioFile # File is a native browser thing
     @data = ""
 
   @load: (fname) ->
+    #TODO: support getting non-localStorage files
+    #  this will fix javac and rhino
     fname = basename root.path.resolve fname
     rawData = localStorage["file::#{fname?.toLowerCase()}"]
     return null unless rawData
