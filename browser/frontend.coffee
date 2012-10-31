@@ -6,6 +6,7 @@ user_input = null
 controller = null
 editor = null
 progress = null
+classpath = [ "third_party/classes/", "" ]
 
 class_cache = {}
 raw_cache = {}
@@ -84,7 +85,6 @@ try_path = (path) ->
 # Read in a binary classfile synchronously. Return an array of bytes.
 read_classfile = (cls) ->
   unless class_cache[cls]?
-    classpath = [ "third_party/classes/", "" ]
     for path in classpath
       fullpath = "#{path}#{cls}.class"
       if fullpath of raw_cache
@@ -237,9 +237,20 @@ commands =
     # hack: use a special class name that won't clash with real ones
     jvm.run_class(rs, '!javac', args, -> controller.reprompt())
   java: (args, cb) ->
-    return "Usage: java class [args...]" unless args[0]?
+    if !args[0]? or (args[0] == '-classpath' and args.length < 3)
+      return "Usage: java [-classpath path1:path2...] class [args...]"
+    classpath = [ "third_party/classes/", "" ]
+    if args[0] == '-classpath'
+      paths = args[1].split(':')
+      class_name = args[2]
+      class_args = args[3..]
+      for path in paths
+        classpath.unshift(path + "/")
+    else
+      class_name = args[0]
+      class_args = args[1..]
     rs = new runtime.RuntimeState(stdout, user_input, read_classfile)
-    jvm.run_class(rs, args[0], args[1..], -> controller.reprompt())
+    jvm.run_class(rs, class_name, class_args, -> controller.reprompt())
   javap: (args) ->
     return "Usage: javap class" unless args[0]?
     raw_data = DoppioFile.load("#{args[0]}.class").read()

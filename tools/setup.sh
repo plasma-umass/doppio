@@ -1,7 +1,5 @@
 #!/bin/sh
-
 set -e
-
 cd `dirname $0`/..
 
 git submodule update --init --recursive
@@ -61,19 +59,8 @@ cd ..  # back to start
 
 # Intentionally fail if node doesn't exist.
 echo "Using node `node -v`"
-
-set +e  # in case coffee doesn't exist, we can recover
-CSVER=`coffee --version | fmt -1 | grep '[0-9]\+\.[0-9]\+'`
-set -e
-
-if [ -z "$CSVER" ] || [[ "$CSVER" < "1.3.3" ]]; then
-  echo "Installing coffeescript ver. 1.3.3"
-  npm install -g coffee-script@1.3.3
-fi
-
-#TODO: check for these before installing
-npm install optimist
-npm install uglify-js
+echo "Installing required node modules"
+make dependencies
 
 echo "Using `javac -version 2>&1` to generate classfiles"
 make java
@@ -96,6 +83,9 @@ if ! sed -r "" </dev/null >/dev/null 2>&1 && ! command -v gsed >/dev/null; then
         echo "Doppio can run without this, but it is needed for building the full website."
     fi
 fi
+
+# Intentionally fail if pygmentize doesn't exist.
+echo "Checking for pygment (needed to generate docs)... `pygmentize -V`"
 
 echo "Your environment should now be set up correctly."
 echo "Run 'make test' (optionally with -j4) to test Doppio."
