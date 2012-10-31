@@ -18,6 +18,7 @@ class DoppioServer
   module Browser
     CHROME = "chrome"
     FIREFOX = "firefox"
+    SAFARI = "safari"
     OPERA = "opera"
   end
 
@@ -83,6 +84,7 @@ class DoppioServer
           when Browser::FIREFOX
           when Browser::OPERA
           when Browser::CHROME
+          when Browser::SAFARI
           else
             opts.abort "ERROR: Invalid browser type: " + browserName
           end
@@ -257,6 +259,7 @@ class DoppioServer
       case @browserName
       when Browser::FIREFOX then 'firefox'
       when Browser::CHROME then 'Google Chrome'
+      when Browser::SAFARI then 'Safari'
       when Browser::OPERA then 'Opera'
       end
     end
