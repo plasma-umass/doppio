@@ -38,6 +38,8 @@ COMMON_BROWSER_SRCS = third_party/_.js \
 	browser/util.coffee \
 	browser/node.coffee \
 	src/util.coffee \
+	src/exceptions.coffee \
+	src/logging.coffee \
 	src/types.coffee \
 	src/opcodes.coffee \
 	src/attributes.coffee \
