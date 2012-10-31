@@ -36,7 +36,6 @@ $.fn.console = (config) ->
     )
 
   postToServer = (url, data, doneFn) ->
-    alert('"' + outBuffer + '"')
     $.ajax({
       type: "POST"
       url: url
