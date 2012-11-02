@@ -21,11 +21,11 @@ run = (rs, fn, done_cb) ->
       return retval
     else
       if e.toplevel_catch_handler?
-        e.toplevel_catch_handler(rs)
+        run rs, (-> e.toplevel_catch_handler(rs)), done_cb
       else
         error "\nInternal JVM Error: #{e?.stack}"
         rs.show_state()
-      done_cb?()
+        done_cb?()
       return false
 
 # main function that gets called from the frontend
