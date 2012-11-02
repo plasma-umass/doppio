@@ -488,8 +488,12 @@ native_methods =
             if _this.fields.$file?
               # this is a real file that we've already opened
               pos = _this.fields.$pos
+              file = _this.fields.$file
               buf = new Buffer n_bytes
-              bytes_read = fs.readSync(_this.fields.$file, buf, 0, n_bytes, pos)
+              # if at end of file, return -1.
+              if pos >= fs.fstatSync(file).size-1
+                return -1
+              bytes_read = fs.readSync(file, buf, 0, n_bytes, pos)
               # not clear why, but sometimes node doesn't move the file pointer,
               # so we do it here ourselves
               _this.fields.$pos += bytes_read
@@ -549,8 +553,12 @@ native_methods =
         o 'seek(J)V', (rs, _this, pos) -> _this.fields.$pos = pos
         o 'readBytes([BII)I', (rs, _this, byte_arr, offset, len) ->
             pos = _this.fields.$pos.toNumber()
+            file = _this.fields.$file
+            # if at end of file, return -1.
+            if pos >= fs.fstatSync(file).size-1
+              return -1
             buf = new Buffer len
-            bytes_read = fs.readSync(_this.fields.$file, buf, 0, len, pos)
+            bytes_read = fs.readSync(file, buf, 0, len, pos)
             byte_arr.array[offset+i] = buf.readUInt8(i) for i in [0...bytes_read] by 1
             _this.fields.$pos = gLong.fromNumber(pos+bytes_read)
             return if bytes_read == 0 and len isnt 0 then -1 else bytes_read
@@ -581,6 +589,13 @@ native_methods =
             catch e
               return null
             rs.init_object('[Ljava/lang/String;',(rs.init_string(f) for f in files))
+        o 'getLength(Ljava/io/File;)J', (rs, _this, file) ->
+            pth = rs.jvm2js_str file.fields.path
+            try
+              length = fs.statSync(pth).size
+            catch e
+              length = 0
+            gLong.fromNumber(length)
       ]
     util:
       concurrent:
