@@ -462,7 +462,10 @@
                 var ret = extern.commandHandle(text);
                 if (extern.continuedPrompt && !continuedText)
                   continuedText = promptText;
-                if (typeof ret == 'boolean') {
+                if (ret === null) {
+                    // assume that we don't want to reprompt
+                    return;
+                } else if (typeof ret == 'boolean') {
                     if (ret) {
                         // Command succeeded without a result.
                         commandResult();

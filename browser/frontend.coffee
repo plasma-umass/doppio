@@ -230,6 +230,7 @@ commands =
   javac: (args, cb) ->
     rs = new runtime.RuntimeState(stdout, user_input, read_classfile)
     jvm.run_class(rs, 'test/special/Javac', args, -> controller.reprompt())
+    return null  # no reprompt, because we handle it ourselves
   java: (args, cb) ->
     if !args[0]? or (args[0] == '-classpath' and args.length < 3)
       return "Usage: java [-classpath path1:path2...] class [args...]"
@@ -245,15 +246,17 @@ commands =
       class_args = args[1..]
     rs = new runtime.RuntimeState(stdout, user_input, read_classfile)
     jvm.run_class(rs, class_name, class_args, -> controller.reprompt())
-    true
+    return null  # no reprompt, because we handle it ourselves
   javap: (args) ->
     return "Usage: javap class" unless args[0]?
     raw_data = DoppioFile.load("#{args[0]}.class").read()
     return ["Could not find class '#{args[0]}'.",'error'] unless raw_data?
     disassembler.disassemble process_bytecode raw_data
+    return null  # no reprompt, because we handle it ourselves
   rhino: (args, cb) ->
     rs = new runtime.RuntimeState(stdout, user_input, read_classfile)
     jvm.run_class(rs, '!rhino', args, -> controller.reprompt())
+    return null  # no reprompt, because we handle it ourselves
   list_cache: ->
     ((if val? then '' else '-') + name for name, val of raw_cache).join '\n'
   clear_cache: (args) ->
