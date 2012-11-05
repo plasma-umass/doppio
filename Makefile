@@ -89,7 +89,7 @@ endif
 # MAKECMDGOALS above.
 release: build
 benchmark: build
-development: browser/mini-rt.tar
+development: browser/mini-rt.tar test/special/*.class
 	$(COFFEEC) -c */*.coffee
 	cpp -P browser/index.html index.html
 

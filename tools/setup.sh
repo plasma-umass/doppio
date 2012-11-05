@@ -25,13 +25,14 @@ cd third_party
 
 # check for the JCL
 if [ ! -f classes/java/lang/Object.class ]; then
-  for name in classes rt; do
-    JCL=`$FIND "$name.jar" 2>/dev/null | head -1`
-    if [ "$JCL" ]; then break; fi
+  javac ../test/special/FindJclClasses.java
+  JCL=`java -classpath ../ test/special/FindJclClasses`
+  echo "Extracting the Java class library from the following files:"
+  echo "$JCL"
+  for name in $JCL; do
+    # Need to overwrite; tools overwrites some classes in rt.
+    unzip -qq -o -d classes/ "$name"
   done
-
-  echo "Extracting the Java class library from: $JCL"
-  unzip -qq -d classes/ "$JCL"
 fi
 
 # check for jazzlib
