@@ -42,6 +42,7 @@ class ArrayCopyTest {
   public static void main(String[] args) {
     NPEExceptionTest("src array null", null, 0, new Object[1], 0, 0);
     NPEExceptionTest("dest array null", new Object[1], 0, null, 0, 0);
+    NPEExceptionTest("dest array null with negative index", new Object[1], -1, null, 100, 100);
 
     ASEExceptionTest("src not an array", new Object(), 0, new Object[1], 0,0);
     ASEExceptionTest("dst not an array", new Object[1], 0, new Object(), 0,0);
