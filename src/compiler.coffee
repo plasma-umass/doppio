@@ -484,25 +484,25 @@ compile_obj_handlers = {
     val = if @field_spec.type in ['J','D'] then b.pop2() else b.pop()
     b.add_stmt new Expr """
       var f = rs.field_lookup(#{JSON.stringify @field_spec});
-      rs.class_lookup(f.class_type, true).fields[f.name] = $0
+      rs.class_lookup(f.class_type, true).set_field(f.name, $0, f.type.toString(), 'java/lang/Class')
     """, val
   }
   
   getfield: { compile: (b) ->
     t = b.new_temp()
     name = JSON.stringify @field_spec.name
-    init = util.initial_value @field_spec.type
-    b.add_stmt new Expr """
-      var f = $0.fields;
-      if (f[#{name}] == null) { f[#{name}] = #{init}; }
-      $1 = f[#{name}]
-    """, b.pop(), t
-    if @field_spec.type in ['J','D'] then b.push2 t else b.push t    
+    type = JSON.stringify @field_spec.type
+    for_class = JSON.stringify @field_spec.class
+    b.add_stmt new Expr "$1 = $0.get_field(#{name}, #{type}, #{for_class})", b.pop(), t
+    if @field_spec.type in ['J','D'] then b.push2 t else b.push t
   }
   
   putfield: { compile: (b) ->
     val = if @field_spec.type in ['J','D'] then b.pop2() else b.pop()
-    b.add_stmt new Assignment new Expr("$0.fields[#{JSON.stringify @field_spec.name}]", b.pop()), val
+    name = JSON.stringify @field_spec.name
+    type = JSON.stringify @field_spec.type
+    for_class = JSON.stringify @field_spec.class
+    b.add_stmt new Expr "$0.set_field(#{name}, #{val}, #{type}, #{for_class})", b.pop(), val
   }
 
   'new': { compile: (b) ->

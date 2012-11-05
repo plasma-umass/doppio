@@ -5,6 +5,7 @@ gLong = require '../third_party/gLong.js'
 util = require './util'
 types = require './types'
 runtime = require './runtime'
+{thread_name} = require './java_object'
 exceptions = require './exceptions'
 {log,debug,error} = require './logging'
 path = node?.path ? require 'path'
@@ -52,7 +53,8 @@ trapped_methods =
       Throwable: [
         o 'fillInStackTrace()L!/!/!;', (rs, _this) ->
             stack = []
-            _this.fields.stackTrace = rs.init_object "[Ljava/lang/StackTraceElement;", stack
+            strace = rs.init_object "[Ljava/lang/StackTraceElement;", stack
+            _this.set_field 'stackTrace', strace
             # we don't want to include the stack frames that were created by
             # the construction of this exception
             cstack = rs.meta_stack()._cs.slice(1)
@@ -84,7 +86,7 @@ trapped_methods =
           AtomicInteger: [
             o '<clinit>()V', (rs) -> #NOP
             o 'compareAndSet(II)Z', (rs, _this, expect, update) ->
-                _this.fields.value = update;  # we don't need to compare, just set
+                _this.set_field 'value', update, 'I'  # we don't need to compare, just set
                 true # always true, because we only have one thread
           ]
       Currency: [
@@ -107,33 +109,6 @@ doPrivileged = (rs) ->
   m.run(rs,m.access_flags.virtual)
   rs.pop()
 
-get_field_from_offset = (rs, cls, offset) ->
-  classname = cls.this_class.toClassString()
-  until cls.fields[offset]?
-    unless cls.super_class?
-      exceptions.java_throw rs, 'java/lang/NullPointerException', "field #{offset} doesn't exist in class #{classname}"
-    cls = rs.class_lookup(cls.super_class)
-  cls.fields[offset]
-
-get_value_from_offset = (rs, obj, offset) ->
-  if obj.type instanceof types.ArrayType
-    return obj.array[offset.toInt()]
-  f = get_field_from_offset rs, rs.class_lookup(obj.type), offset.toInt()
-  return rs.static_get({class:obj.type.toClassString(),name:f.name}) if f.access_flags.static
-  obj.fields[f.name] ? 0
-
-set_value_from_offset = (rs, obj, offset, value) ->
-  o = offset.toInt()
-  if obj.type instanceof types.ArrayType
-    obj.array[o] = value
-  else
-    f = get_field_from_offset rs, rs.class_lookup(obj.type), o
-    if f.access_flags.static
-      rs.push value
-      rs.static_put({class:obj.type.toClassString(),name:f.name})
-    else
-      obj.fields[f.name] = value
-
 stat_file = (fname) ->
   try
     if util.is_string(fname) then fs.statSync(fname) else fs.fstatSync(fname)
@@ -149,28 +124,28 @@ native_methods =
         o 'getClassLoader0()L!/!/ClassLoader;', (rs) -> null  # we don't need no stinkin classloaders
         o 'desiredAssertionStatus0(L!/!/!;)Z', (rs) -> false # we don't need no stinkin asserts
         o 'getName0()L!/!/String;', (rs, _this) ->
-            rs.init_string(_this.fields.$type.toExternalString())
+            rs.init_string(_this.$type.toExternalString())
         o 'forName0(L!/!/String;ZL!/!/ClassLoader;)L!/!/!;', (rs, jvm_str) ->
             type = c2t util.int_classname jvm_str.jvm2js_str()
             rs.class_lookup type, true
         o 'getComponentType()L!/!/!;', (rs, _this) ->
-            type = _this.fields.$type
+            type = _this.$type
             return null unless (type instanceof types.ArrayType)
             rs.class_lookup type.component_type, true
         o 'isAssignableFrom(L!/!/!;)Z', (rs, _this, cls) ->
-            types.is_castable rs, cls.fields.$type, _this.fields.$type
+            types.is_castable rs, cls.$type, _this.$type
         o 'isInterface()Z', (rs, _this) ->
-            return false unless _this.fields.$type instanceof types.ClassType
-            cls = rs.class_lookup _this.fields.$type
+            return false unless _this.$type instanceof types.ClassType
+            cls = rs.class_lookup _this.$type
             cls.access_flags.interface
         o 'isInstance(L!/!/Object;)Z', (rs, _this, obj) ->
-            return types.is_castable rs, obj.type, _this.fields.$type
+            return types.is_castable rs, obj.type, _this.$type
         o 'isPrimitive()Z', (rs, _this) ->
-            _this.fields.$type instanceof types.PrimitiveType
+            _this.$type instanceof types.PrimitiveType
         o 'isArray()Z', (rs, _this) ->
-            _this.fields.$type instanceof types.ArrayType
+            _this.$type instanceof types.ArrayType
         o 'getSuperclass()L!/!/!;', (rs, _this) ->
-            type = _this.fields.$type
+            type = _this.$type
             if (type instanceof types.PrimitiveType) or type == 'Ljava/lang/Object;'
               return null
             cls = rs.class_lookup type
@@ -178,25 +153,25 @@ native_methods =
               return null
             rs.class_lookup cls.super_class, true
         o 'getDeclaredFields0(Z)[Ljava/lang/reflect/Field;', (rs, _this, public_only) ->
-            fields = rs.class_lookup(_this.fields.$type).fields
+            fields = rs.class_lookup(_this.$type).fields
             fields = (f for f in fields when f.access_flags.public) if public_only
             rs.init_object('[Ljava/lang/reflect/Field;',(f.reflector(rs) for f in fields))
         o 'getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;', (rs, _this, public_only) ->
-            methods = rs.class_lookup(_this.fields.$type).methods
+            methods = rs.class_lookup(_this.$type).methods
             methods = (m for sig, m of methods when m.access_flags.public or not public_only)
             rs.init_object('[Ljava/lang/reflect/Method;',(m.reflector(rs) for m in methods))
         o 'getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;', (rs, _this, public_only) ->
-            methods = rs.class_lookup(_this.fields.$type).methods
+            methods = rs.class_lookup(_this.$type).methods
             methods = (m for sig, m of methods when m.name is '<init>')
             methods = (m for m in methods when m.access_flags.public) if public_only
             rs.init_object('[Ljava/lang/reflect/Constructor;',(m.reflector(rs,true) for m in methods))
         o 'getInterfaces()[L!/!/!;', (rs, _this) ->
-            cls = rs.class_lookup(_this.fields.$type)
+            cls = rs.class_lookup(_this.$type)
             ifaces = (cls.constant_pool.get(i).deref() for i in cls.interfaces)
             ifaces = ((if util.is_string(i) then c2t(i) else i) for i in ifaces)
             iface_objs = (rs.class_lookup(iface,true) for iface in ifaces)
             rs.init_object('[Ljava/lang/Class;',iface_objs)
-        o 'getModifiers()I', (rs, _this) -> rs.class_lookup(_this.fields.$type).access_byte
+        o 'getModifiers()I', (rs, _this) -> rs.class_lookup(_this.$type).access_byte
       ],
       ClassLoader: [
         o 'findLoadedClass0(L!/!/String;)L!/!/Class;', (rs, _this, name) ->
@@ -244,23 +219,18 @@ native_methods =
         o 'hashCode()I', (rs, _this) ->
             # return the pseudo heap reference, essentially a unique id
             _this.ref
-        o 'clone()L!/!/!;', (rs, _this) ->
-            # note: we don't clone the type, because they're effectively immutable
-            if _this.type instanceof types.ArrayType
-              rs.set_obj _this.type, _.clone(_this.array)
-            else
-              rs.set_obj _this.type, _.clone(_this.fields)
+        o 'clone()L!/!/!;', (rs, _this) -> _this.clone(rs)
         o 'notify()V', (rs, _this) ->
             return unless rs.lock_refs[_this]?  # if it's not an active monitor, no one cares
             unless rs.lock_refs[_this] is rs.curr_thread
-              owner = util.chars2js_str rs.lock_refs[_this].fields.name
+              owner = thread_name rs.lock_refs[_this]
               exceptions.java_throw rs, 'java/lang/IllegalMonitorStateException', "Thread '#{owner}' owns this monitor"
             if rs.waiting_threads[_this]? and (t = rs.waiting_threads[_this].shift())?
               rs.wait _this, t  # wait on _this, yield to t
         o 'notifyAll()V', (rs, _this) ->  # exactly the same as notify(), for now
             return unless rs.lock_refs[_this]?  # if it's not an active monitor, no one cares
             unless rs.lock_refs[_this] is rs.curr_thread
-              owner = util.chars2js_str rs.lock_refs[_this].fields.name
+              owner = thread_name rs.lock_refs[_this]
               exceptions.java_throw rs, 'java/lang/IllegalMonitorStateException', "Thread '#{owner}' owns this monitor"
             if rs.waiting_threads[_this]? and (t = rs.waiting_threads[_this].shift())?
               rs.wait _this, t  # wait on _this, yield to t
@@ -272,7 +242,7 @@ native_methods =
       reflect:
         Array: [
           o 'newArray(L!/!/Class;I)L!/!/Object;', (rs, _this, len) ->
-              rs.heap_newarray _this.fields.$type, len
+              rs.heap_newarray _this.$type, len
         ]
       Runtime: [
         o 'availableProcessors()I', () -> 1
@@ -330,22 +300,22 @@ native_methods =
         o 'currentThread()L!/!/!;', (rs) -> rs.curr_thread
         o 'setPriority0(I)V', (rs) -> # NOP
         o 'holdsLock(L!/!/Object;)Z', (rs, obj) -> rs.curr_thread is rs.lock_refs[obj]
-        o 'isAlive()Z', (rs, _this) -> _this.fields.$isAlive ? false
+        o 'isAlive()Z', (rs, _this) -> _this.$isAlive ? false
         o 'isInterrupted(Z)Z', (rs, _this, clear_flag) ->
-            tmp = _this.fields.$isInterrupted ? false
-            _this.fields.$isInterrupted = false if clear_flag
+            tmp = _this.$isInterrupted ? false
+            _this.$isInterrupted = false if clear_flag
             tmp
         o 'start0()V', (rs, _this) ->
             # bookkeeping
-            _this.fields.$isAlive = true
-            _this.fields.$meta_stack = new runtime.CallStack()
+            _this.$isAlive = true
+            _this.$meta_stack = new runtime.CallStack()
             rs.thread_pool.push _this
             spawning_thread = rs.curr_thread
-            my_name = util.chars2js_str _this.fields.name
-            orig_name = util.chars2js_str spawning_thread.fields.name
+            my_name = thread_name _this
+            orig_name = thread_name spawning_thread
             rs.curr_frame().resume = -> # thread cleanup
               debug "TE: deleting #{my_name} after resume"
-              _this.fields.$isAlive = false
+              _this.$isAlive = false
               rs.thread_pool.splice rs.thread_pool.indexOf(_this), 1
             debug "TE: starting #{my_name} from #{orig_name}"
 
@@ -355,9 +325,9 @@ native_methods =
               rs.curr_thread = spawning_thread
               rs.curr_frame().resume = ->
                 debug "TE: not cleaning up #{my_name} after resume"
-                _this.fields.$isAlive = false
+                _this.$isAlive = false
               cb ->
-                debug "TE: actually resuming #{util.chars2js_str rs.curr_thread.fields.name}"
+                debug "TE: actually resuming #{thread_name rs.curr_thread}"
                 rs.meta_stack().resuming_stack = 1  # the first method called, likely Thread::run()
                 try
                   rs.curr_frame().method.run(rs, true)
@@ -367,7 +337,7 @@ native_methods =
 
             # actually start the thread
             throw new exceptions.YieldException (cb) ->
-              spawning_thread.fields.$resume = cb
+              spawning_thread.$resume = cb
               rs.curr_thread = _this
               # call the thread's run() method.
               rs.push _this
@@ -380,21 +350,21 @@ native_methods =
                     rs.curr_frame().method.run(rs, true)
                 else if e instanceof exceptions.YieldException
                   resume_thread e.condition
-                  rs.curr_thread.fields.$isAlive = false
+                  rs.curr_thread.$isAlive = false
                   rs.thread_pool.splice rs.thread_pool.indexOf(rs.curr_thread), 1
                 else
                   return e.toplevel_catch_handler(rs) if e.toplevel_catch_handler?
                   console.log "\nInternal JVM Error!", e.stack
                   rs.show_state()
                   return
-              debug "TE: finished running #{util.chars2js_str rs.curr_thread.fields.name}"
+              debug "TE: finished running #{thread_name rs.curr_thread}"
 
               # yield to a paused thread
               yieldee = (y for y in rs.thread_pool when y isnt rs.curr_thread).pop()
               if yieldee?
                 rs.curr_thread = yieldee
-                debug "TE: about to resume #{util.chars2js_str rs.curr_thread.fields.name}"
-                rs.curr_thread.fields.$resume()
+                debug "TE: about to resume #{thread_name rs.curr_thread}"
+                rs.curr_thread.$resume()
 
         o 'sleep(J)V', (rs, millis) ->
             rs.curr_frame().resume = -> # NOP, return immediately after sleeping
@@ -436,11 +406,11 @@ native_methods =
       ]
       FileOutputStream: [
         o 'open(L!/lang/String;)V', (rs, _this, fname) ->
-            _this.fields.$file = fs.openSync fname.jvm2js_str(), 'w'
+            _this.$file = fs.openSync fname.jvm2js_str(), 'w'
         o 'writeBytes([BIIZ)V', (rs, _this, bytes, offset, len, append) ->
-            if _this.fields.$file?
+            if _this.$file?
               # appends by default in the browser, not sure in actual node.js impl
-              fs.writeSync(_this.fields.$file, new Buffer(bytes.array), offset, len)
+              fs.writeSync(_this.$file, new Buffer(bytes.array), offset, len)
               return
             rs.print util.chars2js_str(bytes, offset, len)
             if node?
@@ -449,8 +419,8 @@ native_methods =
               rs.curr_frame().resume = -> # NOP
               throw new exceptions.YieldIOException (cb) -> setTimeout(cb, 0)
         o 'writeBytes([BII)V', (rs, _this, bytes, offset, len) ->
-            if _this.fields.$file?
-              fs.writeSync(_this.fields.$file, new Buffer(bytes.array), offset, len)
+            if _this.$file?
+              fs.writeSync(_this.$file, new Buffer(bytes.array), offset, len)
               return
             rs.print util.chars2js_str(bytes, offset, len)
             if node?
@@ -459,21 +429,21 @@ native_methods =
               rs.curr_frame().resume = -> # NOP
               throw new exceptions.YieldIOException (cb) -> setTimeout(cb, 0)
         o 'close0()V', (rs, _this) ->
-            return unless _this.fields.$file?
-            fs.closeSync(_this.fields.$file)
-            _this.fields.$file = null
+            return unless _this.$file?
+            fs.closeSync(_this.$file)
+            _this.$file = null
       ]
       FileInputStream: [
         o 'available()I', (rs, _this) ->
-            return 0 if not _this.fields.$file? # no buffering for stdin
-            stats = fs.fstatSync _this.fields.$file
-            stats.size - _this.fields.$pos
+            return 0 if not _this.$file? # no buffering for stdin
+            stats = fs.fstatSync _this.$file
+            stats.size - _this.$pos
         o 'read()I', (rs, _this) ->
-            if (file = _this.fields.$file)?
+            if (file = _this.$file)?
               # this is a real file that we've already opened
               buf = new Buffer((fs.fstatSync file).size)
-              bytes_read = fs.readSync(file, buf, 0, 1, _this.fields.$pos)
-              _this.fields.$pos++
+              bytes_read = fs.readSync(file, buf, 0, 1, _this.$pos)
+              _this.$pos++
               return if bytes_read == 0 then -1 else buf.readUInt8(0)
             # reading from System.in, do it async
             data = null # will be filled in after the yield
@@ -484,10 +454,10 @@ native_methods =
                 data = byte
                 cb()
         o 'readBytes([BII)I', (rs, _this, byte_arr, offset, n_bytes) ->
-            if _this.fields.$file?
+            if _this.$file?
               # this is a real file that we've already opened
-              pos = _this.fields.$pos
-              file = _this.fields.$file
+              pos = _this.$pos
+              file = _this.$file
               buf = new Buffer n_bytes
               # if at end of file, return -1.
               if pos >= fs.fstatSync(file).size-1
@@ -495,7 +465,7 @@ native_methods =
               bytes_read = fs.readSync(file, buf, 0, n_bytes, pos)
               # not clear why, but sometimes node doesn't move the file pointer,
               # so we do it here ourselves
-              _this.fields.$pos += bytes_read
+              _this.$pos += bytes_read
               byte_arr.array[offset+i] = buf.readUInt8(i) for i in [0...bytes_read] by 1
               return if bytes_read == 0 and n_bytes isnt 0 then -1 else bytes_read
             # reading from System.in, do it async
@@ -509,19 +479,19 @@ native_methods =
         o 'open(Ljava/lang/String;)V', (rs, _this, filename) ->
             filepath = filename.jvm2js_str()
             try  # TODO: actually look at the mode
-              _this.fields.$file = fs.openSync filepath, 'r'
-              _this.fields.$pos = 0
+              _this.$file = fs.openSync filepath, 'r'
+              _this.$pos = 0
             catch e
               if e.code == 'ENOENT'
                 exceptions.java_throw rs, 'java/io/FileNotFoundException', "Could not open file #{filepath}"
               else
                 throw e
-        o 'close0()V', (rs, _this) -> _this.fields.$file = null
+        o 'close0()V', (rs, _this) -> _this.$file = null
         o 'skip(J)J', (rs, _this, n_bytes) ->
-            if (file = _this.fields.$file)?
-              bytes_left = fs.fstatSync(file).size - _this.fields.$pos
+            if (file = _this.$file)?
+              bytes_left = fs.fstatSync(file).size - _this.$pos
               to_skip = Math.min(n_bytes.toNumber(), bytes_left)
-              _this.fields.$pos += to_skip
+              _this.$pos += to_skip
               return gLong.fromNumber(to_skip)
             # reading from System.in, do it async
             num_skipped = null # will be filled in after the yield
@@ -538,60 +508,62 @@ native_methods =
         o 'open(Ljava/lang/String;I)V', (rs, _this, filename, mode) ->
             filepath = filename.jvm2js_str()
             try  # TODO: actually look at the mode
-              _this.fields.$file = fs.openSync filepath, 'r'
+              _this.$file = fs.openSync filepath, 'r'
             catch e
               if e.code == 'ENOENT'
                 exceptions.java_throw rs, 'java/io/FileNotFoundException', "Could not open file #{filepath}"
               else
                 throw e
-            _this.fields.$pos = 0
-        o 'getFilePointer()J', (rs, _this) -> gLong.fromNumber _this.fields.$file
+            _this.$pos = 0
+        o 'getFilePointer()J', (rs, _this) -> gLong.fromNumber _this.$file
         o 'length()J', (rs, _this) ->
-            stats = stat_file _this.fields.$file
+            stats = stat_file _this.$file
             gLong.fromNumber stats.size
-        o 'seek(J)V', (rs, _this, pos) -> _this.fields.$pos = pos
+        o 'seek(J)V', (rs, _this, pos) -> _this.$pos = pos
         o 'readBytes([BII)I', (rs, _this, byte_arr, offset, len) ->
-            pos = _this.fields.$pos.toNumber()
-            file = _this.fields.$file
+            pos = _this.$pos.toNumber()
+            file = _this.$file
             # if at end of file, return -1.
             if pos >= fs.fstatSync(file).size-1
               return -1
             buf = new Buffer len
             bytes_read = fs.readSync(file, buf, 0, len, pos)
             byte_arr.array[offset+i] = buf.readUInt8(i) for i in [0...bytes_read] by 1
-            _this.fields.$pos = gLong.fromNumber(pos+bytes_read)
+            _this.$pos = gLong.fromNumber(pos+bytes_read)
             return if bytes_read == 0 and len isnt 0 then -1 else bytes_read
-        o 'close0()V', (rs, _this) -> _this.fields.$file = null
+        o 'close0()V', (rs, _this) -> _this.$file = null
       ]
       UnixFileSystem: [
         o 'checkAccess(Ljava/io/File;I)Z', (rs, _this, file, access) ->
-            stats = stat_file file.fields.path.jvm2js_str()
+            filepath = file.get_field 'path', 'java/lang/String'
+            stats = stat_file filepath.jvm2js_str()
             return false unless stats?
             mode = stats.mode & 511
             true  # TODO: actually use the mode, checking if we're the owner or in group
         o 'getBooleanAttributes0(Ljava/io/File;)I', (rs, _this, file) ->
-            stats = stat_file file.fields.path.jvm2js_str()
+            filepath = file.get_field 'path', 'java/lang/String'
+            stats = stat_file filepath.jvm2js_str()
             return 0 unless stats?
             if stats.isFile() then 3 else if stats.isDirectory() then 5 else 1
         o 'getLastModifiedTime(Ljava/io/File;)J', (rs, _this, file) ->
-            filepath = file.fields.path.jvm2js_str()
-            stats = stat_file filepath
-            exceptions.java_throw(rs, 'java/io/FileNotFoundException', "Could not stat file #{filepath}") unless stats?
+            filepath = file.get_field 'path', 'java/lang/String'
+            stats = stat_file filepath.jvm2js_str()
+            exceptions.java_throw(rs, 'java/io/FileNotFoundException', "Could not stat file #{filepath.jvm2js_str()}") unless stats?
             gLong.fromNumber (new Date(stats.mtime)).getTime()
         o 'canonicalize0(L!/lang/String;)L!/lang/String;', (rs, _this, jvm_path_str) ->
             js_str = jvm_path_str.jvm2js_str()
-            rs.init_string path.resolve path.normalize js_str
+            rs.init_string path.resolve(path.normalize(js_str))
         o 'list(Ljava/io/File;)[Ljava/lang/String;', (rs, _this, file) ->
-            pth = file.fields.path.jvm2js_str()
+            filepath = file.get_field 'path', 'java/lang/String'
             try
-              files = fs.readdirSync(pth)
+              files = fs.readdirSync(filepath.jvm2js_str())
             catch e
               return null
             rs.init_object('[Ljava/lang/String;',(rs.init_string(f) for f in files))
         o 'getLength(Ljava/io/File;)J', (rs, _this, file) ->
-            pth = file.fields.path.jvm2js_str()
+            filepath = file.get_field 'path', 'java/lang/String'
             try
-              length = fs.statSync(pth).size
+              length = fs.statSync(filepath.jvm2js_str()).size
             catch e
               length = 0
             gLong.fromNumber(length)
@@ -637,32 +609,34 @@ native_methods =
         o 'arrayBaseOffset(Ljava/lang/Class;)I', (rs, _this, cls) -> 0
         o 'arrayIndexScale(Ljava/lang/Class;)I', (rs, _this, cls) -> 1
         o 'compareAndSwapObject(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z', (rs, _this, obj, offset, expected, x) ->
-            set_value_from_offset rs, obj, offset, x
+            obj.set_field_from_offset rs, offset, x
             true
         o 'compareAndSwapInt(Ljava/lang/Object;JII)Z', (rs, _this, obj, offset, expected, x) ->
-            set_value_from_offset rs, obj, offset, x
+            obj.set_field_from_offset rs, offset, x
             true
         o 'compareAndSwapLong(Ljava/lang/Object;JJJ)Z', (rs, _this, obj, offset, expected, x) ->
-            set_value_from_offset rs, obj, offset, x
+            obj.set_field_from_offset rs, offset, x
             true
         o 'ensureClassInitialized(Ljava/lang/Class;)V', (rs,_this,cls) ->
-            rs.class_lookup(cls.fields.$type)
-        o 'staticFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.fields.slot)
-        o 'objectFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.fields.slot)
+            rs.class_lookup(cls.$type)
+        o 'staticFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.get_field 'slot', 'J')
+        o 'objectFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.get_field 'slot', 'J')
         o 'staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;', (rs,_this,field) ->
-            rs.set_obj field.fields.clazz.fields.$type
+            cls = field.get_field 'clazz', 'java/lang/Class'
+            rs.set_obj cls.$type
         o 'getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
-            get_value_from_offset rs, obj, offset
+            obj.get_field_from_offset rs, offset
         o 'getObject(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
-            get_value_from_offset rs, obj, offset
+            obj.get_field_from_offset rs, offset
         o 'putOrderedObject(Ljava/lang/Object;JLjava/lang/Object;)V', (rs,_this,obj,offset,new_obj) ->
-            set_value_from_offset rs, obj, offset, new_obj
+            obj.set_field_from_offset rs, offset, new_obj
       ]
     reflect:
       NativeMethodAccessorImpl: [
         o 'invoke0(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;', (rs,m,obj,params) ->
-            type = m.fields.clazz.fields.$type
-            method = (method for sig, method of rs.class_lookup(type).methods when method.idx is m.fields.slot)[0]
+            cls = m.get_field 'clazz', 'java/lang/Class'
+            slot = m.get_field 'slot', 'I'
+            method = (method for sig, method of rs.class_lookup(cls.$type).methods when method.idx is slot)[0]
             rs.push obj unless method.access_flags.static
             rs.push params.array...
             method.run(rs)
@@ -670,9 +644,10 @@ native_methods =
       ]
       NativeConstructorAccessorImpl: [
         o 'newInstance0(Ljava/lang/reflect/Constructor;[Ljava/lang/Object;)Ljava/lang/Object;', (rs,m,params) ->
-            type = m.fields.clazz.fields.$type
-            method = (method for sig, method of rs.class_lookup(type).methods when method.idx is m.fields.slot)[0]
-            rs.push (obj = rs.set_obj type, {})
+            cls = m.get_field 'clazz', 'java/lang/Class'
+            slot = m.get_field 'slot', 'I'
+            method = (method for sig, method of rs.class_lookup(cls.$type).methods when method.idx is slot)[0]
+            rs.push (obj = rs.set_obj cls.$type)
             rs.push params.array... if params?
             method.run(rs)
             obj
@@ -684,7 +659,7 @@ native_methods =
             type = caller.method.class_type
             rs.class_lookup(type, true)
         o 'getClassAccessFlags(Ljava/lang/Class;)I', (rs, _this) ->
-            rs.class_lookup(_this.fields.$type).access_byte
+            rs.class_lookup(_this.$type).access_byte
       ]
 
 flatten_pkg = (pkg) ->
