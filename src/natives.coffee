@@ -27,7 +27,7 @@ system_properties = {
 }
 
 get_property = (rs, jvm_key, _default) ->
-  val = system_properties[rs.jvm2js_str(jvm_key)]
+  val = system_properties[jvm_key.jvm2js_str()]
   if val? then rs.init_string(val, true) else _default
 
 # convenience function. idea taken from coffeescript's grammar
@@ -145,13 +145,13 @@ native_methods =
     lang:
       Class: [
         o 'getPrimitiveClass(L!/!/String;)L!/!/!;', (rs, jvm_str) ->
-            rs.class_lookup(new types.PrimitiveType(rs.jvm2js_str(jvm_str)), true)
+            rs.class_lookup(new types.PrimitiveType(jvm_str.jvm2js_str()), true)
         o 'getClassLoader0()L!/!/ClassLoader;', (rs) -> null  # we don't need no stinkin classloaders
         o 'desiredAssertionStatus0(L!/!/!;)Z', (rs) -> false # we don't need no stinkin asserts
         o 'getName0()L!/!/String;', (rs, _this) ->
             rs.init_string(_this.fields.$type.toExternalString())
         o 'forName0(L!/!/String;ZL!/!/ClassLoader;)L!/!/!;', (rs, jvm_str) ->
-            type = c2t util.int_classname rs.jvm2js_str(jvm_str)
+            type = c2t util.int_classname jvm_str.jvm2js_str()
             rs.class_lookup type, true
         o 'getComponentType()L!/!/!;', (rs, _this) ->
             type = _this.fields.$type
@@ -200,7 +200,7 @@ native_methods =
       ],
       ClassLoader: [
         o 'findLoadedClass0(L!/!/String;)L!/!/Class;', (rs, _this, name) ->
-            type = c2t util.int_classname rs.jvm2js_str name
+            type = c2t util.int_classname name.jvm2js_str()
             rv = null
             try
               rv = rs.class_lookup type, true
@@ -209,7 +209,7 @@ native_methods =
                 throw e
             rv
         o 'findBootstrapClass(L!/!/String;)L!/!/Class;', (rs, _this, name) ->
-            type = c2t util.int_classname rs.jvm2js_str name
+            type = c2t util.int_classname name.jvm2js_str()
             rs.dyn_class_lookup type, true
         o 'getCaller(I)L!/!/Class;', (rs, i) ->
             type = rs.meta_stack().get_caller(i).method.class_type
@@ -253,14 +253,14 @@ native_methods =
         o 'notify()V', (rs, _this) ->
             return unless rs.lock_refs[_this]?  # if it's not an active monitor, no one cares
             unless rs.lock_refs[_this] is rs.curr_thread
-              owner = rs.jvm_carr2js_str rs.lock_refs[_this].fields.name
+              owner = util.chars2js_str rs.lock_refs[_this].fields.name
               exceptions.java_throw rs, 'java/lang/IllegalMonitorStateException', "Thread '#{owner}' owns this monitor"
             if rs.waiting_threads[_this]? and (t = rs.waiting_threads[_this].shift())?
               rs.wait _this, t  # wait on _this, yield to t
         o 'notifyAll()V', (rs, _this) ->  # exactly the same as notify(), for now
             return unless rs.lock_refs[_this]?  # if it's not an active monitor, no one cares
             unless rs.lock_refs[_this] is rs.curr_thread
-              owner = rs.jvm_carr2js_str rs.lock_refs[_this].fields.name
+              owner = util.chars2js_str rs.lock_refs[_this].fields.name
               exceptions.java_throw rs, 'java/lang/IllegalMonitorStateException', "Thread '#{owner}' owns this monitor"
             if rs.waiting_threads[_this]? and (t = rs.waiting_threads[_this].shift())?
               rs.wait _this, t  # wait on _this, yield to t
@@ -300,7 +300,7 @@ native_methods =
       ]
       String: [
         o 'intern()L!/!/!;', (rs, _this) ->
-            js_str = rs.jvm2js_str(_this)
+            js_str = _this.jvm2js_str()
             unless rs.string_pool[js_str]
               rs.string_pool[js_str] = _this
             rs.string_pool[js_str]
@@ -341,8 +341,8 @@ native_methods =
             _this.fields.$meta_stack = new runtime.CallStack()
             rs.thread_pool.push _this
             spawning_thread = rs.curr_thread
-            my_name = rs.jvm_carr2js_str _this.fields.name
-            orig_name = rs.jvm_carr2js_str spawning_thread.fields.name
+            my_name = util.chars2js_str _this.fields.name
+            orig_name = util.chars2js_str spawning_thread.fields.name
             rs.curr_frame().resume = -> # thread cleanup
               debug "TE: deleting #{my_name} after resume"
               _this.fields.$isAlive = false
@@ -357,7 +357,7 @@ native_methods =
                 debug "TE: not cleaning up #{my_name} after resume"
                 _this.fields.$isAlive = false
               cb ->
-                debug "TE: actually resuming #{rs.jvm_carr2js_str rs.curr_thread.fields.name}"
+                debug "TE: actually resuming #{util.chars2js_str rs.curr_thread.fields.name}"
                 rs.meta_stack().resuming_stack = 1  # the first method called, likely Thread::run()
                 try
                   rs.curr_frame().method.run(rs, true)
@@ -387,13 +387,13 @@ native_methods =
                   console.log "\nInternal JVM Error!", e.stack
                   rs.show_state()
                   return
-              debug "TE: finished running #{rs.jvm_carr2js_str rs.curr_thread.fields.name}"
+              debug "TE: finished running #{util.chars2js_str rs.curr_thread.fields.name}"
 
               # yield to a paused thread
               yieldee = (y for y in rs.thread_pool when y isnt rs.curr_thread).pop()
               if yieldee?
                 rs.curr_thread = yieldee
-                debug "TE: about to resume #{rs.jvm_carr2js_str rs.curr_thread.fields.name}"
+                debug "TE: about to resume #{util.chars2js_str rs.curr_thread.fields.name}"
                 rs.curr_thread.fields.$resume()
 
         o 'sleep(J)V', (rs, millis) ->
@@ -436,14 +436,13 @@ native_methods =
       ]
       FileOutputStream: [
         o 'open(L!/lang/String;)V', (rs, _this, fname) ->
-            jvm_str = rs.jvm2js_str fname
-            _this.fields.$file = fs.openSync jvm_str, 'w'
+            _this.fields.$file = fs.openSync fname.jvm2js_str(), 'w'
         o 'writeBytes([BIIZ)V', (rs, _this, bytes, offset, len, append) ->
             if _this.fields.$file?
               # appends by default in the browser, not sure in actual node.js impl
               fs.writeSync(_this.fields.$file, new Buffer(bytes.array), offset, len)
               return
-            rs.print rs.jvm_carr2js_str(bytes, offset, len)
+            rs.print util.chars2js_str(bytes, offset, len)
             if node?
               # For the browser implementation -- the DOM doesn't get repainted
               # unless we give the event loop a chance to spin.
@@ -453,7 +452,7 @@ native_methods =
             if _this.fields.$file?
               fs.writeSync(_this.fields.$file, new Buffer(bytes.array), offset, len)
               return
-            rs.print rs.jvm_carr2js_str(bytes, offset, len)
+            rs.print util.chars2js_str(bytes, offset, len)
             if node?
               # For the browser implementation -- the DOM doesn't get repainted
               # unless we give the event loop a chance to spin.
@@ -508,7 +507,7 @@ native_methods =
                 result = bytes.length
                 cb()
         o 'open(Ljava/lang/String;)V', (rs, _this, filename) ->
-            filepath = rs.jvm2js_str(filename)
+            filepath = filename.jvm2js_str()
             try  # TODO: actually look at the mode
               _this.fields.$file = fs.openSync filepath, 'r'
               _this.fields.$pos = 0
@@ -537,7 +536,7 @@ native_methods =
       ]
       RandomAccessFile: [
         o 'open(Ljava/lang/String;I)V', (rs, _this, filename, mode) ->
-            filepath = rs.jvm2js_str(filename)
+            filepath = filename.jvm2js_str()
             try  # TODO: actually look at the mode
               _this.fields.$file = fs.openSync filepath, 'r'
             catch e
@@ -566,31 +565,31 @@ native_methods =
       ]
       UnixFileSystem: [
         o 'checkAccess(Ljava/io/File;I)Z', (rs, _this, file, access) ->
-            stats = stat_file rs.jvm2js_str file.fields.path
+            stats = stat_file file.fields.path.jvm2js_str()
             return false unless stats?
             mode = stats.mode & 511
             true  # TODO: actually use the mode, checking if we're the owner or in group
         o 'getBooleanAttributes0(Ljava/io/File;)I', (rs, _this, file) ->
-            stats = stat_file rs.jvm2js_str file.fields.path
+            stats = stat_file file.fields.path.jvm2js_str()
             return 0 unless stats?
             if stats.isFile() then 3 else if stats.isDirectory() then 5 else 1
         o 'getLastModifiedTime(Ljava/io/File;)J', (rs, _this, file) ->
-            filepath = rs.jvm2js_str file.fields.path
+            filepath = file.fields.path.jvm2js_str()
             stats = stat_file filepath
             exceptions.java_throw(rs, 'java/io/FileNotFoundException', "Could not stat file #{filepath}") unless stats?
             gLong.fromNumber (new Date(stats.mtime)).getTime()
         o 'canonicalize0(L!/lang/String;)L!/lang/String;', (rs, _this, jvm_path_str) ->
-            js_str = rs.jvm2js_str jvm_path_str
+            js_str = jvm_path_str.jvm2js_str()
             rs.init_string path.resolve path.normalize js_str
         o 'list(Ljava/io/File;)[Ljava/lang/String;', (rs, _this, file) ->
-            pth = rs.jvm2js_str file.fields.path
+            pth = file.fields.path.jvm2js_str()
             try
               files = fs.readdirSync(pth)
             catch e
               return null
             rs.init_object('[Ljava/lang/String;',(rs.init_string(f) for f in files))
         o 'getLength(Ljava/io/File;)J', (rs, _this, file) ->
-            pth = rs.jvm2js_str file.fields.path
+            pth = file.fields.path.jvm2js_str()
             try
               length = fs.statSync(pth).size
             catch e

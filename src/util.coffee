@@ -93,6 +93,10 @@ root.uint2int = (uint, bytes_count) ->
 root.int2uint = (int, bytes_count) ->
   if int < 0 then int + Math.pow 2, bytes_count * 8 else int
 
+# Convert :count chars starting from :offset in a Java character array into a JS string
+root.chars2js_str = (jvm_carr, offset, count) ->
+  root.bytes2str(jvm_carr.array).substr(offset ? 0, count)
+
 root.bytestr_to_array = (bytecode_string) ->
   (bytecode_string.charCodeAt(i) & 0xFF for i in [0...bytecode_string.length] by 1)
 

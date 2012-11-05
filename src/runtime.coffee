@@ -8,7 +8,7 @@ types = require './types'
 ClassFile = require './ClassFile'
 {log,vtrace,trace,debug,error} = require './logging'
 {java_throw,YieldException} = require './exceptions'
-{initial_value} = util
+{JavaObject} = require './java_object'
 {c2t} = types
 
 class root.CallStack
@@ -103,23 +103,15 @@ class root.RuntimeState
       yieldee = (y for y in @thread_pool when y isnt @curr_thread).pop()
       unless yieldee?
         java_throw @, 'java/lang/Error', "tried to yield when no other thread was available"
-    debug "TE: yielding #{@jvm_carr2js_str @curr_thread.fields.name} to #{@jvm_carr2js_str yieldee.fields.name}"
+    debug "TE: yielding #{util.chars2js_str  @curr_thread.fields.name} to #{util.chars2js_str yieldee.fields.name}"
     my_thread = @curr_thread
     @curr_frame().resume = -> @curr_thread = my_thread
     rs = this
     throw new YieldException (cb) ->
       my_thread.fields.$resume = cb
       rs.curr_thread = yieldee
-      debug "TE: about to resume #{rs.jvm_carr2js_str yieldee.fields.name}"
+      debug "TE: about to resume #{util.chars2js_str yieldee.fields.name}"
       yieldee.fields.$resume()
-  
-  # Convert a Java String object into an equivalent JS one.
-  jvm2js_str: (jvm_str) ->
-    @jvm_carr2js_str(jvm_str.fields.value, jvm_str.fields.offset, jvm_str.fields.count)
-  # Convert :count chars starting from :offset in a Java character array into a
-  # JS string
-  jvm_carr2js_str: (jvm_arr, offset, count) ->
-    util.bytes2str(jvm_arr.array).substr(offset ? 0, count)
 
   curr_frame: -> @meta_stack().curr_frame()
 
@@ -144,11 +136,7 @@ class root.RuntimeState
   check_null: (obj) ->
     java_throw @, 'java/lang/NullPointerException', '' unless obj?
     obj
-  set_obj: (type, obj={}) ->
-    if type instanceof types.ArrayType
-      {type: type, array: obj, ref: @high_oref++}
-    else
-      {type: type, fields: obj, ref: @high_oref++}
+  set_obj: (type, obj={}) -> new JavaObject(type,@,obj)
 
   heap_newarray: (type,len) ->
     if len < 0
@@ -159,24 +147,24 @@ class root.RuntimeState
       @set_obj(c2t("[#{type}"),(null for i in [0...len] by 1))
     else  # numeric array
       @set_obj(c2t("[#{type}"),(0 for i in [0...len] by 1))
+
   heap_put: (field_spec) ->
     val = if field_spec.type in ['J','D'] then @pop2() else @pop()
     obj = @pop()
-    vtrace "setting #{field_spec.name} = #{val} on obj of type #{obj.type.toClassString()}"
-    obj.fields[field_spec.name] = val
+    obj.set_field field_spec.name, field_spec.class, field_spec.type, val
+
   heap_get: (field_spec, obj) ->
-    name = field_spec.name
-    obj.fields[name] ?= initial_value field_spec.type
-    vtrace "getting #{name} from obj of type #{obj.type.toClassString()}: #{obj.fields[name]}"
-    @push obj.fields[name]
-    @push null if field_spec.type in ['J','D']
+    type = field_spec.type
+    val = obj.get_field @, field_spec.name, field_spec.class, type
+    @push val
+    @push null if type in ['J','D']
 
   # static stuff
   static_get: (field_spec) ->
     f = @field_lookup(field_spec)
     obj = @class_lookup(f.class_type, true)
     val = obj.fields[f.name]
-    val ?= initial_value f.type.toString()
+    val ?= util.initial_value f.type.toString()
     vtrace "getting #{field_spec.name} from class #{field_spec.class}: #{val}"
     val
   static_put: (field_spec) ->
