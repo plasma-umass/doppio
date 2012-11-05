@@ -310,17 +310,14 @@ native_methods =
             # Needs to be checked *even if length is 0*.
             if !src? or !dest?
               exceptions.java_throw rs, 'java/lang/NullPointerException', 'Cannot copy to/from a null array.'
-            # Can't do this on non-array types. Need to check before I check
-            # bounds below, or else I'll get an exception.
+            # Can't do this on non-array types. Need to check before I check bounds below, or else I'll get an exception.
             if !(src.type instanceof types.ArrayType) or !(dest.type instanceof types.ArrayType)
               exceptions.java_throw rs, 'java/lang/ArrayStoreException', 'src and dest arguments must be of array type.'
             # Also needs to be checked *even if length is 0*.
             if src_pos < 0 or (src_pos+length) > src.array.length or dest_pos < 0 or (dest_pos+length) > dest.array.length or length < 0
-              # System.arraycopy requires IndexOutOfBoundsException, but Java
-              # throws an array variant of the exception in practice.
+              # System.arraycopy requires IndexOutOfBoundsException, but Java throws an array variant of the exception in practice.
               exceptions.java_throw rs, 'java/lang/ArrayIndexOutOfBoundsException', 'Tried to write to an illegal index in an array.'
-            # Special case; need to copy the section of src that is being copied
-            # into a temporary array before actually doing the copy.
+            # Special case; need to copy the section of src that is being copied into a temporary array before actually doing the copy.
             if src == dest
               src = {type: src.type, array: src.array.slice(src_pos, src_pos+length)}
               src_pos = 0
@@ -330,8 +327,7 @@ native_methods =
               arraycopy_no_check(src, src_pos, dest, dest_pos, length)
             else
               # Slow path
-              # Absolutely cannot do this when two different primitive types, or
-              # a primitive type and a reference type.
+              # Absolutely cannot do this when two different primitive types, or a primitive type and a reference type.
               if (src.type.component_type instanceof types.PrimitiveType) or (dest.type.component_type instanceof types.PrimitiveType)
                 exceptions.java_throw rs, 'java/lang/ArrayStoreException', 'If calling arraycopy with a primitive array, both src and dest must be of the same primitive type.'
               else
