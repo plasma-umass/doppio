@@ -41,6 +41,7 @@ COMMON_BROWSER_SRCS = third_party/_.js \
 	src/exceptions.coffee \
 	src/logging.coffee \
 	src/types.coffee \
+	src/java_object.coffee \
 	src/opcodes.coffee \
 	src/attributes.coffee \
 	src/ConstantPool.coffee \

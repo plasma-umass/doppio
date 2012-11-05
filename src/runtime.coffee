@@ -8,7 +8,7 @@ types = require './types'
 ClassFile = require './ClassFile'
 {log,vtrace,trace,debug,error} = require './logging'
 {java_throw,YieldException} = require './exceptions'
-{initial_value} = util
+{JavaObject,JavaArray,thread_name} = require './java_object'
 {c2t} = types
 
 class root.CallStack
@@ -43,7 +43,7 @@ class root.RuntimeState
     @waiting_threads = {}  # map from monitor -> list of waiting thread objects
     @thread_pool = []
     # initialize thread objects
-    @curr_thread = {fields: $meta_stack: new root.CallStack()}
+    @curr_thread = {$meta_stack: new root.CallStack()}
     @push (group = @init_object 'java/lang/ThreadGroup')
     @method_lookup({class: 'java/lang/ThreadGroup', sig: '<init>()V'}).run(this)
 
@@ -52,14 +52,12 @@ class root.RuntimeState
       priority: 1
       group: group
       threadLocals: null
-    @push gLong.ZERO, null  # set up for static_put
-    @static_put {class:'java/lang/Thread', name:'threadSeqNumber'}
-    ct.fields.$meta_stack = @meta_stack()
+    ct.$meta_stack = @meta_stack()
     @curr_thread = ct
-    @curr_thread.fields.$isAlive = true
+    @curr_thread.$isAlive = true
     @thread_pool.push @curr_thread
 
-  meta_stack: -> @curr_thread.fields.$meta_stack
+  meta_stack: -> @curr_thread.$meta_stack
 
   # Init the first class, and put the command-line args on the stack for use by
   # its main method.
@@ -74,8 +72,8 @@ class root.RuntimeState
     @class_lookup c2t class_name
 
     # prepare the call stack for main(String[] args)
-    args = @set_obj(c2t('[Ljava/lang/String;'),(@init_string(a) for a in initial_args))
-    @curr_thread.fields.$meta_stack = new root.CallStack [args]
+    args = new JavaArray c2t('[Ljava/lang/String;'), @, (@init_string(a) for a in initial_args)
+    @curr_thread.$meta_stack = new root.CallStack [args]
     debug "### finished runtime state initialization ###"
 
   show_state: () ->
@@ -103,23 +101,15 @@ class root.RuntimeState
       yieldee = (y for y in @thread_pool when y isnt @curr_thread).pop()
       unless yieldee?
         java_throw @, 'java/lang/Error', "tried to yield when no other thread was available"
-    debug "TE: yielding #{@jvm_carr2js_str @curr_thread.fields.name} to #{@jvm_carr2js_str yieldee.fields.name}"
+    debug "TE: yielding #{thread_name @curr_thread} to #{thread_name yieldee}"
     my_thread = @curr_thread
     @curr_frame().resume = -> @curr_thread = my_thread
     rs = this
     throw new YieldException (cb) ->
-      my_thread.fields.$resume = cb
+      my_thread.$resume = cb
       rs.curr_thread = yieldee
-      debug "TE: about to resume #{rs.jvm_carr2js_str yieldee.fields.name}"
-      yieldee.fields.$resume()
-  
-  # Convert a Java String object into an equivalent JS one.
-  jvm2js_str: (jvm_str) ->
-    @jvm_carr2js_str(jvm_str.fields.value, jvm_str.fields.offset, jvm_str.fields.count)
-  # Convert :count chars starting from :offset in a Java character array into a
-  # JS string
-  jvm_carr2js_str: (jvm_arr, offset, count) ->
-    util.bytes2str(jvm_arr.array).substr(offset ? 0, count)
+      debug "TE: about to resume #{thread_name yieldee}"
+      yieldee.$resume()
 
   curr_frame: -> @meta_stack().curr_frame()
 
@@ -146,45 +136,42 @@ class root.RuntimeState
     obj
   set_obj: (type, obj={}) ->
     if type instanceof types.ArrayType
-      {type: type, array: obj, ref: @high_oref++}
+      new JavaArray type, @, obj
     else
-      {type: type, fields: obj, ref: @high_oref++}
+      new JavaObject type, @, obj
 
   heap_newarray: (type,len) ->
     if len < 0
       java_throw @, 'java/lang/NegativeArraySizeException', "Tried to init [#{type} array with length #{len}"
     if type == 'J'
-      @set_obj(c2t("[J"),(gLong.ZERO for i in [0...len] by 1))
+      new JavaArray c2t("[J"), @, (gLong.ZERO for i in [0...len] by 1)
     else if type[0] == 'L'  # array of object
-      @set_obj(c2t("[#{type}"),(null for i in [0...len] by 1))
+      new JavaArray c2t("[#{type}"), @, (null for i in [0...len] by 1)
     else  # numeric array
-      @set_obj(c2t("[#{type}"),(0 for i in [0...len] by 1))
+      new JavaArray c2t("[#{type}"), @, (0 for i in [0...len] by 1)
+
   heap_put: (field_spec) ->
     val = if field_spec.type in ['J','D'] then @pop2() else @pop()
     obj = @pop()
-    vtrace "setting #{field_spec.name} = #{val} on obj of type #{obj.type.toClassString()}"
-    obj.fields[field_spec.name] = val
+    obj.set_field field_spec.name, val, field_spec.type, field_spec.class
+
   heap_get: (field_spec, obj) ->
-    name = field_spec.name
-    obj.fields[name] ?= initial_value field_spec.type
-    vtrace "getting #{name} from obj of type #{obj.type.toClassString()}: #{obj.fields[name]}"
-    @push obj.fields[name]
-    @push null if field_spec.type in ['J','D']
+    type = field_spec.type
+    val = obj.get_field field_spec.name, type, field_spec.class
+    @push val
+    @push null if type in ['J','D']
 
   # static stuff
   static_get: (field_spec) ->
     f = @field_lookup(field_spec)
     obj = @class_lookup(f.class_type, true)
-    val = obj.fields[f.name]
-    val ?= initial_value f.type.toString()
-    vtrace "getting #{field_spec.name} from class #{field_spec.class}: #{val}"
-    val
+    obj.get_field f.name, f.type.toString(), 'java/lang/Class'
+
   static_put: (field_spec) ->
     val = if field_spec.type in ['J','D'] then @pop2() else @pop()
     f = @field_lookup(field_spec)
     obj = @class_lookup(f.class_type, true)
-    obj.fields[f.name] = val
-    vtrace "setting #{field_spec.name} = #{val} on class #{field_spec.class}"
+    obj.set_field f.name, val, f.type.toString(), 'java/lang/Class'
 
   # heap object initialization
   init_object: (cls, obj) ->
@@ -196,10 +183,11 @@ class root.RuntimeState
     # we fail to intern it.
     return @string_pool[str] if intern and @string_pool[str]?.type?.toClassString?() is 'java/lang/String'
     carr = @init_carr str
-    jvm_str = @set_obj c2t('java/lang/String'), {'value':carr, 'count':str.length}
+    jvm_str = new JavaObject c2t('java/lang/String'), @, {'value':carr, 'count':str.length}
     @string_pool[str] = jvm_str if intern
     return jvm_str
-  init_carr: (str) -> @set_obj c2t('[C'), (str.charCodeAt(i) for i in [0...str.length] by 1)
+  init_carr: (str) ->
+    new JavaArray c2t('[C'), @, (str.charCodeAt(i) for i in [0...str.length] by 1)
 
   # Tries to obtain the class of type :type. Called by the bootstrap class loader.
   # Throws a NoClassDefFoundError on failure.
@@ -225,22 +213,20 @@ class root.RuntimeState
     cls = type.toClassString?() ? type.toString()
     unless @classes[cls]?
       trace "loading new class: #{cls}"
+      jclass = new JavaObject c2t('java/lang/Class'), @
+      jclass.$type = type
       if type instanceof types.ArrayType
         class_file = ClassFile.for_array_type type
-        @classes[cls] =
-          file: class_file
-          obj:  @set_obj(c2t('java/lang/Class'), { $type: type })
+        @classes[cls] = {file: class_file, obj: jclass}
         component = type.component_type
         if component instanceof types.ArrayType or component instanceof types.ClassType
           @_class_lookup component
       else if type instanceof types.PrimitiveType
-        @classes[type] = {file: '<primitive>', obj: @set_obj(c2t('java/lang/Class'), { $type: type })}
+        @classes[type] = {file: '<primitive>', obj: jclass}
       else
         class_file = @read_classfile cls
         return unless class_file?
-        @classes[cls] = c =
-          file: class_file
-          obj:  @set_obj(c2t('java/lang/Class'), { $type: type })
+        @classes[cls] = c = {file: class_file, obj: jclass}
         # Run class initialization code. Superclasses get init'ed first.  We
         # don't want to call this more than once per class, so don't do dynamic
         # lookup. See spec [2.17.4][1].
@@ -303,3 +289,11 @@ class root.RuntimeState
         return field if field?
       t = cls.super_class
     null
+
+  get_field_from_offset: (cls, offset) ->
+    classname = cls.this_class.toClassString()
+    until cls.fields[offset]?
+      unless cls.super_class?
+        java_throw @, 'java/lang/NullPointerException', "field #{offset} doesn't exist in class #{classname}"
+      cls = @class_lookup(cls.super_class)
+    cls.fields[offset]
