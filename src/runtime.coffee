@@ -8,7 +8,7 @@ types = require './types'
 ClassFile = require './ClassFile'
 {log,vtrace,trace,debug,error} = require './logging'
 {java_throw,YieldException} = require './exceptions'
-{JavaObject,thread_name} = require './java_object'
+{JavaObject,JavaArray,thread_name} = require './java_object'
 {c2t} = types
 
 class root.CallStack
@@ -72,7 +72,7 @@ class root.RuntimeState
     @class_lookup c2t class_name
 
     # prepare the call stack for main(String[] args)
-    args = @set_obj(c2t('[Ljava/lang/String;'),(@init_string(a) for a in initial_args))
+    args = new JavaArray c2t('[Ljava/lang/String;'), @, (@init_string(a) for a in initial_args)
     @curr_thread.$meta_stack = new root.CallStack [args]
     debug "### finished runtime state initialization ###"
 
@@ -134,17 +134,21 @@ class root.RuntimeState
   check_null: (obj) ->
     java_throw @, 'java/lang/NullPointerException', '' unless obj?
     obj
-  set_obj: (type, obj={}) -> new JavaObject(type,@,obj)
+  set_obj: (type, obj={}) ->
+    if type instanceof types.ArrayType
+      new JavaArray type, @, obj
+    else
+      new JavaObject type, @, obj
 
   heap_newarray: (type,len) ->
     if len < 0
       java_throw @, 'java/lang/NegativeArraySizeException', "Tried to init [#{type} array with length #{len}"
     if type == 'J'
-      @set_obj(c2t("[J"),(gLong.ZERO for i in [0...len] by 1))
+      new JavaArray c2t("[J"), @, (gLong.ZERO for i in [0...len] by 1)
     else if type[0] == 'L'  # array of object
-      @set_obj(c2t("[#{type}"),(null for i in [0...len] by 1))
+      new JavaArray c2t("[#{type}"), @, (null for i in [0...len] by 1)
     else  # numeric array
-      @set_obj(c2t("[#{type}"),(0 for i in [0...len] by 1))
+      new JavaArray c2t("[#{type}"), @, (0 for i in [0...len] by 1)
 
   heap_put: (field_spec) ->
     val = if field_spec.type in ['J','D'] then @pop2() else @pop()
@@ -179,10 +183,11 @@ class root.RuntimeState
     # we fail to intern it.
     return @string_pool[str] if intern and @string_pool[str]?.type?.toClassString?() is 'java/lang/String'
     carr = @init_carr str
-    jvm_str = @set_obj c2t('java/lang/String'), {'value':carr, 'count':str.length}
+    jvm_str = new JavaObject c2t('java/lang/String'), @, {'value':carr, 'count':str.length}
     @string_pool[str] = jvm_str if intern
     return jvm_str
-  init_carr: (str) -> @set_obj c2t('[C'), (str.charCodeAt(i) for i in [0...str.length] by 1)
+  init_carr: (str) ->
+    new JavaArray c2t('[C'), @, (str.charCodeAt(i) for i in [0...str.length] by 1)
 
   # Tries to obtain the class of type :type. Called by the bootstrap class loader.
   # Throws a NoClassDefFoundError on failure.
@@ -208,23 +213,19 @@ class root.RuntimeState
     cls = type.toClassString?() ? type.toString()
     unless @classes[cls]?
       trace "loading new class: #{cls}"
+      jclass = new JavaObject c2t('java/lang/Class'), @
+      jclass.$type = type
       if type instanceof types.ArrayType
         class_file = ClassFile.for_array_type type
-        jclass = @set_obj c2t 'java/lang/Class'
-        jclass.$type = type
         @classes[cls] = {file: class_file, obj: jclass}
         component = type.component_type
         if component instanceof types.ArrayType or component instanceof types.ClassType
           @_class_lookup component
       else if type instanceof types.PrimitiveType
-        jclass = @set_obj c2t 'java/lang/Class'
-        jclass.$type = type
         @classes[type] = {file: '<primitive>', obj: jclass}
       else
         class_file = @read_classfile cls
         return unless class_file?
-        jclass = @set_obj c2t 'java/lang/Class'
-        jclass.$type = type
         @classes[cls] = c = {file: class_file, obj: jclass}
         # Run class initialization code. Superclasses get init'ed first.  We
         # don't want to call this more than once per class, so don't do dynamic
