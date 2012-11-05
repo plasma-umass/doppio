@@ -55,12 +55,6 @@ $.ajax "browser/mini-rt.tar", {
     console.error errorThrown
 }
 
-$.ajax "third_party/classes/sun/tools/javac/Main.class", {
-  type: 'GET'
-  dataType: 'text'
-  beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
-  success: (data) -> class_cache['!javac'] = process_bytecode data
-}
 $.ajax "third_party/classes/com/sun/tools/script/shell/Main.class", {
   type: 'GET'
   dataType: 'text'
@@ -185,7 +179,8 @@ $(document).ready ->
   demo_files = ['special/DiffPrint.class', 'special/Chatterbot.java',
   'special/Chatterbot.class', 'special/Lzw.java', 'special/Lzw.class',
   'special/RegexTestHarness.java', 'special/RegexTestHarness.class',
-  './FileRead.java', './Fib.java', 'special/foo', 'special/bar']
+  './FileRead.java', './Fib.java', 'special/foo', 'special/bar',
+  'special/Javac.java', 'special/Javac.class']
   for demo in demo_files
     $.ajax "test/#{demo}", {
       type: 'GET'
@@ -234,8 +229,7 @@ $(document).ready ->
 commands =
   javac: (args, cb) ->
     rs = new runtime.RuntimeState(stdout, user_input, read_classfile)
-    # hack: use a special class name that won't clash with real ones
-    jvm.run_class(rs, '!javac', args, -> controller.reprompt())
+    jvm.run_class(rs, 'test/special/Javac', args, -> controller.reprompt())
     return null  # no reprompt, because we handle it ourselves
   java: (args, cb) ->
     if !args[0]? or (args[0] == '-classpath' and args.length < 3)
