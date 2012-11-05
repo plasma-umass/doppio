@@ -102,6 +102,9 @@ class ArrayCopyTest {
       2);
     IOOBExceptionTest("dest array overrun", new Object[2], 0, new Object[1],
       0, 2);
+    System.out.print("Test 'exact copy': ");
+    System.arraycopy(new Object[2], 0, new Object[2], 0, 2);
+    System.out.println("Pass");
 
     // SPECIAL BEHAVIOR
     // If src = dest, then you need to copy src before modifying it.
