@@ -241,6 +241,17 @@ class root.ArrayLoadOpcode extends root.Opcode
     rs.push array[idx]
     rs.push null if @name.match /[ld]aload/
 
+class root.ArrayStoreOpcode extends root.Opcode
+  execute: (rs) ->
+    value = if @name.match /[ld]astore/ then rs.pop2() else rs.pop()
+    idx = rs.pop()
+    obj = rs.check_null(rs.pop())
+    array = obj.array
+    unless 0 <= idx < array.length
+      java_throw(rs, 'java/lang/ArrayIndexOutOfBoundsException',
+        "#{idx} not in length #{array.length} array of type #{obj.type.toClassString()}")
+    array[idx] = value
+
 jsr = (rs) ->
   rs.push(rs.curr_pc()+@byte_count+1); throw new BranchException rs.curr_pc() + @offset
 
@@ -326,14 +337,14 @@ root.opcodes = {
   76: new root.StoreOpcode 'astore_1'
   77: new root.StoreOpcode 'astore_2'
   78: new root.StoreOpcode 'astore_3'
-  79: new root.Opcode 'iastore', {execute: (rs) -> v=rs.pop(); i=rs.pop();rs.check_null(rs.pop()).array[i]=v }
-  80: new root.Opcode 'lastore', {execute: (rs) -> v=rs.pop2();i=rs.pop();rs.check_null(rs.pop()).array[i]=v }
-  81: new root.Opcode 'fastore', {execute: (rs) -> v=rs.pop(); i=rs.pop();rs.check_null(rs.pop()).array[i]=v }
-  82: new root.Opcode 'dastore', {execute: (rs) -> v=rs.pop2();i=rs.pop();rs.check_null(rs.pop()).array[i]=v }
-  83: new root.Opcode 'aastore', {execute: (rs) -> v=rs.pop(); i=rs.pop();rs.check_null(rs.pop()).array[i]=v }
-  84: new root.Opcode 'bastore', {execute: (rs) -> v=rs.pop(); i=rs.pop();rs.check_null(rs.pop()).array[i]=v }
-  85: new root.Opcode 'castore', {execute: (rs) -> v=rs.pop(); i=rs.pop();rs.check_null(rs.pop()).array[i]=v }
-  86: new root.Opcode 'sastore', {execute: (rs) -> v=rs.pop(); i=rs.pop();rs.check_null(rs.pop()).array[i]=v }
+  79: new root.ArrayStoreOpcode 'iastore'
+  80: new root.ArrayStoreOpcode 'lastore'
+  81: new root.ArrayStoreOpcode 'fastore'
+  82: new root.ArrayStoreOpcode 'dastore'
+  83: new root.ArrayStoreOpcode 'aastore'
+  84: new root.ArrayStoreOpcode 'bastore'
+  85: new root.ArrayStoreOpcode 'castore'
+  86: new root.ArrayStoreOpcode 'sastore'
   87: new root.Opcode 'pop', { execute: (rs) -> rs.pop() }
   88: new root.Opcode 'pop2', { execute: (rs) -> rs.pop2() }
   89: new root.Opcode 'dup', { execute: (rs) -> v=rs.pop(); rs.push(v,v) }
