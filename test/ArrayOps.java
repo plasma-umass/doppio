@@ -50,17 +50,25 @@ public class ArrayOps {
     try {
       System.out.println(baz.length);
     }
-    catch (NullPointerException e) { }
+    catch (NullPointerException e) {
+      System.out.println("Caught field lookup on null");
+    }
+
+    baz = new int[0];
 
     try {
       baz[0] = 0;
     }
-    catch (NullPointerException e) { }
+    catch (ArrayIndexOutOfBoundsException e) {
+      System.out.println("Caught iastore out of bounds");
+    }
 
     try {
       System.out.println(baz[0]);
     }
-    catch (NullPointerException e) { }
+    catch (ArrayIndexOutOfBoundsException e) {
+      System.out.println("Caught iaload out of bounds");
+    }
 
     System.out.println("OK");
   }
