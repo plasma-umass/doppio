@@ -40,8 +40,7 @@ class ArrayCopyTest {
   }
 
   public static void main(String[] args) {
-    NPEExceptionTest("src array null", null, 0,
-      new Object[1], 0, 0);
+    NPEExceptionTest("src array null", null, 0, new Object[1], 0, 0);
     NPEExceptionTest("dest array null", new Object[1], 0, null, 0, 0);
 
     ASEExceptionTest("src not an array", new Object(), 0, new Object[1], 0,0);
@@ -95,24 +94,47 @@ class ArrayCopyTest {
 
     // SPECIAL BEHAVIOR
     // If src = dest, then you need to copy src before modifying it.
-    String[] strings = new String[3];
-    strings[0] = "Ring ring ring ring ring ring ring...";
-    strings[1] = "...bananaphone!";
-    strings[2] = "BOOP BOOP DE DOO BA DOOP";
-    System.out.println("Test 'src=dst', references:");
-    System.arraycopy(strings, 0, strings, 1, 2);
-    for (String string : strings) {
-      System.out.println("\t" + string);
+    {
+      String[] strings = new String[3];
+      strings[0] = "Ring ring ring ring ring ring ring...";
+      strings[1] = "...bananaphone!";
+      strings[2] = "BOOP BOOP DE DOO BA DOOP";
+      System.out.println("Test 'src=dst', references:");
+      System.arraycopy(strings, 0, strings, 1, 2);
+      for (String string : strings) {
+        System.out.println("\t" + string);
+      }
+    }
+    {
+      int[] intarray = new int[3];
+      intarray[0] = 1;
+      intarray[1] = 2;
+      intarray[2] = 3;
+      System.out.println("Test 'src=dst', primitives:");
+      System.arraycopy(intarray, 0, intarray, 1, 2);
+      for (int i : intarray) {
+        System.out.println("\t" + i);
+      }
     }
 
-    int[] intarray = new int[3];
-    intarray[0] = 1;
-    intarray[1] = 2;
-    intarray[2] = 3;
-    System.out.println("Test 'src=dst', primitives:");
-    System.arraycopy(intarray, 0, intarray, 1, 2);
-    for (int i : intarray) {
-      System.out.println("\t" + i);
+    // References should not be copied.
+    {
+      OhHaiObject[] ohai1 = new OhHaiObject[1];
+      OhHaiObject[] ohai2 = new OhHaiObject[1];
+      ohai1[0] = new OhHaiObject("Denny");
+      ohai2[0] = new OhHaiObject("Mark");
+      System.out.println("Test 'modify reference object after copy':");
+      System.arraycopy(ohai1, 0, ohai2, 0, 1);
+      ohai1[0].object = "Doggy";
+      System.out.print("\t"); ohai1[0].printGreeting();
+      System.out.print("\t"); ohai2[0].printGreeting();
     }
   }
+}
+
+class OhHaiObject {
+  public OhHaiObject(String obj) { this.object = obj; }
+  public String object;
+  // http://www.youtube.com/watch?v=5uCZkq6Rs2k
+  public void printGreeting() { System.out.println("Oh hai, "+object+"!"); }
 }
