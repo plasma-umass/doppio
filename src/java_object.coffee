@@ -19,6 +19,12 @@ class root.JavaArray
   get_field_from_offset: (rs, offset) -> @array[offset.toInt()]
   set_field_from_offset: (rs, offset, value) -> @array[offset.toInt()] = value
 
+  toString: ->
+    if @array.length <= 10
+      "<#{@type} [#{@array}]>"
+    else
+      "<#{@type} (length-#{@array.length})>"
+
 
 class root.JavaObject
   constructor: (@type, rs, obj={}) ->
@@ -57,8 +63,14 @@ class root.JavaObject
     else
       @fields[f.name] = value
 
+  toString: ->
+    if @type.toClassString() is 'java/lang/String'
+      "<#{@type} '#{@jvm2js_str()}'>"
+    else
+      "<#{@type} (*#{@ref})>"
+
   # Convert a Java String object into an equivalent JS one.
-  jvm2js_str: () ->
+  jvm2js_str: ->
     util.chars2js_str(@fields.value, @fields.offset, @fields.count)
 
 root.thread_name = (thread) ->
