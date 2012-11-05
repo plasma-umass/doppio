@@ -81,6 +81,16 @@ class ArrayCopyTest {
     System.arraycopy(new Object[1], 0, new String[1], 0, 1);
     System.out.println(" Pass");
 
+    {
+      Object[] objects = new Object[1];
+      objects[0] = "Heyo";
+      String[] strings = new String[1];
+      System.out.print("Test 'src components can be dest components if upcast passes': ");
+      System.arraycopy(objects, 0, strings, 0, 1);
+      boolean result = strings[0] == "Heyo";
+      System.out.println(result ? "Pass" : "Fail");
+    }
+
     IOOBExceptionTest("srcPos is negative", new Object[1], -1, new Object[1],
       0, 0);
     IOOBExceptionTest("destPos is negative", new Object[1], 0, new Object[1],
@@ -117,13 +127,12 @@ class ArrayCopyTest {
       }
     }
 
-    // References should not be copied.
     {
       OhHaiObject[] ohai1 = new OhHaiObject[1];
       OhHaiObject[] ohai2 = new OhHaiObject[1];
       ohai1[0] = new OhHaiObject("Denny");
       ohai2[0] = new OhHaiObject("Mark");
-      System.out.println("Test 'modify reference object after copy':");
+      System.out.println("Test 'does not clone objects':");
       System.arraycopy(ohai1, 0, ohai2, 0, 1);
       ohai1[0].object = "Doggy";
       System.out.print("\t"); ohai1[0].printGreeting();

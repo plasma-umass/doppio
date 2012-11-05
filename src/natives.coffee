@@ -140,6 +140,36 @@ stat_file = (fname) ->
   catch e
     null
 
+# "Fast" array copy; does not have to check every element for illegal
+# assignments. You can do tricks here (if possible) to copy chunks of the array
+# at a time rather than element-by-element.
+# This function *cannot* access any attribute other than 'array' on src due to
+# the special case when src == dest (see code for System.arraycopy below).
+arraycopy_no_check = (src, src_pos, dest, dest_pos, length) ->
+  j = dest_pos
+  for i in [src_pos...src_pos+length] by 1
+    dest.array[j++] = src.array[i]
+  # CoffeeScript, we are not returning an array.
+  return
+
+# "Slow" array copy; has to check every element for illegal assignments.
+# You cannot do any tricks here; you must copy element by element until you
+# have either copied everything, or encountered an element that cannot be
+# assigned (which causes an exception).
+# Guarantees: src and dest are two different reference types. They cannot be
+#             primitive arrays.
+arraycopy_check = (src, src_pos, dest, dest_pos, length) ->
+  j = dest_pos
+  for i in [src_pos...src_pos+length] by 1
+    # Check if null or castable.
+    if src.array[i] == null or types.is_castable src.array[i].type, dest.type.component_type
+      dest.array[j] = src.array[i]
+    else
+      exceptions.java_throw rs, 'java/lang/ArrayStoreException', 'Array element in src cannot be cast to dest array type.'
+    j++
+  # CoffeeScript, we are not returning an array.
+  return
+
 native_methods =
   java:
     lang:
@@ -307,9 +337,35 @@ native_methods =
       ]
       System: [
         o 'arraycopy(L!/!/Object;IL!/!/Object;II)V', (rs, src, src_pos, dest, dest_pos, length) ->
-            j = dest_pos
-            for i in [src_pos...src_pos+length] by 1
-              dest.array[j++] = src.array[i]
+            # Needs to be checked *even if length is 0*.
+            if src == null or dest == null
+              exceptions.java_throw rs, 'java/lang/NullPointerException', 'Cannot copy to/from a null array.'
+            # Can't do this on non-array types. Need to check before I check
+            # bounds below, or else I'll get an exception.
+            # TODO: Could try/catch.
+            if !(src.type instanceof types.ArrayType) or !(dest.type instanceof types.ArrayType)
+              exceptions.java_throw rs, 'java/lang/ArrayStoreException', 'src and dest arguments must be of array type.'
+            # Also needs to be checked *even if length is 0*.
+            if src_pos < 0 or (src_pos+length) > src.array.length or dest_pos < 0 or (dest_pos+length) > dest.array.length or length < 0
+              exceptions.java_throw rs, 'java/lang/IndexOutOfBoundsException', 'Tried to write to an illegal index in an array.'
+            # Special case; need to copy the section of src that is being copied
+            # into a temporary array before actually doing the copy.
+            if src == dest
+              src = {type: src.type, array: src.array.slice(src_pos, src_pos+length)}
+              src_pos = 0
+
+            if types.is_castable rs, src.type, dest.type
+              # Fast path
+              arraycopy_no_check(src, src_pos, dest, dest_pos, length)
+            else
+              # Slow path
+              # Absolutely cannot do this when two different primitive types, or
+              # a primitive type and a reference type.
+              if (src.type.component_type instanceof types.PrimitiveType) or (dest.type.component_type instanceof types.PrimitiveType)
+                exceptions.java_throw rs, 'java/lang/ArrayStoreException', 'If calling arraycopy with a primitive array, both src and dest must be of the same primitive type.'
+              else
+                # Must be two reference types.
+                arraycopy_check(src, src_pos, dest, dest_pos, length)
         o 'currentTimeMillis()J', (rs) -> gLong.fromNumber((new Date).getTime())
         o 'identityHashCode(L!/!/Object;)I', (x) -> x.ref
         o 'initProperties(L!/util/Properties;)L!/util/Properties;', (rs, props) -> # NOP, we trap the getProperty call

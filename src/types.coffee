@@ -112,6 +112,8 @@ root.is_castable = (rs, type1, type2) ->
     return type2.class_name in ['java/lang/Cloneable','java/io/Serializable']
   # not an array
   return false if type2 instanceof root.ArrayType
+  # type1 must be a non-array reference type.
+  return true if type2.class_name is 'java/lang/Object'
   c1 = rs.class_lookup(type1)
   c2 = rs.class_lookup(type2)
   unless c1.access_flags.interface
