@@ -4,6 +4,7 @@ util = require './util'
 types = require './types'
 {java_throw,BranchException,ReturnException,JavaException} = require './exceptions'
 {c2t} = types
+{JavaArray} = require './java_object'
 
 root = exports ? window.opcodes = {}
 
@@ -223,14 +224,18 @@ class root.MultiArrayOpcode extends root.Opcode
 
   execute: (rs) ->
     counts = rs.curr_frame().stack.splice(-@dim,@dim)
-    def = util.initial_value @class[@dim..]
+    default_val = util.initial_value @class[@dim..]
+    types = (c2t(@class[d..]) for d in [0...@dim] by 1)
     init_arr = (curr_dim) =>
-      return def if curr_dim == @dim
       len = counts[curr_dim]
       if len < 0 then java_throw(rs, 'java/lang/NegativeArraySizeException',
         "Tried to init dimension #{curr_dim} of a #{@dim} dimensional #{@class.toString()} array with length #{len}")
-      typestr = @class[curr_dim..]
-      rs.init_object typestr, (init_arr(curr_dim+1) for [0...len])
+      type = types[curr_dim]
+      if curr_dim+1 == @dim
+        array = (default_val for i in [0...len] by 1)
+      else
+        array = (init_arr(curr_dim+1) for i in [0...len] by 1)
+      new JavaArray type, rs, array
     rs.push init_arr 0
 
 class root.ArrayLoadOpcode extends root.Opcode
