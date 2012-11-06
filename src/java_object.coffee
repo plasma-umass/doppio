@@ -46,7 +46,7 @@ class root.JavaObject
     vtrace "getting #{type} #{name} from obj of type #{for_class}"
     slot = @fields[name]
     if typeof slot is 'undefined'
-      slot = util.initial_value type
+      return @fields[name] = util.initial_value type
     slot
 
   get_field_from_offset: (rs, offset) ->

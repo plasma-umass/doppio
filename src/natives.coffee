@@ -588,18 +588,18 @@ native_methods =
       ]
       UnixFileSystem: [
         o 'checkAccess(Ljava/io/File;I)Z', (rs, _this, file, access) ->
-            filepath = file.get_field 'path', 'java/lang/String'
+            filepath = file.get_field 'path', 'Ljava/lang/String;'
             stats = stat_file filepath.jvm2js_str()
             return false unless stats?
             mode = stats.mode & 511
             true  # TODO: actually use the mode, checking if we're the owner or in group
         o 'getBooleanAttributes0(Ljava/io/File;)I', (rs, _this, file) ->
-            filepath = file.get_field 'path', 'java/lang/String'
+            filepath = file.get_field 'path', 'Ljava/lang/String;'
             stats = stat_file filepath.jvm2js_str()
             return 0 unless stats?
             if stats.isFile() then 3 else if stats.isDirectory() then 5 else 1
         o 'getLastModifiedTime(Ljava/io/File;)J', (rs, _this, file) ->
-            filepath = file.get_field 'path', 'java/lang/String'
+            filepath = file.get_field 'path', 'Ljava/lang/String;'
             stats = stat_file filepath.jvm2js_str()
             exceptions.java_throw(rs, 'java/io/FileNotFoundException', "Could not stat file #{filepath.jvm2js_str()}") unless stats?
             gLong.fromNumber (new Date(stats.mtime)).getTime()
@@ -607,14 +607,14 @@ native_methods =
             js_str = jvm_path_str.jvm2js_str()
             rs.init_string path.resolve(path.normalize(js_str))
         o 'list(Ljava/io/File;)[Ljava/lang/String;', (rs, _this, file) ->
-            filepath = file.get_field 'path', 'java/lang/String'
+            filepath = file.get_field 'path', 'Ljava/lang/String;'
             try
               files = fs.readdirSync(filepath.jvm2js_str())
             catch e
               return null
             rs.init_object('[Ljava/lang/String;',(rs.init_string(f) for f in files))
         o 'getLength(Ljava/io/File;)J', (rs, _this, file) ->
-            filepath = file.get_field 'path', 'java/lang/String'
+            filepath = file.get_field 'path', 'Ljava/lang/String;'
             try
               length = fs.statSync(filepath.jvm2js_str()).size
             catch e
@@ -675,7 +675,7 @@ native_methods =
         o 'staticFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.get_field 'slot', 'J')
         o 'objectFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.get_field 'slot', 'J')
         o 'staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;', (rs,_this,field) ->
-            cls = field.get_field 'clazz', 'java/lang/Class'
+            cls = field.get_field 'clazz', 'Ljava/lang/Class;'
             rs.set_obj cls.$type
         o 'getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
             obj.get_field_from_offset rs, offset
@@ -687,7 +687,7 @@ native_methods =
     reflect:
       NativeMethodAccessorImpl: [
         o 'invoke0(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;', (rs,m,obj,params) ->
-            cls = m.get_field 'clazz', 'java/lang/Class'
+            cls = m.get_field 'clazz', 'Ljava/lang/Class;'
             slot = m.get_field 'slot', 'I'
             method = (method for sig, method of rs.class_lookup(cls.$type).methods when method.idx is slot)[0]
             rs.push obj unless method.access_flags.static
@@ -697,7 +697,7 @@ native_methods =
       ]
       NativeConstructorAccessorImpl: [
         o 'newInstance0(Ljava/lang/reflect/Constructor;[Ljava/lang/Object;)Ljava/lang/Object;', (rs,m,params) ->
-            cls = m.get_field 'clazz', 'java/lang/Class'
+            cls = m.get_field 'clazz', 'Ljava/lang/Class;'
             slot = m.get_field 'slot', 'I'
             method = (method for sig, method of rs.class_lookup(cls.$type).methods when method.idx is slot)[0]
             rs.push (obj = rs.set_obj cls.$type)
