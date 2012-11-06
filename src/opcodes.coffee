@@ -226,8 +226,11 @@ class root.MultiArrayOpcode extends root.Opcode
     def = util.initial_value @class[@dim..]
     init_arr = (curr_dim) =>
       return def if curr_dim == @dim
+      len = counts[curr_dim]
+      if len < 0 then java_throw(rs, 'java/lang/NegativeArraySizeException',
+        "Tried to init dimension #{curr_dim} of a #{@dim} dimensional #{@class.toString()} array with length #{len}")
       typestr = @class[curr_dim..]
-      rs.init_object typestr, (init_arr(curr_dim+1) for [0...counts[curr_dim]])
+      rs.init_object typestr, (init_arr(curr_dim+1) for [0...len])
     rs.push init_arr 0
 
 class root.ArrayLoadOpcode extends root.Opcode
