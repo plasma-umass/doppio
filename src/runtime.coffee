@@ -8,7 +8,7 @@ types = require './types'
 ClassFile = require './ClassFile'
 {log,vtrace,trace,debug,error} = require './logging'
 {java_throw,YieldException} = require './exceptions'
-{JavaObject,JavaArray,thread_name} = require './java_object'
+{JavaObject,JavaClassObject,JavaArray,thread_name} = require './java_object'
 {c2t} = types
 
 class root.CallStack
@@ -153,25 +153,24 @@ class root.RuntimeState
   heap_put: (field_spec) ->
     val = if field_spec.type in ['J','D'] then @pop2() else @pop()
     obj = @pop()
-    obj.set_field field_spec.name, val, field_spec.type, field_spec.class
+    obj.set_field field_spec.name, val, field_spec.class
 
   heap_get: (field_spec, obj) ->
-    type = field_spec.type
-    val = obj.get_field field_spec.name, type, field_spec.class
+    val = obj.get_field field_spec.name, field_spec.class
     @push val
-    @push null if type in ['J','D']
+    @push null if field_spec.type in ['J','D']
 
   # static stuff
   static_get: (field_spec) ->
     f = @field_lookup(field_spec)
     obj = @class_lookup(f.class_type, true)
-    obj.get_field f.name, f.type.toString(), 'java/lang/Class'
+    obj.get_static f.name, f.raw_descriptor
 
   static_put: (field_spec) ->
     val = if field_spec.type in ['J','D'] then @pop2() else @pop()
     f = @field_lookup(field_spec)
     obj = @class_lookup(f.class_type, true)
-    obj.set_field f.name, val, f.type.toString(), 'java/lang/Class'
+    obj.set_static f.name, val
 
   # heap object initialization
   init_object: (cls, obj) ->
@@ -213,8 +212,8 @@ class root.RuntimeState
     cls = type.toClassString?() ? type.toString()
     unless @classes[cls]?
       trace "loading new class: #{cls}"
-      jclass = new JavaObject c2t('java/lang/Class'), @
-      jclass.$type = type
+      defer_init = cls in ['java/lang/Class', 'java/lang/Object']
+      jclass = new JavaClassObject @, type, defer_init
       if type instanceof types.ArrayType
         class_file = ClassFile.for_array_type type
         @classes[cls] = {file: class_file, obj: jclass}
@@ -233,10 +232,12 @@ class root.RuntimeState
         # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/Concepts.doc.html#19075
         if class_file.super_class
           @_class_lookup class_file.super_class
+
         # flag to let us know if we need to resume into <clinit> after a yield
         c.in_progress = true
         class_file.methods['<clinit>()V']?.run(this)
         delete c.in_progress  # no need to keep this around
+      jclass.init_fields(@) if defer_init
     else if @meta_stack().resuming_stack?
       c = @classes[cls]
       if c.file.super_class

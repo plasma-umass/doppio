@@ -59,7 +59,7 @@ class root.JavaException
 
   toplevel_catch_handler: (rs) ->
     logging.error "\nUncaught #{@exception.type.toClassString()}"
-    msg = @exception.get_field 'detailMessage', 'Ljava/lang/String;'
+    msg = @exception.get_field 'detailMessage'
     logging.error "\t#{msg.jvm2js_str()}" if msg?
     rs.show_state()
     rs.push rs.curr_thread, @exception
