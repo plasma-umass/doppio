@@ -225,12 +225,12 @@ class root.MultiArrayOpcode extends root.Opcode
   execute: (rs) ->
     counts = rs.curr_frame().stack.splice(-@dim,@dim)
     default_val = util.initial_value @class[@dim..]
-    arrTypes = (c2t(@class[d..]) for d in [0...@dim] by 1)
+    arr_types = (c2t(@class[d..]) for d in [0...@dim] by 1)
     init_arr = (curr_dim) =>
       len = counts[curr_dim]
       if len < 0 then java_throw(rs, 'java/lang/NegativeArraySizeException',
         "Tried to init dimension #{curr_dim} of a #{@dim} dimensional #{@class.toString()} array with length #{len}")
-      type = arrTypes[curr_dim]
+      type = arr_types[curr_dim]
       if curr_dim+1 == @dim
         array = (default_val for i in [0...len] by 1)
       else
