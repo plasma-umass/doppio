@@ -95,7 +95,7 @@ class root.RuntimeState
     unless yieldee?
       yieldee = @lock_refs[monitor]
     @yield yieldee
-    
+
   yield: (yieldee) ->
     unless yieldee?
       yieldee = (y for y in @thread_pool when y isnt @curr_thread).pop()
