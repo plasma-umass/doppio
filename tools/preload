@@ -881,3 +881,10 @@ third_party/classes/sun/org/mozilla/javascript/internal/Arguments.class
 third_party/classes/java/net/URI.class
 third_party/classes/com/sun/tools/script/shell/Main$1.class
 third_party/classes/com/sun/tools/script/shell/Main$Command.class
+third_party/classes/javax/tools/ToolProvider.class
+third_party/classes/javax/tools/ToolProvider$Lazy.class
+third_party/classes/com/sun/tools/javac/api/JavacTool.class
+third_party/classes/javax/tools/JavaCompiler.class
+third_party/classes/com/sun/tools/javac/util/Context.class
+third_party/classes/com/sun/tools/javac/api/JavacTool$1.class
+third_party/classes/javax/tools/Tool.class
