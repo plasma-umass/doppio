@@ -91,25 +91,28 @@ class root.JavaClassObject extends root.JavaObject
     @type = types.c2t 'java/lang/Class'
     @fields = {}
     @init_fields unless defer_init
+    @get_fields = (->)
 
   construct_fields: (rs, t) ->
-    if @fields_proto? then return Object.seal(_.clone(@fields_proto))
-    @fields_proto = {}
+    if @fields_init? then return new @get_fields()
+    fields_proto = {}
     # init fields from this and inherited ClassFiles
     while t?
       cls = rs.class_lookup t
       for f in cls.fields when not f.access_flags.static
         val = util.initial_value f.raw_descriptor
-        slot_val = @fields_proto[f.name]
+        slot_val = fields_proto[f.name]
         if typeof slot_val isnt 'undefined'
           # Field shadowing.
           unless slot_val?.$first?
-            @fields_proto[f.name] = slot_val = {$first: slot_val}
+            fields_proto[f.name] = slot_val = {$first: slot_val}
           slot_val[t.toClassString()] = val
         else
-          @fields_proto[f.name] = val
+          fields_proto[f.name] = val
       t = cls.super_class
-    Object.seal(@fields_proto)
+    Object.freeze(fields_proto)
+    @get_fields.prototype = fields_proto
+    @fields_init = true
     return @construct_fields(rs, t)
 
   init_fields: (rs) ->
