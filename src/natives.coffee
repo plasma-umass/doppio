@@ -12,6 +12,8 @@ path = node?.path ? require 'path'
 fs = node?.fs ? require 'fs'
 {c2t} = types
 
+"use strict"
+
 # things assigned to root will be available outside this module
 root = exports ? this.natives = {}
 

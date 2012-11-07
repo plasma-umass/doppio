@@ -6,6 +6,8 @@
 #   by one.
 # * Buffers output and asynchronously sends it to a server running locally.
 
+"use strict"
+
 $ = jQuery
 
 $.fn.console = (config) ->

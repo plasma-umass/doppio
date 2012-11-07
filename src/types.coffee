@@ -16,6 +16,8 @@
 root = exports ? window.types ?= {}
 util = require './util'
 
+"use strict"
+
 internal2external =
   B: 'byte'
   C: 'char'

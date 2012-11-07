@@ -8,6 +8,8 @@ ClassFile = require '../src/ClassFile'
 methods = require '../src/methods'
 runtime = require '../src/runtime'
 
+"use strict"
+
 classpath = [ ".", "#{__dirname}/../third_party/classes" ]
 
 exports.read_binary_file = (filename) ->

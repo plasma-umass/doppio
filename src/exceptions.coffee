@@ -4,6 +4,8 @@ _ = require '../third_party/_.js'
 logging = require './logging'
 types = require './types'
 
+"use strict"
+
 # things assigned to root will be available outside this module
 root = exports ? window.exceptions ?= {}
 

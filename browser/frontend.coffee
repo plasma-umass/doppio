@@ -1,5 +1,7 @@
 root = this
 
+"use strict"
+
 # To be initialized on document load
 stdout = null
 user_input = null

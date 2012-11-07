@@ -2,6 +2,8 @@ win = window
 
 root = win.node = {}
 
+"use strict"
+
 # made global for convenience -- name collision is unlikely
 class win.DoppioFile # File is a native browser thing
   constructor: (@name) ->

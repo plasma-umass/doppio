@@ -4,6 +4,8 @@ require './runtime'
 {debug,error} = require './logging'
 exceptions = require './exceptions'
 
+"use strict"
+
 # things assigned to root will be available outside this module
 root = exports ? this.jvm = {}
 

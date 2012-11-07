@@ -1,6 +1,8 @@
 
 gLong = require '../third_party/gLong.js'
 
+"use strict"
+
 # things assigned to root will be available outside this module
 root = exports ? window.logging ?= {}
 
