@@ -4,6 +4,8 @@ util = require './util'
 types = require './types'
 {vtrace} = require './logging'
 
+"use strict"
+
 # things assigned to root will be available outside this module
 root = exports ? window.java_object ?= {}
 

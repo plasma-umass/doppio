@@ -11,6 +11,8 @@ ClassFile = require './ClassFile'
 {JavaObject,JavaClassObject,JavaArray,thread_name} = require './java_object'
 {c2t} = types
 
+"use strict"
+
 class root.CallStack
   constructor: (initial_stack) ->
     @_cs = [new root.StackFrame null,[],[]]

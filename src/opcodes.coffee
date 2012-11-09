@@ -6,6 +6,8 @@ types = require './types'
 {c2t} = types
 {JavaArray} = require './java_object'
 
+"use strict"
+
 root = exports ? window.opcodes = {}
 
 class root.Opcode

@@ -9,6 +9,8 @@ methods = require './methods'
 types = require './types'
 {c2t} = types
 
+"use strict"
+
 class ClassFile
   # All class attributes should not be modified (e.g. by a running program)
   # once it has been constructed.
@@ -46,6 +48,7 @@ class ClassFile
     # class attributes
     @attrs = attributes.make_attributes(bytes_array,@constant_pool)
     throw "Leftover bytes in classfile: #{bytes_array}" if bytes_array.has_bytes()
+    Object.seal(@)
 
   @for_array_type: (type) ->
     class_file = Object.create ClassFile.prototype # avoid calling the constructor
