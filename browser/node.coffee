@@ -1,9 +1,9 @@
 win = window
 
 root = win.node = {}
-basename = (path) -> cmps = path.split '/'; return cmps.pop()
+basename = (path) -> path.split('/').pop()
 win.require = (path) ->
-  [name, ext] = (basename path).split '.'
+  [name, ext] = basename(path).split '.'
   window[name] ?= {}
 
 _ = require '../third_party/_.js'
@@ -32,11 +32,7 @@ class DoppioFile
 
 # Helper object. Used by some FileSources to maintain an index of files.
 class FileIndex
-  constructor: (initial_index) ->
-    if initial_index?
-      @index = initial_index
-    else
-      @index = {}
+  constructor: (@index = {}) ->
 
   # Get subcomponents of the given path.
   _subcomponents: (path) ->
@@ -44,9 +40,7 @@ class FileIndex
     # Get rid of first slash
     components.shift()
     # Special case: Root
-    if components.length == 1 and components[0] == ''
-      return []
-    return components
+    if components.length == 1 and components[0] == '' then [] else components
   _add_file: (components, fname, file) ->
     dir = @_mkdir(components)
     dir[fname] = file
@@ -54,16 +48,16 @@ class FileIndex
   _mkdir: (components) ->
     cur_dir = @index
     for c in components
-      if !cur_dir[c]? then cur_dir[c] = {}
+      cur_dir[c] ?= {}
       cur_dir = cur_dir[c]
     return cur_dir
   _get: (components) ->
     cur_dir = @index
     for c in components
-      if !cur_dir[c]? then return false
+      return false unless cur_dir[c]?
       cur_dir = cur_dir[c]
     return cur_dir
-  _is_directory: (obj) -> obj != null and !(obj instanceof DoppioFile)
+  _is_directory: (obj) -> obj? and !(obj instanceof DoppioFile)
 
   # Add the given file to the index. Implicitly creates directories if needed
   # and overwrites things without checking.
@@ -77,15 +71,13 @@ class FileIndex
   get_file: (path) ->
     components = @_subcomponents(path)
     f = @_get(components)
-    if f != false and !@_is_directory(f)
-      return f
+    return f unless f is false or @_is_directory(f)
     return false
   # Returns a directory listing, or null if the directory does not exist.
   ls: (path) ->
     components = @_subcomponents(path)
     dir = @_get(components)
-    if dir != false and @_is_directory(dir)
-      return Object.keys(dir)
+    return Object.keys(dir) unless dir is false or !@_is_directory(dir)
     return null
   # Makes the given directory. Implicitly creates needed subdirectories.
   mkdir: (path) ->
@@ -103,10 +95,8 @@ class FileIndex
     ret = false
     if parent? and parent != false
       if parent[name]?
-        ret = true
         obj = parent[name]
-        if @_is_directory(obj)
-          ret = Object.keys(obj)
+        ret = if @_is_directory(obj) then Object.keys(obj) else true
         delete parent[name]
     return ret
 
@@ -142,8 +132,7 @@ class CompositedFileSource extends FileSource
   _get_applicable_sources: (path) ->
     applicable = []
     for a_mnt_pt in @mnt_pts
-      if @_in_mnt_pt(path, a_mnt_pt)
-        applicable.push(@sources[a_mnt_pt])
+      applicable.push(@sources[a_mnt_pt]) if @_in_mnt_pt(path, a_mnt_pt)
     return applicable
 
   constructor: (mnt_pt, inpt_sources = []) ->
@@ -157,44 +146,40 @@ class CompositedFileSource extends FileSource
   add_source: (source) ->
     @sources[source.mnt_pt] = source
     @mnt_pts.push(source.mnt_pt)
-    if source.redundant_storage == true
-      @redundant_storage = true
+    @redundant_storage ||= source.redundant_storage
     return
 
   fetch: (path) ->
     applicable = @_get_applicable_sources(path)
     for parent in applicable
       f = parent.fetch(path)
-      if f?
-        return f
+      return f if f?
     return null
 
   store: (path, file) ->
     applicable = @_get_applicable_sources(path)
     stored = false
     for source in applicable
-      if (stored and source.redundant_storage) or !stored
-        stored = source.store(path, file) || stored
+      stored = source.store(path, file) || stored unless stored and !source.redundant_storage
     return stored
 
   rm: (path) ->
     applicable = @_get_applicable_sources(path)
     removed = false
     for source in applicable
-      if (removed and source.redundant_storage) or !removed
-        removed = source.rm(path) || removed
+      removed = source.rm(path) || removed unless removed and !source.redundant_storage
     return removed
 
   ls: (path) ->
     applicable = @_get_applicable_sources(path)
+    # Initialize to 'null' so that we return 'null' if the path is not present
+    # in any applicable FileSources. Note that 'null' != [], as the latter is
+    # an existing-but-empty directory.
     list = null
     for source in applicable
       src_list = source.ls(path)
       if src_list?
-        if list?
-          list = _.union(list, src_list)
-        else
-          list = src_list
+        list = if list? then _.union(list, src_list) else src_list
     return list
 
 class LocalStorageSource extends FileSource
@@ -218,7 +203,7 @@ class LocalStorageSource extends FileSource
     if typeof listing != 'boolean'
       for item in listing
         itPath = path + '/' + item
-        if localStorage[itPath]? then delete localStorage[itPath]
+        delete localStorage[itPath]
     else if localStorage[path]?
       delete localStorage[path]
     else
@@ -242,16 +227,11 @@ class WebserverSource extends FileSource
     super(mnt_pt)
     if listings_path?
       idx_data = @_download_file(listings_path)
-    if idx_data?
-      @index = new FileIndex(JSON.parse(idx_data))
-    else
-      @index = new FileIndex()
+    @index = new FileIndex(if idx_data? then JSON.parse(idx_data) else )
   fetch: (path) ->
     trim_path = @_trim_mnt_pt(path)
-    file = null
     data = @_download_file(trim_path)
-    if data? then file = new DoppioFile(path, data)
-    return file
+    return if data? then new DoppioFile(path, data) else null
   ls: (path) -> @index.ls(path)
 
 # Wraps another FileSource and acts as its cache.
@@ -265,8 +245,7 @@ class CacheSource extends FileSource
     f = @index.get_file(path)
     if f == false
       f = @src.fetch(path)
-      if f?
-        @index.add_file(path, f)
+      @index.add_file(path, f) if f?
     return f
   store: (path, file) ->
     if @src.store(path, file)
@@ -325,38 +304,29 @@ class FSState
 
   # Retrieves a file from the file system. Creates a new one if needed.
   # Mode is 'r' for read, 'w' for write+read, 'a' for append+read
+  # Returns 'null' if file does not exist.
   open: (path, mode = 'r') ->
     path = @resolve path
-    if @is_directory(path)
-      return null
+    return null if @is_directory(path)
     # Start fresh.
     if mode == 'w'
       f = new DoppioFile(path)
+      # Ensure writeback when closed.
       f.mod = true
       return f
-    f = @files.fetch path
-    if !f?
-        return null
-    f
+    return @files.fetch path
 
   close: (file) -> @files.store(file.path, file); file.mod = false
 
-  list: (path) ->
-    path = @resolve path
-    @files.ls(path)
+  list: (path) -> @files.ls(@resolve path)
 
-  is_file: (path) ->
-    path = @resolve path
-    @files.fetch(path)?
+  is_file: (path) -> @files.fetch(@resolve path)?
 
   is_directory: (path) -> @list(path)?
 
   rm: (path, isDir = false) ->
     path = @resolve path
-    isActuallyDir = @is_directory(path)
-    if isActuallyDir != isDir
-      return false
-    @files.rm(path)
+    if @is_directory(path) != isDir then false else @files.rm(path)
 
   chdir: (dir) ->
     dir = @resolve(dir)
@@ -448,7 +418,7 @@ root.fs =
 
   readFileSync: (path) ->
     f = fs_state.open(path, 'r')
-    throw "File does not exist." if !f?
+    throw "File does not exist." unless f?
     return f.data
 
   writeFileSync: (path, data) ->
@@ -464,12 +434,10 @@ root.fs =
 
   readdirSync: (path) ->
     dir_contents = fs_state.list(path)
-    throw "Could not read directory '#{path}'" unless dir_contents
+    throw "Could not read directory '#{path}'" unless dir_contents?
     return dir_contents
 
-  unlinkSync: (path) ->
-    if !fs_state.rm(path)
-      throw "Could not unlink '#{path}'"
+  unlinkSync: (path) -> throw "Could not unlink '#{path}'" unless fs_state.rm(path)
 
 # Node's Path API
 root.path =
