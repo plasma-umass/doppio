@@ -54,7 +54,7 @@ class FileIndex
   _get: (components) ->
     cur_dir = @index
     for c in components
-      return false unless cur_dir[c]?
+      return false unless c of cur_dir
       cur_dir = cur_dir[c]
     return cur_dir
   _is_directory: (obj) -> obj? and !(obj instanceof DoppioFile)
@@ -214,6 +214,8 @@ class LocalStorageSource extends FileSource
 
 class WebserverSource extends FileSource
   _download_file: (path) ->
+    # Ensure the file is in the index.
+    return null if @index? and @index.get_file(@mnt_pt + path) == false
     data = null
     $.ajax path, {
       type: 'GET'
@@ -428,7 +430,7 @@ root.fs =
 
   writeSync: (fd, buffer, offset, len) ->
     # TODO flush occasionally?
-    fd.write(String.fromCharCode(buffer.readUInt8(i) for i in [offset...offset+len] by 1).join '')
+    fd.write((String.fromCharCode(buffer.readUInt8(i)) for i in [offset...offset+len] by 1).join '')
 
   closeSync: (fd) -> fs_state.close(fd)
 
