@@ -290,6 +290,10 @@ class FSState
     @pwd = @home
     mainSource = new CompositedFileSource('/', [new LocalStorageSource('/'), new WebserverSource('/home/doppio', '/browser/listings.json')])
     @files = new CacheSource('/', mainSource)
+    # Slight cheat; ensures that / and /home exist.
+    f = new DoppioFile('/home/doppio/Hello.txt', "Welcome to Doppio!")
+    f.mod = true
+    @files.store '/home/doppio/Hello.txt', f
 
   # Canonicalizes the given path.
   resolve: (path) ->

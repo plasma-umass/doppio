@@ -158,10 +158,6 @@ $(document).ready ->
       You can also upload your own files using the uploader above the top-right
       corner of the console.
 
-      The provided Java compiler is for Java 4, so programs using modern Java
-      features (e.g. varargs) will not compile. However, you can still run them
-      by compiling them locally and uploading their classfiles.
-
       Enter 'help' for full a list of commands. Ctrl-D is EOF.
       """
 
@@ -334,7 +330,7 @@ commands =
     Ctrl-D is EOF.
 
     Java-related commands:
-      javac <source file>    -- Invoke the Java 4 compiler.
+      javac <source file>    -- Invoke the Java 6 compiler.
       java <class> [args...] -- Run with command-line arguments.
       javap <class>          -- Display disassembly.
       time                   -- Measure how long it takes to run a command.
@@ -345,6 +341,7 @@ commands =
       ls                     -- List all files.
       mv <src> <dst>         -- Move / rename a file.
       rm <file>              -- Delete a file.
+      cd <dir>               -- Change current directory.
 
     Cache management:
       list_cache             -- List the cached class files.
@@ -367,25 +364,40 @@ tabComplete = ->
 commandCompletions = (cmd) ->
   (name for name, handler of commands when name.substr(0, cmd.length) is cmd)
 
-# TODO: Rewrite.
 fileNameCompletions = (cmd, args) ->
-#  validExtension = (fname) ->
-#    dot = fname.lastIndexOf('.')
-#    ext = if dot is -1 then '' else fname.slice(dot+1)
-#    if cmd is 'javac' then ext is 'java'
-#    else if cmd is 'javap' or cmd is 'java' then ext is 'class'
-#    else true
-#  chopExt = args.length == 2 and (cmd is 'javap' or cmd is 'java')
-#  lastArg = new RegExp('^'+_.last(args),flags='i')
-#  completions = []
-#  for i in [0...localStorage.length] by 1
-#    key = localStorage.key(i)
-#    continue unless key.substr(0, 6) is 'file::'
-#    file = DoppioFile.load key.substr(6) # hack
-#    continue unless file? and validExtension(file.name)
-#    if file.name.match(lastArg)?
-#      completions.push(if chopExt then file.name.split('.',1)[0] else file.name)
-#  completions
+  validExtension = (fname) ->
+    dot = fname.lastIndexOf('.')
+    ext = if dot is -1 then '' else fname.slice(dot+1)
+    if cmd is 'javac' then ext is 'java'
+    else if cmd is 'javap' or cmd is 'java' then ext is 'class'
+    else true
+  chopExt = args.length == 2 and (cmd is 'javap' or cmd is 'java')
+  toComplete = _.last(args)
+  lastSlash = toComplete.lastIndexOf('/')
+  if lastSlash >= 0
+    dirPfx = toComplete.slice(0, lastSlash+1)
+    searchPfx = toComplete.slice(lastSlash+1)
+  else
+    dirPfx = ''
+    searchPfx = toComplete
+  try
+    dirList = node.fs.readdirSync(if dirPfx == '' then '.' else dirPfx)
+    # Slight cheat.
+    dirList.push('..')
+    dirList.push('.')
+  catch e
+    return []
+
+  completions = []
+  for item in dirList
+    isDir = node.fs.statSync(dirPfx + item).isDirectory()
+    continue unless validExtension(item) or isDir
+    if item.slice(0, searchPfx.length) == searchPfx
+      if isDir
+        completions.push(dirPfx + item + '/')
+      else if cmd is not 'cd'
+        completions.push(dirPfx + (if chopExt then item.split('.',1)[0] else item))
+  completions
 
 # use the awesome greedy regex hack, from http://stackoverflow.com/a/1922153/10601
 longestCommmonPrefix = (lst) -> lst.join(' ').match(/^(\S*)\S*(?: \1\S*)*$/i)[1]
