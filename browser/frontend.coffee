@@ -386,7 +386,7 @@ fileNameCompletions = (cmd, args) ->
     if item.slice(0, searchPfx.length) == searchPfx
       if isDir
         completions.push(dirPfx + item + '/')
-      else if cmd is not 'cd'
+      else if cmd != 'cd'
         completions.push(dirPfx + (if chopExt then item.split('.',1)[0] else item))
   completions
 
