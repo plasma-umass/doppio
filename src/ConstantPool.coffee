@@ -6,6 +6,8 @@ _ = require '../third_party/_.js'
 gLong = require '../third_party/gLong.js'
 util = require './util'
 
+"use strict"
+
 # All objects in the constant pool have the properties @type and @value.
 # *Reference and NameAndType objects all have a @deref method, which resolves
 # all child references to their values (i.e. discarding @type).

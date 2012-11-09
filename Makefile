@@ -88,11 +88,14 @@ endif
 # Builds a release or benchmark version of Doppio without the documentation.
 # These targets differ in the variables that are set before they are run; see
 # MAKECMDGOALS above.
-release: build
-benchmark: build
-development: browser/mini-rt.tar test/special/*.class
+release: browser/listings.json build
+benchmark: browser/listings.json build
+development: browser/listings.json browser/mini-rt.tar test/special/*.class
 	$(COFFEEC) -c */*.coffee
 	cpp -P browser/index.html index.html
+
+browser/listings.json:
+	$(COFFEEC) tools/gen_dir_listings.coffee > browser/listings.json
 
 # Builds a distributable version of Doppio.
 dist: $(DIST_NAME)
@@ -198,6 +201,7 @@ build: dependencies $(BUILD_DIR) $(BUILD_DIR)/browser $(BUILD_HTML) \
 	rsync browser/*.svg $(BUILD_DIR)/browser/
 	rsync browser/*.png $(BUILD_DIR)/browser/
 	rsync browser/mini-rt.tar $(BUILD_DIR)/browser/mini-rt.tar
+	rsync browser/listings.json $(BUILD_DIR)/browser/listings.json
 
 # Never delete these files in the event of a failure.
 .SECONDARY: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES)

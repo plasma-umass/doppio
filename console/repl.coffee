@@ -4,6 +4,8 @@ readline = require 'readline'
 jvm = require '../src/jvm'
 {read_classfile} = require './runner'
 
+"use strict"
+
 repl_run = (rs, cname, args) ->
   cname = cname[0...-6] if cname[-6..] is '.class'
   jvm.run_class rs, cname, args

@@ -4,6 +4,8 @@ _ = require '../third_party/_.js'
 gLong = require '../third_party/gLong.js'
 {java_throw} =  require './exceptions'
 
+"use strict"
+
 # things assigned to root will be available outside this module
 root = exports ? window.util ?= {}
 

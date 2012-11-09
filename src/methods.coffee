@@ -16,6 +16,8 @@ logging = require './logging'
 {str2type,carr2type,c2t} = types
 {native_methods,trapped_methods} = natives
 
+"use strict"
+
 # things assigned to root will be available outside this module
 root = exports ? this.methods = {}
 

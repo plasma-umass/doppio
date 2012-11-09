@@ -4,6 +4,8 @@ _ = require '../third_party/_.js'
 util = require './util'
 opcodes = require './opcodes'
 
+"use strict"
+
 # things assigned to root will be available outside this module
 root = exports ? window.attributes ?= {}
 

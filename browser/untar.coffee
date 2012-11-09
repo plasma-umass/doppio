@@ -4,6 +4,8 @@ util = require '../src/util'
 
 asyncExecute = this.asyncExecute ? (require './util').asyncExecute
 
+"use strict"
+
 root.untar = (bytes, cb, done_cb) ->
   next_file = ->
     [path,body] = shift_file(bytes)

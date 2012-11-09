@@ -4,6 +4,8 @@ util = require './util'
 {Method} = require './methods'
 {c2t} = require './types'
 
+"use strict"
+
 root = exports ? this.compiler = {}
 
 class BlockChain

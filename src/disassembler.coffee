@@ -6,6 +6,8 @@ _ = require '../third_party/_.js'
 util = require './util'
 types = require './types'
 
+"use strict"
+
 root.disassemble = (class_file) ->
   access_string = (access_flags) ->
     ordered_flags = [ 'public', 'protected', 'private', 'static', 'final' ]

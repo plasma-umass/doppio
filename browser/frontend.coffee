@@ -1,12 +1,14 @@
 root = this
 
+"use strict"
+
 # To be initialized on document load
 stdout = null
 user_input = null
 controller = null
 editor = null
 progress = null
-classpath = [ "third_party/classes/", "" ]
+classpath = [ "/home/doppio/third_party/classes/", "/home/doppio/", "./" ]
 
 class_cache = {}
 raw_cache = {}
@@ -32,7 +34,7 @@ $.ajax "browser/mini-rt.tar", {
       display_perc = Math.min Math.ceil(percent*100), 100
       bar.width "#{display_perc}%", 150
       preloading_file.text(
-        if display_perc < 100 then "Loading #{_.last path.split '/'}"  else "Done!"))
+        if display_perc < 100 then "Loading #{path}"  else "Done!"))
 
     untar new util.BytesArray(util.bytestr_to_array data), ((percent, path, file) ->
       update_bar(percent, path)
@@ -63,18 +65,10 @@ $.ajax "third_party/classes/com/sun/tools/script/shell/Main.class", {
 }
 
 try_path = (path) ->
-  # hack. we should implement proper directories
-  local_file = DoppioFile.load _.last(path.split '/')
-  return util.bytestr_to_array local_file.data if local_file?
-  rv = null
-  $.ajax path, {
-    type: 'GET'
-    dataType: 'text'
-    async: false
-    beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
-    success: (data) -> rv = util.bytestr_to_array data
-  }
-  rv
+  try
+    return util.bytestr_to_array node.fs.readFileSync(path)
+  catch e
+    return null
 
 # Read in a binary classfile synchronously. Return an array of bytes.
 read_classfile = (cls) ->
@@ -119,20 +113,16 @@ $(document).ready ->
         when e.target.error.NOT_READABLE_ERR then alert "unreadable"
         when e.target.error.SECURITY_ERR then alert "only works with --allow-file-access-from-files"
     ext = f.name.split('.')[1]
-    if ext == 'class'
-      reader.onload = (e) ->
-        (new DoppioFile f.name).write(e.target.result).save()
-        controller.message "File '#{f.name}' saved.", 'success'
+    isClass = ext == 'class'
+    reader.onload = (e) ->
+      node.fs.writeFileSync(f.name, e.target.result)
+      controller.message "File '#{f.name}' saved.", 'success'
+      if isClass
         editor.getSession?().setValue("/*\n * Binary file: #{f.name}\n */")
-        $('#console').click() # click to restore focus
-      reader.readAsBinaryString(f)
-    else # assume a text file
-      reader.onload = (e) ->
-        (new DoppioFile f.name).write(e.target.result).save()
-        controller.message "File '#{f.name}' saved.", 'success'
+      else
         editor.getSession?().setValue(e.target.result)
-        $('#console').click() # click to restore focus
-      reader.readAsText(f)
+      $('#console').click() # click to restore focus
+      if isClass then reader.readAsBinaryString(f) else reader.readAsText(f)
 
   jqconsole = $('#console')
   controller = jqconsole.console
@@ -146,7 +136,6 @@ $(document).ready ->
         else "Unknown command '#{cmd}'. Enter 'help' for a list of commands."
       catch e
         controller.message e.toString(), 'error'
-        throw e
     tabComplete: tabComplete
     autofocus: false
     animateScroll: true
@@ -169,10 +158,6 @@ $(document).ready ->
       You can also upload your own files using the uploader above the top-right
       corner of the console.
 
-      The provided Java compiler is for Java 4, so programs using modern Java
-      features (e.g. varargs) will not compile. However, you can still run them
-      by compiling them locally and uploading their classfiles.
-
       Enter 'help' for full a list of commands. Ctrl-D is EOF.
       """
 
@@ -182,18 +167,8 @@ $(document).ready ->
   './FileRead.java', './Fib.java', 'special/foo', 'special/bar',
   'special/Javac.java', 'special/Javac.class']
   for demo in demo_files
-    $.ajax "test/#{demo}", {
-      type: 'GET'
-      dataType: 'text'
-      async: false
-      beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
-      success: (data) ->
-        fname = _.last(demo.split '/')
-        (new DoppioFile fname).write(data).save()
-      error: ->
-        fname = _.last(demo.split '/')
-        controller.message "Could not load '#{fname}'.\n", 'error', true
-    }
+    f = node.fs.openSync('./test/' + demo, 'r')
+    node.fs.closeSync(f)
 
   stdout = (str) -> controller.message str, '', true # noreprompt
 
@@ -219,7 +194,7 @@ $(document).ready ->
     fname = $('#filename').val()
     contents = editor.getSession().getValue()
     contents += '\n' unless contents[contents.length-1] == '\n'
-    (new DoppioFile fname).write(contents).save()
+    node.fs.writeFileSync(fname, contents)
     controller.message("File saved as '#{fname}'.", 'success')
     close_editor()
     e.preventDefault()
@@ -234,7 +209,7 @@ commands =
   java: (args, cb) ->
     if !args[0]? or (args[0] == '-classpath' and args.length < 3)
       return "Usage: java [-classpath path1:path2...] class [args...]"
-    classpath = [ "third_party/classes/", "" ]
+    classpath = [ "/home/doppio/third_party/classes/", "/home/doppio/", "./" ]
     if args[0] == '-classpath'
       paths = args[1].split(':')
       class_name = args[2]
@@ -249,8 +224,10 @@ commands =
     return null  # no reprompt, because we handle it ourselves
   javap: (args) ->
     return "Usage: javap class" unless args[0]?
-    raw_data = DoppioFile.load("#{args[0]}.class").read()
-    return ["Could not find class '#{args[0]}'.",'error'] unless raw_data?
+    try
+      raw_data = node.fs.readFileSync("#{args[0]}.class")
+    catch e
+      return ["Could not find class '#{args[0]}'.",'error']
     disassembler.disassemble process_bytecode raw_data
     return null  # no reprompt, because we handle it ourselves
   rhino: (args, cb) ->
@@ -266,7 +243,10 @@ commands =
   ls: (args) ->
     node.fs.readdirSync('.').sort().join '\n'
   edit: (args) ->
-    data = if args[0]? then DoppioFile.load(args[0]).read() else defaultFile
+    try
+      data = if args[0]? then node.fs.readFileSync(args[0]) else defaultFile
+    catch e
+      data = defaultFile
     $('#console').fadeOut 'fast', ->
       $('#filename').val args[0]
       $('#ide').fadeIn('fast')
@@ -286,19 +266,35 @@ commands =
   cat: (args) ->
     fname = args[0]
     return "Usage: cat <file>" unless fname?
-    DoppioFile.load(fname).read()
+    try
+      return node.fs.readFileSync(fname)
+    catch e
+      return "ERROR: #{fname} does not exist."
   mv: (args) ->
-    f = DoppioFile.load args[0]
-    f.name = args[1]
-    f.save()
-    DoppioFile.delete args[0]
+    if args.length < 2 then return "Usage: mv <from-file> <to-file>"
+    try
+      node.fs.renameSync(args[0], args[1])
+    catch e
+      return "Invalid arguments."
+    true
+  cd: (args) ->
+    if args.length > 1 then return "Usage: cd <directory>"
+    if args.length == 0 then args.push("~")
+    try
+      node.process.chdir(args[0])
+    catch e
+      return "Invalid directory."
     true
   rm: (args) ->
     return "Usage: rm <file>" unless args[0]?
-    # technically we should look only for keys starting with 'file::', but at the
-    # moment they are the only kinds of keys we use
-    if args[0] == '*' then localStorage.clear()
-    else DoppioFile.delete args[0]
+    if args[0] == '*'
+      fnames = node.fs.readdirSync('.')
+      for fname in fnames
+        fstat = node.fs.statSync(fname)
+        if fstat.is_directory
+          return "ERROR: '#{fname}' is a directory."
+        node.fs.unlinkSync(fname)
+    else node.fs.unlinkSync args[0]
     true
   emacs: -> "Try 'vim'."
   vim: -> "Try 'emacs'."
@@ -334,7 +330,7 @@ commands =
     Ctrl-D is EOF.
 
     Java-related commands:
-      javac <source file>    -- Invoke the Java 4 compiler.
+      javac <source file>    -- Invoke the Java 6 compiler.
       java <class> [args...] -- Run with command-line arguments.
       javap <class>          -- Display disassembly.
       time                   -- Measure how long it takes to run a command.
@@ -345,6 +341,7 @@ commands =
       ls                     -- List all files.
       mv <src> <dst>         -- Move / rename a file.
       rm <file>              -- Delete a file.
+      cd <dir>               -- Change current directory.
 
     Cache management:
       list_cache             -- List the cached class files.
@@ -375,15 +372,31 @@ fileNameCompletions = (cmd, args) ->
     else if cmd is 'javap' or cmd is 'java' then ext is 'class'
     else true
   chopExt = args.length == 2 and (cmd is 'javap' or cmd is 'java')
-  lastArg = new RegExp('^'+_.last(args),flags='i')
+  toComplete = _.last(args)
+  lastSlash = toComplete.lastIndexOf('/')
+  if lastSlash >= 0
+    dirPfx = toComplete.slice(0, lastSlash+1)
+    searchPfx = toComplete.slice(lastSlash+1)
+  else
+    dirPfx = ''
+    searchPfx = toComplete
+  try
+    dirList = node.fs.readdirSync(if dirPfx == '' then '.' else dirPfx)
+    # Slight cheat.
+    dirList.push('..')
+    dirList.push('.')
+  catch e
+    return []
+
   completions = []
-  for i in [0...localStorage.length] by 1
-    key = localStorage.key(i)
-    continue unless key.substr(0, 6) is 'file::'
-    file = DoppioFile.load key.substr(6) # hack
-    continue unless file? and validExtension(file.name)
-    if file.name.match(lastArg)?
-      completions.push(if chopExt then file.name.split('.',1)[0] else file.name)
+  for item in dirList
+    isDir = node.fs.statSync(dirPfx + item).isDirectory()
+    continue unless validExtension(item) or isDir
+    if item.slice(0, searchPfx.length) == searchPfx
+      if isDir
+        completions.push(dirPfx + item + '/')
+      else if cmd is not 'cd'
+        completions.push(dirPfx + (if chopExt then item.split('.',1)[0] else item))
   completions
 
 # use the awesome greedy regex hack, from http://stackoverflow.com/a/1922153/10601
