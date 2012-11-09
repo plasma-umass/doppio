@@ -24,7 +24,7 @@ system_properties = {
   'line.separator':'\n', 'file.separator':'/', 'path.separator':':',
   'user.dir':'.','user.home':'.','user.name':'DoppioUser',
   'os.name':'Doppio', 'os.arch': 'js', 'os.version': '0',
-  'sun.boot.class.path': 'third_party/classes',
+  'sun.boot.class.path': '/home/doppio/third_party/classes',
   'java.awt.headless': 'true',
   'useJavaUtilZip': 'true'  # hack for sun6javac, avoid ZipFileIndex shenanigans
 }

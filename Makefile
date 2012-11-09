@@ -88,14 +88,14 @@ endif
 # Builds a release or benchmark version of Doppio without the documentation.
 # These targets differ in the variables that are set before they are run; see
 # MAKECMDGOALS above.
-release: listing.json build
-benchmark: listing.json build
+release: browser/listings.json build
+benchmark: browser/listings.json build
 development: browser/listings.json browser/mini-rt.tar test/special/*.class
 	$(COFFEEC) -c */*.coffee
 	cpp -P browser/index.html index.html
 
 browser/listings.json:
-	$(COFFEEC) tools/gen_dir_listings.coffee > listings.coffee
+	$(COFFEEC) tools/gen_dir_listings.coffee > browser/listings.json
 
 # Builds a distributable version of Doppio.
 dist: $(DIST_NAME)

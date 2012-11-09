@@ -136,7 +136,6 @@ $(document).ready ->
         else "Unknown command '#{cmd}'. Enter 'help' for a list of commands."
       catch e
         controller.message e.toString(), 'error'
-        throw e
     tabComplete: tabComplete
     autofocus: false
     animateScroll: true

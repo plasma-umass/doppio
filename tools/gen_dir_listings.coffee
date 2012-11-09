@@ -12,11 +12,9 @@ if !fs.existsSync(gdl_path)
   return
 
 # Create / and /home to bootstrap everything.
-fsobj = {
-          'home': {
-                    'doppio': {}
-                  }
-        }
+fsobj =
+  home:
+    doppio: {}
 
 symLinks = {}
 
@@ -32,7 +30,7 @@ rdSync = (dpath, parentObj, name) ->
     fstat = fs.statSync(fpath)
     lstat = fs.lstatSync(fpath)
 
-    # About infinite loops.
+    # Avoid infinite loops.
     if lstat.isSymbolicLink()
       if !symLinks[lstat.dev]? then symLinks[lstat.dev] = {}
       # Ignore; we've seen it before
