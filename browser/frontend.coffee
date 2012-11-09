@@ -161,15 +161,6 @@ $(document).ready ->
       Enter 'help' for full a list of commands. Ctrl-D is EOF.
       """
 
-  demo_files = ['special/DiffPrint.class', 'special/Chatterbot.java',
-  'special/Chatterbot.class', 'special/Lzw.java', 'special/Lzw.class',
-  'special/RegexTestHarness.java', 'special/RegexTestHarness.class',
-  './FileRead.java', './Fib.java', 'special/foo', 'special/bar',
-  'special/Javac.java', 'special/Javac.class']
-  for demo in demo_files
-    f = node.fs.openSync('./test/' + demo, 'r')
-    node.fs.closeSync(f)
-
   stdout = (str) -> controller.message str, '', true # noreprompt
 
   user_input = (n_bytes, resume) ->
