@@ -146,7 +146,7 @@ class BasicBlock
           expr = replacer expr
 
         postordered.push new Assignment v, expr
-      
+
     @forEachVar traverse
 
     rv.concat postordered.reverse()
@@ -489,7 +489,7 @@ compile_obj_handlers = {
       rs.class_lookup(f.class_type, true).set_static(f.name, $0)
     """, val
   }
-  
+
   getfield: { compile: (b) ->
     t = b.new_temp()
     name = JSON.stringify @field_spec.name
@@ -498,7 +498,7 @@ compile_obj_handlers = {
     b.add_stmt new Expr "$1 = $0.get_field(rs, #{name}, #{for_class})", b.pop(), t
     if @field_spec.type in ['J','D'] then b.push2 t else b.push t
   }
-  
+
   putfield: { compile: (b) ->
     val = if @field_spec.type in ['J','D'] then b.pop2() else b.pop()
     name = JSON.stringify @field_spec.name
@@ -513,13 +513,13 @@ compile_obj_handlers = {
     b.push t
   }
 
-  newarray: { compile: (b) -> 
+  newarray: { compile: (b) ->
     t = b.new_temp()
     b.add_stmt new Assignment t, new Expr "rs.heap_newarray('#{@element_type}', $0)", b.pop()
     b.push t
   }
-  
-  anewarray: { compile: (b) -> 
+
+  anewarray: { compile: (b) ->
     t = b.new_temp()
     b.add_stmt new Assignment t, new Expr "rs.heap_newarray('L#{@class};', $0)", b.pop()
     b.push t

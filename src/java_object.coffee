@@ -63,22 +63,26 @@ class root.JavaObject
 
   set_field: (rs, name, val, for_class) ->
     slot_val = @fields[name]
-    java_throw rs, 'java/lang/NoSuchFieldError', name if slot_val is undefined
-    unless slot_val?.$first?  # not shadowed
+    if slot_val is undefined
+      java_throw rs, 'java/lang/NoSuchFieldError', name
+    else unless slot_val?.$first?  # not shadowed
       @fields[name] = val
-      return
-    # shadowed
-    unless for_class? or slot_val[for_class]?
+    else unless for_class? or slot_val[for_class]?
       slot_val.$first = val
     else
       slot_val[for_class] = val
+    return
 
   get_field: (rs, name, for_class) ->
     slot_val = @fields[name]
-    java_throw rs, 'java/lang/NoSuchFieldError', name if slot_val is undefined
-    return slot_val unless slot_val?.$first?
-    return slot_val.$first unless for_class? or slot_val[for_class]?
-    return slot_val[for_class] if for_class of slot_val
+    if slot_val is undefined
+      java_throw rs, 'java/lang/NoSuchFieldError', name
+    else unless slot_val?.$first?
+      slot_val
+    else unless for_class? or slot_val[for_class]?
+      slot_val.$first
+    else
+      slot_val[for_class]
 
   get_field_from_offset: (rs, offset) ->
     f = rs.get_field_from_offset rs.class_lookup(@type), offset.toInt()

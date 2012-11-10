@@ -155,7 +155,7 @@ class ConstantPool
       @constant_pool[idx] = pool_obj
       idx += size
     return bytes_array
-  
+
   get: (idx) -> @constant_pool[idx] ?
                   throw new Error("Invalid constant_pool reference: #{idx}")
 

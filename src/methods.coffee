@@ -154,7 +154,7 @@ class root.Method extends AbstractMethodField
           java_throw runtime_state, 'java/lang/NullPointerException',
             "null 'this' in virtual lookup for #{sig}"
         return runtime_state.method_lookup({
-            class: obj.type.toClassString(), 
+            class: obj.type.toClassString(),
             sig: @name + @raw_descriptor
           }).run(runtime_state)
       params = @take_params caller_stack

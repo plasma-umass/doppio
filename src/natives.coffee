@@ -740,6 +740,6 @@ flatten_pkg = (pkg) ->
       pkg_name_arr.pop pkg_name
   rec_flatten pkg
   result
-  
+
 root.trapped_methods = flatten_pkg trapped_methods
 root.native_methods = flatten_pkg native_methods
