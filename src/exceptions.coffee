@@ -25,7 +25,8 @@ class root.ReturnException
   constructor: (@values...) ->
   method_catch_handler: (rs, method, padding) ->
     cf = rs.meta_stack().pop()
-    logging.vtrace "#{padding}stack: [#{logging.debug_vars cf.stack}], local: [#{logging.debug_vars cf.locals}] (end method #{method.name})"
+    logging.vtrace "#{padding}stack: [#{logging.debug_vars cf.stack}],
+local: [#{logging.debug_vars cf.locals}] (end method #{method.class_type.toClassString()}::#{method.name})"
     rs.push @values...
     return true
 
@@ -61,7 +62,7 @@ class root.JavaException
 
   toplevel_catch_handler: (rs) ->
     logging.error "\nUncaught #{@exception.type.toClassString()}"
-    msg = @exception.get_field 'detailMessage'
+    msg = @exception.get_field rs, 'detailMessage'
     logging.error "\t#{msg.jvm2js_str()}" if msg?
     rs.show_state()
     rs.push rs.curr_thread, @exception

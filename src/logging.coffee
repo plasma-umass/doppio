@@ -8,7 +8,8 @@ root = exports ? window.logging ?= {}
 
 # used for debugging the stack and local variables
 root.debug_vars = (arr) -> arr.map (e)->
-  return '!' unless e?
+  return '!' if e is null
+  return 'undef' if e is undefined
   return "*#{e.ref}" if e.ref?
   return "#{e}L" if e instanceof gLong
   e

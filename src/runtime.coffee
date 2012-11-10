@@ -103,14 +103,14 @@ class root.RuntimeState
       yieldee = (y for y in @thread_pool when y isnt @curr_thread).pop()
       unless yieldee?
         java_throw @, 'java/lang/Error', "tried to yield when no other thread was available"
-    debug "TE: yielding #{thread_name @curr_thread} to #{thread_name yieldee}"
+    debug "TE: yielding #{thread_name @, @curr_thread} to #{thread_name @, yieldee}"
     my_thread = @curr_thread
     @curr_frame().resume = -> @curr_thread = my_thread
     rs = this
     throw new YieldException (cb) ->
       my_thread.$resume = cb
       rs.curr_thread = yieldee
-      debug "TE: about to resume #{thread_name yieldee}"
+      debug "TE: about to resume #{thread_name @, yieldee}"
       yieldee.$resume()
 
   curr_frame: -> @meta_stack().curr_frame()
@@ -155,10 +155,10 @@ class root.RuntimeState
   heap_put: (field_spec) ->
     val = if field_spec.type in ['J','D'] then @pop2() else @pop()
     obj = @pop()
-    obj.set_field field_spec.name, val, field_spec.class
+    obj.set_field @, field_spec.name, val, field_spec.class
 
   heap_get: (field_spec, obj) ->
-    val = obj.get_field field_spec.name, field_spec.class
+    val = obj.get_field @, field_spec.name, field_spec.class
     @push val
     @push null if field_spec.type in ['J','D']
 

@@ -495,7 +495,7 @@ compile_obj_handlers = {
     name = JSON.stringify @field_spec.name
     type = JSON.stringify @field_spec.type
     for_class = JSON.stringify @field_spec.class
-    b.add_stmt new Expr "$1 = $0.get_field(#{name}, #{for_class})", b.pop(), t
+    b.add_stmt new Expr "$1 = $0.get_field(rs, #{name}, #{for_class})", b.pop(), t
     if @field_spec.type in ['J','D'] then b.push2 t else b.push t
   }
   
@@ -504,7 +504,7 @@ compile_obj_handlers = {
     name = JSON.stringify @field_spec.name
     type = JSON.stringify @field_spec.type
     for_class = JSON.stringify @field_spec.class
-    b.add_stmt new Expr "$0.set_field(#{name}, #{val}, #{for_class})", b.pop(), val
+    b.add_stmt new Expr "$0.set_field(rs, #{name}, #{val}, #{for_class})", b.pop(), val
   }
 
   'new': { compile: (b) ->

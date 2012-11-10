@@ -3,6 +3,7 @@ _ = require '../third_party/_.js'
 util = require './util'
 types = require './types'
 {vtrace} = require './logging'
+{java_throw} = require './exceptions'
 
 "use strict"
 
@@ -31,7 +32,8 @@ class root.JavaArray
 class root.JavaObject
   constructor: (@type, rs, obj={}) ->
     @ref = rs.high_oref++
-    @fields = {}
+    # Object.create(null) avoids interference with Object.prototype's properties
+    @fields = Object.create null
     # init fields from this and inherited ClassFiles
     t = @type
     while t?
@@ -59,8 +61,9 @@ class root.JavaObject
     # note: we don't clone the type, because they're effectively immutable
     new root.JavaObject @type, rs, _.clone(@fields)
 
-  set_field: (name, val, for_class) ->
+  set_field: (rs, name, val, for_class) ->
     slot_val = @fields[name]
+    java_throw rs, 'java/lang/NoSuchFieldError', name if slot_val is undefined
     unless slot_val?.$first?  # not shadowed
       @fields[name] = val
       return
@@ -70,11 +73,12 @@ class root.JavaObject
     else
       slot_val[for_class] = val
 
-  get_field: (name, for_class) ->
+  get_field: (rs, name, for_class) ->
     slot_val = @fields[name]
+    java_throw rs, 'java/lang/NoSuchFieldError', name if slot_val is undefined
     return slot_val unless slot_val?.$first?
     return slot_val.$first unless for_class? or slot_val[for_class]?
-    slot_val[for_class]
+    return slot_val[for_class] if for_class of slot_val
 
   get_field_from_offset: (rs, offset) ->
     f = rs.get_field_from_offset rs.class_lookup(@type), offset.toInt()
@@ -105,7 +109,7 @@ class root.JavaClassObject extends root.JavaObject
   constructor: (rs, @$type, defer_init=false) ->
     @type = types.c2t 'java/lang/Class'
     @fields = {}
-    @init_fields unless defer_init
+    @init_fields(rs) unless defer_init
 
   init_fields: (rs) ->
     cls = rs.class_lookup @type
@@ -121,5 +125,5 @@ class root.JavaClassObject extends root.JavaObject
   toString: -> "<Class #{@$type} (*#{@ref})>"
 
 
-root.thread_name = (thread) ->
-  util.chars2js_str thread.get_field 'name', 'java/lang/Thread'
+root.thread_name = (rs, thread) ->
+  util.chars2js_str thread.get_field rs, 'name', 'java/lang/Thread'
