@@ -121,7 +121,7 @@ class root.LoadOpcode extends root.Opcode
   constructor: (name, params={}) ->
     params.execute ?=
       if name.match /[ld]load/
-        (rs) -> rs.push rs.cl(@var_num), null
+        (rs) -> rs.push2 rs.cl(@var_num), null
       else
         (rs) -> rs.push rs.cl(@var_num)
     super name, params
@@ -277,18 +277,18 @@ root.opcodes = {
   6: new root.Opcode 'iconst_3', { execute: (rs) -> rs.push 3 }
   7: new root.Opcode 'iconst_4', { execute: (rs) -> rs.push 4 }
   8: new root.Opcode 'iconst_5', { execute: (rs) -> rs.push 5 }
-  9: new root.Opcode 'lconst_0', { execute: (rs) -> rs.push gLong.ZERO, null }
-  10: new root.Opcode 'lconst_1', { execute: (rs) -> rs.push gLong.ONE, null }
+  9: new root.Opcode 'lconst_0', { execute: (rs) -> rs.push2 gLong.ZERO, null }
+  10: new root.Opcode 'lconst_1', { execute: (rs) -> rs.push2 gLong.ONE, null }
   11: new root.Opcode 'fconst_0', { execute: (rs) -> rs.push 0 }
   12: new root.Opcode 'fconst_1', { execute: (rs) -> rs.push 1 }
   13: new root.Opcode 'fconst_2', { execute: (rs) -> rs.push 2 }
-  14: new root.Opcode 'dconst_0', { execute: (rs) -> rs.push 0, null }
-  15: new root.Opcode 'dconst_1', { execute: (rs) -> rs.push 1, null }
+  14: new root.Opcode 'dconst_0', { execute: (rs) -> rs.push2 0, null }
+  15: new root.Opcode 'dconst_1', { execute: (rs) -> rs.push2 1, null }
   16: new root.PushOpcode 'bipush', { byte_count: 1 }
   17: new root.PushOpcode 'sipush', { byte_count: 2 }
   18: new root.LoadConstantOpcode 'ldc', { byte_count: 1 }
   19: new root.LoadConstantOpcode 'ldc_w', { byte_count: 2 }
-  20: new root.LoadConstantOpcode 'ldc2_w', { byte_count: 2, execute: ((rs) -> rs.push @constant.value, null) }
+  20: new root.LoadConstantOpcode 'ldc2_w', { byte_count: 2, execute: ((rs) -> rs.push2 @constant.value, null) }
   21: new root.LoadVarOpcode 'iload'
   22: new root.LoadVarOpcode 'lload'
   23: new root.LoadVarOpcode 'fload'
@@ -357,70 +357,70 @@ root.opcodes = {
   86: new root.ArrayStoreOpcode 'sastore'
   87: new root.Opcode 'pop', { execute: (rs) -> rs.pop() }
   88: new root.Opcode 'pop2', { execute: (rs) -> rs.pop2() }
-  89: new root.Opcode 'dup', { execute: (rs) -> v=rs.pop(); rs.push(v,v) }
-  90: new root.Opcode 'dup_x1', { execute: (rs) -> v1=rs.pop(); v2=rs.pop(); rs.push(v1,v2,v1) }
-  91: new root.Opcode 'dup_x2', {execute: (rs) -> [v1,v2,v3]=[rs.pop(),rs.pop(),rs.pop()];rs.push(v1,v3,v2,v1)}
-  92: new root.Opcode 'dup2', {execute: (rs) -> v1=rs.pop(); v2=rs.pop(); rs.push(v2,v1,v2,v1)}
-  93: new root.Opcode 'dup2_x1', {execute: (rs) -> [v1,v2,v3]=[rs.pop(),rs.pop(),rs.pop()];rs.push(v2,v1,v3,v2,v1)}
-  94: new root.Opcode 'dup2_x2', {execute: (rs) -> [v1,v2,v3,v4]=[rs.pop(),rs.pop(),rs.pop(),rs.pop()];rs.push(v2,v1,v4,v3,v2,v1)}
-  95: new root.Opcode 'swap', {execute: (rs) -> v2=rs.pop(); v1=rs.pop(); rs.push(v2,v1)}
+  89: new root.Opcode 'dup', { execute: (rs) -> v=rs.pop(); rs.push2(v,v) }
+  90: new root.Opcode 'dup_x1', { execute: (rs) -> v1=rs.pop(); v2=rs.pop(); rs.push_array([v1,v2,v1]) }
+  91: new root.Opcode 'dup_x2', {execute: (rs) -> [v1,v2,v3]=[rs.pop(),rs.pop(),rs.pop()];rs.push_array([v1,v3,v2,v1])}
+  92: new root.Opcode 'dup2', {execute: (rs) -> v1=rs.pop(); v2=rs.pop(); rs.push_array([v2,v1,v2,v1])}
+  93: new root.Opcode 'dup2_x1', {execute: (rs) -> [v1,v2,v3]=[rs.pop(),rs.pop(),rs.pop()];rs.push_array([v2,v1,v3,v2,v1])}
+  94: new root.Opcode 'dup2_x2', {execute: (rs) -> [v1,v2,v3,v4]=[rs.pop(),rs.pop(),rs.pop(),rs.pop()];rs.push_array([v2,v1,v4,v3,v2,v1])}
+  95: new root.Opcode 'swap', {execute: (rs) -> v2=rs.pop(); v1=rs.pop(); rs.push2(v2,v1)}
   96: new root.Opcode 'iadd', { execute: (rs) -> rs.push util.wrap_int(rs.pop()+rs.pop()) }
-  97: new root.Opcode 'ladd', { execute: (rs) -> rs.push(rs.pop2().add(rs.pop2()), null) }
+  97: new root.Opcode 'ladd', { execute: (rs) -> rs.push2(rs.pop2().add(rs.pop2()), null) }
   98: new root.Opcode 'fadd', { execute: (rs) -> rs.push util.wrap_float(rs.pop()+rs.pop()) }
-  99: new root.Opcode 'dadd', { execute: (rs) -> rs.push(rs.pop2()+rs.pop2(), null) }
+  99: new root.Opcode 'dadd', { execute: (rs) -> rs.push2(rs.pop2()+rs.pop2(), null) }
   100: new root.Opcode 'isub', { execute: (rs) -> rs.push util.wrap_int(-rs.pop()+rs.pop()) }
-  101: new root.Opcode 'lsub', { execute: (rs) -> rs.push(rs.pop2().negate().add(rs.pop2()), null) }
+  101: new root.Opcode 'lsub', { execute: (rs) -> rs.push2(rs.pop2().negate().add(rs.pop2()), null) }
   102: new root.Opcode 'fsub', { execute: (rs) -> rs.push util.wrap_float(-rs.pop()+rs.pop()) }
-  103: new root.Opcode 'dsub', { execute: (rs) -> rs.push(-rs.pop2()+rs.pop2(), null) }
+  103: new root.Opcode 'dsub', { execute: (rs) -> rs.push2(-rs.pop2()+rs.pop2(), null) }
   104: new root.Opcode 'imul', { execute: (rs) -> rs.push gLong.fromInt(rs.pop()).multiply(gLong.fromInt rs.pop()).toInt() }
-  105: new root.Opcode 'lmul', { execute: (rs) -> rs.push(rs.pop2().multiply(rs.pop2()), null) }
+  105: new root.Opcode 'lmul', { execute: (rs) -> rs.push2(rs.pop2().multiply(rs.pop2()), null) }
   106: new root.Opcode 'fmul', { execute: (rs) -> rs.push util.wrap_float(rs.pop()*rs.pop()) }
-  107: new root.Opcode 'dmul', { execute: (rs) -> rs.push(rs.pop2()*rs.pop2(), null) }
-  108: new root.Opcode 'idiv', { execute: (rs) -> v=rs.pop();rs.push(util.int_div rs, rs.pop(), v) }
-  109: new root.Opcode 'ldiv', { execute: (rs) -> v=rs.pop2();rs.push(util.long_div(rs, rs.pop2(), v), null) }
+  107: new root.Opcode 'dmul', { execute: (rs) -> rs.push2(rs.pop2()*rs.pop2(), null) }
+  108: new root.Opcode 'idiv', { execute: (rs) -> v=rs.pop();rs.push_array([util.int_div rs, rs.pop(), v]) }
+  109: new root.Opcode 'ldiv', { execute: (rs) -> v=rs.pop2();rs.push2(util.long_div(rs, rs.pop2(), v), null) }
   110: new root.Opcode 'fdiv', { execute: (rs) -> v=rs.pop();rs.push util.wrap_float(rs.pop()/v) }
-  111: new root.Opcode 'ddiv', { execute: (rs) -> v=rs.pop2();rs.push(rs.pop2()/v, null) }
+  111: new root.Opcode 'ddiv', { execute: (rs) -> v=rs.pop2();rs.push2(rs.pop2()/v, null) }
   112: new root.Opcode 'irem', { execute: (rs) -> v2=rs.pop();  rs.push util.int_mod(rs,rs.pop(),v2) }
-  113: new root.Opcode 'lrem', { execute: (rs) -> v2=rs.pop2(); rs.push util.long_mod(rs,rs.pop2(),v2), null }
+  113: new root.Opcode 'lrem', { execute: (rs) -> v2=rs.pop2(); rs.push2 util.long_mod(rs,rs.pop2(),v2), null }
   114: new root.Opcode 'frem', { execute: (rs) -> v2=rs.pop();  rs.push rs.pop() %v2 }
-  115: new root.Opcode 'drem', { execute: (rs) -> v2=rs.pop2(); rs.push rs.pop2()%v2, null }
+  115: new root.Opcode 'drem', { execute: (rs) -> v2=rs.pop2(); rs.push2 rs.pop2()%v2, null }
   116: new root.Opcode 'ineg', { execute: (rs) ->
     i_val = rs.pop()
     rs.push if i_val == util.INT_MIN then i_val else -i_val }
-  117: new root.Opcode 'lneg', { execute: (rs) -> rs.push rs.pop2().negate(), null }
+  117: new root.Opcode 'lneg', { execute: (rs) -> rs.push2 rs.pop2().negate(), null }
   118: new root.Opcode 'fneg', { execute: (rs) -> rs.push -rs.pop() }
-  119: new root.Opcode 'dneg', { execute: (rs) -> rs.push -rs.pop2(), null }
+  119: new root.Opcode 'dneg', { execute: (rs) -> rs.push2 -rs.pop2(), null }
   120: new root.Opcode 'ishl', { execute: (rs) -> s=rs.pop()&0x1F; rs.push(rs.pop()<<s) }
-  121: new root.Opcode 'lshl', { execute: (rs) -> s=rs.pop()&0x3F; rs.push(rs.pop2().shiftLeft(gLong.fromInt(s)),null) }
+  121: new root.Opcode 'lshl', { execute: (rs) -> s=rs.pop()&0x3F; rs.push2(rs.pop2().shiftLeft(gLong.fromInt(s)),null) }
   122: new root.Opcode 'ishr', { execute: (rs) -> s=rs.pop()&0x1F; rs.push(rs.pop()>>s) }
-  123: new root.Opcode 'lshr', { execute: (rs) -> s=rs.pop()&0x3F; rs.push(rs.pop2().shiftRight(gLong.fromInt(s)), null) }
+  123: new root.Opcode 'lshr', { execute: (rs) -> s=rs.pop()&0x3F; rs.push2(rs.pop2().shiftRight(gLong.fromInt(s)), null) }
   124: new root.Opcode 'iushr', { execute: (rs) -> s=rs.pop()&0x1F; rs.push(rs.pop()>>>s) }
-  125: new root.Opcode 'lushr', { execute: (rs) -> s=rs.pop()&0x3F; rs.push(rs.pop2().shiftRightUnsigned(gLong.fromInt(s)), null)}
+  125: new root.Opcode 'lushr', { execute: (rs) -> s=rs.pop()&0x3F; rs.push2(rs.pop2().shiftRightUnsigned(gLong.fromInt(s)), null)}
   126: new root.Opcode 'iand', { execute: (rs) -> rs.push(rs.pop()&rs.pop()) }
-  127: new root.Opcode 'land', { execute: (rs) -> rs.push(rs.pop2().and(rs.pop2()), null) }
+  127: new root.Opcode 'land', { execute: (rs) -> rs.push2(rs.pop2().and(rs.pop2()), null) }
   128: new root.Opcode 'ior',  { execute: (rs) -> rs.push(rs.pop()|rs.pop()) }
-  129: new root.Opcode 'lor',  { execute: (rs) -> rs.push(rs.pop2().or(rs.pop2()), null) }
+  129: new root.Opcode 'lor',  { execute: (rs) -> rs.push2(rs.pop2().or(rs.pop2()), null) }
   130: new root.Opcode 'ixor', { execute: (rs) -> rs.push(rs.pop()^rs.pop()) }
-  131: new root.Opcode 'lxor', { execute: (rs) -> rs.push(rs.pop2().xor(rs.pop2()), null) }
+  131: new root.Opcode 'lxor', { execute: (rs) -> rs.push2(rs.pop2().xor(rs.pop2()), null) }
   132: new root.IIncOpcode 'iinc'
-  133: new root.Opcode 'i2l', { execute: (rs) -> rs.push gLong.fromInt(rs.pop()), null }
+  133: new root.Opcode 'i2l', { execute: (rs) -> rs.push2 gLong.fromInt(rs.pop()), null }
   134: new root.Opcode 'i2f', { execute: (rs) -> }
   135: new root.Opcode 'i2d', { execute: (rs) -> rs.push null }
   136: new root.Opcode 'l2i', { execute: (rs) -> rs.push rs.pop2().toInt() }
   137: new root.Opcode 'l2f', { execute: (rs) -> rs.push rs.pop2().toNumber() }
-  138: new root.Opcode 'l2d', { execute: (rs) -> rs.push rs.pop2().toNumber(), null }
+  138: new root.Opcode 'l2d', { execute: (rs) -> rs.push2 rs.pop2().toNumber(), null }
   139: new root.Opcode 'f2i', { execute: (rs) -> rs.push util.float2int rs.pop() }
-  140: new root.Opcode 'f2l', { execute: (rs) -> rs.push gLong.fromNumber(rs.pop()), null }
+  140: new root.Opcode 'f2l', { execute: (rs) -> rs.push2 gLong.fromNumber(rs.pop()), null }
   141: new root.Opcode 'f2d', { execute: (rs) -> rs.push null }
   142: new root.Opcode 'd2i', { execute: (rs) -> rs.push util.float2int rs.pop2() }
   143: new root.Opcode 'd2l', { execute: (rs) ->
     d_val = rs.pop2()
     if d_val is Number.POSITIVE_INFINITY
-      rs.push gLong.MAX_VALUE, null
+      rs.push2 gLong.MAX_VALUE, null
     else if d_val is Number.NEGATIVE_INFINITY
-      rs.push gLong.MIN_VALUE, null
+      rs.push2 gLong.MIN_VALUE, null
     else
-      rs.push gLong.fromNumber(d_val), null }
+      rs.push2 gLong.fromNumber(d_val), null }
   144: new root.Opcode 'd2f', { execute: (rs) -> rs.push util.wrap_float rs.pop2() }
   145: new root.Opcode 'i2b', { execute: (rs) -> rs.push util.truncate rs.pop(), 8 }
   146: new root.Opcode 'i2c', { execute: (rs) -> rs.push rs.pop()&0xFFFF }  # 16-bit unsigned integer
