@@ -449,7 +449,7 @@ native_methods =
             cache1 = rs.init_object 'java/io/ExpiringCache'
             cache2 = rs.init_object 'java/io/ExpiringCache'
             cache_init = rs.method_lookup({class: 'java/io/ExpiringCache', sig: '<init>()V'})
-            rs.push cache1, cache2
+            rs.push2 cache1, cache2
             cache_init.run(rs)
             cache_init.run(rs)
             rs.init_object 'java/io/UnixFileSystem', {
@@ -693,7 +693,7 @@ native_methods =
             slot = m.get_field rs, 'slot'
             method = (method for sig, method of rs.class_lookup(cls.$type).methods when method.idx is slot)[0]
             rs.push obj unless method.access_flags.static
-            rs.push params.array...
+            rs.push_array params.array
             method.run(rs)
             rs.pop()
       ]
@@ -703,7 +703,7 @@ native_methods =
             slot = m.get_field rs, 'slot'
             method = (method for sig, method of rs.class_lookup(cls.$type).methods when method.idx is slot)[0]
             rs.push (obj = rs.set_obj cls.$type)
-            rs.push params.array... if params?
+            rs.push_array params.array if params?
             method.run(rs)
             obj
       ]

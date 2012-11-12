@@ -121,9 +121,11 @@ class root.RuntimeState
   # need one slot to represent a double in JS, we pad it with a null.
   put_cl2: (idx,val) -> @put_cl(idx,val); @put_cl(idx+1,null)
 
-  push: (args...) ->
+  push: (arg) -> @curr_frame().stack.push(arg)
+  push2: (arg1, arg2) -> @curr_frame().stack.push(arg1, arg2)
+  push_array: (args) ->
     cs = @curr_frame().stack
-    Array::push.apply cs, args
+    Array::push.apply(cs, args)
   pop: () -> @curr_frame().stack.pop()
   pop2: () -> @pop(); @pop() # For category 2 values.
 
