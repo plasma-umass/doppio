@@ -361,7 +361,7 @@ compile_class_handlers =
 
     virtual = @name in ['invokevirtual', 'invokeinterface']
     params = b.stack.splice(-method.param_bytes)
-    b.add_stmt "rs.push_array(#{p ? 'null' for p in params})"
+    b.add_stmt "rs.push_array([#{p ? 'null' for p in params}])"
     b.add_stmt "rs.method_lookup(#{JSON.stringify @method_spec}).run(rs, #{virtual})"
 
     unless method.return_type.toString() is 'V'
