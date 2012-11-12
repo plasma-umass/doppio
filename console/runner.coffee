@@ -21,6 +21,51 @@ exports.read_classfile = (cls) ->
     data = exports.read_binary_file "#{p}/#{cls}.class"
     return new ClassFile data if data?
 
+run_profiled = (rs, cname, java_cmd_args, hot=false) ->
+  if hot
+    jvm.run_class rs, cname, java_cmd_args
+  timings = {}
+  call_counts = {}
+  profiled_fn = (old_fn) -> ->
+    method = rs.curr_frame().method
+    caller = rs.meta_stack().get_caller(1).method
+    fn_sig = (fn) -> "#{fn.class_type.toClassString()}::#{fn.name}"
+    method_name = fn_sig method
+    hash = "#{if caller? then fn_sig caller else "program"}|#{method_name}"
+    timings[hash] ?= 0
+    call_counts[method_name] ?= 0
+
+    start = (new Date).getTime()
+    old_fn.call this, arguments...
+    end = (new Date).getTime()
+
+    timings[hash] += end - start
+    call_counts[method_name]++
+
+  methods.Method::run_bytecode = profiled_fn(methods.Method::run_bytecode)
+  methods.Method::run_manually = profiled_fn(methods.Method::run_manually)
+
+  jvm.run_class rs, cname, java_cmd_args
+
+  self_timings = {}
+  total_timings = {}
+  for k, v of timings
+    [caller,method] = k.split "|"
+    self_timings[method]  ?= 0
+    self_timings[caller]  ?= 0
+    total_timings[method] ?= 0
+    self_timings[method]  += v
+    self_timings[caller]  -= v
+    total_timings[method] += v
+  arr = (name: k, total: total_timings[k], self: v, counts:call_counts[k] for k, v of self_timings)
+  arr.sort (a, b) -> b.self - a.self
+  console.log "\nProfiler results: #{total_timings["#{cname}::main"]} ms total"
+  console.log ['total','self','calls','self ms/call','name'].join '\t'
+  for entry in arr[0..30]
+    avg = entry.self / entry.counts
+    console.log "#{entry.total}\t#{entry.self}\t#{entry.counts}\t#{avg.toFixed 1}\t#{entry.name}"
+
+
 if require.main == module
   optimist = require 'optimist'
   {argv} = optimist
@@ -61,47 +106,7 @@ if require.main == module
   rs = new runtime.RuntimeState(stdout, read_stdin, exports.read_classfile)
   java_cmd_args = (argv.java?.toString().split /\s+/) or []
 
-  if argv.profile
-    if argv.profile is 'hot'
-      jvm.run_class rs, cname, java_cmd_args
-    timings = {}
-    call_counts = {}
-    profiled_fn = (old_fn) -> ->
-      method = rs.curr_frame().method
-      caller = rs.meta_stack().get_caller(1).method
-      fn_sig = (fn) -> "#{fn.class_type.toClassString()}::#{fn.name}"
-      method_name = fn_sig method
-      hash = "#{if caller? then fn_sig caller else "program"}|#{method_name}"
-      timings[hash] ?= 0
-      call_counts[method_name] ?= 0
-
-      start = (new Date).getTime()
-      old_fn.call this, arguments...
-      end = (new Date).getTime()
-
-      timings[hash] += end - start
-      call_counts[method_name]++
-
-    methods.Method::run_bytecode = profiled_fn(methods.Method::run_bytecode)
-    methods.Method::run_manually = profiled_fn(methods.Method::run_manually)
-
-  jvm.run_class rs, cname, java_cmd_args, null, argv.compile
-
-  if argv.profile
-    self_timings = {}
-    total_timings = {}
-    for k, v of timings
-      [caller,method] = k.split "|"
-      self_timings[method]  ?= 0
-      self_timings[caller]  ?= 0
-      total_timings[method] ?= 0
-      self_timings[method]  += v
-      self_timings[caller]  -= v
-      total_timings[method] += v
-    arr = (name: k, total: total_timings[k], self: v, counts:call_counts[k] for k, v of self_timings)
-    arr.sort (a, b) -> b.self - a.self
-    console.log "\nProfiler results: #{total_timings["#{cname}::main"]} ms total"
-    console.log ['total','self','calls','self ms/call','name'].join '\t'
-    for entry in arr[0..30]
-      avg = entry.self / entry.counts
-      console.log "#{entry.total}\t#{entry.self}\t#{entry.counts}\t#{avg.toFixed 1}\t#{entry.name}"
+  if argv.profile?
+    run_profiled rs, cname, java_cmd_args, argv.hot
+  else
+    jvm.run_class rs, cname, java_cmd_args, null, argv.compile
