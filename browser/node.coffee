@@ -383,17 +383,7 @@ class win.Buffer
 
 # Node's filesystem API, implemented as a wrapper around FSState.
 root.fs =
-  statSync: (path) ->
-    path = fs_state.resolve path
-    # XXX: Hack.
-    unless path is '/System/Library/Frameworks/JavaVM.framework/Classes/classes.jar'
-      return Stat.fromPath path
-    stat = new Stat
-    stat.size = 21090
-    stat.mtime = (new Date).getTime() - 10000
-    stat.is_file = true
-    stat.is_directory = false
-    stat
+  statSync: (path) -> Stat.fromPath path
 
   fstatSync: (fp) -> new Stat(fp)
 
