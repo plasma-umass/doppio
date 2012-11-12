@@ -232,7 +232,13 @@ commands =
     class_cache = {}
     "Cache cleared."
   ls: (args) ->
-    node.fs.readdirSync('.').sort().join '\n'
+    read_dir = (dir) -> node.fs.readdirSync(dir).sort().join '\n'
+    if args.length == 0
+      read_dir '.'
+    else if args.length == 1
+      read_dir args[0]
+    else
+      ("#{d}:\n#{read_dir d}\n" for d in args).join '\n'
   edit: (args) ->
     try
       data = if args[0]? then node.fs.readFileSync(args[0]) else defaultFile
@@ -329,7 +335,7 @@ commands =
     File management:
       cat <file>             -- Display a file in the console.
       edit <file>            -- Edit a file.
-      ls                     -- List all files.
+      ls <dir>               -- List files.
       mv <src> <dst>         -- Move / rename a file.
       rm <file>              -- Delete a file.
       cd <dir>               -- Change current directory.
