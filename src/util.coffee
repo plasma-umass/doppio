@@ -39,10 +39,11 @@ root.int_mod = (rs, a, b) ->
 
 root.int_div = (rs, a, b) ->
   java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b == 0
-  towards_zero a / b
-  # TODO spec: "if the dividend is the negative integer of largest possible magnitude
+  # spec: "if the dividend is the negative integer of largest possible magnitude
   # for the int type, and the divisor is -1, then overflow occurs, and the
   # result is equal to the dividend."
+  return a if a == root.INT_MIN and b == -1
+  towards_zero a / b
 
 root.long_mod = (rs, a, b) ->
   java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b.isZero()
