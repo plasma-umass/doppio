@@ -14,7 +14,15 @@ To try Doppio now, head to the [live demo page](http://int3.github.com/doppio/).
 Getting & Building the Code
 ---------------------------
 
-After `git clone`, do
+After `git clone`, it's easiest to simply run
+
+    make development
+    make test -j4
+    ./tools/webrick.rb -d
+
+which will take care of the setup steps, run the test suite, and
+start a local instance of Doppio.
+If you'd like to take care of the setup yourself, follow these steps:
 
     git submodule update --init --recursive
 
@@ -25,7 +33,7 @@ a Java compiler and disassembler (`javac` and `javap`, respectively).
 To provide the JCL for Doppio, simply unzip the class library in
 `third_party/classes`.
 
-On OS X Lion, `rt.jar` is confusingly named `classes.jar`:
+On OS X Lion, `rt.jar` and others are bundled into `classes.jar`:
 
     cd third_party/classes
     unzip /System/Library/Frameworks/JavaVM.framework/Classes/classes.jar
@@ -58,9 +66,9 @@ Finally, to ensure that everything is set up properly, run:
 Usage
 -----
 
-To run Doppio on localhost, run `. tools/startup.sh`, or start the browser frontend manually:
+To run Doppio on localhost:
 
-    cpp -P -traditional-cpp browser/index.html index.html
+    make development
     tools/webrick.rb --dev
 
 To get the optimized release version:
