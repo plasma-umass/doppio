@@ -6,7 +6,7 @@ win.require = (path) ->
   [name, ext] = basename(path).split '.'
   window[name] ?= {}
 
-_ = require '../third_party/_.js'
+_ = require '../vendor/_.js'
 
 "use strict"
 

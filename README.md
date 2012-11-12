@@ -31,17 +31,17 @@ an archive named `rt.jar`, which comes with the JRE. Note that you
 do not need a JDK to run Doppio, but our automated tests do require
 a Java compiler and disassembler (`javac` and `javap`, respectively).
 To provide the JCL for Doppio, simply unzip the class library in
-`third_party/classes`.
+`vendor/classes`.
 
 On OS X Lion, `rt.jar` and others are bundled into `classes.jar`:
 
-    cd third_party/classes
+    cd vendor/classes
     unzip /System/Library/Frameworks/JavaVM.framework/Classes/classes.jar
 
 We've opted to patch the `java.util.zip` package with [Jazzlib](http://jazzlib.sourceforge.net/),
 a pure-Java third-party implementation.
 Download [the classes][jazzlib] and copy them over the files in
-`third_party/classes/java/util/zip/`.
+`vendor/classes/java/util/zip/`.
 
 Use [Coffeescript v1.3.3][coffee]:
 

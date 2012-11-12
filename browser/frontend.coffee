@@ -8,7 +8,7 @@ user_input = null
 controller = null
 editor = null
 progress = null
-classpath = [ "/home/doppio/third_party/classes/", "/home/doppio/", "./" ]
+classpath = [ "/home/doppio/vendor/classes/", "/home/doppio/", "./" ]
 
 class_cache = {}
 raw_cache = {}
@@ -39,7 +39,7 @@ $.ajax "browser/mini-rt.tar", {
     untar new util.BytesArray(util.bytestr_to_array data), ((percent, path, file) ->
       update_bar(percent, path)
       raw_cache[path] = file
-      base_dir = 'third_party/classes/'
+      base_dir = 'vendor/classes/'
       [base,ext] = path.split('.')
       unless ext is 'class'
         on_complete() if percent == 100
@@ -57,7 +57,7 @@ $.ajax "browser/mini-rt.tar", {
     console.error errorThrown
 }
 
-$.ajax "third_party/classes/com/sun/tools/script/shell/Main.class", {
+$.ajax "vendor/classes/com/sun/tools/script/shell/Main.class", {
   type: 'GET'
   dataType: 'text'
   beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
@@ -200,7 +200,7 @@ commands =
   java: (args, cb) ->
     if !args[0]? or (args[0] == '-classpath' and args.length < 3)
       return "Usage: java [-classpath path1:path2...] class [args...]"
-    classpath = [ "/home/doppio/third_party/classes/", "/home/doppio/", "./" ]
+    classpath = [ "/home/doppio/vendor/classes/", "/home/doppio/", "./" ]
     if args[0] == '-classpath'
       paths = args[1].split(':')
       class_name = args[2]

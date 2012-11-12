@@ -1,7 +1,7 @@
 
 # pull in external modules
-_ = require '../third_party/_.js'
-gLong = require '../third_party/gLong.js'
+_ = require '../vendor/_.js'
+gLong = require '../vendor/gLong.js'
 util = require './util'
 opcodes = require './opcodes'
 attributes = require './attributes'

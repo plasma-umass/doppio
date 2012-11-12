@@ -21,7 +21,7 @@ if [ "$PLATFORM" = "Darwin" ]; then
     fi
 fi
 
-cd third_party
+cd vendor
 
 # check for the JCL
 if [ ! -f classes/java/lang/Object.class ]; then

@@ -1,7 +1,7 @@
 
 # pull in external modules
-_ = require '../third_party/_.js'
-gLong = require '../third_party/gLong.js'
+_ = require '../vendor/_.js'
+gLong = require '../vendor/gLong.js'
 util = require './util'
 types = require './types'
 runtime = require './runtime'
@@ -18,13 +18,13 @@ fs = node?.fs ? require 'fs'
 root = exports ? this.natives = {}
 
 system_properties = {
-  'java.home':'third_party/java_home/', 'file.encoding':'US_ASCII','java.vendor':'DoppioVM',
+  'java.home':'vendor/java_home/', 'file.encoding':'US_ASCII','java.vendor':'DoppioVM',
   'java.version': '1.6', 'java.vendor.url': 'https://github.com/int3/doppio',
   'java.class.version': '50.0', 'java.class.path': '.',
   'line.separator':'\n', 'file.separator':'/', 'path.separator':':',
   'user.dir':'.','user.home':'.','user.name':'DoppioUser',
   'os.name':'Doppio', 'os.arch': 'js', 'os.version': '0',
-  'sun.boot.class.path': '/home/doppio/third_party/classes',
+  'sun.boot.class.path': '/home/doppio/vendor/classes',
   'java.awt.headless': 'true',
   'useJavaUtilZip': 'true'  # hack for sun6javac, avoid ZipFileIndex shenanigans
 }

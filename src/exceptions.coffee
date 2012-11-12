@@ -1,6 +1,6 @@
 
 # pull in external modules
-_ = require '../third_party/_.js'
+_ = require '../vendor/_.js'
 logging = require './logging'
 types = require './types'
 

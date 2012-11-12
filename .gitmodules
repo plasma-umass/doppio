@@ -1,3 +1,3 @@
-[submodule "third_party/ace"]
-	path = third_party/ace
+[submodule "vendor/ace"]
+	path = vendor/ace
 	url = https://github.com/ajaxorg/ace-builds.git

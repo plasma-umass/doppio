@@ -11,8 +11,8 @@ COFFEEC  := node_modules/coffee-script/bin/coffee
 UGLIFYJS := node_modules/uglify-js/bin/uglifyjs
 OPTIMIST := node_modules/optimist/index.js
 DOCCO    := node_modules/docco/bin/docco
-JAZZLIB  := third_party/classes/java/util/zip/DeflaterEngine.class
-JRE      := third_party/classes/java/lang/Object.class
+JAZZLIB  := vendor/classes/java/util/zip/DeflaterEngine.class
+JRE      := vendor/classes/java/lang/Object.class
 
 # JAVA TEST CLASSES & DEMOS
 SOURCES = $(wildcard test/*.java)
@@ -33,8 +33,8 @@ benchmark_BUILD_HTML = $(addprefix $(benchmark_BUILD_DIR)/, $(notdir $(BROWSER_H
 # SCRIPTS
 # the order here is important: must match the order of includes
 # in the browser frontend html.
-COMMON_BROWSER_SRCS = third_party/_.js \
-	third_party/gLong.js \
+COMMON_BROWSER_SRCS = vendor/_.js \
+	vendor/gLong.js \
 	browser/util.coffee \
 	browser/node.coffee \
 	src/util.coffee \
@@ -54,7 +54,7 @@ COMMON_BROWSER_SRCS = third_party/_.js \
 	browser/untar.coffee
 # Release uses the actual jQuery console.
 release_BROWSER_SRCS = $(COMMON_BROWSER_SRCS) \
-	third_party/jquery.console.js \
+	vendor/jquery.console.js \
 	browser/frontend.coffee
 # Benchmark uses the mock jQuery console.
 benchmark_BROWSER_SRCS = $(COMMON_BROWSER_SRCS) \
@@ -63,9 +63,9 @@ benchmark_BROWSER_SRCS = $(COMMON_BROWSER_SRCS) \
 # they don't survive uglifyjs and are already minified, so include them
 # separately. also, this allows us to put them at the end of the document to
 # reduce load time.
-ACE_SRCS = third_party/ace/src-min/ace.js \
-	third_party/ace/src-min/mode-java.js \
-	third_party/ace/src-min/theme-twilight.js
+ACE_SRCS = vendor/ace/src-min/ace.js \
+	vendor/ace/src-min/mode-java.js \
+	vendor/ace/src-min/theme-twilight.js
 
 # Variable setting that is conditional on the target
 ifeq ($(MAKECMDGOALS),benchmark)
@@ -113,9 +113,9 @@ $(OPTIMIST):
 $(DOCCO):
 	npm install docco
 $(JAZZLIB):
-	$(error JazzLib not found. Unzip it to third_party/classes/, or run ./tools/setup.sh.)
+	$(error JazzLib not found. Unzip it to vendor/classes/, or run ./tools/setup.sh.)
 $(JRE):
-	$(error Java class library not found. Unzip it to third_party/classes/, or run ./tools/setup.sh.)
+	$(error Java class library not found. Unzip it to vendor/classes/, or run ./tools/setup.sh.)
 
 # Used to test the chosen Java compiler in setup.sh.
 java: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES)
@@ -188,7 +188,7 @@ $(BUILD_DIR)/ace.js: $(ACE_SRCS)
 	done > $@
 
 # The | prevents the rule from being included in $^.
-$(BUILD_DIR)/browser/style.css: third_party/bootstrap/css/bootstrap.min.css \
+$(BUILD_DIR)/browser/style.css: vendor/bootstrap/css/bootstrap.min.css \
 	browser/style.css | $(BUILD_DIR)/browser
 	cat $^ > $@
 

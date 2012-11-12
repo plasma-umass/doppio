@@ -405,9 +405,9 @@ class DoppioServer
       @server.mount "/commands", DoppioServlet, "/commands", self
     end
 
-    # third_party's location is the same for all configurations, so manually
+    # vendor's location is the same for all configurations, so manually
     # fix it in place.
-    @options.mounts.push doppioRoot + "/third_party"
+    @options.mounts.push doppioRoot + "/vendor"
     @options.mounts.each do |mount|
       # Get mount point. No, this is not portable...
       mPoint = "/" + mount.split('/').last

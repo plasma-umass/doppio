@@ -1,5 +1,5 @@
 
-gLong = require '../third_party/gLong.js'
+gLong = require '../vendor/gLong.js'
 
 "use strict"
 

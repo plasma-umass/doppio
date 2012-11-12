@@ -2,7 +2,7 @@
 root = exports ? this.disassembler = {}
 
 # pull in external modules
-_ = require '../third_party/_.js'
+_ = require '../vendor/_.js'
 util = require './util'
 types = require './types'
 

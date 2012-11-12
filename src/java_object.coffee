@@ -1,5 +1,5 @@
 
-_ = require '../third_party/_.js'
+_ = require '../vendor/_.js'
 util = require './util'
 types = require './types'
 {vtrace} = require './logging'

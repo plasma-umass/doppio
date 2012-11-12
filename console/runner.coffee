@@ -10,7 +10,7 @@ runtime = require '../src/runtime'
 
 "use strict"
 
-classpath = [ ".", "#{__dirname}/../third_party/classes" ]
+classpath = [ ".", "#{__dirname}/../vendor/classes" ]
 
 exports.read_binary_file = (filename) ->
   return null unless path.existsSync filename
@@ -45,7 +45,7 @@ if require.main == module
 
   if argv.classpath?
     classpath = argv.classpath.split ':'
-    classpath.push "#{__dirname}/../third_party/classes"
+    classpath.push "#{__dirname}/../vendor/classes"
 
   cname = argv._[0]
   cname = cname[0...-6] if cname[-6..] is '.class'
