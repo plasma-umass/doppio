@@ -37,7 +37,6 @@ class DoppioServer
     # Defaults.
     options.verbosity = 1
     options.mode = Mode::REL
-    options.mounts = []
     options.logdir = "./logs"
 
     opts = OptionParser.new do |opts|
@@ -157,18 +156,6 @@ class DoppioServer
       opts.on("-e", "--experiment name", "Specifies the name of the " +
         "experiment. Used for log file naming.") do |e|
         options.exp = e
-      end
-
-      opts.on("-m", "--mount path1,path2,...", Array, "Mounts the specified " +
-        "paths to their directory's name (e.g. `/home/jvilk/Files' => /Files)") do |paths|
-        paths.each do |path|
-          if !File.directory? path
-            opts.abort "The following is not a directory: " + path
-          elsif !File.readable? path
-            opts.abort "You do not have read access to directory " + path
-          end
-        end
-        options.mounts = paths
       end
 
       opts.separator ""
@@ -403,17 +390,6 @@ class DoppioServer
       @server.mount "/error", DoppioServlet, "/error", self
       @server.mount "/complete", DoppioServlet, "/complete", self
       @server.mount "/commands", DoppioServlet, "/commands", self
-    end
-
-    # vendor's location is the same for all configurations, so manually
-    # fix it in place.
-    @options.mounts.push doppioRoot + "/vendor"
-    @options.mounts.each do |mount|
-      # Get mount point. No, this is not portable...
-      mPoint = "/" + mount.split('/').last
-      p2 "Mounting " + mount + " at " + mPoint
-      @server.mount(mPoint, HTTPServlet::FileHandler,
-        mount, {:FancyIndexing=>true})
     end
 
     p1 "Starting server."
