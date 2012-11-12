@@ -12,6 +12,7 @@ COFFEEC  := $(DOPPIO_DIR)/node_modules/coffee-script/bin/coffee
 UGLIFYJS := $(DOPPIO_DIR)/node_modules/uglify-js/bin/uglifyjs
 OPTIMIST := $(DOPPIO_DIR)/node_modules/optimist/index.js
 DOCCO    := $(DOPPIO_DIR)/node_modules/docco/bin/docco
+ADMZIP   := $(DOPPIO_DIR)/node_modules/adm-zip/adm-zip.js
 JAZZLIB  := $(DOPPIO_DIR)/vendor/classes/java/util/zip/DeflaterEngine.class
 JRE      := $(DOPPIO_DIR)/vendor/classes/java/lang/Object.class
 
@@ -101,7 +102,7 @@ $(DIST_NAME): release docs
 	tar czf $(DIST_NAME) $(release_BUILD_DIR)
 
 # Installs or checks for any required dependencies.
-dependencies: $(COFFEEC) $(UGLIFYJS) $(OPTIMIST) $(JAZZLIB) $(JRE) $(DOCCO)
+dependencies: $(COFFEEC) $(UGLIFYJS) $(OPTIMIST) $(JAZZLIB) $(JRE) $(DOCCO) $(ADMZIP)
 	git submodule update --init --recursive
 $(COFFEEC):
 	npm install coffee-script@1.3.3
@@ -111,6 +112,8 @@ $(OPTIMIST):
 	npm install optimist
 $(DOCCO):
 	npm install docco
+$(ADMZIP):
+	npm install adm-zip
 $(JAZZLIB):
 	$(error JazzLib not found. Unzip it to vendor/classes/, or run ./tools/setup.sh.)
 $(JRE):
