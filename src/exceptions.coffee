@@ -26,7 +26,7 @@ class root.ReturnException
   method_catch_handler: (rs, method, padding) ->
     cf = rs.meta_stack().pop()
     vtrace "#{padding}stack: [#{debug_vars cf.stack}],\nlocal: [#{debug_vars cf.locals}] (end method #{method.class_type.toClassString()}::#{method.name})"
-    rs.push @values...
+    rs.push_array @values
     return true
 
 class root.YieldException
@@ -64,7 +64,7 @@ class root.JavaException
     msg = @exception.get_field rs, 'detailMessage'
     error "\t#{msg.jvm2js_str()}" if msg?
     rs.show_state()
-    rs.push rs.curr_thread, @exception
+    rs.push2 rs.curr_thread, @exception
     rs.method_lookup(
       class: 'java/lang/Thread'
       sig: 'dispatchUncaughtException(Ljava/lang/Throwable;)V').run(rs)
@@ -75,6 +75,6 @@ class root.JavaException
 root.java_throw = (rs, cls, msg) ->
   method_spec = class: cls, sig: '<init>(Ljava/lang/String;)V'
   v = rs.init_object cls # new
-  rs.push(v,v,rs.init_string msg) # dup, ldc
+  rs.push_array([v,v,rs.init_string msg]) # dup, ldc
   rs.method_lookup(method_spec).run(rs) # invokespecial
   throw new root.JavaException rs.pop() # athrow
