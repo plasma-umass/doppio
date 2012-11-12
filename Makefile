@@ -83,14 +83,14 @@ endif
 ################################################################################
 # Protect non-file-based targets from not functioning if a file with the
 # target's name is present.
-.PHONY: release benchmark dist dependencies java test clean docs build
+.PHONY: release benchmark dist dependencies java test clean docs build dev development
 
 # Builds a release or benchmark version of Doppio without the documentation.
 # These targets differ in the variables that are set before they are run; see
 # MAKECMDGOALS above.
 release: browser/listings.json build
 benchmark: browser/listings.json build
-development: browser/listings.json browser/mini-rt.tar test/special/*.class
+dev development: $(DEMO_CLASSES) browser/listings.json browser/mini-rt.tar
 	$(COFFEEC) -c */*.coffee
 	cpp -P browser/index.html index.html
 
