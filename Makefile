@@ -181,7 +181,7 @@ $(BUILD_DIR)/compressed.js: $(BROWSER_SRCS)
 	for src in $(BROWSER_SRCS); do \
 		if [ "$${src##*.}" == "coffee" ]; then \
 			$(: `` is essentially Coffeescript's equivalent of Python's 'pass') \
-			cat $${src} | $$SED -r "s/^( *)(debug|trace|vtrace).*$$/\1\`\`/" | $(COFFEEC) --stdio --print; \
+			$$SED -r "s/^( *)(debug|v?trace).*$$/\1\`\`/" $${src} | $(COFFEEC) --stdio --print; \
 		else \
 			cat $${src}; \
 		fi; \
