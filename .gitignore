@@ -11,4 +11,5 @@ index.html
 .DS_store
 browser/mini-rt.tar
 browser/listings.json
+browser/_about.html
 vendor/java_home

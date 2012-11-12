@@ -102,6 +102,7 @@ $(DIST_NAME): release docs
 
 # Installs or checks for any required dependencies.
 dependencies: $(COFFEEC) $(UGLIFYJS) $(OPTIMIST) $(JAZZLIB) $(JRE) $(DOCCO)
+	git submodule update --init --recursive
 $(COFFEEC):
 	npm install coffee-script@1.3.3
 $(UGLIFYJS):
@@ -198,7 +199,6 @@ $(BUILD_DIR)/browser/style.css: vendor/bootstrap/css/bootstrap.min.css \
 build: dependencies $(BUILD_DIR) $(BUILD_DIR)/browser $(BUILD_HTML) \
 	$(BUILD_DIR)/compressed.js browser/mini-rt.tar $(BUILD_DIR)/ace.js \
 	$(BUILD_DIR)/browser/style.css $(DEMO_CLASSES)
-	git submodule update --init --recursive
 	rsync -R $(DEMO_SRCS) $(DEMO_CLASSES) test/special/foo test/special/bar $(BUILD_DIR)/
 	rsync -a test/special $(BUILD_DIR)/test
 	rsync browser/*.svg $(BUILD_DIR)/browser/
