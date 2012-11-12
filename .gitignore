@@ -10,4 +10,5 @@ build
 index.html
 .DS_store
 browser/mini-rt.tar
+browser/listings.json
 vendor/java_home

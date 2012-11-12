@@ -7,7 +7,7 @@ path = require 'path'
 gdl_path = path.resolve('./tools/gen_dir_listings.coffee')
 
 # Sanity check.
-if !fs.existsSync(gdl_path)
+if !path.existsSync(gdl_path)
   console.error "Please run this in the base doppio directory."
   return
 
