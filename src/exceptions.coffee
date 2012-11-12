@@ -1,7 +1,7 @@
 
 # pull in external modules
 _ = require '../vendor/_.js'
-logging = require './logging'
+{trace,vtrace,error,debug_vars} = require './logging'
 types = require './types'
 
 "use strict"
@@ -25,15 +25,14 @@ class root.ReturnException
   constructor: (@values...) ->
   method_catch_handler: (rs, method, padding) ->
     cf = rs.meta_stack().pop()
-    logging.vtrace "#{padding}stack: [#{logging.debug_vars cf.stack}],
-local: [#{logging.debug_vars cf.locals}] (end method #{method.class_type.toClassString()}::#{method.name})"
+    vtrace "#{padding}stack: [#{debug_vars cf.stack}],\nlocal: [#{debug_vars cf.locals}] (end method #{method.class_type.toClassString()}::#{method.name})"
     rs.push @values...
     return true
 
 class root.YieldException
   constructor: (@condition) ->
   method_catch_handler: (rs, method) ->
-    logging.trace "yielding from #{method.full_signature()}"
+    trace "yielding from #{method.full_signature()}"
     throw @
 
 class root.YieldIOException extends root.YieldException
@@ -50,20 +49,20 @@ class root.JavaException
       eh.start_pc <= cf.pc < eh.end_pc and
         (eh.catch_type == "<any>" or types.is_castable rs, etype, types.c2t(eh.catch_type))
     if handler?
-      logging.trace "caught exception as subclass of #{handler.catch_type}"
+      trace "caught exception as subclass of #{handler.catch_type}"
       cf.stack = []  # clear out anything on the stack; it was made during the try block
       rs.push @exception
       cf.pc = handler.handler_pc
       return false
     # abrupt method invocation completion
-    logging.trace "exception not caught, terminating #{method.name}"
+    trace "exception not caught, terminating #{method.name}"
     rs.meta_stack().pop()
     throw @
 
   toplevel_catch_handler: (rs) ->
-    logging.error "\nUncaught #{@exception.type.toClassString()}"
+    error "\nUncaught #{@exception.type.toClassString()}"
     msg = @exception.get_field rs, 'detailMessage'
-    logging.error "\t#{msg.jvm2js_str()}" if msg?
+    error "\t#{msg.jvm2js_str()}" if msg?
     rs.show_state()
     rs.push rs.curr_thread, @exception
     rs.method_lookup(
