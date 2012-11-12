@@ -10,4 +10,4 @@ build
 index.html
 .DS_store
 browser/mini-rt.tar
-third_party/java_home
+vendor/java_home

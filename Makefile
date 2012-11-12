@@ -137,7 +137,7 @@ test/%.runout: test/%.class
 clean:
 	@rm -f $(CLASSES) $(DISASMS) $(RUNOUTS) $(RESULTS)
 	@rm -f src/*.js browser/*.js console/*.js tools/*.js
-	@rm -rf build/* browser/mini-rt.jar $(DEMO_CLASSES)
+	@rm -rf build/* browser/mini-rt.tar $(DEMO_CLASSES)
 	@rm -f index.html
 
 # docs need to be generated in one shot so docco can create the full jumplist.
