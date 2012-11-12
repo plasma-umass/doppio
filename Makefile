@@ -7,12 +7,13 @@ SHELL := /bin/bash
 DIST_NAME = $(shell echo "Doppio_`date +'%y-%m-%d'`.tar.gz")
 
 # DEPENDENCIES
-COFFEEC  := node_modules/coffee-script/bin/coffee
-UGLIFYJS := node_modules/uglify-js/bin/uglifyjs
-OPTIMIST := node_modules/optimist/index.js
-DOCCO    := node_modules/docco/bin/docco
-JAZZLIB  := vendor/classes/java/util/zip/DeflaterEngine.class
-JRE      := vendor/classes/java/lang/Object.class
+DOPPIO_DIR := $(CURDIR)
+COFFEEC  := $(DOPPIO_DIR)/node_modules/coffee-script/bin/coffee
+UGLIFYJS := $(DOPPIO_DIR)/node_modules/uglify-js/bin/uglifyjs
+OPTIMIST := $(DOPPIO_DIR)/node_modules/optimist/index.js
+DOCCO    := $(DOPPIO_DIR)/node_modules/docco/bin/docco
+JAZZLIB  := $(DOPPIO_DIR)/vendor/classes/java/util/zip/DeflaterEngine.class
+JRE      := $(DOPPIO_DIR)/vendor/classes/java/lang/Object.class
 
 # JAVA TEST CLASSES & DEMOS
 SOURCES = $(wildcard test/*.java)
@@ -88,14 +89,11 @@ endif
 # Builds a release or benchmark version of Doppio without the documentation.
 # These targets differ in the variables that are set before they are run; see
 # MAKECMDGOALS above.
-release: browser/listings.json build
-benchmark: browser/listings.json build
-dev development: $(DEMO_CLASSES) browser/listings.json browser/mini-rt.tar
+release: build $(BUILD_DIR)/browser/listings.json
+benchmark: build $(BUILD_DIR)/browser/listings.json
+dev development: $(DEMO_CLASSES) browser/mini-rt.tar browser/listings.json
 	$(COFFEEC) -c */*.coffee
 	cpp -P browser/index.html index.html
-
-browser/listings.json:
-	$(COFFEEC) tools/gen_dir_listings.coffee > browser/listings.json
 
 # Builds a distributable version of Doppio.
 dist: $(DIST_NAME)
@@ -158,6 +156,11 @@ browser/mini-rt.tar: tools/preload
 $(BUILD_DIR) $(BUILD_DIR)/browser::
 	mkdir -p $@
 
+browser/listings.json:
+	$(COFFEEC) tools/gen_dir_listings.coffee > browser/listings.json
+$(BUILD_DIR)/browser/listings.json:
+	cd $(BUILD_DIR); $(COFFEEC) $(DOPPIO_DIR)/tools/gen_dir_listings.coffee > browser/listings.json
+
 browser/_about.html: browser/_about.md
 	rdiscount $? > $@
 browser/about.html: browser/_about.html
@@ -201,7 +204,7 @@ build: dependencies $(BUILD_DIR) $(BUILD_DIR)/browser $(BUILD_HTML) \
 	rsync browser/*.svg $(BUILD_DIR)/browser/
 	rsync browser/*.png $(BUILD_DIR)/browser/
 	rsync browser/mini-rt.tar $(BUILD_DIR)/browser/mini-rt.tar
-	rsync browser/listings.json $(BUILD_DIR)/browser/listings.json
+	ln -sfn $(DOPPIO_DIR)/vendor $(BUILD_DIR)/vendor
 
 # Never delete these files in the event of a failure.
 .SECONDARY: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES)

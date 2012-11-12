@@ -4,13 +4,6 @@
 fs = require 'fs'
 path = require 'path'
 
-gdl_path = path.resolve('./tools/gen_dir_listings.coffee')
-
-# Sanity check.
-if !path.existsSync(gdl_path)
-  console.error "Please run this in the base doppio directory."
-  return
-
 # Create / and /home to bootstrap everything.
 fsobj =
   home:
