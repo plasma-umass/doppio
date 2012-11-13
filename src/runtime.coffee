@@ -256,6 +256,9 @@ class root.RuntimeState
     jclass = new JavaClassObject @, c2t(cls), false
     class_file = new ClassFile(data)
     @classes[cls] = {file: class_file, obj: jclass}
+    if class_file.super_class
+      @_class_lookup class_file.super_class
+    class_file.methods['<clinit>()V']?.run(this)
     jclass
 
   # Spec [5.4.3.3][1], [5.4.3.4][2].
