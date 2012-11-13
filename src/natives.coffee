@@ -5,7 +5,7 @@ gLong = require '../vendor/gLong.js'
 util = require './util'
 types = require './types'
 runtime = require './runtime'
-{thread_name} = require './java_object'
+{thread_name,JavaArray} = require './java_object'
 exceptions = require './exceptions'
 {log,debug,error} = require './logging'
 path = node?.path ? require 'path'
@@ -204,6 +204,23 @@ native_methods =
             iface_objs = (rs.class_lookup(iface,true) for iface in ifaces)
             rs.init_object('[Ljava/lang/Class;',iface_objs)
         o 'getModifiers()I', (rs, _this) -> rs.class_lookup(_this.$type).access_byte
+        o 'getRawAnnotations()[B', (rs, _this) ->
+            cls = rs.class_lookup(_this.$type)
+            annotations = _.find(cls.attrs, (a) -> a.constructor.name == 'RuntimeVisibleAnnotations')
+            new JavaArray(c2t('[B'), rs, annotations.raw_bytes) if annotations?
+        o 'getConstantPool()Lsun/reflect/ConstantPool;', (rs, _this) ->
+            cls = rs.class_lookup(_this.$type)
+            rs.init_object 'sun/reflect/ConstantPool', {constantPoolOop: cls.constant_pool}
+        o 'getEnclosingMethod0()[L!/!/Object;', (rs, _this) ->
+            cls = rs.class_lookup(_this.$type)
+            em = _.find(cls.attrs, (a) -> a.constructor.name == 'EnclosingMethod')
+            return null unless em?
+            java_throw rs, 'java/lang/Error', "native method not finished: java.lang.Class.getEnclosingClass"
+            #TODO: return array w/ 3 elements:
+            # - the immediately enclosing class (java/lang/Class)
+            # - the immediately enclosing method or constructor's name (can be null). (String)
+            # - the immediately enclosing method or constructor's descriptor (null iff name is). (String)
+            #new JavaArray c2t('[Ljava/lang/Object;'), rs, [null,null,null]
       ],
       ClassLoader: [
         o 'findLoadedClass0(L!/!/String;)L!/!/Class;', (rs, _this, name) ->

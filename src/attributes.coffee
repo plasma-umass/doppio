@@ -177,12 +177,41 @@ class ConstantValue
 class Synthetic
   parse: (bytes_array) -> bytes_array # NOP
 
+class Deprecated
+  parse: (bytes_array) -> bytes_array # NOP
+
+class Signature
+  parse: (bytes_array, constant_pool) ->
+    ref = bytes_array.get_uint 2
+    @sig = constant_pool.get(ref).value
+    bytes_array
+
+class RuntimeVisibleAnnotations
+  parse: (bytes_array, constant_pool, attr_len) ->
+    num_annotations = bytes_array.get_uint 2
+    @raw_bytes = bytes_array.splice attr_len-2
+    bytes_array
+
+class EnclosingMethod
+  parse: (bytes_array, constant_pool) ->
+    @enc_class = constant_pool.get(bytes_array.get_uint 2).deref()
+    method_ref = bytes_array.get_uint 2
+    if method_ref > 0
+      @enc_method = constant_pool.get(method_ref).deref()
+    bytes_array
+
+
 root.make_attributes = (bytes_array,constant_pool) ->
   attr_types = {
     'Code': Code, 'LineNumberTable': LineNumberTable, 'SourceFile': SourceFile,
     'StackMapTable': StackMapTable, 'LocalVariableTable': LocalVariableTable,
     'ConstantValue': ConstantValue, 'Exceptions': Exceptions,
     'InnerClasses': InnerClasses, 'Synthetic': Synthetic,
+    'Deprecated': Deprecated, 'Signature': Signature,
+    'RuntimeVisibleAnnotations': RuntimeVisibleAnnotations,
+    'EnclosingMethod': EnclosingMethod,
+    # NYI: LocalVariableTypeTable
+    # NYI: AnnotationDefault
   }
   num_attrs = bytes_array.get_uint 2
   attrs = []
@@ -192,7 +221,7 @@ root.make_attributes = (bytes_array,constant_pool) ->
     if attr_types[name]?
       attr = new attr_types[name]
       old_len = bytes_array.size()
-      bytes_array = attr.parse(bytes_array,constant_pool)
+      bytes_array = attr.parse(bytes_array,constant_pool,attr_len)
       new_len = bytes_array.size()
       if old_len - new_len != attr_len
         #throw new Error "#{name} attribute didn't consume all bytes"
