@@ -204,7 +204,10 @@ native_methods =
             rs.init_object('[Ljava/lang/Class;',iface_objs)
         o 'getModifiers()I', (rs, _this) -> rs.class_lookup(_this.$type).access_byte
         o 'getRawAnnotations()[B', (rs, _this) ->
-            for sig,m of rs.class_lookup(_this.$type).methods
+            cls = rs.class_lookup(_this.$type)
+            annotations = _.find(cls.attrs, (a) -> a.constructor.name == 'RuntimeVisibleAnnotations')
+            return new JavaArray c2t('[B'), rs, annotations.raw_bytes if annotations?
+            for sig,m of cls.methods
               annotations = _.find(m.attrs, (a) -> a.constructor.name == 'RuntimeVisibleAnnotations')
               return new JavaArray c2t('[B'), rs, annotations.raw_bytes if annotations?
             null
