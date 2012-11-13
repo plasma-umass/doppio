@@ -178,8 +178,7 @@ native_methods =
             _this.$type instanceof types.ArrayType
         o 'getSuperclass()L!/!/!;', (rs, _this) ->
             type = _this.$type
-            if (type instanceof types.PrimitiveType) or type == 'Ljava/lang/Object;'
-              return null
+            return null if type instanceof types.PrimitiveType
             cls = rs.class_lookup type
             if cls.access_flags.interface or not cls.super_class?
               return null
