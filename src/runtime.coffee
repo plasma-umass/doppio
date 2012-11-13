@@ -122,7 +122,7 @@ class root.RuntimeState
   put_cl2: (idx,val) -> @put_cl(idx,val); @put_cl(idx+1,null)
 
   push: (arg) -> @curr_frame().stack.push(arg)
-  push2: (arg1, arg2) -> @curr_frame().stack.push(arg1, arg2)
+  push2: (arg1) -> @curr_frame().stack.push(arg1, null)
   push_array: (args) ->
     cs = @curr_frame().stack
     Array::push.apply(cs, args)

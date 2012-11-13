@@ -25,7 +25,8 @@ run = (rs, fn, done_cb) ->
       if e.toplevel_catch_handler?
         run rs, (-> e.toplevel_catch_handler(rs)), done_cb
       else
-        error "\nInternal JVM Error: #{e?.stack}"
+        error "\nInternal JVM Error: #{e}"
+        error e.stack if e?.stack
         rs.show_state()
         done_cb?()
       return false
