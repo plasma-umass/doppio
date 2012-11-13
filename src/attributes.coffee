@@ -178,8 +178,8 @@ class Signature
 
 class RuntimeVisibleAnnotations
   parse: (bytes_array, constant_pool, attr_len) ->
-    num_annotations = bytes_array.get_uint 2
-    @raw_bytes = bytes_array.splice attr_len-2
+    # num_annotations = bytes_array.get_uint 2
+    @raw_bytes = bytes_array.read attr_len
 
 class EnclosingMethod
   parse: (bytes_array, constant_pool) ->
