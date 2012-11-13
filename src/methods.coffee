@@ -67,8 +67,10 @@ class root.Method extends AbstractMethodField
   reflector: (rs, is_constructor=false) ->
     typestr = if is_constructor then 'java/lang/reflect/Constructor' else 'java/lang/reflect/Method'
     exceptions = _.find(@attrs, (a) -> a.constructor.name == 'Exceptions')?.exceptions ? []
+    anns = _.find(@attrs, (a) -> a.constructor.name == 'RuntimeVisibleAnnotations')?.raw_bytes
+    adefs = _.find(@attrs, (a) -> a.constructor.name == 'AnnotationDefault')?.raw_bytes
     rs.init_object typestr, {
-      # XXX: missing annotations, parameterAnnotations, annotationDefault
+      # XXX: missing parameterAnnotations
       clazz: rs.class_lookup(@class_type, true)
       name: rs.init_string @name, true
       parameterTypes: rs.init_object "[Ljava/lang/Class;", (rs.class_lookup(f,true) for f in @param_types)
@@ -77,6 +79,8 @@ class root.Method extends AbstractMethodField
       modifiers: @access_byte
       slot: @idx
       signature: rs.init_string @raw_descriptor
+      annotations: if anns? then rs.init_object('[B', anns) else null
+      annotationDefault: if adefs? then rs.init_object('[B', adefs) else null
     }
 
   take_params: (caller_stack) ->

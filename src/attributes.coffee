@@ -181,6 +181,10 @@ class RuntimeVisibleAnnotations
     # num_annotations = bytes_array.get_uint 2
     @raw_bytes = bytes_array.read attr_len
 
+class AnnotationDefault
+  parse: (bytes_array, constant_pool, attr_len) ->
+    @raw_bytes = bytes_array.read attr_len
+
 class EnclosingMethod
   parse: (bytes_array, constant_pool) ->
     @enc_class = constant_pool.get(bytes_array.get_uint 2).deref()
@@ -197,9 +201,9 @@ root.make_attributes = (bytes_array,constant_pool) ->
     'InnerClasses': InnerClasses, 'Synthetic': Synthetic,
     'Deprecated': Deprecated, 'Signature': Signature,
     'RuntimeVisibleAnnotations': RuntimeVisibleAnnotations,
+    'AnnotationDefault': AnnotationDefault,
     'EnclosingMethod': EnclosingMethod,
     # NYI: LocalVariableTypeTable
-    # NYI: AnnotationDefault
   }
   num_attrs = bytes_array.get_uint 2
   attrs = []
