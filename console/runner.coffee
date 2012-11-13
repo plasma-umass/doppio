@@ -101,7 +101,12 @@ if require.main == module
 
   logging.log_level =
     if argv.log?
-      logging[argv.log?.toUpperCase()] ? (argv.log? + 0)
+      if /[0-9]+/.test argv.log
+        argv.log + 0
+      else
+        level = logging[argv.log?.toUpperCase()]
+        throw 'Unrecognized log level: should be one of [0-10]|vtrace|trace|debug|error.' unless level?
+        level
     else
       logging.ERROR
 
