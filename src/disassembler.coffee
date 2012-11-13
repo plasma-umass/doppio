@@ -17,7 +17,7 @@ root.disassemble = (class_file) ->
   source_file = _.find(class_file.attrs, (attr) -> attr.constructor.name == 'SourceFile')
   ifaces = (class_file.constant_pool.get(i).deref() for i in class_file.interfaces)
   ifaces = ((if util.is_string(i) then util.ext_classname(i) else i.toExternalString()) for i in ifaces).join ','
-  rv = "Compiled from \"#{source_file.name}\"\n"
+  rv = "Compiled from \"#{source_file?.name ? 'unknown'}\"\n"
   rv += access_string class_file.access_flags
   if class_file.access_flags.interface
     rv += "interface #{class_file.this_class.toExternalString()} extends #{ifaces}\n"
