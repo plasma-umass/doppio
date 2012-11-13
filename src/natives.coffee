@@ -733,6 +733,8 @@ native_methods =
       ]
     reflect:
       ConstantPool: [
+        o 'getLongAt0(Ljava/lang/Object;I)J', (rs, _this, cp, idx) ->
+            cp.get(idx).value
         o 'getUTF8At0(Ljava/lang/Object;I)Ljava/lang/String;', (rs, _this, cp, idx) ->
             rs.init_string cp.get(idx).value
       ]
