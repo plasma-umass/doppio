@@ -16,23 +16,21 @@ class ExceptionHandler
     @handler_pc = bytes_array.get_uint 2
     cti = bytes_array.get_uint 2
     @catch_type = if cti==0 then "<any>" else constant_pool.get(cti).deref()
-    return bytes_array
 
 class Code
   parse: (bytes_array,constant_pool) ->
     @max_stack = bytes_array.get_uint 2
     @max_locals = bytes_array.get_uint 2
     @code_len = bytes_array.get_uint 4
-    throw "Attribute._parse_code: Code length is zero" if @code_len == 0
+    throw "Code.parse error: Code length is zero" if @code_len == 0
     code_array = bytes_array.splice(@code_len)
     @opcodes = @parse_code code_array, constant_pool
     except_len = bytes_array.get_uint 2
     @exception_handlers = (new ExceptionHandler for [0...except_len])
     for eh in @exception_handlers
-      bytes_array = eh.parse(bytes_array,constant_pool)
+      eh.parse bytes_array, constant_pool
     # yes, there are even attrs on attrs. BWOM... BWOM...
     @attrs = root.make_attributes(bytes_array,constant_pool)
-    return bytes_array
 
   parse_code: (bytes_array, constant_pool) ->
     rv = new Array @code_len
@@ -60,12 +58,10 @@ class LineNumberTable
       spc = bytes_array.get_uint 2
       ln = bytes_array.get_uint 2
       @entries.push {'start_pc': spc,'line_number': ln}
-    return bytes_array
 
 class SourceFile
   parse: (bytes_array,constant_pool) ->
     @name = constant_pool.get(bytes_array.get_uint 2).value
-    return bytes_array
 
 class StackMapTable
   parse: (bytes_array, constant_pool) ->
@@ -129,14 +125,12 @@ class StackMapTable
 
     @num_entries = bytes_array.get_uint 2
     @entries = (parse_entries() for i in [0...@num_entries] by 1)
-    return bytes_array
 
 
 class LocalVariableTable
   parse: (bytes_array, constant_pool) ->
     @num_entries = bytes_array.get_uint 2
     @entries = (@parse_entries bytes_array, constant_pool for i in [0...@num_entries] by 1)
-    return bytes_array
 
   parse_entries: (bytes_array, constant_pool) ->
     {
@@ -152,13 +146,11 @@ class Exceptions
     @num_exceptions = bytes_array.get_uint 2
     exc_refs = (bytes_array.get_uint 2 for i in [0...@num_exceptions] by 1)
     @exceptions = (constant_pool.get(ref).deref() for ref in exc_refs)
-    return bytes_array
 
 class InnerClasses
   parse: (bytes_array, constant_pool) ->
     num_classes = bytes_array.get_uint 2
     @classes = (@parse_class bytes_array, constant_pool for i in [0...num_classes] by 1)
-    return bytes_array
 
   parse_class: (bytes_array, constant_pool) ->
     {
@@ -172,25 +164,22 @@ class ConstantValue
   parse: (bytes_array, constant_pool) ->
     @ref = bytes_array.get_uint 2
     @value = constant_pool.get(@ref).value
-    return bytes_array
 
 class Synthetic
-  parse: (bytes_array) -> bytes_array # NOP
+  parse: () ->  # NOP
 
 class Deprecated
-  parse: (bytes_array) -> bytes_array # NOP
+  parse: () ->  # NOP
 
 class Signature
   parse: (bytes_array, constant_pool) ->
     ref = bytes_array.get_uint 2
     @sig = constant_pool.get(ref).value
-    bytes_array
 
 class RuntimeVisibleAnnotations
   parse: (bytes_array, constant_pool, attr_len) ->
     num_annotations = bytes_array.get_uint 2
     @raw_bytes = bytes_array.splice attr_len-2
-    bytes_array
 
 class EnclosingMethod
   parse: (bytes_array, constant_pool) ->
@@ -198,7 +187,6 @@ class EnclosingMethod
     method_ref = bytes_array.get_uint 2
     if method_ref > 0
       @enc_method = constant_pool.get(method_ref).deref()
-    bytes_array
 
 
 root.make_attributes = (bytes_array,constant_pool) ->
@@ -221,7 +209,7 @@ root.make_attributes = (bytes_array,constant_pool) ->
     if attr_types[name]?
       attr = new attr_types[name]
       old_len = bytes_array.size()
-      bytes_array = attr.parse(bytes_array,constant_pool,attr_len)
+      attr.parse bytes_array, constant_pool, attr_len
       new_len = bytes_array.size()
       if old_len - new_len != attr_len
         #throw new Error "#{name} attribute didn't consume all bytes"
