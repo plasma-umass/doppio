@@ -376,7 +376,7 @@ root.opcodes = {
   105: new root.Opcode 'lmul', { execute: (rs) -> rs.push2(rs.pop2().multiply(rs.pop2()), null) }
   106: new root.Opcode 'fmul', { execute: (rs) -> rs.push util.wrap_float(rs.pop()*rs.pop()) }
   107: new root.Opcode 'dmul', { execute: (rs) -> rs.push2(rs.pop2()*rs.pop2(), null) }
-  108: new root.Opcode 'idiv', { execute: (rs) -> v=rs.pop();rs.push_array([util.int_div rs, rs.pop(), v]) }
+  108: new root.Opcode 'idiv', { execute: (rs) -> v=rs.pop();rs.push(util.int_div rs, rs.pop(), v) }
   109: new root.Opcode 'ldiv', { execute: (rs) -> v=rs.pop2();rs.push2(util.long_div(rs, rs.pop2(), v), null) }
   110: new root.Opcode 'fdiv', { execute: (rs) -> v=rs.pop();rs.push util.wrap_float(rs.pop()/v) }
   111: new root.Opcode 'ddiv', { execute: (rs) -> v=rs.pop2();rs.push2(rs.pop2()/v, null) }
