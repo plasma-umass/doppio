@@ -251,6 +251,12 @@ class root.RuntimeState
         delete c.in_progress
         c.file.methods['<clinit>()V']?.run(this)
     @classes[cls]
+  proxy_class: (cls, data) ->
+    # replicates some logic from _class_lookup
+    jclass = new JavaClassObject @, c2t(cls), false
+    class_file = new ClassFile(data)
+    @classes[cls] = {file: class_file, obj: jclass}
+    jclass
 
   # Spec [5.4.3.3][1], [5.4.3.4][2].
   # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#79473

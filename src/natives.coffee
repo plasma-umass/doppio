@@ -68,7 +68,7 @@ trapped_methods =
                   _.find(attrs, (attr) -> attr.constructor.name == 'SourceFile')?.name or 'unknown'
               else
                 source_file = 'unknown'
-              line_nums = sf.method.code?.attrs[0].entries
+              line_nums = sf.method.code?.attrs[0]?.entries
               if line_nums?
                 ln = _.last(row.line_number for i,row of line_nums when row.start_pc <= sf.pc)
               else
@@ -316,6 +316,11 @@ native_methods =
         Array: [
           o 'newArray(L!/!/Class;I)L!/!/Object;', (rs, _this, len) ->
               rs.heap_newarray _this.$type, len
+        ]
+        Proxy: [
+          o 'defineClass0(L!/!/ClassLoader;L!/!/String;[BII)L!/!/Class;', (rs,cl,name,bytes,offset,len) ->
+              raw_bytes = ((256+b)%256 for b in bytes.array[offset...offset+len])  # convert to unsigned bytes
+              rs.proxy_class name.jvm2js_str(), raw_bytes
         ]
       Runtime: [
         o 'availableProcessors()I', () -> 1
@@ -728,6 +733,10 @@ native_methods =
             obj.set_field_from_offset rs, offset, new_obj
       ]
     reflect:
+      ConstantPool: [
+        o 'getUTF8At0(Ljava/lang/Object;I)Ljava/lang/String;', (rs, _this, cp, idx) ->
+            rs.init_string cp.get(idx).value
+      ]
       NativeMethodAccessorImpl: [
         o 'invoke0(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;', (rs,m,obj,params) ->
             cls = m.get_field rs, 'clazz'
