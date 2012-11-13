@@ -212,6 +212,7 @@ native_methods =
             cls = rs.class_lookup(_this.$type)
             rs.init_object 'sun/reflect/ConstantPool', {constantPoolOop: cls.constant_pool}
         o 'getEnclosingMethod0()[L!/!/Object;', (rs, _this) ->
+            return null unless _this.$type instanceof types.ClassType
             cls = rs.class_lookup(_this.$type)
             em = _.find(cls.attrs, (a) -> a.constructor.name == 'EnclosingMethod')
             return null unless em?
@@ -221,6 +222,28 @@ native_methods =
             # - the immediately enclosing method or constructor's name (can be null). (String)
             # - the immediately enclosing method or constructor's descriptor (null iff name is). (String)
             #new JavaArray c2t('[Ljava/lang/Object;'), rs, [null,null,null]
+        o 'getDeclaringClass()L!/!/!;', (rs, _this) ->
+            return null unless _this.$type instanceof types.ClassType
+            cls = rs.class_lookup(_this.$type)
+            icls = _.find(cls.attrs, (a) -> a.constructor.name == 'InnerClasses')
+            ref = icls?.classes[0].outer_info_index
+            return null unless ref? and ref > 0
+            rs.class_lookup c2t(cls.constant_pool.get(ref).deref()), true
+        o 'getDeclaredClasses0()[L!/!/!;', (rs, _this) ->
+            ret = new JavaArray c2t('[Ljava/lang/Class;'), rs, []
+            return ret unless _this.$type instanceof types.ClassType
+            cls = rs.class_lookup(_this.$type)
+            my_class = _this.$type.toClassString()
+            iclses = (a for a in cls.attrs when a.constructor.name is 'InnerClasses')
+            for icls in iclses
+              for c in icls.classes
+                continue unless c.inner_info_index > 0 and c.outer_info_index > 0
+                flags = util.parse_flags c.inner_access_flags
+                continue unless flags.public
+                name = cls.constant_pool.get(c.inner_info_index).deref()
+                continue unless name.indexOf(my_class) == 0
+                ret.array.push rs.class_lookup c2t(name), true
+            ret
       ],
       ClassLoader: [
         o 'findLoadedClass0(L!/!/String;)L!/!/Class;', (rs, _this, name) ->
