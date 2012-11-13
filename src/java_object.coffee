@@ -111,6 +111,7 @@ class root.JavaObject
 
 class root.JavaClassObject extends root.JavaObject
   constructor: (rs, @$type, defer_init=false) ->
+    @ref = rs.high_oref++
     @type = types.c2t 'java/lang/Class'
     @fields = {}
     @init_fields(rs) unless defer_init
