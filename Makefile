@@ -97,13 +97,15 @@ benchmark: build $(BUILD_DIR)/browser/listings.json
 dev development: $(DEMO_CLASSES) browser/mini-rt.tar browser/listings.json
 	$(COFFEEC) -c */*.coffee
 	cpp -P browser/index.html index.html
-
+# optimized CLI build
+opt: $(CLI_SRCS:.coffee=.js)
+jsclean:
+	rm -f $(CLI_SRCS:.coffee=.js)
 # hack. overwriting .js means that we won't detect if we previously did an
 # unoptimized compile.
 %.js: %.coffee
 	$(SED) -r "s/^( *)(debug|v?trace).*$$/\1\`\`/" $? | $(COFFEEC) --stdio --print > $@
 	$(UGLIFYJS) --define RELEASE --define UNSAFE --no-mangle --unsafe --beautify --overwrite $@
-opt: $(CLI_SRCS:.coffee=.js)
 
 # Builds a distributable version of Doppio.
 dist: $(DIST_NAME)
