@@ -194,7 +194,7 @@ class root.LookupSwitchOpcode extends root.SwitchOpcode
     @_default = code_array.get_int(4)
     @npairs = code_array.get_int(4)
     @offsets = {}
-    for [0...@npairs]
+    for i in [0...@npairs] by 1
       match = code_array.get_int(4)
       offset = code_array.get_int(4)
       @offsets[match] = offset
@@ -261,12 +261,12 @@ class root.ArrayLoadOpcode extends root.Opcode
       java_throw(rs, 'java/lang/ArrayIndexOutOfBoundsException',
         "#{idx} not in length #{array.length} array of type #{obj.type.toClassString()}")
     rs.push array[idx]
-    rs.push null if @name.match /[ld]aload/
+    rs.push null if @name[0] in ['l', 'd']
     return
 
 class root.ArrayStoreOpcode extends root.Opcode
   execute: (rs) ->
-    value = if @name.match /[ld]astore/ then rs.pop2() else rs.pop()
+    value = if @name[0] in ['l','d'] then rs.pop2() else rs.pop()
     idx = rs.pop()
     obj = rs.check_null(rs.pop())
     array = obj.array
@@ -463,14 +463,16 @@ root.opcodes = {
   169: new root.Opcode 'ret', { byte_count: 1, execute: (rs) -> rs.goto_pc rs.cl @args[0]; false }
   170: new root.TableSwitchOpcode 'tableswitch'
   171: new root.LookupSwitchOpcode 'lookupswitch'
-  172: new root.Opcode 'ireturn', { execute: (rs) -> throw new ReturnException rs.curr_frame().stack[0] }
-  173: new root.Opcode 'lreturn', { execute: (rs) -> throw new ReturnException rs.curr_frame().stack[0], null }
-  174: new root.Opcode 'freturn', { execute: (rs) -> throw new ReturnException rs.curr_frame().stack[0] }
-  175: new root.Opcode 'dreturn', { execute: (rs) -> throw new ReturnException rs.curr_frame().stack[0], null }
-  176: new root.Opcode 'areturn', { execute: (rs) -> throw new ReturnException rs.curr_frame().stack[0] }
+  172: new root.Opcode 'ireturn', { execute: (rs) -> cf = rs.meta_stack().pop(); rs.push cf.stack[0]; throw ReturnException }
+  173: new root.Opcode 'lreturn', { execute: (rs) -> cf = rs.meta_stack().pop(); rs.push2 cf.stack[0], null; throw ReturnException }
+  174: new root.Opcode 'freturn', { execute: (rs) -> cf = rs.meta_stack().pop(); rs.push cf.stack[0]; throw ReturnException }
+  175: new root.Opcode 'dreturn', { execute: (rs) -> cf = rs.meta_stack().pop(); rs.push2 cf.stack[0], null; throw ReturnException }
+  176: new root.Opcode 'areturn', { execute: (rs) -> cf = rs.meta_stack().pop(); rs.push cf.stack[0]; throw ReturnException }
   177: new root.Opcode 'return', { execute: (rs) ->
-    throw new Error("too many values on stack for void return") if rs.curr_frame().stack.length > 0
-    throw new ReturnException }
+    unless RELEASE?
+      throw new Error("too many values on stack for void return") if rs.curr_frame().stack.length > 0
+    rs.meta_stack().pop()
+    throw ReturnException }
   178: new root.FieldOpcode 'getstatic', {execute: (rs)-> rs.push rs.static_get @field_spec; rs.push null if @field_spec.type in ['J','D']}
   179: new root.FieldOpcode 'putstatic', {execute: (rs)-> rs.static_put @field_spec }
   180: new root.FieldOpcode 'getfield', {execute: (rs)-> rs.heap_get @field_spec, rs.pop() }

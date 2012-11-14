@@ -14,13 +14,9 @@ class root.HaltException
   toplevel_catch_handler: () ->
     console.error "\nExited with code #{@exit_code}" unless @exit_code is 0
 
-class root.ReturnException
-  constructor: (@values...) ->
+root.ReturnException =
   method_catch_handler: (rs, method, padding) ->
-    cf = rs.meta_stack().pop()
     vtrace "#{padding}stack: [#{debug_vars cf.stack}],\nlocal: [#{debug_vars cf.locals}] (end method #{method.class_type.toClassString()}::#{method.name})"
-    rs.push_array @values
-    return true
 
 class root.YieldException
   constructor: (@condition) ->
@@ -46,7 +42,7 @@ class root.JavaException
       cf.stack = []  # clear out anything on the stack; it was made during the try block
       rs.push @exception
       cf.pc = handler.handler_pc
-      return false
+      return
     # abrupt method invocation completion
     trace "exception not caught, terminating #{method.name}"
     rs.meta_stack().pop()

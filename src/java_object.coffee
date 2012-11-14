@@ -50,7 +50,8 @@ class root.JavaObject
           @fields[f.name] = val
       t = cls.super_class
     # init fields from manually given object
-    for k,v of obj
+    for k in Object.keys obj
+      v = obj[k]
       slot_val = @fields[k]
       if slot_val?.$first?
         slot_val.$first = v

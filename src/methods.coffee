@@ -11,7 +11,7 @@ natives = require './natives'
 runtime = require './runtime'
 logging = require './logging'
 {vtrace,trace,debug_vars} = logging
-{java_throw} = require './exceptions'
+{java_throw,ReturnException} = require './exceptions'
 {opcode_annotators} = disassembler
 {str2type,carr2type,c2t} = types
 {native_methods,trapped_methods} = natives
@@ -93,16 +93,17 @@ class root.Method extends AbstractMethodField
     params
 
   run_manually: (func, rs) ->
-    params = rs.curr_frame().locals.slice(0) # make a copy
-    converted_params = []
-    if not @access_flags.static
-      converted_params.push params.shift()
+    params = rs.curr_frame().locals
+    converted_params = [rs]
     param_idx = 0
+    if not @access_flags.static
+      converted_params.push params[0]
+      param_idx = 1
     for p in @param_types
       converted_params.push params[param_idx]
       param_idx += if (p.toString() in ['J', 'D']) then 2 else 1
     try
-      rv = func rs, converted_params...
+      rv = func converted_params...
     catch e
       e.method_catch_handler?(rs, @)  # handles stack pop, if it's a JavaException
       throw e
@@ -117,11 +118,15 @@ class root.Method extends AbstractMethodField
     try
       @bytecode_loop(rs, padding)
     catch e
-      if e.method_catch_handler?
-        unless e.method_catch_handler(rs, @, padding)
-          @run_bytecode(rs, padding)
+      unless RELEASE?
+        # JVM Error
+        throw e unless e.method_catch_handler?
+        e.method_catch_handler(rs, @, padding)
+        return if e is ReturnException
       else
-        throw e # JVM Error
+        return if e is ReturnException
+        e.method_catch_handler(rs, @, padding)
+      @run_bytecode(rs, padding)
 
   bytecode_loop: (rs, padding) ->
     # main eval loop: execute each opcode, using the pc to iterate through
@@ -169,7 +174,7 @@ class root.Method extends AbstractMethodField
           }).run(runtime_state)
       params = @take_params caller_stack
       ms.push(new runtime.StackFrame(this,params,[]))
-    padding = (' ' for [2...ms.length()]).join('')
+    padding = unless RELEASE? then (' ' for [2...ms.length()]).join('') else null
     # check for trapped and native methods, run those manually
     cf = runtime_state.curr_frame()
     if cf.resume? # we are resuming from a yield, and this was a manually run method
@@ -184,13 +189,13 @@ class root.Method extends AbstractMethodField
       if sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
         ms.pop() # these are all just NOPs
         return
-      if native_methods[sig]
+      if native_methods.hasOwnProperty sig
         trace "#{padding}entering native method #{sig}"
         return @run_manually native_methods[sig], runtime_state
       try
         java_throw runtime_state, 'java/lang/Error', "native method NYI: #{sig}"
       finally
-        runtime_state.meta_stack().pop()
+        ms.pop()
     if @access_flags.abstract
       java_throw runtime_state, 'java/lang/Error', "called abstract method: #{sig}"
 
