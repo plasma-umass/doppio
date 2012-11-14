@@ -2,7 +2,7 @@
 gLong = require '../vendor/gLong.js'
 util = require './util'
 types = require './types'
-{java_throw,BranchException,ReturnException,JavaException} = require './exceptions'
+{java_throw,ReturnException,JavaException} = require './exceptions'
 {c2t} = types
 {JavaArray} = require './java_object'
 
@@ -66,6 +66,7 @@ class root.LoadConstantOpcode extends root.Opcode
         rs.push rs.class_lookup(c2t(@str_constant.value), true)
       else
         rs.push @constant.value
+    return
 
 class root.BranchOpcode extends root.Opcode
   constructor: (name, params={}) ->
@@ -80,7 +81,11 @@ class root.UnaryBranchOpcode extends root.BranchOpcode
     super name, {
       execute: (rs) ->
         v = rs.pop()
-        throw new BranchException rs.curr_pc() + @offset if params.cmp v
+        if params.cmp v
+          rs.inc_pc(@offset)
+          false
+        else
+          true
     }
 
 class root.BinaryBranchOpcode extends root.BranchOpcode
@@ -89,7 +94,11 @@ class root.BinaryBranchOpcode extends root.BranchOpcode
       execute: (rs) ->
         v2 = rs.pop()
         v1 = rs.pop()
-        throw new BranchException rs.curr_pc() + @offset if params.cmp v1, v2
+        if params.cmp v1, v2
+          rs.inc_pc(@offset)
+          false
+        else
+          true
     }
 
 class root.PushOpcode extends root.Opcode
@@ -171,9 +180,11 @@ class root.SwitchOpcode extends root.BranchOpcode
 
   execute: (rs) ->
     key = rs.pop()
-    throw new BranchException(
-      rs.curr_pc() + if @offsets[key]? then @offsets[key] else @_default
-    )
+    if key of @offsets
+      rs.inc_pc(@offsets[key])
+    else
+      rs.inc_pc(@_default)
+    false
 
 class root.LookupSwitchOpcode extends root.SwitchOpcode
   take_args: (code_array, constant_pool) ->
@@ -239,6 +250,7 @@ class root.MultiArrayOpcode extends root.Opcode
         array = (init_arr(curr_dim+1) for i in [0...len] by 1)
       new JavaArray type, rs, array
     rs.push init_arr 0
+    return
 
 class root.ArrayLoadOpcode extends root.Opcode
   execute: (rs) ->
@@ -250,6 +262,7 @@ class root.ArrayLoadOpcode extends root.Opcode
         "#{idx} not in length #{array.length} array of type #{obj.type.toClassString()}")
     rs.push array[idx]
     rs.push null if @name.match /[ld]aload/
+    return
 
 class root.ArrayStoreOpcode extends root.Opcode
   execute: (rs) ->
@@ -261,9 +274,10 @@ class root.ArrayStoreOpcode extends root.Opcode
       java_throw(rs, 'java/lang/ArrayIndexOutOfBoundsException',
         "#{idx} not in length #{array.length} array of type #{obj.type.toClassString()}")
     array[idx] = value
+    return
 
 jsr = (rs) ->
-  rs.push(rs.curr_pc()+@byte_count+1); throw new BranchException rs.curr_pc() + @offset
+  rs.push(rs.curr_pc()+@byte_count+1); rs.inc_pc(@offset); false
 
 # these objects are used as prototypes for the parsed instructions in the
 # classfile
@@ -444,9 +458,9 @@ root.opcodes = {
   164: new root.BinaryBranchOpcode 'if_icmple', { cmp: (v1, v2) -> v1 <= v2 }
   165: new root.BinaryBranchOpcode 'if_acmpeq', { cmp: (v1, v2) -> v1 == v2 }
   166: new root.BinaryBranchOpcode 'if_acmpne', { cmp: (v1, v2) -> v1 != v2 }
-  167: new root.BranchOpcode 'goto', { execute: (rs) -> throw new BranchException rs.curr_pc() + @offset }
+  167: new root.BranchOpcode 'goto', { execute: (rs) -> rs.inc_pc(@offset); false }
   168: new root.BranchOpcode 'jsr', { execute: jsr }
-  169: new root.Opcode 'ret', { byte_count: 1, execute: (rs) -> throw new BranchException rs.cl @args[0] }
+  169: new root.Opcode 'ret', { byte_count: 1, execute: (rs) -> rs.goto_pc rs.cl @args[0]; false }
   170: new root.TableSwitchOpcode 'tableswitch'
   171: new root.LookupSwitchOpcode 'lookupswitch'
   172: new root.Opcode 'ireturn', { execute: (rs) -> throw new ReturnException rs.curr_frame().stack[0] }
@@ -503,6 +517,6 @@ root.opcodes = {
   197: new root.MultiArrayOpcode 'multianewarray'
   198: new root.UnaryBranchOpcode 'ifnull', { cmp: (v) -> not v? }
   199: new root.UnaryBranchOpcode 'ifnonnull', { cmp: (v) -> v? }
-  200: new root.BranchOpcode 'goto_w', { byte_count: 4, execute: (rs) -> throw new BranchException rs.curr_pc() + @offset }
+  200: new root.BranchOpcode 'goto_w', { byte_count: 4, execute: (rs) -> rs.inc_pc(@offset); false }
   201: new root.BranchOpcode 'jsr_w', { byte_count: 4, execute: jsr }
 }

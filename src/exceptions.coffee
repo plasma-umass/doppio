@@ -9,17 +9,10 @@ types = require './types'
 # things assigned to root will be available outside this module
 root = exports ? window.exceptions ?= {}
 
-class root.BranchException
-  constructor: (@dst_pc) ->
-  method_catch_handler: (rs, method) ->
-    rs.goto_pc(@dst_pc)
-    return false
-
 class root.HaltException
   constructor: (@exit_code) ->
   toplevel_catch_handler: () ->
     console.error "\nExited with code #{@exit_code}" unless @exit_code is 0
-
 
 class root.ReturnException
   constructor: (@values...) ->

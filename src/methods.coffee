@@ -114,6 +114,16 @@ class root.Method extends AbstractMethodField
       rs.push null if ret_type in [ 'J', 'D' ]
 
   run_bytecode: (rs, padding) ->
+    try
+      @bytecode_loop(rs, padding)
+    catch e
+      if e.method_catch_handler?
+        unless e.method_catch_handler(rs, @, padding)
+          @run_bytecode(rs, padding)
+      else
+        throw e # JVM Error
+
+  bytecode_loop: (rs, padding) ->
     # main eval loop: execute each opcode, using the pc to iterate through
     code = @code.opcodes
     cf = rs.curr_frame()
@@ -126,14 +136,8 @@ class root.Method extends AbstractMethodField
         annotation =
           util.call_handler(opcode_annotators, op, pc, rs.class_lookup(@class_type).constant_pool) or ""
         vtrace "#{padding}#{@class_type.toClassString()}::#{@name}:#{pc} => #{op.name}" + annotation
-      try
-        op.execute rs
-        cf.pc += 1 + op.byte_count  # move to the next opcode
-      catch e
-        if e.method_catch_handler?
-          break if e.method_catch_handler(rs, @, padding)
-        else
-          throw e # JVM Error
+
+      cf.pc += 1 + op.byte_count if (op.execute rs) isnt false
     # Must explicitly return here, to avoid Coffeescript accumulating an array of cf.pc values
     return
 
