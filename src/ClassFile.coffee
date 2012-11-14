@@ -15,6 +15,7 @@ class ClassFile
   # All class attributes should not be modified (e.g. by a running program)
   # once it has been constructed.
   constructor: (bytes_array) ->
+    @ml_cache = []
     bytes_array = new util.BytesArray bytes_array
     throw "Magic number invalid" if (bytes_array.get_uint 4) != 0xCAFEBABE
     @minor_version = bytes_array.get_uint 2
@@ -48,7 +49,6 @@ class ClassFile
     # class attributes
     @attrs = attributes.make_attributes(bytes_array,@constant_pool)
     throw "Leftover bytes in classfile: #{bytes_array}" if bytes_array.has_bytes()
-    Object.seal(@)
 
   @for_array_type: (type) ->
     class_file = Object.create ClassFile.prototype # avoid calling the constructor
@@ -61,6 +61,30 @@ class ClassFile
     class_file.methods = []
     class_file.attrs = []
     class_file
+
+  method_lookup: (rs, method_spec) ->
+    unless @ml_cache[method_spec.sig]?
+      @ml_cache[method_spec.sig] = @_method_lookup(rs, method_spec)
+    return @ml_cache[method_spec.sig]
+
+  _method_lookup: (rs, method_spec) ->
+    method = @methods[method_spec.sig]
+    return method if method?
+
+    parent = rs.class_lookup @super_class
+    if parent?
+      method = parent.method_lookup(method_spec.sig)
+      return method if method?
+
+    ifaces = (c2t(@constant_pool.get(i).deref()) for i in @interfaces)
+    while ifaces.length > 0
+      iface_name = ifaces.shift()
+      ifc = rs.class_lookup iface_name
+      method = ifc.methods[method_spec.sig]
+      return method if method?
+      Array::push.apply ifaces,
+        (c2t(ifc.constant_pool.get(i).deref()) for i in ifc.interfaces)
+    return null
 
 if module?
   module.exports = ClassFile
