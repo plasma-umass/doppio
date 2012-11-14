@@ -100,7 +100,7 @@ dev development: $(DEMO_CLASSES) browser/mini-rt.tar browser/listings.json
 
 # hack. overwriting .js means that we won't detect if we previously did an
 # unoptimized compile.
-src/%.js: src/%.coffee
+%.js: %.coffee
 	$(SED) -r "s/^( *)(debug|v?trace).*$$/\1\`\`/" $? | $(COFFEEC) --stdio --print > $@
 	$(UGLIFYJS) --define RELEASE --no-mangle --unsafe --beautify --overwrite $@
 opt: $(CLI_SRCS:.coffee=.js)
