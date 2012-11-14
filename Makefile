@@ -15,6 +15,7 @@ DOCCO    := $(DOPPIO_DIR)/node_modules/docco/bin/docco
 ADMZIP   := $(DOPPIO_DIR)/node_modules/adm-zip/adm-zip.js
 JAZZLIB  := $(DOPPIO_DIR)/vendor/classes/java/util/zip/DeflaterEngine.class
 JRE      := $(DOPPIO_DIR)/vendor/classes/java/lang/Object.class
+SED      := $(shell if command -v gsed >/dev/null; then echo "gsed"; else echo "sed"; fi;)
 
 # JAVA TEST CLASSES & DEMOS
 SOURCES = $(wildcard test/*.java)
@@ -68,6 +69,7 @@ benchmark_BROWSER_SRCS = $(COMMON_BROWSER_SRCS) \
 ACE_SRCS = vendor/ace/src-min/ace.js \
 	vendor/ace/src-min/mode-java.js \
 	vendor/ace/src-min/theme-twilight.js
+CLI_SRCS = $(wildcard src/*.coffee console/*.coffee)
 
 # Variable setting that is conditional on the target
 ifeq ($(MAKECMDGOALS),benchmark)
@@ -95,6 +97,13 @@ benchmark: build $(BUILD_DIR)/browser/listings.json
 dev development: $(DEMO_CLASSES) browser/mini-rt.tar browser/listings.json
 	$(COFFEEC) -c */*.coffee
 	cpp -P browser/index.html index.html
+
+# hack. overwriting .js means that we won't detect if we previously did an
+# unoptimized compile.
+src/%.js: src/%.coffee
+	$(SED) -r "s/^( *)(debug|v?trace).*$$/\1\`\`/" $? | $(COFFEEC) --stdio --print > $@
+	$(UGLIFYJS) --define RELEASE --no-mangle --unsafe --beautify --overwrite $@
+opt: $(CLI_SRCS:.coffee=.js)
 
 # Builds a distributable version of Doppio.
 dist: $(DIST_NAME)
@@ -173,15 +182,10 @@ $(BUILD_DIR)/%.html: $(BROWSER_HTML) $(wildcard browser/_*.html)
 	cpp -P -traditional-cpp -DRELEASE browser/$*.html $@
 
 $(BUILD_DIR)/compressed.js: $(BROWSER_SRCS)
-	if command -v gsed >/dev/null; then \
-		SED="gsed"; \
-	else \
-		SED="sed"; \
-	fi; \
 	for src in $(BROWSER_SRCS); do \
 		if [ "$${src##*.}" == "coffee" ]; then \
 			$(: `` is essentially Coffeescript's equivalent of Python's 'pass') \
-			$$SED -r "s/^( *)(debug|v?trace).*$$/\1\`\`/" $${src} | $(COFFEEC) --stdio --print; \
+			$(SED) -r "s/^( *)(debug|v?trace).*$$/\1\`\`/" $${src} | $(COFFEEC) --stdio --print; \
 		else \
 			cat $${src}; \
 		fi; \
