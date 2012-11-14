@@ -32,9 +32,7 @@ internal2external =
 external2internal = {}
 external2internal[v]=k for k,v of internal2external
 
-# convenience function for generating type from string
-root.str2type = (type_str) -> root.carr2type type_str.split('')
-
+# consumes characters from the array until it finishes reading one full type.
 root.carr2type = (carr) ->
   c = carr.shift()
   return null unless c?
@@ -48,18 +46,35 @@ root.carr2type = (carr) ->
     carr.unshift(c)
     throw new Error "Unrecognized type string: #{carr.join ''}"
 
+# fast path: generate type from string
+root.str2type = (type_str) ->
+  c = type_str[0]
+  if c of internal2external
+    new root.PrimitiveType internal2external[c]
+  else if c == 'L'
+    new root.ClassType(type_str[1...-1])
+  else if c == '['
+    new root.ArrayType root.str2type type_str[1...]
+  else
+    throw new Error "Unrecognized type string: #{type_str}"
+
 # another convenience function, for converting class names to
 # array types / class types
 root.c2t = (type_str) ->
-  if type_str instanceof root.Type then throw "#{type_str} is already a Type"
-  else if type_str[0] == '[' then root.str2type type_str
+  if not UNSAFE? and type_str instanceof root.Type then throw "#{type_str} is already a Type"
+  if type_str[0] == '[' then root.str2type type_str
   else new root.ClassType type_str
 
 class root.Type
   toString: -> @valueOf()
 
 class root.PrimitiveType extends root.Type
-  constructor: (@name) ->
+  type_cache = {}
+
+  constructor: (name) ->
+    return type_cache[name] if type_cache.hasOwnProperty name
+    @name = name
+    type_cache[name] = @
 
   valueOf: -> external2internal[@name]
 
@@ -104,8 +119,7 @@ root.check_cast = (rs, obj, classname) ->
 # :type1 and :type2 should both be instances of types.Type.
 root.is_castable = (rs, type1, type2) ->
   if (type1 instanceof root.PrimitiveType) or (type2 instanceof root.PrimitiveType)
-    # since types are created on the fly, we can have different Type objects for the same type
-    return type1.name == type2.name
+    return type1 == type2
   if type1 instanceof root.ArrayType
     if type2 instanceof root.ArrayType
       return root.is_castable(rs, type1.component_type, type2.component_type)

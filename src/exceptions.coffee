@@ -14,14 +14,12 @@ class root.HaltException
   toplevel_catch_handler: () ->
     console.error "\nExited with code #{@exit_code}" unless @exit_code is 0
 
-root.ReturnException =
-  method_catch_handler: (rs, method, padding) ->
-    vtrace "#{padding}stack: [#{debug_vars cf.stack}],\nlocal: [#{debug_vars cf.locals}] (end method #{method.class_type.toClassString()}::#{method.name})"
+root.ReturnException = {}
 
 class root.YieldException
   constructor: (@condition) ->
   method_catch_handler: (rs, method) ->
-    trace "yielding from #{method.full_signature()}"
+    trace "yielding from #{method.full_signature}"
     throw @
 
 class root.YieldIOException extends root.YieldException

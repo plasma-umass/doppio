@@ -48,7 +48,7 @@ class ClassFile
     # class attributes
     @attrs = attributes.make_attributes(bytes_array,@constant_pool)
     throw "Leftover bytes in classfile: #{bytes_array}" if bytes_array.has_bytes()
-    Object.seal(@)
+    Object.seal(@) unless UNSAFE?
 
   @for_array_type: (type) ->
     class_file = Object.create ClassFile.prototype # avoid calling the constructor

@@ -102,7 +102,7 @@ dev development: $(DEMO_CLASSES) browser/mini-rt.tar browser/listings.json
 # unoptimized compile.
 %.js: %.coffee
 	$(SED) -r "s/^( *)(debug|v?trace).*$$/\1\`\`/" $? | $(COFFEEC) --stdio --print > $@
-	$(UGLIFYJS) --define RELEASE --no-mangle --unsafe --beautify --overwrite $@
+	$(UGLIFYJS) --define RELEASE --define UNSAFE --no-mangle --unsafe --beautify --overwrite $@
 opt: $(CLI_SRCS:.coffee=.js)
 
 # Builds a distributable version of Doppio.
