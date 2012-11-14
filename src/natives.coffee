@@ -275,6 +275,10 @@ native_methods =
             f_view = new Float32Array [f_val]
             i_view = new Int32Array f_view.buffer
             i_view[0]
+        o 'intBitsToFloat(I)F', (rs, i_val) ->
+            i_view = new Int32Array [i_val]
+            f_view = new Float32Array i_view.buffer
+            f_view[0]
       ]
       Double: [
         o 'doubleToRawLongBits(D)J', (rs, d_val) ->
@@ -384,7 +388,7 @@ native_methods =
                 # Must be two reference types.
                 arraycopy_check(rs, src, src_pos, dest, dest_pos, length)
         o 'currentTimeMillis()J', (rs) -> gLong.fromNumber((new Date).getTime())
-        o 'identityHashCode(L!/!/Object;)I', (x) -> x.ref
+        o 'identityHashCode(L!/!/Object;)I', (rs, x) -> x.ref
         o 'initProperties(L!/util/Properties;)L!/util/Properties;', (rs, props) -> rs.push null # return value should not be used
         o 'nanoTime()J', (rs) ->
             # we don't actually have nanosecond precision
