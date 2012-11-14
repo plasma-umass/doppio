@@ -16,7 +16,7 @@ class root.HaltException
 
 root.ReturnException =
   method_catch_handler: (rs, method, padding) ->
-    vtrace "#{padding}stack: [#{debug_vars cf.stack}],\nlocal: [#{debug_vars cf.locals}] (end method #{method.class_type.toClassString()}::#{method.name})"
+    vtrace "#{padding}stack: [#{debug_vars rs.curr_frame().stack}],\nlocal: [#{debug_vars rs.curr_frame().locals}] (end method #{method.full_signature()})"
 
 class root.YieldException
   constructor: (@condition) ->
