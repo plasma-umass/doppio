@@ -111,7 +111,7 @@ doPrivileged = (rs) ->
   action = rs.curr_frame().locals[0]
   m = rs.method_lookup(class: action.type.toClassString(), sig: 'run()Ljava/lang/Object;')
   rs.push action unless m.access_flags.static
-  m.run(rs,m.access_flags.virtual)
+  m.run(rs)
   rs.pop()
 
 stat_file = (fname) ->

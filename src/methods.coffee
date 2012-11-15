@@ -75,8 +75,9 @@ class root.Method extends AbstractMethodField
           @code = null
         else
           @code = (rs) =>
+            sig = @full_signature
             unless sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
-              java_throw rs, 'java/lang/Error', "native method NYI: #{@full_signature}"
+              java_throw rs, 'java/lang/Error', "native method NYI: #{sig}"
     else
       @code = _.find(@attrs, (a) -> a.constructor.name == "Code")
 
@@ -144,9 +145,9 @@ class root.Method extends AbstractMethodField
     code = @code.opcodes
     cf = rs.curr_frame()
     while true
-      pc = cf.pc
-      op = code[pc]
+      op = code[cf.pc]
       unless RELEASE? or logging.log_level < logging.STRACE
+        pc = cf.pc
         throw "#{@name}:#{pc} => (null)" unless op
         vtrace "#{padding}stack: [#{debug_vars cf.stack}], local: [#{debug_vars cf.locals}]"
         annotation =
@@ -157,31 +158,15 @@ class root.Method extends AbstractMethodField
     # Must explicitly return here, to avoid Coffeescript accumulating an array of cf.pc values
     return
 
-  run: (runtime_state,virtual=false) ->
+  run: (runtime_state) ->
     ms = runtime_state.meta_stack()
     if ms.resuming_stack?
       trace "resuming at ", @full_signature
       ms.resuming_stack++
-      if virtual
-        cf = ms.curr_frame()
-        unless cf.method is @
-          ms.resuming_stack--
-          return cf.method.run(runtime_state)
       if ms.resuming_stack == ms.length() - 1
         ms.resuming_stack = null
     else
       caller_stack = runtime_state.curr_frame().stack
-      if virtual
-        # dirty hack to bounce up the inheritance tree, to make sure we call the
-        # method on the most specific type
-        obj = caller_stack[caller_stack.length-@param_bytes]
-        unless caller_stack.length-@param_bytes >= 0 and obj?
-          java_throw runtime_state, 'java/lang/NullPointerException',
-            "null 'this' in virtual lookup for #{@full_signature}"
-        return runtime_state.method_lookup({
-            class: obj.type.toClassString(),
-            sig: @name + @raw_descriptor
-          }).run(runtime_state)
       params = @take_params caller_stack
       ms.push(new runtime.StackFrame(this,params,[]))
     padding = unless RELEASE? then (' ' for [2...ms.length()]).join('') else null

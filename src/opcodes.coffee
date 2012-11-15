@@ -44,12 +44,68 @@ class root.InvokeOpcode extends root.Opcode
 
   take_args: (code_array, constant_pool) ->
     @method_spec_ref = code_array.get_uint(2)
+    @method_spec = constant_pool.get(@method_spec_ref).deref()
+
+  execute: (rs) ->
+    m = rs.method_lookup(@method_spec)
+    @execute = m.run.bind(m)
+    m.run(rs)
+
+class root.DynInvokeOpcode extends root.InvokeOpcode
+  constructor: (name, params) ->
+    super name, params
+    @byte_count = 2
+
+  take_args: (code_array, constant_pool) ->
+    super code_array, constant_pool
     # invokeinterface has two redundant bytes
     if @name == 'invokeinterface'
       @count = code_array.get_uint 1
       code_array.skip 1
       @byte_count += 2
-    @method_spec = constant_pool.get(@method_spec_ref).deref()
+    else # invokevirtual
+      @count = 1 + get_param_word_size @method_spec.sig
+    @cache = Object.create null
+
+  execute: (rs) ->
+    unless rs.meta_stack().resuming_stack?
+      stack = rs.curr_frame().stack
+      obj = stack[stack.length - @count]
+      cls = rs.check_null(obj).type.toClassString()
+      if @cache[cls] is undefined
+       @cache[cls] = rs.method_lookup(class: cls, sig: @method_spec.sig)
+      @cache[cls].run(rs)
+    else
+      rs.meta_stack().resuming_stack++
+      m = rs.curr_frame().method
+      rs.meta_stack().resuming_stack--
+      m.run(rs)
+
+  get_param_word_size = (spec) ->
+    state = 'name'
+    size = 0
+    for c in spec
+      switch state
+        when 'name'
+          state = 'type' if c is '('
+        when 'type'
+          if c is ')'
+            return size
+          if c in ['J', 'D']
+            size += 2
+          else
+            ++size
+          if c is 'L'
+            state = 'class'
+          else if c is '['
+            state = 'array'
+        when 'class'
+          state = 'type' if c is ';'
+        when 'array'
+          if c is 'L'
+            state = 'class'
+          else unless c is '['
+            state = 'type'
 
 class root.LoadConstantOpcode extends root.Opcode
   take_args: (code_array, constant_pool) ->
@@ -477,10 +533,10 @@ root.opcodes = {
   179: new root.FieldOpcode 'putstatic', {execute: (rs)-> rs.static_put @field_spec }
   180: new root.FieldOpcode 'getfield', {execute: (rs)-> rs.heap_get @field_spec, rs.pop() }
   181: new root.FieldOpcode 'putfield', {execute: (rs)-> rs.heap_put @field_spec }
-  182: new root.InvokeOpcode 'invokevirtual',  { execute: (rs)-> rs.method_lookup(@method_spec).run(rs,true)}
-  183: new root.InvokeOpcode 'invokespecial',  { execute: (rs)-> rs.method_lookup(@method_spec).run(rs)}
-  184: new root.InvokeOpcode 'invokestatic',   { execute: (rs)-> rs.method_lookup(@method_spec).run(rs)}
-  185: new root.InvokeOpcode 'invokeinterface',{ execute: (rs)-> rs.method_lookup(@method_spec).run(rs,true)}
+  182: new root.DynInvokeOpcode 'invokevirtual'
+  183: new root.InvokeOpcode 'invokespecial'
+  184: new root.InvokeOpcode 'invokestatic'
+  185: new root.DynInvokeOpcode 'invokeinterface'
   187: new root.ClassOpcode 'new', { execute: (rs) -> rs.push rs.init_object @class }
   188: new root.NewArrayOpcode 'newarray', { execute: (rs) -> rs.push rs.heap_newarray @element_type, rs.pop() }
   189: new root.ClassOpcode 'anewarray', { execute: (rs) -> rs.push rs.heap_newarray "L#{@class};", rs.pop() }
