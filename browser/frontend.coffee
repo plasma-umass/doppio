@@ -143,15 +143,17 @@ $(document).ready ->
     welcomeMessage: """
       Welcome to Doppio! You may wish to try the following Java programs:
         rhino
-        javac FileRead.java
-        javac Fib.java
-        java FileRead
-        java Fib <num>
-        java Chatterbot
-        java DiffPrint foo bar
-        java RegexTestHarness
-        java Lzw c foo foo_lzw (compress)
-        java Lzw d foo_lzw foo (decompress)
+        javac test/special/FileRead.java
+        javac test/Fib.java
+        java test/special/FileRead
+        java test/Fib <num>
+        
+        java test/special/Chatterbot
+        java test/special/RegexTestHarness
+
+        java test/special/Lzw c Hello.txt hello.lzw (compress)
+        java test/special/Lzw d hello.lzw hello (decompress)
+        java test/special/DiffPrint Hello.txt hello
 
       The .java files can be inspected by typing `edit [filename]`.
 
