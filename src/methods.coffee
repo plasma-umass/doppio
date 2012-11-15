@@ -32,7 +32,6 @@ class AbstractMethodField
     @raw_descriptor = constant_pool.get(bytes_array.get_uint 2).value
     @parse_descriptor @raw_descriptor
     @attrs = attributes.make_attributes(bytes_array,constant_pool)
-    @code = _.find(@attrs, (a) -> a.constructor.name == "Code")
 
 class root.Field extends AbstractMethodField
   parse_descriptor: (raw_descriptor) ->
@@ -62,6 +61,24 @@ class root.Method extends AbstractMethodField
     @num_args++ unless @access_flags.static # nonstatic methods get 'this'
     @return_type = str2type return_str
     @full_signature = "#{@class_type.toClassString()}::#{@name}#{@raw_descriptor}"
+
+  parse: (bytes_array, constant_pool, idx) ->
+    super bytes_array, constant_pool, idx
+    if (c = trapped_methods[@full_signature])?
+      @code = c
+      @access_flags.native = true
+    else if @access_flags.native
+      if (c = native_methods[@full_signature])?
+        @code = c
+      else
+        if UNSAFE?
+          @code = null
+        else
+          @code = (rs) =>
+            unless sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
+              java_throw rs, 'java/lang/Error', "native method NYI: #{@full_signature}"
+    else
+      @code = _.find(@attrs, (a) -> a.constructor.name == "Code")
 
   reflector: (rs, is_constructor=false) ->
     typestr = if is_constructor then 'java/lang/reflect/Constructor' else 'java/lang/reflect/Method'
@@ -141,10 +158,9 @@ class root.Method extends AbstractMethodField
     return
 
   run: (runtime_state,virtual=false) ->
-    sig = @full_signature
     ms = runtime_state.meta_stack()
     if ms.resuming_stack?
-      trace "resuming at ", sig
+      trace "resuming at ", @full_signature
       ms.resuming_stack++
       if virtual
         cf = ms.curr_frame()
@@ -161,7 +177,7 @@ class root.Method extends AbstractMethodField
         obj = caller_stack[caller_stack.length-@param_bytes]
         unless caller_stack.length-@param_bytes >= 0 and obj?
           java_throw runtime_state, 'java/lang/NullPointerException',
-            "null 'this' in virtual lookup for #{sig}"
+            "null 'this' in virtual lookup for #{@full_signature}"
         return runtime_state.method_lookup({
             class: obj.type.toClassString(),
             sig: @name + @raw_descriptor
@@ -169,33 +185,23 @@ class root.Method extends AbstractMethodField
       params = @take_params caller_stack
       ms.push(new runtime.StackFrame(this,params,[]))
     padding = unless RELEASE? then (' ' for [2...ms.length()]).join('') else null
-    # check for trapped and native methods, run those manually
     cf = runtime_state.curr_frame()
     if cf.resume? # we are resuming from a yield, and this was a manually run method
-      trace "#{padding}resuming method #{sig}"
+      trace "#{padding}resuming method #{@full_signature}"
       @run_manually cf.resume, runtime_state
       cf.resume = null
       return
-    if trapped_methods.hasOwnProperty sig
-      trace "#{padding}entering trapped method #{sig}"
-      return @run_manually trapped_methods[sig], runtime_state
+
     if @access_flags.native
-      if native_methods.hasOwnProperty sig
-        trace "#{padding}entering native method #{sig}"
-        return @run_manually native_methods[sig], runtime_state
-      # UNSAFE should be used to optimize around sanity checks.  It should
-      # _not_ be used to create optimizations that induce wrong behavior.
-      if UNSAFE?
-        return ms.pop() # assume that we have implemented all the necessary natives
+      if @code?
+        trace "#{padding}entering native method #{@full_signature}"
+        return @run_manually @code, runtime_state
       else
-        ms.pop()
-        unless sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
-          java_throw runtime_state, 'java/lang/Error', "native method NYI: #{sig}"
-        return
-          
+        return ms.pop() # optimization: avoid copying param values around
+
     if @access_flags.abstract
-      java_throw runtime_state, 'java/lang/Error', "called abstract method: #{sig}"
+      java_throw runtime_state, 'java/lang/Error', "called abstract method: #{@full_signature}"
 
     # Finally, the normal case: running a Java method
-    trace "#{padding}entering method #{sig}"
+    trace "#{padding}entering method #{@full_signature}"
     @run_bytecode runtime_state, padding

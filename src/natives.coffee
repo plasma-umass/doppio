@@ -71,7 +71,7 @@ trapped_methods =
                   _.find(attrs, (attr) -> attr.constructor.name == 'SourceFile')?.name or 'unknown'
               else
                 source_file = 'unknown'
-              line_nums = sf.method.code?.attrs[0]?.entries
+              line_nums = sf.method.code?.attrs?[0]?.entries
               if line_nums?
                 ln = _.last(row.line_number for i,row of line_nums when row.start_pc <= sf.pc)
               else
@@ -785,6 +785,7 @@ flatten_pkg = (pkg) ->
     for pkg_name, inner_pkg of pkg
       pkg_name_arr.push pkg_name
       if inner_pkg instanceof Array
+        full_pkg_name = pkg_name_arr.join '/'
         for method in inner_pkg
           {fn_name, fn} = method
           # expand out the '!'s in the method names
@@ -794,7 +795,7 @@ flatten_pkg = (pkg) ->
               if c == '!' then pkg_name_arr[depth++]
               else if c == ';' then depth = 0; c
               else c
-          full_name = "#{pkg_name_arr.join '/'}::#{fn_name}"
+          full_name = "#{full_pkg_name}::#{fn_name}"
           result[full_name] = fn
       else
         flattened_inner = rec_flatten inner_pkg
