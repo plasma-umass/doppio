@@ -53,6 +53,7 @@ class ClassFile
   @for_array_type: (type) ->
     class_file = Object.create ClassFile.prototype # avoid calling the constructor
     class_file.constant_pool = new ConstantPool
+    class_file.ml_cache = []
     class_file.access_flags = {}
     class_file.this_class = type
     class_file.super_class = c2t('java/lang/Object')
@@ -71,9 +72,9 @@ class ClassFile
     method = @methods[method_spec.sig]
     return method if method?
 
-    parent = rs.class_lookup @super_class
-    if parent?
-      method = parent.method_lookup(method_spec.sig)
+    if @super_class?
+      parent = rs.class_lookup @super_class
+      method = parent.method_lookup(rs, method_spec)
       return method if method?
 
     ifaces = (c2t(@constant_pool.get(i).deref()) for i in @interfaces)
