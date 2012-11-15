@@ -70,14 +70,13 @@ class root.Method extends AbstractMethodField
     else if @access_flags.native
       if (c = native_methods[@full_signature])?
         @code = c
+      else if UNSAFE?
+        @code = null # optimization: avoid copying around params if it is a no-op.
       else
-        if UNSAFE?
-          @code = null
-        else
-          @code = (rs) =>
-            sig = @full_signature
-            unless sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
-              java_throw rs, 'java/lang/Error', "native method NYI: #{sig}"
+        @code = (rs) =>
+          sig = @full_signature
+          unless sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
+            java_throw rs, 'java/lang/Error', "native method NYI: #{sig}"
     else
       @code = _.find(@attrs, (a) -> a.constructor.name == "Code")
 
@@ -109,8 +108,7 @@ class root.Method extends AbstractMethodField
     caller_stack.length -= @param_bytes
     params
 
-  run_manually: (func, rs) ->
-    params = rs.curr_frame().locals
+  run_manually: (func, rs, params) ->
     converted_params = [rs]
     param_idx = 0
     if not @access_flags.static
@@ -160,33 +158,35 @@ class root.Method extends AbstractMethodField
 
   run: (runtime_state) ->
     ms = runtime_state.meta_stack()
-    if ms.resuming_stack?
-      trace "resuming at ", @full_signature
+    padding = unless RELEASE? then (' ' for [1...ms.length()]).join('') else null
+    if ms.resuming_stack? # we are resuming from a yield
       ms.resuming_stack++
       if ms.resuming_stack == ms.length() - 1
         ms.resuming_stack = null
+      cf = runtime_state.curr_frame()
+      if cf.resume? # this was a manually run method
+        trace "#{padding}resuming native method #{@full_signature}"
+        @run_manually cf.resume, runtime_state, []
+        cf.resume = null
+        return
+      else
+        trace "#{padding}resuming method #{@full_signature}"
+        @run_bytecode runtime_state, padding
     else
       caller_stack = runtime_state.curr_frame().stack
       params = @take_params caller_stack
+
+      if @access_flags.native
+        if @code?
+          trace "#{padding}entering native method #{@full_signature}"
+          ms.push(new runtime.StackFrame(this,[],[]))
+          @run_manually @code, runtime_state, params
+        return
+
+      if @access_flags.abstract
+        java_throw runtime_state, 'java/lang/Error', "called abstract method: #{@full_signature}"
+
+      # Finally, the normal case: running a Java method
+      trace "#{padding}entering method #{@full_signature}"
       ms.push(new runtime.StackFrame(this,params,[]))
-    padding = unless RELEASE? then (' ' for [2...ms.length()]).join('') else null
-    cf = runtime_state.curr_frame()
-    if cf.resume? # we are resuming from a yield, and this was a manually run method
-      trace "#{padding}resuming method #{@full_signature}"
-      @run_manually cf.resume, runtime_state
-      cf.resume = null
-      return
-
-    if @access_flags.native
-      if @code?
-        trace "#{padding}entering native method #{@full_signature}"
-        return @run_manually @code, runtime_state
-      else
-        return ms.pop() # optimization: avoid copying param values around
-
-    if @access_flags.abstract
-      java_throw runtime_state, 'java/lang/Error', "called abstract method: #{@full_signature}"
-
-    # Finally, the normal case: running a Java method
-    trace "#{padding}entering method #{@full_signature}"
-    @run_bytecode runtime_state, padding
+      @run_bytecode runtime_state, padding

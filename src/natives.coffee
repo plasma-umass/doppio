@@ -62,7 +62,7 @@ trapped_methods =
             _this.set_field rs, 'stackTrace', strace
             # we don't want to include the stack frames that were created by
             # the construction of this exception
-            cstack = rs.meta_stack()._cs.slice(1)
+            cstack = rs.meta_stack()._cs.slice(1,-1)
             for sf in cstack when sf.locals[0] isnt _this
               cls = sf.method.class_type
               unless _this.type.toClassString() is 'java/lang/NoClassDefFoundError'
@@ -107,8 +107,7 @@ trapped_methods =
           o 'run()L!/lang/Object;', (rs) -> null
         ]
 
-doPrivileged = (rs) ->
-  action = rs.curr_frame().locals[0]
+doPrivileged = (rs, action) ->
   m = rs.method_lookup(class: action.type.toClassString(), sig: 'run()Ljava/lang/Object;')
   rs.push action unless m.access_flags.static
   m.run(rs)
@@ -340,7 +339,7 @@ native_methods =
             throw new exceptions.YieldIOException (cb) -> setTimeout(cb, 0)
       ]
       Shutdown: [
-        o 'halt0(I)V', (rs) -> throw new exceptions.HaltException(rs.curr_frame().locals[0])
+        o 'halt0(I)V', (rs, status) -> throw new exceptions.HaltException(status)
       ]
       StrictMath: [
         o 'acos(D)D', (rs, d_val) -> Math.acos(d_val)
@@ -423,6 +422,7 @@ native_methods =
             spawning_thread = rs.curr_thread
             my_name = thread_name rs, _this
             orig_name = thread_name rs, spawning_thread
+            method_to_run = null # this will be populated by the yield callback
             rs.curr_frame().resume = -> # thread cleanup
               debug "TE: deleting #{my_name} after resume"
               _this.$isAlive = false
@@ -438,9 +438,9 @@ native_methods =
                 _this.$isAlive = false
               cb ->
                 debug "TE: actually resuming #{thread_name rs, rs.curr_thread}"
-                rs.meta_stack().resuming_stack = 1  # the first method called, likely Thread::run()
+                rs.meta_stack().resuming_stack = 0
                 try
-                  rs.curr_frame().method.run(rs, true)
+                  method_to_run.run(rs, true)
                 catch e
                   throw e unless e instanceof exceptions.YieldException
                   resume_thread e.condition
@@ -452,7 +452,8 @@ native_methods =
               # call the thread's run() method.
               rs.push _this
               try
-                rs.method_lookup({class: _this.type.toClassString(), sig: 'run()V'}).run(rs)
+                method_to_run = rs.method_lookup({class: _this.type.toClassString(), sig: 'run()V'})
+                method_to_run.run(rs)
               catch e
                 if e instanceof exceptions.YieldIOException
                   return e.condition ->
