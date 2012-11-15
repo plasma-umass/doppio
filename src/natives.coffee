@@ -24,10 +24,13 @@ system_properties = {
   'line.separator':'\n', 'file.separator':'/', 'path.separator':':',
   'user.dir':'.','user.home':'.','user.name':'DoppioUser',
   'os.name':'Doppio', 'os.arch': 'js', 'os.version': '0',
-  'sun.boot.class.path': '/home/doppio/vendor/classes',
   'java.awt.headless': 'true',
   'useJavaUtilZip': 'true'  # hack for sun6javac, avoid ZipFileIndex shenanigans
 }
+if node?  # node is only defined if we're in the browser
+  system_properties['sun.boot.class.path'] = '/home/doppio/vendor/classes'
+else
+  system_properties['sun.boot.class.path'] = path.resolve __dirname, '../vendor/classes'
 
 get_property = (rs, jvm_key, _default = null) ->
   val = system_properties[jvm_key.jvm2js_str()]
@@ -275,6 +278,10 @@ native_methods =
             f_view = new Float32Array [f_val]
             i_view = new Int32Array f_view.buffer
             i_view[0]
+        o 'intBitsToFloat(I)F', (rs, i_val) ->
+            i_view = new Int32Array [i_val]
+            f_view = new Float32Array i_view.buffer
+            f_view[0]
       ]
       Double: [
         o 'doubleToRawLongBits(D)J', (rs, d_val) ->
@@ -384,7 +391,7 @@ native_methods =
                 # Must be two reference types.
                 arraycopy_check(rs, src, src_pos, dest, dest_pos, length)
         o 'currentTimeMillis()J', (rs) -> gLong.fromNumber((new Date).getTime())
-        o 'identityHashCode(L!/!/Object;)I', (x) -> x.ref
+        o 'identityHashCode(L!/!/Object;)I', (rs, x) -> x.ref
         o 'initProperties(L!/util/Properties;)L!/util/Properties;', (rs, props) -> rs.push null # return value should not be used
         o 'nanoTime()J', (rs) ->
             # we don't actually have nanosecond precision

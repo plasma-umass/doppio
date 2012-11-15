@@ -61,8 +61,7 @@ class root.Method extends AbstractMethodField
     @num_args = @param_types.length
     @num_args++ unless @access_flags.static # nonstatic methods get 'this'
     @return_type = str2type return_str
-
-  full_signature: -> "#{@class_type.toClassString()}::#{@name}#{@raw_descriptor}"
+    @full_signature = "#{@class_type.toClassString()}::#{@name}#{@raw_descriptor}"
 
   reflector: (rs, is_constructor=false) ->
     typestr = if is_constructor then 'java/lang/reflect/Constructor' else 'java/lang/reflect/Method'
@@ -118,14 +117,9 @@ class root.Method extends AbstractMethodField
     try
       @bytecode_loop(rs, padding)
     catch e
-      unless RELEASE?
-        # JVM Error
-        throw e unless e.method_catch_handler?
-        e.method_catch_handler(rs, @, padding)
-        return if e is ReturnException
-      else
-        return if e is ReturnException
-        e.method_catch_handler(rs, @, padding)
+      return if e is ReturnException
+      throw e unless e.method_catch_handler? # JVM Error
+      e.method_catch_handler(rs, @, padding)
       @run_bytecode(rs, padding)
 
   bytecode_loop: (rs, padding) ->
@@ -147,7 +141,7 @@ class root.Method extends AbstractMethodField
     return
 
   run: (runtime_state,virtual=false) ->
-    sig = @full_signature()
+    sig = @full_signature
     ms = runtime_state.meta_stack()
     if ms.resuming_stack?
       trace "resuming at ", sig
@@ -182,20 +176,24 @@ class root.Method extends AbstractMethodField
       @run_manually cf.resume, runtime_state
       cf.resume = null
       return
-    if trapped_methods[sig]
+    if trapped_methods.hasOwnProperty sig
       trace "#{padding}entering trapped method #{sig}"
       return @run_manually trapped_methods[sig], runtime_state
     if @access_flags.native
-      if sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
-        ms.pop() # these are all just NOPs
-        return
       if native_methods.hasOwnProperty sig
         trace "#{padding}entering native method #{sig}"
         return @run_manually native_methods[sig], runtime_state
-      try
-        java_throw runtime_state, 'java/lang/Error', "native method NYI: #{sig}"
-      finally
-        ms.pop()
+      # UNSAFE should be used to optimize around sanity checks.  It should
+      # _not_ be used to create optimizations that induce wrong behavior.
+      if UNSAFE?
+        return ms.pop() # assume that we have implemented all the necessary natives
+      else
+        if sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
+          return ms.pop() # these are all just NOPs
+        try
+          java_throw runtime_state, 'java/lang/Error', "native method NYI: #{sig}"
+        finally
+          ms.pop()
     if @access_flags.abstract
       java_throw runtime_state, 'java/lang/Error', "called abstract method: #{sig}"
 

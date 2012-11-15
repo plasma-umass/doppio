@@ -469,7 +469,7 @@ root.opcodes = {
   175: new root.Opcode 'dreturn', { execute: (rs) -> cf = rs.meta_stack().pop(); rs.push2 cf.stack[0], null; throw ReturnException }
   176: new root.Opcode 'areturn', { execute: (rs) -> cf = rs.meta_stack().pop(); rs.push cf.stack[0]; throw ReturnException }
   177: new root.Opcode 'return', { execute: (rs) ->
-    unless RELEASE?
+    unless UNSAFE?
       throw new Error("too many values on stack for void return") if rs.curr_frame().stack.length > 0
     rs.meta_stack().pop()
     throw ReturnException }
