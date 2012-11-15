@@ -15,8 +15,8 @@ class ClassFile
   # All class attributes should not be modified (e.g. by a running program)
   # once it has been constructed.
   constructor: (bytes_array) ->
-    @ml_cache = []
-    @fl_cache = []
+    @ml_cache = {}
+    @fl_cache = {}
     bytes_array = new util.BytesArray bytes_array
     throw "Magic number invalid" if (bytes_array.get_uint 4) != 0xCAFEBABE
     @minor_version = bytes_array.get_uint 2
@@ -54,14 +54,14 @@ class ClassFile
   @for_array_type: (type) ->
     class_file = Object.create ClassFile.prototype # avoid calling the constructor
     class_file.constant_pool = new ConstantPool
-    class_file.ml_cache = []
-    class_file.fl_cache = []
+    class_file.ml_cache = {}
+    class_file.fl_cache = {}
     class_file.access_flags = {}
     class_file.this_class = type
     class_file.super_class = c2t('java/lang/Object')
     class_file.interfaces = []
     class_file.fields = []
-    class_file.methods = []
+    class_file.methods = {}
     class_file.attrs = []
     class_file
 
@@ -77,9 +77,8 @@ class ClassFile
       if field.name is field_spec.name
         return field
 
-    ifaces = (c2t(@constant_pool.get(i).deref()) for i in @interfaces)
-    for ifc in ifaces
-      ifc_cls = rs.class_lookup ifc
+    for i in @interfaces
+      ifc_cls = rs.class_lookup c2t @constant_pool.get(i).deref()
       field = ifc_cls.field_lookup(rs, field_spec)
       return field if field?
 
@@ -87,7 +86,7 @@ class ClassFile
       sc = rs.class_lookup @super_class
       field = sc.field_lookup(rs, field_spec)
       return field if field?
-    null
+    return null
 
   # Spec [5.4.3.3][1], [5.4.3.4][2].
   # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#79473
@@ -106,14 +105,11 @@ class ClassFile
       method = parent.method_lookup(rs, method_spec)
       return method if method?
 
-    ifaces = (c2t(@constant_pool.get(i).deref()) for i in @interfaces)
-    while ifaces.length > 0
-      iface_name = ifaces.shift()
-      ifc = rs.class_lookup iface_name
-      method = ifc.methods[method_spec.sig]
+    for i in @interfaces
+      ifc = rs.class_lookup c2t @constant_pool.get(i).deref()
+      method = ifc.method_lookup(rs, method_spec)
       return method if method?
-      Array::push.apply ifaces,
-        (c2t(ifc.constant_pool.get(i).deref()) for i in ifc.interfaces)
+
     return null
 
 if module?
