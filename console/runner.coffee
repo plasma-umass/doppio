@@ -9,9 +9,9 @@ runtime = require '../src/runtime'
 
 "use strict"
 
-run_profiled = (rs, cname, java_cmd_args, hot=false) ->
+run_profiled = (runner, rs, cname, hot=false) ->
   if hot
-    jvm.run_class rs, cname, java_cmd_args
+    runner()
   timings = {}
   call_counts = {}
   profiled_fn = (old_fn) -> ->
@@ -24,7 +24,7 @@ run_profiled = (rs, cname, java_cmd_args, hot=false) ->
     call_counts[method_name] ?= 0
 
     start = (new Date).getTime()
-    old_fn.call this, arguments...
+    old_fn.apply this, arguments
     end = (new Date).getTime()
 
     timings[hash] += end - start
@@ -33,7 +33,7 @@ run_profiled = (rs, cname, java_cmd_args, hot=false) ->
   methods.Method::run_bytecode = profiled_fn(methods.Method::run_bytecode)
   methods.Method::run_manually = profiled_fn(methods.Method::run_manually)
 
-  jvm.run_class rs, cname, java_cmd_args
+  runner()
 
   self_timings = {}
   total_timings = {}
@@ -52,6 +52,14 @@ run_profiled = (rs, cname, java_cmd_args, hot=false) ->
   for entry in arr[0..30]
     avg = entry.self / entry.counts
     console.log "#{entry.total}\t#{entry.self}\t#{entry.counts}\t#{avg.toFixed 1}\t#{entry.name}"
+
+stub = (obj, name, replacement, wrapped) ->
+  old_fn = obj[name]
+  try
+    obj[name] = replacement
+    wrapped()
+  finally
+    obj[name] = old_fn
 
 extract_jar = (jar_path, main_class_name) ->
   AdmZip = require 'adm-zip'
@@ -85,6 +93,8 @@ if require.main == module
     --log=[0-10]|vtrace|trace|debug|error
     --profile
     --jar=[path to JAR file]
+    --count-logs
+    --skip-logs=[number of calls to skip]
     --help
   '''
 
@@ -127,7 +137,17 @@ if require.main == module
     unless cname?
       console.error "No main class provided and no Main-Class found in #{argv.jar}"
 
+  run = -> jvm.run_class rs, cname, java_cmd_args, null, argv.compile
+
   if argv.profile?
-    run_profiled rs, cname, java_cmd_args, argv.hot
+    run_profiled run, rs, cname, argv.hot
+  else if argv['count-logs']
+    count = 0
+    stub console, 'log', (-> ++count), run
+    console.log "console.log() was called a total of #{count} times."
+  else if argv['skip-logs']? # avoid generating unnecessary log data
+    count = parseInt argv['skip-logs'], 10
+    old_fn = console.log
+    stub console, 'log', (-> if --count == 0 then console.log = old_fn), run
   else
-    jvm.run_class rs, cname, java_cmd_args, null, argv.compile
+    run()
