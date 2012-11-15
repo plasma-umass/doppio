@@ -188,12 +188,11 @@ class root.Method extends AbstractMethodField
       if UNSAFE?
         return ms.pop() # assume that we have implemented all the necessary natives
       else
-        if sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
-          return ms.pop() # these are all just NOPs
-        try
+        ms.pop()
+        unless sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
           java_throw runtime_state, 'java/lang/Error', "native method NYI: #{sig}"
-        finally
-          ms.pop()
+        return
+          
     if @access_flags.abstract
       java_throw runtime_state, 'java/lang/Error', "called abstract method: #{sig}"
 
