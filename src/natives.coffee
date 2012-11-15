@@ -24,10 +24,13 @@ system_properties = {
   'line.separator':'\n', 'file.separator':'/', 'path.separator':':',
   'user.dir':'.','user.home':'.','user.name':'DoppioUser',
   'os.name':'Doppio', 'os.arch': 'js', 'os.version': '0',
-  'sun.boot.class.path': '/home/doppio/vendor/classes',
   'java.awt.headless': 'true',
   'useJavaUtilZip': 'true'  # hack for sun6javac, avoid ZipFileIndex shenanigans
 }
+if node?  # node is only defined if we're in the browser
+  system_properties['sun.boot.class.path'] = '/home/doppio/vendor/classes'
+else
+  system_properties['sun.boot.class.path'] = path.resolve __dirname, '../vendor/classes'
 
 get_property = (rs, jvm_key, _default = null) ->
   val = system_properties[jvm_key.jvm2js_str()]
