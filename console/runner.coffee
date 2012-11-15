@@ -61,13 +61,16 @@ extract_jar = (jar_path, main_class_name) ->
   fs.mkdirSync tmpdir unless fs.existsSync tmpdir
   new AdmZip(jar_path).extractAllTo tmpdir, true
   jvm.classpath.unshift tmpdir
-  return main_class_name if main_class_name?
+  return tmpdir
+
+find_main_class = (extracted_jar_dir) ->
   # find the main class in the manifest
-  manifest = fs.readFileSync "#{tmpdir}/META-INF/MANIFEST.MF", 'utf8'
+  manifest_path = "#{extracted_jar_dir}/META-INF/MANIFEST.MF"
+  manifest = fs.readFileSync manifest_path, 'utf8'
   for line in manifest.split '\n'
     match = line.match /Main-Class: (\S+)/
     return util.int_classname(match[1]) if match?
-  console.error "No main class provided and no Main-Class found in #{jar_path}"
+  return
 
 
 if require.main == module
@@ -119,8 +122,10 @@ if require.main == module
   java_cmd_args = (argv.java?.toString().split /\s+/) or []
 
   if argv.jar?
-    cname = extract_jar argv.jar, cname
-    return unless cname?  # couldn't find the main class in the manifest
+    jar_dir = extract_jar argv.jar
+    cname = find_main_class(jar_dir) unless cname?
+    unless cname?
+      console.error "No main class provided and no Main-Class found in #{argv.jar}"
 
   if argv.profile?
     run_profiled rs, cname, java_cmd_args, argv.hot
