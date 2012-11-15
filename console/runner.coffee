@@ -4,22 +4,10 @@ path = require 'path'
 jvm = require '../src/jvm'
 util = require '../src/util'
 logging = require '../src/logging'
-ClassFile = require '../src/ClassFile'
 methods = require '../src/methods'
 runtime = require '../src/runtime'
 
 "use strict"
-
-classpath = [ ".", "#{__dirname}/../vendor/classes" ]
-
-exports.read_binary_file = (filename) ->
-  return null unless path.existsSync filename
-  util.bytestr_to_array fs.readFileSync(filename, 'binary')
-
-exports.read_classfile = (cls) ->
-  for p in classpath
-    data = exports.read_binary_file "#{p}/#{cls}.class"
-    return new ClassFile data if data?
 
 run_profiled = (rs, cname, java_cmd_args, hot=false) ->
   if hot
@@ -72,14 +60,17 @@ extract_jar = (jar_path, main_class_name) ->
   tmpdir = "/tmp/doppio/#{jar_name}"
   fs.mkdirSync tmpdir unless fs.existsSync tmpdir
   new AdmZip(jar_path).extractAllTo tmpdir, true
-  classpath.unshift tmpdir
-  return main_class_name if main_class_name?
+  jvm.classpath.unshift tmpdir
+  return tmpdir
+
+find_main_class = (extracted_jar_dir) ->
   # find the main class in the manifest
-  manifest = fs.readFileSync "#{tmpdir}/META-INF/MANIFEST.MF", 'utf8'
+  manifest_path = "#{extracted_jar_dir}/META-INF/MANIFEST.MF"
+  manifest = fs.readFileSync manifest_path, 'utf8'
   for line in manifest.split '\n'
     match = line.match /Main-Class: (\S+)/
     return util.int_classname(match[1]) if match?
-  console.error "No main class provided and no Main-Class found in #{jar_path}"
+  return
 
 
 if require.main == module
@@ -111,8 +102,10 @@ if require.main == module
       logging.ERROR
 
   if argv.classpath?
-    classpath = argv.classpath.split ':'
-    classpath.push "#{__dirname}/../vendor/classes"
+    jvm.classpath = argv.classpath.split ':'
+    jvm.classpath.push "#{__dirname}/../vendor/classes"
+  else
+    jvm.classpath = [ ".", "#{__dirname}/../vendor/classes" ]
 
   cname = argv._[0]
   cname = cname[0...-6] if cname?[-6..] is '.class'
@@ -125,12 +118,14 @@ if require.main == module
       process.stdin.pause()
       resume data
 
-  rs = new runtime.RuntimeState(stdout, read_stdin, exports.read_classfile)
+  rs = new runtime.RuntimeState(stdout, read_stdin, jvm.read_classfile)
   java_cmd_args = (argv.java?.toString().split /\s+/) or []
 
   if argv.jar?
-    cname = extract_jar argv.jar, cname
-    return unless cname?  # couldn't find the main class in the manifest
+    jar_dir = extract_jar argv.jar
+    cname = find_main_class(jar_dir) unless cname?
+    unless cname?
+      console.error "No main class provided and no Main-Class found in #{argv.jar}"
 
   if argv.profile?
     run_profiled rs, cname, java_cmd_args, argv.hot

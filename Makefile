@@ -81,6 +81,7 @@ BUILD_DIR = $(release_BUILD_DIR)
 BUILD_HTML = $(release_BUILD_HTML)
 BROWSER_SRCS = $(release_BROWSER_SRCS)
 endif
+BROWSER_COFFEE = $(shell echo $(BROWSER_SRCS) | fmt -1 | grep '.coffee')
 
 ################################################################################
 # TARGETS
@@ -95,7 +96,7 @@ endif
 release: build $(BUILD_DIR)/browser/listings.json
 benchmark: build $(BUILD_DIR)/browser/listings.json
 dev development: $(DEMO_CLASSES) browser/mini-rt.tar browser/listings.json
-	$(COFFEEC) -c */*.coffee
+	$(COFFEEC) -c $(BROWSER_COFFEE)
 	cpp -P browser/index.html index.html
 # optimized CLI build
 opt: $(CLI_SRCS:.coffee=.js)

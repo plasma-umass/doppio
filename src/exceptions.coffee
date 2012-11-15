@@ -1,7 +1,7 @@
 
 # pull in external modules
 _ = require '../vendor/_.js'
-{trace,vtrace,error,debug_vars} = require './logging'
+{trace,vtrace,error,debug} = require './logging'
 types = require './types'
 
 "use strict"
@@ -12,7 +12,7 @@ root = exports ? window.exceptions ?= {}
 class root.HaltException
   constructor: (@exit_code) ->
   toplevel_catch_handler: () ->
-    console.error "\nExited with code #{@exit_code}" unless @exit_code is 0
+    error "\nExited with code #{@exit_code}" unless @exit_code is 0
 
 root.ReturnException = {}
 
@@ -47,9 +47,9 @@ class root.JavaException
     throw @
 
   toplevel_catch_handler: (rs) ->
-    error "\nUncaught #{@exception.type.toClassString()}"
+    debug "\nUncaught #{@exception.type.toClassString()}"
     msg = @exception.get_field rs, 'detailMessage'
-    error "\t#{msg.jvm2js_str()}" if msg?
+    debug "\t#{msg.jvm2js_str()}" if msg?
     rs.show_state()
     rs.push2 rs.curr_thread, @exception
     rs.method_lookup(
