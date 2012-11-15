@@ -8,7 +8,7 @@ user_input = null
 controller = null
 editor = null
 progress = null
-classpath = [ "/home/doppio/vendor/classes/", "/home/doppio/", "./" ]
+jvm.classpath = [ "./", "/home/doppio/vendor/classes/", "/home/doppio/" ]
 
 class_cache = {}
 raw_cache = {}
@@ -73,7 +73,7 @@ try_path = (path) ->
 # Read in a binary classfile synchronously. Return an array of bytes.
 read_classfile = (cls) ->
   unless class_cache[cls]?
-    for path in classpath
+    for path in jvm.classpath
       fullpath = "#{path}#{cls}.class"
       if fullpath of raw_cache
         continue if raw_cache[fullpath] == null # we tried this path previously & it failed
@@ -202,18 +202,19 @@ commands =
   java: (args, cb) ->
     if !args[0]? or (args[0] == '-classpath' and args.length < 3)
       return "Usage: java [-classpath path1:path2...] class [args...]"
-    classpath = [ "/home/doppio/vendor/classes/", "/home/doppio/", "./" ]
     if args[0] == '-classpath'
       paths = args[1].split(':')
       class_name = args[2]
       class_args = args[3..]
       for path in paths
-        classpath.unshift(path + "/")
+        jvm.classpath.unshift(path + "/")
     else
       class_name = args[0]
       class_args = args[1..]
     rs = new runtime.RuntimeState(stdout, user_input, read_classfile)
     jvm.run_class(rs, class_name, class_args, -> controller.reprompt())
+    # reset the classpath to the default
+    jvm.classpath = [ "./", "/home/doppio/vendor/classes/", "/home/doppio/" ]
     return null  # no reprompt, because we handle it ourselves
   javap: (args) ->
     return "Usage: javap class" unless args[0]?
