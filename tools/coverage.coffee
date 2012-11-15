@@ -20,18 +20,18 @@ setup_opcode_stats = ->
         old_fn.call @, rs
   op_stats
 
-print_opcode_usage = (op_stats) ->
-  op_array = (op for _, op of opcodes.opcodes)
-  op_array.sort (a, b) -> op_stats[b.name] - op_stats[a.name]
-  console.log op_stats[op.name], op.name for op in op_array
+print_usage = (stats) ->
+  names = (name for name,count of stats)
+  names.sort (a, b) -> stats[b] - stats[a]
+  console.log stats[name], name for name in names
 
-print_unused_opcodes = (op_stats) ->
+print_unused = (stats, stats_name) ->
   unused_count = 0
-  for _, op of opcodes.opcodes when op_stats[op.name] is 0
+  for name, count of stats when count == 0
     unused_count++
-    console.log op.name
+    console.log name
   if unused_count > 0
-    console.log "#{unused_count} instructions have yet to be tested."
+    console.log "#{unused_count} #{stats_name} have yet to be tested."
 
 run_all_tests = (quiet) ->
   # set up the classpath and get the test dir
@@ -63,6 +63,6 @@ if require.main == module
   run_all_tests(argv.q? or argv.quiet?)
 
   if argv['print-usage']?
-    print_opcode_usage op_stats
+    print_usage op_stats
   else
-    print_unused_opcodes op_stats
+    print_unused op_stats, 'opcodes'
