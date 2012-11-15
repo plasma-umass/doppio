@@ -20,6 +20,23 @@ setup_opcode_stats = ->
         old_fn.call @, rs
   op_stats
 
+setup_native_stats = ->
+  # monkeypatch native and trapped calls
+  native_stats = {}
+  for sig, func of natives.native_methods
+    native_stats[sig] = 0
+    natives.native_methods[sig] = do (func, sig) ->
+      (args...) ->
+        native_stats[sig]++
+        func args...
+  for sig, func of natives.trapped_methods
+    native_stats[sig] = 0
+    natives.trapped_methods[sig] = do (func, sig) ->
+      (args...) ->
+        native_stats[sig]++
+        func args...
+  native_stats
+
 print_usage = (stats) ->
   names = (name for name,count of stats)
   names.sort (a, b) -> stats[b] - stats[a]
@@ -54,15 +71,26 @@ if require.main == module
   Usage: $0
   Optional flags:
     --print-usage
+    -n, --natives
+    -o, --opcodes
     -q, --quiet
     -h, --help
   '''
   return optimist.showHelp() if argv.help? or argv.h?
+  do_opcodes = argv.o? or argv.opcodes?
+  do_natives = argv.n? or argv.natives?
 
-  op_stats = setup_opcode_stats()
+  unless do_opcodes or do_natives
+    console.error 'Must select natives, opcodes, or both'
+    return optimist.showHelp()
+
+  op_stats = setup_opcode_stats() if do_opcodes
+  native_stats = setup_native_stats() if do_natives
   run_all_tests(argv.q? or argv.quiet?)
 
   if argv['print-usage']?
-    print_usage op_stats
+    print_usage op_stats if do_opcodes
+    print_usage native_stats if do_natives
   else
-    print_unused op_stats, 'opcodes'
+    print_unused op_stats, 'opcodes' if do_opcodes
+    print_unused native_stats, 'native methods' if do_natives
