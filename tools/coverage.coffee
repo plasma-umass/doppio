@@ -8,7 +8,7 @@ opcodes = require '../src/opcodes'
 {RuntimeState} = require '../src/runtime'
 natives = require '../src/natives'
 
-setup_opcode_stats = () ->
+setup_opcode_stats = ->
   # monkeypatch opcode execution
   op_stats = {}
   for num, op of opcodes.opcodes
@@ -33,21 +33,7 @@ print_unused_opcodes = (op_stats) ->
   if unused_count > 0
     console.log "#{unused_count} instructions have yet to be tested."
 
-if require.main == module
-  {argv} = optimist
-  optimist.usage '''
-  Usage: $0
-  Optional flags:
-    --print-usage
-    -q, --quiet
-    -h, --help
-  '''
-  return optimist.showHelp() if argv.help? or argv.h?
-  print_usage = argv['print-usage']
-  quiet = argv.q? or argv.quiet?
-
-  op_stats = setup_opcode_stats()
-
+run_all_tests = (quiet) ->
   # set up the classpath and get the test dir
   doppio_dir = path.resolve __dirname, '..'
   test_dir = path.resolve doppio_dir, 'test'
@@ -60,8 +46,23 @@ if require.main == module
     c = "test/#{path.basename(file, '.java')}"
     console.log "running #{c}..." unless quiet
     jvm.run_class(rs, c, [])
+  return
 
-  if print_usage
+if require.main == module
+  {argv} = optimist
+  optimist.usage '''
+  Usage: $0
+  Optional flags:
+    --print-usage
+    -q, --quiet
+    -h, --help
+  '''
+  return optimist.showHelp() if argv.help? or argv.h?
+
+  op_stats = setup_opcode_stats()
+  run_all_tests(argv.q? or argv.quiet?)
+
+  if argv['print-usage']?
     print_opcode_usage op_stats
   else
     print_unused_opcodes op_stats
