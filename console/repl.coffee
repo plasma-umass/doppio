@@ -2,7 +2,7 @@
 readline = require 'readline'
 {argv} = require 'optimist'
 jvm = require '../src/jvm'
-{read_classfile} = require './runner'
+{RuntimeState} = require '../src/runtime'
 
 "use strict"
 
@@ -19,7 +19,8 @@ read_stdin = (n_bytes, resume) ->
 if require.main == module
   # initialize the RuntimeState
   write_stdout = process.stdout.write.bind process.stdout
-  rs = new runtime.RuntimeState(write_stdout, read_stdin, read_classfile)
+  jvm.classpath = [ ".", "#{__dirname}/../vendor/classes" ]
+  rs = new RuntimeState(write_stdout, read_stdin, jvm.read_classfile)
 
   # create the REPL
   stdin = process.openStdin()

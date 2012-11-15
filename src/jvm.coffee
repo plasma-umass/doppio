@@ -3,11 +3,24 @@
 require './runtime'
 {debug,error} = require './logging'
 exceptions = require './exceptions'
+util = require './util'
+ClassFile = require '../src/ClassFile'
+path = node?.path ? require 'path'
+fs = node?.fs ? require 'fs'
 
 "use strict"
 
 # things assigned to root will be available outside this module
 root = exports ? this.jvm = {}
+
+root.classpath = []
+
+root.read_classfile = (cls) ->
+  for p in root.classpath
+    filename = "#{p}/#{cls}.class"
+    continue unless path.existsSync filename
+    data = util.bytestr_to_array fs.readFileSync(filename, 'binary')
+    return new ClassFile data if data?
 
 run = (rs, fn, done_cb) ->
   try
