@@ -32,7 +32,6 @@ class AbstractMethodField
     @raw_descriptor = constant_pool.get(bytes_array.get_uint 2).value
     @parse_descriptor @raw_descriptor
     @attrs = attributes.make_attributes(bytes_array,constant_pool)
-    @code = _.find(@attrs, (a) -> a.constructor.name == "Code")
 
 class root.Field extends AbstractMethodField
   parse_descriptor: (raw_descriptor) ->
@@ -63,6 +62,24 @@ class root.Method extends AbstractMethodField
     @return_type = str2type return_str
     @full_signature = "#{@class_type.toClassString()}::#{@name}#{@raw_descriptor}"
 
+  parse: (bytes_array, constant_pool, idx) ->
+    super bytes_array, constant_pool, idx
+    if (c = trapped_methods[@full_signature])?
+      @code = c
+      @access_flags.native = true
+    else if @access_flags.native
+      if (c = native_methods[@full_signature])?
+        @code = c
+      else if UNSAFE?
+        @code = null # optimization: avoid copying around params if it is a no-op.
+      else
+        @code = (rs) =>
+          sig = @full_signature
+          unless sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
+            java_throw rs, 'java/lang/Error', "native method NYI: #{sig}"
+    else
+      @code = _.find(@attrs, (a) -> a.constructor.name == "Code")
+
   reflector: (rs, is_constructor=false) ->
     typestr = if is_constructor then 'java/lang/reflect/Constructor' else 'java/lang/reflect/Method'
     exceptions = _.find(@attrs, (a) -> a.constructor.name == 'Exceptions')?.exceptions ? []
@@ -91,8 +108,7 @@ class root.Method extends AbstractMethodField
     caller_stack.length -= @param_bytes
     params
 
-  run_manually: (func, rs) ->
-    params = rs.curr_frame().locals
+  run_manually: (func, rs, params) ->
     converted_params = [rs]
     param_idx = 0
     if not @access_flags.static
@@ -127,9 +143,9 @@ class root.Method extends AbstractMethodField
     code = @code.opcodes
     cf = rs.curr_frame()
     while true
-      pc = cf.pc
-      op = code[pc]
+      op = code[cf.pc]
       unless RELEASE? or logging.log_level < logging.STRACE
+        pc = cf.pc
         throw "#{@name}:#{pc} => (null)" unless op
         vtrace "#{padding}stack: [#{debug_vars cf.stack}], local: [#{debug_vars cf.locals}]"
         annotation =
@@ -140,62 +156,37 @@ class root.Method extends AbstractMethodField
     # Must explicitly return here, to avoid Coffeescript accumulating an array of cf.pc values
     return
 
-  run: (runtime_state,virtual=false) ->
-    sig = @full_signature
+  run: (runtime_state) ->
     ms = runtime_state.meta_stack()
-    if ms.resuming_stack?
-      trace "resuming at ", sig
+    padding = unless RELEASE? then (' ' for [1...ms.length()]).join('') else null
+    if ms.resuming_stack? # we are resuming from a yield
       ms.resuming_stack++
-      if virtual
-        cf = ms.curr_frame()
-        unless cf.method is @
-          ms.resuming_stack--
-          return cf.method.run(runtime_state)
       if ms.resuming_stack == ms.length() - 1
         ms.resuming_stack = null
+      cf = runtime_state.curr_frame()
+      if cf.resume? # this was a manually run method
+        trace "#{padding}resuming native method #{@full_signature}"
+        @run_manually cf.resume, runtime_state, []
+        cf.resume = null
+        return
+      else
+        trace "#{padding}resuming method #{@full_signature}"
+        @run_bytecode runtime_state, padding
     else
       caller_stack = runtime_state.curr_frame().stack
-      if virtual
-        # dirty hack to bounce up the inheritance tree, to make sure we call the
-        # method on the most specific type
-        obj = caller_stack[caller_stack.length-@param_bytes]
-        unless caller_stack.length-@param_bytes >= 0 and obj?
-          java_throw runtime_state, 'java/lang/NullPointerException',
-            "null 'this' in virtual lookup for #{sig}"
-        return runtime_state.method_lookup({
-            class: obj.type.toClassString(),
-            sig: @name + @raw_descriptor
-          }).run(runtime_state)
       params = @take_params caller_stack
-      ms.push(new runtime.StackFrame(this,params,[]))
-    padding = unless RELEASE? then (' ' for [2...ms.length()]).join('') else null
-    # check for trapped and native methods, run those manually
-    cf = runtime_state.curr_frame()
-    if cf.resume? # we are resuming from a yield, and this was a manually run method
-      trace "#{padding}resuming method #{sig}"
-      @run_manually cf.resume, runtime_state
-      cf.resume = null
-      return
-    if trapped_methods.hasOwnProperty sig
-      trace "#{padding}entering trapped method #{sig}"
-      return @run_manually trapped_methods[sig], runtime_state
-    if @access_flags.native
-      if native_methods.hasOwnProperty sig
-        trace "#{padding}entering native method #{sig}"
-        return @run_manually native_methods[sig], runtime_state
-      # UNSAFE should be used to optimize around sanity checks.  It should
-      # _not_ be used to create optimizations that induce wrong behavior.
-      if UNSAFE?
-        return ms.pop() # assume that we have implemented all the necessary natives
-      else
-        ms.pop()
-        unless sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
-          java_throw runtime_state, 'java/lang/Error', "native method NYI: #{sig}"
-        return
-          
-    if @access_flags.abstract
-      java_throw runtime_state, 'java/lang/Error', "called abstract method: #{sig}"
 
-    # Finally, the normal case: running a Java method
-    trace "#{padding}entering method #{sig}"
-    @run_bytecode runtime_state, padding
+      if @access_flags.native
+        if @code?
+          trace "#{padding}entering native method #{@full_signature}"
+          ms.push(new runtime.StackFrame(this,[],[]))
+          @run_manually @code, runtime_state, params
+        return
+
+      if @access_flags.abstract
+        java_throw runtime_state, 'java/lang/Error', "called abstract method: #{@full_signature}"
+
+      # Finally, the normal case: running a Java method
+      trace "#{padding}entering method #{@full_signature}"
+      ms.push(new runtime.StackFrame(this,params,[]))
+      @run_bytecode runtime_state, padding

@@ -58,22 +58,31 @@ ln -sfn "$JAVA_HOME" java_home
 
 cd ..  # back to start
 
-# Intentionally fail if node doesn't exist.
-echo "Using node `node -v`"
+# Make sure node is present and >= v0.8
+if [[ `node -v` < "v0.8" ]]; then
+  echo "node >= v0.8 required"
+  if [ -n "$PKGMGR" ]; then
+    $PKGMGR node
+  else
+    exit
+  fi
+fi 
 echo "Installing required node modules"
 make dependencies
 
 echo "Using `javac -version 2>&1` to generate classfiles"
 make java
 
-if ! command -v rdiscount > /dev/null; then
+if ! command -v bundle > /dev/null; then
     if command -v gem > /dev/null; then
-        gem install rdiscount
+        gem install bundler
     else
-        echo "warning: could not install rdiscount because rubygems was not found"
-        echo "Doppio can run without it, but rdiscount is needed for building the full website."
+        echo "warning: could not install bundler because rubygems was not found!"
+        echo "some dependencies may be missing."
     fi
 fi
+
+command -v bundle > /dev/null && bundle install
 
 # does sed support extended regexps?
 if ! sed -r "" </dev/null >/dev/null 2>&1 && ! command -v gsed >/dev/null; then
