@@ -17,18 +17,17 @@ run_profiled = (runner, rs, cname, hot=false) ->
   profiled_fn = (old_fn) -> ->
     method = rs.curr_frame().method
     caller = rs.meta_stack().get_caller(1).method
-    fn_sig = (fn) -> "#{fn.class_type.toClassString()}::#{fn.name}"
-    method_name = fn_sig method
-    hash = "#{if caller? then fn_sig caller else "program"}|#{method_name}"
+    method_sig = method.full_signature
+    hash = "#{if caller? then caller.full_signature else "program"}|#{method_sig}"
     timings[hash] ?= 0
-    call_counts[method_name] ?= 0
+    call_counts[method_sig] ?= 0
 
     start = (new Date).getTime()
     old_fn.apply this, arguments
     end = (new Date).getTime()
 
     timings[hash] += end - start
-    call_counts[method_name]++
+    call_counts[method_sig]++
 
   methods.Method::run_bytecode = profiled_fn(methods.Method::run_bytecode)
   methods.Method::run_manually = profiled_fn(methods.Method::run_manually)
@@ -47,7 +46,8 @@ run_profiled = (runner, rs, cname, hot=false) ->
     total_timings[method] += v
   arr = (name: k, total: total_timings[k], self: v, counts:call_counts[k] for k, v of self_timings)
   arr.sort (a, b) -> b.self - a.self
-  console.log "\nProfiler results: #{total_timings["#{cname}::main"]} ms total"
+  total_time = total_timings["#{cname}::main([Ljava/lang/String;)"]
+  console.log "\nProfiler results: #{total_time} ms total"
   console.log ['total','self','calls','self ms/call','name'].join '\t'
   for entry in arr[0..30]
     avg = entry.self / entry.counts
