@@ -12,11 +12,7 @@ types = require './types'
 "use strict"
 
 class ClassFile
-  # All class attributes should not be modified (e.g. by a running program)
-  # once it has been constructed.
   constructor: (bytes_array) ->
-    @ml_cache = {}
-    @fl_cache = {}
     bytes_array = new util.BytesArray bytes_array
     throw "Magic number invalid" if (bytes_array.get_uint 4) != 0xCAFEBABE
     @minor_version = bytes_array.get_uint 2
@@ -38,15 +34,22 @@ class ClassFile
     # fields of this class
     num_fields = bytes_array.get_uint 2
     @fields = (new methods.Field(@this_class) for [0...num_fields])
+    @fl_cache = {}
     for f,i in @fields
       f.parse(bytes_array,@constant_pool,i)
+      @fl_cache[f.name] = f
     # class methods
     num_methods = bytes_array.get_uint 2
     @methods = {}
+    # It would probably be safe to make @methods the @ml_cache, but it would
+    # make debugging harder as you would lose track of who owns what method.
+    @ml_cache = {}
     for i in [0...num_methods] by 1
       m = new methods.Method(@this_class)
       m.parse(bytes_array,@constant_pool,i)
-      @methods[m.name + m.raw_descriptor] = m
+      mkey = m.name + m.raw_descriptor
+      @methods[mkey] = m
+      @ml_cache[mkey] = m
     # class attributes
     @attrs = attributes.make_attributes(bytes_array,@constant_pool)
     throw "Leftover bytes in classfile: #{bytes_array}" if bytes_array.has_bytes()
