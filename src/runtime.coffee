@@ -261,48 +261,20 @@ class root.RuntimeState
     class_file.methods['<clinit>()V']?.run(this)
     jclass
 
-  # Spec [5.4.3.3][1], [5.4.3.4][2].
-  # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#79473
-  # [2]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#78621
   method_lookup: (method_spec) ->
     type = c2t method_spec.class
-    t = type
-    while t
-      cls = @class_lookup(t)
-      method = cls.methods[method_spec.sig]
-      return method if method?
-      t = cls.super_class
     cls = @class_lookup(type)
-    ifaces = (c2t(cls.constant_pool.get(i).deref()) for i in cls.interfaces)
-    while ifaces.length > 0
-      iface_name = ifaces.shift()
-      ifc = @class_lookup iface_name
-      method = ifc.methods[method_spec.sig]
-      return method if method?
-      Array::push.apply ifaces,
-        (c2t(ifc.constant_pool.get(i).deref()) for i in ifc.interfaces)
+    method = cls.method_lookup(this, method_spec)
+    return method if method?
     java_throw @, 'java/lang/NoSuchMethodError',
       "No such method found in #{method_spec.class}: #{method_spec.sig}"
-  # Spec [5.4.3.2][1].
-  # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#77678
+
   field_lookup: (field_spec) ->
-    filter_field = (c) -> _.find(c.fields, (f)-> f.name is field_spec.name)
-    field = @_field_lookup field_spec.class, filter_field
+    cls = @class_lookup c2t field_spec.class
+    field = cls.field_lookup this, field_spec
     return field if field?
     java_throw @, 'java/lang/NoSuchFieldError',
       "No such field found in #{field_spec.class}: #{field_spec.name}"
-  _field_lookup: (class_name, filter_fn) ->
-    t = c2t class_name
-    while t
-      cls = @class_lookup(t)
-      field = filter_fn cls
-      return field if field?
-      ifaces = (cls.constant_pool.get(i).deref() for i in cls.interfaces)
-      for ifc in ifaces
-        field = @_field_lookup ifc, filter_fn
-        return field if field?
-      t = cls.super_class
-    null
 
   get_field_from_offset: (cls, offset) ->
     classname = cls.this_class.toClassString()
