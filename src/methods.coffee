@@ -60,21 +60,22 @@ class root.Method extends AbstractMethodField
     @num_args = @param_types.length
     @num_args++ unless @access_flags.static # nonstatic methods get 'this'
     @return_type = str2type return_str
-    @full_signature = "#{@class_type.toClassString()}::#{@name}#{@raw_descriptor}"
+
+  full_signature: -> "#{@class_type.toClassString()}::#{@name}#{@raw_descriptor}"
 
   parse: (bytes_array, constant_pool, idx) ->
     super bytes_array, constant_pool, idx
-    if (c = trapped_methods[@full_signature])?
+    sig = @full_signature()
+    if (c = trapped_methods[sig])?
       @code = c
       @access_flags.native = true
     else if @access_flags.native
-      if (c = native_methods[@full_signature])?
+      if (c = native_methods[sig])?
         @code = c
       else if UNSAFE?
         @code = null # optimization: avoid copying around params if it is a no-op.
       else
         @code = (rs) =>
-          sig = @full_signature
           unless sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
             java_throw rs, 'java/lang/Error', "native method NYI: #{sig}"
     else
@@ -165,12 +166,12 @@ class root.Method extends AbstractMethodField
         ms.resuming_stack = null
       cf = runtime_state.curr_frame()
       if cf.resume? # this was a manually run method
-        trace "#{padding}resuming native method #{@full_signature}"
+        trace "#{padding}resuming native method #{@full_signature()}"
         @run_manually cf.resume, runtime_state, []
         cf.resume = null
         return
       else
-        trace "#{padding}resuming method #{@full_signature}"
+        trace "#{padding}resuming method #{@full_signature()}"
         @run_bytecode runtime_state, padding
     else
       caller_stack = runtime_state.curr_frame().stack
@@ -178,15 +179,15 @@ class root.Method extends AbstractMethodField
 
       if @access_flags.native
         if @code?
-          trace "#{padding}entering native method #{@full_signature}"
+          trace "#{padding}entering native method #{@full_signature()}"
           ms.push(new runtime.StackFrame(this,[],[]))
           @run_manually @code, runtime_state, params
         return
 
       if @access_flags.abstract
-        java_throw runtime_state, 'java/lang/Error', "called abstract method: #{@full_signature}"
+        java_throw runtime_state, 'java/lang/Error', "called abstract method: #{@full_signature()}"
 
       # Finally, the normal case: running a Java method
-      trace "#{padding}entering method #{@full_signature}"
+      trace "#{padding}entering method #{@full_signature()}"
       ms.push(new runtime.StackFrame(this,params,[]))
       @run_bytecode runtime_state, padding
