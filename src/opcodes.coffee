@@ -180,7 +180,7 @@ class root.IIncOpcode extends root.Opcode
 
   _execute: (rs) ->
     v = rs.cl(@index)+@const
-    rs.put_cl @index, util.wrap_int(v)
+    rs.put_cl @index, v|0
 
 class root.LoadOpcode extends root.Opcode
   constructor: (name, params={}) ->
@@ -434,11 +434,11 @@ root.opcodes = {
   93: new root.Opcode 'dup2_x1', {execute: (rs) -> [v1,v2,v3]=[rs.pop(),rs.pop(),rs.pop()];rs.push_array([v2,v1,v3,v2,v1])}
   94: new root.Opcode 'dup2_x2', {execute: (rs) -> [v1,v2,v3,v4]=[rs.pop(),rs.pop(),rs.pop(),rs.pop()];rs.push_array([v2,v1,v4,v3,v2,v1])}
   95: new root.Opcode 'swap', {execute: (rs) -> v2=rs.pop(); v1=rs.pop(); rs.push2(v2,v1)}
-  96: new root.Opcode 'iadd', { execute: (rs) -> rs.push util.wrap_int(rs.pop()+rs.pop()) }
+  96: new root.Opcode 'iadd', { execute: (rs) -> rs.push (rs.pop()+rs.pop())|0 }
   97: new root.Opcode 'ladd', { execute: (rs) -> rs.push2(rs.pop2().add(rs.pop2()), null) }
   98: new root.Opcode 'fadd', { execute: (rs) -> rs.push util.wrap_float(rs.pop()+rs.pop()) }
   99: new root.Opcode 'dadd', { execute: (rs) -> rs.push2(rs.pop2()+rs.pop2(), null) }
-  100: new root.Opcode 'isub', { execute: (rs) -> rs.push util.wrap_int(-rs.pop()+rs.pop()) }
+  100: new root.Opcode 'isub', { execute: (rs) -> rs.push (-rs.pop()+rs.pop())|0 }
   101: new root.Opcode 'lsub', { execute: (rs) -> rs.push2(rs.pop2().negate().add(rs.pop2()), null) }
   102: new root.Opcode 'fsub', { execute: (rs) -> rs.push util.wrap_float(-rs.pop()+rs.pop()) }
   103: new root.Opcode 'dsub', { execute: (rs) -> rs.push2(-rs.pop2()+rs.pop2(), null) }
@@ -454,9 +454,7 @@ root.opcodes = {
   113: new root.Opcode 'lrem', { execute: (rs) -> v2=rs.pop2(); rs.push2 util.long_mod(rs,rs.pop2(),v2), null }
   114: new root.Opcode 'frem', { execute: (rs) -> v2=rs.pop();  rs.push rs.pop() %v2 }
   115: new root.Opcode 'drem', { execute: (rs) -> v2=rs.pop2(); rs.push2 rs.pop2()%v2, null }
-  116: new root.Opcode 'ineg', { execute: (rs) ->
-    i_val = rs.pop()
-    rs.push if i_val == util.INT_MIN then i_val else -i_val }
+  116: new root.Opcode 'ineg', { execute: (rs) -> rs.push -rs.pop()|0 }
   117: new root.Opcode 'lneg', { execute: (rs) -> rs.push2 rs.pop2().negate(), null }
   118: new root.Opcode 'fneg', { execute: (rs) -> rs.push -rs.pop() }
   119: new root.Opcode 'dneg', { execute: (rs) -> rs.push2 -rs.pop2(), null }

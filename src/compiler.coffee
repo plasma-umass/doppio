@@ -410,11 +410,11 @@ compile_obj_handlers = {
   dup2_x1: {compile: (b) -> [v1,v2,v3]=[b.pop(),b.pop(),b.pop()];b.push(v2,v1,v3,v2,v1)}
   dup2_x2: {compile: (b) -> [v1,v2,v3,v4]=[b.pop(),b.pop(),b.pop(),b.pop()];b.push(v2,v1,v4,v3,v2,v1)}
   swap: {compile: (b) -> v2=b.pop(); v1=b.pop(); b.push(v2,v1)}
-  iadd: { compile: (b) -> b.push new Expr "util.wrap_int($0+$1)",b.pop(),b.pop() }
+  iadd: { compile: (b) -> b.push new Expr "($0+$1)|0",b.pop(),b.pop() }
   ladd: { compile: (b) -> b.push2 new Expr "$0.add($1)",b.pop2(),b.pop2() }
   fadd: { compile: (b) -> b.push new Expr "util.wrap_float($0+$1)",b.pop(),b.pop() }
   dadd: { compile: (b) -> b.push2 new Expr "($0+$1)",b.pop(),b.pop() }
-  isub: { compile: (b) -> b.push new Expr "util.wrap_int($1-$0)",b.pop(),b.pop() }
+  isub: { compile: (b) -> b.push new Expr "($1-$0)|0",b.pop(),b.pop() }
   lsub: { compile: (b) -> b.push2 new Expr "$1.subtract($0)",b.pop2(),b.pop2() }
   fsub: { compile: (b) -> b.push new Expr "util.wrap_float($1-$0)",b.pop(),b.pop() }
   dsub: { compile: (b) -> b.push2 new Expr "($1-$0)",b.pop2(),b.pop2() }
@@ -446,8 +446,8 @@ compile_obj_handlers = {
   lor:  { compile: (b) -> b.push2 new Expr "$0.or($1)", b.pop2(), b.pop2() }
   ixor: { compile: (b) -> b.push new Expr "($0^$1)", b.pop(), b.pop() }
   lxor: { compile: (b) -> b.push2 new Expr "$0.xor($1)", b.pop2(), b.pop2() }
-  iinc:   { compile: (b) -> b.put_cl @index, new Expr "util.wrap_int($0+$1)",b.cl(@index),@const }
-  iinc_w: { compile: (b) -> b.put_cl @index, new Expr "util.wrap_int($0+$1)",b.cl(@index),@const }
+  iinc:   { compile: (b) -> b.put_cl @index, new Expr "($0+$1)|0",b.cl(@index),@const }
+  iinc_w: { compile: (b) -> b.put_cl @index, new Expr "($0+$1)|0",b.cl(@index),@const }
   i2l: { compile: (b) -> b.push2 new Expr "gLong.fromInt($0)",b.pop() }
   i2f: { compile: (b) -> }
   i2d: { compile: (b) -> b.push null }
