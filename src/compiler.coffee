@@ -654,13 +654,3 @@ root.compile = (class_file) ->
     }
   };
   """
-
-# TODO: move to a separate file
-if require.main == module
-  fs = require 'fs'
-  ClassFile = require './ClassFile'
-  fname = if process.argv.length > 2 then process.argv[2] else '/dev/stdin'
-  bytes_array = util.bytestr_to_array fs.readFileSync(fname, 'binary')
-  class_data = new ClassFile bytes_array
-
-  console.log root.compile class_data
