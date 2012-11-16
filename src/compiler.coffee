@@ -359,11 +359,31 @@ compile_class_handlers =
     method.access_flags = { static: @name == 'invokestatic' }
     method.parse_descriptor @method_spec.sig
 
-    virtual = @name in ['invokevirtual', 'invokeinterface']
     params = b.stack.splice(-method.param_bytes)
-    b.add_stmt "rs.push_array([#{p ? 'null' for p in params}])"
-    b.add_stmt "rs.method_lookup(#{JSON.stringify @method_spec}).run(rs, #{virtual})"
+    method_prologue b, params
+    b.add_stmt "rs.method_lookup(#{JSON.stringify @method_spec}).run(rs)"
+    method_epilogue b, method
+  DynInvokeOpcode: (b, idx) ->
+    method = new Method # kludge
+    method.access_flags = {}
+    method.parse_descriptor @method_spec.sig
 
+    params = b.stack.splice(-method.param_bytes)
+    method_prologue b, params
+    cls = b.new_temp()
+    b.add_stmt new Assignment cls, "rs.check_null(#{params[0]}).type.toClassString()"
+    b.add_stmt "rs.method_lookup({'class':#{cls}, sig:#{JSON.stringify @method_spec.sig}).run(rs)"
+    method_epilogue b, method
+
+method_prologue = (b, params) ->
+  if params.length == 1
+    b.add_stmt "rs.push(#{params[0]})"
+  else if params.length ==2
+    b.add_stmt "rs.push2(#{params[0]}, #{params[1]})"
+  else
+    b.add_stmt "rs.push_array([#{p ? 'null' for p in params}])"
+
+method_epilogue = (b, method) ->
     unless method.return_type.toString() is 'V'
       temp = b.new_temp()
 
