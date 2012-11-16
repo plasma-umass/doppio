@@ -58,8 +58,15 @@ ln -sfn "$JAVA_HOME" java_home
 
 cd ..  # back to start
 
-# Intentionally fail if node doesn't exist.
-echo "Using node `node -v`"
+# Make sure node is present and >= v0.8
+if [[ `node -v` < "v0.8" ]]; then
+  echo "node >= v0.8 required"
+  if [ -n "$PKGMGR" ]; then
+    $PKGMGR node
+  else
+    exit
+  fi
+fi 
 echo "Installing required node modules"
 make dependencies
 
