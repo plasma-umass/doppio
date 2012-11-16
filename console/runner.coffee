@@ -89,6 +89,7 @@ if require.main == module
   Usage: $0 /path/to/classfile [flags]
   Optional flags:
     --classpath=[path1:...:pathn]
+    --jspath=[path1:...:pathn]
     --java=[args for JVM]
     --log=[0-10]|vtrace|trace|debug|error
     --profile
@@ -111,11 +112,13 @@ if require.main == module
     else
       logging.ERROR
 
-  if argv.classpath?
-    jvm.classpath = argv.classpath.split ':'
-    jvm.classpath.push "#{__dirname}/../vendor/classes"
-  else
-    jvm.classpath = [ ".", "#{__dirname}/../vendor/classes" ]
+  for path_name in ['classpath', 'jspath']
+    if argv[path_name]?
+      jvm[path_name] = argv[path_name].split ':'
+    else
+      jvm[path_name] = ["."]
+
+  jvm.classpath.push "#{__dirname}/../vendor/classes"
 
   cname = argv._[0]
   cname = cname[0...-6] if cname?[-6..] is '.class'

@@ -372,7 +372,7 @@ compile_class_handlers =
     method_prologue b, params
     cls = b.new_temp()
     b.add_stmt new Assignment cls, "rs.check_null(#{params[0]}).type.toClassString()"
-    b.add_stmt "rs.method_lookup({'class':#{cls}, sig:#{JSON.stringify @method_spec.sig}).run(rs)"
+    b.add_stmt "rs.method_lookup({'class':#{cls}, sig:#{JSON.stringify @method_spec.sig}}).run(rs)"
     method_epilogue b, method
 
 method_prologue = (b, params) ->
@@ -603,14 +603,10 @@ compile_obj_handlers = {
 }
 
 root.compile = (class_file) ->
-  class_name = class_file.this_class.toExternalString().replace /\./g, '_'
+  class_name = class_file.this_class.toClassString()
   methods =
     for sig, m of class_file.methods
       unless m.access_flags.native or m.access_flags.abstract
-        name =
-          if m.name is '<init>' then class_name
-          else if m.name is '<clinit>' then '__clinit__'
-          else m.name
 
         block_chain = new BlockChain m
 
@@ -619,28 +615,43 @@ root.compile = (class_file) ->
         temps = block_chain.get_all_temps()
 
         """
-        #{name}: function(#{block_chain.param_names.join ", "}) {
-          var label = 0;
-          #{if temps.length > 0 then "var #{temps.join ", "};" else ""}
-          #{if m.code.max_locals > 0
-              "var " + (("l#{i}" for i in [0...m.code.max_locals]).join ", ") + ";"
-            else
-              ""}
-          #{if m.code.max_stack > 0
-              "var " + (("s#{i}" for i in [0...m.code.max_stack]).join ", ") + ";"
-            else
-              ""}
-          while (true) {
-            switch (label) {
-#{(b.compiled_str for b in block_chain.blocks).join ""}
-            };
+        "#{m.name}#{m.raw_descriptor}": (function() {
+          var m = new Method();
+          m.class_type = c2t("#{m.class_type.toClassString()}");
+          m.access_flags = #{m.access_flags.native = 1; JSON.stringify m.access_flags};
+          m.parse_descriptor("#{m.raw_descriptor}");
+          m.code = function(#{block_chain.param_names.join ", "}) {
+            var label = 0;
+            #{if temps.length > 0 then "var #{temps.join ", "};" else ""}
+            #{if m.code.max_locals > 0
+                "var " + (("l#{i}" for i in [0...m.code.max_locals]).join ", ") + ";"
+              else
+                ""}
+            #{if m.code.max_stack > 0
+                "var " + (("s#{i}" for i in [0...m.code.max_stack]).join ", ") + ";"
+              else
+                ""}
+            while (true) {
+              switch (label) {
+  #{(b.compiled_str for b in block_chain.blocks).join ""}
+              };
+            }
           };
-        },
+          return m;
+        })(),
         """
 
   """
-  var #{class_name} = {
-  #{methods.join "\n"}
+  c2t = require('./src/types').c2t;
+  Method = require('./src/methods').Method;
+  exceptions = require('./src/exceptions');
+  module.exports = {
+    this_class: c2t("#{class_file.this_class.toClassString()}"),
+    interfaces: [],
+    fields: [],
+    methods: {
+      #{methods.join "\n"}
+    }
   };
   """
 
