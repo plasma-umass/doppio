@@ -1,6 +1,6 @@
 // tests static methods
 package classes.test;
-public class Method {
+public class StaticMethod {
   static int foo(double x, long y) {
     return (int)x + (int)y;
   }
