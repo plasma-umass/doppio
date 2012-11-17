@@ -53,14 +53,14 @@ print_unused = (stats, stats_name) ->
 run_all_tests = (quiet) ->
   # set up the classpath and get the test dir
   doppio_dir = path.resolve __dirname, '..'
-  test_dir = path.resolve doppio_dir, 'test'
+  test_dir = path.resolve doppio_dir, 'classes/test'
   jcl_dir = path.resolve doppio_dir, 'vendor/classes'
   jvm.classpath = [doppio_dir, jcl_dir]
 
   # run each class, reusing the same heap and string pool and class info
   rs = new RuntimeState((->), (->), jvm.read_classfile)
   for file in fs.readdirSync(test_dir) when path.extname(file) == '.java'
-    c = "test/#{path.basename(file, '.java')}"
+    c = "classes/test/#{path.basename(file, '.java')}"
     console.log "running #{c}..." unless quiet
     jvm.run_class(rs, c, [])
   return

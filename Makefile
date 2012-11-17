@@ -18,12 +18,12 @@ JRE      := $(DOPPIO_DIR)/vendor/classes/java/lang/Object.class
 SED      := $(shell if command -v gsed >/dev/null; then echo "gsed"; else echo "sed"; fi;)
 
 # JAVA TEST CLASSES & DEMOS
-SOURCES = $(wildcard test/*.java)
+SOURCES = $(wildcard classes/test/*.java)
 DISASMS = $(SOURCES:.java=.disasm)
 RUNOUTS = $(SOURCES:.java=.runout)
 CLASSES = $(SOURCES:.java=.class)
 RESULTS = $(SOURCES:.java=.result)
-DEMO_SRCS = $(wildcard test/special/*.java) test/FileRead.java test/Fib.java
+DEMO_SRCS = $(wildcard classes/demo/*.java) classes/test/FileRead.java
 DEMO_CLASSES = $(DEMO_SRCS:.java=.class)
 
 # HTML
@@ -134,19 +134,20 @@ $(JRE):
 # Used to test the chosen Java compiler in setup.sh.
 java: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES)
 
-# Runs the Java tests in ./test with the node runner.
+# Runs the Java tests in classes/test with the node runner.
 test: dependencies $(RESULTS)
 	cat $(RESULTS)
 	@rm -f $(RESULTS)
+# compiling each one by itself is really inefficient...
 %.class: %.java
 	javac $^
-test/%.result: test/%.class test/%.disasm test/%.runout
-	tools/run_one_test.rb test/$* >test/$*.result
-test/%.disasm: test/%.class
-	javap -c -verbose -private test/$* >test/$*.disasm
+classes/test/%.result: classes/test/%.class classes/test/%.disasm classes/test/%.runout
+	tools/run_one_test.rb classes/test/$* >classes/test/$*.result
+classes/test/%.disasm: classes/test/%.class
+	javap -c -verbose -private classes/test/$* >classes/test/$*.disasm
 # some tests may throw exceptions. The '-' flag tells make to carry on anyway.
-test/%.runout: test/%.class
-	-java test/$* &>test/$*.runout
+classes/test/%.runout: classes/test/%.class
+	-java classes/test/$* &>classes/test/$*.runout
 
 clean:
 	@rm -f $(CLASSES) $(DISASMS) $(RUNOUTS) $(RESULTS)
@@ -209,8 +210,7 @@ $(BUILD_DIR)/browser/style.css: vendor/bootstrap/css/bootstrap.min.css \
 build: dependencies $(BUILD_DIR) $(BUILD_DIR)/browser $(BUILD_HTML) \
 	$(BUILD_DIR)/compressed.js browser/mini-rt.tar $(BUILD_DIR)/ace.js \
 	$(BUILD_DIR)/browser/style.css $(DEMO_CLASSES)
-	rsync -R $(DEMO_SRCS) $(DEMO_CLASSES) test/special/foo test/special/bar $(BUILD_DIR)/
-	rsync -a test/special $(BUILD_DIR)/test
+	rsync -R $(DEMO_SRCS) $(DEMO_CLASSES) $(BUILD_DIR)/
 	rsync browser/*.svg $(BUILD_DIR)/browser/
 	rsync browser/*.png $(BUILD_DIR)/browser/
 	rsync browser/mini-rt.tar $(BUILD_DIR)/browser/mini-rt.tar

@@ -20,7 +20,7 @@ end
 
 cls = ARGV[0]
 here_dir = "#{Dir.pwd}/#{File.dirname($0)}"
-test_dir = "#{here_dir}/../test"
+test_dir = "#{here_dir}/../classes/test"
 src = "#{test_dir}/#{cls}.java"
 name = src.match(/(\w+)\.java/)[1]
 Tempfile.open('disasm') do |f|
