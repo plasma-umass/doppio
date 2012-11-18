@@ -1,19 +1,24 @@
 package classes.test;
 
+import java.util.Arrays;
 import java.lang.reflect.*;
 
 class Clinit {
+  static void printMethods(Method[] methods) {
+    String[] names = new String[methods.length];
+    for (int i=0; i<names.length; ++i) {
+      names[i] = methods[i].getName();
+    }
+    Arrays.sort(names);
+    for (String n : names) {
+      System.out.println(n);
+    }
+  }
   public static void main(String[] args) throws ClassNotFoundException {
     System.out.println("Declared methods for class ClinitBar:");
-    Method[] methods = ClinitBar.class.getDeclaredMethods();
-    for (Method m : methods) {
-      System.out.println(m.getName());
-    }
+    printMethods(ClinitBar.class.getDeclaredMethods());
     System.out.println("\nPublic methods for class ClinitBar:");
-    methods = ClinitBar.class.getMethods();
-    for (Method m : methods) {
-      System.out.println(m.getName());
-    }
+    printMethods(ClinitBar.class.getMethods());
   }
 }
 
