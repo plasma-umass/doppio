@@ -38,6 +38,7 @@ class root.StackFrame
 class root.RuntimeState
   constructor: (@print, @async_input, @read_classfile) ->
     @classes = {}
+    @class_pool = Object.create null
     @high_oref = 1
     @string_pool = {}
     @lock_refs = {}  # map from monitor -> thread object
@@ -167,14 +168,12 @@ class root.RuntimeState
   # static stuff
   static_get: (field_spec) ->
     f = @field_lookup(field_spec)
-    obj = @class_lookup(f.class_type, true)
-    obj.get_static f.name, f.raw_descriptor
+    @classes[f.class_type.toClassString()].obj[f.name] ?= util.initial_value f.raw_descriptor
 
   static_put: (field_spec) ->
     val = if field_spec.type in ['J','D'] then @pop2() else @pop()
     f = @field_lookup(field_spec)
-    obj = @class_lookup(f.class_type, true)
-    obj.set_static f.name, val
+    @classes[f.class_type.toClassString()].obj[f.name] = val
 
   # heap object initialization
   init_object: (cls, obj) ->
@@ -192,44 +191,47 @@ class root.RuntimeState
   init_carr: (str) ->
     new JavaArray c2t('[C'), @, (str.charCodeAt(i) for i in [0...str.length] by 1)
 
-  # Tries to obtain the class of type :type. Called by the bootstrap class loader.
+  jclass_obj: (type) ->
+    cls = type.toClassString?() ? type.toString()
+    unless @class_pool[cls] isnt undefined
+      @class_pool[cls] = new JavaClassObject @, type
+    @class_pool[cls]
+  # Tries to obtain ehe class of type :type. Called by the bootstrap class loader.
   # Throws a NoClassDefFoundError on failure.
-  class_lookup: (type,get_obj=false) ->
+  class_lookup: (type) ->
     c = @_class_lookup type
     unless c
       cls = (type.toClassString?() ? type.toString())
       java_throw @, 'java/lang/NoClassDefFoundError', cls
-    if get_obj then c.obj else c.file
+    c.file
   # Tries to obtain the class of type :type. Called by reflective methods, e.g.
   # `Class.forName`, `ClassLoader.findSystemClass`, and `ClassLoader.loadClass`.
   # Throws a ClassNotFoundException on failure.
-  dyn_class_lookup: (type, get_obj=false) ->
+  dyn_class_lookup: (type) ->
     c = @_class_lookup type
     unless c
       cls = (type.toClassString?() ? type.toString())
       java_throw @, 'java/lang/ClassNotFoundException', cls
-    if get_obj then c.obj else c.file
+    c.file
   # Fetch the relevant class file. Returns `undefined` if it cannot be found.
   # Results are cached in `@classes`.
   _class_lookup: (type) ->
-    throw new Error "class_lookup needs a type object, got #{typeof type}: #{type}" unless type instanceof types.Type
+    UNSAFE? || throw new Error "class_lookup needs a type object, got #{typeof type}: #{type}" unless type instanceof types.Type
     cls = type.toClassString?() ? type.toString()
     unless @classes[cls]?
       trace "loading new class: #{cls}"
-      defer_init = cls in ['java/lang/Class', 'java/lang/Object']
-      jclass = new JavaClassObject @, type, defer_init
       if type instanceof types.ArrayType
         class_file = ClassFile.for_array_type type
-        @classes[cls] = {file: class_file, obj: jclass}
+        @classes[cls] = {file: class_file, obj: Object.create null}
         component = type.component_type
         if component instanceof types.ArrayType or component instanceof types.ClassType
           @_class_lookup component
       else if type instanceof types.PrimitiveType
-        @classes[type] = {file: '<primitive>', obj: jclass}
+        @classes[type] = {file: '<primitive>', obj: Object.create null}
       else
         class_file = @read_classfile cls
         return unless class_file?
-        @classes[cls] = c = {file: class_file, obj: jclass}
+        @classes[cls] = c = {file: class_file, obj: Object.create null}
         # Run class initialization code. Superclasses get init'ed first.  We
         # don't want to call this more than once per class, so don't do dynamic
         # lookup. See spec [2.17.4][1].
@@ -241,7 +243,6 @@ class root.RuntimeState
         c.in_progress = true
         class_file.methods['<clinit>()V']?.run(this)
         delete c.in_progress  # no need to keep this around
-      jclass.init_fields(@) if defer_init
     else if @meta_stack().resuming_stack?
       c = @classes[cls]
       if c.file.super_class
@@ -253,13 +254,12 @@ class root.RuntimeState
     @classes[cls]
   proxy_class: (cls, data) ->
     # replicates some logic from _class_lookup
-    jclass = new JavaClassObject @, c2t(cls), false
     class_file = new ClassFile(data)
-    @classes[cls] = {file: class_file, obj: jclass}
+    @classes[cls] = {file: class_file, obj: Object.create null}
     if class_file.super_class
       @_class_lookup class_file.super_class
     class_file.methods['<clinit>()V']?.run(this)
-    jclass
+    @jclass_obj c2t(cls)
 
   method_lookup: (method_spec) ->
     type = c2t method_spec.class

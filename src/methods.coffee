@@ -4,14 +4,13 @@ _ = require '../vendor/_.js'
 util = require './util'
 opcodes = require './opcodes'
 attributes = require './attributes'
-disassembler = require './disassembler'
 types = require './types'
 natives = require './natives'
 runtime = require './runtime'
 logging = require './logging'
 {vtrace,trace,debug_vars} = logging
 {java_throw,ReturnException} = require './exceptions'
-{opcode_annotators} = disassembler
+{opcode_annotators} = require './disassembler'
 {str2type,carr2type,c2t} = types
 {native_methods,trapped_methods} = natives
 
@@ -39,9 +38,9 @@ class root.Field extends AbstractMethodField
   reflector: (rs) ->
     rs.init_object 'java/lang/reflect/Field', {
       # XXX this leaves out 'annotations'
-      clazz: rs.class_lookup(@class_type,true)
+      clazz: rs.jclass_obj(@class_type)
       name: rs.init_string @name, true
-      type: rs.class_lookup @type, true
+      type: rs.jclass_obj @type
       modifiers: @access_byte
       slot: @idx
       signature: rs.init_string @raw_descriptor
@@ -87,11 +86,11 @@ class root.Method extends AbstractMethodField
     adefs = _.find(@attrs, (a) -> a.constructor.name == 'AnnotationDefault')?.raw_bytes
     rs.init_object typestr, {
       # XXX: missing parameterAnnotations
-      clazz: rs.class_lookup(@class_type, true)
+      clazz: rs.jclass_obj(@class_type)
       name: rs.init_string @name, true
-      parameterTypes: rs.init_object "[Ljava/lang/Class;", (rs.class_lookup(f,true) for f in @param_types)
-      returnType: rs.class_lookup @return_type, true
-      exceptionTypes: rs.init_object "[Ljava/lang/Class;", (rs.class_lookup(c2t(e),true) for e in exceptions)
+      parameterTypes: rs.init_object "[Ljava/lang/Class;", (rs.jclass_obj(f) for f in @param_types)
+      returnType: rs.jclass_obj @return_type
+      exceptionTypes: rs.init_object "[Ljava/lang/Class;", (rs.jclass_obj(c2t(e)) for e in exceptions)
       modifiers: @access_byte
       slot: @idx
       signature: rs.init_string @raw_descriptor
@@ -160,7 +159,7 @@ class root.Method extends AbstractMethodField
 
   run: (runtime_state) ->
     ms = runtime_state.meta_stack()
-    RELEASE? || padding = (' ' for i in [1...ms.length()] by 1).join('')
+    RELEASE? || padding = new Array(ms.length()).join ' '
     if ms.resuming_stack? # we are resuming from a yield
       ms.resuming_stack++
       if ms.resuming_stack == ms.length() - 1

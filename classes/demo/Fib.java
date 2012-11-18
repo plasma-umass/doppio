@@ -1,5 +1,5 @@
 // compute fibonacci sequence
-package test;
+package classes.demo;
 public class Fib {
   public static void main(String[] args) {
     int n;

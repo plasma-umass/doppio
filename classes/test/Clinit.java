@@ -19,6 +19,9 @@ class Clinit {
     printMethods(ClinitBar.class.getDeclaredMethods());
     System.out.println("\nPublic methods for class ClinitBar:");
     printMethods(ClinitBar.class.getMethods());
+
+    ClinitFoo cf = null;
+    System.out.println(cf instanceof ClinitBar);
   }
 }
 

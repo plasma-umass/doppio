@@ -111,25 +111,10 @@ class root.JavaObject
 
 
 class root.JavaClassObject extends root.JavaObject
-  constructor: (rs, @$type, defer_init=false) ->
-    @ref = rs.high_oref++
-    @type = types.c2t 'java/lang/Class'
-    @fields = {}
-    @init_fields(rs) unless defer_init
-
-  init_fields: (rs) ->
-    cls = rs.class_lookup @type
-    for f in cls.fields when not f.access_flags.static
-      @fields[f.name] = util.initial_value f.raw_descriptor
-
-  # Used for setting a class' static fields
-  set_static: (name, val) -> @fields[name] = val
-
-  # Used for getting a class' static fields
-  get_static: (name, type) -> @fields[name] ?= util.initial_value type
+  constructor: (rs, @$type) ->
+    super types.c2t('java/lang/Class'), rs
 
   toString: -> "<Class #{@$type} (*#{@ref})>"
-
 
 root.thread_name = (rs, thread) ->
   util.chars2js_str thread.get_field rs, 'name', 'java/lang/Thread'
