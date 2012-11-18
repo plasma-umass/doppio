@@ -19,7 +19,7 @@ root.ReturnException = {}
 class root.YieldException
   constructor: (@condition) ->
   method_catch_handler: (rs, method) ->
-    trace "yielding from #{method.full_signature}"
+    trace "yielding from #{method.full_signature()}"
     throw @
 
 class root.YieldIOException extends root.YieldException

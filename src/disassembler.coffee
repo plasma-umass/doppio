@@ -192,8 +192,11 @@ root.opcode_annotators =
   BranchOpcode: (idx) -> "\t#{idx + @offset}"
   LoadVarOpcode: -> "\t#{@var_num}"
   StoreVarOpcode: -> "\t#{@var_num}"
-  # TODO: add comments for this constant pool ref as well
-  LoadConstantOpcode: -> "\t##{@constant_ref};"
+  LoadConstantOpcode: (idx, pool) -> "\t##{@constant_ref};\t// #{@constant.type} " +
+    if @constant.type in ['String', 'class']
+      escape_whitespace @constant.deref()
+    else
+      @constant.value
   PushOpcode: -> "\t#{@value}"
   IIncOpcode: -> "\t#{@index}, #{@const}"
   NewArrayOpcode: -> "\t#{primitive_types[@element_type]}"
