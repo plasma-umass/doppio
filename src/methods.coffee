@@ -1,7 +1,6 @@
 
 # pull in external modules
 _ = require '../vendor/_.js'
-gLong = require '../vendor/gLong.js'
 util = require './util'
 opcodes = require './opcodes'
 attributes = require './attributes'
@@ -109,6 +108,8 @@ class root.Method extends AbstractMethodField
     caller_stack.length -= @param_bytes
     params
 
+  RELEASE? || padding = '' # used in debug mode to align instruction traces
+
   run_manually: (func, rs, params) ->
     converted_params = [rs]
     param_idx = 0
@@ -130,16 +131,16 @@ class root.Method extends AbstractMethodField
       else rs.push rv
       rs.push null if ret_type in [ 'J', 'D' ]
 
-  run_bytecode: (rs, padding) ->
+  run_bytecode: (rs) ->
     try
-      @bytecode_loop(rs, padding)
+      @bytecode_loop(rs)
     catch e
       return if e is ReturnException
       throw e unless e.method_catch_handler? # JVM Error
-      e.method_catch_handler(rs, @, padding)
-      @run_bytecode(rs, padding)
+      e.method_catch_handler(rs, @)
+      @run_bytecode(rs)
 
-  bytecode_loop: (rs, padding) ->
+  bytecode_loop: (rs) ->
     # main eval loop: execute each opcode, using the pc to iterate through
     code = @code.opcodes()
     cf = rs.curr_frame()
@@ -159,7 +160,7 @@ class root.Method extends AbstractMethodField
 
   run: (runtime_state) ->
     ms = runtime_state.meta_stack()
-    padding = unless RELEASE? then (' ' for [1...ms.length()]).join('') else null
+    RELEASE? || padding = (' ' for i in [1...ms.length()] by 1).join('')
     if ms.resuming_stack? # we are resuming from a yield
       ms.resuming_stack++
       if ms.resuming_stack == ms.length() - 1
@@ -172,7 +173,7 @@ class root.Method extends AbstractMethodField
         return
       else
         trace "#{padding}resuming method #{@full_signature()}"
-        @run_bytecode runtime_state, padding
+        @run_bytecode runtime_state
     else
       caller_stack = runtime_state.curr_frame().stack
       params = @take_params caller_stack
@@ -190,4 +191,4 @@ class root.Method extends AbstractMethodField
       # Finally, the normal case: running a Java method
       trace "#{padding}entering method #{@full_signature()}"
       ms.push(new runtime.StackFrame(this,params,[]))
-      @run_bytecode runtime_state, padding
+      @run_bytecode runtime_state
