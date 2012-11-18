@@ -191,7 +191,7 @@ native_methods =
             rs.init_object('[Ljava/lang/reflect/Field;',(f.reflector(rs) for f in fields))
         o 'getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;', (rs, _this, public_only) ->
             methods = rs.class_lookup(_this.$type).methods
-            methods = (m for sig, m of methods when m.access_flags.public or not public_only)
+            methods = (m for sig, m of methods when sig[0] != '<' and (m.access_flags.public or not public_only))
             rs.init_object('[Ljava/lang/reflect/Method;',(m.reflector(rs) for m in methods))
         o 'getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;', (rs, _this, public_only) ->
             methods = rs.class_lookup(_this.$type).methods
