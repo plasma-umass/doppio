@@ -141,7 +141,7 @@ class root.Method extends AbstractMethodField
 
   bytecode_loop: (rs, padding) ->
     # main eval loop: execute each opcode, using the pc to iterate through
-    code = @code.opcodes
+    code = @code.opcodes()
     cf = rs.curr_frame()
     while true
       op = code[cf.pc]

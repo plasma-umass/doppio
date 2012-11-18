@@ -30,10 +30,10 @@ class ClassFile
     @super_class = c2t(@constant_pool.get(super_ref).deref()) unless super_ref is 0
     # direct interfaces of this class
     isize = bytes_array.get_uint 2
-    @interfaces = (bytes_array.get_uint 2 for [0...isize])
+    @interfaces = (bytes_array.get_uint 2 for i in [0...isize] by 1)
     # fields of this class
     num_fields = bytes_array.get_uint 2
-    @fields = (new methods.Field(@this_class) for [0...num_fields])
+    @fields = (new methods.Field(@this_class) for i in [0...num_fields] by 1)
     @fl_cache = {}
     for f,i in @fields
       f.parse(bytes_array,@constant_pool,i)
