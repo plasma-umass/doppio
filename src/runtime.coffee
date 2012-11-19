@@ -37,8 +37,13 @@ class root.StackFrame
 # Contains all the mutable state of the Java program.
 class root.RuntimeState
   constructor: (@print, @async_input, @read_classfile) ->
-    @classes = {}
-    @class_pool = Object.create null
+    # dict of field values of loaded and initialized classes
+    @class_fields = Object.create null
+    # dict of java.lang.Class objects (which are interned)
+    @jclass_obj_pool = Object.create null
+    # dict of ClassFiles that have been loaded
+    @loaded_classes = Object.create null
+
     @high_oref = 1
     @string_pool = {}
     @lock_refs = {}  # map from monitor -> thread object
@@ -168,12 +173,12 @@ class root.RuntimeState
   # static stuff
   static_get: (field_spec) ->
     f = @field_lookup(field_spec)
-    @classes[f.class_type.toClassString()].obj[f.name] ?= util.initial_value f.raw_descriptor
+    @class_fields[f.class_type.toClassString()][f.name] ?= util.initial_value f.raw_descriptor
 
   static_put: (field_spec) ->
     val = if field_spec.type in ['J','D'] then @pop2() else @pop()
     f = @field_lookup(field_spec)
-    @classes[f.class_type.toClassString()].obj[f.name] = val
+    @class_fields[f.class_type.toClassString()][f.name] = val
 
   # heap object initialization
   init_object: (cls, obj) ->
@@ -191,73 +196,85 @@ class root.RuntimeState
   init_carr: (str) ->
     new JavaArray c2t('[C'), @, (str.charCodeAt(i) for i in [0...str.length] by 1)
 
-  jclass_obj: (type) ->
+  # Returns a java.lang.Class object for JVM bytecode to do reflective stuff.
+  # Loads the underlying class, but does not initialize it (and therefore does
+  # not ensure that its ancestors and interfaces are present.)
+  jclass_obj: (type, dyn=false) ->
     cls = type.toClassString?() ? type.toString()
-    unless @class_pool[cls] isnt undefined
-      @class_pool[cls] = new JavaClassObject @, type
-    @class_pool[cls]
-  # Tries to obtain ehe class of type :type. Called by the bootstrap class loader.
-  # Throws a NoClassDefFoundError on failure.
-  class_lookup: (type) ->
-    c = @_class_lookup type
-    unless c
-      cls = (type.toClassString?() ? type.toString())
-      java_throw @, 'java/lang/NoClassDefFoundError', cls
-    c.file
-  # Tries to obtain the class of type :type. Called by reflective methods, e.g.
-  # `Class.forName`, `ClassLoader.findSystemClass`, and `ClassLoader.loadClass`.
-  # Throws a ClassNotFoundException on failure.
-  dyn_class_lookup: (type) ->
-    c = @_class_lookup type
-    unless c
-      cls = (type.toClassString?() ? type.toString())
-      java_throw @, 'java/lang/ClassNotFoundException', cls
-    c.file
-  # Fetch the relevant class file. Returns `undefined` if it cannot be found.
-  # Results are cached in `@classes`.
-  _class_lookup: (type) ->
+    unless @jclass_obj_pool[cls] isnt undefined
+      file = @load_class type, dyn
+      @jclass_obj_pool[cls] = new JavaClassObject @, type, file
+    @jclass_obj_pool[cls]
+
+  # Returns a ClassFile object. Loads the underlying class, but does not
+  # initialize it.
+  # We're technically supposed to load all the classes referenced in a constant
+  # pool when loading a class, but it's probably not such a great idea to pull
+  # in all those dependencies over the web. So we do both reflective and
+  # 'static' class loading lazily. Still, there is a distinction between
+  # constant-pool-loaded classes and reflection-loaded ones: load failures in
+  # the former are Errors but merely Exceptions in the latter.  The `dyn`
+  # parameter indicates this.
+  load_class: (type, dyn) ->
+    unless @loaded_classes[type]?
+      if type instanceof types.ArrayType
+        @loaded_classes[type] = ClassFile.for_array_type type
+      else if type instanceof types.PrimitiveType
+        @loaded_classes[type] = '<primitive>'
+      else
+        cls = type.toClassString()
+        class_file = @read_classfile cls
+        unless class_file?
+          if dyn
+            java_throw @, 'java/lang/ClassNotFoundException', cls
+          else
+            java_throw @, 'java/lang/NoClassDefFoundError', cls
+        @loaded_classes[type] = class_file
+    @loaded_classes[type]
+
+  # Loads and initializes :type, and returns a ClassFile object. Should only be
+  # called _immediately_ before a method invocation or field access. See section
+  # 5.5 of the SE7 spec.
+  class_lookup: (type, dyn) ->
     UNSAFE? || throw new Error "class_lookup needs a type object, got #{typeof type}: #{type}" unless type instanceof types.Type
     cls = type.toClassString?() ? type.toString()
-    unless @classes[cls]?
+    unless @class_fields[cls]?
       trace "loading new class: #{cls}"
+      class_file = @load_class type, dyn
+      @class_fields[cls] = Object.create null
       if type instanceof types.ArrayType
-        class_file = ClassFile.for_array_type type
-        @classes[cls] = {file: class_file, obj: Object.create null}
         component = type.component_type
         if component instanceof types.ArrayType or component instanceof types.ClassType
-          @_class_lookup component
-      else if type instanceof types.PrimitiveType
-        @classes[type] = {file: '<primitive>', obj: Object.create null}
-      else
-        class_file = @read_classfile cls
-        return unless class_file?
-        @classes[cls] = c = {file: class_file, obj: Object.create null}
+          @class_lookup component, dyn
+      else if type instanceof types.ClassType
+        @class_fields[cls] = c = Object.create null
         # Run class initialization code. Superclasses get init'ed first.  We
         # don't want to call this more than once per class, so don't do dynamic
         # lookup. See spec [2.17.4][1].
         # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/Concepts.doc.html#19075
         if class_file.super_class
-          @_class_lookup class_file.super_class
+          @class_lookup class_file.super_class, dyn
 
         # flag to let us know if we need to resume into <clinit> after a yield
-        c.in_progress = true
+        c.$in_progress = true
         class_file.methods['<clinit>()V']?.run(this)
-        delete c.in_progress  # no need to keep this around
+        delete c.$in_progress  # no need to keep this around
     else if @meta_stack().resuming_stack?
-      c = @classes[cls]
-      if c.file.super_class
-        @_class_lookup c.file.super_class
-      if c.in_progress?  # need to resume <clinit>
-        trace "resuming an in_progress class initialization"
-        delete c.in_progress
-        c.file.methods['<clinit>()V']?.run(this)
-    @classes[cls]
+      class_file = @load_class type, dyn
+      c = @class_fields[cls]
+      if class_file.super_class
+        @class_lookup class_file.super_class, dyn
+      if c.$in_progress?  # need to resume <clinit>
+        trace "resuming an $in_progress class initialization"
+        delete c.$in_progress
+        class_file.methods['<clinit>()V']?.run(this)
+    @load_class type, dyn
   proxy_class: (cls, data) ->
-    # replicates some logic from _class_lookup
+    # replicates some logic from class_lookup
     class_file = new ClassFile(data)
-    @classes[cls] = {file: class_file, obj: Object.create null}
+    @class_fields[cls] = {file: class_file, obj: Object.create null}
     if class_file.super_class
-      @_class_lookup class_file.super_class
+      @class_lookup class_file.super_class
     class_file.methods['<clinit>()V']?.run(this)
     @jclass_obj c2t(cls)
 

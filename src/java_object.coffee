@@ -111,7 +111,7 @@ class root.JavaObject
 
 
 class root.JavaClassObject extends root.JavaObject
-  constructor: (rs, @$type) ->
+  constructor: (rs, @$type, @file) ->
     super types.c2t('java/lang/Class'), rs
 
   toString: -> "<Class #{@$type} (*#{@ref})>"

@@ -114,7 +114,7 @@ class root.LoadConstantOpcode extends root.Opcode
       when 'String'
         rs.push rs.init_string(@str_constant.value, true)
       when 'class'
-        rs.push rs.jclass_obj(c2t(@str_constant.value))
+        rs.push rs.jclass_obj(c2t(@str_constant.value), false)
       else
         rs.push @constant.value
     return

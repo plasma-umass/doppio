@@ -66,7 +66,7 @@ trapped_methods =
             for sf in cstack when sf.locals[0] isnt _this
               cls = sf.method.class_type
               unless _this.type.toClassString() is 'java/lang/NoClassDefFoundError'
-                attrs = rs.class_lookup(cls).attrs
+                attrs = rs.jclass_obj(cls).file.attrs
                 source_file =
                   _.find(attrs, (attr) -> attr.constructor.name == 'SourceFile')?.name or 'unknown'
               else
@@ -154,24 +154,23 @@ native_methods =
     lang:
       Class: [
         o 'getPrimitiveClass(L!/!/String;)L!/!/!;', (rs, jvm_str) ->
-            rs.jclass_obj new types.PrimitiveType(jvm_str.jvm2js_str())
+            rs.jclass_obj new types.PrimitiveType(jvm_str.jvm2js_str()), true
         o 'getClassLoader0()L!/!/ClassLoader;', (rs) -> null  # we don't need no stinkin classloaders
         o 'desiredAssertionStatus0(L!/!/!;)Z', (rs) -> false # we don't need no stinkin asserts
         o 'getName0()L!/!/String;', (rs, _this) ->
             rs.init_string(_this.$type.toExternalString())
         o 'forName0(L!/!/String;ZL!/!/ClassLoader;)L!/!/!;', (rs, jvm_str) ->
             type = c2t util.int_classname jvm_str.jvm2js_str()
-            rs.jclass_obj type
+            rs.jclass_obj type, true
         o 'getComponentType()L!/!/!;', (rs, _this) ->
             type = _this.$type
             return null unless (type instanceof types.ArrayType)
-            rs.jclass_obj type.component_type
+            rs.jclass_obj type.component_type, true
         o 'isAssignableFrom(L!/!/!;)Z', (rs, _this, cls) ->
             types.is_castable rs, cls.$type, _this.$type
         o 'isInterface()Z', (rs, _this) ->
             return false unless _this.$type instanceof types.ClassType
-            cls = rs.class_lookup _this.$type
-            cls.access_flags.interface
+            _this.file.access_flags.interface
         o 'isInstance(L!/!/Object;)Z', (rs, _this, obj) ->
             return types.is_castable rs, obj.type, _this.$type
         o 'isPrimitive()Z', (rs, _this) ->
@@ -179,34 +178,33 @@ native_methods =
         o 'isArray()Z', (rs, _this) ->
             _this.$type instanceof types.ArrayType
         o 'getSuperclass()L!/!/!;', (rs, _this) ->
-            type = _this.$type
-            return null if type instanceof types.PrimitiveType
-            cls = rs.class_lookup type
+            return null if _this.$type instanceof types.PrimitiveType
+            cls = _this.file
             if cls.access_flags.interface or not cls.super_class?
               return null
-            rs.jclass_obj cls.super_class
+            rs.jclass_obj cls.super_class, true
         o 'getDeclaredFields0(Z)[Ljava/lang/reflect/Field;', (rs, _this, public_only) ->
-            fields = rs.class_lookup(_this.$type).fields
+            fields = _this.file.fields
             fields = (f for f in fields when f.access_flags.public) if public_only
             rs.init_object('[Ljava/lang/reflect/Field;',(f.reflector(rs) for f in fields))
         o 'getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;', (rs, _this, public_only) ->
-            methods = rs.class_lookup(_this.$type).methods
+            methods = _this.file.methods
             methods = (m for sig, m of methods when sig[0] != '<' and (m.access_flags.public or not public_only))
             rs.init_object('[Ljava/lang/reflect/Method;',(m.reflector(rs) for m in methods))
         o 'getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;', (rs, _this, public_only) ->
-            methods = rs.class_lookup(_this.$type).methods
+            methods = _this.file.methods
             methods = (m for sig, m of methods when m.name is '<init>')
             methods = (m for m in methods when m.access_flags.public) if public_only
             rs.init_object('[Ljava/lang/reflect/Constructor;',(m.reflector(rs,true) for m in methods))
         o 'getInterfaces()[L!/!/!;', (rs, _this) ->
-            cls = rs.class_lookup(_this.$type)
+            cls = _this.file
             ifaces = (cls.constant_pool.get(i).deref() for i in cls.interfaces)
             ifaces = ((if util.is_string(i) then c2t(i) else i) for i in ifaces)
-            iface_objs = (rs.jclass_obj(iface) for iface in ifaces)
+            iface_objs = (rs.jclass_obj(iface, true) for iface in ifaces)
             rs.init_object('[Ljava/lang/Class;',iface_objs)
-        o 'getModifiers()I', (rs, _this) -> rs.class_lookup(_this.$type).access_byte
+        o 'getModifiers()I', (rs, _this) -> _this.file.access_byte
         o 'getRawAnnotations()[B', (rs, _this) ->
-            cls = rs.class_lookup(_this.$type)
+            cls = _this.file
             annotations = _.find(cls.attrs, (a) -> a.constructor.name == 'RuntimeVisibleAnnotations')
             return new JavaArray c2t('[B'), rs, annotations.raw_bytes if annotations?
             for sig,m of cls.methods
@@ -214,11 +212,11 @@ native_methods =
               return new JavaArray c2t('[B'), rs, annotations.raw_bytes if annotations?
             null
         o 'getConstantPool()Lsun/reflect/ConstantPool;', (rs, _this) ->
-            cls = rs.class_lookup(_this.$type)
+            cls = _this.file
             rs.init_object 'sun/reflect/ConstantPool', {constantPoolOop: cls.constant_pool}
         o 'getEnclosingMethod0()[L!/!/Object;', (rs, _this) ->
             return null unless _this.$type instanceof types.ClassType
-            cls = rs.class_lookup(_this.$type)
+            cls = _this.file
             em = _.find(cls.attrs, (a) -> a.constructor.name == 'EnclosingMethod')
             return null unless em?
             java_throw rs, 'java/lang/Error', "native method not finished: java.lang.Class.getEnclosingClass"
@@ -229,15 +227,15 @@ native_methods =
             #new JavaArray c2t('[Ljava/lang/Object;'), rs, [null,null,null]
         o 'getDeclaringClass()L!/!/!;', (rs, _this) ->
             return null unless _this.$type instanceof types.ClassType
-            cls = rs.class_lookup(_this.$type)
+            cls = _this.file
             icls = _.find(cls.attrs, (a) -> a.constructor.name == 'InnerClasses')
             ref = icls?.classes[0].outer_info_index
             return null unless ref? and ref > 0
-            rs.jclass_obj c2t(cls.constant_pool.get(ref).deref())
+            rs.jclass_obj c2t(cls.constant_pool.get(ref).deref()), true
         o 'getDeclaredClasses0()[L!/!/!;', (rs, _this) ->
             ret = new JavaArray c2t('[Ljava/lang/Class;'), rs, []
             return ret unless _this.$type instanceof types.ClassType
-            cls = rs.class_lookup(_this.$type)
+            cls = _this.file
             my_class = _this.$type.toClassString()
             iclses = (a for a in cls.attrs when a.constructor.name is 'InnerClasses')
             for icls in iclses
@@ -247,7 +245,7 @@ native_methods =
                 continue unless flags.public
                 name = cls.constant_pool.get(c.inner_info_index).deref()
                 continue unless name.indexOf(my_class) == 0
-                ret.array.push rs.jclass_obj c2t(name)
+                ret.array.push rs.jclass_obj c2t(name), true
             ret
       ],
       ClassLoader: [
@@ -255,17 +253,17 @@ native_methods =
             type = c2t util.int_classname name.jvm2js_str()
             rv = null
             try
-              rv = rs.jclass_obj type
+              rv = rs.jclass_obj type, true
             catch e
               unless e instanceof exceptions.JavaException # assuming a NoClassDefFoundError
                 throw e
             rv
         o 'findBootstrapClass(L!/!/String;)L!/!/Class;', (rs, _this, name) ->
             type = c2t util.int_classname name.jvm2js_str()
-            rs.jclass_obj type # TODO make this a dyn_* lookup
+            rs.jclass_obj type, true
         o 'getCaller(I)L!/!/Class;', (rs, i) ->
             type = rs.meta_stack().get_caller(i).method.class_type
-            rs.jclass_obj(type)
+            rs.jclass_obj(type, true)
 
       ],
       Compiler: [
@@ -296,7 +294,7 @@ native_methods =
       ]
       Object: [
         o 'getClass()L!/!/Class;', (rs, _this) ->
-            rs.jclass_obj _this.type
+            rs.jclass_obj _this.type, false
         o 'hashCode()I', (rs, _this) ->
             # return the pseudo heap reference, essentially a unique id
             _this.ref
@@ -753,7 +751,7 @@ native_methods =
         o 'invoke0(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;', (rs,m,obj,params) ->
             cls = m.get_field rs, 'clazz'
             slot = m.get_field rs, 'slot'
-            method = (method for sig, method of rs.class_lookup(cls.$type).methods when method.idx is slot)[0]
+            method = (method for sig, method of rs.class_lookup(cls.$type, true).methods when method.idx is slot)[0]
             rs.push obj unless method.access_flags.static
             rs.push_array params.array
             method.run(rs)
@@ -763,7 +761,7 @@ native_methods =
         o 'newInstance0(Ljava/lang/reflect/Constructor;[Ljava/lang/Object;)Ljava/lang/Object;', (rs,m,params) ->
             cls = m.get_field rs, 'clazz'
             slot = m.get_field rs, 'slot'
-            method = (method for sig, method of rs.class_lookup(cls.$type).methods when method.idx is slot)[0]
+            method = (method for sig, method of rs.class_lookup(cls.$type, true).methods when method.idx is slot)[0]
             rs.push (obj = rs.set_obj cls.$type)
             rs.push_array params.array if params?
             method.run(rs)
@@ -774,9 +772,9 @@ native_methods =
             #TODO: disregard frames assoc. with java.lang.reflect.Method.invoke() and its implementation
             caller = rs.meta_stack().get_caller(frames_to_skip)
             type = caller.method.class_type
-            rs.jclass_obj(type)
-        o 'getClassAccessFlags(Ljava/lang/Class;)I', (rs, _this) ->
-            rs.class_lookup(_this.$type).access_byte
+            rs.jclass_obj(type, true)
+        o 'getClassAccessFlags(Ljava/lang/Class;)I', (rs, class_obj) ->
+            class_obj.file.access_byte
       ]
 
 flatten_pkg = (pkg) ->
