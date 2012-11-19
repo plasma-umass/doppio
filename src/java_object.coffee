@@ -41,9 +41,9 @@ class root.JavaObject
       for f in cls.fields when not f.access_flags.static
         val = util.initial_value f.raw_descriptor
         slot_val = @fields[f.name]
-        if typeof slot_val isnt 'undefined'
+        if slot_val isnt undefined
           # Field shadowing.
-          unless slot_val?.$first?
+          if slot_val.$first is undefined
             @fields[f.name] = slot_val = {$first: slot_val}
           slot_val[t.toClassString()] = val
         else
@@ -53,7 +53,7 @@ class root.JavaObject
     for k in Object.keys obj
       v = obj[k]
       slot_val = @fields[k]
-      if slot_val?.$first?
+      if slot_val?.$first isnt undefined
         slot_val.$first = v
       else
         @fields[k] = v
@@ -66,9 +66,9 @@ class root.JavaObject
     slot_val = @fields[name]
     if slot_val is undefined
       java_throw rs, 'java/lang/NoSuchFieldError', name
-    else unless slot_val?.$first?  # not shadowed
+    else if slot_val?.$first is undefined  # not shadowed
       @fields[name] = val
-    else unless for_class? or slot_val[for_class]?
+    else if not for_class? or slot_val[for_class] is undefined
       slot_val.$first = val
     else
       slot_val[for_class] = val
@@ -78,9 +78,9 @@ class root.JavaObject
     slot_val = @fields[name]
     if slot_val is undefined
       java_throw rs, 'java/lang/NoSuchFieldError', name
-    else unless slot_val?.$first?
+    else if slot_val?.$first is undefined
       slot_val
-    else unless for_class? or slot_val[for_class]?
+    else if not for_class? or slot_val[for_class] is undefined
       slot_val.$first
     else
       slot_val[for_class]

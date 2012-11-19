@@ -163,10 +163,12 @@ class root.RuntimeState
   heap_put: (field_spec) ->
     val = if field_spec.type in ['J','D'] then @pop2() else @pop()
     obj = @pop()
-    obj.set_field @, field_spec.name, val, field_spec.class
+    field = @field_lookup(field_spec)
+    obj.set_field @, field_spec.name, val, field.class_type.toClassString()
 
   heap_get: (field_spec, obj) ->
-    val = obj.get_field @, field_spec.name, field_spec.class
+    field = @field_lookup(field_spec)
+    val = obj.get_field @, field_spec.name, field.class_type.toClassString()
     @push val
     @push null if field_spec.type in ['J','D']
 

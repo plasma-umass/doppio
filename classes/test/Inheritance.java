@@ -20,6 +20,9 @@ public class Inheritance {
 
 
 		C pathological = new C();
+		System.out.println(pathological.foo);
+		System.out.println(((B)pathological).foo);
+		System.out.println(((A)pathological).foo);
 		pathological.foo = 1337;
 		System.out.println(pathological.foo);
 		System.out.println(((B)pathological).foo);
