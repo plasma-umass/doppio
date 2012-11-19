@@ -43,7 +43,7 @@ class root.JavaObject
         slot_val = @fields[f.name]
         if slot_val isnt undefined
           # Field shadowing.
-          if slot_val.$first is undefined
+          if slot_val?.$first is undefined
             @fields[f.name] = slot_val = {$first: slot_val}
           slot_val[t.toClassString()] = val
         else
