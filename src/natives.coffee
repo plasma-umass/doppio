@@ -264,7 +264,9 @@ native_methods =
         o 'getCaller(I)L!/!/Class;', (rs, i) ->
             type = rs.meta_stack().get_caller(i).method.class_type
             rs.jclass_obj(type, true)
-
+        o 'defineClass1(L!/!/String;[BIIL!/security/ProtectionDomain;L!/!/String;Z)L!/!/Class;', (rs,_this,name,bytes,offset,len,pd,source) ->
+            raw_bytes = ((256+b)%256 for b in bytes.array[offset...offset+len])  # convert to unsigned bytes
+            rs.create_dyn_class name.jvm2js_str(), raw_bytes
       ],
       Compiler: [
         o 'disable()V', (rs, _this) -> #NOP
@@ -326,7 +328,7 @@ native_methods =
         Proxy: [
           o 'defineClass0(L!/!/ClassLoader;L!/!/String;[BII)L!/!/Class;', (rs,cl,name,bytes,offset,len) ->
               raw_bytes = ((256+b)%256 for b in bytes.array[offset...offset+len])  # convert to unsigned bytes
-              rs.proxy_class name.jvm2js_str(), raw_bytes
+              rs.create_dyn_class name.jvm2js_str(), raw_bytes
         ]
       Runtime: [
         o 'availableProcessors()I', () -> 1

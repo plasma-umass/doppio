@@ -199,12 +199,11 @@ class root.RuntimeState
   # Returns a java.lang.Class object for JVM bytecode to do reflective stuff.
   # Loads the underlying class, but does not initialize it (and therefore does
   # not ensure that its ancestors and interfaces are present.)
-  jclass_obj: (type, dyn=false) ->
-    cls = type.toClassString?() ? type.toString()
-    unless @jclass_obj_pool[cls] isnt undefined
-      file = @load_class type, dyn
-      @jclass_obj_pool[cls] = new JavaClassObject @, type, file
-    @jclass_obj_pool[cls]
+  jclass_obj: (type, dyn=false, file=null) ->
+    unless @jclass_obj_pool[type] isnt undefined
+      file ?= @load_class type, dyn
+      @jclass_obj_pool[type] = new JavaClassObject @, type, file
+    @jclass_obj_pool[type]
 
   # Returns a ClassFile object. Loads the underlying class, but does not
   # initialize it.
@@ -269,14 +268,15 @@ class root.RuntimeState
         delete c.$in_progress
         class_file.methods['<clinit>()V']?.run(this)
     @load_class type, dyn
-  proxy_class: (cls, data) ->
+  create_dyn_class: (cls, data) ->
     # replicates some logic from class_lookup
     class_file = new ClassFile(data)
-    @class_fields[cls] = {file: class_file, obj: Object.create null}
+    @class_fields[cls] = Object.create null
     if class_file.super_class
       @class_lookup class_file.super_class
-    class_file.methods['<clinit>()V']?.run(this)
-    @jclass_obj c2t(cls)
+    type = c2t(util.int_classname cls)
+    @loaded_classes[type] = class_file
+    @jclass_obj type, true, class_file
 
   method_lookup: (method_spec) ->
     type = c2t method_spec.class
