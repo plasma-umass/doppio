@@ -17,6 +17,17 @@ public class Inheritance {
 		System.out.println("Child a: " + child2.a);
 		System.out.println("Parent a through child via getter: " + child2.getA());
 		System.out.println("Child b: " + child2.b);
+
+
+		C pathological = new C();
+		pathological.foo = 1337;
+		System.out.println(pathological.foo);
+		System.out.println(((B)pathological).foo);
+		System.out.println(((A)pathological).foo);
+		((A)pathological).foo = 42;
+		System.out.println(pathological.foo);
+		System.out.println(((B)pathological).foo);
+		System.out.println(((A)pathological).foo);
 	}
 }
 
@@ -32,3 +43,10 @@ class BChild extends AParent {
 	public int a;
 }
 
+class A {
+	public short foo;
+}
+class B extends A {}
+class C extends B {
+	public short foo;
+}
