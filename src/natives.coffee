@@ -396,7 +396,7 @@ native_methods =
                 # Must be two reference types.
                 arraycopy_check(rs, src, src_pos, dest, dest_pos, length)
         o 'currentTimeMillis()J', (rs) -> gLong.fromNumber((new Date).getTime())
-        o 'identityHashCode(L!/!/Object;)I', (rs, x) -> x.ref
+        o 'identityHashCode(L!/!/Object;)I', (rs, x) -> x?.ref ? 0
         o 'initProperties(L!/util/Properties;)L!/util/Properties;', (rs, props) -> rs.push null # return value should not be used
         o 'nanoTime()J', (rs) ->
             # we don't actually have nanosecond precision
