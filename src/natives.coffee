@@ -33,7 +33,13 @@ else
   system_properties['sun.boot.class.path'] = path.resolve __dirname, '../vendor/classes'
 
 get_property = (rs, jvm_key, _default = null) ->
-  val = system_properties[jvm_key.jvm2js_str()]
+  key = jvm_key.jvm2js_str()
+  # XXX: mega hack, please make this better
+  if key == 'java.class.path'
+    {classpath} = require './jvm'
+    # the last path is actually the bootclasspath (vendor/classes/)
+    return rs.init_string classpath[0...classpath.length-1].join ':'
+  val = system_properties[key]
   if val? then rs.init_string(val, true) else _default
 
 # convenience function. idea taken from coffeescript's grammar
