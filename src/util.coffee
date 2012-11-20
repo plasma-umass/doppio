@@ -19,7 +19,7 @@ root.FLOAT_NEG_INFINITY = -1*root.FLOAT_POS_INFINITY
 root.truncate = (a, n_bits) ->
   max_val = Math.pow 2, n_bits
   a = (a + max_val) % max_val
-  a -= max_val if a > Math.pow(2, n_bits-1)
+  a -= max_val if a > Math.pow(2, n_bits-1)-1
   a
 
 root.int_mod = (rs, a, b) ->

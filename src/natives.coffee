@@ -597,7 +597,7 @@ native_methods =
                 exceptions.java_throw rs, 'java/io/FileNotFoundException', "Could not open file #{filepath}"
               else
                 throw e
-        o 'close0()V', (rs, _this) -> _this.$file = null
+        o 'close0()V', (rs, _this) -> fs.closeSync(_this.$file); _this.$file = null
         o 'skip(J)J', (rs, _this, n_bytes) ->
             if (file = _this.$file)?
               bytes_left = fs.fstatSync(file).size - _this.$pos
@@ -642,7 +642,7 @@ native_methods =
             byte_arr.array[offset+i] = buf.readUInt8(i) for i in [0...bytes_read] by 1
             _this.$pos = gLong.fromNumber(pos+bytes_read)
             return if bytes_read == 0 and len isnt 0 then -1 else bytes_read
-        o 'close0()V', (rs, _this) -> _this.$file = null
+        o 'close0()V', (rs, _this) -> fs.closeSync(_this.$file); _this.$file = null
       ]
       UnixFileSystem: [
         o 'checkAccess(Ljava/io/File;I)Z', (rs, _this, file, access) ->

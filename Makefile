@@ -193,7 +193,7 @@ $(BUILD_DIR)/compressed.js: $(BROWSER_SRCS)
 			cat $${src}; \
 		fi; \
 		echo ";"; \
-	done | $(UGLIFYJS) --define RELEASE --no-mangle --unsafe > $@
+	done | $(UGLIFYJS) --define RELEASE --define UNSAFE --no-mangle --unsafe > $@
 
 $(BUILD_DIR)/ace.js: $(ACE_SRCS)
 	for src in $(ACE_SRCS); do \
