@@ -132,7 +132,7 @@ if require.main == module
       resume data
 
   rs = new runtime.RuntimeState(stdout, read_stdin, jvm.read_classfile)
-  java_cmd_args = (argv.java?.toString().split /\s+/) or []
+  java_cmd_args = (argv.java?.toString().trim().split /\s+/) or []
 
   if argv.jar?
     jar_dir = extract_jar argv.jar

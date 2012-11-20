@@ -31,7 +31,7 @@ if require.main == module
     repl.output.write '\n'
     repl.input.destroy()
   repl.on 'line', (line) ->
-    toks = line.split /\s+/
+    toks = line.trim().split /\s+/
     if toks?[0]?.length > 0
       repl_run rs, toks[0], toks[1..]
       repl.output.write '\n'

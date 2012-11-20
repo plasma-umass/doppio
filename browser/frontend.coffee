@@ -128,11 +128,11 @@ $(document).ready ->
   controller = jqconsole.console
     promptLabel: 'doppio > '
     commandHandle: (line) ->
-      [cmd,args...] = line.trim().split /\s+/
+      [cmd,args...] = line.trim().split(/\s+/)
       if cmd == '' then return true
       handler = commands[cmd]
       try
-        if handler? then handler(args)
+        if handler? then handler(a.trim() for a in args when a.length>0)
         else "Unknown command '#{cmd}'. Enter 'help' for a list of commands."
       catch e
         controller.message e.toString(), 'error'
