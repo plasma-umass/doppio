@@ -15,13 +15,6 @@ root.INT_MIN = -root.INT_MAX - 1 # -2^31
 root.FLOAT_POS_INFINITY = Math.pow(2,128)
 root.FLOAT_NEG_INFINITY = -1*root.FLOAT_POS_INFINITY
 
-# sign-preserving number truncate, with overflow and such
-root.truncate = (a, n_bits) ->
-  max_val = Math.pow 2, n_bits
-  a = (a + max_val) % max_val
-  a -= max_val if a > Math.pow(2, n_bits-1)-1
-  a
-
 root.int_mod = (rs, a, b) ->
   java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b == 0
   a % b
@@ -71,9 +64,6 @@ root.read_uint = (bytes) ->
   for i in [0..n] by 1
     sum += root.lshift(bytes[i],8*(n-i))
   sum
-
-root.int2uint = (int, bytes_count) ->
-  if int < 0 then int + Math.pow 2, bytes_count * 8 else int
 
 # Convert :count chars starting from :offset in a Java character array into a JS string
 root.chars2js_str = (jvm_carr, offset, count) ->
@@ -163,7 +153,8 @@ root.bytes2str = (bytes) ->
   idx = 0
   char_array =
     while idx < bytes.length
-      x = root.int2uint bytes[idx++], 1
+      # cast to an unsigned byte
+      x = bytes[idx++] & 0xff
       break if x == 0
       String.fromCharCode(
         if x <= 0x7f

@@ -453,12 +453,12 @@ root.opcodes = {
   117: new root.Opcode 'lneg', { execute: (rs) -> rs.push2 rs.pop2().negate(), null }
   118: new root.Opcode 'fneg', { execute: (rs) -> rs.push -rs.pop() }
   119: new root.Opcode 'dneg', { execute: (rs) -> rs.push2 -rs.pop2(), null }
-  120: new root.Opcode 'ishl', { execute: (rs) -> s=rs.pop()&0x1F; rs.push(rs.pop()<<s) }
-  121: new root.Opcode 'lshl', { execute: (rs) -> s=rs.pop()&0x3F; rs.push2(rs.pop2().shiftLeft(gLong.fromInt(s)),null) }
-  122: new root.Opcode 'ishr', { execute: (rs) -> s=rs.pop()&0x1F; rs.push(rs.pop()>>s) }
-  123: new root.Opcode 'lshr', { execute: (rs) -> s=rs.pop()&0x3F; rs.push2(rs.pop2().shiftRight(gLong.fromInt(s)), null) }
-  124: new root.Opcode 'iushr', { execute: (rs) -> s=rs.pop()&0x1F; rs.push(rs.pop()>>>s) }
-  125: new root.Opcode 'lushr', { execute: (rs) -> s=rs.pop()&0x3F; rs.push2(rs.pop2().shiftRightUnsigned(gLong.fromInt(s)), null)}
+  120: new root.Opcode 'ishl', { execute: (rs) -> s=rs.pop(); rs.push(rs.pop()<<s) }
+  121: new root.Opcode 'lshl', { execute: (rs) -> s=rs.pop(); rs.push2(rs.pop2().shiftLeft(gLong.fromInt(s)),null) }
+  122: new root.Opcode 'ishr', { execute: (rs) -> s=rs.pop(); rs.push(rs.pop()>>s) }
+  123: new root.Opcode 'lshr', { execute: (rs) -> s=rs.pop(); rs.push2(rs.pop2().shiftRight(gLong.fromInt(s)), null) }
+  124: new root.Opcode 'iushr', { execute: (rs) -> s=rs.pop(); rs.push(rs.pop()>>>s) }
+  125: new root.Opcode 'lushr', { execute: (rs) -> s=rs.pop(); rs.push2(rs.pop2().shiftRightUnsigned(gLong.fromInt(s)), null)}
   126: new root.Opcode 'iand', { execute: (rs) -> rs.push(rs.pop()&rs.pop()) }
   127: new root.Opcode 'land', { execute: (rs) -> rs.push2(rs.pop2().and(rs.pop2()), null) }
   128: new root.Opcode 'ior',  { execute: (rs) -> rs.push(rs.pop()|rs.pop()) }
@@ -485,9 +485,9 @@ root.opcodes = {
     else
       rs.push2 gLong.fromNumber(d_val), null }
   144: new root.Opcode 'd2f', { execute: (rs) -> rs.push util.wrap_float rs.pop2() }
-  145: new root.Opcode 'i2b', { execute: (rs) -> rs.push util.truncate rs.pop(), 8 }
+  145: new root.Opcode 'i2b', { execute: (rs) -> rs.push (rs.pop() << 24) >> 24 } # set all high-order bits to 1
   146: new root.Opcode 'i2c', { execute: (rs) -> rs.push rs.pop()&0xFFFF }  # 16-bit unsigned integer
-  147: new root.Opcode 'i2s', { execute: (rs) -> rs.push util.truncate rs.pop(), 16 }
+  147: new root.Opcode 'i2s', { execute: (rs) -> rs.push (rs.pop() << 16) >> 16 }
   148: new root.Opcode 'lcmp', { execute: (rs) -> v2=rs.pop2(); rs.push rs.pop2().compare(v2) }
   149: new root.Opcode 'fcmpl', { execute: (rs) -> v2=rs.pop(); rs.push util.cmp(rs.pop(),v2) ? -1 }
   150: new root.Opcode 'fcmpg', { execute: (rs) -> v2=rs.pop(); rs.push util.cmp(rs.pop(),v2) ? 1 }
