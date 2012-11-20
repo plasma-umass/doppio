@@ -172,6 +172,9 @@ native_methods =
             type = _this.$type
             return null unless (type instanceof types.ArrayType)
             rs.jclass_obj type.component_type, true
+        o 'getGenericSignature()Ljava/lang/String;', (rs, _this) ->
+            sig = _.find(_this.file.attrs, (a) -> a.constructor.name is 'Signature')?.sig
+            if sig? then rs.init_string sig else null
         o 'isAssignableFrom(L!/!/!;)Z', (rs, _this, cls) ->
             types.is_castable rs, cls.$type, _this.$type
         o 'isInterface()Z', (rs, _this) ->

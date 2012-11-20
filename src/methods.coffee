@@ -36,6 +36,9 @@ class root.Field extends AbstractMethodField
     @type = str2type raw_descriptor
 
   reflector: (rs) ->
+    # note: sig is the generic type parameter (if one exists), not the full
+    # field type.
+    sig = _.find(@attrs, (a) -> a.constructor.name == "Signature")?.sig
     rs.init_object 'java/lang/reflect/Field', {
       # XXX this leaves out 'annotations'
       clazz: rs.jclass_obj(@class_type)
@@ -43,7 +46,7 @@ class root.Field extends AbstractMethodField
       type: rs.jclass_obj @type
       modifiers: @access_byte
       slot: @idx
-      signature: rs.init_string @raw_descriptor
+      signature: if sig? then rs.init_string sig else null
     }
 
 class root.Method extends AbstractMethodField
@@ -84,6 +87,7 @@ class root.Method extends AbstractMethodField
     exceptions = _.find(@attrs, (a) -> a.constructor.name == 'Exceptions')?.exceptions ? []
     anns = _.find(@attrs, (a) -> a.constructor.name == 'RuntimeVisibleAnnotations')?.raw_bytes
     adefs = _.find(@attrs, (a) -> a.constructor.name == 'AnnotationDefault')?.raw_bytes
+    sig =  _.find(@attrs, (a) -> a.constructor.name == 'Signature')?.sig
     rs.init_object typestr, {
       # XXX: missing parameterAnnotations
       clazz: rs.jclass_obj(@class_type)
@@ -93,7 +97,7 @@ class root.Method extends AbstractMethodField
       exceptionTypes: rs.init_object "[Ljava/lang/Class;", (rs.jclass_obj(c2t(e)) for e in exceptions)
       modifiers: @access_byte
       slot: @idx
-      signature: rs.init_string @raw_descriptor
+      signature: if sig? then rs.init_string sig else null
       annotations: if anns? then rs.init_object('[B', anns) else null
       annotationDefault: if adefs? then rs.init_object('[B', adefs) else null
     }
