@@ -528,6 +528,7 @@ native_methods =
         o 'open(L!/lang/String;)V', (rs, _this, fname) ->
             _this.$file = fs.openSync fname.jvm2js_str(), 'w'
         o 'writeBytes([BIIZ)V', (rs, _this, bytes, offset, len, append) ->
+            exceptions.java_throw rs, 'java/io/IOException', "Bad file descriptor" if _this.$file == 'closed'
             if _this.$file?
               # appends by default in the browser, not sure in actual node.js impl
               fs.writeSync(_this.$file, new Buffer(bytes.array), offset, len)
@@ -539,6 +540,7 @@ native_methods =
               rs.curr_frame().resume = -> # NOP
               throw new exceptions.YieldIOException (cb) -> setTimeout(cb, 0)
         o 'writeBytes([BII)V', (rs, _this, bytes, offset, len) ->
+            exceptions.java_throw rs, 'java/io/IOException', "Bad file descriptor" if _this.$file == 'closed'
             if _this.$file?
               fs.writeSync(_this.$file, new Buffer(bytes.array), offset, len)
               return
@@ -549,16 +551,18 @@ native_methods =
               rs.curr_frame().resume = -> # NOP
               throw new exceptions.YieldIOException (cb) -> setTimeout(cb, 0)
         o 'close0()V', (rs, _this) ->
-            return unless _this.$file?
-            fs.closeSync(_this.$file)
-            _this.$file = null
+            if _this.$file?
+              fs.closeSync(_this.$file)
+            _this.$file = 'closed'
       ]
       FileInputStream: [
         o 'available()I', (rs, _this) ->
-            return 0 if not _this.$file? # no buffering for stdin
+            exceptions.java_throw rs, 'java/io/IOException', "Bad file descriptor" if _this.$file == 'closed'
+            return 0 unless _this.$file? # no buffering for stdin
             stats = fs.fstatSync _this.$file
             stats.size - _this.$pos
         o 'read()I', (rs, _this) ->
+            exceptions.java_throw rs, 'java/io/IOException', "Bad file descriptor" if _this.$file == 'closed'
             if (file = _this.$file)?
               # this is a real file that we've already opened
               buf = new Buffer((fs.fstatSync file).size)
@@ -574,6 +578,7 @@ native_methods =
                 data = byte
                 cb()
         o 'readBytes([BII)I', (rs, _this, byte_arr, offset, n_bytes) ->
+            exceptions.java_throw rs, 'java/io/IOException', "Bad file descriptor" if _this.$file == 'closed'
             if _this.$file?
               # this is a real file that we've already opened
               pos = _this.$pos
@@ -609,8 +614,9 @@ native_methods =
         o 'close0()V', (rs, _this) ->
             if _this.$file?
               fs.closeSync _this.$file
-            _this.$file = null
+            _this.$file = 'closed'
         o 'skip(J)J', (rs, _this, n_bytes) ->
+            exceptions.java_throw rs, 'java/io/IOException', "Bad file descriptor" if _this.$file == 'closed'
             if (file = _this.$file)?
               bytes_left = fs.fstatSync(file).size - _this.$pos
               to_skip = Math.min(n_bytes.toNumber(), bytes_left)
