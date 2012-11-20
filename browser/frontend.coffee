@@ -197,7 +197,7 @@ $(document).ready ->
 commands =
   javac: (args, cb) ->
     rs = new runtime.RuntimeState(stdout, user_input, read_classfile)
-    jvm.run_class(rs, 'test/special/Javac', args, -> controller.reprompt())
+    jvm.run_class(rs, 'classes/util/Javac', args, -> controller.reprompt())
     return null  # no reprompt, because we handle it ourselves
   java: (args, cb) ->
     if !args[0]? or (args[0] == '-classpath' and args.length < 3)
