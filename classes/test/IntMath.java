@@ -26,6 +26,8 @@ public class IntMath {
     runOps(Integer.MAX_VALUE, Integer.MIN_VALUE);
     runOps(Integer.MIN_VALUE, Integer.MAX_VALUE);
     runOps(Integer.MIN_VALUE, Integer.MIN_VALUE);
+
+    extremeValues();  // Not just ints, but it's close enough.
   }
 
   public static void runOps(int a, int b) {
@@ -46,5 +48,18 @@ public class IntMath {
     a++;
     b--;
     System.out.println("a++ = " + a + ", b-- = " + b);
+  }
+
+  public static void extremeValues() {
+    byte a; int b; short c;
+    System.out.println("Extreme bytes:");
+    for (a = 127; a > 1; a++) System.out.println(a);
+    for (a = -127; a < 0; a--) System.out.println(a);
+    System.out.println("Extreme ints:");
+    for (b = 2147483647; b > 1; b++) System.out.println(b);
+    for (b = -2147483647; b < 0; b--) System.out.println(b);
+    System.out.println("Extreme shorts:");
+    for (c = 32767; c > 1; c++) System.out.println(c);
+    for (c = -32767; c < 0; c--) System.out.println(c);
   }
 }
