@@ -72,13 +72,6 @@ root.read_uint = (bytes) ->
     sum += root.lshift(bytes[i],8*(n-i))
   sum
 
-root.uint2int = (uint, bytes_count) ->
-  n_bits = 8 * bytes_count
-  if uint > Math.pow(2, n_bits - 1)
-    uint - Math.pow(2, n_bits)
-  else
-    uint
-
 root.int2uint = (int, bytes_count) ->
   if int < 0 then int + Math.pow 2, bytes_count * 8 else int
 
@@ -121,7 +114,8 @@ class root.BytesArray
     return rv
 
   get_int: (bytes_count) ->
-    root.uint2int @get_uint(bytes_count), bytes_count
+    bytes_to_set = 32 - bytes_count * 8
+    @get_uint(bytes_count) << bytes_to_set >> bytes_to_set
 
   read: (bytes_count) ->
     rv = @raw_array[@start+@_index...@start+@_index+bytes_count]
