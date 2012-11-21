@@ -72,7 +72,7 @@ trapped_methods =
             for sf in cstack when sf.locals[0] isnt _this
               cls = sf.method.class_type
               unless _this.type.toClassString() is 'java/lang/NoClassDefFoundError'
-                attrs = rs.jclass_obj(cls).file.attrs
+                attrs = rs.load_class(cls).attrs
                 source_file =
                   _.find(attrs, (attr) -> attr.constructor.name == 'SourceFile')?.name or 'unknown'
               else
@@ -275,7 +275,7 @@ native_methods =
             rs.jclass_obj(type, true)
         o 'defineClass1(L!/!/String;[BIIL!/security/ProtectionDomain;L!/!/String;Z)L!/!/Class;', (rs,_this,name,bytes,offset,len,pd,source) ->
             raw_bytes = ((256+b)%256 for b in bytes.array[offset...offset+len])  # convert to unsigned bytes
-            rs.create_dyn_class name.jvm2js_str(), raw_bytes
+            rs.define_class name.jvm2js_str(), raw_bytes
       ],
       Compiler: [
         o 'disable()V', (rs, _this) -> #NOP
@@ -337,7 +337,7 @@ native_methods =
         Proxy: [
           o 'defineClass0(L!/!/ClassLoader;L!/!/String;[BII)L!/!/Class;', (rs,cl,name,bytes,offset,len) ->
               raw_bytes = ((256+b)%256 for b in bytes.array[offset...offset+len])  # convert to unsigned bytes
-              rs.create_dyn_class name.jvm2js_str(), raw_bytes
+              rs.define_class name.jvm2js_str(), raw_bytes
         ]
       Runtime: [
         o 'availableProcessors()I', () -> 1
