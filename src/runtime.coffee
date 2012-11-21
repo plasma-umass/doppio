@@ -51,7 +51,7 @@ class root.RuntimeState
     @loaded_classes = Object.create null
 
     @high_oref = 1
-    @string_pool = {}
+    @string_pool = Object.create null
     @lock_refs = {}  # map from monitor -> thread object
     @lock_counts = {}  # map from monitor -> count
     @waiting_threads = {}  # map from monitor -> list of waiting thread objects
@@ -194,9 +194,7 @@ class root.RuntimeState
     @class_lookup type
     @set_obj type, obj
   init_string: (str,intern=false) ->
-    # this is a bit of a kludge: if the string we want to intern is __proto__ or a function name,
-    # we fail to intern it.
-    return @string_pool[str] if intern and @string_pool[str]?.type?.toClassString?() is 'java/lang/String'
+    return @string_pool[str] if intern and @string_pool[str]?
     carr = @init_carr str
     jvm_str = new JavaObject c2t('java/lang/String'), @, {'value':carr, 'count':str.length}
     @string_pool[str] = jvm_str if intern
@@ -214,7 +212,9 @@ class root.RuntimeState
     @jclass_obj_pool[type]
 
   # Returns a ClassFile object. Loads the underlying class, but does not
-  # initialize it.
+  # initialize it. :dyn should be set if the class may not have been present at
+  # compile time, e.g. if we are loading a class as a result of a
+  # Class.forName() call.
   load_class: (type, dyn) ->
     unless @loaded_classes[type]?
       if type instanceof types.ArrayType
@@ -225,6 +225,8 @@ class root.RuntimeState
       else if type instanceof types.PrimitiveType
         @loaded_classes[type] = '<primitive>'
       else
+        # a class gets loaded with the loader of the class that is triggering
+        # this class resolution
         defining_class_state = @class_states[@curr_frame().method.class_type]
         if loader = defining_class_state.loader?
           rs.push loader
@@ -250,11 +252,10 @@ class root.RuntimeState
   # 5.5 of the SE7 spec.
   class_lookup: (type, dyn) ->
     UNSAFE? || throw new Error "class_lookup needs a type object, got #{typeof type}: #{type}" unless type instanceof types.Type
-    return '<primitive>' if type instanceof types.PrimitiveType
+    UNSAFE? || throw new Error "class_lookup was passed a PrimitiveType" if type instanceof types.PrimitiveType
     class_file = @load_class type, dyn
-    cls = type.toClassString?() ? type.toString()
     unless @class_states[type].fields?
-      trace "initializing class: #{cls}"
+      trace "initializing class: #{type.toClassString()}"
       @class_states[type].fields = Object.create null
       if type instanceof types.ArrayType
         component = type.component_type
@@ -282,6 +283,8 @@ class root.RuntimeState
         delete c.$in_progress
         class_file.methods['<clinit>()V']?.run(this)
     class_file
+
+  # called by user-defined classloaders
   define_class: (cls, data, loader) ->
     # replicates some logic from class_lookup
     class_file = new ClassFile(data)
