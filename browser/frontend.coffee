@@ -8,7 +8,6 @@ user_input = null
 controller = null
 editor = null
 progress = null
-jvm.classpath = [ "./", "/home/doppio/vendor/classes/", "/home/doppio/" ]
 
 class_cache = {}
 raw_cache = {}
@@ -196,6 +195,7 @@ $(document).ready ->
 
 commands =
   javac: (args, cb) ->
+    jvm.classpath = [ "./", "/home/doppio/vendor/classes/" ]
     rs = new runtime.RuntimeState(stdout, user_input, read_classfile)
     jvm.run_class(rs, 'classes/util/Javac', args, -> controller.reprompt())
     return null  # no reprompt, because we handle it ourselves
@@ -203,18 +203,16 @@ commands =
     if !args[0]? or (args[0] == '-classpath' and args.length < 3)
       return "Usage: java [-classpath path1:path2...] class [args...]"
     if args[0] == '-classpath'
-      paths = args[1].split(':')
+      jvm.classpath = args[1].split(':')
+      jvm.classpath.push "/home/doppio/vendor/classes/"
       class_name = args[2]
       class_args = args[3..]
-      for path in paths
-        jvm.classpath.unshift(path + "/")
     else
+      jvm.classpath = [ "./", "/home/doppio/vendor/classes/" ]
       class_name = args[0]
       class_args = args[1..]
     rs = new runtime.RuntimeState(stdout, user_input, read_classfile)
     jvm.run_class(rs, class_name, class_args, -> controller.reprompt())
-    # reset the classpath to the default
-    jvm.classpath = [ "./", "/home/doppio/vendor/classes/", "/home/doppio/" ]
     return null  # no reprompt, because we handle it ourselves
   javap: (args) ->
     return "Usage: javap class" unless args[0]?
@@ -225,6 +223,7 @@ commands =
     disassembler.disassemble process_bytecode raw_data
     return null  # no reprompt, because we handle it ourselves
   rhino: (args, cb) ->
+    jvm.classpath = [ "./", "/home/doppio/vendor/classes/" ]
     rs = new runtime.RuntimeState(stdout, user_input, read_classfile)
     jvm.run_class(rs, '!rhino', args, -> controller.reprompt())
     return null  # no reprompt, because we handle it ourselves
