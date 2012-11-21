@@ -10,12 +10,13 @@ ClassFile = require './ClassFile'
 {java_throw,YieldException} = require './exceptions'
 {JavaObject,JavaClassObject,JavaArray,thread_name} = require './java_object'
 {c2t} = types
+{Method} = require './methods'
 
 "use strict"
 
 class root.CallStack
   constructor: (initial_stack) ->
-    @_cs = [new root.StackFrame null,[],[]]
+    @_cs = [new root.StackFrame(new Method(c2t '$bootstrap'),[],[])]
     if initial_stack?
       @_cs[0].stack = initial_stack
     @resuming_stack = null
@@ -36,13 +37,14 @@ class root.StackFrame
 
 class ClassState
   constructor: (@loader) ->
-    @fields = Object.create null
+    @fields = null
 
 # Contains all the mutable state of the Java program.
 class root.RuntimeState
   constructor: (@print, @async_input, @read_classfile) ->
-    # dict of field values of loaded and initialized classes
+    # dict of mutable states of loaded classes
     @class_states = Object.create null
+    @class_states['L$bootstrap;'] = new ClassState null
     # dict of java.lang.Class objects (which are interned)
     @jclass_obj_pool = Object.create null
     # dict of ClassFiles that have been loaded
@@ -179,12 +181,12 @@ class root.RuntimeState
   # static stuff
   static_get: (field_spec) ->
     f = @field_lookup(field_spec)
-    @class_states[f.class_type.toClassString()].fields[f.name] ?= util.initial_value f.raw_descriptor
+    @class_states[f.class_type].fields[f.name] ?= util.initial_value f.raw_descriptor
 
   static_put: (field_spec) ->
     val = if field_spec.type in ['J','D'] then @pop2() else @pop()
     f = @field_lookup(field_spec)
-    @class_states[f.class_type.toClassString()].fields[f.name] = val
+    @class_states[f.class_type].fields[f.name] = val
 
   # heap object initialization
   init_object: (cls, obj) ->
@@ -218,17 +220,29 @@ class root.RuntimeState
       if type instanceof types.ArrayType
         @loaded_classes[type] = ClassFile.for_array_type type
         @load_class type.component_type, dyn
+        # defining class loader of an array type is that of its component type
+        @class_states[type] = new ClassState @class_states[type.component_type]?.loader ? null
       else if type instanceof types.PrimitiveType
         @loaded_classes[type] = '<primitive>'
-      else # ClassType
-        cls = type.toClassString()
-        class_file = @read_classfile cls
-        unless class_file?
-          if dyn
-            java_throw @, 'java/lang/ClassNotFoundException', cls
-          else
-            java_throw @, 'java/lang/NoClassDefFoundError', cls
-        @loaded_classes[type] = class_file
+      else
+        defining_class_state = @class_states[@curr_frame().method.class_type]
+        if loader = defining_class_state.loader?
+          rs.push loader
+          rs.push rs.init_string util.ext_classname type.toClassString()
+          rs.method_lookup(
+            class: loader.type.toClassString()
+            sig: 'loadClass(Ljava/lang/String;)Ljava/lang/Class;').run @
+        else
+          # bootstrap class loader
+          @class_states[type] = new ClassState null
+          cls = type.toClassString()
+          class_file = @read_classfile cls
+          unless class_file?
+            if dyn
+              java_throw @, 'java/lang/ClassNotFoundException', cls
+            else
+              java_throw @, 'java/lang/NoClassDefFoundError', cls
+          @loaded_classes[type] = class_file
     @loaded_classes[type]
 
   # Loads and initializes :type, and returns a ClassFile object. Should only be
@@ -236,17 +250,18 @@ class root.RuntimeState
   # 5.5 of the SE7 spec.
   class_lookup: (type, dyn) ->
     UNSAFE? || throw new Error "class_lookup needs a type object, got #{typeof type}: #{type}" unless type instanceof types.Type
+    return '<primitive>' if type instanceof types.PrimitiveType
+    class_file = @load_class type, dyn
     cls = type.toClassString?() ? type.toString()
-    unless @class_states[cls]?
-      trace "loading new class: #{cls}"
-      class_file = @load_class type, dyn
-      @class_states[cls] = new ClassState null
+    unless @class_states[type].fields?
+      trace "initializing class: #{cls}"
+      @class_states[type].fields = Object.create null
       if type instanceof types.ArrayType
         component = type.component_type
         if component instanceof types.ArrayType or component instanceof types.ClassType
           @class_lookup component, dyn
       else if type instanceof types.ClassType
-        @class_states[cls] = c = new ClassState null
+        c = @class_states[type]
         # Run class initialization code. Superclasses get init'ed first.  We
         # don't want to call this more than once per class, so don't do dynamic
         # lookup. See spec [2.17.4][1].
@@ -255,28 +270,28 @@ class root.RuntimeState
           @class_lookup class_file.super_class, dyn
 
         # flag to let us know if we need to resume into <clinit> after a yield
-        c.$in_progress = true
+        @class_states[type].$in_progress = true
         class_file.methods['<clinit>()V']?.run(this)
         delete c.$in_progress  # no need to keep this around
     else if @meta_stack().resuming_stack?
-      class_file = @load_class type, dyn
-      c = @class_states[cls]
+      c = @class_states[type]
       if class_file.super_class
         @class_lookup class_file.super_class, dyn
       if c.$in_progress?  # need to resume <clinit>
         trace "resuming an $in_progress class initialization"
         delete c.$in_progress
         class_file.methods['<clinit>()V']?.run(this)
-    @load_class type, dyn
-  define_class: (cls, data, loader=null) ->
+    class_file
+  define_class: (cls, data, loader) ->
     # replicates some logic from class_lookup
     class_file = new ClassFile(data)
-    @class_states[cls] = new ClassState null
+    type = c2t cls
+    @class_states[type] = new ClassState loader
     if class_file.super_class
       @class_lookup class_file.super_class
     type = c2t(util.int_classname cls)
     @loaded_classes[type] = class_file
-    @jclass_obj_pool[type] = class_file
+    @jclass_obj_pool[type] = new JavaClassObject @, type, class_file
 
   method_lookup: (method_spec) ->
     type = c2t method_spec.class

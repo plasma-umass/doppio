@@ -49,6 +49,7 @@ class root.JavaObject
         else
           @fields[f.name] = val
       t = cls.super_class
+
     # init fields from manually given object
     for k in Object.keys obj
       v = obj[k]

@@ -161,13 +161,26 @@ native_methods =
       Class: [
         o 'getPrimitiveClass(L!/!/String;)L!/!/!;', (rs, jvm_str) ->
             rs.jclass_obj new types.PrimitiveType(jvm_str.jvm2js_str()), true
-        o 'getClassLoader0()L!/!/ClassLoader;', (rs) -> null  # we don't need no stinkin classloaders
+        o 'getClassLoader0()L!/!/ClassLoader;', (rs, _this) -> rs.class_states[_this.type].loader
         o 'desiredAssertionStatus0(L!/!/!;)Z', (rs) -> false # we don't need no stinkin asserts
         o 'getName0()L!/!/String;', (rs, _this) ->
             rs.init_string(_this.$type.toExternalString())
-        o 'forName0(L!/!/String;ZL!/!/ClassLoader;)L!/!/!;', (rs, jvm_str) ->
+        o 'forName0(L!/!/String;ZL!/!/ClassLoader;)L!/!/!;', (rs, jvm_str, initialize, loader) ->
             type = c2t util.int_classname jvm_str.jvm2js_str()
-            rs.jclass_obj type, true
+            if loader isnt null
+              rs.push2 loader, jvm_str
+              rs.method_lookup(
+                class: loader.type.toClassString(),
+                sig: 'loadClass(Ljava/lang/String;)Ljava/lang/Class;').run(rs)
+              rv = rs.pop()
+              if initialize
+                rs.class_lookup type
+            else
+              rv = rs.jclass_obj type, true
+
+            if initialize
+              rs.class_lookup type, true
+            rv
         o 'getComponentType()L!/!/!;', (rs, _this) ->
             type = _this.$type
             return null unless (type instanceof types.ArrayType)
@@ -275,7 +288,7 @@ native_methods =
             rs.jclass_obj(type, true)
         o 'defineClass1(L!/!/String;[BIIL!/security/ProtectionDomain;L!/!/String;Z)L!/!/Class;', (rs,_this,name,bytes,offset,len,pd,source) ->
             raw_bytes = ((256+b)%256 for b in bytes.array[offset...offset+len])  # convert to unsigned bytes
-            rs.define_class name.jvm2js_str(), raw_bytes
+            rs.define_class name.jvm2js_str(), raw_bytes, _this
       ],
       Compiler: [
         o 'disable()V', (rs, _this) -> #NOP
@@ -337,7 +350,7 @@ native_methods =
         Proxy: [
           o 'defineClass0(L!/!/ClassLoader;L!/!/String;[BII)L!/!/Class;', (rs,cl,name,bytes,offset,len) ->
               raw_bytes = ((256+b)%256 for b in bytes.array[offset...offset+len])  # convert to unsigned bytes
-              rs.define_class name.jvm2js_str(), raw_bytes
+              rs.define_class name.jvm2js_str(), raw_bytes, cl
         ]
       Runtime: [
         o 'availableProcessors()I', () -> 1
@@ -761,6 +774,9 @@ native_methods =
             obj.get_field_from_offset rs, offset
         o 'putOrderedObject(Ljava/lang/Object;JLjava/lang/Object;)V', (rs,_this,obj,offset,new_obj) ->
             obj.set_field_from_offset rs, offset, new_obj
+        o 'defineClass(Ljava/lang/String;[BIILjava/lang/ClassLoader;Ljava/security/ProtectionDomain;)Ljava/lang/Class;', (rs, name, b, offset, len, loader, pd) ->
+            raw_bytes = ((256+b)%256 for b in bytes.array[offset...offset+len])
+            rs.define_class name.jvm2js_str(), raw_bytes, loader
       ]
     reflect:
       ConstantPool: [
