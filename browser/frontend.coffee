@@ -206,6 +206,7 @@ commands =
       paths = args[1].split(':')
       class_name = args[2]
       class_args = args[3..]
+      jvm.classpath = [ "/home/doppio/vendor/classes/", "/home/doppio/" ]
       for path in paths
         jvm.classpath.unshift(path + "/")
     else
@@ -214,7 +215,7 @@ commands =
     rs = new runtime.RuntimeState(stdout, user_input, read_classfile)
     jvm.run_class(rs, class_name, class_args, -> controller.reprompt())
     # reset the classpath to the default
-    jvm.classpath = [ "./", "/home/doppio/vendor/classes/", "/home/doppio/" ]
+    #jvm.classpath = [ "./", "/home/doppio/vendor/classes/", "/home/doppio/" ]
     return null  # no reprompt, because we handle it ourselves
   javap: (args) ->
     return "Usage: javap class" unless args[0]?
@@ -264,12 +265,14 @@ commands =
       editor.getSession().setValue(data)
     true
   cat: (args) ->
-    fname = args[0]
-    return "Usage: cat <file>" unless fname?
-    try
-      return node.fs.readFileSync(fname)
-    catch e
-      return "ERROR: #{fname} does not exist."
+    #fname = args[0]
+    #return "Usage: cat <file>" unless fname?
+    for fname in args
+      try
+        node.fs.readFileSync(fname)
+      catch e
+        return "ERROR: #{fname} does not exist."
+    return true
   mv: (args) ->
     if args.length < 2 then return "Usage: mv <from-file> <to-file>"
     try
