@@ -22,7 +22,7 @@ system_properties = {
   'java.version': '1.6', 'java.vendor.url': 'https://github.com/int3/doppio',
   'java.class.version': '50.0', 'java.class.path': '.',
   'line.separator':'\n', 'file.separator':'/', 'path.separator':':',
-  'user.dir':'.','user.home':'.','user.name':'DoppioUser',
+  'user.dir': path.resolve('.'),'user.home':'.','user.name':'DoppioUser',
   'os.name':'Doppio', 'os.arch': 'js', 'os.version': '0',
   'java.awt.headless': 'true',
   'useJavaUtilZip': 'true'  # hack for sun6javac, avoid ZipFileIndex shenanigans
