@@ -173,8 +173,6 @@ native_methods =
                 class: loader.type.toClassString(),
                 sig: 'loadClass(Ljava/lang/String;)Ljava/lang/Class;').run(rs)
               rv = rs.pop()
-              if initialize
-                rs.class_lookup type
             else
               rv = rs.jclass_obj type, true
 
@@ -379,9 +377,9 @@ native_methods =
       String: [
         o 'intern()L!/!/!;', (rs, _this) ->
             js_str = _this.jvm2js_str()
-            unless rs.string_pool[js_str]
-              rs.string_pool[js_str] = _this
-            rs.string_pool[js_str]
+            unless (s = rs.string_pool.get(js_str))?
+              s = rs.string_pool.set(js_str, _this)
+            s
       ]
       System: [
         o 'arraycopy(L!/!/Object;IL!/!/Object;II)V', (rs, src, src_pos, dest, dest_pos, length) ->

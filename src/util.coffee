@@ -168,3 +168,21 @@ root.bytes2str = (bytes) ->
           ((x & 0xf) << 12) + ((y & 0x3f) << 6) + (z & 0x3f)
       )
   char_array.join ''
+
+class root.SafeMap
+
+  constructor: ->
+    @cache = Object.create null # has no defined properties aside from __proto__
+    @proto_cache = undefined
+
+  get: (key) ->
+    return @cache[key] if @cache[key]? # don't use `isnt undefined` -- __proto__ is null!
+    return @proto_cache if key.toString() is '__proto__' and @proto_cache isnt undefined
+    undefined
+
+  set: (key, value) ->
+    # toString() converts key to a primitive, so strict comparison works
+    unless key.toString() is '__proto__'
+      @cache[key] = value
+    else
+      @proto_cache = value

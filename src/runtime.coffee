@@ -51,7 +51,7 @@ class root.RuntimeState
     @loaded_classes = Object.create null
 
     @high_oref = 1
-    @string_pool = Object.create null
+    @string_pool = new util.SafeMap
     @lock_refs = {}  # map from monitor -> thread object
     @lock_counts = {}  # map from monitor -> count
     @waiting_threads = {}  # map from monitor -> list of waiting thread objects
@@ -194,10 +194,10 @@ class root.RuntimeState
     @class_lookup type
     @set_obj type, obj
   init_string: (str,intern=false) ->
-    return @string_pool[str] if intern and @string_pool[str]?
+    return s if intern and (s = @string_pool.get str)?
     carr = @init_carr str
     jvm_str = new JavaObject c2t('java/lang/String'), @, {'value':carr, 'count':str.length}
-    @string_pool[str] = jvm_str if intern
+    @string_pool.set(str, jvm_str) if intern
     return jvm_str
   init_carr: (str) ->
     new JavaArray c2t('[C'), @, (str.charCodeAt(i) for i in [0...str.length] by 1)
@@ -229,8 +229,7 @@ class root.RuntimeState
         # this class resolution
         defining_class_state = @class_states[@curr_frame().method.class_type]
         if loader = defining_class_state.loader?
-          rs.push loader
-          rs.push rs.init_string util.ext_classname type.toClassString()
+          rs.push2 loader, rs.init_string util.ext_classname type.toClassString()
           rs.method_lookup(
             class: loader.type.toClassString()
             sig: 'loadClass(Ljava/lang/String;)Ljava/lang/Class;').run @

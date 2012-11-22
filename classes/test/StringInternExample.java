@@ -55,6 +55,13 @@ public class StringInternExample {
             String firstArgInterned = firstArg.intern();
             test(aString,firstArgInterned,true,true);
         }
+
+        // check that we have sanitized native JS properties when interning. If
+        // we use Object.create(null) without sanitizing '__proto__', the first
+        // call will cause the cache's prototype to point to an object, and the
+        // second will then access a native JS function.
+        test("__proto__", "__proto__", true, true);
+        test("valueOf", "valueOf", true, true);
     }
 
     private static void test(String s1, String s2, boolean e1, boolean e2) {
