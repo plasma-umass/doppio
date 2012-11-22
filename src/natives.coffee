@@ -259,12 +259,9 @@ native_methods =
             my_class = _this.$type.toClassString()
             iclses = (a for a in cls.attrs when a.constructor.name is 'InnerClasses')
             for icls in iclses
-              for c in icls.classes
-                continue unless c.inner_info_index > 0 and c.outer_info_index > 0
-                flags = util.parse_flags c.inner_access_flags
-                continue unless flags.public
+              for c in icls.classes when c.inner_info_index > 0
+                continue if c.inner_name_index is 0
                 name = cls.constant_pool.get(c.inner_info_index).deref()
-                continue unless name.indexOf(my_class) == 0
                 ret.array.push rs.jclass_obj c2t(name), true
             ret
       ],

@@ -19,5 +19,11 @@ public abstract class InnerClass {
       }
     });
     InnerClass.runFunctor(new Foo());
+
+    System.out.println(Foo.class.getName());
+    System.out.println(Foo.class.getDeclaringClass().getName());
+    System.out.println(Foo.class.getSimpleName());
+    for (Class c : InnerClass.class.getDeclaredClasses())
+      System.out.println(c.getName());
   }
 }
