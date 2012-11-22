@@ -88,7 +88,9 @@ root.disassemble = (class_file) ->
   rv += "{\n"
 
   for f in class_file.fields
-    rv += "#{access_string f.access_flags} #{pp_type(f.type)} #{f.name};\n"
+    astr = access_string(f.access_flags)
+    rv += "#{astr} " unless astr == ''
+    rv += "#{pp_type(f.type)} #{f.name};\n"
     const_attr = _.find(f.attrs, (attr) -> attr.constructor.name == 'ConstantValue')
     if const_attr?
       entry = pool.get(const_attr.ref)
@@ -104,7 +106,7 @@ root.disassemble = (class_file) ->
       else
         ret_type = if m.return_type? then pp_type m.return_type else ""
         ret_type + " " + m.name
-    rv += "(#{pp_type(p) for p in m.param_types})" unless m.name is '<clinit>'
+    rv += "(#{(pp_type(p) for p in m.param_types).join ', '})" unless m.name is '<clinit>'
     rv += print_excs exc_attr if exc_attr = _.find(m.attrs, (a) -> a.constructor.name == 'Exceptions')
     rv += ";\n"
     unless m.access_flags.native or m.access_flags.abstract
@@ -137,7 +139,7 @@ root.disassemble = (class_file) ->
               rv += "   frame_type = #{entry.frame_type} /* #{entry.frame_name} */\n"
               rv += "     offset_delta = #{entry.offset_delta}\n" if entry.offset_delta?
               rv += "     locals = [ #{entry.locals.join(', ')} ]\n" if entry.locals?
-              rv += "     stack = [ #{entry.stack} ]\n" if entry.stack?
+              rv += "     stack = [ #{entry.stack.join(', ')} ]\n" if entry.stack?
           when 'LocalVariableTable'
             rv += "  LocalVariableTable:\n"
             rv += "   Start  Length  Slot  Name   Signature\n"
