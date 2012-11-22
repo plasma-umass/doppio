@@ -431,10 +431,18 @@ root.fs =
 
   unlinkSync: (path) -> throw "Could not unlink '#{path}'" unless fs_state.rm(path)
 
+  existsSync: (path) -> fs_state.is_file(path) or fs_state.is_directory(path)
+
 # Node's Path API
 root.path =
   normalize: (path) -> path
-  resolve: (path) -> fs_state.resolve(path)
+  resolve: (parts...) -> fs_state.resolve parts.join '/'
+  basename: (path, ext) ->
+    base = path.replace(/^.*[\/\\]/, '')
+    if ext?.length? and base[base.length-ext.length..] == ext
+      base = base[...base.length-ext.length]
+    base
+  extname: (path) -> path.replace(/^.*(\..*)/, '$1')
 
 root.process =
   cwd: -> fs_state.pwd

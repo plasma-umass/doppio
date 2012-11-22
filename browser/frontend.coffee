@@ -389,7 +389,7 @@ fileNameCompletions = (cmd, args) ->
 
   completions = []
   for item in dirList
-    isDir = node.fs.statSync(dirPfx + item).isDirectory()
+    isDir = node.fs.statSync(dirPfx + item)?.isDirectory()
     continue unless validExtension(item) or isDir
     if item.slice(0, searchPfx.length) == searchPfx
       if isDir
