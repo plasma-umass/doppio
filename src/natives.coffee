@@ -248,9 +248,17 @@ native_methods =
             return null unless _this.$type instanceof types.ClassType
             cls = _this.file
             icls = _.find(cls.attrs, (a) -> a.constructor.name == 'InnerClasses')
-            ref = icls?.classes[0].outer_info_index
-            return null unless ref? and ref > 0
-            rs.jclass_obj c2t(cls.constant_pool.get(ref).deref()), true
+            return null unless icls?
+            my_class = _this.$type.toClassString()
+            for entry in icls.classes when entry.outer_info_index > 0
+              name = cls.constant_pool.get(entry.inner_info_index).deref()
+              continue unless name is my_class
+              # XXX(jez): this assumes that the first enclosing entry is also
+              # the immediate enclosing parent, and I'm not 100% sure this is
+              # guaranteed by the spec
+              declaring_name = cls.constant_pool.get(entry.outer_info_index).deref()
+              return rs.jclass_obj c2t(declaring_name), true
+            return null
         o 'getDeclaredClasses0()[L!/!/!;', (rs, _this) ->
             ret = new JavaArray c2t('[Ljava/lang/Class;'), rs, []
             return ret unless _this.$type instanceof types.ClassType
@@ -258,8 +266,9 @@ native_methods =
             my_class = _this.$type.toClassString()
             iclses = (a for a in cls.attrs when a.constructor.name is 'InnerClasses')
             for icls in iclses
-              for c in icls.classes when c.inner_info_index > 0
-                continue if c.inner_name_index is 0
+              for c in icls.classes when c.outer_info_index > 0
+                enclosing_name = cls.constant_pool.get(c.outer_info_index).deref()
+                continue unless enclosing_name is my_class
                 name = cls.constant_pool.get(c.inner_info_index).deref()
                 ret.array.push rs.jclass_obj c2t(name), true
             ret
