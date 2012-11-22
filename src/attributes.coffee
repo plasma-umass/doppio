@@ -83,7 +83,7 @@ class StackMapTable
       {
         frame_type: frame_type
         frame_name: 'same_locals_1_stack_item'
-        stack: parse_verification_type_info(bytes_array, constant_pool)
+        stack: [parse_verification_type_info(bytes_array, constant_pool)]
       }
     else if 128 <= frame_type < 247
       # reserve for future use
@@ -92,19 +92,19 @@ class StackMapTable
         frame_type: frame_type
         frame_name: 'same_locals_1_stack_item_extended'
         offset_delta: bytes_array.get_uint 2
-        stack: parse_verification_type_info(bytes_array, constant_pool)
+        stack: [parse_verification_type_info(bytes_array, constant_pool)]
       }
     else if 248 <= frame_type < 251
       {
         frame_type: frame_type
         frame_name: 'chop'
-        offset_delta: bytes_array.get_uint 2
+        offset_delta: [bytes_array.get_uint 2]
       }
     else if frame_type == 251
       {
         frame_type: frame_type
         frame_name: 'same_frame_extended'
-        offset_delta: bytes_array.get_uint 2
+        offset_delta: [bytes_array.get_uint 2]
       }
     else if 252 <= frame_type < 255
       {
