@@ -80,8 +80,7 @@ trapped_methods =
               line_nums = sf.method.code?.attrs?[0]?.entries
               if line_nums?
                 ln = _.last(row.line_number for i,row of line_nums when row.start_pc <= sf.pc)
-              else
-                ln = -1
+              ln ?= -1
               stack.push rs.init_object "java/lang/StackTraceElement", {
                 declaringClass: rs.init_string util.ext_classname cls.toClassString()
                 methodName: rs.init_string sf.method.name
