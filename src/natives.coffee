@@ -770,6 +770,12 @@ native_methods =
         o 'getAvailableProcessors()I', -> 1
         o 'getProcessId()I', -> 1
       ]
+      MemoryImpl: [
+        o 'getMemoryManagers0()[Ljava/lang/management/MemoryManagerMXBean;', (rs) ->
+            rs.init_object '[Lsun/management/MemoryManagerImpl;', [] # XXX may want to revisit this 'NOP'
+        o 'getMemoryPools0()[Ljava/lang/management/MemoryPoolMXBean;', (rs) ->
+            rs.init_object '[Lsun/management/MemoryPoolImpl;', [] # XXX may want to revisit this 'NOP'
+      ]
     misc:
       VM: [
         o 'initialize()V', (rs) ->
