@@ -72,6 +72,9 @@ class root.RuntimeState
     @curr_thread.$isAlive = true
     @thread_pool.push @curr_thread
 
+    @mem_start_addrs = [1]
+    @mem_blocks = {}
+
   meta_stack: -> @curr_thread.$meta_stack
 
   # Init the first class, and put the command-line args on the stack for use by
@@ -318,3 +321,13 @@ class root.RuntimeState
         java_throw @, 'java/lang/NullPointerException', "field #{offset} doesn't exist in class #{classname}"
       cls = @class_lookup(cls.super_class)
     cls.fields[offset]
+
+  # address of the block that this address is contained in
+  block_addr: (address) ->
+    address = address.toNumber() # address is a Long
+    block_addr = @mem_start_addrs[0]
+    for addr in @mem_start_addrs[1..]
+      if address < addr
+        return block_addr
+      block_addr = addr
+    rs.mem_blocks[block_addr]

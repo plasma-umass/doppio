@@ -784,10 +784,27 @@ native_methods =
         o 'addressSize()I', (rs, _this) -> 4 # either 4 or 8
         o 'allocateInstance(Ljava/lang/Class;)Ljava/lang/Object;', (rs, _this, cls) ->
             rs.init_object cls.$type.toClassString(), {}
-        o 'allocateMemory(J)J', (rs, _this, size) -> gLong.ZERO
+        o 'allocateMemory(J)J', (rs, _this, size) ->
+            next_addr = _.last(rs.mem_start_addrs)
+            rs.mem_blocks[next_addr] = new DataView new ArrayBuffer size
+            rs.mem_start_addrs.push next_addr + size
+            gLong.fromNumber next_addr
+        o 'setMemory(JJB)V', (rs, _this, address, bytes, value) ->
+            block_addr = rs.block_addr(address)
+            for i in [0...bytes] by 1
+              rs.mem_blocks[block_addr].setInt8(i, value)
         o 'freeMemory(J)V', (rs, _this, address) -> # NOP
-        o 'putLong(JJ)V', (rs, _this, address, value) -> # NOP
-        o 'getByte(J)B', (rs, _this, address) -> 0x08 # shim to force little endianness
+            delete rs.mem_blocks[address.toNumber()]
+            rs.mem_start_addrs.splice(rs.mem_start_addrs.indexOf(address), 1)
+        o 'putLong(JJ)V', (rs, _this, address, value) ->
+            block_addr = rs.block_addr(address)
+            offset = address - block_addr
+            # little endian
+            rs.mem_blocks[block_addr].setInt32(offset, value.getLowBits(), true)
+            rs.mem_blocks[block_addr].setInt32(offset + 4, value.getHighBits, true)
+        o 'getByte(J)B', (rs, _this, address) ->
+            block_addr = rs.block_addr(address)
+            rs.mem_blocks[block_addr].getInt8(address - block_addr)
         o 'arrayBaseOffset(Ljava/lang/Class;)I', (rs, _this, cls) -> 0
         o 'arrayIndexScale(Ljava/lang/Class;)I', (rs, _this, cls) -> 1
         o 'compareAndSwapObject(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z', (rs, _this, obj, offset, expected, x) ->
