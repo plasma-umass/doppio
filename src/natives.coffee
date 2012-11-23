@@ -345,6 +345,15 @@ native_methods =
               error "TODO(Object::wait): respect the timeout param (#{timeout})"
             rs.wait _this
       ]
+      ProcessEnvironment: [
+        o 'environ()[[B', (rs) ->
+            env_arr = []
+            # convert to an array of strings of the form [key, value, key, value ...]
+            for k, v of process.env
+              env_arr.push new JavaArray c2t('[B'), rs, util.bytestr_to_array k
+              env_arr.push new JavaArray c2t('[B'), rs, util.bytestr_to_array v
+            new JavaArray c2t('[[B'), rs, env_arr
+      ]
       reflect:
         Array: [
           o 'newArray(L!/!/Class;I)L!/!/Object;', (rs, _this, len) ->
