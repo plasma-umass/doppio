@@ -214,6 +214,13 @@ commands =
     rs = new runtime.RuntimeState(stdout, user_input, read_classfile)
     jvm.run_class(rs, class_name, class_args, -> controller.reprompt())
     return null  # no reprompt, because we handle it ourselves
+  test: (args) ->
+    return "Usage: test all|[class(es) to test]" unless args[0]?
+    if args[0] == 'all'
+      testing.run_tests [], stdout, -> controller.reprompt()
+    else
+      testing.run_tests args, stdout, -> controller.reprompt()
+    return null
   javap: (args) ->
     return "Usage: javap class" unless args[0]?
     try

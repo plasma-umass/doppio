@@ -54,6 +54,7 @@ COMMON_BROWSER_SRCS = vendor/_.js \
 	src/ClassFile.coffee \
 	src/runtime.coffee \
 	src/jvm.coffee \
+	src/testing.coffee \
 	browser/untar.coffee
 # Release uses the actual jQuery console.
 release_BROWSER_SRCS = $(COMMON_BROWSER_SRCS) \
