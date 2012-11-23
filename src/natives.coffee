@@ -185,6 +185,7 @@ native_methods =
         o 'getGenericSignature()Ljava/lang/String;', (rs, _this) ->
             sig = _.find(_this.file.attrs, (a) -> a.constructor.name is 'Signature')?.sig
             if sig? then rs.init_string sig else null
+        o 'getProtectionDomain0()Ljava/security/ProtectionDomain;', (rs, _this) -> null
         o 'isAssignableFrom(L!/!/!;)Z', (rs, _this, cls) ->
             types.is_castable rs, cls.$type, _this.$type
         o 'isInterface()Z', (rs, _this) ->
@@ -344,6 +345,9 @@ native_methods =
             unless timeout is gLong.ZERO
               error "TODO(Object::wait): respect the timeout param (#{timeout})"
             rs.wait _this
+      ]
+      Package: [
+        o 'getSystemPackage0(Ljava/lang/String;)Ljava/lang/String;', (rs) -> null
       ]
       ProcessEnvironment: [
         o 'environ()[[B', (rs) ->
@@ -760,6 +764,7 @@ native_methods =
               rs.static_put
                 class: 'sun/management/VMManagementImpl'
                 name: name
+        o 'isThreadAllocatedMemoryEnabled()Z', -> false
         o 'isThreadContentionMonitoringEnabled()Z', -> false
         o 'isThreadCpuTimeEnabled()Z', -> false
         o 'getAvailableProcessors()I', -> 1
