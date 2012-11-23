@@ -42,6 +42,7 @@ class ClassState
 # Contains all the mutable state of the Java program.
 class root.RuntimeState
   constructor: (@print, @async_input, @read_classfile) ->
+    @startup_time = gLong.fromNumber (new Date).getTime()
     # dict of mutable states of loaded classes
     @class_states = Object.create null
     @class_states['L$bootstrap;'] = new ClassState null

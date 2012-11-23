@@ -746,6 +746,25 @@ native_methods =
             null # XXX may not be correct
       ]
   sun:
+    management:
+      VMManagementImpl: [
+        o 'getStartupTime()J', (rs) -> rs.startup_time
+        o 'getVersion0()Ljava/lang/String;', (rs) -> rs.init_string "1.2", true
+        o 'initOptionalSupportFields()V', (rs) ->
+            # set everything to false
+            field_names = [ 'compTimeMonitoringSupport', 'threadContentionMonitoringSupport',
+              'currentThreadCpuTimeSupport', 'otherThreadCpuTimeSupport',
+              'bootClassPathSupport', 'objectMonitorUsageSupport', 'synchronizerUsageSupport' ]
+            for name in field_names
+              rs.push 0
+              rs.static_put
+                class: 'sun/management/VMManagementImpl'
+                name: name
+        o 'isThreadContentionMonitoringEnabled()Z', -> false
+        o 'isThreadCpuTimeEnabled()Z', -> false
+        o 'getAvailableProcessors()I', -> 1
+        o 'getProcessId()I', -> 1
+      ]
     misc:
       VM: [
         o 'initialize()V', (rs) ->
@@ -758,6 +777,8 @@ native_methods =
       ]
       Unsafe: [
         o 'addressSize()I', (rs, _this) -> 4 # either 4 or 8
+        o 'allocateInstance(Ljava/lang/Class;)Ljava/lang/Object;', (rs, _this, cls) ->
+            rs.init_object cls.$type.toClassString(), {}
         o 'allocateMemory(J)J', (rs, _this, size) -> gLong.ZERO
         o 'freeMemory(J)V', (rs, _this, address) -> # NOP
         o 'putLong(JJ)V', (rs, _this, address, value) -> # NOP
@@ -788,7 +809,7 @@ native_methods =
             obj.set_field_from_offset rs, offset, new_obj
         o 'putOrderedObject(Ljava/lang/Object;JLjava/lang/Object;)V', (rs,_this,obj,offset,new_obj) ->
             obj.set_field_from_offset rs, offset, new_obj
-        o 'defineClass(Ljava/lang/String;[BIILjava/lang/ClassLoader;Ljava/security/ProtectionDomain;)Ljava/lang/Class;', (rs, name, b, offset, len, loader, pd) ->
+        o 'defineClass(Ljava/lang/String;[BIILjava/lang/ClassLoader;Ljava/security/ProtectionDomain;)Ljava/lang/Class;', (rs, _this, name, bytes, offset, len, loader, pd) ->
             raw_bytes = ((256+b)%256 for b in bytes.array[offset...offset+len])
             rs.define_class name.jvm2js_str(), raw_bytes, loader
       ]
