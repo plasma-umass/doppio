@@ -141,20 +141,22 @@ $(document).ready ->
     promptHistory: true
     welcomeMessage: """
       Welcome to Doppio! You may wish to try the following Java programs:
+        java classes/test/FileRead
+        java classes/demo/Fib <num>
+        java classes/demo/Chatterbot
+        java classes/demo/RegexTestHarness
+        java classes/demo/Lzw c Hello.txt hello.lzw (compress)
+        java classes/demo/Lzw d hello.lzw hello (decompress)
+        java classes/demo/DiffPrint Hello.txt hello
+
+      We support the stock Sun Java Compiler:
+        javac classes/test/FileRead.java
+        javac classes/demo/Fib.java
+
+      And we can even run Rhino, the Java-based JS engine!
         rhino
-        javac test/special/FileRead.java
-        javac test/Fib.java
-        java test/special/FileRead
-        java test/Fib <num>
-        
-        java test/special/Chatterbot
-        java test/special/RegexTestHarness
 
-        java test/special/Lzw c Hello.txt hello.lzw (compress)
-        java test/special/Lzw d hello.lzw hello (decompress)
-        java test/special/DiffPrint Hello.txt hello
-
-      The .java files can be inspected by typing `edit [filename]`.
+      Text files can be edited by typing `edit [filename]`.
 
       You can also upload your own files using the uploader above the top-right
       corner of the console.
