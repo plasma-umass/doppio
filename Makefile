@@ -22,6 +22,7 @@ SOURCES = $(wildcard classes/test/*.java)
 DISASMS = $(SOURCES:.java=.disasm)
 RUNOUTS = $(SOURCES:.java=.runout)
 CLASSES = $(SOURCES:.java=.class)
+# these files never get made, but we use them for make rules
 RESULTS = $(SOURCES:.java=.result)
 DEMO_SRCS = $(wildcard classes/demo/*.java) classes/test/FileRead.java
 DEMO_CLASSES = $(DEMO_SRCS:.java=.class)
@@ -137,13 +138,11 @@ java: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES)
 
 # Runs the Java tests in classes/test with the node runner.
 test: dependencies $(RESULTS)
-	cat $(RESULTS)
-	@rm -f $(RESULTS)
 # compiling each one by itself is really inefficient...
 %.class: %.java
 	javac $^
 classes/test/%.result: classes/test/%.class classes/test/%.disasm classes/test/%.runout
-	tools/run_one_test.rb classes/test/$* >classes/test/$*.result
+	@coffee src/testing.coffee classes/test/$*
 classes/test/%.disasm: classes/test/%.class
 	javap -c -verbose -private classes/test/$* >classes/test/$*.disasm
 # some tests may throw exceptions. The '-' flag tells make to carry on anyway.
@@ -151,7 +150,7 @@ classes/test/%.runout: classes/test/%.class
 	-java classes/test/$* &>classes/test/$*.runout
 
 clean:
-	@rm -f $(CLASSES) $(DISASMS) $(RUNOUTS) $(RESULTS)
+	@rm -f $(CLASSES) $(DISASMS) $(RUNOUTS)
 	@rm -f src/*.js browser/*.js console/*.js tools/*.js
 	@rm -rf build/* browser/mini-rt.tar $(DEMO_CLASSES)
 	@rm -f index.html
