@@ -8,6 +8,10 @@ types = require './types'
 
 "use strict"
 
+pad_left = (value, padding) ->
+  zeroes = new Array(padding).join '0'
+  (zeroes + value).slice(-padding)
+
 root.disassemble = (class_file) ->
   access_string = (access_flags) ->
     ordered_flags = [ 'public', 'protected', 'private', 'static', 'final' ]
@@ -15,6 +19,8 @@ root.disassemble = (class_file) ->
     privacy = (("#{flag} " if access_flags[flag]) for flag in ordered_flags).join ''
 
   source_file = _.find(class_file.attrs, (attr) -> attr.constructor.name == 'SourceFile')
+  deprecated = _.find(class_file.attrs, (attr) -> attr.constructor.name == 'Deprecated')
+  annotations = _.find(class_file.attrs, (attr) -> attr.constructor.name == 'RuntimeVisibleAnnotations')
   ifaces = (class_file.constant_pool.get(i).deref() for i in class_file.interfaces)
   ifaces = ((if util.is_string(i) then util.ext_classname(i) else i.toExternalString()) for i in ifaces).join ','
   rv = "Compiled from \"#{source_file?.name ? 'unknown'}\"\n"
@@ -25,6 +31,10 @@ root.disassemble = (class_file) ->
     rv += "class #{class_file.this_class.toExternalString()} extends #{class_file.super_class?.toExternalString()}"
     rv += if (ifaces and not class_file.access_flags.interface) then " implements #{ifaces}\n" else '\n'
   rv += "  SourceFile: \"#{source_file.name}\"\n" if source_file
+  rv += "  Deprecated: length = 0x\n" if deprecated
+  if annotations
+    rv += "  RuntimeVisibleAnnotations: length = 0x#{annotations.raw_bytes.length.toString(16)}\n"
+    rv += "   #{(pad_left(b.toString(16),2) for b in annotations.raw_bytes).join ' '}\n"
   inner_classes = (attr for attr in class_file.attrs when attr.constructor.name is 'InnerClasses')
   for icls in inner_classes
     rv += "  InnerClass:\n"
