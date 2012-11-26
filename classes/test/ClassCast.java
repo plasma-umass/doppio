@@ -4,7 +4,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 public class ClassCast {
-    public static void main(String[] args) {
+    public ClassCast() {
         A a = new A();
         Object b = new B();
         try {
@@ -26,12 +26,10 @@ public class ClassCast {
         System.out.println(foo instanceof TreeMap);
         System.out.println(bar instanceof TreeMap);
     }
+    public static void main(String[] args) {
+        new ClassCast();
+    }
+    class A { int a; }
+    class B { int a; }
 }
 
-class A {
-    int a;
-}
-
-class B {
-    int a;
-}

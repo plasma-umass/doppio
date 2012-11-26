@@ -1,7 +1,7 @@
 package classes.test;
 
 public class Inheritance {
-	public static void main(String[] args) {
+	public Inheritance() {
 		BChild child = new BChild();
 		child.a = 3;
 		child.b = 5;
@@ -32,24 +32,28 @@ public class Inheritance {
 		System.out.println(((B)pathological).foo);
 		System.out.println(((A)pathological).foo);
 	}
-}
 
-class AParent {
-	public int a;
-	public int b;
-	int getA() {
-		return a;
+	public static void main(String[] args) {
+		new Inheritance();
 	}
-}
 
-class BChild extends AParent {
-	public int a;
-}
+	class AParent {
+		public int a;
+		public int b;
+		int getA() {
+			return a;
+		}
+	}
 
-class A {
-	public short foo;
-}
-class B extends A {}
-class C extends B {
-	public short foo;
+	class BChild extends AParent {
+		public int a;
+	}
+
+	class A {
+		public short foo;
+	}
+	class B extends A {}
+	class C extends B {
+		public short foo;
+	}
 }
