@@ -5,8 +5,6 @@ import java.lang.reflect.Field;
 import sun.misc.Unsafe;
 
 /* Still needs to be tested:
-compareAndSwapObject(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z
-putOrderedObject(Ljava/lang/Object;JLjava/lang/Object;)V
 defineClass(Ljava/lang/String;[BIILjava/lang/ClassLoader;Ljava/security/ProtectionDomain;)Ljava/lang/Class;
 */
 
@@ -53,6 +51,19 @@ public class UnsafeOps {
     unsafe.putObject(f,offset, "hello Unsafe");
     System.out.println(unsafe.getObject(f,offset));
     System.out.println(((Foo)f).c);
+    String newC = "hello again Unsafe";
+    unsafe.putOrderedObject(f,offset,newC);
+    System.out.println(unsafe.getObject(f,offset));
+    System.out.println(((Foo)f).c);
+
+    {  // test compareAndSwapObject
+      boolean updated = unsafe.compareAndSwapObject(f,offset,"not newC","whargl");
+      System.out.println(updated);
+      System.out.println(((Foo)f).c);
+      updated = unsafe.compareAndSwapObject(f,offset,newC,"whargl");
+      System.out.println(updated);
+      System.out.println(((Foo)f).c);
+    }
   }
 
 }

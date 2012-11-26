@@ -154,6 +154,14 @@ arraycopy_check = (rs, src, src_pos, dest, dest_pos, length) ->
   # CoffeeScript, we are not returning an array.
   return
 
+unsafe_compare_and_swap = (rs, _this, obj, offset, expected, x) ->
+  actual = obj.get_field_from_offset rs, offset
+  if actual == expected
+    obj.set_field_from_offset rs, offset, x
+    true
+  else
+    false
+
 native_methods =
   java:
     lang:
@@ -813,15 +821,9 @@ native_methods =
             rs.mem_blocks[block_addr].getInt8(address - block_addr)
         o 'arrayBaseOffset(Ljava/lang/Class;)I', (rs, _this, cls) -> 0
         o 'arrayIndexScale(Ljava/lang/Class;)I', (rs, _this, cls) -> 1
-        o 'compareAndSwapObject(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z', (rs, _this, obj, offset, expected, x) ->
-            obj.set_field_from_offset rs, offset, x
-            true
-        o 'compareAndSwapInt(Ljava/lang/Object;JII)Z', (rs, _this, obj, offset, expected, x) ->
-            obj.set_field_from_offset rs, offset, x
-            true
-        o 'compareAndSwapLong(Ljava/lang/Object;JJJ)Z', (rs, _this, obj, offset, expected, x) ->
-            obj.set_field_from_offset rs, offset, x
-            true
+        o 'compareAndSwapObject(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z', unsafe_compare_and_swap
+        o 'compareAndSwapInt(Ljava/lang/Object;JII)Z', unsafe_compare_and_swap
+        o 'compareAndSwapLong(Ljava/lang/Object;JJJ)Z', unsafe_compare_and_swap
         o 'ensureClassInitialized(Ljava/lang/Class;)V', (rs,_this,cls) ->
             rs.class_lookup(cls.$type)
         o 'staticFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.get_field rs, 'slot')
