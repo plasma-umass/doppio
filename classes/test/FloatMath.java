@@ -28,6 +28,10 @@ public class FloatMath {
     runOps(1E-30f, 1E-30f);
 
     test_flops();
+    System.out.println(Float.intBitsToFloat(12345));
+    System.out.println(Float.intBitsToFloat(0));
+    System.out.println(Float.intBitsToFloat(Integer.MAX_VALUE));
+    System.out.println(Float.intBitsToFloat(Integer.MIN_VALUE));
   }
 
     static float test_flops(){

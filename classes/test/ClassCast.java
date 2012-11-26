@@ -5,14 +5,16 @@ import java.util.TreeMap;
 
 public class ClassCast {
     public static void main(String[] args) {
+        A a = new A();
+        Object b = new B();
         try {
-            A a = new A();
-            Object b = new B();
             a = (A)b;
         }
         catch (ClassCastException e) {
             System.out.println("Caught ClassCastException as expected: " + e.getMessage());
         }
+        System.out.println(A.class.isInstance(a));
+        System.out.println(A.class.isInstance(b));
 
         Map<String, Integer> foo = new TreeMap<String, Integer>();
         // these puts are necessary so that the casting isn't optimized to a nop
