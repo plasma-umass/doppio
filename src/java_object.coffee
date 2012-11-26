@@ -90,7 +90,7 @@ class root.JavaObject
     f = rs.get_field_from_offset rs.class_lookup(@type), offset.toInt()
     if f.access_flags.static
       return rs.static_get({class:@type.toClassString(),name:f.name})
-    @fields[f.name] ? 0
+    @get_field rs, f.name
 
   set_field_from_offset: (rs, offset, value) ->
     f = rs.get_field_from_offset rs.class_lookup(@type), offset.toInt()
@@ -98,7 +98,7 @@ class root.JavaObject
       rs.push value
       rs.static_put({class:@type.toClassString(),name:f.name})
     else
-      @fields[f.name] = value
+      @set_field rs, f.name, value
 
   toString: ->
     if @type.toClassString() is 'java/lang/String'
