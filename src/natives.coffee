@@ -714,9 +714,9 @@ native_methods =
             return 0 unless stats?
             if stats.isFile() then 3 else if stats.isDirectory() then 5 else 1
         o 'getLastModifiedTime(Ljava/io/File;)J', (rs, _this, file) ->
-            filepath = file.get_field rs, 'path'
-            stats = stat_file filepath.jvm2js_str()
-            exceptions.java_throw(rs, 'java/io/FileNotFoundException', "Could not stat file #{filepath.jvm2js_str()}") unless stats?
+            filepath = file.get_field(rs, 'path').jvm2js_str()
+            stats = stat_file filepath
+            return gLong.ZERO unless stats?
             gLong.fromNumber (new Date(stats.mtime)).getTime()
         o 'canonicalize0(L!/lang/String;)L!/lang/String;', (rs, _this, jvm_path_str) ->
             js_str = jvm_path_str.jvm2js_str()

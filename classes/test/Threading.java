@@ -10,6 +10,11 @@ public class Threading extends Thread {
   }
   public static void main(String[] args) throws java.lang.InterruptedException {
     Threading t = new Threading("hello-thread");
+    System.out.println(t.holdsLock(t));  // should be false
+    synchronized (t) {
+      System.out.println(t.holdsLock(t));  // should be true
+    }
+    System.out.println(t.isInterrupted());  // should be false
     t.run();
     t.start();
     t.join();
