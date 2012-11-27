@@ -197,7 +197,7 @@ $(document).ready ->
 
 commands =
   javac: (args, cb) ->
-    jvm.classpath = [ "./", "/home/doppio/vendor/classes/" ]
+    jvm.classpath = [ "./", "/home/doppio/vendor/classes/", "/home/doppio" ]
     rs = new runtime.RuntimeState(stdout, user_input, read_classfile)
     jvm.run_class(rs, 'classes/util/Javac', args, -> controller.reprompt())
     return null  # no reprompt, because we handle it ourselves
