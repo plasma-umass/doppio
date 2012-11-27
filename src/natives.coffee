@@ -20,7 +20,7 @@ root = exports ? this.natives = {}
 system_properties = {
   'java.home':'vendor/java_home/', 'file.encoding':'US_ASCII','java.vendor':'DoppioVM',
   'java.version': '1.6', 'java.vendor.url': 'https://github.com/int3/doppio',
-  'java.class.version': '50.0', 'java.class.path': '.',
+  'java.class.version': '50.0',
   'line.separator':'\n', 'file.separator':'/', 'path.separator':':',
   'user.dir': path.resolve('.'),'user.home':'.','user.name':'DoppioUser',
   'os.name':'Doppio', 'os.arch': 'js', 'os.version': '0',
@@ -36,7 +36,8 @@ get_property = (rs, jvm_key, _default = null) ->
   key = jvm_key.jvm2js_str()
   # XXX: mega hack, please make this better
   if key == 'java.class.path'
-    {classpath} = require './jvm'
+    # jvm is already defined in release mode
+    classpath = jvm?.classpath ? require('./jvm').classpath
     # the last path is actually the bootclasspath (vendor/classes/)
     return rs.init_string classpath[0...classpath.length-1].join ':'
   val = system_properties[key]
