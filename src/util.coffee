@@ -74,7 +74,7 @@ root.read_uint = (bytes) ->
 
 root.uint2int = (uint, bytes_count) ->
   n_bits = 8 * bytes_count
-  if uint > Math.pow(2, n_bits - 1)-1
+  if uint > Math.pow(2, n_bits - 1)
     uint - Math.pow(2, n_bits)
   else
     uint
