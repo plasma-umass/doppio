@@ -136,6 +136,7 @@ $.fn.console = (config) ->
     error "Command handle called before it was set."
 
   extern.commandHandle = config.commandHandle ? errorCommandHandle
+  extern.onreprompt = config.onreprompt ? null
 
   extern.reset = ->
     # NOP
@@ -155,6 +156,8 @@ $.fn.console = (config) ->
       extern.reprompt()
 
   extern.reprompt = () ->
+    if typeof extern.onreprompt == "function"
+      extern.onreprompt()
     setTimeout(runNextCommand, 10)
 
   extern.promptText = (text) ->
