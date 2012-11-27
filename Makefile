@@ -17,15 +17,17 @@ JAZZLIB  := $(DOPPIO_DIR)/vendor/classes/java/util/zip/DeflaterEngine.class
 JRE      := $(DOPPIO_DIR)/vendor/classes/java/lang/Object.class
 SED      := $(shell if command -v gsed >/dev/null; then echo "gsed"; else echo "sed"; fi;)
 
-# JAVA TEST CLASSES & DEMOS
+# JAVA
 SOURCES = $(wildcard classes/test/*.java)
 DISASMS = $(SOURCES:.java=.disasm)
 RUNOUTS = $(SOURCES:.java=.runout)
 CLASSES = $(SOURCES:.java=.class)
-# these files never get made, but we use them for make rules
+# note: RESULTS files never get made, but we use them for make rules
 RESULTS = $(SOURCES:.java=.result)
 DEMO_SRCS = $(wildcard classes/demo/*.java) classes/test/FileRead.java
 DEMO_CLASSES = $(DEMO_SRCS:.java=.class)
+UTIL_SRCS = $(wildcard classes/util/*.java)
+UTIL_CLASSES = $(UTIL_SRCS:.java=.class)
 
 # HTML
 BROWSER_HTML = $(wildcard browser/[^_]*.html)
@@ -117,7 +119,7 @@ $(DIST_NAME): release docs
 
 # Installs or checks for any required dependencies.
 dependencies: $(COFFEEC) $(UGLIFYJS) $(OPTIMIST) $(JAZZLIB) $(JRE) $(DOCCO) $(ADMZIP)
-	git submodule update --init --recursive
+	@git submodule update --quiet --init --recursive
 $(COFFEEC):
 	npm install coffee-script@1.3.3
 $(UGLIFYJS):
@@ -134,7 +136,7 @@ $(JRE):
 	$(error Java class library not found. Unzip it to vendor/classes/, or run ./tools/setup.sh.)
 
 # Used to test the chosen Java compiler in setup.sh.
-java: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES)
+java: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES) $(UTIL_CLASSES)
 
 # Runs the Java tests in classes/test with the node runner.
 test: dependencies $(RESULTS)
@@ -209,12 +211,12 @@ $(BUILD_DIR)/browser/style.css: vendor/bootstrap/css/bootstrap.min.css \
 
 build: dependencies $(BUILD_DIR) $(BUILD_DIR)/browser $(BUILD_HTML) \
 	$(BUILD_DIR)/compressed.js browser/mini-rt.tar $(BUILD_DIR)/ace.js \
-	$(BUILD_DIR)/browser/style.css $(DEMO_CLASSES)
-	rsync -R $(DEMO_SRCS) $(DEMO_CLASSES) $(BUILD_DIR)/
+	$(BUILD_DIR)/browser/style.css $(DEMO_CLASSES) $(UTIL_CLASSES)
+	rsync -R $(DEMO_SRCS) $(DEMO_CLASSES) $(UTIL_SRCS) $(UTIL_CLASSES) $(BUILD_DIR)/
 	rsync browser/*.svg $(BUILD_DIR)/browser/
 	rsync browser/*.png $(BUILD_DIR)/browser/
 	rsync browser/mini-rt.tar $(BUILD_DIR)/browser/mini-rt.tar
 	ln -sfn $(DOPPIO_DIR)/vendor $(BUILD_DIR)/vendor
 
 # Never delete these files in the event of a failure.
-.SECONDARY: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES)
+.SECONDARY: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES) $(UTIL_CLASSES)
