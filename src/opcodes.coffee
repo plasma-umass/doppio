@@ -46,10 +46,7 @@ class root.InvokeOpcode extends root.Opcode
     @method_spec_ref = code_array.get_uint(2)
     @method_spec = constant_pool.get(@method_spec_ref).deref()
 
-  execute: (rs) ->
-    m = rs.method_lookup(@method_spec)
-    @execute = m.run.bind(m)
-    m.run(rs)
+  execute: (rs) -> rs.method_lookup(@method_spec).run(rs)
 
 class root.DynInvokeOpcode extends root.InvokeOpcode
   constructor: (name, params) ->
@@ -72,9 +69,7 @@ class root.DynInvokeOpcode extends root.InvokeOpcode
       stack = rs.curr_frame().stack
       obj = stack[stack.length - @count]
       cls = rs.check_null(obj).type.toClassString()
-      if @cache[cls] is undefined
-       @cache[cls] = rs.method_lookup(class: cls, sig: @method_spec.sig)
-      @cache[cls].run(rs)
+      rs.method_lookup(class: cls, sig: @method_spec.sig).run(rs)
     else
       rs.meta_stack().resuming_stack++
       m = rs.curr_frame().method
