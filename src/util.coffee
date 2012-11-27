@@ -15,13 +15,6 @@ root.INT_MIN = -root.INT_MAX - 1 # -2^31
 root.FLOAT_POS_INFINITY = Math.pow(2,128)
 root.FLOAT_NEG_INFINITY = -1*root.FLOAT_POS_INFINITY
 
-# sign-preserving number truncate, with overflow and such
-root.truncate = (a, n_bits) ->
-  max_val = Math.pow 2, n_bits
-  a = (a + max_val) % max_val
-  a -= max_val if a > Math.pow(2, n_bits-1)
-  a
-
 root.int_mod = (rs, a, b) ->
   java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b == 0
   a % b
@@ -72,16 +65,6 @@ root.read_uint = (bytes) ->
     sum += root.lshift(bytes[i],8*(n-i))
   sum
 
-root.uint2int = (uint, bytes_count) ->
-  n_bits = 8 * bytes_count
-  if uint > Math.pow(2, n_bits - 1)
-    uint - Math.pow(2, n_bits)
-  else
-    uint
-
-root.int2uint = (int, bytes_count) ->
-  if int < 0 then int + Math.pow 2, bytes_count * 8 else int
-
 # Convert :count chars starting from :offset in a Java character array into a JS string
 root.chars2js_str = (jvm_carr, offset, count) ->
   root.bytes2str(jvm_carr.array).substr(offset ? 0, count)
@@ -121,7 +104,8 @@ class root.BytesArray
     return rv
 
   get_int: (bytes_count) ->
-    root.uint2int @get_uint(bytes_count), bytes_count
+    bytes_to_set = 32 - bytes_count * 8
+    @get_uint(bytes_count) << bytes_to_set >> bytes_to_set
 
   read: (bytes_count) ->
     rv = @raw_array[@start+@_index...@start+@_index+bytes_count]
@@ -169,7 +153,8 @@ root.bytes2str = (bytes) ->
   idx = 0
   char_array =
     while idx < bytes.length
-      x = root.int2uint bytes[idx++], 1
+      # cast to an unsigned byte
+      x = bytes[idx++] & 0xff
       break if x == 0
       String.fromCharCode(
         if x <= 0x7f
@@ -183,3 +168,21 @@ root.bytes2str = (bytes) ->
           ((x & 0xf) << 12) + ((y & 0x3f) << 6) + (z & 0x3f)
       )
   char_array.join ''
+
+class root.SafeMap
+
+  constructor: ->
+    @cache = Object.create null # has no defined properties aside from __proto__
+    @proto_cache = undefined
+
+  get: (key) ->
+    return @cache[key] if @cache[key]? # don't use `isnt undefined` -- __proto__ is null!
+    return @proto_cache if key.toString() is '__proto__' and @proto_cache isnt undefined
+    undefined
+
+  set: (key, value) ->
+    # toString() converts key to a primitive, so strict comparison works
+    unless key.toString() is '__proto__'
+      @cache[key] = value
+    else
+      @proto_cache = value

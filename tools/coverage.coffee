@@ -50,25 +50,33 @@ print_unused = (stats, stats_name) ->
   if unused_count > 0
     console.log "#{unused_count} #{stats_name} have yet to be tested."
 
-run_all_tests = (quiet) ->
+run_tests = (test_classes, quiet) ->
   # set up the classpath and get the test dir
   doppio_dir = path.resolve __dirname, '..'
-  test_dir = path.resolve doppio_dir, 'test'
+  # get the tests, if necessary
+  if test_classes?.length > 0
+    test_classes = (tc.replace(/\.class$/,'') for tc in test_classes)
+  else
+    test_dir = path.resolve doppio_dir, 'classes/test'
+    test_classes = []
+    for file in fs.readdirSync(test_dir) when path.extname(file) == '.java'
+      test_classes.push "classes/test/#{path.basename(file, '.java')}"
+  # set up the claspath
   jcl_dir = path.resolve doppio_dir, 'vendor/classes'
   jvm.classpath = [doppio_dir, jcl_dir]
 
   # run each class, reusing the same heap and string pool and class info
   rs = new RuntimeState((->), (->), jvm.read_classfile)
-  for file in fs.readdirSync(test_dir) when path.extname(file) == '.java'
-    c = "test/#{path.basename(file, '.java')}"
+  for c in test_classes
     console.log "running #{c}..." unless quiet
     jvm.run_class(rs, c, [])
   return
 
+
 if require.main == module
   {argv} = optimist
   optimist.usage '''
-  Usage: $0
+  Usage: $0 [class_file(s)]
   Optional flags:
     --print-usage
     -n, --natives
@@ -86,7 +94,7 @@ if require.main == module
 
   op_stats = setup_opcode_stats() if do_opcodes
   native_stats = setup_native_stats() if do_natives
-  run_all_tests(argv.q? or argv.quiet?)
+  run_tests(argv._, argv.q? or argv.quiet?)
 
   if argv['print-usage']?
     print_usage op_stats if do_opcodes

@@ -41,19 +41,20 @@ class root.JavaObject
       for f in cls.fields when not f.access_flags.static
         val = util.initial_value f.raw_descriptor
         slot_val = @fields[f.name]
-        if typeof slot_val isnt 'undefined'
+        if slot_val isnt undefined
           # Field shadowing.
-          unless slot_val?.$first?
+          if slot_val?.$first is undefined
             @fields[f.name] = slot_val = {$first: slot_val}
           slot_val[t.toClassString()] = val
         else
           @fields[f.name] = val
       t = cls.super_class
+
     # init fields from manually given object
     for k in Object.keys obj
       v = obj[k]
       slot_val = @fields[k]
-      if slot_val?.$first?
+      if slot_val?.$first isnt undefined
         slot_val.$first = v
       else
         @fields[k] = v
@@ -66,9 +67,9 @@ class root.JavaObject
     slot_val = @fields[name]
     if slot_val is undefined
       java_throw rs, 'java/lang/NoSuchFieldError', name
-    else unless slot_val?.$first?  # not shadowed
+    else if slot_val?.$first is undefined  # not shadowed
       @fields[name] = val
-    else unless for_class? or slot_val[for_class]?
+    else if not for_class? or slot_val[for_class] is undefined
       slot_val.$first = val
     else
       slot_val[for_class] = val
@@ -78,9 +79,9 @@ class root.JavaObject
     slot_val = @fields[name]
     if slot_val is undefined
       java_throw rs, 'java/lang/NoSuchFieldError', name
-    else unless slot_val?.$first?
+    else if slot_val?.$first is undefined
       slot_val
-    else unless for_class? or slot_val[for_class]?
+    else if not for_class? or slot_val[for_class] is undefined
       slot_val.$first
     else
       slot_val[for_class]
@@ -89,7 +90,7 @@ class root.JavaObject
     f = rs.get_field_from_offset rs.class_lookup(@type), offset.toInt()
     if f.access_flags.static
       return rs.static_get({class:@type.toClassString(),name:f.name})
-    @fields[f.name] ? 0
+    @get_field rs, f.name
 
   set_field_from_offset: (rs, offset, value) ->
     f = rs.get_field_from_offset rs.class_lookup(@type), offset.toInt()
@@ -97,7 +98,7 @@ class root.JavaObject
       rs.push value
       rs.static_put({class:@type.toClassString(),name:f.name})
     else
-      @fields[f.name] = value
+      @set_field rs, f.name, value
 
   toString: ->
     if @type.toClassString() is 'java/lang/String'
@@ -111,25 +112,10 @@ class root.JavaObject
 
 
 class root.JavaClassObject extends root.JavaObject
-  constructor: (rs, @$type, defer_init=false) ->
-    @ref = rs.high_oref++
-    @type = types.c2t 'java/lang/Class'
-    @fields = {}
-    @init_fields(rs) unless defer_init
-
-  init_fields: (rs) ->
-    cls = rs.class_lookup @type
-    for f in cls.fields when not f.access_flags.static
-      @fields[f.name] = util.initial_value f.raw_descriptor
-
-  # Used for setting a class' static fields
-  set_static: (name, val) -> @fields[name] = val
-
-  # Used for getting a class' static fields
-  get_static: (name, type) -> @fields[name] ?= util.initial_value type
+  constructor: (rs, @$type, @file) ->
+    super types.c2t('java/lang/Class'), rs
 
   toString: -> "<Class #{@$type} (*#{@ref})>"
-
 
 root.thread_name = (rs, thread) ->
   util.chars2js_str thread.get_field rs, 'name', 'java/lang/Thread'

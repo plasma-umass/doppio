@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 cd `dirname $0`/..
 
@@ -25,8 +25,8 @@ cd vendor
 
 # check for the JCL
 if [ ! -f classes/java/lang/Object.class ]; then
-  javac ../test/special/FindJclClasses.java
-  JCL=`java -classpath ../ test/special/FindJclClasses`
+  javac ../classes/util/FindJclClasses.java
+  JCL=`java -classpath ../ classes/util/FindJclClasses`
   echo "Extracting the Java class library from the following files:"
   echo "$JCL"
   for name in $JCL; do

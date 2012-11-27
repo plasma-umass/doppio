@@ -15,10 +15,12 @@ util = require './util'
 class SimpleReference
   constructor: (@constant_pool, @value) ->
 
+  @size: 1
+
   @from_bytes: (bytes_array, constant_pool) ->
     value = bytes_array.get_uint 2
     ref = new @ constant_pool, value
-    return [ref, 1, bytes_array]
+    return ref
 
   deref: ->
     pool_obj = @constant_pool[@value]
@@ -31,11 +33,13 @@ class StringReference extends SimpleReference
   constructor: (@constant_pool, @value) -> @type = 'String'
 
 class AbstractMethodFieldReference
+  @size: 1
+
   @from_bytes: (bytes_array, constant_pool) ->
-    [class_ref,tmp,bytes_array] = ClassReference.from_bytes bytes_array, constant_pool
-    [sig,tmp,bytes_array] = SimpleReference.from_bytes bytes_array, constant_pool
+    class_ref = ClassReference.from_bytes bytes_array, constant_pool
+    sig = SimpleReference.from_bytes bytes_array, constant_pool
     ref = new @ constant_pool, { class_ref: class_ref, sig: sig }
-    return [ref, 1, bytes_array]
+    return ref
 
   deref: ->
     sig = @value.sig.deref()
@@ -64,11 +68,13 @@ class FieldReference extends AbstractMethodFieldReference
 class MethodSignature
   constructor: (@constant_pool, @value) -> @type = 'NameAndType'
 
+  @size: 1
+
   @from_bytes: (bytes_array, constant_pool) ->
-    [meth_ref,tmp,bytes_array] = StringReference.from_bytes bytes_array, constant_pool
-    [type_ref,tmp,bytes_array] = StringReference.from_bytes bytes_array, constant_pool
+    meth_ref = StringReference.from_bytes bytes_array, constant_pool
+    type_ref = StringReference.from_bytes bytes_array, constant_pool
     ref = new @ constant_pool, { meth_ref: meth_ref, type_ref: type_ref }
-    return [ref, 1, bytes_array]
+    return ref
 
   deref: ->
     {
@@ -79,23 +85,29 @@ class MethodSignature
 class ConstString
   constructor: (@value) -> @type = 'Asciz'
 
+  @size: 1
+
   @from_bytes: (bytes_array) ->
     strlen = bytes_array.get_uint 2
     value = util.bytes2str bytes_array.read(strlen)
     const_string = new @ value
-    return [const_string, 1, bytes_array]
+    return const_string
 
 class ConstInt32
   constructor: (@value) -> @type = 'int'
+
+  @size: 1
 
   @from_bytes: (bytes_array) ->
     uint32 = bytes_array.get_uint 4
     value = -(1 + ~uint32)  # convert to signed integer ONLY FOR 32 BITS
     int32 = new @ value
-    return [int32, 1, bytes_array]
+    return int32
 
 class ConstFloat
   constructor: (@value) -> @type = 'float'
+
+  @size: 1
 
   @from_bytes: (bytes_array) ->
     uint32 = bytes_array.get_uint 4
@@ -107,20 +119,24 @@ class ConstFloat
     else
       value = Math.pow(-1,sign)*(1+significand*Math.pow(2,-23))*Math.pow(2,exponent-127)
     float = new @ value
-    return [float, 1, bytes_array]
+    return float
 
 class ConstLong
   constructor: (@value) -> @type = 'long'
+
+  @size: 2
 
   @from_bytes: (bytes_array) ->
     high = bytes_array.get_uint 4
     low = bytes_array.get_uint 4
     value = gLong.fromBits(low,high)
     long = new @ value
-    return [long, 2, bytes_array]
+    return long
 
 class ConstDouble
   constructor: (@value) -> @type = 'double'
+
+  @size: 2
 
   @from_bytes: (bytes_array) ->
     #a hack since bitshifting in js is 32bit
@@ -134,7 +150,7 @@ class ConstDouble
     else
       value = Math.pow(-1,sign)*(1+significand*Math.pow(2,-52))*Math.pow(2,exponent-1023)
     double = new @ value
-    return [double, 2, bytes_array]
+    return double
 
 class ConstantPool
   parse: (bytes_array) ->
@@ -150,10 +166,9 @@ class ConstantPool
     while idx < @cp_count
       tag = bytes_array.get_uint 1
       throw "invalid tag: #{tag}" unless 1 <= tag <= 12
-      [pool_obj,size,bytes_array] =
-        constant_tags[tag].from_bytes(bytes_array, @constant_pool)
+      pool_obj = constant_tags[tag].from_bytes(bytes_array, @constant_pool)
       @constant_pool[idx] = pool_obj
-      idx += size
+      idx += constant_tags[tag].size
     return bytes_array
 
   get: (idx) -> @constant_pool[idx] ?

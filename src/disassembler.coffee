@@ -8,6 +8,10 @@ types = require './types'
 
 "use strict"
 
+pad_left = (value, padding) ->
+  zeroes = new Array(padding).join '0'
+  (zeroes + value).slice(-padding)
+
 root.disassemble = (class_file) ->
   access_string = (access_flags) ->
     ordered_flags = [ 'public', 'protected', 'private', 'static', 'final' ]
@@ -15,6 +19,8 @@ root.disassemble = (class_file) ->
     privacy = (("#{flag} " if access_flags[flag]) for flag in ordered_flags).join ''
 
   source_file = _.find(class_file.attrs, (attr) -> attr.constructor.name == 'SourceFile')
+  deprecated = _.find(class_file.attrs, (attr) -> attr.constructor.name == 'Deprecated')
+  annotations = _.find(class_file.attrs, (attr) -> attr.constructor.name == 'RuntimeVisibleAnnotations')
   ifaces = (class_file.constant_pool.get(i).deref() for i in class_file.interfaces)
   ifaces = ((if util.is_string(i) then util.ext_classname(i) else i.toExternalString()) for i in ifaces).join ','
   rv = "Compiled from \"#{source_file?.name ? 'unknown'}\"\n"
@@ -25,6 +31,10 @@ root.disassemble = (class_file) ->
     rv += "class #{class_file.this_class.toExternalString()} extends #{class_file.super_class?.toExternalString()}"
     rv += if (ifaces and not class_file.access_flags.interface) then " implements #{ifaces}\n" else '\n'
   rv += "  SourceFile: \"#{source_file.name}\"\n" if source_file
+  rv += "  Deprecated: length = 0x\n" if deprecated
+  if annotations
+    rv += "  RuntimeVisibleAnnotations: length = 0x#{annotations.raw_bytes.length.toString(16)}\n"
+    rv += "   #{(pad_left(b.toString(16),2) for b in annotations.raw_bytes).join ' '}\n"
   inner_classes = (attr for attr in class_file.attrs when attr.constructor.name is 'InnerClasses')
   for icls in inner_classes
     rv += "  InnerClass:\n"
@@ -88,7 +98,9 @@ root.disassemble = (class_file) ->
   rv += "{\n"
 
   for f in class_file.fields
-    rv += "#{access_string f.access_flags} #{pp_type(f.type)} #{f.name};\n"
+    astr = access_string(f.access_flags)
+    rv += "#{astr} " unless astr == ''
+    rv += "#{pp_type(f.type)} #{f.name};\n"
     const_attr = _.find(f.attrs, (attr) -> attr.constructor.name == 'ConstantValue')
     if const_attr?
       entry = pool.get(const_attr.ref)
@@ -104,7 +116,7 @@ root.disassemble = (class_file) ->
       else
         ret_type = if m.return_type? then pp_type m.return_type else ""
         ret_type + " " + m.name
-    rv += "(#{pp_type(p) for p in m.param_types})" unless m.name is '<clinit>'
+    rv += "(#{(pp_type(p) for p in m.param_types).join ', '})" unless m.name is '<clinit>'
     rv += print_excs exc_attr if exc_attr = _.find(m.attrs, (a) -> a.constructor.name == 'Exceptions')
     rv += ";\n"
     unless m.access_flags.native or m.access_flags.abstract
@@ -137,7 +149,7 @@ root.disassemble = (class_file) ->
               rv += "   frame_type = #{entry.frame_type} /* #{entry.frame_name} */\n"
               rv += "     offset_delta = #{entry.offset_delta}\n" if entry.offset_delta?
               rv += "     locals = [ #{entry.locals.join(', ')} ]\n" if entry.locals?
-              rv += "     stack = [ #{entry.stack} ]\n" if entry.stack?
+              rv += "     stack = [ #{entry.stack.join(', ')} ]\n" if entry.stack?
           when 'LocalVariableTable'
             rv += "  LocalVariableTable:\n"
             rv += "   Start  Length  Slot  Name   Signature\n"
@@ -192,8 +204,11 @@ root.opcode_annotators =
   BranchOpcode: (idx) -> "\t#{idx + @offset}"
   LoadVarOpcode: -> "\t#{@var_num}"
   StoreVarOpcode: -> "\t#{@var_num}"
-  # TODO: add comments for this constant pool ref as well
-  LoadConstantOpcode: -> "\t##{@constant_ref};"
+  LoadConstantOpcode: (idx, pool) -> "\t##{@constant_ref};\t// #{@constant.type} " +
+    if @constant.type in ['String', 'class']
+      escape_whitespace @constant.deref()
+    else
+      @constant.value
   PushOpcode: -> "\t#{@value}"
   IIncOpcode: -> "\t#{@index}, #{@const}"
   NewArrayOpcode: -> "\t#{primitive_types[@element_type]}"

@@ -1,18 +1,16 @@
 
 # pull in external modules
 _ = require '../vendor/_.js'
-gLong = require '../vendor/gLong.js'
 util = require './util'
 opcodes = require './opcodes'
 attributes = require './attributes'
-disassembler = require './disassembler'
 types = require './types'
 natives = require './natives'
 runtime = require './runtime'
 logging = require './logging'
 {vtrace,trace,debug_vars} = logging
 {java_throw,ReturnException} = require './exceptions'
-{opcode_annotators} = disassembler
+{opcode_annotators} = require './disassembler'
 {str2type,carr2type,c2t} = types
 {native_methods,trapped_methods} = natives
 
@@ -38,14 +36,17 @@ class root.Field extends AbstractMethodField
     @type = str2type raw_descriptor
 
   reflector: (rs) ->
+    # note: sig is the generic type parameter (if one exists), not the full
+    # field type.
+    sig = _.find(@attrs, (a) -> a.constructor.name == "Signature")?.sig
     rs.init_object 'java/lang/reflect/Field', {
       # XXX this leaves out 'annotations'
-      clazz: rs.class_lookup(@class_type,true)
+      clazz: rs.jclass_obj(@class_type)
       name: rs.init_string @name, true
-      type: rs.class_lookup @type, true
+      type: rs.jclass_obj @type
       modifiers: @access_byte
       slot: @idx
-      signature: rs.init_string @raw_descriptor
+      signature: if sig? then rs.init_string sig else null
     }
 
 class root.Method extends AbstractMethodField
@@ -86,16 +87,17 @@ class root.Method extends AbstractMethodField
     exceptions = _.find(@attrs, (a) -> a.constructor.name == 'Exceptions')?.exceptions ? []
     anns = _.find(@attrs, (a) -> a.constructor.name == 'RuntimeVisibleAnnotations')?.raw_bytes
     adefs = _.find(@attrs, (a) -> a.constructor.name == 'AnnotationDefault')?.raw_bytes
+    sig =  _.find(@attrs, (a) -> a.constructor.name == 'Signature')?.sig
     rs.init_object typestr, {
       # XXX: missing parameterAnnotations
-      clazz: rs.class_lookup(@class_type, true)
+      clazz: rs.jclass_obj(@class_type)
       name: rs.init_string @name, true
-      parameterTypes: rs.init_object "[Ljava/lang/Class;", (rs.class_lookup(f,true) for f in @param_types)
-      returnType: rs.class_lookup @return_type, true
-      exceptionTypes: rs.init_object "[Ljava/lang/Class;", (rs.class_lookup(c2t(e),true) for e in exceptions)
+      parameterTypes: rs.init_object "[Ljava/lang/Class;", (rs.jclass_obj(f) for f in @param_types)
+      returnType: rs.jclass_obj @return_type
+      exceptionTypes: rs.init_object "[Ljava/lang/Class;", (rs.jclass_obj(c2t(e)) for e in exceptions)
       modifiers: @access_byte
       slot: @idx
-      signature: rs.init_string @raw_descriptor
+      signature: if sig? then rs.init_string sig else null
       annotations: if anns? then rs.init_object('[B', anns) else null
       annotationDefault: if adefs? then rs.init_object('[B', adefs) else null
     }
@@ -108,6 +110,8 @@ class root.Method extends AbstractMethodField
     # this is faster than splice()
     caller_stack.length -= @param_bytes
     params
+
+  RELEASE? || padding = '' # used in debug mode to align instruction traces
 
   run_manually: (func, rs, params) ->
     converted_params = [rs]
@@ -130,18 +134,18 @@ class root.Method extends AbstractMethodField
       else rs.push rv
       rs.push null if ret_type in [ 'J', 'D' ]
 
-  run_bytecode: (rs, padding) ->
+  run_bytecode: (rs) ->
     try
-      @bytecode_loop(rs, padding)
+      @bytecode_loop(rs)
     catch e
       return if e is ReturnException
       throw e unless e.method_catch_handler? # JVM Error
-      e.method_catch_handler(rs, @, padding)
-      @run_bytecode(rs, padding)
+      e.method_catch_handler(rs, @)
+      @run_bytecode(rs)
 
-  bytecode_loop: (rs, padding) ->
+  bytecode_loop: (rs) ->
     # main eval loop: execute each opcode, using the pc to iterate through
-    code = @code.opcodes
+    code = @code.opcodes()
     cf = rs.curr_frame()
     while true
       op = code[cf.pc]
@@ -159,7 +163,7 @@ class root.Method extends AbstractMethodField
 
   run: (runtime_state) ->
     ms = runtime_state.meta_stack()
-    padding = unless RELEASE? then (' ' for [1...ms.length()]).join('') else null
+    RELEASE? || padding = new Array(ms.length()).join ' '
     if ms.resuming_stack? # we are resuming from a yield
       ms.resuming_stack++
       if ms.resuming_stack == ms.length() - 1
@@ -172,7 +176,7 @@ class root.Method extends AbstractMethodField
         return
       else
         trace "#{padding}resuming method #{@full_signature()}"
-        @run_bytecode runtime_state, padding
+        @run_bytecode runtime_state
     else
       caller_stack = runtime_state.curr_frame().stack
       params = @take_params caller_stack
@@ -190,4 +194,4 @@ class root.Method extends AbstractMethodField
       # Finally, the normal case: running a Java method
       trace "#{padding}entering method #{@full_signature()}"
       ms.push(new runtime.StackFrame(this,params,[]))
-      @run_bytecode runtime_state, padding
+      @run_bytecode runtime_state

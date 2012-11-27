@@ -8,7 +8,6 @@ user_input = null
 controller = null
 editor = null
 progress = null
-jvm.classpath = [ "./", "/home/doppio/vendor/classes/", "/home/doppio/" ]
 
 class_cache = {}
 raw_cache = {}
@@ -128,11 +127,11 @@ $(document).ready ->
   controller = jqconsole.console
     promptLabel: 'doppio > '
     commandHandle: (line) ->
-      [cmd,args...] = line.trim().split /\s+/
+      [cmd,args...] = line.trim().split(/\s+/)
       if cmd == '' then return true
       handler = commands[cmd]
       try
-        if handler? then handler(args)
+        if handler? then handler(a.trim() for a in args when a.length>0)
         else "Unknown command '#{cmd}'. Enter 'help' for a list of commands."
       catch e
         controller.message e.toString(), 'error'
@@ -142,20 +141,22 @@ $(document).ready ->
     promptHistory: true
     welcomeMessage: """
       Welcome to Doppio! You may wish to try the following Java programs:
+        java classes/test/FileRead
+        java classes/demo/Fib <num>
+        java classes/demo/Chatterbot
+        java classes/demo/RegexTestHarness
+        java classes/demo/Lzw c Hello.txt hello.lzw (compress)
+        java classes/demo/Lzw d hello.lzw hello (decompress)
+        java classes/demo/DiffPrint Hello.txt hello
+
+      We support the stock Sun Java Compiler:
+        javac classes/test/FileRead.java
+        javac classes/demo/Fib.java
+
+      And we can even run Rhino, the Java-based JS engine!
         rhino
-        javac test/special/FileRead.java
-        javac test/Fib.java
-        java test/special/FileRead
-        java test/Fib <num>
-        
-        java test/special/Chatterbot
-        java test/special/RegexTestHarness
 
-        java test/special/Lzw c Hello.txt hello.lzw (compress)
-        java test/special/Lzw d hello.lzw hello (decompress)
-        java test/special/DiffPrint Hello.txt hello
-
-      The .java files can be inspected by typing `edit [filename]`.
+      Text files can be edited by typing `edit [filename]`.
 
       You can also upload your own files using the uploader above the top-right
       corner of the console.
@@ -196,26 +197,32 @@ $(document).ready ->
 
 commands =
   javac: (args, cb) ->
+    jvm.classpath = [ "./", "/home/doppio/vendor/classes/" ]
     rs = new runtime.RuntimeState(stdout, user_input, read_classfile)
-    jvm.run_class(rs, 'test/special/Javac', args, -> controller.reprompt())
+    jvm.run_class(rs, 'classes/util/Javac', args, -> controller.reprompt())
     return null  # no reprompt, because we handle it ourselves
   java: (args, cb) ->
     if !args[0]? or (args[0] == '-classpath' and args.length < 3)
       return "Usage: java [-classpath path1:path2...] class [args...]"
     if args[0] == '-classpath'
-      paths = args[1].split(':')
+      jvm.classpath = args[1].split(':')
+      jvm.classpath.push "/home/doppio/vendor/classes/"
       class_name = args[2]
       class_args = args[3..]
-      for path in paths
-        jvm.classpath.unshift(path + "/")
     else
+      jvm.classpath = [ "./", "/home/doppio/vendor/classes/" ]
       class_name = args[0]
       class_args = args[1..]
     rs = new runtime.RuntimeState(stdout, user_input, read_classfile)
     jvm.run_class(rs, class_name, class_args, -> controller.reprompt())
-    # reset the classpath to the default
-    jvm.classpath = [ "./", "/home/doppio/vendor/classes/", "/home/doppio/" ]
     return null  # no reprompt, because we handle it ourselves
+  test: (args) ->
+    return "Usage: test all|[class(es) to test]" unless args[0]?
+    if args[0] == 'all'
+      testing.run_tests [], stdout, -> controller.reprompt()
+    else
+      testing.run_tests args, stdout, -> controller.reprompt()
+    return null
   javap: (args) ->
     return "Usage: javap class" unless args[0]?
     try
@@ -225,6 +232,7 @@ commands =
     disassembler.disassemble process_bytecode raw_data
     return null  # no reprompt, because we handle it ourselves
   rhino: (args, cb) ->
+    jvm.classpath = [ "./", "/home/doppio/vendor/classes/" ]
     rs = new runtime.RuntimeState(stdout, user_input, read_classfile)
     jvm.run_class(rs, '!rhino', args, -> controller.reprompt())
     return null  # no reprompt, because we handle it ourselves
@@ -390,7 +398,7 @@ fileNameCompletions = (cmd, args) ->
 
   completions = []
   for item in dirList
-    isDir = node.fs.statSync(dirPfx + item).isDirectory()
+    isDir = node.fs.statSync(dirPfx + item)?.isDirectory()
     continue unless validExtension(item) or isDir
     if item.slice(0, searchPfx.length) == searchPfx
       if isDir
