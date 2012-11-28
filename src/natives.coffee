@@ -169,7 +169,7 @@ native_methods =
       Class: [
         o 'getPrimitiveClass(L!/!/String;)L!/!/!;', (rs, jvm_str) ->
             rs.jclass_obj new types.PrimitiveType(jvm_str.jvm2js_str()), true
-        o 'getClassLoader0()L!/!/ClassLoader;', (rs, _this) -> rs.class_states[_this.type].loader
+        o 'getClassLoader0()L!/!/ClassLoader;', (rs, _this) -> rs.class_states[_this.type.toClassString()].loader
         o 'desiredAssertionStatus0(L!/!/!;)Z', (rs) -> false # we don't need no stinkin asserts
         o 'getName0()L!/!/String;', (rs, _this) ->
             rs.init_string(_this.$type.toExternalString())

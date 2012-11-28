@@ -45,7 +45,7 @@ class root.RuntimeState
     @startup_time = gLong.fromNumber (new Date).getTime()
     # dict of mutable states of loaded classes
     @class_states = Object.create null
-    @class_states['L$bootstrap;'] = new ClassState null
+    @class_states['$bootstrap'] = new ClassState null
     # dict of java.lang.Class objects (which are interned)
     @jclass_obj_pool = Object.create null
     # dict of ClassFiles that have been loaded
@@ -182,12 +182,12 @@ class root.RuntimeState
   # static stuff
   static_get: (field_spec) ->
     f = @field_lookup(field_spec)
-    @class_states[f.class_type].fields[f.name] ?= util.initial_value f.raw_descriptor
+    @class_states[f.class_type.toClassString()].fields[f.name] ?= util.initial_value f.raw_descriptor
 
   static_put: (field_spec) ->
     val = if field_spec.type in ['J','D'] then @pop2() else @pop()
     f = @field_lookup(field_spec)
-    @class_states[f.class_type].fields[f.name] = val
+    @class_states[f.class_type.toClassString()].fields[f.name] = val
 
   # heap object initialization
   init_object: (cls, obj) ->
@@ -222,13 +222,16 @@ class root.RuntimeState
         @loaded_classes[type] = ClassFile.for_array_type type
         @load_class type.component_type, dyn
         # defining class loader of an array type is that of its component type
-        @class_states[type] = new ClassState @class_states[type.component_type]?.loader ? null
+        if type.component_type instanceof types.PrimitiveType
+          @class_states[type.toClassString()] = new ClassState null
+        else
+          @class_states[type.toClassString()] = new ClassState @class_states[type.component_type.toClassString()].loader
       else if type instanceof types.PrimitiveType
         @loaded_classes[type] = '<primitive>'
       else
         # a class gets loaded with the loader of the class that is triggering
         # this class resolution
-        defining_class_state = @class_states[@curr_frame().method.class_type]
+        defining_class_state = @class_states[@curr_frame().method.class_type.toClassString()]
         if loader = defining_class_state.loader?
           rs.push2 loader, rs.init_string util.ext_classname type.toClassString()
           rs.method_lookup(
@@ -236,7 +239,7 @@ class root.RuntimeState
             sig: 'loadClass(Ljava/lang/String;)Ljava/lang/Class;').run @
         else
           # bootstrap class loader
-          @class_states[type] = new ClassState null
+          @class_states[type.toClassString()] = new ClassState null
           cls = type.toClassString()
           class_file = @read_classfile cls
           unless class_file?
@@ -254,15 +257,16 @@ class root.RuntimeState
     UNSAFE? || throw new Error "class_lookup needs a type object, got #{typeof type}: #{type}" unless type instanceof types.Type
     UNSAFE? || throw new Error "class_lookup was passed a PrimitiveType" if type instanceof types.PrimitiveType
     class_file = @load_class type, dyn
-    unless @class_states[type].fields?
-      trace "initializing class: #{type.toClassString()}"
-      @class_states[type].fields = Object.create null
+    cls = type.toClassString()
+    unless @class_states[cls].fields?
+      trace "initializing class: #{cls}"
+      @class_states[cls].fields = Object.create null
       if type instanceof types.ArrayType
         component = type.component_type
         if component instanceof types.ArrayType or component instanceof types.ClassType
           @class_lookup component, dyn
-      else if type instanceof types.ClassType
-        c = @class_states[type]
+      else # type instanceof types.ClassType
+        c = @class_states[cls]
         # Run class initialization code. Superclasses get init'ed first.  We
         # don't want to call this more than once per class, so don't do dynamic
         # lookup. See spec [2.17.4][1].
@@ -271,11 +275,11 @@ class root.RuntimeState
           @class_lookup class_file.super_class, dyn
 
         # flag to let us know if we need to resume into <clinit> after a yield
-        @class_states[type].$in_progress = true
+        @class_states[cls].$in_progress = true
         class_file.methods['<clinit>()V']?.run(this)
         delete c.$in_progress  # no need to keep this around
     else if @meta_stack().resuming_stack?
-      c = @class_states[type]
+      c = @class_states[cls]
       if class_file.super_class
         @class_lookup class_file.super_class, dyn
       if c.$in_progress?  # need to resume <clinit>
@@ -288,11 +292,10 @@ class root.RuntimeState
   define_class: (cls, data, loader) ->
     # replicates some logic from class_lookup
     class_file = new ClassFile(data)
-    type = c2t cls
-    @class_states[type] = new ClassState loader
+    type = c2t(util.int_classname cls)
+    @class_states[type.toClassString()] = new ClassState loader
     if class_file.super_class
       @class_lookup class_file.super_class
-    type = c2t(util.int_classname cls)
     @loaded_classes[type] = class_file
     @jclass_obj_pool[type] = new JavaClassObject @, type, class_file
 
