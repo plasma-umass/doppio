@@ -86,9 +86,6 @@ class root.RuntimeState
       @system_initialized = true
       debug "### finished system class initialization ###"
 
-    # load the main class (which calls <clinit>, if needed)
-    @class_lookup c2t class_name
-
     # prepare the call stack for main(String[] args)
     args = new JavaArray c2t('[Ljava/lang/String;'), @, (@init_string(a) for a in initial_args)
     @curr_thread.$meta_stack = new root.CallStack [args]
