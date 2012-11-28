@@ -212,10 +212,10 @@ $(BUILD_DIR)/browser/style.css: vendor/bootstrap/css/bootstrap.min.css \
 build: dependencies $(BUILD_DIR) $(BUILD_DIR)/browser $(BUILD_HTML) \
 	$(BUILD_DIR)/compressed.js browser/mini-rt.tar $(BUILD_DIR)/ace.js \
 	$(BUILD_DIR)/browser/style.css $(DEMO_CLASSES) $(UTIL_CLASSES)
-	rsync -R $(DEMO_SRCS) $(DEMO_CLASSES) $(UTIL_SRCS) $(UTIL_CLASSES) $(BUILD_DIR)/
 	rsync browser/*.svg $(BUILD_DIR)/browser/
 	rsync browser/*.png $(BUILD_DIR)/browser/
 	rsync browser/mini-rt.tar $(BUILD_DIR)/browser/mini-rt.tar
+	ln -sfn $(DOPPIO_DIR)/classes $(BUILD_DIR)/classes
 	ln -sfn $(DOPPIO_DIR)/vendor $(BUILD_DIR)/vendor
 
 # Never delete these files in the event of a failure.
