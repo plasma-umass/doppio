@@ -15,10 +15,6 @@ rdSync = (dpath, parentObj, name) ->
   files = fs.readdirSync(dpath)
   parentObj[name] = {}
   for file in files
-    # Ignore hidden files.
-    if file[0] == '.'
-      continue
-
     fpath = dpath + '/' + file
     fstat = fs.statSync(fpath)
     lstat = fs.lstatSync(fpath)
