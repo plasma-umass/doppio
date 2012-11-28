@@ -2,7 +2,7 @@ package classes.test;
 
 import java.io.*;
 
-class FilePath {
+class FileOps {
   public static void main(String[] args) throws IOException {
     // I like scopes.
     {
@@ -21,25 +21,25 @@ class FilePath {
       System.out.println("Can you write to ''?: " + f.canWrite());
     }
 
-    for (File child : new File("./classes/test/data/FilePath").listFiles()) {
+    for (File child : new File("./classes/test/data/FileOps").listFiles()) {
       System.out.println(child.getName());
     }
 
     {
-      File f = new File("./classes/test/data/FilePath/contains_data.txt");
+      File f = new File("./classes/test/data/FileOps/contains_data.txt");
       System.out.println("Does contains_data.txt exist?: " + f.exists());
       System.out.println("Length of contains_data.txt: " + f.length());
       System.out.println("Can I write to contains_data.txt?:  " + f.canWrite());
     }
 
     {
-      File f = new File("./classes/test/data/FilePath");
-      System.out.println("Is FilePath a directory?: " + f.isDirectory());
+      File f = new File("./classes/test/data/FileOps");
+      System.out.println("Is FileOps a directory?: " + f.isDirectory());
       System.out.println("Can I write to it?: " + f.canWrite());
     }
 
     {
-      File f = new File("./classes/test/data/FilePath/temp_delete_me.txt");
+      File f = new File("./classes/test/data/FileOps/temp_delete_me.txt");
       System.out.println("Does temp_delete_me.txt exist?: " + f.exists());
       System.out.println("Did we successfully create this file?: " + f.createNewFile());
       System.out.println("And does it exist now?: " + f.exists());
