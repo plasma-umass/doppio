@@ -327,4 +327,4 @@ class root.RuntimeState
       if address < addr
         return block_addr
       block_addr = addr
-    rs.mem_blocks[block_addr]
+    UNSAFE? || throw new Error "Invalid memory access at #{address}"
