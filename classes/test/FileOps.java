@@ -39,6 +39,17 @@ class FileOps {
     }
 
     {
+      // This will succeed if you're running doppio/java as root, or if you've
+      // dun goofed on your root permissions.
+      File f = new File("/rootfilelol");
+      try {
+        f.createNewFile();
+      } catch (IOException e) {
+        System.out.println("Could not create file /rootfilelol (expected)");
+      }
+    }
+
+    {
       File f = new File("./classes/test/data/FileOps/temp_delete_me.txt");
       System.out.println("Does temp_delete_me.txt exist?: " + f.exists());
       System.out.println("Did we successfully create this file?: " + f.createNewFile());
