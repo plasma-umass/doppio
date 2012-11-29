@@ -208,7 +208,7 @@ class root.RuntimeState
   # not ensure that its ancestors and interfaces are present.)
   jclass_obj: (type, dyn=false) ->
     if @jclass_obj_pool[type] is undefined
-      file = @load_class type, dyn
+      file = if type instanceof types.PrimitiveType then null else @load_class type, dyn
       @jclass_obj_pool[type] = new JavaClassObject @, type, file
     @jclass_obj_pool[type]
 
@@ -217,38 +217,36 @@ class root.RuntimeState
   # compile time, e.g. if we are loading a class as a result of a
   # Class.forName() call.
   load_class: (type, dyn) ->
-    unless @loaded_classes[type]?
+    cls = type.toClassString()
+    unless @loaded_classes[cls]?
       if type instanceof types.ArrayType
-        @loaded_classes[type] = ClassFile.for_array_type type
-        @load_class type.component_type, dyn
+        @loaded_classes[cls] = ClassFile.for_array_type type
         # defining class loader of an array type is that of its component type
         if type.component_type instanceof types.PrimitiveType
-          @class_states[type.toClassString()] = new ClassState null
+          @class_states[cls] = new ClassState null
         else
-          @class_states[type.toClassString()] = new ClassState @class_states[type.component_type.toClassString()].loader
-      else if type instanceof types.PrimitiveType
-        @loaded_classes[type] = '<primitive>'
+          @load_class type.component_type, dyn
+          @class_states[cls] = new ClassState @class_states[type.component_type.toClassString()].loader
       else
         # a class gets loaded with the loader of the class that is triggering
         # this class resolution
         defining_class_state = @class_states[@curr_frame().method.class_type.toClassString()]
         if loader = defining_class_state.loader?
-          rs.push2 loader, rs.init_string util.ext_classname type.toClassString()
+          rs.push2 loader, rs.init_string util.ext_classname cls
           rs.method_lookup(
             class: loader.type.toClassString()
             sig: 'loadClass(Ljava/lang/String;)Ljava/lang/Class;').run @
         else
           # bootstrap class loader
-          @class_states[type.toClassString()] = new ClassState null
-          cls = type.toClassString()
+          @class_states[cls] = new ClassState null
           class_file = @read_classfile cls
           unless class_file?
             if dyn
               java_throw @, 'java/lang/ClassNotFoundException', cls
             else
               java_throw @, 'java/lang/NoClassDefFoundError', cls
-          @loaded_classes[type] = class_file
-    @loaded_classes[type]
+          @loaded_classes[cls] = class_file
+    @loaded_classes[cls]
 
   # Loads and initializes :type, and returns a ClassFile object. Should only be
   # called _immediately_ before a method invocation or field access. See section
@@ -292,11 +290,11 @@ class root.RuntimeState
   define_class: (cls, data, loader) ->
     # replicates some logic from class_lookup
     class_file = new ClassFile(data)
-    type = c2t(util.int_classname cls)
-    @class_states[type.toClassString()] = new ClassState loader
+    @class_states[cls] = new ClassState loader
     if class_file.super_class
       @class_lookup class_file.super_class
-    @loaded_classes[type] = class_file
+    @loaded_classes[cls] = class_file
+    type = c2t(cls)
     @jclass_obj_pool[type] = new JavaClassObject @, type, class_file
 
   method_lookup: (method_spec) ->

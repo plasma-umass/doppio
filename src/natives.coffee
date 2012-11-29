@@ -301,7 +301,7 @@ native_methods =
             rs.jclass_obj(type, true)
         o 'defineClass1(L!/!/String;[BIIL!/security/ProtectionDomain;L!/!/String;Z)L!/!/Class;', (rs,_this,name,bytes,offset,len,pd,source) ->
             raw_bytes = ((256+b)%256 for b in bytes.array[offset...offset+len])  # convert to unsigned bytes
-            rs.define_class name.jvm2js_str(), raw_bytes, _this
+            rs.define_class util.int_classname(name.jvm2js_str()), raw_bytes, _this
       ],
       Compiler: [
         o 'disable()V', (rs, _this) -> #NOP
@@ -375,7 +375,7 @@ native_methods =
         Proxy: [
           o 'defineClass0(L!/!/ClassLoader;L!/!/String;[BII)L!/!/Class;', (rs,cl,name,bytes,offset,len) ->
               raw_bytes = ((256+b)%256 for b in bytes.array[offset...offset+len])  # convert to unsigned bytes
-              rs.define_class name.jvm2js_str(), raw_bytes, cl
+              rs.define_class util.int_classname(name.jvm2js_str()), raw_bytes, cl
         ]
       Runtime: [
         o 'availableProcessors()I', () -> 1
@@ -937,7 +937,7 @@ native_methods =
             obj.set_field_from_offset rs, offset, new_obj
         o 'defineClass(Ljava/lang/String;[BIILjava/lang/ClassLoader;Ljava/security/ProtectionDomain;)Ljava/lang/Class;', (rs, _this, name, bytes, offset, len, loader, pd) ->
             raw_bytes = ((256+b)%256 for b in bytes.array[offset...offset+len])
-            rs.define_class name.jvm2js_str(), raw_bytes, loader
+            rs.define_class util.int_classname(name.jvm2js_str()), raw_bytes, loader
       ]
     reflect:
       ConstantPool: [
