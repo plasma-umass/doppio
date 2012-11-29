@@ -140,7 +140,8 @@ _test: dependencies $(TESTS)
 %.class: %.java
 	javac $^
 classes/test/%.test: classes/test/%.class classes/test/%.disasm classes/test/%.runout
-	node build/opt/src/testing.js classes/test/$*
+	@node build/opt/src/testing.js classes/test/$* --quiet
+	@echo -n ✓
 classes/test/%.disasm: classes/test/%.class
 	javap -c -verbose -private classes/test/$* >classes/test/$*.disasm
 # some tests may throw exceptions. The '-' flag tells make to carry on anyway.

@@ -19,7 +19,7 @@ root.find_test_classes = (doppio_dir) ->
   # Note that the lack of return value here implies that the above is actually
   # a list comprehension. This is intended behavior.
 
-root.run_tests = (test_classes, stdout, callback) ->
+root.run_tests = (test_classes, stdout, quiet, callback) ->
   batch_mode = test_classes.length > 1
   doppio_dir = if node? then '/home/doppio/' else path.resolve __dirname, '..'
   # get the tests, if necessary
@@ -34,12 +34,12 @@ root.run_tests = (test_classes, stdout, callback) ->
   _runner = () ->
     if test_classes.length == 0
       if batch_mode
-        stdout "All tests passed!\n"
+        quiet || stdout "All tests passed!\n"
       else
-        stdout "Pass\n"
+        quiet || stdout "Pass\n"
       return callback(false)
     test = test_classes.shift()
-    stdout "testing #{test}...\n"
+    quiet || stdout "testing #{test}...\n"
     if (disasm_diff = run_disasm_test(doppio_dir, test))?
       stdout "Failed disasm test #{test}:\n#{disasm_diff}\n"
       return callback(true)
@@ -104,7 +104,5 @@ if module? and require?.main == module
   return optimist.showHelp() if argv.help? or argv.h?
 
   done_cb = (failed) -> process.exit failed
-  if argv.quiet? or argv.q?
-    root.run_tests argv._, (->), done_cb
-  else
-    root.run_tests argv._, print, done_cb
+  quiet = argv.quiet? or argv.q?
+  root.run_tests argv._, print, quiet, done_cb
