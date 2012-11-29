@@ -428,6 +428,8 @@ class Stat
       stat.mtime = (new Date).getTime()
       stat.is_file = false
       stat.is_directory = true
+      #XXX: Shhhh...
+      stat.mode = 0o644
       stat
     else
       file = fs_state.open path, 'r'
@@ -501,13 +503,13 @@ root.fs =
 
   readdirSync: (path) ->
     dir_contents = fs_state.list(path)
-    throw "Could not read directory '#{path}'" unless dir_contents?
+    throw "Could not read directory '#{path}'" unless dir_contents? and path != ''
     return dir_contents
 
   unlinkSync: (path) -> throw "Could not unlink '#{path}'" unless fs_state.rm(path)
   rmdirSync: (path) -> throw "Could not delete '#{path}'" unless fs_state.rm(path, true)
 
-  existsSync: (path) -> fs_state.is_file(path) or fs_state.is_directory(path)
+  existsSync: (path) -> path != '' and (fs_state.is_file(path) or fs_state.is_directory(path))
 
   mkdirSync: (path) -> throw "Could not make directory #{path}" unless fs_state.mkdir path
 
