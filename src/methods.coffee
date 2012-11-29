@@ -104,8 +104,7 @@ class root.Method extends AbstractMethodField
 
   take_params: (caller_stack) ->
     start = caller_stack.length - @param_bytes
-    end = start + @param_bytes
-    params = caller_stack.slice(start, end)
+    params = caller_stack.slice(start)
     # this is faster than splice()
     caller_stack.length -= @param_bytes
     params
