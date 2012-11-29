@@ -4,6 +4,7 @@ import java.io.*;
 
 class FileOps {
   public static void main(String[] args) throws IOException {
+    String testDir = "./classes/test/data/FileOps";
     // I like scopes.
     {
       File f = new File("");
@@ -21,19 +22,19 @@ class FileOps {
       System.out.println("Can you write to ''?: " + f.canWrite());
     }
 
-    for (File child : new File("./classes/test/data/FileOps").listFiles()) {
+    for (File child : new File(testDir).listFiles()) {
       System.out.println(child.getName());
     }
 
     {
-      File f = new File("./classes/test/data/FileOps/contains_data.txt");
+      File f = new File(testDir + "/contains_data.txt");
       System.out.println("Does contains_data.txt exist?: " + f.exists());
       System.out.println("Length of contains_data.txt: " + f.length());
       System.out.println("Can I write to contains_data.txt?:  " + f.canWrite());
     }
 
     {
-      File f = new File("./classes/test/data/FileOps");
+      File f = new File(testDir);
       System.out.println("Is FileOps a directory?: " + f.isDirectory());
       System.out.println("Can I write to it?: " + f.canWrite());
     }
@@ -50,7 +51,7 @@ class FileOps {
     }
 
     {
-      File f = new File("./classes/test/data/FileOps/temp_delete_me.txt");
+      File f = new File(testDir + "/temp_delete_me.txt");
       System.out.println("Does temp_delete_me.txt exist?: " + f.exists());
       System.out.println("Did we successfully create this file?: " + f.createNewFile());
       System.out.println("And does it exist now?: " + f.exists());
@@ -79,6 +80,37 @@ class FileOps {
       System.out.println("Now, has the modified time changed? " + (lm < f.lastModified()));
       System.out.println("Deleting file: " + f.delete());
       System.out.println("Does the file exist?: " + f.exists());
+    }
+
+    // Create and delete a directory.
+    {
+      File f = new File(testDir + "/tempDir");
+      System.out.println("Does tempDir exist?: " + f.exists());
+      System.out.println("Making tempDir: " + f.mkdir());
+      System.out.println("Does tempDir exist now?: " + f.exists());
+      System.out.println("Deleting tempDir: " + f.delete());
+      System.out.println("Does tempDir exist now?: " + f.exists());
+    }
+    {
+      File f = new File(testDir + "/tempDir/tempDir");
+      File f2 = new File(testDir + "/tempDir");
+      System.out.println("Does tempDir/tempDir exist?: " + f.exists());
+      System.out.println("Making tempDir/tempDir (should fail): " + f.mkdir());
+      System.out.println("Does tempDir/tempDir exist now?: " + f.exists());
+      System.out.println("Deleting tempDir/tempDir (should fail): " + f.delete());
+      System.out.println("Making tempDir/tempDir (should succeed): " + f.mkdirs());
+      System.out.println("Does tempDir/tempDir exist now?: " + f.exists());
+      System.out.println("Deleting tempDir (should fail -- nonempty): " + f2.delete());
+      System.out.println("Does tempDir/tempDir exist now?: " + f.exists());
+      System.out.println("Does tempDir exist now?: " + f.exists());
+       System.out.println("Deleting tempDir/tempDir: " + f.delete());
+      System.out.println("Deleting tempDir (should succeed this time): " + f2.delete());
+      System.out.println("Does tempDir/tempDir exist now?: " + f.exists());
+      System.out.println("Does tempDir exist now?: " + f2.exists());
+    }
+    {
+      File f = new File(testDir);
+      System.out.println("Trying to create a directory that already exists: " + f.mkdir());
     }
 
   }

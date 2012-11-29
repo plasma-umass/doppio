@@ -712,7 +712,15 @@ native_methods =
             return false unless stats?
             mode = stats.mode & 511
             true  # TODO: actually use the mode, checking if we're the owner or in group
-        #o 'createDirectory(Ljava/lang/File;)Z', (rs, _this, file) ->
+        o 'createDirectory(Ljava/io/File;)Z', (rs, _this, file) ->
+            filepath = (file.get_field rs, 'path').jvm2js_str()
+            # Already exists.
+            return false if stat_file(filepath)?
+            try
+              fs.mkdirSync(filepath)
+            catch e
+              return false
+            return true
         o 'createFileExclusively(Ljava/lang/String;Z)Z', (rs, _this, path, arg2) ->
             #XXX: I have no idea what arg2 is
             filepath = path.jvm2js_str()
@@ -722,15 +730,22 @@ native_methods =
             catch e
               exceptions.java_throw rs, 'java/io/IOException', e.message
             true
-        #o 'delete0(Ljava/lang/File;)Z', (rs, _this, file) ->
+        o 'delete0(Ljava/io/File;)Z', (rs, _this, file) ->
             # Delete the file or directory denoted by the given abstract
             # pathname, returning true if and only if the operation succeeds.
-            # Does file exist?
-              # If no, return false.
-            # Is it a directory?
-              # rmdir
-            # Is it a file?
-              # unlink
+            # If file is a directory, it must be empty.
+            filepath = (file.get_field rs, 'path').jvm2js_str()
+            stats = stat_file filepath
+            return false unless stats?
+            try
+              if stats.isDirectory()
+                return false if (fs.readdirSync filepath).length > 0
+                fs.rmdirSync(filepath)
+              else
+                fs.unlinkSync(filepath)
+            catch e
+              return false
+            return true
         o 'getBooleanAttributes0(Ljava/io/File;)I', (rs, _this, file) ->
             filepath = file.get_field rs, 'path'
             stats = stat_file filepath.jvm2js_str()
@@ -759,9 +774,6 @@ native_methods =
         #o 'rename0(Ljava/io/File;Ljava/io/File;)Z', (rs, _this, file1, file2) ->
         #o 'setLastModifiedTime(Ljava/io/File;J)Z', (rs, _this, file, time) ->
         o 'setPermission(Ljava/io/File;IZZ)Z', (rs, _this, file, access, enable, owneronly) ->
-            #Set on or off the access permission (to owner only or to all) to
-            #the file or directory denoted by the given abstract pathname, based
-            #on the parameters enable, access and oweronly.
             filepath = (file.get_field rs, 'path').jvm2js_str()
             # Access is equal to one of the following static fields:
             # * FileSystem.ACCESS_READ (0x04)
@@ -782,7 +794,7 @@ native_methods =
               # Do an invert and we'll AND rather than OR.
               access = ~access
 
-            # Returns true on success, false on failure as far as I can tell.
+            # Returns true on success, false on failure.
             try
               # Fetch existing permissions on file.
               stats = stat_file filepath
