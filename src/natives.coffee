@@ -703,12 +703,18 @@ native_methods =
             _this.$file = null
       ]
       UnixFileSystem: [
+        o 'canonicalize0(L!/lang/String;)L!/lang/String;', (rs, _this, jvm_path_str) ->
+            js_str = jvm_path_str.jvm2js_str()
+            rs.init_string path.resolve(path.normalize(js_str))
         o 'checkAccess(Ljava/io/File;I)Z', (rs, _this, file, access) ->
             filepath = file.get_field rs, 'path'
             stats = stat_file filepath.jvm2js_str()
             return false unless stats?
             mode = stats.mode & 511
             true  # TODO: actually use the mode, checking if we're the owner or in group
+        #o 'createDirectory(Ljava/lang/File;)Z', (rs, _this, file) ->
+        #o 'createFileExclusively(Ljava/lang/String;)Z', (rs, _this, path) ->
+        #o 'delete0(Ljava/lang/File;)Z', (rs, _this, file) ->
         o 'getBooleanAttributes0(Ljava/io/File;)I', (rs, _this, file) ->
             filepath = file.get_field rs, 'path'
             stats = stat_file filepath.jvm2js_str()
@@ -719,16 +725,6 @@ native_methods =
             stats = stat_file filepath
             return gLong.ZERO unless stats?
             gLong.fromNumber (new Date(stats.mtime)).getTime()
-        o 'canonicalize0(L!/lang/String;)L!/lang/String;', (rs, _this, jvm_path_str) ->
-            js_str = jvm_path_str.jvm2js_str()
-            rs.init_string path.resolve(path.normalize(js_str))
-        o 'list(Ljava/io/File;)[Ljava/lang/String;', (rs, _this, file) ->
-            filepath = file.get_field rs, 'path'
-            try
-              files = fs.readdirSync(filepath.jvm2js_str())
-            catch e
-              return null
-            rs.init_object('[Ljava/lang/String;',(rs.init_string(f) for f in files))
         o 'getLength(Ljava/io/File;)J', (rs, _this, file) ->
             filepath = file.get_field rs, 'path'
             try
@@ -736,6 +732,18 @@ native_methods =
             catch e
               length = 0
             gLong.fromNumber(length)
+        #o 'getSpace(Ljava/io/File;I)J', (rs, _this, file, t) ->
+        o 'list(Ljava/io/File;)[Ljava/lang/String;', (rs, _this, file) ->
+            filepath = file.get_field rs, 'path'
+            try
+              files = fs.readdirSync(filepath.jvm2js_str())
+            catch e
+              return null
+            rs.init_object('[Ljava/lang/String;',(rs.init_string(f) for f in files))
+        #o 'rename0(Ljava/io/File;Ljava/io/File;)Z', (rs, _this, file1, file2) ->
+        #o 'setLastModifiedTime(Ljava/io/File;J)Z', (rs, _this, file, time) ->
+        #o 'setPermission(Ljava/io/File;IZZ)Z', (rs, _this, file, access, enable, owneronly) ->
+        #o 'setReadOnly(Ljava/io/File;)Z', (rs, _this, file) ->
       ]
     util:
       concurrent:
