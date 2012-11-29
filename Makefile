@@ -123,7 +123,7 @@ dependencies: $(COFFEEC) $(UGLIFYJS) $(OPTIMIST) $(JAZZLIB) $(JRE) $(DOCCO) $(AD
 $(COFFEEC):
 	npm install coffee-script@1.3.3
 $(UGLIFYJS):
-	npm install uglify-js
+	npm install uglify-js@1
 $(OPTIMIST):
 	npm install optimist
 $(DOCCO):
