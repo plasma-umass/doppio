@@ -103,7 +103,7 @@ class FileOps {
       System.out.println("Deleting tempDir (should fail -- nonempty): " + f2.delete());
       System.out.println("Does tempDir/tempDir exist now?: " + f.exists());
       System.out.println("Does tempDir exist now?: " + f.exists());
-       System.out.println("Deleting tempDir/tempDir: " + f.delete());
+      System.out.println("Deleting tempDir/tempDir: " + f.delete());
       System.out.println("Deleting tempDir (should succeed this time): " + f2.delete());
       System.out.println("Does tempDir/tempDir exist now?: " + f.exists());
       System.out.println("Does tempDir exist now?: " + f2.exists());
@@ -111,6 +111,29 @@ class FileOps {
     {
       File f = new File(testDir);
       System.out.println("Trying to create a directory that already exists: " + f.mkdir());
+    }
+
+    // Rename a file.
+    {
+      File f = new File(testDir + "/temp_rename_file.txt");
+      File f2 = new File(testDir + "/temp_rename_file2.txt");
+      System.out.println("Creating temp_rename_file.txt: " + f.createNewFile());
+      System.out.println("Renaming it to temp_rename_file2.txt: " + f.renameTo(f2));
+      System.out.println("Old file exist? " + f.exists() + " New file exists? " + f2.exists());
+      System.out.println("Recreating old file: " + f.createNewFile());
+      System.out.println("Moving on top of old file: " + f2.renameTo(f));
+      System.out.println("Deleting old file: " + f.delete());
+      System.out.println("Trying to move nonexistant old file: " + f.renameTo(f2));
+    }
+
+    // Read only.
+    {
+      File f = new File(testDir + "/temp_readonly.txt");
+      System.out.println("Creating temp_readonly.txt: " + f.createNewFile());
+      System.out.println("Marking as read only: " + f.setReadOnly());
+      System.out.println("Can I write to the file?: " + f.canWrite());
+      System.out.println("Can I read the file?: " + f.canRead());
+      System.out.println("Deleting file: " + f.delete());
     }
 
   }

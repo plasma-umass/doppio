@@ -710,8 +710,13 @@ native_methods =
             filepath = file.get_field rs, 'path'
             stats = stat_file filepath.jvm2js_str()
             return false unless stats?
-            mode = stats.mode & 511
-            true  # TODO: actually use the mode, checking if we're the owner or in group
+            #XXX: Assuming we're owner/group/other. :)
+            # Shift access so it's present in owner/group/other.
+            # Then, AND with the actual mode, and check if the result is above 0.
+            # That indicates that the access bit we're looking for was set on
+            # one of owner/group/other.
+            mask = access | (access << 3) | (access << 6)
+            return (stats.mode & mask) > 0
         o 'createDirectory(Ljava/io/File;)Z', (rs, _this, file) ->
             filepath = (file.get_field rs, 'path').jvm2js_str()
             # Already exists.
@@ -771,7 +776,14 @@ native_methods =
             catch e
               return null
             rs.init_object('[Ljava/lang/String;',(rs.init_string(f) for f in files))
-        #o 'rename0(Ljava/io/File;Ljava/io/File;)Z', (rs, _this, file1, file2) ->
+        o 'rename0(Ljava/io/File;Ljava/io/File;)Z', (rs, _this, file1, file2) ->
+          file1path = (file1.get_field rs, 'path').jvm2js_str()
+          file2path = (file2.get_field rs, 'path').jvm2js_str()
+          try
+            fs.renameSync(file1path, file2path)
+          catch e
+            return false
+          return true
         #o 'setLastModifiedTime(Ljava/io/File;J)Z', (rs, _this, file, time) ->
         o 'setPermission(Ljava/io/File;IZZ)Z', (rs, _this, file, access, enable, owneronly) ->
             filepath = (file.get_field rs, 'path').jvm2js_str()
@@ -807,7 +819,18 @@ native_methods =
             catch e
               return false
             return true
-        #o 'setReadOnly(Ljava/io/File;)Z', (rs, _this, file) ->
+        o 'setReadOnly(Ljava/io/File;)Z', (rs, _this, file) ->
+          filepath = (file.get_field rs, 'path').jvm2js_str()
+          # We'll be unsetting write permissions.
+          # Leading 0o indicates octal.
+          mask = ~(0o222)
+          try
+            stats = stat_file filepath
+            return false unless stats?
+            fs.chmodSync filepath, (stats.mode & mask)
+          catch e
+            return false
+          return true
       ]
     util:
       concurrent:
