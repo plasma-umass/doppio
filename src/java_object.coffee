@@ -36,26 +36,28 @@ class root.JavaObject
     @fields = Object.create null
     # init fields from this and inherited ClassFiles
     t = @type
+    first_field_owner = Object.create null
     while t?
       cls = rs.class_lookup t
       for f in cls.fields when not f.access_flags.static
         val = util.initial_value f.raw_descriptor
-        slot_val = @fields[f.name]
-        if slot_val isnt undefined
+
+        if first_field_owner[f.name] isnt undefined
           # Field shadowing.
-          if slot_val?.$first is undefined
-            @fields[f.name] = slot_val = {$first: slot_val}
-          slot_val[t.toClassString()] = val
+          if @fields[f.name] isnt undefined
+            @fields[first_field_owner[f.name] + '/' + f.name] = @fields[f.name]
+            delete @fields[f.name]
+          @fields[t.toClassString() + '/' + f.name] = val
         else
           @fields[f.name] = val
+          first_field_owner[f.name] = t.toClassString()
       t = cls.super_class
 
     # init fields from manually given object
     for k in Object.keys obj
       v = obj[k]
-      slot_val = @fields[k]
-      if slot_val?.$first isnt undefined
-        slot_val.$first = v
+      if @fields[k] is undefined
+        @fields[first_field_owner[k] + '/' + k] = v
       else
         @fields[k] = v
 
@@ -64,27 +66,25 @@ class root.JavaObject
     new root.JavaObject @type, rs, _.clone(@fields)
 
   set_field: (rs, name, val, for_class) ->
-    slot_val = @fields[name]
-    if slot_val is undefined
-      java_throw rs, 'java/lang/NoSuchFieldError', name
-    else if slot_val?.$first is undefined  # not shadowed
+    unless @fields[name] is undefined
+      # Fast path: Not shadowed.
       @fields[name] = val
-    else if not for_class? or slot_val[for_class] is undefined
-      slot_val.$first = val
     else
-      slot_val[for_class] = val
+      lookup_string = for_class + '/' + name
+      unless @fields[lookup_string] is undefined
+        # Slow path: Shadowed.
+        @fields[lookup_string] = val
+      else
+        # Error
+        java_throw rs, 'java/lang/NoSuchFieldError', name
     return
 
   get_field: (rs, name, for_class) ->
-    slot_val = @fields[name]
-    if slot_val is undefined
-      java_throw rs, 'java/lang/NoSuchFieldError', name
-    else if slot_val?.$first is undefined
-      slot_val
-    else if not for_class? or slot_val[for_class] is undefined
-      slot_val.$first
-    else
-      slot_val[for_class]
+    val = @fields[name]
+    return val unless val is undefined
+    lookup_string = for_class + '/' + name
+    java_throw rs, 'java/lang/NoSuchFieldError', name if @fields[lookup_string] is undefined
+    return @fields[lookup_string]
 
   get_field_from_offset: (rs, offset) ->
     f = rs.get_field_from_offset rs.class_lookup(@type), offset.toInt()

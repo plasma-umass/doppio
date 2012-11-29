@@ -27,7 +27,7 @@ class root.CallStack
 
   curr_frame: ->
     if @resuming_stack? then @_cs[@resuming_stack]
-    else _.last(@_cs)
+    else util.last(@_cs)
 
   get_caller: (frames_to_skip) -> @_cs[@_cs.length-1-frames_to_skip]
 

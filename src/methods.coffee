@@ -103,10 +103,8 @@ class root.Method extends AbstractMethodField
     }
 
   take_params: (caller_stack) ->
-    params = new Array @param_bytes
     start = caller_stack.length - @param_bytes
-    for i in [0...@param_bytes] by 1
-      params[i] = caller_stack[start + i]
+    params = caller_stack.slice(start)
     # this is faster than splice()
     caller_stack.length -= @param_bytes
     params
