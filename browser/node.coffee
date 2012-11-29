@@ -16,7 +16,7 @@ class DoppioFile
     data = JSON.parse rawData
     new DoppioFile(path, data.data, data.mtime)
 
-  constructor: (@path, @data = "", @mtime = (new Date).getTime(), @mod = false) ->
+  constructor: (@path, @data = "", @mtime = (new Date).getTime(), @mod = false, @mode = 0o644) ->
 
   read: (length, pos) ->
     return @data unless length?
@@ -84,6 +84,11 @@ class FileIndex
     components = @_subcomponents(path)
     @_mkdir(components)
     return
+  # Returns the parent directory of path or false.
+  parent: (path) ->
+    components = @_subcomponents(path)
+    components.pop()
+    return @_get components
   # Removes the given path, directory or not, from the index. This is a
   # recursive delete. Returns the paths to the files that were deleted if this
   # was a directory, otherwise returns true if a file was deleted, false if
@@ -99,6 +104,7 @@ class FileIndex
         ret = if @_is_directory(obj) then Object.keys(obj) else true
         delete parent[name]
     return ret
+
 
 # Interface for a FileSource. Somewhat of a misnomer, as they are also sinks...
 class FileSource
@@ -123,6 +129,10 @@ class FileSource
   # Returns a directory listing for the given path, or null if it does not
   # exist.
   ls: (path) -> null
+  # Moves a file or directory from path1 to path2. Returns true on success,
+  # false otherwise.
+  mv: (path1, path2, isFile = true) -> false
+  mkdir: (path1) -> false
 
 # Composes multiple file sources into one file source. Prioritizes file sources
 # in the order in which they are added.
@@ -182,6 +192,20 @@ class CompositedFileSource extends FileSource
         list = if list? then _.union(list, src_list) else src_list
     return list
 
+  mv: (path1, path2, isFile = true) ->
+    applicable = @_get_applicable_sources(path1)
+    moved = false
+    for source in applicable
+      moved = source.mv(path1, path2, isFile) || moved
+    return moved
+
+  mkdir: (path) ->
+    applicable = @_get_applicable_sources path
+    dirmade = false
+    for source in applicable
+      dirmade ||= source.mkdir path
+    return dirmade
+
 class LocalStorageSource extends FileSource
   redundant_storage: true
   constructor: (mnt_pt) ->
@@ -211,6 +235,29 @@ class LocalStorageSource extends FileSource
     return true
 
   ls: (path) -> @index.ls(path)
+  mv: (path1, path2, isFile = true) ->
+    if isFile
+      file1_obj = @fetch(path1)
+      return false unless file1_obj? and @rm path1
+      file1_obj.path = path2
+      #XXX: Bit of a hack.
+      file1_obj.mod = true
+      @store path2, file1_obj
+    else
+      file1_ls = @index.ls(path1)
+      return false unless file1_ls?
+      # Make path2.
+      @index.mkdir path2
+      # Move every file from p1 to p2.
+      for f_name in file1_ls
+        @mv f_name, path2 + f_name.substr(path1.length), true
+      # Delete p1.
+      @index.rm path1
+    return true
+  mkdir: (path) ->
+    return false unless @index.parent path
+    @index.mkdir(path)
+    return true
 
 class WebserverSource extends FileSource
   _download_file: (path) ->
@@ -260,6 +307,23 @@ class CacheSource extends FileSource
       return true
     return false
   ls: (path) -> @src.ls(path)
+  mkdir: (path) -> @src.mkdir(path)
+  # ignoreSrc is used internally only.
+  mv: (file1, file2, isFile = true, ignoreSrc = false) ->
+    success = if ignoreSrc then true else @src.mv file1, file2, isFile
+    # Move any cached copies.
+    if isFile
+      f = @index.get_file file1
+      if f
+        f.path = file2
+        @index.rm file1
+        @index.add_file file2, f
+    else
+      ls = @index.ls file1
+      for f_name in ls
+        @mv f_name, path2 + f_name.substr(path1.length), true, true
+      @index.rm file1
+    return success
 
 # Stores the File System's current state.
 class FSState
@@ -338,6 +402,16 @@ class FSState
     else
       null
 
+  mkdir: (dir) ->
+    dir = @resolve(dir)
+    return false if @is_directory dir or @is_file dir
+    return @files.mkdir dir
+
+  mv: (file1, file2) ->
+    file1 = @resolve file1
+    file2 = @resolve file2
+    return @files.mv file1, file2
+
 
 # Currently a singleton.
 fs_state = new FSState()
@@ -348,12 +422,16 @@ fs_state = new FSState()
 
 class Stat
   @fromPath: (path) ->
+    #XXX: Hack.
+    return null if path == ''
     if fs_state.is_directory path
       stat = new Stat
       stat.size = 1
       stat.mtime = (new Date).getTime()
       stat.is_file = false
       stat.is_directory = true
+      #XXX: Shhhh...
+      stat.mode = 0o644
       stat
     else
       file = fs_state.open path, 'r'
@@ -366,6 +444,7 @@ class Stat
       @mtime = @file.mtime
       @is_file = true
       @is_directory = false
+      @mode = @file.mode
 
   isFile: -> @is_file
 
@@ -426,12 +505,26 @@ root.fs =
 
   readdirSync: (path) ->
     dir_contents = fs_state.list(path)
-    throw "Could not read directory '#{path}'" unless dir_contents?
+    throw "Could not read directory '#{path}'" unless dir_contents? and path != ''
     return dir_contents
 
   unlinkSync: (path) -> throw "Could not unlink '#{path}'" unless fs_state.rm(path)
+  rmdirSync: (path) -> throw "Could not delete '#{path}'" unless fs_state.rm(path, true)
 
-  existsSync: (path) -> fs_state.is_file(path) or fs_state.is_directory(path)
+  existsSync: (path) -> path != '' and (fs_state.is_file(path) or fs_state.is_directory(path))
+
+  mkdirSync: (path) -> throw "Could not make directory #{path}" unless fs_state.mkdir path
+
+  renameSync: (path1, path2) -> throw "Could not rename #{path1} to #{path2}" unless fs_state.mv path1, path2
+
+  #XXX: Does not work for directory permissions.
+  chmodSync: (path, access) ->
+    throw "File #{path1} does not exist." unless fs_state.is_file path
+    f = fs_state.open path, 'r'
+    f.mod = true
+    f.mode = access
+    fs_state.close f
+    return true
 
 # Node's Path API
 root.path =

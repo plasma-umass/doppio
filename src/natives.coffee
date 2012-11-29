@@ -710,9 +710,22 @@ native_methods =
             filepath = file.get_field rs, 'path'
             stats = stat_file filepath.jvm2js_str()
             return false unless stats?
-            mode = stats.mode & 511
-            true  # TODO: actually use the mode, checking if we're the owner or in group
-        #o 'createDirectory(Ljava/lang/File;)Z', (rs, _this, file) ->
+            #XXX: Assuming we're owner/group/other. :)
+            # Shift access so it's present in owner/group/other.
+            # Then, AND with the actual mode, and check if the result is above 0.
+            # That indicates that the access bit we're looking for was set on
+            # one of owner/group/other.
+            mask = access | (access << 3) | (access << 6)
+            return (stats.mode & mask) > 0
+        o 'createDirectory(Ljava/io/File;)Z', (rs, _this, file) ->
+            filepath = (file.get_field rs, 'path').jvm2js_str()
+            # Already exists.
+            return false if stat_file(filepath)?
+            try
+              fs.mkdirSync(filepath)
+            catch e
+              return false
+            return true
         o 'createFileExclusively(Ljava/lang/String;Z)Z', (rs, _this, path, arg2) ->
             #XXX: I have no idea what arg2 is
             filepath = path.jvm2js_str()
@@ -722,7 +735,22 @@ native_methods =
             catch e
               exceptions.java_throw rs, 'java/io/IOException', e.message
             true
-        #o 'delete0(Ljava/lang/File;)Z', (rs, _this, file) ->
+        o 'delete0(Ljava/io/File;)Z', (rs, _this, file) ->
+            # Delete the file or directory denoted by the given abstract
+            # pathname, returning true if and only if the operation succeeds.
+            # If file is a directory, it must be empty.
+            filepath = (file.get_field rs, 'path').jvm2js_str()
+            stats = stat_file filepath
+            return false unless stats?
+            try
+              if stats.isDirectory()
+                return false if (fs.readdirSync filepath).length > 0
+                fs.rmdirSync(filepath)
+              else
+                fs.unlinkSync(filepath)
+            catch e
+              return false
+            return true
         o 'getBooleanAttributes0(Ljava/io/File;)I', (rs, _this, file) ->
             filepath = file.get_field rs, 'path'
             stats = stat_file filepath.jvm2js_str()
@@ -748,10 +776,61 @@ native_methods =
             catch e
               return null
             rs.init_object('[Ljava/lang/String;',(rs.init_string(f) for f in files))
-        #o 'rename0(Ljava/io/File;Ljava/io/File;)Z', (rs, _this, file1, file2) ->
+        o 'rename0(Ljava/io/File;Ljava/io/File;)Z', (rs, _this, file1, file2) ->
+          file1path = (file1.get_field rs, 'path').jvm2js_str()
+          file2path = (file2.get_field rs, 'path').jvm2js_str()
+          try
+            fs.renameSync(file1path, file2path)
+          catch e
+            return false
+          return true
         #o 'setLastModifiedTime(Ljava/io/File;J)Z', (rs, _this, file, time) ->
-        #o 'setPermission(Ljava/io/File;IZZ)Z', (rs, _this, file, access, enable, owneronly) ->
-        #o 'setReadOnly(Ljava/io/File;)Z', (rs, _this, file) ->
+        o 'setPermission(Ljava/io/File;IZZ)Z', (rs, _this, file, access, enable, owneronly) ->
+            filepath = (file.get_field rs, 'path').jvm2js_str()
+            # Access is equal to one of the following static fields:
+            # * FileSystem.ACCESS_READ (0x04)
+            # * FileSystem.ACCESS_WRITE (0x02)
+            # * FileSystem.ACCESS_EXECUTE (0x01)
+            # These are conveniently identical to their Unix equivalents, which
+            # we have to convert to for Node.
+            # XXX: Currently assuming that the above assumption holds across JCLs.
+
+            if owneronly
+              # Shift it 6 bits over into the 'owner' region of the access mode.
+              access <<= 6
+            else
+              # Clone it into the 'owner' and 'group' regions.
+              access |= (access << 6) | (access << 3)
+
+            if not enable
+              # Do an invert and we'll AND rather than OR.
+              access = ~access
+
+            # Returns true on success, false on failure.
+            try
+              # Fetch existing permissions on file.
+              stats = stat_file filepath
+              return false unless stats?
+              existing_access = stats.mode
+              # Apply mask.
+              access = if enable then existing_access | access else existing_access & access
+              # Set new permissions.
+              fs.chmodSync filepath, access
+            catch e
+              return false
+            return true
+        o 'setReadOnly(Ljava/io/File;)Z', (rs, _this, file) ->
+          filepath = (file.get_field rs, 'path').jvm2js_str()
+          # We'll be unsetting write permissions.
+          # Leading 0o indicates octal.
+          mask = ~(0o222)
+          try
+            stats = stat_file filepath
+            return false unless stats?
+            fs.chmodSync filepath, (stats.mode & mask)
+          catch e
+            return false
+          return true
       ]
     util:
       concurrent:
