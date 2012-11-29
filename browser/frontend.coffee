@@ -366,7 +366,7 @@ tabComplete = ->
   prefix = longestCommmonPrefix(getCompletions(args))
   return if prefix == ''  # TODO: if we're tab-completing a blank, show all options
   # delete existing text so we can do case correction
-  promptText = promptText.substr(0, promptText.length - _.last(args).length)
+  promptText = promptText.substr(0, promptText.length - util.last(args).length)
   controller.promptText(promptText + prefix)
 
 commandCompletions = (cmd) ->
@@ -380,7 +380,7 @@ fileNameCompletions = (cmd, args) ->
     else if cmd is 'javap' or cmd is 'java' then ext is 'class'
     else true
   chopExt = args.length == 2 and (cmd is 'javap' or cmd is 'java')
-  toComplete = _.last(args)
+  toComplete = util.last(args)
   lastSlash = toComplete.lastIndexOf('/')
   if lastSlash >= 0
     dirPfx = toComplete.slice(0, lastSlash+1)
