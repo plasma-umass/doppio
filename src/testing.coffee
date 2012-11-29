@@ -45,7 +45,7 @@ root.run_tests = (test_classes, stdout, callback) ->
       return callback(true)
     run_stdout_test doppio_dir, test, (diff) ->
       if diff?
-        stdout "Failed output test #{test}:\n#{diff}\n" 
+        stdout "Failed output test #{test}:\n#{diff}\n"
         return callback(true)
       else
         _runner()

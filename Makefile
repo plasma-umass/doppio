@@ -1,3 +1,7 @@
+# The target(s) specified. In general, if we use this variable, we assume that
+# there is only one target specified.
+MAKECMDGOALS ?= release
+
 # Force the use of bash for shell statements. If we don't do this, many Linux
 # variants will use sh.
 SHELL := /bin/bash
@@ -22,8 +26,8 @@ SOURCES = $(wildcard classes/test/*.java)
 DISASMS = $(SOURCES:.java=.disasm)
 RUNOUTS = $(SOURCES:.java=.runout)
 CLASSES = $(SOURCES:.java=.class)
-# note: RESULTS files never get made, but we use them for make rules
-RESULTS = $(SOURCES:.java=.result)
+# note: TESTS files never get made, but we use them for make rules
+TESTS   = $(SOURCES:.java=.test)
 DEMO_SRCS = $(wildcard classes/demo/*.java) classes/test/FileRead.java
 DEMO_CLASSES = $(DEMO_SRCS:.java=.class)
 UTIL_SRCS = $(wildcard classes/util/*.java)
@@ -31,10 +35,8 @@ UTIL_CLASSES = $(UTIL_SRCS:.java=.class)
 
 # HTML
 BROWSER_HTML = $(wildcard browser/[^_]*.html)
-release_BUILD_DIR = build/release
-benchmark_BUILD_DIR = build/benchmark
-release_BUILD_HTML = $(addprefix $(release_BUILD_DIR)/, $(notdir $(BROWSER_HTML)))
-benchmark_BUILD_HTML = $(addprefix $(benchmark_BUILD_DIR)/, $(notdir $(BROWSER_HTML)))
+BUILD_DIR = build/$(MAKECMDGOALS)
+BUILD_HTML = $(addprefix $(BUILD_DIR)/, $(notdir $(BROWSER_HTML)))
 
 # SCRIPTS
 # the order here is important: must match the order of includes
@@ -67,6 +69,7 @@ release_BROWSER_SRCS = $(COMMON_BROWSER_SRCS) \
 benchmark_BROWSER_SRCS = $(COMMON_BROWSER_SRCS) \
 	browser/mockconsole.coffee \
 	browser/frontend.coffee
+BROWSER_SRCS = $($(MAKECMDGOALS)_BROWSER_SRCS)
 # they don't survive uglifyjs and are already minified, so include them
 # separately. also, this allows us to put them at the end of the document to
 # reduce load time.
@@ -75,16 +78,6 @@ ACE_SRCS = vendor/ace/src-min/ace.js \
 	vendor/ace/src-min/theme-twilight.js
 CLI_SRCS = $(wildcard src/*.coffee console/*.coffee)
 
-# Variable setting that is conditional on the target
-ifeq ($(MAKECMDGOALS),benchmark)
-BUILD_DIR = $(benchmark_BUILD_DIR)
-BUILD_HTML = $(benchmark_BUILD_HTML)
-BROWSER_SRCS = $(benchmark_BROWSER_SRCS)
-else
-BUILD_DIR = $(release_BUILD_DIR)
-BUILD_HTML = $(release_BUILD_HTML)
-BROWSER_SRCS = $(release_BROWSER_SRCS)
-endif
 BROWSER_COFFEE = $(shell echo $(BROWSER_SRCS) | fmt -1 | grep '.coffee')
 
 ################################################################################
@@ -102,13 +95,10 @@ benchmark: build $(BUILD_DIR)/browser/listings.json
 dev development: $(DEMO_CLASSES) browser/mini-rt.tar browser/listings.json
 	$(COFFEEC) -c $(BROWSER_COFFEE)
 	cpp -P browser/index.html index.html
+
 # optimized CLI build
-opt: $(CLI_SRCS:.coffee=.js)
-jsclean:
-	rm -f $(CLI_SRCS:.coffee=.js)
-# hack. overwriting .js means that we won't detect if we previously did an
-# unoptimized compile.
-%.js: %.coffee
+opt: $(BUILD_DIR)/console $(BUILD_DIR)/src $(CLI_SRCS:%.coffee=$(BUILD_DIR)/%.js) symlinks
+$(BUILD_DIR)/%.js: %.coffee
 	$(SED) -r "s/^( *)(debug|v?trace).*$$/\1\`\`/" $? | $(COFFEEC) --stdio --print > $@
 	$(UGLIFYJS) --define RELEASE --define UNSAFE --no-mangle --unsafe --beautify --overwrite $@
 
@@ -139,12 +129,18 @@ $(JRE):
 java: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES) $(UTIL_CLASSES)
 
 # Runs the Java tests in classes/test with the node runner.
-test: dependencies $(RESULTS)
+# We depend on MAKECMDFLAGS being set to `opt`, so we invoke make recursively.
+# Caveat: Invoking a specific test (via `make TestClass.test`) will not trigger
+# a rebuild of the Coffeescript code...
+test:
+	make opt
+	make _test
+_test: dependencies $(TESTS)
 # compiling each one by itself is really inefficient...
 %.class: %.java
 	javac $^
-classes/test/%.result: classes/test/%.class classes/test/%.disasm classes/test/%.runout
-	@coffee src/testing.coffee classes/test/$*
+classes/test/%.test: classes/test/%.class classes/test/%.disasm classes/test/%.runout
+	node build/opt/src/testing.js classes/test/$*
 classes/test/%.disasm: classes/test/%.class
 	javap -c -verbose -private classes/test/$* >classes/test/$*.disasm
 # some tests may throw exceptions. The '-' flag tells make to carry on anyway.
@@ -172,7 +168,7 @@ browser/mini-rt.tar: tools/preload
 # BUILD DIRECTORY TARGETS
 ################################################################################
 # Double colon: Can execute multiple times in one `make' invocation.
-$(BUILD_DIR) $(BUILD_DIR)/browser::
+$(BUILD_DIR) $(BUILD_DIR)/browser $(BUILD_DIR)/console $(BUILD_DIR)/src::
 	mkdir -p $@
 
 browser/listings.json:
@@ -211,10 +207,12 @@ $(BUILD_DIR)/browser/style.css: vendor/bootstrap/css/bootstrap.min.css \
 
 build: dependencies $(BUILD_DIR) $(BUILD_DIR)/browser $(BUILD_HTML) \
 	$(BUILD_DIR)/compressed.js browser/mini-rt.tar $(BUILD_DIR)/ace.js \
-	$(BUILD_DIR)/browser/style.css $(DEMO_CLASSES) $(UTIL_CLASSES)
+	$(BUILD_DIR)/browser/style.css $(DEMO_CLASSES) $(UTIL_CLASSES) symlinks
 	rsync browser/*.svg $(BUILD_DIR)/browser/
 	rsync browser/*.png $(BUILD_DIR)/browser/
 	rsync browser/mini-rt.tar $(BUILD_DIR)/browser/mini-rt.tar
+
+symlinks:
 	ln -sfn $(DOPPIO_DIR)/classes $(BUILD_DIR)/classes
 	ln -sfn $(DOPPIO_DIR)/vendor $(BUILD_DIR)/vendor
 
