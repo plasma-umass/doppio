@@ -80,7 +80,8 @@ trapped_methods =
                 source_file = 'unknown'
               line_nums = sf.method.code?.attrs?[0]?.entries
               if line_nums?
-                ln = _.last(row.line_number for i,row of line_nums when row.start_pc <= sf.pc)
+                # XXX: WUT
+                ln = util.last(row.line_number for i,row of line_nums when row.start_pc <= sf.pc)
               ln ?= -1
               stack.push rs.init_object "java/lang/StackTraceElement", {
                 declaringClass: rs.init_string util.ext_classname cls.toClassString()
@@ -895,7 +896,7 @@ native_methods =
         o 'allocateInstance(Ljava/lang/Class;)Ljava/lang/Object;', (rs, _this, cls) ->
             rs.init_object cls.$type.toClassString(), {}
         o 'allocateMemory(J)J', (rs, _this, size) ->
-            next_addr = _.last(rs.mem_start_addrs)
+            next_addr = util.last(rs.mem_start_addrs)
             rs.mem_blocks[next_addr] = new DataView new ArrayBuffer size
             rs.mem_start_addrs.push next_addr + size
             gLong.fromNumber next_addr

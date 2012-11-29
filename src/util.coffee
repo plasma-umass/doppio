@@ -171,6 +171,8 @@ root.bytes2str = (bytes) ->
       )
   char_array.join ''
 
+root.last = (array) -> array[array.length-1]
+
 class root.SafeMap
 
   constructor: ->
