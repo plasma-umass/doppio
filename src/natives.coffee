@@ -248,7 +248,7 @@ native_methods =
             cls = _this.file
             em = _.find(cls.attrs, (a) -> a.constructor.name == 'EnclosingMethod')
             return null unless em?
-            java_throw rs, 'java/lang/Error', "native method not finished: java.lang.Class.getEnclosingClass"
+            exceptions.java_throw rs, 'java/lang/Error', "native method not finished: java.lang.Class.getEnclosingClass"
             #TODO: return array w/ 3 elements:
             # - the immediately enclosing class (java/lang/Class)
             # - the immediately enclosing method or constructor's name (can be null). (String)
@@ -717,7 +717,10 @@ native_methods =
             #XXX: I have no idea what arg2 is
             filepath = path.jvm2js_str()
             return false if stat_file(filepath)?
-            fs.closeSync fs.openSync(filepath, 'w')  # creates an empty file
+            try
+              fs.closeSync fs.openSync(filepath, 'w')  # creates an empty file
+            catch e
+              exceptions.java_throw rs, 'java/io/IOException', e.message
             true
         #o 'delete0(Ljava/lang/File;)Z', (rs, _this, file) ->
         o 'getBooleanAttributes0(Ljava/io/File;)I', (rs, _this, file) ->
