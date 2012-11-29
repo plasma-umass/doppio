@@ -37,16 +37,16 @@ root.run_tests = (test_classes, stdout, callback) ->
         stdout "All tests passed!\n"
       else
         stdout "Pass\n"
-      return callback()
+      return callback(false)
     test = test_classes.shift()
     stdout "testing #{test}...\n"
     if (disasm_diff = run_disasm_test(doppio_dir, test))?
       stdout "Failed disasm test #{test}:\n#{disasm_diff}\n"
-      return callback()
+      return callback(true)
     run_stdout_test doppio_dir, test, (diff) ->
       if diff?
         stdout "Failed output test #{test}:\n#{diff}\n" 
-        return callback()
+        return callback(true)
       else
         _runner()
 
@@ -98,8 +98,13 @@ if module? and require?.main == module
   optimist.usage '''
   Usage: $0 [class_file(s)]
   Optional flags:
+    -q, --quiet
     -h, --help
   '''
   return optimist.showHelp() if argv.help? or argv.h?
-  
-  root.run_tests argv._, print, (->)
+
+  done_cb = (failed) -> process.exit failed
+  if argv.quiet? or argv.q?
+    root.run_tests argv._, (->), done_cb
+  else
+    root.run_tests argv._, print, done_cb
