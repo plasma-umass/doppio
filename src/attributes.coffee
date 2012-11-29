@@ -24,38 +24,33 @@ class Code
     @code_len = bytes_array.get_uint 4
     RELEASE? || throw "Code.parse error: Code length is zero" if @code_len == 0
     @_code_array = bytes_array.splice(@code_len)
-    @_opcodes = null
+    @opcodes = null
     except_len = bytes_array.get_uint 2
     @exception_handlers = (new ExceptionHandler for [0...except_len])
     for eh in @exception_handlers
       eh.parse bytes_array, constant_pool
     # yes, there are even attrs on attrs. BWOM... BWOM...
     @attrs = root.make_attributes(bytes_array,constant_pool)
+    @run_stamp = 0
 
-  opcodes: ->
-    return @_opcodes if @_opcodes isnt null
-    @_opcodes = @parse_code @_code_array, @constant_pool
-    @_code_array = null
-    @_opcodes
-
-  parse_code: (bytes_array, constant_pool) ->
-    rv = new Array @code_len
-    while bytes_array.has_bytes()
-      op_index = bytes_array.pos()
-      c = bytes_array.get_uint 1
+  parse_code: ->
+    @opcodes = new Array @code_len
+    while @_code_array.has_bytes()
+      op_index = @_code_array.pos()
+      c = @_code_array.get_uint 1
       wide = c == 196
       if wide # wide opcode needs to be handled specially
-        c = bytes_array.get_uint 1
+        c = @_code_array.get_uint 1
       RELEASE? || throw "unknown opcode code: #{c}" unless opcodes.opcodes[c]?
       op = Object.create opcodes.opcodes[c]
-      op.take_args bytes_array, constant_pool, wide
-      rv[op_index] = op
-    return rv
+      op.take_args @_code_array, @constant_pool, wide
+      @opcodes[op_index] = op
+    @_code_array.rewind()
+    return
 
   each_opcode: (fn) ->
-    code = @opcodes()
-    for i in [0..@code_len] when i of code
-      fn(i, code[i])
+    for i in [0..@code_len] when i of @opcodes
+      fn(i, @opcodes[i])
 
 class LineNumberTable
   parse: (bytes_array,constant_pool) ->

@@ -145,7 +145,7 @@ class root.Method extends AbstractMethodField
 
   bytecode_loop: (rs) ->
     # main eval loop: execute each opcode, using the pc to iterate through
-    code = @code.opcodes()
+    code = @code.opcodes
     cf = rs.curr_frame()
     while true
       op = code[cf.pc]
@@ -194,4 +194,7 @@ class root.Method extends AbstractMethodField
       # Finally, the normal case: running a Java method
       trace "#{padding}entering method #{@full_signature()}"
       ms.push(new runtime.StackFrame(this,params,[]))
+      if @code.run_stamp < runtime_state.run_stamp
+        @code.run_stamp = runtime_state.run_stamp
+        @code.parse_code()
       @run_bytecode runtime_state

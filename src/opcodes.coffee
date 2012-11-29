@@ -524,8 +524,40 @@ root.opcodes = {
     throw ReturnException }
   178: new root.FieldOpcode 'getstatic', {execute: (rs)-> rs.push rs.static_get @field_spec; rs.push null if @field_spec.type in ['J','D']}
   179: new root.FieldOpcode 'putstatic', {execute: (rs)-> rs.static_put @field_spec }
-  180: new root.FieldOpcode 'getfield', {execute: (rs)-> rs.heap_get @field_spec, rs.pop() }
-  181: new root.FieldOpcode 'putfield', {execute: (rs)-> rs.heap_put @field_spec }
+  180: new root.FieldOpcode 'getfield', { execute: (rs) ->
+    field = rs.field_lookup(@field_spec)
+    name = @field_spec.name
+    cls = field.class_type.toClassString()
+    new_execute =
+      if @field_spec.type not in ['J','D']
+        (rs) ->
+          val = rs.pop().get_field @, name, cls
+          rs.push val
+      else
+        (rs) ->
+          val = rs.pop().get_field @, name, cls
+          rs.push2 val, null
+    new_execute.call(@, rs)
+    @execute = new_execute
+    return
+  }
+  181: new root.FieldOpcode 'putfield', { execute: (rs) ->
+    field = rs.field_lookup(@field_spec)
+    name = @field_spec.name
+    cls = field.class_type.toClassString()
+    new_execute =
+      if @field_spec.type not in ['J','D']
+        (rs) ->
+          val = rs.pop()
+          rs.pop().set_field @, name, val, cls
+      else
+        (rs) ->
+          val =  rs.pop2()
+          rs.pop().set_field @, name, val, cls
+    new_execute.call(@, rs)
+    @execute = new_execute
+    return
+  }
   182: new root.DynInvokeOpcode 'invokevirtual'
   183: new root.InvokeOpcode 'invokespecial'
   184: new root.InvokeOpcode 'invokestatic'

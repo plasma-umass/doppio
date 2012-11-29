@@ -123,6 +123,7 @@ root.disassemble = (class_file) ->
       rv += "  Code:\n"
       code = m.code
       rv += "   Stack=#{code.max_stack}, Locals=#{code.max_locals}, Args_size=#{m.num_args}\n"
+      code.parse_code()
       code.each_opcode (idx, oc) ->
         rv += "   #{idx}:\t#{oc.name}"
         rv += util.call_handler(root.opcode_annotators, oc, idx, pool) or ''

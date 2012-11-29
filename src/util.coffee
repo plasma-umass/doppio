@@ -92,6 +92,8 @@ class root.BytesArray
   constructor: (@raw_array, @start=0, @end=@raw_array.length) ->
     @_index = 0
 
+  rewind: -> @_index = 0
+
   pos: -> @_index
 
   skip: (bytes_count) -> @_index += bytes_count

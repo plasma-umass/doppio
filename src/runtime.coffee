@@ -41,8 +41,12 @@ class ClassState
 
 # Contains all the mutable state of the Java program.
 class root.RuntimeState
+
+  run_count = 0
+
   constructor: (@print, @async_input, @read_classfile) ->
     @startup_time = gLong.fromNumber (new Date).getTime()
+    @run_stamp = ++run_count
     # dict of mutable states of loaded classes
     @class_states = Object.create null
     @class_states['$bootstrap'] = new ClassState null
@@ -166,18 +170,6 @@ class root.RuntimeState
       new JavaArray c2t("[#{type}"), @, (null for i in [0...len] by 1)
     else  # numeric array
       new JavaArray c2t("[#{type}"), @, (0 for i in [0...len] by 1)
-
-  heap_put: (field_spec) ->
-    val = if field_spec.type in ['J','D'] then @pop2() else @pop()
-    obj = @pop()
-    field = @field_lookup(field_spec)
-    obj.set_field @, field_spec.name, val, field.class_type.toClassString()
-
-  heap_get: (field_spec, obj) ->
-    field = @field_lookup(field_spec)
-    val = obj.get_field @, field_spec.name, field.class_type.toClassString()
-    @push val
-    @push null if field_spec.type in ['J','D']
 
   # static stuff
   static_get: (field_spec) ->
