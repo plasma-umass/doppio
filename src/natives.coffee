@@ -713,7 +713,12 @@ native_methods =
             mode = stats.mode & 511
             true  # TODO: actually use the mode, checking if we're the owner or in group
         #o 'createDirectory(Ljava/lang/File;)Z', (rs, _this, file) ->
-        #o 'createFileExclusively(Ljava/lang/String;)Z', (rs, _this, path) ->
+        o 'createFileExclusively(Ljava/lang/String;Z)Z', (rs, _this, path, arg2) ->
+            #XXX: I have no idea what arg2 is
+            filepath = path.jvm2js_str()
+            return false if stat_file(filepath)?
+            fs.closeSync fs.openSync(filepath, 'w')  # creates an empty file
+            true
         #o 'delete0(Ljava/lang/File;)Z', (rs, _this, file) ->
         o 'getBooleanAttributes0(Ljava/io/File;)I', (rs, _this, file) ->
             filepath = file.get_field rs, 'path'
