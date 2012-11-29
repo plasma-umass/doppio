@@ -422,6 +422,8 @@ fs_state = new FSState()
 
 class Stat
   @fromPath: (path) ->
+    #XXX: Hack.
+    return null if path == ''
     if fs_state.is_directory path
       stat = new Stat
       stat.size = 1
