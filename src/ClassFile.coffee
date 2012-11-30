@@ -1,6 +1,5 @@
 
 # pull in external modules
-_ = require '../vendor/_.js'
 util = require './util'
 ConstantPool = require './ConstantPool'
 attributes = require './attributes'

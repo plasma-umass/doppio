@@ -2,7 +2,6 @@
 # Export a single 'ConstantPool' constructor.
 
 # pull in external modules
-_ = require '../vendor/_.js'
 gLong = require '../vendor/gLong.js'
 util = require './util'
 

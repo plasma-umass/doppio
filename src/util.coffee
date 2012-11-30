@@ -1,6 +1,5 @@
 
 # pull in external modules
-_ = require '../vendor/_.js'
 gLong = require '../vendor/gLong.js'
 {java_throw} =  require './exceptions'
 
