@@ -2,11 +2,11 @@
 
 fs = require 'fs'
 path = require 'path'
-optimist = require 'optimist'
 jvm = require '../src/jvm'
 opcodes = require '../src/opcodes'
 {RuntimeState} = require '../src/runtime'
 natives = require '../src/natives'
+testing = require '../src/testing'
 
 setup_opcode_stats = ->
   # monkeypatch opcode execution
@@ -50,55 +50,53 @@ print_unused = (stats, stats_name) ->
   if unused_count > 0
     console.log "#{unused_count} #{stats_name} have yet to be tested."
 
-run_tests = (test_classes, quiet) ->
-  # set up the classpath and get the test dir
-  doppio_dir = path.resolve __dirname, '..'
+run_tests = (test_classes, stdout, quiet) ->
+  doppio_dir = if node? then '/home/doppio/' else path.resolve __dirname, '..'
   # get the tests, if necessary
   if test_classes?.length > 0
     test_classes = (tc.replace(/\.class$/,'') for tc in test_classes)
   else
-    test_dir = path.resolve doppio_dir, 'classes/test'
-    test_classes = []
-    for file in fs.readdirSync(test_dir) when path.extname(file) == '.java'
-      test_classes.push "classes/test/#{path.basename(file, '.java')}"
-  # set up the claspath
+    test_classes = testing.find_test_classes doppio_dir
+  # set up the classpath
   jcl_dir = path.resolve doppio_dir, 'vendor/classes'
   jvm.classpath = [doppio_dir, jcl_dir]
 
-  # run each class, reusing the same heap and string pool and class info
-  rs = new RuntimeState((->), (->), jvm.read_classfile)
-  for c in test_classes
-    console.log "running #{c}..." unless quiet
-    jvm.run_class(rs, c, [])
-  return
+  _runner = () ->
+    return if test_classes.length == 0
+    test = test_classes.shift()
+    quiet || stdout "running #{test}...\n"
+    rs = new RuntimeState((->), (->), jvm.read_classfile)
+    jvm.run_class rs, test, [], _runner
+
+  _runner()
 
 
 if require.main == module
-  {argv} = optimist
-  optimist.usage '''
-  Usage: $0 [class_file(s)]
-  Optional flags:
-    --print-usage
-    -n, --natives
-    -o, --opcodes
-    -q, --quiet
-    -h, --help
-  '''
-  return optimist.showHelp() if argv.help? or argv.h?
-  do_opcodes = argv.o? or argv.opcodes?
-  do_natives = argv.n? or argv.natives?
+  {print} = require 'util'
+  optimist = require('optimist')
+    .boolean(['n','o','q','h'])
+    .alias({n: 'natives', o: 'opcodes', q: 'quiet', p: 'print-usage', h: 'help'})
+    .describe({
+      n: 'Cover native functions',
+      o: 'Cover opcodes',
+      q: 'Suppress in-progress output',
+      p: 'Print all usages, not just unused'
+      h: 'Show usage'})
+    .usage 'Usage: $0 [class_file(s)]'
+  argv = optimist.argv
+  return optimist.showHelp() if argv.help
 
-  unless do_opcodes or do_natives
+  unless argv.opcodes or argv.natives
     console.error 'Must select natives, opcodes, or both'
     return optimist.showHelp()
 
-  op_stats = setup_opcode_stats() if do_opcodes
-  native_stats = setup_native_stats() if do_natives
-  run_tests(argv._, argv.q? or argv.quiet?)
+  op_stats = setup_opcode_stats() if argv.opcodes
+  native_stats = setup_native_stats() if argv.natives
+  run_tests(argv._, print, argv.quiet)
 
   if argv['print-usage']?
-    print_usage op_stats if do_opcodes
-    print_usage native_stats if do_natives
+    print_usage op_stats if argv.opcodes
+    print_usage native_stats if argv.natives
   else
-    print_unused op_stats, 'opcodes' if do_opcodes
-    print_unused native_stats, 'native methods' if do_natives
+    print_unused op_stats, 'opcodes' if argv.opcodes
+    print_unused native_stats, 'native methods' if argv.natives
