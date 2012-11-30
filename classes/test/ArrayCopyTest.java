@@ -143,11 +143,11 @@ class ArrayCopyTest {
       System.out.print("\t"); ohai2[0].printGreeting();
     }
   }
-}
-
-class OhHaiObject {
-  public OhHaiObject(String obj) { this.object = obj; }
-  public String object;
-  // http://www.youtube.com/watch?v=5uCZkq6Rs2k
-  public void printGreeting() { System.out.println("Oh hai, "+object+"!"); }
+  
+  static class OhHaiObject {
+    public OhHaiObject(String obj) { this.object = obj; }
+    public String object;
+    // http://www.youtube.com/watch?v=5uCZkq6Rs2k
+    public void printGreeting() { System.out.println("Oh hai, "+object+"!"); }
+  }
 }

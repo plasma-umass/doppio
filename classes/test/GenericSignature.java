@@ -2,24 +2,6 @@ package classes.test;
 
 import java.lang.reflect.*;
 
-class GenericSignatureFoo {
-
-  public short fooField;
-
-  public void fooMethod(int x, long y) throws RuntimeException { return; }
-
-}
-
-class GenericSignatureBar<U, V> {
-
-  public U barField;
-
-  public <W extends Throwable> V barMethod(U x, V y) throws W {
-    return y;
-  }
-
-}
-
 class GenericSignature {
 
   static void printGenericMethodInfo(Method m) {
@@ -45,6 +27,18 @@ class GenericSignature {
 
     printGenericMethodInfo(GenericSignatureFoo.class.getDeclaredMethods()[0]);
     printGenericMethodInfo(GenericSignatureBar.class.getDeclaredMethods()[0]);
+  }
+
+  class GenericSignatureFoo {
+    public short fooField;
+    public void fooMethod(int x, long y) throws RuntimeException { return; }
+  }
+
+  class GenericSignatureBar<U, V> {
+    public U barField;
+    public <W extends Throwable> V barMethod(U x, V y) throws W {
+      return y;
+    }
   }
 
 }

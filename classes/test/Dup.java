@@ -25,28 +25,27 @@ public class Dup {
     return longValue++;
   }
 
-}
+  static class DupMore {
+    private long longValue = 4;
 
-class DupMore {
-  private long longValue = 4;
+    private long[] longArr = { 1 };
 
-  private long[] longArr = { 1 };
+    // since this is not static, the 'this' operand causes javac to generate dup_x1
+    public long dup2_x1() {
+      return longValue++;
+    }
 
-  // since this is not static, the 'this' operand causes javac to generate dup_x1
-  public long dup2_x1() {
-    return longValue++;
-  }
+    void popLong(long a) {}
 
-  void popLong(long a) {}
+    // the array ref operand makes this a dup_x2
+    public long dup2_x2() {
+      return longArr[0]++;
+    }
 
-  // the array ref operand makes this a dup_x2
-  public long dup2_x2() {
-    return longArr[0]++;
-  }
+    private static int intArr[] = { 4 };
 
-  private static int intArr[] = { 4 };
-
-  public static int dup_x2() {
-    return intArr[0]++;
+    public static int dup_x2() {
+      return intArr[0]++;
+    }
   }
 }

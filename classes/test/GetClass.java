@@ -3,8 +3,8 @@ package classes.test;
 public class GetClass {
 
   public static void main(String[] args) {
-    GetClass2 x = new GetClass2();
-    GetClass2[] xArr = new GetClass2[10];
+    GetClass x = new GetClass();
+    GetClass[] xArr = new GetClass[10];
     int[] iArr = new int[10];
     Integer[][] multiArr = new Integer[5][5];
 
@@ -18,7 +18,4 @@ public class GetClass {
     System.out.println(multiArr.getClass().getSuperclass());
   }
 
-}
-
-class GetClass2 {
 }

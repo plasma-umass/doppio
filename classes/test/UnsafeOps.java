@@ -66,10 +66,9 @@ public class UnsafeOps {
     }
   }
 
-}
-
-class Foo {
-  int a = 7;
-  double b = 5.9;
-  String c;
+  class Foo {
+    int a = 7;
+    double b = 5.9;
+    String c;
+  }
 }
