@@ -25,14 +25,25 @@ cd vendor
 
 # check for the JCL
 if [ ! -f classes/java/lang/Object.class ]; then
-  javac ../classes/util/FindJclClasses.java
-  JCL=`java -classpath ../ classes/util/FindJclClasses`
-  echo "Extracting the Java class library from the following files:"
-  echo "$JCL"
-  for name in $JCL; do
-    # Need to overwrite; tools overwrites some classes in rt.
-    unzip -qq -o -d classes/ "$name"
+  DOWNLOAD_DIR=`mktemp -d jdk-download.XXX`
+  cd $DOWNLOAD_DIR
+    DEBS_DOMAIN="http://security.ubuntu.com/ubuntu/pool/main/o/openjdk-6"
+    DEBS=("openjdk-6-jre-headless_6b24-1.11.5-0ubuntu1~11.10.1_i386.deb"
+          "openjdk-6-jdk_6b24-1.11.5-0ubuntu1~11.10.1_i386.deb"
+          "openjdk-6-jre-lib_6b24-1.11.5-0ubuntu1~11.10.1_all.deb")
+    for DEB in ${DEBS[@]}; do
+      wget $DEBS_DOMAIN/$DEB
+      ar p $DEB data.tar.gz | tar zx
+    done
+  cd ..
+  JARS=("rt.jar" "tools.jar" "resources.jar", "rhino.jar")
+  for JAR in ${JARS[@]}; do
+    JAR_PATH=`find $DOWNLOAD_DIR/usr -name $JAR`
+    echo "Extracting the Java class library from $JAR_PATH"
+    unzip -qq -o -d classes/ "$JAR_PATH"
   done
+  test -e java_home || mv $DOWNLOAD_DIR/usr/lib/jvm/java-6-openjdk/jre java_home
+  rm -rf $DOWNLOAD_DIR
 fi
 
 # check for jazzlib
@@ -48,13 +59,6 @@ if [ ! -f classes/java/util/zip/DeflaterEngine.class ]; then
   cp java/util/zip/*.class ../classes/java/util/zip/
   cd .. && rm -rf jazzlib
 fi
-
-if [ -z "$JAVA_HOME" ]; then
-  jh_tmp=`$FIND lib/currency.data 2>/dev/null | head -1`
-  jh_tmp="$(dirname "$jh_tmp"|tail -1)"
-  JAVA_HOME="$(dirname "$jh_tmp"|tail -1)"
-fi
-ln -sfn "$JAVA_HOME" java_home
 
 cd ..  # back to start
 

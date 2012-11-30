@@ -222,11 +222,14 @@ class root.RuntimeState
         # a class gets loaded with the loader of the class that is triggering
         # this class resolution
         defining_class_state = @class_states[@curr_frame().method.class_type.toClassString()]
-        if loader = defining_class_state.loader?
-          rs.push2 loader, rs.init_string util.ext_classname cls
-          rs.method_lookup(
+        if (loader = defining_class_state.loader)?
+          @push2 loader, @init_string util.ext_classname cls
+          @method_lookup(
             class: loader.type.toClassString()
             sig: 'loadClass(Ljava/lang/String;)Ljava/lang/Class;').run @
+          # discard return value. @define_class will have registered the new
+          # file in loaded_classes for us.
+          @pop()
         else
           # bootstrap class loader
           @class_states[cls] = new ClassState null

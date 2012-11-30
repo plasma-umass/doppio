@@ -18,7 +18,7 @@ fs = node?.fs ? require 'fs'
 root = exports ? this.natives = {}
 
 system_properties = {
-  'java.home':'vendor/java_home/', 'file.encoding':'US_ASCII','java.vendor':'DoppioVM',
+  'file.encoding':'US_ASCII','java.vendor':'DoppioVM',
   'java.version': '1.6', 'java.vendor.url': 'https://github.com/int3/doppio',
   'java.class.version': '50.0',
   'line.separator':'\n', 'file.separator':'/', 'path.separator':':',
@@ -28,8 +28,10 @@ system_properties = {
   'useJavaUtilZip': 'true'  # hack for sun6javac, avoid ZipFileIndex shenanigans
 }
 if node?  # node is only defined if we're in the browser
+  system_properties['java.home'] ='/home/doppio/vendor/java_home'
   system_properties['sun.boot.class.path'] = '/home/doppio/vendor/classes'
 else
+  system_properties['java.home'] = path.resolve __dirname, '../vendor/java_home'
   system_properties['sun.boot.class.path'] = path.resolve __dirname, '../vendor/classes'
 
 get_property = (rs, jvm_key, _default = null) ->
@@ -300,9 +302,11 @@ native_methods =
         o 'getCaller(I)L!/!/Class;', (rs, i) ->
             type = rs.meta_stack().get_caller(i).method.class_type
             rs.jclass_obj(type, true)
-        o 'defineClass1(L!/!/String;[BIIL!/security/ProtectionDomain;L!/!/String;Z)L!/!/Class;', (rs,_this,name,bytes,offset,len,pd,source) ->
+        o 'defineClass1(L!/!/String;[BIIL!/security/ProtectionDomain;L!/!/String;)L!/!/Class;', (rs,_this,name,bytes,offset,len,pd,source) ->
             raw_bytes = ((256+b)%256 for b in bytes.array[offset...offset+len])  # convert to unsigned bytes
             rs.define_class util.int_classname(name.jvm2js_str()), raw_bytes, _this
+        o 'resolveClass0(L!/!/Class;)V', (rs, _this, cls) ->
+            rs.load_class cls.$type, true
       ],
       Compiler: [
         o 'disable()V', (rs, _this) -> #NOP
@@ -401,6 +405,8 @@ native_methods =
         o 'sin(D)D', (rs, d_val) -> Math.sin(d_val)
         o 'sqrt(D)D', (rs, d_val) -> Math.sqrt(d_val)
         o 'tan(D)D', (rs, d_val) -> Math.tan(d_val)
+        o 'floor(D)D', (rs, d_val) -> Math.floor(d_val)
+        o 'ceil(D)D', (rs, d_val) -> Math.ceil(d_val)
       ]
       String: [
         o 'intern()L!/!/!;', (rs, _this) ->
