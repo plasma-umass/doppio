@@ -35,6 +35,7 @@ UTIL_CLASSES = $(UTIL_SRCS:.java=.class)
 
 # HTML
 BROWSER_HTML = $(wildcard browser/[^_]*.html)
+release_BUILD_DIR = build/release
 BUILD_DIR = build/$(MAKECMDGOALS)
 BUILD_HTML = $(addprefix $(BUILD_DIR)/, $(notdir $(BROWSER_HTML)))
 
