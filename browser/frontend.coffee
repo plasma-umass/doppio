@@ -219,9 +219,9 @@ commands =
   test: (args) ->
     return "Usage: test all|[class(es) to test]" unless args[0]?
     if args[0] == 'all'
-      testing.run_tests [], stdout, -> controller.reprompt()
+      testing.run_tests [], stdout, false, -> controller.reprompt()
     else
-      testing.run_tests args, stdout, -> controller.reprompt()
+      testing.run_tests args, stdout, false, -> controller.reprompt()
     return null
   javap: (args) ->
     return "Usage: javap class" unless args[0]?
