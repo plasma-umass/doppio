@@ -531,11 +531,11 @@ root.opcodes = {
     new_execute =
       if @field_spec.type not in ['J','D']
         (rs) ->
-          val = rs.pop().get_field @, name, cls
+          val = rs.pop().get_field rs, name, cls
           rs.push val
       else
         (rs) ->
-          val = rs.pop().get_field @, name, cls
+          val = rs.pop().get_field rs, name, cls
           rs.push2 val, null
     new_execute.call(@, rs)
     @execute = new_execute
