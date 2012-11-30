@@ -135,7 +135,7 @@ class root.RuntimeState
   put_cl: (idx,val) -> @curr_frame().locals[idx] = val
   # Category 2 values (longs, doubles) take two slots in Java. Since we only
   # need one slot to represent a double in JS, we pad it with a null.
-  put_cl2: (idx,val) -> @put_cl(idx,val); @put_cl(idx+1,null)
+  put_cl2: (idx,val) -> @put_cl(idx,val); UNSAFE? || @put_cl(idx+1,null)
 
   push: (arg) -> @curr_frame().stack.push(arg)
   push2: (arg1, arg2) -> @curr_frame().stack.push(arg1, arg2)
