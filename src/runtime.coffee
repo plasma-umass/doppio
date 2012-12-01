@@ -234,11 +234,14 @@ class root.RuntimeState
           # bootstrap class loader
           @class_states[cls] = new ClassState null
           class_file = @read_classfile cls
-          unless class_file?
+          if not class_file? or wrong_name = (class_file.this_class.toClassString() != cls)
+            msg = cls
+            if wrong_name
+              msg += " (wrong name: #{class_file.this_class.toClassString()})"
             if dyn
-              java_throw @, 'java/lang/ClassNotFoundException', cls
+              java_throw @, 'java/lang/ClassNotFoundException', msg
             else
-              java_throw @, 'java/lang/NoClassDefFoundError', cls
+              java_throw @, 'java/lang/NoClassDefFoundError', msg
           @loaded_classes[cls] = class_file
     @loaded_classes[cls]
 
