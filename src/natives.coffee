@@ -689,7 +689,7 @@ native_methods =
               else
                 throw e
             _this.$pos = 0
-        o 'getFilePointer()J', (rs, _this) -> gLong.fromNumber _this.$file
+        o 'getFilePointer()J', (rs, _this) -> gLong.fromNumber _this.$pos
         o 'length()J', (rs, _this) ->
             stats = stat_file _this.$file
             gLong.fromNumber stats.size
