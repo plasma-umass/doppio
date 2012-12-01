@@ -383,6 +383,8 @@ native_methods =
         Array: [
           o 'newArray(L!/!/Class;I)L!/!/Object;', (rs, _this, len) ->
               rs.heap_newarray _this.$type, len
+          o 'getLength(Ljava/lang/Object;)I', (rs, arr) ->
+              rs.check_null(arr).array.length
         ]
         Proxy: [
           o 'defineClass0(L!/!/ClassLoader;L!/!/String;[BII)L!/!/Class;', (rs,cl,name,bytes,offset,len) ->
