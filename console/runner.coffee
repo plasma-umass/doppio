@@ -82,23 +82,21 @@ find_main_class = (extracted_jar_dir) ->
 
 
 if require.main == module
-  optimist = require 'optimist'
-  {argv} = optimist
-
-  optimist.usage '''
-  Usage: $0 /path/to/classfile [flags]
-  Optional flags:
-    --classpath=[path1:...:pathn]
-    --jspath=[path1:...:pathn]
-    --java=[args for JVM]
-    --log=[0-10]|vtrace|trace|debug|error
-    --profile
-    --jar=[path to JAR file]
-    --count-logs
-    --skip-logs=[number of calls to skip]
-    --help
-  '''
-
+  optimist = require('optimist')
+    .boolean(['count-logs','h'])
+    .alias({h: 'help'})
+    .describe({
+      classpath: 'JVM classpath, "path1:...:pathn"',
+      jspath: 'compiled JS file classpath, "path1:...:pathn"',
+      java: 'args for main function',
+      log: 'log level, [0-10]|vtrace|trace|debug|error',
+      profile: 'turn on profiler, --profile=hot for warm cache',
+      jar: 'add JAR to classpath and run its Main-Class (if found)',
+      'count-logs': 'count log messages instead of printing them',
+      'skip-logs': 'number of log messages to skip before printing',
+      h: 'Show this usage'})
+    .usage 'Usage: $0 /path/to/classfile [flags]'
+  argv = optimist.argv
   return optimist.showHelp() if argv.help
 
   logging.log_level =
