@@ -3,11 +3,15 @@ fs = require 'fs'
 util = require '../src/util'
 {disassemble} = require '../src/disassembler'
 ClassFile = require '../src/ClassFile'
+{argv} = require('optimist')
 
 "use strict"
 
-# first two are 'coffee', 'scriptname.coffee'
-fname = if process.argv.length > 2 then process.argv[2] else '/dev/stdin'
+if argv._.length > 0
+  fname = argv._[0]
+  fname += ".class" if fname.indexOf(".class") == -1
+else
+  fname = '/dev/stdin'
 bytes_array = util.bytestr_to_array fs.readFileSync(fname, 'binary')
 class_data = new ClassFile bytes_array
 

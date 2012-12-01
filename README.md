@@ -40,7 +40,7 @@ Then point your browser to [http://localhost:8000/](http://localhost:8000/).
 The code can also be run from the console. For example:
 
     coffee -c */*.coffee
-    console/disassembler.coffee classes/demo/Fib.class
+    console/disassembler.coffee classes/demo/Fib
     console/runner.coffee classes/demo/Fib
     console/runner.coffee classes/demo/Fib --java=7  # passes an argument to the JVM
     
