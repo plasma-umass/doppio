@@ -17,7 +17,14 @@ fs = node?.fs ? require 'fs'
 # things assigned to root will be available outside this module
 root = exports ? this.natives = {}
 
+if node?  # node is only defined if we're in the browser
+  vendor_path ='/home/doppio/vendor'
+else
+  vendor_path = path.resolve __dirname, '../vendor'
+
 system_properties = {
+  'java.home': "#{vendor_path}/java_home",
+  'sun.boot.class.path': "#{vendor_path}/classes",
   'file.encoding':'US_ASCII','java.vendor':'DoppioVM',
   'java.version': '1.6', 'java.vendor.url': 'https://github.com/int3/doppio',
   'java.class.version': '50.0',
@@ -27,12 +34,6 @@ system_properties = {
   'java.awt.headless': 'true',
   'useJavaUtilZip': 'true'  # hack for sun6javac, avoid ZipFileIndex shenanigans
 }
-if node?  # node is only defined if we're in the browser
-  system_properties['java.home'] ='/home/doppio/vendor/java_home'
-  system_properties['sun.boot.class.path'] = '/home/doppio/vendor/classes'
-else
-  system_properties['java.home'] = path.resolve __dirname, '../vendor/java_home'
-  system_properties['sun.boot.class.path'] = path.resolve __dirname, '../vendor/classes'
 
 get_property = (rs, jvm_key, _default = null) ->
   key = jvm_key.jvm2js_str()
