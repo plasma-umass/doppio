@@ -36,13 +36,24 @@ if [ ! -f classes/java/lang/Object.class ]; then
       ar p $DEB data.tar.gz | tar zx
     done
   cd ..
-  JARS=("rt.jar" "tools.jar" "resources.jar", "rhino.jar")
+  JARS=("rt.jar" "tools.jar" "resources.jar" "rhino.jar")
   for JAR in ${JARS[@]}; do
     JAR_PATH=`find $DOWNLOAD_DIR/usr -name $JAR`
     echo "Extracting the Java class library from $JAR_PATH"
     unzip -qq -o -d classes/ "$JAR_PATH"
   done
-  test -e java_home || mv $DOWNLOAD_DIR/usr/lib/jvm/java-6-openjdk/jre java_home
+  if [ ! -e java_home ]; then
+    JH=$DOWNLOAD_DIR/usr/lib/jvm/java-6-openjdk/jre
+    # a number of .properties files are symlinks to /etc; copy the targets over
+    # so we do not need to depend on /etc's existence
+    for LINK in `find $JH -type l`; do
+      DEST=`readlink $LINK`
+      if [ "`expr "$DEST" : '/etc'`" != "0" ]; then
+        test -e "$DOWNLOAD_DIR/$DEST" && mv "$DOWNLOAD_DIR/$DEST" $LINK
+      fi
+    done
+    mv $JH java_home
+  fi
   rm -rf $DOWNLOAD_DIR
 fi
 
