@@ -18,10 +18,6 @@ Getting & Building the Code
     cd doppio
     tools/setup.sh
 
-Run the tests:
-
-    make test -j4
-
 Usage
 -----
 
@@ -57,3 +53,18 @@ For `make opt`, we have
 For console debug mode, simply use `coffee -wc */*.coffee`.
 
 The front-end currently lacks an auto-rebuild system.
+
+Running Tests
+-------------
+
+Run all tests:
+
+    make test -j4
+
+Run a specific test:
+
+    make classes/test/Strings.test
+
+Note that running a specific test does _not_ cause a rebuild of the
+Coffeescript code. You will have to manually ensure that the code is
+up-to-date.
