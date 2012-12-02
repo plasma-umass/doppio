@@ -7,13 +7,6 @@ git submodule update --init --recursive
 PLATFORM=`uname -s`
 PKGMGR=""
 
-# locate's db may not exist
-if locate -S >/dev/null 2>&1; then
-  FIND="locate"
-else
-  FIND="find / -name"
-fi
-
 if [ "$PLATFORM" = "Darwin" ]; then
     if command -v brew; then
         echo "Found the homebrew package manager."
