@@ -28,10 +28,14 @@ RUNOUTS = $(SOURCES:.java=.runout)
 CLASSES = $(SOURCES:.java=.class)
 # note: TESTS files never get made, but we use them for make rules
 TESTS   = $(SOURCES:.java=.test)
+
 DEMO_SRCS = $(wildcard classes/demo/*.java) classes/test/FileRead.java
 DEMO_CLASSES = $(DEMO_SRCS:.java=.class)
 UTIL_SRCS = $(wildcard classes/util/*.java)
 UTIL_CLASSES = $(UTIL_SRCS:.java=.class)
+# native stubs for our own implementations
+LIB_SRCS = $(wildcard classes/awt/*.java)
+LIB_CLASSES = $(LIB_CLASSES:.java=.class)
 
 # HTML
 BROWSER_HTML = $(wildcard browser/[^_]*.html)
@@ -127,7 +131,7 @@ $(JRE):
 	$(error Java class library not found. Unzip it to vendor/classes/, or run ./tools/setup.sh.)
 
 # Used to test the chosen Java compiler in setup.sh.
-java: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES) $(UTIL_CLASSES)
+java: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES) $(UTIL_CLASSES) $(LIB_CLASSES)
 
 # Runs the Java tests in classes/test with the node runner.
 # We depend on MAKECMDFLAGS being set to `opt`, so we invoke make recursively.
