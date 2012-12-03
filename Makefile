@@ -35,7 +35,7 @@ UTIL_SRCS = $(wildcard classes/util/*.java)
 UTIL_CLASSES = $(UTIL_SRCS:.java=.class)
 # native stubs for our own implementations
 LIB_SRCS = $(wildcard classes/awt/*.java)
-LIB_CLASSES = $(LIB_CLASSES:.java=.class)
+LIB_CLASSES = $(LIB_SRCS:.java=.class)
 
 # HTML
 BROWSER_HTML = $(wildcard browser/[^_]*.html)
