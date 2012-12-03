@@ -173,6 +173,20 @@ native_define_class = (rs, name, bytes, offset, len, loader) ->
   raw_bytes = ((256+b)%256 for b in bytes.array[offset...offset+len])  # convert to raw bytes
   rs.define_class util.int_classname(name.jvm2js_str()), raw_bytes, loader
 
+write_to_file = (rs, _this, bytes, offset, len, append) ->
+  exceptions.java_throw rs, 'java/io/IOException', "Bad file descriptor" if _this.$file == 'closed'
+  if _this.$file?
+    # appends by default in the browser, not sure in actual node.js impl
+    fs.writeSync(_this.$file, new Buffer(bytes.array), offset, len)
+    return
+  rs.print util.chars2js_str(bytes, offset, len)
+  if node?
+    # For the browser implementation -- the DOM doesn't get repainted
+    # unless we give the event loop a chance to spin.
+    rs.curr_frame().resume = -> # NOP
+    throw new exceptions.YieldIOException (cb) -> setTimeout(cb, 0)
+
+
 native_methods =
   java:
     lang:
@@ -581,29 +595,8 @@ native_methods =
       FileOutputStream: [
         o 'open(L!/lang/String;)V', (rs, _this, fname) ->
             _this.$file = fs.openSync fname.jvm2js_str(), 'w'
-        o 'writeBytes([BIIZ)V', (rs, _this, bytes, offset, len, append) ->
-            exceptions.java_throw rs, 'java/io/IOException', "Bad file descriptor" if _this.$file == 'closed'
-            if _this.$file?
-              # appends by default in the browser, not sure in actual node.js impl
-              fs.writeSync(_this.$file, new Buffer(bytes.array), offset, len)
-              return
-            rs.print util.chars2js_str(bytes, offset, len)
-            if node?
-              # For the browser implementation -- the DOM doesn't get repainted
-              # unless we give the event loop a chance to spin.
-              rs.curr_frame().resume = -> # NOP
-              throw new exceptions.YieldIOException (cb) -> setTimeout(cb, 0)
-        o 'writeBytes([BII)V', (rs, _this, bytes, offset, len) ->
-            exceptions.java_throw rs, 'java/io/IOException', "Bad file descriptor" if _this.$file == 'closed'
-            if _this.$file?
-              fs.writeSync(_this.$file, new Buffer(bytes.array), offset, len)
-              return
-            rs.print util.chars2js_str(bytes, offset, len)
-            if node?
-              # For the browser implementation -- the DOM doesn't get repainted
-              # unless we give the event loop a chance to spin.
-              rs.curr_frame().resume = -> # NOP
-              throw new exceptions.YieldIOException (cb) -> setTimeout(cb, 0)
+        o 'writeBytes([BIIZ)V', write_to_file
+        o 'writeBytes([BII)V', write_to_file
         o 'close0()V', (rs, _this) ->
             if _this.$file?
               fs.closeSync(_this.$file)
