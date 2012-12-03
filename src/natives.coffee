@@ -31,7 +31,7 @@ system_properties = {
   'line.separator':'\n', 'file.separator':'/', 'path.separator':':',
   'user.dir': path.resolve('.'),'user.home':'.','user.name':'DoppioUser',
   'os.name':'Doppio', 'os.arch': 'js', 'os.version': '0',
-  'java.awt.headless': 'false',
+  'java.awt.headless': (not node?).toString(),  # true if we're using the console frontend
   'java.awt.graphicsenv': 'classes.awt.CanvasGraphicsEnvironment',
   'useJavaUtilZip': 'true'  # hack for sun6javac, avoid ZipFileIndex shenanigans
 }
