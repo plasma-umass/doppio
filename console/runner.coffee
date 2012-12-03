@@ -156,4 +156,13 @@ if require.main == module
 
   if argv['list-class-cache']
     for k in Object.keys rs.loaded_classes
-      console.log k
+      # Find where it was loaded from.
+      file = k + ".class"
+      for cpath in jvm.classpath
+        fpath = cpath + '/' + file
+        try
+          if fs.statSync(fpath).isFile()
+            console.log(path.resolve(fpath))
+            break
+        catch e
+          # Do nothing; iterate.
