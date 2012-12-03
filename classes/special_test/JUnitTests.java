@@ -1,5 +1,5 @@
 /* Run like this:
-node console/runner.js --jar=/usr/share/java/junit.jar \
+node build/opt/console/runner.js --jar=/usr/share/java/junit.jar \
   org/junit/runner/JUnitCore --java=classes.special_test.JUnitTests
 */
 package classes.special_test;
