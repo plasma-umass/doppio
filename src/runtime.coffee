@@ -105,28 +105,34 @@ class root.RuntimeState
 
   wait: (monitor, yieldee) ->
     # add current thread to wait queue
+    debug "TE(wait): waiting #{thread_name @, @curr_thread} on lock #{monitor.ref}"
     if @waiting_threads[monitor]?
       @waiting_threads[monitor].push @curr_thread
     else
       @waiting_threads[monitor] = [@curr_thread]
-    # yield execution, to the locking thread if possible
+    # yield execution to a thread that isn't waiting on this monitor
     unless yieldee?
-      yieldee = @lock_refs[monitor]
+      for y in @thread_pool when y not in @waiting_threads[monitor]
+        yieldee = y
+        break
+    java_throw @, 'java/lang/Error', "thread deadlock" unless yieldee?
     @yield yieldee
 
   yield: (yieldee) ->
     unless yieldee?
-      yieldee = (y for y in @thread_pool when y isnt @curr_thread).pop()
-      unless yieldee?
-        java_throw @, 'java/lang/Error', "tried to yield when no other thread was available"
-    debug "TE: yielding #{thread_name @, @curr_thread} to #{thread_name @, yieldee}"
+      for y in @thread_pool when y isnt @curr_thread
+        yieldee = y
+        break
+    unless yieldee?
+      java_throw @, 'java/lang/Error', "tried to yield when no other thread was available"
+    debug "TE(yield): yielding #{thread_name @, @curr_thread} to #{thread_name @, yieldee}"
     my_thread = @curr_thread
     @curr_frame().resume = -> @curr_thread = my_thread
     rs = this
     throw new YieldException (cb) ->
       my_thread.$resume = cb
       rs.curr_thread = yieldee
-      debug "TE: about to resume #{thread_name @, yieldee}"
+      debug "TE(yield): about to resume #{thread_name @, yieldee}"
       yieldee.$resume()
 
   curr_frame: -> @meta_stack().curr_frame()
