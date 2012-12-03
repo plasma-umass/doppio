@@ -173,6 +173,20 @@ native_define_class = (rs, name, bytes, offset, len, loader) ->
   raw_bytes = ((256+b)%256 for b in bytes.array[offset...offset+len])  # convert to raw bytes
   rs.define_class util.int_classname(name.jvm2js_str()), raw_bytes, loader
 
+write_to_file = (rs, _this, bytes, offset, len, append) ->
+  exceptions.java_throw rs, 'java/io/IOException', "Bad file descriptor" if _this.$file == 'closed'
+  if _this.$file?
+    # appends by default in the browser, not sure in actual node.js impl
+    fs.writeSync(_this.$file, new Buffer(bytes.array), offset, len)
+    return
+  rs.print util.chars2js_str(bytes, offset, len)
+  if node?
+    # For the browser implementation -- the DOM doesn't get repainted
+    # unless we give the event loop a chance to spin.
+    rs.curr_frame().resume = -> # NOP
+    throw new exceptions.YieldIOException (cb) -> setTimeout(cb, 0)
+
+
 native_methods =
   java:
     lang:
@@ -414,6 +428,7 @@ native_methods =
         o 'sin(D)D', (rs, d_val) -> Math.sin(d_val)
         o 'sqrt(D)D', (rs, d_val) -> Math.sqrt(d_val)
         o 'tan(D)D', (rs, d_val) -> Math.tan(d_val)
+        # these two are native in OpenJDK but not Apple-Java
         o 'floor(D)D', (rs, d_val) -> Math.floor(d_val)
         o 'ceil(D)D', (rs, d_val) -> Math.ceil(d_val)
       ]
@@ -581,29 +596,8 @@ native_methods =
       FileOutputStream: [
         o 'open(L!/lang/String;)V', (rs, _this, fname) ->
             _this.$file = fs.openSync fname.jvm2js_str(), 'w'
-        o 'writeBytes([BIIZ)V', (rs, _this, bytes, offset, len, append) ->
-            exceptions.java_throw rs, 'java/io/IOException', "Bad file descriptor" if _this.$file == 'closed'
-            if _this.$file?
-              # appends by default in the browser, not sure in actual node.js impl
-              fs.writeSync(_this.$file, new Buffer(bytes.array), offset, len)
-              return
-            rs.print util.chars2js_str(bytes, offset, len)
-            if node?
-              # For the browser implementation -- the DOM doesn't get repainted
-              # unless we give the event loop a chance to spin.
-              rs.curr_frame().resume = -> # NOP
-              throw new exceptions.YieldIOException (cb) -> setTimeout(cb, 0)
-        o 'writeBytes([BII)V', (rs, _this, bytes, offset, len) ->
-            exceptions.java_throw rs, 'java/io/IOException', "Bad file descriptor" if _this.$file == 'closed'
-            if _this.$file?
-              fs.writeSync(_this.$file, new Buffer(bytes.array), offset, len)
-              return
-            rs.print util.chars2js_str(bytes, offset, len)
-            if node?
-              # For the browser implementation -- the DOM doesn't get repainted
-              # unless we give the event loop a chance to spin.
-              rs.curr_frame().resume = -> # NOP
-              throw new exceptions.YieldIOException (cb) -> setTimeout(cb, 0)
+        o 'writeBytes([BIIZ)V', write_to_file  # OpenJDK version
+        o 'writeBytes([BII)V', write_to_file   # Apple-java version
         o 'close0()V', (rs, _this) ->
             if _this.$file?
               fs.closeSync(_this.$file)
@@ -742,8 +736,15 @@ native_methods =
             catch e
               return false
             return true
-        o 'createFileExclusively(Ljava/lang/String;Z)Z', (rs, _this, path, arg2) ->
-            #XXX: I have no idea what arg2 is
+        o 'createFileExclusively(Ljava/lang/String;)Z', (rs, _this, path) ->  # OpenJDK version
+            filepath = path.jvm2js_str()
+            return false if stat_file(filepath)?
+            try
+              fs.closeSync fs.openSync(filepath, 'w')  # creates an empty file
+            catch e
+              exceptions.java_throw rs, 'java/io/IOException', e.message
+            true
+        o 'createFileExclusively(Ljava/lang/String;Z)Z', (rs, _this, path) ->  # Apple-java version
             filepath = path.jvm2js_str()
             return false if stat_file(filepath)?
             try
