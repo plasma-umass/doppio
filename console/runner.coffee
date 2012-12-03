@@ -83,7 +83,7 @@ find_main_class = (extracted_jar_dir) ->
 
 if require.main == module
   optimist = require('optimist')
-    .boolean(['count-logs','h'])
+    .boolean(['count-logs','h','list-class-cache'])
     .alias({h: 'help'})
     .describe({
       classpath: 'JVM classpath, "path1:...:pathn"',
@@ -94,6 +94,7 @@ if require.main == module
       jar: 'add JAR to classpath and run its Main-Class (if found)',
       'count-logs': 'count log messages instead of printing them',
       'skip-logs': 'number of log messages to skip before printing',
+      'list-class-cache': 'list all of the loaded classes after execution',
       h: 'Show this usage'})
     .usage 'Usage: $0 /path/to/classfile [flags]'
   argv = optimist.argv
@@ -152,3 +153,7 @@ if require.main == module
     stub console, 'log', (-> if --count == 0 then console.log = old_fn), run
   else
     run()
+
+  if argv['list-class-cache']
+    for k in Object.keys rs.loaded_classes
+      console.log k
