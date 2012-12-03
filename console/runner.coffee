@@ -155,6 +155,7 @@ if require.main == module
     run()
 
   if argv['list-class-cache']
+    scriptdir = path.resolve(__dirname + "/..")
     for k in Object.keys rs.loaded_classes
       # Find where it was loaded from.
       file = k + ".class"
@@ -162,7 +163,8 @@ if require.main == module
         fpath = cpath + '/' + file
         try
           if fs.statSync(fpath).isFile()
-            console.log(path.resolve(fpath))
+            fpath = path.resolve(fpath).substr(scriptdir.length+1)
+            console.log(fpath)
             break
         catch e
           # Do nothing; iterate.
