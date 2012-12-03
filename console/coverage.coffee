@@ -50,7 +50,7 @@ print_unused = (stats, stats_name) ->
   if unused_count > 0
     console.log "#{unused_count} #{stats_name} have yet to be tested."
 
-run_tests = (test_classes, stdout, quiet) ->
+run_tests = (test_classes, stdout, quiet, callback) ->
   doppio_dir = if node? then '/home/doppio/' else path.resolve __dirname, '..'
   # get the tests, if necessary
   if test_classes?.length > 0
@@ -62,7 +62,7 @@ run_tests = (test_classes, stdout, quiet) ->
   jvm.classpath = [doppio_dir, jcl_dir]
 
   _runner = () ->
-    return if test_classes.length == 0
+    return callback() if test_classes.length == 0
     test = test_classes.shift()
     quiet || stdout "running #{test}...\n"
     rs = new RuntimeState((->), (->), jvm.read_classfile)
@@ -92,11 +92,10 @@ if require.main == module
 
   op_stats = setup_opcode_stats() if argv.opcodes
   native_stats = setup_native_stats() if argv.natives
-  run_tests(argv._, print, argv.quiet)
-
-  if argv['print-usage']?
-    print_usage op_stats if argv.opcodes
-    print_usage native_stats if argv.natives
-  else
-    print_unused op_stats, 'opcodes' if argv.opcodes
-    print_unused native_stats, 'native methods' if argv.natives
+  run_tests argv._, print, argv.quiet, ->
+    if argv['print-usage']?
+      print_usage op_stats if argv.opcodes
+      print_usage native_stats if argv.natives
+    else
+      print_unused op_stats, 'opcodes' if argv.opcodes
+      print_unused native_stats, 'native methods' if argv.natives
