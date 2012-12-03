@@ -173,7 +173,7 @@ browser/mini-rt.tar: tools/preload
 tools/preload:
 	make opt
 	@echo "Generating list of files to preload in browser... (will take a few seconds)"
-	@node build/opt/console/runner.js classes/util/Javac --java=./classes/test/FileOps.java --list-class-cache > tools/preload
+	@node build/opt/console/runner.js --classpath build/opt classes/util/Javac --java=./classes/test/FileOps.java --list-class-cache > tools/preload
 
 ################################################################################
 # BUILD DIRECTORY TARGETS
