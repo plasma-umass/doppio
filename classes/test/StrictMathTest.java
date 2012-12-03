@@ -91,12 +91,24 @@ public class StrictMathTest {
 
     // static double acos(double a)
     // Returns the arc cosine of a value; the returned angle is in the range 0.0 through pi.
+    for (i=0; i < d_vals.length; i++) {
+        d_results[i] = StrictMath.acos(d_vals[i]);
+    }
+    results("double acos(double a)", d_results);
 
     // static double asin(double a)
     // Returns the arc sine of a value; the returned angle is in the range -pi/2 through pi/2.
+    for (i=0; i < d_vals.length; i++) {
+        d_results[i] = StrictMath.asin(d_vals[i]);
+    }
+    results("double asin(double a)", d_results);
 
     // static double atan(double a)
     // Returns the arc tangent of a value; the returned angle is in the range -pi/2 through pi/2.
+    for (i=0; i < d_vals.length; i++) {
+        d_results[i] = StrictMath.atan(d_vals[i]);
+    }
+    results("double atan(double a)", d_results);
 
     // static double atan2(double y, double x)
     // Returns the angle theta from the conversion of rectangular coordinates (x, y) to polar coordinates (r, theta).
@@ -110,12 +122,6 @@ public class StrictMathTest {
       d_results[i] = StrictMath.ceil(d_vals[i]);
     }
     results("double ceil(double a)", d_results);
-
-    // static double copySign(double magnitude, double sign)
-    // Returns the first floating-point argument with the sign of the second floating-point argument.
-
-    // static float  copySign(float magnitude, float sign)
-    // Returns the first floating-point argument with the sign of the second floating-point argument.
 
     // static double cos(double a)
     // Returns the trigonometric cosine of an angle.
@@ -139,12 +145,6 @@ public class StrictMathTest {
       d_results[i] = StrictMath.floor(d_vals[i]);
     }
     results("double floor(double a)", d_results);
-
-    // static int  getExponent(double d)
-    // Returns the unbiased exponent used in the representation of a double.
-
-    // static int  getExponent(float f)
-    // Returns the unbiased exponent used in the representation of a float.
 
     // static double hypot(double x, double y)
     // Returns sqrt(x2 +y2) without intermediate overflow or underflow.
@@ -237,18 +237,6 @@ public class StrictMathTest {
     }
     results("long min(long a, long b)", l_results_2d);
 
-    // static double nextAfter(double start, double direction)
-    // Returns the floating-point number adjacent to the first argument in the direction of the second argument.
-
-    // static float  nextAfter(float start, double direction)
-    // Returns the floating-point number adjacent to the first argument in the direction of the second argument.
-
-    // static double nextUp(double d)
-    // Returns the floating-point value adjacent to d in the direction of positive infinity.
-
-    // static float  nextUp(float f)
-    // Returns the floating-point value adjacent to f in the direction of positive infinity.
-
     // static double pow(double a, double b)
     // Returns the value of the first argument raised to the power of the second argument.
     for (i=0; i < d_vals.length; i++) {
@@ -290,18 +278,6 @@ public class StrictMathTest {
     }
     results("int round(float a)", i_for_f_results);
 
-    // static double scalb(double d, int scaleFactor)
-    // Return d × 2scaleFactor rounded as if performed by a single correctly rounded floating-point multiply to a member of the double value set.
-
-    // static float  scalb(float f, int scaleFactor)
-    // Return f × 2scaleFactor rounded as if performed by a single correctly rounded floating-point multiply to a member of the float value set.
-
-    // static double signum(double d)
-    // Returns the signum function of the argument; zero if the argument is zero, 1.0 if the argument is greater than zero, -1.0 if the argument is less than zero.
-
-    // static float  signum(float f)
-    // Returns the signum function of the argument; zero if the argument is zero, 1.0f if the argument is greater than zero, -1.0f if the argument is less than zero.
-
     // static double sin(double a)
     // Returns the trigonometric sine of an angle.
     // static double sinh(double x)
@@ -319,17 +295,5 @@ public class StrictMathTest {
 
     // static double tanh(double x)
     // Returns the hyperbolic tangent of a double value.
-
-    // static double toDegrees(double angrad)
-    // Converts an angle measured in radians to an approximately equivalent angle measured in degrees.
-
-    // static double toRadians(double angdeg)
-    // Converts an angle measured in degrees to an approximately equivalent angle measured in radians.
-
-    // static double ulp(double d)
-    // Returns the size of an ulp of the argument.
-
-    // static float  ulp(float f)
-    // Returns the size of an ulp of the argument.
   }
 }
