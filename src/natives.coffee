@@ -595,8 +595,8 @@ native_methods =
       FileOutputStream: [
         o 'open(L!/lang/String;)V', (rs, _this, fname) ->
             _this.$file = fs.openSync fname.jvm2js_str(), 'w'
-        o 'writeBytes([BIIZ)V', write_to_file
-        o 'writeBytes([BII)V', write_to_file
+        o 'writeBytes([BIIZ)V', write_to_file  # OpenJDK version
+        o 'writeBytes([BII)V', write_to_file   # Apple-java version
         o 'close0()V', (rs, _this) ->
             if _this.$file?
               fs.closeSync(_this.$file)
@@ -735,8 +735,15 @@ native_methods =
             catch e
               return false
             return true
-        o 'createFileExclusively(Ljava/lang/String;Z)Z', (rs, _this, path, arg2) ->
-            #XXX: I have no idea what arg2 is
+        o 'createFileExclusively(Ljava/lang/String;)Z', (rs, _this, path) ->  # OpenJDK version
+            filepath = path.jvm2js_str()
+            return false if stat_file(filepath)?
+            try
+              fs.closeSync fs.openSync(filepath, 'w')  # creates an empty file
+            catch e
+              exceptions.java_throw rs, 'java/io/IOException', e.message
+            true
+        o 'createFileExclusively(Ljava/lang/String;Z)Z', (rs, _this, path) ->  # Apple-java version
             filepath = path.jvm2js_str()
             return false if stat_file(filepath)?
             try
