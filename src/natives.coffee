@@ -428,6 +428,9 @@ native_methods =
         o 'sin(D)D', (rs, d_val) -> Math.sin(d_val)
         o 'sqrt(D)D', (rs, d_val) -> Math.sqrt(d_val)
         o 'tan(D)D', (rs, d_val) -> Math.tan(d_val)
+        # these two are native in OpenJDK but not Apple-Java
+        o 'floor(D)D', (rs, d_val) -> Math.floor(d_val)
+        o 'ceil(D)D', (rs, d_val) -> Math.ceil(d_val)
       ]
       String: [
         o 'intern()L!/!/!;', (rs, _this) ->
