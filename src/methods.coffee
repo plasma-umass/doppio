@@ -80,6 +80,7 @@ class root.Method extends AbstractMethodField
           unless sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
             java_throw rs, 'java/lang/Error', "native method NYI: #{sig}"
     else
+      @has_bytecode = true
       @code = _.find(@attrs, (a) -> a.constructor.name == "Code")
 
   reflector: (rs, is_constructor=false) ->
@@ -111,7 +112,7 @@ class root.Method extends AbstractMethodField
 
   RELEASE? || padding = '' # used in debug mode to align instruction traces
 
-  run_manually: (func, rs, params) ->
+  convert_params: (rs, params) ->
     converted_params = [rs]
     param_idx = 0
     if not @access_flags.static
@@ -120,10 +121,14 @@ class root.Method extends AbstractMethodField
     for p in @param_types
       converted_params.push params[param_idx]
       param_idx += if (p.toString() in ['J', 'D']) then 2 else 1
+    converted_params
+
+  run_manually: (func, rs, converted_params) ->
+    trace "entering native method #{@full_signature()}"
     try
       rv = func converted_params...
     catch e
-      e.method_catch_handler?(rs, @)  # handles stack pop, if it's a JavaException
+      return if e is ReturnException  # XXX kludge
       throw e
     rs.meta_stack().pop()
     ret_type = @return_type.toString()
@@ -136,12 +141,12 @@ class root.Method extends AbstractMethodField
     try
       @bytecode_loop(rs)
     catch e
-      return if e is ReturnException
-      throw e unless e.method_catch_handler? # JVM Error
-      e.method_catch_handler(rs, @)
+      return if e is ReturnException  # stack pop handled by opcode
+      throw e unless e.method_catch_handler?(rs, @, true)
       @run_bytecode(rs)
 
   bytecode_loop: (rs) ->
+    trace "entering method #{@full_signature()}"
     # main eval loop: execute each opcode, using the pc to iterate through
     code = @code.opcodes
     cf = rs.curr_frame()
@@ -159,40 +164,26 @@ class root.Method extends AbstractMethodField
     # Must explicitly return here, to avoid Coffeescript accumulating an array of cf.pc values
     return
 
-  run: (runtime_state) ->
+  setup_stack: (runtime_state) ->
     ms = runtime_state.meta_stack()
-    RELEASE? || padding = new Array(ms.length()).join ' '
-    if ms.resuming_stack? # we are resuming from a yield
-      ms.resuming_stack++
-      if ms.resuming_stack == ms.length() - 1
-        ms.resuming_stack = null
-      cf = runtime_state.curr_frame()
-      if cf.resume? # this was a manually run method
-        trace "#{padding}resuming native method #{@full_signature()}"
-        @run_manually cf.resume, runtime_state, []
-        cf.resume = null
-        return
-      else
-        trace "#{padding}resuming method #{@full_signature()}"
-        @run_bytecode runtime_state
-    else
-      caller_stack = runtime_state.curr_frame().stack
-      params = @take_params caller_stack
+    caller_stack = runtime_state.curr_frame().stack
+    params = @take_params caller_stack
 
-      if @access_flags.native
-        if @code?
-          trace "#{padding}entering native method #{@full_signature()}"
-          ms.push(new runtime.StackFrame(this,[],[]))
-          @run_manually @code, runtime_state, params
-        return
+    if @access_flags.native
+      if @code?
+        ms.push(sf = new runtime.StackFrame(this,[],[]))
+        c_params = @convert_params runtime_state, params
+        sf.runner = => @run_manually @code, runtime_state, c_params
+        return sf
+      return
 
-      if @access_flags.abstract
-        java_throw runtime_state, 'java/lang/Error', "called abstract method: #{@full_signature()}"
+    if @access_flags.abstract
+      java_throw runtime_state, 'java/lang/Error', "called abstract method: #{@full_signature()}"
 
-      # Finally, the normal case: running a Java method
-      trace "#{padding}entering method #{@full_signature()}"
-      ms.push(new runtime.StackFrame(this,params,[]))
-      if @code.run_stamp < runtime_state.run_stamp
-        @code.run_stamp = runtime_state.run_stamp
-        @code.parse_code()
-      @run_bytecode runtime_state
+    # Finally, the normal case: running a Java method
+    ms.push(sf = new runtime.StackFrame(this,params,[]))
+    if @code.run_stamp < runtime_state.run_stamp
+      @code.run_stamp = runtime_state.run_stamp
+      @code.parse_code()
+    sf.runner = => @run_bytecode runtime_state
+    return sf

@@ -46,7 +46,11 @@ class root.InvokeOpcode extends root.Opcode
     @method_spec_ref = code_array.get_uint(2)
     @method_spec = constant_pool.get(@method_spec_ref).deref()
 
-  execute: (rs) -> rs.method_lookup(@method_spec).run(rs)
+  execute: (rs) ->
+    my_sf = rs.curr_frame()
+    if rs.method_lookup(@method_spec).setup_stack(rs)?
+      my_sf.pc += 1 + @byte_count
+      throw ReturnException
 
 class root.DynInvokeOpcode extends root.InvokeOpcode
   constructor: (name, params) ->
@@ -65,16 +69,13 @@ class root.DynInvokeOpcode extends root.InvokeOpcode
     @cache = Object.create null
 
   execute: (rs) ->
-    unless rs.meta_stack().resuming_stack?
-      stack = rs.curr_frame().stack
-      obj = stack[stack.length - @count]
-      cls = rs.check_null(obj).type.toClassString()
-      rs.method_lookup(class: cls, sig: @method_spec.sig).run(rs)
-    else
-      rs.meta_stack().resuming_stack++
-      m = rs.curr_frame().method
-      rs.meta_stack().resuming_stack--
-      m.run(rs)
+    my_sf = rs.curr_frame()
+    stack = my_sf.stack
+    obj = stack[stack.length - @count]
+    cls = rs.check_null(obj).type.toClassString()
+    if rs.method_lookup(class: cls, sig: @method_spec.sig).setup_stack(rs)?
+      my_sf.pc += 1 + @byte_count
+      throw ReturnException
 
   get_param_word_size = (spec) ->
     state = 'name'

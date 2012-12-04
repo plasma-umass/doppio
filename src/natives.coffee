@@ -119,10 +119,15 @@ trapped_methods =
         ]
 
 doPrivileged = (rs, action) ->
+  my_sf = rs.curr_frame()
   m = rs.method_lookup(class: action.type.toClassString(), sig: 'run()Ljava/lang/Object;')
   rs.push action unless m.access_flags.static
-  m.run(rs)
-  rs.pop()
+  m.setup_stack(rs)
+  my_sf.runner = ->
+    rv = rs.pop()
+    rs.meta_stack().pop()
+    rs.push rv
+  throw exceptions.ReturnException
 
 stat_file = (fname) ->
   try
@@ -199,18 +204,22 @@ native_methods =
             rs.init_string(_this.$type.toExternalString())
         o 'forName0(L!/!/String;ZL!/!/ClassLoader;)L!/!/!;', (rs, jvm_str, initialize, loader) ->
             type = c2t util.int_classname jvm_str.jvm2js_str()
-            if loader isnt null
-              rs.push2 loader, jvm_str
-              rs.method_lookup(
-                class: loader.type.toClassString(),
-                sig: 'loadClass(Ljava/lang/String;)Ljava/lang/Class;').run(rs)
-              rv = rs.pop()
-            else
+            if loader is null
               rv = rs.jclass_obj type, true
-
-            if initialize
-              rs.class_lookup type, true
-            rv
+              rs.class_lookup type, true if initialize
+              return rv
+            # user-defined classloader
+            my_sf = rs.curr_frame()
+            rs.push2 loader, jvm_str
+            rs.method_lookup(
+              class: loader.type.toClassString(),
+              sig: 'loadClass(Ljava/lang/String;)Ljava/lang/Class;').setup_stack(rs)
+            my_sf.runner = ->
+              rv = rs.pop()
+              rs.meta_stack().pop()
+              rs.push rv
+              rs.class_lookup type, true if initialize
+            throw exceptions.ReturnException
         o 'getComponentType()L!/!/!;', (rs, _this) ->
             type = _this.$type
             return null unless (type instanceof types.ArrayType)
@@ -492,77 +501,12 @@ native_methods =
             tmp = _this.$isInterrupted ? false
             _this.$isInterrupted = false if clear_flag
             tmp
-        o 'start0()V', (rs, _this) ->
-            # bookkeeping
-            _this.$isAlive = true
-            _this.$meta_stack = new runtime.CallStack()
-            rs.thread_pool.push _this
-            spawning_thread = rs.curr_thread
-            my_name = thread_name rs, _this
-            orig_name = thread_name rs, spawning_thread
-            method_to_run = null # this will be populated by the yield callback
-            rs.curr_frame().resume = -> # thread cleanup
-              debug "TE: deleting #{my_name} after resume"
-              _this.$isAlive = false
-              rs.thread_pool.splice rs.thread_pool.indexOf(_this), 1
-            debug "TE: starting #{my_name} from #{orig_name}"
-
-            # handler for any yields that come from our started thread
-            resume_thread = (cb) ->
-              debug "TE: thread #{my_name} was paused"
-              rs.curr_thread = spawning_thread
-              rs.curr_frame().resume = ->
-                debug "TE: not cleaning up #{my_name} after resume"
-                _this.$isAlive = false
-              cb ->
-                debug "TE: actually resuming #{thread_name rs, rs.curr_thread}"
-                rs.meta_stack().resuming_stack = 0
-                try
-                  method_to_run.run(rs, true)
-                catch e
-                  throw e unless e instanceof exceptions.YieldException
-                  resume_thread e.condition
-
-            # actually start the thread
-            throw new exceptions.YieldException (cb) ->
-              spawning_thread.$resume = cb
-              rs.curr_thread = _this
-              # call the thread's run() method.
-              rs.push _this
-              try
-                method_to_run = rs.method_lookup({class: _this.type.toClassString(), sig: 'run()V'})
-                method_to_run.run(rs)
-              catch e
-                if e instanceof exceptions.YieldIOException
-                  return e.condition ->
-                    rs.meta_stack().resuming_stack = 1
-                    rs.curr_frame().method.run(rs, true)
-                else if e instanceof exceptions.YieldException
-                  resume_thread e.condition
-                  rs.curr_thread.$isAlive = false
-                  rs.thread_pool.splice rs.thread_pool.indexOf(rs.curr_thread), 1
-                else
-                  return e.toplevel_catch_handler(rs) if e.toplevel_catch_handler?
-                  console.log "\nInternal JVM Error!", e.stack
-                  rs.show_state()
-                  return
-              debug "TE: finished running #{thread_name rs, rs.curr_thread}"
-
-              # yield to a paused thread
-              yieldee = (y for y in rs.thread_pool when y isnt rs.curr_thread).pop()
-              if yieldee?
-                rs.curr_thread = yieldee
-                debug "TE: about to resume #{thread_name rs, rs.curr_thread}"
-                rs.curr_thread.$resume()
-
+        o 'start0()V', (rs, _this) ->  # XXX nop
         o 'sleep(J)V', (rs, millis) ->
-            rs.curr_frame().resume = -> # NOP, return immediately after sleeping
+            rs.curr_frame().runner = -> rs.meta_stack().pop()
             throw new exceptions.YieldIOException (cb) ->
               setTimeout(cb, millis.toNumber())
-        o 'yield()V', (rs, _this) ->
-            unless _this is rs.curr_thread
-              exceptions.java_throw rs, 'java/lang/Error', "tried to yield non-current thread"
-            rs.yield()
+        #o 'yield()V', (rs, _this) ->
       ]
     security:
       AccessController: [
@@ -580,18 +524,25 @@ native_methods =
       FileSystem: [
         o 'getFileSystem()L!/!/!;', (rs) ->
             # TODO: avoid making a new FS object each time this gets called? seems to happen naturally in java/io/File...
+            my_sf = rs.curr_frame()
             cache1 = rs.init_object 'java/io/ExpiringCache'
             cache2 = rs.init_object 'java/io/ExpiringCache'
             cache_init = rs.method_lookup({class: 'java/io/ExpiringCache', sig: '<init>()V'})
             rs.push2 cache1, cache2
-            cache_init.run(rs)
-            cache_init.run(rs)
-            rs.init_object 'java/io/UnixFileSystem', {
-              cache: cache1, javaHomePrefixCache: cache2
-              slash: system_properties['file.separator'].charCodeAt(0)
-              colon: system_properties['path.separator'].charCodeAt(0)
-              javaHome: rs.init_string(system_properties['java.home'], true)
-            }
+            cache_init.setup_stack(rs)
+            my_sf.runner = ->
+              cache_init.setup_stack(rs)
+              my_sf.runner = ->
+                rv = rs.init_object 'java/io/UnixFileSystem', {
+                  cache: cache1, javaHomePrefixCache: cache2
+                  slash: system_properties['file.separator'].charCodeAt(0)
+                  colon: system_properties['path.separator'].charCodeAt(0)
+                  javaHome: rs.init_string(system_properties['java.home'], true)
+                }
+                rs.meta_stack().pop()
+                rs.push rv
+              throw exceptions.ReturnException
+            throw exceptions.ReturnException
       ]
       FileOutputStream: [
         o 'open(L!/lang/String;)V', (rs, _this, fname) ->
@@ -967,20 +918,29 @@ native_methods =
             cls = m.get_field rs, 'clazz'
             slot = m.get_field rs, 'slot'
             method = (method for sig, method of rs.class_lookup(cls.$type, true).methods when method.idx is slot)[0]
+            my_sf = rs.curr_frame()
             rs.push obj unless method.access_flags.static
             rs.push_array params.array
-            method.run(rs)
-            rs.pop()
+            method.setup_stack(rs)
+            my_sf.runner = ->
+              rv = rs.pop()
+              rs.meta_stack().pop()
+              rs.push rv
+            throw exceptions.ReturnException
       ]
       NativeConstructorAccessorImpl: [
         o 'newInstance0(Ljava/lang/reflect/Constructor;[Ljava/lang/Object;)Ljava/lang/Object;', (rs,m,params) ->
             cls = m.get_field rs, 'clazz'
             slot = m.get_field rs, 'slot'
             method = (method for sig, method of rs.class_lookup(cls.$type, true).methods when method.idx is slot)[0]
+            my_sf = rs.curr_frame()
             rs.push (obj = rs.set_obj cls.$type)
             rs.push_array params.array if params?
-            method.run(rs)
-            obj
+            method.setup_stack(rs)
+            my_sf.runner = ->
+              rs.meta_stack().pop()
+              rs.push obj
+            throw exceptions.ReturnException
       ]
       Reflection: [
         o 'getCallerClass(I)Ljava/lang/Class;', (rs, frames_to_skip) ->
