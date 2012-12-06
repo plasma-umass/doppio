@@ -160,7 +160,7 @@ class root.RuntimeState
   check_null: (obj) ->
     java_throw @, 'java/lang/NullPointerException', '' unless obj?
     obj
-  set_obj: (type, obj=Object.create(null)) ->
+  set_obj: (type, obj={}) ->
     if type instanceof types.ArrayType
       new JavaArray type, @, obj
     else

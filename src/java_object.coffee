@@ -31,13 +31,14 @@ class root.JavaArray
 
 
 class root.JavaObject
-  constructor: (@type, rs, obj=Object.create(null)) ->
+  constructor: (@type, rs, obj={}) ->
     @ref = rs.high_oref++
     cls = rs.class_lookup @type
     # Use default fields as a prototype.
     @fields = Object.create(cls.get_default_fields(rs))
     for field of obj
-      @fields[field] = obj[field]
+      if obj.hasOwnProperty(field)
+        @fields[field] = obj[field]
     return
 
 
@@ -45,24 +46,22 @@ class root.JavaObject
     # note: we don't clone the type, because they're effectively immutable
     new root.JavaObject @type, rs, _.clone(@fields)
 
-  set_field: (rs, name, val, for_class) ->
-    lookup_string = for_class + '/' + name
-    unless @fields[lookup_string] is undefined
-      @fields[lookup_string] = val
+  set_field: (rs, name, val) ->
+    unless @fields[name] is undefined
+      @fields[name] = val
     else
       java_throw rs, 'java/lang/NoSuchFieldError', name
     return
 
-  get_field: (rs, name, for_class) ->
-    lookup_string = for_class + '/' + name
-    return @fields[lookup_string] unless @fields[lookup_string] is undefined
+  get_field: (rs, name) ->
+    return @fields[name] unless @fields[name] is undefined
     java_throw rs, 'java/lang/NoSuchFieldError', name
 
   get_field_from_offset: (rs, offset) ->
     f = @_get_field_from_offset rs, rs.class_lookup(@type), offset.toInt()
     if f.field.access_flags.static
       return rs.static_get({class:@type.toClassString(),name:f.field.name})
-    @get_field rs, f.field.name, f.cls
+    @get_field rs, f.cls + '/' + f.field.name
 
   _get_field_from_offset: (rs, cls, offset) ->
     classname = cls.this_class.toClassString()
@@ -78,7 +77,7 @@ class root.JavaObject
       rs.push value
       rs.static_put({class:@type.toClassString(),name:f.field.name})
     else
-      @set_field rs, f.field.name, value, f.cls
+      @set_field rs, f.cls + '/' + f.field.name, value
 
   toString: ->
     if @type.toClassString() is 'java/lang/String'
@@ -98,4 +97,4 @@ class root.JavaClassObject extends root.JavaObject
   toString: -> "<Class #{@$type} (*#{@ref})>"
 
 root.thread_name = (rs, thread) ->
-  util.chars2js_str thread.get_field rs, 'name', 'java/lang/Thread'
+  util.chars2js_str thread.get_field rs, 'java/lang/Thread/name'
