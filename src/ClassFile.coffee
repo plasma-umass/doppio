@@ -114,6 +114,23 @@ class ClassFile
 
     return null
 
+  construct_default_fields: (rs) ->
+    # init fields from this and inherited ClassFiles
+    t = @this_class
+    # Object.create(null) avoids interference with Object.prototype's properties
+    @default_fields = Object.create null
+    while t?
+      cls = rs.class_lookup t
+      for f in cls.fields when not f.access_flags.static
+        val = util.initial_value f.raw_descriptor
+        @default_fields[t.toClassString() + '/' + f.name] = val
+      t = cls.super_class
+
+  get_default_fields: (rs) ->
+    return @default_fields unless @default_fields is undefined
+    @construct_default_fields(rs)
+    return @default_fields
+
 if module?
   module.exports = ClassFile
 else
