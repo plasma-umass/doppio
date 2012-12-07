@@ -33,11 +33,10 @@ class WaitTest {
   public static void main(String[] args) {
     Foo a = new Foo();
     Foo b = new Foo();
-    try {
-      Thread.currentThread().sleep(100);
-    }
-    catch (InterruptedException e) {}
     if (a.thread.isAlive()) a.thread.interrupt();
+    synchronized (obj) {
+      Thread.currentThread().yield();
+    }
     if (b.thread.isAlive()) b.thread.interrupt();
   }
 
