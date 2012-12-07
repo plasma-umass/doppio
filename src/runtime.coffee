@@ -66,10 +66,10 @@ class root.RuntimeState
     @method_lookup({class: 'java/lang/ThreadGroup', sig: '<init>()V'}).run(this)
 
     ct = @init_object 'java/lang/Thread',
-      name: @init_carr 'main'
-      priority: 1
-      group: group
-      threadLocals: null
+      'java/lang/Thread/name': @init_carr 'main'
+      'java/lang/Thread/priority': 1
+      'java/lang/Thread/group': group
+      'java/lang/Thread/threadLocals': null
     ct.$meta_stack = @meta_stack()
     @curr_thread = ct
     @curr_thread.$isAlive = true
@@ -194,7 +194,7 @@ class root.RuntimeState
   init_string: (str,intern=false) ->
     return s if intern and (s = @string_pool.get str)?
     carr = @init_carr str
-    jvm_str = new JavaObject c2t('java/lang/String'), @, {'value':carr, 'count':str.length}
+    jvm_str = new JavaObject c2t('java/lang/String'), @, {'java/lang/String/value':carr, 'java/lang/String/count':str.length}
     @string_pool.set(str, jvm_str) if intern
     return jvm_str
   init_carr: (str) ->
@@ -314,14 +314,6 @@ class root.RuntimeState
     return field if field?
     java_throw @, 'java/lang/NoSuchFieldError',
       "No such field found in #{field_spec.class}: #{field_spec.name}"
-
-  get_field_from_offset: (cls, offset) ->
-    classname = cls.this_class.toClassString()
-    until cls.fields[offset]?
-      unless cls.super_class?
-        java_throw @, 'java/lang/NullPointerException', "field #{offset} doesn't exist in class #{classname}"
-      cls = @class_lookup(cls.super_class)
-    cls.fields[offset]
 
   # address of the block that this address is contained in
   block_addr: (address) ->
