@@ -503,6 +503,16 @@ native_methods =
             tmp = _this.$isInterrupted ? false
             _this.$isInterrupted = false if clear_flag
             tmp
+        o 'interrupt0()V', (rs, _this) ->
+            _this.$isInterrupted = true
+            debug "TE(interrupt0): interrupting #{thread_name rs, _this}"
+            new_thread_sf = util.last _this.$meta_stack._cs
+            new_thread_sf.runner = ->
+              new_thread_sf.method.run_manually (->
+                exceptions.java_throw rs, 'java/lang/InterruptedException', 'interrupt0 called'
+              ), rs, []
+            _this.$meta_stack.push {}  # dummy
+            rs.yield _this
         o 'start0()V', (rs, _this) ->
             _this.$isAlive = true
             _this.$meta_stack = new runtime.CallStack()
@@ -526,7 +536,7 @@ native_methods =
             rs.curr_frame().runner = -> rs.meta_stack().pop()
             throw new exceptions.YieldIOException (cb) ->
               setTimeout(cb, millis.toNumber())
-        #o 'yield()V', (rs, _this) ->
+        o 'yield()V', (rs, _this) -> rs.yield()
       ]
     security:
       AccessController: [
