@@ -90,7 +90,7 @@ class root.RuntimeState
       debug "### finished system class initialization ###"
 
     # prepare the call stack for main(String[] args)
-    args = new JavaArray c2t('[Ljava/lang/String;'), @, (@init_string(a) for a in initial_args)
+    args = new JavaArray @, c2t('[Ljava/lang/String;'), (@init_string(a) for a in initial_args)
     @curr_thread.$meta_stack = new root.CallStack [args]
     debug "### finished runtime state initialization ###"
 
@@ -160,21 +160,16 @@ class root.RuntimeState
   check_null: (obj) ->
     java_throw @, 'java/lang/NullPointerException', '' unless obj?
     obj
-  set_obj: (type, obj={}) ->
-    if type instanceof types.ArrayType
-      new JavaArray type, @, obj
-    else
-      new JavaObject type, @, obj
 
   heap_newarray: (type,len) ->
     if len < 0
       java_throw @, 'java/lang/NegativeArraySizeException', "Tried to init [#{type} array with length #{len}"
     if type == 'J'
-      new JavaArray c2t("[J"), @, (gLong.ZERO for i in [0...len] by 1)
+      new JavaArray @, c2t("[J"), (gLong.ZERO for i in [0...len] by 1)
     else if type[0] == 'L'  # array of object
-      new JavaArray c2t("[#{type}"), @, (null for i in [0...len] by 1)
+      new JavaArray @, c2t("[#{type}"), (null for i in [0...len] by 1)
     else  # numeric array
-      new JavaArray c2t("[#{type}"), @, (0 for i in [0...len] by 1)
+      new JavaArray @, c2t("[#{type}"), (0 for i in [0...len] by 1)
 
   # static stuff
   static_get: (field_spec) ->
@@ -189,16 +184,19 @@ class root.RuntimeState
   # heap object initialization
   init_object: (cls, obj) ->
     type = c2t(cls)
-    @class_lookup type
-    @set_obj type, obj
+    new JavaObject @, type, @class_lookup(type), obj
+  init_array: (cls, obj) ->
+    type = c2t(cls)
+    new JavaArray @, type, obj
   init_string: (str,intern=false) ->
     return s if intern and (s = @string_pool.get str)?
     carr = @init_carr str
-    jvm_str = new JavaObject c2t('java/lang/String'), @, {'java/lang/String/value':carr, 'java/lang/String/count':str.length}
+    type = c2t('java/lang/String')
+    jvm_str = new JavaObject @, type, @class_lookup(type), {'java/lang/String/value':carr, 'java/lang/String/count':str.length}
     @string_pool.set(str, jvm_str) if intern
     return jvm_str
   init_carr: (str) ->
-    new JavaArray c2t('[C'), @, (str.charCodeAt(i) for i in [0...str.length] by 1)
+    new JavaArray @, c2t('[C'), (str.charCodeAt(i) for i in [0...str.length] by 1)
 
   # Returns a java.lang.Class object for JVM bytecode to do reflective stuff.
   # Loads the underlying class, but does not initialize it (and therefore does

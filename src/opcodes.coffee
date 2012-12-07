@@ -4,7 +4,7 @@ util = require './util'
 types = require './types'
 {java_throw,ReturnException,JavaException} = require './exceptions'
 {c2t} = types
-{JavaArray} = require './java_object'
+{JavaObject,JavaArray} = require './java_object'
 
 "use strict"
 
@@ -299,7 +299,7 @@ class root.MultiArrayOpcode extends root.Opcode
         array = (default_val for i in [0...len] by 1)
       else
         array = (init_arr(curr_dim+1) for i in [0...len] by 1)
-      new JavaArray type, rs, array
+      new JavaArray rs, type, array
     rs.push init_arr 0
     return
 
@@ -557,7 +557,13 @@ root.opcodes = {
   183: new root.InvokeOpcode 'invokespecial'
   184: new root.InvokeOpcode 'invokestatic'
   185: new root.DynInvokeOpcode 'invokeinterface'
-  187: new root.ClassOpcode 'new', { execute: (rs) -> rs.push rs.init_object @class }
+  187: new root.ClassOpcode 'new', { execute: (rs) ->
+    @type = c2t(@class)
+    @cls = rs.class_lookup @type
+    rs.push new JavaObject(rs, @type, @cls)
+    # Self-modify; cache the class file lookup.
+    @execute = (rs) -> rs.push new JavaObject(rs, @type, @cls)
+  }
   188: new root.NewArrayOpcode 'newarray', { execute: (rs) -> rs.push rs.heap_newarray @element_type, rs.pop() }
   189: new root.ClassOpcode 'anewarray', { execute: (rs) -> rs.push rs.heap_newarray "L#{@class};", rs.pop() }
   190: new root.Opcode 'arraylength', { execute: (rs) -> rs.push rs.check_null(rs.pop()).array.length }
