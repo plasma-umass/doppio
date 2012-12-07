@@ -580,6 +580,8 @@ root.opcodes = {
       if locked_thread is rs.curr_thread
         rs.lock_counts[monitor]++  # increment lock counter, to only unlock at zero
       else
+        rs.inc_pc(1)
+        rs.meta_stack().push {}  # dummy, to be popped
         rs.wait monitor
     else  # this lock not held by any thread
       rs.lock_refs[monitor] = rs.curr_thread
@@ -587,7 +589,8 @@ root.opcodes = {
   }
   195: new root.Opcode 'monitorexit',  { execute: (rs)->
     monitor = rs.pop()
-    if (locked_thread = rs.lock_refs[monitor])? and locked_thread is rs.curr_thread
+    return unless (locked_thread = rs.lock_refs[monitor])?
+    if locked_thread is rs.curr_thread
       rs.lock_counts[monitor]--
       if rs.lock_counts[monitor] == 0
         delete rs.lock_refs[monitor]
