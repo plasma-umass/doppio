@@ -19,7 +19,7 @@ root.find_test_classes = (doppio_dir) ->
   # Note that the lack of return value here implies that the above is actually
   # a list comprehension. This is intended behavior.
 
-root.run_tests = (test_classes, stdout, quiet, callback) ->
+root.run_tests = (test_classes, stdout, quiet, keep_going, callback) ->
   batch_mode = test_classes.length > 1
   doppio_dir = if node? then '/home/doppio/' else path.resolve __dirname, '..'
   # get the tests, if necessary
@@ -42,13 +42,12 @@ root.run_tests = (test_classes, stdout, quiet, callback) ->
     quiet || stdout "testing #{test}...\n"
     if (disasm_diff = run_disasm_test(doppio_dir, test))?
       stdout "Failed disasm test #{test}:\n#{disasm_diff}\n"
-      return callback(true)
+      return callback(true) unless keep_going
     run_stdout_test doppio_dir, test, (diff) ->
       if diff?
         stdout "Failed output test #{test}:\n#{diff}\n"
-        return callback(true)
-      else
-        _runner()
+        return callback(true) unless keep_going
+      _runner()
 
   _runner()
 
@@ -89,20 +88,3 @@ cleandiff = (our_str, their_str) ->
   for extra in their_lines[tidx..]
     diff.push "J:#{extra}"
   return diff.join '\n' if diff.length > 0
-
-# basic node.js frontend (TODO: move this to console/)
-if module? and require?.main == module
-  optimist = require 'optimist'
-  {print} = require 'util'
-  {argv} = optimist
-  optimist.usage '''
-  Usage: $0 [class_file(s)]
-  Optional flags:
-    -q, --quiet
-    -h, --help
-  '''
-  return optimist.showHelp() if argv.help? or argv.h?
-
-  done_cb = (failed) -> process.exit failed
-  quiet = argv.quiet? or argv.q?
-  root.run_tests argv._, print, quiet, done_cb
