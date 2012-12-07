@@ -259,10 +259,10 @@ native_methods =
         o 'getRawAnnotations()[B', (rs, _this) ->
             cls = _this.file
             annotations = _.find(cls.attrs, (a) -> a.constructor.name == 'RuntimeVisibleAnnotations')
-            return new JavaArray c2t('[B'), rs, annotations.raw_bytes if annotations?
+            return new JavaArray rs, c2t('[B'), annotations.raw_bytes if annotations?
             for sig,m of cls.methods
               annotations = _.find(m.attrs, (a) -> a.constructor.name == 'RuntimeVisibleAnnotations')
-              return new JavaArray c2t('[B'), rs, annotations.raw_bytes if annotations?
+              return new JavaArray rs, c2t('[B'), annotations.raw_bytes if annotations?
             null
         o 'getConstantPool()Lsun/reflect/ConstantPool;', (rs, _this) ->
             cls = _this.file
@@ -277,7 +277,7 @@ native_methods =
             # - the immediately enclosing class (java/lang/Class)
             # - the immediately enclosing method or constructor's name (can be null). (String)
             # - the immediately enclosing method or constructor's descriptor (null iff name is). (String)
-            #new JavaArray c2t('[Ljava/lang/Object;'), rs, [null,null,null]
+            #new JavaArray rs, c2t('[Ljava/lang/Object;'), [null,null,null]
         o 'getDeclaringClass()L!/!/!;', (rs, _this) ->
             return null unless _this.$type instanceof types.ClassType
             cls = _this.file
@@ -294,7 +294,7 @@ native_methods =
               return rs.jclass_obj c2t(declaring_name), true
             return null
         o 'getDeclaredClasses0()[L!/!/!;', (rs, _this) ->
-            ret = new JavaArray c2t('[Ljava/lang/Class;'), rs, []
+            ret = new JavaArray rs, c2t('[Ljava/lang/Class;'), []
             return ret unless _this.$type instanceof types.ClassType
             cls = _this.file
             my_class = _this.$type.toClassString()
@@ -390,9 +390,9 @@ native_methods =
             env_arr = []
             # convert to an array of strings of the form [key, value, key, value ...]
             for k, v of process.env
-              env_arr.push new JavaArray c2t('[B'), rs, util.bytestr_to_array k
-              env_arr.push new JavaArray c2t('[B'), rs, util.bytestr_to_array v
-            new JavaArray c2t('[[B'), rs, env_arr
+              env_arr.push new JavaArray rs, c2t('[B'), util.bytestr_to_array k
+              env_arr.push new JavaArray rs, c2t('[B'), util.bytestr_to_array v
+            new JavaArray rs, c2t('[[B'), env_arr
       ]
       reflect:
         Array: [
