@@ -14,7 +14,7 @@ class root.HaltException
   toplevel_catch_handler: () ->
     error "\nExited with code #{@exit_code}" unless @exit_code is 0
 
-root.ReturnException = {}
+root.ReturnException = 'RETURNEXCEPTION'
 
 class root.YieldException
   constructor: (@condition) ->
@@ -29,7 +29,7 @@ class root.JavaException
     cf = rs.curr_frame()
     if not top_of_stack and method.has_bytecode
      cf.pc -= 3  # rewind the invoke opcode
-     cf.pc -= 1 until method.code.opcodes[cf.pc]?.constructor.name.match /Invoke/
+     cf.pc -= 1 until method.code.opcodes[cf.pc]?.constructor.name.match /Invoke/ or cf.pc <= 0
     exception_handlers = method.code?.exception_handlers
     etype = @exception.type
     handler = _.find exception_handlers, (eh) ->
@@ -67,5 +67,5 @@ root.java_throw = (rs, cls, msg) ->
   rs.method_lookup(method_spec).setup_stack(rs) # invokespecial
   my_sf.runner = ->
     my_sf.runner = (-> my_sf.method.run_bytecode(rs))  # don't re-throw the exception
-    throw new root.JavaException rs.pop() # athrow
+    throw (new root.JavaException(rs.pop())) # athrow
   throw root.ReturnException

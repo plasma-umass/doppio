@@ -15,7 +15,7 @@ ClassFile = require './ClassFile'
 
 class root.CallStack
   constructor: (initial_stack) ->
-    @_cs = [new root.StackFrame(new Method(c2t '$bootstrap'),[],[])]
+    @_cs = [root.StackFrame.fake_frame('$bootstrap')]
     if initial_stack?
       @_cs[0].stack = initial_stack
 
@@ -32,6 +32,8 @@ class root.StackFrame
     @pc = 0
     @runner = null
     @name = @method.full_signature()
+
+  @fake_frame: (name) -> new root.StackFrame(new Method(c2t(name)), [], [])
 
 class ClassState
   constructor: (@loader) ->
