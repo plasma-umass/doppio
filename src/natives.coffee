@@ -69,7 +69,7 @@ trapped_methods =
       Throwable: [
         o 'fillInStackTrace()L!/!/!;', (rs, _this) ->
             stack = []
-            strace = rs.init_object "[Ljava/lang/StackTraceElement;", stack
+            strace = rs.init_array "[Ljava/lang/StackTraceElement;", stack
             _this.set_field rs, 'java/lang/Throwable/stackTrace', strace
             # we don't want to include the stack frames that were created by
             # the construction of this exception
@@ -239,22 +239,22 @@ native_methods =
         o 'getDeclaredFields0(Z)[Ljava/lang/reflect/Field;', (rs, _this, public_only) ->
             fields = _this.file.fields
             fields = (f for f in fields when f.access_flags.public) if public_only
-            rs.init_object('[Ljava/lang/reflect/Field;',(f.reflector(rs) for f in fields))
+            rs.init_array('[Ljava/lang/reflect/Field;',(f.reflector(rs) for f in fields))
         o 'getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;', (rs, _this, public_only) ->
             methods = _this.file.methods
             methods = (m for sig, m of methods when sig[0] != '<' and (m.access_flags.public or not public_only))
-            rs.init_object('[Ljava/lang/reflect/Method;',(m.reflector(rs) for m in methods))
+            rs.init_array('[Ljava/lang/reflect/Method;',(m.reflector(rs) for m in methods))
         o 'getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;', (rs, _this, public_only) ->
             methods = _this.file.methods
             methods = (m for sig, m of methods when m.name is '<init>')
             methods = (m for m in methods when m.access_flags.public) if public_only
-            rs.init_object('[Ljava/lang/reflect/Constructor;',(m.reflector(rs,true) for m in methods))
+            rs.init_array('[Ljava/lang/reflect/Constructor;',(m.reflector(rs,true) for m in methods))
         o 'getInterfaces()[L!/!/!;', (rs, _this) ->
             cls = _this.file
             ifaces = (cls.constant_pool.get(i).deref() for i in cls.interfaces)
             ifaces = ((if util.is_string(i) then c2t(i) else i) for i in ifaces)
             iface_objs = (rs.jclass_obj(iface, true) for iface in ifaces)
-            rs.init_object('[Ljava/lang/Class;',iface_objs)
+            rs.init_array('[Ljava/lang/Class;',iface_objs)
         o 'getModifiers()I', (rs, _this) -> _this.file.access_byte
         o 'getRawAnnotations()[B', (rs, _this) ->
             cls = _this.file
@@ -792,7 +792,7 @@ native_methods =
               files = fs.readdirSync(filepath.jvm2js_str())
             catch e
               return null
-            rs.init_object('[Ljava/lang/String;',(rs.init_string(f) for f in files))
+            rs.init_array('[Ljava/lang/String;',(rs.init_string(f) for f in files))
         o 'rename0(Ljava/io/File;Ljava/io/File;)Z', (rs, _this, file1, file2) ->
           file1path = (file1.get_field rs, 'java/io/File/path').jvm2js_str()
           file2path = (file2.get_field rs, 'java/io/File/path').jvm2js_str()
@@ -862,7 +862,7 @@ native_methods =
       ResourceBundle: [
         o 'getClassContext()[L!/lang/Class;', (rs) ->
             # XXX should walk up the meta_stack and fill in the array properly
-            rs.init_object '[Ljava/lang/Class;', [null,null,null]
+            rs.init_array '[Ljava/lang/Class;', [null,null,null]
       ]
       TimeZone: [
         o 'getSystemTimeZoneID(L!/lang/String;L!/lang/String;)L!/lang/String;', (rs, java_home, country) ->
@@ -893,9 +893,9 @@ native_methods =
       ]
       MemoryImpl: [
         o 'getMemoryManagers0()[Ljava/lang/management/MemoryManagerMXBean;', (rs) ->
-            rs.init_object '[Lsun/management/MemoryManagerImpl;', [] # XXX may want to revisit this 'NOP'
+            rs.init_array '[Lsun/management/MemoryManagerImpl;', [] # XXX may want to revisit this 'NOP'
         o 'getMemoryPools0()[Ljava/lang/management/MemoryPoolMXBean;', (rs) ->
-            rs.init_object '[Lsun/management/MemoryPoolImpl;', [] # XXX may want to revisit this 'NOP'
+            rs.init_array '[Lsun/management/MemoryPoolImpl;', [] # XXX may want to revisit this 'NOP'
       ]
     misc:
       VM: [

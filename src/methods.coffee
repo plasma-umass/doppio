@@ -92,14 +92,14 @@ class root.Method extends AbstractMethodField
     # XXX: missing parameterAnnotations
     obj[typestr + '/clazz'] = rs.jclass_obj(@class_type)
     obj[typestr + '/name'] = rs.init_string @name, true
-    obj[typestr + '/parameterTypes'] = rs.init_object "[Ljava/lang/Class;", (rs.jclass_obj(f) for f in @param_types)
+    obj[typestr + '/parameterTypes'] = rs.init_array "[Ljava/lang/Class;", (rs.jclass_obj(f) for f in @param_types)
     obj[typestr + '/returnType'] = rs.jclass_obj @return_type
-    obj[typestr + '/exceptionTypes'] = rs.init_object "[Ljava/lang/Class;", (rs.jclass_obj(c2t(e)) for e in exceptions)
+    obj[typestr + '/exceptionTypes'] = rs.init_array "[Ljava/lang/Class;", (rs.jclass_obj(c2t(e)) for e in exceptions)
     obj[typestr + '/modifiers'] = @access_byte
     obj[typestr + '/slot'] = @idx
     obj[typestr + '/signature'] = if sig? then rs.init_string sig else null
-    obj[typestr + '/annotations'] = if anns? then rs.init_object('[B', anns) else null
-    obj[typestr + '/annotationDefault'] = if adefs? then rs.init_object('[B', adefs) else null
+    obj[typestr + '/annotations'] = if anns? then rs.init_array('[B', anns) else null
+    obj[typestr + '/annotationDefault'] = if adefs? then rs.init_array('[B', adefs) else null
     rs.init_object typestr, obj
 
   take_params: (caller_stack) ->
