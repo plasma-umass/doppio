@@ -6,7 +6,7 @@ util = require './util'
 types = require './types'
 ClassFile = require './ClassFile'
 {log,vtrace,trace,debug,error} = require './logging'
-{java_throw,YieldIOException} = require './exceptions'
+{java_throw,YieldIOException,ReturnException} = require './exceptions'
 {JavaObject,JavaClassObject,JavaArray,thread_name} = require './java_object'
 {c2t} = types
 {Method} = require './methods'
@@ -76,7 +76,7 @@ class root.RuntimeState
         ct.$meta_stack = @meta_stack()
         @curr_thread = ct
         @curr_thread.$isAlive = true
-        @thread_pool.push @curr_thread
+        @thread_pool.push @curr_thread  # note: the main thread is always at @thread_pool[0]
         debug "### finished thread init ###"
       ct = @init_object 'java/lang/Thread',
         name: @init_carr 'main'
@@ -112,6 +112,39 @@ class root.RuntimeState
       debug "showing current state: method '#{cf.method?.name}', stack: [#{s}], locals: [#{l}]"
     else
       debug "current frame is undefined. meta_stack: #{@meta_stack()}"
+
+  choose_next_thread: (blacklist) ->
+    for t in @thread_pool when t isnt @curr_thread and t.$isAlive
+      continue if blacklist? and t in blacklist
+      debug "TE(choose_next_thread): choosing thread #{thread_name(@, t)}"
+      return t
+    java_throw @, 'java/lang/Error', "tried to switch threads when no other thread was available"
+
+
+  wait: (monitor, yieldee) ->
+    # add current thread to wait queue
+    debug "TE(wait): waiting #{thread_name @, @curr_thread} on lock #{monitor.ref}"
+    if @waiting_threads[monitor]?
+      @waiting_threads[monitor].push @curr_thread
+    else
+      @waiting_threads[monitor] = [@curr_thread]
+    # yield execution to a non-waiting thread
+    yieldee ?= @choose_next_thread @waiting_threads[monitor]
+    @yield yieldee
+
+  yield: (yieldee=@choose_next_thread()) ->
+    debug "TE(yield): yielding #{thread_name @, @curr_thread} to #{thread_name @, yieldee}"
+    old_thread_sf = @curr_frame()
+    old_thread = @curr_thread
+    @curr_thread = yieldee
+    new_thread_sf = @curr_frame()
+    new_thread_sf.runner = =>
+      debug "TE(yield): yield to thread: #{thread_name @, @curr_thread}"
+      @meta_stack().pop()
+    old_thread_sf.runner = =>
+      debug "TE(yield): yielded thread resuming: #{thread_name @, @curr_thread}"
+      @meta_stack().pop()
+    throw ReturnException
 
   curr_frame: -> @meta_stack().curr_frame()
 

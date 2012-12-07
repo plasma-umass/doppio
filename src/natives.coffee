@@ -54,8 +54,8 @@ trapped_methods =
   java:
     lang:
       ref:
-        Reference$ReferenceHandler: [
-          o 'run()V', (rs) -> # NOP, because don't do our own GC
+        Reference: [
+          o '<clinit>()V', (rs) -> # NOP, because we don't do our own GC and also this starts a thread?!?!?!
         ]
       System: [
         o 'loadLibrary(L!/!/String;)V', (rs) -> # NOP, because we don't support loading external libraries
@@ -373,19 +373,21 @@ native_methods =
             _this.ref
         o 'clone()L!/!/!;', (rs, _this) -> _this.clone(rs)
         o 'notify()V', (rs, _this) ->
-            return unless rs.lock_refs[_this]?  # if it's not an active monitor, no one cares
-            unless rs.lock_refs[_this] is rs.curr_thread
-              owner = thread_name rs, rs.lock_refs[_this]
-              exceptions.java_throw rs, 'java/lang/IllegalMonitorStateException', "Thread '#{owner}' owns this monitor"
-            if rs.waiting_threads[_this]? and (t = rs.waiting_threads[_this].shift())?
-              rs.wait _this, t  # wait on _this, yield to t
-        o 'notifyAll()V', (rs, _this) ->  # exactly the same as notify(), for now
-            return unless rs.lock_refs[_this]?  # if it's not an active monitor, no one cares
-            unless rs.lock_refs[_this] is rs.curr_thread
-              owner = thread_name rs, rs.lock_refs[_this]
-              exceptions.java_throw rs, 'java/lang/IllegalMonitorStateException', "Thread '#{owner}' owns this monitor"
-            if rs.waiting_threads[_this]? and (t = rs.waiting_threads[_this].shift())?
-              rs.wait _this, t  # wait on _this, yield to t
+            debug "TE(notify): on lock *#{_this.ref}"
+            if (locker = rs.lock_refs[_this])?
+              if locker isnt rs.curr_thread
+                owner = thread_name rs, locker
+                exceptions.java_throw rs, 'java/lang/IllegalMonitorStateException', "Thread '#{owner}' owns this monitor"
+            if rs.waiting_threads[_this]?
+              rs.waiting_threads[_this].shift()
+        o 'notifyAll()V', (rs, _this) ->
+            debug "TE(notifyAll): on lock *#{_this.ref}"
+            if (locker = rs.lock_refs[_this])?
+              if locker isnt rs.curr_thread
+                owner = thread_name rs, locker
+                exceptions.java_throw rs, 'java/lang/IllegalMonitorStateException', "Thread '#{owner}' owns this monitor"
+            if rs.waiting_threads[_this]?
+              rs.waiting_threads[_this] = []
         o 'wait(J)V', (rs, _this, timeout) ->
             unless timeout is gLong.ZERO
               error "TODO(Object::wait): respect the timeout param (#{timeout})"
@@ -501,7 +503,25 @@ native_methods =
             tmp = _this.$isInterrupted ? false
             _this.$isInterrupted = false if clear_flag
             tmp
-        o 'start0()V', (rs, _this) ->  # XXX nop
+        o 'start0()V', (rs, _this) ->
+            _this.$isAlive = true
+            _this.$meta_stack = new runtime.CallStack()
+            rs.thread_pool.push _this
+            old_thread_sf = rs.curr_frame()
+            debug "TE(start0): starting #{thread_name rs, _this} from #{thread_name rs, rs.curr_thread}"
+            rs.curr_thread = _this
+            new_thread_sf = rs.curr_frame()
+            rs.push _this
+            run_method = rs.method_lookup({class: _this.type.toClassString(), sig: 'run()V'})
+            thread_runner_sf = run_method.setup_stack(rs)
+            new_thread_sf.runner = ->
+              new_thread_sf.runner = null  # new_thread_sf is the fake SF at index 0
+              _this.$isAlive = false
+              debug "TE(start0): thread died: #{thread_name rs, _this}"
+            old_thread_sf.runner = ->
+              debug "TE(start0): thread resumed: #{thread_name rs, rs.curr_thread}"
+              rs.meta_stack().pop()
+            throw exceptions.ReturnException
         o 'sleep(J)V', (rs, millis) ->
             rs.curr_frame().runner = -> rs.meta_stack().pop()
             throw new exceptions.YieldIOException (cb) ->
