@@ -9,8 +9,8 @@ public class FileHandle {
       in.read();
       in.close();
       in.read();
-    } catch (Exception e) {
-      System.err.println(e.toString());
+    } catch (IOException e) {
+      System.err.println("An IOException has occurred (expected).");
     }
   }
 }

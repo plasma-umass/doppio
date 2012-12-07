@@ -5,7 +5,7 @@ gLong = require '../vendor/gLong.js'
 util = require './util'
 types = require './types'
 runtime = require './runtime'
-{thread_name,JavaArray} = require './java_object'
+{thread_name,JavaObject,JavaArray} = require './java_object'
 exceptions = require './exceptions'
 {log,debug,error} = require './logging'
 path = node?.path ? require 'path'
@@ -943,7 +943,7 @@ native_methods =
         o 'objectFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.get_field rs, 'java/lang/reflect/Field/slot')
         o 'staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;', (rs,_this,field) ->
             cls = field.get_field rs, 'java/lang/reflect/Field/clazz'
-            rs.set_obj cls.$type
+            new JavaObject rs, cls.$type, rs.class_lookup(cls.$type)
         o 'getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
             obj.get_field_from_offset rs, offset
         o 'getObject(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
@@ -977,7 +977,7 @@ native_methods =
             cls = m.get_field rs, 'java/lang/reflect/Constructor/clazz'
             slot = m.get_field rs, 'java/lang/reflect/Constructor/slot'
             method = (method for sig, method of rs.class_lookup(cls.$type, true).methods when method.idx is slot)[0]
-            rs.push (obj = rs.set_obj cls.$type)
+            rs.push (obj = new JavaObject rs, cls.$type, rs.class_lookup(cls.$type))
             rs.push_array params.array if params?
             method.run(rs)
             obj

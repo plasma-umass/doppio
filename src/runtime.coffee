@@ -160,11 +160,6 @@ class root.RuntimeState
   check_null: (obj) ->
     java_throw @, 'java/lang/NullPointerException', '' unless obj?
     obj
-  set_obj: (type, obj) ->
-    if type instanceof types.ArrayType
-      new JavaArray @, type, obj
-    else
-      new JavaObject @, type, @class_lookup(type), obj
 
   heap_newarray: (type,len) ->
     if len < 0
@@ -189,7 +184,10 @@ class root.RuntimeState
   # heap object initialization
   init_object: (cls, obj) ->
     type = c2t(cls)
-    @set_obj type, obj
+    if type instanceof types.ArrayType
+      new JavaArray @, type, obj
+    else
+      new JavaObject @, type, @class_lookup(type), obj
   init_string: (str,intern=false) ->
     return s if intern and (s = @string_pool.get str)?
     carr = @init_carr str
