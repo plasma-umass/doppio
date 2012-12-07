@@ -5,7 +5,7 @@ gLong = require '../vendor/gLong.js'
 util = require './util'
 types = require './types'
 runtime = require './runtime'
-{thread_name,JavaArray} = require './java_object'
+{thread_name,JavaObject,JavaArray} = require './java_object'
 exceptions = require './exceptions'
 {log,debug,error} = require './logging'
 path = node?.path ? require 'path'
@@ -69,8 +69,8 @@ trapped_methods =
       Throwable: [
         o 'fillInStackTrace()L!/!/!;', (rs, _this) ->
             stack = []
-            strace = rs.init_object "[Ljava/lang/StackTraceElement;", stack
-            _this.set_field rs, 'stackTrace', strace
+            strace = rs.init_array "[Ljava/lang/StackTraceElement;", stack
+            _this.set_field rs, 'java/lang/Throwable/stackTrace', strace
             # we don't want to include the stack frames that were created by
             # the construction of this exception
             cstack = rs.meta_stack()._cs.slice(1,-1)
@@ -88,10 +88,10 @@ trapped_methods =
                 ln = util.last(row.line_number for i,row of line_nums when row.start_pc <= sf.pc)
               ln ?= -1
               stack.push rs.init_object "java/lang/StackTraceElement", {
-                declaringClass: rs.init_string util.ext_classname cls.toClassString()
-                methodName: rs.init_string sf.method.name
-                fileName: rs.init_string source_file
-                lineNumber: ln
+                'java/lang/StackTraceElement/declaringClass': rs.init_string util.ext_classname cls.toClassString()
+                'java/lang/StackTraceElement/methodName': rs.init_string sf.method.name
+                'java/lang/StackTraceElement/fileName': rs.init_string source_file
+                'java/lang/StackTraceElement/lineNumber': ln
               }
             stack.reverse()
             _this
@@ -102,7 +102,7 @@ trapped_methods =
           AtomicInteger: [
             o '<clinit>()V', (rs) -> #NOP
             o 'compareAndSet(II)Z', (rs, _this, expect, update) ->
-                _this.set_field rs, 'value', update  # we don't need to compare, just set
+                _this.set_field rs, 'java/util/concurrent/atomic/AtomicInteger/value', update  # we don't need to compare, just set
                 true # always true, because we only have one thread
           ]
       Currency: [
@@ -248,34 +248,34 @@ native_methods =
         o 'getDeclaredFields0(Z)[Ljava/lang/reflect/Field;', (rs, _this, public_only) ->
             fields = _this.file.fields
             fields = (f for f in fields when f.access_flags.public) if public_only
-            rs.init_object('[Ljava/lang/reflect/Field;',(f.reflector(rs) for f in fields))
+            rs.init_array('[Ljava/lang/reflect/Field;',(f.reflector(rs) for f in fields))
         o 'getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;', (rs, _this, public_only) ->
             methods = _this.file.methods
             methods = (m for sig, m of methods when sig[0] != '<' and (m.access_flags.public or not public_only))
-            rs.init_object('[Ljava/lang/reflect/Method;',(m.reflector(rs) for m in methods))
+            rs.init_array('[Ljava/lang/reflect/Method;',(m.reflector(rs) for m in methods))
         o 'getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;', (rs, _this, public_only) ->
             methods = _this.file.methods
             methods = (m for sig, m of methods when m.name is '<init>')
             methods = (m for m in methods when m.access_flags.public) if public_only
-            rs.init_object('[Ljava/lang/reflect/Constructor;',(m.reflector(rs,true) for m in methods))
+            rs.init_array('[Ljava/lang/reflect/Constructor;',(m.reflector(rs,true) for m in methods))
         o 'getInterfaces()[L!/!/!;', (rs, _this) ->
             cls = _this.file
             ifaces = (cls.constant_pool.get(i).deref() for i in cls.interfaces)
             ifaces = ((if util.is_string(i) then c2t(i) else i) for i in ifaces)
             iface_objs = (rs.jclass_obj(iface, true) for iface in ifaces)
-            rs.init_object('[Ljava/lang/Class;',iface_objs)
+            rs.init_array('[Ljava/lang/Class;',iface_objs)
         o 'getModifiers()I', (rs, _this) -> _this.file.access_byte
         o 'getRawAnnotations()[B', (rs, _this) ->
             cls = _this.file
             annotations = _.find(cls.attrs, (a) -> a.constructor.name == 'RuntimeVisibleAnnotations')
-            return new JavaArray c2t('[B'), rs, annotations.raw_bytes if annotations?
+            return new JavaArray rs, c2t('[B'), annotations.raw_bytes if annotations?
             for sig,m of cls.methods
               annotations = _.find(m.attrs, (a) -> a.constructor.name == 'RuntimeVisibleAnnotations')
-              return new JavaArray c2t('[B'), rs, annotations.raw_bytes if annotations?
+              return new JavaArray rs, c2t('[B'), annotations.raw_bytes if annotations?
             null
         o 'getConstantPool()Lsun/reflect/ConstantPool;', (rs, _this) ->
             cls = _this.file
-            rs.init_object 'sun/reflect/ConstantPool', {constantPoolOop: cls.constant_pool}
+            rs.init_object 'sun/reflect/ConstantPool', {'sun/reflect/ConstantPool/constantPoolOop': cls.constant_pool}
         o 'getEnclosingMethod0()[L!/!/Object;', (rs, _this) ->
             return null unless _this.$type instanceof types.ClassType
             cls = _this.file
@@ -286,7 +286,7 @@ native_methods =
             # - the immediately enclosing class (java/lang/Class)
             # - the immediately enclosing method or constructor's name (can be null). (String)
             # - the immediately enclosing method or constructor's descriptor (null iff name is). (String)
-            #new JavaArray c2t('[Ljava/lang/Object;'), rs, [null,null,null]
+            #new JavaArray rs, c2t('[Ljava/lang/Object;'), [null,null,null]
         o 'getDeclaringClass()L!/!/!;', (rs, _this) ->
             return null unless _this.$type instanceof types.ClassType
             cls = _this.file
@@ -303,7 +303,7 @@ native_methods =
               return rs.jclass_obj c2t(declaring_name), true
             return null
         o 'getDeclaredClasses0()[L!/!/!;', (rs, _this) ->
-            ret = new JavaArray c2t('[Ljava/lang/Class;'), rs, []
+            ret = new JavaArray rs, c2t('[Ljava/lang/Class;'), []
             return ret unless _this.$type instanceof types.ClassType
             cls = _this.file
             my_class = _this.$type.toClassString()
@@ -401,9 +401,9 @@ native_methods =
             env_arr = []
             # convert to an array of strings of the form [key, value, key, value ...]
             for k, v of process.env
-              env_arr.push new JavaArray c2t('[B'), rs, util.bytestr_to_array k
-              env_arr.push new JavaArray c2t('[B'), rs, util.bytestr_to_array v
-            new JavaArray c2t('[[B'), rs, env_arr
+              env_arr.push new JavaArray rs, c2t('[B'), util.bytestr_to_array k
+              env_arr.push new JavaArray rs, c2t('[B'), util.bytestr_to_array v
+            new JavaArray rs, c2t('[[B'), env_arr
       ]
       reflect:
         Array: [
@@ -564,10 +564,11 @@ native_methods =
               cache_init.setup_stack(rs)
               my_sf.runner = ->
                 rv = rs.init_object 'java/io/UnixFileSystem', {
-                  cache: cache1, javaHomePrefixCache: cache2
-                  slash: system_properties['file.separator'].charCodeAt(0)
-                  colon: system_properties['path.separator'].charCodeAt(0)
-                  javaHome: rs.init_string(system_properties['java.home'], true)
+                  'java/io/UnixFileSystem/cache': cache1
+                  'java/io/UnixFileSystem/javaHomePrefixCache': cache2
+                  'java/io/UnixFileSystem/slash': system_properties['file.separator'].charCodeAt(0)
+                  'java/io/UnixFileSystem/colon': system_properties['path.separator'].charCodeAt(0)
+                  'java/io/UnixFileSystem/javaHome': rs.init_string(system_properties['java.home'], true)
                 }
                 rs.meta_stack().pop()
                 rs.push rv
@@ -698,7 +699,7 @@ native_methods =
             js_str = jvm_path_str.jvm2js_str()
             rs.init_string path.resolve(path.normalize(js_str))
         o 'checkAccess(Ljava/io/File;I)Z', (rs, _this, file, access) ->
-            filepath = file.get_field rs, 'path'
+            filepath = file.get_field rs, 'java/io/File/path'
             stats = stat_file filepath.jvm2js_str()
             return false unless stats?
             #XXX: Assuming we're owner/group/other. :)
@@ -709,7 +710,7 @@ native_methods =
             mask = access | (access << 3) | (access << 6)
             return (stats.mode & mask) > 0
         o 'createDirectory(Ljava/io/File;)Z', (rs, _this, file) ->
-            filepath = (file.get_field rs, 'path').jvm2js_str()
+            filepath = (file.get_field rs, 'java/io/File/path').jvm2js_str()
             # Already exists.
             return false if stat_file(filepath)?
             try
@@ -737,7 +738,7 @@ native_methods =
             # Delete the file or directory denoted by the given abstract
             # pathname, returning true if and only if the operation succeeds.
             # If file is a directory, it must be empty.
-            filepath = (file.get_field rs, 'path').jvm2js_str()
+            filepath = (file.get_field rs, 'java/io/File/path').jvm2js_str()
             stats = stat_file filepath
             return false unless stats?
             try
@@ -750,17 +751,17 @@ native_methods =
               return false
             return true
         o 'getBooleanAttributes0(Ljava/io/File;)I', (rs, _this, file) ->
-            filepath = file.get_field rs, 'path'
+            filepath = file.get_field rs, 'java/io/File/path'
             stats = stat_file filepath.jvm2js_str()
             return 0 unless stats?
             if stats.isFile() then 3 else if stats.isDirectory() then 5 else 1
         o 'getLastModifiedTime(Ljava/io/File;)J', (rs, _this, file) ->
-            filepath = file.get_field(rs, 'path').jvm2js_str()
+            filepath = file.get_field(rs, 'java/io/File/path').jvm2js_str()
             stats = stat_file filepath
             return gLong.ZERO unless stats?
             gLong.fromNumber (new Date(stats.mtime)).getTime()
         o 'getLength(Ljava/io/File;)J', (rs, _this, file) ->
-            filepath = file.get_field rs, 'path'
+            filepath = file.get_field rs, 'java/io/File/path'
             try
               length = fs.statSync(filepath.jvm2js_str()).size
             catch e
@@ -768,15 +769,15 @@ native_methods =
             gLong.fromNumber(length)
         #o 'getSpace(Ljava/io/File;I)J', (rs, _this, file, t) ->
         o 'list(Ljava/io/File;)[Ljava/lang/String;', (rs, _this, file) ->
-            filepath = file.get_field rs, 'path'
+            filepath = file.get_field rs, 'java/io/File/path'
             try
               files = fs.readdirSync(filepath.jvm2js_str())
             catch e
               return null
-            rs.init_object('[Ljava/lang/String;',(rs.init_string(f) for f in files))
+            rs.init_array('[Ljava/lang/String;',(rs.init_string(f) for f in files))
         o 'rename0(Ljava/io/File;Ljava/io/File;)Z', (rs, _this, file1, file2) ->
-          file1path = (file1.get_field rs, 'path').jvm2js_str()
-          file2path = (file2.get_field rs, 'path').jvm2js_str()
+          file1path = (file1.get_field rs, 'java/io/File/path').jvm2js_str()
+          file2path = (file2.get_field rs, 'java/io/File/path').jvm2js_str()
           try
             fs.renameSync(file1path, file2path)
           catch e
@@ -784,7 +785,7 @@ native_methods =
           return true
         #o 'setLastModifiedTime(Ljava/io/File;J)Z', (rs, _this, file, time) ->
         o 'setPermission(Ljava/io/File;IZZ)Z', (rs, _this, file, access, enable, owneronly) ->
-            filepath = (file.get_field rs, 'path').jvm2js_str()
+            filepath = (file.get_field rs, 'java/io/File/path').jvm2js_str()
             # Access is equal to one of the following static fields:
             # * FileSystem.ACCESS_READ (0x04)
             # * FileSystem.ACCESS_WRITE (0x02)
@@ -818,7 +819,7 @@ native_methods =
               return false
             return true
         o 'setReadOnly(Ljava/io/File;)Z', (rs, _this, file) ->
-          filepath = (file.get_field rs, 'path').jvm2js_str()
+          filepath = (file.get_field rs, 'java/io/File/path').jvm2js_str()
           # We'll be unsetting write permissions.
           # Leading 0o indicates octal.
           mask = ~(0o222)
@@ -843,7 +844,7 @@ native_methods =
       ResourceBundle: [
         o 'getClassContext()[L!/lang/Class;', (rs) ->
             # XXX should walk up the meta_stack and fill in the array properly
-            rs.init_object '[Ljava/lang/Class;', [null,null,null]
+            rs.init_array '[Ljava/lang/Class;', [null,null,null]
       ]
       TimeZone: [
         o 'getSystemTimeZoneID(L!/lang/String;L!/lang/String;)L!/lang/String;', (rs, java_home, country) ->
@@ -874,9 +875,9 @@ native_methods =
       ]
       MemoryImpl: [
         o 'getMemoryManagers0()[Ljava/lang/management/MemoryManagerMXBean;', (rs) ->
-            rs.init_object '[Lsun/management/MemoryManagerImpl;', [] # XXX may want to revisit this 'NOP'
+            rs.init_array '[Lsun/management/MemoryManagerImpl;', [] # XXX may want to revisit this 'NOP'
         o 'getMemoryPools0()[Ljava/lang/management/MemoryPoolMXBean;', (rs) ->
-            rs.init_object '[Lsun/management/MemoryPoolImpl;', [] # XXX may want to revisit this 'NOP'
+            rs.init_array '[Lsun/management/MemoryPoolImpl;', [] # XXX may want to revisit this 'NOP'
       ]
     misc:
       VM: [
@@ -920,11 +921,11 @@ native_methods =
         o 'compareAndSwapLong(Ljava/lang/Object;JJJ)Z', unsafe_compare_and_swap
         o 'ensureClassInitialized(Ljava/lang/Class;)V', (rs,_this,cls) ->
             rs.class_lookup(cls.$type)
-        o 'staticFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.get_field rs, 'slot')
-        o 'objectFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.get_field rs, 'slot')
+        o 'staticFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.get_field rs, 'java/lang/reflect/Field/slot')
+        o 'objectFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.get_field rs, 'java/lang/reflect/Field/slot')
         o 'staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;', (rs,_this,field) ->
-            cls = field.get_field rs, 'clazz'
-            rs.set_obj cls.$type
+            cls = field.get_field rs, 'java/lang/reflect/Field/clazz'
+            new JavaObject rs, cls.$type, rs.class_lookup(cls.$type)
         o 'getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
             obj.get_field_from_offset rs, offset
         o 'getObject(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
@@ -945,8 +946,8 @@ native_methods =
       ]
       NativeMethodAccessorImpl: [
         o 'invoke0(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;', (rs,m,obj,params) ->
-            cls = m.get_field rs, 'clazz'
-            slot = m.get_field rs, 'slot'
+            cls = m.get_field rs, 'java/lang/reflect/Method/clazz'
+            slot = m.get_field rs, 'java/lang/reflect/Method/slot'
             method = (method for sig, method of rs.class_lookup(cls.$type, true).methods when method.idx is slot)[0]
             my_sf = rs.curr_frame()
             rs.push obj unless method.access_flags.static
@@ -960,11 +961,11 @@ native_methods =
       ]
       NativeConstructorAccessorImpl: [
         o 'newInstance0(Ljava/lang/reflect/Constructor;[Ljava/lang/Object;)Ljava/lang/Object;', (rs,m,params) ->
-            cls = m.get_field rs, 'clazz'
-            slot = m.get_field rs, 'slot'
+            cls = m.get_field rs, 'java/lang/reflect/Constructor/clazz'
+            slot = m.get_field rs, 'java/lang/reflect/Constructor/slot'
             method = (method for sig, method of rs.class_lookup(cls.$type, true).methods when method.idx is slot)[0]
             my_sf = rs.curr_frame()
-            rs.push (obj = rs.set_obj cls.$type)
+            rs.push (obj = new JavaObject rs, cls.$type, rs.class_lookup(cls.$type))
             rs.push_array params.array if params?
             method.setup_stack(rs)
             my_sf.runner = ->

@@ -41,12 +41,12 @@ class root.Field extends AbstractMethodField
     sig = _.find(@attrs, (a) -> a.constructor.name == "Signature")?.sig
     rs.init_object 'java/lang/reflect/Field', {
       # XXX this leaves out 'annotations'
-      clazz: rs.jclass_obj(@class_type)
-      name: rs.init_string @name, true
-      type: rs.jclass_obj @type
-      modifiers: @access_byte
-      slot: @idx
-      signature: if sig? then rs.init_string sig else null
+      'java/lang/reflect/Field/clazz': rs.jclass_obj(@class_type)
+      'java/lang/reflect/Field/name': rs.init_string @name, true
+      'java/lang/reflect/Field/type': rs.jclass_obj @type
+      'java/lang/reflect/Field/modifiers': @access_byte
+      'java/lang/reflect/Field/slot': @idx
+      'java/lang/reflect/Field/signature': if sig? then rs.init_string sig else null
     }
 
 class root.Method extends AbstractMethodField
@@ -89,19 +89,19 @@ class root.Method extends AbstractMethodField
     anns = _.find(@attrs, (a) -> a.constructor.name == 'RuntimeVisibleAnnotations')?.raw_bytes
     adefs = _.find(@attrs, (a) -> a.constructor.name == 'AnnotationDefault')?.raw_bytes
     sig =  _.find(@attrs, (a) -> a.constructor.name == 'Signature')?.sig
-    rs.init_object typestr, {
-      # XXX: missing parameterAnnotations
-      clazz: rs.jclass_obj(@class_type)
-      name: rs.init_string @name, true
-      parameterTypes: rs.init_object "[Ljava/lang/Class;", (rs.jclass_obj(f) for f in @param_types)
-      returnType: rs.jclass_obj @return_type
-      exceptionTypes: rs.init_object "[Ljava/lang/Class;", (rs.jclass_obj(c2t(e)) for e in exceptions)
-      modifiers: @access_byte
-      slot: @idx
-      signature: if sig? then rs.init_string sig else null
-      annotations: if anns? then rs.init_object('[B', anns) else null
-      annotationDefault: if adefs? then rs.init_object('[B', adefs) else null
-    }
+    obj = {}
+    # XXX: missing parameterAnnotations
+    obj[typestr + '/clazz'] = rs.jclass_obj(@class_type)
+    obj[typestr + '/name'] = rs.init_string @name, true
+    obj[typestr + '/parameterTypes'] = rs.init_array "[Ljava/lang/Class;", (rs.jclass_obj(f) for f in @param_types)
+    obj[typestr + '/returnType'] = rs.jclass_obj @return_type
+    obj[typestr + '/exceptionTypes'] = rs.init_array "[Ljava/lang/Class;", (rs.jclass_obj(c2t(e)) for e in exceptions)
+    obj[typestr + '/modifiers'] = @access_byte
+    obj[typestr + '/slot'] = @idx
+    obj[typestr + '/signature'] = if sig? then rs.init_string sig else null
+    obj[typestr + '/annotations'] = if anns? then rs.init_array('[B', anns) else null
+    obj[typestr + '/annotationDefault'] = if adefs? then rs.init_array('[B', adefs) else null
+    rs.init_object typestr, obj
 
   take_params: (caller_stack) ->
     start = caller_stack.length - @param_bytes
