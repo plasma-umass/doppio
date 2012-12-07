@@ -188,7 +188,7 @@ write_to_file = (rs, _this, bytes, offset, len, append) ->
   if node?
     # For the browser implementation -- the DOM doesn't get repainted
     # unless we give the event loop a chance to spin.
-    rs.curr_frame().resume = -> # NOP
+    rs.curr_frame().runner = -> rs.meta_stack().pop()
     throw new exceptions.YieldIOException (cb) -> setTimeout(cb, 0)
 
 
@@ -421,7 +421,7 @@ native_methods =
         o 'gc()V', (rs) ->
             # No universal way of forcing browser to GC, so we yield in hopes
             # that the browser will use it as an opportunity to GC.
-            rs.curr_frame().resume = -> # NOP
+            rs.curr_frame().runner = -> rs.meta_stack().pop()
             throw new exceptions.YieldIOException (cb) -> setTimeout(cb, 0)
       ]
       Shutdown: [
@@ -601,8 +601,9 @@ native_methods =
               return if bytes_read == 0 then -1 else buf.readUInt8(0)
             # reading from System.in, do it async
             data = null # will be filled in after the yield
-            rs.curr_frame().resume = ->
-              if data.length == 0 then -1 else data.charCodeAt(0)
+            rs.curr_frame().runner = ->
+              rs.meta_stack().pop()
+              rs.push(if data.length == 0 then -1 else data.charCodeAt(0))
             throw new exceptions.YieldIOException (cb) ->
               rs.async_input 1, (byte) ->
                 data = byte
@@ -625,7 +626,9 @@ native_methods =
               return if bytes_read == 0 and n_bytes isnt 0 then -1 else bytes_read
             # reading from System.in, do it async
             result = null # will be filled in after the yield
-            rs.curr_frame().resume = -> result
+            rs.curr_frame().runner = ->
+              rs.meta_stack().pop()
+              rs.push result
             throw new exceptions.YieldIOException (cb) ->
               rs.async_input n_bytes, (bytes) ->
                 byte_arr.array[offset+idx] = b for b, idx in bytes
@@ -654,7 +657,9 @@ native_methods =
               return gLong.fromNumber(to_skip)
             # reading from System.in, do it async
             num_skipped = null # will be filled in after the yield
-            rs.curr_frame().resume = -> gLong.fromNumber(num_skipped)
+            rs.curr_frame().runner = ->
+              rs.meta_stack().pop()
+              rs.push gLong.fromNumber(num_skipped)
             throw new exceptions.YieldIOException (cb) ->
               rs.async_input n_bytes.toNumber(), (bytes) ->
                 num_skipped = bytes.length  # we don't care about what the input actually was
