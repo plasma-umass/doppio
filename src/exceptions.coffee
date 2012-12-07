@@ -14,13 +14,10 @@ class root.HaltException
   toplevel_catch_handler: () ->
     error "\nExited with code #{@exit_code}" unless @exit_code is 0
 
-root.ReturnException = {}
+root.ReturnException = 'RETURNEXCEPTION'
 
 class root.YieldException
   constructor: (@condition) ->
-  method_catch_handler: (rs, method) ->
-    trace "yielding from #{method.full_signature()}"
-    throw @
 
 class root.YieldIOException extends root.YieldException
   # empty class
@@ -28,23 +25,25 @@ class root.YieldIOException extends root.YieldException
 class root.JavaException
   constructor: (@exception) ->
 
-  method_catch_handler: (rs, method) ->
+  method_catch_handler: (rs, method, top_of_stack) ->
     cf = rs.curr_frame()
+    if not top_of_stack and method.has_bytecode
+     cf.pc -= 3  # rewind the invoke opcode
+     cf.pc -= 1 until method.code.opcodes[cf.pc]?.constructor.name.match /Invoke/ or cf.pc <= 0
     exception_handlers = method.code?.exception_handlers
     etype = @exception.type
     handler = _.find exception_handlers, (eh) ->
       eh.start_pc <= cf.pc < eh.end_pc and
         (eh.catch_type == "<any>" or types.is_castable rs, etype, types.c2t(eh.catch_type))
     if handler?
-      trace "caught exception as subclass of #{handler.catch_type}"
+      debug "caught exception as subclass of #{handler.catch_type}"
       cf.stack = []  # clear out anything on the stack; it was made during the try block
       rs.push @exception
       cf.pc = handler.handler_pc
-      return
+      return true
     # abrupt method invocation completion
-    trace "exception not caught, terminating #{method.name}"
-    rs.meta_stack().pop()
-    throw @
+    debug "exception not caught, terminating #{method.full_signature()}"
+    return false
 
   toplevel_catch_handler: (rs) ->
     debug "\nUncaught #{@exception.type.toClassString()}"
@@ -54,7 +53,8 @@ class root.JavaException
     rs.push2 rs.curr_thread, @exception
     rs.method_lookup(
       class: 'java/lang/Thread'
-      sig: 'dispatchUncaughtException(Ljava/lang/Throwable;)V').run(rs)
+      sig: 'dispatchUncaughtException(Ljava/lang/Throwable;)V').setup_stack(rs)
+
 
 # Simulate the throwing of a Java exception with message :msg. Not very DRY --
 # code here is essentially copied from the opcodes themselves -- but
@@ -63,5 +63,9 @@ root.java_throw = (rs, cls, msg) ->
   method_spec = class: cls, sig: '<init>(Ljava/lang/String;)V'
   v = rs.init_object cls # new
   rs.push_array([v,v,rs.init_string msg]) # dup, ldc
-  rs.method_lookup(method_spec).run(rs) # invokespecial
-  throw new root.JavaException rs.pop() # athrow
+  my_sf = rs.curr_frame()
+  rs.method_lookup(method_spec).setup_stack(rs) # invokespecial
+  my_sf.runner = ->
+    my_sf.runner = (-> my_sf.method.run_bytecode(rs))  # don't re-throw the exception
+    throw (new root.JavaException(rs.pop())) # athrow
+  throw root.ReturnException
