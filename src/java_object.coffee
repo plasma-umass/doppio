@@ -12,13 +12,13 @@ types = require './types'
 root = exports ? window.java_object ?= {}
 
 class root.JavaArray
-  constructor: (@type, rs, obj) ->
+  constructor: (rs, @type, obj) ->
     @ref = rs.high_oref++
     @array = obj
 
   clone: (rs) ->
     # note: we don't clone the type, because they're effectively immutable
-    new root.JavaArray @type, rs, _.clone(@array)
+    new root.JavaArray rs, @type,  _.clone(@array)
 
   get_field_from_offset: (rs, offset) -> @array[offset.toInt()]
   set_field_from_offset: (rs, offset, value) -> @array[offset.toInt()] = value
@@ -31,11 +31,10 @@ class root.JavaArray
 
 
 class root.JavaObject
-  constructor: (@type, rs, obj={}) ->
+  constructor: (rs, @type, @cls, obj={}) ->
     @ref = rs.high_oref++
-    cls = rs.class_lookup @type
     # Use default fields as a prototype.
-    @fields = Object.create(cls.get_default_fields(rs))
+    @fields = Object.create(@cls.get_default_fields(rs))
     for field of obj
       if obj.hasOwnProperty(field)
         @fields[field] = obj[field]
@@ -44,7 +43,7 @@ class root.JavaObject
 
   clone: (rs) ->
     # note: we don't clone the type, because they're effectively immutable
-    new root.JavaObject @type, rs, _.clone(@fields)
+    new root.JavaObject rs, @type, @cls, _.clone(@fields)
 
   set_field: (rs, name, val) ->
     unless @fields[name] is undefined
@@ -58,7 +57,7 @@ class root.JavaObject
     java_throw rs, 'java/lang/NoSuchFieldError', name
 
   get_field_from_offset: (rs, offset) ->
-    f = @_get_field_from_offset rs, rs.class_lookup(@type), offset.toInt()
+    f = @_get_field_from_offset rs, @cls, offset.toInt()
     if f.field.access_flags.static
       return rs.static_get({class:@type.toClassString(),name:f.field.name})
     @get_field rs, f.cls + '/' + f.field.name
@@ -72,7 +71,7 @@ class root.JavaObject
     {field: cls.fields[offset], cls: cls.this_class.toClassString()}
 
   set_field_from_offset: (rs, offset, value) ->
-    f = @_get_field_from_offset rs, rs.class_lookup(@type), offset.toInt()
+    f = @_get_field_from_offset rs, @cls, offset.toInt()
     if f.field.access_flags.static
       rs.push value
       rs.static_put({class:@type.toClassString(),name:f.field.name})
@@ -92,7 +91,8 @@ class root.JavaObject
 
 class root.JavaClassObject extends root.JavaObject
   constructor: (rs, @$type, @file) ->
-    super types.c2t('java/lang/Class'), rs
+    type = types.c2t('java/lang/Class')
+    super rs, type, rs.class_lookup(type)
 
   toString: -> "<Class #{@$type} (*#{@ref})>"
 
