@@ -42,7 +42,7 @@ class root.JavaException
       cf.pc = handler.handler_pc
       return true
     # abrupt method invocation completion
-    debug "exception not caught, terminating #{method.name}"
+    debug "exception not caught, terminating #{method.full_signature()}"
     return false
 
   toplevel_catch_handler: (rs) ->

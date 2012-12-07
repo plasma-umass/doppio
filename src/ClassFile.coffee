@@ -127,7 +127,7 @@ class ClassFile
       t = cls.super_class
     # Supposedly makes prototype lookup faster. I haven't noticed a net
     # positive or negative result, so I'll keep it in for now.
-    Object.freeze @default_fields
+    #Object.freeze @default_fields
 
   get_default_fields: (rs) ->
     return @default_fields unless @default_fields is undefined
