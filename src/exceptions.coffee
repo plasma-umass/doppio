@@ -66,6 +66,9 @@ root.java_throw = (rs, cls, msg) ->
   my_sf = rs.curr_frame()
   rs.method_lookup(method_spec).setup_stack(rs) # invokespecial
   my_sf.runner = ->
-    my_sf.runner = (-> my_sf.method.run_bytecode(rs))  # don't re-throw the exception
+    if my_sf.method.has_bytecode
+      my_sf.runner = (-> my_sf.method.run_bytecode(rs))  # don't re-throw the exception
+    else
+      my_sf.runner = null
     throw (new root.JavaException(rs.pop())) # athrow
   throw root.ReturnException

@@ -58,7 +58,9 @@ run_until_finished = (rs, setup_fn, done_cb) ->
     done_cb?()
     return true
   catch e
-    if e instanceof exceptions.YieldIOException
+    if e == exceptions.ReturnException
+      return run_until_finished rs, (->)
+    else if e instanceof exceptions.YieldIOException
       retval = null
       e.condition ->
         retval = run_until_finished rs, (->), done_cb
