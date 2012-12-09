@@ -79,7 +79,10 @@ class root.RuntimeState
         ct.$meta_stack = @meta_stack()
         @curr_thread = ct
         @curr_thread.$isAlive = true
-        @thread_pool.push @curr_thread  # note: the main thread is always at @thread_pool[0]
+        # the main thread is always at @thread_pool[0]
+        @thread_pool.push @curr_thread
+        # hack to make auto-named threads match native Java
+        @class_states['java/lang/Thread'].fields.threadInitNumber = 1
         debug "### finished thread init ###"
       ct = @init_object 'java/lang/Thread',
         'java/lang/Thread/name': @init_carr 'main'
