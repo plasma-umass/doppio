@@ -586,7 +586,7 @@ root.opcodes = {
         rs.lock_counts[monitor]++  # increment lock counter, to only unlock at zero
       else
         rs.inc_pc(1)
-        rs.meta_stack().push {}  # dummy, to be popped
+        rs.meta_stack().push {}  # dummy, to be popped by rs.yield
         rs.wait monitor
     else  # this lock not held by any thread
       rs.lock_refs[monitor] = rs.curr_thread

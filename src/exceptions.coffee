@@ -36,7 +36,7 @@ class root.JavaException
       eh.start_pc <= cf.pc < eh.end_pc and
         (eh.catch_type == "<any>" or types.is_castable rs, etype, types.c2t(eh.catch_type))
     if handler?
-      debug "caught exception as subclass of #{handler.catch_type}"
+      debug "caught #{@exception.type.toClassString()} in #{method.full_signature()} as subclass of #{handler.catch_type}"
       cf.stack = []  # clear out anything on the stack; it was made during the try block
       rs.push @exception
       cf.pc = handler.handler_pc
