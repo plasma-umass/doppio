@@ -120,8 +120,10 @@ class root.RuntimeState
       continue if blacklist? and t in blacklist
       debug "TE(choose_next_thread): choosing thread #{thread_name(@, t)}"
       return t
-    java_throw @, 'java/lang/Error', "tried to switch threads when no other thread was available"
-
+    # we couldn't find a thread! We can't error out, so keep trying
+    return @choose_next_thread() if blacklist?  # forget the blacklist
+    debug "TE(choose_next_thread): no thread found, sticking with curr_thread"
+    return @curr_thread
 
   wait: (monitor, yieldee) ->
     # add current thread to wait queue
