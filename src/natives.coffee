@@ -391,6 +391,11 @@ native_methods =
         o 'wait(J)V', (rs, _this, timeout) ->
             unless timeout is gLong.ZERO
               error "TODO(Object::wait): respect the timeout param (#{timeout})"
+            if (locker = rs.lock_refs[_this])?
+              if locker isnt rs.curr_thread
+                owner = thread_name rs, locker
+                exceptions.java_throw rs, 'java/lang/IllegalMonitorStateException', "Thread '#{owner}' owns this monitor"
+            rs.lock_refs[_this] = null
             rs.wait _this
       ]
       Package: [

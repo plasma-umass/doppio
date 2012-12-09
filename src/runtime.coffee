@@ -1,6 +1,7 @@
 # Things assigned to root will be available outside this module.
 root = exports ? window.runtime ?= {}
 
+_ = require '../vendor/_.js'
 gLong = require '../vendor/gLong.js'
 util = require './util'
 types = require './types'
@@ -116,12 +117,16 @@ class root.RuntimeState
       debug "current frame is undefined. meta_stack: #{@meta_stack()}"
 
   choose_next_thread: (blacklist) ->
+    unless blacklist?
+      blacklist = []
+      for key,bl of @waiting_threads
+        for b in bl
+          blacklist.push b
     for t in @thread_pool when t isnt @curr_thread and t.$isAlive
-      continue if blacklist? and t in blacklist
+      continue if t in blacklist
       debug "TE(choose_next_thread): choosing thread #{thread_name(@, t)}"
       return t
     # we couldn't find a thread! We can't error out, so keep trying
-    return @choose_next_thread() if blacklist?  # forget the blacklist
     debug "TE(choose_next_thread): no thread found, sticking with curr_thread"
     return @curr_thread
 
@@ -142,12 +147,8 @@ class root.RuntimeState
     old_thread = @curr_thread
     @curr_thread = yieldee
     new_thread_sf = @curr_frame()
-    new_thread_sf.runner = =>
-      debug "TE(yield): yield to thread: #{thread_name @, @curr_thread}"
-      @meta_stack().pop()
-    old_thread_sf.runner = =>
-      debug "TE(yield): yielded thread resuming: #{thread_name @, @curr_thread}"
-      @meta_stack().pop()
+    new_thread_sf.runner = => @meta_stack().pop()
+    old_thread_sf.runner = => @meta_stack().pop()
     throw ReturnException
 
   curr_frame: -> @meta_stack().curr_frame()
