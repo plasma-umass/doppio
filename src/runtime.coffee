@@ -282,7 +282,7 @@ class root.RuntimeState
 
         @meta_stack().push root.StackFrame.fake_frame('class_lookup')
         class_file.methods['<clinit>()V']?.setup_stack(@)
-        @run_until_finished (->)
+        @run_until_finished (->), (->), true
         @meta_stack().pop()
     class_file
 
@@ -322,9 +322,9 @@ class root.RuntimeState
       block_addr = addr
     UNSAFE? || throw new Error "Invalid memory access at #{address}"
 
-  handle_toplevel_exception: (e, done_cb) ->
+  handle_toplevel_exception: (e, done_cb, no_threads) ->
     if e.toplevel_catch_handler?
-      @run_until_finished (-> e.toplevel_catch_handler(@)), done_cb
+      @run_until_finished (=> e.toplevel_catch_handler(@)), done_cb, no_threads
     else
       error "\nInternal JVM Error:", e
       error e.stack if e?.stack?
@@ -332,7 +332,7 @@ class root.RuntimeState
       done_cb?()
     false
 
-  run_until_finished: (setup_fn, done_cb) ->
+  run_until_finished: (setup_fn, done_cb, no_threads=false) ->
     try
       setup_fn()
       while true
@@ -342,23 +342,21 @@ class root.RuntimeState
           sf = @curr_frame()
         # we've finished this thread, no more runners
         # we're done if the only thread is "main"
-        break if @thread_pool.length <= 1
-        # remove the current (finished) thread, unless we're actually finishing
-        if done_cb? or not @curr_thread.main?
-          debug "TE(toplevel): finished thread #{thread_name @, @curr_thread}"
-          @curr_thread.$isAlive = false
-          @thread_pool.splice @thread_pool.indexOf(@curr_thread), 1
-        console.log @thread_pool.length
+        break if no_threads or @thread_pool.length <= 1
+        # remove the current (finished) thread
+        debug "TE(toplevel): finished thread #{thread_name @, @curr_thread}"
+        @curr_thread.$isAlive = false
+        @thread_pool.splice @thread_pool.indexOf(@curr_thread), 1
         @curr_thread = @choose_next_thread()
       done_cb?()
       return true
     catch e
       if e == ReturnException
-        return @run_until_finished (->)
+        return @run_until_finished (->), done_cb, no_threads
       else if e instanceof YieldIOException
         retval = null
         e.condition =>
-          retval = @run_until_finished (->), done_cb
+          retval = @run_until_finished (->), done_cb, no_threads
         return retval
       else
         if e.method_catch_handler? and @meta_stack().length() > 1
@@ -366,10 +364,10 @@ class root.RuntimeState
           until e.method_catch_handler(@, @curr_frame().method, tos)
             tos = false
             if @meta_stack().length() == 1
-              return @handle_toplevel_exception e, done_cb
+              return @handle_toplevel_exception e, done_cb, no_threads
             else
               @meta_stack().pop()
-          return @run_until_finished (->), done_cb
+          return @run_until_finished (->), done_cb, no_threads
         else
           @meta_stack().pop() while @meta_stack().length() > 1
-          return @handle_toplevel_exception e, done_cb
+          return @handle_toplevel_exception e, done_cb, no_threads

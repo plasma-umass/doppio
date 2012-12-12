@@ -26,10 +26,10 @@ root.read_classfile = (cls) ->
 
 # main function that gets called from the frontend
 root.run_class = (rs, class_name, cmdline_args, done_cb) ->
-  return unless rs.run_until_finished (-> rs.init_threads())
+  return unless rs.run_until_finished (-> rs.init_threads()), (->), true
 
   unless rs.system_initialized?
-    return unless rs.run_until_finished (-> rs.init_system_class())
+    return unless rs.run_until_finished (-> rs.init_system_class()), (->), true
 
   main_spec = class: class_name, sig: 'main([Ljava/lang/String;)V'
   rs.init_args cmdline_args
