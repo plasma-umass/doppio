@@ -20,7 +20,6 @@ root.find_test_classes = (doppio_dir) ->
   # a list comprehension. This is intended behavior.
 
 root.run_tests = (test_classes, stdout, quiet, keep_going, callback) ->
-  batch_mode = test_classes.length > 1
   doppio_dir = if node? then '/home/doppio/' else path.resolve __dirname, '..'
   # get the tests, if necessary
   if test_classes?.length > 0
@@ -33,10 +32,7 @@ root.run_tests = (test_classes, stdout, quiet, keep_going, callback) ->
 
   _runner = () ->
     if test_classes.length == 0
-      if batch_mode
-        quiet || stdout "All tests passed!\n"
-      else
-        quiet || stdout "Pass\n"
+      quiet || stdout "Pass\n"
       return callback(false)
     test = test_classes.shift()
     quiet || stdout "testing #{test}...\n"

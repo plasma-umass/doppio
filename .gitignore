@@ -15,3 +15,5 @@ browser/listings.json
 browser/_about.html
 vendor/java_home
 tools/preload
+classes/test/failures.txt
+

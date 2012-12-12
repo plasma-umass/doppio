@@ -117,6 +117,7 @@ $(DIST_NAME): release docs
 # Installs or checks for any required dependencies.
 dependencies: $(COFFEEC) $(UGLIFYJS) $(OPTIMIST) $(JAZZLIB) $(JRE) $(DOCCO) $(ADMZIP)
 	@git submodule update --quiet --init --recursive
+	@rm -f classes/test/failures.txt
 $(COFFEEC):
 	npm install coffee-script@1.3.3
 $(UGLIFYJS):
@@ -143,12 +144,14 @@ test:
 	make opt
 	make _test
 _test: dependencies $(TESTS)
+	@echo ''
+	@cat classes/test/failures.txt
 # compiling each one by itself is really inefficient...
 %.class: %.java
 	javac $^
+# phony *.test targets allow us to test with -j4 parallelism
 classes/test/%.test: classes/test/%.class classes/test/%.disasm classes/test/%.runout
-	@node build/opt/console/test_runner.js classes/test/$* --quiet
-	@echo -n ✓
+	@node build/opt/console/test_runner.js classes/test/$* --makefile
 classes/test/%.disasm: classes/test/%.class
 	javap -c -verbose -private classes/test/$* >classes/test/$*.disasm
 # some tests may throw exceptions. The '-' flag tells make to carry on anyway.
