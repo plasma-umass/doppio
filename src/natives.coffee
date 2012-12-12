@@ -89,7 +89,7 @@ trapped_methods =
               ln ?= -1
               stack.push rs.init_object "java/lang/StackTraceElement", {
                 'java/lang/StackTraceElement/declaringClass': rs.init_string util.ext_classname cls.toClassString()
-                'java/lang/StackTraceElement/methodName': rs.init_string sf.method.name
+                'java/lang/StackTraceElement/methodName': rs.init_string(sf.method.name ? 'unknown')
                 'java/lang/StackTraceElement/fileName': rs.init_string source_file
                 'java/lang/StackTraceElement/lineNumber': ln
               }

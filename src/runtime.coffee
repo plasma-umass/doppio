@@ -65,7 +65,7 @@ class root.RuntimeState
     @lock_counts = {}  # map from monitor -> count
     @waiting_threads = {}  # map from monitor -> list of waiting thread objects
     @thread_pool = []
-    @curr_thread = {$meta_stack: new root.CallStack()}
+    @curr_thread = {$meta_stack: new root.CallStack(), main: true}
 
   init_threads: ->
     # initialize thread objects
@@ -77,9 +77,9 @@ class root.RuntimeState
       my_sf.runner = =>
         my_sf.runner = null
         ct.$meta_stack = @meta_stack()
+        ct.main = true  # designates that this is the main thread
         @curr_thread = ct
         @curr_thread.$isAlive = true
-        # the main thread is always at @thread_pool[0]
         @thread_pool.push @curr_thread
         # hack to make auto-named threads match native Java
         @class_states['java/lang/Thread'].fields.threadInitNumber = 1
@@ -280,11 +280,10 @@ class root.RuntimeState
         if class_file.super_class
           @class_lookup class_file.super_class, dyn
 
-        base_sf = @curr_frame()
-        sf = class_file.methods['<clinit>()V']?.setup_stack(@)
-        while sf?.runner? and sf isnt base_sf
-          sf.runner()
-          sf = @curr_frame()
+        @meta_stack().push root.StackFrame.fake_frame('class_lookup')
+        class_file.methods['<clinit>()V']?.setup_stack(@)
+        @run_until_finished (->)
+        @meta_stack().pop()
     class_file
 
   # called by user-defined classloaders
@@ -322,3 +321,55 @@ class root.RuntimeState
         return block_addr
       block_addr = addr
     UNSAFE? || throw new Error "Invalid memory access at #{address}"
+
+  handle_toplevel_exception: (e, done_cb) ->
+    if e.toplevel_catch_handler?
+      @run_until_finished (-> e.toplevel_catch_handler(@)), done_cb
+    else
+      error "\nInternal JVM Error:", e
+      error e.stack if e?.stack?
+      @show_state()
+      done_cb?()
+    false
+
+  run_until_finished: (setup_fn, done_cb) ->
+    try
+      setup_fn()
+      while true
+        sf = @curr_frame()
+        while sf.runner?
+          sf.runner()
+          sf = @curr_frame()
+        # we've finished this thread, no more runners
+        # we're done if the only thread is "main"
+        break if @thread_pool.length <= 1
+        # remove the current (finished) thread, unless we're actually finishing
+        if done_cb? or not @curr_thread.main?
+          debug "TE(toplevel): finished thread #{thread_name @, @curr_thread}"
+          @curr_thread.$isAlive = false
+          @thread_pool.splice @thread_pool.indexOf(@curr_thread), 1
+        console.log @thread_pool.length
+        @curr_thread = @choose_next_thread()
+      done_cb?()
+      return true
+    catch e
+      if e == ReturnException
+        return @run_until_finished (->)
+      else if e instanceof YieldIOException
+        retval = null
+        e.condition =>
+          retval = @run_until_finished (->), done_cb
+        return retval
+      else
+        if e.method_catch_handler? and @meta_stack().length() > 1
+          tos = true
+          until e.method_catch_handler(@, @curr_frame().method, tos)
+            tos = false
+            if @meta_stack().length() == 1
+              return @handle_toplevel_exception e, done_cb
+            else
+              @meta_stack().pop()
+          return @run_until_finished (->), done_cb
+        else
+          @meta_stack().pop() while @meta_stack().length() > 1
+          return @handle_toplevel_exception e, done_cb
