@@ -114,14 +114,15 @@ $(document).ready ->
     ext = f.name.split('.')[1]
     isClass = ext == 'class'
     reader.onload = (e) ->
-      node.fs.writeFileSync(f.name, e.target.result)
+      node.fs.writeFileSync(node.process.cwd() + '/' + f.name, e.target.result)
       controller.message "File '#{f.name}' saved.", 'success'
       if isClass
         editor.getSession?().setValue("/*\n * Binary file: #{f.name}\n */")
       else
         editor.getSession?().setValue(e.target.result)
       $('#console').click() # click to restore focus
-      if isClass then reader.readAsBinaryString(f) else reader.readAsText(f)
+
+    if isClass then reader.readAsBinaryString(f) else reader.readAsText(f)
 
   jqconsole = $('#console')
   controller = jqconsole.console
