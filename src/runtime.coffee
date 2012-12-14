@@ -34,7 +34,10 @@ class root.StackFrame
     @runner = null
     @name = @method.full_signature()
 
-  @fake_frame: (name) -> new root.StackFrame(new Method(c2t(name)), [], [])
+  @fake_frame: (name) ->
+    sf = new root.StackFrame(new Method(c2t(name)), [], [])
+    sf.fake = true
+    return sf
 
 class ClassState
   constructor: (@loader) ->
