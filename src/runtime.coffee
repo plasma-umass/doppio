@@ -290,7 +290,8 @@ class root.RuntimeState
 
         @meta_stack().push root.StackFrame.fake_frame('class_lookup')
         class_file.methods['<clinit>()V']?.setup_stack(@)
-        @run_until_finished (->), (->), true
+        unless @run_until_finished (->), (->), true
+          throw 'Error in class initialization'
         @meta_stack().pop()
     class_file
 
@@ -359,7 +360,9 @@ class root.RuntimeState
       done_cb?()
       return true
     catch e
-      if e == ReturnException
+      if e == 'Error in class initialization'
+        return false
+      else if e == ReturnException
         return @run_until_finished (->), done_cb, no_threads
       else if e instanceof YieldIOException
         retval = null
