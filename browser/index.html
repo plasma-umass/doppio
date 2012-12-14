@@ -46,7 +46,7 @@
   <script type="text/javascript" src="vendor/ace/src/theme-twilight.js"></script>
 #endif
 </head>
-<body style='padding-top:40px'>
+<body>
 <div id='progress-container'>
   <div id='progress-box'>
     <div id='progress' class='progress progress-striped active' style='background:#ccc'>
@@ -60,11 +60,11 @@
 #include "_navbar.html"
 <div id='main'>
   <header class='page-header'>
-    <h1 id='title' style='float:left' class='bitter'>DoppioVM</h1>
-    <form class='form-inline' style='margin: 8px 0 3px 0;float:right'>
-      <label for='file' class='control-label'>Load file:</label>
-      <input type="file" id="file"/>
-    </form>
+    <h1 id='title' style='float:left;' class='bitter'>DoppioVM</h1>
+    <span class="file-wrapper" style='margin: 8px 0 3px 0;float:right;'>
+      <input type="file" name="file" id="file" />
+      <span class="button">Upload File...</span>
+    </span>
     <h1>&nbsp;</h1>
   </header>
   <div id='ide' style='display:none'>

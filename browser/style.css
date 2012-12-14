@@ -1,4 +1,7 @@
 .bitter {font-family:'Bitter',serif;}
+body {
+  padding-top: 40px;
+}
 div#main {margin: 0 auto;  width:900px;}
 pre, div#console {
   font-size: 8pt;
@@ -54,3 +57,37 @@ div#console pre.jquery-console-inner
 div#console div.jquery-console-prompt-box
  { color:#ccc; }
 label { margin-right: 5px; }
+.file-wrapper {
+  cursor: pointer;
+  display: inline-block;
+  overflow: hidden;
+  position: relative;
+}
+
+.file-wrapper input {
+  cursor: pointer;
+  font-size: 100px;
+  height: 100%;
+  filter: alpha(opacity=1);
+  -moz-opacity: 0.01;
+  opacity: 0.01;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.file-wrapper .button {
+  background: #79130e;
+  -moz-border-radius: 5px;
+  -webkit-border-radius: 5px;
+  border-radius: 5px;
+  color: #fff;
+  cursor: pointer;
+  display: inline-block;
+  font-size: 11px;
+  font-weight: bold;
+  margin-right: 5px;
+  padding: 4px 18px;
+  text-transform: uppercase;
+}
+
