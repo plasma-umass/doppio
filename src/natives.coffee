@@ -74,7 +74,7 @@ trapped_methods =
             # we don't want to include the stack frames that were created by
             # the construction of this exception
             cstack = rs.meta_stack()._cs.slice(1,-1)
-            for sf in cstack when sf.locals[0] isnt _this
+            for sf in cstack when not (sf.fake? or sf.locals[0] is _this) 
               cls = sf.method.class_type
               unless _this.type.toClassString() is 'java/lang/NoClassDefFoundError'
                 attrs = rs.load_class(cls).attrs

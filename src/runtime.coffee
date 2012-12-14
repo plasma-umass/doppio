@@ -34,7 +34,10 @@ class root.StackFrame
     @runner = null
     @name = @method.full_signature()
 
-  @fake_frame: (name) -> new root.StackFrame(new Method(c2t(name)), [], [])
+  @fake_frame: (name) ->
+    sf = new root.StackFrame(new Method(c2t(name)), [], [])
+    sf.fake = true
+    return sf
 
 class ClassState
   constructor: (@loader) ->
@@ -221,10 +224,15 @@ class root.RuntimeState
   # Loads the underlying class, but does not initialize it (and therefore does
   # not ensure that its ancestors and interfaces are present.)
   jclass_obj: (type, dyn=false) ->
-    if @jclass_obj_pool[type] is undefined
+    jco = @jclass_obj_pool[type]
+    if jco is 'not found'
+      etype = if dyn then 'ClassNotFoundException' else 'NoClassDefFoundError'
+      java_throw @, "java/lang/#{etype}", type.toClassString()
+    else if jco is undefined
+      @jclass_obj_pool[type] = 'not found'
       file = if type instanceof types.PrimitiveType then null else @load_class type, dyn
-      @jclass_obj_pool[type] = new JavaClassObject @, type, file
-    @jclass_obj_pool[type]
+      @jclass_obj_pool[type] = jco = new JavaClassObject @, type, file
+    jco
 
   # Returns a ClassFile object. Loads the underlying class, but does not
   # initialize it. :dyn should be set if the class may not have been present at
@@ -282,7 +290,8 @@ class root.RuntimeState
 
         @meta_stack().push root.StackFrame.fake_frame('class_lookup')
         class_file.methods['<clinit>()V']?.setup_stack(@)
-        @run_until_finished (->), (->), true
+        unless @run_until_finished (->), (->), true
+          throw 'Error in class initialization'
         @meta_stack().pop()
     class_file
 
@@ -351,7 +360,9 @@ class root.RuntimeState
       done_cb?()
       return true
     catch e
-      if e == ReturnException
+      if e == 'Error in class initialization'
+        return false
+      else if e == ReturnException
         return @run_until_finished (->), done_cb, no_threads
       else if e instanceof YieldIOException
         retval = null
