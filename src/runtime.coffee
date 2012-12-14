@@ -221,10 +221,15 @@ class root.RuntimeState
   # Loads the underlying class, but does not initialize it (and therefore does
   # not ensure that its ancestors and interfaces are present.)
   jclass_obj: (type, dyn=false) ->
-    if @jclass_obj_pool[type] is undefined
+    jco = @jclass_obj_pool[type]
+    if jco is 'not found'
+      etype = if dyn then 'ClassNotFoundException' else 'NoClassDefFoundError'
+      java_throw @, "java/lang/#{etype}", type.toClassString()
+    else if jco is undefined
+      @jclass_obj_pool[type] = 'not found'
       file = if type instanceof types.PrimitiveType then null else @load_class type, dyn
-      @jclass_obj_pool[type] = new JavaClassObject @, type, file
-    @jclass_obj_pool[type]
+      @jclass_obj_pool[type] = jco = new JavaClassObject @, type, file
+    jco
 
   # Returns a ClassFile object. Loads the underlying class, but does not
   # initialize it. :dyn should be set if the class may not have been present at
