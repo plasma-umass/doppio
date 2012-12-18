@@ -10,7 +10,10 @@ public class CustomClassLoader extends ClassLoader {
 
     // 1. is this class already loaded?
     Class cls = findLoadedClass(className);
-    if (cls != null) { return cls; }
+    if (cls != null) {
+      System.out.println("Already loaded "+className);
+      return cls;
+    }
 
     // 2. get class file name from class name
     String clsFile = className.replace('.', '/') + ".class";
@@ -41,7 +44,9 @@ public class CustomClassLoader extends ClassLoader {
       if (resolve) {
         resolveClass(cls);
       }
-    } catch (SecurityException e) { 
+      System.out.println("ran defineClass with no issues");
+    } catch (SecurityException e) {
+      System.out.println("Caught "+e);
       cls = super.loadClass(className, resolve);
     }
     return cls;
