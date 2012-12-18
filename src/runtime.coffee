@@ -250,18 +250,34 @@ class root.RuntimeState
           @load_class type.component_type, dyn
           @class_states[cls] = new ClassState @class_states[type.component_type.toClassString()].loader
       else
-        # bootstrap class loader
-        @class_states[cls] = new ClassState null
-        class_file = @read_classfile cls
-        if not class_file? or wrong_name = (class_file.this_class.toClassString() != cls)
-          msg = cls
-          if wrong_name
-            msg += " (wrong name: #{class_file.this_class.toClassString()})"
-          if dyn
-            java_throw @, 'java/lang/ClassNotFoundException', msg
-          else
-            java_throw @, 'java/lang/NoClassDefFoundError', msg
-        @loaded_classes[cls] = class_file
+        # a class gets loaded with the loader of the class that is triggering    
+        # this class resolution
+        defining_class = @curr_frame().method.class_type.toClassString()
+        defining_class_loader = @class_states[defining_class]?.loader
+        if defining_class_loader?
+          @meta_stack().push root.StackFrame.fake_frame('custom_class_loader')
+          @push2 defining_class_loader, @init_string util.ext_classname cls
+          @method_lookup(
+            class: defining_class_loader.type.toClassString()
+            sig: 'loadClass(Ljava/lang/String;)Ljava/lang/Class;').setup_stack @
+          unless @run_until_finished (->), (->), true
+            throw 'Error in class initialization'
+          # discard return value. @define_class will have registered the new
+          # file in loaded_classes for us.
+          @meta_stack().pop()
+        else
+          # bootstrap class loader
+          @class_states[cls] = new ClassState null
+          class_file = @read_classfile cls
+          if not class_file? or wrong_name = (class_file.this_class.toClassString() != cls)
+            msg = cls
+            if wrong_name
+              msg += " (wrong name: #{class_file.this_class.toClassString()})"
+            if dyn
+              java_throw @, 'java/lang/ClassNotFoundException', msg
+            else
+              java_throw @, 'java/lang/NoClassDefFoundError', msg
+          @loaded_classes[cls] = class_file
     @loaded_classes[cls]
 
   # Loads and initializes :type, and returns a ClassFile object. Should only be
