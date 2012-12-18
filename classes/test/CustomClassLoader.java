@@ -54,7 +54,7 @@ public class CustomClassLoader extends ClassLoader {
   public static void main(String[] args) throws Exception {
     CustomClassLoader loader1 = new CustomClassLoader();
     
-    Class c = Class.forName("classes.test.CustomClassLoader", true, loader1);
+    Class<?> c = Class.forName("classes.test.CustomClassLoader", true, loader1);
     System.out.println("Custom loaded class: " + c);
 
     System.out.print("Class loaded through custom loader is ");
