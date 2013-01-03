@@ -218,7 +218,8 @@ class LocalStorageSource extends FileSource
 
   fetch: (path) -> if localStorage[path]? then DoppioFile.fromJSON(path, localStorage[path]) else null
   store: (path, file) ->
-    if file.mod
+    # XXX: Don't store if a temporary file.
+    if file.mod and not file.temp
       localStorage[path] = file.toJSON()
       @index.add_file(path, file)
     true
@@ -382,7 +383,7 @@ class FSState
       return f
     return @files.fetch path
 
-  close: (file) -> @files.store(file.path, file); file.mod = false
+  close: (file) -> @files.store(file.path, file); file.mod = false; return
 
   list: (path) -> @files.ls(@resolve path)
 
@@ -492,8 +493,11 @@ root.fs =
     throw "File does not exist." unless f?
     return f.data
 
-  writeFileSync: (path, data) ->
+  # XXX: Temp option prevents writeback to permanent storage. This is not in the
+  #      Node API, and is used as a way for the browser to create temp files.
+  writeFileSync: (path, data, temp) ->
     f = fs_state.open(path, 'w')
+    f.temp = temp == true
     f.write(data)
     fs_state.close(f)
 

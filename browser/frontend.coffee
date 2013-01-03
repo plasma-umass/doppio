@@ -46,6 +46,9 @@ $.ajax "browser/mini-rt.tar", {
       file_count++
       cls = base.substr(base_dir.length)
       asyncExecute (->
+        # XXX: We convert from bytestr to array to process the tar file, and
+        #      then back to a bytestr to store as a file in the filesystem.
+        node.fs.writeFileSync(path, util.array_to_bytestr(file), true)
         class_cache[cls] = new ClassFile file
         on_complete() if --file_count == 0 and done
       ), 0),
