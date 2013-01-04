@@ -71,8 +71,7 @@ root.chars2js_str = (jvm_carr, offset, count) ->
 root.bytestr_to_array = (bytecode_string) ->
   (bytecode_string.charCodeAt(i) & 0xFF for i in [0...bytecode_string.length] by 1)
 
-root.array_to_bytestr = (bytecode_array) ->
-  (String.fromCharCode(bytecode_array[i]) for i in [0...bytecode_array.length] by 1).join("")
+root.array_to_bytestr = (bytecode_array) -> String.fromCharCode(bytecode_array...)
 
 root.parse_flags = (flag_byte) -> {
     public:       flag_byte & 0x1
