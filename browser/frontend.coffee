@@ -12,11 +12,13 @@ progress = null
 class_cache = {}
 raw_cache = {}
 
-$.ajax "browser/mini-rt.tar", {
-  type: 'GET'
-  dataType: 'text'
-  beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
-  success: (data) ->
+preload = ->
+  try
+    data = node.fs.readFileSync("/home/doppio/browser/mini-rt.tar")
+  catch e
+    console.error e
+
+  if data?
     file_count = 0
     done = false
     start_untar = (new Date).getTime()
@@ -55,16 +57,15 @@ $.ajax "browser/mini-rt.tar", {
       ->
         done = true
         on_complete() if file_count == 0
-  error: (jqXHR, textStatus, errorThrown) ->
-    console.error errorThrown
-}
 
-$.ajax "vendor/classes/com/sun/tools/script/shell/Main.class", {
-  type: 'GET'
-  dataType: 'text'
-  beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
-  success: (data) -> class_cache['!rhino'] = process_bytecode data
-}
+fetch_rhino = ->
+  try
+    data = node.fs.readFileSync("/home/doppio/vendor/classes/com/sun/tools/script/shell/Main.class")
+  catch e
+    console.error e
+
+  if data?
+    class_cache['!rhino'] = process_bytecode data
 
 try_path = (path) ->
   try
@@ -207,6 +208,8 @@ $(document).ready ->
     e.preventDefault()
 
   $('#close_btn').click (e) -> close_editor(); e.preventDefault()
+  preload()
+  fetch_rhino()
 
 commands =
   javac: (args, cb) ->
