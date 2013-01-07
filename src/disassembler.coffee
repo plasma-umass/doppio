@@ -191,6 +191,7 @@ format_extra_info = (entry) ->
 
 primitive_types = {Z:'boolean',C:'char',F:'float',D:'double',B:'byte',S:'short',I:'int',J:'long'}
 
+# TODO: move this into opcodes.coffee as a member function, maybe annotate()
 root.opcode_annotators =
   InvokeOpcode: (idx, pool) ->
     "\t##{@method_spec_ref}" +
