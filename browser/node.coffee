@@ -10,6 +10,46 @@ _ = require '../vendor/_.js'
 
 "use strict"
 
+# IE9 and below only: Injects a VBScript function that converts the
+# 'responseBody' attribute of an XMLHttpRequest into a bytestring.
+# Credit: http://miskun.com/javascript/internet-explorer-and-binary-files-data-access/#comment-11
+inject_vbscript = ->
+  IEBinaryToArray_ByteStr_Script =
+    "<!-- IEBinaryToArray_ByteStr -->\r\n"+
+    "<script type='text/vbscript'>\r\n"+
+    "Function IEBinaryToArray_ByteStr(Binary)\r\n"+
+    "   IEBinaryToArray_ByteStr = CStr(Binary)\r\n"+
+    "End Function\r\n"+
+    "Function IEBinaryToArray_ByteStr_Last(Binary)\r\n"+
+    "   Dim lastIndex\r\n"+
+    "   lastIndex = LenB(Binary)\r\n"+
+    "   if lastIndex mod 2 Then\r\n"+
+    "       IEBinaryToArray_ByteStr_Last = Chr( AscB( MidB( Binary, lastIndex, 1 ) ) )\r\n"+
+    "   Else\r\n"+
+    "       IEBinaryToArray_ByteStr_Last = "+'""'+"\r\n"+
+    "   End If\r\n"+
+    "End Function\r\n"+
+    "</script>\r\n"
+
+  document.write(IEBinaryToArray_ByteStr_Script)
+
+ByteMapping = {}
+
+# Run once at JavaScript load time.
+if $.browser.msie and not window.Blob
+  inject_vbscript()
+  # Build up a bytemapping cache for the function below.
+  for i in [0..256] by 1
+    for j in [0..256] by 1
+      ByteMapping[ String.fromCharCode( i + j * 256 ) ] = String.fromCharCode(i) + String.fromCharCode(j);
+
+# Converts 'responseBody' in IE into the equivalent 'responseText' that other
+# browsers would generate.
+GetIEByteArray_ByteStr = (IEByteArray) ->
+  rawBytes = IEBinaryToArray_ByteStr(IEByteArray);
+  lastChr = IEBinaryToArray_ByteStr_Last(IEByteArray);
+  return rawBytes.replace(/[\s\S]/g, ((match) -> ByteMapping[match])) + lastChr;
+
 # Our 'file descriptor'
 class DoppioFile
   @fromJSON: (path, rawData) ->
@@ -265,17 +305,11 @@ class WebserverSource extends FileSource
     # Ensure the file is in the index.
     return null if @index? and @index.get_file(@mnt_pt + path) == false
     data = null
-    # We can't do a 'text' request in IE; it truncates the response at the
-    # first NULL character.
-    unless $.browser.msie
-      $.ajax path, {
-        type: 'GET'
-        dataType: 'text'
-        async: false
-        beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
-        success: (theData) -> data = theData
-      }
-    else if window.Blob
+    # The below code is complicated because we can't do a 'text' request in IE;
+    # it truncates the response at the first NULL character.
+
+    # IE 10+ path
+    if $.browser.msie and window.Blob
       # In IE10, we can do a 'blob' request to get a binary blob that we can
       # convert into a string.
       # jQuery's 'ajax' function does not support blob requests, so we're going
@@ -293,14 +327,26 @@ class WebserverSource extends FileSource
             array[i] = String.fromCharCode(char)
           data = array.join("")
     else
-      # In earlier versions of IE, we can retrieve the 'responseBody' attribute
-      # of the response (which contains the *entire* response). Since it's an
-      # unsigned array, JavaScript can't touch it, so we pass it to VBScript
-      # code that can convert it into something JavaScript can process.
-      # Note that this approach also works in IE10 for x86 platforms, but not
-      # for ARM platforms which do not have VBScript support.
-      # XXX: Add a VBScript method for earlier IE versions.
-      throw "Doppio currently does not support versions of IE earlier than 10."
+      $.ajax path, {
+        type: 'GET'
+        dataType: 'text'
+        async: false
+        beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
+        success: (theData, status, jqxhr) ->
+          # Chrome, Firefox, Safari, Opera, etc. path
+          unless $.browser.msie
+            data = theData
+          # IE < 10 path
+          else
+            # In earlier versions of IE, we can retrieve the 'responseBody'
+            # attribute of the response (which contains the *entire* response).
+            # Since it's an unsigned array, JavaScript can't touch it, so we
+            # pass it to VBScript code that can convert it into something
+            # JavaScript can process.
+            # Note that this approach also works in IE10 for x86 platforms, but
+            # not for ARM platforms which do not have VBScript support.
+            data = GetIEByteArray_ByteStr(jqxhr.responseBody)
+      }
     return data
   constructor: (mnt_pt, listings_path) ->
     super(mnt_pt)
