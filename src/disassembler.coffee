@@ -142,24 +142,7 @@ root.disassemble = (class_file) ->
           rv += "   #{if eh.catch_type[0] == '<' then 'any' else "Class #{eh.catch_type}\n"}\n"
         rv += "\n"
       for attr in code.attrs
-        # TODO: make a member function like disassemblyOutput() for this
-        switch attr.name
-          when 'LineNumberTable'
-            rv += "  LineNumberTable:\n"
-            rv += "   line #{entry.line_number}: #{entry.start_pc}\n" for entry in attr.entries
-          when 'StackMapTable'
-            rv += "  StackMapTable: number_of_entries = #{attr.num_entries}\n"
-            for entry in attr.entries
-              rv += "   frame_type = #{entry.frame_type} /* #{entry.frame_name} */\n"
-              rv += "     offset_delta = #{entry.offset_delta}\n" if entry.offset_delta?
-              rv += "     locals = [ #{entry.locals.join(', ')} ]\n" if entry.locals?
-              rv += "     stack = [ #{entry.stack.join(', ')} ]\n" if entry.stack?
-          when 'LocalVariableTable'
-            rv += "  LocalVariableTable:\n"
-            rv += "   Start  Length  Slot  Name   Signature\n"
-            for entry in attr.entries
-              rv += "   #{entry.start_pc}      #{entry.length}      #{entry.ref}"
-              rv += "#{entry.name}      #{entry.descriptor}\n"
+        rv += attr.disassemblyOutput?() or ''
       rv += "  Exceptions:\n#{print_excs exc_attr}\n" if exc_attr
     rv += "\n"
 

@@ -63,6 +63,9 @@ class LineNumberTable
       ln = bytes_array.get_uint 2
       @entries.push {'start_pc': spc,'line_number': ln}
 
+  disassemblyOutput: -> "  LineNumberTable:\n" +
+    "   line #{entry.line_number}: #{entry.start_pc}\n" for entry in @entries
+
 class SourceFile
   name: 'SourceFile'
   parse: (bytes_array,constant_pool) ->
@@ -132,6 +135,14 @@ class StackMapTable
       tag_to_type = [ 'bogus', 'int', 'float', 'double', 'long', 'null', 'this', 'object', 'uninitialized' ]
       tag_to_type[tag]
 
+  disassemblyOutput: ->
+    rv = "  StackMapTable: number_of_entries = #{@num_entries}\n"
+    for entry in @entries
+      rv += "   frame_type = #{entry.frame_type} /* #{entry.frame_name} */\n"
+      rv += "     offset_delta = #{entry.offset_delta}\n" if entry.offset_delta?
+      rv += "     locals = [ #{entry.locals.join(', ')} ]\n" if entry.locals?
+      rv += "     stack = [ #{entry.stack.join(', ')} ]\n" if entry.stack?
+    rv
 
 class LocalVariableTable
   name: 'LocalVariableTable'
@@ -147,6 +158,13 @@ class LocalVariableTable
       descriptor: constant_pool.get(bytes_array.get_uint 2).value
       ref: bytes_array.get_uint 2
     }
+
+  disassemblyOutput: ->
+    rv = "  LocalVariableTable:\n   Start  Length  Slot  Name   Signature\n"
+    for entry in @entries
+      rv += "   #{entry.start_pc}      #{entry.length}      #{entry.ref}"
+      rv += "#{entry.name}      #{entry.descriptor}\n"
+    rv
 
 class Exceptions
   name: 'Exceptions'
