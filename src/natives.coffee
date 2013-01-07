@@ -18,7 +18,7 @@ fs = node?.fs ? require 'fs'
 root = exports ? this.natives = {}
 
 if node?  # node is only defined if we're in the browser
-  vendor_path ='/home/doppio/vendor'
+  vendor_path = '/home/doppio/vendor'
 else
   vendor_path = path.resolve __dirname, '../vendor'
 
@@ -345,25 +345,53 @@ native_methods =
       ]
       Float: [
         o 'floatToRawIntBits(F)I', (rs, f_val) ->
-            f_view = new Float32Array [f_val]
-            i_view = new Int32Array f_view.buffer
-            i_view[0]
+            if Float32Array?
+              f_view = new Float32Array [f_val]
+              i_view = new Int32Array f_view.buffer
+              return i_view[0]
+
+            # Fallback for older JS engines
+            return 0 if f_val is 0
+            sign = if f_val < 0 then 1 else 0
+            f_val = Math.abs(f_val)
+            exp = Math.floor(Math.log(f_val)/Math.LN2)
+            sig = (f_val/Math.pow(2,exp)-1)*Math.pow(2,23)
+            (sign<<31)+((exp+127)<<23)+sig
         o 'intBitsToFloat(I)F', (rs, i_val) ->
             i_view = new Int32Array [i_val]
             f_view = new Float32Array i_view.buffer
             f_view[0]
+            # TODO: add a fallback
       ]
       Double: [
         o 'doubleToRawLongBits(D)J', (rs, d_val) ->
-            d_view = new Float64Array [d_val]
-            i_view = new Uint32Array d_view.buffer
-            gLong.fromBits i_view[0], i_view[1]
+            if Float64Array?
+              d_view = new Float64Array [d_val]
+              i_view = new Uint32Array d_view.buffer
+              return gLong.fromBits i_view[0], i_view[1]
+
+            # Fallback for older JS engines
+            return gLong.ZERO if d_val is 0 or isNaN(d_val) or not isFinite(d_val)
+            sign = if d_val < 0 then gLong.ONE else gLong.ZERO
+            d_val = Math.abs(d_val)
+            exp = gLong.fromNumber(Math.floor(Math.log(d_val)/Math.LN2))
+            sig = gLong.fromNumber((d_val/Math.pow(2,exp.toInt())-1)*Math.pow(2,52))
+            exp = exp.add(gLong.fromInt(1023))
+            sign.shiftLeft(63).add(exp.shiftLeft(52)).add(sig)
         o 'longBitsToDouble(J)D', (rs, l_val) ->
-            i_view = new Uint32Array 2
-            i_view[0] = l_val.getLowBitsUnsigned()
-            i_view[1] = l_val.getHighBits()
-            d_view = new Float64Array i_view.buffer
-            d_view[0]
+            if Uint32Array?
+              i_view = new Uint32Array 2
+              i_view[0] = l_val.getLowBitsUnsigned()
+              i_view[1] = l_val.getHighBits()
+              d_view = new Float64Array i_view.buffer
+              return d_view[0]
+
+            # Fallback for older JS engines
+            s = if l_val.shiftRight(63).equals(gLong.ZERO) then 1 else -1
+            e = l_val.shiftRight(52).and(gLong.fromInt(0x7ff))
+            m = if e == 0 then l_val.and(gLong.fromNumber(0xfffffffffffff))
+                                    .or(gLong.fromNumber(0x10000000000000))
+            Math.pow(2, e * 1075) * s * m # we're not handling the NaN / Inf cases
       ]
       Object: [
         o 'getClass()L!/!/Class;', (rs, _this) ->
@@ -829,17 +857,17 @@ native_methods =
               return false
             return true
         o 'setReadOnly(Ljava/io/File;)Z', (rs, _this, file) ->
-          filepath = (file.get_field rs, 'java/io/File/path').jvm2js_str()
-          # We'll be unsetting write permissions.
-          # Leading 0o indicates octal.
-          mask = ~(0o222)
-          try
-            stats = stat_file filepath
-            return false unless stats?
-            fs.chmodSync filepath, (stats.mode & mask)
-          catch e
-            return false
-          return true
+            filepath = (file.get_field rs, 'java/io/File/path').jvm2js_str()
+            # We'll be unsetting write permissions.
+            # Leading 0o indicates octal.
+            mask = ~(0o222)
+            try
+              stats = stat_file filepath
+              return false unless stats?
+              fs.chmodSync filepath, (stats.mode & mask)
+            catch e
+              return false
+            return true
       ]
     util:
       concurrent:

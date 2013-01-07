@@ -22,10 +22,11 @@ root.ERROR = 1
 root.log_level ?= root.ERROR
 
 # IE Compatibility
-if not window.console
+unless console? or window?.console
   window.console = {
     log: -> # Stub
-    error: (msgs...) -> throw msgs.join '' # Better than silently failing.
+    error: (msgs...) ->
+      throw msgs.join('\n') + '\n' # Better than silently failing.
     profile: -> # Stub
     profileEnd: -> # Stub
   }
