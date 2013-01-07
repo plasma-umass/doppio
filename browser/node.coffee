@@ -33,22 +33,20 @@ inject_vbscript = ->
 
   document.write(IEBinaryToArray_ByteStr_Script)
 
-ByteMapping = {}
-
 # Run once at JavaScript load time.
 if $.browser.msie and not window.Blob
   inject_vbscript()
-  # Build up a bytemapping cache for the function below.
-  for i in [0..256] by 1
-    for j in [0..256] by 1
-      ByteMapping[ String.fromCharCode( i + j * 256 ) ] = String.fromCharCode(i) + String.fromCharCode(j);
 
 # Converts 'responseBody' in IE into the equivalent 'responseText' that other
 # browsers would generate.
 GetIEByteArray_ByteStr = (IEByteArray) ->
   rawBytes = IEBinaryToArray_ByteStr(IEByteArray);
   lastChr = IEBinaryToArray_ByteStr_Last(IEByteArray);
-  return rawBytes.replace(/[\s\S]/g, ((match) -> ByteMapping[match])) + lastChr;
+  return rawBytes.replace(/[\s\S]/g,
+    ((match) ->
+      v = match.charCodeAt(0)
+      return String.fromCharCode(v&0xff, v>>8)
+    )) + lastChr
 
 # Our 'file descriptor'
 class DoppioFile
@@ -305,11 +303,20 @@ class WebserverSource extends FileSource
     # Ensure the file is in the index.
     return null if @index? and @index.get_file(@mnt_pt + path) == false
     data = null
+
     # The below code is complicated because we can't do a 'text' request in IE;
     # it truncates the response at the first NULL character.
 
+    if not $.browser.msie
+      $.ajax path, {
+        type: 'GET'
+        dataType: 'text'
+        async: false
+        beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
+        success: (theData, status, jqxhr) -> data = theData
+      }
     # IE 10+ path
-    if $.browser.msie and window.Blob
+    else if window.Blob
       # In IE10, we can do a 'blob' request to get a binary blob that we can
       # convert into a string.
       # jQuery's 'ajax' function does not support blob requests, so we're going
@@ -321,32 +328,27 @@ class WebserverSource extends FileSource
       req.responseType = 'arraybuffer'
       req.send()
       if req.status == 200
-          typed_array = new Uint8Array(req.response)
-          array = []
-          for char, i in typed_array
-            array[i] = String.fromCharCode(char)
-          data = array.join("")
+        typed_array = new Uint8Array(req.response)
+        array = []
+        for char, i in typed_array
+          array[i] = String.fromCharCode(char)
+        data = array.join("")
+    # IE < 10 path
     else
-      $.ajax path, {
-        type: 'GET'
-        dataType: 'text'
-        async: false
-        beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
-        success: (theData, status, jqxhr) ->
-          # Chrome, Firefox, Safari, Opera, etc. path
-          unless $.browser.msie
-            data = theData
-          # IE < 10 path
-          else
-            # In earlier versions of IE, we can retrieve the 'responseBody'
-            # attribute of the response (which contains the *entire* response).
-            # Since it's an unsigned array, JavaScript can't touch it, so we
-            # pass it to VBScript code that can convert it into something
-            # JavaScript can process.
-            # Note that this approach also works in IE10 for x86 platforms, but
-            # not for ARM platforms which do not have VBScript support.
-            data = GetIEByteArray_ByteStr(jqxhr.responseBody)
-      }
+      # In earlier versions of IE, we can retrieve the 'responseBody'
+      # attribute of the response (which contains the *entire* response).
+      # Since it's an unsigned array, JavaScript can't touch it, so we
+      # pass it to VBScript code that can convert it into something
+      # JavaScript can process.
+      # Note that this approach also works in IE10 for x86 platforms, but
+      # not for ARM platforms which do not have VBScript support.
+      req = new XMLHttpRequest()
+      req.open('GET', path, false)
+      req.setRequestHeader("Accept-Charset", "x-user-defined")
+      req.send()
+      if req.status == 200
+        data = GetIEByteArray_ByteStr(req.responseBody)
+
     return data
   constructor: (mnt_pt, listings_path) ->
     super(mnt_pt)
