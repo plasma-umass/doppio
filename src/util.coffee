@@ -165,11 +165,6 @@ root.lookup_handler = (handlers, object) ->
     obj = Object.getPrototypeOf obj
   return null
 
-# Runs root.lookup_handler, and if it finds one, it calls that handler
-# with :object bound to `this` and :args as the arguments.
-root.call_handler = (handlers, object, args...) ->
-  root.lookup_handler(handlers,object)?.apply object, args
-
 # Java classes are represented internally using slashes as delimiters.
 # These helper functions convert between the two representations.
 root.ext_classname = (str) -> str.replace /\//g, '.'
