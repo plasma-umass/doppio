@@ -102,7 +102,7 @@
         ////////////////////////////////////////////////////////////////////////
         // Globals
         var container = $(this);
-        var inner = $('<pre class="jquery-console-inner"></div>');
+        var inner = $('<pre class="jquery-console-inner"></pre>');
         // erjiang: changed this from a text input to a textarea so we
         // can get pasted newlines
         var typer = $('<textarea class="jquery-console-typer"></textarea>');
