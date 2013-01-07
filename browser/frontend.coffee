@@ -12,6 +12,12 @@ progress = null
 class_cache = {}
 raw_cache = {}
 
+# IE Compatibility
+if not window.console
+  window.console = {
+    log: -> # Stub
+  }
+
 preload = ->
   try
     data = node.fs.readFileSync("/home/doppio/browser/mini-rt.tar")
