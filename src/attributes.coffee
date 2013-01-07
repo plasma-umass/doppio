@@ -63,8 +63,10 @@ class LineNumberTable
       ln = bytes_array.get_uint 2
       @entries.push {'start_pc': spc,'line_number': ln}
 
-  disassemblyOutput: -> "  LineNumberTable:\n" +
-    "   line #{entry.line_number}: #{entry.start_pc}\n" for entry in @entries
+  disassemblyOutput: ->
+    rv = "  LineNumberTable:\n"
+    rv += "   line #{entry.line_number}: #{entry.start_pc}\n" for entry in @entries
+    rv
 
 class SourceFile
   name: 'SourceFile'
