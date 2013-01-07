@@ -53,7 +53,7 @@ GetIEByteArray_ByteStr = (IEByteArray) ->
 # Our 'file descriptor'
 class DoppioFile
   @fromJSON: (path, rawData) ->
-    data = $.parseJSON rawData
+    data = JSON.parse rawData
     new DoppioFile(path, data.data, data.mtime)
 
   constructor: (@path, @data = "", @mtime = (new Date).getTime(), @mod = false, @mode = 0o644) ->
@@ -352,7 +352,7 @@ class WebserverSource extends FileSource
     super(mnt_pt)
     if listings_path?
       idx_data = @_download_file(listings_path)
-    @index = new FileIndex(if idx_data? then $.parseJSON(idx_data) else )
+    @index = new FileIndex(if idx_data? then JSON.parse(idx_data) else )
   fetch: (path) ->
     trim_path = @_trim_mnt_pt(path)
     data = @_download_file(trim_path)
