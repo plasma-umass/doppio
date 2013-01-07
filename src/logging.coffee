@@ -21,6 +21,15 @@ root.DEBUG = 5
 root.ERROR = 1
 root.log_level ?= root.ERROR
 
+# IE Compatibility
+if not window.console
+  window.console = {
+    log: -> # Stub
+    error: (msgs...) -> throw msgs.join '' # Better than silently failing.
+    profile: -> # Stub
+    profileEnd: -> # Stub
+  }
+
 root.log = (level, msgs...) ->
   if level <= root.log_level
     console[if level == 1 then 'error' else 'log'] msgs...
