@@ -29,6 +29,7 @@ class root.JavaException
     cf = rs.curr_frame()
     if not top_of_stack and method.has_bytecode
      cf.pc -= 3  # rewind the invoke opcode
+     # XXX: this will break on IE (due to constructor.name being undefined)
      cf.pc -= 1 until method.code.opcodes[cf.pc]?.constructor.name.match /Invoke/ or cf.pc <= 0
     exception_handlers = method.code?.exception_handlers
     etype = @exception.type

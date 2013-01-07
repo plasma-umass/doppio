@@ -18,24 +18,24 @@ root.disassemble = (class_file) ->
     ordered_flags.push 'abstract' unless access_flags.interface
     privacy = (("#{flag} " if access_flags[flag]) for flag in ordered_flags).join ''
 
-  source_file = _.find(class_file.attrs, (attr) -> attr.constructor.name == 'SourceFile')
-  deprecated = _.find(class_file.attrs, (attr) -> attr.constructor.name == 'Deprecated')
-  annotations = _.find(class_file.attrs, (attr) -> attr.constructor.name == 'RuntimeVisibleAnnotations')
+  source_file = _.find(class_file.attrs, (attr) -> attr.name == 'SourceFile')
+  deprecated = _.find(class_file.attrs, (attr) -> attr.name == 'Deprecated')
+  annotations = _.find(class_file.attrs, (attr) -> attr.name == 'RuntimeVisibleAnnotations')
   ifaces = (class_file.constant_pool.get(i).deref() for i in class_file.interfaces)
   ifaces = ((if util.is_string(i) then util.ext_classname(i) else i.toExternalString()) for i in ifaces).join ','
-  rv = "Compiled from \"#{source_file?.name ? 'unknown'}\"\n"
+  rv = "Compiled from \"#{source_file?.filename ? 'unknown'}\"\n"
   rv += access_string class_file.access_flags
   if class_file.access_flags.interface
     rv += "interface #{class_file.this_class.toExternalString()} extends #{ifaces}\n"
   else
     rv += "class #{class_file.this_class.toExternalString()} extends #{class_file.super_class?.toExternalString()}"
     rv += if (ifaces and not class_file.access_flags.interface) then " implements #{ifaces}\n" else '\n'
-  rv += "  SourceFile: \"#{source_file.name}\"\n" if source_file
+  rv += "  SourceFile: \"#{source_file.filename}\"\n" if source_file
   rv += "  Deprecated: length = 0x\n" if deprecated
   if annotations
     rv += "  RuntimeVisibleAnnotations: length = 0x#{annotations.raw_bytes.length.toString(16)}\n"
     rv += "   #{(pad_left(b.toString(16),2) for b in annotations.raw_bytes).join ' '}\n"
-  inner_classes = (attr for attr in class_file.attrs when attr.constructor.name is 'InnerClasses')
+  inner_classes = (attr for attr in class_file.attrs when attr.name is 'InnerClasses')
   for icls in inner_classes
     rv += "  InnerClass:\n"
     for cls in icls.classes
@@ -101,7 +101,7 @@ root.disassemble = (class_file) ->
     astr = access_string(f.access_flags)
     rv += "#{astr} " unless astr == ''
     rv += "#{pp_type(f.type)} #{f.name};\n"
-    const_attr = _.find(f.attrs, (attr) -> attr.constructor.name == 'ConstantValue')
+    const_attr = _.find(f.attrs, (attr) -> attr.name == 'ConstantValue')
     if const_attr?
       entry = pool.get(const_attr.ref)
       rv += "  Constant value: #{entry.type} #{entry.deref?() or entry.value}\n"
@@ -118,7 +118,7 @@ root.disassemble = (class_file) ->
         ret_type = if m.return_type? then pp_type m.return_type else ""
         ret_type + " " + m.name
     rv += "(#{(pp_type(p) for p in m.param_types).join ', '})" unless m.name is '<clinit>'
-    rv += print_excs exc_attr if exc_attr = _.find(m.attrs, (a) -> a.constructor.name == 'Exceptions')
+    rv += print_excs exc_attr if exc_attr = _.find(m.attrs, (a) -> a.name == 'Exceptions')
     rv += ";\n"
     unless m.access_flags.native or m.access_flags.abstract
       rv += "  Code:\n"
@@ -141,7 +141,8 @@ root.disassemble = (class_file) ->
           rv += "   #{if eh.catch_type[0] == '<' then 'any' else "Class #{eh.catch_type}\n"}\n"
         rv += "\n"
       for attr in code.attrs
-        switch attr.constructor.name
+        # TODO: make a member function like disassemblyOutput() for this
+        switch attr.name
           when 'LineNumberTable'
             rv += "  LineNumberTable:\n"
             rv += "   line #{entry.line_number}: #{entry.start_pc}\n" for entry in attr.entries

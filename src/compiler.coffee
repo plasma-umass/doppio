@@ -173,6 +173,7 @@ class BasicBlock
       else if (handler = util.lookup_handler(compile_class_handlers, op))?
         handler.apply op, [@, instr_idx]
       else
+        # XXX constructor.name is undefined in IE
         console.error "XXX missing #{op.constructor.name}: #{op.name}"
       instr_idx += op.byte_count + 1
 

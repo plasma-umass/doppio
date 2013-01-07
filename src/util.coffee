@@ -136,6 +136,7 @@ root.is_string = (obj) -> typeof obj == 'string' or obj instanceof String
 root.lookup_handler = (handlers, object) ->
   obj = object
   while obj?
+    # XXX: this will break on IE (due to constructor.name being undefined)
     handler = handlers[obj.constructor.name]
     return handler if handler
     obj = Object.getPrototypeOf obj

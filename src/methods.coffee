@@ -38,7 +38,7 @@ class root.Field extends AbstractMethodField
   reflector: (rs) ->
     # note: sig is the generic type parameter (if one exists), not the full
     # field type.
-    sig = _.find(@attrs, (a) -> a.constructor.name == "Signature")?.sig
+    sig = _.find(@attrs, (a) -> a.name == "Signature")?.sig
     rs.init_object 'java/lang/reflect/Field', {
       # XXX this leaves out 'annotations'
       'java/lang/reflect/Field/clazz': rs.jclass_obj(@class_type)
@@ -81,14 +81,14 @@ class root.Method extends AbstractMethodField
             java_throw rs, 'java/lang/Error', "native method NYI: #{sig}"
     else
       @has_bytecode = true
-      @code = _.find(@attrs, (a) -> a.constructor.name == "Code")
+      @code = _.find(@attrs, (a) -> a.name == 'Code')
 
   reflector: (rs, is_constructor=false) ->
     typestr = if is_constructor then 'java/lang/reflect/Constructor' else 'java/lang/reflect/Method'
-    exceptions = _.find(@attrs, (a) -> a.constructor.name == 'Exceptions')?.exceptions ? []
-    anns = _.find(@attrs, (a) -> a.constructor.name == 'RuntimeVisibleAnnotations')?.raw_bytes
-    adefs = _.find(@attrs, (a) -> a.constructor.name == 'AnnotationDefault')?.raw_bytes
-    sig =  _.find(@attrs, (a) -> a.constructor.name == 'Signature')?.sig
+    exceptions = _.find(@attrs, (a) -> a.name == 'Exceptions')?.exceptions ? []
+    anns = _.find(@attrs, (a) -> a.name == 'RuntimeVisibleAnnotations')?.raw_bytes
+    adefs = _.find(@attrs, (a) -> a.name == 'AnnotationDefault')?.raw_bytes
+    sig =  _.find(@attrs, (a) -> a.name == 'Signature')?.sig
     obj = {}
     # XXX: missing parameterAnnotations
     obj[typestr + '/clazz'] = rs.jclass_obj(@class_type)

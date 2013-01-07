@@ -79,7 +79,7 @@ trapped_methods =
               unless _this.type.toClassString() is 'java/lang/NoClassDefFoundError'
                 attrs = rs.load_class(cls).attrs
                 source_file =
-                  _.find(attrs, (attr) -> attr.constructor.name == 'SourceFile')?.name or 'unknown'
+                  _.find(attrs, (attr) -> attr.name == 'SourceFile')?.filename or 'unknown'
               else
                 source_file = 'unknown'
               line_nums = sf.method.code?.attrs?[0]?.entries
@@ -225,7 +225,7 @@ native_methods =
             return null unless (type instanceof types.ArrayType)
             rs.jclass_obj type.component_type, true
         o 'getGenericSignature()Ljava/lang/String;', (rs, _this) ->
-            sig = _.find(_this.file.attrs, (a) -> a.constructor.name is 'Signature')?.sig
+            sig = _.find(_this.file.attrs, (a) -> a.name is 'Signature')?.sig
             if sig? then rs.init_string sig else null
         o 'getProtectionDomain0()Ljava/security/ProtectionDomain;', (rs, _this) -> null
         o 'isAssignableFrom(L!/!/!;)Z', (rs, _this, cls) ->
@@ -267,10 +267,10 @@ native_methods =
         o 'getModifiers()I', (rs, _this) -> _this.file.access_byte
         o 'getRawAnnotations()[B', (rs, _this) ->
             cls = _this.file
-            annotations = _.find(cls.attrs, (a) -> a.constructor.name == 'RuntimeVisibleAnnotations')
+            annotations = _.find(cls.attrs, (a) -> a.name == 'RuntimeVisibleAnnotations')
             return new JavaArray rs, c2t('[B'), annotations.raw_bytes if annotations?
             for sig,m of cls.methods
-              annotations = _.find(m.attrs, (a) -> a.constructor.name == 'RuntimeVisibleAnnotations')
+              annotations = _.find(m.attrs, (a) -> a.name == 'RuntimeVisibleAnnotations')
               return new JavaArray rs, c2t('[B'), annotations.raw_bytes if annotations?
             null
         o 'getConstantPool()Lsun/reflect/ConstantPool;', (rs, _this) ->
@@ -279,7 +279,7 @@ native_methods =
         o 'getEnclosingMethod0()[L!/!/Object;', (rs, _this) ->
             return null unless _this.$type instanceof types.ClassType
             cls = _this.file
-            em = _.find(cls.attrs, (a) -> a.constructor.name == 'EnclosingMethod')
+            em = _.find(cls.attrs, (a) -> a.name == 'EnclosingMethod')
             return null unless em?
             exceptions.java_throw rs, 'java/lang/Error', "native method not finished: java.lang.Class.getEnclosingClass"
             #TODO: return array w/ 3 elements:
@@ -290,7 +290,7 @@ native_methods =
         o 'getDeclaringClass()L!/!/!;', (rs, _this) ->
             return null unless _this.$type instanceof types.ClassType
             cls = _this.file
-            icls = _.find(cls.attrs, (a) -> a.constructor.name == 'InnerClasses')
+            icls = _.find(cls.attrs, (a) -> a.name == 'InnerClasses')
             return null unless icls?
             my_class = _this.$type.toClassString()
             for entry in icls.classes when entry.outer_info_index > 0
@@ -307,7 +307,7 @@ native_methods =
             return ret unless _this.$type instanceof types.ClassType
             cls = _this.file
             my_class = _this.$type.toClassString()
-            iclses = (a for a in cls.attrs when a.constructor.name is 'InnerClasses')
+            iclses = (a for a in cls.attrs when a.name is 'InnerClasses')
             for icls in iclses
               for c in icls.classes when c.outer_info_index > 0
                 enclosing_name = cls.constant_pool.get(c.outer_info_index).deref()

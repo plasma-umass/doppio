@@ -9,6 +9,7 @@ opcodes = require './opcodes'
 root = exports ? window.attributes ?= {}
 
 class ExceptionHandler
+  name: 'ExceptionHandler'
   parse: (bytes_array,constant_pool) ->
     @start_pc   = bytes_array.get_uint 2
     @end_pc     = bytes_array.get_uint 2
@@ -17,6 +18,7 @@ class ExceptionHandler
     @catch_type = if cti==0 then "<any>" else constant_pool.get(cti).deref()
 
 class Code
+  name: 'Code'
   parse: (bytes_array,@constant_pool) ->
     @max_stack = bytes_array.get_uint 2
     @max_locals = bytes_array.get_uint 2
@@ -52,6 +54,7 @@ class Code
       fn(i, @opcodes[i])
 
 class LineNumberTable
+  name: 'LineNumberTable'
   parse: (bytes_array,constant_pool) ->
     @entries = []
     lnt_len = bytes_array.get_uint 2
@@ -61,10 +64,12 @@ class LineNumberTable
       @entries.push {'start_pc': spc,'line_number': ln}
 
 class SourceFile
+  name: 'SourceFile'
   parse: (bytes_array,constant_pool) ->
-    @name = constant_pool.get(bytes_array.get_uint 2).value
+    @filename = constant_pool.get(bytes_array.get_uint 2).value
 
 class StackMapTable
+  name: 'StackMapTable'
   parse: (bytes_array, constant_pool) ->
     @num_entries = bytes_array.get_uint 2
     @entries = (parse_entries(bytes_array, constant_pool) for i in [0...@num_entries] by 1)
@@ -129,6 +134,7 @@ class StackMapTable
 
 
 class LocalVariableTable
+  name: 'LocalVariableTable'
   parse: (bytes_array, constant_pool) ->
     @num_entries = bytes_array.get_uint 2
     @entries = (@parse_entries bytes_array, constant_pool for i in [0...@num_entries] by 1)
@@ -143,12 +149,14 @@ class LocalVariableTable
     }
 
 class Exceptions
+  name: 'Exceptions'
   parse: (bytes_array, constant_pool) ->
     @num_exceptions = bytes_array.get_uint 2
     exc_refs = (bytes_array.get_uint 2 for i in [0...@num_exceptions] by 1)
     @exceptions = (constant_pool.get(ref).deref() for ref in exc_refs)
 
 class InnerClasses
+  name: 'InnerClasses'
   parse: (bytes_array, constant_pool) ->
     num_classes = bytes_array.get_uint 2
     @classes = (@parse_class bytes_array, constant_pool for i in [0...num_classes] by 1)
@@ -162,31 +170,38 @@ class InnerClasses
     }
 
 class ConstantValue
+  name: 'ConstantValue'
   parse: (bytes_array, constant_pool) ->
     @ref = bytes_array.get_uint 2
     @value = constant_pool.get(@ref).value
 
 class Synthetic
+  name: 'Synthetic'
   parse: () ->  # NOP
 
 class Deprecated
+  name: 'Deprecated'
   parse: () ->  # NOP
 
 class Signature
+  name: 'Signature'
   parse: (bytes_array, constant_pool) ->
     ref = bytes_array.get_uint 2
     @sig = constant_pool.get(ref).value
 
 class RuntimeVisibleAnnotations
+  name: 'RuntimeVisibleAnnotations'
   parse: (bytes_array, constant_pool, attr_len) ->
     # num_annotations = bytes_array.get_uint 2
     @raw_bytes = bytes_array.read attr_len
 
 class AnnotationDefault
+  name: 'AnnotationDefault'
   parse: (bytes_array, constant_pool, attr_len) ->
     @raw_bytes = bytes_array.read attr_len
 
 class EnclosingMethod
+  name: 'EnclosingMethod'
   parse: (bytes_array, constant_pool) ->
     @enc_class = constant_pool.get(bytes_array.get_uint 2).deref()
     method_ref = bytes_array.get_uint 2
