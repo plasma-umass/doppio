@@ -109,6 +109,7 @@ root.disassemble = (class_file) ->
 
   for sig, m of class_file.methods
     rv += access_string m.access_flags
+    rv += 'synchronized ' if m.access_flags.synchronized
     rv +=
       # initializers are special-cased
       if m.name is '<init>' then class_file.this_class.toExternalString() # instance init
