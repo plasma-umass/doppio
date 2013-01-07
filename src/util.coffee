@@ -1,7 +1,7 @@
 
 # pull in external modules
 gLong = require '../vendor/gLong.js'
-{java_throw} =  require './exceptions'
+exceptions = require './exceptions'
 
 "use strict"
 
@@ -15,11 +15,11 @@ root.FLOAT_POS_INFINITY = Math.pow(2,128)
 root.FLOAT_NEG_INFINITY = -1*root.FLOAT_POS_INFINITY
 
 root.int_mod = (rs, a, b) ->
-  java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b == 0
+  exceptions.java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b == 0
   a % b
 
 root.int_div = (rs, a, b) ->
-  java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b == 0
+  exceptions.java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b == 0
   # spec: "if the dividend is the negative integer of largest possible magnitude
   # for the int type, and the divisor is -1, then overflow occurs, and the
   # result is equal to the dividend."
@@ -27,11 +27,11 @@ root.int_div = (rs, a, b) ->
   (a / b) | 0
 
 root.long_mod = (rs, a, b) ->
-  java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b.isZero()
+  exceptions.java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b.isZero()
   a.modulo(b)
 
 root.long_div = (rs, a, b) ->
-  java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b.isZero()
+  exceptions.java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b.isZero()
   a.div(b)
 
 root.float2int = (a) ->
