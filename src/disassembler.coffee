@@ -79,11 +79,12 @@ root.disassemble = (class_file) ->
       when 'float' then format_decimal val, 'f'
       when 'double' then format_decimal val, 'd'
       when 'long' then val + "l"
-      else escape_whitespace ((if entry.deref? then "#" else "") + val)
+      else util.escape_whitespace ((if entry.deref? then "#" else "") + val)
 
   pool = class_file.constant_pool
   pool.each (idx, entry) ->
-    rv += "const ##{idx} = #{entry.type}\t#{format entry};#{format_extra_info entry}\n"
+    rv += "const ##{idx} = #{entry.type}\t#{format entry};"
+    rv += "#{util.format_extra_info entry}\n"
   rv += "\n"
 
   # pretty-print our field types, e.g. as 'PackageName.ClassName[][]'
@@ -127,7 +128,7 @@ root.disassemble = (class_file) ->
       code.parse_code()
       code.each_opcode (idx, oc) ->
         rv += "   #{idx}:\t#{oc.name}"
-        rv += util.call_handler(root.opcode_annotators, oc, idx, pool) or ''
+        rv += oc.annotate(idx, pool)
         rv += "\n"
       if code.exception_handlers.length > 0
         # For printing columns.
@@ -165,55 +166,3 @@ root.disassemble = (class_file) ->
   rv += "}\n"
 
   return rv
-
-escape_whitespace = (str) ->
-  str.replace /\s/g, (c) ->
-    switch c
-      when "\n" then "\\n"
-      when "\r" then "\\r"
-      when "\t" then "\\t"
-      when "\v" then "\\v"
-      when "\f" then "\\f"
-      else c
-
-# if :entry is a reference, display its referent in a comment
-format_extra_info = (entry) ->
-  type = entry.type
-  info = entry.deref?()
-  return "" unless info
-  switch type
-    when 'Method', 'InterfaceMethod'
-      "\t//  #{info.class}.#{info.sig}"
-    when 'Field'
-      "\t//  #{info.class}.#{info.name}:#{info.type}"
-    when 'NameAndType' then "//  #{info.name}:#{info.type}"
-    else "\t//  " + escape_whitespace info if util.is_string info
-
-primitive_types = {Z:'boolean',C:'char',F:'float',D:'double',B:'byte',S:'short',I:'int',J:'long'}
-
-# TODO: move this into opcodes.coffee as a member function, maybe annotate()
-root.opcode_annotators =
-  InvokeOpcode: (idx, pool) ->
-    "\t##{@method_spec_ref}" +
-    (if @name == 'invokeinterface' then ",  #{@count}" else "") +
-    ";#{format_extra_info pool.get @method_spec_ref}"
-  ClassOpcode: (idx, pool) ->
-    "\t##{@class_ref};#{format_extra_info pool.get @class_ref}"
-  FieldOpcode: (idx, pool) ->
-    "\t##{@field_spec_ref};#{format_extra_info pool.get @field_spec_ref}"
-  SwitchOpcode: (idx) ->
-    "{\n" +
-      ("\t\t#{match}: #{idx + offset};\n" for match, offset of @offsets).join('') +
-    "\t\tdefault: #{idx + @_default} }"
-  BranchOpcode: (idx) -> "\t#{idx + @offset}"
-  LoadVarOpcode: -> "\t#{@var_num}"
-  StoreVarOpcode: -> "\t#{@var_num}"
-  LoadConstantOpcode: (idx, pool) -> "\t##{@constant_ref};\t// #{@constant.type} " +
-    if @constant.type in ['String', 'class']
-      escape_whitespace @constant.deref()
-    else
-      @constant.value
-  PushOpcode: -> "\t#{@value}"
-  IIncOpcode: -> "\t#{@index}, #{@const}"
-  NewArrayOpcode: -> "\t#{primitive_types[@element_type]}"
-  MultiArrayOpcode: -> "\t##{@class_ref},  #{@dim};"

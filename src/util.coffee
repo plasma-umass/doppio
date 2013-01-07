@@ -89,6 +89,29 @@ root.parse_flags = (flag_byte) -> {
     strict:       flag_byte & 0x800
   }
 
+root.escape_whitespace = (str) ->
+  str.replace /\s/g, (c) ->
+    switch c
+      when "\n" then "\\n"
+      when "\r" then "\\r"
+      when "\t" then "\\t"
+      when "\v" then "\\v"
+      when "\f" then "\\f"
+      else c
+
+# if :entry is a reference, display its referent in a comment
+root.format_extra_info = (entry) ->
+  type = entry.type
+  info = entry.deref?()
+  return "" unless info
+  switch type
+    when 'Method', 'InterfaceMethod'
+      "\t//  #{info.class}.#{info.sig}"
+    when 'Field'
+      "\t//  #{info.class}.#{info.name}:#{info.type}"
+    when 'NameAndType' then "//  #{info.name}:#{info.type}"
+    else "\t//  " + root.escape_whitespace info if root.is_string info
+
 class root.BytesArray
   constructor: (@raw_array, @start=0, @end=@raw_array.length) ->
     @_index = 0
