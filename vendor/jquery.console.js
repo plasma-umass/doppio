@@ -314,7 +314,7 @@
                      config.charInsertTrigger(keyCode,promptText)))
                     typer.consoleInsert(keyCode);
             }
-            if ($.browser.webkit) return false;
+            if ($.browser.webkit || $.browser.opera) return false;
         });
 
         function isIgnorableKey(e) {

@@ -27,7 +27,7 @@ div#preloading-file { padding-left: 10px; white-space: nowrap; color: #ccc; }
 div#console > pre { margin: 0; padding: 0; background: #222; color: #ccc; }
 div#source { width:100%; height:70%;
   position:relative;border: 1px solid #ccc; float: left;}
-div#console { height: 75%; padding:0; }
+div#console { height: 500px; padding:0; }
 @-webkit-keyframes blinker {
   0% { background:#ccc; color:#222; }
   50% { background:#ccc; color:#222; }
