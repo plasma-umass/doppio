@@ -265,13 +265,42 @@ class WebserverSource extends FileSource
     # Ensure the file is in the index.
     return null if @index? and @index.get_file(@mnt_pt + path) == false
     data = null
-    $.ajax path, {
-      type: 'GET'
-      dataType: 'text'
-      async: false
-      beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
-      success: (theData) -> data = theData
-    }
+    # We can't do a 'text' request in IE; it truncates the response at the
+    # first NULL character.
+    unless $.browser.msie
+      $.ajax path, {
+        type: 'GET'
+        dataType: 'text'
+        async: false
+        beforeSend: (jqXHR) -> jqXHR.overrideMimeType('text/plain; charset=x-user-defined')
+        success: (theData) -> data = theData
+      }
+    else if window.Blob
+      # In IE10, we can do a 'blob' request to get a binary blob that we can
+      # convert into a string.
+      # jQuery's 'ajax' function does not support blob requests, so we're going
+      # to use XMLHttpRequest directly.
+      # Furthermore, the code below will *NOT* work in Firefox or Chrome, since
+      # they do not allow synchronous blob or arraybuffer requests.
+      req = new XMLHttpRequest()
+      req.open('GET', path, false)
+      req.responseType = 'arraybuffer'
+      req.send()
+      if req.status == 200
+          typed_array = new Uint8Array(req.response)
+          array = []
+          for char, i in typed_array
+            array[i] = String.fromCharCode(char)
+          data = array.join("")
+    else
+      # In earlier versions of IE, we can retrieve the 'responseBody' attribute
+      # of the response (which contains the *entire* response). Since it's an
+      # unsigned array, JavaScript can't touch it, so we pass it to VBScript
+      # code that can convert it into something JavaScript can process.
+      # Note that this approach also works in IE10 for x86 platforms, but not
+      # for ARM platforms which do not have VBScript support.
+      # XXX: Add a VBScript method for earlier IE versions.
+      throw "Doppio currently does not support versions of IE earlier than 10."
     return data
   constructor: (mnt_pt, listings_path) ->
     super(mnt_pt)
