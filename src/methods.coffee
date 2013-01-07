@@ -10,7 +10,6 @@ runtime = require './runtime'
 logging = require './logging'
 {vtrace,trace,debug_vars} = logging
 {java_throw,ReturnException} = require './exceptions'
-{opcode_annotators} = require './disassembler'
 {str2type,carr2type,c2t} = types
 {native_methods,trapped_methods} = natives
 
@@ -156,8 +155,7 @@ class root.Method extends AbstractMethodField
         pc = cf.pc
         throw "#{@name}:#{pc} => (null)" unless op
         vtrace "#{padding}stack: [#{debug_vars cf.stack}], local: [#{debug_vars cf.locals}]"
-        annotation =
-          util.call_handler(opcode_annotators, op, pc, rs.class_lookup(@class_type).constant_pool) or ""
+        annotation = op.annotate(pc, rs.class_lookup(@class_type).constant_pool)
         vtrace "#{padding}#{@class_type.toClassString()}::#{@name}:#{pc} => #{op.name}" + annotation
 
       cf.pc += 1 + op.byte_count if (op.execute rs) isnt false
