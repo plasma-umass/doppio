@@ -18,7 +18,7 @@ util = require './util'
 
 "use strict"
 
-internal2external =
+root.internal2external =
   B: 'byte'
   C: 'char'
   D: 'double'
@@ -30,14 +30,14 @@ internal2external =
   Z: 'boolean'
 
 external2internal = {}
-external2internal[v]=k for k,v of internal2external
+external2internal[v]=k for k,v of root.internal2external
 
 # consumes characters from the array until it finishes reading one full type.
 root.carr2type = (carr) ->
   c = carr.shift()
   return null unless c?
-  if c of internal2external
-    new root.PrimitiveType internal2external[c]
+  if c of root.internal2external
+    new root.PrimitiveType root.internal2external[c]
   else if c == 'L'
     new root.ClassType((c while (c = carr.shift()) != ';').join(''))
   else if c == '['
@@ -49,8 +49,8 @@ root.carr2type = (carr) ->
 # fast path: generate type from string
 root.str2type = (type_str) ->
   c = type_str[0]
-  if c of internal2external
-    new root.PrimitiveType internal2external[c]
+  if c of root.internal2external
+    new root.PrimitiveType root.internal2external[c]
   else if c == 'L'
     new root.ClassType(type_str[1...-1])
   else if c == '['

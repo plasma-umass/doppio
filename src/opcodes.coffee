@@ -19,6 +19,9 @@ class root.Opcode
   take_args: (code_array) ->
     @args = (code_array.get_uint(1) for [0...@byte_count])
 
+  # called to provide opcode annotations for disassembly and vtrace
+  annotate: -> ''
+
 class root.FieldOpcode extends root.Opcode
   constructor: (name, params) ->
     super name, params
@@ -27,6 +30,9 @@ class root.FieldOpcode extends root.Opcode
   take_args: (code_array, constant_pool) ->
     @field_spec_ref = code_array.get_uint(2)
     @field_spec = constant_pool.get(@field_spec_ref).deref()
+
+  annotate: (idx, pool) ->
+    "\t##{@field_spec_ref};#{util.format_extra_info pool.get @field_spec_ref}"
 
 class root.ClassOpcode extends root.Opcode
   constructor: (name, params) ->
@@ -37,6 +43,9 @@ class root.ClassOpcode extends root.Opcode
     @class_ref = code_array.get_uint(2)
     @class = constant_pool.get(@class_ref).deref()
 
+  annotate: (idx, pool) ->
+    "\t##{@class_ref};#{util.format_extra_info pool.get @class_ref}"
+
 class root.InvokeOpcode extends root.Opcode
   constructor: (name, params) ->
     super name, params
@@ -45,6 +54,11 @@ class root.InvokeOpcode extends root.Opcode
   take_args: (code_array, constant_pool) ->
     @method_spec_ref = code_array.get_uint(2)
     @method_spec = constant_pool.get(@method_spec_ref).deref()
+
+  annotate: (idx, pool) ->
+    "\t##{@method_spec_ref}" +
+    (if @name == 'invokeinterface' then ",  #{@count}" else "") +
+    ";#{util.format_extra_info pool.get @method_spec_ref}"
 
   execute: (rs) ->
     my_sf = rs.curr_frame()
@@ -110,6 +124,13 @@ class root.LoadConstantOpcode extends root.Opcode
     @constant = constant_pool.get @constant_ref
     @str_constant = constant_pool.get @constant.value if @constant.type in ['String', 'class']
 
+  annotate: (idx, pool) ->
+    "\t##{@constant_ref};\t// #{@constant.type} " +
+      if @constant.type in ['String', 'class']
+        util.escape_whitespace @constant.deref()
+      else
+        @constant.value
+
   _execute: (rs) ->
     switch @constant.type
       when 'String'
@@ -127,6 +148,8 @@ class root.BranchOpcode extends root.Opcode
 
   take_args: (code_array) ->
     @offset = code_array.get_int @byte_count
+
+  annotate: (idx, pool) -> "\t#{idx + @offset}"
 
 class root.UnaryBranchOpcode extends root.BranchOpcode
   constructor: (name, params) ->
@@ -157,6 +180,8 @@ class root.PushOpcode extends root.Opcode
   take_args: (code_array) ->
     @value = code_array.get_int @byte_count
 
+  annotate: (idx, pool) -> "\t#{@value}"
+
   _execute: (rs) -> rs.push @value
 
 class root.IIncOpcode extends root.Opcode
@@ -173,6 +198,8 @@ class root.IIncOpcode extends root.Opcode
       @byte_count = 2
     @index = code_array.get_uint arg_size
     @const = code_array.get_int arg_size
+
+  annotate: (idx, pool) -> "\t#{@index}, #{@const}"
 
   _execute: (rs) ->
     v = rs.cl(@index)+@const
@@ -200,6 +227,8 @@ class root.LoadVarOpcode extends root.LoadOpcode
       @byte_count = 1
       @var_num = code_array.get_uint 1
 
+  annotate: (idx, pool) -> "\t#{@var_num}"
+
 class root.StoreOpcode extends root.Opcode
   constructor: (name, params={}) ->
     params.execute ?=
@@ -225,10 +254,16 @@ class root.StoreVarOpcode extends root.StoreOpcode
       @byte_count = 1
       @var_num = code_array.get_uint 1
 
+  annotate: (idx, pool) -> "\t#{@var_num}"
+
 class root.SwitchOpcode extends root.BranchOpcode
   constructor: (name, params) ->
     super name, params
     @byte_count = null
+
+  annotate: (idx, pool) -> "{\n" +
+    ("\t\t#{match}: #{idx + offset};\n" for match, offset of @offsets).join('') +
+    "\t\tdefault: #{idx + @_default} }"
 
   execute: (rs) ->
     key = rs.pop()
@@ -277,6 +312,8 @@ class root.NewArrayOpcode extends root.Opcode
     type_code = code_array.get_uint 1
     @element_type = @arr_types[type_code]
 
+  annotate: (idx, pool) -> "\t#{types.internal2external[@element_type]}"
+
 class root.MultiArrayOpcode extends root.Opcode
   constructor: (name, params={}) ->
     params.byte_count ?= 3
@@ -286,6 +323,8 @@ class root.MultiArrayOpcode extends root.Opcode
     @class_ref = code_array.get_uint 2
     @class = constant_pool.get(@class_ref).deref()
     @dim = code_array.get_uint 1
+
+  annotate: (idx, pool) -> "\t##{@class_ref},  #{@dim};"
 
   execute: (rs) ->
     counts = rs.curr_frame().stack.splice(-@dim,@dim)
