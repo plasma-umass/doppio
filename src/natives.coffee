@@ -25,7 +25,7 @@ else
 system_properties = {
   'java.home': "#{vendor_path}/java_home",
   'sun.boot.class.path': "#{vendor_path}/classes",
-  'file.encoding':'US_ASCII','java.vendor':'DoppioVM',
+  'file.encoding':'US_ASCII','java.vendor':'Doppio',
   'java.version': '1.6', 'java.vendor.url': 'https://github.com/int3/doppio',
   'java.class.version': '50.0',
   'line.separator':'\n', 'file.separator':'/', 'path.separator':':',
