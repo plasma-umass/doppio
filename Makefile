@@ -162,7 +162,7 @@ clean:
 	@rm -f $(CLASSES) $(DISASMS) $(RUNOUTS)
 	@rm -f src/*.js browser/*.js console/*.js tools/*.js
 	@rm -rf build/* browser/mini-rt.tar $(DEMO_CLASSES)
-	@rm -f index.html
+	@rm -f index.html browser/listings.json
 
 # docs need to be generated in one shot so docco can create the full jumplist.
 # This is slow, so we have it as a separate target (even though it is needed
