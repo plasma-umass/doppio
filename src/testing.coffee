@@ -32,7 +32,7 @@ root.run_tests = (test_classes, stdout, hide_diffs, quiet, keep_going, callback)
 
   _runner = () ->
     if test_classes.length == 0
-      quiet || stdout "Pass\n"
+      quiet || keep_going || stdout "Pass\n"
       return callback(false)
     test = test_classes.shift()
     quiet || stdout "testing #{test}...\n"
