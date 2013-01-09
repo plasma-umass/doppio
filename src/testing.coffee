@@ -19,7 +19,7 @@ root.find_test_classes = (doppio_dir) ->
   # Note that the lack of return value here implies that the above is actually
   # a list comprehension. This is intended behavior.
 
-root.run_tests = (test_classes, stdout, quiet, keep_going, callback) ->
+root.run_tests = (test_classes, stdout, hide_diffs, quiet, keep_going, callback) ->
   doppio_dir = if node? then '/home/doppio/' else path.resolve __dirname, '..'
   # get the tests, if necessary
   if test_classes?.length > 0
@@ -37,11 +37,13 @@ root.run_tests = (test_classes, stdout, quiet, keep_going, callback) ->
     test = test_classes.shift()
     quiet || stdout "testing #{test}...\n"
     if (disasm_diff = run_disasm_test(doppio_dir, test))?
-      stdout "Failed disasm test #{test}:\n#{disasm_diff}\n"
+      stdout "Failed disasm test #{test}\n"
+      hide_diffs || stdout "#{disasm_diff}\n"
       return callback(true) unless keep_going
     run_stdout_test doppio_dir, test, (diff) ->
       if diff?
-        stdout "Failed output test #{test}:\n#{diff}\n"
+        stdout "Failed output test #{test}\n"
+        hide_diffs || stdout "#{diff}\n"
         return callback(true) unless keep_going
       _runner()
 

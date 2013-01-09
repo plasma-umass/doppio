@@ -11,19 +11,21 @@ makefile_test = (argv) ->
   done_cb = (failed) -> print (if failed then 'x' else '✓')
   outfile = fs.openSync failpath, 'a'
   stdout = (str) -> fs.writeSync(outfile, str)
-  run_tests argv._, stdout, true, argv.c, done_cb
+  run_tests argv._, stdout, false, true, argv.c, done_cb
   fs.closeSync(outfile)
 
 regular_test = (argv) ->
   done_cb = (failed) -> process.exit failed
-  run_tests argv._, print, argv.q, argv.c, done_cb
+  run_tests argv._, print, not argv.diff, argv.q, argv.c, done_cb
 
 if module? and require?.main == module
   optimist = require('optimist')
-    .boolean(['q','h','c','makefile'])
+    .boolean(['q','h','c','makefile','diff'])
+    .default({diff: true})
     .alias({h: 'help', q: 'quiet', c: 'continue'})
     .describe({
       q: 'Suppress in-progress test output',
+      diff: 'Show failed test diff output',
       c: 'Keep going after test failure',
       # --makefile is only used from the makefile
       h: 'Show this usage'})
