@@ -57,8 +57,10 @@ root.disassemble = (class_file) ->
         valStr = "Infinity"
       else if val is util.FLOAT_NEG_INFINITY
         valStr = "-Infinity"
+      else if util.is_float_NaN(val)
+        valStr = "NaN"
 
-    if valStr.match(/-?Infinity/)
+    if valStr.match(/-?(Infinity|NaN)/)
       str = valStr
     else
       m = valStr.match /(-?\d+)(\.\d+)?(?:e\+?(-?\d+))?/

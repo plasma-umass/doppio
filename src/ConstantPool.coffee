@@ -110,13 +110,7 @@ class ConstFloat
 
   @from_bytes: (bytes_array) ->
     uint32 = bytes_array.get_uint 4
-    sign = (uint32 &       0x80000000)>>>31
-    exponent = (uint32 &   0x7F800000)>>>23
-    significand = uint32 & 0x007FFFFF
-    if exponent is 0  # we must denormalize!
-      value = Math.pow(-1,sign)*significand*Math.pow(2,-149)
-    else
-      value = Math.pow(-1,sign)*(1+significand*Math.pow(2,-23))*Math.pow(2,exponent-127)
+    value = util.intbits2float uint32
     float = new @ value
     return float
 

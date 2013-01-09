@@ -39,10 +39,33 @@ root.float2int = (a) ->
   else if a < root.INT_MIN then root.INT_MIN
   else a|0
 
+root.intbits2float = (uint32) ->
+  if Int32Array?
+    i_view = new Int32Array [uint32]
+    f_view = new Float32Array i_view.buffer
+    return f_view[0]
+
+  # Fallback for older JS engines
+  sign = (uint32 &       0x80000000)>>>31
+  exponent = (uint32 &   0x7F800000)>>>23
+  significand = uint32 & 0x007FFFFF
+  if exponent is 0  # we must denormalize!
+    value = Math.pow(-1,sign)*significand*Math.pow(2,-149)
+  else
+    value = Math.pow(-1,sign)*(1+significand*Math.pow(2,-23))*Math.pow(2,exponent-127)
+  return value
+
+# Checks if the given float is NaN
+root.is_float_NaN = (a) ->
+  # A float is NaN if it is greater than or less than the infinity
+  # representation
+  return a > root.FLOAT_POS_INFINITY || a < root.FLOAT_NEG_INFINITY
+
+# Call this ONLY on the result of two non-NaN numbers.
 root.wrap_float = (a) ->
-  return Infinity if a > 3.40282346638528860e+38
+  return root.FLOAT_POS_INFINITY if a > 3.40282346638528860e+38
   return 0 if 0 < a < 1.40129846432481707e-45
-  return -Infinity if a < -3.40282346638528860e+38
+  return root.FLOAT_NEG_INFINITY if a < -3.40282346638528860e+38
   return 0 if 0 > a > -1.40129846432481707e-45
   a
 

@@ -25,7 +25,7 @@ else
 system_properties = {
   'java.home': "#{vendor_path}/java_home",
   'sun.boot.class.path': "#{vendor_path}/classes",
-  'file.encoding':'US_ASCII','java.vendor':'Doppio',
+  'file.encoding':'US_ASCII','java.vendor':'DoppioVM',
   'java.version': '1.6', 'java.vendor.url': 'https://github.com/int3/doppio',
   'java.class.version': '50.0',
   'line.separator':'\n', 'file.separator':'/', 'path.separator':':',
@@ -350,18 +350,27 @@ native_methods =
               i_view = new Int32Array f_view.buffer
               return i_view[0]
 
-            # Fallback for older JS engines
+            # Special case
             return 0 if f_val is 0
+
             sign = if f_val < 0 then 1 else 0
             f_val = Math.abs(f_val)
-            exp = Math.floor(Math.log(f_val)/Math.LN2)
-            sig = (f_val/Math.pow(2,exp)-1)*Math.pow(2,23)
-            (sign<<31)+((exp+127)<<23)+sig
-        o 'intBitsToFloat(I)F', (rs, i_val) ->
-            i_view = new Int32Array [i_val]
-            f_view = new Float32Array i_view.buffer
-            f_view[0]
-            # TODO: add a fallback
+            # Subnormal zone!
+            # (−1)^signbits×2^−126×0.significandbits
+            # Largest positive subnormal #:
+            # 0000 0000 0111 1111 1111 1111 1111 1111
+            #  1.1754942106924411e-38
+            # Largest negative subnormal #:
+            # 1000 0000 0111 1111 1111 1111 1111 1111
+            # -1.1754942106924411e-38
+            if f_val <= 1.1754942106924411e-38 and f_val >= -1.1754942106924411e-38
+              exp = 0
+              sig = (f_val/Math.pow(2,-126)-1)*Math.pow(2,23)
+            else
+              exp = Math.floor(Math.log(f_val)/Math.LN2)
+              sig = (f_val/Math.pow(2,exp)-1)*Math.pow(2,23)
+            (sign<<31)|((exp+127)<<23)|sig
+        o 'intBitsToFloat(I)F', (rs, i_val) -> util.intbits2float(i_val)
       ]
       Double: [
         o 'doubleToRawLongBits(D)J', (rs, d_val) ->
