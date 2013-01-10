@@ -357,19 +357,18 @@ native_methods =
             f_val = Math.abs(f_val)
             # Subnormal zone!
             # (−1)^signbits×2^−126×0.significandbits
-            # Largest positive subnormal #:
+            # Largest subnormal magnitude:
             # 0000 0000 0111 1111 1111 1111 1111 1111
-            #  1.1754942106924411e-38
-            # Largest negative subnormal #:
-            # 1000 0000 0111 1111 1111 1111 1111 1111
-            # -1.1754942106924411e-38
-            if f_val <= 1.1754942106924411e-38 and f_val >= -1.1754942106924411e-38
+            # Smallest subnormal magnitude:
+            # 0000 0000 0000 0000 0000 0000 0000 0001
+            if f_val <= 1.1754942106924411e-38 and f_val >= 1.4012984643248170e-45
               exp = 0
-              sig = (f_val/Math.pow(2,-126)-1)*Math.pow(2,23)
+              sig = (f_val/Math.pow(2,-126))*Math.pow(2,23)
+              return (sign<<31)|(exp<<23)|sig
             else
               exp = Math.floor(Math.log(f_val)/Math.LN2)
               sig = (f_val/Math.pow(2,exp)-1)*Math.pow(2,23)
-            (sign<<31)|((exp+127)<<23)|sig
+              return (sign<<31)|((exp+127)<<23)|sig
         o 'intBitsToFloat(I)F', (rs, i_val) -> util.intbits2float(i_val)
       ]
       Double: [
