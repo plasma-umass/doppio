@@ -14,10 +14,16 @@ root.INT_MIN = -root.INT_MAX - 1 # -2^31
 
 root.FLOAT_POS_INFINITY = Math.pow(2,128)
 root.FLOAT_NEG_INFINITY = -1*root.FLOAT_POS_INFINITY
+root.FLOAT_POS_INFINITY_AS_INT = 0x7F800000
+root.FLOAT_NEG_INFINITY_AS_INT = -8388608
 # Equivalent to bits 0x7fc00000 interpreted as a FP value. While NaN is a range,
 # this is the exact value used for Float.NaN in java.lang.Float and is returned
 # by opcodes that produce NaN.
-root.FLOAT_NaN = 5.104235503814077e+38
+# Note that JavaScript uses a similar NaN, but with the sign bit set; this is
+# why we cannot use it for precise compatibility.
+#root.FLOAT_NaN = (1+0x400000*Math.pow(2,-23))*Math.pow(2,0x80)
+root.FLOAT_NaN = NaN
+root.FLOAT_NaN_AS_INT = 0x7fc00000
 
 root.int_mod = (rs, a, b) ->
   exceptions.java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b == 0
@@ -51,6 +57,13 @@ root.intbits2float = (uint32) ->
     return f_view[0]
 
   # Fallback for older JS engines
+
+  # Map +/- infinity to JavaScript equivalents
+  if uint32 == root.FLOAT_POS_INFINITY_AS_INT
+    return Number.POSITIVE_INFINITY
+  else if uint32 == root.FLOAT_NEG_INFINITY_AS_INT
+    return Number.NEGATIVE_INFINITY
+
   sign = (uint32 &       0x80000000)>>>31
   exponent = (uint32 &   0x7F800000)>>>23
   significand = uint32 & 0x007FFFFF
@@ -58,6 +71,7 @@ root.intbits2float = (uint32) ->
     value = Math.pow(-1,sign)*significand*Math.pow(2,-149)
   else
     value = Math.pow(-1,sign)*(1+significand*Math.pow(2,-23))*Math.pow(2,exponent-127)
+
   return value
 
 root.longbits2double = (uint32_a, uint32_b) ->
@@ -81,17 +95,17 @@ root.longbits2double = (uint32_a, uint32_b) ->
 root.is_float_NaN = (a) ->
   # A float is NaN if it is greater than or less than the infinity
   # representation
-  return a > root.FLOAT_POS_INFINITY || a < root.FLOAT_NEG_INFINITY
+  return Number.isNaN(a) || (a > root.FLOAT_POS_INFINITY and a != Number.POSITIVE_INFINITY) || (a < root.FLOAT_NEG_INFINITY and a != Number.NEGATIVE_INFINITY)
 
 # Convenience method for opcodes; prevents 2 fcn calls per fp opcode.
 root.are_floats_NaN = (a, b) ->
-  return a > root.FLOAT_POS_INFINITY || a < root.FLOAT_NEG_INFINITY || b > root.FLOAT_POS_INFINITY || b < root.FLOAT_NEG_INFINITY
+  return Number.isNaN(a) || Number.isNaN(b) || (a > root.FLOAT_POS_INFINITY and a != Number.POSITIVE_INFINITY) || (a < root.FLOAT_NEG_INFINITY and a != Number.NEGATIVE_INFINITY) || (b > root.FLOAT_POS_INFINITY and b != Number.POSITIVE_INFINITY) || (b < root.FLOAT_NEG_INFINITY and b != Number.NEGATIVE_INFINITY)
 
 # Call this ONLY on the result of two non-NaN numbers.
 root.wrap_float = (a) ->
-  return root.FLOAT_POS_INFINITY if a > 3.40282346638528860e+38
+  return Number.POSITIVE_INFINITY if a > 3.40282346638528860e+38
   return 0 if 0 < a < 1.40129846432481707e-45
-  return root.FLOAT_NEG_INFINITY if a < -3.40282346638528860e+38
+  return Number.NEGATIVE_INFINITY if a < -3.40282346638528860e+38
   return 0 if 0 > a > -1.40129846432481707e-45
   a
 

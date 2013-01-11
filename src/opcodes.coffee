@@ -499,7 +499,10 @@ root.opcodes = {
   111: new root.Opcode 'ddiv', { execute: (rs) -> v=rs.pop2();rs.push2(rs.pop2()/v, null) }
   112: new root.Opcode 'irem', { execute: (rs) -> v2=rs.pop();  rs.push util.int_mod(rs,rs.pop(),v2) }
   113: new root.Opcode 'lrem', { execute: (rs) -> v2=rs.pop2(); rs.push2 util.long_mod(rs,rs.pop2(),v2), null }
-  114: new root.Opcode 'frem', { execute: (rs) -> v2=rs.pop();  rs.push rs.pop() %v2 }
+  114: new root.Opcode 'frem', { execute: (rs) ->
+    b=rs.pop()
+    a=rs.pop()
+    rs.push if util.are_floats_NaN(a, b) then util.FLOAT_NaN else a%b }
   115: new root.Opcode 'drem', { execute: (rs) -> v2=rs.pop2(); rs.push2 rs.pop2()%v2, null }
   116: new root.Opcode 'ineg', { execute: (rs) -> rs.push -rs.pop()|0 }
   117: new root.Opcode 'lneg', { execute: (rs) -> rs.push2 rs.pop2().negate(), null }

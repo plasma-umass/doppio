@@ -350,15 +350,22 @@ native_methods =
               i_view = new Int32Array f_view.buffer
               return i_view[0]
 
-            # Special case
+            # Special cases!
             return 0 if f_val is 0
+            # We map the infinities to JavaScript infinities. Map them back.
+            return util.FLOAT_POS_INFINITY_AS_INT if f_val is Number.POSITIVE_INFINITY
+            return util.FLOAT_NEG_INFINITY_AS_INT if f_val is Number.NEGATIVE_INFINITY
+            # While we preserve the value of naturally occurring NaN values
+            # (e.g. mainly produced through int->float conversions), sometimes a
+            # calculation will produce a JavaScript NaN (e.g. 0/0). This maps
+            # it back to the Float.NaN value in Java.
+            return util.FLOAT_NaN_AS_INT if Number.isNaN(f_val)
 
             # We have more bits of precision than a float, so below we round to
             # the nearest significand. This appears to be what the x86
             # Java does for normal floating point operations.
 
             sign = if f_val < 0 then 1 else 0
-            f_val_orig = f_val
             f_val = Math.abs(f_val)
             # Subnormal zone!
             # (−1)^signbits×2^−126×0.significandbits
@@ -369,13 +376,11 @@ native_methods =
             if f_val <= 1.1754942106924411e-38 and f_val >= 1.4012984643248170e-45
               exp = 0
               sig = Math.round((f_val/Math.pow(2,-126))*Math.pow(2,23))
-              value = (sign<<31)|(exp<<23)|sig
               return (sign<<31)|(exp<<23)|sig
             # Regular FP numbers
             else
               exp = Math.floor(Math.log(f_val)/Math.LN2)
               sig = Math.round((f_val/Math.pow(2,exp)-1)*Math.pow(2,23))
-              value = (sign<<31)|((exp+127)<<23)|sig
               return (sign<<31)|((exp+127)<<23)|sig
         o 'intBitsToFloat(I)F', (rs, i_val) -> util.intbits2float(i_val)
       ]
