@@ -353,7 +353,12 @@ native_methods =
             # Special case
             return 0 if f_val is 0
 
+            # We have more bits of precision than a float, so below we round to
+            # the nearest significand. This appears to be what the x86
+            # Java does for normal floating point operations.
+
             sign = if f_val < 0 then 1 else 0
+            f_val_orig = f_val
             f_val = Math.abs(f_val)
             # Subnormal zone!
             # (−1)^signbits×2^−126×0.significandbits
@@ -363,11 +368,14 @@ native_methods =
             # 0000 0000 0000 0000 0000 0000 0000 0001
             if f_val <= 1.1754942106924411e-38 and f_val >= 1.4012984643248170e-45
               exp = 0
-              sig = (f_val/Math.pow(2,-126))*Math.pow(2,23)
+              sig = Math.round((f_val/Math.pow(2,-126))*Math.pow(2,23))
+              value = (sign<<31)|(exp<<23)|sig
               return (sign<<31)|(exp<<23)|sig
+            # Regular FP numbers
             else
               exp = Math.floor(Math.log(f_val)/Math.LN2)
-              sig = (f_val/Math.pow(2,exp)-1)*Math.pow(2,23)
+              sig = Math.round((f_val/Math.pow(2,exp)-1)*Math.pow(2,23))
+              value = (sign<<31)|((exp+127)<<23)|sig
               return (sign<<31)|((exp+127)<<23)|sig
         o 'intBitsToFloat(I)F', (rs, i_val) -> util.intbits2float(i_val)
       ]
@@ -386,20 +394,7 @@ native_methods =
             sig = gLong.fromNumber((d_val/Math.pow(2,exp.toInt())-1)*Math.pow(2,52))
             exp = exp.add(gLong.fromInt(1023))
             sign.shiftLeft(63).add(exp.shiftLeft(52)).add(sig)
-        o 'longBitsToDouble(J)D', (rs, l_val) ->
-            if Uint32Array?
-              i_view = new Uint32Array 2
-              i_view[0] = l_val.getLowBitsUnsigned()
-              i_view[1] = l_val.getHighBits()
-              d_view = new Float64Array i_view.buffer
-              return d_view[0]
-
-            # Fallback for older JS engines
-            s = if l_val.shiftRight(63).equals(gLong.ZERO) then 1 else -1
-            e = l_val.shiftRight(52).and(gLong.fromInt(0x7ff))
-            m = if e == 0 then l_val.and(gLong.fromNumber(0xfffffffffffff))
-                                    .or(gLong.fromNumber(0x10000000000000))
-            Math.pow(2, e * 1075) * s * m # we're not handling the NaN / Inf cases
+        o 'longBitsToDouble(J)D', (rs, l_val) -> util.longbits2double(l_val.getHighBits(), l_val.getLowBitsUnsigned())
       ]
       Object: [
         o 'getClass()L!/!/Class;', (rs, _this) ->

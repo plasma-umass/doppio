@@ -135,14 +135,7 @@ class ConstDouble
     #a hack since bitshifting in js is 32bit
     uint32_a = bytes_array.get_uint 4
     uint32_b = bytes_array.get_uint 4
-    sign     = (uint32_a & 0x80000000)>>>31
-    exponent = (uint32_a & 0x7FF00000)>>>20
-    significand = util.lshift(uint32_a & 0x000FFFFF, 32) + uint32_b
-    if exponent is 0  # we must denormalize!
-      value = Math.pow(-1,sign)*significand*Math.pow(2,-1074)
-    else
-      value = Math.pow(-1,sign)*(1+significand*Math.pow(2,-52))*Math.pow(2,exponent-1023)
-    double = new @ value
+    double = new @ util.longbits2double(uint32_a, uint32_b)
     return double
 
 class ConstantPool

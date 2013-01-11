@@ -2,6 +2,7 @@
 # pull in external modules
 gLong = require '../vendor/gLong.js'
 exceptions = require './exceptions'
+{trace,vtrace,error,debug} = require './logging'
 
 "use strict"
 
@@ -13,6 +14,10 @@ root.INT_MIN = -root.INT_MAX - 1 # -2^31
 
 root.FLOAT_POS_INFINITY = Math.pow(2,128)
 root.FLOAT_NEG_INFINITY = -1*root.FLOAT_POS_INFINITY
+# Equivalent to bits 0x7fc00000 interpreted as a FP value. While NaN is a range,
+# this is the exact value used for Float.NaN in java.lang.Float and is returned
+# by opcodes that produce NaN.
+root.FLOAT_NaN = 5.104235503814077e+38
 
 root.int_mod = (rs, a, b) ->
   exceptions.java_throw rs, 'java/lang/ArithmeticException', '/ by zero' if b == 0
@@ -55,11 +60,32 @@ root.intbits2float = (uint32) ->
     value = Math.pow(-1,sign)*(1+significand*Math.pow(2,-23))*Math.pow(2,exponent-127)
   return value
 
+root.longbits2double = (uint32_a, uint32_b) ->
+  if Uint32Array?
+    i_view = new Uint32Array 2
+    i_view[0] = uint32_b
+    i_view[1] = uint32_a
+    d_view = new Float64Array i_view.buffer
+    return d_view[0]
+
+  sign     = (uint32_a & 0x80000000)>>>31
+  exponent = (uint32_a & 0x7FF00000)>>>20
+  significand = root.lshift(uint32_a & 0x000FFFFF, 32) + uint32_b
+  if exponent is 0  # we must denormalize!
+    value = Math.pow(-1,sign)*significand*Math.pow(2,-1074)
+  else
+    value = Math.pow(-1,sign)*(1+significand*Math.pow(2,-52))*Math.pow(2,exponent-1023)
+  return value
+
 # Checks if the given float is NaN
 root.is_float_NaN = (a) ->
   # A float is NaN if it is greater than or less than the infinity
   # representation
   return a > root.FLOAT_POS_INFINITY || a < root.FLOAT_NEG_INFINITY
+
+# Convenience method for opcodes; prevents 2 fcn calls per fp opcode.
+root.are_floats_NaN = (a, b) ->
+  return a > root.FLOAT_POS_INFINITY || a < root.FLOAT_NEG_INFINITY || b > root.FLOAT_POS_INFINITY || b < root.FLOAT_NEG_INFINITY
 
 # Call this ONLY on the result of two non-NaN numbers.
 root.wrap_float = (a) ->
