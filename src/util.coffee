@@ -16,13 +16,8 @@ root.FLOAT_POS_INFINITY = Math.pow(2,128)
 root.FLOAT_NEG_INFINITY = -1*root.FLOAT_POS_INFINITY
 root.FLOAT_POS_INFINITY_AS_INT = 0x7F800000
 root.FLOAT_NEG_INFINITY_AS_INT = -8388608
-# Equivalent to bits 0x7fc00000 interpreted as a FP value. While NaN is a range,
-# this is the exact value used for Float.NaN in java.lang.Float and is returned
-# by opcodes that produce NaN.
-# Note that JavaScript uses a similar NaN, but with the sign bit set; this is
-# why we cannot use it for precise compatibility.
-#root.FLOAT_NaN = (1+0x400000*Math.pow(2,-23))*Math.pow(2,0x80)
-root.FLOAT_NaN = NaN
+# We use the JavaScript NaN as our NaN value, and convert it to
+# a NaN value in the SNaN range when an int equivalent is requested.
 root.FLOAT_NaN_AS_INT = 0x7fc00000
 
 root.int_mod = (rs, a, b) ->
@@ -50,27 +45,31 @@ root.float2int = (a) ->
   else if a < root.INT_MIN then root.INT_MIN
   else a|0
 
-root.intbits2float = (uint32) ->
+root.intbits2float = (int32) ->
   if Int32Array?
-    i_view = new Int32Array [uint32]
+    i_view = new Int32Array [int32]
     f_view = new Float32Array i_view.buffer
     return f_view[0]
 
   # Fallback for older JS engines
 
   # Map +/- infinity to JavaScript equivalents
-  if uint32 == root.FLOAT_POS_INFINITY_AS_INT
+  if int32 == root.FLOAT_POS_INFINITY_AS_INT
     return Number.POSITIVE_INFINITY
-  else if uint32 == root.FLOAT_NEG_INFINITY_AS_INT
+  else if int32 == root.FLOAT_NEG_INFINITY_AS_INT
     return Number.NEGATIVE_INFINITY
 
-  sign = (uint32 &       0x80000000)>>>31
-  exponent = (uint32 &   0x7F800000)>>>23
-  significand = uint32 & 0x007FFFFF
+  sign = (int32 &       0x80000000)>>>31
+  exponent = (int32 &   0x7F800000)>>>23
+  significand = int32 & 0x007FFFFF
   if exponent is 0  # we must denormalize!
     value = Math.pow(-1,sign)*significand*Math.pow(2,-149)
   else
     value = Math.pow(-1,sign)*(1+significand*Math.pow(2,-23))*Math.pow(2,exponent-127)
+
+  # NaN check
+  if value < root.FLOAT_NEG_INFINITY or value > root.FLOAT_POS_INFINITY
+    value = NaN
 
   return value
 
@@ -90,16 +89,6 @@ root.longbits2double = (uint32_a, uint32_b) ->
   else
     value = Math.pow(-1,sign)*(1+significand*Math.pow(2,-52))*Math.pow(2,exponent-1023)
   return value
-
-# Checks if the given float is NaN
-root.is_float_NaN = (a) ->
-  # A float is NaN if it is greater than or less than the infinity
-  # representation
-  return Number.isNaN(a) || (a > root.FLOAT_POS_INFINITY and a != Number.POSITIVE_INFINITY) || (a < root.FLOAT_NEG_INFINITY and a != Number.NEGATIVE_INFINITY)
-
-# Convenience method for opcodes; prevents 2 fcn calls per fp opcode.
-root.are_floats_NaN = (a, b) ->
-  return Number.isNaN(a) || Number.isNaN(b) || (a > root.FLOAT_POS_INFINITY and a != Number.POSITIVE_INFINITY) || (a < root.FLOAT_NEG_INFINITY and a != Number.NEGATIVE_INFINITY) || (b > root.FLOAT_POS_INFINITY and b != Number.POSITIVE_INFINITY) || (b < root.FLOAT_NEG_INFINITY and b != Number.NEGATIVE_INFINITY)
 
 # Call this ONLY on the result of two non-NaN numbers.
 root.wrap_float = (a) ->

@@ -32,7 +32,9 @@ public class FloatMath {
     System.out.println(Float.intBitsToFloat(12345));
     System.out.println(Float.intBitsToFloat(0));
     System.out.println(Float.intBitsToFloat(Integer.MAX_VALUE));
-    System.out.println(Float.intBitsToFloat(Integer.MIN_VALUE));
+    //Removed: Maps to -0; there is no -0 in JavaScript. Works with typed
+    //arrays, though.
+    //System.out.println(Float.intBitsToFloat(Integer.MIN_VALUE));
 
     // Testing float <-> int conversions
     float[] ftilVals = {Float.MAX_VALUE,Float.MIN_VALUE,Float.NaN,Float.NEGATIVE_INFINITY,Float.POSITIVE_INFINITY,0f,1f,-432112341.4f,5f};
@@ -41,11 +43,6 @@ public class FloatMath {
     for (int i : intVals) intToFloatTest(i);
 
     /** NaN Math! **/
-
-    // This test ensure that we preserve the actual bit value of the NaN, since
-    // NaN is a range of float values.
-    System.out.println("Int(-1) -> Float(NaN) -> Int: " + -1 + " -> " +
-      Float.intBitsToFloat(-1) + " -> " + Float.floatToRawIntBits(Float.intBitsToFloat(-1)));
 
     // Constant NaN (in the constant pool) and a dynamically generated NaN
     float infty = getMaxValue()*getMaxValue();
@@ -68,36 +65,6 @@ public class FloatMath {
     System.out.println("\tNaN(-1) < Float.NaN: " + (Float.intBitsToFloat(-1) < Float.NaN));
     System.out.println("\tNaN(-1) > Float.NaN: " + (Float.intBitsToFloat(-1) > Float.NaN));
     System.out.println("\tFloat.compare(NaN(-1),Float.NaN): " + Float.compare(Float.intBitsToFloat(-1), Float.NaN));
-
-    // This is really funny. Java will return the second NaN in the computation
-    // as a result of the computation.
-    System.out.println("\tNaN(-1) + Float.NaN converted to int: " + Float.floatToRawIntBits(Float.intBitsToFloat(-1) + Float.NaN));
-    System.out.println("\tFloat.NaN + NaN(-1) converted to int: " + Float.floatToRawIntBits(Float.NaN + Float.intBitsToFloat(-1)));
-    System.out.println("\t1 + NaN(-1) converted to int: " + Float.floatToRawIntBits(1+ Float.intBitsToFloat(-1)));
-    System.out.println("\tNaN(-1) + 1 converted to int: " + Float.floatToRawIntBits(Float.intBitsToFloat(-1) + 1));
-    System.out.println("\tNaN(-1) - Float.NaN converted to int: " + Float.floatToRawIntBits(Float.intBitsToFloat(-1) - Float.NaN));
-    System.out.println("\tFloat.NaN - NaN(-1) converted to int: " + Float.floatToRawIntBits(Float.NaN - Float.intBitsToFloat(-1)));
-    System.out.println("\t1 - NaN(-1) converted to int: " + Float.floatToRawIntBits(1- Float.intBitsToFloat(-1)));
-    System.out.println("\tNaN(-1) - 1 converted to int: " + Float.floatToRawIntBits(Float.intBitsToFloat(-1) - 1));
-    System.out.println("\tNaN(-1) * Float.NaN converted to int: " + Float.floatToRawIntBits(Float.intBitsToFloat(-1) * Float.NaN));
-    System.out.println("\tFloat.NaN * NaN(-1) converted to int: " + Float.floatToRawIntBits(Float.NaN * Float.intBitsToFloat(-1)));
-    System.out.println("\t1 * NaN(-1) converted to int: " + Float.floatToRawIntBits(1* Float.intBitsToFloat(-1)));
-    System.out.println("\tNaN(-1) * 1 converted to int: " + Float.floatToRawIntBits(Float.intBitsToFloat(-1) * 1));
-    System.out.println("\tNaN(-1) / Float.NaN converted to int: " + Float.floatToRawIntBits(Float.intBitsToFloat(-1) / Float.NaN));
-    System.out.println("\tFloat.NaN / NaN(-1) converted to int: " + Float.floatToRawIntBits(Float.NaN / Float.intBitsToFloat(-1)));
-    System.out.println("\t1 / NaN(-1) converted to int: " + Float.floatToRawIntBits(1/ Float.intBitsToFloat(-1)));
-    System.out.println("\tNaN(-1) / 1 converted to int: " + Float.floatToRawIntBits(Float.intBitsToFloat(-1) / 1));
-    System.out.println("\tNaN(-1) % Float.NaN converted to int: " + Float.floatToRawIntBits(Float.intBitsToFloat(-1) % Float.NaN));
-    System.out.println("\tFloat.NaN % NaN(-1) converted to int: " + Float.floatToRawIntBits(Float.NaN % Float.intBitsToFloat(-1)));
-    System.out.println("\t1 % NaN(-1) converted to int: " + Float.floatToRawIntBits(1% Float.intBitsToFloat(-1)));
-    System.out.println("\tNaN(-1) % 1 converted to int: " + Float.floatToRawIntBits(Float.intBitsToFloat(-1) % 1));
-
-    // Produce an actual JavaScript NaN, since 0/0 = NaN in JavaScript.
-    // This will mess up the int <-> float conversion logic if it doesn't take
-    // actual JavaScript NaNs (as opposed to doubles with a value in the NaN
-    // range) into consideration! :)
-    float jsNan = getZero() / getZero();
-    System.out.println("JS NaN -> int -> float: " + jsNan + " -> " + Float.floatToRawIntBits(jsNan) + " -> " + Float.intBitsToFloat(Float.floatToRawIntBits(jsNan)));
 
     // (+/-)Infinity/(+/-)infinity should be NaN. But if we don't treat infinity
     // correctly, we will incorrectly get 1 here. :)

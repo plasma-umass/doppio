@@ -355,10 +355,7 @@ native_methods =
             # We map the infinities to JavaScript infinities. Map them back.
             return util.FLOAT_POS_INFINITY_AS_INT if f_val is Number.POSITIVE_INFINITY
             return util.FLOAT_NEG_INFINITY_AS_INT if f_val is Number.NEGATIVE_INFINITY
-            # While we preserve the value of naturally occurring NaN values
-            # (e.g. mainly produced through int->float conversions), sometimes a
-            # calculation will produce a JavaScript NaN (e.g. 0/0). This maps
-            # it back to the Float.NaN value in Java.
+            # Convert JavaScript NaN to Float NaN value.
             return util.FLOAT_NaN_AS_INT if Number.isNaN(f_val)
 
             # We have more bits of precision than a float, so below we round to

@@ -110,7 +110,8 @@ class ConstFloat
 
   @from_bytes: (bytes_array) ->
     uint32 = bytes_array.get_uint 4
-    value = util.intbits2float uint32
+    # We OR with 0 to convert to a signed int.
+    value = util.intbits2float(uint32|0)
     float = new @ value
     return float
 
