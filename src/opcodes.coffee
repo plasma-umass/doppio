@@ -471,31 +471,19 @@ root.opcodes = {
   95: new root.Opcode 'swap', {execute: (rs) -> v2=rs.pop(); v1=rs.pop(); rs.push2(v2,v1)}
   96: new root.Opcode 'iadd', { execute: (rs) -> rs.push (rs.pop()+rs.pop())|0 }
   97: new root.Opcode 'ladd', { execute: (rs) -> rs.push2(rs.pop2().add(rs.pop2()), null) }
-  98: new root.Opcode 'fadd', { execute: (rs) ->
-    a=rs.pop()
-    b=rs.pop()
-    rs.push if Number.isNaN(a) or Number.isNaN(b) then NaN else util.wrap_float(a+b) }
+  98: new root.Opcode 'fadd', { execute: (rs) -> rs.push util.wrap_float(rs.pop()+rs.pop()) }
   99: new root.Opcode 'dadd', { execute: (rs) -> rs.push2(rs.pop2()+rs.pop2(), null) }
   100: new root.Opcode 'isub', { execute: (rs) -> rs.push (-rs.pop()+rs.pop())|0 }
   101: new root.Opcode 'lsub', { execute: (rs) -> rs.push2(rs.pop2().negate().add(rs.pop2()), null) }
-  102: new root.Opcode 'fsub', { execute: (rs) ->
-    a=rs.pop()
-    b=rs.pop()
-    rs.push if Number.isNaN(a) or Number.isNaN(b) then NaN else util.wrap_float(-a+b) }
+  102: new root.Opcode 'fsub', { execute: (rs) -> rs.push util.wrap_float(-rs.pop()+rs.pop()) }
   103: new root.Opcode 'dsub', { execute: (rs) -> rs.push2(-rs.pop2()+rs.pop2(), null) }
   104: new root.Opcode 'imul', { execute: (rs) -> rs.push gLong.fromInt(rs.pop()).multiply(gLong.fromInt rs.pop()).toInt() }
   105: new root.Opcode 'lmul', { execute: (rs) -> rs.push2(rs.pop2().multiply(rs.pop2()), null) }
-  106: new root.Opcode 'fmul', { execute: (rs) ->
-    a=rs.pop()
-    b=rs.pop()
-    rs.push if Number.isNaN(a) or Number.isNaN(b) then NaN else util.wrap_float(a*b) }
+  106: new root.Opcode 'fmul', { execute: (rs) -> rs.push util.wrap_float(rs.pop()*rs.pop()) }
   107: new root.Opcode 'dmul', { execute: (rs) -> rs.push2(rs.pop2()*rs.pop2(), null) }
   108: new root.Opcode 'idiv', { execute: (rs) -> v=rs.pop();rs.push(util.int_div rs, rs.pop(), v) }
   109: new root.Opcode 'ldiv', { execute: (rs) -> v=rs.pop2();rs.push2(util.long_div(rs, rs.pop2(), v), null) }
-  110: new root.Opcode 'fdiv', { execute: (rs) ->
-    a=rs.pop()
-    b=rs.pop()
-    rs.push if Number.isNaN(a) or Number.isNaN(b) then NaN else util.wrap_float(b/a) }
+  110: new root.Opcode 'fdiv', { execute: (rs) -> a=rs.pop();rs.push util.wrap_float(rs.pop()/a) }
   111: new root.Opcode 'ddiv', { execute: (rs) -> v=rs.pop2();rs.push2(rs.pop2()/v, null) }
   112: new root.Opcode 'irem', { execute: (rs) -> v2=rs.pop();  rs.push util.int_mod(rs,rs.pop(),v2) }
   113: new root.Opcode 'lrem', { execute: (rs) -> v2=rs.pop2(); rs.push2 util.long_mod(rs,rs.pop2(),v2), null }
