@@ -644,7 +644,6 @@ native_methods =
                 }
                 rs.meta_stack().pop()
                 rs.push rv
-              throw exceptions.ReturnException
             throw exceptions.ReturnException
       ]
       FileOutputStream: [

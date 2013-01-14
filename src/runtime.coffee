@@ -384,8 +384,6 @@ class root.RuntimeState
     catch e
       if e == 'Error in class initialization'
         return false
-      else if e == ReturnException
-        return @run_until_finished (->), done_cb, no_threads
       else if e instanceof YieldIOException
         retval = null
         e.condition =>
