@@ -84,6 +84,16 @@ root.longbits2double = (uint32_a, uint32_b) ->
   sign     = (uint32_a & 0x80000000)>>>31
   exponent = (uint32_a & 0x7FF00000)>>>20
   significand = root.lshift(uint32_a & 0x000FFFFF, 32) + uint32_b
+
+  # Special values!
+  return 0 if exponent is 0 and significand is 0
+  if exponent is 2047
+    if significand is 0
+      if sign is 1
+        return Number.NEGATIVE_INFINITY
+      return Number.POSITIVE_INFINITY
+    else return NaN
+
   if exponent is 0  # we must denormalize!
     value = Math.pow(-1,sign)*significand*Math.pow(2,-1074)
   else

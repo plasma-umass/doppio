@@ -389,13 +389,47 @@ native_methods =
               return gLong.fromBits i_view[0], i_view[1]
 
             # Fallback for older JS engines
-            return gLong.ZERO if d_val is 0 or isNaN(d_val) or not isFinite(d_val)
-            sign = if d_val < 0 then gLong.ONE else gLong.ZERO
+            # Special cases
+            return gLong.ZERO if d_val is 0
+            if d_val is Number.POSITIVE_INFINITY
+              # High bits: 0111 1111 1111 0000 0000 0000 0000 0000
+              #  Low bits: 0000 0000 0000 0000 0000 0000 0000 0000
+              return gLong.fromBits(0, 2146435072)
+            else if d_val is Number.NEGATIVE_INFINITY
+              # High bits: 1111 1111 1111 0000 0000 0000 0000 0000
+              #  Low bits: 0000 0000 0000 0000 0000 0000 0000 0000
+              return gLong.fromBits(0, -1048576)
+            else if Number.isNaN(d_val)
+              # High bits: 0111 1111 1111 1000 0000 0000 0000 0000
+              #  Low bits: 0000 0000 0000 0000 0000 0000 0000 0000
+              return gLong.fromBits(0, 2146959360)
+
+            sign = if d_val < 0 then (1 << 31) else 0
             d_val = Math.abs(d_val)
-            exp = gLong.fromNumber(Math.floor(Math.log(d_val)/Math.LN2))
-            sig = gLong.fromNumber((d_val/Math.pow(2,exp.toInt())-1)*Math.pow(2,52))
-            exp = exp.add(gLong.fromInt(1023))
-            sign.shiftLeft(63).add(exp.shiftLeft(52)).add(sig)
+
+            # Check if it is a subnormal number.
+            # (-1)s × 0.f × 2-1022
+            # Largest subnormal magnitude:
+            # 0000 0000 0000 1111 1111 1111 1111 1111
+            # 1111 1111 1111 1111 1111 1111 1111 1111
+            # Smallest subnormal magnitude:
+            # 0000 0000 0000 0000 0000 0000 0000 0000
+            # 0000 0000 0000 0000 0000 0000 0000 0001
+            if d_val <= 2.2250738585072010e-308 and d_val >= 5.0000000000000000e-324
+              exp = 0
+              sig = gLong.fromNumber((d_val/Math.pow(2,-1022))*Math.pow(2,52))
+            else
+              exp = Math.floor(Math.log(d_val)/Math.LN2)
+              # If d_val is close to a power of two, there's a chance that exp
+              # will be 1 greater than it should due to loss of accuracy in the
+              # log result.
+              exp = exp-1 if d_val < Math.pow(2,exp)
+              sig = gLong.fromNumber((d_val/Math.pow(2,exp)-1)*Math.pow(2,52))
+              exp = (exp + 1023) << 20
+
+            high_bits = sig.getHighBits() | sign | exp
+
+            gLong.fromBits(sig.getLowBits(), high_bits)
         o 'longBitsToDouble(J)D', (rs, l_val) -> util.longbits2double(l_val.getHighBits(), l_val.getLowBitsUnsigned())
       ]
       Object: [
