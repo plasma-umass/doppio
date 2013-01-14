@@ -37,7 +37,9 @@ public class FloatMath {
     //System.out.println(Float.intBitsToFloat(Integer.MIN_VALUE));
 
     // Testing float <-> int conversions
-    float[] ftilVals = {Float.MAX_VALUE,Float.MIN_VALUE,Float.NaN,Float.NEGATIVE_INFINITY,Float.POSITIVE_INFINITY,0f,1f,-432112341.4f,5f};
+    // NaN is not in here; browsers use different standard NaN values that may
+    // disagree with Java (e.g. Opera is different)
+    float[] ftilVals = {Float.MAX_VALUE,Float.MIN_VALUE,Float.NEGATIVE_INFINITY,Float.POSITIVE_INFINITY,0f,1f,-432112341.4f,5f};
     for (float f : ftilVals) floatToIntTest(f);
     int[] intVals = {0,-1,-7674718,2139095040,2139095041,-8388608,-8388607};
     for (int i : intVals) intToFloatTest(i);
