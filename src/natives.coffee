@@ -966,31 +966,73 @@ native_methods =
             rs.push rs.static_get {class:'java/lang/System',name:'props'}
             rs.static_put {class:'sun/misc/VM',name:'savedProps'}
       ]
+      # TODO: Go down the rabbit hole and create a fast heap implementation
+      # in JavaScript -- with and without typed arrays.
       Unsafe: [
         o 'addressSize()I', (rs, _this) -> 4 # either 4 or 8
         o 'allocateInstance(Ljava/lang/Class;)Ljava/lang/Object;', (rs, _this, cls) ->
             rs.init_object cls.$type.toClassString(), {}
         o 'allocateMemory(J)J', (rs, _this, size) ->
             next_addr = util.last(rs.mem_start_addrs)
-            rs.mem_blocks[next_addr] = new DataView new ArrayBuffer size
-            rs.mem_start_addrs.push next_addr + size
-            gLong.fromNumber next_addr
+            if DataView?
+              rs.mem_blocks[next_addr] = new DataView new ArrayBuffer size
+            else
+              # 1 byte per block. Wasteful, terrible, etc... but good for now.
+              # XXX: Stash allocation size here. Please hate me.
+              rs.mem_blocks[next_addr] = size
+              next_addr += 1
+              for i in [0...size] by 1
+                rs.mem_blocks[next_addr+i] = 0
+
+            rs.mem_start_addrs.push(next_addr + size)
+            return gLong.fromNumber(next_addr)
         o 'setMemory(JJB)V', (rs, _this, address, bytes, value) ->
             block_addr = rs.block_addr(address)
             for i in [0...bytes] by 1
-              rs.mem_blocks[block_addr].setInt8(i, value)
-        o 'freeMemory(J)V', (rs, _this, address) -> # NOP
-            delete rs.mem_blocks[address.toNumber()]
+              if DataView?
+                rs.mem_blocks[block_addr].setInt8(i, value)
+              else
+                rs.mem_blocks[block_addr+i] = value
+            return
+        o 'freeMemory(J)V', (rs, _this, address) ->
+            if DataView?
+              delete rs.mem_blocks[address.toNumber()]
+            else
+              # XXX: Size will be just before address.
+              address = address.toNumber()
+              num_blocks = rs.mem_blocks[address-1]
+              for i in [0...num_blocks] by 1
+                delete rs.mem_blocks[address+i]
+              delete rs.mem_blocks[address-1]
+              # Restore to the actual start addr where size was.
+              address = address-1
             rs.mem_start_addrs.splice(rs.mem_start_addrs.indexOf(address), 1)
         o 'putLong(JJ)V', (rs, _this, address, value) ->
             block_addr = rs.block_addr(address)
             offset = address - block_addr
             # little endian
-            rs.mem_blocks[block_addr].setInt32(offset, value.getLowBits(), true)
-            rs.mem_blocks[block_addr].setInt32(offset + 4, value.getHighBits, true)
+            if DataView?
+              rs.mem_blocks[block_addr].setInt32(offset, value.getLowBits(), true)
+              rs.mem_blocks[block_addr].setInt32(offset + 4, value.getHighBits, true)
+            else
+              # Break up into 8 bytes. Hurray!
+              store_word = (rs_, address, word) ->
+                # Little endian
+                rs_.mem_blocks[address] = word & 0xFF
+                rs_.mem_blocks[address+1] = (word >>> 8) & 0xFF
+                rs_.mem_blocks[address+2] = (word >>> 16) & 0xFF
+                rs_.mem_blocks[address+3] = (word >>> 24) & 0xFF
+
+              store_word(rs, address, value.getLowBits())
+              store_word(rs, address+4, value.getHighBits())
+            return
         o 'getByte(J)B', (rs, _this, address) ->
             block_addr = rs.block_addr(address)
-            rs.mem_blocks[block_addr].getInt8(address - block_addr)
+            if DataView?
+              return rs.mem_blocks[block_addr].getInt8(address - block_addr)
+            else
+              # Blocks are bytes.
+              return rs.mem_blocks[block_addr]
         o 'arrayBaseOffset(Ljava/lang/Class;)I', (rs, _this, cls) -> 0
         o 'arrayIndexScale(Ljava/lang/Class;)I', (rs, _this, cls) -> 1
         o 'compareAndSwapObject(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z', unsafe_compare_and_swap

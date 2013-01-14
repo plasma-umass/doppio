@@ -340,11 +340,17 @@ class root.RuntimeState
   # address of the block that this address is contained in
   block_addr: (address) ->
     address = address.toNumber() # address is a Long
-    block_addr = @mem_start_addrs[0]
-    for addr in @mem_start_addrs[1..]
-      if address < addr
-        return block_addr
-      block_addr = addr
+    if DataView?
+      block_addr = @mem_start_addrs[0]
+      for addr in @mem_start_addrs[1..]
+        if address < addr
+          return block_addr
+        block_addr = addr
+    else
+      # w/o typed arrays, we just address by 32bits.
+      # We initialize memory to 0, so it should not be 0 or undefined.
+      if @mem_blocks[address]?
+        return address
     UNSAFE? || throw new Error "Invalid memory access at #{address}"
 
   handle_toplevel_exception: (e, done_cb, no_threads) ->
