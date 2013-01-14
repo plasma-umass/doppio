@@ -25,7 +25,7 @@ else
 system_properties = {
   'java.home': "#{vendor_path}/java_home",
   'sun.boot.class.path': "#{vendor_path}/classes",
-  'file.encoding':'US_ASCII','java.vendor':'DoppioVM',
+  'file.encoding':'US_ASCII','java.vendor':'Doppio',
   'java.version': '1.6', 'java.vendor.url': 'https://github.com/int3/doppio',
   'java.class.version': '50.0',
   'line.separator':'\n', 'file.separator':'/', 'path.separator':':',
@@ -356,7 +356,7 @@ native_methods =
             return util.FLOAT_POS_INFINITY_AS_INT if f_val is Number.POSITIVE_INFINITY
             return util.FLOAT_NEG_INFINITY_AS_INT if f_val is Number.NEGATIVE_INFINITY
             # Convert JavaScript NaN to Float NaN value.
-            return util.FLOAT_NaN_AS_INT if Number.isNaN(f_val)
+            return util.FLOAT_NaN_AS_INT if isNaN(f_val)
 
             # We have more bits of precision than a float, so below we round to
             # the nearest significand. This appears to be what the x86
@@ -399,7 +399,7 @@ native_methods =
               # High bits: 1111 1111 1111 0000 0000 0000 0000 0000
               #  Low bits: 0000 0000 0000 0000 0000 0000 0000 0000
               return gLong.fromBits(0, -1048576)
-            else if Number.isNaN(d_val)
+            else if isNaN(d_val)
               # High bits: 0111 1111 1111 1000 0000 0000 0000 0000
               #  Low bits: 0000 0000 0000 0000 0000 0000 0000 0000
               return gLong.fromBits(0, 2146959360)

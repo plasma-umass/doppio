@@ -26,14 +26,20 @@ unless console? or window?.console
   window.console = {
     log: -> # Stub
     error: (msgs...) ->
-      throw msgs.join('\n') + '\n' # Better than silently failing.
+      throw msgs.join(' ') + '\n' # Better than silently failing.
     profile: -> # Stub
     profileEnd: -> # Stub
   }
 
 root.log = (level, msgs...) ->
   if level <= root.log_level
-    console[if level == 1 then 'error' else 'log'] msgs...
+    # This used to be a CoffeeScript '...' invocation, which translated into
+    # console.apply(console, msgs).
+    # This does not work in IE, as some functions defined off of windows
+    # do not support .apply. Thus, we work around this by using join to
+    # construct a giant string, which works fine.
+    # http://stackoverflow.com/questions/6873896/javascript-call-and-apply-in-internet-explorer-8-and-7-for-window-print/6875494#6875494
+    console[if level == 1 then 'error' else 'log'](msgs.join(' '))
 
 root.vtrace = (msgs...) -> root.log root.VTRACE, msgs...
 root.trace = (msgs...) -> root.log root.TRACE, msgs...
