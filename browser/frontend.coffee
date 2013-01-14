@@ -234,10 +234,12 @@ commands =
     return null  # no reprompt, because we handle it ourselves
   test: (args) ->
     return "Usage: test all|[class(es) to test]" unless args[0]?
+    # method signature is:
+    # run_tests(args,stdout,hide_diffs,quiet,keep_going,done_callback)
     if args[0] == 'all'
       testing.run_tests [], stdout, true, false, true, -> controller.reprompt()
     else
-      testing.run_tests args, stdout, true, false, true, -> controller.reprompt()
+      testing.run_tests args, stdout, false, false, true, -> controller.reprompt()
     return null
   javap: (args) ->
     return "Usage: javap class" unless args[0]?
