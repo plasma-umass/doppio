@@ -133,7 +133,12 @@ root.chars2js_str = (jvm_carr, offset, count) ->
 root.bytestr_to_array = (bytecode_string) ->
   (bytecode_string.charCodeAt(i) & 0xFF for i in [0...bytecode_string.length] by 1)
 
-root.array_to_bytestr = (bytecode_array) -> String.fromCharCode(bytecode_array...)
+root.array_to_bytestr = (bytecode_array) ->
+  # XXX: We can't use fromCharCode.apply since it seems that Safari
+  # *recursively* calls fromCharCode on each character?
+  # Old implementation:
+  # String.fromCharCode(bytecode_array...)
+  return (String.fromCharCode(b) for b in bytecode_array).join ''
 
 root.parse_flags = (flag_byte) -> {
     public:       flag_byte & 0x1
