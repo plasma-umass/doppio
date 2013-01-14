@@ -41,6 +41,11 @@ public class DoubleMath {
     }
 
     System.out.println(returnDouble());
+
+    // Double <-> Long conversions
+    double[] conversionNumbers = {Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, 0, Double.MAX_VALUE, Double.MIN_VALUE, -5, 4, Double.NaN};
+    for (double conversionNumber : conversionNumbers)
+      System.out.println(Double.longBitsToDouble(Double.doubleToRawLongBits(conversionNumber)));
   }
 
   static double[] test_dops(){
