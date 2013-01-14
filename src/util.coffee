@@ -1,4 +1,3 @@
-
 # pull in external modules
 gLong = require '../vendor/gLong.js'
 exceptions = require './exceptions'
@@ -134,10 +133,8 @@ root.bytestr_to_array = (bytecode_string) ->
   (bytecode_string.charCodeAt(i) & 0xFF for i in [0...bytecode_string.length] by 1)
 
 root.array_to_bytestr = (bytecode_array) ->
-  # XXX: We can't use fromCharCode.apply since it seems that Safari
-  # *recursively* calls fromCharCode on each character?
-  # Old implementation:
-  # String.fromCharCode(bytecode_array...)
+  # XXX: We'd like to use String.fromCharCode(bytecode_array...)
+  #  but that fails on Webkit with arrays longer than 2^31. See issue #129 for details.
   return (String.fromCharCode(b) for b in bytecode_array).join ''
 
 root.parse_flags = (flag_byte) -> {
