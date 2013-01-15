@@ -48,31 +48,36 @@
   </div>
 <h1>About</h1>
 
-<p>Doppio is a project to get Java running in the browser without any plug-ins.
-Right now it comprises a fairly complete VM and an implementation of the
-<code>javap</code> bytecode disassembler.  (Doppio is also the Italian word for 'double',
-and is another name for a double espresso.)</p>
+<p>Doppio is an implementation of the Java Virtual Machine that can run in just
+about any reasonable JavaScript engine. The goal is to be able to run JVM
+programs in the browser without any plug-ins, which means that any Java programs
+running in it are safely sandboxed by the JavaScript engine. Doppio is written
+in <a href="http://coffeescript.org/">CoffeeScript</a>, which is a nice terse language that maps
+directly into JavaScript.</p>
+
+<p>Doppio is also the Italian word for 'double', and is another name for a double
+espresso.</p>
 
 <p>Doppio started out as the mid-term project for a <a href="http://plasma.cs.umass.edu/emery/grad-systems">Graduate Systems
 Seminar.</a> It has since taken on a life of its own, and is complete
-enough to run implementations of <a href="https://github.com/int3/doppio/blob/master/test/special/Diff.java">GNU Diff</a>, <a href="https://github.com/int3/doppio/blob/master/test/special/Lzw.java">LZW compression</a>, and
-the Java 4 compiler. Here's what's supported thus far:</p>
+enough to run the following programs:</p>
 
 <ul>
-<li>All 200 opcodes</li>
-<li>Exact emulation of Java's primitive types, include the 64-bit long</li>
-<li>Generics</li>
-<li>Most of the Reflection API</li>
-<li>File and Standard I/O</li>
-<li>Major JDK libraries such as String, Pattern, and HashMap.</li>
+<li><a href="https://github.com/int3/doppio/blob/master/test/special/Diff.java">GNU Diff</a></li>
+<li><a href="https://github.com/int3/doppio/blob/master/test/special/Lzw.java">LZW compression</a></li>
+<li>The Java 6 compiler</li>
+<li><a href="http://www.gnu.org/software/kawa/">Kawa Scheme</a></li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Rhino">Rhino</a></li>
+<li>Probably many more! Let us know if you find anything cool that runs in Doppio.</li>
 </ul>
 
 
-<p>The code has been tested on the latest versions of Chrome, Firefox, and Safari,
-but should run on any browser that supports <a href="http://www.w3.org/TR/webstorage/#the-localstorage-attribute">LocalStorage</a> and
-<a href="http://www.khronos.org/registry/typedarray/specs/latest/">Typed Arrays</a>.</p>
+<p>The code has been tested on the latest versions of Chrome, Firefox, Safari,
+Opera, IE 9, IE 10, and Node, but should run in just about any browser.
+Doppio should also work in IE 8, but may have some small frontend bugs that do
+not interfere with JVM logic.</p>
 
-<p>Check out the <a href=".">demo!</a></p>
+<p>Check out the <a href="http://int3.github.com/doppio">demo!</a></p>
 
 <hr />
 
@@ -81,78 +86,127 @@ but should run on any browser that supports <a href="http://www.w3.org/TR/websto
 <h3>Library Support</h3>
 
 <p>Doppio was built with the goal of supporting as much of the Java Class Library
-as possible. Since a complete reimplementation would be prohibitive, we instead
-trap the native method calls that most of the JCL relies on, emulating them in
-Coffeescript. To make this emulation easier, we implemeted a quasi-DSL that
-automatically converted our parameters and return values between Java and
-Coffeescript (Javascript) types. Coffeescript's terseness definitely benefited
-us here, making the result more readable than it would have been in plain
-Javascript.</p>
+as possible. As the official Java Class Library is mostly implemented in Java,
+Doppio uses the Java 6 JCL with reimplementations of any needed "native
+methods", which were originally implemented in C, in CoffeeScript.</p>
 
 <p>Doppio is designed to run both on the console and the browser. In the console
 implementation, system calls are handled by Node.JS. In the browser, we emulate
 a simple LocalStorage-backed filesystem with an API very similar to Node's, so
-the same code can operate in both environments.</p>
+the same code can operate in both environments. If the browser does not support
+LocalStorage, then the filesystem exists purely in memory and is cleared when
+the user leaves the page.</p>
 
-<p>However, since LocalStorage has a storage limit of 5MB, we cannot store the
-entire JCL in it. (It would also make for a slow download.) Instead we pre-load
-a small, commonly-used subset of the JCL, and obtain the remainder as necessary
-via AJAX requests to the server.</p>
+<p>Since LocalStorage has a storage limit of 5MB, Doppio's web frontend will only
+store files created or modified by the user or by programs run by the user.
+We do this to avoid storing massive amounts of JCL classes in the limited
+storage available to us.</p>
 
 <h3>Primitives</h3>
 
-<p>Emulating primitives was slightly tricky, since Javascript only exposes the
-64-bit double as its sole numeric primitive. Ints and floats are easy enough to
-emulate with a double, but large 64-bit longs can't fit into the 52 bits of
-precision provided by a double. Fortunately, this problem has already been
-tackled in the <a href="http://closure-library.googlecode.com/svn/docs/class_goog_math_Long.html">Google Closure library</a>.</p>
+<p>Emulating primitives was slightly tricky, since JavaScript only exposes the
+64-bit double as its sole numeric primitive. Technically, you can also coax out
+32-bit signed integers, which trivially map into JavaScript doubles.</p>
+
+<p>Floats are slightly tricky; while the common case is handled nicely by a double,
+there are some edge cases that need to be specifically addressed (mainly,
++/- infinity and underflow, which Doppio handles).</p>
+
+<p>64-bit longs are tough. They cannot fit into the 52 bits of precision provided
+by a double. Fortunately, this problem has already been tackled in the
+<a href="http://closure-library.googlecode.com/svn/docs/class_goog_math_Long.html">Google Closure library</a>.</p>
 
 <h3>Objects (Heap Management)</h3>
 
 <p>JVM objects are mapped to JS objects with the same field names, bundled inside a
 larger object that contains some metadata. Instead of simulating an actual heap,
 we pass JS object references around. Thus, garbage collection is automatically
-handled by the Javascript engine's GC. However, since Java methods like
+handled by the JavaScript engine's GC. However, since Java methods like
 <code>hashCode</code> require each <code>Object</code> to have a unique ID, we store an
 auto-incremented <code>ref</code> field in each object's metadata that acts as an imaginary
 heap address.</p>
 
+<h3>Threads</h3>
+
+<p>We currently have a basic thread implementation in Doppio that should be mostly
+spec-conformant. Since JavaScript is essentially single threaded, only one
+thread runs at a time. At certain yield points, the running thread will pause
+and will allow other threads to execute.</p>
+
+<p>At the moment, these yield points occur only at the following times:</p>
+
+<ul>
+<li>Calling <code>interrupt()</code> or <code>yield()</code>.</li>
+<li>Starting a new thread.</li>
+<li>Waiting a thread on a lock (can be explicitly stated in the Java code, or
+implicitly when entering a monitor-guarded method)</li>
+</ul>
+
+
+<p>We hope to improve thread support in the next release to expand the amount of
+programs that are compatible with Doppio.</p>
+
 <h3>Asynchronicity</h3>
 
-<p>While we do not emulate threads, we still wanted to handle blocking operations,
-particularly for standard input. Since the browser DOM is largely asynchronous,
-blocking operations have to be emulated via async callbacks. We solved this by
-implementing a 'yield' construct: upon encountering a blocking function, we
-throw a <code>YieldException</code> to pause the VM. This exception would also contain the
-asynchronous function that we are waiting on, which eventually calls the VM and
-resumes the program.</p>
+<p>While developing Doppio, we had to balance two concerns: Java code performance,
+and yielding the JavaScript thread often enough so the JavaScript engine does
+not get angry at us!</p>
 
-<p>Conversely, the browser does not expect most functions to take very long to
-run, and so repainting does not occur until the event loop gets a chance to
-spin. To allow the user to see output as it gets printed (instead of only at
-program termination), printing to standard out was constructed as an
-asynchronous function.</p>
+<p>In addition, since the browser DOM is largely asynchronous, we had to emulate
+some blocking Java operations, such as standard input, in an asynchronous
+fashion. And if we didn't yield the JavaScript thread after updating the DOM,
+we quickly discovered that the user would not see the change until the next
+time Doppio yielded the JavaScript thread.</p>
 
-<h3>Code Organization</h3>
+<p>We solved this by implementing a 'yield' construct: upon encountering a
+blocking function, we throw a <code>YieldException</code> to pause the VM. This exception
+would also contain the asynchronous function that we are waiting on, which
+eventually calls the VM and resumes the program. We used this for standard
+input operations, among other things.</p>
 
-<p>We wished to collect the disassembler's logic in one place instead of spreading
-it among all the opcode classes. In static languages, the Visitor pattern is
-usually used to achieve this, but we can't employ it here since Coffeescript
-lacks the necessary static typing and method overloading features. Instead, we
-collected our opcode handlers in one hash table and then <a href="https://github.com/int3/doppio/blob/a59ac5dd04157a24ad1ac57f380ad08a47d40b8c/src/util.coffee#L117">traversed the
-prototype chain ourselves</a>. However, since this is significantly slower
-than a native traversal, the core VM code remains as a method on the opcode
-itself.</p>
+<p>In the next version of Doppio, we hope to isolate the JVM logic inside of a
+WebWorker to prevent Doppio from monopolizing the main JavaScript thread. We
+are already making great progress on this front, and look forward to when it is
+complete!</p>
+
+<h3>Interpreter Design</h3>
+
+<p>We have a class for each type of opcode in the JVM. Each bytecode instruction in
+a method is translated into an object and placed into an array of instructions.
+Running a method is a matter of jumping to the correct opcode, calling its
+<code>run</code> method, and repeating until the method completes.</p>
+
+<p>We had experimented with doing a giant <code>switch</code> statement, but we could not get
+it to perform as well as the one-object-per-instruction design due to the large
+number of JVM opcodes. We hope to perform more experiments in the future to
+see if we can further increase the performance of the main interpreter loop.</p>
 
 <hr />
 
 <h1>Roadmap</h1>
 
-<p>Improving speed is our next goal. Doppio currently interprets the bytecode
-naively, fetching each one from a dict and executing them in turn. We aim to
-gradually replace the interpreter by a compiler, which would remove the
-overhead of decoding. It would also allow us to implement optimizations such as
-the conversion of stack operations to direct assignments, as well as
+<p>There is much more to do! We are currently trying to refine the JVM internals
+before trying to bolt on a compilation engine.</p>
+
+<p>Up next on our roadmap is:</p>
+
+<ul>
+<li>Improving threads support.</li>
+<li>Running the JVM in a WebWorker (if available) to prevent us from hogging the
+main JavaScript thread.</li>
+<li>Refactoring core JVM logic for speed.</li>
+<li>Fixing any remaining bugs in JVM logic (e.g. right now, custom classloaders
+do not work properly).</li>
+<li>Architecting the core JVM so we can eventually implement JIT compilation on
+a per-method basis. There are a number of concerns that we have to deal with
+before this will be possible.</li>
+</ul>
+
+
+<p>Once we deal with those issues, we'll start looking into per-method JIT
+compilation and control-flow reconstruction (since we're going from low level
+bytecode to high level JavaScript). There is already a large body of work on
+Java decompilation that we can leverage for this task, as well as things like
 <a href="http://dl.acm.org/citation.cfm?id=2048224">Emscripten's 'Relooper' algorithm</a>. Contributions are definitely
 welcome!</p>
 
@@ -167,8 +221,8 @@ Done's jquery-console</a>. Layout is based off Twitter's
 Web Fonts, and the coffee icon is by Maximilian Becker, from <a href="http://thenounproject.com/">The Noun
 Project</a> collection.</p>
 
-<p>Doppio itself is the work of <a href="https://github.com/perimosocordiae">CJ Carey</a>, <a href="http://discontinuously.com/">Jez Ng</a>, and <a href="https://github.com/jleahey">Jonny
-Leahey</a>, and is MIT Licensed.</p>
+<p>Doppio itself is the work of <a href="https://github.com/perimosocordiae">CJ Carey</a>, <a href="http://discontinuously.com/">Jez Ng</a>, <a href="https://github.com/jvilk">John Vilk</a>,
+and <a href="https://github.com/jleahey">Jonny Leahey</a>, and is MIT Licensed.</p>
 </div>
 </body>
 </html>
