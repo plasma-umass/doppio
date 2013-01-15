@@ -94,7 +94,7 @@ class StackMapTable
     else if frame_type == 247
       {
         frame_type: frame_type
-        frame_name: 'same_locals_1_stack_item_extended'
+        frame_name: 'same_locals_1_stack_item_frame_extended'
         offset_delta: bytes_array.get_uint 2
         stack: [parse_verification_type_info(bytes_array, constant_pool)]
       }
