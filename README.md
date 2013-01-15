@@ -35,12 +35,12 @@ Then point your browser to [http://localhost:8000/](http://localhost:8000/).
 
 The code can also be run from the console. For example:
 
-    coffee -c */*.coffee
     console/disassembler.coffee classes/demo/Fib
     console/runner.coffee classes/demo/Fib
     console/runner.coffee classes/demo/Fib --java=7  # passes an argument to the JVM
+    console/runner.coffee --jar my_application.jar   # extracts and runs a JAR
     
-To get the optimized version, use `make opt` instead of `coffee -c`. The optimized
+To get the optimized version, use `make opt`. The optimized
 build products can be found in `build/opt`.
 
 Automated Rebuilding
@@ -61,10 +61,8 @@ Run all tests:
 
     make test -j4
 
-Run a specific test:
+Run a specific test, or test with different options:
 
-    make classes/test/Strings.test
+    console/test_runner.coffee -h
+    console/test_runner.coffee classes/test/Strings
 
-Note that running a specific test does _not_ cause a rebuild of the
-Coffeescript code. You will have to manually ensure that the code is
-up-to-date.
