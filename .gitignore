@@ -8,6 +8,7 @@
 *.tar.gz
 node_modules
 build
+docs
 index.html
 .DS_store
 Gemfile.lock
@@ -17,4 +18,3 @@ browser/_about.html
 vendor/java_home
 tools/preload
 classes/test/failures.txt
-
