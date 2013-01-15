@@ -382,6 +382,10 @@ class root.RuntimeState
     catch e
       if e == 'Error in class initialization'
         return false
+      else if e is ReturnException
+        # XXX: technically we shouldn't get here. Right now we get here
+        # when java_throw is called from the main method lookup.
+        return @run_until_finished (->), done_cb, no_threads 
       else if e instanceof YieldIOException
         retval = null
         e.condition =>
