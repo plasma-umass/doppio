@@ -988,6 +988,43 @@ native_methods =
 
             rs.mem_start_addrs.push(next_addr + size)
             return gLong.fromNumber(next_addr)
+        o 'copyMemory(Ljava/lang/Object;JLjava/lang/Object;JJ)V', (rs, _this, src_base, src_offset, dest_base, dest_offset, num_bytes) ->
+            # XXX assumes base object is an array if non-null
+            # TODO: optimize by copying chunks at a time
+            if src_base?
+              src_offset = src_offset.toNumber()
+              if dest_base?
+                # both are java arrays
+                arraycopy_no_check(src_base, src_offset, dest_base, dest_offset.toNumber(), num_bytes)
+              else
+                # src is an array, dest is a mem block
+                dest_addr = rs.block_addr(dest_offset)
+                if DataView?
+                  for i in [0...num_bytes] by 1
+                    rs.mem_blocks[dest_addr].setInt8(i, src_base.array[src_offset+i])
+                else
+                  for i in [0...num_bytes] by 1
+                    rs.mem_blocks[dest_addr+i] = src_base.array[src_offset+i]
+            else
+              src_addr = rs.block_addr(src_offset)
+              if dest_base?
+                # src is a mem block, dest is an array
+                dest_offset = dest_offset.toNumber()
+                if DataView?
+                  for i in [0...num_bytes] by 1
+                    dest_base.array[dest_offset+i] = rs.mem_blocks[src_addr].getInt8(i)
+                else
+                  for i in [0...num_bytes] by 1
+                    dest_base.array[dest_offset+i] = rs.mem_blocks[src_addr+i]
+              else
+                # both are mem blocks
+                dest_addr = rs.block_addr(dest_offset)
+                if DataView?
+                  for i in [0...num_bytes] by 1
+                    rs.mem_blocks[dest_addr].setInt8(i, rs.mem_blocks[src_addr].getInt8(i))
+                else
+                  for i in [0...num_bytes] by 1
+                    rs.mem_blocks[dest_addr+i] = rs.mem_blocks[src_addr+i]
         o 'setMemory(JJB)V', (rs, _this, address, bytes, value) ->
             block_addr = rs.block_addr(address)
             for i in [0...bytes] by 1
@@ -1062,7 +1099,7 @@ native_methods =
       ch:
         FileChannelImpl: [
           # this poorly-named method actually specifies the page size for mmap
-          o 'initIDs()J', (rs) -> gLong.fromNumber(8192)  # arbitrary
+          o 'initIDs()J', (rs) -> gLong.fromNumber(1024)  # arbitrary
         ]
         FileDispatcher: [
           o 'init()V', (rs) -> # NOP
@@ -1074,11 +1111,14 @@ native_methods =
             buf = new Buffer len
             bytes_read = fs.readSync(fd, buf, 0, len)
             if DataView?
-              rs.mem_blocks[block_addr] = buf  # TODO: check that this works
+              for i in [0...bytes_read] by 1
+                rs.mem_blocks[block_addr].setInt8(i, buf.readInt8(i))
             else
               for i in [0...bytes_read] by 1
                 rs.mem_blocks[block_addr+i] = buf.readInt8(i)
             return bytes_read
+          o 'preClose0(Ljava/io/FileDescriptor;)V', (rs, fd_obj) ->
+            # NOP, I think the actual fs.close is called later. If not, NBD.
         ]
     reflect:
       ConstantPool: [
