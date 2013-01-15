@@ -39,7 +39,6 @@ LIB_CLASSES = $(LIB_SRCS:.java=.class)
 
 # HTML
 BROWSER_HTML = $(wildcard browser/[^_]*.html)
-release_BUILD_DIR = build/release
 BUILD_DIR = build/$(MAKECMDGOALS)
 BUILD_HTML = $(addprefix $(BUILD_DIR)/, $(notdir $(BROWSER_HTML)))
 
@@ -112,7 +111,7 @@ $(BUILD_DIR)/%.js: %.coffee
 # Builds a distributable version of Doppio.
 dist: $(DIST_NAME)
 $(DIST_NAME): release docs
-	tar czf $(DIST_NAME) $(release_BUILD_DIR)
+	tar czf $(DIST_NAME) $(BUILD_DIR)
 
 # Installs or checks for any required dependencies.
 dependencies: $(COFFEEC) $(UGLIFYJS) $(OPTIMIST) $(JAZZLIB) $(JRE) $(DOCCO) $(ADMZIP)
@@ -167,10 +166,10 @@ clean:
 # docs need to be generated in one shot so docco can create the full jumplist.
 # This is slow, so we have it as a separate target (even though it is needed
 # for a full release build).
-docs: dependencies $(release_BUILD_DIR)
+docs: dependencies $(BUILD_DIR)
 	$(DOCCO) $(filter %.coffee, $(release_BROWSER_SRCS))
-	rm -rf $(release_BUILD_DIR)/docs
-	mv docs $(release_BUILD_DIR)
+	rm -rf $(BUILD_DIR)/docs
+	mv docs $(BUILD_DIR)
 
 browser/mini-rt.tar: tools/preload
 	COPYFILE_DISABLE=true && tar -c -T tools/preload -f $@
@@ -178,7 +177,7 @@ browser/mini-rt.tar: tools/preload
 tools/preload:
 	make opt
 	@echo "Generating list of files to preload in browser... (will take a few seconds)"
-	@node build/opt/console/runner.js --classpath build/opt classes/util/Javac --java=./classes/test/FileOps.java --list-class-cache > tools/preload
+	@node build/opt/console/runner.js classes/util/Javac --java=./classes/test/FileOps.java --list-class-cache > tools/preload
 
 ################################################################################
 # BUILD DIRECTORY TARGETS

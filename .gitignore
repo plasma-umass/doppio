@@ -5,6 +5,7 @@
 *.runout
 *.result
 *.disasm
+*.tar.gz
 node_modules
 build
 index.html
