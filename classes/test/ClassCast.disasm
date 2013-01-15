@@ -1,0 +1,223 @@
+Compiled from "ClassCast.java"
+public class classes.test.ClassCast extends java.lang.Object
+  SourceFile: "ClassCast.java"
+  InnerClass: 
+   #27= #4 of #24; //B=class classes/test/ClassCast$B of class classes/test/ClassCast
+   #29= #2 of #24; //A=class classes/test/ClassCast$A of class classes/test/ClassCast
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#26.#43;	//  java/lang/Object."<init>":()V
+const #2 = class	#44;	//  classes/test/ClassCast$A
+const #3 = Method	#2.#45;	//  classes/test/ClassCast$A."<init>":(Lclasses/test/ClassCast;)V
+const #4 = class	#46;	//  classes/test/ClassCast$B
+const #5 = Method	#4.#45;	//  classes/test/ClassCast$B."<init>":(Lclasses/test/ClassCast;)V
+const #6 = class	#47;	//  java/lang/ClassCastException
+const #7 = Field	#48.#49;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #8 = class	#50;	//  java/lang/StringBuilder
+const #9 = Method	#8.#43;	//  java/lang/StringBuilder."<init>":()V
+const #10 = String	#51;	//  Caught ClassCastException as expected: 
+const #11 = Method	#8.#52;	//  java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #12 = Method	#6.#53;	//  java/lang/ClassCastException.getMessage:()Ljava/lang/String;
+const #13 = Method	#8.#54;	//  java/lang/StringBuilder.toString:()Ljava/lang/String;
+const #14 = Method	#55.#56;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #15 = Method	#57.#58;	//  java/lang/Class.isInstance:(Ljava/lang/Object;)Z
+const #16 = Method	#55.#59;	//  java/io/PrintStream.println:(Z)V
+const #17 = class	#60;	//  java/util/TreeMap
+const #18 = Method	#17.#43;	//  java/util/TreeMap."<init>":()V
+const #19 = String	#61;	//  quick
+const #20 = Method	#62.#63;	//  java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+const #21 = InterfaceMethod	#64.#65;	//  java/util/Map.put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+const #22 = String	#66;	//  brown
+const #23 = String	#67;	//  fox
+const #24 = class	#68;	//  classes/test/ClassCast
+const #25 = Method	#24.#43;	//  classes/test/ClassCast."<init>":()V
+const #26 = class	#69;	//  java/lang/Object
+const #27 = Asciz	B;
+const #28 = Asciz	InnerClasses;
+const #29 = Asciz	A;
+const #30 = Asciz	<init>;
+const #31 = Asciz	()V;
+const #32 = Asciz	Code;
+const #33 = Asciz	LineNumberTable;
+const #34 = Asciz	StackMapTable;
+const #35 = class	#68;	//  classes/test/ClassCast
+const #36 = class	#44;	//  classes/test/ClassCast$A
+const #37 = class	#69;	//  java/lang/Object
+const #38 = class	#47;	//  java/lang/ClassCastException
+const #39 = Asciz	main;
+const #40 = Asciz	([Ljava/lang/String;)V;
+const #41 = Asciz	SourceFile;
+const #42 = Asciz	ClassCast.java;
+const #43 = NameAndType	#30:#31;//  "<init>":()V
+const #44 = Asciz	classes/test/ClassCast$A;
+const #45 = NameAndType	#30:#70;//  "<init>":(Lclasses/test/ClassCast;)V
+const #46 = Asciz	classes/test/ClassCast$B;
+const #47 = Asciz	java/lang/ClassCastException;
+const #48 = class	#71;	//  java/lang/System
+const #49 = NameAndType	#72:#73;//  out:Ljava/io/PrintStream;
+const #50 = Asciz	java/lang/StringBuilder;
+const #51 = Asciz	Caught ClassCastException as expected: ;
+const #52 = NameAndType	#74:#75;//  append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #53 = NameAndType	#76:#77;//  getMessage:()Ljava/lang/String;
+const #54 = NameAndType	#78:#77;//  toString:()Ljava/lang/String;
+const #55 = class	#79;	//  java/io/PrintStream
+const #56 = NameAndType	#80:#81;//  println:(Ljava/lang/String;)V
+const #57 = class	#82;	//  java/lang/Class
+const #58 = NameAndType	#83:#84;//  isInstance:(Ljava/lang/Object;)Z
+const #59 = NameAndType	#80:#85;//  println:(Z)V
+const #60 = Asciz	java/util/TreeMap;
+const #61 = Asciz	quick;
+const #62 = class	#86;	//  java/lang/Integer
+const #63 = NameAndType	#87:#88;//  valueOf:(I)Ljava/lang/Integer;
+const #64 = class	#89;	//  java/util/Map
+const #65 = NameAndType	#90:#91;//  put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+const #66 = Asciz	brown;
+const #67 = Asciz	fox;
+const #68 = Asciz	classes/test/ClassCast;
+const #69 = Asciz	java/lang/Object;
+const #70 = Asciz	(Lclasses/test/ClassCast;)V;
+const #71 = Asciz	java/lang/System;
+const #72 = Asciz	out;
+const #73 = Asciz	Ljava/io/PrintStream;;
+const #74 = Asciz	append;
+const #75 = Asciz	(Ljava/lang/String;)Ljava/lang/StringBuilder;;
+const #76 = Asciz	getMessage;
+const #77 = Asciz	()Ljava/lang/String;;
+const #78 = Asciz	toString;
+const #79 = Asciz	java/io/PrintStream;
+const #80 = Asciz	println;
+const #81 = Asciz	(Ljava/lang/String;)V;
+const #82 = Asciz	java/lang/Class;
+const #83 = Asciz	isInstance;
+const #84 = Asciz	(Ljava/lang/Object;)Z;
+const #85 = Asciz	(Z)V;
+const #86 = Asciz	java/lang/Integer;
+const #87 = Asciz	valueOf;
+const #88 = Asciz	(I)Ljava/lang/Integer;;
+const #89 = Asciz	java/util/Map;
+const #90 = Asciz	put;
+const #91 = Asciz	(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;;
+
+{
+public classes.test.ClassCast();
+  Code:
+   Stack=3, Locals=5, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	new	#2; //class classes/test/ClassCast$A
+   7:	dup
+   8:	aload_0
+   9:	invokespecial	#3; //Method classes/test/ClassCast$A."<init>":(Lclasses/test/ClassCast;)V
+   12:	astore_1
+   13:	new	#4; //class classes/test/ClassCast$B
+   16:	dup
+   17:	aload_0
+   18:	invokespecial	#5; //Method classes/test/ClassCast$B."<init>":(Lclasses/test/ClassCast;)V
+   21:	astore_2
+   22:	aload_2
+   23:	checkcast	#2; //class classes/test/ClassCast$A
+   26:	astore_1
+   27:	goto	59
+   30:	astore_3
+   31:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   34:	new	#8; //class java/lang/StringBuilder
+   37:	dup
+   38:	invokespecial	#9; //Method java/lang/StringBuilder."<init>":()V
+   41:	ldc	#10; //String Caught ClassCastException as expected: 
+   43:	invokevirtual	#11; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   46:	aload_3
+   47:	invokevirtual	#12; //Method java/lang/ClassCastException.getMessage:()Ljava/lang/String;
+   50:	invokevirtual	#11; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   53:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   56:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   59:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   62:	ldc_w	#2; //class classes/test/ClassCast$A
+   65:	aload_1
+   66:	invokevirtual	#15; //Method java/lang/Class.isInstance:(Ljava/lang/Object;)Z
+   69:	invokevirtual	#16; //Method java/io/PrintStream.println:(Z)V
+   72:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   75:	ldc_w	#2; //class classes/test/ClassCast$A
+   78:	aload_2
+   79:	invokevirtual	#15; //Method java/lang/Class.isInstance:(Ljava/lang/Object;)Z
+   82:	invokevirtual	#16; //Method java/io/PrintStream.println:(Z)V
+   85:	new	#17; //class java/util/TreeMap
+   88:	dup
+   89:	invokespecial	#18; //Method java/util/TreeMap."<init>":()V
+   92:	astore_3
+   93:	aload_3
+   94:	ldc	#19; //String quick
+   96:	sipush	614
+   99:	invokestatic	#20; //Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+   102:	invokeinterface	#21,  3; //InterfaceMethod java/util/Map.put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+   107:	pop
+   108:	aload_3
+   109:	ldc	#22; //String brown
+   111:	bipush	104
+   113:	invokestatic	#20; //Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+   116:	invokeinterface	#21,  3; //InterfaceMethod java/util/Map.put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+   121:	pop
+   122:	aload_3
+   123:	ldc	#23; //String fox
+   125:	bipush	124
+   127:	invokestatic	#20; //Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+   130:	invokeinterface	#21,  3; //InterfaceMethod java/util/Map.put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+   135:	pop
+   136:	aload_3
+   137:	checkcast	#17; //class java/util/TreeMap
+   140:	astore	4
+   142:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   145:	aload_3
+   146:	instanceof	#17; //class java/util/TreeMap
+   149:	invokevirtual	#16; //Method java/io/PrintStream.println:(Z)V
+   152:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   155:	aload	4
+   157:	instanceof	#17; //class java/util/TreeMap
+   160:	invokevirtual	#16; //Method java/io/PrintStream.println:(Z)V
+   163:	return
+  Exception table:
+   from   to  target type
+    22    27    30   Class java/lang/ClassCastException
+
+  LineNumberTable: 
+   line 7: 0
+   line 8: 4
+   line 9: 13
+   line 11: 22
+   line 15: 27
+   line 13: 30
+   line 14: 31
+   line 16: 59
+   line 17: 72
+   line 19: 85
+   line 21: 93
+   line 22: 108
+   line 23: 122
+   line 24: 136
+   line 26: 142
+   line 27: 152
+   line 28: 163
+
+  StackMapTable: number_of_entries = 2
+   frame_type = 255 /* full_frame */
+     offset_delta = 30
+     locals = [ class classes/test/ClassCast, class classes/test/ClassCast$A, class java/lang/Object ]
+     stack = [ class java/lang/ClassCastException ]
+   frame_type = 28 /* same */
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=2, Locals=1, Args_size=1
+   0:	new	#24; //class classes/test/ClassCast
+   3:	dup
+   4:	invokespecial	#25; //Method "<init>":()V
+   7:	pop
+   8:	return
+  LineNumberTable: 
+   line 30: 0
+   line 31: 8
+
+
+}
+

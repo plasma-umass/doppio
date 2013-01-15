@@ -1,0 +1,57 @@
+Compiled from "Numbers.java"
+public class classes.test.Numbers extends java.lang.Object
+  SourceFile: "Numbers.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#8.#17;	//  java/lang/Object."<init>":()V
+const #2 = float	3.14159f;
+const #3 = double	9.999999999d;
+const #5 = long	82000000000l;
+const #7 = class	#18;	//  classes/test/Numbers
+const #8 = class	#19;	//  java/lang/Object
+const #9 = Asciz	<init>;
+const #10 = Asciz	()V;
+const #11 = Asciz	Code;
+const #12 = Asciz	LineNumberTable;
+const #13 = Asciz	main;
+const #14 = Asciz	([Ljava/lang/String;)V;
+const #15 = Asciz	SourceFile;
+const #16 = Asciz	Numbers.java;
+const #17 = NameAndType	#9:#10;//  "<init>":()V
+const #18 = Asciz	classes/test/Numbers;
+const #19 = Asciz	java/lang/Object;
+
+{
+public classes.test.Numbers();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 3: 0
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=2, Locals=7, Args_size=1
+   0:	bipush	-4
+   2:	istore_1
+   3:	ldc	#2; //float 3.14159f
+   5:	fstore_2
+   6:	ldc2_w	#3; //double 9.999999999d
+   9:	dstore_3
+   10:	ldc2_w	#5; //long 82000000000l
+   13:	lstore	5
+   15:	return
+  LineNumberTable: 
+   line 5: 0
+   line 6: 3
+   line 7: 6
+   line 8: 10
+   line 9: 15
+
+
+}
+

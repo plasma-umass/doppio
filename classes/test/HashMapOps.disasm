@@ -1,0 +1,260 @@
+Compiled from "HashMapOps.java"
+public class classes.test.HashMapOps extends java.lang.Object
+  SourceFile: "HashMapOps.java"
+  InnerClass: 
+   public abstract #78= #29 of #76; //Entry=class java/util/Map$Entry of class java/util/Map
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#32.#46;	//  java/lang/Object."<init>":()V
+const #2 = class	#47;	//  java/util/HashMap
+const #3 = Method	#2.#46;	//  java/util/HashMap."<init>":()V
+const #4 = String	#48;	//  hello
+const #5 = Method	#9.#49;	//  java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+const #6 = Method	#2.#50;	//  java/util/HashMap.put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+const #7 = String	#51;	//  world
+const #8 = Method	#2.#52;	//  java/util/HashMap.get:(Ljava/lang/Object;)Ljava/lang/Object;
+const #9 = class	#53;	//  java/lang/Integer
+const #10 = Method	#9.#54;	//  java/lang/Integer.intValue:()I
+const #11 = Field	#55.#56;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #12 = class	#57;	//  java/lang/StringBuilder
+const #13 = Method	#12.#46;	//  java/lang/StringBuilder."<init>":()V
+const #14 = String	#58;	//  hello is 
+const #15 = Method	#12.#59;	//  java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #16 = Method	#12.#60;	//  java/lang/StringBuilder.append:(I)Ljava/lang/StringBuilder;
+const #17 = Method	#12.#61;	//  java/lang/StringBuilder.toString:()Ljava/lang/String;
+const #18 = Method	#62.#63;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #19 = String	#64;	//  world is 
+const #20 = Method	#2.#65;	//  java/util/HashMap.clear:()V
+const #21 = Method	#2.#66;	//  java/util/HashMap.entrySet:()Ljava/util/Set;
+const #22 = InterfaceMethod	#67.#68;	//  java/util/Set.size:()I
+const #23 = class	#69;	//  java/lang/RuntimeException
+const #24 = String	#70;	//  foo should have a 0-size entrySet, had size 
+const #25 = Method	#23.#71;	//  java/lang/RuntimeException."<init>":(Ljava/lang/String;)V
+const #26 = InterfaceMethod	#67.#72;	//  java/util/Set.iterator:()Ljava/util/Iterator;
+const #27 = InterfaceMethod	#73.#74;	//  java/util/Iterator.hasNext:()Z
+const #28 = InterfaceMethod	#73.#75;	//  java/util/Iterator.next:()Ljava/lang/Object;
+const #29 = class	#77;	//  java/util/Map$Entry
+const #30 = String	#80;	//  Should not have gotten here!
+const #31 = class	#81;	//  classes/test/HashMapOps
+const #32 = class	#82;	//  java/lang/Object
+const #33 = Asciz	<init>;
+const #34 = Asciz	()V;
+const #35 = Asciz	Code;
+const #36 = Asciz	LineNumberTable;
+const #37 = Asciz	main;
+const #38 = Asciz	([Ljava/lang/String;)V;
+const #39 = Asciz	StackMapTable;
+const #40 = class	#83;	//  "[Ljava/lang/String;"
+const #41 = class	#47;	//  java/util/HashMap
+const #42 = class	#84;	//  java/util/Set
+const #43 = class	#85;	//  java/util/Iterator
+const #44 = Asciz	SourceFile;
+const #45 = Asciz	HashMapOps.java;
+const #46 = NameAndType	#33:#34;//  "<init>":()V
+const #47 = Asciz	java/util/HashMap;
+const #48 = Asciz	hello;
+const #49 = NameAndType	#86:#87;//  valueOf:(I)Ljava/lang/Integer;
+const #50 = NameAndType	#88:#89;//  put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+const #51 = Asciz	world;
+const #52 = NameAndType	#90:#91;//  get:(Ljava/lang/Object;)Ljava/lang/Object;
+const #53 = Asciz	java/lang/Integer;
+const #54 = NameAndType	#92:#93;//  intValue:()I
+const #55 = class	#94;	//  java/lang/System
+const #56 = NameAndType	#95:#96;//  out:Ljava/io/PrintStream;
+const #57 = Asciz	java/lang/StringBuilder;
+const #58 = Asciz	hello is ;
+const #59 = NameAndType	#97:#98;//  append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #60 = NameAndType	#97:#99;//  append:(I)Ljava/lang/StringBuilder;
+const #61 = NameAndType	#100:#101;//  toString:()Ljava/lang/String;
+const #62 = class	#102;	//  java/io/PrintStream
+const #63 = NameAndType	#103:#104;//  println:(Ljava/lang/String;)V
+const #64 = Asciz	world is ;
+const #65 = NameAndType	#105:#34;//  clear:()V
+const #66 = NameAndType	#106:#107;//  entrySet:()Ljava/util/Set;
+const #67 = class	#84;	//  java/util/Set
+const #68 = NameAndType	#108:#93;//  size:()I
+const #69 = Asciz	java/lang/RuntimeException;
+const #70 = Asciz	foo should have a 0-size entrySet, had size ;
+const #71 = NameAndType	#33:#104;//  "<init>":(Ljava/lang/String;)V
+const #72 = NameAndType	#109:#110;//  iterator:()Ljava/util/Iterator;
+const #73 = class	#85;	//  java/util/Iterator
+const #74 = NameAndType	#111:#112;//  hasNext:()Z
+const #75 = NameAndType	#113:#114;//  next:()Ljava/lang/Object;
+const #76 = class	#115;	//  java/util/Map
+const #77 = Asciz	java/util/Map$Entry;
+const #78 = Asciz	Entry;
+const #79 = Asciz	InnerClasses;
+const #80 = Asciz	Should not have gotten here!;
+const #81 = Asciz	classes/test/HashMapOps;
+const #82 = Asciz	java/lang/Object;
+const #83 = Asciz	[Ljava/lang/String;;
+const #84 = Asciz	java/util/Set;
+const #85 = Asciz	java/util/Iterator;
+const #86 = Asciz	valueOf;
+const #87 = Asciz	(I)Ljava/lang/Integer;;
+const #88 = Asciz	put;
+const #89 = Asciz	(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;;
+const #90 = Asciz	get;
+const #91 = Asciz	(Ljava/lang/Object;)Ljava/lang/Object;;
+const #92 = Asciz	intValue;
+const #93 = Asciz	()I;
+const #94 = Asciz	java/lang/System;
+const #95 = Asciz	out;
+const #96 = Asciz	Ljava/io/PrintStream;;
+const #97 = Asciz	append;
+const #98 = Asciz	(Ljava/lang/String;)Ljava/lang/StringBuilder;;
+const #99 = Asciz	(I)Ljava/lang/StringBuilder;;
+const #100 = Asciz	toString;
+const #101 = Asciz	()Ljava/lang/String;;
+const #102 = Asciz	java/io/PrintStream;
+const #103 = Asciz	println;
+const #104 = Asciz	(Ljava/lang/String;)V;
+const #105 = Asciz	clear;
+const #106 = Asciz	entrySet;
+const #107 = Asciz	()Ljava/util/Set;;
+const #108 = Asciz	size;
+const #109 = Asciz	iterator;
+const #110 = Asciz	()Ljava/util/Iterator;;
+const #111 = Asciz	hasNext;
+const #112 = Asciz	()Z;
+const #113 = Asciz	next;
+const #114 = Asciz	()Ljava/lang/Object;;
+const #115 = Asciz	java/util/Map;
+
+{
+public classes.test.HashMapOps();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 4: 0
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=4, Locals=7, Args_size=1
+   0:	new	#2; //class java/util/HashMap
+   3:	dup
+   4:	invokespecial	#3; //Method java/util/HashMap."<init>":()V
+   7:	astore_1
+   8:	aload_1
+   9:	ldc	#4; //String hello
+   11:	iconst_5
+   12:	invokestatic	#5; //Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+   15:	invokevirtual	#6; //Method java/util/HashMap.put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+   18:	pop
+   19:	aload_1
+   20:	ldc	#7; //String world
+   22:	iconst_5
+   23:	invokestatic	#5; //Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+   26:	invokevirtual	#6; //Method java/util/HashMap.put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+   29:	pop
+   30:	aload_1
+   31:	ldc	#4; //String hello
+   33:	sipush	604
+   36:	invokestatic	#5; //Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+   39:	invokevirtual	#6; //Method java/util/HashMap.put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+   42:	pop
+   43:	aload_1
+   44:	ldc	#4; //String hello
+   46:	invokevirtual	#8; //Method java/util/HashMap.get:(Ljava/lang/Object;)Ljava/lang/Object;
+   49:	checkcast	#9; //class java/lang/Integer
+   52:	invokevirtual	#10; //Method java/lang/Integer.intValue:()I
+   55:	istore_2
+   56:	aload_1
+   57:	ldc	#7; //String world
+   59:	invokevirtual	#8; //Method java/util/HashMap.get:(Ljava/lang/Object;)Ljava/lang/Object;
+   62:	checkcast	#9; //class java/lang/Integer
+   65:	invokevirtual	#10; //Method java/lang/Integer.intValue:()I
+   68:	istore_3
+   69:	getstatic	#11; //Field java/lang/System.out:Ljava/io/PrintStream;
+   72:	new	#12; //class java/lang/StringBuilder
+   75:	dup
+   76:	invokespecial	#13; //Method java/lang/StringBuilder."<init>":()V
+   79:	ldc	#14; //String hello is 
+   81:	invokevirtual	#15; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   84:	iload_2
+   85:	invokevirtual	#16; //Method java/lang/StringBuilder.append:(I)Ljava/lang/StringBuilder;
+   88:	invokevirtual	#17; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   91:	invokevirtual	#18; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   94:	getstatic	#11; //Field java/lang/System.out:Ljava/io/PrintStream;
+   97:	new	#12; //class java/lang/StringBuilder
+   100:	dup
+   101:	invokespecial	#13; //Method java/lang/StringBuilder."<init>":()V
+   104:	ldc	#19; //String world is 
+   106:	invokevirtual	#15; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   109:	iload_3
+   110:	invokevirtual	#16; //Method java/lang/StringBuilder.append:(I)Ljava/lang/StringBuilder;
+   113:	invokevirtual	#17; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   116:	invokevirtual	#18; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   119:	aload_1
+   120:	invokevirtual	#20; //Method java/util/HashMap.clear:()V
+   123:	aload_1
+   124:	invokevirtual	#21; //Method java/util/HashMap.entrySet:()Ljava/util/Set;
+   127:	astore	4
+   129:	aload	4
+   131:	invokeinterface	#22,  1; //InterfaceMethod java/util/Set.size:()I
+   136:	ifeq	172
+   139:	new	#23; //class java/lang/RuntimeException
+   142:	dup
+   143:	new	#12; //class java/lang/StringBuilder
+   146:	dup
+   147:	invokespecial	#13; //Method java/lang/StringBuilder."<init>":()V
+   150:	ldc	#24; //String foo should have a 0-size entrySet, had size 
+   152:	invokevirtual	#15; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   155:	aload	4
+   157:	invokeinterface	#22,  1; //InterfaceMethod java/util/Set.size:()I
+   162:	invokevirtual	#16; //Method java/lang/StringBuilder.append:(I)Ljava/lang/StringBuilder;
+   165:	invokevirtual	#17; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   168:	invokespecial	#25; //Method java/lang/RuntimeException."<init>":(Ljava/lang/String;)V
+   171:	athrow
+   172:	aload	4
+   174:	invokeinterface	#26,  1; //InterfaceMethod java/util/Set.iterator:()Ljava/util/Iterator;
+   179:	astore	5
+   181:	aload	5
+   183:	invokeinterface	#27,  1; //InterfaceMethod java/util/Iterator.hasNext:()Z
+   188:	ifeq	213
+   191:	aload	5
+   193:	invokeinterface	#28,  1; //InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+   198:	checkcast	#29; //class java/util/Map$Entry
+   201:	astore	6
+   203:	new	#23; //class java/lang/RuntimeException
+   206:	dup
+   207:	ldc	#30; //String Should not have gotten here!
+   209:	invokespecial	#25; //Method java/lang/RuntimeException."<init>":(Ljava/lang/String;)V
+   212:	athrow
+   213:	return
+  LineNumberTable: 
+   line 6: 0
+   line 7: 8
+   line 8: 19
+   line 9: 30
+   line 10: 43
+   line 11: 56
+   line 12: 69
+   line 13: 94
+   line 15: 119
+   line 16: 123
+   line 17: 129
+   line 18: 139
+   line 19: 172
+   line 20: 203
+   line 22: 213
+
+  StackMapTable: number_of_entries = 3
+   frame_type = 255 /* full_frame */
+     offset_delta = 172
+     locals = [ class "[Ljava/lang/String;", class java/util/HashMap, int, int, class java/util/Set ]
+     stack = []
+   frame_type = 252 /* append */
+     offset_delta = 8
+     locals = [ class java/util/Iterator ]
+   frame_type = 250 /* chop */
+     offset_delta = 31
+
+
+}
+

@@ -1,0 +1,308 @@
+Compiled from "Clone.java"
+public class classes.test.Clone extends java.lang.Object implements java.lang.Cloneable
+  SourceFile: "Clone.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#24.#46;	//  java/lang/Object."<init>":()V
+const #2 = Field	#4.#47;	//  classes/test/Clone.vals:[I
+const #3 = Method	#24.#48;	//  java/lang/Object.clone:()Ljava/lang/Object;
+const #4 = class	#49;	//  classes/test/Clone
+const #5 = class	#50;	//  java/lang/CloneNotSupportedException
+const #6 = class	#51;	//  java/lang/Error
+const #7 = Method	#6.#46;	//  java/lang/Error."<init>":()V
+const #8 = Method	#52.#53;	//  java/util/Arrays.toString:([I)Ljava/lang/String;
+const #9 = Method	#4.#46;	//  classes/test/Clone."<init>":()V
+const #10 = Method	#4.#48;	//  classes/test/Clone.clone:()Ljava/lang/Object;
+const #11 = Field	#54.#55;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #12 = class	#56;	//  java/lang/StringBuilder
+const #13 = Method	#12.#46;	//  java/lang/StringBuilder."<init>":()V
+const #14 = String	#57;	//  c: 
+const #15 = Method	#12.#58;	//  java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #16 = Method	#12.#59;	//  java/lang/StringBuilder.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+const #17 = Method	#12.#60;	//  java/lang/StringBuilder.toString:()Ljava/lang/String;
+const #18 = Method	#61.#62;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #19 = String	#63;	//  c2: 
+const #20 = Method	#64.#48;	//  "[I".clone:()Ljava/lang/Object;
+const #21 = class	#31;	//  "[I"
+const #22 = String	#65;	//  foo: 
+const #23 = String	#66;	//  bar: 
+const #24 = class	#67;	//  java/lang/Object
+const #25 = class	#68;	//  java/lang/Cloneable
+const #26 = Asciz	NDIM;
+const #27 = Asciz	I;
+const #28 = Asciz	ConstantValue;
+const #29 = int	3;
+const #30 = Asciz	vals;
+const #31 = Asciz	[I;
+const #32 = Asciz	<init>;
+const #33 = Asciz	()V;
+const #34 = Asciz	Code;
+const #35 = Asciz	LineNumberTable;
+const #36 = Asciz	clone;
+const #37 = Asciz	()Ljava/lang/Object;;
+const #38 = Asciz	StackMapTable;
+const #39 = class	#50;	//  java/lang/CloneNotSupportedException
+const #40 = Asciz	toString;
+const #41 = Asciz	()Ljava/lang/String;;
+const #42 = Asciz	main;
+const #43 = Asciz	([Ljava/lang/String;)V;
+const #44 = Asciz	SourceFile;
+const #45 = Asciz	Clone.java;
+const #46 = NameAndType	#32:#33;//  "<init>":()V
+const #47 = NameAndType	#30:#31;//  vals:[I
+const #48 = NameAndType	#36:#37;//  clone:()Ljava/lang/Object;
+const #49 = Asciz	classes/test/Clone;
+const #50 = Asciz	java/lang/CloneNotSupportedException;
+const #51 = Asciz	java/lang/Error;
+const #52 = class	#69;	//  java/util/Arrays
+const #53 = NameAndType	#40:#70;//  toString:([I)Ljava/lang/String;
+const #54 = class	#71;	//  java/lang/System
+const #55 = NameAndType	#72:#73;//  out:Ljava/io/PrintStream;
+const #56 = Asciz	java/lang/StringBuilder;
+const #57 = Asciz	c: ;
+const #58 = NameAndType	#74:#75;//  append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #59 = NameAndType	#74:#76;//  append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+const #60 = NameAndType	#40:#41;//  toString:()Ljava/lang/String;
+const #61 = class	#77;	//  java/io/PrintStream
+const #62 = NameAndType	#78:#79;//  println:(Ljava/lang/String;)V
+const #63 = Asciz	c2: ;
+const #64 = class	#31;	//  "[I"
+const #65 = Asciz	foo: ;
+const #66 = Asciz	bar: ;
+const #67 = Asciz	java/lang/Object;
+const #68 = Asciz	java/lang/Cloneable;
+const #69 = Asciz	java/util/Arrays;
+const #70 = Asciz	([I)Ljava/lang/String;;
+const #71 = Asciz	java/lang/System;
+const #72 = Asciz	out;
+const #73 = Asciz	Ljava/io/PrintStream;;
+const #74 = Asciz	append;
+const #75 = Asciz	(Ljava/lang/String;)Ljava/lang/StringBuilder;;
+const #76 = Asciz	(Ljava/lang/Object;)Ljava/lang/StringBuilder;;
+const #77 = Asciz	java/io/PrintStream;
+const #78 = Asciz	println;
+const #79 = Asciz	(Ljava/lang/String;)V;
+
+{
+private static final int NDIM;
+  Constant value: int 3
+
+int[] vals;
+
+
+public classes.test.Clone();
+  Code:
+   Stack=3, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	aload_0
+   5:	iconst_3
+   6:	newarray int
+   8:	putfield	#2; //Field vals:[I
+   11:	aload_0
+   12:	getfield	#2; //Field vals:[I
+   15:	iconst_0
+   16:	bipush	7
+   18:	iastore
+   19:	aload_0
+   20:	getfield	#2; //Field vals:[I
+   23:	iconst_1
+   24:	bipush	8
+   26:	iastore
+   27:	aload_0
+   28:	getfield	#2; //Field vals:[I
+   31:	iconst_2
+   32:	bipush	9
+   34:	iastore
+   35:	return
+  LineNumberTable: 
+   line 7: 0
+   line 8: 4
+   line 9: 11
+   line 10: 19
+   line 11: 27
+   line 12: 35
+
+
+public java.lang.Object clone();
+  Code:
+   Stack=4, Locals=2, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#3; //Method java/lang/Object.clone:()Ljava/lang/Object;
+   4:	checkcast	#4; //class classes/test/Clone
+   7:	astore_1
+   8:	aload_1
+   9:	iconst_3
+   10:	newarray int
+   12:	putfield	#2; //Field vals:[I
+   15:	aload_1
+   16:	getfield	#2; //Field vals:[I
+   19:	iconst_0
+   20:	aload_0
+   21:	getfield	#2; //Field vals:[I
+   24:	iconst_0
+   25:	iaload
+   26:	iastore
+   27:	aload_1
+   28:	getfield	#2; //Field vals:[I
+   31:	iconst_1
+   32:	aload_0
+   33:	getfield	#2; //Field vals:[I
+   36:	iconst_1
+   37:	iaload
+   38:	iastore
+   39:	aload_1
+   40:	getfield	#2; //Field vals:[I
+   43:	iconst_2
+   44:	aload_0
+   45:	getfield	#2; //Field vals:[I
+   48:	iconst_2
+   49:	iaload
+   50:	iastore
+   51:	aload_1
+   52:	areturn
+   53:	astore_1
+   54:	new	#6; //class java/lang/Error
+   57:	dup
+   58:	invokespecial	#7; //Method java/lang/Error."<init>":()V
+   61:	athrow
+  Exception table:
+   from   to  target type
+     0    52    53   Class java/lang/CloneNotSupportedException
+
+  LineNumberTable: 
+   line 15: 0
+   line 16: 8
+   line 17: 15
+   line 18: 27
+   line 19: 39
+   line 20: 51
+   line 21: 53
+   line 22: 54
+
+  StackMapTable: number_of_entries = 1
+   frame_type = 117 /* same_locals_1_stack_item */
+     stack = [ class java/lang/CloneNotSupportedException ]
+
+
+public java.lang.String toString();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	getfield	#2; //Field vals:[I
+   4:	invokestatic	#8; //Method java/util/Arrays.toString:([I)Ljava/lang/String;
+   7:	areturn
+  LineNumberTable: 
+   line 26: 0
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=4, Locals=3, Args_size=1
+   0:	new	#4; //class classes/test/Clone
+   3:	dup
+   4:	invokespecial	#9; //Method "<init>":()V
+   7:	astore_1
+   8:	aload_1
+   9:	invokevirtual	#10; //Method clone:()Ljava/lang/Object;
+   12:	checkcast	#4; //class classes/test/Clone
+   15:	astore_2
+   16:	aload_1
+   17:	getfield	#2; //Field vals:[I
+   20:	iconst_1
+   21:	iconst_0
+   22:	iastore
+   23:	aload_2
+   24:	getfield	#2; //Field vals:[I
+   27:	iconst_2
+   28:	iconst_0
+   29:	iastore
+   30:	getstatic	#11; //Field java/lang/System.out:Ljava/io/PrintStream;
+   33:	new	#12; //class java/lang/StringBuilder
+   36:	dup
+   37:	invokespecial	#13; //Method java/lang/StringBuilder."<init>":()V
+   40:	ldc	#14; //String c: 
+   42:	invokevirtual	#15; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   45:	aload_1
+   46:	invokevirtual	#16; //Method java/lang/StringBuilder.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+   49:	invokevirtual	#17; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   52:	invokevirtual	#18; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   55:	getstatic	#11; //Field java/lang/System.out:Ljava/io/PrintStream;
+   58:	new	#12; //class java/lang/StringBuilder
+   61:	dup
+   62:	invokespecial	#13; //Method java/lang/StringBuilder."<init>":()V
+   65:	ldc	#19; //String c2: 
+   67:	invokevirtual	#15; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   70:	aload_2
+   71:	invokevirtual	#16; //Method java/lang/StringBuilder.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+   74:	invokevirtual	#17; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   77:	invokevirtual	#18; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   80:	iconst_3
+   81:	newarray int
+   83:	dup
+   84:	iconst_0
+   85:	iconst_1
+   86:	iastore
+   87:	dup
+   88:	iconst_1
+   89:	iconst_2
+   90:	iastore
+   91:	dup
+   92:	iconst_2
+   93:	iconst_3
+   94:	iastore
+   95:	astore_1
+   96:	aload_1
+   97:	invokevirtual	#20; //Method "[I".clone:()Ljava/lang/Object;
+   100:	checkcast	#21; //class "[I"
+   103:	astore_2
+   104:	aload_2
+   105:	iconst_2
+   106:	iconst_0
+   107:	iastore
+   108:	aload_1
+   109:	iconst_1
+   110:	iconst_0
+   111:	iastore
+   112:	getstatic	#11; //Field java/lang/System.out:Ljava/io/PrintStream;
+   115:	new	#12; //class java/lang/StringBuilder
+   118:	dup
+   119:	invokespecial	#13; //Method java/lang/StringBuilder."<init>":()V
+   122:	ldc	#22; //String foo: 
+   124:	invokevirtual	#15; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   127:	aload_1
+   128:	invokestatic	#8; //Method java/util/Arrays.toString:([I)Ljava/lang/String;
+   131:	invokevirtual	#15; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   134:	invokevirtual	#17; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   137:	invokevirtual	#18; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   140:	getstatic	#11; //Field java/lang/System.out:Ljava/io/PrintStream;
+   143:	new	#12; //class java/lang/StringBuilder
+   146:	dup
+   147:	invokespecial	#13; //Method java/lang/StringBuilder."<init>":()V
+   150:	ldc	#23; //String bar: 
+   152:	invokevirtual	#15; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   155:	aload_2
+   156:	invokestatic	#8; //Method java/util/Arrays.toString:([I)Ljava/lang/String;
+   159:	invokevirtual	#15; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   162:	invokevirtual	#17; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   165:	invokevirtual	#18; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   168:	return
+  LineNumberTable: 
+   line 30: 0
+   line 31: 8
+   line 32: 16
+   line 33: 23
+   line 34: 30
+   line 35: 55
+   line 38: 80
+   line 39: 96
+   line 40: 104
+   line 41: 108
+   line 42: 112
+   line 43: 140
+   line 45: 168
+
+
+}
+

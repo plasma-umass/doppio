@@ -1,0 +1,121 @@
+Compiled from "Regex.java"
+public class classes.test.Regex extends java.lang.Object
+  SourceFile: "Regex.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#9.#25;	//  java/lang/Object."<init>":()V
+const #2 = String	#26;	//  :
+const #3 = Method	#27.#28;	//  java/util/regex/Pattern.compile:(Ljava/lang/String;)Ljava/util/regex/Pattern;
+const #4 = String	#29;	//  one:two:three:four:five
+const #5 = Method	#27.#30;	//  java/util/regex/Pattern.split:(Ljava/lang/CharSequence;)[Ljava/lang/String;
+const #6 = Field	#31.#32;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #7 = Method	#33.#34;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #8 = class	#35;	//  classes/test/Regex
+const #9 = class	#36;	//  java/lang/Object
+const #10 = Asciz	REGEX;
+const #11 = Asciz	Ljava/lang/String;;
+const #12 = Asciz	ConstantValue;
+const #13 = Asciz	INPUT;
+const #14 = Asciz	<init>;
+const #15 = Asciz	()V;
+const #16 = Asciz	Code;
+const #17 = Asciz	LineNumberTable;
+const #18 = Asciz	main;
+const #19 = Asciz	([Ljava/lang/String;)V;
+const #20 = Asciz	StackMapTable;
+const #21 = class	#37;	//  "[Ljava/lang/String;"
+const #22 = class	#38;	//  java/util/regex/Pattern
+const #23 = Asciz	SourceFile;
+const #24 = Asciz	Regex.java;
+const #25 = NameAndType	#14:#15;//  "<init>":()V
+const #26 = Asciz	:;
+const #27 = class	#38;	//  java/util/regex/Pattern
+const #28 = NameAndType	#39:#40;//  compile:(Ljava/lang/String;)Ljava/util/regex/Pattern;
+const #29 = Asciz	one:two:three:four:five;
+const #30 = NameAndType	#41:#42;//  split:(Ljava/lang/CharSequence;)[Ljava/lang/String;
+const #31 = class	#43;	//  java/lang/System
+const #32 = NameAndType	#44:#45;//  out:Ljava/io/PrintStream;
+const #33 = class	#46;	//  java/io/PrintStream
+const #34 = NameAndType	#47:#48;//  println:(Ljava/lang/String;)V
+const #35 = Asciz	classes/test/Regex;
+const #36 = Asciz	java/lang/Object;
+const #37 = Asciz	[Ljava/lang/String;;
+const #38 = Asciz	java/util/regex/Pattern;
+const #39 = Asciz	compile;
+const #40 = Asciz	(Ljava/lang/String;)Ljava/util/regex/Pattern;;
+const #41 = Asciz	split;
+const #42 = Asciz	(Ljava/lang/CharSequence;)[Ljava/lang/String;;
+const #43 = Asciz	java/lang/System;
+const #44 = Asciz	out;
+const #45 = Asciz	Ljava/io/PrintStream;;
+const #46 = Asciz	java/io/PrintStream;
+const #47 = Asciz	println;
+const #48 = Asciz	(Ljava/lang/String;)V;
+
+{
+private static final java.lang.String REGEX;
+  Constant value: String :
+
+private static final java.lang.String INPUT;
+  Constant value: String one:two:three:four:five
+
+public classes.test.Regex();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 6: 0
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=2, Locals=7, Args_size=1
+   0:	ldc	#2; //String :
+   2:	invokestatic	#3; //Method java/util/regex/Pattern.compile:(Ljava/lang/String;)Ljava/util/regex/Pattern;
+   5:	astore_1
+   6:	aload_1
+   7:	ldc	#4; //String one:two:three:four:five
+   9:	invokevirtual	#5; //Method java/util/regex/Pattern.split:(Ljava/lang/CharSequence;)[Ljava/lang/String;
+   12:	astore_2
+   13:	aload_2
+   14:	astore_3
+   15:	aload_3
+   16:	arraylength
+   17:	istore	4
+   19:	iconst_0
+   20:	istore	5
+   22:	iload	5
+   24:	iload	4
+   26:	if_icmpge	49
+   29:	aload_3
+   30:	iload	5
+   32:	aaload
+   33:	astore	6
+   35:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
+   38:	aload	6
+   40:	invokevirtual	#7; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   43:	iinc	5, 1
+   46:	goto	22
+   49:	return
+  LineNumberTable: 
+   line 13: 0
+   line 14: 6
+   line 15: 13
+   line 16: 35
+   line 15: 43
+   line 18: 49
+
+  StackMapTable: number_of_entries = 2
+   frame_type = 255 /* full_frame */
+     offset_delta = 22
+     locals = [ class "[Ljava/lang/String;", class java/util/regex/Pattern, class "[Ljava/lang/String;", class "[Ljava/lang/String;", int, int ]
+     stack = []
+   frame_type = 248 /* chop */
+     offset_delta = 26
+
+
+}
+

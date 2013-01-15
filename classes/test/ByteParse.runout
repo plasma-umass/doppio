@@ -1,0 +1,6 @@
+Is 0 a byte? true
+Is -128 a byte? true
+Is 127 a byte? true
+Is 0 a short? true
+Is -32768 a short? true
+Is 32767 a short? true

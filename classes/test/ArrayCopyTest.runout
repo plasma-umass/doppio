@@ -1,0 +1,29 @@
+Test 'src array null': Pass
+Test 'dest array null': Pass
+Test 'dest array null with negative index': Pass
+Test 'src not an array': Pass
+Test 'dst not an array': Pass
+Test 'different primitive components': Pass
+Test 'primitive array to ref array': Pass
+Test 'ref array to primitive array': Pass
+Test 'src components cannot be dest components': Pass
+Test '*sigh*': Pass
+Test 'src components can be dest components if null': Pass
+Test 'src components can be dest components if upcast passes': Pass
+Test 'srcPos is negative': Pass
+Test 'destPos is negative': Pass
+Test 'length is negative': Pass
+Test 'src array overrun': Pass
+Test 'dest array overrun': Pass
+Test 'exact copy': Pass
+Test 'src=dst', references:
+	Ring ring ring ring ring ring ring...
+	Ring ring ring ring ring ring ring...
+	...bananaphone!
+Test 'src=dst', primitives:
+	1
+	1
+	2
+Test 'does not clone objects':
+	Oh hai, Doggy!
+	Oh hai, Doggy!

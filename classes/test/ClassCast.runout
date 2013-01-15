@@ -1,0 +1,5 @@
+Caught ClassCastException as expected: classes.test.ClassCast$B cannot be cast to classes.test.ClassCast$A
+true
+false
+true
+true

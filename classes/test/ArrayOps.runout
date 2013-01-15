@@ -1,0 +1,19 @@
+5
+4
+30
+2
+1
+5
+4
+3
+2
+1
+00000
+01234
+02468
+036912
+0481216
+Caught field lookup on null
+Caught iastore out of bounds
+Caught iaload out of bounds
+OK

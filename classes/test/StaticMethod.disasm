@@ -1,0 +1,79 @@
+Compiled from "StaticMethod.java"
+public class classes.test.StaticMethod extends java.lang.Object
+  SourceFile: "StaticMethod.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#10.#21;	//  java/lang/Object."<init>":()V
+const #2 = Field	#22.#23;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #3 = double	3.14d;
+const #5 = long	500l;
+const #7 = Method	#9.#24;	//  classes/test/StaticMethod.foo:(DJ)I
+const #8 = Method	#25.#26;	//  java/io/PrintStream.println:(I)V
+const #9 = class	#27;	//  classes/test/StaticMethod
+const #10 = class	#28;	//  java/lang/Object
+const #11 = Asciz	<init>;
+const #12 = Asciz	()V;
+const #13 = Asciz	Code;
+const #14 = Asciz	LineNumberTable;
+const #15 = Asciz	foo;
+const #16 = Asciz	(DJ)I;
+const #17 = Asciz	main;
+const #18 = Asciz	([Ljava/lang/String;)V;
+const #19 = Asciz	SourceFile;
+const #20 = Asciz	StaticMethod.java;
+const #21 = NameAndType	#11:#12;//  "<init>":()V
+const #22 = class	#29;	//  java/lang/System
+const #23 = NameAndType	#30:#31;//  out:Ljava/io/PrintStream;
+const #24 = NameAndType	#15:#16;//  foo:(DJ)I
+const #25 = class	#32;	//  java/io/PrintStream
+const #26 = NameAndType	#33:#34;//  println:(I)V
+const #27 = Asciz	classes/test/StaticMethod;
+const #28 = Asciz	java/lang/Object;
+const #29 = Asciz	java/lang/System;
+const #30 = Asciz	out;
+const #31 = Asciz	Ljava/io/PrintStream;;
+const #32 = Asciz	java/io/PrintStream;
+const #33 = Asciz	println;
+const #34 = Asciz	(I)V;
+
+{
+public classes.test.StaticMethod();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 3: 0
+
+
+static int foo(double, long);
+  Code:
+   Stack=3, Locals=4, Args_size=2
+   0:	dload_0
+   1:	d2i
+   2:	lload_2
+   3:	l2i
+   4:	iadd
+   5:	ireturn
+  LineNumberTable: 
+   line 5: 0
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=5, Locals=1, Args_size=1
+   0:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   3:	ldc2_w	#3; //double 3.14d
+   6:	ldc2_w	#5; //long 500l
+   9:	invokestatic	#7; //Method foo:(DJ)I
+   12:	invokevirtual	#8; //Method java/io/PrintStream.println:(I)V
+   15:	return
+  LineNumberTable: 
+   line 8: 0
+   line 9: 15
+
+
+}
+

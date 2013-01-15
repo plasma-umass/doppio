@@ -1,0 +1,1342 @@
+Compiled from "StrictMathTest.java"
+public class classes.test.StrictMathTest extends java.lang.Object
+  SourceFile: "StrictMathTest.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#106.#126;	//  java/lang/Object."<init>":()V
+const #2 = Field	#127.#128;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #3 = class	#129;	//  java/lang/StringBuilder
+const #4 = Method	#3.#126;	//  java/lang/StringBuilder."<init>":()V
+const #5 = Method	#3.#130;	//  java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #6 = String	#131;	//  : 
+const #7 = Method	#3.#132;	//  java/lang/StringBuilder.toString:()Ljava/lang/String;
+const #8 = Method	#133.#134;	//  java/io/PrintStream.print:(Ljava/lang/String;)V
+const #9 = Method	#135.#136;	//  java/util/Arrays.toString:([I)Ljava/lang/String;
+const #10 = Method	#133.#137;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #11 = Method	#135.#138;	//  java/util/Arrays.toString:([J)Ljava/lang/String;
+const #12 = Method	#135.#139;	//  java/util/Arrays.toString:([F)Ljava/lang/String;
+const #13 = Method	#135.#140;	//  java/util/Arrays.toString:([D)Ljava/lang/String;
+const #14 = double	2.12345d;
+const #16 = double	-3.256d;
+const #18 = double	1.7976931348623157E308d;
+const #20 = double	4.9E-324d;
+const #22 = double	2.2250738585072014E-308d;
+const #24 = double	1023.0d;
+const #26 = double	-1022.0d;
+const #28 = double	Infinityd;
+const #30 = double	-Infinityd;
+const #32 = float	-5.0f;
+const #33 = float	3.4028235E38f;
+const #34 = float	1.4E-45f;
+const #35 = float	1.17549435E-38f;
+const #36 = float	127.0f;
+const #37 = float	-126.0f;
+const #38 = float	Infinityf;
+const #39 = float	-Infinityf;
+const #40 = int	2147483647;
+const #41 = int	-2147483648;
+const #42 = long	12345678l;
+const #44 = long	-1235l;
+const #46 = long	9223372036854775807l;
+const #48 = long	-9223372036854775808l;
+const #50 = Method	#141.#142;	//  java/lang/StrictMath.abs:(I)I
+const #51 = String	#143;	//  int abs(int a)
+const #52 = Method	#105.#144;	//  classes/test/StrictMathTest.results:(Ljava/lang/String;[I)V
+const #53 = Method	#141.#145;	//  java/lang/StrictMath.abs:(D)D
+const #54 = String	#146;	//  double abs(double a)
+const #55 = Method	#105.#147;	//  classes/test/StrictMathTest.results:(Ljava/lang/String;[D)V
+const #56 = Method	#141.#148;	//  java/lang/StrictMath.abs:(F)F
+const #57 = String	#149;	//  float abs(float a)
+const #58 = Method	#105.#150;	//  classes/test/StrictMathTest.results:(Ljava/lang/String;[F)V
+const #59 = Method	#141.#151;	//  java/lang/StrictMath.abs:(J)J
+const #60 = String	#152;	//  long abs(long a)
+const #61 = Method	#105.#153;	//  classes/test/StrictMathTest.results:(Ljava/lang/String;[J)V
+const #62 = Method	#141.#154;	//  java/lang/StrictMath.acos:(D)D
+const #63 = String	#155;	//  double acos(double a)
+const #64 = Method	#141.#156;	//  java/lang/StrictMath.asin:(D)D
+const #65 = String	#157;	//  double asin(double a)
+const #66 = Method	#141.#158;	//  java/lang/StrictMath.atan:(D)D
+const #67 = String	#159;	//  double atan(double a)
+const #68 = Method	#141.#160;	//  java/lang/StrictMath.ceil:(D)D
+const #69 = String	#161;	//  double ceil(double a)
+const #70 = Method	#141.#162;	//  java/lang/StrictMath.exp:(D)D
+const #71 = String	#163;	//  double exp(double a)
+const #72 = Method	#141.#164;	//  java/lang/StrictMath.floor:(D)D
+const #73 = String	#165;	//  double floor(double a)
+const #74 = Method	#141.#166;	//  java/lang/StrictMath.log:(D)D
+const #75 = String	#167;	//  double log(double a)
+const #76 = Method	#141.#168;	//  java/lang/StrictMath.max:(DD)D
+const #77 = String	#169;	//  double max(double a, double b)
+const #78 = Method	#141.#170;	//  java/lang/StrictMath.max:(FF)F
+const #79 = String	#171;	//  float max(float a, float b)
+const #80 = Method	#141.#172;	//  java/lang/StrictMath.max:(II)I
+const #81 = String	#173;	//  int max(int a, int b)
+const #82 = Method	#141.#174;	//  java/lang/StrictMath.max:(JJ)J
+const #83 = String	#175;	//  long max(long a, long b)
+const #84 = Method	#141.#176;	//  java/lang/StrictMath.min:(DD)D
+const #85 = String	#177;	//  double min(double a, double b)
+const #86 = Method	#141.#178;	//  java/lang/StrictMath.min:(FF)F
+const #87 = String	#179;	//  float min(float a, float b)
+const #88 = Method	#141.#180;	//  java/lang/StrictMath.min:(II)I
+const #89 = String	#181;	//  int min(int a, int b)
+const #90 = Method	#141.#182;	//  java/lang/StrictMath.min:(JJ)J
+const #91 = String	#183;	//  long min(long a, long b)
+const #92 = Method	#141.#184;	//  java/lang/StrictMath.pow:(DD)D
+const #93 = String	#185;	//  double pow(double a, double b)
+const #94 = Method	#141.#186;	//  java/lang/StrictMath.random:()D
+const #95 = String	#187;	//  StrictMath.random(): Return value outside of [0,1): 
+const #96 = Method	#3.#188;	//  java/lang/StringBuilder.append:(D)Ljava/lang/StringBuilder;
+const #97 = Method	#141.#189;	//  java/lang/StrictMath.rint:(D)D
+const #98 = String	#190;	//  double rint(double a)
+const #99 = Method	#141.#191;	//  java/lang/StrictMath.round:(D)J
+const #100 = String	#192;	//  long round(double a)
+const #101 = Method	#141.#193;	//  java/lang/StrictMath.round:(F)I
+const #102 = String	#194;	//  int round(float a)
+const #103 = Method	#141.#195;	//  java/lang/StrictMath.sqrt:(D)D
+const #104 = String	#196;	//  double sqrt(double a)
+const #105 = class	#197;	//  classes/test/StrictMathTest
+const #106 = class	#198;	//  java/lang/Object
+const #107 = Asciz	<init>;
+const #108 = Asciz	()V;
+const #109 = Asciz	Code;
+const #110 = Asciz	LineNumberTable;
+const #111 = Asciz	results;
+const #112 = Asciz	(Ljava/lang/String;[I)V;
+const #113 = Asciz	(Ljava/lang/String;[J)V;
+const #114 = Asciz	(Ljava/lang/String;[F)V;
+const #115 = Asciz	(Ljava/lang/String;[D)V;
+const #116 = Asciz	main;
+const #117 = Asciz	([Ljava/lang/String;)V;
+const #118 = Asciz	StackMapTable;
+const #119 = class	#199;	//  "[Ljava/lang/String;"
+const #120 = class	#200;	//  "[D"
+const #121 = class	#201;	//  "[F"
+const #122 = class	#202;	//  "[I"
+const #123 = class	#203;	//  "[J"
+const #124 = Asciz	SourceFile;
+const #125 = Asciz	StrictMathTest.java;
+const #126 = NameAndType	#107:#108;//  "<init>":()V
+const #127 = class	#204;	//  java/lang/System
+const #128 = NameAndType	#205:#206;//  out:Ljava/io/PrintStream;
+const #129 = Asciz	java/lang/StringBuilder;
+const #130 = NameAndType	#207:#208;//  append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #131 = Asciz	: ;
+const #132 = NameAndType	#209:#210;//  toString:()Ljava/lang/String;
+const #133 = class	#211;	//  java/io/PrintStream
+const #134 = NameAndType	#212:#213;//  print:(Ljava/lang/String;)V
+const #135 = class	#214;	//  java/util/Arrays
+const #136 = NameAndType	#209:#215;//  toString:([I)Ljava/lang/String;
+const #137 = NameAndType	#216:#213;//  println:(Ljava/lang/String;)V
+const #138 = NameAndType	#209:#217;//  toString:([J)Ljava/lang/String;
+const #139 = NameAndType	#209:#218;//  toString:([F)Ljava/lang/String;
+const #140 = NameAndType	#209:#219;//  toString:([D)Ljava/lang/String;
+const #141 = class	#220;	//  java/lang/StrictMath
+const #142 = NameAndType	#221:#222;//  abs:(I)I
+const #143 = Asciz	int abs(int a);
+const #144 = NameAndType	#111:#112;//  results:(Ljava/lang/String;[I)V
+const #145 = NameAndType	#221:#223;//  abs:(D)D
+const #146 = Asciz	double abs(double a);
+const #147 = NameAndType	#111:#115;//  results:(Ljava/lang/String;[D)V
+const #148 = NameAndType	#221:#224;//  abs:(F)F
+const #149 = Asciz	float abs(float a);
+const #150 = NameAndType	#111:#114;//  results:(Ljava/lang/String;[F)V
+const #151 = NameAndType	#221:#225;//  abs:(J)J
+const #152 = Asciz	long abs(long a);
+const #153 = NameAndType	#111:#113;//  results:(Ljava/lang/String;[J)V
+const #154 = NameAndType	#226:#223;//  acos:(D)D
+const #155 = Asciz	double acos(double a);
+const #156 = NameAndType	#227:#223;//  asin:(D)D
+const #157 = Asciz	double asin(double a);
+const #158 = NameAndType	#228:#223;//  atan:(D)D
+const #159 = Asciz	double atan(double a);
+const #160 = NameAndType	#229:#223;//  ceil:(D)D
+const #161 = Asciz	double ceil(double a);
+const #162 = NameAndType	#230:#223;//  exp:(D)D
+const #163 = Asciz	double exp(double a);
+const #164 = NameAndType	#231:#223;//  floor:(D)D
+const #165 = Asciz	double floor(double a);
+const #166 = NameAndType	#232:#223;//  log:(D)D
+const #167 = Asciz	double log(double a);
+const #168 = NameAndType	#233:#234;//  max:(DD)D
+const #169 = Asciz	double max(double a, double b);
+const #170 = NameAndType	#233:#235;//  max:(FF)F
+const #171 = Asciz	float max(float a, float b);
+const #172 = NameAndType	#233:#236;//  max:(II)I
+const #173 = Asciz	int max(int a, int b);
+const #174 = NameAndType	#233:#237;//  max:(JJ)J
+const #175 = Asciz	long max(long a, long b);
+const #176 = NameAndType	#238:#234;//  min:(DD)D
+const #177 = Asciz	double min(double a, double b);
+const #178 = NameAndType	#238:#235;//  min:(FF)F
+const #179 = Asciz	float min(float a, float b);
+const #180 = NameAndType	#238:#236;//  min:(II)I
+const #181 = Asciz	int min(int a, int b);
+const #182 = NameAndType	#238:#237;//  min:(JJ)J
+const #183 = Asciz	long min(long a, long b);
+const #184 = NameAndType	#239:#234;//  pow:(DD)D
+const #185 = Asciz	double pow(double a, double b);
+const #186 = NameAndType	#240:#241;//  random:()D
+const #187 = Asciz	StrictMath.random(): Return value outside of [0,1): ;
+const #188 = NameAndType	#207:#242;//  append:(D)Ljava/lang/StringBuilder;
+const #189 = NameAndType	#243:#223;//  rint:(D)D
+const #190 = Asciz	double rint(double a);
+const #191 = NameAndType	#244:#245;//  round:(D)J
+const #192 = Asciz	long round(double a);
+const #193 = NameAndType	#244:#246;//  round:(F)I
+const #194 = Asciz	int round(float a);
+const #195 = NameAndType	#247:#223;//  sqrt:(D)D
+const #196 = Asciz	double sqrt(double a);
+const #197 = Asciz	classes/test/StrictMathTest;
+const #198 = Asciz	java/lang/Object;
+const #199 = Asciz	[Ljava/lang/String;;
+const #200 = Asciz	[D;
+const #201 = Asciz	[F;
+const #202 = Asciz	[I;
+const #203 = Asciz	[J;
+const #204 = Asciz	java/lang/System;
+const #205 = Asciz	out;
+const #206 = Asciz	Ljava/io/PrintStream;;
+const #207 = Asciz	append;
+const #208 = Asciz	(Ljava/lang/String;)Ljava/lang/StringBuilder;;
+const #209 = Asciz	toString;
+const #210 = Asciz	()Ljava/lang/String;;
+const #211 = Asciz	java/io/PrintStream;
+const #212 = Asciz	print;
+const #213 = Asciz	(Ljava/lang/String;)V;
+const #214 = Asciz	java/util/Arrays;
+const #215 = Asciz	([I)Ljava/lang/String;;
+const #216 = Asciz	println;
+const #217 = Asciz	([J)Ljava/lang/String;;
+const #218 = Asciz	([F)Ljava/lang/String;;
+const #219 = Asciz	([D)Ljava/lang/String;;
+const #220 = Asciz	java/lang/StrictMath;
+const #221 = Asciz	abs;
+const #222 = Asciz	(I)I;
+const #223 = Asciz	(D)D;
+const #224 = Asciz	(F)F;
+const #225 = Asciz	(J)J;
+const #226 = Asciz	acos;
+const #227 = Asciz	asin;
+const #228 = Asciz	atan;
+const #229 = Asciz	ceil;
+const #230 = Asciz	exp;
+const #231 = Asciz	floor;
+const #232 = Asciz	log;
+const #233 = Asciz	max;
+const #234 = Asciz	(DD)D;
+const #235 = Asciz	(FF)F;
+const #236 = Asciz	(II)I;
+const #237 = Asciz	(JJ)J;
+const #238 = Asciz	min;
+const #239 = Asciz	pow;
+const #240 = Asciz	random;
+const #241 = Asciz	()D;
+const #242 = Asciz	(D)Ljava/lang/StringBuilder;;
+const #243 = Asciz	rint;
+const #244 = Asciz	round;
+const #245 = Asciz	(D)J;
+const #246 = Asciz	(F)I;
+const #247 = Asciz	sqrt;
+
+{
+public classes.test.StrictMathTest();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 6: 0
+
+
+private static void results(java.lang.String, int[]);
+  Code:
+   Stack=3, Locals=2, Args_size=2
+   0:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   3:	new	#3; //class java/lang/StringBuilder
+   6:	dup
+   7:	invokespecial	#4; //Method java/lang/StringBuilder."<init>":()V
+   10:	aload_0
+   11:	invokevirtual	#5; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   14:	ldc	#6; //String : 
+   16:	invokevirtual	#5; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   19:	invokevirtual	#7; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   22:	invokevirtual	#8; //Method java/io/PrintStream.print:(Ljava/lang/String;)V
+   25:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   28:	aload_1
+   29:	invokestatic	#9; //Method java/util/Arrays.toString:([I)Ljava/lang/String;
+   32:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   35:	return
+  LineNumberTable: 
+   line 8: 0
+   line 9: 25
+   line 10: 35
+
+
+private static void results(java.lang.String, long[]);
+  Code:
+   Stack=3, Locals=2, Args_size=2
+   0:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   3:	new	#3; //class java/lang/StringBuilder
+   6:	dup
+   7:	invokespecial	#4; //Method java/lang/StringBuilder."<init>":()V
+   10:	aload_0
+   11:	invokevirtual	#5; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   14:	ldc	#6; //String : 
+   16:	invokevirtual	#5; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   19:	invokevirtual	#7; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   22:	invokevirtual	#8; //Method java/io/PrintStream.print:(Ljava/lang/String;)V
+   25:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   28:	aload_1
+   29:	invokestatic	#11; //Method java/util/Arrays.toString:([J)Ljava/lang/String;
+   32:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   35:	return
+  LineNumberTable: 
+   line 13: 0
+   line 14: 25
+   line 15: 35
+
+
+private static void results(java.lang.String, float[]);
+  Code:
+   Stack=3, Locals=2, Args_size=2
+   0:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   3:	new	#3; //class java/lang/StringBuilder
+   6:	dup
+   7:	invokespecial	#4; //Method java/lang/StringBuilder."<init>":()V
+   10:	aload_0
+   11:	invokevirtual	#5; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   14:	ldc	#6; //String : 
+   16:	invokevirtual	#5; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   19:	invokevirtual	#7; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   22:	invokevirtual	#8; //Method java/io/PrintStream.print:(Ljava/lang/String;)V
+   25:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   28:	aload_1
+   29:	invokestatic	#12; //Method java/util/Arrays.toString:([F)Ljava/lang/String;
+   32:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   35:	return
+  LineNumberTable: 
+   line 18: 0
+   line 19: 25
+   line 20: 35
+
+
+private static void results(java.lang.String, double[]);
+  Code:
+   Stack=3, Locals=2, Args_size=2
+   0:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   3:	new	#3; //class java/lang/StringBuilder
+   6:	dup
+   7:	invokespecial	#4; //Method java/lang/StringBuilder."<init>":()V
+   10:	aload_0
+   11:	invokevirtual	#5; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   14:	ldc	#6; //String : 
+   16:	invokevirtual	#5; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   19:	invokevirtual	#7; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   22:	invokevirtual	#8; //Method java/io/PrintStream.print:(Ljava/lang/String;)V
+   25:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   28:	aload_1
+   29:	invokestatic	#13; //Method java/util/Arrays.toString:([D)Ljava/lang/String;
+   32:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   35:	return
+  LineNumberTable: 
+   line 23: 0
+   line 24: 25
+   line 25: 35
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=6, Locals=17, Args_size=1
+   0:	bipush	10
+   2:	newarray double
+   4:	dup
+   5:	iconst_0
+   6:	ldc2_w	#14; //double 2.12345d
+   9:	dastore
+   10:	dup
+   11:	iconst_1
+   12:	ldc2_w	#16; //double -3.256d
+   15:	dastore
+   16:	dup
+   17:	iconst_2
+   18:	dconst_0
+   19:	dastore
+   20:	dup
+   21:	iconst_3
+   22:	ldc2_w	#18; //double 1.7976931348623157E308d
+   25:	dastore
+   26:	dup
+   27:	iconst_4
+   28:	ldc2_w	#20; //double 4.9E-324d
+   31:	dastore
+   32:	dup
+   33:	iconst_5
+   34:	ldc2_w	#22; //double 2.2250738585072014E-308d
+   37:	dastore
+   38:	dup
+   39:	bipush	6
+   41:	ldc2_w	#24; //double 1023.0d
+   44:	dastore
+   45:	dup
+   46:	bipush	7
+   48:	ldc2_w	#26; //double -1022.0d
+   51:	dastore
+   52:	dup
+   53:	bipush	8
+   55:	ldc2_w	#28; //double Infinityd
+   58:	dastore
+   59:	dup
+   60:	bipush	9
+   62:	ldc2_w	#30; //double -Infinityd
+   65:	dastore
+   66:	astore_1
+   67:	bipush	10
+   69:	newarray float
+   71:	dup
+   72:	iconst_0
+   73:	fconst_2
+   74:	fastore
+   75:	dup
+   76:	iconst_1
+   77:	ldc	#32; //float -5.0f
+   79:	fastore
+   80:	dup
+   81:	iconst_2
+   82:	fconst_0
+   83:	fastore
+   84:	dup
+   85:	iconst_3
+   86:	ldc	#33; //float 3.4028235E38f
+   88:	fastore
+   89:	dup
+   90:	iconst_4
+   91:	ldc	#34; //float 1.4E-45f
+   93:	fastore
+   94:	dup
+   95:	iconst_5
+   96:	ldc	#35; //float 1.17549435E-38f
+   98:	fastore
+   99:	dup
+   100:	bipush	6
+   102:	ldc	#36; //float 127.0f
+   104:	fastore
+   105:	dup
+   106:	bipush	7
+   108:	ldc	#37; //float -126.0f
+   110:	fastore
+   111:	dup
+   112:	bipush	8
+   114:	ldc	#38; //float Infinityf
+   116:	fastore
+   117:	dup
+   118:	bipush	9
+   120:	ldc	#39; //float -Infinityf
+   122:	fastore
+   123:	astore_2
+   124:	iconst_5
+   125:	newarray int
+   127:	dup
+   128:	iconst_0
+   129:	sipush	245
+   132:	iastore
+   133:	dup
+   134:	iconst_1
+   135:	bipush	-20
+   137:	iastore
+   138:	dup
+   139:	iconst_2
+   140:	iconst_0
+   141:	iastore
+   142:	dup
+   143:	iconst_3
+   144:	ldc	#40; //int 2147483647
+   146:	iastore
+   147:	dup
+   148:	iconst_4
+   149:	ldc	#41; //int -2147483648
+   151:	iastore
+   152:	astore_3
+   153:	iconst_5
+   154:	newarray long
+   156:	dup
+   157:	iconst_0
+   158:	ldc2_w	#42; //long 12345678l
+   161:	lastore
+   162:	dup
+   163:	iconst_1
+   164:	ldc2_w	#44; //long -1235l
+   167:	lastore
+   168:	dup
+   169:	iconst_2
+   170:	lconst_0
+   171:	lastore
+   172:	dup
+   173:	iconst_3
+   174:	ldc2_w	#46; //long 9223372036854775807l
+   177:	lastore
+   178:	dup
+   179:	iconst_4
+   180:	ldc2_w	#48; //long -9223372036854775808l
+   183:	lastore
+   184:	astore	4
+   186:	aload_1
+   187:	arraylength
+   188:	newarray double
+   190:	astore	5
+   192:	aload_1
+   193:	arraylength
+   194:	aload_1
+   195:	arraylength
+   196:	imul
+   197:	newarray double
+   199:	astore	6
+   201:	aload_3
+   202:	arraylength
+   203:	newarray int
+   205:	astore	7
+   207:	aload_3
+   208:	arraylength
+   209:	aload_3
+   210:	arraylength
+   211:	imul
+   212:	newarray int
+   214:	astore	8
+   216:	aload_2
+   217:	arraylength
+   218:	newarray float
+   220:	astore	9
+   222:	aload_2
+   223:	arraylength
+   224:	aload_2
+   225:	arraylength
+   226:	imul
+   227:	newarray float
+   229:	astore	10
+   231:	aload	4
+   233:	arraylength
+   234:	newarray long
+   236:	astore	11
+   238:	aload	4
+   240:	arraylength
+   241:	aload	4
+   243:	arraylength
+   244:	imul
+   245:	newarray long
+   247:	astore	12
+   249:	iconst_0
+   250:	istore	13
+   252:	iload	13
+   254:	aload_3
+   255:	arraylength
+   256:	if_icmpge	277
+   259:	aload	7
+   261:	iload	13
+   263:	aload_3
+   264:	iload	13
+   266:	iaload
+   267:	invokestatic	#50; //Method java/lang/StrictMath.abs:(I)I
+   270:	iastore
+   271:	iinc	13, 1
+   274:	goto	252
+   277:	ldc	#51; //String int abs(int a)
+   279:	aload	7
+   281:	invokestatic	#52; //Method results:(Ljava/lang/String;[I)V
+   284:	iconst_0
+   285:	istore	13
+   287:	iload	13
+   289:	aload_1
+   290:	arraylength
+   291:	if_icmpge	312
+   294:	aload	5
+   296:	iload	13
+   298:	aload_1
+   299:	iload	13
+   301:	daload
+   302:	invokestatic	#53; //Method java/lang/StrictMath.abs:(D)D
+   305:	dastore
+   306:	iinc	13, 1
+   309:	goto	287
+   312:	ldc	#54; //String double abs(double a)
+   314:	aload	5
+   316:	invokestatic	#55; //Method results:(Ljava/lang/String;[D)V
+   319:	iconst_0
+   320:	istore	13
+   322:	iload	13
+   324:	aload_2
+   325:	arraylength
+   326:	if_icmpge	347
+   329:	aload	9
+   331:	iload	13
+   333:	aload_2
+   334:	iload	13
+   336:	faload
+   337:	invokestatic	#56; //Method java/lang/StrictMath.abs:(F)F
+   340:	fastore
+   341:	iinc	13, 1
+   344:	goto	322
+   347:	ldc	#57; //String float abs(float a)
+   349:	aload	9
+   351:	invokestatic	#58; //Method results:(Ljava/lang/String;[F)V
+   354:	iconst_0
+   355:	istore	13
+   357:	iload	13
+   359:	aload	4
+   361:	arraylength
+   362:	if_icmpge	384
+   365:	aload	11
+   367:	iload	13
+   369:	aload	4
+   371:	iload	13
+   373:	laload
+   374:	invokestatic	#59; //Method java/lang/StrictMath.abs:(J)J
+   377:	lastore
+   378:	iinc	13, 1
+   381:	goto	357
+   384:	ldc	#60; //String long abs(long a)
+   386:	aload	11
+   388:	invokestatic	#61; //Method results:(Ljava/lang/String;[J)V
+   391:	iconst_0
+   392:	istore	13
+   394:	iload	13
+   396:	aload_1
+   397:	arraylength
+   398:	if_icmpge	419
+   401:	aload	5
+   403:	iload	13
+   405:	aload_1
+   406:	iload	13
+   408:	daload
+   409:	invokestatic	#62; //Method java/lang/StrictMath.acos:(D)D
+   412:	dastore
+   413:	iinc	13, 1
+   416:	goto	394
+   419:	ldc	#63; //String double acos(double a)
+   421:	aload	5
+   423:	invokestatic	#55; //Method results:(Ljava/lang/String;[D)V
+   426:	iconst_0
+   427:	istore	13
+   429:	iload	13
+   431:	aload_1
+   432:	arraylength
+   433:	if_icmpge	454
+   436:	aload	5
+   438:	iload	13
+   440:	aload_1
+   441:	iload	13
+   443:	daload
+   444:	invokestatic	#64; //Method java/lang/StrictMath.asin:(D)D
+   447:	dastore
+   448:	iinc	13, 1
+   451:	goto	429
+   454:	ldc	#65; //String double asin(double a)
+   456:	aload	5
+   458:	invokestatic	#55; //Method results:(Ljava/lang/String;[D)V
+   461:	iconst_0
+   462:	istore	13
+   464:	iload	13
+   466:	aload_1
+   467:	arraylength
+   468:	if_icmpge	489
+   471:	aload	5
+   473:	iload	13
+   475:	aload_1
+   476:	iload	13
+   478:	daload
+   479:	invokestatic	#66; //Method java/lang/StrictMath.atan:(D)D
+   482:	dastore
+   483:	iinc	13, 1
+   486:	goto	464
+   489:	ldc	#67; //String double atan(double a)
+   491:	aload	5
+   493:	invokestatic	#55; //Method results:(Ljava/lang/String;[D)V
+   496:	iconst_0
+   497:	istore	13
+   499:	iload	13
+   501:	aload_1
+   502:	arraylength
+   503:	if_icmpge	524
+   506:	aload	5
+   508:	iload	13
+   510:	aload_1
+   511:	iload	13
+   513:	daload
+   514:	invokestatic	#68; //Method java/lang/StrictMath.ceil:(D)D
+   517:	dastore
+   518:	iinc	13, 1
+   521:	goto	499
+   524:	ldc	#69; //String double ceil(double a)
+   526:	aload	5
+   528:	invokestatic	#55; //Method results:(Ljava/lang/String;[D)V
+   531:	iconst_0
+   532:	istore	13
+   534:	iload	13
+   536:	aload_1
+   537:	arraylength
+   538:	if_icmpge	559
+   541:	aload	5
+   543:	iload	13
+   545:	aload_1
+   546:	iload	13
+   548:	daload
+   549:	invokestatic	#70; //Method java/lang/StrictMath.exp:(D)D
+   552:	dastore
+   553:	iinc	13, 1
+   556:	goto	534
+   559:	ldc	#71; //String double exp(double a)
+   561:	aload	5
+   563:	invokestatic	#55; //Method results:(Ljava/lang/String;[D)V
+   566:	iconst_0
+   567:	istore	13
+   569:	iload	13
+   571:	aload_1
+   572:	arraylength
+   573:	if_icmpge	594
+   576:	aload	5
+   578:	iload	13
+   580:	aload_1
+   581:	iload	13
+   583:	daload
+   584:	invokestatic	#72; //Method java/lang/StrictMath.floor:(D)D
+   587:	dastore
+   588:	iinc	13, 1
+   591:	goto	569
+   594:	ldc	#73; //String double floor(double a)
+   596:	aload	5
+   598:	invokestatic	#55; //Method results:(Ljava/lang/String;[D)V
+   601:	iconst_0
+   602:	istore	13
+   604:	iload	13
+   606:	aload_1
+   607:	arraylength
+   608:	if_icmpge	629
+   611:	aload	5
+   613:	iload	13
+   615:	aload_1
+   616:	iload	13
+   618:	daload
+   619:	invokestatic	#74; //Method java/lang/StrictMath.log:(D)D
+   622:	dastore
+   623:	iinc	13, 1
+   626:	goto	604
+   629:	ldc	#75; //String double log(double a)
+   631:	aload	5
+   633:	invokestatic	#55; //Method results:(Ljava/lang/String;[D)V
+   636:	iconst_0
+   637:	istore	13
+   639:	iload	13
+   641:	aload_1
+   642:	arraylength
+   643:	if_icmpge	684
+   646:	iconst_0
+   647:	istore	14
+   649:	iload	14
+   651:	aload_1
+   652:	arraylength
+   653:	if_icmpge	678
+   656:	aload	6
+   658:	iload	13
+   660:	aload_1
+   661:	iload	13
+   663:	daload
+   664:	aload_1
+   665:	iload	14
+   667:	daload
+   668:	invokestatic	#76; //Method java/lang/StrictMath.max:(DD)D
+   671:	dastore
+   672:	iinc	14, 1
+   675:	goto	649
+   678:	iinc	13, 1
+   681:	goto	639
+   684:	ldc	#77; //String double max(double a, double b)
+   686:	aload	6
+   688:	invokestatic	#55; //Method results:(Ljava/lang/String;[D)V
+   691:	iconst_0
+   692:	istore	13
+   694:	iload	13
+   696:	aload_2
+   697:	arraylength
+   698:	if_icmpge	739
+   701:	iconst_0
+   702:	istore	14
+   704:	iload	14
+   706:	aload_2
+   707:	arraylength
+   708:	if_icmpge	733
+   711:	aload	10
+   713:	iload	13
+   715:	aload_2
+   716:	iload	13
+   718:	faload
+   719:	aload_2
+   720:	iload	14
+   722:	faload
+   723:	invokestatic	#78; //Method java/lang/StrictMath.max:(FF)F
+   726:	fastore
+   727:	iinc	14, 1
+   730:	goto	704
+   733:	iinc	13, 1
+   736:	goto	694
+   739:	ldc	#79; //String float max(float a, float b)
+   741:	aload	10
+   743:	invokestatic	#58; //Method results:(Ljava/lang/String;[F)V
+   746:	iconst_0
+   747:	istore	13
+   749:	iload	13
+   751:	aload_3
+   752:	arraylength
+   753:	if_icmpge	794
+   756:	iconst_0
+   757:	istore	14
+   759:	iload	14
+   761:	aload_3
+   762:	arraylength
+   763:	if_icmpge	788
+   766:	aload	8
+   768:	iload	13
+   770:	aload_3
+   771:	iload	13
+   773:	iaload
+   774:	aload_3
+   775:	iload	14
+   777:	iaload
+   778:	invokestatic	#80; //Method java/lang/StrictMath.max:(II)I
+   781:	iastore
+   782:	iinc	14, 1
+   785:	goto	759
+   788:	iinc	13, 1
+   791:	goto	749
+   794:	ldc	#81; //String int max(int a, int b)
+   796:	aload	8
+   798:	invokestatic	#52; //Method results:(Ljava/lang/String;[I)V
+   801:	iconst_0
+   802:	istore	13
+   804:	iload	13
+   806:	aload	4
+   808:	arraylength
+   809:	if_icmpge	853
+   812:	iconst_0
+   813:	istore	14
+   815:	iload	14
+   817:	aload	4
+   819:	arraylength
+   820:	if_icmpge	847
+   823:	aload	12
+   825:	iload	13
+   827:	aload	4
+   829:	iload	13
+   831:	laload
+   832:	aload	4
+   834:	iload	14
+   836:	laload
+   837:	invokestatic	#82; //Method java/lang/StrictMath.max:(JJ)J
+   840:	lastore
+   841:	iinc	14, 1
+   844:	goto	815
+   847:	iinc	13, 1
+   850:	goto	804
+   853:	ldc	#83; //String long max(long a, long b)
+   855:	aload	12
+   857:	invokestatic	#61; //Method results:(Ljava/lang/String;[J)V
+   860:	iconst_0
+   861:	istore	13
+   863:	iload	13
+   865:	aload_1
+   866:	arraylength
+   867:	if_icmpge	908
+   870:	iconst_0
+   871:	istore	14
+   873:	iload	14
+   875:	aload_1
+   876:	arraylength
+   877:	if_icmpge	902
+   880:	aload	6
+   882:	iload	13
+   884:	aload_1
+   885:	iload	13
+   887:	daload
+   888:	aload_1
+   889:	iload	14
+   891:	daload
+   892:	invokestatic	#84; //Method java/lang/StrictMath.min:(DD)D
+   895:	dastore
+   896:	iinc	14, 1
+   899:	goto	873
+   902:	iinc	13, 1
+   905:	goto	863
+   908:	ldc	#85; //String double min(double a, double b)
+   910:	aload	6
+   912:	invokestatic	#55; //Method results:(Ljava/lang/String;[D)V
+   915:	iconst_0
+   916:	istore	13
+   918:	iload	13
+   920:	aload_2
+   921:	arraylength
+   922:	if_icmpge	963
+   925:	iconst_0
+   926:	istore	14
+   928:	iload	14
+   930:	aload_2
+   931:	arraylength
+   932:	if_icmpge	957
+   935:	aload	10
+   937:	iload	13
+   939:	aload_2
+   940:	iload	13
+   942:	faload
+   943:	aload_2
+   944:	iload	14
+   946:	faload
+   947:	invokestatic	#86; //Method java/lang/StrictMath.min:(FF)F
+   950:	fastore
+   951:	iinc	14, 1
+   954:	goto	928
+   957:	iinc	13, 1
+   960:	goto	918
+   963:	ldc	#87; //String float min(float a, float b)
+   965:	aload	10
+   967:	invokestatic	#58; //Method results:(Ljava/lang/String;[F)V
+   970:	iconst_0
+   971:	istore	13
+   973:	iload	13
+   975:	aload_3
+   976:	arraylength
+   977:	if_icmpge	1018
+   980:	iconst_0
+   981:	istore	14
+   983:	iload	14
+   985:	aload_3
+   986:	arraylength
+   987:	if_icmpge	1012
+   990:	aload	8
+   992:	iload	13
+   994:	aload_3
+   995:	iload	13
+   997:	iaload
+   998:	aload_3
+   999:	iload	14
+   1001:	iaload
+   1002:	invokestatic	#88; //Method java/lang/StrictMath.min:(II)I
+   1005:	iastore
+   1006:	iinc	14, 1
+   1009:	goto	983
+   1012:	iinc	13, 1
+   1015:	goto	973
+   1018:	ldc	#89; //String int min(int a, int b)
+   1020:	aload	8
+   1022:	invokestatic	#52; //Method results:(Ljava/lang/String;[I)V
+   1025:	iconst_0
+   1026:	istore	13
+   1028:	iload	13
+   1030:	aload	4
+   1032:	arraylength
+   1033:	if_icmpge	1077
+   1036:	iconst_0
+   1037:	istore	14
+   1039:	iload	14
+   1041:	aload	4
+   1043:	arraylength
+   1044:	if_icmpge	1071
+   1047:	aload	12
+   1049:	iload	13
+   1051:	aload	4
+   1053:	iload	13
+   1055:	laload
+   1056:	aload	4
+   1058:	iload	14
+   1060:	laload
+   1061:	invokestatic	#90; //Method java/lang/StrictMath.min:(JJ)J
+   1064:	lastore
+   1065:	iinc	14, 1
+   1068:	goto	1039
+   1071:	iinc	13, 1
+   1074:	goto	1028
+   1077:	ldc	#91; //String long min(long a, long b)
+   1079:	aload	12
+   1081:	invokestatic	#61; //Method results:(Ljava/lang/String;[J)V
+   1084:	iconst_0
+   1085:	istore	13
+   1087:	iload	13
+   1089:	aload_1
+   1090:	arraylength
+   1091:	if_icmpge	1132
+   1094:	iconst_0
+   1095:	istore	14
+   1097:	iload	14
+   1099:	aload_1
+   1100:	arraylength
+   1101:	if_icmpge	1126
+   1104:	aload	5
+   1106:	iload	13
+   1108:	aload_1
+   1109:	iload	13
+   1111:	daload
+   1112:	aload_1
+   1113:	iload	14
+   1115:	daload
+   1116:	invokestatic	#92; //Method java/lang/StrictMath.pow:(DD)D
+   1119:	dastore
+   1120:	iinc	14, 1
+   1123:	goto	1097
+   1126:	iinc	13, 1
+   1129:	goto	1087
+   1132:	ldc	#93; //String double pow(double a, double b)
+   1134:	aload	6
+   1136:	invokestatic	#55; //Method results:(Ljava/lang/String;[D)V
+   1139:	iconst_0
+   1140:	istore	13
+   1142:	iload	13
+   1144:	bipush	10
+   1146:	if_icmpge	1200
+   1149:	invokestatic	#94; //Method java/lang/StrictMath.random:()D
+   1152:	dstore	15
+   1154:	dload	15
+   1156:	dconst_0
+   1157:	dcmpg
+   1158:	iflt	1168
+   1161:	dload	15
+   1163:	dconst_1
+   1164:	dcmpl
+   1165:	iflt	1194
+   1168:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1171:	new	#3; //class java/lang/StringBuilder
+   1174:	dup
+   1175:	invokespecial	#4; //Method java/lang/StringBuilder."<init>":()V
+   1178:	ldc	#95; //String StrictMath.random(): Return value outside of [0,1): 
+   1180:	invokevirtual	#5; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1183:	dload	15
+   1185:	invokevirtual	#96; //Method java/lang/StringBuilder.append:(D)Ljava/lang/StringBuilder;
+   1188:	invokevirtual	#7; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1191:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1194:	iinc	13, 1
+   1197:	goto	1142
+   1200:	iconst_0
+   1201:	istore	13
+   1203:	iload	13
+   1205:	aload_1
+   1206:	arraylength
+   1207:	if_icmpge	1228
+   1210:	aload	5
+   1212:	iload	13
+   1214:	aload_1
+   1215:	iload	13
+   1217:	daload
+   1218:	invokestatic	#97; //Method java/lang/StrictMath.rint:(D)D
+   1221:	dastore
+   1222:	iinc	13, 1
+   1225:	goto	1203
+   1228:	ldc	#98; //String double rint(double a)
+   1230:	aload	5
+   1232:	invokestatic	#55; //Method results:(Ljava/lang/String;[D)V
+   1235:	aload	5
+   1237:	arraylength
+   1238:	newarray long
+   1240:	astore	15
+   1242:	iconst_0
+   1243:	istore	13
+   1245:	iload	13
+   1247:	aload_1
+   1248:	arraylength
+   1249:	if_icmpge	1270
+   1252:	aload	15
+   1254:	iload	13
+   1256:	aload_1
+   1257:	iload	13
+   1259:	daload
+   1260:	invokestatic	#99; //Method java/lang/StrictMath.round:(D)J
+   1263:	lastore
+   1264:	iinc	13, 1
+   1267:	goto	1245
+   1270:	ldc	#100; //String long round(double a)
+   1272:	aload	15
+   1274:	invokestatic	#61; //Method results:(Ljava/lang/String;[J)V
+   1277:	aload	9
+   1279:	arraylength
+   1280:	newarray int
+   1282:	astore	16
+   1284:	iconst_0
+   1285:	istore	13
+   1287:	iload	13
+   1289:	aload_2
+   1290:	arraylength
+   1291:	if_icmpge	1312
+   1294:	aload	16
+   1296:	iload	13
+   1298:	aload_2
+   1299:	iload	13
+   1301:	faload
+   1302:	invokestatic	#101; //Method java/lang/StrictMath.round:(F)I
+   1305:	iastore
+   1306:	iinc	13, 1
+   1309:	goto	1287
+   1312:	ldc	#102; //String int round(float a)
+   1314:	aload	16
+   1316:	invokestatic	#52; //Method results:(Ljava/lang/String;[I)V
+   1319:	iconst_0
+   1320:	istore	13
+   1322:	iload	13
+   1324:	aload_1
+   1325:	arraylength
+   1326:	if_icmpge	1347
+   1329:	aload	5
+   1331:	iload	13
+   1333:	aload_1
+   1334:	iload	13
+   1336:	daload
+   1337:	invokestatic	#103; //Method java/lang/StrictMath.sqrt:(D)D
+   1340:	dastore
+   1341:	iinc	13, 1
+   1344:	goto	1322
+   1347:	ldc	#104; //String double sqrt(double a)
+   1349:	aload	5
+   1351:	invokestatic	#55; //Method results:(Ljava/lang/String;[D)V
+   1354:	return
+  LineNumberTable: 
+   line 28: 0
+   line 40: 67
+   line 53: 124
+   line 54: 153
+   line 56: 186
+   line 57: 192
+   line 58: 201
+   line 59: 207
+   line 60: 216
+   line 61: 222
+   line 62: 231
+   line 63: 238
+   line 69: 249
+   line 70: 259
+   line 69: 271
+   line 72: 277
+   line 75: 284
+   line 76: 294
+   line 75: 306
+   line 78: 312
+   line 81: 319
+   line 82: 329
+   line 81: 341
+   line 84: 347
+   line 87: 354
+   line 88: 365
+   line 87: 378
+   line 90: 384
+   line 94: 391
+   line 95: 401
+   line 94: 413
+   line 97: 419
+   line 101: 426
+   line 102: 436
+   line 101: 448
+   line 104: 454
+   line 108: 461
+   line 109: 471
+   line 108: 483
+   line 111: 489
+   line 121: 496
+   line 122: 506
+   line 121: 518
+   line 124: 524
+   line 134: 531
+   line 135: 541
+   line 134: 553
+   line 137: 559
+   line 144: 566
+   line 145: 576
+   line 144: 588
+   line 147: 594
+   line 157: 601
+   line 158: 611
+   line 157: 623
+   line 160: 629
+   line 170: 636
+   line 171: 646
+   line 172: 656
+   line 171: 672
+   line 170: 678
+   line 175: 684
+   line 179: 691
+   line 180: 701
+   line 181: 711
+   line 180: 727
+   line 179: 733
+   line 184: 739
+   line 188: 746
+   line 189: 756
+   line 190: 766
+   line 189: 782
+   line 188: 788
+   line 193: 794
+   line 197: 801
+   line 198: 812
+   line 199: 823
+   line 198: 841
+   line 197: 847
+   line 202: 853
+   line 206: 860
+   line 207: 870
+   line 208: 880
+   line 207: 896
+   line 206: 902
+   line 211: 908
+   line 215: 915
+   line 216: 925
+   line 217: 935
+   line 216: 951
+   line 215: 957
+   line 220: 963
+   line 224: 970
+   line 225: 980
+   line 226: 990
+   line 225: 1006
+   line 224: 1012
+   line 229: 1018
+   line 233: 1025
+   line 234: 1036
+   line 235: 1047
+   line 234: 1065
+   line 233: 1071
+   line 238: 1077
+   line 242: 1084
+   line 243: 1094
+   line 244: 1104
+   line 243: 1120
+   line 242: 1126
+   line 247: 1132
+   line 251: 1139
+   line 252: 1149
+   line 253: 1154
+   line 254: 1168
+   line 251: 1194
+   line 260: 1200
+   line 261: 1210
+   line 260: 1222
+   line 263: 1228
+   line 267: 1235
+   line 268: 1242
+   line 269: 1252
+   line 268: 1264
+   line 271: 1270
+   line 275: 1277
+   line 276: 1284
+   line 277: 1294
+   line 276: 1306
+   line 279: 1312
+   line 288: 1319
+   line 289: 1329
+   line 288: 1341
+   line 291: 1347
+   line 298: 1354
+
+  StackMapTable: number_of_entries = 70
+   frame_type = 255 /* full_frame */
+     offset_delta = 252
+     locals = [ class "[Ljava/lang/String;", class "[D", class "[F", class "[I", class "[J", class "[D", class "[D", class "[I", class "[I", class "[F", class "[F", class "[J", class "[J", int ]
+     stack = []
+   frame_type = 24 /* same */
+   frame_type = 9 /* same */
+   frame_type = 24 /* same */
+   frame_type = 9 /* same */
+   frame_type = 24 /* same */
+   frame_type = 9 /* same */
+   frame_type = 26 /* same */
+   frame_type = 9 /* same */
+   frame_type = 24 /* same */
+   frame_type = 9 /* same */
+   frame_type = 24 /* same */
+   frame_type = 9 /* same */
+   frame_type = 24 /* same */
+   frame_type = 9 /* same */
+   frame_type = 24 /* same */
+   frame_type = 9 /* same */
+   frame_type = 24 /* same */
+   frame_type = 9 /* same */
+   frame_type = 24 /* same */
+   frame_type = 9 /* same */
+   frame_type = 24 /* same */
+   frame_type = 9 /* same */
+   frame_type = 252 /* append */
+     offset_delta = 9
+     locals = [ int ]
+   frame_type = 28 /* same */
+   frame_type = 250 /* chop */
+     offset_delta = 5
+   frame_type = 9 /* same */
+   frame_type = 252 /* append */
+     offset_delta = 9
+     locals = [ int ]
+   frame_type = 28 /* same */
+   frame_type = 250 /* chop */
+     offset_delta = 5
+   frame_type = 9 /* same */
+   frame_type = 252 /* append */
+     offset_delta = 9
+     locals = [ int ]
+   frame_type = 28 /* same */
+   frame_type = 250 /* chop */
+     offset_delta = 5
+   frame_type = 9 /* same */
+   frame_type = 252 /* append */
+     offset_delta = 10
+     locals = [ int ]
+   frame_type = 31 /* same */
+   frame_type = 250 /* chop */
+     offset_delta = 5
+   frame_type = 9 /* same */
+   frame_type = 252 /* append */
+     offset_delta = 9
+     locals = [ int ]
+   frame_type = 28 /* same */
+   frame_type = 250 /* chop */
+     offset_delta = 5
+   frame_type = 9 /* same */
+   frame_type = 252 /* append */
+     offset_delta = 9
+     locals = [ int ]
+   frame_type = 28 /* same */
+   frame_type = 250 /* chop */
+     offset_delta = 5
+   frame_type = 9 /* same */
+   frame_type = 252 /* append */
+     offset_delta = 9
+     locals = [ int ]
+   frame_type = 28 /* same */
+   frame_type = 250 /* chop */
+     offset_delta = 5
+   frame_type = 9 /* same */
+   frame_type = 252 /* append */
+     offset_delta = 10
+     locals = [ int ]
+   frame_type = 31 /* same */
+   frame_type = 250 /* chop */
+     offset_delta = 5
+   frame_type = 9 /* same */
+   frame_type = 252 /* append */
+     offset_delta = 9
+     locals = [ int ]
+   frame_type = 28 /* same */
+   frame_type = 250 /* chop */
+     offset_delta = 5
+   frame_type = 9 /* same */
+   frame_type = 253 /* append */
+     offset_delta = 25
+     locals = [ bogus, double ]
+   frame_type = 249 /* chop */
+     offset_delta = 25
+   frame_type = 5 /* same */
+   frame_type = 2 /* same */
+   frame_type = 24 /* same */
+   frame_type = 253 /* append */
+     offset_delta = 16
+     locals = [ bogus, class "[J" ]
+   frame_type = 24 /* same */
+   frame_type = 252 /* append */
+     offset_delta = 16
+     locals = [ class "[I" ]
+   frame_type = 24 /* same */
+   frame_type = 9 /* same */
+   frame_type = 24 /* same */
+
+
+}
+

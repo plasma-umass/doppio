@@ -1,0 +1,143 @@
+Compiled from "GetClass.java"
+public class classes.test.GetClass extends java.lang.Object
+  SourceFile: "GetClass.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#12.#21;	//  java/lang/Object."<init>":()V
+const #2 = class	#22;	//  classes/test/GetClass
+const #3 = Method	#2.#21;	//  classes/test/GetClass."<init>":()V
+const #4 = class	#23;	//  "[[Ljava/lang/Integer;"
+const #5 = Field	#24.#25;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #6 = Method	#12.#26;	//  java/lang/Object.getClass:()Ljava/lang/Class;
+const #7 = Method	#27.#28;	//  java/lang/Class.getName:()Ljava/lang/String;
+const #8 = Method	#29.#30;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #9 = Method	#27.#31;	//  java/lang/Class.getComponentType:()Ljava/lang/Class;
+const #10 = Method	#29.#32;	//  java/io/PrintStream.println:(Ljava/lang/Object;)V
+const #11 = Method	#27.#33;	//  java/lang/Class.getSuperclass:()Ljava/lang/Class;
+const #12 = class	#34;	//  java/lang/Object
+const #13 = Asciz	<init>;
+const #14 = Asciz	()V;
+const #15 = Asciz	Code;
+const #16 = Asciz	LineNumberTable;
+const #17 = Asciz	main;
+const #18 = Asciz	([Ljava/lang/String;)V;
+const #19 = Asciz	SourceFile;
+const #20 = Asciz	GetClass.java;
+const #21 = NameAndType	#13:#14;//  "<init>":()V
+const #22 = Asciz	classes/test/GetClass;
+const #23 = Asciz	[[Ljava/lang/Integer;;
+const #24 = class	#35;	//  java/lang/System
+const #25 = NameAndType	#36:#37;//  out:Ljava/io/PrintStream;
+const #26 = NameAndType	#38:#39;//  getClass:()Ljava/lang/Class;
+const #27 = class	#40;	//  java/lang/Class
+const #28 = NameAndType	#41:#42;//  getName:()Ljava/lang/String;
+const #29 = class	#43;	//  java/io/PrintStream
+const #30 = NameAndType	#44:#45;//  println:(Ljava/lang/String;)V
+const #31 = NameAndType	#46:#39;//  getComponentType:()Ljava/lang/Class;
+const #32 = NameAndType	#44:#47;//  println:(Ljava/lang/Object;)V
+const #33 = NameAndType	#48:#39;//  getSuperclass:()Ljava/lang/Class;
+const #34 = Asciz	java/lang/Object;
+const #35 = Asciz	java/lang/System;
+const #36 = Asciz	out;
+const #37 = Asciz	Ljava/io/PrintStream;;
+const #38 = Asciz	getClass;
+const #39 = Asciz	()Ljava/lang/Class;;
+const #40 = Asciz	java/lang/Class;
+const #41 = Asciz	getName;
+const #42 = Asciz	()Ljava/lang/String;;
+const #43 = Asciz	java/io/PrintStream;
+const #44 = Asciz	println;
+const #45 = Asciz	(Ljava/lang/String;)V;
+const #46 = Asciz	getComponentType;
+const #47 = Asciz	(Ljava/lang/Object;)V;
+const #48 = Asciz	getSuperclass;
+
+{
+public classes.test.GetClass();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 3: 0
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=2, Locals=5, Args_size=1
+   0:	new	#2; //class classes/test/GetClass
+   3:	dup
+   4:	invokespecial	#3; //Method "<init>":()V
+   7:	astore_1
+   8:	bipush	10
+   10:	anewarray	#2; //class classes/test/GetClass
+   13:	astore_2
+   14:	bipush	10
+   16:	newarray int
+   18:	astore_3
+   19:	iconst_5
+   20:	iconst_5
+   21:	multianewarray	#4,  2; //class "[[Ljava/lang/Integer;"
+   25:	astore	4
+   27:	getstatic	#5; //Field java/lang/System.out:Ljava/io/PrintStream;
+   30:	aload_1
+   31:	invokevirtual	#6; //Method java/lang/Object.getClass:()Ljava/lang/Class;
+   34:	invokevirtual	#7; //Method java/lang/Class.getName:()Ljava/lang/String;
+   37:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   40:	getstatic	#5; //Field java/lang/System.out:Ljava/io/PrintStream;
+   43:	aload_2
+   44:	invokevirtual	#6; //Method java/lang/Object.getClass:()Ljava/lang/Class;
+   47:	invokevirtual	#7; //Method java/lang/Class.getName:()Ljava/lang/String;
+   50:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   53:	getstatic	#5; //Field java/lang/System.out:Ljava/io/PrintStream;
+   56:	aload_3
+   57:	invokevirtual	#6; //Method java/lang/Object.getClass:()Ljava/lang/Class;
+   60:	invokevirtual	#7; //Method java/lang/Class.getName:()Ljava/lang/String;
+   63:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   66:	getstatic	#5; //Field java/lang/System.out:Ljava/io/PrintStream;
+   69:	aload_3
+   70:	invokevirtual	#6; //Method java/lang/Object.getClass:()Ljava/lang/Class;
+   73:	invokevirtual	#9; //Method java/lang/Class.getComponentType:()Ljava/lang/Class;
+   76:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/Object;)V
+   79:	getstatic	#5; //Field java/lang/System.out:Ljava/io/PrintStream;
+   82:	aload_3
+   83:	invokevirtual	#6; //Method java/lang/Object.getClass:()Ljava/lang/Class;
+   86:	invokevirtual	#9; //Method java/lang/Class.getComponentType:()Ljava/lang/Class;
+   89:	invokevirtual	#9; //Method java/lang/Class.getComponentType:()Ljava/lang/Class;
+   92:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/Object;)V
+   95:	getstatic	#5; //Field java/lang/System.out:Ljava/io/PrintStream;
+   98:	aload	4
+   100:	invokevirtual	#6; //Method java/lang/Object.getClass:()Ljava/lang/Class;
+   103:	invokevirtual	#7; //Method java/lang/Class.getName:()Ljava/lang/String;
+   106:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   109:	getstatic	#5; //Field java/lang/System.out:Ljava/io/PrintStream;
+   112:	aload	4
+   114:	invokevirtual	#6; //Method java/lang/Object.getClass:()Ljava/lang/Class;
+   117:	invokevirtual	#9; //Method java/lang/Class.getComponentType:()Ljava/lang/Class;
+   120:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/Object;)V
+   123:	getstatic	#5; //Field java/lang/System.out:Ljava/io/PrintStream;
+   126:	aload	4
+   128:	invokevirtual	#6; //Method java/lang/Object.getClass:()Ljava/lang/Class;
+   131:	invokevirtual	#11; //Method java/lang/Class.getSuperclass:()Ljava/lang/Class;
+   134:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/Object;)V
+   137:	return
+  LineNumberTable: 
+   line 6: 0
+   line 7: 8
+   line 8: 14
+   line 9: 19
+   line 11: 27
+   line 12: 40
+   line 13: 53
+   line 14: 66
+   line 15: 79
+   line 16: 95
+   line 17: 109
+   line 18: 123
+   line 19: 137
+
+
+}
+

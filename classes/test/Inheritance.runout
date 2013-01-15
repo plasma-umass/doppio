@@ -1,0 +1,18 @@
+Child a: 3
+Parent a through child via getter: 0
+Child b: 5
+Parent a: 4
+Parent a through getter: 4
+Parent b: 5
+Child a: 3
+Parent a through child via getter: 4
+Child b: 5
+0
+0
+0
+1337
+0
+0
+1337
+42
+42

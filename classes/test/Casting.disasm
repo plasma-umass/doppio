@@ -1,0 +1,277 @@
+Compiled from "Casting.java"
+public class classes.test.Casting extends java.lang.Object
+  SourceFile: "Casting.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#14.#23;	//  java/lang/Object."<init>":()V
+const #2 = int	999999;
+const #3 = Field	#24.#25;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #4 = Method	#26.#27;	//  java/io/PrintStream.println:(I)V
+const #5 = Method	#26.#28;	//  java/io/PrintStream.println:(J)V
+const #6 = Method	#26.#29;	//  java/io/PrintStream.println:(D)V
+const #7 = Method	#26.#30;	//  java/io/PrintStream.println:(F)V
+const #8 = long	8888888888888l;
+const #10 = double	7.77777777777E11d;
+const #12 = float	6666666.0f;
+const #13 = class	#31;	//  classes/test/Casting
+const #14 = class	#32;	//  java/lang/Object
+const #15 = Asciz	<init>;
+const #16 = Asciz	()V;
+const #17 = Asciz	Code;
+const #18 = Asciz	LineNumberTable;
+const #19 = Asciz	main;
+const #20 = Asciz	([Ljava/lang/String;)V;
+const #21 = Asciz	SourceFile;
+const #22 = Asciz	Casting.java;
+const #23 = NameAndType	#15:#16;//  "<init>":()V
+const #24 = class	#33;	//  java/lang/System
+const #25 = NameAndType	#34:#35;//  out:Ljava/io/PrintStream;
+const #26 = class	#36;	//  java/io/PrintStream
+const #27 = NameAndType	#37:#38;//  println:(I)V
+const #28 = NameAndType	#37:#39;//  println:(J)V
+const #29 = NameAndType	#37:#40;//  println:(D)V
+const #30 = NameAndType	#37:#41;//  println:(F)V
+const #31 = Asciz	classes/test/Casting;
+const #32 = Asciz	java/lang/Object;
+const #33 = Asciz	java/lang/System;
+const #34 = Asciz	out;
+const #35 = Asciz	Ljava/io/PrintStream;;
+const #36 = Asciz	java/io/PrintStream;
+const #37 = Asciz	println;
+const #38 = Asciz	(I)V;
+const #39 = Asciz	(J)V;
+const #40 = Asciz	(D)V;
+const #41 = Asciz	(F)V;
+
+{
+public classes.test.Casting();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 3: 0
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=3, Locals=3, Args_size=1
+   0:	ldc	#2; //int 999999
+   2:	istore_1
+   3:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   6:	iload_1
+   7:	invokevirtual	#4; //Method java/io/PrintStream.println:(I)V
+   10:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   13:	iload_1
+   14:	i2l
+   15:	invokevirtual	#5; //Method java/io/PrintStream.println:(J)V
+   18:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   21:	iload_1
+   22:	i2d
+   23:	invokevirtual	#6; //Method java/io/PrintStream.println:(D)V
+   26:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   29:	iload_1
+   30:	i2f
+   31:	invokevirtual	#7; //Method java/io/PrintStream.println:(F)V
+   34:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   37:	iload_1
+   38:	i2s
+   39:	invokevirtual	#4; //Method java/io/PrintStream.println:(I)V
+   42:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   45:	iload_1
+   46:	i2c
+   47:	invokevirtual	#4; //Method java/io/PrintStream.println:(I)V
+   50:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   53:	iload_1
+   54:	i2b
+   55:	invokevirtual	#4; //Method java/io/PrintStream.println:(I)V
+   58:	iload_1
+   59:	ineg
+   60:	istore_1
+   61:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   64:	iload_1
+   65:	invokevirtual	#4; //Method java/io/PrintStream.println:(I)V
+   68:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   71:	iload_1
+   72:	i2l
+   73:	invokevirtual	#5; //Method java/io/PrintStream.println:(J)V
+   76:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   79:	iload_1
+   80:	i2d
+   81:	invokevirtual	#6; //Method java/io/PrintStream.println:(D)V
+   84:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   87:	iload_1
+   88:	i2f
+   89:	invokevirtual	#7; //Method java/io/PrintStream.println:(F)V
+   92:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   95:	iload_1
+   96:	i2s
+   97:	invokevirtual	#4; //Method java/io/PrintStream.println:(I)V
+   100:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   103:	iload_1
+   104:	i2c
+   105:	invokevirtual	#4; //Method java/io/PrintStream.println:(I)V
+   108:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   111:	iload_1
+   112:	i2b
+   113:	invokevirtual	#4; //Method java/io/PrintStream.println:(I)V
+   116:	ldc2_w	#8; //long 8888888888888l
+   119:	lstore_1
+   120:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   123:	lload_1
+   124:	invokevirtual	#5; //Method java/io/PrintStream.println:(J)V
+   127:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   130:	lload_1
+   131:	l2i
+   132:	invokevirtual	#4; //Method java/io/PrintStream.println:(I)V
+   135:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   138:	lload_1
+   139:	l2d
+   140:	invokevirtual	#6; //Method java/io/PrintStream.println:(D)V
+   143:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   146:	lload_1
+   147:	l2f
+   148:	invokevirtual	#7; //Method java/io/PrintStream.println:(F)V
+   151:	lload_1
+   152:	lneg
+   153:	lstore_1
+   154:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   157:	lload_1
+   158:	invokevirtual	#5; //Method java/io/PrintStream.println:(J)V
+   161:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   164:	lload_1
+   165:	l2i
+   166:	invokevirtual	#4; //Method java/io/PrintStream.println:(I)V
+   169:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   172:	lload_1
+   173:	l2d
+   174:	invokevirtual	#6; //Method java/io/PrintStream.println:(D)V
+   177:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   180:	lload_1
+   181:	l2f
+   182:	invokevirtual	#7; //Method java/io/PrintStream.println:(F)V
+   185:	ldc2_w	#10; //double 7.77777777777E11d
+   188:	dstore_1
+   189:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   192:	dload_1
+   193:	invokevirtual	#6; //Method java/io/PrintStream.println:(D)V
+   196:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   199:	dload_1
+   200:	d2l
+   201:	invokevirtual	#5; //Method java/io/PrintStream.println:(J)V
+   204:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   207:	dload_1
+   208:	d2i
+   209:	invokevirtual	#4; //Method java/io/PrintStream.println:(I)V
+   212:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   215:	dload_1
+   216:	d2f
+   217:	invokevirtual	#7; //Method java/io/PrintStream.println:(F)V
+   220:	dload_1
+   221:	dneg
+   222:	dstore_1
+   223:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   226:	dload_1
+   227:	invokevirtual	#6; //Method java/io/PrintStream.println:(D)V
+   230:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   233:	dload_1
+   234:	d2l
+   235:	invokevirtual	#5; //Method java/io/PrintStream.println:(J)V
+   238:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   241:	dload_1
+   242:	d2i
+   243:	invokevirtual	#4; //Method java/io/PrintStream.println:(I)V
+   246:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   249:	dload_1
+   250:	d2f
+   251:	invokevirtual	#7; //Method java/io/PrintStream.println:(F)V
+   254:	ldc	#12; //float 6666666.0f
+   256:	fstore_1
+   257:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   260:	fload_1
+   261:	invokevirtual	#7; //Method java/io/PrintStream.println:(F)V
+   264:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   267:	fload_1
+   268:	f2l
+   269:	invokevirtual	#5; //Method java/io/PrintStream.println:(J)V
+   272:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   275:	fload_1
+   276:	f2d
+   277:	invokevirtual	#6; //Method java/io/PrintStream.println:(D)V
+   280:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   283:	fload_1
+   284:	f2i
+   285:	invokevirtual	#4; //Method java/io/PrintStream.println:(I)V
+   288:	fload_1
+   289:	fneg
+   290:	fstore_1
+   291:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   294:	fload_1
+   295:	invokevirtual	#7; //Method java/io/PrintStream.println:(F)V
+   298:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   301:	fload_1
+   302:	f2l
+   303:	invokevirtual	#5; //Method java/io/PrintStream.println:(J)V
+   306:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   309:	fload_1
+   310:	f2d
+   311:	invokevirtual	#6; //Method java/io/PrintStream.println:(D)V
+   314:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   317:	fload_1
+   318:	f2i
+   319:	invokevirtual	#4; //Method java/io/PrintStream.println:(I)V
+   322:	return
+  LineNumberTable: 
+   line 6: 0
+   line 7: 3
+   line 8: 10
+   line 9: 18
+   line 10: 26
+   line 11: 34
+   line 12: 42
+   line 13: 50
+   line 14: 58
+   line 15: 61
+   line 16: 68
+   line 17: 76
+   line 18: 84
+   line 19: 92
+   line 20: 100
+   line 21: 108
+   line 24: 116
+   line 25: 120
+   line 26: 127
+   line 27: 135
+   line 28: 143
+   line 29: 151
+   line 30: 154
+   line 31: 161
+   line 32: 169
+   line 33: 177
+   line 36: 185
+   line 37: 189
+   line 38: 196
+   line 39: 204
+   line 40: 212
+   line 41: 220
+   line 42: 223
+   line 43: 230
+   line 44: 238
+   line 45: 246
+   line 48: 254
+   line 49: 257
+   line 50: 264
+   line 51: 272
+   line 52: 280
+   line 53: 288
+   line 54: 291
+   line 55: 298
+   line 56: 306
+   line 57: 314
+   line 59: 322
+
+
+}
+

@@ -1,0 +1,182 @@
+Compiled from "NegativeArrays.java"
+public class classes.test.NegativeArrays extends java.lang.Object
+  SourceFile: "NegativeArrays.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#14.#25;	//  java/lang/Object."<init>":()V
+const #2 = Field	#26.#27;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #3 = String	#28;	//  Test 1: 
+const #4 = Method	#29.#30;	//  java/io/PrintStream.print:(Ljava/lang/String;)V
+const #5 = String	#31;	//  FAIL
+const #6 = Method	#29.#32;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #7 = class	#33;	//  java/lang/NegativeArraySizeException
+const #8 = String	#34;	//  PASS
+const #9 = String	#35;	//  Test 2: 
+const #10 = class	#36;	//  "[[I"
+const #11 = String	#37;	//  Test 3: 
+const #12 = String	#38;	//  Test 4: 
+const #13 = class	#39;	//  classes/test/NegativeArrays
+const #14 = class	#40;	//  java/lang/Object
+const #15 = Asciz	<init>;
+const #16 = Asciz	()V;
+const #17 = Asciz	Code;
+const #18 = Asciz	LineNumberTable;
+const #19 = Asciz	main;
+const #20 = Asciz	([Ljava/lang/String;)V;
+const #21 = Asciz	StackMapTable;
+const #22 = class	#33;	//  java/lang/NegativeArraySizeException
+const #23 = Asciz	SourceFile;
+const #24 = Asciz	NegativeArrays.java;
+const #25 = NameAndType	#15:#16;//  "<init>":()V
+const #26 = class	#41;	//  java/lang/System
+const #27 = NameAndType	#42:#43;//  out:Ljava/io/PrintStream;
+const #28 = Asciz	Test 1: ;
+const #29 = class	#44;	//  java/io/PrintStream
+const #30 = NameAndType	#45:#46;//  print:(Ljava/lang/String;)V
+const #31 = Asciz	FAIL;
+const #32 = NameAndType	#47:#46;//  println:(Ljava/lang/String;)V
+const #33 = Asciz	java/lang/NegativeArraySizeException;
+const #34 = Asciz	PASS;
+const #35 = Asciz	Test 2: ;
+const #36 = Asciz	[[I;
+const #37 = Asciz	Test 3: ;
+const #38 = Asciz	Test 4: ;
+const #39 = Asciz	classes/test/NegativeArrays;
+const #40 = Asciz	java/lang/Object;
+const #41 = Asciz	java/lang/System;
+const #42 = Asciz	out;
+const #43 = Asciz	Ljava/io/PrintStream;;
+const #44 = Asciz	java/io/PrintStream;
+const #45 = Asciz	print;
+const #46 = Asciz	(Ljava/lang/String;)V;
+const #47 = Asciz	println;
+
+{
+public classes.test.NegativeArrays();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 3: 0
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=2, Locals=2, Args_size=1
+   0:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   3:	ldc	#3; //String Test 1: 
+   5:	invokevirtual	#4; //Method java/io/PrintStream.print:(Ljava/lang/String;)V
+   8:	bipush	-10
+   10:	newarray int
+   12:	astore_1
+   13:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   16:	ldc	#5; //String FAIL
+   18:	invokevirtual	#6; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   21:	goto	33
+   24:	astore_1
+   25:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   28:	ldc	#8; //String PASS
+   30:	invokevirtual	#6; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   33:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   36:	ldc	#9; //String Test 2: 
+   38:	invokevirtual	#4; //Method java/io/PrintStream.print:(Ljava/lang/String;)V
+   41:	bipush	-10
+   43:	bipush	10
+   45:	multianewarray	#10,  2; //class "[[I"
+   49:	astore_1
+   50:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   53:	ldc	#5; //String FAIL
+   55:	invokevirtual	#6; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   58:	goto	70
+   61:	astore_1
+   62:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   65:	ldc	#8; //String PASS
+   67:	invokevirtual	#6; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   70:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   73:	ldc	#11; //String Test 3: 
+   75:	invokevirtual	#4; //Method java/io/PrintStream.print:(Ljava/lang/String;)V
+   78:	bipush	10
+   80:	bipush	-10
+   82:	multianewarray	#10,  2; //class "[[I"
+   86:	astore_1
+   87:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   90:	ldc	#5; //String FAIL
+   92:	invokevirtual	#6; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   95:	goto	107
+   98:	astore_1
+   99:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   102:	ldc	#8; //String PASS
+   104:	invokevirtual	#6; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   107:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   110:	ldc	#12; //String Test 4: 
+   112:	invokevirtual	#4; //Method java/io/PrintStream.print:(Ljava/lang/String;)V
+   115:	bipush	-10
+   117:	bipush	-10
+   119:	multianewarray	#10,  2; //class "[[I"
+   123:	astore_1
+   124:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   127:	ldc	#5; //String FAIL
+   129:	invokevirtual	#6; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   132:	goto	144
+   135:	astore_1
+   136:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   139:	ldc	#8; //String PASS
+   141:	invokevirtual	#6; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   144:	return
+  Exception table:
+   from   to  target type
+     8    21    24   Class java/lang/NegativeArraySizeException
+
+    41    58    61   Class java/lang/NegativeArraySizeException
+
+    78    95    98   Class java/lang/NegativeArraySizeException
+
+   115   132   135   Class java/lang/NegativeArraySizeException
+
+  LineNumberTable: 
+   line 5: 0
+   line 7: 8
+   line 8: 13
+   line 11: 21
+   line 9: 24
+   line 10: 25
+   line 13: 33
+   line 15: 41
+   line 16: 50
+   line 19: 58
+   line 17: 61
+   line 18: 62
+   line 21: 70
+   line 23: 78
+   line 24: 87
+   line 27: 95
+   line 25: 98
+   line 26: 99
+   line 29: 107
+   line 31: 115
+   line 32: 124
+   line 35: 132
+   line 33: 135
+   line 34: 136
+   line 36: 144
+
+  StackMapTable: number_of_entries = 8
+   frame_type = 88 /* same_locals_1_stack_item */
+     stack = [ class java/lang/NegativeArraySizeException ]
+   frame_type = 8 /* same */
+   frame_type = 91 /* same_locals_1_stack_item */
+     stack = [ class java/lang/NegativeArraySizeException ]
+   frame_type = 8 /* same */
+   frame_type = 91 /* same_locals_1_stack_item */
+     stack = [ class java/lang/NegativeArraySizeException ]
+   frame_type = 8 /* same */
+   frame_type = 91 /* same_locals_1_stack_item */
+     stack = [ class java/lang/NegativeArraySizeException ]
+   frame_type = 8 /* same */
+
+
+}
+

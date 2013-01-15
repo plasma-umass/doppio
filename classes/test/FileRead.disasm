@@ -1,0 +1,123 @@
+Compiled from "FileRead.java"
+public class classes.test.FileRead extends java.lang.Object
+  SourceFile: "FileRead.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#14.#26;	//  java/lang/Object."<init>":()V
+const #2 = class	#27;	//  java/io/BufferedReader
+const #3 = class	#28;	//  java/io/FileReader
+const #4 = String	#29;	//  ./classes/test/FileRead.java
+const #5 = Method	#3.#30;	//  java/io/FileReader."<init>":(Ljava/lang/String;)V
+const #6 = Method	#2.#31;	//  java/io/BufferedReader."<init>":(Ljava/io/Reader;)V
+const #7 = Method	#2.#32;	//  java/io/BufferedReader.readLine:()Ljava/lang/String;
+const #8 = Field	#33.#34;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #9 = Method	#35.#36;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #10 = class	#37;	//  java/io/IOException
+const #11 = Field	#33.#38;	//  java/lang/System.err:Ljava/io/PrintStream;
+const #12 = Method	#10.#39;	//  java/io/IOException.getMessage:()Ljava/lang/String;
+const #13 = class	#40;	//  classes/test/FileRead
+const #14 = class	#41;	//  java/lang/Object
+const #15 = Asciz	<init>;
+const #16 = Asciz	()V;
+const #17 = Asciz	Code;
+const #18 = Asciz	LineNumberTable;
+const #19 = Asciz	main;
+const #20 = Asciz	([Ljava/lang/String;)V;
+const #21 = Asciz	StackMapTable;
+const #22 = class	#27;	//  java/io/BufferedReader
+const #23 = class	#37;	//  java/io/IOException
+const #24 = Asciz	SourceFile;
+const #25 = Asciz	FileRead.java;
+const #26 = NameAndType	#15:#16;//  "<init>":()V
+const #27 = Asciz	java/io/BufferedReader;
+const #28 = Asciz	java/io/FileReader;
+const #29 = Asciz	./classes/test/FileRead.java;
+const #30 = NameAndType	#15:#42;//  "<init>":(Ljava/lang/String;)V
+const #31 = NameAndType	#15:#43;//  "<init>":(Ljava/io/Reader;)V
+const #32 = NameAndType	#44:#45;//  readLine:()Ljava/lang/String;
+const #33 = class	#46;	//  java/lang/System
+const #34 = NameAndType	#47:#48;//  out:Ljava/io/PrintStream;
+const #35 = class	#49;	//  java/io/PrintStream
+const #36 = NameAndType	#50:#42;//  println:(Ljava/lang/String;)V
+const #37 = Asciz	java/io/IOException;
+const #38 = NameAndType	#51:#48;//  err:Ljava/io/PrintStream;
+const #39 = NameAndType	#52:#45;//  getMessage:()Ljava/lang/String;
+const #40 = Asciz	classes/test/FileRead;
+const #41 = Asciz	java/lang/Object;
+const #42 = Asciz	(Ljava/lang/String;)V;
+const #43 = Asciz	(Ljava/io/Reader;)V;
+const #44 = Asciz	readLine;
+const #45 = Asciz	()Ljava/lang/String;;
+const #46 = Asciz	java/lang/System;
+const #47 = Asciz	out;
+const #48 = Asciz	Ljava/io/PrintStream;;
+const #49 = Asciz	java/io/PrintStream;
+const #50 = Asciz	println;
+const #51 = Asciz	err;
+const #52 = Asciz	getMessage;
+
+{
+public classes.test.FileRead();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 4: 0
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=5, Locals=3, Args_size=1
+   0:	new	#2; //class java/io/BufferedReader
+   3:	dup
+   4:	new	#3; //class java/io/FileReader
+   7:	dup
+   8:	ldc	#4; //String ./classes/test/FileRead.java
+   10:	invokespecial	#5; //Method java/io/FileReader."<init>":(Ljava/lang/String;)V
+   13:	invokespecial	#6; //Method java/io/BufferedReader."<init>":(Ljava/io/Reader;)V
+   16:	astore_1
+   17:	aload_1
+   18:	invokevirtual	#7; //Method java/io/BufferedReader.readLine:()Ljava/lang/String;
+   21:	dup
+   22:	astore_2
+   23:	ifnull	36
+   26:	getstatic	#8; //Field java/lang/System.out:Ljava/io/PrintStream;
+   29:	aload_2
+   30:	invokevirtual	#9; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   33:	goto	17
+   36:	goto	50
+   39:	astore_1
+   40:	getstatic	#11; //Field java/lang/System.err:Ljava/io/PrintStream;
+   43:	aload_1
+   44:	invokevirtual	#12; //Method java/io/IOException.getMessage:()Ljava/lang/String;
+   47:	invokevirtual	#9; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   50:	return
+  Exception table:
+   from   to  target type
+     0    36    39   Class java/io/IOException
+
+  LineNumberTable: 
+   line 7: 0
+   line 9: 17
+   line 10: 26
+   line 14: 36
+   line 12: 39
+   line 13: 40
+   line 15: 50
+
+  StackMapTable: number_of_entries = 4
+   frame_type = 252 /* append */
+     offset_delta = 17
+     locals = [ class java/io/BufferedReader ]
+   frame_type = 250 /* chop */
+     offset_delta = 18
+   frame_type = 66 /* same_locals_1_stack_item */
+     stack = [ class java/io/IOException ]
+   frame_type = 10 /* same */
+
+
+}
+

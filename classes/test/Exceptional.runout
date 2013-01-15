@@ -1,0 +1,4 @@
+Caught RuntimeException as a subclass of Exception.
+Non existent file does not exist
+Exception in thread "main" java.lang.Error: I'm the gingerbread man
+	at classes.test.Exceptional.main(Exceptional.java:51)

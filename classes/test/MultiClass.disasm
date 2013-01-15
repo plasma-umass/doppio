@@ -1,0 +1,55 @@
+Compiled from "MultiClass.java"
+public class classes.test.MultiClass extends java.lang.Object
+  SourceFile: "MultiClass.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#5.#16;	//  java/lang/Object."<init>":()V
+const #2 = class	#17;	//  classes/test/Foo
+const #3 = Method	#2.#16;	//  classes/test/Foo."<init>":()V
+const #4 = class	#18;	//  classes/test/MultiClass
+const #5 = class	#19;	//  java/lang/Object
+const #6 = Asciz	a;
+const #7 = Asciz	I;
+const #8 = Asciz	<init>;
+const #9 = Asciz	()V;
+const #10 = Asciz	Code;
+const #11 = Asciz	LineNumberTable;
+const #12 = Asciz	main;
+const #13 = Asciz	([Ljava/lang/String;)V;
+const #14 = Asciz	SourceFile;
+const #15 = Asciz	MultiClass.java;
+const #16 = NameAndType	#8:#9;//  "<init>":()V
+const #17 = Asciz	classes/test/Foo;
+const #18 = Asciz	classes/test/MultiClass;
+const #19 = Asciz	java/lang/Object;
+
+{
+int a;
+
+
+public classes.test.MultiClass();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 3: 0
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=2, Locals=2, Args_size=1
+   0:	new	#2; //class classes/test/Foo
+   3:	dup
+   4:	invokespecial	#3; //Method classes/test/Foo."<init>":()V
+   7:	astore_1
+   8:	return
+  LineNumberTable: 
+   line 6: 0
+   line 7: 8
+
+
+}
+

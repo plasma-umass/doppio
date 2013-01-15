@@ -1,0 +1,83 @@
+Compiled from "Compare.java"
+public class classes.test.Compare extends java.lang.Object
+  SourceFile: "Compare.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#7.#17;	//  java/lang/Object."<init>":()V
+const #2 = Method	#18.#19;	//  java/lang/System.currentTimeMillis:()J
+const #3 = Field	#18.#20;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #4 = Method	#21.#22;	//  java/io/PrintStream.println:(I)V
+const #5 = int	99999;
+const #6 = class	#23;	//  classes/test/Compare
+const #7 = class	#24;	//  java/lang/Object
+const #8 = Asciz	<init>;
+const #9 = Asciz	()V;
+const #10 = Asciz	Code;
+const #11 = Asciz	LineNumberTable;
+const #12 = Asciz	main;
+const #13 = Asciz	([Ljava/lang/String;)V;
+const #14 = Asciz	StackMapTable;
+const #15 = Asciz	SourceFile;
+const #16 = Asciz	Compare.java;
+const #17 = NameAndType	#8:#9;//  "<init>":()V
+const #18 = class	#25;	//  java/lang/System
+const #19 = NameAndType	#26:#27;//  currentTimeMillis:()J
+const #20 = NameAndType	#28:#29;//  out:Ljava/io/PrintStream;
+const #21 = class	#30;	//  java/io/PrintStream
+const #22 = NameAndType	#31:#32;//  println:(I)V
+const #23 = Asciz	classes/test/Compare;
+const #24 = Asciz	java/lang/Object;
+const #25 = Asciz	java/lang/System;
+const #26 = Asciz	currentTimeMillis;
+const #27 = Asciz	()J;
+const #28 = Asciz	out;
+const #29 = Asciz	Ljava/io/PrintStream;;
+const #30 = Asciz	java/io/PrintStream;
+const #31 = Asciz	println;
+const #32 = Asciz	(I)V;
+
+{
+public classes.test.Compare();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 2: 0
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=4, Locals=3, Args_size=1
+   0:	invokestatic	#2; //Method java/lang/System.currentTimeMillis:()J
+   3:	lstore_1
+   4:	lload_1
+   5:	lconst_0
+   6:	lcmp
+   7:	ifge	22
+   10:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   13:	sipush	10000
+   16:	invokevirtual	#4; //Method java/io/PrintStream.println:(I)V
+   19:	goto	30
+   22:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   25:	ldc	#5; //int 99999
+   27:	invokevirtual	#4; //Method java/io/PrintStream.println:(I)V
+   30:	return
+  LineNumberTable: 
+   line 4: 0
+   line 5: 4
+   line 6: 10
+   line 8: 22
+   line 10: 30
+
+  StackMapTable: number_of_entries = 2
+   frame_type = 252 /* append */
+     offset_delta = 22
+     locals = [ long ]
+   frame_type = 7 /* same */
+
+
+}
+

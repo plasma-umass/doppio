@@ -1,0 +1,240 @@
+Compiled from "RAFile.java"
+class classes.test.RAFile extends java.lang.Object
+  SourceFile: "RAFile.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#27.#41;	//  java/lang/Object."<init>":()V
+const #2 = class	#42;	//  java/io/RandomAccessFile
+const #3 = String	#43;	//  ./classes/test/RAFile.java
+const #4 = String	#44;	//  r
+const #5 = Method	#2.#45;	//  java/io/RandomAccessFile."<init>":(Ljava/lang/String;Ljava/lang/String;)V
+const #6 = Field	#46.#47;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #7 = Method	#2.#48;	//  java/io/RandomAccessFile.getFilePointer:()J
+const #8 = Method	#49.#50;	//  java/io/PrintStream.println:(J)V
+const #9 = Method	#2.#51;	//  java/io/RandomAccessFile.length:()J
+const #10 = long	20l;
+const #12 = Method	#2.#52;	//  java/io/RandomAccessFile.seek:(J)V
+const #13 = Method	#2.#53;	//  java/io/RandomAccessFile.read:([BII)I
+const #14 = Method	#26.#54;	//  classes/test/RAFile.printBytes:([B)V
+const #15 = long	5l;
+const #17 = Method	#2.#55;	//  java/io/RandomAccessFile.close:()V
+const #18 = class	#56;	//  java/lang/StringBuilder
+const #19 = Method	#18.#41;	//  java/lang/StringBuilder."<init>":()V
+const #20 = Method	#18.#57;	//  java/lang/StringBuilder.append:(I)Ljava/lang/StringBuilder;
+const #21 = String	#58;	//   
+const #22 = Method	#18.#59;	//  java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #23 = Method	#18.#60;	//  java/lang/StringBuilder.toString:()Ljava/lang/String;
+const #24 = Method	#49.#61;	//  java/io/PrintStream.print:(Ljava/lang/String;)V
+const #25 = Method	#49.#62;	//  java/io/PrintStream.println:()V
+const #26 = class	#63;	//  classes/test/RAFile
+const #27 = class	#64;	//  java/lang/Object
+const #28 = Asciz	<init>;
+const #29 = Asciz	()V;
+const #30 = Asciz	Code;
+const #31 = Asciz	LineNumberTable;
+const #32 = Asciz	main;
+const #33 = Asciz	([Ljava/lang/String;)V;
+const #34 = Asciz	Exceptions;
+const #35 = class	#65;	//  java/lang/Exception
+const #36 = Asciz	printBytes;
+const #37 = Asciz	([B)V;
+const #38 = Asciz	StackMapTable;
+const #39 = Asciz	SourceFile;
+const #40 = Asciz	RAFile.java;
+const #41 = NameAndType	#28:#29;//  "<init>":()V
+const #42 = Asciz	java/io/RandomAccessFile;
+const #43 = Asciz	./classes/test/RAFile.java;
+const #44 = Asciz	r;
+const #45 = NameAndType	#28:#66;//  "<init>":(Ljava/lang/String;Ljava/lang/String;)V
+const #46 = class	#67;	//  java/lang/System
+const #47 = NameAndType	#68:#69;//  out:Ljava/io/PrintStream;
+const #48 = NameAndType	#70:#71;//  getFilePointer:()J
+const #49 = class	#72;	//  java/io/PrintStream
+const #50 = NameAndType	#73:#74;//  println:(J)V
+const #51 = NameAndType	#75:#71;//  length:()J
+const #52 = NameAndType	#76:#74;//  seek:(J)V
+const #53 = NameAndType	#77:#78;//  read:([BII)I
+const #54 = NameAndType	#36:#37;//  printBytes:([B)V
+const #55 = NameAndType	#79:#29;//  close:()V
+const #56 = Asciz	java/lang/StringBuilder;
+const #57 = NameAndType	#80:#81;//  append:(I)Ljava/lang/StringBuilder;
+const #58 = Asciz	 ;
+const #59 = NameAndType	#80:#82;//  append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #60 = NameAndType	#83:#84;//  toString:()Ljava/lang/String;
+const #61 = NameAndType	#85:#86;//  print:(Ljava/lang/String;)V
+const #62 = NameAndType	#73:#29;//  println:()V
+const #63 = Asciz	classes/test/RAFile;
+const #64 = Asciz	java/lang/Object;
+const #65 = Asciz	java/lang/Exception;
+const #66 = Asciz	(Ljava/lang/String;Ljava/lang/String;)V;
+const #67 = Asciz	java/lang/System;
+const #68 = Asciz	out;
+const #69 = Asciz	Ljava/io/PrintStream;;
+const #70 = Asciz	getFilePointer;
+const #71 = Asciz	()J;
+const #72 = Asciz	java/io/PrintStream;
+const #73 = Asciz	println;
+const #74 = Asciz	(J)V;
+const #75 = Asciz	length;
+const #76 = Asciz	seek;
+const #77 = Asciz	read;
+const #78 = Asciz	([BII)I;
+const #79 = Asciz	close;
+const #80 = Asciz	append;
+const #81 = Asciz	(I)Ljava/lang/StringBuilder;;
+const #82 = Asciz	(Ljava/lang/String;)Ljava/lang/StringBuilder;;
+const #83 = Asciz	toString;
+const #84 = Asciz	()Ljava/lang/String;;
+const #85 = Asciz	print;
+const #86 = Asciz	(Ljava/lang/String;)V;
+
+{
+classes.test.RAFile();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 5: 0
+
+
+public static void main(java.lang.String[])   throws java.lang.Exception;
+  Code:
+   Stack=4, Locals=3, Args_size=1
+   0:	new	#2; //class java/io/RandomAccessFile
+   3:	dup
+   4:	ldc	#3; //String ./classes/test/RAFile.java
+   6:	ldc	#4; //String r
+   8:	invokespecial	#5; //Method java/io/RandomAccessFile."<init>":(Ljava/lang/String;Ljava/lang/String;)V
+   11:	astore_1
+   12:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
+   15:	aload_1
+   16:	invokevirtual	#7; //Method java/io/RandomAccessFile.getFilePointer:()J
+   19:	invokevirtual	#8; //Method java/io/PrintStream.println:(J)V
+   22:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
+   25:	aload_1
+   26:	invokevirtual	#9; //Method java/io/RandomAccessFile.length:()J
+   29:	invokevirtual	#8; //Method java/io/PrintStream.println:(J)V
+   32:	aload_1
+   33:	ldc2_w	#10; //long 20l
+   36:	invokevirtual	#12; //Method java/io/RandomAccessFile.seek:(J)V
+   39:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
+   42:	aload_1
+   43:	invokevirtual	#7; //Method java/io/RandomAccessFile.getFilePointer:()J
+   46:	invokevirtual	#8; //Method java/io/PrintStream.println:(J)V
+   49:	bipush	10
+   51:	newarray byte
+   53:	astore_2
+   54:	aload_1
+   55:	aload_2
+   56:	iconst_5
+   57:	iconst_5
+   58:	invokevirtual	#13; //Method java/io/RandomAccessFile.read:([BII)I
+   61:	pop
+   62:	aload_2
+   63:	invokestatic	#14; //Method printBytes:([B)V
+   66:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
+   69:	aload_1
+   70:	invokevirtual	#7; //Method java/io/RandomAccessFile.getFilePointer:()J
+   73:	invokevirtual	#8; //Method java/io/PrintStream.println:(J)V
+   76:	aload_1
+   77:	lconst_0
+   78:	invokevirtual	#12; //Method java/io/RandomAccessFile.seek:(J)V
+   81:	aload_1
+   82:	aload_2
+   83:	iconst_0
+   84:	bipush	10
+   86:	invokevirtual	#13; //Method java/io/RandomAccessFile.read:([BII)I
+   89:	pop
+   90:	aload_2
+   91:	invokestatic	#14; //Method printBytes:([B)V
+   94:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
+   97:	aload_1
+   98:	invokevirtual	#7; //Method java/io/RandomAccessFile.getFilePointer:()J
+   101:	invokevirtual	#8; //Method java/io/PrintStream.println:(J)V
+   104:	aload_1
+   105:	ldc2_w	#15; //long 5l
+   108:	invokevirtual	#12; //Method java/io/RandomAccessFile.seek:(J)V
+   111:	aload_1
+   112:	aload_2
+   113:	iconst_0
+   114:	bipush	10
+   116:	invokevirtual	#13; //Method java/io/RandomAccessFile.read:([BII)I
+   119:	pop
+   120:	aload_2
+   121:	invokestatic	#14; //Method printBytes:([B)V
+   124:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
+   127:	aload_1
+   128:	invokevirtual	#7; //Method java/io/RandomAccessFile.getFilePointer:()J
+   131:	invokevirtual	#8; //Method java/io/PrintStream.println:(J)V
+   134:	aload_1
+   135:	invokevirtual	#17; //Method java/io/RandomAccessFile.close:()V
+   138:	return
+  LineNumberTable: 
+   line 7: 0
+   line 8: 12
+   line 9: 22
+   line 10: 32
+   line 11: 39
+   line 13: 49
+   line 15: 54
+   line 16: 62
+   line 17: 66
+   line 19: 76
+   line 20: 81
+   line 21: 90
+   line 22: 94
+   line 23: 104
+   line 24: 111
+   line 25: 120
+   line 26: 124
+   line 27: 134
+   line 28: 138
+
+  Exceptions: 
+   throws java.lang.Exception
+static void printBytes(byte[]);
+  Code:
+   Stack=4, Locals=2, Args_size=1
+   0:	iconst_0
+   1:	istore_1
+   2:	iload_1
+   3:	aload_0
+   4:	arraylength
+   5:	if_icmpge	41
+   8:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
+   11:	new	#18; //class java/lang/StringBuilder
+   14:	dup
+   15:	invokespecial	#19; //Method java/lang/StringBuilder."<init>":()V
+   18:	aload_0
+   19:	iload_1
+   20:	baload
+   21:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(I)Ljava/lang/StringBuilder;
+   24:	ldc	#21; //String  
+   26:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   29:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   32:	invokevirtual	#24; //Method java/io/PrintStream.print:(Ljava/lang/String;)V
+   35:	iinc	1, 1
+   38:	goto	2
+   41:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
+   44:	invokevirtual	#25; //Method java/io/PrintStream.println:()V
+   47:	return
+  LineNumberTable: 
+   line 30: 0
+   line 31: 8
+   line 30: 35
+   line 32: 41
+   line 33: 47
+
+  StackMapTable: number_of_entries = 2
+   frame_type = 252 /* append */
+     offset_delta = 2
+     locals = [ int ]
+   frame_type = 250 /* chop */
+     offset_delta = 38
+
+
+}
+

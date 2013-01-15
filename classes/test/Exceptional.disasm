@@ -1,0 +1,241 @@
+Compiled from "Exceptional.java"
+public class classes.test.Exceptional extends java.lang.Object
+  SourceFile: "Exceptional.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#23.#39;	//  java/lang/Object."<init>":()V
+const #2 = class	#40;	//  java/lang/Exception
+const #3 = String	#41;	//  good morning
+const #4 = Method	#2.#42;	//  java/lang/Exception."<init>":(Ljava/lang/String;)V
+const #5 = class	#43;	//  java/lang/RuntimeException
+const #6 = String	#44;	//  bad morning
+const #7 = Method	#5.#42;	//  java/lang/RuntimeException."<init>":(Ljava/lang/String;)V
+const #8 = Field	#45.#46;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #9 = String	#47;	//  Caught RuntimeException as a subclass of Exception.
+const #10 = Method	#48.#49;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #11 = String	#50;	//  test
+const #12 = Method	#22.#51;	//  classes/test/Exceptional.throwingFunc:()V
+const #13 = Method	#22.#52;	//  classes/test/Exceptional.anotherThrowingFunc:()V
+const #14 = class	#53;	//  java/io/FileReader
+const #15 = String	#54;	//  ./NonExistentFile!!!
+const #16 = Method	#14.#42;	//  java/io/FileReader."<init>":(Ljava/lang/String;)V
+const #17 = String	#55;	//  Non existent file does not exist
+const #18 = class	#56;	//  java/lang/Error
+const #19 = String	#57;	//  I'm the gingerbread man
+const #20 = Method	#18.#42;	//  java/lang/Error."<init>":(Ljava/lang/String;)V
+const #21 = String	#58;	//  We should never reach this -- Error is not a subclass of Exception
+const #22 = class	#59;	//  classes/test/Exceptional
+const #23 = class	#60;	//  java/lang/Object
+const #24 = Asciz	<init>;
+const #25 = Asciz	()V;
+const #26 = Asciz	Code;
+const #27 = Asciz	LineNumberTable;
+const #28 = Asciz	throwingFunc;
+const #29 = Asciz	Exceptions;
+const #30 = Asciz	anotherThrowingFunc;
+const #31 = Asciz	StackMapTable;
+const #32 = class	#40;	//  java/lang/Exception
+const #33 = Asciz	main;
+const #34 = Asciz	([Ljava/lang/String;)V;
+const #35 = class	#61;	//  "[Ljava/lang/String;"
+const #36 = class	#62;	//  java/lang/Throwable
+const #37 = Asciz	SourceFile;
+const #38 = Asciz	Exceptional.java;
+const #39 = NameAndType	#24:#25;//  "<init>":()V
+const #40 = Asciz	java/lang/Exception;
+const #41 = Asciz	good morning;
+const #42 = NameAndType	#24:#63;//  "<init>":(Ljava/lang/String;)V
+const #43 = Asciz	java/lang/RuntimeException;
+const #44 = Asciz	bad morning;
+const #45 = class	#64;	//  java/lang/System
+const #46 = NameAndType	#65:#66;//  out:Ljava/io/PrintStream;
+const #47 = Asciz	Caught RuntimeException as a subclass of Exception.;
+const #48 = class	#67;	//  java/io/PrintStream
+const #49 = NameAndType	#68:#63;//  println:(Ljava/lang/String;)V
+const #50 = Asciz	test;
+const #51 = NameAndType	#28:#25;//  throwingFunc:()V
+const #52 = NameAndType	#30:#25;//  anotherThrowingFunc:()V
+const #53 = Asciz	java/io/FileReader;
+const #54 = Asciz	./NonExistentFile!!!;
+const #55 = Asciz	Non existent file does not exist;
+const #56 = Asciz	java/lang/Error;
+const #57 = Asciz	I'm the gingerbread man;
+const #58 = Asciz	We should never reach this -- Error is not a subclass of Exception;
+const #59 = Asciz	classes/test/Exceptional;
+const #60 = Asciz	java/lang/Object;
+const #61 = Asciz	[Ljava/lang/String;;
+const #62 = Asciz	java/lang/Throwable;
+const #63 = Asciz	(Ljava/lang/String;)V;
+const #64 = Asciz	java/lang/System;
+const #65 = Asciz	out;
+const #66 = Asciz	Ljava/io/PrintStream;;
+const #67 = Asciz	java/io/PrintStream;
+const #68 = Asciz	println;
+
+{
+public classes.test.Exceptional();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 5: 0
+
+
+public static void throwingFunc()   throws java.lang.Exception;
+  Code:
+   Stack=3, Locals=1, Args_size=0
+   0:	iconst_0
+   1:	istore_0
+   2:	new	#2; //class java/lang/Exception
+   5:	dup
+   6:	ldc	#3; //String good morning
+   8:	invokespecial	#4; //Method java/lang/Exception."<init>":(Ljava/lang/String;)V
+   11:	athrow
+  LineNumberTable: 
+   line 7: 0
+   line 8: 2
+
+  Exceptions: 
+   throws java.lang.Exception
+public static void anotherThrowingFunc();
+  Code:
+   Stack=3, Locals=1, Args_size=0
+   0:	new	#5; //class java/lang/RuntimeException
+   3:	dup
+   4:	ldc	#6; //String bad morning
+   6:	invokespecial	#7; //Method java/lang/RuntimeException."<init>":(Ljava/lang/String;)V
+   9:	athrow
+   10:	astore_0
+   11:	getstatic	#8; //Field java/lang/System.out:Ljava/io/PrintStream;
+   14:	ldc	#9; //String Caught RuntimeException as a subclass of Exception.
+   16:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   19:	return
+  Exception table:
+   from   to  target type
+     0    10    10   Class java/lang/Exception
+
+  LineNumberTable: 
+   line 12: 0
+   line 14: 10
+   line 15: 11
+   line 17: 19
+
+  StackMapTable: number_of_entries = 1
+   frame_type = 74 /* same_locals_1_stack_item */
+     stack = [ class java/lang/Exception ]
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=3, Locals=4, Args_size=1
+   0:	new	#2; //class java/lang/Exception
+   3:	dup
+   4:	ldc	#11; //String test
+   6:	invokespecial	#4; //Method java/lang/Exception."<init>":(Ljava/lang/String;)V
+   9:	athrow
+   10:	astore_1
+   11:	iconst_1
+   12:	istore_2
+   13:	iconst_0
+   14:	istore_1
+   15:	invokestatic	#12; //Method throwingFunc:()V
+   18:	goto	28
+   21:	astore_2
+   22:	iinc_w 1, 200
+   28:	invokestatic	#13; //Method anotherThrowingFunc:()V
+   31:	iinc_w 1, 1200
+   37:	goto	65
+   40:	astore_2
+   41:	iinc_w 1, 900
+   47:	iinc_w 1, 1200
+   53:	goto	65
+   56:	astore_3
+   57:	iinc_w 1, 1200
+   63:	aload_3
+   64:	athrow
+   65:	new	#14; //class java/io/FileReader
+   68:	dup
+   69:	ldc	#15; //String ./NonExistentFile!!!
+   71:	invokespecial	#16; //Method java/io/FileReader."<init>":(Ljava/lang/String;)V
+   74:	pop
+   75:	goto	87
+   78:	astore_2
+   79:	getstatic	#8; //Field java/lang/System.out:Ljava/io/PrintStream;
+   82:	ldc	#17; //String Non existent file does not exist
+   84:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   87:	new	#18; //class java/lang/Error
+   90:	dup
+   91:	ldc	#19; //String I'm the gingerbread man
+   93:	invokespecial	#20; //Method java/lang/Error."<init>":(Ljava/lang/String;)V
+   96:	athrow
+   97:	astore_2
+   98:	getstatic	#8; //Field java/lang/System.out:Ljava/io/PrintStream;
+   101:	ldc	#21; //String We should never reach this -- Error is not a subclass of Exception
+   103:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   106:	return
+  Exception table:
+   from   to  target type
+     0    10    10   Class java/lang/Exception
+
+    15    18    21   Class java/lang/Exception
+
+    28    31    40   Class java/lang/Exception
+
+    28    31    56   any
+    40    47    56   any
+    56    57    56   any
+    65    75    78   Class java/lang/Exception
+
+    87    97    97   Class java/lang/Exception
+
+  LineNumberTable: 
+   line 20: 0
+   line 21: 10
+   line 22: 11
+   line 25: 13
+   line 27: 15
+   line 30: 18
+   line 28: 21
+   line 29: 22
+   line 33: 28
+   line 39: 31
+   line 40: 37
+   line 35: 40
+   line 36: 41
+   line 39: 47
+   line 40: 53
+   line 39: 56
+   line 44: 65
+   line 48: 75
+   line 46: 78
+   line 47: 79
+   line 51: 87
+   line 53: 97
+   line 54: 98
+   line 56: 106
+
+  StackMapTable: number_of_entries = 9
+   frame_type = 74 /* same_locals_1_stack_item */
+     stack = [ class java/lang/Exception ]
+   frame_type = 255 /* full_frame */
+     offset_delta = 10
+     locals = [ class "[Ljava/lang/String;", int ]
+     stack = [ class java/lang/Exception ]
+   frame_type = 6 /* same */
+   frame_type = 75 /* same_locals_1_stack_item */
+     stack = [ class java/lang/Exception ]
+   frame_type = 79 /* same_locals_1_stack_item */
+     stack = [ class java/lang/Throwable ]
+   frame_type = 8 /* same */
+   frame_type = 76 /* same_locals_1_stack_item */
+     stack = [ class java/lang/Exception ]
+   frame_type = 8 /* same */
+   frame_type = 73 /* same_locals_1_stack_item */
+     stack = [ class java/lang/Exception ]
+
+
+}
+

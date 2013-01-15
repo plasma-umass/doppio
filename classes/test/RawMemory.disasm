@@ -1,0 +1,152 @@
+Compiled from "RawMemory.java"
+class classes.test.RawMemory extends java.lang.Object
+  SourceFile: "RawMemory.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#21.#33;	//  java/lang/Object."<init>":()V
+const #2 = class	#34;	//  sun/misc/Unsafe
+const #3 = String	#35;	//  theUnsafe
+const #4 = Method	#36.#37;	//  java/lang/Class.getDeclaredField:(Ljava/lang/String;)Ljava/lang/reflect/Field;
+const #5 = Method	#38.#39;	//  java/lang/reflect/Field.setAccessible:(Z)V
+const #6 = Method	#38.#40;	//  java/lang/reflect/Field.get:(Ljava/lang/Object;)Ljava/lang/Object;
+const #7 = long	100l;
+const #9 = Method	#2.#41;	//  sun/misc/Unsafe.allocateMemory:(J)J
+const #10 = Method	#2.#42;	//  sun/misc/Unsafe.putLong:(JJ)V
+const #11 = Field	#43.#44;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #12 = Method	#2.#45;	//  sun/misc/Unsafe.getByte:(J)B
+const #13 = Method	#46.#47;	//  java/io/PrintStream.println:(I)V
+const #14 = long	10l;
+const #16 = Method	#2.#48;	//  sun/misc/Unsafe.setMemory:(JJB)V
+const #17 = long	5l;
+const #19 = Method	#2.#49;	//  sun/misc/Unsafe.freeMemory:(J)V
+const #20 = class	#50;	//  classes/test/RawMemory
+const #21 = class	#51;	//  java/lang/Object
+const #22 = Asciz	<init>;
+const #23 = Asciz	()V;
+const #24 = Asciz	Code;
+const #25 = Asciz	LineNumberTable;
+const #26 = Asciz	main;
+const #27 = Asciz	([Ljava/lang/String;)V;
+const #28 = Asciz	Exceptions;
+const #29 = class	#52;	//  java/lang/NoSuchFieldException
+const #30 = class	#53;	//  java/lang/IllegalAccessException
+const #31 = Asciz	SourceFile;
+const #32 = Asciz	RawMemory.java;
+const #33 = NameAndType	#22:#23;//  "<init>":()V
+const #34 = Asciz	sun/misc/Unsafe;
+const #35 = Asciz	theUnsafe;
+const #36 = class	#54;	//  java/lang/Class
+const #37 = NameAndType	#55:#56;//  getDeclaredField:(Ljava/lang/String;)Ljava/lang/reflect/Field;
+const #38 = class	#57;	//  java/lang/reflect/Field
+const #39 = NameAndType	#58:#59;//  setAccessible:(Z)V
+const #40 = NameAndType	#60:#61;//  get:(Ljava/lang/Object;)Ljava/lang/Object;
+const #41 = NameAndType	#62:#63;//  allocateMemory:(J)J
+const #42 = NameAndType	#64:#65;//  putLong:(JJ)V
+const #43 = class	#66;	//  java/lang/System
+const #44 = NameAndType	#67:#68;//  out:Ljava/io/PrintStream;
+const #45 = NameAndType	#69:#70;//  getByte:(J)B
+const #46 = class	#71;	//  java/io/PrintStream
+const #47 = NameAndType	#72:#73;//  println:(I)V
+const #48 = NameAndType	#74:#75;//  setMemory:(JJB)V
+const #49 = NameAndType	#76:#77;//  freeMemory:(J)V
+const #50 = Asciz	classes/test/RawMemory;
+const #51 = Asciz	java/lang/Object;
+const #52 = Asciz	java/lang/NoSuchFieldException;
+const #53 = Asciz	java/lang/IllegalAccessException;
+const #54 = Asciz	java/lang/Class;
+const #55 = Asciz	getDeclaredField;
+const #56 = Asciz	(Ljava/lang/String;)Ljava/lang/reflect/Field;;
+const #57 = Asciz	java/lang/reflect/Field;
+const #58 = Asciz	setAccessible;
+const #59 = Asciz	(Z)V;
+const #60 = Asciz	get;
+const #61 = Asciz	(Ljava/lang/Object;)Ljava/lang/Object;;
+const #62 = Asciz	allocateMemory;
+const #63 = Asciz	(J)J;
+const #64 = Asciz	putLong;
+const #65 = Asciz	(JJ)V;
+const #66 = Asciz	java/lang/System;
+const #67 = Asciz	out;
+const #68 = Asciz	Ljava/io/PrintStream;;
+const #69 = Asciz	getByte;
+const #70 = Asciz	(J)B;
+const #71 = Asciz	java/io/PrintStream;
+const #72 = Asciz	println;
+const #73 = Asciz	(I)V;
+const #74 = Asciz	setMemory;
+const #75 = Asciz	(JJB)V;
+const #76 = Asciz	freeMemory;
+const #77 = Asciz	(J)V;
+
+{
+classes.test.RawMemory();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 6: 0
+
+
+public static void main(java.lang.String[])   throws java.lang.NoSuchFieldException, java.lang.IllegalAccessException;
+  Code:
+   Stack=6, Locals=5, Args_size=1
+   0:	ldc_w	#2; //class sun/misc/Unsafe
+   3:	ldc	#3; //String theUnsafe
+   5:	invokevirtual	#4; //Method java/lang/Class.getDeclaredField:(Ljava/lang/String;)Ljava/lang/reflect/Field;
+   8:	astore_1
+   9:	aload_1
+   10:	iconst_1
+   11:	invokevirtual	#5; //Method java/lang/reflect/Field.setAccessible:(Z)V
+   14:	aload_1
+   15:	aconst_null
+   16:	invokevirtual	#6; //Method java/lang/reflect/Field.get:(Ljava/lang/Object;)Ljava/lang/Object;
+   19:	checkcast	#2; //class sun/misc/Unsafe
+   22:	astore_2
+   23:	aload_2
+   24:	ldc2_w	#7; //long 100l
+   27:	invokevirtual	#9; //Method sun/misc/Unsafe.allocateMemory:(J)J
+   30:	lstore_3
+   31:	aload_2
+   32:	lload_3
+   33:	lconst_1
+   34:	invokevirtual	#10; //Method sun/misc/Unsafe.putLong:(JJ)V
+   37:	getstatic	#11; //Field java/lang/System.out:Ljava/io/PrintStream;
+   40:	aload_2
+   41:	lload_3
+   42:	invokevirtual	#12; //Method sun/misc/Unsafe.getByte:(J)B
+   45:	invokevirtual	#13; //Method java/io/PrintStream.println:(I)V
+   48:	aload_2
+   49:	lload_3
+   50:	ldc2_w	#14; //long 10l
+   53:	iconst_m1
+   54:	invokevirtual	#16; //Method sun/misc/Unsafe.setMemory:(JJB)V
+   57:	getstatic	#11; //Field java/lang/System.out:Ljava/io/PrintStream;
+   60:	aload_2
+   61:	lload_3
+   62:	ldc2_w	#17; //long 5l
+   65:	ladd
+   66:	invokevirtual	#12; //Method sun/misc/Unsafe.getByte:(J)B
+   69:	invokevirtual	#13; //Method java/io/PrintStream.println:(I)V
+   72:	aload_2
+   73:	lload_3
+   74:	invokevirtual	#19; //Method sun/misc/Unsafe.freeMemory:(J)V
+   77:	return
+  LineNumberTable: 
+   line 10: 0
+   line 11: 9
+   line 12: 14
+   line 13: 23
+   line 16: 31
+   line 17: 37
+   line 20: 48
+   line 21: 57
+   line 23: 72
+   line 24: 77
+
+  Exceptions: 
+   throws java.lang.NoSuchFieldException, java.lang.IllegalAccessException
+}
+

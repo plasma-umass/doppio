@@ -1,0 +1,10 @@
+40
+6
+null
+classes.test.InnerClass
+classes.test.InnerClass$Foo
+classes.test.InnerClass$Foo
+Foo
+Bar
+classes.test.InnerClass$Foo
+classes.test.InnerClass$Foo$Bar

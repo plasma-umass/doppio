@@ -1,0 +1,157 @@
+Compiled from "WaitTest.java"
+class classes.test.WaitTest extends java.lang.Object
+  SourceFile: "WaitTest.java"
+  InnerClass: 
+   #12= #2 of #11; //Foo=class classes/test/WaitTest$Foo of class classes/test/WaitTest
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#10.#30;	//  java/lang/Object."<init>":()V
+const #2 = class	#31;	//  classes/test/WaitTest$Foo
+const #3 = Method	#2.#30;	//  classes/test/WaitTest$Foo."<init>":()V
+const #4 = Field	#2.#32;	//  classes/test/WaitTest$Foo.thread:Ljava/lang/Thread;
+const #5 = Method	#33.#34;	//  java/lang/Thread.isAlive:()Z
+const #6 = Method	#33.#35;	//  java/lang/Thread.interrupt:()V
+const #7 = Field	#11.#36;	//  classes/test/WaitTest.obj:Ljava/lang/Object;
+const #8 = Method	#33.#37;	//  java/lang/Thread.currentThread:()Ljava/lang/Thread;
+const #9 = Method	#33.#38;	//  java/lang/Thread.yield:()V
+const #10 = class	#39;	//  java/lang/Object
+const #11 = class	#40;	//  classes/test/WaitTest
+const #12 = Asciz	Foo;
+const #13 = Asciz	InnerClasses;
+const #14 = Asciz	obj;
+const #15 = Asciz	Ljava/lang/Object;;
+const #16 = Asciz	<init>;
+const #17 = Asciz	()V;
+const #18 = Asciz	Code;
+const #19 = Asciz	LineNumberTable;
+const #20 = Asciz	main;
+const #21 = Asciz	([Ljava/lang/String;)V;
+const #22 = Asciz	StackMapTable;
+const #23 = class	#31;	//  classes/test/WaitTest$Foo
+const #24 = class	#41;	//  "[Ljava/lang/String;"
+const #25 = class	#39;	//  java/lang/Object
+const #26 = class	#42;	//  java/lang/Throwable
+const #27 = Asciz	<clinit>;
+const #28 = Asciz	SourceFile;
+const #29 = Asciz	WaitTest.java;
+const #30 = NameAndType	#16:#17;//  "<init>":()V
+const #31 = Asciz	classes/test/WaitTest$Foo;
+const #32 = NameAndType	#43:#44;//  thread:Ljava/lang/Thread;
+const #33 = class	#45;	//  java/lang/Thread
+const #34 = NameAndType	#46:#47;//  isAlive:()Z
+const #35 = NameAndType	#48:#17;//  interrupt:()V
+const #36 = NameAndType	#14:#15;//  obj:Ljava/lang/Object;
+const #37 = NameAndType	#49:#50;//  currentThread:()Ljava/lang/Thread;
+const #38 = NameAndType	#51:#17;//  yield:()V
+const #39 = Asciz	java/lang/Object;
+const #40 = Asciz	classes/test/WaitTest;
+const #41 = Asciz	[Ljava/lang/String;;
+const #42 = Asciz	java/lang/Throwable;
+const #43 = Asciz	thread;
+const #44 = Asciz	Ljava/lang/Thread;;
+const #45 = Asciz	java/lang/Thread;
+const #46 = Asciz	isAlive;
+const #47 = Asciz	()Z;
+const #48 = Asciz	interrupt;
+const #49 = Asciz	currentThread;
+const #50 = Asciz	()Ljava/lang/Thread;;
+const #51 = Asciz	yield;
+
+{
+static java.lang.Object obj;
+
+
+classes.test.WaitTest();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 7: 0
+   line 11: 4
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=2, Locals=5, Args_size=1
+   0:	new	#2; //class classes/test/WaitTest$Foo
+   3:	dup
+   4:	invokespecial	#3; //Method classes/test/WaitTest$Foo."<init>":()V
+   7:	astore_1
+   8:	new	#2; //class classes/test/WaitTest$Foo
+   11:	dup
+   12:	invokespecial	#3; //Method classes/test/WaitTest$Foo."<init>":()V
+   15:	astore_2
+   16:	aload_1
+   17:	getfield	#4; //Field classes/test/WaitTest$Foo.thread:Ljava/lang/Thread;
+   20:	invokevirtual	#5; //Method java/lang/Thread.isAlive:()Z
+   23:	ifeq	33
+   26:	aload_1
+   27:	getfield	#4; //Field classes/test/WaitTest$Foo.thread:Ljava/lang/Thread;
+   30:	invokevirtual	#6; //Method java/lang/Thread.interrupt:()V
+   33:	getstatic	#7; //Field obj:Ljava/lang/Object;
+   36:	dup
+   37:	astore_3
+   38:	monitorenter
+   39:	invokestatic	#8; //Method java/lang/Thread.currentThread:()Ljava/lang/Thread;
+   42:	pop
+   43:	invokestatic	#9; //Method java/lang/Thread.yield:()V
+   46:	aload_3
+   47:	monitorexit
+   48:	goto	58
+   51:	astore	4
+   53:	aload_3
+   54:	monitorexit
+   55:	aload	4
+   57:	athrow
+   58:	aload_2
+   59:	getfield	#4; //Field classes/test/WaitTest$Foo.thread:Ljava/lang/Thread;
+   62:	invokevirtual	#5; //Method java/lang/Thread.isAlive:()Z
+   65:	ifeq	75
+   68:	aload_2
+   69:	getfield	#4; //Field classes/test/WaitTest$Foo.thread:Ljava/lang/Thread;
+   72:	invokevirtual	#6; //Method java/lang/Thread.interrupt:()V
+   75:	return
+  Exception table:
+   from   to  target type
+    39    48    51   any
+    51    55    51   any
+  LineNumberTable: 
+   line 34: 0
+   line 35: 8
+   line 36: 16
+   line 37: 33
+   line 38: 39
+   line 39: 46
+   line 40: 58
+   line 41: 75
+
+  StackMapTable: number_of_entries = 4
+   frame_type = 253 /* append */
+     offset_delta = 33
+     locals = [ class classes/test/WaitTest$Foo, class classes/test/WaitTest$Foo ]
+   frame_type = 255 /* full_frame */
+     offset_delta = 17
+     locals = [ class "[Ljava/lang/String;", class classes/test/WaitTest$Foo, class classes/test/WaitTest$Foo, class java/lang/Object ]
+     stack = [ class java/lang/Throwable ]
+   frame_type = 250 /* chop */
+     offset_delta = 6
+   frame_type = 16 /* same */
+
+
+static {};
+  Code:
+   Stack=2, Locals=0, Args_size=0
+   0:	new	#10; //class java/lang/Object
+   3:	dup
+   4:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   7:	putstatic	#7; //Field obj:Ljava/lang/Object;
+   10:	return
+  LineNumberTable: 
+   line 9: 0
+
+
+}
+

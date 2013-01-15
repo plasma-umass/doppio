@@ -1,0 +1,259 @@
+Compiled from "StringInternExample.java"
+public class classes.test.StringInternExample extends java.lang.Object
+  SourceFile: "StringInternExample.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#17.#34;	//  java/lang/Object."<init>":()V
+const #2 = String	#35;	//  A String
+const #3 = Method	#16.#36;	//  classes/test/StringInternExample.test:(Ljava/lang/String;Ljava/lang/String;ZZ)V
+const #4 = class	#37;	//  java/lang/String
+const #5 = Field	#16.#38;	//  classes/test/StringInternExample.chars:[C
+const #6 = Method	#4.#39;	//  java/lang/String."<init>":([C)V
+const #7 = Method	#4.#40;	//  java/lang/String.intern:()Ljava/lang/String;
+const #8 = Method	#4.#41;	//  java/lang/String."<init>":(Ljava/lang/String;)V
+const #9 = String	#42;	//  __proto__
+const #10 = String	#43;	//  valueOf
+const #11 = class	#44;	//  java/lang/RuntimeException
+const #12 = String	#45;	//  string == failed
+const #13 = Method	#11.#41;	//  java/lang/RuntimeException."<init>":(Ljava/lang/String;)V
+const #14 = Method	#4.#46;	//  java/lang/String.equals:(Ljava/lang/Object;)Z
+const #15 = String	#47;	//  string .equals failed
+const #16 = class	#48;	//  classes/test/StringInternExample
+const #17 = class	#49;	//  java/lang/Object
+const #18 = Asciz	chars;
+const #19 = Asciz	[C;
+const #20 = Asciz	<init>;
+const #21 = Asciz	()V;
+const #22 = Asciz	Code;
+const #23 = Asciz	LineNumberTable;
+const #24 = Asciz	main;
+const #25 = Asciz	([Ljava/lang/String;)V;
+const #26 = Asciz	StackMapTable;
+const #27 = class	#50;	//  "[Ljava/lang/String;"
+const #28 = class	#37;	//  java/lang/String
+const #29 = Asciz	test;
+const #30 = Asciz	(Ljava/lang/String;Ljava/lang/String;ZZ)V;
+const #31 = Asciz	<clinit>;
+const #32 = Asciz	SourceFile;
+const #33 = Asciz	StringInternExample.java;
+const #34 = NameAndType	#20:#21;//  "<init>":()V
+const #35 = Asciz	A String;
+const #36 = NameAndType	#29:#30;//  test:(Ljava/lang/String;Ljava/lang/String;ZZ)V
+const #37 = Asciz	java/lang/String;
+const #38 = NameAndType	#18:#19;//  chars:[C
+const #39 = NameAndType	#20:#51;//  "<init>":([C)V
+const #40 = NameAndType	#52:#53;//  intern:()Ljava/lang/String;
+const #41 = NameAndType	#20:#54;//  "<init>":(Ljava/lang/String;)V
+const #42 = Asciz	__proto__;
+const #43 = Asciz	valueOf;
+const #44 = Asciz	java/lang/RuntimeException;
+const #45 = Asciz	string == failed;
+const #46 = NameAndType	#55:#56;//  equals:(Ljava/lang/Object;)Z
+const #47 = Asciz	string .equals failed;
+const #48 = Asciz	classes/test/StringInternExample;
+const #49 = Asciz	java/lang/Object;
+const #50 = Asciz	[Ljava/lang/String;;
+const #51 = Asciz	([C)V;
+const #52 = Asciz	intern;
+const #53 = Asciz	()Ljava/lang/String;;
+const #54 = Asciz	(Ljava/lang/String;)V;
+const #55 = Asciz	equals;
+const #56 = Asciz	(Ljava/lang/Object;)Z;
+
+{
+private static char[] chars;
+
+
+public classes.test.StringInternExample();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 3: 0
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=4, Locals=8, Args_size=1
+   0:	ldc	#2; //String A String
+   2:	astore_1
+   3:	ldc	#2; //String A String
+   5:	astore_2
+   6:	aload_1
+   7:	aload_2
+   8:	iconst_1
+   9:	iconst_1
+   10:	invokestatic	#3; //Method test:(Ljava/lang/String;Ljava/lang/String;ZZ)V
+   13:	new	#4; //class java/lang/String
+   16:	dup
+   17:	getstatic	#5; //Field chars:[C
+   20:	invokespecial	#6; //Method java/lang/String."<init>":([C)V
+   23:	astore_3
+   24:	aload_1
+   25:	aload_3
+   26:	iconst_0
+   27:	iconst_1
+   28:	invokestatic	#3; //Method test:(Ljava/lang/String;Ljava/lang/String;ZZ)V
+   31:	aload_3
+   32:	invokevirtual	#7; //Method java/lang/String.intern:()Ljava/lang/String;
+   35:	astore	4
+   37:	aload_1
+   38:	aload	4
+   40:	iconst_1
+   41:	iconst_1
+   42:	invokestatic	#3; //Method test:(Ljava/lang/String;Ljava/lang/String;ZZ)V
+   45:	new	#4; //class java/lang/String
+   48:	dup
+   49:	ldc	#2; //String A String
+   51:	invokespecial	#8; //Method java/lang/String."<init>":(Ljava/lang/String;)V
+   54:	astore	5
+   56:	aload_1
+   57:	aload	5
+   59:	iconst_0
+   60:	iconst_1
+   61:	invokestatic	#3; //Method test:(Ljava/lang/String;Ljava/lang/String;ZZ)V
+   64:	aload_0
+   65:	arraylength
+   66:	ifle	97
+   69:	aload_0
+   70:	iconst_0
+   71:	aaload
+   72:	astore	6
+   74:	aload_1
+   75:	aload	6
+   77:	iconst_0
+   78:	iconst_1
+   79:	invokestatic	#3; //Method test:(Ljava/lang/String;Ljava/lang/String;ZZ)V
+   82:	aload	6
+   84:	invokevirtual	#7; //Method java/lang/String.intern:()Ljava/lang/String;
+   87:	astore	7
+   89:	aload_1
+   90:	aload	7
+   92:	iconst_1
+   93:	iconst_1
+   94:	invokestatic	#3; //Method test:(Ljava/lang/String;Ljava/lang/String;ZZ)V
+   97:	ldc	#9; //String __proto__
+   99:	ldc	#9; //String __proto__
+   101:	iconst_1
+   102:	iconst_1
+   103:	invokestatic	#3; //Method test:(Ljava/lang/String;Ljava/lang/String;ZZ)V
+   106:	ldc	#10; //String valueOf
+   108:	ldc	#10; //String valueOf
+   110:	iconst_1
+   111:	iconst_1
+   112:	invokestatic	#3; //Method test:(Ljava/lang/String;Ljava/lang/String;ZZ)V
+   115:	return
+  LineNumberTable: 
+   line 9: 0
+   line 14: 3
+   line 16: 6
+   line 21: 13
+   line 25: 24
+   line 29: 31
+   line 33: 37
+   line 37: 45
+   line 43: 56
+   line 50: 64
+   line 51: 69
+   line 52: 74
+   line 55: 82
+   line 56: 89
+   line 63: 97
+   line 64: 106
+   line 65: 115
+
+  StackMapTable: number_of_entries = 1
+   frame_type = 255 /* full_frame */
+     offset_delta = 97
+     locals = [ class "[Ljava/lang/String;", class java/lang/String, class java/lang/String, class java/lang/String, class java/lang/String, class java/lang/String ]
+     stack = []
+
+
+private static void test(java.lang.String, java.lang.String, boolean, boolean);
+  Code:
+   Stack=3, Locals=4, Args_size=4
+   0:	aload_0
+   1:	aload_1
+   2:	if_acmpne	9
+   5:	iconst_1
+   6:	goto	10
+   9:	iconst_0
+   10:	iload_2
+   11:	if_icmpeq	24
+   14:	new	#11; //class java/lang/RuntimeException
+   17:	dup
+   18:	ldc	#12; //String string == failed
+   20:	invokespecial	#13; //Method java/lang/RuntimeException."<init>":(Ljava/lang/String;)V
+   23:	athrow
+   24:	aload_0
+   25:	aload_1
+   26:	invokevirtual	#14; //Method java/lang/String.equals:(Ljava/lang/Object;)Z
+   29:	iload_3
+   30:	if_icmpeq	43
+   33:	new	#11; //class java/lang/RuntimeException
+   36:	dup
+   37:	ldc	#15; //String string .equals failed
+   39:	invokespecial	#13; //Method java/lang/RuntimeException."<init>":(Ljava/lang/String;)V
+   42:	athrow
+   43:	return
+  LineNumberTable: 
+   line 68: 0
+   line 69: 24
+   line 70: 43
+
+  StackMapTable: number_of_entries = 4
+   frame_type = 9 /* same */
+   frame_type = 64 /* same_locals_1_stack_item */
+     stack = [ int ]
+   frame_type = 13 /* same */
+   frame_type = 18 /* same */
+
+
+static {};
+  Code:
+   Stack=4, Locals=0, Args_size=0
+   0:	bipush	8
+   2:	newarray char
+   4:	dup
+   5:	iconst_0
+   6:	bipush	65
+   8:	castore
+   9:	dup
+   10:	iconst_1
+   11:	bipush	32
+   13:	castore
+   14:	dup
+   15:	iconst_2
+   16:	bipush	83
+   18:	castore
+   19:	dup
+   20:	iconst_3
+   21:	bipush	116
+   23:	castore
+   24:	dup
+   25:	iconst_4
+   26:	bipush	114
+   28:	castore
+   29:	dup
+   30:	iconst_5
+   31:	bipush	105
+   33:	castore
+   34:	dup
+   35:	bipush	6
+   37:	bipush	110
+   39:	castore
+   40:	dup
+   41:	bipush	7
+   43:	bipush	103
+   45:	castore
+   46:	putstatic	#5; //Field chars:[C
+   49:	return
+  LineNumberTable: 
+   line 4: 0
+
+
+}
+

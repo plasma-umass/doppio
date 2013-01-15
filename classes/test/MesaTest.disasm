@@ -1,0 +1,130 @@
+Compiled from "MesaTest.java"
+class classes.test.MesaTest extends java.lang.Object
+  SourceFile: "MesaTest.java"
+  InnerClass: 
+   #11= #7 of #10; //Bar=class classes/test/MesaTest$Bar of class classes/test/MesaTest
+   #13= #2 of #10; //Foo=class classes/test/MesaTest$Foo of class classes/test/MesaTest
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#9.#29;	//  java/lang/Object."<init>":()V
+const #2 = class	#30;	//  classes/test/MesaTest$Foo
+const #3 = Method	#2.#29;	//  classes/test/MesaTest$Foo."<init>":()V
+const #4 = Field	#10.#31;	//  classes/test/MesaTest.obj:Ljava/lang/Object;
+const #5 = Method	#32.#33;	//  java/lang/Thread.currentThread:()Ljava/lang/Thread;
+const #6 = Method	#32.#34;	//  java/lang/Thread.yield:()V
+const #7 = class	#35;	//  classes/test/MesaTest$Bar
+const #8 = Method	#7.#29;	//  classes/test/MesaTest$Bar."<init>":()V
+const #9 = class	#36;	//  java/lang/Object
+const #10 = class	#37;	//  classes/test/MesaTest
+const #11 = Asciz	Bar;
+const #12 = Asciz	InnerClasses;
+const #13 = Asciz	Foo;
+const #14 = Asciz	obj;
+const #15 = Asciz	Ljava/lang/Object;;
+const #16 = Asciz	<init>;
+const #17 = Asciz	()V;
+const #18 = Asciz	Code;
+const #19 = Asciz	LineNumberTable;
+const #20 = Asciz	main;
+const #21 = Asciz	([Ljava/lang/String;)V;
+const #22 = Asciz	StackMapTable;
+const #23 = class	#38;	//  "[Ljava/lang/String;"
+const #24 = class	#36;	//  java/lang/Object
+const #25 = class	#39;	//  java/lang/Throwable
+const #26 = Asciz	<clinit>;
+const #27 = Asciz	SourceFile;
+const #28 = Asciz	MesaTest.java;
+const #29 = NameAndType	#16:#17;//  "<init>":()V
+const #30 = Asciz	classes/test/MesaTest$Foo;
+const #31 = NameAndType	#14:#15;//  obj:Ljava/lang/Object;
+const #32 = class	#40;	//  java/lang/Thread
+const #33 = NameAndType	#41:#42;//  currentThread:()Ljava/lang/Thread;
+const #34 = NameAndType	#43:#17;//  yield:()V
+const #35 = Asciz	classes/test/MesaTest$Bar;
+const #36 = Asciz	java/lang/Object;
+const #37 = Asciz	classes/test/MesaTest;
+const #38 = Asciz	[Ljava/lang/String;;
+const #39 = Asciz	java/lang/Throwable;
+const #40 = Asciz	java/lang/Thread;
+const #41 = Asciz	currentThread;
+const #42 = Asciz	()Ljava/lang/Thread;;
+const #43 = Asciz	yield;
+
+{
+static java.lang.Object obj;
+
+
+classes.test.MesaTest();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 8: 0
+   line 32: 4
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=2, Locals=3, Args_size=1
+   0:	new	#2; //class classes/test/MesaTest$Foo
+   3:	dup
+   4:	invokespecial	#3; //Method classes/test/MesaTest$Foo."<init>":()V
+   7:	pop
+   8:	getstatic	#4; //Field obj:Ljava/lang/Object;
+   11:	dup
+   12:	astore_1
+   13:	monitorenter
+   14:	invokestatic	#5; //Method java/lang/Thread.currentThread:()Ljava/lang/Thread;
+   17:	pop
+   18:	invokestatic	#6; //Method java/lang/Thread.yield:()V
+   21:	aload_1
+   22:	monitorexit
+   23:	goto	31
+   26:	astore_2
+   27:	aload_1
+   28:	monitorexit
+   29:	aload_2
+   30:	athrow
+   31:	new	#7; //class classes/test/MesaTest$Bar
+   34:	dup
+   35:	invokespecial	#8; //Method classes/test/MesaTest$Bar."<init>":()V
+   38:	pop
+   39:	return
+  Exception table:
+   from   to  target type
+    14    23    26   any
+    26    29    26   any
+  LineNumberTable: 
+   line 50: 0
+   line 51: 8
+   line 52: 14
+   line 53: 21
+   line 54: 31
+   line 55: 39
+
+  StackMapTable: number_of_entries = 2
+   frame_type = 255 /* full_frame */
+     offset_delta = 26
+     locals = [ class "[Ljava/lang/String;", class java/lang/Object ]
+     stack = [ class java/lang/Throwable ]
+   frame_type = 250 /* chop */
+     offset_delta = 4
+
+
+static {};
+  Code:
+   Stack=2, Locals=0, Args_size=0
+   0:	new	#9; //class java/lang/Object
+   3:	dup
+   4:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   7:	putstatic	#4; //Field obj:Ljava/lang/Object;
+   10:	return
+  LineNumberTable: 
+   line 10: 0
+
+
+}
+

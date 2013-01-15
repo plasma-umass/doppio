@@ -1,0 +1,91 @@
+Compiled from "OMethod.java"
+public class classes.test.OMethod extends java.lang.Object
+  SourceFile: "OMethod.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#10.#21;	//  java/lang/Object."<init>":()V
+const #2 = Method	#5.#22;	//  classes/test/OMethod.foo:(D)I
+const #3 = Field	#23.#24;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #4 = Method	#25.#26;	//  java/io/PrintStream.println:(I)V
+const #5 = class	#27;	//  classes/test/OMethod
+const #6 = String	#28;	//  hello
+const #7 = double	-9.322d;
+const #9 = Method	#5.#29;	//  classes/test/OMethod."<init>":(Ljava/lang/String;D)V
+const #10 = class	#30;	//  java/lang/Object
+const #11 = Asciz	<init>;
+const #12 = Asciz	(Ljava/lang/String;D)V;
+const #13 = Asciz	Code;
+const #14 = Asciz	LineNumberTable;
+const #15 = Asciz	foo;
+const #16 = Asciz	(D)I;
+const #17 = Asciz	main;
+const #18 = Asciz	([Ljava/lang/String;)V;
+const #19 = Asciz	SourceFile;
+const #20 = Asciz	OMethod.java;
+const #21 = NameAndType	#11:#31;//  "<init>":()V
+const #22 = NameAndType	#15:#16;//  foo:(D)I
+const #23 = class	#32;	//  java/lang/System
+const #24 = NameAndType	#33:#34;//  out:Ljava/io/PrintStream;
+const #25 = class	#35;	//  java/io/PrintStream
+const #26 = NameAndType	#36:#37;//  println:(I)V
+const #27 = Asciz	classes/test/OMethod;
+const #28 = Asciz	hello;
+const #29 = NameAndType	#11:#12;//  "<init>":(Ljava/lang/String;D)V
+const #30 = Asciz	java/lang/Object;
+const #31 = Asciz	()V;
+const #32 = Asciz	java/lang/System;
+const #33 = Asciz	out;
+const #34 = Asciz	Ljava/io/PrintStream;;
+const #35 = Asciz	java/io/PrintStream;
+const #36 = Asciz	println;
+const #37 = Asciz	(I)V;
+
+{
+public classes.test.OMethod(java.lang.String, double);
+  Code:
+   Stack=3, Locals=5, Args_size=3
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	aload_0
+   5:	dload_2
+   6:	invokespecial	#2; //Method foo:(D)I
+   9:	istore	4
+   11:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   14:	iload	4
+   16:	invokevirtual	#4; //Method java/io/PrintStream.println:(I)V
+   19:	return
+  LineNumberTable: 
+   line 4: 0
+   line 5: 4
+   line 6: 11
+   line 7: 19
+
+
+private int foo(double);
+  Code:
+   Stack=2, Locals=3, Args_size=2
+   0:	dload_1
+   1:	d2i
+   2:	ireturn
+  LineNumberTable: 
+   line 9: 0
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=5, Locals=2, Args_size=1
+   0:	new	#5; //class classes/test/OMethod
+   3:	dup
+   4:	ldc	#6; //String hello
+   6:	ldc2_w	#7; //double -9.322d
+   9:	invokespecial	#9; //Method "<init>":(Ljava/lang/String;D)V
+   12:	astore_1
+   13:	return
+  LineNumberTable: 
+   line 12: 0
+   line 13: 13
+
+
+}
+

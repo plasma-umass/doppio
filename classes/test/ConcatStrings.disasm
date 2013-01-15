@@ -1,0 +1,110 @@
+Compiled from "ConcatStrings.java"
+public class classes.test.ConcatStrings extends java.lang.Object
+  SourceFile: "ConcatStrings.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#13.#22;	//  java/lang/Object."<init>":()V
+const #2 = String	#23;	//  hello
+const #3 = String	#24;	//  world
+const #4 = class	#25;	//  java/lang/StringBuilder
+const #5 = Method	#4.#22;	//  java/lang/StringBuilder."<init>":()V
+const #6 = Method	#4.#26;	//  java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #7 = String	#27;	//   
+const #8 = Method	#4.#28;	//  java/lang/StringBuilder.toString:()Ljava/lang/String;
+const #9 = String	#29;	//  75.43-23.14\n
+const #10 = Field	#30.#31;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #11 = Method	#32.#33;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #12 = class	#34;	//  classes/test/ConcatStrings
+const #13 = class	#35;	//  java/lang/Object
+const #14 = Asciz	<init>;
+const #15 = Asciz	()V;
+const #16 = Asciz	Code;
+const #17 = Asciz	LineNumberTable;
+const #18 = Asciz	main;
+const #19 = Asciz	([Ljava/lang/String;)V;
+const #20 = Asciz	SourceFile;
+const #21 = Asciz	ConcatStrings.java;
+const #22 = NameAndType	#14:#15;//  "<init>":()V
+const #23 = Asciz	hello;
+const #24 = Asciz	world;
+const #25 = Asciz	java/lang/StringBuilder;
+const #26 = NameAndType	#36:#37;//  append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #27 = Asciz	 ;
+const #28 = NameAndType	#38:#39;//  toString:()Ljava/lang/String;
+const #29 = Asciz	75.43-23.14\n;
+const #30 = class	#40;	//  java/lang/System
+const #31 = NameAndType	#41:#42;//  out:Ljava/io/PrintStream;
+const #32 = class	#43;	//  java/io/PrintStream
+const #33 = NameAndType	#44:#45;//  println:(Ljava/lang/String;)V
+const #34 = Asciz	classes/test/ConcatStrings;
+const #35 = Asciz	java/lang/Object;
+const #36 = Asciz	append;
+const #37 = Asciz	(Ljava/lang/String;)Ljava/lang/StringBuilder;;
+const #38 = Asciz	toString;
+const #39 = Asciz	()Ljava/lang/String;;
+const #40 = Asciz	java/lang/System;
+const #41 = Asciz	out;
+const #42 = Asciz	Ljava/io/PrintStream;;
+const #43 = Asciz	java/io/PrintStream;
+const #44 = Asciz	println;
+const #45 = Asciz	(Ljava/lang/String;)V;
+
+{
+public classes.test.ConcatStrings();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 3: 0
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=2, Locals=5, Args_size=1
+   0:	ldc	#2; //String hello
+   2:	astore_1
+   3:	ldc	#3; //String world
+   5:	astore_2
+   6:	new	#4; //class java/lang/StringBuilder
+   9:	dup
+   10:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   13:	aload_1
+   14:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   17:	ldc	#7; //String  
+   19:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   22:	aload_2
+   23:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   26:	invokevirtual	#8; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   29:	astore_3
+   30:	ldc	#9; //String 75.43-23.14\n
+   32:	astore	4
+   34:	getstatic	#10; //Field java/lang/System.out:Ljava/io/PrintStream;
+   37:	aload_1
+   38:	invokevirtual	#11; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   41:	getstatic	#10; //Field java/lang/System.out:Ljava/io/PrintStream;
+   44:	aload_2
+   45:	invokevirtual	#11; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   48:	getstatic	#10; //Field java/lang/System.out:Ljava/io/PrintStream;
+   51:	aload_3
+   52:	invokevirtual	#11; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   55:	getstatic	#10; //Field java/lang/System.out:Ljava/io/PrintStream;
+   58:	aload	4
+   60:	invokevirtual	#11; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   63:	return
+  LineNumberTable: 
+   line 5: 0
+   line 6: 3
+   line 7: 6
+   line 8: 30
+   line 9: 34
+   line 10: 41
+   line 11: 48
+   line 12: 55
+   line 13: 63
+
+
+}
+

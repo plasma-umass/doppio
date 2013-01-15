@@ -1,0 +1,55 @@
+Compiled from "ReturnBug.java"
+public class classes.test.ReturnBug extends java.lang.Object
+  SourceFile: "ReturnBug.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#6.#15;	//  java/lang/Object."<init>":()V
+const #2 = class	#16;	//  java/io/File
+const #3 = String	#17;	//  
+const #4 = Method	#2.#18;	//  java/io/File."<init>":(Ljava/lang/String;)V
+const #5 = class	#19;	//  classes/test/ReturnBug
+const #6 = class	#20;	//  java/lang/Object
+const #7 = Asciz	<init>;
+const #8 = Asciz	()V;
+const #9 = Asciz	Code;
+const #10 = Asciz	LineNumberTable;
+const #11 = Asciz	main;
+const #12 = Asciz	([Ljava/lang/String;)V;
+const #13 = Asciz	SourceFile;
+const #14 = Asciz	ReturnBug.java;
+const #15 = NameAndType	#7:#8;//  "<init>":()V
+const #16 = Asciz	java/io/File;
+const #17 = Asciz	;
+const #18 = NameAndType	#7:#21;//  "<init>":(Ljava/lang/String;)V
+const #19 = Asciz	classes/test/ReturnBug;
+const #20 = Asciz	java/lang/Object;
+const #21 = Asciz	(Ljava/lang/String;)V;
+
+{
+public classes.test.ReturnBug();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 8: 0
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=3, Locals=1, Args_size=1
+   0:	new	#2; //class java/io/File
+   3:	dup
+   4:	ldc	#3; //String 
+   6:	invokespecial	#4; //Method java/io/File."<init>":(Ljava/lang/String;)V
+   9:	pop
+   10:	return
+  LineNumberTable: 
+   line 10: 0
+   line 11: 10
+
+
+}
+

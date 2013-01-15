@@ -1,0 +1,16 @@
+false
+true
+false
+hello from main
+hello from hello-thread
+joined in main
+Put: 0
+Got: 0
+Put: 1
+Got: 1
+Put: 2
+Got: 2
+Put: 3
+Got: 3
+Put: 4
+Got: 4

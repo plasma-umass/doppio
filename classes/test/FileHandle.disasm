@@ -1,0 +1,115 @@
+Compiled from "FileHandle.java"
+public class classes.test.FileHandle extends java.lang.Object
+  SourceFile: "FileHandle.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#12.#25;	//  java/lang/Object."<init>":()V
+const #2 = class	#26;	//  java/io/FileInputStream
+const #3 = String	#27;	//  ./classes/test/FileHandle.java
+const #4 = Method	#2.#28;	//  java/io/FileInputStream."<init>":(Ljava/lang/String;)V
+const #5 = Method	#2.#29;	//  java/io/FileInputStream.read:()I
+const #6 = Method	#2.#30;	//  java/io/FileInputStream.close:()V
+const #7 = class	#31;	//  java/io/IOException
+const #8 = Field	#32.#33;	//  java/lang/System.err:Ljava/io/PrintStream;
+const #9 = String	#34;	//  An IOException has occurred (expected).
+const #10 = Method	#35.#36;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #11 = class	#37;	//  classes/test/FileHandle
+const #12 = class	#38;	//  java/lang/Object
+const #13 = Asciz	<init>;
+const #14 = Asciz	()V;
+const #15 = Asciz	Code;
+const #16 = Asciz	LineNumberTable;
+const #17 = Asciz	main;
+const #18 = Asciz	([Ljava/lang/String;)V;
+const #19 = Asciz	StackMapTable;
+const #20 = class	#39;	//  "[Ljava/lang/String;"
+const #21 = class	#26;	//  java/io/FileInputStream
+const #22 = class	#31;	//  java/io/IOException
+const #23 = Asciz	SourceFile;
+const #24 = Asciz	FileHandle.java;
+const #25 = NameAndType	#13:#14;//  "<init>":()V
+const #26 = Asciz	java/io/FileInputStream;
+const #27 = Asciz	./classes/test/FileHandle.java;
+const #28 = NameAndType	#13:#40;//  "<init>":(Ljava/lang/String;)V
+const #29 = NameAndType	#41:#42;//  read:()I
+const #30 = NameAndType	#43:#14;//  close:()V
+const #31 = Asciz	java/io/IOException;
+const #32 = class	#44;	//  java/lang/System
+const #33 = NameAndType	#45:#46;//  err:Ljava/io/PrintStream;
+const #34 = Asciz	An IOException has occurred (expected).;
+const #35 = class	#47;	//  java/io/PrintStream
+const #36 = NameAndType	#48:#40;//  println:(Ljava/lang/String;)V
+const #37 = Asciz	classes/test/FileHandle;
+const #38 = Asciz	java/lang/Object;
+const #39 = Asciz	[Ljava/lang/String;;
+const #40 = Asciz	(Ljava/lang/String;)V;
+const #41 = Asciz	read;
+const #42 = Asciz	()I;
+const #43 = Asciz	close;
+const #44 = Asciz	java/lang/System;
+const #45 = Asciz	err;
+const #46 = Asciz	Ljava/io/PrintStream;;
+const #47 = Asciz	java/io/PrintStream;
+const #48 = Asciz	println;
+
+{
+public classes.test.FileHandle();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 4: 0
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=3, Locals=3, Args_size=1
+   0:	aconst_null
+   1:	astore_1
+   2:	new	#2; //class java/io/FileInputStream
+   5:	dup
+   6:	ldc	#3; //String ./classes/test/FileHandle.java
+   8:	invokespecial	#4; //Method java/io/FileInputStream."<init>":(Ljava/lang/String;)V
+   11:	astore_1
+   12:	aload_1
+   13:	invokevirtual	#5; //Method java/io/FileInputStream.read:()I
+   16:	pop
+   17:	aload_1
+   18:	invokevirtual	#6; //Method java/io/FileInputStream.close:()V
+   21:	aload_1
+   22:	invokevirtual	#5; //Method java/io/FileInputStream.read:()I
+   25:	pop
+   26:	goto	38
+   29:	astore_2
+   30:	getstatic	#8; //Field java/lang/System.err:Ljava/io/PrintStream;
+   33:	ldc	#9; //String An IOException has occurred (expected).
+   35:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   38:	return
+  Exception table:
+   from   to  target type
+     2    26    29   Class java/io/IOException
+
+  LineNumberTable: 
+   line 6: 0
+   line 8: 2
+   line 9: 12
+   line 10: 17
+   line 11: 21
+   line 14: 26
+   line 12: 29
+   line 13: 30
+   line 15: 38
+
+  StackMapTable: number_of_entries = 2
+   frame_type = 255 /* full_frame */
+     offset_delta = 29
+     locals = [ class "[Ljava/lang/String;", class java/io/FileInputStream ]
+     stack = [ class java/io/IOException ]
+   frame_type = 8 /* same */
+
+
+}
+

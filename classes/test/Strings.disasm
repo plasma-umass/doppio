@@ -1,0 +1,268 @@
+Compiled from "Strings.java"
+public class classes.test.Strings extends java.lang.Object
+  SourceFile: "Strings.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#32.#44;	//  java/lang/Object."<init>":()V
+const #2 = String	#45;	//  alphabet
+const #3 = String	#46;	//  belvedere
+const #4 = String	#47;	//  AlPhAbEt
+const #5 = String	#48;	//    \t alphabet  \n \t 
+const #6 = Field	#49.#50;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #7 = String	#51;	//  phab
+const #8 = Method	#52.#53;	//  java/lang/String.contains:(Ljava/lang/CharSequence;)Z
+const #9 = Method	#54.#55;	//  java/io/PrintStream.println:(Z)V
+const #10 = String	#56;	//  alpha
+const #11 = Method	#52.#57;	//  java/lang/String.startsWith:(Ljava/lang/String;)Z
+const #12 = String	#58;	//  bet
+const #13 = Method	#52.#59;	//  java/lang/String.endsWith:(Ljava/lang/String;)Z
+const #14 = Method	#52.#60;	//  java/lang/String.toUpperCase:()Ljava/lang/String;
+const #15 = Method	#54.#61;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #16 = Method	#52.#62;	//  java/lang/String.toLowerCase:()Ljava/lang/String;
+const #17 = Method	#52.#63;	//  java/lang/String.equalsIgnoreCase:(Ljava/lang/String;)Z
+const #18 = String	#64;	//  a
+const #19 = Method	#52.#65;	//  java/lang/String.lastIndexOf:(Ljava/lang/String;)I
+const #20 = Method	#54.#66;	//  java/io/PrintStream.println:(I)V
+const #21 = Method	#52.#67;	//  java/lang/String.length:()I
+const #22 = Method	#52.#68;	//  java/lang/String.substring:(II)Ljava/lang/String;
+const #23 = Method	#52.#69;	//  java/lang/String.toString:()Ljava/lang/String;
+const #24 = Method	#52.#70;	//  java/lang/String.trim:()Ljava/lang/String;
+const #25 = Method	#52.#71;	//  java/lang/String.replace:(CC)Ljava/lang/String;
+const #26 = Method	#52.#72;	//  java/lang/String.valueOf:(I)Ljava/lang/String;
+const #27 = Method	#54.#73;	//  java/io/PrintStream.print:(I)V
+const #28 = double	1.5d;
+const #30 = Method	#52.#74;	//  java/lang/String.valueOf:(D)Ljava/lang/String;
+const #31 = String	#75;	//  %s is asdf
+const #32 = class	#76;	//  java/lang/Object
+const #33 = String	#77;	//  asdf
+const #34 = Method	#54.#78;	//  java/io/PrintStream.format:(Ljava/lang/String;[Ljava/lang/Object;)Ljava/io/PrintStream;
+const #35 = class	#79;	//  classes/test/Strings
+const #36 = Asciz	<init>;
+const #37 = Asciz	()V;
+const #38 = Asciz	Code;
+const #39 = Asciz	LineNumberTable;
+const #40 = Asciz	main;
+const #41 = Asciz	([Ljava/lang/String;)V;
+const #42 = Asciz	SourceFile;
+const #43 = Asciz	Strings.java;
+const #44 = NameAndType	#36:#37;//  "<init>":()V
+const #45 = Asciz	alphabet;
+const #46 = Asciz	belvedere;
+const #47 = Asciz	AlPhAbEt;
+const #48 = Asciz	  \t alphabet  \n \t ;
+const #49 = class	#80;	//  java/lang/System
+const #50 = NameAndType	#81:#82;//  out:Ljava/io/PrintStream;
+const #51 = Asciz	phab;
+const #52 = class	#83;	//  java/lang/String
+const #53 = NameAndType	#84:#85;//  contains:(Ljava/lang/CharSequence;)Z
+const #54 = class	#86;	//  java/io/PrintStream
+const #55 = NameAndType	#87:#88;//  println:(Z)V
+const #56 = Asciz	alpha;
+const #57 = NameAndType	#89:#90;//  startsWith:(Ljava/lang/String;)Z
+const #58 = Asciz	bet;
+const #59 = NameAndType	#91:#90;//  endsWith:(Ljava/lang/String;)Z
+const #60 = NameAndType	#92:#93;//  toUpperCase:()Ljava/lang/String;
+const #61 = NameAndType	#87:#94;//  println:(Ljava/lang/String;)V
+const #62 = NameAndType	#95:#93;//  toLowerCase:()Ljava/lang/String;
+const #63 = NameAndType	#96:#90;//  equalsIgnoreCase:(Ljava/lang/String;)Z
+const #64 = Asciz	a;
+const #65 = NameAndType	#97:#98;//  lastIndexOf:(Ljava/lang/String;)I
+const #66 = NameAndType	#87:#99;//  println:(I)V
+const #67 = NameAndType	#100:#101;//  length:()I
+const #68 = NameAndType	#102:#103;//  substring:(II)Ljava/lang/String;
+const #69 = NameAndType	#104:#93;//  toString:()Ljava/lang/String;
+const #70 = NameAndType	#105:#93;//  trim:()Ljava/lang/String;
+const #71 = NameAndType	#106:#107;//  replace:(CC)Ljava/lang/String;
+const #72 = NameAndType	#108:#109;//  valueOf:(I)Ljava/lang/String;
+const #73 = NameAndType	#110:#99;//  print:(I)V
+const #74 = NameAndType	#108:#111;//  valueOf:(D)Ljava/lang/String;
+const #75 = Asciz	%s is asdf;
+const #76 = Asciz	java/lang/Object;
+const #77 = Asciz	asdf;
+const #78 = NameAndType	#112:#113;//  format:(Ljava/lang/String;[Ljava/lang/Object;)Ljava/io/PrintStream;
+const #79 = Asciz	classes/test/Strings;
+const #80 = Asciz	java/lang/System;
+const #81 = Asciz	out;
+const #82 = Asciz	Ljava/io/PrintStream;;
+const #83 = Asciz	java/lang/String;
+const #84 = Asciz	contains;
+const #85 = Asciz	(Ljava/lang/CharSequence;)Z;
+const #86 = Asciz	java/io/PrintStream;
+const #87 = Asciz	println;
+const #88 = Asciz	(Z)V;
+const #89 = Asciz	startsWith;
+const #90 = Asciz	(Ljava/lang/String;)Z;
+const #91 = Asciz	endsWith;
+const #92 = Asciz	toUpperCase;
+const #93 = Asciz	()Ljava/lang/String;;
+const #94 = Asciz	(Ljava/lang/String;)V;
+const #95 = Asciz	toLowerCase;
+const #96 = Asciz	equalsIgnoreCase;
+const #97 = Asciz	lastIndexOf;
+const #98 = Asciz	(Ljava/lang/String;)I;
+const #99 = Asciz	(I)V;
+const #100 = Asciz	length;
+const #101 = Asciz	()I;
+const #102 = Asciz	substring;
+const #103 = Asciz	(II)Ljava/lang/String;;
+const #104 = Asciz	toString;
+const #105 = Asciz	trim;
+const #106 = Asciz	replace;
+const #107 = Asciz	(CC)Ljava/lang/String;;
+const #108 = Asciz	valueOf;
+const #109 = Asciz	(I)Ljava/lang/String;;
+const #110 = Asciz	print;
+const #111 = Asciz	(D)Ljava/lang/String;;
+const #112 = Asciz	format;
+const #113 = Asciz	(Ljava/lang/String;[Ljava/lang/Object;)Ljava/io/PrintStream;;
+
+{
+public classes.test.Strings();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 3: 0
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=6, Locals=7, Args_size=1
+   0:	ldc	#2; //String alphabet
+   2:	astore_1
+   3:	ldc	#3; //String belvedere
+   5:	astore_2
+   6:	ldc	#4; //String AlPhAbEt
+   8:	astore_3
+   9:	ldc	#5; //String   \t alphabet  \n \t 
+   11:	astore	4
+   13:	iconst_5
+   14:	istore	5
+   16:	bipush	6
+   18:	istore	6
+   20:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
+   23:	aload_1
+   24:	ldc	#7; //String phab
+   26:	invokevirtual	#8; //Method java/lang/String.contains:(Ljava/lang/CharSequence;)Z
+   29:	invokevirtual	#9; //Method java/io/PrintStream.println:(Z)V
+   32:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
+   35:	aload_1
+   36:	aload_2
+   37:	invokevirtual	#8; //Method java/lang/String.contains:(Ljava/lang/CharSequence;)Z
+   40:	invokevirtual	#9; //Method java/io/PrintStream.println:(Z)V
+   43:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
+   46:	aload_1
+   47:	ldc	#10; //String alpha
+   49:	invokevirtual	#11; //Method java/lang/String.startsWith:(Ljava/lang/String;)Z
+   52:	invokevirtual	#9; //Method java/io/PrintStream.println:(Z)V
+   55:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
+   58:	aload_1
+   59:	ldc	#12; //String bet
+   61:	invokevirtual	#13; //Method java/lang/String.endsWith:(Ljava/lang/String;)Z
+   64:	invokevirtual	#9; //Method java/io/PrintStream.println:(Z)V
+   67:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
+   70:	aload_1
+   71:	invokevirtual	#14; //Method java/lang/String.toUpperCase:()Ljava/lang/String;
+   74:	invokevirtual	#15; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   77:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
+   80:	aload_1
+   81:	invokevirtual	#16; //Method java/lang/String.toLowerCase:()Ljava/lang/String;
+   84:	invokevirtual	#15; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   87:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
+   90:	aload_1
+   91:	aload_3
+   92:	invokevirtual	#17; //Method java/lang/String.equalsIgnoreCase:(Ljava/lang/String;)Z
+   95:	invokevirtual	#9; //Method java/io/PrintStream.println:(Z)V
+   98:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
+   101:	aload_1
+   102:	ldc	#18; //String a
+   104:	invokevirtual	#19; //Method java/lang/String.lastIndexOf:(Ljava/lang/String;)I
+   107:	invokevirtual	#20; //Method java/io/PrintStream.println:(I)V
+   110:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
+   113:	aload_1
+   114:	invokevirtual	#21; //Method java/lang/String.length:()I
+   117:	invokevirtual	#20; //Method java/io/PrintStream.println:(I)V
+   120:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
+   123:	aload_1
+   124:	iconst_4
+   125:	bipush	6
+   127:	invokevirtual	#22; //Method java/lang/String.substring:(II)Ljava/lang/String;
+   130:	invokevirtual	#15; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   133:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
+   136:	aload_1
+   137:	invokevirtual	#23; //Method java/lang/String.toString:()Ljava/lang/String;
+   140:	invokevirtual	#15; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   143:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
+   146:	aload	4
+   148:	invokevirtual	#15; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   151:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
+   154:	aload	4
+   156:	invokevirtual	#24; //Method java/lang/String.trim:()Ljava/lang/String;
+   159:	invokevirtual	#15; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   162:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
+   165:	aload_1
+   166:	bipush	97
+   168:	bipush	122
+   170:	invokevirtual	#25; //Method java/lang/String.replace:(CC)Ljava/lang/String;
+   173:	invokevirtual	#15; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   176:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
+   179:	iconst_1
+   180:	invokestatic	#26; //Method java/lang/String.valueOf:(I)Ljava/lang/String;
+   183:	invokevirtual	#15; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   186:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
+   189:	iconst_1
+   190:	invokevirtual	#27; //Method java/io/PrintStream.print:(I)V
+   193:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
+   196:	iconst_2
+   197:	invokevirtual	#27; //Method java/io/PrintStream.print:(I)V
+   200:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
+   203:	iconst_3
+   204:	invokevirtual	#20; //Method java/io/PrintStream.println:(I)V
+   207:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
+   210:	ldc2_w	#28; //double 1.5d
+   213:	invokestatic	#30; //Method java/lang/String.valueOf:(D)Ljava/lang/String;
+   216:	invokevirtual	#15; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   219:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
+   222:	ldc	#31; //String %s is asdf
+   224:	iconst_1
+   225:	anewarray	#32; //class java/lang/Object
+   228:	dup
+   229:	iconst_0
+   230:	ldc	#33; //String asdf
+   232:	aastore
+   233:	invokevirtual	#34; //Method java/io/PrintStream.format:(Ljava/lang/String;[Ljava/lang/Object;)Ljava/io/PrintStream;
+   236:	pop
+   237:	return
+  LineNumberTable: 
+   line 5: 0
+   line 6: 3
+   line 7: 6
+   line 8: 9
+   line 9: 13
+   line 10: 16
+   line 12: 20
+   line 13: 32
+   line 14: 43
+   line 15: 55
+   line 16: 67
+   line 17: 77
+   line 18: 87
+   line 19: 98
+   line 20: 110
+   line 21: 120
+   line 22: 133
+   line 23: 143
+   line 24: 151
+   line 25: 162
+   line 26: 176
+   line 28: 186
+   line 29: 207
+   line 30: 219
+   line 31: 237
+
+
+}
+

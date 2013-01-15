@@ -1,0 +1,95 @@
+Compiled from "OMember.java"
+public class classes.test.OMember extends java.lang.Object
+  SourceFile: "OMember.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#11.#24;	//  java/lang/Object."<init>":()V
+const #2 = Field	#4.#25;	//  classes/test/OMember.str:Ljava/lang/String;
+const #3 = Field	#4.#26;	//  classes/test/OMember.dbl:D
+const #4 = class	#27;	//  classes/test/OMember
+const #5 = String	#28;	//  hello
+const #6 = double	-9.322d;
+const #8 = Method	#4.#29;	//  classes/test/OMember."<init>":(Ljava/lang/String;D)V
+const #9 = Field	#30.#31;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #10 = Method	#32.#33;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #11 = class	#34;	//  java/lang/Object
+const #12 = Asciz	str;
+const #13 = Asciz	Ljava/lang/String;;
+const #14 = Asciz	dbl;
+const #15 = Asciz	D;
+const #16 = Asciz	<init>;
+const #17 = Asciz	(Ljava/lang/String;D)V;
+const #18 = Asciz	Code;
+const #19 = Asciz	LineNumberTable;
+const #20 = Asciz	main;
+const #21 = Asciz	([Ljava/lang/String;)V;
+const #22 = Asciz	SourceFile;
+const #23 = Asciz	OMember.java;
+const #24 = NameAndType	#16:#35;//  "<init>":()V
+const #25 = NameAndType	#12:#13;//  str:Ljava/lang/String;
+const #26 = NameAndType	#14:#15;//  dbl:D
+const #27 = Asciz	classes/test/OMember;
+const #28 = Asciz	hello;
+const #29 = NameAndType	#16:#17;//  "<init>":(Ljava/lang/String;D)V
+const #30 = class	#36;	//  java/lang/System
+const #31 = NameAndType	#37:#38;//  out:Ljava/io/PrintStream;
+const #32 = class	#39;	//  java/io/PrintStream
+const #33 = NameAndType	#40:#41;//  println:(Ljava/lang/String;)V
+const #34 = Asciz	java/lang/Object;
+const #35 = Asciz	()V;
+const #36 = Asciz	java/lang/System;
+const #37 = Asciz	out;
+const #38 = Asciz	Ljava/io/PrintStream;;
+const #39 = Asciz	java/io/PrintStream;
+const #40 = Asciz	println;
+const #41 = Asciz	(Ljava/lang/String;)V;
+
+{
+java.lang.String str;
+
+
+double dbl;
+
+
+public classes.test.OMember(java.lang.String, double);
+  Code:
+   Stack=3, Locals=4, Args_size=3
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	aload_0
+   5:	aload_1
+   6:	putfield	#2; //Field str:Ljava/lang/String;
+   9:	aload_0
+   10:	dload_2
+   11:	putfield	#3; //Field dbl:D
+   14:	return
+  LineNumberTable: 
+   line 6: 0
+   line 7: 4
+   line 8: 9
+   line 9: 14
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=5, Locals=2, Args_size=1
+   0:	new	#4; //class classes/test/OMember
+   3:	dup
+   4:	ldc	#5; //String hello
+   6:	ldc2_w	#6; //double -9.322d
+   9:	invokespecial	#8; //Method "<init>":(Ljava/lang/String;D)V
+   12:	astore_1
+   13:	getstatic	#9; //Field java/lang/System.out:Ljava/io/PrintStream;
+   16:	aload_1
+   17:	getfield	#2; //Field str:Ljava/lang/String;
+   20:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   23:	return
+  LineNumberTable: 
+   line 11: 0
+   line 12: 13
+   line 13: 23
+
+
+}
+

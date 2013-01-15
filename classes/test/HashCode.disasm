@@ -1,0 +1,63 @@
+Compiled from "HashCode.java"
+class classes.test.HashCode extends java.lang.Object
+  SourceFile: "HashCode.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#6.#15;	//  java/lang/Object."<init>":()V
+const #2 = Field	#16.#17;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #3 = Method	#16.#18;	//  java/lang/System.identityHashCode:(Ljava/lang/Object;)I
+const #4 = Method	#19.#20;	//  java/io/PrintStream.println:(I)V
+const #5 = class	#21;	//  classes/test/HashCode
+const #6 = class	#22;	//  java/lang/Object
+const #7 = Asciz	<init>;
+const #8 = Asciz	()V;
+const #9 = Asciz	Code;
+const #10 = Asciz	LineNumberTable;
+const #11 = Asciz	main;
+const #12 = Asciz	([Ljava/lang/String;)V;
+const #13 = Asciz	SourceFile;
+const #14 = Asciz	HashCode.java;
+const #15 = NameAndType	#7:#8;//  "<init>":()V
+const #16 = class	#23;	//  java/lang/System
+const #17 = NameAndType	#24:#25;//  out:Ljava/io/PrintStream;
+const #18 = NameAndType	#26:#27;//  identityHashCode:(Ljava/lang/Object;)I
+const #19 = class	#28;	//  java/io/PrintStream
+const #20 = NameAndType	#29:#30;//  println:(I)V
+const #21 = Asciz	classes/test/HashCode;
+const #22 = Asciz	java/lang/Object;
+const #23 = Asciz	java/lang/System;
+const #24 = Asciz	out;
+const #25 = Asciz	Ljava/io/PrintStream;;
+const #26 = Asciz	identityHashCode;
+const #27 = Asciz	(Ljava/lang/Object;)I;
+const #28 = Asciz	java/io/PrintStream;
+const #29 = Asciz	println;
+const #30 = Asciz	(I)V;
+
+{
+classes.test.HashCode();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 3: 0
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=2, Locals=1, Args_size=1
+   0:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   3:	aconst_null
+   4:	invokestatic	#3; //Method java/lang/System.identityHashCode:(Ljava/lang/Object;)I
+   7:	invokevirtual	#4; //Method java/io/PrintStream.println:(I)V
+   10:	return
+  LineNumberTable: 
+   line 6: 0
+   line 7: 10
+
+
+}
+

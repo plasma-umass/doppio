@@ -1,0 +1,25 @@
+Loading class: classes.test.CustomClassLoader, resolve: false
+Loading class: java.lang.ClassLoader, resolve: false
+Caught java.lang.SecurityException: Prohibited package name: java.lang
+ran defineClass with no issues
+Loading class: java.lang.Object, resolve: false
+Caught java.lang.SecurityException: Prohibited package name: java.lang
+Loading class: java.lang.Throwable, resolve: false
+Caught java.lang.SecurityException: Prohibited package name: java.lang
+Loading class: java.io.IOException, resolve: false
+Caught java.lang.SecurityException: Prohibited package name: java.io
+Loading class: java.lang.SecurityException, resolve: false
+Caught java.lang.SecurityException: Prohibited package name: java.lang
+Loading class: java.lang.ClassNotFoundException, resolve: false
+Caught java.lang.SecurityException: Prohibited package name: java.lang
+Custom loaded class: class classes.test.CustomClassLoader
+Class loaded through custom loader is NOT the same as that loaded by System loader.
+Loading class: java.lang.String, resolve: false
+Caught java.lang.SecurityException: Prohibited package name: java.lang
+Loading class: java.lang.Exception, resolve: false
+Caught java.lang.SecurityException: Prohibited package name: java.lang
+Loading class: java.lang.System, resolve: false
+Caught java.lang.SecurityException: Prohibited package name: java.lang
+Loading class: java.io.PrintStream, resolve: false
+Caught java.lang.SecurityException: Prohibited package name: java.io
+Called CustomClassLoader.foo

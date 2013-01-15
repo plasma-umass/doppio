@@ -1,0 +1,189 @@
+Compiled from "Clinit.java"
+class classes.test.Clinit extends java.lang.Object
+  SourceFile: "Clinit.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#15.#30;	//  java/lang/Object."<init>":()V
+const #2 = class	#31;	//  java/lang/String
+const #3 = Method	#32.#33;	//  java/lang/reflect/Method.getName:()Ljava/lang/String;
+const #4 = Method	#34.#35;	//  java/util/Arrays.sort:([Ljava/lang/Object;)V
+const #5 = Field	#36.#37;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #6 = Method	#38.#39;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #7 = String	#40;	//  Declared methods for class ClinitBar:
+const #8 = class	#41;	//  classes/test/ClinitBar
+const #9 = Method	#42.#43;	//  java/lang/Class.getDeclaredMethods:()[Ljava/lang/reflect/Method;
+const #10 = Method	#14.#44;	//  classes/test/Clinit.printMethods:([Ljava/lang/reflect/Method;)V
+const #11 = String	#45;	//  \nPublic methods for class ClinitBar:
+const #12 = Method	#42.#46;	//  java/lang/Class.getMethods:()[Ljava/lang/reflect/Method;
+const #13 = Method	#38.#47;	//  java/io/PrintStream.println:(Z)V
+const #14 = class	#48;	//  classes/test/Clinit
+const #15 = class	#49;	//  java/lang/Object
+const #16 = Asciz	<init>;
+const #17 = Asciz	()V;
+const #18 = Asciz	Code;
+const #19 = Asciz	LineNumberTable;
+const #20 = Asciz	printMethods;
+const #21 = Asciz	([Ljava/lang/reflect/Method;)V;
+const #22 = Asciz	StackMapTable;
+const #23 = class	#50;	//  "[Ljava/lang/String;"
+const #24 = Asciz	main;
+const #25 = Asciz	([Ljava/lang/String;)V;
+const #26 = Asciz	Exceptions;
+const #27 = class	#51;	//  java/lang/ClassNotFoundException
+const #28 = Asciz	SourceFile;
+const #29 = Asciz	Clinit.java;
+const #30 = NameAndType	#16:#17;//  "<init>":()V
+const #31 = Asciz	java/lang/String;
+const #32 = class	#52;	//  java/lang/reflect/Method
+const #33 = NameAndType	#53:#54;//  getName:()Ljava/lang/String;
+const #34 = class	#55;	//  java/util/Arrays
+const #35 = NameAndType	#56:#57;//  sort:([Ljava/lang/Object;)V
+const #36 = class	#58;	//  java/lang/System
+const #37 = NameAndType	#59:#60;//  out:Ljava/io/PrintStream;
+const #38 = class	#61;	//  java/io/PrintStream
+const #39 = NameAndType	#62:#63;//  println:(Ljava/lang/String;)V
+const #40 = Asciz	Declared methods for class ClinitBar:;
+const #41 = Asciz	classes/test/ClinitBar;
+const #42 = class	#64;	//  java/lang/Class
+const #43 = NameAndType	#65:#66;//  getDeclaredMethods:()[Ljava/lang/reflect/Method;
+const #44 = NameAndType	#20:#21;//  printMethods:([Ljava/lang/reflect/Method;)V
+const #45 = Asciz	\nPublic methods for class ClinitBar:;
+const #46 = NameAndType	#67:#66;//  getMethods:()[Ljava/lang/reflect/Method;
+const #47 = NameAndType	#62:#68;//  println:(Z)V
+const #48 = Asciz	classes/test/Clinit;
+const #49 = Asciz	java/lang/Object;
+const #50 = Asciz	[Ljava/lang/String;;
+const #51 = Asciz	java/lang/ClassNotFoundException;
+const #52 = Asciz	java/lang/reflect/Method;
+const #53 = Asciz	getName;
+const #54 = Asciz	()Ljava/lang/String;;
+const #55 = Asciz	java/util/Arrays;
+const #56 = Asciz	sort;
+const #57 = Asciz	([Ljava/lang/Object;)V;
+const #58 = Asciz	java/lang/System;
+const #59 = Asciz	out;
+const #60 = Asciz	Ljava/io/PrintStream;;
+const #61 = Asciz	java/io/PrintStream;
+const #62 = Asciz	println;
+const #63 = Asciz	(Ljava/lang/String;)V;
+const #64 = Asciz	java/lang/Class;
+const #65 = Asciz	getDeclaredMethods;
+const #66 = Asciz	()[Ljava/lang/reflect/Method;;
+const #67 = Asciz	getMethods;
+const #68 = Asciz	(Z)V;
+
+{
+classes.test.Clinit();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 6: 0
+
+
+static void printMethods(java.lang.reflect.Method[]);
+  Code:
+   Stack=4, Locals=6, Args_size=1
+   0:	aload_0
+   1:	arraylength
+   2:	anewarray	#2; //class java/lang/String
+   5:	astore_1
+   6:	iconst_0
+   7:	istore_2
+   8:	iload_2
+   9:	aload_1
+   10:	arraylength
+   11:	if_icmpge	29
+   14:	aload_1
+   15:	iload_2
+   16:	aload_0
+   17:	iload_2
+   18:	aaload
+   19:	invokevirtual	#3; //Method java/lang/reflect/Method.getName:()Ljava/lang/String;
+   22:	aastore
+   23:	iinc	2, 1
+   26:	goto	8
+   29:	aload_1
+   30:	invokestatic	#4; //Method java/util/Arrays.sort:([Ljava/lang/Object;)V
+   33:	aload_1
+   34:	astore_2
+   35:	aload_2
+   36:	arraylength
+   37:	istore_3
+   38:	iconst_0
+   39:	istore	4
+   41:	iload	4
+   43:	iload_3
+   44:	if_icmpge	67
+   47:	aload_2
+   48:	iload	4
+   50:	aaload
+   51:	astore	5
+   53:	getstatic	#5; //Field java/lang/System.out:Ljava/io/PrintStream;
+   56:	aload	5
+   58:	invokevirtual	#6; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   61:	iinc	4, 1
+   64:	goto	41
+   67:	return
+  LineNumberTable: 
+   line 8: 0
+   line 9: 6
+   line 10: 14
+   line 9: 23
+   line 12: 29
+   line 13: 33
+   line 14: 53
+   line 13: 61
+   line 16: 67
+
+  StackMapTable: number_of_entries = 4
+   frame_type = 253 /* append */
+     offset_delta = 8
+     locals = [ class "[Ljava/lang/String;", int ]
+   frame_type = 250 /* chop */
+     offset_delta = 20
+   frame_type = 254 /* append */
+     offset_delta = 11
+     locals = [ class "[Ljava/lang/String;", int, int ]
+   frame_type = 248 /* chop */
+     offset_delta = 25
+
+
+public static void main(java.lang.String[])   throws java.lang.ClassNotFoundException;
+  Code:
+   Stack=2, Locals=2, Args_size=1
+   0:	getstatic	#5; //Field java/lang/System.out:Ljava/io/PrintStream;
+   3:	ldc	#7; //String Declared methods for class ClinitBar:
+   5:	invokevirtual	#6; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   8:	ldc_w	#8; //class classes/test/ClinitBar
+   11:	invokevirtual	#9; //Method java/lang/Class.getDeclaredMethods:()[Ljava/lang/reflect/Method;
+   14:	invokestatic	#10; //Method printMethods:([Ljava/lang/reflect/Method;)V
+   17:	getstatic	#5; //Field java/lang/System.out:Ljava/io/PrintStream;
+   20:	ldc	#11; //String \nPublic methods for class ClinitBar:
+   22:	invokevirtual	#6; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   25:	ldc_w	#8; //class classes/test/ClinitBar
+   28:	invokevirtual	#12; //Method java/lang/Class.getMethods:()[Ljava/lang/reflect/Method;
+   31:	invokestatic	#10; //Method printMethods:([Ljava/lang/reflect/Method;)V
+   34:	aconst_null
+   35:	astore_1
+   36:	getstatic	#5; //Field java/lang/System.out:Ljava/io/PrintStream;
+   39:	aload_1
+   40:	instanceof	#8; //class classes/test/ClinitBar
+   43:	invokevirtual	#13; //Method java/io/PrintStream.println:(Z)V
+   46:	return
+  LineNumberTable: 
+   line 18: 0
+   line 19: 8
+   line 20: 17
+   line 21: 25
+   line 23: 34
+   line 24: 36
+   line 25: 46
+
+  Exceptions: 
+   throws java.lang.ClassNotFoundException
+}
+

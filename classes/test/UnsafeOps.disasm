@@ -1,0 +1,376 @@
+Compiled from "UnsafeOps.java"
+public class classes.test.UnsafeOps extends java.lang.Object
+  SourceFile: "UnsafeOps.java"
+  InnerClass: 
+   #38= #13 of #36; //Foo=class classes/test/UnsafeOps$Foo of class classes/test/UnsafeOps
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#37.#58;	//  java/lang/Object."<init>":()V
+const #2 = class	#59;	//  sun/misc/Unsafe
+const #3 = String	#60;	//  theUnsafe
+const #4 = Method	#61.#62;	//  java/lang/Class.getDeclaredField:(Ljava/lang/String;)Ljava/lang/reflect/Field;
+const #5 = Method	#63.#64;	//  java/lang/reflect/Field.setAccessible:(Z)V
+const #6 = Method	#63.#65;	//  java/lang/reflect/Field.get:(Ljava/lang/Object;)Ljava/lang/Object;
+const #7 = class	#66;	//  java/lang/Exception
+const #8 = Method	#36.#67;	//  classes/test/UnsafeOps.getUnsafe:()Lsun/misc/Unsafe;
+const #9 = Method	#2.#68;	//  sun/misc/Unsafe.addressSize:()I
+const #10 = class	#69;	//  "[I"
+const #11 = Method	#2.#70;	//  sun/misc/Unsafe.arrayBaseOffset:(Ljava/lang/Class;)I
+const #12 = Method	#2.#71;	//  sun/misc/Unsafe.arrayIndexScale:(Ljava/lang/Class;)I
+const #13 = class	#72;	//  classes/test/UnsafeOps$Foo
+const #14 = Method	#2.#73;	//  sun/misc/Unsafe.allocateInstance:(Ljava/lang/Class;)Ljava/lang/Object;
+const #15 = Field	#74.#75;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #16 = Field	#13.#76;	//  classes/test/UnsafeOps$Foo.a:I
+const #17 = Method	#77.#78;	//  java/io/PrintStream.println:(I)V
+const #18 = Field	#13.#79;	//  classes/test/UnsafeOps$Foo.b:D
+const #19 = Method	#77.#80;	//  java/io/PrintStream.println:(D)V
+const #20 = Field	#13.#81;	//  classes/test/UnsafeOps$Foo.c:Ljava/lang/String;
+const #21 = Method	#77.#82;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #22 = class	#83;	//  java/lang/InstantiationException
+const #23 = Method	#77.#84;	//  java/io/PrintStream.println:(Ljava/lang/Object;)V
+const #24 = String	#85;	//  c
+const #25 = class	#86;	//  java/lang/NoSuchFieldException
+const #26 = Method	#2.#87;	//  sun/misc/Unsafe.objectFieldOffset:(Ljava/lang/reflect/Field;)J
+const #27 = Method	#2.#88;	//  sun/misc/Unsafe.getObject:(Ljava/lang/Object;J)Ljava/lang/Object;
+const #28 = String	#89;	//  hello Unsafe
+const #29 = Method	#2.#90;	//  sun/misc/Unsafe.putObject:(Ljava/lang/Object;JLjava/lang/Object;)V
+const #30 = String	#91;	//  hello again Unsafe
+const #31 = Method	#2.#92;	//  sun/misc/Unsafe.putOrderedObject:(Ljava/lang/Object;JLjava/lang/Object;)V
+const #32 = String	#93;	//  not newC
+const #33 = String	#94;	//  whargl
+const #34 = Method	#2.#95;	//  sun/misc/Unsafe.compareAndSwapObject:(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z
+const #35 = Method	#77.#96;	//  java/io/PrintStream.println:(Z)V
+const #36 = class	#97;	//  classes/test/UnsafeOps
+const #37 = class	#98;	//  java/lang/Object
+const #38 = Asciz	Foo;
+const #39 = Asciz	InnerClasses;
+const #40 = Asciz	<init>;
+const #41 = Asciz	()V;
+const #42 = Asciz	Code;
+const #43 = Asciz	LineNumberTable;
+const #44 = Asciz	getUnsafe;
+const #45 = Asciz	()Lsun/misc/Unsafe;;
+const #46 = Asciz	StackMapTable;
+const #47 = class	#66;	//  java/lang/Exception
+const #48 = Asciz	main;
+const #49 = Asciz	([Ljava/lang/String;)V;
+const #50 = class	#99;	//  "[Ljava/lang/String;"
+const #51 = class	#59;	//  sun/misc/Unsafe
+const #52 = class	#83;	//  java/lang/InstantiationException
+const #53 = class	#98;	//  java/lang/Object
+const #54 = class	#86;	//  java/lang/NoSuchFieldException
+const #55 = class	#100;	//  java/lang/reflect/Field
+const #56 = Asciz	SourceFile;
+const #57 = Asciz	UnsafeOps.java;
+const #58 = NameAndType	#40:#41;//  "<init>":()V
+const #59 = Asciz	sun/misc/Unsafe;
+const #60 = Asciz	theUnsafe;
+const #61 = class	#101;	//  java/lang/Class
+const #62 = NameAndType	#102:#103;//  getDeclaredField:(Ljava/lang/String;)Ljava/lang/reflect/Field;
+const #63 = class	#100;	//  java/lang/reflect/Field
+const #64 = NameAndType	#104:#105;//  setAccessible:(Z)V
+const #65 = NameAndType	#106:#107;//  get:(Ljava/lang/Object;)Ljava/lang/Object;
+const #66 = Asciz	java/lang/Exception;
+const #67 = NameAndType	#44:#45;//  getUnsafe:()Lsun/misc/Unsafe;
+const #68 = NameAndType	#108:#109;//  addressSize:()I
+const #69 = Asciz	[I;
+const #70 = NameAndType	#110:#111;//  arrayBaseOffset:(Ljava/lang/Class;)I
+const #71 = NameAndType	#112:#111;//  arrayIndexScale:(Ljava/lang/Class;)I
+const #72 = Asciz	classes/test/UnsafeOps$Foo;
+const #73 = NameAndType	#113:#114;//  allocateInstance:(Ljava/lang/Class;)Ljava/lang/Object;
+const #74 = class	#115;	//  java/lang/System
+const #75 = NameAndType	#116:#117;//  out:Ljava/io/PrintStream;
+const #76 = NameAndType	#118:#119;//  a:I
+const #77 = class	#120;	//  java/io/PrintStream
+const #78 = NameAndType	#121:#122;//  println:(I)V
+const #79 = NameAndType	#123:#124;//  b:D
+const #80 = NameAndType	#121:#125;//  println:(D)V
+const #81 = NameAndType	#85:#126;//  c:Ljava/lang/String;
+const #82 = NameAndType	#121:#127;//  println:(Ljava/lang/String;)V
+const #83 = Asciz	java/lang/InstantiationException;
+const #84 = NameAndType	#121:#128;//  println:(Ljava/lang/Object;)V
+const #85 = Asciz	c;
+const #86 = Asciz	java/lang/NoSuchFieldException;
+const #87 = NameAndType	#129:#130;//  objectFieldOffset:(Ljava/lang/reflect/Field;)J
+const #88 = NameAndType	#131:#132;//  getObject:(Ljava/lang/Object;J)Ljava/lang/Object;
+const #89 = Asciz	hello Unsafe;
+const #90 = NameAndType	#133:#134;//  putObject:(Ljava/lang/Object;JLjava/lang/Object;)V
+const #91 = Asciz	hello again Unsafe;
+const #92 = NameAndType	#135:#134;//  putOrderedObject:(Ljava/lang/Object;JLjava/lang/Object;)V
+const #93 = Asciz	not newC;
+const #94 = Asciz	whargl;
+const #95 = NameAndType	#136:#137;//  compareAndSwapObject:(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z
+const #96 = NameAndType	#121:#105;//  println:(Z)V
+const #97 = Asciz	classes/test/UnsafeOps;
+const #98 = Asciz	java/lang/Object;
+const #99 = Asciz	[Ljava/lang/String;;
+const #100 = Asciz	java/lang/reflect/Field;
+const #101 = Asciz	java/lang/Class;
+const #102 = Asciz	getDeclaredField;
+const #103 = Asciz	(Ljava/lang/String;)Ljava/lang/reflect/Field;;
+const #104 = Asciz	setAccessible;
+const #105 = Asciz	(Z)V;
+const #106 = Asciz	get;
+const #107 = Asciz	(Ljava/lang/Object;)Ljava/lang/Object;;
+const #108 = Asciz	addressSize;
+const #109 = Asciz	()I;
+const #110 = Asciz	arrayBaseOffset;
+const #111 = Asciz	(Ljava/lang/Class;)I;
+const #112 = Asciz	arrayIndexScale;
+const #113 = Asciz	allocateInstance;
+const #114 = Asciz	(Ljava/lang/Class;)Ljava/lang/Object;;
+const #115 = Asciz	java/lang/System;
+const #116 = Asciz	out;
+const #117 = Asciz	Ljava/io/PrintStream;;
+const #118 = Asciz	a;
+const #119 = Asciz	I;
+const #120 = Asciz	java/io/PrintStream;
+const #121 = Asciz	println;
+const #122 = Asciz	(I)V;
+const #123 = Asciz	b;
+const #124 = Asciz	D;
+const #125 = Asciz	(D)V;
+const #126 = Asciz	Ljava/lang/String;;
+const #127 = Asciz	(Ljava/lang/String;)V;
+const #128 = Asciz	(Ljava/lang/Object;)V;
+const #129 = Asciz	objectFieldOffset;
+const #130 = Asciz	(Ljava/lang/reflect/Field;)J;
+const #131 = Asciz	getObject;
+const #132 = Asciz	(Ljava/lang/Object;J)Ljava/lang/Object;;
+const #133 = Asciz	putObject;
+const #134 = Asciz	(Ljava/lang/Object;JLjava/lang/Object;)V;
+const #135 = Asciz	putOrderedObject;
+const #136 = Asciz	compareAndSwapObject;
+const #137 = Asciz	(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z;
+
+{
+public classes.test.UnsafeOps();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 11: 0
+   line 69: 4
+
+
+public static sun.misc.Unsafe getUnsafe();
+  Code:
+   Stack=2, Locals=1, Args_size=0
+   0:	ldc_w	#2; //class sun/misc/Unsafe
+   3:	ldc	#3; //String theUnsafe
+   5:	invokevirtual	#4; //Method java/lang/Class.getDeclaredField:(Ljava/lang/String;)Ljava/lang/reflect/Field;
+   8:	astore_0
+   9:	aload_0
+   10:	iconst_1
+   11:	invokevirtual	#5; //Method java/lang/reflect/Field.setAccessible:(Z)V
+   14:	aload_0
+   15:	aconst_null
+   16:	invokevirtual	#6; //Method java/lang/reflect/Field.get:(Ljava/lang/Object;)Ljava/lang/Object;
+   19:	checkcast	#2; //class sun/misc/Unsafe
+   22:	areturn
+   23:	astore_0
+   24:	aconst_null
+   25:	areturn
+  Exception table:
+   from   to  target type
+     0    22    23   Class java/lang/Exception
+
+  LineNumberTable: 
+   line 15: 0
+   line 16: 9
+   line 17: 14
+   line 18: 23
+   line 19: 24
+
+  StackMapTable: number_of_entries = 1
+   frame_type = 87 /* same_locals_1_stack_item */
+     stack = [ class java/lang/Exception ]
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=6, Locals=11, Args_size=1
+   0:	invokestatic	#8; //Method getUnsafe:()Lsun/misc/Unsafe;
+   3:	astore_1
+   4:	aload_1
+   5:	invokevirtual	#9; //Method sun/misc/Unsafe.addressSize:()I
+   8:	istore_2
+   9:	aload_1
+   10:	ldc_w	#10; //class "[I"
+   13:	invokevirtual	#11; //Method sun/misc/Unsafe.arrayBaseOffset:(Ljava/lang/Class;)I
+   16:	istore_3
+   17:	aload_1
+   18:	ldc_w	#10; //class "[I"
+   21:	invokevirtual	#12; //Method sun/misc/Unsafe.arrayIndexScale:(Ljava/lang/Class;)I
+   24:	istore	4
+   26:	aload_1
+   27:	ldc_w	#13; //class classes/test/UnsafeOps$Foo
+   30:	invokevirtual	#14; //Method sun/misc/Unsafe.allocateInstance:(Ljava/lang/Class;)Ljava/lang/Object;
+   33:	astore	5
+   35:	getstatic	#15; //Field java/lang/System.out:Ljava/io/PrintStream;
+   38:	aload	5
+   40:	checkcast	#13; //class classes/test/UnsafeOps$Foo
+   43:	getfield	#16; //Field classes/test/UnsafeOps$Foo.a:I
+   46:	invokevirtual	#17; //Method java/io/PrintStream.println:(I)V
+   49:	getstatic	#15; //Field java/lang/System.out:Ljava/io/PrintStream;
+   52:	aload	5
+   54:	checkcast	#13; //class classes/test/UnsafeOps$Foo
+   57:	getfield	#18; //Field classes/test/UnsafeOps$Foo.b:D
+   60:	invokevirtual	#19; //Method java/io/PrintStream.println:(D)V
+   63:	getstatic	#15; //Field java/lang/System.out:Ljava/io/PrintStream;
+   66:	aload	5
+   68:	checkcast	#13; //class classes/test/UnsafeOps$Foo
+   71:	getfield	#20; //Field classes/test/UnsafeOps$Foo.c:Ljava/lang/String;
+   74:	invokevirtual	#21; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   77:	goto	91
+   80:	astore	6
+   82:	getstatic	#15; //Field java/lang/System.out:Ljava/io/PrintStream;
+   85:	aload	6
+   87:	invokevirtual	#23; //Method java/io/PrintStream.println:(Ljava/lang/Object;)V
+   90:	return
+   91:	ldc_w	#13; //class classes/test/UnsafeOps$Foo
+   94:	ldc	#24; //String c
+   96:	invokevirtual	#4; //Method java/lang/Class.getDeclaredField:(Ljava/lang/String;)Ljava/lang/reflect/Field;
+   99:	astore	6
+   101:	goto	115
+   104:	astore	7
+   106:	getstatic	#15; //Field java/lang/System.out:Ljava/io/PrintStream;
+   109:	aload	7
+   111:	invokevirtual	#23; //Method java/io/PrintStream.println:(Ljava/lang/Object;)V
+   114:	return
+   115:	aload_1
+   116:	aload	6
+   118:	invokevirtual	#26; //Method sun/misc/Unsafe.objectFieldOffset:(Ljava/lang/reflect/Field;)J
+   121:	lstore	7
+   123:	getstatic	#15; //Field java/lang/System.out:Ljava/io/PrintStream;
+   126:	aload_1
+   127:	aload	5
+   129:	lload	7
+   131:	invokevirtual	#27; //Method sun/misc/Unsafe.getObject:(Ljava/lang/Object;J)Ljava/lang/Object;
+   134:	invokevirtual	#23; //Method java/io/PrintStream.println:(Ljava/lang/Object;)V
+   137:	aload_1
+   138:	aload	5
+   140:	lload	7
+   142:	ldc	#28; //String hello Unsafe
+   144:	invokevirtual	#29; //Method sun/misc/Unsafe.putObject:(Ljava/lang/Object;JLjava/lang/Object;)V
+   147:	getstatic	#15; //Field java/lang/System.out:Ljava/io/PrintStream;
+   150:	aload_1
+   151:	aload	5
+   153:	lload	7
+   155:	invokevirtual	#27; //Method sun/misc/Unsafe.getObject:(Ljava/lang/Object;J)Ljava/lang/Object;
+   158:	invokevirtual	#23; //Method java/io/PrintStream.println:(Ljava/lang/Object;)V
+   161:	getstatic	#15; //Field java/lang/System.out:Ljava/io/PrintStream;
+   164:	aload	5
+   166:	checkcast	#13; //class classes/test/UnsafeOps$Foo
+   169:	getfield	#20; //Field classes/test/UnsafeOps$Foo.c:Ljava/lang/String;
+   172:	invokevirtual	#21; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   175:	ldc	#30; //String hello again Unsafe
+   177:	astore	9
+   179:	aload_1
+   180:	aload	5
+   182:	lload	7
+   184:	aload	9
+   186:	invokevirtual	#31; //Method sun/misc/Unsafe.putOrderedObject:(Ljava/lang/Object;JLjava/lang/Object;)V
+   189:	getstatic	#15; //Field java/lang/System.out:Ljava/io/PrintStream;
+   192:	aload_1
+   193:	aload	5
+   195:	lload	7
+   197:	invokevirtual	#27; //Method sun/misc/Unsafe.getObject:(Ljava/lang/Object;J)Ljava/lang/Object;
+   200:	invokevirtual	#23; //Method java/io/PrintStream.println:(Ljava/lang/Object;)V
+   203:	getstatic	#15; //Field java/lang/System.out:Ljava/io/PrintStream;
+   206:	aload	5
+   208:	checkcast	#13; //class classes/test/UnsafeOps$Foo
+   211:	getfield	#20; //Field classes/test/UnsafeOps$Foo.c:Ljava/lang/String;
+   214:	invokevirtual	#21; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   217:	aload_1
+   218:	aload	5
+   220:	lload	7
+   222:	ldc	#32; //String not newC
+   224:	ldc	#33; //String whargl
+   226:	invokevirtual	#34; //Method sun/misc/Unsafe.compareAndSwapObject:(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z
+   229:	istore	10
+   231:	getstatic	#15; //Field java/lang/System.out:Ljava/io/PrintStream;
+   234:	iload	10
+   236:	invokevirtual	#35; //Method java/io/PrintStream.println:(Z)V
+   239:	getstatic	#15; //Field java/lang/System.out:Ljava/io/PrintStream;
+   242:	aload	5
+   244:	checkcast	#13; //class classes/test/UnsafeOps$Foo
+   247:	getfield	#20; //Field classes/test/UnsafeOps$Foo.c:Ljava/lang/String;
+   250:	invokevirtual	#21; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   253:	aload_1
+   254:	aload	5
+   256:	lload	7
+   258:	aload	9
+   260:	ldc	#33; //String whargl
+   262:	invokevirtual	#34; //Method sun/misc/Unsafe.compareAndSwapObject:(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z
+   265:	istore	10
+   267:	getstatic	#15; //Field java/lang/System.out:Ljava/io/PrintStream;
+   270:	iload	10
+   272:	invokevirtual	#35; //Method java/io/PrintStream.println:(Z)V
+   275:	getstatic	#15; //Field java/lang/System.out:Ljava/io/PrintStream;
+   278:	aload	5
+   280:	checkcast	#13; //class classes/test/UnsafeOps$Foo
+   283:	getfield	#20; //Field classes/test/UnsafeOps$Foo.c:Ljava/lang/String;
+   286:	invokevirtual	#21; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   289:	return
+  Exception table:
+   from   to  target type
+    26    77    80   Class java/lang/InstantiationException
+
+    91   101   104   Class java/lang/NoSuchFieldException
+
+  LineNumberTable: 
+   line 24: 0
+   line 27: 4
+   line 28: 9
+   line 29: 17
+   line 33: 26
+   line 34: 35
+   line 35: 49
+   line 36: 63
+   line 40: 77
+   line 37: 80
+   line 38: 82
+   line 39: 90
+   line 44: 91
+   line 48: 101
+   line 45: 104
+   line 46: 106
+   line 47: 114
+   line 49: 115
+   line 50: 123
+   line 51: 137
+   line 52: 147
+   line 53: 161
+   line 54: 175
+   line 55: 179
+   line 56: 189
+   line 57: 203
+   line 60: 217
+   line 61: 231
+   line 62: 239
+   line 63: 253
+   line 64: 267
+   line 65: 275
+   line 67: 289
+
+  StackMapTable: number_of_entries = 4
+   frame_type = 255 /* full_frame */
+     offset_delta = 80
+     locals = [ class "[Ljava/lang/String;", class sun/misc/Unsafe, int, int, int ]
+     stack = [ class java/lang/InstantiationException ]
+   frame_type = 252 /* append */
+     offset_delta = 10
+     locals = [ class java/lang/Object ]
+   frame_type = 76 /* same_locals_1_stack_item */
+     stack = [ class java/lang/NoSuchFieldException ]
+   frame_type = 252 /* append */
+     offset_delta = 10
+     locals = [ class java/lang/reflect/Field ]
+
+
+}
+

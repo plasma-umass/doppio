@@ -1,0 +1,161 @@
+Compiled from "ArrayListOps.java"
+public class classes.test.ArrayListOps extends java.lang.Object
+  SourceFile: "ArrayListOps.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#15.#27;	//  java/lang/Object."<init>":()V
+const #2 = class	#28;	//  java/util/ArrayList
+const #3 = Method	#2.#27;	//  java/util/ArrayList."<init>":()V
+const #4 = Method	#11.#29;	//  java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+const #5 = InterfaceMethod	#30.#31;	//  java/util/List.add:(Ljava/lang/Object;)Z
+const #6 = InterfaceMethod	#30.#32;	//  java/util/List.add:(ILjava/lang/Object;)V
+const #7 = InterfaceMethod	#30.#33;	//  java/util/List.addAll:(Ljava/util/Collection;)Z
+const #8 = InterfaceMethod	#30.#34;	//  java/util/List.iterator:()Ljava/util/Iterator;
+const #9 = InterfaceMethod	#35.#36;	//  java/util/Iterator.hasNext:()Z
+const #10 = InterfaceMethod	#35.#37;	//  java/util/Iterator.next:()Ljava/lang/Object;
+const #11 = class	#38;	//  java/lang/Integer
+const #12 = Field	#39.#40;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #13 = Method	#41.#42;	//  java/io/PrintStream.println:(Ljava/lang/Object;)V
+const #14 = class	#43;	//  classes/test/ArrayListOps
+const #15 = class	#44;	//  java/lang/Object
+const #16 = Asciz	<init>;
+const #17 = Asciz	()V;
+const #18 = Asciz	Code;
+const #19 = Asciz	LineNumberTable;
+const #20 = Asciz	main;
+const #21 = Asciz	([Ljava/lang/String;)V;
+const #22 = Asciz	StackMapTable;
+const #23 = class	#45;	//  java/util/List
+const #24 = class	#46;	//  java/util/Iterator
+const #25 = Asciz	SourceFile;
+const #26 = Asciz	ArrayListOps.java;
+const #27 = NameAndType	#16:#17;//  "<init>":()V
+const #28 = Asciz	java/util/ArrayList;
+const #29 = NameAndType	#47:#48;//  valueOf:(I)Ljava/lang/Integer;
+const #30 = class	#45;	//  java/util/List
+const #31 = NameAndType	#49:#50;//  add:(Ljava/lang/Object;)Z
+const #32 = NameAndType	#49:#51;//  add:(ILjava/lang/Object;)V
+const #33 = NameAndType	#52:#53;//  addAll:(Ljava/util/Collection;)Z
+const #34 = NameAndType	#54:#55;//  iterator:()Ljava/util/Iterator;
+const #35 = class	#46;	//  java/util/Iterator
+const #36 = NameAndType	#56:#57;//  hasNext:()Z
+const #37 = NameAndType	#58:#59;//  next:()Ljava/lang/Object;
+const #38 = Asciz	java/lang/Integer;
+const #39 = class	#60;	//  java/lang/System
+const #40 = NameAndType	#61:#62;//  out:Ljava/io/PrintStream;
+const #41 = class	#63;	//  java/io/PrintStream
+const #42 = NameAndType	#64:#65;//  println:(Ljava/lang/Object;)V
+const #43 = Asciz	classes/test/ArrayListOps;
+const #44 = Asciz	java/lang/Object;
+const #45 = Asciz	java/util/List;
+const #46 = Asciz	java/util/Iterator;
+const #47 = Asciz	valueOf;
+const #48 = Asciz	(I)Ljava/lang/Integer;;
+const #49 = Asciz	add;
+const #50 = Asciz	(Ljava/lang/Object;)Z;
+const #51 = Asciz	(ILjava/lang/Object;)V;
+const #52 = Asciz	addAll;
+const #53 = Asciz	(Ljava/util/Collection;)Z;
+const #54 = Asciz	iterator;
+const #55 = Asciz	()Ljava/util/Iterator;;
+const #56 = Asciz	hasNext;
+const #57 = Asciz	()Z;
+const #58 = Asciz	next;
+const #59 = Asciz	()Ljava/lang/Object;;
+const #60 = Asciz	java/lang/System;
+const #61 = Asciz	out;
+const #62 = Asciz	Ljava/io/PrintStream;;
+const #63 = Asciz	java/io/PrintStream;
+const #64 = Asciz	println;
+const #65 = Asciz	(Ljava/lang/Object;)V;
+
+{
+public classes.test.ArrayListOps();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 3: 0
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=3, Locals=5, Args_size=1
+   0:	new	#2; //class java/util/ArrayList
+   3:	dup
+   4:	invokespecial	#3; //Method java/util/ArrayList."<init>":()V
+   7:	astore_1
+   8:	aload_1
+   9:	iconst_1
+   10:	invokestatic	#4; //Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+   13:	invokeinterface	#5,  2; //InterfaceMethod java/util/List.add:(Ljava/lang/Object;)Z
+   18:	pop
+   19:	aload_1
+   20:	iconst_2
+   21:	invokestatic	#4; //Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+   24:	invokeinterface	#5,  2; //InterfaceMethod java/util/List.add:(Ljava/lang/Object;)Z
+   29:	pop
+   30:	aload_1
+   31:	iconst_1
+   32:	iconst_3
+   33:	invokestatic	#4; //Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+   36:	invokeinterface	#6,  3; //InterfaceMethod java/util/List.add:(ILjava/lang/Object;)V
+   41:	new	#2; //class java/util/ArrayList
+   44:	dup
+   45:	invokespecial	#3; //Method java/util/ArrayList."<init>":()V
+   48:	astore_2
+   49:	aload_2
+   50:	iconst_4
+   51:	invokestatic	#4; //Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+   54:	invokeinterface	#5,  2; //InterfaceMethod java/util/List.add:(Ljava/lang/Object;)Z
+   59:	pop
+   60:	aload_2
+   61:	iconst_5
+   62:	invokestatic	#4; //Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+   65:	invokeinterface	#5,  2; //InterfaceMethod java/util/List.add:(Ljava/lang/Object;)Z
+   70:	pop
+   71:	aload_1
+   72:	aload_2
+   73:	invokeinterface	#7,  2; //InterfaceMethod java/util/List.addAll:(Ljava/util/Collection;)Z
+   78:	pop
+   79:	aload_1
+   80:	invokeinterface	#8,  1; //InterfaceMethod java/util/List.iterator:()Ljava/util/Iterator;
+   85:	astore_3
+   86:	aload_3
+   87:	invokeinterface	#9,  1; //InterfaceMethod java/util/Iterator.hasNext:()Z
+   92:	ifeq	117
+   95:	aload_3
+   96:	invokeinterface	#10,  1; //InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+   101:	checkcast	#11; //class java/lang/Integer
+   104:	astore	4
+   106:	getstatic	#12; //Field java/lang/System.out:Ljava/io/PrintStream;
+   109:	aload	4
+   111:	invokevirtual	#13; //Method java/io/PrintStream.println:(Ljava/lang/Object;)V
+   114:	goto	86
+   117:	return
+  LineNumberTable: 
+   line 5: 0
+   line 6: 8
+   line 7: 19
+   line 8: 30
+   line 9: 41
+   line 10: 49
+   line 11: 60
+   line 12: 71
+   line 13: 79
+   line 14: 106
+   line 15: 117
+
+  StackMapTable: number_of_entries = 2
+   frame_type = 254 /* append */
+     offset_delta = 86
+     locals = [ class java/util/List, class java/util/List, class java/util/Iterator ]
+   frame_type = 250 /* chop */
+     offset_delta = 30
+
+
+}
+

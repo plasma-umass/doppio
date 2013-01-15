@@ -1,0 +1,302 @@
+Compiled from "GenericSignature.java"
+class classes.test.GenericSignature extends java.lang.Object
+  SourceFile: "GenericSignature.java"
+  InnerClass: 
+   #29= #23 of #27; //GenericSignatureBar=class classes/test/GenericSignature$GenericSignatureBar of class classes/test/GenericSignature
+   #31= #18 of #27; //GenericSignatureFoo=class classes/test/GenericSignature$GenericSignatureFoo of class classes/test/GenericSignature
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#28.#50;	//  java/lang/Object."<init>":()V
+const #2 = Field	#51.#52;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #3 = class	#53;	//  java/lang/StringBuilder
+const #4 = Method	#3.#50;	//  java/lang/StringBuilder."<init>":()V
+const #5 = String	#54;	//  Info for method 
+const #6 = Method	#3.#55;	//  java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #7 = Method	#56.#57;	//  java/lang/reflect/Method.getName:()Ljava/lang/String;
+const #8 = Method	#3.#58;	//  java/lang/StringBuilder.toString:()Ljava/lang/String;
+const #9 = Method	#59.#60;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #10 = Method	#56.#61;	//  java/lang/reflect/Method.getTypeParameters:()[Ljava/lang/reflect/TypeVariable;
+const #11 = String	#62;	//  Param: 
+const #12 = InterfaceMethod	#14.#57;	//  java/lang/reflect/TypeVariable.getName:()Ljava/lang/String;
+const #13 = Method	#56.#63;	//  java/lang/reflect/Method.getGenericReturnType:()Ljava/lang/reflect/Type;
+const #14 = class	#64;	//  java/lang/reflect/TypeVariable
+const #15 = String	#65;	//  Returns: 
+const #16 = Method	#56.#66;	//  java/lang/reflect/Method.getGenericExceptionTypes:()[Ljava/lang/reflect/Type;
+const #17 = String	#67;	//  Throws: 
+const #18 = class	#68;	//  classes/test/GenericSignature$GenericSignatureFoo
+const #19 = String	#69;	//  fooField
+const #20 = Method	#70.#71;	//  java/lang/Class.getField:(Ljava/lang/String;)Ljava/lang/reflect/Field;
+const #21 = Method	#72.#73;	//  java/lang/reflect/Field.getGenericType:()Ljava/lang/reflect/Type;
+const #22 = Method	#59.#74;	//  java/io/PrintStream.println:(Ljava/lang/Object;)V
+const #23 = class	#75;	//  classes/test/GenericSignature$GenericSignatureBar
+const #24 = String	#76;	//  barField
+const #25 = Method	#70.#77;	//  java/lang/Class.getDeclaredMethods:()[Ljava/lang/reflect/Method;
+const #26 = Method	#27.#78;	//  classes/test/GenericSignature.printGenericMethodInfo:(Ljava/lang/reflect/Method;)V
+const #27 = class	#79;	//  classes/test/GenericSignature
+const #28 = class	#80;	//  java/lang/Object
+const #29 = Asciz	GenericSignatureBar;
+const #30 = Asciz	InnerClasses;
+const #31 = Asciz	GenericSignatureFoo;
+const #32 = Asciz	<init>;
+const #33 = Asciz	()V;
+const #34 = Asciz	Code;
+const #35 = Asciz	LineNumberTable;
+const #36 = Asciz	printGenericMethodInfo;
+const #37 = Asciz	(Ljava/lang/reflect/Method;)V;
+const #38 = Asciz	StackMapTable;
+const #39 = class	#81;	//  "[Ljava/lang/reflect/TypeVariable;"
+const #40 = class	#82;	//  java/lang/reflect/Type
+const #41 = class	#83;	//  java/lang/reflect/Method
+const #42 = class	#84;	//  "[Ljava/lang/reflect/Type;"
+const #43 = Asciz	main;
+const #44 = Asciz	([Ljava/lang/String;)V;
+const #45 = Asciz	Exceptions;
+const #46 = class	#85;	//  java/lang/NoSuchFieldException
+const #47 = class	#86;	//  java/lang/NoSuchMethodException
+const #48 = Asciz	SourceFile;
+const #49 = Asciz	GenericSignature.java;
+const #50 = NameAndType	#32:#33;//  "<init>":()V
+const #51 = class	#87;	//  java/lang/System
+const #52 = NameAndType	#88:#89;//  out:Ljava/io/PrintStream;
+const #53 = Asciz	java/lang/StringBuilder;
+const #54 = Asciz	Info for method ;
+const #55 = NameAndType	#90:#91;//  append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #56 = class	#83;	//  java/lang/reflect/Method
+const #57 = NameAndType	#92:#93;//  getName:()Ljava/lang/String;
+const #58 = NameAndType	#94:#93;//  toString:()Ljava/lang/String;
+const #59 = class	#95;	//  java/io/PrintStream
+const #60 = NameAndType	#96:#97;//  println:(Ljava/lang/String;)V
+const #61 = NameAndType	#98:#99;//  getTypeParameters:()[Ljava/lang/reflect/TypeVariable;
+const #62 = Asciz	Param: ;
+const #63 = NameAndType	#100:#101;//  getGenericReturnType:()Ljava/lang/reflect/Type;
+const #64 = Asciz	java/lang/reflect/TypeVariable;
+const #65 = Asciz	Returns: ;
+const #66 = NameAndType	#102:#103;//  getGenericExceptionTypes:()[Ljava/lang/reflect/Type;
+const #67 = Asciz	Throws: ;
+const #68 = Asciz	classes/test/GenericSignature$GenericSignatureFoo;
+const #69 = Asciz	fooField;
+const #70 = class	#104;	//  java/lang/Class
+const #71 = NameAndType	#105:#106;//  getField:(Ljava/lang/String;)Ljava/lang/reflect/Field;
+const #72 = class	#107;	//  java/lang/reflect/Field
+const #73 = NameAndType	#108:#101;//  getGenericType:()Ljava/lang/reflect/Type;
+const #74 = NameAndType	#96:#109;//  println:(Ljava/lang/Object;)V
+const #75 = Asciz	classes/test/GenericSignature$GenericSignatureBar;
+const #76 = Asciz	barField;
+const #77 = NameAndType	#110:#111;//  getDeclaredMethods:()[Ljava/lang/reflect/Method;
+const #78 = NameAndType	#36:#37;//  printGenericMethodInfo:(Ljava/lang/reflect/Method;)V
+const #79 = Asciz	classes/test/GenericSignature;
+const #80 = Asciz	java/lang/Object;
+const #81 = Asciz	[Ljava/lang/reflect/TypeVariable;;
+const #82 = Asciz	java/lang/reflect/Type;
+const #83 = Asciz	java/lang/reflect/Method;
+const #84 = Asciz	[Ljava/lang/reflect/Type;;
+const #85 = Asciz	java/lang/NoSuchFieldException;
+const #86 = Asciz	java/lang/NoSuchMethodException;
+const #87 = Asciz	java/lang/System;
+const #88 = Asciz	out;
+const #89 = Asciz	Ljava/io/PrintStream;;
+const #90 = Asciz	append;
+const #91 = Asciz	(Ljava/lang/String;)Ljava/lang/StringBuilder;;
+const #92 = Asciz	getName;
+const #93 = Asciz	()Ljava/lang/String;;
+const #94 = Asciz	toString;
+const #95 = Asciz	java/io/PrintStream;
+const #96 = Asciz	println;
+const #97 = Asciz	(Ljava/lang/String;)V;
+const #98 = Asciz	getTypeParameters;
+const #99 = Asciz	()[Ljava/lang/reflect/TypeVariable;;
+const #100 = Asciz	getGenericReturnType;
+const #101 = Asciz	()Ljava/lang/reflect/Type;;
+const #102 = Asciz	getGenericExceptionTypes;
+const #103 = Asciz	()[Ljava/lang/reflect/Type;;
+const #104 = Asciz	java/lang/Class;
+const #105 = Asciz	getField;
+const #106 = Asciz	(Ljava/lang/String;)Ljava/lang/reflect/Field;;
+const #107 = Asciz	java/lang/reflect/Field;
+const #108 = Asciz	getGenericType;
+const #109 = Asciz	(Ljava/lang/Object;)V;
+const #110 = Asciz	getDeclaredMethods;
+const #111 = Asciz	()[Ljava/lang/reflect/Method;;
+
+{
+classes.test.GenericSignature();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 5: 0
+   line 37: 4
+
+
+static void printGenericMethodInfo(java.lang.reflect.Method);
+  Code:
+   Stack=3, Locals=7, Args_size=1
+   0:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   3:	new	#3; //class java/lang/StringBuilder
+   6:	dup
+   7:	invokespecial	#4; //Method java/lang/StringBuilder."<init>":()V
+   10:	ldc	#5; //String Info for method 
+   12:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   15:	aload_0
+   16:	invokevirtual	#7; //Method java/lang/reflect/Method.getName:()Ljava/lang/String;
+   19:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   22:	invokevirtual	#8; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   25:	invokevirtual	#9; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   28:	aload_0
+   29:	invokevirtual	#10; //Method java/lang/reflect/Method.getTypeParameters:()[Ljava/lang/reflect/TypeVariable;
+   32:	astore_1
+   33:	aload_1
+   34:	arraylength
+   35:	istore_2
+   36:	iconst_0
+   37:	istore_3
+   38:	iload_3
+   39:	iload_2
+   40:	if_icmpge	85
+   43:	aload_1
+   44:	iload_3
+   45:	aaload
+   46:	astore	4
+   48:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   51:	new	#3; //class java/lang/StringBuilder
+   54:	dup
+   55:	invokespecial	#4; //Method java/lang/StringBuilder."<init>":()V
+   58:	ldc	#11; //String Param: 
+   60:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   63:	aload	4
+   65:	invokeinterface	#12,  1; //InterfaceMethod java/lang/reflect/TypeVariable.getName:()Ljava/lang/String;
+   70:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   73:	invokevirtual	#8; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   76:	invokevirtual	#9; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   79:	iinc	3, 1
+   82:	goto	38
+   85:	aload_0
+   86:	invokevirtual	#13; //Method java/lang/reflect/Method.getGenericReturnType:()Ljava/lang/reflect/Type;
+   89:	astore_1
+   90:	aload_1
+   91:	instanceof	#14; //class java/lang/reflect/TypeVariable
+   94:	ifeq	130
+   97:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   100:	new	#3; //class java/lang/StringBuilder
+   103:	dup
+   104:	invokespecial	#4; //Method java/lang/StringBuilder."<init>":()V
+   107:	ldc	#15; //String Returns: 
+   109:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   112:	aload_1
+   113:	checkcast	#14; //class java/lang/reflect/TypeVariable
+   116:	invokeinterface	#12,  1; //InterfaceMethod java/lang/reflect/TypeVariable.getName:()Ljava/lang/String;
+   121:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   124:	invokevirtual	#8; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   127:	invokevirtual	#9; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   130:	aload_0
+   131:	invokevirtual	#16; //Method java/lang/reflect/Method.getGenericExceptionTypes:()[Ljava/lang/reflect/Type;
+   134:	astore_2
+   135:	aload_2
+   136:	astore_3
+   137:	aload_3
+   138:	arraylength
+   139:	istore	4
+   141:	iconst_0
+   142:	istore	5
+   144:	iload	5
+   146:	iload	4
+   148:	if_icmpge	205
+   151:	aload_3
+   152:	iload	5
+   154:	aaload
+   155:	astore	6
+   157:	aload	6
+   159:	instanceof	#14; //class java/lang/reflect/TypeVariable
+   162:	ifeq	199
+   165:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   168:	new	#3; //class java/lang/StringBuilder
+   171:	dup
+   172:	invokespecial	#4; //Method java/lang/StringBuilder."<init>":()V
+   175:	ldc	#17; //String Throws: 
+   177:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   180:	aload	6
+   182:	checkcast	#14; //class java/lang/reflect/TypeVariable
+   185:	invokeinterface	#12,  1; //InterfaceMethod java/lang/reflect/TypeVariable.getName:()Ljava/lang/String;
+   190:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   193:	invokevirtual	#8; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   196:	invokevirtual	#9; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   199:	iinc	5, 1
+   202:	goto	144
+   205:	return
+  LineNumberTable: 
+   line 8: 0
+   line 10: 28
+   line 12: 85
+   line 13: 90
+   line 14: 97
+   line 16: 130
+   line 17: 135
+   line 18: 157
+   line 19: 165
+   line 17: 199
+   line 20: 205
+
+  StackMapTable: number_of_entries = 6
+   frame_type = 254 /* append */
+     offset_delta = 38
+     locals = [ class "[Ljava/lang/reflect/TypeVariable;", int, int ]
+   frame_type = 248 /* chop */
+     offset_delta = 46
+   frame_type = 252 /* append */
+     offset_delta = 44
+     locals = [ class java/lang/reflect/Type ]
+   frame_type = 255 /* full_frame */
+     offset_delta = 13
+     locals = [ class java/lang/reflect/Method, class java/lang/reflect/Type, class "[Ljava/lang/reflect/Type;", class "[Ljava/lang/reflect/Type;", int, int ]
+     stack = []
+   frame_type = 54 /* same */
+   frame_type = 248 /* chop */
+     offset_delta = 5
+
+
+public static void main(java.lang.String[])   throws java.lang.NoSuchFieldException, java.lang.NoSuchMethodException;
+  Code:
+   Stack=2, Locals=2, Args_size=1
+   0:	ldc_w	#18; //class classes/test/GenericSignature$GenericSignatureFoo
+   3:	ldc	#19; //String fooField
+   5:	invokevirtual	#20; //Method java/lang/Class.getField:(Ljava/lang/String;)Ljava/lang/reflect/Field;
+   8:	astore_1
+   9:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   12:	aload_1
+   13:	invokevirtual	#21; //Method java/lang/reflect/Field.getGenericType:()Ljava/lang/reflect/Type;
+   16:	invokevirtual	#22; //Method java/io/PrintStream.println:(Ljava/lang/Object;)V
+   19:	ldc_w	#23; //class classes/test/GenericSignature$GenericSignatureBar
+   22:	ldc	#24; //String barField
+   24:	invokevirtual	#20; //Method java/lang/Class.getField:(Ljava/lang/String;)Ljava/lang/reflect/Field;
+   27:	astore_1
+   28:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   31:	aload_1
+   32:	invokevirtual	#21; //Method java/lang/reflect/Field.getGenericType:()Ljava/lang/reflect/Type;
+   35:	invokevirtual	#22; //Method java/io/PrintStream.println:(Ljava/lang/Object;)V
+   38:	ldc_w	#18; //class classes/test/GenericSignature$GenericSignatureFoo
+   41:	invokevirtual	#25; //Method java/lang/Class.getDeclaredMethods:()[Ljava/lang/reflect/Method;
+   44:	iconst_0
+   45:	aaload
+   46:	invokestatic	#26; //Method printGenericMethodInfo:(Ljava/lang/reflect/Method;)V
+   49:	ldc_w	#23; //class classes/test/GenericSignature$GenericSignatureBar
+   52:	invokevirtual	#25; //Method java/lang/Class.getDeclaredMethods:()[Ljava/lang/reflect/Method;
+   55:	iconst_0
+   56:	aaload
+   57:	invokestatic	#26; //Method printGenericMethodInfo:(Ljava/lang/reflect/Method;)V
+   60:	return
+  LineNumberTable: 
+   line 23: 0
+   line 24: 9
+   line 25: 19
+   line 26: 28
+   line 28: 38
+   line 29: 49
+   line 30: 60
+
+  Exceptions: 
+   throws java.lang.NoSuchFieldException, java.lang.NoSuchMethodException
+}
+

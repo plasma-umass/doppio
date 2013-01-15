@@ -1,0 +1,170 @@
+Compiled from "Switch.java"
+public class classes.test.Switch extends java.lang.Object
+  SourceFile: "Switch.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#7.#20;	//  java/lang/Object."<init>":()V
+const #2 = Method	#6.#21;	//  classes/test/Switch.tableSwitch:(I)V
+const #3 = Method	#6.#22;	//  classes/test/Switch.lookupSwitch:(I)V
+const #4 = Field	#23.#24;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #5 = Method	#25.#26;	//  java/io/PrintStream.println:(I)V
+const #6 = class	#27;	//  classes/test/Switch
+const #7 = class	#28;	//  java/lang/Object
+const #8 = Asciz	<init>;
+const #9 = Asciz	()V;
+const #10 = Asciz	Code;
+const #11 = Asciz	LineNumberTable;
+const #12 = Asciz	main;
+const #13 = Asciz	([Ljava/lang/String;)V;
+const #14 = Asciz	tableSwitch;
+const #15 = Asciz	(I)V;
+const #16 = Asciz	StackMapTable;
+const #17 = Asciz	lookupSwitch;
+const #18 = Asciz	SourceFile;
+const #19 = Asciz	Switch.java;
+const #20 = NameAndType	#8:#9;//  "<init>":()V
+const #21 = NameAndType	#14:#15;//  tableSwitch:(I)V
+const #22 = NameAndType	#17:#15;//  lookupSwitch:(I)V
+const #23 = class	#29;	//  java/lang/System
+const #24 = NameAndType	#30:#31;//  out:Ljava/io/PrintStream;
+const #25 = class	#32;	//  java/io/PrintStream
+const #26 = NameAndType	#33:#15;//  println:(I)V
+const #27 = Asciz	classes/test/Switch;
+const #28 = Asciz	java/lang/Object;
+const #29 = Asciz	java/lang/System;
+const #30 = Asciz	out;
+const #31 = Asciz	Ljava/io/PrintStream;;
+const #32 = Asciz	java/io/PrintStream;
+const #33 = Asciz	println;
+
+{
+public classes.test.Switch();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 2: 0
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	iconst_1
+   1:	invokestatic	#2; //Method tableSwitch:(I)V
+   4:	iconst_2
+   5:	invokestatic	#2; //Method tableSwitch:(I)V
+   8:	iconst_3
+   9:	invokestatic	#2; //Method tableSwitch:(I)V
+   12:	iconst_4
+   13:	invokestatic	#2; //Method tableSwitch:(I)V
+   16:	iconst_5
+   17:	invokestatic	#2; //Method tableSwitch:(I)V
+   20:	bipush	6
+   22:	invokestatic	#2; //Method tableSwitch:(I)V
+   25:	iconst_1
+   26:	invokestatic	#3; //Method lookupSwitch:(I)V
+   29:	iconst_2
+   30:	invokestatic	#3; //Method lookupSwitch:(I)V
+   33:	iconst_5
+   34:	invokestatic	#3; //Method lookupSwitch:(I)V
+   37:	bipush	6
+   39:	invokestatic	#3; //Method lookupSwitch:(I)V
+   42:	return
+  LineNumberTable: 
+   line 4: 0
+   line 5: 4
+   line 6: 8
+   line 7: 12
+   line 8: 16
+   line 9: 20
+   line 10: 25
+   line 11: 29
+   line 12: 33
+   line 13: 37
+   line 14: 42
+
+
+public static void tableSwitch(int);
+  Code:
+   Stack=2, Locals=1, Args_size=1
+   0:	iload_0
+   1:	tableswitch{ //1 to 5
+		1: 36;
+		2: 46;
+		3: 56;
+		4: 66;
+		5: 76;
+		default: 86 }
+   36:	getstatic	#4; //Field java/lang/System.out:Ljava/io/PrintStream;
+   39:	iconst_1
+   40:	invokevirtual	#5; //Method java/io/PrintStream.println:(I)V
+   43:	goto	86
+   46:	getstatic	#4; //Field java/lang/System.out:Ljava/io/PrintStream;
+   49:	iconst_2
+   50:	invokevirtual	#5; //Method java/io/PrintStream.println:(I)V
+   53:	goto	86
+   56:	getstatic	#4; //Field java/lang/System.out:Ljava/io/PrintStream;
+   59:	iconst_3
+   60:	invokevirtual	#5; //Method java/io/PrintStream.println:(I)V
+   63:	goto	86
+   66:	getstatic	#4; //Field java/lang/System.out:Ljava/io/PrintStream;
+   69:	iconst_4
+   70:	invokevirtual	#5; //Method java/io/PrintStream.println:(I)V
+   73:	goto	86
+   76:	getstatic	#4; //Field java/lang/System.out:Ljava/io/PrintStream;
+   79:	iconst_5
+   80:	invokevirtual	#5; //Method java/io/PrintStream.println:(I)V
+   83:	goto	86
+   86:	return
+  LineNumberTable: 
+   line 19: 0
+   line 20: 36
+   line 21: 46
+   line 22: 56
+   line 23: 66
+   line 24: 76
+   line 27: 86
+
+  StackMapTable: number_of_entries = 6
+   frame_type = 36 /* same */
+   frame_type = 9 /* same */
+   frame_type = 9 /* same */
+   frame_type = 9 /* same */
+   frame_type = 9 /* same */
+   frame_type = 9 /* same */
+
+
+public static void lookupSwitch(int);
+  Code:
+   Stack=2, Locals=1, Args_size=1
+   0:	iload_0
+   1:	lookupswitch{ //2
+		1: 28;
+		5: 38;
+		default: 48 }
+   28:	getstatic	#4; //Field java/lang/System.out:Ljava/io/PrintStream;
+   31:	iconst_1
+   32:	invokevirtual	#5; //Method java/io/PrintStream.println:(I)V
+   35:	goto	48
+   38:	getstatic	#4; //Field java/lang/System.out:Ljava/io/PrintStream;
+   41:	iconst_5
+   42:	invokevirtual	#5; //Method java/io/PrintStream.println:(I)V
+   45:	goto	48
+   48:	return
+  LineNumberTable: 
+   line 32: 0
+   line 33: 28
+   line 34: 38
+   line 37: 48
+
+  StackMapTable: number_of_entries = 3
+   frame_type = 28 /* same */
+   frame_type = 9 /* same */
+   frame_type = 9 /* same */
+
+
+}
+

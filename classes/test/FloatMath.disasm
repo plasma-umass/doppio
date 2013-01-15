@@ -1,0 +1,1010 @@
+Compiled from "FloatMath.java"
+public class classes.test.FloatMath extends java.lang.Object
+  SourceFile: "FloatMath.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#62.#88;	//  java/lang/Object."<init>":()V
+const #2 = class	#89;	//  java/lang/ArithmeticException
+const #3 = Field	#90.#91;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #4 = class	#92;	//  java/lang/StringBuilder
+const #5 = Method	#4.#88;	//  java/lang/StringBuilder."<init>":()V
+const #6 = String	#93;	//  Caught ArithmeticException as expected: 
+const #7 = Method	#4.#94;	//  java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #8 = Method	#2.#95;	//  java/lang/ArithmeticException.getMessage:()Ljava/lang/String;
+const #9 = Method	#4.#96;	//  java/lang/StringBuilder.toString:()Ljava/lang/String;
+const #10 = Method	#97.#98;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #11 = float	5.0f;
+const #12 = float	4.0f;
+const #13 = Method	#61.#99;	//  classes/test/FloatMath.runOps:(FF)V
+const #14 = float	-5.0f;
+const #15 = float	-4.0f;
+const #16 = float	3.4028235E38f;
+const #17 = float	1.0E-30f;
+const #18 = float	Infinityf;
+const #19 = Method	#61.#100;	//  classes/test/FloatMath.test_flops:()F
+const #20 = Method	#101.#102;	//  java/lang/Float.intBitsToFloat:(I)F
+const #21 = Method	#97.#103;	//  java/io/PrintStream.println:(F)V
+const #22 = int	2147483647;
+const #23 = float	1.4E-45f;
+const #24 = float	-Infinityf;
+const #25 = float	-4.32112352E8f;
+const #26 = Method	#61.#104;	//  classes/test/FloatMath.floatToIntTest:(F)V
+const #27 = int	-7674718;
+const #28 = int	2139095040;
+const #29 = int	2139095041;
+const #30 = int	-8388608;
+const #31 = int	-8388607;
+const #32 = Method	#61.#105;	//  classes/test/FloatMath.intToFloatTest:(I)V
+const #33 = Method	#61.#106;	//  classes/test/FloatMath.getMaxValue:()F
+const #34 = float	NaNf;
+const #35 = float	-1.0f;
+const #36 = float	1.0021213f;
+const #37 = String	#107;	//  Comparing two Float NaNs with different values:
+const #38 = String	#108;	//  \tNaN(-1) == Float.NaN: 
+const #39 = Method	#4.#109;	//  java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+const #40 = String	#110;	//  \tNaN(-1) < Float.NaN: 
+const #41 = String	#111;	//  \tNaN(-1) > Float.NaN: 
+const #42 = String	#112;	//  \tFloat.compare(NaN(-1),Float.NaN): 
+const #43 = Method	#101.#113;	//  java/lang/Float.compare:(FF)I
+const #44 = Method	#4.#114;	//  java/lang/StringBuilder.append:(I)Ljava/lang/StringBuilder;
+const #45 = Method	#4.#115;	//  java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+const #46 = String	#116;	//  /
+const #47 = String	#117;	//  =
+const #48 = String	#118;	//  0*
+const #49 = String	#119;	//  infty+-infty=NaN
+const #50 = String	#120;	//  Float->int: 
+const #51 = String	#121;	//  ->
+const #52 = Method	#101.#122;	//  java/lang/Float.floatToRawIntBits:(F)I
+const #53 = String	#123;	//  Int->float: 
+const #54 = float	5463.0f;
+const #55 = String	#124;	//   + 
+const #56 = String	#125;	//   = 
+const #57 = String	#126;	//   - 
+const #58 = String	#127;	//   / 
+const #59 = String	#128;	//   % 
+const #60 = String	#129;	//   * 
+const #61 = class	#130;	//  classes/test/FloatMath
+const #62 = class	#131;	//  java/lang/Object
+const #63 = Asciz	<init>;
+const #64 = Asciz	()V;
+const #65 = Asciz	Code;
+const #66 = Asciz	LineNumberTable;
+const #67 = Asciz	main;
+const #68 = Asciz	([Ljava/lang/String;)V;
+const #69 = Asciz	StackMapTable;
+const #70 = class	#132;	//  "[Ljava/lang/String;"
+const #71 = class	#89;	//  java/lang/ArithmeticException
+const #72 = class	#133;	//  "[F"
+const #73 = class	#134;	//  "[I"
+const #74 = class	#135;	//  java/io/PrintStream
+const #75 = class	#92;	//  java/lang/StringBuilder
+const #76 = Asciz	floatToIntTest;
+const #77 = Asciz	(F)V;
+const #78 = Asciz	getZero;
+const #79 = Asciz	()F;
+const #80 = Asciz	getMaxValue;
+const #81 = Asciz	intToFloatTest;
+const #82 = Asciz	(I)V;
+const #83 = Asciz	test_flops;
+const #84 = Asciz	runOps;
+const #85 = Asciz	(FF)V;
+const #86 = Asciz	SourceFile;
+const #87 = Asciz	FloatMath.java;
+const #88 = NameAndType	#63:#64;//  "<init>":()V
+const #89 = Asciz	java/lang/ArithmeticException;
+const #90 = class	#136;	//  java/lang/System
+const #91 = NameAndType	#137:#138;//  out:Ljava/io/PrintStream;
+const #92 = Asciz	java/lang/StringBuilder;
+const #93 = Asciz	Caught ArithmeticException as expected: ;
+const #94 = NameAndType	#139:#140;//  append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #95 = NameAndType	#141:#142;//  getMessage:()Ljava/lang/String;
+const #96 = NameAndType	#143:#142;//  toString:()Ljava/lang/String;
+const #97 = class	#135;	//  java/io/PrintStream
+const #98 = NameAndType	#144:#145;//  println:(Ljava/lang/String;)V
+const #99 = NameAndType	#84:#85;//  runOps:(FF)V
+const #100 = NameAndType	#83:#79;//  test_flops:()F
+const #101 = class	#146;	//  java/lang/Float
+const #102 = NameAndType	#147:#148;//  intBitsToFloat:(I)F
+const #103 = NameAndType	#144:#77;//  println:(F)V
+const #104 = NameAndType	#76:#77;//  floatToIntTest:(F)V
+const #105 = NameAndType	#81:#82;//  intToFloatTest:(I)V
+const #106 = NameAndType	#80:#79;//  getMaxValue:()F
+const #107 = Asciz	Comparing two Float NaNs with different values:;
+const #108 = Asciz	\tNaN(-1) == Float.NaN: ;
+const #109 = NameAndType	#139:#149;//  append:(Z)Ljava/lang/StringBuilder;
+const #110 = Asciz	\tNaN(-1) < Float.NaN: ;
+const #111 = Asciz	\tNaN(-1) > Float.NaN: ;
+const #112 = Asciz	\tFloat.compare(NaN(-1),Float.NaN): ;
+const #113 = NameAndType	#150:#151;//  compare:(FF)I
+const #114 = NameAndType	#139:#152;//  append:(I)Ljava/lang/StringBuilder;
+const #115 = NameAndType	#139:#153;//  append:(F)Ljava/lang/StringBuilder;
+const #116 = Asciz	/;
+const #117 = Asciz	=;
+const #118 = Asciz	0*;
+const #119 = Asciz	infty+-infty=NaN;
+const #120 = Asciz	Float->int: ;
+const #121 = Asciz	->;
+const #122 = NameAndType	#154:#155;//  floatToRawIntBits:(F)I
+const #123 = Asciz	Int->float: ;
+const #124 = Asciz	 + ;
+const #125 = Asciz	 = ;
+const #126 = Asciz	 - ;
+const #127 = Asciz	 / ;
+const #128 = Asciz	 % ;
+const #129 = Asciz	 * ;
+const #130 = Asciz	classes/test/FloatMath;
+const #131 = Asciz	java/lang/Object;
+const #132 = Asciz	[Ljava/lang/String;;
+const #133 = Asciz	[F;
+const #134 = Asciz	[I;
+const #135 = Asciz	java/io/PrintStream;
+const #136 = Asciz	java/lang/System;
+const #137 = Asciz	out;
+const #138 = Asciz	Ljava/io/PrintStream;;
+const #139 = Asciz	append;
+const #140 = Asciz	(Ljava/lang/String;)Ljava/lang/StringBuilder;;
+const #141 = Asciz	getMessage;
+const #142 = Asciz	()Ljava/lang/String;;
+const #143 = Asciz	toString;
+const #144 = Asciz	println;
+const #145 = Asciz	(Ljava/lang/String;)V;
+const #146 = Asciz	java/lang/Float;
+const #147 = Asciz	intBitsToFloat;
+const #148 = Asciz	(I)F;
+const #149 = Asciz	(Z)Ljava/lang/StringBuilder;;
+const #150 = Asciz	compare;
+const #151 = Asciz	(FF)I;
+const #152 = Asciz	(I)Ljava/lang/StringBuilder;;
+const #153 = Asciz	(F)Ljava/lang/StringBuilder;;
+const #154 = Asciz	floatToRawIntBits;
+const #155 = Asciz	(F)I;
+
+{
+public classes.test.FloatMath();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 3: 0
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=5, Locals=18, Args_size=1
+   0:	fconst_1
+   1:	fstore_1
+   2:	fconst_0
+   3:	fstore_2
+   4:	fload_1
+   5:	fload_2
+   6:	fdiv
+   7:	fstore_3
+   8:	goto	42
+   11:	astore	4
+   13:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   16:	new	#4; //class java/lang/StringBuilder
+   19:	dup
+   20:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   23:	ldc	#6; //String Caught ArithmeticException as expected: 
+   25:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   28:	aload	4
+   30:	invokevirtual	#8; //Method java/lang/ArithmeticException.getMessage:()Ljava/lang/String;
+   33:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   36:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   39:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   42:	fload_1
+   43:	fload_2
+   44:	frem
+   45:	fstore_3
+   46:	goto	80
+   49:	astore	4
+   51:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   54:	new	#4; //class java/lang/StringBuilder
+   57:	dup
+   58:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   61:	ldc	#6; //String Caught ArithmeticException as expected: 
+   63:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   66:	aload	4
+   68:	invokevirtual	#8; //Method java/lang/ArithmeticException.getMessage:()Ljava/lang/String;
+   71:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   74:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   77:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   80:	ldc	#11; //float 5.0f
+   82:	ldc	#12; //float 4.0f
+   84:	invokestatic	#13; //Method runOps:(FF)V
+   87:	ldc	#14; //float -5.0f
+   89:	ldc	#12; //float 4.0f
+   91:	invokestatic	#13; //Method runOps:(FF)V
+   94:	ldc	#11; //float 5.0f
+   96:	ldc	#15; //float -4.0f
+   98:	invokestatic	#13; //Method runOps:(FF)V
+   101:	ldc	#16; //float 3.4028235E38f
+   103:	ldc	#16; //float 3.4028235E38f
+   105:	invokestatic	#13; //Method runOps:(FF)V
+   108:	ldc	#16; //float 3.4028235E38f
+   110:	ldc	#17; //float 1.0E-30f
+   112:	invokestatic	#13; //Method runOps:(FF)V
+   115:	ldc	#17; //float 1.0E-30f
+   117:	ldc	#16; //float 3.4028235E38f
+   119:	invokestatic	#13; //Method runOps:(FF)V
+   122:	ldc	#17; //float 1.0E-30f
+   124:	ldc	#17; //float 1.0E-30f
+   126:	invokestatic	#13; //Method runOps:(FF)V
+   129:	ldc	#18; //float Infinityf
+   131:	fconst_1
+   132:	invokestatic	#13; //Method runOps:(FF)V
+   135:	invokestatic	#19; //Method test_flops:()F
+   138:	pop
+   139:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   142:	sipush	12345
+   145:	invokestatic	#20; //Method java/lang/Float.intBitsToFloat:(I)F
+   148:	invokevirtual	#21; //Method java/io/PrintStream.println:(F)V
+   151:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   154:	iconst_0
+   155:	invokestatic	#20; //Method java/lang/Float.intBitsToFloat:(I)F
+   158:	invokevirtual	#21; //Method java/io/PrintStream.println:(F)V
+   161:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   164:	ldc	#22; //int 2147483647
+   166:	invokestatic	#20; //Method java/lang/Float.intBitsToFloat:(I)F
+   169:	invokevirtual	#21; //Method java/io/PrintStream.println:(F)V
+   172:	bipush	8
+   174:	newarray float
+   176:	dup
+   177:	iconst_0
+   178:	ldc	#16; //float 3.4028235E38f
+   180:	fastore
+   181:	dup
+   182:	iconst_1
+   183:	ldc	#23; //float 1.4E-45f
+   185:	fastore
+   186:	dup
+   187:	iconst_2
+   188:	ldc	#24; //float -Infinityf
+   190:	fastore
+   191:	dup
+   192:	iconst_3
+   193:	ldc	#18; //float Infinityf
+   195:	fastore
+   196:	dup
+   197:	iconst_4
+   198:	fconst_0
+   199:	fastore
+   200:	dup
+   201:	iconst_5
+   202:	fconst_1
+   203:	fastore
+   204:	dup
+   205:	bipush	6
+   207:	ldc	#25; //float -4.32112352E8f
+   209:	fastore
+   210:	dup
+   211:	bipush	7
+   213:	ldc	#11; //float 5.0f
+   215:	fastore
+   216:	astore	4
+   218:	aload	4
+   220:	astore	5
+   222:	aload	5
+   224:	arraylength
+   225:	istore	6
+   227:	iconst_0
+   228:	istore	7
+   230:	iload	7
+   232:	iload	6
+   234:	if_icmpge	255
+   237:	aload	5
+   239:	iload	7
+   241:	faload
+   242:	fstore	8
+   244:	fload	8
+   246:	invokestatic	#26; //Method floatToIntTest:(F)V
+   249:	iinc	7, 1
+   252:	goto	230
+   255:	bipush	7
+   257:	newarray int
+   259:	dup
+   260:	iconst_0
+   261:	iconst_0
+   262:	iastore
+   263:	dup
+   264:	iconst_1
+   265:	iconst_m1
+   266:	iastore
+   267:	dup
+   268:	iconst_2
+   269:	ldc	#27; //int -7674718
+   271:	iastore
+   272:	dup
+   273:	iconst_3
+   274:	ldc	#28; //int 2139095040
+   276:	iastore
+   277:	dup
+   278:	iconst_4
+   279:	ldc	#29; //int 2139095041
+   281:	iastore
+   282:	dup
+   283:	iconst_5
+   284:	ldc	#30; //int -8388608
+   286:	iastore
+   287:	dup
+   288:	bipush	6
+   290:	ldc	#31; //int -8388607
+   292:	iastore
+   293:	astore	5
+   295:	aload	5
+   297:	astore	6
+   299:	aload	6
+   301:	arraylength
+   302:	istore	7
+   304:	iconst_0
+   305:	istore	8
+   307:	iload	8
+   309:	iload	7
+   311:	if_icmpge	332
+   314:	aload	6
+   316:	iload	8
+   318:	iaload
+   319:	istore	9
+   321:	iload	9
+   323:	invokestatic	#32; //Method intToFloatTest:(I)V
+   326:	iinc	8, 1
+   329:	goto	307
+   332:	invokestatic	#33; //Method getMaxValue:()F
+   335:	invokestatic	#33; //Method getMaxValue:()F
+   338:	fmul
+   339:	fstore	6
+   341:	iconst_2
+   342:	newarray float
+   344:	dup
+   345:	iconst_0
+   346:	ldc	#34; //float NaNf
+   348:	fastore
+   349:	dup
+   350:	iconst_1
+   351:	fload	6
+   353:	fload	6
+   355:	fdiv
+   356:	fastore
+   357:	astore	7
+   359:	aload	7
+   361:	astore	8
+   363:	aload	8
+   365:	arraylength
+   366:	istore	9
+   368:	iconst_0
+   369:	istore	10
+   371:	iload	10
+   373:	iload	9
+   375:	if_icmpge	461
+   378:	aload	8
+   380:	iload	10
+   382:	faload
+   383:	fstore	11
+   385:	fconst_1
+   386:	fload	11
+   388:	invokestatic	#13; //Method runOps:(FF)V
+   391:	ldc	#35; //float -1.0f
+   393:	fload	11
+   395:	invokestatic	#13; //Method runOps:(FF)V
+   398:	fconst_0
+   399:	fload	11
+   401:	invokestatic	#13; //Method runOps:(FF)V
+   404:	ldc	#36; //float 1.0021213f
+   406:	fload	11
+   408:	invokestatic	#13; //Method runOps:(FF)V
+   411:	ldc	#16; //float 3.4028235E38f
+   413:	fload	11
+   415:	invokestatic	#13; //Method runOps:(FF)V
+   418:	ldc	#23; //float 1.4E-45f
+   420:	fload	11
+   422:	invokestatic	#13; //Method runOps:(FF)V
+   425:	ldc	#24; //float -Infinityf
+   427:	fload	11
+   429:	invokestatic	#13; //Method runOps:(FF)V
+   432:	ldc	#18; //float Infinityf
+   434:	fload	11
+   436:	invokestatic	#13; //Method runOps:(FF)V
+   439:	fload	11
+   441:	fload	11
+   443:	invokestatic	#13; //Method runOps:(FF)V
+   446:	iconst_m1
+   447:	invokestatic	#20; //Method java/lang/Float.intBitsToFloat:(I)F
+   450:	fload	11
+   452:	invokestatic	#13; //Method runOps:(FF)V
+   455:	iinc	10, 1
+   458:	goto	371
+   461:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   464:	ldc	#37; //String Comparing two Float NaNs with different values:
+   466:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   469:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   472:	new	#4; //class java/lang/StringBuilder
+   475:	dup
+   476:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   479:	ldc	#38; //String \tNaN(-1) == Float.NaN: 
+   481:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   484:	iconst_m1
+   485:	invokestatic	#20; //Method java/lang/Float.intBitsToFloat:(I)F
+   488:	ldc	#34; //float NaNf
+   490:	fcmpl
+   491:	ifne	498
+   494:	iconst_1
+   495:	goto	499
+   498:	iconst_0
+   499:	invokevirtual	#39; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   502:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   505:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   508:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   511:	new	#4; //class java/lang/StringBuilder
+   514:	dup
+   515:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   518:	ldc	#40; //String \tNaN(-1) < Float.NaN: 
+   520:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   523:	iconst_m1
+   524:	invokestatic	#20; //Method java/lang/Float.intBitsToFloat:(I)F
+   527:	ldc	#34; //float NaNf
+   529:	fcmpg
+   530:	ifge	537
+   533:	iconst_1
+   534:	goto	538
+   537:	iconst_0
+   538:	invokevirtual	#39; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   541:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   544:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   547:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   550:	new	#4; //class java/lang/StringBuilder
+   553:	dup
+   554:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   557:	ldc	#41; //String \tNaN(-1) > Float.NaN: 
+   559:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   562:	iconst_m1
+   563:	invokestatic	#20; //Method java/lang/Float.intBitsToFloat:(I)F
+   566:	ldc	#34; //float NaNf
+   568:	fcmpl
+   569:	ifle	576
+   572:	iconst_1
+   573:	goto	577
+   576:	iconst_0
+   577:	invokevirtual	#39; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   580:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   583:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   586:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   589:	new	#4; //class java/lang/StringBuilder
+   592:	dup
+   593:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   596:	ldc	#42; //String \tFloat.compare(NaN(-1),Float.NaN): 
+   598:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   601:	iconst_m1
+   602:	invokestatic	#20; //Method java/lang/Float.intBitsToFloat:(I)F
+   605:	ldc	#34; //float NaNf
+   607:	invokestatic	#43; //Method java/lang/Float.compare:(FF)I
+   610:	invokevirtual	#44; //Method java/lang/StringBuilder.append:(I)Ljava/lang/StringBuilder;
+   613:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   616:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   619:	iconst_2
+   620:	newarray float
+   622:	dup
+   623:	iconst_0
+   624:	ldc	#24; //float -Infinityf
+   626:	fastore
+   627:	dup
+   628:	iconst_1
+   629:	ldc	#18; //float Infinityf
+   631:	fastore
+   632:	astore	8
+   634:	aload	8
+   636:	astore	9
+   638:	aload	9
+   640:	arraylength
+   641:	istore	10
+   643:	iconst_0
+   644:	istore	11
+   646:	iload	11
+   648:	iload	10
+   650:	if_icmpge	784
+   653:	aload	9
+   655:	iload	11
+   657:	faload
+   658:	fstore	12
+   660:	aload	8
+   662:	astore	13
+   664:	aload	13
+   666:	arraylength
+   667:	istore	14
+   669:	iconst_0
+   670:	istore	15
+   672:	iload	15
+   674:	iload	14
+   676:	if_icmpge	740
+   679:	aload	13
+   681:	iload	15
+   683:	faload
+   684:	fstore	16
+   686:	fload	12
+   688:	fload	16
+   690:	fdiv
+   691:	fstore	17
+   693:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   696:	new	#4; //class java/lang/StringBuilder
+   699:	dup
+   700:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   703:	fload	12
+   705:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   708:	ldc	#46; //String /
+   710:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   713:	fload	16
+   715:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   718:	ldc	#47; //String =
+   720:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   723:	fload	17
+   725:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   728:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   731:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   734:	iinc	15, 1
+   737:	goto	672
+   740:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   743:	new	#4; //class java/lang/StringBuilder
+   746:	dup
+   747:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   750:	ldc	#48; //String 0*
+   752:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   755:	fload	12
+   757:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   760:	ldc	#47; //String =
+   762:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   765:	fconst_0
+   766:	fload	12
+   768:	fmul
+   769:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   772:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   775:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   778:	iinc	11, 1
+   781:	goto	646
+   784:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   787:	ldc	#49; //String infty+-infty=NaN
+   789:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   792:	return
+  Exception table:
+   from   to  target type
+     4     8    11   Class java/lang/ArithmeticException
+
+    42    46    49   Class java/lang/ArithmeticException
+
+  LineNumberTable: 
+   line 5: 0
+   line 6: 2
+   line 9: 4
+   line 13: 8
+   line 11: 11
+   line 12: 13
+   line 16: 42
+   line 20: 46
+   line 18: 49
+   line 19: 51
+   line 22: 80
+   line 23: 87
+   line 24: 94
+   line 25: 101
+   line 26: 108
+   line 27: 115
+   line 28: 122
+   line 29: 129
+   line 31: 135
+   line 32: 139
+   line 33: 151
+   line 34: 161
+   line 42: 172
+   line 43: 218
+   line 44: 255
+   line 45: 295
+   line 50: 332
+   line 51: 341
+   line 52: 359
+   line 53: 385
+   line 54: 391
+   line 55: 398
+   line 56: 404
+   line 57: 411
+   line 58: 418
+   line 59: 425
+   line 60: 432
+   line 61: 439
+   line 62: 446
+   line 52: 455
+   line 65: 461
+   line 66: 469
+   line 67: 508
+   line 68: 547
+   line 69: 586
+   line 73: 619
+   line 74: 634
+   line 75: 660
+   line 76: 686
+   line 77: 693
+   line 75: 734
+   line 79: 740
+   line 74: 778
+   line 81: 784
+   line 82: 792
+
+  StackMapTable: number_of_entries = 20
+   frame_type = 255 /* full_frame */
+     offset_delta = 11
+     locals = [ class "[Ljava/lang/String;", float, float ]
+     stack = [ class java/lang/ArithmeticException ]
+   frame_type = 30 /* same */
+   frame_type = 70 /* same_locals_1_stack_item */
+     stack = [ class java/lang/ArithmeticException ]
+   frame_type = 30 /* same */
+   frame_type = 255 /* full_frame */
+     offset_delta = 149
+     locals = [ class "[Ljava/lang/String;", float, float, bogus, class "[F", class "[F", int, int ]
+     stack = []
+   frame_type = 248 /* chop */
+     offset_delta = 24
+   frame_type = 255 /* full_frame */
+     offset_delta = 51
+     locals = [ class "[Ljava/lang/String;", float, float, bogus, class "[F", class "[I", class "[I", int, int ]
+     stack = []
+   frame_type = 248 /* chop */
+     offset_delta = 24
+   frame_type = 255 /* full_frame */
+     offset_delta = 38
+     locals = [ class "[Ljava/lang/String;", float, float, bogus, class "[F", class "[I", float, class "[F", class "[F", int, int ]
+     stack = []
+   frame_type = 248 /* chop */
+     offset_delta = 89
+   frame_type = 255 /* full_frame */
+     offset_delta = 36
+     locals = [ class "[Ljava/lang/String;", float, float, bogus, class "[F", class "[I", float, class "[F" ]
+     stack = [ class java/io/PrintStream, class java/lang/StringBuilder ]
+   frame_type = 255 /* full_frame */
+     offset_delta = 0
+     locals = [ class "[Ljava/lang/String;", float, float, bogus, class "[F", class "[I", float, class "[F" ]
+     stack = [ class java/io/PrintStream, class java/lang/StringBuilder, int ]
+   frame_type = 255 /* full_frame */
+     offset_delta = 37
+     locals = [ class "[Ljava/lang/String;", float, float, bogus, class "[F", class "[I", float, class "[F" ]
+     stack = [ class java/io/PrintStream, class java/lang/StringBuilder ]
+   frame_type = 255 /* full_frame */
+     offset_delta = 0
+     locals = [ class "[Ljava/lang/String;", float, float, bogus, class "[F", class "[I", float, class "[F" ]
+     stack = [ class java/io/PrintStream, class java/lang/StringBuilder, int ]
+   frame_type = 255 /* full_frame */
+     offset_delta = 37
+     locals = [ class "[Ljava/lang/String;", float, float, bogus, class "[F", class "[I", float, class "[F" ]
+     stack = [ class java/io/PrintStream, class java/lang/StringBuilder ]
+   frame_type = 255 /* full_frame */
+     offset_delta = 0
+     locals = [ class "[Ljava/lang/String;", float, float, bogus, class "[F", class "[I", float, class "[F" ]
+     stack = [ class java/io/PrintStream, class java/lang/StringBuilder, int ]
+   frame_type = 255 /* full_frame */
+     offset_delta = 68
+     locals = [ class "[Ljava/lang/String;", float, float, bogus, class "[F", class "[I", float, class "[F", class "[F", class "[F", int, int ]
+     stack = []
+   frame_type = 255 /* full_frame */
+     offset_delta = 25
+     locals = [ class "[Ljava/lang/String;", float, float, bogus, class "[F", class "[I", float, class "[F", class "[F", class "[F", int, int, float, class "[F", int, int ]
+     stack = []
+   frame_type = 248 /* chop */
+     offset_delta = 67
+   frame_type = 255 /* full_frame */
+     offset_delta = 43
+     locals = [ class "[Ljava/lang/String;", float, float, bogus, class "[F", class "[I", float, class "[F", class "[F" ]
+     stack = []
+
+
+static void floatToIntTest(float);
+  Code:
+   Stack=3, Locals=1, Args_size=1
+   0:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   3:	new	#4; //class java/lang/StringBuilder
+   6:	dup
+   7:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   10:	ldc	#50; //String Float->int: 
+   12:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   15:	fload_0
+   16:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   19:	ldc	#51; //String ->
+   21:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   24:	fload_0
+   25:	invokestatic	#52; //Method java/lang/Float.floatToRawIntBits:(F)I
+   28:	invokevirtual	#44; //Method java/lang/StringBuilder.append:(I)Ljava/lang/StringBuilder;
+   31:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   34:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   37:	return
+  LineNumberTable: 
+   line 85: 0
+   line 86: 37
+
+
+static float getZero();
+  Code:
+   Stack=1, Locals=0, Args_size=0
+   0:	fconst_0
+   1:	freturn
+  LineNumberTable: 
+   line 88: 0
+
+
+static float getMaxValue();
+  Code:
+   Stack=1, Locals=0, Args_size=0
+   0:	ldc	#16; //float 3.4028235E38f
+   2:	freturn
+  LineNumberTable: 
+   line 89: 0
+
+
+static void intToFloatTest(int);
+  Code:
+   Stack=3, Locals=1, Args_size=1
+   0:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   3:	new	#4; //class java/lang/StringBuilder
+   6:	dup
+   7:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   10:	ldc	#53; //String Int->float: 
+   12:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   15:	iload_0
+   16:	invokevirtual	#44; //Method java/lang/StringBuilder.append:(I)Ljava/lang/StringBuilder;
+   19:	ldc	#51; //String ->
+   21:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   24:	iload_0
+   25:	invokestatic	#20; //Method java/lang/Float.intBitsToFloat:(I)F
+   28:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   31:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   34:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   37:	return
+  LineNumberTable: 
+   line 92: 0
+   line 93: 37
+
+
+static float test_flops();
+  Code:
+   Stack=4, Locals=7, Args_size=0
+   0:	fconst_0
+   1:	fstore_0
+   2:	fconst_2
+   3:	fstore_1
+   4:	ldc	#16; //float 3.4028235E38f
+   6:	fstore_2
+   7:	ldc	#11; //float 5.0f
+   9:	fstore_3
+   10:	ldc	#25; //float -4.32112352E8f
+   12:	fstore	4
+   14:	ldc	#23; //float 1.4E-45f
+   16:	fstore	5
+   18:	ldc	#54; //float 5463.0f
+   20:	fstore_0
+   21:	bipush	6
+   23:	newarray float
+   25:	dup
+   26:	iconst_0
+   27:	fload_0
+   28:	fastore
+   29:	dup
+   30:	iconst_1
+   31:	fload_1
+   32:	fastore
+   33:	dup
+   34:	iconst_2
+   35:	fload_2
+   36:	fastore
+   37:	dup
+   38:	iconst_3
+   39:	fload_3
+   40:	fastore
+   41:	dup
+   42:	iconst_4
+   43:	fload	4
+   45:	fastore
+   46:	dup
+   47:	iconst_5
+   48:	fload	5
+   50:	fastore
+   51:	astore	6
+   53:	aload	6
+   55:	iconst_3
+   56:	faload
+   57:	freturn
+  LineNumberTable: 
+   line 97: 0
+   line 98: 2
+   line 99: 4
+   line 100: 7
+   line 101: 10
+   line 102: 14
+   line 103: 18
+   line 104: 21
+   line 105: 53
+
+
+public static void runOps(float, float);
+  Code:
+   Stack=3, Locals=3, Args_size=2
+   0:	fload_0
+   1:	fload_1
+   2:	fadd
+   3:	fstore_2
+   4:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   7:	new	#4; //class java/lang/StringBuilder
+   10:	dup
+   11:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   14:	fload_0
+   15:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   18:	ldc	#55; //String  + 
+   20:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   23:	fload_1
+   24:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   27:	ldc	#56; //String  = 
+   29:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   32:	fload_2
+   33:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   36:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   39:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   42:	fload_0
+   43:	fload_1
+   44:	fsub
+   45:	fstore_2
+   46:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   49:	new	#4; //class java/lang/StringBuilder
+   52:	dup
+   53:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   56:	fload_0
+   57:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   60:	ldc	#57; //String  - 
+   62:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   65:	fload_1
+   66:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   69:	ldc	#56; //String  = 
+   71:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   74:	fload_2
+   75:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   78:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   81:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   84:	fload_1
+   85:	fload_0
+   86:	fsub
+   87:	fstore_2
+   88:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   91:	new	#4; //class java/lang/StringBuilder
+   94:	dup
+   95:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   98:	fload_1
+   99:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   102:	ldc	#57; //String  - 
+   104:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   107:	fload_0
+   108:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   111:	ldc	#56; //String  = 
+   113:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   116:	fload_2
+   117:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   120:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   123:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   126:	fload_0
+   127:	fload_1
+   128:	fdiv
+   129:	fstore_2
+   130:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   133:	new	#4; //class java/lang/StringBuilder
+   136:	dup
+   137:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   140:	fload_0
+   141:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   144:	ldc	#58; //String  / 
+   146:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   149:	fload_1
+   150:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   153:	ldc	#56; //String  = 
+   155:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   158:	fload_2
+   159:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   162:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   165:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   168:	fload_1
+   169:	fload_0
+   170:	fdiv
+   171:	fstore_2
+   172:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   175:	new	#4; //class java/lang/StringBuilder
+   178:	dup
+   179:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   182:	fload_1
+   183:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   186:	ldc	#58; //String  / 
+   188:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   191:	fload_0
+   192:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   195:	ldc	#56; //String  = 
+   197:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   200:	fload_2
+   201:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   204:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   207:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   210:	fload_0
+   211:	fload_1
+   212:	frem
+   213:	fstore_2
+   214:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   217:	new	#4; //class java/lang/StringBuilder
+   220:	dup
+   221:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   224:	fload_0
+   225:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   228:	ldc	#59; //String  % 
+   230:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   233:	fload_1
+   234:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   237:	ldc	#56; //String  = 
+   239:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   242:	fload_2
+   243:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   246:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   249:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   252:	fload_1
+   253:	fload_0
+   254:	frem
+   255:	fstore_2
+   256:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   259:	new	#4; //class java/lang/StringBuilder
+   262:	dup
+   263:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   266:	fload_1
+   267:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   270:	ldc	#59; //String  % 
+   272:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   275:	fload_0
+   276:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   279:	ldc	#56; //String  = 
+   281:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   284:	fload_2
+   285:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   288:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   291:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   294:	fload_0
+   295:	fload_1
+   296:	fmul
+   297:	fstore_2
+   298:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   301:	new	#4; //class java/lang/StringBuilder
+   304:	dup
+   305:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   308:	fload_0
+   309:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   312:	ldc	#60; //String  * 
+   314:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   317:	fload_1
+   318:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   321:	ldc	#56; //String  = 
+   323:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   326:	fload_2
+   327:	invokevirtual	#45; //Method java/lang/StringBuilder.append:(F)Ljava/lang/StringBuilder;
+   330:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   333:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   336:	return
+  LineNumberTable: 
+   line 109: 0
+   line 110: 4
+   line 111: 42
+   line 112: 46
+   line 113: 84
+   line 114: 88
+   line 115: 126
+   line 116: 130
+   line 117: 168
+   line 118: 172
+   line 119: 210
+   line 120: 214
+   line 121: 252
+   line 122: 256
+   line 123: 294
+   line 124: 298
+   line 125: 336
+
+
+}
+

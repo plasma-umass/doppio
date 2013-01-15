@@ -1,0 +1,280 @@
+Compiled from "Interfaces.java"
+class classes.test.Interfaces extends java.lang.Object
+  SourceFile: "Interfaces.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#37.#54;	//  java/lang/Object."<init>":()V
+const #2 = Field	#55.#56;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #3 = class	#57;	//  java/lang/StringBuilder
+const #4 = Method	#3.#54;	//  java/lang/StringBuilder."<init>":()V
+const #5 = String	#58;	//  Cat: 
+const #6 = Method	#3.#59;	//  java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #7 = Field	#60.#61;	//  classes/test/Cat.animalConst:Ljava/lang/StringBuilder;
+const #8 = Method	#3.#62;	//  java/lang/StringBuilder.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+const #9 = String	#63;	//  , 
+const #10 = Field	#60.#64;	//  classes/test/Cat.someOtherConst:Ljava/lang/StringBuilder;
+const #11 = Method	#3.#65;	//  java/lang/StringBuilder.toString:()Ljava/lang/String;
+const #12 = Method	#66.#67;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #13 = InterfaceMethod	#60.#68;	//  classes/test/Cat.MakeNoise:()V
+const #14 = InterfaceMethod	#60.#69;	//  classes/test/Cat.Purr:()V
+const #15 = String	#70;	//  Animal: 
+const #16 = Field	#71.#61;	//  classes/test/Animal.animalConst:Ljava/lang/StringBuilder;
+const #17 = Field	#71.#64;	//  classes/test/Animal.someOtherConst:Ljava/lang/StringBuilder;
+const #18 = InterfaceMethod	#71.#68;	//  classes/test/Animal.MakeNoise:()V
+const #19 = String	#72;	//  CatImpl: 
+const #20 = Field	#28.#61;	//  classes/test/CatImpl.animalConst:Ljava/lang/StringBuilder;
+const #21 = Field	#28.#64;	//  classes/test/CatImpl.someOtherConst:Ljava/lang/StringBuilder;
+const #22 = Method	#28.#68;	//  classes/test/CatImpl.MakeNoise:()V
+const #23 = Method	#28.#69;	//  classes/test/CatImpl.Purr:()V
+const #24 = String	#73;	//  CheshireCat: 
+const #25 = Field	#33.#64;	//  classes/test/CheshireCat.someOtherConst:Ljava/lang/StringBuilder;
+const #26 = Method	#33.#68;	//  classes/test/CheshireCat.MakeNoise:()V
+const #27 = Method	#33.#69;	//  classes/test/CheshireCat.Purr:()V
+const #28 = class	#74;	//  classes/test/CatImpl
+const #29 = Method	#28.#54;	//  classes/test/CatImpl."<init>":()V
+const #30 = Method	#36.#75;	//  classes/test/Interfaces.WorkOnCatImpl:(Lclasses/test/CatImpl;)V
+const #31 = Method	#36.#76;	//  classes/test/Interfaces.WorkOnCat:(Lclasses/test/Cat;)V
+const #32 = Method	#36.#77;	//  classes/test/Interfaces.WorkOnAnimal:(Lclasses/test/Animal;)V
+const #33 = class	#78;	//  classes/test/CheshireCat
+const #34 = Method	#33.#54;	//  classes/test/CheshireCat."<init>":()V
+const #35 = Method	#36.#79;	//  classes/test/Interfaces.WorkOnCheshireCat:(Lclasses/test/CheshireCat;)V
+const #36 = class	#80;	//  classes/test/Interfaces
+const #37 = class	#81;	//  java/lang/Object
+const #38 = Asciz	<init>;
+const #39 = Asciz	()V;
+const #40 = Asciz	Code;
+const #41 = Asciz	LineNumberTable;
+const #42 = Asciz	WorkOnCat;
+const #43 = Asciz	(Lclasses/test/Cat;)V;
+const #44 = Asciz	WorkOnAnimal;
+const #45 = Asciz	(Lclasses/test/Animal;)V;
+const #46 = Asciz	WorkOnCatImpl;
+const #47 = Asciz	(Lclasses/test/CatImpl;)V;
+const #48 = Asciz	WorkOnCheshireCat;
+const #49 = Asciz	(Lclasses/test/CheshireCat;)V;
+const #50 = Asciz	main;
+const #51 = Asciz	([Ljava/lang/String;)V;
+const #52 = Asciz	SourceFile;
+const #53 = Asciz	Interfaces.java;
+const #54 = NameAndType	#38:#39;//  "<init>":()V
+const #55 = class	#82;	//  java/lang/System
+const #56 = NameAndType	#83:#84;//  out:Ljava/io/PrintStream;
+const #57 = Asciz	java/lang/StringBuilder;
+const #58 = Asciz	Cat: ;
+const #59 = NameAndType	#85:#86;//  append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #60 = class	#87;	//  classes/test/Cat
+const #61 = NameAndType	#88:#89;//  animalConst:Ljava/lang/StringBuilder;
+const #62 = NameAndType	#85:#90;//  append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+const #63 = Asciz	, ;
+const #64 = NameAndType	#91:#89;//  someOtherConst:Ljava/lang/StringBuilder;
+const #65 = NameAndType	#92:#93;//  toString:()Ljava/lang/String;
+const #66 = class	#94;	//  java/io/PrintStream
+const #67 = NameAndType	#95:#96;//  println:(Ljava/lang/String;)V
+const #68 = NameAndType	#97:#39;//  MakeNoise:()V
+const #69 = NameAndType	#98:#39;//  Purr:()V
+const #70 = Asciz	Animal: ;
+const #71 = class	#99;	//  classes/test/Animal
+const #72 = Asciz	CatImpl: ;
+const #73 = Asciz	CheshireCat: ;
+const #74 = Asciz	classes/test/CatImpl;
+const #75 = NameAndType	#46:#47;//  WorkOnCatImpl:(Lclasses/test/CatImpl;)V
+const #76 = NameAndType	#42:#43;//  WorkOnCat:(Lclasses/test/Cat;)V
+const #77 = NameAndType	#44:#45;//  WorkOnAnimal:(Lclasses/test/Animal;)V
+const #78 = Asciz	classes/test/CheshireCat;
+const #79 = NameAndType	#48:#49;//  WorkOnCheshireCat:(Lclasses/test/CheshireCat;)V
+const #80 = Asciz	classes/test/Interfaces;
+const #81 = Asciz	java/lang/Object;
+const #82 = Asciz	java/lang/System;
+const #83 = Asciz	out;
+const #84 = Asciz	Ljava/io/PrintStream;;
+const #85 = Asciz	append;
+const #86 = Asciz	(Ljava/lang/String;)Ljava/lang/StringBuilder;;
+const #87 = Asciz	classes/test/Cat;
+const #88 = Asciz	animalConst;
+const #89 = Asciz	Ljava/lang/StringBuilder;;
+const #90 = Asciz	(Ljava/lang/Object;)Ljava/lang/StringBuilder;;
+const #91 = Asciz	someOtherConst;
+const #92 = Asciz	toString;
+const #93 = Asciz	()Ljava/lang/String;;
+const #94 = Asciz	java/io/PrintStream;
+const #95 = Asciz	println;
+const #96 = Asciz	(Ljava/lang/String;)V;
+const #97 = Asciz	MakeNoise;
+const #98 = Asciz	Purr;
+const #99 = Asciz	classes/test/Animal;
+
+{
+classes.test.Interfaces();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 3: 0
+
+
+public static void WorkOnCat(classes.test.Cat);
+  Code:
+   Stack=3, Locals=1, Args_size=1
+   0:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   3:	new	#3; //class java/lang/StringBuilder
+   6:	dup
+   7:	invokespecial	#4; //Method java/lang/StringBuilder."<init>":()V
+   10:	ldc	#5; //String Cat: 
+   12:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   15:	aload_0
+   16:	pop
+   17:	getstatic	#7; //Field classes/test/Cat.animalConst:Ljava/lang/StringBuilder;
+   20:	invokevirtual	#8; //Method java/lang/StringBuilder.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+   23:	ldc	#9; //String , 
+   25:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   28:	aload_0
+   29:	pop
+   30:	getstatic	#10; //Field classes/test/Cat.someOtherConst:Ljava/lang/StringBuilder;
+   33:	invokevirtual	#8; //Method java/lang/StringBuilder.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+   36:	invokevirtual	#11; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   39:	invokevirtual	#12; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   42:	aload_0
+   43:	invokeinterface	#13,  1; //InterfaceMethod classes/test/Cat.MakeNoise:()V
+   48:	aload_0
+   49:	invokeinterface	#14,  1; //InterfaceMethod classes/test/Cat.Purr:()V
+   54:	return
+  LineNumberTable: 
+   line 5: 0
+   line 6: 42
+   line 7: 48
+   line 8: 54
+
+
+public static void WorkOnAnimal(classes.test.Animal);
+  Code:
+   Stack=3, Locals=1, Args_size=1
+   0:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   3:	new	#3; //class java/lang/StringBuilder
+   6:	dup
+   7:	invokespecial	#4; //Method java/lang/StringBuilder."<init>":()V
+   10:	ldc	#15; //String Animal: 
+   12:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   15:	aload_0
+   16:	pop
+   17:	getstatic	#16; //Field classes/test/Animal.animalConst:Ljava/lang/StringBuilder;
+   20:	invokevirtual	#8; //Method java/lang/StringBuilder.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+   23:	ldc	#9; //String , 
+   25:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   28:	aload_0
+   29:	pop
+   30:	getstatic	#17; //Field classes/test/Animal.someOtherConst:Ljava/lang/StringBuilder;
+   33:	invokevirtual	#8; //Method java/lang/StringBuilder.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+   36:	invokevirtual	#11; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   39:	invokevirtual	#12; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   42:	aload_0
+   43:	invokeinterface	#18,  1; //InterfaceMethod classes/test/Animal.MakeNoise:()V
+   48:	return
+  LineNumberTable: 
+   line 11: 0
+   line 12: 42
+   line 13: 48
+
+
+public static void WorkOnCatImpl(classes.test.CatImpl);
+  Code:
+   Stack=3, Locals=1, Args_size=1
+   0:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   3:	new	#3; //class java/lang/StringBuilder
+   6:	dup
+   7:	invokespecial	#4; //Method java/lang/StringBuilder."<init>":()V
+   10:	ldc	#19; //String CatImpl: 
+   12:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   15:	aload_0
+   16:	getfield	#20; //Field classes/test/CatImpl.animalConst:Ljava/lang/StringBuilder;
+   19:	invokevirtual	#8; //Method java/lang/StringBuilder.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+   22:	ldc	#9; //String , 
+   24:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   27:	aload_0
+   28:	pop
+   29:	getstatic	#21; //Field classes/test/CatImpl.someOtherConst:Ljava/lang/StringBuilder;
+   32:	invokevirtual	#8; //Method java/lang/StringBuilder.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+   35:	invokevirtual	#11; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   38:	invokevirtual	#12; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   41:	aload_0
+   42:	invokevirtual	#22; //Method classes/test/CatImpl.MakeNoise:()V
+   45:	aload_0
+   46:	invokevirtual	#23; //Method classes/test/CatImpl.Purr:()V
+   49:	return
+  LineNumberTable: 
+   line 16: 0
+   line 17: 41
+   line 18: 45
+   line 19: 49
+
+
+public static void WorkOnCheshireCat(classes.test.CheshireCat);
+  Code:
+   Stack=3, Locals=1, Args_size=1
+   0:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   3:	new	#3; //class java/lang/StringBuilder
+   6:	dup
+   7:	invokespecial	#4; //Method java/lang/StringBuilder."<init>":()V
+   10:	ldc	#24; //String CheshireCat: 
+   12:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   15:	aload_0
+   16:	pop
+   17:	getstatic	#25; //Field classes/test/CheshireCat.someOtherConst:Ljava/lang/StringBuilder;
+   20:	invokevirtual	#8; //Method java/lang/StringBuilder.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+   23:	invokevirtual	#11; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   26:	invokevirtual	#12; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   29:	aload_0
+   30:	invokevirtual	#26; //Method classes/test/CheshireCat.MakeNoise:()V
+   33:	aload_0
+   34:	invokevirtual	#27; //Method classes/test/CheshireCat.Purr:()V
+   37:	return
+  LineNumberTable: 
+   line 22: 0
+   line 23: 29
+   line 24: 33
+   line 25: 37
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=2, Locals=3, Args_size=1
+   0:	new	#28; //class classes/test/CatImpl
+   3:	dup
+   4:	invokespecial	#29; //Method classes/test/CatImpl."<init>":()V
+   7:	astore_1
+   8:	aload_1
+   9:	invokestatic	#30; //Method WorkOnCatImpl:(Lclasses/test/CatImpl;)V
+   12:	aload_1
+   13:	invokestatic	#31; //Method WorkOnCat:(Lclasses/test/Cat;)V
+   16:	aload_1
+   17:	invokestatic	#32; //Method WorkOnAnimal:(Lclasses/test/Animal;)V
+   20:	new	#33; //class classes/test/CheshireCat
+   23:	dup
+   24:	invokespecial	#34; //Method classes/test/CheshireCat."<init>":()V
+   27:	astore_2
+   28:	aload_2
+   29:	invokestatic	#35; //Method WorkOnCheshireCat:(Lclasses/test/CheshireCat;)V
+   32:	aload_2
+   33:	invokestatic	#30; //Method WorkOnCatImpl:(Lclasses/test/CatImpl;)V
+   36:	aload_2
+   37:	invokestatic	#31; //Method WorkOnCat:(Lclasses/test/Cat;)V
+   40:	aload_2
+   41:	invokestatic	#32; //Method WorkOnAnimal:(Lclasses/test/Animal;)V
+   44:	return
+  LineNumberTable: 
+   line 28: 0
+   line 29: 8
+   line 30: 12
+   line 31: 16
+   line 33: 20
+   line 34: 28
+   line 35: 32
+   line 36: 36
+   line 37: 40
+   line 38: 44
+
+
+}
+

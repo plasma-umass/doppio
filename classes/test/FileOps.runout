@@ -1,0 +1,61 @@
+Is '' an absolute path?: false
+Does the absolute path of '' exist?: true
+Does the canonical path of '' exist?: true
+Does abspath == canonpath.abspath?: false
+Does abspath.canonpath == canonpath?: true
+Does '' exist?: false
+What is the length of ''?: 0
+Can you write to ''?: false
+.hiddenfile
+contains_data.txt
+regularfile
+Does contains_data.txt exist?: true
+Length of contains_data.txt: 340
+Can I write to contains_data.txt?:  true
+Is FileOps a directory?: true
+Can I write to it?: true
+Does temp_delete_me.txt exist?: false
+Did we successfully create this file?: true
+And does it exist now?: true
+Can I write to it?: true
+How about now?: false
+And now?: true
+File size: 0
+Sleeping for a small amount of time...
+New file size: 17
+File contents:
+Why, hello there!
+Now, has the modified time changed? true
+Deleting file: true
+Does the file exist?: false
+Does tempDir exist?: false
+Making tempDir: true
+Does tempDir exist now?: true
+Deleting tempDir: true
+Does tempDir exist now?: false
+Does tempDir/tempDir exist?: false
+Making tempDir/tempDir (should fail): false
+Does tempDir/tempDir exist now?: false
+Deleting tempDir/tempDir (should fail): false
+Making tempDir/tempDir (should succeed): true
+Does tempDir/tempDir exist now?: true
+Deleting tempDir (should fail -- nonempty): false
+Does tempDir/tempDir exist now?: true
+Does tempDir exist now?: true
+Deleting tempDir/tempDir: true
+Deleting tempDir (should succeed this time): true
+Does tempDir/tempDir exist now?: false
+Does tempDir exist now?: false
+Trying to create a directory that already exists: false
+Creating temp_rename_file.txt: true
+Renaming it to temp_rename_file2.txt: true
+Old file exist? false New file exists? true
+Recreating old file: true
+Moving on top of old file: true
+Deleting old file: true
+Trying to move nonexistant old file: false
+Creating temp_readonly.txt: true
+Marking as read only: true
+Can I write to the file?: false
+Can I read the file?: true
+Deleting file: true

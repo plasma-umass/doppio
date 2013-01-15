@@ -1,0 +1,117 @@
+Compiled from "StaticField.java"
+public class classes.test.StaticField extends java.lang.Object
+  SourceFile: "StaticField.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#10.#26;	//  java/lang/Object."<init>":()V
+const #2 = Field	#7.#27;	//  classes/test/StaticField.foo:I
+const #3 = Field	#7.#28;	//  classes/test/StaticField.baz:Ljava/lang/Object;
+const #4 = Field	#29.#30;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #5 = Field	#7.#31;	//  classes/test/StaticField.name:Ljava/lang/String;
+const #6 = Method	#32.#33;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #7 = class	#34;	//  classes/test/StaticField
+const #8 = Method	#35.#36;	//  java/lang/Class.getName:()Ljava/lang/String;
+const #9 = String	#37;	//  bar
+const #10 = class	#38;	//  java/lang/Object
+const #11 = Asciz	foo;
+const #12 = Asciz	I;
+const #13 = Asciz	name;
+const #14 = Asciz	Ljava/lang/String;;
+const #15 = Asciz	baz;
+const #16 = Asciz	Ljava/lang/Object;;
+const #17 = Asciz	<init>;
+const #18 = Asciz	()V;
+const #19 = Asciz	Code;
+const #20 = Asciz	LineNumberTable;
+const #21 = Asciz	main;
+const #22 = Asciz	([Ljava/lang/String;)V;
+const #23 = Asciz	<clinit>;
+const #24 = Asciz	SourceFile;
+const #25 = Asciz	StaticField.java;
+const #26 = NameAndType	#17:#18;//  "<init>":()V
+const #27 = NameAndType	#11:#12;//  foo:I
+const #28 = NameAndType	#15:#16;//  baz:Ljava/lang/Object;
+const #29 = class	#39;	//  java/lang/System
+const #30 = NameAndType	#40:#41;//  out:Ljava/io/PrintStream;
+const #31 = NameAndType	#13:#14;//  name:Ljava/lang/String;
+const #32 = class	#42;	//  java/io/PrintStream
+const #33 = NameAndType	#43:#44;//  println:(Ljava/lang/String;)V
+const #34 = Asciz	classes/test/StaticField;
+const #35 = class	#45;	//  java/lang/Class
+const #36 = NameAndType	#46:#47;//  getName:()Ljava/lang/String;
+const #37 = Asciz	bar;
+const #38 = Asciz	java/lang/Object;
+const #39 = Asciz	java/lang/System;
+const #40 = Asciz	out;
+const #41 = Asciz	Ljava/io/PrintStream;;
+const #42 = Asciz	java/io/PrintStream;
+const #43 = Asciz	println;
+const #44 = Asciz	(Ljava/lang/String;)V;
+const #45 = Asciz	java/lang/Class;
+const #46 = Asciz	getName;
+const #47 = Asciz	()Ljava/lang/String;;
+
+{
+static int foo;
+
+
+static java.lang.String name;
+
+
+static java.lang.Object baz;
+
+
+public classes.test.StaticField();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 3: 0
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=2, Locals=3, Args_size=1
+   0:	getstatic	#2; //Field foo:I
+   3:	istore_1
+   4:	getstatic	#3; //Field baz:Ljava/lang/Object;
+   7:	astore_2
+   8:	getstatic	#4; //Field java/lang/System.out:Ljava/io/PrintStream;
+   11:	getstatic	#5; //Field name:Ljava/lang/String;
+   14:	invokevirtual	#6; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   17:	getstatic	#4; //Field java/lang/System.out:Ljava/io/PrintStream;
+   20:	ldc_w	#7; //class classes/test/StaticField
+   23:	invokevirtual	#8; //Method java/lang/Class.getName:()Ljava/lang/String;
+   26:	invokevirtual	#6; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   29:	return
+  LineNumberTable: 
+   line 9: 0
+   line 10: 4
+   line 11: 8
+   line 12: 17
+   line 13: 29
+
+
+static {};
+  Code:
+   Stack=2, Locals=0, Args_size=0
+   0:	bipush	6
+   2:	putstatic	#2; //Field foo:I
+   5:	ldc	#9; //String bar
+   7:	putstatic	#5; //Field name:Ljava/lang/String;
+   10:	new	#10; //class java/lang/Object
+   13:	dup
+   14:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   17:	putstatic	#3; //Field baz:Ljava/lang/Object;
+   20:	return
+  LineNumberTable: 
+   line 4: 0
+   line 5: 5
+   line 6: 10
+
+
+}
+

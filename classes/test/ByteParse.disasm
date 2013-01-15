@@ -1,0 +1,249 @@
+Compiled from "ByteParse.java"
+class classes.test.ByteParse extends java.lang.Object
+  SourceFile: "ByteParse.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#16.#32;	//  java/lang/Object."<init>":()V
+const #2 = Field	#33.#34;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #3 = class	#35;	//  java/lang/StringBuilder
+const #4 = Method	#3.#32;	//  java/lang/StringBuilder."<init>":()V
+const #5 = String	#36;	//  Is 
+const #6 = Method	#3.#37;	//  java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #7 = Method	#3.#38;	//  java/lang/StringBuilder.append:(I)Ljava/lang/StringBuilder;
+const #8 = String	#39;	//   a byte? 
+const #9 = Method	#15.#40;	//  classes/test/ByteParse.IsByte:(I)Z
+const #10 = Method	#3.#41;	//  java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+const #11 = Method	#3.#42;	//  java/lang/StringBuilder.toString:()Ljava/lang/String;
+const #12 = Method	#43.#44;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #13 = String	#45;	//   a short? 
+const #14 = Method	#15.#46;	//  classes/test/ByteParse.IsShort:(I)Z
+const #15 = class	#47;	//  classes/test/ByteParse
+const #16 = class	#48;	//  java/lang/Object
+const #17 = Asciz	<init>;
+const #18 = Asciz	()V;
+const #19 = Asciz	Code;
+const #20 = Asciz	LineNumberTable;
+const #21 = Asciz	IsByte;
+const #22 = Asciz	(I)Z;
+const #23 = Asciz	StackMapTable;
+const #24 = Asciz	IsShort;
+const #25 = Asciz	main;
+const #26 = Asciz	([Ljava/lang/String;)V;
+const #27 = class	#49;	//  "[Ljava/lang/String;"
+const #28 = class	#50;	//  "[B"
+const #29 = class	#51;	//  "[S"
+const #30 = Asciz	SourceFile;
+const #31 = Asciz	ByteParse.java;
+const #32 = NameAndType	#17:#18;//  "<init>":()V
+const #33 = class	#52;	//  java/lang/System
+const #34 = NameAndType	#53:#54;//  out:Ljava/io/PrintStream;
+const #35 = Asciz	java/lang/StringBuilder;
+const #36 = Asciz	Is ;
+const #37 = NameAndType	#55:#56;//  append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #38 = NameAndType	#55:#57;//  append:(I)Ljava/lang/StringBuilder;
+const #39 = Asciz	 a byte? ;
+const #40 = NameAndType	#21:#22;//  IsByte:(I)Z
+const #41 = NameAndType	#55:#58;//  append:(Z)Ljava/lang/StringBuilder;
+const #42 = NameAndType	#59:#60;//  toString:()Ljava/lang/String;
+const #43 = class	#61;	//  java/io/PrintStream
+const #44 = NameAndType	#62:#63;//  println:(Ljava/lang/String;)V
+const #45 = Asciz	 a short? ;
+const #46 = NameAndType	#24:#22;//  IsShort:(I)Z
+const #47 = Asciz	classes/test/ByteParse;
+const #48 = Asciz	java/lang/Object;
+const #49 = Asciz	[Ljava/lang/String;;
+const #50 = Asciz	[B;
+const #51 = Asciz	[S;
+const #52 = Asciz	java/lang/System;
+const #53 = Asciz	out;
+const #54 = Asciz	Ljava/io/PrintStream;;
+const #55 = Asciz	append;
+const #56 = Asciz	(Ljava/lang/String;)Ljava/lang/StringBuilder;;
+const #57 = Asciz	(I)Ljava/lang/StringBuilder;;
+const #58 = Asciz	(Z)Ljava/lang/StringBuilder;;
+const #59 = Asciz	toString;
+const #60 = Asciz	()Ljava/lang/String;;
+const #61 = Asciz	java/io/PrintStream;
+const #62 = Asciz	println;
+const #63 = Asciz	(Ljava/lang/String;)V;
+
+{
+classes.test.ByteParse();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 4: 0
+
+
+static boolean IsByte(int);
+  Code:
+   Stack=2, Locals=1, Args_size=1
+   0:	bipush	-128
+   2:	iload_0
+   3:	if_icmpgt	16
+   6:	iload_0
+   7:	bipush	127
+   9:	if_icmpgt	16
+   12:	iconst_1
+   13:	goto	17
+   16:	iconst_0
+   17:	ireturn
+  LineNumberTable: 
+   line 6: 0
+
+  StackMapTable: number_of_entries = 2
+   frame_type = 16 /* same */
+   frame_type = 64 /* same_locals_1_stack_item */
+     stack = [ int ]
+
+
+static boolean IsShort(int);
+  Code:
+   Stack=2, Locals=1, Args_size=1
+   0:	sipush	-32768
+   3:	iload_0
+   4:	if_icmpgt	18
+   7:	iload_0
+   8:	sipush	32767
+   11:	if_icmpgt	18
+   14:	iconst_1
+   15:	goto	19
+   18:	iconst_0
+   19:	ireturn
+  LineNumberTable: 
+   line 9: 0
+
+  StackMapTable: number_of_entries = 2
+   frame_type = 18 /* same */
+   frame_type = 64 /* same_locals_1_stack_item */
+     stack = [ int ]
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=4, Locals=7, Args_size=1
+   0:	iconst_3
+   1:	newarray byte
+   3:	dup
+   4:	iconst_0
+   5:	iconst_0
+   6:	bastore
+   7:	dup
+   8:	iconst_1
+   9:	bipush	-128
+   11:	bastore
+   12:	dup
+   13:	iconst_2
+   14:	bipush	127
+   16:	bastore
+   17:	astore_1
+   18:	aload_1
+   19:	astore_2
+   20:	aload_2
+   21:	arraylength
+   22:	istore_3
+   23:	iconst_0
+   24:	istore	4
+   26:	iload	4
+   28:	iload_3
+   29:	if_icmpge	83
+   32:	aload_2
+   33:	iload	4
+   35:	baload
+   36:	istore	5
+   38:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   41:	new	#3; //class java/lang/StringBuilder
+   44:	dup
+   45:	invokespecial	#4; //Method java/lang/StringBuilder."<init>":()V
+   48:	ldc	#5; //String Is 
+   50:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   53:	iload	5
+   55:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(I)Ljava/lang/StringBuilder;
+   58:	ldc	#8; //String  a byte? 
+   60:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   63:	iload	5
+   65:	invokestatic	#9; //Method IsByte:(I)Z
+   68:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   71:	invokevirtual	#11; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   74:	invokevirtual	#12; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   77:	iinc	4, 1
+   80:	goto	26
+   83:	iconst_3
+   84:	newarray short
+   86:	dup
+   87:	iconst_0
+   88:	iconst_0
+   89:	sastore
+   90:	dup
+   91:	iconst_1
+   92:	sipush	-32768
+   95:	sastore
+   96:	dup
+   97:	iconst_2
+   98:	sipush	32767
+   101:	sastore
+   102:	astore_2
+   103:	aload_2
+   104:	astore_3
+   105:	aload_3
+   106:	arraylength
+   107:	istore	4
+   109:	iconst_0
+   110:	istore	5
+   112:	iload	5
+   114:	iload	4
+   116:	if_icmpge	170
+   119:	aload_3
+   120:	iload	5
+   122:	saload
+   123:	istore	6
+   125:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   128:	new	#3; //class java/lang/StringBuilder
+   131:	dup
+   132:	invokespecial	#4; //Method java/lang/StringBuilder."<init>":()V
+   135:	ldc	#5; //String Is 
+   137:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   140:	iload	6
+   142:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(I)Ljava/lang/StringBuilder;
+   145:	ldc	#13; //String  a short? 
+   147:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   150:	iload	6
+   152:	invokestatic	#14; //Method IsShort:(I)Z
+   155:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   158:	invokevirtual	#11; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   161:	invokevirtual	#12; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   164:	iinc	5, 1
+   167:	goto	112
+   170:	return
+  LineNumberTable: 
+   line 12: 0
+   line 13: 18
+   line 14: 38
+   line 13: 77
+   line 16: 83
+   line 17: 103
+   line 18: 125
+   line 17: 164
+   line 20: 170
+
+  StackMapTable: number_of_entries = 4
+   frame_type = 255 /* full_frame */
+     offset_delta = 26
+     locals = [ class "[Ljava/lang/String;", class "[B", class "[B", int, int ]
+     stack = []
+   frame_type = 248 /* chop */
+     offset_delta = 56
+   frame_type = 255 /* full_frame */
+     offset_delta = 28
+     locals = [ class "[Ljava/lang/String;", class "[B", class "[S", class "[S", int, int ]
+     stack = []
+   frame_type = 248 /* chop */
+     offset_delta = 57
+
+
+}
+

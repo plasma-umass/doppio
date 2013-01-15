@@ -1,0 +1,110 @@
+Compiled from "GCD.java"
+public class classes.test.GCD extends java.lang.Object
+  SourceFile: "GCD.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#11.#21;	//  java/lang/Object."<init>":()V
+const #2 = Field	#22.#23;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #3 = class	#24;	//  java/lang/StringBuilder
+const #4 = Method	#3.#21;	//  java/lang/StringBuilder."<init>":()V
+const #5 = String	#25;	//  The GCD of 114 and 84 is 
+const #6 = Method	#3.#26;	//  java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #7 = Method	#3.#27;	//  java/lang/StringBuilder.append:(I)Ljava/lang/StringBuilder;
+const #8 = Method	#3.#28;	//  java/lang/StringBuilder.toString:()Ljava/lang/String;
+const #9 = Method	#29.#30;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #10 = class	#31;	//  classes/test/GCD
+const #11 = class	#32;	//  java/lang/Object
+const #12 = Asciz	<init>;
+const #13 = Asciz	()V;
+const #14 = Asciz	Code;
+const #15 = Asciz	LineNumberTable;
+const #16 = Asciz	main;
+const #17 = Asciz	([Ljava/lang/String;)V;
+const #18 = Asciz	StackMapTable;
+const #19 = Asciz	SourceFile;
+const #20 = Asciz	GCD.java;
+const #21 = NameAndType	#12:#13;//  "<init>":()V
+const #22 = class	#33;	//  java/lang/System
+const #23 = NameAndType	#34:#35;//  out:Ljava/io/PrintStream;
+const #24 = Asciz	java/lang/StringBuilder;
+const #25 = Asciz	The GCD of 114 and 84 is ;
+const #26 = NameAndType	#36:#37;//  append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #27 = NameAndType	#36:#38;//  append:(I)Ljava/lang/StringBuilder;
+const #28 = NameAndType	#39:#40;//  toString:()Ljava/lang/String;
+const #29 = class	#41;	//  java/io/PrintStream
+const #30 = NameAndType	#42:#43;//  println:(Ljava/lang/String;)V
+const #31 = Asciz	classes/test/GCD;
+const #32 = Asciz	java/lang/Object;
+const #33 = Asciz	java/lang/System;
+const #34 = Asciz	out;
+const #35 = Asciz	Ljava/io/PrintStream;;
+const #36 = Asciz	append;
+const #37 = Asciz	(Ljava/lang/String;)Ljava/lang/StringBuilder;;
+const #38 = Asciz	(I)Ljava/lang/StringBuilder;;
+const #39 = Asciz	toString;
+const #40 = Asciz	()Ljava/lang/String;;
+const #41 = Asciz	java/io/PrintStream;
+const #42 = Asciz	println;
+const #43 = Asciz	(Ljava/lang/String;)V;
+
+{
+public classes.test.GCD();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 3: 0
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=3, Locals=4, Args_size=1
+   0:	sipush	144
+   3:	istore_1
+   4:	bipush	84
+   6:	istore_2
+   7:	iload_2
+   8:	ifeq	22
+   11:	iload_2
+   12:	istore_3
+   13:	iload_1
+   14:	iload_2
+   15:	irem
+   16:	istore_2
+   17:	iload_3
+   18:	istore_1
+   19:	goto	7
+   22:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   25:	new	#3; //class java/lang/StringBuilder
+   28:	dup
+   29:	invokespecial	#4; //Method java/lang/StringBuilder."<init>":()V
+   32:	ldc	#5; //String The GCD of 114 and 84 is 
+   34:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   37:	iload_1
+   38:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(I)Ljava/lang/StringBuilder;
+   41:	invokevirtual	#8; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   44:	invokevirtual	#9; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   47:	return
+  LineNumberTable: 
+   line 5: 0
+   line 6: 4
+   line 8: 7
+   line 9: 11
+   line 10: 13
+   line 11: 17
+   line 12: 19
+   line 14: 22
+   line 15: 47
+
+  StackMapTable: number_of_entries = 2
+   frame_type = 253 /* append */
+     offset_delta = 7
+     locals = [ int, int ]
+   frame_type = 14 /* same */
+
+
+}
+

@@ -1,0 +1,434 @@
+Compiled from "LongMath.java"
+public class classes.test.LongMath extends java.lang.Object
+  SourceFile: "LongMath.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#37.#51;	//  java/lang/Object."<init>":()V
+const #2 = class	#52;	//  java/lang/ArithmeticException
+const #3 = Field	#53.#54;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #4 = class	#55;	//  java/lang/StringBuilder
+const #5 = Method	#4.#51;	//  java/lang/StringBuilder."<init>":()V
+const #6 = String	#56;	//  Caught ArithmeticException as expected: 
+const #7 = Method	#4.#57;	//  java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #8 = Method	#2.#58;	//  java/lang/ArithmeticException.getMessage:()Ljava/lang/String;
+const #9 = Method	#4.#59;	//  java/lang/StringBuilder.toString:()Ljava/lang/String;
+const #10 = Method	#60.#61;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #11 = long	5l;
+const #13 = long	3l;
+const #15 = Method	#36.#62;	//  classes/test/LongMath.runOps:(JJ)V
+const #16 = long	-5l;
+const #18 = long	-3l;
+const #20 = long	9223372036854775807l;
+const #22 = long	-9223372036854775808l;
+const #24 = Method	#4.#63;	//  java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+const #25 = String	#64;	//   + 
+const #26 = String	#65;	//   = 
+const #27 = String	#66;	//   - 
+const #28 = String	#67;	//   / 
+const #29 = String	#68;	//   % 
+const #30 = String	#69;	//   * 
+const #31 = String	#70;	//   << 
+const #32 = String	#71;	//   >> 
+const #33 = String	#72;	//   >>> 
+const #34 = String	#73;	//   | 
+const #35 = String	#74;	//   ^ 
+const #36 = class	#75;	//  classes/test/LongMath
+const #37 = class	#76;	//  java/lang/Object
+const #38 = Asciz	<init>;
+const #39 = Asciz	()V;
+const #40 = Asciz	Code;
+const #41 = Asciz	LineNumberTable;
+const #42 = Asciz	main;
+const #43 = Asciz	([Ljava/lang/String;)V;
+const #44 = Asciz	StackMapTable;
+const #45 = class	#77;	//  "[Ljava/lang/String;"
+const #46 = class	#52;	//  java/lang/ArithmeticException
+const #47 = Asciz	runOps;
+const #48 = Asciz	(JJ)V;
+const #49 = Asciz	SourceFile;
+const #50 = Asciz	LongMath.java;
+const #51 = NameAndType	#38:#39;//  "<init>":()V
+const #52 = Asciz	java/lang/ArithmeticException;
+const #53 = class	#78;	//  java/lang/System
+const #54 = NameAndType	#79:#80;//  out:Ljava/io/PrintStream;
+const #55 = Asciz	java/lang/StringBuilder;
+const #56 = Asciz	Caught ArithmeticException as expected: ;
+const #57 = NameAndType	#81:#82;//  append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #58 = NameAndType	#83:#84;//  getMessage:()Ljava/lang/String;
+const #59 = NameAndType	#85:#84;//  toString:()Ljava/lang/String;
+const #60 = class	#86;	//  java/io/PrintStream
+const #61 = NameAndType	#87:#88;//  println:(Ljava/lang/String;)V
+const #62 = NameAndType	#47:#48;//  runOps:(JJ)V
+const #63 = NameAndType	#81:#89;//  append:(J)Ljava/lang/StringBuilder;
+const #64 = Asciz	 + ;
+const #65 = Asciz	 = ;
+const #66 = Asciz	 - ;
+const #67 = Asciz	 / ;
+const #68 = Asciz	 % ;
+const #69 = Asciz	 * ;
+const #70 = Asciz	 << ;
+const #71 = Asciz	 >> ;
+const #72 = Asciz	 >>> ;
+const #73 = Asciz	 | ;
+const #74 = Asciz	 ^ ;
+const #75 = Asciz	classes/test/LongMath;
+const #76 = Asciz	java/lang/Object;
+const #77 = Asciz	[Ljava/lang/String;;
+const #78 = Asciz	java/lang/System;
+const #79 = Asciz	out;
+const #80 = Asciz	Ljava/io/PrintStream;;
+const #81 = Asciz	append;
+const #82 = Asciz	(Ljava/lang/String;)Ljava/lang/StringBuilder;;
+const #83 = Asciz	getMessage;
+const #84 = Asciz	()Ljava/lang/String;;
+const #85 = Asciz	toString;
+const #86 = Asciz	java/io/PrintStream;
+const #87 = Asciz	println;
+const #88 = Asciz	(Ljava/lang/String;)V;
+const #89 = Asciz	(J)Ljava/lang/StringBuilder;;
+
+{
+public classes.test.LongMath();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 3: 0
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=4, Locals=8, Args_size=1
+   0:	lconst_1
+   1:	lstore_1
+   2:	lconst_0
+   3:	lstore_3
+   4:	lload_1
+   5:	lload_3
+   6:	ldiv
+   7:	lstore	5
+   9:	goto	43
+   12:	astore	7
+   14:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   17:	new	#4; //class java/lang/StringBuilder
+   20:	dup
+   21:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   24:	ldc	#6; //String Caught ArithmeticException as expected: 
+   26:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   29:	aload	7
+   31:	invokevirtual	#8; //Method java/lang/ArithmeticException.getMessage:()Ljava/lang/String;
+   34:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   37:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   40:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   43:	lload_1
+   44:	lload_3
+   45:	lrem
+   46:	lstore	5
+   48:	goto	82
+   51:	astore	7
+   53:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   56:	new	#4; //class java/lang/StringBuilder
+   59:	dup
+   60:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   63:	ldc	#6; //String Caught ArithmeticException as expected: 
+   65:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   68:	aload	7
+   70:	invokevirtual	#8; //Method java/lang/ArithmeticException.getMessage:()Ljava/lang/String;
+   73:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   76:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   79:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   82:	ldc2_w	#11; //long 5l
+   85:	ldc2_w	#13; //long 3l
+   88:	invokestatic	#15; //Method runOps:(JJ)V
+   91:	ldc2_w	#16; //long -5l
+   94:	ldc2_w	#13; //long 3l
+   97:	invokestatic	#15; //Method runOps:(JJ)V
+   100:	ldc2_w	#11; //long 5l
+   103:	ldc2_w	#18; //long -3l
+   106:	invokestatic	#15; //Method runOps:(JJ)V
+   109:	ldc2_w	#20; //long 9223372036854775807l
+   112:	ldc2_w	#20; //long 9223372036854775807l
+   115:	invokestatic	#15; //Method runOps:(JJ)V
+   118:	ldc2_w	#20; //long 9223372036854775807l
+   121:	ldc2_w	#22; //long -9223372036854775808l
+   124:	invokestatic	#15; //Method runOps:(JJ)V
+   127:	ldc2_w	#22; //long -9223372036854775808l
+   130:	ldc2_w	#20; //long 9223372036854775807l
+   133:	invokestatic	#15; //Method runOps:(JJ)V
+   136:	ldc2_w	#22; //long -9223372036854775808l
+   139:	ldc2_w	#22; //long -9223372036854775808l
+   142:	invokestatic	#15; //Method runOps:(JJ)V
+   145:	return
+  Exception table:
+   from   to  target type
+     4     9    12   Class java/lang/ArithmeticException
+
+    43    48    51   Class java/lang/ArithmeticException
+
+  LineNumberTable: 
+   line 5: 0
+   line 6: 2
+   line 9: 4
+   line 13: 9
+   line 11: 12
+   line 12: 14
+   line 16: 43
+   line 20: 48
+   line 18: 51
+   line 19: 53
+   line 22: 82
+   line 23: 91
+   line 24: 100
+   line 25: 109
+   line 26: 118
+   line 27: 127
+   line 28: 136
+   line 29: 145
+
+  StackMapTable: number_of_entries = 4
+   frame_type = 255 /* full_frame */
+     offset_delta = 12
+     locals = [ class "[Ljava/lang/String;", long, long ]
+     stack = [ class java/lang/ArithmeticException ]
+   frame_type = 30 /* same */
+   frame_type = 71 /* same_locals_1_stack_item */
+     stack = [ class java/lang/ArithmeticException ]
+   frame_type = 30 /* same */
+
+
+public static void runOps(long, long);
+  Code:
+   Stack=4, Locals=6, Args_size=2
+   0:	lload_0
+   1:	lload_2
+   2:	ladd
+   3:	lstore	4
+   5:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   8:	new	#4; //class java/lang/StringBuilder
+   11:	dup
+   12:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   15:	lload_0
+   16:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   19:	ldc	#25; //String  + 
+   21:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   24:	lload_2
+   25:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   28:	ldc	#26; //String  = 
+   30:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   33:	lload	4
+   35:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   38:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   41:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   44:	lload_0
+   45:	lload_2
+   46:	lsub
+   47:	lstore	4
+   49:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   52:	new	#4; //class java/lang/StringBuilder
+   55:	dup
+   56:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   59:	lload_0
+   60:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   63:	ldc	#27; //String  - 
+   65:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   68:	lload_2
+   69:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   72:	ldc	#26; //String  = 
+   74:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   77:	lload	4
+   79:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   82:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   85:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   88:	lload_0
+   89:	lload_2
+   90:	ldiv
+   91:	lstore	4
+   93:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   96:	new	#4; //class java/lang/StringBuilder
+   99:	dup
+   100:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   103:	lload_0
+   104:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   107:	ldc	#28; //String  / 
+   109:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   112:	lload_2
+   113:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   116:	ldc	#26; //String  = 
+   118:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   121:	lload	4
+   123:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   126:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   129:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   132:	lload_0
+   133:	lload_2
+   134:	lrem
+   135:	lstore	4
+   137:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   140:	new	#4; //class java/lang/StringBuilder
+   143:	dup
+   144:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   147:	lload_0
+   148:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   151:	ldc	#29; //String  % 
+   153:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   156:	lload_2
+   157:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   160:	ldc	#26; //String  = 
+   162:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   165:	lload	4
+   167:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   170:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   173:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   176:	lload_0
+   177:	lload_2
+   178:	lmul
+   179:	lstore	4
+   181:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   184:	new	#4; //class java/lang/StringBuilder
+   187:	dup
+   188:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   191:	lload_0
+   192:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   195:	ldc	#30; //String  * 
+   197:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   200:	lload_2
+   201:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   204:	ldc	#26; //String  = 
+   206:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   209:	lload	4
+   211:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   214:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   217:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   220:	lload_0
+   221:	lload_2
+   222:	l2i
+   223:	lshl
+   224:	lstore	4
+   226:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   229:	new	#4; //class java/lang/StringBuilder
+   232:	dup
+   233:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   236:	lload_0
+   237:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   240:	ldc	#31; //String  << 
+   242:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   245:	lload_2
+   246:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   249:	ldc	#26; //String  = 
+   251:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   254:	lload	4
+   256:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   259:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   262:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   265:	lload_0
+   266:	lload_2
+   267:	l2i
+   268:	lshr
+   269:	lstore	4
+   271:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   274:	new	#4; //class java/lang/StringBuilder
+   277:	dup
+   278:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   281:	lload_0
+   282:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   285:	ldc	#32; //String  >> 
+   287:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   290:	lload_2
+   291:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   294:	ldc	#26; //String  = 
+   296:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   299:	lload	4
+   301:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   304:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   307:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   310:	lload_0
+   311:	lload_2
+   312:	l2i
+   313:	lushr
+   314:	lstore	4
+   316:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   319:	new	#4; //class java/lang/StringBuilder
+   322:	dup
+   323:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   326:	lload_0
+   327:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   330:	ldc	#33; //String  >>> 
+   332:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   335:	lload_2
+   336:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   339:	ldc	#26; //String  = 
+   341:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   344:	lload	4
+   346:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   349:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   352:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   355:	lload_0
+   356:	lload_2
+   357:	lor
+   358:	lstore	4
+   360:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   363:	new	#4; //class java/lang/StringBuilder
+   366:	dup
+   367:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   370:	lload_0
+   371:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   374:	ldc	#34; //String  | 
+   376:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   379:	lload_2
+   380:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   383:	ldc	#26; //String  = 
+   385:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   388:	lload	4
+   390:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   393:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   396:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   399:	lload_0
+   400:	lload_2
+   401:	lxor
+   402:	lstore	4
+   404:	getstatic	#3; //Field java/lang/System.out:Ljava/io/PrintStream;
+   407:	new	#4; //class java/lang/StringBuilder
+   410:	dup
+   411:	invokespecial	#5; //Method java/lang/StringBuilder."<init>":()V
+   414:	lload_0
+   415:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   418:	ldc	#35; //String  ^ 
+   420:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   423:	lload_2
+   424:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   427:	ldc	#26; //String  = 
+   429:	invokevirtual	#7; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   432:	lload	4
+   434:	invokevirtual	#24; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   437:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   440:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   443:	return
+  LineNumberTable: 
+   line 32: 0
+   line 33: 5
+   line 34: 44
+   line 35: 49
+   line 36: 88
+   line 37: 93
+   line 38: 132
+   line 39: 137
+   line 40: 176
+   line 41: 181
+   line 42: 220
+   line 43: 226
+   line 44: 265
+   line 45: 271
+   line 46: 310
+   line 47: 316
+   line 48: 355
+   line 49: 360
+   line 50: 399
+   line 51: 404
+   line 52: 443
+
+
+}
+

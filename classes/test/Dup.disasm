@@ -1,0 +1,156 @@
+Compiled from "Dup.java"
+public class classes.test.Dup extends java.lang.Object
+  SourceFile: "Dup.java"
+  InnerClass: 
+   #16= #5 of #14; //DupMore=class classes/test/Dup$DupMore of class classes/test/Dup
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#15.#31;	//  java/lang/Object."<init>":()V
+const #2 = Field	#32.#33;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #3 = Method	#14.#34;	//  classes/test/Dup.dup2:()J
+const #4 = Method	#35.#36;	//  java/io/PrintStream.println:(J)V
+const #5 = class	#37;	//  classes/test/Dup$DupMore
+const #6 = Method	#5.#31;	//  classes/test/Dup$DupMore."<init>":()V
+const #7 = Method	#5.#38;	//  classes/test/Dup$DupMore.dup2_x1:()J
+const #8 = Method	#5.#39;	//  classes/test/Dup$DupMore.dup2_x2:()J
+const #9 = Method	#5.#40;	//  classes/test/Dup$DupMore.dup_x2:()I
+const #10 = Method	#35.#41;	//  java/io/PrintStream.println:(I)V
+const #11 = Field	#14.#42;	//  classes/test/Dup.longValue:J
+const #12 = long	5l;
+const #14 = class	#43;	//  classes/test/Dup
+const #15 = class	#44;	//  java/lang/Object
+const #16 = Asciz	DupMore;
+const #17 = Asciz	InnerClasses;
+const #18 = Asciz	longValue;
+const #19 = Asciz	J;
+const #20 = Asciz	<init>;
+const #21 = Asciz	()V;
+const #22 = Asciz	Code;
+const #23 = Asciz	LineNumberTable;
+const #24 = Asciz	main;
+const #25 = Asciz	([Ljava/lang/String;)V;
+const #26 = Asciz	dup2;
+const #27 = Asciz	()J;
+const #28 = Asciz	<clinit>;
+const #29 = Asciz	SourceFile;
+const #30 = Asciz	Dup.java;
+const #31 = NameAndType	#20:#21;//  "<init>":()V
+const #32 = class	#45;	//  java/lang/System
+const #33 = NameAndType	#46:#47;//  out:Ljava/io/PrintStream;
+const #34 = NameAndType	#26:#27;//  dup2:()J
+const #35 = class	#48;	//  java/io/PrintStream
+const #36 = NameAndType	#49:#50;//  println:(J)V
+const #37 = Asciz	classes/test/Dup$DupMore;
+const #38 = NameAndType	#51:#27;//  dup2_x1:()J
+const #39 = NameAndType	#52:#27;//  dup2_x2:()J
+const #40 = NameAndType	#53:#54;//  dup_x2:()I
+const #41 = NameAndType	#49:#55;//  println:(I)V
+const #42 = NameAndType	#18:#19;//  longValue:J
+const #43 = Asciz	classes/test/Dup;
+const #44 = Asciz	java/lang/Object;
+const #45 = Asciz	java/lang/System;
+const #46 = Asciz	out;
+const #47 = Asciz	Ljava/io/PrintStream;;
+const #48 = Asciz	java/io/PrintStream;
+const #49 = Asciz	println;
+const #50 = Asciz	(J)V;
+const #51 = Asciz	dup2_x1;
+const #52 = Asciz	dup2_x2;
+const #53 = Asciz	dup_x2;
+const #54 = Asciz	()I;
+const #55 = Asciz	(I)V;
+
+{
+private static long longValue;
+
+
+public classes.test.Dup();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 3: 0
+   line 28: 4
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=3, Locals=2, Args_size=1
+   0:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   3:	invokestatic	#3; //Method dup2:()J
+   6:	invokevirtual	#4; //Method java/io/PrintStream.println:(J)V
+   9:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   12:	invokestatic	#3; //Method dup2:()J
+   15:	invokevirtual	#4; //Method java/io/PrintStream.println:(J)V
+   18:	new	#5; //class classes/test/Dup$DupMore
+   21:	dup
+   22:	invokespecial	#6; //Method classes/test/Dup$DupMore."<init>":()V
+   25:	astore_1
+   26:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   29:	aload_1
+   30:	invokevirtual	#7; //Method classes/test/Dup$DupMore.dup2_x1:()J
+   33:	invokevirtual	#4; //Method java/io/PrintStream.println:(J)V
+   36:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   39:	aload_1
+   40:	invokevirtual	#7; //Method classes/test/Dup$DupMore.dup2_x1:()J
+   43:	invokevirtual	#4; //Method java/io/PrintStream.println:(J)V
+   46:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   49:	aload_1
+   50:	invokevirtual	#8; //Method classes/test/Dup$DupMore.dup2_x2:()J
+   53:	invokevirtual	#4; //Method java/io/PrintStream.println:(J)V
+   56:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   59:	aload_1
+   60:	invokevirtual	#8; //Method classes/test/Dup$DupMore.dup2_x2:()J
+   63:	invokevirtual	#4; //Method java/io/PrintStream.println:(J)V
+   66:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   69:	aload_1
+   70:	pop
+   71:	invokestatic	#9; //Method classes/test/Dup$DupMore.dup_x2:()I
+   74:	invokevirtual	#10; //Method java/io/PrintStream.println:(I)V
+   77:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   80:	aload_1
+   81:	pop
+   82:	invokestatic	#9; //Method classes/test/Dup$DupMore.dup_x2:()I
+   85:	invokevirtual	#10; //Method java/io/PrintStream.println:(I)V
+   88:	return
+  LineNumberTable: 
+   line 7: 0
+   line 8: 9
+   line 10: 18
+   line 11: 26
+   line 12: 36
+   line 14: 46
+   line 15: 56
+   line 17: 66
+   line 18: 77
+   line 19: 88
+
+
+public static long dup2();
+  Code:
+   Stack=6, Locals=0, Args_size=0
+   0:	getstatic	#11; //Field longValue:J
+   3:	dup2
+   4:	lconst_1
+   5:	ladd
+   6:	putstatic	#11; //Field longValue:J
+   9:	lreturn
+  LineNumberTable: 
+   line 25: 0
+
+
+static {};
+  Code:
+   Stack=2, Locals=0, Args_size=0
+   0:	ldc2_w	#12; //long 5l
+   3:	putstatic	#11; //Field longValue:J
+   6:	return
+  LineNumberTable: 
+   line 21: 0
+
+
+}
+
