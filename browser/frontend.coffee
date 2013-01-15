@@ -58,15 +58,6 @@ preload = ->
         done = true
         on_complete() if file_count == 0
 
-fetch_rhino = ->
-  try
-    data = node.fs.readFileSync("/home/doppio/vendor/classes/com/sun/tools/script/shell/Main.class")
-  catch e
-    console.error e
-
-  if data?
-    class_cache['!rhino'] = process_bytecode data
-
 try_path = (path) ->
   try
     return util.bytestr_to_array node.fs.readFileSync(path)
@@ -209,7 +200,6 @@ $(document).ready ->
 
   $('#close_btn').click (e) -> close_editor(); e.preventDefault()
   preload()
-  fetch_rhino()
 
 commands =
   javac: (args, cb) ->
@@ -252,7 +242,7 @@ commands =
   rhino: (args, cb) ->
     jvm.classpath = [ "./", "/home/doppio/vendor/classes/" ]
     rs = new runtime.RuntimeState(stdout, user_input, read_classfile)
-    jvm.run_class(rs, '!rhino', args, -> controller.reprompt())
+    jvm.run_class(rs, 'com/sun/tools/script/shell/Main', args, -> controller.reprompt())
     return null  # no reprompt, because we handle it ourselves
   list_cache: ->
     ((if val? then '' else '-') + name for name, val of raw_cache).join '\n'
