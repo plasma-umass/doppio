@@ -1,8 +1,3 @@
-/*
- *
- * Adapted from the Rosetta Code entry for Java LZW
- *
- */
 package classes.demo;
 
 import java.util.*;
@@ -66,10 +61,24 @@ public class Lzw {
         return result;
     }
 
+    static String fileToString(String filename)
+    throws FileNotFoundException, IOException {
+      File f = new File(filename);
+      BufferedReader in = new BufferedReader(new FileReader(f));
+      char[] buffer = new char[(int)f.length()];
+      int i = 0;
+      int c;
+      while ((c = in.read()) != -1) {
+        buffer[i++] = (char)c;
+      }
+      return new String(buffer);
+    }
+
+
     public static void compressFile(String infile, String outfile) 
     throws FileNotFoundException, IOException {
       // slurp into string
-      String text = new Scanner(new File(infile)).useDelimiter("\\A").next();
+      String text = fileToString(infile);
       OutputStreamWriter out = new OutputStreamWriter(new FileOutputStream(outfile));
       for (Integer i : compress(text)) {
         out.write((char)i.intValue());
