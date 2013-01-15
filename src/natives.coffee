@@ -709,6 +709,9 @@ native_methods =
             filepath = filename.jvm2js_str()
             try  # TODO: actually look at the mode
               _this.$file = fs.openSync filepath, 'r'
+              # also store the file handle in the file descriptor object
+              fd = _this.get_field rs, 'java/io/FileInputStream/fd'
+              fd.set_field rs, 'java/io/FileDescriptor/fd', _this.$file
               _this.$pos = 0
             catch e
               if e.code == 'ENOENT'
@@ -1055,6 +1058,28 @@ native_methods =
         o 'defineClass(Ljava/lang/String;[BIILjava/lang/ClassLoader;Ljava/security/ProtectionDomain;)Ljava/lang/Class;', (rs, _this, name, bytes, offset, len, loader, pd) ->
             native_define_class rs, name, bytes, offset, len, loader
       ]
+    nio:
+      ch:
+        FileChannelImpl: [
+          # this poorly-named method actually specifies the page size for mmap
+          o 'initIDs()J', (rs) -> gLong.fromNumber(8192)  # arbitrary
+        ]
+        FileDispatcher: [
+          o 'init()V', (rs) -> # NOP
+          o 'read0(Ljava/io/FileDescriptor;JI)I', (rs, fd_obj, address, len) ->
+            # this is the same as the .$file attribute on FileInputStream
+            fd = fd_obj.get_field rs, 'java/io/FileDescriptor/fd'
+            # read upto len bytes and store into mmap'd buffer at address
+            block_addr = rs.block_addr(address)
+            buf = new Buffer len
+            bytes_read = fs.readSync(fd, buf, 0, len)
+            if DataView?
+              rs.mem_blocks[block_addr] = buf  # TODO: check that this works
+            else
+              for i in [0...bytes_read] by 1
+                rs.mem_blocks[block_addr+i] = buf.readInt8(i)
+            return bytes_read
+        ]
     reflect:
       ConstantPool: [
         o 'getLongAt0(Ljava/lang/Object;I)J', (rs, _this, cp, idx) ->
