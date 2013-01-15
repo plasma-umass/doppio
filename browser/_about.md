@@ -66,7 +66,7 @@ handled by the Javascript engine's GC. However, since Java methods like
 auto-incremented `ref` field in each object's metadata that acts as an imaginary
 heap address.
 
-### Asynchronity
+### Asynchronicity
 
 While we do not emulate threads, we still wanted to handle blocking operations,
 particularly for standard input. Since the browser DOM is largely asynchronous,
