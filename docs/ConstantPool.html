@@ -1,0 +1,159 @@
+<!DOCTYPE html>  <html> <head>   <title>ConstantPool.coffee</title>   <meta http-equiv="content-type" content="text/html; charset=UTF-8">   <link rel="stylesheet" media="all" href="docco.css" /> </head> <body>   <div id="container">     <div id="background"></div>            <div id="jump_to">         Jump To &hellip;         <div id="jump_wrapper">           <div id="jump_page">                                           <a class="source" href="frontend.html">                 frontend.coffee               </a>                                           <a class="source" href="node.html">                 node.coffee               </a>                                           <a class="source" href="untar.html">                 untar.coffee               </a>                                           <a class="source" href="util.html">                 util.coffee               </a>                                           <a class="source" href="ClassFile.html">                 ClassFile.coffee               </a>                                           <a class="source" href="ConstantPool.html">                 ConstantPool.coffee               </a>                                           <a class="source" href="attributes.html">                 attributes.coffee               </a>                                           <a class="source" href="disassembler.html">                 disassembler.coffee               </a>                                           <a class="source" href="exceptions.html">                 exceptions.coffee               </a>                                           <a class="source" href="java_object.html">                 java_object.coffee               </a>                                           <a class="source" href="jvm.html">                 jvm.coffee               </a>                                           <a class="source" href="logging.html">                 logging.coffee               </a>                                           <a class="source" href="methods.html">                 methods.coffee               </a>                                           <a class="source" href="natives.html">                 natives.coffee               </a>                                           <a class="source" href="opcodes.html">                 opcodes.coffee               </a>                                           <a class="source" href="runtime.html">                 runtime.coffee               </a>                                           <a class="source" href="testing.html">                 testing.coffee               </a>                                           <a class="source" href="types.html">                 types.coffee               </a>                                           <a class="source" href="util.html">                 util.coffee               </a>                        </div>         </div>       </div>          <table cellpadding="0" cellspacing="0">       <thead>         <tr>           <th class="docs">             <h1>               ConstantPool.coffee             </h1>           </th>           <th class="code">           </th>         </tr>       </thead>       <tbody>                               <tr id="section-1">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-1">&#182;</a>               </div>                            </td>             <td class="code">               <div class="highlight"><pre></pre></div>             </td>           </tr>                               <tr id="section-2">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-2">&#182;</a>               </div>               <p>Export a single 'ConstantPool' constructor.</p>             </td>             <td class="code">               <div class="highlight"><pre></pre></div>             </td>           </tr>                               <tr id="section-3">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-3">&#182;</a>               </div>               <p>pull in external modules</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">gLong = </span><span class="nx">require</span> <span class="s1">&#39;../vendor/gLong.js&#39;</span>
+<span class="nv">util = </span><span class="nx">require</span> <span class="s1">&#39;./util&#39;</span>
+
+<span class="s2">&quot;use strict&quot;</span></pre></div>             </td>           </tr>                               <tr id="section-4">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-4">&#182;</a>               </div>               <p>All objects in the constant pool have the properties @type and @value.
+*Reference and NameAndType objects all have a @deref method, which resolves
+all child references to their values (i.e. discarding @type).</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="k">class</span> <span class="nx">SimpleReference</span>
+  <span class="nv">constructor: </span><span class="nf">(@constant_pool, @value) -&gt;</span>
+
+  <span class="vi">@size: </span><span class="mi">1</span>
+
+  <span class="vi">@from_bytes: </span><span class="nf">(bytes_array, constant_pool) -&gt;</span>
+    <span class="nv">value = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
+    <span class="nv">ref = </span><span class="k">new</span> <span class="err">@</span> <span class="nx">constant_pool</span><span class="p">,</span> <span class="nx">value</span>
+    <span class="k">return</span> <span class="nx">ref</span>
+
+  <span class="nv">deref: </span><span class="o">-&gt;</span>
+    <span class="nv">pool_obj = </span><span class="nx">@constant_pool</span><span class="p">[</span><span class="nx">@value</span><span class="p">]</span>
+    <span class="nx">pool_obj</span><span class="p">.</span><span class="nx">deref</span><span class="o">?</span><span class="p">()</span> <span class="o">or</span> <span class="nx">pool_obj</span><span class="p">.</span><span class="nx">value</span>
+
+<span class="k">class</span> <span class="nx">ClassReference</span> <span class="k">extends</span> <span class="nx">SimpleReference</span>
+  <span class="nv">constructor: </span><span class="nf">(@constant_pool, @value) -&gt;</span> <span class="vi">@type = </span><span class="s1">&#39;class&#39;</span>
+
+<span class="k">class</span> <span class="nx">StringReference</span> <span class="k">extends</span> <span class="nx">SimpleReference</span>
+  <span class="nv">constructor: </span><span class="nf">(@constant_pool, @value) -&gt;</span> <span class="vi">@type = </span><span class="s1">&#39;String&#39;</span>
+
+<span class="k">class</span> <span class="nx">AbstractMethodFieldReference</span>
+  <span class="vi">@size: </span><span class="mi">1</span>
+
+  <span class="vi">@from_bytes: </span><span class="nf">(bytes_array, constant_pool) -&gt;</span>
+    <span class="nv">class_ref = </span><span class="nx">ClassReference</span><span class="p">.</span><span class="nx">from_bytes</span> <span class="nx">bytes_array</span><span class="p">,</span> <span class="nx">constant_pool</span>
+    <span class="nv">sig = </span><span class="nx">SimpleReference</span><span class="p">.</span><span class="nx">from_bytes</span> <span class="nx">bytes_array</span><span class="p">,</span> <span class="nx">constant_pool</span>
+    <span class="nv">ref = </span><span class="k">new</span> <span class="err">@</span> <span class="nx">constant_pool</span><span class="p">,</span> <span class="p">{</span> <span class="nv">class_ref: </span><span class="nx">class_ref</span><span class="p">,</span> <span class="nv">sig: </span><span class="nx">sig</span> <span class="p">}</span>
+    <span class="k">return</span> <span class="nx">ref</span>
+
+  <span class="nv">deref: </span><span class="o">-&gt;</span>
+    <span class="nv">sig = </span><span class="nx">@value</span><span class="p">.</span><span class="nx">sig</span><span class="p">.</span><span class="nx">deref</span><span class="p">()</span>
+    <span class="p">{</span>
+      <span class="k">class</span><span class="o">:</span> <span class="nx">@value</span><span class="p">.</span><span class="nx">class_ref</span><span class="p">.</span><span class="nx">deref</span><span class="p">()</span>
+      <span class="nv">sig: </span><span class="nx">sig</span><span class="p">.</span><span class="nx">name</span> <span class="o">+</span> <span class="nx">sig</span><span class="p">.</span><span class="nx">type</span>
+    <span class="p">}</span>
+
+<span class="k">class</span> <span class="nx">MethodReference</span> <span class="k">extends</span> <span class="nx">AbstractMethodFieldReference</span>
+  <span class="nv">constructor: </span><span class="nf">(@constant_pool, @value) -&gt;</span> <span class="vi">@type = </span><span class="s1">&#39;Method&#39;</span>
+
+<span class="k">class</span> <span class="nx">InterfaceMethodReference</span> <span class="k">extends</span> <span class="nx">AbstractMethodFieldReference</span>
+  <span class="nv">constructor: </span><span class="nf">(@constant_pool, @value) -&gt;</span> <span class="vi">@type = </span><span class="s1">&#39;InterfaceMethod&#39;</span>
+
+<span class="k">class</span> <span class="nx">FieldReference</span> <span class="k">extends</span> <span class="nx">AbstractMethodFieldReference</span>
+  <span class="nv">constructor: </span><span class="nf">(@constant_pool, @value) -&gt;</span> <span class="vi">@type = </span><span class="s1">&#39;Field&#39;</span>
+
+  <span class="nv">deref: </span><span class="o">-&gt;</span>
+    <span class="nv">sig = </span><span class="nx">@value</span><span class="p">.</span><span class="nx">sig</span><span class="p">.</span><span class="nx">deref</span><span class="p">()</span>
+    <span class="p">{</span>
+      <span class="k">class</span><span class="o">:</span> <span class="nx">@value</span><span class="p">.</span><span class="nx">class_ref</span><span class="p">.</span><span class="nx">deref</span><span class="p">()</span>
+      <span class="nv">name: </span><span class="nx">sig</span><span class="p">.</span><span class="nx">name</span>
+      <span class="nv">type: </span><span class="nx">sig</span><span class="p">.</span><span class="nx">type</span>
+    <span class="p">}</span>
+
+<span class="k">class</span> <span class="nx">MethodSignature</span>
+  <span class="nv">constructor: </span><span class="nf">(@constant_pool, @value) -&gt;</span> <span class="vi">@type = </span><span class="s1">&#39;NameAndType&#39;</span>
+
+  <span class="vi">@size: </span><span class="mi">1</span>
+
+  <span class="vi">@from_bytes: </span><span class="nf">(bytes_array, constant_pool) -&gt;</span>
+    <span class="nv">meth_ref = </span><span class="nx">StringReference</span><span class="p">.</span><span class="nx">from_bytes</span> <span class="nx">bytes_array</span><span class="p">,</span> <span class="nx">constant_pool</span>
+    <span class="nv">type_ref = </span><span class="nx">StringReference</span><span class="p">.</span><span class="nx">from_bytes</span> <span class="nx">bytes_array</span><span class="p">,</span> <span class="nx">constant_pool</span>
+    <span class="nv">ref = </span><span class="k">new</span> <span class="err">@</span> <span class="nx">constant_pool</span><span class="p">,</span> <span class="p">{</span> <span class="nv">meth_ref: </span><span class="nx">meth_ref</span><span class="p">,</span> <span class="nv">type_ref: </span><span class="nx">type_ref</span> <span class="p">}</span>
+    <span class="k">return</span> <span class="nx">ref</span>
+
+  <span class="nv">deref: </span><span class="o">-&gt;</span>
+    <span class="p">{</span>
+      <span class="nv">name: </span><span class="nx">@value</span><span class="p">.</span><span class="nx">meth_ref</span><span class="p">.</span><span class="nx">deref</span><span class="p">()</span>
+      <span class="nv">type: </span><span class="nx">@value</span><span class="p">.</span><span class="nx">type_ref</span><span class="p">.</span><span class="nx">deref</span><span class="p">()</span>
+    <span class="p">}</span>
+
+<span class="k">class</span> <span class="nx">ConstString</span>
+  <span class="nv">constructor: </span><span class="nf">(@value) -&gt;</span> <span class="vi">@type = </span><span class="s1">&#39;Asciz&#39;</span>
+
+  <span class="vi">@size: </span><span class="mi">1</span>
+
+  <span class="vi">@from_bytes: </span><span class="nf">(bytes_array) -&gt;</span>
+    <span class="nv">strlen = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
+    <span class="nv">value = </span><span class="nx">util</span><span class="p">.</span><span class="nx">bytes2str</span> <span class="nx">bytes_array</span><span class="p">.</span><span class="nx">read</span><span class="p">(</span><span class="nx">strlen</span><span class="p">)</span>
+    <span class="nv">const_string = </span><span class="k">new</span> <span class="err">@</span> <span class="nx">value</span>
+    <span class="k">return</span> <span class="nx">const_string</span>
+
+<span class="k">class</span> <span class="nx">ConstInt32</span>
+  <span class="nv">constructor: </span><span class="nf">(@value) -&gt;</span> <span class="vi">@type = </span><span class="s1">&#39;int&#39;</span>
+
+  <span class="vi">@size: </span><span class="mi">1</span>
+
+  <span class="vi">@from_bytes: </span><span class="nf">(bytes_array) -&gt;</span>
+    <span class="nv">uint32 = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">4</span>
+    <span class="nv">value = </span><span class="o">-</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="o">~</span><span class="nx">uint32</span><span class="p">)</span>  <span class="c1"># convert to signed integer ONLY FOR 32 BITS</span>
+    <span class="nv">int32 = </span><span class="k">new</span> <span class="err">@</span> <span class="nx">value</span>
+    <span class="k">return</span> <span class="nx">int32</span>
+
+<span class="k">class</span> <span class="nx">ConstFloat</span>
+  <span class="nv">constructor: </span><span class="nf">(@value) -&gt;</span> <span class="vi">@type = </span><span class="s1">&#39;float&#39;</span>
+
+  <span class="vi">@size: </span><span class="mi">1</span>
+
+  <span class="vi">@from_bytes: </span><span class="nf">(bytes_array) -&gt;</span>
+    <span class="nv">uint32 = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">4</span></pre></div>             </td>           </tr>                               <tr id="section-5">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-5">&#182;</a>               </div>               <p>We OR with 0 to convert to a signed int.</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nv">value = </span><span class="nx">util</span><span class="p">.</span><span class="nx">intbits2float</span><span class="p">(</span><span class="nx">uint32</span><span class="o">|</span><span class="mi">0</span><span class="p">)</span>
+    <span class="nv">float = </span><span class="k">new</span> <span class="err">@</span> <span class="nx">value</span>
+    <span class="k">return</span> <span class="nx">float</span>
+
+<span class="k">class</span> <span class="nx">ConstLong</span>
+  <span class="nv">constructor: </span><span class="nf">(@value) -&gt;</span> <span class="vi">@type = </span><span class="s1">&#39;long&#39;</span>
+
+  <span class="vi">@size: </span><span class="mi">2</span>
+
+  <span class="vi">@from_bytes: </span><span class="nf">(bytes_array) -&gt;</span>
+    <span class="nv">high = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">4</span>
+    <span class="nv">low = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">4</span>
+    <span class="nv">value = </span><span class="nx">gLong</span><span class="p">.</span><span class="nx">fromBits</span><span class="p">(</span><span class="nx">low</span><span class="p">,</span><span class="nx">high</span><span class="p">)</span>
+    <span class="nv">long = </span><span class="k">new</span> <span class="err">@</span> <span class="nx">value</span>
+    <span class="k">return</span> <span class="nx">long</span>
+
+<span class="k">class</span> <span class="nx">ConstDouble</span>
+  <span class="nv">constructor: </span><span class="nf">(@value) -&gt;</span> <span class="vi">@type = </span><span class="s1">&#39;double&#39;</span>
+
+  <span class="vi">@size: </span><span class="mi">2</span>
+
+  <span class="vi">@from_bytes: </span><span class="nf">(bytes_array) -&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-6">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-6">&#182;</a>               </div>               <p>a hack since bitshifting in js is 32bit</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nv">uint32_a = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">4</span>
+    <span class="nv">uint32_b = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">4</span>
+    <span class="nv">double = </span><span class="k">new</span> <span class="err">@</span> <span class="nx">util</span><span class="p">.</span><span class="nx">longbits2double</span><span class="p">(</span><span class="nx">uint32_a</span><span class="p">,</span> <span class="nx">uint32_b</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nx">double</span>
+
+<span class="k">class</span> <span class="nx">ConstantPool</span>
+  <span class="nv">parse: </span><span class="nf">(bytes_array) -&gt;</span>
+    <span class="nv">constant_tags = </span><span class="p">{</span>
+      <span class="mi">1</span><span class="o">:</span> <span class="nx">ConstString</span><span class="p">,</span> <span class="mi">3</span><span class="o">:</span> <span class="nx">ConstInt32</span><span class="p">,</span> <span class="mi">4</span><span class="o">:</span> <span class="nx">ConstFloat</span><span class="p">,</span> <span class="mi">5</span><span class="o">:</span> <span class="nx">ConstLong</span><span class="p">,</span>
+      <span class="mi">6</span><span class="o">:</span> <span class="nx">ConstDouble</span><span class="p">,</span> <span class="mi">7</span><span class="o">:</span> <span class="nx">ClassReference</span><span class="p">,</span> <span class="mi">8</span><span class="o">:</span> <span class="nx">StringReference</span><span class="p">,</span> <span class="mi">9</span><span class="o">:</span> <span class="nx">FieldReference</span><span class="p">,</span>
+      <span class="mi">10</span><span class="o">:</span> <span class="nx">MethodReference</span><span class="p">,</span> <span class="mi">11</span><span class="o">:</span> <span class="nx">InterfaceMethodReference</span><span class="p">,</span> <span class="mi">12</span><span class="o">:</span> <span class="nx">MethodSignature</span>
+    <span class="p">}</span>
+    <span class="vi">@cp_count = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span></pre></div>             </td>           </tr>                               <tr id="section-7">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-7">&#182;</a>               </div>               <p>constant_pool works like an array, but not all indices have values</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="vi">@constant_pool = </span><span class="p">{}</span>
+    <span class="nv">idx = </span><span class="mi">1</span>  <span class="c1"># CP indexing starts at zero</span>
+    <span class="k">while</span> <span class="nx">idx</span> <span class="o">&lt;</span> <span class="nx">@cp_count</span>
+      <span class="nv">tag = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">1</span>
+      <span class="k">throw</span> <span class="s2">&quot;invalid tag: #{tag}&quot;</span> <span class="nx">unless</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="nx">tag</span> <span class="o">&lt;=</span> <span class="mi">12</span>
+      <span class="nv">pool_obj = </span><span class="nx">constant_tags</span><span class="p">[</span><span class="nx">tag</span><span class="p">].</span><span class="nx">from_bytes</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">,</span> <span class="nx">@constant_pool</span><span class="p">)</span>
+      <span class="nx">@constant_pool</span><span class="p">[</span><span class="nx">idx</span><span class="p">]</span> <span class="o">=</span> <span class="nx">pool_obj</span>
+      <span class="nx">idx</span> <span class="o">+=</span> <span class="nx">constant_tags</span><span class="p">[</span><span class="nx">tag</span><span class="p">].</span><span class="nx">size</span>
+    <span class="k">return</span> <span class="nx">bytes_array</span>
+
+  <span class="nv">get: </span><span class="nf">(idx) -&gt;</span> <span class="nx">@constant_pool</span><span class="p">[</span><span class="nx">idx</span><span class="p">]</span> <span class="o">?</span>
+                  <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s2">&quot;Invalid constant_pool reference: #{idx}&quot;</span><span class="p">)</span>
+
+  <span class="nv">each: </span><span class="nf">(fn) -&gt;</span>
+    <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">..</span><span class="nx">@cp_count</span><span class="p">]</span> <span class="k">when</span> <span class="nx">i</span> <span class="k">of</span> <span class="nx">@constant_pool</span>
+      <span class="nx">fn</span><span class="p">(</span><span class="nx">i</span><span class="p">,</span> <span class="nx">@constant_pool</span><span class="p">[</span><span class="nx">i</span><span class="p">])</span>
+
+<span class="k">if</span> <span class="nx">module</span><span class="o">?</span>
+  <span class="nv">module.exports = </span><span class="nx">ConstantPool</span>
+<span class="k">else</span>
+  <span class="nb">window</span><span class="p">.</span><span class="nv">ConstantPool = </span><span class="nx">ConstantPool</span>
+
+</pre></div>             </td>           </tr>                </tbody>     </table>   </div> </body> </html> 
