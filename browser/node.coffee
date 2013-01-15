@@ -537,6 +537,7 @@ class win.Buffer
       @array = new Array obj
 
   readUInt8: (i) -> @array[i] & 0xFF  # cast to unsigned byte
+  readInt8: (i) -> @array[i]
 
 # Node's filesystem API, implemented as a wrapper around FSState.
 root.fs =
