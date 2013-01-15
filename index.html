@@ -1,67 +1,11 @@
 
 
+<!DOCTYPE html>
 <html>
 <head>
-  <title>DoppioVM: A JVM in Coffeescript</title>
+  <title>Doppio: A JVM in Coffeescript</title>
   <link href='http://fonts.googleapis.com/css?family=Bitter' rel='stylesheet' type='text/css'>
   <link rel='stylesheet' type="text/css" href="browser/style.css">
-  <style type="text/css">
-    #main {margin: 0 auto;  width:900px;}
-    pre, div#console {
-      font-size: 8pt;
-      margin-bottom: 1.5em;
-    }
-    div#overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      background:#333;
-      filter:alpha(opacity=50);
-      height:100%;
-      -khtml-opacity:0.5;
-      -moz-opacity:0.5;
-      opacity:0.5;
-      text-shadow:0 0 0 #000;
-      width:100%;
-    }
-    div#progress-container { position:absolute;top:0;left:0;height:100%;width:100%; }
-    div#progress-container div {z-index:99999}
-    div#progress-box { position:relative;top:40%;margin:0 auto;width:300px; }
-    div#preloading-file { padding-left: 10px; white-space: nowrap; color: #ccc; }
-    div#console > pre { margin: 0; padding: 0; background: #222; color: #ccc; }
-    div#source { width:100%; height:70%;
-      position:relative;border: 1px solid #ccc; float: left;}
-    div#console { height: 75%; padding:0; }
-    @-webkit-keyframes blinker {
-      0% { background:#ccc; color:#222; }
-      50% { background:#ccc; color:#222; }
-      51% { background:#222; color:#ccc; }
-      100% { background:#222; color:#ccc; }
-    }
-    @-moz-keyframes blinker {
-      0% { background:#ccc; color:#222; }
-      50% { background:#ccc; color:#222; }
-      51% { background:#222; color:#ccc; }
-      100% { background:#222; color:#ccc; }
-    }
-    div#console pre.jquery-console-focus span.jquery-console-cursor {
-      background:#ccc; color:#222;
-      -webkit-animation-name: blinker;
-      -webkit-animation-iteration-count: infinite;
-      -webkit-animation-timing-function: cubic-bezier(1.0,0,0,1.0);
-      -webkit-animation-duration: 1s;
-      -moz-animation-name: blinker;
-      -moz-animation-iteration-count: infinite;
-      -moz-animation-timing-function: cubic-bezier(1.0,0,0,1.0);
-      -moz-animation-duration: 1s;
-    }
-    div#console pre.jquery-console-inner
-     { width:100%; height:100%; padding: 0.5em;
-       overflow:auto }
-    div#console div.jquery-console-prompt-box
-     { color:#ccc; }
-    label { margin-right: 5px; }
-  </style>
 
   <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
   <script type="text/javascript" src="compressed.js"></script>
@@ -76,7 +20,7 @@
     })();
 </script>
 </head>
-<body style='padding-top:40px'>
+<body>
 <div id='progress-container'>
   <div id='progress-box'>
     <div id='progress' class='progress progress-striped active' style='background:#ccc'>
@@ -106,11 +50,12 @@
 </div>
 <div id='main'>
   <header class='page-header'>
-    <h1 id='title' style='float:left' class='bitter'>DoppioVM</h1>
-    <form class='form-inline' style='margin: 8px 0 3px 0;float:right'>
-      <label for='file' class='control-label'>Load file:</label>
-      <input type="file" id="file"/>
-    </form>
+    <h1 id='title' style='float:left;' class='bitter'>Doppio</h1>
+    <!-- File upload button strategy credit goes davist11: https://gist.github.com/645816 -->
+    <span class="file-wrapper" style='margin: 8px 0 3px 0;float:right;'>
+      <input type="file" name="file" id="file" multiple />
+      <span class="button">Upload Files...</span>
+    </span>
     <h1>&nbsp;</h1>
   </header>
   <div id='ide' style='display:none'>
