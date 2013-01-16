@@ -60,8 +60,13 @@ class DoppioFile
     return @data unless length?
     @data.substr(pos, length)
 
-  # TODO: We only append to the end of files...
-  write: (newData) -> @mod = true; @data += newData; @
+  write: (newData, pos) ->
+    @mod = true
+    if pos? and pos < @data.length
+      @data = @data.slice(0,pos) + newData + @data.slice(pos+newData.length)
+    else
+      @data += newData
+    return @
 
   toJSON: ->
     JSON.stringify
@@ -579,9 +584,15 @@ root.fs =
     f.write(data)
     fs_state.close(f)
 
-  writeSync: (fd, buffer, offset, len) ->
+  writeSync: (fd, buffer, offset, len, pos) ->
     # TODO flush occasionally?
-    fd.write((String.fromCharCode(buffer.readUInt8(i)) for i in [offset...offset+len] by 1).join '')
+    # structure borrowed from the Node.js source
+    if buffer.readUInt8?
+      str = (String.fromCharCode(buffer.readUInt8(i)) for i in [offset...offset+len] by 1).join ''
+    else  # old-style API where buffer is a string
+      str = '' + buffer
+      pos = offset
+    fd.write(str, pos)
 
   closeSync: (fd) -> fs_state.close(fd)
 
