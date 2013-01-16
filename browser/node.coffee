@@ -608,6 +608,9 @@ root.fs =
     fs_state.close f
     return true
 
+  utimesSync: (path, atime, mtime) ->
+    #XXX: this is a NOP, but it shouldn't be. We need to fix the way we stat files first
+
 # Node's Path API
 root.path =
   normalize: (path) -> path
