@@ -690,6 +690,8 @@ native_methods =
       FileOutputStream: [
         o 'open(L!/lang/String;)V', (rs, _this, fname) ->
             _this.$file = fs.openSync fname.jvm2js_str(), 'w'
+        o 'openAppend(Ljava/lang/String;)V', (rs, _this, fname) ->
+            _this.$file = fs.openSync fname.jvm2js_str(), 'a'
         o 'writeBytes([BIIZ)V', write_to_file  # OpenJDK version
         o 'writeBytes([BII)V', write_to_file   # Apple-java version
         o 'close0()V', (rs, _this) ->
@@ -787,7 +789,7 @@ native_methods =
         o 'open(Ljava/lang/String;I)V', (rs, _this, filename, mode) ->
             filepath = filename.jvm2js_str()
             try  # TODO: actually look at the mode
-              _this.$file = fs.openSync filepath, 'r'
+              _this.$file = fs.openSync filepath, 'r+'
             catch e
               if e.code == 'ENOENT'
                 exceptions.java_throw rs, 'java/io/FileNotFoundException', "Could not open file #{filepath}"
@@ -810,6 +812,11 @@ native_methods =
             byte_arr.array[offset+i] = buf.readUInt8(i) for i in [0...bytes_read] by 1
             _this.$pos = gLong.fromNumber(pos+bytes_read)
             return if bytes_read == 0 and len isnt 0 then -1 else bytes_read
+        o 'writeBytes([BII)V', (rs, _this, byte_arr, offset, len) ->
+            pos = _this.$pos.toNumber()
+            file = _this.$file
+            js_str = util.array_to_bytestr byte_arr.array  # TODO: fix bug here
+            fs.writeSync(file, js_str, offset, len, pos)
         o 'close0()V', (rs, _this) ->
             fs.closeSync _this.$file
             _this.$file = null
@@ -880,6 +887,12 @@ native_methods =
             stats = stat_file filepath
             return gLong.ZERO unless stats?
             gLong.fromNumber (new Date(stats.mtime)).getTime()
+        o 'setLastModifiedTime(Ljava/io/File;J)Z', (rs, _this, file, time) ->
+            mtime = time.toNumber()
+            atime = (new Date).getTime()
+            filepath = file.get_field(rs, 'java/io/File/path').jvm2js_str()
+            fs.utimesSync(filepath, atime, mtime)
+            true
         o 'getLength(Ljava/io/File;)J', (rs, _this, file) ->
             filepath = file.get_field rs, 'java/io/File/path'
             try
