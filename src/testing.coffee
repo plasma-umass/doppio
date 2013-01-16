@@ -86,3 +86,51 @@ cleandiff = (our_str, their_str) ->
   for extra in their_lines[tidx..]
     diff.push "J:#{extra}"
   return diff.join '\n' if diff.length > 0
+
+# unused for now
+cleandiff_fancy = (our_str, their_str) ->
+  our_lines = our_str.split /\n/
+  their_lines = their_str.split /\n/
+  if our_lines.length == 0
+    return ("J:#{line}" for line in their_lines).join '\n'
+  if their_lines.length == 0
+    return ("D:#{line}" for line in our_lines).join '\n'
+  # using something like Levenshtein distance to get the minimal diff
+  dist = []
+  cfrm = []  # comefrom path matrix: 1 = Up, 2 = Left, 3 = Diag, 4 = Diag-match
+  for i in [0..their_lines.length] by 1
+    dist.push (0 for j in [0..our_lines.length] by 1)
+    cfrm.push (0 for j in [0..our_lines.length] by 1)
+    dist[i][0] = i
+    cfrm[i][0] = 1
+  for j in [0..our_lines.length] by 1
+    dist[0][j] = j
+    cfrm[0][j] = 2
+  # compute least-cost path
+  for i in [1..their_lines.length] by 1
+    for j in [1..our_lines.length] by 1
+      if our_lines[j-1] == their_lines[i-1]
+        dist[i][j] = dist[i-1][j-1]
+        cfrm[i][j] = 4  # diag-match
+      else
+        dd = [dist[i-1][j], dist[i][j-1], dist[i-1][j-1]]
+        d = Math.min dd...
+        dist[i][j] = d + 1
+        cfrm[i][j] = dd.indexOf(d) + 1
+  i = their_lines.length
+  j = our_lines.length
+  # they match if the final cost is still zero
+  return if dist[i][j] == 0
+  diff = []
+  until i == 0 and j == 0
+    switch cfrm[i][j]
+      when 1  # up
+        diff.unshift "doppio{#{j}}:#{our_lines[j]}\njava  {#{i}}:#{their_lines[i--]}"
+      when 2  # left
+        diff.unshift "doppio{#{j}}:#{our_lines[j--]}\njava  {#{i}}:#{their_lines[i]}"
+      when 3  # diag mismatch
+        diff.unshift "doppio{#{j}}:#{our_lines[j--]}\njava  {#{i}}:#{their_lines[i--]}"
+      when 4  # diag match
+        i--
+        j--
+  return diff.join '\n'
