@@ -150,13 +150,16 @@ $(document).ready ->
         java classes/demo/Fib <num>
         java classes/demo/Chatterbot
         java classes/demo/RegexTestHarness
-        java classes/demo/Lzw c Hello.txt hello.lzw (compress)
-        java classes/demo/Lzw d hello.lzw hello (decompress)
-        java classes/demo/DiffPrint Hello.txt hello
+        java classes/demo/GzipDemo c Hello.txt hello.gz (compress)
+        java classes/demo/GzipDemo d hello.gz hello.tmp (decompress)
+        java classes/demo/DiffPrint Hello.txt hello.tmp
 
       We support the stock Sun Java Compiler:
         javac classes/test/FileRead.java
         javac classes/demo/Fib.java
+
+      (Note: if you edit a program and recompile with javac, you'll need
+        to run 'clear_cache' to see your changes when you run the program.)
 
       And we can even run Rhino, the Java-based JS engine!
         rhino
