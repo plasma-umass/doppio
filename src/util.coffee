@@ -241,7 +241,7 @@ root.bytes2str = (bytes) ->
     while idx < bytes.length
       # cast to an unsigned byte
       x = bytes[idx++] & 0xff
-      break if x == 0
+      # note: we do _not_ terminate strings on null bytes!
       String.fromCharCode(
         if x <= 0x7f
           x

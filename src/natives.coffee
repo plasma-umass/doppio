@@ -815,8 +815,10 @@ native_methods =
         o 'writeBytes([BII)V', (rs, _this, byte_arr, offset, len) ->
             pos = _this.$pos.toNumber()
             file = _this.$file
-            js_str = util.array_to_bytestr byte_arr.array  # TODO: fix bug here
-            fs.writeSync(file, js_str, offset, len, pos)
+            js_str = util.chars2js_str byte_arr, offset, len
+            # uses the old string-based API
+            # see http://stackoverflow.com/q/14367261/10601 for details
+            fs.writeSync(file, js_str, pos)
         o 'close0()V', (rs, _this) ->
             fs.closeSync _this.$file
             _this.$file = null
