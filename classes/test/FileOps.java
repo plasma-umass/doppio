@@ -52,7 +52,7 @@ class FileOps {
       System.out.println("Does temp_delete_me.txt exist?: " + f.exists());
       System.out.println("Did we successfully create this file?: " + f.createNewFile());
       System.out.println("And does it exist now?: " + f.exists());
-      System.out.println("When was it last modified?: " + f.lastModified());
+      long lm = f.lastModified();
       System.out.println("Can I write to it?: " + f.canWrite());
       f.setWritable(false);
       System.out.println("How about now?: " + f.canWrite());
@@ -64,8 +64,8 @@ class FileOps {
       fw.write("Why, hello there!\n");
       fw.close();
       // mtime is platform-specific and not guaranteed to update
-      f.setLastModified(System.currentTimeMillis());
-      System.out.println("New last modified: " + f.lastModified());
+      f.setLastModified(System.currentTimeMillis()+1337);  // padding for fast execution
+      System.out.println("Last modified updated?: " + (f.lastModified() > lm));
       System.out.println("New file size: " + f.length());
       System.out.println("File contents:");
       printFile(f);
