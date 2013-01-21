@@ -19,9 +19,9 @@ root.untar = (bytes, cb, done_cb) ->
 
 shift_file = (bytes) ->
   header = bytes.read(512)
-  fname = util.bytes2str header[0...100]
+  fname = util.bytes2str header[0...100], true
   size = octal2num header[124...124+11]
-  prefix = util.bytes2str header[345...345+155]
+  prefix = util.bytes2str header[345...345+155], true
   fullname = if prefix then "#{prefix}/#{fname}" else fname
 
   body = bytes.read(Math.ceil(size/512)*512)

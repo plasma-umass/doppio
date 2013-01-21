@@ -235,13 +235,13 @@ root.ext_classname = (str) -> str.replace /\//g, '.'
 root.int_classname = (str) -> str.replace /\./g, '/'
 
 # Parse Java's pseudo-UTF-8 strings. (spec 4.4.7)
-root.bytes2str = (bytes) ->
+root.bytes2str = (bytes, null_terminate=false) ->
   idx = 0
   char_array =
     while idx < bytes.length
       # cast to an unsigned byte
       x = bytes[idx++] & 0xff
-      # note: we do _not_ terminate strings on null bytes!
+      break if null_terminate and x is 0
       String.fromCharCode(
         if x <= 0x7f
           x
