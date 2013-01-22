@@ -15,6 +15,15 @@ class FileOps {
     String testDir = "./classes/test/data/FileOps";
     // I like scopes.
     {
+      // This file does not exist.
+      File f = new File("/dfsd/dsfds");
+      try {
+        BufferedReader reader = new BufferedReader(new FileReader(f));
+      } catch (Exception e) {
+        System.out.println("Successfully threw exception for nonexistant file.");
+      }
+    }
+    {
       File f = new File("");
       System.out.println("Is '' an absolute path?: " + f.isAbsolute());
       {

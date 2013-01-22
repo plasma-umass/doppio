@@ -547,6 +547,10 @@ class win.Buffer
 # Node's filesystem API, implemented as a wrapper around FSState.
 root.fs =
   statSync: (path) -> Stat.fromPath path
+  stat: (path, cb) ->
+    setTimeout (()->
+      cb null, node.fs.statSync(path)
+    ), 0
 
   fstatSync: (fp) -> new Stat(fp)
 
@@ -565,6 +569,19 @@ root.fs =
       throw err
     f
 
+  open: (path, mode, cb) ->
+    # mode is optional
+    unless cb?
+      cb = mode
+      mode = 'r'
+    setTimeout (() ->
+      try
+        f = node.fs.openSync path, mode
+        cb null, f
+      catch e
+        cb e
+    ), 0
+
   readSync: (fd, buf, offset, length, pos) ->
     data = fd.read(length, pos)
     for d, i in data
@@ -576,6 +593,15 @@ root.fs =
     throw "File does not exist." unless f?
     return f.data
 
+  readFile: (path, cb) ->
+    setTimeout (() ->
+      try
+        data = node.fs.readFileSync path
+        cb null, data
+      catch e
+        cb e
+    ), 0
+
   # XXX: Temp option prevents writeback to permanent storage. This is not in the
   #      Node API, and is used as a way for the browser to create temp files.
   writeFileSync: (path, data, temp) ->
@@ -583,6 +609,11 @@ root.fs =
     f.temp = temp == true
     f.write(data)
     fs_state.close(f)
+
+  writeFile: (path, data, cb) ->
+    setTimeout (() ->
+      cb null, node.fs.writeFileSync(path, data)
+    ), 0
 
   writeSync: (fd, buffer, offset, len, pos) ->
     # TODO flush occasionally?
@@ -595,20 +626,66 @@ root.fs =
     fd.write(str, pos)
 
   closeSync: (fd) -> fs_state.close(fd)
+  close: (fd, cb) -> setTimeout (()->node.fs.closeSync fd; cb()), 0
 
   readdirSync: (path) ->
     dir_contents = fs_state.list(path)
     throw "Could not read directory '#{path}'" unless dir_contents? and path != ''
     return dir_contents
 
+  readdir: (path, cb) ->
+    setTimeout (()->
+      try
+        files = node.fs.readdirSync path
+        cb null, files
+      catch e
+        cb e
+    ), 0
+
   unlinkSync: (path) -> throw "Could not unlink '#{path}'" unless fs_state.rm(path)
+  unlink: (path, cb) ->
+    setTimeout (()->
+      try
+        node.fs.unlinkSync path
+        cb()
+      catch e
+        cb e
+    ), 0
   rmdirSync: (path) -> throw "Could not delete '#{path}'" unless fs_state.rm(path, true)
+  rmdir: (path, cb) ->
+    setTimeout (()->
+      try
+        node.fs.rmdirSync path
+        cb()
+      catch e
+        cb e
+    ), 0
 
   existsSync: (path) -> path != '' and (fs_state.is_file(path) or fs_state.is_directory(path))
+  exists: (path, cb) ->
+    setTimeout (()->
+      cb null, node.fs.existsSync(path)
+    ), 0
 
   mkdirSync: (path) -> throw "Could not make directory #{path}" unless fs_state.mkdir path
+  mkdir: (path, cb) ->
+    setTimeout (()->
+      try
+        node.fs.mkdirSync path
+        cb()
+      catch e
+        cb e
+    ), 0
 
   renameSync: (path1, path2) -> throw "Could not rename #{path1} to #{path2}" unless fs_state.mv path1, path2
+  rename: (path1, path2, cb) ->
+    setTimeout (()->
+      try
+        node.fs.renameSync path1, path2
+        cb()
+      catch e
+        cb e
+    ), 0
 
   #XXX: Does not work for directory permissions.
   chmodSync: (path, access) ->
@@ -618,9 +695,19 @@ root.fs =
     f.mode = access
     fs_state.close f
     return true
+  chmod: (path, access, cb) ->
+    setTimeout (()->
+      try
+        rv = node.fs.chmodSync path
+        cb null, rv
+      catch e
+        cb e
+    ), 0
 
   utimesSync: (path, atime, mtime) ->
     #XXX: this is a NOP, but it shouldn't be. We need to fix the way we stat files first
+  utimes: (path, atime, mtime, cb) ->
+    setTimeout cb, 0
 
 # Node's Path API
 root.path =

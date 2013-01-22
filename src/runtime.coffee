@@ -361,6 +361,11 @@ class root.RuntimeState
       done_cb?()
     false
 
+  # Pauses the JVM for an asynchronous operation. The callback, cb, will be
+  # called with another callback that it is responsible for calling with any
+  # return values when it is time to resume the JVM.
+  async_op: (cb) -> throw new YieldIOException cb
+
   run_until_finished: (setup_fn, done_cb, no_threads=false) ->
     try
       setup_fn()
@@ -385,11 +390,25 @@ class root.RuntimeState
       else if e is ReturnException
         # XXX: technically we shouldn't get here. Right now we get here
         # when java_throw is called from the main method lookup.
-        return @run_until_finished (->), done_cb, no_threads 
+        return @run_until_finished (->), done_cb, no_threads
       else if e instanceof YieldIOException
         retval = null
-        e.condition =>
-          retval = @run_until_finished (->), done_cb, no_threads
+        e.condition ((ret1, ret2) =>
+          @curr_frame().runner = =>
+              @meta_stack().pop()
+              unless ret1 is undefined
+                if typeof ret1 == 'boolean'
+                  @push ret1+0
+                else
+                  @push ret1
+              # XXX: Assuming ret2 is never a boolean; these native methods
+              #      can't have 2 return values (ret2 is here for long/doubles)
+              @push ret2 unless ret2 is undefined
+          retval = @run_until_finished (->), done_cb, no_threads),
+          ((e_cb) =>
+            @curr_frame().runner = e_cb
+            retval = @run_until_finished (->), done_cb, no_threads
+          )
         return retval
       else
         if e.method_catch_handler? and @meta_stack().length() > 1

@@ -131,11 +131,18 @@ doPrivileged = (rs, action) ->
     rs.push rv
   throw exceptions.ReturnException
 
-stat_file = (fname) ->
+stat_fd = (fd) ->
   try
-    if util.is_string(fname) then fs.statSync(fname) else fs.fstatSync(fname)
+    return fs.fstatSync fd
   catch e
-    null
+    return null
+
+stat_file = (fname, cb) ->
+  fs.stat fname, (err, stat) ->
+    if err?
+      cb null
+    else
+      cb stat
 
 # "Fast" array copy; does not have to check every element for illegal
 # assignments. You can do tricks here (if possible) to copy chunks of the array
@@ -229,8 +236,7 @@ write_to_file = (rs, _this, bytes, offset, len, append) ->
   if node?
     # For the browser implementation -- the DOM doesn't get repainted
     # unless we give the event loop a chance to spin.
-    rs.curr_frame().runner = -> rs.meta_stack().pop()
-    throw new exceptions.YieldIOException (cb) -> setTimeout(cb, 0)
+    rs.async_op (cb) -> setTimeout(cb, 0)
 
 
 native_methods =
@@ -534,8 +540,7 @@ native_methods =
         o 'gc()V', (rs) ->
             # No universal way of forcing browser to GC, so we yield in hopes
             # that the browser will use it as an opportunity to GC.
-            rs.curr_frame().runner = -> rs.meta_stack().pop()
-            throw new exceptions.YieldIOException (cb) -> setTimeout(cb, 0)
+            rs.async_op (cb) -> setTimeout(cb, 0)
       ]
       Shutdown: [
         o 'halt0(I)V', (rs, status) -> throw new exceptions.HaltException(status)
@@ -646,9 +651,7 @@ native_methods =
               rs.meta_stack().pop()
             throw exceptions.ReturnException
         o 'sleep(J)V', (rs, millis) ->
-            rs.curr_frame().runner = -> rs.meta_stack().pop()
-            throw new exceptions.YieldIOException (cb) ->
-              setTimeout(cb, millis.toNumber())
+            rs.async_op (cb) -> setTimeout(cb, millis.toNumber())
         o 'yield()V', (rs, _this) -> rs.yield()
       ]
     security:
@@ -689,15 +692,23 @@ native_methods =
       ]
       FileOutputStream: [
         o 'open(L!/lang/String;)V', (rs, _this, fname) ->
-            _this.$file = fs.openSync fname.jvm2js_str(), 'w'
+            rs.async_op (resume_cb) ->
+              fs.open fname.jvm2js_str(), 'w', (err, f) ->
+                _this.$file = f
+                resume_cb()
         o 'openAppend(Ljava/lang/String;)V', (rs, _this, fname) ->
-            _this.$file = fs.openSync fname.jvm2js_str(), 'a'
+            rs.async_op (resume_cb) ->
+              fs.open fname.jvm2js_str(), 'a', (err, f) ->
+                _this.$file = f
+                resume_cb()
         o 'writeBytes([BIIZ)V', write_to_file  # OpenJDK version
         o 'writeBytes([BII)V', write_to_file   # Apple-java version
         o 'close0()V', (rs, _this) ->
             if _this.$file?
-              fs.closeSync(_this.$file)
-            _this.$file = 'closed'
+              rs.async_op (resume_cb) ->
+                fs.close _this.$file, (err) ->
+                  _this.$file = 'closed'
+                  resume_cb()
       ]
       FileInputStream: [
         o 'available()I', (rs, _this) ->
@@ -714,14 +725,9 @@ native_methods =
               _this.$pos++
               return if bytes_read == 0 then -1 else buf.readUInt8(0)
             # reading from System.in, do it async
-            data = null # will be filled in after the yield
-            rs.curr_frame().runner = ->
-              rs.meta_stack().pop()
-              rs.push(if data.length == 0 then -1 else data.charCodeAt(0))
-            throw new exceptions.YieldIOException (cb) ->
+            rs.async_op (cb) ->
               rs.async_input 1, (byte) ->
-                data = byte
-                cb()
+                cb(if byte.length == 0 then -1 else byte.charCodeAt(0))
         o 'readBytes([BII)I', (rs, _this, byte_arr, offset, n_bytes) ->
             exceptions.java_throw rs, 'java/io/IOException', "Bad file descriptor" if _this.$file == 'closed'
             if _this.$file?
@@ -739,32 +745,35 @@ native_methods =
               byte_arr.array[offset+i] = buf.readUInt8(i) for i in [0...bytes_read] by 1
               return if bytes_read == 0 and n_bytes isnt 0 then -1 else bytes_read
             # reading from System.in, do it async
-            result = null # will be filled in after the yield
-            rs.curr_frame().runner = ->
-              rs.meta_stack().pop()
-              rs.push result
-            throw new exceptions.YieldIOException (cb) ->
+            rs.async_op (cb) ->
               rs.async_input n_bytes, (bytes) ->
                 byte_arr.array[offset+idx] = b for b, idx in bytes
-                result = bytes.length
-                cb()
+                cb(bytes.length)
         o 'open(Ljava/lang/String;)V', (rs, _this, filename) ->
             filepath = filename.jvm2js_str()
-            try  # TODO: actually look at the mode
-              _this.$file = fs.openSync filepath, 'r'
-              # also store the file handle in the file descriptor object
-              fd = _this.get_field rs, 'java/io/FileInputStream/fd'
-              fd.set_field rs, 'java/io/FileDescriptor/fd', _this.$file
-              _this.$pos = 0
-            catch e
-              if e.code == 'ENOENT'
-                exceptions.java_throw rs, 'java/io/FileNotFoundException', "Could not open file #{filepath}"
-              else
-                throw e
+            # TODO: actually look at the mode
+            rs.async_op (resume_cb, except_cb) ->
+              fs.open filepath, 'r', (e, f) ->
+                if e?
+                  if e.code == 'ENOENT'
+                    except_cb ()-> exceptions.java_throw rs, 'java/io/FileNotFoundException', "Could not open file #{filepath}"
+                  else
+                    except_cb ()-> throw e
+                else
+                  _this.$file = f
+                  # also store the file handle in the file descriptor object
+                  fd = _this.get_field rs, 'java/io/FileInputStream/fd'
+                  fd.set_field rs, 'java/io/FileDescriptor/fd', _this.$file
+                  _this.$pos = 0
+                  resume_cb()
         o 'close0()V', (rs, _this) ->
             if _this.$file?
-              fs.closeSync _this.$file
-            _this.$file = 'closed'
+              rs.async_op (resume_cb) ->
+                fs.close _this.$file, (err) ->
+                  _this.$file = 'closed'
+                  resume_cb()
+            else
+              _this.$file = 'closed'
         o 'skip(J)J', (rs, _this, n_bytes) ->
             exceptions.java_throw rs, 'java/io/IOException', "Bad file descriptor" if _this.$file == 'closed'
             if (file = _this.$file)?
@@ -773,14 +782,10 @@ native_methods =
               _this.$pos += to_skip
               return gLong.fromNumber(to_skip)
             # reading from System.in, do it async
-            num_skipped = null # will be filled in after the yield
-            rs.curr_frame().runner = ->
-              rs.meta_stack().pop()
-              rs.push gLong.fromNumber(num_skipped)
-            throw new exceptions.YieldIOException (cb) ->
+            rs.async_op (cb) ->
               rs.async_input n_bytes.toNumber(), (bytes) ->
-                num_skipped = bytes.length  # we don't care about what the input actually was
-                cb()
+                # we don't care about what the input actually was
+                cb gLong.fromNumber(bytes.length), null
       ]
       ObjectStreamClass: [
         o 'initNative()V', (rs) ->  # NOP
@@ -788,17 +793,21 @@ native_methods =
       RandomAccessFile: [
         o 'open(Ljava/lang/String;I)V', (rs, _this, filename, mode) ->
             filepath = filename.jvm2js_str()
-            try  # TODO: actually look at the mode
-              _this.$file = fs.openSync filepath, 'r+'
-            catch e
-              if e.code == 'ENOENT'
-                exceptions.java_throw rs, 'java/io/FileNotFoundException', "Could not open file #{filepath}"
-              else
-                throw e
-            _this.$pos = 0
+            # TODO: actually look at the mode
+            rs.async_op (resume_cb, except_cb) ->
+              fs.open filepath, 'r+', (err, f) ->
+                if err?
+                  if e.code == 'ENOENT'
+                    except_cb -> exceptions.java_throw rs, 'java/io/FileNotFoundException', "Could not open file #{filepath}"
+                  else
+                    except_cb -> throw e
+                else
+                  _this.$file = f
+                  _this.$pos = 0
+                  resume_cb()
         o 'getFilePointer()J', (rs, _this) -> gLong.fromNumber _this.$pos
         o 'length()J', (rs, _this) ->
-            stats = stat_file _this.$file
+            stats = stat_fd _this.$file
             gLong.fromNumber stats.size
         o 'seek(J)V', (rs, _this, pos) -> _this.$pos = pos
         o 'readBytes([BII)I', (rs, _this, byte_arr, offset, len) ->
@@ -820,8 +829,10 @@ native_methods =
             # see http://stackoverflow.com/q/14367261/10601 for details
             fs.writeSync(file, js_str, pos)
         o 'close0()V', (rs, _this) ->
-            fs.closeSync _this.$file
-            _this.$file = null
+            rs.async_op (resume_cb) ->
+              fs.close _this.$file
+              _this.$file = null
+              resume_cb()
       ]
       UnixFileSystem: [
         o 'canonicalize0(L!/lang/String;)L!/lang/String;', (rs, _this, jvm_path_str) ->
@@ -829,95 +840,126 @@ native_methods =
             rs.init_string path.resolve(path.normalize(js_str))
         o 'checkAccess(Ljava/io/File;I)Z', (rs, _this, file, access) ->
             filepath = file.get_field rs, 'java/io/File/path'
-            stats = stat_file filepath.jvm2js_str()
-            return false unless stats?
-            #XXX: Assuming we're owner/group/other. :)
-            # Shift access so it's present in owner/group/other.
-            # Then, AND with the actual mode, and check if the result is above 0.
-            # That indicates that the access bit we're looking for was set on
-            # one of owner/group/other.
-            mask = access | (access << 3) | (access << 6)
-            return (stats.mode & mask) > 0
+            rs.async_op (resume_cb) ->
+              stat_file filepath.jvm2js_str(), (stats) ->
+                unless stats?
+                  resume_cb false
+                else
+                  #XXX: Assuming we're owner/group/other. :)
+                  # Shift access so it's present in owner/group/other.
+                  # Then, AND with the actual mode, and check if the result is above 0.
+                  # That indicates that the access bit we're looking for was set on
+                  # one of owner/group/other.
+                  mask = access | (access << 3) | (access << 6)
+                  resume_cb((stats.mode & mask) > 0)
         o 'createDirectory(Ljava/io/File;)Z', (rs, _this, file) ->
             filepath = (file.get_field rs, 'java/io/File/path').jvm2js_str()
             # Already exists.
-            return false if stat_file(filepath)?
-            try
-              fs.mkdirSync(filepath)
-            catch e
-              return false
-            return true
+            rs.async_op (resume_cb) ->
+              stat_file filepath, (stat) ->
+                if stat?
+                  resume_cb false
+                else
+                  fs.mkdir filepath, (err) ->
+                    resume_cb(if err? then false else true)
         o 'createFileExclusively(Ljava/lang/String;)Z', (rs, _this, path) ->  # OpenJDK version
             filepath = path.jvm2js_str()
-            return false if stat_file(filepath)?
-            try
-              fs.closeSync fs.openSync(filepath, 'w')  # creates an empty file
-            catch e
-              exceptions.java_throw rs, 'java/io/IOException', e.message
-            true
+            rs.async_op (resume_cb, except_cb) ->
+              stat_file filepath, (stat) ->
+                if stat?
+                  resume_cb false
+                else
+                  fs.open filepath, 'w', (err, f) ->
+                    if err?
+                      except_cb -> exceptions.java_throw rs, 'java/io/IOException', e.message
+                    else
+                      fs.close f, (err) ->
+                        if err?
+                          except_cb -> exceptions.java_throw rs, 'java/io/IOException', e.message
+                        else
+                          resume_cb true
         o 'createFileExclusively(Ljava/lang/String;Z)Z', (rs, _this, path) ->  # Apple-java version
             filepath = path.jvm2js_str()
-            return false if stat_file(filepath)?
-            try
-              fs.closeSync fs.openSync(filepath, 'w')  # creates an empty file
-            catch e
-              exceptions.java_throw rs, 'java/io/IOException', e.message
-            true
+            rs.async_op (resume_cb, except_cb) ->
+              stat_file filepath, (stat) ->
+                if stat?
+                  resume_cb false
+                else
+                  fs.open filepath, 'w', (err, f) ->
+                    if err?
+                      except_cb -> exceptions.java_throw rs, 'java/io/IOException', e.message
+                    else
+                      fs.close f, (err) ->
+                        if err?
+                          except_cb -> exceptions.java_throw rs, 'java/io/IOException', e.message
+                        else
+                          resume_cb true
         o 'delete0(Ljava/io/File;)Z', (rs, _this, file) ->
             # Delete the file or directory denoted by the given abstract
             # pathname, returning true if and only if the operation succeeds.
             # If file is a directory, it must be empty.
             filepath = (file.get_field rs, 'java/io/File/path').jvm2js_str()
-            stats = stat_file filepath
-            return false unless stats?
-            try
-              if stats.isDirectory()
-                return false if (fs.readdirSync filepath).length > 0
-                fs.rmdirSync(filepath)
-              else
-                fs.unlinkSync(filepath)
-            catch e
-              return false
-            return true
+            rs.async_op (resume_cb, except_cb) ->
+              stat_file filepath, (stats) ->
+                unless stats?
+                  resume_cb false
+                else if stats.isDirectory()
+                  fs.readdir filepath, (err, files) ->
+                    if files.length > 0
+                      resume_cb false
+                    else
+                      fs.rmdir filepath, (err) ->
+                        resume_cb true
+                else
+                  fs.unlink filepath, (err) ->
+                    resume_cb true
         o 'getBooleanAttributes0(Ljava/io/File;)I', (rs, _this, file) ->
             filepath = file.get_field rs, 'java/io/File/path'
-            stats = stat_file filepath.jvm2js_str()
-            return 0 unless stats?
-            if stats.isFile() then 3 else if stats.isDirectory() then 5 else 1
+            rs.async_op (resume_cb) ->
+              stat_file filepath.jvm2js_str(), (stats) ->
+                unless stats?
+                  resume_cb 0
+                else if stats.isFile()
+                  resume_cb 3
+                else if stats.isDirectory()
+                  resume_cb 5
+                else
+                  resume_cb 1
         o 'getLastModifiedTime(Ljava/io/File;)J', (rs, _this, file) ->
             filepath = file.get_field(rs, 'java/io/File/path').jvm2js_str()
-            stats = stat_file filepath
-            return gLong.ZERO unless stats?
-            gLong.fromNumber (new Date(stats.mtime)).getTime()
+            rs.async_op (resume_cb) ->
+              stat_file filepath, (stats) ->
+                unless stats?
+                  resume_cb gLong.ZERO, null
+                else
+                  resume_cb gLong.fromNumber (new Date(stats.mtime)).getTime(), null
         o 'setLastModifiedTime(Ljava/io/File;J)Z', (rs, _this, file, time) ->
             mtime = time.toNumber()
             atime = (new Date).getTime()
             filepath = file.get_field(rs, 'java/io/File/path').jvm2js_str()
-            fs.utimesSync(filepath, atime, mtime)
-            true
+            rs.async_op (resume_cb) ->
+              fs.utimes filepath, atime, mtime, (err) ->
+                resume_cb true
         o 'getLength(Ljava/io/File;)J', (rs, _this, file) ->
             filepath = file.get_field rs, 'java/io/File/path'
-            try
-              length = fs.statSync(filepath.jvm2js_str()).size
-            catch e
-              length = 0
-            gLong.fromNumber(length)
+            rs.async_op (resume_cb) ->
+              fs.stat filepath.jvm2js_str(), (err, stat) ->
+                resume_cb gLong.fromNumber(if err? then 0 else stat.size), null
         #o 'getSpace(Ljava/io/File;I)J', (rs, _this, file, t) ->
         o 'list(Ljava/io/File;)[Ljava/lang/String;', (rs, _this, file) ->
             filepath = file.get_field rs, 'java/io/File/path'
-            try
-              files = fs.readdirSync(filepath.jvm2js_str())
-            catch e
-              return null
-            rs.init_array('[Ljava/lang/String;',(rs.init_string(f) for f in files))
+            rs.async_op (resume_cb) ->
+              fs.readdir filepath.jvm2js_str(), (err, files) ->
+                if err?
+                  resume_cb null
+                else
+                  resume_cb rs.init_array('[Ljava/lang/String;',(rs.init_string(f) for f in files))
         o 'rename0(Ljava/io/File;Ljava/io/File;)Z', (rs, _this, file1, file2) ->
-          file1path = (file1.get_field rs, 'java/io/File/path').jvm2js_str()
-          file2path = (file2.get_field rs, 'java/io/File/path').jvm2js_str()
-          try
-            fs.renameSync(file1path, file2path)
-          catch e
-            return false
-          return true
+            file1path = (file1.get_field rs, 'java/io/File/path').jvm2js_str()
+            file2path = (file2.get_field rs, 'java/io/File/path').jvm2js_str()
+            rs.async_op (resume_cb) ->
+              fs.rename file1path, file2path, (err) ->
+                resume_cb(if err? then false else true)
         #o 'setLastModifiedTime(Ljava/io/File;J)Z', (rs, _this, file, time) ->
         o 'setPermission(Ljava/io/File;IZZ)Z', (rs, _this, file, access, enable, owneronly) ->
             filepath = (file.get_field rs, 'java/io/File/path').jvm2js_str()
@@ -941,30 +983,30 @@ native_methods =
               access = ~access
 
             # Returns true on success, false on failure.
-            try
+            rs.async_op (resume_cb) ->
               # Fetch existing permissions on file.
-              stats = stat_file filepath
-              return false unless stats?
-              existing_access = stats.mode
-              # Apply mask.
-              access = if enable then existing_access | access else existing_access & access
-              # Set new permissions.
-              fs.chmodSync filepath, access
-            catch e
-              return false
-            return true
+              stat_file filepath, (stats) ->
+                unless stats?
+                  resume_cb false
+                else
+                  existing_access = stats.mode
+                  # Apply mask.
+                  access = if enable then existing_access | access else existing_access & access
+                  # Set new permissions.
+                  fs.chmod filepath, access, (err) ->
+                    resume_cb(if err? then false else true)
         o 'setReadOnly(Ljava/io/File;)Z', (rs, _this, file) ->
             filepath = (file.get_field rs, 'java/io/File/path').jvm2js_str()
             # We'll be unsetting write permissions.
             # Leading 0o indicates octal.
             mask = ~(0o222)
-            try
-              stats = stat_file filepath
-              return false unless stats?
-              fs.chmodSync filepath, (stats.mode & mask)
-            catch e
-              return false
-            return true
+            rs.async_op (resume_cb) ->
+              stat_file filepath, (stats) ->
+                unless stats?
+                  resume_cb false
+                else
+                  fs.chmod filepath, (stats.mode & mask), (err) ->
+                    resume_cb(if err? then false else true)
       ]
     util:
       concurrent:
