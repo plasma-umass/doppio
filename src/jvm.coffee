@@ -32,7 +32,7 @@ root.run_class = (rs, class_name, cmdline_args, done_cb) ->
     rs.init_args cmdline_args
     # wrap it in run_until_finished to handle any exceptions correctly
     rs.run_until_finished (-> main_method = rs.method_lookup main_spec), true, (success) ->
-      return unless success
+      return unless success and main_method?
       rs.run_until_finished (-> main_method.setup_stack(rs)), false, (success) ->
         done_cb?() if success
   # start here
