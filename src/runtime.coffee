@@ -392,8 +392,7 @@ class root.RuntimeState
         # when java_throw is called from the main method lookup.
         return @run_until_finished (->), done_cb, no_threads
       else if e instanceof YieldIOException
-        retval = null
-        e.condition ((ret1, ret2) =>
+        success_fn = (ret1, ret2) =>
           @curr_frame().runner = =>
               @meta_stack().pop()
               unless ret1 is undefined
@@ -404,12 +403,12 @@ class root.RuntimeState
               # XXX: Assuming ret2 is never a boolean; these native methods
               #      can't have 2 return values (ret2 is here for long/doubles)
               @push ret2 unless ret2 is undefined
-          retval = @run_until_finished (->), done_cb, no_threads),
-          ((e_cb) =>
-            @curr_frame().runner = e_cb
-            retval = @run_until_finished (->), done_cb, no_threads
-          )
-        return retval
+          @run_until_finished (->), done_cb, no_threads
+        failure_fn = (e_cb) =>
+          @curr_frame().runner = e_cb
+          @run_until_finished (->), done_cb, no_threads
+        e.condition success_fn, failure_fn
+        return
       else
         if e.method_catch_handler? and @meta_stack().length() > 1
           tos = true
