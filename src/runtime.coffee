@@ -288,6 +288,7 @@ class root.RuntimeState
     cls = type.toClassString()
     unless @class_states[cls].fields?
       trace "looking up class: #{cls}"
+      @class_states[cls].inited = false
       @class_states[cls].fields = Object.create null
       if type instanceof types.ArrayType
         component = type.component_type
@@ -295,12 +296,15 @@ class root.RuntimeState
           @class_lookup component, dyn
       else if class_file.super_class?
         @class_lookup class_file.super_class, dyn
-      #TODO: finish the decoupling by removing the following line
-      @initialize_class class_file, (->)
+    #TODO: finish the decoupling by removing the following line
+    @initialize_class class_file, (->)
     return class_file
 
   initialize_class: (class_file, cb) ->
-    trace "initializing class: #{class_file.this_class.toClassString()}"
+    cls = class_file.this_class.toClassString()
+    return cb() if @class_states[cls].inited
+    @class_states[cls].inited = true
+    trace "initializing class: #{cls}"
     # Run class initialization code. Superclasses get init'ed first.  We
     # don't want to call this more than once per class, so don't do dynamic
     # lookup. See spec [2.17.4][1].
@@ -334,6 +338,7 @@ class root.RuntimeState
   method_lookup: (method_spec) ->
     type = c2t method_spec.class
     cls = @class_lookup(type)
+
     method = cls.method_lookup(this, method_spec)
     return method if method?
     java_throw @, 'java/lang/NoSuchMethodError',
