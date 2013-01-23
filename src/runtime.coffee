@@ -400,8 +400,6 @@ class root.RuntimeState
                   @push ret1+0
                 else
                   @push ret1
-              # XXX: Assuming ret2 is never a boolean; these native methods
-              #      can't have 2 return values (ret2 is here for long/doubles)
               @push ret2 unless ret2 is undefined
           @run_until_finished (->), done_cb, no_threads
         failure_fn = (e_cb) =>
