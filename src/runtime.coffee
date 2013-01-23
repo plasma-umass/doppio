@@ -258,7 +258,7 @@ class root.RuntimeState
           @method_lookup(
             class: defining_class_loader.type.toClassString()
             sig: 'loadClass(Ljava/lang/String;)Ljava/lang/Class;').setup_stack @
-          unless @run_until_finished (->), (->), true
+          unless @run_until_finished (->), true, (->)
             throw 'Error in class initialization'
           # discard return value. @define_class will have registered the new
           # file in loaded_classes for us.
@@ -304,9 +304,14 @@ class root.RuntimeState
 
         @meta_stack().push root.StackFrame.fake_frame('class_lookup')
         class_file.methods['<clinit>()V']?.setup_stack(@)
-        unless @run_until_finished (->), (->), true
-          throw 'Error in class initialization'
-        @meta_stack().pop()
+        @run_until_finished (->), true, (success) =>
+          if success
+            @meta_stack().pop()
+          else
+            throw 'Error in class initialization'
+        # XXX: bug here! run_until_finished often finishes synchronously,
+        #  but isn't guaranteed to. When it doesn't, we return the class_file
+        #  before it's fully initialized and things break.
     class_file
 
   # called by user-defined classloaders
@@ -351,22 +356,22 @@ class root.RuntimeState
         return address
     UNSAFE? || throw new Error "Invalid memory access at #{address}"
 
-  handle_toplevel_exception: (e, done_cb, no_threads) ->
+  handle_toplevel_exception: (e, no_threads, done_cb) ->
     if e.toplevel_catch_handler?
-      @run_until_finished (=> e.toplevel_catch_handler(@)), done_cb, no_threads
+      @run_until_finished (=> e.toplevel_catch_handler(@)), no_threads, done_cb
     else
       error "\nInternal JVM Error:", e
       error e.stack if e?.stack?
       @show_state()
-      done_cb?()
-    false
+      done_cb false
+    return
 
   # Pauses the JVM for an asynchronous operation. The callback, cb, will be
   # called with another callback that it is responsible for calling with any
   # return values when it is time to resume the JVM.
   async_op: (cb) -> throw new YieldIOException cb
 
-  run_until_finished: (setup_fn, done_cb, no_threads=false) ->
+  run_until_finished: (setup_fn, no_threads, done_cb) ->
     try
       setup_fn()
       while true
@@ -382,15 +387,14 @@ class root.RuntimeState
         @curr_thread.$isAlive = false
         @thread_pool.splice @thread_pool.indexOf(@curr_thread), 1
         @curr_thread = @choose_next_thread()
-      done_cb?()
-      return true
+      done_cb true
     catch e
       if e == 'Error in class initialization'
-        return false
+        done_cb false
       else if e is ReturnException
         # XXX: technically we shouldn't get here. Right now we get here
         # when java_throw is called from the main method lookup.
-        return @run_until_finished (->), done_cb, no_threads
+        @run_until_finished (->), no_threads, done_cb
       else if e instanceof YieldIOException
         success_fn = (ret1, ret2) =>
           @curr_frame().runner = =>
@@ -401,22 +405,23 @@ class root.RuntimeState
                 else
                   @push ret1
               @push ret2 unless ret2 is undefined
-          @run_until_finished (->), done_cb, no_threads
+          @run_until_finished (->), no_threads, done_cb
         failure_fn = (e_cb) =>
           @curr_frame().runner = e_cb
-          @run_until_finished (->), done_cb, no_threads
+          @run_until_finished (->), no_threads, done_cb
         e.condition success_fn, failure_fn
-        return
       else
         if e.method_catch_handler? and @meta_stack().length() > 1
           tos = true
           until e.method_catch_handler(@, @curr_frame().method, tos)
             tos = false
             if @meta_stack().length() == 1
-              return @handle_toplevel_exception e, done_cb, no_threads
+              @handle_toplevel_exception e, no_threads, done_cb
+              return
             else
               @meta_stack().pop()
-          return @run_until_finished (->), done_cb, no_threads
+          @run_until_finished (->), no_threads, done_cb
         else
           @meta_stack().pop() while @meta_stack().length() > 1
-          return @handle_toplevel_exception e, done_cb, no_threads
+          @handle_toplevel_exception e, no_threads, done_cb
+    return  # this is an async method, no return value

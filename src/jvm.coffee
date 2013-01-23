@@ -26,15 +26,24 @@ root.read_classfile = (cls) ->
 
 # main function that gets called from the frontend
 root.run_class = (rs, class_name, cmdline_args, done_cb) ->
-  return unless rs.run_until_finished (-> rs.init_threads()), (->), true
-
-  unless rs.system_initialized?
-    return unless rs.run_until_finished (-> rs.init_system_class()), (->), true
-
   main_spec = class: class_name, sig: 'main([Ljava/lang/String;)V'
-  rs.init_args cmdline_args
   main_method = null
-  # wrap it in run_until_finished to handle any exceptions correctly
-  return unless rs.run_until_finished (-> main_method = rs.method_lookup main_spec), (->), true
-  done_cb ?= (->)  # make sure it exists, so we know when to delete the main thread
-  rs.run_until_finished (-> main_method.setup_stack(rs)), done_cb
+  run_main = ->
+    rs.init_args cmdline_args
+    # wrap it in run_until_finished to handle any exceptions correctly
+    rs.run_until_finished (-> main_method = rs.method_lookup main_spec), true, (success) ->
+      return unless success
+      rs.run_until_finished (-> main_method.setup_stack(rs)), false, (success) ->
+        done_cb?() if success
+  # start here
+  rs.run_until_finished (-> rs.init_threads()), true, (success) ->
+    return unless success
+    if rs.system_initialized?
+      run_main()
+    else
+      rs.run_until_finished (-> rs.init_system_class()), true, (success) ->
+        return unless success
+        run_main()
+
+
+
