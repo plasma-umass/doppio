@@ -22,12 +22,12 @@ class Clinit {
 
     ClinitFoo cf = null;
     System.out.println(cf instanceof ClinitBar);
+    cf = new ClinitFoo();
   }
 }
 
 class ClinitFoo {
   static {
-    // should not get called
     System.out.println("initializing class ClinitFoo");
   }
   void foo() {};
@@ -36,7 +36,6 @@ class ClinitFoo {
 
 class ClinitBar extends ClinitFoo {
   static {
-    // should not get called
     System.out.println("initializing class ClinitBar");
   }
   void bar() {};
