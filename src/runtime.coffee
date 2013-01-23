@@ -406,10 +406,8 @@ class root.RuntimeState
           @curr_frame().runner = =>
               @meta_stack().pop()
               unless ret1 is undefined
-                if typeof ret1 == 'boolean'
-                  @push ret1+0
-                else
-                  @push ret1
+                ret += 0 if typeof ret1 == 'boolean'
+                @push ret1
               @push ret2 unless ret2 is undefined
           @run_until_finished (->), no_threads, done_cb
         failure_fn = (e_cb) =>
