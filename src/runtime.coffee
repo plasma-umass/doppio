@@ -287,32 +287,38 @@ class root.RuntimeState
     class_file = @load_class type, dyn
     cls = type.toClassString()
     unless @class_states[cls].fields?
-      trace "initializing class: #{cls}"
+      trace "looking up class: #{cls}"
       @class_states[cls].fields = Object.create null
       if type instanceof types.ArrayType
         component = type.component_type
         if component instanceof types.ArrayType or component instanceof types.ClassType
           @class_lookup component, dyn
-      else # type instanceof types.ClassType
-        c = @class_states[cls]
-        # Run class initialization code. Superclasses get init'ed first.  We
-        # don't want to call this more than once per class, so don't do dynamic
-        # lookup. See spec [2.17.4][1].
-        # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/Concepts.doc.html#19075
-        if class_file.super_class
-          @class_lookup class_file.super_class, dyn
+      else if class_file.super_class?
+        @class_lookup class_file.super_class, dyn
+      #TODO: finish the decoupling by removing the following line
+      @initialize_class class_file, (->)
+    return class_file
 
-        @meta_stack().push root.StackFrame.fake_frame('class_lookup')
-        class_file.methods['<clinit>()V']?.setup_stack(@)
-        @run_until_finished (->), true, (success) =>
-          if success
-            @meta_stack().pop()
-          else
-            throw 'Error in class initialization'
-        # XXX: bug here! run_until_finished often finishes synchronously,
-        #  but isn't guaranteed to. When it doesn't, we return the class_file
-        #  before it's fully initialized and things break.
-    class_file
+  initialize_class: (class_file, cb) ->
+    trace "initializing class: #{class_file.this_class.toClassString()}"
+    # Run class initialization code. Superclasses get init'ed first.  We
+    # don't want to call this more than once per class, so don't do dynamic
+    # lookup. See spec [2.17.4][1].
+    # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/Concepts.doc.html#19075
+    _fn = =>
+      @meta_stack().push root.StackFrame.fake_frame('class_lookup')
+      class_file.methods['<clinit>()V']?.setup_stack(@)
+      @run_until_finished (->), true, (success) =>
+        if success
+          @meta_stack().pop()
+          cb()
+        else
+          throw 'Error in class initialization'
+    # This pattern comes up in jvm.run_class as well. Is there a better way?
+    if class_file.super_class?
+      @initialize_class @class_lookup(class_file.super_class), _fn
+    else
+      _fn()
 
   # called by user-defined classloaders
   define_class: (cls, data, loader) ->
