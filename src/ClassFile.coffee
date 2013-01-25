@@ -11,7 +11,7 @@ types = require './types'
 "use strict"
 
 class ClassFile
-  constructor: (bytes_array) ->
+  constructor: (bytes_array, @loader=null) ->
     bytes_array = new util.BytesArray bytes_array
     throw "Magic number invalid" if (bytes_array.get_uint 4) != 0xCAFEBABE
     @minor_version = bytes_array.get_uint 2
@@ -53,7 +53,13 @@ class ClassFile
     @attrs = attributes.make_attributes(bytes_array,@constant_pool)
     throw "Leftover bytes in classfile: #{bytes_array}" if bytes_array.has_bytes()
 
-  @for_array_type: (type) ->
+    @initialized = false # Has clinit been run?
+
+    # Contains the value of all static fields. Will be reset when initialize()
+    # is run.
+    @static_fields = Object.create null
+
+  @for_array_type: (type, @loader=null) ->
     class_file = Object.create ClassFile.prototype # avoid calling the constructor
     class_file.constant_pool = new ConstantPool
     class_file.ml_cache = {}
@@ -65,6 +71,8 @@ class ClassFile
     class_file.fields = []
     class_file.methods = {}
     class_file.attrs = []
+    class_file.initialized = false
+    class_file.static_fields = []
     class_file
 
   # Spec [5.4.3.2][1].
@@ -118,8 +126,10 @@ class ClassFile
   # of the built up state / caches present in the opcode instructions.
   # Eventually, this will also handle `clinit` duties.
   initialize: (rs) ->
-    for method in @methods
-      method.initialize()
+    unless @initialized
+      @static_fields = Object.create null
+      for method in @methods
+        method.initialize()
 
   construct_default_fields: (rs) ->
     # init fields from this and inherited ClassFiles

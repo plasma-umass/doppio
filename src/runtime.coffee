@@ -39,10 +39,6 @@ class root.StackFrame
     sf.fake = true
     return sf
 
-class ClassState
-  constructor: (@loader) ->
-    @fields = null
-
 # Contains all the mutable state of the Java program.
 class root.RuntimeState
 
@@ -51,9 +47,6 @@ class root.RuntimeState
   constructor: (@print, @async_input, @read_classfile) ->
     @startup_time = gLong.fromNumber (new Date).getTime()
     @run_stamp = ++run_count
-    # dict of mutable states of loaded classes
-    @class_states = Object.create null
-    @class_states['$bootstrap'] = new ClassState null
     # dict of java.lang.Class objects (which are interned)
     @jclass_obj_pool = Object.create null
     # dict of ClassFiles that have been loaded
@@ -84,7 +77,7 @@ class root.RuntimeState
         @curr_thread.$isAlive = true
         @thread_pool.push @curr_thread
         # hack to make auto-named threads match native Java
-        @class_states['java/lang/Thread'].fields.threadInitNumber = 1
+        @class_lookup(c2t 'java/lang/Thread').static_fields.threadInitNumber = 1
         debug "### finished thread init ###"
       ct = @init_object 'java/lang/Thread',
         'java/lang/Thread/name': @init_carr 'main'
@@ -194,12 +187,12 @@ class root.RuntimeState
   # static stuff
   static_get: (field_spec) ->
     f = @field_lookup(field_spec)
-    @class_states[f.class_type.toClassString()].fields[f.name] ?= util.initial_value f.raw_descriptor
+    @loaded_classes[f.class_type.toClassString()].static_fields[f.name] ?= util.initial_value f.raw_descriptor
 
   static_put: (field_spec) ->
     val = if field_spec.type in ['J','D'] then @pop2() else @pop()
     f = @field_lookup(field_spec)
-    @class_states[f.class_type.toClassString()].fields[f.name] = val
+    @loaded_classes[f.class_type.toClassString()].static_fields[f.name] = val
 
   # heap object initialization
   init_object: (cls, obj) ->
@@ -241,17 +234,14 @@ class root.RuntimeState
     unless @loaded_classes[cls]?
       if type instanceof types.ArrayType
         @loaded_classes[cls] = ClassFile.for_array_type type
-        # defining class loader of an array type is that of its component type
-        if type.component_type instanceof types.PrimitiveType
-          @class_states[cls] = new ClassState null
-        else
+        unless type.component_type instanceof types.PrimitiveType
           @load_class type.component_type, dyn
-          @class_states[cls] = new ClassState @class_states[type.component_type.toClassString()].loader
+          @loaded_classes[cls].loader = @loaded_classes[type.component_type.toClassString()].loader
       else
-        # a class gets loaded with the loader of the class that is triggering    
+        # a class gets loaded with the loader of the class that is triggering
         # this class resolution
         defining_class = @curr_frame().method.class_type.toClassString()
-        defining_class_loader = @class_states[defining_class]?.loader
+        defining_class_loader = @loaded_classes[defining_class]?.loader
         if defining_class_loader?
           @meta_stack().push root.StackFrame.fake_frame('custom_class_loader')
           @push2 defining_class_loader, @init_string util.ext_classname cls
@@ -265,7 +255,6 @@ class root.RuntimeState
           @meta_stack().pop()
         else
           # bootstrap class loader
-          @class_states[cls] = new ClassState null
           class_file = @read_classfile cls
           if not class_file? or wrong_name = (class_file.this_class.toClassString() != cls)
             msg = cls
@@ -275,6 +264,7 @@ class root.RuntimeState
               java_throw @, 'java/lang/ClassNotFoundException', msg
             else
               java_throw @, 'java/lang/NoClassDefFoundError', msg
+          class_file.initialized = false
           @loaded_classes[cls] = class_file
     @loaded_classes[cls]
 
@@ -286,10 +276,8 @@ class root.RuntimeState
     UNSAFE? || throw new Error "class_lookup was passed a PrimitiveType" if type instanceof types.PrimitiveType
     class_file = @load_class type, dyn
     cls = type.toClassString()
-    unless @class_states[cls].fields?
+    unless @loaded_classes[cls].initialized
       trace "looking up class: #{cls}"
-      @class_states[cls].inited = false
-      @class_states[cls].fields = Object.create null
       if type instanceof types.ArrayType
         component = type.component_type
         if component instanceof types.ArrayType or component instanceof types.ClassType
@@ -301,17 +289,17 @@ class root.RuntimeState
     return class_file
 
   initialize_class: (class_file, cb) ->
-    cls = class_file.this_class.toClassString()
-    return cb() if @class_states[cls].inited
-    @class_states[cls].inited = true
-    trace "initializing class: #{cls}"
+    return cb() if class_file.initialized
+    trace "initializing class: #{class_file.this_class.toClassString()}"
+    class_file.initialized = true
+
     # Run class initialization code. Superclasses get init'ed first.  We
     # don't want to call this more than once per class, so don't do dynamic
     # lookup. See spec [2.17.4][1].
     # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/Concepts.doc.html#19075
     _fn = =>
-      @meta_stack().push root.StackFrame.fake_frame('class_lookup')
       class_file.initialize(this) # Resets any cached state.
+      @meta_stack().push root.StackFrame.fake_frame('class_lookup')
       class_file.methods['<clinit>()V']?.setup_stack(@)
       @run_until_finished (->), true, (success) =>
         if success
@@ -328,8 +316,7 @@ class root.RuntimeState
   # called by user-defined classloaders
   define_class: (cls, data, loader) ->
     # replicates some logic from class_lookup
-    class_file = new ClassFile(data)
-    @class_states[cls] = new ClassState loader
+    class_file = new ClassFile data, loader
     if class_file.super_class
       @class_lookup class_file.super_class
     @loaded_classes[cls] = class_file
