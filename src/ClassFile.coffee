@@ -121,14 +121,6 @@ class ClassFile
     for method in @methods
       method.initialize()
 
-    if @super_class?
-      parent = rs.class_lookup @super_class
-      parent.initialize(rs)
-
-    for i in @interfaces
-      ifc = rs.class_lookup c2t @constant_pool.get(i).deref()
-      ifc.initialize(rs)
-
   construct_default_fields: (rs) ->
     # init fields from this and inherited ClassFiles
     t = @this_class
