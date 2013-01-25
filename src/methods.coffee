@@ -50,6 +50,7 @@ class root.Field extends AbstractMethodField
 
 class root.Method extends AbstractMethodField
   parse_descriptor: (raw_descriptor) ->
+    @reset_caches = false # Switched to 'true' in web frontend between JVM invocations.
     [__,param_str,return_str] = /\(([^)]*)\)(.*)/.exec(raw_descriptor)
     param_carr = param_str.split ''
     @param_types = (field while (field = carr2type param_carr))
@@ -137,12 +138,20 @@ class root.Method extends AbstractMethodField
       rs.push null if ret_type in [ 'J', 'D' ]
 
   run_bytecode: (rs) ->
+    if @reset_caches and @code?.opcodes?
+      for instr in @code.opcodes
+        instr?.reset_cache()
     try
       @bytecode_loop(rs)
     catch e
       return if e is ReturnException  # stack pop handled by opcode
       throw e unless e.method_catch_handler?(rs, @, true)
       @run_bytecode(rs)
+
+  # Reinitializes the method by removing all cached information from the method.
+  # We amortize the cost by doing it lazily the first time the bytecode_loop
+  # is run.
+  initialize: -> @reset_caches = true
 
   bytecode_loop: (rs) ->
     trace "entering method #{@full_signature()}"

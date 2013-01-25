@@ -311,6 +311,7 @@ class root.RuntimeState
     # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/Concepts.doc.html#19075
     _fn = =>
       @meta_stack().push root.StackFrame.fake_frame('class_lookup')
+      class_file.initialize(this) # Resets any cached state.
       class_file.methods['<clinit>()V']?.setup_stack(@)
       @run_until_finished (->), true, (success) =>
         if success

@@ -114,6 +114,21 @@ class ClassFile
 
     return null
 
+  # "Reinitializes" the ClassFile for subsequent JVM invocations. Resets all
+  # of the built up state / caches present in the opcode instructions.
+  # Eventually, this will also handle `clinit` duties.
+  initialize: (rs) ->
+    for method in @methods
+      method.initialize()
+
+    if @super_class?
+      parent = rs.class_lookup @super_class
+      parent.initialize(rs)
+
+    for i in @interfaces
+      ifc = rs.class_lookup c2t @constant_pool.get(i).deref()
+      ifc.initialize(rs)
+
   construct_default_fields: (rs) ->
     # init fields from this and inherited ClassFiles
     t = @this_class

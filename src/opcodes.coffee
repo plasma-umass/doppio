@@ -15,12 +15,17 @@ class root.Opcode
     (@[prop] = val for prop, val of params)
     @execute ?= @_execute
     @byte_count = params.byte_count ? 0
+    # Backup so we can reset caching between JVM invocations.
+    @orig_execute = @execute
 
   take_args: (code_array) ->
     @args = (code_array.get_uint(1) for [0...@byte_count])
 
   # called to provide opcode annotations for disassembly and vtrace
   annotate: -> ''
+
+  # Used to reset any cached information between JVM invocations.
+  reset_cache: -> @execute = @orig_execute unless @execute is @orig_execute
 
 class root.FieldOpcode extends root.Opcode
   constructor: (name, params) ->
