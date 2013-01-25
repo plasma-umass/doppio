@@ -59,8 +59,8 @@ class root.JavaObject
   get_field_from_offset: (rs, offset) ->
     f = @_get_field_from_offset rs, @cls, offset.toInt()
     if f.field.access_flags.static
-      return rs.static_get({class:@type.toClassString(),name:f.field.name})
-    @get_field rs, f.cls + '/' + f.field.name
+      return f.cls_obj.static_get rs, f.field.name
+    return @get_field rs, f.cls + '/' + f.field.name
 
   _get_field_from_offset: (rs, cls, offset) ->
     classname = cls.this_class.toClassString()
@@ -68,13 +68,12 @@ class root.JavaObject
       unless cls.super_class?
         java_throw rs, 'java/lang/NullPointerException', "field #{offset} doesn't exist in class #{classname}"
       cls = rs.class_lookup(cls.super_class)
-    {field: cls.fields[offset], cls: cls.this_class.toClassString()}
+    {field: cls.fields[offset], cls: cls.this_class.toClassString(), cls_obj: cls}
 
   set_field_from_offset: (rs, offset, value) ->
     f = @_get_field_from_offset rs, @cls, offset.toInt()
     if f.field.access_flags.static
-      rs.push value
-      rs.static_put({class:@type.toClassString(),name:f.field.name})
+      f.cls_obj.static_put rs, f.field.name, value
     else
       @set_field rs, f.cls + '/' + f.field.name, value
 

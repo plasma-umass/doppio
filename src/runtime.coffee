@@ -184,16 +184,6 @@ class root.RuntimeState
     else  # numeric array
       new JavaArray @, c2t("[#{type}"), (0 for i in [0...len] by 1)
 
-  # static stuff
-  static_get: (field_spec) ->
-    f = @field_lookup(field_spec)
-    @loaded_classes[f.class_type.toClassString()].static_fields[f.name] ?= util.initial_value f.raw_descriptor
-
-  static_put: (field_spec) ->
-    val = if field_spec.type in ['J','D'] then @pop2() else @pop()
-    f = @field_lookup(field_spec)
-    @loaded_classes[f.class_type.toClassString()].static_fields[f.name] = val
-
   # heap object initialization
   init_object: (cls, obj) ->
     type = c2t(cls)

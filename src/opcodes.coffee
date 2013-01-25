@@ -563,8 +563,28 @@ root.opcodes = {
   175: new root.Opcode 'dreturn', { execute: (rs) -> cf = rs.meta_stack().pop(); rs.push2 cf.stack[0], null; throw ReturnException }
   176: new root.Opcode 'areturn', { execute: (rs) -> cf = rs.meta_stack().pop(); rs.push cf.stack[0]; throw ReturnException }
   177: new root.Opcode 'return', { execute: (rs) -> rs.meta_stack().pop(); throw ReturnException }
-  178: new root.FieldOpcode 'getstatic', {execute: (rs)-> rs.push rs.static_get @field_spec; rs.push null if @field_spec.type in ['J','D']}
-  179: new root.FieldOpcode 'putstatic', {execute: (rs)-> rs.static_put @field_spec }
+  178: new root.FieldOpcode 'getstatic', {execute: (rs)->
+    @cls = rs.class_lookup(rs.field_lookup(@field_spec).class_type)
+    new_execute =
+      if @field_spec.type not in ['J','D']
+        (rs) -> rs.push @cls.static_get(rs, @field_spec.name)
+      else
+        (rs) -> rs.push2 @cls.static_get(rs, @field_spec.name), null
+    new_execute.call(@, rs)
+    @execute = new_execute
+    return
+  }
+  179: new root.FieldOpcode 'putstatic', {execute: (rs)->
+    @cls = rs.class_lookup(rs.field_lookup(@field_spec).class_type)
+    new_execute =
+      if @field_spec.type not in ['J', 'D']
+        (rs) -> @cls.static_put(rs, @field_spec.name, rs.pop())
+      else
+        (rs) -> @cls.static_put(rs, @field_spec.name, rs.pop2())
+    new_execute.call(@, rs)
+    @execute = new_execute
+    return
+  }
   180: new root.FieldOpcode 'getfield', { execute: (rs) ->
     field = rs.field_lookup(@field_spec)
     name = field.class_type.toClassString() + '/' + @field_spec.name

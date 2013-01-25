@@ -6,6 +6,7 @@ attributes = require './attributes'
 opcodes = require './opcodes'
 methods = require './methods'
 types = require './types'
+{java_throw} = require './exceptions'
 {c2t} = types
 
 "use strict"
@@ -34,6 +35,7 @@ class ClassFile
     num_fields = bytes_array.get_uint 2
     @fields = (new methods.Field(@this_class) for i in [0...num_fields] by 1)
     @fl_cache = {}
+
     for f,i in @fields
       f.parse(bytes_array,@constant_pool,i)
       @fl_cache[f.name] = f
@@ -54,10 +56,9 @@ class ClassFile
     throw "Leftover bytes in classfile: #{bytes_array}" if bytes_array.has_bytes()
 
     @initialized = false # Has clinit been run?
-
     # Contains the value of all static fields. Will be reset when initialize()
     # is run.
-    @static_fields = Object.create null
+    @static_fields = @_construct_static_fields()
 
   @for_array_type: (type, @loader=null) ->
     class_file = Object.create ClassFile.prototype # avoid calling the constructor
@@ -122,12 +123,22 @@ class ClassFile
 
     return null
 
+  static_get: (rs, name) ->
+    return @static_fields[name] unless @static_fields[name] is undefined
+    java_throw rs, 'java/lang/NoSuchFieldError', name
+
+  static_put: (rs, name, val) ->
+    unless @static_fields[name] is undefined
+      @static_fields[name] = val
+    else
+      java_throw rs, 'java/lang/NoSuchFieldError', name
+
   # "Reinitializes" the ClassFile for subsequent JVM invocations. Resets all
   # of the built up state / caches present in the opcode instructions.
   # Eventually, this will also handle `clinit` duties.
   initialize: (rs) ->
     unless @initialized
-      @static_fields = Object.create null
+      @static_fields = @_construct_static_fields()
       for method in @methods
         method.initialize()
 
@@ -142,9 +153,13 @@ class ClassFile
         val = util.initial_value f.raw_descriptor
         @default_fields[t.toClassString() + '/' + f.name] = val
       t = cls.super_class
-    # Supposedly makes prototype lookup faster. I haven't noticed a net
-    # positive or negative result, so I'll keep it in for now.
-    # Object.freeze @default_fields
+
+  # Used internally to reconstruct @static_fields
+  _construct_static_fields: ->
+    static_fields = Object.create null
+    for f in @fields when f.access_flags.static
+      static_fields[f.name] = util.initial_value f.raw_descriptor
+    return static_fields
 
   get_default_fields: (rs) ->
     return @default_fields unless @default_fields is undefined

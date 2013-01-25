@@ -110,7 +110,9 @@ trapped_methods =
       ]
     nio:
       Bits: [
-        o 'byteOrder()L!/!/ByteOrder;', (rs) -> rs.static_get {class:'java/nio/ByteOrder',name:'LITTLE_ENDIAN'}
+        o 'byteOrder()L!/!/ByteOrder;', (rs) ->
+            cls = rs.class_lookup(c2t 'java/nio/ByteOrder')
+            cls.static_get rs, 'LITTLE_ENDIAN'
         o 'copyToByteArray(JLjava/lang/Object;JJ)V', (rs, srcAddr, dst, dstPos, length) ->
           unsafe_memcpy rs, null, srcAddr, dst, dstPos, length
       ]
@@ -603,14 +605,14 @@ native_methods =
             # we don't actually have nanosecond precision
             gLong.fromNumber((new Date).getTime()).multiply(gLong.fromNumber(1000000))
         o 'setIn0(L!/io/InputStream;)V', (rs, stream) ->
-            rs.push stream
-            rs.static_put {class:'java/lang/System', name:'in'}
+            sys = rs.class_lookup c2t 'java/lang/System'
+            sys.static_put rs, 'in', stream
         o 'setOut0(L!/io/PrintStream;)V', (rs, stream) ->
-            rs.push stream
-            rs.static_put {class:'java/lang/System', name:'out'}
+            sys = rs.class_lookup c2t 'java/lang/System'
+            sys.static_put rs, 'out', stream
         o 'setErr0(L!/io/PrintStream;)V', (rs, stream) ->
-            rs.push stream
-            rs.static_put {class:'java/lang/System', name:'err'}
+            sys = rs.class_lookup c2t 'java/lang/System'
+            sys.static_put rs, 'err', stream
       ]
       Thread: [
         o 'currentThread()L!/!/!;', (rs) -> rs.curr_thread
@@ -1039,11 +1041,9 @@ native_methods =
             field_names = [ 'compTimeMonitoringSupport', 'threadContentionMonitoringSupport',
               'currentThreadCpuTimeSupport', 'otherThreadCpuTimeSupport',
               'bootClassPathSupport', 'objectMonitorUsageSupport', 'synchronizerUsageSupport' ]
+            vm_management_impl = rs.class_lookup 'sun/management/VMManagementImpl'
             for name in field_names
-              rs.push 0
-              rs.static_put
-                class: 'sun/management/VMManagementImpl'
-                name: name
+              vm_management_impl.static_put rs, name, 0
         o 'isThreadAllocatedMemoryEnabled()Z', -> false
         o 'isThreadContentionMonitoringEnabled()Z', -> false
         o 'isThreadCpuTimeEnabled()Z', -> false
@@ -1063,8 +1063,10 @@ native_methods =
             # this only applies to Java 7
             return unless vm_cls.major_version >= 51
             # hack! make savedProps refer to the system props
-            rs.push rs.static_get {class:'java/lang/System',name:'props'}
-            rs.static_put {class:'sun/misc/VM',name:'savedProps'}
+            sys_cls = rs.class_lookup(c2t 'java/lang/System')
+            props = sys_cls.static_get rs, 'props'
+            vm_cls = rs.class_lookup(c2t 'sun/misc/VM')
+            vm_cls.static_put 'savedProps', props
       ]
       # TODO: Go down the rabbit hole and create a fast heap implementation
       # in JavaScript -- with and without typed arrays.
