@@ -15,13 +15,21 @@ class Clinit {
     }
   }
   public static void main(String[] args) throws ClassNotFoundException {
+    // don't initialize here!
     System.out.println("Declared methods for class ClinitBar:");
     printMethods(ClinitBar.class.getDeclaredMethods());
     System.out.println("\nPublic methods for class ClinitBar:");
     printMethods(ClinitBar.class.getMethods());
 
+    // still don't initialize
     ClinitFoo cf = null;
     System.out.println(cf instanceof ClinitBar);
+
+    // array test
+    ClinitFoo[] arr = new ClinitFoo[5];
+    System.out.println("array has length "+arr.length);
+
+    // now, you can initialize
     cf = new ClinitFoo();
   }
 }
