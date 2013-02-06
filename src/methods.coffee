@@ -34,19 +34,27 @@ class root.Field extends AbstractMethodField
   parse_descriptor: (raw_descriptor) ->
     @type = str2type raw_descriptor
 
-  reflector: (rs) ->
+  # XXX Need the target class. Setting to 'null' for now.
+  # Must be called asynchronously.
+  reflector: (rs, success_fn, failure_fn) ->
     # note: sig is the generic type parameter (if one exists), not the full
     # field type.
     sig = _.find(@attrs, (a) -> a.name == "Signature")?.sig
-    rs.init_object 'java/lang/reflect/Field', {
-      # XXX this leaves out 'annotations'
-      'java/lang/reflect/Field/clazz': rs.jclass_obj(@class_type)
-      'java/lang/reflect/Field/name': rs.init_string @name, true
-      'java/lang/reflect/Field/type': rs.jclass_obj @type
-      'java/lang/reflect/Field/modifiers': @access_byte
-      'java/lang/reflect/Field/slot': @idx
-      'java/lang/reflect/Field/signature': if sig? then rs.init_string sig else null
-    }
+
+    # Need to fetch a jclass object for clazz and type.
+    rs.jclass_obj(@class_type, null, ((clazz_obj)=>
+      rs.jclass_obj(@type, null, ((type_obj) =>
+        success_fn(rs.init_object rs.class_lookup(c2t 'java/lang/reflect/Field'), {
+          # XXX this leaves out 'annotations'
+          'java/lang/reflect/Field/clazz': clazz_obj
+          'java/lang/reflect/Field/name': rs.init_string @name, true
+          'java/lang/reflect/Field/type': type_obj
+          'java/lang/reflect/Field/modifiers': @access_byte
+          'java/lang/reflect/Field/slot': @idx
+          'java/lang/reflect/Field/signature': if sig? then rs.init_string sig else null
+        })
+      ), failure_fn)
+    ), failure_fn)
 
 class root.Method extends AbstractMethodField
   parse_descriptor: (raw_descriptor) ->
@@ -78,30 +86,53 @@ class root.Method extends AbstractMethodField
       else
         @code = (rs) =>
           unless sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
-            java_throw rs, 'java/lang/Error', "native method NYI: #{sig}"
+            java_throw rs, rs.class_lookup(c2t 'java/lang/Error'), "native method NYI: #{sig}"
     else
       @has_bytecode = true
       @code = _.find(@attrs, (a) -> a.name == 'Code')
 
-  reflector: (rs, is_constructor=false) ->
+  reflector: (rs, is_constructor=false, success_fn, failure_fn) ->
     typestr = if is_constructor then 'java/lang/reflect/Constructor' else 'java/lang/reflect/Method'
     exceptions = _.find(@attrs, (a) -> a.name == 'Exceptions')?.exceptions ? []
     anns = _.find(@attrs, (a) -> a.name == 'RuntimeVisibleAnnotations')?.raw_bytes
     adefs = _.find(@attrs, (a) -> a.name == 'AnnotationDefault')?.raw_bytes
     sig =  _.find(@attrs, (a) -> a.name == 'Signature')?.sig
     obj = {}
-    # XXX: missing parameterAnnotations
-    obj[typestr + '/clazz'] = rs.jclass_obj(@class_type)
-    obj[typestr + '/name'] = rs.init_string @name, true
-    obj[typestr + '/parameterTypes'] = rs.init_array "[Ljava/lang/Class;", (rs.jclass_obj(f) for f in @param_types)
-    obj[typestr + '/returnType'] = rs.jclass_obj @return_type
-    obj[typestr + '/exceptionTypes'] = rs.init_array "[Ljava/lang/Class;", (rs.jclass_obj(c2t(e)) for e in exceptions)
-    obj[typestr + '/modifiers'] = @access_byte
-    obj[typestr + '/slot'] = @idx
-    obj[typestr + '/signature'] = if sig? then rs.init_string sig else null
-    obj[typestr + '/annotations'] = if anns? then rs.init_array('[B', anns) else null
-    obj[typestr + '/annotationDefault'] = if adefs? then rs.init_array('[B', adefs) else null
-    rs.init_object typestr, obj
+
+    rs.jclass_obj(@class_type, null, ((clazz_obj)=>
+      rs.jclass_obj(@return_type, null, ((rt_obj) =>
+        j = -1
+        etype_objs = []
+        i = -1
+        param_type_objs = []
+        fetch_etype = () =>
+          j++
+          if j < exceptions.length
+            rs.jclass_obj(c2t(exceptions[j]), null, ((jco)=>etype_objs[j]=jco;fetch_etype()), failure_fn)
+          else
+            # XXX: missing parameterAnnotations
+            obj[typestr + '/clazz'] = clazz_obj
+            obj[typestr + '/name'] = rs.init_string @name, true
+            obj[typestr + '/parameterTypes'] = rs.init_array "[Ljava/lang/Class;", param_type_objs
+            obj[typestr + '/returnType'] = rt_obj
+            obj[typestr + '/exceptionTypes'] = rs.init_array "[Ljava/lang/Class;", etype_objs
+            obj[typestr + '/modifiers'] = @access_byte
+            obj[typestr + '/slot'] = @idx
+            obj[typestr + '/signature'] = if sig? then rs.init_string sig else null
+            obj[typestr + '/annotations'] = if anns? then rs.init_array('[B', anns) else null
+            obj[typestr + '/annotationDefault'] = if adefs? then rs.init_array('[B', adefs) else null
+            setTimeout((()=>success_fn(rs.init_object rs.class_lookup(c2t typestr), obj)), 0)
+
+        fetch_ptype = () =>
+          i++
+          if i < @param_types.length
+            rs.jclass_obj(@param_types[i], null, ((jco)=>param_type_objs[i]=jco;fetch_ptype()), failure_fn)
+          else
+            fetch_etype()
+
+        fetch_ptype()
+      ), failure_fn)
+    ), failure_fn)
 
   take_params: (caller_stack) ->
     start = caller_stack.length - @param_bytes
@@ -128,7 +159,7 @@ class root.Method extends AbstractMethodField
     try
       rv = func converted_params...
     catch e
-      return if e is ReturnException  # XXX kludge
+      return if e is ReturnException  # XXX kludge; now relied upon by class initialization!
       throw e
     rs.meta_stack().pop()
     ret_type = @return_type.toString()
@@ -185,7 +216,7 @@ class root.Method extends AbstractMethodField
       return
 
     if @access_flags.abstract
-      java_throw runtime_state, 'java/lang/Error', "called abstract method: #{@full_signature()}"
+      java_throw runtime_state, rs.class_lookup(c2t 'java/lang/Error'), "called abstract method: #{@full_signature()}"
 
     # Finally, the normal case: running a Java method
     ms.push(sf = new runtime.StackFrame(this,params,[]))

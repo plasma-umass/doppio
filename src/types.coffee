@@ -78,6 +78,9 @@ class root.PrimitiveType extends root.Type
 
   valueOf: -> external2internal[@name]
 
+  # XXX: SUPER KLUDGE 64
+  toClassString: -> @name
+
   toExternalString: -> @name
 
 class root.ArrayType extends root.Type
@@ -111,25 +114,25 @@ is_subinterface = (rs, iface1, iface2) ->
   return false unless iface1['super_class']  # it's java/lang/Object, can't go further
   return is_subinterface rs, rs.class_lookup(iface1.super_class), iface2
 
-# true if :obj can be casted to (i.e. is an instance of) :classname.
-root.check_cast = (rs, obj, classname) ->
-  root.is_castable(rs, obj.type, root.c2t(classname))
+# true if :obj can be casted to (i.e. is an instance of) :cls.
+# cls is a ClassFile.
+root.check_cast = (rs, obj, cls) -> root.is_castable(rs, rs.get_loaded_class(obj.type), cls)
 
-# Returns a boolean indicating if :type1 is an instance of :type2.
-# :type1 and :type2 should both be instances of types.Type.
-root.is_castable = (rs, type1, type2) ->
+# Returns a boolean indicating if :c1 is an instance of :c2.
+# :c1 and :c2 should both be instances of ClassFile.
+# The ClassFiles do not need to be initialized; just loaded.
+root.is_castable = (rs, c1, c2) ->
+  type1 = c1.this_class
+  type2 = c2.this_class
   if (type1 instanceof root.PrimitiveType) or (type2 instanceof root.PrimitiveType)
     return type1 == type2
   if type1 instanceof root.ArrayType
     if type2 instanceof root.ArrayType
-      return root.is_castable(rs, type1.component_type, type2.component_type)
-    c2 = rs.class_lookup(type2)
+      return root.is_castable(rs, rs.get_loaded_class(type1.component_type), rs.get_loaded_class(type2.component_type))
     return type2.class_name is 'java/lang/Object' unless c2.access_flags.interface
     return type2.class_name in ['java/lang/Cloneable','java/io/Serializable']
   # not an array
   return false if type2 instanceof root.ArrayType
-  c1 = rs.class_lookup(type1)
-  c2 = rs.class_lookup(type2)
   unless c1.access_flags.interface
     return is_subclass(rs,c1,c2) unless c2.access_flags.interface
     return is_subinterface(rs,c1,c2)  # does class c1 support interface c2?

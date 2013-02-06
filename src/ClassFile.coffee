@@ -8,6 +8,7 @@ methods = require './methods'
 types = require './types'
 {java_throw} = require './exceptions'
 {c2t} = types
+{trace} = require './logging'
 
 "use strict"
 
@@ -76,6 +77,26 @@ class ClassFile
     class_file.static_fields = []
     class_file
 
+  # XXX: Used instead of PrimitiveTypes. Created so is_castable / check_cast
+  # can operate on ClassFiles rather than type objects.
+  # We should probably morph this into a formal hierarchy. And rename ClassFile
+  # to something more representative of its functionality.
+  @for_primitive: (type, @loader=null) ->
+    class_file = Object.create ClassFile.prototype # avoid calling the constructor
+    class_file.constant_pool = new ConstantPool
+    class_file.ml_cache = {}
+    class_file.fl_cache = {}
+    class_file.access_flags = {}
+    class_file.this_class = type
+    class_file.super_class = null
+    class_file.interfaces = []
+    class_file.fields = []
+    class_file.methods = {}
+    class_file.attrs = []
+    class_file.initialized = true
+    class_file.static_fields = []
+    class_file
+
   # Spec [5.4.3.2][1].
   # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#77678
   field_lookup: (rs, field_spec) ->
@@ -88,8 +109,9 @@ class ClassFile
       if field.name is field_spec.name
         return field
 
+    # These may not be initialized! But we have them loaded.
     for i in @interfaces
-      ifc_cls = rs.class_lookup c2t @constant_pool.get(i).deref()
+      ifc_cls = rs.get_loaded_class c2t @constant_pool.get(i).deref()
       field = ifc_cls.field_lookup(rs, field_spec)
       return field if field?
 
@@ -117,7 +139,7 @@ class ClassFile
       return method if method?
 
     for i in @interfaces
-      ifc = rs.class_lookup c2t @constant_pool.get(i).deref()
+      ifc = rs.get_loaded_class c2t @constant_pool.get(i).deref()
       method = ifc.method_lookup(rs, method_spec)
       return method if method?
 
@@ -125,13 +147,13 @@ class ClassFile
 
   static_get: (rs, name) ->
     return @static_fields[name] unless @static_fields[name] is undefined
-    java_throw rs, 'java/lang/NoSuchFieldError', name
+    java_throw rs, rs.class_lookup(c2t 'java/lang/NoSuchFieldError'), name
 
   static_put: (rs, name, val) ->
     unless @static_fields[name] is undefined
       @static_fields[name] = val
     else
-      java_throw rs, 'java/lang/NoSuchFieldError', name
+      java_throw rs, rs.class_lookup(c2t 'java/lang/NoSuchFieldError'), name
 
   # "Reinitializes" the ClassFile for subsequent JVM invocations. Resets all
   # of the built up state / caches present in the opcode instructions.
@@ -165,6 +187,23 @@ class ClassFile
     return @default_fields unless @default_fields is undefined
     @construct_default_fields(rs)
     return @default_fields
+
+  # Checks if the class file is initialized. It will set @initialized to 'true'
+  # if this class has no static initialization method and its parent classes
+  # are initialized, too.
+  is_initialized: (rs) ->
+    return true if @initialized
+    # XXX: Hack to avoid traversing hierarchy.
+    return false if @methods['<clinit>()V']?
+    @initialized = if @super_class? then rs.class_lookup(@super_class, @, true)?.is_initialized(rs) else false
+    return @initialized
+
+  # Returns the JavaObject object of the classloader that initialized this
+  # class. Returns null for the default classloader.
+  get_class_loader: () -> return @loader
+  # Returns the unique ID of this class loader. Returns null for the bootstrap
+  # classloader.
+  get_class_loader_id: () -> if @loader? then return @loader.ref else return null
 
 if module?
   module.exports = ClassFile

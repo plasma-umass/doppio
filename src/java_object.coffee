@@ -5,6 +5,7 @@ types = require './types'
 {vtrace} = require './logging'
 {java_throw} = require './exceptions'
 {log,debug,error} = require './logging'
+{c2t} = require './types'
 
 "use strict"
 
@@ -12,6 +13,8 @@ types = require './types'
 root = exports ? window.java_object ?= {}
 
 class root.JavaArray
+  # XXX: Should probably have a ClassFile reference; 'type' does not encapsulate
+  # information about classloader.
   constructor: (rs, @type, obj) ->
     @ref = rs.high_oref++
     @array = obj
@@ -49,12 +52,12 @@ class root.JavaObject
     unless @fields[name] is undefined
       @fields[name] = val
     else
-      java_throw rs, 'java/lang/NoSuchFieldError', name
+      java_throw rs, rs.class_lookup(c2t 'java/lang/NoSuchFieldError'), name
     return
 
   get_field: (rs, name) ->
     return @fields[name] unless @fields[name] is undefined
-    java_throw rs, 'java/lang/NoSuchFieldError', name
+    java_throw rs, rs.class_lookup(c2t 'java/lang/NoSuchFieldError'), name
 
   get_field_from_offset: (rs, offset) ->
     f = @_get_field_from_offset rs, @cls, offset.toInt()
@@ -66,7 +69,7 @@ class root.JavaObject
     classname = cls.this_class.toClassString()
     until cls.fields[offset]?
       unless cls.super_class?
-        java_throw rs, 'java/lang/NullPointerException', "field #{offset} doesn't exist in class #{classname}"
+        java_throw rs, rs.class_lookup(c2t 'java/lang/NullPointerException'), "field #{offset} doesn't exist in class #{classname}"
       cls = rs.class_lookup(cls.super_class)
     {field: cls.fields[offset], cls: cls.this_class.toClassString(), cls_obj: cls}
 

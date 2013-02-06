@@ -8,11 +8,12 @@ makefile_test = (argv) ->
   path = require 'path'
   fs = require 'fs'
   failpath = path.resolve __dirname, '../classes/test/failures.txt'
-  done_cb = (failed) -> print (if failed then 'x' else '✓')
+  done_cb = (failed) ->
+    print (if failed then 'x' else '✓')
+    fs.closeSync(outfile)
   outfile = fs.openSync failpath, 'a'
   stdout = (str) -> fs.writeSync(outfile, str)
   run_tests argv._, stdout, false, true, argv.c, done_cb
-  fs.closeSync(outfile)
 
 regular_test = (argv) ->
   done_cb = (failed) -> process.exit failed

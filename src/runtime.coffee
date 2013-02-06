@@ -7,7 +7,7 @@ util = require './util'
 types = require './types'
 ClassFile = require './ClassFile'
 {log,vtrace,trace,debug,error} = require './logging'
-{java_throw,YieldIOException,ReturnException} = require './exceptions'
+{java_throw,YieldIOException,ReturnException,JavaException} = require './exceptions'
 {JavaObject,JavaClassObject,JavaArray,thread_name} = require './java_object'
 {c2t} = types
 {Method} = require './methods'
@@ -36,7 +36,23 @@ class root.StackFrame
 
   @fake_frame: (name) ->
     sf = new root.StackFrame(new Method(c2t(name)), [], [])
+    sf.name = name
     sf.fake = true
+    return sf
+
+  # Creates a "native stack frame". Handler is called with no arguments for
+  # normal execution, error_handler is called with the uncaught exception.
+  # If error_handler is not specified, then the exception will propagate through
+  # normally.
+  # Used for <clinit> and ClassLoader shenanigans. A native frame handles
+  # bridging the gap between those Java methods and the methods that ended up
+  # triggering them in the first place.
+  @native_frame: (name, handler, error_handler) ->
+    sf = new root.StackFrame(new Method(c2t(name)), [], [])
+    sf.runner = handler
+    sf.name = name
+    if error_handler? then sf.error = error_handler
+    sf.native = true
     return sf
 
 # Contains all the mutable state of the Java program.
@@ -47,9 +63,13 @@ class root.RuntimeState
   constructor: (@print, @async_input, @read_classfile) ->
     @startup_time = gLong.fromNumber (new Date).getTime()
     @run_stamp = ++run_count
-    # dict of java.lang.Class objects (which are interned)
+    # dict of java.lang.Class objects (which are interned) this is two levels
+    # deep: the first level is the classloader, the second level is the classes
+    # defined by the classloader.
     @jclass_obj_pool = Object.create null
-    # dict of ClassFiles that have been loaded
+    # dict of ClassFiles that have been loaded. this is two levels deep:
+    # the first level is the classloader, the second level is the classes
+    # defined by that classloader.
     @loaded_classes = Object.create null
 
     @mem_start_addrs = [1]
@@ -63,11 +83,64 @@ class root.RuntimeState
     @thread_pool = []
     @curr_thread = {$meta_stack: new root.CallStack()}
 
+  # XXX: We currently 'preinitialize' all of these to avoid an async call
+  # in the middle of JVM execution. We should attempt to prune this down as
+  # much as possible.
+  preinitialize_core_classes: (resume_cb, except_cb) ->
+    core_classes = [
+      'sun/misc/VM'
+      'java/lang/String'
+      'java/lang/NoSuchFieldError'
+      'java/lang/ArrayIndexOutOfBoundsException'
+      'java/lang/ClassCastException'
+      'java/lang/Thread'
+      'java/lang/Throwable'
+      'java/lang/NullPointerException'
+      'java/lang/reflect/Field'
+      'java/lang/Error'
+      'java/lang/reflect/Method'
+      'java/lang/reflect/Constructor'
+      'java/lang/Class'
+      'java/lang/StackTraceElement'
+      'java/nio/ByteOrder'
+      'java/lang/ArrayStoreException'
+      'java/io/IOException'
+      'java/lang/IllegalMonitorStateException'
+      'java/lang/ArrayIndexOutOfBoundsException'
+      'java/lang/System'
+      'java/lang/InterruptedException'
+      'java/io/ExpiringCache'
+      'java/io/UnixFileSystem'
+      'java/io/FileNotFoundException'
+      'java/io/FileDescriptor'
+      'java/lang/ThreadGroup'
+      'java/lang/NullPointerException'
+      'java/lang/NegativeArraySizeException'
+      'java/lang/NoSuchMethodError'
+      'java/lang/Cloneable'
+      'java/io/Serializable'
+      'java/lang/ArithmeticException'
+      'sun/reflect/ConstantPool'
+      'java/lang/ExceptionInInitializerError'
+    ]
+    i = -1
+    init_next_core_class = =>
+      trace "init_next_core_class"
+      i++
+      if i < core_classes.length
+        trace "Initializing #{core_classes[i]}"
+        @initialize_class c2t(core_classes[i]), null, init_next_core_class, except_cb
+      else
+        trace "Preinitialization complete."
+        resume_cb()
+
+    init_next_core_class()
+
   init_threads: ->
     # initialize thread objects
     my_sf = @curr_frame()
-    @push (group = @init_object 'java/lang/ThreadGroup')
-    @method_lookup({class: 'java/lang/ThreadGroup', sig: '<init>()V'}).setup_stack(this)
+    @push (group = @init_object @class_lookup(c2t 'java/lang/ThreadGroup'))
+    @method_lookup(@class_lookup(c2t 'java/lang/ThreadGroup'), {class: 'java/lang/ThreadGroup', sig: '<init>()V'}).setup_stack(this)
     my_sf.runner = =>
       ct = null
       my_sf.runner = =>
@@ -79,7 +152,7 @@ class root.RuntimeState
         # hack to make auto-named threads match native Java
         @class_lookup(c2t 'java/lang/Thread').static_fields.threadInitNumber = 1
         debug "### finished thread init ###"
-      ct = @init_object 'java/lang/Thread',
+      ct = @init_object @class_lookup(c2t 'java/lang/Thread'),
         'java/lang/Thread/name': @init_carr 'main'
         'java/lang/Thread/priority': 1
         'java/lang/Thread/group': group
@@ -100,7 +173,6 @@ class root.RuntimeState
       debug "### finished system class initialization ###"
 
   init_args: (initial_args) ->
-    # prepare the call stack for main(String[] args)
     args = new JavaArray @, c2t('[Ljava/lang/String;'), (@init_string(a) for a in initial_args)
     @curr_thread.$meta_stack = new root.CallStack [args]
     debug "### finished runtime state initialization ###"
@@ -171,12 +243,12 @@ class root.RuntimeState
 
   # Heap manipulation.
   check_null: (obj) ->
-    java_throw @, 'java/lang/NullPointerException', '' unless obj?
+    java_throw @, @class_lookup(c2t 'java/lang/NullPointerException'), '' unless obj?
     obj
 
   heap_newarray: (type,len) ->
     if len < 0
-      java_throw @, 'java/lang/NegativeArraySizeException', "Tried to init [#{type} array with length #{len}"
+      java_throw @, @class_lookup(c2t 'java/lang/NegativeArraySizeException'), "Tried to init [#{type} array with length #{len}"
     if type == 'J'
       new JavaArray @, c2t("[J"), (gLong.ZERO for i in [0...len] by 1)
     else if type[0] == 'L'  # array of object
@@ -186,12 +258,11 @@ class root.RuntimeState
 
   # heap object initialization
   init_object: (cls, obj) ->
-    type = c2t(cls)
-    new JavaObject @, type, @class_lookup(type), obj
+    new JavaObject @, cls.this_class, cls, obj
   init_array: (cls, obj) ->
-    type = c2t(cls)
-    new JavaArray @, type, obj
+    new JavaArray @, c2t(cls), obj
   init_string: (str,intern=false) ->
+    trace "init_string: #{str}"
     return s if intern and (s = @string_pool.get str)?
     carr = @init_carr str
     type = c2t('java/lang/String')
@@ -202,131 +273,363 @@ class root.RuntimeState
     new JavaArray @, c2t('[C'), (str.charCodeAt(i) for i in [0...str.length] by 1)
 
   # Returns a java.lang.Class object for JVM bytecode to do reflective stuff.
-  # Loads the underlying class, but does not initialize it (and therefore does
-  # not ensure that its ancestors and interfaces are present.)
-  jclass_obj: (type, dyn=false) ->
-    jco = @jclass_obj_pool[type]
+  # Loads the underlying class, but does not initialize it.
+  # This must be executed as an asynchronous operation.
+  # XXX: Currently ensures that its ancestors and interfaces are present. Does
+  # this violate semantics at all?
+  # XXX: Perhaps the call site should be responsible for having the original ClassFile?
+  jclass_obj: (type, trigger_class, success_fn, failure_fn) ->
+    loader_id = if trigger_class? then trigger_class.get_class_loader_id() else null
+    type_string = if type instanceof types.PrimitiveType then type.toExternalString() else type.toClassString()
+    @jclass_obj_pool[loader_id] = Object.create null unless @jclass_obj_pool[loader_id]?
+    jco = @jclass_obj_pool[loader_id][type_string]
     if jco is 'not found'
-      etype = if dyn then 'ClassNotFoundException' else 'NoClassDefFoundError'
-      java_throw @, "java/lang/#{etype}", type.toClassString()
+      etype = if loader_id? then 'ClassNotFoundException' else 'NoClassDefFoundError'
+      failure_fn ()=> java_throw @, @class_lookup(c2t "java/lang/#{etype}"), type.toClassString()
     else if jco is undefined
-      @jclass_obj_pool[type] = 'not found'
-      file = if type instanceof types.PrimitiveType then null else @load_class type, dyn
-      @jclass_obj_pool[type] = jco = new JavaClassObject @, type, file
-    jco
+      @jclass_obj_pool[loader_id][type_string] = 'not found'
+      if type instanceof types.PrimitiveType
+        @jclass_obj_pool[loader_id][type_string] = jco = new JavaClassObject @, type, null
+        setTimeout((()->success_fn jco), 0)
+      else
+        @load_class type, trigger_class, ((file)=>
+          @jclass_obj_pool[loader_id][type_string] = jco = new JavaClassObject @, type, file
+          setTimeout((()->success_fn jco), 0)
+        ), failure_fn
+    else
+      setTimeout((()->success_fn jco), 0)
+    return
 
-  # Returns a ClassFile object. Loads the underlying class, but does not
-  # initialize it. :dyn should be set if the class may not have been present at
-  # compile time, e.g. if we are loading a class as a result of a
-  # Class.forName() call.
-  load_class: (type, dyn) ->
+  # Loads the underlying class, its parents, and its interfaces, but does not
+  # run class initialization.
+  # trigger_class is a ClassFile object for the class that triggered this load
+  # request.
+  # Calls success_fn with the loaded class when finished.
+  # Calls failure_fn with a function that throws an exception in the event of a
+  # failure.
+  load_class: (type, trigger_class, success_fn, failure_fn) ->
     cls = type.toClassString()
-    unless @loaded_classes[cls]?
+    trace "Loading #{cls}..."
+    loader = if trigger_class? then trigger_class.get_class_loader() else null
+    loader_id = if trigger_class? then trigger_class.get_class_loader_id() else null
+
+    # First time this ClassLoader has loaded a class.
+    unless @loaded_classes[loader_id]? then @loaded_classes[loader_id] = Object.create null
+
+    if @loaded_classes[loader_id][cls]?
+      setTimeout((()=>success_fn(@loaded_classes[loader_id][cls])), 0)
+    else
       if type instanceof types.ArrayType
-        @loaded_classes[cls] = ClassFile.for_array_type type
-        unless type.component_type instanceof types.PrimitiveType
-          @load_class type.component_type, dyn
-          @loaded_classes[cls].loader = @loaded_classes[type.component_type.toClassString()].loader
+        @loaded_classes[loader_id][cls] = ClassFile.for_array_type type, loader
+        if type.component_type instanceof types.PrimitiveType
+          success_fn @loaded_classes[loader_id][cls]
+          return
+        else
+          @load_class type.component_type, trigger_class, (() =>
+            success_fn @loaded_classes[loader_id][cls]
+          ), failure_fn
+          return
       else
         # a class gets loaded with the loader of the class that is triggering
         # this class resolution
-        defining_class = @curr_frame().method.class_type.toClassString()
-        defining_class_loader = @loaded_classes[defining_class]?.loader
-        if defining_class_loader?
-          @meta_stack().push root.StackFrame.fake_frame('custom_class_loader')
-          @push2 defining_class_loader, @init_string util.ext_classname cls
-          @method_lookup(
-            class: defining_class_loader.type.toClassString()
-            sig: 'loadClass(Ljava/lang/String;)Ljava/lang/Class;').setup_stack @
-          unless @run_until_finished (->), true, (->)
-            throw 'Error in class initialization'
-          # discard return value. @define_class will have registered the new
-          # file in loaded_classes for us.
-          @meta_stack().pop()
+        if loader?
+          root.StackFrame.native_frame("$#{loader_id}", (()=>
+            @meta_stack().pop()
+            success_fn @loaded_classes[loader_id][cls]
+          ), ((e)=>
+            @meta_stack().pop()
+            # XXX: Convert the exception.
+            setTimeout((()->failure_fn(()->throw e)), 0)
+          ))
+          @push2 loader, @init_string util.ext_classname cls
+          # We don't care about the return value of this function, as
+          # define_class handles registering the ClassFile with the class loader.
+          # define_class also handles recalling load_class for any needed super
+          # classes and interfaces.
+          loader.method_lookup(@, {sig: 'loadClass(Ljava/lang/String;)Ljava/lang/Class;'}).setup_stack(@)
+          return
         else
           # bootstrap class loader
-          class_file = @read_classfile cls
-          if not class_file? or wrong_name = (class_file.this_class.toClassString() != cls)
-            msg = cls
-            if wrong_name
-              msg += " (wrong name: #{class_file.this_class.toClassString()})"
-            if dyn
-              java_throw @, 'java/lang/ClassNotFoundException', msg
+          @read_classfile cls, ((class_file) =>
+            if not class_file? or wrong_name = (class_file.this_class.toClassString() != cls)
+              msg = cls
+              if wrong_name
+                msg += " (wrong name: #{class_file.this_class.toClassString()})"
+              # XXX: Fix this... exception is different depending if the class
+              # was dynamically loaded.
+              #if dyn
+              #  failure_fn ()=>java_throw @, @class_lookup(c2t 'java/lang/ClassNotFoundException'), msg
+              #else
+              failure_fn ()=>java_throw @, @class_lookup(c2t 'java/lang/NoClassDefFoundError'), msg
+              return
+            class_file.initialized = false
+            @loaded_classes[loader_id][cls] = class_file
+
+            # Load any interfaces of this class before returning.
+            i = -1 # Will increment to 0 first iteration.
+            num_interfaces = class_file.interfaces.length
+            load_next_iface = () =>
+              i++
+              if i < num_interfaces
+                iface_type = c2t(class_file.constant_pool.get(class_file.interfaces[i]).deref())
+                @load_class iface_type, trigger_class, load_next_iface, failure_fn
+              else
+                setTimeout((()->success_fn class_file), 0)
+
+            # Now that this class is loaded, let's grab the super classes and
+            # interfaces.
+            if class_file.super_class?
+              @load_class class_file.super_class, trigger_class, load_next_iface, failure_fn
             else
-              java_throw @, 'java/lang/NoClassDefFoundError', msg
-          class_file.initialized = false
-          @loaded_classes[cls] = class_file
-    @loaded_classes[cls]
+              load_next_iface()
+          )
 
-  # Loads and initializes :type, and returns a ClassFile object. Should only be
-  # called _immediately_ before a method invocation or field access. See section
-  # 5.5 of the SE7 spec.
-  class_lookup: (type, dyn) ->
+  # XXX: This is a bit of a hack.
+  # There are some classes we can load synchronously (array types for
+  # initialized classes, primitive classes, etc). Try to do so here.
+  _try_synchronous_load: (type, trigger_class=null) ->
+    loader = if trigger_class? then trigger_class.loader else null
+    loader_id = if trigger_class? then trigger_class.get_class_loader_id() else null
+    @loaded_classes[loader_id] = Object.create null unless @loaded_classes[loader_id]?
+    if type instanceof types.PrimitiveType
+      @loaded_classes[loader_id][type.toExternalString()] = ClassFile.for_primitive type, loader
+      return @loaded_classes[loader_id][type.toExternalString()]
+    else if type instanceof types.ArrayType
+      # Ensure the component type is loaded. We do *not* load classes unless all
+      # of its superclasses/components/interfaces are loaded.
+      comp_cls = @get_loaded_class type.component_type, trigger_class, true
+      return null unless comp_cls?
+      @loaded_classes[loader_id][type.toClassString()] = ClassFile.for_array_type type, loader
+      return @loaded_classes[loader_id][type.toClassString()]
+    return null
+
+
+  # Synchronous method for looking up a class that is *already loaded and
+  # initialized*.
+  # trigger_class is a ClassFile that specifies what class triggered the
+  # lookup attempt. A value of 'null' means the JVM.
+  # If null_handled is set, this returns null if the class is not loaded or not
+  # initialized.
+  # Otherwise, this function throws an exception to indicate the error.
+  # TODO: Once things stabilize, disable the exception throwing in UNSAFE mode.
+  class_lookup: (type, trigger_class=null, null_handled=false) ->
     UNSAFE? || throw new Error "class_lookup needs a type object, got #{typeof type}: #{type}" unless type instanceof types.Type
-    UNSAFE? || throw new Error "class_lookup was passed a PrimitiveType" if type instanceof types.PrimitiveType
-    class_file = @load_class type, dyn
-    cls = type.toClassString()
-    unless @loaded_classes[cls].initialized
-      trace "looking up class: #{cls}"
-      if type instanceof types.ArrayType
-        component = type.component_type
-        if component instanceof types.ArrayType or component instanceof types.ClassType
-          @class_lookup component, dyn
-      else if class_file.super_class?
-        @class_lookup class_file.super_class, dyn
-    #TODO: finish the decoupling by removing the following line
-    @initialize_class class_file, (->)
-    return class_file
+    loader_id = if trigger_class? then trigger_class.get_class_loader_id() else null
+    cls = @loaded_classes[loader_id]?[type.toClassString()]
+    # We use cls.is_initialized() rather than checking cls.initialized directly.
+    # This allows us to avoid asynchronously "initializing" classes that have no
+    # clinit and whose parents are already initialized.
+    return cls if cls?.is_initialized(@)
 
-  initialize_class: (class_file, cb) ->
-    return cb() if class_file.initialized
-    trace "initializing class: #{class_file.this_class.toClassString()}"
-    class_file.initialized = true
+    # XXX: Hack for primitive arrays. Should fix.
+    unless cls?
+      cls = @_try_synchronous_load type, trigger_class
+      return cls if cls?.is_initialized(@)
 
-    # Run class initialization code. Superclasses get init'ed first.  We
-    # don't want to call this more than once per class, so don't do dynamic
-    # lookup. See spec [2.17.4][1].
-    # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/Concepts.doc.html#19075
-    _fn = =>
-      class_file.initialize(this) # Resets any cached state.
-      @meta_stack().push root.StackFrame.fake_frame('class_lookup')
-      class_file.methods['<clinit>()V']?.setup_stack(@)
-      @run_until_finished (->), true, (success) =>
-        if success
+    # Class needs to be loaded and/or initialized.
+    return null if null_handled
+
+    reason = if cls? then 'initialized' else 'loaded'
+    msg = "class_lookup failed: Class #{type.toClassString()} is not #{reason}."
+    throw new Error msg
+
+  # Like class_lookup, but it only ensures that the class is loaded.
+  # XXX: Should probably use a better naming convention or combine this with
+  # class_lookup somehow.
+  get_loaded_class: (type, trigger_class=null, null_handled=false) ->
+    UNSAFE? || throw new Error "get_loaded_class needs a type object, got #{typeof type}: #{type}" unless type instanceof types.Type
+    loader_id = if trigger_class? then trigger_class.get_class_loader_id() else null
+    cls = @loaded_classes[loader_id]?[type.toClassString()]
+    # We use cls.is_initialized() rather than checking cls.initialized directly.
+    # This allows us to avoid asynchronously "initializing" classes that have no
+    # clinit and whose parents are already initialized.
+    return cls if cls?
+
+    # XXX: Hack for primitive arrays. Plz fix.
+    cls = @_try_synchronous_load type, trigger_class
+    return cls if cls?
+
+    # Class needs to be loaded.
+    return null if null_handled
+
+    msg = "get_loaded_class failed: Class #{type.toClassString()} is not loaded."
+    throw new Error msg
+
+  # Runs clinit on the indicated class. Should only be called _immediately_
+  # before a method invocation or field access. See section 5.5 of the SE7
+  # spec. Loads in the class if necessary.
+  # "trigger_class" should be the ClassFile object of the class that
+  # triggered this initialization. This is needed for custom class loader
+  # support.
+  # This should be called as an rs.async_op either from an opcode, or a
+  # native function. **You should not be calling this from anywhere else.**
+  initialize_class: (type, trigger_class, success_fn, failure_fn) ->
+    name = type.toClassString()
+    loader = if trigger_class? then trigger_class.get_class_loader_id() else null
+    class_file = @loaded_classes[loader]?[name]
+
+    # Don't use failure_fn for this error -- the main RS loop will handle it.
+    throw new Error "ERROR: Tried to initialize #{name} while in the main RuntimeState loop. Should be called as an async op." if @_in_main_loop
+
+    # Class file is not loaded. Load it and come back later.
+    unless class_file?
+      # This monstrosity uses setTimeout to reset the JS stack, calls load_class,
+      # and tells load_class to reset the JS stack w/ setTimeout and call it
+      # back when it succeeds. If it does not succeed, then it'll just call the
+      # failure function.
+      # XXX: If loading fails during initialization, do we have to modify the
+      # exception thrown?
+      trace "initialize_class: Loading class #{name}."
+      setTimeout((() =>
+        @load_class(type, trigger_class, (()=>
+          setTimeout((()=>@initialize_class type, trigger_class, success_fn, failure_fn), 0)
+        ), failure_fn)
+      ), 0)
+      return
+    # Class file is loaded and initialized; insert a NOP function.
+    # XXX: This should never happen, but it currently will if multiple Java
+    # threads happen to try to initialize the same class at the 'same' time. And
+    # if THAT happens, then the second thread will be using an uninitialized
+    # class... Revisit when we refactor our Threads support. Some ideas:
+    # A) "Lock in" a thread during <clinit> to prevent it from being preempted.
+    #    This is not ideal. Don't do this.
+    # B) Add a bit to the ClassFile object that specifies if it is in the
+    #    process of being initialized. If it is set, put the thread in a queue
+    #    for resumption when the ClassFile is eventually initialized. The thread
+    #    responsible for running <clinit> will check the queue after setting the
+    #    'initialized' flag, and will push all of the waiting threads onto the
+    #    whatever we currently use as a "ready queue".
+    else if class_file.initialized
+      trace "initialize_class called on a class that was already initialized: #{class_file.this_class.toClassString()}"
+      setTimeout((()->success_fn(class_file)), 0)
+      return
+
+    # Iterate through the class hierarchy, pushing StackFrames that run
+    # <clinit> functions onto the stack. The last StackFrame pushed will be for
+    # the <clinit> function of the topmost uninitialized class in the hierarchy.
+    first_clinit = true
+    first_native_frame = root.StackFrame.native_frame("$clinit", (()=>
+      throw new Error "The top of the meta stack should be this native frame, but it is not: #{@curr_frame().name} at #{@meta_stack().length()}" if @curr_frame() != first_native_frame
+      @meta_stack().pop()
+      # success_fn is responsible for getting us back into the runtime state
+      # execution loop.
+      @async_op(()=>success_fn(@loaded_classes[loader][name]))
+    ), ((e)=>
+      if e instanceof JavaException
+        # We hijack the current native frame to transform the exception into a
+        # ExceptionInInitializerError, then call failure_fn to throw it.
+        # failure_fn is responsible for getting us back into the runtime state
+        # loop.
+        # We don't use the java_throw helper since this Exception object takes
+        # a Throwable as an argument.
+        nf = @curr_frame()
+        nf.runner = =>
+          rv = @pop()
           @meta_stack().pop()
-          cb()
+          # Throw the exception.
+          throw (new JavaException(rv))
+        nf.error = => @meta_stack().pop(); failure_fn(()->throw e)
+
+        cls = @class_lookup c2t('java/lang/ExceptionInInitializerError')
+        v = @init_object cls # new
+        method_spec = sig: '<init>(Ljava/lang/Throwable;)V'
+        @push_array([v,v,e.exception]) # dup, ldc
+        @method_lookup(cls, method_spec).setup_stack(@) # invokespecial
+      else
+        # Not a Java exception?
+        # No idea what this is; let's get outta dodge and rethrow it.
+        @meta_stack().pop()
+        throw e
+    ))
+    while class_file? and not class_file.is_initialized(@)
+      trace "initializing class: #{class_file.this_class.toClassString()}"
+      class_file.initialized = true
+
+      # Resets any cached state from previous JVM executions (browser).
+      class_file.initialize(this)
+
+      # Run class initialization code. Superclasses get init'ed first.  We
+      # don't want to call this more than once per class, so don't do dynamic
+      # lookup. See spec [2.17.4][1].
+      # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/Concepts.doc.html#19075
+      # XXX: Hack. We don't use method_lookup since we want only the method in *this* class.
+      clinit = class_file.methods['<clinit>()V']
+      if clinit?
+        trace "\tFound <clinit>. Pushing stack frame."
+        # Push a native frame; needed to handle exceptions and the callback.
+        if first_clinit
+          trace "\tFirst <clinit> in the loop."
+          first_clinit = false
+          # The first frame calls success_fn on success. Subsequent frames
+          # are only used to handle exceptions.
+          @meta_stack().push(first_native_frame)
         else
-          throw 'Error in class initialization'
-    # This pattern comes up in jvm.run_class as well. Is there a better way?
-    if class_file.super_class?
-      @initialize_class @class_lookup(class_file.super_class), _fn
-    else
-      _fn()
+          @meta_stack().push root.StackFrame.native_frame("$clinit_secondary", (()=>
+            @meta_stack().pop()
+          ), ((e)=>
+            until @curr_frame() is first_native_frame
+              @meta_stack.pop()
+            @meta_stack.pop() # Pop that first native frame.
+            # Rethrow the exception. failure_fn is responsible for getting us back
+            # into the runtime state loop.
+            @async_op(()=>failure_fn(()->throw e))
+          ))
+        clinit.setup_stack(@)
+      next_type = if class_file.super_class? then class_file.super_class else if class_file.component_type? then class_file.component_type else undefined
+      class_file = if next_type? then @loaded_classes[loader][next_type.toClassString()] else undefined
+
+    unless first_clinit
+      # Push ourselves back into the execution loop to run the <clinit> methods.
+      @run_until_finished((->), false, (->))
+      return
+
+    # Classes did not have any clinit functions, and were already loaded.
+    setTimeout((()=>success_fn(@loaded_classes[loader][name])), 0)
 
   # called by user-defined classloaders
-  define_class: (cls, data, loader) ->
-    # replicates some logic from class_lookup
+  # must be called as an asynchronous operation.
+  define_class: (cls, data, loader, success_fn, failure_fn) ->
+    # replicates some logic from load_class
     class_file = new ClassFile data, loader
-    if class_file.super_class
-      @class_lookup class_file.super_class
-    @loaded_classes[cls] = class_file
     type = c2t(cls)
-    @jclass_obj_pool[type] = new JavaClassObject @, type, class_file
 
-  method_lookup: (method_spec) ->
-    type = c2t method_spec.class
-    cls = @class_lookup(type)
+    # XXX: The details of get_loader_id in ClassFile are leaking out here.
+    loader_id = if loader? then loader.ref else null
+    @loaded_classes[loader_id] = Object.create null unless @loaded_classes[loader_id]?
+    @loaded_classes[loader_id][cls] = class_file
 
+    @jclass_obj_pool[loader_id] = Object.create null unless @jclass_obj_pool[loader_id]?
+    @jclass_obj_pool[loader_id][type] = new JavaClassObject @, type, class_file
+
+    # XXX: Copypasta'd from load_class.
+    # Load any interfaces of this class before returning.
+    i = -1 # Will increment to 0 first iteration.
+    num_interfaces = class_file.interfaces.length
+    load_next_iface = () =>
+      i++
+      if i < num_interfaces
+        iface_type = c2t(class_file.constant_pool.get(class_file.interfaces[i]).deref())
+        # XXX: We're passing in 'loader' rather than a trigger_class. This needs to be fixed
+        # for proper ClassLoader support.
+        @load_class iface_type, loader, load_next_iface, failure_fn
+      else
+        setTimeout((()=>success_fn @jclass_obj_pool[loader_id][type]), 0)
+
+    if class_file.super_class?
+      @load_class class_file.super_class, class_file, load_next_iface, failure_fn
+    else
+      load_next_iface()
+
+  method_lookup: (cls, method_spec) ->
     method = cls.method_lookup(this, method_spec)
     return method if method?
-    java_throw @, 'java/lang/NoSuchMethodError',
+    java_throw @, @class_lookup(c2t 'java/lang/NoSuchMethodError'),
       "No such method found in #{method_spec.class}: #{method_spec.sig}"
 
-  field_lookup: (field_spec) ->
-    cls = @class_lookup c2t field_spec.class
+  field_lookup: (cls, field_spec) ->
     field = cls.field_lookup this, field_spec
     return field if field?
-    java_throw @, 'java/lang/NoSuchFieldError',
+    java_throw @, @class_lookup(c2t 'java/lang/NoSuchFieldError'),
       "No such field found in #{field_spec.class}: #{field_spec.name}"
 
   # address of the block that this address is contained in
@@ -361,6 +664,7 @@ class root.RuntimeState
   async_op: (cb) -> throw new YieldIOException cb
 
   run_until_finished: (setup_fn, no_threads, done_cb) ->
+    @_in_main_loop = true
     try
       setup_fn()
       while true
@@ -378,6 +682,7 @@ class root.RuntimeState
         @curr_thread = @choose_next_thread()
       done_cb true
     catch e
+      @_in_main_loop = false
       if e == 'Error in class initialization'
         done_cb false
       else if e is ReturnException
@@ -385,16 +690,24 @@ class root.RuntimeState
         # when java_throw is called from the main method lookup.
         @run_until_finished (->), no_threads, done_cb
       else if e instanceof YieldIOException
-        success_fn = (ret1, ret2) =>
+        # Set "bytecode" if this was triggered by a bytecode instruction (e.g.
+        # class initialization). This causes the method to resume on the next
+        # opcode once success_fn is called.
+        success_fn = (ret1, ret2, bytecode, advance_pc=true) =>
+          if bytecode then @meta_stack().push root.StackFrame.fake_frame("async_op")
           @curr_frame().runner = =>
               @meta_stack().pop()
+              if bytecode and advance_pc
+                @curr_frame().pc += 1 + @curr_frame().method.code.opcodes[@curr_frame().pc].byte_count
               unless ret1 is undefined
-                ret += 0 if typeof ret1 == 'boolean'
+                trace "Success_fn pushin' some stuff onto stack"
+                ret1 += 0 if typeof ret1 == 'boolean'
                 @push ret1
               @push ret2 unless ret2 is undefined
           @run_until_finished (->), no_threads, done_cb
-        failure_fn = (e_cb) =>
-          @curr_frame().runner = e_cb
+        failure_fn = (e_cb, bytecode) =>
+          if bytecode then @meta_stack().push root.StackFrame.fake_frame("async_op")
+          @curr_frame().runner = ()=> @meta_stack().pop(); e_cb()
           @run_until_finished (->), no_threads, done_cb
         e.condition success_fn, failure_fn
       else
