@@ -268,10 +268,6 @@ class root.RuntimeState
   init_carr: (str) ->
     new JavaArray @, @class_lookup(c2t('[C')), (str.charCodeAt(i) for i in [0...str.length] by 1)
 
-  # Returns a java.lang.Class object for JVM bytecode to do reflective stuff.
-  jclass_obj: (cls) ->
-    throw new Error "LOLWUT"
-
   # Loads the underlying class, its parents, and its interfaces, but does not
   # run class initialization.
   # trigger_class is a ClassFile object for the class that triggered this load
