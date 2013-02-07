@@ -260,7 +260,7 @@ class root.RuntimeState
   init_object: (cls, obj) ->
     new JavaObject @, cls, obj
   init_array: (cls, obj) ->
-    new JavaArray @, @class_lookup(c2t(cls)), obj
+    new JavaArray @, cls, obj
   init_string: (str,intern=false) ->
     trace "init_string: #{str}"
     return s if intern and (s = @string_pool.get str)?

@@ -69,7 +69,7 @@ trapped_methods =
       Throwable: [
         o 'fillInStackTrace()L!/!/!;', (rs, _this) ->
             stack = []
-            strace = rs.init_array "[Ljava/lang/StackTraceElement;", stack
+            strace = rs.init_array rs.class_lookup(c2t "[Ljava/lang/StackTraceElement;"), stack
             _this.set_field rs, 'java/lang/Throwable/stackTrace', strace
             # we don't want to include the stack frames that were created by
             # the construction of this exception
@@ -312,7 +312,7 @@ native_methods =
                   f = fields[i]
                   f.reflector(rs, ((jco)->base_array.push(jco); fetch_next_field()), except_cb)
                 else
-                  setTimeout((()-> resume_cb rs.init_array('[Ljava/lang/reflect/Field;', base_array)), 0)
+                  setTimeout((()-> resume_cb rs.init_array(rs.class_lookup(c2t '[Ljava/lang/reflect/Field;'), base_array)), 0)
 
               fetch_next_field()
             return
@@ -329,7 +329,7 @@ native_methods =
                   m = methods[i]
                   m.reflector(rs, false, ((jco)->base_array.push(jco); fetch_next_method()), except_cb)
                 else
-                  setTimeout((()-> resume_cb rs.init_array('[Ljava/lang/reflect/Method;', base_array)), 0)
+                  setTimeout((()-> resume_cb rs.init_array(rs.class_lookup(c2t '[Ljava/lang/reflect/Method;'), base_array)), 0)
 
               fetch_next_method()
             return
@@ -346,7 +346,7 @@ native_methods =
                   m = methods[i]
                   m.reflector(rs, true, ((jco)->base_array.push(jco); fetch_next_method()), except_cb)
                 else
-                  setTimeout((()-> resume_cb rs.init_array('[Ljava/lang/reflect/Constructor;', base_array)), 0)
+                  setTimeout((()-> resume_cb rs.init_array(rs.class_lookup(c2t '[Ljava/lang/reflect/Constructor;'), base_array)), 0)
 
               fetch_next_method()
             return
@@ -363,7 +363,7 @@ native_methods =
                 if i < ifaces.length
                   rs.jclass_obj(ifaces[i], null, ((jco)=>iface_objs[i] = jco;fetch_iface()), except_cb)
                 else
-                  setTimeout((()->resume_cb rs.init_array('[Ljava/lang/Class;',iface_objs)), 0)
+                  setTimeout((()->resume_cb rs.init_array(rs.class_lookup(c2t '[Ljava/lang/Class;'),iface_objs)), 0)
               fetch_iface()
         o 'getModifiers()I', (rs, _this) -> _this.file.access_byte
         o 'getRawAnnotations()[B', (rs, _this) ->
@@ -1033,7 +1033,7 @@ native_methods =
                 if err?
                   resume_cb null
                 else
-                  resume_cb rs.init_array('[Ljava/lang/String;',(rs.init_string(f) for f in files))
+                  resume_cb rs.init_array(rs.class_lookup(c2t '[Ljava/lang/String;'),(rs.init_string(f) for f in files))
         o 'rename0(Ljava/io/File;Ljava/io/File;)Z', (rs, _this, file1, file2) ->
             file1path = (file1.get_field rs, 'java/io/File/path').jvm2js_str()
             file2path = (file2.get_field rs, 'java/io/File/path').jvm2js_str()
@@ -1101,7 +1101,7 @@ native_methods =
       ResourceBundle: [
         o 'getClassContext()[L!/lang/Class;', (rs) ->
             # XXX should walk up the meta_stack and fill in the array properly
-            rs.init_array '[Ljava/lang/Class;', [null,null,null]
+            rs.init_array rs.class_lookup(c2t '[Ljava/lang/Class;'), [null,null,null]
       ]
       TimeZone: [
         o 'getSystemTimeZoneID(L!/lang/String;L!/lang/String;)L!/lang/String;', (rs, java_home, country) ->
@@ -1130,9 +1130,9 @@ native_methods =
       ]
       MemoryImpl: [
         o 'getMemoryManagers0()[Ljava/lang/management/MemoryManagerMXBean;', (rs) ->
-            rs.init_array '[Lsun/management/MemoryManagerImpl;', [] # XXX may want to revisit this 'NOP'
+            rs.init_array rs.class_lookup(c2t '[Lsun/management/MemoryManagerImpl;'), [] # XXX may want to revisit this 'NOP'
         o 'getMemoryPools0()[Ljava/lang/management/MemoryPoolMXBean;', (rs) ->
-            rs.init_array '[Lsun/management/MemoryPoolImpl;', [] # XXX may want to revisit this 'NOP'
+            rs.init_array rs.class_lookup(c2t '[Lsun/management/MemoryPoolImpl;'), [] # XXX may want to revisit this 'NOP'
       ]
     misc:
       VM: [
