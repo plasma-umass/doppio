@@ -246,49 +246,46 @@ native_methods =
     lang:
       Class: [
         o 'getPrimitiveClass(L!/!/String;)L!/!/!;', (rs, jvm_str) ->
-            rs.async_op (resume_cb, except_cb) ->
-              rs.jclass_obj new types.PrimitiveType(jvm_str.jvm2js_str()), null, resume_cb, except_cb
+            prim_cls = rs.class_lookup new types.PrimitiveType(jvm_str.jvm2js_str()), null
+            return rs.jclass_obj prim_cls
         o 'getClassLoader0()L!/!/ClassLoader;', (rs, _this) -> _this.cls.loader
         o 'desiredAssertionStatus0(L!/!/!;)Z', (rs) -> false # we don't need no stinkin asserts
         o 'getName0()L!/!/String;', (rs, _this) ->
-            rs.init_string(_this.$type.toExternalString())
+            rs.init_string(_this.file.toExternalString())
         o 'forName0(L!/!/String;ZL!/!/ClassLoader;)L!/!/!;', (rs, jvm_str, initialize, loader) ->
             type = c2t util.int_classname jvm_str.jvm2js_str()
-            if loader is null
-              rs.async_op (resume_cb, except_cb) ->
-                rs.jclass_obj type, null, ((rv) ->
-                  rs.class_lookup type if initialize
-                  resume_cb rv
+            if loader is undefined then loader = null # Not sure if this ever happens, but just in case.
+
+            # XXX: Initialize class / load class takes in the trigger_class, not the loader
+            # itself. :-/
+            rs.async_op (resume_cb, except_cb) ->
+              if initialize
+                rs.initialize_class type, null, ((cls) ->
+                  resume_cb rs.jclass_obj(cls)
                 ), except_cb
-              return
-            # user-defined classloader
-            my_sf = rs.curr_frame()
-            rs.push2 loader, jvm_str
-            rs.method_lookup(loader.cls,
-              {class: loader.cls.toClassString(),
-              sig: 'loadClass(Ljava/lang/String;)Ljava/lang/Class;'}).setup_stack(rs)
-            my_sf.runner = ->
-              rv = rs.pop()
-              rs.meta_stack().pop()
-              rs.push rv
-              rs.class_lookup type if initialize
-            throw exceptions.ReturnException
+              else
+                rs.load_class type, null, ((cls) ->
+                  resume_cb rs.jclass_obj(cls)
+                ), except_cb
+            return
         o 'getComponentType()L!/!/!;', (rs, _this) ->
             type = _this.$type
             return null unless (type instanceof types.ArrayType)
-            rs.async_op (resume_cb, except_cb) ->
-              rs.jclass_obj type.component_type, null, resume_cb, except_cb
+
+            # As this array type is loaded, the component type is guaranteed
+            # to be loaded as well. No need for asynchronicity.
+            return rs.jclass_obj(rs.get_loaded_class(type.component_type))
         o 'getGenericSignature()Ljava/lang/String;', (rs, _this) ->
             sig = _.find(_this.file.attrs, (a) -> a.name is 'Signature')?.sig
             if sig? then rs.init_string sig else null
         o 'getProtectionDomain0()Ljava/security/ProtectionDomain;', (rs, _this) -> null
         o 'isAssignableFrom(L!/!/!;)Z', (rs, _this, cls) ->
-            types.is_castable rs, rs.get_loaded_class(cls.$type), rs.get_loaded_class(_this.$type)
+            types.is_castable rs, cls.file, _this.file
         o 'isInterface()Z', (rs, _this) ->
             return false unless _this.$type instanceof types.ClassType
             _this.file.access_flags.interface
         o 'isInstance(L!/!/Object;)Z', (rs, _this, obj) ->
-            return types.is_castable rs, obj.cls, rs.get_loaded_class(_this.$type)
+            return types.is_castable rs, obj.cls, _this.file
         o 'isPrimitive()Z', (rs, _this) ->
             _this.$type instanceof types.PrimitiveType
         o 'isArray()Z', (rs, _this) ->
@@ -298,8 +295,7 @@ native_methods =
             cls = _this.file
             if cls.access_flags.interface or not cls.super_class?
               return null
-            rs.async_op (resume_cb, except_cb) ->
-              rs.jclass_obj cls.super_class, null, resume_cb, except_cb
+            return rs.jclass_obj(rs.get_loaded_class(cls.super_class))
         o 'getDeclaredFields0(Z)[Ljava/lang/reflect/Field;', (rs, _this, public_only) ->
             fields = _this.file.fields
             fields = (f for f in fields when f.access_flags.public) if public_only
@@ -354,17 +350,8 @@ native_methods =
             cls = _this.file
             ifaces = (cls.constant_pool.get(i).deref() for i in cls.interfaces)
             ifaces = ((if util.is_string(i) then c2t(i) else i) for i in ifaces)
-
-            i = -1
-            iface_objs = []
-            rs.async_op (resume_cb, except_cb) ->
-              fetch_iface = () ->
-                i++
-                if i < ifaces.length
-                  rs.jclass_obj(ifaces[i], null, ((jco)=>iface_objs[i] = jco;fetch_iface()), except_cb)
-                else
-                  setTimeout((()->resume_cb rs.init_array(rs.class_lookup(c2t '[Ljava/lang/Class;'),iface_objs)), 0)
-              fetch_iface()
+            iface_objs = (rs.jclass_obj(rs.get_loaded_class(iface)) for iface in ifaces)
+            rs.init_array('[Ljava/lang/Class;',iface_objs)
         o 'getModifiers()I', (rs, _this) -> _this.file.access_byte
         o 'getRawAnnotations()[B', (rs, _this) ->
             cls = _this.file
@@ -393,7 +380,7 @@ native_methods =
             cls = _this.file
             icls = _.find(cls.attrs, (a) -> a.name == 'InnerClasses')
             return null unless icls?
-            my_class = _this.$type.toClassString()
+            my_class = _this.file.toClassString()
             for entry in icls.classes when entry.outer_info_index > 0
               name = cls.constant_pool.get(entry.inner_info_index).deref()
               continue unless name is my_class
@@ -401,15 +388,13 @@ native_methods =
               # the immediate enclosing parent, and I'm not 100% sure this is
               # guaranteed by the spec
               declaring_name = cls.constant_pool.get(entry.outer_info_index).deref()
-              rs.async_op (resume_cb, except_cb) ->
-                rs.jclass_obj c2t(declaring_name), null, resume_cb, except_cb
-              return
+              return rs.jclass_obj(rs.class_lookup(c2t(declaring_name)))
             return null
         o 'getDeclaredClasses0()[L!/!/!;', (rs, _this) ->
             ret = new JavaArray rs, rs.class_lookup(c2t('[Ljava/lang/Class;')), []
             return ret unless _this.$type instanceof types.ClassType
             cls = _this.file
-            my_class = _this.$type.toClassString()
+            my_class = _this.file.toClassString()
             iclses = (a for a in cls.attrs when a.name is 'InnerClasses')
             return ret if iclses.length is 0
             flat_names = []
@@ -424,7 +409,7 @@ native_methods =
                 i++
                 if i < flat_names.length
                   name = flat_names[i]
-                  rs.jclass_obj(c2t(name), null, ((jco)->ret.array.push jco; fetch_next_jco()), except_cb)
+                  rs.load_class(c2t(name), null, ((cls)->ret.array.push rs.jclass_obj(cls); fetch_next_jco()), except_cb)
                 else
                   setTimeout((()->resume_cb ret), 0)
               fetch_next_jco()
@@ -434,7 +419,9 @@ native_methods =
         o 'findLoadedClass0(L!/!/String;)L!/!/Class;', (rs, _this, name) ->
             type = c2t util.int_classname name.jvm2js_str()
             rs.async_op (resume_cb, except_cb) ->
-              rs.jclass_obj type, null, resume_cb, ((e_cb)->
+              rs.load_class type, null, ((cls) ->
+                resume_cb rs.jclass_obj(cls)
+              ), ((e_cb)->
                 try
                   e_cb()
                 catch e
@@ -446,11 +433,12 @@ native_methods =
         o 'findBootstrapClass(L!/!/String;)L!/!/Class;', (rs, _this, name) ->
             type = c2t util.int_classname name.jvm2js_str()
             rs.async_op (resume_cb, except_cb) ->
-              rs.jclass_obj type, null, resume_cb, except_cb
+              rs.load_class type, null, ((cls)->
+                resume_cb rs.jclass_obj(cls)
+              ), except_cb
         o 'getCaller(I)L!/!/Class;', (rs, i) ->
-            type = rs.meta_stack().get_caller(i).method.class_type
-            rs.async_op (resume_cb, except_cb) ->
-              rs.jclass_obj(type, null, resume_cb, except_cb)
+            cls = rs.meta_stack().get_caller(i).method.cls
+            return rs.jclass_obj cls
         o 'defineClass1(L!/!/String;[BIIL!/security/ProtectionDomain;L!/!/String;Z)L!/!/Class;', (rs,_this,name,bytes,offset,len,pd,source,unused) ->
             rs.async_op (resume_cb, except_cb) ->
               native_define_class rs, name, bytes, offset, len, _this, resume_cb, except_cb
@@ -558,8 +546,7 @@ native_methods =
       ]
       Object: [
         o 'getClass()L!/!/Class;', (rs, _this) ->
-            rs.async_op (resume_cb, except_cb) ->
-              rs.jclass_obj _this.type, null, resume_cb, except_cb
+            return rs.jclass_obj _this.cls
         o 'hashCode()I', (rs, _this) ->
             # return the pseudo heap reference, essentially a unique id
             _this.ref
@@ -1151,7 +1138,7 @@ native_methods =
       Unsafe: [
         o 'addressSize()I', (rs, _this) -> 4 # either 4 or 8
         o 'allocateInstance(Ljava/lang/Class;)Ljava/lang/Object;', (rs, _this, cls) ->
-            rs.init_object rs.class_lookup(cls.$type), {}
+            rs.init_object cls.file, {}
         o 'allocateMemory(J)J', (rs, _this, size) ->
             next_addr = util.last(rs.mem_start_addrs)
             if DataView?
@@ -1228,7 +1215,7 @@ native_methods =
         o 'objectFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.get_field rs, 'java/lang/reflect/Field/slot')
         o 'staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;', (rs,_this,field) ->
             cls = field.get_field rs, 'java/lang/reflect/Field/clazz'
-            new JavaObject rs, rs.class_lookup(cls.$type)
+            new JavaObject rs, cls.file
         o 'getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
             obj.get_field_from_offset rs, offset
         o 'getObject(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
@@ -1343,9 +1330,8 @@ native_methods =
         o 'getCallerClass(I)Ljava/lang/Class;', (rs, frames_to_skip) ->
             #TODO: disregard frames assoc. with java.lang.reflect.Method.invoke() and its implementation
             caller = rs.meta_stack().get_caller(frames_to_skip)
-            type = caller.method.class_type
-            rs.async_op (resume_cb, except_cb) ->
-              rs.jclass_obj(type, null, resume_cb, except_cb)
+            cls = caller.method.cls
+            return rs.jclass_obj cls
         o 'getClassAccessFlags(Ljava/lang/Class;)I', (rs, class_obj) ->
             class_obj.file.access_byte
       ]

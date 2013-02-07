@@ -100,6 +100,11 @@ class ClassFile
   toClassString: () -> @this_class.toClassString()
   toExternalString: () -> @this_class.toExternalString()
 
+  # We should use this instead of the above. Returns the standardized type
+  # string for this class, whether it be a Reference or a Primitive type.
+  toTypeString: () ->
+    if @this_class instanceof types.PrimitiveType then @toExternalString() else @toClassString()
+
   # Spec [5.4.3.2][1].
   # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#77678
   field_lookup: (rs, field_spec) ->

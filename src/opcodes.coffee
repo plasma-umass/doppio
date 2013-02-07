@@ -98,17 +98,11 @@ class root.DynInvokeOpcode extends root.InvokeOpcode
     my_sf = rs.curr_frame()
     stack = my_sf.stack
     obj = stack[stack.length - @count]
-    type = rs.check_null(obj).type
-    cls = type.toClassString()
-    cls_obj = rs.class_lookup type, null, true
-    if cls_obj?
-      if rs.method_lookup(cls_obj, {class: cls, sig: @method_spec.sig}).setup_stack(rs)?
-        my_sf.pc += 1 + @byte_count
-        throw ReturnException
-    else
-      # Initialize type and rerun opcode.
-      rs.async_op (resume_cb, except_cb) ->
-        rs.initialize_class type, null, (()->resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
+    cls_obj = rs.check_null(obj).cls
+    cls = cls_obj.toClassString()
+    if rs.method_lookup(cls_obj, {class: cls, sig: @method_spec.sig}).setup_stack(rs)?
+      my_sf.pc += 1 + @byte_count
+      throw ReturnException
 
   get_param_word_size = (spec) ->
     state = 'name'
@@ -158,7 +152,7 @@ class root.LoadConstantOpcode extends root.Opcode
         # Fetch the jclass object and push it on to the stack. Do not rerun
         # this opcode.
         rs.async_op (resume_cb, except_cb) =>
-          rs.jclass_obj(c2t(@str_constant.value), null, ((ret1, ret2)=>resume_cb ret1, ret2, true), ((e_cb)->except_cb e_cb, true))
+          rs.load_class(c2t(@str_constant.value), null, ((cls)=>resume_cb rs.jclass_obj(cls), undefined, true), ((e_cb)->except_cb e_cb, true))
         return
       else
         rs.push @constant.value

@@ -273,32 +273,16 @@ class root.RuntimeState
     new JavaArray @, @class_lookup(c2t('[C')), (str.charCodeAt(i) for i in [0...str.length] by 1)
 
   # Returns a java.lang.Class object for JVM bytecode to do reflective stuff.
-  # Loads the underlying class, but does not initialize it.
-  # This must be executed as an asynchronous operation.
-  # XXX: Currently ensures that its ancestors and interfaces are present. Does
-  # this violate semantics at all?
-  # XXX: Perhaps the call site should be responsible for having the original ClassFile?
-  jclass_obj: (type, trigger_class, success_fn, failure_fn) ->
-    loader_id = if trigger_class? then trigger_class.get_class_loader_id() else null
-    type_string = if type instanceof types.PrimitiveType then type.toExternalString() else type.toClassString()
+  jclass_obj: (cls) ->
+    loader_id = cls.get_class_loader_id()
+    type_string = cls.toTypeString();
     @jclass_obj_pool[loader_id] = Object.create null unless @jclass_obj_pool[loader_id]?
     jco = @jclass_obj_pool[loader_id][type_string]
-    if jco is 'not found'
-      etype = if loader_id? then 'ClassNotFoundException' else 'NoClassDefFoundError'
-      failure_fn ()=> java_throw @, @class_lookup(c2t "java/lang/#{etype}"), type.toClassString()
-    else if jco is undefined
-      @jclass_obj_pool[loader_id][type_string] = 'not found'
-      if type instanceof types.PrimitiveType
-        @jclass_obj_pool[loader_id][type_string] = jco = new JavaClassObject @, type, null
-        setTimeout((()->success_fn jco), 0)
-      else
-        @load_class type, trigger_class, ((file)=>
-          @jclass_obj_pool[loader_id][type_string] = jco = new JavaClassObject @, type, file
-          setTimeout((()->success_fn jco), 0)
-        ), failure_fn
-    else
-      setTimeout((()->success_fn jco), 0)
-    return
+    return jco if jco?
+
+    jco = new JavaClassObject @, cls
+    @jclass_obj_pool[loader_id][type_string] = jco
+    return jco
 
   # Loads the underlying class, its parents, and its interfaces, but does not
   # run class initialization.
@@ -315,6 +299,12 @@ class root.RuntimeState
 
     # First time this ClassLoader has loaded a class.
     unless @loaded_classes[loader_id]? then @loaded_classes[loader_id] = Object.create null
+
+    cls_obj = @get_loaded_class(type, null, true)
+    if cls_obj?
+      @loaded_classes[loader_id][cls] = cls_obj
+      success_fn cls_obj
+      return
 
     if @loaded_classes[loader_id][cls]?
       setTimeout((()=>success_fn(@loaded_classes[loader_id][cls])), 0)
@@ -599,7 +589,7 @@ class root.RuntimeState
     @loaded_classes[loader_id][cls] = class_file
 
     @jclass_obj_pool[loader_id] = Object.create null unless @jclass_obj_pool[loader_id]?
-    @jclass_obj_pool[loader_id][type] = new JavaClassObject @, type, class_file
+    @jclass_obj_pool[loader_id][type] = new JavaClassObject @, class_file
 
     # XXX: Copypasta'd from load_class.
     # Load any interfaces of this class before returning.

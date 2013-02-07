@@ -41,10 +41,8 @@ class root.Field extends AbstractMethodField
     # field type.
     sig = _.find(@attrs, (a) -> a.name == "Signature")?.sig
 
-    # Need to fetch a jclass object for clazz and type.
-    rs.jclass_obj(@class_type, null, ((clazz_obj)=>
-      rs.jclass_obj(@type, null, ((type_obj) =>
-        success_fn(rs.init_object rs.class_lookup(c2t 'java/lang/reflect/Field'), {
+    create_obj = (clazz_obj, type_obj) =>
+      rs.init_object rs.class_lookup(c2t 'java/lang/reflect/Field'), {
           # XXX this leaves out 'annotations'
           'java/lang/reflect/Field/clazz': clazz_obj
           'java/lang/reflect/Field/name': rs.init_string @name, true
@@ -52,9 +50,18 @@ class root.Field extends AbstractMethodField
           'java/lang/reflect/Field/modifiers': @access_byte
           'java/lang/reflect/Field/slot': @idx
           'java/lang/reflect/Field/signature': if sig? then rs.init_string sig else null
-        })
-      ), failure_fn)
-    ), failure_fn)
+        }
+
+    clazz_obj = rs.jclass_obj @cls
+    # type_obj may not be loaded, so we asynchronously load it here.
+    # In the future, we can speed up reflection by having a synchronous_reflector
+    # method that we can try first, and which may fail.
+    rs.load_class @type, null, ((type_cls) =>
+      type_obj = rs.jclass_obj type_cls
+      rv = create_obj clazz_obj, type_obj
+      success_fn rv
+    ), failure_fn
+    return
 
 class root.Method extends AbstractMethodField
   parse_descriptor: (raw_descriptor) ->
@@ -99,39 +106,40 @@ class root.Method extends AbstractMethodField
     sig =  _.find(@attrs, (a) -> a.name == 'Signature')?.sig
     obj = {}
 
-    rs.jclass_obj(@class_type, null, ((clazz_obj)=>
-      rs.jclass_obj(@return_type, null, ((rt_obj) =>
-        j = -1
-        etype_objs = []
-        i = -1
-        param_type_objs = []
-        fetch_etype = () =>
-          j++
-          if j < exceptions.length
-            rs.jclass_obj(c2t(exceptions[j]), null, ((jco)=>etype_objs[j]=jco;fetch_etype()), failure_fn)
-          else
-            # XXX: missing parameterAnnotations
-            obj[typestr + '/clazz'] = clazz_obj
-            obj[typestr + '/name'] = rs.init_string @name, true
-            obj[typestr + '/parameterTypes'] = rs.init_array rs.class_lookup(c2t "[Ljava/lang/Class;"), param_type_objs
-            obj[typestr + '/returnType'] = rt_obj
-            obj[typestr + '/exceptionTypes'] = rs.init_array rs.class_lookup(c2t "[Ljava/lang/Class;"), etype_objs
-            obj[typestr + '/modifiers'] = @access_byte
-            obj[typestr + '/slot'] = @idx
-            obj[typestr + '/signature'] = if sig? then rs.init_string sig else null
-            obj[typestr + '/annotations'] = if anns? then rs.init_array(rs.class_lookup(c2t '[B'), anns) else null
-            obj[typestr + '/annotationDefault'] = if adefs? then rs.init_array(rs.class_lookup(c2t '[B'), adefs) else null
-            setTimeout((()=>success_fn(rs.init_object rs.class_lookup(c2t typestr), obj)), 0)
+    clazz_obj = rs.jclass_obj @cls
 
-        fetch_ptype = () =>
-          i++
-          if i < @param_types.length
-            rs.jclass_obj(@param_types[i], null, ((jco)=>param_type_objs[i]=jco;fetch_ptype()), failure_fn)
-          else
-            fetch_etype()
+    rs.load_class(@return_type, null, ((rt_cls) =>
+      rt_obj = rs.jclass_obj rt_cls
+      j = -1
+      etype_objs = []
+      i = -1
+      param_type_objs = []
+      fetch_etype = () =>
+        j++
+        if j < exceptions.length
+          rs.load_class(c2t(exceptions[j]), null, ((cls)=>etype_objs[j]=rs.jclass_obj(cls);fetch_etype()), failure_fn)
+        else
+          # XXX: missing parameterAnnotations
+          obj[typestr + '/clazz'] = clazz_obj
+          obj[typestr + '/name'] = rs.init_string @name, true
+          obj[typestr + '/parameterTypes'] = rs.init_array rs.class_lookup(c2t "[Ljava/lang/Class;"), param_type_objs
+          obj[typestr + '/returnType'] = rt_obj
+          obj[typestr + '/exceptionTypes'] = rs.init_array rs.class_lookup(c2t "[Ljava/lang/Class;"), etype_objs
+          obj[typestr + '/modifiers'] = @access_byte
+          obj[typestr + '/slot'] = @idx
+          obj[typestr + '/signature'] = if sig? then rs.init_string sig else null
+          obj[typestr + '/annotations'] = if anns? then rs.init_array(rs.class_lookup(c2t '[B'), anns) else null
+          obj[typestr + '/annotationDefault'] = if adefs? then rs.init_array(rs.class_lookup(c2t '[B'), adefs) else null
+          setTimeout((()=>success_fn(rs.init_object rs.class_lookup(c2t typestr), obj)), 0)
 
-        fetch_ptype()
-      ), failure_fn)
+      fetch_ptype = () =>
+        i++
+        if i < @param_types.length
+          rs.load_class(@param_types[i], null, ((cls)=>param_type_objs[i]=rs.jclass_obj(cls);fetch_ptype()), failure_fn)
+        else
+          fetch_etype()
+
+      fetch_ptype()
     ), failure_fn)
 
   take_params: (caller_stack) ->

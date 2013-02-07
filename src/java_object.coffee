@@ -34,7 +34,7 @@ class root.JavaArray
 
 class root.JavaObject
   constructor: (rs, @cls, obj={}) ->
-    @type = cls.this_class # XXX: Remove ASAP.
+    @type = @cls.this_class # XXX: Remove ASAP.
     @ref = rs.high_oref++
     # Use default fields as a prototype.
     @fields = Object.create(@cls.get_default_fields(rs))
@@ -92,9 +92,9 @@ class root.JavaObject
 
 
 class root.JavaClassObject extends root.JavaObject
-  constructor: (rs, @$type, @file) ->
-    type = types.c2t('java/lang/Class')
-    super rs, rs.class_lookup(type)
+  constructor: (rs, @file) ->
+    @$type = @file.this_class # XXX: Remove ASAP.
+    super rs, rs.class_lookup(c2t 'java/lang/Class')
 
   toString: -> "<Class #{@$type} (*#{@ref})>"
 
