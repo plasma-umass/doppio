@@ -84,8 +84,9 @@ trapped_methods =
                 source_file = 'unknown'
               line_nums = sf.method.code?.attrs?[0]?.entries
               if line_nums?
-                # XXX: WUT
-                ln = util.last(row.line_number for i,row of line_nums when row.start_pc <= sf.pc)
+                # get the last line number before the stack frame's pc
+                for i,row of line_nums when row.start_pc <= sf.pc
+                  ln = row.line_number
               ln ?= -1
               stack.push new JavaObject rs, rs.class_lookup(c2t "java/lang/StackTraceElement"), {
                 'java/lang/StackTraceElement/declaringClass': rs.init_string util.ext_classname cls.toClassString()
