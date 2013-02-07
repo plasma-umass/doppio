@@ -152,7 +152,7 @@ class root.LoadConstantOpcode extends root.Opcode
         # Fetch the jclass object and push it on to the stack. Do not rerun
         # this opcode.
         rs.async_op (resume_cb, except_cb) =>
-          rs.load_class(c2t(@str_constant.value), null, ((cls)=>resume_cb rs.jclass_obj(cls), undefined, true), ((e_cb)->except_cb e_cb, true))
+          rs.load_class(c2t(@str_constant.value), null, ((cls)=>resume_cb cls.get_class_object(rs), undefined, true), ((e_cb)->except_cb e_cb, true))
         return
       else
         rs.push @constant.value

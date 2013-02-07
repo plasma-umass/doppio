@@ -63,10 +63,6 @@ class root.RuntimeState
   constructor: (@print, @async_input, @read_classfile) ->
     @startup_time = gLong.fromNumber (new Date).getTime()
     @run_stamp = ++run_count
-    # dict of java.lang.Class objects (which are interned) this is two levels
-    # deep: the first level is the classloader, the second level is the classes
-    # defined by the classloader.
-    @jclass_obj_pool = Object.create null
     # dict of ClassFiles that have been loaded. this is two levels deep:
     # the first level is the classloader, the second level is the classes
     # defined by that classloader.
@@ -274,15 +270,7 @@ class root.RuntimeState
 
   # Returns a java.lang.Class object for JVM bytecode to do reflective stuff.
   jclass_obj: (cls) ->
-    loader_id = cls.get_class_loader_id()
-    type_string = cls.toTypeString();
-    @jclass_obj_pool[loader_id] = Object.create null unless @jclass_obj_pool[loader_id]?
-    jco = @jclass_obj_pool[loader_id][type_string]
-    return jco if jco?
-
-    jco = new JavaClassObject @, cls
-    @jclass_obj_pool[loader_id][type_string] = jco
-    return jco
+    throw new Error "LOLWUT"
 
   # Loads the underlying class, its parents, and its interfaces, but does not
   # run class initialization.
@@ -352,7 +340,9 @@ class root.RuntimeState
               #else
               failure_fn ()=>java_throw @, @class_lookup(c2t 'java/lang/NoClassDefFoundError'), msg
               return
-            class_file.initialized = false
+            # Tell the ClassFile that we are loading it. It will reset any
+            # internal state in case we are re-loading.
+            class_file.load()
             @loaded_classes[loader_id][cls] = class_file
 
             # Load any interfaces of this class before returning.
@@ -536,7 +526,7 @@ class root.RuntimeState
       class_file.initialized = true
 
       # Resets any cached state from previous JVM executions (browser).
-      class_file.initialize(this)
+      class_file.initialize()
 
       # Run class initialization code. Superclasses get init'ed first.  We
       # don't want to call this more than once per class, so don't do dynamic
@@ -588,9 +578,6 @@ class root.RuntimeState
     @loaded_classes[loader_id] = Object.create null unless @loaded_classes[loader_id]?
     @loaded_classes[loader_id][cls] = class_file
 
-    @jclass_obj_pool[loader_id] = Object.create null unless @jclass_obj_pool[loader_id]?
-    @jclass_obj_pool[loader_id][type] = new JavaClassObject @, class_file
-
     # XXX: Copypasta'd from load_class.
     # Load any interfaces of this class before returning.
     i = -1 # Will increment to 0 first iteration.
@@ -603,7 +590,7 @@ class root.RuntimeState
         # for proper ClassLoader support.
         @load_class iface_type, loader, load_next_iface, failure_fn
       else
-        setTimeout((()=>success_fn @jclass_obj_pool[loader_id][type]), 0)
+        setTimeout((()=>success_fn @loaded_classes[loader_id][cls].get_class_object(@)), 0)
 
     if class_file.super_class?
       @load_class class_file.super_class, class_file, load_next_iface, failure_fn

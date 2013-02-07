@@ -28,6 +28,7 @@ root.read_classfile = (cls, cb) ->
       cb(new ClassFile data) if data?
       return
     catch e
+      trace "OH NO! #{e}"
       cb(null) # Signifies an error occurred.
 
 # main function that gets called from the frontend

@@ -247,7 +247,7 @@ native_methods =
       Class: [
         o 'getPrimitiveClass(L!/!/String;)L!/!/!;', (rs, jvm_str) ->
             prim_cls = rs.class_lookup new types.PrimitiveType(jvm_str.jvm2js_str()), null
-            return rs.jclass_obj prim_cls
+            return prim_cls.get_class_object(rs)
         o 'getClassLoader0()L!/!/ClassLoader;', (rs, _this) -> _this.cls.loader
         o 'desiredAssertionStatus0(L!/!/!;)Z', (rs) -> false # we don't need no stinkin asserts
         o 'getName0()L!/!/String;', (rs, _this) ->
@@ -261,11 +261,11 @@ native_methods =
             rs.async_op (resume_cb, except_cb) ->
               if initialize
                 rs.initialize_class type, null, ((cls) ->
-                  resume_cb rs.jclass_obj(cls)
+                  resume_cb cls.get_class_object(rs)
                 ), except_cb
               else
                 rs.load_class type, null, ((cls) ->
-                  resume_cb rs.jclass_obj(cls)
+                  resume_cb cls.get_class_object(rs)
                 ), except_cb
             return
         o 'getComponentType()L!/!/!;', (rs, _this) ->
@@ -274,7 +274,7 @@ native_methods =
 
             # As this array type is loaded, the component type is guaranteed
             # to be loaded as well. No need for asynchronicity.
-            return rs.jclass_obj(rs.get_loaded_class(type.component_type))
+            return rs.get_loaded_class(type.component_type).get_class_object(rs)
         o 'getGenericSignature()Ljava/lang/String;', (rs, _this) ->
             sig = _.find(_this.file.attrs, (a) -> a.name is 'Signature')?.sig
             if sig? then rs.init_string sig else null
@@ -295,7 +295,7 @@ native_methods =
             cls = _this.file
             if cls.access_flags.interface or not cls.super_class?
               return null
-            return rs.jclass_obj(rs.get_loaded_class(cls.super_class))
+            return rs.get_loaded_class(cls.super_class).get_class_object(rs)
         o 'getDeclaredFields0(Z)[Ljava/lang/reflect/Field;', (rs, _this, public_only) ->
             fields = _this.file.fields
             fields = (f for f in fields when f.access_flags.public) if public_only
@@ -350,7 +350,7 @@ native_methods =
             cls = _this.file
             ifaces = (cls.constant_pool.get(i).deref() for i in cls.interfaces)
             ifaces = ((if util.is_string(i) then c2t(i) else i) for i in ifaces)
-            iface_objs = (rs.jclass_obj(rs.get_loaded_class(iface)) for iface in ifaces)
+            iface_objs = (rs.get_loaded_class(iface).get_class_object(rs) for iface in ifaces)
             rs.init_array('[Ljava/lang/Class;',iface_objs)
         o 'getModifiers()I', (rs, _this) -> _this.file.access_byte
         o 'getRawAnnotations()[B', (rs, _this) ->
@@ -388,7 +388,7 @@ native_methods =
               # the immediate enclosing parent, and I'm not 100% sure this is
               # guaranteed by the spec
               declaring_name = cls.constant_pool.get(entry.outer_info_index).deref()
-              return rs.jclass_obj(rs.class_lookup(c2t(declaring_name)))
+              return rs.class_lookup(c2t(declaring_name)).get_class_object(rs)
             return null
         o 'getDeclaredClasses0()[L!/!/!;', (rs, _this) ->
             ret = new JavaArray rs, rs.class_lookup(c2t('[Ljava/lang/Class;')), []
@@ -409,7 +409,7 @@ native_methods =
                 i++
                 if i < flat_names.length
                   name = flat_names[i]
-                  rs.load_class(c2t(name), null, ((cls)->ret.array.push rs.jclass_obj(cls); fetch_next_jco()), except_cb)
+                  rs.load_class(c2t(name), null, ((cls)->ret.array.push cls.get_class_object(rs); fetch_next_jco()), except_cb)
                 else
                   setTimeout((()->resume_cb ret), 0)
               fetch_next_jco()
@@ -420,7 +420,7 @@ native_methods =
             type = c2t util.int_classname name.jvm2js_str()
             rs.async_op (resume_cb, except_cb) ->
               rs.load_class type, null, ((cls) ->
-                resume_cb rs.jclass_obj(cls)
+                resume_cb cls.get_class_object(rs)
               ), ((e_cb)->
                 try
                   e_cb()
@@ -434,11 +434,11 @@ native_methods =
             type = c2t util.int_classname name.jvm2js_str()
             rs.async_op (resume_cb, except_cb) ->
               rs.load_class type, null, ((cls)->
-                resume_cb rs.jclass_obj(cls)
+                resume_cb cls.get_class_object(rs)
               ), except_cb
         o 'getCaller(I)L!/!/Class;', (rs, i) ->
             cls = rs.meta_stack().get_caller(i).method.cls
-            return rs.jclass_obj cls
+            return cls.get_class_object(rs)
         o 'defineClass1(L!/!/String;[BIIL!/security/ProtectionDomain;L!/!/String;Z)L!/!/Class;', (rs,_this,name,bytes,offset,len,pd,source,unused) ->
             rs.async_op (resume_cb, except_cb) ->
               native_define_class rs, name, bytes, offset, len, _this, resume_cb, except_cb
@@ -546,7 +546,7 @@ native_methods =
       ]
       Object: [
         o 'getClass()L!/!/Class;', (rs, _this) ->
-            return rs.jclass_obj _this.cls
+            return _this.cls.get_class_object(rs)
         o 'hashCode()I', (rs, _this) ->
             # return the pseudo heap reference, essentially a unique id
             _this.ref
@@ -1331,7 +1331,7 @@ native_methods =
             #TODO: disregard frames assoc. with java.lang.reflect.Method.invoke() and its implementation
             caller = rs.meta_stack().get_caller(frames_to_skip)
             cls = caller.method.cls
-            return rs.jclass_obj cls
+            return cls.get_class_object(rs)
         o 'getClassAccessFlags(Ljava/lang/Class;)I', (rs, class_obj) ->
             class_obj.file.access_byte
       ]

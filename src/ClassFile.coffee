@@ -9,6 +9,7 @@ types = require './types'
 {java_throw} = require './exceptions'
 {c2t} = types
 {trace} = require './logging'
+{JavaClassObject} = require './java_object'
 
 "use strict"
 
@@ -55,6 +56,7 @@ class ClassFile
     @attrs = attributes.make_attributes(bytes_array,@constant_pool)
     throw "Leftover bytes in classfile: #{bytes_array}" if bytes_array.has_bytes()
 
+    @jco = null
     @initialized = false # Has clinit been run?
     # Contains the value of all static fields. Will be reset when initialize()
     # is run.
@@ -104,6 +106,8 @@ class ClassFile
   # string for this class, whether it be a Reference or a Primitive type.
   toTypeString: () ->
     if @this_class instanceof types.PrimitiveType then @toExternalString() else @toClassString()
+
+  get_class_object: (rs) -> if @jco? then @jco else @jco = new JavaClassObject rs, @
 
   # Spec [5.4.3.2][1].
   # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#77678
@@ -163,10 +167,15 @@ class ClassFile
     else
       java_throw rs, rs.class_lookup(c2t 'java/lang/NoSuchFieldError'), name
 
+  # Resets any ClassFile state that may have been built up
+  load: () ->
+    @initialized = false
+    @jco = null
+
   # "Reinitializes" the ClassFile for subsequent JVM invocations. Resets all
   # of the built up state / caches present in the opcode instructions.
   # Eventually, this will also handle `clinit` duties.
-  initialize: (rs) ->
+  initialize: () ->
     unless @initialized
       @static_fields = @_construct_static_fields()
       for method in @methods

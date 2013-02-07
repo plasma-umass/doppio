@@ -52,12 +52,12 @@ class root.Field extends AbstractMethodField
           'java/lang/reflect/Field/signature': if sig? then rs.init_string sig else null
         }
 
-    clazz_obj = rs.jclass_obj @cls
+    clazz_obj = @cls.get_class_object(rs)
     # type_obj may not be loaded, so we asynchronously load it here.
     # In the future, we can speed up reflection by having a synchronous_reflector
     # method that we can try first, and which may fail.
     rs.load_class @type, null, ((type_cls) =>
-      type_obj = rs.jclass_obj type_cls
+      type_obj = type_cls.get_class_object(rs)
       rv = create_obj clazz_obj, type_obj
       success_fn rv
     ), failure_fn
@@ -106,10 +106,10 @@ class root.Method extends AbstractMethodField
     sig =  _.find(@attrs, (a) -> a.name == 'Signature')?.sig
     obj = {}
 
-    clazz_obj = rs.jclass_obj @cls
+    clazz_obj = @cls.get_class_object(rs)
 
     rs.load_class(@return_type, null, ((rt_cls) =>
-      rt_obj = rs.jclass_obj rt_cls
+      rt_obj = rt_cls.get_class_object(rs)
       j = -1
       etype_objs = []
       i = -1
@@ -117,7 +117,7 @@ class root.Method extends AbstractMethodField
       fetch_etype = () =>
         j++
         if j < exceptions.length
-          rs.load_class(c2t(exceptions[j]), null, ((cls)=>etype_objs[j]=rs.jclass_obj(cls);fetch_etype()), failure_fn)
+          rs.load_class(c2t(exceptions[j]), null, ((cls)=>etype_objs[j]=cls.get_class_object(rs);fetch_etype()), failure_fn)
         else
           # XXX: missing parameterAnnotations
           obj[typestr + '/clazz'] = clazz_obj
@@ -135,7 +135,7 @@ class root.Method extends AbstractMethodField
       fetch_ptype = () =>
         i++
         if i < @param_types.length
-          rs.load_class(@param_types[i], null, ((cls)=>param_type_objs[i]=rs.jclass_obj(cls);fetch_ptype()), failure_fn)
+          rs.load_class(@param_types[i], null, ((cls)=>param_type_objs[i]=cls.get_class_object(rs);fetch_ptype()), failure_fn)
         else
           fetch_etype()
 
