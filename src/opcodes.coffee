@@ -383,7 +383,7 @@ class root.ArrayLoadOpcode extends root.Opcode
     array = obj.array
     unless 0 <= idx < array.length
       java_throw(rs, rs.class_lookup(c2t 'java/lang/ArrayIndexOutOfBoundsException'),
-        "#{idx} not in length #{array.length} array of type #{obj.type.toClassString()}")
+        "#{idx} not in length #{array.length} array of type #{obj.cls.toClassString()}")
     rs.push array[idx]
     rs.push null if @name[0] in ['l', 'd']
     return
@@ -396,7 +396,7 @@ class root.ArrayStoreOpcode extends root.Opcode
     array = obj.array
     unless 0 <= idx < array.length
       java_throw(rs, rs.class_lookup(c2t 'java/lang/ArrayIndexOutOfBoundsException'),
-        "#{idx} not in length #{array.length} array of type #{obj.type.toClassString()}")
+        "#{idx} not in length #{array.length} array of type #{obj.cls.toClassString()}")
     array[idx] = value
     return
 
@@ -724,7 +724,7 @@ root.opcodes = {
           rs.push o
         else
           target_class = c2t(@class).toExternalString() # class we wish to cast to
-          candidate_class = o.type.toExternalString()
+          candidate_class = o.cls.toExternalString()
           java_throw rs, rs.class_lookup(c2t('java/lang/ClassCastException')), "#{candidate_class} cannot be cast to #{target_class}"
 
       new_execute.call @, rs

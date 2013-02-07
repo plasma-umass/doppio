@@ -116,7 +116,7 @@ is_subinterface = (rs, iface1, iface2) ->
 
 # true if :obj can be casted to (i.e. is an instance of) :cls.
 # cls is a ClassFile.
-root.check_cast = (rs, obj, cls) -> root.is_castable(rs, rs.get_loaded_class(obj.type), cls)
+root.check_cast = (rs, obj, cls) -> root.is_castable(rs, obj.cls, cls)
 
 # Returns a boolean indicating if :c1 is an instance of :c2.
 # :c1 and :c2 should both be instances of ClassFile.

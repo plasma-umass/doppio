@@ -76,7 +76,7 @@ trapped_methods =
             cstack = rs.meta_stack()._cs.slice(1,-1)
             for sf in cstack when not (sf.fake? or sf.native? or sf.locals[0] is _this)
               cls = sf.method.cls
-              unless _this.type.toClassString() is 'java/lang/NoClassDefFoundError'
+              unless _this.cls.toClassString() is 'java/lang/NoClassDefFoundError'
                 attrs = cls.attrs
                 source_file =
                   _.find(attrs, (attr) -> attr.name == 'SourceFile')?.filename or 'unknown'
@@ -124,7 +124,7 @@ trapped_methods =
 
 doPrivileged = (rs, action) ->
   my_sf = rs.curr_frame()
-  m = rs.method_lookup(rs.class_lookup(action.type), {class: action.type.toClassString(), sig: 'run()Ljava/lang/Object;'})
+  m = rs.method_lookup(action.cls, {class: action.cls.toClassString(), sig: 'run()Ljava/lang/Object;'})
   rs.push action unless m.access_flags.static
   m.setup_stack(rs)
   my_sf.runner = ->
@@ -168,7 +168,7 @@ arraycopy_check = (rs, src, src_pos, dest, dest_pos, length) ->
   j = dest_pos
   for i in [src_pos...src_pos+length] by 1
     # Check if null or castable.
-    if src.array[i] == null or types.is_castable rs, rs.get_loaded_class(src.array[i].type), rs.get_loaded_class(dest.type.component_type)
+    if src.array[i] == null or types.is_castable rs, src.array[i].cls, rs.get_loaded_class(dest.type.component_type)
       dest.array[j] = src.array[i]
     else
       exceptions.java_throw rs, rs.class_lookup(c2t 'java/lang/ArrayStoreException'), 'Array element in src cannot be cast to dest array type.'
@@ -248,7 +248,7 @@ native_methods =
         o 'getPrimitiveClass(L!/!/String;)L!/!/!;', (rs, jvm_str) ->
             rs.async_op (resume_cb, except_cb) ->
               rs.jclass_obj new types.PrimitiveType(jvm_str.jvm2js_str()), null, resume_cb, except_cb
-        o 'getClassLoader0()L!/!/ClassLoader;', (rs, _this) -> rs.class_lookup(_this.type).loader
+        o 'getClassLoader0()L!/!/ClassLoader;', (rs, _this) -> _this.cls.loader
         o 'desiredAssertionStatus0(L!/!/!;)Z', (rs) -> false # we don't need no stinkin asserts
         o 'getName0()L!/!/String;', (rs, _this) ->
             rs.init_string(_this.$type.toExternalString())
@@ -264,8 +264,8 @@ native_methods =
             # user-defined classloader
             my_sf = rs.curr_frame()
             rs.push2 loader, jvm_str
-            rs.method_lookup(rs.class_lookup(loader.type),
-              {class: loader.type.toClassString(),
+            rs.method_lookup(loader.cls,
+              {class: loader.cls.toClassString(),
               sig: 'loadClass(Ljava/lang/String;)Ljava/lang/Class;'}).setup_stack(rs)
             my_sf.runner = ->
               rv = rs.pop()
@@ -288,7 +288,7 @@ native_methods =
             return false unless _this.$type instanceof types.ClassType
             _this.file.access_flags.interface
         o 'isInstance(L!/!/Object;)Z', (rs, _this, obj) ->
-            return types.is_castable rs, rs.get_loaded_class(obj.type), rs.get_loaded_class(_this.$type)
+            return types.is_castable rs, obj.cls, rs.get_loaded_class(_this.$type)
         o 'isPrimitive()Z', (rs, _this) ->
             _this.$type instanceof types.PrimitiveType
         o 'isArray()Z', (rs, _this) ->
@@ -605,7 +605,7 @@ native_methods =
       reflect:
         Array: [
           o 'newArray(L!/!/Class;I)L!/!/Object;', (rs, _this, len) ->
-              trace _this.type.toClassString()
+              trace _this.cls.toClassString()
               rs.heap_newarray _this.$type, len
           o 'getLength(Ljava/lang/Object;)I', (rs, arr) ->
               rs.check_null(arr).array.length
@@ -662,10 +662,10 @@ native_methods =
               exceptions.java_throw rs, rs.class_lookup(c2t 'java/lang/ArrayIndexOutOfBoundsException'), 'Tried to write to an illegal index in an array.'
             # Special case; need to copy the section of src that is being copied into a temporary array before actually doing the copy.
             if src == dest
-              src = {type: src.type, array: src.array.slice(src_pos, src_pos+length)}
+              src = {cls: src.cls, type: src.type, array: src.array.slice(src_pos, src_pos+length)}
               src_pos = 0
 
-            if types.is_castable rs, rs.get_loaded_class(src.type), rs.get_loaded_class(dest.type)
+            if types.is_castable rs, src.cls, dest.cls
               # Fast path
               arraycopy_no_check(src, src_pos, dest, dest_pos, length)
             else
@@ -720,7 +720,7 @@ native_methods =
             rs.curr_thread = _this
             new_thread_sf = rs.curr_frame()
             rs.push _this
-            run_method = rs.method_lookup(rs.class_lookup(_this.type), {class: _this.type.toClassString(), sig: 'run()V'})
+            run_method = rs.method_lookup(_this.cls, {class: _this.cls.toClassString(), sig: 'run()V'})
             thread_runner_sf = run_method.setup_stack(rs)
             new_thread_sf.runner = ->
               new_thread_sf.runner = null  # new_thread_sf is the fake SF at index 0
