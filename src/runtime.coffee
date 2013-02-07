@@ -8,7 +8,7 @@ types = require './types'
 ClassFile = require './ClassFile'
 {log,vtrace,trace,debug,error} = require './logging'
 {java_throw,YieldIOException,ReturnException,JavaException} = require './exceptions'
-{JavaObject,JavaClassObject,JavaArray,thread_name} = require './java_object'
+{JavaObject,JavaArray,thread_name} = require './java_object'
 {c2t} = types
 {Method} = require './methods'
 
