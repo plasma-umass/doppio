@@ -75,9 +75,8 @@ trapped_methods =
             # the construction of this exception
             cstack = rs.meta_stack()._cs.slice(1,-1)
             for sf in cstack when not (sf.fake? or sf.native? or sf.locals[0] is _this)
-              cls = sf.method.class_type
               unless _this.type.toClassString() is 'java/lang/NoClassDefFoundError'
-                attrs = rs.class_lookup(cls).attrs
+                attrs = sf.method.cls.attrs
                 source_file =
                   _.find(attrs, (attr) -> attr.name == 'SourceFile')?.filename or 'unknown'
               else

@@ -41,19 +41,17 @@ class root.Field extends AbstractMethodField
     # field type.
     sig = _.find(@attrs, (a) -> a.name == "Signature")?.sig
 
-    # Need to fetch a jclass object for clazz and type.
-    rs.jclass_obj(@class_type, null, ((clazz_obj)=>
-      rs.jclass_obj(@type, null, ((type_obj) =>
-        success_fn(rs.init_object rs.class_lookup(c2t 'java/lang/reflect/Field'), {
-          # XXX this leaves out 'annotations'
-          'java/lang/reflect/Field/clazz': clazz_obj
-          'java/lang/reflect/Field/name': rs.init_string @name, true
-          'java/lang/reflect/Field/type': type_obj
-          'java/lang/reflect/Field/modifiers': @access_byte
-          'java/lang/reflect/Field/slot': @idx
-          'java/lang/reflect/Field/signature': if sig? then rs.init_string sig else null
-        })
-      ), failure_fn)
+    # Need to fetch a jclass object for type.
+    rs.jclass_obj(@type, null, ((type_obj) =>
+      success_fn(rs.init_object rs.class_lookup(c2t 'java/lang/reflect/Field'), {
+        # XXX this leaves out 'annotations'
+        'java/lang/reflect/Field/clazz': @cls
+        'java/lang/reflect/Field/name': rs.init_string @name, true
+        'java/lang/reflect/Field/type': type_obj
+        'java/lang/reflect/Field/modifiers': @access_byte
+        'java/lang/reflect/Field/slot': @idx
+        'java/lang/reflect/Field/signature': if sig? then rs.init_string sig else null
+      })
     ), failure_fn)
 
 class root.Method extends AbstractMethodField
@@ -99,39 +97,37 @@ class root.Method extends AbstractMethodField
     sig =  _.find(@attrs, (a) -> a.name == 'Signature')?.sig
     obj = {}
 
-    rs.jclass_obj(@class_type, null, ((clazz_obj)=>
-      rs.jclass_obj(@return_type, null, ((rt_obj) =>
-        j = -1
-        etype_objs = []
-        i = -1
-        param_type_objs = []
-        fetch_etype = () =>
-          j++
-          if j < exceptions.length
-            rs.jclass_obj(c2t(exceptions[j]), null, ((jco)=>etype_objs[j]=jco;fetch_etype()), failure_fn)
-          else
-            # XXX: missing parameterAnnotations
-            obj[typestr + '/clazz'] = clazz_obj
-            obj[typestr + '/name'] = rs.init_string @name, true
-            obj[typestr + '/parameterTypes'] = rs.init_array "[Ljava/lang/Class;", param_type_objs
-            obj[typestr + '/returnType'] = rt_obj
-            obj[typestr + '/exceptionTypes'] = rs.init_array "[Ljava/lang/Class;", etype_objs
-            obj[typestr + '/modifiers'] = @access_byte
-            obj[typestr + '/slot'] = @idx
-            obj[typestr + '/signature'] = if sig? then rs.init_string sig else null
-            obj[typestr + '/annotations'] = if anns? then rs.init_array('[B', anns) else null
-            obj[typestr + '/annotationDefault'] = if adefs? then rs.init_array('[B', adefs) else null
-            setTimeout((()=>success_fn(rs.init_object rs.class_lookup(c2t typestr), obj)), 0)
+    rs.jclass_obj(@return_type, null, ((rt_obj) =>
+      j = -1
+      etype_objs = []
+      i = -1
+      param_type_objs = []
+      fetch_etype = () =>
+        j++
+        if j < exceptions.length
+          rs.jclass_obj(c2t(exceptions[j]), null, ((jco)=>etype_objs[j]=jco;fetch_etype()), failure_fn)
+        else
+          # XXX: missing parameterAnnotations
+          obj[typestr + '/clazz'] = @cls
+          obj[typestr + '/name'] = rs.init_string @name, true
+          obj[typestr + '/parameterTypes'] = rs.init_array "[Ljava/lang/Class;", param_type_objs
+          obj[typestr + '/returnType'] = rt_obj
+          obj[typestr + '/exceptionTypes'] = rs.init_array "[Ljava/lang/Class;", etype_objs
+          obj[typestr + '/modifiers'] = @access_byte
+          obj[typestr + '/slot'] = @idx
+          obj[typestr + '/signature'] = if sig? then rs.init_string sig else null
+          obj[typestr + '/annotations'] = if anns? then rs.init_array('[B', anns) else null
+          obj[typestr + '/annotationDefault'] = if adefs? then rs.init_array('[B', adefs) else null
+          setTimeout((()=>success_fn(rs.init_object rs.class_lookup(c2t typestr), obj)), 0)
 
-        fetch_ptype = () =>
-          i++
-          if i < @param_types.length
-            rs.jclass_obj(@param_types[i], null, ((jco)=>param_type_objs[i]=jco;fetch_ptype()), failure_fn)
-          else
-            fetch_etype()
+      fetch_ptype = () =>
+        i++
+        if i < @param_types.length
+          rs.jclass_obj(@param_types[i], null, ((jco)=>param_type_objs[i]=jco;fetch_ptype()), failure_fn)
+        else
+          fetch_etype()
 
-        fetch_ptype()
-      ), failure_fn)
+      fetch_ptype()
     ), failure_fn)
 
   take_params: (caller_stack) ->
@@ -195,7 +191,7 @@ class root.Method extends AbstractMethodField
         pc = cf.pc
         throw "#{@name}:#{pc} => (null)" unless op
         vtrace "#{padding}stack: [#{debug_vars cf.stack}], local: [#{debug_vars cf.locals}]"
-        annotation = op.annotate(pc, rs.class_lookup(@class_type).constant_pool)
+        annotation = op.annotate(pc, @cls.constant_pool)
         vtrace "#{padding}#{@class_type.toClassString()}::#{@name}:#{pc} => #{op.name}" + annotation
 
       cf.pc += 1 + op.byte_count if (op.execute rs) isnt false

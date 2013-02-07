@@ -608,7 +608,7 @@ root.opcodes = {
         new_execute.call(@, rs)
         @execute = new_execute
       else
-        # Initialize @field_spec.class and rerun opcode.
+        # Initialize cls_type and rerun opcode.
         rs.async_op (resume_cb, except_cb) =>
           rs.initialize_class cls_type, null, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
     else
@@ -634,7 +634,7 @@ root.opcodes = {
         new_execute.call(@, rs)
         @execute = new_execute
       else
-        # Initialize @field_spec.class and rerun opcode.
+        # Initialize cls_type and rerun opcode.
         rs.async_op (resume_cb, except_cb) =>
           rs.initialize_class cls_type, null, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
     else
