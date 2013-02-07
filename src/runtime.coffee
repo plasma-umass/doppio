@@ -135,7 +135,7 @@ class root.RuntimeState
   init_threads: ->
     # initialize thread objects
     my_sf = @curr_frame()
-    @push (group = @init_object @class_lookup(c2t 'java/lang/ThreadGroup'))
+    @push (group = new JavaObject @, @class_lookup(c2t 'java/lang/ThreadGroup'))
     @method_lookup(@class_lookup(c2t 'java/lang/ThreadGroup'), {class: 'java/lang/ThreadGroup', sig: '<init>()V'}).setup_stack(this)
     my_sf.runner = =>
       ct = null
@@ -148,7 +148,7 @@ class root.RuntimeState
         # hack to make auto-named threads match native Java
         @class_lookup(c2t 'java/lang/Thread').static_fields.threadInitNumber = 1
         debug "### finished thread init ###"
-      ct = @init_object @class_lookup(c2t 'java/lang/Thread'),
+      ct = new JavaObject @, @class_lookup(c2t 'java/lang/Thread'),
         'java/lang/Thread/name': @init_carr 'main'
         'java/lang/Thread/priority': 1
         'java/lang/Thread/group': group
@@ -253,8 +253,6 @@ class root.RuntimeState
       new JavaArray @, @class_lookup(c2t("[#{type}")), (0 for i in [0...len] by 1)
 
   # heap object initialization
-  init_object: (cls, obj) ->
-    new JavaObject @, cls, obj
   init_string: (str,intern=false) ->
     trace "init_string: #{str}"
     return s if intern and (s = @string_pool.get str)?
@@ -505,7 +503,7 @@ class root.RuntimeState
         nf.error = => @meta_stack().pop(); failure_fn(()->throw e)
 
         cls = @class_lookup c2t('java/lang/ExceptionInInitializerError')
-        v = @init_object cls # new
+        v = new JavaObject @, cls # new
         method_spec = sig: '<init>(Ljava/lang/Throwable;)V'
         @push_array([v,v,e.exception]) # dup, ldc
         @method_lookup(cls, method_spec).setup_stack(@) # invokespecial

@@ -87,7 +87,7 @@ trapped_methods =
                 # XXX: WUT
                 ln = util.last(row.line_number for i,row of line_nums when row.start_pc <= sf.pc)
               ln ?= -1
-              stack.push rs.init_object rs.class_lookup(c2t "java/lang/StackTraceElement"), {
+              stack.push new JavaObject rs, rs.class_lookup(c2t "java/lang/StackTraceElement"), {
                 'java/lang/StackTraceElement/declaringClass': rs.init_string util.ext_classname cls.toClassString()
                 'java/lang/StackTraceElement/methodName': rs.init_string(sf.method.name ? 'unknown')
                 'java/lang/StackTraceElement/fileName': rs.init_string source_file
@@ -363,7 +363,7 @@ native_methods =
             null
         o 'getConstantPool()Lsun/reflect/ConstantPool;', (rs, _this) ->
             cls = _this.file
-            rs.init_object rs.class_lookup(c2t 'sun/reflect/ConstantPool'), {'sun/reflect/ConstantPool/constantPoolOop': cls.constant_pool}
+            new JavaObject rs, rs.class_lookup(c2t 'sun/reflect/ConstantPool'), {'sun/reflect/ConstantPool/constantPoolOop': cls.constant_pool}
         o 'getEnclosingMethod0()[L!/!/Object;', (rs, _this) ->
             return null unless _this.$type instanceof types.ClassType
             cls = _this.file
@@ -738,15 +738,15 @@ native_methods =
         o 'getFileSystem()L!/!/!;', (rs) ->
             # TODO: avoid making a new FS object each time this gets called? seems to happen naturally in java/io/File...
             my_sf = rs.curr_frame()
-            cache1 = rs.init_object rs.class_lookup(c2t 'java/io/ExpiringCache')
-            cache2 = rs.init_object rs.class_lookup(c2t 'java/io/ExpiringCache')
+            cache1 = new JavaObject rs, rs.class_lookup(c2t 'java/io/ExpiringCache')
+            cache2 = new JavaObject rs, rs.class_lookup(c2t 'java/io/ExpiringCache')
             cache_init = rs.method_lookup(rs.class_lookup(c2t 'java/io/ExpiringCache'), {class: 'java/io/ExpiringCache', sig: '<init>()V'})
             rs.push2 cache1, cache2
             cache_init.setup_stack(rs)
             my_sf.runner = ->
               cache_init.setup_stack(rs)
               my_sf.runner = ->
-                rv = rs.init_object rs.class_lookup(c2t 'java/io/UnixFileSystem'), {
+                rv = new JavaObject rs, rs.class_lookup(c2t 'java/io/UnixFileSystem'), {
                   'java/io/UnixFileSystem/cache': cache1
                   'java/io/UnixFileSystem/javaHomePrefixCache': cache2
                   'java/io/UnixFileSystem/slash': system_properties['file.separator'].charCodeAt(0)
@@ -1138,7 +1138,7 @@ native_methods =
       Unsafe: [
         o 'addressSize()I', (rs, _this) -> 4 # either 4 or 8
         o 'allocateInstance(Ljava/lang/Class;)Ljava/lang/Object;', (rs, _this, cls) ->
-            rs.init_object cls.file, {}
+            new JavaObject rs, cls.file
         o 'allocateMemory(J)J', (rs, _this, size) ->
             next_addr = util.last(rs.mem_start_addrs)
             if DataView?

@@ -131,7 +131,7 @@ class root.Method extends AbstractMethodField
           obj[typestr + '/signature'] = if sig? then rs.init_string sig else null
           obj[typestr + '/annotations'] = if anns? then new JavaArray(rs, rs.class_lookup(c2t '[B'), anns) else null
           obj[typestr + '/annotationDefault'] = if adefs? then new JavaArray(rs, rs.class_lookup(c2t '[B'), adefs) else null
-          setTimeout((()=>success_fn(rs.init_object rs.class_lookup(c2t typestr), obj)), 0)
+          setTimeout((()=>success_fn(new JavaObject rs, rs.class_lookup(c2t typestr), obj)), 0)
 
       fetch_ptype = () =>
         i++
