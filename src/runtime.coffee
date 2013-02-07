@@ -222,7 +222,9 @@ class root.RuntimeState
   put_cl: (idx,val) -> @curr_frame().locals[idx] = val
   # Category 2 values (longs, doubles) take two slots in Java. Since we only
   # need one slot to represent a double in JS, we pad it with a null.
-  put_cl2: (idx,val) -> @put_cl(idx,val); UNSAFE? || @put_cl(idx+1,null)
+  put_cl2: (idx,val) ->
+    @put_cl(idx,val)
+    UNSAFE? || @put_cl(idx+1,null)
 
   push: (arg) -> @curr_frame().stack.push(arg)
   push2: (arg1, arg2) -> @curr_frame().stack.push(arg1, arg2)
@@ -230,7 +232,10 @@ class root.RuntimeState
     cs = @curr_frame().stack
     Array::push.apply(cs, args)
   pop: () -> @curr_frame().stack.pop()
-  pop2: () -> @pop(); @pop() # For category 2 values.
+  # For category 2 values.
+  pop2: () ->
+    @pop()
+    @pop()
 
   # Program counter manipulation.
   curr_pc: ()   -> @curr_frame().pc
@@ -500,7 +505,9 @@ class root.RuntimeState
           @meta_stack().pop()
           # Throw the exception.
           throw (new JavaException(rv))
-        nf.error = => @meta_stack().pop(); failure_fn(()->throw e)
+        nf.error = =>
+          @meta_stack().pop()
+          failure_fn (-> throw e)
 
         cls = @class_lookup c2t('java/lang/ExceptionInInitializerError')
         v = new JavaObject @, cls # new
@@ -678,7 +685,9 @@ class root.RuntimeState
         failure_fn = (e_cb, bytecode) =>
           if bytecode
             @meta_stack().push root.StackFrame.fake_frame("async_op")
-          @curr_frame().runner = ()=> @meta_stack().pop(); e_cb()
+          @curr_frame().runner = =>
+            @meta_stack().pop()
+            e_cb()
           @run_until_finished (->), no_threads, done_cb
         e.condition success_fn, failure_fn
       else
