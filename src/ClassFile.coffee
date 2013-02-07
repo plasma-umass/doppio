@@ -107,7 +107,9 @@ class ClassFile
   toTypeString: () ->
     if @this_class instanceof types.PrimitiveType then @toExternalString() else @toClassString()
 
-  get_class_object: (rs) -> if @jco? then @jco else @jco = new JavaClassObject rs, @
+  get_class_object: (rs) ->
+    @jco = new JavaClassObject(rs, @) unless @jco?
+    @jco
 
   # Spec [5.4.3.2][1].
   # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#77678
@@ -217,10 +219,10 @@ class ClassFile
 
   # Returns the JavaObject object of the classloader that initialized this
   # class. Returns null for the default classloader.
-  get_class_loader: () -> return @loader
+  get_class_loader: () -> @loader
   # Returns the unique ID of this class loader. Returns null for the bootstrap
   # classloader.
-  get_class_loader_id: () -> if @loader? then return @loader.ref else return null
+  get_class_loader_id: () -> @loader?.ref or null
 
 if module?
   module.exports = ClassFile

@@ -51,7 +51,7 @@ class root.StackFrame
     sf = new root.StackFrame(new Method(null, c2t(name)), [], [])
     sf.runner = handler
     sf.name = name
-    if error_handler? then sf.error = error_handler
+    sf.error = error_handler if error_handler?
     sf.native = true
     return sf
 
@@ -176,8 +176,8 @@ class root.RuntimeState
   show_state: () ->
     cf = @curr_frame()
     if cf?
-      s = ((if x?.ref? then x.ref else x) for x in cf.stack)
-      l = ((if x?.ref? then x.ref else x) for x in cf.locals)
+      s = ((x?.ref? or x) for x in cf.stack)
+      l = ((x?.ref? or x) for x in cf.locals)
       debug "showing current state: method '#{cf.method?.name}', stack: [#{s}], locals: [#{l}]"
     else
       debug "current frame is undefined. meta_stack: #{@meta_stack()}"
@@ -274,11 +274,11 @@ class root.RuntimeState
   load_class: (type, trigger_class, success_fn, failure_fn) ->
     cls = type.toClassString()
     trace "Loading #{cls}..."
-    loader = if trigger_class? then trigger_class.get_class_loader() else null
-    loader_id = if trigger_class? then trigger_class.get_class_loader_id() else null
+    loader = trigger_class?.get_class_loader() or null
+    loader_id = trigger_class?.get_class_loader_id() or null
 
     # First time this ClassLoader has loaded a class.
-    unless @loaded_classes[loader_id]? then @loaded_classes[loader_id] = Object.create null
+    @loaded_classes[loader_id] ?= Object.create null
 
     cls_obj = @get_loaded_class(type, null, true)
     if cls_obj?
@@ -360,8 +360,8 @@ class root.RuntimeState
   # There are some classes we can load synchronously (array types for
   # initialized classes, primitive classes, etc). Try to do so here.
   _try_synchronous_load: (type, trigger_class=null) ->
-    loader = if trigger_class? then trigger_class.loader else null
-    loader_id = if trigger_class? then trigger_class.get_class_loader_id() else null
+    loader = trigger_class?.loader or null
+    loader_id = trigger_class?.get_class_loader_id() or null
     @loaded_classes[loader_id] = Object.create null unless @loaded_classes[loader_id]?
     if type instanceof types.PrimitiveType
       @loaded_classes[loader_id][type.toExternalString()] = ClassFile.for_primitive type, loader
@@ -386,7 +386,7 @@ class root.RuntimeState
   # TODO: Once things stabilize, disable the exception throwing in UNSAFE mode.
   class_lookup: (type, trigger_class=null, null_handled=false) ->
     UNSAFE? || throw new Error "class_lookup needs a type object, got #{typeof type}: #{type}" unless type instanceof types.Type
-    loader_id = if trigger_class? then trigger_class.get_class_loader_id() else null
+    loader_id = trigger_class?.get_class_loader_id() or null
     cls = @loaded_classes[loader_id]?[type.toClassString()]
     # We use cls.is_initialized() rather than checking cls.initialized directly.
     # This allows us to avoid asynchronously "initializing" classes that have no
@@ -410,7 +410,7 @@ class root.RuntimeState
   # class_lookup somehow.
   get_loaded_class: (type, trigger_class=null, null_handled=false) ->
     UNSAFE? || throw new Error "get_loaded_class needs a type object, got #{typeof type}: #{type}" unless type instanceof types.Type
-    loader_id = if trigger_class? then trigger_class.get_class_loader_id() else null
+    loader_id = trigger_class?.get_class_loader_id() or null
     cls = @loaded_classes[loader_id]?[type.toClassString()]
     # We use cls.is_initialized() rather than checking cls.initialized directly.
     # This allows us to avoid asynchronously "initializing" classes that have no
@@ -437,8 +437,8 @@ class root.RuntimeState
   # native function. **You should not be calling this from anywhere else.**
   initialize_class: (type, trigger_class, success_fn, failure_fn) ->
     name = type.toClassString()
-    loader = if trigger_class? then trigger_class.get_class_loader_id() else null
-    class_file = @loaded_classes[loader]?[name]
+    loader_id = trigger_class?.get_class_loader_id() or null
+    class_file = @loaded_classes[loader_id]?[name]
 
     # Don't use failure_fn for this error -- the main RS loop will handle it.
     throw new Error "ERROR: Tried to initialize #{name} while in the main RuntimeState loop. Should be called as an async op." if @_in_main_loop
@@ -485,7 +485,7 @@ class root.RuntimeState
       @meta_stack().pop()
       # success_fn is responsible for getting us back into the runtime state
       # execution loop.
-      @async_op(()=>success_fn(@loaded_classes[loader][name]))
+      @async_op(()=>success_fn(@loaded_classes[loader_id][name]))
     ), ((e)=>
       if e instanceof JavaException
         # We hijack the current native frame to transform the exception into a
@@ -547,8 +547,8 @@ class root.RuntimeState
             @async_op(()=>failure_fn(()->throw e))
           ))
         clinit.setup_stack(@)
-      next_type = if class_file.super_class? then class_file.super_class else if class_file.component_type? then class_file.component_type else undefined
-      class_file = if next_type? then @loaded_classes[loader][next_type.toClassString()] else undefined
+      next_type = class_file.super_class or class_file.component_type
+      class_file = if next_type? then @loaded_classes[loader_id][next_type.toClassString()] else undefined
 
     unless first_clinit
       # Push ourselves back into the execution loop to run the <clinit> methods.
@@ -556,7 +556,7 @@ class root.RuntimeState
       return
 
     # Classes did not have any clinit functions, and were already loaded.
-    setTimeout((()=>success_fn(@loaded_classes[loader][name])), 0)
+    setTimeout((()=>success_fn(@loaded_classes[loader_id][name])), 0)
 
   # called by user-defined classloaders
   # must be called as an asynchronous operation.
@@ -566,7 +566,7 @@ class root.RuntimeState
     type = c2t(cls)
 
     # XXX: The details of get_loader_id in ClassFile are leaking out here.
-    loader_id = if loader? then loader.ref else null
+    loader_id = loader?.ref or null
     @loaded_classes[loader_id] = Object.create null unless @loaded_classes[loader_id]?
     @loaded_classes[loader_id][cls] = class_file
 
@@ -663,7 +663,8 @@ class root.RuntimeState
         # class initialization). This causes the method to resume on the next
         # opcode once success_fn is called.
         success_fn = (ret1, ret2, bytecode, advance_pc=true) =>
-          if bytecode then @meta_stack().push root.StackFrame.fake_frame("async_op")
+          if bytecode
+            @meta_stack().push root.StackFrame.fake_frame("async_op")
           @curr_frame().runner = =>
               @meta_stack().pop()
               if bytecode and advance_pc
@@ -675,7 +676,8 @@ class root.RuntimeState
               @push ret2 unless ret2 is undefined
           @run_until_finished (->), no_threads, done_cb
         failure_fn = (e_cb, bytecode) =>
-          if bytecode then @meta_stack().push root.StackFrame.fake_frame("async_op")
+          if bytecode
+            @meta_stack().push root.StackFrame.fake_frame("async_op")
           @curr_frame().runner = ()=> @meta_stack().pop(); e_cb()
           @run_until_finished (->), no_threads, done_cb
         e.condition success_fn, failure_fn
