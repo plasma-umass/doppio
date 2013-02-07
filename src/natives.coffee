@@ -75,8 +75,9 @@ trapped_methods =
             # the construction of this exception
             cstack = rs.meta_stack()._cs.slice(1,-1)
             for sf in cstack when not (sf.fake? or sf.native? or sf.locals[0] is _this)
+              cls = sf.method.cls
               unless _this.type.toClassString() is 'java/lang/NoClassDefFoundError'
-                attrs = sf.method.cls.attrs
+                attrs = cls.attrs
                 source_file =
                   _.find(attrs, (attr) -> attr.name == 'SourceFile')?.filename or 'unknown'
               else
@@ -87,7 +88,7 @@ trapped_methods =
                 ln = util.last(row.line_number for i,row of line_nums when row.start_pc <= sf.pc)
               ln ?= -1
               stack.push rs.init_object rs.class_lookup(c2t "java/lang/StackTraceElement"), {
-                'java/lang/StackTraceElement/declaringClass': rs.init_string util.ext_classname cls.toClassString()
+                'java/lang/StackTraceElement/declaringClass': rs.init_string util.ext_classname cls.this_class.toClassString()
                 'java/lang/StackTraceElement/methodName': rs.init_string(sf.method.name ? 'unknown')
                 'java/lang/StackTraceElement/fileName': rs.init_string source_file
                 'java/lang/StackTraceElement/lineNumber': ln
