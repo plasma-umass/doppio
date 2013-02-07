@@ -12,7 +12,7 @@ logging = require './logging'
 {java_throw,ReturnException} = require './exceptions'
 {str2type,carr2type,c2t} = types
 {native_methods,trapped_methods} = natives
-{JavaArray} = require './java_object'
+{JavaArray,JavaObject} = require './java_object'
 
 "use strict"
 
@@ -43,7 +43,7 @@ class root.Field extends AbstractMethodField
     sig = _.find(@attrs, (a) -> a.name == "Signature")?.sig
 
     create_obj = (clazz_obj, type_obj) =>
-      rs.init_object rs.class_lookup(c2t 'java/lang/reflect/Field'), {
+      new JavaObject rs, rs.class_lookup(c2t 'java/lang/reflect/Field'), {
           # XXX this leaves out 'annotations'
           'java/lang/reflect/Field/clazz': clazz_obj
           'java/lang/reflect/Field/name': rs.init_string @name, true

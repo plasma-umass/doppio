@@ -2,6 +2,7 @@
 # pull in external modules
 _ = require '../vendor/_.js'
 {trace,vtrace,error,debug} = require './logging'
+{JavaObject} = require './java_object'
 types = require './types'
 c2t = types.c2t
 
@@ -72,7 +73,7 @@ class root.JavaException
 # constructing the opcodes manually is inelegant too.
 root.java_throw = (rs, cls, msg) ->
   method_spec = sig: '<init>(Ljava/lang/String;)V'
-  v = rs.init_object cls # new
+  v = new JavaObject rs, cls  # new
   rs.push_array([v,v,rs.init_string msg]) # dup, ldc
   my_sf = rs.curr_frame()
   rs.method_lookup(cls, method_spec).setup_stack(rs) # invokespecial
