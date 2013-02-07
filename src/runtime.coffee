@@ -255,8 +255,6 @@ class root.RuntimeState
   # heap object initialization
   init_object: (cls, obj) ->
     new JavaObject @, cls, obj
-  init_array: (cls, obj) ->
-    new JavaArray @, cls, obj
   init_string: (str,intern=false) ->
     trace "init_string: #{str}"
     return s if intern and (s = @string_pool.get str)?
