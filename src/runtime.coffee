@@ -173,7 +173,7 @@ class root.RuntimeState
       debug "### finished system class initialization ###"
 
   init_args: (initial_args) ->
-    args = new JavaArray @, c2t('[Ljava/lang/String;'), (@init_string(a) for a in initial_args)
+    args = new JavaArray @, @class_lookup(c2t('[Ljava/lang/String;')), (@init_string(a) for a in initial_args)
     @curr_thread.$meta_stack = new root.CallStack [args]
     debug "### finished runtime state initialization ###"
 
@@ -250,27 +250,27 @@ class root.RuntimeState
     if len < 0
       java_throw @, @class_lookup(c2t 'java/lang/NegativeArraySizeException'), "Tried to init [#{type} array with length #{len}"
     if type == 'J'
-      new JavaArray @, c2t("[J"), (gLong.ZERO for i in [0...len] by 1)
+      new JavaArray @, @class_lookup(c2t("[J")), (gLong.ZERO for i in [0...len] by 1)
     else if type[0] == 'L'  # array of object
-      new JavaArray @, c2t("[#{type}"), (null for i in [0...len] by 1)
+      new JavaArray @, @class_lookup(c2t("[#{type}")), (null for i in [0...len] by 1)
     else  # numeric array
-      new JavaArray @, c2t("[#{type}"), (0 for i in [0...len] by 1)
+      new JavaArray @, @class_lookup(c2t("[#{type}")), (0 for i in [0...len] by 1)
 
   # heap object initialization
   init_object: (cls, obj) ->
-    new JavaObject @, cls.this_class, cls, obj
+    new JavaObject @, cls, obj
   init_array: (cls, obj) ->
-    new JavaArray @, c2t(cls), obj
+    new JavaArray @, @class_lookup(c2t(cls)), obj
   init_string: (str,intern=false) ->
     trace "init_string: #{str}"
     return s if intern and (s = @string_pool.get str)?
     carr = @init_carr str
     type = c2t('java/lang/String')
-    jvm_str = new JavaObject @, type, @class_lookup(type), {'java/lang/String/value':carr, 'java/lang/String/count':str.length}
+    jvm_str = new JavaObject @, @class_lookup(type), {'java/lang/String/value':carr, 'java/lang/String/count':str.length}
     @string_pool.set(str, jvm_str) if intern
     return jvm_str
   init_carr: (str) ->
-    new JavaArray @, c2t('[C'), (str.charCodeAt(i) for i in [0...str.length] by 1)
+    new JavaArray @, @class_lookup(c2t('[C')), (str.charCodeAt(i) for i in [0...str.length] by 1)
 
   # Returns a java.lang.Class object for JVM bytecode to do reflective stuff.
   # Loads the underlying class, but does not initialize it.
@@ -351,10 +351,10 @@ class root.RuntimeState
         else
           # bootstrap class loader
           @read_classfile cls, ((class_file) =>
-            if not class_file? or wrong_name = (class_file.this_class.toClassString() != cls)
+            if not class_file? or wrong_name = (class_file.toClassString() != cls)
               msg = cls
               if wrong_name
-                msg += " (wrong name: #{class_file.this_class.toClassString()})"
+                msg += " (wrong name: #{class_file.toClassString()})"
               # XXX: Fix this... exception is different depending if the class
               # was dynamically loaded.
               #if dyn
@@ -500,7 +500,7 @@ class root.RuntimeState
     #    'initialized' flag, and will push all of the waiting threads onto the
     #    whatever we currently use as a "ready queue".
     else if class_file.initialized
-      trace "initialize_class called on a class that was already initialized: #{class_file.this_class.toClassString()}"
+      trace "initialize_class called on a class that was already initialized: #{class_file.toClassString()}"
       setTimeout((()->success_fn(class_file)), 0)
       return
 
@@ -542,7 +542,7 @@ class root.RuntimeState
         throw e
     ))
     while class_file? and not class_file.is_initialized(@)
-      trace "initializing class: #{class_file.this_class.toClassString()}"
+      trace "initializing class: #{class_file.toClassString()}"
       class_file.initialized = true
 
       # Resets any cached state from previous JVM executions (browser).

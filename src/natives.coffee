@@ -88,7 +88,7 @@ trapped_methods =
                 ln = util.last(row.line_number for i,row of line_nums when row.start_pc <= sf.pc)
               ln ?= -1
               stack.push rs.init_object rs.class_lookup(c2t "java/lang/StackTraceElement"), {
-                'java/lang/StackTraceElement/declaringClass': rs.init_string util.ext_classname cls.this_class.toClassString()
+                'java/lang/StackTraceElement/declaringClass': rs.init_string util.ext_classname cls.toClassString()
                 'java/lang/StackTraceElement/methodName': rs.init_string(sf.method.name ? 'unknown')
                 'java/lang/StackTraceElement/fileName': rs.init_string source_file
                 'java/lang/StackTraceElement/lineNumber': ln
@@ -369,10 +369,10 @@ native_methods =
         o 'getRawAnnotations()[B', (rs, _this) ->
             cls = _this.file
             annotations = _.find(cls.attrs, (a) -> a.name == 'RuntimeVisibleAnnotations')
-            return new JavaArray rs, c2t('[B'), annotations.raw_bytes if annotations?
+            return new JavaArray rs, rs.class_lookup(c2t '[B'), annotations.raw_bytes if annotations?
             for sig,m of cls.methods
               annotations = _.find(m.attrs, (a) -> a.name == 'RuntimeVisibleAnnotations')
-              return new JavaArray rs, c2t('[B'), annotations.raw_bytes if annotations?
+              return new JavaArray rs, rs.class_lookup(c2t '[B'), annotations.raw_bytes if annotations?
             null
         o 'getConstantPool()Lsun/reflect/ConstantPool;', (rs, _this) ->
             cls = _this.file
@@ -387,7 +387,7 @@ native_methods =
             # - the immediately enclosing class (java/lang/Class)
             # - the immediately enclosing method or constructor's name (can be null). (String)
             # - the immediately enclosing method or constructor's descriptor (null iff name is). (String)
-            #new JavaArray rs, c2t('[Ljava/lang/Object;'), [null,null,null]
+            #new JavaArray rs, rs.class_lookup(c2t('[Ljava/lang/Object;')), [null,null,null]
         o 'getDeclaringClass()L!/!/!;', (rs, _this) ->
             return null unless _this.$type instanceof types.ClassType
             cls = _this.file
@@ -406,7 +406,7 @@ native_methods =
               return
             return null
         o 'getDeclaredClasses0()[L!/!/!;', (rs, _this) ->
-            ret = new JavaArray rs, c2t('[Ljava/lang/Class;'), []
+            ret = new JavaArray rs, rs.class_lookup(c2t('[Ljava/lang/Class;')), []
             return ret unless _this.$type instanceof types.ClassType
             cls = _this.file
             my_class = _this.$type.toClassString()
@@ -598,9 +598,9 @@ native_methods =
             env_arr = []
             # convert to an array of strings of the form [key, value, key, value ...]
             for k, v of process.env
-              env_arr.push new JavaArray rs, c2t('[B'), util.bytestr_to_array k
-              env_arr.push new JavaArray rs, c2t('[B'), util.bytestr_to_array v
-            new JavaArray rs, c2t('[[B'), env_arr
+              env_arr.push new JavaArray rs, rs.class_lookup(c2t('[B')), util.bytestr_to_array k
+              env_arr.push new JavaArray rs, rs.class_lookup(c2t('[B')), util.bytestr_to_array v
+            new JavaArray rs, rs.class_lookup(c2t('[[B')), env_arr
       ]
       reflect:
         Array: [
@@ -1228,7 +1228,7 @@ native_methods =
         o 'objectFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.get_field rs, 'java/lang/reflect/Field/slot')
         o 'staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;', (rs,_this,field) ->
             cls = field.get_field rs, 'java/lang/reflect/Field/clazz'
-            new JavaObject rs, cls.$type, rs.class_lookup(cls.$type)
+            new JavaObject rs, rs.class_lookup(cls.$type)
         o 'getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
             obj.get_field_from_offset rs, offset
         o 'getObject(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
@@ -1320,7 +1320,7 @@ native_methods =
               rs.initialize_class cls.$type, null, ((cls_obj)->
                 method = (method for sig, method of cls_obj.methods when method.idx is slot)[0]
                 my_sf = rs.curr_frame()
-                obj = new JavaObject rs, cls.$type, cls_obj
+                obj = new JavaObject rs, cls_obj
                 rs.push obj
                 rs.push_array(params.array) if params?
                 # Reenter the RuntimeState loop, which should run our new StackFrame.

@@ -96,6 +96,10 @@ class ClassFile
     class_file.static_fields = []
     class_file
 
+  # Proxy method for type's method until we get rid of type objects.
+  toClassString: () -> @this_class.toClassString()
+  toExternalString: () -> @this_class.toExternalString()
+
   # Spec [5.4.3.2][1].
   # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#77678
   field_lookup: (rs, field_spec) ->

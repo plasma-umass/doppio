@@ -26,9 +26,9 @@ root.disassemble = (class_file) ->
   rv = "Compiled from \"#{source_file?.filename ? 'unknown'}\"\n"
   rv += access_string class_file.access_flags
   if class_file.access_flags.interface
-    rv += "interface #{class_file.this_class.toExternalString()} extends #{ifaces}\n"
+    rv += "interface #{class_file.toExternalString()} extends #{ifaces}\n"
   else
-    rv += "class #{class_file.this_class.toExternalString()} extends #{class_file.super_class?.toExternalString()}"
+    rv += "class #{class_file.toExternalString()} extends #{class_file.super_class?.toExternalString()}"
     rv += if (ifaces and not class_file.access_flags.interface) then " implements #{ifaces}\n" else '\n'
   rv += "  SourceFile: \"#{source_file.filename}\"\n" if source_file
   rv += "  Deprecated: length = 0x\n" if deprecated
@@ -115,7 +115,7 @@ root.disassemble = (class_file) ->
     rv += 'synchronized ' if m.access_flags.synchronized
     rv +=
       # initializers are special-cased
-      if m.name is '<init>' then class_file.this_class.toExternalString() # instance init
+      if m.name is '<init>' then class_file.toExternalString() # instance init
       else if m.name is '<clinit>' then "{}" # class init
       else
         ret_type = if m.return_type? then pp_type m.return_type else ""

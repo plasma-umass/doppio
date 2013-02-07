@@ -13,15 +13,14 @@ types = require './types'
 root = exports ? window.java_object ?= {}
 
 class root.JavaArray
-  # XXX: Should probably have a ClassFile reference; 'type' does not encapsulate
-  # information about classloader.
-  constructor: (rs, @type, obj) ->
+  constructor: (rs, @cls, obj) ->
+    @type = @cls.this_class # XXX: Remove ASAP.
     @ref = rs.high_oref++
     @array = obj
 
   clone: (rs) ->
     # note: we don't clone the type, because they're effectively immutable
-    new root.JavaArray rs, @type,  _.clone(@array)
+    new root.JavaArray rs, @cls,  _.clone(@array)
 
   get_field_from_offset: (rs, offset) -> @array[offset.toInt()]
   set_field_from_offset: (rs, offset, value) -> @array[offset.toInt()] = value
@@ -34,7 +33,8 @@ class root.JavaArray
 
 
 class root.JavaObject
-  constructor: (rs, @type, @cls, obj={}) ->
+  constructor: (rs, @cls, obj={}) ->
+    @type = cls.this_class # XXX: Remove ASAP.
     @ref = rs.high_oref++
     # Use default fields as a prototype.
     @fields = Object.create(@cls.get_default_fields(rs))
@@ -46,7 +46,7 @@ class root.JavaObject
 
   clone: (rs) ->
     # note: we don't clone the type, because they're effectively immutable
-    new root.JavaObject rs, @type, @cls, _.clone(@fields)
+    new root.JavaObject rs, @cls, _.clone(@fields)
 
   set_field: (rs, name, val) ->
     unless @fields[name] is undefined
@@ -66,12 +66,12 @@ class root.JavaObject
     return @get_field rs, f.cls + '/' + f.field.name
 
   _get_field_from_offset: (rs, cls, offset) ->
-    classname = cls.this_class.toClassString()
+    classname = cls.toClassString()
     until cls.fields[offset]?
       unless cls.super_class?
         java_throw rs, rs.class_lookup(c2t 'java/lang/NullPointerException'), "field #{offset} doesn't exist in class #{classname}"
       cls = rs.class_lookup(cls.super_class)
-    {field: cls.fields[offset], cls: cls.this_class.toClassString(), cls_obj: cls}
+    {field: cls.fields[offset], cls: cls.toClassString(), cls_obj: cls}
 
   set_field_from_offset: (rs, offset, value) ->
     f = @_get_field_from_offset rs, @cls, offset.toInt()
@@ -94,7 +94,7 @@ class root.JavaObject
 class root.JavaClassObject extends root.JavaObject
   constructor: (rs, @$type, @file) ->
     type = types.c2t('java/lang/Class')
-    super rs, type, rs.class_lookup(type)
+    super rs, rs.class_lookup(type)
 
   toString: -> "<Class #{@$type} (*#{@ref})>"
 

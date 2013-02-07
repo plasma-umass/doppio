@@ -369,7 +369,7 @@ class root.MultiArrayOpcode extends root.Opcode
           array = (default_val for i in [0...len] by 1)
         else
           array = (init_arr(curr_dim+1) for i in [0...len] by 1)
-        new JavaArray rs, type, array
+        new JavaArray rs, rs.class_lookup(type), array
       rs.push init_arr 0
 
     new_execute.call(@, rs)
@@ -685,14 +685,14 @@ root.opcodes = {
     @type = c2t(@class)
     @cls = rs.class_lookup @type, null, true
     if @cls?
-      rs.push new JavaObject(rs, @type, @cls)
+      rs.push new JavaObject(rs, @cls)
       # Self-modify; cache the class file lookup.
-      @execute = (rs) -> rs.push new JavaObject(rs, @type, @cls)
+      @execute = (rs) -> rs.push new JavaObject(rs, @cls)
     else
       # Initialize @type, create a JavaObject for it, and push it onto the stack.
       # Do not rerun opcode.
       rs.async_op (resume_cb, except_cb) =>
-        rs.initialize_class @type, null, ((class_file)=>resume_cb(new JavaObject(rs, @type, class_file), undefined, true)), ((e_cb)->except_cb(e_cb, true))
+        rs.initialize_class @type, null, ((class_file)=>resume_cb(new JavaObject(rs, class_file), undefined, true)), ((e_cb)->except_cb(e_cb, true))
   }
   188: new root.NewArrayOpcode 'newarray', { execute: (rs) -> rs.push rs.heap_newarray @element_type, rs.pop() }
   189: new root.ClassOpcode 'anewarray', { execute: (rs) ->
