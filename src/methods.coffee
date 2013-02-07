@@ -12,6 +12,7 @@ logging = require './logging'
 {java_throw,ReturnException} = require './exceptions'
 {str2type,carr2type,c2t} = types
 {native_methods,trapped_methods} = natives
+{JavaArray,JavaObject} = require './java_object'
 
 "use strict"
 
@@ -42,7 +43,7 @@ class root.Field extends AbstractMethodField
     sig = _.find(@attrs, (a) -> a.name == "Signature")?.sig
 
     create_obj = (clazz_obj, type_obj) =>
-      rs.init_object rs.class_lookup(c2t 'java/lang/reflect/Field'), {
+      new JavaObject rs, rs.class_lookup(c2t 'java/lang/reflect/Field'), {
           # XXX this leaves out 'annotations'
           'java/lang/reflect/Field/clazz': clazz_obj
           'java/lang/reflect/Field/name': rs.init_string @name, true
@@ -122,15 +123,15 @@ class root.Method extends AbstractMethodField
           # XXX: missing parameterAnnotations
           obj[typestr + '/clazz'] = clazz_obj
           obj[typestr + '/name'] = rs.init_string @name, true
-          obj[typestr + '/parameterTypes'] = rs.init_array rs.class_lookup(c2t "[Ljava/lang/Class;"), param_type_objs
+          obj[typestr + '/parameterTypes'] = new JavaArray rs, rs.class_lookup(c2t "[Ljava/lang/Class;"), param_type_objs
           obj[typestr + '/returnType'] = rt_obj
-          obj[typestr + '/exceptionTypes'] = rs.init_array rs.class_lookup(c2t "[Ljava/lang/Class;"), etype_objs
+          obj[typestr + '/exceptionTypes'] = new JavaArray rs, rs.class_lookup(c2t "[Ljava/lang/Class;"), etype_objs
           obj[typestr + '/modifiers'] = @access_byte
           obj[typestr + '/slot'] = @idx
           obj[typestr + '/signature'] = if sig? then rs.init_string sig else null
-          obj[typestr + '/annotations'] = if anns? then rs.init_array(rs.class_lookup(c2t '[B'), anns) else null
-          obj[typestr + '/annotationDefault'] = if adefs? then rs.init_array(rs.class_lookup(c2t '[B'), adefs) else null
-          setTimeout((()=>success_fn(rs.init_object rs.class_lookup(c2t typestr), obj)), 0)
+          obj[typestr + '/annotations'] = if anns? then new JavaArray(rs, rs.class_lookup(c2t '[B'), anns) else null
+          obj[typestr + '/annotationDefault'] = if adefs? then new JavaArray(rs, rs.class_lookup(c2t '[B'), adefs) else null
+          setTimeout((()=>success_fn(new JavaObject rs, rs.class_lookup(c2t typestr), obj)), 0)
 
       fetch_ptype = () =>
         i++

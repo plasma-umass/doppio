@@ -69,7 +69,7 @@ trapped_methods =
       Throwable: [
         o 'fillInStackTrace()L!/!/!;', (rs, _this) ->
             stack = []
-            strace = rs.init_array rs.class_lookup(c2t "[Ljava/lang/StackTraceElement;"), stack
+            strace = new JavaArray rs, rs.class_lookup(c2t "[Ljava/lang/StackTraceElement;"), stack
             _this.set_field rs, 'java/lang/Throwable/stackTrace', strace
             # we don't want to include the stack frames that were created by
             # the construction of this exception
@@ -84,10 +84,11 @@ trapped_methods =
                 source_file = 'unknown'
               line_nums = sf.method.code?.attrs?[0]?.entries
               if line_nums?
-                # XXX: WUT
-                ln = util.last(row.line_number for i,row of line_nums when row.start_pc <= sf.pc)
+                # get the last line number before the stack frame's pc
+                for i,row of line_nums when row.start_pc <= sf.pc
+                  ln = row.line_number
               ln ?= -1
-              stack.push rs.init_object rs.class_lookup(c2t "java/lang/StackTraceElement"), {
+              stack.push new JavaObject rs, rs.class_lookup(c2t "java/lang/StackTraceElement"), {
                 'java/lang/StackTraceElement/declaringClass': rs.init_string util.ext_classname cls.toClassString()
                 'java/lang/StackTraceElement/methodName': rs.init_string(sf.method.name ? 'unknown')
                 'java/lang/StackTraceElement/fileName': rs.init_string source_file
@@ -308,7 +309,7 @@ native_methods =
                   f = fields[i]
                   f.reflector(rs, ((jco)->base_array.push(jco); fetch_next_field()), except_cb)
                 else
-                  setTimeout((()-> resume_cb rs.init_array(rs.class_lookup(c2t '[Ljava/lang/reflect/Field;'), base_array)), 0)
+                  setTimeout((()-> resume_cb new JavaArray(rs, rs.class_lookup(c2t '[Ljava/lang/reflect/Field;'), base_array)), 0)
 
               fetch_next_field()
             return
@@ -325,7 +326,7 @@ native_methods =
                   m = methods[i]
                   m.reflector(rs, false, ((jco)->base_array.push(jco); fetch_next_method()), except_cb)
                 else
-                  setTimeout((()-> resume_cb rs.init_array(rs.class_lookup(c2t '[Ljava/lang/reflect/Method;'), base_array)), 0)
+                  setTimeout((()-> resume_cb new JavaArray(rs, rs.class_lookup(c2t '[Ljava/lang/reflect/Method;'), base_array)), 0)
 
               fetch_next_method()
             return
@@ -342,7 +343,7 @@ native_methods =
                   m = methods[i]
                   m.reflector(rs, true, ((jco)->base_array.push(jco); fetch_next_method()), except_cb)
                 else
-                  setTimeout((()-> resume_cb rs.init_array(rs.class_lookup(c2t '[Ljava/lang/reflect/Constructor;'), base_array)), 0)
+                  setTimeout((()-> resume_cb new JavaArray(rs, rs.class_lookup(c2t '[Ljava/lang/reflect/Constructor;'), base_array)), 0)
 
               fetch_next_method()
             return
@@ -351,7 +352,7 @@ native_methods =
             ifaces = (cls.constant_pool.get(i).deref() for i in cls.interfaces)
             ifaces = ((if util.is_string(i) then c2t(i) else i) for i in ifaces)
             iface_objs = (rs.get_loaded_class(iface).get_class_object(rs) for iface in ifaces)
-            rs.init_array('[Ljava/lang/Class;',iface_objs)
+            new JavaArray rs, rs.class_lookup(c2t '[Ljava/lang/Class;'), iface_objs
         o 'getModifiers()I', (rs, _this) -> _this.file.access_byte
         o 'getRawAnnotations()[B', (rs, _this) ->
             cls = _this.file
@@ -363,7 +364,7 @@ native_methods =
             null
         o 'getConstantPool()Lsun/reflect/ConstantPool;', (rs, _this) ->
             cls = _this.file
-            rs.init_object rs.class_lookup(c2t 'sun/reflect/ConstantPool'), {'sun/reflect/ConstantPool/constantPoolOop': cls.constant_pool}
+            new JavaObject rs, rs.class_lookup(c2t 'sun/reflect/ConstantPool'), {'sun/reflect/ConstantPool/constantPoolOop': cls.constant_pool}
         o 'getEnclosingMethod0()[L!/!/Object;', (rs, _this) ->
             return null unless _this.$type instanceof types.ClassType
             cls = _this.file
@@ -738,15 +739,15 @@ native_methods =
         o 'getFileSystem()L!/!/!;', (rs) ->
             # TODO: avoid making a new FS object each time this gets called? seems to happen naturally in java/io/File...
             my_sf = rs.curr_frame()
-            cache1 = rs.init_object rs.class_lookup(c2t 'java/io/ExpiringCache')
-            cache2 = rs.init_object rs.class_lookup(c2t 'java/io/ExpiringCache')
+            cache1 = new JavaObject rs, rs.class_lookup(c2t 'java/io/ExpiringCache')
+            cache2 = new JavaObject rs, rs.class_lookup(c2t 'java/io/ExpiringCache')
             cache_init = rs.method_lookup(rs.class_lookup(c2t 'java/io/ExpiringCache'), {class: 'java/io/ExpiringCache', sig: '<init>()V'})
             rs.push2 cache1, cache2
             cache_init.setup_stack(rs)
             my_sf.runner = ->
               cache_init.setup_stack(rs)
               my_sf.runner = ->
-                rv = rs.init_object rs.class_lookup(c2t 'java/io/UnixFileSystem'), {
+                rv = new JavaObject rs, rs.class_lookup(c2t 'java/io/UnixFileSystem'), {
                   'java/io/UnixFileSystem/cache': cache1
                   'java/io/UnixFileSystem/javaHomePrefixCache': cache2
                   'java/io/UnixFileSystem/slash': system_properties['file.separator'].charCodeAt(0)
@@ -1020,7 +1021,7 @@ native_methods =
                 if err?
                   resume_cb null
                 else
-                  resume_cb rs.init_array(rs.class_lookup(c2t '[Ljava/lang/String;'),(rs.init_string(f) for f in files))
+                  resume_cb new JavaArray(rs, rs.class_lookup(c2t '[Ljava/lang/String;'),(rs.init_string(f) for f in files))
         o 'rename0(Ljava/io/File;Ljava/io/File;)Z', (rs, _this, file1, file2) ->
             file1path = (file1.get_field rs, 'java/io/File/path').jvm2js_str()
             file2path = (file2.get_field rs, 'java/io/File/path').jvm2js_str()
@@ -1088,7 +1089,7 @@ native_methods =
       ResourceBundle: [
         o 'getClassContext()[L!/lang/Class;', (rs) ->
             # XXX should walk up the meta_stack and fill in the array properly
-            rs.init_array rs.class_lookup(c2t '[Ljava/lang/Class;'), [null,null,null]
+            new JavaArray rs, rs.class_lookup(c2t '[Ljava/lang/Class;'), [null,null,null]
       ]
       TimeZone: [
         o 'getSystemTimeZoneID(L!/lang/String;L!/lang/String;)L!/lang/String;', (rs, java_home, country) ->
@@ -1117,9 +1118,9 @@ native_methods =
       ]
       MemoryImpl: [
         o 'getMemoryManagers0()[Ljava/lang/management/MemoryManagerMXBean;', (rs) ->
-            rs.init_array rs.class_lookup(c2t '[Lsun/management/MemoryManagerImpl;'), [] # XXX may want to revisit this 'NOP'
+            new JavaArray rs, rs.class_lookup(c2t '[Lsun/management/MemoryManagerImpl;'), [] # XXX may want to revisit this 'NOP'
         o 'getMemoryPools0()[Ljava/lang/management/MemoryPoolMXBean;', (rs) ->
-            rs.init_array rs.class_lookup(c2t '[Lsun/management/MemoryPoolImpl;'), [] # XXX may want to revisit this 'NOP'
+            new JavaArray rs, rs.class_lookup(c2t '[Lsun/management/MemoryPoolImpl;'), [] # XXX may want to revisit this 'NOP'
       ]
     misc:
       VM: [
@@ -1138,7 +1139,7 @@ native_methods =
       Unsafe: [
         o 'addressSize()I', (rs, _this) -> 4 # either 4 or 8
         o 'allocateInstance(Ljava/lang/Class;)Ljava/lang/Object;', (rs, _this, cls) ->
-            rs.init_object cls.file, {}
+            new JavaObject rs, cls.file
         o 'allocateMemory(J)J', (rs, _this, size) ->
             next_addr = util.last(rs.mem_start_addrs)
             if DataView?
