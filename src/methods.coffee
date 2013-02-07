@@ -20,7 +20,7 @@ root = exports ? this.methods = {}
 
 class AbstractMethodField
   # Subclasses need to implement parse_descriptor(String)
-  constructor: (@class_type) ->
+  constructor: (@cls, @class_type) ->
 
   parse: (bytes_array,constant_pool,@idx) ->
     @access_byte = bytes_array.get_uint 2

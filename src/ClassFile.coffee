@@ -33,7 +33,7 @@ class ClassFile
     @interfaces = (bytes_array.get_uint 2 for i in [0...isize] by 1)
     # fields of this class
     num_fields = bytes_array.get_uint 2
-    @fields = (new methods.Field(@this_class) for i in [0...num_fields] by 1)
+    @fields = (new methods.Field(@, @this_class) for i in [0...num_fields] by 1)
     @fl_cache = {}
 
     for f,i in @fields
@@ -46,7 +46,7 @@ class ClassFile
     # make debugging harder as you would lose track of who owns what method.
     @ml_cache = {}
     for i in [0...num_methods] by 1
-      m = new methods.Method(@this_class)
+      m = new methods.Method(@, @this_class)
       m.parse(bytes_array,@constant_pool,i)
       mkey = m.name + m.raw_descriptor
       @methods[mkey] = m

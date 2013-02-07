@@ -35,7 +35,7 @@ class root.StackFrame
     @name = @method.full_signature()
 
   @fake_frame: (name) ->
-    sf = new root.StackFrame(new Method(c2t(name)), [], [])
+    sf = new root.StackFrame(new Method(null, c2t(name)), [], [])
     sf.name = name
     sf.fake = true
     return sf
@@ -48,7 +48,7 @@ class root.StackFrame
   # bridging the gap between those Java methods and the methods that ended up
   # triggering them in the first place.
   @native_frame: (name, handler, error_handler) ->
-    sf = new root.StackFrame(new Method(c2t(name)), [], [])
+    sf = new root.StackFrame(new Method(null, c2t(name)), [], [])
     sf.runner = handler
     sf.name = name
     if error_handler? then sf.error = error_handler
