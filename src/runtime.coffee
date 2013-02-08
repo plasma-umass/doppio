@@ -5,7 +5,7 @@ _ = require '../vendor/_.js'
 gLong = require '../vendor/gLong.js'
 util = require './util'
 types = require './types'
-ClassFile = require './ClassFile'
+{ReferenceClassData,PrimitiveClassData,ArrayClassData} = require './ClassData'
 {log,vtrace,trace,debug,error} = require './logging'
 {java_throw,YieldIOException,ReturnException,JavaException} = require './exceptions'
 {JavaObject,JavaArray,thread_name} = require './java_object'
@@ -63,7 +63,7 @@ class root.RuntimeState
   constructor: (@print, @async_input, @read_classfile) ->
     @startup_time = gLong.fromNumber (new Date).getTime()
     @run_stamp = ++run_count
-    # dict of ClassFiles that have been loaded. this is two levels deep:
+    # dict of ClassDatas that have been loaded. this is two levels deep:
     # the first level is the classloader, the second level is the classes
     # defined by that classloader.
     @loaded_classes = Object.create null
@@ -84,6 +84,7 @@ class root.RuntimeState
   # much as possible.
   preinitialize_core_classes: (resume_cb, except_cb) ->
     core_classes = [
+      'java/lang/Class'
       'java/io/ExpiringCache'
       'java/io/FileDescriptor'
       'java/io/FileNotFoundException'
@@ -94,7 +95,6 @@ class root.RuntimeState
       'java/lang/ArrayIndexOutOfBoundsException'
       'java/lang/ArrayIndexOutOfBoundsException'
       'java/lang/ArrayStoreException'
-      'java/lang/Class'
       'java/lang/ClassCastException'
       'java/lang/Cloneable'
       'java/lang/Error'
@@ -271,7 +271,7 @@ class root.RuntimeState
 
   # Loads the underlying class, its parents, and its interfaces, but does not
   # run class initialization.
-  # trigger_class is a ClassFile object for the class that triggered this load
+  # trigger_class is a ClassData object for the class that triggered this load
   # request.
   # Calls success_fn with the loaded class when finished.
   # Calls failure_fn with a function that throws an exception in the event of a
@@ -295,7 +295,7 @@ class root.RuntimeState
       setTimeout((()=>success_fn(@loaded_classes[loader_id][cls])), 0)
     else
       if type instanceof types.ArrayType
-        @loaded_classes[loader_id][cls] = ClassFile.for_array_type type, loader
+        @loaded_classes[loader_id][cls] = new ArrayClassData type, loader
         if type.component_type instanceof types.PrimitiveType
           success_fn @loaded_classes[loader_id][cls]
           return
@@ -318,7 +318,7 @@ class root.RuntimeState
           ))
           @push2 loader, @init_string util.ext_classname cls
           # We don't care about the return value of this function, as
-          # define_class handles registering the ClassFile with the class loader.
+          # define_class handles registering the ClassData with the class loader.
           # define_class also handles recalling load_class for any needed super
           # classes and interfaces.
           loader.method_lookup(@, {sig: 'loadClass(Ljava/lang/String;)Ljava/lang/Class;'}).setup_stack(@)
@@ -337,7 +337,7 @@ class root.RuntimeState
               #else
               failure_fn ()=>java_throw @, @class_lookup(c2t 'java/lang/NoClassDefFoundError'), msg
               return
-            # Tell the ClassFile that we are loading it. It will reset any
+            # Tell the ClassData that we are loading it. It will reset any
             # internal state in case we are re-loading.
             class_file.load()
             @loaded_classes[loader_id][cls] = class_file
@@ -369,21 +369,21 @@ class root.RuntimeState
     loader_id = trigger_class?.get_class_loader_id() or null
     @loaded_classes[loader_id] = Object.create null unless @loaded_classes[loader_id]?
     if type instanceof types.PrimitiveType
-      @loaded_classes[loader_id][type.toExternalString()] = ClassFile.for_primitive type, loader
+      @loaded_classes[loader_id][type.toExternalString()] = new PrimitiveClassData type, loader
       return @loaded_classes[loader_id][type.toExternalString()]
     else if type instanceof types.ArrayType
       # Ensure the component type is loaded. We do *not* load classes unless all
       # of its superclasses/components/interfaces are loaded.
       comp_cls = @get_loaded_class type.component_type, trigger_class, true
       return null unless comp_cls?
-      @loaded_classes[loader_id][type.toClassString()] = ClassFile.for_array_type type, loader
+      @loaded_classes[loader_id][type.toClassString()] = new ArrayClassData type, loader
       return @loaded_classes[loader_id][type.toClassString()]
     return null
 
 
   # Synchronous method for looking up a class that is *already loaded and
   # initialized*.
-  # trigger_class is a ClassFile that specifies what class triggered the
+  # trigger_class is a ClassData that specifies what class triggered the
   # lookup attempt. A value of 'null' means the JVM.
   # If null_handled is set, this returns null if the class is not loaded or not
   # initialized.
@@ -435,7 +435,7 @@ class root.RuntimeState
   # Runs clinit on the indicated class. Should only be called _immediately_
   # before a method invocation or field access. See section 5.5 of the SE7
   # spec. Loads in the class if necessary.
-  # "trigger_class" should be the ClassFile object of the class that
+  # "trigger_class" should be the ClassData object of the class that
   # triggered this initialization. This is needed for custom class loader
   # support.
   # This should be called as an rs.async_op either from an opcode, or a
@@ -470,9 +470,9 @@ class root.RuntimeState
     # class... Revisit when we refactor our Threads support. Some ideas:
     # A) "Lock in" a thread during <clinit> to prevent it from being preempted.
     #    This is not ideal. Don't do this.
-    # B) Add a bit to the ClassFile object that specifies if it is in the
+    # B) Add a bit to the ClassData object that specifies if it is in the
     #    process of being initialized. If it is set, put the thread in a queue
-    #    for resumption when the ClassFile is eventually initialized. The thread
+    #    for resumption when the ClassData is eventually initialized. The thread
     #    responsible for running <clinit> will check the queue after setting the
     #    'initialized' flag, and will push all of the waiting threads onto the
     #    whatever we currently use as a "ready queue".
@@ -569,10 +569,10 @@ class root.RuntimeState
   # must be called as an asynchronous operation.
   define_class: (cls, data, loader, success_fn, failure_fn) ->
     # replicates some logic from load_class
-    class_file = new ClassFile data, loader
+    class_file = new ReferenceClassData data, loader
     type = c2t(cls)
 
-    # XXX: The details of get_loader_id in ClassFile are leaking out here.
+    # XXX: The details of get_loader_id in ClassData are leaking out here.
     loader_id = loader?.ref or null
     @loaded_classes[loader_id] = Object.create null unless @loaded_classes[loader_id]?
     @loaded_classes[loader_id][cls] = class_file

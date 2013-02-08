@@ -11,6 +11,7 @@ exceptions = require './exceptions'
 path = node?.path ? require 'path'
 fs = node?.fs ? require 'fs'
 {c2t} = types
+{ReferenceClassData,PrimitiveClassData,ArrayClassData} = require './ClassData'
 
 "use strict"
 
@@ -167,9 +168,10 @@ arraycopy_no_check = (src, src_pos, dest, dest_pos, length) ->
 #             primitive arrays.
 arraycopy_check = (rs, src, src_pos, dest, dest_pos, length) ->
   j = dest_pos
+  dest_comp_cls = rs.get_loaded_class dest.cls.get_component_type()
   for i in [src_pos...src_pos+length] by 1
     # Check if null or castable.
-    if src.array[i] == null or types.is_castable rs, src.array[i].cls, rs.get_loaded_class(dest.type.component_type)
+    if src.array[i] == null or src.array[i].cls.is_castable rs, dest_comp_cls
       dest.array[j] = src.array[i]
     else
       exceptions.java_throw rs, rs.class_lookup(c2t 'java/lang/ArrayStoreException'), 'Array element in src cannot be cast to dest array type.'
@@ -252,7 +254,7 @@ native_methods =
         o 'getClassLoader0()L!/!/ClassLoader;', (rs, _this) -> _this.cls.loader
         o 'desiredAssertionStatus0(L!/!/!;)Z', (rs) -> false # we don't need no stinkin asserts
         o 'getName0()L!/!/String;', (rs, _this) ->
-            rs.init_string(_this.file.toExternalString())
+            rs.init_string(_this.$cls.toExternalString())
         o 'forName0(L!/!/String;ZL!/!/ClassLoader;)L!/!/!;', (rs, jvm_str, initialize, loader) ->
             type = c2t util.int_classname jvm_str.jvm2js_str()
             if loader is undefined then loader = null # Not sure if this ever happens, but just in case.
@@ -270,35 +272,34 @@ native_methods =
                 ), except_cb
             return
         o 'getComponentType()L!/!/!;', (rs, _this) ->
-            type = _this.$type
-            return null unless (type instanceof types.ArrayType)
+            return null unless (_this.$cls instanceof ArrayClassData)
 
             # As this array type is loaded, the component type is guaranteed
             # to be loaded as well. No need for asynchronicity.
-            return rs.get_loaded_class(type.component_type).get_class_object(rs)
+            return rs.get_loaded_class(_this.$cls.get_component_type()).get_class_object(rs)
         o 'getGenericSignature()Ljava/lang/String;', (rs, _this) ->
-            sig = _.find(_this.file.attrs, (a) -> a.name is 'Signature')?.sig
+            sig = _.find(_this.$cls.attrs, (a) -> a.name is 'Signature')?.sig
             if sig? then rs.init_string sig else null
         o 'getProtectionDomain0()Ljava/security/ProtectionDomain;', (rs, _this) -> null
         o 'isAssignableFrom(L!/!/!;)Z', (rs, _this, cls) ->
-            types.is_castable rs, cls.file, _this.file
+            cls.$cls.is_castable rs, _this.$cls
         o 'isInterface()Z', (rs, _this) ->
-            return false unless _this.$type instanceof types.ClassType
-            _this.file.access_flags.interface
+            return false unless _this.$cls instanceof ReferenceClassData
+            _this.$cls.access_flags.interface
         o 'isInstance(L!/!/Object;)Z', (rs, _this, obj) ->
-            return types.is_castable rs, obj.cls, _this.file
+            obj.cls.is_castable rs, _this.$cls
         o 'isPrimitive()Z', (rs, _this) ->
-            _this.$type instanceof types.PrimitiveType
+            _this.$cls instanceof PrimitiveClassData
         o 'isArray()Z', (rs, _this) ->
-            _this.$type instanceof types.ArrayType
+            _this.$cls instanceof ArrayClassData
         o 'getSuperclass()L!/!/!;', (rs, _this) ->
-            return null if _this.$type instanceof types.PrimitiveType
-            cls = _this.file
+            return null if _this.$cls instanceof PrimitiveClassData
+            cls = _this.$cls
             if cls.access_flags.interface or not cls.super_class?
               return null
             return rs.get_loaded_class(cls.super_class).get_class_object(rs)
         o 'getDeclaredFields0(Z)[Ljava/lang/reflect/Field;', (rs, _this, public_only) ->
-            fields = _this.file.fields
+            fields = _this.$cls.fields
             fields = (f for f in fields when f.access_flags.public) if public_only
             base_array = []
             rs.async_op (resume_cb, except_cb) ->
@@ -314,7 +315,7 @@ native_methods =
               fetch_next_field()
             return
         o 'getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;', (rs, _this, public_only) ->
-            methods = _this.file.methods
+            methods = _this.$cls.methods
             methods = (m for sig, m of methods when sig[0] != '<' and (m.access_flags.public or not public_only))
 
             base_array = []
@@ -331,7 +332,7 @@ native_methods =
               fetch_next_method()
             return
         o 'getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;', (rs, _this, public_only) ->
-            methods = _this.file.methods
+            methods = _this.$cls.methods
             methods = (m for sig, m of methods when m.name is '<init>')
             methods = (m for m in methods when m.access_flags.public) if public_only
             base_array = []
@@ -348,14 +349,14 @@ native_methods =
               fetch_next_method()
             return
         o 'getInterfaces()[L!/!/!;', (rs, _this) ->
-            cls = _this.file
+            cls = _this.$cls
             ifaces = (cls.constant_pool.get(i).deref() for i in cls.interfaces)
             ifaces = ((if util.is_string(i) then c2t(i) else i) for i in ifaces)
             iface_objs = (rs.get_loaded_class(iface).get_class_object(rs) for iface in ifaces)
             new JavaArray rs, rs.class_lookup(c2t '[Ljava/lang/Class;'), iface_objs
-        o 'getModifiers()I', (rs, _this) -> _this.file.access_byte
+        o 'getModifiers()I', (rs, _this) -> _this.$cls.access_byte
         o 'getRawAnnotations()[B', (rs, _this) ->
-            cls = _this.file
+            cls = _this.$cls
             annotations = _.find(cls.attrs, (a) -> a.name == 'RuntimeVisibleAnnotations')
             return new JavaArray rs, rs.class_lookup(c2t '[B'), annotations.raw_bytes if annotations?
             for sig,m of cls.methods
@@ -363,11 +364,11 @@ native_methods =
               return new JavaArray rs, rs.class_lookup(c2t '[B'), annotations.raw_bytes if annotations?
             null
         o 'getConstantPool()Lsun/reflect/ConstantPool;', (rs, _this) ->
-            cls = _this.file
+            cls = _this.$cls
             new JavaObject rs, rs.class_lookup(c2t 'sun/reflect/ConstantPool'), {'sun/reflect/ConstantPool/constantPoolOop': cls.constant_pool}
         o 'getEnclosingMethod0()[L!/!/Object;', (rs, _this) ->
-            return null unless _this.$type instanceof types.ClassType
-            cls = _this.file
+            return null unless _this.$cls instanceof ReferenceClassData
+            cls = _this.$cls
             em = _.find(cls.attrs, (a) -> a.name == 'EnclosingMethod')
             return null unless em?
             exceptions.java_throw rs, rs.class_lookup(c2t 'java/lang/Error'), "native method not finished: java.lang.Class.getEnclosingClass"
@@ -377,11 +378,11 @@ native_methods =
             # - the immediately enclosing method or constructor's descriptor (null iff name is). (String)
             #new JavaArray rs, rs.class_lookup(c2t('[Ljava/lang/Object;')), [null,null,null]
         o 'getDeclaringClass()L!/!/!;', (rs, _this) ->
-            return null unless _this.$type instanceof types.ClassType
-            cls = _this.file
+            return null unless _this.$cls instanceof ReferenceClassData
+            cls = _this.$cls
             icls = _.find(cls.attrs, (a) -> a.name == 'InnerClasses')
             return null unless icls?
-            my_class = _this.file.toClassString()
+            my_class = _this.$cls.toClassString()
             for entry in icls.classes when entry.outer_info_index > 0
               name = cls.constant_pool.get(entry.inner_info_index).deref()
               continue unless name is my_class
@@ -393,9 +394,9 @@ native_methods =
             return null
         o 'getDeclaredClasses0()[L!/!/!;', (rs, _this) ->
             ret = new JavaArray rs, rs.class_lookup(c2t('[Ljava/lang/Class;')), []
-            return ret unless _this.$type instanceof types.ClassType
-            cls = _this.file
-            my_class = _this.file.toClassString()
+            return ret unless _this.$cls instanceof ReferenceClassData
+            cls = _this.$cls
+            my_class = _this.$cls.toClassString()
             iclses = (a for a in cls.attrs when a.name is 'InnerClasses')
             return ret if iclses.length is 0
             flat_names = []
@@ -448,7 +449,7 @@ native_methods =
               native_define_class rs, name, bytes, offset, len, _this, resume_cb, except_cb
         o 'resolveClass0(L!/!/Class;)V', (rs, _this, cls) ->
             rs.async_op (resume_cb, except_cb) ->
-              # We change resume_cb to ignore the actual ClassFile returned; this
+              # We change resume_cb to ignore the actual ClassData returned; this
               # is a Void function.
               rs.load_class cls.$type, null, (()->resume_cb()), except_cb
       ],
@@ -642,7 +643,7 @@ native_methods =
             if !src? or !dest?
               exceptions.java_throw rs, rs.class_lookup(c2t 'java/lang/NullPointerException'), 'Cannot copy to/from a null array.'
             # Can't do this on non-array types. Need to check before I check bounds below, or else I'll get an exception.
-            if !(src.type instanceof types.ArrayType) or !(dest.type instanceof types.ArrayType)
+            if !(src.cls instanceof ArrayClassData) or !(dest.cls instanceof ArrayClassData)
               exceptions.java_throw rs, rs.class_lookup(c2t 'java/lang/ArrayStoreException'), 'src and dest arguments must be of array type.'
             # Also needs to be checked *even if length is 0*.
             if src_pos < 0 or (src_pos+length) > src.array.length or dest_pos < 0 or (dest_pos+length) > dest.array.length or length < 0
@@ -653,13 +654,15 @@ native_methods =
               src = {cls: src.cls, type: src.type, array: src.array.slice(src_pos, src_pos+length)}
               src_pos = 0
 
-            if types.is_castable rs, src.cls, dest.cls
+            if src.cls.is_castable rs, dest.cls
               # Fast path
               arraycopy_no_check(src, src_pos, dest, dest_pos, length)
             else
               # Slow path
               # Absolutely cannot do this when two different primitive types, or a primitive type and a reference type.
-              if (src.type.component_type instanceof types.PrimitiveType) or (dest.type.component_type instanceof types.PrimitiveType)
+              src_comp_cls = rs.get_loaded_class src.cls.get_component_type()
+              dest_comp_cls = rs.get_loaded_class dest.cls.get_component_type()
+              if (src_comp_cls instanceof PrimitiveClassData) or (dest_comp_cls instanceof PrimitiveClassData)
                 exceptions.java_throw rs, rs.class_lookup(c2t 'java/lang/ArrayStoreException'), 'If calling arraycopy with a primitive array, both src and dest must be of the same primitive type.'
               else
                 # Must be two reference types.
@@ -1139,7 +1142,7 @@ native_methods =
       Unsafe: [
         o 'addressSize()I', (rs, _this) -> 4 # either 4 or 8
         o 'allocateInstance(Ljava/lang/Class;)Ljava/lang/Object;', (rs, _this, cls) ->
-            new JavaObject rs, cls.file
+            new JavaObject rs, cls.$cls
         o 'allocateMemory(J)J', (rs, _this, size) ->
             next_addr = util.last(rs.mem_start_addrs)
             if DataView?
@@ -1216,7 +1219,7 @@ native_methods =
         o 'objectFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.get_field rs, 'java/lang/reflect/Field/slot')
         o 'staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;', (rs,_this,field) ->
             cls = field.get_field rs, 'java/lang/reflect/Field/clazz'
-            new JavaObject rs, cls.file
+            new JavaObject rs, cls.$cls
         o 'getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
             obj.get_field_from_offset rs, offset
         o 'getObject(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
@@ -1334,7 +1337,7 @@ native_methods =
             cls = caller.method.cls
             return cls.get_class_object(rs)
         o 'getClassAccessFlags(Ljava/lang/Class;)I', (rs, class_obj) ->
-            class_obj.file.access_byte
+            class_obj.$cls.access_byte
       ]
 
 flatten_pkg = (pkg) ->

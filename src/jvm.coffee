@@ -2,7 +2,8 @@
 # pull in external modules
 require './runtime'
 util = require './util'
-ClassFile = require '../src/ClassFile'
+ClassData = require '../src/ClassData'
+{ReferenceClassData} = ClassData
 fs = node?.fs ? require 'fs'
 {trace} = require '../src/logging'
 {c2t} = require '../src/types'
@@ -25,10 +26,12 @@ root.read_classfile = (cls, cb) ->
     continue unless fs.existsSync filename
     try
       data = util.bytestr_to_array fs.readFileSync(filename, 'binary')
-      cb(new ClassFile data) if data?
+      cb(new ReferenceClassData data) if data?
       return
     catch e
-      trace "OH NO! #{e}"
+      unless ReferenceClassData? then trace "WHY IS IT NOT HERE #{ClassData}"
+      for key in Object.keys ClassData
+        trace "key: #{key}"
       cb(null) # Signifies an error occurred.
 
 # main function that gets called from the frontend

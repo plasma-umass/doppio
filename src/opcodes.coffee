@@ -693,7 +693,7 @@ root.opcodes = {
     # Make sure the array class is loaded.
     # XXX: We should *NOT* be initializing the component class here; just loading it. This is a
     # hackfix so we mark the array class as initialized. In reality, array classes
-    # do not get "initialized", but we check ClassFile.initialized in multiple places.
+    # do not get "initialized", but we check ClassData.initialized in multiple places.
     cls = rs.class_lookup c2t(@class), null, true
     if cls?
       new_execute = (rs) ->
@@ -714,7 +714,7 @@ root.opcodes = {
     if @cls?
       new_execute = (rs) ->
         o = rs.pop()
-        if (not o?) or types.check_cast rs, o, @cls
+        if (not o?) or o.cls.is_castable rs, @cls
           rs.push o
         else
           target_class = c2t(@class).toExternalString() # class we wish to cast to
@@ -735,7 +735,7 @@ root.opcodes = {
     if @cls?
       new_execute = (rs) ->
         o=rs.pop()
-        rs.push if o? then types.check_cast(rs,o,@cls)+0 else 0
+        rs.push if o? then o.cls.is_castable(rs,@cls)+0 else 0
       new_execute.call @, rs
       @execute = new_execute
     else

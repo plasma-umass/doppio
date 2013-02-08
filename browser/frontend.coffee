@@ -51,7 +51,7 @@ preload = ->
         # XXX: We convert from bytestr to array to process the tar file, and
         #      then back to a bytestr to store as a file in the filesystem.
         node.fs.writeFileSync(path, util.array_to_bytestr(file), true)
-        class_cache[cls] = new ClassFile file
+        class_cache[cls] = new ReferenceClassData file
         on_complete() if --file_count == 0 and done
       ), 0),
       ->
@@ -71,11 +71,11 @@ read_classfile = (cls) ->
       fullpath = "#{path}#{cls}.class"
       if fullpath of raw_cache
         continue if raw_cache[fullpath] == null # we tried this path previously & it failed
-        class_cache[cls] = new ClassFile raw_cache[fullpath]
+        class_cache[cls] = new ReferenceClassData raw_cache[fullpath]
         break
       raw_cache[fullpath] = try_path fullpath
       if raw_cache[fullpath]?
-        class_cache[cls] = new ClassFile raw_cache[fullpath]
+        class_cache[cls] = new ReferenceClassData raw_cache[fullpath]
         break
   class_cache[cls]
 
@@ -87,7 +87,7 @@ root.read_raw_class = (path) ->
 
 process_bytecode = (bytecode_string) ->
   bytes_array = util.bytestr_to_array bytecode_string
-  new ClassFile(bytes_array)
+  new ReferenceClassData(bytes_array)
 
 $(document).ready ->
   editor = $('#editor')

@@ -92,8 +92,8 @@ class root.JavaObject
 
 
 class root.JavaClassObject extends root.JavaObject
-  constructor: (rs, @file) ->
-    @$type = @file.this_class # XXX: Remove ASAP.
+  constructor: (rs, @$cls) ->
+    @$type = @$cls.this_class # XXX: Remove ASAP.
     super rs, rs.class_lookup(c2t 'java/lang/Class')
 
   toString: -> "<Class #{@$type} (*#{@ref})>"

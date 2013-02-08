@@ -60,7 +60,7 @@ COMMON_BROWSER_SRCS = vendor/_.js \
 	src/disassembler.coffee \
 	src/natives.coffee \
 	src/methods.coffee \
-	src/ClassFile.coffee \
+	src/ClassData.coffee \
 	src/runtime.coffee \
 	src/jvm.coffee \
 	src/testing.coffee \

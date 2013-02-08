@@ -2,7 +2,7 @@
 fs = require 'fs'
 util = require '../src/util'
 {disassemble} = require '../src/disassembler'
-ClassFile = require '../src/ClassFile'
+{ReferenceClassData} = require '../src/ClassData'
 {argv} = require('optimist')
 
 "use strict"
@@ -13,6 +13,6 @@ if argv._.length > 0
 else
   fname = '/dev/stdin'
 bytes_array = util.bytestr_to_array fs.readFileSync(fname, 'binary')
-class_data = new ClassFile bytes_array
+class_data = new ReferenceClassData bytes_array
 
 console.log disassemble class_data

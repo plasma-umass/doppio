@@ -4,7 +4,7 @@ jvm = require './jvm'
 {RuntimeState} = require './runtime'
 util = require './util'
 {disassemble} = require './disassembler'
-ClassFile = require './ClassFile'
+{ReferenceClassData} = require './ClassData'
 fs = node?.fs ? require 'fs'
 path = node?.path ? require 'path'
 
@@ -62,7 +62,7 @@ run_disasm_test = (doppio_dir, test_class) ->
   test_path = path.resolve(doppio_dir, test_class)
   javap_disasm = sanitize(fs.readFileSync "#{test_path}.disasm", 'utf8')
   bytes_array = util.bytestr_to_array fs.readFileSync "#{test_path}.class", 'binary'
-  doppio_disasm = sanitize disassemble new ClassFile bytes_array
+  doppio_disasm = sanitize disassemble new ReferenceClassData bytes_array
   return cleandiff doppio_disasm, javap_disasm
 
 run_stdout_test = (doppio_dir, test_class, callback) ->
