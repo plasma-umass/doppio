@@ -26,14 +26,13 @@ class root.JavaArray
 
   toString: ->
     if @array.length <= 10
-      "<#{@type} [#{@array}] (*#{@ref})>"
+      "<#{@cls.this_class} [#{@array}] (*#{@ref})>"
     else
-      "<#{@type} of length #{@array.length} (*#{@ref})>"
+      "<#{@cls.this_class} of length #{@array.length} (*#{@ref})>"
 
 
 class root.JavaObject
   constructor: (rs, @cls, obj={}) ->
-    @type = @cls.this_class # XXX: Remove ASAP.
     @ref = rs.high_oref++
     # Use default fields as a prototype.
     @fields = Object.create(@cls.get_default_fields(rs))
@@ -80,10 +79,10 @@ class root.JavaObject
       @set_field rs, f.cls + '/' + f.field.name, value
 
   toString: ->
-    if @type.toClassString() is 'java/lang/String'
-      "<#{@type} '#{@jvm2js_str()}' (*#{@ref})>"
+    if @cls.toClassString() is 'java/lang/String'
+      "<#{@cls.this_class} '#{@jvm2js_str()}' (*#{@ref})>"
     else
-      "<#{@type} (*#{@ref})>"
+      "<#{@cls.this_class} (*#{@ref})>"
 
   # Convert a Java String object into an equivalent JS one.
   jvm2js_str: ->
@@ -94,7 +93,7 @@ class root.JavaClassObject extends root.JavaObject
   constructor: (rs, @$cls) ->
     super rs, rs.class_lookup(c2t 'java/lang/Class')
 
-  toString: -> "<Class #{@$type} (*#{@ref})>"
+  toString: -> "<Class #{@$cls.this_class} (*#{@ref})>"
 
 root.thread_name = (rs, thread) ->
   util.chars2js_str thread.get_field rs, 'java/lang/Thread/name'
