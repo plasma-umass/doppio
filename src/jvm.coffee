@@ -29,9 +29,6 @@ root.read_classfile = (cls, cb) ->
       cb(new ReferenceClassData data) if data?
       return
     catch e
-      unless ReferenceClassData? then trace "WHY IS IT NOT HERE #{ClassData}"
-      for key in Object.keys ClassData
-        trace "key: #{key}"
       cb(null) # Signifies an error occurred.
 
 # main function that gets called from the frontend
