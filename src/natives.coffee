@@ -448,10 +448,9 @@ native_methods =
             rs.async_op (resume_cb, except_cb) ->
               native_define_class rs, name, bytes, offset, len, _this, resume_cb, except_cb
         o 'resolveClass0(L!/!/Class;)V', (rs, _this, cls) ->
-            rs.async_op (resume_cb, except_cb) ->
-              # We change resume_cb to ignore the actual ClassData returned; this
-              # is a Void function.
-              rs.load_class cls.$type, null, (()->resume_cb()), except_cb
+            # Normally, one would 'resolve' a defined class here. However, we
+            # seem to conflate the two operations; the indicated class is
+            # already 'resolved' once it is loaded. So, this is a NOP.
       ],
       Compiler: [
         o 'disable()V', (rs, _this) -> #NOP
@@ -595,7 +594,7 @@ native_methods =
         Array: [
           o 'newArray(L!/!/Class;I)L!/!/Object;', (rs, _this, len) ->
               trace _this.cls.toClassString()
-              rs.heap_newarray _this.$type, len
+              rs.heap_newarray _this.$cls.this_class, len
           o 'getLength(Ljava/lang/Object;)I', (rs, arr) ->
               rs.check_null(arr).array.length
         ]
@@ -1214,7 +1213,7 @@ native_methods =
         o 'ensureClassInitialized(Ljava/lang/Class;)V', (rs,_this,cls) ->
             rs.async_op (resume_cb, except_cb) ->
               # We modify resume_cb since this is a void function.
-              rs.initialize_class cls.$type, null, (()->resume_cb()), except_cb
+              rs.initialize_class cls.$cls.this_class, null, (()->resume_cb()), except_cb
         o 'staticFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.get_field rs, 'java/lang/reflect/Field/slot')
         o 'objectFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.get_field rs, 'java/lang/reflect/Field/slot')
         o 'staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;', (rs,_this,field) ->
@@ -1282,7 +1281,7 @@ native_methods =
             cls = m.get_field rs, 'java/lang/reflect/Method/clazz'
             slot = m.get_field rs, 'java/lang/reflect/Method/slot'
             rs.async_op (resume_cb, except_cb) ->
-              rs.initialize_class cls.$type, null, ((cls_obj) ->
+              rs.initialize_class cls.$cls.this_class, null, ((cls_obj) ->
                 method = (method for sig, method of cls_obj.methods when method.idx is slot)[0]
                 my_sf = rs.curr_frame()
                 rs.push obj unless method.access_flags.static
@@ -1308,7 +1307,7 @@ native_methods =
             cls = m.get_field rs, 'java/lang/reflect/Constructor/clazz'
             slot = m.get_field rs, 'java/lang/reflect/Constructor/slot'
             rs.async_op (resume_cb, except_cb) ->
-              rs.initialize_class cls.$type, null, ((cls_obj)->
+              rs.initialize_class cls.$cls.this_class, null, ((cls_obj)->
                 method = (method for sig, method of cls_obj.methods when method.idx is slot)[0]
                 my_sf = rs.curr_frame()
                 obj = new JavaObject rs, cls_obj
