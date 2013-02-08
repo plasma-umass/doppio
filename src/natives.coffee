@@ -650,7 +650,7 @@ native_methods =
               exceptions.java_throw rs, rs.class_lookup(c2t 'java/lang/ArrayIndexOutOfBoundsException'), 'Tried to write to an illegal index in an array.'
             # Special case; need to copy the section of src that is being copied into a temporary array before actually doing the copy.
             if src == dest
-              src = {cls: src.cls, type: src.type, array: src.array.slice(src_pos, src_pos+length)}
+              src = {cls: src.cls, type: src.cls.this_class, array: src.array.slice(src_pos, src_pos+length)}
               src_pos = 0
 
             if src.cls.is_castable rs, dest.cls

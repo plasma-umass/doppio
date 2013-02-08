@@ -14,7 +14,6 @@ root = exports ? window.java_object ?= {}
 
 class root.JavaArray
   constructor: (rs, @cls, obj) ->
-    @type = @cls.this_class # XXX: Remove ASAP.
     @ref = rs.high_oref++
     @array = obj
 
