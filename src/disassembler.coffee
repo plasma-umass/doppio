@@ -28,7 +28,7 @@ root.disassemble = (class_file) ->
   if class_file.access_flags.interface
     rv += "interface #{class_file.toExternalString()} extends #{ifaces}\n"
   else
-    rv += "class #{class_file.toExternalString()} extends #{class_file.super_class?.toExternalString()}"
+    rv += "class #{class_file.toExternalString()} extends #{util.ext_classname(class_file.super_class)}"
     rv += if (ifaces and not class_file.access_flags.interface) then " implements #{ifaces}\n" else '\n'
   rv += "  SourceFile: \"#{source_file.filename}\"\n" if source_file
   rv += "  Deprecated: length = 0x\n" if deprecated

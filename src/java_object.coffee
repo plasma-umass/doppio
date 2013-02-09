@@ -68,7 +68,7 @@ class root.JavaObject
     until cls.fields[offset]?
       unless cls.super_class?
         java_throw rs, rs.class_lookup(c2t 'java/lang/NullPointerException'), "field #{offset} doesn't exist in class #{classname}"
-      cls = rs.class_lookup(cls.super_class)
+      cls = rs.class_lookup(c2t(cls.super_class))
     {field: cls.fields[offset], cls: cls.toClassString(), cls_obj: cls}
 
   set_field_from_offset: (rs, offset, value) ->

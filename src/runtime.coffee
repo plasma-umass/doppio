@@ -356,7 +356,7 @@ class root.RuntimeState
             # Now that this class is loaded, let's grab the super classes and
             # interfaces.
             if class_file.super_class?
-              @load_class class_file.super_class, trigger_class, load_next_iface, failure_fn
+              @load_class c2t(class_file.super_class), trigger_class, load_next_iface, failure_fn
             else
               load_next_iface()
           )
@@ -555,7 +555,7 @@ class root.RuntimeState
           ))
         clinit.setup_stack(@)
       next_type = class_file.super_class or class_file.component_type
-      class_file = if next_type? then @loaded_classes[loader_id][next_type.toClassString()] else undefined
+      class_file = if next_type? then @loaded_classes[loader_id][next_type] else undefined
 
     unless first_clinit
       # Push ourselves back into the execution loop to run the <clinit> methods.
@@ -592,7 +592,7 @@ class root.RuntimeState
         setTimeout((()=>success_fn @loaded_classes[loader_id][cls].get_class_object(@)), 0)
 
     if class_file.super_class?
-      @load_class class_file.super_class, class_file, load_next_iface, failure_fn
+      @load_class c2t(class_file.super_class), class_file, load_next_iface, failure_fn
     else
       load_next_iface()
 

@@ -20,13 +20,12 @@ class ClassData
   constructor: (@loader=null) -> # NOP
 
   # Proxy method for type's method until we get rid of type objects.
-  toClassString: () -> @this_class.toClassString()
-  toExternalString: () -> @this_class.toExternalString()
+  toClassString: () -> @this_class
+  toExternalString: () -> util.ext_classname @this_class
 
   # We should use this instead of the above. Returns the standardized type
   # string for this class, whether it be a Reference or a Primitive type.
-  toTypeString: () ->
-    if @this_class instanceof types.PrimitiveType then @toExternalString() else @toClassString()
+  toTypeString: () -> @toClassString()
 
   get_class_object: (rs) ->
     @jco = new JavaClassObject(rs, @) unless @jco?
@@ -51,7 +50,7 @@ class ClassData
       return field if field?
 
     if @super_class?
-      sc = rs.class_lookup @super_class
+      sc = rs.class_lookup c2t(@super_class)
       field = sc.field_lookup(rs, field_spec)
       return field if field?
     return null
@@ -69,7 +68,7 @@ class ClassData
     return method if method?
 
     if @super_class?
-      parent = rs.class_lookup @super_class
+      parent = rs.class_lookup c2t(@super_class)
       method = parent.method_lookup(rs, method_spec)
       return method if method?
 
@@ -106,7 +105,7 @@ class ClassData
 
   construct_default_fields: (rs) ->
     # init fields from this and inherited ClassDatas
-    t = @this_class
+    t = c2t(@this_class)
     # Object.create(null) avoids interference with Object.prototype's properties
     @default_fields = Object.create null
     while t?
@@ -114,7 +113,7 @@ class ClassData
       for f in cls.fields when not f.access_flags.static
         val = util.initial_value f.raw_descriptor
         @default_fields[t.toClassString() + '/' + f.name] = val
-      t = cls.super_class
+      t = c2t(cls.super_class)
 
   # Used internally to reconstruct @static_fields
   _construct_static_fields: ->
@@ -135,7 +134,7 @@ class ClassData
     return true if @initialized
     # XXX: Hack to avoid traversing hierarchy.
     return false if @methods['<clinit>()V']?
-    @initialized = if @super_class? then rs.get_loaded_class(@super_class, @, true)?.is_initialized(rs) else false
+    @initialized = if @super_class? then rs.get_loaded_class(c2t(@super_class), @, true)?.is_initialized(rs) else false
     return @initialized
 
   # Returns the JavaObject object of the classloader that initialized this
@@ -149,7 +148,7 @@ class ClassData
   is_subclass: (rs, target) ->
     return true if @this_class is target.this_class
     return false unless @super_class?  # I'm java/lang/Object, can't go further
-    return rs.class_lookup(@super_class).is_subclass rs, target
+    return rs.class_lookup(c2t(@super_class)).is_subclass rs, target
 
   # Returns 'true' if I implement the target interface.
   is_subinterface: (rs, target) ->
@@ -158,7 +157,7 @@ class ClassData
       super_iface = rs.class_lookup c2t(@constant_pool.get(i).deref())
       return true if super_iface.is_subinterface rs, target
     return false unless @super_class?  # I'm java/lang/Object, can't go further
-    return rs.class_lookup(@super_class).is_subinterface rs, target
+    return rs.class_lookup(c2t(@super_class)).is_subinterface rs, target
 
 # Represents a "reference" Class -- that is, a class that neither represents a
 # primitive nor an array.
@@ -177,16 +176,16 @@ class root.ReferenceClassData extends ClassData
     # bitmask for {public,final,super,interface,abstract} class modifier
     @access_byte = bytes_array.get_uint 2
     @access_flags = util.parse_flags @access_byte
-    @this_class  = c2t(@constant_pool.get(bytes_array.get_uint 2).deref())
+    @this_class  = @constant_pool.get(bytes_array.get_uint 2).deref()
     # super reference is 0 when there's no super (basically just java.lang.Object)
     super_ref = bytes_array.get_uint 2
-    @super_class = c2t(@constant_pool.get(super_ref).deref()) unless super_ref is 0
+    @super_class = @constant_pool.get(super_ref).deref() unless super_ref is 0
     # direct interfaces of this class
     isize = bytes_array.get_uint 2
     @interfaces = (bytes_array.get_uint 2 for i in [0...isize] by 1)
     # fields of this class
     num_fields = bytes_array.get_uint 2
-    @fields = (new methods.Field(@, @this_class) for i in [0...num_fields] by 1)
+    @fields = (new methods.Field(@, c2t(@this_class)) for i in [0...num_fields] by 1)
     @fl_cache = {}
 
     for f,i in @fields
@@ -199,7 +198,7 @@ class root.ReferenceClassData extends ClassData
     # make debugging harder as you would lose track of who owns what method.
     @ml_cache = {}
     for i in [0...num_methods] by 1
-      m = new methods.Method(@, @this_class)
+      m = new methods.Method(@, c2t(@this_class))
       m.parse(bytes_array,@constant_pool,i)
       mkey = m.name + m.raw_descriptor
       @methods[mkey] = m
@@ -238,8 +237,9 @@ class root.ArrayClassData extends ClassData
     @ml_cache = {}
     @fl_cache = {}
     @access_flags = {}
-    @this_class = type
-    @super_class = c2t('java/lang/Object')
+    @this_class = type.toClassString()
+    @component_type = type.component_type.toClassString()
+    @super_class = 'java/lang/Object'
     @interfaces = []
     @fields = []
     @methods = {}
@@ -247,7 +247,7 @@ class root.ArrayClassData extends ClassData
     @initialized = false
     @static_fields = []
 
-  get_component_type: () -> return @this_class.component_type
+  get_component_type: () -> return @component_type
 
   # Returns a boolean indicating if this class is an instance of the target class.
   # "target" is a ClassData object.
@@ -265,7 +265,7 @@ class root.ArrayClassData extends ClassData
 
     # We are both array types, so it only matters if my component type can be
     # cast to its component type.
-    return rs.get_loaded_class(@get_component_type()).is_castable(rs, rs.get_loaded_class(target.get_component_type()))
+    return rs.get_loaded_class(c2t @get_component_type()).is_castable(rs, rs.get_loaded_class(c2t target.get_component_type()))
 
 class root.PrimitiveClassData extends ClassData
   constructor: (type, @loader=null) ->
@@ -273,7 +273,7 @@ class root.PrimitiveClassData extends ClassData
     @ml_cache = {}
     @fl_cache = {}
     @access_flags = {}
-    @this_class = type
+    @this_class = type.toExternalString()
     @super_class = null
     @interfaces = []
     @fields = []
@@ -281,6 +281,9 @@ class root.PrimitiveClassData extends ClassData
     @attrs = []
     @initialized = true
     @static_fields = []
+
+  # Primitive classes are represented by their external string.
+  toTypeString: () -> @toExternalString()
 
   # Returns a boolean indicating if this class is an instance of the target class.
   # "target" is a ClassData object.

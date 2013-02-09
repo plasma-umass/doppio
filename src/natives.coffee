@@ -168,7 +168,7 @@ arraycopy_no_check = (src, src_pos, dest, dest_pos, length) ->
 #             primitive arrays.
 arraycopy_check = (rs, src, src_pos, dest, dest_pos, length) ->
   j = dest_pos
-  dest_comp_cls = rs.get_loaded_class dest.cls.get_component_type()
+  dest_comp_cls = rs.get_loaded_class c2t(dest.cls.get_component_type())
   for i in [src_pos...src_pos+length] by 1
     # Check if null or castable.
     if src.array[i] == null or src.array[i].cls.is_castable rs, dest_comp_cls
@@ -276,7 +276,7 @@ native_methods =
 
             # As this array type is loaded, the component type is guaranteed
             # to be loaded as well. No need for asynchronicity.
-            return rs.get_loaded_class(_this.$cls.get_component_type()).get_class_object(rs)
+            return rs.get_loaded_class(c2t(_this.$cls.get_component_type())).get_class_object(rs)
         o 'getGenericSignature()Ljava/lang/String;', (rs, _this) ->
             sig = _.find(_this.$cls.attrs, (a) -> a.name is 'Signature')?.sig
             if sig? then rs.init_string sig else null
@@ -297,7 +297,7 @@ native_methods =
             cls = _this.$cls
             if cls.access_flags.interface or not cls.super_class?
               return null
-            return rs.get_loaded_class(cls.super_class).get_class_object(rs)
+            return rs.get_loaded_class(c2t(cls.super_class)).get_class_object(rs)
         o 'getDeclaredFields0(Z)[Ljava/lang/reflect/Field;', (rs, _this, public_only) ->
             fields = _this.$cls.fields
             fields = (f for f in fields when f.access_flags.public) if public_only
@@ -594,7 +594,7 @@ native_methods =
         Array: [
           o 'newArray(L!/!/Class;I)L!/!/Object;', (rs, _this, len) ->
               trace _this.cls.toClassString()
-              rs.heap_newarray _this.$cls.this_class, len
+              rs.heap_newarray c2t(_this.$cls.this_class), len
           o 'getLength(Ljava/lang/Object;)I', (rs, arr) ->
               rs.check_null(arr).array.length
         ]
@@ -650,7 +650,7 @@ native_methods =
               exceptions.java_throw rs, rs.class_lookup(c2t 'java/lang/ArrayIndexOutOfBoundsException'), 'Tried to write to an illegal index in an array.'
             # Special case; need to copy the section of src that is being copied into a temporary array before actually doing the copy.
             if src == dest
-              src = {cls: src.cls, type: src.cls.this_class, array: src.array.slice(src_pos, src_pos+length)}
+              src = {cls: src.cls, type: c2t(src.cls.this_class), array: src.array.slice(src_pos, src_pos+length)}
               src_pos = 0
 
             if src.cls.is_castable rs, dest.cls
@@ -659,8 +659,8 @@ native_methods =
             else
               # Slow path
               # Absolutely cannot do this when two different primitive types, or a primitive type and a reference type.
-              src_comp_cls = rs.get_loaded_class src.cls.get_component_type()
-              dest_comp_cls = rs.get_loaded_class dest.cls.get_component_type()
+              src_comp_cls = rs.get_loaded_class c2t(src.cls.get_component_type())
+              dest_comp_cls = rs.get_loaded_class c2t(dest.cls.get_component_type())
               if (src_comp_cls instanceof PrimitiveClassData) or (dest_comp_cls instanceof PrimitiveClassData)
                 exceptions.java_throw rs, rs.class_lookup(c2t 'java/lang/ArrayStoreException'), 'If calling arraycopy with a primitive array, both src and dest must be of the same primitive type.'
               else
@@ -1213,7 +1213,7 @@ native_methods =
         o 'ensureClassInitialized(Ljava/lang/Class;)V', (rs,_this,cls) ->
             rs.async_op (resume_cb, except_cb) ->
               # We modify resume_cb since this is a void function.
-              rs.initialize_class cls.$cls.this_class, null, (()->resume_cb()), except_cb
+              rs.initialize_class c2t(cls.$cls.this_class), null, (()->resume_cb()), except_cb
         o 'staticFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.get_field rs, 'java/lang/reflect/Field/slot')
         o 'objectFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.get_field rs, 'java/lang/reflect/Field/slot')
         o 'staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;', (rs,_this,field) ->
@@ -1281,7 +1281,7 @@ native_methods =
             cls = m.get_field rs, 'java/lang/reflect/Method/clazz'
             slot = m.get_field rs, 'java/lang/reflect/Method/slot'
             rs.async_op (resume_cb, except_cb) ->
-              rs.initialize_class cls.$cls.this_class, null, ((cls_obj) ->
+              rs.initialize_class c2t(cls.$cls.this_class), null, ((cls_obj) ->
                 method = (method for sig, method of cls_obj.methods when method.idx is slot)[0]
                 my_sf = rs.curr_frame()
                 rs.push obj unless method.access_flags.static
@@ -1307,7 +1307,7 @@ native_methods =
             cls = m.get_field rs, 'java/lang/reflect/Constructor/clazz'
             slot = m.get_field rs, 'java/lang/reflect/Constructor/slot'
             rs.async_op (resume_cb, except_cb) ->
-              rs.initialize_class cls.$cls.this_class, null, ((cls_obj)->
+              rs.initialize_class c2t(cls.$cls.this_class), null, ((cls_obj)->
                 method = (method for sig, method of cls_obj.methods when method.idx is slot)[0]
                 my_sf = rs.curr_frame()
                 obj = new JavaObject rs, cls_obj
