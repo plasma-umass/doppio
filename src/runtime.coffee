@@ -85,6 +85,7 @@ class root.RuntimeState
   preinitialize_core_classes: (resume_cb, except_cb) ->
     core_classes = [
       'java/lang/Class'
+      'java/lang/String'
       'java/io/ExpiringCache'
       'java/io/FileDescriptor'
       'java/io/FileNotFoundException'
@@ -108,7 +109,6 @@ class root.RuntimeState
       'java/lang/reflect/Field'
       'java/lang/reflect/Method'
       'java/lang/StackTraceElement'
-      'java/lang/String'
       'java/lang/System'
       'java/lang/Thread'
       'java/lang/ThreadGroup'
