@@ -10,7 +10,6 @@ types = require './types'
 {java_throw,YieldIOException,ReturnException,JavaException} = require './exceptions'
 {JavaObject,JavaArray,thread_name} = require './java_object'
 {c2t} = types
-{Method} = require './methods'
 
 "use strict"
 
@@ -35,7 +34,8 @@ class root.StackFrame
     @name = @method.full_signature()
 
   @fake_frame: (name) ->
-    sf = new root.StackFrame(new Method(null, c2t(name)), [], [])
+    # Fake method in the stack frame.
+    sf = new root.StackFrame({full_signature: -> return name}, [], [])
     sf.name = name
     sf.fake = true
     return sf
@@ -48,7 +48,8 @@ class root.StackFrame
   # bridging the gap between those Java methods and the methods that ended up
   # triggering them in the first place.
   @native_frame: (name, handler, error_handler) ->
-    sf = new root.StackFrame(new Method(null, c2t(name)), [], [])
+    # Fake method in the stack frame.
+    sf = new root.StackFrame({full_signature: -> return name}, [], [])
     sf.runner = handler
     sf.name = name
     sf.error = error_handler if error_handler?

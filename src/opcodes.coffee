@@ -596,7 +596,7 @@ root.opcodes = {
     if ref_cls?
       # Get the *actual* class that owns this field.
       # This may not be initialized if it's an interface, so we need to check.
-      cls_type = rs.field_lookup(ref_cls, @field_spec).class_type
+      cls_type = c2t rs.field_lookup(ref_cls, @field_spec).cls.this_class
       @cls = rs.class_lookup cls_type, null, true
       if @cls?
         new_execute.call(@, rs)
@@ -622,7 +622,7 @@ root.opcodes = {
     if ref_cls?
       # Get the *actual* class that owns this field.
       # This may not be initialized if it's an interface, so we need to check.
-      cls_type = rs.field_lookup(ref_cls, @field_spec).class_type
+      cls_type = c2t rs.field_lookup(ref_cls, @field_spec).cls.this_class
       @cls = rs.class_lookup cls_type, null, true
       if @cls?
         new_execute.call(@, rs)
@@ -640,7 +640,7 @@ root.opcodes = {
   180: new root.FieldOpcode 'getfield', { execute: (rs) ->
     cls = rs.class_lookup(c2t @field_spec.class)
     field = rs.field_lookup(cls, @field_spec)
-    name = field.class_type.toClassString() + '/' + @field_spec.name
+    name = field.cls.toClassString() + '/' + @field_spec.name
     new_execute =
       if @field_spec.type not in ['J','D']
         (rs) ->
@@ -657,7 +657,7 @@ root.opcodes = {
   181: new root.FieldOpcode 'putfield', { execute: (rs) ->
     cls_obj = rs.class_lookup(c2t @field_spec.class)
     field = rs.field_lookup(cls_obj, @field_spec)
-    name = field.class_type.toClassString() + '/' + @field_spec.name
+    name = field.cls.toClassString() + '/' + @field_spec.name
     new_execute =
       if @field_spec.type not in ['J','D']
         (rs) ->

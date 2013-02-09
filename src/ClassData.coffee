@@ -185,7 +185,7 @@ class root.ReferenceClassData extends ClassData
     @interfaces = (bytes_array.get_uint 2 for i in [0...isize] by 1)
     # fields of this class
     num_fields = bytes_array.get_uint 2
-    @fields = (new methods.Field(@, c2t(@this_class)) for i in [0...num_fields] by 1)
+    @fields = (new methods.Field(@) for i in [0...num_fields] by 1)
     @fl_cache = {}
 
     for f,i in @fields
@@ -198,7 +198,7 @@ class root.ReferenceClassData extends ClassData
     # make debugging harder as you would lose track of who owns what method.
     @ml_cache = {}
     for i in [0...num_methods] by 1
-      m = new methods.Method(@, c2t(@this_class))
+      m = new methods.Method(@)
       m.parse(bytes_array,@constant_pool,i)
       mkey = m.name + m.raw_descriptor
       @methods[mkey] = m
@@ -283,7 +283,7 @@ class root.PrimitiveClassData extends ClassData
     @static_fields = []
 
   # Primitive classes are represented by their external string.
-  toTypeString: () -> @toExternalString()
+  toTypeString: () -> @this_class
 
   # Returns a boolean indicating if this class is an instance of the target class.
   # "target" is a ClassData object.
