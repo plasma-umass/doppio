@@ -86,6 +86,7 @@ class root.RuntimeState
   preinitialize_core_classes: (resume_cb, except_cb) ->
     core_classes = [
       'java/lang/Class'
+      'java/lang/String'
       'java/io/ExpiringCache'
       'java/io/FileDescriptor'
       'java/io/FileNotFoundException'
@@ -93,7 +94,6 @@ class root.RuntimeState
       'java/io/Serializable'
       'java/io/UnixFileSystem'
       'java/lang/ArithmeticException'
-      'java/lang/ArrayIndexOutOfBoundsException'
       'java/lang/ArrayIndexOutOfBoundsException'
       'java/lang/ArrayStoreException'
       'java/lang/ClassCastException'
@@ -106,12 +106,10 @@ class root.RuntimeState
       'java/lang/NoSuchFieldError'
       'java/lang/NoSuchMethodError'
       'java/lang/NullPointerException'
-      'java/lang/NullPointerException'
       'java/lang/reflect/Constructor'
       'java/lang/reflect/Field'
       'java/lang/reflect/Method'
       'java/lang/StackTraceElement'
-      'java/lang/String'
       'java/lang/System'
       'java/lang/Thread'
       'java/lang/ThreadGroup'

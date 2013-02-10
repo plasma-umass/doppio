@@ -5,9 +5,7 @@ ConstantPool = require './ConstantPool'
 attributes = require './attributes'
 opcodes = require './opcodes'
 methods = null # Define later to avoid circular dependency; methods references natives, natives references ClassData
-types = require './types'
 {java_throw} = require './exceptions'
-{trace} = require './logging'
 {JavaClassObject} = require './java_object'
 
 "use strict"

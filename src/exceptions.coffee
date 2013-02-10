@@ -3,7 +3,6 @@
 _ = require '../vendor/_.js'
 {trace,vtrace,error,debug} = require './logging'
 {JavaObject} = require './java_object'
-types = require './types'
 
 "use strict"
 
