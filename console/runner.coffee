@@ -87,7 +87,6 @@ if require.main == module
     .alias({h: 'help'})
     .describe({
       classpath: 'JVM classpath, "path1:...:pathn"',
-      jspath: 'compiled JS file classpath, "path1:...:pathn"',
       java: 'args for main function',
       log: 'log level, [0-10]|vtrace|trace|debug|error',
       profile: 'turn on profiler, --profile=hot for warm cache',
@@ -111,11 +110,10 @@ if require.main == module
     else
       logging.ERROR
 
-  for path_name in ['classpath', 'jspath']
-    if argv[path_name]?
-      jvm[path_name] = argv[path_name].split ':'
-    else
-      jvm[path_name] = ["."]
+  if argv.classpath?
+    jvm.classpath = argv.classpath.split ':'
+  else
+    jvm.classpath = ["."]
 
   jvm.classpath.push "#{__dirname}/../vendor/classes"
 

@@ -12,14 +12,8 @@ fs = node?.fs ? require 'fs'
 root = exports ? this.jvm = {}
 
 root.classpath = []
-root.jspath = []
 
 root.read_classfile = (cls, cb) ->
-  for p in root.jspath
-    filename = "#{p}/#{cls}.js"
-    continue unless fs.existsSync filename
-    cb(require "../#{filename}")
-    return
   for p in root.classpath
     filename = "#{p}/#{cls}.class"
     continue unless fs.existsSync filename
