@@ -20,10 +20,6 @@ class ClassData
   toClassString: () -> @this_class
   toExternalString: () -> util.ext_classname @this_class
 
-  # We should use this instead of the above. Returns the standardized type
-  # string for this class, whether it be a Reference or a Primitive type.
-  toTypeString: () -> @toClassString()
-
   get_class_object: (rs) ->
     @jco = new JavaClassObject(rs, @) unless @jco?
     @jco
@@ -229,13 +225,12 @@ class root.ReferenceClassData extends ClassData
       return @is_subclass(rs,target)
 
 class root.ArrayClassData extends ClassData
-  constructor: (type, @loader=null) ->
+  constructor: (@this_class, @loader=null) ->
     @constant_pool = new ConstantPool
     @ml_cache = {}
     @fl_cache = {}
     @access_flags = {}
-    @this_class = type.toClassString()
-    @component_type = type.component_type.toClassString()
+    @component_type = util.get_component_type @this_class
     @super_class = 'java/lang/Object'
     @interfaces = []
     @fields = []
@@ -265,12 +260,11 @@ class root.ArrayClassData extends ClassData
     return rs.get_loaded_class(@get_component_type()).is_castable(rs, rs.get_loaded_class(target.get_component_type()))
 
 class root.PrimitiveClassData extends ClassData
-  constructor: (type, @loader=null) ->
+  constructor: (@this_class, @loader=null) ->
     @constant_pool = new ConstantPool
     @ml_cache = {}
     @fl_cache = {}
     @access_flags = {}
-    @this_class = type.toExternalString()
     @super_class = null
     @interfaces = []
     @fields = []
@@ -278,9 +272,6 @@ class root.PrimitiveClassData extends ClassData
     @attrs = []
     @initialized = true
     @static_fields = []
-
-  # Primitive classes are represented by their external string.
-  toTypeString: () -> @this_class
 
   # Returns a boolean indicating if this class is an instance of the target class.
   # "target" is a ClassData object.

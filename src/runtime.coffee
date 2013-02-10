@@ -9,7 +9,6 @@ types = require './types'
 {log,vtrace,trace,debug,error} = require './logging'
 {java_throw,YieldIOException,ReturnException,JavaException} = require './exceptions'
 {JavaObject,JavaArray,thread_name} = require './java_object'
-{c2t} = types
 
 "use strict"
 
@@ -275,7 +274,6 @@ class root.RuntimeState
   # Calls failure_fn with a function that throws an exception in the event of a
   # failure.
   load_class: (name, trigger_class, success_fn, failure_fn) ->
-    type = c2t name
     trace "Loading #{name}..."
     loader = trigger_class?.get_class_loader() or null
     loader_id = trigger_class?.get_class_loader_id() or null
@@ -292,13 +290,14 @@ class root.RuntimeState
     if @loaded_classes[loader_id][name]?
       setTimeout((()=>success_fn(@loaded_classes[loader_id][name])), 0)
     else
-      if type instanceof types.ArrayType
-        @loaded_classes[loader_id][name] = new ArrayClassData type, loader
-        if type.component_type instanceof types.PrimitiveType
+      if util.is_array_type name
+        component_type = util.get_component_type name
+        @loaded_classes[loader_id][name] = new ArrayClassData name, loader
+        if util.is_primitive_type component_type
           success_fn @loaded_classes[loader_id][name]
           return
         else
-          @load_class type.component_type.toClassString(), trigger_class, (() =>
+          @load_class component_type, trigger_class, (() =>
             success_fn @loaded_classes[loader_id][name]
           ), failure_fn
           return
@@ -362,21 +361,20 @@ class root.RuntimeState
   # XXX: This is a bit of a hack.
   # There are some classes we can load synchronously (array types for
   # initialized classes, primitive classes, etc). Try to do so here.
-  _try_synchronous_load: (type, trigger_class=null) ->
+  _try_synchronous_load: (name, trigger_class=null) ->
     loader = trigger_class?.loader or null
     loader_id = trigger_class?.get_class_loader_id() or null
     @loaded_classes[loader_id] = Object.create null unless @loaded_classes[loader_id]?
-    if type instanceof types.PrimitiveType
-      @loaded_classes[loader_id][type.toExternalString()] = new PrimitiveClassData type, loader
-      return @loaded_classes[loader_id][type.toExternalString()]
-    else if type instanceof types.ArrayType
+    if util.is_primitive_type name
+      @loaded_classes[loader_id][name] = new PrimitiveClassData name, loader
+      return @loaded_classes[loader_id][name]
+    else if util.is_array_type name
       # Ensure the component type is loaded. We do *not* load classes unless all
       # of its superclasses/components/interfaces are loaded.
-      trace "It's an array type. Let's get its component type: #{type.component_type.toClassString()}"
-      comp_cls = @get_loaded_class type.component_type.toClassString(), trigger_class, true
+      comp_cls = @get_loaded_class util.get_component_type(name), trigger_class, true
       return null unless comp_cls?
-      @loaded_classes[loader_id][type.toClassString()] = new ArrayClassData type, loader
-      return @loaded_classes[loader_id][type.toClassString()]
+      @loaded_classes[loader_id][name] = new ArrayClassData name, loader
+      return @loaded_classes[loader_id][name]
     return null
 
 
@@ -399,7 +397,7 @@ class root.RuntimeState
 
     # XXX: Hack for primitive arrays. Should fix.
     unless cls?
-      cls = @_try_synchronous_load c2t(name), trigger_class
+      cls = @_try_synchronous_load name, trigger_class
       return cls if cls?.is_initialized(@)
 
     # Class needs to be loaded and/or initialized.
@@ -422,7 +420,7 @@ class root.RuntimeState
     return cls if cls?
 
     # XXX: Hack for primitive arrays. Plz fix.
-    cls = @_try_synchronous_load c2t(name), trigger_class
+    cls = @_try_synchronous_load name, trigger_class
     return cls if cls?
 
     # Class needs to be loaded.

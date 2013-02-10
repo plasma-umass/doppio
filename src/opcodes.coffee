@@ -1,7 +1,6 @@
 
 gLong = require '../vendor/gLong.js'
 util = require './util'
-types = require './types'
 {java_throw,ReturnException,JavaException} = require './exceptions'
 {JavaObject,JavaArray} = require './java_object'
 
@@ -328,7 +327,7 @@ class root.NewArrayOpcode extends root.Opcode
     type_code = code_array.get_uint 1
     @element_type = @arr_types[type_code]
 
-  annotate: (idx, pool) -> "\t#{types.internal2external[@element_type]}"
+  annotate: (idx, pool) -> "\t#{util.internal2external[@element_type]}"
 
 class root.MultiArrayOpcode extends root.Opcode
   constructor: (name, params={}) ->
