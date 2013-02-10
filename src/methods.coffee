@@ -4,13 +4,12 @@ _ = require '../vendor/_.js'
 util = require './util'
 opcodes = require './opcodes'
 attributes = require './attributes'
-types = require './types'
 natives = require './natives'
 runtime = require './runtime'
 logging = require './logging'
 {vtrace,trace,debug_vars} = logging
 {java_throw,ReturnException} = require './exceptions'
-{str2type,carr2type} = types
+{str2type,carr2type} = require './types'
 {native_methods,trapped_methods} = natives
 {JavaArray,JavaObject} = require './java_object'
 

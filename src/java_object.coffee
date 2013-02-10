@@ -1,7 +1,6 @@
 
 _ = require '../vendor/_.js'
 util = require './util'
-types = require './types'
 {vtrace} = require './logging'
 {java_throw} = require './exceptions'
 {log,debug,error} = require './logging'

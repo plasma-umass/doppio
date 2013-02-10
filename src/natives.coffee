@@ -3,7 +3,6 @@
 _ = require '../vendor/_.js'
 gLong = require '../vendor/gLong.js'
 util = require './util'
-types = require './types'
 runtime = require './runtime'
 {thread_name,JavaObject,JavaArray} = require './java_object'
 exceptions = require './exceptions'
