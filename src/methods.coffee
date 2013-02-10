@@ -10,7 +10,7 @@ runtime = require './runtime'
 logging = require './logging'
 {vtrace,trace,debug_vars} = logging
 {java_throw,ReturnException} = require './exceptions'
-{str2type,carr2type,c2t} = types
+{str2type,carr2type} = types
 {native_methods,trapped_methods} = natives
 {JavaArray,JavaObject} = require './java_object'
 
@@ -43,7 +43,7 @@ class root.Field extends AbstractMethodField
     sig = _.find(@attrs, (a) -> a.name == "Signature")?.sig
 
     create_obj = (clazz_obj, type_obj) =>
-      new JavaObject rs, rs.class_lookup(c2t 'java/lang/reflect/Field'), {
+      new JavaObject rs, rs.class_lookup('java/lang/reflect/Field'), {
           # XXX this leaves out 'annotations'
           'java/lang/reflect/Field/clazz': clazz_obj
           'java/lang/reflect/Field/name': rs.init_string @name, true
@@ -57,7 +57,7 @@ class root.Field extends AbstractMethodField
     # type_obj may not be loaded, so we asynchronously load it here.
     # In the future, we can speed up reflection by having a synchronous_reflector
     # method that we can try first, and which may fail.
-    rs.load_class @type, null, ((type_cls) =>
+    rs.load_class @type.toClassString(), null, ((type_cls) =>
       type_obj = type_cls.get_class_object(rs)
       rv = create_obj clazz_obj, type_obj
       success_fn rv
@@ -94,7 +94,7 @@ class root.Method extends AbstractMethodField
       else
         @code = (rs) =>
           unless sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
-            java_throw rs, rs.class_lookup(c2t 'java/lang/Error'), "native method NYI: #{sig}"
+            java_throw rs, rs.class_lookup('java/lang/Error'), "native method NYI: #{sig}"
     else
       @has_bytecode = true
       @code = _.find(@attrs, (a) -> a.name == 'Code')
@@ -109,7 +109,7 @@ class root.Method extends AbstractMethodField
 
     clazz_obj = @cls.get_class_object(rs)
 
-    rs.load_class(@return_type, null, ((rt_cls) =>
+    rs.load_class(@return_type.toClassString(), null, ((rt_cls) =>
       rt_obj = rt_cls.get_class_object(rs)
       j = -1
       etype_objs = []
@@ -118,25 +118,25 @@ class root.Method extends AbstractMethodField
       fetch_etype = () =>
         j++
         if j < exceptions.length
-          rs.load_class(c2t(exceptions[j]), null, ((cls)=>etype_objs[j]=cls.get_class_object(rs);fetch_etype()), failure_fn)
+          rs.load_class(exceptions[j], null, ((cls)=>etype_objs[j]=cls.get_class_object(rs);fetch_etype()), failure_fn)
         else
           # XXX: missing parameterAnnotations
           obj[typestr + '/clazz'] = clazz_obj
           obj[typestr + '/name'] = rs.init_string @name, true
-          obj[typestr + '/parameterTypes'] = new JavaArray rs, rs.class_lookup(c2t "[Ljava/lang/Class;"), param_type_objs
+          obj[typestr + '/parameterTypes'] = new JavaArray rs, rs.class_lookup('[Ljava/lang/Class;'), param_type_objs
           obj[typestr + '/returnType'] = rt_obj
-          obj[typestr + '/exceptionTypes'] = new JavaArray rs, rs.class_lookup(c2t "[Ljava/lang/Class;"), etype_objs
+          obj[typestr + '/exceptionTypes'] = new JavaArray rs, rs.class_lookup('[Ljava/lang/Class;'), etype_objs
           obj[typestr + '/modifiers'] = @access_byte
           obj[typestr + '/slot'] = @idx
           obj[typestr + '/signature'] = if sig? then rs.init_string sig else null
-          obj[typestr + '/annotations'] = if anns? then new JavaArray(rs, rs.class_lookup(c2t '[B'), anns) else null
-          obj[typestr + '/annotationDefault'] = if adefs? then new JavaArray(rs, rs.class_lookup(c2t '[B'), adefs) else null
-          setTimeout((()=>success_fn(new JavaObject rs, rs.class_lookup(c2t typestr), obj)), 0)
+          obj[typestr + '/annotations'] = if anns? then new JavaArray(rs, rs.class_lookup('[B'), anns) else null
+          obj[typestr + '/annotationDefault'] = if adefs? then new JavaArray(rs, rs.class_lookup('[B'), adefs) else null
+          setTimeout((()=>success_fn(new JavaObject rs, rs.class_lookup(typestr), obj)), 0)
 
       fetch_ptype = () =>
         i++
         if i < @param_types.length
-          rs.load_class(@param_types[i], null, ((cls)=>param_type_objs[i]=cls.get_class_object(rs);fetch_ptype()), failure_fn)
+          rs.load_class(@param_types[i].toClassString(), null, ((cls)=>param_type_objs[i]=cls.get_class_object(rs);fetch_ptype()), failure_fn)
         else
           fetch_etype()
 
@@ -225,7 +225,7 @@ class root.Method extends AbstractMethodField
       return
 
     if @access_flags.abstract
-      java_throw runtime_state, rs.class_lookup(c2t 'java/lang/Error'), "called abstract method: #{@full_signature()}"
+      java_throw runtime_state, rs.class_lookup('java/lang/Error'), "called abstract method: #{@full_signature()}"
 
     # Finally, the normal case: running a Java method
     ms.push(sf = new runtime.StackFrame(this,params,[]))

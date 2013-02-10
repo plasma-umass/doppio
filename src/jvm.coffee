@@ -6,7 +6,6 @@ ClassData = require '../src/ClassData'
 {ReferenceClassData} = ClassData
 fs = node?.fs ? require 'fs'
 {trace} = require '../src/logging'
-{c2t} = require '../src/types'
 "use strict"
 
 # things assigned to root will be available outside this module
@@ -39,7 +38,7 @@ root.run_class = (rs, class_name, cmdline_args, done_cb) ->
     trace "run_main"
     rs.run_until_finished (->
       rs.async_op (resume_cb, except_cb) ->
-        rs.initialize_class c2t(class_name), null, ((cls)->
+        rs.initialize_class class_name, null, ((cls)->
           rs.init_args cmdline_args
           # wrap it in run_until_finished to handle any exceptions correctly
           rs.run_until_finished (-> main_method = rs.method_lookup cls, main_spec), true, (success) ->

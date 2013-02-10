@@ -5,7 +5,6 @@ types = require './types'
 {vtrace} = require './logging'
 {java_throw} = require './exceptions'
 {log,debug,error} = require './logging'
-{c2t} = require './types'
 
 "use strict"
 
@@ -50,12 +49,12 @@ class root.JavaObject
     unless @fields[name] is undefined
       @fields[name] = val
     else
-      java_throw rs, rs.class_lookup(c2t 'java/lang/NoSuchFieldError'), name
+      java_throw rs, rs.class_lookup('java/lang/NoSuchFieldError'), name
     return
 
   get_field: (rs, name) ->
     return @fields[name] unless @fields[name] is undefined
-    java_throw rs, rs.class_lookup(c2t 'java/lang/NoSuchFieldError'), name
+    java_throw rs, rs.class_lookup('java/lang/NoSuchFieldError'), name
 
   get_field_from_offset: (rs, offset) ->
     f = @_get_field_from_offset rs, @cls, offset.toInt()
@@ -67,8 +66,8 @@ class root.JavaObject
     classname = cls.toClassString()
     until cls.fields[offset]?
       unless cls.super_class?
-        java_throw rs, rs.class_lookup(c2t 'java/lang/NullPointerException'), "field #{offset} doesn't exist in class #{classname}"
-      cls = rs.class_lookup(c2t(cls.super_class))
+        java_throw rs, rs.class_lookup('java/lang/NullPointerException'), "field #{offset} doesn't exist in class #{classname}"
+      cls = rs.class_lookup(cls.super_class)
     {field: cls.fields[offset], cls: cls.toClassString(), cls_obj: cls}
 
   set_field_from_offset: (rs, offset, value) ->
@@ -91,7 +90,7 @@ class root.JavaObject
 
 class root.JavaClassObject extends root.JavaObject
   constructor: (rs, @$cls) ->
-    super rs, rs.class_lookup(c2t 'java/lang/Class')
+    super rs, rs.class_lookup('java/lang/Class')
 
   toString: -> "<Class #{@$cls.this_class} (*#{@ref})>"
 

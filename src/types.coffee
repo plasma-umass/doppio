@@ -64,6 +64,7 @@ root.c2t = (type_str) ->
   unless type_str? then return undefined
   if not UNSAFE? and type_str instanceof root.Type then throw "#{type_str} is already a Type"
   if type_str[0] == '[' then root.str2type type_str
+  else if type_str of external2internal then new root.PrimitiveType type_str
   else new root.ClassType type_str
 
 class root.Type
