@@ -252,14 +252,16 @@ external2internal[v]=k for k,v of root.internal2external
 # denote primitive classes. This is a small hack to ensure those using this
 # method get the correct component type of array typestrings, at least until
 # we have smarter classloaders that can handle this case themselves.
-convert_if_prim = (type_str) -> if type_str of root.internal2external then root.internal2external[type_str] else type_str
+convert_if_prim = (type_str) -> root.internal2external[type_str] or type_str
 
 # Get the component type of an array type string. Cut off the [L and ; for
 # arrays of classes.
-root.get_component_type = (type_str) -> if type_str[1] == 'L' then type_str[2...-1] else convert_if_prim type_str[1...]
+root.get_component_type = (type_str) ->
+  return type_str[2...-1] if type_str[1] == 'L'
+  convert_if_prim type_str[1...]
 root.is_array_type = (type_str) -> type_str[0] == '['
 root.is_primitive_type = (type_str) -> type_str of external2internal
-root.is_reference_type = (type_str) -> not root.is_array_type type_str and not root.is_primitive_type type_str
+root.is_reference_type = (type_str) -> not (root.is_array_type type_str or root.is_primitive_type type_str)
 
 # Parse Java's pseudo-UTF-8 strings. (spec 4.4.7)
 root.bytes2str = (bytes, null_terminate=false) ->
