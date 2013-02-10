@@ -52,7 +52,6 @@ COMMON_BROWSER_SRCS = vendor/_.js \
 	src/util.coffee \
 	src/exceptions.coffee \
 	src/logging.coffee \
-	src/types.coffee \
 	src/java_object.coffee \
 	src/opcodes.coffee \
 	src/attributes.coffee \
