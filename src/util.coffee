@@ -261,7 +261,7 @@ root.get_component_type = (type_str) ->
   convert_if_prim type_str[1...]
 root.is_array_type = (type_str) -> type_str[0] == '['
 root.is_primitive_type = (type_str) -> type_str of external2internal
-root.is_reference_type = (type_str) -> not (root.is_array_type type_str or root.is_primitive_type type_str)
+root.is_reference_type = (type_str) -> type_str[0] == 'L'
 
 # Parse Java's pseudo-UTF-8 strings. (spec 4.4.7)
 root.bytes2str = (bytes, null_terminate=false) ->
