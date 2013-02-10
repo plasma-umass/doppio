@@ -9,7 +9,6 @@ runtime = require './runtime'
 logging = require './logging'
 {vtrace,trace,debug_vars} = logging
 {java_throw,ReturnException} = require './exceptions'
-{str2type,carr2type} = require './types'
 {native_methods,trapped_methods} = natives
 {JavaArray,JavaObject} = require './java_object'
 
@@ -32,7 +31,7 @@ class AbstractMethodField
 
 class root.Field extends AbstractMethodField
   parse_descriptor: (raw_descriptor) ->
-    @type = str2type raw_descriptor
+    @type = util.descriptor2typestr raw_descriptor
 
   # XXX Need the target class. Setting to 'null' for now.
   # Must be called asynchronously.
@@ -56,7 +55,7 @@ class root.Field extends AbstractMethodField
     # type_obj may not be loaded, so we asynchronously load it here.
     # In the future, we can speed up reflection by having a synchronous_reflector
     # method that we can try first, and which may fail.
-    rs.load_class @type.toClassString(), null, ((type_cls) =>
+    rs.load_class @type, null, ((type_cls) =>
       type_obj = type_cls.get_class_object(rs)
       rv = create_obj clazz_obj, type_obj
       success_fn rv
@@ -68,14 +67,14 @@ class root.Method extends AbstractMethodField
     @reset_caches = false # Switched to 'true' in web frontend between JVM invocations.
     [__,param_str,return_str] = /\(([^)]*)\)(.*)/.exec(raw_descriptor)
     param_carr = param_str.split ''
-    @param_types = (field while (field = carr2type param_carr))
+    @param_types = (util.descriptor2typestr field while (field = util.carr2descriptor param_carr))
     @param_bytes = 0
     for p in @param_types
-      @param_bytes += if p.toString() in ['D','J'] then 2 else 1
+      @param_bytes += if util.typestr2descriptor(p) in ['D','J'] then 2 else 1
     @param_bytes++ unless @access_flags.static
     @num_args = @param_types.length
     @num_args++ unless @access_flags.static # nonstatic methods get 'this'
-    @return_type = str2type return_str
+    @return_type = util.descriptor2typestr return_str
 
   full_signature: -> "#{@cls.toClassString()}::#{@name}#{@raw_descriptor}"
 
@@ -108,7 +107,7 @@ class root.Method extends AbstractMethodField
 
     clazz_obj = @cls.get_class_object(rs)
 
-    rs.load_class(@return_type.toClassString(), null, ((rt_cls) =>
+    rs.load_class(@return_type, null, ((rt_cls) =>
       rt_obj = rt_cls.get_class_object(rs)
       j = -1
       etype_objs = []
@@ -135,7 +134,7 @@ class root.Method extends AbstractMethodField
       fetch_ptype = () =>
         i++
         if i < @param_types.length
-          rs.load_class(@param_types[i].toClassString(), null, ((cls)=>param_type_objs[i]=cls.get_class_object(rs);fetch_ptype()), failure_fn)
+          rs.load_class(@param_types[i], null, ((cls)=>param_type_objs[i]=cls.get_class_object(rs);fetch_ptype()), failure_fn)
         else
           fetch_etype()
 
@@ -159,7 +158,7 @@ class root.Method extends AbstractMethodField
       param_idx = 1
     for p in @param_types
       converted_params.push params[param_idx]
-      param_idx += if (p.toString() in ['J', 'D']) then 2 else 1
+      param_idx += if (util.typestr2descriptor(p) in ['J', 'D']) then 2 else 1
     converted_params
 
   run_manually: (func, rs, converted_params) ->
@@ -170,7 +169,7 @@ class root.Method extends AbstractMethodField
       return if e is ReturnException  # XXX kludge; now relied upon by class initialization!
       throw e
     rs.meta_stack().pop()
-    ret_type = @return_type.toString()
+    ret_type = util.typestr2descriptor @return_type
     unless ret_type == 'V'
       if ret_type == 'Z' then rs.push rv + 0 # cast booleans to a Number
       else rs.push rv

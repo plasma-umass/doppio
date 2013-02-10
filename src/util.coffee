@@ -260,6 +260,43 @@ root.get_component_type = (type_str) -> if type_str[1] == 'L' then type_str[2...
 root.is_array_type = (type_str) -> type_str[0] == '['
 root.is_primitive_type = (type_str) -> type_str of external2internal
 root.is_reference_type = (type_str) -> not root.is_array_type type_str and not root.is_primitive_type type_str
+# Converts type descriptors into standardized internal type strings.
+# Ljava/lang/Class; => java/lang/Class   Reference types
+# [Ljava/lang/Class; is unchanged        Array types
+# C => char                              Primitive types
+root.descriptor2typestr = (type_str) ->
+  c = type_str[0]
+  if c of root.internal2external
+    root.internal2external[c]
+  else if c == 'L'
+    type_str[1...-1]
+  else if c == '['
+    type_str
+  else
+    throw new Error "Unrecognized type string: #{type_str}"
+# Takes a character array of concatenated type descriptors and returns/removes the first one.
+root.carr2descriptor = (carr) ->
+  c = carr.shift()
+  return null unless c?
+  if c of root.internal2external
+    c
+  else if c == 'L'
+    "L#{(c while (c = carr.shift()) != ';').join('')};"
+  else if c == '['
+    "[#{root.carr2descriptor(carr)}"
+  else
+    carr.unshift c
+    throw new Error "Unrecognized descriptor: #{carr.join ''}"
+# Converts internal type strings into type descriptors. Reverse of descriptor2typestr.
+root.typestr2descriptor = (type_str) ->
+  c = type_str[0]
+  if type_str of external2internal
+    external2internal[type_str]
+  else if c == '['
+    type_str
+  else
+    "L#{type_str};"
+
 
 # Parse Java's pseudo-UTF-8 strings. (spec 4.4.7)
 root.bytes2str = (bytes, null_terminate=false) ->

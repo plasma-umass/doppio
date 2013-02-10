@@ -91,8 +91,8 @@ root.disassemble = (class_file) ->
 
   # pretty-print our field types, e.g. as 'PackageName.ClassName[][]'
   pp_type = (field_type) ->
-    if field_type instanceof types.ArrayType then pp_type(field_type.component_type) + '[]'
-    else field_type.toExternalString()
+    if util.is_array_type field_type then pp_type(util.get_component_type field_type) + '[]'
+    else util.ext_classname field_type
 
   print_excs = (exc_attr) ->
     excs = exc_attr.exceptions
