@@ -28,6 +28,11 @@ class SimpleReference
 class ClassReference extends SimpleReference
   constructor: (@constant_pool, @value) -> @type = 'class'
 
+  # the ConstantPool stores class names without the L...; descriptor stuff
+  deref: ->
+    pool_obj = @constant_pool[@value]
+    pool_obj.deref?() or util.typestr2descriptor(pool_obj.value)
+
 class StringReference extends SimpleReference
   constructor: (@constant_pool, @value) -> @type = 'String'
 

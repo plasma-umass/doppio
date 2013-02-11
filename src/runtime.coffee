@@ -345,7 +345,7 @@ class root.RuntimeState
             load_next_iface = () =>
               i++
               if i < num_interfaces
-                iface_type = util.typestr2descriptor class_file.constant_pool.get(class_file.interfaces[i]).deref()
+                iface_type = class_file.constant_pool.get(class_file.interfaces[i]).deref()
                 @load_class iface_type, trigger_class, load_next_iface, failure_fn
               else
                 setTimeout((()->success_fn class_file), 0)
@@ -580,7 +580,7 @@ class root.RuntimeState
     load_next_iface = () =>
       i++
       if i < num_interfaces
-        iface_type = util.typestr2descriptor class_file.constant_pool.get(class_file.interfaces[i]).deref()
+        iface_type = class_file.constant_pool.get(class_file.interfaces[i]).deref()
         # XXX: We're passing in 'loader' rather than a trigger_class. This needs to be fixed
         # for proper ClassLoader support.
         @load_class iface_type, loader, load_next_iface, failure_fn

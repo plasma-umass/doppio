@@ -350,7 +350,7 @@ native_methods =
             return
         o 'getInterfaces()[L!/!/!;', (rs, _this) ->
             cls = _this.$cls
-            ifaces = (util.typestr2descriptor cls.constant_pool.get(i).deref() for i in cls.interfaces)
+            ifaces = (cls.constant_pool.get(i).deref() for i in cls.interfaces)
             iface_objs = (rs.get_loaded_class(iface).get_class_object(rs) for iface in ifaces)
             new JavaArray rs, rs.class_lookup('[Ljava/lang/Class;'), iface_objs
         o 'getModifiers()I', (rs, _this) -> _this.$cls.access_byte
@@ -383,12 +383,12 @@ native_methods =
             return null unless icls?
             my_class = _this.$cls.toClassString()
             for entry in icls.classes when entry.outer_info_index > 0
-              name = util.typestr2descriptor cls.constant_pool.get(entry.inner_info_index).deref()
+              name = cls.constant_pool.get(entry.inner_info_index).deref()
               continue unless name is my_class
               # XXX(jez): this assumes that the first enclosing entry is also
               # the immediate enclosing parent, and I'm not 100% sure this is
               # guaranteed by the spec
-              declaring_name = util.typestr2descriptor cls.constant_pool.get(entry.outer_info_index).deref()
+              declaring_name = cls.constant_pool.get(entry.outer_info_index).deref()
               return rs.class_lookup(declaring_name).get_class_object(rs)
             return null
         o 'getDeclaredClasses0()[L!/!/!;', (rs, _this) ->
@@ -401,9 +401,9 @@ native_methods =
             flat_names = []
             for icls in iclses
               for c in icls.classes when c.outer_info_index > 0
-                enclosing_name = util.typestr2descriptor cls.constant_pool.get(c.outer_info_index).deref()
+                enclosing_name = cls.constant_pool.get(c.outer_info_index).deref()
                 continue unless enclosing_name is my_class
-                flat_names.push util.typestr2descriptor cls.constant_pool.get(c.inner_info_index).deref()
+                flat_names.push cls.constant_pool.get(c.inner_info_index).deref()
             rs.async_op (resume_cb, except_cb) ->
               i = -1
               fetch_next_jco = () ->

@@ -116,7 +116,7 @@ class root.Method extends AbstractMethodField
       fetch_etype = () =>
         j++
         if j < exceptions.length
-          e_desc = util.typestr2descriptor exceptions[j]
+          e_desc = exceptions[j]
           rs.load_class(e_desc, null, ((cls)=>etype_objs[j]=cls.get_class_object(rs);fetch_etype()), failure_fn)
         else
           # XXX: missing parameterAnnotations

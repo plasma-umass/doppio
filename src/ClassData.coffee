@@ -38,7 +38,7 @@ class ClassData
 
     # These may not be initialized! But we have them loaded.
     for i in @interfaces
-      ifc_cls = rs.get_loaded_class util.typestr2descriptor @constant_pool.get(i).deref()
+      ifc_cls = rs.get_loaded_class @constant_pool.get(i).deref()
       field = ifc_cls.field_lookup(rs, field_spec)
       return field if field?
 
@@ -66,7 +66,7 @@ class ClassData
       return method if method?
 
     for i in @interfaces
-      ifc = rs.get_loaded_class util.typestr2descriptor @constant_pool.get(i).deref()
+      ifc = rs.get_loaded_class @constant_pool.get(i).deref()
       method = ifc.method_lookup(rs, method_spec)
       return method if method?
 
@@ -147,7 +147,7 @@ class ClassData
   is_subinterface: (rs, target) ->
     return true if @this_class is target.this_class
     for i in @interfaces
-      super_iface = rs.class_lookup util.typestr2descriptor @constant_pool.get(i).deref()
+      super_iface = rs.class_lookup @constant_pool.get(i).deref()
       return true if super_iface.is_subinterface rs, target
     return false unless @super_class?  # I'm java/lang/Object, can't go further
     return rs.class_lookup(@super_class).is_subinterface rs, target
@@ -169,10 +169,10 @@ class root.ReferenceClassData extends ClassData
     # bitmask for {public,final,super,interface,abstract} class modifier
     @access_byte = bytes_array.get_uint 2
     @access_flags = util.parse_flags @access_byte
-    @this_class  = util.typestr2descriptor @constant_pool.get(bytes_array.get_uint 2).deref()
+    @this_class  = @constant_pool.get(bytes_array.get_uint 2).deref()
     # super reference is 0 when there's no super (basically just java.lang.Object)
     super_ref = bytes_array.get_uint 2
-    @super_class = util.typestr2descriptor(@constant_pool.get(super_ref).deref()) unless super_ref is 0
+    @super_class = @constant_pool.get(super_ref).deref() unless super_ref is 0
     # direct interfaces of this class
     isize = bytes_array.get_uint 2
     @interfaces = (bytes_array.get_uint 2 for i in [0...isize] by 1)

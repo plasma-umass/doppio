@@ -44,7 +44,7 @@ class root.ClassOpcode extends root.Opcode
 
   take_args: (code_array, constant_pool) ->
     @class_ref = code_array.get_uint(2)
-    @class = util.typestr2descriptor constant_pool.get(@class_ref).deref()
+    @class = constant_pool.get(@class_ref).deref()
 
   annotate: (idx, pool) ->
     "\t##{@class_ref};#{util.format_extra_info pool.get @class_ref}"
@@ -64,8 +64,7 @@ class root.InvokeOpcode extends root.Opcode
     ";#{util.format_extra_info pool.get @method_spec_ref}"
 
   execute: (rs) ->
-    cdesc = util.typestr2descriptor @method_spec.class
-    cls = rs.class_lookup(cdesc, null, true)
+    cls = rs.class_lookup(@method_spec.class, null, true)
     if cls?
       my_sf = rs.curr_frame()
       if rs.method_lookup(cls, @method_spec).setup_stack(rs)?
@@ -74,7 +73,7 @@ class root.InvokeOpcode extends root.Opcode
     else
       # Initialize @method_spec.class and rerun opcode.
       rs.async_op (resume_cb, except_cb) =>
-        rs.initialize_class cdesc, null, (()->resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
+        rs.initialize_class @method_spec.class, null, (()->resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
     return
 
 class root.DynInvokeOpcode extends root.InvokeOpcode
@@ -338,7 +337,7 @@ class root.MultiArrayOpcode extends root.Opcode
 
   take_args: (code_array, constant_pool) ->
     @class_ref = code_array.get_uint 2
-    @class = util.typestr2descriptor constant_pool.get(@class_ref).deref()
+    @class = constant_pool.get(@class_ref).deref()
     @dim = code_array.get_uint 1
 
   annotate: (idx, pool) -> "\t##{@class_ref},  #{@dim};"
@@ -587,7 +586,7 @@ root.opcodes = {
   177: new root.Opcode 'return', { execute: (rs) -> rs.meta_stack().pop(); throw ReturnException }
   178: new root.FieldOpcode 'getstatic', {execute: (rs)->
     # Get the class referenced by the field_spec.
-    ref_cls = rs.class_lookup(util.typestr2descriptor(@field_spec.class), null, true)
+    ref_cls = rs.class_lookup(@field_spec.class, null, true)
     new_execute =
       if @field_spec.type not in ['J','D']
         (rs) -> rs.push @cls.static_get(rs, @field_spec.name)
@@ -607,14 +606,13 @@ root.opcodes = {
           rs.initialize_class cls_type, null, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
     else
       # Initialize @field_spec.class and rerun opcode.
-      cdesc = util.typestr2descriptor @field_spec.class
       rs.async_op (resume_cb, except_cb) =>
-        rs.initialize_class cdesc, null, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
+        rs.initialize_class @field_spec.class, null, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
     return
   }
   179: new root.FieldOpcode 'putstatic', {execute: (rs)->
     # Get the class referenced by the field_spec.
-    ref_cls = rs.class_lookup(util.typestr2descriptor(@field_spec.class), null, true)
+    ref_cls = rs.class_lookup(@field_spec.class, null, true)
     new_execute =
       if @field_spec.type not in ['J', 'D']
         (rs) -> @cls.static_put(rs, @field_spec.name, rs.pop())
@@ -634,13 +632,12 @@ root.opcodes = {
           rs.initialize_class cls_type, null, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
     else
       # Initialize @field_spec.class and rerun opcode.
-      cdesc = util.typestr2descriptor @field_spec.class
       rs.async_op (resume_cb, except_cb) =>
-        rs.initialize_class cdesc, null, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
+        rs.initialize_class @field_spec.class, null, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
     return
   }
   180: new root.FieldOpcode 'getfield', { execute: (rs) ->
-    cls = rs.class_lookup(util.typestr2descriptor(@field_spec.class))
+    cls = rs.class_lookup(@field_spec.class)
     field = rs.field_lookup(cls, @field_spec)
     name = field.cls.toClassString() + @field_spec.name
     new_execute =
@@ -657,7 +654,7 @@ root.opcodes = {
     return
   }
   181: new root.FieldOpcode 'putfield', { execute: (rs) ->
-    cls_obj = rs.class_lookup(util.typestr2descriptor(@field_spec.class))
+    cls_obj = rs.class_lookup(@field_spec.class)
     field = rs.field_lookup(cls_obj, @field_spec)
     name = field.cls.toClassString() + @field_spec.name
     new_execute =

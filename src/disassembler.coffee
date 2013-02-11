@@ -21,7 +21,7 @@ root.disassemble = (class_file) ->
   deprecated = _.find(class_file.attrs, (attr) -> attr.name == 'Deprecated')
   annotations = _.find(class_file.attrs, (attr) -> attr.name == 'RuntimeVisibleAnnotations')
   ifaces = (class_file.constant_pool.get(i).deref() for i in class_file.interfaces)
-  ifaces = (i.replace(/\//g, '.') for i in ifaces).join ','
+  ifaces = (util.ext_classname(i) for i in ifaces).join ','
   rv = "Compiled from \"#{source_file?.filename ? 'unknown'}\"\n"
   rv += access_string class_file.access_flags
   if class_file.access_flags.interface
@@ -95,7 +95,7 @@ root.disassemble = (class_file) ->
 
   print_excs = (exc_attr) ->
     excs = exc_attr.exceptions
-    "   throws " + (e.replace(/\//g, '.') for e in excs).join ', '
+    "   throws " + (util.ext_classname(e) for e in excs).join ', '
 
   rv += "{\n"
 

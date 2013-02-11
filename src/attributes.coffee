@@ -19,7 +19,7 @@ class ExceptionHandler
       if cti is 0
         "<any>"
       else
-        util.typestr2descriptor constant_pool.get(cti).deref()
+        constant_pool.get(cti).deref()
 
 class Code
   name: 'Code'
@@ -136,7 +136,7 @@ class StackMapTable
     tag = bytes_array.get_uint 1
     if tag == 7
       cls = constant_pool.get(bytes_array.get_uint 2).deref()
-      'class ' + (if /\w/.test cls[0] then cls else "\"#{cls}\"")
+      'class ' + (if /\w/.test cls[0] then util.descriptor2typestr(cls) else "\"#{cls}\"")
     else
       tag_to_type = [ 'bogus', 'int', 'float', 'double', 'long', 'null', 'this', 'object', 'uninitialized' ]
       tag_to_type[tag]
