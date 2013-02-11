@@ -15,7 +15,11 @@ class ExceptionHandler
     @end_pc     = bytes_array.get_uint 2
     @handler_pc = bytes_array.get_uint 2
     cti = bytes_array.get_uint 2
-    @catch_type = if cti==0 then "<any>" else constant_pool.get(cti).deref()
+    @catch_type =
+      if cti is 0
+        "<any>"
+      else
+        util.typestr2descriptor constant_pool.get(cti).deref()
 
 class Code
   name: 'Code'

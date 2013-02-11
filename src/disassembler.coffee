@@ -21,7 +21,7 @@ root.disassemble = (class_file) ->
   deprecated = _.find(class_file.attrs, (attr) -> attr.name == 'Deprecated')
   annotations = _.find(class_file.attrs, (attr) -> attr.name == 'RuntimeVisibleAnnotations')
   ifaces = (class_file.constant_pool.get(i).deref() for i in class_file.interfaces)
-  ifaces = ((if util.is_string(i) then util.ext_classname(i) else i.toExternalString()) for i in ifaces).join ','
+  ifaces = (i.replace(/\//g, '.') for i in ifaces).join ','
   rv = "Compiled from \"#{source_file?.filename ? 'unknown'}\"\n"
   rv += access_string class_file.access_flags
   if class_file.access_flags.interface
@@ -95,7 +95,7 @@ root.disassemble = (class_file) ->
 
   print_excs = (exc_attr) ->
     excs = exc_attr.exceptions
-    "   throws " + (util.ext_classname e for e in excs).join ', '
+    "   throws " + (e.replace(/\//g, '.') for e in excs).join ', '
 
   rv += "{\n"
 
@@ -140,7 +140,10 @@ root.disassemble = (class_file) ->
         rv += "   from   to  target type\n"
         for eh in code.exception_handlers
           rv += (fixed_width eh[item], 6 for item in ['start_pc', 'end_pc', 'handler_pc']).join ''
-          rv += "   #{if eh.catch_type[0] == '<' then 'any' else "Class #{eh.catch_type}\n"}\n"
+          if eh.catch_type is '<any>'
+            rv += "   any\n"
+          else
+            rv += "   Class #{eh.catch_type[1...-1]}\n"
         rv += "\n"
       for attr in code.attrs
         rv += attr.disassemblyOutput?() or ''

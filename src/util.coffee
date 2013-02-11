@@ -20,11 +20,11 @@ root.FLOAT_NEG_INFINITY_AS_INT = -8388608
 root.FLOAT_NaN_AS_INT = 0x7fc00000
 
 root.int_mod = (rs, a, b) ->
-  exceptions.java_throw rs, rs.class_lookup('java/lang/ArithmeticException'), '/ by zero' if b == 0
+  exceptions.java_throw rs, rs.class_lookup('Ljava/lang/ArithmeticException;'), '/ by zero' if b == 0
   a % b
 
 root.int_div = (rs, a, b) ->
-  exceptions.java_throw rs, rs.class_lookup('java/lang/ArithmeticException'), '/ by zero' if b == 0
+  exceptions.java_throw rs, rs.class_lookup('Ljava/lang/ArithmeticException;'), '/ by zero' if b == 0
   # spec: "if the dividend is the negative integer of largest possible magnitude
   # for the int type, and the divisor is -1, then overflow occurs, and the
   # result is equal to the dividend."
@@ -32,11 +32,11 @@ root.int_div = (rs, a, b) ->
   (a / b) | 0
 
 root.long_mod = (rs, a, b) ->
-  exceptions.java_throw rs, rs.class_lookup('java/lang/ArithmeticException'), '/ by zero' if b.isZero()
+  exceptions.java_throw rs, rs.class_lookup('Ljava/lang/ArithmeticException;'), '/ by zero' if b.isZero()
   a.modulo(b)
 
 root.long_div = (rs, a, b) ->
-  exceptions.java_throw rs, rs.class_lookup('java/lang/ArithmeticException'), '/ by zero' if b.isZero()
+  exceptions.java_throw rs, rs.class_lookup('Ljava/lang/ArithmeticException;'), '/ by zero' if b.isZero()
   a.div(b)
 
 root.float2int = (a) ->
@@ -231,8 +231,8 @@ root.lookup_handler = (handlers, object) ->
 
 # Java classes are represented internally using slashes as delimiters.
 # These helper functions convert between the two representations.
-root.ext_classname = (str) -> str.replace /\//g, '.'
-root.int_classname = (str) -> str.replace /\./g, '/'
+root.ext_classname = (str) -> root.descriptor2typestr(str).replace /\//g, '.'
+root.int_classname = (str) -> root.typestr2descriptor(str).replace /\./g, '/'
 
 root.internal2external =
   B: 'byte'
@@ -248,20 +248,12 @@ root.internal2external =
 external2internal = {}
 external2internal[v]=k for k,v of root.internal2external
 
-# XXX: Arrays of primitives have the type_str like [C, but we use 'char' to
-# denote primitive classes. This is a small hack to ensure those using this
-# method get the correct component type of array typestrings, at least until
-# we have smarter classloaders that can handle this case themselves.
-convert_if_prim = (type_str) -> root.internal2external[type_str] or type_str
-
 # Get the component type of an array type string. Cut off the [L and ; for
 # arrays of classes.
-root.get_component_type = (type_str) ->
-  return type_str[2...-1] if type_str[1] == 'L'
-  convert_if_prim type_str[1...]
+root.get_component_type = (type_str) -> type_str[1...]
 root.is_array_type = (type_str) -> type_str[0] == '['
-root.is_primitive_type = (type_str) -> type_str of external2internal
-root.is_reference_type = (type_str) -> not (root.is_array_type type_str or root.is_primitive_type type_str)
+root.is_primitive_type = (type_str) -> type_str of root.internal2external
+root.is_reference_type = (type_str) -> type_str[0] == 'L'
 # Converts type descriptors into standardized internal type strings.
 # Ljava/lang/Class; => java/lang/Class   Reference types
 # [Ljava/lang/Class; is unchanged        Array types

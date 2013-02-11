@@ -44,7 +44,7 @@ class root.ClassOpcode extends root.Opcode
 
   take_args: (code_array, constant_pool) ->
     @class_ref = code_array.get_uint(2)
-    @class = constant_pool.get(@class_ref).deref()
+    @class = util.typestr2descriptor constant_pool.get(@class_ref).deref()
 
   annotate: (idx, pool) ->
     "\t##{@class_ref};#{util.format_extra_info pool.get @class_ref}"
@@ -64,7 +64,8 @@ class root.InvokeOpcode extends root.Opcode
     ";#{util.format_extra_info pool.get @method_spec_ref}"
 
   execute: (rs) ->
-    cls = rs.class_lookup(@method_spec.class, null, true)
+    cdesc = util.typestr2descriptor @method_spec.class
+    cls = rs.class_lookup(cdesc, null, true)
     if cls?
       my_sf = rs.curr_frame()
       if rs.method_lookup(cls, @method_spec).setup_stack(rs)?
@@ -73,7 +74,7 @@ class root.InvokeOpcode extends root.Opcode
     else
       # Initialize @method_spec.class and rerun opcode.
       rs.async_op (resume_cb, except_cb) =>
-        rs.initialize_class @method_spec.class, null, (()->resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
+        rs.initialize_class cdesc, null, (()->resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
     return
 
 class root.DynInvokeOpcode extends root.InvokeOpcode
@@ -149,8 +150,9 @@ class root.LoadConstantOpcode extends root.Opcode
         # XXX: Make this rewrite itself to cache the jclass object.
         # Fetch the jclass object and push it on to the stack. Do not rerun
         # this opcode.
+        cdesc = util.typestr2descriptor @str_constant.value
         rs.async_op (resume_cb, except_cb) =>
-          rs.load_class(@str_constant.value, null, ((cls)=>resume_cb cls.get_class_object(rs), undefined, true), ((e_cb)->except_cb e_cb, true))
+          rs.load_class(cdesc, null, ((cls)=>resume_cb cls.get_class_object(rs), undefined, true), ((e_cb)->except_cb e_cb, true))
         return
       else
         rs.push @constant.value
@@ -336,7 +338,7 @@ class root.MultiArrayOpcode extends root.Opcode
 
   take_args: (code_array, constant_pool) ->
     @class_ref = code_array.get_uint 2
-    @class = constant_pool.get(@class_ref).deref()
+    @class = util.typestr2descriptor constant_pool.get(@class_ref).deref()
     @dim = code_array.get_uint 1
 
   annotate: (idx, pool) -> "\t##{@class_ref},  #{@dim};"
@@ -354,7 +356,7 @@ class root.MultiArrayOpcode extends root.Opcode
       arr_types = (@class[d..] for d in [0...@dim] by 1)
       init_arr = (curr_dim) =>
         len = counts[curr_dim]
-        if len < 0 then java_throw(rs, rs.class_lookup('java/lang/NegativeArraySizeException'),
+        if len < 0 then java_throw(rs, rs.class_lookup('Ljava/lang/NegativeArraySizeException;'),
           "Tried to init dimension #{curr_dim} of a #{@dim} dimensional #{@class.toString()} array with length #{len}")
         type = arr_types[curr_dim]
         if curr_dim+1 == @dim
@@ -374,7 +376,7 @@ class root.ArrayLoadOpcode extends root.Opcode
     obj = rs.check_null(rs.pop())
     array = obj.array
     unless 0 <= idx < array.length
-      java_throw(rs, rs.class_lookup('java/lang/ArrayIndexOutOfBoundsException'),
+      java_throw(rs, rs.class_lookup('Ljava/lang/ArrayIndexOutOfBoundsException;'),
         "#{idx} not in length #{array.length} array of type #{obj.cls.toClassString()}")
     rs.push array[idx]
     rs.push null if @name[0] in ['l', 'd']
@@ -387,7 +389,7 @@ class root.ArrayStoreOpcode extends root.Opcode
     obj = rs.check_null(rs.pop())
     array = obj.array
     unless 0 <= idx < array.length
-      java_throw(rs, rs.class_lookup('java/lang/ArrayIndexOutOfBoundsException'),
+      java_throw(rs, rs.class_lookup('Ljava/lang/ArrayIndexOutOfBoundsException;'),
         "#{idx} not in length #{array.length} array of type #{obj.cls.toClassString()}")
     array[idx] = value
     return
@@ -585,7 +587,7 @@ root.opcodes = {
   177: new root.Opcode 'return', { execute: (rs) -> rs.meta_stack().pop(); throw ReturnException }
   178: new root.FieldOpcode 'getstatic', {execute: (rs)->
     # Get the class referenced by the field_spec.
-    ref_cls = rs.class_lookup(@field_spec.class, null, true)
+    ref_cls = rs.class_lookup(util.typestr2descriptor(@field_spec.class), null, true)
     new_execute =
       if @field_spec.type not in ['J','D']
         (rs) -> rs.push @cls.static_get(rs, @field_spec.name)
@@ -605,13 +607,14 @@ root.opcodes = {
           rs.initialize_class cls_type, null, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
     else
       # Initialize @field_spec.class and rerun opcode.
+      cdesc = util.typestr2descriptor @field_spec.class
       rs.async_op (resume_cb, except_cb) =>
-        rs.initialize_class @field_spec.class, null, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
+        rs.initialize_class cdesc, null, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
     return
   }
   179: new root.FieldOpcode 'putstatic', {execute: (rs)->
     # Get the class referenced by the field_spec.
-    ref_cls = rs.class_lookup(@field_spec.class, null, true)
+    ref_cls = rs.class_lookup(util.typestr2descriptor(@field_spec.class), null, true)
     new_execute =
       if @field_spec.type not in ['J', 'D']
         (rs) -> @cls.static_put(rs, @field_spec.name, rs.pop())
@@ -631,14 +634,15 @@ root.opcodes = {
           rs.initialize_class cls_type, null, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
     else
       # Initialize @field_spec.class and rerun opcode.
+      cdesc = util.typestr2descriptor @field_spec.class
       rs.async_op (resume_cb, except_cb) =>
-        rs.initialize_class @field_spec.class, null, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
+        rs.initialize_class cdesc, null, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
     return
   }
   180: new root.FieldOpcode 'getfield', { execute: (rs) ->
-    cls = rs.class_lookup(@field_spec.class)
+    cls = rs.class_lookup(util.typestr2descriptor(@field_spec.class))
     field = rs.field_lookup(cls, @field_spec)
-    name = field.cls.toClassString() + '/' + @field_spec.name
+    name = field.cls.toClassString() + @field_spec.name
     new_execute =
       if @field_spec.type not in ['J','D']
         (rs) ->
@@ -653,9 +657,9 @@ root.opcodes = {
     return
   }
   181: new root.FieldOpcode 'putfield', { execute: (rs) ->
-    cls_obj = rs.class_lookup(@field_spec.class)
+    cls_obj = rs.class_lookup(util.typestr2descriptor(@field_spec.class))
     field = rs.field_lookup(cls_obj, @field_spec)
-    name = field.cls.toClassString() + '/' + @field_spec.name
+    name = field.cls.toClassString() + @field_spec.name
     new_execute =
       if @field_spec.type not in ['J','D']
         (rs) ->
@@ -694,7 +698,7 @@ root.opcodes = {
     cls = rs.class_lookup @class, null, true
     if cls?
       new_execute = (rs) ->
-        rs.push rs.heap_newarray "L#{@class};", rs.pop()
+        rs.push rs.heap_newarray @class, rs.pop()
       new_execute.call(@, rs)
       @execute = new_execute
     else
@@ -716,7 +720,7 @@ root.opcodes = {
         else
           target_class = @cls.toExternalString() # class we wish to cast to
           candidate_class = o.cls.toExternalString()
-          java_throw rs, rs.class_lookup('java/lang/ClassCastException'), "#{candidate_class} cannot be cast to #{target_class}"
+          java_throw rs, rs.class_lookup('Ljava/lang/ClassCastException;'), "#{candidate_class} cannot be cast to #{target_class}"
 
       new_execute.call @, rs
       @execute = new_execute
@@ -763,7 +767,7 @@ root.opcodes = {
       if rs.lock_counts[monitor] == 0
         delete rs.lock_refs[monitor]
     else
-      java_throw rs, rs.class_lookup('java/lang/IllegalMonitorStateException'), "Tried to monitorexit on lock not held by current thread"
+      java_throw rs, rs.class_lookup('Ljava/lang/IllegalMonitorStateException;'), "Tried to monitorexit on lock not held by current thread"
   }
   197: new root.MultiArrayOpcode 'multianewarray'
   198: new root.UnaryBranchOpcode 'ifnull', { cmp: (v) -> not v? }

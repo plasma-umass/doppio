@@ -26,13 +26,14 @@ root.read_classfile = (cls, cb) ->
 
 # main function that gets called from the frontend
 root.run_class = (rs, class_name, cmdline_args, done_cb) ->
-  main_spec = class: class_name, sig: 'main([Ljava/lang/String;)V'
+  class_descriptor = "L#{class_name};"
+  main_spec = class: class_descriptor, sig: 'main([Ljava/lang/String;)V'
   main_method = null
   run_main = ->
     trace "run_main"
     rs.run_until_finished (->
       rs.async_op (resume_cb, except_cb) ->
-        rs.initialize_class class_name, null, ((cls)->
+        rs.initialize_class class_descriptor, null, ((cls)->
           rs.init_args cmdline_args
           # wrap it in run_until_finished to handle any exceptions correctly
           rs.run_until_finished (-> main_method = rs.method_lookup cls, main_spec), true, (success) ->

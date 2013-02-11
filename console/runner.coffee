@@ -77,7 +77,7 @@ find_main_class = (extracted_jar_dir) ->
   manifest = fs.readFileSync manifest_path, 'utf8'
   for line in manifest.split '\n'
     match = line.match /Main-Class: (\S+)/
-    return util.int_classname(match[1]) if match?
+    return match[1].replace /\./g, '/' if match?
   return
 
 
@@ -137,7 +137,7 @@ if require.main == module
     unless cname?
       console.error "No main class provided and no Main-Class found in #{argv.jar}"
 
-  run = -> jvm.run_class rs, cname, java_cmd_args, null, argv.compile
+  run = -> jvm.run_class rs, cname, java_cmd_args
 
   if argv.profile?
     run_profiled run, rs, cname, argv.hot

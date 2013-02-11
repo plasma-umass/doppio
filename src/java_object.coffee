@@ -48,24 +48,24 @@ class root.JavaObject
     unless @fields[name] is undefined
       @fields[name] = val
     else
-      java_throw rs, rs.class_lookup('java/lang/NoSuchFieldError'), name
+      java_throw rs, rs.class_lookup('Ljava/lang/NoSuchFieldError;'), name
     return
 
   get_field: (rs, name) ->
     return @fields[name] unless @fields[name] is undefined
-    java_throw rs, rs.class_lookup('java/lang/NoSuchFieldError'), name
+    java_throw rs, rs.class_lookup('Ljava/lang/NoSuchFieldError;'), name
 
   get_field_from_offset: (rs, offset) ->
     f = @_get_field_from_offset rs, @cls, offset.toInt()
     if f.field.access_flags.static
       return f.cls_obj.static_get rs, f.field.name
-    return @get_field rs, f.cls + '/' + f.field.name
+    return @get_field rs, f.cls + f.field.name
 
   _get_field_from_offset: (rs, cls, offset) ->
     classname = cls.toClassString()
     until cls.fields[offset]?
       unless cls.super_class?
-        java_throw rs, rs.class_lookup('java/lang/NullPointerException'), "field #{offset} doesn't exist in class #{classname}"
+        java_throw rs, rs.class_lookup('Ljava/lang/NullPointerException;'), "field #{offset} doesn't exist in class #{classname}"
       cls = rs.class_lookup(cls.super_class)
     {field: cls.fields[offset], cls: cls.toClassString(), cls_obj: cls}
 
@@ -74,24 +74,24 @@ class root.JavaObject
     if f.field.access_flags.static
       f.cls_obj.static_put rs, f.field.name, value
     else
-      @set_field rs, f.cls + '/' + f.field.name, value
+      @set_field rs, f.cls + f.field.name, value
 
   toString: ->
-    if @cls.toClassString() is 'java/lang/String'
+    if @cls.toClassString() is 'Ljava/lang/String;'
       "<#{@cls.this_class} '#{@jvm2js_str()}' (*#{@ref})>"
     else
       "<#{@cls.this_class} (*#{@ref})>"
 
   # Convert a Java String object into an equivalent JS one.
   jvm2js_str: ->
-    util.chars2js_str(@fields['java/lang/String/value'], @fields['java/lang/String/offset'], @fields['java/lang/String/count'])
+    util.chars2js_str(@fields['Ljava/lang/String;value'], @fields['Ljava/lang/String;offset'], @fields['Ljava/lang/String;count'])
 
 
 class root.JavaClassObject extends root.JavaObject
   constructor: (rs, @$cls) ->
-    super rs, rs.class_lookup('java/lang/Class')
+    super rs, rs.class_lookup('Ljava/lang/Class;')
 
   toString: -> "<Class #{@$cls.this_class} (*#{@ref})>"
 
 root.thread_name = (rs, thread) ->
-  util.chars2js_str thread.get_field rs, 'java/lang/Thread/name'
+  util.chars2js_str thread.get_field rs, 'Ljava/lang/Thread;name'

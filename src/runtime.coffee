@@ -83,38 +83,38 @@ class root.RuntimeState
   # much as possible.
   preinitialize_core_classes: (resume_cb, except_cb) ->
     core_classes = [
-      'java/lang/Class'
-      'java/lang/String'
-      'java/io/ExpiringCache'
-      'java/io/FileDescriptor'
-      'java/io/FileNotFoundException'
-      'java/io/IOException'
-      'java/io/Serializable'
-      'java/io/UnixFileSystem'
-      'java/lang/ArithmeticException'
-      'java/lang/ArrayIndexOutOfBoundsException'
-      'java/lang/ArrayStoreException'
-      'java/lang/ClassCastException'
-      'java/lang/Cloneable'
-      'java/lang/Error'
-      'java/lang/ExceptionInInitializerError'
-      'java/lang/IllegalMonitorStateException'
-      'java/lang/InterruptedException'
-      'java/lang/NegativeArraySizeException'
-      'java/lang/NoSuchFieldError'
-      'java/lang/NoSuchMethodError'
-      'java/lang/NullPointerException'
-      'java/lang/reflect/Constructor'
-      'java/lang/reflect/Field'
-      'java/lang/reflect/Method'
-      'java/lang/StackTraceElement'
-      'java/lang/System'
-      'java/lang/Thread'
-      'java/lang/ThreadGroup'
-      'java/lang/Throwable'
-      'java/nio/ByteOrder'
-      'sun/misc/VM'
-      'sun/reflect/ConstantPool'
+      'Ljava/lang/Class;'
+      'Ljava/lang/String;'
+      'Ljava/lang/Error;'
+      '[Ljava/lang/StackTraceElement;'
+      'Ljava/io/ExpiringCache;'
+      'Ljava/io/FileDescriptor;'
+      'Ljava/io/FileNotFoundException;'
+      'Ljava/io/IOException;'
+      'Ljava/io/Serializable;'
+      'Ljava/io/UnixFileSystem;'
+      'Ljava/lang/ArithmeticException;'
+      'Ljava/lang/ArrayIndexOutOfBoundsException;'
+      'Ljava/lang/ArrayStoreException;'
+      'Ljava/lang/ClassCastException;'
+      'Ljava/lang/Cloneable;'
+      'Ljava/lang/ExceptionInInitializerError;'
+      'Ljava/lang/IllegalMonitorStateException;'
+      'Ljava/lang/InterruptedException;'
+      'Ljava/lang/NegativeArraySizeException;'
+      'Ljava/lang/NoSuchFieldError;'
+      'Ljava/lang/NoSuchMethodError;'
+      'Ljava/lang/NullPointerException;'
+      'Ljava/lang/reflect/Constructor;'
+      'Ljava/lang/reflect/Field;'
+      'Ljava/lang/reflect/Method;'
+      'Ljava/lang/System;'
+      'Ljava/lang/Thread;'
+      'Ljava/lang/ThreadGroup;'
+      'Ljava/lang/Throwable;'
+      'Ljava/nio/ByteOrder;'
+      'Lsun/misc/VM;'
+      'Lsun/reflect/ConstantPool;'
     ]
     i = -1
     init_next_core_class = =>
@@ -132,8 +132,8 @@ class root.RuntimeState
   init_threads: ->
     # initialize thread objects
     my_sf = @curr_frame()
-    @push (group = new JavaObject @, @class_lookup('java/lang/ThreadGroup'))
-    @method_lookup(@class_lookup('java/lang/ThreadGroup'), {class: 'java/lang/ThreadGroup', sig: '<init>()V'}).setup_stack(this)
+    @push (group = new JavaObject @, @class_lookup('Ljava/lang/ThreadGroup;'))
+    @method_lookup(@class_lookup('Ljava/lang/ThreadGroup;'), {class: 'Ljava/lang/ThreadGroup;', sig: '<init>()V'}).setup_stack(this)
     my_sf.runner = =>
       ct = null
       my_sf.runner = =>
@@ -143,13 +143,13 @@ class root.RuntimeState
         @curr_thread.$isAlive = true
         @thread_pool.push @curr_thread
         # hack to make auto-named threads match native Java
-        @class_lookup('java/lang/Thread').static_fields.threadInitNumber = 1
+        @class_lookup('Ljava/lang/Thread;').static_fields.threadInitNumber = 1
         debug "### finished thread init ###"
-      ct = new JavaObject @, @class_lookup('java/lang/Thread'),
-        'java/lang/Thread/name': @init_carr 'main'
-        'java/lang/Thread/priority': 1
-        'java/lang/Thread/group': group
-        'java/lang/Thread/threadLocals': null
+      ct = new JavaObject @, @class_lookup('Ljava/lang/Thread;'),
+        'Ljava/lang/Thread;name': @init_carr 'main'
+        'Ljava/lang/Thread;priority': 1
+        'Ljava/lang/Thread;group': group
+        'Ljava/lang/Thread;threadLocals': null
 
   meta_stack: -> @curr_thread.$meta_stack
 
@@ -159,7 +159,7 @@ class root.RuntimeState
   init_system_class: ->
     # initialize the system class
     my_sf = @curr_frame()
-    @class_lookup('java/lang/System').methods['initializeSystemClass()V'].setup_stack(this)
+    @class_lookup('Ljava/lang/System;').methods['initializeSystemClass()V'].setup_stack(this)
     my_sf.runner = ->
       my_sf.runner = null
       @system_initialized = true
@@ -241,12 +241,12 @@ class root.RuntimeState
 
   # Heap manipulation.
   check_null: (obj) ->
-    java_throw @, @class_lookup('java/lang/NullPointerException'), '' unless obj?
+    java_throw @, @class_lookup('Ljava/lang/NullPointerException;'), '' unless obj?
     obj
 
   heap_newarray: (type,len) ->
     if len < 0
-      java_throw @, @class_lookup('java/lang/NegativeArraySizeException'), "Tried to init [#{type} array with length #{len}"
+      java_throw @, @class_lookup('Ljava/lang/NegativeArraySizeException;'), "Tried to init [#{type} array with length #{len}"
     if type == 'J'
       new JavaArray @, @class_lookup('[J'), (gLong.ZERO for i in [0...len] by 1)
     else if type[0] == 'L'  # array of object
@@ -259,7 +259,7 @@ class root.RuntimeState
     trace "init_string: #{str}"
     return s if intern and (s = @string_pool.get str)?
     carr = @init_carr str
-    jvm_str = new JavaObject @, @class_lookup('java/lang/String'), {'java/lang/String/value':carr, 'java/lang/String/count':str.length}
+    jvm_str = new JavaObject @, @class_lookup('Ljava/lang/String;'), {'Ljava/lang/String;value':carr, 'Ljava/lang/String;count':str.length}
     @string_pool.set(str, jvm_str) if intern
     return jvm_str
   init_carr: (str) ->
@@ -317,11 +317,12 @@ class root.RuntimeState
           # define_class handles registering the ClassData with the class loader.
           # define_class also handles recalling load_class for any needed super
           # classes and interfaces.
-          loader.method_lookup(@, {sig: 'loadClass(Ljava/lang/String;)Ljava/lang/Class;'}).setup_stack(@)
+          loader.method_lookup(@, {sig: 'loadClass(Ljava/lang/String;)Ljava/lang/Class;;'}).setup_stack(@)
           return
         else
           # bootstrap class loader
-          @read_classfile name, ((class_file) =>
+          # remember to strip off the L and ; from 'name'
+          @read_classfile name[1...-1], ((class_file) =>
             if not class_file? or wrong_name = (class_file.toClassString() != name)
               msg = name
               if wrong_name
@@ -329,9 +330,9 @@ class root.RuntimeState
               # XXX: Fix this... exception is different depending if the class
               # was dynamically loaded.
               #if dyn
-              #  failure_fn ()=>java_throw @, @class_lookup('java/lang/ClassNotFoundException'), msg
+              #  failure_fn ()=>java_throw @, @class_lookup('Ljava/lang/ClassNotFoundException;'), msg
               #else
-              failure_fn ()=>java_throw @, @class_lookup('java/lang/NoClassDefFoundError'), msg
+              failure_fn ()=>java_throw @, @class_lookup('Ljava/lang/NoClassDefFoundError;'), msg
               return
             # Tell the ClassData that we are loading it. It will reset any
             # internal state in case we are re-loading.
@@ -344,7 +345,7 @@ class root.RuntimeState
             load_next_iface = () =>
               i++
               if i < num_interfaces
-                iface_type = class_file.constant_pool.get(class_file.interfaces[i]).deref()
+                iface_type = util.typestr2descriptor class_file.constant_pool.get(class_file.interfaces[i]).deref()
                 @load_class iface_type, trigger_class, load_next_iface, failure_fn
               else
                 setTimeout((()->success_fn class_file), 0)
@@ -452,6 +453,7 @@ class root.RuntimeState
       # XXX: If loading fails during initialization, do we have to modify the
       # exception thrown?
       trace "initialize_class: Loading class #{name}."
+
       setTimeout((() =>
         @load_class(name, trigger_class, (()=>
           setTimeout((()=>@initialize_class name, trigger_class, success_fn, failure_fn), 0)
@@ -504,7 +506,7 @@ class root.RuntimeState
           @meta_stack().pop()
           failure_fn (-> throw e)
 
-        cls = @class_lookup 'java/lang/ExceptionInInitializerError'
+        cls = @class_lookup 'Ljava/lang/ExceptionInInitializerError;'
         v = new JavaObject @, cls # new
         method_spec = sig: '<init>(Ljava/lang/Throwable;)V'
         @push_array([v,v,e.exception]) # dup, ldc
@@ -554,7 +556,7 @@ class root.RuntimeState
 
     unless first_clinit
       # Push ourselves back into the execution loop to run the <clinit> methods.
-      @run_until_finished((->), false, (->))
+      @run_until_finished((->), false, @stashed_done_cb)
       return
 
     # Classes did not have any clinit functions, and were already loaded.
@@ -578,7 +580,7 @@ class root.RuntimeState
     load_next_iface = () =>
       i++
       if i < num_interfaces
-        iface_type = class_file.constant_pool.get(class_file.interfaces[i]).deref()
+        iface_type = util.typestr2descriptor class_file.constant_pool.get(class_file.interfaces[i]).deref()
         # XXX: We're passing in 'loader' rather than a trigger_class. This needs to be fixed
         # for proper ClassLoader support.
         @load_class iface_type, loader, load_next_iface, failure_fn
@@ -593,14 +595,14 @@ class root.RuntimeState
   method_lookup: (cls, method_spec) ->
     method = cls.method_lookup(this, method_spec)
     return method if method?
-    java_throw @, @class_lookup('java/lang/NoSuchMethodError'),
-      "No such method found in #{method_spec.class}: #{method_spec.sig}"
+    java_throw @, @class_lookup('Ljava/lang/NoSuchMethodError;'),
+      "No such method found in #{util.ext_classname(method_spec.class)}::#{method_spec.sig}"
 
   field_lookup: (cls, field_spec) ->
     field = cls.field_lookup this, field_spec
     return field if field?
-    java_throw @, @class_lookup('java/lang/NoSuchFieldError'),
-      "No such field found in #{field_spec.class}: #{field_spec.name}"
+    java_throw @, @class_lookup('Ljava/lang/NoSuchFieldError;'),
+      "No such field found in #{util.ext_classname(field_spec.class)}::#{field_spec.name}"
 
   # address of the block that this address is contained in
   block_addr: (address) ->
@@ -634,6 +636,7 @@ class root.RuntimeState
   async_op: (cb) -> throw new YieldIOException cb
 
   run_until_finished: (setup_fn, no_threads, done_cb) ->
+    @stashed_done_cb = done_cb  # hack for the case where we error out of <clinit>
     @_in_main_loop = true
     try
       setup_fn()

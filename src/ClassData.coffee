@@ -38,7 +38,7 @@ class ClassData
 
     # These may not be initialized! But we have them loaded.
     for i in @interfaces
-      ifc_cls = rs.get_loaded_class @constant_pool.get(i).deref()
+      ifc_cls = rs.get_loaded_class util.typestr2descriptor @constant_pool.get(i).deref()
       field = ifc_cls.field_lookup(rs, field_spec)
       return field if field?
 
@@ -66,7 +66,7 @@ class ClassData
       return method if method?
 
     for i in @interfaces
-      ifc = rs.get_loaded_class @constant_pool.get(i).deref()
+      ifc = rs.get_loaded_class util.typestr2descriptor @constant_pool.get(i).deref()
       method = ifc.method_lookup(rs, method_spec)
       return method if method?
 
@@ -74,13 +74,13 @@ class ClassData
 
   static_get: (rs, name) ->
     return @static_fields[name] unless @static_fields[name] is undefined
-    java_throw rs, rs.class_lookup('java/lang/NoSuchFieldError'), name
+    java_throw rs, rs.class_lookup('Ljava/lang/NoSuchFieldError;'), name
 
   static_put: (rs, name, val) ->
     unless @static_fields[name] is undefined
       @static_fields[name] = val
     else
-      java_throw rs, rs.class_lookup('java/lang/NoSuchFieldError'), name
+      java_throw rs, rs.class_lookup('Ljava/lang/NoSuchFieldError;'), name
 
   # Resets any ClassData state that may have been built up
   load: () ->
@@ -105,7 +105,7 @@ class ClassData
       cls = rs.class_lookup t
       for f in cls.fields when not f.access_flags.static
         val = util.initial_value f.raw_descriptor
-        @default_fields[t + '/' + f.name] = val
+        @default_fields[t + f.name] = val
       t = cls.super_class
 
   # Used internally to reconstruct @static_fields
@@ -147,7 +147,7 @@ class ClassData
   is_subinterface: (rs, target) ->
     return true if @this_class is target.this_class
     for i in @interfaces
-      super_iface = rs.class_lookup @constant_pool.get(i).deref()
+      super_iface = rs.class_lookup util.typestr2descriptor @constant_pool.get(i).deref()
       return true if super_iface.is_subinterface rs, target
     return false unless @super_class?  # I'm java/lang/Object, can't go further
     return rs.class_lookup(@super_class).is_subinterface rs, target
@@ -169,10 +169,10 @@ class root.ReferenceClassData extends ClassData
     # bitmask for {public,final,super,interface,abstract} class modifier
     @access_byte = bytes_array.get_uint 2
     @access_flags = util.parse_flags @access_byte
-    @this_class  = @constant_pool.get(bytes_array.get_uint 2).deref()
+    @this_class  = util.typestr2descriptor @constant_pool.get(bytes_array.get_uint 2).deref()
     # super reference is 0 when there's no super (basically just java.lang.Object)
     super_ref = bytes_array.get_uint 2
-    @super_class = @constant_pool.get(super_ref).deref() unless super_ref is 0
+    @super_class = util.typestr2descriptor(@constant_pool.get(super_ref).deref()) unless super_ref is 0
     # direct interfaces of this class
     isize = bytes_array.get_uint 2
     @interfaces = (bytes_array.get_uint 2 for i in [0...isize] by 1)
@@ -217,7 +217,7 @@ class root.ReferenceClassData extends ClassData
       # We are both interfaces
       if target.access_flags.interface then return @is_subinterface(rs,target)
       # Only I am an interface
-      return target.toClassString() is 'java/lang/Object' unless target.access_flags.interface
+      return target.toClassString() is 'Ljava/lang/Object;' unless target.access_flags.interface
     else
       # I am a regular class, target is an interface
       if target.access_flags.interface then return @is_subinterface(rs,target)
@@ -231,7 +231,7 @@ class root.ArrayClassData extends ClassData
     @fl_cache = {}
     @access_flags = {}
     @component_type = util.get_component_type @this_class
-    @super_class = 'java/lang/Object'
+    @super_class = 'Ljava/lang/Object;'
     @interfaces = []
     @fields = []
     @methods = {}
@@ -251,9 +251,9 @@ class root.ArrayClassData extends ClassData
       # Must be a reference type.
       if target.access_flags.interface
         # Interface reference type
-        return target.toClassString() in ['java/lang/Cloneable','java/io/Serializable']
+        return target.toClassString() in ['Ljava/lang/Cloneable;','Ljava/io/Serializable;']
       # Non-interface reference type
-      return target.toClassString() is 'java/lang/Object'
+      return target.toClassString() is 'Ljava/lang/Object;'
 
     # We are both array types, so it only matters if my component type can be
     # cast to its component type.

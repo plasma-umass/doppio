@@ -56,13 +56,13 @@ class root.JavaException
 
   toplevel_catch_handler: (rs) ->
     debug "\nUncaught #{@exception.cls.toClassString()}"
-    msg = @exception.get_field rs, 'java/lang/Throwable/detailMessage'
+    msg = @exception.get_field rs, 'Ljava/lang/Throwable;detailMessage'
     debug "\t#{msg.jvm2js_str()}" if msg?
     rs.show_state()
     rs.push2 rs.curr_thread, @exception
-    thread_cls = rs.class_lookup('java/lang/Thread')
+    thread_cls = rs.class_lookup('Ljava/lang/Thread;')
     rs.method_lookup(thread_cls,
-      { class: 'java/lang/Thread'
+      { class: 'Ljava/lang/Thread;'
       sig: 'dispatchUncaughtException(Ljava/lang/Throwable;)V'} ).setup_stack(rs)
 
 
