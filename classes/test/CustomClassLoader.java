@@ -56,9 +56,13 @@ public class CustomClassLoader extends ClassLoader {
     System.out.println("Called CustomClassLoader.foo");
   }
 
+  public static void bar(){
+    System.out.println("Called CustomClassLoader.bar");
+  }
+
   public static void main(String[] args) throws Exception {
     CustomClassLoader loader1 = new CustomClassLoader();
-    
+
     Class<?> c = Class.forName("classes.test.CustomClassLoader", true, loader1);
     System.out.println("Custom loaded class: " + c);
 
@@ -70,5 +74,7 @@ public class CustomClassLoader extends ClassLoader {
 
     java.lang.reflect.Method m = c.getMethod("foo", new Class[] {});
     m.invoke(null, new Object[]{});
+    java.lang.reflect.Method m2 = c.getMethod("bar", new Class[] {});
+    m2.invoke(null, new Object[]{});
   }
 }

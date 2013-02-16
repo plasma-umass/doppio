@@ -3,6 +3,7 @@ readline = require 'readline'
 {argv} = require 'optimist'
 jvm = require '../src/jvm'
 {RuntimeState} = require '../src/runtime'
+{BootstrapClassLoader} = require '../src/ClassLoader'
 
 "use strict"
 
@@ -20,7 +21,7 @@ if require.main == module
   # initialize the RuntimeState
   write_stdout = process.stdout.write.bind process.stdout
   jvm.classpath = [ ".", "#{__dirname}/../vendor/classes" ]
-  rs = new RuntimeState(write_stdout, read_stdin, jvm.read_classfile)
+  rs = new RuntimeState(write_stdout, read_stdin, new BootstrapClassLoader(jvm.read_classfile))
 
   # create the REPL
   stdin = process.openStdin()

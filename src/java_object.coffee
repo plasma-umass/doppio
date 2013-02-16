@@ -1,9 +1,9 @@
 
 _ = require '../vendor/_.js'
 util = require './util'
-{vtrace} = require './logging'
 {java_throw} = require './exceptions'
-{log,debug,error} = require './logging'
+{log,debug,error,trace,vtrace} = require './logging'
+CustomClassLoader = undefined # XXX: Circular dependency hack.
 
 "use strict"
 
@@ -24,9 +24,9 @@ class root.JavaArray
 
   toString: ->
     if @array.length <= 10
-      "<#{@cls.this_class} [#{@array}] (*#{@ref})>"
+      "<#{@cls.get_type()} [#{@array}] (*#{@ref})>"
     else
-      "<#{@cls.this_class} of length #{@array.length} (*#{@ref})>"
+      "<#{@cls.get_type()} of length #{@array.length} (*#{@ref})>"
 
 
 class root.JavaObject
@@ -39,7 +39,6 @@ class root.JavaObject
         @fields[field] = obj[field]
     return
 
-
   clone: (rs) ->
     # note: we don't clone the type, because they're effectively immutable
     new root.JavaObject rs, @cls, _.clone(@fields)
@@ -48,12 +47,12 @@ class root.JavaObject
     unless @fields[name] is undefined
       @fields[name] = val
     else
-      java_throw rs, rs.class_lookup('Ljava/lang/NoSuchFieldError;'), name
+      java_throw rs, @cls.loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name
     return
 
   get_field: (rs, name) ->
     return @fields[name] unless @fields[name] is undefined
-    java_throw rs, rs.class_lookup('Ljava/lang/NoSuchFieldError;'), name
+    java_throw rs, @cls.loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name
 
   get_field_from_offset: (rs, offset) ->
     f = @_get_field_from_offset rs, @cls, offset.toInt()
@@ -64,9 +63,9 @@ class root.JavaObject
   _get_field_from_offset: (rs, cls, offset) ->
     classname = cls.toClassString()
     until cls.fields[offset]?
-      unless cls.super_class?
-        java_throw rs, rs.class_lookup('Ljava/lang/NullPointerException;'), "field #{offset} doesn't exist in class #{classname}"
-      cls = rs.class_lookup(cls.super_class)
+      unless cls.get_super_class()?
+        java_throw rs, @cls.loader.get_initialized_class('Ljava/lang/NullPointerException;'), "field #{offset} doesn't exist in class #{classname}"
+      cls = cls.get_super_class()
     {field: cls.fields[offset], cls: cls.toClassString(), cls_obj: cls}
 
   set_field_from_offset: (rs, offset, value) ->
@@ -78,9 +77,9 @@ class root.JavaObject
 
   toString: ->
     if @cls.toClassString() is 'Ljava/lang/String;'
-      "<#{@cls.this_class} '#{@jvm2js_str()}' (*#{@ref})>"
+      "<#{@cls.get_type()} '#{@jvm2js_str()}' (*#{@ref})>"
     else
-      "<#{@cls.this_class} (*#{@ref})>"
+      "<#{@cls.get_type()} (*#{@ref})>"
 
   # Convert a Java String object into an equivalent JS one.
   jvm2js_str: ->
@@ -89,9 +88,17 @@ class root.JavaObject
 
 class root.JavaClassObject extends root.JavaObject
   constructor: (rs, @$cls) ->
-    super rs, rs.class_lookup('Ljava/lang/Class;')
+    super rs, rs.get_bs_cl().get_loaded_class('Ljava/lang/Class;')
 
-  toString: -> "<Class #{@$cls.this_class} (*#{@ref})>"
+  toString: -> "<Class #{@$cls.get_type()} (*#{@ref})>"
+
+# Each JavaClassLoaderObject is a unique ClassLoader.
+class root.JavaClassLoaderObject extends root.JavaObject
+  constructor: (rs, @cls) ->
+    super rs, @cls
+    # XXX: Circular dependency hack.
+    {CustomClassLoader} = require('./ClassLoader') unless CustomClassLoader?
+    @$loader = new CustomClassLoader(rs.get_bs_cl(), @)
 
 root.thread_name = (rs, thread) ->
   util.chars2js_str thread.get_field rs, 'Ljava/lang/Thread;name'

@@ -6,6 +6,7 @@ util = require '../src/util'
 logging = require '../src/logging'
 methods = require '../src/methods'
 runtime = require '../src/runtime'
+{BootstrapClassLoader} = require '../src/ClassLoader'
 
 "use strict"
 
@@ -128,7 +129,7 @@ if require.main == module
       process.stdin.pause()
       resume data
 
-  rs = new runtime.RuntimeState(stdout, read_stdin, jvm.read_classfile)
+  rs = new runtime.RuntimeState(stdout, read_stdin, new BootstrapClassLoader(jvm.read_classfile))
   java_cmd_args = (argv.java?.toString().trim().split /\s+/) or []
 
   if argv.jar?

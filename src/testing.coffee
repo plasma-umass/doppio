@@ -7,6 +7,7 @@ util = require './util'
 {ReferenceClassData} = require './ClassData'
 fs = node?.fs ? require 'fs'
 path = node?.path ? require 'path'
+{BootstrapClassLoader} = require './ClassLoader'
 
 "use strict"
 
@@ -69,7 +70,7 @@ run_stdout_test = (doppio_dir, test_class, callback) ->
   java_output = fs.readFileSync "#{path.resolve doppio_dir, test_class}.runout", 'utf8'
   doppio_output = ''
   stdout = (str) -> doppio_output += str
-  rs = new RuntimeState stdout, (->), jvm.read_classfile
+  rs = new RuntimeState stdout, (->), new BootstrapClassLoader(jvm.read_classfile)
   jvm.run_class rs, test_class, [], ->
     callback cleandiff(doppio_output, java_output)
 

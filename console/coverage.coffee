@@ -5,6 +5,7 @@ path = require 'path'
 jvm = require '../src/jvm'
 opcodes = require '../src/opcodes'
 {RuntimeState} = require '../src/runtime'
+{BootstrapClassLoader} = require '../src/ClassLoader'
 natives = require '../src/natives'
 testing = require '../src/testing'
 
@@ -65,7 +66,7 @@ run_tests = (test_classes, stdout, quiet, callback) ->
     return callback() if test_classes.length == 0
     test = test_classes.shift()
     quiet || stdout "running #{test}...\n"
-    rs = new RuntimeState((->), (->), jvm.read_classfile)
+    rs = new RuntimeState((->), (->), new BootstrapClassLoader(jvm.read_classfile))
     jvm.run_class rs, test, [], _runner
 
   _runner()

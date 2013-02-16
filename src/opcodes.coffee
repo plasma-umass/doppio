@@ -2,7 +2,7 @@
 gLong = require '../vendor/gLong.js'
 util = require './util'
 {java_throw,ReturnException,JavaException} = require './exceptions'
-{JavaObject,JavaArray} = require './java_object'
+{JavaObject,JavaArray,JavaClassLoaderObject} = require './java_object'
 
 "use strict"
 
@@ -64,7 +64,7 @@ class root.InvokeOpcode extends root.Opcode
     ";#{util.format_extra_info pool.get @method_spec_ref}"
 
   execute: (rs) ->
-    cls = rs.class_lookup(@method_spec.class, null, true)
+    cls = rs.get_class(@method_spec.class, true)
     if cls?
       my_sf = rs.curr_frame()
       if rs.method_lookup(cls, @method_spec).setup_stack(rs)?
@@ -73,7 +73,7 @@ class root.InvokeOpcode extends root.Opcode
     else
       # Initialize @method_spec.class and rerun opcode.
       rs.async_op (resume_cb, except_cb) =>
-        rs.initialize_class @method_spec.class, null, (()->resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
+        rs.get_cl().initialize_class rs, @method_spec.class, (()->resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
     return
 
 class root.DynInvokeOpcode extends root.InvokeOpcode
@@ -151,7 +151,7 @@ class root.LoadConstantOpcode extends root.Opcode
         # this opcode.
         cdesc = util.typestr2descriptor @str_constant.value
         rs.async_op (resume_cb, except_cb) =>
-          rs.load_class(cdesc, null, ((cls)=>resume_cb cls.get_class_object(rs), undefined, true), ((e_cb)->except_cb e_cb, true))
+          rs.get_cl().load_class(rs, cdesc, ((cls)=>resume_cb cls.get_class_object(rs), undefined, true), ((e_cb)->except_cb e_cb, true))
         return
       else
         rs.push @constant.value
@@ -343,10 +343,10 @@ class root.MultiArrayOpcode extends root.Opcode
   annotate: (idx, pool) -> "\t##{@class_ref},  #{@dim};"
 
   execute: (rs) ->
-    cls = rs.class_lookup @class, null, true
+    cls = rs.get_class @class, true
     unless cls?
       rs.async_op (resume_cb, except_cb) =>
-        rs.initialize_class @class, null, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
+        rs.get_cl().initialize_class rs, @class, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
       return
 
     new_execute = (rs) ->
@@ -355,14 +355,14 @@ class root.MultiArrayOpcode extends root.Opcode
       arr_types = (@class[d..] for d in [0...@dim] by 1)
       init_arr = (curr_dim) =>
         len = counts[curr_dim]
-        if len < 0 then java_throw(rs, rs.class_lookup('Ljava/lang/NegativeArraySizeException;'),
+        if len < 0 then java_throw(rs, rs.get_bs_class('Ljava/lang/NegativeArraySizeException;'),
           "Tried to init dimension #{curr_dim} of a #{@dim} dimensional #{@class.toString()} array with length #{len}")
         type = arr_types[curr_dim]
         if curr_dim+1 == @dim
           array = (default_val for i in [0...len] by 1)
         else
           array = (init_arr(curr_dim+1) for i in [0...len] by 1)
-        new JavaArray rs, rs.class_lookup(type), array
+        new JavaArray rs, rs.get_bs_class(type), array
       rs.push init_arr 0
 
     new_execute.call(@, rs)
@@ -375,7 +375,7 @@ class root.ArrayLoadOpcode extends root.Opcode
     obj = rs.check_null(rs.pop())
     array = obj.array
     unless 0 <= idx < array.length
-      java_throw(rs, rs.class_lookup('Ljava/lang/ArrayIndexOutOfBoundsException;'),
+      java_throw(rs, rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;'),
         "#{idx} not in length #{array.length} array of type #{obj.cls.toClassString()}")
     rs.push array[idx]
     rs.push null if @name[0] in ['l', 'd']
@@ -388,7 +388,7 @@ class root.ArrayStoreOpcode extends root.Opcode
     obj = rs.check_null(rs.pop())
     array = obj.array
     unless 0 <= idx < array.length
-      java_throw(rs, rs.class_lookup('Ljava/lang/ArrayIndexOutOfBoundsException;'),
+      java_throw(rs, rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;'),
         "#{idx} not in length #{array.length} array of type #{obj.cls.toClassString()}")
     array[idx] = value
     return
@@ -586,7 +586,7 @@ root.opcodes = {
   177: new root.Opcode 'return', { execute: (rs) -> rs.meta_stack().pop(); throw ReturnException }
   178: new root.FieldOpcode 'getstatic', {execute: (rs)->
     # Get the class referenced by the field_spec.
-    ref_cls = rs.class_lookup(@field_spec.class, null, true)
+    ref_cls = rs.get_class(@field_spec.class, true)
     new_execute =
       if @field_spec.type not in ['J','D']
         (rs) -> rs.push @cls.static_get(rs, @field_spec.name)
@@ -596,23 +596,23 @@ root.opcodes = {
       # Get the *actual* class that owns this field.
       # This may not be initialized if it's an interface, so we need to check.
       cls_type = rs.field_lookup(ref_cls, @field_spec).cls.this_class
-      @cls = rs.class_lookup cls_type, null, true
+      @cls = rs.get_class cls_type, true
       if @cls?
         new_execute.call(@, rs)
         @execute = new_execute
       else
         # Initialize cls_type and rerun opcode.
         rs.async_op (resume_cb, except_cb) =>
-          rs.initialize_class cls_type, null, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
+          rs.get_cl().initialize_class rs, cls_type, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
     else
       # Initialize @field_spec.class and rerun opcode.
       rs.async_op (resume_cb, except_cb) =>
-        rs.initialize_class @field_spec.class, null, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
+        rs.get_cl().initialize_class rs, @field_spec.class, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
     return
   }
   179: new root.FieldOpcode 'putstatic', {execute: (rs)->
     # Get the class referenced by the field_spec.
-    ref_cls = rs.class_lookup(@field_spec.class, null, true)
+    ref_cls = rs.get_class(@field_spec.class, true)
     new_execute =
       if @field_spec.type not in ['J', 'D']
         (rs) -> @cls.static_put(rs, @field_spec.name, rs.pop())
@@ -622,22 +622,22 @@ root.opcodes = {
       # Get the *actual* class that owns this field.
       # This may not be initialized if it's an interface, so we need to check.
       cls_type = rs.field_lookup(ref_cls, @field_spec).cls.this_class
-      @cls = rs.class_lookup cls_type, null, true
+      @cls = rs.get_class cls_type, true
       if @cls?
         new_execute.call(@, rs)
         @execute = new_execute
       else
         # Initialize cls_type and rerun opcode.
         rs.async_op (resume_cb, except_cb) =>
-          rs.initialize_class cls_type, null, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
+          rs.get_cl().initialize_class rs, cls_type, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
     else
       # Initialize @field_spec.class and rerun opcode.
       rs.async_op (resume_cb, except_cb) =>
-        rs.initialize_class @field_spec.class, null, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
+        rs.get_cl().initialize_class rs, @field_spec.class, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
     return
   }
   180: new root.FieldOpcode 'getfield', { execute: (rs) ->
-    cls = rs.class_lookup(@field_spec.class)
+    cls = rs.get_class(@field_spec.class)
     field = rs.field_lookup(cls, @field_spec)
     name = field.cls.toClassString() + @field_spec.name
     new_execute =
@@ -654,7 +654,7 @@ root.opcodes = {
     return
   }
   181: new root.FieldOpcode 'putfield', { execute: (rs) ->
-    cls_obj = rs.class_lookup(@field_spec.class)
+    cls_obj = rs.get_class(@field_spec.class)
     field = rs.field_lookup(cls_obj, @field_spec)
     name = field.cls.toClassString() + @field_spec.name
     new_execute =
@@ -675,40 +675,42 @@ root.opcodes = {
   184: new root.InvokeOpcode 'invokestatic'
   185: new root.DynInvokeOpcode 'invokeinterface'
   187: new root.ClassOpcode 'new', { execute: (rs) ->
-    @cls = rs.class_lookup @class, null, true
+    @cls = rs.get_class @class, true
     if @cls?
-      rs.push new JavaObject(rs, @cls)
-      # Self-modify; cache the class file lookup.
-      @execute = (rs) -> rs.push new JavaObject(rs, @cls)
+      # Check if this is a ClassLoader or not.
+      if @cls.is_castable rs, rs.get_bs_cl().get_loaded_class('Ljava/lang/ClassLoader;')
+        rs.push new JavaClassLoaderObject(rs, @cls)
+        @execute = (rs) -> rs.push new JavaClassLoaderObject(rs, @cls)
+      else
+        rs.push new JavaObject(rs, @cls)
+        # Self-modify; cache the class file lookup.
+        @execute = (rs) -> rs.push new JavaObject(rs, @cls)
     else
       # Initialize @type, create a JavaObject for it, and push it onto the stack.
       # Do not rerun opcode.
       rs.async_op (resume_cb, except_cb) =>
-        rs.initialize_class @class, null, ((class_file)=>resume_cb(new JavaObject(rs, class_file), undefined, true)), ((e_cb)->except_cb(e_cb, true))
+        rs.get_cl().initialize_class rs, @class, ((class_file)=>resume_cb(new JavaObject(rs, class_file), undefined, true)), ((e_cb)->except_cb(e_cb, true))
   }
   188: new root.NewArrayOpcode 'newarray', { execute: (rs) -> rs.push rs.heap_newarray @element_type, rs.pop() }
   189: new root.ClassOpcode 'anewarray', { execute: (rs) ->
-    # Make sure the array class is loaded.
-    # XXX: We should *NOT* be initializing the component class here; just loading it. This is a
-    # hackfix so we mark the array class as initialized. In reality, array classes
-    # do not get "initialized", but we check ClassData.initialized in multiple places.
-    cls = rs.class_lookup @class, null, true
+    # Make sure the component class is loaded.
+    cls = rs.get_cl().get_loaded_class @class, true
     if cls?
       new_execute = (rs) ->
         rs.push rs.heap_newarray @class, rs.pop()
       new_execute.call(@, rs)
       @execute = new_execute
     else
-      # Initialize @class and rerun opcode.
+      # Load @class and rerun opcode.
       rs.async_op (resume_cb, except_cb) =>
-        rs.initialize_class @class, null, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
+        rs.get_cl().load_class rs, @class, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
     return
   }
   190: new root.Opcode 'arraylength', { execute: (rs) -> rs.push rs.check_null(rs.pop()).array.length }
   191: new root.Opcode 'athrow', { execute: (rs) -> throw new JavaException rs.pop() }
   192: new root.ClassOpcode 'checkcast', { execute: (rs) ->
     # Ensure the class is loaded.
-    @cls = rs.get_loaded_class @class, null, true
+    @cls = rs.get_cl().get_loaded_class @class, true
     if @cls?
       new_execute = (rs) ->
         o = rs.pop()
@@ -717,19 +719,19 @@ root.opcodes = {
         else
           target_class = @cls.toExternalString() # class we wish to cast to
           candidate_class = o.cls.toExternalString()
-          java_throw rs, rs.class_lookup('Ljava/lang/ClassCastException;'), "#{candidate_class} cannot be cast to #{target_class}"
+          java_throw rs, rs.get_bs_class('Ljava/lang/ClassCastException;'), "#{candidate_class} cannot be cast to #{target_class}"
 
       new_execute.call @, rs
       @execute = new_execute
     else
       # Fetch @class and rerun opcode.
       rs.async_op (resume_cb, except_cb) =>
-        rs.load_class @class, null, (()->
+        rs.get_cl().load_class rs, @class, (()->
           resume_cb undefined, undefined, true, false
         ), ((e_cb)->except_cb(e_cb, true))
   }
   193: new root.ClassOpcode 'instanceof', { execute: (rs) ->
-    @cls = rs.get_loaded_class @class, null, true
+    @cls = rs.get_cl().get_loaded_class @class, true
     if @cls?
       new_execute = (rs) ->
         o=rs.pop()
@@ -739,7 +741,7 @@ root.opcodes = {
     else
       # Fetch @class and rerun opcode.
       rs.async_op (resume_cb, except_cb) =>
-        rs.load_class @class, null, (()->
+        rs.get_cl().load_class rs, @class, (()->
           resume_cb undefined, undefined, true, false
         ), ((e_cb)->except_cb(e_cb, true))
   }
@@ -764,7 +766,7 @@ root.opcodes = {
       if rs.lock_counts[monitor] == 0
         delete rs.lock_refs[monitor]
     else
-      java_throw rs, rs.class_lookup('Ljava/lang/IllegalMonitorStateException;'), "Tried to monitorexit on lock not held by current thread"
+      java_throw rs, rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;'), "Tried to monitorexit on lock not held by current thread"
   }
   197: new root.MultiArrayOpcode 'multianewarray'
   198: new root.UnaryBranchOpcode 'ifnull', { cmp: (v) -> not v? }

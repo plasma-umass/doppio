@@ -68,7 +68,7 @@ trapped_methods =
       Throwable: [
         o 'fillInStackTrace()L!/!/!;', (rs, _this) ->
             stack = []
-            strace = new JavaArray rs, rs.class_lookup('[Ljava/lang/StackTraceElement;'), stack
+            strace = new JavaArray rs, rs.get_bs_class('[Ljava/lang/StackTraceElement;'), stack
             _this.set_field rs, 'Ljava/lang/Throwable;stackTrace', strace
             # we don't want to include the stack frames that were created by
             # the construction of this exception
@@ -87,7 +87,7 @@ trapped_methods =
                 for i,row of line_nums when row.start_pc <= sf.pc
                   ln = row.line_number
               ln ?= -1
-              stack.push new JavaObject rs, rs.class_lookup('Ljava/lang/StackTraceElement;'), {
+              stack.push new JavaObject rs, rs.get_bs_class('Ljava/lang/StackTraceElement;'), {
                 'Ljava/lang/StackTraceElement;declaringClass': rs.init_string util.ext_classname cls.toClassString()
                 'Ljava/lang/StackTraceElement;methodName': rs.init_string(sf.method.name ? 'unknown')
                 'Ljava/lang/StackTraceElement;fileName': rs.init_string source_file
@@ -111,7 +111,7 @@ trapped_methods =
     nio:
       Bits: [
         o 'byteOrder()L!/!/ByteOrder;', (rs) ->
-            cls = rs.class_lookup('Ljava/nio/ByteOrder;')
+            cls = rs.get_bs_class('Ljava/nio/ByteOrder;')
             cls.static_get rs, 'LITTLE_ENDIAN'
         o 'copyToByteArray(JLjava/lang/Object;JJ)V', (rs, srcAddr, dst, dstPos, length) ->
           unsafe_memcpy rs, null, srcAddr, dst, dstPos, length
@@ -166,13 +166,13 @@ arraycopy_no_check = (src, src_pos, dest, dest_pos, length) ->
 #             primitive arrays.
 arraycopy_check = (rs, src, src_pos, dest, dest_pos, length) ->
   j = dest_pos
-  dest_comp_cls = rs.get_loaded_class dest.cls.get_component_type()
+  dest_comp_cls = dest.cls.loader.get_loaded_class dest.cls.get_component_type()
   for i in [src_pos...src_pos+length] by 1
     # Check if null or castable.
     if src.array[i] == null or src.array[i].cls.is_castable rs, dest_comp_cls
       dest.array[j] = src.array[i]
     else
-      exceptions.java_throw rs, rs.class_lookup('Ljava/lang/ArrayStoreException;'), 'Array element in src cannot be cast to dest array type.'
+      exceptions.java_throw rs, rs.get_bs_class('Ljava/lang/ArrayStoreException;'), 'Array element in src cannot be cast to dest array type.'
     j++
   # CoffeeScript, we are not returning an array.
   return
@@ -227,10 +227,10 @@ unsafe_compare_and_swap = (rs, _this, obj, offset, expected, x) ->
 # avoid code dup among native methods
 native_define_class = (rs, name, bytes, offset, len, loader, resume_cb, except_cb) ->
   raw_bytes = ((256+b)%256 for b in bytes.array[offset...offset+len])  # convert to raw bytes
-  rs.define_class util.int_classname(name.jvm2js_str()), raw_bytes, loader, resume_cb, except_cb
+  loader.define_class rs, util.int_classname(name.jvm2js_str()), raw_bytes, resume_cb, except_cb
 
 write_to_file = (rs, _this, bytes, offset, len, append) ->
-  exceptions.java_throw rs, rs.class_lookup('Ljava/io/IOException;'), "Bad file descriptor" if _this.$file == 'closed'
+  exceptions.java_throw rs, rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if _this.$file == 'closed'
   if _this.$file?
     # appends by default in the browser, not sure in actual node.js impl
     fs.writeSync(_this.$file, new Buffer(bytes.array), offset, len)
@@ -241,6 +241,8 @@ write_to_file = (rs, _this, bytes, offset, len, append) ->
     # unless we give the event loop a chance to spin.
     rs.async_op (cb) -> setTimeout(cb, 0)
 
+# Have a JavaClassLoaderObject and need its ClassLoader object? Use this method!
+get_cl_from_jclo = (rs, jclo) -> if jclo? then jclo.$loader else rs.get_bs_cl()
 
 native_methods =
   java:
@@ -248,25 +250,28 @@ native_methods =
       Class: [
         o 'getPrimitiveClass(L!/!/String;)L!/!/!;', (rs, jvm_str) ->
             type_desc = util.typestr2descriptor jvm_str.jvm2js_str()
-            prim_cls = rs.class_lookup type_desc, null
+            prim_cls = rs.get_bs_class type_desc
             return prim_cls.get_class_object(rs)
-        o 'getClassLoader0()L!/!/ClassLoader;', (rs, _this) -> _this.cls.loader
+        o 'getClassLoader0()L!/!/ClassLoader;', (rs, _this) ->
+            # The bootstrap classloader is represented as 'null', which is OK
+            # according to the spec.
+            loader = _this.$cls.loader
+            return loader.loader_obj if loader.loader_obj?
+            return null
         o 'desiredAssertionStatus0(L!/!/!;)Z', (rs) -> false # we don't need no stinkin asserts
         o 'getName0()L!/!/String;', (rs, _this) ->
             rs.init_string(_this.$cls.toExternalString())
         o 'forName0(L!/!/String;ZL!/!/ClassLoader;)L!/!/!;', (rs, jvm_str, initialize, loader) ->
             type = util.int_classname jvm_str.jvm2js_str()
-            if loader is undefined then loader = null # Not sure if this ever happens, but just in case.
+            loader = get_cl_from_jclo rs, loader
 
-            # XXX: Initialize class / load class takes in the trigger_class, not the loader
-            # itself. :-/
             rs.async_op (resume_cb, except_cb) ->
               if initialize
-                rs.initialize_class type, null, ((cls) ->
+                loader.initialize_class rs, type, ((cls) ->
                   resume_cb cls.get_class_object(rs)
                 ), except_cb
               else
-                rs.load_class type, null, ((cls) ->
+                loader.load_class rs, type, ((cls) ->
                   resume_cb cls.get_class_object(rs)
                 ), except_cb
             return
@@ -275,7 +280,7 @@ native_methods =
 
             # As this array type is loaded, the component type is guaranteed
             # to be loaded as well. No need for asynchronicity.
-            return rs.get_loaded_class(_this.$cls.get_component_type()).get_class_object(rs)
+            return _this.$cls.loader.get_loaded_class(_this.$cls.get_component_type()).get_class_object(rs)
         o 'getGenericSignature()Ljava/lang/String;', (rs, _this) ->
             sig = _.find(_this.$cls.attrs, (a) -> a.name is 'Signature')?.sig
             if sig? then rs.init_string sig else null
@@ -294,9 +299,9 @@ native_methods =
         o 'getSuperclass()L!/!/!;', (rs, _this) ->
             return null if _this.$cls instanceof PrimitiveClassData
             cls = _this.$cls
-            if cls.access_flags.interface or not cls.super_class?
+            if cls.access_flags.interface or not cls.get_super_class()?
               return null
-            return rs.get_loaded_class(cls.super_class).get_class_object(rs)
+            return cls.get_super_class().get_class_object(rs)
         o 'getDeclaredFields0(Z)[Ljava/lang/reflect/Field;', (rs, _this, public_only) ->
             fields = _this.$cls.fields
             fields = (f for f in fields when f.access_flags.public) if public_only
@@ -309,7 +314,7 @@ native_methods =
                   f = fields[i]
                   f.reflector(rs, ((jco)->base_array.push(jco); fetch_next_field()), except_cb)
                 else
-                  setTimeout((()-> resume_cb new JavaArray(rs, rs.class_lookup('[Ljava/lang/reflect/Field;'), base_array)), 0)
+                  setTimeout((()-> resume_cb new JavaArray(rs, rs.get_bs_class('[Ljava/lang/reflect/Field;'), base_array)), 0)
 
               fetch_next_field()
             return
@@ -326,7 +331,7 @@ native_methods =
                   m = methods[i]
                   m.reflector(rs, false, ((jco)->base_array.push(jco); fetch_next_method()), except_cb)
                 else
-                  setTimeout((()-> resume_cb new JavaArray(rs, rs.class_lookup('[Ljava/lang/reflect/Method;'), base_array)), 0)
+                  setTimeout((()-> resume_cb new JavaArray(rs, rs.get_bs_class('[Ljava/lang/reflect/Method;'), base_array)), 0)
 
               fetch_next_method()
             return
@@ -334,7 +339,7 @@ native_methods =
             methods = _this.$cls.methods
             methods = (m for sig, m of methods when m.name is '<init>')
             methods = (m for m in methods when m.access_flags.public) if public_only
-            ctor_array_cdata = rs.class_lookup('[Ljava/lang/reflect/Constructor;')
+            ctor_array_cdata = rs.get_bs_class('[Ljava/lang/reflect/Constructor;')
             base_array = []
             rs.async_op (resume_cb, except_cb) ->
               i = -1
@@ -350,27 +355,27 @@ native_methods =
             return
         o 'getInterfaces()[L!/!/!;', (rs, _this) ->
             cls = _this.$cls
-            ifaces = (cls.constant_pool.get(i).deref() for i in cls.interfaces)
-            iface_objs = (rs.get_loaded_class(iface).get_class_object(rs) for iface in ifaces)
-            new JavaArray rs, rs.class_lookup('[Ljava/lang/Class;'), iface_objs
+            ifaces = cls.get_interfaces()
+            iface_objs = (iface.get_class_object(rs) for iface in ifaces)
+            new JavaArray rs, rs.get_bs_class('[Ljava/lang/Class;'), iface_objs
         o 'getModifiers()I', (rs, _this) -> _this.$cls.access_byte
         o 'getRawAnnotations()[B', (rs, _this) ->
             cls = _this.$cls
             annotations = _.find(cls.attrs, (a) -> a.name == 'RuntimeVisibleAnnotations')
-            return new JavaArray rs, rs.class_lookup('[B'), annotations.raw_bytes if annotations?
+            return new JavaArray rs, rs.get_bs_class('[B'), annotations.raw_bytes if annotations?
             for sig,m of cls.methods
               annotations = _.find(m.attrs, (a) -> a.name == 'RuntimeVisibleAnnotations')
-              return new JavaArray rs, rs.class_lookup('[B'), annotations.raw_bytes if annotations?
+              return new JavaArray rs, rs.get_bs_class('[B'), annotations.raw_bytes if annotations?
             null
         o 'getConstantPool()Lsun/reflect/ConstantPool;', (rs, _this) ->
             cls = _this.$cls
-            new JavaObject rs, rs.class_lookup('Lsun/reflect/ConstantPool;'), {'Lsun/reflect/ConstantPool;constantPoolOop': cls.constant_pool}
+            new JavaObject rs, rs.get_bs_class('Lsun/reflect/ConstantPool;'), {'Lsun/reflect/ConstantPool;constantPoolOop': cls.constant_pool}
         o 'getEnclosingMethod0()[L!/!/Object;', (rs, _this) ->
             return null unless _this.$cls instanceof ReferenceClassData
             cls = _this.$cls
             em = _.find(cls.attrs, (a) -> a.name == 'EnclosingMethod')
             return null unless em?
-            exceptions.java_throw rs, rs.class_lookup('java/lang/Error'), "native method not finished: java.lang.Class.getEnclosingClass"
+            exceptions.java_throw rs, rs.get_bs_class('Ljava/lang/Error;'), "native method not finished: java.lang.Class.getEnclosingClass"
             #TODO: return array w/ 3 elements:
             # - the immediately enclosing class (java/lang/Class)
             # - the immediately enclosing method or constructor's name (can be null). (String)
@@ -389,10 +394,10 @@ native_methods =
               # the immediate enclosing parent, and I'm not 100% sure this is
               # guaranteed by the spec
               declaring_name = cls.constant_pool.get(entry.outer_info_index).deref()
-              return rs.class_lookup(declaring_name).get_class_object(rs)
+              return cls.loader.get_initialized_class(declaring_name).get_class_object(rs)
             return null
         o 'getDeclaredClasses0()[L!/!/!;', (rs, _this) ->
-            ret = new JavaArray rs, rs.class_lookup('[Ljava/lang/Class;'), []
+            ret = new JavaArray rs, rs.get_bs_class('[Ljava/lang/Class;'), []
             return ret unless _this.$cls instanceof ReferenceClassData
             cls = _this.$cls
             my_class = _this.$cls.toClassString()
@@ -410,46 +415,46 @@ native_methods =
                 i++
                 if i < flat_names.length
                   name = flat_names[i]
-                  rs.load_class(name, null, ((cls)->ret.array.push cls.get_class_object(rs); fetch_next_jco()), except_cb)
+                  cls.loader.load_class(rs, name, ((cls)->ret.array.push cls.get_class_object(rs); fetch_next_jco()), except_cb)
                 else
                   setTimeout((()->resume_cb ret), 0)
               fetch_next_jco()
             return
       ],
+      # Fun Note: The bootstrap classloader object is represented by null.
       ClassLoader: [
         o 'findLoadedClass0(L!/!/String;)L!/!/Class;', (rs, _this, name) ->
+            loader = get_cl_from_jclo rs, _this
             type = util.int_classname name.jvm2js_str()
-            rs.async_op (resume_cb, except_cb) ->
-              rs.load_class type, null, ((cls) ->
-                resume_cb cls.get_class_object(rs)
-              ), ((e_cb)->
-                try
-                  e_cb()
-                catch e
-                  unless e instanceof exceptions.JavaException
-                    except_cb e_cb
-                    return
-                  resume_cb null
-              )
+            # Return JavaClassObject if loaded, or null otherwise.
+            cls = loader.get_loaded_class type, true
+            return if cls? then cls.get_class_object(rs) else null
         o 'findBootstrapClass(L!/!/String;)L!/!/Class;', (rs, _this, name) ->
             type = util.int_classname name.jvm2js_str()
+            # This returns null in OpenJDK7, but actually can throw an exception
+            # in OpenJDK6.
             rs.async_op (resume_cb, except_cb) ->
-              rs.load_class type, null, ((cls)->
+              rs.get_bs_cl().load_class rs, type, ((cls)->
                 resume_cb cls.get_class_object(rs)
               ), except_cb
         o 'getCaller(I)L!/!/Class;', (rs, i) ->
             cls = rs.meta_stack().get_caller(i).method.cls
             return cls.get_class_object(rs)
         o 'defineClass1(L!/!/String;[BIIL!/security/ProtectionDomain;L!/!/String;Z)L!/!/Class;', (rs,_this,name,bytes,offset,len,pd,source,unused) ->
+            loader = get_cl_from_jclo rs, _this
             rs.async_op (resume_cb, except_cb) ->
-              native_define_class rs, name, bytes, offset, len, _this, resume_cb, except_cb
+              native_define_class rs, name, bytes, offset, len, loader, resume_cb, except_cb
         o 'defineClass1(L!/!/String;[BIIL!/security/ProtectionDomain;L!/!/String;)L!/!/Class;', (rs,_this,name,bytes,offset,len,pd,source) ->
+            loader = get_cl_from_jclo rs, _this
             rs.async_op (resume_cb, except_cb) ->
-              native_define_class rs, name, bytes, offset, len, _this, resume_cb, except_cb
+              native_define_class rs, name, bytes, offset, len, loader, resume_cb, except_cb
         o 'resolveClass0(L!/!/Class;)V', (rs, _this, cls) ->
-            # Normally, one would 'resolve' a defined class here. However, we
-            # seem to conflate the two operations; the indicated class is
-            # already 'resolved' once it is loaded. So, this is a NOP.
+            loader = get_cl_from_jclo rs, _this
+            type = cls.$cls.get_type()
+            return if loader.get_loaded_class(type, true)?
+            # Ensure that this class is loaded.
+            rs.async_op (resume_cb, except_cb) ->
+              loader.load_class rs, type, (()->resume_cb()), except_cb
       ],
       Compiler: [
         o 'disable()V', (rs, _this) -> #NOP
@@ -556,7 +561,7 @@ native_methods =
             if (locker = rs.lock_refs[_this])?
               if locker isnt rs.curr_thread
                 owner = thread_name rs, locker
-                exceptions.java_throw rs, rs.class_lookup('Ljava/lang/IllegalMonitorStateException;'), "Thread '#{owner}' owns this monitor"
+                exceptions.java_throw rs, rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;'), "Thread '#{owner}' owns this monitor"
             if rs.waiting_threads[_this]?
               rs.waiting_threads[_this].shift()
         o 'notifyAll()V', (rs, _this) ->
@@ -564,7 +569,7 @@ native_methods =
             if (locker = rs.lock_refs[_this])?
               if locker isnt rs.curr_thread
                 owner = thread_name rs, locker
-                exceptions.java_throw rs, rs.class_lookup('Ljava/lang/IllegalMonitorStateException;'), "Thread '#{owner}' owns this monitor"
+                exceptions.java_throw rs, rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;'), "Thread '#{owner}' owns this monitor"
             if rs.waiting_threads[_this]?
               rs.waiting_threads[_this] = []
         o 'wait(J)V', (rs, _this, timeout) ->
@@ -573,7 +578,7 @@ native_methods =
             if (locker = rs.lock_refs[_this])?
               if locker isnt rs.curr_thread
                 owner = thread_name rs, locker
-                exceptions.java_throw rs, rs.class_lookup('Ljava/lang/IllegalMonitorStateException;'), "Thread '#{owner}' owns this monitor"
+                exceptions.java_throw rs, rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;'), "Thread '#{owner}' owns this monitor"
             rs.lock_refs[_this] = null
             rs.wait _this
       ]
@@ -585,9 +590,9 @@ native_methods =
             env_arr = []
             # convert to an array of strings of the form [key, value, key, value ...]
             for k, v of process.env
-              env_arr.push new JavaArray rs, rs.class_lookup('[B'), util.bytestr_to_array k
-              env_arr.push new JavaArray rs, rs.class_lookup('[B'), util.bytestr_to_array v
-            new JavaArray rs, rs.class_lookup('[[B'), env_arr
+              env_arr.push new JavaArray rs, rs.get_bs_class('[B'), util.bytestr_to_array k
+              env_arr.push new JavaArray rs, rs.get_bs_class('[B'), util.bytestr_to_array v
+            new JavaArray rs, rs.get_bs_class('[[B'), env_arr
       ]
       reflect:
         Array: [
@@ -599,7 +604,7 @@ native_methods =
         Proxy: [
           o 'defineClass0(L!/!/ClassLoader;L!/!/String;[BII)L!/!/Class;', (rs,cl,name,bytes,offset,len) ->
               rs.async_op (success_cb, except_cb) ->
-                native_define_class rs, name, bytes, offset, len, cl, success_cb, except_cb
+                native_define_class rs, name, bytes, offset, len, get_cl_from_jclo(rs, cl), success_cb, except_cb
         ]
       Runtime: [
         o 'availableProcessors()I', () -> 1
@@ -638,14 +643,14 @@ native_methods =
         o 'arraycopy(L!/!/Object;IL!/!/Object;II)V', (rs, src, src_pos, dest, dest_pos, length) ->
             # Needs to be checked *even if length is 0*.
             if !src? or !dest?
-              exceptions.java_throw rs, rs.class_lookup('Ljava/lang/NullPointerException;'), 'Cannot copy to/from a null array.'
+              exceptions.java_throw rs, rs.get_bs_class('Ljava/lang/NullPointerException;'), 'Cannot copy to/from a null array.'
             # Can't do this on non-array types. Need to check before I check bounds below, or else I'll get an exception.
             if !(src.cls instanceof ArrayClassData) or !(dest.cls instanceof ArrayClassData)
-              exceptions.java_throw rs, rs.class_lookup('Ljava/lang/ArrayStoreException;'), 'src and dest arguments must be of array type.'
+              exceptions.java_throw rs, rs.get_bs_class('Ljava/lang/ArrayStoreException;'), 'src and dest arguments must be of array type.'
             # Also needs to be checked *even if length is 0*.
             if src_pos < 0 or (src_pos+length) > src.array.length or dest_pos < 0 or (dest_pos+length) > dest.array.length or length < 0
               # System.arraycopy requires IndexOutOfBoundsException, but Java throws an array variant of the exception in practice.
-              exceptions.java_throw rs, rs.class_lookup('Ljava/lang/ArrayIndexOutOfBoundsException;'), 'Tried to write to an illegal index in an array.'
+              exceptions.java_throw rs, rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;'), 'Tried to write to an illegal index in an array.'
             # Special case; need to copy the section of src that is being copied into a temporary array before actually doing the copy.
             if src == dest
               src = {cls: src.cls, array: src.array.slice(src_pos, src_pos+length)}
@@ -657,10 +662,10 @@ native_methods =
             else
               # Slow path
               # Absolutely cannot do this when two different primitive types, or a primitive type and a reference type.
-              src_comp_cls = rs.get_loaded_class src.cls.get_component_type()
-              dest_comp_cls = rs.get_loaded_class dest.cls.get_component_type()
+              src_comp_cls = src.cls.loader.get_loaded_class src.cls.get_component_type()
+              dest_comp_cls = dest.cls.loader.get_loaded_class dest.cls.get_component_type()
               if (src_comp_cls instanceof PrimitiveClassData) or (dest_comp_cls instanceof PrimitiveClassData)
-                exceptions.java_throw rs, rs.class_lookup('Ljava/lang/ArrayStoreException;'), 'If calling arraycopy with a primitive array, both src and dest must be of the same primitive type.'
+                exceptions.java_throw rs, rs.get_bs_class('Ljava/lang/ArrayStoreException;'), 'If calling arraycopy with a primitive array, both src and dest must be of the same primitive type.'
               else
                 # Must be two reference types.
                 arraycopy_check(rs, src, src_pos, dest, dest_pos, length)
@@ -671,13 +676,13 @@ native_methods =
             # we don't actually have nanosecond precision
             gLong.fromNumber((new Date).getTime()).multiply(gLong.fromNumber(1000000))
         o 'setIn0(L!/io/InputStream;)V', (rs, stream) ->
-            sys = rs.class_lookup 'Ljava/lang/System;'
+            sys = rs.get_bs_class 'Ljava/lang/System;'
             sys.static_put rs, 'in', stream
         o 'setOut0(L!/io/PrintStream;)V', (rs, stream) ->
-            sys = rs.class_lookup 'Ljava/lang/System;'
+            sys = rs.get_bs_class 'Ljava/lang/System;'
             sys.static_put rs, 'out', stream
         o 'setErr0(L!/io/PrintStream;)V', (rs, stream) ->
-            sys = rs.class_lookup 'Ljava/lang/System;'
+            sys = rs.get_bs_class 'Ljava/lang/System;'
             sys.static_put rs, 'err', stream
       ]
       Thread: [
@@ -695,7 +700,7 @@ native_methods =
             new_thread_sf = util.last _this.$meta_stack._cs
             new_thread_sf.runner = ->
               new_thread_sf.method.run_manually (->
-                exceptions.java_throw rs, rs.class_lookup('Ljava/lang/InterruptedException;'), 'interrupt0 called'
+                exceptions.java_throw rs, rs.get_bs_class('Ljava/lang/InterruptedException;'), 'interrupt0 called'
               ), rs, []
             _this.$meta_stack.push {}  # dummy
             rs.yield _this
@@ -739,7 +744,7 @@ native_methods =
         o 'getFileSystem()L!/!/!;', (rs) ->
             # TODO: avoid making a new FS object each time this gets called? seems to happen naturally in java/io/File...
             my_sf = rs.curr_frame()
-            cdata = rs.class_lookup('Ljava/io/ExpiringCache;')
+            cdata = rs.get_bs_class('Ljava/io/ExpiringCache;')
             cache1 = new JavaObject rs, cdata
             cache2 = new JavaObject rs, cdata
             cache_init = rs.method_lookup(cdata, {class: 'Ljava/io/ExpiringCache;', sig: '<init>()V'})
@@ -748,7 +753,7 @@ native_methods =
             my_sf.runner = ->
               cache_init.setup_stack(rs)
               my_sf.runner = ->
-                rv = new JavaObject rs, rs.class_lookup('Ljava/io/UnixFileSystem;'), {
+                rv = new JavaObject rs, rs.get_bs_class('Ljava/io/UnixFileSystem;'), {
                   'Ljava/io/UnixFileSystem;cache': cache1
                   'Ljava/io/UnixFileSystem;javaHomePrefixCache': cache2
                   'Ljava/io/UnixFileSystem;slash': system_properties['file.separator'].charCodeAt(0)
@@ -781,12 +786,12 @@ native_methods =
       ]
       FileInputStream: [
         o 'available()I', (rs, _this) ->
-            exceptions.java_throw rs, rs.class_lookup('Ljava/io/IOException;'), "Bad file descriptor" if _this.$file == 'closed'
+            exceptions.java_throw rs, rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if _this.$file == 'closed'
             return 0 unless _this.$file? # no buffering for stdin
             stats = fs.fstatSync _this.$file
             stats.size - _this.$pos
         o 'read()I', (rs, _this) ->
-            exceptions.java_throw rs, rs.class_lookup('Ljava/io/IOException;'), "Bad file descriptor" if _this.$file == 'closed'
+            exceptions.java_throw rs, rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if _this.$file == 'closed'
             if (file = _this.$file)?
               # this is a real file that we've already opened
               buf = new Buffer((fs.fstatSync file).size)
@@ -798,7 +803,7 @@ native_methods =
               rs.async_input 1, (byte) ->
                 cb(if byte.length == 0 then -1 else byte.charCodeAt(0))
         o 'readBytes([BII)I', (rs, _this, byte_arr, offset, n_bytes) ->
-            exceptions.java_throw rs, rs.class_lookup('Ljava/io/IOException;'), "Bad file descriptor" if _this.$file == 'closed'
+            exceptions.java_throw rs, rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if _this.$file == 'closed'
             if _this.$file?
               # this is a real file that we've already opened
               pos = _this.$pos
@@ -825,7 +830,7 @@ native_methods =
               fs.open filepath, 'r', (e, f) ->
                 if e?
                   if e.code == 'ENOENT'
-                    except_cb ()-> exceptions.java_throw rs, rs.class_lookup('Ljava/io/FileNotFoundException;'), "Could not open file #{filepath}"
+                    except_cb ()-> exceptions.java_throw rs, rs.get_bs_class('Ljava/io/FileNotFoundException;'), "Could not open file #{filepath}"
                   else
                     except_cb ()-> throw e
                 else
@@ -844,7 +849,7 @@ native_methods =
             else
               _this.$file = 'closed'
         o 'skip(J)J', (rs, _this, n_bytes) ->
-            exceptions.java_throw rs, rs.class_lookup('Ljava/io/IOException;'), "Bad file descriptor" if _this.$file == 'closed'
+            exceptions.java_throw rs, rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if _this.$file == 'closed'
             if (file = _this.$file)?
               bytes_left = fs.fstatSync(file).size - _this.$pos
               to_skip = Math.min(n_bytes.toNumber(), bytes_left)
@@ -867,7 +872,7 @@ native_methods =
               fs.open filepath, 'r+', (err, f) ->
                 if err?
                   if e.code == 'ENOENT'
-                    except_cb -> exceptions.java_throw rs, rs.class_lookup('Ljava/io/FileNotFoundException;'), "Could not open file #{filepath}"
+                    except_cb -> exceptions.java_throw rs, rs.get_bs_class('Ljava/io/FileNotFoundException;'), "Could not open file #{filepath}"
                   else
                     except_cb -> throw e
                 else
@@ -940,11 +945,11 @@ native_methods =
                 else
                   fs.open filepath, 'w', (err, f) ->
                     if err?
-                      except_cb -> exceptions.java_throw rs, rs.class_lookup('Ljava/io/IOException;'), e.message
+                      except_cb -> exceptions.java_throw rs, rs.get_bs_class('Ljava/io/IOException;'), e.message
                     else
                       fs.close f, (err) ->
                         if err?
-                          except_cb -> exceptions.java_throw rs, rs.class_lookup('Ljava/io/IOException;'), e.message
+                          except_cb -> exceptions.java_throw rs, rs.get_bs_class('Ljava/io/IOException;'), e.message
                         else
                           resume_cb true
         o 'createFileExclusively(Ljava/lang/String;Z)Z', (rs, _this, path) ->  # Apple-java version
@@ -956,11 +961,11 @@ native_methods =
                 else
                   fs.open filepath, 'w', (err, f) ->
                     if err?
-                      except_cb -> exceptions.java_throw rs, rs.class_lookup('Ljava/io/IOException;'), e.message
+                      except_cb -> exceptions.java_throw rs, rs.get_bs_class('Ljava/io/IOException;'), e.message
                     else
                       fs.close f, (err) ->
                         if err?
-                          except_cb -> exceptions.java_throw rs, rs.class_lookup('Ljava/io/IOException;'), e.message
+                          except_cb -> exceptions.java_throw rs, rs.get_bs_class('Ljava/io/IOException;'), e.message
                         else
                           resume_cb true
         o 'delete0(Ljava/io/File;)Z', (rs, _this, file) ->
@@ -1022,7 +1027,7 @@ native_methods =
                 if err?
                   resume_cb null
                 else
-                  resume_cb new JavaArray(rs, rs.class_lookup('[Ljava/lang/String;'),(rs.init_string(f) for f in files))
+                  resume_cb new JavaArray(rs, rs.get_bs_class('[Ljava/lang/String;'),(rs.init_string(f) for f in files))
         o 'rename0(Ljava/io/File;Ljava/io/File;)Z', (rs, _this, file1, file2) ->
             file1path = (file1.get_field rs, 'Ljava/io/File;path').jvm2js_str()
             file2path = (file2.get_field rs, 'Ljava/io/File;path').jvm2js_str()
@@ -1090,7 +1095,7 @@ native_methods =
       ResourceBundle: [
         o 'getClassContext()[L!/lang/Class;', (rs) ->
             # XXX should walk up the meta_stack and fill in the array properly
-            new JavaArray rs, rs.class_lookup('[Ljava/lang/Class;'), [null,null,null]
+            new JavaArray rs, rs.get_bs_class('[Ljava/lang/Class;'), [null,null,null]
       ]
       TimeZone: [
         o 'getSystemTimeZoneID(L!/lang/String;L!/lang/String;)L!/lang/String;', (rs, java_home, country) ->
@@ -1108,7 +1113,7 @@ native_methods =
             field_names = [ 'compTimeMonitoringSupport', 'threadContentionMonitoringSupport',
               'currentThreadCpuTimeSupport', 'otherThreadCpuTimeSupport',
               'bootClassPathSupport', 'objectMonitorUsageSupport', 'synchronizerUsageSupport' ]
-            vm_management_impl = rs.class_lookup 'Lsun/management/VMManagementImpl;'
+            vm_management_impl = rs.get_bs_class 'Lsun/management/VMManagementImpl;'
             for name in field_names
               vm_management_impl.static_put rs, name, 0
         o 'isThreadAllocatedMemoryEnabled()Z', -> false
@@ -1119,20 +1124,20 @@ native_methods =
       ]
       MemoryImpl: [
         o 'getMemoryManagers0()[Ljava/lang/management/MemoryManagerMXBean;', (rs) ->
-            new JavaArray rs, rs.class_lookup('[Lsun/management/MemoryManagerImpl;'), [] # XXX may want to revisit this 'NOP'
+            new JavaArray rs, rs.get_bs_class('[Lsun/management/MemoryManagerImpl;'), [] # XXX may want to revisit this 'NOP'
         o 'getMemoryPools0()[Ljava/lang/management/MemoryPoolMXBean;', (rs) ->
-            new JavaArray rs, rs.class_lookup('[Lsun/management/MemoryPoolImpl;'), [] # XXX may want to revisit this 'NOP'
+            new JavaArray rs, rs.get_bs_class('[Lsun/management/MemoryPoolImpl;'), [] # XXX may want to revisit this 'NOP'
       ]
     misc:
       VM: [
         o 'initialize()V', (rs) ->
-            vm_cls = rs.class_lookup 'Lsun/misc/VM;'
+            vm_cls = rs.get_bs_class 'Lsun/misc/VM;'
             # this only applies to Java 7
             return unless vm_cls.major_version >= 51
             # hack! make savedProps refer to the system props
-            sys_cls = rs.class_lookup('Ljava/lang/System;')
+            sys_cls = rs.get_bs_class('Ljava/lang/System;')
             props = sys_cls.static_get rs, 'props'
-            vm_cls = rs.class_lookup('Lsun/misc/VM;')
+            vm_cls = rs.get_bs_class('Lsun/misc/VM;')
             vm_cls.static_put 'savedProps', props
       ]
       # TODO: Go down the rabbit hole and create a fast heap implementation
@@ -1140,7 +1145,14 @@ native_methods =
       Unsafe: [
         o 'addressSize()I', (rs, _this) -> 4 # either 4 or 8
         o 'allocateInstance(Ljava/lang/Class;)Ljava/lang/Object;', (rs, _this, cls) ->
-            new JavaObject rs, cls.$cls
+            # This can trigger class initialization, so check if the class is
+            # initialized.
+            cls = cls.$cls
+            if cls.is_initialized(rs)
+              return new JavaObject rs, cls
+            else
+              rs.async_op (resume_cb, except_cb) ->
+                cls.loader.initialize_class rs, cls.get_type(), (->resume_cb(new JavaObject rs, cls)), except_cb
         o 'allocateMemory(J)J', (rs, _this, size) ->
             next_addr = util.last(rs.mem_start_addrs)
             if DataView?
@@ -1212,7 +1224,7 @@ native_methods =
         o 'ensureClassInitialized(Ljava/lang/Class;)V', (rs,_this,cls) ->
             rs.async_op (resume_cb, except_cb) ->
               # We modify resume_cb since this is a void function.
-              rs.initialize_class cls.$cls.this_class, null, (()->resume_cb()), except_cb
+              cls.$cls.loader.initialize_class rs, cls.$cls.get_type(), (()->resume_cb()), except_cb
         o 'staticFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.get_field rs, 'Ljava/lang/reflect/Field;slot')
         o 'objectFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.get_field rs, 'Ljava/lang/reflect/Field;slot')
         o 'staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;', (rs,_this,field) ->
@@ -1228,7 +1240,7 @@ native_methods =
             obj.set_field_from_offset rs, offset, new_obj
         o 'defineClass(Ljava/lang/String;[BIILjava/lang/ClassLoader;Ljava/security/ProtectionDomain;)Ljava/lang/Class;', (rs, _this, name, bytes, offset, len, loader, pd) ->
             rs.async_op (success_cb, except_cb) ->
-              native_define_class rs, name, bytes, offset, len, loader, success_cb, except_cb
+              native_define_class rs, name, bytes, offset, len, get_cl_from_jclo(rs, loader), success_cb, except_cb
         o 'pageSize()I', (rs) ->
             # Keep this in sync with sun/nio/ch/FileChannelImpl/initIDs for Mac
             # JCL compatibility.
@@ -1280,7 +1292,7 @@ native_methods =
             cls = m.get_field rs, 'Ljava/lang/reflect/Method;clazz'
             slot = m.get_field rs, 'Ljava/lang/reflect/Method;slot'
             rs.async_op (resume_cb, except_cb) ->
-              rs.initialize_class cls.$cls.this_class, null, ((cls_obj) ->
+              cls.$cls.loader.initialize_class rs, cls.$cls.get_type(), ((cls_obj) ->
                 method = (method for sig, method of cls_obj.methods when method.idx is slot)[0]
                 my_sf = rs.curr_frame()
                 rs.push obj unless method.access_flags.static
@@ -1306,7 +1318,7 @@ native_methods =
             cls = m.get_field rs, 'Ljava/lang/reflect/Constructor;clazz'
             slot = m.get_field rs, 'Ljava/lang/reflect/Constructor;slot'
             rs.async_op (resume_cb, except_cb) ->
-              rs.initialize_class cls.$cls.this_class, null, ((cls_obj)->
+              cls.$cls.loader.initialize_class rs, cls.$cls.get_type(), ((cls_obj)->
                 method = (method for sig, method of cls_obj.methods when method.idx is slot)[0]
                 my_sf = rs.curr_frame()
                 obj = new JavaObject rs, cls_obj

@@ -60,6 +60,7 @@ COMMON_BROWSER_SRCS = vendor/_.js \
 	src/natives.coffee \
 	src/methods.coffee \
 	src/ClassData.coffee \
+	src/ClassLoader.coffee \
 	src/runtime.coffee \
 	src/jvm.coffee \
 	src/testing.coffee \

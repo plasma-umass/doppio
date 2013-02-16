@@ -20,14 +20,14 @@ root.disassemble = (class_file) ->
   source_file = _.find(class_file.attrs, (attr) -> attr.name == 'SourceFile')
   deprecated = _.find(class_file.attrs, (attr) -> attr.name == 'Deprecated')
   annotations = _.find(class_file.attrs, (attr) -> attr.name == 'RuntimeVisibleAnnotations')
-  ifaces = (class_file.constant_pool.get(i).deref() for i in class_file.interfaces)
+  ifaces = class_file.get_interface_types()
   ifaces = (util.ext_classname(i) for i in ifaces).join ','
   rv = "Compiled from \"#{source_file?.filename ? 'unknown'}\"\n"
   rv += access_string class_file.access_flags
   if class_file.access_flags.interface
-    rv += "interface #{class_file.toExternalString()} extends #{ifaces}\n"
+    rv += "interface #{class_file.toExternalString()}#{if ifaces.length > 0 then " extends #{ifaces}" else ''}\n"
   else
-    rv += "class #{class_file.toExternalString()} extends #{util.ext_classname(class_file.super_class)}"
+    rv += "class #{class_file.toExternalString()} extends #{util.ext_classname(class_file.get_super_class_type())}"
     rv += if (ifaces and not class_file.access_flags.interface) then " implements #{ifaces}\n" else '\n'
   rv += "  SourceFile: \"#{source_file.filename}\"\n" if source_file
   rv += "  Deprecated: length = 0x\n" if deprecated

@@ -8,6 +8,20 @@ public class CatchingClinitException {
       System.out.println("Don't worry; we got it.");
       e.printStackTrace();
     }
+
+    try {
+      NotGood i = new NotGood();
+    } catch (Error e) {
+      System.out.println("Don't worry; we got it.");
+      e.printStackTrace();
+    }
+
+    try {
+      Better i = new Better();
+    } catch (Error e) {
+      System.out.println("Don't worry; we got it.");
+      e.printStackTrace();
+    }
   };
 
 }
@@ -21,4 +35,10 @@ class Hurray {
   }
 
   public Hurray() {};
+}
+class NotGood implements IDontExist {
+  public NotGood() {};
+}
+class Better extends NotGood implements IDontExist {
+  public Better() {};
 }

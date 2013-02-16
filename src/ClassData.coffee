@@ -7,6 +7,7 @@ opcodes = require './opcodes'
 methods = null # Define later to avoid circular dependency; methods references natives, natives references ClassData
 {java_throw} = require './exceptions'
 {JavaClassObject} = require './java_object'
+{trace} = require './logging'
 
 "use strict"
 
@@ -37,13 +38,12 @@ class ClassData
         return field
 
     # These may not be initialized! But we have them loaded.
-    for i in @interfaces
-      ifc_cls = rs.get_loaded_class @constant_pool.get(i).deref()
+    for ifc_cls in @get_interfaces()
       field = ifc_cls.field_lookup(rs, field_spec)
       return field if field?
 
-    if @super_class?
-      sc = rs.class_lookup @super_class
+    sc = @get_super_class()
+    if sc?
       field = sc.field_lookup(rs, field_spec)
       return field if field?
     return null
@@ -60,13 +60,12 @@ class ClassData
     method = @methods[method_spec.sig]
     return method if method?
 
-    if @super_class?
-      parent = rs.class_lookup @super_class
+    parent = @get_super_class()
+    if parent?
       method = parent.method_lookup(rs, method_spec)
       return method if method?
 
-    for i in @interfaces
-      ifc = rs.get_loaded_class @constant_pool.get(i).deref()
+    for ifc in @get_interfaces()
       method = ifc.method_lookup(rs, method_spec)
       return method if method?
 
@@ -74,13 +73,13 @@ class ClassData
 
   static_get: (rs, name) ->
     return @static_fields[name] unless @static_fields[name] is undefined
-    java_throw rs, rs.class_lookup('Ljava/lang/NoSuchFieldError;'), name
+    java_throw rs, @loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name
 
   static_put: (rs, name, val) ->
     unless @static_fields[name] is undefined
       @static_fields[name] = val
     else
-      java_throw rs, rs.class_lookup('Ljava/lang/NoSuchFieldError;'), name
+      java_throw rs, @loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name
 
   # Resets any ClassData state that may have been built up
   load: () ->
@@ -98,15 +97,15 @@ class ClassData
 
   construct_default_fields: (rs) ->
     # init fields from this and inherited ClassDatas
-    t = @this_class
+    cls = @
     # Object.create(null) avoids interference with Object.prototype's properties
     @default_fields = Object.create null
-    while t?
-      cls = rs.class_lookup t
+    while cls?
       for f in cls.fields when not f.access_flags.static
         val = util.initial_value f.raw_descriptor
-        @default_fields[t + f.name] = val
-      t = cls.super_class
+        @default_fields[cls.get_type() + f.name] = val
+      cls = cls.get_super_class()
+    return
 
   # Used internally to reconstruct @static_fields
   _construct_static_fields: ->
@@ -123,11 +122,11 @@ class ClassData
   # Checks if the class file is initialized. It will set @initialized to 'true'
   # if this class has no static initialization method and its parent classes
   # are initialized, too.
-  is_initialized: (rs) ->
+  is_initialized: ->
     return true if @initialized
     # XXX: Hack to avoid traversing hierarchy.
     return false if @methods['<clinit>()V']?
-    @initialized = if @super_class? then rs.get_loaded_class(@super_class, @, true)?.is_initialized(rs) else false
+    @initialized = if @get_super_class()?.is_initialized() else false
     return @initialized
 
   # Returns the JavaObject object of the classloader that initialized this
@@ -140,17 +139,29 @@ class ClassData
   # Returns 'true' if I am a subclass of target.
   is_subclass: (rs, target) ->
     return true if @this_class is target.this_class
-    return false unless @super_class?  # I'm java/lang/Object, can't go further
-    return rs.class_lookup(@super_class).is_subclass rs, target
+    return false unless @get_super_class()?  # I'm java/lang/Object, can't go further
+    return @get_super_class().is_subclass rs, target
 
   # Returns 'true' if I implement the target interface.
   is_subinterface: (rs, target) ->
     return true if @this_class is target.this_class
-    for i in @interfaces
-      super_iface = rs.class_lookup @constant_pool.get(i).deref()
+    for super_iface in @get_interfaces()
       return true if super_iface.is_subinterface rs, target
-    return false unless @super_class?  # I'm java/lang/Object, can't go further
-    return rs.class_lookup(@super_class).is_subinterface rs, target
+    return false unless @get_super_class()?  # I'm java/lang/Object, can't go further
+    return @get_super_class().is_subinterface rs, target
+
+  # Get the typestring for the superclass of this class.
+  get_super_class_type: -> @super_class
+  # Get all of the typestrings for the interfaces implemented by this class.
+  get_interface_types: -> @constant_pool.get(i).deref() for i in @interfaces
+  # Get the ClassData object representing this class's superclass.
+  get_super_class: -> @super_class_cdata
+  # Get an array of ClassData objects representing this class's interfaces.
+  get_interfaces: -> @interface_cdatas
+  # Called once this class is loaded.
+  set_loaded: (@super_class_cdata, interface_cdatas) ->
+    @interface_cdatas = if interface_cdatas? then interface_cdatas else []
+  get_type: -> @this_class
 
 # Represents a "reference" Class -- that is, a class that neither represents a
 # primitive nor an array.
@@ -225,12 +236,12 @@ class root.ReferenceClassData extends ClassData
       return @is_subclass(rs,target)
 
 class root.ArrayClassData extends ClassData
-  constructor: (@this_class, @loader=null) ->
+  constructor: (@component_type, @loader=null) ->
     @constant_pool = new ConstantPool
     @ml_cache = {}
     @fl_cache = {}
     @access_flags = {}
-    @component_type = util.get_component_type @this_class
+    @this_class = "[#{@component_type}"
     @super_class = 'Ljava/lang/Object;'
     @interfaces = []
     @fields = []
@@ -257,7 +268,10 @@ class root.ArrayClassData extends ClassData
 
     # We are both array types, so it only matters if my component type can be
     # cast to its component type.
-    return rs.get_loaded_class(@get_component_type()).is_castable(rs, rs.get_loaded_class(target.get_component_type()))
+    return @loader.get_loaded_class(@get_component_type()).is_castable(rs, @loader.get_loaded_class(target.get_component_type()))
+
+  # Arrays need no initialization.
+  is_initialized: -> true
 
 class root.PrimitiveClassData extends ClassData
   constructor: (@this_class, @loader=null) ->
@@ -277,3 +291,6 @@ class root.PrimitiveClassData extends ClassData
   # "target" is a ClassData object.
   # The ClassData objects do not need to be initialized; just loaded.
   is_castable: (rs, target) -> @this_class == target.this_class
+
+  # Primitive classes are initialized when they are created.
+  is_initialized: -> true
