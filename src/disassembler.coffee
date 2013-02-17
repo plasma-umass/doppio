@@ -100,13 +100,16 @@ root.disassemble = (class_file) ->
   rv += "{\n"
 
   for f in class_file.fields
-    astr = access_string(f.access_flags)
-    rv += "#{astr} " unless astr == ''
+    rv += access_string(f.access_flags)
     rv += "#{pp_type(f.type)} #{f.name};\n"
     const_attr = _.find(f.attrs, (attr) -> attr.name == 'ConstantValue')
     if const_attr?
       entry = pool.get(const_attr.ref)
       rv += "  Constant value: #{entry.type} #{entry.deref?() or entry.value}\n"
+    sig = _.find(f.attrs, (attr) -> attr.name == 'Signature')
+    if sig?
+      rv += "  Signature: length = 0x#{sig.raw_bytes.length.toString(16)}\n"
+      rv += "   #{(pad_left(b.toString(16).toUpperCase(),2) for b in sig.raw_bytes).join ' '}\n"
     rv += "\n\n"
 
   for sig, m of class_file.methods

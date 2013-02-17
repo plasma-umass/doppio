@@ -209,8 +209,9 @@ class Deprecated
 
 class Signature
   name: 'Signature'
-  parse: (bytes_array, constant_pool) ->
-    ref = bytes_array.get_uint 2
+  parse: (bytes_array, constant_pool, attr_len) ->
+    @raw_bytes = bytes_array.read attr_len
+    ref = util.read_uint @raw_bytes
     @sig = constant_pool.get(ref).value
 
 class RuntimeVisibleAnnotations
