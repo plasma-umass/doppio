@@ -689,7 +689,14 @@ root.opcodes = {
       # Initialize @type, create a JavaObject for it, and push it onto the stack.
       # Do not rerun opcode.
       rs.async_op (resume_cb, except_cb) =>
-        rs.get_cl().initialize_class rs, @class, ((class_file)=>resume_cb(new JavaObject(rs, class_file), undefined, true)), ((e_cb)->except_cb(e_cb, true))
+        success_fn = (class_file) ->
+          # Check if this is a ClassLoader or not.
+          if class_file.is_castable rs, rs.get_bs_cl().get_loaded_class('Ljava/lang/ClassLoader;')
+            obj = new JavaClassLoaderObject(rs, class_file)
+          else
+            obj = new JavaObject(rs, class_file)
+          resume_cb(obj, undefined, true)
+        rs.get_cl().initialize_class rs, @class, success_fn, ((e_cb)->except_cb(e_cb, true))
   }
   188: new root.NewArrayOpcode 'newarray', { execute: (rs) -> rs.push rs.heap_newarray @element_type, rs.pop() }
   189: new root.ClassOpcode 'anewarray', { execute: (rs) ->
