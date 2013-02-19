@@ -861,8 +861,18 @@ native_methods =
                 # we don't care about what the input actually was
                 cb gLong.fromNumber(bytes.length), null
       ]
+      ObjectInputStream: [
+        o 'latestUserDefinedLoader()Ljava/lang/ClassLoader;', (rs) ->
+            # Returns the first non-null class loader (not counting class loaders
+            #  of generated reflection implementation classes) up the execution stack,
+            #  or null if only code from the null class loader is on the stack.
+            null  # XXX: actually check for class loaders on the stack
+      ]
       ObjectStreamClass: [
         o 'initNative()V', (rs) ->  # NOP
+        o 'hasStaticInitializer(Ljava/lang/Class;)Z', (rs, cls) ->
+            # check if cls has a <clinit> method
+            return cls.$cls.methods['<clinit>()V']?
       ]
       RandomAccessFile: [
         o 'open(Ljava/lang/String;I)V', (rs, _this, filename, mode) ->
@@ -1230,10 +1240,22 @@ native_methods =
         o 'staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;', (rs,_this,field) ->
             cls = field.get_field rs, 'Ljava/lang/reflect/Field;clazz'
             new JavaObject rs, cls.$cls
+        o 'getBoolean(Ljava/lang/Object;J)Z', (rs, _this, obj, offset) ->
+            obj.get_field_from_offset rs, offset
+        o 'getDouble(Ljava/lang/Object;J)D', (rs, _this, obj, offset) ->
+            obj.get_field_from_offset rs, offset
+        o 'getInt(Ljava/lang/Object;J)I', (rs, _this, obj, offset) ->
+            obj.get_field_from_offset rs, offset
+        o 'getLongVolatile(Ljava/lang/Object;J)J', (rs, _this, obj, offset) ->
+            obj.get_field_from_offset rs, offset
         o 'getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
             obj.get_field_from_offset rs, offset
         o 'getObject(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
             obj.get_field_from_offset rs, offset
+        o 'putDouble(Ljava/lang/Object;JD)V', (rs,_this,obj,offset,new_value) ->
+            obj.set_field_from_offset rs, offset, new_value
+        o 'putInt(Ljava/lang/Object;JI)V', (rs,_this,obj,offset,new_value) ->
+            obj.set_field_from_offset rs, offset, new_value
         o 'putObject(Ljava/lang/Object;JLjava/lang/Object;)V', (rs,_this,obj,offset,new_obj) ->
             obj.set_field_from_offset rs, offset, new_obj
         o 'putOrderedObject(Ljava/lang/Object;JLjava/lang/Object;)V', (rs,_this,obj,offset,new_obj) ->
