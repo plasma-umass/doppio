@@ -166,7 +166,7 @@ arraycopy_no_check = (src, src_pos, dest, dest_pos, length) ->
 #             primitive arrays.
 arraycopy_check = (rs, src, src_pos, dest, dest_pos, length) ->
   j = dest_pos
-  dest_comp_cls = dest.cls.loader.get_loaded_class dest.cls.get_component_type()
+  dest_comp_cls = dest.cls.get_component_class()
   for i in [src_pos...src_pos+length] by 1
     # Check if null or castable.
     if src.array[i] == null or src.array[i].cls.is_castable rs, dest_comp_cls
@@ -242,7 +242,7 @@ write_to_file = (rs, _this, bytes, offset, len, append) ->
     rs.async_op (cb) -> setTimeout(cb, 0)
 
 # Have a JavaClassLoaderObject and need its ClassLoader object? Use this method!
-get_cl_from_jclo = (rs, jclo) -> if jclo? then jclo.$loader else rs.get_bs_cl()
+get_cl_from_jclo = (rs, jclo) -> if jclo? and jclo.$loader? then jclo.$loader else rs.get_bs_cl()
 
 native_methods =
   java:
@@ -280,7 +280,7 @@ native_methods =
 
             # As this array type is loaded, the component type is guaranteed
             # to be loaded as well. No need for asynchronicity.
-            return _this.$cls.loader.get_loaded_class(_this.$cls.get_component_type()).get_class_object(rs)
+            return _this.$cls.get_component_class().get_class_object(rs)
         o 'getGenericSignature()Ljava/lang/String;', (rs, _this) ->
             sig = _.find(_this.$cls.attrs, (a) -> a.name is 'Signature')?.sig
             if sig? then rs.init_string sig else null
@@ -662,8 +662,8 @@ native_methods =
             else
               # Slow path
               # Absolutely cannot do this when two different primitive types, or a primitive type and a reference type.
-              src_comp_cls = src.cls.loader.get_loaded_class src.cls.get_component_type()
-              dest_comp_cls = dest.cls.loader.get_loaded_class dest.cls.get_component_type()
+              src_comp_cls = src.cls.get_component_class()
+              dest_comp_cls = dest.cls.get_component_class()
               if (src_comp_cls instanceof PrimitiveClassData) or (dest_comp_cls instanceof PrimitiveClassData)
                 exceptions.java_throw rs, rs.get_bs_class('Ljava/lang/ArrayStoreException;'), 'If calling arraycopy with a primitive array, both src and dest must be of the same primitive type.'
               else

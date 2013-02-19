@@ -158,9 +158,6 @@ class ClassData
   get_super_class: -> @super_class_cdata
   # Get an array of ClassData objects representing this class's interfaces.
   get_interfaces: -> @interface_cdatas
-  # Called once this class is loaded.
-  set_loaded: (@super_class_cdata, interface_cdatas) ->
-    @interface_cdatas = if interface_cdatas? then interface_cdatas else []
   get_type: -> @this_class
 
 # Represents a "reference" Class -- that is, a class that neither represents a
@@ -217,6 +214,10 @@ class root.ReferenceClassData extends ClassData
     # is run.
     @static_fields = @_construct_static_fields()
 
+  # Called once this class is loaded.
+  set_loaded: (@super_class_cdata, interface_cdatas) ->
+    @interface_cdatas = if interface_cdatas? then interface_cdatas else []
+
   # Returns a boolean indicating if this class is an instance of the target class.
   # "target" is a ClassData object.
   # The ClassData objects do not need to be initialized; just loaded.
@@ -268,10 +269,14 @@ class root.ArrayClassData extends ClassData
 
     # We are both array types, so it only matters if my component type can be
     # cast to its component type.
-    return @loader.get_loaded_class(@get_component_type()).is_castable(rs, @loader.get_loaded_class(target.get_component_type()))
+    return @get_component_class().is_castable(rs, target.get_component_class())
 
   # Arrays need no initialization.
   is_initialized: -> true
+
+  # Called once this class is loaded.
+  set_loaded: (@super_class_cdata, @component_class_cdata) -> # Nothing else to do.
+  get_component_class: -> return @component_class_cdata
 
 class root.PrimitiveClassData extends ClassData
   constructor: (@this_class, @loader=null) ->

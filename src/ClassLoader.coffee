@@ -51,7 +51,7 @@ class ClassLoader
   _define_array_class: (type_str, component_cdata) ->
     cdata = new ArrayClassData component_cdata.get_type(), @
     @_add_class type_str, cdata
-    cdata.set_loaded @bootstrap.get_loaded_class('Ljava/lang/Object;')
+    cdata.set_loaded @bootstrap.get_loaded_class('Ljava/lang/Object;'), component_cdata
     return cdata
 
   # Called by define_class to fetch all interfaces and superclasses in parallel.
