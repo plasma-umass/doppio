@@ -1332,7 +1332,14 @@ native_methods =
                   my_sf.runner = ->
                     rv = rs.pop()
                     rs.meta_stack().pop()
-                    rs.push rv
+                    if not rv? or rv.ref?  # XXX: hacky way of asking if it's an instanceof JavaObject or JavaArray
+                      rs.push rv
+                    else
+                      # it's a primitive; wrap it in the appropriate Object
+                      ret_type = m.get_field rs, 'Ljava/lang/reflect/Method;returnType'
+                      prim_descriptor = ret_type.$cls.this_class
+                      wrapped = ret_type.$cls.create_wrapper_object(rs, rv)
+                      rs.push wrapped
               ), except_cb
       ]
       NativeConstructorAccessorImpl: [

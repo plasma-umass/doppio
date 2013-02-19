@@ -6,7 +6,7 @@ attributes = require './attributes'
 opcodes = require './opcodes'
 methods = null # Define later to avoid circular dependency; methods references natives, natives references ClassData
 {java_throw} = require './exceptions'
-{JavaClassObject} = require './java_object'
+{JavaObject,JavaClassObject} = require './java_object'
 {trace} = require './logging'
 
 "use strict"
@@ -299,3 +299,19 @@ class root.PrimitiveClassData extends ClassData
 
   # Primitive classes are initialized when they are created.
   is_initialized: -> true
+
+  create_wrapper_object: (rs, value) ->
+    type_desc = switch @this_class
+      when 'B' then 'Ljava/lang/Byte;'
+      when 'C' then 'Ljava/lang/Character;'
+      when 'D' then 'Ljava/lang/Double;'
+      when 'F' then 'Ljava/lang/Float;'
+      when 'I' then 'Ljava/lang/Integer;'
+      when 'J' then 'Ljava/lang/Long;'
+      when 'S' then 'Ljava/lang/Short;'
+      when 'Z' then 'Ljava/lang/Boolean;'
+    # these are all initialized in preinit (for the BSCL, at least)
+    wrapped = new JavaObject rs, rs.get_bs_class(type_desc)
+    # HACK: all primitive wrappers store their value in a private static final field named 'value'
+    wrapped.fields[type_desc+'value'] = value
+    return wrapped

@@ -125,6 +125,14 @@ class root.RuntimeState
       'Ljava/nio/ByteOrder;'
       'Lsun/misc/VM;'
       'Lsun/reflect/ConstantPool;'
+      'Ljava/lang/Byte;'
+      'Ljava/lang/Character;'
+      'Ljava/lang/Double;'
+      'Ljava/lang/Float;'
+      'Ljava/lang/Integer;'
+      'Ljava/lang/Long;'
+      'Ljava/lang/Short;'
+      'Ljava/lang/Boolean;'
     ]
     i = -1
     init_next_core_class = =>
