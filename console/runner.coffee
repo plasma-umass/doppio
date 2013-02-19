@@ -84,7 +84,7 @@ find_main_class = (extracted_jar_dir) ->
 
 if require.main == module
   optimist = require('optimist')
-    .boolean(['count-logs','h','list-class-cache'])
+    .boolean(['count-logs','h','list-class-cache','show-nyi-natives'])
     .alias({h: 'help'})
     .describe({
       classpath: 'JVM classpath, "path1:...:pathn"',
@@ -95,6 +95,7 @@ if require.main == module
       'count-logs': 'count log messages instead of printing them',
       'skip-logs': 'number of log messages to skip before printing',
       'list-class-cache': 'list all of the loaded classes after execution',
+      'show-nyi-natives': 'list any NYI native functions in loaded classes',
       h: 'Show this usage'})
     .usage 'Usage: $0 /path/to/classfile [flags]'
   argv = optimist.argv
@@ -110,6 +111,8 @@ if require.main == module
         level
     else
       logging.ERROR
+
+  jvm.show_NYI_natives = argv['show-nyi-natives']
 
   if argv.classpath?
     jvm.classpath = argv.classpath.split ':'

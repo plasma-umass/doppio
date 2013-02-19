@@ -7,6 +7,7 @@ attributes = require './attributes'
 natives = require './natives'
 runtime = require './runtime'
 logging = require './logging'
+jvm = require './jvm'
 {vtrace,trace,debug_vars} = logging
 {java_throw,ReturnException} = require './exceptions'
 {native_methods,trapped_methods} = natives
@@ -86,12 +87,14 @@ class root.Method extends AbstractMethodField
     else if @access_flags.native
       if (c = native_methods[sig])?
         @code = c
-      else if UNSAFE?
-        @code = null # optimization: avoid copying around params if it is a no-op.
       else
-        @code = (rs) =>
-          unless sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
-            java_throw rs, rs.get_bs_class('Ljava/lang/Error;'), "native method NYI: #{sig}"
+        console.log(sig) if jvm.show_NYI_natives and sig.indexOf('::registerNatives()V',1) < 0 and sig.indexOf('::initIDs()V',1) < 0
+        if UNSAFE?
+          @code = null # optimization: avoid copying around params if it is a no-op.
+        else
+          @code = (rs) =>
+            unless sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
+              java_throw rs, rs.get_bs_class('Ljava/lang/Error;'), "native method NYI: #{sig}"
     else
       @has_bytecode = true
       @code = _.find(@attrs, (a) -> a.name == 'Code')

@@ -12,6 +12,7 @@ fs = node?.fs ? require 'fs'
 root = exports ? this.jvm = {}
 
 root.classpath = []
+root.show_NYI_natives = false
 
 root.read_classfile = (cls, cb, failure_cb) ->
   cls = cls[1...-1] # Convert Lfoo/bar/Baz; -> foo/bar/Baz.
