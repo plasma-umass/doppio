@@ -613,6 +613,18 @@ native_methods =
             # that the browser will use it as an opportunity to GC.
             rs.async_op (cb) -> setTimeout(cb, 0)
       ]
+      SecurityManager: [
+        o 'getClassContext()[Ljava/lang/Class;', (rs, _this) ->
+            # return an array of classes for each method on the stack
+            # starting with the current method and going up the call chain
+            classes = []
+            stack_frames = rs.meta_stack()._cs  # have to get at the internals
+            for i in [stack_frames.length-1..0] by -1
+              sf = stack_frames[i]
+              unless sf.fake? or sf.native?
+                classes.push sf.method.cls.get_class_object(rs)
+            new JavaArray rs, rs.get_bs_class('[Ljava/lang/Class;'), classes
+      ]
       Shutdown: [
         o 'halt0(I)V', (rs, status) -> throw new exceptions.HaltException(status)
       ]
