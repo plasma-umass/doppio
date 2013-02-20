@@ -310,6 +310,8 @@ class root.PrimitiveClassData extends ClassData
       when 'J' then 'Ljava/lang/Long;'
       when 'S' then 'Ljava/lang/Short;'
       when 'Z' then 'Ljava/lang/Boolean;'
+      else
+        throw new Error("Tried to create_wrapper_object for type #{@this_class}")
     # these are all initialized in preinit (for the BSCL, at least)
     wrapped = new JavaObject rs, rs.get_bs_class(type_desc)
     # HACK: all primitive wrappers store their value in a private static final field named 'value'

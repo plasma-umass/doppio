@@ -1318,7 +1318,25 @@ native_methods =
                 method = (method for sig, method of cls_obj.methods when method.idx is slot)[0]
                 my_sf = rs.curr_frame()
                 rs.push obj unless method.access_flags.static
-                rs.push_array params.array
+                # we don't get unboxing for free anymore, so we have to do it ourselves
+                i = 0
+                for p_type in method.param_types
+                  p = params.array[i++]
+                  if p_type in ['J','D']  # cat 2 primitives
+                    if p?.ref?
+                      primitive_value = p.get_field rs, p.cls.this_class+'value'
+                      rs.push2 primitive_value, null
+                    else
+                      rs.push2 p, null
+                      i++  # skip past the null spacer
+                  else if util.is_primitive_type(p_type)  # any other primitive
+                    if p?.ref?
+                      primitive_value = p.get_field rs, p.cls.this_class+'value'
+                      rs.push primitive_value
+                    else
+                      rs.push p
+                  else
+                    rs.push p
                 # Reenter the RuntimeState loop, which should run our new StackFrame.
                 # XXX: We use except_cb because it just replaces the runner function of the
                 # current frame. We need a better story for calling Java threads through
@@ -1330,16 +1348,17 @@ native_methods =
                   method.setup_stack(rs)
                   # Overwrite my runner.
                   my_sf.runner = ->
+                    ret_type = m.get_field rs, 'Ljava/lang/reflect/Method;returnType'
+                    descriptor = ret_type.$cls.this_class
                     rv = rs.pop()
+                    # pop again if it's a category 2 primitive type
+                    rv = rs.pop() if descriptor in ['J','D']
                     rs.meta_stack().pop()
-                    if not rv? or rv.ref?  # XXX: hacky way of asking if it's an instanceof JavaObject or JavaArray
-                      rs.push rv
+                    # wrap up primitives in their Object box
+                    if util.is_primitive_type(descriptor) and descriptor != 'V'
+                      rs.push ret_type.$cls.create_wrapper_object(rs, rv)
                     else
-                      # it's a primitive; wrap it in the appropriate Object
-                      ret_type = m.get_field rs, 'Ljava/lang/reflect/Method;returnType'
-                      prim_descriptor = ret_type.$cls.this_class
-                      wrapped = ret_type.$cls.create_wrapper_object(rs, rv)
-                      rs.push wrapped
+                      rs.push rv
               ), except_cb
       ]
       NativeConstructorAccessorImpl: [
