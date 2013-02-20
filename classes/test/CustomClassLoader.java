@@ -6,7 +6,6 @@ public class CustomClassLoader extends ClassLoader {
   private static final int BUFFER_SIZE = 8192;
 
   protected synchronized Class loadClass(String className, boolean resolve) throws ClassNotFoundException {
-    System.out.println("Loading class: " + className + ", resolve: " + resolve);
 
     // 1. is this class already loaded?
     Class cls = findLoadedClass(className);
@@ -46,7 +45,6 @@ public class CustomClassLoader extends ClassLoader {
       }
       System.out.println("ran defineClass with no issues");
     } catch (SecurityException e) {
-      System.out.println("Caught "+e);
       cls = super.loadClass(className, resolve);
     }
     return cls;
