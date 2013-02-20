@@ -64,21 +64,3 @@ class root.JavaException
     rs.method_lookup(thread_cls,
       { class: 'Ljava/lang/Thread;'
       sig: 'dispatchUncaughtException(Ljava/lang/Throwable;)V'} ).setup_stack(rs)
-
-
-# Simulate the throwing of a Java exception with message :msg. Not very DRY --
-# code here is essentially copied from the opcodes themselves -- but
-# constructing the opcodes manually is inelegant too.
-root.java_throw = (rs, cls, msg) ->
-  method_spec = sig: '<init>(Ljava/lang/String;)V'
-  v = new JavaObject rs, cls  # new
-  rs.push_array([v,v,rs.init_string msg]) # dup, ldc
-  my_sf = rs.curr_frame()
-  rs.method_lookup(cls, method_spec).setup_stack(rs) # invokespecial
-  my_sf.runner = ->
-    if my_sf.method.has_bytecode
-      my_sf.runner = (-> my_sf.method.run_bytecode(rs))  # don't re-throw the exception
-    else
-      my_sf.runner = null
-    throw (new root.JavaException(rs.pop())) # athrow
-  throw root.ReturnException

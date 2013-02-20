@@ -27,7 +27,6 @@ root.read_classfile = (cls, cb, failure_cb) ->
       setTimeout((->failure_cb(()->throw e)), 0) # Signifies an error occurred.
       return
 
-  trace "Couldn't find class #{cls}."
   failure_cb (()->throw new Error "Error: No file found for class #{cls}.")
 
 # main function that gets called from the frontend

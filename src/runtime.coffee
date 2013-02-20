@@ -6,7 +6,7 @@ gLong = require '../vendor/gLong.js'
 util = require './util'
 {ReferenceClassData,PrimitiveClassData,ArrayClassData} = require './ClassData'
 {log,vtrace,trace,debug,error} = require './logging'
-{java_throw,YieldIOException,ReturnException,JavaException} = require './exceptions'
+{YieldIOException,ReturnException,JavaException} = require './exceptions'
 {JavaObject,JavaArray,thread_name} = require './java_object'
 
 "use strict"
@@ -171,6 +171,23 @@ class root.RuntimeState
 
   meta_stack: -> @curr_thread.$meta_stack
 
+  # Simulate the throwing of a Java exception with message :msg. Not very DRY --
+  # code here is essentially copied from the opcodes themselves -- but
+  # constructing the opcodes manually is inelegant too.
+  java_throw: (cls, msg) ->
+    method_spec = sig: '<init>(Ljava/lang/String;)V'
+    v = new JavaObject @, cls  # new
+    @push_array([v,v,@init_string msg]) # dup, ldc
+    my_sf = @curr_frame()
+    @method_lookup(cls, method_spec).setup_stack(@) # invokespecial
+    my_sf.runner = =>
+      if my_sf.method.has_bytecode
+        my_sf.runner = (=> my_sf.method.run_bytecode(@))  # don't re-throw the exception
+      else
+        my_sf.runner = null
+      throw (new JavaException(@pop())) # athrow
+    throw ReturnException
+
   # Init the first class, and put the command-line args on the stack for use by
   # its main method.
 
@@ -259,12 +276,12 @@ class root.RuntimeState
 
   # Heap manipulation.
   check_null: (obj) ->
-    java_throw @, @get_bs_class('Ljava/lang/NullPointerException;'), '' unless obj?
+    @java_throw @get_bs_class('Ljava/lang/NullPointerException;'), '' unless obj?
     obj
 
   heap_newarray: (type,len) ->
     if len < 0
-      java_throw @, @get_bs_class('Ljava/lang/NegativeArraySizeException;'), "Tried to init [#{type} array with length #{len}"
+      @java_throw @get_bs_class('Ljava/lang/NegativeArraySizeException;'), "Tried to init [#{type} array with length #{len}"
     if type == 'J'
       new JavaArray @, @get_bs_class('[J'), (gLong.ZERO for i in [0...len] by 1)
     else if type[0] == 'L'  # array of object
@@ -285,13 +302,13 @@ class root.RuntimeState
   method_lookup: (cls, method_spec) ->
     method = cls.method_lookup(this, method_spec)
     return method if method?
-    java_throw @, @get_bs_class('Ljava/lang/NoSuchMethodError;'),
+    @java_throw @get_bs_class('Ljava/lang/NoSuchMethodError;'),
       "No such method found in #{util.ext_classname(method_spec.class)}::#{method_spec.sig}"
 
   field_lookup: (cls, field_spec) ->
     field = cls.field_lookup this, field_spec
     return field if field?
-    java_throw @, @get_bs_class('Ljava/lang/NoSuchFieldError;'),
+    @java_throw @get_bs_class('Ljava/lang/NoSuchFieldError;'),
       "No such field found in #{util.ext_classname(field_spec.class)}::#{field_spec.name}"
 
   # address of the block that this address is contained in

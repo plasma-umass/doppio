@@ -1,7 +1,7 @@
 
 gLong = require '../vendor/gLong.js'
 util = require './util'
-{java_throw,ReturnException,JavaException} = require './exceptions'
+{ReturnException,JavaException} = require './exceptions'
 {JavaObject,JavaArray,JavaClassLoaderObject} = require './java_object'
 
 "use strict"
@@ -355,7 +355,7 @@ class root.MultiArrayOpcode extends root.Opcode
       arr_types = (@class[d..] for d in [0...@dim] by 1)
       init_arr = (curr_dim) =>
         len = counts[curr_dim]
-        if len < 0 then java_throw(rs, rs.get_bs_class('Ljava/lang/NegativeArraySizeException;'),
+        if len < 0 then rs.java_throw(rs.get_bs_class('Ljava/lang/NegativeArraySizeException;'),
           "Tried to init dimension #{curr_dim} of a #{@dim} dimensional #{@class.toString()} array with length #{len}")
         type = arr_types[curr_dim]
         if curr_dim+1 == @dim
@@ -375,7 +375,7 @@ class root.ArrayLoadOpcode extends root.Opcode
     obj = rs.check_null(rs.pop())
     array = obj.array
     unless 0 <= idx < array.length
-      java_throw(rs, rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;'),
+      rs.java_throw(rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;'),
         "#{idx} not in length #{array.length} array of type #{obj.cls.toClassString()}")
     rs.push array[idx]
     rs.push null if @name[0] in ['l', 'd']
@@ -388,7 +388,7 @@ class root.ArrayStoreOpcode extends root.Opcode
     obj = rs.check_null(rs.pop())
     array = obj.array
     unless 0 <= idx < array.length
-      java_throw(rs, rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;'),
+      rs.java_throw(rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;'),
         "#{idx} not in length #{array.length} array of type #{obj.cls.toClassString()}")
     array[idx] = value
     return
@@ -726,7 +726,7 @@ root.opcodes = {
         else
           target_class = @cls.toExternalString() # class we wish to cast to
           candidate_class = o.cls.toExternalString()
-          java_throw rs, rs.get_bs_class('Ljava/lang/ClassCastException;'), "#{candidate_class} cannot be cast to #{target_class}"
+          rs.java_throw rs.get_bs_class('Ljava/lang/ClassCastException;'), "#{candidate_class} cannot be cast to #{target_class}"
 
       new_execute.call @, rs
       @execute = new_execute
@@ -773,7 +773,7 @@ root.opcodes = {
       if rs.lock_counts[monitor] == 0
         delete rs.lock_refs[monitor]
     else
-      java_throw rs, rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;'), "Tried to monitorexit on lock not held by current thread"
+      rs.java_throw rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;'), "Tried to monitorexit on lock not held by current thread"
   }
   197: new root.MultiArrayOpcode 'multianewarray'
   198: new root.UnaryBranchOpcode 'ifnull', { cmp: (v) -> not v? }

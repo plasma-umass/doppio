@@ -8,9 +8,7 @@ user_input = null
 controller = null
 editor = null
 progress = null
-
-class_cache = {}
-raw_cache = {}
+bs_cl = null
 
 preload = ->
   try
@@ -39,7 +37,6 @@ preload = ->
 
     untar new util.BytesArray(util.bytestr_to_array data), ((percent, path, file) ->
       update_bar(percent, path)
-      raw_cache[path] = file
       base_dir = 'vendor/classes/'
       [base,ext] = path.split('.')
       unless ext is 'class'
@@ -51,39 +48,24 @@ preload = ->
         # XXX: We convert from bytestr to array to process the tar file, and
         #      then back to a bytestr to store as a file in the filesystem.
         node.fs.writeFileSync(path, util.array_to_bytestr(file), true)
-        class_cache[cls] = new ReferenceClassData file
         on_complete() if --file_count == 0 and done
       ), 0),
       ->
         done = true
         on_complete() if file_count == 0
 
-try_path = (path) ->
-  try
-    return util.bytestr_to_array node.fs.readFileSync(path)
-  catch e
-    return null
-
 # Read in a binary classfile synchronously. Return an array of bytes.
-read_classfile = (cls) ->
-  unless class_cache[cls]?
-    for path in jvm.classpath
-      fullpath = "#{path}#{cls}.class"
-      if fullpath of raw_cache
-        continue if raw_cache[fullpath] == null # we tried this path previously & it failed
-        class_cache[cls] = new ReferenceClassData raw_cache[fullpath]
-        break
-      raw_cache[fullpath] = try_path fullpath
-      if raw_cache[fullpath]?
-        class_cache[cls] = new ReferenceClassData raw_cache[fullpath]
-        break
-  class_cache[cls]
+read_classfile = (cls, cb, failure_cb) ->
+  cls = cls[1...-1] # Convert Lfoo/bar/Baz; -> foo/bar/Baz.
+  for path in jvm.classpath
+    fullpath = "#{path}#{cls}.class"
+    try
+      data = util.bytestr_to_array node.fs.readFileSync(fullpath)
+    catch e
+      data = null
+    return setTimeout((->cb(data)), 0) if data?
 
-root.read_raw_class = (path) ->
-  unless raw_cache[path]?
-    data = try_path path
-    raw_cache[path] = data if data?
-  raw_cache[path]
+  failure_cb(-> throw new Error "Error: No file found for class #{cls}.")
 
 process_bytecode = (bytecode_string) ->
   bytes_array = util.bytestr_to_array bytecode_string
@@ -202,12 +184,13 @@ $(document).ready ->
     e.preventDefault()
 
   $('#close_btn').click (e) -> close_editor(); e.preventDefault()
+  bs_cl = new ClassLoader.BootstrapClassLoader(read_classfile)
   preload()
 
 commands =
   javac: (args, cb) ->
     jvm.classpath = [ "./", "/home/doppio/vendor/classes/", "/home/doppio" ]
-    rs = new runtime.RuntimeState(stdout, user_input, read_classfile)
+    rs = new runtime.RuntimeState(stdout, user_input, bs_cl)
     jvm.run_class(rs, 'classes/util/Javac', args, -> controller.reprompt())
     return null  # no reprompt, because we handle it ourselves
   java: (args, cb) ->
@@ -222,7 +205,7 @@ commands =
       jvm.classpath = [ "./", "/home/doppio/vendor/classes/" ]
       class_name = args[0]
       class_args = args[1..]
-    rs = new runtime.RuntimeState(stdout, user_input, read_classfile)
+    rs = new runtime.RuntimeState(stdout, user_input, bs_cl)
     jvm.run_class(rs, class_name, class_args, -> controller.reprompt())
     return null  # no reprompt, because we handle it ourselves
   test: (args) ->
@@ -244,15 +227,11 @@ commands =
     return null  # no reprompt, because we handle it ourselves
   rhino: (args, cb) ->
     jvm.classpath = [ "./", "/home/doppio/vendor/classes/" ]
-    rs = new runtime.RuntimeState(stdout, user_input, read_classfile)
+    rs = new runtime.RuntimeState(stdout, user_input, bs_cl)
     jvm.run_class(rs, 'com/sun/tools/script/shell/Main', args, -> controller.reprompt())
     return null  # no reprompt, because we handle it ourselves
-  list_cache: ->
-    ((if val? then '' else '-') + name for name, val of raw_cache).join '\n'
-  clear_cache: (args) ->
-    raw_cache = {}
-    class_cache = {}
-    "Cache cleared."
+  list_cache: -> # XXX: Need to reimplement in terms of BS CL.
+  clear_cache: (args) -> # XXX: Need to reimplement in terms of BS CL.
   ls: (args) ->
     read_dir = (dir) -> node.fs.readdirSync(dir).sort().join '\n'
     if args.length == 0

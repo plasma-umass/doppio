@@ -5,7 +5,6 @@ ConstantPool = require './ConstantPool'
 attributes = require './attributes'
 opcodes = require './opcodes'
 methods = null # Define later to avoid circular dependency; methods references natives, natives references ClassData
-{java_throw} = require './exceptions'
 {JavaObject,JavaClassObject} = require './java_object'
 {trace} = require './logging'
 
@@ -73,13 +72,13 @@ class ClassData
 
   static_get: (rs, name) ->
     return @static_fields[name] unless @static_fields[name] is undefined
-    java_throw rs, @loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name
+    rs.java_throw @loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name
 
   static_put: (rs, name, val) ->
     unless @static_fields[name] is undefined
       @static_fields[name] = val
     else
-      java_throw rs, @loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name
+      rs.java_throw @loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name
 
   # Resets any ClassData state that may have been built up
   load: () ->

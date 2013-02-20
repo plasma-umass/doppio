@@ -1,7 +1,6 @@
 
 _ = require '../vendor/_.js'
 util = require './util'
-{java_throw} = require './exceptions'
 {log,debug,error,trace,vtrace} = require './logging'
 CustomClassLoader = undefined # XXX: Circular dependency hack.
 
@@ -47,12 +46,12 @@ class root.JavaObject
     unless @fields[name] is undefined
       @fields[name] = val
     else
-      java_throw rs, @cls.loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name
+      rs.java_throw @cls.loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name
     return
 
   get_field: (rs, name) ->
     return @fields[name] unless @fields[name] is undefined
-    java_throw rs, @cls.loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name
+    rs.java_throw @cls.loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name
 
   get_field_from_offset: (rs, offset) ->
     f = @_get_field_from_offset rs, @cls, offset.toInt()
@@ -64,7 +63,7 @@ class root.JavaObject
     classname = cls.toClassString()
     until cls.fields[offset]?
       unless cls.get_super_class()?
-        java_throw rs, @cls.loader.get_initialized_class('Ljava/lang/NullPointerException;'), "field #{offset} doesn't exist in class #{classname}"
+        rs.java_throw @cls.loader.get_initialized_class('Ljava/lang/NullPointerException;'), "field #{offset} doesn't exist in class #{classname}"
       cls = cls.get_super_class()
     {field: cls.fields[offset], cls: cls.toClassString(), cls_obj: cls}
 

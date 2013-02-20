@@ -9,7 +9,7 @@ runtime = require './runtime'
 logging = require './logging'
 jvm = require './jvm'
 {vtrace,trace,debug_vars} = logging
-{java_throw,ReturnException} = require './exceptions'
+{ReturnException} = require './exceptions'
 {native_methods,trapped_methods} = natives
 {JavaArray,JavaObject} = require './java_object'
 
@@ -94,7 +94,7 @@ class root.Method extends AbstractMethodField
         else
           @code = (rs) =>
             unless sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
-              java_throw rs, rs.get_bs_class('Ljava/lang/Error;'), "native method NYI: #{sig}"
+              rs.java_throw rs.get_bs_class('Ljava/lang/Error;'), "native method NYI: #{sig}"
     else
       @has_bytecode = true
       @code = _.find(@attrs, (a) -> a.name == 'Code')
@@ -226,7 +226,7 @@ class root.Method extends AbstractMethodField
       return
 
     if @access_flags.abstract
-      java_throw runtime_state, rs.get_bs_class('Ljava/lang/Error;'), "called abstract method: #{@full_signature()}"
+      runtime_state.java_throw rs.get_bs_class('Ljava/lang/Error;'), "called abstract method: #{@full_signature()}"
 
     # Finally, the normal case: running a Java method
     ms.push(sf = new runtime.StackFrame(this,params,[]))

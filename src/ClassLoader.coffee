@@ -5,7 +5,6 @@ util = require './util'
 {StackFrame} = require './runtime'
 {JavaException} = require './exceptions'
 {JavaObject} = require './java_object'
-{java_throw} = require './exceptions'
 
 "use strict"
 
@@ -371,7 +370,7 @@ class root.BootstrapClassLoader extends ClassLoader
       @define_class rs, type_str, data, ((jco)=>success_fn(jco.$cls)), failure_fn, true # Fetch super class/interfaces in parallel.
     ), (() =>
       setTimeout((failure_fn () =>
-        java_throw rs, @bootstrap.get_initialized_class('Ljava/lang/ClassNotFoundException;'), util.ext_classname type_str
+        rs.java_throw @bootstrap.get_initialized_class('Ljava/lang/ClassNotFoundException;'), util.ext_classname type_str
       ), 0)
     ) # XXX: Convert to correct exception type.
     return

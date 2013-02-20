@@ -172,7 +172,7 @@ arraycopy_check = (rs, src, src_pos, dest, dest_pos, length) ->
     if src.array[i] == null or src.array[i].cls.is_castable rs, dest_comp_cls
       dest.array[j] = src.array[i]
     else
-      exceptions.java_throw rs, rs.get_bs_class('Ljava/lang/ArrayStoreException;'), 'Array element in src cannot be cast to dest array type.'
+      rs.java_throw rs.get_bs_class('Ljava/lang/ArrayStoreException;'), 'Array element in src cannot be cast to dest array type.'
     j++
   # CoffeeScript, we are not returning an array.
   return
@@ -230,7 +230,7 @@ native_define_class = (rs, name, bytes, offset, len, loader, resume_cb, except_c
   loader.define_class rs, util.int_classname(name.jvm2js_str()), raw_bytes, resume_cb, except_cb
 
 write_to_file = (rs, _this, bytes, offset, len, append) ->
-  exceptions.java_throw rs, rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if _this.$file == 'closed'
+  rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if _this.$file == 'closed'
   if _this.$file?
     # appends by default in the browser, not sure in actual node.js impl
     fs.writeSync(_this.$file, new Buffer(bytes.array), offset, len)
@@ -375,7 +375,7 @@ native_methods =
             cls = _this.$cls
             em = _.find(cls.attrs, (a) -> a.name == 'EnclosingMethod')
             return null unless em?
-            exceptions.java_throw rs, rs.get_bs_class('Ljava/lang/Error;'), "native method not finished: java.lang.Class.getEnclosingClass"
+            rs.java_throw rs.get_bs_class('Ljava/lang/Error;'), "native method not finished: java.lang.Class.getEnclosingClass"
             #TODO: return array w/ 3 elements:
             # - the immediately enclosing class (java/lang/Class)
             # - the immediately enclosing method or constructor's name (can be null). (String)
@@ -561,7 +561,7 @@ native_methods =
             if (locker = rs.lock_refs[_this])?
               if locker isnt rs.curr_thread
                 owner = thread_name rs, locker
-                exceptions.java_throw rs, rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;'), "Thread '#{owner}' owns this monitor"
+                rs.java_throw rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;'), "Thread '#{owner}' owns this monitor"
             if rs.waiting_threads[_this]?
               rs.waiting_threads[_this].shift()
         o 'notifyAll()V', (rs, _this) ->
@@ -569,7 +569,7 @@ native_methods =
             if (locker = rs.lock_refs[_this])?
               if locker isnt rs.curr_thread
                 owner = thread_name rs, locker
-                exceptions.java_throw rs, rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;'), "Thread '#{owner}' owns this monitor"
+                rs.java_throw rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;'), "Thread '#{owner}' owns this monitor"
             if rs.waiting_threads[_this]?
               rs.waiting_threads[_this] = []
         o 'wait(J)V', (rs, _this, timeout) ->
@@ -578,7 +578,7 @@ native_methods =
             if (locker = rs.lock_refs[_this])?
               if locker isnt rs.curr_thread
                 owner = thread_name rs, locker
-                exceptions.java_throw rs, rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;'), "Thread '#{owner}' owns this monitor"
+                rs.java_throw rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;'), "Thread '#{owner}' owns this monitor"
             rs.lock_refs[_this] = null
             rs.wait _this
       ]
@@ -643,14 +643,14 @@ native_methods =
         o 'arraycopy(L!/!/Object;IL!/!/Object;II)V', (rs, src, src_pos, dest, dest_pos, length) ->
             # Needs to be checked *even if length is 0*.
             if !src? or !dest?
-              exceptions.java_throw rs, rs.get_bs_class('Ljava/lang/NullPointerException;'), 'Cannot copy to/from a null array.'
+              rs.java_throw rs.get_bs_class('Ljava/lang/NullPointerException;'), 'Cannot copy to/from a null array.'
             # Can't do this on non-array types. Need to check before I check bounds below, or else I'll get an exception.
             if !(src.cls instanceof ArrayClassData) or !(dest.cls instanceof ArrayClassData)
-              exceptions.java_throw rs, rs.get_bs_class('Ljava/lang/ArrayStoreException;'), 'src and dest arguments must be of array type.'
+              rs.java_throw rs.get_bs_class('Ljava/lang/ArrayStoreException;'), 'src and dest arguments must be of array type.'
             # Also needs to be checked *even if length is 0*.
             if src_pos < 0 or (src_pos+length) > src.array.length or dest_pos < 0 or (dest_pos+length) > dest.array.length or length < 0
               # System.arraycopy requires IndexOutOfBoundsException, but Java throws an array variant of the exception in practice.
-              exceptions.java_throw rs, rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;'), 'Tried to write to an illegal index in an array.'
+              rs.java_throw rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;'), 'Tried to write to an illegal index in an array.'
             # Special case; need to copy the section of src that is being copied into a temporary array before actually doing the copy.
             if src == dest
               src = {cls: src.cls, array: src.array.slice(src_pos, src_pos+length)}
@@ -665,7 +665,7 @@ native_methods =
               src_comp_cls = src.cls.get_component_class()
               dest_comp_cls = dest.cls.get_component_class()
               if (src_comp_cls instanceof PrimitiveClassData) or (dest_comp_cls instanceof PrimitiveClassData)
-                exceptions.java_throw rs, rs.get_bs_class('Ljava/lang/ArrayStoreException;'), 'If calling arraycopy with a primitive array, both src and dest must be of the same primitive type.'
+                rs.java_throw rs.get_bs_class('Ljava/lang/ArrayStoreException;'), 'If calling arraycopy with a primitive array, both src and dest must be of the same primitive type.'
               else
                 # Must be two reference types.
                 arraycopy_check(rs, src, src_pos, dest, dest_pos, length)
@@ -700,7 +700,7 @@ native_methods =
             new_thread_sf = util.last _this.$meta_stack._cs
             new_thread_sf.runner = ->
               new_thread_sf.method.run_manually (->
-                exceptions.java_throw rs, rs.get_bs_class('Ljava/lang/InterruptedException;'), 'interrupt0 called'
+                rs.java_throw rs.get_bs_class('Ljava/lang/InterruptedException;'), 'interrupt0 called'
               ), rs, []
             _this.$meta_stack.push {}  # dummy
             rs.yield _this
@@ -786,12 +786,12 @@ native_methods =
       ]
       FileInputStream: [
         o 'available()I', (rs, _this) ->
-            exceptions.java_throw rs, rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if _this.$file == 'closed'
+            rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if _this.$file == 'closed'
             return 0 unless _this.$file? # no buffering for stdin
             stats = fs.fstatSync _this.$file
             stats.size - _this.$pos
         o 'read()I', (rs, _this) ->
-            exceptions.java_throw rs, rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if _this.$file == 'closed'
+            rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if _this.$file == 'closed'
             if (file = _this.$file)?
               # this is a real file that we've already opened
               buf = new Buffer((fs.fstatSync file).size)
@@ -803,7 +803,7 @@ native_methods =
               rs.async_input 1, (byte) ->
                 cb(if byte.length == 0 then -1 else byte.charCodeAt(0))
         o 'readBytes([BII)I', (rs, _this, byte_arr, offset, n_bytes) ->
-            exceptions.java_throw rs, rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if _this.$file == 'closed'
+            rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if _this.$file == 'closed'
             if _this.$file?
               # this is a real file that we've already opened
               pos = _this.$pos
@@ -830,7 +830,7 @@ native_methods =
               fs.open filepath, 'r', (e, f) ->
                 if e?
                   if e.code == 'ENOENT'
-                    except_cb ()-> exceptions.java_throw rs, rs.get_bs_class('Ljava/io/FileNotFoundException;'), "Could not open file #{filepath}"
+                    except_cb ()-> rs.java_throw rs.get_bs_class('Ljava/io/FileNotFoundException;'), "Could not open file #{filepath}"
                   else
                     except_cb ()-> throw e
                 else
@@ -849,7 +849,7 @@ native_methods =
             else
               _this.$file = 'closed'
         o 'skip(J)J', (rs, _this, n_bytes) ->
-            exceptions.java_throw rs, rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if _this.$file == 'closed'
+            rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if _this.$file == 'closed'
             if (file = _this.$file)?
               bytes_left = fs.fstatSync(file).size - _this.$pos
               to_skip = Math.min(n_bytes.toNumber(), bytes_left)
@@ -882,7 +882,7 @@ native_methods =
               fs.open filepath, 'r+', (err, f) ->
                 if err?
                   if e.code == 'ENOENT'
-                    except_cb -> exceptions.java_throw rs, rs.get_bs_class('Ljava/io/FileNotFoundException;'), "Could not open file #{filepath}"
+                    except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/FileNotFoundException;'), "Could not open file #{filepath}"
                   else
                     except_cb -> throw e
                 else
@@ -955,11 +955,11 @@ native_methods =
                 else
                   fs.open filepath, 'w', (err, f) ->
                     if err?
-                      except_cb -> exceptions.java_throw rs, rs.get_bs_class('Ljava/io/IOException;'), e.message
+                      except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), e.message
                     else
                       fs.close f, (err) ->
                         if err?
-                          except_cb -> exceptions.java_throw rs, rs.get_bs_class('Ljava/io/IOException;'), e.message
+                          except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), e.message
                         else
                           resume_cb true
         o 'createFileExclusively(Ljava/lang/String;Z)Z', (rs, _this, path) ->  # Apple-java version
@@ -971,11 +971,11 @@ native_methods =
                 else
                   fs.open filepath, 'w', (err, f) ->
                     if err?
-                      except_cb -> exceptions.java_throw rs, rs.get_bs_class('Ljava/io/IOException;'), e.message
+                      except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), e.message
                     else
                       fs.close f, (err) ->
                         if err?
-                          except_cb -> exceptions.java_throw rs, rs.get_bs_class('Ljava/io/IOException;'), e.message
+                          except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), e.message
                         else
                           resume_cb true
         o 'delete0(Ljava/io/File;)Z', (rs, _this, file) ->
