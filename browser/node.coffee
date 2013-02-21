@@ -2,7 +2,10 @@ win = window
 
 root = win.node = {}
 basename = (path) -> path.split('/').pop()
-win.require = (path) ->
+win.require = (path, herp) ->
+  # XXX: Hackfix for Ace Editor. The Ace Editor clobbers our require definiton,
+  # but recalls it with an empty first argument.
+  if herp? then path = herp
   [name, ext] = basename(path).split '.'
   window[name] ?= {}
 
