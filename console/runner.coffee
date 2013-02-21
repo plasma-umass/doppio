@@ -13,13 +13,15 @@ runtime = require '../src/runtime'
 run_profiled = (runner, rs, cname, hot=false) ->
   if hot
     runner()
+
   timings = {}
   call_counts = {}
+
   profiled_fn = (old_fn) -> ->
     method = rs.curr_frame().method
     caller = rs.meta_stack().get_caller(1).method
-    method_sig = method.full_signature
-    hash = "#{if caller? then caller.full_signature else "program"}|#{method_sig}"
+    method_sig = method.full_signature()
+    hash = "#{if caller? then caller.full_signature() else "program"}|#{method_sig}"
     timings[hash] ?= 0
     call_counts[method_sig] ?= 0
 
@@ -30,29 +32,33 @@ run_profiled = (runner, rs, cname, hot=false) ->
     timings[hash] += end - start
     call_counts[method_sig]++
 
+
   methods.Method::run_bytecode = profiled_fn(methods.Method::run_bytecode)
   methods.Method::run_manually = profiled_fn(methods.Method::run_manually)
 
-  runner()
+  runner (->
+    self_timings = {}
+    total_timings = {}
 
-  self_timings = {}
-  total_timings = {}
-  for k, v of timings
-    [caller,method] = k.split "|"
-    self_timings[method]  ?= 0
-    self_timings[caller]  ?= 0
-    total_timings[method] ?= 0
-    self_timings[method]  += v
-    self_timings[caller]  -= v
-    total_timings[method] += v
-  arr = (name: k, total: total_timings[k], self: v, counts:call_counts[k] for k, v of self_timings)
-  arr.sort (a, b) -> b.self - a.self
-  total_time = total_timings["#{cname}::main([Ljava/lang/String;)"]
-  console.log "\nProfiler results: #{total_time} ms total"
-  console.log ['total','self','calls','self ms/call','name'].join '\t'
-  for entry in arr[0..30]
-    avg = entry.self / entry.counts
-    console.log "#{entry.total}\t#{entry.self}\t#{entry.counts}\t#{avg.toFixed 1}\t#{entry.name}"
+    for k, v of timings
+      [caller,method] = k.split "|"
+      self_timings[method]  ?= 0
+      self_timings[caller]  ?= 0
+      total_timings[method] ?= 0
+      self_timings[method]  += v
+      self_timings[caller]  -= v
+      total_timings[method] += v
+
+    arr = (name: k, total: total_timings[k], self: v, counts:call_counts[k] for k, v of self_timings)
+    arr.sort (a, b) -> b.self - a.self
+    total_time = total_timings["#{cname}::main([Ljava/lang/String;)"]
+
+    console.log "\nProfiler results: #{total_time} ms total"
+    console.log ['total','self','calls','self ms/call','name'].join '\t'
+    for entry in arr[0..30]
+      avg = entry.self / entry.counts
+      console.log "#{entry.total}\t#{entry.self}\t#{entry.counts}\t#{avg.toFixed 1}\t#{entry.name}"
+    )
 
 stub = (obj, name, replacement, wrapped) ->
   old_fn = obj[name]
@@ -141,7 +147,7 @@ if require.main == module
     unless cname?
       console.error "No main class provided and no Main-Class found in #{argv.jar}"
 
-  run = -> jvm.run_class rs, cname, java_cmd_args
+  run = (done_cb) -> jvm.run_class rs, cname, java_cmd_args, done_cb
 
   if argv.profile?
     run_profiled run, rs, cname, argv.hot
