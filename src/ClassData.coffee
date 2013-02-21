@@ -166,11 +166,6 @@ class root.ReferenceClassData extends ClassData
     # XXX: Circular dependency hack.
     unless methods?
       methods = require './methods'
-      alert "Methods: #{methods}"
-      unless methods.Field?
-        alert "methods.Field is not defined :("
-      else
-        alert "methods.Field: #{methods.Field}"
 
     bytes_array = new util.BytesArray bytes_array
     throw "Magic number invalid" if (bytes_array.get_uint 4) != 0xCAFEBABE
