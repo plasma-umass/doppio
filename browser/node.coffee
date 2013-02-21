@@ -551,7 +551,7 @@ root.fs =
     setTimeout (()->
       stat = root.fs.statSync path
       if stat?
-        cb null, root.fs.statSync(path)
+        cb null, stat
       else
         cb new Error "Invalid file: #{path}", null
     ), 0
