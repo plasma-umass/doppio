@@ -914,9 +914,10 @@ native_methods =
             fs.writeSync(file, js_str, pos)
         o 'close0()V', (rs, _this) ->
             rs.async_op (resume_cb) ->
-              fs.close _this.$file
-              _this.$file = null
-              resume_cb()
+              fs.close _this.$file, (->
+                _this.$file = null
+                resume_cb()
+              )
       ]
       UnixFileSystem: [
         o 'canonicalize0(L!/lang/String;)L!/lang/String;', (rs, _this, jvm_path_str) ->

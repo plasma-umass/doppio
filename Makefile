@@ -49,19 +49,19 @@ COMMON_BROWSER_SRCS = vendor/_.js \
 	vendor/gLong.js \
 	browser/util.coffee \
 	browser/node.coffee \
-	src/util.coffee \
-	src/exceptions.coffee \
 	src/logging.coffee \
+	src/exceptions.coffee \
+	src/util.coffee \
 	src/java_object.coffee \
 	src/opcodes.coffee \
 	src/attributes.coffee \
 	src/ConstantPool.coffee \
 	src/disassembler.coffee \
+	src/ClassData.coffee \
 	src/natives.coffee \
 	src/methods.coffee \
-	src/ClassData.coffee \
-	src/ClassLoader.coffee \
 	src/runtime.coffee \
+	src/ClassLoader.coffee \
 	src/jvm.coffee \
 	src/testing.coffee \
 	browser/untar.coffee

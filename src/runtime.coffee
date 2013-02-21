@@ -4,7 +4,6 @@ root = exports ? window.runtime ?= {}
 _ = require '../vendor/_.js'
 gLong = require '../vendor/gLong.js'
 util = require './util'
-{ReferenceClassData,PrimitiveClassData,ArrayClassData} = require './ClassData'
 {log,vtrace,trace,debug,error} = require './logging'
 {YieldIOException,ReturnException,JavaException} = require './exceptions'
 {JavaObject,JavaArray,thread_name} = require './java_object'

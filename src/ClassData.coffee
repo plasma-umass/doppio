@@ -164,7 +164,13 @@ class ClassData
 class root.ReferenceClassData extends ClassData
   constructor: (bytes_array, @loader=null) ->
     # XXX: Circular dependency hack.
-    unless methods? then methods = require './methods'
+    unless methods?
+      methods = require './methods'
+      alert "Methods: #{methods}"
+      unless methods.Field?
+        alert "methods.Field is not defined :("
+      else
+        alert "methods.Field: #{methods.Field}"
 
     bytes_array = new util.BytesArray bytes_array
     throw "Magic number invalid" if (bytes_array.get_uint 4) != 0xCAFEBABE

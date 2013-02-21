@@ -549,7 +549,11 @@ root.fs =
   statSync: (path) -> Stat.fromPath path
   stat: (path, cb) ->
     setTimeout (()->
-      cb null, node.fs.statSync(path)
+      stat = root.fs.statSync path
+      if stat?
+        cb null, root.fs.statSync(path)
+      else
+        cb new Error "Invalid file: #{path}", null
     ), 0
 
   fstatSync: (fp) -> new Stat(fp)
@@ -576,7 +580,7 @@ root.fs =
       mode = 'r'
     setTimeout (() ->
       try
-        f = node.fs.openSync path, mode
+        f = root.fs.openSync path, mode
         cb null, f
       catch e
         cb e
@@ -596,7 +600,7 @@ root.fs =
   readFile: (path, cb) ->
     setTimeout (() ->
       try
-        data = node.fs.readFileSync path
+        data = root.fs.readFileSync path
         cb null, data
       catch e
         cb e
@@ -612,7 +616,7 @@ root.fs =
 
   writeFile: (path, data, cb) ->
     setTimeout (() ->
-      cb null, node.fs.writeFileSync(path, data)
+      cb null, root.fs.writeFileSync(path, data)
     ), 0
 
   writeSync: (fd, buffer, offset, len, pos) ->
@@ -626,7 +630,7 @@ root.fs =
     fd.write(str, pos)
 
   closeSync: (fd) -> fs_state.close(fd)
-  close: (fd, cb) -> setTimeout (()->node.fs.closeSync fd; cb()), 0
+  close: (fd, cb) -> setTimeout (()->root.fs.closeSync fd; cb()), 0
 
   readdirSync: (path) ->
     dir_contents = fs_state.list(path)
@@ -636,7 +640,7 @@ root.fs =
   readdir: (path, cb) ->
     setTimeout (()->
       try
-        files = node.fs.readdirSync path
+        files = root.fs.readdirSync path
         cb null, files
       catch e
         cb e
@@ -646,7 +650,7 @@ root.fs =
   unlink: (path, cb) ->
     setTimeout (()->
       try
-        node.fs.unlinkSync path
+        root.fs.unlinkSync path
         cb()
       catch e
         cb e
@@ -655,7 +659,7 @@ root.fs =
   rmdir: (path, cb) ->
     setTimeout (()->
       try
-        node.fs.rmdirSync path
+        root.fs.rmdirSync path
         cb()
       catch e
         cb e
@@ -664,14 +668,14 @@ root.fs =
   existsSync: (path) -> path != '' and (fs_state.is_file(path) or fs_state.is_directory(path))
   exists: (path, cb) ->
     setTimeout (()->
-      cb null, node.fs.existsSync(path)
+      cb null, root.fs.existsSync(path)
     ), 0
 
   mkdirSync: (path) -> throw "Could not make directory #{path}" unless fs_state.mkdir path
   mkdir: (path, cb) ->
     setTimeout (()->
       try
-        node.fs.mkdirSync path
+        root.fs.mkdirSync path
         cb()
       catch e
         cb e
@@ -681,7 +685,7 @@ root.fs =
   rename: (path1, path2, cb) ->
     setTimeout (()->
       try
-        node.fs.renameSync path1, path2
+        root.fs.renameSync path1, path2
         cb()
       catch e
         cb e
@@ -698,7 +702,7 @@ root.fs =
   chmod: (path, access, cb) ->
     setTimeout (()->
       try
-        rv = node.fs.chmodSync path
+        rv = root.fs.chmodSync path
         cb null, rv
       catch e
         cb e
