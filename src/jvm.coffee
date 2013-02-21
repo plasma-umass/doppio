@@ -3,7 +3,6 @@
 require './runtime'
 util = require './util'
 ClassData = require '../src/ClassData'
-{ReferenceClassData} = ClassData
 fs = node?.fs ? require 'fs'
 {trace,error} = require '../src/logging'
 "use strict"
