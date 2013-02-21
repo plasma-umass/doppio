@@ -51,7 +51,7 @@ run_profiled = (runner, rs, cname, hot=false) ->
 
     arr = (name: k, total: total_timings[k], self: v, counts:call_counts[k] for k, v of self_timings)
     arr.sort (a, b) -> b.self - a.self
-    total_time = total_timings["#{cname}::main([Ljava/lang/String;)"]
+    total_time = total_timings["L#{cname};::main([Ljava/lang/String;)V"]
 
     console.log "\nProfiler results: #{total_time} ms total"
     console.log ['total','self','calls','self ms/call','name'].join '\t'
