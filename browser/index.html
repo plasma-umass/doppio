@@ -6,6 +6,7 @@
   <link rel='stylesheet' type="text/css" href="browser/style.css">
 #ifdef RELEASE
   <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+  <script type="text/javascript" src="ace.js"></script>
   <script type="text/javascript" src="compressed.js"></script>
   <script type="text/javascript">
     var _gaq = _gaq || [];
@@ -16,7 +17,7 @@
       ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
       var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
     })();
-</script>
+  </script>
 #else
   <link rel='stylesheet' type="text/css" href="vendor/bootstrap/css/bootstrap.min.css">
   <script type="text/javascript" src="vendor/ace/src/ace.js"></script>
@@ -83,8 +84,5 @@
 
   <div id='console'></div>
 </div>
-#ifdef RELEASE
-<script type="text/javascript" src="ace.js"></script>
-#endif
 </body>
 </html>
