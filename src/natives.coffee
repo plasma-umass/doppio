@@ -76,9 +76,7 @@ trapped_methods =
             for sf in cstack when not (sf.fake? or sf.native? or sf.locals[0] is _this)
               cls = sf.method.cls
               unless _this.cls.get_type() is 'Ljava/lang/NoClassDefFoundError;'
-                attrs = cls.attrs
-                source_file =
-                  _.find(attrs, (attr) -> attr.name == 'SourceFile')?.filename or 'unknown'
+                source_file = cls.get_attribute('SourceFile')?.filename or 'unknown'
               else
                 source_file = 'unknown'
               line_nums = sf.method.code?.attrs?[0]?.entries
@@ -282,7 +280,7 @@ native_methods =
             # to be loaded as well. No need for asynchronicity.
             return _this.$cls.get_component_class().get_class_object(rs)
         o 'getGenericSignature()Ljava/lang/String;', (rs, _this) ->
-            sig = _.find(_this.$cls.attrs, (a) -> a.name is 'Signature')?.sig
+            sig = _this.$cls.get_attribute('Signature')?.sig
             if sig? then rs.init_string sig else null
         o 'getProtectionDomain0()Ljava/security/ProtectionDomain;', (rs, _this) -> null
         o 'isAssignableFrom(L!/!/!;)Z', (rs, _this, cls) ->
@@ -361,7 +359,7 @@ native_methods =
         o 'getModifiers()I', (rs, _this) -> _this.$cls.access_byte
         o 'getRawAnnotations()[B', (rs, _this) ->
             cls = _this.$cls
-            annotations = _.find(cls.attrs, (a) -> a.name == 'RuntimeVisibleAnnotations')
+            annotations = cls.get_attribute 'RuntimeVisibleAnnotations'
             return new JavaArray rs, rs.get_bs_class('[B'), annotations.raw_bytes if annotations?
             for sig,m of cls.methods
               annotations = _.find(m.attrs, (a) -> a.name == 'RuntimeVisibleAnnotations')
@@ -373,7 +371,7 @@ native_methods =
         o 'getEnclosingMethod0()[L!/!/Object;', (rs, _this) ->
             return null unless _this.$cls instanceof ReferenceClassData
             cls = _this.$cls
-            em = _.find(cls.attrs, (a) -> a.name == 'EnclosingMethod')
+            em = cls.get_attribute 'EnclosingMethod'
             return null unless em?
             rs.java_throw rs.get_bs_class('Ljava/lang/Error;'), "native method not finished: java.lang.Class.getEnclosingClass"
             #TODO: return array w/ 3 elements:
@@ -384,7 +382,7 @@ native_methods =
         o 'getDeclaringClass()L!/!/!;', (rs, _this) ->
             return null unless _this.$cls instanceof ReferenceClassData
             cls = _this.$cls
-            icls = _.find(cls.attrs, (a) -> a.name == 'InnerClasses')
+            icls = cls.get_attribute 'InnerClasses'
             return null unless icls?
             my_class = _this.$cls.get_type()
             for entry in icls.classes when entry.outer_info_index > 0
@@ -401,7 +399,7 @@ native_methods =
             return ret unless _this.$cls instanceof ReferenceClassData
             cls = _this.$cls
             my_class = _this.$cls.get_type()
-            iclses = (a for a in cls.attrs when a.name is 'InnerClasses')
+            iclses = cls.get_attributes 'InnerClasses'
             return ret if iclses.length is 0
             flat_names = []
             for icls in iclses

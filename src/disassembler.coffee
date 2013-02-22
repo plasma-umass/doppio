@@ -18,9 +18,9 @@ root.disassemble = (class_file) ->
     ordered_flags.push 'abstract' unless access_flags.interface
     privacy = (("#{flag} " if access_flags[flag]) for flag in ordered_flags).join ''
 
-  source_file = _.find(class_file.attrs, (attr) -> attr.name == 'SourceFile')
-  deprecated = _.find(class_file.attrs, (attr) -> attr.name == 'Deprecated')
-  annotations = _.find(class_file.attrs, (attr) -> attr.name == 'RuntimeVisibleAnnotations')
+  source_file = class_file.get_attribute 'SourceFile'
+  deprecated = class_file.get_attribute 'Deprecated'
+  annotations = class_file.get_attribute 'RuntimeVisibleAnnotations'
   ifaces = class_file.get_interface_types()
   ifaces = (util.ext_classname(i) for i in ifaces).join ','
   rv = "Compiled from \"#{source_file?.filename ? 'unknown'}\"\n"
@@ -35,7 +35,7 @@ root.disassemble = (class_file) ->
   if annotations
     rv += "  RuntimeVisibleAnnotations: length = 0x#{annotations.raw_bytes.length.toString(16)}\n"
     rv += "   #{(pad_left(b.toString(16),2) for b in annotations.raw_bytes).join ' '}\n"
-  inner_classes = (attr for attr in class_file.attrs when attr.name is 'InnerClasses')
+  inner_classes = class_file.get_attributes 'InnerClasses'
   for icls in inner_classes
     rv += "  InnerClass:\n"
     for cls in icls.classes

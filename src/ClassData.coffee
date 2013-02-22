@@ -23,9 +23,7 @@ class ClassData
     @interfaces = []
     @fields = []
     @methods = {}
-    @attrs = []
     @initialized = false
-    @static_fields = []
 
   # Resets any ClassData state that may have been built up
   load: () ->
@@ -97,25 +95,6 @@ class ClassData
 
     return null
 
-  static_get: (rs, name) ->
-    return @static_fields[name] unless @static_fields[name] is undefined
-    rs.java_throw @loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name
-
-  static_put: (rs, name, val) ->
-    unless @static_fields[name] is undefined
-      @static_fields[name] = val
-    else
-      rs.java_throw @loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name
-
-  # "Reinitializes" the ClassData for subsequent JVM invocations. Resets all
-  # of the built up state / caches present in the opcode instructions.
-  # Eventually, this will also handle `clinit` duties.
-  initialize: () ->
-    unless @initialized
-      @static_fields = @_construct_static_fields()
-      for method in @methods
-        method.initialize()
-
   construct_default_fields: (rs) ->
     # init fields from this and inherited ClassDatas
     cls = @
@@ -127,13 +106,6 @@ class ClassData
         @default_fields[cls.get_type() + f.name] = val
       cls = cls.get_super_class()
     return
-
-  # Used internally to reconstruct @static_fields
-  _construct_static_fields: ->
-    static_fields = Object.create null
-    for f in @fields when f.access_flags.static
-      static_fields[f.name] = util.initial_value f.raw_descriptor
-    return static_fields
 
   # Checks if the class file is initialized. It will set @initialized to 'true'
   # if this class has no static initialization method and its parent classes
@@ -220,6 +192,44 @@ class root.ReferenceClassData extends ClassData
   set_loaded: (@super_class_cdata, interface_cdatas) ->
     @interface_cdatas = if interface_cdatas? then interface_cdatas else []
     @resolved = true
+
+  static_get: (rs, name) ->
+    return @static_fields[name] unless @static_fields[name] is undefined
+    rs.java_throw @loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name
+
+  static_put: (rs, name, val) ->
+    unless @static_fields[name] is undefined
+      @static_fields[name] = val
+    else
+      rs.java_throw @loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name
+
+  # Used internally to reconstruct @static_fields
+  _construct_static_fields: ->
+    static_fields = Object.create null
+    for f in @fields when f.access_flags.static
+      static_fields[f.name] = util.initial_value f.raw_descriptor
+    return static_fields
+
+  # "Reinitializes" the ClassData for subsequent JVM invocations. Resets all
+  # of the built up state / caches present in the opcode instructions.
+  # Eventually, this will also handle `clinit` duties.
+  initialize: () ->
+    unless @initialized
+      @static_fields = @_construct_static_fields()
+      for method in @methods
+        method.initialize()
+
+  # Returns the first attribute with the given name. Returns null if no such
+  # attribute exists.
+  get_attribute: (name) ->
+    for attr in @attrs
+      if attr.name is name
+        return attr
+    return null
+
+  # Returns an array of attributes with the given name. Returns an empty array
+  # if none exist.
+  get_attributes: (name) -> attr for attr in @attrs when attr.name is name
 
   # Returns a boolean indicating if this class is an instance of the target class.
   # "target" is a ClassData object.
