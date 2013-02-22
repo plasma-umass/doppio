@@ -60,6 +60,6 @@ class root.JavaException
     rs.show_state()
     rs.push2 rs.curr_thread, @exception
     thread_cls = rs.get_bs_class('Ljava/lang/Thread;')
-    rs.method_lookup(thread_cls,
+    thread_cls.method_lookup(rs,
       { class: 'Ljava/lang/Thread;'
       sig: 'dispatchUncaughtException(Ljava/lang/Throwable;)V'} ).setup_stack(rs)

@@ -122,7 +122,7 @@ trapped_methods =
 
 doPrivileged = (rs, action) ->
   my_sf = rs.curr_frame()
-  m = rs.method_lookup(action.cls, {class: action.cls.get_type(), sig: 'run()Ljava/lang/Object;'})
+  m = action.cls.method_lookup(rs, {class: action.cls.get_type(), sig: 'run()Ljava/lang/Object;'})
   rs.push action unless m.access_flags.static
   m.setup_stack(rs)
   my_sf.runner = ->
@@ -723,7 +723,7 @@ native_methods =
             rs.curr_thread = _this
             new_thread_sf = rs.curr_frame()
             rs.push _this
-            run_method = rs.method_lookup(_this.cls, {class: _this.cls.get_type(), sig: 'run()V'})
+            run_method = _this.cls.method_lookup(rs, {class: _this.cls.get_type(), sig: 'run()V'})
             thread_runner_sf = run_method.setup_stack(rs)
             new_thread_sf.runner = ->
               new_thread_sf.runner = null  # new_thread_sf is the fake SF at index 0
@@ -757,7 +757,7 @@ native_methods =
             cdata = rs.get_bs_class('Ljava/io/ExpiringCache;')
             cache1 = new JavaObject rs, cdata
             cache2 = new JavaObject rs, cdata
-            cache_init = rs.method_lookup(cdata, {class: 'Ljava/io/ExpiringCache;', sig: '<init>()V'})
+            cache_init = cdata.method_lookup(rs, {class: 'Ljava/io/ExpiringCache;', sig: '<init>()V'})
             rs.push2 cache1, cache2
             cache_init.setup_stack(rs)
             my_sf.runner = ->

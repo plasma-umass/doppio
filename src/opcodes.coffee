@@ -67,7 +67,7 @@ class root.InvokeOpcode extends root.Opcode
     cls = rs.get_class(@method_spec.class, true)
     if cls?
       my_sf = rs.curr_frame()
-      if rs.method_lookup(cls, @method_spec).setup_stack(rs)?
+      if cls.method_lookup(rs, @method_spec).setup_stack(rs)?
         my_sf.pc += 1 + @byte_count
         throw ReturnException
     else
@@ -98,7 +98,7 @@ class root.DynInvokeOpcode extends root.InvokeOpcode
     obj = stack[stack.length - @count]
     cls_obj = rs.check_null(obj).cls
     cls = cls_obj.get_type()
-    if rs.method_lookup(cls_obj, {class: cls, sig: @method_spec.sig}).setup_stack(rs)?
+    if cls_obj.method_lookup(rs, {class: cls, sig: @method_spec.sig}).setup_stack(rs)?
       my_sf.pc += 1 + @byte_count
       throw ReturnException
 
@@ -595,7 +595,7 @@ root.opcodes = {
     if ref_cls?
       # Get the *actual* class that owns this field.
       # This may not be initialized if it's an interface, so we need to check.
-      cls_type = rs.field_lookup(ref_cls, @field_spec).cls.get_type()
+      cls_type = ref_cls.field_lookup(rs, @field_spec).cls.get_type()
       @cls = rs.get_class cls_type, true
       if @cls?
         new_execute.call(@, rs)
@@ -621,7 +621,7 @@ root.opcodes = {
     if ref_cls?
       # Get the *actual* class that owns this field.
       # This may not be initialized if it's an interface, so we need to check.
-      cls_type = rs.field_lookup(ref_cls, @field_spec).cls.get_type()
+      cls_type = ref_cls.field_lookup(rs, @field_spec).cls.get_type()
       @cls = rs.get_class cls_type, true
       if @cls?
         new_execute.call(@, rs)
@@ -638,7 +638,7 @@ root.opcodes = {
   }
   180: new root.FieldOpcode 'getfield', { execute: (rs) ->
     cls = rs.get_class(@field_spec.class)
-    field = rs.field_lookup(cls, @field_spec)
+    field = cls.field_lookup(rs, @field_spec)
     name = field.cls.get_type() + @field_spec.name
     new_execute =
       if @field_spec.type not in ['J','D']
@@ -655,7 +655,7 @@ root.opcodes = {
   }
   181: new root.FieldOpcode 'putfield', { execute: (rs) ->
     cls_obj = rs.get_class(@field_spec.class)
-    field = rs.field_lookup(cls_obj, @field_spec)
+    field = cls_obj.field_lookup(rs, @field_spec)
     name = field.cls.get_type() + @field_spec.name
     new_execute =
       if @field_spec.type not in ['J','D']

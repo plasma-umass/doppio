@@ -223,7 +223,7 @@ class ClassLoader
         v = new JavaObject rs, cls # new
         method_spec = sig: '<init>(Ljava/lang/Throwable;)V'
         rs.push_array([v,v,e.exception]) # dup, ldc
-        rs.method_lookup(cls, method_spec).setup_stack(rs) # invokespecial
+        cls.method_lookup(rs, method_spec).setup_stack(rs) # invokespecial
       else
         # Not a Java exception?
         # No idea what this is; let's get outta dodge and rethrow it.
@@ -387,7 +387,7 @@ class root.BootstrapClassLoader extends ClassLoader
           v = new JavaObject rs, cls
           method_spec = sig: '<init>(Ljava/lang/Throwable;)V'
           rs.push_array([v,v,rv]) # dup, ldc
-          rs.method_lookup(cls, method_spec).setup_stack(rs) # invokespecial
+          cls.method_lookup(rs, method_spec).setup_stack(rs) # invokespecial
         ), (->
           rs.meta_stack().pop()
           setTimeout((->failure_fn (-> throw e)), 0)
@@ -398,7 +398,7 @@ class root.BootstrapClassLoader extends ClassLoader
         method_spec = sig: '<init>(Ljava/lang/String;)V'
         msg = rs.init_string(util.ext_classname type_str)
         rs.push_array([v,v,msg]) # dup, ldc
-        rs.method_lookup(cls, method_spec).setup_stack(rs) # invokespecial
+        cls.method_lookup(rs, method_spec).setup_stack(rs) # invokespecial
       ), 0)
     )
     return

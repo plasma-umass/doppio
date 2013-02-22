@@ -151,7 +151,7 @@ class root.RuntimeState
     # initialize thread objects
     my_sf = @curr_frame()
     @push (group = new JavaObject @, @get_bs_class('Ljava/lang/ThreadGroup;'))
-    @method_lookup(@get_bs_class('Ljava/lang/ThreadGroup;'), {class: 'Ljava/lang/ThreadGroup;', sig: '<init>()V'}).setup_stack(this)
+    @get_bs_class('Ljava/lang/ThreadGroup;').method_lookup(@, {class: 'Ljava/lang/ThreadGroup;', sig: '<init>()V'}).setup_stack(this)
     my_sf.runner = =>
       ct = null
       my_sf.runner = =>
@@ -179,7 +179,7 @@ class root.RuntimeState
     v = new JavaObject @, cls  # new
     @push_array([v,v,@init_string msg]) # dup, ldc
     my_sf = @curr_frame()
-    @method_lookup(cls, method_spec).setup_stack(@) # invokespecial
+    cls.method_lookup(@, method_spec).setup_stack(@) # invokespecial
     my_sf.runner = =>
       if my_sf.method.has_bytecode
         my_sf.runner = (=> my_sf.method.run_bytecode(@))  # don't re-throw the exception
@@ -298,18 +298,6 @@ class root.RuntimeState
     return jvm_str
   init_carr: (str) ->
     new JavaArray @, @get_bs_class('[C'), (str.charCodeAt(i) for i in [0...str.length] by 1)
-
-  method_lookup: (cls, method_spec) ->
-    method = cls.method_lookup(this, method_spec)
-    return method if method?
-    @java_throw @get_bs_class('Ljava/lang/NoSuchMethodError;'),
-      "No such method found in #{util.ext_classname(method_spec.class)}::#{method_spec.sig}"
-
-  field_lookup: (cls, field_spec) ->
-    field = cls.field_lookup this, field_spec
-    return field if field?
-    @java_throw @get_bs_class('Ljava/lang/NoSuchFieldError;'),
-      "No such field found in #{util.ext_classname(field_spec.class)}::#{field_spec.name}"
 
   # address of the block that this address is contained in
   block_addr: (address) ->

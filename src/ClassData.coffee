@@ -57,8 +57,14 @@ class ClassData
     return @get_super_class().is_subclass target
 
   is_subinterface: -> false
-  method_lookup: -> null
-  field_lookup: -> null
+  method_lookup: (rs, spec, null_handled) ->
+    return null if null_handled
+    java_throw rs.get_bs_class('Ljava/lang/NoSuchMethodError;'),
+      "No such method found in #{util.ext_classname(method_spec.class)}::#{method_spec.sig}"
+  field_lookup: (rs, spec, null_handled) ->
+    return null if null_handled
+    rs.java_throw rs.get_bs_class('Ljava/lang/NoSuchFieldError;'),
+      "No such field found in #{util.ext_classname(field_spec.class)}::#{field_spec.name}"
 
   # A non-recursive method for retrieving a method from this class.
   get_method: -> null
@@ -269,10 +275,18 @@ class root.ReferenceClassData extends ClassData
 
   # Spec [5.4.3.2][1].
   # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#77678
-  field_lookup: (rs, field_spec) ->
-    unless @fl_cache[field_spec.name]?
-      @fl_cache[field_spec.name] = @_field_lookup(rs, field_spec)
-    return @fl_cache[field_spec.name]
+  field_lookup: (rs, field_spec, null_handled) ->
+    field = @fl_cache[field_spec.name]
+    return field if field?
+
+    field = @_field_lookup(rs, field_spec)
+    if field? or null_handled is true
+      @fl_cache[field_spec.name] = field
+      return field
+
+    # Throw exception
+    rs.java_throw rs.get_bs_class('Ljava/lang/NoSuchFieldError;'),
+      "No such field found in #{util.ext_classname(field_spec.class)}::#{field_spec.name}"
 
   _field_lookup: (rs, field_spec) ->
     for field in @fields
@@ -281,22 +295,30 @@ class root.ReferenceClassData extends ClassData
 
     # These may not be initialized! But we have them loaded.
     for ifc_cls in @get_interfaces()
-      field = ifc_cls.field_lookup(rs, field_spec)
+      field = ifc_cls.field_lookup(rs, field_spec, true)
       return field if field?
 
     sc = @get_super_class()
     if sc?
-      field = sc.field_lookup(rs, field_spec)
+      field = sc.field_lookup(rs, field_spec, true)
       return field if field?
     return null
 
   # Spec [5.4.3.3][1], [5.4.3.4][2].
   # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#79473
   # [2]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#78621
-  method_lookup: (rs, method_spec) ->
-    unless @ml_cache[method_spec.sig]?
-      @ml_cache[method_spec.sig] = @_method_lookup(rs, method_spec)
-    return @ml_cache[method_spec.sig]
+  method_lookup: (rs, method_spec, null_handled) ->
+    method = @ml_cache[method_spec.sig]
+    return method if method?
+
+    method = @_method_lookup(rs, method_spec)
+    if method? or null_handled is true
+      @ml_cache[method_spec.sig] = method
+      return method
+
+    # Throw exception
+    rs.java_throw rs.get_bs_class('Ljava/lang/NoSuchMethodError;'),
+      "No such method found in #{util.ext_classname(method_spec.class)}::#{method_spec.sig}"
 
   get_method: (sig) -> @methods[sig]
   get_methods: -> @methods
@@ -307,11 +329,11 @@ class root.ReferenceClassData extends ClassData
 
     parent = @get_super_class()
     if parent?
-      method = parent.method_lookup(rs, method_spec)
+      method = parent.method_lookup(rs, method_spec, true)
       return method if method?
 
     for ifc in @get_interfaces()
-      method = ifc.method_lookup(rs, method_spec)
+      method = ifc.method_lookup(rs, method_spec, true)
       return method if method?
 
     return null
