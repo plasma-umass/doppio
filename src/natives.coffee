@@ -317,7 +317,7 @@ native_methods =
               fetch_next_field()
             return
         o 'getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;', (rs, _this, public_only) ->
-            methods = _this.$cls.methods
+            methods = _this.$cls.get_methods()
             methods = (m for sig, m of methods when sig[0] != '<' and (m.access_flags.public or not public_only))
 
             base_array = []
@@ -334,7 +334,7 @@ native_methods =
               fetch_next_method()
             return
         o 'getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;', (rs, _this, public_only) ->
-            methods = _this.$cls.methods
+            methods = _this.$cls.get_methods()
             methods = (m for sig, m of methods when m.name is '<init>')
             methods = (m for m in methods when m.access_flags.public) if public_only
             ctor_array_cdata = rs.get_bs_class('[Ljava/lang/reflect/Constructor;')
@@ -361,7 +361,7 @@ native_methods =
             cls = _this.$cls
             annotations = cls.get_attribute 'RuntimeVisibleAnnotations'
             return new JavaArray rs, rs.get_bs_class('[B'), annotations.raw_bytes if annotations?
-            for sig,m of cls.methods
+            for sig,m of cls.get_methods()
               annotations = m.get_attribute 'RuntimeVisibleAnnotations'
               return new JavaArray rs, rs.get_bs_class('[B'), annotations.raw_bytes if annotations?
             null
@@ -882,7 +882,7 @@ native_methods =
         o 'initNative()V', (rs) ->  # NOP
         o 'hasStaticInitializer(Ljava/lang/Class;)Z', (rs, cls) ->
             # check if cls has a <clinit> method
-            return cls.$cls.methods['<clinit>()V']?
+            return cls.$cls.get_method('<clinit>()V')?
       ]
       RandomAccessFile: [
         o 'open(Ljava/lang/String;I)V', (rs, _this, filename, mode) ->
@@ -1326,7 +1326,7 @@ native_methods =
             slot = m.get_field rs, 'Ljava/lang/reflect/Method;slot'
             rs.async_op (resume_cb, except_cb) ->
               cls.$cls.loader.initialize_class rs, cls.$cls.get_type(), ((cls_obj) ->
-                method = (method for sig, method of cls_obj.methods when method.idx is slot)[0]
+                method = (method for sig, method of cls_obj.get_methods() when method.idx is slot)[0]
                 my_sf = rs.curr_frame()
                 rs.push obj unless method.access_flags.static
                 # we don't get unboxing for free anymore, so we have to do it ourselves
@@ -1335,14 +1335,14 @@ native_methods =
                   p = params.array[i++]
                   if p_type in ['J','D']  # cat 2 primitives
                     if p?.ref?
-                      primitive_value = p.get_field rs, p.cls.this_class+'value'
+                      primitive_value = p.get_field rs, p.cls.get_type()+'value'
                       rs.push2 primitive_value, null
                     else
                       rs.push2 p, null
                       i++  # skip past the null spacer
                   else if util.is_primitive_type(p_type)  # any other primitive
                     if p?.ref?
-                      primitive_value = p.get_field rs, p.cls.this_class+'value'
+                      primitive_value = p.get_field rs, p.cls.get_type()+'value'
                       rs.push primitive_value
                     else
                       rs.push p
@@ -1360,7 +1360,7 @@ native_methods =
                   # Overwrite my runner.
                   my_sf.runner = ->
                     ret_type = m.get_field rs, 'Ljava/lang/reflect/Method;returnType'
-                    descriptor = ret_type.$cls.this_class
+                    descriptor = ret_type.$cls.get_type()
                     rv = rs.pop()
                     # pop again if it's a category 2 primitive type
                     rv = rs.pop() if descriptor in ['J','D']
@@ -1378,7 +1378,7 @@ native_methods =
             slot = m.get_field rs, 'Ljava/lang/reflect/Constructor;slot'
             rs.async_op (resume_cb, except_cb) ->
               cls.$cls.loader.initialize_class rs, cls.$cls.get_type(), ((cls_obj)->
-                method = (method for sig, method of cls_obj.methods when method.idx is slot)[0]
+                method = (method for sig, method of cls_obj.get_methods() when method.idx is slot)[0]
                 my_sf = rs.curr_frame()
                 obj = new JavaObject rs, cls_obj
                 rs.push obj

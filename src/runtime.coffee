@@ -194,7 +194,7 @@ class root.RuntimeState
   init_system_class: ->
     # initialize the system class
     my_sf = @curr_frame()
-    @get_bs_class('Ljava/lang/System;').methods['initializeSystemClass()V'].setup_stack(this)
+    @get_bs_class('Ljava/lang/System;').get_method('initializeSystemClass()V').setup_stack(this)
     my_sf.runner = ->
       my_sf.runner = null
       @system_initialized = true

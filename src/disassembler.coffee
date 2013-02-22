@@ -116,7 +116,7 @@ root.disassemble = (class_file) ->
       rv += "   #{(pad_left(b.toString(16).toUpperCase(),2) for b in sig.raw_bytes).join ' '}\n"
     rv += "\n\n"
 
-  for sig, m of class_file.methods
+  for sig, m of class_file.get_methods()
     rv += access_string m.access_flags
     rv += 'synchronized ' if m.access_flags.synchronized
     rv +=

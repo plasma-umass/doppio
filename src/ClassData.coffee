@@ -17,12 +17,9 @@ class ClassData
   # Responsible for setting up all of the fields that are guaranteed to be
   # present on any ClassData object.
   constructor: (@loader=null) ->
-    @ml_cache = {}
-    @fl_cache = {}
     @access_flags = {}
     @interfaces = []
     @fields = []
-    @methods = {}
     @initialized = false
 
   # Resets any ClassData state that may have been built up
@@ -40,72 +37,10 @@ class ClassData
   get_class_object: (rs) ->
     @jco = new JavaClassObject(rs, @) unless @jco?
     @jco
+
   # Returns the JavaObject object of the classloader that initialized this
   # class. Returns null for the default classloader.
   get_class_loader: () -> @loader
-
-  get_default_fields: (rs) ->
-    return @default_fields unless @default_fields is undefined
-    @construct_default_fields(rs)
-    return @default_fields
-
-  # Spec [5.4.3.2][1].
-  # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#77678
-  field_lookup: (rs, field_spec) ->
-    unless @fl_cache[field_spec.name]?
-      @fl_cache[field_spec.name] = @_field_lookup(rs, field_spec)
-    return @fl_cache[field_spec.name]
-
-  _field_lookup: (rs, field_spec) ->
-    for field in @fields
-      if field.name is field_spec.name
-        return field
-
-    # These may not be initialized! But we have them loaded.
-    for ifc_cls in @get_interfaces()
-      field = ifc_cls.field_lookup(rs, field_spec)
-      return field if field?
-
-    sc = @get_super_class()
-    if sc?
-      field = sc.field_lookup(rs, field_spec)
-      return field if field?
-    return null
-
-  # Spec [5.4.3.3][1], [5.4.3.4][2].
-  # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#79473
-  # [2]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#78621
-  method_lookup: (rs, method_spec) ->
-    unless @ml_cache[method_spec.sig]?
-      @ml_cache[method_spec.sig] = @_method_lookup(rs, method_spec)
-    return @ml_cache[method_spec.sig]
-
-  _method_lookup: (rs, method_spec) ->
-    method = @methods[method_spec.sig]
-    return method if method?
-
-    parent = @get_super_class()
-    if parent?
-      method = parent.method_lookup(rs, method_spec)
-      return method if method?
-
-    for ifc in @get_interfaces()
-      method = ifc.method_lookup(rs, method_spec)
-      return method if method?
-
-    return null
-
-  construct_default_fields: (rs) ->
-    # init fields from this and inherited ClassDatas
-    cls = @
-    # Object.create(null) avoids interference with Object.prototype's properties
-    @default_fields = Object.create null
-    while cls?
-      for f in cls.fields when not f.access_flags.static
-        val = util.initial_value f.raw_descriptor
-        @default_fields[cls.get_type() + f.name] = val
-      cls = cls.get_super_class()
-    return
 
   # Checks if the class file is initialized. It will set @initialized to 'true'
   # if this class has no static initialization method and its parent classes
@@ -117,19 +52,82 @@ class ClassData
     @initialized = if @get_super_class()?.is_initialized() else false
     return @initialized
 
-  # Returns 'true' if I am a subclass of target.
   is_subclass: (rs, target) ->
-    return true if @this_class is target.this_class
+    return true if @ is target
     return false unless @get_super_class()?  # I'm java/lang/Object, can't go further
     return @get_super_class().is_subclass rs, target
 
-  # Returns 'true' if I implement the target interface.
-  is_subinterface: (rs, target) ->
-    return true if @this_class is target.this_class
-    for super_iface in @get_interfaces()
-      return true if super_iface.is_subinterface rs, target
-    return false unless @get_super_class()?  # I'm java/lang/Object, can't go further
-    return @get_super_class().is_subinterface rs, target
+  is_subinterface: -> false
+  method_lookup: -> null
+  field_lookup: -> null
+
+  # A non-recursive method for retrieving a method from this class.
+  get_method: -> null
+  get_methods: -> {}
+
+class root.PrimitiveClassData extends ClassData
+  constructor: (@this_class, loader) ->
+    super loader
+    @initialized = true
+
+  # Returns a boolean indicating if this class is an instance of the target class.
+  # "target" is a ClassData object.
+  # The ClassData objects do not need to be initialized; just loaded.
+  is_castable: (rs, target) -> @this_class == target.this_class
+
+  # Primitive classes are initialized when they are created.
+  is_initialized: -> true
+
+  create_wrapper_object: (rs, value) ->
+    type_desc = switch @this_class
+      when 'B' then 'Ljava/lang/Byte;'
+      when 'C' then 'Ljava/lang/Character;'
+      when 'D' then 'Ljava/lang/Double;'
+      when 'F' then 'Ljava/lang/Float;'
+      when 'I' then 'Ljava/lang/Integer;'
+      when 'J' then 'Ljava/lang/Long;'
+      when 'S' then 'Ljava/lang/Short;'
+      when 'Z' then 'Ljava/lang/Boolean;'
+      else
+        throw new Error("Tried to create_wrapper_object for type #{@this_class}")
+    # these are all initialized in preinit (for the BSCL, at least)
+    wrapped = new JavaObject rs, rs.get_bs_class(type_desc)
+    # HACK: all primitive wrappers store their value in a private static final field named 'value'
+    wrapped.fields[type_desc+'value'] = value
+    return wrapped
+
+class root.ArrayClassData extends ClassData
+  constructor: (@component_type, loader) ->
+    super loader
+    @this_class = "[#{@component_type}"
+    @super_class = 'Ljava/lang/Object;'
+
+  get_component_type: () -> return @component_type
+  get_component_class: -> return @component_class_cdata
+  set_loaded: (@super_class_cdata, @component_class_cdata) -> # Nothing else to do.
+
+  is_initialized: -> @component_class_cdata?
+
+  field_lookup: (rs, field_spec) -> @super_class_cdata.field_lookup rs, field_spec
+  method_lookup: (rs, field_spec) -> @super_class_cdata.method_lookup rs, field_spec
+
+  # Returns a boolean indicating if this class is an instance of the target class.
+  # "target" is a ClassData object.
+  # The ClassData objects do not need to be initialized; just loaded.
+  # See §2.6.7 for casting rules.
+  is_castable: (rs, target) -> # target is c2
+    unless target instanceof root.ArrayClassData
+      return false if target instanceof root.PrimitiveClassData
+      # Must be a reference type.
+      if target.access_flags.interface
+        # Interface reference type
+        return target.get_type() in ['Ljava/lang/Cloneable;','Ljava/io/Serializable;']
+      # Non-interface reference type
+      return target.get_type() is 'Ljava/lang/Object;'
+
+    # We are both array types, so it only matters if my component type can be
+    # cast to its component type.
+    return @get_component_class().is_castable(rs, target.get_component_class())
 
 # Represents a "reference" Class -- that is, a class that neither represents a
 # primitive nor an array.
@@ -210,6 +208,23 @@ class root.ReferenceClassData extends ClassData
       static_fields[f.name] = util.initial_value f.raw_descriptor
     return static_fields
 
+  get_default_fields: (rs) ->
+    return @default_fields unless @default_fields is undefined
+    @construct_default_fields(rs)
+    return @default_fields
+
+  construct_default_fields: (rs) ->
+    # init fields from this and inherited ClassDatas
+    cls = @
+    # Object.create(null) avoids interference with Object.prototype's properties
+    @default_fields = Object.create null
+    while cls?
+      for f in cls.fields when not f.access_flags.static
+        val = util.initial_value f.raw_descriptor
+        @default_fields[cls.get_type() + f.name] = val
+      cls = cls.get_super_class()
+    return
+
   # "Reinitializes" the ClassData for subsequent JVM invocations. Resets all
   # of the built up state / caches present in the opcode instructions.
   # Eventually, this will also handle `clinit` duties.
@@ -243,63 +258,59 @@ class root.ReferenceClassData extends ClassData
       # We are both regular classes
       return @is_subclass(rs,target)
 
-class root.ArrayClassData extends ClassData
-  constructor: (@component_type, loader) ->
-    super loader
-    @this_class = "[#{@component_type}"
-    @super_class = 'Ljava/lang/Object;'
+  # Returns 'true' if I implement the target interface.
+  is_subinterface: (rs, target) ->
+    return true if @this_class is target.this_class
+    for super_iface in @get_interfaces()
+      return true if super_iface.is_subinterface rs, target
+    return false unless @get_super_class()?  # I'm java/lang/Object, can't go further
+    return @get_super_class().is_subinterface rs, target
 
-  get_component_type: () -> return @component_type
-  get_component_class: -> return @component_class_cdata
-  set_loaded: (@super_class_cdata, @component_class_cdata) -> # Nothing else to do.
+  # Spec [5.4.3.2][1].
+  # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#77678
+  field_lookup: (rs, field_spec) ->
+    unless @fl_cache[field_spec.name]?
+      @fl_cache[field_spec.name] = @_field_lookup(rs, field_spec)
+    return @fl_cache[field_spec.name]
 
-  is_initialized: -> @component_class_cdata?
+  _field_lookup: (rs, field_spec) ->
+    for field in @fields
+      if field.name is field_spec.name
+        return field
 
-  # Returns a boolean indicating if this class is an instance of the target class.
-  # "target" is a ClassData object.
-  # The ClassData objects do not need to be initialized; just loaded.
-  # See §2.6.7 for casting rules.
-  is_castable: (rs, target) -> # target is c2
-    unless target instanceof root.ArrayClassData
-      return false if target instanceof root.PrimitiveClassData
-      # Must be a reference type.
-      if target.access_flags.interface
-        # Interface reference type
-        return target.get_type() in ['Ljava/lang/Cloneable;','Ljava/io/Serializable;']
-      # Non-interface reference type
-      return target.get_type() is 'Ljava/lang/Object;'
+    # These may not be initialized! But we have them loaded.
+    for ifc_cls in @get_interfaces()
+      field = ifc_cls.field_lookup(rs, field_spec)
+      return field if field?
 
-    # We are both array types, so it only matters if my component type can be
-    # cast to its component type.
-    return @get_component_class().is_castable(rs, target.get_component_class())
+    sc = @get_super_class()
+    if sc?
+      field = sc.field_lookup(rs, field_spec)
+      return field if field?
+    return null
 
-class root.PrimitiveClassData extends ClassData
-  constructor: (@this_class, loader) ->
-    super loader
-    @initialized = true
+  # Spec [5.4.3.3][1], [5.4.3.4][2].
+  # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#79473
+  # [2]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#78621
+  method_lookup: (rs, method_spec) ->
+    unless @ml_cache[method_spec.sig]?
+      @ml_cache[method_spec.sig] = @_method_lookup(rs, method_spec)
+    return @ml_cache[method_spec.sig]
 
-  # Returns a boolean indicating if this class is an instance of the target class.
-  # "target" is a ClassData object.
-  # The ClassData objects do not need to be initialized; just loaded.
-  is_castable: (rs, target) -> @this_class == target.this_class
+  get_method: (sig) -> @methods[sig]
+  get_methods: -> @methods
 
-  # Primitive classes are initialized when they are created.
-  is_initialized: -> true
+  _method_lookup: (rs, method_spec) ->
+    method = @methods[method_spec.sig]
+    return method if method?
 
-  create_wrapper_object: (rs, value) ->
-    type_desc = switch @this_class
-      when 'B' then 'Ljava/lang/Byte;'
-      when 'C' then 'Ljava/lang/Character;'
-      when 'D' then 'Ljava/lang/Double;'
-      when 'F' then 'Ljava/lang/Float;'
-      when 'I' then 'Ljava/lang/Integer;'
-      when 'J' then 'Ljava/lang/Long;'
-      when 'S' then 'Ljava/lang/Short;'
-      when 'Z' then 'Ljava/lang/Boolean;'
-      else
-        throw new Error("Tried to create_wrapper_object for type #{@this_class}")
-    # these are all initialized in preinit (for the BSCL, at least)
-    wrapped = new JavaObject rs, rs.get_bs_class(type_desc)
-    # HACK: all primitive wrappers store their value in a private static final field named 'value'
-    wrapped.fields[type_desc+'value'] = value
-    return wrapped
+    parent = @get_super_class()
+    if parent?
+      method = parent.method_lookup(rs, method_spec)
+      return method if method?
+
+    for ifc in @get_interfaces()
+      method = ifc.method_lookup(rs, method_spec)
+      return method if method?
+
+    return null

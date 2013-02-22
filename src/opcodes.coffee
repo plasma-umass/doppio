@@ -595,7 +595,7 @@ root.opcodes = {
     if ref_cls?
       # Get the *actual* class that owns this field.
       # This may not be initialized if it's an interface, so we need to check.
-      cls_type = rs.field_lookup(ref_cls, @field_spec).cls.this_class
+      cls_type = rs.field_lookup(ref_cls, @field_spec).cls.get_type()
       @cls = rs.get_class cls_type, true
       if @cls?
         new_execute.call(@, rs)
@@ -621,7 +621,7 @@ root.opcodes = {
     if ref_cls?
       # Get the *actual* class that owns this field.
       # This may not be initialized if it's an interface, so we need to check.
-      cls_type = rs.field_lookup(ref_cls, @field_spec).cls.this_class
+      cls_type = rs.field_lookup(ref_cls, @field_spec).cls.get_type()
       @cls = rs.get_class cls_type, true
       if @cls?
         new_execute.call(@, rs)

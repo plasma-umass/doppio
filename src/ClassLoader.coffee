@@ -243,8 +243,7 @@ class ClassLoader
       # don't want to call this more than once per class, so don't do dynamic
       # lookup. See spec [2.17.4][1].
       # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/Concepts.doc.html#19075
-      # XXX: Hack. We don't use method_lookup since we want only the method in *this* class.
-      clinit = class_file.methods['<clinit>()V']
+      clinit = class_file.get_method('<clinit>()V')
       if clinit?
         trace "\tFound <clinit>. Pushing stack frame."
         # Push a native frame; needed to handle exceptions and the callback.
