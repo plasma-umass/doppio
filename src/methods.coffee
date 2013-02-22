@@ -31,7 +31,7 @@ class AbstractMethodField
     @attrs = attributes.make_attributes(bytes_array,constant_pool)
 
   get_attribute: (name) ->
-    for attr in @attrs if attr.name is name then return attr
+    for attr in @attrs then if attr.name is name then return attr
     return null
 
   get_attributes: (name) -> attr for attr in @attrs when attr.name is name
