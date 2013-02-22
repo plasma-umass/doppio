@@ -18,7 +18,6 @@ class ClassData
   # present on any ClassData object.
   constructor: (@loader=null) ->
     @access_flags = {}
-    @interfaces = []
     @fields = []
     @initialized = false
 
@@ -31,9 +30,9 @@ class ClassData
 
   get_type: -> @this_class
   get_super_class_type: -> @super_class
-  get_interface_types: -> @interfaces
   get_super_class: -> @super_class_cdata
-  get_interfaces: -> @interface_cdatas
+  get_interface_types: -> []
+  get_interfaces: -> []
   get_class_object: (rs) ->
     @jco = new JavaClassObject(rs, @) unless @jco?
     @jco
@@ -52,10 +51,10 @@ class ClassData
     @initialized = if @get_super_class()?.is_initialized() else false
     return @initialized
 
-  is_subclass: (rs, target) ->
+  is_subclass: (target) ->
     return true if @ is target
     return false unless @get_super_class()?  # I'm java/lang/Object, can't go further
-    return @get_super_class().is_subclass rs, target
+    return @get_super_class().is_subclass target
 
   is_subinterface: -> false
   method_lookup: -> null
@@ -73,7 +72,7 @@ class root.PrimitiveClassData extends ClassData
   # Returns a boolean indicating if this class is an instance of the target class.
   # "target" is a ClassData object.
   # The ClassData objects do not need to be initialized; just loaded.
-  is_castable: (rs, target) -> @this_class == target.this_class
+  is_castable: (target) -> @this_class == target.this_class
 
   # Primitive classes are initialized when they are created.
   is_initialized: -> true
@@ -115,7 +114,7 @@ class root.ArrayClassData extends ClassData
   # "target" is a ClassData object.
   # The ClassData objects do not need to be initialized; just loaded.
   # See §2.6.7 for casting rules.
-  is_castable: (rs, target) -> # target is c2
+  is_castable: (target) -> # target is c2
     unless target instanceof root.ArrayClassData
       return false if target instanceof root.PrimitiveClassData
       # Must be a reference type.
@@ -127,7 +126,7 @@ class root.ArrayClassData extends ClassData
 
     # We are both array types, so it only matters if my component type can be
     # cast to its component type.
-    return @get_component_class().is_castable(rs, target.get_component_class())
+    return @get_component_class().is_castable(target.get_component_class())
 
 # Represents a "reference" Class -- that is, a class that neither represents a
 # primitive nor an array.
@@ -239,32 +238,34 @@ class root.ReferenceClassData extends ClassData
     return null
 
   get_attributes: (name) -> attr for attr in @attrs when attr.name is name
+  get_interfaces: -> @interface_cdatas
+  get_interface_types: -> @interfaces
 
   # Returns a boolean indicating if this class is an instance of the target class.
   # "target" is a ClassData object.
   # The ClassData objects do not need to be initialized; just loaded.
   # See §2.6.7 for casting rules.
-  is_castable: (rs, target) ->
+  is_castable: (target) ->
     return false unless target instanceof root.ReferenceClassData
 
     if @access_flags.interface
       # We are both interfaces
-      if target.access_flags.interface then return @is_subinterface(rs,target)
+      if target.access_flags.interface then return @is_subinterface(target)
       # Only I am an interface
       return target.get_type() is 'Ljava/lang/Object;' unless target.access_flags.interface
     else
       # I am a regular class, target is an interface
-      if target.access_flags.interface then return @is_subinterface(rs,target)
+      if target.access_flags.interface then return @is_subinterface(target)
       # We are both regular classes
-      return @is_subclass(rs,target)
+      return @is_subclass(target)
 
   # Returns 'true' if I implement the target interface.
-  is_subinterface: (rs, target) ->
+  is_subinterface: (target) ->
     return true if @this_class is target.this_class
     for super_iface in @get_interfaces()
-      return true if super_iface.is_subinterface rs, target
+      return true if super_iface.is_subinterface target
     return false unless @get_super_class()?  # I'm java/lang/Object, can't go further
-    return @get_super_class().is_subinterface rs, target
+    return @get_super_class().is_subinterface target
 
   # Spec [5.4.3.2][1].
   # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#77678

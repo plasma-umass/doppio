@@ -167,7 +167,7 @@ arraycopy_check = (rs, src, src_pos, dest, dest_pos, length) ->
   dest_comp_cls = dest.cls.get_component_class()
   for i in [src_pos...src_pos+length] by 1
     # Check if null or castable.
-    if src.array[i] == null or src.array[i].cls.is_castable rs, dest_comp_cls
+    if src.array[i] == null or src.array[i].cls.is_castable dest_comp_cls
       dest.array[j] = src.array[i]
     else
       rs.java_throw rs.get_bs_class('Ljava/lang/ArrayStoreException;'), 'Array element in src cannot be cast to dest array type.'
@@ -284,12 +284,12 @@ native_methods =
             if sig? then rs.init_string sig else null
         o 'getProtectionDomain0()Ljava/security/ProtectionDomain;', (rs, _this) -> null
         o 'isAssignableFrom(L!/!/!;)Z', (rs, _this, cls) ->
-            cls.$cls.is_castable rs, _this.$cls
+            cls.$cls.is_castable _this.$cls
         o 'isInterface()Z', (rs, _this) ->
             return false unless _this.$cls instanceof ReferenceClassData
             _this.$cls.access_flags.interface
         o 'isInstance(L!/!/Object;)Z', (rs, _this, obj) ->
-            obj.cls.is_castable rs, _this.$cls
+            obj.cls.is_castable _this.$cls
         o 'isPrimitive()Z', (rs, _this) ->
             _this.$cls instanceof PrimitiveClassData
         o 'isArray()Z', (rs, _this) ->
@@ -666,7 +666,7 @@ native_methods =
               src = {cls: src.cls, array: src.array.slice(src_pos, src_pos+length)}
               src_pos = 0
 
-            if src.cls.is_castable rs, dest.cls
+            if src.cls.is_castable dest.cls
               # Fast path
               arraycopy_no_check(src, src_pos, dest, dest_pos, length)
             else

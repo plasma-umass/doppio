@@ -678,7 +678,7 @@ root.opcodes = {
     @cls = rs.get_class @class, true
     if @cls?
       # Check if this is a ClassLoader or not.
-      if @cls.is_castable rs, rs.get_bs_cl().get_loaded_class('Ljava/lang/ClassLoader;')
+      if @cls.is_castable rs.get_bs_cl().get_loaded_class('Ljava/lang/ClassLoader;')
         rs.push new JavaClassLoaderObject(rs, @cls)
         @execute = (rs) -> rs.push new JavaClassLoaderObject(rs, @cls)
       else
@@ -691,7 +691,7 @@ root.opcodes = {
       rs.async_op (resume_cb, except_cb) =>
         success_fn = (class_file) ->
           # Check if this is a ClassLoader or not.
-          if class_file.is_castable rs, rs.get_bs_cl().get_loaded_class('Ljava/lang/ClassLoader;')
+          if class_file.is_castable rs.get_bs_cl().get_loaded_class('Ljava/lang/ClassLoader;')
             obj = new JavaClassLoaderObject(rs, class_file)
           else
             obj = new JavaObject(rs, class_file)
@@ -721,7 +721,7 @@ root.opcodes = {
     if @cls?
       new_execute = (rs) ->
         o = rs.pop()
-        if (not o?) or o.cls.is_castable rs, @cls
+        if (not o?) or o.cls.is_castable @cls
           rs.push o
         else
           target_class = @cls.toExternalString() # class we wish to cast to
@@ -742,7 +742,7 @@ root.opcodes = {
     if @cls?
       new_execute = (rs) ->
         o=rs.pop()
-        rs.push if o? then o.cls.is_castable(rs,@cls)+0 else 0
+        rs.push if o? then o.cls.is_castable(@cls)+0 else 0
       new_execute.call @, rs
       @execute = new_execute
     else
