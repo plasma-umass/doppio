@@ -219,16 +219,10 @@ class root.ReferenceClassData extends ClassData
       for method in @methods
         method.initialize()
 
-  # Returns the first attribute with the given name. Returns null if no such
-  # attribute exists.
   get_attribute: (name) ->
-    for attr in @attrs
-      if attr.name is name
-        return attr
+    for attr in @attrs if attr.name is name then return attr
     return null
 
-  # Returns an array of attributes with the given name. Returns an empty array
-  # if none exist.
   get_attributes: (name) -> attr for attr in @attrs when attr.name is name
 
   # Returns a boolean indicating if this class is an instance of the target class.

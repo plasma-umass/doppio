@@ -362,7 +362,7 @@ native_methods =
             annotations = cls.get_attribute 'RuntimeVisibleAnnotations'
             return new JavaArray rs, rs.get_bs_class('[B'), annotations.raw_bytes if annotations?
             for sig,m of cls.methods
-              annotations = _.find(m.attrs, (a) -> a.name == 'RuntimeVisibleAnnotations')
+              annotations = m.get_attribute 'RuntimeVisibleAnnotations'
               return new JavaArray rs, rs.get_bs_class('[B'), annotations.raw_bytes if annotations?
             null
         o 'getConstantPool()Lsun/reflect/ConstantPool;', (rs, _this) ->

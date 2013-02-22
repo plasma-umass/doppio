@@ -106,11 +106,11 @@ root.disassemble = (class_file) ->
   for f in class_file.fields
     rv += access_string(f.access_flags)
     rv += "#{pp_type(f.type)} #{f.name};\n"
-    const_attr = _.find(f.attrs, (attr) -> attr.name == 'ConstantValue')
+    const_attr = f.get_attribute 'ConstantValue'
     if const_attr?
       entry = pool.get(const_attr.ref)
       rv += "  Constant value: #{entry.type} #{entry.deref?() or entry.value}\n"
-    sig = _.find(f.attrs, (attr) -> attr.name == 'Signature')
+    sig = f.get_attribute 'Signature'
     if sig?
       rv += "  Signature: length = 0x#{sig.raw_bytes.length.toString(16)}\n"
       rv += "   #{(pad_left(b.toString(16).toUpperCase(),2) for b in sig.raw_bytes).join ' '}\n"
@@ -127,7 +127,7 @@ root.disassemble = (class_file) ->
         ret_type = if m.return_type? then pp_type m.return_type else ""
         ret_type + " " + m.name
     rv += "(#{(pp_type(p) for p in m.param_types).join ', '})" unless m.name is '<clinit>'
-    rv += print_excs exc_attr if exc_attr = _.find(m.attrs, (a) -> a.name == 'Exceptions')
+    rv += print_excs exc_attr if exc_attr = m.get_attribute 'Exceptions'
     rv += ";\n"
     unless m.access_flags.native or m.access_flags.abstract
       rv += "  Code:\n"

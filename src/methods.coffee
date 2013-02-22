@@ -30,6 +30,12 @@ class AbstractMethodField
     @parse_descriptor @raw_descriptor
     @attrs = attributes.make_attributes(bytes_array,constant_pool)
 
+  get_attribute: (name) ->
+    for attr in @attrs if attr.name is name then return attr
+    return null
+
+  get_attributes: (name) -> attr for attr in @attrs when attr.name is name
+
 class root.Field extends AbstractMethodField
   parse_descriptor: (raw_descriptor) ->
     @type = raw_descriptor
