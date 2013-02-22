@@ -14,7 +14,18 @@ root = exports ? this.ClassData = {}
 
 # Represents a single Class in the JVM.
 class ClassData
-  constructor: (@loader=null) -> # NOP
+  # Responsible for setting up all of the fields that are guaranteed to be
+  # present on any ClassData object.
+  constructor: (@loader=null) ->
+    @ml_cache = {}
+    @fl_cache = {}
+    @access_flags = {}
+    @interfaces = []
+    @fields = []
+    @methods = {}
+    @attrs = []
+    @initialized = false
+    @static_fields = []
 
   # Resets any ClassData state that may have been built up
   load: () ->
@@ -25,7 +36,7 @@ class ClassData
 
   get_type: -> @this_class
   get_super_class_type: -> @super_class
-  get_interface_types: -> @constant_pool.get(i).deref() for i in @interfaces
+  get_interface_types: -> @interfaces
   get_super_class: -> @super_class_cdata
   get_interfaces: -> @interface_cdatas
   get_class_object: (rs) ->
@@ -151,10 +162,12 @@ class ClassData
 # Represents a "reference" Class -- that is, a class that neither represents a
 # primitive nor an array.
 class root.ReferenceClassData extends ClassData
-  constructor: (bytes_array, @loader=null) ->
+  constructor: (bytes_array, loader) ->
     # XXX: Circular dependency hack.
     unless methods?
       methods = require './methods'
+
+    super loader
 
     bytes_array = new util.BytesArray bytes_array
     throw "Magic number invalid" if (bytes_array.get_uint 4) != 0xCAFEBABE
@@ -172,7 +185,7 @@ class root.ReferenceClassData extends ClassData
     @super_class = @constant_pool.get(super_ref).deref() unless super_ref is 0
     # direct interfaces of this class
     isize = bytes_array.get_uint 2
-    @interfaces = (bytes_array.get_uint 2 for i in [0...isize] by 1)
+    @interfaces = (@constant_pool.get(bytes_array.get_uint 2).deref() for i in [0...isize] by 1)
     # fields of this class
     num_fields = bytes_array.get_uint 2
     @fields = (new methods.Field(@) for i in [0...num_fields] by 1)
@@ -227,25 +240,16 @@ class root.ReferenceClassData extends ClassData
       return @is_subclass(rs,target)
 
 class root.ArrayClassData extends ClassData
-  constructor: (@component_type, @loader=null) ->
-    @constant_pool = new ConstantPool
-    @ml_cache = {}
-    @fl_cache = {}
-    @access_flags = {}
+  constructor: (@component_type, loader) ->
+    super loader
     @this_class = "[#{@component_type}"
     @super_class = 'Ljava/lang/Object;'
-    @interfaces = []
-    @fields = []
-    @methods = {}
-    @attrs = []
-    @initialized = false
-    @static_fields = []
 
   get_component_type: () -> return @component_type
   get_component_class: -> return @component_class_cdata
   set_loaded: (@super_class_cdata, @component_class_cdata) -> # Nothing else to do.
 
-  is_initialized: -> true
+  is_initialized: -> @component_class_cdata?
 
   # Returns a boolean indicating if this class is an instance of the target class.
   # "target" is a ClassData object.
@@ -266,18 +270,9 @@ class root.ArrayClassData extends ClassData
     return @get_component_class().is_castable(rs, target.get_component_class())
 
 class root.PrimitiveClassData extends ClassData
-  constructor: (@this_class, @loader=null) ->
-    @constant_pool = new ConstantPool
-    @ml_cache = {}
-    @fl_cache = {}
-    @access_flags = {}
-    @super_class = null
-    @interfaces = []
-    @fields = []
-    @methods = {}
-    @attrs = []
+  constructor: (@this_class, loader) ->
+    super loader
     @initialized = true
-    @static_fields = []
 
   # Returns a boolean indicating if this class is an instance of the target class.
   # "target" is a ClassData object.
