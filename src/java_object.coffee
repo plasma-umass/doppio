@@ -32,7 +32,7 @@ class root.JavaObject
   constructor: (rs, @cls, obj={}) ->
     @ref = rs.high_oref++
     # Use default fields as a prototype.
-    @fields = Object.create(@cls.get_default_fields(rs))
+    @fields = Object.create(@cls.get_default_fields())
     for field of obj
       if obj.hasOwnProperty(field)
         @fields[field] = obj[field]

@@ -207,12 +207,12 @@ class root.ReferenceClassData extends ClassData
       static_fields[f.name] = util.initial_value f.raw_descriptor
     return static_fields
 
-  get_default_fields: (rs) ->
+  get_default_fields: ->
     return @default_fields unless @default_fields is undefined
-    @construct_default_fields(rs)
+    @construct_default_fields()
     return @default_fields
 
-  construct_default_fields: (rs) ->
+  construct_default_fields: () ->
     # init fields from this and inherited ClassDatas
     cls = @
     # Object.create(null) avoids interference with Object.prototype's properties
