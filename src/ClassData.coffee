@@ -18,7 +18,6 @@ class ClassData
   # present on any ClassData object.
   constructor: (@loader=null) ->
     @access_flags = {}
-    @fields = []
     @initialized = false
 
   # Resets any ClassData state that may have been built up
@@ -69,6 +68,7 @@ class ClassData
   # A non-recursive method for retrieving a method from this class.
   get_method: -> null
   get_methods: -> {}
+  get_fields: -> []
 
 class root.PrimitiveClassData extends ClassData
   constructor: (@this_class, loader) ->
@@ -246,6 +246,7 @@ class root.ReferenceClassData extends ClassData
   get_attributes: (name) -> attr for attr in @attrs when attr.name is name
   get_interfaces: -> @interface_cdatas
   get_interface_types: -> @interfaces
+  get_fields: -> @fields
 
   # Returns a boolean indicating if this class is an instance of the target class.
   # "target" is a ClassData object.

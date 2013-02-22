@@ -301,7 +301,7 @@ native_methods =
               return null
             return cls.get_super_class().get_class_object(rs)
         o 'getDeclaredFields0(Z)[Ljava/lang/reflect/Field;', (rs, _this, public_only) ->
-            fields = _this.$cls.fields
+            fields = _this.$cls.get_fields()
             fields = (f for f in fields when f.access_flags.public) if public_only
             base_array = []
             rs.async_op (resume_cb, except_cb) ->

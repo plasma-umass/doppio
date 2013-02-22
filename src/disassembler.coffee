@@ -103,7 +103,7 @@ root.disassemble = (class_file) ->
 
   rv += "{\n"
 
-  for f in class_file.fields
+  for f in class_file.get_fields()
     rv += access_string(f.access_flags)
     rv += "#{pp_type(f.type)} #{f.name};\n"
     const_attr = f.get_attribute 'ConstantValue'
