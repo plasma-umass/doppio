@@ -106,6 +106,7 @@ class root.RuntimeState
       'Ljava/lang/ArrayStoreException;'
       'Ljava/lang/ClassCastException;'
       'Ljava/lang/ClassNotFoundException;'
+      'Ljava/lang/NoClassDefFoundError;'
       'Ljava/lang/Cloneable;'
       'Ljava/lang/ExceptionInInitializerError;'
       'Ljava/lang/IllegalMonitorStateException;'

@@ -75,7 +75,7 @@ trapped_methods =
             cstack = rs.meta_stack()._cs.slice(1,-1)
             for sf in cstack when not (sf.fake? or sf.native? or sf.locals[0] is _this)
               cls = sf.method.cls
-              unless _this.cls.toClassString() is 'Ljava/lang/NoClassDefFoundError;'
+              unless _this.cls.get_type() is 'Ljava/lang/NoClassDefFoundError;'
                 attrs = cls.attrs
                 source_file =
                   _.find(attrs, (attr) -> attr.name == 'SourceFile')?.filename or 'unknown'
@@ -88,7 +88,7 @@ trapped_methods =
                   ln = row.line_number
               ln ?= -1
               stack.push new JavaObject rs, rs.get_bs_class('Ljava/lang/StackTraceElement;'), {
-                'Ljava/lang/StackTraceElement;declaringClass': rs.init_string util.ext_classname cls.toClassString()
+                'Ljava/lang/StackTraceElement;declaringClass': rs.init_string util.ext_classname cls.get_type()
                 'Ljava/lang/StackTraceElement;methodName': rs.init_string(sf.method.name ? 'unknown')
                 'Ljava/lang/StackTraceElement;fileName': rs.init_string source_file
                 'Ljava/lang/StackTraceElement;lineNumber': ln
@@ -124,7 +124,7 @@ trapped_methods =
 
 doPrivileged = (rs, action) ->
   my_sf = rs.curr_frame()
-  m = rs.method_lookup(action.cls, {class: action.cls.toClassString(), sig: 'run()Ljava/lang/Object;'})
+  m = rs.method_lookup(action.cls, {class: action.cls.get_type(), sig: 'run()Ljava/lang/Object;'})
   rs.push action unless m.access_flags.static
   m.setup_stack(rs)
   my_sf.runner = ->
@@ -386,7 +386,7 @@ native_methods =
             cls = _this.$cls
             icls = _.find(cls.attrs, (a) -> a.name == 'InnerClasses')
             return null unless icls?
-            my_class = _this.$cls.toClassString()
+            my_class = _this.$cls.get_type()
             for entry in icls.classes when entry.outer_info_index > 0
               name = cls.constant_pool.get(entry.inner_info_index).deref()
               continue unless name is my_class
@@ -400,7 +400,7 @@ native_methods =
             ret = new JavaArray rs, rs.get_bs_class('[Ljava/lang/Class;'), []
             return ret unless _this.$cls instanceof ReferenceClassData
             cls = _this.$cls
-            my_class = _this.$cls.toClassString()
+            my_class = _this.$cls.get_type()
             iclses = (a for a in cls.attrs when a.name is 'InnerClasses')
             return ret if iclses.length is 0
             flat_names = []
@@ -597,7 +597,7 @@ native_methods =
       reflect:
         Array: [
           o 'newArray(L!/!/Class;I)L!/!/Object;', (rs, _this, len) ->
-              rs.heap_newarray _this.$cls.toClassString(), len
+              rs.heap_newarray _this.$cls.get_type(), len
           o 'getLength(Ljava/lang/Object;)I', (rs, arr) ->
               rs.check_null(arr).array.length
         ]
@@ -725,7 +725,7 @@ native_methods =
             rs.curr_thread = _this
             new_thread_sf = rs.curr_frame()
             rs.push _this
-            run_method = rs.method_lookup(_this.cls, {class: _this.cls.toClassString(), sig: 'run()V'})
+            run_method = rs.method_lookup(_this.cls, {class: _this.cls.get_type(), sig: 'run()V'})
             thread_runner_sf = run_method.setup_stack(rs)
             new_thread_sf.runner = ->
               new_thread_sf.runner = null  # new_thread_sf is the fake SF at index 0

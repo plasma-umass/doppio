@@ -60,12 +60,12 @@ class root.JavaObject
     return @get_field rs, f.cls + f.field.name
 
   _get_field_from_offset: (rs, cls, offset) ->
-    classname = cls.toClassString()
+    classname = cls.get_type()
     until cls.fields[offset]?
       unless cls.get_super_class()?
         rs.java_throw @cls.loader.get_initialized_class('Ljava/lang/NullPointerException;'), "field #{offset} doesn't exist in class #{classname}"
       cls = cls.get_super_class()
-    {field: cls.fields[offset], cls: cls.toClassString(), cls_obj: cls}
+    {field: cls.fields[offset], cls: cls.get_type(), cls_obj: cls}
 
   set_field_from_offset: (rs, offset, value) ->
     f = @_get_field_from_offset rs, @cls, offset.toInt()
@@ -75,7 +75,7 @@ class root.JavaObject
       @set_field rs, f.cls + f.field.name, value
 
   toString: ->
-    if @cls.toClassString() is 'Ljava/lang/String;'
+    if @cls.get_type() is 'Ljava/lang/String;'
       "<#{@cls.get_type()} '#{@jvm2js_str()}' (*#{@ref})>"
     else
       "<#{@cls.get_type()} (*#{@ref})>"

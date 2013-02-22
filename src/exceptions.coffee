@@ -44,7 +44,7 @@ class root.JavaException
       eh.start_pc <= cf.pc < eh.end_pc and method.cls.loader.get_loaded_class(eh.catch_type, true)? and
         (eh.catch_type == "<any>" or ecls.is_castable rs, method.cls.loader.get_loaded_class(eh.catch_type))
     if handler?
-      debug "caught #{@exception.cls.toClassString()} in #{method.full_signature()} as subclass of #{handler.catch_type}"
+      debug "caught #{@exception.cls.get_type()} in #{method.full_signature()} as subclass of #{handler.catch_type}"
       cf.stack = []  # clear out anything on the stack; it was made during the try block
       rs.push @exception
       cf.pc = handler.handler_pc
@@ -54,7 +54,7 @@ class root.JavaException
     return false
 
   toplevel_catch_handler: (rs) ->
-    debug "\nUncaught #{@exception.cls.toClassString()}"
+    debug "\nUncaught #{@exception.cls.get_type()}"
     msg = @exception.get_field rs, 'Ljava/lang/Throwable;detailMessage'
     debug "\t#{msg.jvm2js_str()}" if msg?
     rs.show_state()

@@ -76,7 +76,7 @@ class root.Method extends AbstractMethodField
     @num_args++ unless @access_flags.static # nonstatic methods get 'this'
     @return_type = return_str
 
-  full_signature: -> "#{@cls.toClassString()}::#{@name}#{@raw_descriptor}"
+  full_signature: -> "#{@cls.get_type()}::#{@name}#{@raw_descriptor}"
 
   parse: (bytes_array, constant_pool, idx) ->
     super bytes_array, constant_pool, idx
@@ -206,7 +206,7 @@ class root.Method extends AbstractMethodField
         throw "#{@name}:#{pc} => (null)" unless op
         vtrace "#{padding}stack: [#{debug_vars cf.stack}], local: [#{debug_vars cf.locals}]"
         annotation = op.annotate(pc, @cls.constant_pool)
-        vtrace "#{padding}#{@cls.toClassString()}::#{@name}:#{pc} => #{op.name}" + annotation
+        vtrace "#{padding}#{@cls.get_type()}::#{@name}:#{pc} => #{op.name}" + annotation
 
       cf.pc += 1 + op.byte_count if (op.execute rs) isnt false
     # Must explicitly return here, to avoid Coffeescript accumulating an array of cf.pc values

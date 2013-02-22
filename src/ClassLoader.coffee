@@ -231,9 +231,9 @@ class ClassLoader
         throw e
     ))
 
-    class_file = cdata # XXX: Rename vars.
+    class_file = cdata # TODO: Rename vars.
     while class_file? and not class_file.is_initialized()
-      trace "initializing class: #{class_file.toClassString()}"
+      trace "initializing class: #{class_file.get_type()}"
       class_file.initialized = true
 
       # Resets any cached state from previous JVM executions (browser).
@@ -370,9 +370,38 @@ class root.BootstrapClassLoader extends ClassLoader
       @define_class rs, type_str, data, ((jco)=>success_fn(jco.$cls)), failure_fn, true # Fetch super class/interfaces in parallel.
     ), (() =>
       setTimeout((failure_fn () =>
-        rs.java_throw @bootstrap.get_initialized_class('Ljava/lang/ClassNotFoundException;'), util.ext_classname type_str
+        # We create a new frame to create a NoClassDefFoundError and a
+        # ClassNotFoundException.
+        # TODO: Should probably have a better helper for these things
+        # (asynchronous object creation)
+        rs.meta_stack().push StackFrame.native_frame '$class_not_found', (=>
+          rv = rs.pop()
+
+          # Rewrite myself -- I have another method to run.
+          rs.curr_frame().runner = ->
+            rv = rs.pop()
+            rs.meta_stack().pop()
+            # Throw the exception.
+            throw (new JavaException(rv))
+
+          cls = @bootstrap.get_initialized_class 'Ljava/lang/NoClassDefFoundError;'
+          v = new JavaObject rs, cls
+          method_spec = sig: '<init>(Ljava/lang/Throwable;)V'
+          rs.push_array([v,v,rv]) # dup, ldc
+          rs.method_lookup(cls, method_spec).setup_stack(rs) # invokespecial
+        ), (->
+          rs.meta_stack().pop()
+          setTimeout((->failure_fn (-> throw e)), 0)
+        )
+
+        cls = @bootstrap.get_initialized_class 'Ljava/lang/ClassNotFoundException;'
+        v = new JavaObject rs, cls # new
+        method_spec = sig: '<init>(Ljava/lang/String;)V'
+        msg = rs.init_string(util.ext_classname type_str)
+        rs.push_array([v,v,msg]) # dup, ldc
+        rs.method_lookup(cls, method_spec).setup_stack(rs) # invokespecial
       ), 0)
-    ) # XXX: Convert to correct exception type.
+    )
     return
 
 class root.CustomClassLoader extends ClassLoader

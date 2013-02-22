@@ -97,7 +97,7 @@ class root.DynInvokeOpcode extends root.InvokeOpcode
     stack = my_sf.stack
     obj = stack[stack.length - @count]
     cls_obj = rs.check_null(obj).cls
-    cls = cls_obj.toClassString()
+    cls = cls_obj.get_type()
     if rs.method_lookup(cls_obj, {class: cls, sig: @method_spec.sig}).setup_stack(rs)?
       my_sf.pc += 1 + @byte_count
       throw ReturnException
@@ -376,7 +376,7 @@ class root.ArrayLoadOpcode extends root.Opcode
     array = obj.array
     unless 0 <= idx < array.length
       rs.java_throw(rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;'),
-        "#{idx} not in length #{array.length} array of type #{obj.cls.toClassString()}")
+        "#{idx} not in length #{array.length} array of type #{obj.cls.get_type()}")
     rs.push array[idx]
     rs.push null if @name[0] in ['l', 'd']
     return
@@ -389,7 +389,7 @@ class root.ArrayStoreOpcode extends root.Opcode
     array = obj.array
     unless 0 <= idx < array.length
       rs.java_throw(rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;'),
-        "#{idx} not in length #{array.length} array of type #{obj.cls.toClassString()}")
+        "#{idx} not in length #{array.length} array of type #{obj.cls.get_type()}")
     array[idx] = value
     return
 
@@ -639,7 +639,7 @@ root.opcodes = {
   180: new root.FieldOpcode 'getfield', { execute: (rs) ->
     cls = rs.get_class(@field_spec.class)
     field = rs.field_lookup(cls, @field_spec)
-    name = field.cls.toClassString() + @field_spec.name
+    name = field.cls.get_type() + @field_spec.name
     new_execute =
       if @field_spec.type not in ['J','D']
         (rs) ->
@@ -656,7 +656,7 @@ root.opcodes = {
   181: new root.FieldOpcode 'putfield', { execute: (rs) ->
     cls_obj = rs.get_class(@field_spec.class)
     field = rs.field_lookup(cls_obj, @field_spec)
-    name = field.cls.toClassString() + @field_spec.name
+    name = field.cls.get_type() + @field_spec.name
     new_execute =
       if @field_spec.type not in ['J','D']
         (rs) ->
