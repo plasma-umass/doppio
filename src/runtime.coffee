@@ -369,7 +369,6 @@ class root.RuntimeState
               if bytecode and advance_pc
                 @curr_frame().pc += 1 + @curr_frame().method.code.opcodes[@curr_frame().pc].byte_count
               unless ret1 is undefined
-                trace "Success_fn pushin' some stuff onto stack"
                 ret1 += 0 if typeof ret1 == 'boolean'
                 @push ret1
               @push ret2 unless ret2 is undefined

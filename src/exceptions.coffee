@@ -41,8 +41,8 @@ class root.JavaException
     ecls = @exception.cls
     handler = _.find exception_handlers, (eh) ->
       # XXX: Kludge. If the class is not loaded, then it is not possible for this to be the correct exception handler
-      eh.start_pc <= cf.pc < eh.end_pc and method.cls.loader.get_loaded_class(eh.catch_type, true)? and
-        (eh.catch_type == "<any>" or ecls.is_castable method.cls.loader.get_loaded_class(eh.catch_type))
+      eh.start_pc <= cf.pc < eh.end_pc and method.cls.loader.get_resolved_class(eh.catch_type, true)? and
+        (eh.catch_type == "<any>" or ecls.is_castable method.cls.loader.get_resolved_class(eh.catch_type))
     if handler?
       debug "caught #{@exception.cls.get_type()} in #{method.full_signature()} as subclass of #{handler.catch_type}"
       cf.stack = []  # clear out anything on the stack; it was made during the try block

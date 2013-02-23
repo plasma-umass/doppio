@@ -87,7 +87,7 @@ class root.JavaObject
 
 class root.JavaClassObject extends root.JavaObject
   constructor: (rs, @$cls) ->
-    super rs, rs.get_bs_cl().get_loaded_class('Ljava/lang/Class;')
+    super rs, rs.get_bs_cl().get_resolved_class('Ljava/lang/Class;')
 
   toString: -> "<Class #{@$cls.get_type()} (*#{@ref})>"
 

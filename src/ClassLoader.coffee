@@ -33,6 +33,7 @@ class ClassLoader
   # Retrieves a class in this ClassLoader. Returns null if it does not exist.
   _get_class: (type_str) ->
     cdata = @loaded_classes[type_str]
+    if cdata?.reset_bit == 1 then cdata.reset()
     return if cdata? then cdata else null
 
   # Defines a new array class with the specified component type.
@@ -41,7 +42,7 @@ class ClassLoader
   # JavaClassObjects).
   _try_define_array_class: (type_str) ->
     component_type = util.get_component_type type_str
-    component_cdata = @get_loaded_class(component_type, true)
+    component_cdata = @get_resolved_class(component_type, true)
     return null unless component_cdata?
     return @_define_array_class type_str, component_cdata
 
@@ -50,17 +51,17 @@ class ClassLoader
   _define_array_class: (type_str, component_cdata) ->
     cdata = new ArrayClassData component_cdata.get_type(), @
     @_add_class type_str, cdata
-    cdata.set_loaded @bootstrap.get_loaded_class('Ljava/lang/Object;'), component_cdata
+    cdata.set_resolved @bootstrap.get_resolved_class('Ljava/lang/Object;'), component_cdata
     return cdata
 
   # Called by define_class to fetch all interfaces and superclasses in parallel.
-  _parallel_class_load: (rs, types, success_fn, failure_fn) ->
+  _parallel_class_resolve: (rs, types, success_fn, failure_fn) ->
     # Number of callbacks waiting to be called.
     pending_requests = types.length
     # Set to a callback that throws an exception.
     failure = null
-    # Array of successfully loaded classes.
-    loaded = []
+    # Array of successfully resolved classes.
+    resolved = []
 
     # Called each time a requests finishes, whether in error or in success.
     request_finished = () ->
@@ -68,18 +69,18 @@ class ClassLoader
       # pending_requests is 0? Then I am the last callback. Call success_fn.
       if pending_requests is 0
         unless failure?
-          success_fn loaded
+          success_fn resolved
         else
           # Throw the exception.
           failure_fn failure
 
     # Fetches the class data associated with 'type' and adds it to the classloader.
     fetch_data = (type) =>
-      @load_class rs, type, ((cdata) ->
-        loaded.push cdata
+      @resolve_class rs, type, ((cdata) ->
+        resolved.push cdata
         request_finished()
       ), ((f_fn) ->
-        # load_class failure
+        # resolve_class failure
         failure = f_fn
         request_finished()
       )
@@ -88,31 +89,31 @@ class ClassLoader
     for type in types
       fetch_data(type)
 
-  # Loads the classes represented by the type strings in types one by one.
-  _regular_class_load: (rs, types, success_fn, failure_fn) ->
+  # Resolves the classes represented by the type strings in types one by one.
+  _regular_class_resolve: (rs, types, success_fn, failure_fn) ->
     return success_fn() unless types.length > 0
 
-    # Array of successfully loaded classes.
-    loaded = []
+    # Array of successfully resolved classes.
+    resolved = []
 
     fetch_class = (type) =>
-      @load_class rs, type, ((cdata) ->
-        loaded.push cdata
+      @resolve_class rs, type, ((cdata) ->
+        resolved.push cdata
         if types.length > 0
           fetch_class types.shift()
         else
-          success_fn loaded
+          success_fn resolved
       ), failure_fn
 
     fetch_class types.shift()
 
   # Only called for reference types.
-  # Ensures that all subclasses and interfaces are also loaded (hence, it is
-  # asynchronous).
-  # Calls the success_fn with the JavaClassObject for this class.
+  # Ensures that the class is resolved by ensuring that its super classes and
+  # interfaces are also resolved (hence, it is asynchronous).
+  # Calls the success_fn with the ClassData object for this class.
   # Calls the failure_fn with a function that throws the appropriate exception
   # in the event of a failure.
-  # If 'parallel' is 'true', then we call load_class multiple times in
+  # If 'parallel' is 'true', then we call resolve_class multiple times in
   # parallel (used by the bootstrap classloader).
   define_class: (rs, type_str, data, success_fn, failure_fn, parallel=false) ->
     trace "Defining class #{type_str}..."
@@ -122,22 +123,21 @@ class ClassLoader
     # What classes are we fetching?
     types = cdata.get_interface_types()
     types.push cdata.get_super_class_type()
-    to_load = []
-    loaded_already = []
-    # Prune any loaded classes.
+    to_resolve = []
+    resolved_already = []
+    # Prune any resolved classes.
     for type in types
       continue unless type? # super_class could've been null.
-      clsdata = @get_loaded_class type, true
+      clsdata = @get_resolved_class type, true
       if clsdata?
-        loaded_already.push clsdata
+        resolved_already.push clsdata
       else
-        to_load.push type
+        to_resolve.push type
 
-    process_loaded_classes = (cdatas) ->
-      cdatas = loaded_already.concat cdatas
+    process_resolved_classes = (cdatas) ->
+      cdatas = resolved_already.concat cdatas
       super_cdata = null
       interface_cdatas = []
-      interface_types = cdata.get_interface_types()
       super_type = cdata.get_super_class_type()
       for a_cdata in cdatas
         type = a_cdata.get_type()
@@ -145,20 +145,21 @@ class ClassLoader
           super_cdata = a_cdata
         else
           interface_cdatas.push a_cdata
-      cdata.set_loaded super_cdata, interface_cdatas
-      setTimeout((->success_fn(cdata.get_class_object rs)), 0)
+      cdata.set_resolved super_cdata, interface_cdatas
+      setTimeout((->success_fn(cdata)), 0)
 
-    if to_load.length > 0
-      if parallel
-        @_parallel_class_load rs, to_load, process_loaded_classes, failure_fn
+    if to_resolve.length > 0
+      #if parallel
+      if false
+        @_parallel_class_resolve rs, to_resolve, process_resolved_classes, failure_fn
       else
-        @_regular_class_load rs, to_load, process_loaded_classes, failure_fn
+        @_regular_class_resolve rs, to_resolve, process_resolved_classes, failure_fn
     else
-      # Everything is already loaded.
-      process_loaded_classes([])
+      # Everything is already resolved.
+      process_resolved_classes([])
 
-  # Synchronous method that checks if the given class is loaded
-  # already, and returns it if so. If it is not, it throws an exception.
+  # Synchronous method that checks if we have loaded a given method. If so,
+  # it returns it. Otherwise, it throws an exception.
   # If null_handled is set, it simply returns null.
   get_loaded_class: (type_str, null_handled=false) ->
     cdata = @_get_class type_str
@@ -175,9 +176,18 @@ class ClassLoader
     return null if null_handled
     throw new Error "Error in get_loaded_class: Class #{type_str} is not loaded."
 
-  # Same as get_loaded_class, but for initialized classes.
+  # Synchronous method that checks if the given class is resolved
+  # already, and returns it if so. If it is not, it throws an exception.
+  # If null_handled is set, it simply returns null.
+  get_resolved_class: (type_str, null_handled=false) ->
+    cdata = @get_loaded_class type_str, null_handled
+    return cdata if cdata?.is_resolved()
+    return null if null_handled
+    throw new Error "Error in get_resolved_class: Class #{type_str} is not resolved."
+
+  # Same as get_resolved_class, but for initialized classes.
   get_initialized_class: (type_str, null_handled=false) ->
-    cdata = @get_loaded_class type_str, true
+    cdata = @get_resolved_class type_str, true
     return cdata if cdata?.is_initialized()
     return null if null_handled
     throw new Error "Error in get_initialized_class: Class #{type_str} is not initialized."
@@ -202,6 +212,8 @@ class ClassLoader
       # execution loop.
       rs.async_op(()=>setTimeout((->success_fn(cdata)), 0))
     ), ((e)=>
+      # This ClassData is not initialized since we failed.
+      rs.curr_frame().cdata.reset()
       if e instanceof JavaException
         # We hijack the current native frame to transform the exception into a
         # ExceptionInInitializerError, then call failure_fn to throw it.
@@ -219,7 +231,7 @@ class ClassLoader
           rs.meta_stack().pop()
           setTimeout((->failure_fn (-> throw e)), 0)
 
-        cls = @bootstrap.get_loaded_class 'Ljava/lang/ExceptionInInitializerError;'
+        cls = @bootstrap.get_resolved_class 'Ljava/lang/ExceptionInInitializerError;'
         v = new JavaObject rs, cls # new
         method_spec = sig: '<init>(Ljava/lang/Throwable;)V'
         rs.push_array([v,v,e.exception]) # dup, ldc
@@ -230,14 +242,12 @@ class ClassLoader
         rs.meta_stack().pop()
         throw e
     ))
+    first_native_frame.cdata = cdata
 
     class_file = cdata # TODO: Rename vars.
     while class_file? and not class_file.is_initialized()
       trace "initializing class: #{class_file.get_type()}"
       class_file.initialized = true
-
-      # Resets any cached state from previous JVM executions (browser).
-      class_file.initialize()
 
       # Run class initialization code. Superclasses get init'ed first.  We
       # don't want to call this more than once per class, so don't do dynamic
@@ -254,17 +264,24 @@ class ClassLoader
           # are only used to handle exceptions.
           rs.meta_stack().push(first_native_frame)
         else
-          rs.meta_stack().push StackFrame.native_frame("$clinit_secondary", (()=>
+          next_nf = StackFrame.native_frame("$clinit_secondary", (()=>
             rs.meta_stack().pop()
           ), ((e)=>
-            until @curr_frame() is first_native_frame
-              rs.meta_stack.pop()
-            rs.meta_stack.pop() # Pop that first native frame.
-            # XXX: Wait, does this mean we don't convert properly here?? :(
-            # Rethrow the exception. failure_fn is responsible for getting us back
-            # into the runtime state loop.
-            rs.async_op(()=>setTimeout((->failure_fn(()->throw e)), 0))
+            # This ClassData is not initialized; reset its state.
+            rs.curr_frame().cdata.reset()
+            # Pop myself off.
+            rs.meta_stack().pop()
+            # Find the next Native Frame (prevents them from trying to run
+            # their static initialization methods)
+            while not rs.curr_frame().native
+              rs.meta_stack().pop()
+            # Rethrow the Exception to pass it on to the next native frame.
+            # The boolean value prevents failure_fn from discarding the current
+            # stack frame.
+            rs.async_op((()=>setTimeout((->failure_fn(()->throw e)), 0)), true)
           ))
+          next_nf.cdata = class_file
+          rs.meta_stack().push next_nf
         clinit.setup_stack(rs)
       class_file = class_file.get_super_class()
 
@@ -277,7 +294,7 @@ class ClassLoader
     setTimeout((()=>success_fn(cdata)), 0)
     return
 
-  # Asynchronously loads and initializes the given class, and passes its
+  # Asynchronously loads, resolves, and initializes the given class, and passes its
   # ClassData representation to success_fn.
   # Passes a callback to failure_fn that throws an exception in the event
   # of an error.
@@ -293,20 +310,20 @@ class ClassLoader
     # component type. Short circuit here.
     if util.is_array_type type_str
       component_type = util.get_component_type type_str
-      # Component type doesn't need to be initialized; just loaded.
-      @load_class rs, component_type, ((cdata)=>
+      # Component type doesn't need to be initialized; just resolved.
+      @resolve_class rs, component_type, ((cdata)=>
         setTimeout((()=>success_fn @_define_array_class type_str, cdata), 0)
       ), failure_fn
       return
 
     # Only reference types will make it to this point. :-)
 
-    # Is it at least loaded?
-    cdata = @get_loaded_class type_str, true
+    # Is it at least resolved?
+    cdata = @get_resolved_class type_str, true
     return @_initialize_class(rs, cdata, success_fn, failure_fn) if cdata?
 
     # OK, OK. We'll have to asynchronously load it AND initialize it.
-    @load_class rs, type_str, ((cdata) =>
+    @resolve_class rs, type_str, ((cdata) =>
       # Check if it's initialized already. If this is a CustomClassLoader, it's
       # possible that the class has been retrieved from another ClassLoader,
       # and has already been initialized.
@@ -318,22 +335,22 @@ class ClassLoader
 
   # Loads the class indicated by the given type_str. Passes the ClassFile
   # object for the class to success_fn.
-  load_class: (rs, type_str, success_fn, failure_fn) ->
-    trace "Loading class #{type_str}... [general]"
-    rv = @get_loaded_class type_str, true
+  resolve_class: (rs, type_str, success_fn, failure_fn) ->
+    trace "Resolving class #{type_str}... [general]"
+    rv = @get_resolved_class type_str, true
     return setTimeout((()->success_fn(rv)), 0) if rv?
 
     # If it's an array type, the asynchronous part only involves its
     # component type. Short circuit here.
     if util.is_array_type type_str
       component_type = util.get_component_type type_str
-      @load_class rs, component_type, ((cdata)=>
+      @resolve_class rs, component_type, ((cdata)=>
         setTimeout((()=>success_fn @_define_array_class type_str, cdata), 0)
       ), failure_fn
       return
 
-    # Unloaded reference class. Let's load it.
-    @_load_class rs, type_str, success_fn, failure_fn
+    # Unresolved reference class. Let's resolve it.
+    @_resolve_class rs, type_str, success_fn, failure_fn
 
 # The Bootstrap ClassLoader. This is the only ClassLoader that can create
 # primitive types.
@@ -360,13 +377,13 @@ class root.BootstrapClassLoader extends ClassLoader
   # Called only:
   # * With a type_str referring to a Reference Class.
   # * If the class is not already loaded.
-  _load_class: (rs, type_str, success_fn, failure_fn) =>
-    trace "ASYNCHRONOUS: load_class #{type_str} [bootstrap]"
-    rv = @get_loaded_class type_str, true
+  _resolve_class: (rs, type_str, success_fn, failure_fn) =>
+    trace "ASYNCHRONOUS: resolve_class #{type_str} [bootstrap]"
+    rv = @get_resolved_class type_str, true
     return success_fn(rv) if rv?
 
     @read_classfile type_str, ((data)=>
-      @define_class rs, type_str, data, ((jco)=>success_fn(jco.$cls)), failure_fn, true # Fetch super class/interfaces in parallel.
+      @define_class rs, type_str, data, success_fn, failure_fn, true # Fetch super class/interfaces in parallel.
     ), (() =>
       setTimeout((failure_fn () =>
         # We create a new frame to create a NoClassDefFoundError and a
@@ -416,8 +433,8 @@ class root.CustomClassLoader extends ClassLoader
   # Called only:
   # * With a type_str referring to a Reference Class.
   # * If the class is not already loaded.
-  _load_class: (rs, type_str, success_fn, failure_fn) ->
-    trace "ASYNCHRONOUS: load_class #{type_str} [custom]"
+  _resolve_class: (rs, type_str, success_fn, failure_fn) ->
+    trace "ASYNCHRONOUS: resolve_class #{type_str} [custom]"
     rs.meta_stack().push StackFrame.native_frame("$#{@loader_obj.cls.get_type()}", (()=>
       jclo = rs.pop()
       rs.meta_stack().pop()
@@ -425,7 +442,7 @@ class root.CustomClassLoader extends ClassLoader
       cls = jclo.$cls
       # If loadClass delegated to another ClassLoader, it will not have called
       # defineClass on the result. If so, we will need to stash this class.
-      @_add_class(type_str, cls) unless @_get_class type_str?
+      @_add_class(type_str, cls) unless @get_resolved_class(type_str, true)?
       rs.async_op(->setTimeout((->success_fn(cls)), 0))
     ), ((e)=>
       rs.meta_stack().pop()
@@ -435,7 +452,7 @@ class root.CustomClassLoader extends ClassLoader
     rs.push2 @loader_obj, rs.init_string util.ext_classname type_str
     # We don't care about the return value of this function, as
     # define_class handles registering the ClassData with the class loader.
-    # define_class also handles recalling load_class for any needed super
+    # define_class also handles recalling resolve_class for any needed super
     # classes and interfaces.
     @loader_obj.cls.method_lookup(rs, {sig: 'loadClass(Ljava/lang/String;)Ljava/lang/Class;'}).setup_stack(rs)
     # Push ourselves back into the execution loop to run the method.

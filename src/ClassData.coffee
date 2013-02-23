@@ -19,14 +19,22 @@ class ClassData
   constructor: (@loader=null) ->
     @access_flags = {}
     @initialized = false
+    @resolved = false
+    @jco = null
+    # Flip to 1 to trigger reset() call on load.
+    @reset_bit = 0
 
   # Resets any ClassData state that may have been built up
-  load: () ->
-    @initialized = false
+  # We do not reset 'initialized' here; only reference types need to reset that.
+  reset: ->
     @jco = null
+    @reset_bit = 0
 
   toExternalString: () -> util.ext_classname @this_class
 
+  # Returns the ClassLoader object of the classloader that initialized this
+  # class. Returns null for the default classloader.
+  get_class_loader: -> @loader
   get_type: -> @this_class
   get_super_class_type: -> @super_class
   get_super_class: -> @super_class_cdata
@@ -35,27 +43,9 @@ class ClassData
   get_class_object: (rs) ->
     @jco = new JavaClassObject(rs, @) unless @jco?
     @jco
-
-  # Returns the JavaObject object of the classloader that initialized this
-  # class. Returns null for the default classloader.
-  get_class_loader: () -> @loader
-
-  # Checks if the class file is initialized. It will set @initialized to 'true'
-  # if this class has no static initialization method and its parent classes
-  # are initialized, too.
-  is_initialized: ->
-    return true if @initialized
-    # XXX: Hack to avoid traversing hierarchy.
-    return false if @methods['<clinit>()V']?
-    @initialized = if @get_super_class()?.is_initialized() else false
-    return @initialized
-
-  is_subclass: (target) ->
-    return true if @ is target
-    return false unless @get_super_class()?  # I'm java/lang/Object, can't go further
-    return @get_super_class().is_subclass target
-
-  is_subinterface: -> false
+  get_method: -> null
+  get_methods: -> {}
+  get_fields: -> []
   method_lookup: (rs, spec, null_handled) ->
     return null if null_handled
     java_throw rs.get_bs_class('Ljava/lang/NoSuchMethodError;'),
@@ -65,23 +55,32 @@ class ClassData
     rs.java_throw rs.get_bs_class('Ljava/lang/NoSuchFieldError;'),
       "No such field found in #{util.ext_classname(field_spec.class)}::#{field_spec.name}"
 
-  # A non-recursive method for retrieving a method from this class.
-  get_method: -> null
-  get_methods: -> {}
-  get_fields: -> []
+  # Checks if the class file is initialized. It will set @initialized to 'true'
+  # if this class has no static initialization method and its parent classes
+  # are initialized, too.
+  is_initialized: ->
+    return true if @initialized
+    return false unless @is_resolved()
+    return false if @get_method('<clinit>()V')?
+    @initialized = if @get_super_class()?.is_initialized() else false
+    return @initialized
+  is_resolved: -> @resolved
+  is_subinterface: -> false
+  is_subclass: (target) ->
+    return true if @ is target
+    return false unless @get_super_class()?  # I'm java/lang/Object, can't go further
+    return @get_super_class().is_subclass target
 
 class root.PrimitiveClassData extends ClassData
   constructor: (@this_class, loader) ->
     super loader
     @initialized = true
+    @resolved = true
 
   # Returns a boolean indicating if this class is an instance of the target class.
   # "target" is a ClassData object.
   # The ClassData objects do not need to be initialized; just loaded.
   is_castable: (target) -> @this_class == target.this_class
-
-  # Primitive classes are initialized when they are created.
-  is_initialized: -> true
 
   create_wrapper_object: (rs, value) ->
     type_desc = switch @this_class
@@ -107,14 +106,16 @@ class root.ArrayClassData extends ClassData
     @this_class = "[#{@component_type}"
     @super_class = 'Ljava/lang/Object;'
 
-  get_component_type: () -> return @component_type
+  get_component_type: -> return @component_type
   get_component_class: -> return @component_class_cdata
-  set_loaded: (@super_class_cdata, @component_class_cdata) -> # Nothing else to do.
-
-  is_initialized: -> @component_class_cdata?
-
+  # This class itself has no fields/methods, but java/lang/Object does.
   field_lookup: (rs, field_spec) -> @super_class_cdata.field_lookup rs, field_spec
   method_lookup: (rs, field_spec) -> @super_class_cdata.method_lookup rs, field_spec
+
+  # Resolved and initialized are the same for array types.
+  set_resolved: (@super_class_cdata, @component_class_cdata) ->
+    @resolved = true
+    @initialized = true
 
   # Returns a boolean indicating if this class is an instance of the target class.
   # "target" is a ClassData object.
@@ -185,26 +186,47 @@ class root.ReferenceClassData extends ClassData
     @attrs = attributes.make_attributes(bytes_array,@constant_pool)
     throw "Leftover bytes in classfile: #{bytes_array}" if bytes_array.has_bytes()
 
-    @jco = null
-    @initialized = false # Has clinit been run?
     # Contains the value of all static fields. Will be reset when initialize()
     # is run.
     @static_fields = @_construct_static_fields()
 
-  # Called once this class is loaded.
-  set_loaded: (@super_class_cdata, interface_cdatas) ->
-    @interface_cdatas = if interface_cdatas? then interface_cdatas else []
-    @resolved = true
+  # Resets the ClassData for subsequent JVM invocations. Resets all
+  # of the built up state / caches present in the opcode instructions.
+  # Eventually, this will also handle `clinit` duties.
+  reset: ->
+    super()
+    @initialized = false
+    @static_fields = @_construct_static_fields()
+    for method in @methods
+      method.initialize()
+
+  get_interfaces: -> @interface_cdatas
+  get_interface_types: -> @interfaces
+  get_fields: -> @fields
+  get_method: (sig) -> @methods[sig]
+  get_methods: -> @methods
+  get_attribute: (name) ->
+    for attr in @attrs then if attr.name is name then return attr
+    return null
+  get_attributes: (name) -> attr for attr in @attrs when attr.name is name
+  get_default_fields: ->
+    return @default_fields unless @default_fields is undefined
+    @construct_default_fields()
+    return @default_fields
 
   static_get: (rs, name) ->
     return @static_fields[name] unless @static_fields[name] is undefined
     rs.java_throw @loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name
-
   static_put: (rs, name, val) ->
     unless @static_fields[name] is undefined
       @static_fields[name] = val
     else
       rs.java_throw @loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name
+
+  set_resolved: (@super_class_cdata, interface_cdatas) ->
+    trace "Class #{@get_type()} is now resolved."
+    @interface_cdatas = if interface_cdatas? then interface_cdatas else []
+    @resolved = true
 
   # Used internally to reconstruct @static_fields
   _construct_static_fields: ->
@@ -212,11 +234,6 @@ class root.ReferenceClassData extends ClassData
     for f in @fields when f.access_flags.static
       static_fields[f.name] = util.initial_value f.raw_descriptor
     return static_fields
-
-  get_default_fields: ->
-    return @default_fields unless @default_fields is undefined
-    @construct_default_fields()
-    return @default_fields
 
   construct_default_fields: () ->
     # init fields from this and inherited ClassDatas
@@ -229,50 +246,6 @@ class root.ReferenceClassData extends ClassData
         @default_fields[cls.get_type() + f.name] = val
       cls = cls.get_super_class()
     return
-
-  # "Reinitializes" the ClassData for subsequent JVM invocations. Resets all
-  # of the built up state / caches present in the opcode instructions.
-  # Eventually, this will also handle `clinit` duties.
-  initialize: () ->
-    unless @initialized
-      @static_fields = @_construct_static_fields()
-      for method in @methods
-        method.initialize()
-
-  get_attribute: (name) ->
-    for attr in @attrs then if attr.name is name then return attr
-    return null
-
-  get_attributes: (name) -> attr for attr in @attrs when attr.name is name
-  get_interfaces: -> @interface_cdatas
-  get_interface_types: -> @interfaces
-  get_fields: -> @fields
-
-  # Returns a boolean indicating if this class is an instance of the target class.
-  # "target" is a ClassData object.
-  # The ClassData objects do not need to be initialized; just loaded.
-  # See §2.6.7 for casting rules.
-  is_castable: (target) ->
-    return false unless target instanceof root.ReferenceClassData
-
-    if @access_flags.interface
-      # We are both interfaces
-      if target.access_flags.interface then return @is_subinterface(target)
-      # Only I am an interface
-      return target.get_type() is 'Ljava/lang/Object;' unless target.access_flags.interface
-    else
-      # I am a regular class, target is an interface
-      if target.access_flags.interface then return @is_subinterface(target)
-      # We are both regular classes
-      return @is_subclass(target)
-
-  # Returns 'true' if I implement the target interface.
-  is_subinterface: (target) ->
-    return true if @this_class is target.this_class
-    for super_iface in @get_interfaces()
-      return true if super_iface.is_subinterface target
-    return false unless @get_super_class()?  # I'm java/lang/Object, can't go further
-    return @get_super_class().is_subinterface target
 
   # Spec [5.4.3.2][1].
   # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#77678
@@ -321,9 +294,6 @@ class root.ReferenceClassData extends ClassData
     rs.java_throw rs.get_bs_class('Ljava/lang/NoSuchMethodError;'),
       "No such method found in #{util.ext_classname(method_spec.class)}::#{method_spec.sig}"
 
-  get_method: (sig) -> @methods[sig]
-  get_methods: -> @methods
-
   _method_lookup: (rs, method_spec) ->
     method = @methods[method_spec.sig]
     return method if method?
@@ -338,3 +308,29 @@ class root.ReferenceClassData extends ClassData
       return method if method?
 
     return null
+
+  # Returns a boolean indicating if this class is an instance of the target class.
+  # "target" is a ClassData object.
+  # The ClassData objects do not need to be initialized; just loaded.
+  # See §2.6.7 for casting rules.
+  is_castable: (target) ->
+    return false unless target instanceof root.ReferenceClassData
+
+    if @access_flags.interface
+      # We are both interfaces
+      if target.access_flags.interface then return @is_subinterface(target)
+      # Only I am an interface
+      return target.get_type() is 'Ljava/lang/Object;' unless target.access_flags.interface
+    else
+      # I am a regular class, target is an interface
+      if target.access_flags.interface then return @is_subinterface(target)
+      # We are both regular classes
+      return @is_subclass(target)
+
+  # Returns 'true' if I implement the target interface.
+  is_subinterface: (target) ->
+    return true if @this_class is target.this_class
+    for super_iface in @get_interfaces()
+      return true if super_iface.is_subinterface target
+    return false unless @get_super_class()?  # I'm java/lang/Object, can't go further
+    return @get_super_class().is_subinterface target

@@ -225,7 +225,7 @@ unsafe_compare_and_swap = (rs, _this, obj, offset, expected, x) ->
 # avoid code dup among native methods
 native_define_class = (rs, name, bytes, offset, len, loader, resume_cb, except_cb) ->
   raw_bytes = ((256+b)%256 for b in bytes.array[offset...offset+len])  # convert to raw bytes
-  loader.define_class rs, util.int_classname(name.jvm2js_str()), raw_bytes, resume_cb, except_cb
+  loader.define_class rs, util.int_classname(name.jvm2js_str()), raw_bytes, ((cdata)->resume_cb(cdata.get_class_object(rs))), except_cb
 
 write_to_file = (rs, _this, bytes, offset, len, append) ->
   rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if _this.$file == 'closed'
@@ -269,7 +269,7 @@ native_methods =
                   resume_cb cls.get_class_object(rs)
                 ), except_cb
               else
-                loader.load_class rs, type, ((cls) ->
+                loader.resolve_class rs, type, ((cls) ->
                   resume_cb cls.get_class_object(rs)
                 ), except_cb
             return
@@ -413,7 +413,7 @@ native_methods =
                 i++
                 if i < flat_names.length
                   name = flat_names[i]
-                  cls.loader.load_class(rs, name, ((cls)->ret.array.push cls.get_class_object(rs); fetch_next_jco()), except_cb)
+                  cls.loader.resolve_class(rs, name, ((cls)->ret.array.push cls.get_class_object(rs); fetch_next_jco()), except_cb)
                 else
                   setTimeout((()->resume_cb ret), 0)
               fetch_next_jco()
@@ -425,14 +425,14 @@ native_methods =
             loader = get_cl_from_jclo rs, _this
             type = util.int_classname name.jvm2js_str()
             # Return JavaClassObject if loaded, or null otherwise.
-            cls = loader.get_loaded_class type, true
+            cls = loader.get_resolved_class type, true
             return if cls? then cls.get_class_object(rs) else null
         o 'findBootstrapClass(L!/!/String;)L!/!/Class;', (rs, _this, name) ->
             type = util.int_classname name.jvm2js_str()
             # This returns null in OpenJDK7, but actually can throw an exception
             # in OpenJDK6.
             rs.async_op (resume_cb, except_cb) ->
-              rs.get_bs_cl().load_class rs, type, ((cls)->
+              rs.get_bs_cl().resolve_class rs, type, ((cls)->
                 resume_cb cls.get_class_object(rs)
               ), except_cb
         o 'getCaller(I)L!/!/Class;', (rs, i) ->
@@ -449,10 +449,10 @@ native_methods =
         o 'resolveClass0(L!/!/Class;)V', (rs, _this, cls) ->
             loader = get_cl_from_jclo rs, _this
             type = cls.$cls.get_type()
-            return if loader.get_loaded_class(type, true)?
+            return if loader.get_resolved_class(type, true)?
             # Ensure that this class is loaded.
             rs.async_op (resume_cb, except_cb) ->
-              loader.load_class rs, type, (()->resume_cb()), except_cb
+              loader.resolve_class rs, type, (()->resume_cb()), except_cb
       ],
       Compiler: [
         o 'disable()V', (rs, _this) -> #NOP

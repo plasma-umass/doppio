@@ -151,7 +151,7 @@ class root.LoadConstantOpcode extends root.Opcode
         # this opcode.
         cdesc = util.typestr2descriptor @str_constant.value
         rs.async_op (resume_cb, except_cb) =>
-          rs.get_cl().load_class(rs, cdesc, ((cls)=>resume_cb cls.get_class_object(rs), undefined, true), ((e_cb)->except_cb e_cb, true))
+          rs.get_cl().resolve_class(rs, cdesc, ((cls)=>resume_cb cls.get_class_object(rs), undefined, true), ((e_cb)->except_cb e_cb, true))
         return
       else
         rs.push @constant.value
@@ -678,7 +678,7 @@ root.opcodes = {
     @cls = rs.get_class @class, true
     if @cls?
       # Check if this is a ClassLoader or not.
-      if @cls.is_castable rs.get_bs_cl().get_loaded_class('Ljava/lang/ClassLoader;')
+      if @cls.is_castable rs.get_bs_cl().get_resolved_class('Ljava/lang/ClassLoader;')
         rs.push new JavaClassLoaderObject(rs, @cls)
         @execute = (rs) -> rs.push new JavaClassLoaderObject(rs, @cls)
       else
@@ -691,7 +691,7 @@ root.opcodes = {
       rs.async_op (resume_cb, except_cb) =>
         success_fn = (class_file) ->
           # Check if this is a ClassLoader or not.
-          if class_file.is_castable rs.get_bs_cl().get_loaded_class('Ljava/lang/ClassLoader;')
+          if class_file.is_castable rs.get_bs_cl().get_resolved_class('Ljava/lang/ClassLoader;')
             obj = new JavaClassLoaderObject(rs, class_file)
           else
             obj = new JavaObject(rs, class_file)
@@ -701,7 +701,7 @@ root.opcodes = {
   188: new root.NewArrayOpcode 'newarray', { execute: (rs) -> rs.push rs.heap_newarray @element_type, rs.pop() }
   189: new root.ClassOpcode 'anewarray', { execute: (rs) ->
     # Make sure the component class is loaded.
-    cls = rs.get_cl().get_loaded_class @class, true
+    cls = rs.get_cl().get_resolved_class @class, true
     if cls?
       new_execute = (rs) ->
         rs.push rs.heap_newarray @class, rs.pop()
@@ -710,14 +710,14 @@ root.opcodes = {
     else
       # Load @class and rerun opcode.
       rs.async_op (resume_cb, except_cb) =>
-        rs.get_cl().load_class rs, @class, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
+        rs.get_cl().resolve_class rs, @class, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
     return
   }
   190: new root.Opcode 'arraylength', { execute: (rs) -> rs.push rs.check_null(rs.pop()).array.length }
   191: new root.Opcode 'athrow', { execute: (rs) -> throw new JavaException rs.pop() }
   192: new root.ClassOpcode 'checkcast', { execute: (rs) ->
     # Ensure the class is loaded.
-    @cls = rs.get_cl().get_loaded_class @class, true
+    @cls = rs.get_cl().get_resolved_class @class, true
     if @cls?
       new_execute = (rs) ->
         o = rs.pop()
@@ -733,12 +733,12 @@ root.opcodes = {
     else
       # Fetch @class and rerun opcode.
       rs.async_op (resume_cb, except_cb) =>
-        rs.get_cl().load_class rs, @class, (()->
+        rs.get_cl().resolve_class rs, @class, (()->
           resume_cb undefined, undefined, true, false
         ), ((e_cb)->except_cb(e_cb, true))
   }
   193: new root.ClassOpcode 'instanceof', { execute: (rs) ->
-    @cls = rs.get_cl().get_loaded_class @class, true
+    @cls = rs.get_cl().get_resolved_class @class, true
     if @cls?
       new_execute = (rs) ->
         o=rs.pop()
@@ -748,7 +748,7 @@ root.opcodes = {
     else
       # Fetch @class and rerun opcode.
       rs.async_op (resume_cb, except_cb) =>
-        rs.get_cl().load_class rs, @class, (()->
+        rs.get_cl().resolve_class rs, @class, (()->
           resume_cb undefined, undefined, true, false
         ), ((e_cb)->except_cb(e_cb, true))
   }
