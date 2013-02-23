@@ -63,7 +63,7 @@ read_classfile = (cls, cb, failure_cb) ->
       data = util.bytestr_to_array node.fs.readFileSync(fullpath)
     catch e
       data = null
-    return setTimeout((->cb(data)), 0) if data?
+    return cb(data) if data?
 
   failure_cb(-> throw new Error "Error: No file found for class #{cls}.")
 

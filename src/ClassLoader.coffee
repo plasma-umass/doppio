@@ -293,7 +293,7 @@ class ClassLoader
 
     unless first_clinit
       # Push ourselves back into the execution loop to run the <clinit> methods.
-      setTimeout((->rs.run_until_finished((->), false, rs.stashed_done_cb)), 0)
+      rs.run_until_finished((->), false, rs.stashed_done_cb)
       return
 
     # Classes did not have any clinit functions.
@@ -469,5 +469,5 @@ class root.CustomClassLoader extends ClassLoader
     # classes and interfaces.
     @loader_obj.cls.method_lookup(rs, {sig: 'loadClass(Ljava/lang/String;)Ljava/lang/Class;'}).setup_stack(rs)
     # Push ourselves back into the execution loop to run the method.
-    setTimeout((->rs.run_until_finished((->), false, rs.stashed_done_cb)), 0)
+    rs.run_until_finished((->), false, rs.stashed_done_cb)
     return

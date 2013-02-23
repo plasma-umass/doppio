@@ -551,13 +551,11 @@ class win.Buffer
 root.fs =
   statSync: (path) -> Stat.fromPath path
   stat: (path, cb) ->
-    setTimeout (()->
-      stat = root.fs.statSync path
-      if stat?
-        cb null, stat
-      else
-        cb new Error "Invalid file: #{path}", null
-    ), 0
+    stat = root.fs.statSync path
+    if stat?
+      cb null, stat
+    else
+      cb new Error "Invalid file: #{path}", null
 
   fstatSync: (fp) -> new Stat(fp)
 
@@ -581,13 +579,12 @@ root.fs =
     unless cb?
       cb = mode
       mode = 'r'
-    setTimeout (() ->
-      try
-        f = root.fs.openSync path, mode
-        cb null, f
-      catch e
-        cb e
-    ), 0
+
+    try
+      f = root.fs.openSync path, mode
+      cb null, f
+    catch e
+      cb e
 
   readSync: (fd, buf, offset, length, pos) ->
     data = fd.read(length, pos)
@@ -601,13 +598,11 @@ root.fs =
     return f.data
 
   readFile: (path, cb) ->
-    setTimeout (() ->
-      try
-        data = root.fs.readFileSync path
-        cb null, data
-      catch e
-        cb e
-    ), 0
+    try
+      data = root.fs.readFileSync path
+      cb null, data
+    catch e
+      cb e
 
   # XXX: Temp option prevents writeback to permanent storage. This is not in the
   #      Node API, and is used as a way for the browser to create temp files.
@@ -618,9 +613,7 @@ root.fs =
     fs_state.close(f)
 
   writeFile: (path, data, cb) ->
-    setTimeout (() ->
-      cb null, root.fs.writeFileSync(path, data)
-    ), 0
+    cb null, root.fs.writeFileSync(path, data)
 
   writeSync: (fd, buffer, offset, len, pos) ->
     # TODO flush occasionally?
@@ -633,7 +626,7 @@ root.fs =
     fd.write(str, pos)
 
   closeSync: (fd) -> fs_state.close(fd)
-  close: (fd, cb) -> setTimeout (()->root.fs.closeSync fd; cb()), 0
+  close: (fd, cb) -> root.fs.closeSync fd; cb()
 
   readdirSync: (path) ->
     dir_contents = fs_state.list(path)
@@ -641,58 +634,46 @@ root.fs =
     return dir_contents
 
   readdir: (path, cb) ->
-    setTimeout (()->
-      try
-        files = root.fs.readdirSync path
-        cb null, files
-      catch e
-        cb e
-    ), 0
+    try
+      files = root.fs.readdirSync path
+      cb null, files
+    catch e
+      cb e
 
   unlinkSync: (path) -> throw "Could not unlink '#{path}'" unless fs_state.rm(path)
   unlink: (path, cb) ->
-    setTimeout (()->
-      try
-        root.fs.unlinkSync path
-        cb()
-      catch e
-        cb e
-    ), 0
+    try
+      root.fs.unlinkSync path
+      cb()
+    catch e
+      cb e
   rmdirSync: (path) -> throw "Could not delete '#{path}'" unless fs_state.rm(path, true)
   rmdir: (path, cb) ->
-    setTimeout (()->
-      try
-        root.fs.rmdirSync path
-        cb()
-      catch e
-        cb e
-    ), 0
+    try
+      root.fs.rmdirSync path
+      cb()
+    catch e
+      cb e
 
   existsSync: (path) -> path != '' and (fs_state.is_file(path) or fs_state.is_directory(path))
   exists: (path, cb) ->
-    setTimeout (()->
-      cb null, root.fs.existsSync(path)
-    ), 0
+    cb null, root.fs.existsSync(path)
 
   mkdirSync: (path) -> throw "Could not make directory #{path}" unless fs_state.mkdir path
   mkdir: (path, cb) ->
-    setTimeout (()->
-      try
-        root.fs.mkdirSync path
-        cb()
-      catch e
-        cb e
-    ), 0
+    try
+      root.fs.mkdirSync path
+      cb()
+    catch e
+      cb e
 
   renameSync: (path1, path2) -> throw "Could not rename #{path1} to #{path2}" unless fs_state.mv path1, path2
   rename: (path1, path2, cb) ->
-    setTimeout (()->
-      try
-        root.fs.renameSync path1, path2
-        cb()
-      catch e
-        cb e
-    ), 0
+    try
+      root.fs.renameSync path1, path2
+      cb()
+    catch e
+      cb e
 
   #XXX: Does not work for directory permissions.
   chmodSync: (path, access) ->
@@ -703,18 +684,15 @@ root.fs =
     fs_state.close f
     return true
   chmod: (path, access, cb) ->
-    setTimeout (()->
-      try
-        rv = root.fs.chmodSync path
-        cb null, rv
-      catch e
-        cb e
-    ), 0
+    try
+      rv = root.fs.chmodSync path
+      cb null, rv
+    catch e
+      cb e
 
   utimesSync: (path, atime, mtime) ->
     #XXX: this is a NOP, but it shouldn't be. We need to fix the way we stat files first
-  utimes: (path, atime, mtime, cb) ->
-    setTimeout cb, 0
+  utimes: (path, atime, mtime, cb) -> cb()
 
 # Node's Path API
 root.path =

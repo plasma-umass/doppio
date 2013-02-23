@@ -318,7 +318,7 @@ class root.RuntimeState
 
   handle_toplevel_exception: (e, no_threads, done_cb) ->
     if e.toplevel_catch_handler?
-      setTimeout((=>@run_until_finished (=> e.toplevel_catch_handler(@)), no_threads, done_cb), 0)
+      @run_until_finished (=> e.toplevel_catch_handler(@)), no_threads, done_cb
     else
       error "\nInternal JVM Error:", e
       error e.stack if e?.stack?
@@ -332,68 +332,72 @@ class root.RuntimeState
   async_op: (cb) -> throw new YieldIOException cb
 
   run_until_finished: (setup_fn, no_threads, done_cb) ->
-    @stashed_done_cb = done_cb  # hack for the case where we error out of <clinit>
-    @_in_main_loop = true
-    try
-      setup_fn()
-      while true
-        sf = @curr_frame()
-        while sf.runner?
-          sf.runner()
+    # Reset stack depth every time this is called. Prevents us from needing to
+    # scatter setTimeout around the code everywhere to prevent filling the stack
+    setTimeout((=>
+      @stashed_done_cb = done_cb  # hack for the case where we error out of <clinit>
+      @_in_main_loop = true
+      try
+        setup_fn()
+        while true
           sf = @curr_frame()
-        # we've finished this thread, no more runners
-        # we're done if the only thread is "main"
-        break if no_threads or @thread_pool.length <= 1
-        # remove the current (finished) thread
-        debug "TE(toplevel): finished thread #{thread_name @, @curr_thread}"
-        @curr_thread.$isAlive = false
-        @thread_pool.splice @thread_pool.indexOf(@curr_thread), 1
-        @curr_thread = @choose_next_thread()
-      done_cb true
-    catch e
-      @_in_main_loop = false
-      if e == 'Error in class initialization'
-        done_cb false
-      else if e is ReturnException
-        # XXX: technically we shouldn't get here. Right now we get here
-        # when java_throw is called from the main method lookup.
-        @run_until_finished (->), no_threads, done_cb
-      else if e instanceof YieldIOException
-        # Set "bytecode" if this was triggered by a bytecode instruction (e.g.
-        # class initialization). This causes the method to resume on the next
-        # opcode once success_fn is called.
-        success_fn = (ret1, ret2, bytecode, advance_pc=true) =>
-          if bytecode
-            @meta_stack().push root.StackFrame.fake_frame("async_op")
-          @curr_frame().runner = =>
+          while sf.runner?
+            sf.runner()
+            sf = @curr_frame()
+          # we've finished this thread, no more runners
+          # we're done if the only thread is "main"
+          break if no_threads or @thread_pool.length <= 1
+          # remove the current (finished) thread
+          debug "TE(toplevel): finished thread #{thread_name @, @curr_thread}"
+          @curr_thread.$isAlive = false
+          @thread_pool.splice @thread_pool.indexOf(@curr_thread), 1
+          @curr_thread = @choose_next_thread()
+        done_cb true
+      catch e
+        @_in_main_loop = false
+        if e == 'Error in class initialization'
+          done_cb false
+        else if e is ReturnException
+          # XXX: technically we shouldn't get here. Right now we get here
+          # when java_throw is called from the main method lookup.
+          @run_until_finished (->), no_threads, done_cb
+        else if e instanceof YieldIOException
+          # Set "bytecode" if this was triggered by a bytecode instruction (e.g.
+          # class initialization). This causes the method to resume on the next
+          # opcode once success_fn is called.
+          success_fn = (ret1, ret2, bytecode, advance_pc=true) =>
+            if bytecode
+              @meta_stack().push root.StackFrame.fake_frame("async_op")
+            @curr_frame().runner = =>
+                @meta_stack().pop()
+                if bytecode and advance_pc
+                  @curr_frame().pc += 1 + @curr_frame().method.code.opcodes[@curr_frame().pc].byte_count
+                unless ret1 is undefined
+                  ret1 += 0 if typeof ret1 == 'boolean'
+                  @push ret1
+                @push ret2 unless ret2 is undefined
+            @run_until_finished (->), no_threads, done_cb
+          failure_fn = (e_cb, bytecode) =>
+            if bytecode
+              @meta_stack().push root.StackFrame.fake_frame("async_op")
+            @curr_frame().runner = =>
               @meta_stack().pop()
-              if bytecode and advance_pc
-                @curr_frame().pc += 1 + @curr_frame().method.code.opcodes[@curr_frame().pc].byte_count
-              unless ret1 is undefined
-                ret1 += 0 if typeof ret1 == 'boolean'
-                @push ret1
-              @push ret2 unless ret2 is undefined
-          setTimeout((=>@run_until_finished (->), no_threads, done_cb), 0)
-        failure_fn = (e_cb, bytecode) =>
-          if bytecode
-            @meta_stack().push root.StackFrame.fake_frame("async_op")
-          @curr_frame().runner = =>
-            @meta_stack().pop()
-            e_cb()
-          setTimeout((=>@run_until_finished (->), no_threads, done_cb), 0)
-        e.condition success_fn, failure_fn
-      else
-        if e.method_catch_handler? and @meta_stack().length() > 1
-          tos = true
-          until e.method_catch_handler(@, @curr_frame().method, tos)
-            tos = false
-            if @meta_stack().length() == 1
-              @handle_toplevel_exception e, no_threads, done_cb
-              return
-            else
-              @meta_stack().pop()
-          setTimeout((=>@run_until_finished (->), no_threads, done_cb), 0)
+              e_cb()
+            @run_until_finished (->), no_threads, done_cb
+          e.condition success_fn, failure_fn
         else
-          @meta_stack().pop() while @meta_stack().length() > 1
-          @handle_toplevel_exception e, no_threads, done_cb
-    return  # this is an async method, no return value
+          if e.method_catch_handler? and @meta_stack().length() > 1
+            tos = true
+            until e.method_catch_handler(@, @curr_frame().method, tos)
+              tos = false
+              if @meta_stack().length() == 1
+                @handle_toplevel_exception e, no_threads, done_cb
+                return
+              else
+                @meta_stack().pop()
+            @run_until_finished (->), no_threads, done_cb
+          else
+            @meta_stack().pop() while @meta_stack().length() > 1
+            @handle_toplevel_exception e, no_threads, done_cb
+      return  # this is an async method, no return value
+    ), 0)
