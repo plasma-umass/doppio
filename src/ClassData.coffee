@@ -56,7 +56,7 @@ class ClassData
   get_fields: -> []
   method_lookup: (rs, spec, null_handled) ->
     return null if null_handled
-    java_throw rs.get_bs_class('Ljava/lang/NoSuchMethodError;'),
+    rs.java_throw rs.get_bs_class('Ljava/lang/NoSuchMethodError;'),
       "No such method found in #{util.ext_classname(method_spec.class)}::#{method_spec.sig}"
   field_lookup: (rs, spec, null_handled) ->
     return null if null_handled

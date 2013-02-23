@@ -146,7 +146,7 @@ class ClassLoader
         else
           interface_cdatas.push a_cdata
       cdata.set_resolved super_cdata, interface_cdatas
-      setTimeout((->success_fn(cdata)), 0)
+      success_fn cdata
 
     if to_resolve.length > 0
       #if parallel
@@ -210,7 +210,7 @@ class ClassLoader
       rs.meta_stack().pop()
       # success_fn is responsible for getting us back into the runtime state
       # execution loop.
-      rs.async_op(()=>setTimeout((->success_fn(cdata)), 0))
+      rs.async_op(=>success_fn(cdata))
     ), ((e)=>
       # This ClassData is not initialized since we failed.
       rs.curr_frame().cdata.reset()
@@ -235,7 +235,7 @@ class ClassLoader
           throw (new JavaException(rv))
         nf.error = =>
           rs.meta_stack().pop()
-          setTimeout((->failure_fn (-> throw e)), 0)
+          failure_fn (-> throw e)
 
         cls = @bootstrap.get_resolved_class 'Ljava/lang/ExceptionInInitializerError;'
         v = new JavaObject rs, cls # new
@@ -284,7 +284,7 @@ class ClassLoader
             # Rethrow the Exception to pass it on to the next native frame.
             # The boolean value prevents failure_fn from discarding the current
             # stack frame.
-            rs.async_op((()=>setTimeout((->failure_fn(()->throw e)), 0)), true)
+            rs.async_op((=>failure_fn((()->throw e), true)))
           ))
           next_nf.cdata = class_file
           rs.meta_stack().push next_nf
@@ -293,11 +293,11 @@ class ClassLoader
 
     unless first_clinit
       # Push ourselves back into the execution loop to run the <clinit> methods.
-      rs.run_until_finished((->), false, rs.stashed_done_cb)
+      setTimeout((->rs.run_until_finished((->), false, rs.stashed_done_cb)), 0)
       return
 
     # Classes did not have any clinit functions.
-    setTimeout((()=>success_fn(cdata)), 0)
+    success_fn cdata
     return
 
   # Asynchronously loads, resolves, and initializes the given class, and passes its
@@ -310,7 +310,7 @@ class ClassLoader
     # Note that primitive types are guaranteed to be created synchronously
     # here.
     cdata = @get_initialized_class type_str, true
-    return setTimeout((()->success_fn cdata), 0) if cdata?
+    return success_fn(cdata) if cdata?
 
     # If it's an array type, the asynchronous part only involves its
     # component type. Short circuit here.
@@ -318,7 +318,7 @@ class ClassLoader
       component_type = util.get_component_type type_str
       # Component type doesn't need to be initialized; just resolved.
       @resolve_class rs, component_type, ((cdata)=>
-        setTimeout((()=>success_fn @_define_array_class type_str, cdata), 0)
+        success_fn @_define_array_class(type_str, cdata)
       ), failure_fn
       return
 
@@ -334,7 +334,7 @@ class ClassLoader
       # possible that the class has been retrieved from another ClassLoader,
       # and has already been initialized.
       if cdata.is_initialized(rs)
-        setTimeout((->success_fn cdata), 0)
+        success_fn cdata
       else
         @_initialize_class rs, cdata, success_fn, failure_fn
     ), failure_fn
@@ -344,14 +344,14 @@ class ClassLoader
   resolve_class: (rs, type_str, success_fn, failure_fn) ->
     trace "Resolving class #{type_str}... [general]"
     rv = @get_resolved_class type_str, true
-    return setTimeout((()->success_fn(rv)), 0) if rv?
+    return success_fn(rv) if rv?
 
     # If it's an array type, the asynchronous part only involves its
     # component type. Short circuit here.
     if util.is_array_type type_str
       component_type = util.get_component_type type_str
       @resolve_class rs, component_type, ((cdata)=>
-        setTimeout((()=>success_fn @_define_array_class type_str, cdata), 0)
+        success_fn @_define_array_class(type_str, cdata)
       ), failure_fn
       return
 
@@ -398,7 +398,7 @@ class root.BootstrapClassLoader extends ClassLoader
     @read_classfile type_str, ((data)=>
       @define_class rs, type_str, data, success_fn, failure_fn, true # Fetch super class/interfaces in parallel.
     ), (() =>
-      setTimeout((failure_fn () =>
+      failure_fn(() =>
         # We create a new frame to create a NoClassDefFoundError and a
         # ClassNotFoundException.
         # TODO: Should probably have a better helper for these things
@@ -420,7 +420,7 @@ class root.BootstrapClassLoader extends ClassLoader
           cls.method_lookup(rs, method_spec).setup_stack(rs) # invokespecial
         ), (->
           rs.meta_stack().pop()
-          setTimeout((->failure_fn (-> throw e)), 0)
+          failure_fn (-> throw e)
         )
 
         cls = @bootstrap.get_initialized_class 'Ljava/lang/ClassNotFoundException;'
@@ -429,7 +429,7 @@ class root.BootstrapClassLoader extends ClassLoader
         msg = rs.init_string(util.ext_classname type_str)
         rs.push_array([v,v,msg]) # dup, ldc
         cls.method_lookup(rs, method_spec).setup_stack(rs) # invokespecial
-      ), 0)
+      )
     )
     return
 
@@ -456,11 +456,11 @@ class root.CustomClassLoader extends ClassLoader
       # If loadClass delegated to another ClassLoader, it will not have called
       # defineClass on the result. If so, we will need to stash this class.
       @_add_class(type_str, cls) unless @get_resolved_class(type_str, true)?
-      rs.async_op(->setTimeout((->success_fn(cls)), 0))
+      rs.async_op(->success_fn(cls))
     ), ((e)=>
       rs.meta_stack().pop()
       # XXX: Convert the exception.
-      rs.async_op(->setTimeout((->(failure_fn(->throw e))), 0))
+      rs.async_op(->failure_fn(->throw e))
     ))
     rs.push2 @loader_obj, rs.init_string util.ext_classname type_str
     # We don't care about the return value of this function, as
@@ -469,5 +469,5 @@ class root.CustomClassLoader extends ClassLoader
     # classes and interfaces.
     @loader_obj.cls.method_lookup(rs, {sig: 'loadClass(Ljava/lang/String;)Ljava/lang/Class;'}).setup_stack(rs)
     # Push ourselves back into the execution loop to run the method.
-    rs.run_until_finished((->), false, rs.stashed_done_cb)
+    setTimeout((->rs.run_until_finished((->), false, rs.stashed_done_cb)), 0)
     return

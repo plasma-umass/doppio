@@ -318,7 +318,7 @@ class root.RuntimeState
 
   handle_toplevel_exception: (e, no_threads, done_cb) ->
     if e.toplevel_catch_handler?
-      @run_until_finished (=> e.toplevel_catch_handler(@)), no_threads, done_cb
+      setTimeout((=>@run_until_finished (=> e.toplevel_catch_handler(@)), no_threads, done_cb), 0)
     else
       error "\nInternal JVM Error:", e
       error e.stack if e?.stack?
@@ -373,14 +373,14 @@ class root.RuntimeState
                 ret1 += 0 if typeof ret1 == 'boolean'
                 @push ret1
               @push ret2 unless ret2 is undefined
-          @run_until_finished (->), no_threads, done_cb
+          setTimeout((=>@run_until_finished (->), no_threads, done_cb), 0)
         failure_fn = (e_cb, bytecode) =>
           if bytecode
             @meta_stack().push root.StackFrame.fake_frame("async_op")
           @curr_frame().runner = =>
             @meta_stack().pop()
             e_cb()
-          @run_until_finished (->), no_threads, done_cb
+          setTimeout((=>@run_until_finished (->), no_threads, done_cb), 0)
         e.condition success_fn, failure_fn
       else
         if e.method_catch_handler? and @meta_stack().length() > 1
@@ -392,7 +392,7 @@ class root.RuntimeState
               return
             else
               @meta_stack().pop()
-          @run_until_finished (->), no_threads, done_cb
+          setTimeout((=>@run_until_finished (->), no_threads, done_cb), 0)
         else
           @meta_stack().pop() while @meta_stack().length() > 1
           @handle_toplevel_exception e, no_threads, done_cb

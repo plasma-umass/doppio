@@ -237,7 +237,7 @@ write_to_file = (rs, _this, bytes, offset, len, append) ->
   if node?
     # For the browser implementation -- the DOM doesn't get repainted
     # unless we give the event loop a chance to spin.
-    rs.async_op (cb) -> setTimeout(cb, 0)
+    rs.async_op (cb) -> cb()
 
 # Have a JavaClassLoaderObject and need its ClassLoader object? Use this method!
 get_cl_from_jclo = (rs, jclo) -> if jclo? and jclo.$loader? then jclo.$loader else rs.get_bs_cl()
@@ -262,7 +262,6 @@ native_methods =
         o 'forName0(L!/!/String;ZL!/!/ClassLoader;)L!/!/!;', (rs, jvm_str, initialize, loader) ->
             type = util.int_classname jvm_str.jvm2js_str()
             loader = get_cl_from_jclo rs, loader
-
             rs.async_op (resume_cb, except_cb) ->
               if initialize
                 loader.initialize_class rs, type, ((cls) ->
@@ -312,7 +311,7 @@ native_methods =
                   f = fields[i]
                   f.reflector(rs, ((jco)->base_array.push(jco); fetch_next_field()), except_cb)
                 else
-                  setTimeout((()-> resume_cb new JavaArray(rs, rs.get_bs_class('[Ljava/lang/reflect/Field;'), base_array)), 0)
+                  resume_cb new JavaArray(rs, rs.get_bs_class('[Ljava/lang/reflect/Field;'), base_array)
 
               fetch_next_field()
             return
@@ -329,7 +328,7 @@ native_methods =
                   m = methods[i]
                   m.reflector(rs, false, ((jco)->base_array.push(jco); fetch_next_method()), except_cb)
                 else
-                  setTimeout((()-> resume_cb new JavaArray(rs, rs.get_bs_class('[Ljava/lang/reflect/Method;'), base_array)), 0)
+                  resume_cb new JavaArray(rs, rs.get_bs_class('[Ljava/lang/reflect/Method;'), base_array)
 
               fetch_next_method()
             return
@@ -347,7 +346,7 @@ native_methods =
                   m = methods[i]
                   m.reflector(rs, true, ((jco)->base_array.push(jco); fetch_next_method()), except_cb)
                 else
-                  setTimeout((()-> resume_cb new JavaArray(rs, ctor_array_cdata, base_array)), 0)
+                  resume_cb new JavaArray(rs, ctor_array_cdata, base_array)
 
               fetch_next_method()
             return
@@ -415,7 +414,7 @@ native_methods =
                   name = flat_names[i]
                   cls.loader.resolve_class(rs, name, ((cls)->ret.array.push cls.get_class_object(rs); fetch_next_jco()), except_cb)
                 else
-                  setTimeout((()->resume_cb ret), 0)
+                  resume_cb ret
               fetch_next_jco()
             return
       ],
@@ -609,7 +608,7 @@ native_methods =
         o 'gc()V', (rs) ->
             # No universal way of forcing browser to GC, so we yield in hopes
             # that the browser will use it as an opportunity to GC.
-            rs.async_op (cb) -> setTimeout(cb, 0)
+            rs.async_op (cb) -> cb()
       ]
       SecurityManager: [
         o 'getClassContext()[Ljava/lang/Class;', (rs, _this) ->

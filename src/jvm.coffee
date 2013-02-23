@@ -22,7 +22,7 @@ root.read_classfile = (cls, cb, failure_cb) ->
       cb(data) if data?
       return
     catch e
-      setTimeout((->failure_cb(()->throw e)), 0) # Signifies an error occurred.
+      failure_cb(()->throw e) # Signifies an error occurred.
       return
 
   failure_cb (()->throw new Error "Error: No file found for class #{cls}.")
