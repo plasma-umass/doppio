@@ -38,6 +38,13 @@ public class CatchingClinitException {
     }
 
     try {
+      OhNo2 i = new OhNo2();
+    } catch (Error e) {
+      System.out.println("Don't worry; we got it.");
+      System.out.println("Exception type: " + e.getClass().getName());
+    }
+
+    try {
       BadThings i = new BadThings();
     } catch (Error e) {
       System.out.println("Don't worry; we got it.");
@@ -75,6 +82,14 @@ class OhNo {
   }
 
   public OhNo() {};
+}
+// Same issue here.
+class OhNo2 {
+  static {
+    OhNo h = new OhNo();
+  }
+
+  public OhNo2() {};
 }
 // ClassNotFoundException occurs in superclass.
 class BadThings extends Better {

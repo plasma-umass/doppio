@@ -215,6 +215,12 @@ class ClassLoader
       # This ClassData is not initialized since we failed.
       rs.curr_frame().cdata.reset()
       if e instanceof JavaException
+        # Rethrow e if it's a java/lang/NoClassDefFoundError. Why? 'Cuz HotSpot
+        # does it.
+        if e.exception.cls.get_type() is 'Ljava/lang/NoClassDefFoundError;'
+          rs.meta_stack().pop()
+          throw e
+
         # We hijack the current native frame to transform the exception into a
         # ExceptionInInitializerError, then call failure_fn to throw it.
         # failure_fn is responsible for getting us back into the runtime state
