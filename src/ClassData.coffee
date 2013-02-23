@@ -30,6 +30,14 @@ class ClassData
     @jco = null
     @reset_bit = 0
 
+    # Reset any referenced classes if they are up for reset.
+    sc = @get_super_class()
+    if sc?.reset_bit is 1
+      sc.reset()
+    for iface in @get_interfaces
+      if iface.reset_bit is 1 then iface.reset()
+    return
+
   toExternalString: () -> util.ext_classname @this_class
 
   # Returns the ClassLoader object of the classloader that initialized this
@@ -105,6 +113,13 @@ class root.ArrayClassData extends ClassData
     super loader
     @this_class = "[#{@component_type}"
     @super_class = 'Ljava/lang/Object;'
+
+  reset: ->
+    super()
+    ccls = @get_component_class()
+    if ccls?.reset_bit
+      ccls.reset()
+    return
 
   get_component_type: -> return @component_type
   get_component_class: -> return @component_class_cdata

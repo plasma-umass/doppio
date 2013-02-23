@@ -59,6 +59,7 @@ class root.RuntimeState
   run_count = 0
 
   constructor: (@print, @async_input, @bcl) ->
+    @bcl.reset()
     @startup_time = gLong.fromNumber (new Date).getTime()
     @run_stamp = ++run_count
     # dict of ClassDatas that have been loaded. this is two levels deep:

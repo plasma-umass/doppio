@@ -367,6 +367,13 @@ class root.BootstrapClassLoader extends ClassLoader
   # Passes an error string to failure_fn.
   constructor: (@read_classfile) -> super(@)
 
+  # Sets the reset bit on all of the classes in the CL to 1.
+  # Causes the classes to be reset when they are first resolved.
+  reset: ->
+    for cname of @loaded_classes
+      @loaded_classes[cname].reset_bit = 1
+    return
+
   # Returns the given primitive class. Creates it if needed.
   get_primitive_class: (type_str) ->
     cdata = @_get_class type_str
