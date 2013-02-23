@@ -266,11 +266,11 @@ native_methods =
               if initialize
                 loader.initialize_class rs, type, ((cls) ->
                   resume_cb cls.get_class_object(rs)
-                ), except_cb
+                ), except_cb, true
               else
                 loader.resolve_class rs, type, ((cls) ->
                   resume_cb cls.get_class_object(rs)
-                ), except_cb
+                ), except_cb, true
             return
         o 'getComponentType()L!/!/!;', (rs, _this) ->
             return null unless (_this.$cls instanceof ArrayClassData)
@@ -433,7 +433,7 @@ native_methods =
             rs.async_op (resume_cb, except_cb) ->
               rs.get_bs_cl().resolve_class rs, type, ((cls)->
                 resume_cb cls.get_class_object(rs)
-              ), except_cb
+              ), except_cb, true
         o 'getCaller(I)L!/!/Class;', (rs, i) ->
             cls = rs.meta_stack().get_caller(i).method.cls
             return cls.get_class_object(rs)
@@ -449,9 +449,9 @@ native_methods =
             loader = get_cl_from_jclo rs, _this
             type = cls.$cls.get_type()
             return if loader.get_resolved_class(type, true)?
-            # Ensure that this class is loaded.
+            # Ensure that this class is resolved.
             rs.async_op (resume_cb, except_cb) ->
-              loader.resolve_class rs, type, (()->resume_cb()), except_cb
+              loader.resolve_class rs, type, (()->resume_cb()), except_cb, true
       ],
       Compiler: [
         o 'disable()V', (rs, _this) -> #NOP

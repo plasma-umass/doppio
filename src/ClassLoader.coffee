@@ -55,7 +55,7 @@ class ClassLoader
     return cdata
 
   # Called by define_class to fetch all interfaces and superclasses in parallel.
-  _parallel_class_resolve: (rs, types, success_fn, failure_fn) ->
+  _parallel_class_resolve: (rs, types, success_fn, failure_fn, explicit=false) ->
     # Number of callbacks waiting to be called.
     pending_requests = types.length
     # Set to a callback that throws an exception.
@@ -83,14 +83,14 @@ class ClassLoader
         # resolve_class failure
         failure = f_fn
         request_finished()
-      )
+      ), explicit
 
     # Kick off all of the requests.
     for type in types
       fetch_data(type)
 
   # Resolves the classes represented by the type strings in types one by one.
-  _regular_class_resolve: (rs, types, success_fn, failure_fn) ->
+  _regular_class_resolve: (rs, types, success_fn, failure_fn, explicit=false) ->
     return success_fn() unless types.length > 0
 
     # Array of successfully resolved classes.
@@ -103,7 +103,7 @@ class ClassLoader
           fetch_class types.shift()
         else
           success_fn resolved
-      ), failure_fn
+      ), failure_fn, explicit
 
     fetch_class types.shift()
 
@@ -115,7 +115,7 @@ class ClassLoader
   # in the event of a failure.
   # If 'parallel' is 'true', then we call resolve_class multiple times in
   # parallel (used by the bootstrap classloader).
-  define_class: (rs, type_str, data, success_fn, failure_fn, parallel=false) ->
+  define_class: (rs, type_str, data, success_fn, failure_fn, parallel=false, explicit=false) ->
     trace "Defining class #{type_str}..."
     cdata = new ReferenceClassData(data, @)
     # Add the class before we fetch its super class / interfaces.
@@ -151,9 +151,9 @@ class ClassLoader
     if to_resolve.length > 0
       #if parallel
       if false
-        @_parallel_class_resolve rs, to_resolve, process_resolved_classes, failure_fn
+        @_parallel_class_resolve rs, to_resolve, process_resolved_classes, failure_fn, explicit
       else
-        @_regular_class_resolve rs, to_resolve, process_resolved_classes, failure_fn
+        @_regular_class_resolve rs, to_resolve, process_resolved_classes, failure_fn, explicit
     else
       # Everything is already resolved.
       process_resolved_classes([])
@@ -304,7 +304,9 @@ class ClassLoader
   # ClassData representation to success_fn.
   # Passes a callback to failure_fn that throws an exception in the event
   # of an error.
-  initialize_class: (rs, type_str, success_fn, failure_fn) ->
+  # Set 'explicit' to 'true' if this is explicitly invoked by the program and
+  # not by an internal JVM mechanism.
+  initialize_class: (rs, type_str, success_fn, failure_fn, explicit=false) ->
     trace "Initializing class #{type_str}..."
     # Let's see if we can do this synchronously.
     # Note that primitive types are guaranteed to be created synchronously
@@ -319,7 +321,7 @@ class ClassLoader
       # Component type doesn't need to be initialized; just resolved.
       @resolve_class rs, component_type, ((cdata)=>
         success_fn @_define_array_class(type_str, cdata)
-      ), failure_fn
+      ), failure_fn, explicit
       return
 
     # Only reference types will make it to this point. :-)
@@ -337,11 +339,13 @@ class ClassLoader
         success_fn cdata
       else
         @_initialize_class rs, cdata, success_fn, failure_fn
-    ), failure_fn
+    ), failure_fn, explicit
 
   # Loads the class indicated by the given type_str. Passes the ClassFile
   # object for the class to success_fn.
-  resolve_class: (rs, type_str, success_fn, failure_fn) ->
+  # Set 'explicit' to 'true' if this is explicitly invoked by the program and
+  # not by an internal JVM mechanism.
+  resolve_class: (rs, type_str, success_fn, failure_fn, explicit=false) ->
     trace "Resolving class #{type_str}... [general]"
     rv = @get_resolved_class type_str, true
     return success_fn(rv) if rv?
@@ -352,11 +356,11 @@ class ClassLoader
       component_type = util.get_component_type type_str
       @resolve_class rs, component_type, ((cdata)=>
         success_fn @_define_array_class(type_str, cdata)
-      ), failure_fn
+      ), failure_fn, explicit
       return
 
     # Unresolved reference class. Let's resolve it.
-    @_resolve_class rs, type_str, success_fn, failure_fn
+    @_resolve_class rs, type_str, success_fn, failure_fn, explicit
 
 # The Bootstrap ClassLoader. This is the only ClassLoader that can create
 # primitive types.
@@ -390,13 +394,15 @@ class root.BootstrapClassLoader extends ClassLoader
   # Called only:
   # * With a type_str referring to a Reference Class.
   # * If the class is not already loaded.
-  _resolve_class: (rs, type_str, success_fn, failure_fn) =>
+  # Set 'explicit' to 'true' if this is explicitly invoked by the program and
+  # not by an internal JVM mechanism.
+  _resolve_class: (rs, type_str, success_fn, failure_fn, explicit=false) =>
     trace "ASYNCHRONOUS: resolve_class #{type_str} [bootstrap]"
     rv = @get_resolved_class type_str, true
     return success_fn(rv) if rv?
 
     @read_classfile type_str, ((data)=>
-      @define_class rs, type_str, data, success_fn, failure_fn, true # Fetch super class/interfaces in parallel.
+      @define_class rs, type_str, data, success_fn, failure_fn, true, explicit # Fetch super class/interfaces in parallel.
     ), (() =>
       failure_fn(() =>
         # We create a new frame to create a NoClassDefFoundError and a
@@ -404,8 +410,6 @@ class root.BootstrapClassLoader extends ClassLoader
         # TODO: Should probably have a better helper for these things
         # (asynchronous object creation)
         rs.meta_stack().push StackFrame.native_frame '$class_not_found', (=>
-          rv = rs.pop()
-
           # Rewrite myself -- I have another method to run.
           rs.curr_frame().runner = ->
             rv = rs.pop()
@@ -413,11 +417,15 @@ class root.BootstrapClassLoader extends ClassLoader
             # Throw the exception.
             throw (new JavaException(rv))
 
-          cls = @bootstrap.get_initialized_class 'Ljava/lang/NoClassDefFoundError;'
-          v = new JavaObject rs, cls
-          method_spec = sig: '<init>(Ljava/lang/Throwable;)V'
-          rs.push_array([v,v,rv]) # dup, ldc
-          cls.method_lookup(rs, method_spec).setup_stack(rs) # invokespecial
+          # If this was implicitly called by the JVM, we call NoClassDefFoundError.
+          # If the program explicitly called this, then we throw the ClassNotFoundException.
+          unless explicit
+            rv = rs.pop()
+            cls = @bootstrap.get_initialized_class 'Ljava/lang/NoClassDefFoundError;'
+            v = new JavaObject rs, cls
+            method_spec = sig: '<init>(Ljava/lang/Throwable;)V'
+            rs.push_array([v,v,rv]) # dup, ldc
+            cls.method_lookup(rs, method_spec).setup_stack(rs) # invokespecial
         ), (->
           rs.meta_stack().pop()
           failure_fn (-> throw e)
@@ -446,7 +454,7 @@ class root.CustomClassLoader extends ClassLoader
   # Called only:
   # * With a type_str referring to a Reference Class.
   # * If the class is not already loaded.
-  _resolve_class: (rs, type_str, success_fn, failure_fn) ->
+  _resolve_class: (rs, type_str, success_fn, failure_fn, explicit=false) ->
     trace "ASYNCHRONOUS: resolve_class #{type_str} [custom]"
     rs.meta_stack().push StackFrame.native_frame("$#{@loader_obj.cls.get_type()}", (()=>
       jclo = rs.pop()
