@@ -7,6 +7,7 @@ util = require './util'
 {log,vtrace,trace,debug,error} = require './logging'
 {YieldIOException,ReturnException,JavaException} = require './exceptions'
 {JavaObject,JavaArray,thread_name} = require './java_object'
+process = node?.process ? global.process
 
 "use strict"
 
@@ -333,8 +334,8 @@ class root.RuntimeState
 
   run_until_finished: (setup_fn, no_threads, done_cb) ->
     # Reset stack depth every time this is called. Prevents us from needing to
-    # scatter setTimeout around the code everywhere to prevent filling the stack
-    setTimeout((=>
+    # scatter this around the code everywhere to prevent filling the stack
+    process.nextTick((=>
       @stashed_done_cb = done_cb  # hack for the case where we error out of <clinit>
       @_in_main_loop = true
       try
@@ -400,4 +401,4 @@ class root.RuntimeState
             @meta_stack().pop() while @meta_stack().length() > 1
             @handle_toplevel_exception e, no_threads, done_cb
       return  # this is an async method, no return value
-    ), 0)
+    ))

@@ -1,4 +1,5 @@
 win = window
+"use strict"
 
 root = win.node = {}
 basename = (path) -> path.split('/').pop()
@@ -10,8 +11,6 @@ win.require = (path, herp) ->
   window[name] ?= {}
 
 _ = require '../vendor/_.js'
-
-"use strict"
 
 # IE9 and below only: Injects a VBScript function that converts the
 # 'responseBody' attribute of an XMLHttpRequest into a bytestring.
@@ -50,6 +49,26 @@ GetIEByteArray_ByteStr = (IEByteArray) ->
       v = match.charCodeAt(0)
       return String.fromCharCode(v&0xff, v>>8)
     )) + lastChr
+
+# Used for process.nextTick(). Using postMessage is *much* faster than using
+# setTimeout(fn, 0).
+# Credit for idea and example implementation goes to:
+# http://dbaron.org/log/20100309-faster-timeouts
+timeouts = []
+messageName = "zero-timeout-message"
+
+setZeroTimeout = (fn) ->
+    timeouts.push(fn)
+    window.postMessage(messageName, "*")
+
+handleMessage = (event) ->
+    if (event.source == window && event.data == messageName)
+        event.stopPropagation()
+        if (timeouts.length > 0)
+            fn = timeouts.shift()
+            fn()
+
+window.addEventListener("message", handleMessage, true);
 
 # Our 'file descriptor'
 class DoppioFile
@@ -711,3 +730,5 @@ root.process =
     absdir = fs_state.chdir dir
     throw "Invalid directory" unless absdir?
     absdir
+  nextTick: (fn) -> setZeroTimeout fn
+

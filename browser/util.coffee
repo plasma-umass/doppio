@@ -12,4 +12,4 @@ root.asyncExecute = (fn) ->
     fn()
   else
     nonAsyncCount = 0
-    setTimeout(fn, 0)
+    node.process.nextTick fn
