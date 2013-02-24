@@ -17,13 +17,14 @@ fi
 cd vendor
 
 # check for the JCL
+# Ubuntu (security) repo actual on 24.02.2013
 if [ ! -f classes/java/lang/Object.class ]; then
   DOWNLOAD_DIR=`mktemp -d jdk-download.XXX`
   cd $DOWNLOAD_DIR
     DEBS_DOMAIN="http://security.ubuntu.com/ubuntu/pool/main/o/openjdk-6"
-    DEBS=("openjdk-6-jre-headless_6b24-1.11.5-0ubuntu1~11.10.1_i386.deb"
-          "openjdk-6-jdk_6b24-1.11.5-0ubuntu1~11.10.1_i386.deb"
-          "openjdk-6-jre-lib_6b24-1.11.5-0ubuntu1~11.10.1_all.deb")
+    DEBS=("openjdk-6-jre-headless_6b24-1.11.5-0ubuntu1~11.04.1_i386.deb"
+          "openjdk-6-jdk_6b24-1.11.5-0ubuntu1~11.04.1_i386.deb"
+          "openjdk-6-jre-lib_6b24-1.11.5-0ubuntu1~11.04.1_all.deb")
     for DEB in ${DEBS[@]}; do
       wget $DEBS_DOMAIN/$DEB
       ar p $DEB data.tar.gz | tar zx
