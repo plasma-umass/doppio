@@ -21,7 +21,7 @@ public class Reflection {
   throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException,
          InvocationTargetException {
     Reflection obj = new Reflection();
-    Class<?> c = Reflection.class;
+    Class<Reflection> c = Reflection.class;
     Method bytecodeMethod = c.getClass().getMethod("toString");
     Method nativeMethod = c.getClass().getMethod("isArray");
     Method nativeMethodWithArgs = c.getClass().getMethod("isInstance", Object.class);
@@ -42,5 +42,9 @@ public class Reflection {
     System.out.println("boxing: " + boxingMethod.invoke(null, 1300L, 37L));
     // void return values
     System.out.println("void return: " + voidMethod.invoke(null));
+
+    // also test MethodUtil (used by rhino)
+    Method m = sun.reflect.misc.MethodUtil.getMethod(c,"foo",null);
+    System.out.println(m);
   }
 }
