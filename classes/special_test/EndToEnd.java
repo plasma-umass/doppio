@@ -62,8 +62,6 @@ public class EndToEnd {
       }
     });
     testRhino();
-    // revert back to normal no-SM operation
-    System.setSecurityManager(null);
   }
 
 }
