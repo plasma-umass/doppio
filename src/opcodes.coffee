@@ -643,11 +643,11 @@ root.opcodes = {
     new_execute =
       if @field_spec.type not in ['J','D']
         (rs) ->
-          val = rs.pop().get_field rs, name
+          val = rs.check_null(rs.pop()).get_field rs, name
           rs.push val
       else
         (rs) ->
-          val = rs.pop().get_field rs, name
+          val = rs.check_null(rs.pop()).get_field rs, name
           rs.push2 val, null
     new_execute.call(@, rs)
     @execute = new_execute
@@ -661,11 +661,11 @@ root.opcodes = {
       if @field_spec.type not in ['J','D']
         (rs) ->
           val = rs.pop()
-          rs.pop().set_field rs, name, val
+          rs.check_null(rs.pop()).set_field rs, name, val
       else
         (rs) ->
           val =  rs.pop2()
-          rs.pop().set_field rs, name, val
+          rs.check_null(rs.pop()).set_field rs, name, val
     new_execute.call(@, rs)
     @execute = new_execute
     return
