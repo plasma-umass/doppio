@@ -201,9 +201,9 @@ class root.ReferenceClassData extends ClassData
     @attrs = attributes.make_attributes(bytes_array,@constant_pool)
     throw "Leftover bytes in classfile: #{bytes_array}" if bytes_array.has_bytes()
 
-    # Contains the value of all static fields. Will be reset when initialize()
+    # Contains the value of all static fields. Will be reset when reset()
     # is run.
-    @static_fields = @_construct_static_fields()
+    @static_fields = Object.create null
 
   # Resets the ClassData for subsequent JVM invocations. Resets all
   # of the built up state / caches present in the opcode instructions.
@@ -211,7 +211,7 @@ class root.ReferenceClassData extends ClassData
   reset: ->
     super()
     @initialized = false
-    @static_fields = @_construct_static_fields()
+    @static_fields = Object.create null
     for method in @methods
       method.initialize()
 
@@ -229,26 +229,33 @@ class root.ReferenceClassData extends ClassData
     @construct_default_fields()
     return @default_fields
 
+  # Handles static fields. We lazily create them, since we cannot initialize static
+  # default String values before Ljava/lang/String; is initialized.
+  _initialize_static_field: (rs, name) ->
+    f = @fl_cache[name]
+    if f?.access_flags.static
+      cva = f.get_attribute 'ConstantValue'
+      if cva?
+        cv = if f.type is 'Ljava/lang/String;' then rs.init_string cva.value else cva.value
+      @static_fields[name] = if cv? then cv else util.initial_value f.raw_descriptor
+    else
+      rs.java_throw @loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name
+    return
   static_get: (rs, name) ->
     return @static_fields[name] unless @static_fields[name] is undefined
-    rs.java_throw @loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name
+    @_initialize_static_field rs, name
+    return @static_get rs, name
   static_put: (rs, name, val) ->
     unless @static_fields[name] is undefined
       @static_fields[name] = val
     else
-      rs.java_throw @loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name
+      @_initialize_static_field rs, name
+      @static_put rs, name, val
 
   set_resolved: (@super_class_cdata, interface_cdatas) ->
     trace "Class #{@get_type()} is now resolved."
     @interface_cdatas = if interface_cdatas? then interface_cdatas else []
     @resolved = true
-
-  # Used internally to reconstruct @static_fields
-  _construct_static_fields: ->
-    static_fields = Object.create null
-    for f in @fields when f.access_flags.static
-      static_fields[f.name] = util.initial_value f.raw_descriptor
-    return static_fields
 
   construct_default_fields: () ->
     # init fields from this and inherited ClassDatas

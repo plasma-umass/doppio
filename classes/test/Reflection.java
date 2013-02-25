@@ -6,6 +6,10 @@ import java.lang.reflect.*;
 public class Reflection {
 
   public static final String constValue = "I'm a constant";
+  public static final int constInt = 23;
+  public static final float constFloat = 2.45f;
+  public static final double constDouble = 1.4567;
+  public static final long constLong = 8394834397L;
 
   public static long add(long a, long b) {
     return a + b;
@@ -29,6 +33,14 @@ public class Reflection {
     // in to bytecodes by the compiler
     Field f = c.getField("constValue");
     System.out.println(f.get(null));
+    Field f2 = c.getField("constInt");
+    System.out.println(f2.get(null));
+    Field f3 = c.getField("constFloat");
+    System.out.println(f3.get(null));
+    Field f4 = c.getField("constDouble");
+    System.out.println(f4.get(null));
+    Field f5 = c.getField("constLong");
+    System.out.println(f5.get(null));
 
     Method bytecodeMethod = c.getClass().getMethod("toString");
     Method nativeMethod = c.getClass().getMethod("isArray");

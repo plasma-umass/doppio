@@ -197,7 +197,8 @@ class ConstantValue
   name: 'ConstantValue'
   parse: (bytes_array, constant_pool) ->
     @ref = bytes_array.get_uint 2
-    @value = constant_pool.get(@ref).value
+    valref = constant_pool.get(@ref)
+    @value = valref.deref?() or valref.value
 
 class Synthetic
   name: 'Synthetic'
