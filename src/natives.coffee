@@ -616,6 +616,7 @@ native_methods =
             # starting with the current method and going up the call chain
             classes = []
             stack_frames = rs.meta_stack()._cs  # have to get at the internals
+            #TODO: rewrite this when we move to coffeescript v1.5.0
             for i in [stack_frames.length-1..0] by -1
               sf = stack_frames[i]
               unless sf.fake? or sf.native?
