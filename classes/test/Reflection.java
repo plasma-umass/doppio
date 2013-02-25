@@ -5,6 +5,8 @@ import java.lang.reflect.*;
 
 public class Reflection {
 
+  public static final String constValue = "I'm a constant";
+
   public static long add(long a, long b) {
     return a + b;
   }
@@ -19,9 +21,15 @@ public class Reflection {
 
   public static void main(String[] args)
   throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException,
-         InvocationTargetException {
+         InvocationTargetException, NoSuchFieldException {
     Reflection obj = new Reflection();
     Class<Reflection> c = Reflection.class;
+
+    // test the ability to reflectively get constants, which are usually baked
+    // in to bytecodes by the compiler
+    Field f = c.getField("constValue");
+    System.out.println(f.get(null));
+
     Method bytecodeMethod = c.getClass().getMethod("toString");
     Method nativeMethod = c.getClass().getMethod("isArray");
     Method nativeMethodWithArgs = c.getClass().getMethod("isInstance", Object.class);
@@ -42,9 +50,5 @@ public class Reflection {
     System.out.println("boxing: " + boxingMethod.invoke(null, 1300L, 37L));
     // void return values
     System.out.println("void return: " + voidMethod.invoke(null));
-
-    // also test MethodUtil (used by rhino)
-    Method m = sun.reflect.misc.MethodUtil.getMethod(c,"foo",null);
-    System.out.println(m);
   }
 }
