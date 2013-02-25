@@ -660,10 +660,17 @@ root.opcodes = {
   181: new root.FieldOpcode 'putfield', { execute: (rs) ->
     # Check if the object is null; if we do not do this before get_class, then
     # we might try to get a class that we have not initialized!
-    _val = rs.pop()
-    _obj = rs.check_null(rs.pop())
-    rs.push _obj
-    rs.push _val
+    if @field_spec.type not in ['J','D']
+      _val = rs.pop()
+      _obj = rs.check_null(rs.pop())
+      rs.push _obj
+      rs.push _val
+    else
+      _val = rs.pop2()
+      _obj = rs.check_null(rs.pop())
+      rs.push _obj
+      rs.push2 _val, null
+
     cls_obj = rs.get_class(@field_spec.class)
     field = cls_obj.field_lookup(rs, @field_spec)
     name = field.cls.get_type() + @field_spec.name
