@@ -57,11 +57,11 @@ root.disassemble = (class_file) ->
   format_decimal = (val,type_char) ->
     valStr = val.toString()
     if type_char == 'f'
-      if val is util.FLOAT_POS_INFINITY or Number.POSITIVE_INFINITY
+      if val is util.FLOAT_POS_INFINITY or val is Number.POSITIVE_INFINITY
         valStr = "Infinity"
-      else if val is util.FLOAT_NEG_INFINITY or Number.NEGATIVE_INFINITY
+      else if val is util.FLOAT_NEG_INFINITY or val is Number.NEGATIVE_INFINITY
         valStr = "-Infinity"
-      else if util.is_float_NaN(val)
+      else if val is NaN
         valStr = "NaN"
 
     if valStr.match(/-?(Infinity|NaN)/)
@@ -109,7 +109,8 @@ root.disassemble = (class_file) ->
     const_attr = f.get_attribute 'ConstantValue'
     if const_attr?
       entry = pool.get(const_attr.ref)
-      rv += "  Constant value: #{entry.type} #{entry.deref?() or entry.value}\n"
+      # If it's a string, dereference the value. Otherwise, format the numeric value.
+      rv += "  Constant value: #{entry.type} #{entry.deref?() or format(entry)}\n"
     sig = f.get_attribute 'Signature'
     if sig?
       rv += "  Signature: length = 0x#{sig.raw_bytes.length.toString(16)}\n"
