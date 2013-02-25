@@ -270,6 +270,10 @@ class root.RuntimeState
   pop2: () ->
     @pop()
     @pop()
+  # for those cases where we want to avoid the pop/repush combo
+  peek: (depth=0) ->
+    s = @curr_frame().stack
+    s[s.length-1-depth]
 
   # Program counter manipulation.
   curr_pc: ()   -> @curr_frame().pc

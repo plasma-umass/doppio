@@ -639,8 +639,7 @@ root.opcodes = {
   180: new root.FieldOpcode 'getfield', { execute: (rs) ->
     # Check if the object is null; if we do not do this before get_class, then
     # we might try to get a class that we have not initialized!
-    obj = rs.check_null(rs.pop())
-    rs.push(obj)
+    obj = rs.check_null(rs.peek())
     cls = rs.get_class(@field_spec.class)
     field = cls.field_lookup(rs, @field_spec)
     name = field.cls.get_type() + @field_spec.name
@@ -660,16 +659,10 @@ root.opcodes = {
   181: new root.FieldOpcode 'putfield', { execute: (rs) ->
     # Check if the object is null; if we do not do this before get_class, then
     # we might try to get a class that we have not initialized!
-    if @field_spec.type not in ['J','D']
-      _val = rs.pop()
-      _obj = rs.check_null(rs.pop())
-      rs.push _obj
-      rs.push _val
+    if @field_spec.type in ['J','D']
+      _obj = rs.check_null(rs.peek(2))
     else
-      _val = rs.pop2()
-      _obj = rs.check_null(rs.pop())
-      rs.push _obj
-      rs.push2 _val, null
+      _obj = rs.check_null(rs.peek(1))
 
     cls_obj = rs.get_class(@field_spec.class)
     field = cls_obj.field_lookup(rs, @field_spec)
@@ -737,10 +730,8 @@ root.opcodes = {
     @cls = rs.get_cl().get_resolved_class @class, true
     if @cls?
       new_execute = (rs) ->
-        o = rs.pop()
-        if (not o?) or o.cls.is_castable @cls
-          rs.push o
-        else
+        o = rs.peek()
+        if o? and not o.cls.is_castable @cls
           target_class = @cls.toExternalString() # class we wish to cast to
           candidate_class = o.cls.toExternalString()
           rs.java_throw rs.get_bs_class('Ljava/lang/ClassCastException;'), "#{candidate_class} cannot be cast to #{target_class}"
