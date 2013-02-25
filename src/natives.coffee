@@ -1252,15 +1252,31 @@ native_methods =
             new JavaObject rs, cls.$cls
         o 'getBoolean(Ljava/lang/Object;J)Z', (rs, _this, obj, offset) ->
             obj.get_field_from_offset rs, offset
+        o 'getBooleanVolatile(Ljava/lang/Object;J)Z', (rs, _this, obj, offset) ->
+            obj.get_field_from_offset rs, offset
         o 'getDouble(Ljava/lang/Object;J)D', (rs, _this, obj, offset) ->
+            obj.get_field_from_offset rs, offset
+        o 'getDoubleVolatile(Ljava/lang/Object;J)D', (rs, _this, obj, offset) ->
+            obj.get_field_from_offset rs, offset
+        o 'getFloat(Ljava/lang/Object;J)F', (rs, _this, obj, offset) ->
+            obj.get_field_from_offset rs, offset
+        o 'getFloatVolatile(Ljava/lang/Object;J)F', (rs, _this, obj, offset) ->
             obj.get_field_from_offset rs, offset
         o 'getInt(Ljava/lang/Object;J)I', (rs, _this, obj, offset) ->
             obj.get_field_from_offset rs, offset
+        o 'getIntVolatile(Ljava/lang/Object;J)I', (rs, _this, obj, offset) ->
+            obj.get_field_from_offset rs, offset
+        o 'getLong(Ljava/lang/Object;J)J', (rs, _this, obj, offset) ->
+            obj.get_field_from_offset rs, offset
         o 'getLongVolatile(Ljava/lang/Object;J)J', (rs, _this, obj, offset) ->
             obj.get_field_from_offset rs, offset
-        o 'getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
+        o 'getShort(Ljava/lang/Object;J)S', (rs, _this, obj, offset) ->
+            obj.get_field_from_offset rs, offset
+        o 'getShortVolatile(Ljava/lang/Object;J)S', (rs, _this, obj, offset) ->
             obj.get_field_from_offset rs, offset
         o 'getObject(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
+            obj.get_field_from_offset rs, offset
+        o 'getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;', (rs,_this,obj,offset) ->
             obj.get_field_from_offset rs, offset
         o 'putDouble(Ljava/lang/Object;JD)V', (rs,_this,obj,offset,new_value) ->
             obj.set_field_from_offset rs, offset, new_value

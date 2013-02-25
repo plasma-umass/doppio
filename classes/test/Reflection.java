@@ -10,6 +10,8 @@ public class Reflection {
   public static final float constFloat = 2.45f;
   public static final double constDouble = 1.4567;
   public static final long constLong = 8394834397L;
+  public static final short constShort = 12;
+  public static final boolean constBool = true;
 
   public static long add(long a, long b) {
     return a + b;
@@ -41,6 +43,10 @@ public class Reflection {
     System.out.println(f4.get(null));
     Field f5 = c.getField("constLong");
     System.out.println(f5.get(null));
+    Field f6 = c.getField("constShort");
+    System.out.println(f6.get(null));
+    Field f7 = c.getField("constBool");
+    System.out.println(f7.get(null));
 
     Method bytecodeMethod = c.getClass().getMethod("toString");
     Method nativeMethod = c.getClass().getMethod("isArray");
