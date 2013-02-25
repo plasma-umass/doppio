@@ -17,6 +17,8 @@ root = exports ? this.ClassLoader = {}
 class ClassLoader
   constructor: (@bootstrap) -> @loaded_classes = Object.create null
 
+  get_loaded_class_list: -> return Object.keys @loaded_classes
+
   # Remove a class. Should only be used in the event of a class loading failure.
   _rem_class: (type_str) ->
     delete @loaded_classes[type_str]

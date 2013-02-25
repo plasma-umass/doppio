@@ -148,6 +148,25 @@ if require.main == module
       console.error "No main class provided and no Main-Class found in #{argv.jar}"
 
   run = (done_cb) -> jvm.run_class rs, cname, java_cmd_args, done_cb
+  done_cb = ->
+    if argv['list-class-cache']
+      scriptdir = path.resolve(__dirname + "/..")
+      for k in rs.get_bs_cl().get_loaded_class_list()
+        k = k[1...-1]
+        # Find where it was loaded from.
+        file = k + ".class"
+        for cpath in jvm.classpath
+          fpath = cpath + '/' + file
+          try
+            if fs.statSync(fpath).isFile()
+              fpath = path.resolve(fpath).substr(scriptdir.length+1)
+              # Ensure the truncated path is valid. This ensures that the file
+              # is in a subdirectory of "scriptdir"
+              if fs.existsSync fpath
+                console.log(fpath)
+              break
+          catch e
+            # Do nothing; iterate.
 
   if argv.profile?
     run_profiled run, rs, cname, argv.hot
@@ -160,19 +179,4 @@ if require.main == module
     old_fn = console.log
     stub console, 'log', (-> if --count == 0 then console.log = old_fn), run
   else
-    run()
-
-  if argv['list-class-cache']
-    scriptdir = path.resolve(__dirname + "/..")
-    for k in Object.keys rs.loaded_classes
-      # Find where it was loaded from.
-      file = k + ".class"
-      for cpath in jvm.classpath
-        fpath = cpath + '/' + file
-        try
-          if fs.statSync(fpath).isFile()
-            fpath = path.resolve(fpath).substr(scriptdir.length+1)
-            console.log(fpath)
-            break
-        catch e
-          # Do nothing; iterate.
+    run(done_cb)
