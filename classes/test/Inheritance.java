@@ -2,14 +2,12 @@ package classes.test;
 
 public class Inheritance {
 	public Inheritance() {
-		String blargh = "I'm Nigel Thornberry!";
 		BChild ch = null;
 		try {
 			System.out.println("a: " + ch.a);
 		} catch (NullPointerException e) {
 			System.out.println("Cannot getfield on a null object.");
 		}
-		System.out.println(blargh);
 
 		BChild child = new BChild();
 		child.a = 3;
