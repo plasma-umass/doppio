@@ -90,7 +90,7 @@ CLI_SRCS := $(wildcard src/*.coffee console/*.coffee)
 # Builds a release or benchmark version of Doppio without the documentation.
 # This is a static pattern rule. '%' gets substituted for the target name.
 release benchmark: %: dependencies build/% build/%/browser \
-	$(patsubst %,build/\%/%,$(notdir $(BROWSER_HTML))) \
+	$(patsubst %,build/\%/%,$(notdir $(BROWSER_HTML))) build/%/favicon.ico \
 	build/%/compressed.js build/%/browser/mini-rt.tar build/%/ace.js \
 	build/%/browser/style.css $(DEMO_CLASSES) $(UTIL_CLASSES) \
 	build/%/classes build/%/vendor
@@ -100,7 +100,7 @@ release benchmark: %: dependencies build/% build/%/browser \
 # dev: unoptimized build
 dev: dependencies build/dev build/dev/browser \
 	$(patsubst %.coffee,build/dev/%.js,$(filter %.coffee,$(dev_BROWSER_SRCS))) \
-	build/dev/browser/style.css build/dev/index.html $(DEMO_CLASSES) \
+	build/dev/browser/style.css build/dev/index.html build/dev/favicon.ico $(DEMO_CLASSES) \
 	build/dev/browser/mini-rt.tar build/dev/classes build/dev/vendor
 	rsync $(filter %.js,$(dev_BROWSER_SRCS)) build/dev/vendor
 	rsync browser/*.svg browser/*.png build/dev/browser/
@@ -179,12 +179,11 @@ tools/preload: release-cli
 # BUILD DIRECTORY TARGETS
 ################################################################################
 
-# Double colon: Can execute multiple times in one `make' invocation.
 # subst: Use 'manual' substitution because we don't want this to be a pattern
 # rule.  there are multiple targets that need to be individually fulfilled, but
 # pattern rules assume they are all fulfilled in one shot.
 BUILD_FOLDERS = build/% build/%/browser build/%/console build/%/src
-$(foreach TARGET,$(BUILD_TARGETS),$(subst %,$(TARGET),$(BUILD_FOLDERS)))::
+$(foreach TARGET,$(BUILD_TARGETS),$(subst %,$(TARGET),$(BUILD_FOLDERS))):
 	mkdir -p $@
 
 browser/_about.html: browser/_about.md
@@ -197,13 +196,17 @@ build/dev/%.html: browser/%.html $(wildcard browser/_*.html)
 build/release/%.html build/benchmark/%.html: browser/%.html $(wildcard browser/_*.html)
 	$(CPP) -DRELEASE $< $@
 
+build/%/favicon.ico: browser/favicon.ico
+	rsync $< $@
+
 build/%/ace.js: $(ACE_SRCS)
 	for src in $(ACE_SRCS); do \
 		cat $${src}; \
 		echo ";"; \
 	done > $@
 
-# The | prevents the prerequisite from being included in $^.
+# The | prevents the prerequisite from being included in $^, and avoids
+# re-executing the rule when the folder is 'updated' with `mkdir -p`.
 build/%/browser/style.css: vendor/bootstrap/css/bootstrap.min.css \
 	browser/style.css | build/%/browser
 	cat $^ > $@
@@ -237,9 +240,9 @@ build/%/compressed.js: build/% $$(%_BROWSER_SRCS)
 		echo ";"; \
 	done | $(UGLIFYJS) --define RELEASE --define UNSAFE --no-mangle --unsafe > $@
 
-build/dev/%.js: %.coffee $$(dir $$@)
+build/dev/%.js: %.coffee | $$(dir $$@)
 	$(COFFEEC) --print -c $< > $@
 
-build/release/%.js build/benchmark/%.js: %.coffee $$(dir $$@)
+build/release/%.js build/benchmark/%.js: %.coffee | $$(dir $$@)
 	$(SED) -r "s/^( *)(debug|v?trace).*$$/\1\`\`/" $< | $(COFFEEC) --stdio --print > $@
 	$(UGLIFYJS) --define RELEASE --define UNSAFE --no-mangle --unsafe --beautify --overwrite $@
