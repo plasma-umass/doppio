@@ -1,6 +1,5 @@
 
 # pull in external modules
-require './runtime'
 util = require './util'
 fs = node?.fs ? require 'fs'
 {trace,error} = require '../src/logging'
@@ -11,6 +10,7 @@ root = exports ? this.jvm = {}
 
 root.classpath = []
 root.show_NYI_natives = false
+root.no_dump_state = false
 
 root.read_classfile = (cls, cb, failure_cb) ->
   cls = cls[1...-1] # Convert Lfoo/bar/Baz; -> foo/bar/Baz.

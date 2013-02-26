@@ -90,7 +90,7 @@ find_main_class = (extracted_jar_dir) ->
 
 if require.main == module
   optimist = require('optimist')
-    .boolean(['count-logs','h','list-class-cache','show-nyi-natives'])
+    .boolean(['count-logs','h','list-class-cache','show-nyi-natives','no-dump-state'])
     .alias({h: 'help'})
     .describe({
       classpath: 'JVM classpath, "path1:...:pathn"',
@@ -119,6 +119,7 @@ if require.main == module
       logging.ERROR
 
   jvm.show_NYI_natives = argv['show-nyi-natives']
+  jvm.no_dump_state = argv['no-dump-state']
 
   if argv.classpath?
     jvm.classpath = argv.classpath.split ':'

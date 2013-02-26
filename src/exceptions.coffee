@@ -24,8 +24,8 @@ class root.YieldIOException extends root.YieldException
 class root.JavaException
   constructor: (@exception) ->
 
-  method_catch_handler: (rs, method, top_of_stack) ->
-    cf = rs.curr_frame()
+  method_catch_handler: (rs, cf, top_of_stack) ->
+    method = cf.method
     if not top_of_stack and method.has_bytecode
       cf.pc -= 3  # rewind the invoke opcode
       --cf.pc until cf.pc <= 0 or method.code.opcodes[cf.pc]?.name.match /^invoke/
@@ -45,8 +45,7 @@ class root.JavaException
         (eh.catch_type == "<any>" or ecls.is_castable method.cls.loader.get_resolved_class(eh.catch_type))
     if handler?
       debug "caught #{@exception.cls.get_type()} in #{method.full_signature()} as subclass of #{handler.catch_type}"
-      cf.stack = []  # clear out anything on the stack; it was made during the try block
-      rs.push @exception
+      cf.stack = [@exception]  # clear out anything on the stack; it was made during the try block
       cf.pc = handler.handler_pc
       return true
     # abrupt method invocation completion
@@ -57,7 +56,8 @@ class root.JavaException
     debug "\nUncaught #{@exception.cls.get_type()}"
     msg = @exception.get_field rs, 'Ljava/lang/Throwable;detailMessage'
     debug "\t#{msg.jvm2js_str()}" if msg?
-    rs.show_state()
+    rs.dump_state()
+    rs.meta_stack().pop_n rs.meta_stack().length() - 1 # leave the first frame
     rs.push2 rs.curr_thread, @exception
     thread_cls = rs.get_bs_class('Ljava/lang/Thread;')
     thread_cls.method_lookup(rs,

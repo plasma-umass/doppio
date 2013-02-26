@@ -7,6 +7,7 @@ util = require './util'
 {log,vtrace,trace,debug,error} = require './logging'
 {YieldIOException,ReturnException,JavaException} = require './exceptions'
 {JavaObject,JavaArray,thread_name} = require './java_object'
+jvm = require './jvm'
 process = node?.process ? global.process
 
 "use strict"
@@ -20,15 +21,20 @@ class root.CallStack
   length: -> @_cs.length
   push: (sf) -> @_cs.push sf
   pop: -> @_cs.pop()
+  pop_n: (n) -> @_cs.length -= n
 
   curr_frame: -> util.last(@_cs)
 
   get_caller: (frames_to_skip) -> @_cs[@_cs.length-1-frames_to_skip]
 
+  toJSON: -> @_cs
+
 class root.StackFrame
   constructor: (@method,@locals,@stack) ->
     @pc = 0
     @runner = null
+    @fake = false
+    @native = false
     @name = @method.full_signature()
 
   @fake_frame: (name) ->
@@ -53,6 +59,17 @@ class root.StackFrame
     sf.error = error_handler if error_handler?
     sf.native = true
     return sf
+
+  toJSON: ->
+    visited = new util.SafeMap
+    {
+      name: @name
+      pc: @pc
+      native: @native
+      fake: @fake
+      stack: (obj.serialize?(visited) ? obj for obj in @stack)
+      locals: (obj.serialize?(visited) ? obj for obj in @locals)
+    }
 
 # Contains all the mutable state of the Java program.
 class root.RuntimeState
@@ -209,14 +226,10 @@ class root.RuntimeState
     @curr_thread.$meta_stack = new root.CallStack [args]
     debug "### finished runtime state initialization ###"
 
-  show_state: () ->
-    cf = @curr_frame()
-    if cf?
-      s = ((x?.ref? or x) for x in cf.stack)
-      l = ((x?.ref? or x) for x in cf.locals)
-      debug "showing current state: method '#{cf.method?.name}', stack: [#{s}], locals: [#{l}]"
-    else
-      debug "current frame is undefined. meta_stack: #{@meta_stack()}"
+  dump_state: ->
+    return if jvm.no_dump_state
+    fs = node?.fs ? require 'fs'
+    fs.writeFileSync "./core-#{thread_name @, @curr_thread}", JSON.stringify @meta_stack()
 
   choose_next_thread: (blacklist) ->
     unless blacklist?
@@ -331,7 +344,7 @@ class root.RuntimeState
     else
       error "\nInternal JVM Error:", e
       error e.stack if e?.stack?
-      @show_state()
+      @dump_state()
       done_cb false
     return
 
@@ -395,18 +408,17 @@ class root.RuntimeState
             @run_until_finished (->), no_threads, done_cb
           e.condition success_fn, failure_fn
         else
-          if e.method_catch_handler? and @meta_stack().length() > 1
-            tos = true
-            until e.method_catch_handler(@, @curr_frame().method, tos)
-              tos = false
-              if @meta_stack().length() == 1
+          stack = @meta_stack()
+          if e.method_catch_handler? and stack.length() > 1
+            frames_to_pop = 0
+            until e.method_catch_handler(@, stack.get_caller(frames_to_pop), frames_to_pop == 0)
+              ++frames_to_pop
+              if stack.length() == frames_to_pop
                 @handle_toplevel_exception e, no_threads, done_cb
                 return
-              else
-                @meta_stack().pop()
+            stack.pop_n frames_to_pop
             @run_until_finished (->), no_threads, done_cb
           else
-            @meta_stack().pop() while @meta_stack().length() > 1
             @handle_toplevel_exception e, no_threads, done_cb
       return  # this is an async method, no return value
     )

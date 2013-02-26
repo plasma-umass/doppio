@@ -194,7 +194,7 @@ class root.Method extends AbstractMethodField
       @bytecode_loop(rs)
     catch e
       return if e is ReturnException  # stack pop handled by opcode
-      throw e unless e.method_catch_handler?(rs, @, true)
+      throw e unless e.method_catch_handler?(rs, rs.curr_frame(), true)
       @run_bytecode(rs)
 
   # Reinitializes the method by removing all cached information from the method.

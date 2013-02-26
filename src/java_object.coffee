@@ -27,6 +27,14 @@ class root.JavaArray
     else
       "<#{@cls.get_type()} of length #{@array.length} (*#{@ref})>"
 
+  serialize: (visited) ->
+    return "<*#{@ref}>" if visited.has @ref
+    visited.set(@ref, true)
+    {
+      type: @cls.get_type()
+      ref: @ref
+      array: (f?.serialize?(visited) ? f for f in @array)
+    }
 
 class root.JavaObject
   constructor: (rs, @cls, obj={}) ->
@@ -80,6 +88,17 @@ class root.JavaObject
       "<#{@cls.get_type()} '#{@jvm2js_str()}' (*#{@ref})>"
     else
       "<#{@cls.get_type()} (*#{@ref})>"
+
+  serialize: (visited) ->
+    return "<*#{@ref}>" if visited.has @ref
+    visited.set(@ref, true)
+    fields = {}
+    fields[k] = v?.serialize?(visited) ? v for k,v of @fields
+    {
+      type: @cls.get_type()
+      ref: @ref
+      fields: fields
+    }
 
   # Convert a Java String object into an equivalent JS one.
   jvm2js_str: ->

@@ -10,6 +10,9 @@ editor = null
 progress = null
 bs_cl = null
 
+# we don't have space for a core dump in the browser
+jvm.no_dump_state = true
+
 preload = ->
   try
     data = node.fs.readFileSync("/home/doppio/browser/mini-rt.tar")
