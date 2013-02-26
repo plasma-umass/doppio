@@ -216,7 +216,7 @@ create_stack_trace = (rs, throwable) ->
   # we don't want to include the stack frames that were created by
   # the construction of this exception
   cstack = rs.meta_stack()._cs.slice(1,-1)
-  for sf in cstack when not (sf.fake? or sf.native? or sf.locals[0] is throwable)
+  for sf in cstack when not (sf.native or sf.locals[0] is throwable)
     cls = sf.method.cls
     ln = -1
     unless throwable.cls.get_type() is 'Ljava/lang/NoClassDefFoundError;'
@@ -616,7 +616,7 @@ native_methods =
             #TODO: rewrite this when we move to coffeescript v1.5.0
             for i in [stack_frames.length-1..0] by -1
               sf = stack_frames[i]
-              unless sf.fake? or sf.native?
+              unless sf.native
                 classes.push sf.method.cls.get_class_object(rs)
             new JavaArray rs, rs.get_bs_class('[Ljava/lang/Class;'), classes
       ]

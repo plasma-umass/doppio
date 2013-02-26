@@ -14,7 +14,7 @@ process = node?.process ? global.process
 
 class root.CallStack
   constructor: (initial_stack) ->
-    @_cs = [root.StackFrame.fake_frame('$bootstrap')]
+    @_cs = [root.StackFrame.native_frame('$bootstrap')]
     if initial_stack?
       @_cs[0].stack = initial_stack
 
@@ -33,16 +33,8 @@ class root.StackFrame
   constructor: (@method,@locals,@stack) ->
     @pc = 0
     @runner = null
-    @fake = false
     @native = false
     @name = @method.full_signature()
-
-  @fake_frame: (name) ->
-    # Fake method in the stack frame.
-    sf = new root.StackFrame({full_signature: -> return name}, [], [])
-    sf.name = name
-    sf.fake = true
-    return sf
 
   # Creates a "native stack frame". Handler is called with no arguments for
   # normal execution, error_handler is called with the uncaught exception.
@@ -66,7 +58,6 @@ class root.StackFrame
       name: @name
       pc: @pc
       native: @native
-      fake: @fake
       stack: (obj.serialize?(visited) ? obj for obj in @stack)
       locals: (obj.serialize?(visited) ? obj for obj in @locals)
     }
@@ -389,7 +380,7 @@ class root.RuntimeState
           # opcode once success_fn is called.
           success_fn = (ret1, ret2, bytecode, advance_pc=true) =>
             if bytecode
-              @meta_stack().push root.StackFrame.fake_frame("async_op")
+              @meta_stack().push root.StackFrame.native_frame("async_op")
             @curr_frame().runner = =>
               @meta_stack().pop()
               if bytecode and advance_pc
@@ -401,7 +392,7 @@ class root.RuntimeState
             @run_until_finished (->), no_threads, done_cb
           failure_fn = (e_cb, bytecode) =>
             if bytecode
-              @meta_stack().push root.StackFrame.fake_frame("async_op")
+              @meta_stack().push root.StackFrame.native_frame("async_op")
             @curr_frame().runner = =>
               @meta_stack().pop()  # removing this line fixes native stacktraces, but breaks other things
               e_cb()
