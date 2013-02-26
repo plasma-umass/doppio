@@ -65,35 +65,6 @@ trapped_methods =
       Terminator: [
         o 'setup()V', (rs) -> # NOP, because we don't support threads
       ]
-      Throwable: [
-        o 'fillInStackTrace()L!/!/!;', (rs, _this) ->
-            stack = []
-            strace = new JavaArray rs, rs.get_bs_class('[Ljava/lang/StackTraceElement;'), stack
-            _this.set_field rs, 'Ljava/lang/Throwable;stackTrace', strace
-            # we don't want to include the stack frames that were created by
-            # the construction of this exception
-            cstack = rs.meta_stack()._cs.slice(1,-1)
-            for sf in cstack when not (sf.fake? or sf.native? or sf.locals[0] is _this)
-              cls = sf.method.cls
-              unless _this.cls.get_type() is 'Ljava/lang/NoClassDefFoundError;'
-                source_file = cls.get_attribute('SourceFile')?.filename or 'unknown'
-              else
-                source_file = 'unknown'
-              line_nums = sf.method.code?.attrs?[0]?.entries
-              if line_nums?
-                # get the last line number before the stack frame's pc
-                for i,row of line_nums when row.start_pc <= sf.pc
-                  ln = row.line_number
-              ln ?= -1
-              stack.push new JavaObject rs, rs.get_bs_class('Ljava/lang/StackTraceElement;'), {
-                'Ljava/lang/StackTraceElement;declaringClass': rs.init_string util.ext_classname cls.get_type()
-                'Ljava/lang/StackTraceElement;methodName': rs.init_string(sf.method.name ? 'unknown')
-                'Ljava/lang/StackTraceElement;fileName': rs.init_string source_file
-                'Ljava/lang/StackTraceElement;lineNumber': ln
-              }
-            stack.reverse()
-            _this
-      ]
     util:
       concurrent:
         atomic:
@@ -238,6 +209,35 @@ write_to_file = (rs, _this, bytes, offset, len, append) ->
 
 # Have a JavaClassLoaderObject and need its ClassLoader object? Use this method!
 get_cl_from_jclo = (rs, jclo) -> if jclo? and jclo.$loader? then jclo.$loader else rs.get_bs_cl()
+
+# helper function for stack trace natives (see java/lang/Throwable)
+create_stack_trace = (rs, throwable) ->
+  stacktrace = []
+  # we don't want to include the stack frames that were created by
+  # the construction of this exception
+  cstack = rs.meta_stack()._cs.slice(1,-1)
+  for sf in cstack when not (sf.fake? or sf.native? or sf.locals[0] is throwable)
+    cls = sf.method.cls
+    ln = -1
+    unless throwable.cls.get_type() is 'Ljava/lang/NoClassDefFoundError;'
+      if sf.method.access_flags.native
+        source_file = 'Native Method'
+      else
+        source_file = cls.get_attribute('SourceFile')?.filename or 'unknown'
+        line_nums = sf.method.code?.attrs?[0]?.entries
+        if line_nums?
+          # get the last line number before the stack frame's pc
+          for i,row of line_nums when row.start_pc <= sf.pc
+            ln = row.line_number
+    else
+      source_file = 'unknown'
+    stacktrace.push new JavaObject rs, rs.get_bs_class('Ljava/lang/StackTraceElement;'), {
+      'Ljava/lang/StackTraceElement;declaringClass': rs.init_string util.ext_classname cls.get_type()
+      'Ljava/lang/StackTraceElement;methodName': rs.init_string(sf.method.name ? 'unknown')
+      'Ljava/lang/StackTraceElement;fileName': rs.init_string source_file
+      'Ljava/lang/StackTraceElement;lineNumber': ln
+    }
+  return stacktrace.reverse()
 
 native_methods =
   java:
@@ -734,6 +734,16 @@ native_methods =
             rs.async_op (cb) -> setTimeout(cb, millis.toNumber())
         o 'yield()V', (rs, _this) -> rs.yield()
       ]
+      Throwable: [
+        o 'fillInStackTrace()L!/!/!;', (rs, _this) ->
+            strace = new JavaArray rs, rs.get_bs_class('[Ljava/lang/StackTraceElement;'), create_stack_trace(rs, _this)
+            _this.set_field rs, 'Ljava/lang/Throwable;stackTrace', strace
+            _this
+        o 'getStackTraceDepth()I', (rs, _this) ->
+            create_stack_trace(rs, _this).length
+        o 'getStackTraceElement(I)L!/!/StackTraceElement;', (rs, _this, depth) ->
+            create_stack_trace(rs, _this)[depth]
+      ]
     security:
       AccessController: [
         o 'doPrivileged(L!/!/PrivilegedAction;)L!/lang/Object;', doPrivileged
@@ -837,7 +847,7 @@ native_methods =
               fs.open filepath, 'r', (e, f) ->
                 if e?
                   if e.code == 'ENOENT'
-                    except_cb ()-> rs.java_throw rs.get_bs_class('Ljava/io/FileNotFoundException;'), "Could not open file #{filepath}"
+                    except_cb ()-> rs.java_throw rs.get_bs_class('Ljava/io/FileNotFoundException;'), "#{filepath} (No such file or directory)"
                   else
                     except_cb ()-> throw e
                 else

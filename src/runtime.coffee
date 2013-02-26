@@ -390,7 +390,7 @@ class root.RuntimeState
             if bytecode
               @meta_stack().push root.StackFrame.fake_frame("async_op")
             @curr_frame().runner = =>
-              @meta_stack().pop()
+              @meta_stack().pop()  # removing this line fixes native stacktraces, but breaks other things
               e_cb()
             @run_until_finished (->), no_threads, done_cb
           e.condition success_fn, failure_fn
