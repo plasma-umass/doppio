@@ -404,7 +404,8 @@ class root.BootstrapClassLoader extends ClassLoader
     return success_fn(rv) if rv?
 
     @read_classfile type_str, ((data)=>
-      @define_class rs, type_str, data, success_fn, failure_fn, true, explicit # Fetch super class/interfaces in parallel.
+      # Fetch super class/interfaces in parallel.
+      @define_class rs, type_str, data, success_fn, failure_fn, true, explicit
     ), (() =>
       failure_fn(() =>
         # We create a new frame to create a NoClassDefFoundError and a

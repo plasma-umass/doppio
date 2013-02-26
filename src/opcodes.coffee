@@ -73,7 +73,8 @@ class root.InvokeOpcode extends root.Opcode
     else
       # Initialize @method_spec.class and rerun opcode.
       rs.async_op (resume_cb, except_cb) =>
-        rs.get_cl().initialize_class rs, @method_spec.class, (()->resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
+        rs.get_cl().initialize_class rs, @method_spec.class,
+          (->resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
     return
 
 class root.DynInvokeOpcode extends root.InvokeOpcode
@@ -346,7 +347,8 @@ class root.MultiArrayOpcode extends root.Opcode
     cls = rs.get_class @class, true
     unless cls?
       rs.async_op (resume_cb, except_cb) =>
-        rs.get_cl().initialize_class rs, @class, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
+        rs.get_cl().initialize_class rs, @class,
+          ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
       return
 
     new_execute = (rs) ->
@@ -603,11 +605,13 @@ root.opcodes = {
       else
         # Initialize cls_type and rerun opcode.
         rs.async_op (resume_cb, except_cb) =>
-          rs.get_cl().initialize_class rs, cls_type, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
+          rs.get_cl().initialize_class rs, cls_type,
+            ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
     else
       # Initialize @field_spec.class and rerun opcode.
       rs.async_op (resume_cb, except_cb) =>
-        rs.get_cl().initialize_class rs, @field_spec.class, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
+        rs.get_cl().initialize_class rs, @field_spec.class,
+          ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
     return
   }
   179: new root.FieldOpcode 'putstatic', {execute: (rs)->
@@ -629,11 +633,13 @@ root.opcodes = {
       else
         # Initialize cls_type and rerun opcode.
         rs.async_op (resume_cb, except_cb) =>
-          rs.get_cl().initialize_class rs, cls_type, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
+          rs.get_cl().initialize_class rs, cls_type,
+            ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
     else
       # Initialize @field_spec.class and rerun opcode.
       rs.async_op (resume_cb, except_cb) =>
-        rs.get_cl().initialize_class rs, @field_spec.class, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
+        rs.get_cl().initialize_class rs, @field_spec.class,
+          ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
     return
   }
   180: new root.FieldOpcode 'getfield', { execute: (rs) ->
@@ -720,7 +726,8 @@ root.opcodes = {
     else
       # Load @class and rerun opcode.
       rs.async_op (resume_cb, except_cb) =>
-        rs.get_cl().resolve_class rs, @class, ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
+        rs.get_cl().resolve_class rs, @class,
+          ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
     return
   }
   190: new root.Opcode 'arraylength', { execute: (rs) -> rs.push rs.check_null(rs.pop()).array.length }
@@ -734,7 +741,8 @@ root.opcodes = {
         if o? and not o.cls.is_castable @cls
           target_class = @cls.toExternalString() # class we wish to cast to
           candidate_class = o.cls.toExternalString()
-          rs.java_throw rs.get_bs_class('Ljava/lang/ClassCastException;'), "#{candidate_class} cannot be cast to #{target_class}"
+          rs.java_throw rs.get_bs_class('Ljava/lang/ClassCastException;'),
+            "#{candidate_class} cannot be cast to #{target_class}"
 
       new_execute.call @, rs
       @execute = new_execute
@@ -781,7 +789,8 @@ root.opcodes = {
       if rs.lock_counts[monitor] == 0
         delete rs.lock_refs[monitor]
     else
-      rs.java_throw rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;'), "Tried to monitorexit on lock not held by current thread"
+      rs.java_throw rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;'),
+        "Tried to monitorexit on lock not held by current thread"
   }
   197: new root.MultiArrayOpcode 'multianewarray'
   198: new root.UnaryBranchOpcode 'ifnull', { cmp: (v) -> not v? }

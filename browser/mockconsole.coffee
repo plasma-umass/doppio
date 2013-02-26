@@ -64,13 +64,13 @@ $.fn.console = (config) ->
       outBuffer = ""
 
   printInBrowser = (msg, className) ->
-    mesg = $('<div class="jquery-console-message"></div>');
+    mesg = $('<div class="jquery-console-message"></div>')
     if className
       mesg.addClass(className)
     mesg.text(msg)
-    mesg.hide();
-    inner.append(mesg);
-    mesg.show();
+    mesg.hide()
+    inner.append(mesg)
+    mesg.show()
 
   printErrorInBrowser = (msg) ->
     printInBrowser(msg, "jquery-console-message-error")
@@ -165,8 +165,8 @@ $.fn.console = (config) ->
 
 
   # Set up the console for printing stuff.
-  container = $(this);
-  inner = $('<pre class="jquery-console-inner"></div>');
+  container = $(this)
+  inner = $('<pre class="jquery-console-inner"></div>')
   container.append(inner)
   printInBrowser(
     "Doppio Automated Benchmark Mode\n" +

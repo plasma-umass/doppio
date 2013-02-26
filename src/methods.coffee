@@ -48,14 +48,14 @@ class root.Field extends AbstractMethodField
 
     create_obj = (clazz_obj, type_obj) =>
       new JavaObject rs, rs.get_bs_class('Ljava/lang/reflect/Field;'), {
-          # XXX this leaves out 'annotations'
-          'Ljava/lang/reflect/Field;clazz': clazz_obj
-          'Ljava/lang/reflect/Field;name': rs.init_string @name, true
-          'Ljava/lang/reflect/Field;type': type_obj
-          'Ljava/lang/reflect/Field;modifiers': @access_byte
-          'Ljava/lang/reflect/Field;slot': @idx
-          'Ljava/lang/reflect/Field;signature': if sig? then rs.init_string sig else null
-        }
+        # XXX this leaves out 'annotations'
+        'Ljava/lang/reflect/Field;clazz': clazz_obj
+        'Ljava/lang/reflect/Field;name': rs.init_string @name, true
+        'Ljava/lang/reflect/Field;type': type_obj
+        'Ljava/lang/reflect/Field;modifiers': @access_byte
+        'Ljava/lang/reflect/Field;slot': @idx
+        'Ljava/lang/reflect/Field;signature': if sig? then rs.init_string sig else null
+      }
 
     clazz_obj = @cls.get_class_object(rs)
     # type_obj may not be loaded, so we asynchronously load it here.
@@ -125,7 +125,8 @@ class root.Method extends AbstractMethodField
         j++
         if j < exceptions.length
           e_desc = exceptions[j]
-          @cls.loader.resolve_class(rs, e_desc, ((cls)=>etype_objs[j]=cls.get_class_object(rs);fetch_etype()), failure_fn)
+          @cls.loader.resolve_class(rs, e_desc,
+            ((cls)=>etype_objs[j]=cls.get_class_object(rs);fetch_etype()), failure_fn)
         else
           # XXX: missing parameterAnnotations
           obj[typestr + 'clazz'] = clazz_obj
@@ -143,7 +144,8 @@ class root.Method extends AbstractMethodField
       fetch_ptype = () =>
         i++
         if i < @param_types.length
-          @cls.loader.resolve_class(rs, @param_types[i], ((cls)=>param_type_objs[i]=cls.get_class_object(rs);fetch_ptype()), failure_fn)
+          @cls.loader.resolve_class(rs, @param_types[i],
+            ((cls)=>param_type_objs[i]=cls.get_class_object(rs);fetch_ptype()), failure_fn)
         else
           fetch_etype()
 

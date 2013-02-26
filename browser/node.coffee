@@ -42,8 +42,8 @@ if $.browser.msie and not window.Blob
 # Converts 'responseBody' in IE into the equivalent 'responseText' that other
 # browsers would generate.
 GetIEByteArray_ByteStr = (IEByteArray) ->
-  rawBytes = IEBinaryToArray_ByteStr(IEByteArray);
-  lastChr = IEBinaryToArray_ByteStr_Last(IEByteArray);
+  rawBytes = IEBinaryToArray_ByteStr(IEByteArray)
+  lastChr = IEBinaryToArray_ByteStr_Last(IEByteArray)
   return rawBytes.replace(/[\s\S]/g,
     ((match) ->
       v = match.charCodeAt(0)
@@ -58,17 +58,17 @@ timeouts = []
 messageName = "zero-timeout-message"
 
 setZeroTimeout = (fn) ->
-    timeouts.push(fn)
-    window.postMessage(messageName, "*")
+  timeouts.push(fn)
+  window.postMessage(messageName, "*")
 
 handleMessage = (event) ->
-    if (event.source == window && event.data == messageName)
-        event.stopPropagation()
-        if (timeouts.length > 0)
-            fn = timeouts.shift()
-            fn()
+  if (event.source == window && event.data == messageName)
+    event.stopPropagation()
+    if (timeouts.length > 0)
+      fn = timeouts.shift()
+      fn()
 
-window.addEventListener("message", handleMessage, true);
+window.addEventListener("message", handleMessage, true)
 
 # Our 'file descriptor'
 class DoppioFile
@@ -203,7 +203,8 @@ class FileSource
 # in the order in which they are added.
 class CompositedFileSource extends FileSource
   # Returns 'true' if the given path is in the given mount point.
-  _in_mnt_pt: (path, mnt_pt) -> mnt_pt == '/' or path == mnt_pt or (path.slice(0, mnt_pt.length) == mnt_pt and path[mnt_pt.length] == '/')
+  _in_mnt_pt: (path, mnt_pt) -> mnt_pt == '/' or path == mnt_pt or
+    (path.slice(0, mnt_pt.length) == mnt_pt and path[mnt_pt.length] == '/')
   _get_applicable_sources: (path) ->
     applicable = []
     for a_mnt_pt in @mnt_pts
@@ -438,7 +439,8 @@ class FSState
     #(mnt_pt, inpt_sources = [])
     @home = '/home/doppio'
     @pwd = @home
-    mainSource = new CompositedFileSource('/', [new LocalStorageSource('/'), new WebserverSource('/home/doppio', '/browser/listings.json')])
+    mainSource = new CompositedFileSource('/', [new LocalStorageSource('/'),
+      new WebserverSource('/home/doppio', '/browser/listings.json')])
     @files = new CacheSource('/', mainSource)
     # Slight cheat; ensures that / and /home exist.
     f = new DoppioFile('/home/doppio/Hello.txt', "Welcome to Doppio!")

@@ -84,7 +84,8 @@ class root.RuntimeState
   # Get an *initialized* class from the bootstrap classloader.
   get_bs_class: (type, handle_null=false) -> @bcl.get_initialized_class type, handle_null
   # Get an *initialized* class from the classloader of the current class.
-  get_class: (type, handle_null=false) -> @curr_frame().method.cls.loader.get_initialized_class type, handle_null
+  get_class: (type, handle_null=false) ->
+    @curr_frame().method.cls.loader.get_initialized_class type, handle_null
   get_cl: -> @curr_frame().method.cls.loader
 
   # XXX: We currently 'preinitialize' all of these to avoid an async call
@@ -153,7 +154,8 @@ class root.RuntimeState
     # initialize thread objects
     my_sf = @curr_frame()
     @push (group = new JavaObject @, @get_bs_class('Ljava/lang/ThreadGroup;'))
-    @get_bs_class('Ljava/lang/ThreadGroup;').method_lookup(@, {class: 'Ljava/lang/ThreadGroup;', sig: '<init>()V'}).setup_stack(this)
+    @get_bs_class('Ljava/lang/ThreadGroup;').method_lookup(
+      @, {class: 'Ljava/lang/ThreadGroup;', sig: '<init>()V'}).setup_stack(this)
     my_sf.runner = =>
       ct = null
       my_sf.runner = =>
@@ -287,7 +289,8 @@ class root.RuntimeState
 
   heap_newarray: (type,len) ->
     if len < 0
-      @java_throw @get_bs_class('Ljava/lang/NegativeArraySizeException;'), "Tried to init [#{type} array with length #{len}"
+      @java_throw @get_bs_class('Ljava/lang/NegativeArraySizeException;'),
+        "Tried to init [#{type} array with length #{len}"
     if type == 'J'
       new JavaArray @, @get_bs_class('[J'), (gLong.ZERO for i in [0...len] by 1)
     else if type[0] == 'L'  # array of object
@@ -299,7 +302,8 @@ class root.RuntimeState
   init_string: (str,intern=false) ->
     return s if intern and (s = @string_pool.get str)?
     carr = @init_carr str
-    jvm_str = new JavaObject @, @get_bs_class('Ljava/lang/String;'), {'Ljava/lang/String;value':carr, 'Ljava/lang/String;count':str.length}
+    jvm_str = new JavaObject @, @get_bs_class('Ljava/lang/String;'),
+      {'Ljava/lang/String;value':carr, 'Ljava/lang/String;count':str.length}
     @string_pool.set(str, jvm_str) if intern
     return jvm_str
   init_carr: (str) ->
@@ -339,7 +343,7 @@ class root.RuntimeState
   run_until_finished: (setup_fn, no_threads, done_cb) ->
     # Reset stack depth every time this is called. Prevents us from needing to
     # scatter this around the code everywhere to prevent filling the stack
-    process.nextTick((=>
+    process.nextTick(=>
       @stashed_done_cb = done_cb  # hack for the case where we error out of <clinit>
       @_in_main_loop = true
       try
@@ -374,13 +378,13 @@ class root.RuntimeState
             if bytecode
               @meta_stack().push root.StackFrame.fake_frame("async_op")
             @curr_frame().runner = =>
-                @meta_stack().pop()
-                if bytecode and advance_pc
-                  @curr_frame().pc += 1 + @curr_frame().method.code.opcodes[@curr_frame().pc].byte_count
-                unless ret1 is undefined
-                  ret1 += 0 if typeof ret1 == 'boolean'
-                  @push ret1
-                @push ret2 unless ret2 is undefined
+              @meta_stack().pop()
+              if bytecode and advance_pc
+                @curr_frame().pc += 1 + @curr_frame().method.code.opcodes[@curr_frame().pc].byte_count
+              unless ret1 is undefined
+                ret1 += 0 if typeof ret1 == 'boolean'
+                @push ret1
+              @push ret2 unless ret2 is undefined
             @run_until_finished (->), no_threads, done_cb
           failure_fn = (e_cb, bytecode) =>
             if bytecode
@@ -405,4 +409,4 @@ class root.RuntimeState
             @meta_stack().pop() while @meta_stack().length() > 1
             @handle_toplevel_exception e, no_threads, done_cb
       return  # this is an async method, no return value
-    ))
+    )

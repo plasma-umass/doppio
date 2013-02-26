@@ -137,20 +137,20 @@ root.array_to_bytestr = (bytecode_array) ->
   return (String.fromCharCode(b) for b in bytecode_array).join ''
 
 root.parse_flags = (flag_byte) -> {
-    public:       flag_byte & 0x1
-    private:      flag_byte & 0x2
-    protected:    flag_byte & 0x4
-    static:       flag_byte & 0x8
-    final:        flag_byte & 0x10
-    synchronized: flag_byte & 0x20
-    super:        flag_byte & 0x20
-    volatile:     flag_byte & 0x40
-    transient:    flag_byte & 0x80
-    native:       flag_byte & 0x100
-    interface:    flag_byte & 0x200
-    abstract:     flag_byte & 0x400
-    strict:       flag_byte & 0x800
-  }
+  public:       flag_byte & 0x1
+  private:      flag_byte & 0x2
+  protected:    flag_byte & 0x4
+  static:       flag_byte & 0x8
+  final:        flag_byte & 0x10
+  synchronized: flag_byte & 0x20
+  super:        flag_byte & 0x20
+  volatile:     flag_byte & 0x40
+  transient:    flag_byte & 0x80
+  native:       flag_byte & 0x100
+  interface:    flag_byte & 0x200
+  abstract:     flag_byte & 0x400
+  strict:       flag_byte & 0x800
+}
 
 root.escape_whitespace = (str) ->
   str.replace /\s/g, (c) ->

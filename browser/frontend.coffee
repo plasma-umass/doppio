@@ -87,25 +87,26 @@ $(document).ready ->
     # Need to make a function instead of making this the body of a loop so we
     # don't overwrite "f" before the onload handler calls.
     file_fcn = ((f) ->
-        reader = new FileReader
-        reader.onerror = (e) ->
-          switch e.target.error.code
-            when e.target.error.NOT_FOUND_ERR then alert "404'd"
-            when e.target.error.NOT_READABLE_ERR then alert "unreadable"
-            when e.target.error.SECURITY_ERR then alert "only works with --allow-file-access-from-files"
-        ext = f.name.split('.')[1]
-        isClass = ext == 'class'
-        reader.onload = (e) ->
-          files_uploaded++
-          node.fs.writeFileSync(node.process.cwd() + '/' + f.name, e.target.result)
-          controller.message "[#{files_uploaded}/#{num_files}] File '#{f.name}' saved.\n", 'success', files_uploaded != num_files
-          if isClass
-            editor.getSession?().setValue("/*\n * Binary file: #{f.name}\n */")
-          else
-            editor.getSession?().setValue(e.target.result)
-          $('#console').click() # click to restore focus)
-        if isClass then reader.readAsBinaryString(f) else reader.readAsText(f)
-      )
+      reader = new FileReader
+      reader.onerror = (e) ->
+        switch e.target.error.code
+          when e.target.error.NOT_FOUND_ERR then alert "404'd"
+          when e.target.error.NOT_READABLE_ERR then alert "unreadable"
+          when e.target.error.SECURITY_ERR then alert "only works with --allow-file-access-from-files"
+      ext = f.name.split('.')[1]
+      isClass = ext == 'class'
+      reader.onload = (e) ->
+        files_uploaded++
+        node.fs.writeFileSync(node.process.cwd() + '/' + f.name, e.target.result)
+        controller.message "[#{files_uploaded}/#{num_files}] File '#{f.name}' saved.\n",
+          'success', files_uploaded != num_files
+        if isClass
+          editor.getSession?().setValue("/*\n * Binary file: #{f.name}\n */")
+        else
+          editor.getSession?().setValue(e.target.result)
+        $('#console').click() # click to restore focus)
+      if isClass then reader.readAsBinaryString(f) else reader.readAsText(f)
+    )
     for f in ev.target.files
       file_fcn(f)
     return

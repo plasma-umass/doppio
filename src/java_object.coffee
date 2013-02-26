@@ -63,7 +63,8 @@ class root.JavaObject
     classname = cls.get_type()
     until cls.get_fields()[offset]?
       unless cls.get_super_class()?
-        rs.java_throw @cls.loader.get_initialized_class('Ljava/lang/NullPointerException;'), "field #{offset} doesn't exist in class #{classname}"
+        rs.java_throw @cls.loader.get_initialized_class('Ljava/lang/NullPointerException;'),
+          "field #{offset} doesn't exist in class #{classname}"
       cls = cls.get_super_class()
     {field: cls.get_fields()[offset], cls: cls.get_type(), cls_obj: cls}
 
@@ -82,8 +83,8 @@ class root.JavaObject
 
   # Convert a Java String object into an equivalent JS one.
   jvm2js_str: ->
-    util.chars2js_str(@fields['Ljava/lang/String;value'], @fields['Ljava/lang/String;offset'], @fields['Ljava/lang/String;count'])
-
+    util.chars2js_str(@fields['Ljava/lang/String;value'],
+      @fields['Ljava/lang/String;offset'], @fields['Ljava/lang/String;count'])
 
 class root.JavaClassObject extends root.JavaObject
   constructor: (rs, @$cls) ->
