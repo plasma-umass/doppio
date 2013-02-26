@@ -374,6 +374,8 @@ class DoppioServer
       documentRoot = doppioRoot + "/build/release"
     when Mode::BMK
       documentRoot = doppioRoot + "/build/benchmark"
+    when Mode::DEV
+      documentRoot = doppioRoot + "/build/dev"
     end
 
     p1 "Creating server in " + Mode2String(@options.mode) + " mode."

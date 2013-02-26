@@ -10,10 +10,9 @@ node_modules
 build
 docs
 index.html
+about.html
 .DS_store
 Gemfile.lock
-browser/mini-rt.tar
-browser/listings.json
 browser/_about.html
 vendor/java_home
 tools/preload
