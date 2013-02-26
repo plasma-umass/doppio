@@ -28,8 +28,8 @@ class root.JavaArray
       "<#{@cls.get_type()} of length #{@array.length} (*#{@ref})>"
 
   serialize: (visited) ->
-    return "<*#{@ref}>" if visited.has @ref
-    visited.set(@ref, true)
+    return "<*#{@ref}>" if @ref of visited
+    visited[@ref] = true
     {
       type: @cls.get_type()
       ref: @ref
@@ -90,8 +90,8 @@ class root.JavaObject
       "<#{@cls.get_type()} (*#{@ref})>"
 
   serialize: (visited) ->
-    return "<*#{@ref}>" if visited.has @ref
-    visited.set(@ref, true)
+    return "<*#{@ref}>" if @href of visited
+    visited[@ref] = true
     fields = {}
     fields[k] = v?.serialize?(visited) ? v for k,v of @fields
     {

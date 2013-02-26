@@ -9,7 +9,7 @@ makefile_test = (argv) ->
   fs = require 'fs'
   failpath = path.resolve __dirname, '../classes/test/failures.txt'
   done_cb = (failed) ->
-    print (if failed then 'x' else '✓')
+    print (if failed then '✗' else '✓')
     fs.writeSync(outfile, '\n') if failed
     fs.closeSync(outfile)
   outfile = fs.openSync failpath, 'a'

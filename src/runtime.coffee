@@ -53,7 +53,7 @@ class root.StackFrame
     return sf
 
   toJSON: ->
-    visited = new util.SafeMap
+    visited = {}
     {
       name: @name
       pc: @pc
@@ -218,7 +218,6 @@ class root.RuntimeState
     debug "### finished runtime state initialization ###"
 
   dump_state: ->
-    return unless jvm.dump_state
     fs = node?.fs ? require 'fs'
     fs.writeFileSync "./core-#{thread_name @, @curr_thread}", JSON.stringify @meta_stack()
 
@@ -335,7 +334,6 @@ class root.RuntimeState
     else
       error "\nInternal JVM Error:", e
       error e.stack if e?.stack?
-      @dump_state()
       done_cb false
     return
 
@@ -403,8 +401,9 @@ class root.RuntimeState
           if e.method_catch_handler? and stack.length() > 1
             frames_to_pop = 0
             until e.method_catch_handler(@, stack.get_caller(frames_to_pop), frames_to_pop == 0)
-              ++frames_to_pop
-              if stack.length() == frames_to_pop
+              if stack.length() == ++frames_to_pop
+                @dump_state() if jvm.dump_state
+                stack.pop_n frames_to_pop - 1
                 @handle_toplevel_exception e, no_threads, done_cb
                 return
             stack.pop_n frames_to_pop

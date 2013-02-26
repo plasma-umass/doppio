@@ -56,8 +56,6 @@ class root.JavaException
     debug "\nUncaught #{@exception.cls.get_type()}"
     msg = @exception.get_field rs, 'Ljava/lang/Throwable;detailMessage'
     debug "\t#{msg.jvm2js_str()}" if msg?
-    rs.dump_state()
-    rs.meta_stack().pop_n rs.meta_stack().length() - 1 # leave the first frame
     rs.push2 rs.curr_thread, @exception
     thread_cls = rs.get_bs_class('Ljava/lang/Thread;')
     thread_cls.method_lookup(rs,
