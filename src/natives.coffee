@@ -103,9 +103,6 @@ trapped_methods =
                 _this.set_field rs, 'Ljava/util/concurrent/atomic/AtomicInteger;value', update  # we don't need to compare, just set
                 true # always true, because we only have one thread
           ]
-      Currency: [
-        o 'getInstance(Ljava/lang/String;)Ljava/util/Currency;', (rs) -> null # because it uses lots of reflection and we don't need it
-      ]
     nio:
       Bits: [
         o 'byteOrder()L!/!/ByteOrder;', (rs) ->
