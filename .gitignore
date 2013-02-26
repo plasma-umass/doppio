@@ -15,6 +15,7 @@ about.html
 Gemfile.lock
 doppio
 doppio-dev
+core-*
 browser/_about.html
 vendor/java_home
 tools/preload
