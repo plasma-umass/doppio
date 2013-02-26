@@ -19,25 +19,26 @@ ADMZIP   := $(DOPPIO_DIR)/node_modules/adm-zip/adm-zip.js
 JAZZLIB  := $(DOPPIO_DIR)/vendor/classes/java/util/zip/DeflaterEngine.class
 JRE      := $(DOPPIO_DIR)/vendor/classes/java/lang/Object.class
 SED      := $(shell if command -v gsed >/dev/null; then echo "gsed"; else echo "sed"; fi;)
+CPP      := cpp -P -traditional-cpp
 
 # JAVA
-SOURCES = $(wildcard classes/test/*.java)
-DISASMS = $(SOURCES:.java=.disasm)
-RUNOUTS = $(SOURCES:.java=.runout)
-CLASSES = $(SOURCES:.java=.class)
+SOURCES := $(wildcard classes/test/*.java)
+DISASMS := $(SOURCES:.java=.disasm)
+RUNOUTS := $(SOURCES:.java=.runout)
+CLASSES := $(SOURCES:.java=.class)
 # note: TESTS files never get made, but we use them for make rules
-TESTS   = $(SOURCES:.java=.test)
+TESTS   := $(SOURCES:.java=.test)
 
-DEMO_SRCS = $(wildcard classes/demo/*.java)
-DEMO_CLASSES = $(DEMO_SRCS:.java=.class)
-UTIL_SRCS = $(wildcard classes/util/*.java)
-UTIL_CLASSES = $(UTIL_SRCS:.java=.class)
+DEMO_SRCS    := $(wildcard classes/demo/*.java)
+DEMO_CLASSES := $(DEMO_SRCS:.java=.class)
+UTIL_SRCS    := $(wildcard classes/util/*.java)
+UTIL_CLASSES := $(UTIL_SRCS:.java=.class)
 # native stubs for our own implementations
-LIB_SRCS = $(wildcard classes/awt/*.java)
-LIB_CLASSES = $(LIB_SRCS:.java=.class)
+LIB_SRCS     := $(wildcard classes/awt/*.java)
+LIB_CLASSES  := $(LIB_SRCS:.java=.class)
 
 # HTML
-BROWSER_HTML = $(wildcard browser/[^_]*.html)
+BROWSER_HTML := $(wildcard browser/[^_]*.html)
 
 # SCRIPTS
 # the order here is important: must match the order of includes
@@ -63,13 +64,13 @@ COMMON_BROWSER_SRCS = vendor/_.js \
 	src/testing.coffee \
 	browser/untar.coffee
 # Release uses the actual jQuery console.
-release_BROWSER_SRCS = $(COMMON_BROWSER_SRCS) \
+release_BROWSER_SRCS := $(COMMON_BROWSER_SRCS) \
 	vendor/jquery.console.js \
 	browser/frontend.coffee
-dev_BROWSER_SRCS = $(release_BROWSER_SRCS)
-development_BROWSER_SRCS = $(release_BROWSER_SRCS)
+dev_BROWSER_SRCS := $(release_BROWSER_SRCS)
+development_BROWSER_SRCS := $(release_BROWSER_SRCS)
 # Benchmark uses the mock jQuery console.
-benchmark_BROWSER_SRCS = $(COMMON_BROWSER_SRCS) \
+benchmark_BROWSER_SRCS := $(COMMON_BROWSER_SRCS) \
 	browser/mockconsole.coffee \
 	browser/frontend.coffee
 # they don't survive uglifyjs and are already minified, so include them
@@ -78,7 +79,7 @@ benchmark_BROWSER_SRCS = $(COMMON_BROWSER_SRCS) \
 ACE_SRCS = vendor/ace/src-min/ace.js \
 	vendor/ace/src-min/mode-java.js \
 	vendor/ace/src-min/theme-twilight.js
-CLI_SRCS = $(wildcard src/*.coffee console/*.coffee)
+CLI_SRCS := $(wildcard src/*.coffee console/*.coffee)
 
 ################################################################################
 # TARGETS
@@ -94,14 +95,12 @@ release benchmark: %: dependencies build/% build/%/browser \
 	build/%/compressed.js browser/mini-rt.tar build/%/ace.js \
 	build/%/browser/style.css $(DEMO_CLASSES) $(UTIL_CLASSES) \
 	build/%/classes build/%/vendor
-	rsync browser/*.svg build/$*/browser/
-	rsync browser/*.png build/$*/browser/
-	rsync browser/mini-rt.tar build/$*/browser/mini-rt.tar
+	rsync browser/*.svg browser/*.png browser/mini-rt.tar build/$*/browser/
 	cd build/$*; $(COFFEEC) $(DOPPIO_DIR)/tools/gen_dir_listings.coffee > browser/listings.json
 
 dev development: $(DEMO_CLASSES) browser/mini-rt.tar
 	$(COFFEEC) -c `echo $(dev_BROWSER_SRCS) | fmt -1 | grep '.coffee'`
-	cpp -P browser/index.html index.html
+	$(CPP) browser/index.html index.html
 	$(COFFEEC) tools/gen_dir_listings.coffee > browser/listings.json
 
 # optimized CLI build
@@ -189,7 +188,7 @@ browser/_about.html: browser/_about.md
 browser/about.html: browser/_about.html
 
 $(BUILD_TARGETS:%=build/%/%.html): $(BROWSER_HTML) $(wildcard browser/_*.html)
-	cpp -P -traditional-cpp -DRELEASE browser/$*.html $@
+	$(CPP) -DRELEASE browser/$*.html $@
 
 build/%/ace.js: $(ACE_SRCS)
 	for src in $(ACE_SRCS); do \
