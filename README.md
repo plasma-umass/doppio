@@ -35,22 +35,21 @@ Then point your browser to [http://localhost:8000/](http://localhost:8000/).
 
 The code can also be run from the console. For example:
 
-    console/disassembler.coffee classes/demo/Fib
-    console/runner.coffee classes/demo/Fib
-    console/runner.coffee classes/demo/Fib --java=7  # passes an argument to the JVM
-    console/runner.coffee --jar my_application.jar   # extracts and runs a JAR
+    make dev-cli
+    node build/dev/console/disassembler.js classes/demo/Fib
+    # doppio-dev -> node build/dev/console/runner.js
+    ./doppio-dev classes/demo/Fib
+    ./doppio-dev classes/demo/Fib --java 7  # passes an argument to the JVM
+    ./doppio-dev --jar my_application.jar   # extracts and runs a JAR
     
-To get the optimized version, use `make opt`. The optimized
-build products can be found in `build/opt`.
+To get the optimized version, use `make release-cli`. The build products can be
+found in `build/release`, and the runtime can be invoked via `./doppio`.
 
 Automated Rebuilding
 --------------------
 
-For `make opt`, we have
-
-    bundle exec guard -i
-    
-For console debug mode, simply use `coffee -wc */*.coffee`.
+    bundle exec guard -i -g release # automates `make release-cli`
+    bundle exec guard -i -g dev # automates `make dev-cli`
 
 The front-end currently lacks an auto-rebuild system.
 

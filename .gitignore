@@ -13,6 +13,8 @@ index.html
 about.html
 .DS_store
 Gemfile.lock
+doppio
+doppio-dev
 browser/_about.html
 vendor/java_home
 tools/preload

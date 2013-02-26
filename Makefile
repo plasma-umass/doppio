@@ -106,9 +106,11 @@ dev: dependencies build/dev build/dev/browser \
 	rsync browser/*.svg browser/*.png build/dev/browser/
 	cd build/dev; $(COFFEEC) $(DOPPIO_DIR)/tools/gen_dir_listings.coffee > browser/listings.json
 
-release-cli: $(CLI_SRCS:%.coffee=build/release/%.js) build/release/classes build/release/vendor
+release-cli: $(CLI_SRCS:%.coffee=build/release/%.js) \
+	build/release/classes build/release/vendor doppio
 
-dev-cli: $(CLI_SRCS:%.coffee=build/dev/%.js) build/dev/classes build/dev/vendor
+dev-cli: $(CLI_SRCS:%.coffee=build/dev/%.js) \
+	build/dev/classes build/dev/vendor doppio-dev
 
 # Builds a distributable version of Doppio.
 dist: $(DIST_NAME)
@@ -154,7 +156,7 @@ classes/test/%.runout: classes/test/%.class
 	-java classes/test/$* &>classes/test/$*.runout
 
 clean:
-	@rm -f tools/*.js tools/preload browser/listings.json
+	@rm -f tools/*.js tools/preload browser/listings.json doppio doppio-dev
 	@rm -rf build/*
 	@rm -f $(patsubst %.md,%.html,$(wildcard browser/*.md))
 
@@ -212,6 +214,10 @@ $(foreach TARGET,$(BUILD_TARGETS),$(subst %,$(TARGET),build/%/classes build/%/ve
 
 build/%/browser/mini-rt.tar: tools/preload
 	COPYFILE_DISABLE=true && tar -c -T tools/preload -f $@
+
+doppio doppio-dev:
+	echo "node build/$(if $(findstring dev,$@),dev,release)/console/runner.js \$$@" > $@
+	chmod +x $@
 
 # Never delete these files in the event of a failure.
 .SECONDARY: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES) $(UTIL_CLASSES)
