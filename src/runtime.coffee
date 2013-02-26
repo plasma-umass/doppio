@@ -227,7 +227,7 @@ class root.RuntimeState
     debug "### finished runtime state initialization ###"
 
   dump_state: ->
-    return if jvm.no_dump_state
+    return unless jvm.dump_state
     fs = node?.fs ? require 'fs'
     fs.writeFileSync "./core-#{thread_name @, @curr_thread}", JSON.stringify @meta_stack()
 

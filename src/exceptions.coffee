@@ -1,7 +1,7 @@
 
 # pull in external modules
 _ = require '../vendor/_.js'
-{trace,vtrace,error,debug} = require './logging'
+{error,debug} = require './logging'
 
 "use strict"
 

@@ -11,7 +11,7 @@ progress = null
 bs_cl = null
 
 # we don't have space for a core dump in the browser
-jvm.no_dump_state = true
+jvm.dump_state = false
 
 preload = ->
   try
