@@ -1,10 +1,9 @@
-# The target(s) specified. In general, if we use this variable, we assume that
-# there is only one target specified.
-MAKECMDGOALS ?= release
-
 # Force the use of bash for shell statements. If we don't do this, many Linux
 # variants will use sh.
 SHELL := /bin/bash
+
+# Will appear as directories under build/
+BUILD_TARGETS = release benchmark opt dev development
 
 # Can be overridden on the command line. This is the name of the tar.gz file
 # produced when you run `make dist'.
@@ -39,8 +38,6 @@ LIB_CLASSES = $(LIB_SRCS:.java=.class)
 
 # HTML
 BROWSER_HTML = $(wildcard browser/[^_]*.html)
-BUILD_DIR = build/$(MAKECMDGOALS)
-BUILD_HTML = $(addprefix $(BUILD_DIR)/, $(notdir $(BROWSER_HTML)))
 
 # SCRIPTS
 # the order here is important: must match the order of includes
@@ -75,7 +72,6 @@ development_BROWSER_SRCS = $(release_BROWSER_SRCS)
 benchmark_BROWSER_SRCS = $(COMMON_BROWSER_SRCS) \
 	browser/mockconsole.coffee \
 	browser/frontend.coffee
-BROWSER_SRCS = $($(MAKECMDGOALS)_BROWSER_SRCS)
 # they don't survive uglifyjs and are already minified, so include them
 # separately. also, this allows us to put them at the end of the document to
 # reduce load time.
@@ -83,8 +79,6 @@ ACE_SRCS = vendor/ace/src-min/ace.js \
 	vendor/ace/src-min/mode-java.js \
 	vendor/ace/src-min/theme-twilight.js
 CLI_SRCS = $(wildcard src/*.coffee console/*.coffee)
-
-BROWSER_COFFEE = $(shell echo $(BROWSER_SRCS) | fmt -1 | grep '.coffee')
 
 ################################################################################
 # TARGETS
@@ -94,24 +88,29 @@ BROWSER_COFFEE = $(shell echo $(BROWSER_SRCS) | fmt -1 | grep '.coffee')
 .PHONY: release benchmark dist dependencies java test clean docs build dev development
 
 # Builds a release or benchmark version of Doppio without the documentation.
-# These targets differ in the variables that are set before they are run; see
-# MAKECMDGOALS above.
-release: build $(BUILD_DIR)/browser/listings.json
-benchmark: build $(BUILD_DIR)/browser/listings.json
-dev development: $(DEMO_CLASSES) browser/mini-rt.tar browser/listings.json
-	$(COFFEEC) -c $(BROWSER_COFFEE)
+# This is a static pattern rule. '%' gets substituted for the target name.
+release benchmark: %: dependencies build/% build/%/browser \
+	$(patsubst %,build/\%/%,$(notdir $(BROWSER_HTML))) \
+	build/%/compressed.js browser/mini-rt.tar build/%/ace.js \
+	build/%/browser/style.css $(DEMO_CLASSES) $(UTIL_CLASSES) \
+	build/%/classes build/%/vendor
+	rsync browser/*.svg build/$*/browser/
+	rsync browser/*.png build/$*/browser/
+	rsync browser/mini-rt.tar build/$*/browser/mini-rt.tar
+	cd build/$*; $(COFFEEC) $(DOPPIO_DIR)/tools/gen_dir_listings.coffee > browser/listings.json
+
+dev development: $(DEMO_CLASSES) browser/mini-rt.tar
+	$(COFFEEC) -c `echo $(dev_BROWSER_SRCS) | fmt -1 | grep '.coffee'`
 	cpp -P browser/index.html index.html
+	$(COFFEEC) tools/gen_dir_listings.coffee > browser/listings.json
 
 # optimized CLI build
-opt: $(BUILD_DIR)/console $(BUILD_DIR)/src $(CLI_SRCS:%.coffee=$(BUILD_DIR)/%.js) symlinks
-$(BUILD_DIR)/%.js: %.coffee
-	$(SED) -r "s/^( *)(debug|v?trace).*$$/\1\`\`/" $? | $(COFFEEC) --stdio --print > $@
-	$(UGLIFYJS) --define RELEASE --define UNSAFE --no-mangle --unsafe --beautify --overwrite $@
+opt: $(CLI_SRCS:%.coffee=build/opt/%.js) build/opt/classes build/opt/vendor
 
 # Builds a distributable version of Doppio.
 dist: $(DIST_NAME)
 $(DIST_NAME): release docs
-	tar czf $(DIST_NAME) $(BUILD_DIR)
+	tar czf $(DIST_NAME) build/release
 
 # Installs or checks for any required dependencies.
 dependencies: $(COFFEEC) $(UGLIFYJS) $(OPTIMIST) $(JAZZLIB) $(JRE) $(DOCCO) $(ADMZIP)
@@ -136,20 +135,14 @@ $(JRE):
 java: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES) $(UTIL_CLASSES) $(LIB_CLASSES)
 
 # Runs the Java tests in classes/test with the node runner.
-# We depend on MAKECMDFLAGS being set to `opt`, so we invoke make recursively.
-# Caveat: Invoking a specific test (via `make TestClass.test`) will not trigger
-# a rebuild of the Coffeescript code...
-test:
-	make opt
-	make _test
-_test: dependencies $(TESTS)
+test: dependencies $(TESTS)
 	@echo ''
 	@cat classes/test/failures.txt
 # compiling each one by itself is really inefficient...
 %.class: %.java
 	javac $^
 # phony *.test targets allow us to test with -j4 parallelism
-classes/test/%.test: classes/test/%.class classes/test/%.disasm classes/test/%.runout
+classes/test/%.test: opt classes/test/%.class classes/test/%.disasm classes/test/%.runout
 	@node build/opt/console/test_runner.js classes/test/$* --makefile
 classes/test/%.disasm: classes/test/%.class
 	javap -c -verbose -private classes/test/$* >classes/test/$*.disasm
@@ -161,45 +154,73 @@ clean:
 	@rm -f $(CLASSES) $(DISASMS) $(RUNOUTS)
 	@rm -f src/*.js browser/*.js console/*.js tools/*.js
 	@rm -rf build/* browser/mini-rt.tar $(DEMO_CLASSES)
+	@rm -f tools/preload
 	@rm -f index.html browser/listings.json
 
 # docs need to be generated in one shot so docco can create the full jumplist.
 # This is slow, so we have it as a separate target (even though it is needed
 # for a full release build).
-docs: dependencies $(BUILD_DIR)
+docs: dependencies build/release
 	$(DOCCO) $(filter %.coffee, $(release_BROWSER_SRCS))
-	rm -rf $(BUILD_DIR)/docs
-	mv docs $(BUILD_DIR)
+	rm -rf build/release/docs
+	mv docs build/release
 
 browser/mini-rt.tar: tools/preload
 	COPYFILE_DISABLE=true && tar -c -T tools/preload -f $@
 
-tools/preload:
-	make opt
+tools/preload: opt
 	@echo "Generating list of files to preload in browser... (will take a few seconds)"
 	@node build/opt/console/runner.js classes/util/Javac --java=./classes/test/FileOps.java --list-class-cache > tools/preload
 
 ################################################################################
 # BUILD DIRECTORY TARGETS
 ################################################################################
-# Double colon: Can execute multiple times in one `make' invocation.
-$(BUILD_DIR) $(BUILD_DIR)/browser $(BUILD_DIR)/console $(BUILD_DIR)/src::
-	mkdir -p $@
 
-browser/listings.json:
-	$(COFFEEC) tools/gen_dir_listings.coffee > browser/listings.json
-$(BUILD_DIR)/browser/listings.json:
-	cd $(BUILD_DIR); $(COFFEEC) $(DOPPIO_DIR)/tools/gen_dir_listings.coffee > browser/listings.json
+# Double colon: Can execute multiple times in one `make' invocation.
+# subst: Use 'manual' substitution because we don't want this to be a pattern
+# rule.  there are multiple targets that need to be individually fulfilled, but
+# pattern rules assume they are all fulfilled in one shot.
+BUILD_FOLDERS = build/% build/%/browser build/%/console build/%/src
+$(foreach TARGET,$(BUILD_TARGETS),$(subst %,$(TARGET),$(BUILD_FOLDERS)))::
+	mkdir -p $@
 
 browser/_about.html: browser/_about.md
 	rdiscount $? > $@
 browser/about.html: browser/_about.html
 
-$(BUILD_DIR)/%.html: $(BROWSER_HTML) $(wildcard browser/_*.html)
+$(BUILD_TARGETS:%=build/%/%.html): $(BROWSER_HTML) $(wildcard browser/_*.html)
 	cpp -P -traditional-cpp -DRELEASE browser/$*.html $@
 
-$(BUILD_DIR)/compressed.js: $(BROWSER_SRCS)
-	for src in $(BROWSER_SRCS); do \
+build/%/ace.js: $(ACE_SRCS)
+	for src in $(ACE_SRCS); do \
+		cat $${src}; \
+		echo ";"; \
+	done > $@
+
+$(CLI_SRCS:%.coffee=build/opt/%.js): build/opt/src build/opt/console
+
+$(BUILD_TARGETS:%=build/%/%.js): %.coffee
+	$(SED) -r "s/^( *)(debug|v?trace).*$$/\1\`\`/" $< | $(COFFEEC) --stdio --print > $@
+	$(UGLIFYJS) --define RELEASE --define UNSAFE --no-mangle --unsafe --beautify --overwrite $@
+
+# The | prevents the rule from being included in $^.
+build/%/browser/style.css: vendor/bootstrap/css/bootstrap.min.css \
+	browser/style.css | build/%/browser
+	cat $^ > $@
+
+# Prevent this from being treated as pattern rule (because it has multiple targets)
+$(foreach TARGET,$(BUILD_TARGETS),$(subst %,$(TARGET),build/%/classes build/%/vendor)):
+	ln -sfn $(DOPPIO_DIR)/$(notdir $@) $@
+
+# Never delete these files in the event of a failure.
+.SECONDARY: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES) $(UTIL_CLASSES)
+
+# SECONDEXPANSION allows us to use the '%' match to select our BROWSER_SRCS.
+# '%' is not bound when the first expansion occurs. The directive applies to
+# all rules from this point on, so put it at the bottom of the file.
+.SECONDEXPANSION:
+build/%/compressed.js: build/% $$(%_BROWSER_SRCS)
+	for src in $($*_BROWSER_SRCS); do \
 		if [ "$${src##*.}" == "coffee" ]; then \
 			$(: `` is essentially Coffeescript's equivalent of Python's 'pass') \
 			$(SED) -r "s/^( *)(debug|v?trace).*$$/\1\`\`/" $${src} | $(COFFEEC) --stdio --print; \
@@ -208,28 +229,3 @@ $(BUILD_DIR)/compressed.js: $(BROWSER_SRCS)
 		fi; \
 		echo ";"; \
 	done | $(UGLIFYJS) --define RELEASE --define UNSAFE --no-mangle --unsafe > $@
-
-$(BUILD_DIR)/ace.js: $(ACE_SRCS)
-	for src in $(ACE_SRCS); do \
-		cat $${src}; \
-		echo ";"; \
-	done > $@
-
-# The | prevents the rule from being included in $^.
-$(BUILD_DIR)/browser/style.css: vendor/bootstrap/css/bootstrap.min.css \
-	browser/style.css | $(BUILD_DIR)/browser
-	cat $^ > $@
-
-build: dependencies $(BUILD_DIR) $(BUILD_DIR)/browser $(BUILD_HTML) \
-	$(BUILD_DIR)/compressed.js browser/mini-rt.tar $(BUILD_DIR)/ace.js \
-	$(BUILD_DIR)/browser/style.css $(DEMO_CLASSES) $(UTIL_CLASSES) symlinks
-	rsync browser/*.svg $(BUILD_DIR)/browser/
-	rsync browser/*.png $(BUILD_DIR)/browser/
-	rsync browser/mini-rt.tar $(BUILD_DIR)/browser/mini-rt.tar
-
-symlinks:
-	ln -sfn $(DOPPIO_DIR)/classes $(BUILD_DIR)/classes
-	ln -sfn $(DOPPIO_DIR)/vendor $(BUILD_DIR)/vendor
-
-# Never delete these files in the event of a failure.
-.SECONDARY: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES) $(UTIL_CLASSES)
