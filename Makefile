@@ -229,7 +229,8 @@ doppio doppio-dev:
 # variables are not bound when the first expansion occurs. The directive
 # applies to all rules from this point on, so put it at the bottom of the file.
 .SECONDEXPANSION:
-build/%/compressed.js: build/% $$(%_BROWSER_SRCS)
+build/release/compressed.js build/benchmark/compressed.js: build/%/compressed.js:\
+	build/% $$(%_BROWSER_SRCS)
 	for src in $($*_BROWSER_SRCS); do \
 		if [ "$${src##*.}" == "coffee" ]; then \
 			$(: `` is essentially Coffeescript's equivalent of Python's 'pass') \
