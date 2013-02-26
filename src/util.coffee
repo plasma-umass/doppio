@@ -325,7 +325,7 @@ class root.SafeMap
     return @proto_cache if key.toString() is '__proto__' and @proto_cache isnt undefined
     undefined
 
-  has: (key) -> return true unless (@get key) is undefined
+  has: (key) -> @get(key) isnt undefined
 
   set: (key, value) ->
     # toString() converts key to a primitive, so strict comparison works
