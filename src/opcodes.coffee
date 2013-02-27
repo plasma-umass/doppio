@@ -74,7 +74,7 @@ class root.InvokeOpcode extends root.Opcode
       # Initialize @method_spec.class and rerun opcode.
       rs.async_op (resume_cb, except_cb) =>
         rs.get_cl().initialize_class rs, @method_spec.class,
-          (->resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
+          (->resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb))
     return
 
 class root.DynInvokeOpcode extends root.InvokeOpcode
@@ -152,7 +152,7 @@ class root.LoadConstantOpcode extends root.Opcode
         # this opcode.
         cdesc = util.typestr2descriptor @str_constant.value
         rs.async_op (resume_cb, except_cb) =>
-          rs.get_cl().resolve_class(rs, cdesc, ((cls)=>resume_cb cls.get_class_object(rs), undefined, true), ((e_cb)->except_cb e_cb, true))
+          rs.get_cl().resolve_class(rs, cdesc, ((cls)=>resume_cb cls.get_class_object(rs), undefined, true), ((e_cb)->except_cb e_cb))
         return
       else
         rs.push @constant.value
@@ -348,7 +348,7 @@ class root.MultiArrayOpcode extends root.Opcode
     unless cls?
       rs.async_op (resume_cb, except_cb) =>
         rs.get_cl().initialize_class rs, @class,
-          ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
+          ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb))
       return
 
     new_execute = (rs) ->
@@ -606,12 +606,12 @@ root.opcodes = {
         # Initialize cls_type and rerun opcode.
         rs.async_op (resume_cb, except_cb) =>
           rs.get_cl().initialize_class rs, cls_type,
-            ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
+            ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb))
     else
       # Initialize @field_spec.class and rerun opcode.
       rs.async_op (resume_cb, except_cb) =>
         rs.get_cl().initialize_class rs, @field_spec.class,
-          ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
+          ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb))
     return
   }
   179: new root.FieldOpcode 'putstatic', {execute: (rs)->
@@ -634,12 +634,12 @@ root.opcodes = {
         # Initialize cls_type and rerun opcode.
         rs.async_op (resume_cb, except_cb) =>
           rs.get_cl().initialize_class rs, cls_type,
-            ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
+            ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb))
     else
       # Initialize @field_spec.class and rerun opcode.
       rs.async_op (resume_cb, except_cb) =>
         rs.get_cl().initialize_class rs, @field_spec.class,
-          ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
+          ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb))
     return
   }
   180: new root.FieldOpcode 'getfield', { execute: (rs) ->
@@ -712,7 +712,7 @@ root.opcodes = {
           else
             obj = new JavaObject(rs, class_file)
           resume_cb(obj, undefined, true)
-        rs.get_cl().initialize_class rs, @class, success_fn, ((e_cb)->except_cb(e_cb, true))
+        rs.get_cl().initialize_class rs, @class, success_fn, ((e_cb)->except_cb(e_cb))
   }
   188: new root.NewArrayOpcode 'newarray', { execute: (rs) -> rs.push rs.heap_newarray @element_type, rs.pop() }
   189: new root.ClassOpcode 'anewarray', { execute: (rs) ->
@@ -727,7 +727,7 @@ root.opcodes = {
       # Load @class and rerun opcode.
       rs.async_op (resume_cb, except_cb) =>
         rs.get_cl().resolve_class rs, @class,
-          ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb, true))
+          ((class_file)=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb))
     return
   }
   190: new root.Opcode 'arraylength', { execute: (rs) -> rs.push rs.check_null(rs.pop()).array.length }
@@ -751,7 +751,7 @@ root.opcodes = {
       rs.async_op (resume_cb, except_cb) =>
         rs.get_cl().resolve_class rs, @class, (()->
           resume_cb undefined, undefined, true, false
-        ), ((e_cb)->except_cb(e_cb, true))
+        ), ((e_cb)->except_cb(e_cb))
   }
   193: new root.ClassOpcode 'instanceof', { execute: (rs) ->
     @cls = rs.get_cl().get_resolved_class @class, true
@@ -766,7 +766,7 @@ root.opcodes = {
       rs.async_op (resume_cb, except_cb) =>
         rs.get_cl().resolve_class rs, @class, (()->
           resume_cb undefined, undefined, true, false
-        ), ((e_cb)->except_cb(e_cb, true))
+        ), ((e_cb)->except_cb(e_cb))
   }
   194: new root.Opcode 'monitorenter', { execute: (rs)->
     monitor = rs.pop()

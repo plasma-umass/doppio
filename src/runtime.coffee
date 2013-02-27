@@ -388,11 +388,10 @@ class root.RuntimeState
                 @push ret1
               @push ret2 unless ret2 is undefined
             @run_until_finished (->), no_threads, done_cb
-          failure_fn = (e_cb, bytecode) =>
-            if bytecode
-              @meta_stack().push root.StackFrame.native_frame("async_op")
+          failure_fn = (e_cb) =>
+            @meta_stack().push root.StackFrame.native_frame("async_op")
             @curr_frame().runner = =>
-              @meta_stack().pop()  # removing this line fixes native stacktraces, but breaks other things
+              @meta_stack().pop()
               e_cb()
             @run_until_finished (->), no_threads, done_cb
           e.condition success_fn, failure_fn

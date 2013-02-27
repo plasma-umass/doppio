@@ -1376,9 +1376,6 @@ native_methods =
                 # current frame. We need a better story for calling Java threads through
                 # native functions.
                 except_cb ->
-                  # XXX: Kludge to get around my nice abstraction. :-/
-                  # except_cb pops the frame off before running the callback.
-                  rs.meta_stack().push my_sf
                   method.setup_stack(rs)
                   # Overwrite my runner.
                   my_sf.runner = ->
