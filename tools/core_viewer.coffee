@@ -80,14 +80,18 @@ $.get file, ((data) ->
   all_objects = graph2map stack_objects
 
   objects_div = $('<div>', id: 'stack-objects')
-  for obj in stack_objects
-    print_object obj, objects_div
-    objects_div.prepend ul = $('<ul>', id:"object-#{obj.ref}")
+  print_object obj, objects_div for obj in stack_objects
   objects_div.prepend $('<h1>', html: 'Objects')
   main.append objects_div), 'json'
 
 window.addEventListener 'hashchange', ->
   ref = location.hash[1..] # strip the leading '#'
+  if ref is ''
+    objects_div = $('#stack-objects')
+    objects_div.html ''
+    print_object obj, objects_div for obj in stack_objects
+    objects_div.prepend $('<h1>', html: 'Objects')
+    return
   object_div = $("#object-#{ref}")
   unless object_div[0]?
     objects_div = $('#stack-objects')
