@@ -44,7 +44,7 @@ root.run_class = (rs, class_name, cmdline_args, done_cb) ->
             rs.run_until_finished (-> main_method.setup_stack(rs)), false, (success) ->
               done_cb?() if success
         ), except_cb
-    )
+    ), true, (->)
 
   run_program = ->
     trace "run_program"
