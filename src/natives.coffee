@@ -1409,7 +1409,6 @@ native_methods =
                 # native functions.
                 except_cb ->
                   # XXX: Kludge to get around my nice abstraction. :-/
-                  # except_cb pops the frame off before running the callback.
                   rs.meta_stack().push my_sf
                   # Push the constructor's frame onto the stack.
                   method.setup_stack(rs)
