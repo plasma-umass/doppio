@@ -1,4 +1,6 @@
 body {
+  display: table;
+  table-layout: fixed;
   width: 75%;
   margin: 0 auto;
   font-family: Monaco, Menlo, Consolas, "Courier New", monospace;
@@ -24,6 +26,7 @@ ul {
   margin-left: 1px;
   padding-left: 0;
   white-space: nowrap;
+  overflow: scroll;
 }
 
 ul.fields {

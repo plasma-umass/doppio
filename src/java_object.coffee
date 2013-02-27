@@ -118,5 +118,20 @@ class root.JavaClassLoaderObject extends root.JavaObject
     {CustomClassLoader} = require('./ClassLoader') unless CustomClassLoader?
     @$loader = new CustomClassLoader(rs.get_bs_cl(), @)
 
+  serialize: (visited) ->
+    return "<*#{@ref}>" if @ref of visited
+    visited[@ref] = true
+    fields = {}
+    fields[k] = v?.serialize?(visited) ? v for k,v of @fields
+    loaded = {}
+    for type,cls in @$loader.loaded_classes
+      loaded["#{type}(#{cls.getLoadState()})"] = cls.loader.serialize(visited)
+    {
+      type: @cls.get_type()
+      ref: @ref
+      fields: fields
+      loaded: loaded
+    }
+
 root.thread_name = (rs, thread) ->
   util.chars2js_str thread.get_field rs, 'Ljava/lang/Thread;name'

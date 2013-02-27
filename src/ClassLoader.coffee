@@ -373,6 +373,15 @@ class root.BootstrapClassLoader extends ClassLoader
   # Passes an error string to failure_fn.
   constructor: (@read_classfile) -> super(@)
 
+  serialize: (visited) ->
+    return '<*bootstrapLoader>' if 'bootstrapLoader' of visited
+    visited['bootstrapLoader'] = true
+    loaded = {}
+    for type,cls of @loaded_classes
+      loaded["#{type}(#{cls.getLoadState()})"] = cls.loader.serialize(visited)
+    ref: 'bootstrapLoader'
+    loaded: loaded
+
   # Sets the reset bit on all of the classes in the CL to 1.
   # Causes the classes to be reset when they are first resolved.
   reset: ->
@@ -449,6 +458,8 @@ class root.CustomClassLoader extends ClassLoader
   # represents this ClassLoader.
   # @bootstrap is an instance of the bootstrap class loader.
   constructor: (bootstrap, @loader_obj) -> super(bootstrap)
+
+  serialize: (visited) -> @loader_obj.serialize(visited)
 
   # Asynchronously retrieves the given class, and passes its ClassData
   # representation to success_fn.

@@ -39,6 +39,7 @@ class root.StackFrame
   serialize: (visited) ->
     name: @name
     pc: @pc
+    loader: @method.cls?.loader.serialize(visited)
     native: @native
     stack: (obj?.serialize?(visited) ? obj for obj in @stack)
     locals: (obj?.serialize?(visited) ? obj for obj in @locals)
@@ -333,7 +334,6 @@ class root.RuntimeState
     else
       error "\nInternal JVM Error:", e
       error e.stack if e?.stack?
-      @dump_state() if jvm.dump_state
       done_cb false
     return
 
@@ -408,6 +408,7 @@ class root.RuntimeState
             stack.pop_n frames_to_pop
             @run_until_finished (->), no_threads, done_cb
           else
+            @dump_state() if jvm.dump_state
             stack.pop_n Math.max(stack.length() - 1, 0)
             @handle_toplevel_exception e, no_threads, done_cb
       return  # this is an async method, no return value

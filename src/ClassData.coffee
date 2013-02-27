@@ -42,6 +42,11 @@ class ClassData
 
   toExternalString: () -> util.ext_classname @this_class
 
+  getLoadState: ->
+    if @initialized then 'initialized'
+    else if @resolved then 'resolved'
+    else 'loaded'
+
   # Returns the ClassLoader object of the classloader that initialized this
   # class. Returns null for the default classloader.
   get_class_loader: -> @loader

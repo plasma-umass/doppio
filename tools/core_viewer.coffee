@@ -9,7 +9,7 @@ print_object = (obj) ->
       object_refs[obj.ref] = true
       objects.push obj # retain order
     "<a class='ref' href='#'>*#{obj.ref}</a>"
-  else if typeof obj is 'string' and /<\*\d+>/.test obj
+  else if typeof obj is 'string' and /<\*(?:\d+|bootstrapLoader)>/.test obj
     "<a class='ref' href='#'>#{obj[1...-1]}</a>"
   else
     obj + "" # ensure 'null' is visible
@@ -23,6 +23,8 @@ $.get file, ((data) ->
       if k in ['stack','locals']
         ul.append li = $('<li>', html: "#{k}: ")
         li.append $('<span>', class: 'array-entry', html: print_object obj) for obj in v
+      else if k is 'loader'
+        ul.append $('<li>', html: "#{k}: #{print_object v}")
       else
         ul.append $('<li>', html: "#{k}: #{v}")
   frames_div.prepend $('<h1>', html: 'Stack Frames')
@@ -35,11 +37,11 @@ $.get file, ((data) ->
     for obj in objs
       objects_div.prepend ul = $('<ul>', id:"object-#{obj.ref}")
       for k,v of obj
-        if k is 'fields'
+        if k in ['fields', 'loaded']
           ul.append li = $('<li>', html: "#{k}: ")
           li.append nested = $('<ul>', class: 'fields')
-          for field_name,obj of v
-            nested.append $('<li>', html: "#{field_name}: #{print_object obj}")
+          for field_name,field_obj of v
+            nested.append $('<li>', html: "#{field_name}: #{print_object field_obj}")
         else if k is 'array'
           ul.append li = $('<li>', html: "#{k}: ")
           if obj.type is '[C'
