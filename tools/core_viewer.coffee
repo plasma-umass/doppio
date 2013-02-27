@@ -46,8 +46,10 @@ $.get file, (data) ->
           if obj.type is '[C'
             li.append "\"#{(String.fromCharCode(c) for c in v).join ''}\""
           else
+            li.append '['
             for obj in v
               li.append $('<span>', class: 'array-entry', html: print_object obj)
+            li.append ']'
         else
           ul.append $('<li>', html: "#{k}: #{v}")
   main.append objects_div
