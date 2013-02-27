@@ -347,7 +347,6 @@ class root.RuntimeState
     # scatter this around the code everywhere to prevent filling the stack
     process.nextTick(=>
       @stashed_done_cb = done_cb  # hack for the case where we error out of <clinit>
-      @_in_main_loop = true
       try
         setup_fn()
         while true
@@ -365,12 +364,10 @@ class root.RuntimeState
           @curr_thread = @choose_next_thread()
         done_cb true
       catch e
-        @_in_main_loop = false
         if e == 'Error in class initialization'
           done_cb false
+        # XXX: We should remove this and have a better mechanism for 'returning'.
         else if e is ReturnException
-          # XXX: technically we shouldn't get here. Right now we get here
-          # when java_throw is called from the main method lookup.
           @run_until_finished (->), no_threads, done_cb
         else if e instanceof YieldIOException
           # Set "bytecode" if this was triggered by a bytecode instruction (e.g.

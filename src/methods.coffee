@@ -174,11 +174,7 @@ class root.Method extends AbstractMethodField
 
   run_manually: (func, rs, converted_params) ->
     trace "entering native method #{@full_signature()}"
-    try
-      rv = func converted_params...
-    catch e
-      return if e is ReturnException  # XXX kludge; now relied upon by class initialization!
-      throw e
+    rv = func converted_params...
     rs.meta_stack().pop()
     ret_type = @return_type
     unless ret_type == 'V'
@@ -190,12 +186,8 @@ class root.Method extends AbstractMethodField
     if @reset_caches and @code?.opcodes?
       for instr in @code.opcodes
         instr?.reset_cache()
-    try
-      @bytecode_loop(rs)
-    catch e
-      return if e is ReturnException  # stack pop handled by opcode
-      throw e unless e.method_catch_handler?(rs, rs.curr_frame(), true)
-      @run_bytecode(rs)
+
+    @bytecode_loop(rs)
 
   # Reinitializes the method by removing all cached information from the method.
   # We amortize the cost by doing it lazily the first time the bytecode_loop
