@@ -1,4 +1,3 @@
-
 _ = require '../vendor/_.js'
 util = require './util'
 {log,debug,error,trace,vtrace} = require './logging'
@@ -90,7 +89,7 @@ class root.JavaObject
       "<#{@cls.get_type()} (*#{@ref})>"
 
   serialize: (visited) ->
-    return "<*#{@ref}>" if @href of visited
+    return "<*#{@ref}>" if @ref of visited
     visited[@ref] = true
     fields = {}
     fields[k] = v?.serialize?(visited) ? v for k,v of @fields
