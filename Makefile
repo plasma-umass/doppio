@@ -172,8 +172,12 @@ docs: dependencies build/release
 	mv docs build/release
 
 tools/preload: release-cli
-	@echo "Generating list of files to preload in browser... (will take a few seconds)"
-	@node build/release/console/runner.js classes/util/Javac --java=./classes/test/FileOps.java --list-class-cache > tools/preload
+	@if [ -z "$$KEEP_PRELOAD" ]; then \
+		echo "Generating list of files to preload in browser... (will take a few seconds)"; \
+		node build/release/console/runner.js classes/util/Javac --java=./classes/test/FileOps.java --list-class-cache > tools/preload; \
+	else \
+		echo "Not regenerating tools/preload because you told me so"; \
+	fi
 
 ################################################################################
 # BUILD DIRECTORY TARGETS
