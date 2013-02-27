@@ -18,7 +18,9 @@ $.get file, (data) ->
   data = JSON.parse data
   main = $('#main')
   frames_div = $('<div>', id: 'frames', html: '<h1>Stack Frames</h1>')
-  for frame in data
+  #TODO: rewrite this when we move to coffeescript v1.5.0
+  for frame_idx in [data.length-1..0] by -1
+    frame = data[frame_idx]
     frames_div.append ul = $('<ul>')
     for k,v of frame
       if k in ['stack','locals']
