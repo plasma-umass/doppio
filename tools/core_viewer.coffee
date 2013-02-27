@@ -57,7 +57,6 @@ $(document).on 'click', 'a.ref', (e) ->
   e.stopPropagation()
   ref = $(@).text()[1..]
   object_div = $("#object-#{ref}")
-  console.log object_div[0]
   object_div[0].scrollIntoView(true)
   object_div.css 'backgroundColor', '#ffc'
   setTimeout (-> object_div.css 'backgroundColor', ''), 300
