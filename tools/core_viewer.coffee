@@ -1,19 +1,64 @@
 file = if location.search == '' then '../core-main.json' else location.search[1..]
 
 object_refs = {}
-objects = []
+stack_objects = []
+all_objects = []
 
-print_object = (obj) ->
+# Generates a map of ref -> obj
+graph2map = (data) ->
+  rv = {}
+  to_visit = stack_objects
+  while to_visit.length > 0
+    visiting = to_visit
+    to_visit = []
+    for obj in visiting
+      rv[obj.ref] = obj
+      for k,v of obj
+        if k in ['fields','loaded']
+          to_visit.push field_obj for field_name,field_obj of v when field_obj?.ref?
+        else if k is 'array'
+          to_visit.push array_obj for array_obj in v when array_obj?.ref?
+  rv
+
+record_object = (obj) ->
+  return unless obj?.ref?
+  if obj.ref not of object_refs
+    object_refs[obj.ref] = true
+    stack_objects.push obj # retain order
+
+print_value = (obj) ->
   if obj?.ref?
-    if obj.ref not of object_refs
-      object_refs[obj.ref] = true
-      objects.push obj # retain order
-    "<a class='ref' href='#'>*#{obj.ref}</a>"
+    "<a class='ref' href='##{obj.ref}'>*#{obj.ref}</a>"
   else if typeof obj is 'string' and /<\*(?:\d+|bootstrapLoader)>/.test obj
-    "<a class='ref' href='#'>#{obj[1...-1]}</a>"
+    ref = obj[2...-1]
+    "<a class='ref' href='##{ref}'>*#{ref}</a>"
   else
     obj + "" # ensure 'null' is visible
 
+print_object = (obj, div, depth=1) ->
+  return if depth is -1 or not obj?.ref?
+  div.append ul = $('<ul>', id:"object-#{obj.ref}")
+  for k,v of obj
+    if k in ['fields', 'loaded']
+      ul.append li = $('<li>', html: "#{k}: ")
+      li.append nested = $('<ul>', class: 'fields')
+      for field_name,field_obj of v
+        nested.append $('<li>', html: "#{field_name}: #{print_value field_obj}")
+        print_object field_obj, div, depth - 1
+    else if k is 'array'
+      ul.append li = $('<li>', html: "#{k}: ")
+      if obj.type is '[C'
+        li.append "\"#{(String.fromCharCode(c) for c in v).join ''}\""
+      else
+        li.append '['
+        for array_obj in v
+          li.append $('<span>', class: 'array-entry', html: print_value array_obj)
+          print_object field_obj, div, depth - 1
+        li.append ']'
+    else
+      ul.append $('<li>', html: "#{k}: #{v}")
+
+# setup
 $.get file, ((data) ->
   main = $('#main')
   frames_div = $('<div>', id: 'frames')
@@ -22,45 +67,34 @@ $.get file, ((data) ->
     for k,v of frame
       if k in ['stack','locals']
         ul.append li = $('<li>', html: "#{k}: ")
-        li.append $('<span>', class: 'array-entry', html: print_object obj) for obj in v
+        for obj in v
+          record_object obj
+          li.append $('<span>', class: 'array-entry', html: print_value obj)
       else if k is 'loader'
-        ul.append $('<li>', html: "#{k}: #{print_object v}")
+        record_object v
+        ul.append $('<li>', html: "#{k}: #{print_value v}")
       else
         ul.append $('<li>', html: "#{k}: #{v}")
   frames_div.prepend $('<h1>', html: 'Stack Frames')
   main.append frames_div
 
-  objects_div = $('<div>', id: 'objects')
-  while objects.length > 0
-    objs = objects
-    objects = []
-    for obj in objs
-      objects_div.prepend ul = $('<ul>', id:"object-#{obj.ref}")
-      for k,v of obj
-        if k in ['fields', 'loaded']
-          ul.append li = $('<li>', html: "#{k}: ")
-          li.append nested = $('<ul>', class: 'fields')
-          for field_name,field_obj of v
-            nested.append $('<li>', html: "#{field_name}: #{print_object field_obj}")
-        else if k is 'array'
-          ul.append li = $('<li>', html: "#{k}: ")
-          if obj.type is '[C'
-            li.append "\"#{(String.fromCharCode(c) for c in v).join ''}\""
-          else
-            li.append '['
-            for obj in v
-              li.append $('<span>', class: 'array-entry', html: print_object obj)
-            li.append ']'
-        else
-          ul.append $('<li>', html: "#{k}: #{v}")
+  all_objects = graph2map data
+
+  objects_div = $('<div>', id: 'stack-objects')
+  for obj in stack_objects
+    print_object obj, objects_div
+    objects_div.prepend ul = $('<ul>', id:"object-#{obj.ref}")
   objects_div.prepend $('<h1>', html: 'Objects')
   main.append objects_div), 'json'
 
-$(document).on 'click', 'a.ref', (e) ->
-  e.preventDefault()
-  e.stopPropagation()
-  ref = $(@).text()[1..]
+window.addEventListener 'hashchange', ->
+  ref = location.hash[1..] # strip the leading '#'
   object_div = $("#object-#{ref}")
+  unless object_div[0]?
+    objects_div = $('#stack-objects')
+    objects_div.html '<h1>Objects</h1>'
+    print_object all_objects[ref], objects_div
+    object_div = $("#object-#{ref}")
   object_div[0].scrollIntoView(true)
   object_div.css 'backgroundColor', '#ffc'
-  setTimeout (-> object_div.css 'backgroundColor', ''), 300
+  setTimeout (-> object_div.css 'backgroundColor', ''), 400

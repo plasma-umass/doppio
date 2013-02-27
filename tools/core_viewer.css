@@ -16,7 +16,7 @@ a {
   padding: 10px;
 }
 
-#frames, #objects {
+#frames, #stack-objects {
   display: table-cell;
   padding: 5px;
 }
@@ -33,12 +33,13 @@ ul.fields {
   padding-left: 1em;
 }
 
-#frames > ul > li, #objects > ul > li {
-  padding: 0 5px;
+#frames > ul > li, #stack-objects > ul > li {
+  /* extra padding on bottom so OS X scrollbar doesn't obstruct links */
+  padding: 0 5px 10px 5px;
   margin: 1px;
 }
 
-#frames > ul:nth-child(odd), #objects > ul:nth-child(odd) {
+#frames > ul:nth-child(odd), #stack-objects > ul:nth-child(odd) {
   background-color: #f8f8f8;
 }
 

@@ -217,7 +217,7 @@ class root.RuntimeState
 
   dump_state: ->
     fs = node?.fs ? require 'fs'
-    # 3rd parameter to writeFileSync ensures this is not stored in localStorage in the browser
+    # 4th parameter to writeFileSync ensures this is not stored in localStorage in the browser
     fs.writeFileSync "./core-#{thread_name @, @curr_thread}.json",
       (JSON.stringify @meta_stack().serialize({})), 'utf8', true
 
