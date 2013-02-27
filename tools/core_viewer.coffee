@@ -38,7 +38,7 @@ $.get file, (data) ->
       for k,v of obj
         if k is 'fields'
           ul.append li = $('<li>', html: "#{k}: ")
-          li.append nested = $('<ul>')
+          li.append nested = $('<ul>', class: 'fields')
           for field_name,obj of v
             nested.append $('<li>', html: "#{field_name}: #{print_object obj}")
         else if k is 'array'

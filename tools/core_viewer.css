@@ -26,6 +26,10 @@ ul {
   white-space: nowrap;
 }
 
+ul.fields {
+  padding-left: 1em;
+}
+
 #frames > ul > li, #objects > ul > li {
   padding: 0 5px;
   margin: 1px;
