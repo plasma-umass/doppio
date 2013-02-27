@@ -58,8 +58,8 @@ class root.StackFrame
       name: @name
       pc: @pc
       native: @native
-      stack: (obj.serialize?(visited) ? obj for obj in @stack)
-      locals: (obj.serialize?(visited) ? obj for obj in @locals)
+      stack: (obj?.serialize?(visited) ? obj for obj in @stack)
+      locals: (obj?.serialize?(visited) ? obj for obj in @locals)
     }
 
 # Contains all the mutable state of the Java program.
@@ -334,6 +334,7 @@ class root.RuntimeState
     else
       error "\nInternal JVM Error:", e
       error e.stack if e?.stack?
+      @dump_state() if jvm.dump_state
       done_cb false
     return
 
