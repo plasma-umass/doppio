@@ -5,9 +5,8 @@ stack_objects = []
 all_objects = []
 
 # Generates a map of ref -> obj
-graph2map = (data) ->
+graph2map = (to_visit) ->
   rv = {}
-  to_visit = stack_objects
   while to_visit.length > 0
     visiting = to_visit
     to_visit = []
@@ -78,7 +77,7 @@ $.get file, ((data) ->
   frames_div.prepend $('<h1>', html: 'Stack Frames')
   main.append frames_div
 
-  all_objects = graph2map data
+  all_objects = graph2map stack_objects
 
   objects_div = $('<div>', id: 'stack-objects')
   for obj in stack_objects
