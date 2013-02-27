@@ -189,7 +189,7 @@ class ClassLoader
 
   # Same as get_resolved_class, but for initialized classes.
   get_initialized_class: (type_str, null_handled=false) ->
-    cdata = @get_resolved_class type_str, true
+    cdata = @get_resolved_class type_str, null_handled
     return cdata if cdata?.is_initialized()
     return null if null_handled
     throw new Error "Error in get_initialized_class: Class #{type_str} is not initialized."

@@ -646,20 +646,29 @@ root.opcodes = {
     # Check if the object is null; if we do not do this before get_class, then
     # we might try to get a class that we have not initialized!
     obj = rs.check_null(rs.peek())
-    cls = rs.get_class(@field_spec.class)
-    field = cls.field_lookup(rs, @field_spec)
-    name = field.cls.get_type() + @field_spec.name
-    new_execute =
-      if @field_spec.type not in ['J','D']
-        (rs) ->
-          val = rs.check_null(rs.pop()).get_field rs, name
-          rs.push val
-      else
-        (rs) ->
-          val = rs.check_null(rs.pop()).get_field rs, name
-          rs.push2 val, null
-    new_execute.call(@, rs)
-    @execute = new_execute
+    # cls is guaranteed to be in the inheritance hierarchy of obj, so it must be
+    # initialized. However, it may not be loaded in the current class's
+    # ClassLoader...
+    cls = rs.get_class @field_spec.class, true
+    if cls?
+      field = cls.field_lookup(rs, @field_spec)
+      name = field.cls.get_type() + @field_spec.name
+      new_execute =
+        if @field_spec.type not in ['J','D']
+          (rs) ->
+            val = rs.check_null(rs.pop()).get_field rs, name
+            rs.push val
+        else
+          (rs) ->
+            val = rs.check_null(rs.pop()).get_field rs, name
+            rs.push2 val, null
+      new_execute.call(@, rs)
+      @execute = new_execute
+    else
+      # Alright, tell this class's ClassLoader to load the class.
+      rs.async_op (resume_cb, except_cb) =>
+        rs.get_cl().resolve_class rs, @field_spec.class,
+          (=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb))
     return
   }
   181: new root.FieldOpcode 'putfield', { execute: (rs) ->
@@ -670,20 +679,29 @@ root.opcodes = {
     else
       _obj = rs.check_null(rs.peek(1))
 
-    cls_obj = rs.get_class(@field_spec.class)
-    field = cls_obj.field_lookup(rs, @field_spec)
-    name = field.cls.get_type() + @field_spec.name
-    new_execute =
-      if @field_spec.type not in ['J','D']
-        (rs) ->
-          val = rs.pop()
-          rs.check_null(rs.pop()).set_field rs, name, val
-      else
-        (rs) ->
-          val =  rs.pop2()
-          rs.check_null(rs.pop()).set_field rs, name, val
-    new_execute.call(@, rs)
-    @execute = new_execute
+    # cls is guaranteed to be in the inheritance hierarchy of obj, so it must be
+    # initialized. However, it may not be loaded in the current class's
+    # ClassLoader...
+    cls_obj = rs.get_class @field_spec.class, true
+    if cls_obj?
+      field = cls_obj.field_lookup(rs, @field_spec)
+      name = field.cls.get_type() + @field_spec.name
+      new_execute =
+        if @field_spec.type not in ['J','D']
+          (rs) ->
+            val = rs.pop()
+            rs.check_null(rs.pop()).set_field rs, name, val
+        else
+          (rs) ->
+            val =  rs.pop2()
+            rs.check_null(rs.pop()).set_field rs, name, val
+      new_execute.call(@, rs)
+      @execute = new_execute
+    else
+      # Alright, tell this class's ClassLoader to load the class.
+      rs.async_op (resume_cb, except_cb) =>
+        rs.get_cl().resolve_class rs, @field_spec.class,
+          (=>resume_cb(undefined, undefined, true, false)), ((e_cb)->except_cb(e_cb))
     return
   }
   182: new root.DynInvokeOpcode 'invokevirtual'
