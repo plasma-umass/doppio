@@ -12,7 +12,7 @@ print_object = (obj) ->
   else if typeof obj is 'string' and /<\*\d+>/.test obj
     "<a class='ref' href='#'>#{obj[1...-1]}</a>"
   else
-    obj
+    obj + "" # ensure 'null' is visible
 
 $.get file, ((data) ->
   main = $('#main')

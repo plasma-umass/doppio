@@ -18,6 +18,8 @@ class root.CallStack
     if initial_stack?
       @_cs[0].stack = initial_stack
 
+  serialize: (visited) -> frame.serialize(visited) for frame in @_cs
+
   length: -> @_cs.length
   push: (sf) -> @_cs.push sf
   pop: -> @_cs.pop()
@@ -27,14 +29,19 @@ class root.CallStack
 
   get_caller: (frames_to_skip) -> @_cs[@_cs.length-1-frames_to_skip]
 
-  toJSON: -> @_cs
-
 class root.StackFrame
   constructor: (@method,@locals,@stack) ->
     @pc = 0
     @runner = null
     @native = false
     @name = @method.full_signature()
+
+  serialize: (visited) ->
+    name: @name
+    pc: @pc
+    native: @native
+    stack: (obj?.serialize?(visited) ? obj for obj in @stack)
+    locals: (obj?.serialize?(visited) ? obj for obj in @locals)
 
   # Creates a "native stack frame". Handler is called with no arguments for
   # normal execution, error_handler is called with the uncaught exception.
@@ -51,16 +58,6 @@ class root.StackFrame
     sf.error = error_handler if error_handler?
     sf.native = true
     return sf
-
-  toJSON: ->
-    visited = {}
-    {
-      name: @name
-      pc: @pc
-      native: @native
-      stack: (obj?.serialize?(visited) ? obj for obj in @stack)
-      locals: (obj?.serialize?(visited) ? obj for obj in @locals)
-    }
 
 # Contains all the mutable state of the Java program.
 class root.RuntimeState
@@ -220,7 +217,8 @@ class root.RuntimeState
   dump_state: ->
     fs = node?.fs ? require 'fs'
     # 3rd parameter to writeFileSync ensures this is not stored in localStorage in the browser
-    fs.writeFileSync "./core-#{thread_name @, @curr_thread}.json", (JSON.stringify @meta_stack()), 'utf8', true
+    fs.writeFileSync "./core-#{thread_name @, @curr_thread}.json",
+      (JSON.stringify @meta_stack().serialize({})), 'utf8', true
 
   choose_next_thread: (blacklist) ->
     unless blacklist?
