@@ -217,17 +217,6 @@ root.initial_value = (type_str) ->
 
 root.is_string = (obj) -> typeof obj == 'string' or obj instanceof String
 
-# Walks up the prototype chain of :object looking for an entry in the :handlers
-# dict that match its constructor's name.
-root.lookup_handler = (handlers, object) ->
-  obj = object
-  while obj?
-    # XXX: this will break on IE (due to constructor.name being undefined)
-    handler = handlers[obj.constructor.name]
-    return handler if handler
-    obj = Object.getPrototypeOf obj
-  return null
-
 # Java classes are represented internally using slashes as delimiters.
 # These helper functions convert between the two representations.
 root.ext_classname = (str) -> root.descriptor2typestr(str).replace /\//g, '.'
