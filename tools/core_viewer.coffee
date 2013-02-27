@@ -1,4 +1,4 @@
-file = if location.search == '' then '../core-main' else location.search[1..]
+file = if location.search == '' then '../core-main.json' else location.search[1..]
 
 object_refs = {}
 objects = []
@@ -14,29 +14,26 @@ print_object = (obj) ->
   else
     obj
 
-$.get file, (data) ->
-  data = JSON.parse data
+$.get file, ((data) ->
   main = $('#main')
-  frames_div = $('<div>', id: 'frames', html: '<h1>Stack Frames</h1>')
-  #TODO: rewrite this when we move to coffeescript v1.5.0
-  for frame_idx in [data.length-1..0] by -1
-    frame = data[frame_idx]
-    frames_div.append ul = $('<ul>')
+  frames_div = $('<div>', id: 'frames')
+  for frame in data
+    frames_div.prepend ul = $('<ul>')
     for k,v of frame
       if k in ['stack','locals']
-        li = $('<li>', html: "#{k}: ")
+        ul.append li = $('<li>', html: "#{k}: ")
         li.append $('<span>', class: 'array-entry', html: print_object obj) for obj in v
-        ul.append li
       else
         ul.append $('<li>', html: "#{k}: #{v}")
+  frames_div.prepend $('<h1>', html: 'Stack Frames')
   main.append frames_div
 
-  objects_div = $('<div>', id: 'objects', html: '<h1>Objects</h1>')
+  objects_div = $('<div>', id: 'objects')
   while objects.length > 0
-    objs = objects[..]
+    objs = objects
     objects = []
     for obj in objs
-      objects_div.append ul = $('<ul>', id:"object-#{obj.ref}")
+      objects_div.prepend ul = $('<ul>', id:"object-#{obj.ref}")
       for k,v of obj
         if k is 'fields'
           ul.append li = $('<li>', html: "#{k}: ")
@@ -54,7 +51,8 @@ $.get file, (data) ->
             li.append ']'
         else
           ul.append $('<li>', html: "#{k}: #{v}")
-  main.append objects_div
+  objects_div.prepend $('<h1>', html: 'Objects')
+  main.append objects_div), 'json'
 
 $(document).on 'click', 'a.ref', (e) ->
   e.preventDefault()

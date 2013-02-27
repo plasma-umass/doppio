@@ -219,7 +219,8 @@ class root.RuntimeState
 
   dump_state: ->
     fs = node?.fs ? require 'fs'
-    fs.writeFileSync "./core-#{thread_name @, @curr_thread}", JSON.stringify @meta_stack()
+    # 3rd parameter to writeFileSync ensures this is not stored in localStorage in the browser
+    fs.writeFileSync "./core-#{thread_name @, @curr_thread}.json", (JSON.stringify @meta_stack()), 'utf8', true
 
   choose_next_thread: (blacklist) ->
     unless blacklist?
@@ -403,12 +404,13 @@ class root.RuntimeState
             until e.method_catch_handler(@, stack.get_caller(frames_to_pop), frames_to_pop == 0)
               if stack.length() == ++frames_to_pop
                 @dump_state() if jvm.dump_state
-                stack.pop_n frames_to_pop - 1
+                stack.pop_n stack.length() - 1
                 @handle_toplevel_exception e, no_threads, done_cb
                 return
             stack.pop_n frames_to_pop
             @run_until_finished (->), no_threads, done_cb
           else
+            stack.pop_n Math.max(stack.length() - 1, 0)
             @handle_toplevel_exception e, no_threads, done_cb
       return  # this is an async method, no return value
     )

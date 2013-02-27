@@ -628,7 +628,7 @@ root.fs =
 
   # XXX: Temp option prevents writeback to permanent storage. This is not in the
   #      Node API, and is used as a way for the browser to create temp files.
-  writeFileSync: (path, data, temp) ->
+  writeFileSync: (path, data, encoding, temp) ->
     f = fs_state.open(path, 'w')
     f.temp = temp == true
     f.write(data)

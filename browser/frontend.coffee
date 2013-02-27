@@ -10,9 +10,6 @@ editor = null
 progress = null
 bs_cl = null
 
-# we don't have space for a core dump in the browser
-jvm.dump_state = false
-
 preload = ->
   try
     data = node.fs.readFileSync("/home/doppio/browser/mini-rt.tar")
@@ -50,7 +47,7 @@ preload = ->
       asyncExecute (->
         # XXX: We convert from bytestr to array to process the tar file, and
         #      then back to a bytestr to store as a file in the filesystem.
-        node.fs.writeFileSync(path, util.array_to_bytestr(file), true)
+        node.fs.writeFileSync(path, util.array_to_bytestr(file), 'utf8', true)
         on_complete() if --file_count == 0 and done
       ), 0),
       ->
