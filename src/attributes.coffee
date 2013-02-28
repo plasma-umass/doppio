@@ -57,6 +57,10 @@ class Code
     for i in [0..@code_len] when i of @opcodes
       fn(i, @opcodes[i])
 
+  get_attribute: (name) ->
+    for attr in @attrs then if attr.name is name then return attr
+    return null
+
 class LineNumberTable
   name: 'LineNumberTable'
   parse: (bytes_array,constant_pool) ->

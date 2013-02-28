@@ -225,12 +225,11 @@ create_stack_trace = (rs, throwable) ->
         source_file = 'Native Method'
       else
         source_file = cls.get_attribute('SourceFile')?.filename or 'unknown'
-        break unless attrs = sf.method.code?.attrs?
-        for attr in attrs when a.name is 'LineNumberTable'
-          # get the last line number before the stack frame's pc
-          for i,row of attr when row.start_pc <= sf.pc
-            ln = row.line_number
-          break
+        table = sf.method.code?.get_attribute 'LineNumberTable'
+        break unless table?
+        # get the last line number before the stack frame's pc
+        for i,row of table.entries when row.start_pc <= sf.pc
+          ln = row.line_number
     else
       source_file = 'unknown'
     stacktrace.push new JavaObject rs, rs.get_bs_class('Ljava/lang/StackTraceElement;'), {
