@@ -223,7 +223,7 @@ build/%/browser/mini-rt.tar: tools/preload
 	COPYFILE_DISABLE=true && tar -c -T tools/preload -f $@
 
 doppio doppio-dev:
-	echo "node build/$(if $(findstring dev,$@),dev,release)/console/runner.js \$$@" > $@
+	echo "node \`dirname \$$0\`/build/$(if $(findstring dev,$@),dev,release)/console/runner.js \$$@" > $@
 	chmod +x $@
 
 # Never delete these files in the event of a failure.

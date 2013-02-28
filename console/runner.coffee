@@ -89,12 +89,13 @@ find_main_class = (extracted_jar_dir) ->
 
 
 if require.main == module
+  # note that optimist does not know how to parse quoted string parameters, so we must
+  # place the arguments to the java program after '--' rather than as a normal flag value.
   optimist = require('optimist')
     .boolean(['count-logs','h','list-class-cache','show-nyi-natives','dump-state'])
     .alias({h: 'help'})
     .describe({
       classpath: 'JVM classpath, "path1:...:pathn"',
-      java: 'args for main function',
       log: 'log level, [0-10]|vtrace|trace|debug|error',
       profile: 'turn on profiler, --profile=hot for warm cache',
       jar: 'add JAR to classpath and run its Main-Class (if found)',
@@ -104,7 +105,7 @@ if require.main == module
       'show-nyi-natives': 'list any NYI native functions in loaded classes',
       'dump-state': 'write a "core dump" on unusual termination',
       h: 'Show this usage'})
-    .usage 'Usage: $0 /path/to/classfile [flags]'
+    .usage 'Usage: $0 /path/to/classfile [flags] -- [args for main()]'
   argv = optimist.argv
   return optimist.showHelp() if argv.help
 
@@ -141,7 +142,6 @@ if require.main == module
       resume data
 
   rs = new runtime.RuntimeState(stdout, read_stdin, new BootstrapClassLoader(jvm.read_classfile))
-  java_cmd_args = (argv.java?.toString().trim().split /\s+/) or []
 
   if argv.jar?
     jar_dir = extract_jar argv.jar
@@ -149,7 +149,7 @@ if require.main == module
     unless cname?
       console.error "No main class provided and no Main-Class found in #{argv.jar}"
 
-  run = (done_cb) -> jvm.run_class rs, cname, java_cmd_args, done_cb
+  run = (done_cb) -> jvm.run_class rs, cname, argv._[1..], done_cb
   done_cb = ->
     if argv['list-class-cache']
       scriptdir = path.resolve(__dirname + "/..")
