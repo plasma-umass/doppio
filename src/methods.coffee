@@ -182,20 +182,15 @@ class root.Method extends AbstractMethodField
       else rs.push rv
       rs.push null if ret_type in [ 'J', 'D' ]
 
+  # Reinitializes the method by removing all cached information from the method.
+  # We amortize the cost by doing it lazily the first time that we call run_bytecode.
+  initialize: -> @reset_caches = true
+
   run_bytecode: (rs) ->
+    trace "entering method #{@full_signature()}"
     if @reset_caches and @code?.opcodes?
       for instr in @code.opcodes
         instr?.reset_cache()
-
-    @bytecode_loop(rs)
-
-  # Reinitializes the method by removing all cached information from the method.
-  # We amortize the cost by doing it lazily the first time the bytecode_loop
-  # is run.
-  initialize: -> @reset_caches = true
-
-  bytecode_loop: (rs) ->
-    trace "entering method #{@full_signature()}"
     # main eval loop: execute each opcode, using the pc to iterate through
     code = @code.opcodes
     cf = rs.curr_frame()
