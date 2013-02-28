@@ -49,6 +49,10 @@ get_property = (rs, jvm_key, _default = null) ->
 # convenience function. idea taken from coffeescript's grammar
 o = (fn_name, fn) -> fn_name: fn_name, fn: fn
 
+# anything that should be global but not exposed directly as a system property
+global_properties =
+  address_size: 4 # either 4 or 8
+
 trapped_methods =
   java:
     lang:
@@ -1132,6 +1136,51 @@ native_methods =
             null # XXX may not be correct
       ]
   sun:
+    awt:
+      image:
+        BufImgSurfaceData: [
+          o 'initIDs(Ljava/lang/Class;Ljava/lang/Class;)V', -> # NOP
+          o 'initRaster(Ljava/lang/Object;IIIIIILjava/awt/image/IndexColorModel;)V', -> # NOP
+        ]
+    font:
+      FontManager: [
+        o 'getFontConfig(Ljava/lang/String;[Lsun/font/FontManager$FontConfigInfo;)V', (rs, locale, fonts) ->
+            for entry in fonts.array # XXX these are mock values
+              entry.set_field rs, 'Lsun/font/FontManager$FontConfigInfo;familyName', rs.init_string 'Bitstream Vera Sans'
+              entry.set_field rs, 'Lsun/font/FontManager$FontConfigInfo;fontFile', rs.init_string '/usr/X11/lib/fonts/foo.ttf'
+            return
+      ]
+      FreetypeFontScaler: [
+        o 'initIDs(Ljava/lang/Class;)V', -> # NOP
+      ]
+      StrikeCache: [
+          # Return an array A such that
+          # A[0] = native address size in bytes
+          # A[1] = size of a GlyphInfo struct
+          # A[2-10] = the offsets of the following struct's fields
+          # struct GlyphInfo {
+          #   float        advanceX, advanceY;
+          #   UInt16       width, height, rowBytes;
+          #   float        topLeftX, topLeftY;
+          #   struct _CacheCellInfo *cellInfo;
+          #   UInt8        *image;
+          # }
+        o 'getGlyphCacheDescription([J)V', (rs, arr) ->
+            native_info = [ global_properties.address_size,
+              72, 0, 4, 20, 36, 52, 56, 60, 64, 68 ]
+            arr.array[i] = gLong.fromNumber entry for entry,i in native_info
+            return
+      ]
+    java2d:
+      loops:
+        GraphicsPrimitiveMgr: [
+          o 'initIDs(Ljava/lang/Class;Ljava/lang/Class;Ljava/lang/Class;Ljava/lang/Class;Ljava/lang/Class;Ljava/lang/Class;Ljava/lang/Class;Ljava/lang/Class;Ljava/lang/Class;Ljava/lang/Class;Ljava/lang/Class;)V', -> # NOP
+          o 'registerNativeLoops()V', ->
+        ]
+      pipe:
+        SpanClipRenderer: [
+          o 'initIDs(Ljava/lang/Class;Ljava/lang/Class;)V', -> # NOP
+        ]
     management:
       VMManagementImpl: [
         o 'getStartupTime()J', (rs) -> rs.startup_time
@@ -1171,7 +1220,7 @@ native_methods =
       # TODO: Go down the rabbit hole and create a fast heap implementation
       # in JavaScript -- with and without typed arrays.
       Unsafe: [
-        o 'addressSize()I', (rs, _this) -> 4 # either 4 or 8
+        o 'addressSize()I', (rs, _this) -> global_properties.address_size
         o 'allocateInstance(Ljava/lang/Class;)Ljava/lang/Object;', (rs, _this, cls) ->
             # This can trigger class initialization, so check if the class is
             # initialized.
