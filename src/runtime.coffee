@@ -18,7 +18,10 @@ class root.CallStack
     if initial_stack?
       @_cs[0].stack = initial_stack
 
-  serialize: (visited) -> frame.serialize(visited) for frame in @_cs
+  snap: ->
+    visited = {}
+    snapshots = (frame.snap(visited) for frame in @_cs)
+    serialize: -> ss.serialize() for ss in snapshots
 
   length: -> @_cs.length
   push: (sf) -> @_cs.push sf
@@ -36,13 +39,17 @@ class root.StackFrame
     @native = false
     @name = @method.full_signature()
 
-  serialize: (visited) ->
-    name: @name
-    pc: @pc
-    loader: @method.cls?.loader.serialize(visited)
-    native: @native
-    stack: (obj?.serialize?(visited) ? obj for obj in @stack)
-    locals: (obj?.serialize?(visited) ? obj for obj in @locals)
+  snap: (visited) ->
+    rv =
+      name: @name
+      pc: @pc
+      native: @native
+
+    serialize: =>
+      rv.loader = @method.cls?.loader.serialize(visited)
+      rv.stack = (obj?.serialize?(visited) ? obj for obj in @stack)
+      rv.locals = (obj?.serialize?(visited) ? obj for obj in @locals)
+      rv
 
   # Creates a "native stack frame". Handler is called with no arguments for
   # normal execution, error_handler is called with the uncaught exception.
@@ -215,11 +222,12 @@ class root.RuntimeState
     @curr_thread.$meta_stack = new root.CallStack [args]
     debug "### finished runtime state initialization ###"
 
-  dump_state: ->
+  dump_state: (snapshot=@meta_stack().snap(), suffix) ->
+    suffix = if suffix? then "-#{suffix}" else ''
     fs = node?.fs ? require 'fs'
     # 4th parameter to writeFileSync ensures this is not stored in localStorage in the browser
-    fs.writeFileSync "./core-#{thread_name @, @curr_thread}.json",
-      (JSON.stringify @meta_stack().serialize({})), 'utf8', true
+    fs.writeFileSync "./core-#{thread_name @, @curr_thread}#{suffix}.json",
+      (JSON.stringify snapshot.serialize()), 'utf8', true
 
   choose_next_thread: (blacklist) ->
     unless blacklist?
