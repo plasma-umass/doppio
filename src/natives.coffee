@@ -704,12 +704,11 @@ native_methods =
             tmp
         o 'interrupt0()V', (rs, _this) ->
             _this.$isInterrupted = true
+            return if _this is rs.curr_thread
             debug "TE(interrupt0): interrupting #{thread_name rs, _this}"
             new_thread_sf = util.last _this.$meta_stack._cs
             new_thread_sf.runner = ->
-              new_thread_sf.method.run_manually (->
-                rs.java_throw rs.get_bs_class('Ljava/lang/InterruptedException;'), 'interrupt0 called'
-              ), rs, []
+              rs.java_throw rs.get_bs_class('Ljava/lang/InterruptedException;'), 'interrupt0 called'
             _this.$meta_stack.push {}  # dummy
             rs.yield _this
         o 'start0()V', (rs, _this) ->
