@@ -9,6 +9,9 @@ public class Threading extends Thread {
     System.out.println("hello from "+Thread.currentThread().getName());
   }
   public static void main(String[] args) throws java.lang.InterruptedException {
+    Thread.currentThread().interrupt();
+    System.out.println("main thread was interrupted: " + Thread.currentThread().interrupted());
+
     Threading t = new Threading("hello-thread");
     System.out.println(t.holdsLock(t));  // should be false
     synchronized (t) {
