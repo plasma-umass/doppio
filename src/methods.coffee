@@ -174,7 +174,11 @@ class root.Method extends AbstractMethodField
 
   run_manually: (func, rs, converted_params) ->
     trace "entering native method #{@full_signature()}"
-    rv = func converted_params...
+    try
+      rv = func converted_params...
+    catch e
+      return if e is ReturnException
+      throw e
     rs.meta_stack().pop()
     ret_type = @return_type
     unless ret_type == 'V'
@@ -194,16 +198,20 @@ class root.Method extends AbstractMethodField
     # main eval loop: execute each opcode, using the pc to iterate through
     code = @code.opcodes
     cf = rs.curr_frame()
-    while true
-      op = code[cf.pc]
-      unless RELEASE? or logging.log_level < logging.STRACE
-        pc = cf.pc
-        throw "#{@name}:#{pc} => (null)" unless op
-        vtrace "#{padding}stack: [#{debug_vars cf.stack}], local: [#{debug_vars cf.locals}]"
-        annotation = op.annotate(pc, @cls.constant_pool)
-        vtrace "#{padding}#{@cls.get_type()}::#{@name}:#{pc} => #{op.name}" + annotation
+    try
+      while true
+        op = code[cf.pc]
+        unless RELEASE? or logging.log_level < logging.STRACE
+          pc = cf.pc
+          throw "#{@name}:#{pc} => (null)" unless op
+          vtrace "#{padding}stack: [#{debug_vars cf.stack}], local: [#{debug_vars cf.locals}]"
+          annotation = op.annotate(pc, @cls.constant_pool)
+          vtrace "#{padding}#{@cls.get_type()}::#{@name}:#{pc} => #{op.name}" + annotation
 
-      cf.pc += 1 + op.byte_count if (op.execute rs) isnt false
+        cf.pc += 1 + op.byte_count if (op.execute rs) isnt false
+    catch e
+      return if e is ReturnException
+      throw e
     # Must explicitly return here, to avoid Coffeescript accumulating an array of cf.pc values
     return
 
