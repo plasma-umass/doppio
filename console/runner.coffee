@@ -99,6 +99,7 @@ if require.main == module
       log: 'log level, [0-10]|vtrace|trace|debug|error',
       profile: 'turn on profiler, --profile=hot for warm cache',
       jar: 'add JAR to classpath and run its Main-Class (if found)',
+      'jar-args': 'arguments to pass to the Main-Class of a jar',
       'count-logs': 'count log messages instead of printing them',
       'skip-logs': 'number of log messages to skip before printing',
       'list-class-cache': 'list all of the loaded classes after execution',
@@ -148,8 +149,11 @@ if require.main == module
     cname = find_main_class(jar_dir) unless cname?
     unless cname?
       console.error "No main class provided and no Main-Class found in #{argv.jar}"
+    main_args = (argv['jar-args'].toString().trim().split /\s+/) or []
+  else
+    main_args = argv._[1..]
 
-  run = (done_cb) -> jvm.run_class rs, cname, argv._[1..], done_cb
+  run = (done_cb) -> jvm.run_class rs, cname, main_args, done_cb
   done_cb = ->
     if argv['list-class-cache']
       scriptdir = path.resolve(__dirname + "/..")
