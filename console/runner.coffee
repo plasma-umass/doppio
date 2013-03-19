@@ -68,13 +68,23 @@ stub = (obj, name, replacement, wrapped) ->
   finally
     obj[name] = old_fn
 
+extract_all_to = (files, dest_dir) ->
+  for filepath, file of files
+    filepath = path.join dest_dir, filepath
+    if file.options.dir or filepath.slice(-1) is '/'
+      fs.mkdirSync filepath unless fs.existsSync filepath
+    else
+      fs.writeFileSync filepath, file.data, 'binary'
+  return
+
 extract_jar = (jar_path, main_class_name) ->
-  AdmZip = require 'adm-zip'
+  JSZip = require 'node-zip'
+  unzipper = new JSZip(fs.readFileSync(jar_path, 'binary'), {base64: false, checkCRC32: true})
   jar_name = path.basename jar_path, '.jar'
   fs.mkdirSync '/tmp/doppio' unless fs.existsSync '/tmp/doppio'
   tmpdir = "/tmp/doppio/#{jar_name}"
   fs.mkdirSync tmpdir unless fs.existsSync tmpdir
-  new AdmZip(jar_path).extractAllTo tmpdir, true
+  extract_all_to(unzipper.files, tmpdir)
   jvm.classpath.unshift tmpdir
   return tmpdir
 

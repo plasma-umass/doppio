@@ -15,7 +15,7 @@ COFFEEC  := $(DOPPIO_DIR)/node_modules/coffee-script/bin/coffee
 UGLIFYJS := $(DOPPIO_DIR)/node_modules/uglify-js/bin/uglifyjs
 OPTIMIST := $(DOPPIO_DIR)/node_modules/optimist/index.js
 DOCCO    := $(DOPPIO_DIR)/node_modules/docco/bin/docco
-ADMZIP   := $(DOPPIO_DIR)/node_modules/adm-zip/adm-zip.js
+NODEZIP  := $(DOPPIO_DIR)/node_modules/node-zip/lib/nodezip.js
 JAZZLIB  := $(DOPPIO_DIR)/vendor/classes/java/util/zip/DeflaterEngine.class
 JRE      := $(DOPPIO_DIR)/vendor/classes/java/lang/Object.class
 SED      := $(shell if command -v gsed >/dev/null; then echo "gsed"; else echo "sed"; fi;)
@@ -118,7 +118,7 @@ $(DIST_NAME): release docs
 	tar czf $(DIST_NAME) build/release
 
 # Installs or checks for any required dependencies.
-dependencies: $(COFFEEC) $(UGLIFYJS) $(OPTIMIST) $(JAZZLIB) $(JRE) $(DOCCO) $(ADMZIP)
+dependencies: $(COFFEEC) $(UGLIFYJS) $(OPTIMIST) $(JAZZLIB) $(JRE) $(DOCCO) $(NODEZIP)
 	@git submodule update --quiet --init --recursive
 	@rm -f classes/test/failures.txt
 	# force a version check on coffescript; because we're introducing breaking changes
@@ -131,8 +131,8 @@ $(OPTIMIST):
 	npm install optimist
 $(DOCCO):
 	npm install docco
-$(ADMZIP):
-	npm install adm-zip
+$(NODEZIP):
+	npm install node-zip
 $(JAZZLIB):
 	$(error JazzLib not found. Unzip it to vendor/classes/, or run ./tools/setup.sh.)
 $(JRE):
