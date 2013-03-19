@@ -121,8 +121,10 @@ $(DIST_NAME): release docs
 dependencies: $(COFFEEC) $(UGLIFYJS) $(OPTIMIST) $(JAZZLIB) $(JRE) $(DOCCO) $(ADMZIP)
 	@git submodule update --quiet --init --recursive
 	@rm -f classes/test/failures.txt
+	# force a version check on coffescript; because we're introducing breaking changes
+	@if [ `$(COFFEEC) -v | cut -d' ' -f3` != "1.6.2" ]; then npm install coffee-script@1.6.2; fi
 $(COFFEEC):
-	npm install coffee-script@1.3.3
+	npm install coffee-script@1.6.2
 $(UGLIFYJS):
 	npm install uglify-js@1
 $(OPTIMIST):

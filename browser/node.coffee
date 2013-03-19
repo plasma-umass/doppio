@@ -455,10 +455,8 @@ class FSState
       components[idx] = '' if c == '.'
       components[idx] = @home if c == '~'
     if !absolute
-      pwdCmps = @pwd.split '/'
-      #TODO: rewrite this when we move to coffeescript v1.5.0
-      for i in [pwdCmps.length - 1..0] by -1
-        components.unshift(pwdCmps[i])
+      for pwdCmp in @pwd.split('/') by -1
+        components.unshift(pwdCmp)
     for c, idx in components
       if c == '..'
         processed = false
