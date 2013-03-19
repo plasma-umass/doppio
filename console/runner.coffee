@@ -149,7 +149,7 @@ if require.main == module
     cname = find_main_class(jar_dir) unless cname?
     unless cname?
       console.error "No main class provided and no Main-Class found in #{argv.jar}"
-    main_args = (argv['jar-args'].toString().trim().split /\s+/) or []
+    main_args = (argv['jar-args']?.toString().trim().split /\s+/) or []
   else
     main_args = argv._[1..]
 
