@@ -16,6 +16,7 @@ UGLIFYJS := $(DOPPIO_DIR)/node_modules/uglify-js/bin/uglifyjs
 OPTIMIST := $(DOPPIO_DIR)/node_modules/optimist/index.js
 DOCCO    := $(DOPPIO_DIR)/node_modules/docco/bin/docco
 NODEZIP  := $(DOPPIO_DIR)/node_modules/node-zip/lib/nodezip.js
+SHELLQ   := $(DOPPIO_DIR)/node_modules/shell-quote/index.js
 JAZZLIB  := $(DOPPIO_DIR)/vendor/classes/java/util/zip/DeflaterEngine.class
 JRE      := $(DOPPIO_DIR)/vendor/classes/java/lang/Object.class
 SED      := $(shell if command -v gsed >/dev/null; then echo "gsed"; else echo "sed"; fi;)
@@ -118,10 +119,11 @@ $(DIST_NAME): release docs
 	tar czf $(DIST_NAME) build/release
 
 # Installs or checks for any required dependencies.
-dependencies: $(COFFEEC) $(UGLIFYJS) $(OPTIMIST) $(JAZZLIB) $(JRE) $(DOCCO) $(NODEZIP)
+# Note that we force a version check on coffescript
+#  because we're introducing breaking changes.
+dependencies: $(COFFEEC) $(UGLIFYJS) $(OPTIMIST) $(JAZZLIB) $(JRE) $(DOCCO) $(NODEZIP) $(SHELLQ)
 	@git submodule update --quiet --init --recursive
 	@rm -f classes/test/failures.txt
-	# force a version check on coffescript; because we're introducing breaking changes
 	@if [ `$(COFFEEC) -v | cut -d' ' -f3` != "1.6.2" ]; then npm install coffee-script@1.6.2; fi
 $(COFFEEC):
 	npm install coffee-script@1.6.2
@@ -133,6 +135,8 @@ $(DOCCO):
 	npm install docco
 $(NODEZIP):
 	npm install node-zip
+$(SHELLQ):
+	npm install shell-quote
 $(JAZZLIB):
 	$(error JazzLib not found. Unzip it to vendor/classes/, or run ./tools/setup.sh.)
 $(JRE):
