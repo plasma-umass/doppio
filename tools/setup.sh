@@ -68,7 +68,8 @@ fi
 cd ..  # back to start
 
 # Make sure node is present and >= v0.8
-if [[ `node -v` < "v0.8" ]]; then
+node_outdated=$(perl -le 'use version; print 1 if (version->parse(`node -v`) < version->parse("v0.8"))')
+if [[ $node_outdated == 1 ]]; then
   echo "node >= v0.8 required"
   if [ -n "$PKGMGR" ]; then
     $PKGMGR node
@@ -84,7 +85,8 @@ make java
 
 if ! command -v bundle > /dev/null; then
     if command -v gem > /dev/null; then
-        gem install bundler
+        echo "installing bundler, need sudo perimssions"
+        sudo gem install bundler
     else
         echo "warning: could not install bundler because rubygems was not found!"
         echo "some dependencies may be missing."
