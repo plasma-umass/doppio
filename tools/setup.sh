@@ -30,7 +30,7 @@ if [ ! -f classes/java/lang/Object.class ]; then
       ar p $DEB data.tar.gz | tar zx
     done
   cd ..
-  JARS=("rt.jar" "tools.jar" "resources.jar" "rhino.jar")
+  JARS=("rt.jar" "tools.jar" "resources.jar" "rhino.jar" "jsse.jar")
   for JAR in ${JARS[@]}; do
     JAR_PATH=`find $DOWNLOAD_DIR/usr -name $JAR`
     echo "Extracting the Java class library from $JAR_PATH"
