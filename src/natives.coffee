@@ -57,6 +57,19 @@ trapped_methods =
         Reference: [
           o '<clinit>()V', (rs) -> # NOP, because we don't do our own GC and also this starts a thread?!?!?!
         ]
+      String: [
+          # trapped here only for speed
+          o 'hashCode()I', (rs, _this) ->
+              hash = _this.get_field rs, 'Ljava/lang/String;hash'
+              if hash is 0
+                offset = _this.get_field rs, 'Ljava/lang/String;offset'
+                chars = _this.get_field(rs, 'Ljava/lang/String;value').array
+                count = _this.get_field rs, 'Ljava/lang/String;count'
+                for i in [0...count] by 1
+                  hash = (hash * 31 + chars[offset++]) | 0
+                _this.set_field rs, 'Ljava/lang/String;hash', hash
+              hash
+      ]
       System: [
         o 'loadLibrary(L!/!/String;)V', (rs) -> # NOP, because we don't support loading external libraries
         o 'adjustPropertiesForBackwardCompatibility(L!/util/Properties;)V', (rs) -> # NOP (apple-java specific)
