@@ -125,7 +125,7 @@ class root.Method extends AbstractMethodField
         j++
         if j < exceptions.length
           e_desc = exceptions[j]
-          rs.bcl.resolve_class(rs, e_desc,
+          @cls.loader.resolve_class(rs, e_desc,
             ((cls)=>etype_objs[j]=cls.get_class_object(rs);fetch_etype()), failure_fn)
         else
           # XXX: missing parameterAnnotations
@@ -144,7 +144,7 @@ class root.Method extends AbstractMethodField
       fetch_ptype = () =>
         i++
         if i < @param_types.length
-          rs.bcl.resolve_class(rs, @param_types[i],
+          @cls.loader.resolve_class(rs, @param_types[i],
             ((cls)=>param_type_objs[i]=cls.get_class_object(rs);fetch_ptype()), failure_fn)
         else
           fetch_etype()

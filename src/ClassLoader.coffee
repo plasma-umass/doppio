@@ -49,12 +49,16 @@ class ClassLoader
     return @_define_array_class type_str, component_cdata
 
   # Defines a new array class with the specified component ClassData.
-  # Note that the component ClassData object can come from another ClassLoader.
+  # If the component ClassData object comes from another ClassLoader, invoke
+  # this method on that ClassLoader.
   _define_array_class: (type_str, component_cdata) ->
-    cdata = new ArrayClassData component_cdata.get_type(), @
-    @_add_class type_str, cdata
-    cdata.set_resolved @bootstrap.get_resolved_class('Ljava/lang/Object;'), component_cdata
-    return cdata
+    if component_cdata.get_class_loader() != @
+      return component_cdata.get_class_loader()._define_array_class(type_str, component_cdata)
+    else
+      cdata = new ArrayClassData component_cdata.get_type(), @
+      @_add_class type_str, cdata
+      cdata.set_resolved @bootstrap.get_resolved_class('Ljava/lang/Object;'), component_cdata
+      return cdata
 
   # Called by define_class to fetch all interfaces and superclasses in parallel.
   _parallel_class_resolve: (rs, types, success_fn, failure_fn, explicit=false) ->

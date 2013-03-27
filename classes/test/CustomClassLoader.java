@@ -74,5 +74,19 @@ public class CustomClassLoader extends ClassLoader {
     m.invoke(null, new Object[]{});
     java.lang.reflect.Method m2 = c.getMethod("bar", new Class[] {});
     m2.invoke(null, new Object[]{});
+
+    Class<?> c2 = Class.forName("[Ljava.lang.Object;", true, loader1);
+    System.out.print("Object[] loaded through custom classloader is ");
+    Class<?> c3 = Object[].class;
+    if (c2 != c3) {
+      System.out.print("NOT ");
+    }
+    System.out.println("the same as that loaded by System loader.");
+
+    try {
+      Class<?> nonexistant = Class.forName("java.lang.Lolol[]", true, loader1);
+    } catch (ClassNotFoundException e) {
+      System.out.println("java.lang.Lolol[] not found.");
+    }
   }
 }
