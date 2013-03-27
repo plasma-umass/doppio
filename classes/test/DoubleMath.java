@@ -2,6 +2,7 @@ package classes.test;
 
 public class DoubleMath {
   public static void main(String[] args) {
+    System.out.println(Math.pow(4.0,2.0));
     double a = 1.0;
     double b = 0.0;
     double c;
