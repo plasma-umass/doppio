@@ -824,7 +824,8 @@ native_methods =
               file = _this.$file
               buf = new Buffer n_bytes
               # if at end of file, return -1.
-              if pos >= fs.fstatSync(file).size-1
+              filesize = fs.fstatSync(file).size
+              if filesize > 0 and pos >= filesize-1
                 return -1
               bytes_read = fs.readSync(file, buf, 0, n_bytes, pos)
               # not clear why, but sometimes node doesn't move the file pointer,
