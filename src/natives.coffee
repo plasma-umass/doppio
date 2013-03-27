@@ -629,7 +629,7 @@ native_methods =
         o 'cos(D)D', (rs, d_val) -> Math.cos(d_val)
         o 'exp(D)D', (rs, d_val) -> Math.exp(d_val)
         o 'log(D)D', (rs, d_val) -> Math.log(d_val)
-        o 'pow(DD)D', (rs) -> Math.pow(rs.cl(0),rs.cl(2))
+        o 'pow(DD)D', (rs, base, exp) -> Math.pow(base, exp)
         o 'sin(D)D', (rs, d_val) -> Math.sin(d_val)
         o 'sqrt(D)D', (rs, d_val) -> Math.sqrt(d_val)
         o 'tan(D)D', (rs, d_val) -> Math.tan(d_val)
