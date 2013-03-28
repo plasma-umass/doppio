@@ -6,6 +6,7 @@ import java.io.*;
 
 public class Reflection {
 
+  public String goodString = "I'm a good string";
   public static final String constValue = "I'm a constant";
   public static final int constInt = 23;
   public static final float constFloat = 2.45f;
@@ -30,9 +31,9 @@ public class Reflection {
   throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException,
          InvocationTargetException, NoSuchFieldException {
     // repro for Jython bug
-    try {
-      getInputFileDescriptor(new BufferedInputStream(System.in));
-    } catch (IOException e) {}
+    SubClass sub = new SubClass();
+    Field subf = Reflection.class.getDeclaredField("goodString");
+    System.out.println(subf.get(sub));
 
     Reflection obj = new Reflection();
     Class<Reflection> c = Reflection.class;
@@ -76,28 +77,7 @@ public class Reflection {
     System.out.println("void return: " + voidMethod.invoke(null));
   }
 
-  // ripped from code that broke Jython
-  private static FileDescriptor getInputFileDescriptor(InputStream stream) throws IOException {
-    if (stream == null) {
-      return null;
-    }
-    if (stream instanceof FileInputStream) {
-      return ((FileInputStream)stream).getFD();
-    }
-    if (stream instanceof FilterInputStream) {
-      Field inField = null;
-      try {
-        inField = FilterInputStream.class.getDeclaredField("in");
-        inField.setAccessible(true);
-        return getInputFileDescriptor((InputStream)inField.get(stream));
-      } catch (Exception e) {
-        // XXX: masking other exceptions
-      } finally {
-        if (inField != null && inField.isAccessible()) {
-            inField.setAccessible(false);
-        }
-      }
-    }
-    return null;
+  static class SubClass extends Reflection {
+    public String badString = "I'm a bad string";
   }
 }
