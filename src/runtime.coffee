@@ -149,6 +149,8 @@ class root.RuntimeState
       'Ljava/lang/Long;'
       'Ljava/lang/Short;'
       'Ljava/lang/Boolean;'
+      '[Lsun/management/MemoryManagerImpl;'
+      '[Lsun/management/MemoryPoolImpl;'
     ]
     i = -1
     init_next_core_class = =>
