@@ -2,6 +2,7 @@ package classes.test;
 
 import java.util.Arrays;
 import java.lang.reflect.*;
+import java.io.*;
 
 public class Reflection {
 
@@ -28,6 +29,11 @@ public class Reflection {
   public static void main(String[] args)
   throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException,
          InvocationTargetException, NoSuchFieldException {
+    // repro for Jython bug
+    try {
+      getInputFileDescriptor(new BufferedInputStream(System.in));
+    } catch (IOException e) {}
+
     Reflection obj = new Reflection();
     Class<Reflection> c = Reflection.class;
 
@@ -68,5 +74,30 @@ public class Reflection {
     System.out.println("boxing: " + boxingMethod.invoke(null, 1300L, 37L));
     // void return values
     System.out.println("void return: " + voidMethod.invoke(null));
+  }
+
+  // ripped from code that broke Jython
+  private static FileDescriptor getInputFileDescriptor(InputStream stream) throws IOException {
+    if (stream == null) {
+      return null;
+    }
+    if (stream instanceof FileInputStream) {
+      return ((FileInputStream)stream).getFD();
+    }
+    if (stream instanceof FilterInputStream) {
+      Field inField = null;
+      try {
+        inField = FilterInputStream.class.getDeclaredField("in");
+        inField.setAccessible(true);
+        return getInputFileDescriptor((InputStream)inField.get(stream));
+      } catch (Exception e) {
+        // XXX: masking other exceptions
+      } finally {
+        if (inField != null && inField.isAccessible()) {
+            inField.setAccessible(false);
+        }
+      }
+    }
+    return null;
   }
 }
