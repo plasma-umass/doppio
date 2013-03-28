@@ -1303,6 +1303,8 @@ native_methods =
             obj.set_field_from_offset rs, offset, new_value
         o 'putObject(Ljava/lang/Object;JLjava/lang/Object;)V', (rs,_this,obj,offset,new_obj) ->
             obj.set_field_from_offset rs, offset, new_obj
+        o 'putObjectVolatile(Ljava/lang/Object;JLjava/lang/Object;)V', (rs,_this,obj,offset,new_obj) ->
+            obj.set_field_from_offset rs, offset, new_obj
         o 'putOrderedObject(Ljava/lang/Object;JLjava/lang/Object;)V', (rs,_this,obj,offset,new_obj) ->
             obj.set_field_from_offset rs, offset, new_obj
         o 'defineClass(Ljava/lang/String;[BIILjava/lang/ClassLoader;Ljava/security/ProtectionDomain;)Ljava/lang/Class;', (rs, _this, name, bytes, offset, len, loader, pd) ->
