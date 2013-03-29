@@ -1264,8 +1264,18 @@ native_methods =
             rs.async_op (resume_cb, except_cb) ->
               # We modify resume_cb since this is a void function.
               cls.$cls.loader.initialize_class rs, cls.$cls.get_type(), (()->resume_cb()), except_cb
-        o 'staticFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.get_field rs, 'Ljava/lang/reflect/Field;slot')
-        o 'objectFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) -> gLong.fromNumber(field.get_field rs, 'Ljava/lang/reflect/Field;slot')
+        o 'staticFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) ->
+            # we technically return a long, but it immediately gets casted to an int
+            # hack: encode both the class and slot information in an integer
+            #   this may cause collisions, but it seems to work ok
+            jco = field.get_field rs, 'Ljava/lang/reflect/Field;clazz'
+            slot = field.get_field rs, 'Ljava/lang/reflect/Field;slot'
+            gLong.fromNumber(slot + jco.ref)
+        o 'objectFieldOffset(Ljava/lang/reflect/Field;)J', (rs,_this,field) ->
+            # see note about staticFieldOffset
+            jco = field.get_field rs, 'Ljava/lang/reflect/Field;clazz'
+            slot = field.get_field rs, 'Ljava/lang/reflect/Field;slot'
+            gLong.fromNumber(slot + jco.ref)
         o 'staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;', (rs,_this,field) ->
             cls = field.get_field rs, 'Ljava/lang/reflect/Field;clazz'
             new JavaObject rs, cls.$cls
