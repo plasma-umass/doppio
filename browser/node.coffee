@@ -164,7 +164,7 @@ class FileIndex
     parent = @_get(components)
     ret = false
     if parent? and parent != false
-      if parent[name]?
+      if name of parent
         obj = parent[name]
         ret = if @_is_directory(obj) then Object.keys(obj) else true
         delete parent[name]
@@ -384,10 +384,18 @@ class WebserverSource extends FileSource
       idx_data = @_download_file(listings_path)
     @index = new FileIndex(if idx_data? then JSON.parse(idx_data) else )
   fetch: (path) ->
+    f = @index.get_file(path)
+    # File does not exist on the webserver according to the index, or has been
+    # "deleted".
+    return null if f is false
+    # Fetch the file.
     trim_path = @_trim_mnt_pt(path)
     data = @_download_file(trim_path)
     return if data? then new DoppioFile(path, data) else null
   ls: (path) -> @index.ls(path)
+  # Deletions occur only on our index to make the files 'invisible' to the
+  # application.
+  rm: (path) -> @index.rm(path)
 
 # Wraps another FileSource and acts as its cache.
 class CacheSource extends FileSource
