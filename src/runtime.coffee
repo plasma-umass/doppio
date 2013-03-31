@@ -91,6 +91,7 @@ class root.RuntimeState
     @waiting_threads = {}  # map from monitor -> list of waiting thread objects
     @thread_pool = []
     @curr_thread = {$meta_stack: new root.CallStack()}
+    @max_m_count = 100000
 
   get_bs_cl: -> @bcl
 
@@ -359,11 +360,25 @@ class root.RuntimeState
       @stashed_done_cb = done_cb  # hack for the case where we error out of <clinit>
       try
         setup_fn()
+        start_time = (new Date()).getTime()
+        m_count = @max_m_count
         while true
           sf = @curr_frame()
-          while sf.runner?
+          while sf.runner? and m_count > 0
             sf.runner()
+            m_count--
             sf = @curr_frame()
+          if sf.runner? && m_count == 0
+            # Loop has stopped to give the browser some breathing room.
+            duration = (new Date()).getTime() - start_time
+            # We should yield once every 1-2 seconds or so.
+            if duration > 2000 or duration < 1000
+              # Figure out what to adjust max_m_count by.
+              ms_per_m = duration / @max_m_count
+              @max_m_count = (1000/ms_per_m)|0
+            # Call ourselves to yield and resume.
+            return @run_until_finished (->), no_threads, done_cb
+
           # we've finished this thread, no more runners
           # we're done if the only thread is "main"
           break if no_threads or @thread_pool.length <= 1
