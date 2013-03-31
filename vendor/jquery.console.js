@@ -487,11 +487,13 @@
         // Disable input
         function disableInput() {
             acceptInput = false;
+            $('span.jquery-console-cursor').addClass('jquery-console-cursor-busy');
         };
 
         // Enable input
         function enableInput() {
             acceptInput = true;
+            $('span.jquery-console-cursor').removeClass('jquery-console-cursor-busy');
         }
 
         var type2css = {
