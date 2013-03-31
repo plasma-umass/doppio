@@ -178,7 +178,14 @@ docs: dependencies build/release
 	mv docs build/release
 
 tools/preload: release-cli
-	@if [ -z "$$KEEP_PRELOAD" ]; then \
+	@if [ -z "$$KEEP_PRELOAD" ] && [ -f tools/preload ]; then \
+		echo "Are you sure you want to regenerate tools/preload? (y/n)"; \
+		read answer; \
+		if [ $$answer = "n" ]; then \
+			KEEP_PRELOAD="true"; \
+		fi \
+	fi; \
+	if [ -z "$$KEEP_PRELOAD" ]; then \
 		echo "Generating list of files to preload in browser... (will take a few seconds)"; \
 		node build/release/console/runner.js classes/util/Javac ./classes/test/FileOps.java --list-class-cache > tools/preload; \
 	else \
