@@ -230,8 +230,13 @@ commands =
     rs = new runtime.RuntimeState(stdout, user_input, bs_cl)
     jvm.run_class(rs, 'com/sun/tools/script/shell/Main', args, -> controller.reprompt())
     return null  # no reprompt, because we handle it ourselves
-  list_cache: -> # XXX: Need to reimplement in terms of BS CL.
-  clear_cache: (args) -> # XXX: Need to reimplement in terms of BS CL.
+  list_cache: ->
+    cached_classes = Object.keys(bs_cl.loaded_classes)
+    '  ' + cached_classes.sort().join('\n  ')
+  # Reset the bootstrap classloader
+  clear_cache: ->
+    bs_cl = new ClassLoader.BootstrapClassLoader(read_classfile)
+    return true
   ls: (args) ->
     read_dir = (dir) -> node.fs.readdirSync(dir).sort().join '\n'
     if args.length == 0
