@@ -43,7 +43,7 @@ root.set_classpath = (jcl_path, classpath) ->
   # * Exist.
   # * Be a the fully-qualified path.
   # * Have a trailing /.
-  for class_path, i in classpath
+  for class_path in classpath
     class_path = path.normalize class_path
     if class_path.charAt(class_path.length-1) != '/'
       class_path += '/'
@@ -69,7 +69,7 @@ root.run_class = (rs, class_name, cmdline_args, done_cb) ->
             rs.run_until_finished (-> main_method.setup_stack(rs)), false, (success) ->
               done_cb?() if success
         ), except_cb
-    ), true, (->)
+    ), true, done_cb
 
   run_program = ->
     trace "run_program"
