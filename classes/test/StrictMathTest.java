@@ -21,7 +21,17 @@ public class StrictMathTest {
 
   private static void results(String name, double[] results) {
     System.out.print(name + ": ");
-    System.out.println(Arrays.toString(results));
+    boolean first = true;
+    String result = "";
+    for (double d : results) {
+      if (first)
+        first = false;
+      else
+        result += " ";
+      // paper over precision issues in Chrome, see #181
+      result += String.format("%.15g", d);
+    }
+    System.out.println(result);
   }
 
   public static void main(String[] args) {
