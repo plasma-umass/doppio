@@ -51,6 +51,11 @@ div#console pre.jquery-console-focus span.jquery-console-cursor {
   -moz-animation-timing-function: cubic-bezier(1.0,0,0,1.0);
   -moz-animation-duration: 1s;
 }
+div#console pre.jquery-console-focus span.jquery-console-cursor-busy {
+  background:#ccc !important; color:#222 !important;
+  -webkit-animation-name: none !important;
+  -moz-animation-name: none !important;
+}
 div#console pre.jquery-console-inner
  { width:100%; height:100%; padding: 0.5em;
    overflow:auto }
