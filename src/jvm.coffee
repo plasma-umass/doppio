@@ -2,6 +2,7 @@
 # pull in external modules
 util = require './util'
 fs = node?.fs ? require 'fs'
+path = node?.path ? require 'path'
 {trace,error} = require '../src/logging'
 "use strict"
 
@@ -26,6 +27,30 @@ root.read_classfile = (cls, cb, failure_cb) ->
       return
 
   failure_cb (()->throw new Error "Error: No file found for class #{cls}.")
+
+# Sets the classpath to the given value in typical classpath form:
+# path1:path2:... etc.
+# jcl_path is the location of the Java Class Libraries. It is the only path
+# that is implicitly the last item on the classpath.
+# Standardizes the paths for JVM usage.
+# XXX: Should make this asynchronous at some point for checking the existance
+#      of classpaths.
+root.set_classpath = (jcl_path, classpath) ->
+  classpath = classpath.split(':')
+  classpath.push jcl_path
+  @classpath = []
+  # All paths must:
+  # * Exist.
+  # * Be a the fully-qualified path.
+  # * Have a trailing /.
+  for class_path, i in classpath
+    class_path = path.normalize class_path
+    if class_path.charAt(class_path.length-1) != '/'
+      class_path += '/'
+    # XXX: Make this asynchronous sometime.
+    if fs.existsSync(class_path)
+      @classpath.push(class_path)
+  return
 
 # main function that gets called from the frontend
 root.run_class = (rs, class_name, cmdline_args, done_cb) ->

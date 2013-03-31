@@ -725,7 +725,7 @@ root.fs =
 
 # Node's Path API
 root.path =
-  normalize: (path) -> path
+  normalize: (path) -> fs_state.resolve path
   resolve: (parts...) -> fs_state.resolve parts.join '/'
   basename: (path, ext) ->
     base = path.replace(/^.*[\/\\]/, '')
