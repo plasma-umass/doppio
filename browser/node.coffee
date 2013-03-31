@@ -74,7 +74,7 @@ window.addEventListener("message", handleMessage, true)
 class DoppioFile
   @fromJSON: (path, rawData) ->
     data = JSON.parse rawData
-    new DoppioFile(path, data.data, data.mtime)
+    new DoppioFile(path, data.data, data.mtime, false, data.mode)
 
   constructor: (@path, @data = "", @mtime = (new Date).getTime(), @mod = false, @mode = 0o644) ->
 
@@ -94,6 +94,7 @@ class DoppioFile
     JSON.stringify
       data: @data
       mtime: @mtime
+      mode: @mode
 
 # Helper object. Used by some FileSources to maintain an index of files.
 class FileIndex
@@ -713,7 +714,7 @@ root.fs =
     return true
   chmod: (path, access, cb) ->
     try
-      rv = root.fs.chmodSync path
+      rv = root.fs.chmodSync path, access
       cb null, rv
     catch e
       cb e
