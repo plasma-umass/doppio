@@ -71,7 +71,14 @@ process_bytecode = (bytecode_string) ->
   bytes_array = util.bytestr_to_array bytecode_string
   new ReferenceClassData(bytes_array)
 
+onResize = ->
+  $('#console').height($(window).height() * 0.7)
+  $('#source').height($(window).height() * 0.7)
+
+$(window).resize(onResize)
+
 $(document).ready ->
+  onResize()
   editor = $('#editor')
   # set up the local file loaders
   $('#file').change (ev) ->
