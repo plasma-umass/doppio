@@ -381,7 +381,7 @@ class root.BootstrapClassLoader extends ClassLoader
     return '<*bootstrapLoader>' if 'bootstrapLoader' of visited
     visited['bootstrapLoader'] = true
     loaded = {}
-    for type,cls of @loaded_classes
+    for type,cls of @loaded_classes when cname != "__proto__"
       loaded["#{type}(#{cls.getLoadState()})"] = cls.loader.serialize(visited)
     ref: 'bootstrapLoader'
     loaded: loaded
@@ -389,8 +389,8 @@ class root.BootstrapClassLoader extends ClassLoader
   # Sets the reset bit on all of the classes in the CL to 1.
   # Causes the classes to be reset when they are first resolved.
   reset: ->
-    for cname of @loaded_classes
-      @loaded_classes[cname].reset_bit = 1
+    for cname,cls of @loaded_classes when cname != "__proto__"
+      cls.reset_bit = 1
     return
 
   # Returns the given primitive class. Creates it if needed.
