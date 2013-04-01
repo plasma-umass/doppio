@@ -140,8 +140,7 @@ Up next on our roadmap is:
 * Running the JVM in a WebWorker (if available) to prevent us from hogging the
 main JavaScript thread.
 * Refactoring core JVM logic for speed.
-* Fixing any remaining bugs in JVM logic (e.g. right now, custom classloaders
-do not work properly).
+* Fixing any remaining bugs in JVM logic.
 * Architecting the core JVM so we can eventually implement JIT compilation on
 a per-method basis. There are a number of concerns that we have to deal with
 before this will be possible.
