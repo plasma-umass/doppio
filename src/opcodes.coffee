@@ -395,6 +395,25 @@ class root.ArrayStoreOpcode extends root.Opcode
     array[idx] = value
     return
 
+class root.ReturnOpcode extends root.Opcode
+  constructor: (name, params={}) ->
+    params.execute ?=
+      if name.match /[ld]return/
+        (rs) ->
+          cf = rs.meta_stack().pop()
+          rs.push2 cf.stack[0], null
+          throw ReturnException
+      else if name is 'return'
+        (rs) ->
+          rs.meta_stack().pop()
+          throw ReturnException
+      else
+        (rs) ->
+          cf = rs.meta_stack().pop()
+          rs.push cf.stack[0]
+          throw ReturnException
+    super name, params
+
 jsr = (rs) ->
   rs.push(rs.curr_pc()+@byte_count+1); rs.inc_pc(@offset); false
 
@@ -580,12 +599,12 @@ root.opcodes = {
   169: new root.Opcode 'ret', { byte_count: 1, execute: (rs) -> rs.goto_pc rs.cl @args[0]; false }
   170: new root.TableSwitchOpcode 'tableswitch'
   171: new root.LookupSwitchOpcode 'lookupswitch'
-  172: new root.Opcode 'ireturn', { execute: (rs) -> cf = rs.meta_stack().pop(); rs.push cf.stack[0]; throw ReturnException }
-  173: new root.Opcode 'lreturn', { execute: (rs) -> cf = rs.meta_stack().pop(); rs.push2 cf.stack[0], null; throw ReturnException }
-  174: new root.Opcode 'freturn', { execute: (rs) -> cf = rs.meta_stack().pop(); rs.push cf.stack[0]; throw ReturnException }
-  175: new root.Opcode 'dreturn', { execute: (rs) -> cf = rs.meta_stack().pop(); rs.push2 cf.stack[0], null; throw ReturnException }
-  176: new root.Opcode 'areturn', { execute: (rs) -> cf = rs.meta_stack().pop(); rs.push cf.stack[0]; throw ReturnException }
-  177: new root.Opcode 'return', { execute: (rs) -> rs.meta_stack().pop(); throw ReturnException }
+  172: new root.ReturnOpcode 'ireturn'
+  173: new root.ReturnOpcode 'lreturn'
+  174: new root.ReturnOpcode 'freturn'
+  175: new root.ReturnOpcode 'dreturn'
+  176: new root.ReturnOpcode 'areturn'
+  177: new root.ReturnOpcode 'return'
   178: new root.FieldOpcode 'getstatic', {execute: (rs)->
     # Get the class referenced by the field_spec.
     ref_cls = rs.get_class(@field_spec.class, true)
