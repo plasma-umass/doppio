@@ -190,6 +190,9 @@ class root.Method extends AbstractMethodField
   # We amortize the cost by doing it lazily the first time that we call run_bytecode.
   initialize: -> @reset_caches = true
 
+  method_lock: (rs) ->
+    if @access_flags.static then @cls.get_class_object(rs) else rs.cl(0)
+
   run_bytecode: (rs) ->
     trace "entering method #{@full_signature()}"
     if @reset_caches and @code?.opcodes?
@@ -198,6 +201,11 @@ class root.Method extends AbstractMethodField
     # main eval loop: execute each opcode, using the pc to iterate through
     code = @code.opcodes
     cf = rs.curr_frame()
+    if @access_flags.synchronized and cf.pc is 0
+      # hack in a monitorenter, which will yield if it fails
+      unless opcodes.monitorenter(rs, @method_lock(rs))
+        cf.pc = 0
+        return
     try
       while true
         op = code[cf.pc]
@@ -236,5 +244,13 @@ class root.Method extends AbstractMethodField
     if @code.run_stamp < runtime_state.run_stamp
       @code.run_stamp = runtime_state.run_stamp
       @code.parse_code()
+      if @access_flags.synchronized
+        # hack in a monitorexit for all return opcodes
+        for i,c of @code.opcodes when c.name.match /^[ildfa]?return$/
+          do (c) =>
+            c.execute = (rs) =>
+              opcodes.monitorexit rs, @method_lock(rs)
+              c.orig_execute(rs)
+
     sf.runner = => @run_bytecode runtime_state
     return sf
