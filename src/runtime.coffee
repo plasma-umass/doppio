@@ -352,7 +352,7 @@ class root.RuntimeState
   run_until_finished: (setup_fn, no_threads, done_cb) ->
     # Reset stack depth every time this is called. Prevents us from needing to
     # scatter this around the code everywhere to prevent filling the stack
-    process.nextTick(=>
+    setImmediate (=>
       @stashed_done_cb = done_cb  # hack for the case where we error out of <clinit>
       try
         setup_fn()

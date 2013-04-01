@@ -50,8 +50,8 @@ GetIEByteArray_ByteStr = (IEByteArray) ->
       return String.fromCharCode(v&0xff, v>>8)
     )) + lastChr
 
-# Used for process.nextTick(). Using postMessage is *much* faster than using
-# setTimeout(fn, 0).
+# Used for setImmediate.
+# Using postMessage is *much* faster than using setTimeout(fn, 0).
 # Credit for idea and example implementation goes to:
 # http://dbaron.org/log/20100309-faster-timeouts
 timeouts = []
@@ -746,5 +746,6 @@ root.process =
     absdir = fs_state.chdir dir
     throw "Invalid directory" unless absdir?
     absdir
-  nextTick: (fn) -> setZeroTimeout fn
 
+unless window.setImmediate?
+  window.setImmediate = setZeroTimeout
