@@ -76,10 +76,6 @@ class root.RuntimeState
     @bcl.reset()
     @startup_time = gLong.fromNumber (new Date).getTime()
     @run_stamp = ++run_count
-    # dict of ClassDatas that have been loaded. this is two levels deep:
-    # the first level is the classloader, the second level is the classes
-    # defined by that classloader.
-    @loaded_classes = Object.create null
 
     @mem_start_addrs = [1]
     @mem_blocks = {}
