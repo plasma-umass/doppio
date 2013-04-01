@@ -69,7 +69,7 @@ read_classfile = (cls, cb, failure_cb) ->
 
 process_bytecode = (bytecode_string) ->
   bytes_array = util.bytestr_to_array bytecode_string
-  new ReferenceClassData(bytes_array)
+  new ClassData.ReferenceClassData(bytes_array)
 
 onResize = ->
   $('#console').height($(window).height() * 0.7)
@@ -234,7 +234,6 @@ commands =
     catch e
       return ["Could not find class '#{args[0]}'.",'error']
     disassembler.disassemble process_bytecode raw_data
-    return null  # no reprompt, because we handle it ourselves
   rhino: (args, cb) ->
     jvm.set_classpath '/home/doppio/vendor/classes/', './'
     rs = new runtime.RuntimeState(stdout, user_input, bs_cl)
