@@ -287,11 +287,15 @@ class LocalStorageSource extends FileSource
     data = localStorage.getItem path
     if data? then DoppioFile.fromJSON(path, data) else null
   store: (path, file) ->
-    # XXX: Don't store if a temporary file.
-    if file.mod and not file.temp
-      localStorage.setItem path, file.toJSON()
+    try
+      # XXX: Don't store if a temporary file.
+      if file.mod and not file.temp
+        localStorage.setItem path, file.toJSON()
       @index.add_file(path, file)
-    true
+      return true
+    catch e
+      # Probably out of space.
+      return false
   rm: (path) ->
     listing = @index.rm(path)
     if typeof listing != 'boolean'
