@@ -1,0 +1,560 @@
+Compiled from "Reflection.java"
+public class classes.test.Reflection extends java.lang.Object
+  SourceFile: "Reflection.java"
+  InnerClass: 
+   #57= #10 of #12; //SubClass=class classes/test/Reflection$SubClass of class classes/test/Reflection
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#32.#102;	//  java/lang/Object."<init>":()V
+const #2 = String	#103;	//  I'm a good string
+const #3 = Field	#12.#104;	//  classes/test/Reflection.goodString:Ljava/lang/String;
+const #4 = class	#105;	//  java/lang/Long
+const #5 = Method	#4.#106;	//  java/lang/Long.longValue:()J
+const #6 = Method	#4.#107;	//  java/lang/Long."<init>":(J)V
+const #7 = Field	#108.#109;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #8 = String	#110;	//  called foo
+const #9 = Method	#111.#112;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #10 = class	#113;	//  classes/test/Reflection$SubClass
+const #11 = Method	#10.#102;	//  classes/test/Reflection$SubClass."<init>":()V
+const #12 = class	#114;	//  classes/test/Reflection
+const #13 = String	#59;	//  goodString
+const #14 = Method	#28.#115;	//  java/lang/Class.getDeclaredField:(Ljava/lang/String;)Ljava/lang/reflect/Field;
+const #15 = Method	#116.#117;	//  java/lang/reflect/Field.get:(Ljava/lang/Object;)Ljava/lang/Object;
+const #16 = Method	#111.#118;	//  java/io/PrintStream.println:(Ljava/lang/Object;)V
+const #17 = Method	#12.#102;	//  classes/test/Reflection."<init>":()V
+const #18 = String	#61;	//  constValue
+const #19 = Method	#28.#119;	//  java/lang/Class.getField:(Ljava/lang/String;)Ljava/lang/reflect/Field;
+const #20 = String	#64;	//  constInt
+const #21 = String	#67;	//  constFloat
+const #22 = String	#70;	//  constDouble
+const #23 = String	#74;	//  constLong
+const #24 = String	#78;	//  constShort
+const #25 = String	#81;	//  constBool
+const #26 = Method	#32.#120;	//  java/lang/Object.getClass:()Ljava/lang/Class;
+const #27 = String	#121;	//  toString
+const #28 = class	#122;	//  java/lang/Class
+const #29 = Method	#28.#123;	//  java/lang/Class.getMethod:(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+const #30 = String	#124;	//  isArray
+const #31 = String	#125;	//  isInstance
+const #32 = class	#126;	//  java/lang/Object
+const #33 = String	#88;	//  add
+const #34 = Field	#4.#127;	//  java/lang/Long.TYPE:Ljava/lang/Class;
+const #35 = String	#91;	//  foo
+const #36 = class	#128;	//  java/lang/StringBuilder
+const #37 = Method	#36.#102;	//  java/lang/StringBuilder."<init>":()V
+const #38 = String	#129;	//  toString: 
+const #39 = Method	#36.#130;	//  java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #40 = Method	#131.#132;	//  java/lang/reflect/Method.invoke:(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+const #41 = Method	#36.#133;	//  java/lang/StringBuilder.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+const #42 = Method	#36.#134;	//  java/lang/StringBuilder.toString:()Ljava/lang/String;
+const #43 = String	#135;	//  is array? 
+const #44 = String	#136;	//  is instance? 
+const #45 = long	40l;
+const #47 = long	2l;
+const #49 = String	#137;	//  unboxing: 
+const #50 = String	#138;	//  boxing: 
+const #51 = long	1300l;
+const #53 = Method	#4.#139;	//  java/lang/Long.valueOf:(J)Ljava/lang/Long;
+const #54 = long	37l;
+const #56 = String	#140;	//  void return: 
+const #57 = Asciz	SubClass;
+const #58 = Asciz	InnerClasses;
+const #59 = Asciz	goodString;
+const #60 = Asciz	Ljava/lang/String;;
+const #61 = Asciz	constValue;
+const #62 = Asciz	ConstantValue;
+const #63 = String	#141;	//  I'm a constant
+const #64 = Asciz	constInt;
+const #65 = Asciz	I;
+const #66 = int	23;
+const #67 = Asciz	constFloat;
+const #68 = Asciz	F;
+const #69 = float	2.45f;
+const #70 = Asciz	constDouble;
+const #71 = Asciz	D;
+const #72 = double	1.4567d;
+const #74 = Asciz	constLong;
+const #75 = Asciz	J;
+const #76 = long	8394834397l;
+const #78 = Asciz	constShort;
+const #79 = Asciz	S;
+const #80 = int	12;
+const #81 = Asciz	constBool;
+const #82 = Asciz	Z;
+const #83 = int	1;
+const #84 = Asciz	<init>;
+const #85 = Asciz	()V;
+const #86 = Asciz	Code;
+const #87 = Asciz	LineNumberTable;
+const #88 = Asciz	add;
+const #89 = Asciz	(JJ)J;
+const #90 = Asciz	(Ljava/lang/Long;Ljava/lang/Long;)Ljava/lang/Long;;
+const #91 = Asciz	foo;
+const #92 = Asciz	main;
+const #93 = Asciz	([Ljava/lang/String;)V;
+const #94 = Asciz	Exceptions;
+const #95 = class	#142;	//  java/lang/ClassNotFoundException
+const #96 = class	#143;	//  java/lang/NoSuchMethodException
+const #97 = class	#144;	//  java/lang/IllegalAccessException
+const #98 = class	#145;	//  java/lang/reflect/InvocationTargetException
+const #99 = class	#146;	//  java/lang/NoSuchFieldException
+const #100 = Asciz	SourceFile;
+const #101 = Asciz	Reflection.java;
+const #102 = NameAndType	#84:#85;//  "<init>":()V
+const #103 = Asciz	I'm a good string;
+const #104 = NameAndType	#59:#60;//  goodString:Ljava/lang/String;
+const #105 = Asciz	java/lang/Long;
+const #106 = NameAndType	#147:#148;//  longValue:()J
+const #107 = NameAndType	#84:#149;//  "<init>":(J)V
+const #108 = class	#150;	//  java/lang/System
+const #109 = NameAndType	#151:#152;//  out:Ljava/io/PrintStream;
+const #110 = Asciz	called foo;
+const #111 = class	#153;	//  java/io/PrintStream
+const #112 = NameAndType	#154:#155;//  println:(Ljava/lang/String;)V
+const #113 = Asciz	classes/test/Reflection$SubClass;
+const #114 = Asciz	classes/test/Reflection;
+const #115 = NameAndType	#156:#157;//  getDeclaredField:(Ljava/lang/String;)Ljava/lang/reflect/Field;
+const #116 = class	#158;	//  java/lang/reflect/Field
+const #117 = NameAndType	#159:#160;//  get:(Ljava/lang/Object;)Ljava/lang/Object;
+const #118 = NameAndType	#154:#161;//  println:(Ljava/lang/Object;)V
+const #119 = NameAndType	#162:#157;//  getField:(Ljava/lang/String;)Ljava/lang/reflect/Field;
+const #120 = NameAndType	#163:#164;//  getClass:()Ljava/lang/Class;
+const #121 = Asciz	toString;
+const #122 = Asciz	java/lang/Class;
+const #123 = NameAndType	#165:#166;//  getMethod:(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+const #124 = Asciz	isArray;
+const #125 = Asciz	isInstance;
+const #126 = Asciz	java/lang/Object;
+const #127 = NameAndType	#167:#168;//  TYPE:Ljava/lang/Class;
+const #128 = Asciz	java/lang/StringBuilder;
+const #129 = Asciz	toString: ;
+const #130 = NameAndType	#169:#170;//  append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #131 = class	#171;	//  java/lang/reflect/Method
+const #132 = NameAndType	#172:#173;//  invoke:(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+const #133 = NameAndType	#169:#174;//  append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+const #134 = NameAndType	#121:#175;//  toString:()Ljava/lang/String;
+const #135 = Asciz	is array? ;
+const #136 = Asciz	is instance? ;
+const #137 = Asciz	unboxing: ;
+const #138 = Asciz	boxing: ;
+const #139 = NameAndType	#176:#177;//  valueOf:(J)Ljava/lang/Long;
+const #140 = Asciz	void return: ;
+const #141 = Asciz	I'm a constant;
+const #142 = Asciz	java/lang/ClassNotFoundException;
+const #143 = Asciz	java/lang/NoSuchMethodException;
+const #144 = Asciz	java/lang/IllegalAccessException;
+const #145 = Asciz	java/lang/reflect/InvocationTargetException;
+const #146 = Asciz	java/lang/NoSuchFieldException;
+const #147 = Asciz	longValue;
+const #148 = Asciz	()J;
+const #149 = Asciz	(J)V;
+const #150 = Asciz	java/lang/System;
+const #151 = Asciz	out;
+const #152 = Asciz	Ljava/io/PrintStream;;
+const #153 = Asciz	java/io/PrintStream;
+const #154 = Asciz	println;
+const #155 = Asciz	(Ljava/lang/String;)V;
+const #156 = Asciz	getDeclaredField;
+const #157 = Asciz	(Ljava/lang/String;)Ljava/lang/reflect/Field;;
+const #158 = Asciz	java/lang/reflect/Field;
+const #159 = Asciz	get;
+const #160 = Asciz	(Ljava/lang/Object;)Ljava/lang/Object;;
+const #161 = Asciz	(Ljava/lang/Object;)V;
+const #162 = Asciz	getField;
+const #163 = Asciz	getClass;
+const #164 = Asciz	()Ljava/lang/Class;;
+const #165 = Asciz	getMethod;
+const #166 = Asciz	(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;;
+const #167 = Asciz	TYPE;
+const #168 = Asciz	Ljava/lang/Class;;
+const #169 = Asciz	append;
+const #170 = Asciz	(Ljava/lang/String;)Ljava/lang/StringBuilder;;
+const #171 = Asciz	java/lang/reflect/Method;
+const #172 = Asciz	invoke;
+const #173 = Asciz	(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;;
+const #174 = Asciz	(Ljava/lang/Object;)Ljava/lang/StringBuilder;;
+const #175 = Asciz	()Ljava/lang/String;;
+const #176 = Asciz	valueOf;
+const #177 = Asciz	(J)Ljava/lang/Long;;
+
+{
+public java.lang.String goodString;
+
+
+public static final java.lang.String constValue;
+  Constant value: String I'm a constant
+
+public static final int constInt;
+  Constant value: int 23
+
+public static final float constFloat;
+  Constant value: float 2.45f
+
+public static final double constDouble;
+  Constant value: double 1.4567d
+
+public static final long constLong;
+  Constant value: long 8394834397l
+
+public static final short constShort;
+  Constant value: int 12
+
+public static final boolean constBool;
+  Constant value: int 1
+
+public classes.test.Reflection();
+  Code:
+   Stack=2, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	aload_0
+   5:	ldc	#2; //String I'm a good string
+   7:	putfield	#3; //Field goodString:Ljava/lang/String;
+   10:	return
+  LineNumberTable: 
+   line 7: 0
+   line 9: 4
+   line 80: 10
+
+
+public static long add(long, long);
+  Code:
+   Stack=4, Locals=4, Args_size=2
+   0:	lload_0
+   1:	lload_2
+   2:	ladd
+   3:	lreturn
+  LineNumberTable: 
+   line 19: 0
+
+
+public static java.lang.Long add(java.lang.Long, java.lang.Long);
+  Code:
+   Stack=6, Locals=2, Args_size=2
+   0:	new	#4; //class java/lang/Long
+   3:	dup
+   4:	aload_0
+   5:	invokevirtual	#5; //Method java/lang/Long.longValue:()J
+   8:	aload_1
+   9:	invokevirtual	#5; //Method java/lang/Long.longValue:()J
+   12:	ladd
+   13:	invokespecial	#6; //Method java/lang/Long."<init>":(J)V
+   16:	areturn
+  LineNumberTable: 
+   line 23: 0
+
+
+public static void foo();
+  Code:
+   Stack=2, Locals=0, Args_size=0
+   0:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   3:	ldc	#8; //String called foo
+   5:	invokevirtual	#9; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   8:	return
+  LineNumberTable: 
+   line 27: 0
+   line 28: 8
+
+
+public static void main(java.lang.String[])   throws java.lang.ClassNotFoundException, java.lang.NoSuchMethodException, java.lang.IllegalAccessException, java.lang.reflect.InvocationTargetException, java.lang.NoSuchFieldException;
+  Code:
+   Stack=9, Locals=20, Args_size=1
+   0:	new	#10; //class classes/test/Reflection$SubClass
+   3:	dup
+   4:	invokespecial	#11; //Method classes/test/Reflection$SubClass."<init>":()V
+   7:	astore_1
+   8:	ldc_w	#12; //class classes/test/Reflection
+   11:	ldc	#13; //String goodString
+   13:	invokevirtual	#14; //Method java/lang/Class.getDeclaredField:(Ljava/lang/String;)Ljava/lang/reflect/Field;
+   16:	astore_2
+   17:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   20:	aload_2
+   21:	aload_1
+   22:	invokevirtual	#15; //Method java/lang/reflect/Field.get:(Ljava/lang/Object;)Ljava/lang/Object;
+   25:	invokevirtual	#16; //Method java/io/PrintStream.println:(Ljava/lang/Object;)V
+   28:	new	#12; //class classes/test/Reflection
+   31:	dup
+   32:	invokespecial	#17; //Method "<init>":()V
+   35:	astore_3
+   36:	ldc_w	#12; //class classes/test/Reflection
+   39:	astore	4
+   41:	aload	4
+   43:	ldc	#18; //String constValue
+   45:	invokevirtual	#19; //Method java/lang/Class.getField:(Ljava/lang/String;)Ljava/lang/reflect/Field;
+   48:	astore	5
+   50:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   53:	aload	5
+   55:	aconst_null
+   56:	invokevirtual	#15; //Method java/lang/reflect/Field.get:(Ljava/lang/Object;)Ljava/lang/Object;
+   59:	invokevirtual	#16; //Method java/io/PrintStream.println:(Ljava/lang/Object;)V
+   62:	aload	4
+   64:	ldc	#20; //String constInt
+   66:	invokevirtual	#19; //Method java/lang/Class.getField:(Ljava/lang/String;)Ljava/lang/reflect/Field;
+   69:	astore	6
+   71:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   74:	aload	6
+   76:	aconst_null
+   77:	invokevirtual	#15; //Method java/lang/reflect/Field.get:(Ljava/lang/Object;)Ljava/lang/Object;
+   80:	invokevirtual	#16; //Method java/io/PrintStream.println:(Ljava/lang/Object;)V
+   83:	aload	4
+   85:	ldc	#21; //String constFloat
+   87:	invokevirtual	#19; //Method java/lang/Class.getField:(Ljava/lang/String;)Ljava/lang/reflect/Field;
+   90:	astore	7
+   92:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   95:	aload	7
+   97:	aconst_null
+   98:	invokevirtual	#15; //Method java/lang/reflect/Field.get:(Ljava/lang/Object;)Ljava/lang/Object;
+   101:	invokevirtual	#16; //Method java/io/PrintStream.println:(Ljava/lang/Object;)V
+   104:	aload	4
+   106:	ldc	#22; //String constDouble
+   108:	invokevirtual	#19; //Method java/lang/Class.getField:(Ljava/lang/String;)Ljava/lang/reflect/Field;
+   111:	astore	8
+   113:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   116:	aload	8
+   118:	aconst_null
+   119:	invokevirtual	#15; //Method java/lang/reflect/Field.get:(Ljava/lang/Object;)Ljava/lang/Object;
+   122:	invokevirtual	#16; //Method java/io/PrintStream.println:(Ljava/lang/Object;)V
+   125:	aload	4
+   127:	ldc	#23; //String constLong
+   129:	invokevirtual	#19; //Method java/lang/Class.getField:(Ljava/lang/String;)Ljava/lang/reflect/Field;
+   132:	astore	9
+   134:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   137:	aload	9
+   139:	aconst_null
+   140:	invokevirtual	#15; //Method java/lang/reflect/Field.get:(Ljava/lang/Object;)Ljava/lang/Object;
+   143:	invokevirtual	#16; //Method java/io/PrintStream.println:(Ljava/lang/Object;)V
+   146:	aload	4
+   148:	ldc	#24; //String constShort
+   150:	invokevirtual	#19; //Method java/lang/Class.getField:(Ljava/lang/String;)Ljava/lang/reflect/Field;
+   153:	astore	10
+   155:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   158:	aload	10
+   160:	aconst_null
+   161:	invokevirtual	#15; //Method java/lang/reflect/Field.get:(Ljava/lang/Object;)Ljava/lang/Object;
+   164:	invokevirtual	#16; //Method java/io/PrintStream.println:(Ljava/lang/Object;)V
+   167:	aload	4
+   169:	ldc	#25; //String constBool
+   171:	invokevirtual	#19; //Method java/lang/Class.getField:(Ljava/lang/String;)Ljava/lang/reflect/Field;
+   174:	astore	11
+   176:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   179:	aload	11
+   181:	aconst_null
+   182:	invokevirtual	#15; //Method java/lang/reflect/Field.get:(Ljava/lang/Object;)Ljava/lang/Object;
+   185:	invokevirtual	#16; //Method java/io/PrintStream.println:(Ljava/lang/Object;)V
+   188:	aload	4
+   190:	invokevirtual	#26; //Method java/lang/Object.getClass:()Ljava/lang/Class;
+   193:	ldc	#27; //String toString
+   195:	iconst_0
+   196:	anewarray	#28; //class java/lang/Class
+   199:	invokevirtual	#29; //Method java/lang/Class.getMethod:(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+   202:	astore	12
+   204:	aload	4
+   206:	invokevirtual	#26; //Method java/lang/Object.getClass:()Ljava/lang/Class;
+   209:	ldc	#30; //String isArray
+   211:	iconst_0
+   212:	anewarray	#28; //class java/lang/Class
+   215:	invokevirtual	#29; //Method java/lang/Class.getMethod:(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+   218:	astore	13
+   220:	aload	4
+   222:	invokevirtual	#26; //Method java/lang/Object.getClass:()Ljava/lang/Class;
+   225:	ldc	#31; //String isInstance
+   227:	iconst_1
+   228:	anewarray	#28; //class java/lang/Class
+   231:	dup
+   232:	iconst_0
+   233:	ldc_w	#32; //class java/lang/Object
+   236:	aastore
+   237:	invokevirtual	#29; //Method java/lang/Class.getMethod:(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+   240:	astore	14
+   242:	aload	4
+   244:	ldc	#33; //String add
+   246:	iconst_2
+   247:	anewarray	#28; //class java/lang/Class
+   250:	dup
+   251:	iconst_0
+   252:	getstatic	#34; //Field java/lang/Long.TYPE:Ljava/lang/Class;
+   255:	aastore
+   256:	dup
+   257:	iconst_1
+   258:	getstatic	#34; //Field java/lang/Long.TYPE:Ljava/lang/Class;
+   261:	aastore
+   262:	invokevirtual	#29; //Method java/lang/Class.getMethod:(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+   265:	astore	15
+   267:	aload	4
+   269:	ldc	#33; //String add
+   271:	iconst_2
+   272:	anewarray	#28; //class java/lang/Class
+   275:	dup
+   276:	iconst_0
+   277:	ldc_w	#4; //class java/lang/Long
+   280:	aastore
+   281:	dup
+   282:	iconst_1
+   283:	ldc_w	#4; //class java/lang/Long
+   286:	aastore
+   287:	invokevirtual	#29; //Method java/lang/Class.getMethod:(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+   290:	astore	16
+   292:	aload	4
+   294:	ldc	#35; //String foo
+   296:	iconst_0
+   297:	anewarray	#28; //class java/lang/Class
+   300:	invokevirtual	#29; //Method java/lang/Class.getMethod:(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+   303:	astore	17
+   305:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   308:	new	#36; //class java/lang/StringBuilder
+   311:	dup
+   312:	invokespecial	#37; //Method java/lang/StringBuilder."<init>":()V
+   315:	ldc	#38; //String toString: 
+   317:	invokevirtual	#39; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   320:	aload	12
+   322:	aload	4
+   324:	iconst_0
+   325:	anewarray	#32; //class java/lang/Object
+   328:	invokevirtual	#40; //Method java/lang/reflect/Method.invoke:(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+   331:	invokevirtual	#41; //Method java/lang/StringBuilder.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+   334:	invokevirtual	#42; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   337:	invokevirtual	#9; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   340:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   343:	new	#36; //class java/lang/StringBuilder
+   346:	dup
+   347:	invokespecial	#37; //Method java/lang/StringBuilder."<init>":()V
+   350:	ldc	#43; //String is array? 
+   352:	invokevirtual	#39; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   355:	aload	13
+   357:	aload	4
+   359:	iconst_0
+   360:	anewarray	#32; //class java/lang/Object
+   363:	invokevirtual	#40; //Method java/lang/reflect/Method.invoke:(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+   366:	invokevirtual	#41; //Method java/lang/StringBuilder.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+   369:	invokevirtual	#42; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   372:	invokevirtual	#9; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   375:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   378:	new	#36; //class java/lang/StringBuilder
+   381:	dup
+   382:	invokespecial	#37; //Method java/lang/StringBuilder."<init>":()V
+   385:	ldc	#44; //String is instance? 
+   387:	invokevirtual	#39; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   390:	aload	14
+   392:	aload	4
+   394:	iconst_1
+   395:	anewarray	#32; //class java/lang/Object
+   398:	dup
+   399:	iconst_0
+   400:	aload_3
+   401:	aastore
+   402:	invokevirtual	#40; //Method java/lang/reflect/Method.invoke:(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+   405:	invokevirtual	#41; //Method java/lang/StringBuilder.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+   408:	invokevirtual	#42; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   411:	invokevirtual	#9; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   414:	new	#4; //class java/lang/Long
+   417:	dup
+   418:	ldc2_w	#45; //long 40l
+   421:	invokespecial	#6; //Method java/lang/Long."<init>":(J)V
+   424:	astore	18
+   426:	new	#4; //class java/lang/Long
+   429:	dup
+   430:	ldc2_w	#47; //long 2l
+   433:	invokespecial	#6; //Method java/lang/Long."<init>":(J)V
+   436:	astore	19
+   438:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   441:	new	#36; //class java/lang/StringBuilder
+   444:	dup
+   445:	invokespecial	#37; //Method java/lang/StringBuilder."<init>":()V
+   448:	ldc	#49; //String unboxing: 
+   450:	invokevirtual	#39; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   453:	aload	15
+   455:	aconst_null
+   456:	iconst_2
+   457:	anewarray	#32; //class java/lang/Object
+   460:	dup
+   461:	iconst_0
+   462:	aload	18
+   464:	aastore
+   465:	dup
+   466:	iconst_1
+   467:	aload	19
+   469:	aastore
+   470:	invokevirtual	#40; //Method java/lang/reflect/Method.invoke:(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+   473:	invokevirtual	#41; //Method java/lang/StringBuilder.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+   476:	invokevirtual	#42; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   479:	invokevirtual	#9; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   482:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   485:	new	#36; //class java/lang/StringBuilder
+   488:	dup
+   489:	invokespecial	#37; //Method java/lang/StringBuilder."<init>":()V
+   492:	ldc	#50; //String boxing: 
+   494:	invokevirtual	#39; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   497:	aload	16
+   499:	aconst_null
+   500:	iconst_2
+   501:	anewarray	#32; //class java/lang/Object
+   504:	dup
+   505:	iconst_0
+   506:	ldc2_w	#51; //long 1300l
+   509:	invokestatic	#53; //Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+   512:	aastore
+   513:	dup
+   514:	iconst_1
+   515:	ldc2_w	#54; //long 37l
+   518:	invokestatic	#53; //Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+   521:	aastore
+   522:	invokevirtual	#40; //Method java/lang/reflect/Method.invoke:(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+   525:	invokevirtual	#41; //Method java/lang/StringBuilder.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+   528:	invokevirtual	#42; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   531:	invokevirtual	#9; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   534:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   537:	new	#36; //class java/lang/StringBuilder
+   540:	dup
+   541:	invokespecial	#37; //Method java/lang/StringBuilder."<init>":()V
+   544:	ldc	#56; //String void return: 
+   546:	invokevirtual	#39; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   549:	aload	17
+   551:	aconst_null
+   552:	iconst_0
+   553:	anewarray	#32; //class java/lang/Object
+   556:	invokevirtual	#40; //Method java/lang/reflect/Method.invoke:(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+   559:	invokevirtual	#41; //Method java/lang/StringBuilder.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+   562:	invokevirtual	#42; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   565:	invokevirtual	#9; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   568:	return
+  LineNumberTable: 
+   line 34: 0
+   line 35: 8
+   line 36: 17
+   line 38: 28
+   line 39: 36
+   line 43: 41
+   line 44: 50
+   line 45: 62
+   line 46: 71
+   line 47: 83
+   line 48: 92
+   line 49: 104
+   line 50: 113
+   line 51: 125
+   line 52: 134
+   line 53: 146
+   line 54: 155
+   line 55: 167
+   line 56: 176
+   line 58: 188
+   line 59: 204
+   line 60: 220
+   line 61: 242
+   line 62: 267
+   line 63: 292
+   line 65: 305
+   line 67: 340
+   line 69: 375
+   line 71: 414
+   line 72: 426
+   line 73: 438
+   line 75: 482
+   line 77: 534
+   line 78: 568
+
+  Exceptions: 
+   throws java.lang.ClassNotFoundException, java.lang.NoSuchMethodException, java.lang.IllegalAccessException, java.lang.reflect.InvocationTargetException, java.lang.NoSuchFieldException
+}
+

@@ -4,36 +4,44 @@ class classes.test.HashCode extends java.lang.Object
   minor version: 0
   major version: 50
   Constant pool:
-const #1 = Method	#6.#15;	//  java/lang/Object."<init>":()V
-const #2 = Field	#16.#17;	//  java/lang/System.out:Ljava/io/PrintStream;
-const #3 = Method	#16.#18;	//  java/lang/System.identityHashCode:(Ljava/lang/Object;)I
-const #4 = Method	#19.#20;	//  java/io/PrintStream.println:(I)V
-const #5 = class	#21;	//  classes/test/HashCode
-const #6 = class	#22;	//  java/lang/Object
-const #7 = Asciz	<init>;
-const #8 = Asciz	()V;
-const #9 = Asciz	Code;
-const #10 = Asciz	LineNumberTable;
-const #11 = Asciz	main;
-const #12 = Asciz	([Ljava/lang/String;)V;
-const #13 = Asciz	SourceFile;
-const #14 = Asciz	HashCode.java;
-const #15 = NameAndType	#7:#8;//  "<init>":()V
-const #16 = class	#23;	//  java/lang/System
-const #17 = NameAndType	#24:#25;//  out:Ljava/io/PrintStream;
-const #18 = NameAndType	#26:#27;//  identityHashCode:(Ljava/lang/Object;)I
-const #19 = class	#28;	//  java/io/PrintStream
-const #20 = NameAndType	#29:#30;//  println:(I)V
-const #21 = Asciz	classes/test/HashCode;
-const #22 = Asciz	java/lang/Object;
-const #23 = Asciz	java/lang/System;
-const #24 = Asciz	out;
-const #25 = Asciz	Ljava/io/PrintStream;;
-const #26 = Asciz	identityHashCode;
-const #27 = Asciz	(Ljava/lang/Object;)I;
-const #28 = Asciz	java/io/PrintStream;
-const #29 = Asciz	println;
-const #30 = Asciz	(I)V;
+const #1 = Method	#8.#17;	//  java/lang/Object."<init>":()V
+const #2 = Field	#18.#19;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #3 = Method	#18.#20;	//  java/lang/System.identityHashCode:(Ljava/lang/Object;)I
+const #4 = Method	#21.#22;	//  java/io/PrintStream.println:(I)V
+const #5 = String	#23;	//  hello
+const #6 = Method	#24.#25;	//  java/lang/String.hashCode:()I
+const #7 = class	#26;	//  classes/test/HashCode
+const #8 = class	#27;	//  java/lang/Object
+const #9 = Asciz	<init>;
+const #10 = Asciz	()V;
+const #11 = Asciz	Code;
+const #12 = Asciz	LineNumberTable;
+const #13 = Asciz	main;
+const #14 = Asciz	([Ljava/lang/String;)V;
+const #15 = Asciz	SourceFile;
+const #16 = Asciz	HashCode.java;
+const #17 = NameAndType	#9:#10;//  "<init>":()V
+const #18 = class	#28;	//  java/lang/System
+const #19 = NameAndType	#29:#30;//  out:Ljava/io/PrintStream;
+const #20 = NameAndType	#31:#32;//  identityHashCode:(Ljava/lang/Object;)I
+const #21 = class	#33;	//  java/io/PrintStream
+const #22 = NameAndType	#34:#35;//  println:(I)V
+const #23 = Asciz	hello;
+const #24 = class	#36;	//  java/lang/String
+const #25 = NameAndType	#37:#38;//  hashCode:()I
+const #26 = Asciz	classes/test/HashCode;
+const #27 = Asciz	java/lang/Object;
+const #28 = Asciz	java/lang/System;
+const #29 = Asciz	out;
+const #30 = Asciz	Ljava/io/PrintStream;;
+const #31 = Asciz	identityHashCode;
+const #32 = Asciz	(Ljava/lang/Object;)I;
+const #33 = Asciz	java/io/PrintStream;
+const #34 = Asciz	println;
+const #35 = Asciz	(I)V;
+const #36 = Asciz	java/lang/String;
+const #37 = Asciz	hashCode;
+const #38 = Asciz	()I;
 
 {
 classes.test.HashCode();
@@ -53,10 +61,15 @@ public static void main(java.lang.String[]);
    3:	aconst_null
    4:	invokestatic	#3; //Method java/lang/System.identityHashCode:(Ljava/lang/Object;)I
    7:	invokevirtual	#4; //Method java/io/PrintStream.println:(I)V
-   10:	return
+   10:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   13:	ldc	#5; //String hello
+   15:	invokevirtual	#6; //Method java/lang/String.hashCode:()I
+   18:	invokevirtual	#4; //Method java/io/PrintStream.println:(I)V
+   21:	return
   LineNumberTable: 
    line 6: 0
-   line 7: 10
+   line 8: 10
+   line 9: 21
 
 
 }

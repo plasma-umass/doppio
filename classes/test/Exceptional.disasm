@@ -4,74 +4,95 @@ public class classes.test.Exceptional extends java.lang.Object
   minor version: 0
   major version: 50
   Constant pool:
-const #1 = Method	#23.#39;	//  java/lang/Object."<init>":()V
-const #2 = class	#40;	//  java/lang/Exception
-const #3 = String	#41;	//  good morning
-const #4 = Method	#2.#42;	//  java/lang/Exception."<init>":(Ljava/lang/String;)V
-const #5 = class	#43;	//  java/lang/RuntimeException
-const #6 = String	#44;	//  bad morning
-const #7 = Method	#5.#42;	//  java/lang/RuntimeException."<init>":(Ljava/lang/String;)V
-const #8 = Field	#45.#46;	//  java/lang/System.out:Ljava/io/PrintStream;
-const #9 = String	#47;	//  Caught RuntimeException as a subclass of Exception.
-const #10 = Method	#48.#49;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
-const #11 = String	#50;	//  test
-const #12 = Method	#22.#51;	//  classes/test/Exceptional.throwingFunc:()V
-const #13 = Method	#22.#52;	//  classes/test/Exceptional.anotherThrowingFunc:()V
-const #14 = class	#53;	//  java/io/FileReader
-const #15 = String	#54;	//  ./NonExistentFile!!!
-const #16 = Method	#14.#42;	//  java/io/FileReader."<init>":(Ljava/lang/String;)V
-const #17 = String	#55;	//  Non existent file does not exist
-const #18 = class	#56;	//  java/lang/Error
-const #19 = String	#57;	//  I'm the gingerbread man
-const #20 = Method	#18.#42;	//  java/lang/Error."<init>":(Ljava/lang/String;)V
-const #21 = String	#58;	//  We should never reach this -- Error is not a subclass of Exception
-const #22 = class	#59;	//  classes/test/Exceptional
-const #23 = class	#60;	//  java/lang/Object
-const #24 = Asciz	<init>;
-const #25 = Asciz	()V;
-const #26 = Asciz	Code;
-const #27 = Asciz	LineNumberTable;
-const #28 = Asciz	throwingFunc;
-const #29 = Asciz	Exceptions;
-const #30 = Asciz	anotherThrowingFunc;
-const #31 = Asciz	StackMapTable;
-const #32 = class	#40;	//  java/lang/Exception
-const #33 = Asciz	main;
-const #34 = Asciz	([Ljava/lang/String;)V;
-const #35 = class	#61;	//  "[Ljava/lang/String;"
-const #36 = class	#62;	//  java/lang/Throwable
-const #37 = Asciz	SourceFile;
-const #38 = Asciz	Exceptional.java;
-const #39 = NameAndType	#24:#25;//  "<init>":()V
-const #40 = Asciz	java/lang/Exception;
-const #41 = Asciz	good morning;
-const #42 = NameAndType	#24:#63;//  "<init>":(Ljava/lang/String;)V
-const #43 = Asciz	java/lang/RuntimeException;
-const #44 = Asciz	bad morning;
-const #45 = class	#64;	//  java/lang/System
-const #46 = NameAndType	#65:#66;//  out:Ljava/io/PrintStream;
-const #47 = Asciz	Caught RuntimeException as a subclass of Exception.;
-const #48 = class	#67;	//  java/io/PrintStream
-const #49 = NameAndType	#68:#63;//  println:(Ljava/lang/String;)V
-const #50 = Asciz	test;
-const #51 = NameAndType	#28:#25;//  throwingFunc:()V
-const #52 = NameAndType	#30:#25;//  anotherThrowingFunc:()V
-const #53 = Asciz	java/io/FileReader;
-const #54 = Asciz	./NonExistentFile!!!;
-const #55 = Asciz	Non existent file does not exist;
-const #56 = Asciz	java/lang/Error;
-const #57 = Asciz	I'm the gingerbread man;
-const #58 = Asciz	We should never reach this -- Error is not a subclass of Exception;
-const #59 = Asciz	classes/test/Exceptional;
-const #60 = Asciz	java/lang/Object;
-const #61 = Asciz	[Ljava/lang/String;;
-const #62 = Asciz	java/lang/Throwable;
-const #63 = Asciz	(Ljava/lang/String;)V;
-const #64 = Asciz	java/lang/System;
-const #65 = Asciz	out;
-const #66 = Asciz	Ljava/io/PrintStream;;
-const #67 = Asciz	java/io/PrintStream;
-const #68 = Asciz	println;
+const #1 = Method	#30.#46;	//  java/lang/Object."<init>":()V
+const #2 = class	#47;	//  java/lang/Exception
+const #3 = String	#48;	//  good morning
+const #4 = Method	#2.#49;	//  java/lang/Exception."<init>":(Ljava/lang/String;)V
+const #5 = class	#50;	//  java/lang/RuntimeException
+const #6 = String	#51;	//  bad morning
+const #7 = Method	#5.#49;	//  java/lang/RuntimeException."<init>":(Ljava/lang/String;)V
+const #8 = Field	#52.#53;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #9 = String	#54;	//  Caught RuntimeException as a subclass of Exception.
+const #10 = Method	#55.#56;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #11 = String	#57;	//  test
+const #12 = Method	#29.#58;	//  classes/test/Exceptional.throwingFunc:()V
+const #13 = Method	#29.#59;	//  classes/test/Exceptional.anotherThrowingFunc:()V
+const #14 = class	#60;	//  java/io/FileReader
+const #15 = String	#61;	//  ./NonExistentFile!!!
+const #16 = Method	#14.#49;	//  java/io/FileReader."<init>":(Ljava/lang/String;)V
+const #17 = Method	#2.#62;	//  java/lang/Exception.getMessage:()Ljava/lang/String;
+const #18 = class	#63;	//  java/lang/StringBuilder
+const #19 = Method	#18.#46;	//  java/lang/StringBuilder."<init>":()V
+const #20 = String	#64;	//  trace depth: 
+const #21 = Method	#18.#65;	//  java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #22 = Method	#2.#66;	//  java/lang/Exception.getStackTrace:()[Ljava/lang/StackTraceElement;
+const #23 = Method	#18.#67;	//  java/lang/StringBuilder.append:(I)Ljava/lang/StringBuilder;
+const #24 = Method	#18.#68;	//  java/lang/StringBuilder.toString:()Ljava/lang/String;
+const #25 = class	#69;	//  java/lang/Error
+const #26 = String	#70;	//  I'm the gingerbread man
+const #27 = Method	#25.#49;	//  java/lang/Error."<init>":(Ljava/lang/String;)V
+const #28 = String	#71;	//  We should never reach this -- Error is not a subclass of Exception
+const #29 = class	#72;	//  classes/test/Exceptional
+const #30 = class	#73;	//  java/lang/Object
+const #31 = Asciz	<init>;
+const #32 = Asciz	()V;
+const #33 = Asciz	Code;
+const #34 = Asciz	LineNumberTable;
+const #35 = Asciz	throwingFunc;
+const #36 = Asciz	Exceptions;
+const #37 = Asciz	anotherThrowingFunc;
+const #38 = Asciz	StackMapTable;
+const #39 = class	#47;	//  java/lang/Exception
+const #40 = Asciz	main;
+const #41 = Asciz	([Ljava/lang/String;)V;
+const #42 = class	#74;	//  "[Ljava/lang/String;"
+const #43 = class	#75;	//  java/lang/Throwable
+const #44 = Asciz	SourceFile;
+const #45 = Asciz	Exceptional.java;
+const #46 = NameAndType	#31:#32;//  "<init>":()V
+const #47 = Asciz	java/lang/Exception;
+const #48 = Asciz	good morning;
+const #49 = NameAndType	#31:#76;//  "<init>":(Ljava/lang/String;)V
+const #50 = Asciz	java/lang/RuntimeException;
+const #51 = Asciz	bad morning;
+const #52 = class	#77;	//  java/lang/System
+const #53 = NameAndType	#78:#79;//  out:Ljava/io/PrintStream;
+const #54 = Asciz	Caught RuntimeException as a subclass of Exception.;
+const #55 = class	#80;	//  java/io/PrintStream
+const #56 = NameAndType	#81:#76;//  println:(Ljava/lang/String;)V
+const #57 = Asciz	test;
+const #58 = NameAndType	#35:#32;//  throwingFunc:()V
+const #59 = NameAndType	#37:#32;//  anotherThrowingFunc:()V
+const #60 = Asciz	java/io/FileReader;
+const #61 = Asciz	./NonExistentFile!!!;
+const #62 = NameAndType	#82:#83;//  getMessage:()Ljava/lang/String;
+const #63 = Asciz	java/lang/StringBuilder;
+const #64 = Asciz	trace depth: ;
+const #65 = NameAndType	#84:#85;//  append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #66 = NameAndType	#86:#87;//  getStackTrace:()[Ljava/lang/StackTraceElement;
+const #67 = NameAndType	#84:#88;//  append:(I)Ljava/lang/StringBuilder;
+const #68 = NameAndType	#89:#83;//  toString:()Ljava/lang/String;
+const #69 = Asciz	java/lang/Error;
+const #70 = Asciz	I'm the gingerbread man;
+const #71 = Asciz	We should never reach this -- Error is not a subclass of Exception;
+const #72 = Asciz	classes/test/Exceptional;
+const #73 = Asciz	java/lang/Object;
+const #74 = Asciz	[Ljava/lang/String;;
+const #75 = Asciz	java/lang/Throwable;
+const #76 = Asciz	(Ljava/lang/String;)V;
+const #77 = Asciz	java/lang/System;
+const #78 = Asciz	out;
+const #79 = Asciz	Ljava/io/PrintStream;;
+const #80 = Asciz	java/io/PrintStream;
+const #81 = Asciz	println;
+const #82 = Asciz	getMessage;
+const #83 = Asciz	()Ljava/lang/String;;
+const #84 = Asciz	append;
+const #85 = Asciz	(Ljava/lang/String;)Ljava/lang/StringBuilder;;
+const #86 = Asciz	getStackTrace;
+const #87 = Asciz	()[Ljava/lang/StackTraceElement;;
+const #88 = Asciz	(I)Ljava/lang/StringBuilder;;
+const #89 = Asciz	toString;
 
 {
 public classes.test.Exceptional();
@@ -161,21 +182,34 @@ public static void main(java.lang.String[]);
    69:	ldc	#15; //String ./NonExistentFile!!!
    71:	invokespecial	#16; //Method java/io/FileReader."<init>":(Ljava/lang/String;)V
    74:	pop
-   75:	goto	87
+   75:	goto	118
    78:	astore_2
    79:	getstatic	#8; //Field java/lang/System.out:Ljava/io/PrintStream;
-   82:	ldc	#17; //String Non existent file does not exist
-   84:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   87:	new	#18; //class java/lang/Error
-   90:	dup
-   91:	ldc	#19; //String I'm the gingerbread man
-   93:	invokespecial	#20; //Method java/lang/Error."<init>":(Ljava/lang/String;)V
-   96:	athrow
-   97:	astore_2
-   98:	getstatic	#8; //Field java/lang/System.out:Ljava/io/PrintStream;
-   101:	ldc	#21; //String We should never reach this -- Error is not a subclass of Exception
-   103:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   106:	return
+   82:	aload_2
+   83:	invokevirtual	#17; //Method java/lang/Exception.getMessage:()Ljava/lang/String;
+   86:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   89:	getstatic	#8; //Field java/lang/System.out:Ljava/io/PrintStream;
+   92:	new	#18; //class java/lang/StringBuilder
+   95:	dup
+   96:	invokespecial	#19; //Method java/lang/StringBuilder."<init>":()V
+   99:	ldc	#20; //String trace depth: 
+   101:	invokevirtual	#21; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   104:	aload_2
+   105:	invokevirtual	#22; //Method java/lang/Exception.getStackTrace:()[Ljava/lang/StackTraceElement;
+   108:	arraylength
+   109:	invokevirtual	#23; //Method java/lang/StringBuilder.append:(I)Ljava/lang/StringBuilder;
+   112:	invokevirtual	#24; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   115:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   118:	new	#25; //class java/lang/Error
+   121:	dup
+   122:	ldc	#26; //String I'm the gingerbread man
+   124:	invokespecial	#27; //Method java/lang/Error."<init>":(Ljava/lang/String;)V
+   127:	athrow
+   128:	astore_2
+   129:	getstatic	#8; //Field java/lang/System.out:Ljava/io/PrintStream;
+   132:	ldc	#28; //String We should never reach this -- Error is not a subclass of Exception
+   134:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   137:	return
   Exception table:
    from   to  target type
      0    10    10   Class java/lang/Exception
@@ -189,7 +223,7 @@ public static void main(java.lang.String[]);
     56    57    56   any
     65    75    78   Class java/lang/Exception
 
-    87    97    97   Class java/lang/Exception
+   118   128   128   Class java/lang/Exception
 
   LineNumberTable: 
    line 20: 0
@@ -209,13 +243,14 @@ public static void main(java.lang.String[]);
    line 40: 53
    line 39: 56
    line 44: 65
-   line 48: 75
+   line 49: 75
    line 46: 78
    line 47: 79
-   line 51: 87
-   line 53: 97
-   line 54: 98
-   line 56: 106
+   line 48: 89
+   line 52: 118
+   line 54: 128
+   line 55: 129
+   line 57: 137
 
   StackMapTable: number_of_entries = 9
    frame_type = 74 /* same_locals_1_stack_item */
@@ -232,7 +267,7 @@ public static void main(java.lang.String[]);
    frame_type = 8 /* same */
    frame_type = 76 /* same_locals_1_stack_item */
      stack = [ class java/lang/Exception ]
-   frame_type = 8 /* same */
+   frame_type = 39 /* same */
    frame_type = 73 /* same_locals_1_stack_item */
      stack = [ class java/lang/Exception ]
 

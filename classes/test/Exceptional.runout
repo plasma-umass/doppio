@@ -1,4 +1,5 @@
 Caught RuntimeException as a subclass of Exception.
-Non existent file does not exist
+./NonExistentFile!!! (No such file or directory)
+trace depth: 5
 Exception in thread "main" java.lang.Error: I'm the gingerbread man
-	at classes.test.Exceptional.main(Exceptional.java:51)
+	at classes.test.Exceptional.main(Exceptional.java:52)

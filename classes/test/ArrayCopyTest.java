@@ -1,57 +1,31 @@
 package classes.test;
 
 class ArrayCopyTest {
-  /**
-   * Java generics... WHY CAN'T YOU BE MORE USEFUL?
-   * Sorry for the copy+paste.
-   */
-  private static void NPEExceptionTest(String name, Object src, int srcPos,
-    Object dest, int destPos, int length) {
-    boolean caught = false;
+
+  static void ExceptionTest(String name, Class expectedException, Object src,
+                            int srcPos, Object dest, int destPos, int length) {
     System.out.print("Test '" + name + "': ");
     try {
       System.arraycopy(src, srcPos, dest, destPos, length);
-    } catch (NullPointerException exception) {
-      caught = true;
+    } catch (Exception e) {
+      if (expectedException.isInstance(e)) {
+        System.out.println("Pass");
+        return;
+      }
     }
-    System.out.println(caught ? "Pass" : "Fail");
-  }
-  private static void ASEExceptionTest(String name, Object src, int srcPos,
-    Object dest, int destPos, int length) {
-    boolean caught = false;
-    System.out.print("Test '" + name + "': ");
-    try {
-      System.arraycopy(src, srcPos, dest, destPos, length);
-    } catch (ArrayStoreException exception) {
-      caught = true;
-    }
-    System.out.println(caught ? "Pass" : "Fail");
-  }
-  private static void IOOBExceptionTest(String name, Object src, int srcPos,
-    Object dest, int destPos, int length) {
-    boolean caught = false;
-    System.out.print("Test '" + name + "': ");
-    try {
-      System.arraycopy(src, srcPos, dest, destPos, length);
-    } catch (IndexOutOfBoundsException exception) {
-      caught = true;
-    }
-    System.out.println(caught ? "Pass" : "Fail");
+    System.out.println("Fail");
   }
 
   public static void main(String[] args) {
-    NPEExceptionTest("src array null", null, 0, new Object[1], 0, 0);
-    NPEExceptionTest("dest array null", new Object[1], 0, null, 0, 0);
-    NPEExceptionTest("dest array null with negative index", new Object[1], -1, null, 100, 100);
+    ExceptionTest("src array null", NullPointerException.class, null, 0, new Object[1], 0, 0);
+    ExceptionTest("dest array null", NullPointerException.class, new Object[1], 0, null, 0, 0);
+    ExceptionTest("dest array null with negative index", NullPointerException.class, new Object[1], -1, null, 100, 100);
 
-    ASEExceptionTest("src not an array", new Object(), 0, new Object[1], 0,0);
-    ASEExceptionTest("dst not an array", new Object[1], 0, new Object(), 0,0);
-    ASEExceptionTest("different primitive components", new int[1], 0,
-      new long[1], 0, 0);
-    ASEExceptionTest("primitive array to ref array", new int[1], 0,
-      new Object[1], 0, 0);
-    ASEExceptionTest("ref array to primitive array", new Object[1], 0,
-      new int[1], 0, 0);
+    ExceptionTest("src not an array", ArrayStoreException.class, new Object(), 0, new Object[1], 0,0);
+    ExceptionTest("dst not an array", ArrayStoreException.class, new Object[1], 0, new Object(), 0,0);
+    ExceptionTest("different primitive components", ArrayStoreException.class, new int[1], 0, new long[1], 0, 0);
+    ExceptionTest("primitive array to ref array", ArrayStoreException.class, new int[1], 0, new Object[1], 0, 0);
+    ExceptionTest("ref array to primitive array", ArrayStoreException.class, new Object[1], 0, new int[1], 0, 0);
     /**
      * If any actual component of the source array from position srcPos through
      * srcPos+length-1 cannot be converted to the component type of the
@@ -70,8 +44,7 @@ class ArrayCopyTest {
       strings[0] = "I've got";
       strings[1] = " a lovely";
       strings[2] = " bunch o' coconuts.";
-      ASEExceptionTest("src components cannot be dest components", objects,
-        0, strings, 0, 2);
+      ExceptionTest("src components cannot be dest components", ArrayStoreException.class, objects, 0, strings, 0, 2);
       System.out.print("Test '*sigh*': ");
       boolean passes = strings[0] == null && strings[1].equals(" a lovely") &&
         strings[2].equals(" bunch o' coconuts.");
@@ -92,16 +65,11 @@ class ArrayCopyTest {
       System.out.println(result ? "Pass" : "Fail");
     }
 
-    IOOBExceptionTest("srcPos is negative", new Object[1], -1, new Object[1],
-      0, 0);
-    IOOBExceptionTest("destPos is negative", new Object[1], 0, new Object[1],
-      -1, 0);
-    IOOBExceptionTest("length is negative", new Object[1], 0, new Object[1],
-      0, -1);
-    IOOBExceptionTest("src array overrun", new Object[1], 0, new Object[2], 0,
-      2);
-    IOOBExceptionTest("dest array overrun", new Object[2], 0, new Object[1],
-      0, 2);
+    ExceptionTest("srcPos is negative", IndexOutOfBoundsException.class, new Object[1], -1, new Object[1], 0, 0);
+    ExceptionTest("destPos is negative", IndexOutOfBoundsException.class, new Object[1], 0, new Object[1], -1, 0);
+    ExceptionTest("length is negative", IndexOutOfBoundsException.class, new Object[1], 0, new Object[1], 0, -1);
+    ExceptionTest("src array overrun", IndexOutOfBoundsException.class, new Object[1], 0, new Object[2], 0, 2);
+    ExceptionTest("dest array overrun", IndexOutOfBoundsException.class, new Object[2], 0, new Object[1], 0, 2);
     System.out.print("Test 'exact copy': ");
     System.arraycopy(new Object[2], 0, new Object[2], 0, 2);
     System.out.println("Pass");
@@ -143,7 +111,7 @@ class ArrayCopyTest {
       System.out.print("\t"); ohai2[0].printGreeting();
     }
   }
-  
+
   static class OhHaiObject {
     public OhHaiObject(String obj) { this.object = obj; }
     public String object;

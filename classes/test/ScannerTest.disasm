@@ -1,0 +1,293 @@
+Compiled from "ScannerTest.java"
+public class classes.test.ScannerTest extends java.lang.Object
+  SourceFile: "ScannerTest.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#30.#47;	//  java/lang/Object."<init>":()V
+const #2 = String	#48;	//  1 fish 2 fish red fish blue fish
+const #3 = class	#49;	//  java/util/Scanner
+const #4 = Method	#3.#50;	//  java/util/Scanner."<init>":(Ljava/lang/String;)V
+const #5 = String	#51;	//  \s*fish\s*
+const #6 = Method	#3.#52;	//  java/util/Scanner.useDelimiter:(Ljava/lang/String;)Ljava/util/Scanner;
+const #7 = Field	#53.#54;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #8 = Method	#3.#55;	//  java/util/Scanner.nextInt:()I
+const #9 = Method	#56.#57;	//  java/io/PrintStream.println:(I)V
+const #10 = Method	#3.#58;	//  java/util/Scanner.next:()Ljava/lang/String;
+const #11 = Method	#56.#59;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #12 = Method	#3.#60;	//  java/util/Scanner.close:()V
+const #13 = String	#61;	//  (\d+) fish (\d+) fish (\w+) fish (\w+)
+const #14 = Method	#3.#62;	//  java/util/Scanner.findInLine:(Ljava/lang/String;)Ljava/lang/String;
+const #15 = Method	#3.#63;	//  java/util/Scanner.match:()Ljava/util/regex/MatchResult;
+const #16 = InterfaceMethod	#64.#65;	//  java/util/regex/MatchResult.groupCount:()I
+const #17 = InterfaceMethod	#64.#66;	//  java/util/regex/MatchResult.group:(I)Ljava/lang/String;
+const #18 = class	#67;	//  java/io/File
+const #19 = String	#68;	//  ./classes/test/ScannerTest.java
+const #20 = Method	#18.#50;	//  java/io/File."<init>":(Ljava/lang/String;)V
+const #21 = Method	#3.#69;	//  java/util/Scanner."<init>":(Ljava/io/File;)V
+const #22 = Method	#3.#70;	//  java/util/Scanner.hasNext:()Z
+const #23 = Method	#56.#71;	//  java/io/PrintStream.println:(Z)V
+const #24 = class	#72;	//  java/io/FileNotFoundException
+const #25 = Method	#56.#73;	//  java/io/PrintStream.println:(Ljava/lang/Object;)V
+const #26 = Method	#29.#74;	//  classes/test/ScannerTest.readFile:()V
+const #27 = Method	#29.#75;	//  classes/test/ScannerTest.useDelimiters:()V
+const #28 = Method	#29.#76;	//  classes/test/ScannerTest.useRegex:()V
+const #29 = class	#77;	//  classes/test/ScannerTest
+const #30 = class	#78;	//  java/lang/Object
+const #31 = Asciz	<init>;
+const #32 = Asciz	()V;
+const #33 = Asciz	Code;
+const #34 = Asciz	LineNumberTable;
+const #35 = Asciz	useDelimiters;
+const #36 = Asciz	useRegex;
+const #37 = Asciz	StackMapTable;
+const #38 = class	#79;	//  java/lang/String
+const #39 = class	#49;	//  java/util/Scanner
+const #40 = class	#80;	//  java/util/regex/MatchResult
+const #41 = Asciz	readFile;
+const #42 = class	#72;	//  java/io/FileNotFoundException
+const #43 = Asciz	main;
+const #44 = Asciz	([Ljava/lang/String;)V;
+const #45 = Asciz	SourceFile;
+const #46 = Asciz	ScannerTest.java;
+const #47 = NameAndType	#31:#32;//  "<init>":()V
+const #48 = Asciz	1 fish 2 fish red fish blue fish;
+const #49 = Asciz	java/util/Scanner;
+const #50 = NameAndType	#31:#81;//  "<init>":(Ljava/lang/String;)V
+const #51 = Asciz	\s*fish\s*;
+const #52 = NameAndType	#82:#83;//  useDelimiter:(Ljava/lang/String;)Ljava/util/Scanner;
+const #53 = class	#84;	//  java/lang/System
+const #54 = NameAndType	#85:#86;//  out:Ljava/io/PrintStream;
+const #55 = NameAndType	#87:#88;//  nextInt:()I
+const #56 = class	#89;	//  java/io/PrintStream
+const #57 = NameAndType	#90:#91;//  println:(I)V
+const #58 = NameAndType	#92:#93;//  next:()Ljava/lang/String;
+const #59 = NameAndType	#90:#81;//  println:(Ljava/lang/String;)V
+const #60 = NameAndType	#94:#32;//  close:()V
+const #61 = Asciz	(\d+) fish (\d+) fish (\w+) fish (\w+);
+const #62 = NameAndType	#95:#96;//  findInLine:(Ljava/lang/String;)Ljava/lang/String;
+const #63 = NameAndType	#97:#98;//  match:()Ljava/util/regex/MatchResult;
+const #64 = class	#80;	//  java/util/regex/MatchResult
+const #65 = NameAndType	#99:#88;//  groupCount:()I
+const #66 = NameAndType	#100:#101;//  group:(I)Ljava/lang/String;
+const #67 = Asciz	java/io/File;
+const #68 = Asciz	./classes/test/ScannerTest.java;
+const #69 = NameAndType	#31:#102;//  "<init>":(Ljava/io/File;)V
+const #70 = NameAndType	#103:#104;//  hasNext:()Z
+const #71 = NameAndType	#90:#105;//  println:(Z)V
+const #72 = Asciz	java/io/FileNotFoundException;
+const #73 = NameAndType	#90:#106;//  println:(Ljava/lang/Object;)V
+const #74 = NameAndType	#41:#32;//  readFile:()V
+const #75 = NameAndType	#35:#32;//  useDelimiters:()V
+const #76 = NameAndType	#36:#32;//  useRegex:()V
+const #77 = Asciz	classes/test/ScannerTest;
+const #78 = Asciz	java/lang/Object;
+const #79 = Asciz	java/lang/String;
+const #80 = Asciz	java/util/regex/MatchResult;
+const #81 = Asciz	(Ljava/lang/String;)V;
+const #82 = Asciz	useDelimiter;
+const #83 = Asciz	(Ljava/lang/String;)Ljava/util/Scanner;;
+const #84 = Asciz	java/lang/System;
+const #85 = Asciz	out;
+const #86 = Asciz	Ljava/io/PrintStream;;
+const #87 = Asciz	nextInt;
+const #88 = Asciz	()I;
+const #89 = Asciz	java/io/PrintStream;
+const #90 = Asciz	println;
+const #91 = Asciz	(I)V;
+const #92 = Asciz	next;
+const #93 = Asciz	()Ljava/lang/String;;
+const #94 = Asciz	close;
+const #95 = Asciz	findInLine;
+const #96 = Asciz	(Ljava/lang/String;)Ljava/lang/String;;
+const #97 = Asciz	match;
+const #98 = Asciz	()Ljava/util/regex/MatchResult;;
+const #99 = Asciz	groupCount;
+const #100 = Asciz	group;
+const #101 = Asciz	(I)Ljava/lang/String;;
+const #102 = Asciz	(Ljava/io/File;)V;
+const #103 = Asciz	hasNext;
+const #104 = Asciz	()Z;
+const #105 = Asciz	(Z)V;
+const #106 = Asciz	(Ljava/lang/Object;)V;
+
+{
+public classes.test.ScannerTest();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 7: 0
+
+
+static void useDelimiters();
+  Code:
+   Stack=3, Locals=2, Args_size=0
+   0:	ldc	#2; //String 1 fish 2 fish red fish blue fish
+   2:	astore_0
+   3:	new	#3; //class java/util/Scanner
+   6:	dup
+   7:	aload_0
+   8:	invokespecial	#4; //Method java/util/Scanner."<init>":(Ljava/lang/String;)V
+   11:	ldc	#5; //String \s*fish\s*
+   13:	invokevirtual	#6; //Method java/util/Scanner.useDelimiter:(Ljava/lang/String;)Ljava/util/Scanner;
+   16:	astore_1
+   17:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   20:	aload_1
+   21:	invokevirtual	#8; //Method java/util/Scanner.nextInt:()I
+   24:	invokevirtual	#9; //Method java/io/PrintStream.println:(I)V
+   27:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   30:	aload_1
+   31:	invokevirtual	#8; //Method java/util/Scanner.nextInt:()I
+   34:	invokevirtual	#9; //Method java/io/PrintStream.println:(I)V
+   37:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   40:	aload_1
+   41:	invokevirtual	#10; //Method java/util/Scanner.next:()Ljava/lang/String;
+   44:	invokevirtual	#11; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   47:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   50:	aload_1
+   51:	invokevirtual	#10; //Method java/util/Scanner.next:()Ljava/lang/String;
+   54:	invokevirtual	#11; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   57:	aload_1
+   58:	invokevirtual	#12; //Method java/util/Scanner.close:()V
+   61:	return
+  LineNumberTable: 
+   line 10: 0
+   line 11: 3
+   line 12: 17
+   line 13: 27
+   line 14: 37
+   line 15: 47
+   line 16: 57
+   line 17: 61
+
+
+static void useRegex();
+  Code:
+   Stack=3, Locals=4, Args_size=0
+   0:	ldc	#2; //String 1 fish 2 fish red fish blue fish
+   2:	astore_0
+   3:	new	#3; //class java/util/Scanner
+   6:	dup
+   7:	aload_0
+   8:	invokespecial	#4; //Method java/util/Scanner."<init>":(Ljava/lang/String;)V
+   11:	astore_1
+   12:	aload_1
+   13:	ldc	#13; //String (\d+) fish (\d+) fish (\w+) fish (\w+)
+   15:	invokevirtual	#14; //Method java/util/Scanner.findInLine:(Ljava/lang/String;)Ljava/lang/String;
+   18:	pop
+   19:	aload_1
+   20:	invokevirtual	#15; //Method java/util/Scanner.match:()Ljava/util/regex/MatchResult;
+   23:	astore_2
+   24:	iconst_1
+   25:	istore_3
+   26:	iload_3
+   27:	aload_2
+   28:	invokeinterface	#16,  1; //InterfaceMethod java/util/regex/MatchResult.groupCount:()I
+   33:	if_icmpgt	55
+   36:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   39:	aload_2
+   40:	iload_3
+   41:	invokeinterface	#17,  2; //InterfaceMethod java/util/regex/MatchResult.group:(I)Ljava/lang/String;
+   46:	invokevirtual	#11; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   49:	iinc	3, 1
+   52:	goto	26
+   55:	aload_1
+   56:	invokevirtual	#12; //Method java/util/Scanner.close:()V
+   59:	return
+  LineNumberTable: 
+   line 20: 0
+   line 21: 3
+   line 22: 12
+   line 23: 19
+   line 24: 24
+   line 25: 36
+   line 24: 49
+   line 26: 55
+   line 27: 59
+
+  StackMapTable: number_of_entries = 2
+   frame_type = 255 /* full_frame */
+     offset_delta = 26
+     locals = [ class java/lang/String, class java/util/Scanner, class java/util/regex/MatchResult, int ]
+     stack = []
+   frame_type = 250 /* chop */
+     offset_delta = 28
+
+
+static void readFile();
+  Code:
+   Stack=5, Locals=1, Args_size=0
+   0:	new	#3; //class java/util/Scanner
+   3:	dup
+   4:	new	#18; //class java/io/File
+   7:	dup
+   8:	ldc	#19; //String ./classes/test/ScannerTest.java
+   10:	invokespecial	#20; //Method java/io/File."<init>":(Ljava/lang/String;)V
+   13:	invokespecial	#21; //Method java/util/Scanner."<init>":(Ljava/io/File;)V
+   16:	astore_0
+   17:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   20:	aload_0
+   21:	invokevirtual	#22; //Method java/util/Scanner.hasNext:()Z
+   24:	invokevirtual	#23; //Method java/io/PrintStream.println:(Z)V
+   27:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   30:	aload_0
+   31:	invokevirtual	#10; //Method java/util/Scanner.next:()Ljava/lang/String;
+   34:	invokevirtual	#11; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   37:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   40:	aload_0
+   41:	invokevirtual	#10; //Method java/util/Scanner.next:()Ljava/lang/String;
+   44:	invokevirtual	#11; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   47:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   50:	aload_0
+   51:	invokevirtual	#10; //Method java/util/Scanner.next:()Ljava/lang/String;
+   54:	invokevirtual	#11; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   57:	aload_0
+   58:	invokevirtual	#12; //Method java/util/Scanner.close:()V
+   61:	goto	72
+   64:	astore_0
+   65:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   68:	aload_0
+   69:	invokevirtual	#25; //Method java/io/PrintStream.println:(Ljava/lang/Object;)V
+   72:	return
+  Exception table:
+   from   to  target type
+     0    61    64   Class java/io/FileNotFoundException
+
+  LineNumberTable: 
+   line 31: 0
+   line 32: 17
+   line 33: 27
+   line 34: 37
+   line 35: 47
+   line 36: 57
+   line 39: 61
+   line 37: 64
+   line 38: 65
+   line 40: 72
+
+  StackMapTable: number_of_entries = 2
+   frame_type = 247 /* same_locals_1_stack_item_frame_extended */
+     offset_delta = 64
+     stack = [ class java/io/FileNotFoundException ]
+   frame_type = 7 /* same */
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=0, Locals=1, Args_size=1
+   0:	invokestatic	#26; //Method readFile:()V
+   3:	invokestatic	#27; //Method useDelimiters:()V
+   6:	invokestatic	#28; //Method useRegex:()V
+   9:	return
+  LineNumberTable: 
+   line 43: 0
+   line 44: 3
+   line 45: 6
+   line 46: 9
+
+
+}
+

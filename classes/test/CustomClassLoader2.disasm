@@ -1,0 +1,678 @@
+Compiled from "CustomClassLoader2.java"
+class classes.test.CustomClassLoader2 extends java.lang.ClassLoader
+  SourceFile: "CustomClassLoader2.java"
+  InnerClass: 
+   #68; //class classes/test/CustomClassLoader2$2
+   #66; //class classes/test/CustomClassLoader2$1
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = class	#107;	//  classes/test/CustomClassLoader2
+const #2 = Method	#17.#108;	//  java/lang/Class.getClassLoader:()Ljava/lang/ClassLoader;
+const #3 = Method	#70.#109;	//  java/lang/ClassLoader."<init>":(Ljava/lang/ClassLoader;)V
+const #4 = class	#110;	//  java/util/Hashtable
+const #5 = Method	#4.#111;	//  java/util/Hashtable."<init>":()V
+const #6 = Field	#1.#112;	//  classes/test/CustomClassLoader2.classes:Ljava/util/Hashtable;
+const #7 = Field	#113.#114;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #8 = class	#115;	//  java/lang/StringBuilder
+const #9 = Method	#8.#111;	//  java/lang/StringBuilder."<init>":()V
+const #10 = String	#116;	//  Loading class 
+const #11 = Method	#8.#117;	//  java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #12 = Method	#8.#118;	//  java/lang/StringBuilder.toString:()Ljava/lang/String;
+const #13 = Method	#119.#120;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #14 = Method	#1.#121;	//  classes/test/CustomClassLoader2.findClass:(Ljava/lang/String;)Ljava/lang/Class;
+const #15 = String	#122;	//  Finding class 
+const #16 = Method	#4.#123;	//  java/util/Hashtable.get:(Ljava/lang/Object;)Ljava/lang/Object;
+const #17 = class	#124;	//  java/lang/Class
+const #18 = String	#125;	//  classes/test/data/CustomClassLoader2/
+const #19 = Field	#33.#126;	//  java/io/File.separatorChar:C
+const #20 = Method	#127.#128;	//  java/lang/String.replace:(CC)Ljava/lang/String;
+const #21 = String	#129;	//  .class
+const #22 = Method	#1.#130;	//  classes/test/CustomClassLoader2.loadClassData:(Ljava/lang/String;)[B
+const #23 = String	#131;	//  Defining class 
+const #24 = Method	#1.#132;	//  classes/test/CustomClassLoader2.defineClass:(Ljava/lang/String;[BIILjava/security/ProtectionDomain;)Ljava/lang/Class;
+const #25 = String	#133;	//  Registering class 
+const #26 = Method	#4.#134;	//  java/util/Hashtable.put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+const #27 = String	#135;	//  Found class. Returning.
+const #28 = class	#136;	//  java/lang/Exception
+const #29 = String	#137;	//  Couldn't get the class ourselves!
+const #30 = String	#138;	//  Getting the system class.
+const #31 = Method	#1.#139;	//  classes/test/CustomClassLoader2.findSystemClass:(Ljava/lang/String;)Ljava/lang/Class;
+const #32 = String	#140;	//  Couldn't find. Returning null.
+const #33 = class	#141;	//  java/io/File
+const #34 = Method	#33.#142;	//  java/io/File."<init>":(Ljava/lang/String;)V
+const #35 = Method	#33.#143;	//  java/io/File.length:()J
+const #36 = class	#144;	//  java/io/FileInputStream
+const #37 = Method	#36.#145;	//  java/io/FileInputStream."<init>":(Ljava/io/File;)V
+const #38 = class	#146;	//  java/io/DataInputStream
+const #39 = Method	#38.#147;	//  java/io/DataInputStream."<init>":(Ljava/io/InputStream;)V
+const #40 = Method	#38.#148;	//  java/io/DataInputStream.readFully:([B)V
+const #41 = Method	#38.#149;	//  java/io/DataInputStream.close:()V
+const #42 = Field	#1.#150;	//  classes/test/CustomClassLoader2.MethodNameComparator:Ljava/util/Comparator;
+const #43 = Method	#151.#152;	//  java/util/Arrays.sort:([Ljava/lang/Object;Ljava/util/Comparator;)V
+const #44 = String	#153;	//  \tMethod: 
+const #45 = Method	#154.#155;	//  java/lang/reflect/Method.getName:()Ljava/lang/String;
+const #46 = String	#156;	//  There are 
+const #47 = Method	#8.#157;	//  java/lang/StringBuilder.append:(I)Ljava/lang/StringBuilder;
+const #48 = String	#158;	//   interfaces!
+const #49 = Field	#1.#159;	//  classes/test/CustomClassLoader2.ClassNameComparator:Ljava/util/Comparator;
+const #50 = String	#160;	//  Interface: 
+const #51 = Method	#17.#155;	//  java/lang/Class.getName:()Ljava/lang/String;
+const #52 = Method	#17.#161;	//  java/lang/Class.getMethods:()[Ljava/lang/reflect/Method;
+const #53 = Method	#1.#162;	//  classes/test/CustomClassLoader2.printMethods:([Ljava/lang/reflect/Method;)V
+const #54 = Method	#1.#111;	//  classes/test/CustomClassLoader2."<init>":()V
+const #55 = String	#163;	//  Loading Dog...
+const #56 = String	#164;	//  classes.test.Dog
+const #57 = Method	#1.#165;	//  classes/test/CustomClassLoader2.loadClass:(Ljava/lang/String;)Ljava/lang/Class;
+const #58 = String	#166;	//  Dog's methods
+const #59 = String	#167;	//  Getting Dog's interfaces...
+const #60 = Method	#17.#168;	//  java/lang/Class.getInterfaces:()[Ljava/lang/Class;
+const #61 = Method	#1.#169;	//  classes/test/CustomClassLoader2.printInterfaces:([Ljava/lang/Class;)V
+const #62 = String	#170;	//  Now let's resolve dog...
+const #63 = Method	#1.#171;	//  classes/test/CustomClassLoader2.resolveClass:(Ljava/lang/Class;)V
+const #64 = Method	#17.#172;	//  java/lang/Class.getSuperclass:()Ljava/lang/Class;
+const #65 = String	#173;	//  Super class: 
+const #66 = class	#174;	//  classes/test/CustomClassLoader2$1
+const #67 = Method	#66.#111;	//  classes/test/CustomClassLoader2$1."<init>":()V
+const #68 = class	#175;	//  classes/test/CustomClassLoader2$2
+const #69 = Method	#68.#111;	//  classes/test/CustomClassLoader2$2."<init>":()V
+const #70 = class	#176;	//  java/lang/ClassLoader
+const #71 = Asciz	;
+const #72 = Asciz	InnerClasses;
+const #73 = Asciz	classes;
+const #74 = Asciz	Ljava/util/Hashtable;;
+const #75 = Asciz	ClassNameComparator;
+const #76 = Asciz	Ljava/util/Comparator;;
+const #77 = Asciz	Signature;
+const #78 = Asciz	Ljava/util/Comparator<Ljava/lang/Class;>;;
+const #79 = Asciz	MethodNameComparator;
+const #80 = Asciz	Ljava/util/Comparator<Ljava/lang/reflect/Method;>;;
+const #81 = Asciz	<init>;
+const #82 = Asciz	()V;
+const #83 = Asciz	Code;
+const #84 = Asciz	LineNumberTable;
+const #85 = Asciz	loadClass;
+const #86 = Asciz	(Ljava/lang/String;)Ljava/lang/Class;;
+const #87 = Asciz	Exceptions;
+const #88 = class	#177;	//  java/lang/ClassNotFoundException
+const #89 = Asciz	findClass;
+const #90 = Asciz	StackMapTable;
+const #91 = class	#124;	//  java/lang/Class
+const #92 = class	#136;	//  java/lang/Exception
+const #93 = Asciz	loadClassData;
+const #94 = Asciz	(Ljava/lang/String;)[B;
+const #95 = class	#178;	//  java/io/IOException
+const #96 = Asciz	printMethods;
+const #97 = Asciz	([Ljava/lang/reflect/Method;)V;
+const #98 = class	#179;	//  "[Ljava/lang/reflect/Method;"
+const #99 = Asciz	printInterfaces;
+const #100 = Asciz	([Ljava/lang/Class;)V;
+const #101 = class	#180;	//  "[Ljava/lang/Class;"
+const #102 = Asciz	main;
+const #103 = Asciz	([Ljava/lang/String;)V;
+const #104 = Asciz	<clinit>;
+const #105 = Asciz	SourceFile;
+const #106 = Asciz	CustomClassLoader2.java;
+const #107 = Asciz	classes/test/CustomClassLoader2;
+const #108 = NameAndType	#181:#182;//  getClassLoader:()Ljava/lang/ClassLoader;
+const #109 = NameAndType	#81:#183;//  "<init>":(Ljava/lang/ClassLoader;)V
+const #110 = Asciz	java/util/Hashtable;
+const #111 = NameAndType	#81:#82;//  "<init>":()V
+const #112 = NameAndType	#73:#74;//  classes:Ljava/util/Hashtable;
+const #113 = class	#184;	//  java/lang/System
+const #114 = NameAndType	#185:#186;//  out:Ljava/io/PrintStream;
+const #115 = Asciz	java/lang/StringBuilder;
+const #116 = Asciz	Loading class ;
+const #117 = NameAndType	#187:#188;//  append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #118 = NameAndType	#189:#190;//  toString:()Ljava/lang/String;
+const #119 = class	#191;	//  java/io/PrintStream
+const #120 = NameAndType	#192:#193;//  println:(Ljava/lang/String;)V
+const #121 = NameAndType	#89:#86;//  findClass:(Ljava/lang/String;)Ljava/lang/Class;
+const #122 = Asciz	Finding class ;
+const #123 = NameAndType	#194:#195;//  get:(Ljava/lang/Object;)Ljava/lang/Object;
+const #124 = Asciz	java/lang/Class;
+const #125 = Asciz	classes/test/data/CustomClassLoader2/;
+const #126 = NameAndType	#196:#197;//  separatorChar:C
+const #127 = class	#198;	//  java/lang/String
+const #128 = NameAndType	#199:#200;//  replace:(CC)Ljava/lang/String;
+const #129 = Asciz	.class;
+const #130 = NameAndType	#93:#94;//  loadClassData:(Ljava/lang/String;)[B
+const #131 = Asciz	Defining class ;
+const #132 = NameAndType	#201:#202;//  defineClass:(Ljava/lang/String;[BIILjava/security/ProtectionDomain;)Ljava/lang/Class;
+const #133 = Asciz	Registering class ;
+const #134 = NameAndType	#203:#204;//  put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+const #135 = Asciz	Found class. Returning.;
+const #136 = Asciz	java/lang/Exception;
+const #137 = Asciz	Couldn't get the class ourselves!;
+const #138 = Asciz	Getting the system class.;
+const #139 = NameAndType	#205:#86;//  findSystemClass:(Ljava/lang/String;)Ljava/lang/Class;
+const #140 = Asciz	Couldn't find. Returning null.;
+const #141 = Asciz	java/io/File;
+const #142 = NameAndType	#81:#193;//  "<init>":(Ljava/lang/String;)V
+const #143 = NameAndType	#206:#207;//  length:()J
+const #144 = Asciz	java/io/FileInputStream;
+const #145 = NameAndType	#81:#208;//  "<init>":(Ljava/io/File;)V
+const #146 = Asciz	java/io/DataInputStream;
+const #147 = NameAndType	#81:#209;//  "<init>":(Ljava/io/InputStream;)V
+const #148 = NameAndType	#210:#211;//  readFully:([B)V
+const #149 = NameAndType	#212:#82;//  close:()V
+const #150 = NameAndType	#79:#76;//  MethodNameComparator:Ljava/util/Comparator;
+const #151 = class	#213;	//  java/util/Arrays
+const #152 = NameAndType	#214:#215;//  sort:([Ljava/lang/Object;Ljava/util/Comparator;)V
+const #153 = Asciz	\tMethod: ;
+const #154 = class	#216;	//  java/lang/reflect/Method
+const #155 = NameAndType	#217:#190;//  getName:()Ljava/lang/String;
+const #156 = Asciz	There are ;
+const #157 = NameAndType	#187:#218;//  append:(I)Ljava/lang/StringBuilder;
+const #158 = Asciz	 interfaces!;
+const #159 = NameAndType	#75:#76;//  ClassNameComparator:Ljava/util/Comparator;
+const #160 = Asciz	Interface: ;
+const #161 = NameAndType	#219:#220;//  getMethods:()[Ljava/lang/reflect/Method;
+const #162 = NameAndType	#96:#97;//  printMethods:([Ljava/lang/reflect/Method;)V
+const #163 = Asciz	Loading Dog...;
+const #164 = Asciz	classes.test.Dog;
+const #165 = NameAndType	#85:#86;//  loadClass:(Ljava/lang/String;)Ljava/lang/Class;
+const #166 = Asciz	Dog's methods;
+const #167 = Asciz	Getting Dog's interfaces...;
+const #168 = NameAndType	#221:#222;//  getInterfaces:()[Ljava/lang/Class;
+const #169 = NameAndType	#99:#100;//  printInterfaces:([Ljava/lang/Class;)V
+const #170 = Asciz	Now let's resolve dog...;
+const #171 = NameAndType	#223:#224;//  resolveClass:(Ljava/lang/Class;)V
+const #172 = NameAndType	#225:#226;//  getSuperclass:()Ljava/lang/Class;
+const #173 = Asciz	Super class: ;
+const #174 = Asciz	classes/test/CustomClassLoader2$1;
+const #175 = Asciz	classes/test/CustomClassLoader2$2;
+const #176 = Asciz	java/lang/ClassLoader;
+const #177 = Asciz	java/lang/ClassNotFoundException;
+const #178 = Asciz	java/io/IOException;
+const #179 = Asciz	[Ljava/lang/reflect/Method;;
+const #180 = Asciz	[Ljava/lang/Class;;
+const #181 = Asciz	getClassLoader;
+const #182 = Asciz	()Ljava/lang/ClassLoader;;
+const #183 = Asciz	(Ljava/lang/ClassLoader;)V;
+const #184 = Asciz	java/lang/System;
+const #185 = Asciz	out;
+const #186 = Asciz	Ljava/io/PrintStream;;
+const #187 = Asciz	append;
+const #188 = Asciz	(Ljava/lang/String;)Ljava/lang/StringBuilder;;
+const #189 = Asciz	toString;
+const #190 = Asciz	()Ljava/lang/String;;
+const #191 = Asciz	java/io/PrintStream;
+const #192 = Asciz	println;
+const #193 = Asciz	(Ljava/lang/String;)V;
+const #194 = Asciz	get;
+const #195 = Asciz	(Ljava/lang/Object;)Ljava/lang/Object;;
+const #196 = Asciz	separatorChar;
+const #197 = Asciz	C;
+const #198 = Asciz	java/lang/String;
+const #199 = Asciz	replace;
+const #200 = Asciz	(CC)Ljava/lang/String;;
+const #201 = Asciz	defineClass;
+const #202 = Asciz	(Ljava/lang/String;[BIILjava/security/ProtectionDomain;)Ljava/lang/Class;;
+const #203 = Asciz	put;
+const #204 = Asciz	(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;;
+const #205 = Asciz	findSystemClass;
+const #206 = Asciz	length;
+const #207 = Asciz	()J;
+const #208 = Asciz	(Ljava/io/File;)V;
+const #209 = Asciz	(Ljava/io/InputStream;)V;
+const #210 = Asciz	readFully;
+const #211 = Asciz	([B)V;
+const #212 = Asciz	close;
+const #213 = Asciz	java/util/Arrays;
+const #214 = Asciz	sort;
+const #215 = Asciz	([Ljava/lang/Object;Ljava/util/Comparator;)V;
+const #216 = Asciz	java/lang/reflect/Method;
+const #217 = Asciz	getName;
+const #218 = Asciz	(I)Ljava/lang/StringBuilder;;
+const #219 = Asciz	getMethods;
+const #220 = Asciz	()[Ljava/lang/reflect/Method;;
+const #221 = Asciz	getInterfaces;
+const #222 = Asciz	()[Ljava/lang/Class;;
+const #223 = Asciz	resolveClass;
+const #224 = Asciz	(Ljava/lang/Class;)V;
+const #225 = Asciz	getSuperclass;
+const #226 = Asciz	()Ljava/lang/Class;;
+
+{
+private java.util.Hashtable classes;
+
+
+public static java.util.Comparator ClassNameComparator;
+  Signature: length = 0x2
+   00 4E 
+
+
+public static java.util.Comparator MethodNameComparator;
+  Signature: length = 0x2
+   00 50 
+
+
+public classes.test.CustomClassLoader2();
+  Code:
+   Stack=3, Locals=1, Args_size=1
+   0:	aload_0
+   1:	ldc_w	#1; //class classes/test/CustomClassLoader2
+   4:	invokevirtual	#2; //Method java/lang/Class.getClassLoader:()Ljava/lang/ClassLoader;
+   7:	invokespecial	#3; //Method java/lang/ClassLoader."<init>":(Ljava/lang/ClassLoader;)V
+   10:	aload_0
+   11:	new	#4; //class java/util/Hashtable
+   14:	dup
+   15:	invokespecial	#5; //Method java/util/Hashtable."<init>":()V
+   18:	putfield	#6; //Field classes:Ljava/util/Hashtable;
+   21:	return
+  LineNumberTable: 
+   line 18: 0
+   line 15: 10
+   line 19: 21
+
+
+public java.lang.Class loadClass(java.lang.String)   throws java.lang.ClassNotFoundException;
+  Code:
+   Stack=3, Locals=2, Args_size=2
+   0:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   3:	new	#8; //class java/lang/StringBuilder
+   6:	dup
+   7:	invokespecial	#9; //Method java/lang/StringBuilder."<init>":()V
+   10:	ldc	#10; //String Loading class 
+   12:	invokevirtual	#11; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   15:	aload_1
+   16:	invokevirtual	#11; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   19:	invokevirtual	#12; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   22:	invokevirtual	#13; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   25:	aload_0
+   26:	aload_1
+   27:	invokevirtual	#14; //Method findClass:(Ljava/lang/String;)Ljava/lang/Class;
+   30:	areturn
+  LineNumberTable: 
+   line 38: 0
+   line 39: 25
+
+  Exceptions: 
+   throws java.lang.ClassNotFoundException
+public java.lang.Class findClass(java.lang.String);
+  Code:
+   Stack=6, Locals=5, Args_size=2
+   0:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   3:	new	#8; //class java/lang/StringBuilder
+   6:	dup
+   7:	invokespecial	#9; //Method java/lang/StringBuilder."<init>":()V
+   10:	ldc	#15; //String Finding class 
+   12:	invokevirtual	#11; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   15:	aload_1
+   16:	invokevirtual	#11; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   19:	invokevirtual	#12; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   22:	invokevirtual	#13; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   25:	aconst_null
+   26:	astore_3
+   27:	aload_0
+   28:	getfield	#6; //Field classes:Ljava/util/Hashtable;
+   31:	aload_1
+   32:	invokevirtual	#16; //Method java/util/Hashtable.get:(Ljava/lang/Object;)Ljava/lang/Object;
+   35:	checkcast	#17; //class java/lang/Class
+   38:	astore_3
+   39:	aload_3
+   40:	ifnull	45
+   43:	aload_3
+   44:	areturn
+   45:	aload_0
+   46:	new	#8; //class java/lang/StringBuilder
+   49:	dup
+   50:	invokespecial	#9; //Method java/lang/StringBuilder."<init>":()V
+   53:	ldc	#18; //String classes/test/data/CustomClassLoader2/
+   55:	invokevirtual	#11; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   58:	aload_1
+   59:	bipush	46
+   61:	getstatic	#19; //Field java/io/File.separatorChar:C
+   64:	invokevirtual	#20; //Method java/lang/String.replace:(CC)Ljava/lang/String;
+   67:	invokevirtual	#11; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   70:	ldc	#21; //String .class
+   72:	invokevirtual	#11; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   75:	invokevirtual	#12; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   78:	invokespecial	#22; //Method loadClassData:(Ljava/lang/String;)[B
+   81:	astore_2
+   82:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   85:	new	#8; //class java/lang/StringBuilder
+   88:	dup
+   89:	invokespecial	#9; //Method java/lang/StringBuilder."<init>":()V
+   92:	ldc	#23; //String Defining class 
+   94:	invokevirtual	#11; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   97:	aload_1
+   98:	invokevirtual	#11; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   101:	invokevirtual	#12; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   104:	invokevirtual	#13; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   107:	aload_0
+   108:	aload_1
+   109:	aload_2
+   110:	iconst_0
+   111:	aload_2
+   112:	arraylength
+   113:	aconst_null
+   114:	invokevirtual	#24; //Method defineClass:(Ljava/lang/String;[BIILjava/security/ProtectionDomain;)Ljava/lang/Class;
+   117:	astore_3
+   118:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   121:	new	#8; //class java/lang/StringBuilder
+   124:	dup
+   125:	invokespecial	#9; //Method java/lang/StringBuilder."<init>":()V
+   128:	ldc	#25; //String Registering class 
+   130:	invokevirtual	#11; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   133:	aload_1
+   134:	invokevirtual	#11; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   137:	invokevirtual	#12; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   140:	invokevirtual	#13; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   143:	aload_0
+   144:	getfield	#6; //Field classes:Ljava/util/Hashtable;
+   147:	aload_1
+   148:	aload_3
+   149:	invokevirtual	#26; //Method java/util/Hashtable.put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+   152:	pop
+   153:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   156:	ldc	#27; //String Found class. Returning.
+   158:	invokevirtual	#13; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   161:	aload_3
+   162:	areturn
+   163:	astore	4
+   165:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   168:	ldc	#29; //String Couldn't get the class ourselves!
+   170:	invokevirtual	#13; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   173:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   176:	ldc	#30; //String Getting the system class.
+   178:	invokevirtual	#13; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   181:	aload_0
+   182:	aload_1
+   183:	invokevirtual	#31; //Method findSystemClass:(Ljava/lang/String;)Ljava/lang/Class;
+   186:	areturn
+   187:	astore	4
+   189:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   192:	ldc	#32; //String Couldn't find. Returning null.
+   194:	invokevirtual	#13; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   197:	aconst_null
+   198:	areturn
+  Exception table:
+   from   to  target type
+    45   162   163   Class java/lang/Exception
+
+   173   186   187   Class java/lang/Exception
+
+  LineNumberTable: 
+   line 43: 0
+   line 45: 25
+   line 46: 27
+   line 47: 39
+   line 48: 43
+   line 53: 45
+   line 54: 82
+   line 55: 107
+   line 56: 118
+   line 57: 143
+   line 58: 153
+   line 59: 161
+   line 60: 163
+   line 61: 165
+   line 65: 173
+   line 66: 181
+   line 67: 187
+   line 68: 189
+   line 69: 197
+
+  StackMapTable: number_of_entries = 3
+   frame_type = 253 /* append */
+     offset_delta = 45
+     locals = [ bogus, class java/lang/Class ]
+   frame_type = 247 /* same_locals_1_stack_item_frame_extended */
+     offset_delta = 117
+     stack = [ class java/lang/Exception ]
+   frame_type = 87 /* same_locals_1_stack_item */
+     stack = [ class java/lang/Exception ]
+
+
+private byte[] loadClassData(java.lang.String)   throws java.io.IOException;
+  Code:
+   Stack=3, Locals=7, Args_size=2
+   0:	new	#33; //class java/io/File
+   3:	dup
+   4:	aload_1
+   5:	invokespecial	#34; //Method java/io/File."<init>":(Ljava/lang/String;)V
+   8:	astore_2
+   9:	aload_2
+   10:	invokevirtual	#35; //Method java/io/File.length:()J
+   13:	l2i
+   14:	istore_3
+   15:	iload_3
+   16:	newarray byte
+   18:	astore	4
+   20:	new	#36; //class java/io/FileInputStream
+   23:	dup
+   24:	aload_2
+   25:	invokespecial	#37; //Method java/io/FileInputStream."<init>":(Ljava/io/File;)V
+   28:	astore	5
+   30:	new	#38; //class java/io/DataInputStream
+   33:	dup
+   34:	aload	5
+   36:	invokespecial	#39; //Method java/io/DataInputStream."<init>":(Ljava/io/InputStream;)V
+   39:	astore	6
+   41:	aload	6
+   43:	aload	4
+   45:	invokevirtual	#40; //Method java/io/DataInputStream.readFully:([B)V
+   48:	aload	6
+   50:	invokevirtual	#41; //Method java/io/DataInputStream.close:()V
+   53:	aload	4
+   55:	areturn
+  LineNumberTable: 
+   line 75: 0
+   line 76: 9
+   line 77: 15
+   line 78: 20
+   line 79: 30
+   line 80: 41
+   line 81: 48
+   line 82: 53
+
+  Exceptions: 
+   throws java.io.IOException
+public static void printMethods(java.lang.reflect.Method[]);
+  Code:
+   Stack=3, Locals=5, Args_size=1
+   0:	aload_0
+   1:	getstatic	#42; //Field MethodNameComparator:Ljava/util/Comparator;
+   4:	invokestatic	#43; //Method java/util/Arrays.sort:([Ljava/lang/Object;Ljava/util/Comparator;)V
+   7:	aload_0
+   8:	astore_1
+   9:	aload_1
+   10:	arraylength
+   11:	istore_2
+   12:	iconst_0
+   13:	istore_3
+   14:	iload_3
+   15:	iload_2
+   16:	if_icmpge	59
+   19:	aload_1
+   20:	iload_3
+   21:	aaload
+   22:	astore	4
+   24:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   27:	new	#8; //class java/lang/StringBuilder
+   30:	dup
+   31:	invokespecial	#9; //Method java/lang/StringBuilder."<init>":()V
+   34:	ldc	#44; //String \tMethod: 
+   36:	invokevirtual	#11; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   39:	aload	4
+   41:	invokevirtual	#45; //Method java/lang/reflect/Method.getName:()Ljava/lang/String;
+   44:	invokevirtual	#11; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   47:	invokevirtual	#12; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   50:	invokevirtual	#13; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   53:	iinc	3, 1
+   56:	goto	14
+   59:	return
+  LineNumberTable: 
+   line 86: 0
+   line 87: 7
+   line 88: 24
+   line 87: 53
+   line 89: 59
+
+  StackMapTable: number_of_entries = 2
+   frame_type = 254 /* append */
+     offset_delta = 14
+     locals = [ class "[Ljava/lang/reflect/Method;", int, int ]
+   frame_type = 248 /* chop */
+     offset_delta = 44
+
+
+public static void printInterfaces(java.lang.Class[]);
+  Code:
+   Stack=3, Locals=5, Args_size=1
+   0:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   3:	new	#8; //class java/lang/StringBuilder
+   6:	dup
+   7:	invokespecial	#9; //Method java/lang/StringBuilder."<init>":()V
+   10:	ldc	#46; //String There are 
+   12:	invokevirtual	#11; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   15:	aload_0
+   16:	arraylength
+   17:	invokevirtual	#47; //Method java/lang/StringBuilder.append:(I)Ljava/lang/StringBuilder;
+   20:	ldc	#48; //String  interfaces!
+   22:	invokevirtual	#11; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   25:	invokevirtual	#12; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   28:	invokevirtual	#13; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   31:	aload_0
+   32:	getstatic	#49; //Field ClassNameComparator:Ljava/util/Comparator;
+   35:	invokestatic	#43; //Method java/util/Arrays.sort:([Ljava/lang/Object;Ljava/util/Comparator;)V
+   38:	aload_0
+   39:	astore_1
+   40:	aload_1
+   41:	arraylength
+   42:	istore_2
+   43:	iconst_0
+   44:	istore_3
+   45:	iload_3
+   46:	iload_2
+   47:	if_icmpge	98
+   50:	aload_1
+   51:	iload_3
+   52:	aaload
+   53:	astore	4
+   55:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   58:	new	#8; //class java/lang/StringBuilder
+   61:	dup
+   62:	invokespecial	#9; //Method java/lang/StringBuilder."<init>":()V
+   65:	ldc	#50; //String Interface: 
+   67:	invokevirtual	#11; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   70:	aload	4
+   72:	invokevirtual	#51; //Method java/lang/Class.getName:()Ljava/lang/String;
+   75:	invokevirtual	#11; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   78:	invokevirtual	#12; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   81:	invokevirtual	#13; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   84:	aload	4
+   86:	invokevirtual	#52; //Method java/lang/Class.getMethods:()[Ljava/lang/reflect/Method;
+   89:	invokestatic	#53; //Method printMethods:([Ljava/lang/reflect/Method;)V
+   92:	iinc	3, 1
+   95:	goto	45
+   98:	return
+  LineNumberTable: 
+   line 92: 0
+   line 93: 31
+   line 94: 38
+   line 95: 55
+   line 96: 84
+   line 94: 92
+   line 98: 98
+
+  StackMapTable: number_of_entries = 2
+   frame_type = 254 /* append */
+     offset_delta = 45
+     locals = [ class "[Ljava/lang/Class;", int, int ]
+   frame_type = 248 /* chop */
+     offset_delta = 52
+
+
+public static void main(java.lang.String[])   throws java.lang.Exception;
+  Code:
+   Stack=3, Locals=4, Args_size=1
+   0:	new	#1; //class classes/test/CustomClassLoader2
+   3:	dup
+   4:	invokespecial	#54; //Method "<init>":()V
+   7:	astore_1
+   8:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   11:	ldc	#55; //String Loading Dog...
+   13:	invokevirtual	#13; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   16:	aload_1
+   17:	ldc	#56; //String classes.test.Dog
+   19:	invokevirtual	#57; //Method loadClass:(Ljava/lang/String;)Ljava/lang/Class;
+   22:	astore_2
+   23:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   26:	ldc	#58; //String Dog's methods
+   28:	invokevirtual	#13; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   31:	aload_2
+   32:	invokevirtual	#52; //Method java/lang/Class.getMethods:()[Ljava/lang/reflect/Method;
+   35:	invokestatic	#53; //Method printMethods:([Ljava/lang/reflect/Method;)V
+   38:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   41:	ldc	#59; //String Getting Dog's interfaces...
+   43:	invokevirtual	#13; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   46:	aload_2
+   47:	invokevirtual	#60; //Method java/lang/Class.getInterfaces:()[Ljava/lang/Class;
+   50:	invokestatic	#61; //Method printInterfaces:([Ljava/lang/Class;)V
+   53:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   56:	ldc	#62; //String Now let's resolve dog...
+   58:	invokevirtual	#13; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   61:	aload_1
+   62:	aload_2
+   63:	invokevirtual	#63; //Method resolveClass:(Ljava/lang/Class;)V
+   66:	aload_2
+   67:	invokevirtual	#60; //Method java/lang/Class.getInterfaces:()[Ljava/lang/Class;
+   70:	invokestatic	#61; //Method printInterfaces:([Ljava/lang/Class;)V
+   73:	aload_2
+   74:	invokevirtual	#64; //Method java/lang/Class.getSuperclass:()Ljava/lang/Class;
+   77:	astore_3
+   78:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   81:	new	#8; //class java/lang/StringBuilder
+   84:	dup
+   85:	invokespecial	#9; //Method java/lang/StringBuilder."<init>":()V
+   88:	ldc	#65; //String Super class: 
+   90:	invokevirtual	#11; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   93:	aload_3
+   94:	invokevirtual	#51; //Method java/lang/Class.getName:()Ljava/lang/String;
+   97:	invokevirtual	#11; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   100:	invokevirtual	#12; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   103:	invokevirtual	#13; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   106:	aload_3
+   107:	invokevirtual	#52; //Method java/lang/Class.getMethods:()[Ljava/lang/reflect/Method;
+   110:	invokestatic	#53; //Method printMethods:([Ljava/lang/reflect/Method;)V
+   113:	return
+  LineNumberTable: 
+   line 103: 0
+   line 104: 8
+   line 105: 16
+   line 107: 23
+   line 108: 31
+   line 110: 38
+   line 111: 46
+   line 113: 53
+   line 114: 61
+   line 115: 66
+   line 117: 73
+   line 118: 78
+   line 119: 106
+   line 120: 113
+
+  Exceptions: 
+   throws java.lang.Exception
+static {};
+  Code:
+   Stack=2, Locals=0, Args_size=0
+   0:	new	#66; //class classes/test/CustomClassLoader2$1
+   3:	dup
+   4:	invokespecial	#67; //Method classes/test/CustomClassLoader2$1."<init>":()V
+   7:	putstatic	#49; //Field ClassNameComparator:Ljava/util/Comparator;
+   10:	new	#68; //class classes/test/CustomClassLoader2$2
+   13:	dup
+   14:	invokespecial	#69; //Method classes/test/CustomClassLoader2$2."<init>":()V
+   17:	putstatic	#42; //Field MethodNameComparator:Ljava/util/Comparator;
+   20:	return
+  LineNumberTable: 
+   line 21: 0
+   line 29: 10
+
+
+}
+

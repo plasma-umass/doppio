@@ -1,330 +1,994 @@
-<!DOCTYPE html>  <html> <head>   <title>runtime.coffee</title>   <meta http-equiv="content-type" content="text/html; charset=UTF-8">   <link rel="stylesheet" media="all" href="docco.css" /> </head> <body>   <div id="container">     <div id="background"></div>            <div id="jump_to">         Jump To &hellip;         <div id="jump_wrapper">           <div id="jump_page">                                           <a class="source" href="frontend.html">                 frontend.coffee               </a>                                           <a class="source" href="node.html">                 node.coffee               </a>                                           <a class="source" href="untar.html">                 untar.coffee               </a>                                           <a class="source" href="util.html">                 util.coffee               </a>                                           <a class="source" href="ClassFile.html">                 ClassFile.coffee               </a>                                           <a class="source" href="ConstantPool.html">                 ConstantPool.coffee               </a>                                           <a class="source" href="attributes.html">                 attributes.coffee               </a>                                           <a class="source" href="disassembler.html">                 disassembler.coffee               </a>                                           <a class="source" href="exceptions.html">                 exceptions.coffee               </a>                                           <a class="source" href="java_object.html">                 java_object.coffee               </a>                                           <a class="source" href="jvm.html">                 jvm.coffee               </a>                                           <a class="source" href="logging.html">                 logging.coffee               </a>                                           <a class="source" href="methods.html">                 methods.coffee               </a>                                           <a class="source" href="natives.html">                 natives.coffee               </a>                                           <a class="source" href="opcodes.html">                 opcodes.coffee               </a>                                           <a class="source" href="runtime.html">                 runtime.coffee               </a>                                           <a class="source" href="testing.html">                 testing.coffee               </a>                                           <a class="source" href="types.html">                 types.coffee               </a>                                           <a class="source" href="util.html">                 util.coffee               </a>                        </div>         </div>       </div>          <table cellpadding="0" cellspacing="0">       <thead>         <tr>           <th class="docs">             <h1>               runtime.coffee             </h1>           </th>           <th class="code">           </th>         </tr>       </thead>       <tbody>                               <tr id="section-1">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-1">&#182;</a>               </div>               <p>Things assigned to root will be available outside this module.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">root = </span><span class="nx">exports</span> <span class="o">?</span> <span class="nb">window</span><span class="p">.</span><span class="nx">runtime</span> <span class="o">?=</span> <span class="p">{}</span>
+<!DOCTYPE html>
 
-<span class="nv">_ = </span><span class="nx">require</span> <span class="s1">&#39;../vendor/_.js&#39;</span>
-<span class="nv">gLong = </span><span class="nx">require</span> <span class="s1">&#39;../vendor/gLong.js&#39;</span>
-<span class="nv">util = </span><span class="nx">require</span> <span class="s1">&#39;./util&#39;</span>
-<span class="nv">types = </span><span class="nx">require</span> <span class="s1">&#39;./types&#39;</span>
-<span class="nv">ClassFile = </span><span class="nx">require</span> <span class="s1">&#39;./ClassFile&#39;</span>
-<span class="p">{</span><span class="nx">log</span><span class="p">,</span><span class="nx">vtrace</span><span class="p">,</span><span class="nx">trace</span><span class="p">,</span><span class="nx">debug</span><span class="p">,</span><span class="nx">error</span><span class="p">}</span> <span class="o">=</span> <span class="nx">require</span> <span class="s1">&#39;./logging&#39;</span>
-<span class="p">{</span><span class="nx">java_throw</span><span class="p">,</span><span class="nx">YieldIOException</span><span class="p">,</span><span class="nx">ReturnException</span><span class="p">}</span> <span class="o">=</span> <span class="nx">require</span> <span class="s1">&#39;./exceptions&#39;</span>
-<span class="p">{</span><span class="nx">JavaObject</span><span class="p">,</span><span class="nx">JavaClassObject</span><span class="p">,</span><span class="nx">JavaArray</span><span class="p">,</span><span class="nx">thread_name</span><span class="p">}</span> <span class="o">=</span> <span class="nx">require</span> <span class="s1">&#39;./java_object&#39;</span>
-<span class="p">{</span><span class="nx">c2t</span><span class="p">}</span> <span class="o">=</span> <span class="nx">types</span>
-<span class="p">{</span><span class="nx">Method</span><span class="p">}</span> <span class="o">=</span> <span class="nx">require</span> <span class="s1">&#39;./methods&#39;</span>
+<html>
+<head>
+  <title>runtime.coffee</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, target-densitydpi=160dpi, initial-scale=1.0; maximum-scale=1.0; user-scalable=0;">
+  <link rel="stylesheet" media="all" href="docco.css" />
+</head>
+<body>
+  <div id="container">
+    <div id="background"></div>
+    
+      <ul id="jump_to">
+        <li>
+          <a class="large" href="javascript:void(0);">Jump To &hellip;</a>
+          <a class="small" href="javascript:void(0);">+</a>
+          <div id="jump_wrapper">
+          <div id="jump_page">
+            
+              
+              <a class="source" href="frontend.html">
+                frontend.coffee
+              </a>
+            
+              
+              <a class="source" href="node.html">
+                node.coffee
+              </a>
+            
+              
+              <a class="source" href="untar.html">
+                untar.coffee
+              </a>
+            
+              
+              <a class="source" href="util.html">
+                util.coffee
+              </a>
+            
+              
+              <a class="source" href="ClassData.html">
+                ClassData.coffee
+              </a>
+            
+              
+              <a class="source" href="ClassLoader.html">
+                ClassLoader.coffee
+              </a>
+            
+              
+              <a class="source" href="ConstantPool.html">
+                ConstantPool.coffee
+              </a>
+            
+              
+              <a class="source" href="attributes.html">
+                attributes.coffee
+              </a>
+            
+              
+              <a class="source" href="disassembler.html">
+                disassembler.coffee
+              </a>
+            
+              
+              <a class="source" href="exceptions.html">
+                exceptions.coffee
+              </a>
+            
+              
+              <a class="source" href="java_object.html">
+                java_object.coffee
+              </a>
+            
+              
+              <a class="source" href="jvm.html">
+                jvm.coffee
+              </a>
+            
+              
+              <a class="source" href="logging.html">
+                logging.coffee
+              </a>
+            
+              
+              <a class="source" href="methods.html">
+                methods.coffee
+              </a>
+            
+              
+              <a class="source" href="natives.html">
+                natives.coffee
+              </a>
+            
+              
+              <a class="source" href="opcodes.html">
+                opcodes.coffee
+              </a>
+            
+              
+              <a class="source" href="runtime.html">
+                runtime.coffee
+              </a>
+            
+              
+              <a class="source" href="testing.html">
+                testing.coffee
+              </a>
+            
+              
+              <a class="source" href="util.html">
+                util.coffee
+              </a>
+            
+          </div>
+        </li>
+      </ul>
+    
+    <ul class="sections">
+        
+          <li id="title">
+              <div class="annotation">
+                  <h1>runtime.coffee</h1>
+              </div>
+          </li>
+        
+        
+        
+        <li id="section-1">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-1">&#182;</a>
+              </div>
+              <p>Things assigned to root will be available outside this module.</p>
 
-<span class="s2">&quot;use strict&quot;</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>root = exports ? window.runtime ?= {}
 
-<span class="k">class</span> <span class="nx">root</span><span class="p">.</span><span class="nx">CallStack</span>
-  <span class="nv">constructor: </span><span class="nf">(initial_stack) -&gt;</span>
-    <span class="vi">@_cs = </span><span class="p">[</span><span class="nx">root</span><span class="p">.</span><span class="nx">StackFrame</span><span class="p">.</span><span class="nx">fake_frame</span><span class="p">(</span><span class="s1">&#39;$bootstrap&#39;</span><span class="p">)]</span>
-    <span class="k">if</span> <span class="nx">initial_stack</span><span class="o">?</span>
-      <span class="nx">@_cs</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="nv">stack = </span><span class="nx">initial_stack</span>
+_ = require <span class="string">'../vendor/_.js'</span>
+gLong = require <span class="string">'../vendor/gLong.js'</span>
+util = require <span class="string">'./util'</span>
+{log,vtrace,trace,debug,error} = require <span class="string">'./logging'</span>
+{YieldIOException,ReturnException,JavaException} = require <span class="string">'./exceptions'</span>
+{JavaObject,JavaArray,thread_name} = require <span class="string">'./java_object'</span>
+jvm = require <span class="string">'./jvm'</span>
+process = node?.process ? global.process
 
-  <span class="nv">length: </span><span class="o">-&gt;</span> <span class="nx">@_cs</span><span class="p">.</span><span class="nx">length</span>
-  <span class="nv">push: </span><span class="nf">(sf) -&gt;</span> <span class="nx">@_cs</span><span class="p">.</span><span class="nx">push</span> <span class="nx">sf</span>
-  <span class="nv">pop: </span><span class="o">-&gt;</span> <span class="nx">@_cs</span><span class="p">.</span><span class="nx">pop</span><span class="p">()</span>
+<span class="string">"use strict"</span>
 
-  <span class="nv">curr_frame: </span><span class="o">-&gt;</span> <span class="nx">util</span><span class="p">.</span><span class="nx">last</span><span class="p">(</span><span class="nx">@_cs</span><span class="p">)</span>
+<span class="class"><span class="keyword">class</span> <span class="title">root</span>.<span class="title">CallStack</span></span>
+  constructor: (initial_stack) -&gt;
+    <span class="property">@_cs</span> = [root.StackFrame.native_frame(<span class="string">'$bootstrap'</span>)]
+    <span class="keyword">if</span> initial_stack?
+      <span class="property">@_cs</span>[<span class="number">0</span>].stack = initial_stack
 
-  <span class="nv">get_caller: </span><span class="nf">(frames_to_skip) -&gt;</span> <span class="nx">@_cs</span><span class="p">[</span><span class="nx">@_cs</span><span class="p">.</span><span class="nx">length</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="nx">frames_to_skip</span><span class="p">]</span>
+  snap: -&gt;
+    visited = {}
+    snapshots = (frame.snap(visited) <span class="keyword">for</span> frame <span class="keyword">in</span> <span class="property">@_cs</span>)
+    serialize: -&gt; ss.serialize() <span class="keyword">for</span> ss <span class="keyword">in</span> snapshots
 
-<span class="k">class</span> <span class="nx">root</span><span class="p">.</span><span class="nx">StackFrame</span>
-  <span class="nv">constructor: </span><span class="nf">(@method,@locals,@stack) -&gt;</span>
-    <span class="vi">@pc = </span><span class="mi">0</span>
-    <span class="vi">@runner = </span><span class="kc">null</span>
-    <span class="vi">@name = </span><span class="nx">@method</span><span class="p">.</span><span class="nx">full_signature</span><span class="p">()</span>
+  length: -&gt; <span class="property">@_cs</span>.length
+  push: (sf) -&gt; <span class="property">@_cs</span>.push sf
+  pop: -&gt; <span class="property">@_cs</span>.pop()
+  pop_n: (n) -&gt; <span class="property">@_cs</span>.length -= n
 
-  <span class="vi">@fake_frame: </span><span class="nf">(name) -&gt;</span>
-    <span class="nv">sf = </span><span class="k">new</span> <span class="nx">root</span><span class="p">.</span><span class="nx">StackFrame</span><span class="p">(</span><span class="k">new</span> <span class="nx">Method</span><span class="p">(</span><span class="nx">c2t</span><span class="p">(</span><span class="nx">name</span><span class="p">)),</span> <span class="p">[],</span> <span class="p">[])</span>
-    <span class="nv">sf.fake = </span><span class="kc">true</span>
-    <span class="k">return</span> <span class="nx">sf</span>
+  curr_frame: -&gt; util.last(<span class="property">@_cs</span>)
 
-<span class="k">class</span> <span class="nx">ClassState</span>
-  <span class="nv">constructor: </span><span class="nf">(@loader) -&gt;</span>
-    <span class="vi">@fields = </span><span class="kc">null</span></pre></div>             </td>           </tr>                               <tr id="section-2">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-2">&#182;</a>               </div>               <p>Contains all the mutable state of the Java program.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="k">class</span> <span class="nx">root</span><span class="p">.</span><span class="nx">RuntimeState</span>
+  get_caller: (frames_to_skip) -&gt; <span class="property">@_cs</span>[<span class="property">@_cs</span>.length-<span class="number">1</span>-frames_to_skip]
 
-  <span class="nv">run_count = </span><span class="mi">0</span>
+<span class="class"><span class="keyword">class</span> <span class="title">root</span>.<span class="title">StackFrame</span></span>
+  constructor: (<span class="property">@method</span>,<span class="property">@locals</span>,<span class="property">@stack</span>) -&gt;
+    <span class="property">@pc</span> = <span class="number">0</span>
+    <span class="property">@runner</span> = <span class="literal">null</span>
+    <span class="property">@native</span> = <span class="literal">false</span>
+    <span class="property">@name</span> = <span class="property">@method</span>.full_signature()
 
-  <span class="nv">constructor: </span><span class="nf">(@print, @async_input, @read_classfile) -&gt;</span>
-    <span class="vi">@startup_time = </span><span class="nx">gLong</span><span class="p">.</span><span class="nx">fromNumber</span> <span class="p">(</span><span class="k">new</span> <span class="nb">Date</span><span class="p">).</span><span class="nx">getTime</span><span class="p">()</span>
-    <span class="vi">@run_stamp = </span><span class="o">++</span><span class="nx">run_count</span></pre></div>             </td>           </tr>                               <tr id="section-3">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-3">&#182;</a>               </div>               <p>dict of mutable states of loaded classes</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="vi">@class_states = </span><span class="nb">Object</span><span class="p">.</span><span class="nx">create</span> <span class="kc">null</span>
-    <span class="nx">@class_states</span><span class="p">[</span><span class="s1">&#39;$bootstrap&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">ClassState</span> <span class="kc">null</span></pre></div>             </td>           </tr>                               <tr id="section-4">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-4">&#182;</a>               </div>               <p>dict of java.lang.Class objects (which are interned)</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="vi">@jclass_obj_pool = </span><span class="nb">Object</span><span class="p">.</span><span class="nx">create</span> <span class="kc">null</span></pre></div>             </td>           </tr>                               <tr id="section-5">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-5">&#182;</a>               </div>               <p>dict of ClassFiles that have been loaded</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="vi">@loaded_classes = </span><span class="nb">Object</span><span class="p">.</span><span class="nx">create</span> <span class="kc">null</span>
+  snap: (visited) -&gt;
+    rv =
+      name: <span class="property">@name</span>
+      pc: <span class="property">@pc</span>
+      <span class="reserved">native</span>: <span class="property">@native</span>
 
-    <span class="vi">@mem_start_addrs = </span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-    <span class="vi">@mem_blocks = </span><span class="p">{}</span>
+    serialize: =&gt;
+      rv.loader = <span class="property">@method</span>.cls?.loader.serialize(visited)
+      rv.stack = (obj?.serialize?(visited) ? obj <span class="keyword">for</span> obj <span class="keyword">in</span> <span class="property">@stack</span>)
+      rv.locals = (obj?.serialize?(visited) ? obj <span class="keyword">for</span> obj <span class="keyword">in</span> <span class="property">@locals</span>)
+      rv</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-2">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-2">&#182;</a>
+              </div>
+              <p>Creates a &quot;native stack frame&quot;. Handler is called with no arguments for
+normal execution, error_handler is called with the uncaught exception.
+If error_handler is not specified, then the exception will propagate through
+normally.
+Used for <clinit> and ClassLoader shenanigans. A native frame handles
+bridging the gap between those Java methods and the methods that ended up
+triggering them in the first place.</p>
 
-    <span class="vi">@high_oref = </span><span class="mi">1</span>
-    <span class="vi">@string_pool = </span><span class="k">new</span> <span class="nx">util</span><span class="p">.</span><span class="nx">SafeMap</span>
-    <span class="vi">@lock_refs = </span><span class="p">{}</span>  <span class="c1"># map from monitor -&gt; thread object</span>
-    <span class="vi">@lock_counts = </span><span class="p">{}</span>  <span class="c1"># map from monitor -&gt; count</span>
-    <span class="vi">@waiting_threads = </span><span class="p">{}</span>  <span class="c1"># map from monitor -&gt; list of waiting thread objects</span>
-    <span class="vi">@thread_pool = </span><span class="p">[]</span>
-    <span class="vi">@curr_thread = </span><span class="p">{</span><span class="nv">$meta_stack: </span><span class="k">new</span> <span class="nx">root</span><span class="p">.</span><span class="nx">CallStack</span><span class="p">()}</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  <span class="property">@native_frame</span>: (name, handler, error_handler) -&gt;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-3">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-3">&#182;</a>
+              </div>
+              <p>Fake method in the stack frame.</p>
 
-  <span class="nv">init_threads: </span><span class="o">-&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-6">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-6">&#182;</a>               </div>               <p>initialize thread objects</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nv">my_sf = </span><span class="nx">@curr_frame</span><span class="p">()</span>
-    <span class="nx">@push</span> <span class="p">(</span><span class="nv">group = </span><span class="nx">@init_object</span> <span class="s1">&#39;java/lang/ThreadGroup&#39;</span><span class="p">)</span>
-    <span class="nx">@method_lookup</span><span class="p">({</span><span class="k">class</span><span class="o">:</span> <span class="s1">&#39;java/lang/ThreadGroup&#39;</span><span class="p">,</span> <span class="nv">sig: </span><span class="s1">&#39;&lt;init&gt;()V&#39;</span><span class="p">}).</span><span class="nx">setup_stack</span><span class="p">(</span><span class="k">this</span><span class="p">)</span>
-    <span class="nv">my_sf.runner = </span><span class="o">=&gt;</span>
-      <span class="nv">ct = </span><span class="kc">null</span>
-      <span class="nv">my_sf.runner = </span><span class="o">=&gt;</span>
-        <span class="nv">my_sf.runner = </span><span class="kc">null</span>
-        <span class="nx">ct</span><span class="p">.</span><span class="nv">$meta_stack = </span><span class="nx">@meta_stack</span><span class="p">()</span>
-        <span class="vi">@curr_thread = </span><span class="nx">ct</span>
-        <span class="nx">@curr_thread</span><span class="p">.</span><span class="nv">$isAlive = </span><span class="kc">true</span>
-        <span class="nx">@thread_pool</span><span class="p">.</span><span class="nx">push</span> <span class="nx">@curr_thread</span></pre></div>             </td>           </tr>                               <tr id="section-7">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-7">&#182;</a>               </div>               <p>hack to make auto-named threads match native Java</p>             </td>             <td class="code">               <div class="highlight"><pre>        <span class="nx">@class_states</span><span class="p">[</span><span class="s1">&#39;java/lang/Thread&#39;</span><span class="p">].</span><span class="nv">fields.threadInitNumber = </span><span class="mi">1</span>
-        <span class="nx">debug</span> <span class="s2">&quot;### finished thread init ###&quot;</span>
-      <span class="nv">ct = </span><span class="nx">@init_object</span> <span class="s1">&#39;java/lang/Thread&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;java/lang/Thread/name&#39;</span><span class="o">:</span> <span class="nx">@init_carr</span> <span class="s1">&#39;main&#39;</span>
-        <span class="s1">&#39;java/lang/Thread/priority&#39;</span><span class="o">:</span> <span class="mi">1</span>
-        <span class="s1">&#39;java/lang/Thread/group&#39;</span><span class="o">:</span> <span class="nx">group</span>
-        <span class="s1">&#39;java/lang/Thread/threadLocals&#39;</span><span class="o">:</span> <span class="kc">null</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    sf = <span class="keyword">new</span> root.StackFrame({full_signature: -&gt; <span class="keyword">return</span> name}, [], [])
+    sf.runner = handler
+    sf.name = name
+    sf.error = error_handler <span class="keyword">if</span> error_handler?
+    sf.<span class="reserved">native</span> = <span class="literal">true</span>
+    <span class="keyword">return</span> sf</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-4">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-4">&#182;</a>
+              </div>
+              <p>Contains all the mutable state of the Java program.</p>
 
-  <span class="nv">meta_stack: </span><span class="o">-&gt;</span> <span class="nx">@curr_thread</span><span class="p">.</span><span class="nx">$meta_stack</span></pre></div>             </td>           </tr>                               <tr id="section-8">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-8">&#182;</a>               </div>               <p>Init the first class, and put the command-line args on the stack for use by
-its main method.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">init_system_class: </span><span class="o">-&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-9">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-9">&#182;</a>               </div>               <p>initialize the system class</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nv">my_sf = </span><span class="nx">@curr_frame</span><span class="p">()</span>
-    <span class="nx">@class_lookup</span><span class="p">(</span><span class="nx">c2t</span> <span class="s1">&#39;java/lang/System&#39;</span><span class="p">).</span><span class="nx">methods</span><span class="p">[</span><span class="s1">&#39;initializeSystemClass()V&#39;</span><span class="p">].</span><span class="nx">setup_stack</span><span class="p">(</span><span class="k">this</span><span class="p">)</span>
-    <span class="nv">my_sf.runner = </span><span class="o">-&gt;</span>
-      <span class="nv">my_sf.runner = </span><span class="kc">null</span>
-      <span class="vi">@system_initialized = </span><span class="kc">true</span>
-      <span class="nx">debug</span> <span class="s2">&quot;### finished system class initialization ###&quot;</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="class"><span class="keyword">class</span> <span class="title">root</span>.<span class="title">RuntimeState</span></span>
 
-  <span class="nv">init_args: </span><span class="nf">(initial_args) -&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-10">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-10">&#182;</a>               </div>               <p>prepare the call stack for main(String[] args)</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nv">args = </span><span class="k">new</span> <span class="nx">JavaArray</span> <span class="err">@</span><span class="p">,</span> <span class="nx">c2t</span><span class="p">(</span><span class="s1">&#39;[Ljava/lang/String;&#39;</span><span class="p">),</span> <span class="p">(</span><span class="nx">@init_string</span><span class="p">(</span><span class="nx">a</span><span class="p">)</span> <span class="k">for</span> <span class="nx">a</span> <span class="k">in</span> <span class="nx">initial_args</span><span class="p">)</span>
-    <span class="nx">@curr_thread</span><span class="p">.</span><span class="nv">$meta_stack = </span><span class="k">new</span> <span class="nx">root</span><span class="p">.</span><span class="nx">CallStack</span> <span class="p">[</span><span class="nx">args</span><span class="p">]</span>
-    <span class="nx">debug</span> <span class="s2">&quot;### finished runtime state initialization ###&quot;</span>
+  run_count = <span class="number">0</span>
 
-  <span class="nv">show_state: </span><span class="nf">() -&gt;</span>
-    <span class="nv">cf = </span><span class="nx">@curr_frame</span><span class="p">()</span>
-    <span class="k">if</span> <span class="nx">cf</span><span class="o">?</span>
-      <span class="nv">s = </span><span class="p">((</span><span class="k">if</span> <span class="nx">x</span><span class="o">?</span><span class="p">.</span><span class="nx">ref</span><span class="o">?</span> <span class="k">then</span> <span class="nx">x</span><span class="p">.</span><span class="nx">ref</span> <span class="k">else</span> <span class="nx">x</span><span class="p">)</span> <span class="k">for</span> <span class="nx">x</span> <span class="k">in</span> <span class="nx">cf</span><span class="p">.</span><span class="nx">stack</span><span class="p">)</span>
-      <span class="nv">l = </span><span class="p">((</span><span class="k">if</span> <span class="nx">x</span><span class="o">?</span><span class="p">.</span><span class="nx">ref</span><span class="o">?</span> <span class="k">then</span> <span class="nx">x</span><span class="p">.</span><span class="nx">ref</span> <span class="k">else</span> <span class="nx">x</span><span class="p">)</span> <span class="k">for</span> <span class="nx">x</span> <span class="k">in</span> <span class="nx">cf</span><span class="p">.</span><span class="nx">locals</span><span class="p">)</span>
-      <span class="nx">debug</span> <span class="s2">&quot;showing current state: method &#39;#{cf.method?.name}&#39;, stack: [#{s}], locals: [#{l}]&quot;</span>
-    <span class="k">else</span>
-      <span class="nx">debug</span> <span class="s2">&quot;current frame is undefined. meta_stack: #{@meta_stack()}&quot;</span>
+  constructor: (<span class="property">@print</span>, <span class="property">@async_input</span>, <span class="property">@bcl</span>) -&gt;
+    <span class="property">@bcl</span>.reset()
+    <span class="property">@startup_time</span> = gLong.fromNumber (<span class="keyword">new</span> Date).getTime()
+    <span class="property">@run_stamp</span> = ++run_count
 
-  <span class="nv">choose_next_thread: </span><span class="nf">(blacklist) -&gt;</span>
-    <span class="nx">unless</span> <span class="nx">blacklist</span><span class="o">?</span>
-      <span class="nv">blacklist = </span><span class="p">[]</span>
-      <span class="k">for</span> <span class="nx">key</span><span class="p">,</span><span class="nx">bl</span> <span class="k">of</span> <span class="nx">@waiting_threads</span>
-        <span class="k">for</span> <span class="nx">b</span> <span class="k">in</span> <span class="nx">bl</span>
-          <span class="nx">blacklist</span><span class="p">.</span><span class="nx">push</span> <span class="nx">b</span>
-    <span class="k">for</span> <span class="nx">t</span> <span class="k">in</span> <span class="nx">@thread_pool</span> <span class="k">when</span> <span class="nx">t</span> <span class="o">isnt</span> <span class="nx">@curr_thread</span> <span class="o">and</span> <span class="nx">t</span><span class="p">.</span><span class="nx">$isAlive</span>
-      <span class="k">continue</span> <span class="k">if</span> <span class="nx">t</span> <span class="k">in</span> <span class="nx">blacklist</span>
-      <span class="nx">debug</span> <span class="s2">&quot;TE(choose_next_thread): choosing thread #{thread_name(@, t)}&quot;</span>
-      <span class="k">return</span> <span class="nx">t</span></pre></div>             </td>           </tr>                               <tr id="section-11">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-11">&#182;</a>               </div>               <p>we couldn't find a thread! We can't error out, so keep trying</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nx">debug</span> <span class="s2">&quot;TE(choose_next_thread): no thread found, sticking with curr_thread&quot;</span>
-    <span class="k">return</span> <span class="nx">@curr_thread</span>
+    <span class="property">@mem_start_addrs</span> = [<span class="number">1</span>]
+    <span class="property">@mem_blocks</span> = {}
 
-  <span class="nv">wait: </span><span class="nf">(monitor, yieldee) -&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-12">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-12">&#182;</a>               </div>               <p>add current thread to wait queue</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nx">debug</span> <span class="s2">&quot;TE(wait): waiting #{thread_name @, @curr_thread} on lock #{monitor.ref}&quot;</span>
-    <span class="k">if</span> <span class="nx">@waiting_threads</span><span class="p">[</span><span class="nx">monitor</span><span class="p">]</span><span class="o">?</span>
-      <span class="nx">@waiting_threads</span><span class="p">[</span><span class="nx">monitor</span><span class="p">].</span><span class="nx">push</span> <span class="nx">@curr_thread</span>
-    <span class="k">else</span>
-      <span class="nx">@waiting_threads</span><span class="p">[</span><span class="nx">monitor</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nx">@curr_thread</span><span class="p">]</span></pre></div>             </td>           </tr>                               <tr id="section-13">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-13">&#182;</a>               </div>               <p>yield execution to a non-waiting thread</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nx">yieldee</span> <span class="o">?=</span> <span class="nx">@choose_next_thread</span> <span class="nx">@waiting_threads</span><span class="p">[</span><span class="nx">monitor</span><span class="p">]</span>
-    <span class="nx">@yield</span> <span class="nx">yieldee</span>
+    <span class="property">@high_oref</span> = <span class="number">1</span>
+    <span class="property">@string_pool</span> = <span class="keyword">new</span> util.SafeMap
+    <span class="property">@lock_refs</span> = {}  <span class="comment"># map from monitor -&gt; thread object</span>
+    <span class="property">@lock_counts</span> = {}  <span class="comment"># map from monitor -&gt; count</span>
+    <span class="property">@waiting_threads</span> = {}  <span class="comment"># map from monitor -&gt; list of waiting thread objects</span>
+    <span class="property">@thread_pool</span> = []
+    <span class="property">@curr_thread</span> = {$meta_stack: <span class="keyword">new</span> root.CallStack()}
+    <span class="property">@max_m_count</span> = <span class="number">100000</span>
 
-  <span class="nv">yield: </span><span class="p">(</span><span class="nx">yieldee</span><span class="o">=</span><span class="nx">@choose_next_thread</span><span class="p">())</span> <span class="o">-&gt;</span>
-    <span class="nx">debug</span> <span class="s2">&quot;TE(yield): yielding #{thread_name @, @curr_thread} to #{thread_name @, yieldee}&quot;</span>
-    <span class="nv">old_thread_sf = </span><span class="nx">@curr_frame</span><span class="p">()</span>
-    <span class="vi">@curr_thread = </span><span class="nx">yieldee</span>
-    <span class="nv">new_thread_sf = </span><span class="nx">@curr_frame</span><span class="p">()</span>
-    <span class="nv">new_thread_sf.runner = </span><span class="o">=&gt;</span> <span class="nx">@meta_stack</span><span class="p">().</span><span class="nx">pop</span><span class="p">()</span>
-    <span class="nv">old_thread_sf.runner = </span><span class="o">=&gt;</span> <span class="nx">@meta_stack</span><span class="p">().</span><span class="nx">pop</span><span class="p">()</span>
-    <span class="k">throw</span> <span class="nx">ReturnException</span>
+  get_bs_cl: -&gt; <span class="property">@bcl</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-5">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-5">&#182;</a>
+              </div>
+              <p>Get an <em>initialized</em> class from the bootstrap classloader.</p>
 
-  <span class="nv">curr_frame: </span><span class="o">-&gt;</span> <span class="nx">@meta_stack</span><span class="p">().</span><span class="nx">curr_frame</span><span class="p">()</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  get_bs_class: (type, handle_null=<span class="literal">false</span>) -&gt; <span class="property">@bcl</span>.get_initialized_class type, handle_null</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-6">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-6">&#182;</a>
+              </div>
+              <p>Get an <em>initialized</em> class from the classloader of the current class.</p>
 
-  <span class="nv">cl: </span><span class="nf">(idx) -&gt;</span> <span class="nx">@curr_frame</span><span class="p">().</span><span class="nx">locals</span><span class="p">[</span><span class="nx">idx</span><span class="p">]</span>
-  <span class="nv">put_cl: </span><span class="nf">(idx,val) -&gt;</span> <span class="nx">@curr_frame</span><span class="p">().</span><span class="nx">locals</span><span class="p">[</span><span class="nx">idx</span><span class="p">]</span> <span class="o">=</span> <span class="nx">val</span></pre></div>             </td>           </tr>                               <tr id="section-14">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-14">&#182;</a>               </div>               <p>Category 2 values (longs, doubles) take two slots in Java. Since we only
-need one slot to represent a double in JS, we pad it with a null.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">put_cl2: </span><span class="nf">(idx,val) -&gt;</span> <span class="nx">@put_cl</span><span class="p">(</span><span class="nx">idx</span><span class="p">,</span><span class="nx">val</span><span class="p">);</span> <span class="nx">UNSAFE</span><span class="o">?</span> <span class="o">||</span> <span class="nx">@put_cl</span><span class="p">(</span><span class="nx">idx</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="kc">null</span><span class="p">)</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  get_class: (type, handle_null=<span class="literal">false</span>) -&gt;
+    <span class="property">@curr_frame</span>().method.cls.loader.get_initialized_class type, handle_null
+  get_cl: -&gt; <span class="property">@curr_frame</span>().method.cls.loader</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-7">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-7">&#182;</a>
+              </div>
+              <p>XXX: We currently &#39;preinitialize&#39; all of these to avoid an async call
+in the middle of JVM execution. We should attempt to prune this down as
+much as possible.</p>
 
-  <span class="nv">push: </span><span class="nf">(arg) -&gt;</span> <span class="nx">@curr_frame</span><span class="p">().</span><span class="nx">stack</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">arg</span><span class="p">)</span>
-  <span class="nv">push2: </span><span class="nf">(arg1, arg2) -&gt;</span> <span class="nx">@curr_frame</span><span class="p">().</span><span class="nx">stack</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">arg1</span><span class="p">,</span> <span class="nx">arg2</span><span class="p">)</span>
-  <span class="nv">push_array: </span><span class="nf">(args) -&gt;</span>
-    <span class="nv">cs = </span><span class="nx">@curr_frame</span><span class="p">().</span><span class="nx">stack</span>
-    <span class="nb">Array</span><span class="o">::</span><span class="nx">push</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="nx">cs</span><span class="p">,</span> <span class="nx">args</span><span class="p">)</span>
-  <span class="nv">pop: </span><span class="nf">() -&gt;</span> <span class="nx">@curr_frame</span><span class="p">().</span><span class="nx">stack</span><span class="p">.</span><span class="nx">pop</span><span class="p">()</span>
-  <span class="nv">pop2: </span><span class="nf">() -&gt;</span> <span class="nx">@pop</span><span class="p">();</span> <span class="nx">@pop</span><span class="p">()</span> <span class="c1"># For category 2 values.</span></pre></div>             </td>           </tr>                               <tr id="section-15">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-15">&#182;</a>               </div>               <p>Program counter manipulation.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">curr_pc: </span><span class="nf">()   -&gt;</span> <span class="nx">@curr_frame</span><span class="p">().</span><span class="nx">pc</span>
-  <span class="nv">goto_pc: </span><span class="nf">(pc) -&gt;</span> <span class="nx">@curr_frame</span><span class="p">().</span><span class="nv">pc = </span><span class="nx">pc</span>
-  <span class="nv">inc_pc: </span> <span class="nf">(n)  -&gt;</span> <span class="nx">@curr_frame</span><span class="p">().</span><span class="nx">pc</span> <span class="o">+=</span> <span class="nx">n</span></pre></div>             </td>           </tr>                               <tr id="section-16">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-16">&#182;</a>               </div>               <p>Heap manipulation.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">check_null: </span><span class="nf">(obj) -&gt;</span>
-    <span class="nx">java_throw</span> <span class="err">@</span><span class="p">,</span> <span class="s1">&#39;java/lang/NullPointerException&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span> <span class="nx">unless</span> <span class="nx">obj</span><span class="o">?</span>
-    <span class="nx">obj</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  preinitialize_core_classes: (resume_cb, except_cb) -&gt;
+    core_classes = [
+      <span class="string">'Ljava/lang/Class;'</span>
+      <span class="string">'Ljava/lang/ClassLoader;'</span>
+      <span class="string">'Ljava/lang/String;'</span>
+      <span class="string">'Ljava/lang/Error;'</span>
+      <span class="string">'Ljava/lang/StackTraceElement;'</span>
+      <span class="string">'Ljava/io/ExpiringCache;'</span>
+      <span class="string">'Ljava/io/FileDescriptor;'</span>
+      <span class="string">'Ljava/io/FileNotFoundException;'</span>
+      <span class="string">'Ljava/io/IOException;'</span>
+      <span class="string">'Ljava/io/Serializable;'</span>
+      <span class="string">'Ljava/io/UnixFileSystem;'</span>
+      <span class="string">'Ljava/lang/ArithmeticException;'</span>
+      <span class="string">'Ljava/lang/ArrayIndexOutOfBoundsException;'</span>
+      <span class="string">'Ljava/lang/ArrayStoreException;'</span>
+      <span class="string">'Ljava/lang/ClassCastException;'</span>
+      <span class="string">'Ljava/lang/ClassNotFoundException;'</span>
+      <span class="string">'Ljava/lang/NoClassDefFoundError;'</span>
+      <span class="string">'Ljava/lang/Cloneable;'</span>
+      <span class="string">'Ljava/lang/ExceptionInInitializerError;'</span>
+      <span class="string">'Ljava/lang/IllegalMonitorStateException;'</span>
+      <span class="string">'Ljava/lang/InterruptedException;'</span>
+      <span class="string">'Ljava/lang/NegativeArraySizeException;'</span>
+      <span class="string">'Ljava/lang/NoSuchFieldError;'</span>
+      <span class="string">'Ljava/lang/NoSuchMethodError;'</span>
+      <span class="string">'Ljava/lang/NullPointerException;'</span>
+      <span class="string">'Ljava/lang/reflect/Constructor;'</span>
+      <span class="string">'Ljava/lang/reflect/Field;'</span>
+      <span class="string">'Ljava/lang/reflect/Method;'</span>
+      <span class="string">'Ljava/lang/System;'</span>
+      <span class="string">'Ljava/lang/Thread;'</span>
+      <span class="string">'Ljava/lang/ThreadGroup;'</span>
+      <span class="string">'Ljava/lang/Throwable;'</span>
+      <span class="string">'Ljava/nio/ByteOrder;'</span>
+      <span class="string">'Lsun/misc/VM;'</span>
+      <span class="string">'Lsun/reflect/ConstantPool;'</span>
+      <span class="string">'Ljava/lang/Byte;'</span>
+      <span class="string">'Ljava/lang/Character;'</span>
+      <span class="string">'Ljava/lang/Double;'</span>
+      <span class="string">'Ljava/lang/Float;'</span>
+      <span class="string">'Ljava/lang/Integer;'</span>
+      <span class="string">'Ljava/lang/Long;'</span>
+      <span class="string">'Ljava/lang/Short;'</span>
+      <span class="string">'Ljava/lang/Boolean;'</span>
+      <span class="string">'[Lsun/management/MemoryManagerImpl;'</span>
+      <span class="string">'[Lsun/management/MemoryPoolImpl;'</span>
+    ]
+    i = -<span class="number">1</span>
+    <span class="function"><span class="title">init_next_core_class</span></span> = =&gt;
+      trace <span class="string">"init_next_core_class"</span>
+      i++
+      <span class="keyword">if</span> i &lt; core_classes.length
+        trace <span class="string">"Initializing <span class="subst">#{core_classes[i]}</span>"</span>
+        <span class="property">@bcl</span>.initialize_class @, core_classes[i], init_next_core_class, except_cb
+      <span class="keyword">else</span>
+        trace <span class="string">"Preinitialization complete."</span>
+        resume_cb()
 
-  <span class="nv">heap_newarray: </span><span class="nf">(type,len) -&gt;</span>
-    <span class="k">if</span> <span class="nx">len</span> <span class="o">&lt;</span> <span class="mi">0</span>
-      <span class="nx">java_throw</span> <span class="err">@</span><span class="p">,</span> <span class="s1">&#39;java/lang/NegativeArraySizeException&#39;</span><span class="p">,</span> <span class="s2">&quot;Tried to init [#{type} array with length #{len}&quot;</span>
-    <span class="k">if</span> <span class="nx">type</span> <span class="o">==</span> <span class="s1">&#39;J&#39;</span>
-      <span class="k">new</span> <span class="nx">JavaArray</span> <span class="err">@</span><span class="p">,</span> <span class="nx">c2t</span><span class="p">(</span><span class="s2">&quot;[J&quot;</span><span class="p">),</span> <span class="p">(</span><span class="nx">gLong</span><span class="p">.</span><span class="nx">ZERO</span> <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">...</span><span class="nx">len</span><span class="p">]</span> <span class="k">by</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="k">else</span> <span class="k">if</span> <span class="nx">type</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;L&#39;</span>  <span class="c1"># array of object</span>
-      <span class="k">new</span> <span class="nx">JavaArray</span> <span class="err">@</span><span class="p">,</span> <span class="nx">c2t</span><span class="p">(</span><span class="s2">&quot;[#{type}&quot;</span><span class="p">),</span> <span class="p">(</span><span class="kc">null</span> <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">...</span><span class="nx">len</span><span class="p">]</span> <span class="k">by</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="k">else</span>  <span class="c1"># numeric array</span>
-      <span class="k">new</span> <span class="nx">JavaArray</span> <span class="err">@</span><span class="p">,</span> <span class="nx">c2t</span><span class="p">(</span><span class="s2">&quot;[#{type}&quot;</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span> <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">...</span><span class="nx">len</span><span class="p">]</span> <span class="k">by</span> <span class="mi">1</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-17">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-17">&#182;</a>               </div>               <p>static stuff</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">static_get: </span><span class="nf">(field_spec) -&gt;</span>
-    <span class="nv">f = </span><span class="nx">@field_lookup</span><span class="p">(</span><span class="nx">field_spec</span><span class="p">)</span>
-    <span class="nx">@class_states</span><span class="p">[</span><span class="nx">f</span><span class="p">.</span><span class="nx">class_type</span><span class="p">.</span><span class="nx">toClassString</span><span class="p">()].</span><span class="nx">fields</span><span class="p">[</span><span class="nx">f</span><span class="p">.</span><span class="nx">name</span><span class="p">]</span> <span class="o">?=</span> <span class="nx">util</span><span class="p">.</span><span class="nx">initial_value</span> <span class="nx">f</span><span class="p">.</span><span class="nx">raw_descriptor</span>
+    init_next_core_class()
 
-  <span class="nv">static_put: </span><span class="nf">(field_spec) -&gt;</span>
-    <span class="nv">val = </span><span class="k">if</span> <span class="nx">field_spec</span><span class="p">.</span><span class="nx">type</span> <span class="k">in</span> <span class="p">[</span><span class="s1">&#39;J&#39;</span><span class="p">,</span><span class="s1">&#39;D&#39;</span><span class="p">]</span> <span class="k">then</span> <span class="nx">@pop2</span><span class="p">()</span> <span class="k">else</span> <span class="nx">@pop</span><span class="p">()</span>
-    <span class="nv">f = </span><span class="nx">@field_lookup</span><span class="p">(</span><span class="nx">field_spec</span><span class="p">)</span>
-    <span class="nx">@class_states</span><span class="p">[</span><span class="nx">f</span><span class="p">.</span><span class="nx">class_type</span><span class="p">.</span><span class="nx">toClassString</span><span class="p">()].</span><span class="nx">fields</span><span class="p">[</span><span class="nx">f</span><span class="p">.</span><span class="nx">name</span><span class="p">]</span> <span class="o">=</span> <span class="nx">val</span></pre></div>             </td>           </tr>                               <tr id="section-18">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-18">&#182;</a>               </div>               <p>heap object initialization</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">init_object: </span><span class="nf">(cls, obj) -&gt;</span>
-    <span class="nv">type = </span><span class="nx">c2t</span><span class="p">(</span><span class="nx">cls</span><span class="p">)</span>
-    <span class="k">new</span> <span class="nx">JavaObject</span> <span class="err">@</span><span class="p">,</span> <span class="nx">type</span><span class="p">,</span> <span class="nx">@class_lookup</span><span class="p">(</span><span class="nx">type</span><span class="p">),</span> <span class="nx">obj</span>
-  <span class="nv">init_array: </span><span class="nf">(cls, obj) -&gt;</span>
-    <span class="nv">type = </span><span class="nx">c2t</span><span class="p">(</span><span class="nx">cls</span><span class="p">)</span>
-    <span class="k">new</span> <span class="nx">JavaArray</span> <span class="err">@</span><span class="p">,</span> <span class="nx">type</span><span class="p">,</span> <span class="nx">obj</span>
-  <span class="nv">init_string: </span><span class="nf">(str,intern=false) -&gt;</span>
-    <span class="k">return</span> <span class="nx">s</span> <span class="k">if</span> <span class="nx">intern</span> <span class="o">and</span> <span class="p">(</span><span class="nv">s = </span><span class="nx">@string_pool</span><span class="p">.</span><span class="nx">get</span> <span class="nx">str</span><span class="p">)</span><span class="o">?</span>
-    <span class="nv">carr = </span><span class="nx">@init_carr</span> <span class="nx">str</span>
-    <span class="nv">type = </span><span class="nx">c2t</span><span class="p">(</span><span class="s1">&#39;java/lang/String&#39;</span><span class="p">)</span>
-    <span class="nv">jvm_str = </span><span class="k">new</span> <span class="nx">JavaObject</span> <span class="err">@</span><span class="p">,</span> <span class="nx">type</span><span class="p">,</span> <span class="nx">@class_lookup</span><span class="p">(</span><span class="nx">type</span><span class="p">),</span> <span class="p">{</span><span class="s1">&#39;java/lang/String/value&#39;</span><span class="o">:</span><span class="nx">carr</span><span class="p">,</span> <span class="s1">&#39;java/lang/String/count&#39;</span><span class="o">:</span><span class="nx">str</span><span class="p">.</span><span class="nx">length</span><span class="p">}</span>
-    <span class="nx">@string_pool</span><span class="p">.</span><span class="nx">set</span><span class="p">(</span><span class="nx">str</span><span class="p">,</span> <span class="nx">jvm_str</span><span class="p">)</span> <span class="k">if</span> <span class="nx">intern</span>
-    <span class="k">return</span> <span class="nx">jvm_str</span>
-  <span class="nv">init_carr: </span><span class="nf">(str) -&gt;</span>
-    <span class="k">new</span> <span class="nx">JavaArray</span> <span class="err">@</span><span class="p">,</span> <span class="nx">c2t</span><span class="p">(</span><span class="s1">&#39;[C&#39;</span><span class="p">),</span> <span class="p">(</span><span class="nx">str</span><span class="p">.</span><span class="nx">charCodeAt</span><span class="p">(</span><span class="nx">i</span><span class="p">)</span> <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">...</span><span class="nx">str</span><span class="p">.</span><span class="nx">length</span><span class="p">]</span> <span class="k">by</span> <span class="mi">1</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-19">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-19">&#182;</a>               </div>               <p>Returns a java.lang.Class object for JVM bytecode to do reflective stuff.
-Loads the underlying class, but does not initialize it (and therefore does
-not ensure that its ancestors and interfaces are present.)</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">jclass_obj: </span><span class="nf">(type, dyn=false) -&gt;</span>
-    <span class="nv">jco = </span><span class="nx">@jclass_obj_pool</span><span class="p">[</span><span class="nx">type</span><span class="p">]</span>
-    <span class="k">if</span> <span class="nx">jco</span> <span class="o">is</span> <span class="s1">&#39;not found&#39;</span>
-      <span class="nv">etype = </span><span class="k">if</span> <span class="nx">dyn</span> <span class="k">then</span> <span class="s1">&#39;ClassNotFoundException&#39;</span> <span class="k">else</span> <span class="s1">&#39;NoClassDefFoundError&#39;</span>
-      <span class="nx">java_throw</span> <span class="err">@</span><span class="p">,</span> <span class="s2">&quot;java/lang/#{etype}&quot;</span><span class="p">,</span> <span class="nx">type</span><span class="p">.</span><span class="nx">toClassString</span><span class="p">()</span>
-    <span class="k">else</span> <span class="k">if</span> <span class="nx">jco</span> <span class="o">is</span> <span class="kc">undefined</span>
-      <span class="nx">@jclass_obj_pool</span><span class="p">[</span><span class="nx">type</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;not found&#39;</span>
-      <span class="nv">file = </span><span class="k">if</span> <span class="nx">type</span> <span class="k">instanceof</span> <span class="nx">types</span><span class="p">.</span><span class="nx">PrimitiveType</span> <span class="k">then</span> <span class="kc">null</span> <span class="k">else</span> <span class="nx">@load_class</span> <span class="nx">type</span><span class="p">,</span> <span class="nx">dyn</span>
-      <span class="nx">@jclass_obj_pool</span><span class="p">[</span><span class="nx">type</span><span class="p">]</span> <span class="o">=</span> <span class="nv">jco = </span><span class="k">new</span> <span class="nx">JavaClassObject</span> <span class="err">@</span><span class="p">,</span> <span class="nx">type</span><span class="p">,</span> <span class="nx">file</span>
-    <span class="nx">jco</span></pre></div>             </td>           </tr>                               <tr id="section-20">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-20">&#182;</a>               </div>               <p>Returns a ClassFile object. Loads the underlying class, but does not
-initialize it. :dyn should be set if the class may not have been present at
-compile time, e.g. if we are loading a class as a result of a
-Class.forName() call.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">load_class: </span><span class="nf">(type, dyn) -&gt;</span>
-    <span class="nv">cls = </span><span class="nx">type</span><span class="p">.</span><span class="nx">toClassString</span><span class="p">()</span>
-    <span class="nx">unless</span> <span class="nx">@loaded_classes</span><span class="p">[</span><span class="nx">cls</span><span class="p">]</span><span class="o">?</span>
-      <span class="k">if</span> <span class="nx">type</span> <span class="k">instanceof</span> <span class="nx">types</span><span class="p">.</span><span class="nx">ArrayType</span>
-        <span class="nx">@loaded_classes</span><span class="p">[</span><span class="nx">cls</span><span class="p">]</span> <span class="o">=</span> <span class="nx">ClassFile</span><span class="p">.</span><span class="nx">for_array_type</span> <span class="nx">type</span></pre></div>             </td>           </tr>                               <tr id="section-21">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-21">&#182;</a>               </div>               <p>defining class loader of an array type is that of its component type</p>             </td>             <td class="code">               <div class="highlight"><pre>        <span class="k">if</span> <span class="nx">type</span><span class="p">.</span><span class="nx">component_type</span> <span class="k">instanceof</span> <span class="nx">types</span><span class="p">.</span><span class="nx">PrimitiveType</span>
-          <span class="nx">@class_states</span><span class="p">[</span><span class="nx">cls</span><span class="p">]</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">ClassState</span> <span class="kc">null</span>
-        <span class="k">else</span>
-          <span class="nx">@load_class</span> <span class="nx">type</span><span class="p">.</span><span class="nx">component_type</span><span class="p">,</span> <span class="nx">dyn</span>
-          <span class="nx">@class_states</span><span class="p">[</span><span class="nx">cls</span><span class="p">]</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">ClassState</span> <span class="nx">@class_states</span><span class="p">[</span><span class="nx">type</span><span class="p">.</span><span class="nx">component_type</span><span class="p">.</span><span class="nx">toClassString</span><span class="p">()].</span><span class="nx">loader</span>
-      <span class="k">else</span></pre></div>             </td>           </tr>                               <tr id="section-22">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-22">&#182;</a>               </div>               <p>a class gets loaded with the loader of the class that is triggering <br />
-this class resolution</p>             </td>             <td class="code">               <div class="highlight"><pre>        <span class="nv">defining_class = </span><span class="nx">@curr_frame</span><span class="p">().</span><span class="nx">method</span><span class="p">.</span><span class="nx">class_type</span><span class="p">.</span><span class="nx">toClassString</span><span class="p">()</span>
-        <span class="nv">defining_class_loader = </span><span class="nx">@class_states</span><span class="p">[</span><span class="nx">defining_class</span><span class="p">]</span><span class="o">?</span><span class="p">.</span><span class="nx">loader</span>
-        <span class="k">if</span> <span class="nx">defining_class_loader</span><span class="o">?</span>
-          <span class="nx">@meta_stack</span><span class="p">().</span><span class="nx">push</span> <span class="nx">root</span><span class="p">.</span><span class="nx">StackFrame</span><span class="p">.</span><span class="nx">fake_frame</span><span class="p">(</span><span class="s1">&#39;custom_class_loader&#39;</span><span class="p">)</span>
-          <span class="nx">@push2</span> <span class="nx">defining_class_loader</span><span class="p">,</span> <span class="nx">@init_string</span> <span class="nx">util</span><span class="p">.</span><span class="nx">ext_classname</span> <span class="nx">cls</span>
-          <span class="nx">@method_lookup</span><span class="p">(</span>
-            <span class="k">class</span><span class="o">:</span> <span class="nx">defining_class_loader</span><span class="p">.</span><span class="nx">type</span><span class="p">.</span><span class="nx">toClassString</span><span class="p">()</span>
-            <span class="nv">sig: </span><span class="s1">&#39;loadClass(Ljava/lang/String;)Ljava/lang/Class;&#39;</span><span class="p">).</span><span class="nx">setup_stack</span> <span class="err">@</span>
-          <span class="nx">unless</span> <span class="nx">@run_until_finished</span> <span class="p">(</span><span class="o">-&gt;</span><span class="p">),</span> <span class="p">(</span><span class="o">-&gt;</span><span class="p">),</span> <span class="kc">true</span>
-            <span class="k">throw</span> <span class="s1">&#39;Error in class initialization&#39;</span></pre></div>             </td>           </tr>                               <tr id="section-23">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-23">&#182;</a>               </div>               <p>discard return value. @define<em>class will have registered the new
-file in loaded</em>classes for us.</p>             </td>             <td class="code">               <div class="highlight"><pre>          <span class="nx">@meta_stack</span><span class="p">().</span><span class="nx">pop</span><span class="p">()</span>
-        <span class="k">else</span></pre></div>             </td>           </tr>                               <tr id="section-24">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-24">&#182;</a>               </div>               <p>bootstrap class loader</p>             </td>             <td class="code">               <div class="highlight"><pre>          <span class="nx">@class_states</span><span class="p">[</span><span class="nx">cls</span><span class="p">]</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">ClassState</span> <span class="kc">null</span>
-          <span class="nv">class_file = </span><span class="nx">@read_classfile</span> <span class="nx">cls</span>
-          <span class="k">if</span> <span class="o">not</span> <span class="nx">class_file</span><span class="o">?</span> <span class="o">or</span> <span class="nv">wrong_name = </span><span class="p">(</span><span class="nx">class_file</span><span class="p">.</span><span class="nx">this_class</span><span class="p">.</span><span class="nx">toClassString</span><span class="p">()</span> <span class="o">!=</span> <span class="nx">cls</span><span class="p">)</span>
-            <span class="nv">msg = </span><span class="nx">cls</span>
-            <span class="k">if</span> <span class="nx">wrong_name</span>
-              <span class="nx">msg</span> <span class="o">+=</span> <span class="s2">&quot; (wrong name: #{class_file.this_class.toClassString()})&quot;</span>
-            <span class="k">if</span> <span class="nx">dyn</span>
-              <span class="nx">java_throw</span> <span class="err">@</span><span class="p">,</span> <span class="s1">&#39;java/lang/ClassNotFoundException&#39;</span><span class="p">,</span> <span class="nx">msg</span>
-            <span class="k">else</span>
-              <span class="nx">java_throw</span> <span class="err">@</span><span class="p">,</span> <span class="s1">&#39;java/lang/NoClassDefFoundError&#39;</span><span class="p">,</span> <span class="nx">msg</span>
-          <span class="nx">@loaded_classes</span><span class="p">[</span><span class="nx">cls</span><span class="p">]</span> <span class="o">=</span> <span class="nx">class_file</span>
-    <span class="nx">@loaded_classes</span><span class="p">[</span><span class="nx">cls</span><span class="p">]</span></pre></div>             </td>           </tr>                               <tr id="section-25">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-25">&#182;</a>               </div>               <p>Loads and initializes :type, and returns a ClassFile object. Should only be
-called <em>immediately</em> before a method invocation or field access. See section
-5.5 of the SE7 spec.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">class_lookup: </span><span class="nf">(type, dyn) -&gt;</span>
-    <span class="nx">UNSAFE</span><span class="o">?</span> <span class="o">||</span> <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span> <span class="s2">&quot;class_lookup needs a type object, got #{typeof type}: #{type}&quot;</span> <span class="nx">unless</span> <span class="nx">type</span> <span class="k">instanceof</span> <span class="nx">types</span><span class="p">.</span><span class="nx">Type</span>
-    <span class="nx">UNSAFE</span><span class="o">?</span> <span class="o">||</span> <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span> <span class="s2">&quot;class_lookup was passed a PrimitiveType&quot;</span> <span class="k">if</span> <span class="nx">type</span> <span class="k">instanceof</span> <span class="nx">types</span><span class="p">.</span><span class="nx">PrimitiveType</span>
-    <span class="nv">class_file = </span><span class="nx">@load_class</span> <span class="nx">type</span><span class="p">,</span> <span class="nx">dyn</span>
-    <span class="nv">cls = </span><span class="nx">type</span><span class="p">.</span><span class="nx">toClassString</span><span class="p">()</span>
-    <span class="nx">unless</span> <span class="nx">@class_states</span><span class="p">[</span><span class="nx">cls</span><span class="p">].</span><span class="nx">fields</span><span class="o">?</span>
-      <span class="nx">trace</span> <span class="s2">&quot;initializing class: #{cls}&quot;</span>
-      <span class="nx">@class_states</span><span class="p">[</span><span class="nx">cls</span><span class="p">].</span><span class="nv">fields = </span><span class="nb">Object</span><span class="p">.</span><span class="nx">create</span> <span class="kc">null</span>
-      <span class="k">if</span> <span class="nx">type</span> <span class="k">instanceof</span> <span class="nx">types</span><span class="p">.</span><span class="nx">ArrayType</span>
-        <span class="nv">component = </span><span class="nx">type</span><span class="p">.</span><span class="nx">component_type</span>
-        <span class="k">if</span> <span class="nx">component</span> <span class="k">instanceof</span> <span class="nx">types</span><span class="p">.</span><span class="nx">ArrayType</span> <span class="o">or</span> <span class="nx">component</span> <span class="k">instanceof</span> <span class="nx">types</span><span class="p">.</span><span class="nx">ClassType</span>
-          <span class="nx">@class_lookup</span> <span class="nx">component</span><span class="p">,</span> <span class="nx">dyn</span>
-      <span class="k">else</span> <span class="c1"># type instanceof types.ClassType</span>
-        <span class="nv">c = </span><span class="nx">@class_states</span><span class="p">[</span><span class="nx">cls</span><span class="p">]</span></pre></div>             </td>           </tr>                               <tr id="section-26">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-26">&#182;</a>               </div>               <p>Run class initialization code. Superclasses get init'ed first.  We
-don't want to call this more than once per class, so don't do dynamic
-lookup. See spec <a href="http://docs.oracle.com/javase/specs/jvms/se5.0/html/Concepts.doc.html#19075">2.17.4</a>.</p>             </td>             <td class="code">               <div class="highlight"><pre>        <span class="k">if</span> <span class="nx">class_file</span><span class="p">.</span><span class="nx">super_class</span>
-          <span class="nx">@class_lookup</span> <span class="nx">class_file</span><span class="p">.</span><span class="nx">super_class</span><span class="p">,</span> <span class="nx">dyn</span>
+  init_threads: -&gt;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-8">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-8">&#182;</a>
+              </div>
+              <p>initialize thread objects</p>
 
-        <span class="nx">@meta_stack</span><span class="p">().</span><span class="nx">push</span> <span class="nx">root</span><span class="p">.</span><span class="nx">StackFrame</span><span class="p">.</span><span class="nx">fake_frame</span><span class="p">(</span><span class="s1">&#39;class_lookup&#39;</span><span class="p">)</span>
-        <span class="nx">class_file</span><span class="p">.</span><span class="nx">methods</span><span class="p">[</span><span class="s1">&#39;&lt;clinit&gt;()V&#39;</span><span class="p">]</span><span class="o">?</span><span class="p">.</span><span class="nx">setup_stack</span><span class="p">(</span><span class="err">@</span><span class="p">)</span>
-        <span class="nx">unless</span> <span class="nx">@run_until_finished</span> <span class="p">(</span><span class="o">-&gt;</span><span class="p">),</span> <span class="p">(</span><span class="o">-&gt;</span><span class="p">),</span> <span class="kc">true</span>
-          <span class="k">throw</span> <span class="s1">&#39;Error in class initialization&#39;</span>
-        <span class="nx">@meta_stack</span><span class="p">().</span><span class="nx">pop</span><span class="p">()</span>
-    <span class="nx">class_file</span></pre></div>             </td>           </tr>                               <tr id="section-27">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-27">&#182;</a>               </div>               <p>called by user-defined classloaders</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">define_class: </span><span class="nf">(cls, data, loader) -&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-28">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-28">&#182;</a>               </div>               <p>replicates some logic from class_lookup</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nv">class_file = </span><span class="k">new</span> <span class="nx">ClassFile</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span>
-    <span class="nx">@class_states</span><span class="p">[</span><span class="nx">cls</span><span class="p">]</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">ClassState</span> <span class="nx">loader</span>
-    <span class="k">if</span> <span class="nx">class_file</span><span class="p">.</span><span class="nx">super_class</span>
-      <span class="nx">@class_lookup</span> <span class="nx">class_file</span><span class="p">.</span><span class="nx">super_class</span>
-    <span class="nx">@loaded_classes</span><span class="p">[</span><span class="nx">cls</span><span class="p">]</span> <span class="o">=</span> <span class="nx">class_file</span>
-    <span class="nv">type = </span><span class="nx">c2t</span><span class="p">(</span><span class="nx">cls</span><span class="p">)</span>
-    <span class="nx">@jclass_obj_pool</span><span class="p">[</span><span class="nx">type</span><span class="p">]</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">JavaClassObject</span> <span class="err">@</span><span class="p">,</span> <span class="nx">type</span><span class="p">,</span> <span class="nx">class_file</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    my_sf = <span class="property">@curr_frame</span>()
+    <span class="property">@push</span> (group = <span class="keyword">new</span> JavaObject @, <span class="property">@get_bs_class</span>(<span class="string">'Ljava/lang/ThreadGroup;'</span>))
+    <span class="property">@get_bs_class</span>(<span class="string">'Ljava/lang/ThreadGroup;'</span>).method_lookup(
+      @, {class: <span class="string">'Ljava/lang/ThreadGroup;'</span>, sig: <span class="string">'&lt;init&gt;()V'</span>}).setup_stack(<span class="keyword">this</span>)
+    my_sf.<span class="function"><span class="title">runner</span></span> = =&gt;
+      ct = <span class="literal">null</span>
+      my_sf.<span class="function"><span class="title">runner</span></span> = =&gt;
+        my_sf.runner = <span class="literal">null</span>
+        ct.$meta_stack = <span class="property">@meta_stack</span>()
+        <span class="property">@curr_thread</span> = ct
+        <span class="property">@curr_thread</span>.$isAlive = <span class="literal">true</span>
+        <span class="property">@thread_pool</span>.push <span class="property">@curr_thread</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-9">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-9">&#182;</a>
+              </div>
+              <p>hack to make auto-named threads match native Java</p>
 
-  <span class="nv">method_lookup: </span><span class="nf">(method_spec) -&gt;</span>
-    <span class="nv">type = </span><span class="nx">c2t</span> <span class="nx">method_spec</span><span class="p">.</span><span class="k">class</span>
-    <span class="nv">cls = </span><span class="nx">@class_lookup</span><span class="p">(</span><span class="nx">type</span><span class="p">)</span>
-    <span class="nv">method = </span><span class="nx">cls</span><span class="p">.</span><span class="nx">method_lookup</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">method_spec</span><span class="p">)</span>
-    <span class="k">return</span> <span class="nx">method</span> <span class="k">if</span> <span class="nx">method</span><span class="o">?</span>
-    <span class="nx">java_throw</span> <span class="err">@</span><span class="p">,</span> <span class="s1">&#39;java/lang/NoSuchMethodError&#39;</span><span class="p">,</span>
-      <span class="s2">&quot;No such method found in #{method_spec.class}: #{method_spec.sig}&quot;</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="property">@get_bs_class</span>(<span class="string">'Ljava/lang/Thread;'</span>).static_fields.threadInitNumber = <span class="number">1</span>
+        debug <span class="string">"### finished thread init ###"</span>
+      ct = <span class="keyword">new</span> JavaObject @, <span class="property">@get_bs_class</span>(<span class="string">'Ljava/lang/Thread;'</span>),
+        <span class="string">'Ljava/lang/Thread;name'</span>: <span class="property">@init_carr</span> <span class="string">'main'</span>
+        <span class="string">'Ljava/lang/Thread;priority'</span>: <span class="number">1</span>
+        <span class="string">'Ljava/lang/Thread;group'</span>: group
+        <span class="string">'Ljava/lang/Thread;threadLocals'</span>: <span class="literal">null</span>
 
-  <span class="nv">field_lookup: </span><span class="nf">(field_spec) -&gt;</span>
-    <span class="nv">cls = </span><span class="nx">@class_lookup</span> <span class="nx">c2t</span> <span class="nx">field_spec</span><span class="p">.</span><span class="k">class</span>
-    <span class="nv">field = </span><span class="nx">cls</span><span class="p">.</span><span class="nx">field_lookup</span> <span class="k">this</span><span class="p">,</span> <span class="nx">field_spec</span>
-    <span class="k">return</span> <span class="nx">field</span> <span class="k">if</span> <span class="nx">field</span><span class="o">?</span>
-    <span class="nx">java_throw</span> <span class="err">@</span><span class="p">,</span> <span class="s1">&#39;java/lang/NoSuchFieldError&#39;</span><span class="p">,</span>
-      <span class="s2">&quot;No such field found in #{field_spec.class}: #{field_spec.name}&quot;</span></pre></div>             </td>           </tr>                               <tr id="section-29">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-29">&#182;</a>               </div>               <p>address of the block that this address is contained in</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">block_addr: </span><span class="nf">(address) -&gt;</span>
-    <span class="nv">address = </span><span class="nx">address</span><span class="p">.</span><span class="nx">toNumber</span><span class="p">()</span> <span class="c1"># address is a Long</span>
-    <span class="k">if</span> <span class="nx">DataView</span><span class="o">?</span>
-      <span class="nv">block_addr = </span><span class="nx">@mem_start_addrs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-      <span class="k">for</span> <span class="nx">addr</span> <span class="k">in</span> <span class="nx">@mem_start_addrs</span><span class="p">[</span><span class="mi">1</span><span class="p">..]</span>
-        <span class="k">if</span> <span class="nx">address</span> <span class="o">&lt;</span> <span class="nx">addr</span>
-          <span class="k">return</span> <span class="nx">block_addr</span>
-        <span class="nv">block_addr = </span><span class="nx">addr</span>
-    <span class="k">else</span></pre></div>             </td>           </tr>                               <tr id="section-30">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-30">&#182;</a>               </div>               <p>w/o typed arrays, we just address by 32bits.
-We initialize memory to 0, so it should not be 0 or undefined.</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="k">if</span> <span class="nx">@mem_blocks</span><span class="p">[</span><span class="nx">address</span><span class="p">]</span><span class="o">?</span>
-        <span class="k">return</span> <span class="nx">address</span>
-    <span class="nx">UNSAFE</span><span class="o">?</span> <span class="o">||</span> <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span> <span class="s2">&quot;Invalid memory access at #{address}&quot;</span>
+  meta_stack: -&gt; <span class="property">@curr_thread</span>.$meta_stack</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-10">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-10">&#182;</a>
+              </div>
+              <p>Simulate the throwing of a Java exception with message :msg. Not very DRY --
+code here is essentially copied from the opcodes themselves -- but
+constructing the opcodes manually is inelegant too.</p>
 
-  <span class="nv">handle_toplevel_exception: </span><span class="nf">(e, done_cb, no_threads) -&gt;</span>
-    <span class="k">if</span> <span class="nx">e</span><span class="p">.</span><span class="nx">toplevel_catch_handler</span><span class="o">?</span>
-      <span class="nx">@run_until_finished</span> <span class="p">(</span><span class="o">=&gt;</span> <span class="nx">e</span><span class="p">.</span><span class="nx">toplevel_catch_handler</span><span class="p">(</span><span class="err">@</span><span class="p">)),</span> <span class="nx">done_cb</span><span class="p">,</span> <span class="nx">no_threads</span>
-    <span class="k">else</span>
-      <span class="nx">error</span> <span class="s2">&quot;\nInternal JVM Error:&quot;</span><span class="p">,</span> <span class="nx">e</span>
-      <span class="nx">error</span> <span class="nx">e</span><span class="p">.</span><span class="nx">stack</span> <span class="k">if</span> <span class="nx">e</span><span class="o">?</span><span class="p">.</span><span class="nx">stack</span><span class="o">?</span>
-      <span class="nx">@show_state</span><span class="p">()</span>
-      <span class="nx">done_cb</span><span class="o">?</span><span class="p">()</span>
-    <span class="kc">false</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  java_throw: (cls, msg) -&gt;
+    method_spec = sig: <span class="string">'&lt;init&gt;(Ljava/lang/String;)V'</span>
+    v = <span class="keyword">new</span> JavaObject @, cls  <span class="comment"># new</span>
+    <span class="property">@push_array</span>([v,v,<span class="property">@init_string</span> msg]) <span class="comment"># dup, ldc</span>
+    my_sf = <span class="property">@curr_frame</span>()
+    cls.method_lookup(@, method_spec).setup_stack(@) <span class="comment"># invokespecial</span>
+    my_sf.<span class="function"><span class="title">runner</span></span> = =&gt;
+      <span class="keyword">if</span> my_sf.method.has_bytecode
+        my_sf.runner = (=&gt; my_sf.method.run_bytecode(@))  <span class="comment"># don't re-throw the exception</span>
+      <span class="keyword">else</span>
+        my_sf.runner = <span class="literal">null</span>
+      <span class="keyword">throw</span> (<span class="keyword">new</span> JavaException(<span class="property">@pop</span>())) <span class="comment"># athrow</span>
+    <span class="keyword">throw</span> ReturnException</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-11">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-11">&#182;</a>
+              </div>
+              <p>Init the first class, and put the command-line args on the stack for use by
+its main method.</p>
 
-  <span class="nv">run_until_finished: </span><span class="nf">(setup_fn, done_cb, no_threads=false) -&gt;</span>
-    <span class="k">try</span>
-      <span class="nx">setup_fn</span><span class="p">()</span>
-      <span class="k">while</span> <span class="kc">true</span>
-        <span class="nv">sf = </span><span class="nx">@curr_frame</span><span class="p">()</span>
-        <span class="k">while</span> <span class="nx">sf</span><span class="p">.</span><span class="nx">runner</span><span class="o">?</span>
-          <span class="nx">sf</span><span class="p">.</span><span class="nx">runner</span><span class="p">()</span>
-          <span class="nv">sf = </span><span class="nx">@curr_frame</span><span class="p">()</span></pre></div>             </td>           </tr>                               <tr id="section-31">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-31">&#182;</a>               </div>               <p>we've finished this thread, no more runners
-we're done if the only thread is "main"</p>             </td>             <td class="code">               <div class="highlight"><pre>        <span class="k">break</span> <span class="k">if</span> <span class="nx">no_threads</span> <span class="o">or</span> <span class="nx">@thread_pool</span><span class="p">.</span><span class="nx">length</span> <span class="o">&lt;=</span> <span class="mi">1</span></pre></div>             </td>           </tr>                               <tr id="section-32">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-32">&#182;</a>               </div>               <p>remove the current (finished) thread</p>             </td>             <td class="code">               <div class="highlight"><pre>        <span class="nx">debug</span> <span class="s2">&quot;TE(toplevel): finished thread #{thread_name @, @curr_thread}&quot;</span>
-        <span class="nx">@curr_thread</span><span class="p">.</span><span class="nv">$isAlive = </span><span class="kc">false</span>
-        <span class="nx">@thread_pool</span><span class="p">.</span><span class="nx">splice</span> <span class="nx">@thread_pool</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="nx">@curr_thread</span><span class="p">),</span> <span class="mi">1</span>
-        <span class="vi">@curr_thread = </span><span class="nx">@choose_next_thread</span><span class="p">()</span>
-      <span class="nx">done_cb</span><span class="o">?</span><span class="p">()</span>
-      <span class="k">return</span> <span class="kc">true</span>
-    <span class="k">catch</span> <span class="nx">e</span>
-      <span class="k">if</span> <span class="nx">e</span> <span class="o">==</span> <span class="s1">&#39;Error in class initialization&#39;</span>
-        <span class="k">return</span> <span class="kc">false</span>
-      <span class="k">else</span> <span class="k">if</span> <span class="nx">e</span> <span class="o">is</span> <span class="nx">ReturnException</span></pre></div>             </td>           </tr>                               <tr id="section-33">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-33">&#182;</a>               </div>               <p>XXX: technically we shouldn't get here. Right now we get here
-when java_throw is called from the main method lookup.</p>             </td>             <td class="code">               <div class="highlight"><pre>        <span class="k">return</span> <span class="nx">@run_until_finished</span> <span class="p">(</span><span class="o">-&gt;</span><span class="p">),</span> <span class="nx">done_cb</span><span class="p">,</span> <span class="nx">no_threads</span> 
-      <span class="k">else</span> <span class="k">if</span> <span class="nx">e</span> <span class="k">instanceof</span> <span class="nx">YieldIOException</span>
-        <span class="nv">retval = </span><span class="kc">null</span>
-        <span class="nx">e</span><span class="p">.</span><span class="nx">condition</span> <span class="o">=&gt;</span>
-          <span class="nv">retval = </span><span class="nx">@run_until_finished</span> <span class="p">(</span><span class="o">-&gt;</span><span class="p">),</span> <span class="nx">done_cb</span><span class="p">,</span> <span class="nx">no_threads</span>
-        <span class="k">return</span> <span class="nx">retval</span>
-      <span class="k">else</span>
-        <span class="k">if</span> <span class="nx">e</span><span class="p">.</span><span class="nx">method_catch_handler</span><span class="o">?</span> <span class="o">and</span> <span class="nx">@meta_stack</span><span class="p">().</span><span class="nx">length</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span>
-          <span class="nv">tos = </span><span class="kc">true</span>
-          <span class="nx">until</span> <span class="nx">e</span><span class="p">.</span><span class="nx">method_catch_handler</span><span class="p">(</span><span class="err">@</span><span class="p">,</span> <span class="nx">@curr_frame</span><span class="p">().</span><span class="nx">method</span><span class="p">,</span> <span class="nx">tos</span><span class="p">)</span>
-            <span class="nv">tos = </span><span class="kc">false</span>
-            <span class="k">if</span> <span class="nx">@meta_stack</span><span class="p">().</span><span class="nx">length</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span>
-              <span class="k">return</span> <span class="nx">@handle_toplevel_exception</span> <span class="nx">e</span><span class="p">,</span> <span class="nx">done_cb</span><span class="p">,</span> <span class="nx">no_threads</span>
-            <span class="k">else</span>
-              <span class="nx">@meta_stack</span><span class="p">().</span><span class="nx">pop</span><span class="p">()</span>
-          <span class="k">return</span> <span class="nx">@run_until_finished</span> <span class="p">(</span><span class="o">-&gt;</span><span class="p">),</span> <span class="nx">done_cb</span><span class="p">,</span> <span class="nx">no_threads</span>
-        <span class="k">else</span>
-          <span class="nx">@meta_stack</span><span class="p">().</span><span class="nx">pop</span><span class="p">()</span> <span class="k">while</span> <span class="nx">@meta_stack</span><span class="p">().</span><span class="nx">length</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span>
-          <span class="k">return</span> <span class="nx">@handle_toplevel_exception</span> <span class="nx">e</span><span class="p">,</span> <span class="nx">done_cb</span><span class="p">,</span> <span class="nx">no_threads</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  init_system_class: -&gt;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-12">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-12">&#182;</a>
+              </div>
+              <p>initialize the system class</p>
 
-</pre></div>             </td>           </tr>                </tbody>     </table>   </div> </body> </html> 
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    my_sf = <span class="property">@curr_frame</span>()
+    <span class="property">@get_bs_class</span>(<span class="string">'Ljava/lang/System;'</span>).get_method(<span class="string">'initializeSystemClass()V'</span>).setup_stack(<span class="keyword">this</span>)
+    my_sf.<span class="function"><span class="title">runner</span></span> = -&gt;
+      my_sf.runner = <span class="literal">null</span>
+      <span class="property">@system_initialized</span> = <span class="literal">true</span>
+      debug <span class="string">"### finished system class initialization ###"</span>
+
+  init_args: (initial_args) -&gt;
+    args = <span class="keyword">new</span> JavaArray @, <span class="property">@get_bs_class</span>(<span class="string">'[Ljava/lang/String;'</span>), (<span class="property">@init_string</span>(a) <span class="keyword">for</span> a <span class="keyword">in</span> initial_args)
+    <span class="property">@curr_thread</span>.$meta_stack = <span class="keyword">new</span> root.CallStack [args]
+    debug <span class="string">"### finished runtime state initialization ###"</span>
+
+  dump_state: (snapshot=<span class="property">@meta_stack</span>().snap(), suffix) -&gt;
+    suffix = <span class="keyword">if</span> suffix? <span class="keyword">then</span> <span class="string">"-<span class="subst">#{suffix}</span>"</span> <span class="keyword">else</span> <span class="string">''</span>
+    fs = node?.fs ? require <span class="string">'fs'</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-13">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-13">&#182;</a>
+              </div>
+              <p>4th parameter to writeFileSync ensures this is not stored in localStorage in the browser</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    fs.writeFileSync <span class="string">"./core-<span class="subst">#{thread_name @, @curr_thread}</span><span class="subst">#{suffix}</span>.json"</span>,
+      (JSON.stringify snapshot.serialize()), <span class="string">'utf8'</span>, <span class="literal">true</span>
+
+  choose_next_thread: (blacklist) -&gt;
+    <span class="keyword">unless</span> blacklist?
+      blacklist = []
+      <span class="keyword">for</span> key,bl <span class="keyword">of</span> <span class="property">@waiting_threads</span>
+        <span class="keyword">for</span> b <span class="keyword">in</span> bl
+          blacklist.push b
+    <span class="keyword">for</span> t <span class="keyword">in</span> <span class="property">@thread_pool</span> <span class="keyword">when</span> t <span class="keyword">isnt</span> <span class="property">@curr_thread</span> <span class="keyword">and</span> t.$isAlive
+      <span class="keyword">continue</span> <span class="keyword">if</span> t <span class="keyword">in</span> blacklist
+      debug <span class="string">"TE(choose_next_thread): choosing thread <span class="subst">#{thread_name(@, t)}</span>"</span>
+      <span class="keyword">return</span> t</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-14">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-14">&#182;</a>
+              </div>
+              <p>we couldn&#39;t find a thread! We can&#39;t error out, so keep trying</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    debug <span class="string">"TE(choose_next_thread): no thread found, sticking with curr_thread"</span>
+    <span class="keyword">return</span> <span class="property">@curr_thread</span>
+
+  wait: (monitor, yieldee) -&gt;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-15">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-15">&#182;</a>
+              </div>
+              <p>add current thread to wait queue</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    debug <span class="string">"TE(wait): waiting <span class="subst">#{thread_name @, @curr_thread}</span> on lock <span class="subst">#{monitor.ref}</span>"</span>
+    <span class="keyword">if</span> <span class="property">@waiting_threads</span>[monitor]?
+      <span class="property">@waiting_threads</span>[monitor].push <span class="property">@curr_thread</span>
+    <span class="keyword">else</span>
+      <span class="property">@waiting_threads</span>[monitor] = [<span class="property">@curr_thread</span>]</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-16">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-16">&#182;</a>
+              </div>
+              <p>yield execution to a non-waiting thread</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    yieldee ?= <span class="property">@choose_next_thread</span> <span class="property">@waiting_threads</span>[monitor]
+    <span class="property">@yield</span> yieldee
+
+  yield: (yieldee=<span class="property">@choose_next_thread</span>()) -&gt;
+    debug <span class="string">"TE(yield): yielding <span class="subst">#{thread_name @, @curr_thread}</span> to <span class="subst">#{thread_name @, yieldee}</span>"</span>
+    old_thread_sf = <span class="property">@curr_frame</span>()
+    <span class="property">@curr_thread</span> = yieldee
+    new_thread_sf = <span class="property">@curr_frame</span>()
+    new_thread_sf.<span class="function"><span class="title">runner</span></span> = =&gt; <span class="property">@meta_stack</span>().pop()
+    old_thread_sf.<span class="function"><span class="title">runner</span></span> = =&gt; <span class="property">@meta_stack</span>().pop()
+    <span class="keyword">throw</span> ReturnException
+
+  curr_frame: -&gt; <span class="property">@meta_stack</span>().curr_frame()
+
+  cl: (idx) -&gt; <span class="property">@curr_frame</span>().locals[idx]
+  put_cl: (idx,val) -&gt; <span class="property">@curr_frame</span>().locals[idx] = val</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-17">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-17">&#182;</a>
+              </div>
+              <p>Category 2 values (longs, doubles) take two slots in Java. Since we only
+need one slot to represent a double in JS, we pad it with a null.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  put_cl2: (idx,val) -&gt;
+    <span class="property">@put_cl</span>(idx,val)
+    UNSAFE? || <span class="property">@put_cl</span>(idx+<span class="number">1</span>,<span class="literal">null</span>)
+
+  push: (arg) -&gt; <span class="property">@curr_frame</span>().stack.push(arg)
+  push2: (arg1, arg2) -&gt; <span class="property">@curr_frame</span>().stack.push(arg1, arg2)
+  push_array: (args) -&gt;
+    cs = <span class="property">@curr_frame</span>().stack
+    Array::push.apply(cs, args)
+  pop: () -&gt; <span class="property">@curr_frame</span>().stack.pop()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-18">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-18">&#182;</a>
+              </div>
+              <p>For category 2 values.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  pop2: () -&gt;
+    <span class="property">@pop</span>()
+    <span class="property">@pop</span>()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-19">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-19">&#182;</a>
+              </div>
+              <p>for those cases where we want to avoid the pop/repush combo</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  peek: (depth=<span class="number">0</span>) -&gt;
+    s = <span class="property">@curr_frame</span>().stack
+    s[s.length-<span class="number">1</span>-depth]</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-20">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-20">&#182;</a>
+              </div>
+              <p>Program counter manipulation.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  curr_pc: ()   -&gt; <span class="property">@curr_frame</span>().pc
+  goto_pc: (pc) -&gt; <span class="property">@curr_frame</span>().pc = pc
+  inc_pc:  (n)  -&gt; <span class="property">@curr_frame</span>().pc += n</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-21">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-21">&#182;</a>
+              </div>
+              <p>Heap manipulation.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  check_null: (obj) -&gt;
+    <span class="property">@java_throw</span> <span class="property">@get_bs_class</span>(<span class="string">'Ljava/lang/NullPointerException;'</span>), <span class="string">''</span> <span class="keyword">unless</span> obj?
+    obj
+
+  heap_newarray: (type,len) -&gt;
+    <span class="keyword">if</span> len &lt; <span class="number">0</span>
+      <span class="property">@java_throw</span> <span class="property">@get_bs_class</span>(<span class="string">'Ljava/lang/NegativeArraySizeException;'</span>),
+        <span class="string">"Tried to init [<span class="subst">#{type}</span> array with length <span class="subst">#{len}</span>"</span>
+    <span class="keyword">if</span> type == <span class="string">'J'</span>
+      <span class="keyword">new</span> JavaArray @, <span class="property">@get_bs_class</span>(<span class="string">'[J'</span>), (gLong.ZERO <span class="keyword">for</span> i <span class="keyword">in</span> [<span class="number">0.</span>..len] <span class="keyword">by</span> <span class="number">1</span>)
+    <span class="keyword">else</span> <span class="keyword">if</span> type[<span class="number">0</span>] == <span class="string">'L'</span>  <span class="comment"># array of object</span>
+      <span class="keyword">new</span> JavaArray @, <span class="property">@get_class</span>(<span class="string">"[<span class="subst">#{type}</span>"</span>), (<span class="literal">null</span> <span class="keyword">for</span> i <span class="keyword">in</span> [<span class="number">0.</span>..len] <span class="keyword">by</span> <span class="number">1</span>)
+    <span class="keyword">else</span>  <span class="comment"># numeric array</span>
+      <span class="keyword">new</span> JavaArray @, <span class="property">@get_class</span>(<span class="string">"[<span class="subst">#{type}</span>"</span>), (<span class="number">0</span> <span class="keyword">for</span> i <span class="keyword">in</span> [<span class="number">0.</span>..len] <span class="keyword">by</span> <span class="number">1</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-22">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-22">&#182;</a>
+              </div>
+              <p>heap object initialization</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  init_string: (str,intern=<span class="literal">false</span>) -&gt;
+    <span class="keyword">return</span> s <span class="keyword">if</span> intern <span class="keyword">and</span> (s = <span class="property">@string_pool</span>.get str)?
+    carr = <span class="property">@init_carr</span> str
+    jvm_str = <span class="keyword">new</span> JavaObject @, <span class="property">@get_bs_class</span>(<span class="string">'Ljava/lang/String;'</span>),
+      {<span class="string">'Ljava/lang/String;value'</span>:carr, <span class="string">'Ljava/lang/String;count'</span>:str.length}
+    <span class="property">@string_pool</span>.set(str, jvm_str) <span class="keyword">if</span> intern
+    <span class="keyword">return</span> jvm_str
+  init_carr: (str) -&gt;
+    <span class="keyword">new</span> JavaArray @, <span class="property">@get_bs_class</span>(<span class="string">'[C'</span>), (str.charCodeAt(i) <span class="keyword">for</span> i <span class="keyword">in</span> [<span class="number">0.</span>..str.length] <span class="keyword">by</span> <span class="number">1</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-23">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-23">&#182;</a>
+              </div>
+              <p>address of the block that this address is contained in</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  block_addr: (address) -&gt;
+    address = address.toNumber() <span class="comment"># address is a Long</span>
+    <span class="keyword">if</span> DataView?
+      block_addr = <span class="property">@mem_start_addrs</span>[<span class="number">0</span>]
+      <span class="keyword">for</span> addr <span class="keyword">in</span> <span class="property">@mem_start_addrs</span>[<span class="number">1.</span>.]
+        <span class="keyword">if</span> address &lt; addr
+          <span class="keyword">return</span> block_addr
+        block_addr = addr
+    <span class="keyword">else</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-24">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-24">&#182;</a>
+              </div>
+              <p>w/o typed arrays, we just address by 32bits.
+We initialize memory to 0, so it should not be 0 or undefined.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="keyword">if</span> <span class="property">@mem_blocks</span>[address]?
+        <span class="keyword">return</span> address
+    UNSAFE? || <span class="keyword">throw</span> <span class="keyword">new</span> Error <span class="string">"Invalid memory access at <span class="subst">#{address}</span>"</span>
+
+  handle_toplevel_exception: (e, no_threads, done_cb) -&gt;
+    <span class="keyword">if</span> e.toplevel_catch_handler?
+      <span class="property">@run_until_finished</span> (=&gt; e.toplevel_catch_handler(@)), no_threads, done_cb
+    <span class="keyword">else</span>
+      error <span class="string">"\nInternal JVM Error:"</span>, e
+      error e.stack <span class="keyword">if</span> e?.stack?
+      done_cb <span class="literal">false</span>
+    <span class="keyword">return</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-25">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-25">&#182;</a>
+              </div>
+              <p>Pauses the JVM for an asynchronous operation. The callback, cb, will be
+called with another callback that it is responsible for calling with any
+return values when it is time to resume the JVM.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  async_op: (cb) -&gt; <span class="keyword">throw</span> <span class="keyword">new</span> YieldIOException cb
+
+  run_until_finished: (setup_fn, no_threads, done_cb) -&gt;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-26">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-26">&#182;</a>
+              </div>
+              <p>Reset stack depth every time this is called. Prevents us from needing to
+scatter this around the code everywhere to prevent filling the stack</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    process.nextTick(=&gt;
+      <span class="property">@stashed_done_cb</span> = done_cb  <span class="comment"># hack for the case where we error out of &lt;clinit&gt;</span>
+      <span class="keyword">try</span>
+        setup_fn()
+        start_time = (<span class="keyword">new</span> Date()).getTime()
+        m_count = <span class="property">@max_m_count</span>
+        <span class="keyword">while</span> <span class="literal">true</span>
+          sf = <span class="property">@curr_frame</span>()
+          <span class="keyword">while</span> sf.runner? <span class="keyword">and</span> m_count &gt; <span class="number">0</span>
+            sf.runner()
+            m_count--
+            sf = <span class="property">@curr_frame</span>()
+          <span class="keyword">if</span> sf.runner? &amp;&amp; m_count == <span class="number">0</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-27">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-27">&#182;</a>
+              </div>
+              <p>Loop has stopped to give the browser some breathing room.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            duration = (<span class="keyword">new</span> Date()).getTime() - start_time</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-28">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-28">&#182;</a>
+              </div>
+              <p>We should yield once every 1-2 seconds or so.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            <span class="keyword">if</span> duration &gt; <span class="number">2000</span> <span class="keyword">or</span> duration &lt; <span class="number">1000</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-29">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-29">&#182;</a>
+              </div>
+              <p>Figure out what to adjust max_m_count by.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>              ms_per_m = duration / <span class="property">@max_m_count</span>
+              <span class="property">@max_m_count</span> = (<span class="number">1000</span>/ms_per_m)|<span class="number">0</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-30">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-30">&#182;</a>
+              </div>
+              <p>Call ourselves to yield and resume.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            <span class="keyword">return</span> <span class="property">@run_until_finished</span> (-&gt;), no_threads, done_cb</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-31">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-31">&#182;</a>
+              </div>
+              <p>we&#39;ve finished this thread, no more runners
+we&#39;re done if the only thread is &quot;main&quot;</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>          <span class="keyword">break</span> <span class="keyword">if</span> no_threads <span class="keyword">or</span> <span class="property">@thread_pool</span>.length &lt;= <span class="number">1</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-32">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-32">&#182;</a>
+              </div>
+              <p>remove the current (finished) thread</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>          debug <span class="string">"TE(toplevel): finished thread <span class="subst">#{thread_name @, @curr_thread}</span>"</span>
+          <span class="property">@curr_thread</span>.$isAlive = <span class="literal">false</span>
+          <span class="property">@thread_pool</span>.splice <span class="property">@thread_pool</span>.indexOf(<span class="property">@curr_thread</span>), <span class="number">1</span>
+          <span class="property">@curr_thread</span> = <span class="property">@choose_next_thread</span>()
+        done_cb <span class="literal">true</span>
+      <span class="keyword">catch</span> e
+        <span class="keyword">if</span> e == <span class="string">'Error in class initialization'</span>
+          done_cb <span class="literal">false</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-33">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-33">&#182;</a>
+              </div>
+              <p>XXX: We should remove this and have a better mechanism for &#39;returning&#39;.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="keyword">else</span> <span class="keyword">if</span> e <span class="keyword">is</span> ReturnException
+          <span class="property">@run_until_finished</span> (-&gt;), no_threads, done_cb
+        <span class="keyword">else</span> <span class="keyword">if</span> e <span class="keyword">instanceof</span> YieldIOException</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-34">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-34">&#182;</a>
+              </div>
+              <p>Set &quot;bytecode&quot; if this was triggered by a bytecode instruction (e.g.
+class initialization). This causes the method to resume on the next
+opcode once success_fn is called.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>          <span class="function"><span class="title">success_fn</span></span> = (ret1, ret2, bytecode, advance_pc=<span class="literal">true</span>) =&gt;
+            <span class="keyword">if</span> bytecode
+              <span class="property">@meta_stack</span>().push root.StackFrame.native_frame(<span class="string">"async_op"</span>)
+            <span class="property">@curr_frame</span>().<span class="function"><span class="title">runner</span></span> = =&gt;
+              <span class="property">@meta_stack</span>().pop()
+              <span class="keyword">if</span> bytecode <span class="keyword">and</span> advance_pc
+                <span class="property">@curr_frame</span>().pc += <span class="number">1</span> + <span class="property">@curr_frame</span>().method.code.opcodes[<span class="property">@curr_frame</span>().pc].byte_count
+              <span class="keyword">unless</span> ret1 <span class="keyword">is</span> <span class="literal">undefined</span>
+                ret1 += <span class="number">0</span> <span class="keyword">if</span> <span class="keyword">typeof</span> ret1 == <span class="string">'boolean'</span>
+                <span class="property">@push</span> ret1
+              <span class="property">@push</span> ret2 <span class="keyword">unless</span> ret2 <span class="keyword">is</span> <span class="literal">undefined</span>
+            <span class="property">@run_until_finished</span> (-&gt;), no_threads, done_cb
+          <span class="function"><span class="title">failure_fn</span></span> = (e_cb) =&gt;
+            <span class="property">@meta_stack</span>().push root.StackFrame.native_frame(<span class="string">"async_op"</span>)
+            <span class="property">@curr_frame</span>().<span class="function"><span class="title">runner</span></span> = =&gt;
+              <span class="property">@meta_stack</span>().pop()
+              e_cb()
+            <span class="property">@run_until_finished</span> (-&gt;), no_threads, done_cb
+          e.condition success_fn, failure_fn
+        <span class="keyword">else</span>
+          stack = <span class="property">@meta_stack</span>()
+          <span class="keyword">if</span> e.method_catch_handler? <span class="keyword">and</span> stack.length() &gt; <span class="number">1</span>
+            frames_to_pop = <span class="number">0</span>
+            <span class="keyword">until</span> e.method_catch_handler(@, stack.get_caller(frames_to_pop), frames_to_pop == <span class="number">0</span>)
+              <span class="keyword">if</span> stack.length() == ++frames_to_pop
+                <span class="property">@dump_state</span>() <span class="keyword">if</span> jvm.dump_state
+                stack.pop_n stack.length() - <span class="number">1</span>
+                <span class="property">@handle_toplevel_exception</span> e, no_threads, done_cb
+                <span class="keyword">return</span>
+            stack.pop_n frames_to_pop
+            <span class="property">@run_until_finished</span> (-&gt;), no_threads, done_cb
+          <span class="keyword">else</span>
+            <span class="property">@dump_state</span>() <span class="keyword">if</span> jvm.dump_state
+            stack.pop_n Math.max(stack.length() - <span class="number">1</span>, <span class="number">0</span>)
+            <span class="property">@handle_toplevel_exception</span> e, no_threads, done_cb
+      <span class="keyword">return</span>  <span class="comment"># this is an async method, no return value</span>
+    )</pre></div></div>
+            
+        </li>
+        
+    </ul>
+  </div>
+</body>
+</html>

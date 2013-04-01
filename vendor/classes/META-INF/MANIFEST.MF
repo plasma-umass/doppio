@@ -1,9 +1,120 @@
 Manifest-Version: 1.0
-Ant-Version: Apache Ant 1.8.2
-Created-By: 1.6.0_22-b22 (Sun Microsystems Inc.)
-Main-Class: sun.org.mozilla.javascript.tools.shell.Main
-Implementation-Version: 1.7R2
-Implementation-Title: Mozilla Rhino 1.7R2
-Implementation-Vendor: Mozilla Foundation
-Implementation-URL: http://www.mozilla.org/rhino
+Implementation-Vendor: N/A
+Implementation-Title: Java Runtime Environment
+Implementation-Version: 1.6.0_24
+Specification-Vendor: Oracle
+Created-By: 1.6.0_24 (Sun Microsystems Inc.)
+Specification-Title: Java Platform API Specification
+Specification-Version: 1.6
+
+Name: javax/swing/JCheckBoxMenuItem.class
+Java-Bean: True
+
+Name: javax/swing/JDialog.class
+Java-Bean: True
+
+Name: javax/swing/JSlider.class
+Java-Bean: True
+
+Name: javax/swing/JTextField.class
+Java-Bean: True
+
+Name: javax/swing/JTextPane.class
+Java-Bean: True
+
+Name: javax/swing/JTextArea.class
+Java-Bean: True
+
+Name: javax/swing/JList.class
+Java-Bean: True
+
+Name: javax/swing/JFormattedTextField.class
+Java-Bean: True
+
+Name: javax/swing/JApplet.class
+Java-Bean: True
+
+Name: javax/swing/JSpinner.class
+Java-Bean: True
+
+Name: javax/swing/JLabel.class
+Java-Bean: True
+
+Name: javax/swing/JSplitPane.class
+Java-Bean: True
+
+Name: javax/swing/JSeparator.class
+Java-Bean: True
+
+Name: javax/swing/JComboBox.class
+Java-Bean: True
+
+Name: javax/swing/JMenuItem.class
+Java-Bean: True
+
+Name: javax/swing/JScrollBar.class
+Java-Bean: True
+
+Name: javax/swing/JCheckBox.class
+Java-Bean: True
+
+Name: javax/swing/JTabbedPane.class
+Java-Bean: True
+
+Name: javax/swing/JTable.class
+Java-Bean: True
+
+Name: javax/swing/JEditorPane.class
+Java-Bean: True
+
+Name: javax/swing/JProgressBar.class
+Java-Bean: True
+
+Name: javax/swing/JButton.class
+Java-Bean: True
+
+Name: javax/swing/JPopupMenu.class
+Java-Bean: True
+
+Name: javax/swing/JRadioButtonMenuItem.class
+Java-Bean: True
+
+Name: javax/swing/JMenuBar.class
+Java-Bean: True
+
+Name: javax/swing/JToggleButton.class
+Java-Bean: True
+
+Name: javax/swing/JWindow.class
+Java-Bean: True
+
+Name: javax/swing/JInternalFrame.class
+Java-Bean: True
+
+Name: javax/swing/JPanel.class
+Java-Bean: True
+
+Name: javax/swing/JToolBar.class
+Java-Bean: True
+
+Name: javax/swing/JFrame.class
+Java-Bean: True
+
+Name: javax/swing/JScrollPane.class
+Java-Bean: True
+
+Name: javax/swing/JTree.class
+Java-Bean: True
+
+Name: javax/swing/JMenu.class
+Java-Bean: True
+
+Name: javax/swing/JPasswordField.class
+Java-Bean: True
+
+Name: javax/swing/JRadioButton.class
+Java-Bean: True
+
+Name: javax/swing/JOptionPane.class
+Java-Bean: True
 

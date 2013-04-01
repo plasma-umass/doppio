@@ -6,175 +6,173 @@ class classes.test.ArrayCopyTest extends java.lang.Object
   minor version: 0
   major version: 50
   Constant pool:
-const #1 = Method	#18.#86;	//  java/lang/Object."<init>":()V
-const #2 = Field	#87.#88;	//  java/lang/System.out:Ljava/io/PrintStream;
-const #3 = class	#89;	//  java/lang/StringBuilder
-const #4 = Method	#3.#86;	//  java/lang/StringBuilder."<init>":()V
-const #5 = String	#90;	//  Test '
-const #6 = Method	#3.#91;	//  java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-const #7 = String	#92;	//  ': 
-const #8 = Method	#3.#93;	//  java/lang/StringBuilder.toString:()Ljava/lang/String;
-const #9 = Method	#94.#95;	//  java/io/PrintStream.print:(Ljava/lang/String;)V
-const #10 = Method	#87.#96;	//  java/lang/System.arraycopy:(Ljava/lang/Object;ILjava/lang/Object;II)V
-const #11 = class	#97;	//  java/lang/NullPointerException
-const #12 = String	#98;	//  Pass
-const #13 = String	#99;	//  Fail
-const #14 = Method	#94.#100;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
-const #15 = class	#101;	//  java/lang/ArrayStoreException
-const #16 = class	#102;	//  java/lang/IndexOutOfBoundsException
-const #17 = String	#103;	//  src array null
-const #18 = class	#104;	//  java/lang/Object
-const #19 = Method	#61.#105;	//  classes/test/ArrayCopyTest.NPEExceptionTest:(Ljava/lang/String;Ljava/lang/Object;ILjava/lang/Object;II)V
-const #20 = String	#106;	//  dest array null
-const #21 = String	#107;	//  dest array null with negative index
-const #22 = String	#108;	//  src not an array
-const #23 = Method	#61.#109;	//  classes/test/ArrayCopyTest.ASEExceptionTest:(Ljava/lang/String;Ljava/lang/Object;ILjava/lang/Object;II)V
-const #24 = String	#110;	//  dst not an array
-const #25 = String	#111;	//  different primitive components
-const #26 = String	#112;	//  primitive array to ref array
-const #27 = String	#113;	//  ref array to primitive array
-const #28 = class	#114;	//  java/lang/String
-const #29 = String	#115;	//  I've got
-const #30 = String	#116;	//   a lovely
-const #31 = String	#117;	//   bunch o' coconuts.
-const #32 = String	#118;	//  src components cannot be dest components
-const #33 = String	#119;	//  Test '*sigh*': 
-const #34 = Method	#28.#120;	//  java/lang/String.equals:(Ljava/lang/Object;)Z
-const #35 = String	#121;	//  Test 'src components can be dest components if null':
-const #36 = String	#122;	//   Pass
-const #37 = String	#123;	//  Heyo
-const #38 = String	#124;	//  Test 'src components can be dest components if upcast passes': 
-const #39 = String	#125;	//  srcPos is negative
-const #40 = Method	#61.#126;	//  classes/test/ArrayCopyTest.IOOBExceptionTest:(Ljava/lang/String;Ljava/lang/Object;ILjava/lang/Object;II)V
-const #41 = String	#127;	//  destPos is negative
-const #42 = String	#128;	//  length is negative
-const #43 = String	#129;	//  src array overrun
-const #44 = String	#130;	//  dest array overrun
-const #45 = String	#131;	//  Test 'exact copy': 
-const #46 = String	#132;	//  Ring ring ring ring ring ring ring...
-const #47 = String	#133;	//  ...bananaphone!
-const #48 = String	#134;	//  BOOP BOOP DE DOO BA DOOP
-const #49 = String	#135;	//  Test 'src=dst', references:
-const #50 = String	#136;	//  \t
-const #51 = String	#137;	//  Test 'src=dst', primitives:
-const #52 = Method	#3.#138;	//  java/lang/StringBuilder.append:(I)Ljava/lang/StringBuilder;
-const #53 = class	#139;	//  classes/test/ArrayCopyTest$OhHaiObject
-const #54 = String	#140;	//  Denny
-const #55 = Method	#53.#141;	//  classes/test/ArrayCopyTest$OhHaiObject."<init>":(Ljava/lang/String;)V
-const #56 = String	#142;	//  Mark
-const #57 = String	#143;	//  Test 'does not clone objects':
-const #58 = String	#144;	//  Doggy
-const #59 = Field	#53.#145;	//  classes/test/ArrayCopyTest$OhHaiObject.object:Ljava/lang/String;
-const #60 = Method	#53.#146;	//  classes/test/ArrayCopyTest$OhHaiObject.printGreeting:()V
-const #61 = class	#147;	//  classes/test/ArrayCopyTest
+const #1 = Method	#18.#81;	//  java/lang/Object."<init>":()V
+const #2 = Field	#82.#83;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #3 = class	#84;	//  java/lang/StringBuilder
+const #4 = Method	#3.#81;	//  java/lang/StringBuilder."<init>":()V
+const #5 = String	#85;	//  Test '
+const #6 = Method	#3.#86;	//  java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #7 = String	#87;	//  ': 
+const #8 = Method	#3.#88;	//  java/lang/StringBuilder.toString:()Ljava/lang/String;
+const #9 = Method	#89.#90;	//  java/io/PrintStream.print:(Ljava/lang/String;)V
+const #10 = Method	#82.#91;	//  java/lang/System.arraycopy:(Ljava/lang/Object;ILjava/lang/Object;II)V
+const #11 = class	#92;	//  java/lang/Exception
+const #12 = Method	#93.#94;	//  java/lang/Class.isInstance:(Ljava/lang/Object;)Z
+const #13 = String	#95;	//  Pass
+const #14 = Method	#89.#96;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #15 = String	#97;	//  Fail
+const #16 = String	#98;	//  src array null
+const #17 = class	#99;	//  java/lang/NullPointerException
+const #18 = class	#100;	//  java/lang/Object
+const #19 = Method	#61.#101;	//  classes/test/ArrayCopyTest.ExceptionTest:(Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;ILjava/lang/Object;II)V
+const #20 = String	#102;	//  dest array null
+const #21 = String	#103;	//  dest array null with negative index
+const #22 = String	#104;	//  src not an array
+const #23 = class	#105;	//  java/lang/ArrayStoreException
+const #24 = String	#106;	//  dst not an array
+const #25 = String	#107;	//  different primitive components
+const #26 = String	#108;	//  primitive array to ref array
+const #27 = String	#109;	//  ref array to primitive array
+const #28 = class	#110;	//  java/lang/String
+const #29 = String	#111;	//  I've got
+const #30 = String	#112;	//   a lovely
+const #31 = String	#113;	//   bunch o' coconuts.
+const #32 = String	#114;	//  src components cannot be dest components
+const #33 = String	#115;	//  Test '*sigh*': 
+const #34 = Method	#28.#116;	//  java/lang/String.equals:(Ljava/lang/Object;)Z
+const #35 = String	#117;	//  Test 'src components can be dest components if null':
+const #36 = String	#118;	//   Pass
+const #37 = String	#119;	//  Heyo
+const #38 = String	#120;	//  Test 'src components can be dest components if upcast passes': 
+const #39 = String	#121;	//  srcPos is negative
+const #40 = class	#122;	//  java/lang/IndexOutOfBoundsException
+const #41 = String	#123;	//  destPos is negative
+const #42 = String	#124;	//  length is negative
+const #43 = String	#125;	//  src array overrun
+const #44 = String	#126;	//  dest array overrun
+const #45 = String	#127;	//  Test 'exact copy': 
+const #46 = String	#128;	//  Ring ring ring ring ring ring ring...
+const #47 = String	#129;	//  ...bananaphone!
+const #48 = String	#130;	//  BOOP BOOP DE DOO BA DOOP
+const #49 = String	#131;	//  Test 'src=dst', references:
+const #50 = String	#132;	//  \t
+const #51 = String	#133;	//  Test 'src=dst', primitives:
+const #52 = Method	#3.#134;	//  java/lang/StringBuilder.append:(I)Ljava/lang/StringBuilder;
+const #53 = class	#135;	//  classes/test/ArrayCopyTest$OhHaiObject
+const #54 = String	#136;	//  Denny
+const #55 = Method	#53.#137;	//  classes/test/ArrayCopyTest$OhHaiObject."<init>":(Ljava/lang/String;)V
+const #56 = String	#138;	//  Mark
+const #57 = String	#139;	//  Test 'does not clone objects':
+const #58 = String	#140;	//  Doggy
+const #59 = Field	#53.#141;	//  classes/test/ArrayCopyTest$OhHaiObject.object:Ljava/lang/String;
+const #60 = Method	#53.#142;	//  classes/test/ArrayCopyTest$OhHaiObject.printGreeting:()V
+const #61 = class	#143;	//  classes/test/ArrayCopyTest
 const #62 = Asciz	OhHaiObject;
 const #63 = Asciz	InnerClasses;
 const #64 = Asciz	<init>;
 const #65 = Asciz	()V;
 const #66 = Asciz	Code;
 const #67 = Asciz	LineNumberTable;
-const #68 = Asciz	NPEExceptionTest;
-const #69 = Asciz	(Ljava/lang/String;Ljava/lang/Object;ILjava/lang/Object;II)V;
+const #68 = Asciz	ExceptionTest;
+const #69 = Asciz	(Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;ILjava/lang/Object;II)V;
 const #70 = Asciz	StackMapTable;
-const #71 = class	#114;	//  java/lang/String
-const #72 = class	#104;	//  java/lang/Object
-const #73 = class	#97;	//  java/lang/NullPointerException
-const #74 = class	#148;	//  java/io/PrintStream
-const #75 = Asciz	ASEExceptionTest;
-const #76 = class	#101;	//  java/lang/ArrayStoreException
-const #77 = Asciz	IOOBExceptionTest;
-const #78 = class	#102;	//  java/lang/IndexOutOfBoundsException
-const #79 = Asciz	main;
-const #80 = Asciz	([Ljava/lang/String;)V;
-const #81 = class	#149;	//  "[Ljava/lang/Object;"
-const #82 = class	#150;	//  "[Ljava/lang/String;"
-const #83 = class	#151;	//  "[I"
-const #84 = Asciz	SourceFile;
-const #85 = Asciz	ArrayCopyTest.java;
-const #86 = NameAndType	#64:#65;//  "<init>":()V
-const #87 = class	#152;	//  java/lang/System
-const #88 = NameAndType	#153:#154;//  out:Ljava/io/PrintStream;
-const #89 = Asciz	java/lang/StringBuilder;
-const #90 = Asciz	Test ';
-const #91 = NameAndType	#155:#156;//  append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-const #92 = Asciz	': ;
-const #93 = NameAndType	#157:#158;//  toString:()Ljava/lang/String;
-const #94 = class	#148;	//  java/io/PrintStream
-const #95 = NameAndType	#159:#160;//  print:(Ljava/lang/String;)V
-const #96 = NameAndType	#161:#162;//  arraycopy:(Ljava/lang/Object;ILjava/lang/Object;II)V
-const #97 = Asciz	java/lang/NullPointerException;
-const #98 = Asciz	Pass;
-const #99 = Asciz	Fail;
-const #100 = NameAndType	#163:#160;//  println:(Ljava/lang/String;)V
-const #101 = Asciz	java/lang/ArrayStoreException;
-const #102 = Asciz	java/lang/IndexOutOfBoundsException;
-const #103 = Asciz	src array null;
-const #104 = Asciz	java/lang/Object;
-const #105 = NameAndType	#68:#69;//  NPEExceptionTest:(Ljava/lang/String;Ljava/lang/Object;ILjava/lang/Object;II)V
-const #106 = Asciz	dest array null;
-const #107 = Asciz	dest array null with negative index;
-const #108 = Asciz	src not an array;
-const #109 = NameAndType	#75:#69;//  ASEExceptionTest:(Ljava/lang/String;Ljava/lang/Object;ILjava/lang/Object;II)V
-const #110 = Asciz	dst not an array;
-const #111 = Asciz	different primitive components;
-const #112 = Asciz	primitive array to ref array;
-const #113 = Asciz	ref array to primitive array;
-const #114 = Asciz	java/lang/String;
-const #115 = Asciz	I've got;
-const #116 = Asciz	 a lovely;
-const #117 = Asciz	 bunch o' coconuts.;
-const #118 = Asciz	src components cannot be dest components;
-const #119 = Asciz	Test '*sigh*': ;
-const #120 = NameAndType	#164:#165;//  equals:(Ljava/lang/Object;)Z
-const #121 = Asciz	Test 'src components can be dest components if null':;
-const #122 = Asciz	 Pass;
-const #123 = Asciz	Heyo;
-const #124 = Asciz	Test 'src components can be dest components if upcast passes': ;
-const #125 = Asciz	srcPos is negative;
-const #126 = NameAndType	#77:#69;//  IOOBExceptionTest:(Ljava/lang/String;Ljava/lang/Object;ILjava/lang/Object;II)V
-const #127 = Asciz	destPos is negative;
-const #128 = Asciz	length is negative;
-const #129 = Asciz	src array overrun;
-const #130 = Asciz	dest array overrun;
-const #131 = Asciz	Test 'exact copy': ;
-const #132 = Asciz	Ring ring ring ring ring ring ring...;
-const #133 = Asciz	...bananaphone!;
-const #134 = Asciz	BOOP BOOP DE DOO BA DOOP;
-const #135 = Asciz	Test 'src=dst', references:;
-const #136 = Asciz	\t;
-const #137 = Asciz	Test 'src=dst', primitives:;
-const #138 = NameAndType	#155:#166;//  append:(I)Ljava/lang/StringBuilder;
-const #139 = Asciz	classes/test/ArrayCopyTest$OhHaiObject;
-const #140 = Asciz	Denny;
-const #141 = NameAndType	#64:#160;//  "<init>":(Ljava/lang/String;)V
-const #142 = Asciz	Mark;
-const #143 = Asciz	Test 'does not clone objects':;
-const #144 = Asciz	Doggy;
-const #145 = NameAndType	#167:#168;//  object:Ljava/lang/String;
-const #146 = NameAndType	#169:#65;//  printGreeting:()V
-const #147 = Asciz	classes/test/ArrayCopyTest;
-const #148 = Asciz	java/io/PrintStream;
-const #149 = Asciz	[Ljava/lang/Object;;
-const #150 = Asciz	[Ljava/lang/String;;
-const #151 = Asciz	[I;
-const #152 = Asciz	java/lang/System;
-const #153 = Asciz	out;
-const #154 = Asciz	Ljava/io/PrintStream;;
-const #155 = Asciz	append;
-const #156 = Asciz	(Ljava/lang/String;)Ljava/lang/StringBuilder;;
-const #157 = Asciz	toString;
-const #158 = Asciz	()Ljava/lang/String;;
-const #159 = Asciz	print;
-const #160 = Asciz	(Ljava/lang/String;)V;
-const #161 = Asciz	arraycopy;
-const #162 = Asciz	(Ljava/lang/Object;ILjava/lang/Object;II)V;
-const #163 = Asciz	println;
-const #164 = Asciz	equals;
-const #165 = Asciz	(Ljava/lang/Object;)Z;
-const #166 = Asciz	(I)Ljava/lang/StringBuilder;;
-const #167 = Asciz	object;
-const #168 = Asciz	Ljava/lang/String;;
-const #169 = Asciz	printGreeting;
+const #71 = class	#92;	//  java/lang/Exception
+const #72 = Asciz	main;
+const #73 = Asciz	([Ljava/lang/String;)V;
+const #74 = class	#144;	//  "[Ljava/lang/Object;"
+const #75 = class	#145;	//  "[Ljava/lang/String;"
+const #76 = class	#146;	//  java/io/PrintStream
+const #77 = class	#110;	//  java/lang/String
+const #78 = class	#147;	//  "[I"
+const #79 = Asciz	SourceFile;
+const #80 = Asciz	ArrayCopyTest.java;
+const #81 = NameAndType	#64:#65;//  "<init>":()V
+const #82 = class	#148;	//  java/lang/System
+const #83 = NameAndType	#149:#150;//  out:Ljava/io/PrintStream;
+const #84 = Asciz	java/lang/StringBuilder;
+const #85 = Asciz	Test ';
+const #86 = NameAndType	#151:#152;//  append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #87 = Asciz	': ;
+const #88 = NameAndType	#153:#154;//  toString:()Ljava/lang/String;
+const #89 = class	#146;	//  java/io/PrintStream
+const #90 = NameAndType	#155:#156;//  print:(Ljava/lang/String;)V
+const #91 = NameAndType	#157:#158;//  arraycopy:(Ljava/lang/Object;ILjava/lang/Object;II)V
+const #92 = Asciz	java/lang/Exception;
+const #93 = class	#159;	//  java/lang/Class
+const #94 = NameAndType	#160:#161;//  isInstance:(Ljava/lang/Object;)Z
+const #95 = Asciz	Pass;
+const #96 = NameAndType	#162:#156;//  println:(Ljava/lang/String;)V
+const #97 = Asciz	Fail;
+const #98 = Asciz	src array null;
+const #99 = Asciz	java/lang/NullPointerException;
+const #100 = Asciz	java/lang/Object;
+const #101 = NameAndType	#68:#69;//  ExceptionTest:(Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;ILjava/lang/Object;II)V
+const #102 = Asciz	dest array null;
+const #103 = Asciz	dest array null with negative index;
+const #104 = Asciz	src not an array;
+const #105 = Asciz	java/lang/ArrayStoreException;
+const #106 = Asciz	dst not an array;
+const #107 = Asciz	different primitive components;
+const #108 = Asciz	primitive array to ref array;
+const #109 = Asciz	ref array to primitive array;
+const #110 = Asciz	java/lang/String;
+const #111 = Asciz	I've got;
+const #112 = Asciz	 a lovely;
+const #113 = Asciz	 bunch o' coconuts.;
+const #114 = Asciz	src components cannot be dest components;
+const #115 = Asciz	Test '*sigh*': ;
+const #116 = NameAndType	#163:#161;//  equals:(Ljava/lang/Object;)Z
+const #117 = Asciz	Test 'src components can be dest components if null':;
+const #118 = Asciz	 Pass;
+const #119 = Asciz	Heyo;
+const #120 = Asciz	Test 'src components can be dest components if upcast passes': ;
+const #121 = Asciz	srcPos is negative;
+const #122 = Asciz	java/lang/IndexOutOfBoundsException;
+const #123 = Asciz	destPos is negative;
+const #124 = Asciz	length is negative;
+const #125 = Asciz	src array overrun;
+const #126 = Asciz	dest array overrun;
+const #127 = Asciz	Test 'exact copy': ;
+const #128 = Asciz	Ring ring ring ring ring ring ring...;
+const #129 = Asciz	...bananaphone!;
+const #130 = Asciz	BOOP BOOP DE DOO BA DOOP;
+const #131 = Asciz	Test 'src=dst', references:;
+const #132 = Asciz	\t;
+const #133 = Asciz	Test 'src=dst', primitives:;
+const #134 = NameAndType	#151:#164;//  append:(I)Ljava/lang/StringBuilder;
+const #135 = Asciz	classes/test/ArrayCopyTest$OhHaiObject;
+const #136 = Asciz	Denny;
+const #137 = NameAndType	#64:#156;//  "<init>":(Ljava/lang/String;)V
+const #138 = Asciz	Mark;
+const #139 = Asciz	Test 'does not clone objects':;
+const #140 = Asciz	Doggy;
+const #141 = NameAndType	#165:#166;//  object:Ljava/lang/String;
+const #142 = NameAndType	#167:#65;//  printGreeting:()V
+const #143 = Asciz	classes/test/ArrayCopyTest;
+const #144 = Asciz	[Ljava/lang/Object;;
+const #145 = Asciz	[Ljava/lang/String;;
+const #146 = Asciz	java/io/PrintStream;
+const #147 = Asciz	[I;
+const #148 = Asciz	java/lang/System;
+const #149 = Asciz	out;
+const #150 = Asciz	Ljava/io/PrintStream;;
+const #151 = Asciz	append;
+const #152 = Asciz	(Ljava/lang/String;)Ljava/lang/StringBuilder;;
+const #153 = Asciz	toString;
+const #154 = Asciz	()Ljava/lang/String;;
+const #155 = Asciz	print;
+const #156 = Asciz	(Ljava/lang/String;)V;
+const #157 = Asciz	arraycopy;
+const #158 = Asciz	(Ljava/lang/Object;ILjava/lang/Object;II)V;
+const #159 = Asciz	java/lang/Class;
+const #160 = Asciz	isInstance;
+const #161 = Asciz	(Ljava/lang/Object;)Z;
+const #162 = Asciz	println;
+const #163 = Asciz	equals;
+const #164 = Asciz	(I)Ljava/lang/StringBuilder;;
+const #165 = Asciz	object;
+const #166 = Asciz	Ljava/lang/String;;
+const #167 = Asciz	printGreeting;
 
 {
 classes.test.ArrayCopyTest();
@@ -185,659 +183,540 @@ classes.test.ArrayCopyTest();
    4:	return
   LineNumberTable: 
    line 3: 0
-   line 147: 4
+   line 115: 4
 
 
-private static void NPEExceptionTest(java.lang.String, java.lang.Object, int, java.lang.Object, int, int);
+static void ExceptionTest(java.lang.String, java.lang.Class, java.lang.Object, int, java.lang.Object, int, int);
   Code:
-   Stack=5, Locals=8, Args_size=6
-   0:	iconst_0
-   1:	istore	6
-   3:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
-   6:	new	#3; //class java/lang/StringBuilder
-   9:	dup
-   10:	invokespecial	#4; //Method java/lang/StringBuilder."<init>":()V
-   13:	ldc	#5; //String Test '
-   15:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   18:	aload_0
-   19:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   22:	ldc	#7; //String ': 
-   24:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   27:	invokevirtual	#8; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   30:	invokevirtual	#9; //Method java/io/PrintStream.print:(Ljava/lang/String;)V
-   33:	aload_1
-   34:	iload_2
-   35:	aload_3
-   36:	iload	4
-   38:	iload	5
-   40:	invokestatic	#10; //Method java/lang/System.arraycopy:(Ljava/lang/Object;ILjava/lang/Object;II)V
-   43:	goto	51
-   46:	astore	7
-   48:	iconst_1
-   49:	istore	6
-   51:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
-   54:	iload	6
-   56:	ifeq	64
-   59:	ldc	#12; //String Pass
-   61:	goto	66
-   64:	ldc	#13; //String Fail
-   66:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   69:	return
+   Stack=5, Locals=8, Args_size=7
+   0:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   3:	new	#3; //class java/lang/StringBuilder
+   6:	dup
+   7:	invokespecial	#4; //Method java/lang/StringBuilder."<init>":()V
+   10:	ldc	#5; //String Test '
+   12:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   15:	aload_0
+   16:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   19:	ldc	#7; //String ': 
+   21:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   24:	invokevirtual	#8; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   27:	invokevirtual	#9; //Method java/io/PrintStream.print:(Ljava/lang/String;)V
+   30:	aload_2
+   31:	iload_3
+   32:	aload	4
+   34:	iload	5
+   36:	iload	6
+   38:	invokestatic	#10; //Method java/lang/System.arraycopy:(Ljava/lang/Object;ILjava/lang/Object;II)V
+   41:	goto	64
+   44:	astore	7
+   46:	aload_1
+   47:	aload	7
+   49:	invokevirtual	#12; //Method java/lang/Class.isInstance:(Ljava/lang/Object;)Z
+   52:	ifeq	64
+   55:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   58:	ldc	#13; //String Pass
+   60:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   63:	return
+   64:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   67:	ldc	#15; //String Fail
+   69:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   72:	return
   Exception table:
    from   to  target type
-    33    43    46   Class java/lang/NullPointerException
+    30    41    44   Class java/lang/Exception
 
   LineNumberTable: 
-   line 10: 0
-   line 11: 3
-   line 13: 33
-   line 16: 43
-   line 14: 46
-   line 15: 48
-   line 17: 51
-   line 18: 69
+   line 7: 0
+   line 9: 30
+   line 15: 41
+   line 10: 44
+   line 11: 46
+   line 12: 55
+   line 13: 63
+   line 16: 64
+   line 17: 72
 
-  StackMapTable: number_of_entries = 4
-   frame_type = 255 /* full_frame */
-     offset_delta = 46
-     locals = [ class java/lang/String, class java/lang/Object, int, class java/lang/Object, int, int, int ]
-     stack = [ class java/lang/NullPointerException ]
-   frame_type = 4 /* same */
-   frame_type = 76 /* same_locals_1_stack_item */
-     stack = [ class java/io/PrintStream ]
-   frame_type = 255 /* full_frame */
-     offset_delta = 1
-     locals = [ class java/lang/String, class java/lang/Object, int, class java/lang/Object, int, int, int ]
-     stack = [ class java/io/PrintStream, class java/lang/String ]
-
-
-private static void ASEExceptionTest(java.lang.String, java.lang.Object, int, java.lang.Object, int, int);
-  Code:
-   Stack=5, Locals=8, Args_size=6
-   0:	iconst_0
-   1:	istore	6
-   3:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
-   6:	new	#3; //class java/lang/StringBuilder
-   9:	dup
-   10:	invokespecial	#4; //Method java/lang/StringBuilder."<init>":()V
-   13:	ldc	#5; //String Test '
-   15:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   18:	aload_0
-   19:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   22:	ldc	#7; //String ': 
-   24:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   27:	invokevirtual	#8; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   30:	invokevirtual	#9; //Method java/io/PrintStream.print:(Ljava/lang/String;)V
-   33:	aload_1
-   34:	iload_2
-   35:	aload_3
-   36:	iload	4
-   38:	iload	5
-   40:	invokestatic	#10; //Method java/lang/System.arraycopy:(Ljava/lang/Object;ILjava/lang/Object;II)V
-   43:	goto	51
-   46:	astore	7
-   48:	iconst_1
-   49:	istore	6
-   51:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
-   54:	iload	6
-   56:	ifeq	64
-   59:	ldc	#12; //String Pass
-   61:	goto	66
-   64:	ldc	#13; //String Fail
-   66:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   69:	return
-  Exception table:
-   from   to  target type
-    33    43    46   Class java/lang/ArrayStoreException
-
-  LineNumberTable: 
-   line 21: 0
-   line 22: 3
-   line 24: 33
-   line 27: 43
-   line 25: 46
-   line 26: 48
-   line 28: 51
-   line 29: 69
-
-  StackMapTable: number_of_entries = 4
-   frame_type = 255 /* full_frame */
-     offset_delta = 46
-     locals = [ class java/lang/String, class java/lang/Object, int, class java/lang/Object, int, int, int ]
-     stack = [ class java/lang/ArrayStoreException ]
-   frame_type = 4 /* same */
-   frame_type = 76 /* same_locals_1_stack_item */
-     stack = [ class java/io/PrintStream ]
-   frame_type = 255 /* full_frame */
-     offset_delta = 1
-     locals = [ class java/lang/String, class java/lang/Object, int, class java/lang/Object, int, int, int ]
-     stack = [ class java/io/PrintStream, class java/lang/String ]
-
-
-private static void IOOBExceptionTest(java.lang.String, java.lang.Object, int, java.lang.Object, int, int);
-  Code:
-   Stack=5, Locals=8, Args_size=6
-   0:	iconst_0
-   1:	istore	6
-   3:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
-   6:	new	#3; //class java/lang/StringBuilder
-   9:	dup
-   10:	invokespecial	#4; //Method java/lang/StringBuilder."<init>":()V
-   13:	ldc	#5; //String Test '
-   15:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   18:	aload_0
-   19:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   22:	ldc	#7; //String ': 
-   24:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   27:	invokevirtual	#8; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   30:	invokevirtual	#9; //Method java/io/PrintStream.print:(Ljava/lang/String;)V
-   33:	aload_1
-   34:	iload_2
-   35:	aload_3
-   36:	iload	4
-   38:	iload	5
-   40:	invokestatic	#10; //Method java/lang/System.arraycopy:(Ljava/lang/Object;ILjava/lang/Object;II)V
-   43:	goto	51
-   46:	astore	7
-   48:	iconst_1
-   49:	istore	6
-   51:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
-   54:	iload	6
-   56:	ifeq	64
-   59:	ldc	#12; //String Pass
-   61:	goto	66
-   64:	ldc	#13; //String Fail
-   66:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   69:	return
-  Exception table:
-   from   to  target type
-    33    43    46   Class java/lang/IndexOutOfBoundsException
-
-  LineNumberTable: 
-   line 32: 0
-   line 33: 3
-   line 35: 33
-   line 38: 43
-   line 36: 46
-   line 37: 48
-   line 39: 51
-   line 40: 69
-
-  StackMapTable: number_of_entries = 4
-   frame_type = 255 /* full_frame */
-     offset_delta = 46
-     locals = [ class java/lang/String, class java/lang/Object, int, class java/lang/Object, int, int, int ]
-     stack = [ class java/lang/IndexOutOfBoundsException ]
-   frame_type = 4 /* same */
-   frame_type = 76 /* same_locals_1_stack_item */
-     stack = [ class java/io/PrintStream ]
-   frame_type = 255 /* full_frame */
-     offset_delta = 1
-     locals = [ class java/lang/String, class java/lang/Object, int, class java/lang/Object, int, int, int ]
-     stack = [ class java/io/PrintStream, class java/lang/String ]
+  StackMapTable: number_of_entries = 2
+   frame_type = 108 /* same_locals_1_stack_item */
+     stack = [ class java/lang/Exception ]
+   frame_type = 19 /* same */
 
 
 public static void main(java.lang.String[]);
   Code:
-   Stack=6, Locals=6, Args_size=1
-   0:	ldc	#17; //String src array null
-   2:	aconst_null
-   3:	iconst_0
-   4:	iconst_1
-   5:	anewarray	#18; //class java/lang/Object
-   8:	iconst_0
-   9:	iconst_0
-   10:	invokestatic	#19; //Method NPEExceptionTest:(Ljava/lang/String;Ljava/lang/Object;ILjava/lang/Object;II)V
-   13:	ldc	#20; //String dest array null
-   15:	iconst_1
-   16:	anewarray	#18; //class java/lang/Object
-   19:	iconst_0
-   20:	aconst_null
-   21:	iconst_0
-   22:	iconst_0
-   23:	invokestatic	#19; //Method NPEExceptionTest:(Ljava/lang/String;Ljava/lang/Object;ILjava/lang/Object;II)V
-   26:	ldc	#21; //String dest array null with negative index
-   28:	iconst_1
-   29:	anewarray	#18; //class java/lang/Object
-   32:	iconst_m1
-   33:	aconst_null
-   34:	bipush	100
-   36:	bipush	100
-   38:	invokestatic	#19; //Method NPEExceptionTest:(Ljava/lang/String;Ljava/lang/Object;ILjava/lang/Object;II)V
-   41:	ldc	#22; //String src not an array
-   43:	new	#18; //class java/lang/Object
-   46:	dup
-   47:	invokespecial	#1; //Method java/lang/Object."<init>":()V
-   50:	iconst_0
-   51:	iconst_1
-   52:	anewarray	#18; //class java/lang/Object
-   55:	iconst_0
-   56:	iconst_0
-   57:	invokestatic	#23; //Method ASEExceptionTest:(Ljava/lang/String;Ljava/lang/Object;ILjava/lang/Object;II)V
-   60:	ldc	#24; //String dst not an array
-   62:	iconst_1
-   63:	anewarray	#18; //class java/lang/Object
-   66:	iconst_0
-   67:	new	#18; //class java/lang/Object
-   70:	dup
-   71:	invokespecial	#1; //Method java/lang/Object."<init>":()V
-   74:	iconst_0
-   75:	iconst_0
-   76:	invokestatic	#23; //Method ASEExceptionTest:(Ljava/lang/String;Ljava/lang/Object;ILjava/lang/Object;II)V
-   79:	ldc	#25; //String different primitive components
-   81:	iconst_1
-   82:	newarray int
-   84:	iconst_0
-   85:	iconst_1
-   86:	newarray long
-   88:	iconst_0
+   Stack=7, Locals=6, Args_size=1
+   0:	ldc	#16; //String src array null
+   2:	ldc_w	#17; //class java/lang/NullPointerException
+   5:	aconst_null
+   6:	iconst_0
+   7:	iconst_1
+   8:	anewarray	#18; //class java/lang/Object
+   11:	iconst_0
+   12:	iconst_0
+   13:	invokestatic	#19; //Method ExceptionTest:(Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;ILjava/lang/Object;II)V
+   16:	ldc	#20; //String dest array null
+   18:	ldc_w	#17; //class java/lang/NullPointerException
+   21:	iconst_1
+   22:	anewarray	#18; //class java/lang/Object
+   25:	iconst_0
+   26:	aconst_null
+   27:	iconst_0
+   28:	iconst_0
+   29:	invokestatic	#19; //Method ExceptionTest:(Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;ILjava/lang/Object;II)V
+   32:	ldc	#21; //String dest array null with negative index
+   34:	ldc_w	#17; //class java/lang/NullPointerException
+   37:	iconst_1
+   38:	anewarray	#18; //class java/lang/Object
+   41:	iconst_m1
+   42:	aconst_null
+   43:	bipush	100
+   45:	bipush	100
+   47:	invokestatic	#19; //Method ExceptionTest:(Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;ILjava/lang/Object;II)V
+   50:	ldc	#22; //String src not an array
+   52:	ldc_w	#23; //class java/lang/ArrayStoreException
+   55:	new	#18; //class java/lang/Object
+   58:	dup
+   59:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   62:	iconst_0
+   63:	iconst_1
+   64:	anewarray	#18; //class java/lang/Object
+   67:	iconst_0
+   68:	iconst_0
+   69:	invokestatic	#19; //Method ExceptionTest:(Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;ILjava/lang/Object;II)V
+   72:	ldc	#24; //String dst not an array
+   74:	ldc_w	#23; //class java/lang/ArrayStoreException
+   77:	iconst_1
+   78:	anewarray	#18; //class java/lang/Object
+   81:	iconst_0
+   82:	new	#18; //class java/lang/Object
+   85:	dup
+   86:	invokespecial	#1; //Method java/lang/Object."<init>":()V
    89:	iconst_0
-   90:	invokestatic	#23; //Method ASEExceptionTest:(Ljava/lang/String;Ljava/lang/Object;ILjava/lang/Object;II)V
-   93:	ldc	#26; //String primitive array to ref array
-   95:	iconst_1
-   96:	newarray int
-   98:	iconst_0
+   90:	iconst_0
+   91:	invokestatic	#19; //Method ExceptionTest:(Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;ILjava/lang/Object;II)V
+   94:	ldc	#25; //String different primitive components
+   96:	ldc_w	#23; //class java/lang/ArrayStoreException
    99:	iconst_1
-   100:	anewarray	#18; //class java/lang/Object
-   103:	iconst_0
-   104:	iconst_0
-   105:	invokestatic	#23; //Method ASEExceptionTest:(Ljava/lang/String;Ljava/lang/Object;ILjava/lang/Object;II)V
-   108:	ldc	#27; //String ref array to primitive array
-   110:	iconst_1
-   111:	anewarray	#18; //class java/lang/Object
-   114:	iconst_0
-   115:	iconst_1
-   116:	newarray int
-   118:	iconst_0
+   100:	newarray int
+   102:	iconst_0
+   103:	iconst_1
+   104:	newarray long
+   106:	iconst_0
+   107:	iconst_0
+   108:	invokestatic	#19; //Method ExceptionTest:(Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;ILjava/lang/Object;II)V
+   111:	ldc	#26; //String primitive array to ref array
+   113:	ldc_w	#23; //class java/lang/ArrayStoreException
+   116:	iconst_1
+   117:	newarray int
    119:	iconst_0
-   120:	invokestatic	#23; //Method ASEExceptionTest:(Ljava/lang/String;Ljava/lang/Object;ILjava/lang/Object;II)V
-   123:	iconst_2
-   124:	anewarray	#18; //class java/lang/Object
-   127:	astore_1
-   128:	aload_1
-   129:	iconst_1
-   130:	new	#18; //class java/lang/Object
-   133:	dup
-   134:	invokespecial	#1; //Method java/lang/Object."<init>":()V
-   137:	aastore
-   138:	iconst_3
-   139:	anewarray	#28; //class java/lang/String
-   142:	astore_2
-   143:	aload_2
-   144:	iconst_0
-   145:	ldc	#29; //String I've got
-   147:	aastore
-   148:	aload_2
-   149:	iconst_1
-   150:	ldc	#30; //String  a lovely
-   152:	aastore
-   153:	aload_2
-   154:	iconst_2
-   155:	ldc	#31; //String  bunch o' coconuts.
-   157:	aastore
-   158:	ldc	#32; //String src components cannot be dest components
-   160:	aload_1
-   161:	iconst_0
-   162:	aload_2
-   163:	iconst_0
-   164:	iconst_2
-   165:	invokestatic	#23; //Method ASEExceptionTest:(Ljava/lang/String;Ljava/lang/Object;ILjava/lang/Object;II)V
-   168:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
-   171:	ldc	#33; //String Test '*sigh*': 
-   173:	invokevirtual	#9; //Method java/io/PrintStream.print:(Ljava/lang/String;)V
-   176:	aload_2
-   177:	iconst_0
-   178:	aaload
-   179:	ifnonnull	208
-   182:	aload_2
-   183:	iconst_1
-   184:	aaload
-   185:	ldc	#30; //String  a lovely
-   187:	invokevirtual	#34; //Method java/lang/String.equals:(Ljava/lang/Object;)Z
-   190:	ifeq	208
-   193:	aload_2
-   194:	iconst_2
-   195:	aaload
-   196:	ldc	#31; //String  bunch o' coconuts.
-   198:	invokevirtual	#34; //Method java/lang/String.equals:(Ljava/lang/Object;)Z
-   201:	ifeq	208
-   204:	iconst_1
-   205:	goto	209
-   208:	iconst_0
-   209:	istore_3
-   210:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
-   213:	iload_3
-   214:	ifeq	222
-   217:	ldc	#12; //String Pass
-   219:	goto	224
-   222:	ldc	#13; //String Fail
-   224:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   227:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
-   230:	ldc	#35; //String Test 'src components can be dest components if null':
-   232:	invokevirtual	#9; //Method java/io/PrintStream.print:(Ljava/lang/String;)V
-   235:	iconst_1
-   236:	anewarray	#18; //class java/lang/Object
-   239:	iconst_0
-   240:	iconst_1
-   241:	anewarray	#28; //class java/lang/String
-   244:	iconst_0
-   245:	iconst_1
-   246:	invokestatic	#10; //Method java/lang/System.arraycopy:(Ljava/lang/Object;ILjava/lang/Object;II)V
-   249:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
-   252:	ldc	#36; //String  Pass
-   254:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   257:	iconst_1
-   258:	anewarray	#18; //class java/lang/Object
-   261:	astore_1
-   262:	aload_1
-   263:	iconst_0
-   264:	ldc	#37; //String Heyo
-   266:	aastore
+   120:	iconst_1
+   121:	anewarray	#18; //class java/lang/Object
+   124:	iconst_0
+   125:	iconst_0
+   126:	invokestatic	#19; //Method ExceptionTest:(Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;ILjava/lang/Object;II)V
+   129:	ldc	#27; //String ref array to primitive array
+   131:	ldc_w	#23; //class java/lang/ArrayStoreException
+   134:	iconst_1
+   135:	anewarray	#18; //class java/lang/Object
+   138:	iconst_0
+   139:	iconst_1
+   140:	newarray int
+   142:	iconst_0
+   143:	iconst_0
+   144:	invokestatic	#19; //Method ExceptionTest:(Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;ILjava/lang/Object;II)V
+   147:	iconst_2
+   148:	anewarray	#18; //class java/lang/Object
+   151:	astore_1
+   152:	aload_1
+   153:	iconst_1
+   154:	new	#18; //class java/lang/Object
+   157:	dup
+   158:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   161:	aastore
+   162:	iconst_3
+   163:	anewarray	#28; //class java/lang/String
+   166:	astore_2
+   167:	aload_2
+   168:	iconst_0
+   169:	ldc	#29; //String I've got
+   171:	aastore
+   172:	aload_2
+   173:	iconst_1
+   174:	ldc	#30; //String  a lovely
+   176:	aastore
+   177:	aload_2
+   178:	iconst_2
+   179:	ldc	#31; //String  bunch o' coconuts.
+   181:	aastore
+   182:	ldc	#32; //String src components cannot be dest components
+   184:	ldc_w	#23; //class java/lang/ArrayStoreException
+   187:	aload_1
+   188:	iconst_0
+   189:	aload_2
+   190:	iconst_0
+   191:	iconst_2
+   192:	invokestatic	#19; //Method ExceptionTest:(Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;ILjava/lang/Object;II)V
+   195:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   198:	ldc	#33; //String Test '*sigh*': 
+   200:	invokevirtual	#9; //Method java/io/PrintStream.print:(Ljava/lang/String;)V
+   203:	aload_2
+   204:	iconst_0
+   205:	aaload
+   206:	ifnonnull	235
+   209:	aload_2
+   210:	iconst_1
+   211:	aaload
+   212:	ldc	#30; //String  a lovely
+   214:	invokevirtual	#34; //Method java/lang/String.equals:(Ljava/lang/Object;)Z
+   217:	ifeq	235
+   220:	aload_2
+   221:	iconst_2
+   222:	aaload
+   223:	ldc	#31; //String  bunch o' coconuts.
+   225:	invokevirtual	#34; //Method java/lang/String.equals:(Ljava/lang/Object;)Z
+   228:	ifeq	235
+   231:	iconst_1
+   232:	goto	236
+   235:	iconst_0
+   236:	istore_3
+   237:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   240:	iload_3
+   241:	ifeq	249
+   244:	ldc	#13; //String Pass
+   246:	goto	251
+   249:	ldc	#15; //String Fail
+   251:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   254:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   257:	ldc	#35; //String Test 'src components can be dest components if null':
+   259:	invokevirtual	#9; //Method java/io/PrintStream.print:(Ljava/lang/String;)V
+   262:	iconst_1
+   263:	anewarray	#18; //class java/lang/Object
+   266:	iconst_0
    267:	iconst_1
    268:	anewarray	#28; //class java/lang/String
-   271:	astore_2
-   272:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
-   275:	ldc	#38; //String Test 'src components can be dest components if upcast passes': 
-   277:	invokevirtual	#9; //Method java/io/PrintStream.print:(Ljava/lang/String;)V
-   280:	aload_1
-   281:	iconst_0
-   282:	aload_2
-   283:	iconst_0
+   271:	iconst_0
+   272:	iconst_1
+   273:	invokestatic	#10; //Method java/lang/System.arraycopy:(Ljava/lang/Object;ILjava/lang/Object;II)V
+   276:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   279:	ldc	#36; //String  Pass
+   281:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
    284:	iconst_1
-   285:	invokestatic	#10; //Method java/lang/System.arraycopy:(Ljava/lang/Object;ILjava/lang/Object;II)V
-   288:	aload_2
-   289:	iconst_0
-   290:	aaload
+   285:	anewarray	#18; //class java/lang/Object
+   288:	astore_1
+   289:	aload_1
+   290:	iconst_0
    291:	ldc	#37; //String Heyo
-   293:	if_acmpne	300
-   296:	iconst_1
-   297:	goto	301
-   300:	iconst_0
-   301:	istore_3
-   302:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
-   305:	iload_3
-   306:	ifeq	314
-   309:	ldc	#12; //String Pass
-   311:	goto	316
-   314:	ldc	#13; //String Fail
-   316:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   319:	ldc	#39; //String srcPos is negative
-   321:	iconst_1
-   322:	anewarray	#18; //class java/lang/Object
-   325:	iconst_m1
-   326:	iconst_1
-   327:	anewarray	#18; //class java/lang/Object
-   330:	iconst_0
-   331:	iconst_0
-   332:	invokestatic	#40; //Method IOOBExceptionTest:(Ljava/lang/String;Ljava/lang/Object;ILjava/lang/Object;II)V
-   335:	ldc	#41; //String destPos is negative
-   337:	iconst_1
-   338:	anewarray	#18; //class java/lang/Object
-   341:	iconst_0
-   342:	iconst_1
-   343:	anewarray	#18; //class java/lang/Object
-   346:	iconst_m1
-   347:	iconst_0
-   348:	invokestatic	#40; //Method IOOBExceptionTest:(Ljava/lang/String;Ljava/lang/Object;ILjava/lang/Object;II)V
-   351:	ldc	#42; //String length is negative
-   353:	iconst_1
-   354:	anewarray	#18; //class java/lang/Object
-   357:	iconst_0
-   358:	iconst_1
-   359:	anewarray	#18; //class java/lang/Object
-   362:	iconst_0
-   363:	iconst_m1
-   364:	invokestatic	#40; //Method IOOBExceptionTest:(Ljava/lang/String;Ljava/lang/Object;ILjava/lang/Object;II)V
-   367:	ldc	#43; //String src array overrun
-   369:	iconst_1
-   370:	anewarray	#18; //class java/lang/Object
-   373:	iconst_0
-   374:	iconst_2
-   375:	anewarray	#18; //class java/lang/Object
-   378:	iconst_0
-   379:	iconst_2
-   380:	invokestatic	#40; //Method IOOBExceptionTest:(Ljava/lang/String;Ljava/lang/Object;ILjava/lang/Object;II)V
-   383:	ldc	#44; //String dest array overrun
-   385:	iconst_2
-   386:	anewarray	#18; //class java/lang/Object
-   389:	iconst_0
-   390:	iconst_1
-   391:	anewarray	#18; //class java/lang/Object
-   394:	iconst_0
-   395:	iconst_2
-   396:	invokestatic	#40; //Method IOOBExceptionTest:(Ljava/lang/String;Ljava/lang/Object;ILjava/lang/Object;II)V
-   399:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
-   402:	ldc	#45; //String Test 'exact copy': 
-   404:	invokevirtual	#9; //Method java/io/PrintStream.print:(Ljava/lang/String;)V
-   407:	iconst_2
-   408:	anewarray	#18; //class java/lang/Object
-   411:	iconst_0
-   412:	iconst_2
-   413:	anewarray	#18; //class java/lang/Object
-   416:	iconst_0
-   417:	iconst_2
-   418:	invokestatic	#10; //Method java/lang/System.arraycopy:(Ljava/lang/Object;ILjava/lang/Object;II)V
-   421:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
-   424:	ldc	#12; //String Pass
-   426:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   429:	iconst_3
-   430:	anewarray	#28; //class java/lang/String
-   433:	astore_1
-   434:	aload_1
-   435:	iconst_0
-   436:	ldc	#46; //String Ring ring ring ring ring ring ring...
-   438:	aastore
-   439:	aload_1
-   440:	iconst_1
-   441:	ldc	#47; //String ...bananaphone!
-   443:	aastore
-   444:	aload_1
-   445:	iconst_2
-   446:	ldc	#48; //String BOOP BOOP DE DOO BA DOOP
-   448:	aastore
-   449:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
-   452:	ldc	#49; //String Test 'src=dst', references:
-   454:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   457:	aload_1
+   293:	aastore
+   294:	iconst_1
+   295:	anewarray	#28; //class java/lang/String
+   298:	astore_2
+   299:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   302:	ldc	#38; //String Test 'src components can be dest components if upcast passes': 
+   304:	invokevirtual	#9; //Method java/io/PrintStream.print:(Ljava/lang/String;)V
+   307:	aload_1
+   308:	iconst_0
+   309:	aload_2
+   310:	iconst_0
+   311:	iconst_1
+   312:	invokestatic	#10; //Method java/lang/System.arraycopy:(Ljava/lang/Object;ILjava/lang/Object;II)V
+   315:	aload_2
+   316:	iconst_0
+   317:	aaload
+   318:	ldc	#37; //String Heyo
+   320:	if_acmpne	327
+   323:	iconst_1
+   324:	goto	328
+   327:	iconst_0
+   328:	istore_3
+   329:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   332:	iload_3
+   333:	ifeq	341
+   336:	ldc	#13; //String Pass
+   338:	goto	343
+   341:	ldc	#15; //String Fail
+   343:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   346:	ldc	#39; //String srcPos is negative
+   348:	ldc_w	#40; //class java/lang/IndexOutOfBoundsException
+   351:	iconst_1
+   352:	anewarray	#18; //class java/lang/Object
+   355:	iconst_m1
+   356:	iconst_1
+   357:	anewarray	#18; //class java/lang/Object
+   360:	iconst_0
+   361:	iconst_0
+   362:	invokestatic	#19; //Method ExceptionTest:(Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;ILjava/lang/Object;II)V
+   365:	ldc	#41; //String destPos is negative
+   367:	ldc_w	#40; //class java/lang/IndexOutOfBoundsException
+   370:	iconst_1
+   371:	anewarray	#18; //class java/lang/Object
+   374:	iconst_0
+   375:	iconst_1
+   376:	anewarray	#18; //class java/lang/Object
+   379:	iconst_m1
+   380:	iconst_0
+   381:	invokestatic	#19; //Method ExceptionTest:(Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;ILjava/lang/Object;II)V
+   384:	ldc	#42; //String length is negative
+   386:	ldc_w	#40; //class java/lang/IndexOutOfBoundsException
+   389:	iconst_1
+   390:	anewarray	#18; //class java/lang/Object
+   393:	iconst_0
+   394:	iconst_1
+   395:	anewarray	#18; //class java/lang/Object
+   398:	iconst_0
+   399:	iconst_m1
+   400:	invokestatic	#19; //Method ExceptionTest:(Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;ILjava/lang/Object;II)V
+   403:	ldc	#43; //String src array overrun
+   405:	ldc_w	#40; //class java/lang/IndexOutOfBoundsException
+   408:	iconst_1
+   409:	anewarray	#18; //class java/lang/Object
+   412:	iconst_0
+   413:	iconst_2
+   414:	anewarray	#18; //class java/lang/Object
+   417:	iconst_0
+   418:	iconst_2
+   419:	invokestatic	#19; //Method ExceptionTest:(Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;ILjava/lang/Object;II)V
+   422:	ldc	#44; //String dest array overrun
+   424:	ldc_w	#40; //class java/lang/IndexOutOfBoundsException
+   427:	iconst_2
+   428:	anewarray	#18; //class java/lang/Object
+   431:	iconst_0
+   432:	iconst_1
+   433:	anewarray	#18; //class java/lang/Object
+   436:	iconst_0
+   437:	iconst_2
+   438:	invokestatic	#19; //Method ExceptionTest:(Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;ILjava/lang/Object;II)V
+   441:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   444:	ldc	#45; //String Test 'exact copy': 
+   446:	invokevirtual	#9; //Method java/io/PrintStream.print:(Ljava/lang/String;)V
+   449:	iconst_2
+   450:	anewarray	#18; //class java/lang/Object
+   453:	iconst_0
+   454:	iconst_2
+   455:	anewarray	#18; //class java/lang/Object
    458:	iconst_0
-   459:	aload_1
-   460:	iconst_1
-   461:	iconst_2
-   462:	invokestatic	#10; //Method java/lang/System.arraycopy:(Ljava/lang/Object;ILjava/lang/Object;II)V
-   465:	aload_1
-   466:	astore_2
-   467:	aload_2
-   468:	arraylength
-   469:	istore_3
-   470:	iconst_0
-   471:	istore	4
-   473:	iload	4
-   475:	iload_3
-   476:	if_icmpge	517
-   479:	aload_2
-   480:	iload	4
-   482:	aaload
-   483:	astore	5
-   485:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
-   488:	new	#3; //class java/lang/StringBuilder
-   491:	dup
-   492:	invokespecial	#4; //Method java/lang/StringBuilder."<init>":()V
-   495:	ldc	#50; //String \t
-   497:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   500:	aload	5
-   502:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   505:	invokevirtual	#8; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   508:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   511:	iinc	4, 1
-   514:	goto	473
-   517:	iconst_3
-   518:	newarray int
-   520:	astore_1
-   521:	aload_1
-   522:	iconst_0
-   523:	iconst_1
-   524:	iastore
-   525:	aload_1
-   526:	iconst_1
-   527:	iconst_2
-   528:	iastore
-   529:	aload_1
-   530:	iconst_2
-   531:	iconst_3
-   532:	iastore
-   533:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
-   536:	ldc	#51; //String Test 'src=dst', primitives:
-   538:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   541:	aload_1
-   542:	iconst_0
-   543:	aload_1
-   544:	iconst_1
-   545:	iconst_2
-   546:	invokestatic	#10; //Method java/lang/System.arraycopy:(Ljava/lang/Object;ILjava/lang/Object;II)V
-   549:	aload_1
-   550:	astore_2
-   551:	aload_2
-   552:	arraylength
-   553:	istore_3
-   554:	iconst_0
-   555:	istore	4
-   557:	iload	4
-   559:	iload_3
-   560:	if_icmpge	601
-   563:	aload_2
-   564:	iload	4
-   566:	iaload
-   567:	istore	5
-   569:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
-   572:	new	#3; //class java/lang/StringBuilder
-   575:	dup
-   576:	invokespecial	#4; //Method java/lang/StringBuilder."<init>":()V
-   579:	ldc	#50; //String \t
-   581:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   584:	iload	5
-   586:	invokevirtual	#52; //Method java/lang/StringBuilder.append:(I)Ljava/lang/StringBuilder;
-   589:	invokevirtual	#8; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   592:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   595:	iinc	4, 1
-   598:	goto	557
-   601:	iconst_1
-   602:	anewarray	#53; //class classes/test/ArrayCopyTest$OhHaiObject
-   605:	astore_1
-   606:	iconst_1
-   607:	anewarray	#53; //class classes/test/ArrayCopyTest$OhHaiObject
-   610:	astore_2
-   611:	aload_1
-   612:	iconst_0
-   613:	new	#53; //class classes/test/ArrayCopyTest$OhHaiObject
-   616:	dup
-   617:	ldc	#54; //String Denny
-   619:	invokespecial	#55; //Method classes/test/ArrayCopyTest$OhHaiObject."<init>":(Ljava/lang/String;)V
-   622:	aastore
-   623:	aload_2
-   624:	iconst_0
-   625:	new	#53; //class classes/test/ArrayCopyTest$OhHaiObject
-   628:	dup
-   629:	ldc	#56; //String Mark
-   631:	invokespecial	#55; //Method classes/test/ArrayCopyTest$OhHaiObject."<init>":(Ljava/lang/String;)V
-   634:	aastore
-   635:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
-   638:	ldc	#57; //String Test 'does not clone objects':
-   640:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   643:	aload_1
-   644:	iconst_0
-   645:	aload_2
-   646:	iconst_0
-   647:	iconst_1
-   648:	invokestatic	#10; //Method java/lang/System.arraycopy:(Ljava/lang/Object;ILjava/lang/Object;II)V
-   651:	aload_1
-   652:	iconst_0
-   653:	aaload
-   654:	ldc	#58; //String Doggy
-   656:	putfield	#59; //Field classes/test/ArrayCopyTest$OhHaiObject.object:Ljava/lang/String;
-   659:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
-   662:	ldc	#50; //String \t
-   664:	invokevirtual	#9; //Method java/io/PrintStream.print:(Ljava/lang/String;)V
-   667:	aload_1
-   668:	iconst_0
-   669:	aaload
-   670:	invokevirtual	#60; //Method classes/test/ArrayCopyTest$OhHaiObject.printGreeting:()V
-   673:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
-   676:	ldc	#50; //String \t
-   678:	invokevirtual	#9; //Method java/io/PrintStream.print:(Ljava/lang/String;)V
-   681:	aload_2
-   682:	iconst_0
-   683:	aaload
-   684:	invokevirtual	#60; //Method classes/test/ArrayCopyTest$OhHaiObject.printGreeting:()V
-   687:	return
+   459:	iconst_2
+   460:	invokestatic	#10; //Method java/lang/System.arraycopy:(Ljava/lang/Object;ILjava/lang/Object;II)V
+   463:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   466:	ldc	#13; //String Pass
+   468:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   471:	iconst_3
+   472:	anewarray	#28; //class java/lang/String
+   475:	astore_1
+   476:	aload_1
+   477:	iconst_0
+   478:	ldc	#46; //String Ring ring ring ring ring ring ring...
+   480:	aastore
+   481:	aload_1
+   482:	iconst_1
+   483:	ldc	#47; //String ...bananaphone!
+   485:	aastore
+   486:	aload_1
+   487:	iconst_2
+   488:	ldc	#48; //String BOOP BOOP DE DOO BA DOOP
+   490:	aastore
+   491:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   494:	ldc	#49; //String Test 'src=dst', references:
+   496:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   499:	aload_1
+   500:	iconst_0
+   501:	aload_1
+   502:	iconst_1
+   503:	iconst_2
+   504:	invokestatic	#10; //Method java/lang/System.arraycopy:(Ljava/lang/Object;ILjava/lang/Object;II)V
+   507:	aload_1
+   508:	astore_2
+   509:	aload_2
+   510:	arraylength
+   511:	istore_3
+   512:	iconst_0
+   513:	istore	4
+   515:	iload	4
+   517:	iload_3
+   518:	if_icmpge	559
+   521:	aload_2
+   522:	iload	4
+   524:	aaload
+   525:	astore	5
+   527:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   530:	new	#3; //class java/lang/StringBuilder
+   533:	dup
+   534:	invokespecial	#4; //Method java/lang/StringBuilder."<init>":()V
+   537:	ldc	#50; //String \t
+   539:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   542:	aload	5
+   544:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   547:	invokevirtual	#8; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   550:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   553:	iinc	4, 1
+   556:	goto	515
+   559:	iconst_3
+   560:	newarray int
+   562:	astore_1
+   563:	aload_1
+   564:	iconst_0
+   565:	iconst_1
+   566:	iastore
+   567:	aload_1
+   568:	iconst_1
+   569:	iconst_2
+   570:	iastore
+   571:	aload_1
+   572:	iconst_2
+   573:	iconst_3
+   574:	iastore
+   575:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   578:	ldc	#51; //String Test 'src=dst', primitives:
+   580:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   583:	aload_1
+   584:	iconst_0
+   585:	aload_1
+   586:	iconst_1
+   587:	iconst_2
+   588:	invokestatic	#10; //Method java/lang/System.arraycopy:(Ljava/lang/Object;ILjava/lang/Object;II)V
+   591:	aload_1
+   592:	astore_2
+   593:	aload_2
+   594:	arraylength
+   595:	istore_3
+   596:	iconst_0
+   597:	istore	4
+   599:	iload	4
+   601:	iload_3
+   602:	if_icmpge	643
+   605:	aload_2
+   606:	iload	4
+   608:	iaload
+   609:	istore	5
+   611:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   614:	new	#3; //class java/lang/StringBuilder
+   617:	dup
+   618:	invokespecial	#4; //Method java/lang/StringBuilder."<init>":()V
+   621:	ldc	#50; //String \t
+   623:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   626:	iload	5
+   628:	invokevirtual	#52; //Method java/lang/StringBuilder.append:(I)Ljava/lang/StringBuilder;
+   631:	invokevirtual	#8; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   634:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   637:	iinc	4, 1
+   640:	goto	599
+   643:	iconst_1
+   644:	anewarray	#53; //class classes/test/ArrayCopyTest$OhHaiObject
+   647:	astore_1
+   648:	iconst_1
+   649:	anewarray	#53; //class classes/test/ArrayCopyTest$OhHaiObject
+   652:	astore_2
+   653:	aload_1
+   654:	iconst_0
+   655:	new	#53; //class classes/test/ArrayCopyTest$OhHaiObject
+   658:	dup
+   659:	ldc	#54; //String Denny
+   661:	invokespecial	#55; //Method classes/test/ArrayCopyTest$OhHaiObject."<init>":(Ljava/lang/String;)V
+   664:	aastore
+   665:	aload_2
+   666:	iconst_0
+   667:	new	#53; //class classes/test/ArrayCopyTest$OhHaiObject
+   670:	dup
+   671:	ldc	#56; //String Mark
+   673:	invokespecial	#55; //Method classes/test/ArrayCopyTest$OhHaiObject."<init>":(Ljava/lang/String;)V
+   676:	aastore
+   677:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   680:	ldc	#57; //String Test 'does not clone objects':
+   682:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   685:	aload_1
+   686:	iconst_0
+   687:	aload_2
+   688:	iconst_0
+   689:	iconst_1
+   690:	invokestatic	#10; //Method java/lang/System.arraycopy:(Ljava/lang/Object;ILjava/lang/Object;II)V
+   693:	aload_1
+   694:	iconst_0
+   695:	aaload
+   696:	ldc	#58; //String Doggy
+   698:	putfield	#59; //Field classes/test/ArrayCopyTest$OhHaiObject.object:Ljava/lang/String;
+   701:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   704:	ldc	#50; //String \t
+   706:	invokevirtual	#9; //Method java/io/PrintStream.print:(Ljava/lang/String;)V
+   709:	aload_1
+   710:	iconst_0
+   711:	aaload
+   712:	invokevirtual	#60; //Method classes/test/ArrayCopyTest$OhHaiObject.printGreeting:()V
+   715:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   718:	ldc	#50; //String \t
+   720:	invokevirtual	#9; //Method java/io/PrintStream.print:(Ljava/lang/String;)V
+   723:	aload_2
+   724:	iconst_0
+   725:	aaload
+   726:	invokevirtual	#60; //Method classes/test/ArrayCopyTest$OhHaiObject.printGreeting:()V
+   729:	return
   LineNumberTable: 
-   line 43: 0
-   line 44: 13
-   line 45: 26
-   line 47: 41
-   line 48: 60
-   line 49: 79
-   line 51: 93
-   line 53: 108
-   line 67: 123
-   line 68: 128
-   line 69: 138
-   line 70: 143
-   line 71: 148
-   line 72: 153
-   line 73: 158
-   line 75: 168
-   line 76: 176
-   line 78: 210
-   line 81: 227
-   line 82: 235
-   line 83: 249
-   line 86: 257
-   line 87: 262
-   line 88: 267
-   line 89: 272
-   line 90: 280
-   line 91: 288
-   line 92: 302
-   line 95: 319
-   line 97: 335
-   line 99: 351
-   line 101: 367
-   line 103: 383
-   line 105: 399
-   line 106: 407
-   line 107: 421
-   line 112: 429
-   line 113: 434
-   line 114: 439
-   line 115: 444
-   line 116: 449
-   line 117: 457
-   line 118: 465
-   line 119: 485
-   line 118: 511
-   line 123: 517
-   line 124: 521
-   line 125: 525
-   line 126: 529
-   line 127: 533
-   line 128: 541
-   line 129: 549
-   line 130: 569
-   line 129: 595
-   line 135: 601
-   line 136: 606
-   line 137: 611
-   line 138: 623
-   line 139: 635
-   line 140: 643
-   line 141: 651
-   line 142: 659
-   line 143: 673
-   line 145: 687
+   line 20: 0
+   line 21: 16
+   line 22: 32
+   line 24: 50
+   line 25: 72
+   line 26: 94
+   line 27: 111
+   line 28: 129
+   line 41: 147
+   line 42: 152
+   line 43: 162
+   line 44: 167
+   line 45: 172
+   line 46: 177
+   line 47: 182
+   line 48: 195
+   line 49: 203
+   line 51: 237
+   line 54: 254
+   line 55: 262
+   line 56: 276
+   line 59: 284
+   line 60: 289
+   line 61: 294
+   line 62: 299
+   line 63: 307
+   line 64: 315
+   line 65: 329
+   line 68: 346
+   line 69: 365
+   line 70: 384
+   line 71: 403
+   line 72: 422
+   line 73: 441
+   line 74: 449
+   line 75: 463
+   line 80: 471
+   line 81: 476
+   line 82: 481
+   line 83: 486
+   line 84: 491
+   line 85: 499
+   line 86: 507
+   line 87: 527
+   line 86: 553
+   line 91: 559
+   line 92: 563
+   line 93: 567
+   line 94: 571
+   line 95: 575
+   line 96: 583
+   line 97: 591
+   line 98: 611
+   line 97: 637
+   line 103: 643
+   line 104: 648
+   line 105: 653
+   line 106: 665
+   line 107: 677
+   line 108: 685
+   line 109: 693
+   line 110: 701
+   line 111: 715
+   line 113: 729
 
   StackMapTable: number_of_entries = 12
    frame_type = 253 /* append */
-     offset_delta = 208
+     offset_delta = 235
      locals = [ class "[Ljava/lang/Object;", class "[Ljava/lang/String;" ]
    frame_type = 64 /* same_locals_1_stack_item */
      stack = [ int ]
@@ -862,7 +741,7 @@ public static void main(java.lang.String[]);
      locals = [ class "[Ljava/lang/String;", class "[Ljava/lang/Object;", class "[Ljava/lang/String;", int ]
      stack = [ class java/io/PrintStream, class java/lang/String ]
    frame_type = 255 /* full_frame */
-     offset_delta = 156
+     offset_delta = 171
      locals = [ class "[Ljava/lang/String;", class "[Ljava/lang/String;", class "[Ljava/lang/String;", int, int ]
      stack = []
    frame_type = 255 /* full_frame */

@@ -4,280 +4,312 @@ class classes.test.FileOps extends java.lang.Object
   minor version: 0
   major version: 50
   Constant pool:
-const #1 = Method	#105.#126;	//  java/lang/Object."<init>":()V
-const #2 = String	#127;	//  ./classes/test/data/FileOps
-const #3 = class	#128;	//  java/io/File
-const #4 = String	#129;	//  
-const #5 = Method	#3.#130;	//  java/io/File."<init>":(Ljava/lang/String;)V
-const #6 = Field	#131.#132;	//  java/lang/System.out:Ljava/io/PrintStream;
-const #7 = class	#133;	//  java/lang/StringBuilder
-const #8 = Method	#7.#126;	//  java/lang/StringBuilder."<init>":()V
-const #9 = String	#134;	//  Is '' an absolute path?: 
-const #10 = Method	#7.#135;	//  java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-const #11 = Method	#3.#136;	//  java/io/File.isAbsolute:()Z
-const #12 = Method	#7.#137;	//  java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-const #13 = Method	#7.#138;	//  java/lang/StringBuilder.toString:()Ljava/lang/String;
-const #14 = Method	#139.#140;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
-const #15 = Method	#3.#141;	//  java/io/File.getAbsolutePath:()Ljava/lang/String;
-const #16 = Method	#3.#142;	//  java/io/File.getCanonicalPath:()Ljava/lang/String;
-const #17 = String	#143;	//  Does the absolute path of '' exist?: 
-const #18 = Method	#3.#144;	//  java/io/File.exists:()Z
-const #19 = String	#145;	//  Does the canonical path of '' exist?: 
-const #20 = String	#146;	//  Does abspath == canonpath.abspath?: 
-const #21 = String	#147;	//  Does abspath.canonpath == canonpath?: 
-const #22 = String	#148;	//  Does '' exist?: 
-const #23 = String	#149;	//  What is the length of ''?: 
-const #24 = Method	#3.#150;	//  java/io/File.length:()J
-const #25 = Method	#7.#151;	//  java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
-const #26 = String	#152;	//  Can you write to ''?: 
-const #27 = Method	#3.#153;	//  java/io/File.canWrite:()Z
-const #28 = Method	#3.#154;	//  java/io/File.listFiles:()[Ljava/io/File;
-const #29 = Method	#3.#155;	//  java/io/File.getName:()Ljava/lang/String;
-const #30 = String	#156;	//  /contains_data.txt
-const #31 = String	#157;	//  Does contains_data.txt exist?: 
-const #32 = String	#158;	//  Length of contains_data.txt: 
-const #33 = String	#159;	//  Can I write to contains_data.txt?:  
-const #34 = String	#160;	//  Is FileOps a directory?: 
-const #35 = Method	#3.#161;	//  java/io/File.isDirectory:()Z
-const #36 = String	#162;	//  Can I write to it?: 
-const #37 = String	#163;	//  /temp_delete_me.txt
-const #38 = String	#164;	//  Does temp_delete_me.txt exist?: 
-const #39 = String	#165;	//  Did we successfully create this file?: 
-const #40 = Method	#3.#166;	//  java/io/File.createNewFile:()Z
-const #41 = String	#167;	//  And does it exist now?: 
-const #42 = Method	#3.#168;	//  java/io/File.lastModified:()J
-const #43 = Method	#3.#169;	//  java/io/File.setWritable:(Z)Z
-const #44 = String	#170;	//  How about now?: 
-const #45 = String	#171;	//  And now?: 
-const #46 = String	#172;	//  File size: 
-const #47 = String	#173;	//  Sleeping for a small amount of time...
-const #48 = long	1000l;
-const #50 = Method	#174.#175;	//  java/lang/Thread.sleep:(J)V
-const #51 = class	#176;	//  java/lang/Exception
-const #52 = class	#177;	//  java/io/FileWriter
-const #53 = Method	#52.#178;	//  java/io/FileWriter."<init>":(Ljava/io/File;)V
-const #54 = String	#179;	//  Why, hello there!
-const #55 = Method	#52.#180;	//  java/io/FileWriter.write:(Ljava/lang/String;)V
-const #56 = Method	#52.#181;	//  java/io/FileWriter.close:()V
-const #57 = String	#182;	//  New file size: 
-const #58 = String	#183;	//  File contents:
-const #59 = class	#184;	//  java/io/BufferedReader
-const #60 = class	#185;	//  java/io/FileReader
-const #61 = Method	#60.#178;	//  java/io/FileReader."<init>":(Ljava/io/File;)V
-const #62 = Method	#59.#186;	//  java/io/BufferedReader."<init>":(Ljava/io/Reader;)V
-const #63 = Method	#59.#187;	//  java/io/BufferedReader.readLine:()Ljava/lang/String;
-const #64 = Method	#59.#181;	//  java/io/BufferedReader.close:()V
-const #65 = String	#188;	//  Now, has the modified time changed? 
-const #66 = String	#189;	//  Deleting file: 
-const #67 = Method	#3.#190;	//  java/io/File.delete:()Z
-const #68 = String	#191;	//  Does the file exist?: 
-const #69 = String	#192;	//  /tempDir
-const #70 = String	#193;	//  Does tempDir exist?: 
-const #71 = String	#194;	//  Making tempDir: 
-const #72 = Method	#3.#195;	//  java/io/File.mkdir:()Z
-const #73 = String	#196;	//  Does tempDir exist now?: 
-const #74 = String	#197;	//  Deleting tempDir: 
-const #75 = String	#198;	//  /tempDir/tempDir
-const #76 = String	#199;	//  Does tempDir/tempDir exist?: 
-const #77 = String	#200;	//  Making tempDir/tempDir (should fail): 
-const #78 = String	#201;	//  Does tempDir/tempDir exist now?: 
-const #79 = String	#202;	//  Deleting tempDir/tempDir (should fail): 
-const #80 = String	#203;	//  Making tempDir/tempDir (should succeed): 
-const #81 = Method	#3.#204;	//  java/io/File.mkdirs:()Z
-const #82 = String	#205;	//  Deleting tempDir (should fail -- nonempty): 
-const #83 = String	#206;	//  Deleting tempDir/tempDir: 
-const #84 = String	#207;	//  Deleting tempDir (should succeed this time): 
-const #85 = String	#208;	//  Trying to create a directory that already exists: 
-const #86 = String	#209;	//  /temp_rename_file.txt
-const #87 = String	#210;	//  /temp_rename_file2.txt
-const #88 = String	#211;	//  Creating temp_rename_file.txt: 
-const #89 = String	#212;	//  Renaming it to temp_rename_file2.txt: 
-const #90 = Method	#3.#213;	//  java/io/File.renameTo:(Ljava/io/File;)Z
-const #91 = String	#214;	//  Old file exist? 
-const #92 = String	#215;	//   New file exists? 
-const #93 = String	#216;	//  Recreating old file: 
-const #94 = String	#217;	//  Moving on top of old file: 
-const #95 = String	#218;	//  Deleting old file: 
-const #96 = String	#219;	//  Trying to move nonexistant old file: 
-const #97 = String	#220;	//  /temp_readonly.txt
-const #98 = String	#221;	//  Creating temp_readonly.txt: 
-const #99 = String	#222;	//  Marking as read only: 
-const #100 = Method	#3.#223;	//  java/io/File.setReadOnly:()Z
-const #101 = String	#224;	//  Can I write to the file?: 
-const #102 = String	#225;	//  Can I read the file?: 
-const #103 = Method	#3.#226;	//  java/io/File.canRead:()Z
-const #104 = class	#227;	//  classes/test/FileOps
-const #105 = class	#228;	//  java/lang/Object
-const #106 = Asciz	<init>;
-const #107 = Asciz	()V;
-const #108 = Asciz	Code;
-const #109 = Asciz	LineNumberTable;
-const #110 = Asciz	main;
-const #111 = Asciz	([Ljava/lang/String;)V;
-const #112 = Asciz	StackMapTable;
-const #113 = class	#229;	//  "[Ljava/lang/String;"
-const #114 = class	#230;	//  java/lang/String
-const #115 = class	#128;	//  java/io/File
-const #116 = class	#231;	//  java/io/PrintStream
-const #117 = class	#133;	//  java/lang/StringBuilder
-const #118 = class	#232;	//  "[Ljava/io/File;"
-const #119 = class	#176;	//  java/lang/Exception
-const #120 = class	#177;	//  java/io/FileWriter
-const #121 = class	#184;	//  java/io/BufferedReader
-const #122 = Asciz	Exceptions;
-const #123 = class	#233;	//  java/io/IOException
-const #124 = Asciz	SourceFile;
-const #125 = Asciz	FileOps.java;
-const #126 = NameAndType	#106:#107;//  "<init>":()V
-const #127 = Asciz	./classes/test/data/FileOps;
-const #128 = Asciz	java/io/File;
-const #129 = Asciz	;
-const #130 = NameAndType	#106:#234;//  "<init>":(Ljava/lang/String;)V
-const #131 = class	#235;	//  java/lang/System
-const #132 = NameAndType	#236:#237;//  out:Ljava/io/PrintStream;
-const #133 = Asciz	java/lang/StringBuilder;
-const #134 = Asciz	Is '' an absolute path?: ;
-const #135 = NameAndType	#238:#239;//  append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-const #136 = NameAndType	#240:#241;//  isAbsolute:()Z
-const #137 = NameAndType	#238:#242;//  append:(Z)Ljava/lang/StringBuilder;
-const #138 = NameAndType	#243:#244;//  toString:()Ljava/lang/String;
-const #139 = class	#231;	//  java/io/PrintStream
-const #140 = NameAndType	#245:#234;//  println:(Ljava/lang/String;)V
-const #141 = NameAndType	#246:#244;//  getAbsolutePath:()Ljava/lang/String;
-const #142 = NameAndType	#247:#244;//  getCanonicalPath:()Ljava/lang/String;
-const #143 = Asciz	Does the absolute path of '' exist?: ;
-const #144 = NameAndType	#248:#241;//  exists:()Z
-const #145 = Asciz	Does the canonical path of '' exist?: ;
-const #146 = Asciz	Does abspath == canonpath.abspath?: ;
-const #147 = Asciz	Does abspath.canonpath == canonpath?: ;
-const #148 = Asciz	Does '' exist?: ;
-const #149 = Asciz	What is the length of ''?: ;
-const #150 = NameAndType	#249:#250;//  length:()J
-const #151 = NameAndType	#238:#251;//  append:(J)Ljava/lang/StringBuilder;
-const #152 = Asciz	Can you write to ''?: ;
-const #153 = NameAndType	#252:#241;//  canWrite:()Z
-const #154 = NameAndType	#253:#254;//  listFiles:()[Ljava/io/File;
-const #155 = NameAndType	#255:#244;//  getName:()Ljava/lang/String;
-const #156 = Asciz	/contains_data.txt;
-const #157 = Asciz	Does contains_data.txt exist?: ;
-const #158 = Asciz	Length of contains_data.txt: ;
-const #159 = Asciz	Can I write to contains_data.txt?:  ;
-const #160 = Asciz	Is FileOps a directory?: ;
-const #161 = NameAndType	#256:#241;//  isDirectory:()Z
-const #162 = Asciz	Can I write to it?: ;
-const #163 = Asciz	/temp_delete_me.txt;
-const #164 = Asciz	Does temp_delete_me.txt exist?: ;
-const #165 = Asciz	Did we successfully create this file?: ;
-const #166 = NameAndType	#257:#241;//  createNewFile:()Z
-const #167 = Asciz	And does it exist now?: ;
-const #168 = NameAndType	#258:#250;//  lastModified:()J
-const #169 = NameAndType	#259:#260;//  setWritable:(Z)Z
-const #170 = Asciz	How about now?: ;
-const #171 = Asciz	And now?: ;
-const #172 = Asciz	File size: ;
-const #173 = Asciz	Sleeping for a small amount of time...;
-const #174 = class	#261;	//  java/lang/Thread
-const #175 = NameAndType	#262:#263;//  sleep:(J)V
-const #176 = Asciz	java/lang/Exception;
-const #177 = Asciz	java/io/FileWriter;
-const #178 = NameAndType	#106:#264;//  "<init>":(Ljava/io/File;)V
-const #179 = Asciz	Why, hello there!;
-const #180 = NameAndType	#265:#234;//  write:(Ljava/lang/String;)V
-const #181 = NameAndType	#266:#107;//  close:()V
-const #182 = Asciz	New file size: ;
-const #183 = Asciz	File contents:;
-const #184 = Asciz	java/io/BufferedReader;
-const #185 = Asciz	java/io/FileReader;
-const #186 = NameAndType	#106:#267;//  "<init>":(Ljava/io/Reader;)V
-const #187 = NameAndType	#268:#244;//  readLine:()Ljava/lang/String;
-const #188 = Asciz	Now, has the modified time changed? ;
-const #189 = Asciz	Deleting file: ;
-const #190 = NameAndType	#269:#241;//  delete:()Z
-const #191 = Asciz	Does the file exist?: ;
-const #192 = Asciz	/tempDir;
-const #193 = Asciz	Does tempDir exist?: ;
-const #194 = Asciz	Making tempDir: ;
-const #195 = NameAndType	#270:#241;//  mkdir:()Z
-const #196 = Asciz	Does tempDir exist now?: ;
-const #197 = Asciz	Deleting tempDir: ;
-const #198 = Asciz	/tempDir/tempDir;
-const #199 = Asciz	Does tempDir/tempDir exist?: ;
-const #200 = Asciz	Making tempDir/tempDir (should fail): ;
-const #201 = Asciz	Does tempDir/tempDir exist now?: ;
-const #202 = Asciz	Deleting tempDir/tempDir (should fail): ;
-const #203 = Asciz	Making tempDir/tempDir (should succeed): ;
-const #204 = NameAndType	#271:#241;//  mkdirs:()Z
-const #205 = Asciz	Deleting tempDir (should fail -- nonempty): ;
-const #206 = Asciz	Deleting tempDir/tempDir: ;
-const #207 = Asciz	Deleting tempDir (should succeed this time): ;
-const #208 = Asciz	Trying to create a directory that already exists: ;
-const #209 = Asciz	/temp_rename_file.txt;
-const #210 = Asciz	/temp_rename_file2.txt;
-const #211 = Asciz	Creating temp_rename_file.txt: ;
-const #212 = Asciz	Renaming it to temp_rename_file2.txt: ;
-const #213 = NameAndType	#272:#273;//  renameTo:(Ljava/io/File;)Z
-const #214 = Asciz	Old file exist? ;
-const #215 = Asciz	 New file exists? ;
-const #216 = Asciz	Recreating old file: ;
-const #217 = Asciz	Moving on top of old file: ;
-const #218 = Asciz	Deleting old file: ;
-const #219 = Asciz	Trying to move nonexistant old file: ;
-const #220 = Asciz	/temp_readonly.txt;
-const #221 = Asciz	Creating temp_readonly.txt: ;
-const #222 = Asciz	Marking as read only: ;
-const #223 = NameAndType	#274:#241;//  setReadOnly:()Z
-const #224 = Asciz	Can I write to the file?: ;
-const #225 = Asciz	Can I read the file?: ;
-const #226 = NameAndType	#275:#241;//  canRead:()Z
-const #227 = Asciz	classes/test/FileOps;
-const #228 = Asciz	java/lang/Object;
-const #229 = Asciz	[Ljava/lang/String;;
-const #230 = Asciz	java/lang/String;
-const #231 = Asciz	java/io/PrintStream;
-const #232 = Asciz	[Ljava/io/File;;
-const #233 = Asciz	java/io/IOException;
-const #234 = Asciz	(Ljava/lang/String;)V;
-const #235 = Asciz	java/lang/System;
-const #236 = Asciz	out;
-const #237 = Asciz	Ljava/io/PrintStream;;
-const #238 = Asciz	append;
-const #239 = Asciz	(Ljava/lang/String;)Ljava/lang/StringBuilder;;
-const #240 = Asciz	isAbsolute;
-const #241 = Asciz	()Z;
-const #242 = Asciz	(Z)Ljava/lang/StringBuilder;;
-const #243 = Asciz	toString;
-const #244 = Asciz	()Ljava/lang/String;;
-const #245 = Asciz	println;
-const #246 = Asciz	getAbsolutePath;
-const #247 = Asciz	getCanonicalPath;
-const #248 = Asciz	exists;
-const #249 = Asciz	length;
-const #250 = Asciz	()J;
-const #251 = Asciz	(J)Ljava/lang/StringBuilder;;
-const #252 = Asciz	canWrite;
-const #253 = Asciz	listFiles;
-const #254 = Asciz	()[Ljava/io/File;;
-const #255 = Asciz	getName;
-const #256 = Asciz	isDirectory;
-const #257 = Asciz	createNewFile;
-const #258 = Asciz	lastModified;
-const #259 = Asciz	setWritable;
-const #260 = Asciz	(Z)Z;
-const #261 = Asciz	java/lang/Thread;
-const #262 = Asciz	sleep;
-const #263 = Asciz	(J)V;
-const #264 = Asciz	(Ljava/io/File;)V;
-const #265 = Asciz	write;
-const #266 = Asciz	close;
-const #267 = Asciz	(Ljava/io/Reader;)V;
-const #268 = Asciz	readLine;
-const #269 = Asciz	delete;
-const #270 = Asciz	mkdir;
-const #271 = Asciz	mkdirs;
-const #272 = Asciz	renameTo;
-const #273 = Asciz	(Ljava/io/File;)Z;
-const #274 = Asciz	setReadOnly;
-const #275 = Asciz	canRead;
+const #1 = Method	#119.#142;	//  java/lang/Object."<init>":()V
+const #2 = class	#143;	//  java/io/BufferedReader
+const #3 = class	#144;	//  java/io/FileReader
+const #4 = Method	#3.#145;	//  java/io/FileReader."<init>":(Ljava/io/File;)V
+const #5 = Method	#2.#146;	//  java/io/BufferedReader."<init>":(Ljava/io/Reader;)V
+const #6 = Method	#2.#147;	//  java/io/BufferedReader.readLine:()Ljava/lang/String;
+const #7 = Field	#148.#149;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #8 = Method	#150.#151;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #9 = Method	#2.#152;	//  java/io/BufferedReader.close:()V
+const #10 = String	#153;	//  ./classes/test/data/FileOps
+const #11 = class	#154;	//  java/io/File
+const #12 = String	#155;	//  /dfsd/dsfds
+const #13 = Method	#11.#156;	//  java/io/File."<init>":(Ljava/lang/String;)V
+const #14 = class	#157;	//  java/lang/Exception
+const #15 = String	#158;	//  Successfully threw exception for nonexistant file.
+const #16 = String	#159;	//  
+const #17 = class	#160;	//  java/lang/StringBuilder
+const #18 = Method	#17.#142;	//  java/lang/StringBuilder."<init>":()V
+const #19 = String	#161;	//  Is '' an absolute path?: 
+const #20 = Method	#17.#162;	//  java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #21 = Method	#11.#163;	//  java/io/File.isAbsolute:()Z
+const #22 = Method	#17.#164;	//  java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+const #23 = Method	#17.#165;	//  java/lang/StringBuilder.toString:()Ljava/lang/String;
+const #24 = Method	#11.#166;	//  java/io/File.getAbsolutePath:()Ljava/lang/String;
+const #25 = Method	#11.#167;	//  java/io/File.getCanonicalPath:()Ljava/lang/String;
+const #26 = String	#168;	//  Does the absolute path of '' exist?: 
+const #27 = Method	#11.#169;	//  java/io/File.exists:()Z
+const #28 = String	#170;	//  Does the canonical path of '' exist?: 
+const #29 = String	#171;	//  Does abspath == canonpath.abspath?: 
+const #30 = String	#172;	//  Does abspath.canonpath == canonpath?: 
+const #31 = String	#173;	//  Does '' exist?: 
+const #32 = String	#174;	//  What is the length of ''?: 
+const #33 = Method	#11.#175;	//  java/io/File.length:()J
+const #34 = Method	#17.#176;	//  java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+const #35 = String	#177;	//  Can you write to ''?: 
+const #36 = Method	#11.#178;	//  java/io/File.canWrite:()Z
+const #37 = Method	#11.#179;	//  java/io/File.listFiles:()[Ljava/io/File;
+const #38 = Method	#11.#180;	//  java/io/File.getName:()Ljava/lang/String;
+const #39 = String	#181;	//  /contains_data.txt
+const #40 = String	#182;	//  Does contains_data.txt exist?: 
+const #41 = String	#183;	//  Length of contains_data.txt: 
+const #42 = String	#184;	//  Can I write to contains_data.txt?:  
+const #43 = String	#185;	//  Is FileOps a directory?: 
+const #44 = Method	#11.#186;	//  java/io/File.isDirectory:()Z
+const #45 = String	#187;	//  Can I write to it?: 
+const #46 = String	#188;	//  /temp_delete_me.txt
+const #47 = String	#189;	//  Does temp_delete_me.txt exist?: 
+const #48 = String	#190;	//  Did we successfully create this file?: 
+const #49 = Method	#11.#191;	//  java/io/File.createNewFile:()Z
+const #50 = String	#192;	//  And does it exist now?: 
+const #51 = Method	#11.#193;	//  java/io/File.lastModified:()J
+const #52 = Method	#11.#194;	//  java/io/File.setWritable:(Z)Z
+const #53 = String	#195;	//  How about now?: 
+const #54 = String	#196;	//  And now?: 
+const #55 = String	#197;	//  File size: 
+const #56 = class	#198;	//  java/io/FileWriter
+const #57 = Method	#56.#145;	//  java/io/FileWriter."<init>":(Ljava/io/File;)V
+const #58 = String	#199;	//  Why, hello there!\n
+const #59 = Method	#56.#200;	//  java/io/FileWriter.write:(Ljava/lang/String;)V
+const #60 = Method	#56.#152;	//  java/io/FileWriter.close:()V
+const #61 = Method	#148.#201;	//  java/lang/System.currentTimeMillis:()J
+const #62 = long	1337l;
+const #64 = Method	#11.#202;	//  java/io/File.setLastModified:(J)Z
+const #65 = String	#203;	//  Last modified updated?: 
+const #66 = String	#204;	//  New file size: 
+const #67 = String	#205;	//  File contents:
+const #68 = Method	#118.#206;	//  classes/test/FileOps.printFile:(Ljava/io/File;)V
+const #69 = String	#207;	//  Appending to file's end...
+const #70 = Method	#56.#208;	//  java/io/FileWriter."<init>":(Ljava/io/File;Z)V
+const #71 = String	#209;	//  A second line?!\n
+const #72 = String	#210;	//  Overwriting some text...
+const #73 = class	#211;	//  java/io/RandomAccessFile
+const #74 = String	#212;	//  rw
+const #75 = Method	#73.#213;	//  java/io/RandomAccessFile."<init>":(Ljava/io/File;Ljava/lang/String;)V
+const #76 = Method	#73.#214;	//  java/io/RandomAccessFile.skipBytes:(I)I
+const #77 = String	#215;	//  KILROY WAS HERE\n
+const #78 = Method	#73.#216;	//  java/io/RandomAccessFile.writeChars:(Ljava/lang/String;)V
+const #79 = Method	#73.#152;	//  java/io/RandomAccessFile.close:()V
+const #80 = String	#217;	//  Deleting file: 
+const #81 = Method	#11.#218;	//  java/io/File.delete:()Z
+const #82 = String	#219;	//  Does the file exist?: 
+const #83 = String	#220;	//  /tempDir
+const #84 = String	#221;	//  Does tempDir exist?: 
+const #85 = String	#222;	//  Making tempDir: 
+const #86 = Method	#11.#223;	//  java/io/File.mkdir:()Z
+const #87 = String	#224;	//  Does tempDir exist now?: 
+const #88 = String	#225;	//  Deleting tempDir: 
+const #89 = String	#226;	//  /tempDir/tempDir
+const #90 = String	#227;	//  Does tempDir/tempDir exist?: 
+const #91 = String	#228;	//  Making tempDir/tempDir (should fail): 
+const #92 = String	#229;	//  Does tempDir/tempDir exist now?: 
+const #93 = String	#230;	//  Deleting tempDir/tempDir (should fail): 
+const #94 = String	#231;	//  Making tempDir/tempDir (should succeed): 
+const #95 = Method	#11.#232;	//  java/io/File.mkdirs:()Z
+const #96 = String	#233;	//  Deleting tempDir (should fail -- nonempty): 
+const #97 = String	#234;	//  Deleting tempDir/tempDir: 
+const #98 = String	#235;	//  Deleting tempDir (should succeed this time): 
+const #99 = String	#236;	//  Trying to create a directory that already exists: 
+const #100 = String	#237;	//  /temp_rename_file.txt
+const #101 = String	#238;	//  /temp_rename_file2.txt
+const #102 = String	#239;	//  Creating temp_rename_file.txt: 
+const #103 = String	#240;	//  Renaming it to temp_rename_file2.txt: 
+const #104 = Method	#11.#241;	//  java/io/File.renameTo:(Ljava/io/File;)Z
+const #105 = String	#242;	//  Old file exist? 
+const #106 = String	#243;	//   New file exists? 
+const #107 = String	#244;	//  Recreating old file: 
+const #108 = String	#245;	//  Moving on top of old file: 
+const #109 = String	#246;	//  Deleting old file: 
+const #110 = String	#247;	//  Trying to move nonexistant old file: 
+const #111 = String	#248;	//  /temp_readonly.txt
+const #112 = String	#249;	//  Creating temp_readonly.txt: 
+const #113 = String	#250;	//  Marking as read only: 
+const #114 = Method	#11.#251;	//  java/io/File.setReadOnly:()Z
+const #115 = String	#252;	//  Can I write to the file?: 
+const #116 = String	#253;	//  Can I read the file?: 
+const #117 = Method	#11.#254;	//  java/io/File.canRead:()Z
+const #118 = class	#255;	//  classes/test/FileOps
+const #119 = class	#256;	//  java/lang/Object
+const #120 = Asciz	<init>;
+const #121 = Asciz	()V;
+const #122 = Asciz	Code;
+const #123 = Asciz	LineNumberTable;
+const #124 = Asciz	printFile;
+const #125 = Asciz	(Ljava/io/File;)V;
+const #126 = Asciz	StackMapTable;
+const #127 = class	#143;	//  java/io/BufferedReader
+const #128 = class	#257;	//  java/lang/String
+const #129 = Asciz	Exceptions;
+const #130 = class	#258;	//  java/io/IOException
+const #131 = Asciz	main;
+const #132 = Asciz	([Ljava/lang/String;)V;
+const #133 = class	#259;	//  "[Ljava/lang/String;"
+const #134 = class	#154;	//  java/io/File
+const #135 = class	#157;	//  java/lang/Exception
+const #136 = class	#260;	//  java/io/PrintStream
+const #137 = class	#160;	//  java/lang/StringBuilder
+const #138 = class	#261;	//  "[Ljava/io/File;"
+const #139 = class	#198;	//  java/io/FileWriter
+const #140 = Asciz	SourceFile;
+const #141 = Asciz	FileOps.java;
+const #142 = NameAndType	#120:#121;//  "<init>":()V
+const #143 = Asciz	java/io/BufferedReader;
+const #144 = Asciz	java/io/FileReader;
+const #145 = NameAndType	#120:#125;//  "<init>":(Ljava/io/File;)V
+const #146 = NameAndType	#120:#262;//  "<init>":(Ljava/io/Reader;)V
+const #147 = NameAndType	#263:#264;//  readLine:()Ljava/lang/String;
+const #148 = class	#265;	//  java/lang/System
+const #149 = NameAndType	#266:#267;//  out:Ljava/io/PrintStream;
+const #150 = class	#260;	//  java/io/PrintStream
+const #151 = NameAndType	#268:#269;//  println:(Ljava/lang/String;)V
+const #152 = NameAndType	#270:#121;//  close:()V
+const #153 = Asciz	./classes/test/data/FileOps;
+const #154 = Asciz	java/io/File;
+const #155 = Asciz	/dfsd/dsfds;
+const #156 = NameAndType	#120:#269;//  "<init>":(Ljava/lang/String;)V
+const #157 = Asciz	java/lang/Exception;
+const #158 = Asciz	Successfully threw exception for nonexistant file.;
+const #159 = Asciz	;
+const #160 = Asciz	java/lang/StringBuilder;
+const #161 = Asciz	Is '' an absolute path?: ;
+const #162 = NameAndType	#271:#272;//  append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #163 = NameAndType	#273:#274;//  isAbsolute:()Z
+const #164 = NameAndType	#271:#275;//  append:(Z)Ljava/lang/StringBuilder;
+const #165 = NameAndType	#276:#264;//  toString:()Ljava/lang/String;
+const #166 = NameAndType	#277:#264;//  getAbsolutePath:()Ljava/lang/String;
+const #167 = NameAndType	#278:#264;//  getCanonicalPath:()Ljava/lang/String;
+const #168 = Asciz	Does the absolute path of '' exist?: ;
+const #169 = NameAndType	#279:#274;//  exists:()Z
+const #170 = Asciz	Does the canonical path of '' exist?: ;
+const #171 = Asciz	Does abspath == canonpath.abspath?: ;
+const #172 = Asciz	Does abspath.canonpath == canonpath?: ;
+const #173 = Asciz	Does '' exist?: ;
+const #174 = Asciz	What is the length of ''?: ;
+const #175 = NameAndType	#280:#281;//  length:()J
+const #176 = NameAndType	#271:#282;//  append:(J)Ljava/lang/StringBuilder;
+const #177 = Asciz	Can you write to ''?: ;
+const #178 = NameAndType	#283:#274;//  canWrite:()Z
+const #179 = NameAndType	#284:#285;//  listFiles:()[Ljava/io/File;
+const #180 = NameAndType	#286:#264;//  getName:()Ljava/lang/String;
+const #181 = Asciz	/contains_data.txt;
+const #182 = Asciz	Does contains_data.txt exist?: ;
+const #183 = Asciz	Length of contains_data.txt: ;
+const #184 = Asciz	Can I write to contains_data.txt?:  ;
+const #185 = Asciz	Is FileOps a directory?: ;
+const #186 = NameAndType	#287:#274;//  isDirectory:()Z
+const #187 = Asciz	Can I write to it?: ;
+const #188 = Asciz	/temp_delete_me.txt;
+const #189 = Asciz	Does temp_delete_me.txt exist?: ;
+const #190 = Asciz	Did we successfully create this file?: ;
+const #191 = NameAndType	#288:#274;//  createNewFile:()Z
+const #192 = Asciz	And does it exist now?: ;
+const #193 = NameAndType	#289:#281;//  lastModified:()J
+const #194 = NameAndType	#290:#291;//  setWritable:(Z)Z
+const #195 = Asciz	How about now?: ;
+const #196 = Asciz	And now?: ;
+const #197 = Asciz	File size: ;
+const #198 = Asciz	java/io/FileWriter;
+const #199 = Asciz	Why, hello there!\n;
+const #200 = NameAndType	#292:#269;//  write:(Ljava/lang/String;)V
+const #201 = NameAndType	#293:#281;//  currentTimeMillis:()J
+const #202 = NameAndType	#294:#295;//  setLastModified:(J)Z
+const #203 = Asciz	Last modified updated?: ;
+const #204 = Asciz	New file size: ;
+const #205 = Asciz	File contents:;
+const #206 = NameAndType	#124:#125;//  printFile:(Ljava/io/File;)V
+const #207 = Asciz	Appending to file's end...;
+const #208 = NameAndType	#120:#296;//  "<init>":(Ljava/io/File;Z)V
+const #209 = Asciz	A second line?!\n;
+const #210 = Asciz	Overwriting some text...;
+const #211 = Asciz	java/io/RandomAccessFile;
+const #212 = Asciz	rw;
+const #213 = NameAndType	#120:#297;//  "<init>":(Ljava/io/File;Ljava/lang/String;)V
+const #214 = NameAndType	#298:#299;//  skipBytes:(I)I
+const #215 = Asciz	KILROY WAS HERE\n;
+const #216 = NameAndType	#300:#269;//  writeChars:(Ljava/lang/String;)V
+const #217 = Asciz	Deleting file: ;
+const #218 = NameAndType	#301:#274;//  delete:()Z
+const #219 = Asciz	Does the file exist?: ;
+const #220 = Asciz	/tempDir;
+const #221 = Asciz	Does tempDir exist?: ;
+const #222 = Asciz	Making tempDir: ;
+const #223 = NameAndType	#302:#274;//  mkdir:()Z
+const #224 = Asciz	Does tempDir exist now?: ;
+const #225 = Asciz	Deleting tempDir: ;
+const #226 = Asciz	/tempDir/tempDir;
+const #227 = Asciz	Does tempDir/tempDir exist?: ;
+const #228 = Asciz	Making tempDir/tempDir (should fail): ;
+const #229 = Asciz	Does tempDir/tempDir exist now?: ;
+const #230 = Asciz	Deleting tempDir/tempDir (should fail): ;
+const #231 = Asciz	Making tempDir/tempDir (should succeed): ;
+const #232 = NameAndType	#303:#274;//  mkdirs:()Z
+const #233 = Asciz	Deleting tempDir (should fail -- nonempty): ;
+const #234 = Asciz	Deleting tempDir/tempDir: ;
+const #235 = Asciz	Deleting tempDir (should succeed this time): ;
+const #236 = Asciz	Trying to create a directory that already exists: ;
+const #237 = Asciz	/temp_rename_file.txt;
+const #238 = Asciz	/temp_rename_file2.txt;
+const #239 = Asciz	Creating temp_rename_file.txt: ;
+const #240 = Asciz	Renaming it to temp_rename_file2.txt: ;
+const #241 = NameAndType	#304:#305;//  renameTo:(Ljava/io/File;)Z
+const #242 = Asciz	Old file exist? ;
+const #243 = Asciz	 New file exists? ;
+const #244 = Asciz	Recreating old file: ;
+const #245 = Asciz	Moving on top of old file: ;
+const #246 = Asciz	Deleting old file: ;
+const #247 = Asciz	Trying to move nonexistant old file: ;
+const #248 = Asciz	/temp_readonly.txt;
+const #249 = Asciz	Creating temp_readonly.txt: ;
+const #250 = Asciz	Marking as read only: ;
+const #251 = NameAndType	#306:#274;//  setReadOnly:()Z
+const #252 = Asciz	Can I write to the file?: ;
+const #253 = Asciz	Can I read the file?: ;
+const #254 = NameAndType	#307:#274;//  canRead:()Z
+const #255 = Asciz	classes/test/FileOps;
+const #256 = Asciz	java/lang/Object;
+const #257 = Asciz	java/lang/String;
+const #258 = Asciz	java/io/IOException;
+const #259 = Asciz	[Ljava/lang/String;;
+const #260 = Asciz	java/io/PrintStream;
+const #261 = Asciz	[Ljava/io/File;;
+const #262 = Asciz	(Ljava/io/Reader;)V;
+const #263 = Asciz	readLine;
+const #264 = Asciz	()Ljava/lang/String;;
+const #265 = Asciz	java/lang/System;
+const #266 = Asciz	out;
+const #267 = Asciz	Ljava/io/PrintStream;;
+const #268 = Asciz	println;
+const #269 = Asciz	(Ljava/lang/String;)V;
+const #270 = Asciz	close;
+const #271 = Asciz	append;
+const #272 = Asciz	(Ljava/lang/String;)Ljava/lang/StringBuilder;;
+const #273 = Asciz	isAbsolute;
+const #274 = Asciz	()Z;
+const #275 = Asciz	(Z)Ljava/lang/StringBuilder;;
+const #276 = Asciz	toString;
+const #277 = Asciz	getAbsolutePath;
+const #278 = Asciz	getCanonicalPath;
+const #279 = Asciz	exists;
+const #280 = Asciz	length;
+const #281 = Asciz	()J;
+const #282 = Asciz	(J)Ljava/lang/StringBuilder;;
+const #283 = Asciz	canWrite;
+const #284 = Asciz	listFiles;
+const #285 = Asciz	()[Ljava/io/File;;
+const #286 = Asciz	getName;
+const #287 = Asciz	isDirectory;
+const #288 = Asciz	createNewFile;
+const #289 = Asciz	lastModified;
+const #290 = Asciz	setWritable;
+const #291 = Asciz	(Z)Z;
+const #292 = Asciz	write;
+const #293 = Asciz	currentTimeMillis;
+const #294 = Asciz	setLastModified;
+const #295 = Asciz	(J)Z;
+const #296 = Asciz	(Ljava/io/File;Z)V;
+const #297 = Asciz	(Ljava/io/File;Ljava/lang/String;)V;
+const #298 = Asciz	skipBytes;
+const #299 = Asciz	(I)I;
+const #300 = Asciz	writeChars;
+const #301 = Asciz	delete;
+const #302 = Asciz	mkdir;
+const #303 = Asciz	mkdirs;
+const #304 = Asciz	renameTo;
+const #305 = Asciz	(Ljava/io/File;)Z;
+const #306 = Asciz	setReadOnly;
+const #307 = Asciz	canRead;
 
 {
 classes.test.FileOps();
@@ -290,936 +322,1061 @@ classes.test.FileOps();
    line 5: 0
 
 
+static void printFile(java.io.File)   throws java.io.IOException;
+  Code:
+   Stack=5, Locals=3, Args_size=1
+   0:	new	#2; //class java/io/BufferedReader
+   3:	dup
+   4:	new	#3; //class java/io/FileReader
+   7:	dup
+   8:	aload_0
+   9:	invokespecial	#4; //Method java/io/FileReader."<init>":(Ljava/io/File;)V
+   12:	invokespecial	#5; //Method java/io/BufferedReader."<init>":(Ljava/io/Reader;)V
+   15:	astore_1
+   16:	aload_1
+   17:	invokevirtual	#6; //Method java/io/BufferedReader.readLine:()Ljava/lang/String;
+   20:	dup
+   21:	astore_2
+   22:	ifnull	35
+   25:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   28:	aload_2
+   29:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   32:	goto	16
+   35:	aload_1
+   36:	invokevirtual	#9; //Method java/io/BufferedReader.close:()V
+   39:	return
+  LineNumberTable: 
+   line 8: 0
+   line 10: 16
+   line 11: 25
+   line 12: 35
+   line 13: 39
+
+  StackMapTable: number_of_entries = 2
+   frame_type = 252 /* append */
+     offset_delta = 16
+     locals = [ class java/io/BufferedReader ]
+   frame_type = 252 /* append */
+     offset_delta = 18
+     locals = [ class java/lang/String ]
+
+  Exceptions: 
+   throws java.io.IOException
 public static void main(java.lang.String[])   throws java.io.IOException;
   Code:
-   Stack=6, Locals=8, Args_size=1
-   0:	ldc	#2; //String ./classes/test/data/FileOps
+   Stack=6, Locals=7, Args_size=1
+   0:	ldc	#10; //String ./classes/test/data/FileOps
    2:	astore_1
-   3:	new	#3; //class java/io/File
+   3:	new	#11; //class java/io/File
    6:	dup
-   7:	ldc	#4; //String 
-   9:	invokespecial	#5; //Method java/io/File."<init>":(Ljava/lang/String;)V
+   7:	ldc	#12; //String /dfsd/dsfds
+   9:	invokespecial	#13; //Method java/io/File."<init>":(Ljava/lang/String;)V
    12:	astore_2
-   13:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   16:	new	#7; //class java/lang/StringBuilder
-   19:	dup
-   20:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   23:	ldc	#9; //String Is '' an absolute path?: 
-   25:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   28:	aload_2
-   29:	invokevirtual	#11; //Method java/io/File.isAbsolute:()Z
-   32:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   35:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   38:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   41:	new	#3; //class java/io/File
+   13:	new	#2; //class java/io/BufferedReader
+   16:	dup
+   17:	new	#3; //class java/io/FileReader
+   20:	dup
+   21:	aload_2
+   22:	invokespecial	#4; //Method java/io/FileReader."<init>":(Ljava/io/File;)V
+   25:	invokespecial	#5; //Method java/io/BufferedReader."<init>":(Ljava/io/Reader;)V
+   28:	astore_3
+   29:	goto	41
+   32:	astore_3
+   33:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   36:	ldc	#15; //String Successfully threw exception for nonexistant file.
+   38:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   41:	new	#11; //class java/io/File
    44:	dup
-   45:	aload_2
-   46:	invokevirtual	#15; //Method java/io/File.getAbsolutePath:()Ljava/lang/String;
-   49:	invokespecial	#5; //Method java/io/File."<init>":(Ljava/lang/String;)V
-   52:	astore_3
-   53:	new	#3; //class java/io/File
-   56:	dup
-   57:	aload_2
-   58:	invokevirtual	#16; //Method java/io/File.getCanonicalPath:()Ljava/lang/String;
-   61:	invokespecial	#5; //Method java/io/File."<init>":(Ljava/lang/String;)V
-   64:	astore	4
-   66:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   69:	new	#7; //class java/lang/StringBuilder
-   72:	dup
-   73:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   76:	ldc	#17; //String Does the absolute path of '' exist?: 
-   78:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   81:	aload_3
-   82:	invokevirtual	#18; //Method java/io/File.exists:()Z
-   85:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   88:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   91:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   94:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   97:	new	#7; //class java/lang/StringBuilder
-   100:	dup
-   101:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   104:	ldc	#19; //String Does the canonical path of '' exist?: 
-   106:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   109:	aload	4
-   111:	invokevirtual	#18; //Method java/io/File.exists:()Z
-   114:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   117:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   120:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   123:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   126:	new	#7; //class java/lang/StringBuilder
-   129:	dup
-   130:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   133:	ldc	#20; //String Does abspath == canonpath.abspath?: 
-   135:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   138:	aload_3
-   139:	invokevirtual	#15; //Method java/io/File.getAbsolutePath:()Ljava/lang/String;
-   142:	aload	4
-   144:	invokevirtual	#15; //Method java/io/File.getAbsolutePath:()Ljava/lang/String;
-   147:	if_acmpne	154
-   150:	iconst_1
-   151:	goto	155
-   154:	iconst_0
-   155:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   158:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   161:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   164:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   167:	new	#7; //class java/lang/StringBuilder
-   170:	dup
-   171:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   174:	ldc	#21; //String Does abspath.canonpath == canonpath?: 
-   176:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   179:	aload_3
-   180:	invokevirtual	#16; //Method java/io/File.getCanonicalPath:()Ljava/lang/String;
-   183:	aload	4
-   185:	invokevirtual	#16; //Method java/io/File.getCanonicalPath:()Ljava/lang/String;
-   188:	if_acmpne	195
-   191:	iconst_1
-   192:	goto	196
-   195:	iconst_0
-   196:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   199:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   202:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   205:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   208:	new	#7; //class java/lang/StringBuilder
-   211:	dup
-   212:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   215:	ldc	#22; //String Does '' exist?: 
-   217:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   220:	aload_2
-   221:	invokevirtual	#18; //Method java/io/File.exists:()Z
-   224:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   227:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   230:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   233:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   236:	new	#7; //class java/lang/StringBuilder
-   239:	dup
-   240:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   243:	ldc	#23; //String What is the length of ''?: 
-   245:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   248:	aload_2
-   249:	invokevirtual	#24; //Method java/io/File.length:()J
-   252:	invokevirtual	#25; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
-   255:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   258:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   261:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   264:	new	#7; //class java/lang/StringBuilder
-   267:	dup
-   268:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   271:	ldc	#26; //String Can you write to ''?: 
-   273:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   276:	aload_2
-   277:	invokevirtual	#27; //Method java/io/File.canWrite:()Z
-   280:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   283:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   286:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   289:	new	#3; //class java/io/File
-   292:	dup
-   293:	aload_1
-   294:	invokespecial	#5; //Method java/io/File."<init>":(Ljava/lang/String;)V
-   297:	invokevirtual	#28; //Method java/io/File.listFiles:()[Ljava/io/File;
-   300:	astore_2
-   301:	aload_2
-   302:	arraylength
-   303:	istore_3
-   304:	iconst_0
-   305:	istore	4
-   307:	iload	4
-   309:	iload_3
-   310:	if_icmpge	336
-   313:	aload_2
-   314:	iload	4
-   316:	aaload
-   317:	astore	5
-   319:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   322:	aload	5
-   324:	invokevirtual	#29; //Method java/io/File.getName:()Ljava/lang/String;
-   327:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   330:	iinc	4, 1
-   333:	goto	307
-   336:	new	#3; //class java/io/File
-   339:	dup
-   340:	new	#7; //class java/lang/StringBuilder
-   343:	dup
-   344:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   347:	aload_1
-   348:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   351:	ldc	#30; //String /contains_data.txt
-   353:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   356:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   359:	invokespecial	#5; //Method java/io/File."<init>":(Ljava/lang/String;)V
-   362:	astore_2
-   363:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   366:	new	#7; //class java/lang/StringBuilder
-   369:	dup
-   370:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   373:	ldc	#31; //String Does contains_data.txt exist?: 
-   375:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   378:	aload_2
-   379:	invokevirtual	#18; //Method java/io/File.exists:()Z
-   382:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   385:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   388:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   391:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   394:	new	#7; //class java/lang/StringBuilder
-   397:	dup
-   398:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   401:	ldc	#32; //String Length of contains_data.txt: 
-   403:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   406:	aload_2
-   407:	invokevirtual	#24; //Method java/io/File.length:()J
-   410:	invokevirtual	#25; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
-   413:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   416:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   419:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   422:	new	#7; //class java/lang/StringBuilder
-   425:	dup
-   426:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   429:	ldc	#33; //String Can I write to contains_data.txt?:  
-   431:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   434:	aload_2
-   435:	invokevirtual	#27; //Method java/io/File.canWrite:()Z
-   438:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   441:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   444:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   447:	new	#3; //class java/io/File
-   450:	dup
-   451:	aload_1
-   452:	invokespecial	#5; //Method java/io/File."<init>":(Ljava/lang/String;)V
-   455:	astore_2
-   456:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   459:	new	#7; //class java/lang/StringBuilder
-   462:	dup
-   463:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   466:	ldc	#34; //String Is FileOps a directory?: 
-   468:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   471:	aload_2
-   472:	invokevirtual	#35; //Method java/io/File.isDirectory:()Z
-   475:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   478:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   481:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   484:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   487:	new	#7; //class java/lang/StringBuilder
-   490:	dup
-   491:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   494:	ldc	#36; //String Can I write to it?: 
-   496:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   499:	aload_2
-   500:	invokevirtual	#27; //Method java/io/File.canWrite:()Z
-   503:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   506:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   509:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   512:	new	#3; //class java/io/File
-   515:	dup
-   516:	new	#7; //class java/lang/StringBuilder
-   519:	dup
-   520:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   523:	aload_1
-   524:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   527:	ldc	#37; //String /temp_delete_me.txt
-   529:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   532:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   535:	invokespecial	#5; //Method java/io/File."<init>":(Ljava/lang/String;)V
-   538:	astore_2
-   539:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   542:	new	#7; //class java/lang/StringBuilder
-   545:	dup
-   546:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   549:	ldc	#38; //String Does temp_delete_me.txt exist?: 
-   551:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   554:	aload_2
-   555:	invokevirtual	#18; //Method java/io/File.exists:()Z
-   558:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   561:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   564:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   567:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   570:	new	#7; //class java/lang/StringBuilder
-   573:	dup
-   574:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   577:	ldc	#39; //String Did we successfully create this file?: 
-   579:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   582:	aload_2
-   583:	invokevirtual	#40; //Method java/io/File.createNewFile:()Z
-   586:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   589:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   592:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   595:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   598:	new	#7; //class java/lang/StringBuilder
-   601:	dup
-   602:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   605:	ldc	#41; //String And does it exist now?: 
-   607:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   610:	aload_2
-   611:	invokevirtual	#18; //Method java/io/File.exists:()Z
-   614:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   617:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   620:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   623:	aload_2
-   624:	invokevirtual	#42; //Method java/io/File.lastModified:()J
-   627:	lstore_3
-   628:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   631:	new	#7; //class java/lang/StringBuilder
-   634:	dup
-   635:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   638:	ldc	#36; //String Can I write to it?: 
-   640:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   643:	aload_2
-   644:	invokevirtual	#27; //Method java/io/File.canWrite:()Z
-   647:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   650:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   653:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   656:	aload_2
-   657:	iconst_0
-   658:	invokevirtual	#43; //Method java/io/File.setWritable:(Z)Z
-   661:	pop
-   662:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   665:	new	#7; //class java/lang/StringBuilder
-   668:	dup
-   669:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   672:	ldc	#44; //String How about now?: 
-   674:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   677:	aload_2
-   678:	invokevirtual	#27; //Method java/io/File.canWrite:()Z
-   681:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   684:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   687:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   690:	aload_2
-   691:	iconst_1
-   692:	invokevirtual	#43; //Method java/io/File.setWritable:(Z)Z
-   695:	pop
-   696:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   699:	new	#7; //class java/lang/StringBuilder
-   702:	dup
-   703:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   706:	ldc	#45; //String And now?: 
-   708:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   711:	aload_2
-   712:	invokevirtual	#27; //Method java/io/File.canWrite:()Z
-   715:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   718:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   721:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   724:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   727:	new	#7; //class java/lang/StringBuilder
-   730:	dup
-   731:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   734:	ldc	#46; //String File size: 
-   736:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   739:	aload_2
-   740:	invokevirtual	#24; //Method java/io/File.length:()J
-   743:	invokevirtual	#25; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
-   746:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   749:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   752:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   755:	ldc	#47; //String Sleeping for a small amount of time...
-   757:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   760:	ldc2_w	#48; //long 1000l
-   763:	invokestatic	#50; //Method java/lang/Thread.sleep:(J)V
-   766:	goto	771
-   769:	astore	5
-   771:	new	#52; //class java/io/FileWriter
-   774:	dup
-   775:	aload_2
-   776:	invokespecial	#53; //Method java/io/FileWriter."<init>":(Ljava/io/File;)V
-   779:	astore	5
-   781:	aload	5
-   783:	ldc	#54; //String Why, hello there!
-   785:	invokevirtual	#55; //Method java/io/FileWriter.write:(Ljava/lang/String;)V
-   788:	aload	5
-   790:	invokevirtual	#56; //Method java/io/FileWriter.close:()V
-   793:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   796:	new	#7; //class java/lang/StringBuilder
-   799:	dup
-   800:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   803:	ldc	#57; //String New file size: 
-   805:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   808:	aload_2
-   809:	invokevirtual	#24; //Method java/io/File.length:()J
-   812:	invokevirtual	#25; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
-   815:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   818:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   821:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   824:	ldc	#58; //String File contents:
-   826:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   829:	new	#59; //class java/io/BufferedReader
-   832:	dup
-   833:	new	#60; //class java/io/FileReader
-   836:	dup
-   837:	aload_2
-   838:	invokespecial	#61; //Method java/io/FileReader."<init>":(Ljava/io/File;)V
-   841:	invokespecial	#62; //Method java/io/BufferedReader."<init>":(Ljava/io/Reader;)V
-   844:	astore	6
-   846:	aload	6
-   848:	invokevirtual	#63; //Method java/io/BufferedReader.readLine:()Ljava/lang/String;
-   851:	dup
-   852:	astore	7
-   854:	ifnull	868
-   857:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   860:	aload	7
-   862:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   865:	goto	846
-   868:	aload	6
-   870:	invokevirtual	#64; //Method java/io/BufferedReader.close:()V
-   873:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   876:	new	#7; //class java/lang/StringBuilder
-   879:	dup
-   880:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   883:	ldc	#65; //String Now, has the modified time changed? 
-   885:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   888:	lload_3
-   889:	aload_2
-   890:	invokevirtual	#42; //Method java/io/File.lastModified:()J
-   893:	lcmp
-   894:	ifge	901
-   897:	iconst_1
-   898:	goto	902
-   901:	iconst_0
-   902:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   905:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   908:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   911:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   914:	new	#7; //class java/lang/StringBuilder
-   917:	dup
-   918:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   921:	ldc	#66; //String Deleting file: 
-   923:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   926:	aload_2
-   927:	invokevirtual	#67; //Method java/io/File.delete:()Z
-   930:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   933:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   936:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   939:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   942:	new	#7; //class java/lang/StringBuilder
-   945:	dup
-   946:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   949:	ldc	#68; //String Does the file exist?: 
-   951:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   954:	aload_2
-   955:	invokevirtual	#18; //Method java/io/File.exists:()Z
-   958:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   961:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   964:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   967:	new	#3; //class java/io/File
-   970:	dup
-   971:	new	#7; //class java/lang/StringBuilder
-   974:	dup
-   975:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   978:	aload_1
-   979:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   982:	ldc	#69; //String /tempDir
-   984:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   987:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   990:	invokespecial	#5; //Method java/io/File."<init>":(Ljava/lang/String;)V
-   993:	astore_2
-   994:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   997:	new	#7; //class java/lang/StringBuilder
-   1000:	dup
-   1001:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1004:	ldc	#70; //String Does tempDir exist?: 
-   1006:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1009:	aload_2
-   1010:	invokevirtual	#18; //Method java/io/File.exists:()Z
-   1013:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1016:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1019:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1022:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1025:	new	#7; //class java/lang/StringBuilder
-   1028:	dup
-   1029:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1032:	ldc	#71; //String Making tempDir: 
-   1034:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1037:	aload_2
-   1038:	invokevirtual	#72; //Method java/io/File.mkdir:()Z
-   1041:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1044:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1047:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1050:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1053:	new	#7; //class java/lang/StringBuilder
-   1056:	dup
-   1057:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1060:	ldc	#73; //String Does tempDir exist now?: 
-   1062:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1065:	aload_2
-   1066:	invokevirtual	#18; //Method java/io/File.exists:()Z
-   1069:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1072:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1075:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1078:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1081:	new	#7; //class java/lang/StringBuilder
-   1084:	dup
-   1085:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1088:	ldc	#74; //String Deleting tempDir: 
-   1090:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1093:	aload_2
-   1094:	invokevirtual	#67; //Method java/io/File.delete:()Z
-   1097:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1100:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1103:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1106:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1109:	new	#7; //class java/lang/StringBuilder
+   45:	ldc	#16; //String 
+   47:	invokespecial	#13; //Method java/io/File."<init>":(Ljava/lang/String;)V
+   50:	astore_2
+   51:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   54:	new	#17; //class java/lang/StringBuilder
+   57:	dup
+   58:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   61:	ldc	#19; //String Is '' an absolute path?: 
+   63:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   66:	aload_2
+   67:	invokevirtual	#21; //Method java/io/File.isAbsolute:()Z
+   70:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   73:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   76:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   79:	new	#11; //class java/io/File
+   82:	dup
+   83:	aload_2
+   84:	invokevirtual	#24; //Method java/io/File.getAbsolutePath:()Ljava/lang/String;
+   87:	invokespecial	#13; //Method java/io/File."<init>":(Ljava/lang/String;)V
+   90:	astore_3
+   91:	new	#11; //class java/io/File
+   94:	dup
+   95:	aload_2
+   96:	invokevirtual	#25; //Method java/io/File.getCanonicalPath:()Ljava/lang/String;
+   99:	invokespecial	#13; //Method java/io/File."<init>":(Ljava/lang/String;)V
+   102:	astore	4
+   104:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   107:	new	#17; //class java/lang/StringBuilder
+   110:	dup
+   111:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   114:	ldc	#26; //String Does the absolute path of '' exist?: 
+   116:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   119:	aload_3
+   120:	invokevirtual	#27; //Method java/io/File.exists:()Z
+   123:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   126:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   129:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   132:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   135:	new	#17; //class java/lang/StringBuilder
+   138:	dup
+   139:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   142:	ldc	#28; //String Does the canonical path of '' exist?: 
+   144:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   147:	aload	4
+   149:	invokevirtual	#27; //Method java/io/File.exists:()Z
+   152:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   155:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   158:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   161:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   164:	new	#17; //class java/lang/StringBuilder
+   167:	dup
+   168:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   171:	ldc	#29; //String Does abspath == canonpath.abspath?: 
+   173:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   176:	aload_3
+   177:	invokevirtual	#24; //Method java/io/File.getAbsolutePath:()Ljava/lang/String;
+   180:	aload	4
+   182:	invokevirtual	#24; //Method java/io/File.getAbsolutePath:()Ljava/lang/String;
+   185:	if_acmpne	192
+   188:	iconst_1
+   189:	goto	193
+   192:	iconst_0
+   193:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   196:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   199:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   202:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   205:	new	#17; //class java/lang/StringBuilder
+   208:	dup
+   209:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   212:	ldc	#30; //String Does abspath.canonpath == canonpath?: 
+   214:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   217:	aload_3
+   218:	invokevirtual	#25; //Method java/io/File.getCanonicalPath:()Ljava/lang/String;
+   221:	aload	4
+   223:	invokevirtual	#25; //Method java/io/File.getCanonicalPath:()Ljava/lang/String;
+   226:	if_acmpne	233
+   229:	iconst_1
+   230:	goto	234
+   233:	iconst_0
+   234:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   237:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   240:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   243:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   246:	new	#17; //class java/lang/StringBuilder
+   249:	dup
+   250:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   253:	ldc	#31; //String Does '' exist?: 
+   255:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   258:	aload_2
+   259:	invokevirtual	#27; //Method java/io/File.exists:()Z
+   262:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   265:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   268:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   271:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   274:	new	#17; //class java/lang/StringBuilder
+   277:	dup
+   278:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   281:	ldc	#32; //String What is the length of ''?: 
+   283:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   286:	aload_2
+   287:	invokevirtual	#33; //Method java/io/File.length:()J
+   290:	invokevirtual	#34; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   293:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   296:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   299:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   302:	new	#17; //class java/lang/StringBuilder
+   305:	dup
+   306:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   309:	ldc	#35; //String Can you write to ''?: 
+   311:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   314:	aload_2
+   315:	invokevirtual	#36; //Method java/io/File.canWrite:()Z
+   318:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   321:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   324:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   327:	new	#11; //class java/io/File
+   330:	dup
+   331:	aload_1
+   332:	invokespecial	#13; //Method java/io/File."<init>":(Ljava/lang/String;)V
+   335:	invokevirtual	#37; //Method java/io/File.listFiles:()[Ljava/io/File;
+   338:	astore_2
+   339:	aload_2
+   340:	arraylength
+   341:	istore_3
+   342:	iconst_0
+   343:	istore	4
+   345:	iload	4
+   347:	iload_3
+   348:	if_icmpge	374
+   351:	aload_2
+   352:	iload	4
+   354:	aaload
+   355:	astore	5
+   357:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   360:	aload	5
+   362:	invokevirtual	#38; //Method java/io/File.getName:()Ljava/lang/String;
+   365:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   368:	iinc	4, 1
+   371:	goto	345
+   374:	new	#11; //class java/io/File
+   377:	dup
+   378:	new	#17; //class java/lang/StringBuilder
+   381:	dup
+   382:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   385:	aload_1
+   386:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   389:	ldc	#39; //String /contains_data.txt
+   391:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   394:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   397:	invokespecial	#13; //Method java/io/File."<init>":(Ljava/lang/String;)V
+   400:	astore_2
+   401:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   404:	new	#17; //class java/lang/StringBuilder
+   407:	dup
+   408:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   411:	ldc	#40; //String Does contains_data.txt exist?: 
+   413:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   416:	aload_2
+   417:	invokevirtual	#27; //Method java/io/File.exists:()Z
+   420:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   423:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   426:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   429:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   432:	new	#17; //class java/lang/StringBuilder
+   435:	dup
+   436:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   439:	ldc	#41; //String Length of contains_data.txt: 
+   441:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   444:	aload_2
+   445:	invokevirtual	#33; //Method java/io/File.length:()J
+   448:	invokevirtual	#34; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   451:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   454:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   457:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   460:	new	#17; //class java/lang/StringBuilder
+   463:	dup
+   464:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   467:	ldc	#42; //String Can I write to contains_data.txt?:  
+   469:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   472:	aload_2
+   473:	invokevirtual	#36; //Method java/io/File.canWrite:()Z
+   476:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   479:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   482:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   485:	new	#11; //class java/io/File
+   488:	dup
+   489:	aload_1
+   490:	invokespecial	#13; //Method java/io/File."<init>":(Ljava/lang/String;)V
+   493:	astore_2
+   494:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   497:	new	#17; //class java/lang/StringBuilder
+   500:	dup
+   501:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   504:	ldc	#43; //String Is FileOps a directory?: 
+   506:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   509:	aload_2
+   510:	invokevirtual	#44; //Method java/io/File.isDirectory:()Z
+   513:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   516:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   519:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   522:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   525:	new	#17; //class java/lang/StringBuilder
+   528:	dup
+   529:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   532:	ldc	#45; //String Can I write to it?: 
+   534:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   537:	aload_2
+   538:	invokevirtual	#36; //Method java/io/File.canWrite:()Z
+   541:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   544:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   547:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   550:	new	#11; //class java/io/File
+   553:	dup
+   554:	new	#17; //class java/lang/StringBuilder
+   557:	dup
+   558:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   561:	aload_1
+   562:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   565:	ldc	#46; //String /temp_delete_me.txt
+   567:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   570:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   573:	invokespecial	#13; //Method java/io/File."<init>":(Ljava/lang/String;)V
+   576:	astore_2
+   577:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   580:	new	#17; //class java/lang/StringBuilder
+   583:	dup
+   584:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   587:	ldc	#47; //String Does temp_delete_me.txt exist?: 
+   589:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   592:	aload_2
+   593:	invokevirtual	#27; //Method java/io/File.exists:()Z
+   596:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   599:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   602:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   605:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   608:	new	#17; //class java/lang/StringBuilder
+   611:	dup
+   612:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   615:	ldc	#48; //String Did we successfully create this file?: 
+   617:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   620:	aload_2
+   621:	invokevirtual	#49; //Method java/io/File.createNewFile:()Z
+   624:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   627:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   630:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   633:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   636:	new	#17; //class java/lang/StringBuilder
+   639:	dup
+   640:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   643:	ldc	#50; //String And does it exist now?: 
+   645:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   648:	aload_2
+   649:	invokevirtual	#27; //Method java/io/File.exists:()Z
+   652:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   655:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   658:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   661:	aload_2
+   662:	invokevirtual	#51; //Method java/io/File.lastModified:()J
+   665:	lstore_3
+   666:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   669:	new	#17; //class java/lang/StringBuilder
+   672:	dup
+   673:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   676:	ldc	#45; //String Can I write to it?: 
+   678:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   681:	aload_2
+   682:	invokevirtual	#36; //Method java/io/File.canWrite:()Z
+   685:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   688:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   691:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   694:	aload_2
+   695:	iconst_0
+   696:	invokevirtual	#52; //Method java/io/File.setWritable:(Z)Z
+   699:	pop
+   700:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   703:	new	#17; //class java/lang/StringBuilder
+   706:	dup
+   707:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   710:	ldc	#53; //String How about now?: 
+   712:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   715:	aload_2
+   716:	invokevirtual	#36; //Method java/io/File.canWrite:()Z
+   719:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   722:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   725:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   728:	aload_2
+   729:	iconst_1
+   730:	invokevirtual	#52; //Method java/io/File.setWritable:(Z)Z
+   733:	pop
+   734:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   737:	new	#17; //class java/lang/StringBuilder
+   740:	dup
+   741:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   744:	ldc	#54; //String And now?: 
+   746:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   749:	aload_2
+   750:	invokevirtual	#36; //Method java/io/File.canWrite:()Z
+   753:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   756:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   759:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   762:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   765:	new	#17; //class java/lang/StringBuilder
+   768:	dup
+   769:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   772:	ldc	#55; //String File size: 
+   774:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   777:	aload_2
+   778:	invokevirtual	#33; //Method java/io/File.length:()J
+   781:	invokevirtual	#34; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   784:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   787:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   790:	new	#56; //class java/io/FileWriter
+   793:	dup
+   794:	aload_2
+   795:	invokespecial	#57; //Method java/io/FileWriter."<init>":(Ljava/io/File;)V
+   798:	astore	5
+   800:	aload	5
+   802:	ldc	#58; //String Why, hello there!\n
+   804:	invokevirtual	#59; //Method java/io/FileWriter.write:(Ljava/lang/String;)V
+   807:	aload	5
+   809:	invokevirtual	#60; //Method java/io/FileWriter.close:()V
+   812:	aload_2
+   813:	invokestatic	#61; //Method java/lang/System.currentTimeMillis:()J
+   816:	ldc2_w	#62; //long 1337l
+   819:	ladd
+   820:	invokevirtual	#64; //Method java/io/File.setLastModified:(J)Z
+   823:	pop
+   824:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   827:	new	#17; //class java/lang/StringBuilder
+   830:	dup
+   831:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   834:	ldc	#65; //String Last modified updated?: 
+   836:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   839:	aload_2
+   840:	invokevirtual	#51; //Method java/io/File.lastModified:()J
+   843:	lload_3
+   844:	lcmp
+   845:	ifle	852
+   848:	iconst_1
+   849:	goto	853
+   852:	iconst_0
+   853:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   856:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   859:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   862:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   865:	new	#17; //class java/lang/StringBuilder
+   868:	dup
+   869:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   872:	ldc	#66; //String New file size: 
+   874:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   877:	aload_2
+   878:	invokevirtual	#33; //Method java/io/File.length:()J
+   881:	invokevirtual	#34; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   884:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   887:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   890:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   893:	ldc	#67; //String File contents:
+   895:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   898:	aload_2
+   899:	invokestatic	#68; //Method printFile:(Ljava/io/File;)V
+   902:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   905:	ldc	#69; //String Appending to file's end...
+   907:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   910:	new	#56; //class java/io/FileWriter
+   913:	dup
+   914:	aload_2
+   915:	iconst_1
+   916:	invokespecial	#70; //Method java/io/FileWriter."<init>":(Ljava/io/File;Z)V
+   919:	astore	5
+   921:	aload	5
+   923:	ldc	#71; //String A second line?!\n
+   925:	invokevirtual	#59; //Method java/io/FileWriter.write:(Ljava/lang/String;)V
+   928:	aload	5
+   930:	invokevirtual	#60; //Method java/io/FileWriter.close:()V
+   933:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   936:	new	#17; //class java/lang/StringBuilder
+   939:	dup
+   940:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   943:	ldc	#55; //String File size: 
+   945:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   948:	aload_2
+   949:	invokevirtual	#33; //Method java/io/File.length:()J
+   952:	invokevirtual	#34; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   955:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   958:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   961:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   964:	ldc	#67; //String File contents:
+   966:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   969:	aload_2
+   970:	invokestatic	#68; //Method printFile:(Ljava/io/File;)V
+   973:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   976:	ldc	#72; //String Overwriting some text...
+   978:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   981:	new	#73; //class java/io/RandomAccessFile
+   984:	dup
+   985:	aload_2
+   986:	ldc	#74; //String rw
+   988:	invokespecial	#75; //Method java/io/RandomAccessFile."<init>":(Ljava/io/File;Ljava/lang/String;)V
+   991:	astore	6
+   993:	aload	6
+   995:	bipush	17
+   997:	invokevirtual	#76; //Method java/io/RandomAccessFile.skipBytes:(I)I
+   1000:	pop
+   1001:	aload	6
+   1003:	ldc	#77; //String KILROY WAS HERE\n
+   1005:	invokevirtual	#78; //Method java/io/RandomAccessFile.writeChars:(Ljava/lang/String;)V
+   1008:	aload	6
+   1010:	invokevirtual	#79; //Method java/io/RandomAccessFile.close:()V
+   1013:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1016:	new	#17; //class java/lang/StringBuilder
+   1019:	dup
+   1020:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1023:	ldc	#55; //String File size: 
+   1025:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1028:	aload_2
+   1029:	invokevirtual	#33; //Method java/io/File.length:()J
+   1032:	invokevirtual	#34; //Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+   1035:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1038:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1041:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1044:	ldc	#67; //String File contents:
+   1046:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1049:	aload_2
+   1050:	invokestatic	#68; //Method printFile:(Ljava/io/File;)V
+   1053:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1056:	new	#17; //class java/lang/StringBuilder
+   1059:	dup
+   1060:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1063:	ldc	#80; //String Deleting file: 
+   1065:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1068:	aload_2
+   1069:	invokevirtual	#81; //Method java/io/File.delete:()Z
+   1072:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   1075:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1078:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1081:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1084:	new	#17; //class java/lang/StringBuilder
+   1087:	dup
+   1088:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1091:	ldc	#82; //String Does the file exist?: 
+   1093:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1096:	aload_2
+   1097:	invokevirtual	#27; //Method java/io/File.exists:()Z
+   1100:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   1103:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1106:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1109:	new	#11; //class java/io/File
    1112:	dup
-   1113:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1116:	ldc	#73; //String Does tempDir exist now?: 
-   1118:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1121:	aload_2
-   1122:	invokevirtual	#18; //Method java/io/File.exists:()Z
-   1125:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1128:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1131:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1134:	new	#3; //class java/io/File
-   1137:	dup
-   1138:	new	#7; //class java/lang/StringBuilder
-   1141:	dup
-   1142:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1145:	aload_1
-   1146:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1149:	ldc	#75; //String /tempDir/tempDir
-   1151:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1154:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1157:	invokespecial	#5; //Method java/io/File."<init>":(Ljava/lang/String;)V
-   1160:	astore_2
-   1161:	new	#3; //class java/io/File
-   1164:	dup
-   1165:	new	#7; //class java/lang/StringBuilder
-   1168:	dup
-   1169:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1172:	aload_1
-   1173:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1176:	ldc	#69; //String /tempDir
-   1178:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1181:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1184:	invokespecial	#5; //Method java/io/File."<init>":(Ljava/lang/String;)V
-   1187:	astore_3
-   1188:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1191:	new	#7; //class java/lang/StringBuilder
-   1194:	dup
-   1195:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1198:	ldc	#76; //String Does tempDir/tempDir exist?: 
-   1200:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1203:	aload_2
-   1204:	invokevirtual	#18; //Method java/io/File.exists:()Z
-   1207:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1210:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1213:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1216:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1219:	new	#7; //class java/lang/StringBuilder
-   1222:	dup
-   1223:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1226:	ldc	#77; //String Making tempDir/tempDir (should fail): 
-   1228:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1231:	aload_2
-   1232:	invokevirtual	#72; //Method java/io/File.mkdir:()Z
-   1235:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1238:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1241:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1244:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1247:	new	#7; //class java/lang/StringBuilder
-   1250:	dup
-   1251:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1254:	ldc	#78; //String Does tempDir/tempDir exist now?: 
-   1256:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1259:	aload_2
-   1260:	invokevirtual	#18; //Method java/io/File.exists:()Z
-   1263:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1266:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1269:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1272:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1275:	new	#7; //class java/lang/StringBuilder
-   1278:	dup
-   1279:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1282:	ldc	#79; //String Deleting tempDir/tempDir (should fail): 
-   1284:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1287:	aload_2
-   1288:	invokevirtual	#67; //Method java/io/File.delete:()Z
-   1291:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1294:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1297:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1300:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1303:	new	#7; //class java/lang/StringBuilder
+   1113:	new	#17; //class java/lang/StringBuilder
+   1116:	dup
+   1117:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1120:	aload_1
+   1121:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1124:	ldc	#83; //String /tempDir
+   1126:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1129:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1132:	invokespecial	#13; //Method java/io/File."<init>":(Ljava/lang/String;)V
+   1135:	astore_2
+   1136:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1139:	new	#17; //class java/lang/StringBuilder
+   1142:	dup
+   1143:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1146:	ldc	#84; //String Does tempDir exist?: 
+   1148:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1151:	aload_2
+   1152:	invokevirtual	#27; //Method java/io/File.exists:()Z
+   1155:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   1158:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1161:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1164:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1167:	new	#17; //class java/lang/StringBuilder
+   1170:	dup
+   1171:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1174:	ldc	#85; //String Making tempDir: 
+   1176:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1179:	aload_2
+   1180:	invokevirtual	#86; //Method java/io/File.mkdir:()Z
+   1183:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   1186:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1189:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1192:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1195:	new	#17; //class java/lang/StringBuilder
+   1198:	dup
+   1199:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1202:	ldc	#87; //String Does tempDir exist now?: 
+   1204:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1207:	aload_2
+   1208:	invokevirtual	#27; //Method java/io/File.exists:()Z
+   1211:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   1214:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1217:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1220:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1223:	new	#17; //class java/lang/StringBuilder
+   1226:	dup
+   1227:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1230:	ldc	#88; //String Deleting tempDir: 
+   1232:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1235:	aload_2
+   1236:	invokevirtual	#81; //Method java/io/File.delete:()Z
+   1239:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   1242:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1245:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1248:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1251:	new	#17; //class java/lang/StringBuilder
+   1254:	dup
+   1255:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1258:	ldc	#87; //String Does tempDir exist now?: 
+   1260:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1263:	aload_2
+   1264:	invokevirtual	#27; //Method java/io/File.exists:()Z
+   1267:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   1270:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1273:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1276:	new	#11; //class java/io/File
+   1279:	dup
+   1280:	new	#17; //class java/lang/StringBuilder
+   1283:	dup
+   1284:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1287:	aload_1
+   1288:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1291:	ldc	#89; //String /tempDir/tempDir
+   1293:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1296:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1299:	invokespecial	#13; //Method java/io/File."<init>":(Ljava/lang/String;)V
+   1302:	astore_2
+   1303:	new	#11; //class java/io/File
    1306:	dup
-   1307:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1310:	ldc	#80; //String Making tempDir/tempDir (should succeed): 
-   1312:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1315:	aload_2
-   1316:	invokevirtual	#81; //Method java/io/File.mkdirs:()Z
-   1319:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1322:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1325:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1328:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1331:	new	#7; //class java/lang/StringBuilder
-   1334:	dup
-   1335:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1338:	ldc	#78; //String Does tempDir/tempDir exist now?: 
-   1340:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1343:	aload_2
-   1344:	invokevirtual	#18; //Method java/io/File.exists:()Z
-   1347:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1350:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1353:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1356:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1359:	new	#7; //class java/lang/StringBuilder
-   1362:	dup
-   1363:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1366:	ldc	#82; //String Deleting tempDir (should fail -- nonempty): 
-   1368:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1371:	aload_3
-   1372:	invokevirtual	#67; //Method java/io/File.delete:()Z
-   1375:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1378:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1381:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1384:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1387:	new	#7; //class java/lang/StringBuilder
-   1390:	dup
-   1391:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1394:	ldc	#78; //String Does tempDir/tempDir exist now?: 
-   1396:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1399:	aload_2
-   1400:	invokevirtual	#18; //Method java/io/File.exists:()Z
-   1403:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1406:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1409:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1412:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1415:	new	#7; //class java/lang/StringBuilder
-   1418:	dup
-   1419:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1422:	ldc	#73; //String Does tempDir exist now?: 
-   1424:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1427:	aload_2
-   1428:	invokevirtual	#18; //Method java/io/File.exists:()Z
-   1431:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1434:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1437:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1440:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1443:	new	#7; //class java/lang/StringBuilder
-   1446:	dup
-   1447:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1450:	ldc	#83; //String Deleting tempDir/tempDir: 
-   1452:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1455:	aload_2
-   1456:	invokevirtual	#67; //Method java/io/File.delete:()Z
-   1459:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1462:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1465:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1468:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1471:	new	#7; //class java/lang/StringBuilder
-   1474:	dup
-   1475:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1478:	ldc	#84; //String Deleting tempDir (should succeed this time): 
-   1480:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1483:	aload_3
-   1484:	invokevirtual	#67; //Method java/io/File.delete:()Z
-   1487:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1490:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1493:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1496:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1499:	new	#7; //class java/lang/StringBuilder
-   1502:	dup
-   1503:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1506:	ldc	#78; //String Does tempDir/tempDir exist now?: 
-   1508:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1511:	aload_2
-   1512:	invokevirtual	#18; //Method java/io/File.exists:()Z
-   1515:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1518:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1521:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1524:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1527:	new	#7; //class java/lang/StringBuilder
-   1530:	dup
-   1531:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1534:	ldc	#73; //String Does tempDir exist now?: 
-   1536:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1539:	aload_3
-   1540:	invokevirtual	#18; //Method java/io/File.exists:()Z
-   1543:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1546:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1549:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1552:	new	#3; //class java/io/File
-   1555:	dup
-   1556:	aload_1
-   1557:	invokespecial	#5; //Method java/io/File."<init>":(Ljava/lang/String;)V
-   1560:	astore_2
-   1561:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1564:	new	#7; //class java/lang/StringBuilder
-   1567:	dup
-   1568:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1571:	ldc	#85; //String Trying to create a directory that already exists: 
-   1573:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1576:	aload_2
-   1577:	invokevirtual	#72; //Method java/io/File.mkdir:()Z
-   1580:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1583:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1586:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1589:	new	#3; //class java/io/File
-   1592:	dup
-   1593:	new	#7; //class java/lang/StringBuilder
-   1596:	dup
-   1597:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1600:	aload_1
-   1601:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1604:	ldc	#86; //String /temp_rename_file.txt
-   1606:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1609:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1612:	invokespecial	#5; //Method java/io/File."<init>":(Ljava/lang/String;)V
-   1615:	astore_2
-   1616:	new	#3; //class java/io/File
-   1619:	dup
-   1620:	new	#7; //class java/lang/StringBuilder
-   1623:	dup
-   1624:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1627:	aload_1
-   1628:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1631:	ldc	#87; //String /temp_rename_file2.txt
-   1633:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1636:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1639:	invokespecial	#5; //Method java/io/File."<init>":(Ljava/lang/String;)V
-   1642:	astore_3
-   1643:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1646:	new	#7; //class java/lang/StringBuilder
-   1649:	dup
-   1650:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1653:	ldc	#88; //String Creating temp_rename_file.txt: 
-   1655:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1658:	aload_2
-   1659:	invokevirtual	#40; //Method java/io/File.createNewFile:()Z
-   1662:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1665:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1668:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1671:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1674:	new	#7; //class java/lang/StringBuilder
-   1677:	dup
-   1678:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1681:	ldc	#89; //String Renaming it to temp_rename_file2.txt: 
-   1683:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1686:	aload_2
-   1687:	aload_3
-   1688:	invokevirtual	#90; //Method java/io/File.renameTo:(Ljava/io/File;)Z
-   1691:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1694:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1697:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1700:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1703:	new	#7; //class java/lang/StringBuilder
-   1706:	dup
-   1707:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1710:	ldc	#91; //String Old file exist? 
-   1712:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1715:	aload_2
-   1716:	invokevirtual	#18; //Method java/io/File.exists:()Z
-   1719:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1722:	ldc	#92; //String  New file exists? 
-   1724:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1727:	aload_3
-   1728:	invokevirtual	#18; //Method java/io/File.exists:()Z
-   1731:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1734:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1737:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1740:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1743:	new	#7; //class java/lang/StringBuilder
-   1746:	dup
-   1747:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1750:	ldc	#93; //String Recreating old file: 
-   1752:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1755:	aload_2
-   1756:	invokevirtual	#40; //Method java/io/File.createNewFile:()Z
-   1759:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1762:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1765:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1768:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1771:	new	#7; //class java/lang/StringBuilder
-   1774:	dup
-   1775:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1778:	ldc	#94; //String Moving on top of old file: 
-   1780:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1783:	aload_3
-   1784:	aload_2
-   1785:	invokevirtual	#90; //Method java/io/File.renameTo:(Ljava/io/File;)Z
-   1788:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1791:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1794:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1797:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1800:	new	#7; //class java/lang/StringBuilder
-   1803:	dup
-   1804:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1807:	ldc	#95; //String Deleting old file: 
-   1809:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1812:	aload_2
-   1813:	invokevirtual	#67; //Method java/io/File.delete:()Z
-   1816:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1819:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1822:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1825:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1828:	new	#7; //class java/lang/StringBuilder
-   1831:	dup
-   1832:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1835:	ldc	#96; //String Trying to move nonexistant old file: 
-   1837:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1840:	aload_2
-   1841:	aload_3
-   1842:	invokevirtual	#90; //Method java/io/File.renameTo:(Ljava/io/File;)Z
-   1845:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1848:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1851:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1854:	new	#3; //class java/io/File
-   1857:	dup
-   1858:	new	#7; //class java/lang/StringBuilder
-   1861:	dup
-   1862:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1865:	aload_1
-   1866:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1869:	ldc	#97; //String /temp_readonly.txt
-   1871:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1874:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1877:	invokespecial	#5; //Method java/io/File."<init>":(Ljava/lang/String;)V
-   1880:	astore_2
-   1881:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1884:	new	#7; //class java/lang/StringBuilder
-   1887:	dup
-   1888:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1891:	ldc	#98; //String Creating temp_readonly.txt: 
-   1893:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1896:	aload_2
-   1897:	invokevirtual	#40; //Method java/io/File.createNewFile:()Z
-   1900:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1903:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1906:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1909:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1912:	new	#7; //class java/lang/StringBuilder
-   1915:	dup
-   1916:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1919:	ldc	#99; //String Marking as read only: 
-   1921:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1924:	aload_2
-   1925:	invokevirtual	#100; //Method java/io/File.setReadOnly:()Z
-   1928:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1931:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1934:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1937:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1940:	new	#7; //class java/lang/StringBuilder
-   1943:	dup
-   1944:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1947:	ldc	#101; //String Can I write to the file?: 
-   1949:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1952:	aload_2
-   1953:	invokevirtual	#27; //Method java/io/File.canWrite:()Z
-   1956:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1959:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1962:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1965:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1968:	new	#7; //class java/lang/StringBuilder
-   1971:	dup
-   1972:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   1975:	ldc	#102; //String Can I read the file?: 
-   1977:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   1980:	aload_2
-   1981:	invokevirtual	#103; //Method java/io/File.canRead:()Z
-   1984:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   1987:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   1990:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   1993:	getstatic	#6; //Field java/lang/System.out:Ljava/io/PrintStream;
-   1996:	new	#7; //class java/lang/StringBuilder
+   1307:	new	#17; //class java/lang/StringBuilder
+   1310:	dup
+   1311:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1314:	aload_1
+   1315:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1318:	ldc	#83; //String /tempDir
+   1320:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1323:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1326:	invokespecial	#13; //Method java/io/File."<init>":(Ljava/lang/String;)V
+   1329:	astore_3
+   1330:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1333:	new	#17; //class java/lang/StringBuilder
+   1336:	dup
+   1337:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1340:	ldc	#90; //String Does tempDir/tempDir exist?: 
+   1342:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1345:	aload_2
+   1346:	invokevirtual	#27; //Method java/io/File.exists:()Z
+   1349:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   1352:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1355:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1358:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1361:	new	#17; //class java/lang/StringBuilder
+   1364:	dup
+   1365:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1368:	ldc	#91; //String Making tempDir/tempDir (should fail): 
+   1370:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1373:	aload_2
+   1374:	invokevirtual	#86; //Method java/io/File.mkdir:()Z
+   1377:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   1380:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1383:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1386:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1389:	new	#17; //class java/lang/StringBuilder
+   1392:	dup
+   1393:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1396:	ldc	#92; //String Does tempDir/tempDir exist now?: 
+   1398:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1401:	aload_2
+   1402:	invokevirtual	#27; //Method java/io/File.exists:()Z
+   1405:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   1408:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1411:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1414:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1417:	new	#17; //class java/lang/StringBuilder
+   1420:	dup
+   1421:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1424:	ldc	#93; //String Deleting tempDir/tempDir (should fail): 
+   1426:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1429:	aload_2
+   1430:	invokevirtual	#81; //Method java/io/File.delete:()Z
+   1433:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   1436:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1439:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1442:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1445:	new	#17; //class java/lang/StringBuilder
+   1448:	dup
+   1449:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1452:	ldc	#94; //String Making tempDir/tempDir (should succeed): 
+   1454:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1457:	aload_2
+   1458:	invokevirtual	#95; //Method java/io/File.mkdirs:()Z
+   1461:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   1464:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1467:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1470:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1473:	new	#17; //class java/lang/StringBuilder
+   1476:	dup
+   1477:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1480:	ldc	#92; //String Does tempDir/tempDir exist now?: 
+   1482:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1485:	aload_2
+   1486:	invokevirtual	#27; //Method java/io/File.exists:()Z
+   1489:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   1492:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1495:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1498:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1501:	new	#17; //class java/lang/StringBuilder
+   1504:	dup
+   1505:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1508:	ldc	#96; //String Deleting tempDir (should fail -- nonempty): 
+   1510:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1513:	aload_3
+   1514:	invokevirtual	#81; //Method java/io/File.delete:()Z
+   1517:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   1520:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1523:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1526:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1529:	new	#17; //class java/lang/StringBuilder
+   1532:	dup
+   1533:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1536:	ldc	#92; //String Does tempDir/tempDir exist now?: 
+   1538:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1541:	aload_2
+   1542:	invokevirtual	#27; //Method java/io/File.exists:()Z
+   1545:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   1548:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1551:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1554:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1557:	new	#17; //class java/lang/StringBuilder
+   1560:	dup
+   1561:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1564:	ldc	#87; //String Does tempDir exist now?: 
+   1566:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1569:	aload_2
+   1570:	invokevirtual	#27; //Method java/io/File.exists:()Z
+   1573:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   1576:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1579:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1582:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1585:	new	#17; //class java/lang/StringBuilder
+   1588:	dup
+   1589:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1592:	ldc	#97; //String Deleting tempDir/tempDir: 
+   1594:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1597:	aload_2
+   1598:	invokevirtual	#81; //Method java/io/File.delete:()Z
+   1601:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   1604:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1607:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1610:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1613:	new	#17; //class java/lang/StringBuilder
+   1616:	dup
+   1617:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1620:	ldc	#98; //String Deleting tempDir (should succeed this time): 
+   1622:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1625:	aload_3
+   1626:	invokevirtual	#81; //Method java/io/File.delete:()Z
+   1629:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   1632:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1635:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1638:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1641:	new	#17; //class java/lang/StringBuilder
+   1644:	dup
+   1645:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1648:	ldc	#92; //String Does tempDir/tempDir exist now?: 
+   1650:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1653:	aload_2
+   1654:	invokevirtual	#27; //Method java/io/File.exists:()Z
+   1657:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   1660:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1663:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1666:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1669:	new	#17; //class java/lang/StringBuilder
+   1672:	dup
+   1673:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1676:	ldc	#87; //String Does tempDir exist now?: 
+   1678:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1681:	aload_3
+   1682:	invokevirtual	#27; //Method java/io/File.exists:()Z
+   1685:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   1688:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1691:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1694:	new	#11; //class java/io/File
+   1697:	dup
+   1698:	aload_1
+   1699:	invokespecial	#13; //Method java/io/File."<init>":(Ljava/lang/String;)V
+   1702:	astore_2
+   1703:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1706:	new	#17; //class java/lang/StringBuilder
+   1709:	dup
+   1710:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1713:	ldc	#99; //String Trying to create a directory that already exists: 
+   1715:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1718:	aload_2
+   1719:	invokevirtual	#86; //Method java/io/File.mkdir:()Z
+   1722:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   1725:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1728:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1731:	new	#11; //class java/io/File
+   1734:	dup
+   1735:	new	#17; //class java/lang/StringBuilder
+   1738:	dup
+   1739:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1742:	aload_1
+   1743:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1746:	ldc	#100; //String /temp_rename_file.txt
+   1748:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1751:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1754:	invokespecial	#13; //Method java/io/File."<init>":(Ljava/lang/String;)V
+   1757:	astore_2
+   1758:	new	#11; //class java/io/File
+   1761:	dup
+   1762:	new	#17; //class java/lang/StringBuilder
+   1765:	dup
+   1766:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1769:	aload_1
+   1770:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1773:	ldc	#101; //String /temp_rename_file2.txt
+   1775:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1778:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1781:	invokespecial	#13; //Method java/io/File."<init>":(Ljava/lang/String;)V
+   1784:	astore_3
+   1785:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1788:	new	#17; //class java/lang/StringBuilder
+   1791:	dup
+   1792:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1795:	ldc	#102; //String Creating temp_rename_file.txt: 
+   1797:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1800:	aload_2
+   1801:	invokevirtual	#49; //Method java/io/File.createNewFile:()Z
+   1804:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   1807:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1810:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1813:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1816:	new	#17; //class java/lang/StringBuilder
+   1819:	dup
+   1820:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1823:	ldc	#103; //String Renaming it to temp_rename_file2.txt: 
+   1825:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1828:	aload_2
+   1829:	aload_3
+   1830:	invokevirtual	#104; //Method java/io/File.renameTo:(Ljava/io/File;)Z
+   1833:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   1836:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1839:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1842:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1845:	new	#17; //class java/lang/StringBuilder
+   1848:	dup
+   1849:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1852:	ldc	#105; //String Old file exist? 
+   1854:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1857:	aload_2
+   1858:	invokevirtual	#27; //Method java/io/File.exists:()Z
+   1861:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   1864:	ldc	#106; //String  New file exists? 
+   1866:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1869:	aload_3
+   1870:	invokevirtual	#27; //Method java/io/File.exists:()Z
+   1873:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   1876:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1879:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1882:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1885:	new	#17; //class java/lang/StringBuilder
+   1888:	dup
+   1889:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1892:	ldc	#107; //String Recreating old file: 
+   1894:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1897:	aload_2
+   1898:	invokevirtual	#49; //Method java/io/File.createNewFile:()Z
+   1901:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   1904:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1907:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1910:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1913:	new	#17; //class java/lang/StringBuilder
+   1916:	dup
+   1917:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1920:	ldc	#108; //String Moving on top of old file: 
+   1922:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1925:	aload_3
+   1926:	aload_2
+   1927:	invokevirtual	#104; //Method java/io/File.renameTo:(Ljava/io/File;)Z
+   1930:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   1933:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1936:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1939:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1942:	new	#17; //class java/lang/StringBuilder
+   1945:	dup
+   1946:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1949:	ldc	#109; //String Deleting old file: 
+   1951:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1954:	aload_2
+   1955:	invokevirtual	#81; //Method java/io/File.delete:()Z
+   1958:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   1961:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1964:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1967:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   1970:	new	#17; //class java/lang/StringBuilder
+   1973:	dup
+   1974:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   1977:	ldc	#110; //String Trying to move nonexistant old file: 
+   1979:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   1982:	aload_2
+   1983:	aload_3
+   1984:	invokevirtual	#104; //Method java/io/File.renameTo:(Ljava/io/File;)Z
+   1987:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   1990:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   1993:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   1996:	new	#11; //class java/io/File
    1999:	dup
-   2000:	invokespecial	#8; //Method java/lang/StringBuilder."<init>":()V
-   2003:	ldc	#66; //String Deleting file: 
-   2005:	invokevirtual	#10; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   2008:	aload_2
-   2009:	invokevirtual	#67; //Method java/io/File.delete:()Z
-   2012:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
-   2015:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   2018:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   2021:	return
+   2000:	new	#17; //class java/lang/StringBuilder
+   2003:	dup
+   2004:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   2007:	aload_1
+   2008:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   2011:	ldc	#111; //String /temp_readonly.txt
+   2013:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   2016:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   2019:	invokespecial	#13; //Method java/io/File."<init>":(Ljava/lang/String;)V
+   2022:	astore_2
+   2023:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   2026:	new	#17; //class java/lang/StringBuilder
+   2029:	dup
+   2030:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   2033:	ldc	#112; //String Creating temp_readonly.txt: 
+   2035:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   2038:	aload_2
+   2039:	invokevirtual	#49; //Method java/io/File.createNewFile:()Z
+   2042:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   2045:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   2048:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   2051:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   2054:	new	#17; //class java/lang/StringBuilder
+   2057:	dup
+   2058:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   2061:	ldc	#113; //String Marking as read only: 
+   2063:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   2066:	aload_2
+   2067:	invokevirtual	#114; //Method java/io/File.setReadOnly:()Z
+   2070:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   2073:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   2076:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   2079:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   2082:	new	#17; //class java/lang/StringBuilder
+   2085:	dup
+   2086:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   2089:	ldc	#115; //String Can I write to the file?: 
+   2091:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   2094:	aload_2
+   2095:	invokevirtual	#36; //Method java/io/File.canWrite:()Z
+   2098:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   2101:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   2104:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   2107:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   2110:	new	#17; //class java/lang/StringBuilder
+   2113:	dup
+   2114:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   2117:	ldc	#116; //String Can I read the file?: 
+   2119:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   2122:	aload_2
+   2123:	invokevirtual	#117; //Method java/io/File.canRead:()Z
+   2126:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   2129:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   2132:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   2135:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   2138:	new	#17; //class java/lang/StringBuilder
+   2141:	dup
+   2142:	invokespecial	#18; //Method java/lang/StringBuilder."<init>":()V
+   2145:	ldc	#80; //String Deleting file: 
+   2147:	invokevirtual	#20; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   2150:	aload_2
+   2151:	invokevirtual	#81; //Method java/io/File.delete:()Z
+   2154:	invokevirtual	#22; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   2157:	invokevirtual	#23; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   2160:	invokevirtual	#8; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   2163:	return
   Exception table:
    from   to  target type
-   760   766   769   Class java/lang/Exception
+    13    29    32   Class java/lang/Exception
 
   LineNumberTable: 
-   line 7: 0
-   line 10: 3
-   line 11: 13
-   line 13: 41
-   line 14: 53
-   line 15: 66
-   line 16: 94
-   line 17: 123
-   line 18: 164
-   line 20: 205
-   line 21: 233
-   line 22: 261
-   line 25: 289
-   line 26: 319
-   line 25: 330
-   line 30: 336
-   line 31: 363
-   line 32: 391
-   line 33: 419
-   line 37: 447
-   line 38: 456
-   line 39: 484
-   line 43: 512
-   line 44: 539
-   line 45: 567
-   line 46: 595
-   line 47: 623
-   line 48: 628
-   line 49: 656
-   line 50: 662
-   line 51: 690
-   line 52: 696
-   line 53: 724
-   line 54: 752
-   line 56: 760
-   line 57: 766
-   line 58: 771
-   line 59: 781
-   line 60: 788
-   line 61: 793
-   line 62: 821
-   line 64: 829
-   line 66: 846
-   line 67: 857
-   line 68: 868
-   line 69: 873
-   line 70: 911
-   line 71: 939
-   line 76: 967
-   line 77: 994
-   line 78: 1022
-   line 79: 1050
-   line 80: 1078
-   line 81: 1106
-   line 84: 1134
-   line 85: 1161
-   line 86: 1188
-   line 87: 1216
-   line 88: 1244
-   line 89: 1272
-   line 90: 1300
-   line 91: 1328
-   line 92: 1356
-   line 93: 1384
-   line 94: 1412
-   line 95: 1440
-   line 96: 1468
-   line 97: 1496
-   line 98: 1524
-   line 101: 1552
-   line 102: 1561
-   line 107: 1589
-   line 108: 1616
-   line 109: 1643
-   line 110: 1671
-   line 111: 1700
-   line 112: 1740
-   line 113: 1768
-   line 114: 1797
-   line 115: 1825
-   line 120: 1854
-   line 121: 1881
-   line 122: 1909
-   line 123: 1937
-   line 124: 1965
-   line 125: 1993
-   line 128: 2021
+   line 15: 0
+   line 19: 3
+   line 21: 13
+   line 24: 29
+   line 22: 32
+   line 23: 33
+   line 27: 41
+   line 28: 51
+   line 30: 79
+   line 31: 91
+   line 32: 104
+   line 33: 132
+   line 34: 161
+   line 35: 202
+   line 37: 243
+   line 38: 271
+   line 39: 299
+   line 42: 327
+   line 43: 357
+   line 42: 368
+   line 47: 374
+   line 48: 401
+   line 49: 429
+   line 50: 457
+   line 54: 485
+   line 55: 494
+   line 56: 522
+   line 60: 550
+   line 61: 577
+   line 62: 605
+   line 63: 633
+   line 64: 661
+   line 65: 666
+   line 66: 694
+   line 67: 700
+   line 68: 728
+   line 69: 734
+   line 70: 762
+   line 72: 790
+   line 73: 800
+   line 74: 807
+   line 76: 812
+   line 77: 824
+   line 78: 862
+   line 79: 890
+   line 80: 898
+   line 82: 902
+   line 83: 910
+   line 84: 921
+   line 85: 928
+   line 86: 933
+   line 87: 961
+   line 88: 969
+   line 90: 973
+   line 91: 981
+   line 92: 993
+   line 93: 1001
+   line 94: 1008
+   line 95: 1013
+   line 96: 1041
+   line 97: 1049
+   line 98: 1053
+   line 99: 1081
+   line 104: 1109
+   line 105: 1136
+   line 106: 1164
+   line 107: 1192
+   line 108: 1220
+   line 109: 1248
+   line 112: 1276
+   line 113: 1303
+   line 114: 1330
+   line 115: 1358
+   line 116: 1386
+   line 117: 1414
+   line 118: 1442
+   line 119: 1470
+   line 120: 1498
+   line 121: 1526
+   line 122: 1554
+   line 123: 1582
+   line 124: 1610
+   line 125: 1638
+   line 126: 1666
+   line 129: 1694
+   line 130: 1703
+   line 135: 1731
+   line 136: 1758
+   line 137: 1785
+   line 138: 1813
+   line 139: 1842
+   line 140: 1882
+   line 141: 1910
+   line 142: 1939
+   line 143: 1967
+   line 148: 1996
+   line 149: 2023
+   line 150: 2051
+   line 151: 2079
+   line 152: 2107
+   line 153: 2135
+   line 156: 2163
 
-  StackMapTable: number_of_entries = 12
+  StackMapTable: number_of_entries = 10
    frame_type = 255 /* full_frame */
-     offset_delta = 154
+     offset_delta = 32
+     locals = [ class "[Ljava/lang/String;", class java/lang/String, class java/io/File ]
+     stack = [ class java/lang/Exception ]
+   frame_type = 250 /* chop */
+     offset_delta = 8
+   frame_type = 255 /* full_frame */
+     offset_delta = 150
      locals = [ class "[Ljava/lang/String;", class java/lang/String, class java/io/File, class java/io/File, class java/io/File ]
      stack = [ class java/io/PrintStream, class java/lang/StringBuilder ]
    frame_type = 255 /* full_frame */
@@ -1241,23 +1398,12 @@ public static void main(java.lang.String[])   throws java.io.IOException;
    frame_type = 248 /* chop */
      offset_delta = 28
    frame_type = 255 /* full_frame */
-     offset_delta = 432
-     locals = [ class "[Ljava/lang/String;", class java/lang/String, class java/io/File, long ]
-     stack = [ class java/lang/Exception ]
-   frame_type = 1 /* same */
-   frame_type = 253 /* append */
-     offset_delta = 74
-     locals = [ class java/io/FileWriter, class java/io/BufferedReader ]
-   frame_type = 252 /* append */
-     offset_delta = 21
-     locals = [ class java/lang/String ]
-   frame_type = 255 /* full_frame */
-     offset_delta = 32
-     locals = [ class "[Ljava/lang/String;", class java/lang/String, class java/io/File, long, class java/io/FileWriter, class java/io/BufferedReader, class java/lang/String ]
+     offset_delta = 477
+     locals = [ class "[Ljava/lang/String;", class java/lang/String, class java/io/File, long, class java/io/FileWriter ]
      stack = [ class java/io/PrintStream, class java/lang/StringBuilder ]
    frame_type = 255 /* full_frame */
      offset_delta = 0
-     locals = [ class "[Ljava/lang/String;", class java/lang/String, class java/io/File, long, class java/io/FileWriter, class java/io/BufferedReader, class java/lang/String ]
+     locals = [ class "[Ljava/lang/String;", class java/lang/String, class java/io/File, long, class java/io/FileWriter ]
      stack = [ class java/io/PrintStream, class java/lang/StringBuilder, int ]
 
   Exceptions: 

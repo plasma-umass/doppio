@@ -44,7 +44,8 @@ public class Exceptional {
         new FileReader("./NonExistentFile!!!");
       }
       catch (Exception e) {
-        System.out.println("Non existent file does not exist");
+        System.out.println(e.getMessage());
+        System.out.println("trace depth: " + e.getStackTrace().length);
       }
 
       try {

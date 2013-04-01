@@ -1,0 +1,1 @@
+Hello! I am a thread. The JVM has launched me during static initialization (<clinit>).

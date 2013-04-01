@@ -1,481 +1,1751 @@
-<!DOCTYPE html>  <html> <head>   <title>node.coffee</title>   <meta http-equiv="content-type" content="text/html; charset=UTF-8">   <link rel="stylesheet" media="all" href="docco.css" /> </head> <body>   <div id="container">     <div id="background"></div>            <div id="jump_to">         Jump To &hellip;         <div id="jump_wrapper">           <div id="jump_page">                                           <a class="source" href="frontend.html">                 frontend.coffee               </a>                                           <a class="source" href="node.html">                 node.coffee               </a>                                           <a class="source" href="untar.html">                 untar.coffee               </a>                                           <a class="source" href="util.html">                 util.coffee               </a>                                           <a class="source" href="ClassFile.html">                 ClassFile.coffee               </a>                                           <a class="source" href="ConstantPool.html">                 ConstantPool.coffee               </a>                                           <a class="source" href="attributes.html">                 attributes.coffee               </a>                                           <a class="source" href="disassembler.html">                 disassembler.coffee               </a>                                           <a class="source" href="exceptions.html">                 exceptions.coffee               </a>                                           <a class="source" href="java_object.html">                 java_object.coffee               </a>                                           <a class="source" href="jvm.html">                 jvm.coffee               </a>                                           <a class="source" href="logging.html">                 logging.coffee               </a>                                           <a class="source" href="methods.html">                 methods.coffee               </a>                                           <a class="source" href="natives.html">                 natives.coffee               </a>                                           <a class="source" href="opcodes.html">                 opcodes.coffee               </a>                                           <a class="source" href="runtime.html">                 runtime.coffee               </a>                                           <a class="source" href="testing.html">                 testing.coffee               </a>                                           <a class="source" href="types.html">                 types.coffee               </a>                                           <a class="source" href="util.html">                 util.coffee               </a>                        </div>         </div>       </div>          <table cellpadding="0" cellspacing="0">       <thead>         <tr>           <th class="docs">             <h1>               node.coffee             </h1>           </th>           <th class="code">           </th>         </tr>       </thead>       <tbody>                               <tr id="section-1">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-1">&#182;</a>               </div>                            </td>             <td class="code">               <div class="highlight"><pre><span class="nv">win = </span><span class="nb">window</span>
+<!DOCTYPE html>
 
-<span class="nv">root = win.node = </span><span class="p">{}</span>
-<span class="nv">basename = </span><span class="nf">(path) -&gt;</span> <span class="nx">path</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">).</span><span class="nx">pop</span><span class="p">()</span>
-<span class="nv">win.require = </span><span class="nf">(path) -&gt;</span>
-  <span class="p">[</span><span class="nx">name</span><span class="p">,</span> <span class="nx">ext</span><span class="p">]</span> <span class="o">=</span> <span class="nx">basename</span><span class="p">(</span><span class="nx">path</span><span class="p">).</span><span class="nx">split</span> <span class="s1">&#39;.&#39;</span>
-  <span class="nb">window</span><span class="p">[</span><span class="nx">name</span><span class="p">]</span> <span class="o">?=</span> <span class="p">{}</span>
+<html>
+<head>
+  <title>node.coffee</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, target-densitydpi=160dpi, initial-scale=1.0; maximum-scale=1.0; user-scalable=0;">
+  <link rel="stylesheet" media="all" href="docco.css" />
+</head>
+<body>
+  <div id="container">
+    <div id="background"></div>
+    
+      <ul id="jump_to">
+        <li>
+          <a class="large" href="javascript:void(0);">Jump To &hellip;</a>
+          <a class="small" href="javascript:void(0);">+</a>
+          <div id="jump_wrapper">
+          <div id="jump_page">
+            
+              
+              <a class="source" href="frontend.html">
+                frontend.coffee
+              </a>
+            
+              
+              <a class="source" href="node.html">
+                node.coffee
+              </a>
+            
+              
+              <a class="source" href="untar.html">
+                untar.coffee
+              </a>
+            
+              
+              <a class="source" href="util.html">
+                util.coffee
+              </a>
+            
+              
+              <a class="source" href="ClassData.html">
+                ClassData.coffee
+              </a>
+            
+              
+              <a class="source" href="ClassLoader.html">
+                ClassLoader.coffee
+              </a>
+            
+              
+              <a class="source" href="ConstantPool.html">
+                ConstantPool.coffee
+              </a>
+            
+              
+              <a class="source" href="attributes.html">
+                attributes.coffee
+              </a>
+            
+              
+              <a class="source" href="disassembler.html">
+                disassembler.coffee
+              </a>
+            
+              
+              <a class="source" href="exceptions.html">
+                exceptions.coffee
+              </a>
+            
+              
+              <a class="source" href="java_object.html">
+                java_object.coffee
+              </a>
+            
+              
+              <a class="source" href="jvm.html">
+                jvm.coffee
+              </a>
+            
+              
+              <a class="source" href="logging.html">
+                logging.coffee
+              </a>
+            
+              
+              <a class="source" href="methods.html">
+                methods.coffee
+              </a>
+            
+              
+              <a class="source" href="natives.html">
+                natives.coffee
+              </a>
+            
+              
+              <a class="source" href="opcodes.html">
+                opcodes.coffee
+              </a>
+            
+              
+              <a class="source" href="runtime.html">
+                runtime.coffee
+              </a>
+            
+              
+              <a class="source" href="testing.html">
+                testing.coffee
+              </a>
+            
+              
+              <a class="source" href="util.html">
+                util.coffee
+              </a>
+            
+          </div>
+        </li>
+      </ul>
+    
+    <ul class="sections">
+        
+          <li id="title">
+              <div class="annotation">
+                  <h1>node.coffee</h1>
+              </div>
+          </li>
+        
+        
+        
+        <li id="section-1">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-1">&#182;</a>
+              </div>
+              
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>win = window
+<span class="string">"use strict"</span>
 
-<span class="nv">_ = </span><span class="nx">require</span> <span class="s1">&#39;../vendor/_.js&#39;</span>
+root = win.node = {}
+<span class="function"><span class="title">basename</span></span> = (path) -&gt; path.split(<span class="string">'/'</span>).pop()
+win.<span class="function"><span class="title">require</span></span> = (path, herp) -&gt;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-2">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-2">&#182;</a>
+              </div>
+              <p>XXX: Hackfix for Ace Editor. The Ace Editor clobbers our require definiton,
+but recalls it with an empty first argument.</p>
 
-<span class="s2">&quot;use strict&quot;</span></pre></div>             </td>           </tr>                               <tr id="section-2">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-2">&#182;</a>               </div>               <p>IE9 and below only: Injects a VBScript function that converts the
-'responseBody' attribute of an XMLHttpRequest into a bytestring.
-Credit: http://miskun.com/javascript/internet-explorer-and-binary-files-data-access/#comment-11</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">inject_vbscript = </span><span class="o">-&gt;</span>
-  <span class="nv">IEBinaryToArray_ByteStr_Script =</span>
-    <span class="s2">&quot;&lt;!-- IEBinaryToArray_ByteStr --&gt;\r\n&quot;</span><span class="o">+</span>
-    <span class="s2">&quot;&lt;script type=&#39;text/vbscript&#39;&gt;\r\n&quot;</span><span class="o">+</span>
-    <span class="s2">&quot;Function IEBinaryToArray_ByteStr(Binary)\r\n&quot;</span><span class="o">+</span>
-    <span class="s2">&quot;   IEBinaryToArray_ByteStr = CStr(Binary)\r\n&quot;</span><span class="o">+</span>
-    <span class="s2">&quot;End Function\r\n&quot;</span><span class="o">+</span>
-    <span class="s2">&quot;Function IEBinaryToArray_ByteStr_Last(Binary)\r\n&quot;</span><span class="o">+</span>
-    <span class="s2">&quot;   Dim lastIndex\r\n&quot;</span><span class="o">+</span>
-    <span class="s2">&quot;   lastIndex = LenB(Binary)\r\n&quot;</span><span class="o">+</span>
-    <span class="s2">&quot;   if lastIndex mod 2 Then\r\n&quot;</span><span class="o">+</span>
-    <span class="s2">&quot;       IEBinaryToArray_ByteStr_Last = Chr( AscB( MidB( Binary, lastIndex, 1 ) ) )\r\n&quot;</span><span class="o">+</span>
-    <span class="s2">&quot;   Else\r\n&quot;</span><span class="o">+</span>
-    <span class="s2">&quot;       IEBinaryToArray_ByteStr_Last = &quot;</span><span class="o">+</span><span class="s1">&#39;&quot;&quot;&#39;</span><span class="o">+</span><span class="s2">&quot;\r\n&quot;</span><span class="o">+</span>
-    <span class="s2">&quot;   End If\r\n&quot;</span><span class="o">+</span>
-    <span class="s2">&quot;End Function\r\n&quot;</span><span class="o">+</span>
-    <span class="s2">&quot;&lt;/script&gt;\r\n&quot;</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  <span class="keyword">if</span> herp? <span class="keyword">then</span> path = herp
+  [name, ext] = basename(path).split <span class="string">'.'</span>
+  window[name] ?= {}
 
-  <span class="nb">document</span><span class="p">.</span><span class="nx">write</span><span class="p">(</span><span class="nx">IEBinaryToArray_ByteStr_Script</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-3">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-3">&#182;</a>               </div>               <p>Run once at JavaScript load time.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="k">if</span> <span class="nx">$</span><span class="p">.</span><span class="nx">browser</span><span class="p">.</span><span class="nx">msie</span> <span class="o">and</span> <span class="o">not</span> <span class="nb">window</span><span class="p">.</span><span class="nx">Blob</span>
-  <span class="nx">inject_vbscript</span><span class="p">()</span></pre></div>             </td>           </tr>                               <tr id="section-4">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-4">&#182;</a>               </div>               <p>Converts 'responseBody' in IE into the equivalent 'responseText' that other
-browsers would generate.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">GetIEByteArray_ByteStr = </span><span class="nf">(IEByteArray) -&gt;</span>
-  <span class="nv">rawBytes = </span><span class="nx">IEBinaryToArray_ByteStr</span><span class="p">(</span><span class="nx">IEByteArray</span><span class="p">);</span>
-  <span class="nv">lastChr = </span><span class="nx">IEBinaryToArray_ByteStr_Last</span><span class="p">(</span><span class="nx">IEByteArray</span><span class="p">);</span>
-  <span class="k">return</span> <span class="nx">rawBytes</span><span class="p">.</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/[\s\S]/g</span><span class="p">,</span>
-    <span class="p">(</span><span class="nf">(match) -&gt;</span>
-      <span class="nv">v = </span><span class="nx">match</span><span class="p">.</span><span class="nx">charCodeAt</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-      <span class="k">return</span> <span class="nb">String</span><span class="p">.</span><span class="nx">fromCharCode</span><span class="p">(</span><span class="nx">v</span><span class="o">&amp;</span><span class="mh">0xff</span><span class="p">,</span> <span class="nx">v</span><span class="o">&gt;&gt;</span><span class="mi">8</span><span class="p">)</span>
-    <span class="p">))</span> <span class="o">+</span> <span class="nx">lastChr</span></pre></div>             </td>           </tr>                               <tr id="section-5">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-5">&#182;</a>               </div>               <p>Our 'file descriptor'</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="k">class</span> <span class="nx">DoppioFile</span>
-  <span class="vi">@fromJSON: </span><span class="nf">(path, rawData) -&gt;</span>
-    <span class="nv">data = </span><span class="nx">JSON</span><span class="p">.</span><span class="nx">parse</span> <span class="nx">rawData</span>
-    <span class="k">new</span> <span class="nx">DoppioFile</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="nx">data</span><span class="p">.</span><span class="nx">data</span><span class="p">,</span> <span class="nx">data</span><span class="p">.</span><span class="nx">mtime</span><span class="p">)</span>
+_ = require <span class="string">'../vendor/_.js'</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-3">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-3">&#182;</a>
+              </div>
+              <p>IE9 and below only: Injects a VBScript function that converts the
+&#39;responseBody&#39; attribute of an XMLHttpRequest into a bytestring.
+Credit: <a href="http://miskun.com/javascript/internet-explorer-and-binary-files-data-access/#comment-11">http://miskun.com/javascript/internet-explorer-and-binary-files-data-access/#comment-11</a></p>
 
-  <span class="nv">constructor: </span><span class="p">(</span><span class="nx">@path</span><span class="p">,</span> <span class="vi">@data = </span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="vi">@mtime = </span><span class="p">(</span><span class="k">new</span> <span class="nb">Date</span><span class="p">).</span><span class="nx">getTime</span><span class="p">(),</span> <span class="vi">@mod = </span><span class="kc">false</span><span class="p">,</span> <span class="vi">@mode = </span><span class="mi">0</span><span class="nx">o644</span><span class="p">)</span> <span class="o">-&gt;</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="function"><span class="title">inject_vbscript</span></span> = -&gt;
+  IEBinaryToArray_ByteStr_Script =
+    <span class="string">"&lt;!-- IEBinaryToArray_ByteStr --&gt;\r\n"</span>+
+    <span class="string">"&lt;script type='text/vbscript'&gt;\r\n"</span>+
+    <span class="string">"Function IEBinaryToArray_ByteStr(Binary)\r\n"</span>+
+    <span class="string">"   IEBinaryToArray_ByteStr = CStr(Binary)\r\n"</span>+
+    <span class="string">"End Function\r\n"</span>+
+    <span class="string">"Function IEBinaryToArray_ByteStr_Last(Binary)\r\n"</span>+
+    <span class="string">"   Dim lastIndex\r\n"</span>+
+    <span class="string">"   lastIndex = LenB(Binary)\r\n"</span>+
+    <span class="string">"   if lastIndex mod 2 Then\r\n"</span>+
+    <span class="string">"       IEBinaryToArray_ByteStr_Last = Chr( AscB( MidB( Binary, lastIndex, 1 ) ) )\r\n"</span>+
+    <span class="string">"   Else\r\n"</span>+
+    <span class="string">"       IEBinaryToArray_ByteStr_Last = "</span>+<span class="string">'""'</span>+<span class="string">"\r\n"</span>+
+    <span class="string">"   End If\r\n"</span>+
+    <span class="string">"End Function\r\n"</span>+
+    <span class="string">"&lt;/script&gt;\r\n"</span>
 
-  <span class="nv">read: </span><span class="nf">(length, pos) -&gt;</span>
-    <span class="k">return</span> <span class="nx">@data</span> <span class="nx">unless</span> <span class="nx">length</span><span class="o">?</span>
-    <span class="nx">@data</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="nx">pos</span><span class="p">,</span> <span class="nx">length</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-6">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-6">&#182;</a>               </div>               <p>TODO: We only append to the end of files...</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">write: </span><span class="nf">(newData) -&gt;</span> <span class="vi">@mod = </span><span class="kc">true</span><span class="p">;</span> <span class="nx">@data</span> <span class="o">+=</span> <span class="nx">newData</span><span class="p">;</span> <span class="err">@</span>
+  document.write(IEBinaryToArray_ByteStr_Script)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-4">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-4">&#182;</a>
+              </div>
+              <p>Run once at JavaScript load time.</p>
 
-  <span class="nv">toJSON: </span><span class="o">-&gt;</span>
-    <span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span>
-      <span class="nv">data: </span><span class="nx">@data</span>
-      <span class="nv">mtime: </span><span class="nx">@mtime</span></pre></div>             </td>           </tr>                               <tr id="section-7">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-7">&#182;</a>               </div>               <p>Helper object. Used by some FileSources to maintain an index of files.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="k">class</span> <span class="nx">FileIndex</span>
-  <span class="nv">constructor: </span><span class="nf">(@index = {}) -&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-8">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-8">&#182;</a>               </div>               <p>Get subcomponents of the given path.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">_subcomponents: </span><span class="nf">(path) -&gt;</span>
-    <span class="nv">components = </span><span class="nx">path</span><span class="p">.</span><span class="nx">split</span> <span class="s1">&#39;/&#39;</span></pre></div>             </td>           </tr>                               <tr id="section-9">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-9">&#182;</a>               </div>               <p>Get rid of first slash</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nx">components</span><span class="p">.</span><span class="nx">shift</span><span class="p">()</span></pre></div>             </td>           </tr>                               <tr id="section-10">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-10">&#182;</a>               </div>               <p>Special case: Root</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="k">if</span> <span class="nx">components</span><span class="p">.</span><span class="nx">length</span> <span class="o">==</span> <span class="mi">1</span> <span class="o">and</span> <span class="nx">components</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span> <span class="k">then</span> <span class="p">[]</span> <span class="k">else</span> <span class="nx">components</span>
-  <span class="nv">_add_file: </span><span class="nf">(components, fname, file) -&gt;</span>
-    <span class="nv">dir = </span><span class="nx">@_mkdir</span><span class="p">(</span><span class="nx">components</span><span class="p">)</span>
-    <span class="nx">dir</span><span class="p">[</span><span class="nx">fname</span><span class="p">]</span> <span class="o">=</span> <span class="nx">file</span>
-    <span class="k">return</span>
-  <span class="nv">_mkdir: </span><span class="nf">(components) -&gt;</span>
-    <span class="nv">cur_dir = </span><span class="nx">@index</span>
-    <span class="k">for</span> <span class="nx">c</span> <span class="k">in</span> <span class="nx">components</span>
-      <span class="nx">cur_dir</span><span class="p">[</span><span class="nx">c</span><span class="p">]</span> <span class="o">?=</span> <span class="p">{}</span>
-      <span class="nv">cur_dir = </span><span class="nx">cur_dir</span><span class="p">[</span><span class="nx">c</span><span class="p">]</span>
-    <span class="k">return</span> <span class="nx">cur_dir</span>
-  <span class="nv">_get: </span><span class="nf">(components) -&gt;</span>
-    <span class="nv">cur_dir = </span><span class="nx">@index</span>
-    <span class="k">for</span> <span class="nx">c</span> <span class="k">in</span> <span class="nx">components</span>
-      <span class="k">return</span> <span class="kc">false</span> <span class="nx">unless</span> <span class="nx">c</span> <span class="k">of</span> <span class="nx">cur_dir</span>
-      <span class="nv">cur_dir = </span><span class="nx">cur_dir</span><span class="p">[</span><span class="nx">c</span><span class="p">]</span>
-    <span class="k">return</span> <span class="nx">cur_dir</span>
-  <span class="nv">_is_directory: </span><span class="nf">(obj) -&gt;</span> <span class="nx">obj</span><span class="o">?</span> <span class="o">and</span> <span class="o">!</span><span class="p">(</span><span class="nx">obj</span> <span class="k">instanceof</span> <span class="nx">DoppioFile</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-11">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-11">&#182;</a>               </div>               <p>Add the given file to the index. Implicitly creates directories if needed
-and overwrites things without checking.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">add_file: </span><span class="nf">(path, file) -&gt;</span>
-    <span class="nv">components = </span><span class="nx">@_subcomponents</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
-    <span class="nv">fname = </span><span class="nx">components</span><span class="p">.</span><span class="nx">pop</span><span class="p">()</span>
-    <span class="nx">@_add_file</span><span class="p">(</span><span class="nx">components</span><span class="p">,</span> <span class="nx">fname</span><span class="p">,</span> <span class="nx">file</span><span class="p">)</span>
-    <span class="k">return</span></pre></div>             </td>           </tr>                               <tr id="section-12">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-12">&#182;</a>               </div>               <p>Retrieves the given file. Returns 'false' if the file does not exist, or if
-it is a directory. Otherwise, returns the file (which may be null).</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">get_file: </span><span class="nf">(path) -&gt;</span>
-    <span class="nv">components = </span><span class="nx">@_subcomponents</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
-    <span class="nv">f = </span><span class="nx">@_get</span><span class="p">(</span><span class="nx">components</span><span class="p">)</span>
-    <span class="k">return</span> <span class="nx">f</span> <span class="nx">unless</span> <span class="nx">f</span> <span class="o">is</span> <span class="kc">false</span> <span class="o">or</span> <span class="nx">@_is_directory</span><span class="p">(</span><span class="nx">f</span><span class="p">)</span>
-    <span class="k">return</span> <span class="kc">false</span></pre></div>             </td>           </tr>                               <tr id="section-13">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-13">&#182;</a>               </div>               <p>Returns a directory listing, or null if the directory does not exist.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">ls: </span><span class="nf">(path) -&gt;</span>
-    <span class="nv">components = </span><span class="nx">@_subcomponents</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
-    <span class="nv">dir = </span><span class="nx">@_get</span><span class="p">(</span><span class="nx">components</span><span class="p">)</span>
-    <span class="k">return</span> <span class="nb">Object</span><span class="p">.</span><span class="nx">keys</span><span class="p">(</span><span class="nx">dir</span><span class="p">)</span> <span class="nx">unless</span> <span class="nx">dir</span> <span class="o">is</span> <span class="kc">false</span> <span class="o">or</span> <span class="o">!</span><span class="nx">@_is_directory</span><span class="p">(</span><span class="nx">dir</span><span class="p">)</span>
-    <span class="k">return</span> <span class="kc">null</span></pre></div>             </td>           </tr>                               <tr id="section-14">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-14">&#182;</a>               </div>               <p>Makes the given directory. Implicitly creates needed subdirectories.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">mkdir: </span><span class="nf">(path) -&gt;</span>
-    <span class="nv">components = </span><span class="nx">@_subcomponents</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
-    <span class="nx">@_mkdir</span><span class="p">(</span><span class="nx">components</span><span class="p">)</span>
-    <span class="k">return</span></pre></div>             </td>           </tr>                               <tr id="section-15">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-15">&#182;</a>               </div>               <p>Returns the parent directory of path or false.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">parent: </span><span class="nf">(path) -&gt;</span>
-    <span class="nv">components = </span><span class="nx">@_subcomponents</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
-    <span class="nx">components</span><span class="p">.</span><span class="nx">pop</span><span class="p">()</span>
-    <span class="k">return</span> <span class="nx">@_get</span> <span class="nx">components</span></pre></div>             </td>           </tr>                               <tr id="section-16">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-16">&#182;</a>               </div>               <p>Removes the given path, directory or not, from the index. This is a
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="keyword">if</span> $.browser.msie <span class="keyword">and</span> <span class="keyword">not</span> window.Blob
+  inject_vbscript()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-5">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-5">&#182;</a>
+              </div>
+              <p>Converts &#39;responseBody&#39; in IE into the equivalent &#39;responseText&#39; that other
+browsers would generate.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="function"><span class="title">GetIEByteArray_ByteStr</span></span> = (IEByteArray) -&gt;
+  rawBytes = IEBinaryToArray_ByteStr(IEByteArray)
+  lastChr = IEBinaryToArray_ByteStr_Last(IEByteArray)
+  <span class="keyword">return</span> rawBytes.replace(<span class="regexp">/[\s\S]/g</span>,
+    ((match) -&gt;
+      v = match.charCodeAt(<span class="number">0</span>)
+      <span class="keyword">return</span> String.fromCharCode(v&amp;<span class="number">0xff</span>, v&gt;&gt;<span class="number">8</span>)
+    )) + lastChr</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-6">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-6">&#182;</a>
+              </div>
+              <p>Used for process.nextTick(). Using postMessage is <em>much</em> faster than using
+setTimeout(fn, 0).
+Credit for idea and example implementation goes to:
+<a href="http://dbaron.org/log/20100309-faster-timeouts">http://dbaron.org/log/20100309-faster-timeouts</a></p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>timeouts = []
+messageName = <span class="string">"zero-timeout-message"</span>
+
+<span class="function"><span class="title">setZeroTimeout</span></span> = (fn) -&gt;
+  timeouts.push(fn)
+  window.postMessage(messageName, <span class="string">"*"</span>)
+
+<span class="function"><span class="title">handleMessage</span></span> = (event) -&gt;
+  <span class="keyword">if</span> (event.source == window &amp;&amp; event.data == messageName)
+    event.stopPropagation()
+    <span class="keyword">if</span> (timeouts.length &gt; <span class="number">0</span>)
+      fn = timeouts.shift()
+      fn()
+
+window.addEventListener(<span class="string">"message"</span>, handleMessage, <span class="literal">true</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-7">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-7">&#182;</a>
+              </div>
+              <p>Our &#39;file descriptor&#39;</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="class"><span class="keyword">class</span> <span class="title">DoppioFile</span></span>
+  <span class="property">@fromJSON</span>: (path, rawData) -&gt;
+    data = JSON.parse rawData
+    <span class="keyword">new</span> DoppioFile(path, data.data, data.mtime, <span class="literal">false</span>, data.mode)
+
+  constructor: (<span class="property">@path</span>, <span class="property">@data</span> = <span class="string">""</span>, <span class="property">@mtime</span> = (<span class="keyword">new</span> Date).getTime(), <span class="property">@mod</span> = <span class="literal">false</span>, <span class="property">@mode</span> = <span class="number">0</span>o644) -&gt;
+
+  read: (length, pos) -&gt;
+    <span class="keyword">return</span> <span class="property">@data</span> <span class="keyword">unless</span> length?
+    <span class="property">@data</span>.substr(pos, length)
+
+  write: (newData, pos) -&gt;
+    <span class="property">@mod</span> = <span class="literal">true</span>
+    <span class="keyword">if</span> pos? <span class="keyword">and</span> pos &lt; <span class="property">@data</span>.length
+      <span class="property">@data</span> = <span class="property">@data</span>.slice(<span class="number">0</span>,pos) + newData + <span class="property">@data</span>.slice(pos+newData.length)
+    <span class="keyword">else</span>
+      <span class="property">@data</span> += newData
+    <span class="keyword">return</span> @
+
+  toJSON: -&gt;
+    JSON.stringify
+      data: <span class="property">@data</span>
+      mtime: <span class="property">@mtime</span>
+      mode: <span class="property">@mode</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-8">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-8">&#182;</a>
+              </div>
+              <p>Helper object. Used by some FileSources to maintain an index of files.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="class"><span class="keyword">class</span> <span class="title">FileIndex</span></span>
+  constructor: (<span class="property">@index</span> = {}) -&gt;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-9">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-9">&#182;</a>
+              </div>
+              <p>Get subcomponents of the given path.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  _subcomponents: (path) -&gt;
+    components = path.split <span class="string">'/'</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-10">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-10">&#182;</a>
+              </div>
+              <p>Get rid of first slash</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    components.shift()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-11">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-11">&#182;</a>
+              </div>
+              <p>Special case: Root</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="keyword">if</span> components.length == <span class="number">1</span> <span class="keyword">and</span> components[<span class="number">0</span>] == <span class="string">''</span> <span class="keyword">then</span> [] <span class="keyword">else</span> components
+  _add_file: (components, fname, file) -&gt;
+    dir = <span class="property">@_mkdir</span>(components)
+    dir[fname] = file
+    <span class="keyword">return</span>
+  _mkdir: (components) -&gt;
+    cur_dir = <span class="property">@index</span>
+    <span class="keyword">for</span> c <span class="keyword">in</span> components
+      cur_dir[c] ?= {}
+      cur_dir = cur_dir[c]
+    <span class="keyword">return</span> cur_dir
+  _get: (components) -&gt;
+    cur_dir = <span class="property">@index</span>
+    <span class="keyword">for</span> c <span class="keyword">in</span> components
+      <span class="keyword">return</span> <span class="literal">false</span> <span class="keyword">unless</span> c <span class="keyword">of</span> cur_dir
+      cur_dir = cur_dir[c]
+    <span class="keyword">return</span> cur_dir
+  _is_directory: (obj) -&gt; obj? <span class="keyword">and</span> !(obj <span class="keyword">instanceof</span> DoppioFile)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-12">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-12">&#182;</a>
+              </div>
+              <p>Add the given file to the index. Implicitly creates directories if needed
+and overwrites things without checking.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  add_file: (path, file) -&gt;
+    components = <span class="property">@_subcomponents</span>(path)
+    fname = components.pop()
+    <span class="property">@_add_file</span>(components, fname, file)
+    <span class="keyword">return</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-13">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-13">&#182;</a>
+              </div>
+              <p>Retrieves the given file. Returns &#39;false&#39; if the file does not exist, or if
+it is a directory. Otherwise, returns the file (which may be null).</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  get_file: (path) -&gt;
+    components = <span class="property">@_subcomponents</span>(path)
+    f = <span class="property">@_get</span>(components)
+    <span class="keyword">return</span> f <span class="keyword">unless</span> f <span class="keyword">is</span> <span class="literal">false</span> <span class="keyword">or</span> <span class="property">@_is_directory</span>(f)
+    <span class="keyword">return</span> <span class="literal">false</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-14">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-14">&#182;</a>
+              </div>
+              <p>Returns a directory listing, or null if the directory does not exist.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  ls: (path) -&gt;
+    components = <span class="property">@_subcomponents</span>(path)
+    dir = <span class="property">@_get</span>(components)
+    <span class="keyword">return</span> Object.keys(dir) <span class="keyword">unless</span> dir <span class="keyword">is</span> <span class="literal">false</span> <span class="keyword">or</span> !<span class="property">@_is_directory</span>(dir)
+    <span class="keyword">return</span> <span class="literal">null</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-15">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-15">&#182;</a>
+              </div>
+              <p>Makes the given directory. Implicitly creates needed subdirectories.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  mkdir: (path) -&gt;
+    components = <span class="property">@_subcomponents</span>(path)
+    <span class="property">@_mkdir</span>(components)
+    <span class="keyword">return</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-16">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-16">&#182;</a>
+              </div>
+              <p>Returns the parent directory of path or false.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  parent: (path) -&gt;
+    components = <span class="property">@_subcomponents</span>(path)
+    components.pop()
+    <span class="keyword">return</span> <span class="property">@_get</span> components</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-17">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-17">&#182;</a>
+              </div>
+              <p>Removes the given path, directory or not, from the index. This is a
 recursive delete. Returns the paths to the files that were deleted if this
 was a directory, otherwise returns true if a file was deleted, false if
-the path did not exist.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">rm: </span><span class="nf">(path) -&gt;</span>
-    <span class="nv">components = </span><span class="nx">@_subcomponents</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
-    <span class="nv">name = </span><span class="nx">components</span><span class="p">.</span><span class="nx">pop</span><span class="p">()</span>
-    <span class="nv">parent = </span><span class="nx">@_get</span><span class="p">(</span><span class="nx">components</span><span class="p">)</span>
-    <span class="nv">ret = </span><span class="kc">false</span>
-    <span class="k">if</span> <span class="nx">parent</span><span class="o">?</span> <span class="o">and</span> <span class="nx">parent</span> <span class="o">!=</span> <span class="kc">false</span>
-      <span class="k">if</span> <span class="nx">parent</span><span class="p">[</span><span class="nx">name</span><span class="p">]</span><span class="o">?</span>
-        <span class="nv">obj = </span><span class="nx">parent</span><span class="p">[</span><span class="nx">name</span><span class="p">]</span>
-        <span class="nv">ret = </span><span class="k">if</span> <span class="nx">@_is_directory</span><span class="p">(</span><span class="nx">obj</span><span class="p">)</span> <span class="k">then</span> <span class="nb">Object</span><span class="p">.</span><span class="nx">keys</span><span class="p">(</span><span class="nx">obj</span><span class="p">)</span> <span class="k">else</span> <span class="kc">true</span>
-        <span class="k">delete</span> <span class="nx">parent</span><span class="p">[</span><span class="nx">name</span><span class="p">]</span>
-    <span class="k">return</span> <span class="nx">ret</span></pre></div>             </td>           </tr>                               <tr id="section-17">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-17">&#182;</a>               </div>               <p>Interface for a FileSource. Somewhat of a misnomer, as they are also sinks...</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="k">class</span> <span class="nx">FileSource</span></pre></div>             </td>           </tr>                               <tr id="section-18">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-18">&#182;</a>               </div>               <p>Set to 'true' if this FileSource is redundant to another in some way.
+the path did not exist.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  rm: (path) -&gt;
+    components = <span class="property">@_subcomponents</span>(path)
+    name = components.pop()
+    parent = <span class="property">@_get</span>(components)
+    ret = <span class="literal">false</span>
+    <span class="keyword">if</span> parent? <span class="keyword">and</span> parent != <span class="literal">false</span>
+      <span class="keyword">if</span> name <span class="keyword">of</span> parent
+        obj = parent[name]
+        ret = <span class="keyword">if</span> <span class="property">@_is_directory</span>(obj) <span class="keyword">then</span> Object.keys(obj) <span class="keyword">else</span> <span class="literal">true</span>
+        <span class="keyword">delete</span> parent[name]
+    <span class="keyword">return</span> ret</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-18">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-18">&#182;</a>
+              </div>
+              <p>Interface for a FileSource. Somewhat of a misnomer, as they are also sinks...</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="class"><span class="keyword">class</span> <span class="title">FileSource</span></span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-19">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-19">&#182;</a>
+              </div>
+              <p>Set to &#39;true&#39; if this FileSource is redundant to another in some way.
 This signals that it should be written to / deleted from, even if another
-applicable source has an identical file or directory path</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">redundant_storage: </span><span class="kc">false</span></pre></div>             </td>           </tr>                               <tr id="section-19">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-19">&#182;</a>               </div>               <p>A handy method for sources that store/retrieve data using a relative file
-name.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">_trim_mnt_pt: </span><span class="nf">(path) -&gt;</span> <span class="nx">path</span><span class="p">.</span><span class="nx">slice</span><span class="p">(</span><span class="nx">@mnt_pt</span><span class="p">.</span><span class="nx">length</span><span class="p">)</span>
+applicable source has an identical file or directory path</p>
 
-  <span class="nv">constructor: </span><span class="nf">(@mnt_pt) -&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-20">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-20">&#182;</a>               </div>               <p>INTERFACE METHODS
-Fetches file at path; DoppioFile for success, null for failure.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">fetch: </span><span class="nf">(path) -&gt;</span> <span class="kc">null</span></pre></div>             </td>           </tr>                               <tr id="section-21">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-21">&#182;</a>               </div>               <p>Stores file to path; true for success, false for failure.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">store: </span><span class="nf">(path, file) -&gt;</span> <span class="kc">false</span></pre></div>             </td>           </tr>                               <tr id="section-22">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-22">&#182;</a>               </div>               <p>Removes the file or folder at the given path. Returns true for success.
-If there are files in the folder, it automatically recurses.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">rm: </span><span class="nf">(path) -&gt;</span> <span class="kc">false</span></pre></div>             </td>           </tr>                               <tr id="section-23">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-23">&#182;</a>               </div>               <p>Returns a directory listing for the given path, or null if it does not
-exist.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">ls: </span><span class="nf">(path) -&gt;</span> <span class="kc">null</span></pre></div>             </td>           </tr>                               <tr id="section-24">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-24">&#182;</a>               </div>               <p>Moves a file or directory from path1 to path2. Returns true on success,
-false otherwise.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">mv: </span><span class="nf">(path1, path2, isFile = true) -&gt;</span> <span class="kc">false</span>
-  <span class="nv">mkdir: </span><span class="nf">(path1) -&gt;</span> <span class="kc">false</span></pre></div>             </td>           </tr>                               <tr id="section-25">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-25">&#182;</a>               </div>               <p>Composes multiple file sources into one file source. Prioritizes file sources
-in the order in which they are added.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="k">class</span> <span class="nx">CompositedFileSource</span> <span class="k">extends</span> <span class="nx">FileSource</span></pre></div>             </td>           </tr>                               <tr id="section-26">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-26">&#182;</a>               </div>               <p>Returns 'true' if the given path is in the given mount point.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">_in_mnt_pt: </span><span class="nf">(path, mnt_pt) -&gt;</span> <span class="nx">mnt_pt</span> <span class="o">==</span> <span class="s1">&#39;/&#39;</span> <span class="o">or</span> <span class="nx">path</span> <span class="o">==</span> <span class="nx">mnt_pt</span> <span class="o">or</span> <span class="p">(</span><span class="nx">path</span><span class="p">.</span><span class="nx">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nx">mnt_pt</span><span class="p">.</span><span class="nx">length</span><span class="p">)</span> <span class="o">==</span> <span class="nx">mnt_pt</span> <span class="o">and</span> <span class="nx">path</span><span class="p">[</span><span class="nx">mnt_pt</span><span class="p">.</span><span class="nx">length</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;/&#39;</span><span class="p">)</span>
-  <span class="nv">_get_applicable_sources: </span><span class="nf">(path) -&gt;</span>
-    <span class="nv">applicable = </span><span class="p">[]</span>
-    <span class="k">for</span> <span class="nx">a_mnt_pt</span> <span class="k">in</span> <span class="nx">@mnt_pts</span>
-      <span class="nx">applicable</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">@sources</span><span class="p">[</span><span class="nx">a_mnt_pt</span><span class="p">])</span> <span class="k">if</span> <span class="nx">@_in_mnt_pt</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="nx">a_mnt_pt</span><span class="p">)</span>
-    <span class="k">return</span> <span class="nx">applicable</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  redundant_storage: <span class="literal">false</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-20">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-20">&#182;</a>
+              </div>
+              <p>A handy method for sources that store/retrieve data using a relative file
+name.</p>
 
-  <span class="nv">constructor: </span><span class="nf">(mnt_pt, inpt_sources = []) -&gt;</span>
-    <span class="k">super</span><span class="p">(</span><span class="nx">mnt_pt</span><span class="p">)</span>
-    <span class="vi">@sources = </span><span class="p">{}</span>
-    <span class="vi">@mnt_pts = </span><span class="p">[]</span>
-    <span class="vi">@redundant_storage = </span><span class="kc">false</span>
-    <span class="k">for</span> <span class="nx">source</span> <span class="k">in</span> <span class="nx">inpt_sources</span>
-      <span class="nx">@add_source</span><span class="p">(</span><span class="nx">source</span><span class="p">)</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  _trim_mnt_pt: (path) -&gt; path.slice(<span class="property">@mnt_pt</span>.length)
 
-  <span class="nv">add_source: </span><span class="nf">(source) -&gt;</span>
-    <span class="nx">@sources</span><span class="p">[</span><span class="nx">source</span><span class="p">.</span><span class="nx">mnt_pt</span><span class="p">]</span> <span class="o">=</span> <span class="nx">source</span>
-    <span class="nx">@mnt_pts</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">source</span><span class="p">.</span><span class="nx">mnt_pt</span><span class="p">)</span>
-    <span class="nx">@redundant_storage</span> <span class="o">||=</span> <span class="nx">source</span><span class="p">.</span><span class="nx">redundant_storage</span>
-    <span class="k">return</span>
+  constructor: (<span class="property">@mnt_pt</span>) -&gt;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-21">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-21">&#182;</a>
+              </div>
+              <p>INTERFACE METHODS
+Fetches file at path; DoppioFile for success, null for failure.</p>
 
-  <span class="nv">fetch: </span><span class="nf">(path) -&gt;</span>
-    <span class="nv">applicable = </span><span class="nx">@_get_applicable_sources</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
-    <span class="k">for</span> <span class="nx">parent</span> <span class="k">in</span> <span class="nx">applicable</span>
-      <span class="nv">f = </span><span class="nx">parent</span><span class="p">.</span><span class="nx">fetch</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
-      <span class="k">return</span> <span class="nx">f</span> <span class="k">if</span> <span class="nx">f</span><span class="o">?</span>
-    <span class="k">return</span> <span class="kc">null</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  fetch: (path) -&gt; <span class="literal">null</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-22">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-22">&#182;</a>
+              </div>
+              <p>Stores file to path; true for success, false for failure.</p>
 
-  <span class="nv">store: </span><span class="nf">(path, file) -&gt;</span>
-    <span class="nv">applicable = </span><span class="nx">@_get_applicable_sources</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
-    <span class="nv">stored = </span><span class="kc">false</span>
-    <span class="k">for</span> <span class="nx">source</span> <span class="k">in</span> <span class="nx">applicable</span>
-      <span class="nv">stored = </span><span class="nx">source</span><span class="p">.</span><span class="nx">store</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="nx">file</span><span class="p">)</span> <span class="o">||</span> <span class="nx">stored</span> <span class="nx">unless</span> <span class="nx">stored</span> <span class="o">and</span> <span class="o">!</span><span class="nx">source</span><span class="p">.</span><span class="nx">redundant_storage</span>
-    <span class="k">return</span> <span class="nx">stored</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  store: (path, file) -&gt; <span class="literal">false</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-23">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-23">&#182;</a>
+              </div>
+              <p>Removes the file or folder at the given path. Returns true for success.
+If there are files in the folder, it automatically recurses.</p>
 
-  <span class="nv">rm: </span><span class="nf">(path) -&gt;</span>
-    <span class="nv">applicable = </span><span class="nx">@_get_applicable_sources</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
-    <span class="nv">removed = </span><span class="kc">false</span>
-    <span class="k">for</span> <span class="nx">source</span> <span class="k">in</span> <span class="nx">applicable</span>
-      <span class="nv">removed = </span><span class="nx">source</span><span class="p">.</span><span class="nx">rm</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span> <span class="o">||</span> <span class="nx">removed</span> <span class="nx">unless</span> <span class="nx">removed</span> <span class="o">and</span> <span class="o">!</span><span class="nx">source</span><span class="p">.</span><span class="nx">redundant_storage</span>
-    <span class="k">return</span> <span class="nx">removed</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  rm: (path) -&gt; <span class="literal">false</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-24">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-24">&#182;</a>
+              </div>
+              <p>Returns a directory listing for the given path, or null if it does not
+exist.</p>
 
-  <span class="nv">ls: </span><span class="nf">(path) -&gt;</span>
-    <span class="nv">applicable = </span><span class="nx">@_get_applicable_sources</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-27">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-27">&#182;</a>               </div>               <p>Initialize to 'null' so that we return 'null' if the path is not present
-in any applicable FileSources. Note that 'null' != [], as the latter is
-an existing-but-empty directory.</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nv">list = </span><span class="kc">null</span>
-    <span class="k">for</span> <span class="nx">source</span> <span class="k">in</span> <span class="nx">applicable</span>
-      <span class="nv">src_list = </span><span class="nx">source</span><span class="p">.</span><span class="nx">ls</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
-      <span class="k">if</span> <span class="nx">src_list</span><span class="o">?</span>
-        <span class="nv">list = </span><span class="k">if</span> <span class="nx">list</span><span class="o">?</span> <span class="k">then</span> <span class="nx">_</span><span class="p">.</span><span class="nx">union</span><span class="p">(</span><span class="nx">list</span><span class="p">,</span> <span class="nx">src_list</span><span class="p">)</span> <span class="k">else</span> <span class="nx">src_list</span>
-    <span class="k">return</span> <span class="nx">list</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  ls: (path) -&gt; <span class="literal">null</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-25">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-25">&#182;</a>
+              </div>
+              <p>Moves a file or directory from path1 to path2. Returns true on success,
+false otherwise.</p>
 
-  <span class="nv">mv: </span><span class="nf">(path1, path2, isFile = true) -&gt;</span>
-    <span class="nv">applicable = </span><span class="nx">@_get_applicable_sources</span><span class="p">(</span><span class="nx">path1</span><span class="p">)</span>
-    <span class="nv">moved = </span><span class="kc">false</span>
-    <span class="k">for</span> <span class="nx">source</span> <span class="k">in</span> <span class="nx">applicable</span>
-      <span class="nv">moved = </span><span class="nx">source</span><span class="p">.</span><span class="nx">mv</span><span class="p">(</span><span class="nx">path1</span><span class="p">,</span> <span class="nx">path2</span><span class="p">,</span> <span class="nx">isFile</span><span class="p">)</span> <span class="o">||</span> <span class="nx">moved</span>
-    <span class="k">return</span> <span class="nx">moved</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  mv: (path1, path2, isFile = <span class="literal">true</span>) -&gt; <span class="literal">false</span>
+  mkdir: (path1) -&gt; <span class="literal">false</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-26">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-26">&#182;</a>
+              </div>
+              <p>Composes multiple file sources into one file source. Prioritizes file sources
+in the order in which they are added.</p>
 
-  <span class="nv">mkdir: </span><span class="nf">(path) -&gt;</span>
-    <span class="nv">applicable = </span><span class="nx">@_get_applicable_sources</span> <span class="nx">path</span>
-    <span class="nv">dirmade = </span><span class="kc">false</span>
-    <span class="k">for</span> <span class="nx">source</span> <span class="k">in</span> <span class="nx">applicable</span>
-      <span class="nx">dirmade</span> <span class="o">||=</span> <span class="nx">source</span><span class="p">.</span><span class="nx">mkdir</span> <span class="nx">path</span>
-    <span class="k">return</span> <span class="nx">dirmade</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="class"><span class="keyword">class</span> <span class="title">CompositedFileSource</span> <span class="keyword">extends</span> <span class="title">FileSource</span></span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-27">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-27">&#182;</a>
+              </div>
+              <p>Returns &#39;true&#39; if the given path is in the given mount point.</p>
 
-<span class="k">class</span> <span class="nx">LocalStorageSource</span> <span class="k">extends</span> <span class="nx">FileSource</span>
-  <span class="nv">redundant_storage: </span><span class="kc">true</span>
-  <span class="nv">constructor: </span><span class="nf">(mnt_pt) -&gt;</span>
-    <span class="k">super</span><span class="p">(</span><span class="nx">mnt_pt</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-28">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-28">&#182;</a>               </div>               <p>Index of all files in LS.</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="vi">@index = </span><span class="k">new</span> <span class="nx">FileIndex</span><span class="p">()</span></pre></div>             </td>           </tr>                               <tr id="section-29">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-29">&#182;</a>               </div>               <p>Initialize index w/ LS files and directories.</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="k">for</span> <span class="nx">path</span> <span class="k">of</span> <span class="nx">localStorage</span>
-      <span class="nx">@index</span><span class="p">.</span><span class="nx">add_file</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="kc">null</span><span class="p">)</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  _in_mnt_pt: (path, mnt_pt) -&gt; mnt_pt == <span class="string">'/'</span> <span class="keyword">or</span> path == mnt_pt <span class="keyword">or</span>
+    (path.slice(<span class="number">0</span>, mnt_pt.length) == mnt_pt <span class="keyword">and</span> path[mnt_pt.length] == <span class="string">'/'</span>)
+  _get_applicable_sources: (path) -&gt;
+    applicable = []
+    <span class="keyword">for</span> a_mnt_pt <span class="keyword">in</span> <span class="property">@mnt_pts</span>
+      applicable.push(<span class="property">@sources</span>[a_mnt_pt]) <span class="keyword">if</span> <span class="property">@_in_mnt_pt</span>(path, a_mnt_pt)
+    <span class="keyword">return</span> applicable
 
-  <span class="nv">fetch: </span><span class="nf">(path) -&gt;</span> <span class="k">if</span> <span class="nx">localStorage</span><span class="p">[</span><span class="nx">path</span><span class="p">]</span><span class="o">?</span> <span class="k">then</span> <span class="nx">DoppioFile</span><span class="p">.</span><span class="nx">fromJSON</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="nx">localStorage</span><span class="p">[</span><span class="nx">path</span><span class="p">])</span> <span class="k">else</span> <span class="kc">null</span>
-  <span class="nv">store: </span><span class="nf">(path, file) -&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-30">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-30">&#182;</a>               </div>               <p>XXX: Don't store if a temporary file.</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="k">if</span> <span class="nx">file</span><span class="p">.</span><span class="nx">mod</span> <span class="o">and</span> <span class="o">not</span> <span class="nx">file</span><span class="p">.</span><span class="nx">temp</span>
-      <span class="nx">localStorage</span><span class="p">[</span><span class="nx">path</span><span class="p">]</span> <span class="o">=</span> <span class="nx">file</span><span class="p">.</span><span class="nx">toJSON</span><span class="p">()</span>
-      <span class="nx">@index</span><span class="p">.</span><span class="nx">add_file</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="nx">file</span><span class="p">)</span>
-    <span class="kc">true</span>
-  <span class="nv">rm: </span><span class="nf">(path) -&gt;</span>
-    <span class="nv">listing = </span><span class="nx">@index</span><span class="p">.</span><span class="nx">rm</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
-    <span class="k">if</span> <span class="k">typeof</span> <span class="nx">listing</span> <span class="o">!=</span> <span class="s1">&#39;boolean&#39;</span>
-      <span class="k">for</span> <span class="nx">item</span> <span class="k">in</span> <span class="nx">listing</span>
-        <span class="nv">itPath = </span><span class="nx">path</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="nx">item</span>
-        <span class="k">delete</span> <span class="nx">localStorage</span><span class="p">[</span><span class="nx">itPath</span><span class="p">]</span>
-    <span class="k">else</span> <span class="k">if</span> <span class="nx">localStorage</span><span class="p">[</span><span class="nx">path</span><span class="p">]</span><span class="o">?</span>
-      <span class="k">delete</span> <span class="nx">localStorage</span><span class="p">[</span><span class="nx">path</span><span class="p">]</span>
-    <span class="k">else</span>
-      <span class="k">return</span> <span class="kc">false</span>
-    <span class="k">return</span> <span class="kc">true</span>
+  constructor: (mnt_pt, inpt_sources = []) -&gt;
+    <span class="keyword">super</span>(mnt_pt)
+    <span class="property">@sources</span> = {}
+    <span class="property">@mnt_pts</span> = []
+    <span class="property">@redundant_storage</span> = <span class="literal">false</span>
+    <span class="keyword">for</span> source <span class="keyword">in</span> inpt_sources
+      <span class="property">@add_source</span>(source)
 
-  <span class="nv">ls: </span><span class="nf">(path) -&gt;</span> <span class="nx">@index</span><span class="p">.</span><span class="nx">ls</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
-  <span class="nv">mv: </span><span class="nf">(path1, path2, isFile = true) -&gt;</span>
-    <span class="k">if</span> <span class="nx">isFile</span>
-      <span class="nv">file1_obj = </span><span class="nx">@fetch</span><span class="p">(</span><span class="nx">path1</span><span class="p">)</span>
-      <span class="k">return</span> <span class="kc">false</span> <span class="nx">unless</span> <span class="nx">file1_obj</span><span class="o">?</span> <span class="o">and</span> <span class="nx">@rm</span> <span class="nx">path1</span>
-      <span class="nv">file1_obj.path = </span><span class="nx">path2</span></pre></div>             </td>           </tr>                               <tr id="section-31">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-31">&#182;</a>               </div>               <p>XXX: Bit of a hack.</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nv">file1_obj.mod = </span><span class="kc">true</span>
-      <span class="nx">@store</span> <span class="nx">path2</span><span class="p">,</span> <span class="nx">file1_obj</span>
-    <span class="k">else</span>
-      <span class="nv">file1_ls = </span><span class="nx">@index</span><span class="p">.</span><span class="nx">ls</span><span class="p">(</span><span class="nx">path1</span><span class="p">)</span>
-      <span class="k">return</span> <span class="kc">false</span> <span class="nx">unless</span> <span class="nx">file1_ls</span><span class="o">?</span></pre></div>             </td>           </tr>                               <tr id="section-32">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-32">&#182;</a>               </div>               <p>Make path2.</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">@index</span><span class="p">.</span><span class="nx">mkdir</span> <span class="nx">path2</span></pre></div>             </td>           </tr>                               <tr id="section-33">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-33">&#182;</a>               </div>               <p>Move every file from p1 to p2.</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="k">for</span> <span class="nx">f_name</span> <span class="k">in</span> <span class="nx">file1_ls</span>
-        <span class="nx">@mv</span> <span class="nx">f_name</span><span class="p">,</span> <span class="nx">path2</span> <span class="o">+</span> <span class="nx">f_name</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="nx">path1</span><span class="p">.</span><span class="nx">length</span><span class="p">),</span> <span class="kc">true</span></pre></div>             </td>           </tr>                               <tr id="section-34">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-34">&#182;</a>               </div>               <p>Delete p1.</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">@index</span><span class="p">.</span><span class="nx">rm</span> <span class="nx">path1</span>
-    <span class="k">return</span> <span class="kc">true</span>
-  <span class="nv">mkdir: </span><span class="nf">(path) -&gt;</span>
-    <span class="k">return</span> <span class="kc">false</span> <span class="nx">unless</span> <span class="nx">@index</span><span class="p">.</span><span class="nx">parent</span> <span class="nx">path</span>
-    <span class="nx">@index</span><span class="p">.</span><span class="nx">mkdir</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
-    <span class="k">return</span> <span class="kc">true</span>
+  add_source: (source) -&gt;
+    <span class="property">@sources</span>[source.mnt_pt] = source
+    <span class="property">@mnt_pts</span>.push(source.mnt_pt)
+    <span class="property">@redundant_storage</span> ||= source.redundant_storage
+    <span class="keyword">return</span>
 
-<span class="k">class</span> <span class="nx">WebserverSource</span> <span class="k">extends</span> <span class="nx">FileSource</span>
-  <span class="nv">_download_file: </span><span class="nf">(path) -&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-35">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-35">&#182;</a>               </div>               <p>Ensure the file is in the index.</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="k">return</span> <span class="kc">null</span> <span class="k">if</span> <span class="nx">@index</span><span class="o">?</span> <span class="o">and</span> <span class="nx">@index</span><span class="p">.</span><span class="nx">get_file</span><span class="p">(</span><span class="nx">@mnt_pt</span> <span class="o">+</span> <span class="nx">path</span><span class="p">)</span> <span class="o">==</span> <span class="kc">false</span>
-    <span class="nv">data = </span><span class="kc">null</span></pre></div>             </td>           </tr>                               <tr id="section-36">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-36">&#182;</a>               </div>               <p>The below code is complicated because we can't do a 'text' request in IE;
-it truncates the response at the first NULL character.</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="k">if</span> <span class="o">not</span> <span class="nx">$</span><span class="p">.</span><span class="nx">browser</span><span class="p">.</span><span class="nx">msie</span>
-      <span class="nx">$</span><span class="p">.</span><span class="nx">ajax</span> <span class="nx">path</span><span class="p">,</span> <span class="p">{</span>
-        <span class="nv">type: </span><span class="s1">&#39;GET&#39;</span>
-        <span class="nv">dataType: </span><span class="s1">&#39;text&#39;</span>
-        <span class="nv">async: </span><span class="kc">false</span>
-        <span class="nv">beforeSend: </span><span class="nf">(jqXHR) -&gt;</span> <span class="nx">jqXHR</span><span class="p">.</span><span class="nx">overrideMimeType</span><span class="p">(</span><span class="s1">&#39;text/plain; charset=x-user-defined&#39;</span><span class="p">)</span>
-        <span class="nv">success: </span><span class="nf">(theData, status, jqxhr) -&gt;</span> <span class="nv">data = </span><span class="nx">theData</span>
-      <span class="p">}</span></pre></div>             </td>           </tr>                               <tr id="section-37">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-37">&#182;</a>               </div>               <p>IE 10+ path</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="k">else</span> <span class="k">if</span> <span class="nb">window</span><span class="p">.</span><span class="nx">Blob</span></pre></div>             </td>           </tr>                               <tr id="section-38">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-38">&#182;</a>               </div>               <p>In IE10, we can do a 'blob' request to get a binary blob that we can
+  fetch: (path) -&gt;
+    applicable = <span class="property">@_get_applicable_sources</span>(path)
+    <span class="keyword">for</span> parent <span class="keyword">in</span> applicable
+      f = parent.fetch(path)
+      <span class="keyword">return</span> f <span class="keyword">if</span> f?
+    <span class="keyword">return</span> <span class="literal">null</span>
+
+  store: (path, file) -&gt;
+    applicable = <span class="property">@_get_applicable_sources</span>(path)
+    stored = <span class="literal">false</span>
+    <span class="keyword">for</span> source <span class="keyword">in</span> applicable
+      stored = source.store(path, file) || stored <span class="keyword">unless</span> stored <span class="keyword">and</span> !source.redundant_storage
+    <span class="keyword">return</span> stored
+
+  rm: (path) -&gt;
+    applicable = <span class="property">@_get_applicable_sources</span>(path)
+    removed = <span class="literal">false</span>
+    <span class="keyword">for</span> source <span class="keyword">in</span> applicable
+      removed = source.rm(path) || removed <span class="keyword">unless</span> removed <span class="keyword">and</span> !source.redundant_storage
+    <span class="keyword">return</span> removed
+
+  ls: (path) -&gt;
+    applicable = <span class="property">@_get_applicable_sources</span>(path)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-28">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-28">&#182;</a>
+              </div>
+              <p>Initialize to &#39;null&#39; so that we return &#39;null&#39; if the path is not present
+in any applicable FileSources. Note that &#39;null&#39; != [], as the latter is
+an existing-but-empty directory.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    list = <span class="literal">null</span>
+    <span class="keyword">for</span> source <span class="keyword">in</span> applicable
+      src_list = source.ls(path)
+      <span class="keyword">if</span> src_list?
+        list = <span class="keyword">if</span> list? <span class="keyword">then</span> _.union(list, src_list) <span class="keyword">else</span> src_list
+    <span class="keyword">return</span> list
+
+  mv: (path1, path2, isFile = <span class="literal">true</span>) -&gt;
+    applicable = <span class="property">@_get_applicable_sources</span>(path1)
+    moved = <span class="literal">false</span>
+    <span class="keyword">for</span> source <span class="keyword">in</span> applicable
+      moved = source.mv(path1, path2, isFile) || moved
+    <span class="keyword">return</span> moved
+
+  mkdir: (path) -&gt;
+    applicable = <span class="property">@_get_applicable_sources</span> path
+    dirmade = <span class="literal">false</span>
+    <span class="keyword">for</span> source <span class="keyword">in</span> applicable
+      dirmade ||= source.mkdir path
+    <span class="keyword">return</span> dirmade
+
+<span class="class"><span class="keyword">class</span> <span class="title">LocalStorageSource</span> <span class="keyword">extends</span> <span class="title">FileSource</span></span>
+  redundant_storage: <span class="literal">true</span>
+  constructor: (mnt_pt) -&gt;
+    <span class="keyword">super</span>(mnt_pt)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-29">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-29">&#182;</a>
+              </div>
+              <p>Index of all files in LS.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="property">@index</span> = <span class="keyword">new</span> FileIndex()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-30">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-30">&#182;</a>
+              </div>
+              <p>Initialize index w/ LS files and directories.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="keyword">for</span> i <span class="keyword">in</span> [<span class="number">0.</span>..localStorage.length]
+      <span class="property">@index</span>.add_file(localStorage.key(i), <span class="literal">null</span>)
+
+  fetch: (path) -&gt;
+    data = localStorage.getItem path
+    <span class="keyword">if</span> data? <span class="keyword">then</span> DoppioFile.fromJSON(path, data) <span class="keyword">else</span> <span class="literal">null</span>
+  store: (path, file) -&gt;
+    <span class="keyword">try</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-31">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-31">&#182;</a>
+              </div>
+              <p>XXX: Don&#39;t store if a temporary file.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="keyword">if</span> file.mod <span class="keyword">and</span> <span class="keyword">not</span> file.temp
+        localStorage.setItem path, file.toJSON()
+      <span class="property">@index</span>.add_file(path, file)
+      <span class="keyword">return</span> <span class="literal">true</span>
+    <span class="keyword">catch</span> e</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-32">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-32">&#182;</a>
+              </div>
+              <p>Probably out of space.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="keyword">return</span> <span class="literal">false</span>
+  rm: (path) -&gt;
+    listing = <span class="property">@index</span>.rm(path)
+    <span class="keyword">if</span> <span class="keyword">typeof</span> listing != <span class="string">'boolean'</span>
+      <span class="keyword">for</span> item <span class="keyword">in</span> listing
+        itPath = path + <span class="string">'/'</span> + item
+        localStorage.removeItem itPath
+    <span class="keyword">else</span> <span class="keyword">if</span> localStorage.getItem(path)?
+      localStorage.removeItem(path)
+    <span class="keyword">else</span>
+      <span class="keyword">return</span> <span class="literal">false</span>
+    <span class="keyword">return</span> <span class="literal">true</span>
+
+  ls: (path) -&gt; <span class="property">@index</span>.ls(path)
+  mv: (path1, path2, isFile = <span class="literal">true</span>) -&gt;
+    <span class="keyword">if</span> isFile
+      file1_obj = <span class="property">@fetch</span>(path1)
+      <span class="keyword">return</span> <span class="literal">false</span> <span class="keyword">unless</span> file1_obj? <span class="keyword">and</span> <span class="property">@rm</span> path1
+      file1_obj.path = path2</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-33">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-33">&#182;</a>
+              </div>
+              <p>XXX: Bit of a hack.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      file1_obj.mod = <span class="literal">true</span>
+      <span class="property">@store</span> path2, file1_obj
+    <span class="keyword">else</span>
+      file1_ls = <span class="property">@index</span>.ls(path1)
+      <span class="keyword">return</span> <span class="literal">false</span> <span class="keyword">unless</span> file1_ls?</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-34">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-34">&#182;</a>
+              </div>
+              <p>Make path2.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="property">@index</span>.mkdir path2</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-35">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-35">&#182;</a>
+              </div>
+              <p>Move every file from p1 to p2.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="keyword">for</span> f_name <span class="keyword">in</span> file1_ls
+        <span class="property">@mv</span> f_name, path2 + f_name.substr(path1.length), <span class="literal">true</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-36">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-36">&#182;</a>
+              </div>
+              <p>Delete p1.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="property">@index</span>.rm path1
+    <span class="keyword">return</span> <span class="literal">true</span>
+  mkdir: (path) -&gt;
+    <span class="keyword">return</span> <span class="literal">false</span> <span class="keyword">unless</span> <span class="property">@index</span>.parent path
+    <span class="property">@index</span>.mkdir(path)
+    <span class="keyword">return</span> <span class="literal">true</span>
+
+<span class="class"><span class="keyword">class</span> <span class="title">WebserverSource</span> <span class="keyword">extends</span> <span class="title">FileSource</span></span>
+  _download_file: (path) -&gt;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-37">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-37">&#182;</a>
+              </div>
+              <p>Ensure the file is in the index.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="keyword">return</span> <span class="literal">null</span> <span class="keyword">if</span> <span class="property">@index</span>? <span class="keyword">and</span> <span class="property">@index</span>.get_file(<span class="property">@mnt_pt</span> + path) == <span class="literal">false</span>
+    data = <span class="literal">null</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-38">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-38">&#182;</a>
+              </div>
+              <p>The below code is complicated because we can&#39;t do a &#39;text&#39; request in IE;
+it truncates the response at the first NULL character.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="keyword">if</span> <span class="keyword">not</span> $.browser.msie
+      $.ajax path, {
+        type: <span class="string">'GET'</span>
+        dataType: <span class="string">'text'</span>
+        async: <span class="literal">false</span>
+        beforeSend: (jqXHR) -&gt; jqXHR.overrideMimeType(<span class="string">'text/plain; charset=x-user-defined'</span>)
+        success: (theData, status, jqxhr) -&gt; data = theData
+      }</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-39">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-39">&#182;</a>
+              </div>
+              <p>IE 10+ path</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="keyword">else</span> <span class="keyword">if</span> window.Blob</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-40">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-40">&#182;</a>
+              </div>
+              <p>In IE10, we can do a &#39;blob&#39; request to get a binary blob that we can
 convert into a string.
-jQuery's 'ajax' function does not support blob requests, so we're going
+jQuery&#39;s &#39;ajax&#39; function does not support blob requests, so we&#39;re going
 to use XMLHttpRequest directly.
 Furthermore, the code below will <em>NOT</em> work in Firefox or Chrome, since
-they do not allow synchronous blob or arraybuffer requests.</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nv">req = </span><span class="k">new</span> <span class="nx">XMLHttpRequest</span><span class="p">()</span>
-      <span class="nx">req</span><span class="p">.</span><span class="nx">open</span><span class="p">(</span><span class="s1">&#39;GET&#39;</span><span class="p">,</span> <span class="nx">path</span><span class="p">,</span> <span class="kc">false</span><span class="p">)</span>
-      <span class="nv">req.responseType = </span><span class="s1">&#39;arraybuffer&#39;</span>
-      <span class="nx">req</span><span class="p">.</span><span class="nx">send</span><span class="p">()</span>
-      <span class="k">if</span> <span class="nx">req</span><span class="p">.</span><span class="nx">status</span> <span class="o">==</span> <span class="mi">200</span>
-        <span class="nv">typed_array = </span><span class="k">new</span> <span class="nx">Uint8Array</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">response</span><span class="p">)</span>
-        <span class="nv">array = </span><span class="p">[]</span>
-        <span class="k">for</span> <span class="nx">char</span><span class="p">,</span> <span class="nx">i</span> <span class="k">in</span> <span class="nx">typed_array</span>
-          <span class="nx">array</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">String</span><span class="p">.</span><span class="nx">fromCharCode</span><span class="p">(</span><span class="nx">char</span><span class="p">)</span>
-        <span class="nv">data = </span><span class="nx">array</span><span class="p">.</span><span class="nx">join</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-39">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-39">&#182;</a>               </div>               <p>IE &lt; 10 path</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="k">else</span></pre></div>             </td>           </tr>                               <tr id="section-40">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-40">&#182;</a>               </div>               <p>In earlier versions of IE, we can retrieve the 'responseBody'
+they do not allow synchronous blob or arraybuffer requests.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      req = <span class="keyword">new</span> XMLHttpRequest()
+      req.open(<span class="string">'GET'</span>, path, <span class="literal">false</span>)
+      req.responseType = <span class="string">'arraybuffer'</span>
+      req.send()
+      <span class="keyword">if</span> req.status == <span class="number">200</span>
+        typed_array = <span class="keyword">new</span> Uint8Array(req.response)
+        array = []
+        <span class="keyword">for</span> char, i <span class="keyword">in</span> typed_array
+          array[i] = String.fromCharCode(char)
+        data = array.join(<span class="string">""</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-41">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-41">&#182;</a>
+              </div>
+              <p>IE &lt; 10 path</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="keyword">else</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-42">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-42">&#182;</a>
+              </div>
+              <p>In earlier versions of IE, we can retrieve the &#39;responseBody&#39;
 attribute of the response (which contains the <em>entire</em> response).
-Since it's an unsigned array, JavaScript can't touch it, so we
+Since it&#39;s an unsigned array, JavaScript can&#39;t touch it, so we
 pass it to VBScript code that can convert it into something
 JavaScript can process.
 Note that this approach also works in IE10 for x86 platforms, but
-not for ARM platforms which do not have VBScript support.</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nv">req = </span><span class="k">new</span> <span class="nx">XMLHttpRequest</span><span class="p">()</span>
-      <span class="nx">req</span><span class="p">.</span><span class="nx">open</span><span class="p">(</span><span class="s1">&#39;GET&#39;</span><span class="p">,</span> <span class="nx">path</span><span class="p">,</span> <span class="kc">false</span><span class="p">)</span>
-      <span class="nx">req</span><span class="p">.</span><span class="nx">setRequestHeader</span><span class="p">(</span><span class="s2">&quot;Accept-Charset&quot;</span><span class="p">,</span> <span class="s2">&quot;x-user-defined&quot;</span><span class="p">)</span>
-      <span class="nx">req</span><span class="p">.</span><span class="nx">send</span><span class="p">()</span>
-      <span class="k">if</span> <span class="nx">req</span><span class="p">.</span><span class="nx">status</span> <span class="o">==</span> <span class="mi">200</span>
-        <span class="nv">data = </span><span class="nx">GetIEByteArray_ByteStr</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">responseBody</span><span class="p">)</span>
+not for ARM platforms which do not have VBScript support.</p>
 
-    <span class="k">return</span> <span class="nx">data</span>
-  <span class="nv">constructor: </span><span class="nf">(mnt_pt, listings_path) -&gt;</span>
-    <span class="k">super</span><span class="p">(</span><span class="nx">mnt_pt</span><span class="p">)</span>
-    <span class="k">if</span> <span class="nx">listings_path</span><span class="o">?</span>
-      <span class="nv">idx_data = </span><span class="nx">@_download_file</span><span class="p">(</span><span class="nx">listings_path</span><span class="p">)</span>
-    <span class="vi">@index = </span><span class="k">new</span> <span class="nx">FileIndex</span><span class="p">(</span><span class="k">if</span> <span class="nx">idx_data</span><span class="o">?</span> <span class="k">then</span> <span class="nx">JSON</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">idx_data</span><span class="p">)</span> <span class="k">else</span> <span class="p">)</span>
-  <span class="nv">fetch: </span><span class="nf">(path) -&gt;</span>
-    <span class="nv">trim_path = </span><span class="nx">@_trim_mnt_pt</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
-    <span class="nv">data = </span><span class="nx">@_download_file</span><span class="p">(</span><span class="nx">trim_path</span><span class="p">)</span>
-    <span class="k">return</span> <span class="k">if</span> <span class="nx">data</span><span class="o">?</span> <span class="k">then</span> <span class="k">new</span> <span class="nx">DoppioFile</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="nx">data</span><span class="p">)</span> <span class="k">else</span> <span class="kc">null</span>
-  <span class="nv">ls: </span><span class="nf">(path) -&gt;</span> <span class="nx">@index</span><span class="p">.</span><span class="nx">ls</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-41">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-41">&#182;</a>               </div>               <p>Wraps another FileSource and acts as its cache.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="k">class</span> <span class="nx">CacheSource</span> <span class="k">extends</span> <span class="nx">FileSource</span>
-  <span class="nv">constructor: </span><span class="nf">(mnt_pt, src) -&gt;</span>
-    <span class="k">super</span><span class="p">(</span><span class="nx">mnt_pt</span><span class="p">)</span>
-    <span class="vi">@src = </span><span class="nx">src</span>
-    <span class="vi">@redundant_storage = </span><span class="nx">src</span><span class="p">.</span><span class="nx">redundant_storage</span>
-    <span class="vi">@index = </span><span class="k">new</span> <span class="nx">FileIndex</span><span class="p">()</span>
-  <span class="nv">fetch: </span><span class="nf">(path) -&gt;</span>
-    <span class="nv">f = </span><span class="nx">@index</span><span class="p">.</span><span class="nx">get_file</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
-    <span class="k">if</span> <span class="nx">f</span> <span class="o">==</span> <span class="kc">false</span>
-      <span class="nv">f = </span><span class="nx">@src</span><span class="p">.</span><span class="nx">fetch</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
-      <span class="nx">@index</span><span class="p">.</span><span class="nx">add_file</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="nx">f</span><span class="p">)</span> <span class="k">if</span> <span class="nx">f</span><span class="o">?</span>
-    <span class="k">return</span> <span class="nx">f</span>
-  <span class="nv">store: </span><span class="nf">(path, file) -&gt;</span>
-    <span class="k">if</span> <span class="nx">@src</span><span class="p">.</span><span class="nx">store</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="nx">file</span><span class="p">)</span>
-      <span class="nx">@index</span><span class="p">.</span><span class="nx">add_file</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="nx">file</span><span class="p">)</span>
-      <span class="k">return</span> <span class="kc">true</span>
-    <span class="k">return</span> <span class="kc">false</span>
-  <span class="nv">rm: </span><span class="nf">(path) -&gt;</span>
-    <span class="k">if</span> <span class="nx">@src</span><span class="p">.</span><span class="nx">rm</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
-      <span class="nx">@index</span><span class="p">.</span><span class="nx">rm</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
-      <span class="k">return</span> <span class="kc">true</span>
-    <span class="k">return</span> <span class="kc">false</span>
-  <span class="nv">ls: </span><span class="nf">(path) -&gt;</span> <span class="nx">@src</span><span class="p">.</span><span class="nx">ls</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
-  <span class="nv">mkdir: </span><span class="nf">(path) -&gt;</span> <span class="nx">@src</span><span class="p">.</span><span class="nx">mkdir</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-42">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-42">&#182;</a>               </div>               <p>ignoreSrc is used internally only.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">mv: </span><span class="nf">(file1, file2, isFile = true, ignoreSrc = false) -&gt;</span>
-    <span class="nv">success = </span><span class="k">if</span> <span class="nx">ignoreSrc</span> <span class="k">then</span> <span class="kc">true</span> <span class="k">else</span> <span class="nx">@src</span><span class="p">.</span><span class="nx">mv</span> <span class="nx">file1</span><span class="p">,</span> <span class="nx">file2</span><span class="p">,</span> <span class="nx">isFile</span></pre></div>             </td>           </tr>                               <tr id="section-43">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-43">&#182;</a>               </div>               <p>Move any cached copies.</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="k">if</span> <span class="nx">isFile</span>
-      <span class="nv">f = </span><span class="nx">@index</span><span class="p">.</span><span class="nx">get_file</span> <span class="nx">file1</span>
-      <span class="k">if</span> <span class="nx">f</span>
-        <span class="nv">f.path = </span><span class="nx">file2</span>
-        <span class="nx">@index</span><span class="p">.</span><span class="nx">rm</span> <span class="nx">file1</span>
-        <span class="nx">@index</span><span class="p">.</span><span class="nx">add_file</span> <span class="nx">file2</span><span class="p">,</span> <span class="nx">f</span>
-    <span class="k">else</span>
-      <span class="nv">ls = </span><span class="nx">@index</span><span class="p">.</span><span class="nx">ls</span> <span class="nx">file1</span>
-      <span class="k">for</span> <span class="nx">f_name</span> <span class="k">in</span> <span class="nx">ls</span>
-        <span class="nx">@mv</span> <span class="nx">f_name</span><span class="p">,</span> <span class="nx">path2</span> <span class="o">+</span> <span class="nx">f_name</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="nx">path1</span><span class="p">.</span><span class="nx">length</span><span class="p">),</span> <span class="kc">true</span><span class="p">,</span> <span class="kc">true</span>
-      <span class="nx">@index</span><span class="p">.</span><span class="nx">rm</span> <span class="nx">file1</span>
-    <span class="k">return</span> <span class="nx">success</span></pre></div>             </td>           </tr>                               <tr id="section-44">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-44">&#182;</a>               </div>               <p>Stores the File System's current state.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="k">class</span> <span class="nx">FSState</span>
-  <span class="nv">constructor: </span><span class="o">-&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-45">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-45">&#182;</a>               </div>               <p>Files fetched from webserver are always represented internally as relative
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      req = <span class="keyword">new</span> XMLHttpRequest()
+      req.open(<span class="string">'GET'</span>, path, <span class="literal">false</span>)
+      req.setRequestHeader(<span class="string">"Accept-Charset"</span>, <span class="string">"x-user-defined"</span>)
+      req.send()
+      <span class="keyword">if</span> req.status == <span class="number">200</span>
+        data = GetIEByteArray_ByteStr(req.responseBody)
+
+    <span class="keyword">return</span> data
+  constructor: (mnt_pt, listings_path) -&gt;
+    <span class="keyword">super</span>(mnt_pt)
+    <span class="keyword">if</span> listings_path?
+      idx_data = <span class="property">@_download_file</span>(listings_path)
+    <span class="property">@index</span> = <span class="keyword">new</span> FileIndex(<span class="keyword">if</span> idx_data? <span class="keyword">then</span> JSON.parse(idx_data) <span class="keyword">else</span> )
+  fetch: (path) -&gt;
+    f = <span class="property">@index</span>.get_file(path)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-43">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-43">&#182;</a>
+              </div>
+              <p>File does not exist on the webserver according to the index, or has been
+&quot;deleted&quot;.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="keyword">return</span> <span class="literal">null</span> <span class="keyword">if</span> f <span class="keyword">is</span> <span class="literal">false</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-44">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-44">&#182;</a>
+              </div>
+              <p>Fetch the file.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    trim_path = <span class="property">@_trim_mnt_pt</span>(path)
+    data = <span class="property">@_download_file</span>(trim_path)
+    <span class="keyword">return</span> <span class="keyword">if</span> data? <span class="keyword">then</span> <span class="keyword">new</span> DoppioFile(path, data) <span class="keyword">else</span> <span class="literal">null</span>
+  ls: (path) -&gt; <span class="property">@index</span>.ls(path)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-45">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-45">&#182;</a>
+              </div>
+              <p>Deletions occur only on our index to make the files &#39;invisible&#39; to the
+application.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  rm: (path) -&gt; <span class="property">@index</span>.rm(path)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-46">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-46">&#182;</a>
+              </div>
+              <p>Wraps another FileSource and acts as its cache.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="class"><span class="keyword">class</span> <span class="title">CacheSource</span> <span class="keyword">extends</span> <span class="title">FileSource</span></span>
+  constructor: (mnt_pt, src) -&gt;
+    <span class="keyword">super</span>(mnt_pt)
+    <span class="property">@src</span> = src
+    <span class="property">@redundant_storage</span> = src.redundant_storage
+    <span class="property">@index</span> = <span class="keyword">new</span> FileIndex()
+  fetch: (path) -&gt;
+    f = <span class="property">@index</span>.get_file(path)
+    <span class="keyword">if</span> f == <span class="literal">false</span>
+      f = <span class="property">@src</span>.fetch(path)
+      <span class="property">@index</span>.add_file(path, f) <span class="keyword">if</span> f?
+    <span class="keyword">return</span> f
+  store: (path, file) -&gt;
+    <span class="keyword">if</span> <span class="property">@src</span>.store(path, file)
+      <span class="property">@index</span>.add_file(path, file)
+      <span class="keyword">return</span> <span class="literal">true</span>
+    <span class="keyword">return</span> <span class="literal">false</span>
+  rm: (path) -&gt;
+    <span class="keyword">if</span> <span class="property">@src</span>.rm(path)
+      <span class="property">@index</span>.rm(path)
+      <span class="keyword">return</span> <span class="literal">true</span>
+    <span class="keyword">return</span> <span class="literal">false</span>
+  ls: (path) -&gt; <span class="property">@src</span>.ls(path)
+  mkdir: (path) -&gt; <span class="property">@src</span>.mkdir(path)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-47">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-47">&#182;</a>
+              </div>
+              <p>ignoreSrc is used internally only.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  mv: (file1, file2, isFile = <span class="literal">true</span>, ignoreSrc = <span class="literal">false</span>) -&gt;
+    success = <span class="keyword">if</span> ignoreSrc <span class="keyword">then</span> <span class="literal">true</span> <span class="keyword">else</span> <span class="property">@src</span>.mv file1, file2, isFile</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-48">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-48">&#182;</a>
+              </div>
+              <p>Move any cached copies.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="keyword">if</span> isFile
+      f = <span class="property">@index</span>.get_file file1
+      <span class="keyword">if</span> f
+        f.path = file2
+        <span class="property">@index</span>.rm file1
+        <span class="property">@index</span>.add_file file2, f
+    <span class="keyword">else</span>
+      ls = <span class="property">@index</span>.ls file1
+      <span class="keyword">for</span> f_name <span class="keyword">in</span> ls
+        <span class="property">@mv</span> f_name, path2 + f_name.substr(path1.length), <span class="literal">true</span>, <span class="literal">true</span>
+      <span class="property">@index</span>.rm file1
+    <span class="keyword">return</span> success</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-49">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-49">&#182;</a>
+              </div>
+              <p>Stores the File System&#39;s current state.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="class"><span class="keyword">class</span> <span class="title">FSState</span></span>
+  constructor: -&gt;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-50">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-50">&#182;</a>
+              </div>
+              <p>Files fetched from webserver are always represented internally as relative
 to home.
-(mnt<em>pt, inpt</em>sources = [])</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="vi">@home = </span><span class="s1">&#39;/home/doppio&#39;</span>
-    <span class="vi">@pwd = </span><span class="nx">@home</span>
-    <span class="nv">mainSource = </span><span class="k">new</span> <span class="nx">CompositedFileSource</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="p">[</span><span class="k">new</span> <span class="nx">LocalStorageSource</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">),</span> <span class="k">new</span> <span class="nx">WebserverSource</span><span class="p">(</span><span class="s1">&#39;/home/doppio&#39;</span><span class="p">,</span> <span class="s1">&#39;/browser/listings.json&#39;</span><span class="p">)])</span>
-    <span class="vi">@files = </span><span class="k">new</span> <span class="nx">CacheSource</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="nx">mainSource</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-46">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-46">&#182;</a>               </div>               <p>Slight cheat; ensures that / and /home exist.</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nv">f = </span><span class="k">new</span> <span class="nx">DoppioFile</span><span class="p">(</span><span class="s1">&#39;/home/doppio/Hello.txt&#39;</span><span class="p">,</span> <span class="s2">&quot;Welcome to Doppio!&quot;</span><span class="p">)</span>
-    <span class="nv">f.mod = </span><span class="kc">true</span>
-    <span class="nx">@files</span><span class="p">.</span><span class="nx">store</span> <span class="s1">&#39;/home/doppio/Hello.txt&#39;</span><span class="p">,</span> <span class="nx">f</span></pre></div>             </td>           </tr>                               <tr id="section-47">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-47">&#182;</a>               </div>               <p>Canonicalizes the given path.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">resolve: </span><span class="nf">(path) -&gt;</span>
-    <span class="nv">components = </span><span class="nx">path</span><span class="p">.</span><span class="nx">split</span> <span class="s1">&#39;/&#39;</span>
-    <span class="nv">absolute = </span><span class="nx">path</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;/&#39;</span>
-    <span class="k">for</span> <span class="nx">c</span><span class="p">,</span> <span class="nx">idx</span> <span class="k">in</span> <span class="nx">components</span>
-      <span class="nx">components</span><span class="p">[</span><span class="nx">idx</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span> <span class="k">if</span> <span class="nx">c</span> <span class="o">==</span> <span class="s1">&#39;.&#39;</span>
-      <span class="nx">components</span><span class="p">[</span><span class="nx">idx</span><span class="p">]</span> <span class="o">=</span> <span class="nx">@home</span> <span class="k">if</span> <span class="nx">c</span> <span class="o">==</span> <span class="s1">&#39;~&#39;</span>
-    <span class="k">if</span> <span class="o">!</span><span class="nx">absolute</span>
-      <span class="nv">pwdCmps = </span><span class="nx">@pwd</span><span class="p">.</span><span class="nx">split</span> <span class="s1">&#39;/&#39;</span>
-      <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="nx">pwdCmps</span><span class="p">.</span><span class="nx">length</span> <span class="o">-</span> <span class="mi">1</span><span class="p">..</span><span class="mi">0</span><span class="p">]</span> <span class="k">by</span> <span class="o">-</span><span class="mi">1</span>
-        <span class="nx">components</span><span class="p">.</span><span class="nx">unshift</span><span class="p">(</span><span class="nx">pwdCmps</span><span class="p">[</span><span class="nx">i</span><span class="p">])</span>
-    <span class="k">for</span> <span class="nx">c</span><span class="p">,</span> <span class="nx">idx</span> <span class="k">in</span> <span class="nx">components</span>
-      <span class="k">if</span> <span class="nx">c</span> <span class="o">==</span> <span class="s1">&#39;..&#39;</span>
-        <span class="nv">processed = </span><span class="kc">false</span>
-        <span class="nv">i = </span><span class="nx">idx</span><span class="o">-</span><span class="mi">1</span>
-        <span class="k">while</span> <span class="o">!</span><span class="nx">processed</span>
-          <span class="k">if</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="k">then</span> <span class="nv">processed = </span><span class="kc">true</span>
-          <span class="k">if</span> <span class="nx">components</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span>
-            <span class="nx">components</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
-            <span class="nx">components</span><span class="p">[</span><span class="nx">idx</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
-            <span class="nv">processed = </span><span class="kc">true</span>
-          <span class="nx">i</span><span class="o">--</span></pre></div>             </td>           </tr>                               <tr id="section-48">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-48">&#182;</a>               </div>               <p>remove repeated //s</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nv">path = </span><span class="p">(</span><span class="nx">c</span> <span class="k">for</span> <span class="nx">c</span><span class="p">,</span> <span class="nx">idx</span> <span class="k">in</span> <span class="nx">components</span> <span class="k">when</span> <span class="nx">c</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">).</span><span class="nx">join</span> <span class="s1">&#39;/&#39;</span>
-    <span class="k">if</span> <span class="nx">path</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;/&#39;</span>
-      <span class="nv">path = </span><span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="nx">path</span>
-    <span class="k">return</span> <span class="nx">path</span></pre></div>             </td>           </tr>                               <tr id="section-49">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-49">&#182;</a>               </div>               <p>Retrieves a file from the file system. Creates a new one if needed.
-Mode is 'r' for read, 'w' for write+read, 'a' for append+read
-Returns 'null' if file does not exist.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">open: </span><span class="nf">(path, mode = &#39;r&#39;) -&gt;</span>
-    <span class="nv">path = </span><span class="nx">@resolve</span> <span class="nx">path</span>
-    <span class="k">return</span> <span class="kc">null</span> <span class="k">if</span> <span class="nx">@is_directory</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-50">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-50">&#182;</a>               </div>               <p>Start fresh.</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="k">if</span> <span class="nx">mode</span> <span class="o">==</span> <span class="s1">&#39;w&#39;</span>
-      <span class="nv">f = </span><span class="k">new</span> <span class="nx">DoppioFile</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-51">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-51">&#182;</a>               </div>               <p>Ensure writeback when closed.</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nv">f.mod = </span><span class="kc">true</span>
-      <span class="k">return</span> <span class="nx">f</span>
-    <span class="k">return</span> <span class="nx">@files</span><span class="p">.</span><span class="nx">fetch</span> <span class="nx">path</span>
+(mnt_pt, inpt_sources = [])</p>
 
-  <span class="nv">close: </span><span class="nf">(file) -&gt;</span> <span class="nx">@files</span><span class="p">.</span><span class="nx">store</span><span class="p">(</span><span class="nx">file</span><span class="p">.</span><span class="nx">path</span><span class="p">,</span> <span class="nx">file</span><span class="p">);</span> <span class="nv">file.mod = </span><span class="kc">false</span><span class="p">;</span> <span class="k">return</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="property">@home</span> = <span class="string">'/home/doppio'</span>
+    <span class="property">@pwd</span> = <span class="property">@home</span>
+    mainSource = <span class="keyword">new</span> CompositedFileSource(<span class="string">'/'</span>, [<span class="keyword">new</span> LocalStorageSource(<span class="string">'/'</span>),
+      <span class="keyword">new</span> WebserverSource(<span class="string">'/home/doppio'</span>, <span class="string">'/browser/listings.json'</span>)])
+    <span class="property">@files</span> = <span class="keyword">new</span> CacheSource(<span class="string">'/'</span>, mainSource)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-51">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-51">&#182;</a>
+              </div>
+              <p>Slight cheat; ensures that / and /home exist.</p>
 
-  <span class="nv">list: </span><span class="nf">(path) -&gt;</span> <span class="nx">@files</span><span class="p">.</span><span class="nx">ls</span><span class="p">(</span><span class="nx">@resolve</span> <span class="nx">path</span><span class="p">)</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    f = <span class="keyword">new</span> DoppioFile(<span class="string">'/home/doppio/Hello.txt'</span>, <span class="string">"Welcome to Doppio!"</span>)
+    f.mod = <span class="literal">true</span>
+    <span class="property">@files</span>.store <span class="string">'/home/doppio/Hello.txt'</span>, f</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-52">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-52">&#182;</a>
+              </div>
+              <p>Canonicalizes the given path.</p>
 
-  <span class="nv">is_file: </span><span class="nf">(path) -&gt;</span> <span class="nx">@files</span><span class="p">.</span><span class="nx">fetch</span><span class="p">(</span><span class="nx">@resolve</span> <span class="nx">path</span><span class="p">)</span><span class="o">?</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  resolve: (path) -&gt;
+    components = path.split <span class="string">'/'</span>
+    absolute = path[<span class="number">0</span>] == <span class="string">'/'</span>
+    <span class="keyword">for</span> c, idx <span class="keyword">in</span> components
+      components[idx] = <span class="string">''</span> <span class="keyword">if</span> c == <span class="string">'.'</span>
+      components[idx] = <span class="property">@home</span> <span class="keyword">if</span> c == <span class="string">'~'</span>
+    <span class="keyword">if</span> !absolute
+      <span class="keyword">for</span> pwdCmp <span class="keyword">in</span> <span class="property">@pwd</span>.split(<span class="string">'/'</span>) <span class="keyword">by</span> -<span class="number">1</span>
+        components.unshift(pwdCmp)
+    <span class="keyword">for</span> c, idx <span class="keyword">in</span> components
+      <span class="keyword">if</span> c == <span class="string">'..'</span>
+        processed = <span class="literal">false</span>
+        i = idx-<span class="number">1</span>
+        <span class="keyword">while</span> !processed
+          <span class="keyword">if</span> i &lt; <span class="number">0</span> <span class="keyword">then</span> processed = <span class="literal">true</span>
+          <span class="keyword">if</span> components[i] != <span class="string">''</span>
+            components[i] = <span class="string">''</span>
+            components[idx] = <span class="string">''</span>
+            processed = <span class="literal">true</span>
+          i--</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-53">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-53">&#182;</a>
+              </div>
+              <p>remove repeated //s</p>
 
-  <span class="nv">is_directory: </span><span class="nf">(path) -&gt;</span> <span class="nx">@list</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span><span class="o">?</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    path = (c <span class="keyword">for</span> c, idx <span class="keyword">in</span> components <span class="keyword">when</span> c != <span class="string">''</span>).join <span class="string">'/'</span>
+    <span class="keyword">if</span> path[<span class="number">0</span>] != <span class="string">'/'</span>
+      path = <span class="string">'/'</span> + path
+    <span class="keyword">return</span> path</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-54">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-54">&#182;</a>
+              </div>
+              <p>Retrieves a file from the file system. Creates a new one if needed.
+Mode is &#39;r&#39; for read, &#39;w&#39; for write+read, &#39;a&#39; for append+read
+Returns &#39;null&#39; if file does not exist.</p>
 
-  <span class="nv">rm: </span><span class="nf">(path, isDir = false) -&gt;</span>
-    <span class="nv">path = </span><span class="nx">@resolve</span> <span class="nx">path</span>
-    <span class="k">if</span> <span class="nx">@is_directory</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span> <span class="o">!=</span> <span class="nx">isDir</span> <span class="k">then</span> <span class="kc">false</span> <span class="k">else</span> <span class="nx">@files</span><span class="p">.</span><span class="nx">rm</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  open: (path, mode = <span class="string">'r'</span>) -&gt;
+    path = <span class="property">@resolve</span> path
+    <span class="keyword">return</span> <span class="literal">null</span> <span class="keyword">if</span> <span class="property">@is_directory</span>(path)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-55">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-55">&#182;</a>
+              </div>
+              <p>Start fresh.</p>
 
-  <span class="nv">chdir: </span><span class="nf">(dir) -&gt;</span>
-    <span class="nv">dir = </span><span class="nx">@resolve</span><span class="p">(</span><span class="nx">dir</span><span class="p">)</span>
-    <span class="k">if</span> <span class="nx">@is_directory</span> <span class="nx">dir</span>
-      <span class="vi">@pwd = </span><span class="nx">dir</span>
-      <span class="nx">dir</span>
-    <span class="k">else</span>
-      <span class="kc">null</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="keyword">if</span> mode == <span class="string">'w'</span>
+      f = <span class="keyword">new</span> DoppioFile(path)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-56">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-56">&#182;</a>
+              </div>
+              <p>Ensure writeback when closed.</p>
 
-  <span class="nv">mkdir: </span><span class="nf">(dir) -&gt;</span>
-    <span class="nv">dir = </span><span class="nx">@resolve</span><span class="p">(</span><span class="nx">dir</span><span class="p">)</span>
-    <span class="k">return</span> <span class="kc">false</span> <span class="k">if</span> <span class="nx">@is_directory</span> <span class="nx">dir</span> <span class="o">or</span> <span class="nx">@is_file</span> <span class="nx">dir</span>
-    <span class="k">return</span> <span class="nx">@files</span><span class="p">.</span><span class="nx">mkdir</span> <span class="nx">dir</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      f.mod = <span class="literal">true</span>
+      <span class="keyword">return</span> f
+    <span class="keyword">return</span> <span class="property">@files</span>.fetch path
 
-  <span class="nv">mv: </span><span class="nf">(file1, file2) -&gt;</span>
-    <span class="nv">file1 = </span><span class="nx">@resolve</span> <span class="nx">file1</span>
-    <span class="nv">file2 = </span><span class="nx">@resolve</span> <span class="nx">file2</span>
-    <span class="k">return</span> <span class="nx">@files</span><span class="p">.</span><span class="nx">mv</span> <span class="nx">file1</span><span class="p">,</span> <span class="nx">file2</span></pre></div>             </td>           </tr>                               <tr id="section-52">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-52">&#182;</a>               </div>               <p>Currently a singleton.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">fs_state = </span><span class="k">new</span> <span class="nx">FSState</span><span class="p">()</span></pre></div>             </td>           </tr>                               <tr id="section-53">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-53">&#182;</a>               </div>               <h6>#</h6>
+  close: (file) -&gt; <span class="property">@files</span>.store(file.path, file); file.mod = <span class="literal">false</span>; <span class="keyword">return</span>
 
+  list: (path) -&gt; <span class="property">@files</span>.ls(<span class="property">@resolve</span> path)
+
+  is_file: (path) -&gt; <span class="property">@files</span>.fetch(<span class="property">@resolve</span> path)?
+
+  is_directory: (path) -&gt; <span class="property">@list</span>(path)?
+
+  rm: (path, isDir = <span class="literal">false</span>) -&gt;
+    path = <span class="property">@resolve</span> path
+    <span class="keyword">if</span> <span class="property">@is_directory</span>(path) != isDir <span class="keyword">then</span> <span class="literal">false</span> <span class="keyword">else</span> <span class="property">@files</span>.rm(path)
+
+  chdir: (dir) -&gt;
+    dir = <span class="property">@resolve</span>(dir)
+    <span class="keyword">if</span> <span class="property">@is_directory</span> dir
+      <span class="property">@pwd</span> = dir
+      dir
+    <span class="keyword">else</span>
+      <span class="literal">null</span>
+
+  mkdir: (dir) -&gt;
+    dir = <span class="property">@resolve</span>(dir)
+    <span class="keyword">return</span> <span class="literal">false</span> <span class="keyword">if</span> <span class="property">@is_directory</span> dir <span class="keyword">or</span> <span class="property">@is_file</span> dir
+    <span class="keyword">return</span> <span class="property">@files</span>.mkdir dir
+
+  mv: (file1, file2) -&gt;
+    file1 = <span class="property">@resolve</span> file1
+    file2 = <span class="property">@resolve</span> file2
+    <span class="keyword">return</span> <span class="property">@files</span>.mv file1, file2</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-57">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-57">&#182;</a>
+              </div>
+              <p>Currently a singleton.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>fs_state = <span class="keyword">new</span> FSState()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-58">
+            <div class="annotation">
+              
+              <div class="pilwrap for-h6">
+                <a class="pilcrow" href="#section-58">&#182;</a>
+              </div>
+              <h6>#</h6>
 <p>NODE EMULATION</p>
+<h6>#</h6>
 
-<h6>#</h6>             </td>             <td class="code">               <div class="highlight"><pre><span class="k">class</span> <span class="nx">Stat</span>
-  <span class="vi">@fromPath: </span><span class="nf">(path) -&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-54">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-54">&#182;</a>               </div>               <p>XXX: Hack.</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="k">return</span> <span class="kc">null</span> <span class="k">if</span> <span class="nx">path</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span>
-    <span class="k">if</span> <span class="nx">fs_state</span><span class="p">.</span><span class="nx">is_directory</span> <span class="nx">path</span>
-      <span class="nv">stat = </span><span class="k">new</span> <span class="nx">Stat</span>
-      <span class="nv">stat.size = </span><span class="mi">1</span>
-      <span class="nv">stat.mtime = </span><span class="p">(</span><span class="k">new</span> <span class="nb">Date</span><span class="p">).</span><span class="nx">getTime</span><span class="p">()</span>
-      <span class="nv">stat.is_file = </span><span class="kc">false</span>
-      <span class="nv">stat.is_directory = </span><span class="kc">true</span></pre></div>             </td>           </tr>                               <tr id="section-55">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-55">&#182;</a>               </div>               <p>XXX: Shhhh...</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nv">stat.mode = </span><span class="mi">0</span><span class="nx">o644</span>
-      <span class="nx">stat</span>
-    <span class="k">else</span>
-      <span class="nv">file = </span><span class="nx">fs_state</span><span class="p">.</span><span class="nx">open</span> <span class="nx">path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span>
-      <span class="k">return</span> <span class="kc">null</span> <span class="nx">unless</span> <span class="nx">file</span><span class="o">?</span>
-      <span class="k">new</span> <span class="nx">Stat</span> <span class="nx">file</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="class"><span class="keyword">class</span> <span class="title">Stat</span></span>
+  <span class="property">@fromPath</span>: (path) -&gt;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-59">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-59">&#182;</a>
+              </div>
+              <p>XXX: Hack.</p>
 
-  <span class="nv">constructor: </span><span class="nf">(@file) -&gt;</span>
-    <span class="k">if</span> <span class="nx">@file</span><span class="o">?</span>
-      <span class="vi">@size = </span><span class="nx">@file</span><span class="p">.</span><span class="nx">data</span><span class="p">.</span><span class="nx">length</span>
-      <span class="vi">@mtime = </span><span class="nx">@file</span><span class="p">.</span><span class="nx">mtime</span>
-      <span class="vi">@is_file = </span><span class="kc">true</span>
-      <span class="vi">@is_directory = </span><span class="kc">false</span>
-      <span class="vi">@mode = </span><span class="nx">@file</span><span class="p">.</span><span class="nx">mode</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="keyword">return</span> <span class="literal">null</span> <span class="keyword">if</span> path == <span class="string">''</span>
+    <span class="keyword">if</span> fs_state.is_directory path
+      stat = <span class="keyword">new</span> Stat
+      stat.size = <span class="number">1</span>
+      stat.mtime = (<span class="keyword">new</span> Date).getTime()
+      stat.is_file = <span class="literal">false</span>
+      stat.is_directory = <span class="literal">true</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-60">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-60">&#182;</a>
+              </div>
+              <p>XXX: Shhhh...</p>
 
-  <span class="nv">isFile: </span><span class="o">-&gt;</span> <span class="nx">@is_file</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      stat.mode = <span class="number">0</span>o644
+      stat
+    <span class="keyword">else</span>
+      file = fs_state.open path, <span class="string">'r'</span>
+      <span class="keyword">return</span> <span class="literal">null</span> <span class="keyword">unless</span> file?
+      <span class="keyword">new</span> Stat file
 
-  <span class="nv">isDirectory: </span><span class="o">-&gt;</span> <span class="nx">@is_directory</span></pre></div>             </td>           </tr>                               <tr id="section-56">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-56">&#182;</a>               </div>               <p>This is a global in Node.JS</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="k">class</span> <span class="nx">win</span><span class="p">.</span><span class="nx">Buffer</span>
-  <span class="nv">constructor: </span><span class="nf">(obj) -&gt;</span>
-    <span class="k">if</span> <span class="nx">obj</span> <span class="k">instanceof</span> <span class="nb">Array</span>
-      <span class="vi">@array = </span><span class="nx">obj</span>
-    <span class="k">else</span> <span class="c1"># assume num</span>
-      <span class="vi">@array = </span><span class="k">new</span> <span class="nb">Array</span> <span class="nx">obj</span>
+  constructor: (<span class="property">@file</span>) -&gt;
+    <span class="keyword">if</span> <span class="property">@file</span>?
+      <span class="property">@size</span> = <span class="property">@file</span>.data.length
+      <span class="property">@mtime</span> = <span class="property">@file</span>.mtime
+      <span class="property">@is_file</span> = <span class="literal">true</span>
+      <span class="property">@is_directory</span> = <span class="literal">false</span>
+      <span class="property">@mode</span> = <span class="property">@file</span>.mode
 
-  <span class="nv">readUInt8: </span><span class="nf">(i) -&gt;</span> <span class="nx">@array</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">&amp;</span> <span class="mh">0xFF</span>  <span class="c1"># cast to unsigned byte</span></pre></div>             </td>           </tr>                               <tr id="section-57">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-57">&#182;</a>               </div>               <p>Node's filesystem API, implemented as a wrapper around FSState.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">root.fs =</span>
-  <span class="nv">statSync: </span><span class="nf">(path) -&gt;</span> <span class="nx">Stat</span><span class="p">.</span><span class="nx">fromPath</span> <span class="nx">path</span>
+  isFile: -&gt; <span class="property">@is_file</span>
 
-  <span class="nv">fstatSync: </span><span class="nf">(fp) -&gt;</span> <span class="k">new</span> <span class="nx">Stat</span><span class="p">(</span><span class="nx">fp</span><span class="p">)</span>
+  isDirectory: -&gt; <span class="property">@is_directory</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-61">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-61">&#182;</a>
+              </div>
+              <p>This is a global in Node.JS</p>
 
-  <span class="nv">openSync: </span><span class="nf">(path, mode) -&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-58">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-58">&#182;</a>               </div>               <p>'r' - Open file for reading. An exception occurs if the file does not exist.
-'w' - Open file for writing. The file is created (if it does not exist) or truncated (if it exists).
-'a' - Open file for appending. The file is created if it does not exist.
-Normalize 'mode' to the three we care about</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="k">if</span> <span class="s1">&#39;w&#39;</span> <span class="k">in</span> <span class="nx">mode</span> <span class="k">then</span> <span class="nv">mode = </span><span class="s1">&#39;w&#39;</span>
-    <span class="k">else</span> <span class="k">if</span> <span class="s1">&#39;a&#39;</span> <span class="k">in</span> <span class="nx">mode</span> <span class="k">then</span> <span class="nv">mode = </span><span class="s1">&#39;a&#39;</span>
-    <span class="k">else</span> <span class="nv">mode = </span><span class="s1">&#39;r&#39;</span>
-    <span class="nv">f = </span><span class="nx">fs_state</span><span class="p">.</span><span class="nx">open</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="nx">mode</span><span class="p">)</span>
-    <span class="nx">unless</span> <span class="nx">f</span><span class="o">?</span>
-      <span class="nv">err = </span><span class="k">new</span> <span class="nb">Error</span>
-      <span class="nv">err.code = </span><span class="s1">&#39;ENOENT&#39;</span>
-      <span class="k">throw</span> <span class="nx">err</span>
-    <span class="nx">f</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="class"><span class="keyword">class</span> <span class="title">win</span>.<span class="title">Buffer</span></span>
+  constructor: (obj) -&gt;
+    <span class="keyword">if</span> obj <span class="keyword">instanceof</span> Array
+      <span class="property">@array</span> = obj
+    <span class="keyword">else</span> <span class="comment"># assume num</span>
+      <span class="property">@array</span> = <span class="keyword">new</span> Array obj
 
-  <span class="nv">readSync: </span><span class="nf">(fd, buf, offset, length, pos) -&gt;</span>
-    <span class="nv">data = </span><span class="nx">fd</span><span class="p">.</span><span class="nx">read</span><span class="p">(</span><span class="nx">length</span><span class="p">,</span> <span class="nx">pos</span><span class="p">)</span>
-    <span class="k">for</span> <span class="nx">d</span><span class="p">,</span> <span class="nx">i</span> <span class="k">in</span> <span class="nx">data</span>
-      <span class="nx">buf</span><span class="p">.</span><span class="nx">array</span><span class="p">[</span><span class="nx">offset</span><span class="o">+</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="nx">data</span><span class="p">.</span><span class="nx">charCodeAt</span><span class="p">(</span><span class="nx">i</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0xFF</span>
-    <span class="nx">data</span><span class="p">.</span><span class="nx">length</span>
+  readUInt8: (i) -&gt; <span class="property">@array</span>[i] &amp; <span class="number">0xFF</span>  <span class="comment"># cast to unsigned byte</span>
+  readInt8: (i) -&gt; <span class="property">@array</span>[i]</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-62">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-62">&#182;</a>
+              </div>
+              <p>Node&#39;s filesystem API, implemented as a wrapper around FSState.</p>
 
-  <span class="nv">readFileSync: </span><span class="nf">(path) -&gt;</span>
-    <span class="nv">f = </span><span class="nx">fs_state</span><span class="p">.</span><span class="nx">open</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
-    <span class="k">throw</span> <span class="s2">&quot;File does not exist.&quot;</span> <span class="nx">unless</span> <span class="nx">f</span><span class="o">?</span>
-    <span class="k">return</span> <span class="nx">f</span><span class="p">.</span><span class="nx">data</span></pre></div>             </td>           </tr>                               <tr id="section-59">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-59">&#182;</a>               </div>               <p>XXX: Temp option prevents writeback to permanent storage. This is not in the
-     Node API, and is used as a way for the browser to create temp files.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">writeFileSync: </span><span class="nf">(path, data, temp) -&gt;</span>
-    <span class="nv">f = </span><span class="nx">fs_state</span><span class="p">.</span><span class="nx">open</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
-    <span class="nv">f.temp = </span><span class="nx">temp</span> <span class="o">==</span> <span class="kc">true</span>
-    <span class="nx">f</span><span class="p">.</span><span class="nx">write</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span>
-    <span class="nx">fs_state</span><span class="p">.</span><span class="nx">close</span><span class="p">(</span><span class="nx">f</span><span class="p">)</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>root.fs =
+  statSync: (path) -&gt; Stat.fromPath path
+  stat: (path, cb) -&gt;
+    stat = root.fs.statSync path
+    <span class="keyword">if</span> stat?
+      cb <span class="literal">null</span>, stat
+    <span class="keyword">else</span>
+      cb <span class="keyword">new</span> Error <span class="string">"Invalid file: <span class="subst">#{path}</span>"</span>, <span class="literal">null</span>
 
-  <span class="nv">writeSync: </span><span class="nf">(fd, buffer, offset, len) -&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-60">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-60">&#182;</a>               </div>               <p>TODO flush occasionally?</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nx">fd</span><span class="p">.</span><span class="nx">write</span><span class="p">((</span><span class="nb">String</span><span class="p">.</span><span class="nx">fromCharCode</span><span class="p">(</span><span class="nx">buffer</span><span class="p">.</span><span class="nx">readUInt8</span><span class="p">(</span><span class="nx">i</span><span class="p">))</span> <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="nx">offset</span><span class="p">...</span><span class="nx">offset</span><span class="o">+</span><span class="nx">len</span><span class="p">]</span> <span class="k">by</span> <span class="mi">1</span><span class="p">).</span><span class="nx">join</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+  fstatSync: (fp) -&gt; <span class="keyword">new</span> Stat(fp)
 
-  <span class="nv">closeSync: </span><span class="nf">(fd) -&gt;</span> <span class="nx">fs_state</span><span class="p">.</span><span class="nx">close</span><span class="p">(</span><span class="nx">fd</span><span class="p">)</span>
+  openSync: (path, mode) -&gt;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-63">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-63">&#182;</a>
+              </div>
+              <p>&#39;r&#39; - Open file for reading. An exception occurs if the file does not exist.
+&#39;w&#39; - Open file for writing. The file is created (if it does not exist) or truncated (if it exists).
+&#39;a&#39; - Open file for appending. The file is created if it does not exist.
+Normalize &#39;mode&#39; to the three we care about</p>
 
-  <span class="nv">readdirSync: </span><span class="nf">(path) -&gt;</span>
-    <span class="nv">dir_contents = </span><span class="nx">fs_state</span><span class="p">.</span><span class="nx">list</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
-    <span class="k">throw</span> <span class="s2">&quot;Could not read directory &#39;#{path}&#39;&quot;</span> <span class="nx">unless</span> <span class="nx">dir_contents</span><span class="o">?</span> <span class="o">and</span> <span class="nx">path</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span>
-    <span class="k">return</span> <span class="nx">dir_contents</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="keyword">if</span> <span class="string">'w'</span> <span class="keyword">in</span> mode <span class="keyword">then</span> mode = <span class="string">'w'</span>
+    <span class="keyword">else</span> <span class="keyword">if</span> <span class="string">'a'</span> <span class="keyword">in</span> mode <span class="keyword">then</span> mode = <span class="string">'a'</span>
+    <span class="keyword">else</span> mode = <span class="string">'r'</span>
+    f = fs_state.open(path, mode)
+    <span class="keyword">unless</span> f?
+      err = <span class="keyword">new</span> Error
+      err.code = <span class="string">'ENOENT'</span>
+      <span class="keyword">throw</span> err
+    f
 
-  <span class="nv">unlinkSync: </span><span class="nf">(path) -&gt;</span> <span class="k">throw</span> <span class="s2">&quot;Could not unlink &#39;#{path}&#39;&quot;</span> <span class="nx">unless</span> <span class="nx">fs_state</span><span class="p">.</span><span class="nx">rm</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
-  <span class="nv">rmdirSync: </span><span class="nf">(path) -&gt;</span> <span class="k">throw</span> <span class="s2">&quot;Could not delete &#39;#{path}&#39;&quot;</span> <span class="nx">unless</span> <span class="nx">fs_state</span><span class="p">.</span><span class="nx">rm</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="kc">true</span><span class="p">)</span>
+  open: (path, mode, cb) -&gt;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-64">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-64">&#182;</a>
+              </div>
+              <p>mode is optional</p>
 
-  <span class="nv">existsSync: </span><span class="nf">(path) -&gt;</span> <span class="nx">path</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span> <span class="o">and</span> <span class="p">(</span><span class="nx">fs_state</span><span class="p">.</span><span class="nx">is_file</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span> <span class="o">or</span> <span class="nx">fs_state</span><span class="p">.</span><span class="nx">is_directory</span><span class="p">(</span><span class="nx">path</span><span class="p">))</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="keyword">unless</span> cb?
+      cb = mode
+      mode = <span class="string">'r'</span>
 
-  <span class="nv">mkdirSync: </span><span class="nf">(path) -&gt;</span> <span class="k">throw</span> <span class="s2">&quot;Could not make directory #{path}&quot;</span> <span class="nx">unless</span> <span class="nx">fs_state</span><span class="p">.</span><span class="nx">mkdir</span> <span class="nx">path</span>
+    <span class="keyword">try</span>
+      f = root.fs.openSync path, mode
+      cb <span class="literal">null</span>, f
+    <span class="keyword">catch</span> e
+      cb e
 
-  <span class="nv">renameSync: </span><span class="nf">(path1, path2) -&gt;</span> <span class="k">throw</span> <span class="s2">&quot;Could not rename #{path1} to #{path2}&quot;</span> <span class="nx">unless</span> <span class="nx">fs_state</span><span class="p">.</span><span class="nx">mv</span> <span class="nx">path1</span><span class="p">,</span> <span class="nx">path2</span></pre></div>             </td>           </tr>                               <tr id="section-61">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-61">&#182;</a>               </div>               <p>XXX: Does not work for directory permissions.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">chmodSync: </span><span class="nf">(path, access) -&gt;</span>
-    <span class="k">throw</span> <span class="s2">&quot;File #{path1} does not exist.&quot;</span> <span class="nx">unless</span> <span class="nx">fs_state</span><span class="p">.</span><span class="nx">is_file</span> <span class="nx">path</span>
-    <span class="nv">f = </span><span class="nx">fs_state</span><span class="p">.</span><span class="nx">open</span> <span class="nx">path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span>
-    <span class="nv">f.mod = </span><span class="kc">true</span>
-    <span class="nv">f.mode = </span><span class="nx">access</span>
-    <span class="nx">fs_state</span><span class="p">.</span><span class="nx">close</span> <span class="nx">f</span>
-    <span class="k">return</span> <span class="kc">true</span></pre></div>             </td>           </tr>                               <tr id="section-62">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-62">&#182;</a>               </div>               <p>Node's Path API</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">root.path =</span>
-  <span class="nv">normalize: </span><span class="nf">(path) -&gt;</span> <span class="nx">path</span>
-  <span class="nv">resolve: </span><span class="nf">(parts...) -&gt;</span> <span class="nx">fs_state</span><span class="p">.</span><span class="nx">resolve</span> <span class="nx">parts</span><span class="p">.</span><span class="nx">join</span> <span class="s1">&#39;/&#39;</span>
-  <span class="nv">basename: </span><span class="nf">(path, ext) -&gt;</span>
-    <span class="nv">base = </span><span class="nx">path</span><span class="p">.</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/^.*[\/\\]/</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="nx">ext</span><span class="o">?</span><span class="p">.</span><span class="nx">length</span><span class="o">?</span> <span class="o">and</span> <span class="nx">base</span><span class="p">[</span><span class="nx">base</span><span class="p">.</span><span class="nx">length</span><span class="o">-</span><span class="nx">ext</span><span class="p">.</span><span class="nx">length</span><span class="p">..]</span> <span class="o">==</span> <span class="nx">ext</span>
-      <span class="nv">base = </span><span class="nx">base</span><span class="p">[...</span><span class="nx">base</span><span class="p">.</span><span class="nx">length</span><span class="o">-</span><span class="nx">ext</span><span class="p">.</span><span class="nx">length</span><span class="p">]</span>
-    <span class="nx">base</span>
-  <span class="nv">extname: </span><span class="nf">(path) -&gt;</span> <span class="nx">path</span><span class="p">.</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/^.*(\..*)/</span><span class="p">,</span> <span class="s1">&#39;$1&#39;</span><span class="p">)</span>
+  readSync: (fd, buf, offset, length, pos) -&gt;
+    data = fd.read(length, pos)
+    <span class="keyword">for</span> d, i <span class="keyword">in</span> data
+      buf.array[offset+i] = data.charCodeAt(i) &amp; <span class="number">0xFF</span>
+    data.length
 
-<span class="nv">root.process =</span>
-  <span class="nv">cwd: </span><span class="o">-&gt;</span> <span class="nx">fs_state</span><span class="p">.</span><span class="nx">pwd</span>
-  <span class="nv">chdir: </span><span class="nf">(dir) -&gt;</span>
-    <span class="nv">absdir = </span><span class="nx">fs_state</span><span class="p">.</span><span class="nx">chdir</span> <span class="nx">dir</span>
-    <span class="k">throw</span> <span class="s2">&quot;Invalid directory&quot;</span> <span class="nx">unless</span> <span class="nx">absdir</span><span class="o">?</span>
-    <span class="nx">absdir</span>
+  readFileSync: (path) -&gt;
+    f = fs_state.open(path, <span class="string">'r'</span>)
+    <span class="keyword">throw</span> <span class="string">"File does not exist."</span> <span class="keyword">unless</span> f?
+    <span class="keyword">return</span> f.data
 
-</pre></div>             </td>           </tr>                </tbody>     </table>   </div> </body> </html> 
+  readFile: (path, cb) -&gt;
+    <span class="keyword">try</span>
+      data = root.fs.readFileSync path
+      cb <span class="literal">null</span>, data
+    <span class="keyword">catch</span> e
+      cb e</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-65">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-65">&#182;</a>
+              </div>
+              <p>XXX: Temp option prevents writeback to permanent storage. This is not in the
+     Node API, and is used as a way for the browser to create temp files.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  writeFileSync: (path, data, encoding, temp) -&gt;
+    f = fs_state.open(path, <span class="string">'w'</span>)
+    f.temp = temp == <span class="literal">true</span>
+    f.write(data)
+    fs_state.close(f)
+
+  writeFile: (path, data, cb) -&gt;
+    cb <span class="literal">null</span>, root.fs.writeFileSync(path, data)
+
+  writeSync: (fd, buffer, offset, len, pos) -&gt;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-66">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-66">&#182;</a>
+              </div>
+              <p>TODO flush occasionally?
+structure borrowed from the Node.js source</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="keyword">if</span> buffer.readUInt8?
+      str = (String.fromCharCode(buffer.readUInt8(i)) <span class="keyword">for</span> i <span class="keyword">in</span> [offset...offset+len] <span class="keyword">by</span> <span class="number">1</span>).join <span class="string">''</span>
+    <span class="keyword">else</span>  <span class="comment"># old-style API where buffer is a string</span>
+      str = <span class="string">''</span> + buffer
+      pos = offset
+    fd.write(str, pos)
+
+  closeSync: (fd) -&gt; fs_state.close(fd)
+  close: (fd, cb) -&gt; root.fs.closeSync fd; cb()
+
+  readdirSync: (path) -&gt;
+    dir_contents = fs_state.list(path)
+    <span class="keyword">throw</span> <span class="string">"Could not read directory '<span class="subst">#{path}</span>'"</span> <span class="keyword">unless</span> dir_contents? <span class="keyword">and</span> path != <span class="string">''</span>
+    <span class="keyword">return</span> dir_contents
+
+  readdir: (path, cb) -&gt;
+    <span class="keyword">try</span>
+      files = root.fs.readdirSync path
+      cb <span class="literal">null</span>, files
+    <span class="keyword">catch</span> e
+      cb e
+
+  unlinkSync: (path) -&gt; <span class="keyword">throw</span> <span class="string">"Could not unlink '<span class="subst">#{path}</span>'"</span> <span class="keyword">unless</span> fs_state.rm(path)
+  unlink: (path, cb) -&gt;
+    <span class="keyword">try</span>
+      root.fs.unlinkSync path
+      cb()
+    <span class="keyword">catch</span> e
+      cb e
+  rmdirSync: (path) -&gt; <span class="keyword">throw</span> <span class="string">"Could not delete '<span class="subst">#{path}</span>'"</span> <span class="keyword">unless</span> fs_state.rm(path, <span class="literal">true</span>)
+  rmdir: (path, cb) -&gt;
+    <span class="keyword">try</span>
+      root.fs.rmdirSync path
+      cb()
+    <span class="keyword">catch</span> e
+      cb e
+
+  existsSync: (path) -&gt; path != <span class="string">''</span> <span class="keyword">and</span> (fs_state.is_file(path) <span class="keyword">or</span> fs_state.is_directory(path))
+  exists: (path, cb) -&gt;
+    cb <span class="literal">null</span>, root.fs.existsSync(path)
+
+  mkdirSync: (path) -&gt; <span class="keyword">throw</span> <span class="string">"Could not make directory <span class="subst">#{path}</span>"</span> <span class="keyword">unless</span> fs_state.mkdir path
+  mkdir: (path, cb) -&gt;
+    <span class="keyword">try</span>
+      root.fs.mkdirSync path
+      cb()
+    <span class="keyword">catch</span> e
+      cb e
+
+  renameSync: (path1, path2) -&gt; <span class="keyword">throw</span> <span class="string">"Could not rename <span class="subst">#{path1}</span> to <span class="subst">#{path2}</span>"</span> <span class="keyword">unless</span> fs_state.mv path1, path2
+  rename: (path1, path2, cb) -&gt;
+    <span class="keyword">try</span>
+      root.fs.renameSync path1, path2
+      cb()
+    <span class="keyword">catch</span> e
+      cb e</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-67">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-67">&#182;</a>
+              </div>
+              <p>XXX: Does not work for directory permissions.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  chmodSync: (path, access) -&gt;
+    <span class="keyword">throw</span> <span class="string">"File <span class="subst">#{path1}</span> does not exist."</span> <span class="keyword">unless</span> fs_state.is_file path
+    f = fs_state.open path, <span class="string">'r'</span>
+    f.mod = <span class="literal">true</span>
+    f.mode = access
+    fs_state.close f
+    <span class="keyword">return</span> <span class="literal">true</span>
+  chmod: (path, access, cb) -&gt;
+    <span class="keyword">try</span>
+      rv = root.fs.chmodSync path, access
+      cb <span class="literal">null</span>, rv
+    <span class="keyword">catch</span> e
+      cb e
+
+  utimesSync: (path, atime, mtime) -&gt;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-68">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-68">&#182;</a>
+              </div>
+              <p>XXX: this is a NOP, but it shouldn&#39;t be. We need to fix the way we stat files first</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  utimes: (path, atime, mtime, cb) -&gt; cb()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-69">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-69">&#182;</a>
+              </div>
+              <p>Node&#39;s Path API</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>root.path =
+  normalize: (path) -&gt; fs_state.resolve path
+  resolve: (parts...) -&gt; fs_state.resolve parts.join <span class="string">'/'</span>
+  basename: (path, ext) -&gt;
+    base = path.replace(<span class="regexp">/^.*[\/\\]/</span>, <span class="string">''</span>)
+    <span class="keyword">if</span> ext?.length? <span class="keyword">and</span> base[base.length-ext.length..] == ext
+      base = base[...base.length-ext.length]
+    base
+  extname: (path) -&gt; path.replace(<span class="regexp">/^.*(\..*)/</span>, <span class="string">'$1'</span>)
+
+root.process =
+  cwd: -&gt; fs_state.pwd
+  chdir: (dir) -&gt;
+    absdir = fs_state.chdir dir
+    <span class="keyword">throw</span> <span class="string">"Invalid directory"</span> <span class="keyword">unless</span> absdir?
+    absdir
+  nextTick: (fn) -&gt; setZeroTimeout fn</pre></div></div>
+            
+        </li>
+        
+    </ul>
+  </div>
+</body>
+</html>

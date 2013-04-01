@@ -1,0 +1,2 @@
+serializing object: s=Hello; i=-7; d=2.7E10
+deserialized object: s=Hello; i=-7; d=2.7E10

@@ -73,9 +73,7 @@ enough to run the following programs:</p>
 
 
 <p>The code has been tested on the latest versions of Chrome, Firefox, Safari,
-Opera, IE 9, IE 10, and Node, but should run in just about any browser.
-Doppio should also work in IE 8, but may have some small frontend bugs that do
-not interfere with JVM logic.</p>
+Opera, IE 9, IE 10, and Node, but should run in just about any browser.</p>
 
 <p>Check out the <a href="http://int3.github.com/doppio">demo!</a></p>
 
@@ -195,8 +193,7 @@ before trying to bolt on a compilation engine.</p>
 <li>Running the JVM in a WebWorker (if available) to prevent us from hogging the
 main JavaScript thread.</li>
 <li>Refactoring core JVM logic for speed.</li>
-<li>Fixing any remaining bugs in JVM logic (e.g. right now, custom classloaders
-do not work properly).</li>
+<li>Fixing any remaining bugs in JVM logic.</li>
 <li>Architecting the core JVM so we can eventually implement JIT compilation on
 a per-method basis. There are a number of concerns that we have to deal with
 before this will be possible.</li>

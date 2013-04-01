@@ -2,6 +2,13 @@ package classes.test;
 
 public class Inheritance {
 	public Inheritance() {
+		BChild ch = null;
+		try {
+			System.out.println("a: " + ch.a);
+		} catch (NullPointerException e) {
+			System.out.println("Cannot getfield on a null object.");
+		}
+
 		BChild child = new BChild();
 		child.a = 3;
 		child.b = 5;
@@ -13,7 +20,7 @@ public class Inheritance {
 		System.out.println("Parent a: " + par.a);
 		System.out.println("Parent a through getter: " + par.getA());
 		System.out.println("Parent b: " + par.b);
-		BChild child2 = (BChild) par;	
+		BChild child2 = (BChild) par;
 		System.out.println("Child a: " + child2.a);
 		System.out.println("Parent a through child via getter: " + child2.getA());
 		System.out.println("Child b: " + child2.b);

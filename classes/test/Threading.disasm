@@ -4,100 +4,111 @@ public class classes.test.Threading extends java.lang.Thread
   minor version: 0
   major version: 50
   Constant pool:
-const #1 = Method	#27.#45;	//  java/lang/Thread."<init>":(Ljava/lang/String;)V
-const #2 = Field	#46.#47;	//  java/lang/System.out:Ljava/io/PrintStream;
-const #3 = class	#48;	//  java/lang/StringBuilder
-const #4 = Method	#3.#49;	//  java/lang/StringBuilder."<init>":()V
-const #5 = String	#50;	//  hello from 
-const #6 = Method	#3.#51;	//  java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-const #7 = Method	#27.#52;	//  java/lang/Thread.currentThread:()Ljava/lang/Thread;
-const #8 = Method	#27.#53;	//  java/lang/Thread.getName:()Ljava/lang/String;
-const #9 = Method	#3.#54;	//  java/lang/StringBuilder.toString:()Ljava/lang/String;
-const #10 = Method	#55.#56;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
-const #11 = class	#57;	//  classes/test/Threading
-const #12 = String	#58;	//  hello-thread
-const #13 = Method	#11.#45;	//  classes/test/Threading."<init>":(Ljava/lang/String;)V
-const #14 = Method	#11.#59;	//  classes/test/Threading.holdsLock:(Ljava/lang/Object;)Z
-const #15 = Method	#55.#60;	//  java/io/PrintStream.println:(Z)V
-const #16 = Method	#11.#61;	//  classes/test/Threading.isInterrupted:()Z
-const #17 = Method	#11.#62;	//  classes/test/Threading.run:()V
-const #18 = Method	#11.#63;	//  classes/test/Threading.start:()V
-const #19 = Method	#11.#64;	//  classes/test/Threading.join:()V
-const #20 = String	#65;	//  joined in 
-const #21 = class	#66;	//  classes/test/Q
-const #22 = Method	#21.#49;	//  classes/test/Q."<init>":()V
-const #23 = class	#67;	//  classes/test/Producer
-const #24 = Method	#23.#68;	//  classes/test/Producer."<init>":(Lclasses/test/Q;)V
-const #25 = class	#69;	//  classes/test/Consumer
-const #26 = Method	#25.#68;	//  classes/test/Consumer."<init>":(Lclasses/test/Q;)V
-const #27 = class	#70;	//  java/lang/Thread
-const #28 = Asciz	<init>;
-const #29 = Asciz	(Ljava/lang/String;)V;
-const #30 = Asciz	Code;
-const #31 = Asciz	LineNumberTable;
-const #32 = Asciz	run;
-const #33 = Asciz	()V;
-const #34 = Asciz	main;
-const #35 = Asciz	([Ljava/lang/String;)V;
-const #36 = Asciz	StackMapTable;
-const #37 = class	#71;	//  "[Ljava/lang/String;"
-const #38 = class	#57;	//  classes/test/Threading
-const #39 = class	#72;	//  java/lang/Object
-const #40 = class	#73;	//  java/lang/Throwable
-const #41 = Asciz	Exceptions;
-const #42 = class	#74;	//  java/lang/InterruptedException
-const #43 = Asciz	SourceFile;
-const #44 = Asciz	Threading.java;
-const #45 = NameAndType	#28:#29;//  "<init>":(Ljava/lang/String;)V
-const #46 = class	#75;	//  java/lang/System
-const #47 = NameAndType	#76:#77;//  out:Ljava/io/PrintStream;
-const #48 = Asciz	java/lang/StringBuilder;
-const #49 = NameAndType	#28:#33;//  "<init>":()V
-const #50 = Asciz	hello from ;
-const #51 = NameAndType	#78:#79;//  append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-const #52 = NameAndType	#80:#81;//  currentThread:()Ljava/lang/Thread;
-const #53 = NameAndType	#82:#83;//  getName:()Ljava/lang/String;
-const #54 = NameAndType	#84:#83;//  toString:()Ljava/lang/String;
-const #55 = class	#85;	//  java/io/PrintStream
-const #56 = NameAndType	#86:#29;//  println:(Ljava/lang/String;)V
-const #57 = Asciz	classes/test/Threading;
-const #58 = Asciz	hello-thread;
-const #59 = NameAndType	#87:#88;//  holdsLock:(Ljava/lang/Object;)Z
-const #60 = NameAndType	#86:#89;//  println:(Z)V
-const #61 = NameAndType	#90:#91;//  isInterrupted:()Z
-const #62 = NameAndType	#32:#33;//  run:()V
-const #63 = NameAndType	#92:#33;//  start:()V
-const #64 = NameAndType	#93:#33;//  join:()V
-const #65 = Asciz	joined in ;
-const #66 = Asciz	classes/test/Q;
-const #67 = Asciz	classes/test/Producer;
-const #68 = NameAndType	#28:#94;//  "<init>":(Lclasses/test/Q;)V
-const #69 = Asciz	classes/test/Consumer;
-const #70 = Asciz	java/lang/Thread;
-const #71 = Asciz	[Ljava/lang/String;;
-const #72 = Asciz	java/lang/Object;
-const #73 = Asciz	java/lang/Throwable;
-const #74 = Asciz	java/lang/InterruptedException;
-const #75 = Asciz	java/lang/System;
-const #76 = Asciz	out;
-const #77 = Asciz	Ljava/io/PrintStream;;
-const #78 = Asciz	append;
-const #79 = Asciz	(Ljava/lang/String;)Ljava/lang/StringBuilder;;
-const #80 = Asciz	currentThread;
-const #81 = Asciz	()Ljava/lang/Thread;;
-const #82 = Asciz	getName;
-const #83 = Asciz	()Ljava/lang/String;;
-const #84 = Asciz	toString;
-const #85 = Asciz	java/io/PrintStream;
-const #86 = Asciz	println;
-const #87 = Asciz	holdsLock;
-const #88 = Asciz	(Ljava/lang/Object;)Z;
-const #89 = Asciz	(Z)V;
-const #90 = Asciz	isInterrupted;
-const #91 = Asciz	()Z;
-const #92 = Asciz	start;
-const #93 = Asciz	join;
-const #94 = Asciz	(Lclasses/test/Q;)V;
+const #1 = Method	#31.#49;	//  java/lang/Thread."<init>":(Ljava/lang/String;)V
+const #2 = Field	#50.#51;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #3 = class	#52;	//  java/lang/StringBuilder
+const #4 = Method	#3.#53;	//  java/lang/StringBuilder."<init>":()V
+const #5 = String	#54;	//  hello from 
+const #6 = Method	#3.#55;	//  java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #7 = Method	#31.#56;	//  java/lang/Thread.currentThread:()Ljava/lang/Thread;
+const #8 = Method	#31.#57;	//  java/lang/Thread.getName:()Ljava/lang/String;
+const #9 = Method	#3.#58;	//  java/lang/StringBuilder.toString:()Ljava/lang/String;
+const #10 = Method	#59.#60;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #11 = Method	#31.#61;	//  java/lang/Thread.interrupt:()V
+const #12 = String	#62;	//  main thread was interrupted: 
+const #13 = Method	#31.#63;	//  java/lang/Thread.interrupted:()Z
+const #14 = Method	#3.#64;	//  java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+const #15 = class	#65;	//  classes/test/Threading
+const #16 = String	#66;	//  hello-thread
+const #17 = Method	#15.#49;	//  classes/test/Threading."<init>":(Ljava/lang/String;)V
+const #18 = Method	#15.#67;	//  classes/test/Threading.holdsLock:(Ljava/lang/Object;)Z
+const #19 = Method	#59.#68;	//  java/io/PrintStream.println:(Z)V
+const #20 = Method	#15.#69;	//  classes/test/Threading.isInterrupted:()Z
+const #21 = Method	#15.#70;	//  classes/test/Threading.run:()V
+const #22 = Method	#15.#71;	//  classes/test/Threading.start:()V
+const #23 = Method	#15.#72;	//  classes/test/Threading.join:()V
+const #24 = String	#73;	//  joined in 
+const #25 = class	#74;	//  classes/test/Q
+const #26 = Method	#25.#53;	//  classes/test/Q."<init>":()V
+const #27 = class	#75;	//  classes/test/Producer
+const #28 = Method	#27.#76;	//  classes/test/Producer."<init>":(Lclasses/test/Q;)V
+const #29 = class	#77;	//  classes/test/Consumer
+const #30 = Method	#29.#76;	//  classes/test/Consumer."<init>":(Lclasses/test/Q;)V
+const #31 = class	#78;	//  java/lang/Thread
+const #32 = Asciz	<init>;
+const #33 = Asciz	(Ljava/lang/String;)V;
+const #34 = Asciz	Code;
+const #35 = Asciz	LineNumberTable;
+const #36 = Asciz	run;
+const #37 = Asciz	()V;
+const #38 = Asciz	main;
+const #39 = Asciz	([Ljava/lang/String;)V;
+const #40 = Asciz	StackMapTable;
+const #41 = class	#79;	//  "[Ljava/lang/String;"
+const #42 = class	#65;	//  classes/test/Threading
+const #43 = class	#80;	//  java/lang/Object
+const #44 = class	#81;	//  java/lang/Throwable
+const #45 = Asciz	Exceptions;
+const #46 = class	#82;	//  java/lang/InterruptedException
+const #47 = Asciz	SourceFile;
+const #48 = Asciz	Threading.java;
+const #49 = NameAndType	#32:#33;//  "<init>":(Ljava/lang/String;)V
+const #50 = class	#83;	//  java/lang/System
+const #51 = NameAndType	#84:#85;//  out:Ljava/io/PrintStream;
+const #52 = Asciz	java/lang/StringBuilder;
+const #53 = NameAndType	#32:#37;//  "<init>":()V
+const #54 = Asciz	hello from ;
+const #55 = NameAndType	#86:#87;//  append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #56 = NameAndType	#88:#89;//  currentThread:()Ljava/lang/Thread;
+const #57 = NameAndType	#90:#91;//  getName:()Ljava/lang/String;
+const #58 = NameAndType	#92:#91;//  toString:()Ljava/lang/String;
+const #59 = class	#93;	//  java/io/PrintStream
+const #60 = NameAndType	#94:#33;//  println:(Ljava/lang/String;)V
+const #61 = NameAndType	#95:#37;//  interrupt:()V
+const #62 = Asciz	main thread was interrupted: ;
+const #63 = NameAndType	#96:#97;//  interrupted:()Z
+const #64 = NameAndType	#86:#98;//  append:(Z)Ljava/lang/StringBuilder;
+const #65 = Asciz	classes/test/Threading;
+const #66 = Asciz	hello-thread;
+const #67 = NameAndType	#99:#100;//  holdsLock:(Ljava/lang/Object;)Z
+const #68 = NameAndType	#94:#101;//  println:(Z)V
+const #69 = NameAndType	#102:#97;//  isInterrupted:()Z
+const #70 = NameAndType	#36:#37;//  run:()V
+const #71 = NameAndType	#103:#37;//  start:()V
+const #72 = NameAndType	#104:#37;//  join:()V
+const #73 = Asciz	joined in ;
+const #74 = Asciz	classes/test/Q;
+const #75 = Asciz	classes/test/Producer;
+const #76 = NameAndType	#32:#105;//  "<init>":(Lclasses/test/Q;)V
+const #77 = Asciz	classes/test/Consumer;
+const #78 = Asciz	java/lang/Thread;
+const #79 = Asciz	[Ljava/lang/String;;
+const #80 = Asciz	java/lang/Object;
+const #81 = Asciz	java/lang/Throwable;
+const #82 = Asciz	java/lang/InterruptedException;
+const #83 = Asciz	java/lang/System;
+const #84 = Asciz	out;
+const #85 = Asciz	Ljava/io/PrintStream;;
+const #86 = Asciz	append;
+const #87 = Asciz	(Ljava/lang/String;)Ljava/lang/StringBuilder;;
+const #88 = Asciz	currentThread;
+const #89 = Asciz	()Ljava/lang/Thread;;
+const #90 = Asciz	getName;
+const #91 = Asciz	()Ljava/lang/String;;
+const #92 = Asciz	toString;
+const #93 = Asciz	java/io/PrintStream;
+const #94 = Asciz	println;
+const #95 = Asciz	interrupt;
+const #96 = Asciz	interrupted;
+const #97 = Asciz	()Z;
+const #98 = Asciz	(Z)Ljava/lang/StringBuilder;;
+const #99 = Asciz	holdsLock;
+const #100 = Asciz	(Ljava/lang/Object;)Z;
+const #101 = Asciz	(Z)V;
+const #102 = Asciz	isInterrupted;
+const #103 = Asciz	start;
+const #104 = Asciz	join;
+const #105 = Asciz	(Lclasses/test/Q;)V;
 
 {
 public classes.test.Threading(java.lang.String);
@@ -135,94 +146,110 @@ public void run();
 public static void main(java.lang.String[])   throws java.lang.InterruptedException;
   Code:
    Stack=3, Locals=4, Args_size=1
-   0:	new	#11; //class classes/test/Threading
-   3:	dup
-   4:	ldc	#12; //String hello-thread
-   6:	invokespecial	#13; //Method "<init>":(Ljava/lang/String;)V
-   9:	astore_1
-   10:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
-   13:	aload_1
-   14:	pop
-   15:	aload_1
-   16:	invokestatic	#14; //Method holdsLock:(Ljava/lang/Object;)Z
-   19:	invokevirtual	#15; //Method java/io/PrintStream.println:(Z)V
-   22:	aload_1
-   23:	dup
-   24:	astore_2
-   25:	monitorenter
-   26:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
-   29:	aload_1
-   30:	pop
-   31:	aload_1
-   32:	invokestatic	#14; //Method holdsLock:(Ljava/lang/Object;)Z
-   35:	invokevirtual	#15; //Method java/io/PrintStream.println:(Z)V
-   38:	aload_2
-   39:	monitorexit
-   40:	goto	48
-   43:	astore_3
-   44:	aload_2
-   45:	monitorexit
-   46:	aload_3
-   47:	athrow
-   48:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
-   51:	aload_1
-   52:	invokevirtual	#16; //Method isInterrupted:()Z
-   55:	invokevirtual	#15; //Method java/io/PrintStream.println:(Z)V
-   58:	aload_1
-   59:	invokevirtual	#17; //Method run:()V
-   62:	aload_1
-   63:	invokevirtual	#18; //Method start:()V
+   0:	invokestatic	#7; //Method java/lang/Thread.currentThread:()Ljava/lang/Thread;
+   3:	invokevirtual	#11; //Method java/lang/Thread.interrupt:()V
+   6:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   9:	new	#3; //class java/lang/StringBuilder
+   12:	dup
+   13:	invokespecial	#4; //Method java/lang/StringBuilder."<init>":()V
+   16:	ldc	#12; //String main thread was interrupted: 
+   18:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   21:	invokestatic	#7; //Method java/lang/Thread.currentThread:()Ljava/lang/Thread;
+   24:	pop
+   25:	invokestatic	#13; //Method java/lang/Thread.interrupted:()Z
+   28:	invokevirtual	#14; //Method java/lang/StringBuilder.append:(Z)Ljava/lang/StringBuilder;
+   31:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   34:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   37:	new	#15; //class classes/test/Threading
+   40:	dup
+   41:	ldc	#16; //String hello-thread
+   43:	invokespecial	#17; //Method "<init>":(Ljava/lang/String;)V
+   46:	astore_1
+   47:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   50:	aload_1
+   51:	pop
+   52:	aload_1
+   53:	invokestatic	#18; //Method holdsLock:(Ljava/lang/Object;)Z
+   56:	invokevirtual	#19; //Method java/io/PrintStream.println:(Z)V
+   59:	aload_1
+   60:	dup
+   61:	astore_2
+   62:	monitorenter
+   63:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
    66:	aload_1
-   67:	invokevirtual	#19; //Method join:()V
-   70:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
-   73:	new	#3; //class java/lang/StringBuilder
-   76:	dup
-   77:	invokespecial	#4; //Method java/lang/StringBuilder."<init>":()V
-   80:	ldc	#20; //String joined in 
-   82:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   85:	invokestatic	#7; //Method java/lang/Thread.currentThread:()Ljava/lang/Thread;
-   88:	invokevirtual	#8; //Method java/lang/Thread.getName:()Ljava/lang/String;
-   91:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-   94:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
-   97:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
-   100:	new	#21; //class classes/test/Q
-   103:	dup
-   104:	invokespecial	#22; //Method classes/test/Q."<init>":()V
-   107:	astore_2
-   108:	new	#23; //class classes/test/Producer
-   111:	dup
-   112:	aload_2
-   113:	invokespecial	#24; //Method classes/test/Producer."<init>":(Lclasses/test/Q;)V
-   116:	pop
-   117:	new	#25; //class classes/test/Consumer
-   120:	dup
-   121:	aload_2
-   122:	invokespecial	#26; //Method classes/test/Consumer."<init>":(Lclasses/test/Q;)V
-   125:	pop
-   126:	return
+   67:	pop
+   68:	aload_1
+   69:	invokestatic	#18; //Method holdsLock:(Ljava/lang/Object;)Z
+   72:	invokevirtual	#19; //Method java/io/PrintStream.println:(Z)V
+   75:	aload_2
+   76:	monitorexit
+   77:	goto	85
+   80:	astore_3
+   81:	aload_2
+   82:	monitorexit
+   83:	aload_3
+   84:	athrow
+   85:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   88:	aload_1
+   89:	invokevirtual	#20; //Method isInterrupted:()Z
+   92:	invokevirtual	#19; //Method java/io/PrintStream.println:(Z)V
+   95:	aload_1
+   96:	invokevirtual	#21; //Method run:()V
+   99:	aload_1
+   100:	invokevirtual	#22; //Method start:()V
+   103:	aload_1
+   104:	invokevirtual	#23; //Method join:()V
+   107:	getstatic	#2; //Field java/lang/System.out:Ljava/io/PrintStream;
+   110:	new	#3; //class java/lang/StringBuilder
+   113:	dup
+   114:	invokespecial	#4; //Method java/lang/StringBuilder."<init>":()V
+   117:	ldc	#24; //String joined in 
+   119:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   122:	invokestatic	#7; //Method java/lang/Thread.currentThread:()Ljava/lang/Thread;
+   125:	invokevirtual	#8; //Method java/lang/Thread.getName:()Ljava/lang/String;
+   128:	invokevirtual	#6; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   131:	invokevirtual	#9; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   134:	invokevirtual	#10; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   137:	new	#25; //class classes/test/Q
+   140:	dup
+   141:	invokespecial	#26; //Method classes/test/Q."<init>":()V
+   144:	astore_2
+   145:	new	#27; //class classes/test/Producer
+   148:	dup
+   149:	aload_2
+   150:	invokespecial	#28; //Method classes/test/Producer."<init>":(Lclasses/test/Q;)V
+   153:	pop
+   154:	new	#29; //class classes/test/Consumer
+   157:	dup
+   158:	aload_2
+   159:	invokespecial	#30; //Method classes/test/Consumer."<init>":(Lclasses/test/Q;)V
+   162:	pop
+   163:	return
   Exception table:
    from   to  target type
-    26    40    43   any
-    43    46    43   any
+    63    77    80   any
+    80    83    80   any
   LineNumberTable: 
    line 12: 0
-   line 13: 10
-   line 14: 22
-   line 15: 26
-   line 16: 38
-   line 17: 48
-   line 18: 58
-   line 19: 62
-   line 20: 66
-   line 21: 70
-   line 22: 100
-   line 23: 108
-   line 24: 117
-   line 25: 126
+   line 13: 6
+   line 15: 37
+   line 16: 47
+   line 17: 59
+   line 18: 63
+   line 19: 75
+   line 20: 85
+   line 21: 95
+   line 22: 99
+   line 23: 103
+   line 24: 107
+   line 25: 137
+   line 26: 145
+   line 27: 154
+   line 28: 163
 
   StackMapTable: number_of_entries = 2
    frame_type = 255 /* full_frame */
-     offset_delta = 43
+     offset_delta = 80
      locals = [ class "[Ljava/lang/String;", class classes/test/Threading, class java/lang/Object ]
      stack = [ class java/lang/Throwable ]
    frame_type = 250 /* chop */

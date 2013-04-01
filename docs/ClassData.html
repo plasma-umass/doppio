@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>ClassData.coffee</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, target-densitydpi=160dpi, initial-scale=1.0; maximum-scale=1.0; user-scalable=0;">
+  <link rel="stylesheet" media="all" href="docco.css" />
+</head>
+<body>
+  <div id="container">
+    <div id="background"></div>
+    
+      <ul id="jump_to">
+        <li>
+          <a class="large" href="javascript:void(0);">Jump To &hellip;</a>
+          <a class="small" href="javascript:void(0);">+</a>
+          <div id="jump_wrapper">
+          <div id="jump_page">
+            
+              
+              <a class="source" href="frontend.html">
+                frontend.coffee
+              </a>
+            
+              
+              <a class="source" href="node.html">
+                node.coffee
+              </a>
+            
+              
+              <a class="source" href="untar.html">
+                untar.coffee
+              </a>
+            
+              
+              <a class="source" href="util.html">
+                util.coffee
+              </a>
+            
+              
+              <a class="source" href="ClassData.html">
+                ClassData.coffee
+              </a>
+            
+              
+              <a class="source" href="ClassLoader.html">
+                ClassLoader.coffee
+              </a>
+            
+              
+              <a class="source" href="ConstantPool.html">
+                ConstantPool.coffee
+              </a>
+            
+              
+              <a class="source" href="attributes.html">
+                attributes.coffee
+              </a>
+            
+              
+              <a class="source" href="disassembler.html">
+                disassembler.coffee
+              </a>
+            
+              
+              <a class="source" href="exceptions.html">
+                exceptions.coffee
+              </a>
+            
+              
+              <a class="source" href="java_object.html">
+                java_object.coffee
+              </a>
+            
+              
+              <a class="source" href="jvm.html">
+                jvm.coffee
+              </a>
+            
+              
+              <a class="source" href="logging.html">
+                logging.coffee
+              </a>
+            
+              
+              <a class="source" href="methods.html">
+                methods.coffee
+              </a>
+            
+              
+              <a class="source" href="natives.html">
+                natives.coffee
+              </a>
+            
+              
+              <a class="source" href="opcodes.html">
+                opcodes.coffee
+              </a>
+            
+              
+              <a class="source" href="runtime.html">
+                runtime.coffee
+              </a>
+            
+              
+              <a class="source" href="testing.html">
+                testing.coffee
+              </a>
+            
+              
+              <a class="source" href="util.html">
+                util.coffee
+              </a>
+            
+          </div>
+        </li>
+      </ul>
+    
+    <ul class="sections">
+        
+          <li id="title">
+              <div class="annotation">
+                  <h1>ClassData.coffee</h1>
+              </div>
+          </li>
+        
+        
+        
+        <li id="section-1">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-1">&#182;</a>
+              </div>
+              
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-2">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-2">&#182;</a>
+              </div>
+              <p>pull in external modules</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>util = require <span class="string">'./util'</span>
+ConstantPool = require <span class="string">'./ConstantPool'</span>
+attributes = require <span class="string">'./attributes'</span>
+opcodes = require <span class="string">'./opcodes'</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-3">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-3">&#182;</a>
+              </div>
+              <p>Define <code>methods</code> later to avoid circular dependency; methods references
+natives, natives references ClassData</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>methods = <span class="literal">null</span>
+{JavaObject,JavaClassObject} = require <span class="string">'./java_object'</span>
+{trace} = require <span class="string">'./logging'</span>
+
+<span class="string">"use strict"</span>
+
+root = exports ? <span class="keyword">this</span>.ClassData = {}</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-4">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-4">&#182;</a>
+              </div>
+              <p>Represents a single Class in the JVM.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="class"><span class="keyword">class</span> <span class="title">ClassData</span></span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-5">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-5">&#182;</a>
+              </div>
+              <p>Responsible for setting up all of the fields that are guaranteed to be
+present on any ClassData object.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  constructor: (<span class="property">@loader</span>=<span class="literal">null</span>) -&gt;
+    <span class="property">@access_flags</span> = {}
+    <span class="property">@initialized</span> = <span class="literal">false</span>
+    <span class="property">@resolved</span> = <span class="literal">false</span>
+    <span class="property">@jco</span> = <span class="literal">null</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-6">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-6">&#182;</a>
+              </div>
+              <p>Flip to 1 to trigger reset() call on load.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="property">@reset_bit</span> = <span class="number">0</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-7">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-7">&#182;</a>
+              </div>
+              <p>Resets any ClassData state that may have been built up
+We do not reset &#39;initialized&#39; here; only reference types need to reset that.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  reset: -&gt;
+    <span class="property">@jco</span> = <span class="literal">null</span>
+    <span class="property">@reset_bit</span> = <span class="number">0</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-8">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-8">&#182;</a>
+              </div>
+              <p>Reset any referenced classes if they are up for reset.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    sc = <span class="property">@get_super_class</span>()
+    <span class="keyword">if</span> sc?.reset_bit <span class="keyword">is</span> <span class="number">1</span>
+      sc.reset()
+    <span class="keyword">for</span> iface <span class="keyword">in</span> <span class="property">@get_interfaces</span>
+      <span class="keyword">if</span> iface.reset_bit <span class="keyword">is</span> <span class="number">1</span> <span class="keyword">then</span> iface.reset()
+    <span class="keyword">return</span>
+
+  toExternalString: () -&gt; util.ext_classname <span class="property">@this_class</span>
+
+  getLoadState: -&gt;
+    <span class="keyword">if</span> <span class="property">@initialized</span> <span class="keyword">then</span> <span class="string">'initialized'</span>
+    <span class="keyword">else</span> <span class="keyword">if</span> <span class="property">@resolved</span> <span class="keyword">then</span> <span class="string">'resolved'</span>
+    <span class="keyword">else</span> <span class="string">'loaded'</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-9">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-9">&#182;</a>
+              </div>
+              <p>Returns the ClassLoader object of the classloader that initialized this
+class. Returns null for the default classloader.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  get_class_loader: -&gt; <span class="property">@loader</span>
+  get_type: -&gt; <span class="property">@this_class</span>
+  get_super_class_type: -&gt; <span class="property">@super_class</span>
+  get_super_class: -&gt; <span class="property">@super_class_cdata</span>
+  get_interface_types: -&gt; []
+  get_interfaces: -&gt; []
+  get_class_object: (rs) -&gt;
+    <span class="property">@jco</span> = <span class="keyword">new</span> JavaClassObject(rs, @) <span class="keyword">unless</span> <span class="property">@jco</span>?
+    <span class="property">@jco</span>
+  get_method: -&gt; <span class="literal">null</span>
+  get_methods: -&gt; {}
+  get_fields: -&gt; []
+  method_lookup: (rs, spec, null_handled) -&gt;
+    <span class="keyword">return</span> <span class="literal">null</span> <span class="keyword">if</span> null_handled
+    rs.java_throw rs.get_bs_class(<span class="string">'Ljava/lang/NoSuchMethodError;'</span>),
+      <span class="string">"No such method found in <span class="subst">#{util.ext_classname(method_spec.class)}</span>::<span class="subst">#{method_spec.sig}</span>"</span>
+  field_lookup: (rs, spec, null_handled) -&gt;
+    <span class="keyword">return</span> <span class="literal">null</span> <span class="keyword">if</span> null_handled
+    rs.java_throw rs.get_bs_class(<span class="string">'Ljava/lang/NoSuchFieldError;'</span>),
+      <span class="string">"No such field found in <span class="subst">#{util.ext_classname(field_spec.class)}</span>::<span class="subst">#{field_spec.name}</span>"</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-10">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-10">&#182;</a>
+              </div>
+              <p>Checks if the class file is initialized. It will set @initialized to &#39;true&#39;
+if this class has no static initialization method and its parent classes
+are initialized, too.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  is_initialized: -&gt;
+    <span class="keyword">return</span> <span class="literal">true</span> <span class="keyword">if</span> <span class="property">@initialized</span>
+    <span class="keyword">return</span> <span class="literal">false</span> <span class="keyword">unless</span> <span class="property">@is_resolved</span>()
+    <span class="keyword">return</span> <span class="literal">false</span> <span class="keyword">if</span> <span class="property">@get_method</span>(<span class="string">'&lt;clinit&gt;()V'</span>)?
+    <span class="property">@initialized</span> = <span class="keyword">if</span> <span class="property">@get_super_class</span>()?.is_initialized() <span class="keyword">else</span> <span class="literal">false</span>
+    <span class="keyword">return</span> <span class="property">@initialized</span>
+  is_resolved: -&gt; <span class="property">@resolved</span>
+  is_subinterface: -&gt; <span class="literal">false</span>
+  is_subclass: (target) -&gt;
+    <span class="keyword">return</span> <span class="literal">true</span> <span class="keyword">if</span> @ <span class="keyword">is</span> target
+    <span class="keyword">return</span> <span class="literal">false</span> <span class="keyword">unless</span> <span class="property">@get_super_class</span>()?  <span class="comment"># I'm java/lang/Object, can't go further</span>
+    <span class="keyword">return</span> <span class="property">@get_super_class</span>().is_subclass target
+
+<span class="class"><span class="keyword">class</span> <span class="title">root</span>.<span class="title">PrimitiveClassData</span> <span class="keyword">extends</span> <span class="title">ClassData</span></span>
+  constructor: (<span class="property">@this_class</span>, loader) -&gt;
+    <span class="keyword">super</span> loader
+    <span class="property">@initialized</span> = <span class="literal">true</span>
+    <span class="property">@resolved</span> = <span class="literal">true</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-11">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-11">&#182;</a>
+              </div>
+              <p>Returns a boolean indicating if this class is an instance of the target class.
+&quot;target&quot; is a ClassData object.
+The ClassData objects do not need to be initialized; just loaded.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  is_castable: (target) -&gt; <span class="property">@this_class</span> == target.this_class
+
+  create_wrapper_object: (rs, value) -&gt;
+    type_desc = <span class="keyword">switch</span> <span class="property">@this_class</span>
+      <span class="keyword">when</span> <span class="string">'B'</span> <span class="keyword">then</span> <span class="string">'Ljava/lang/Byte;'</span>
+      <span class="keyword">when</span> <span class="string">'C'</span> <span class="keyword">then</span> <span class="string">'Ljava/lang/Character;'</span>
+      <span class="keyword">when</span> <span class="string">'D'</span> <span class="keyword">then</span> <span class="string">'Ljava/lang/Double;'</span>
+      <span class="keyword">when</span> <span class="string">'F'</span> <span class="keyword">then</span> <span class="string">'Ljava/lang/Float;'</span>
+      <span class="keyword">when</span> <span class="string">'I'</span> <span class="keyword">then</span> <span class="string">'Ljava/lang/Integer;'</span>
+      <span class="keyword">when</span> <span class="string">'J'</span> <span class="keyword">then</span> <span class="string">'Ljava/lang/Long;'</span>
+      <span class="keyword">when</span> <span class="string">'S'</span> <span class="keyword">then</span> <span class="string">'Ljava/lang/Short;'</span>
+      <span class="keyword">when</span> <span class="string">'Z'</span> <span class="keyword">then</span> <span class="string">'Ljava/lang/Boolean;'</span>
+      <span class="keyword">else</span>
+        <span class="keyword">throw</span> <span class="keyword">new</span> Error(<span class="string">"Tried to create_wrapper_object for type <span class="subst">#{@this_class}</span>"</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-12">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-12">&#182;</a>
+              </div>
+              <p>these are all initialized in preinit (for the BSCL, at least)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    wrapped = <span class="keyword">new</span> JavaObject rs, rs.get_bs_class(type_desc)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-13">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-13">&#182;</a>
+              </div>
+              <p>HACK: all primitive wrappers store their value in a private static final field named &#39;value&#39;</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    wrapped.fields[type_desc+<span class="string">'value'</span>] = value
+    <span class="keyword">return</span> wrapped
+
+<span class="class"><span class="keyword">class</span> <span class="title">root</span>.<span class="title">ArrayClassData</span> <span class="keyword">extends</span> <span class="title">ClassData</span></span>
+  constructor: (<span class="property">@component_type</span>, loader) -&gt;
+    <span class="keyword">super</span> loader
+    <span class="property">@this_class</span> = <span class="string">"[<span class="subst">#{@component_type}</span>"</span>
+    <span class="property">@super_class</span> = <span class="string">'Ljava/lang/Object;'</span>
+
+  reset: -&gt;
+    <span class="keyword">super</span>()
+    ccls = <span class="property">@get_component_class</span>()
+    <span class="keyword">if</span> ccls?.reset_bit
+      ccls.reset()
+    <span class="keyword">return</span>
+
+  get_component_type: -&gt; <span class="keyword">return</span> <span class="property">@component_type</span>
+  get_component_class: -&gt; <span class="keyword">return</span> <span class="property">@component_class_cdata</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-14">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-14">&#182;</a>
+              </div>
+              <p>This class itself has no fields/methods, but java/lang/Object does.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  field_lookup: (rs, field_spec) -&gt; <span class="property">@super_class_cdata</span>.field_lookup rs, field_spec
+  method_lookup: (rs, field_spec) -&gt; <span class="property">@super_class_cdata</span>.method_lookup rs, field_spec</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-15">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-15">&#182;</a>
+              </div>
+              <p>Resolved and initialized are the same for array types.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  set_resolved: (<span class="property">@super_class_cdata</span>, <span class="property">@component_class_cdata</span>) -&gt;
+    <span class="property">@resolved</span> = <span class="literal">true</span>
+    <span class="property">@initialized</span> = <span class="literal">true</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-16">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-16">&#182;</a>
+              </div>
+              <p>Returns a boolean indicating if this class is an instance of the target class.
+&quot;target&quot; is a ClassData object.
+The ClassData objects do not need to be initialized; just loaded.
+See §2.6.7 for casting rules.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  is_castable: (target) -&gt; <span class="comment"># target is c2</span>
+    <span class="keyword">unless</span> target <span class="keyword">instanceof</span> root.ArrayClassData
+      <span class="keyword">return</span> <span class="literal">false</span> <span class="keyword">if</span> target <span class="keyword">instanceof</span> root.PrimitiveClassData</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-17">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-17">&#182;</a>
+              </div>
+              <p>Must be a reference type.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="keyword">if</span> target.access_flags.interface</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-18">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-18">&#182;</a>
+              </div>
+              <p>Interface reference type</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="keyword">return</span> target.get_type() <span class="keyword">in</span> [<span class="string">'Ljava/lang/Cloneable;'</span>,<span class="string">'Ljava/io/Serializable;'</span>]</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-19">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-19">&#182;</a>
+              </div>
+              <p>Non-interface reference type</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="keyword">return</span> target.get_type() <span class="keyword">is</span> <span class="string">'Ljava/lang/Object;'</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-20">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-20">&#182;</a>
+              </div>
+              <p>We are both array types, so it only matters if my component type can be
+cast to its component type.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="keyword">return</span> <span class="property">@get_component_class</span>().is_castable(target.get_component_class())</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-21">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-21">&#182;</a>
+              </div>
+              <p>Represents a &quot;reference&quot; Class -- that is, a class that neither represents a
+primitive nor an array.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="class"><span class="keyword">class</span> <span class="title">root</span>.<span class="title">ReferenceClassData</span> <span class="keyword">extends</span> <span class="title">ClassData</span></span>
+  constructor: (bytes_array, loader) -&gt;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-22">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-22">&#182;</a>
+              </div>
+              <p>XXX: Circular dependency hack.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="keyword">unless</span> methods?
+      methods = require <span class="string">'./methods'</span>
+
+    <span class="keyword">super</span> loader
+
+    bytes_array = <span class="keyword">new</span> util.BytesArray bytes_array
+    <span class="keyword">throw</span> <span class="string">"Magic number invalid"</span> <span class="keyword">if</span> (bytes_array.get_uint <span class="number">4</span>) != <span class="number">0xCAFEBABE</span>
+    <span class="property">@minor_version</span> = bytes_array.get_uint <span class="number">2</span>
+    <span class="property">@major_version</span> = bytes_array.get_uint <span class="number">2</span>
+    <span class="keyword">throw</span> <span class="string">"Major version invalid"</span> <span class="keyword">unless</span> <span class="number">45</span> &lt;= <span class="property">@major_version</span> &lt;= <span class="number">51</span>
+    <span class="property">@constant_pool</span> = <span class="keyword">new</span> ConstantPool
+    <span class="property">@constant_pool</span>.parse(bytes_array)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-23">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-23">&#182;</a>
+              </div>
+              <p>bitmask for {public,final,super,interface,abstract} class modifier</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="property">@access_byte</span> = bytes_array.get_uint <span class="number">2</span>
+    <span class="property">@access_flags</span> = util.parse_flags <span class="property">@access_byte</span>
+    <span class="property">@this_class</span>  = <span class="property">@constant_pool</span>.get(bytes_array.get_uint <span class="number">2</span>).deref()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-24">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-24">&#182;</a>
+              </div>
+              <p>super reference is 0 when there&#39;s no super (basically just java.lang.Object)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    super_ref = bytes_array.get_uint <span class="number">2</span>
+    <span class="property">@super_class</span> = <span class="property">@constant_pool</span>.get(super_ref).deref() <span class="keyword">unless</span> super_ref <span class="keyword">is</span> <span class="number">0</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-25">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-25">&#182;</a>
+              </div>
+              <p>direct interfaces of this class</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    isize = bytes_array.get_uint <span class="number">2</span>
+    <span class="property">@interfaces</span> = (<span class="property">@constant_pool</span>.get(bytes_array.get_uint <span class="number">2</span>).deref() <span class="keyword">for</span> i <span class="keyword">in</span> [<span class="number">0.</span>..isize] <span class="keyword">by</span> <span class="number">1</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-26">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-26">&#182;</a>
+              </div>
+              <p>fields of this class</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    num_fields = bytes_array.get_uint <span class="number">2</span>
+    <span class="property">@fields</span> = (<span class="keyword">new</span> methods.Field(@) <span class="keyword">for</span> i <span class="keyword">in</span> [<span class="number">0.</span>..num_fields] <span class="keyword">by</span> <span class="number">1</span>)
+    <span class="property">@fl_cache</span> = {}
+
+    <span class="keyword">for</span> f,i <span class="keyword">in</span> <span class="property">@fields</span>
+      f.parse(bytes_array,<span class="property">@constant_pool</span>,i)
+      <span class="property">@fl_cache</span>[f.name] = f</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-27">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-27">&#182;</a>
+              </div>
+              <p>class methods</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    num_methods = bytes_array.get_uint <span class="number">2</span>
+    <span class="property">@methods</span> = {}</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-28">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-28">&#182;</a>
+              </div>
+              <p>It would probably be safe to make @methods the @ml_cache, but it would
+make debugging harder as you would lose track of who owns what method.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="property">@ml_cache</span> = {}
+    <span class="keyword">for</span> i <span class="keyword">in</span> [<span class="number">0.</span>..num_methods] <span class="keyword">by</span> <span class="number">1</span>
+      m = <span class="keyword">new</span> methods.Method(@)
+      m.parse(bytes_array,<span class="property">@constant_pool</span>,i)
+      mkey = m.name + m.raw_descriptor
+      <span class="property">@methods</span>[mkey] = m
+      <span class="property">@ml_cache</span>[mkey] = m</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-29">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-29">&#182;</a>
+              </div>
+              <p>class attributes</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="property">@attrs</span> = attributes.make_attributes(bytes_array,<span class="property">@constant_pool</span>)
+    <span class="keyword">throw</span> <span class="string">"Leftover bytes in classfile: <span class="subst">#{bytes_array}</span>"</span> <span class="keyword">if</span> bytes_array.has_bytes()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-30">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-30">&#182;</a>
+              </div>
+              <p>Contains the value of all static fields. Will be reset when reset()
+is run.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="property">@static_fields</span> = Object.create <span class="literal">null</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-31">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-31">&#182;</a>
+              </div>
+              <p>Resets the ClassData for subsequent JVM invocations. Resets all
+of the built up state / caches present in the opcode instructions.
+Eventually, this will also handle <code>clinit</code> duties.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  reset: -&gt;
+    <span class="keyword">super</span>()
+    <span class="property">@initialized</span> = <span class="literal">false</span>
+    <span class="property">@static_fields</span> = Object.create <span class="literal">null</span>
+    <span class="keyword">for</span> method <span class="keyword">in</span> <span class="property">@methods</span>
+      method.initialize()
+
+  get_interfaces: -&gt; <span class="property">@interface_cdatas</span>
+  get_interface_types: -&gt; <span class="property">@interfaces</span>
+  get_fields: -&gt; <span class="property">@fields</span>
+  get_method: (sig) -&gt; <span class="property">@methods</span>[sig]
+  get_methods: -&gt; <span class="property">@methods</span>
+  get_attribute: (name) -&gt;
+    <span class="keyword">for</span> attr <span class="keyword">in</span> <span class="property">@attrs</span> <span class="keyword">then</span> <span class="keyword">if</span> attr.name <span class="keyword">is</span> name <span class="keyword">then</span> <span class="keyword">return</span> attr
+    <span class="keyword">return</span> <span class="literal">null</span>
+  get_attributes: (name) -&gt; attr <span class="keyword">for</span> attr <span class="keyword">in</span> <span class="property">@attrs</span> <span class="keyword">when</span> attr.name <span class="keyword">is</span> name
+  get_default_fields: -&gt;
+    <span class="keyword">return</span> <span class="property">@default_fields</span> <span class="keyword">unless</span> <span class="property">@default_fields</span> <span class="keyword">is</span> <span class="literal">undefined</span>
+    <span class="property">@construct_default_fields</span>()
+    <span class="keyword">return</span> <span class="property">@default_fields</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-32">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-32">&#182;</a>
+              </div>
+              <p>Handles static fields. We lazily create them, since we cannot initialize static
+default String values before Ljava/lang/String; is initialized.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  _initialize_static_field: (rs, name) -&gt;
+    f = <span class="property">@fl_cache</span>[name]
+    <span class="keyword">if</span> f?.access_flags.static
+      cva = f.get_attribute <span class="string">'ConstantValue'</span>
+      <span class="keyword">if</span> cva?
+        cv = <span class="keyword">if</span> f.type <span class="keyword">is</span> <span class="string">'Ljava/lang/String;'</span> <span class="keyword">then</span> rs.init_string cva.value <span class="keyword">else</span> cva.value
+      <span class="property">@static_fields</span>[name] = <span class="keyword">if</span> cv? <span class="keyword">then</span> cv <span class="keyword">else</span> util.initial_value f.raw_descriptor
+    <span class="keyword">else</span>
+      rs.java_throw <span class="property">@loader</span>.get_initialized_class(<span class="string">'Ljava/lang/NoSuchFieldError;'</span>), name
+    <span class="keyword">return</span>
+  static_get: (rs, name) -&gt;
+    <span class="keyword">return</span> <span class="property">@static_fields</span>[name] <span class="keyword">unless</span> <span class="property">@static_fields</span>[name] <span class="keyword">is</span> <span class="literal">undefined</span>
+    <span class="property">@_initialize_static_field</span> rs, name
+    <span class="keyword">return</span> <span class="property">@static_get</span> rs, name
+  static_put: (rs, name, val) -&gt;
+    <span class="keyword">unless</span> <span class="property">@static_fields</span>[name] <span class="keyword">is</span> <span class="literal">undefined</span>
+      <span class="property">@static_fields</span>[name] = val
+    <span class="keyword">else</span>
+      <span class="property">@_initialize_static_field</span> rs, name
+      <span class="property">@static_put</span> rs, name, val
+
+  set_resolved: (<span class="property">@super_class_cdata</span>, interface_cdatas) -&gt;
+    trace <span class="string">"Class <span class="subst">#{@get_type()}</span> is now resolved."</span>
+    <span class="property">@interface_cdatas</span> = <span class="keyword">if</span> interface_cdatas? <span class="keyword">then</span> interface_cdatas <span class="keyword">else</span> []
+    <span class="property">@resolved</span> = <span class="literal">true</span>
+
+  construct_default_fields: () -&gt;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-33">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-33">&#182;</a>
+              </div>
+              <p>init fields from this and inherited ClassDatas</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    cls = @</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-34">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-34">&#182;</a>
+              </div>
+              <p>Object.create(null) avoids interference with Object.prototype&#39;s properties</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="property">@default_fields</span> = Object.create <span class="literal">null</span>
+    <span class="keyword">while</span> cls?
+      <span class="keyword">for</span> f <span class="keyword">in</span> cls.fields <span class="keyword">when</span> <span class="keyword">not</span> f.access_flags.static
+        val = util.initial_value f.raw_descriptor
+        <span class="property">@default_fields</span>[cls.get_type() + f.name] = val
+      cls = cls.get_super_class()
+    <span class="keyword">return</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-35">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-35">&#182;</a>
+              </div>
+              <p>Spec <a href="http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#77678">5.4.3.2</a>.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  field_lookup: (rs, field_spec, null_handled) -&gt;
+    field = <span class="property">@fl_cache</span>[field_spec.name]
+    <span class="keyword">return</span> field <span class="keyword">if</span> field?
+
+    field = <span class="property">@_field_lookup</span>(rs, field_spec)
+    <span class="keyword">if</span> field? <span class="keyword">or</span> null_handled <span class="keyword">is</span> <span class="literal">true</span>
+      <span class="property">@fl_cache</span>[field_spec.name] = field
+      <span class="keyword">return</span> field</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-36">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-36">&#182;</a>
+              </div>
+              <p>Throw exception</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    rs.java_throw rs.get_bs_class(<span class="string">'Ljava/lang/NoSuchFieldError;'</span>),
+      <span class="string">"No such field found in <span class="subst">#{util.ext_classname(field_spec.class)}</span>::<span class="subst">#{field_spec.name}</span>"</span>
+
+  _field_lookup: (rs, field_spec) -&gt;
+    <span class="keyword">for</span> field <span class="keyword">in</span> <span class="property">@fields</span>
+      <span class="keyword">if</span> field.name <span class="keyword">is</span> field_spec.name
+        <span class="keyword">return</span> field</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-37">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-37">&#182;</a>
+              </div>
+              <p>These may not be initialized! But we have them loaded.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="keyword">for</span> ifc_cls <span class="keyword">in</span> <span class="property">@get_interfaces</span>()
+      field = ifc_cls.field_lookup(rs, field_spec, <span class="literal">true</span>)
+      <span class="keyword">return</span> field <span class="keyword">if</span> field?
+
+    sc = <span class="property">@get_super_class</span>()
+    <span class="keyword">if</span> sc?
+      field = sc.field_lookup(rs, field_spec, <span class="literal">true</span>)
+      <span class="keyword">return</span> field <span class="keyword">if</span> field?
+    <span class="keyword">return</span> <span class="literal">null</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-38">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-38">&#182;</a>
+              </div>
+              <p>Spec <a href="http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#79473">5.4.3.3</a>, <a href="http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#78621">5.4.3.4</a>.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  method_lookup: (rs, method_spec, null_handled) -&gt;
+    method = <span class="property">@ml_cache</span>[method_spec.sig]
+    <span class="keyword">return</span> method <span class="keyword">if</span> method?
+
+    method = <span class="property">@_method_lookup</span>(rs, method_spec)
+    <span class="keyword">if</span> method? <span class="keyword">or</span> null_handled <span class="keyword">is</span> <span class="literal">true</span>
+      <span class="property">@ml_cache</span>[method_spec.sig] = method
+      <span class="keyword">return</span> method</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-39">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-39">&#182;</a>
+              </div>
+              <p>Throw exception</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    rs.java_throw rs.get_bs_class(<span class="string">'Ljava/lang/NoSuchMethodError;'</span>),
+      <span class="string">"No such method found in <span class="subst">#{util.ext_classname(method_spec.class)}</span>::<span class="subst">#{method_spec.sig}</span>"</span>
+
+  _method_lookup: (rs, method_spec) -&gt;
+    method = <span class="property">@methods</span>[method_spec.sig]
+    <span class="keyword">return</span> method <span class="keyword">if</span> method?
+
+    parent = <span class="property">@get_super_class</span>()
+    <span class="keyword">if</span> parent?
+      method = parent.method_lookup(rs, method_spec, <span class="literal">true</span>)
+      <span class="keyword">return</span> method <span class="keyword">if</span> method?
+
+    <span class="keyword">for</span> ifc <span class="keyword">in</span> <span class="property">@get_interfaces</span>()
+      method = ifc.method_lookup(rs, method_spec, <span class="literal">true</span>)
+      <span class="keyword">return</span> method <span class="keyword">if</span> method?
+
+    <span class="keyword">return</span> <span class="literal">null</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-40">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-40">&#182;</a>
+              </div>
+              <p>Returns a boolean indicating if this class is an instance of the target class.
+&quot;target&quot; is a ClassData object.
+The ClassData objects do not need to be initialized; just loaded.
+See §2.6.7 for casting rules.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  is_castable: (target) -&gt;
+    <span class="keyword">return</span> <span class="literal">false</span> <span class="keyword">unless</span> target <span class="keyword">instanceof</span> root.ReferenceClassData
+
+    <span class="keyword">if</span> <span class="property">@access_flags</span>.interface</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-41">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-41">&#182;</a>
+              </div>
+              <p>We are both interfaces</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="keyword">if</span> target.access_flags.interface <span class="keyword">then</span> <span class="keyword">return</span> <span class="property">@is_subinterface</span>(target)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-42">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-42">&#182;</a>
+              </div>
+              <p>Only I am an interface</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="keyword">return</span> target.get_type() <span class="keyword">is</span> <span class="string">'Ljava/lang/Object;'</span> <span class="keyword">unless</span> target.access_flags.interface
+    <span class="keyword">else</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-43">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-43">&#182;</a>
+              </div>
+              <p>I am a regular class, target is an interface</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="keyword">if</span> target.access_flags.interface <span class="keyword">then</span> <span class="keyword">return</span> <span class="property">@is_subinterface</span>(target)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-44">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-44">&#182;</a>
+              </div>
+              <p>We are both regular classes</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="keyword">return</span> <span class="property">@is_subclass</span>(target)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-45">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-45">&#182;</a>
+              </div>
+              <p>Returns &#39;true&#39; if I implement the target interface.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  is_subinterface: (target) -&gt;
+    <span class="keyword">return</span> <span class="literal">true</span> <span class="keyword">if</span> <span class="property">@this_class</span> <span class="keyword">is</span> target.this_class
+    <span class="keyword">for</span> super_iface <span class="keyword">in</span> <span class="property">@get_interfaces</span>()
+      <span class="keyword">return</span> <span class="literal">true</span> <span class="keyword">if</span> super_iface.is_subinterface target
+    <span class="keyword">return</span> <span class="literal">false</span> <span class="keyword">unless</span> <span class="property">@get_super_class</span>()?  <span class="comment"># I'm java/lang/Object, can't go further</span>
+    <span class="keyword">return</span> <span class="property">@get_super_class</span>().is_subinterface target</pre></div></div>
+            
+        </li>
+        
+    </ul>
+  </div>
+</body>
+</html>

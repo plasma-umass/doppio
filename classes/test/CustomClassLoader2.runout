@@ -1,0 +1,55 @@
+Loading Dog...
+Loading class classes.test.Dog
+Finding class classes.test.Dog
+Defining class classes.test.Dog
+Loading class classes.test.Speakable
+Finding class classes.test.Speakable
+Defining class classes.test.Speakable
+Loading class java.lang.Object
+Finding class java.lang.Object
+Couldn't get the class ourselves!
+Getting the system class.
+Registering class classes.test.Speakable
+Found class. Returning.
+Loading class classes.test.Animal
+Finding class classes.test.Animal
+Defining class classes.test.Animal
+Registering class classes.test.Animal
+Found class. Returning.
+Registering class classes.test.Dog
+Found class. Returning.
+Dog's methods
+Loading class java.lang.String
+Finding class java.lang.String
+Couldn't get the class ourselves!
+Getting the system class.
+	Method: dontUse
+	Method: equals
+	Method: getClass
+	Method: hashCode
+	Method: notify
+	Method: notifyAll
+	Method: speak
+	Method: toString
+	Method: wait
+	Method: wait
+	Method: wait
+Getting Dog's interfaces...
+There are 1 interfaces!
+Interface: classes.test.Speakable
+	Method: speak
+Now let's resolve dog...
+There are 1 interfaces!
+Interface: classes.test.Speakable
+	Method: speak
+Super class: classes.test.Animal
+	Method: dontUse
+	Method: equals
+	Method: getClass
+	Method: hashCode
+	Method: notify
+	Method: notifyAll
+	Method: toString
+	Method: wait
+	Method: wait
+	Method: wait

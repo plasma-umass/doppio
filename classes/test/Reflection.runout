@@ -1,0 +1,15 @@
+I'm a good string
+I'm a constant
+23
+2.45
+1.4567
+8394834397
+12
+true
+toString: class classes.test.Reflection
+is array? false
+is instance? true
+unboxing: 42
+boxing: 1337
+called foo
+void return: null

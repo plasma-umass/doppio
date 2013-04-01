@@ -1,167 +1,548 @@
-<!DOCTYPE html>  <html> <head>   <title>methods.coffee</title>   <meta http-equiv="content-type" content="text/html; charset=UTF-8">   <link rel="stylesheet" media="all" href="docco.css" /> </head> <body>   <div id="container">     <div id="background"></div>            <div id="jump_to">         Jump To &hellip;         <div id="jump_wrapper">           <div id="jump_page">                                           <a class="source" href="frontend.html">                 frontend.coffee               </a>                                           <a class="source" href="node.html">                 node.coffee               </a>                                           <a class="source" href="untar.html">                 untar.coffee               </a>                                           <a class="source" href="util.html">                 util.coffee               </a>                                           <a class="source" href="ClassFile.html">                 ClassFile.coffee               </a>                                           <a class="source" href="ConstantPool.html">                 ConstantPool.coffee               </a>                                           <a class="source" href="attributes.html">                 attributes.coffee               </a>                                           <a class="source" href="disassembler.html">                 disassembler.coffee               </a>                                           <a class="source" href="exceptions.html">                 exceptions.coffee               </a>                                           <a class="source" href="java_object.html">                 java_object.coffee               </a>                                           <a class="source" href="jvm.html">                 jvm.coffee               </a>                                           <a class="source" href="logging.html">                 logging.coffee               </a>                                           <a class="source" href="methods.html">                 methods.coffee               </a>                                           <a class="source" href="natives.html">                 natives.coffee               </a>                                           <a class="source" href="opcodes.html">                 opcodes.coffee               </a>                                           <a class="source" href="runtime.html">                 runtime.coffee               </a>                                           <a class="source" href="testing.html">                 testing.coffee               </a>                                           <a class="source" href="types.html">                 types.coffee               </a>                                           <a class="source" href="util.html">                 util.coffee               </a>                        </div>         </div>       </div>          <table cellpadding="0" cellspacing="0">       <thead>         <tr>           <th class="docs">             <h1>               methods.coffee             </h1>           </th>           <th class="code">           </th>         </tr>       </thead>       <tbody>                               <tr id="section-1">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-1">&#182;</a>               </div>                            </td>             <td class="code">               <div class="highlight"><pre></pre></div>             </td>           </tr>                               <tr id="section-2">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-2">&#182;</a>               </div>               <p>pull in external modules</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">_ = </span><span class="nx">require</span> <span class="s1">&#39;../vendor/_.js&#39;</span>
-<span class="nv">util = </span><span class="nx">require</span> <span class="s1">&#39;./util&#39;</span>
-<span class="nv">opcodes = </span><span class="nx">require</span> <span class="s1">&#39;./opcodes&#39;</span>
-<span class="nv">attributes = </span><span class="nx">require</span> <span class="s1">&#39;./attributes&#39;</span>
-<span class="nv">types = </span><span class="nx">require</span> <span class="s1">&#39;./types&#39;</span>
-<span class="nv">natives = </span><span class="nx">require</span> <span class="s1">&#39;./natives&#39;</span>
-<span class="nv">runtime = </span><span class="nx">require</span> <span class="s1">&#39;./runtime&#39;</span>
-<span class="nv">logging = </span><span class="nx">require</span> <span class="s1">&#39;./logging&#39;</span>
-<span class="p">{</span><span class="nx">vtrace</span><span class="p">,</span><span class="nx">trace</span><span class="p">,</span><span class="nx">debug_vars</span><span class="p">}</span> <span class="o">=</span> <span class="nx">logging</span>
-<span class="p">{</span><span class="nx">java_throw</span><span class="p">,</span><span class="nx">ReturnException</span><span class="p">}</span> <span class="o">=</span> <span class="nx">require</span> <span class="s1">&#39;./exceptions&#39;</span>
-<span class="p">{</span><span class="nx">str2type</span><span class="p">,</span><span class="nx">carr2type</span><span class="p">,</span><span class="nx">c2t</span><span class="p">}</span> <span class="o">=</span> <span class="nx">types</span>
-<span class="p">{</span><span class="nx">native_methods</span><span class="p">,</span><span class="nx">trapped_methods</span><span class="p">}</span> <span class="o">=</span> <span class="nx">natives</span>
+<!DOCTYPE html>
 
-<span class="s2">&quot;use strict&quot;</span></pre></div>             </td>           </tr>                               <tr id="section-3">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-3">&#182;</a>               </div>               <p>things assigned to root will be available outside this module</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">root = </span><span class="nx">exports</span> <span class="o">?</span> <span class="k">this</span><span class="p">.</span><span class="nv">methods = </span><span class="p">{}</span>
+<html>
+<head>
+  <title>methods.coffee</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, target-densitydpi=160dpi, initial-scale=1.0; maximum-scale=1.0; user-scalable=0;">
+  <link rel="stylesheet" media="all" href="docco.css" />
+</head>
+<body>
+  <div id="container">
+    <div id="background"></div>
+    
+      <ul id="jump_to">
+        <li>
+          <a class="large" href="javascript:void(0);">Jump To &hellip;</a>
+          <a class="small" href="javascript:void(0);">+</a>
+          <div id="jump_wrapper">
+          <div id="jump_page">
+            
+              
+              <a class="source" href="frontend.html">
+                frontend.coffee
+              </a>
+            
+              
+              <a class="source" href="node.html">
+                node.coffee
+              </a>
+            
+              
+              <a class="source" href="untar.html">
+                untar.coffee
+              </a>
+            
+              
+              <a class="source" href="util.html">
+                util.coffee
+              </a>
+            
+              
+              <a class="source" href="ClassData.html">
+                ClassData.coffee
+              </a>
+            
+              
+              <a class="source" href="ClassLoader.html">
+                ClassLoader.coffee
+              </a>
+            
+              
+              <a class="source" href="ConstantPool.html">
+                ConstantPool.coffee
+              </a>
+            
+              
+              <a class="source" href="attributes.html">
+                attributes.coffee
+              </a>
+            
+              
+              <a class="source" href="disassembler.html">
+                disassembler.coffee
+              </a>
+            
+              
+              <a class="source" href="exceptions.html">
+                exceptions.coffee
+              </a>
+            
+              
+              <a class="source" href="java_object.html">
+                java_object.coffee
+              </a>
+            
+              
+              <a class="source" href="jvm.html">
+                jvm.coffee
+              </a>
+            
+              
+              <a class="source" href="logging.html">
+                logging.coffee
+              </a>
+            
+              
+              <a class="source" href="methods.html">
+                methods.coffee
+              </a>
+            
+              
+              <a class="source" href="natives.html">
+                natives.coffee
+              </a>
+            
+              
+              <a class="source" href="opcodes.html">
+                opcodes.coffee
+              </a>
+            
+              
+              <a class="source" href="runtime.html">
+                runtime.coffee
+              </a>
+            
+              
+              <a class="source" href="testing.html">
+                testing.coffee
+              </a>
+            
+              
+              <a class="source" href="util.html">
+                util.coffee
+              </a>
+            
+          </div>
+        </li>
+      </ul>
+    
+    <ul class="sections">
+        
+          <li id="title">
+              <div class="annotation">
+                  <h1>methods.coffee</h1>
+              </div>
+          </li>
+        
+        
+        
+        <li id="section-1">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-1">&#182;</a>
+              </div>
+              
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-2">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-2">&#182;</a>
+              </div>
+              <p>pull in external modules</p>
 
-<span class="k">class</span> <span class="nx">AbstractMethodField</span></pre></div>             </td>           </tr>                               <tr id="section-4">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-4">&#182;</a>               </div>               <p>Subclasses need to implement parse_descriptor(String)</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">constructor: </span><span class="nf">(@class_type) -&gt;</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>_ = require <span class="string">'../vendor/_.js'</span>
+util = require <span class="string">'./util'</span>
+opcodes = require <span class="string">'./opcodes'</span>
+attributes = require <span class="string">'./attributes'</span>
+natives = require <span class="string">'./natives'</span>
+runtime = require <span class="string">'./runtime'</span>
+logging = require <span class="string">'./logging'</span>
+jvm = require <span class="string">'./jvm'</span>
+{vtrace,trace,debug_vars} = logging
+{ReturnException} = require <span class="string">'./exceptions'</span>
+{native_methods,trapped_methods} = natives
+{JavaArray,JavaObject} = require <span class="string">'./java_object'</span>
 
-  <span class="nv">parse: </span><span class="nf">(bytes_array,constant_pool,@idx) -&gt;</span>
-    <span class="vi">@access_byte = </span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span>
-    <span class="vi">@access_flags = </span><span class="nx">util</span><span class="p">.</span><span class="nx">parse_flags</span> <span class="nx">@access_byte</span>
-    <span class="vi">@name = </span><span class="nx">constant_pool</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span><span class="p">).</span><span class="nx">value</span>
-    <span class="vi">@raw_descriptor = </span><span class="nx">constant_pool</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">.</span><span class="nx">get_uint</span> <span class="mi">2</span><span class="p">).</span><span class="nx">value</span>
-    <span class="nx">@parse_descriptor</span> <span class="nx">@raw_descriptor</span>
-    <span class="vi">@attrs = </span><span class="nx">attributes</span><span class="p">.</span><span class="nx">make_attributes</span><span class="p">(</span><span class="nx">bytes_array</span><span class="p">,</span><span class="nx">constant_pool</span><span class="p">)</span>
+<span class="string">"use strict"</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-3">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-3">&#182;</a>
+              </div>
+              <p>things assigned to root will be available outside this module</p>
 
-<span class="k">class</span> <span class="nx">root</span><span class="p">.</span><span class="nx">Field</span> <span class="k">extends</span> <span class="nx">AbstractMethodField</span>
-  <span class="nv">parse_descriptor: </span><span class="nf">(raw_descriptor) -&gt;</span>
-    <span class="vi">@type = </span><span class="nx">str2type</span> <span class="nx">raw_descriptor</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>root = exports ? <span class="keyword">this</span>.methods = {}
 
-  <span class="nv">reflector: </span><span class="nf">(rs) -&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-5">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-5">&#182;</a>               </div>               <p>note: sig is the generic type parameter (if one exists), not the full
-field type.</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nv">sig = </span><span class="nx">_</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="nx">@attrs</span><span class="p">,</span> <span class="nf">(a) -&gt;</span> <span class="nx">a</span><span class="p">.</span><span class="nx">name</span> <span class="o">==</span> <span class="s2">&quot;Signature&quot;</span><span class="p">)</span><span class="o">?</span><span class="p">.</span><span class="nx">sig</span>
-    <span class="nx">rs</span><span class="p">.</span><span class="nx">init_object</span> <span class="s1">&#39;java/lang/reflect/Field&#39;</span><span class="p">,</span> <span class="p">{</span></pre></div>             </td>           </tr>                               <tr id="section-6">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-6">&#182;</a>               </div>               <p>XXX this leaves out 'annotations'</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="s1">&#39;java/lang/reflect/Field/clazz&#39;</span><span class="o">:</span> <span class="nx">rs</span><span class="p">.</span><span class="nx">jclass_obj</span><span class="p">(</span><span class="nx">@class_type</span><span class="p">)</span>
-      <span class="s1">&#39;java/lang/reflect/Field/name&#39;</span><span class="o">:</span> <span class="nx">rs</span><span class="p">.</span><span class="nx">init_string</span> <span class="nx">@name</span><span class="p">,</span> <span class="kc">true</span>
-      <span class="s1">&#39;java/lang/reflect/Field/type&#39;</span><span class="o">:</span> <span class="nx">rs</span><span class="p">.</span><span class="nx">jclass_obj</span> <span class="nx">@type</span>
-      <span class="s1">&#39;java/lang/reflect/Field/modifiers&#39;</span><span class="o">:</span> <span class="nx">@access_byte</span>
-      <span class="s1">&#39;java/lang/reflect/Field/slot&#39;</span><span class="o">:</span> <span class="nx">@idx</span>
-      <span class="s1">&#39;java/lang/reflect/Field/signature&#39;</span><span class="o">:</span> <span class="k">if</span> <span class="nx">sig</span><span class="o">?</span> <span class="k">then</span> <span class="nx">rs</span><span class="p">.</span><span class="nx">init_string</span> <span class="nx">sig</span> <span class="k">else</span> <span class="kc">null</span>
-    <span class="p">}</span>
+<span class="class"><span class="keyword">class</span> <span class="title">AbstractMethodField</span></span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-4">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-4">&#182;</a>
+              </div>
+              <p>Subclasses need to implement parse_descriptor(String)</p>
 
-<span class="k">class</span> <span class="nx">root</span><span class="p">.</span><span class="nx">Method</span> <span class="k">extends</span> <span class="nx">AbstractMethodField</span>
-  <span class="nv">parse_descriptor: </span><span class="nf">(raw_descriptor) -&gt;</span>
-    <span class="p">[</span><span class="nx">__</span><span class="p">,</span><span class="nx">param_str</span><span class="p">,</span><span class="nx">return_str</span><span class="p">]</span> <span class="o">=</span> <span class="sr">/\(([^)]*)\)(.*)/</span><span class="p">.</span><span class="nx">exec</span><span class="p">(</span><span class="nx">raw_descriptor</span><span class="p">)</span>
-    <span class="nv">param_carr = </span><span class="nx">param_str</span><span class="p">.</span><span class="nx">split</span> <span class="s1">&#39;&#39;</span>
-    <span class="vi">@param_types = </span><span class="p">(</span><span class="nx">field</span> <span class="k">while</span> <span class="p">(</span><span class="nv">field = </span><span class="nx">carr2type</span> <span class="nx">param_carr</span><span class="p">))</span>
-    <span class="vi">@param_bytes = </span><span class="mi">0</span>
-    <span class="k">for</span> <span class="nx">p</span> <span class="k">in</span> <span class="nx">@param_types</span>
-      <span class="nx">@param_bytes</span> <span class="o">+=</span> <span class="k">if</span> <span class="nx">p</span><span class="p">.</span><span class="nx">toString</span><span class="p">()</span> <span class="k">in</span> <span class="p">[</span><span class="s1">&#39;D&#39;</span><span class="p">,</span><span class="s1">&#39;J&#39;</span><span class="p">]</span> <span class="k">then</span> <span class="mi">2</span> <span class="k">else</span> <span class="mi">1</span>
-    <span class="nx">@param_bytes</span><span class="o">++</span> <span class="nx">unless</span> <span class="nx">@access_flags</span><span class="p">.</span><span class="nx">static</span>
-    <span class="vi">@num_args = </span><span class="nx">@param_types</span><span class="p">.</span><span class="nx">length</span>
-    <span class="nx">@num_args</span><span class="o">++</span> <span class="nx">unless</span> <span class="nx">@access_flags</span><span class="p">.</span><span class="nx">static</span> <span class="c1"># nonstatic methods get &#39;this&#39;</span>
-    <span class="vi">@return_type = </span><span class="nx">str2type</span> <span class="nx">return_str</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  constructor: (<span class="property">@cls</span>) -&gt;
 
-  <span class="nv">full_signature: </span><span class="o">-&gt;</span> <span class="s2">&quot;#{@class_type.toClassString()}::#{@name}#{@raw_descriptor}&quot;</span>
+  parse: (bytes_array,constant_pool,<span class="property">@idx</span>) -&gt;
+    <span class="property">@access_byte</span> = bytes_array.get_uint <span class="number">2</span>
+    <span class="property">@access_flags</span> = util.parse_flags <span class="property">@access_byte</span>
+    <span class="property">@name</span> = constant_pool.get(bytes_array.get_uint <span class="number">2</span>).value
+    <span class="property">@raw_descriptor</span> = constant_pool.get(bytes_array.get_uint <span class="number">2</span>).value
+    <span class="property">@parse_descriptor</span> <span class="property">@raw_descriptor</span>
+    <span class="property">@attrs</span> = attributes.make_attributes(bytes_array,constant_pool)
 
-  <span class="nv">parse: </span><span class="nf">(bytes_array, constant_pool, idx) -&gt;</span>
-    <span class="k">super</span> <span class="nx">bytes_array</span><span class="p">,</span> <span class="nx">constant_pool</span><span class="p">,</span> <span class="nx">idx</span>
-    <span class="nv">sig = </span><span class="nx">@full_signature</span><span class="p">()</span>
-    <span class="k">if</span> <span class="p">(</span><span class="nv">c = </span><span class="nx">trapped_methods</span><span class="p">[</span><span class="nx">sig</span><span class="p">])</span><span class="o">?</span>
-      <span class="vi">@code = </span><span class="nx">c</span>
-      <span class="vi">@access_flags.native = </span><span class="kc">true</span>
-    <span class="k">else</span> <span class="k">if</span> <span class="nx">@access_flags</span><span class="p">.</span><span class="nx">native</span>
-      <span class="k">if</span> <span class="p">(</span><span class="nv">c = </span><span class="nx">native_methods</span><span class="p">[</span><span class="nx">sig</span><span class="p">])</span><span class="o">?</span>
-        <span class="vi">@code = </span><span class="nx">c</span>
-      <span class="k">else</span> <span class="k">if</span> <span class="nx">UNSAFE</span><span class="o">?</span>
-        <span class="vi">@code = </span><span class="kc">null</span> <span class="c1"># optimization: avoid copying around params if it is a no-op.</span>
-      <span class="k">else</span>
-        <span class="vi">@code = </span><span class="p">(</span><span class="nx">rs</span><span class="p">)</span> <span class="o">=&gt;</span>
-          <span class="nx">unless</span> <span class="nx">sig</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="s1">&#39;::registerNatives()V&#39;</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="o">or</span> <span class="nx">sig</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="s1">&#39;::initIDs()V&#39;</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">0</span>
-            <span class="nx">java_throw</span> <span class="nx">rs</span><span class="p">,</span> <span class="s1">&#39;java/lang/Error&#39;</span><span class="p">,</span> <span class="s2">&quot;native method NYI: #{sig}&quot;</span>
-    <span class="k">else</span>
-      <span class="vi">@has_bytecode = </span><span class="kc">true</span>
-      <span class="vi">@code = </span><span class="nx">_</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="nx">@attrs</span><span class="p">,</span> <span class="nf">(a) -&gt;</span> <span class="nx">a</span><span class="p">.</span><span class="nx">name</span> <span class="o">==</span> <span class="s1">&#39;Code&#39;</span><span class="p">)</span>
+  get_attribute: (name) -&gt;
+    <span class="keyword">for</span> attr <span class="keyword">in</span> <span class="property">@attrs</span> <span class="keyword">then</span> <span class="keyword">if</span> attr.name <span class="keyword">is</span> name <span class="keyword">then</span> <span class="keyword">return</span> attr
+    <span class="keyword">return</span> <span class="literal">null</span>
 
-  <span class="nv">reflector: </span><span class="nf">(rs, is_constructor=false) -&gt;</span>
-    <span class="nv">typestr = </span><span class="k">if</span> <span class="nx">is_constructor</span> <span class="k">then</span> <span class="s1">&#39;java/lang/reflect/Constructor&#39;</span> <span class="k">else</span> <span class="s1">&#39;java/lang/reflect/Method&#39;</span>
-    <span class="nv">exceptions = </span><span class="nx">_</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="nx">@attrs</span><span class="p">,</span> <span class="nf">(a) -&gt;</span> <span class="nx">a</span><span class="p">.</span><span class="nx">name</span> <span class="o">==</span> <span class="s1">&#39;Exceptions&#39;</span><span class="p">)</span><span class="o">?</span><span class="p">.</span><span class="nx">exceptions</span> <span class="o">?</span> <span class="p">[]</span>
-    <span class="nv">anns = </span><span class="nx">_</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="nx">@attrs</span><span class="p">,</span> <span class="nf">(a) -&gt;</span> <span class="nx">a</span><span class="p">.</span><span class="nx">name</span> <span class="o">==</span> <span class="s1">&#39;RuntimeVisibleAnnotations&#39;</span><span class="p">)</span><span class="o">?</span><span class="p">.</span><span class="nx">raw_bytes</span>
-    <span class="nv">adefs = </span><span class="nx">_</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="nx">@attrs</span><span class="p">,</span> <span class="nf">(a) -&gt;</span> <span class="nx">a</span><span class="p">.</span><span class="nx">name</span> <span class="o">==</span> <span class="s1">&#39;AnnotationDefault&#39;</span><span class="p">)</span><span class="o">?</span><span class="p">.</span><span class="nx">raw_bytes</span>
-    <span class="nv">sig = </span> <span class="nx">_</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="nx">@attrs</span><span class="p">,</span> <span class="nf">(a) -&gt;</span> <span class="nx">a</span><span class="p">.</span><span class="nx">name</span> <span class="o">==</span> <span class="s1">&#39;Signature&#39;</span><span class="p">)</span><span class="o">?</span><span class="p">.</span><span class="nx">sig</span>
-    <span class="nv">obj = </span><span class="p">{}</span></pre></div>             </td>           </tr>                               <tr id="section-7">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-7">&#182;</a>               </div>               <p>XXX: missing parameterAnnotations</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nx">obj</span><span class="p">[</span><span class="nx">typestr</span> <span class="o">+</span> <span class="s1">&#39;/clazz&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nx">rs</span><span class="p">.</span><span class="nx">jclass_obj</span><span class="p">(</span><span class="nx">@class_type</span><span class="p">)</span>
-    <span class="nx">obj</span><span class="p">[</span><span class="nx">typestr</span> <span class="o">+</span> <span class="s1">&#39;/name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nx">rs</span><span class="p">.</span><span class="nx">init_string</span> <span class="nx">@name</span><span class="p">,</span> <span class="kc">true</span>
-    <span class="nx">obj</span><span class="p">[</span><span class="nx">typestr</span> <span class="o">+</span> <span class="s1">&#39;/parameterTypes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nx">rs</span><span class="p">.</span><span class="nx">init_array</span> <span class="s2">&quot;[Ljava/lang/Class;&quot;</span><span class="p">,</span> <span class="p">(</span><span class="nx">rs</span><span class="p">.</span><span class="nx">jclass_obj</span><span class="p">(</span><span class="nx">f</span><span class="p">)</span> <span class="k">for</span> <span class="nx">f</span> <span class="k">in</span> <span class="nx">@param_types</span><span class="p">)</span>
-    <span class="nx">obj</span><span class="p">[</span><span class="nx">typestr</span> <span class="o">+</span> <span class="s1">&#39;/returnType&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nx">rs</span><span class="p">.</span><span class="nx">jclass_obj</span> <span class="nx">@return_type</span>
-    <span class="nx">obj</span><span class="p">[</span><span class="nx">typestr</span> <span class="o">+</span> <span class="s1">&#39;/exceptionTypes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nx">rs</span><span class="p">.</span><span class="nx">init_array</span> <span class="s2">&quot;[Ljava/lang/Class;&quot;</span><span class="p">,</span> <span class="p">(</span><span class="nx">rs</span><span class="p">.</span><span class="nx">jclass_obj</span><span class="p">(</span><span class="nx">c2t</span><span class="p">(</span><span class="nx">e</span><span class="p">))</span> <span class="k">for</span> <span class="nx">e</span> <span class="k">in</span> <span class="nx">exceptions</span><span class="p">)</span>
-    <span class="nx">obj</span><span class="p">[</span><span class="nx">typestr</span> <span class="o">+</span> <span class="s1">&#39;/modifiers&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nx">@access_byte</span>
-    <span class="nx">obj</span><span class="p">[</span><span class="nx">typestr</span> <span class="o">+</span> <span class="s1">&#39;/slot&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nx">@idx</span>
-    <span class="nx">obj</span><span class="p">[</span><span class="nx">typestr</span> <span class="o">+</span> <span class="s1">&#39;/signature&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="k">if</span> <span class="nx">sig</span><span class="o">?</span> <span class="k">then</span> <span class="nx">rs</span><span class="p">.</span><span class="nx">init_string</span> <span class="nx">sig</span> <span class="k">else</span> <span class="kc">null</span>
-    <span class="nx">obj</span><span class="p">[</span><span class="nx">typestr</span> <span class="o">+</span> <span class="s1">&#39;/annotations&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="k">if</span> <span class="nx">anns</span><span class="o">?</span> <span class="k">then</span> <span class="nx">rs</span><span class="p">.</span><span class="nx">init_array</span><span class="p">(</span><span class="s1">&#39;[B&#39;</span><span class="p">,</span> <span class="nx">anns</span><span class="p">)</span> <span class="k">else</span> <span class="kc">null</span>
-    <span class="nx">obj</span><span class="p">[</span><span class="nx">typestr</span> <span class="o">+</span> <span class="s1">&#39;/annotationDefault&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="k">if</span> <span class="nx">adefs</span><span class="o">?</span> <span class="k">then</span> <span class="nx">rs</span><span class="p">.</span><span class="nx">init_array</span><span class="p">(</span><span class="s1">&#39;[B&#39;</span><span class="p">,</span> <span class="nx">adefs</span><span class="p">)</span> <span class="k">else</span> <span class="kc">null</span>
-    <span class="nx">rs</span><span class="p">.</span><span class="nx">init_object</span> <span class="nx">typestr</span><span class="p">,</span> <span class="nx">obj</span>
+  get_attributes: (name) -&gt; attr <span class="keyword">for</span> attr <span class="keyword">in</span> <span class="property">@attrs</span> <span class="keyword">when</span> attr.name <span class="keyword">is</span> name
 
-  <span class="nv">take_params: </span><span class="nf">(caller_stack) -&gt;</span>
-    <span class="nv">start = </span><span class="nx">caller_stack</span><span class="p">.</span><span class="nx">length</span> <span class="o">-</span> <span class="nx">@param_bytes</span>
-    <span class="nv">params = </span><span class="nx">caller_stack</span><span class="p">.</span><span class="nx">slice</span><span class="p">(</span><span class="nx">start</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-8">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-8">&#182;</a>               </div>               <p>this is faster than splice()</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nx">caller_stack</span><span class="p">.</span><span class="nx">length</span> <span class="o">-=</span> <span class="nx">@param_bytes</span>
-    <span class="nx">params</span>
+<span class="class"><span class="keyword">class</span> <span class="title">root</span>.<span class="title">Field</span> <span class="keyword">extends</span> <span class="title">AbstractMethodField</span></span>
+  parse_descriptor: (raw_descriptor) -&gt;
+    <span class="property">@type</span> = raw_descriptor</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-5">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-5">&#182;</a>
+              </div>
+              <p>Must be called asynchronously.</p>
 
-  <span class="nx">RELEASE</span><span class="o">?</span> <span class="o">||</span> <span class="nv">padding = </span><span class="s1">&#39;&#39;</span> <span class="c1"># used in debug mode to align instruction traces</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  reflector: (rs, success_fn, failure_fn) -&gt;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-6">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-6">&#182;</a>
+              </div>
+              <p>note: sig is the generic type parameter (if one exists), not the full
+field type.</p>
 
-  <span class="nv">convert_params: </span><span class="nf">(rs, params) -&gt;</span>
-    <span class="nv">converted_params = </span><span class="p">[</span><span class="nx">rs</span><span class="p">]</span>
-    <span class="nv">param_idx = </span><span class="mi">0</span>
-    <span class="k">if</span> <span class="o">not</span> <span class="nx">@access_flags</span><span class="p">.</span><span class="nx">static</span>
-      <span class="nx">converted_params</span><span class="p">.</span><span class="nx">push</span> <span class="nx">params</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-      <span class="nv">param_idx = </span><span class="mi">1</span>
-    <span class="k">for</span> <span class="nx">p</span> <span class="k">in</span> <span class="nx">@param_types</span>
-      <span class="nx">converted_params</span><span class="p">.</span><span class="nx">push</span> <span class="nx">params</span><span class="p">[</span><span class="nx">param_idx</span><span class="p">]</span>
-      <span class="nx">param_idx</span> <span class="o">+=</span> <span class="k">if</span> <span class="p">(</span><span class="nx">p</span><span class="p">.</span><span class="nx">toString</span><span class="p">()</span> <span class="k">in</span> <span class="p">[</span><span class="s1">&#39;J&#39;</span><span class="p">,</span> <span class="s1">&#39;D&#39;</span><span class="p">])</span> <span class="k">then</span> <span class="mi">2</span> <span class="k">else</span> <span class="mi">1</span>
-    <span class="nx">converted_params</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    sig = _.find(<span class="property">@attrs</span>, (a) -&gt; a.name == <span class="string">"Signature"</span>)?.sig
 
-  <span class="nv">run_manually: </span><span class="nf">(func, rs, converted_params) -&gt;</span>
-    <span class="nx">trace</span> <span class="s2">&quot;entering native method #{@full_signature()}&quot;</span>
-    <span class="k">try</span>
-      <span class="nv">rv = </span><span class="nx">func</span> <span class="nx">converted_params</span><span class="p">...</span>
-    <span class="k">catch</span> <span class="nx">e</span>
-      <span class="k">return</span> <span class="k">if</span> <span class="nx">e</span> <span class="o">is</span> <span class="nx">ReturnException</span>  <span class="c1"># XXX kludge</span>
-      <span class="k">throw</span> <span class="nx">e</span>
-    <span class="nx">rs</span><span class="p">.</span><span class="nx">meta_stack</span><span class="p">().</span><span class="nx">pop</span><span class="p">()</span>
-    <span class="nv">ret_type = </span><span class="nx">@return_type</span><span class="p">.</span><span class="nx">toString</span><span class="p">()</span>
-    <span class="nx">unless</span> <span class="nx">ret_type</span> <span class="o">==</span> <span class="s1">&#39;V&#39;</span>
-      <span class="k">if</span> <span class="nx">ret_type</span> <span class="o">==</span> <span class="s1">&#39;Z&#39;</span> <span class="k">then</span> <span class="nx">rs</span><span class="p">.</span><span class="nx">push</span> <span class="nx">rv</span> <span class="o">+</span> <span class="mi">0</span> <span class="c1"># cast booleans to a Number</span>
-      <span class="k">else</span> <span class="nx">rs</span><span class="p">.</span><span class="nx">push</span> <span class="nx">rv</span>
-      <span class="nx">rs</span><span class="p">.</span><span class="nx">push</span> <span class="kc">null</span> <span class="k">if</span> <span class="nx">ret_type</span> <span class="k">in</span> <span class="p">[</span> <span class="s1">&#39;J&#39;</span><span class="p">,</span> <span class="s1">&#39;D&#39;</span> <span class="p">]</span>
+    <span class="function"><span class="title">create_obj</span></span> = (clazz_obj, type_obj) =&gt;
+      <span class="keyword">new</span> JavaObject rs, rs.get_bs_class(<span class="string">'Ljava/lang/reflect/Field;'</span>), {</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-7">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-7">&#182;</a>
+              </div>
+              <p>XXX this leaves out &#39;annotations&#39;</p>
 
-  <span class="nv">run_bytecode: </span><span class="nf">(rs) -&gt;</span>
-    <span class="k">try</span>
-      <span class="nx">@bytecode_loop</span><span class="p">(</span><span class="nx">rs</span><span class="p">)</span>
-    <span class="k">catch</span> <span class="nx">e</span>
-      <span class="k">return</span> <span class="k">if</span> <span class="nx">e</span> <span class="o">is</span> <span class="nx">ReturnException</span>  <span class="c1"># stack pop handled by opcode</span>
-      <span class="k">throw</span> <span class="nx">e</span> <span class="nx">unless</span> <span class="nx">e</span><span class="p">.</span><span class="nx">method_catch_handler</span><span class="o">?</span><span class="p">(</span><span class="nx">rs</span><span class="p">,</span> <span class="err">@</span><span class="p">,</span> <span class="kc">true</span><span class="p">)</span>
-      <span class="nx">@run_bytecode</span><span class="p">(</span><span class="nx">rs</span><span class="p">)</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="string">'Ljava/lang/reflect/Field;clazz'</span>: clazz_obj
+        <span class="string">'Ljava/lang/reflect/Field;name'</span>: rs.init_string <span class="property">@name</span>, <span class="literal">true</span>
+        <span class="string">'Ljava/lang/reflect/Field;type'</span>: type_obj
+        <span class="string">'Ljava/lang/reflect/Field;modifiers'</span>: <span class="property">@access_byte</span>
+        <span class="string">'Ljava/lang/reflect/Field;slot'</span>: <span class="property">@idx</span>
+        <span class="string">'Ljava/lang/reflect/Field;signature'</span>: <span class="keyword">if</span> sig? <span class="keyword">then</span> rs.init_string sig <span class="keyword">else</span> <span class="literal">null</span>
+      }
 
-  <span class="nv">bytecode_loop: </span><span class="nf">(rs) -&gt;</span>
-    <span class="nx">trace</span> <span class="s2">&quot;entering method #{@full_signature()}&quot;</span></pre></div>             </td>           </tr>                               <tr id="section-9">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-9">&#182;</a>               </div>               <p>main eval loop: execute each opcode, using the pc to iterate through</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nv">code = </span><span class="nx">@code</span><span class="p">.</span><span class="nx">opcodes</span>
-    <span class="nv">cf = </span><span class="nx">rs</span><span class="p">.</span><span class="nx">curr_frame</span><span class="p">()</span>
-    <span class="k">while</span> <span class="kc">true</span>
-      <span class="nv">op = </span><span class="nx">code</span><span class="p">[</span><span class="nx">cf</span><span class="p">.</span><span class="nx">pc</span><span class="p">]</span>
-      <span class="nx">unless</span> <span class="nx">RELEASE</span><span class="o">?</span> <span class="o">or</span> <span class="nx">logging</span><span class="p">.</span><span class="nx">log_level</span> <span class="o">&lt;</span> <span class="nx">logging</span><span class="p">.</span><span class="nx">STRACE</span>
-        <span class="nv">pc = </span><span class="nx">cf</span><span class="p">.</span><span class="nx">pc</span>
-        <span class="k">throw</span> <span class="s2">&quot;#{@name}:#{pc} =&gt; (null)&quot;</span> <span class="nx">unless</span> <span class="nx">op</span>
-        <span class="nx">vtrace</span> <span class="s2">&quot;#{padding}stack: [#{debug_vars cf.stack}], local: [#{debug_vars cf.locals}]&quot;</span>
-        <span class="nv">annotation = </span><span class="nx">op</span><span class="p">.</span><span class="nx">annotate</span><span class="p">(</span><span class="nx">pc</span><span class="p">,</span> <span class="nx">rs</span><span class="p">.</span><span class="nx">class_lookup</span><span class="p">(</span><span class="nx">@class_type</span><span class="p">).</span><span class="nx">constant_pool</span><span class="p">)</span>
-        <span class="nx">vtrace</span> <span class="s2">&quot;#{padding}#{@class_type.toClassString()}::#{@name}:#{pc} =&gt; #{op.name}&quot;</span> <span class="o">+</span> <span class="nx">annotation</span>
+    clazz_obj = <span class="property">@cls</span>.get_class_object(rs)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-8">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-8">&#182;</a>
+              </div>
+              <p>type_obj may not be loaded, so we asynchronously load it here.
+In the future, we can speed up reflection by having a synchronous_reflector
+method that we can try first, and which may fail.</p>
 
-      <span class="nx">cf</span><span class="p">.</span><span class="nx">pc</span> <span class="o">+=</span> <span class="mi">1</span> <span class="o">+</span> <span class="nx">op</span><span class="p">.</span><span class="nx">byte_count</span> <span class="k">if</span> <span class="p">(</span><span class="nx">op</span><span class="p">.</span><span class="nx">execute</span> <span class="nx">rs</span><span class="p">)</span> <span class="o">isnt</span> <span class="kc">false</span></pre></div>             </td>           </tr>                               <tr id="section-10">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-10">&#182;</a>               </div>               <p>Must explicitly return here, to avoid Coffeescript accumulating an array of cf.pc values</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="k">return</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="property">@cls</span>.loader.resolve_class rs, <span class="property">@type</span>, ((type_cls) =&gt;
+      type_obj = type_cls.get_class_object(rs)
+      rv = create_obj clazz_obj, type_obj
+      success_fn rv
+    ), failure_fn
+    <span class="keyword">return</span>
 
-  <span class="nv">setup_stack: </span><span class="nf">(runtime_state) -&gt;</span>
-    <span class="nv">ms = </span><span class="nx">runtime_state</span><span class="p">.</span><span class="nx">meta_stack</span><span class="p">()</span>
-    <span class="nv">caller_stack = </span><span class="nx">runtime_state</span><span class="p">.</span><span class="nx">curr_frame</span><span class="p">().</span><span class="nx">stack</span>
-    <span class="nv">params = </span><span class="nx">@take_params</span> <span class="nx">caller_stack</span>
+<span class="class"><span class="keyword">class</span> <span class="title">root</span>.<span class="title">Method</span> <span class="keyword">extends</span> <span class="title">AbstractMethodField</span></span>
+  parse_descriptor: (raw_descriptor) -&gt;
+    <span class="property">@reset_caches</span> = <span class="literal">false</span> <span class="comment"># Switched to 'true' in web frontend between JVM invocations.</span>
+    [__,param_str,return_str] = <span class="regexp">/\(([^)]*)\)(.*)/</span>.exec(raw_descriptor)
+    param_carr = param_str.split <span class="string">''</span>
+    <span class="property">@param_types</span> = (field <span class="keyword">while</span> (field = util.carr2descriptor param_carr))
+    <span class="property">@param_bytes</span> = <span class="number">0</span>
+    <span class="keyword">for</span> p <span class="keyword">in</span> <span class="property">@param_types</span>
+      <span class="property">@param_bytes</span> += <span class="keyword">if</span> p <span class="keyword">in</span> [<span class="string">'D'</span>,<span class="string">'J'</span>] <span class="keyword">then</span> <span class="number">2</span> <span class="keyword">else</span> <span class="number">1</span>
+    <span class="property">@param_bytes</span>++ <span class="keyword">unless</span> <span class="property">@access_flags</span>.static
+    <span class="property">@num_args</span> = <span class="property">@param_types</span>.length
+    <span class="property">@num_args</span>++ <span class="keyword">unless</span> <span class="property">@access_flags</span>.static <span class="comment"># nonstatic methods get 'this'</span>
+    <span class="property">@return_type</span> = return_str
 
-    <span class="k">if</span> <span class="nx">@access_flags</span><span class="p">.</span><span class="nx">native</span>
-      <span class="k">if</span> <span class="nx">@code</span><span class="o">?</span>
-        <span class="nx">ms</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nv">sf = </span><span class="k">new</span> <span class="nx">runtime</span><span class="p">.</span><span class="nx">StackFrame</span><span class="p">(</span><span class="k">this</span><span class="p">,[],[]))</span>
-        <span class="nv">c_params = </span><span class="nx">@convert_params</span> <span class="nx">runtime_state</span><span class="p">,</span> <span class="nx">params</span>
-        <span class="nv">sf.runner = </span><span class="o">=&gt;</span> <span class="nx">@run_manually</span> <span class="nx">@code</span><span class="p">,</span> <span class="nx">runtime_state</span><span class="p">,</span> <span class="nx">c_params</span>
-        <span class="k">return</span> <span class="nx">sf</span>
-      <span class="k">return</span>
+  full_signature: -&gt; <span class="string">"<span class="subst">#{@cls.get_type()}</span>::<span class="subst">#{@name}</span><span class="subst">#{@raw_descriptor}</span>"</span>
 
-    <span class="k">if</span> <span class="nx">@access_flags</span><span class="p">.</span><span class="nx">abstract</span>
-      <span class="nx">java_throw</span> <span class="nx">runtime_state</span><span class="p">,</span> <span class="s1">&#39;java/lang/Error&#39;</span><span class="p">,</span> <span class="s2">&quot;called abstract method: #{@full_signature()}&quot;</span></pre></div>             </td>           </tr>                               <tr id="section-11">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-11">&#182;</a>               </div>               <p>Finally, the normal case: running a Java method</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nx">ms</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nv">sf = </span><span class="k">new</span> <span class="nx">runtime</span><span class="p">.</span><span class="nx">StackFrame</span><span class="p">(</span><span class="k">this</span><span class="p">,</span><span class="nx">params</span><span class="p">,[]))</span>
-    <span class="k">if</span> <span class="nx">@code</span><span class="p">.</span><span class="nx">run_stamp</span> <span class="o">&lt;</span> <span class="nx">runtime_state</span><span class="p">.</span><span class="nx">run_stamp</span>
-      <span class="vi">@code.run_stamp = </span><span class="nx">runtime_state</span><span class="p">.</span><span class="nx">run_stamp</span>
-      <span class="nx">@code</span><span class="p">.</span><span class="nx">parse_code</span><span class="p">()</span>
-    <span class="nv">sf.runner = </span><span class="o">=&gt;</span> <span class="nx">@run_bytecode</span> <span class="nx">runtime_state</span>
-    <span class="k">return</span> <span class="nx">sf</span>
+  parse: (bytes_array, constant_pool, idx) -&gt;
+    <span class="keyword">super</span> bytes_array, constant_pool, idx
+    sig = <span class="property">@full_signature</span>()
+    <span class="keyword">if</span> (c = trapped_methods[sig])?
+      <span class="property">@code</span> = c
+      <span class="property">@access_flags</span>.<span class="reserved">native</span> = <span class="literal">true</span>
+    <span class="keyword">else</span> <span class="keyword">if</span> <span class="property">@access_flags</span>.<span class="reserved">native</span>
+      <span class="keyword">if</span> (c = native_methods[sig])?
+        <span class="property">@code</span> = c
+      <span class="keyword">else</span>
+        console.log(sig) <span class="keyword">if</span> jvm.show_NYI_natives <span class="keyword">and</span> sig.indexOf(<span class="string">'::registerNatives()V'</span>,<span class="number">1</span>) &lt; <span class="number">0</span> <span class="keyword">and</span> sig.indexOf(<span class="string">'::initIDs()V'</span>,<span class="number">1</span>) &lt; <span class="number">0</span>
+        <span class="keyword">if</span> UNSAFE?
+          <span class="property">@code</span> = <span class="literal">null</span> <span class="comment"># optimization: avoid copying around params if it is a no-op.</span>
+        <span class="keyword">else</span>
+          <span class="property">@code</span> = (rs) =&gt;
+            <span class="keyword">unless</span> sig.indexOf(<span class="string">'::registerNatives()V'</span>,<span class="number">1</span>) &gt;= <span class="number">0</span> <span class="keyword">or</span> sig.indexOf(<span class="string">'::initIDs()V'</span>,<span class="number">1</span>) &gt;= <span class="number">0</span>
+              rs.java_throw rs.get_bs_class(<span class="string">'Ljava/lang/Error;'</span>), <span class="string">"native method NYI: <span class="subst">#{sig}</span>"</span>
+    <span class="keyword">else</span>
+      <span class="property">@has_bytecode</span> = <span class="literal">true</span>
+      <span class="property">@code</span> = _.find(<span class="property">@attrs</span>, (a) -&gt; a.name == <span class="string">'Code'</span>)
 
-</pre></div>             </td>           </tr>                </tbody>     </table>   </div> </body> </html> 
+  reflector: (rs, is_constructor=<span class="literal">false</span>, success_fn, failure_fn) -&gt;
+    typestr = <span class="keyword">if</span> is_constructor <span class="keyword">then</span> <span class="string">'Ljava/lang/reflect/Constructor;'</span> <span class="keyword">else</span> <span class="string">'Ljava/lang/reflect/Method;'</span>
+    exceptions = _.find(<span class="property">@attrs</span>, (a) -&gt; a.name == <span class="string">'Exceptions'</span>)?.exceptions ? []
+    anns = _.find(<span class="property">@attrs</span>, (a) -&gt; a.name == <span class="string">'RuntimeVisibleAnnotations'</span>)?.raw_bytes
+    adefs = _.find(<span class="property">@attrs</span>, (a) -&gt; a.name == <span class="string">'AnnotationDefault'</span>)?.raw_bytes
+    sig =  _.find(<span class="property">@attrs</span>, (a) -&gt; a.name == <span class="string">'Signature'</span>)?.sig
+    obj = {}
+
+    clazz_obj = <span class="property">@cls</span>.get_class_object(rs)
+
+    <span class="property">@cls</span>.loader.resolve_class(rs, <span class="property">@return_type</span>, ((rt_cls) =&gt;
+      rt_obj = rt_cls.get_class_object(rs)
+      j = -<span class="number">1</span>
+      etype_objs = []
+      i = -<span class="number">1</span>
+      param_type_objs = []
+      fetch_etype = () =&gt;
+        j++
+        <span class="keyword">if</span> j &lt; exceptions.length
+          e_desc = exceptions[j]
+          <span class="property">@cls</span>.loader.resolve_class(rs, e_desc,
+            ((cls)=&gt;etype_objs[j]=cls.get_class_object(rs);fetch_etype()), failure_fn)
+        <span class="keyword">else</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-9">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-9">&#182;</a>
+              </div>
+              <p>XXX: missing parameterAnnotations</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>          obj[typestr + <span class="string">'clazz'</span>] = clazz_obj
+          obj[typestr + <span class="string">'name'</span>] = rs.init_string <span class="property">@name</span>, <span class="literal">true</span>
+          obj[typestr + <span class="string">'parameterTypes'</span>] = <span class="keyword">new</span> JavaArray rs, rs.get_bs_class(<span class="string">'[Ljava/lang/Class;'</span>), param_type_objs
+          obj[typestr + <span class="string">'returnType'</span>] = rt_obj
+          obj[typestr + <span class="string">'exceptionTypes'</span>] = <span class="keyword">new</span> JavaArray rs, rs.get_bs_class(<span class="string">'[Ljava/lang/Class;'</span>), etype_objs
+          obj[typestr + <span class="string">'modifiers'</span>] = <span class="property">@access_byte</span>
+          obj[typestr + <span class="string">'slot'</span>] = <span class="property">@idx</span>
+          obj[typestr + <span class="string">'signature'</span>] = <span class="keyword">if</span> sig? <span class="keyword">then</span> rs.init_string sig <span class="keyword">else</span> <span class="literal">null</span>
+          obj[typestr + <span class="string">'annotations'</span>] = <span class="keyword">if</span> anns? <span class="keyword">then</span> <span class="keyword">new</span> JavaArray(rs, rs.get_bs_class(<span class="string">'[B'</span>), anns) <span class="keyword">else</span> <span class="literal">null</span>
+          obj[typestr + <span class="string">'annotationDefault'</span>] = <span class="keyword">if</span> adefs? <span class="keyword">then</span> <span class="keyword">new</span> JavaArray(rs, rs.get_bs_class(<span class="string">'[B'</span>), adefs) <span class="keyword">else</span> <span class="literal">null</span>
+          success_fn(<span class="keyword">new</span> JavaObject rs, rs.get_bs_class(typestr), obj)
+
+      fetch_ptype = () =&gt;
+        i++
+        <span class="keyword">if</span> i &lt; <span class="property">@param_types</span>.length
+          <span class="property">@cls</span>.loader.resolve_class(rs, <span class="property">@param_types</span>[i],
+            ((cls)=&gt;param_type_objs[i]=cls.get_class_object(rs);fetch_ptype()), failure_fn)
+        <span class="keyword">else</span>
+          fetch_etype()
+
+      fetch_ptype()
+    ), failure_fn)
+
+  take_params: (caller_stack) -&gt;
+    start = caller_stack.length - <span class="property">@param_bytes</span>
+    params = caller_stack.slice(start)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-10">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-10">&#182;</a>
+              </div>
+              <p>this is faster than splice()</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    caller_stack.length -= <span class="property">@param_bytes</span>
+    params
+
+  RELEASE? || padding = <span class="string">''</span> <span class="comment"># used in debug mode to align instruction traces</span>
+
+  convert_params: (rs, params) -&gt;
+    converted_params = [rs]
+    param_idx = <span class="number">0</span>
+    <span class="keyword">if</span> <span class="keyword">not</span> <span class="property">@access_flags</span>.static
+      converted_params.push params[<span class="number">0</span>]
+      param_idx = <span class="number">1</span>
+    <span class="keyword">for</span> p <span class="keyword">in</span> <span class="property">@param_types</span>
+      converted_params.push params[param_idx]
+      param_idx += <span class="keyword">if</span> (p <span class="keyword">in</span> [<span class="string">'J'</span>, <span class="string">'D'</span>]) <span class="keyword">then</span> <span class="number">2</span> <span class="keyword">else</span> <span class="number">1</span>
+    converted_params
+
+  run_manually: (func, rs, converted_params) -&gt;
+    trace <span class="string">"entering native method <span class="subst">#{@full_signature()}</span>"</span>
+    <span class="keyword">try</span>
+      rv = func converted_params...
+    <span class="keyword">catch</span> e
+      <span class="keyword">return</span> <span class="keyword">if</span> e <span class="keyword">is</span> ReturnException
+      <span class="keyword">throw</span> e
+    rs.meta_stack().pop()
+    ret_type = <span class="property">@return_type</span>
+    <span class="keyword">unless</span> ret_type == <span class="string">'V'</span>
+      <span class="keyword">if</span> ret_type == <span class="string">'Z'</span> <span class="keyword">then</span> rs.push rv + <span class="number">0</span> <span class="comment"># cast booleans to a Number</span>
+      <span class="keyword">else</span> rs.push rv
+      rs.push <span class="literal">null</span> <span class="keyword">if</span> ret_type <span class="keyword">in</span> [ <span class="string">'J'</span>, <span class="string">'D'</span> ]</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-11">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-11">&#182;</a>
+              </div>
+              <p>Reinitializes the method by removing all cached information from the method.
+We amortize the cost by doing it lazily the first time that we call run_bytecode.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  initialize: -&gt; <span class="property">@reset_caches</span> = <span class="literal">true</span>
+
+  run_bytecode: (rs) -&gt;
+    trace <span class="string">"entering method <span class="subst">#{@full_signature()}</span>"</span>
+    <span class="keyword">if</span> <span class="property">@reset_caches</span> <span class="keyword">and</span> <span class="property">@code</span>?.opcodes?
+      <span class="keyword">for</span> instr <span class="keyword">in</span> <span class="property">@code</span>.opcodes
+        instr?.reset_cache()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-12">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-12">&#182;</a>
+              </div>
+              <p>main eval loop: execute each opcode, using the pc to iterate through</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    code = <span class="property">@code</span>.opcodes
+    cf = rs.curr_frame()
+    <span class="keyword">try</span>
+      <span class="keyword">while</span> <span class="literal">true</span>
+        op = code[cf.pc]
+        <span class="keyword">unless</span> RELEASE? <span class="keyword">or</span> logging.log_level &lt; logging.STRACE
+          pc = cf.pc
+          <span class="keyword">throw</span> <span class="string">"<span class="subst">#{@name}</span>:<span class="subst">#{pc}</span> =&gt; (null)"</span> <span class="keyword">unless</span> op
+          vtrace <span class="string">"<span class="subst">#{padding}</span>stack: [<span class="subst">#{debug_vars cf.stack}</span>], local: [<span class="subst">#{debug_vars cf.locals}</span>]"</span>
+          annotation = op.annotate(pc, <span class="property">@cls</span>.constant_pool)
+          vtrace <span class="string">"<span class="subst">#{padding}</span><span class="subst">#{@cls.get_type()}</span>::<span class="subst">#{@name}</span>:<span class="subst">#{pc}</span> =&gt; <span class="subst">#{op.name}</span>"</span> + annotation
+
+        cf.pc += <span class="number">1</span> + op.byte_count <span class="keyword">if</span> (op.execute rs) <span class="keyword">isnt</span> <span class="literal">false</span>
+    <span class="keyword">catch</span> e
+      <span class="keyword">return</span> <span class="keyword">if</span> e <span class="keyword">is</span> ReturnException
+      <span class="keyword">throw</span> e</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-13">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-13">&#182;</a>
+              </div>
+              <p>Must explicitly return here, to avoid Coffeescript accumulating an array of cf.pc values</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="keyword">return</span>
+
+  setup_stack: (runtime_state) -&gt;
+    ms = runtime_state.meta_stack()
+    caller_stack = runtime_state.curr_frame().stack
+    params = <span class="property">@take_params</span> caller_stack
+
+    <span class="keyword">if</span> <span class="property">@access_flags</span>.<span class="reserved">native</span>
+      <span class="keyword">if</span> <span class="property">@code</span>?
+        ms.push(sf = <span class="keyword">new</span> runtime.StackFrame(<span class="keyword">this</span>,[],[]))
+        c_params = <span class="property">@convert_params</span> runtime_state, params
+        sf.<span class="function"><span class="title">runner</span></span> = =&gt; <span class="property">@run_manually</span> <span class="property">@code</span>, runtime_state, c_params
+        <span class="keyword">return</span> sf
+      <span class="keyword">return</span>
+
+    <span class="keyword">if</span> <span class="property">@access_flags</span>.abstract
+      runtime_state.java_throw rs.get_bs_class(<span class="string">'Ljava/lang/Error;'</span>), <span class="string">"called abstract method: <span class="subst">#{@full_signature()}</span>"</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-14">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-14">&#182;</a>
+              </div>
+              <p>Finally, the normal case: running a Java method</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    ms.push(sf = <span class="keyword">new</span> runtime.StackFrame(<span class="keyword">this</span>,params,[]))
+    <span class="keyword">if</span> <span class="property">@code</span>.run_stamp &lt; runtime_state.run_stamp
+      <span class="property">@code</span>.run_stamp = runtime_state.run_stamp
+      <span class="property">@code</span>.parse_code()
+    sf.<span class="function"><span class="title">runner</span></span> = =&gt; <span class="property">@run_bytecode</span> runtime_state
+    <span class="keyword">return</span> sf</pre></div></div>
+            
+        </li>
+        
+    </ul>
+  </div>
+</body>
+</html>

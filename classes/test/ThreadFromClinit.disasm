@@ -1,0 +1,65 @@
+Compiled from "ThreadFromClinit.java"
+public class classes.test.ThreadFromClinit extends java.lang.Object
+  SourceFile: "ThreadFromClinit.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#6.#18;	//  java/lang/Object."<init>":()V
+const #2 = class	#19;	//  classes/test/AbusingStaticInitialization
+const #3 = Method	#2.#18;	//  classes/test/AbusingStaticInitialization."<init>":()V
+const #4 = Field	#5.#20;	//  classes/test/ThreadFromClinit.asi:Lclasses/test/AbusingStaticInitialization;
+const #5 = class	#21;	//  classes/test/ThreadFromClinit
+const #6 = class	#22;	//  java/lang/Object
+const #7 = Asciz	asi;
+const #8 = Asciz	Lclasses/test/AbusingStaticInitialization;;
+const #9 = Asciz	<init>;
+const #10 = Asciz	()V;
+const #11 = Asciz	Code;
+const #12 = Asciz	LineNumberTable;
+const #13 = Asciz	main;
+const #14 = Asciz	([Ljava/lang/String;)V;
+const #15 = Asciz	<clinit>;
+const #16 = Asciz	SourceFile;
+const #17 = Asciz	ThreadFromClinit.java;
+const #18 = NameAndType	#9:#10;//  "<init>":()V
+const #19 = Asciz	classes/test/AbusingStaticInitialization;
+const #20 = NameAndType	#7:#8;//  asi:Lclasses/test/AbusingStaticInitialization;
+const #21 = Asciz	classes/test/ThreadFromClinit;
+const #22 = Asciz	java/lang/Object;
+
+{
+private static final classes.test.AbusingStaticInitialization asi;
+
+
+public classes.test.ThreadFromClinit();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 2: 0
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=0, Locals=1, Args_size=1
+   0:	return
+  LineNumberTable: 
+   line 7: 0
+
+
+static {};
+  Code:
+   Stack=2, Locals=0, Args_size=0
+   0:	new	#2; //class classes/test/AbusingStaticInitialization
+   3:	dup
+   4:	invokespecial	#3; //Method classes/test/AbusingStaticInitialization."<init>":()V
+   7:	putstatic	#4; //Field asi:Lclasses/test/AbusingStaticInitialization;
+   10:	return
+  LineNumberTable: 
+   line 3: 0
+
+
+}
+

@@ -1,0 +1,318 @@
+Compiled from "CatchingClinitException.java"
+public class classes.test.CatchingClinitException extends java.lang.Object
+  SourceFile: "CatchingClinitException.java"
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#31.#45;	//  java/lang/Object."<init>":()V
+const #2 = class	#46;	//  java/io/File
+const #3 = String	#47;	//  ./classes/test/data/clinit/IDontExist.class
+const #4 = Method	#2.#48;	//  java/io/File."<init>":(Ljava/lang/String;)V
+const #5 = Method	#2.#49;	//  java/io/File.delete:()Z
+const #6 = class	#50;	//  classes/test/Hurray
+const #7 = Method	#6.#45;	//  classes/test/Hurray."<init>":()V
+const #8 = class	#51;	//  java/lang/ExceptionInInitializerError
+const #9 = Field	#52.#53;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #10 = String	#54;	//  Don't worry; we got it.
+const #11 = Method	#55.#56;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #12 = class	#57;	//  java/lang/StringBuilder
+const #13 = Method	#12.#45;	//  java/lang/StringBuilder."<init>":()V
+const #14 = String	#58;	//  Exception type: 
+const #15 = Method	#12.#59;	//  java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #16 = Method	#31.#60;	//  java/lang/Object.getClass:()Ljava/lang/Class;
+const #17 = Method	#61.#62;	//  java/lang/Class.getName:()Ljava/lang/String;
+const #18 = Method	#12.#63;	//  java/lang/StringBuilder.toString:()Ljava/lang/String;
+const #19 = class	#64;	//  classes/test/NotGood
+const #20 = Method	#19.#45;	//  classes/test/NotGood."<init>":()V
+const #21 = class	#65;	//  java/lang/Error
+const #22 = class	#66;	//  classes/test/Better
+const #23 = Method	#22.#45;	//  classes/test/Better."<init>":()V
+const #24 = class	#67;	//  classes/test/OhNo
+const #25 = Method	#24.#45;	//  classes/test/OhNo."<init>":()V
+const #26 = class	#68;	//  classes/test/OhNo2
+const #27 = Method	#26.#45;	//  classes/test/OhNo2."<init>":()V
+const #28 = class	#69;	//  classes/test/BadThings
+const #29 = Method	#28.#45;	//  classes/test/BadThings."<init>":()V
+const #30 = class	#70;	//  classes/test/CatchingClinitException
+const #31 = class	#71;	//  java/lang/Object
+const #32 = Asciz	<init>;
+const #33 = Asciz	()V;
+const #34 = Asciz	Code;
+const #35 = Asciz	LineNumberTable;
+const #36 = Asciz	main;
+const #37 = Asciz	([Ljava/lang/String;)V;
+const #38 = Asciz	StackMapTable;
+const #39 = class	#72;	//  "[Ljava/lang/String;"
+const #40 = class	#46;	//  java/io/File
+const #41 = class	#51;	//  java/lang/ExceptionInInitializerError
+const #42 = class	#65;	//  java/lang/Error
+const #43 = Asciz	SourceFile;
+const #44 = Asciz	CatchingClinitException.java;
+const #45 = NameAndType	#32:#33;//  "<init>":()V
+const #46 = Asciz	java/io/File;
+const #47 = Asciz	./classes/test/data/clinit/IDontExist.class;
+const #48 = NameAndType	#32:#73;//  "<init>":(Ljava/lang/String;)V
+const #49 = NameAndType	#74:#75;//  delete:()Z
+const #50 = Asciz	classes/test/Hurray;
+const #51 = Asciz	java/lang/ExceptionInInitializerError;
+const #52 = class	#76;	//  java/lang/System
+const #53 = NameAndType	#77:#78;//  out:Ljava/io/PrintStream;
+const #54 = Asciz	Don't worry; we got it.;
+const #55 = class	#79;	//  java/io/PrintStream
+const #56 = NameAndType	#80:#73;//  println:(Ljava/lang/String;)V
+const #57 = Asciz	java/lang/StringBuilder;
+const #58 = Asciz	Exception type: ;
+const #59 = NameAndType	#81:#82;//  append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #60 = NameAndType	#83:#84;//  getClass:()Ljava/lang/Class;
+const #61 = class	#85;	//  java/lang/Class
+const #62 = NameAndType	#86:#87;//  getName:()Ljava/lang/String;
+const #63 = NameAndType	#88:#87;//  toString:()Ljava/lang/String;
+const #64 = Asciz	classes/test/NotGood;
+const #65 = Asciz	java/lang/Error;
+const #66 = Asciz	classes/test/Better;
+const #67 = Asciz	classes/test/OhNo;
+const #68 = Asciz	classes/test/OhNo2;
+const #69 = Asciz	classes/test/BadThings;
+const #70 = Asciz	classes/test/CatchingClinitException;
+const #71 = Asciz	java/lang/Object;
+const #72 = Asciz	[Ljava/lang/String;;
+const #73 = Asciz	(Ljava/lang/String;)V;
+const #74 = Asciz	delete;
+const #75 = Asciz	()Z;
+const #76 = Asciz	java/lang/System;
+const #77 = Asciz	out;
+const #78 = Asciz	Ljava/io/PrintStream;;
+const #79 = Asciz	java/io/PrintStream;
+const #80 = Asciz	println;
+const #81 = Asciz	append;
+const #82 = Asciz	(Ljava/lang/String;)Ljava/lang/StringBuilder;;
+const #83 = Asciz	getClass;
+const #84 = Asciz	()Ljava/lang/Class;;
+const #85 = Asciz	java/lang/Class;
+const #86 = Asciz	getName;
+const #87 = Asciz	()Ljava/lang/String;;
+const #88 = Asciz	toString;
+
+{
+public classes.test.CatchingClinitException();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 4: 0
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=3, Locals=3, Args_size=1
+   0:	new	#2; //class java/io/File
+   3:	dup
+   4:	ldc	#3; //String ./classes/test/data/clinit/IDontExist.class
+   6:	invokespecial	#4; //Method java/io/File."<init>":(Ljava/lang/String;)V
+   9:	astore_1
+   10:	aload_1
+   11:	invokevirtual	#5; //Method java/io/File.delete:()Z
+   14:	pop
+   15:	new	#6; //class classes/test/Hurray
+   18:	dup
+   19:	invokespecial	#7; //Method classes/test/Hurray."<init>":()V
+   22:	astore_2
+   23:	goto	66
+   26:	astore_2
+   27:	getstatic	#9; //Field java/lang/System.out:Ljava/io/PrintStream;
+   30:	ldc	#10; //String Don't worry; we got it.
+   32:	invokevirtual	#11; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   35:	getstatic	#9; //Field java/lang/System.out:Ljava/io/PrintStream;
+   38:	new	#12; //class java/lang/StringBuilder
+   41:	dup
+   42:	invokespecial	#13; //Method java/lang/StringBuilder."<init>":()V
+   45:	ldc	#14; //String Exception type: 
+   47:	invokevirtual	#15; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   50:	aload_2
+   51:	invokevirtual	#16; //Method java/lang/Object.getClass:()Ljava/lang/Class;
+   54:	invokevirtual	#17; //Method java/lang/Class.getName:()Ljava/lang/String;
+   57:	invokevirtual	#15; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   60:	invokevirtual	#18; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   63:	invokevirtual	#11; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   66:	new	#19; //class classes/test/NotGood
+   69:	dup
+   70:	invokespecial	#20; //Method classes/test/NotGood."<init>":()V
+   73:	astore_2
+   74:	goto	117
+   77:	astore_2
+   78:	getstatic	#9; //Field java/lang/System.out:Ljava/io/PrintStream;
+   81:	ldc	#10; //String Don't worry; we got it.
+   83:	invokevirtual	#11; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   86:	getstatic	#9; //Field java/lang/System.out:Ljava/io/PrintStream;
+   89:	new	#12; //class java/lang/StringBuilder
+   92:	dup
+   93:	invokespecial	#13; //Method java/lang/StringBuilder."<init>":()V
+   96:	ldc	#14; //String Exception type: 
+   98:	invokevirtual	#15; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   101:	aload_2
+   102:	invokevirtual	#16; //Method java/lang/Object.getClass:()Ljava/lang/Class;
+   105:	invokevirtual	#17; //Method java/lang/Class.getName:()Ljava/lang/String;
+   108:	invokevirtual	#15; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   111:	invokevirtual	#18; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   114:	invokevirtual	#11; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   117:	new	#22; //class classes/test/Better
+   120:	dup
+   121:	invokespecial	#23; //Method classes/test/Better."<init>":()V
+   124:	astore_2
+   125:	goto	168
+   128:	astore_2
+   129:	getstatic	#9; //Field java/lang/System.out:Ljava/io/PrintStream;
+   132:	ldc	#10; //String Don't worry; we got it.
+   134:	invokevirtual	#11; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   137:	getstatic	#9; //Field java/lang/System.out:Ljava/io/PrintStream;
+   140:	new	#12; //class java/lang/StringBuilder
+   143:	dup
+   144:	invokespecial	#13; //Method java/lang/StringBuilder."<init>":()V
+   147:	ldc	#14; //String Exception type: 
+   149:	invokevirtual	#15; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   152:	aload_2
+   153:	invokevirtual	#16; //Method java/lang/Object.getClass:()Ljava/lang/Class;
+   156:	invokevirtual	#17; //Method java/lang/Class.getName:()Ljava/lang/String;
+   159:	invokevirtual	#15; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   162:	invokevirtual	#18; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   165:	invokevirtual	#11; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   168:	new	#24; //class classes/test/OhNo
+   171:	dup
+   172:	invokespecial	#25; //Method classes/test/OhNo."<init>":()V
+   175:	astore_2
+   176:	goto	219
+   179:	astore_2
+   180:	getstatic	#9; //Field java/lang/System.out:Ljava/io/PrintStream;
+   183:	ldc	#10; //String Don't worry; we got it.
+   185:	invokevirtual	#11; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   188:	getstatic	#9; //Field java/lang/System.out:Ljava/io/PrintStream;
+   191:	new	#12; //class java/lang/StringBuilder
+   194:	dup
+   195:	invokespecial	#13; //Method java/lang/StringBuilder."<init>":()V
+   198:	ldc	#14; //String Exception type: 
+   200:	invokevirtual	#15; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   203:	aload_2
+   204:	invokevirtual	#16; //Method java/lang/Object.getClass:()Ljava/lang/Class;
+   207:	invokevirtual	#17; //Method java/lang/Class.getName:()Ljava/lang/String;
+   210:	invokevirtual	#15; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   213:	invokevirtual	#18; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   216:	invokevirtual	#11; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   219:	new	#26; //class classes/test/OhNo2
+   222:	dup
+   223:	invokespecial	#27; //Method classes/test/OhNo2."<init>":()V
+   226:	astore_2
+   227:	goto	270
+   230:	astore_2
+   231:	getstatic	#9; //Field java/lang/System.out:Ljava/io/PrintStream;
+   234:	ldc	#10; //String Don't worry; we got it.
+   236:	invokevirtual	#11; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   239:	getstatic	#9; //Field java/lang/System.out:Ljava/io/PrintStream;
+   242:	new	#12; //class java/lang/StringBuilder
+   245:	dup
+   246:	invokespecial	#13; //Method java/lang/StringBuilder."<init>":()V
+   249:	ldc	#14; //String Exception type: 
+   251:	invokevirtual	#15; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   254:	aload_2
+   255:	invokevirtual	#16; //Method java/lang/Object.getClass:()Ljava/lang/Class;
+   258:	invokevirtual	#17; //Method java/lang/Class.getName:()Ljava/lang/String;
+   261:	invokevirtual	#15; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   264:	invokevirtual	#18; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   267:	invokevirtual	#11; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   270:	new	#28; //class classes/test/BadThings
+   273:	dup
+   274:	invokespecial	#29; //Method classes/test/BadThings."<init>":()V
+   277:	astore_2
+   278:	goto	321
+   281:	astore_2
+   282:	getstatic	#9; //Field java/lang/System.out:Ljava/io/PrintStream;
+   285:	ldc	#10; //String Don't worry; we got it.
+   287:	invokevirtual	#11; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   290:	getstatic	#9; //Field java/lang/System.out:Ljava/io/PrintStream;
+   293:	new	#12; //class java/lang/StringBuilder
+   296:	dup
+   297:	invokespecial	#13; //Method java/lang/StringBuilder."<init>":()V
+   300:	ldc	#14; //String Exception type: 
+   302:	invokevirtual	#15; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   305:	aload_2
+   306:	invokevirtual	#16; //Method java/lang/Object.getClass:()Ljava/lang/Class;
+   309:	invokevirtual	#17; //Method java/lang/Class.getName:()Ljava/lang/String;
+   312:	invokevirtual	#15; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   315:	invokevirtual	#18; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   318:	invokevirtual	#11; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   321:	return
+  Exception table:
+   from   to  target type
+    15    23    26   Class java/lang/ExceptionInInitializerError
+
+    66    74    77   Class java/lang/Error
+
+   117   125   128   Class java/lang/Error
+
+   168   176   179   Class java/lang/Error
+
+   219   227   230   Class java/lang/Error
+
+   270   278   281   Class java/lang/Error
+
+  LineNumberTable: 
+   line 9: 0
+   line 10: 10
+   line 13: 15
+   line 17: 23
+   line 14: 26
+   line 15: 27
+   line 16: 35
+   line 20: 66
+   line 24: 74
+   line 21: 77
+   line 22: 78
+   line 23: 86
+   line 27: 117
+   line 31: 125
+   line 28: 128
+   line 29: 129
+   line 30: 137
+   line 34: 168
+   line 38: 176
+   line 35: 179
+   line 36: 180
+   line 37: 188
+   line 41: 219
+   line 45: 227
+   line 42: 230
+   line 43: 231
+   line 44: 239
+   line 48: 270
+   line 52: 278
+   line 49: 281
+   line 50: 282
+   line 51: 290
+   line 53: 321
+
+  StackMapTable: number_of_entries = 12
+   frame_type = 255 /* full_frame */
+     offset_delta = 26
+     locals = [ class "[Ljava/lang/String;", class java/io/File ]
+     stack = [ class java/lang/ExceptionInInitializerError ]
+   frame_type = 39 /* same */
+   frame_type = 74 /* same_locals_1_stack_item */
+     stack = [ class java/lang/Error ]
+   frame_type = 39 /* same */
+   frame_type = 74 /* same_locals_1_stack_item */
+     stack = [ class java/lang/Error ]
+   frame_type = 39 /* same */
+   frame_type = 74 /* same_locals_1_stack_item */
+     stack = [ class java/lang/Error ]
+   frame_type = 39 /* same */
+   frame_type = 74 /* same_locals_1_stack_item */
+     stack = [ class java/lang/Error ]
+   frame_type = 39 /* same */
+   frame_type = 74 /* same_locals_1_stack_item */
+     stack = [ class java/lang/Error ]
+   frame_type = 39 /* same */
+
+
+}
+

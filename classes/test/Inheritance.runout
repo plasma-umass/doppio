@@ -1,3 +1,4 @@
+Cannot getfield on a null object.
 Child a: 3
 Parent a through child via getter: 0
 Child b: 5

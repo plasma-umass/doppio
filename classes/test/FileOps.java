@@ -3,9 +3,26 @@ package classes.test;
 import java.io.*;
 
 class FileOps {
+  static void printFile(File f) throws IOException {
+    // Oh, Java... :/
+    BufferedReader br = new BufferedReader(new FileReader(f));
+    String s;
+    while ((s = br.readLine()) != null)
+      System.out.println(s);
+    br.close();
+  }
   public static void main(String[] args) throws IOException {
     String testDir = "./classes/test/data/FileOps";
     // I like scopes.
+    {
+      // This file does not exist.
+      File f = new File("/dfsd/dsfds");
+      try {
+        BufferedReader reader = new BufferedReader(new FileReader(f));
+      } catch (Exception e) {
+        System.out.println("Successfully threw exception for nonexistant file.");
+      }
+    }
     {
       File f = new File("");
       System.out.println("Is '' an absolute path?: " + f.isAbsolute());
@@ -51,22 +68,33 @@ class FileOps {
       f.setWritable(true);
       System.out.println("And now?: " + f.canWrite());
       System.out.println("File size: " + f.length());
-      System.out.println("Sleeping for a small amount of time...");
-      try {
-        Thread.sleep(1000);
-      } catch (Exception e) {}
+      // write over empty file
       FileWriter fw = new FileWriter(f);
-      fw.write("Why, hello there!");
+      fw.write("Why, hello there!\n");
       fw.close();
+      // mtime is platform-specific and not guaranteed to update
+      f.setLastModified(System.currentTimeMillis()+1337);  // padding for fast execution
+      System.out.println("Last modified updated?: " + (f.lastModified() > lm));
       System.out.println("New file size: " + f.length());
       System.out.println("File contents:");
-      // Oh, Java... :/
-      BufferedReader br = new BufferedReader(new FileReader(f));
-      String s;
-      while ((s = br.readLine()) != null)
-        System.out.println(s);
-      br.close();
-      System.out.println("Now, has the modified time changed? " + (lm < f.lastModified()));
+      printFile(f);
+      // append a line
+      System.out.println("Appending to file's end...");
+      fw = new FileWriter(f, true);
+      fw.write("A second line?!\n");
+      fw.close();
+      System.out.println("File size: " + f.length());
+      System.out.println("File contents:");
+      printFile(f);
+      // overwrite some text
+      System.out.println("Overwriting some text...");
+      RandomAccessFile raf = new RandomAccessFile(f, "rw");
+      raf.skipBytes(17);
+      raf.writeChars("KILROY WAS HERE\n");
+      raf.close();
+      System.out.println("File size: " + f.length());
+      System.out.println("File contents:");
+      printFile(f);
       System.out.println("Deleting file: " + f.delete());
       System.out.println("Does the file exist?: " + f.exists());
     }

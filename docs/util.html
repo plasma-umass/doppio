@@ -1,228 +1,716 @@
-<!DOCTYPE html>  <html> <head>   <title>util.coffee</title>   <meta http-equiv="content-type" content="text/html; charset=UTF-8">   <link rel="stylesheet" media="all" href="docco.css" /> </head> <body>   <div id="container">     <div id="background"></div>            <div id="jump_to">         Jump To &hellip;         <div id="jump_wrapper">           <div id="jump_page">                                           <a class="source" href="frontend.html">                 frontend.coffee               </a>                                           <a class="source" href="node.html">                 node.coffee               </a>                                           <a class="source" href="untar.html">                 untar.coffee               </a>                                           <a class="source" href="util.html">                 util.coffee               </a>                                           <a class="source" href="ClassFile.html">                 ClassFile.coffee               </a>                                           <a class="source" href="ConstantPool.html">                 ConstantPool.coffee               </a>                                           <a class="source" href="attributes.html">                 attributes.coffee               </a>                                           <a class="source" href="disassembler.html">                 disassembler.coffee               </a>                                           <a class="source" href="exceptions.html">                 exceptions.coffee               </a>                                           <a class="source" href="java_object.html">                 java_object.coffee               </a>                                           <a class="source" href="jvm.html">                 jvm.coffee               </a>                                           <a class="source" href="logging.html">                 logging.coffee               </a>                                           <a class="source" href="methods.html">                 methods.coffee               </a>                                           <a class="source" href="natives.html">                 natives.coffee               </a>                                           <a class="source" href="opcodes.html">                 opcodes.coffee               </a>                                           <a class="source" href="runtime.html">                 runtime.coffee               </a>                                           <a class="source" href="testing.html">                 testing.coffee               </a>                                           <a class="source" href="types.html">                 types.coffee               </a>                                           <a class="source" href="util.html">                 util.coffee               </a>                        </div>         </div>       </div>          <table cellpadding="0" cellspacing="0">       <thead>         <tr>           <th class="docs">             <h1>               util.coffee             </h1>           </th>           <th class="code">           </th>         </tr>       </thead>       <tbody>                               <tr id="section-1">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-1">&#182;</a>               </div>               <p>pull in external modules</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">gLong = </span><span class="nx">require</span> <span class="s1">&#39;../vendor/gLong.js&#39;</span>
-<span class="nv">exceptions = </span><span class="nx">require</span> <span class="s1">&#39;./exceptions&#39;</span>
-<span class="p">{</span><span class="nx">trace</span><span class="p">,</span><span class="nx">vtrace</span><span class="p">,</span><span class="nx">error</span><span class="p">,</span><span class="nx">debug</span><span class="p">}</span> <span class="o">=</span> <span class="nx">require</span> <span class="s1">&#39;./logging&#39;</span>
+<!DOCTYPE html>
 
-<span class="s2">&quot;use strict&quot;</span></pre></div>             </td>           </tr>                               <tr id="section-2">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-2">&#182;</a>               </div>               <p>things assigned to root will be available outside this module</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">root = </span><span class="nx">exports</span> <span class="o">?</span> <span class="nb">window</span><span class="p">.</span><span class="nx">util</span> <span class="o">?=</span> <span class="p">{}</span>
+<html>
+<head>
+  <title>util.coffee</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, target-densitydpi=160dpi, initial-scale=1.0; maximum-scale=1.0; user-scalable=0;">
+  <link rel="stylesheet" media="all" href="docco.css" />
+</head>
+<body>
+  <div id="container">
+    <div id="background"></div>
+    
+      <ul id="jump_to">
+        <li>
+          <a class="large" href="javascript:void(0);">Jump To &hellip;</a>
+          <a class="small" href="javascript:void(0);">+</a>
+          <div id="jump_wrapper">
+          <div id="jump_page">
+            
+              
+              <a class="source" href="frontend.html">
+                frontend.coffee
+              </a>
+            
+              
+              <a class="source" href="node.html">
+                node.coffee
+              </a>
+            
+              
+              <a class="source" href="untar.html">
+                untar.coffee
+              </a>
+            
+              
+              <a class="source" href="util.html">
+                util.coffee
+              </a>
+            
+              
+              <a class="source" href="ClassData.html">
+                ClassData.coffee
+              </a>
+            
+              
+              <a class="source" href="ClassLoader.html">
+                ClassLoader.coffee
+              </a>
+            
+              
+              <a class="source" href="ConstantPool.html">
+                ConstantPool.coffee
+              </a>
+            
+              
+              <a class="source" href="attributes.html">
+                attributes.coffee
+              </a>
+            
+              
+              <a class="source" href="disassembler.html">
+                disassembler.coffee
+              </a>
+            
+              
+              <a class="source" href="exceptions.html">
+                exceptions.coffee
+              </a>
+            
+              
+              <a class="source" href="java_object.html">
+                java_object.coffee
+              </a>
+            
+              
+              <a class="source" href="jvm.html">
+                jvm.coffee
+              </a>
+            
+              
+              <a class="source" href="logging.html">
+                logging.coffee
+              </a>
+            
+              
+              <a class="source" href="methods.html">
+                methods.coffee
+              </a>
+            
+              
+              <a class="source" href="natives.html">
+                natives.coffee
+              </a>
+            
+              
+              <a class="source" href="opcodes.html">
+                opcodes.coffee
+              </a>
+            
+              
+              <a class="source" href="runtime.html">
+                runtime.coffee
+              </a>
+            
+              
+              <a class="source" href="testing.html">
+                testing.coffee
+              </a>
+            
+              
+              <a class="source" href="util.html">
+                util.coffee
+              </a>
+            
+          </div>
+        </li>
+      </ul>
+    
+    <ul class="sections">
+        
+          <li id="title">
+              <div class="annotation">
+                  <h1>util.coffee</h1>
+              </div>
+          </li>
+        
+        
+        
+        <li id="section-1">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-1">&#182;</a>
+              </div>
+              <p>pull in external modules</p>
 
-<span class="nv">root.INT_MAX = </span><span class="nb">Math</span><span class="p">.</span><span class="nx">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">31</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
-<span class="nv">root.INT_MIN = </span><span class="o">-</span><span class="nx">root</span><span class="p">.</span><span class="nx">INT_MAX</span> <span class="o">-</span> <span class="mi">1</span> <span class="c1"># -2^31</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>gLong = require <span class="string">'../vendor/gLong.js'</span>
+{trace,vtrace,error,debug} = require <span class="string">'./logging'</span>
 
-<span class="nv">root.FLOAT_POS_INFINITY = </span><span class="nb">Math</span><span class="p">.</span><span class="nx">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">128</span><span class="p">)</span>
-<span class="nv">root.FLOAT_NEG_INFINITY = </span><span class="o">-</span><span class="mi">1</span><span class="o">*</span><span class="nx">root</span><span class="p">.</span><span class="nx">FLOAT_POS_INFINITY</span>
-<span class="nv">root.FLOAT_POS_INFINITY_AS_INT = </span><span class="mh">0x7F800000</span>
-<span class="nv">root.FLOAT_NEG_INFINITY_AS_INT = </span><span class="o">-</span><span class="mi">8388608</span></pre></div>             </td>           </tr>                               <tr id="section-3">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-3">&#182;</a>               </div>               <p>We use the JavaScript NaN as our NaN value, and convert it to
-a NaN value in the SNaN range when an int equivalent is requested.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">root.FLOAT_NaN_AS_INT = </span><span class="mh">0x7fc00000</span>
+<span class="string">"use strict"</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-2">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-2">&#182;</a>
+              </div>
+              <p>things assigned to root will be available outside this module</p>
 
-<span class="nv">root.int_mod = </span><span class="nf">(rs, a, b) -&gt;</span>
-  <span class="nx">exceptions</span><span class="p">.</span><span class="nx">java_throw</span> <span class="nx">rs</span><span class="p">,</span> <span class="s1">&#39;java/lang/ArithmeticException&#39;</span><span class="p">,</span> <span class="s1">&#39;/ by zero&#39;</span> <span class="k">if</span> <span class="nx">b</span> <span class="o">==</span> <span class="mi">0</span>
-  <span class="nx">a</span> <span class="o">%</span> <span class="nx">b</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>root = exports ? window.util ?= {}
 
-<span class="nv">root.int_div = </span><span class="nf">(rs, a, b) -&gt;</span>
-  <span class="nx">exceptions</span><span class="p">.</span><span class="nx">java_throw</span> <span class="nx">rs</span><span class="p">,</span> <span class="s1">&#39;java/lang/ArithmeticException&#39;</span><span class="p">,</span> <span class="s1">&#39;/ by zero&#39;</span> <span class="k">if</span> <span class="nx">b</span> <span class="o">==</span> <span class="mi">0</span></pre></div>             </td>           </tr>                               <tr id="section-4">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-4">&#182;</a>               </div>               <p>spec: "if the dividend is the negative integer of largest possible magnitude
+root.INT_MAX = Math.pow(<span class="number">2</span>, <span class="number">31</span>) - <span class="number">1</span>
+root.INT_MIN = -root.INT_MAX - <span class="number">1</span> <span class="comment"># -2^31</span>
+
+root.FLOAT_POS_INFINITY = Math.pow(<span class="number">2</span>,<span class="number">128</span>)
+root.FLOAT_NEG_INFINITY = -<span class="number">1</span>*root.FLOAT_POS_INFINITY
+root.FLOAT_POS_INFINITY_AS_INT = <span class="number">0x7F800000</span>
+root.FLOAT_NEG_INFINITY_AS_INT = -<span class="number">8388608</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-3">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-3">&#182;</a>
+              </div>
+              <p>We use the JavaScript NaN as our NaN value, and convert it to
+a NaN value in the SNaN range when an int equivalent is requested.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>root.FLOAT_NaN_AS_INT = <span class="number">0x7fc00000</span>
+
+root.<span class="function"><span class="title">int_mod</span></span> = (rs, a, b) -&gt;
+  rs.java_throw rs.get_bs_class(<span class="string">'Ljava/lang/ArithmeticException;'</span>), <span class="string">'/ by zero'</span> <span class="keyword">if</span> b == <span class="number">0</span>
+  a % b
+
+root.<span class="function"><span class="title">int_div</span></span> = (rs, a, b) -&gt;
+  rs.java_throw rs.get_bs_class(<span class="string">'Ljava/lang/ArithmeticException;'</span>), <span class="string">'/ by zero'</span> <span class="keyword">if</span> b == <span class="number">0</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-4">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-4">&#182;</a>
+              </div>
+              <p>spec: &quot;if the dividend is the negative integer of largest possible magnitude
 for the int type, and the divisor is -1, then overflow occurs, and the
-result is equal to the dividend."</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="k">return</span> <span class="nx">a</span> <span class="k">if</span> <span class="nx">a</span> <span class="o">==</span> <span class="nx">root</span><span class="p">.</span><span class="nx">INT_MIN</span> <span class="o">and</span> <span class="nx">b</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span>
-  <span class="p">(</span><span class="nx">a</span> <span class="err">/ b) | 0</span>
+result is equal to the dividend.&quot;</p>
 
-<span class="nv">root.long_mod = </span><span class="nf">(rs, a, b) -&gt;</span>
-  <span class="nx">exceptions</span><span class="p">.</span><span class="nx">java_throw</span> <span class="nx">rs</span><span class="p">,</span> <span class="s1">&#39;java/lang/ArithmeticException&#39;</span><span class="p">,</span> <span class="s1">&#39;/ by zero&#39;</span> <span class="k">if</span> <span class="nx">b</span><span class="p">.</span><span class="nx">isZero</span><span class="p">()</span>
-  <span class="nx">a</span><span class="p">.</span><span class="nx">modulo</span><span class="p">(</span><span class="nx">b</span><span class="p">)</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  <span class="keyword">return</span> a <span class="keyword">if</span> a == root.INT_MIN <span class="keyword">and</span> b == -<span class="number">1</span>
+  (a / b) | <span class="number">0</span>
 
-<span class="nv">root.long_div = </span><span class="nf">(rs, a, b) -&gt;</span>
-  <span class="nx">exceptions</span><span class="p">.</span><span class="nx">java_throw</span> <span class="nx">rs</span><span class="p">,</span> <span class="s1">&#39;java/lang/ArithmeticException&#39;</span><span class="p">,</span> <span class="s1">&#39;/ by zero&#39;</span> <span class="k">if</span> <span class="nx">b</span><span class="p">.</span><span class="nx">isZero</span><span class="p">()</span>
-  <span class="nx">a</span><span class="p">.</span><span class="nx">div</span><span class="p">(</span><span class="nx">b</span><span class="p">)</span>
+root.<span class="function"><span class="title">long_mod</span></span> = (rs, a, b) -&gt;
+  rs.java_throw rs.get_bs_class(<span class="string">'Ljava/lang/ArithmeticException;'</span>), <span class="string">'/ by zero'</span> <span class="keyword">if</span> b.isZero()
+  a.modulo(b)
 
-<span class="nv">root.float2int = </span><span class="nf">(a) -&gt;</span>
-  <span class="k">if</span> <span class="nx">a</span> <span class="o">&gt;</span> <span class="nx">root</span><span class="p">.</span><span class="nx">INT_MAX</span> <span class="k">then</span> <span class="nx">root</span><span class="p">.</span><span class="nx">INT_MAX</span>
-  <span class="k">else</span> <span class="k">if</span> <span class="nx">a</span> <span class="o">&lt;</span> <span class="nx">root</span><span class="p">.</span><span class="nx">INT_MIN</span> <span class="k">then</span> <span class="nx">root</span><span class="p">.</span><span class="nx">INT_MIN</span>
-  <span class="k">else</span> <span class="nx">a</span><span class="o">|</span><span class="mi">0</span>
+root.<span class="function"><span class="title">long_div</span></span> = (rs, a, b) -&gt;
+  rs.java_throw rs.get_bs_class(<span class="string">'Ljava/lang/ArithmeticException;'</span>), <span class="string">'/ by zero'</span> <span class="keyword">if</span> b.isZero()
+  a.div(b)
 
-<span class="nv">root.intbits2float = </span><span class="nf">(int32) -&gt;</span>
-  <span class="k">if</span> <span class="nx">Int32Array</span><span class="o">?</span>
-    <span class="nv">i_view = </span><span class="k">new</span> <span class="nx">Int32Array</span> <span class="p">[</span><span class="nx">int32</span><span class="p">]</span>
-    <span class="nv">f_view = </span><span class="k">new</span> <span class="nx">Float32Array</span> <span class="nx">i_view</span><span class="p">.</span><span class="nx">buffer</span>
-    <span class="k">return</span> <span class="nx">f_view</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></pre></div>             </td>           </tr>                               <tr id="section-5">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-5">&#182;</a>               </div>               <p>Fallback for older JS engines</p>             </td>             <td class="code">               <div class="highlight"><pre></pre></div>             </td>           </tr>                               <tr id="section-6">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-6">&#182;</a>               </div>               <p>Map +/- infinity to JavaScript equivalents</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="k">if</span> <span class="nx">int32</span> <span class="o">==</span> <span class="nx">root</span><span class="p">.</span><span class="nx">FLOAT_POS_INFINITY_AS_INT</span>
-    <span class="k">return</span> <span class="nb">Number</span><span class="p">.</span><span class="nx">POSITIVE_INFINITY</span>
-  <span class="k">else</span> <span class="k">if</span> <span class="nx">int32</span> <span class="o">==</span> <span class="nx">root</span><span class="p">.</span><span class="nx">FLOAT_NEG_INFINITY_AS_INT</span>
-    <span class="k">return</span> <span class="nb">Number</span><span class="p">.</span><span class="nx">NEGATIVE_INFINITY</span>
+root.<span class="function"><span class="title">float2int</span></span> = (a) -&gt;
+  <span class="keyword">if</span> a &gt; root.INT_MAX <span class="keyword">then</span> root.INT_MAX
+  <span class="keyword">else</span> <span class="keyword">if</span> a &lt; root.INT_MIN <span class="keyword">then</span> root.INT_MIN
+  <span class="keyword">else</span> a|<span class="number">0</span>
 
-  <span class="nv">sign = </span><span class="p">(</span><span class="nx">int32</span> <span class="o">&amp;</span>       <span class="mh">0x80000000</span><span class="p">)</span><span class="o">&gt;&gt;&gt;</span><span class="mi">31</span>
-  <span class="nv">exponent = </span><span class="p">(</span><span class="nx">int32</span> <span class="o">&amp;</span>   <span class="mh">0x7F800000</span><span class="p">)</span><span class="o">&gt;&gt;&gt;</span><span class="mi">23</span>
-  <span class="nv">significand = </span><span class="nx">int32</span> <span class="o">&amp;</span> <span class="mh">0x007FFFFF</span>
-  <span class="k">if</span> <span class="nx">exponent</span> <span class="o">is</span> <span class="mi">0</span>  <span class="c1"># we must denormalize!</span>
-    <span class="nv">value = </span><span class="nb">Math</span><span class="p">.</span><span class="nx">pow</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="nx">sign</span><span class="p">)</span><span class="o">*</span><span class="nx">significand</span><span class="o">*</span><span class="nb">Math</span><span class="p">.</span><span class="nx">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="o">-</span><span class="mi">149</span><span class="p">)</span>
-  <span class="k">else</span>
-    <span class="nv">value = </span><span class="nb">Math</span><span class="p">.</span><span class="nx">pow</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="nx">sign</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="nx">significand</span><span class="o">*</span><span class="nb">Math</span><span class="p">.</span><span class="nx">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="o">-</span><span class="mi">23</span><span class="p">))</span><span class="o">*</span><span class="nb">Math</span><span class="p">.</span><span class="nx">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="nx">exponent</span><span class="o">-</span><span class="mi">127</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-7">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-7">&#182;</a>               </div>               <p>NaN check</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="k">if</span> <span class="nx">value</span> <span class="o">&lt;</span> <span class="nx">root</span><span class="p">.</span><span class="nx">FLOAT_NEG_INFINITY</span> <span class="o">or</span> <span class="nx">value</span> <span class="o">&gt;</span> <span class="nx">root</span><span class="p">.</span><span class="nx">FLOAT_POS_INFINITY</span>
-    <span class="nv">value = </span><span class="kc">NaN</span>
+root.<span class="function"><span class="title">intbits2float</span></span> = (int32) -&gt;
+  <span class="keyword">if</span> Int32Array?
+    i_view = <span class="keyword">new</span> Int32Array [int32]
+    f_view = <span class="keyword">new</span> Float32Array i_view.buffer
+    <span class="keyword">return</span> f_view[<span class="number">0</span>]</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-5">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-5">&#182;</a>
+              </div>
+              <p>Fallback for older JS engines</p>
+<p>Map +/- infinity to JavaScript equivalents</p>
 
-  <span class="k">return</span> <span class="nx">value</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  <span class="keyword">if</span> int32 == root.FLOAT_POS_INFINITY_AS_INT
+    <span class="keyword">return</span> Number.POSITIVE_INFINITY
+  <span class="keyword">else</span> <span class="keyword">if</span> int32 == root.FLOAT_NEG_INFINITY_AS_INT
+    <span class="keyword">return</span> Number.NEGATIVE_INFINITY
 
-<span class="nv">root.longbits2double = </span><span class="nf">(uint32_a, uint32_b) -&gt;</span>
-  <span class="k">if</span> <span class="nx">Uint32Array</span><span class="o">?</span>
-    <span class="nv">i_view = </span><span class="k">new</span> <span class="nx">Uint32Array</span> <span class="mi">2</span>
-    <span class="nx">i_view</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="nx">uint32_b</span>
-    <span class="nx">i_view</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="nx">uint32_a</span>
-    <span class="nv">d_view = </span><span class="k">new</span> <span class="nx">Float64Array</span> <span class="nx">i_view</span><span class="p">.</span><span class="nx">buffer</span>
-    <span class="k">return</span> <span class="nx">d_view</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+  sign = (int32 &amp;       <span class="number">0x80000000</span>)&gt;&gt;&gt;<span class="number">31</span>
+  exponent = (int32 &amp;   <span class="number">0x7F800000</span>)&gt;&gt;&gt;<span class="number">23</span>
+  significand = int32 &amp; <span class="number">0x007FFFFF</span>
+  <span class="keyword">if</span> exponent <span class="keyword">is</span> <span class="number">0</span>  <span class="comment"># we must denormalize!</span>
+    value = Math.pow(-<span class="number">1</span>,sign)*significand*Math.pow(<span class="number">2</span>,-<span class="number">149</span>)
+  <span class="keyword">else</span>
+    value = Math.pow(-<span class="number">1</span>,sign)*(<span class="number">1</span>+significand*Math.pow(<span class="number">2</span>,-<span class="number">23</span>))*Math.pow(<span class="number">2</span>,exponent-<span class="number">127</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-6">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-6">&#182;</a>
+              </div>
+              <p>NaN check</p>
 
-  <span class="nv">sign     = </span><span class="p">(</span><span class="nx">uint32_a</span> <span class="o">&amp;</span> <span class="mh">0x80000000</span><span class="p">)</span><span class="o">&gt;&gt;&gt;</span><span class="mi">31</span>
-  <span class="nv">exponent = </span><span class="p">(</span><span class="nx">uint32_a</span> <span class="o">&amp;</span> <span class="mh">0x7FF00000</span><span class="p">)</span><span class="o">&gt;&gt;&gt;</span><span class="mi">20</span>
-  <span class="nv">significand = </span><span class="nx">root</span><span class="p">.</span><span class="nx">lshift</span><span class="p">(</span><span class="nx">uint32_a</span> <span class="o">&amp;</span> <span class="mh">0x000FFFFF</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span> <span class="o">+</span> <span class="nx">uint32_b</span></pre></div>             </td>           </tr>                               <tr id="section-8">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-8">&#182;</a>               </div>               <p>Special values!</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="k">return</span> <span class="mi">0</span> <span class="k">if</span> <span class="nx">exponent</span> <span class="o">is</span> <span class="mi">0</span> <span class="o">and</span> <span class="nx">significand</span> <span class="o">is</span> <span class="mi">0</span>
-  <span class="k">if</span> <span class="nx">exponent</span> <span class="o">is</span> <span class="mi">2047</span>
-    <span class="k">if</span> <span class="nx">significand</span> <span class="o">is</span> <span class="mi">0</span>
-      <span class="k">if</span> <span class="nx">sign</span> <span class="o">is</span> <span class="mi">1</span>
-        <span class="k">return</span> <span class="nb">Number</span><span class="p">.</span><span class="nx">NEGATIVE_INFINITY</span>
-      <span class="k">return</span> <span class="nb">Number</span><span class="p">.</span><span class="nx">POSITIVE_INFINITY</span>
-    <span class="k">else</span> <span class="k">return</span> <span class="kc">NaN</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  <span class="keyword">if</span> value &lt; root.FLOAT_NEG_INFINITY <span class="keyword">or</span> value &gt; root.FLOAT_POS_INFINITY
+    value = NaN
 
-  <span class="k">if</span> <span class="nx">exponent</span> <span class="o">is</span> <span class="mi">0</span>  <span class="c1"># we must denormalize!</span>
-    <span class="nv">value = </span><span class="nb">Math</span><span class="p">.</span><span class="nx">pow</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="nx">sign</span><span class="p">)</span><span class="o">*</span><span class="nx">significand</span><span class="o">*</span><span class="nb">Math</span><span class="p">.</span><span class="nx">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="o">-</span><span class="mi">1074</span><span class="p">)</span>
-  <span class="k">else</span>
-    <span class="nv">value = </span><span class="nb">Math</span><span class="p">.</span><span class="nx">pow</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="nx">sign</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="nx">significand</span><span class="o">*</span><span class="nb">Math</span><span class="p">.</span><span class="nx">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="o">-</span><span class="mi">52</span><span class="p">))</span><span class="o">*</span><span class="nb">Math</span><span class="p">.</span><span class="nx">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="nx">exponent</span><span class="o">-</span><span class="mi">1023</span><span class="p">)</span>
-  <span class="k">return</span> <span class="nx">value</span></pre></div>             </td>           </tr>                               <tr id="section-9">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-9">&#182;</a>               </div>               <p>Call this ONLY on the result of two non-NaN numbers.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">root.wrap_float = </span><span class="nf">(a) -&gt;</span>
-  <span class="k">return</span> <span class="nb">Number</span><span class="p">.</span><span class="nx">POSITIVE_INFINITY</span> <span class="k">if</span> <span class="nx">a</span> <span class="o">&gt;</span> <span class="mf">3.40282346638528860</span><span class="nx">e</span><span class="o">+</span><span class="mi">38</span>
-  <span class="k">return</span> <span class="mi">0</span> <span class="k">if</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="nx">a</span> <span class="o">&lt;</span> <span class="mf">1.40129846432481707</span><span class="nx">e</span><span class="o">-</span><span class="mi">45</span>
-  <span class="k">return</span> <span class="nb">Number</span><span class="p">.</span><span class="nx">NEGATIVE_INFINITY</span> <span class="k">if</span> <span class="nx">a</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mf">3.40282346638528860</span><span class="nx">e</span><span class="o">+</span><span class="mi">38</span>
-  <span class="k">return</span> <span class="mi">0</span> <span class="k">if</span> <span class="mi">0</span> <span class="o">&gt;</span> <span class="nx">a</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mf">1.40129846432481707</span><span class="nx">e</span><span class="o">-</span><span class="mi">45</span>
-  <span class="nx">a</span>
+  <span class="keyword">return</span> value
 
-<span class="nv">root.cmp = </span><span class="nf">(a,b) -&gt;</span>
-  <span class="k">return</span> <span class="mi">0</span>  <span class="k">if</span> <span class="nx">a</span> <span class="o">==</span> <span class="nx">b</span>
-  <span class="k">return</span> <span class="o">-</span><span class="mi">1</span> <span class="k">if</span> <span class="nx">a</span> <span class="o">&lt;</span> <span class="nx">b</span>
-  <span class="k">return</span> <span class="mi">1</span>  <span class="k">if</span> <span class="nx">a</span> <span class="o">&gt;</span> <span class="nx">b</span>
-  <span class="k">return</span> <span class="kc">null</span> <span class="c1"># this will occur if either a or b is NaN</span></pre></div>             </td>           </tr>                               <tr id="section-10">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-10">&#182;</a>               </div>               <p>implements x&lt;<n without the braindead javascript &lt;&lt; operator
-(see http://stackoverflow.com/questions/337355/javascript-bitwise-shift-of-long-long-number)</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">root.lshift = </span><span class="nf">(x,n) -&gt;</span> <span class="nx">x</span><span class="o">*</span><span class="nb">Math</span><span class="p">.</span><span class="nx">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="nx">n</span><span class="p">)</span>
+root.<span class="function"><span class="title">longbits2double</span></span> = (uint32_a, uint32_b) -&gt;
+  <span class="keyword">if</span> Uint32Array?
+    i_view = <span class="keyword">new</span> Uint32Array <span class="number">2</span>
+    i_view[<span class="number">0</span>] = uint32_b
+    i_view[<span class="number">1</span>] = uint32_a
+    d_view = <span class="keyword">new</span> Float64Array i_view.buffer
+    <span class="keyword">return</span> d_view[<span class="number">0</span>]
 
-<span class="nv">root.read_uint = </span><span class="nf">(bytes) -&gt;</span>
-  <span class="nv">n = </span><span class="nx">bytes</span><span class="p">.</span><span class="nx">length</span><span class="o">-</span><span class="mi">1</span></pre></div>             </td>           </tr>                               <tr id="section-11">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-11">&#182;</a>               </div>               <p>sum up the byte values shifted left to the right alignment.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">sum = </span><span class="mi">0</span>
-  <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">..</span><span class="nx">n</span><span class="p">]</span> <span class="k">by</span> <span class="mi">1</span>
-    <span class="nx">sum</span> <span class="o">+=</span> <span class="nx">root</span><span class="p">.</span><span class="nx">lshift</span><span class="p">(</span><span class="nx">bytes</span><span class="p">[</span><span class="nx">i</span><span class="p">],</span><span class="mi">8</span><span class="o">*</span><span class="p">(</span><span class="nx">n</span><span class="o">-</span><span class="nx">i</span><span class="p">))</span>
-  <span class="nx">sum</span></pre></div>             </td>           </tr>                               <tr id="section-12">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-12">&#182;</a>               </div>               <p>Convert :count chars starting from :offset in a Java character array into a JS string</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">root.chars2js_str = </span><span class="nf">(jvm_carr, offset, count) -&gt;</span>
-  <span class="nx">root</span><span class="p">.</span><span class="nx">bytes2str</span><span class="p">(</span><span class="nx">jvm_carr</span><span class="p">.</span><span class="nx">array</span><span class="p">).</span><span class="nx">substr</span><span class="p">(</span><span class="nx">offset</span> <span class="o">?</span> <span class="mi">0</span><span class="p">,</span> <span class="nx">count</span><span class="p">)</span>
+  sign     = (uint32_a &amp; <span class="number">0x80000000</span>)&gt;&gt;&gt;<span class="number">31</span>
+  exponent = (uint32_a &amp; <span class="number">0x7FF00000</span>)&gt;&gt;&gt;<span class="number">20</span>
+  significand = root.lshift(uint32_a &amp; <span class="number">0x000FFFFF</span>, <span class="number">32</span>) + uint32_b</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-7">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-7">&#182;</a>
+              </div>
+              <p>Special values!</p>
 
-<span class="nv">root.bytestr_to_array = </span><span class="nf">(bytecode_string) -&gt;</span>
-  <span class="p">(</span><span class="nx">bytecode_string</span><span class="p">.</span><span class="nx">charCodeAt</span><span class="p">(</span><span class="nx">i</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0xFF</span> <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">...</span><span class="nx">bytecode_string</span><span class="p">.</span><span class="nx">length</span><span class="p">]</span> <span class="k">by</span> <span class="mi">1</span><span class="p">)</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  <span class="keyword">return</span> <span class="number">0</span> <span class="keyword">if</span> exponent <span class="keyword">is</span> <span class="number">0</span> <span class="keyword">and</span> significand <span class="keyword">is</span> <span class="number">0</span>
+  <span class="keyword">if</span> exponent <span class="keyword">is</span> <span class="number">2047</span>
+    <span class="keyword">if</span> significand <span class="keyword">is</span> <span class="number">0</span>
+      <span class="keyword">if</span> sign <span class="keyword">is</span> <span class="number">1</span>
+        <span class="keyword">return</span> Number.NEGATIVE_INFINITY
+      <span class="keyword">return</span> Number.POSITIVE_INFINITY
+    <span class="keyword">else</span> <span class="keyword">return</span> NaN
 
-<span class="nv">root.array_to_bytestr = </span><span class="nf">(bytecode_array) -&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-13">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-13">&#182;</a>               </div>               <p>XXX: We'd like to use String.fromCharCode(bytecode_array...)
- but that fails on Webkit with arrays longer than 2^31. See issue #129 for details.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="k">return</span> <span class="p">(</span><span class="nb">String</span><span class="p">.</span><span class="nx">fromCharCode</span><span class="p">(</span><span class="nx">b</span><span class="p">)</span> <span class="k">for</span> <span class="nx">b</span> <span class="k">in</span> <span class="nx">bytecode_array</span><span class="p">).</span><span class="nx">join</span> <span class="s1">&#39;&#39;</span>
+  <span class="keyword">if</span> exponent <span class="keyword">is</span> <span class="number">0</span>  <span class="comment"># we must denormalize!</span>
+    value = Math.pow(-<span class="number">1</span>,sign)*significand*Math.pow(<span class="number">2</span>,-<span class="number">1074</span>)
+  <span class="keyword">else</span>
+    value = Math.pow(-<span class="number">1</span>,sign)*(<span class="number">1</span>+significand*Math.pow(<span class="number">2</span>,-<span class="number">52</span>))*Math.pow(<span class="number">2</span>,exponent-<span class="number">1023</span>)
+  <span class="keyword">return</span> value</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-8">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-8">&#182;</a>
+              </div>
+              <p>Call this ONLY on the result of two non-NaN numbers.</p>
 
-<span class="nv">root.parse_flags = </span><span class="nf">(flag_byte) -&gt;</span> <span class="p">{</span>
-    <span class="nv">public: </span>      <span class="nx">flag_byte</span> <span class="o">&amp;</span> <span class="mh">0x1</span>
-    <span class="nv">private: </span>     <span class="nx">flag_byte</span> <span class="o">&amp;</span> <span class="mh">0x2</span>
-    <span class="nv">protected: </span>   <span class="nx">flag_byte</span> <span class="o">&amp;</span> <span class="mh">0x4</span>
-    <span class="nv">static: </span>      <span class="nx">flag_byte</span> <span class="o">&amp;</span> <span class="mh">0x8</span>
-    <span class="nv">final: </span>       <span class="nx">flag_byte</span> <span class="o">&amp;</span> <span class="mh">0x10</span>
-    <span class="nv">synchronized: </span><span class="nx">flag_byte</span> <span class="o">&amp;</span> <span class="mh">0x20</span>
-    <span class="k">super</span><span class="o">:</span>        <span class="nx">flag_byte</span> <span class="o">&amp;</span> <span class="mh">0x20</span>
-    <span class="nv">volatile: </span>    <span class="nx">flag_byte</span> <span class="o">&amp;</span> <span class="mh">0x40</span>
-    <span class="nv">transient: </span>   <span class="nx">flag_byte</span> <span class="o">&amp;</span> <span class="mh">0x80</span>
-    <span class="nv">native: </span>      <span class="nx">flag_byte</span> <span class="o">&amp;</span> <span class="mh">0x100</span>
-    <span class="nv">interface: </span>   <span class="nx">flag_byte</span> <span class="o">&amp;</span> <span class="mh">0x200</span>
-    <span class="nv">abstract: </span>    <span class="nx">flag_byte</span> <span class="o">&amp;</span> <span class="mh">0x400</span>
-    <span class="nv">strict: </span>      <span class="nx">flag_byte</span> <span class="o">&amp;</span> <span class="mh">0x800</span>
-  <span class="p">}</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>root.<span class="function"><span class="title">wrap_float</span></span> = (a) -&gt;
+  <span class="keyword">return</span> Number.POSITIVE_INFINITY <span class="keyword">if</span> a &gt; <span class="number">3.40282346638528860e+38</span>
+  <span class="keyword">return</span> <span class="number">0</span> <span class="keyword">if</span> <span class="number">0</span> &lt; a &lt; <span class="number">1.40129846432481707e-45</span>
+  <span class="keyword">return</span> Number.NEGATIVE_INFINITY <span class="keyword">if</span> a &lt; -<span class="number">3.40282346638528860e+38</span>
+  <span class="keyword">return</span> <span class="number">0</span> <span class="keyword">if</span> <span class="number">0</span> &gt; a &gt; -<span class="number">1.40129846432481707e-45</span>
+  a
 
-<span class="nv">root.escape_whitespace = </span><span class="nf">(str) -&gt;</span>
-  <span class="nx">str</span><span class="p">.</span><span class="nx">replace</span> <span class="sr">/\s/g</span><span class="p">,</span> <span class="nf">(c) -&gt;</span>
-    <span class="k">switch</span> <span class="nx">c</span>
-      <span class="k">when</span> <span class="s2">&quot;\n&quot;</span> <span class="k">then</span> <span class="s2">&quot;\\n&quot;</span>
-      <span class="k">when</span> <span class="s2">&quot;\r&quot;</span> <span class="k">then</span> <span class="s2">&quot;\\r&quot;</span>
-      <span class="k">when</span> <span class="s2">&quot;\t&quot;</span> <span class="k">then</span> <span class="s2">&quot;\\t&quot;</span>
-      <span class="k">when</span> <span class="s2">&quot;\v&quot;</span> <span class="k">then</span> <span class="s2">&quot;\\v&quot;</span>
-      <span class="k">when</span> <span class="s2">&quot;\f&quot;</span> <span class="k">then</span> <span class="s2">&quot;\\f&quot;</span>
-      <span class="k">else</span> <span class="nx">c</span></pre></div>             </td>           </tr>                               <tr id="section-14">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-14">&#182;</a>               </div>               <p>if :entry is a reference, display its referent in a comment</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">root.format_extra_info = </span><span class="nf">(entry) -&gt;</span>
-  <span class="nv">type = </span><span class="nx">entry</span><span class="p">.</span><span class="nx">type</span>
-  <span class="nv">info = </span><span class="nx">entry</span><span class="p">.</span><span class="nx">deref</span><span class="o">?</span><span class="p">()</span>
-  <span class="k">return</span> <span class="s2">&quot;&quot;</span> <span class="nx">unless</span> <span class="nx">info</span>
-  <span class="k">switch</span> <span class="nx">type</span>
-    <span class="k">when</span> <span class="s1">&#39;Method&#39;</span><span class="p">,</span> <span class="s1">&#39;InterfaceMethod&#39;</span>
-      <span class="s2">&quot;\t//  #{info.class}.#{info.sig}&quot;</span>
-    <span class="k">when</span> <span class="s1">&#39;Field&#39;</span>
-      <span class="s2">&quot;\t//  #{info.class}.#{info.name}:#{info.type}&quot;</span>
-    <span class="k">when</span> <span class="s1">&#39;NameAndType&#39;</span> <span class="k">then</span> <span class="s2">&quot;//  #{info.name}:#{info.type}&quot;</span>
-    <span class="k">else</span> <span class="s2">&quot;\t//  &quot;</span> <span class="o">+</span> <span class="nx">root</span><span class="p">.</span><span class="nx">escape_whitespace</span> <span class="nx">info</span> <span class="k">if</span> <span class="nx">root</span><span class="p">.</span><span class="nx">is_string</span> <span class="nx">info</span>
+root.<span class="function"><span class="title">cmp</span></span> = (a,b) -&gt;
+  <span class="keyword">return</span> <span class="number">0</span>  <span class="keyword">if</span> a == b
+  <span class="keyword">return</span> -<span class="number">1</span> <span class="keyword">if</span> a &lt; b
+  <span class="keyword">return</span> <span class="number">1</span>  <span class="keyword">if</span> a &gt; b
+  <span class="keyword">return</span> <span class="literal">null</span> <span class="comment"># this will occur if either a or b is NaN</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-9">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-9">&#182;</a>
+              </div>
+              <p>implements x&lt;&lt;n without the braindead javascript &lt;&lt; operator
+(see <a href="http://stackoverflow.com/questions/337355/javascript-bitwise-shift-of-long-long-number">http://stackoverflow.com/questions/337355/javascript-bitwise-shift-of-long-long-number</a>)</p>
 
-<span class="k">class</span> <span class="nx">root</span><span class="p">.</span><span class="nx">BytesArray</span>
-  <span class="nv">constructor: </span><span class="nf">(@raw_array, @start=0, @end=@raw_array.length) -&gt;</span>
-    <span class="vi">@_index = </span><span class="mi">0</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>root.<span class="function"><span class="title">lshift</span></span> = (x,n) -&gt; x*Math.pow(<span class="number">2</span>,n)
 
-  <span class="nv">rewind: </span><span class="o">-&gt;</span> <span class="vi">@_index = </span><span class="mi">0</span>
+root.<span class="function"><span class="title">read_uint</span></span> = (bytes) -&gt;
+  n = bytes.length-<span class="number">1</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-10">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-10">&#182;</a>
+              </div>
+              <p>sum up the byte values shifted left to the right alignment.</p>
 
-  <span class="nv">pos: </span><span class="o">-&gt;</span> <span class="nx">@_index</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  sum = <span class="number">0</span>
+  <span class="keyword">for</span> i <span class="keyword">in</span> [<span class="number">0.</span>.n] <span class="keyword">by</span> <span class="number">1</span>
+    sum += root.lshift(bytes[i],<span class="number">8</span>*(n-i))
+  sum</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-11">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-11">&#182;</a>
+              </div>
+              <p>Convert :count chars starting from :offset in a Java character array into a JS string</p>
 
-  <span class="nv">skip: </span><span class="nf">(bytes_count) -&gt;</span> <span class="nx">@_index</span> <span class="o">+=</span> <span class="nx">bytes_count</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>root.<span class="function"><span class="title">chars2js_str</span></span> = (jvm_carr, offset, count) -&gt;
+  root.bytes2str(jvm_carr.array).substr(offset ? <span class="number">0</span>, count)
 
-  <span class="nv">has_bytes: </span><span class="o">-&gt;</span> <span class="nx">@start</span> <span class="o">+</span> <span class="nx">@_index</span> <span class="o">&lt;</span> <span class="nx">@end</span>
+root.<span class="function"><span class="title">bytestr_to_array</span></span> = (bytecode_string) -&gt;
+  (bytecode_string.charCodeAt(i) &amp; <span class="number">0xFF</span> <span class="keyword">for</span> i <span class="keyword">in</span> [<span class="number">0.</span>..bytecode_string.length] <span class="keyword">by</span> <span class="number">1</span>)
 
-  <span class="nv">get_uint: </span><span class="nf">(bytes_count) -&gt;</span>
-    <span class="nv">rv = </span><span class="nx">root</span><span class="p">.</span><span class="nx">read_uint</span> <span class="nx">@raw_array</span><span class="p">.</span><span class="nx">slice</span><span class="p">(</span><span class="nx">@start</span> <span class="o">+</span> <span class="nx">@_index</span><span class="p">,</span> <span class="nx">@start</span> <span class="o">+</span> <span class="nx">@_index</span> <span class="o">+</span> <span class="nx">bytes_count</span><span class="p">)</span>
-    <span class="nx">@_index</span> <span class="o">+=</span> <span class="nx">bytes_count</span>
-    <span class="k">return</span> <span class="nx">rv</span>
+root.<span class="function"><span class="title">array_to_bytestr</span></span> = (bytecode_array) -&gt;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-12">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-12">&#182;</a>
+              </div>
+              <p>XXX: We&#39;d like to use String.fromCharCode(bytecode_array...)
+ but that fails on Webkit with arrays longer than 2^31. See issue #129 for details.</p>
 
-  <span class="nv">get_int: </span><span class="nf">(bytes_count) -&gt;</span>
-    <span class="nv">bytes_to_set = </span><span class="mi">32</span> <span class="o">-</span> <span class="nx">bytes_count</span> <span class="o">*</span> <span class="mi">8</span>
-    <span class="nx">@get_uint</span><span class="p">(</span><span class="nx">bytes_count</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="nx">bytes_to_set</span> <span class="o">&gt;&gt;</span> <span class="nx">bytes_to_set</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  <span class="keyword">return</span> (String.fromCharCode(b) <span class="keyword">for</span> b <span class="keyword">in</span> bytecode_array).join <span class="string">''</span>
 
-  <span class="nv">read: </span><span class="nf">(bytes_count) -&gt;</span>
-    <span class="nv">rv = </span><span class="nx">@raw_array</span><span class="p">[</span><span class="nx">@start</span><span class="o">+</span><span class="nx">@_index</span><span class="p">...</span><span class="nx">@start</span><span class="o">+</span><span class="nx">@_index</span><span class="o">+</span><span class="nx">bytes_count</span><span class="p">]</span>
-    <span class="nx">@_index</span> <span class="o">+=</span> <span class="nx">bytes_count</span>
-    <span class="nx">rv</span>
+root.<span class="function"><span class="title">parse_flags</span></span> = (flag_byte) -&gt; {
+  public:       flag_byte &amp; <span class="number">0x1</span>
+  private:      flag_byte &amp; <span class="number">0x2</span>
+  protected:    flag_byte &amp; <span class="number">0x4</span>
+  static:       flag_byte &amp; <span class="number">0x8</span>
+  final:        flag_byte &amp; <span class="number">0x10</span>
+  synchronized: flag_byte &amp; <span class="number">0x20</span>
+  <span class="keyword">super</span>:        flag_byte &amp; <span class="number">0x20</span>
+  volatile:     flag_byte &amp; <span class="number">0x40</span>
+  transient:    flag_byte &amp; <span class="number">0x80</span>
+  <span class="reserved">native</span>:       flag_byte &amp; <span class="number">0x100</span>
+  interface:    flag_byte &amp; <span class="number">0x200</span>
+  abstract:     flag_byte &amp; <span class="number">0x400</span>
+  strict:       flag_byte &amp; <span class="number">0x800</span>
+}
 
-  <span class="nv">peek: </span><span class="o">-&gt;</span> <span class="nx">@raw_array</span><span class="p">[</span><span class="nx">@start</span><span class="o">+</span><span class="nx">@_index</span><span class="p">]</span>
+root.<span class="function"><span class="title">escape_whitespace</span></span> = (str) -&gt;
+  str.replace <span class="regexp">/\s/g</span>, (c) -&gt;
+    <span class="keyword">switch</span> c
+      <span class="keyword">when</span> <span class="string">"\n"</span> <span class="keyword">then</span> <span class="string">"\\n"</span>
+      <span class="keyword">when</span> <span class="string">"\r"</span> <span class="keyword">then</span> <span class="string">"\\r"</span>
+      <span class="keyword">when</span> <span class="string">"\t"</span> <span class="keyword">then</span> <span class="string">"\\t"</span>
+      <span class="keyword">when</span> <span class="string">"\v"</span> <span class="keyword">then</span> <span class="string">"\\v"</span>
+      <span class="keyword">when</span> <span class="string">"\f"</span> <span class="keyword">then</span> <span class="string">"\\f"</span>
+      <span class="keyword">else</span> c</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-13">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-13">&#182;</a>
+              </div>
+              <p>if :entry is a reference, display its referent in a comment</p>
 
-  <span class="nv">size: </span><span class="o">-&gt;</span> <span class="nx">@end</span> <span class="o">-</span> <span class="nx">@start</span> <span class="o">-</span> <span class="nx">@_index</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>root.<span class="function"><span class="title">format_extra_info</span></span> = (entry) -&gt;
+  type = entry.type
+  info = entry.deref?()
+  <span class="keyword">return</span> <span class="string">""</span> <span class="keyword">unless</span> info
+  <span class="keyword">switch</span> type
+    <span class="keyword">when</span> <span class="string">'Method'</span>, <span class="string">'InterfaceMethod'</span>
+      <span class="string">"\t//  <span class="subst">#{info.class}</span>.<span class="subst">#{info.sig}</span>"</span>
+    <span class="keyword">when</span> <span class="string">'Field'</span>
+      <span class="string">"\t//  <span class="subst">#{info.class}</span>.<span class="subst">#{info.name}</span>:<span class="subst">#{info.type}</span>"</span>
+    <span class="keyword">when</span> <span class="string">'NameAndType'</span> <span class="keyword">then</span> <span class="string">"//  <span class="subst">#{info.name}</span>:<span class="subst">#{info.type}</span>"</span>
+    <span class="keyword">else</span> <span class="string">"\t//  "</span> + root.escape_whitespace info <span class="keyword">if</span> root.is_string info
 
-  <span class="nv">splice: </span><span class="nf">(len) -&gt;</span>
-    <span class="nv">arr = </span><span class="k">new</span> <span class="nx">root</span><span class="p">.</span><span class="nx">BytesArray</span> <span class="nx">@raw_array</span><span class="p">,</span> <span class="nx">@start</span><span class="o">+</span><span class="nx">@_index</span><span class="p">,</span> <span class="nx">@start</span><span class="o">+</span><span class="nx">@_index</span><span class="o">+</span><span class="nx">len</span>
-    <span class="nx">@_index</span> <span class="o">+=</span> <span class="nx">len</span>
-    <span class="nx">arr</span>
+<span class="class"><span class="keyword">class</span> <span class="title">root</span>.<span class="title">BytesArray</span></span>
+  constructor: (<span class="property">@raw_array</span>, <span class="property">@start</span>=<span class="number">0</span>, <span class="property">@end</span>=<span class="property">@raw_array</span>.length) -&gt;
+    <span class="property">@_index</span> = <span class="number">0</span>
 
-<span class="nv">root.initial_value = </span><span class="nf">(type_str) -&gt;</span>
-  <span class="k">if</span> <span class="nx">type_str</span> <span class="o">is</span> <span class="s1">&#39;J&#39;</span> <span class="k">then</span> <span class="nx">gLong</span><span class="p">.</span><span class="nx">ZERO</span>
-  <span class="k">else</span> <span class="k">if</span> <span class="nx">type_str</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">in</span> <span class="p">[</span><span class="s1">&#39;[&#39;</span><span class="p">,</span><span class="s1">&#39;L&#39;</span><span class="p">]</span> <span class="k">then</span> <span class="kc">null</span>
-  <span class="k">else</span> <span class="mi">0</span>
+  rewind: -&gt; <span class="property">@_index</span> = <span class="number">0</span>
 
-<span class="nv">root.is_string = </span><span class="nf">(obj) -&gt;</span> <span class="k">typeof</span> <span class="nx">obj</span> <span class="o">==</span> <span class="s1">&#39;string&#39;</span> <span class="o">or</span> <span class="nx">obj</span> <span class="k">instanceof</span> <span class="nb">String</span></pre></div>             </td>           </tr>                               <tr id="section-15">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-15">&#182;</a>               </div>               <p>Walks up the prototype chain of :object looking for an entry in the :handlers
-dict that match its constructor's name.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">root.lookup_handler = </span><span class="nf">(handlers, object) -&gt;</span>
-  <span class="nv">obj = </span><span class="nx">object</span>
-  <span class="k">while</span> <span class="nx">obj</span><span class="o">?</span></pre></div>             </td>           </tr>                               <tr id="section-16">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-16">&#182;</a>               </div>               <p>XXX: this will break on IE (due to constructor.name being undefined)</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nv">handler = </span><span class="nx">handlers</span><span class="p">[</span><span class="nx">obj</span><span class="p">.</span><span class="nx">constructor</span><span class="p">.</span><span class="nx">name</span><span class="p">]</span>
-    <span class="k">return</span> <span class="nx">handler</span> <span class="k">if</span> <span class="nx">handler</span>
-    <span class="nv">obj = </span><span class="nb">Object</span><span class="p">.</span><span class="nx">getPrototypeOf</span> <span class="nx">obj</span>
-  <span class="k">return</span> <span class="kc">null</span></pre></div>             </td>           </tr>                               <tr id="section-17">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-17">&#182;</a>               </div>               <p>Java classes are represented internally using slashes as delimiters.
-These helper functions convert between the two representations.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">root.ext_classname = </span><span class="nf">(str) -&gt;</span> <span class="nx">str</span><span class="p">.</span><span class="nx">replace</span> <span class="sr">/\//g</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span>
-<span class="nv">root.int_classname = </span><span class="nf">(str) -&gt;</span> <span class="nx">str</span><span class="p">.</span><span class="nx">replace</span> <span class="sr">/\./g</span><span class="p">,</span> <span class="s1">&#39;/&#39;</span></pre></div>             </td>           </tr>                               <tr id="section-18">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-18">&#182;</a>               </div>               <p>Parse Java's pseudo-UTF-8 strings. (spec 4.4.7)</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">root.bytes2str = </span><span class="nf">(bytes) -&gt;</span>
-  <span class="nv">idx = </span><span class="mi">0</span>
-  <span class="nv">char_array =</span>
-    <span class="k">while</span> <span class="nx">idx</span> <span class="o">&lt;</span> <span class="nx">bytes</span><span class="p">.</span><span class="nx">length</span></pre></div>             </td>           </tr>                               <tr id="section-19">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-19">&#182;</a>               </div>               <p>cast to an unsigned byte</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nv">x = </span><span class="nx">bytes</span><span class="p">[</span><span class="nx">idx</span><span class="o">++</span><span class="p">]</span> <span class="o">&amp;</span> <span class="mh">0xff</span>
-      <span class="k">break</span> <span class="k">if</span> <span class="nx">x</span> <span class="o">==</span> <span class="mi">0</span>
-      <span class="nb">String</span><span class="p">.</span><span class="nx">fromCharCode</span><span class="p">(</span>
-        <span class="k">if</span> <span class="nx">x</span> <span class="o">&lt;=</span> <span class="mh">0x7f</span>
-          <span class="nx">x</span>
-        <span class="k">else</span> <span class="k">if</span> <span class="nx">x</span> <span class="o">&lt;=</span> <span class="mh">0xdf</span>
-          <span class="nv">y = </span><span class="nx">bytes</span><span class="p">[</span><span class="nx">idx</span><span class="o">++</span><span class="p">]</span>
-          <span class="p">((</span><span class="nx">x</span> <span class="o">&amp;</span> <span class="mh">0x1f</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="mi">6</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="nx">y</span> <span class="o">&amp;</span> <span class="mh">0x3f</span><span class="p">)</span>
-        <span class="k">else</span>
-          <span class="nv">y = </span><span class="nx">bytes</span><span class="p">[</span><span class="nx">idx</span><span class="o">++</span><span class="p">]</span>
-          <span class="nv">z = </span><span class="nx">bytes</span><span class="p">[</span><span class="nx">idx</span><span class="o">++</span><span class="p">]</span>
-          <span class="p">((</span><span class="nx">x</span> <span class="o">&amp;</span> <span class="mh">0xf</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="mi">12</span><span class="p">)</span> <span class="o">+</span> <span class="p">((</span><span class="nx">y</span> <span class="o">&amp;</span> <span class="mh">0x3f</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="mi">6</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="nx">z</span> <span class="o">&amp;</span> <span class="mh">0x3f</span><span class="p">)</span>
-      <span class="p">)</span>
-  <span class="nx">char_array</span><span class="p">.</span><span class="nx">join</span> <span class="s1">&#39;&#39;</span>
+  pos: -&gt; <span class="property">@_index</span>
 
-<span class="nv">root.last = </span><span class="nf">(array) -&gt;</span> <span class="nx">array</span><span class="p">[</span><span class="nx">array</span><span class="p">.</span><span class="nx">length</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+  skip: (bytes_count) -&gt; <span class="property">@_index</span> += bytes_count
 
-<span class="k">class</span> <span class="nx">root</span><span class="p">.</span><span class="nx">SafeMap</span>
+  has_bytes: -&gt; <span class="property">@start</span> + <span class="property">@_index</span> &lt; <span class="property">@end</span>
 
-  <span class="nv">constructor: </span><span class="o">-&gt;</span>
-    <span class="vi">@cache = </span><span class="nb">Object</span><span class="p">.</span><span class="nx">create</span> <span class="kc">null</span> <span class="c1"># has no defined properties aside from __proto__</span>
-    <span class="vi">@proto_cache = </span><span class="kc">undefined</span>
+  get_uint: (bytes_count) -&gt;
+    rv = root.read_uint <span class="property">@raw_array</span>.slice(<span class="property">@start</span> + <span class="property">@_index</span>, <span class="property">@start</span> + <span class="property">@_index</span> + bytes_count)
+    <span class="property">@_index</span> += bytes_count
+    <span class="keyword">return</span> rv
 
-  <span class="nv">get: </span><span class="nf">(key) -&gt;</span>
-    <span class="k">return</span> <span class="nx">@cache</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span> <span class="k">if</span> <span class="nx">@cache</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span><span class="o">?</span> <span class="c1"># don&#39;t use `isnt undefined` -- __proto__ is null!</span>
-    <span class="k">return</span> <span class="nx">@proto_cache</span> <span class="k">if</span> <span class="nx">key</span><span class="p">.</span><span class="nx">toString</span><span class="p">()</span> <span class="o">is</span> <span class="s1">&#39;__proto__&#39;</span> <span class="o">and</span> <span class="nx">@proto_cache</span> <span class="o">isnt</span> <span class="kc">undefined</span>
-    <span class="kc">undefined</span>
+  get_int: (bytes_count) -&gt;
+    bytes_to_set = <span class="number">32</span> - bytes_count * <span class="number">8</span>
+    <span class="property">@get_uint</span>(bytes_count) &lt;&lt; bytes_to_set &gt;&gt; bytes_to_set
 
-  <span class="nv">set: </span><span class="nf">(key, value) -&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-20">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-20">&#182;</a>               </div>               <p>toString() converts key to a primitive, so strict comparison works</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nx">unless</span> <span class="nx">key</span><span class="p">.</span><span class="nx">toString</span><span class="p">()</span> <span class="o">is</span> <span class="s1">&#39;__proto__&#39;</span>
-      <span class="nx">@cache</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span> <span class="o">=</span> <span class="nx">value</span>
-    <span class="k">else</span>
-      <span class="vi">@proto_cache = </span><span class="nx">value</span>
+  read: (bytes_count) -&gt;
+    rv = <span class="property">@raw_array</span>[<span class="property">@start</span>+<span class="property">@_index</span>...<span class="property">@start</span>+<span class="property">@_index</span>+bytes_count]
+    <span class="property">@_index</span> += bytes_count
+    rv
 
-</pre></div>             </td>           </tr>                </tbody>     </table>   </div> </body> </html> 
+  peek: -&gt; <span class="property">@raw_array</span>[<span class="property">@start</span>+<span class="property">@_index</span>]
+
+  size: -&gt; <span class="property">@end</span> - <span class="property">@start</span> - <span class="property">@_index</span>
+
+  splice: (len) -&gt;
+    arr = <span class="keyword">new</span> root.BytesArray <span class="property">@raw_array</span>, <span class="property">@start</span>+<span class="property">@_index</span>, <span class="property">@start</span>+<span class="property">@_index</span>+len
+    <span class="property">@_index</span> += len
+    arr
+
+root.<span class="function"><span class="title">initial_value</span></span> = (type_str) -&gt;
+  <span class="keyword">if</span> type_str <span class="keyword">is</span> <span class="string">'J'</span> <span class="keyword">then</span> gLong.ZERO
+  <span class="keyword">else</span> <span class="keyword">if</span> type_str[<span class="number">0</span>] <span class="keyword">in</span> [<span class="string">'['</span>,<span class="string">'L'</span>] <span class="keyword">then</span> <span class="literal">null</span>
+  <span class="keyword">else</span> <span class="number">0</span>
+
+root.<span class="function"><span class="title">is_string</span></span> = (obj) -&gt; <span class="keyword">typeof</span> obj == <span class="string">'string'</span> <span class="keyword">or</span> obj <span class="keyword">instanceof</span> String</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-14">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-14">&#182;</a>
+              </div>
+              <p>Java classes are represented internally using slashes as delimiters.
+These helper functions convert between the two representations.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>root.ext_classname = (str) -&gt; root.descriptor2typestr(str).replace /\//g, '.'
+root.int_classname = (str) -&gt; root.typestr2descriptor(str).replace /\./g, '/'
+
+root.internal2external =
+  B: 'byte'
+  C: 'char'
+  D: 'double'
+  F: 'float'
+  I: 'int'
+  J: 'long'
+  S: 'short'
+  V: 'void'
+  Z: 'boolean'
+
+external2internal = {}
+external2internal[v]=k for k,v of root.internal2external</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-15">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-15">&#182;</a>
+              </div>
+              <p>Get the component type of an array type string. Cut off the [L and ; for
+arrays of classes.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>root.<span class="function"><span class="title">get_component_type</span></span> = (type_str) -&gt; type_str[<span class="number">1.</span>..]
+root.<span class="function"><span class="title">is_array_type</span></span> = (type_str) -&gt; type_str[<span class="number">0</span>] == <span class="string">'['</span>
+root.<span class="function"><span class="title">is_primitive_type</span></span> = (type_str) -&gt; type_str <span class="keyword">of</span> root.internal2external
+root.<span class="function"><span class="title">is_reference_type</span></span> = (type_str) -&gt; type_str[<span class="number">0</span>] == <span class="string">'L'</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-16">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-16">&#182;</a>
+              </div>
+              <p>Converts type descriptors into standardized internal type strings.
+Ljava/lang/Class; =&gt; java/lang/Class   Reference types
+[Ljava/lang/Class; is unchanged        Array types
+C =&gt; char                              Primitive types</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>root.<span class="function"><span class="title">descriptor2typestr</span></span> = (type_str) -&gt;
+  c = type_str[<span class="number">0</span>]
+  <span class="keyword">if</span> c <span class="keyword">of</span> root.internal2external
+    root.internal2external[c]
+  <span class="keyword">else</span> <span class="keyword">if</span> c == <span class="string">'L'</span>
+    type_str[<span class="number">1.</span>..-<span class="number">1</span>]
+  <span class="keyword">else</span> <span class="keyword">if</span> c == <span class="string">'['</span>
+    type_str
+  <span class="keyword">else</span>
+    <span class="keyword">throw</span> <span class="keyword">new</span> Error <span class="string">"Unrecognized type string: <span class="subst">#{type_str}</span>"</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-17">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-17">&#182;</a>
+              </div>
+              <p>Takes a character array of concatenated type descriptors and returns/removes the first one.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>root.<span class="function"><span class="title">carr2descriptor</span></span> = (carr) -&gt;
+  c = carr.shift()
+  <span class="keyword">return</span> <span class="literal">null</span> <span class="keyword">unless</span> c?
+  <span class="keyword">if</span> c <span class="keyword">of</span> root.internal2external
+    c
+  <span class="keyword">else</span> <span class="keyword">if</span> c == <span class="string">'L'</span>
+    <span class="string">"L<span class="subst">#{(c <span class="keyword">while</span> (c = carr.shift()) != ';').join('')}</span>;"</span>
+  <span class="keyword">else</span> <span class="keyword">if</span> c == <span class="string">'['</span>
+    <span class="string">"[<span class="subst">#{root.carr2descriptor(carr)}</span>"</span>
+  <span class="keyword">else</span>
+    carr.unshift c
+    <span class="keyword">throw</span> <span class="keyword">new</span> Error <span class="string">"Unrecognized descriptor: <span class="subst">#{carr.join ''}</span>"</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-18">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-18">&#182;</a>
+              </div>
+              <p>Converts internal type strings into type descriptors. Reverse of descriptor2typestr.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>root.<span class="function"><span class="title">typestr2descriptor</span></span> = (type_str) -&gt;
+  c = type_str[<span class="number">0</span>]
+  <span class="keyword">if</span> type_str <span class="keyword">of</span> external2internal
+    external2internal[type_str]
+  <span class="keyword">else</span> <span class="keyword">if</span> c == <span class="string">'['</span>
+    type_str
+  <span class="keyword">else</span>
+    <span class="string">"L<span class="subst">#{type_str}</span>;"</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-19">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-19">&#182;</a>
+              </div>
+              <p>Parse Java&#39;s pseudo-UTF-8 strings. (spec 4.4.7)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>root.<span class="function"><span class="title">bytes2str</span></span> = (bytes, null_terminate=<span class="literal">false</span>) -&gt;
+  idx = <span class="number">0</span>
+  char_array =
+    <span class="keyword">while</span> idx &lt; bytes.length</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-20">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-20">&#182;</a>
+              </div>
+              <p>cast to an unsigned byte</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      x = bytes[idx++] &amp; <span class="number">0xff</span>
+      <span class="keyword">break</span> <span class="keyword">if</span> null_terminate <span class="keyword">and</span> x <span class="keyword">is</span> <span class="number">0</span>
+      String.fromCharCode(
+        <span class="keyword">if</span> x &lt;= <span class="number">0x7f</span>
+          x
+        <span class="keyword">else</span> <span class="keyword">if</span> x &lt;= <span class="number">0xdf</span>
+          y = bytes[idx++]
+          ((x &amp; <span class="number">0x1f</span>) &lt;&lt; <span class="number">6</span>) + (y &amp; <span class="number">0x3f</span>)
+        <span class="keyword">else</span>
+          y = bytes[idx++]
+          z = bytes[idx++]
+          ((x &amp; <span class="number">0xf</span>) &lt;&lt; <span class="number">12</span>) + ((y &amp; <span class="number">0x3f</span>) &lt;&lt; <span class="number">6</span>) + (z &amp; <span class="number">0x3f</span>)
+      )
+  char_array.join <span class="string">''</span>
+
+root.<span class="function"><span class="title">last</span></span> = (array) -&gt; array[array.length-<span class="number">1</span>]
+
+<span class="class"><span class="keyword">class</span> <span class="title">root</span>.<span class="title">SafeMap</span></span>
+
+  constructor: -&gt;
+    <span class="property">@cache</span> = Object.create <span class="literal">null</span> <span class="comment"># has no defined properties aside from __proto__</span>
+    <span class="property">@proto_cache</span> = <span class="literal">undefined</span>
+
+  get: (key) -&gt;
+    <span class="keyword">return</span> <span class="property">@cache</span>[key] <span class="keyword">if</span> <span class="property">@cache</span>[key]? <span class="comment"># don't use `isnt undefined` -- __proto__ is null!</span>
+    <span class="keyword">return</span> <span class="property">@proto_cache</span> <span class="keyword">if</span> key.toString() <span class="keyword">is</span> <span class="string">'__proto__'</span> <span class="keyword">and</span> <span class="property">@proto_cache</span> <span class="keyword">isnt</span> <span class="literal">undefined</span>
+    <span class="literal">undefined</span>
+
+  has: (key) -&gt; <span class="property">@get</span>(key) <span class="keyword">isnt</span> <span class="literal">undefined</span>
+
+  set: (key, value) -&gt;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-21">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-21">&#182;</a>
+              </div>
+              <p>toString() converts key to a primitive, so strict comparison works</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="keyword">unless</span> key.toString() <span class="keyword">is</span> <span class="string">'__proto__'</span>
+      <span class="property">@cache</span>[key] = value
+    <span class="keyword">else</span>
+      <span class="property">@proto_cache</span> = value</pre></div></div>
+            
+        </li>
+        
+    </ul>
+  </div>
+</body>
+</html>

@@ -1,11 +1,16 @@
+CatImpl Initialized
+Animal Initialized
 CatImpl: 1, 5
 Meow!
 *purrs loudly*
+Cat Initialized
 Cat: 2, 5
 Meow!
 *purrs loudly*
 Animal: 3, 5
 Meow!
+CatImpl Initialized
+CheshireCat Initialized
 CheshireCat: 5
 *snickers*
 I don't do that.

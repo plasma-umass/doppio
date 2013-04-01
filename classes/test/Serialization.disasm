@@ -1,0 +1,245 @@
+Compiled from "Serialization.java"
+public class classes.test.Serialization extends java.lang.Object
+  SourceFile: "Serialization.java"
+  InnerClass: 
+   #33= #2 of #31; //MyClass=class classes/test/Serialization$MyClass of class classes/test/Serialization
+  minor version: 0
+  major version: 50
+  Constant pool:
+const #1 = Method	#32.#46;	//  java/lang/Object."<init>":()V
+const #2 = class	#47;	//  classes/test/Serialization$MyClass
+const #3 = String	#48;	//  Hello
+const #4 = double	2.7E10d;
+const #6 = Method	#2.#49;	//  classes/test/Serialization$MyClass."<init>":(Ljava/lang/String;ID)V
+const #7 = Field	#50.#51;	//  java/lang/System.out:Ljava/io/PrintStream;
+const #8 = class	#52;	//  java/lang/StringBuilder
+const #9 = Method	#8.#46;	//  java/lang/StringBuilder."<init>":()V
+const #10 = String	#53;	//  serializing object: 
+const #11 = Method	#8.#54;	//  java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #12 = Method	#8.#55;	//  java/lang/StringBuilder.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+const #13 = Method	#8.#56;	//  java/lang/StringBuilder.toString:()Ljava/lang/String;
+const #14 = Method	#57.#58;	//  java/io/PrintStream.println:(Ljava/lang/String;)V
+const #15 = class	#59;	//  java/io/ByteArrayOutputStream
+const #16 = Method	#15.#46;	//  java/io/ByteArrayOutputStream."<init>":()V
+const #17 = class	#60;	//  java/io/ObjectOutputStream
+const #18 = Method	#17.#61;	//  java/io/ObjectOutputStream."<init>":(Ljava/io/OutputStream;)V
+const #19 = Method	#17.#62;	//  java/io/ObjectOutputStream.writeObject:(Ljava/lang/Object;)V
+const #20 = Method	#15.#63;	//  java/io/ByteArrayOutputStream.toByteArray:()[B
+const #21 = class	#64;	//  java/lang/Exception
+const #22 = String	#65;	//  Exception during serialization: 
+const #23 = class	#66;	//  java/io/ObjectInputStream
+const #24 = class	#67;	//  java/io/ByteArrayInputStream
+const #25 = Method	#24.#68;	//  java/io/ByteArrayInputStream."<init>":([B)V
+const #26 = Method	#23.#69;	//  java/io/ObjectInputStream."<init>":(Ljava/io/InputStream;)V
+const #27 = Method	#23.#70;	//  java/io/ObjectInputStream.readObject:()Ljava/lang/Object;
+const #28 = Method	#23.#71;	//  java/io/ObjectInputStream.close:()V
+const #29 = String	#72;	//  deserialized object: 
+const #30 = String	#73;	//  Exception during deserialization: 
+const #31 = class	#74;	//  classes/test/Serialization
+const #32 = class	#75;	//  java/lang/Object
+const #33 = Asciz	MyClass;
+const #34 = Asciz	InnerClasses;
+const #35 = Asciz	<init>;
+const #36 = Asciz	()V;
+const #37 = Asciz	Code;
+const #38 = Asciz	LineNumberTable;
+const #39 = Asciz	main;
+const #40 = Asciz	([Ljava/lang/String;)V;
+const #41 = Asciz	StackMapTable;
+const #42 = class	#64;	//  java/lang/Exception
+const #43 = class	#76;	//  "[B"
+const #44 = Asciz	SourceFile;
+const #45 = Asciz	Serialization.java;
+const #46 = NameAndType	#35:#36;//  "<init>":()V
+const #47 = Asciz	classes/test/Serialization$MyClass;
+const #48 = Asciz	Hello;
+const #49 = NameAndType	#35:#77;//  "<init>":(Ljava/lang/String;ID)V
+const #50 = class	#78;	//  java/lang/System
+const #51 = NameAndType	#79:#80;//  out:Ljava/io/PrintStream;
+const #52 = Asciz	java/lang/StringBuilder;
+const #53 = Asciz	serializing object: ;
+const #54 = NameAndType	#81:#82;//  append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const #55 = NameAndType	#81:#83;//  append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+const #56 = NameAndType	#84:#85;//  toString:()Ljava/lang/String;
+const #57 = class	#86;	//  java/io/PrintStream
+const #58 = NameAndType	#87:#88;//  println:(Ljava/lang/String;)V
+const #59 = Asciz	java/io/ByteArrayOutputStream;
+const #60 = Asciz	java/io/ObjectOutputStream;
+const #61 = NameAndType	#35:#89;//  "<init>":(Ljava/io/OutputStream;)V
+const #62 = NameAndType	#90:#91;//  writeObject:(Ljava/lang/Object;)V
+const #63 = NameAndType	#92:#93;//  toByteArray:()[B
+const #64 = Asciz	java/lang/Exception;
+const #65 = Asciz	Exception during serialization: ;
+const #66 = Asciz	java/io/ObjectInputStream;
+const #67 = Asciz	java/io/ByteArrayInputStream;
+const #68 = NameAndType	#35:#94;//  "<init>":([B)V
+const #69 = NameAndType	#35:#95;//  "<init>":(Ljava/io/InputStream;)V
+const #70 = NameAndType	#96:#97;//  readObject:()Ljava/lang/Object;
+const #71 = NameAndType	#98:#36;//  close:()V
+const #72 = Asciz	deserialized object: ;
+const #73 = Asciz	Exception during deserialization: ;
+const #74 = Asciz	classes/test/Serialization;
+const #75 = Asciz	java/lang/Object;
+const #76 = Asciz	[B;
+const #77 = Asciz	(Ljava/lang/String;ID)V;
+const #78 = Asciz	java/lang/System;
+const #79 = Asciz	out;
+const #80 = Asciz	Ljava/io/PrintStream;;
+const #81 = Asciz	append;
+const #82 = Asciz	(Ljava/lang/String;)Ljava/lang/StringBuilder;;
+const #83 = Asciz	(Ljava/lang/Object;)Ljava/lang/StringBuilder;;
+const #84 = Asciz	toString;
+const #85 = Asciz	()Ljava/lang/String;;
+const #86 = Asciz	java/io/PrintStream;
+const #87 = Asciz	println;
+const #88 = Asciz	(Ljava/lang/String;)V;
+const #89 = Asciz	(Ljava/io/OutputStream;)V;
+const #90 = Asciz	writeObject;
+const #91 = Asciz	(Ljava/lang/Object;)V;
+const #92 = Asciz	toByteArray;
+const #93 = Asciz	()[B;
+const #94 = Asciz	([B)V;
+const #95 = Asciz	(Ljava/io/InputStream;)V;
+const #96 = Asciz	readObject;
+const #97 = Asciz	()Ljava/lang/Object;;
+const #98 = Asciz	close;
+
+{
+public classes.test.Serialization();
+  Code:
+   Stack=1, Locals=1, Args_size=1
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+  LineNumberTable: 
+   line 4: 0
+   line 34: 4
+
+
+public static void main(java.lang.String[]);
+  Code:
+   Stack=6, Locals=5, Args_size=1
+   0:	new	#2; //class classes/test/Serialization$MyClass
+   3:	dup
+   4:	ldc	#3; //String Hello
+   6:	bipush	-7
+   8:	ldc2_w	#4; //double 2.7E10d
+   11:	invokespecial	#6; //Method classes/test/Serialization$MyClass."<init>":(Ljava/lang/String;ID)V
+   14:	astore_2
+   15:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   18:	new	#8; //class java/lang/StringBuilder
+   21:	dup
+   22:	invokespecial	#9; //Method java/lang/StringBuilder."<init>":()V
+   25:	ldc	#10; //String serializing object: 
+   27:	invokevirtual	#11; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   30:	aload_2
+   31:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+   34:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   37:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   40:	new	#15; //class java/io/ByteArrayOutputStream
+   43:	dup
+   44:	invokespecial	#16; //Method java/io/ByteArrayOutputStream."<init>":()V
+   47:	astore_3
+   48:	new	#17; //class java/io/ObjectOutputStream
+   51:	dup
+   52:	aload_3
+   53:	invokespecial	#18; //Method java/io/ObjectOutputStream."<init>":(Ljava/io/OutputStream;)V
+   56:	astore	4
+   58:	aload	4
+   60:	aload_2
+   61:	invokevirtual	#19; //Method java/io/ObjectOutputStream.writeObject:(Ljava/lang/Object;)V
+   64:	aload_3
+   65:	invokevirtual	#20; //Method java/io/ByteArrayOutputStream.toByteArray:()[B
+   68:	astore_1
+   69:	goto	99
+   72:	astore_2
+   73:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   76:	new	#8; //class java/lang/StringBuilder
+   79:	dup
+   80:	invokespecial	#9; //Method java/lang/StringBuilder."<init>":()V
+   83:	ldc	#22; //String Exception during serialization: 
+   85:	invokevirtual	#11; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   88:	aload_2
+   89:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+   92:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   95:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   98:	return
+   99:	new	#23; //class java/io/ObjectInputStream
+   102:	dup
+   103:	new	#24; //class java/io/ByteArrayInputStream
+   106:	dup
+   107:	aload_1
+   108:	invokespecial	#25; //Method java/io/ByteArrayInputStream."<init>":([B)V
+   111:	invokespecial	#26; //Method java/io/ObjectInputStream."<init>":(Ljava/io/InputStream;)V
+   114:	astore_3
+   115:	aload_3
+   116:	invokevirtual	#27; //Method java/io/ObjectInputStream.readObject:()Ljava/lang/Object;
+   119:	checkcast	#2; //class classes/test/Serialization$MyClass
+   122:	astore_2
+   123:	aload_3
+   124:	invokevirtual	#28; //Method java/io/ObjectInputStream.close:()V
+   127:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   130:	new	#8; //class java/lang/StringBuilder
+   133:	dup
+   134:	invokespecial	#9; //Method java/lang/StringBuilder."<init>":()V
+   137:	ldc	#29; //String deserialized object: 
+   139:	invokevirtual	#11; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   142:	aload_2
+   143:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+   146:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   149:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   152:	goto	182
+   155:	astore_2
+   156:	getstatic	#7; //Field java/lang/System.out:Ljava/io/PrintStream;
+   159:	new	#8; //class java/lang/StringBuilder
+   162:	dup
+   163:	invokespecial	#9; //Method java/lang/StringBuilder."<init>":()V
+   166:	ldc	#30; //String Exception during deserialization: 
+   168:	invokevirtual	#11; //Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   171:	aload_2
+   172:	invokevirtual	#12; //Method java/lang/StringBuilder.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+   175:	invokevirtual	#13; //Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+   178:	invokevirtual	#14; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   181:	return
+   182:	return
+  Exception table:
+   from   to  target type
+     0    69    72   Class java/lang/Exception
+
+    99   152   155   Class java/lang/Exception
+
+  LineNumberTable: 
+   line 9: 0
+   line 10: 15
+   line 11: 40
+   line 12: 48
+   line 13: 58
+   line 14: 64
+   line 19: 69
+   line 16: 72
+   line 17: 73
+   line 18: 98
+   line 23: 99
+   line 24: 115
+   line 25: 123
+   line 26: 127
+   line 31: 152
+   line 28: 155
+   line 29: 156
+   line 30: 181
+   line 32: 182
+
+  StackMapTable: number_of_entries = 4
+   frame_type = 247 /* same_locals_1_stack_item_frame_extended */
+     offset_delta = 72
+     stack = [ class java/lang/Exception ]
+   frame_type = 252 /* append */
+     offset_delta = 26
+     locals = [ class "[B" ]
+   frame_type = 119 /* same_locals_1_stack_item */
+     stack = [ class java/lang/Exception ]
+   frame_type = 26 /* same */
+
+
+}
+
