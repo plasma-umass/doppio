@@ -23,8 +23,6 @@ enough to run the following programs:
 
 The code has been tested on the latest versions of Chrome, Firefox, Safari,
 Opera, IE 9, IE 10, and Node, but should run in just about any browser.
-Doppio should also work in IE 8, but may have some small frontend bugs that do
-not interfere with JVM logic.
 
 Check out the [demo!](http://int3.github.com/doppio)
 
