@@ -189,11 +189,13 @@ before trying to bolt on a compilation engine.</p>
 <p>Up next on our roadmap is:</p>
 
 <ul>
-<li>Improving threads support.</li>
+<li>Improving threads support; due to our yielding strategy, we currently have difficulty with ad-hoc synchronization implemented through atomic instructions.</li>
 <li>Running the JVM in a WebWorker (if available) to prevent us from hogging the
 main JavaScript thread.</li>
 <li>Refactoring core JVM logic for speed.</li>
 <li>Fixing any remaining bugs in JVM logic.</li>
+<li>AWT/Swing support for GUI applications.</li>
+<li>Cloud storage support in our filesystem.</li>
 <li>Architecting the core JVM so we can eventually implement JIT compilation on
 a per-method basis. There are a number of concerns that we have to deal with
 before this will be possible.</li>
