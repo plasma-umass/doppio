@@ -228,39 +228,47 @@ class root.RuntimeState
     fs.writeFileSync "./core-#{thread_name @, @curr_thread}#{suffix}.json",
       (JSON.stringify snapshot.serialize()), 'utf8', true
 
-  choose_next_thread: (blacklist) ->
+  choose_next_thread: (blacklist, cb) ->
     unless blacklist?
       blacklist = []
       for key,bl of @waiting_threads
         for b in bl
           blacklist.push b
+    wakeup_time = @curr_thread.wakeup_time ? Infinity
+    current_time = (new Date).getTime()
     for t in @thread_pool when t isnt @curr_thread and t.$isAlive
       continue if t in blacklist
+      if t.wakeup_time > current_time
+        wakeup_time = t.wakeup_time if t.wakeup_time < wakeup_time
+        continue
       debug "TE(choose_next_thread): choosing thread #{thread_name(@, t)}"
-      return t
-    # we couldn't find a thread! We can't error out, so keep trying
-    debug "TE(choose_next_thread): no thread found, sticking with curr_thread"
-    return @curr_thread
+      return cb(t)
+    if Infinity > wakeup_time > current_time
+      debug "TE(choose_next_thread): waiting until #{wakeup_time} and trying again"
+      setTimeout((=> @choose_next_thread(null, cb)), wakeup_time - current_time)
+    else
+      debug "TE(choose_next_thread): no thread found, sticking with curr_thread"
+      return cb(@curr_thread)
 
   wait: (monitor, yieldee) ->
-    # add current thread to wait queue
     debug "TE(wait): waiting #{thread_name @, @curr_thread} on lock #{monitor.ref}"
+    # add current thread to wait queue
     if @waiting_threads[monitor]?
       @waiting_threads[monitor].push @curr_thread
     else
       @waiting_threads[monitor] = [@curr_thread]
     # yield execution to a non-waiting thread
-    yieldee ?= @choose_next_thread @waiting_threads[monitor]
-    @yield yieldee
+    return @yield yieldee if yieldee?
+    @choose_next_thread @waiting_threads[monitor], ((nt)=>@yield(nt))
 
-  yield: (yieldee=@choose_next_thread()) ->
+  yield: (yieldee) ->
     debug "TE(yield): yielding #{thread_name @, @curr_thread} to #{thread_name @, yieldee}"
     old_thread_sf = @curr_frame()
     @curr_thread = yieldee
     new_thread_sf = @curr_frame()
     new_thread_sf.runner = => @meta_stack().pop()
     old_thread_sf.runner = => @meta_stack().pop()
-    throw ReturnException
+    return
 
   curr_frame: -> @meta_stack().curr_frame()
 
@@ -358,32 +366,33 @@ class root.RuntimeState
         setup_fn()
         start_time = (new Date()).getTime()
         m_count = @max_m_count
-        while true
+        sf = @curr_frame()
+        while sf.runner? and m_count > 0
+          sf.runner()
+          m_count--
           sf = @curr_frame()
-          while sf.runner? and m_count > 0
-            sf.runner()
-            m_count--
-            sf = @curr_frame()
-          if sf.runner? && m_count == 0
-            # Loop has stopped to give the browser some breathing room.
-            duration = (new Date()).getTime() - start_time
-            # We should yield once every 1-2 seconds or so.
-            if duration > 2000 or duration < 1000
-              # Figure out what to adjust max_m_count by.
-              ms_per_m = duration / @max_m_count
-              @max_m_count = (1000/ms_per_m)|0
-            # Call ourselves to yield and resume.
-            return @run_until_finished (->), no_threads, done_cb
+        if sf.runner? && m_count == 0
+          # Loop has stopped to give the browser some breathing room.
+          duration = (new Date()).getTime() - start_time
+          # We should yield once every 1-2 seconds or so.
+          if duration > 2000 or duration < 1000
+            # Figure out what to adjust max_m_count by.
+            ms_per_m = duration / @max_m_count
+            @max_m_count = (1000/ms_per_m)|0
+          # Call ourselves to yield and resume.
+          return @run_until_finished (->), no_threads, done_cb
 
-          # we've finished this thread, no more runners
-          # we're done if the only thread is "main"
-          break if no_threads or @thread_pool.length <= 1
-          # remove the current (finished) thread
-          debug "TE(toplevel): finished thread #{thread_name @, @curr_thread}"
-          @curr_thread.$isAlive = false
-          @thread_pool.splice @thread_pool.indexOf(@curr_thread), 1
-          @curr_thread = @choose_next_thread()
-        done_cb true
+        # we've finished this thread, no more runners
+        # we're done if the only thread is "main"
+        if no_threads or @thread_pool.length <= 1
+          return done_cb(true)
+        # remove the current (finished) thread
+        debug "TE(toplevel): finished thread #{thread_name @, @curr_thread}"
+        @curr_thread.$isAlive = false
+        @thread_pool.splice @thread_pool.indexOf(@curr_thread), 1
+        return @choose_next_thread null, (next_thread) =>
+          @curr_thread = next_thread
+          @run_until_finished (->), no_threads, done_cb
       catch e
         if e == 'Error in class initialization'
           done_cb false

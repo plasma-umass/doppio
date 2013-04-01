@@ -721,6 +721,7 @@ native_methods =
               rs.java_throw rs.get_bs_class('Ljava/lang/InterruptedException;'), 'interrupt0 called'
             _this.$meta_stack.push {}  # dummy
             rs.yield _this
+            throw exceptions.ReturnException
         o 'start0()V', (rs, _this) ->
             _this.$isAlive = true
             _this.$meta_stack = new runtime.CallStack()
@@ -741,8 +742,17 @@ native_methods =
               rs.meta_stack().pop()
             throw exceptions.ReturnException
         o 'sleep(J)V', (rs, millis) ->
-            rs.async_op (cb) -> setTimeout(cb, millis.toNumber())
-        o 'yield()V', (rs, _this) -> rs.yield()
+            # sleep is a yield point, plus some fancy wakeup semantics
+            rs.curr_thread.wakeup_time = (new Date).getTime() + millis.toNumber()
+            rs.async_op (resume_cb) ->
+              rs.choose_next_thread null, (next_thread) ->
+                rs.yield next_thread
+                resume_cb()
+        o 'yield()V', (rs, _this) ->
+            rs.async_op (resume_cb) ->
+              rs.choose_next_thread null, (next_thread) ->
+                rs.yield next_thread
+                resume_cb()
       ]
       Throwable: [
         o 'fillInStackTrace()L!/!/!;', (rs, _this) ->
