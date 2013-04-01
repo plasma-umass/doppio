@@ -271,15 +271,17 @@ native_methods =
         o 'getName0()L!/!/String;', (rs, _this) ->
             rs.init_string(_this.$cls.toExternalString())
         o 'forName0(L!/!/String;ZL!/!/ClassLoader;)L!/!/!;', (rs, jvm_str, initialize, loader) ->
-            type = util.int_classname jvm_str.jvm2js_str()
+            classname = util.int_classname jvm_str.jvm2js_str()
+            unless util.verify_int_classname classname
+              rs.java_throw rs.get_bs_class('Ljava/lang/ClassNotFoundException;'), classname
             loader = get_cl_from_jclo rs, loader
             rs.async_op (resume_cb, except_cb) ->
               if initialize
-                loader.initialize_class rs, type, ((cls) ->
+                loader.initialize_class rs, classname, ((cls) ->
                   resume_cb cls.get_class_object(rs)
                 ), except_cb, true
               else
-                loader.resolve_class rs, type, ((cls) ->
+                loader.resolve_class rs, classname, ((cls) ->
                   resume_cb cls.get_class_object(rs)
                 ), except_cb, true
             return

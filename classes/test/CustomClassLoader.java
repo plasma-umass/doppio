@@ -32,6 +32,9 @@ public class CustomClassLoader extends ClassLoader {
     catch (IOException e) {
       System.out.println("ERROR loading class file: " + e);
     }
+    catch (NullPointerException e) {
+      System.out.println("ERROR reading " + clsFile);
+    }
 
     if (classBytes == null) {
       throw new ClassNotFoundException("Cannot load class: " + className);
@@ -84,9 +87,15 @@ public class CustomClassLoader extends ClassLoader {
     System.out.println("the same as that loaded by System loader.");
 
     try {
-      Class<?> nonexistant = Class.forName("java.lang.Lolol[]", true, loader1);
+      Class<?> nonexistant = Class.forName("[Ljava.lang.Lolol;", true, loader1);
     } catch (ClassNotFoundException e) {
-      System.out.println("java.lang.Lolol[] not found.");
+      System.out.println(e);
+    }
+    try {
+      // this syntax is malformed, and should be caught in forName0
+      Class<?> malformed = Class.forName("java.lang.Lolol[]", true, loader1);
+    } catch (ClassNotFoundException e) {
+      System.out.println("java.lang.Lolol[] is malformed");
     }
   }
 }

@@ -222,6 +222,19 @@ root.is_string = (obj) -> typeof obj == 'string' or obj instanceof String
 root.ext_classname = (str) -> root.descriptor2typestr(str).replace /\//g, '.'
 root.int_classname = (str) -> root.typestr2descriptor(str).replace /\./g, '/'
 
+root.verify_int_classname = (str) ->
+  array_nesting = str.match(/^\[*/)[0].length
+  return false if array_nesting > 255
+  str = str[array_nesting...] if array_nesting > 0
+  if str[0] is 'L'
+    return false if str[str.length-1] isnt ';'
+    str = str[1...-1]
+  return true if str of root.internal2external
+  return false if str.match /\/{2,}/
+  for part in str.split '/'
+    return false if part.match /[^$_a-z0-9]/i
+  return true
+
 root.internal2external =
   B: 'byte'
   C: 'char'
