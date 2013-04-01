@@ -417,6 +417,33 @@ class root.ReturnOpcode extends root.Opcode
 jsr = (rs) ->
   rs.push(rs.curr_pc()+@byte_count+1); rs.inc_pc(@offset); false
 
+root.monitorenter = (rs, monitor) ->
+  if (locked_thread = rs.lock_refs[monitor])?
+    if locked_thread is rs.curr_thread
+      rs.lock_counts[monitor]++  # increment lock counter, to only unlock at zero
+    else
+      rs.inc_pc(1)
+      rs.meta_stack().push {}  # dummy, to be popped by rs.yield
+      rs.wait monitor
+      return false
+  else  # this lock not held by any thread
+    rs.lock_refs[monitor] = rs.curr_thread
+    rs.lock_counts[monitor] = 1
+  return true
+
+root.monitorexit = (rs, monitor) ->
+  return unless (locked_thread = rs.lock_refs[monitor])?
+  if locked_thread is rs.curr_thread
+    rs.lock_counts[monitor]--
+    if rs.lock_counts[monitor] == 0
+      delete rs.lock_refs[monitor]
+      # perform a notifyAll if the lock is now free
+      if rs.waiting_threads[monitor]?
+        rs.waiting_threads[monitor] = []
+  else
+    rs.java_throw rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;'),
+      "Tried to monitorexit on lock not held by current thread"
+
 # these objects are used as prototypes for the parsed instructions in the
 # classfile
 root.opcodes = {
@@ -805,30 +832,8 @@ root.opcodes = {
           resume_cb undefined, undefined, true, false
         ), except_cb
   }
-  194: new root.Opcode 'monitorenter', { execute: (rs)->
-    monitor = rs.pop()
-    if (locked_thread = rs.lock_refs[monitor])?
-      if locked_thread is rs.curr_thread
-        rs.lock_counts[monitor]++  # increment lock counter, to only unlock at zero
-      else
-        rs.inc_pc(1)
-        rs.meta_stack().push {}  # dummy, to be popped by rs.yield
-        rs.wait monitor
-    else  # this lock not held by any thread
-      rs.lock_refs[monitor] = rs.curr_thread
-      rs.lock_counts[monitor] = 1
-  }
-  195: new root.Opcode 'monitorexit',  { execute: (rs)->
-    monitor = rs.pop()
-    return unless (locked_thread = rs.lock_refs[monitor])?
-    if locked_thread is rs.curr_thread
-      rs.lock_counts[monitor]--
-      if rs.lock_counts[monitor] == 0
-        delete rs.lock_refs[monitor]
-    else
-      rs.java_throw rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;'),
-        "Tried to monitorexit on lock not held by current thread"
-  }
+  194: new root.Opcode 'monitorenter', { execute: (rs)-> root.monitorenter rs, rs.pop() }
+  195: new root.Opcode 'monitorexit',  { execute: (rs)-> root.monitorexit rs, rs.pop() }
   197: new root.MultiArrayOpcode 'multianewarray'
   198: new root.UnaryBranchOpcode 'ifnull', { cmp: (v) -> not v? }
   199: new root.UnaryBranchOpcode 'ifnonnull', { cmp: (v) -> v? }
