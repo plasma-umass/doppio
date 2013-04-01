@@ -280,14 +280,16 @@ class LocalStorageSource extends FileSource
     # Index of all files in LS.
     @index = new FileIndex()
     # Initialize index w/ LS files and directories.
-    for path of localStorage
-      @index.add_file(path, null)
+    for i in [0...localStorage.length]
+      @index.add_file(localStorage.key(i), null)
 
-  fetch: (path) -> if localStorage[path]? then DoppioFile.fromJSON(path, localStorage[path]) else null
+  fetch: (path) ->
+    data = localStorage.getItem path
+    if data? then DoppioFile.fromJSON(path, data) else null
   store: (path, file) ->
     # XXX: Don't store if a temporary file.
     if file.mod and not file.temp
-      localStorage[path] = file.toJSON()
+      localStorage.setItem path, file.toJSON()
       @index.add_file(path, file)
     true
   rm: (path) ->
@@ -295,9 +297,9 @@ class LocalStorageSource extends FileSource
     if typeof listing != 'boolean'
       for item in listing
         itPath = path + '/' + item
-        delete localStorage[itPath]
-    else if localStorage[path]?
-      delete localStorage[path]
+        localStorage.removeItem itPath
+    else if localStorage.getItem(path)?
+      localStorage.removeItem(path)
     else
       return false
     return true
