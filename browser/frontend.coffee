@@ -151,7 +151,7 @@ $(document).ready ->
       (Note: if you edit a program and recompile with javac, you'll need
         to run 'clear_cache' to see your changes when you run the program.)
 
-      And we can even run Rhino, the Java-based JS engine!
+      We can run Rhino, the Java-based JS engine:
         rhino
 
       Text files can be edited by typing `edit [filename]`.
@@ -160,6 +160,9 @@ $(document).ready ->
       corner of the console.
 
       Enter 'help' for full a list of commands. Ctrl-D is EOF.
+
+      Doppio has been tested with the latest versions of the following desktop browsers:
+        Chrome, Safari, Firefox, Opera, Internet Explorer 10, and Internet Explorer 9.
       """
 
   stdout = (str) -> controller.message str, '', true # noreprompt
@@ -344,6 +347,7 @@ commands =
       java <class> [args...] -- Run with command-line arguments.
       javap <class>          -- Display disassembly.
       time                   -- Measure how long it takes to run a command.
+      rhino                  -- Run Rhino, the Java-based JavaScript engine.
 
     File management:
       cat <file>             -- Display a file in the console.
