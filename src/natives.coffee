@@ -766,6 +766,15 @@ native_methods =
         o 'getStackTraceElement(I)L!/!/StackTraceElement;', (rs, _this, depth) ->
             create_stack_trace(rs, _this)[depth]
       ]
+      UNIXProcess: [
+        o 'forkAndExec([B[BI[BI[BZLjava/io/FileDescriptor;Ljava/io/FileDescriptor;Ljava/io/FileDescriptor;)I',
+          (rs, _this, prog, argBlock) ->
+            progname = util.chars2js_str(prog,0,prog.array.length)
+            args = util.chars2js_str(argBlock,0,argBlock.array.length)
+            rs.java_throw rs.get_bs_class('Ljava/lang/Error;'),
+              "Doppio doesn't support forking processes. Command was: `#{progname} #{args}`"
+
+      ]
     security:
       AccessController: [
         o 'doPrivileged(L!/!/PrivilegedAction;)L!/lang/Object;', doPrivileged
