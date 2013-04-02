@@ -240,7 +240,7 @@ commands =
     jvm.run_class(rs, 'com/sun/tools/script/shell/Main', args, -> controller.reprompt())
     return null  # no reprompt, because we handle it ourselves
   list_cache: ->
-    cached_classes = Object.keys(bs_cl.loaded_classes)
+    cached_classes = bs_cl.get_loaded_class_list(true)
     '  ' + cached_classes.sort().join('\n  ')
   # Reset the bootstrap classloader
   clear_cache: ->
