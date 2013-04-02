@@ -40,6 +40,14 @@ div#console { height: 500px; padding:0; }
   51% { background:#222; color:#ccc; }
   100% { background:#222; color:#ccc; }
 }
+@-webkit-keyframes spinner {
+  0%   { -webkit-transform: rotate(0deg) }
+  100% { -webkit-transform: rotate(359deg) }
+}
+@-moz-keyframes spinner {
+  0%   { -moz-transform: rotate(0deg) }
+  100% { -moz-transform: rotate(359deg) }
+}
 div#console pre.jquery-console-focus span.jquery-console-cursor {
   background:#ccc; color:#222;
   -webkit-animation-name: blinker;
@@ -51,10 +59,17 @@ div#console pre.jquery-console-focus span.jquery-console-cursor {
   -moz-animation-timing-function: cubic-bezier(1.0,0,0,1.0);
   -moz-animation-duration: 1s;
 }
-div#console pre.jquery-console-focus span.jquery-console-cursor-busy {
-  background:#ccc !important; color:#222 !important;
-  -webkit-animation-name: none !important;
-  -moz-animation-name: none !important;
+div#console span.jquery-console-cursor-busy {
+  display: inline-block !important;
+  margin-left: 1em !important;
+  -webkit-animation-name: spinner !important;
+  -webkit-animation-iteration-count: infinite !important;
+  -webkit-animation-timing-function: linear !important;
+  -webkit-animation-duration: 1s !important;
+  -moz-animation-name: spinner !important;
+  -moz-animation-iteration-count: infinite !important;
+  -moz-animation-timing-function: linear !important;
+  -moz-animation-duration: 1s !important;
 }
 div#console pre.jquery-console-inner
  { width:100%; height:100%; padding: 0.5em;
