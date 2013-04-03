@@ -696,6 +696,13 @@ pre, div#console {
   font-size: 8pt;
   margin-bottom: 1.5em;
 }
+div#consoleUnderlay {
+  position:absolute;
+  top: 0;
+  right: 5px;
+  visibility: hidden;
+  z-index: 2;
+}
 div#overlay {
   position: absolute;
   top: 0;
@@ -708,15 +715,17 @@ div#overlay {
   opacity:0.5;
   text-shadow:0 0 0 #000;
   width:100%;
+  z-index: 9999;
 }
 div#progress-container { position:absolute;top:0;left:0;height:100%;width:100%; }
 div#progress-container div {z-index:99999}
+pre.jquery-console-inner > div, pre.jquery-console-inner > textarea {z-index:3;}
 div#progress-box { position:relative;top:40%;margin:0 auto;width:300px; }
 div#preloading-file { padding-left: 10px; white-space: nowrap; color: #ccc; }
-div#console > pre { margin: 0; padding: 0; background: #222; color: #ccc; }
+div#console > pre { margin: 0; background: #222; padding: 0; color: #ccc; }
 div#source { width:100%; height:500px;
   position:relative;border: 1px solid #ccc; float: left;}
-div#console { height: 500px; padding:0; }
+div#console { position:relative; height: 500px; padding:0; }
 @-webkit-keyframes blinker {
   0% { background:#ccc; color:#222; }
   50% { background:#ccc; color:#222; }
@@ -729,8 +738,38 @@ div#console { height: 500px; padding:0; }
   51% { background:#222; color:#ccc; }
   100% { background:#222; color:#ccc; }
 }
+@-o-keyframes blinker {
+  0% { background:#ccc; color:#222; }
+  50% { background:#ccc; color:#222; }
+  51% { background:#222; color:#ccc; }
+  100% { background:#222; color:#ccc; }
+}
+/* IE10 isn't prefixed */
+@keyframes blinker {
+  0% { background:#ccc; color:#222; }
+  50% { background:#ccc; color:#222; }
+  51% { background:#222; color:#ccc; }
+  100% { background:#222; color:#ccc; }
+}
+@-webkit-keyframes spinner {
+  0%   { -webkit-transform: rotate(0deg) }
+  100% { -webkit-transform: rotate(359deg) }
+}
+@-moz-keyframes spinner {
+  0%   { -moz-transform: rotate(0deg) }
+  100% { -moz-transform: rotate(359deg) }
+}
+@-o-keyframes spinner {
+  0%   { -o-transform: rotate(0deg) }
+  100% { -o-transform: rotate(359deg) }
+}
+/* IE10 isn't prefixed */
+@keyframes spinner {
+  0%   { transform: rotate(0deg) }
+  100% { transform: rotate(359deg) }
+}
 div#console pre.jquery-console-focus span.jquery-console-cursor {
-  background:#ccc; color:#222;
+  background:#222; color:#ccc;
   -webkit-animation-name: blinker;
   -webkit-animation-iteration-count: infinite;
   -webkit-animation-timing-function: cubic-bezier(1.0,0,0,1.0);
@@ -739,11 +778,40 @@ div#console pre.jquery-console-focus span.jquery-console-cursor {
   -moz-animation-iteration-count: infinite;
   -moz-animation-timing-function: cubic-bezier(1.0,0,0,1.0);
   -moz-animation-duration: 1s;
+  -o-animation-name: blinker;
+  -o-animation-iteration-count: infinite;
+  -o-animation-timing-function: cubic-bezier(1.0,0,0,1.0);
+  -o-animation-duration: 1s;
+  animation-name: blinker;
+  animation-iteration-count: infinite;
+  animation-timing-function: cubic-bezier(1.0,0,0,1.0);
+  animation-duration: 1s;
 }
-div#console pre.jquery-console-focus span.jquery-console-cursor-busy {
-  background:#ccc !important; color:#222 !important;
+div#console span.jquery-console-cursor-busy {
+  background:none; color:none;
   -webkit-animation-name: none !important;
   -moz-animation-name: none !important;
+  -o-animation-name: none !important;
+  animation-name: none !important;
+}
+div.consoleUnderlayBusy {
+  visibility:visible !important;
+  -webkit-animation-name: spinner !important;
+  -webkit-animation-iteration-count: infinite !important;
+  -webkit-animation-timing-function: linear !important;
+  -webkit-animation-duration: 5s !important;
+  -moz-animation-name: spinner !important;
+  -moz-animation-iteration-count: infinite !important;
+  -moz-animation-timing-function: linear !important;
+  -moz-animation-duration: 5s !important;
+  -o-animation-name: spinner !important;
+  -o-animation-iteration-count: infinite !important;
+  -o-animation-timing-function: linear !important;
+  -o-animation-duration: 5s !important;
+  animation-name: spinner !important;
+  animation-iteration-count: infinite !important;
+  animation-timing-function: linear !important;
+  animation-duration: 5s !important;
 }
 div#console pre.jquery-console-inner
  { width:100%; height:100%; padding: 0.5em;
