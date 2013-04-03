@@ -847,6 +847,10 @@ public class Chatterbot {
 	// removes punctuation and redundant
 	// spaces from the user's input
 	static String cleanString(String str) {
+		if (str == null) {
+			bQuitProgram = true;
+			return "";
+		}
 		StringBuffer temp = new StringBuffer(str.length());
 		char prevChar = 0;
 		for(int i = 0; i < str.length(); ++i) {
@@ -891,6 +895,7 @@ public class Chatterbot {
 			signon();
 			while(!quit()) {
 				get_input();
+				if (quit()) break;
 				respond();
 			}
 		}
