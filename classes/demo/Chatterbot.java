@@ -689,7 +689,7 @@ public class Chatterbot {
 			(firstChar != '_' && lastChar == '_' && pos != sInput.length()) ||
 			(firstChar == '_' && lastChar != '_' && pos == sInput.length()) )
 		{
-			System.out.println("keyword:= " + keyword + ", firstChar = " + firstChar + ", lastChar = " + lastChar);
+			//System.out.println("keyword:= " + keyword + ", firstChar = " + firstChar + ", lastChar = " + lastChar);
 			bWrongPos = true;
 		}
 		return bWrongPos;
