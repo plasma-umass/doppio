@@ -769,7 +769,7 @@ div#console { position:relative; height: 500px; padding:0; }
   100% { transform: rotate(359deg) }
 }
 div#console pre.jquery-console-focus span.jquery-console-cursor {
-  background:#222; color:#ccc;
+  background:#ccc; color:#222;
   -webkit-animation-name: blinker;
   -webkit-animation-iteration-count: infinite;
   -webkit-animation-timing-function: cubic-bezier(1.0,0,0,1.0);
