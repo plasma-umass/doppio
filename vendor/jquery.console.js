@@ -488,12 +488,14 @@
         function disableInput() {
             acceptInput = false;
             $('span.jquery-console-cursor').addClass('jquery-console-cursor-busy');
+            $('#consoleUnderlay').addClass('consoleUnderlayBusy');
         };
 
         // Enable input
         function enableInput() {
             acceptInput = true;
             $('span.jquery-console-cursor').removeClass('jquery-console-cursor-busy');
+            $('#consoleUnderlay').removeClass('consoleUnderlayBusy');
         }
 
         var type2css = {
