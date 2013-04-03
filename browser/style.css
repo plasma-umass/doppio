@@ -10,7 +10,7 @@ pre, div#console {
 div#consoleUnderlay {
   position:absolute;
   top: 0;
-  right: 0;
+  right: 5px;
   visibility: hidden;
   z-index: 2;
 }
