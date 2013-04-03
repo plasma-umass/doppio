@@ -385,12 +385,18 @@ native_methods =
             cls = _this.$cls
             em = cls.get_attribute 'EnclosingMethod'
             return null unless em?
-            rs.java_throw rs.get_bs_class('Ljava/lang/Error;'), "native method not finished: java.lang.Class.getEnclosingClass"
-            #TODO: return array w/ 3 elements:
+            enc_cls = cls.loader.get_resolved_class(em.enc_class).get_class_object(rs)
+            if em.enc_method?
+              enc_name = rs.init_string(em.enc_method.name)
+              enc_desc = rs.init_string(em.enc_method.type)
+            else
+              enc_name = null
+              enc_desc = null
+            # array w/ 3 elements:
             # - the immediately enclosing class (java/lang/Class)
             # - the immediately enclosing method or constructor's name (can be null). (String)
             # - the immediately enclosing method or constructor's descriptor (null iff name is). (String)
-            #new JavaArray rs, rs.class_lookup('[Ljava/lang/Object;'), [null,null,null]
+            new JavaArray rs, rs.get_bs_class('[Ljava/lang/Object;'), [enc_cls, enc_name, enc_desc]
         o 'getDeclaringClass()L!/!/!;', (rs, _this) ->
             return null unless _this.$cls instanceof ReferenceClassData
             cls = _this.$cls
@@ -404,7 +410,7 @@ native_methods =
               # the immediate enclosing parent, and I'm not 100% sure this is
               # guaranteed by the spec
               declaring_name = cls.constant_pool.get(entry.outer_info_index).deref()
-              return cls.loader.get_initialized_class(declaring_name).get_class_object(rs)
+              return cls.loader.get_resolved_class(declaring_name).get_class_object(rs)
             return null
         o 'getDeclaredClasses0()[L!/!/!;', (rs, _this) ->
             ret = new JavaArray rs, rs.get_bs_class('[Ljava/lang/Class;'), []

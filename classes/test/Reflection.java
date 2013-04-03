@@ -27,9 +27,18 @@ public class Reflection {
     System.out.println("called foo");
   }
 
+  public static Object classInMethod() {
+    class InMethod{};
+    return new InMethod();
+  }
+
   public static void main(String[] args)
   throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException,
          InvocationTargetException, NoSuchFieldException {
+    // test getEnclosingMethod0
+    System.out.println(Reflection.class.getEnclosingMethod());
+    System.out.println(Reflection.classInMethod().getClass().getEnclosingMethod());
+
     // repro for Jython bug
     SubClass sub = new SubClass();
     Field subf = Reflection.class.getDeclaredField("goodString");
