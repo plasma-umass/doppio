@@ -29,6 +29,11 @@ public class ArrayOps {
       System.out.println();
     }
 
+    // create arrays of unfilled arrays with nulls
+    Object[][] arrarr = new Object[1][];
+    if (arrarr[0] != null)
+      System.out.println(arrarr[0]);
+
     // all kinds of array loads
     long[] larr = new long[3];
     short[] sarr = new short[4];

@@ -311,7 +311,7 @@ class root.RuntimeState
         "Tried to init [#{type} array with length #{len}"
     if type == 'J'
       new JavaArray @, @get_bs_class('[J'), (gLong.ZERO for i in [0...len] by 1)
-    else if type[0] == 'L'  # array of object
+    else if type[0] in ['L','[']  # array of objects or other arrays
       new JavaArray @, @get_class("[#{type}"), (null for i in [0...len] by 1)
     else  # numeric array
       new JavaArray @, @get_class("[#{type}"), (0 for i in [0...len] by 1)
