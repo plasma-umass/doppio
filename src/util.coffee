@@ -18,6 +18,16 @@ root.FLOAT_NEG_INFINITY_AS_INT = -8388608
 # a NaN value in the SNaN range when an int equivalent is requested.
 root.FLOAT_NaN_AS_INT = 0x7fc00000
 
+unless Math.imul?
+  # polyfill from https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Global_Objects/Math/imul
+  Math.imul = (a, b) ->
+    ah = (a >>> 16) & 0xffff
+    al = a & 0xffff
+    bh = (b >>> 16) & 0xffff
+    bl = b & 0xffff
+    # the shift by 0 fixes the sign on the high part
+    return ((al * bl) + (((ah * bl + al * bh) << 16) >>> 0)) | 0
+
 root.int_mod = (rs, a, b) ->
   rs.java_throw rs.get_bs_class('Ljava/lang/ArithmeticException;'), '/ by zero' if b == 0
   a % b

@@ -551,7 +551,7 @@ root.opcodes = {
   101: new root.Opcode 'lsub', { execute: (rs) -> rs.push2(rs.pop2().negate().add(rs.pop2()), null) }
   102: new root.Opcode 'fsub', { execute: (rs) -> rs.push util.wrap_float(-rs.pop()+rs.pop()) }
   103: new root.Opcode 'dsub', { execute: (rs) -> rs.push2(-rs.pop2()+rs.pop2(), null) }
-  104: new root.Opcode 'imul', { execute: (rs) -> rs.push gLong.fromInt(rs.pop()).multiply(gLong.fromInt rs.pop()).toInt() }
+  104: new root.Opcode 'imul', { execute: (rs) -> rs.push Math.imul rs.pop(), rs.pop() }
   105: new root.Opcode 'lmul', { execute: (rs) -> rs.push2(rs.pop2().multiply(rs.pop2()), null) }
   106: new root.Opcode 'fmul', { execute: (rs) -> rs.push util.wrap_float(rs.pop()*rs.pop()) }
   107: new root.Opcode 'dmul', { execute: (rs) -> rs.push2(rs.pop2()*rs.pop2(), null) }
