@@ -385,7 +385,7 @@ class root.BootstrapClassLoader extends ClassLoader
     return '<*bootstrapLoader>' if 'bootstrapLoader' of visited
     visited['bootstrapLoader'] = true
     loaded = {}
-    for type,cls of @loaded_classes when cname != "__proto__"
+    for type,cls of @loaded_classes when type != "__proto__"
       loaded["#{type}(#{cls.getLoadState()})"] = cls.loader.serialize(visited)
     ref: 'bootstrapLoader'
     loaded: loaded
