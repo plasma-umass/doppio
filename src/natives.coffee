@@ -768,6 +768,13 @@ native_methods =
         o 'doPrivileged(L!/!/PrivilegedExceptionAction;L!/!/AccessControlContext;)L!/lang/Object;', doPrivileged
         o 'getStackAccessControlContext()Ljava/security/AccessControlContext;', (rs) -> null
       ]
+    sql:
+      DriverManager: [
+        o 'getCallerClassLoader()Ljava/lang/ClassLoader;', (rs) ->
+          rv = rs.meta_stack().get_caller(1).method.cls.loader.loader_obj
+          # The loader_obj of the bootstrap classloader is null.
+          return if rv != undefined then rv else null
+      ]
     io:
       Console: [
         o 'encoding()L!/lang/String;', -> null
