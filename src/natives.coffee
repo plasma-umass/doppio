@@ -578,7 +578,9 @@ native_methods =
             rs.wait _this
       ]
       Package: [
-        o 'getSystemPackage0(Ljava/lang/String;)Ljava/lang/String;', (rs) -> null
+        o 'getSystemPackage0(Ljava/lang/String;)Ljava/lang/String;', (rs, pkg_name_obj) ->
+            pkg_name = pkg_name_obj.jvm2js_str()
+            return if rs.get_bs_cl().does_package_exist(pkg_name) then pkg_name_obj else null
       ]
       ProcessEnvironment: [
         o 'environ()[[B', (rs) ->
