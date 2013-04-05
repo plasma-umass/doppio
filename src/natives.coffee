@@ -1358,7 +1358,10 @@ native_methods =
           # Reports this file's size
           o 'size0(Ljava/io/FileDescriptor;)J', (rs, _this, fd_obj) ->
             fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
-            return gLong.fromNumber(fs.fstatSync(fd).size)
+            try
+              return fs.fstatSync(fd).size
+            catch e
+              rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), 'Bad file descriptor.'
         ]
         FileDispatcher: [
           o 'init()V', (rs) -> # NOP
