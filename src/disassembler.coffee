@@ -42,13 +42,16 @@ root.disassemble = (class_file) ->
       flags = util.parse_flags cls.inner_access_flags
       access = ((f+' ' if flags[f]) for f in [ 'public', 'protected', 'private', 'abstract' ]).join ''
       cls_type = util.descriptor2typestr pool.get(cls.inner_info_index).deref()
-      if cls.outer_info_index <= 0  # it's an anonymous class
-        rv += "   #{access}##{cls.inner_info_index}; //class #{cls_type}\n"
+      if cls.inner_name_index <= 0  # anonymous inner class
+          rv += "   #{access}##{cls.inner_info_index}; //class #{cls_type}\n"
       else  # it's a named inner class
-        rv += "   #{access}##{cls.inner_name_index}= ##{cls.inner_info_index} of ##{cls.outer_info_index};"
+        rv += "   #{access}##{cls.inner_name_index}= ##{cls.inner_info_index}"
         name = pool.get(cls.inner_name_index).value
-        outer_cls_type = util.descriptor2typestr pool.get(cls.outer_info_index).deref()
-        rv += " //#{name}=class #{cls_type} of class #{outer_cls_type}\n"
+        if cls.outer_info_index <= 0
+          rv += "; //#{name}=class #{cls_type}\n"
+        else
+          outer_cls_type = util.descriptor2typestr pool.get(cls.outer_info_index).deref()
+          rv += " of ##{cls.outer_info_index}; //#{name}=class #{cls_type} of class #{outer_cls_type}\n"
   rv += "  minor version: #{class_file.minor_version}\n"
   rv += "  major version: #{class_file.major_version}\n"
   rv += "  Constant pool:\n"
