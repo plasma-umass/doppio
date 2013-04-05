@@ -360,10 +360,12 @@ class root.MultiArrayOpcode extends root.Opcode
         if len < 0 then rs.java_throw(rs.get_bs_class('Ljava/lang/NegativeArraySizeException;'),
           "Tried to init dimension #{curr_dim} of a #{@dim} dimensional #{@class.toString()} array with length #{len}")
         type = arr_types[curr_dim]
+        # Gives the JavaScript engine a size hint.
+        array = new Array(len)
         if curr_dim+1 == @dim
-          array = (default_val for i in [0...len] by 1)
+          array[i] = default_val for i in [0...len] by 1
         else
-          array = (init_arr(curr_dim+1) for i in [0...len] by 1)
+          array[i] = init_arr(curr_dim+1) for i in [0...len] by 1
         new JavaArray rs, rs.get_bs_class(type), array
       rs.push init_arr 0
 

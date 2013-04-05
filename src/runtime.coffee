@@ -309,12 +309,13 @@ class root.RuntimeState
     if len < 0
       @java_throw @get_bs_class('Ljava/lang/NegativeArraySizeException;'),
         "Tried to init [#{type} array with length #{len}"
+    # Gives the JavaScript engine a size hint.
     if type == 'J'
-      new JavaArray @, @get_bs_class('[J'), (gLong.ZERO for i in [0...len] by 1)
+      new JavaArray @, @get_bs_class('[J'), util.arrayset(len, gLong.ZERO)
     else if type[0] in ['L','[']  # array of objects or other arrays
-      new JavaArray @, @get_class("[#{type}"), (null for i in [0...len] by 1)
+      new JavaArray @, @get_class("[#{type}"), util.arrayset(len, null)
     else  # numeric array
-      new JavaArray @, @get_class("[#{type}"), (0 for i in [0...len] by 1)
+      new JavaArray @, @get_class("[#{type}"), util.arrayset(len, 0)
 
   # heap object initialization
   init_string: (str,intern=false) ->
@@ -325,7 +326,9 @@ class root.RuntimeState
     @string_pool.set(str, jvm_str) if intern
     return jvm_str
   init_carr: (str) ->
-    new JavaArray @, @get_bs_class('[C'), (str.charCodeAt(i) for i in [0...str.length] by 1)
+    carr = new Array str.length
+    carr[i] = str.charCodeAt(i) for i in [0...str.length] by 1
+    new JavaArray @, @get_bs_class('[C'), carr
 
   # address of the block that this address is contained in
   block_addr: (address) ->
