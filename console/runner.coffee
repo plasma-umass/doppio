@@ -129,9 +129,9 @@ if require.main == module
         scriptdir = path.resolve(__dirname + "/..")
         for k in rs.get_bs_cl().get_loaded_class_list(true)
           # Find where it was loaded from.
-          file = "#{k[1...-1]}.class"
+          file = "#{k}.class"
           for cpath in jvm.system_properties['java.class.path']
-            fpath = cpath + '/' + file
+            fpath = cpath + file
             try
               if fs.statSync(fpath).isFile()
                 fpath = path.resolve(fpath).substr(scriptdir.length+1)
