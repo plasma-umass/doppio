@@ -10,56 +10,6 @@ runtime = require '../src/runtime'
 
 "use strict"
 
-run_profiled = (runner, rs, cname, hot=false) ->
-  if hot
-    runner()
-
-  timings = {}
-  call_counts = {}
-
-  profiled_fn = (old_fn) -> ->
-    method = rs.curr_frame().method
-    caller = rs.meta_stack().get_caller(1).method
-    method_sig = method.full_signature()
-    hash = "#{if caller? then caller.full_signature() else "program"}|#{method_sig}"
-    timings[hash] ?= 0
-    call_counts[method_sig] ?= 0
-
-    start = (new Date).getTime()
-    old_fn.apply this, arguments
-    end = (new Date).getTime()
-
-    timings[hash] += end - start
-    call_counts[method_sig]++
-
-
-  methods.Method::run_bytecode = profiled_fn(methods.Method::run_bytecode)
-  methods.Method::run_manually = profiled_fn(methods.Method::run_manually)
-
-  runner (->
-    self_timings = {}
-    total_timings = {}
-
-    for k, v of timings
-      [caller,method] = k.split "|"
-      self_timings[method]  ?= 0
-      self_timings[caller]  ?= 0
-      total_timings[method] ?= 0
-      self_timings[method]  += v
-      self_timings[caller]  -= v
-      total_timings[method] += v
-
-    arr = (name: k, total: total_timings[k], self: v, counts:call_counts[k] for k, v of self_timings)
-    arr.sort (a, b) -> b.self - a.self
-    total_time = total_timings["L#{cname};::main([Ljava/lang/String;)V"]
-
-    console.log "\nProfiler results: #{total_time} ms total"
-    console.log ['total','self','calls','self ms/call','name'].join '\t'
-    for entry in arr[0..30]
-      avg = entry.self / entry.counts
-      console.log "#{entry.total}\t#{entry.self}\t#{entry.counts}\t#{avg.toFixed 1}\t#{entry.name}"
-    )
-
 stub = (obj, name, replacement, wrapped) ->
   old_fn = obj[name]
   try
@@ -108,7 +58,6 @@ if require.main == module
       D: 'system properties, key=value, comma-separated',
       classpath: 'JVM classpath, "path1:...:pathn"',
       log: 'log level, [0-10]|vtrace|trace|debug|error',
-      profile: 'turn on profiler, --profile=hot for warm cache',
       jar: 'add JAR to classpath and run its Main-Class (if found)',
       'jar-args': 'arguments to pass to the Main-Class of a jar',
       'count-logs': 'count log messages instead of printing them',
@@ -171,8 +120,11 @@ if require.main == module
     main_args = argv._[1..]
 
   run = (done_cb) -> jvm.run_class rs, cname, main_args, done_cb
+  # default done_cb is a nop
   done_cb = ->
-    if argv['list-class-cache']
+
+  if argv['list-class-cache']
+    done_cb = ->
       scriptdir = path.resolve(__dirname + "/..")
       for k in rs.get_bs_cl().get_loaded_class_list()
         k = k[1...-1]
@@ -190,16 +142,17 @@ if require.main == module
               break
           catch e
             # Do nothing; iterate.
-
-  if argv.profile?
-    run_profiled run, rs, cname, argv.hot
   else if argv['count-logs']
     count = 0
-    stub console, 'log', (-> ++count), run
-    console.log "console.log() was called a total of #{count} times."
+    old_log = console.log
+    console.log = -> ++count
+    done_cb = ->
+      console.log = old_log
+      console.log "console.log() was called a total of #{count} times."
   else if argv['skip-logs']? # avoid generating unnecessary log data
     count = parseInt argv['skip-logs'], 10
-    old_fn = console.log
-    stub console, 'log', (-> if --count == 0 then console.log = old_fn), run
-  else
-    run(done_cb)
+    old_log = console.log
+    console.log = -> if --count == 0 then console.log = old_log
+
+  # finally set up. run it.
+  run(done_cb)
