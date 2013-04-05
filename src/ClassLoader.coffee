@@ -128,6 +128,11 @@ class ClassLoader
   define_class: (rs, type_str, data, success_fn, failure_fn, parallel=false, explicit=false) ->
     trace "Defining class #{type_str}..."
     cdata = new ReferenceClassData(data, @)
+    if (type = cdata.get_type()) isnt type_str
+      msg = "#{util.descriptor2typestr type_str} (wrong name: #{util.descriptor2typestr type})"
+      return failure_fn (=>
+        rs.java_throw @get_initialized_class('Ljava/lang/NoClassDefFoundError;'), msg
+      )
     # Add the class before we fetch its super class / interfaces.
     @_add_class type_str, cdata
     # What classes are we fetching?
