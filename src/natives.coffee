@@ -1359,7 +1359,7 @@ native_methods =
           o 'size0(Ljava/io/FileDescriptor;)J', (rs, _this, fd_obj) ->
             fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
             try
-              return fs.fstatSync(fd).size
+              return gLong.fromNumber(fs.fstatSync(fd).size)
             catch e
               rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), 'Bad file descriptor.'
         ]
