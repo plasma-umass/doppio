@@ -52,10 +52,12 @@ if require.main == module
   # note that optimist does not know how to parse quoted string parameters, so we must
   # place the arguments to the java program after '--' rather than as a normal flag value.
   optimist = require('optimist')
-    .boolean(['count-logs','h','list-class-cache','show-nyi-natives','dump-state'])
+    .boolean(['count-logs','h','list-class-cache','show-nyi-natives',
+      'dump-state','benchmark'])
     .alias({h: 'help'})
     .describe({
       D: 'system properties, key=value, comma-separated',
+      benchmark: 'time execution, both hot and cold',
       classpath: 'JVM classpath, "path1:...:pathn"',
       log: 'log level, [0-10]|vtrace|trace|debug|error',
       jar: 'add JAR to classpath and run its Main-Class (if found)',
@@ -120,39 +122,51 @@ if require.main == module
     main_args = argv._[1..]
 
   run = (done_cb) -> jvm.run_class rs, cname, main_args, done_cb
-  # default done_cb is a nop
-  done_cb = ->
 
-  if argv['list-class-cache']
-    done_cb = ->
-      scriptdir = path.resolve(__dirname + "/..")
-      for k in rs.get_bs_cl().get_loaded_class_list()
-        k = k[1...-1]
-        # Find where it was loaded from.
-        file = k + ".class"
-        for cpath in jvm.system_properties['java.class.path']
-          fpath = cpath + '/' + file
-          try
-            if fs.statSync(fpath).isFile()
-              fpath = path.resolve(fpath).substr(scriptdir.length+1)
-              # Ensure the truncated path is valid. This ensures that the file
-              # is in a subdirectory of "scriptdir"
-              if fs.existsSync fpath
-                console.log(fpath)
-              break
-          catch e
-            # Do nothing; iterate.
-  else if argv['count-logs']
-    count = 0
-    old_log = console.log
-    console.log = -> ++count
-    done_cb = ->
-      console.log = old_log
-      console.log "console.log() was called a total of #{count} times."
-  else if argv['skip-logs']? # avoid generating unnecessary log data
-    count = parseInt argv['skip-logs'], 10
-    old_log = console.log
-    console.log = -> if --count == 0 then console.log = old_log
+  done_cb = switch
+    when argv['list-class-cache']
+      ->  # done_cb
+        scriptdir = path.resolve(__dirname + "/..")
+        for k in rs.get_bs_cl().get_loaded_class_list(true)
+          # Find where it was loaded from.
+          file = "#{k[1...-1]}.class"
+          for cpath in jvm.system_properties['java.class.path']
+            fpath = cpath + '/' + file
+            try
+              if fs.statSync(fpath).isFile()
+                fpath = path.resolve(fpath).substr(scriptdir.length+1)
+                # Ensure the truncated path is valid. This ensures that the file
+                # is in a subdirectory of "scriptdir"
+                if fs.existsSync fpath
+                  console.log(fpath)
+                break
+            catch e
+              # Do nothing; iterate.
+    when argv['count-logs']
+      count = 0
+      old_log = console.log
+      console.log = -> ++count
+      ->  # done_cb
+        console.log = old_log
+        console.log "console.log() was called a total of #{count} times."
+    when argv['skip-logs']?
+      # avoid generating unnecessary log data
+      count = parseInt argv['skip-logs'], 10
+      old_log = console.log
+      console.log = -> if --count == 0 then console.log = old_log
+      ->  # no special handling needed in done_cb
+    when argv['benchmark']
+      console.log 'Starting cold-cache run...'
+      cold_start = (new Date).getTime()
+      ->  # done_cb runs it again, for hot cache timing
+        mid_point = (new Date).getTime()
+        console.log 'Starting hot-cache run...'
+        run ->
+          finished = (new Date).getTime()
+          console.log "Timing:\n\t#{mid_point-cold_start} ms cold\n\t#{finished-mid_point} ms hot"
+    else
+      # default done_cb is a no-op
+      ->
 
   # finally set up. run it.
   run(done_cb)
