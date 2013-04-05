@@ -20,7 +20,7 @@ read_stdin = (n_bytes, resume) ->
 if require.main == module
   # initialize the RuntimeState
   write_stdout = process.stdout.write.bind process.stdout
-  jvm.classpath = [ ".", "#{__dirname}/../vendor/classes" ]
+  jvm.set_classpath "#{__dirname}/../vendor/classes", '.'
   rs = new RuntimeState(write_stdout, read_stdin, new BootstrapClassLoader(jvm.read_classfile))
 
   # create the REPL

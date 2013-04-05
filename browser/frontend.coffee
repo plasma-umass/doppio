@@ -57,7 +57,7 @@ preload = ->
 # Read in a binary classfile synchronously. Return an array of bytes.
 read_classfile = (cls, cb, failure_cb) ->
   cls = cls[1...-1] # Convert Lfoo/bar/Baz; -> foo/bar/Baz.
-  for path in jvm.classpath
+  for path in jvm.system_properties['java.class.path']
     fullpath = "#{path}#{cls}.class"
     try
       data = util.bytestr_to_array node.fs.readFileSync(fullpath)

@@ -16,35 +16,14 @@ fs = node?.fs ? require 'fs'
 # things assigned to root will be available outside this module
 root = exports ? this.natives = {}
 
-if node?  # node is only defined if we're in the browser
-  vendor_path = '/home/doppio/vendor'
-else
-  vendor_path = path.resolve __dirname, '../vendor'
-
-system_properties = {
-  'java.home': "#{vendor_path}/java_home",
-  'sun.boot.class.path': "#{vendor_path}/classes",
-  'file.encoding':'UTF-8','java.vendor':'Doppio',
-  'java.version': '1.6', 'java.vendor.url': 'https://github.com/int3/doppio',
-  'java.class.version': '50.0',
-  'java.specification.version': '1.6',
-  'line.separator':'\n', 'file.separator':'/', 'path.separator':':',
-  'user.dir': path.resolve('.'),'user.home':'.','user.name':'DoppioUser',
-  'os.name':'doppio', 'os.arch': 'js', 'os.version': '0',
-  'java.awt.headless': (not node?).toString(),  # true if we're using the console frontend
-  'java.awt.graphicsenv': 'classes.awt.CanvasGraphicsEnvironment',
-  'useJavaUtilZip': 'true'  # hack for sun6javac, avoid ZipFileIndex shenanigans
-}
-
 get_property = (rs, jvm_key, _default = null) ->
   key = jvm_key.jvm2js_str()
-  # XXX: mega hack, please make this better
-  if key == 'java.class.path'
-    # jvm is already defined in release mode
-    classpath = jvm?.classpath ? require('./jvm').classpath
+  # jvm is already defined in release mode
+  jvm = jvm ? require('./jvm')
+  val = jvm.system_properties[key]
+  if key is 'java.class.path'  # special case
     # the last path is actually the bootclasspath (vendor/classes/)
-    return rs.init_string classpath[0...classpath.length-1].join ':'
-  val = system_properties[key]
+    return rs.init_string val[0...val.length-1].join ':'
   if val? then rs.init_string(val, true) else _default
 
 # convenience function. idea taken from coffeescript's grammar
@@ -807,12 +786,14 @@ native_methods =
             my_sf.runner = ->
               cache_init.setup_stack(rs)
               my_sf.runner = ->
+                # hack: don't use get_property if we don't want to make java/lang/String objects
+                system_properties = (jvm ? require('./jvm')).system_properties
                 rv = new JavaObject rs, rs.get_bs_class('Ljava/io/UnixFileSystem;'), {
                   'Ljava/io/UnixFileSystem;cache': cache1
                   'Ljava/io/UnixFileSystem;javaHomePrefixCache': cache2
                   'Ljava/io/UnixFileSystem;slash': system_properties['file.separator'].charCodeAt(0)
                   'Ljava/io/UnixFileSystem;colon': system_properties['path.separator'].charCodeAt(0)
-                  'Ljava/io/UnixFileSystem;javaHome': rs.init_string(system_properties['java.home'], true)
+                  'Ljava/io/UnixFileSystem;javaHome': rs.init_string system_properties['java.home'], true
                 }
                 rs.meta_stack().pop()
                 rs.push rv

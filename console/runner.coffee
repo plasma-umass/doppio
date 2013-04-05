@@ -85,7 +85,7 @@ extract_jar = (jar_path, main_class_name) ->
   tmpdir = "/tmp/doppio/#{jar_name}"
   fs.mkdirSync tmpdir unless fs.existsSync tmpdir
   extract_all_to(unzipper.files, tmpdir)
-  jvm.classpath.unshift tmpdir
+  jvm.system_properties['java.class.path'].unshift tmpdir
   return tmpdir
 
 find_main_class = (extracted_jar_dir) ->
@@ -135,11 +135,9 @@ if require.main == module
   jvm.dump_state = argv['dump-state']
 
   if argv.classpath?
-    jvm.classpath = argv.classpath.split ':'
+    jvm.set_classpath "#{__dirname}/../vendor/classes", argv.classpath
   else
-    jvm.classpath = ["."]
-
-  jvm.classpath.push "#{__dirname}/../vendor/classes"
+    jvm.set_classpath "#{__dirname}/../vendor/classes", '.'
 
   cname = argv._[0]
   cname = cname[0...-6] if cname?[-6..] is '.class'
@@ -173,7 +171,7 @@ if require.main == module
         k = k[1...-1]
         # Find where it was loaded from.
         file = k + ".class"
-        for cpath in jvm.classpath
+        for cpath in jvm.system_properties['java.class.path']
           fpath = cpath + '/' + file
           try
             if fs.statSync(fpath).isFile()

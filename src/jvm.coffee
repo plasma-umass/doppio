@@ -9,13 +9,33 @@ path = node?.path ? require 'path'
 # things assigned to root will be available outside this module
 root = exports ? this.jvm = {}
 
-root.classpath = []
 root.show_NYI_natives = false
 root.dump_state = false
 
+vendor_path = if node?  # node is only defined if we're in the browser
+  '/home/doppio/vendor'
+else
+  path.resolve __dirname, '../vendor'
+
+root.system_properties = {
+  'java.class.path': [],
+  'java.home': "#{vendor_path}/java_home",
+  'sun.boot.class.path': "#{vendor_path}/classes",
+  'file.encoding':'UTF-8','java.vendor':'Doppio',
+  'java.version': '1.6', 'java.vendor.url': 'https://github.com/int3/doppio',
+  'java.class.version': '50.0',
+  'java.specification.version': '1.6',
+  'line.separator':'\n', 'file.separator':'/', 'path.separator':':',
+  'user.dir': path.resolve('.'),'user.home':'.','user.name':'DoppioUser',
+  'os.name':'doppio', 'os.arch': 'js', 'os.version': '0',
+  'java.awt.headless': (not node?).toString(),  # true if we're using the console frontend
+  'java.awt.graphicsenv': 'classes.awt.CanvasGraphicsEnvironment',
+  'useJavaUtilZip': 'true'  # hack for sun6javac, avoid ZipFileIndex shenanigans
+}
+
 root.read_classfile = (cls, cb, failure_cb) ->
   cls = cls[1...-1] # Convert Lfoo/bar/Baz; -> foo/bar/Baz.
-  for p in root.classpath
+  for p in root.system_properties['java.class.path']
     filename = "#{p}/#{cls}.class"
     try
       continue unless fs.existsSync filename
@@ -38,7 +58,7 @@ root.read_classfile = (cls, cb, failure_cb) ->
 root.set_classpath = (jcl_path, classpath) ->
   classpath = classpath.split(':')
   classpath.push jcl_path
-  @classpath = []
+  root.system_properties['java.class.path'] = tmp_cp = []
   # All paths must:
   # * Exist.
   # * Be a the fully-qualified path.
@@ -49,7 +69,7 @@ root.set_classpath = (jcl_path, classpath) ->
       class_path += '/'
     # XXX: Make this asynchronous sometime.
     if fs.existsSync(class_path)
-      @classpath.push(class_path)
+      tmp_cp.push(class_path)
   return
 
 # main function that gets called from the frontend

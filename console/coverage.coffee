@@ -60,7 +60,7 @@ run_tests = (test_classes, stdout, quiet, callback) ->
     test_classes = testing.find_test_classes doppio_dir
   # set up the classpath
   jcl_dir = path.resolve doppio_dir, 'vendor/classes'
-  jvm.classpath = [doppio_dir, jcl_dir]
+  jvm.set_classpath jcl_dir, doppio_dir
 
   _runner = () ->
     return callback() if test_classes.length == 0
