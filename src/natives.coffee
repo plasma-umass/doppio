@@ -1332,6 +1332,14 @@ native_methods =
             # Keep this in sync with sun/nio/ch/FileChannelImpl/initIDs for Mac
             # JCL compatibility.
             1024
+        o 'throwException(Ljava/lang/Throwable;)V', (rs, _this, exception) ->
+            # XXX: Copied from java_throw, except instead of making a new Exception,
+            #      we already have one. May want to make this a helper method.
+            my_sf = rs.curr_frame()
+            my_sf.runner = ->
+              my_sf.runner = null
+              throw (new exceptions.JavaException(exception))
+            throw exceptions.ReturnException
       ]
     nio:
       ch:
@@ -1340,6 +1348,10 @@ native_methods =
           # This is the Mac name for sun/misc/Unsafe::pageSize. Apparently they
           # wanted to ensure page sizes can be > 2GB...
           o 'initIDs()J', (rs) -> gLong.fromNumber(1024)  # arbitrary
+          # Reports this file's size
+          o 'size0(Ljava/io/FileDescriptor;)J', (rs, _this, fd_obj) ->
+            fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
+            return gLong.fromNumber(fs.fstatSync(fd).size)
         ]
         FileDispatcher: [
           o 'init()V', (rs) -> # NOP

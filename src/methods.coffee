@@ -95,12 +95,12 @@ class root.Method extends AbstractMethodField
         @code = c
       else
         console.log(sig) if jvm.show_NYI_natives and sig.indexOf('::registerNatives()V',1) < 0 and sig.indexOf('::initIDs()V',1) < 0
-        if UNSAFE?
-          @code = null # optimization: avoid copying around params if it is a no-op.
-        else
-          @code = (rs) =>
-            unless sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
-              rs.java_throw rs.get_bs_class('Ljava/lang/Error;'), "native method NYI: #{sig}"
+        #if UNSAFE?
+        #  @code = null # optimization: avoid copying around params if it is a no-op.
+        #else
+        @code = (rs) =>
+          unless sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
+            rs.java_throw rs.get_bs_class('Ljava/lang/Error;'), "native method NYI: #{sig}"
     else
       @has_bytecode = true
       @code = _.find(@attrs, (a) -> a.name == 'Code')

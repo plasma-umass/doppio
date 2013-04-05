@@ -64,6 +64,13 @@ public class UnsafeOps {
       System.out.println(updated);
       System.out.println(((Foo)f).c);
     }
+    // Test throwException
+    Exception e = new Exception("I'm exceptional!");
+    try {
+      unsafe.throwException(e);
+    } catch (Exception exception) {
+      System.out.println("Caught an exception! Is it the same as the one I threw? "+((e == exception)?"true":"false"));
+    }
   }
 
   class Foo {

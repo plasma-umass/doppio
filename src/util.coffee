@@ -25,8 +25,9 @@ unless Math.imul?
     al = a & 0xffff
     bh = (b >>> 16) & 0xffff
     bl = b & 0xffff
-    # the shift by 0 fixes the sign on the high part
-    return ((al * bl) + (((ah * bl + al * bh) << 16) >>> 0)) | 0
+    # the shift by 0 fixes the sign on the high part, and the |0 prevents
+    # overflow on the high part.
+    return (al * bl) + (((ah * bl + al * bh) << 16) >>> 0)|0
 
 root.int_mod = (rs, a, b) ->
   rs.java_throw rs.get_bs_class('Ljava/lang/ArithmeticException;'), '/ by zero' if b == 0
