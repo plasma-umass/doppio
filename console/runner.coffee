@@ -105,6 +105,7 @@ if require.main == module
     .boolean(['count-logs','h','list-class-cache','show-nyi-natives','dump-state'])
     .alias({h: 'help'})
     .describe({
+      D: 'system properties, key=value, comma-separated',
       classpath: 'JVM classpath, "path1:...:pathn"',
       log: 'log level, [0-10]|vtrace|trace|debug|error',
       profile: 'turn on profiler, --profile=hot for warm cache',
@@ -138,6 +139,12 @@ if require.main == module
     jvm.set_classpath "#{__dirname}/../vendor/classes", argv.classpath
   else
     jvm.set_classpath "#{__dirname}/../vendor/classes", '.'
+
+  if argv.D?
+    for prop in argv.D.split ','
+      [key,value] = prop.split '='
+      jvm.system_properties[key.trim()] = value.trim()
+
 
   cname = argv._[0]
   cname = cname[0...-6] if cname?[-6..] is '.class'
