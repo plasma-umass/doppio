@@ -206,20 +206,19 @@ class root.Method extends AbstractMethodField
       unless opcodes.monitorenter(rs, @method_lock(rs))
         cf.pc = 0
         return
-    try
-      while true
-        op = code[cf.pc]
-        unless RELEASE? or logging.log_level < logging.STRACE
-          pc = cf.pc
-          throw "#{@name}:#{pc} => (null)" unless op
-          vtrace "#{padding}stack: [#{debug_vars cf.stack}], local: [#{debug_vars cf.locals}]"
-          annotation = op.annotate(pc, @cls.constant_pool)
-          vtrace "#{padding}#{@cls.get_type()}::#{@name}:#{pc} => #{op.name}" + annotation
+    # Bootstrap the loop.
+    ret = true
+    op = code[cf.pc]
+    while op.execute(rs) != false
+      unless RELEASE? or logging.log_level < logging.STRACE
+        pc = cf.pc
+        throw "#{@name}:#{pc} => (null)" unless op
+        vtrace "#{padding}stack: [#{debug_vars cf.stack}], local: [#{debug_vars cf.locals}]"
+        annotation = op.annotate(pc, @cls.constant_pool)
+        vtrace "#{padding}#{@cls.get_type()}::#{@name}:#{pc} => #{op.name}" + annotation
 
-        cf.pc += 1 + op.byte_count if (op.execute rs) isnt false
-    catch e
-      return if e is ReturnException
-      throw e
+      cf.pc += 1 + op.byte_count
+      op = code[cf.pc]
     # Must explicitly return here, to avoid Coffeescript accumulating an array of cf.pc values
     return
 

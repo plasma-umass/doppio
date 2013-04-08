@@ -1,7 +1,7 @@
 
 gLong = require '../vendor/gLong.js'
 util = require './util'
-{ReturnException,JavaException} = require './exceptions'
+{JavaException} = require './exceptions'
 {JavaObject,JavaArray,JavaClassLoaderObject} = require './java_object'
 
 "use strict"
@@ -24,6 +24,12 @@ class root.Opcode
 
   # Used to reset any cached information between JVM invocations.
   reset_cache: -> @execute = @orig_execute unless @execute is @orig_execute
+
+  # Increments the PC properly by the given offset.
+  # Subtracts the byte_count and 1 before setting the offset so that the outer
+  # loop can be simple.
+  inc_pc: (rs, offset) -> rs.inc_pc(offset - 1 - @byte_count)
+  goto_pc: (rs, new_pc) -> rs.goto_pc(new_pc - 1 - @byte_count)
 
 class root.FieldOpcode extends root.Opcode
   constructor: (name, params) ->
@@ -69,7 +75,7 @@ class root.InvokeOpcode extends root.Opcode
       my_sf = rs.curr_frame()
       if cls.method_lookup(rs, @method_spec).setup_stack(rs)?
         my_sf.pc += 1 + @byte_count
-        throw ReturnException
+        return false
     else
       # Initialize @method_spec.class and rerun opcode.
       rs.async_op (resume_cb, except_cb) =>
@@ -101,7 +107,7 @@ class root.DynInvokeOpcode extends root.InvokeOpcode
     cls = cls_obj.get_type()
     if cls_obj.method_lookup(rs, {class: cls, sig: @method_spec.sig}).setup_stack(rs)?
       my_sf.pc += 1 + @byte_count
-      throw ReturnException
+      return false
 
   get_param_word_size = (spec) ->
     state = 'name'
@@ -174,10 +180,7 @@ class root.UnaryBranchOpcode extends root.BranchOpcode
       execute: (rs) ->
         v = rs.pop()
         if params.cmp v
-          rs.inc_pc(@offset)
-          false
-        else
-          true
+          @inc_pc(rs, @offset)
     }
 
 class root.BinaryBranchOpcode extends root.BranchOpcode
@@ -187,10 +190,7 @@ class root.BinaryBranchOpcode extends root.BranchOpcode
         v2 = rs.pop()
         v1 = rs.pop()
         if params.cmp v1, v2
-          rs.inc_pc(@offset)
-          false
-        else
-          true
+          @inc_pc(rs, @offset)
     }
 
 class root.PushOpcode extends root.Opcode
@@ -285,10 +285,9 @@ class root.SwitchOpcode extends root.BranchOpcode
   execute: (rs) ->
     key = rs.pop()
     if key of @offsets
-      rs.inc_pc(@offsets[key])
+      @inc_pc(rs, @offsets[key])
     else
-      rs.inc_pc(@_default)
-    false
+      @inc_pc(rs, @_default)
 
 class root.LookupSwitchOpcode extends root.SwitchOpcode
   take_args: (code_array, constant_pool) ->
@@ -404,27 +403,27 @@ class root.ReturnOpcode extends root.Opcode
         (rs) ->
           cf = rs.meta_stack().pop()
           rs.push2 cf.stack[0], null
-          throw ReturnException
+          return false
       else if name is 'return'
         (rs) ->
           rs.meta_stack().pop()
-          throw ReturnException
+          return false
       else
         (rs) ->
           cf = rs.meta_stack().pop()
           rs.push cf.stack[0]
-          throw ReturnException
+          return false
     super name, params
 
 jsr = (rs) ->
-  rs.push(rs.curr_pc()+@byte_count+1); rs.inc_pc(@offset); false
+  rs.push(rs.curr_pc()+@byte_count+1); @inc_pc(rs, @offset);
 
-root.monitorenter = (rs, monitor) ->
+root.monitorenter = (rs, monitor, inst) ->
   if (locked_thread = rs.lock_refs[monitor])?
     if locked_thread is rs.curr_thread
       rs.lock_counts[monitor]++  # increment lock counter, to only unlock at zero
     else
-      rs.inc_pc(1)
+      if inst? then inst.inc_pc(rs, 1) else rs.inc_pc 1
       rs.meta_stack().push {}  # dummy, to be popped by rs.yield
       rs.wait monitor
       return false
@@ -623,9 +622,9 @@ root.opcodes = {
   164: new root.BinaryBranchOpcode 'if_icmple', { cmp: (v1, v2) -> v1 <= v2 }
   165: new root.BinaryBranchOpcode 'if_acmpeq', { cmp: (v1, v2) -> v1 == v2 }
   166: new root.BinaryBranchOpcode 'if_acmpne', { cmp: (v1, v2) -> v1 != v2 }
-  167: new root.BranchOpcode 'goto', { execute: (rs) -> rs.inc_pc(@offset); false }
+  167: new root.BranchOpcode 'goto', { execute: (rs) -> @inc_pc(rs, @offset) }
   168: new root.BranchOpcode 'jsr', { execute: jsr }
-  169: new root.Opcode 'ret', { byte_count: 1, execute: (rs) -> rs.goto_pc rs.cl @args[0]; false }
+  169: new root.Opcode 'ret', { byte_count: 1, execute: (rs) -> @goto_pc rs, rs.cl @args[0] }
   170: new root.TableSwitchOpcode 'tableswitch'
   171: new root.LookupSwitchOpcode 'lookupswitch'
   172: new root.ReturnOpcode 'ireturn'
@@ -834,11 +833,11 @@ root.opcodes = {
           resume_cb undefined, undefined, true, false
         ), except_cb
   }
-  194: new root.Opcode 'monitorenter', { execute: (rs)-> root.monitorenter rs, rs.pop() }
-  195: new root.Opcode 'monitorexit',  { execute: (rs)-> root.monitorexit rs, rs.pop() }
+  194: new root.Opcode 'monitorenter', { execute: (rs)-> root.monitorenter rs, rs.pop(), @; return; }
+  195: new root.Opcode 'monitorexit',  { execute: (rs)-> root.monitorexit rs, rs.pop(); return; }
   197: new root.MultiArrayOpcode 'multianewarray'
   198: new root.UnaryBranchOpcode 'ifnull', { cmp: (v) -> not v? }
   199: new root.UnaryBranchOpcode 'ifnonnull', { cmp: (v) -> v? }
-  200: new root.BranchOpcode 'goto_w', { byte_count: 4, execute: (rs) -> rs.inc_pc(@offset); false }
+  200: new root.BranchOpcode 'goto_w', { byte_count: 4, execute: (rs) -> @inc_pc(rs, @offset) }
   201: new root.BranchOpcode 'jsr_w', { byte_count: 4, execute: jsr }
 }
