@@ -149,6 +149,7 @@ java: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES) $(UTIL_CLASSES) $(LIB_CLA
 test: dependencies $(TESTS)
 	@echo ''
 	@cat classes/test/failures.txt
+	@! test -s classes/test/failures.txt # return 1 if file is nonempty
 # compiling each one by itself is really inefficient...
 %.class: %.java
 	javac $^
