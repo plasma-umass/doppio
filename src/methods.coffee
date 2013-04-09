@@ -207,7 +207,6 @@ class root.Method extends AbstractMethodField
         cf.pc = 0
         return
     # Bootstrap the loop.
-    ret = true
     op = code[cf.pc]
     while op.execute(rs) != false
       unless RELEASE? or logging.log_level < logging.STRACE
