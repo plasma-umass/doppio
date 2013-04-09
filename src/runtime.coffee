@@ -397,10 +397,8 @@ class root.RuntimeState
           @curr_thread = next_thread
           @run_until_finished (->), no_threads, done_cb
       catch e
-        if e == 'Error in class initialization'
-          done_cb false
         # XXX: We should remove this and have a better mechanism for 'returning'.
-        else if e is ReturnException
+        if e is ReturnException
           @run_until_finished (->), no_threads, done_cb
         else if e instanceof YieldIOException
           # Set "bytecode" if this was triggered by a bytecode instruction (e.g.
