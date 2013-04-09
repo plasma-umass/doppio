@@ -7,9 +7,9 @@ jvm = require '../src/jvm'
 
 "use strict"
 
-repl_run = (rs, cname, args) ->
+repl_run = (rs, cname, args, done_cb) ->
   cname = cname[0...-6] if cname[-6..] is '.class'
-  jvm.run_class rs, cname, args
+  jvm.run_class rs, cname, args, done_cb
 
 read_stdin = (n_bytes, resume) ->
   process.stdin.resume()
@@ -34,9 +34,10 @@ if require.main == module
   repl.on 'line', (line) ->
     toks = line.trim().split /\s+/
     if toks?[0]?.length > 0
-      repl_run rs, toks[0], toks[1..]
-      repl.output.write '\n'
-    repl.prompt()
+      repl_run rs, toks[0], toks[1..], ->
+        repl.prompt()
+    else
+      repl.prompt()
 
   # set the prompt, display it, and begin the loop
   repl.setPrompt 'doppio> '
