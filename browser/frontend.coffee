@@ -198,6 +198,31 @@ $(document).ready ->
   bs_cl = new ClassLoader.BootstrapClassLoader(read_classfile)
   preload()
 
+# helper function for 'ls'
+read_dir = (dir, pretty=true, columns=true) ->
+  contents = node.fs.readdirSync(dir).sort()
+  return contents.join('\n') unless pretty
+  pretty_list = []
+  max_len = 0
+  for c in contents
+    if node.fs.statSync(c).isDirectory()
+      c += '/'
+    max_len = c.length if c.length > max_len
+    pretty_list.push c
+  return pretty_list.join('\n') unless columns
+  # XXX: assumes 100-char lines
+  num_cols = (100/(max_len+1))|0
+  col_size = Math.ceil(pretty_list.length/num_cols)
+  column_list = []
+  for [1..num_cols]
+    column_list.push pretty_list.splice(0, col_size)
+  row_list = []
+  rpad = (str,len) -> str + Array(len - str.length + 1).join(' ')
+  for i in [0...col_size]
+    row = (rpad(col[i],max_len+1) for col in column_list when col[i]?)
+    row_list.push row.join('')
+  row_list.join('\n')
+
 commands =
   javac: (args, cb) ->
     jvm.set_classpath '/home/doppio/vendor/classes/', './:/home/doppio'
@@ -247,7 +272,6 @@ commands =
     bs_cl = new ClassLoader.BootstrapClassLoader(read_classfile)
     return true
   ls: (args) ->
-    read_dir = (dir) -> node.fs.readdirSync(dir).sort().join '\n'
     if args.length == 0
       read_dir '.'
     else if args.length == 1
