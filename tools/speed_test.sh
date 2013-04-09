@@ -7,7 +7,8 @@ read -a head_info <<< `git rev-list --timestamp --max-count 1 HEAD`
 commit_time=${head_info[0]}
 commit_hash=${head_info[1]}
 
-pushd ..
+pushd "`dirname $0`/.."
+
 make --quiet release-cli
 
 echo "{'commit': '$commit_hash', 'timestamp': $commit_time, 'tests': {"
