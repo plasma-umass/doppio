@@ -25,4 +25,6 @@ public class CanvasGraphicsEnvironment extends SunGraphicsEnvironment {
     public native FontConfiguration
         createFontConfiguration(boolean preferLocaleFonts,
                                 boolean preferPropFonts);
+
+    public boolean isDisplayLocal() { return true; }
 }
