@@ -11,13 +11,19 @@ pushd "`dirname $0`/.."
 
 make --quiet release-cli
 
-echo "{'commit': '$commit_hash', 'timestamp': $commit_time, 'tests': {"
-for testfile in classes/test/*.java; do
+declare -a files
+files=(classes/test/*.java)
+last_idx=$(( ${#files[*]} - 1 ))
+last_file=${files[$pos]}
+
+echo -e "{\"commit\": \"$commit_hash\", \"timestamp\": $commit_time, \"tests\": {"
+for testfile in "${files[@]}"; do
  classname=${testfile%.java}
  read -a results <<< `./doppio --benchmark $classname | tail -2 | cut -f1 -d' '`
  cold=${results[0]}
  hot=${results[1]}
- echo -e "  '${classname##*/}': [$cold,$hot],"
+ echo -en "\n  \"${classname##*/}\": [$cold,$hot]"
+ if [[ $testfile != $last_file ]]; then echo -n ","; fi
 done
 echo "}}"
 
