@@ -1,6 +1,7 @@
 import json
 import sys
 from datetime import datetime
+from optparse import OptionParser
 
 def read_benchmark(fname):
   blob = json.load(open(fname))
@@ -14,17 +15,22 @@ def fmt_col(id, label, dtype):
   return "{id: '%s', label: '%s', type: '%s'}" % (id,label,dtype)
 
 def fmt_row(vals):
-  return "{c:[%s]}" % ', '.join("{v: %r}"%v for v in vals)
+  frow_elements = ["{v: '%s'}" % vals[0]]
+  baseline = float(vals[1])
+  for v in vals[2:]:
+    frow_elements.append("{v: %f, f: '%d/%d ms'}" % (v/baseline, v, baseline))
+  return "{c:[%s]}" % ', '.join(frow_elements)
 
 def combine_to_dataTable(data, hot=True):
   data.sort()  # sorts by timestamp
   columns = [fmt_col('bench','Test','string')]
-  for _,label,_ in data:
+  for _,label,_ in data[1:]:
     columns.append(fmt_col(label[:6],label,'number'))
   test_order = sorted(data[0][2])
   rows = [[str(test)] for test in test_order]
   idx = int(hot)  # 0 if false, 1 if true
   for _,_,test_data in data:
+    #XXX: only works when all tests are the same
     for i,test_name in enumerate(test_order):
       rows[i].append(test_data[test_name][idx])
   # produce the dataTable
@@ -46,7 +52,7 @@ def write_html(title, dataTable, fh=sys.stdout):
       title: '%s',
       hAxis: {title: 'Test', showTextEvery: 1,
         slantedText: true, slantedTextAngle: 50},
-      vAxis: {title: 'Time (ms)', logScale: true}
+      vAxis: {title: 'Time/Baseline'}
     };''' % title
   print >>fh, '''(new google.visualization.ColumnChart(
       document.getElementById('chart_div'))).draw(data, options);
@@ -56,10 +62,13 @@ def write_html(title, dataTable, fh=sys.stdout):
   </body></html>'''
 
 if __name__ == '__main__':
-  if len(sys.argv) < 2:
-    print "Usage: %s [benchmark files]" % sys.argv[0]
-    sys.exit(1)
-  data = map(read_benchmark, sys.argv[1:])
-  table = combine_to_dataTable(data, hot=True)
-  write_html('Benchmarks - hot', table)
+  op = OptionParser()
+  op.add_option('-c', '--cold', action='store_true', default=False, help="use cold-start times instead of hot")
+  opts, args = op.parse_args()
+  if len(args) < 2:
+    op.error("Usage: %s baseline.json [benchmark.json]+" % sys.argv[0])
+  data = map(read_benchmark, args)
+  table = combine_to_dataTable(data, hot=(not opts.cold))
+  temp = 'cold' if opts.cold else 'hot'
+  write_html('Benchmarks vs %s - %s' %(data[0][1],temp), table)
 
