@@ -93,6 +93,10 @@ if ! command -v bundle > /dev/null; then
     fi
 fi
 
+if [ -n "$PKGMGR" ]; then
+    $PKGMGR libffi
+fi
+
 command -v bundle > /dev/null && bundle install
 
 # does sed support extended regexps?
