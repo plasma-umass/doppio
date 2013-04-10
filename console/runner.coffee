@@ -171,5 +171,10 @@ if require.main == module
       # default done_cb is a no-op
       ->
 
+  process.on 'SIGINT', ->
+    console.error 'Doppio caught SIGINT'
+    rs.dump_state() if jvm.dump_state
+    process.exit 0
+
   # finally set up. run it.
   run(done_cb)
