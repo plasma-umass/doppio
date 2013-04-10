@@ -108,7 +108,8 @@ if require.main == module
       process.stdin.pause()
       resume data
 
-  rs = new runtime.RuntimeState(stdout, read_stdin, new BootstrapClassLoader(jvm.read_classfile))
+  bs_cl = new BootstrapClassLoader(jvm.read_classfile)
+  rs = new runtime.RuntimeState(stdout, read_stdin, bs_cl)
 
   if argv.jar?
     jar_dir = extract_jar argv.jar
@@ -161,6 +162,8 @@ if require.main == module
       ->  # done_cb runs it again, for hot cache timing
         mid_point = (new Date).getTime()
         console.log 'Starting hot-cache run...'
+        # Reset runtime state.
+        rs = new runtime.RuntimeState(stdout, read_stdin, bs_cl)
         run ->
           finished = (new Date).getTime()
           console.log "Timing:\n\t#{mid_point-cold_start} ms cold\n\t#{finished-mid_point} ms hot"
