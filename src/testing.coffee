@@ -31,6 +31,10 @@ root.run_tests = (test_classes, stdout, hide_diffs, quiet, keep_going, callback)
   jcl_dir = path.resolve doppio_dir, 'vendor/classes'
   jvm.set_classpath jcl_dir, doppio_dir
 
+  xfails =
+    for failname in (fs.readFileSync 'classes/test/xfail.txt', 'utf-8').split '\n'
+      "classes/test/#{failname}"
+
   _runner = () ->
     if test_classes.length == 0
       quiet || keep_going || stdout "Pass\n"
@@ -42,9 +46,12 @@ root.run_tests = (test_classes, stdout, hide_diffs, quiet, keep_going, callback)
       hide_diffs || stdout "#{disasm_diff}\n"
       return callback(true) unless keep_going
     run_stdout_test doppio_dir, test, (diff) ->
-      if diff?
-        stdout "Failed output test #{test}\n"
-        hide_diffs || stdout "#{diff}\n"
+      if diff? ^ (test in xfails)
+        if diff?
+          stdout "Failed output test: #{test}\n"
+          hide_diffs || stdout "#{diff}\n"
+        else
+          stdout "Expected failure passed: #{test}\n"
         return callback(true) unless keep_going
       _runner()
 
