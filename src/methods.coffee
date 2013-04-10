@@ -159,8 +159,6 @@ class root.Method extends AbstractMethodField
     caller_stack.length -= @param_bytes
     params
 
-  RELEASE? || padding = '' # used in debug mode to align instruction traces
-
   convert_params: (rs, params) ->
     converted_params = [rs]
     param_idx = 0
@@ -208,13 +206,19 @@ class root.Method extends AbstractMethodField
         return
     # Bootstrap the loop.
     op = code[cf.pc]
-    while op.execute(rs) != false
+
+    loop
       unless RELEASE? or logging.log_level < logging.STRACE
         pc = cf.pc
         throw "#{@name}:#{pc} => (null)" unless op
-        vtrace "#{padding}stack: [#{debug_vars cf.stack}], local: [#{debug_vars cf.locals}]"
         annotation = op.annotate(pc, @cls.constant_pool)
-        vtrace "#{padding}#{@cls.get_type()}::#{@name}:#{pc} => #{op.name}" + annotation
+
+      break if op.execute(rs) is false
+
+      unless RELEASE? or logging.log_level < logging.STRACE
+        vtrace "#{@cls.get_type()}::#{@name}:#{pc} => #{op.name}" + annotation
+        depth = rs.meta_stack().length()
+        vtrace "D: #{depth}, S: [#{debug_vars cf.stack}], L: [#{debug_vars cf.locals}]"
 
       cf.pc += 1 + op.byte_count
       op = code[cf.pc]
