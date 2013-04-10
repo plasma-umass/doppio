@@ -72,7 +72,8 @@ class root.RuntimeState
 
   run_count = 0
 
-  constructor: (@print, @async_input, @bcl) ->
+  constructor: (@print, @_async_input, @bcl) ->
+    @input_buffer = []
     @bcl.reset()
     @startup_time = gLong.fromNumber (new Date).getTime()
     @run_stamp = ++run_count
@@ -441,3 +442,17 @@ class root.RuntimeState
             @handle_toplevel_exception e, no_threads, done_cb
       return  # this is an async method, no return value
     )
+
+  # Provide buffering for the underlying input function, returning at most
+  # n_bytes of data. Underlying _async_input is expected to 'block' if no
+  # data is available.
+  async_input: (n_bytes, resume) ->
+    if @input_buffer.length > 0
+      data = @input_buffer[...n_bytes]
+      @input_buffer = @input_buffer[n_bytes...]
+      resume data
+      return
+    @_async_input (data) =>
+      if data.length > n_bytes
+        @input_buffer = data[n_bytes...]
+      resume data[...n_bytes]

@@ -102,7 +102,7 @@ if require.main == module
   return optimist.showHelp() unless cname? or argv.jar?
 
   stdout = process.stdout.write.bind process.stdout
-  read_stdin = (n_bytes, resume) ->
+  read_stdin = (resume) ->
     process.stdin.resume()
     process.stdin.once 'data', (data) ->
       process.stdin.pause()

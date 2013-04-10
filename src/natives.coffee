@@ -845,7 +845,7 @@ native_methods =
             # reading from System.in, do it async
             rs.async_op (cb) ->
               rs.async_input 1, (byte) ->
-                cb(if byte.length == 0 then -1 else byte.charCodeAt(0))
+                cb(if byte.length == 0 then -1 else byte[0])
         o 'readBytes([BII)I', (rs, _this, byte_arr, offset, n_bytes) ->
             rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if _this.$file == 'closed'
             if _this.$file?

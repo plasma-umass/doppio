@@ -167,7 +167,7 @@ $(document).ready ->
 
   stdout = (str) -> controller.message str, '', true # noreprompt
 
-  user_input = (n_bytes, resume) ->
+  user_input = (resume) ->
     oldPrompt = controller.promptLabel
     controller.promptLabel = ''
     controller.reprompt()
@@ -179,7 +179,7 @@ $(document).ready ->
         resume 0
       else
         line += "\n" # so BufferedReader knows it has a full line
-        resume (line.charCodeAt(i) for i in [0...Math.min(n_bytes,line.length)] by 1)
+        resume (line.charCodeAt(i) for __,i in line)
 
   close_editor = ->
     $('#ide').fadeOut 'fast', ->
