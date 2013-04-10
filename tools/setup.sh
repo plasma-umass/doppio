@@ -78,7 +78,7 @@ if [[ $node_outdated == 1 ]]; then
   fi
 fi 
 echo "Installing required node modules"
-make dependencies
+npm install
 
 echo "Using `javac -version 2>&1` to generate classfiles"
 make java

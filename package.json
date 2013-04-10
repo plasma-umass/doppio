@@ -1,0 +1,11 @@
+{
+  "name": "doppio",
+  "dependencies": {
+    "coffee-script": "1.6.2",
+    "uglify-js": "1",
+    "optimist": "*",
+    "docco": "*",
+    "node-zip": "*",
+    "shell-quote": "*"
+  }
+}

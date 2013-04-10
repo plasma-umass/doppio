@@ -12,12 +12,9 @@ DIST_NAME = $(shell echo "Doppio_`date +'%y-%m-%d'`.tar.gz")
 # DEPENDENCIES
 DOPPIO_DIR    := $(CURDIR)
 BOOTCLASSPATH := $(DOPPIO_DIR)/vendor/classes
-COFFEEC  := $(DOPPIO_DIR)/node_modules/coffee-script/bin/coffee
-UGLIFYJS := $(DOPPIO_DIR)/node_modules/uglify-js/bin/uglifyjs
-OPTIMIST := $(DOPPIO_DIR)/node_modules/optimist/index.js
-DOCCO    := $(DOPPIO_DIR)/node_modules/docco/bin/docco
-NODEZIP  := $(DOPPIO_DIR)/node_modules/node-zip/lib/nodezip.js
-SHELLQ   := $(DOPPIO_DIR)/node_modules/shell-quote/index.js
+COFFEEC  := $(shell npm bin)/coffee
+UGLIFYJS := $(shell npm bin)/uglifyjs
+DOCCO    := $(shell npm bin)/docco
 JAZZLIB  := $(BOOTCLASSPATH)/java/util/zip/DeflaterEngine.class
 JRE      := $(BOOTCLASSPATH)/java/lang/Object.class
 SED      := $(shell if command -v gsed >/dev/null; then echo "gsed"; else echo "sed"; fi;)
@@ -120,24 +117,10 @@ $(DIST_NAME): release docs
 	tar czf $(DIST_NAME) build/release
 
 # Installs or checks for any required dependencies.
-# Note that we force a version check on coffescript
-#  because we're introducing breaking changes.
-dependencies: $(COFFEEC) $(UGLIFYJS) $(OPTIMIST) $(JAZZLIB) $(JRE) $(DOCCO) $(NODEZIP) $(SHELLQ)
+dependencies: $(JAZZLIB) $(JRE)
 	@git submodule update --quiet --init --recursive
 	@rm -f classes/test/failures.txt
-	@if [ `$(COFFEEC) -v | cut -d' ' -f3` != "1.6.2" ]; then npm install coffee-script@1.6.2; fi
-$(COFFEEC):
-	npm install coffee-script@1.6.2
-$(UGLIFYJS):
-	npm install uglify-js@1
-$(OPTIMIST):
-	npm install optimist
-$(DOCCO):
-	npm install docco
-$(NODEZIP):
-	npm install node-zip
-$(SHELLQ):
-	npm install shell-quote
+	@npm install
 $(JAZZLIB):
 	$(error JazzLib not found. Unzip it to $(BOOTCLASSPATH), or run ./tools/setup.sh.)
 $(JRE):
