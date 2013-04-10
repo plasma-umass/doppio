@@ -1,11 +1,10 @@
+"use strict"
 
 # Export a single 'ConstantPool' constructor.
 
 # pull in external modules
 gLong = require '../vendor/gLong.js'
 util = require './util'
-
-"use strict"
 
 # All objects in the constant pool have the properties @type and @value.
 # *Reference and NameAndType objects all have a @deref method, which resolves

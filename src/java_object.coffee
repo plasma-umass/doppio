@@ -1,9 +1,9 @@
+"use strict"
+
 _ = require '../vendor/_.js'
 util = require './util'
 {log,debug,error,trace,vtrace} = require './logging'
 CustomClassLoader = undefined # XXX: Circular dependency hack.
-
-"use strict"
 
 # things assigned to root will be available outside this module
 root = exports ? window.java_object ?= {}

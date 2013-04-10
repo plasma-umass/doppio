@@ -1,6 +1,6 @@
-root = this
-
 "use strict"
+
+root = this
 
 # To be initialized on document load
 stdout = null

@@ -1,5 +1,6 @@
-win = window
 "use strict"
+
+win = window
 
 root = win.node = {}
 basename = (path) -> path.split('/').pop()

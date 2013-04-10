@@ -1,3 +1,5 @@
+"use strict"
+
 # jQuery module for a mock console that can be controlled through automated
 # tests.
 #
@@ -5,8 +7,6 @@
 # * Can be used with a 'shell script' that executes each console command one
 #   by one.
 # * Buffers output and asynchronously sends it to a server running locally.
-
-"use strict"
 
 $ = jQuery
 

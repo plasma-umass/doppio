@@ -1,7 +1,6 @@
+"use strict"
 
 gLong = require '../vendor/gLong.js'
-
-"use strict"
 
 # things assigned to root will be available outside this module
 root = exports ? window.logging ?= {}

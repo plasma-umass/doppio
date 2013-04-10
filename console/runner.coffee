@@ -1,3 +1,5 @@
+"use strict"
+
 #!/usr/bin/env coffee
 fs = require 'fs'
 path = require 'path'
@@ -7,8 +9,6 @@ logging = require '../src/logging'
 methods = require '../src/methods'
 runtime = require '../src/runtime'
 {BootstrapClassLoader} = require '../src/ClassLoader'
-
-"use strict"
 
 stub = (obj, name, replacement, wrapped) ->
   old_fn = obj[name]

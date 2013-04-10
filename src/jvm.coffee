@@ -1,10 +1,10 @@
+"use strict"
 
 # pull in external modules
 util = require './util'
 fs = node?.fs ? require 'fs'
 path = node?.path ? require 'path'
 {trace,error} = require '../src/logging'
-"use strict"
 
 # things assigned to root will be available outside this module
 root = exports ? this.jvm = {}

@@ -1,3 +1,5 @@
+"use strict"
+
 # Things assigned to root will be available outside this module.
 root = exports ? window.runtime ?= {}
 
@@ -9,8 +11,6 @@ util = require './util'
 {JavaObject,JavaArray,thread_name} = require './java_object'
 jvm = require './jvm'
 process = node?.process ? global.process
-
-"use strict"
 
 class root.CallStack
   constructor: (initial_stack) ->

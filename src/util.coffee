@@ -1,8 +1,8 @@
+"use strict"
+
 # pull in external modules
 gLong = require '../vendor/gLong.js'
 {trace,vtrace,error,debug} = require './logging'
-
-"use strict"
 
 # things assigned to root will be available outside this module
 root = exports ? window.util ?= {}

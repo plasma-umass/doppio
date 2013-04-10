@@ -1,10 +1,10 @@
+"use strict"
+
 root = this
 
 util = require '../src/util'
 
 asyncExecute = this.asyncExecute ? (require './util').asyncExecute
-
-"use strict"
 
 root.untar = (bytes, cb, done_cb) ->
   next_file = ->

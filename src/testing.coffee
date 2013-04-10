@@ -1,5 +1,7 @@
 #!/usr/bin/env coffee
 
+"use strict"
+
 jvm = require './jvm'
 {RuntimeState} = require './runtime'
 util = require './util'
@@ -8,8 +10,6 @@ util = require './util'
 fs = node?.fs ? require 'fs'
 path = node?.path ? require 'path'
 {BootstrapClassLoader} = require './ClassLoader'
-
-"use strict"
 
 root = exports ? window.testing ?= {}
 

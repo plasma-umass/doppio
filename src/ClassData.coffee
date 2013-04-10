@@ -1,3 +1,4 @@
+"use strict"
 
 # pull in external modules
 util = require './util'
@@ -9,8 +10,6 @@ opcodes = require './opcodes'
 methods = null
 {JavaObject,JavaClassObject} = require './java_object'
 {trace} = require './logging'
-
-"use strict"
 
 root = exports ? this.ClassData = {}
 

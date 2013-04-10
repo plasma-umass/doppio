@@ -1,3 +1,4 @@
+"use strict"
 
 {ReferenceClassData,PrimitiveClassData,ArrayClassData} = require './ClassData'
 util = require './util'
@@ -5,8 +6,6 @@ util = require './util'
 {StackFrame} = require './runtime'
 {JavaException} = require './exceptions'
 {JavaObject} = require './java_object'
-
-"use strict"
 
 root = exports ? this.ClassLoader = {}
 

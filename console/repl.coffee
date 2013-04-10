@@ -1,11 +1,11 @@
+"use strict"
+
 #!/usr/bin/env coffee
 readline = require 'readline'
 {argv} = require 'optimist'
 jvm = require '../src/jvm'
 {RuntimeState} = require '../src/runtime'
 {BootstrapClassLoader} = require '../src/ClassLoader'
-
-"use strict"
 
 repl_run = (rs, cname, args, done_cb) ->
   cname = cname[0...-6] if cname[-6..] is '.class'

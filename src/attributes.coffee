@@ -1,9 +1,8 @@
+"use strict"
 
 # pull in external modules
 util = require './util'
 opcodes = require './opcodes'
-
-"use strict"
 
 # things assigned to root will be available outside this module
 root = exports ? window.attributes ?= {}

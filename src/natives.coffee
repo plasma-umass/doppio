@@ -1,3 +1,4 @@
+"use strict"
 
 # pull in external modules
 _ = require '../vendor/_.js'
@@ -10,8 +11,6 @@ exceptions = require './exceptions'
 path = node?.path ? require 'path'
 fs = node?.fs ? require 'fs'
 {ReferenceClassData,PrimitiveClassData,ArrayClassData} = require './ClassData'
-
-"use strict"
 
 # things assigned to root will be available outside this module
 root = exports ? this.natives = {}

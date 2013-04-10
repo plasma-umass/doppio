@@ -1,11 +1,11 @@
+"use strict"
+
 #!/usr/bin/env coffee
 fs = require 'fs'
 util = require '../src/util'
 {disassemble} = require '../src/disassembler'
 {ReferenceClassData} = require '../src/ClassData'
 {argv} = require('optimist')
-
-"use strict"
 
 if argv._.length > 0
   fname = argv._[0]

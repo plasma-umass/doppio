@@ -1,10 +1,9 @@
+"use strict"
 
 gLong = require '../vendor/gLong.js'
 util = require './util'
 {JavaException} = require './exceptions'
 {JavaObject,JavaArray,JavaClassLoaderObject} = require './java_object'
-
-"use strict"
 
 root = exports ? window.opcodes = {}
 

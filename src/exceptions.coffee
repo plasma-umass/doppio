@@ -1,9 +1,8 @@
+"use strict"
 
 # pull in external modules
 _ = require '../vendor/_.js'
 {error,debug} = require './logging'
-
-"use strict"
 
 # things assigned to root will be available outside this module
 root = exports ? window.exceptions ?= {}

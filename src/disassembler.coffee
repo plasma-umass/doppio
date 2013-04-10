@@ -1,11 +1,10 @@
+"use strict"
 
 root = exports ? this.disassembler = {}
 
 # pull in external modules
 _ = require '../vendor/_.js'
 util = require './util'
-
-"use strict"
 
 pad_left = (value, padding) ->
   zeroes = new Array(padding).join '0'

@@ -1,3 +1,4 @@
+"use strict"
 
 # pull in external modules
 _ = require '../vendor/_.js'
@@ -12,8 +13,6 @@ jvm = require './jvm'
 {ReturnException} = require './exceptions'
 {native_methods,trapped_methods} = natives
 {JavaArray,JavaObject} = require './java_object'
-
-"use strict"
 
 # things assigned to root will be available outside this module
 root = exports ? this.methods = {}

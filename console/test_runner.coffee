@@ -1,8 +1,8 @@
+"use strict"
+
 #!/usr/bin/env coffee
 {print} = require 'util'
 {run_tests} = require '../src/testing'
-
-"use strict"
 
 makefile_test = (argv) ->
   path = require 'path'
