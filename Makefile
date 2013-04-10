@@ -134,6 +134,7 @@ test: dependencies $(TESTS)
 	@echo ''
 	@cat classes/test/failures.txt
 	@! test -s classes/test/failures.txt # return 1 if file is nonempty
+	@if [[ -s classes/test/xfail.txt ]]; then echo -n 'Expected failures: '; xargs <classes/test/xfail.txt; fi
 # compiling each one by itself is really inefficient...
 %.class: %.java
 	javac -bootclasspath $(BOOTCLASSPATH) $^
