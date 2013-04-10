@@ -30,7 +30,8 @@ root.system_properties = {
   'os.name':'doppio', 'os.arch': 'js', 'os.version': '0',
   'java.awt.headless': (not node?).toString(),  # true if we're using the console frontend
   'java.awt.graphicsenv': 'classes.awt.CanvasGraphicsEnvironment',
-  'useJavaUtilZip': 'true'  # hack for sun6javac, avoid ZipFileIndex shenanigans
+  'useJavaUtilZip': 'true',  # hack for sun6javac, avoid ZipFileIndex shenanigans
+  'jline.terminal': 'jline.UnsupportedTerminal' # we can't shell out to `stty`
 }
 
 root.read_classfile = (cls, cb, failure_cb) ->
