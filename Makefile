@@ -10,19 +10,19 @@ BUILD_TARGETS = release benchmark dev
 DIST_NAME = $(shell echo "Doppio_`date +'%y-%m-%d'`.tar.gz")
 
 # DEPENDENCIES
-DOPPIO_DIR := $(CURDIR)
+DOPPIO_DIR    := $(CURDIR)
+BOOTCLASSPATH := $(DOPPIO_DIR)/vendor/classes
 COFFEEC  := $(DOPPIO_DIR)/node_modules/coffee-script/bin/coffee
 UGLIFYJS := $(DOPPIO_DIR)/node_modules/uglify-js/bin/uglifyjs
 OPTIMIST := $(DOPPIO_DIR)/node_modules/optimist/index.js
 DOCCO    := $(DOPPIO_DIR)/node_modules/docco/bin/docco
 NODEZIP  := $(DOPPIO_DIR)/node_modules/node-zip/lib/nodezip.js
 SHELLQ   := $(DOPPIO_DIR)/node_modules/shell-quote/index.js
-JAZZLIB  := $(DOPPIO_DIR)/vendor/classes/java/util/zip/DeflaterEngine.class
-JRE      := $(DOPPIO_DIR)/vendor/classes/java/lang/Object.class
+JAZZLIB  := $(BOOTCLASSPATH)/java/util/zip/DeflaterEngine.class
+JRE      := $(BOOTCLASSPATH)/java/lang/Object.class
 SED      := $(shell if command -v gsed >/dev/null; then echo "gsed"; else echo "sed"; fi;)
 CPP      := cpp -P -traditional-cpp
 
-BOOTCLASSPATH := vendor/classes
 # JAVA
 SOURCES := $(wildcard classes/test/*.java)
 DISASMS := $(SOURCES:.java=.disasm)
