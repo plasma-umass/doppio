@@ -164,3 +164,7 @@ label { margin-right: 5px; }
   text-transform: uppercase;
 }
 
+.build-info {
+  font-size: 7pt;
+  font-color: #999;
+}

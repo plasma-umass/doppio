@@ -18,7 +18,6 @@ DOCCO    := $(shell npm bin)/docco
 JAZZLIB  := $(BOOTCLASSPATH)/java/util/zip/DeflaterEngine.class
 JRE      := $(BOOTCLASSPATH)/java/lang/Object.class
 SED      := $(shell if command -v gsed >/dev/null; then echo "gsed"; else echo "sed"; fi;)
-CPP      := cpp -P -traditional-cpp
 
 # JAVA
 SOURCES := $(wildcard classes/test/*.java)
@@ -37,7 +36,8 @@ LIB_SRCS     := $(wildcard classes/awt/*.java)
 LIB_CLASSES  := $(LIB_SRCS:.java=.class)
 
 # HTML
-BROWSER_HTML := $(wildcard browser/[^_]*.html)
+BROWSER_TEMPLATES := $(wildcard browser/[^_]*.mustache)
+BROWSER_HTML      := $(BROWSER_TEMPLATES:.mustache=.html)
 
 # SCRIPTS
 # the order here is important: must match the order of includes
@@ -188,15 +188,13 @@ BUILD_FOLDERS = build/% build/%/browser build/%/console build/%/src
 $(foreach TARGET,$(BUILD_TARGETS),$(subst %,$(TARGET),$(BUILD_FOLDERS))):
 	mkdir -p $@
 
-browser/_about.html: browser/_about.md
-	rdiscount $? > $@
-build/release/about.html build/benchmark/about.html: browser/_about.html
+build/release/about.html build/benchmark/about.html: browser/_about.md
 
-build/dev/%.html: browser/%.html $(wildcard browser/_*.html)
-	$(CPP) $< $@
+build/dev/%.html: browser/%.mustache browser/_navbar.mustache
+	bundle exec browser/render.rb $* > $@
 
-build/release/%.html build/benchmark/%.html: browser/%.html $(wildcard browser/_*.html)
-	$(CPP) -DRELEASE $< $@
+build/release/%.html build/benchmark/%.html: browser/%.mustache browser/_navbar.mustache
+	bundle exec browser/render.rb --release $* > $@
 
 build/%/favicon.ico: browser/favicon.ico
 	rsync $< $@

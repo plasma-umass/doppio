@@ -4,7 +4,7 @@
   <title>Doppio: A JVM in Coffeescript</title>
   <link href='http://fonts.googleapis.com/css?family=Bitter' rel='stylesheet' type='text/css'>
   <link rel='stylesheet' type="text/css" href="browser/style.css">
-#ifdef RELEASE
+{{#release}}
   <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
   <script type="text/javascript" src="compressed.js"></script>
   <script type="text/javascript">
@@ -17,7 +17,8 @@
       var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
     })();
   </script>
-#else
+{{/release}}
+{{^release}}
   <script type="text/javascript" src="vendor/jquery-1.7.1.min.js"></script>
   <script type="text/javascript" src="vendor/_.js"></script>
   <script type="text/javascript" src="vendor/gLong.js"></script>
@@ -44,7 +45,7 @@
   <script type="text/javascript" src="vendor/ace/src/ace.js"></script>
   <script type="text/javascript" src="vendor/ace/src/mode-java.js"></script>
   <script type="text/javascript" src="vendor/ace/src/theme-twilight.js"></script>
-#endif
+{{/release}}
 </head>
 <body>
 <div id='progress-container'>
@@ -57,10 +58,16 @@
 </div>
 <div id='overlay'>
 </div>
-#include "_navbar.html"
+{{> _navbar}}
+
 <div id='main'>
   <header class='page-header'>
-    <h1 id='title' style='float:left;' class='bitter'>Doppio</h1>
+  <h1 id='title' style='float:left;' class='bitter'>Doppio
+    <span class='build-info'>
+      <a href="https://github.com/int3/doppio/commit/{{git_hash}}">
+        @{{git_short_hash}}</a>, built {{date}}
+    </span>
+  </h1>
     <!-- File upload button strategy credit goes davist11: https://gist.github.com/645816 -->
     <span class="file-wrapper" style='margin: 8px 0 3px 0;float:right;'>
       <input type="file" name="file" id="file" multiple />
@@ -82,8 +89,8 @@
 
   <div id='console'><div id="consoleUnderlay"><img src="browser/coffee.png"/></div></div>
 </div>
-#ifdef RELEASE
+{{#release}}
 <script type="text/javascript" src="ace.js"></script>
-#endif
+{{/release}}
 </body>
 </html>

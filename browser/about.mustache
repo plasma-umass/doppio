@@ -18,7 +18,7 @@
 </script>
 </head>
 <body style='padding-top:60px'>
-#include "_navbar.html"
+{{> _navbar}}
 <div id='main'>
   <div class='hero-unit'>
     <object data='browser/coffee.svg' type='image/svg+xml'
@@ -28,7 +28,7 @@
     <h1 style='display:inline-block;margin-bottom:10px' class='bitter'>Doppio</h1>
     <p class='bitter'>Java on Coffeescript.</p>
   </div>
-#include "_about.html"
+{{{about}}}
 </div>
 </body>
 </html>
