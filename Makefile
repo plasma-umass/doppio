@@ -22,6 +22,7 @@ JRE      := $(DOPPIO_DIR)/vendor/classes/java/lang/Object.class
 SED      := $(shell if command -v gsed >/dev/null; then echo "gsed"; else echo "sed"; fi;)
 CPP      := cpp -P -traditional-cpp
 
+BOOTCLASSPATH := vendor/classes
 # JAVA
 SOURCES := $(wildcard classes/test/*.java)
 DISASMS := $(SOURCES:.java=.disasm)
@@ -138,9 +139,9 @@ $(NODEZIP):
 $(SHELLQ):
 	npm install shell-quote
 $(JAZZLIB):
-	$(error JazzLib not found. Unzip it to vendor/classes/, or run ./tools/setup.sh.)
+	$(error JazzLib not found. Unzip it to $(BOOTCLASSPATH), or run ./tools/setup.sh.)
 $(JRE):
-	$(error Java class library not found. Unzip it to vendor/classes/, or run ./tools/setup.sh.)
+	$(error Java class library not found. Unzip it to $(BOOTCLASSPATH), or run ./tools/setup.sh.)
 
 # Used to test the chosen Java compiler in setup.sh.
 java: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES) $(UTIL_CLASSES) $(LIB_CLASSES)
@@ -152,15 +153,15 @@ test: dependencies $(TESTS)
 	@! test -s classes/test/failures.txt # return 1 if file is nonempty
 # compiling each one by itself is really inefficient...
 %.class: %.java
-	javac $^
+	javac -bootclasspath $(BOOTCLASSPATH) $^
 # phony *.test targets allow us to test with -j4 parallelism
 classes/test/%.test: release-cli classes/test/%.class classes/test/%.disasm classes/test/%.runout
 	@node build/release/console/test_runner.js classes/test/$* --makefile
 classes/test/%.disasm: classes/test/%.class
-	javap -c -verbose -private classes/test/$* >classes/test/$*.disasm
+	javap -bootclasspath $(BOOTCLASSPATH) -c -verbose -private classes/test/$* >classes/test/$*.disasm
 # some tests may throw exceptions. The '-' flag tells make to carry on anyway.
 classes/test/%.runout: classes/test/%.class
-	-java classes/test/$* &>classes/test/$*.runout
+	-java -Xbootclasspath/a:$(BOOTCLASSPATH) classes/test/$* &>classes/test/$*.runout
 
 clean:
 	@rm -f tools/*.js tools/preload browser/listings.json doppio doppio-dev
