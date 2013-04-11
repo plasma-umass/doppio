@@ -6,6 +6,5 @@
     "optimist": "*",
     "docco": "*",
     "node-zip": "*",
-    "shell-quote": "*"
   }
 }

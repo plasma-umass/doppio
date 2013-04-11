@@ -39,8 +39,8 @@ The code can also be run from the console. For example:
     node build/dev/console/disassembler.js classes/demo/Fib
     # doppio-dev -> node build/dev/console/runner.js
     ./doppio-dev classes/demo/Fib
-    ./doppio-dev classes/demo/Fib --java 7  # passes an argument to the JVM
-    ./doppio-dev --jar my_application.jar   # extracts and runs a JAR
+    ./doppio-dev classes/demo/Fib 7        # pass an argument to the JVM
+    ./doppio-dev -jar my_application.jar   # extract and run a JAR
     
 To get the optimized version, use `make release-cli`. The build products can be
 found in `build/release`, and the runtime can be invoked via `./doppio`.

@@ -1,6 +1,8 @@
+#!/usr/bin/env coffee
+
 "use strict"
 
-#!/usr/bin/env coffee
+_ = require '../vendor/_.js'
 fs = require 'fs'
 path = require 'path'
 jvm = require '../src/jvm'
@@ -47,59 +49,70 @@ find_main_class = (extracted_jar_dir) ->
     return match[1].replace /\./g, '/' if match?
   return
 
+print_help = (option_descriptions) ->
+  launcher = process.argv[0]
+  script = require('path').relative process.cwd(), process.argv[1]
+  console.log "Usage: #{launcher} #{script} [flags] /path/to/classfile [args for main()]\n"
+  console.log option_descriptions
 
 if require.main == module
   # note that optimist does not know how to parse quoted string parameters, so we must
   # place the arguments to the java program after '--' rather than as a normal flag value.
-  optimist = require('optimist')
-    .boolean(['count-logs','h','list-class-cache','show-nyi-natives',
-      'dump-state','benchmark'])
-    .alias({h: 'help'})
-    .describe({
-      D: 'system properties, key=value, comma-separated',
-      benchmark: 'time execution, both hot and cold',
-      classpath: 'JVM classpath, "path1:...:pathn"',
-      log: 'log level, [0-10]|vtrace|trace|debug|error',
-      jar: 'add JAR to classpath and run its Main-Class (if found)',
-      'jar-args': 'arguments to pass to the Main-Class of a jar',
-      'count-logs': 'count log messages instead of printing them',
-      'skip-logs': 'number of log messages to skip before printing',
-      'list-class-cache': 'list all of the loaded classes after execution',
-      'show-nyi-natives': 'list any NYI native functions in loaded classes',
-      'dump-state': 'write a "core dump" on unusual termination',
-      h: 'Show this usage'})
-    .usage 'Usage: $0 /path/to/classfile [flags] -- [args for main()]'
-  argv = optimist.argv
-  return optimist.showHelp() if argv.help
+  optparse = require('../src/option_parser')
+  optparse.describe
+    standard:
+      classpath:
+        alias: 'cp'
+        description: 'JVM classpath, "path1:...:pathn"'
+        has_value: true
+      jar:
+        description: 'add JAR to classpath and run its Main-Class (if found)',
+        has_value: true
+      help:
+        alias: 'h'
+        description: 'print this help message'
+      X: 'print help on non-standard options'
+
+    non_standard:
+      log:
+        description: 'log level, [0-10]|vtrace|trace|debug|error'
+        has_value: true
+      'count-logs': 'count log messages instead of printing them'
+      'skip-logs': 'number of log messages to skip before printing'
+      'list-class-cache': 'list all of the loaded classes after execution'
+      'show-nyi-natives': 'list any NYI native functions in loaded classes'
+      'dump-state': 'write a "core dump" on unusual termination'
+      benchmark: 'time execution, both hot and cold'
+  argv = optparse.parse(process.argv)
+  return print_help optparse.show_help() if argv.standard.help
+  return print_help optparse.show_non_standard_help() if argv.standard.X
 
   logging.log_level =
-    if argv.log?
-      if /[0-9]+/.test argv.log
-        argv.log + 0
+    if argv.non_standard.log?
+      if /[0-9]+/.test argv.non_standard.log
+        argv.non_standard.log + 0
       else
-        level = logging[argv.log?.toUpperCase()]
+        level = logging[argv.non_standard.log?.toUpperCase()]
         throw 'Unrecognized log level: should be one of [0-10]|vtrace|trace|debug|error.' unless level?
         level
     else
       logging.ERROR
 
-  jvm.show_NYI_natives = argv['show-nyi-natives']
-  jvm.dump_state = argv['dump-state']
+  jvm.show_NYI_natives = argv.non_standard['show-nyi-natives']
+  jvm.dump_state = argv.non_standard['dump-state']
 
-  if argv.classpath?
-    jvm.set_classpath "#{__dirname}/../vendor/classes", argv.classpath
+  if argv.standard.classpath?
+    jvm.set_classpath "#{__dirname}/../vendor/classes", argv.standard.classpath
   else
     jvm.set_classpath "#{__dirname}/../vendor/classes", '.'
 
-  if argv.D?
-    for prop in argv.D.split ','
-      [key,value] = prop.split '='
-      jvm.system_properties[key.trim()] = value.trim()
+  _.extend jvm.system_properties, argv.properties
 
-
-  cname = argv._[0]
+  cname = argv.className
   cname = cname[0...-6] if cname?[-6..] is '.class'
-  return optimist.showHelp() unless cname? or argv.jar?
+  return print_help optparse.show_help() unless cname? or argv.standard.jar?
+
+  main_args = argv._
 
   stdout = process.stdout.write.bind process.stdout
   read_stdin = (resume) ->
@@ -111,21 +124,16 @@ if require.main == module
   bs_cl = new BootstrapClassLoader(jvm.read_classfile)
   rs = new runtime.RuntimeState(stdout, read_stdin, bs_cl)
 
-  if argv.jar?
-    jar_dir = extract_jar argv.jar
-    cname = find_main_class(jar_dir) unless cname?
+  if argv.standard.jar?
+    jar_dir = extract_jar argv.standard.jar
+    cname = find_main_class(jar_dir)
     unless cname?
-      console.error "No main class provided and no Main-Class found in #{argv.jar}"
-    main_args = []
-    if argv['jar-args']?
-      main_args = require('shell-quote').parse(argv['jar-args'])
-  else
-    main_args = argv._[1..]
+      console.error "No Main-Class found in #{argv.standard.jar}"
 
   run = (done_cb) -> jvm.run_class rs, cname, main_args, done_cb
 
   done_cb = switch
-    when argv['list-class-cache']
+    when argv.non_standard['list-class-cache']
       ->  # done_cb
         scriptdir = path.resolve(__dirname + "/..")
         for k in rs.get_bs_cl().get_loaded_class_list(true)
@@ -143,20 +151,20 @@ if require.main == module
                 break
             catch e
               # Do nothing; iterate.
-    when argv['count-logs']
+    when argv.non_standard['count-logs']
       count = 0
       old_log = console.log
       console.log = -> ++count
       ->  # done_cb
         console.log = old_log
         console.log "console.log() was called a total of #{count} times."
-    when argv['skip-logs']?
+    when argv.non_standard['skip-logs']?
       # avoid generating unnecessary log data
-      count = parseInt argv['skip-logs'], 10
+      count = parseInt argv.non_standard['skip-logs'], 10
       old_log = console.log
       console.log = -> if --count == 0 then console.log = old_log
       ->  # no special handling needed in done_cb
-    when argv['benchmark']
+    when argv.non_standard['benchmark']
       console.log 'Starting cold-cache run...'
       cold_start = (new Date).getTime()
       ->  # done_cb runs it again, for hot cache timing
