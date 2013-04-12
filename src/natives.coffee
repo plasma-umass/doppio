@@ -956,7 +956,7 @@ native_methods =
             fd_obj = _this.get_field rs, 'Ljava/io/RandomAccessFile;fd'
             fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
             gLong.fromNumber (stat_fd fd).size
-        o 'seek(J)V', (rs, _this, pos) -> _this.$pos = pos.toInt()
+        o 'seek(J)V', (rs, _this, pos) -> _this.$pos = pos.toNumber()
         o 'readBytes([BII)I', (rs, _this, byte_arr, offset, len) ->
             fd_obj = _this.get_field rs, 'Ljava/io/RandomAccessFile;fd'
             fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
@@ -1387,10 +1387,10 @@ native_methods =
           o 'position0(Ljava/io/FileDescriptor;J)J', (rs, _this, fd, offset) ->
               parent = _this.get_field rs, 'Lsun/nio/ch/FileChannelImpl;parent'
               if offset.equals gLong.NEG_ONE
-                gLong.fromInt parent.$pos
+                gLong.fromNumber parent.$pos
               else
-                parent.$pos = offset.toInt()
-                gLong.fromInt parent.$pos
+                parent.$pos = offset.toNumber()
+                offset
         ]
         FileDispatcher: [
           o 'init()V', (rs) -> # NOP
