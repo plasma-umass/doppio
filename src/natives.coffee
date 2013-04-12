@@ -188,10 +188,12 @@ native_define_class = (rs, name, bytes, offset, len, loader, resume_cb, except_c
   loader.define_class rs, util.int_classname(name.jvm2js_str()), raw_bytes, ((cdata)->resume_cb(cdata.get_class_object(rs))), except_cb
 
 write_to_file = (rs, _this, bytes, offset, len, append) ->
-  rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if _this.$file == 'closed'
-  if _this.$file?
+  fd_obj = _this.get_field rs, 'Ljava/io/FileOutputStream;fd'
+  fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
+  rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if fd is -1
+  unless fd in [1, 2]
     # appends by default in the browser, not sure in actual node.js impl
-    fs.writeSync(_this.$file, new Buffer(bytes.array), offset, len)
+    fs.writeSync(fd, new Buffer(bytes.array), offset, len)
     return
   rs.print util.chars2js_str(bytes, offset, len)
   if node?
@@ -810,35 +812,47 @@ native_methods =
       FileOutputStream: [
         o 'open(L!/lang/String;)V', (rs, _this, fname) ->
             rs.async_op (resume_cb) ->
-              fs.open fname.jvm2js_str(), 'w', (err, f) ->
-                _this.$file = f
+              fs.open fname.jvm2js_str(), 'w', (err, fd) ->
+                fd_obj = _this.get_field rs, 'Ljava/io/FileOutputStream;fd'
+                fd_obj.set_field rs, 'Ljava/io/FileDescriptor;fd', fd
+                _this.$pos = 0
                 resume_cb()
         o 'openAppend(Ljava/lang/String;)V', (rs, _this, fname) ->
             rs.async_op (resume_cb) ->
-              fs.open fname.jvm2js_str(), 'a', (err, f) ->
-                _this.$file = f
+              fs.open fname.jvm2js_str(), 'a', (err, fd) ->
+                fd_obj = _this.get_field rs, 'Ljava/io/FileOutputStream;fd'
+                fd_obj.set_field rs, 'Ljava/io/FileDescriptor;fd', fd
+                _this.$pos = (stat_fd fd).size
                 resume_cb()
         o 'writeBytes([BIIZ)V', write_to_file  # OpenJDK version
         o 'writeBytes([BII)V', write_to_file   # Apple-java version
         o 'close0()V', (rs, _this) ->
-            if _this.$file?
-              rs.async_op (resume_cb) ->
-                fs.close _this.$file, (err) ->
-                  _this.$file = 'closed'
+            fd_obj = _this.get_field rs, 'Ljava/io/FileOutputStream;fd'
+            fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
+            rs.async_op (resume_cb, except_cb) ->
+              fs.close fd, (err) ->
+                if err
+                  except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), err.message
+                else
+                  fd_obj.set_field rs, 'Ljava/io/FileDescriptor;fd', -1
                   resume_cb()
       ]
       FileInputStream: [
         o 'available()I', (rs, _this) ->
-            rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if _this.$file == 'closed'
-            return 0 unless _this.$file? # no buffering for stdin
-            stats = fs.fstatSync _this.$file
+            fd_obj = _this.get_field rs, 'Ljava/io/FileInputStream;fd'
+            fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
+            rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if fd is -1
+            return 0 if fd is 0 # no buffering for stdin
+            stats = fs.fstatSync fd
             stats.size - _this.$pos
         o 'read()I', (rs, _this) ->
-            rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if _this.$file == 'closed'
-            if (file = _this.$file)?
+            fd_obj = _this.get_field rs, 'Ljava/io/FileInputStream;fd'
+            fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
+            rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if fd is -1
+            unless fd is 0
               # this is a real file that we've already opened
-              buf = new Buffer((fs.fstatSync file).size)
-              bytes_read = fs.readSync(file, buf, 0, 1, _this.$pos)
+              buf = new Buffer((fs.fstatSync fd).size)
+              bytes_read = fs.readSync(fd, buf, 0, 1, _this.$pos)
               _this.$pos++
               return if bytes_read == 0 then -1 else buf.readUInt8(0)
             # reading from System.in, do it async
@@ -846,17 +860,18 @@ native_methods =
               rs.async_input 1, (byte) ->
                 cb(if byte.length == 0 then -1 else byte[0])
         o 'readBytes([BII)I', (rs, _this, byte_arr, offset, n_bytes) ->
-            rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if _this.$file == 'closed'
-            if _this.$file?
+            fd_obj = _this.get_field rs, 'Ljava/io/FileInputStream;fd'
+            fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
+            rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if fd is -1
+            unless fd is 0
               # this is a real file that we've already opened
               pos = _this.$pos
-              file = _this.$file
               buf = new Buffer n_bytes
               # if at end of file, return -1.
-              filesize = fs.fstatSync(file).size
+              filesize = fs.fstatSync(fd).size
               if filesize > 0 and pos >= filesize-1
                 return -1
-              bytes_read = fs.readSync(file, buf, 0, n_bytes, pos)
+              bytes_read = fs.readSync(fd, buf, 0, n_bytes, pos)
               # not clear why, but sometimes node doesn't move the file pointer,
               # so we do it here ourselves
               _this.$pos += bytes_read
@@ -871,30 +886,32 @@ native_methods =
             filepath = filename.jvm2js_str()
             # TODO: actually look at the mode
             rs.async_op (resume_cb, except_cb) ->
-              fs.open filepath, 'r', (e, f) ->
+              fs.open filepath, 'r', (e, fd) ->
                 if e?
                   if e.code == 'ENOENT'
                     except_cb ()-> rs.java_throw rs.get_bs_class('Ljava/io/FileNotFoundException;'), "#{filepath} (No such file or directory)"
                   else
                     except_cb ()-> throw e
                 else
-                  _this.$file = f
-                  # also store the file handle in the file descriptor object
-                  fd = _this.get_field rs, 'Ljava/io/FileInputStream;fd'
-                  fd.set_field rs, 'Ljava/io/FileDescriptor;fd', _this.$file
+                  fd_obj = _this.get_field rs, 'Ljava/io/FileInputStream;fd'
+                  fd_obj.set_field rs, 'Ljava/io/FileDescriptor;fd', fd
                   _this.$pos = 0
                   resume_cb()
         o 'close0()V', (rs, _this) ->
-            if _this.$file?
-              rs.async_op (resume_cb) ->
-                fs.close _this.$file, (err) ->
-                  _this.$file = 'closed'
+            fd_obj = _this.get_field rs, 'Ljava/io/FileInputStream;fd'
+            fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
+            rs.async_op (resume_cb, except_cb) ->
+              fs.close fd, (err) ->
+                if err
+                  except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), err.message
+                else
+                  fd_obj.set_field rs, 'Ljava/io/FileDescriptor;fd', -1
                   resume_cb()
-            else
-              _this.$file = 'closed'
         o 'skip(J)J', (rs, _this, n_bytes) ->
-            rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if _this.$file == 'closed'
-            if (file = _this.$file)?
+            fd_obj = _this.get_field rs, 'Ljava/io/FileInputStream;fd'
+            fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
+            rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if fd is -1
+            unless fd is 0
               bytes_left = fs.fstatSync(file).size - _this.$pos
               to_skip = Math.min(n_bytes.toNumber(), bytes_left)
               _this.$pos += to_skip
@@ -923,45 +940,53 @@ native_methods =
             filepath = filename.jvm2js_str()
             # TODO: actually look at the mode
             rs.async_op (resume_cb, except_cb) ->
-              fs.open filepath, 'r+', (err, f) ->
-                if err?
+              fs.open filepath, 'r+', (e, fd) ->
+                if e?
                   if e.code == 'ENOENT'
                     except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/FileNotFoundException;'), "Could not open file #{filepath}"
                   else
                     except_cb -> throw e
                 else
-                  _this.$file = f
+                  fd_obj = _this.get_field rs, 'Ljava/io/RandomAccessFile;fd'
+                  fd_obj.set_field rs, 'Ljava/io/FileDescriptor;fd', fd
                   _this.$pos = 0
                   resume_cb()
         o 'getFilePointer()J', (rs, _this) -> gLong.fromNumber _this.$pos
         o 'length()J', (rs, _this) ->
-            stats = stat_fd _this.$file
-            gLong.fromNumber stats.size
+            fd_obj = _this.get_field rs, 'Ljava/io/RandomAccessFile;fd'
+            fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
+            gLong.fromNumber (stat_fd fd).size
         o 'seek(J)V', (rs, _this, pos) -> _this.$pos = pos
         o 'readBytes([BII)I', (rs, _this, byte_arr, offset, len) ->
+            fd_obj = _this.get_field rs, 'Ljava/io/RandomAccessFile;fd'
+            fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
             pos = _this.$pos.toNumber()
-            file = _this.$file
             # if at end of file, return -1.
-            if pos >= fs.fstatSync(file).size-1
+            if pos >= fs.fstatSync(fd).size-1
               return -1
             buf = new Buffer len
-            bytes_read = fs.readSync(file, buf, 0, len, pos)
+            bytes_read = fs.readSync(fd, buf, 0, len, pos)
             byte_arr.array[offset+i] = buf.readUInt8(i) for i in [0...bytes_read] by 1
             _this.$pos = gLong.fromNumber(pos+bytes_read)
             return if bytes_read == 0 and len isnt 0 then -1 else bytes_read
         o 'writeBytes([BII)V', (rs, _this, byte_arr, offset, len) ->
+            fd_obj = _this.get_field rs, 'Ljava/io/RandomAccessFile;fd'
+            fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
             pos = _this.$pos.toNumber()
-            file = _this.$file
             js_str = util.chars2js_str byte_arr, offset, len
             # uses the old string-based API
             # see http://stackoverflow.com/q/14367261/10601 for details
-            fs.writeSync(file, js_str, pos)
+            fs.writeSync(fd, js_str, pos)
         o 'close0()V', (rs, _this) ->
-            rs.async_op (resume_cb) ->
-              fs.close _this.$file, (->
-                _this.$file = null
-                resume_cb()
-              )
+            fd_obj = _this.get_field rs, 'Ljava/io/RandomAccessFile;fd'
+            fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
+            rs.async_op (resume_cb, except_cb) ->
+              fs.close fd, (err) ->
+                if err
+                  except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), err.message
+                else
+                  fd_obj.set_field rs, 'Ljava/io/FileDescriptor;fd', -1
+                  resume_cb()
       ]
       UnixFileSystem: [
         o 'canonicalize0(L!/lang/String;)L!/lang/String;', (rs, _this, jvm_path_str) ->
@@ -998,11 +1023,11 @@ native_methods =
                 if stat?
                   resume_cb false
                 else
-                  fs.open filepath, 'w', (err, f) ->
+                  fs.open filepath, 'w', (err, fd) ->
                     if err?
                       except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), e.message
                     else
-                      fs.close f, (err) ->
+                      fs.close fd, (err) ->
                         if err?
                           except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), e.message
                         else
@@ -1014,11 +1039,11 @@ native_methods =
                 if stat?
                   resume_cb false
                 else
-                  fs.open filepath, 'w', (err, f) ->
+                  fs.open filepath, 'w', (err, fd) ->
                     if err?
                       except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), e.message
                     else
-                      fs.close f, (err) ->
+                      fs.close fd, (err) ->
                         if err?
                           except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), e.message
                         else
@@ -1367,7 +1392,6 @@ native_methods =
         FileDispatcher: [
           o 'init()V', (rs) -> # NOP
           o 'read0(Ljava/io/FileDescriptor;JI)I', (rs, fd_obj, address, len) ->
-            # this is the same as the .$file attribute on FileInputStream
             fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
             # read upto len bytes and store into mmap'd buffer at address
             block_addr = rs.block_addr(address)

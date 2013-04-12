@@ -5,6 +5,6 @@
     "uglify-js": "1",
     "optimist": "*",
     "docco": "*",
-    "node-zip": "*",
+    "node-zip": "*"
   }
 }
