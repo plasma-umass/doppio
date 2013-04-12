@@ -25,7 +25,6 @@ ul {
   list-style-type: none;
   margin-left: 1px;
   padding-left: 0;
-  white-space: nowrap;
   overflow: scroll;
 }
 

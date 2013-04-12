@@ -46,7 +46,7 @@ print_object = (obj, div, depth=1) ->
         print_object field_obj, div, depth - 1
     else if k is 'array'
       ul.append li = $('<li>', html: "#{k}: ")
-      if obj.type is '[C'
+      if obj.type is '[C' or obj.type is '[B'
         li.append "\"#{(String.fromCharCode(c) for c in v).join ''}\""
       else
         li.append '['
@@ -72,6 +72,9 @@ $.get file, ((data) ->
       else if k is 'loader'
         record_object v
         ul.append $('<li>', html: "#{k}: #{print_value v}")
+      else if k is 'name'
+        # insert spaces so that the method signature gets wrapped
+        ul.append $('<li>', html: "#{k}: #{v.replace(/;\)?(?!:)/g, '$& ')}")
       else
         ul.append $('<li>', html: "#{k}: #{v}")
   frames_div.prepend $('<h1>', html: 'Stack Frames')
@@ -82,9 +85,10 @@ $.get file, ((data) ->
   objects_div = $('<div>', id: 'stack-objects')
   print_object obj, objects_div for obj in stack_objects
   objects_div.prepend $('<h1>', html: 'Objects')
-  main.append objects_div), 'json'
+  main.append objects_div
+  gotoHash()), 'json'
 
-window.addEventListener 'hashchange', ->
+gotoHash = ->
   ref = location.hash[1..] # strip the leading '#'
   if ref is ''
     objects_div = $('#stack-objects')
@@ -101,3 +105,5 @@ window.addEventListener 'hashchange', ->
   object_div[0].scrollIntoView(true)
   object_div.css 'backgroundColor', '#ffc'
   setTimeout (-> object_div.css 'backgroundColor', ''), 400
+
+window.addEventListener 'hashchange', gotoHash
