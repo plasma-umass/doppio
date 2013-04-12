@@ -193,7 +193,7 @@ write_to_file = (rs, _this, bytes, offset, len, append) ->
   rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if fd is -1
   unless fd in [1, 2]
     # appends by default in the browser, not sure in actual node.js impl
-    fs.writeSync(fd, new Buffer(bytes.array), offset, len)
+    _this.$pos += fs.writeSync(fd, new Buffer(bytes.array), offset, len, _this.$pos)
     return
   rs.print util.chars2js_str(bytes, offset, len)
   if node?
@@ -956,27 +956,23 @@ native_methods =
             fd_obj = _this.get_field rs, 'Ljava/io/RandomAccessFile;fd'
             fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
             gLong.fromNumber (stat_fd fd).size
-        o 'seek(J)V', (rs, _this, pos) -> _this.$pos = pos
+        o 'seek(J)V', (rs, _this, pos) -> _this.$pos = pos.toInt()
         o 'readBytes([BII)I', (rs, _this, byte_arr, offset, len) ->
             fd_obj = _this.get_field rs, 'Ljava/io/RandomAccessFile;fd'
             fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
-            pos = _this.$pos.toNumber()
             # if at end of file, return -1.
-            if pos >= fs.fstatSync(fd).size-1
+            if _this.$pos >= fs.fstatSync(fd).size-1
               return -1
             buf = new Buffer len
-            bytes_read = fs.readSync(fd, buf, 0, len, pos)
+            bytes_read = fs.readSync(fd, buf, 0, len, _this.$pos)
             byte_arr.array[offset+i] = buf.readUInt8(i) for i in [0...bytes_read] by 1
-            _this.$pos = gLong.fromNumber(pos+bytes_read)
+            _this.$pos += bytes_read
             return if bytes_read == 0 and len isnt 0 then -1 else bytes_read
         o 'writeBytes([BII)V', (rs, _this, byte_arr, offset, len) ->
             fd_obj = _this.get_field rs, 'Ljava/io/RandomAccessFile;fd'
             fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
-            pos = _this.$pos.toNumber()
-            js_str = util.chars2js_str byte_arr, offset, len
-            # uses the old string-based API
-            # see http://stackoverflow.com/q/14367261/10601 for details
-            fs.writeSync(fd, js_str, pos)
+            _this.$pos += fs.writeSync(fd, new Buffer(byte_arr.array), offset,
+                                       len, _this.$pos)
         o 'close0()V', (rs, _this) ->
             fd_obj = _this.get_field rs, 'Ljava/io/RandomAccessFile;fd'
             fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
@@ -1388,6 +1384,13 @@ native_methods =
               return gLong.fromNumber(fs.fstatSync(fd).size)
             catch e
               rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), 'Bad file descriptor.'
+          o 'position0(Ljava/io/FileDescriptor;J)J', (rs, _this, fd, offset) ->
+              parent = _this.get_field rs, 'Lsun/nio/ch/FileChannelImpl;parent'
+              if offset.equals gLong.NEG_ONE
+                gLong.fromInt parent.$pos
+              else
+                parent.$pos = offset.toInt()
+                gLong.fromInt parent.$pos
         ]
         FileDispatcher: [
           o 'init()V', (rs) -> # NOP

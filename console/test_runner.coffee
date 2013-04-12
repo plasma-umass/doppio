@@ -1,6 +1,7 @@
+#!/usr/bin/env coffee
+
 "use strict"
 
-#!/usr/bin/env coffee
 {print} = require 'util'
 {run_tests} = require '../src/testing'
 
