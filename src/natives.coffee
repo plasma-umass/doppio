@@ -1386,11 +1386,11 @@ native_methods =
               rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), 'Bad file descriptor.'
           o 'position0(Ljava/io/FileDescriptor;J)J', (rs, _this, fd, offset) ->
               parent = _this.get_field rs, 'Lsun/nio/ch/FileChannelImpl;parent'
-              if offset.equals gLong.NEG_ONE
-                gLong.fromNumber parent.$pos
-              else
-                parent.$pos = offset.toNumber()
-                offset
+              gLong.fromNumber(
+                if offset.equals gLong.NEG_ONE
+                  parent.$pos
+                else
+                  parent.$pos = offset.toNumber())
         ]
         FileDispatcher: [
           o 'init()V', (rs) -> # NOP

@@ -78,7 +78,9 @@ if require.main == module
         description: 'log level, [0-10]|vtrace|trace|debug|error'
         has_value: true
       'count-logs': 'count log messages instead of printing them'
-      'skip-logs': 'number of log messages to skip before printing'
+      'skip-logs':
+        description: 'number of log messages to skip before printing'
+        has_value: true
       'list-class-cache': 'list all of the loaded classes after execution'
       'show-nyi-natives': 'list any NYI native functions in loaded classes'
       'dump-state': 'write a "core dump" on unusual termination'
