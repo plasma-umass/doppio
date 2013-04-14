@@ -167,8 +167,7 @@ class root.RuntimeState
     # initialize thread objects
     my_sf = @curr_frame()
     @push (group = new JavaObject @, @get_bs_class('Ljava/lang/ThreadGroup;'))
-    @get_bs_class('Ljava/lang/ThreadGroup;').method_lookup(
-      @, {class: 'Ljava/lang/ThreadGroup;', sig: '<init>()V'}).setup_stack(this)
+    @get_bs_class('Ljava/lang/ThreadGroup;').method_lookup(@, '<init>()V').setup_stack(this)
     my_sf.runner = =>
       ct = null
       my_sf.runner = =>
@@ -192,11 +191,10 @@ class root.RuntimeState
   # code here is essentially copied from the opcodes themselves -- but
   # constructing the opcodes manually is inelegant too.
   java_throw: (cls, msg) ->
-    method_spec = sig: '<init>(Ljava/lang/String;)V'
     v = new JavaObject @, cls  # new
     @push_array([v,v,@init_string msg]) # dup, ldc
     my_sf = @curr_frame()
-    cls.method_lookup(@, method_spec).setup_stack(@) # invokespecial
+    cls.method_lookup(@, '<init>(Ljava/lang/String;)V').setup_stack(@) # invokespecial
     my_sf.runner = =>
       if my_sf.method.has_bytecode
         my_sf.runner = (=> my_sf.method.run_bytecode(@))  # don't re-throw the exception

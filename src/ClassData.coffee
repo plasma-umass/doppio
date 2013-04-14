@@ -60,14 +60,14 @@ class ClassData
   get_method: -> null
   get_methods: -> {}
   get_fields: -> []
-  method_lookup: (rs, spec, null_handled) ->
+  method_lookup: (rs, sig, null_handled) ->
     return null if null_handled
     rs.java_throw rs.get_bs_class('Ljava/lang/NoSuchMethodError;'),
-      "No such method found in #{util.ext_classname(method_spec.class)}::#{method_spec.sig}"
-  field_lookup: (rs, spec, null_handled) ->
+      "No such method found in #{util.ext_classname(@get_type())}::#{sig}"
+  field_lookup: (rs, name, null_handled) ->
     return null if null_handled
     rs.java_throw rs.get_bs_class('Ljava/lang/NoSuchFieldError;'),
-      "No such field found in #{util.ext_classname(field_spec.class)}::#{field_spec.name}"
+      "No such field found in #{util.ext_classname(@get_type())}::#{name}"
 
   # Checks if the class file is initialized. It will set @initialized to 'true'
   # if this class has no static initialization method and its parent classes
@@ -130,8 +130,8 @@ class root.ArrayClassData extends ClassData
   get_component_type: -> return @component_type
   get_component_class: -> return @component_class_cdata
   # This class itself has no fields/methods, but java/lang/Object does.
-  field_lookup: (rs, field_spec) -> @super_class_cdata.field_lookup rs, field_spec
-  method_lookup: (rs, field_spec) -> @super_class_cdata.method_lookup rs, field_spec
+  field_lookup: (rs, name) -> @super_class_cdata.field_lookup rs, name
+  method_lookup: (rs, sig) -> @super_class_cdata.method_lookup rs, sig
 
   # Resolved and initialized are the same for array types.
   set_resolved: (@super_class_cdata, @component_class_cdata) ->
@@ -277,62 +277,62 @@ class root.ReferenceClassData extends ClassData
 
   # Spec [5.4.3.2][1].
   # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#77678
-  field_lookup: (rs, field_spec, null_handled) ->
-    field = @fl_cache[field_spec.name]
+  field_lookup: (rs, name, null_handled) ->
+    field = @fl_cache[name]
     return field if field?
 
-    field = @_field_lookup(rs, field_spec)
+    field = @_field_lookup(rs, name)
     if field? or null_handled is true
-      @fl_cache[field_spec.name] = field
+      @fl_cache[name] = field
       return field
 
     # Throw exception
     rs.java_throw rs.get_bs_class('Ljava/lang/NoSuchFieldError;'),
-      "No such field found in #{util.ext_classname(field_spec.class)}::#{field_spec.name}"
+      "No such field found in #{util.ext_classname(@get_type())}::#{name}"
 
-  _field_lookup: (rs, field_spec) ->
+  _field_lookup: (rs, name) ->
     for field in @fields
-      if field.name is field_spec.name
+      if field.name is name
         return field
 
     # These may not be initialized! But we have them loaded.
     for ifc_cls in @get_interfaces()
-      field = ifc_cls.field_lookup(rs, field_spec, true)
+      field = ifc_cls.field_lookup(rs, name, true)
       return field if field?
 
     sc = @get_super_class()
     if sc?
-      field = sc.field_lookup(rs, field_spec, true)
+      field = sc.field_lookup(rs, name, true)
       return field if field?
     return null
 
   # Spec [5.4.3.3][1], [5.4.3.4][2].
   # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#79473
   # [2]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#78621
-  method_lookup: (rs, method_spec, null_handled) ->
-    method = @ml_cache[method_spec.sig]
+  method_lookup: (rs, sig, null_handled) ->
+    method = @ml_cache[sig]
     return method if method?
 
-    method = @_method_lookup(rs, method_spec)
+    method = @_method_lookup(rs, sig)
     if method? or null_handled is true
-      @ml_cache[method_spec.sig] = method
+      @ml_cache[sig] = method
       return method
 
     # Throw exception
     rs.java_throw rs.get_bs_class('Ljava/lang/NoSuchMethodError;'),
-      "No such method found in #{util.ext_classname(method_spec.class)}::#{method_spec.sig}"
+      "No such method found in #{util.ext_classname(@get_type())}::#{sig}"
 
-  _method_lookup: (rs, method_spec) ->
-    method = @methods[method_spec.sig]
+  _method_lookup: (rs, sig) ->
+    method = @methods[sig]
     return method if method?
 
     parent = @get_super_class()
     if parent?
-      method = parent.method_lookup(rs, method_spec, true)
+      method = parent.method_lookup(rs, sig, true)
       return method if method?
 
     for ifc in @get_interfaces()
-      method = ifc.method_lookup(rs, method_spec, true)
+      method = ifc.method_lookup(rs, sig, true)
       return method if method?
 
     return null

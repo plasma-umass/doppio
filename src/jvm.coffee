@@ -77,7 +77,7 @@ root.set_classpath = (jcl_path, classpath) ->
 # main function that gets called from the frontend
 root.run_class = (rs, class_name, cmdline_args, done_cb) ->
   class_descriptor = "L#{class_name};"
-  main_spec = class: class_descriptor, sig: 'main([Ljava/lang/String;)V'
+  main_sig = 'main([Ljava/lang/String;)V'
   main_method = null
   run_main = ->
     trace "run_main"
@@ -86,7 +86,7 @@ root.run_class = (rs, class_name, cmdline_args, done_cb) ->
         rs.get_bs_cl().initialize_class rs, class_descriptor, ((cls)->
           rs.init_args cmdline_args
           # wrap it in run_until_finished to handle any exceptions correctly
-          rs.run_until_finished (-> main_method = cls.method_lookup rs, main_spec), true, (success) ->
+          rs.run_until_finished (-> main_method = cls.method_lookup rs, main_sig), true, (success) ->
             return done_cb?() unless success and main_method?
             rs.run_until_finished (-> main_method.setup_stack(rs)), false, (success) ->
               done_cb?() if success

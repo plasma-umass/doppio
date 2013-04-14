@@ -262,9 +262,8 @@ class ClassLoader
 
         cls = @bootstrap.get_resolved_class 'Ljava/lang/ExceptionInInitializerError;'
         v = new JavaObject rs, cls # new
-        method_spec = sig: '<init>(Ljava/lang/Throwable;)V'
         rs.push_array([v,v,e.exception]) # dup, ldc
-        cls.method_lookup(rs, method_spec).setup_stack(rs) # invokespecial
+        cls.method_lookup(rs, '<init>(Ljava/lang/Throwable;)V').setup_stack(rs) # invokespecial
       else
         # Not a Java exception?
         # No idea what this is; let's get outta dodge and rethrow it.
@@ -456,9 +455,8 @@ class root.BootstrapClassLoader extends ClassLoader
             rv = rs.pop()
             cls = @bootstrap.get_initialized_class 'Ljava/lang/NoClassDefFoundError;'
             v = new JavaObject rs, cls
-            method_spec = sig: '<init>(Ljava/lang/Throwable;)V'
             rs.push_array([v,v,rv]) # dup, ldc
-            cls.method_lookup(rs, method_spec).setup_stack(rs) # invokespecial
+            cls.method_lookup(rs, '<init>(Ljava/lang/Throwable;)V').setup_stack(rs) # invokespecial
         ), (->
           rs.meta_stack().pop()
           failure_fn (-> throw e)
@@ -466,10 +464,9 @@ class root.BootstrapClassLoader extends ClassLoader
 
         cls = @bootstrap.get_initialized_class 'Ljava/lang/ClassNotFoundException;'
         v = new JavaObject rs, cls # new
-        method_spec = sig: '<init>(Ljava/lang/String;)V'
         msg = rs.init_string(util.ext_classname type_str)
         rs.push_array([v,v,msg]) # dup, ldc
-        cls.method_lookup(rs, method_spec).setup_stack(rs) # invokespecial
+        cls.method_lookup(rs, '<init>(Ljava/lang/String;)V').setup_stack(rs) # invokespecial
       )
     )
     return
@@ -510,7 +507,7 @@ class root.CustomClassLoader extends ClassLoader
     # define_class handles registering the ClassData with the class loader.
     # define_class also handles recalling resolve_class for any needed super
     # classes and interfaces.
-    @loader_obj.cls.method_lookup(rs, {sig: 'loadClass(Ljava/lang/String;)Ljava/lang/Class;'}).setup_stack(rs)
+    @loader_obj.cls.method_lookup(rs, 'loadClass(Ljava/lang/String;)Ljava/lang/Class;').setup_stack(rs)
     # Push ourselves back into the execution loop to run the method.
     rs.run_until_finished((->), false, rs.stashed_done_cb)
     return
