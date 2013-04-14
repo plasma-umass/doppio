@@ -30,6 +30,7 @@ root.parse = (argv) ->
     standard: {}
     non_standard: {}
     properties: {}
+    _: []
 
   parse_flag = (args, full_key, key, option_data, result_dict) ->
     unless option_data[key]

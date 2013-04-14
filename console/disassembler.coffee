@@ -1,6 +1,7 @@
+#!/usr/bin/env coffee
+
 "use strict"
 
-#!/usr/bin/env coffee
 fs = require 'fs'
 util = require '../src/util'
 {disassemble} = require '../src/disassembler'

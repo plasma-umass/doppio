@@ -140,6 +140,9 @@ class StackMapTable
     if tag == 7
       cls = constant_pool.get(bytes_array.get_uint 2).deref()
       'class ' + (if /\w/.test cls[0] then util.descriptor2typestr(cls) else "\"#{cls}\"")
+    else if tag == 8
+      offset = bytes_array.get_uint 2
+      'uninitialized ' + offset
     else
       tag_to_type = [ 'bogus', 'int', 'float', 'double', 'long', 'null', 'this', 'object', 'uninitialized' ]
       tag_to_type[tag]
