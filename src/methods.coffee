@@ -121,9 +121,12 @@ class root.Method extends AbstractMethodField
       i = -1
       param_type_objs = []
       k = 0
-      handlers = @code?.exception_handlers ? []
-      # HotSpot seems to do this
-      handlers.unshift catch_type: 'Ljava/lang/Throwable;' if handlers.length > 0
+      if @code?.exception_handlers? and @code.exception_handlers.length > 0
+        # HotSpot seems to do this
+        handlers = [catch_type: 'Ljava/lang/Throwable;']
+        Array::push.apply handlers, @code.exception_handlers
+      else
+        handlers = []
 
       fetch_catch_type = =>
         if k < handlers.length
