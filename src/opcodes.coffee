@@ -99,14 +99,20 @@ class root.DynInvokeOpcode extends root.InvokeOpcode
     @cache = Object.create null
 
   execute: (rs) ->
-    my_sf = rs.curr_frame()
-    stack = my_sf.stack
-    obj = stack[stack.length - @count]
-    cls_obj = rs.check_null(obj).cls
-    cls = cls_obj.get_type()
-    if cls_obj.method_lookup(rs, {class: cls, sig: @method_spec.sig}).setup_stack(rs)?
-      my_sf.pc += 1 + @byte_count
-      return false
+    cls = rs.get_class(@method_spec.class, true)
+    if cls?
+      my_sf = rs.curr_frame()
+      stack = my_sf.stack
+      obj = stack[stack.length - @count]
+      cls_obj = rs.check_null(obj).cls
+      if cls_obj.method_lookup(rs, {class: cls, sig: @method_spec.sig}).setup_stack(rs)?
+        my_sf.pc += 1 + @byte_count
+        return false
+    else
+      # Initialize @method_spec.class and rerun opcode.
+      rs.async_op (resume_cb, except_cb) =>
+        rs.get_cl().initialize_class rs, @method_spec.class,
+          (->resume_cb(undefined, undefined, true, false)), except_cb
 
   get_param_word_size = (spec) ->
     state = 'name'

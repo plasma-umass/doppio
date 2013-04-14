@@ -97,6 +97,10 @@ class CustomClassLoader2 extends ClassLoader {
     }
   }
 
+  public static void throwBootstrapException() {
+    throw new RuntimeException();
+  }
+
   // This class cannot rely on method/class/etc ordering, as it is
   // non-standardized.
   public static void main(String [] args) throws Exception{
@@ -117,5 +121,10 @@ class CustomClassLoader2 extends ClassLoader {
     Class sr = dog.getSuperclass();
     System.out.println("Super class: " + sr.getName());
     printMethods(sr.getMethods());
+
+    Class catchBootstrapException = test.loadClass("classes.test.CatchBootstrapException");
+    Method catcher = catchBootstrapException.getMethod("catcher", Class.class);
+    catcher.setAccessible(true); // workaround broken permissions implementation (see CatchBootstrapException.java)
+    catcher.invoke(null, CustomClassLoader2.class);
   }
 }
