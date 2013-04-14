@@ -598,6 +598,43 @@ native_methods =
               rs.heap_newarray _this.$cls.get_type(), len
           o 'getLength(Ljava/lang/Object;)I', (rs, arr) ->
               rs.check_null(arr).array.length
+          o 'set(Ljava/lang/Object;ILjava/lang/Object;)V', (rs, arr, idx, val) ->
+              my_sf = rs.curr_frame()
+              array = rs.check_null(arr).array
+              box_names =
+                B: 'Ljava/lang/Byte;'
+                C: 'Ljava/lang/Character;'
+                D: 'Ljava/lang/Double;'
+                F: 'Ljava/lang/Float;'
+                I: 'Ljava/lang/Integer;'
+                J: 'Ljava/lang/Long;'
+                S: 'Ljava/lang/Short;'
+                Z: 'Ljava/lang/Boolean;'
+
+              unless idx < array.length
+                rs.java_throw rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;'), 'Tried to write to an illegal index in an array.'
+
+              if (ccls = arr.cls.get_component_class()) instanceof PrimitiveClassData
+                if (ccname = ccls.get_type()) of box_names and
+                   val.cls.is_subclass rs.get_bs_class box_names[ccname]
+                  m = val.cls.method_lookup(rs, class: val.cls.get_type(), sig: "#{util.internal2external[ccname]}Value()#{ccname}", false)
+                  rs.push val
+                  m.setup_stack rs
+                  my_sf.runner = ->
+                    array[idx] = if ccname in ['J', 'D'] then rs.pop2() else rs.pop()
+                    rs.meta_stack().pop()
+                  throw exceptions.ReturnException
+              else if val.cls.is_subclass ccls
+                array[idx] = val
+                return
+
+              illegal_exc = 'Ljava/lang/IllegalArgumentException;'
+              if (ecls = rs.get_bs_class(illegal_exc, true))?
+                rs.java_throw ecls, 'argument type mismatch'
+              else
+                rs.async_op (resume_cb, except_cb) ->
+                  rs.get_cl().initialize_class rs, illegal_exc,
+                    ((ecls) -> except_cb (-> rs.java_throw ecls, 'argument type mismatch')), except_cb
         ]
         Proxy: [
           o 'defineClass0(L!/!/ClassLoader;L!/!/String;[BII)L!/!/Class;', (rs,cl,name,bytes,offset,len) ->

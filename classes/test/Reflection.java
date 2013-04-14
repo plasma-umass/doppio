@@ -84,6 +84,78 @@ public class Reflection {
     System.out.println("boxing: " + boxingMethod.invoke(null, 1300L, 37L));
     // void return values
     System.out.println("void return: " + voidMethod.invoke(null));
+
+    System.out.println("Testing java.lang.reflect.Array.set");
+    byte[] byteArr = new byte[1];
+    Array.set(byteArr, 0, new Byte((byte)1));
+    System.out.println(byteArr[0]);
+
+    char[] charArr = new char[1];
+    Array.set(charArr, 0, new Character('a'));
+    System.out.println(charArr[0]);
+
+    double[] doubleArr = new double[1];
+    Array.set(doubleArr, 0, new Double(1));
+    System.out.println(doubleArr[0]);
+
+    float[] floatArr = new float[1];
+    Array.set(floatArr, 0, new Float(1));
+    System.out.println(floatArr[0]);
+
+    int[] intArr = new int[1];
+    Array.set(intArr, 0, new Integer(1));
+    System.out.println(intArr[0]);
+
+    long[] longArr = new long[1];
+    Array.set(longArr, 0, new Long(1));
+    System.out.println(longArr[0]);
+
+    short[] shortArr = new short[1];
+    Array.set(shortArr, 0, new Short((short)1));
+    System.out.println(shortArr[0]);
+
+    boolean[] boolArr = new boolean[1];
+    Array.set(boolArr, 0, new Boolean(true));
+    System.out.println(boolArr[0]);
+
+    // no unboxing should occur here.
+    Integer[] integerArr = new Integer[1];
+    Array.set(integerArr, 0, new Integer(1));
+    System.out.println(integerArr[0].getClass().getName());
+    System.out.println(integerArr[0]);
+
+    System.out.println("Checking if Array.set's exceptions");
+
+    try {
+      Array.set(charArr, 1, new Character('a'));
+    }
+    catch (ArrayIndexOutOfBoundsException e) {
+      System.out.println("Caught ArrayIndexOutOfBoundsException");
+    }
+
+    try {
+      Array.set(byteArr, 0, new Character('a'));
+    }
+    catch (IllegalArgumentException e) {
+      System.out.println("Caught IllegalArgumentException");
+    }
+
+    try {
+      // not a subclass
+      Array.set(integerArr, 0, "foo");
+    } catch (IllegalArgumentException e) {
+      System.out.println("Caught IllegalArgumentException");
+    }
+
+    // The docs don't say which exception should be thrown if we have both an
+    // illegal index as well as an illegal argument. Let's just match HotSpot's
+    // behavior.
+    try {
+      Array.set(byteArr, 1, new Character('a'));
+    }
+    catch (ArrayIndexOutOfBoundsException e) {
+      System.out.println("Caught ArrayIndexOutOfBoundsException");
+    }
   }
 
   static class SubClass extends Reflection {
