@@ -11,7 +11,7 @@ import java.util.Comparator;
 
 // Modified from: http://www.javalobby.org/java/forums/t18345.html
 
-class CustomClassLoader2 extends ClassLoader {
+public class CustomClassLoader2 extends ClassLoader {
   private Hashtable classes = new Hashtable();
 
   public CustomClassLoader2 (){
@@ -33,6 +33,10 @@ class CustomClassLoader2 extends ClassLoader {
         return mName1.compareTo(mName2);
       }
   };
+
+  public static class CustomException extends Exception {
+    public CustomException() { super(); }
+  }
 
   public Class loadClass(String className) throws ClassNotFoundException {
     System.out.println("Loading class " + className);
@@ -97,8 +101,8 @@ class CustomClassLoader2 extends ClassLoader {
     }
   }
 
-  public static void throwBootstrapException() {
-    throw new RuntimeException();
+  public static void throwBootstrapException() throws CustomException {
+    throw new CustomException();
   }
 
   // This class cannot rely on method/class/etc ordering, as it is
@@ -122,9 +126,13 @@ class CustomClassLoader2 extends ClassLoader {
     System.out.println("Super class: " + sr.getName());
     printMethods(sr.getMethods());
 
-    Class catchBootstrapException = test.loadClass("classes.test.CatchBootstrapException");
-    Method catcher = catchBootstrapException.getMethod("catcher", Class.class);
-    catcher.setAccessible(true); // workaround broken permissions implementation (see CatchBootstrapException.java)
-    catcher.invoke(null, CustomClassLoader2.class);
+    Class catchBootstrapException = test.loadClass("classes.test.CatchBootstrapExceptions");
+    Method catcher = catchBootstrapException.getMethod("catcher", Character.class);
+    System.out.println("Obtained catcher Method.");
+    // Method.invoke()'s permissions checking relies on something that we
+    // don't implement correctly. setAccessible(true) bypasses the entire
+    // check.
+    catcher.setAccessible(true);
+    catcher.invoke(null, 'a');
   }
 }

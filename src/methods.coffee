@@ -120,6 +120,19 @@ class root.Method extends AbstractMethodField
       etype_objs = []
       i = -1
       param_type_objs = []
+      k = 0
+      handlers = @code?.exception_handlers ? []
+      # HotSpot seems to do this
+      handlers.unshift catch_type: 'Ljava/lang/Throwable;' if handlers.length > 0
+
+      fetch_catch_type = =>
+        if k < handlers.length
+          eh = handlers[k++]
+          return fetch_catch_type() if eh.catch_type is '<any>'
+          @cls.loader.resolve_class(rs, eh.catch_type, fetch_catch_type, failure_fn)
+        else
+          fetch_ptype()
+
       fetch_etype = () =>
         j++
         if j < exceptions.length
@@ -148,7 +161,7 @@ class root.Method extends AbstractMethodField
         else
           fetch_etype()
 
-      fetch_ptype()
+      fetch_catch_type()
     ), failure_fn)
 
   take_params: (caller_stack) ->
