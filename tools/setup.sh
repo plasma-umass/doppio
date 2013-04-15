@@ -67,10 +67,10 @@ fi
 
 cd ..  # back to start
 
-# Make sure node is present and >= v0.8
-node_outdated=$(perl -le 'use version; print 1 if (version->parse(`node -v`) < version->parse("v0.8"))')
+# Make sure node is present and >= v1.0
+node_outdated=$(perl -le 'use version; print 1 if (version->parse(`node -v`) < version->parse("v0.10"))')
 if [[ $node_outdated == 1 ]]; then
-  echo "node >= v0.8 required"
+  echo "node >= v0.10 required"
   if [ -n "$PKGMGR" ]; then
     $PKGMGR node
   else
