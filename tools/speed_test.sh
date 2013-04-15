@@ -7,7 +7,7 @@ read -a head_info <<< `git rev-list --timestamp --max-count 1 HEAD`
 commit_time=${head_info[0]}
 commit_hash=${head_info[1]}
 
-pushd "`dirname $0`/.."
+pushd "`dirname $0`/.." >/dev/null
 
 make --quiet release-cli
 
@@ -19,7 +19,7 @@ last_file=${files[$last_idx]}
 echo -e "{\"commit\": \"$commit_hash\", \"timestamp\": $commit_time, \"tests\": {"
 for testfile in "${files[@]}"; do
  classname=${testfile%.java}
- read -a results <<< `./doppio --benchmark $classname | tail -2 | cut -f1 -d' '`
+ read -a results <<< `./doppio -Xbenchmark $classname | tail -2 | cut -f1 -d' '`
  cold=${results[0]}
  hot=${results[1]}
  echo -en "\n  \"${classname##*/}\": [$cold,$hot]"
@@ -27,5 +27,5 @@ for testfile in "${files[@]}"; do
 done
 echo "}}"
 
-popd
+popd >/dev/null
 
