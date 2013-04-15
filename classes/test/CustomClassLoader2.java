@@ -34,6 +34,10 @@ public class CustomClassLoader2 extends ClassLoader {
       }
   };
 
+  public static class CustomException2 extends Exception {
+    public CustomException2() { super(); }
+  }
+
   public static class CustomException extends Exception {
     public CustomException() { super(); }
   }
@@ -103,6 +107,10 @@ public class CustomClassLoader2 extends ClassLoader {
 
   public static void throwBootstrapException() throws CustomException {
     throw new CustomException();
+  }
+
+  public static void throwBootstrapException2() throws CustomException2 {
+    throw new CustomException2();
   }
 
   // This class cannot rely on method/class/etc ordering, as it is

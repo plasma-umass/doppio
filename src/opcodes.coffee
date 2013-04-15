@@ -72,9 +72,14 @@ class root.InvokeOpcode extends root.Opcode
     cls = rs.get_class(@method_spec.class, true)
     if cls?
       my_sf = rs.curr_frame()
-      if cls.method_lookup(rs, @method_spec.sig).setup_stack(rs)?
-        my_sf.pc += 1 + @byte_count
-        return false
+      if (m = cls.method_lookup(rs, @method_spec.sig))?
+        if m.setup_stack(rs)?
+          my_sf.pc += 1 + @byte_count
+          return false
+      else
+        rs.async_op (resume_cb, except_cb) =>
+          cls.resolve_method rs, @method_spec.sig,
+            (->resume_cb(undefined, undefined, true, false)), except_cb
     else
       # Initialize @method_spec.class and rerun opcode.
       rs.async_op (resume_cb, except_cb) =>
@@ -105,10 +110,14 @@ class root.DynInvokeOpcode extends root.InvokeOpcode
       stack = my_sf.stack
       obj = stack[stack.length - @count]
       cls_obj = rs.check_null(obj).cls
-      console.log obj if cls_obj is undefined
-      if cls_obj.method_lookup(rs, @method_spec.sig).setup_stack(rs)?
-        my_sf.pc += 1 + @byte_count
-        return false
+      if (m = cls_obj.method_lookup(rs, @method_spec.sig))?
+        if m.setup_stack(rs)?
+          my_sf.pc += 1 + @byte_count
+          return false
+      else
+        rs.async_op (resume_cb, except_cb) =>
+          cls_obj.resolve_method rs, @method_spec.sig,
+            (->resume_cb(undefined, undefined, true, false)), except_cb
     else
       # Initialize @method_spec.class and rerun opcode.
       rs.async_op (resume_cb, except_cb) =>

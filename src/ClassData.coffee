@@ -60,12 +60,10 @@ class ClassData
   get_method: -> null
   get_methods: -> {}
   get_fields: -> []
-  method_lookup: (rs, sig, null_handled) ->
-    return null if null_handled
+  method_lookup: (rs, sig) ->
     rs.java_throw rs.get_bs_class('Ljava/lang/NoSuchMethodError;'),
       "No such method found in #{util.ext_classname(@get_type())}::#{sig}"
-  field_lookup: (rs, name, null_handled) ->
-    return null if null_handled
+  field_lookup: (rs, name) ->
     rs.java_throw rs.get_bs_class('Ljava/lang/NoSuchFieldError;'),
       "No such field found in #{util.ext_classname(@get_type())}::#{name}"
 
@@ -194,15 +192,14 @@ class root.ReferenceClassData extends ClassData
     # class methods
     num_methods = bytes_array.get_uint 2
     @methods = {}
-    # It would probably be safe to make @methods the @ml_cache, but it would
-    # make debugging harder as you would lose track of who owns what method.
     @ml_cache = {}
+    # XXX: we may want to populate ml_cache with methods whose exception
+    # handler classes we have already loaded
     for i in [0...num_methods] by 1
       m = new methods.Method(@)
       m.parse(bytes_array,@constant_pool,i)
       mkey = m.name + m.raw_descriptor
       @methods[mkey] = m
-      @ml_cache[mkey] = m
     # class attributes
     @attrs = attributes.make_attributes(bytes_array,@constant_pool)
     throw "Leftover bytes in classfile: #{bytes_array}" if bytes_array.has_bytes()
@@ -309,33 +306,56 @@ class root.ReferenceClassData extends ClassData
   # Spec [5.4.3.3][1], [5.4.3.4][2].
   # [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#79473
   # [2]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#78621
-  method_lookup: (rs, sig, null_handled) ->
-    method = @ml_cache[sig]
-    return method if method?
+  method_lookup: (rs, sig) ->
+    return @ml_cache[sig] if @ml_cache[sig]?
 
     method = @_method_lookup(rs, sig)
-    if method? or null_handled is true
-      @ml_cache[sig] = method
-      return method
 
-    # Throw exception
-    rs.java_throw rs.get_bs_class('Ljava/lang/NoSuchMethodError;'),
-      "No such method found in #{util.ext_classname(@get_type())}::#{sig}"
+    unless method?
+      rs.java_throw rs.get_bs_class('Ljava/lang/NoSuchMethodError;'),
+        "No such method found in #{util.ext_classname(@get_type())}::#{sig}"
+
+    if (handlers = method.code?.exception_handlers)?
+      for eh in handlers
+        unless eh.catch_type is '<any>' or (@loader.get_resolved_class eh.catch_type, true)?
+          return null # we found it, but it needs to be resolved
+
+    method
 
   _method_lookup: (rs, sig) ->
-    method = @methods[sig]
-    return method if method?
+    return @ml_cache[sig] if sig of @ml_cache
+
+    if sig of @methods
+      return @ml_cache[sig] = @methods[sig]
 
     parent = @get_super_class()
     if parent?
-      method = parent.method_lookup(rs, sig, true)
-      return method if method?
+      @ml_cache[sig] = parent._method_lookup(rs, sig)
+      return @ml_cache[sig] if @ml_cache[sig]?
 
     for ifc in @get_interfaces()
-      method = ifc.method_lookup(rs, sig, true)
-      return method if method?
+      @ml_cache[sig] = ifc._method_lookup(rs, sig)
+      return @ml_cache[sig] if @ml_cache[sig]?
 
-    return null
+    return @ml_cache[sig] = null
+
+  # this should only be called after method_lookup returns null!
+  # in particular, we assume that the method exists and has exception handlers.
+  resolve_method: (rs, sig, success_fn, failure_fn) ->
+    trace "ASYNCHRONOUS: resolve_method #{sig}"
+    m = @method_lookup(rs, sig)
+    handlers = m.code.exception_handlers
+    i = 0
+    next_handler = =>
+      if i == handlers.length
+        success_fn(m)
+      else
+        eh = handlers[i++]
+        unless eh.catch_type is '<any>' or @loader.get_resolved_class eh.catch_type, true
+          @loader.resolve_class rs, eh.catch_type, next_handler, failure_fn
+        else
+          next_handler()
+    next_handler()
 
   # Returns a boolean indicating if this class is an instance of the target class.
   # "target" is a ClassData object.

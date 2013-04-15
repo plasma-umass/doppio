@@ -83,13 +83,21 @@ trapped_methods =
 doPrivileged = (rs, action) ->
   my_sf = rs.curr_frame()
   m = action.cls.method_lookup(rs, 'run()Ljava/lang/Object;')
-  rs.push action unless m.access_flags.static
-  m.setup_stack(rs)
-  my_sf.runner = ->
-    rv = rs.pop()
-    rs.meta_stack().pop()
-    rs.push rv
-  throw exceptions.ReturnException
+  if m?
+    rs.push action unless m.access_flags.static
+    m.setup_stack(rs)
+    my_sf.runner = ->
+      rv = rs.pop()
+      rs.meta_stack().pop()
+      rs.push rv
+    throw exceptions.ReturnException
+  else
+    rs.async_op (resume_cb, except_cb) ->
+      action.cls.resolve_method rs, 'run()Ljava/lang/Object;',
+        (->
+          rs.meta_stack().push {}  # dummy
+          resume_cb()),
+        except_cb
 
 stat_fd = (fd) ->
   try
@@ -617,7 +625,7 @@ native_methods =
               if (ccls = arr.cls.get_component_class()) instanceof PrimitiveClassData
                 if (ccname = ccls.get_type()) of box_names and
                    val.cls.is_subclass rs.get_bs_class box_names[ccname]
-                  m = val.cls.method_lookup(rs, "#{util.internal2external[ccname]}Value()#{ccname}", false)
+                  m = val.cls.method_lookup(rs, "#{util.internal2external[ccname]}Value()#{ccname}")
                   rs.push val
                   m.setup_stack rs
                   my_sf.runner = ->

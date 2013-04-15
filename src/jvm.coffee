@@ -86,10 +86,18 @@ root.run_class = (rs, class_name, cmdline_args, done_cb) ->
         rs.get_bs_cl().initialize_class rs, class_descriptor, ((cls)->
           rs.init_args cmdline_args
           # wrap it in run_until_finished to handle any exceptions correctly
-          rs.run_until_finished (-> main_method = cls.method_lookup rs, main_sig), true, (success) ->
-            return done_cb?() unless success and main_method?
-            rs.run_until_finished (-> main_method.setup_stack(rs)), false, (success) ->
-              done_cb?() if success
+          rs.run_until_finished(
+            (->
+              main_method = cls.method_lookup rs, main_sig
+              return if main_method?
+              rs.async_op (resume_cb, except_cb) ->
+                # we call except_cb on success because it doesn't pop the callstack
+                cls.resolve_method rs, main_sig, ((m)-> main_method = m; except_cb(->)), except_cb
+            ), true, (success) ->
+              return done_cb?() unless success and main_method?
+              rs.run_until_finished (-> main_method.setup_stack(rs)), false, (success) ->
+                done_cb?() if success
+          )
         ), except_cb
     ), true, done_cb
 

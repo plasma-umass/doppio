@@ -18,5 +18,17 @@ public class CatchBootstrapExceptions {
     catch (CustomClassLoader2.CustomException e) {
       System.out.println("Caught exception originating in bootstrap-loaded code.");
     }
+    CatchBootstrapExceptions2.catcher();
+  }
+}
+
+class CatchBootstrapExceptions2 {
+  public static void catcher() {
+    try {
+      CustomClassLoader2.throwBootstrapException2();
+    }
+    catch (CustomClassLoader2.CustomException2 e) {
+      System.out.println("Caught another exception originating in bootstrap-loaded code.");
+    }
   }
 }
