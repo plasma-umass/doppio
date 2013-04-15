@@ -15,7 +15,12 @@ class PackageTest {
     System.out.println("Specification title: " + pkg.getSpecificationTitle());
     System.out.println("Specification vendor: " + pkg.getSpecificationVendor());
     System.out.println("Specification version: " + pkg.getSpecificationVersion());
-    System.out.println("Is it compatible with 1.6? " + pkg.isCompatibleWith("1.6"));
+    try {
+      System.out.println("Is it compatible with 1.6? " + pkg.isCompatibleWith("1.6"));
+    }
+    catch (NumberFormatException e) {
+      System.out.println("Compatibility check failed: " + e.getMessage());
+    }
     System.out.println("Is it sealed? " + pkg.isSealed());
     System.out.println("String representation: " + pkg.toString());
     System.out.println("Annotations:");
@@ -34,5 +39,9 @@ class PackageTest {
   static public void main(String[] args) {
     Package pkg = Package.getPackage("java.lang");
     printPackage(pkg);
+    Package[] pkgs = Package.getPackages();
+    for (Package p : pkgs) {
+      printPackage(p);
+    }
   }
 }

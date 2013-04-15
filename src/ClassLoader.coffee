@@ -16,14 +16,15 @@ root = exports ? this.ClassLoader = {}
 class ClassLoader
   constructor: (@bootstrap) -> @loaded_classes = Object.create null
 
-  does_package_exist: (pkg_name) ->
+  get_package_names: ->
     # Don't prune reference classes; if you do, we'll be iterating over
     # each class twice.
     classes = @get_loaded_class_list()
-    for cls in classes by 1
+    pkg_names = {}
+    for cls in classes when cls[0] is 'L'
       # Start at 1 to cut off the L at the start of the string.
-      return true if cls.substring(1, pkg_name.length+1) is pkg_name
-    return false
+      pkg_names[cls.substring(1, (cls.lastIndexOf '/') + 1)] = true
+    Object.keys pkg_names
 
   get_loaded_class_list: (ref_class_only=false) ->
     if ref_class_only
