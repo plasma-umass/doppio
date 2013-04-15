@@ -609,22 +609,13 @@ native_methods =
           o 'set(Ljava/lang/Object;ILjava/lang/Object;)V', (rs, arr, idx, val) ->
               my_sf = rs.curr_frame()
               array = rs.check_null(arr).array
-              box_names =
-                B: 'Ljava/lang/Byte;'
-                C: 'Ljava/lang/Character;'
-                D: 'Ljava/lang/Double;'
-                F: 'Ljava/lang/Float;'
-                I: 'Ljava/lang/Integer;'
-                J: 'Ljava/lang/Long;'
-                S: 'Ljava/lang/Short;'
-                Z: 'Ljava/lang/Boolean;'
 
               unless idx < array.length
                 rs.java_throw rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;'), 'Tried to write to an illegal index in an array.'
 
               if (ccls = arr.cls.get_component_class()) instanceof PrimitiveClassData
-                if (ccname = ccls.get_type()) of box_names and
-                   val.cls.is_subclass rs.get_bs_class box_names[ccname]
+                if val.cls.is_subclass rs.get_bs_class ccls.box_class_name()
+                  ccname = ccls.get_type()
                   m = val.cls.method_lookup(rs, "#{util.internal2external[ccname]}Value()#{ccname}")
                   rs.push val
                   m.setup_stack rs

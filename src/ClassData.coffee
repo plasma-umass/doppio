@@ -94,8 +94,8 @@ class root.PrimitiveClassData extends ClassData
   # The ClassData objects do not need to be initialized; just loaded.
   is_castable: (target) -> @this_class == target.this_class
 
-  create_wrapper_object: (rs, value) ->
-    type_desc = switch @this_class
+  box_class_name: ->
+    switch @this_class
       when 'B' then 'Ljava/lang/Byte;'
       when 'C' then 'Ljava/lang/Character;'
       when 'D' then 'Ljava/lang/Double;'
@@ -104,12 +104,14 @@ class root.PrimitiveClassData extends ClassData
       when 'J' then 'Ljava/lang/Long;'
       when 'S' then 'Ljava/lang/Short;'
       when 'Z' then 'Ljava/lang/Boolean;'
-      else
-        throw new Error("Tried to create_wrapper_object for type #{@this_class}")
+      else throw new Error "Tried to box a non-primitive class: #{@this_class}"
+
+  create_wrapper_object: (rs, value) ->
+    box_name = @box_class_name()
     # these are all initialized in preinit (for the BSCL, at least)
-    wrapped = new JavaObject rs, rs.get_bs_class(type_desc)
+    wrapped = new JavaObject rs, rs.get_bs_class(box_name)
     # HACK: all primitive wrappers store their value in a private static final field named 'value'
-    wrapped.fields[type_desc+'value'] = value
+    wrapped.fields[box_name+'value'] = value
     return wrapped
 
 class root.ArrayClassData extends ClassData
