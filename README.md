@@ -18,6 +18,14 @@ Getting & Building the Code
     cd doppio
     tools/setup.sh
 
+If you have Homebrew, `setup.sh` will try to install a bunch of dependencies
+automatically. Users of other package managers should check that they have:
+
+* `node >= 0.10`
+* `wget`
+* `libffi`
+* `gnu-sed` (i.e. must support the `-r` flag; BSD `sed` doesn't)
+
 Usage
 -----
 
