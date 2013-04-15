@@ -380,8 +380,12 @@ class DoppioServer
 
     p1 "Creating server in " + Mode2String(@options.mode) + " mode."
 
+    mime_types = WEBrick::HTTPUtils::DefaultMimeTypes
+    mime_types.store 'svg', 'image/svg+xml'
+
     @server = HTTPServer.new({:DocumentRoot => documentRoot,
-                              :Port         => 8000})
+                              :Port         => 8000,
+                              :MimeTypes    => mime_types})
     ['INT', 'TERM'].each {|signal|
       trap(signal) {@server.shutdown}
     }
