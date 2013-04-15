@@ -12,7 +12,6 @@ docs
 index.html
 about.html
 .DS_store
-Gemfile.lock
 doppio
 doppio-dev
 core-*

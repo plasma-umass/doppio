@@ -85,7 +85,7 @@ make java
 
 if ! command -v bundle > /dev/null; then
     if command -v gem > /dev/null; then
-        echo "installing bundler, need sudo perimssions"
+        echo "installing bundler, need sudo permissions"
         sudo gem install bundler
     else
         echo "warning: could not install bundler because rubygems was not found!"
