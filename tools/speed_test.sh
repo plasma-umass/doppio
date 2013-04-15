@@ -16,7 +16,7 @@ files=(classes/test/*.java)
 last_idx=$(( ${#files[*]} - 1 ))
 last_file=${files[$last_idx]}
 
-echo -e "{\"commit\": \"$commit_hash\", \"timestamp\": $commit_time, \"tests\": {"
+echo -en "{\"commit\": \"$commit_hash\", \"timestamp\": $commit_time, \"tests\": {"
 for testfile in "${files[@]}"; do
  classname=${testfile%.java}
  read -a results <<< `./doppio -Xbenchmark $classname | tail -2 | cut -f1 -d' '`
