@@ -205,7 +205,7 @@ read_dir = (dir, pretty=true, columns=true) ->
   pretty_list = []
   max_len = 0
   for c in contents
-    if node.fs.statSync(c).isDirectory()
+    if node.fs.statSync(dir+'/'+c).isDirectory()
       c += '/'
     max_len = c.length if c.length > max_len
     pretty_list.push c
