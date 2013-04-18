@@ -19,11 +19,10 @@ class ClassLoader
   get_package_names: ->
     # Don't prune reference classes; if you do, we'll be iterating over
     # each class twice.
-    classes = @get_loaded_class_list()
+    classes = @get_loaded_class_list(true)
     pkg_names = {}
-    for cls in classes when cls[0] is 'L'
-      # Start at 1 to cut off the L at the start of the string.
-      pkg_names[cls.substring(1, (cls.lastIndexOf '/') + 1)] = true
+    for cls in classes
+      pkg_names[cls.substring(0, (cls.lastIndexOf '/') + 1)] = true
     Object.keys pkg_names
 
   get_loaded_class_list: (ref_class_only=false) ->
