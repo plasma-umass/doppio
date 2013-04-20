@@ -31,6 +31,14 @@ class ClassLoader
     else
       Object.keys @loaded_classes
 
+  # remove a class the Right Way, by also removing any subclasses
+  remove_class: (type_str) ->
+    @_rem_class type_str
+    return if util.is_primitive_type type_str
+    for k,cdata of @loaded_classes when type_str in [cdata.get_component_type?(), cdata.get_super_class_type()]
+      @remove_class cdata.get_type()
+    return
+
   # Remove a class. Should only be used in the event of a class loading failure.
   _rem_class: (type_str) ->
     delete @loaded_classes[type_str]

@@ -230,7 +230,7 @@ commands =
     jvm.run_class rs, 'classes/util/Javac', args, ->
         # HACK: remove any classes that just got compiled from the class cache
         for c in args when c.match /\.java$/
-          bs_cl._rem_class(util.int_classname(c.slice(0,-5)))
+          bs_cl.remove_class(util.int_classname(c.slice(0,-5)))
         controller.reprompt()
     return null  # no reprompt, because we handle it ourselves
   java: (args, cb) ->
