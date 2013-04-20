@@ -10,12 +10,61 @@ pad_left = (value, padding) ->
   zeroes = new Array(padding).join '0'
   (zeroes + value).slice(-padding)
 
+access_string = (access_flags) ->
+  ordered_flags = [ 'public', 'protected', 'private', 'static', 'final' ]
+  ordered_flags.push 'abstract' unless access_flags.interface
+  (("#{flag} " if access_flags[flag]) for flag in ordered_flags).join ''
+
+# format floats and doubles in the javap way
+format_decimal = (val,type_char) ->
+  valStr = val.toString()
+  if type_char == 'f'
+    if val is util.FLOAT_POS_INFINITY or val is Number.POSITIVE_INFINITY
+      valStr = "Infinity"
+    else if val is util.FLOAT_NEG_INFINITY or val is Number.NEGATIVE_INFINITY
+      valStr = "-Infinity"
+    else if val is NaN
+      valStr = "NaN"
+
+  if valStr.match(/-?(Infinity|NaN)/)
+    str = valStr
+  else
+    m = valStr.match /(-?\d+)(\.\d+)?(?:e\+?(-?\d+))?/
+    str = m[1] + (if m[2] then m[2] else '.0')
+    str = parseFloat(str).toFixed(7) if type_char is 'f' and m[2]?.length > 8
+    str = str.replace(/0+$/,'').replace(/\.$/,'.0')
+    str += "E#{m[3]}" if m[3]?
+  str + type_char
+
+# format the entries for displaying the constant pool. e.g. as '#5.#6' or
+# '3.14159f'
+format = (entry) ->
+  val = entry.value
+  switch entry.type
+    when 'Method', 'InterfaceMethod', 'Field'
+      "##{val.class_ref.value}.##{val.sig.value}"
+    when 'NameAndType' then "##{val.meth_ref.value}:##{val.type_ref.value}"
+    when 'float' then format_decimal val, 'f'
+    when 'double' then format_decimal val, 'd'
+    when 'long' then val + "l"
+    else util.escape_whitespace ((if entry.deref? then "#" else "") + val)
+
+# pretty-print our field types, e.g. as 'PackageName.ClassName[][]'
+pp_type = (field_type) ->
+  if util.is_array_type field_type then pp_type(util.get_component_type field_type) + '[]'
+  else util.ext_classname field_type
+
+print_excs = (exc_attr) ->
+  excs = exc_attr.exceptions
+  "   throws " + (util.ext_classname(e) for e in excs).join ', '
+
+# For printing columns.
+fixed_width = (num, width) ->
+  num_str = num.toString()
+  (new Array(width-num_str.length+1)).join(' ') + num_str
+
 root.disassemble = (class_file) ->
   pool = class_file.constant_pool
-  access_string = (access_flags) ->
-    ordered_flags = [ 'public', 'protected', 'private', 'static', 'final' ]
-    ordered_flags.push 'abstract' unless access_flags.interface
-    privacy = (("#{flag} " if access_flags[flag]) for flag in ordered_flags).join ''
 
   source_file = class_file.get_attribute 'SourceFile'
   deprecated = class_file.get_attribute 'Deprecated'
@@ -28,7 +77,7 @@ root.disassemble = (class_file) ->
     rv += "interface #{class_file.toExternalString()}#{if ifaces.length > 0 then " extends #{ifaces}" else ''}\n"
   else
     rv += "class #{class_file.toExternalString()} extends #{util.ext_classname(class_file.get_super_class_type())}"
-    rv += if (ifaces and not class_file.access_flags.interface) then " implements #{ifaces}\n" else '\n'
+    rv += if ifaces then " implements #{ifaces}\n" else '\n'
   rv += "  SourceFile: \"#{source_file.filename}\"\n" if source_file
   rv += "  Deprecated: length = 0x\n" if deprecated
   if annotations
@@ -55,55 +104,10 @@ root.disassemble = (class_file) ->
   rv += "  major version: #{class_file.major_version}\n"
   rv += "  Constant pool:\n"
 
-  # format floats and doubles in the javap way
-  format_decimal = (val,type_char) ->
-    valStr = val.toString()
-    if type_char == 'f'
-      if val is util.FLOAT_POS_INFINITY or val is Number.POSITIVE_INFINITY
-        valStr = "Infinity"
-      else if val is util.FLOAT_NEG_INFINITY or val is Number.NEGATIVE_INFINITY
-        valStr = "-Infinity"
-      else if val is NaN
-        valStr = "NaN"
-
-    if valStr.match(/-?(Infinity|NaN)/)
-      str = valStr
-    else
-      m = valStr.match /(-?\d+)(\.\d+)?(?:e\+?(-?\d+))?/
-      str = m[1] + (if m[2] then m[2] else '.0')
-      str = parseFloat(str).toFixed(7) if type_char is 'f' and m[2]?.length > 8
-      str = str.replace(/0+$/,'').replace(/\.$/,'.0')
-      str += "E#{m[3]}" if m[3]?
-    str + type_char
-
-  # format the entries for displaying the constant pool. e.g. as '#5.#6' or
-  # '3.14159f'
-  format = (entry) ->
-    val = entry.value
-    switch entry.type
-      when 'Method', 'InterfaceMethod', 'Field'
-        "##{val.class_ref.value}.##{val.sig.value}"
-      when 'NameAndType' then "##{val.meth_ref.value}:##{val.type_ref.value}"
-      when 'float' then format_decimal val, 'f'
-      when 'double' then format_decimal val, 'd'
-      when 'long' then val + "l"
-      else util.escape_whitespace ((if entry.deref? then "#" else "") + val)
-
   pool.each (idx, entry) ->
     rv += "const ##{idx} = #{entry.type}\t#{format entry};"
     rv += "#{util.format_extra_info entry}\n"
-  rv += "\n"
-
-  # pretty-print our field types, e.g. as 'PackageName.ClassName[][]'
-  pp_type = (field_type) ->
-    if util.is_array_type field_type then pp_type(util.get_component_type field_type) + '[]'
-    else util.ext_classname field_type
-
-  print_excs = (exc_attr) ->
-    excs = exc_attr.exceptions
-    "   throws " + (util.ext_classname(e) for e in excs).join ', '
-
-  rv += "{\n"
+  rv += "\n{\n"
 
   for f in class_file.get_fields()
     rv += access_string(f.access_flags)
@@ -142,10 +146,6 @@ root.disassemble = (class_file) ->
         rv += oc.annotate(idx, pool)
         rv += "\n"
       if code.exception_handlers.length > 0
-        # For printing columns.
-        fixed_width = (num, width) ->
-          num_str = num.toString()
-          (" " for [0...width-num_str.length]).join('') + num_str
         rv += "  Exception table:\n"
         rv += "   from   to  target type\n"
         for eh in code.exception_handlers
