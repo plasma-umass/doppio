@@ -3,7 +3,6 @@
 root = exports ? this.disassembler = {}
 
 # pull in external modules
-_ = require '../vendor/_.js'
 util = require './util'
 
 pad_left = (value, padding) ->
@@ -13,7 +12,7 @@ pad_left = (value, padding) ->
 access_string = (access_flags) ->
   ordered_flags = [ 'public', 'protected', 'private', 'static', 'final' ]
   ordered_flags.push 'abstract' unless access_flags.interface
-  (("#{flag} " if access_flags[flag]) for flag in ordered_flags).join ''
+  (flag+' ' for flag in ordered_flags when access_flags[flag]).join ''
 
 # format floats and doubles in the javap way
 format_decimal = (val,type_char) ->
@@ -54,9 +53,8 @@ pp_type = (field_type) ->
   if util.is_array_type field_type then pp_type(util.get_component_type field_type) + '[]'
   else util.ext_classname field_type
 
-print_excs = (exc_attr) ->
-  excs = exc_attr.exceptions
-  "   throws " + (util.ext_classname(e) for e in excs).join ', '
+print_excs = (excs) ->
+  "   throws #{(util.ext_classname(e) for e in excs).join ', '}"
 
 # For printing columns.
 fixed_width = (num, width) ->
@@ -64,102 +62,153 @@ fixed_width = (num, width) ->
   (new Array(width-num_str.length+1)).join(' ') + num_str
 
 root.disassemble = (class_file) ->
-  pool = class_file.constant_pool
+  show_disassembly make_dis class_file
 
-  source_file = class_file.get_attribute 'SourceFile'
-  deprecated = class_file.get_attribute 'Deprecated'
-  annotations = class_file.get_attribute 'RuntimeVisibleAnnotations'
-  ifaces = class_file.get_interface_types()
-  ifaces = (util.ext_classname(i) for i in ifaces).join ','
-  rv = "Compiled from \"#{source_file?.filename ? 'unknown'}\"\n"
-  rv += access_string class_file.access_flags
-  if class_file.access_flags.interface
-    rv += "interface #{class_file.toExternalString()}#{if ifaces.length > 0 then " extends #{ifaces}" else ''}\n"
-  else
-    rv += "class #{class_file.toExternalString()} extends #{util.ext_classname(class_file.get_super_class_type())}"
-    rv += if ifaces then " implements #{ifaces}\n" else '\n'
-  rv += "  SourceFile: \"#{source_file.filename}\"\n" if source_file
-  rv += "  Deprecated: length = 0x\n" if deprecated
-  if annotations
-    rv += "  RuntimeVisibleAnnotations: length = 0x#{annotations.raw_bytes.length.toString(16)}\n"
-    rv += "   #{(pad_left(b.toString(16),2) for b in annotations.raw_bytes).join ' '}\n"
-  inner_classes = class_file.get_attributes 'InnerClasses'
-  for icls in inner_classes
-    rv += "  InnerClass:\n"
+make_dis = (class_file) ->
+  # standard class stuff
+  dis = {
+    source_file: class_file.get_attribute('SourceFile')?.filename ? null
+    is_deprecated: class_file.get_attribute('Deprecated')?
+    annotation_bytes: class_file.get_attribute('RuntimeVisibleAnnotations')?.raw_bytes ? null
+    interfaces: class_file.get_interface_types()
+    access_string:  access_string class_file.access_flags
+    class_type: (if class_file.access_flags.interface then 'interface'  else 'class')
+    class_name: class_file.get_type()
+    superclass: class_file.get_super_class_type()
+    major_version: class_file.major_version
+    minor_version: class_file.minor_version
+    constant_pool: []
+    inner_classes: []
+    fields: []
+    methods: []
+  }
+  # constant pool entries
+  pool = class_file.constant_pool
+  pool.each (idx, entry) ->
+    dis.constant_pool.push
+      idx: idx
+      type: entry.type
+      value: format entry
+      extra: util.format_extra_info entry
+  # inner classes
+  for icls in class_file.get_attributes('InnerClasses')
+    icls_group = []
     for cls in icls.classes
       flags = util.parse_flags cls.inner_access_flags
-      access = ((f+' ' if flags[f]) for f in [ 'public', 'protected', 'private', 'abstract' ]).join ''
-      cls_type = util.descriptor2typestr pool.get(cls.inner_info_index).deref()
-      if cls.inner_name_index <= 0  # anonymous inner class
-          rv += "   #{access}##{cls.inner_info_index}; //class #{cls_type}\n"
-      else  # it's a named inner class
-        rv += "   #{access}##{cls.inner_name_index}= ##{cls.inner_info_index}"
-        name = pool.get(cls.inner_name_index).value
-        if cls.outer_info_index <= 0
-          rv += "; //#{name}=class #{cls_type}\n"
-        else
-          outer_cls_type = util.descriptor2typestr pool.get(cls.outer_info_index).deref()
-          rv += " of ##{cls.outer_info_index}; //#{name}=class #{cls_type} of class #{outer_cls_type}\n"
-  rv += "  minor version: #{class_file.minor_version}\n"
-  rv += "  major version: #{class_file.major_version}\n"
-  rv += "  Constant pool:\n"
-
-  pool.each (idx, entry) ->
-    rv += "const ##{idx} = #{entry.type}\t#{format entry};"
-    rv += "#{util.format_extra_info entry}\n"
-  rv += "\n{\n"
-
+      icls_group.push
+        access_string: (f+' ' for f in ['public', 'protected', 'private', 'abstract'] when flags[f]).join ''
+        type: util.descriptor2typestr pool.get(cls.inner_info_index).deref()
+        raw: cls  # useful for inner/outer indices
+        name: if cls.inner_name_index > 0 then pool.get(cls.inner_name_index).value else null
+        outer_type: if cls.outer_info_index > 0 then pool.get(cls.outer_info_index).deref() else null
+    dis.inner_classes.push icls_group
+  # fields
   for f in class_file.get_fields()
-    rv += access_string(f.access_flags)
-    rv += "#{pp_type(f.type)} #{f.name};\n"
+    field =
+      type: f.type
+      name: f.name
+      access_string: access_string(f.access_flags)
+      signature_bytes: f.get_attribute('Signature')?.raw_bytes ? null
     const_attr = f.get_attribute 'ConstantValue'
     if const_attr?
       entry = pool.get(const_attr.ref)
-      # If it's a string, dereference the value. Otherwise, format the numeric value.
-      rv += "  Constant value: #{entry.type} #{entry.deref?() or format(entry)}\n"
-    sig = f.get_attribute 'Signature'
-    if sig?
-      rv += "  Signature: length = 0x#{sig.raw_bytes.length.toString(16)}\n"
-      rv += "   #{(pad_left(b.toString(16).toUpperCase(),2) for b in sig.raw_bytes).join ' '}\n"
+      field.const_type = entry.type
+      field.const_value = entry.deref?() or format(entry)
+    dis.fields.push field
+  # methods
+  for sig, m of class_file.get_methods()
+    method =
+      access_string: access_string m.access_flags
+      is_synchronized: m.access_flags.synchronized
+      return_type: m.return_type ? ''
+      name: m.name
+      param_types: m.param_types
+      exceptions: m.get_attribute('Exceptions')?.exceptions ? null
+
+    unless m.access_flags.native or m.access_flags.abstract
+      code = m.code
+      code.parse_code()
+      method.code = {
+        max_stack: code.max_stack
+        max_locals: code.max_locals
+        num_args: m.num_args
+        exception_handlers: code.exception_handlers
+        attributes: code.attrs
+      }
+      method.code.opcodes = ops = []
+      code.each_opcode (idx, oc) ->
+        ops.push {idx: idx, name: oc.name, annotation: oc.annotate(idx, pool)}
+    dis.methods.push method
+  return dis
+
+show_disassembly = (dis) ->
+  ifaces = (util.ext_classname(i) for i in dis.interfaces).join ','
+  name = util.ext_classname dis.class_name
+  rv = "Compiled from \"#{dis.source_file ? 'unknown'}\"\n#{dis.access_string}#{dis.class_type} #{name} "
+  if dis.class_type is 'interface'
+    rv += if ifaces.length > 0 then "extends #{ifaces}\n" else '\n'
+  else
+    rv += "extends #{util.ext_classname dis.superclass}"
+    rv += if ifaces then " implements #{ifaces}\n" else '\n'
+  rv += "  SourceFile: \"#{dis.source_file}\"\n" if dis.source_file
+  rv += "  Deprecated: length = 0x\n" if dis.is_deprecated
+  if dis.annotation_bytes
+    alen = dis.annotation_bytes.length.toString(16)
+    abytes = (pad_left(b.toString(16),2) for b in dis.annotation_bytes).join ' '
+    rv += "  RuntimeVisibleAnnotations: length = 0x#{alen}\n   #{abytes}\n"
+  for icls_group in dis.inner_classes
+    rv += "  InnerClass:\n"
+    for icls in icls_group
+      unless icls.name?  # anonymous inner class
+        rv += "   #{icls.access_string}##{icls.raw.inner_info_index}; //class #{icls.type}\n"
+      else  # it's a named inner class
+        rv += "   #{icls.access_string}##{icls.raw.inner_name_index}= ##{icls.raw.inner_info_index}"
+        unless icls.outer_type?
+          rv += "; //#{icls.name}=class #{icls.type}\n"
+        else
+          rv += " of ##{icls.raw.outer_info_index}; //#{icls.name}=class #{icls.type} of class #{icls.outer_type}\n"
+  rv += "  minor version: #{dis.minor_version}\n  major version: #{dis.major_version}\n  Constant pool:\n"
+  for entry in dis.constant_pool
+    rv += "const ##{entry.idx} = #{entry.type}\t#{entry.value};#{entry.extra}\n"
+  rv += "\n{\n"
+
+  for f in dis.fields
+    rv += "#{f.access_string}#{pp_type(f.type)} #{f.name};\n"
+    if f.const_type?
+      rv += "  Constant value: #{f.const_type} #{f.const_value}\n"
+    if f.signature_bytes?
+      siglen = f.signature_bytes.length.toString(16)
+      sigbytes = (pad_left(b.toString(16).toUpperCase(),2) for b in f.signature_bytes).join ' '
+      rv += "  Signature: length = 0x#{siglen}\n   #{sigbytes}\n"
     rv += "\n\n"
 
-  for sig, m of class_file.get_methods()
-    rv += access_string m.access_flags
-    rv += 'synchronized ' if m.access_flags.synchronized
-    rv +=
-      # initializers are special-cased
-      if m.name is '<init>' then class_file.toExternalString() # instance init
-      else if m.name is '<clinit>' then "{}" # class init
-      else
-        ret_type = if m.return_type? then pp_type m.return_type else ""
-        ret_type + " " + m.name
-    rv += "(#{(pp_type(p) for p in m.param_types).join ', '})" unless m.name is '<clinit>'
-    rv += print_excs exc_attr if exc_attr = m.get_attribute 'Exceptions'
+  for m in dis.methods
+    rv += m.access_string
+    rv += 'synchronized ' if m.is_synchronized
+    ptypes = (pp_type(p) for p in m.param_types).join ', '
+    if m.name is '<clinit>'
+      rv += '{}'
+    else if m.name is '<init>'
+      rv += "#{name}(#{ptypes})"
+    else
+      rv += "#{pp_type m.return_type} #{m.name}(#{ptypes})"
+    rv += print_excs m.exceptions if m.exceptions?
     rv += ";\n"
-    unless m.access_flags.native or m.access_flags.abstract
-      rv += "  Code:\n"
-      code = m.code
-      rv += "   Stack=#{code.max_stack}, Locals=#{code.max_locals}, Args_size=#{m.num_args}\n"
-      code.parse_code()
-      code.each_opcode (idx, oc) ->
-        rv += "   #{idx}:\t#{oc.name}"
-        rv += oc.annotate(idx, pool)
-        rv += "\n"
-      if code.exception_handlers.length > 0
-        rv += "  Exception table:\n"
-        rv += "   from   to  target type\n"
-        for eh in code.exception_handlers
+    if m.code?
+      c = m.code
+      rv += "  Code:\n   Stack=#{c.max_stack}, Locals=#{c.max_locals}, Args_size=#{c.num_args}\n"
+      rv += ("   #{o.idx}:\t#{o.name}#{o.annotation}\n" for o in c.opcodes).join ''
+      if c.exception_handlers?.length > 0
+        rv += "  Exception table:\n   from   to  target type\n"
+        for eh in c.exception_handlers
           rv += (fixed_width eh[item], 6 for item in ['start_pc', 'end_pc', 'handler_pc']).join ''
           if eh.catch_type is '<any>'
             rv += "   any\n"
           else
             rv += "   Class #{eh.catch_type[1...-1]}\n"
         rv += "\n"
-      for attr in code.attrs
-        rv += attr.disassemblyOutput?() or ''
-      rv += "  Exceptions:\n#{print_excs exc_attr}\n" if exc_attr
+      rv += (attr.disassemblyOutput?() or '' for attr in c.attributes).join ''
+      rv += "  Exceptions:\n#{print_excs m.exceptions}\n" if m.exceptions?
     rv += "\n"
-
   rv += "}\n"
-
   return rv
