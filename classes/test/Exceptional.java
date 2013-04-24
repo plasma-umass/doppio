@@ -3,6 +3,7 @@ package classes.test;
 import java.io.*;
 
 public class Exceptional {
+  public static final native long notImplementedNative();
   public static void throwingFunc() throws Exception {
     int x = 0;
     throw new Exception("good morning");
@@ -46,6 +47,14 @@ public class Exceptional {
       catch (Exception e) {
         System.out.println(e.getMessage());
         System.out.println("trace depth: " + e.getStackTrace().length);
+      }
+
+      // check that NYI natives have the right error type
+      try {
+        notImplementedNative();
+      } catch (UnsatisfiedLinkError e) {
+        // we have a different message on purpose, so don't check that
+        System.out.println("got an UnsatisfiedLinkError");
       }
 
       try {

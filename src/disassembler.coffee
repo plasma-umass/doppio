@@ -10,7 +10,7 @@ pad_left = (value, padding) ->
   (zeroes + value).slice(-padding)
 
 access_string = (access_flags) ->
-  ordered_flags = [ 'public', 'protected', 'private', 'static', 'final' ]
+  ordered_flags = [ 'public', 'protected', 'private', 'static', 'final', 'native' ]
   ordered_flags.push 'abstract' unless access_flags.interface
   (flag+' ' for flag in ordered_flags when access_flags[flag]).join ''
 

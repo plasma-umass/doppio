@@ -92,14 +92,14 @@ class root.Method extends AbstractMethodField
     else if @access_flags.native
       if (c = native_methods[sig])?
         @code = c
-      else
-        console.log(sig) if jvm.show_NYI_natives and sig.indexOf('::registerNatives()V',1) < 0 and sig.indexOf('::initIDs()V',1) < 0
-        #if UNSAFE?
-        #  @code = null # optimization: avoid copying around params if it is a no-op.
-        #else
+      else if sig.indexOf('::registerNatives()V',1) < 0 and sig.indexOf('::initIDs()V',1) < 0
+        console.log(sig) if jvm.show_NYI_natives
         @code = (rs) =>
-          unless sig.indexOf('::registerNatives()V',1) >= 0 or sig.indexOf('::initIDs()V',1) >= 0
-            rs.java_throw rs.get_bs_class('Ljava/lang/Error;'), "native method NYI: #{sig}"
+          rs.java_throw rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'),
+            "native method '#{sig}' not implemented: please fix or file a bug at https://github.com/int3/doppio/issues"
+      else
+        # micro-optimization for registerNatives and initIDs, don't even bother making a function
+        @code = null
     else
       @has_bytecode = true
       @code = _.find(@attrs, (a) -> a.name == 'Code')

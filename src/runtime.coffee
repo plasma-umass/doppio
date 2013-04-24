@@ -136,6 +136,7 @@ class root.RuntimeState
       'Ljava/lang/Thread;'
       'Ljava/lang/ThreadGroup;'
       'Ljava/lang/Throwable;'
+      'Ljava/lang/UnsatisfiedLinkError;'
       'Ljava/nio/ByteOrder;'
       'Lsun/misc/VM;'
       'Lsun/reflect/ConstantPool;'
