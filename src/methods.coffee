@@ -96,7 +96,7 @@ class root.Method extends AbstractMethodField
         console.log(sig) if jvm.show_NYI_natives
         @code = (rs) =>
           rs.java_throw rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'),
-            "native method '#{sig}' not implemented: please fix or file a bug at https://github.com/int3/doppio/issues"
+            "Native method '#{sig}' not implemented.\nPlease fix or file a bug at https://github.com/int3/doppio/issues"
       else
         # micro-optimization for registerNatives and initIDs, don't even bother making a function
         @code = null
