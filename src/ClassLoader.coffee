@@ -36,7 +36,7 @@ class ClassLoader
     @_rem_class type_str
     return if util.is_primitive_type type_str
     for k,cdata of @loaded_classes when type_str in [cdata.get_component_type?(), cdata.get_super_class_type()]
-      @remove_class cdata.get_type()
+      @remove_class k
     return
 
   # Remove a class. Should only be used in the event of a class loading failure.
