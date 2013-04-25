@@ -54,7 +54,14 @@ public class Exceptional {
         notImplementedNative();
       } catch (UnsatisfiedLinkError e) {
         // we have a different message on purpose, so don't check that
-        System.out.println("got an UnsatisfiedLinkError");
+        System.out.println("got an UnsatisfiedLinkError for a NYI native");
+      }
+
+      // check that system libraries have the right error type
+      try {
+        System.loadLibrary("cowsay");
+      } catch (UnsatisfiedLinkError e) {
+        System.err.println(e.getMessage());
       }
 
       try {

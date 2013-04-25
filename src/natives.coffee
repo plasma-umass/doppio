@@ -49,7 +49,10 @@ trapped_methods =
               hash
       ]
       System: [
-        o 'loadLibrary(L!/!/String;)V', (rs) -> # NOP, because we don't support loading external libraries
+        o 'loadLibrary(L!/!/String;)V', (rs, lib_name) ->
+            lib = lib_name.jvm2js_str()
+            unless lib in ['zip','net','nio']
+              rs.java_throw rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), "no #{lib} in java.library.path"
         o 'adjustPropertiesForBackwardCompatibility(L!/util/Properties;)V', (rs) -> # NOP (apple-java specific)
         o 'getProperty(L!/!/String;)L!/!/String;', get_property
         o 'getProperty(L!/!/String;L!/!/String;)L!/!/String;', get_property
