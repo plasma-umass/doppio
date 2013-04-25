@@ -4,12 +4,9 @@ Doppio: A JVM in Coffeescript
 _Doppio_ is a double shot of espresso.
 In this case it's also a JVM written in [Coffeescript](http://coffeescript.org/).
 
-It began life as a [Mid-term project](http://plasma.cs.umass.edu/emery/grad-systems-project-1) 
-for [CS 691ST, Spring 2012](http://plasma.cs.umass.edu/emery/grad-systems)
-at [UMass Amherst](http://www.cs.umass.edu/).
-
 To try Doppio now, head to the [live demo page](http://int3.github.io/doppio/).
 
+To learn more, head to the [Doppio wiki](https://github.com/int3/doppio/wiki).
 
 Getting & Building the Code
 ---------------------------
