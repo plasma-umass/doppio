@@ -671,9 +671,13 @@ native_methods =
         o 'asin(D)D', (rs, d_val) -> Math.asin(d_val)
         o 'atan(D)D', (rs, d_val) -> Math.atan(d_val)
         o 'atan2(DD)D', (rs, y, x) -> Math.atan2(y, x)
+        o 'cbrt(D)D', (rs, d_val) ->
+            is_neg = d_val < 0
+            if is_neg then -Math.pow(-d_val, 1/3) else Math.pow(d_val, 1/3)
         o 'cos(D)D', (rs, d_val) -> Math.cos(d_val)
         o 'exp(D)D', (rs, d_val) -> Math.exp(d_val)
         o 'log(D)D', (rs, d_val) -> Math.log(d_val)
+        o 'log10(D)D', (rs, d_val) -> Math.log(d_val) / Math.LN10
         o 'pow(DD)D', (rs, base, exp) -> Math.pow(base, exp)
         o 'sin(D)D', (rs, d_val) -> Math.sin(d_val)
         o 'sqrt(D)D', (rs, d_val) -> Math.sqrt(d_val)

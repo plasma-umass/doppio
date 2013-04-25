@@ -29,7 +29,7 @@ public class StrictMathTest {
       else
         result += " ";
       // paper over precision issues in Chrome, see #181
-      result += String.format("%.15g", d);
+      result += String.format("%.13g", d);
     }
     System.out.println(result);
   }
@@ -125,6 +125,10 @@ public class StrictMathTest {
 
     // static double cbrt(double a)
     // Returns the cube root of a double value.
+    for (i=0; i < d_vals.length; i++) {
+        d_results[i] = StrictMath.cbrt(d_vals[i]);
+    }
+    results("double cbrt(double a)", d_results);
 
     // static double ceil(double a)
     // Returns the smallest (closest to negative infinity) double value that is greater than or equal to the argument and is equal to a mathematical integer.
@@ -171,6 +175,10 @@ public class StrictMathTest {
 
     // static double log10(double a)
     // Returns the base 10 logarithm of a double value.
+    for (i=0; i < d_vals.length; i++) {
+      d_results[i] = StrictMath.log10(d_vals[i]);
+    }
+    results("double log10(double a)", d_results);
 
     // static double log1p(double x)
     // Returns the natural logarithm of the sum of the argument and 1.
