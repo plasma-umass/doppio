@@ -8,6 +8,11 @@ To try Doppio now, head to the [live demo page](http://int3.github.io/doppio/).
 
 To learn more, head to the [Doppio wiki](https://github.com/int3/doppio/wiki).
 
+You can also get in touch via our [mailing list][mail] or via the IRC channel
+\#plasma-umass on Freenode.
+
+[mail]: https://groups.google.com/forum/?fromgroups#!forum/plasma-umass-gsoc
+
 Getting & Building the Code
 ---------------------------
 
