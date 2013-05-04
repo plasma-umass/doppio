@@ -51,7 +51,7 @@ trapped_methods =
       System: [
         o 'loadLibrary(L!/!/String;)V', (rs, lib_name) ->
             lib = lib_name.jvm2js_str()
-            unless lib in ['zip','net','nio']
+            unless lib in ['zip','net','nio','awt','fontmanager']
               rs.java_throw rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), "no #{lib} in java.library.path"
         o 'adjustPropertiesForBackwardCompatibility(L!/util/Properties;)V', (rs) -> # NOP (apple-java specific)
         o 'getProperty(L!/!/String;)L!/!/String;', get_property
@@ -245,6 +245,12 @@ create_stack_trace = (rs, throwable) ->
   return stacktrace.reverse()
 
 native_methods =
+  classes:
+    awt:
+      CanvasGraphicsEnvironment: [
+        # TODO: implement this
+        #o 'createFontConfiguration()Lsun/awt/FontConfiguration;', (rs) ->
+      ]
   java:
     lang:
       Class: [
@@ -1226,6 +1232,20 @@ native_methods =
             null # XXX may not be correct
       ]
   sun:
+    font:
+      FontManager: [
+        # TODO: this may be a no-op, but may be important
+        # o 'getFontConfig(Ljava/lang/String;[Lsun/font/FontManager$FontConfigInfo;)V', ->
+      ]
+      FreetypeFontScaler: [
+        o 'initIDs(Ljava/lang/Class;)V', ->  # nop
+      ]
+      StrikeCache: [
+        o 'getGlyphCacheDescription([J)V', (rs, infoArray) ->
+          # XXX: these are guesses, see the javadoc for full descriptions of the infoArray
+          infoArray.array[0] = gLong.fromInt(8)  # size of a pointer
+          infoArray.array[1] = gLong.fromInt(8)  # size of a glyphInfo
+      ]
     management:
       VMManagementImpl: [
         o 'getStartupTime()J', (rs) -> rs.startup_time

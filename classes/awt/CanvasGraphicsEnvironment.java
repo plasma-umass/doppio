@@ -22,9 +22,11 @@ public class CanvasGraphicsEnvironment extends SunGraphicsEnvironment {
     protected native GraphicsDevice makeScreenDevice(int screennum);
     protected native FontConfiguration createFontConfiguration();
 
-    public native FontConfiguration
-        createFontConfiguration(boolean preferLocaleFonts,
-                                boolean preferPropFonts);
+    public FontConfiguration createFontConfiguration(boolean preferLocaleFonts,
+                                                     boolean preferPropFonts) {
+      // ignore arguments for simplicity
+      return createFontConfiguration();
+    }
 
     public boolean isDisplayLocal() { return true; }
 }
