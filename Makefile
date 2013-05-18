@@ -242,9 +242,11 @@ build/release/compressed.js build/benchmark/compressed.js: build/%/compressed.js
 		echo ";"; \
 	done | $(UGLIFYJS) --define RELEASE --define UNSAFE --no-mangle --unsafe > $@
 
-build/dev/%.js: %.coffee | $$(dir $$@)
+build/dev/%.js: %.coffee | $(dir $@)
+	mkdir -p $(dir $@)
 	$(COFFEEC) --print -c $< > $@
 
-build/release/%.js build/benchmark/%.js: %.coffee | $$(dir $$@)
+build/release/%.js build/benchmark/%.js: %.coffee | $(dir $@)
+	mkdir -p $(dir $@)
 	$(SED) -r "s/^( *)(debug|v?trace).*$$/\1\`\`/" $< | $(COFFEEC) --stdio --print > $@
 	$(UGLIFYJS) --define RELEASE --define UNSAFE --no-mangle --unsafe --beautify --overwrite $@
