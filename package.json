@@ -2,7 +2,7 @@
   "name": "doppio",
   "dependencies": {
     "coffee-script": "1.6.2",
-    "uglify-js": "1",
+    "uglify-js": "2",
     "optimist": "*",
     "docco": "*",
     "node-zip": "*"
