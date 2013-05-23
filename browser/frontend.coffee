@@ -229,10 +229,9 @@ commands =
     class_name = 'org/eclipse/jdt/internal/compiler/batch/Main'
     class_args = args
     rs = new runtime.RuntimeState(stdout, user_input, bs_cl)
-    # -D args not yet supported. Also system_properties persist are not re-initialized
+    # HACK -D args unsupported by the console. (Also system_properties are not re-initialized)
     jvm.system_properties['jdt.compiler.useSingleThread'] = ''
     jvm.run_class(rs, class_name, class_args, -> controller.reprompt())
-    #delete jvm.system_properties['jdt.compiler.useSingleThread'] # HACK (See above)
     jvm.run_class rs, 'classes/util/Javac', args, ->
         # HACK: remove any classes that just got compiled from the class cache
         for c in args when c.match /\.java$/
