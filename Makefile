@@ -62,6 +62,7 @@ COMMON_BROWSER_SRCS = vendor/_.js \
 	src/jvm.coffee \
 	src/testing.coffee \
 	browser/untar.coffee
+library_BROWSER_SRCS := $(COMMON_BROWSER_SRCS)
 # Release uses the actual jQuery console.
 release_BROWSER_SRCS := $(COMMON_BROWSER_SRCS) \
 	vendor/jquery.console.js \
@@ -84,7 +85,11 @@ CLI_SRCS := $(wildcard src/*.coffee console/*.coffee)
 ################################################################################
 # Protect non-file-based targets from not functioning if a file with the
 # target's name is present.
-.PHONY: release benchmark dist dependencies java test clean docs build dev
+.PHONY: release benchmark dist dependencies java test clean docs build dev library
+
+library: build/library/compressed.js
+build/library:
+		mkdir -p build/library
 
 # Builds a release or benchmark version of Doppio without the documentation.
 # This is a static pattern rule. '%' gets substituted for the target name.
@@ -234,7 +239,7 @@ doppio doppio-dev:
 # variables are not bound when the first expansion occurs. The directive
 # applies to all rules from this point on, so put it at the bottom of the file.
 .SECONDEXPANSION:
-build/release/compressed.js build/benchmark/compressed.js: build/%/compressed.js:\
+build/release/compressed.js build/benchmark/compressed.js build/library/compressed.js: build/%/compressed.js:\
 	build/% $$(%_BROWSER_SRCS)
 	mkdir -p $(dir $@)/browser/doppio-source
 	for src in $($*_BROWSER_SRCS); do \
