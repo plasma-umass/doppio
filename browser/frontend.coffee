@@ -258,7 +258,6 @@ commands =
       class_name = args[0]
       class_args = args[1..]
     rs = new runtime.RuntimeState(stdout, user_input, bs_cl)
-    jvm.system_properties['hello'] = 'world' # HACK TEST TEST
     jvm.run_class(rs, class_name, class_args, -> controller.reprompt())
     return null  # no reprompt, because we handle it ourselves
   test: (args) ->
