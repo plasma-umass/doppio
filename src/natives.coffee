@@ -253,13 +253,10 @@ native_methods =
       ]
     doppio:
       JavaScript: [
-        o 'eval(Ljava/lang/String;)Ljava/lang/String;', (rs, jvm_str) ->
-          str = jvm_str.jvm2js_str()
-          rv = eval str
-          return null unless rv?
-          # Coerce to string.
-          rv = ""+rv
-          return rs.init_string rv
+        o 'eval(Ljava/lang/String;)Ljava/lang/String;', (rs, to_eval) ->
+          rv = eval to_eval.jvm2js_str()
+          # Coerce to string, if possible.
+          if rv? then rs.init_string "#{rv}" else null
       ]
   java:
     lang:
