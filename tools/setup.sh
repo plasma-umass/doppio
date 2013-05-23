@@ -48,7 +48,7 @@ if [ ! -f classes/java/lang/Object.class ]; then
     done
     mv $JH java_home
   fi
-  rm -rf $DOWNLOAD_DIR
+  rm -rf "$DOWNLOAD_DIR"
 fi
 
 # check for jazzlib
@@ -76,7 +76,7 @@ if [[ $node_outdated == 1 ]]; then
   else
     exit
   fi
-fi 
+fi
 echo "Installing required node modules"
 npm install
 
