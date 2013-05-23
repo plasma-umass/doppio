@@ -1000,9 +1000,12 @@ native_methods =
       RandomAccessFile: [
         o 'open(Ljava/lang/String;I)V', (rs, _this, filename, mode) ->
             filepath = filename.jvm2js_str()
-            # TODO: actually look at the mode
+            mode_str = switch mode
+              when 1 then 'r'
+              when 2 then 'r+'
+              when 4,8 then 'rs+'
             rs.async_op (resume_cb, except_cb) ->
-              fs.open filepath, 'r+', (e, fd) ->
+              fs.open filepath, mode_str, (e, fd) ->
                 if e?
                   if e.code == 'ENOENT'
                     except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/FileNotFoundException;'), "Could not open file #{filepath}"
