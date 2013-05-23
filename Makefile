@@ -253,7 +253,7 @@ build/release/compressed.js build/benchmark/compressed.js: build/%/compressed.js
 build/dev/%.js: %.coffee
 	@mkdir -p $(dir $@)
 	#cp $< $(dir $@)
-	ln -s ../../../$< $(dir $@)
+	ln -sfn ../../../$< $(dir $@)
 	cd $(dir $@)&& $(COFFEEC) --map -o . -c $(notdir $<)
 
 
