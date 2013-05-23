@@ -251,6 +251,16 @@ native_methods =
         # TODO: implement this
         #o 'createFontConfiguration()Lsun/awt/FontConfiguration;', (rs) ->
       ]
+    doppio:
+      JavaScript: [
+        o 'eval(Ljava/lang/String;)Ljava/lang/String;', (rs, jvm_str) ->
+          str = jvm_str.jvm2js_str()
+          rv = eval str
+          return null unless rv?
+          # Coerce to string.
+          rv = ""+rv
+          return rs.init_string rv
+      ]
   java:
     lang:
       Class: [
