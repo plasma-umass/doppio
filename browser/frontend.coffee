@@ -224,6 +224,20 @@ read_dir = (dir, pretty=true, columns=true) ->
   row_list.join('\n')
 
 commands =
+  ecj: (args, cb) ->
+    jvm.set_classpath '/home/doppio/vendor/classes/', './'
+    class_name = 'org/eclipse/jdt/internal/compiler/batch/Main'
+    class_args = args
+    rs = new runtime.RuntimeState(stdout, user_input, bs_cl)
+    # -D args not yet supported. Also system_properties persist are not re-initialized
+    jvm.system_properties['jdt.compiler.useSingleThread'] = ''
+    jvm.run_class(rs, class_name, class_args, -> controller.reprompt())
+    #delete jvm.system_properties['jdt.compiler.useSingleThread'] # HACK (See above)
+    jvm.run_class rs, 'classes/util/Javac', args, ->
+        # HACK: remove any classes that just got compiled from the class cache
+        for c in args when c.match /\.java$/
+          bs_cl.remove_class(util.int_classname(c.slice(0,-5)))
+    return null  # no reprompt, because we handle it ourselves	
   javac: (args, cb) ->
     jvm.set_classpath '/home/doppio/vendor/classes/', './:/home/doppio'
     rs = new runtime.RuntimeState(stdout, user_input, bs_cl)
@@ -245,6 +259,7 @@ commands =
       class_name = args[0]
       class_args = args[1..]
     rs = new runtime.RuntimeState(stdout, user_input, bs_cl)
+    jvm.system_properties['hello'] = 'world' # HACK TEST TEST
     jvm.run_class(rs, class_name, class_args, -> controller.reprompt())
     return null  # no reprompt, because we handle it ourselves
   test: (args) ->
