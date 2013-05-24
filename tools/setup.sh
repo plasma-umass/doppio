@@ -51,20 +51,16 @@ if [ ! -f classes/java/lang/Object.class ]; then
   rm -rf "$DOWNLOAD_DIR"
 fi
 
-#Download Eclipse standalone compiler
-#Example uses 
-#java -classpath vendor/classes org.eclipse.jdt.internal.compiler.batch.Main A.java
-#With Doppio, (5/23/13 Known Doppio threading issue so single thread option is required)
-#./doppio -Djdt.compiler.useSingleThread -jar vendor/jars/ecj.jar -1.6 classes/demo/Fib.java
+# Download Eclipse standalone compiler
+# Example uses:
+#   java -classpath vendor/classes org.eclipse.jdt.internal.compiler.batch.Main A.java
+# With Doppio: (see issue #218)
+#   ./doppio -Djdt.compiler.useSingleThread -jar vendor/jars/ecj.jar -1.6 classes/demo/Fib.java
 if [ ! -f jars/ecj.jar ]; then
   ECJ_JAR_URL="http://www.eclipse.org/downloads/download.php?file=/eclipse/downloads/drops/R-3.7.1-201109091335/ecj-3.7.1.jar"
-  DOWNLOAD_ECJ_DIR=`mktemp -d eclipse-compiler-download.XXX`
-  ECJ_JAR="${ECJ_JAR_URL##*/}"
-  wget -O "$DOWNLOAD_ECJ_DIR/$ECJ_JAR"  $ECJ_JAR_URL 
-  unzip -qq -o -d classes/ "$DOWNLOAD_ECJ_DIR/$ECJ_JAR"
-  mkdir jars
-  mv "$DOWNLOAD_ECJ_DIR/$ECJ_JAR" jars/ecj.jar
-  rm -rf "$DOWNLOAD_ECJ_DIR" 
+  mkdir -p jars
+  wget -O jars/ecj.jar $ECJ_JAR_URL
+  unzip -qq -o -d classes/ jars/ecj.jar
 fi
 
 # check for jazzlib
