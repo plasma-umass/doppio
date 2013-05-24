@@ -62,6 +62,7 @@ COMMON_BROWSER_SRCS = vendor/_.js \
 	src/jvm.coffee \
 	src/testing.coffee \
 	browser/untar.coffee
+library_BROWSER_SRCS := $(COMMON_BROWSER_SRCS)
 # Release uses the actual jQuery console.
 release_BROWSER_SRCS := $(COMMON_BROWSER_SRCS) \
 	vendor/jquery.console.js \
@@ -84,7 +85,11 @@ CLI_SRCS := $(wildcard src/*.coffee console/*.coffee)
 ################################################################################
 # Protect non-file-based targets from not functioning if a file with the
 # target's name is present.
-.PHONY: release benchmark dist dependencies java test clean docs build dev
+.PHONY: release benchmark dist dependencies java test clean docs build dev library
+
+library: build/library/compressed.js
+build/library:
+		mkdir -p build/library
 
 # Builds a release or benchmark version of Doppio without the documentation.
 # This is a static pattern rule. '%' gets substituted for the target name.
@@ -174,6 +179,9 @@ tools/preload: release-cli
 	if [ -z "$$KEEP_PRELOAD" ]; then \
 		echo "Generating list of files to preload in browser... (will take a few seconds)"; \
 		./doppio -Xlist-class-cache classes/util/Javac ./classes/test/FileOps.java > tools/preload; \
+		if [ -f tools/preload-compile-extras ]; then \
+			cat tools/preload-compile-extras >> tools/preload; \
+		fi; \
 	else \
 		echo "Not regenerating tools/preload because you told me so"; \
 	fi
@@ -200,7 +208,7 @@ build/release/%.html build/benchmark/%.html: browser/%.mustache browser/_navbar.
 build/%/favicon.ico: browser/favicon.ico
 	rsync $< $@
 
-build/%/ace.js: $(ACE_SRCS)
+build/release/ace.js build/dev/ace.js build/benchmark/ace.js: $(ACE_SRCS)
 	for src in $(ACE_SRCS); do \
 		cat $${src}; \
 		echo ";"; \
@@ -226,27 +234,38 @@ doppio doppio-dev:
 # Never delete these files in the event of a failure.
 .SECONDARY: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES) $(UTIL_CLASSES)
 
+
 # SECONDEXPANSION allows us to use '%' and '$@' in our prerequisites. These
 # variables are not bound when the first expansion occurs. The directive
 # applies to all rules from this point on, so put it at the bottom of the file.
 .SECONDEXPANSION:
-build/release/compressed.js build/benchmark/compressed.js: build/%/compressed.js:\
+build/release/compressed.js build/benchmark/compressed.js build/library/compressed.js: build/%/compressed.js:\
 	build/% $$(%_BROWSER_SRCS)
+	mkdir -p $(dir $@)/browser/doppio-source
 	for src in $($*_BROWSER_SRCS); do \
 		if [ "$${src##*.}" == "coffee" ]; then \
 			$(: `` is essentially Coffeescript's equivalent of Python's 'pass') \
-			$(SED) -r "s/^( *)(debug|v?trace).*$$/\1\`\`/" $${src} | $(COFFEEC) --stdio --print; \
+			mkdir -p  `dirname $(dir $@)browser/doppio-source/$$src`; \
+			$(SED) -r "s/^( *)(debug|v?trace).*$$/\1\`\`/" < $$src > $(dir $@)browser/doppio-source/$$src ; \
+			$(COFFEEC) --map  -o $(dir $@) --print -c $(dir $@)browser/doppio-source/$$src; \
 		else \
 			cat $${src}; \
 		fi; \
 		echo ";"; \
-	done | $(UGLIFYJS) --define RELEASE --define UNSAFE --no-mangle --unsafe > $@
+	done > ${@:compressed.js=uncompressed.js}
+	$(UGLIFYJS) --prefix 2  --source-map-url compressed.map --source-map ${@:.js=.map} --define RELEASE --define UNSAFE --no-mangle --unsafe -o $@ ${@:compressed.js=uncompressed.js}
 
 build/dev/%.js: %.coffee
-	mkdir -p $(dir $@)
-	$(COFFEEC) --print -c $< > $@
+	@mkdir -p $(dir $@)
+	#cp $< $(dir $@)
+	ln -sfn ../../../$< $(dir $@)
+	cd $(dir $@)&& $(COFFEEC) --map -o . -c $(notdir $<)
 
-build/release/%.js build/benchmark/%.js: %.coffee
-	mkdir -p $(dir $@)
-	$(SED) -r "s/^( *)(debug|v?trace).*$$/\1\`\`/" $< | $(COFFEEC) --stdio --print > $@
-	$(UGLIFYJS) --define RELEASE --define UNSAFE --no-mangle --unsafe --beautify --overwrite $@
+
+build/release/%.js: %.coffee
+	@mkdir -p $(dir $@)
+	$(SED) -r "s/^( *)(debug|v?trace).*$$/\1\`\`/" $< > $(@:.js=.coffeex)
+	$(COFFEEC) --map  -o $(dir $@) $(@:.js=.coffeex)
+	mv $@ $(@:.js=-orig.js)
+	$(UGLIFYJS) --source-map ${@:.js=.map} --in-source-map ${@:.js=.map} --define RELEASE --define UNSAFE --no-mangle --unsafe --beautify -o $@ $(@:.js=-orig.js)
+	rm $(@:.js=-orig.js)
