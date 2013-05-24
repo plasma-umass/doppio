@@ -2,7 +2,7 @@
 
 gLong = require '../vendor/gLong.js'
 util = require './util'
-{JavaException} = require './exceptions'
+{JavaException,ReturnException} = require './exceptions'
 {JavaObject,JavaArray,JavaClassLoaderObject} = require './java_object'
 
 root = exports ? window.opcodes = {}
@@ -848,8 +848,12 @@ root.opcodes = {
           resume_cb undefined, undefined, true, false
         ), except_cb
   }
-  194: new root.Opcode 'monitorenter', { execute: (rs)-> root.monitorenter rs, rs.pop(), @; return; }
-  195: new root.Opcode 'monitorexit',  { execute: (rs)-> root.monitorexit rs, rs.pop(); return; }
+  194: new root.Opcode 'monitorenter', { execute: (rs) ->
+    unless root.monitorenter rs, rs.pop(), @
+      # Enter failed, so we need to break the bytecode loop to enable the yield.
+      throw ReturnException
+  }
+  195: new root.Opcode 'monitorexit',  { execute: (rs)-> root.monitorexit rs, rs.pop() }
   197: new root.MultiArrayOpcode 'multianewarray'
   198: new root.UnaryBranchOpcode 'ifnull', { cmp: (v) -> not v? }
   199: new root.UnaryBranchOpcode 'ifnonnull', { cmp: (v) -> v? }

@@ -9,7 +9,7 @@ public class SynchronizedStart implements Runnable {
   public SynchronizedStart() {
     synchronized (this) {
       System.out.println("1: inside ctor synchronized block");
-      new Thread(this, "thread").start();
+      new Thread(this, "runner").start();
     }
     System.out.println("2: outside ctor synchronized block");
   }
