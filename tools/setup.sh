@@ -61,7 +61,7 @@ if [ ! -f jars/ecj.jar ]; then
   DOWNLOAD_ECJ_DIR=`mktemp -d eclipse-compiler-download.XXX`
   ECJ_JAR="${ECJ_JAR_URL##*/}"
   wget -O "$DOWNLOAD_ECJ_DIR/$ECJ_JAR"  $ECJ_JAR_URL 
-  unzip -o -d classes/ "$DOWNLOAD_ECJ_DIR/$ECJ_JAR"
+  unzip -qq -o -d classes/ "$DOWNLOAD_ECJ_DIR/$ECJ_JAR"
   mkdir jars
   mv "$DOWNLOAD_ECJ_DIR/$ECJ_JAR" jars/ecj.jar
   rm -rf "$DOWNLOAD_ECJ_DIR" 
