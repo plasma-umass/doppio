@@ -228,7 +228,7 @@ commands =
     jvm.set_classpath '/home/doppio/vendor/classes/', './'
     rs = new runtime.RuntimeState(stdout, user_input, bs_cl)
     # HACK: -D args unsupported by the console.
-    jvm.system_properties['jdt.compiler.useSingleThread'] = ''
+    jvm.system_properties['jdt.compiler.useSingleThread'] = true
     jvm.run_class rs, 'org/eclipse/jdt/internal/compiler/batch/Main', args, ->
         # HACK: remove any classes that just got compiled from the class cache
         for c in args when c.match /\.java$/
