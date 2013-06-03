@@ -98,13 +98,7 @@ build/library:
 
 # Concatenate all components of natives.coffee whenever any one changes
 src/natives.coffee: $(NATIVE_SRCS)
-	# Add the intro first, overwriting existing contents
-	cat src/natives/main.coffee > src/natives.coffee
-	# Add the individual classes by concatenating
-	for src in $(NATIVE_CLASSES); do cat $${src} >> src/natives.coffee; done
-	# Add the outro
-	cat src/natives/outro.coffee >> src/natives.coffee
-
+	cat src/natives/main.coffee $(NATIVE_CLASSES) src/natives/outro.coffee > src/natives.coffee
 
 # Builds a release or benchmark version of Doppio without the documentation.
 # This is a static pattern rule. '%' gets substituted for the target name.
