@@ -659,13 +659,6 @@ native_methods =
               rs.async_op (success_cb, except_cb) ->
                 native_define_class rs, name, bytes, offset, len, get_cl_from_jclo(rs, cl), success_cb, except_cb
         ]
-      Runtime: [
-        o 'availableProcessors()I', () -> 1
-        o 'gc()V', (rs) ->
-            # No universal way of forcing browser to GC, so we yield in hopes
-            # that the browser will use it as an opportunity to GC.
-            rs.async_op (cb) -> cb()
-      ]
       SecurityManager: [
         o 'getClassContext()[Ljava/lang/Class;', (rs, _this) ->
             # return an array of classes for each method on the stack
@@ -1582,31 +1575,3 @@ native_methods =
         o 'getClassAccessFlags(Ljava/lang/Class;)I', (rs, class_obj) ->
             class_obj.$cls.access_byte
       ]
-
-flatten_pkg = (pkg) ->
-  result = {}
-  pkg_name_arr = []
-  rec_flatten = (pkg) ->
-    for pkg_name, inner_pkg of pkg
-      pkg_name_arr.push pkg_name
-      if inner_pkg instanceof Array
-        full_pkg_name = pkg_name_arr.join '/'
-        for method in inner_pkg
-          {fn_name, fn} = method
-          # expand out the '!'s in the method names
-          fn_name = fn_name.replace /!|;/g, do ->
-            depth = 0
-            (c) ->
-              if c == '!' then pkg_name_arr[depth++]
-              else if c == ';' then depth = 0; c
-              else c
-          full_name = "L#{full_pkg_name};::#{fn_name}"
-          result[full_name] = fn
-      else
-        flattened_inner = rec_flatten inner_pkg
-      pkg_name_arr.pop pkg_name
-  rec_flatten pkg
-  result
-
-root.trapped_methods = flatten_pkg trapped_methods
-root.native_methods = flatten_pkg native_methods
