@@ -87,7 +87,7 @@ CLI_SRCS := $(wildcard src/*.coffee console/*.coffee)
 # target's name is present.
 .PHONY: release benchmark dist dependencies java test clean docs build dev library
 
-library: build/library/compressed.js
+library: dependencies build/library/compressed.js
 build/library:
 		mkdir -p build/library
 
