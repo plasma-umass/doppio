@@ -13,6 +13,13 @@ win.require = (path, herp) ->
 
 _ = require '../vendor/_.js'
 
+config = window.node.config ?= {}
+config.home ?= '/home/doppio'
+config.base_url ?= ''
+config.listing_file ?= '/browser/listings.json'
+config.storage_prefix ?= ''
+
+
 # IE9 and below only: Injects a VBScript function that converts the
 # 'responseBody' attribute of an XMLHttpRequest into a bytestring.
 # Credit: http://miskun.com/javascript/internet-explorer-and-binary-files-data-access/#comment-11
@@ -313,22 +320,23 @@ class CompositedFileSource extends FileSource
 
 class LocalStorageSource extends FileSource
   redundant_storage: true
-  constructor: (mnt_pt) ->
+  constructor: (mnt_pt,@prefix='') ->
     super(mnt_pt)
     # Index of all files in LS.
     @index = new FileIndex()
     # Initialize index w/ LS files and directories.
     for i in [0...localStorage.length]
-      @index.add_file(localStorage.key(i), null)
+      key = localStorage.key(i)
+      @index.add_file(key.substring(@prefix.length), null) if key.indexOf(@prefix)==0
 
   fetch: (path) ->
-    data = localStorage.getItem path
+    data = localStorage.getItem @prefix+path
     if data? then DoppioFile.fromJSON(path, data) else null
   store: (path, file) ->
     try
       # XXX: Don't store if a temporary file.
       if file.mod and not file.temp
-        localStorage.setItem path, file.toJSON()
+        localStorage.setItem @prefix + path, file.toJSON()
       @index.add_file(path, file)
       return true
     catch e
@@ -339,9 +347,9 @@ class LocalStorageSource extends FileSource
     if typeof listing != 'boolean'
       for item in listing
         itPath = path + '/' + item
-        localStorage.removeItem itPath
-    else if localStorage.getItem(path)?
-      localStorage.removeItem(path)
+        localStorage.removeItem @prefix+itPath
+    else if localStorage.getItem(@prefix+path)?
+      localStorage.removeItem(@prefix+path)
     else
       return false
     return true
@@ -377,11 +385,12 @@ class WebserverSource extends FileSource
     return null if @index? and @index.get_file(@mnt_pt + path) == false
     data = null
 
+    url_path = @url_base + path
     # The below code is complicated because we can't do a 'text' request in IE;
     # it truncates the response at the first NULL character.
 
     if not $.browser.msie
-      $.ajax path, {
+      $.ajax url_path, {
         type: 'GET'
         dataType: 'text'
         async: false
@@ -397,7 +406,7 @@ class WebserverSource extends FileSource
       # Furthermore, the code below will *NOT* work in Firefox or Chrome, since
       # they do not allow synchronous blob or arraybuffer requests.
       req = new XMLHttpRequest()
-      req.open('GET', path, false)
+      req.open('GET', url_path, false)
       req.responseType = 'arraybuffer'
       req.send()
       if req.status == 200
@@ -416,15 +425,17 @@ class WebserverSource extends FileSource
       # Note that this approach also works in IE10 for x86 platforms, but
       # not for ARM platforms which do not have VBScript support.
       req = new XMLHttpRequest()
-      req.open('GET', path, false)
+      req.open('GET', url_path, false)
       req.setRequestHeader("Accept-Charset", "x-user-defined")
       req.send()
       if req.status == 200
         data = GetIEByteArray_ByteStr(req.responseBody)
 
     return data
-  constructor: (mnt_pt, listings_path) ->
+  constructor: (mnt_pt,@url_base, listings_path) ->
     super(mnt_pt)
+    # Drop trailing slash if it exists
+    @url_base.replace(/\/$/, '')
     if listings_path?
       idx_data = @_download_file(listings_path)
     @index = new FileIndex(if idx_data? then JSON.parse(idx_data) else )
@@ -486,19 +497,18 @@ class CacheSource extends FileSource
 
 # Stores the File System's current state.
 class FSState
-  constructor: ->
+  constructor:(@home, base_url, listing_file ,storage_prefix ) ->
     # Files fetched from webserver are always represented internally as relative
     # to home.
     #(mnt_pt, inpt_sources = [])
-    @home = '/home/doppio'
     @pwd = @home
-    mainSource = new CompositedFileSource('/', [new LocalStorageSource('/'),
-      new WebserverSource('/home/doppio', '/browser/listings.json')])
+    mainSource = new CompositedFileSource('/', [new LocalStorageSource('/',storage_prefix),
+      new WebserverSource(@home,base_url,listing_file)])
     @files = new CacheSource('/', mainSource)
     # Slight cheat; ensures that / and /home exist.
-    f = new DoppioFile('/home/doppio/Hello.txt', "Welcome to Doppio!")
+    f = new DoppioFile(@home + '/Hello.txt', "Welcome to Doppio!")
     f.mod = true
-    @files.store '/home/doppio/Hello.txt', f
+    @files.store f.path, f
 
   # Canonicalizes the given path.
   resolve: (path) ->
@@ -571,9 +581,8 @@ class FSState
     file2 = @resolve file2
     return @files.mv file1, file2
 
-
 # Currently a singleton.
-fs_state = new FSState()
+fs_state = new FSState( config.home,config.base_url, config.listing_file , config.storage_prefix )
 
 ################################################################################
 # NODE EMULATION
@@ -770,7 +779,8 @@ root.fs =
 # Node's Path API
 root.path =
   normalize: (path) -> fs_state.resolve path
-  resolve: (parts...) -> fs_state.resolve parts.join '/'
+  resolve: (parts...) -> 
+    fs_state.resolve parts.join '/'
   basename: (path, ext) ->
     base = path.replace(/^.*[\/\\]/, '')
     if ext?.length? and base[base.length-ext.length..] == ext
