@@ -80,6 +80,11 @@ ACE_SRCS = vendor/ace/src-min/ace.js \
 	vendor/ace/src-min/theme-twilight.js
 CLI_SRCS := $(wildcard src/*.coffee console/*.coffee)
 
+# Get list of native sources in alphabetical order.
+NATIVE_SRCS := $(wildcard src/natives/*.coffee src/natives/classes/*.coffee)
+# Get a list of all native classes, excluding inital setup and outro code
+NATIVE_CLASSES := $(wildcard src/natives/classes/*.coffee)
+
 ################################################################################
 # TARGETS
 ################################################################################
@@ -90,6 +95,10 @@ CLI_SRCS := $(wildcard src/*.coffee console/*.coffee)
 library: dependencies build/library/compressed.js
 build/library:
 		mkdir -p build/library
+
+# Concatenate all components of natives.coffee whenever any one changes
+src/natives.coffee: $(NATIVE_SRCS)
+	cat src/natives/main.coffee $(NATIVE_CLASSES) src/natives/outro.coffee > src/natives.coffee
 
 # Builds a release or benchmark version of Doppio without the documentation.
 # This is a static pattern rule. '%' gets substituted for the target name.
@@ -156,6 +165,7 @@ clean:
 	@rm -f tools/*.js tools/preload browser/listings.json doppio doppio-dev
 	@rm -rf build/*
 	@rm -f $(patsubst %.md,%.html,$(wildcard browser/*.md))
+	@rm -f src/natives.coffee
 
 distclean: clean
 	@rm -f $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES)
