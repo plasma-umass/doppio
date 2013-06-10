@@ -62,7 +62,10 @@ COMMON_BROWSER_SRCS = vendor/_.js \
 	src/jvm.coffee \
 	src/testing.coffee \
 	browser/untar.coffee
-library_BROWSER_SRCS := $(COMMON_BROWSER_SRCS)
+
+library_BROWSER_SRCS :=  vendor/gLong.js\
+    $(filter src%,$(COMMON_BROWSER_SRCS))
+
 # Release uses the actual jQuery console.
 release_BROWSER_SRCS := $(COMMON_BROWSER_SRCS) \
 	vendor/jquery.console.js \
@@ -87,7 +90,7 @@ CLI_SRCS := $(wildcard src/*.coffee console/*.coffee)
 # target's name is present.
 .PHONY: release benchmark dist dependencies java test clean docs build dev library
 
-library: build/library/compressed.js
+library: release build/library/compressed.js
 build/library:
 		mkdir -p build/library
 
