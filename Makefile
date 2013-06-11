@@ -62,7 +62,10 @@ COMMON_BROWSER_SRCS = vendor/_.js \
 	src/jvm.coffee \
 	src/testing.coffee \
 	browser/untar.coffee
-library_BROWSER_SRCS := $(filter src, $COMMON_BROWSER_SRCS)
+
+library_BROWSER_SRCS :=  vendor/gLong.js\
+    $(filter src%,$(COMMON_BROWSER_SRCS))
+
 # Release uses the actual jQuery console.
 release_BROWSER_SRCS := $(COMMON_BROWSER_SRCS) \
 	vendor/jquery.console.js \
@@ -80,6 +83,11 @@ ACE_SRCS = vendor/ace/src-min/ace.js \
 	vendor/ace/src-min/theme-twilight.js
 CLI_SRCS := $(wildcard src/*.coffee console/*.coffee)
 
+# Get list of native sources in alphabetical order.
+NATIVE_SRCS := $(wildcard src/natives/*.coffee src/natives/classes/*.coffee)
+# Get a list of all native classes, excluding inital setup and outro code
+NATIVE_CLASSES := $(wildcard src/natives/classes/*.coffee)
+
 ################################################################################
 # TARGETS
 ################################################################################
@@ -87,9 +95,14 @@ CLI_SRCS := $(wildcard src/*.coffee console/*.coffee)
 # target's name is present.
 .PHONY: release benchmark library dist dependencies java test clean docs build dev library
 
-library: release build/library/compressed.js
+library: dependencies release build/library/compressed.js
+
 build/library:
 		mkdir -p build/library
+
+# Concatenate all components of natives.coffee whenever any one changes
+src/natives.coffee: $(NATIVE_SRCS)
+	cat src/natives/main.coffee $(NATIVE_CLASSES) src/natives/outro.coffee > src/natives.coffee
 
 # Builds a release or benchmark version of Doppio without the documentation.
 # This is a static pattern rule. '%' gets substituted for the target name.
@@ -156,6 +169,7 @@ clean:
 	@rm -f tools/*.js tools/preload browser/listings.json doppio doppio-dev
 	@rm -rf build/*
 	@rm -f $(patsubst %.md,%.html,$(wildcard browser/*.md))
+	@rm -f src/natives.coffee
 
 distclean: clean
 	@rm -f $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES)

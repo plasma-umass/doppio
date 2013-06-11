@@ -3,7 +3,7 @@
   "dependencies": {
     "coffee-script": "1.6.2",
     "uglify-js": "2",
-    "optimist": "*",
+    "optimist": "~0.3.5",
     "docco": "*",
     "node-zip": "*"
   }

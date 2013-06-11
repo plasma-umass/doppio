@@ -12,7 +12,7 @@ jvm = require './jvm'
 {vtrace,trace,debug_vars} = logging
 {ReturnException} = require './exceptions'
 {native_methods,trapped_methods} = natives
-{JavaArray,JavaObject} = require './java_object'
+{JavaArray,JavaObject,thread_name} = require './java_object'
 
 # things assigned to root will be available outside this module
 root = exports ? this.methods = {}
@@ -233,7 +233,7 @@ class root.Method extends AbstractMethodField
       unless RELEASE? or logging.log_level < logging.STRACE
         vtrace "#{@cls.get_type()}::#{@name}:#{pc} => #{op.name}" + annotation
         depth = rs.meta_stack().length()
-        vtrace "D: #{depth}, S: [#{debug_vars cf.stack}], L: [#{debug_vars cf.locals}]"
+        vtrace "D: #{depth}, S: [#{debug_vars cf.stack}], L: [#{debug_vars cf.locals}], T: #{thread_name(rs, rs.curr_thread) if rs.curr_thread.get_field? }"
 
       cf.pc += 1 + op.byte_count
       op = code[cf.pc]
