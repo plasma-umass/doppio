@@ -63,8 +63,10 @@ if require.main == module
     standard:
       classpath:
         alias: 'cp'
-        description: 'JVM classpath, "path1:...:pathn"'
+        description: 'JVM classpath, "path1:...:pathN"'
         has_value: true
+      D:
+        description: 'set a system property, "name[=value]"'
       jar:
         description: 'add JAR to classpath and run its Main-Class (if found)',
         has_value: true

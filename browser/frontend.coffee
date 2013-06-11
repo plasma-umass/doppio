@@ -224,6 +224,18 @@ read_dir = (dir, pretty=true, columns=true) ->
   row_list.join('\n')
 
 commands =
+  ecj: (args, cb) ->
+    jvm.set_classpath '/home/doppio/vendor/classes/', './'
+    rs = new runtime.RuntimeState(stdout, user_input, bs_cl)
+    # HACK: -D args unsupported by the console.
+    jvm.system_properties['jdt.compiler.useSingleThread'] = true
+    jvm.run_class rs, 'org/eclipse/jdt/internal/compiler/batch/Main', args, ->
+        # HACK: remove any classes that just got compiled from the class cache
+        for c in args when c.match /\.java$/
+          bs_cl.remove_class(util.int_classname(c.slice(0,-5)))
+        jvm.reset_system_properties()
+        controller.reprompt()
+    return null  # no reprompt, because we handle it ourselves
   javac: (args, cb) ->
     jvm.set_classpath '/home/doppio/vendor/classes/', './:/home/doppio'
     rs = new runtime.RuntimeState(stdout, user_input, bs_cl)

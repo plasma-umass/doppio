@@ -17,23 +17,27 @@ vendor_path = if node?  # node is only defined if we're in the browser
 else
   path.resolve __dirname, '../vendor'
 
-root.system_properties = {
-  'java.class.path': [],
-  'java.home': "#{vendor_path}/java_home",
-  'sun.boot.class.path': "#{vendor_path}/classes",
-  'file.encoding':'UTF-8','java.vendor':'Doppio',
-  'java.version': '1.6', 'java.vendor.url': 'https://github.com/int3/doppio',
-  'java.class.version': '50.0',
-  'java.specification.version': '1.6',
-  'line.separator':'\n', 'file.separator':'/', 'path.separator':':',
-  'user.dir': path.resolve('.'),'user.home':'.','user.name':'DoppioUser',
-  'os.name':'doppio', 'os.arch': 'js', 'os.version': '0',
-  'java.vm.name': 'Doppio 64-bit VM', 'java.vm.vendor': 'Doppio Inc.',
-  'java.awt.headless': (not node?).toString(),  # true if we're using the console frontend
-  'java.awt.graphicsenv': 'classes.awt.CanvasGraphicsEnvironment',
-  'useJavaUtilZip': 'true',  # hack for sun6javac, avoid ZipFileIndex shenanigans
-  'jline.terminal': 'jline.UnsupportedTerminal' # we can't shell out to `stty`
-}
+root.reset_system_properties = () ->
+  root.system_properties = {
+    'java.class.path': [],
+    'java.home': "#{vendor_path}/java_home",
+    'sun.boot.class.path': "#{vendor_path}/classes",
+    'file.encoding':'UTF-8','java.vendor':'Doppio',
+    'java.version': '1.6', 'java.vendor.url': 'https://github.com/int3/doppio',
+    'java.class.version': '50.0',
+    'java.specification.version': '1.6',
+    'line.separator':'\n', 'file.separator':'/', 'path.separator':':',
+    'user.dir': path.resolve('.'),'user.home':'.','user.name':'DoppioUser',
+    'os.name':'doppio', 'os.arch': 'js', 'os.version': '0',
+    'java.vm.name': 'Doppio 64-bit VM', 'java.vm.vendor': 'Doppio Inc.',
+    'java.awt.headless': (not node?).toString(),  # true if we're using the console frontend
+    'java.awt.graphicsenv': 'classes.awt.CanvasGraphicsEnvironment',
+    'useJavaUtilZip': 'true',  # hack for sun6javac, avoid ZipFileIndex shenanigans
+    'jline.terminal': 'jline.UnsupportedTerminal' # we can't shell out to `stty`
+  }
+
+# initialize the sysprops on module load
+root.reset_system_properties()
 
 root.read_classfile = (cls, cb, failure_cb) ->
   cls = cls[1...-1] # Convert Lfoo/bar/Baz; -> foo/bar/Baz.

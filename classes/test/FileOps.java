@@ -150,6 +150,8 @@ class FileOps {
       System.out.println("Marking as read only: " + f.setReadOnly());
       System.out.println("Can I write to the file?: " + f.canWrite());
       System.out.println("Can I read the file?: " + f.canRead());
+      // make sure we can open a read-only file with RandomAccessFile
+      RandomAccessFile raf = new RandomAccessFile(f, "r");
       System.out.println("Deleting file: " + f.delete());
     }
 

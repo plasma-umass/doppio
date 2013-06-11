@@ -268,6 +268,8 @@ class root.RuntimeState
     new_thread_sf = @curr_frame()
     new_thread_sf.runner = => @meta_stack().pop()
     old_thread_sf.runner = => @meta_stack().pop()
+    # Note that we don't throw a ReturnException here, so callers need to
+    # yield the JVM execution themselves.
     return
 
   curr_frame: -> @meta_stack().curr_frame()
