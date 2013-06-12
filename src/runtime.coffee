@@ -88,7 +88,7 @@ class root.RuntimeState
     @waiting_threads = {}  # map from monitor -> list of waiting thread objects
     @thread_pool = []
     @curr_thread = {$meta_stack: new root.CallStack()}
-    @max_m_count = 100000
+    @max_m_count = 10000
 
   get_bs_cl: -> @bcl
 
