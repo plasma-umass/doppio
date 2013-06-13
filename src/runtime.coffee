@@ -12,6 +12,10 @@ util = require './util'
 jvm = require './jvm'
 process = node?.process ? global.process
 
+#Support for old browsers. Returns milliseconds since 1 January 1970 00:00:00 UTC
+
+Date.now ?= -> +(new Date);
+
 class root.CallStack
   constructor: (initial_stack) ->
     @_cs = [root.StackFrame.native_frame('$bootstrap')]
@@ -363,7 +367,7 @@ class root.RuntimeState
   async_op: (cb) -> throw new YieldIOException cb
 
   # Request jvm execution stops at the next timeout
-  async_abort: -> @abort_requested = true
+  async_abort : (cb) -> @abort_requested = cb
   
   # Returns true if the JVM will abort execution in the near future
   is_abort_requested: -> return @abort_requested
@@ -385,7 +389,7 @@ class root.RuntimeState
         if sf.runner? && m_count == 0
             
           if @abort_requested
-              error "\Aborted\n"
+              @abort_requested() if typeof(@abort_requested) == 'function'
               return done_cb(false)
             
           # Loop has stopped to give the browser some breathing room.
