@@ -1283,7 +1283,7 @@ native_methods =
             else
               # time is in nanseconds, but we don't have that
               # type of precision
-              timeout = (new Date).getTime() + time / 1000 if time > 0
+              timeout = (new Date).getTime() + time / 1000000 if time > 0
             rs.park rs.curr_thread, timeout
         o 'unpark(Ljava/lang/Object;)V', (rs, _this, thread) ->
             rs.unpark thread
