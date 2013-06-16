@@ -590,6 +590,11 @@ native_methods =
         o 'interrupt0()V', (rs, _this) ->
             _this.$isInterrupted = true
             return if _this is rs.curr_thread
+            # Parked threads do not raise an interrupt
+            # exception, but do get yielded to
+            if rs.parked _this
+              rs.yield _this
+              return
             debug "TE(interrupt0): interrupting #{thread_name rs, _this}"
             new_thread_sf = util.last _this.$meta_stack._cs
             new_thread_sf.runner = ->
@@ -1271,6 +1276,17 @@ native_methods =
               my_sf.runner = null
               throw (new exceptions.JavaException(exception))
             throw exceptions.ReturnException
+        o 'park(ZJ)V', (rs, _this, absolute, time) ->
+            timeout = Infinity
+            if absolute
+              timeout = time
+            else
+              # time is in nanoseconds, but we don't have that
+              # type of precision
+              timeout = (new Date).getTime() + time / 1000000 if time > 0
+            rs.park rs.curr_thread, timeout
+        o 'unpark(Ljava/lang/Object;)V', (rs, _this, thread) ->
+            rs.unpark thread
       ]
     nio:
       ch:
