@@ -1281,7 +1281,7 @@ native_methods =
             if absolute
               timeout = time
             else
-              # time is in nanseconds, but we don't have that
+              # time is in nanoseconds, but we don't have that
               # type of precision
               timeout = (new Date).getTime() + time / 1000000 if time > 0
             rs.park rs.curr_thread, timeout
