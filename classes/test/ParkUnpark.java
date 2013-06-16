@@ -4,6 +4,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.LockSupport;
+import java.util.concurrent.Semaphore;
 
 public class ParkUnpark {
   static class TimeoutTest extends Thread {
@@ -43,60 +44,29 @@ public class ParkUnpark {
     }
   }
   
-  static class Thread1 extends Thread {
-    private FIFOMutex mut;
-    public Thread1(FIFOMutex mut) {
-      this.mut = mut;
+  private static final FIFOMutex mut = new FIFOMutex();
+  
+  static class PrintThread extends Thread {
+    private String msg;
+    public PrintThread(String msg) {
+      this.msg = msg;
     }
     public void run() {
       mut.lock();
-      System.out.println("1 Ran");
+      System.out.println(msg);
+      mut.unlock();
     }
   }
   
-  static class Thread2 extends Thread {
-    private FIFOMutex mut;
-    public Thread2(FIFOMutex mut) {
-      this.mut = mut;
-    }
-    public void run() {
-      mut.lock();
-      System.out.println("2 Ran");
-    }
-  }
-  
-  static class Thread3 extends Thread {
-    private FIFOMutex mut;
-    public Thread3(FIFOMutex mut) {
-      this.mut = mut;
-    }
-    public void run() {
-      mut.lock();
-      System.out.println("3 Ran");
-    }
-  }
-  
-  public static void main(String[] args) {
+  public static void main(String[] args) throws InterruptedException {
     TimeoutTest t = new TimeoutTest();
     t.start();
     while(t.isAlive()) Thread.yield();
     
-    FIFOMutex mut = new FIFOMutex();
-    
     mut.lock();
-    
-    // 1 Ran
-    Thread1 t1 = new Thread1(mut);
-    t1.start();
-    
-    // 3 Ran
-    Thread3 t3 = new Thread3(mut);
-    t3.start();
-    
-    // 2 Ran
-    Thread2 t2 = new Thread2(mut);
-    t2.start();
-    
-    while(t1.isAlive() || t2.isAlive() || t3.isAlive()) mut.unlock();
+    (new PrintThread("Message")).start();
+    (new PrintThread("Message")).start();
+    (new PrintThread("Message")).start();
+    mut.unlock();
   }
 }
