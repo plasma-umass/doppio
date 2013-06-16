@@ -1,6 +1,13 @@
 // test inner classes
 package classes.test;
 public abstract class InnerClass {
+  // These first few classes are used to check disassembler
+  // conformance
+  private static class PrivateInner {}
+  private abstract class PrivateInnerAbstract {}
+  protected class ProtectedInner {}
+  protected abstract class ProtectedInnerAbstract {}
+  
   public abstract void run();
   public static void runFunctor(InnerClass a){
     a.run();
