@@ -276,8 +276,8 @@ class root.RuntimeState
     return
   
   init_park_state: (thread) ->
-    thread.$park_count = 0 unless thread.$park_count?
-    thread.$park_timeout = Infinity unless thread.$park_timeout?
+    thread.$park_count ?= 0
+    thread.$park_timeout ?= Infinity
   
   park: (thread, timeout) ->
     @init_park_state thread
