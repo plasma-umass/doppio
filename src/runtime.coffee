@@ -236,10 +236,10 @@ class root.RuntimeState
           blacklist.push b
     wakeup_time = @curr_thread.wakeup_time ? Infinity
     current_time = (new Date).getTime()
-    # Should this be here? We unpark expired parks using this method call.
-    @unpark_expired()
     for t in @thread_pool when t isnt @curr_thread and t.$isAlive
-      continue if @parked t
+      if @parked t
+        continue if t.$park_timeout > current_time
+        @unpark t
       continue if t in blacklist
       if t.wakeup_time > current_time
         wakeup_time = t.wakeup_time if t.wakeup_time < wakeup_time
@@ -295,13 +295,6 @@ class root.RuntimeState
     
     # Yield to the unparked thread if it should be unblocked
     @yield(thread) if thread.$park_count <= 0
-    
-  unpark_expired: ->
-    current_time = (new Date).getTime()
-    for t in @thread_pool
-      continue unless @parked t
-      continue if t.$park_timeout > current_time
-      @unpark t
       
   parked: (thread) -> thread.$park_count > 0
 
