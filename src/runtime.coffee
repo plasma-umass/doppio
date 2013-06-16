@@ -294,7 +294,7 @@ class root.RuntimeState
     thread.$park_timeout = Infinity
     
     # Yield to the unparked thread if it should be unblocked
-    @yield(thread) if thread.$park_count <= 0
+    @yield(thread) unless @parked thread
       
   parked: (thread) -> thread.$park_count > 0
 
