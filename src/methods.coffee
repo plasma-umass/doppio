@@ -254,7 +254,7 @@ class root.Method extends AbstractMethodField
       return
 
     if @access_flags.abstract
-      runtime_state.java_throw rs.get_bs_class('Ljava/lang/Error;'), "called abstract method: #{@full_signature()}"
+      runtime_state.java_throw runtime_state.get_bs_class('Ljava/lang/Error;'), "called abstract method: #{@full_signature()}"
 
     # Finally, the normal case: running a Java method
     ms.push(sf = new runtime.StackFrame(this,params,[]))
