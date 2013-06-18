@@ -81,7 +81,7 @@ benchmark_BROWSER_SRCS := $(COMMON_BROWSER_SRCS) \
 ACE_SRCS = vendor/ace/src-min/ace.js \
 	vendor/ace/src-min/mode-java.js \
 	vendor/ace/src-min/theme-twilight.js
-CLI_SRCS := $(wildcard src/*.coffee console/*.coffee)
+CLI_SRCS := $(wildcard src/*.coffee console/*.coffee) src/natives.coffee
 
 # Get list of native sources in alphabetical order.
 NATIVE_SRCS := $(wildcard src/natives/*.coffee src/natives/classes/*.coffee)

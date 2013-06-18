@@ -590,6 +590,11 @@ native_methods =
         o 'interrupt0()V', (rs, _this) ->
             _this.$isInterrupted = true
             return if _this is rs.curr_thread
+            # Parked threads do not raise an interrupt
+            # exception, but do get yielded to
+            if rs.parked _this
+              rs.yield _this
+              return
             debug "TE(interrupt0): interrupting #{thread_name rs, _this}"
             new_thread_sf = util.last _this.$meta_stack._cs
             new_thread_sf.runner = ->
@@ -1271,6 +1276,17 @@ native_methods =
               my_sf.runner = null
               throw (new exceptions.JavaException(exception))
             throw exceptions.ReturnException
+        o 'park(ZJ)V', (rs, _this, absolute, time) ->
+            timeout = Infinity
+            if absolute
+              timeout = time
+            else
+              # time is in nanoseconds, but we don't have that
+              # type of precision
+              timeout = (new Date).getTime() + time / 1000000 if time > 0
+            rs.park rs.curr_thread, timeout
+        o 'unpark(Ljava/lang/Object;)V', (rs, _this, thread) ->
+            rs.unpark thread
       ]
     nio:
       ch:
@@ -1319,92 +1335,3 @@ native_methods =
               # docs.
               gLong.fromNumber(-1)
         ]
-    reflect:
-      ConstantPool: [
-        o 'getLongAt0(Ljava/lang/Object;I)J', (rs, _this, cp, idx) ->
-            cp.get(idx).value
-        o 'getUTF8At0(Ljava/lang/Object;I)Ljava/lang/String;', (rs, _this, cp, idx) ->
-            rs.init_string cp.get(idx).value
-      ]
-      NativeMethodAccessorImpl: [
-        o 'invoke0(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;', (rs,m,obj,params) ->
-            cls = m.get_field rs, 'Ljava/lang/reflect/Method;clazz'
-            slot = m.get_field rs, 'Ljava/lang/reflect/Method;slot'
-            rs.async_op (resume_cb, except_cb) ->
-              cls.$cls.loader.initialize_class rs, cls.$cls.get_type(), ((cls_obj) ->
-                method = (method for sig, method of cls_obj.get_methods() when method.idx is slot)[0]
-                my_sf = rs.curr_frame()
-                rs.push obj unless method.access_flags.static
-                # we don't get unboxing for free anymore, so we have to do it ourselves
-                i = 0
-                for p_type in method.param_types
-                  p = params.array[i++]
-                  if p_type in ['J','D']  # cat 2 primitives
-                    if p?.ref?
-                      primitive_value = p.get_field rs, p.cls.get_type()+'value'
-                      rs.push2 primitive_value, null
-                    else
-                      rs.push2 p, null
-                      i++  # skip past the null spacer
-                  else if util.is_primitive_type(p_type)  # any other primitive
-                    if p?.ref?
-                      primitive_value = p.get_field rs, p.cls.get_type()+'value'
-                      rs.push primitive_value
-                    else
-                      rs.push p
-                  else
-                    rs.push p
-                # Reenter the RuntimeState loop, which should run our new StackFrame.
-                # XXX: We use except_cb because it just replaces the runner function of the
-                # current frame. We need a better story for calling Java threads through
-                # native functions.
-                except_cb ->
-                  method.setup_stack(rs)
-                  # Overwrite my runner.
-                  my_sf.runner = ->
-                    ret_type = m.get_field rs, 'Ljava/lang/reflect/Method;returnType'
-                    descriptor = ret_type.$cls.get_type()
-                    rv = rs.pop()
-                    # pop again if it's a category 2 primitive type
-                    rv = rs.pop() if descriptor in ['J','D']
-                    rs.meta_stack().pop()
-                    # wrap up primitives in their Object box
-                    if util.is_primitive_type(descriptor) and descriptor != 'V'
-                      rs.push ret_type.$cls.create_wrapper_object(rs, rv)
-                    else
-                      rs.push rv
-              ), except_cb
-      ]
-      NativeConstructorAccessorImpl: [
-        o 'newInstance0(Ljava/lang/reflect/Constructor;[Ljava/lang/Object;)Ljava/lang/Object;', (rs,m,params) ->
-            cls = m.get_field rs, 'Ljava/lang/reflect/Constructor;clazz'
-            slot = m.get_field rs, 'Ljava/lang/reflect/Constructor;slot'
-            rs.async_op (resume_cb, except_cb) ->
-              cls.$cls.loader.initialize_class rs, cls.$cls.get_type(), ((cls_obj)->
-                method = (method for sig, method of cls_obj.get_methods() when method.idx is slot)[0]
-                my_sf = rs.curr_frame()
-                obj = new JavaObject rs, cls_obj
-                rs.push obj
-                rs.push_array(params.array) if params?
-                # Reenter the RuntimeState loop, which should run our new StackFrame.
-                # XXX: We use except_cb because it just replaces the runner function of the
-                # current frame. We need a better story for calling Java threads through
-                # native functions.
-                except_cb ->
-                  # Push the constructor's frame onto the stack.
-                  method.setup_stack(rs)
-                  # Overwrite my runner.
-                  my_sf.runner = ->
-                    rs.meta_stack().pop()
-                    rs.push obj
-              ), except_cb
-      ]
-      Reflection: [
-        o 'getCallerClass(I)Ljava/lang/Class;', (rs, frames_to_skip) ->
-            #TODO: disregard frames assoc. with java.lang.reflect.Method.invoke() and its implementation
-            caller = rs.meta_stack().get_caller(frames_to_skip)
-            cls = caller.method.cls
-            return cls.get_class_object(rs)
-        o 'getClassAccessFlags(Ljava/lang/Class;)I', (rs, class_obj) ->
-            class_obj.$cls.access_byte
-      ]

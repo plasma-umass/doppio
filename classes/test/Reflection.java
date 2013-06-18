@@ -35,6 +35,7 @@ public class Reflection {
   public static void main(String[] args)
   throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException,
          InvocationTargetException, NoSuchFieldException {
+
     // test getEnclosingMethod0
     System.out.println(Reflection.class.getEnclosingMethod());
     System.out.println(Reflection.classInMethod().getClass().getEnclosingMethod());
@@ -43,6 +44,10 @@ public class Reflection {
     SubClass sub = new SubClass();
     Field subf = Reflection.class.getDeclaredField("goodString");
     System.out.println(subf.get(sub));
+
+    // repro for beanshell bug
+    Method iface_method = Iface.class.getMethod("inYourIface", Object.class);
+    iface_method.invoke(sub, "foo");
 
     Reflection obj = new Reflection();
     Class<Reflection> c = Reflection.class;
@@ -158,7 +163,14 @@ public class Reflection {
     }
   }
 
-  static class SubClass extends Reflection {
+  interface Iface {
+    public void inYourIface(Object o);
+  }
+
+  static class SubClass extends Reflection implements Iface {
     public String badString = "I'm a bad string";
+    public void inYourIface(Object o) {
+      System.out.println("called interface'd method inYourIface: "+o);
+    }
   }
 }
