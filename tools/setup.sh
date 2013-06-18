@@ -51,6 +51,16 @@ if [ ! -f classes/java/lang/Object.class ]; then
   rm -rf "$DOWNLOAD_DIR"
 fi
 
+#BeanShell
+if [ ! -f jars/bsh2.jar ]; then
+    BSH2_JAR_URL="http://beanshell2.googlecode.com/files/bsh-2.1b5.jar"
+    mkdir -p jars
+    wget -O jars/bsh2.jar $BSH2_JAR_URL
+    unzip -qq -o -d classes/ jars/bsh2.jar
+fi   
+
+
+
 # Download Eclipse standalone compiler
 # Example uses:
 #   java -classpath vendor/classes org.eclipse.jdt.internal.compiler.batch.Main A.java
