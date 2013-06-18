@@ -1417,8 +1417,11 @@ native_methods =
       ]
       Reflection: [
         o 'getCallerClass(I)Ljava/lang/Class;', (rs, frames_to_skip) ->
-            #TODO: disregard frames assoc. with java.lang.reflect.Method.invoke() and its implementation
             caller = rs.meta_stack().get_caller(frames_to_skip)
+            # Note: disregard frames associated with
+            #   java.lang.reflect.Method.invoke() and its implementation.
+            if caller.name.indexOf('Ljava/lang/reflect/Method;::invoke') is 0
+              caller = rs.meta_stack().get_caller(frames_to_skip + 1)
             cls = caller.method.cls
             return cls.get_class_object(rs)
         o 'getClassAccessFlags(Ljava/lang/Class;)I', (rs, class_obj) ->
