@@ -274,11 +274,11 @@ class root.RuntimeState
     # Note that we don't throw a ReturnException here, so callers need to
     # yield the JVM execution themselves.
     return
-  
+
   init_park_state: (thread) ->
     thread.$park_count ?= 0
     thread.$park_timeout ?= Infinity
-  
+
   park: (thread, timeout) ->
     @init_park_state thread
     thread.$park_count++
@@ -286,16 +286,16 @@ class root.RuntimeState
     debug "TE(park): parking #{thread_name @, thread} (count: #{thread.$park_count}, timeout: #{thread.$park_timeout})"
     # Only choose a new thread if this one will become blocked
     @choose_next_thread null, ((nt) => @yield(nt)) if @parked thread
-    
+
   unpark: (thread) ->
     @init_park_state thread
     debug "TE(unpark): unparking #{thread_name @, thread}"
     thread.$park_count--
     thread.$park_timeout = Infinity
-    
+
     # Yield to the unparked thread if it should be unblocked
     @yield(thread) unless @parked thread
-      
+
   parked: (thread) -> thread.$park_count > 0
 
   curr_frame: -> @meta_stack().curr_frame()
