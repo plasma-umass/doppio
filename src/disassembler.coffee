@@ -46,7 +46,7 @@ format = (entry) ->
     when 'float' then format_decimal val, 'f'
     when 'double' then format_decimal val, 'd'
     when 'long' then val + "l"
-    else util.escape_whitespace ((if entry.deref? then "#" else "") + val)
+    else util.escape_whitespace((if entry.deref? then '#' else '') + val).replace(/"/g,'\\"')
 
 # pretty-print our field types, e.g. as 'PackageName.ClassName[][]'
 pp_type = (field_type) ->
