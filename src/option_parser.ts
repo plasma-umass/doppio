@@ -31,7 +31,7 @@ export function describe(new_description: any): void {
   }
 }
 
-function parse_flag(args: String[], full_key: String, key: String, option_data: any, result_dict: any): String[] {
+function parse_flag(args: string[], full_key: string, key: string, option_data: any, result_dict: any): string[] {
   if (!option_data[key]) {
     console.error("Unrecognized option '" + full_key + "'");
     process.exit(1);
@@ -41,7 +41,7 @@ function parse_flag(args: String[], full_key: String, key: String, option_data: 
   return args;
 }
 
-export function parse(argv: String[]): any {
+export function parse(argv: string[]): any {
   var args = argv.slice(2).reverse();
   var result = {
     standard: {},
@@ -83,11 +83,11 @@ export function parse(argv: String[]): any {
 };
 
 // formatted printing helpers
-function min_width(values: String[]): number {
+function min_width(values: string[]): number {
   return Math.max.apply(values.map((v)=>v.length));
 }
 
-function print_col(value: String, width: number): String {
+function print_col(value: string, width: number): string {
   var rv = value;
   var padding = width - value.length;
   while (padding-- > 0) {
@@ -96,7 +96,7 @@ function print_col(value: String, width: number): String {
   return rv;
 }
 
-function _show_help(description: any, prefix: String): String {
+function _show_help(description: any, prefix: string): string {
   var combined_keys = {};
   var key_col_width = Infinity;
   for (var key in description) {
@@ -105,7 +105,7 @@ function _show_help(description: any, prefix: String): String {
     if (opt.alias != null) {
       keys.push(opt.alias);
     }
-    var ckey = keys.map((key: String) => "-" + prefix + key).join(', ');
+    var ckey = keys.map((key: string) => "-" + prefix + key).join(', ');
     combined_keys[ckey] = opt;
     if (ckey.length < key_col_width) {
       key_col_width = ckey.length;
@@ -119,10 +119,10 @@ function _show_help(description: any, prefix: String): String {
   return rv;
 }
 
-export function show_help(): String {
+export function show_help(): string {
   return _show_help(description.standard, '');
 }
 
-export function show_non_standard_help(): String {
+export function show_non_standard_help(): string {
   return _show_help(description.non_standard, 'X');
 }
