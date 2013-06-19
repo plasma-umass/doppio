@@ -91,6 +91,7 @@ if [[ $node_outdated == 1 ]]; then
 fi
 echo "Installing required node modules"
 npm install
+npm install -g coffee-script typescript
 
 echo "Using `javac -version 2>&1` to generate classfiles"
 make java

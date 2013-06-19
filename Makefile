@@ -12,7 +12,7 @@ DIST_NAME = $(shell echo "Doppio_`date +'%y-%m-%d'`.tar.gz")
 # DEPENDENCIES
 DOPPIO_DIR    := $(CURDIR)
 BOOTCLASSPATH := $(DOPPIO_DIR)/vendor/classes
-COFFEEC  := $(shell npm bin)/coffee
+TSC      := tsc
 UGLIFYJS := $(shell npm bin)/uglifyjs
 DOCCO    := $(shell npm bin)/docco
 JAZZLIB  := $(BOOTCLASSPATH)/java/util/zip/DeflaterEngine.class
@@ -44,63 +44,59 @@ BROWSER_HTML      := $(BROWSER_TEMPLATES:.mustache=.html)
 # in the browser frontend html.
 COMMON_BROWSER_SRCS = vendor/_.js \
 	vendor/gLong.js \
-	browser/util.coffee \
-	browser/node.coffee \
-	src/logging.coffee \
-	src/exceptions.coffee \
-	src/util.coffee \
-	src/java_object.coffee \
-	src/opcodes.coffee \
-	src/attributes.coffee \
-	src/ConstantPool.coffee \
-	src/disassembler.coffee \
-	src/ClassData.coffee \
-	src/natives.coffee \
-	src/methods.coffee \
-	src/runtime.coffee \
-	src/ClassLoader.coffee \
-	src/jvm.coffee \
-	src/testing.coffee \
-	browser/untar.coffee
+	browser/util.ts \
+	browser/node.ts \
+	src/logging.ts \
+	src/exceptions.ts \
+	src/util.ts \
+	src/java_object.ts \
+	src/opcodes.ts \
+	src/attributes.ts \
+	src/ConstantPool.ts \
+	src/disassembler.ts \
+	src/ClassData.ts \
+	src/natives.ts \
+	src/methods.ts \
+	src/runtime.ts \
+	src/ClassLoader.ts \
+	src/jvm.ts \
+	src/testing.ts \
+	browser/untar.ts
 
 # Release uses the actual jQuery console.
 release_BROWSER_SRCS := $(COMMON_BROWSER_SRCS) \
 	vendor/jquery.console.js \
-	browser/frontend.coffee
+	browser/frontend.ts
 dev_BROWSER_SRCS := $(release_BROWSER_SRCS)
 # Benchmark uses the mock jQuery console.
 benchmark_BROWSER_SRCS := $(COMMON_BROWSER_SRCS) \
-	browser/mockconsole.coffee \
-	browser/frontend.coffee
+	browser/mockconsole.ts \
+	browser/frontend.ts
 # Sources for an in-browser doppio.js library. Same ordering requirement applies.
 library_BROWSER_SRCS := vendor/_.js \
 	vendor/gLong.js \
-	src/logging.coffee \
-	src/exceptions.coffee \
-	src/util.coffee \
-	src/java_object.coffee \
-	src/opcodes.coffee \
-	src/attributes.coffee \
-	src/ConstantPool.coffee \
-	src/disassembler.coffee \
-	src/ClassData.coffee \
-	src/natives.coffee \
-	src/methods.coffee \
-	src/runtime.coffee \
-	src/ClassLoader.coffee \
-	src/jvm.coffee
+	src/logging.ts \
+	src/exceptions.ts \
+	src/util.ts \
+	src/java_object.ts \
+	src/opcodes.ts \
+	src/attributes.ts \
+	src/ConstantPool.ts \
+	src/disassembler.ts \
+	src/ClassData.ts \
+	src/natives.ts \
+	src/methods.ts \
+	src/runtime.ts \
+	src/ClassLoader.ts \
+	src/jvm.ts
 # These don't survive uglifyjs and are already minified, so include them
 # separately. Also, this allows us to put them at the end of the document to
 # reduce load time.
 ACE_SRCS = vendor/ace/src-min/ace.js \
 	vendor/ace/src-min/mode-java.js \
 	vendor/ace/src-min/theme-twilight.js
-CLI_SRCS := $(wildcard src/*.coffee console/*.coffee) src/natives.coffee
+CLI_SRCS := $(wildcard src/*.ts console/*.ts)
 
-# Get list of native sources in alphabetical order.
-NATIVE_SRCS := $(wildcard src/natives/*.coffee src/natives/classes/*.coffee)
-# Get a list of all native classes, excluding inital setup and outro code
-NATIVE_CLASSES := $(wildcard src/natives/classes/*.coffee)
 
 ################################################################################
 # TARGETS
@@ -110,16 +106,12 @@ NATIVE_CLASSES := $(wildcard src/natives/classes/*.coffee)
 .PHONY: release benchmark dist dependencies java test clean docs build dev library
 
 # Don't keep this around in the src directory, because it's a generated file.
-.INTERMEDIATE: src/natives.coffee
+.INTERMEDIATE: src/natives.ts
 
 library: dependencies build/library/compressed.js
 	cp build/library/compressed.js build/library/doppio.min.js
 build/library:
 		mkdir -p build/library
-
-# Concatenate all components of natives.coffee whenever any one changes
-src/natives.coffee: $(NATIVE_SRCS)
-	cat src/natives/main.coffee $(NATIVE_CLASSES) src/natives/outro.coffee > src/natives.coffee
 
 # Builds a release or benchmark version of Doppio without the documentation.
 # This is a static pattern rule. '%' gets substituted for the target name.
@@ -129,21 +121,21 @@ release benchmark: %: dependencies build/% build/%/browser \
 	build/%/browser/style.css $(DEMO_CLASSES) $(UTIL_CLASSES) \
 	build/%/classes build/%/vendor
 	rsync browser/*.svg browser/*.png build/$*/browser/
-	cd build/$*; $(COFFEEC) $(DOPPIO_DIR)/tools/gen_dir_listings.coffee > browser/listings.json
+	cd build/$*; coffee $(DOPPIO_DIR)/tools/gen_dir_listings.coffee > browser/listings.json
 
 # dev: unoptimized build
 dev: dependencies build/dev build/dev/browser \
-	$(patsubst %.coffee,build/dev/%.js,$(filter %.coffee,$(dev_BROWSER_SRCS))) \
+	$(patsubst %.ts,build/dev/%.js,$(filter %.ts,$(dev_BROWSER_SRCS))) \
 	build/dev/browser/style.css build/dev/index.html build/dev/favicon.ico $(DEMO_CLASSES) \
 	build/dev/browser/mini-rt.tar build/dev/classes build/dev/vendor
 	rsync $(filter %.js,$(dev_BROWSER_SRCS)) build/dev/vendor
 	rsync browser/*.svg browser/*.png build/dev/browser/
-	cd build/dev; $(COFFEEC) $(DOPPIO_DIR)/tools/gen_dir_listings.coffee > browser/listings.json
+	cd build/dev; coffee $(DOPPIO_DIR)/tools/gen_dir_listings.coffee > browser/listings.json
 
-release-cli: $(CLI_SRCS:%.coffee=build/release/%.js) \
+release-cli: $(CLI_SRCS:%.ts=build/release/%.js) \
 	build/release/classes build/release/vendor doppio
 
-dev-cli: $(CLI_SRCS:%.coffee=build/dev/%.js) \
+dev-cli: $(CLI_SRCS:%.ts=build/dev/%.js) \
 	build/dev/classes build/dev/vendor doppio-dev
 
 # Builds a distributable version of Doppio.
@@ -186,7 +178,6 @@ clean:
 	@rm -f tools/*.js tools/preload browser/listings.json doppio doppio-dev
 	@rm -rf build/*
 	@rm -f $(patsubst %.md,%.html,$(wildcard browser/*.md))
-	@rm -f src/natives.coffee
 
 distclean: clean
 	@rm -f $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES)
@@ -195,7 +186,7 @@ distclean: clean
 # This is slow, so we have it as a separate target (even though it is needed
 # for a full release build).
 docs: dependencies build/release
-	$(DOCCO) $(filter %.coffee, $(release_BROWSER_SRCS))
+	$(DOCCO) $(filter %.ts, $(release_BROWSER_SRCS))
 	rm -rf build/release/docs
 	mv docs build/release
 
@@ -274,29 +265,25 @@ build/release/compressed.js build/benchmark/compressed.js build/library/compress
 	build/% $$(%_BROWSER_SRCS)
 	mkdir -p $(dir $@)/browser/doppio-source
 	for src in $($*_BROWSER_SRCS); do \
-		if [ "$${src##*.}" == "coffee" ]; then \
-			$(: `` is essentially Coffeescript's equivalent of Python's 'pass') \
-			mkdir -p  `dirname $(dir $@)browser/doppio-source/$$src`; \
-			$(SED) -r "s/^( *)(debug|v?trace).*$$/\1\`\`/" < $$src > $(dir $@)browser/doppio-source/$$src ; \
-			$(COFFEEC) --map  -o $(dir $@) --print -c $(dir $@)browser/doppio-source/$$src; \
+		if [ "$${src##*.}" == "ts" ]; then \
+			$(TSC) --sourcemap --out $(dir $@) $$src; \
 		else \
 			cat $${src}; \
 		fi; \
 		echo ";"; \
 	done > ${@:compressed.js=uncompressed.js}
-	$(UGLIFYJS) --prefix 2  --source-map-url compressed.map --source-map ${@:.js=.map} --define RELEASE --define UNSAFE --no-mangle --unsafe -o $@ ${@:compressed.js=uncompressed.js}
+	$(UGLIFYJS) --prefix 2 --source-map-url compressed.map --source-map ${@:.js=.map} --define RELEASE --define UNSAFE --no-mangle --unsafe -o $@ ${@:compressed.js=uncompressed.js}
 
-build/dev/%.js: %.coffee
+build/dev/%.js: %.ts
 	@mkdir -p $(dir $@)
 	#cp $< $(dir $@)
 	ln -sfn ../../../$< $(dir $@)
-	cd $(dir $@)&& $(COFFEEC) --map -o . -c $(notdir $<)
+	cd $(dir $@)&& $(TSC) --sourcemap --out . $(notdir $<)
 
 
-build/release/%.js: %.coffee
+build/release/%.js: %.ts
 	@mkdir -p $(dir $@)
-	$(SED) -r "s/^( *)(debug|v?trace).*$$/\1\`\`/" $< > $(@:.js=.coffeex)
-	$(COFFEEC) --map  -o $(dir $@) $(@:.js=.coffeex)
+	$(TSC) --sourcemap --out $(dir $@) $(@:.js=.ts)
 	mv $@ $(@:.js=-orig.js)
 	$(UGLIFYJS) --source-map ${@:.js=.map} --in-source-map ${@:.js=.map} --define RELEASE --define UNSAFE --no-mangle --unsafe --beautify -o $@ $(@:.js=-orig.js)
 	rm $(@:.js=-orig.js)
