@@ -3,7 +3,7 @@ import gLong = module('vendor/gLong.js');
 
 // default module: logging
 
-function debug_var(e: any): String {
+function debug_var(e: any): string {
   if (e === null) {
     return '!';
   }
@@ -19,7 +19,7 @@ function debug_var(e: any): String {
   return e;
 }
 
-export function debug_vars(arr: Array): String[] {
+export function debug_vars(arr: Array): string[] {
   return arr.map(debug_var);
 }
 
