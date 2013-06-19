@@ -98,9 +98,9 @@ root.run_class = (rs, class_name, cmdline_args, done_cb) ->
                 # we call except_cb on success because it doesn't pop the callstack
                 cls.resolve_method rs, main_sig, ((m)-> main_method = m; except_cb(->)), except_cb
             ), true, (success) ->
-              return done_cb?() unless success and main_method?
+              return done_cb?(success) unless success and main_method?
               rs.run_until_finished (-> main_method.setup_stack(rs)), false, (success) ->
-                done_cb?() if success
+                done_cb?(success and not rs.unusual_termination)
           )
         ), except_cb
     ), true, done_cb

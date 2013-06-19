@@ -375,6 +375,7 @@ class root.RuntimeState
     UNSAFE? || throw new Error "Invalid memory access at #{address}"
 
   handle_toplevel_exception: (e, no_threads, done_cb) ->
+    @unusual_termination = true  # Used for exit codes in console frontend.
     if e.toplevel_catch_handler?
       @run_until_finished (=> e.toplevel_catch_handler(@)), no_threads, done_cb
     else

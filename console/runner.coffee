@@ -180,8 +180,8 @@ if require.main == module
           finished = (new Date).getTime()
           console.log "Timing:\n\t#{mid_point-cold_start} ms cold\n\t#{finished-mid_point} ms hot"
     else
-      # default done_cb is a no-op
-      ->
+      # The default done_cb exits with a nonzero code if we failed.
+      (success) -> process.exit !success
 
   process.on 'SIGINT', ->
     console.error 'Doppio caught SIGINT'
