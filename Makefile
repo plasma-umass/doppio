@@ -92,6 +92,9 @@ NATIVE_CLASSES := $(wildcard src/natives/classes/*.coffee)
 # target's name is present.
 .PHONY: release benchmark dist dependencies java test clean docs build dev library
 
+# Don't keep this around in the src directory, because it's a generated file.
+.INTERMEDIATE: src/natives.coffee
+
 library: dependencies build/library/compressed.js
 build/library:
 		mkdir -p build/library
