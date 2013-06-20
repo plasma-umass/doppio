@@ -460,7 +460,7 @@ export function typestr2descriptor(type_str: string): string {
 }
 
 // Parse Java's pseudo-UTF-8 strings. (spec 4.4.7)
-export function bytes2str(bytes: string, null_terminate?: boolean): string {
+export function bytes2str(bytes: number[], null_terminate?: boolean): string {
   var y : number;
   var z : number;
 
