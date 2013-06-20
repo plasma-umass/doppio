@@ -44,7 +44,6 @@ BROWSER_HTML      := $(BROWSER_TEMPLATES:.mustache=.html)
 # in the browser frontend html.
 COMMON_BROWSER_SRCS = vendor/_.js \
 	src/gLong.js \
-	browser/util.ts \
 	browser/node.ts \
 	src/logging.ts \
 	src/exceptions.ts \
