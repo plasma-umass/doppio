@@ -1,9 +1,4 @@
-declare module 'vendor/gLong.js' {
-  export var gLong: any;
-  export var ZERO: any;
-}
-
-import gLong = module('vendor/gLong.js');
+import gLong = module('./gLong');
 import logging = module('./logging')
 
 // default module: util
@@ -60,14 +55,14 @@ export function int_div(rs: any, a: number, b: number): number {
   return (a / b) | 0;
 }
 
-export function long_mod(rs: any, a: gLong, b: gLong): number {
+export function long_mod(rs: any, a: gLong, b: gLong): gLong {
   if (b.isZero()) {
     rs.java_throw(rs.get_bs_class('Ljava/lang/ArithmeticException;'), '/ by zero');
   }
   return a.modulo(b);
 }
 
-export function long_div(rs: any, a: gLong, b: gLong): number {
+export function long_div(rs: any, a: gLong, b: gLong): gLong {
   if (b.isZero()) {
     rs.java_throw(rs.get_bs_class('Ljava/lang/ArithmeticException;'), '/ by zero');
   }
@@ -323,7 +318,7 @@ export class BytesArray {
   }
 }
 
-export function initial_value(type_str: string): number {
+export function initial_value(type_str: string): any {
   if (type_str === 'J') return gLong.ZERO;
   var c = type_str[0];
   if (c === '[' || c === 'L') return null;

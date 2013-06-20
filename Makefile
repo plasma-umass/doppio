@@ -43,7 +43,7 @@ BROWSER_HTML      := $(BROWSER_TEMPLATES:.mustache=.html)
 # the order here is important: must match the order of includes
 # in the browser frontend html.
 COMMON_BROWSER_SRCS = vendor/_.js \
-	vendor/gLong.js \
+	src/gLong.js \
 	browser/util.ts \
 	browser/node.ts \
 	src/logging.ts \
@@ -74,7 +74,7 @@ benchmark_BROWSER_SRCS := $(COMMON_BROWSER_SRCS) \
 	browser/frontend.ts
 # Sources for an in-browser doppio.js library. Same ordering requirement applies.
 library_BROWSER_SRCS := vendor/_.js \
-	vendor/gLong.js \
+	src/gLong.js \
 	src/logging.ts \
 	src/exceptions.ts \
 	src/util.ts \

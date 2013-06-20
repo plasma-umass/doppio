@@ -1,5 +1,4 @@
-declare module 'vendor/gLong.js' {}
-import gLong = module('vendor/gLong.js');
+import gLong = module('./gLong');
 
 // default module: logging
 
