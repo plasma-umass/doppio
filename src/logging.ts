@@ -18,10 +18,12 @@ function debug_var(e: any): string {
   return e;
 }
 
+// used for debugging the stack and local variables
 export function debug_vars(arr: Array): string[] {
   return arr.map(debug_var);
 }
 
+// log levels
 // TODO: turn this into an enum, if possible
 export var VTRACE = 10;
 export var TRACE = 9;

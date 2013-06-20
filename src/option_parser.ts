@@ -1,6 +1,6 @@
 /// <reference path="node.d.ts" />
 declare module 'vendor/_.js' {
-  export function isString(x: any): Boolean;
+  export function isString(x: any): boolean;
 }
 import underscore = module('vendor/_.js');
 
@@ -18,6 +18,8 @@ export function describe(new_description: any): void {
     var category_copy = {};
     for (var opt_name in category) {
       if (underscore.isString(opt_value)) {
+        // kind of a hack, to allow for shorthand when we don't need to specify
+        // the other options
         category[opt_name].description = opt_value;
       }
       var opt_value = category[opt_name];
@@ -61,7 +63,7 @@ export function parse(argv: string[]): any {
       }
       break;
     }
-    if (arg.length <= 2) {
+    if (arg.length <= 2) {  // for '-X', mostly
       args = parse_flag(args, arg, arg.slice(1), options.standard, result.standard);
     } else {
       switch (arg[1]) {

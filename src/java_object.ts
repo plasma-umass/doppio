@@ -19,6 +19,7 @@ export class JavaArray {
   }
 
   public clone(rs): JavaArray {
+    // note: we don't clone the type, because they're effectively immutable
     return new JavaArray(rs, this.cls, underscore.clone(this.array));
   }
 
@@ -66,6 +67,7 @@ export class JavaObject {
       obj = {};
     }
     this.ref = rs.high_oref++;
+    // Use default fields as a prototype.
     this.fields = Object.create(this.cls.get_default_fields());
     for (var field in obj) {
       if (obj.hasOwnProperty(field)) {
@@ -75,6 +77,7 @@ export class JavaObject {
   }
 
   public clone(rs: any): JavaObject {
+    // note: we don't clone the type, because they're effectively immutable
     return new JavaObject(rs, this.cls, underscore.clone(this.fields));
   }
 
@@ -153,6 +156,7 @@ export class JavaObject {
     };
   }
 
+  // Convert a Java String object into an equivalent JS one.
   public jvm2js_str(): string {
     return util.chars2js_str(this.fields['Ljava/lang/String;value'], this.fields['Ljava/lang/String;offset'], this.fields['Ljava/lang/String;count']);
   }
@@ -168,6 +172,7 @@ export class JavaClassObject extends JavaObject {
   }
 }
 
+// Each JavaClassLoaderObject is a unique ClassLoader.
 export class JavaClassLoaderObject extends JavaObject {
   public $loader: any
   constructor(rs: any, cls: any) {
