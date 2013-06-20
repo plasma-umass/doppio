@@ -101,7 +101,6 @@ class root.DynInvokeOpcode extends root.InvokeOpcode
       @byte_count += 2
     else # invokevirtual
       @count = 1 + get_param_word_size @method_spec.sig
-    @cache = Object.create null
 
   execute: (rs) ->
     cls = rs.get_class(@method_spec.class, true)
@@ -123,6 +122,7 @@ class root.DynInvokeOpcode extends root.InvokeOpcode
       rs.async_op (resume_cb, except_cb) =>
         rs.get_cl().initialize_class rs, @method_spec.class,
           (->resume_cb(undefined, undefined, true, false)), except_cb
+    return
 
   get_param_word_size = (spec) ->
     state = 'name'
@@ -172,8 +172,8 @@ class root.LoadConstantOpcode extends root.Opcode
         # Fetch the jclass object and push it on to the stack. Do not rerun
         # this opcode.
         cdesc = util.typestr2descriptor @str_constant.value
-        rs.async_op (resume_cb, except_cb) =>
-          rs.get_cl().resolve_class(rs, cdesc, ((cls)=>resume_cb cls.get_class_object(rs), undefined, true), except_cb)
+        rs.async_op (resume_cb, except_cb) ->
+          rs.get_cl().resolve_class(rs, cdesc, ((cls)->resume_cb cls.get_class_object(rs), undefined, true), except_cb)
         return
       else
         rs.push @constant.value
@@ -220,8 +220,8 @@ class root.IIncOpcode extends root.Opcode
   constructor: (name, params) ->
     super name, params
 
-  take_args: (code_array, constant_pool, @wide=false) ->
-    if @wide
+  take_args: (code_array, constant_pool, wide=false) ->
+    if wide
       @name += "_w"
       arg_size = 2
       @byte_count = 5
@@ -250,8 +250,8 @@ class root.LoadOpcode extends root.Opcode
     @var_num = parseInt @name[6]  # sneaky hack, works for name =~ /.load_\d/
 
 class root.LoadVarOpcode extends root.LoadOpcode
-  take_args: (code_array, constant_pool, @wide=false) ->
-    if @wide
+  take_args: (code_array, constant_pool, wide=false) ->
+    if wide
       @name += "_w"
       @byte_count = 3
       @var_num = code_array.get_uint 2
@@ -277,8 +277,8 @@ class root.StoreVarOpcode extends root.StoreOpcode
   constructor: (name, params) ->
     super name, params
 
-  take_args: (code_array, constant_pool, @wide=false) ->
-    if @wide
+  take_args: (code_array, constant_pool, wide=false) ->
+    if wide
       @name += "_w"
       @byte_count = 3
       @var_num = code_array.get_uint 2
