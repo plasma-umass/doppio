@@ -27,7 +27,7 @@ export class YieldIOException extends YieldException {}
 export class JavaException {
   constructor(public exception: any) {}
 
-  public method_catch_handler(rs: any, cf: any, top_of_stack: any): Boolean {
+  public method_catch_handler(rs: any, cf: any, top_of_stack: any): boolean {
     var method = cf.method;
     if (!top_of_stack && method.has_bytecode) {
       cf.pc -= 3;  // rewind the invoke opcode
@@ -50,7 +50,7 @@ export class JavaException {
       exception_handlers = method.code.exception_handlers;
     var ecls = this.exception.cls;
 
-    var handler = underscore.find(exception_handlers, function(eh: any): Boolean {
+    var handler = underscore.find(exception_handlers, function(eh: any): boolean {
       // XXX: Kludge. If the class is not loaded, then it is not possible for this to be the correct exception handler
       return (eh.start_pc <= cf.pc && cf.pc < eh.end_pc) && (method.cls.loader.get_resolved_class(eh.catch_type, true) != null) && (eh.catch_type === "<any>" || ecls.is_castable(method.cls.loader.get_resolved_class(eh.catch_type)));
     });

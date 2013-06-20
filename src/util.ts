@@ -12,28 +12,23 @@ export var FLOAT_NaN_AS_INT = 0x7fc00000;
 
 if (Math['imul'] == null) {
   Math['imul'] = function(a, b) {
-    var ah, al, bh, bl;
-
-    ah = (a >>> 16) & 0xffff;
-    al = a & 0xffff;
-    bh = (b >>> 16) & 0xffff;
-    bl = b & 0xffff;
+    // polyfill from https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Global_Objects/Math/imul
+    var ah = (a >>> 16) & 0xffff;
+    var al = a & 0xffff;
+    var bh = (b >>> 16) & 0xffff;
+    var bl = b & 0xffff;
+    // the shift by 0 fixes the sign on the high part, and the |0 prevents
+    // overflow on the high part.
     return (al * bl) + (((ah * bl + al * bh) << 16) >>> 0) | 0;
   };
 }
 
+// Creates and initializes *JavaScript* array to *val* in each element slot.
+// Like memset, but for arrays.
 export function arrayset(len: number, val :number): number[] {
   var array = new Array(len);
   for (var i = 0; i < len; i++) {
     array[i] = val;
-  }
-  return array;
-}
-
-export function arraycpy(src: any[]): any[] {
-  var array = new Array(src.length);
-  for (var i = 0; i < src.length; i++) {
-    array[i] = src[i];
   }
   return array;
 }
@@ -49,6 +44,9 @@ export function int_div(rs: any, a: number, b: number): number {
   if (b === 0) {
     rs.java_throw(rs.get_bs_class('Ljava/lang/ArithmeticException;'), '/ by zero');
   }
+  // spec: "if the dividend is the negative integer of largest possible magnitude
+  // for the int type, and the divisor is -1, then overflow occurs, and the
+  // result is equal to the dividend."
   if (a === INT_MIN && b === -1) {
     return a;
   }
@@ -85,6 +83,9 @@ export function intbits2float(int32: number): number {
     var f_view = new Float32Array(i_view.buffer);
     return f_view[0];
   }
+  // Fallback for older JS engines
+
+  // Map +/- infinity to JavaScript equivalents
   if (int32 === FLOAT_POS_INFINITY_AS_INT) {
     return Number.POSITIVE_INFINITY;
   } else if (int32 === FLOAT_NEG_INFINITY_AS_INT) {
@@ -94,11 +95,12 @@ export function intbits2float(int32: number): number {
   var exponent = (int32 & 0x7F800000) >>> 23;
   var significand = int32 & 0x007FFFFF;
   var value;
-  if (exponent === 0) {
+  if (exponent === 0) {  // we must denormalize!
     value = Math.pow(-1, sign) * significand * Math.pow(2, -149);
   } else {
     value = Math.pow(-1, sign) * (1 + significand * Math.pow(2, -23)) * Math.pow(2, exponent - 127);
   }
+  // NaN check
   if (value < FLOAT_NEG_INFINITY || value > FLOAT_POS_INFINITY) {
     value = NaN;
   }
@@ -118,6 +120,8 @@ export function longbits2double(uint32_a: number, uint32_b: number): number {
   var sign = (uint32_a & 0x80000000) >>> 31;
   var exponent = (uint32_a & 0x7FF00000) >>> 20;
   var significand = lshift(uint32_a & 0x000FFFFF, 32) + uint32_b;
+
+  // Special values!
   if (exponent === 0 && significand === 0) {
     return 0;
   }
@@ -131,11 +135,12 @@ export function longbits2double(uint32_a: number, uint32_b: number): number {
       return NaN;
     }
   }
-  if (exponent === 0)
+  if (exponent === 0)  // we must denormalize!
     return Math.pow(-1, sign) * significand * Math.pow(2, -1074);
   return Math.pow(-1, sign) * (1 + significand * Math.pow(2, -52)) * Math.pow(2, exponent - 1023);
 }
 
+// Call this ONLY on the result of two non-NaN numbers.
 export function wrap_float(a: number): number {
   if (a > 3.40282346638528860e+38) {
     return Number.POSITIVE_INFINITY;
@@ -162,15 +167,19 @@ export function cmp(a: any, b: any): number {
   if (a > b) {
     return 1;
   }
+  // this will occur if either a or b is NaN
   return null;
 }
 
+// implements x<<n without the braindead javascript << operator
+// (see http://stackoverflow.com/questions/337355/javascript-bitwise-shift-of-long-long-number)
 export function lshift(x: number, n: number): number {
   return x * Math.pow(2, n);
 }
 
 export function read_uint(bytes: number[]): number {
   var n = bytes.length - 1;
+  // sum up the byte values shifted left to the right alignment.
   var sum = 0;
   for (var i = 0; i <= n; i++) {
     sum += lshift(bytes[i], 8 * (n - i));
@@ -178,6 +187,7 @@ export function read_uint(bytes: number[]): number {
   return sum;
 }
 
+// Convert :count chars starting from :offset in a Java character array into a JS string
 export function chars2js_str(jvm_carr: any, offset?: number, count?: number): string {
   var off = offset || 0;
   return bytes2str(jvm_carr.array).substr(off, count);
@@ -192,6 +202,8 @@ export function bytestr_to_array(bytecode_string: string): number[] {
 }
 
 export function array_to_bytestr(bytecode_array: number[]): string {
+  // XXX: We'd like to use String.fromCharCode(bytecode_array...)
+  //  but that fails on Webkit with arrays longer than 2^31. See issue #129 for details.
   var rv = '';
   for (var i = 0; i < bytecode_array.length; i++) {
     rv += String.fromCharCode(bytecode_array[i]);
@@ -238,6 +250,7 @@ export function escape_whitespace(str: string): string {
   return str.replace(/\s/g, escaper);
 }
 
+// if :entry is a reference, display its referent in a comment
 export function format_extra_info(entry: any): string {
   var type = entry.type;
   var info = typeof entry.deref === "function" ? entry.deref() : void 0;
@@ -282,7 +295,7 @@ export class BytesArray {
     this._index += bytes_count;
   }
 
-  public has_bytes(): Boolean {
+  public has_bytes(): boolean {
     return this.start + this._index < this.end;
   }
 
@@ -325,10 +338,12 @@ export function initial_value(type_str: string): any {
   return 0;
 }
 
-export function is_string(obj: any): Boolean {
+export function is_string(obj: any): boolean {
   return typeof obj === 'string' || obj instanceof String;
 }
 
+// Java classes are represented internally using slashes as delimiters.
+// These helper functions convert between the two representations.
 export function ext_classname(str: string): string {
   return descriptor2typestr(str).replace(/\//g, '.');
 }
@@ -337,7 +352,7 @@ export function int_classname(str: string): string {
   return typestr2descriptor(str).replace(/\./g, '/');
 }
 
-export function verify_int_classname(str: string): Boolean {
+export function verify_int_classname(str: string): boolean {
   var array_nesting = str.match(/^\[*/)[0].length;
   if (array_nesting > 255) {
     return false;
@@ -383,22 +398,28 @@ for (var k in internal2external) {
   external2internal[internal2external[k]] = k;
 }
 
+// Get the component type of an array type string.
+// Cut off the [L and ; for arrays of classes.
 export function get_component_type(type_str: string): string {
   return type_str.slice(1);
 }
 
-export function is_array_type(type_str: string): Boolean {
+export function is_array_type(type_str: string): boolean {
   return type_str[0] === '[';
 }
 
-export function is_primitive_type(type_str: string): Boolean {
+export function is_primitive_type(type_str: string): boolean {
   return internal2external[type_str] !== void 0;
 }
 
-export function is_reference_type(type_str: string): Boolean {
+export function is_reference_type(type_str: string): boolean {
   return type_str[0] === 'L';
 }
 
+// Converts type descriptors into standardized internal type strings.
+//   Ljava/lang/Class; => java/lang/Class   Reference types
+//   [Ljava/lang/Class; is unchanged        Array types
+//   C => char                              Primitive types
 export function descriptor2typestr(type_str: string): string {
   var c = type_str[0];
   if (c in internal2external) return internal2external[c];
@@ -408,6 +429,7 @@ export function descriptor2typestr(type_str: string): string {
   throw new Error("Unrecognized type string: " + type_str);
 }
 
+// Takes a character array of concatenated type descriptors and returns/removes the first one.
 export function carr2descriptor(carr: string[]): string {
   var c = carr.shift();
   if (c == null) return null;
@@ -425,6 +447,7 @@ export function carr2descriptor(carr: string[]): string {
   throw new Error("Unrecognized descriptor: " + carr.join(''));
 }
 
+// Converts internal type strings into type descriptors. Reverse of descriptor2typestr.
 export function typestr2descriptor(type_str: string): string {
   var c = type_str[0];
   if (external2internal[type_str] !== void 0) {
@@ -436,7 +459,8 @@ export function typestr2descriptor(type_str: string): string {
   }
 }
 
-export function bytes2str(bytes: string, null_terminate?: Boolean): string {
+// Parse Java's pseudo-UTF-8 strings. (spec 4.4.7)
+export function bytes2str(bytes: string, null_terminate?: boolean): string {
   var y : number;
   var z : number;
 
@@ -461,26 +485,26 @@ export class SafeMap {
   private proto_cache: any
 
   constructor() {
-    this.cache = Object.create(null);
-    this.proto_cache = void 0;
+    this.cache = Object.create(null);  // has no defined properties aside from __proto__
   }
 
   public get(key: string): any {
     if (this.cache[key] != null) {
       return this.cache[key];
     }
-    if (key == '__proto__' && this.proto_cache !== void 0) {
+    if (key == '__proto__' && this.proto_cache !== undefined) {
       return this.proto_cache;
     }
-    return void 0;
+    return undefined;
   }
 
-  public has(key: string): Boolean {
+  public has(key: string): boolean {
     return this.get(key) !== void 0;
   }
 
   public set(key: string, value: any): void {
-    if (key != '__proto__') {
+    // toString() converts key to a primitive, so strict comparison works
+    if (key.toString() != '__proto__') {
       this.cache[key] = value;
     } else {
       this.proto_cache = value;
