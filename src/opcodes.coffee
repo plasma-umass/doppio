@@ -306,13 +306,13 @@ class root.LookupSwitchOpcode extends root.SwitchOpcode
     padding_size = (4 - code_array.pos() % 4) % 4
     code_array.skip padding_size
     @_default = code_array.get_int(4)
-    @npairs = code_array.get_int(4)
+    npairs = code_array.get_int(4)
     @offsets = {}
-    for i in [0...@npairs] by 1
+    for i in [0...npairs] by 1
       match = code_array.get_int(4)
       offset = code_array.get_int(4)
       @offsets[match] = offset
-    @byte_count = padding_size + 8 * (@npairs + 1)
+    @byte_count = padding_size + 8 * (npairs + 1)
 
 class root.TableSwitchOpcode extends root.SwitchOpcode
   take_args: (code_array, constant_pool) ->
@@ -320,13 +320,13 @@ class root.TableSwitchOpcode extends root.SwitchOpcode
     padding_size = (4 - code_array.pos() % 4) % 4
     code_array.skip padding_size
     @_default = code_array.get_int(4)
-    @low = code_array.get_int(4)
-    @high = code_array.get_int(4)
+    low = code_array.get_int(4)
+    high = code_array.get_int(4)
     @offsets = {}
-    total_offsets = @high - @low + 1
+    total_offsets = high - low + 1
     for i in [0...total_offsets] by 1
       offset = code_array.get_int(4)
-      @offsets[@low + i] = offset
+      @offsets[low + i] = offset
     @byte_count = padding_size + 12 + 4 * total_offsets
 
 class root.NewArrayOpcode extends root.Opcode
