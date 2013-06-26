@@ -517,11 +517,11 @@ root.opcodes = {
   51: new root.ArrayLoadOpcode 'baload'
   52: new root.ArrayLoadOpcode 'caload'
   53: new root.ArrayLoadOpcode 'saload'
-  54: new root.StoreVarOpcode 'istore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
-  55: new root.StoreVarOpcode 'lstore', { execute: (rs) -> rs.put_cl2(@var_num,rs.pop2()) }
-  56: new root.StoreVarOpcode 'fstore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
-  57: new root.StoreVarOpcode 'dstore', { execute: (rs) -> rs.put_cl2(@var_num,rs.pop2()) }
-  58: new root.StoreVarOpcode 'astore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
+  54: new root.StoreVarOpcode 'istore'
+  55: new root.StoreVarOpcode 'lstore'
+  56: new root.StoreVarOpcode 'fstore'
+  57: new root.StoreVarOpcode 'dstore'
+  58: new root.StoreVarOpcode 'astore'
   59: new root.StoreOpcode 'istore_0'
   60: new root.StoreOpcode 'istore_1'
   61: new root.StoreOpcode 'istore_2'
