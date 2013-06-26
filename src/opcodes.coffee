@@ -330,14 +330,14 @@ class root.TableSwitchOpcode extends root.SwitchOpcode
     @byte_count = padding_size + 12 + 4 * total_offsets
 
 class root.NewArrayOpcode extends root.Opcode
+  arr_types = {4:'Z',5:'C',6:'F',7:'D',8:'B',9:'S',10:'I',11:'J'}
   constructor: (name, params) ->
     super name, params
     @byte_count = 1
-    @arr_types = {4:'Z',5:'C',6:'F',7:'D',8:'B',9:'S',10:'I',11:'J'}
 
   take_args: (code_array,constant_pool) ->
     type_code = code_array.get_uint 1
-    @element_type = @arr_types[type_code]
+    @element_type = arr_types[type_code]
 
   annotate: (idx, pool) -> "\t#{util.internal2external[@element_type]}"
 
