@@ -465,6 +465,7 @@ export class LookupSwitchOpcode extends BranchOpcode {
   }
 
   public take_args(code_array: any, constant_pool: any): void {
+    // account for padding that ensures alignment
     var padding_size = (4 - code_array.pos() % 4) % 4;
     code_array.skip(padding_size);
     this._default = code_array.get_int(4);
@@ -489,6 +490,7 @@ export class LookupSwitchOpcode extends BranchOpcode {
 
 export class TableSwitchOpcode extends LookupSwitchOpcode {
   public take_args(code_array: any, constant_pool: any): void {
+    // account for padding that ensures alignment
     var padding_size = (4 - code_array.pos() % 4) % 4;
     code_array.skip(padding_size);
     this._default = code_array.get_int(4);
@@ -503,210 +505,145 @@ export class TableSwitchOpcode extends LookupSwitchOpcode {
   }
 }
 
+var NewArray_arr_types : {number: string; } = {
+  4: 'Z', 5: 'C', 6: 'F', 7: 'D', 8: 'B', 9: 'S', 10: 'I', 11: 'J'
+}
 
+export class NewArrayOpcode extends Opcode {
+  public element_type : string
 
-// CURRENT PROGRESS ENDS HERE
-  root.NewArrayOpcode = (function(_super) {
-    __extends(NewArrayOpcode, _super);
+  constructor(name: string, execute?: Function) {
+    super(name, 1, execute);
+  }
 
-    function NewArrayOpcode(name, params) {
-      NewArrayOpcode.__super__.constructor.call(this, name, params);
-      this.byte_count = 1;
-      this.arr_types = {
-        4: 'Z',
-        5: 'C',
-        6: 'F',
-        7: 'D',
-        8: 'B',
-        9: 'S',
-        10: 'I',
-        11: 'J'
+  public take_args(code_array: any, constant_pool: any): void {
+    this.element_type = NewArray_arr_types[code_array.get_uint(1)];
+  }
+
+  public annotate(idx: number, pool: any): string {
+    return "\t" + util.internal2external[this.element_type];
+  }
+}
+
+export class MultiArrayOpcode extends Opcode {
+  public class_ref : number
+  public class_descriptor : string
+  public dim : number
+
+  constructor(name: string) {
+    super(name, 3);
+  }
+
+  public take_args(code_array: any, constant_pool: any): void {
+    this.class_ref = code_array.get_uint(2);
+    this.class_descriptor = constant_pool.get(this.class_ref).deref();
+    this.dim = code_array.get_uint(1);
+  }
+
+  public annotate(idx: number, pool: any): string {
+    return "\t#" + this.class_ref + ",  " + this.dim + ";";
+  }
+
+  private _execute(rs: any): void {
+    var _this = this;
+
+    var cls = rs.get_class(this.class_descriptor, true);
+    if (cls == null) {
+      rs.async_op(function(resume_cb, except_cb) {
+        rs.get_cl().initialize_class(rs, _this.class_descriptor,
+            ((class_file) => resume_cb(undefined, undefined, true, false)),
+            except_cb);
+      });
+      return;
+    }
+    // cls is loaded. Create a new execute function to avoid this overhead.
+    var new_execute = function(rs: any): void {
+      var _this = this;
+
+      var counts = rs.curr_frame().stack.splice(-this.dim, this.dim);
+      var default_val = util.initial_value(this.class_descriptor.slice(this.dim));
+      var arr_types = [];
+      for (var d = 0; d < this.dim; ++d) {
+        arr_types.push(this.class_descriptor.slice(d));
+      }
+      var init_arr = function(curr_dim: number): JavaArray {
+        var len = counts[curr_dim];
+        if (len < 0) {
+          rs.java_throw(rs.get_bs_class('Ljava/lang/NegativeArraySizeException;'),
+            "Tried to init dimension " + curr_dim + " of a " + _this.dim + " dimensional " + _this.class_descriptor + " array with length " + len);
+        }
+        var type = arr_types[curr_dim];
+        var array = new Array(len);
+        if (curr_dim + 1 === _this.dim) {
+          for (var i = 0; i < len; ++i) {
+            array[i] = default_val;
+          }
+        } else {
+          for (var i = 0; i < len; ++i) {
+            array[i] = init_arr(curr_dim + 1);
+          }
+        }
+        return new JavaArray(rs, rs.get_bs_class(type), array);
       };
+      rs.push(init_arr(0));
+    };
+    new_execute.call(this, rs);
+    this.execute = new_execute;
+  }
+}
+
+export class ArrayLoadOpcode extends Opcode {
+  private _execute(rs: any): void {
+    var idx = rs.pop();
+    var obj = rs.check_null(rs.pop());
+    var len = obj.array.length;
+    if (idx < 0 || idx >= len) {
+      rs.java_throw(rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;'),
+        idx + " not in length " + len + " array of type " + obj.cls.get_type());
     }
-
-    NewArrayOpcode.prototype.take_args = function(code_array, constant_pool) {
-      var type_code;
-
-      type_code = code_array.get_uint(1);
-      return this.element_type = this.arr_types[type_code];
-    };
-
-    NewArrayOpcode.prototype.annotate = function(idx, pool) {
-      return "\t" + util.internal2external[this.element_type];
-    };
-
-    return NewArrayOpcode;
-
-  })(root.Opcode);
-
-  root.MultiArrayOpcode = (function(_super) {
-    __extends(MultiArrayOpcode, _super);
-
-    function MultiArrayOpcode(name, params) {
-      var _ref7;
-
-      if (params == null) {
-        params = {};
-      }
-      if ((_ref7 = params.byte_count) == null) {
-        params.byte_count = 3;
-      }
-      MultiArrayOpcode.__super__.constructor.call(this, name, params);
+    rs.push(obj.array[idx]);
+    if (this.name[0] === 'l' || this.name[0] === 'd') {
+      rs.push(null);
     }
+  }
+}
 
-    MultiArrayOpcode.prototype.take_args = function(code_array, constant_pool) {
-      this.class_ref = code_array.get_uint(2);
-      this["class"] = constant_pool.get(this.class_ref).deref();
-      return this.dim = code_array.get_uint(1);
-    };
-
-    MultiArrayOpcode.prototype.annotate = function(idx, pool) {
-      return "\t#" + this.class_ref + ",  " + this.dim + ";";
-    };
-
-    MultiArrayOpcode.prototype.execute = function(rs) {
-      var cls, new_execute,
-        _this = this;
-
-      cls = rs.get_class(this["class"], true);
-      if (cls == null) {
-        rs.async_op(function(resume_cb, except_cb) {
-          return rs.get_cl().initialize_class(rs, _this["class"], (function(class_file) {
-            return resume_cb(void 0, void 0, true, false);
-          }), except_cb);
-        });
-        return;
-      }
-      new_execute = function(rs) {
-        var arr_types, counts, d, default_val, init_arr,
-          _this = this;
-
-        counts = rs.curr_frame().stack.splice(-this.dim, this.dim);
-        default_val = util.initial_value(this["class"].slice(this.dim));
-        arr_types = (function() {
-          var _i, _ref7, _results;
-
-          _results = [];
-          for (d = _i = 0, _ref7 = this.dim; _i < _ref7; d = _i += 1) {
-            _results.push(this["class"].slice(d));
-          }
-          return _results;
-        }).call(this);
-        init_arr = function(curr_dim) {
-          var array, i, len, type, _i, _j;
-
-          len = counts[curr_dim];
-          if (len < 0) {
-            rs.java_throw(rs.get_bs_class('Ljava/lang/NegativeArraySizeException;'), "Tried to init dimension " + curr_dim + " of a " + _this.dim + " dimensional " + (_this["class"].toString()) + " array with length " + len);
-          }
-          type = arr_types[curr_dim];
-          array = new Array(len);
-          if (curr_dim + 1 === _this.dim) {
-            for (i = _i = 0; _i < len; i = _i += 1) {
-              array[i] = default_val;
-            }
-          } else {
-            for (i = _j = 0; _j < len; i = _j += 1) {
-              array[i] = init_arr(curr_dim + 1);
-            }
-          }
-          return new JavaArray(rs, rs.get_bs_class(type), array);
-        };
-        return rs.push(init_arr(0));
-      };
-      new_execute.call(this, rs);
-      this.execute = new_execute;
-    };
-
-    return MultiArrayOpcode;
-
-  })(root.Opcode);
-
-  root.ArrayLoadOpcode = (function(_super) {
-    __extends(ArrayLoadOpcode, _super);
-
-    function ArrayLoadOpcode() {
-      _ref7 = ArrayLoadOpcode.__super__.constructor.apply(this, arguments);
-      return _ref7;
+export class ArrayStoreOpcode extends Opcode {
+  private _execute(rs: any): void {
+    var value = (this.name[0] === 'l' || this.name[0] === 'd') ? rs.pop2() : rs.pop();
+    var idx = rs.pop();
+    var obj = rs.check_null(rs.pop());
+    var len = obj.array.length;
+    if (idx < 0 || idx >= len) {
+      rs.java_throw(rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;'),
+        idx + " not in length " + len + " array of type " + obj.cls.get_type());
     }
+    obj.array[idx] = value;
+  }
+}
 
-    ArrayLoadOpcode.prototype.execute = function(rs) {
-      var array, idx, obj, _ref8;
+export class ReturnOpcode extends Opcode {
+  private _execute(rs: any): void {
+    var cf = rs.meta_stack().pop();
+    rs.push(cf.stack[0]);
+    rs.should_return = true;
+  }
+}
 
-      idx = rs.pop();
-      obj = rs.check_null(rs.pop());
-      array = obj.array;
-      if (!((0 <= idx && idx < array.length))) {
-        rs.java_throw(rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;'), "" + idx + " not in length " + array.length + " array of type " + (obj.cls.get_type()));
-      }
-      rs.push(array[idx]);
-      if ((_ref8 = this.name[0]) === 'l' || _ref8 === 'd') {
-        rs.push(null);
-      }
-    };
+export class ReturnOpcode2 extends Opcode {
+  private _execute(rs: any): void {
+    var cf = rs.meta_stack().pop();
+    rs.push2(cf.stack[0], null);
+    rs.should_return = true;
+  }
+}
 
-    return ArrayLoadOpcode;
-
-  })(root.Opcode);
-
-  root.ArrayStoreOpcode = (function(_super) {
-    __extends(ArrayStoreOpcode, _super);
-
-    function ArrayStoreOpcode() {
-      _ref8 = ArrayStoreOpcode.__super__.constructor.apply(this, arguments);
-      return _ref8;
-    }
-
-    ArrayStoreOpcode.prototype.execute = function(rs) {
-      var array, idx, obj, value, _ref9;
-
-      value = (_ref9 = this.name[0]) === 'l' || _ref9 === 'd' ? rs.pop2() : rs.pop();
-      idx = rs.pop();
-      obj = rs.check_null(rs.pop());
-      array = obj.array;
-      if (!((0 <= idx && idx < array.length))) {
-        rs.java_throw(rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;'), "" + idx + " not in length " + array.length + " array of type " + (obj.cls.get_type()));
-      }
-      array[idx] = value;
-    };
-
-    return ArrayStoreOpcode;
-
-  })(root.Opcode);
-
-  root.ReturnOpcode = (function(_super) {
-    __extends(ReturnOpcode, _super);
-
-    function ReturnOpcode(name, params) {
-      var _ref9;
-
-      if (params == null) {
-        params = {};
-      }
-      if ((_ref9 = params.execute) == null) {
-        params.execute = name.match(/[ld]return/) ? function(rs) {
-          var cf;
-
-          cf = rs.meta_stack().pop();
-          rs.push2(cf.stack[0], null);
-          return false;
-        } : name === 'return' ? function(rs) {
-          rs.meta_stack().pop();
-          return false;
-        } : function(rs) {
-          var cf;
-
-          cf = rs.meta_stack().pop();
-          rs.push(cf.stack[0]);
-          return false;
-        };
-      }
-      ReturnOpcode.__super__.constructor.call(this, name, params);
-    }
-
-    return ReturnOpcode;
-
-  })(root.Opcode);
+export class VoidReturnOpcode extends Opcode {
+  private _execute(rs: any): void {
+    rs.meta_stack().pop();
+    rs.should_return = true;
+  }
+}
 
   root.monitorenter = function(rs, monitor, inst) {
     var locked_thread;
@@ -841,77 +778,42 @@ export var opcodes : Opcode[] = [
   new ArrayStoreOpcode('castore'),
   new ArrayStoreOpcode('sastore'),
 
+  // stack manipulation opcodes
+  new Opcode('pop', 0, ((rs)=>rs.pop())),
+  new Opcode('pop2', 0, ((rs)=>rs.pop2())),
+  new Opcode('dup', 0, function(rs) {var v = rs.pop(); rs.push2(v, v);}),
+  new Opcode('dup_x1', 0, function(rs) {
+      var v1 = rs.pop();
+      var v2 = rs.pop();
+      rs.push_array([v1, v2, v1]);}),
+  new Opcode('dup_x2', 0, function(rs) {
+      var v1 = rs.pop();
+      var v2 = rs.pop();
+      var v3 = rs.pop();
+      rs.push_array([v1, v3, v2, v1]);}),
+  new Opcode('dup2', 0, function(rs) {
+      var v1 = rs.pop();
+      var v2 = rs.pop();
+      rs.push_array([v2, v1, v2, v1]);}),
+  new Opcode('dup2_x1', 0, function(rs) {
+      var v1 = rs.pop();
+      var v2 = rs.pop();
+      var v3 = rs.pop();
+      rs.push_array([v2, v1, v3, v2, v1]);}),
+  new Opcode('dup2_x2', 0, function(rs) {
+      var v1 = rs.pop();
+      var v2 = rs.pop();
+      var v3 = rs.pop();
+      var v4 = rs.pop();
+      rs.push_array([v2, v1, v4, v3, v2, v1]);}),
+  new Opcode('swap', 0, function(rs) {
+      var v1 = rs.pop();
+      var v2 = rs.pop();
+      return rs.push2(v2, v1);}),
+
   // OPCODE CONVERSION PROGRESS ENDS HERE
 
-  new Opcode('pop', {
-    execute: function(rs) {
-      return rs.pop();
-    }
-  }),
-  new Opcode('pop2', {
-    execute: function(rs) {
-      return rs.pop2();
-    }
-  }),
-  new Opcode('dup', {
-    execute: function(rs) {
-      var v;
-
-      v = rs.pop();
-      return rs.push2(v, v);
-    }
-  }),
-  new Opcode('dup_x1', {
-    execute: function(rs) {
-      var v1, v2;
-
-      v1 = rs.pop();
-      v2 = rs.pop();
-      return rs.push_array([v1, v2, v1]);
-    }
-  }),
-  new Opcode('dup_x2', {
-    execute: function(rs) {
-      var v1, v2, v3, _ref9;
-
-      _ref9 = [rs.pop(), rs.pop(), rs.pop()], v1 = _ref9[0], v2 = _ref9[1], v3 = _ref9[2];
-      return rs.push_array([v1, v3, v2, v1]);
-    }
-  }),
-  new Opcode('dup2', {
-    execute: function(rs) {
-      var v1, v2;
-
-      v1 = rs.pop();
-      v2 = rs.pop();
-      return rs.push_array([v2, v1, v2, v1]);
-    }
-  }),
-  new Opcode('dup2_x1', {
-    execute: function(rs) {
-      var v1, v2, v3, _ref9;
-
-      _ref9 = [rs.pop(), rs.pop(), rs.pop()], v1 = _ref9[0], v2 = _ref9[1], v3 = _ref9[2];
-      return rs.push_array([v2, v1, v3, v2, v1]);
-    }
-  }),
-  new Opcode('dup2_x2', {
-    execute: function(rs) {
-      var v1, v2, v3, v4, _ref9;
-
-      _ref9 = [rs.pop(), rs.pop(), rs.pop(), rs.pop()], v1 = _ref9[0], v2 = _ref9[1], v3 = _ref9[2], v4 = _ref9[3];
-      return rs.push_array([v2, v1, v4, v3, v2, v1]);
-    }
-  }),
-  new Opcode('swap', {
-    execute: function(rs) {
-      var v1, v2;
-
-      v2 = rs.pop();
-      v1 = rs.pop();
-      return rs.push2(v2, v1);
-    }
-  }),
+  // math opcodes
   new Opcode('iadd', {
     execute: function(rs) {
       return rs.push((rs.pop() + rs.pop()) | 0);
@@ -1344,11 +1246,11 @@ export var opcodes : Opcode[] = [
   new TableSwitchOpcode('tableswitch'),
   new LookupSwitchOpcode('lookupswitch'),
   new ReturnOpcode('ireturn'),
-  new ReturnOpcode('lreturn'),
+  new ReturnOpcode2('lreturn'),
   new ReturnOpcode('freturn'),
-  new ReturnOpcode('dreturn'),
+  new ReturnOpcode2('dreturn'),
   new ReturnOpcode('areturn'),
-  new ReturnOpcode('return'),
+  new VoidReturnOpcode('return'),
   new FieldOpcode('getstatic', {
     execute: function(rs) {
       var cls_type, new_execute, ref_cls, _ref9,
