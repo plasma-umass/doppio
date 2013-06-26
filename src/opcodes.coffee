@@ -770,6 +770,7 @@ root.opcodes = {
   183: new root.InvokeOpcode 'invokespecial'
   184: new root.InvokeOpcode 'invokestatic'
   185: new root.DynInvokeOpcode 'invokeinterface'
+  # Opcode 186 is invokedynamic, which we currently don't support.
   187: new root.ClassOpcode 'new', { execute: (rs) ->
     @cls = rs.get_class @class, true
     if @cls?
