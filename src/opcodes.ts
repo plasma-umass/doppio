@@ -367,213 +367,145 @@ export class IIncOpcode extends Opcode {
   }
 }
 
+export class LoadOpcode extends Opcode {
+  public var_num : number
+
+  public take_args(code_array: any, constant_pool: any): void {
+    // sneaky hack, works for name =~ /.load_\d/
+    this.var_num = parseInt(this.name[6]);
+  }
+
+  private _execute(rs: any): void {
+    rs.push(rs.cl(this.var_num));
+  }
+}
+
+// For category 2 types.
+export class LoadOpcode2 extends LoadOpcode {
+  private _execute(rs: any): void {
+    rs.push2(rs.cl(this.var_num), null);
+  }
+}
+
+export class LoadVarOpcode extends LoadOpcode {
+  public take_args(code_array: any, constant_pool: any, wide?: boolean): void {
+    if (wide) {
+      this.name += "_w";
+      this.byte_count = 3;
+      this.var_num = code_array.get_uint(2);
+    } else {
+      this.byte_count = 1;
+      this.var_num = code_array.get_uint(1);
+    }
+  }
+  public annotate(idx: number, pool: any): string {
+    return "\t" + this.var_num;
+  }
+}
+
+export class LoadVarOpcode2 extends LoadVarOpcode {
+  private _execute(rs: any): void {
+    rs.push2(rs.cl(this.var_num), null);
+  }
+}
+
+export class StoreOpcode extends Opcode {
+  public var_num : number
+
+  public take_args(code_array: any, constant_pool: any): void {
+    // sneaky hack, works for name =~ /.store_\d/
+    this.var_num = parseInt(this.name[7]);
+  }
+
+  private _execute(rs: any): void {
+    rs.put_cl(this.var_num, rs.pop());
+  }
+}
+
+// For category 2 types.
+export class StoreOpcode2 extends StoreOpcode {
+  private _execute(rs: any): void {
+    rs.put_cl2(this.var_num, rs.pop2());
+  }
+}
+
+export class StoreVarOpcode extends StoreOpcode {
+  public take_args(code_array: any, constant_pool: any, wide?: boolean): void {
+    if (wide) {
+      this.name += "_w";
+      this.byte_count = 3;
+      this.var_num = code_array.get_uint(2);
+    } else {
+      this.byte_count = 1;
+      this.var_num = code_array.get_uint(1);
+    }
+  }
+  public annotate(idx: number, pool: any): string {
+    return "\t" + this.var_num;
+  }
+}
+
+export class StoreVarOpcode2 extends LoadVarOpcode {
+  private _execute(rs: any): void {
+    rs.put_cl2(this.var_num, rs.pop2());
+  }
+}
+
+export class LookupSwitchOpcode extends BranchOpcode {
+  public offsets: {number: number; };
+  public _default: number;
+
+  public annotate(idx: number, pool: any): string {
+    var rv = "{\n";
+    for (var match in this.offsets) {
+      var offset = this.offsets[match];
+      rv += ("\t\t" + match + ": " + (idx + offset) + ";\n");
+    }
+    return rv + "\t\tdefault: " + (idx + this._default) + " }";
+  }
+
+  public take_args(code_array: any, constant_pool: any): void {
+    var padding_size = (4 - code_array.pos() % 4) % 4;
+    code_array.skip(padding_size);
+    this._default = code_array.get_int(4);
+    var npairs = code_array.get_int(4);
+    this.offsets = {};
+    for (var i = 0; i < npairs; ++i) {
+      var match = code_array.get_int(4);
+      this.offsets[match] = code_array.get_int(4);
+    }
+    this.byte_count = padding_size + 8 * (npairs + 1);
+  }
+
+  private _execute(rs: any): void {
+    var offset = this.offsets[rs.pop()];
+    if (offset) {
+      this.inc_pc(rs, offset);
+    } else {
+      this.inc_pc(rs, this._default);
+    }
+  }
+}
+
+export class TableSwitchOpcode extends LookupSwitchOpcode {
+  public take_args(code_array: any, constant_pool: any): void {
+    var padding_size = (4 - code_array.pos() % 4) % 4;
+    code_array.skip(padding_size);
+    this._default = code_array.get_int(4);
+    var low = code_array.get_int(4);
+    var high = code_array.get_int(4);
+    this.offsets = {};
+    var total_offsets = high - low + 1;
+    for (var i = 0; i < total_offsets; ++i) {
+      this.offsets[low + i] = code_array.get_int(4);
+    }
+    this.byte_count = padding_size + 12 + 4 * total_offsets;
+  }
+}
+
+
+
 // CURRENT PROGRESS ENDS HERE
-
-  root.LoadOpcode = (function(_super) {
-    __extends(LoadOpcode, _super);
-
-    function LoadOpcode(name, params) {
-      var _ref4;
-
-      if (params == null) {
-        params = {};
-      }
-      if ((_ref4 = params.execute) == null) {
-        params.execute = name.match(/[ld]load/) ? function(rs) {
-          return rs.push2(rs.cl(this.var_num), null);
-        } : function(rs) {
-          return rs.push(rs.cl(this.var_num));
-        };
-      }
-      LoadOpcode.__super__.constructor.call(this, name, params);
-    }
-
-    LoadOpcode.prototype.take_args = function(code_array) {
-      return this.var_num = parseInt(this.name[6]);
-    };
-
-    return LoadOpcode;
-
-  })(root.Opcode);
-
-  root.LoadVarOpcode = (function(_super) {
-    __extends(LoadVarOpcode, _super);
-
-    function LoadVarOpcode() {
-      _ref4 = LoadVarOpcode.__super__.constructor.apply(this, arguments);
-      return _ref4;
-    }
-
-    LoadVarOpcode.prototype.take_args = function(code_array, constant_pool, wide) {
-      this.wide = wide != null ? wide : false;
-      if (this.wide) {
-        this.name += "_w";
-        this.byte_count = 3;
-        return this.var_num = code_array.get_uint(2);
-      } else {
-        this.byte_count = 1;
-        return this.var_num = code_array.get_uint(1);
-      }
-    };
-
-    LoadVarOpcode.prototype.annotate = function(idx, pool) {
-      return "\t" + this.var_num;
-    };
-
-    return LoadVarOpcode;
-
-  })(root.LoadOpcode);
-
-  root.StoreOpcode = (function(_super) {
-    __extends(StoreOpcode, _super);
-
-    function StoreOpcode(name, params) {
-      var _ref5;
-
-      if (params == null) {
-        params = {};
-      }
-      if ((_ref5 = params.execute) == null) {
-        params.execute = name.match(/[ld]store/) ? function(rs) {
-          return rs.put_cl2(this.var_num, rs.pop2());
-        } : function(rs) {
-          return rs.put_cl(this.var_num, rs.pop());
-        };
-      }
-      StoreOpcode.__super__.constructor.call(this, name, params);
-    }
-
-    StoreOpcode.prototype.take_args = function(code_array) {
-      return this.var_num = parseInt(this.name[7]);
-    };
-
-    return StoreOpcode;
-
-  })(root.Opcode);
-
-  root.StoreVarOpcode = (function(_super) {
-    __extends(StoreVarOpcode, _super);
-
-    function StoreVarOpcode(name, params) {
-      StoreVarOpcode.__super__.constructor.call(this, name, params);
-    }
-
-    StoreVarOpcode.prototype.take_args = function(code_array, constant_pool, wide) {
-      this.wide = wide != null ? wide : false;
-      if (this.wide) {
-        this.name += "_w";
-        this.byte_count = 3;
-        return this.var_num = code_array.get_uint(2);
-      } else {
-        this.byte_count = 1;
-        return this.var_num = code_array.get_uint(1);
-      }
-    };
-
-    StoreVarOpcode.prototype.annotate = function(idx, pool) {
-      return "\t" + this.var_num;
-    };
-
-    return StoreVarOpcode;
-
-  })(root.StoreOpcode);
-
-  root.SwitchOpcode = (function(_super) {
-    __extends(SwitchOpcode, _super);
-
-    function SwitchOpcode(name, params) {
-      SwitchOpcode.__super__.constructor.call(this, name, params);
-      this.byte_count = null;
-    }
-
-    SwitchOpcode.prototype.annotate = function(idx, pool) {
-      var match, offset;
-
-      return "{\n" + ((function() {
-        var _ref5, _results;
-
-        _ref5 = this.offsets;
-        _results = [];
-        for (match in _ref5) {
-          offset = _ref5[match];
-          _results.push("\t\t" + match + ": " + (idx + offset) + ";\n");
-        }
-        return _results;
-      }).call(this)).join('') + ("\t\tdefault: " + (idx + this._default) + " }");
-    };
-
-    SwitchOpcode.prototype.execute = function(rs) {
-      var key;
-
-      key = rs.pop();
-      if (key in this.offsets) {
-        return this.inc_pc(rs, this.offsets[key]);
-      } else {
-        return this.inc_pc(rs, this._default);
-      }
-    };
-
-    return SwitchOpcode;
-
-  })(root.BranchOpcode);
-
-  root.LookupSwitchOpcode = (function(_super) {
-    __extends(LookupSwitchOpcode, _super);
-
-    function LookupSwitchOpcode() {
-      _ref5 = LookupSwitchOpcode.__super__.constructor.apply(this, arguments);
-      return _ref5;
-    }
-
-    LookupSwitchOpcode.prototype.take_args = function(code_array, constant_pool) {
-      var i, match, offset, padding_size, _i, _ref6;
-
-      padding_size = (4 - code_array.pos() % 4) % 4;
-      code_array.skip(padding_size);
-      this._default = code_array.get_int(4);
-      this.npairs = code_array.get_int(4);
-      this.offsets = {};
-      for (i = _i = 0, _ref6 = this.npairs; _i < _ref6; i = _i += 1) {
-        match = code_array.get_int(4);
-        offset = code_array.get_int(4);
-        this.offsets[match] = offset;
-      }
-      return this.byte_count = padding_size + 8 * (this.npairs + 1);
-    };
-
-    return LookupSwitchOpcode;
-
-  })(root.SwitchOpcode);
-
-  root.TableSwitchOpcode = (function(_super) {
-    __extends(TableSwitchOpcode, _super);
-
-    function TableSwitchOpcode() {
-      _ref6 = TableSwitchOpcode.__super__.constructor.apply(this, arguments);
-      return _ref6;
-    }
-
-    TableSwitchOpcode.prototype.take_args = function(code_array, constant_pool) {
-      var i, offset, padding_size, total_offsets, _i;
-
-      padding_size = (4 - code_array.pos() % 4) % 4;
-      code_array.skip(padding_size);
-      this._default = code_array.get_int(4);
-      this.low = code_array.get_int(4);
-      this.high = code_array.get_int(4);
-      this.offsets = {};
-      total_offsets = this.high - this.low + 1;
-      for (i = _i = 0; _i < total_offsets; i = _i += 1) {
-        offset = code_array.get_int(4);
-        this.offsets[this.low + i] = offset;
-      }
-      return this.byte_count = padding_size + 12 + 4 * total_offsets;
-    };
-
-    return TableSwitchOpcode;
-
-  })(root.SwitchOpcode);
-
   root.NewArrayOpcode = (function(_super) {
     __extends(NewArrayOpcode, _super);
 
@@ -843,26 +775,26 @@ export var opcodes : Opcode[] = [
   new LoadConstantOpcode('ldc_w', 2),
   new LoadConstantOpcode('ldc2_w', 2),
   new LoadVarOpcode('iload'),
-  new LoadVarOpcode('lload'),
+  new LoadVarOpcode2('lload'),
   new LoadVarOpcode('fload'),
-  new LoadVarOpcode('dload'),
+  new LoadVarOpcode2('dload'),
   new LoadVarOpcode('aload'),
   new LoadOpcode('iload_0'),
   new LoadOpcode('iload_1'),
   new LoadOpcode('iload_2'),
   new LoadOpcode('iload_3'),
-  new LoadOpcode('lload_0'),
-  new LoadOpcode('lload_1'),
-  new LoadOpcode('lload_2'),
-  new LoadOpcode('lload_3'),
+  new LoadOpcode2('lload_0'),
+  new LoadOpcode2('lload_1'),
+  new LoadOpcode2('lload_2'),
+  new LoadOpcode2('lload_3'),
   new LoadOpcode('fload_0'),
   new LoadOpcode('fload_1'),
   new LoadOpcode('fload_2'),
   new LoadOpcode('fload_3'),
-  new LoadOpcode('dload_0'),
-  new LoadOpcode('dload_1'),
-  new LoadOpcode('dload_2'),
-  new LoadOpcode('dload_3'),
+  new LoadOpcode2('dload_0'),
+  new LoadOpcode2('dload_1'),
+  new LoadOpcode2('dload_2'),
+  new LoadOpcode2('dload_3'),
   new LoadOpcode('aload_0'),
   new LoadOpcode('aload_1'),
   new LoadOpcode('aload_2'),
@@ -875,50 +807,27 @@ export var opcodes : Opcode[] = [
   new ArrayLoadOpcode('baload'),
   new ArrayLoadOpcode('caload'),
   new ArrayLoadOpcode('saload'),
-
-  // OPCODE CONVERSION PROGRESS ENDS HERE
-
-  new StoreVarOpcode('istore', {
-    execute: function(rs) {
-      return rs.put_cl(this.var_num, rs.pop());
-    }
-  }),
-  new StoreVarOpcode('lstore', {
-    execute: function(rs) {
-      return rs.put_cl2(this.var_num, rs.pop2());
-    }
-  }),
-  new StoreVarOpcode('fstore', {
-    execute: function(rs) {
-      return rs.put_cl(this.var_num, rs.pop());
-    }
-  }),
-  new StoreVarOpcode('dstore', {
-    execute: function(rs) {
-      return rs.put_cl2(this.var_num, rs.pop2());
-    }
-  }),
-  new StoreVarOpcode('astore', {
-    execute: function(rs) {
-      return rs.put_cl(this.var_num, rs.pop());
-    }
-  }),
+  new StoreVarOpcode('istore'),
+  new StoreVarOpcode2('lstore'),
+  new StoreVarOpcode('fstore'),
+  new StoreVarOpcode2('dstore'),
+  new StoreVarOpcode('astore'),
   new StoreOpcode('istore_0'),
   new StoreOpcode('istore_1'),
   new StoreOpcode('istore_2'),
   new StoreOpcode('istore_3'),
-  new StoreOpcode('lstore_0'),
-  new StoreOpcode('lstore_1'),
-  new StoreOpcode('lstore_2'),
-  new StoreOpcode('lstore_3'),
+  new StoreOpcode2('lstore_0'),
+  new StoreOpcode2('lstore_1'),
+  new StoreOpcode2('lstore_2'),
+  new StoreOpcode2('lstore_3'),
   new StoreOpcode('fstore_0'),
   new StoreOpcode('fstore_1'),
   new StoreOpcode('fstore_2'),
   new StoreOpcode('fstore_3'),
-  new StoreOpcode('dstore_0'),
-  new StoreOpcode('dstore_1'),
-  new StoreOpcode('dstore_2'),
-  new StoreOpcode('dstore_3'),
+  new StoreOpcode2('dstore_0'),
+  new StoreOpcode2('dstore_1'),
+  new StoreOpcode2('dstore_2'),
+  new StoreOpcode2('dstore_3'),
   new StoreOpcode('astore_0'),
   new StoreOpcode('astore_1'),
   new StoreOpcode('astore_2'),
@@ -931,6 +840,9 @@ export var opcodes : Opcode[] = [
   new ArrayStoreOpcode('bastore'),
   new ArrayStoreOpcode('castore'),
   new ArrayStoreOpcode('sastore'),
+
+  // OPCODE CONVERSION PROGRESS ENDS HERE
+
   new Opcode('pop', {
     execute: function(rs) {
       return rs.pop();
