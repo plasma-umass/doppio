@@ -284,8 +284,10 @@ export class BranchOpcode extends Opcode {
   public annotate(idx: number, pool: any): string {
     return "\t" + (idx + this.offset);
   }
+}
 
-  private jsr(rs: any): void {
+export class JSROpcode extends BranchOpcode {
+  private _execute(rs: any): void {
     rs.push(rs.curr_pc() + this.byte_count + 1);
     this.inc_pc(rs, this.offset);
   }
@@ -645,47 +647,48 @@ export class VoidReturnOpcode extends Opcode {
   }
 }
 
-  root.monitorenter = function(rs, monitor, inst) {
-    var locked_thread;
-
-    if ((locked_thread = rs.lock_refs[monitor]) != null) {
-      if (locked_thread === rs.curr_thread) {
-        rs.lock_counts[monitor]++;
-      } else {
-        if (inst != null) {
-          inst.inc_pc(rs, 1);
-        } else {
-          rs.inc_pc(1);
-        }
-        rs.meta_stack().push({});
-        rs.wait(monitor);
-        return false;
-      }
-    } else {
-      rs.lock_refs[monitor] = rs.curr_thread;
-      rs.lock_counts[monitor] = 1;
-    }
-    return true;
-  };
-
-  root.monitorexit = function(rs, monitor) {
-    var locked_thread;
-
-    if ((locked_thread = rs.lock_refs[monitor]) == null) {
-      return;
-    }
+export function monitorenter(rs: any, monitor: any, inst?: Opcode): boolean {
+  var locked_thread = rs.lock_refs[monitor];
+  if (locked_thread != null) {
     if (locked_thread === rs.curr_thread) {
-      rs.lock_counts[monitor]--;
-      if (rs.lock_counts[monitor] === 0) {
-        delete rs.lock_refs[monitor];
-        if (rs.waiting_threads[monitor] != null) {
-          return rs.waiting_threads[monitor] = [];
-        }
-      }
+      // increment lock counter, to only unlock at zero
+      rs.lock_counts[monitor]++;
     } else {
-      return rs.java_throw(rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;'), "Tried to monitorexit on lock not held by current thread");
+      if (inst != null) {
+        inst.inc_pc(rs, 1);
+      } else {
+        rs.inc_pc(1);
+      }
+      // dummy, to be popped by rs.yield
+      rs.meta_stack().push({});
+      rs.wait(monitor);
+      return false;
     }
-  };
+  } else {
+    // this lock not held by any thread
+    rs.lock_refs[monitor] = rs.curr_thread;
+    rs.lock_counts[monitor] = 1;
+  }
+  return true;
+}
+
+export function monitorexit(rs: any, monitor: any): void {
+  var locked_thread = rs.lock_refs[monitor];
+  if (locked_thread == null) return;
+  if (locked_thread === rs.curr_thread) {
+    rs.lock_counts[monitor]--;
+    if (rs.lock_counts[monitor] === 0) {
+      delete rs.lock_refs[monitor];
+      // perform a notifyAll if the lock is now free
+      if (rs.waiting_threads[monitor] != null) {
+        rs.waiting_threads[monitor] = [];
+      }
+    }
+  } else {
+    rs.java_throw(rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;'),
+                  "Tried to monitorexit on lock not held by current thread");
+  }
+}
 
 // These objects are used as prototypes for the parsed instructions in the classfile.
 // Opcodes are in order, indexed by their binary representation.
@@ -810,15 +813,11 @@ export var opcodes : Opcode[] = [
       var v1 = rs.pop();
       var v2 = rs.pop();
       return rs.push2(v2, v1);}),
+  // math opcodes
+  new Opcode('iadd', 0, ((rs) => rs.push((rs.pop() + rs.pop()) | 0))),
 
   // OPCODE CONVERSION PROGRESS ENDS HERE
 
-  // math opcodes
-  new Opcode('iadd', {
-    execute: function(rs) {
-      return rs.push((rs.pop() + rs.pop()) | 0);
-    }
-  }),
   new Opcode('ladd', {
     execute: function(rs) {
       return rs.push2(rs.pop2().add(rs.pop2()), null);
@@ -1159,84 +1158,23 @@ export var opcodes : Opcode[] = [
       return rs.push((_ref9 = util.cmp(rs.pop2(), v2)) != null ? _ref9 : 1);
     }
   }),
-  new UnaryBranchOpcode('ifeq', {
-    cmp: function(v) {
-      return v === 0;
-    }
-  }),
-  new UnaryBranchOpcode('ifne', {
-    cmp: function(v) {
-      return v !== 0;
-    }
-  }),
-  new UnaryBranchOpcode('iflt', {
-    cmp: function(v) {
-      return v < 0;
-    }
-  }),
-  new UnaryBranchOpcode('ifge', {
-    cmp: function(v) {
-      return v >= 0;
-    }
-  }),
-  new UnaryBranchOpcode('ifgt', {
-    cmp: function(v) {
-      return v > 0;
-    }
-  }),
-  new UnaryBranchOpcode('ifle', {
-    cmp: function(v) {
-      return v <= 0;
-    }
-  }),
-  new BinaryBranchOpcode('if_icmpeq', {
-    cmp: function(v1, v2) {
-      return v1 === v2;
-    }
-  }),
-  new BinaryBranchOpcode('if_icmpne', {
-    cmp: function(v1, v2) {
-      return v1 !== v2;
-    }
-  }),
-  new BinaryBranchOpcode('if_icmplt', {
-    cmp: function(v1, v2) {
-      return v1 < v2;
-    }
-  }),
-  new BinaryBranchOpcode('if_icmpge', {
-    cmp: function(v1, v2) {
-      return v1 >= v2;
-    }
-  }),
-  new BinaryBranchOpcode('if_icmpgt', {
-    cmp: function(v1, v2) {
-      return v1 > v2;
-    }
-  }),
-  new BinaryBranchOpcode('if_icmple', {
-    cmp: function(v1, v2) {
-      return v1 <= v2;
-    }
-  }),
-  new BinaryBranchOpcode('if_acmpeq', {
-    cmp: function(v1, v2) {
-      return v1 === v2;
-    }
-  }),
-  new BinaryBranchOpcode('if_acmpne', {
-    cmp: function(v1, v2) {
-      return v1 !== v2;
-    }
-  }),
-  new BranchOpcode('goto', {
-    execute: function(rs) {
-      return this.inc_pc(rs, this.offset);
-    }
-  }),
-  new BranchOpcode('jsr', {
-    execute: jsr
-  }),
+  new UnaryBranchOpcode('ifeq', ((v) => v === 0)),
+  new UnaryBranchOpcode('ifne', ((v) => v !== 0)),
+  new UnaryBranchOpcode('iflt', ((v) => v < 0)),
+  new UnaryBranchOpcode('ifge', ((v) => v >= 0)),
+  new UnaryBranchOpcode('ifgt', ((v) => v > 0)),
+  new UnaryBranchOpcode('ifle', ((v) => v <= 0)),
+  new BinaryBranchOpcode('if_icmpeq', ((v1,v2) => v1 === v2)),
+  new BinaryBranchOpcode('if_icmpne', ((v1,v2) => v1 !== v2)),
+  new BinaryBranchOpcode('if_icmplt', ((v1,v2) => v1 < v2)),
+  new BinaryBranchOpcode('if_icmpge', ((v1,v2) => v1 >= v2)),
+  new BinaryBranchOpcode('if_icmpgt', ((v1,v2) => v1 > v2)),
+  new BinaryBranchOpcode('if_icmple', ((v1,v2) => v1 <= v2)),
+  new BinaryBranchOpcode('if_acmpeq', ((v1,v2) => v1 === v2)),
+  new BinaryBranchOpcode('if_acmpne', ((v1,v2) => v1 !== v2)),
+  new BranchOpcode('goto', 0, ((rs)=>this.inc_pc(rs, this.offset))),
+  new JSROpcode('jsr'),
+
   new Opcode('ret', {
     byte_count: 1,
     execute: function(rs) {
