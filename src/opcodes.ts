@@ -68,7 +68,7 @@ export class FieldOpcode extends Opcode {
   }
 
   public annotate(idx: number, pool: any): string {
-    var info = util.format_extra_info(pool.get(this.field_spec_ref);
+    var info = util.format_extra_info(pool.get(this.field_spec_ref));
     return "\t#" + this.field_spec_ref + ";" + info;
   }
 }
@@ -87,7 +87,7 @@ export class ClassOpcode extends Opcode {
   }
 
   public annotate(idx: number, pool: any): string {
-    var info = util.format_extra_info(pool.get(this.class_ref);
+    var info = util.format_extra_info(pool.get(this.class_ref));
     return "\t#" + this.class_ref + ";" + info;
   }
 }
@@ -106,7 +106,7 @@ export class InvokeOpcode extends Opcode {
   }
 
   public annotate(idx: number, pool: any): string {
-    var info = util.format_extra_info(pool.get(this.method_spec_ref);
+    var info = util.format_extra_info(pool.get(this.method_spec_ref));
     return "\t#" + this.method_spec_ref + ";" + info;
   }
 
@@ -186,10 +186,10 @@ export class DynInvokeOpcode extends InvokeOpcode {
       this.count = 1 + get_param_word_size(this.method_spec.sig);
     }
     this.cache = Object.create(null);
-  };
+  }
 
   public annotate(idx: number, pool: any): string {
-    var info = util.format_extra_info(pool.get(this.method_spec_ref);
+    var info = util.format_extra_info(pool.get(this.method_spec_ref));
     var extra = '';
     if (this.name === 'invokeinterface')
       extra = ',  ' + this.count;
@@ -819,128 +819,129 @@ export class IIncOpcode extends Opcode {
   };
 
 // These objects are used as prototypes for the parsed instructions in the classfile.
-export var opcodes = {
-  0:  new Opcode('nop', 0, (()=>)),
-  1:  new Opcode('aconst_null', 0, ((rs)=>rs.push(null))),
-  2:  new Opcode('iconst_m1', 0, ((rs)=>rs.push(-1))),
-  3:  new Opcode('iconst_0', 0, ((rs)=>rs.push(0))),
-  4:  new Opcode('iconst_1', 0, ((rs)=>rs.push(1))),
-  5:  new Opcode('iconst_2', 0, ((rs)=>rs.push(2))),
-  6:  new Opcode('iconst_3', 0, ((rs)=>rs.push(3))),
-  7:  new Opcode('iconst_4', 0, ((rs)=>rs.push(4))),
-  8:  new Opcode('iconst_5', 0, ((rs)=>rs.push(5))),
-  9:  new Opcode('lconst_0', 0, ((rs)=>rs.push2(gLong.ZERO, null))),
-  10: new Opcode('lconst_1', 0, ((rs)=>rs.push2(gLong.ONE, null))),
-  11: new Opcode('fconst_0', 0, ((rs)=>rs.push(0))),
-  12: new Opcode('fconst_1', 0, ((rs)=>rs.push(1))),
-  13: new Opcode('fconst_2', 0, ((rs)=>rs.push(2))),
-  14: new Opcode('dconst_0', 0, ((rs)=>rs.push2(0, null))),
-  15: new Opcode('dconst_1', 0, ((rs)=>rs.push2(1, null))),
-  16: new PushOpcode('bipush', 1),
-  17: new PushOpcode('sipush', 2),
-  18: new LoadConstantOpcode('ldc', 1),
-  19: new LoadConstantOpcode('ldc_w', 2),
-  20: new LoadConstantOpcode('ldc2_w', 2),
-  21: new LoadVarOpcode('iload'),
-  22: new LoadVarOpcode('lload'),
-  23: new LoadVarOpcode('fload'),
-  24: new LoadVarOpcode('dload'),
-  25: new LoadVarOpcode('aload'),
-  26: new LoadOpcode('iload_0'),
-  27: new LoadOpcode('iload_1'),
-  28: new LoadOpcode('iload_2'),
-  29: new LoadOpcode('iload_3'),
-  30: new LoadOpcode('lload_0'),
-  31: new LoadOpcode('lload_1'),
-  32: new LoadOpcode('lload_2'),
-  33: new LoadOpcode('lload_3'),
-  34: new LoadOpcode('fload_0'),
-  35: new LoadOpcode('fload_1'),
-  36: new LoadOpcode('fload_2'),
-  37: new LoadOpcode('fload_3'),
-  38: new LoadOpcode('dload_0'),
-  39: new LoadOpcode('dload_1'),
-  40: new LoadOpcode('dload_2'),
-  41: new LoadOpcode('dload_3'),
-  42: new LoadOpcode('aload_0'),
-  43: new LoadOpcode('aload_1'),
-  44: new LoadOpcode('aload_2'),
-  45: new LoadOpcode('aload_3'),
-  46: new ArrayLoadOpcode('iaload'),
-  47: new ArrayLoadOpcode('laload'),
-  48: new ArrayLoadOpcode('faload'),
-  49: new ArrayLoadOpcode('daload'),
-  50: new ArrayLoadOpcode('aaload'),
-  51: new ArrayLoadOpcode('baload'),
-  52: new ArrayLoadOpcode('caload'),
-  53: new ArrayLoadOpcode('saload'),
+// Opcodes are in order, indexed by their binary representation.
+export var opcodes : Opcode[] = [
+  new Opcode('nop', 0, function(){}),  // apparently you can't use lambda syntax for a nop
+  new Opcode('aconst_null', 0, ((rs)=>rs.push(null))),
+  new Opcode('iconst_m1', 0, ((rs)=>rs.push(-1))),
+  new Opcode('iconst_0', 0, ((rs)=>rs.push(0))),
+  new Opcode('iconst_1', 0, ((rs)=>rs.push(1))),
+  new Opcode('iconst_2', 0, ((rs)=>rs.push(2))),
+  new Opcode('iconst_3', 0, ((rs)=>rs.push(3))),
+  new Opcode('iconst_4', 0, ((rs)=>rs.push(4))),
+  new Opcode('iconst_5', 0, ((rs)=>rs.push(5))),
+  new Opcode('lconst_0', 0, ((rs)=>rs.push2(gLong.ZERO, null))),
+  new Opcode('lconst_1', 0, ((rs)=>rs.push2(gLong.ONE, null))),
+  new Opcode('fconst_0', 0, ((rs)=>rs.push(0))),
+  new Opcode('fconst_1', 0, ((rs)=>rs.push(1))),
+  new Opcode('fconst_2', 0, ((rs)=>rs.push(2))),
+  new Opcode('dconst_0', 0, ((rs)=>rs.push2(0, null))),
+  new Opcode('dconst_1', 0, ((rs)=>rs.push2(1, null))),
+  new PushOpcode('bipush', 1),
+  new PushOpcode('sipush', 2),
+  new LoadConstantOpcode('ldc', 1),
+  new LoadConstantOpcode('ldc_w', 2),
+  new LoadConstantOpcode('ldc2_w', 2),
+  new LoadVarOpcode('iload'),
+  new LoadVarOpcode('lload'),
+  new LoadVarOpcode('fload'),
+  new LoadVarOpcode('dload'),
+  new LoadVarOpcode('aload'),
+  new LoadOpcode('iload_0'),
+  new LoadOpcode('iload_1'),
+  new LoadOpcode('iload_2'),
+  new LoadOpcode('iload_3'),
+  new LoadOpcode('lload_0'),
+  new LoadOpcode('lload_1'),
+  new LoadOpcode('lload_2'),
+  new LoadOpcode('lload_3'),
+  new LoadOpcode('fload_0'),
+  new LoadOpcode('fload_1'),
+  new LoadOpcode('fload_2'),
+  new LoadOpcode('fload_3'),
+  new LoadOpcode('dload_0'),
+  new LoadOpcode('dload_1'),
+  new LoadOpcode('dload_2'),
+  new LoadOpcode('dload_3'),
+  new LoadOpcode('aload_0'),
+  new LoadOpcode('aload_1'),
+  new LoadOpcode('aload_2'),
+  new LoadOpcode('aload_3'),
+  new ArrayLoadOpcode('iaload'),
+  new ArrayLoadOpcode('laload'),
+  new ArrayLoadOpcode('faload'),
+  new ArrayLoadOpcode('daload'),
+  new ArrayLoadOpcode('aaload'),
+  new ArrayLoadOpcode('baload'),
+  new ArrayLoadOpcode('caload'),
+  new ArrayLoadOpcode('saload'),
 
   // OPCODE CONVERSION PROGRESS ENDS HERE
 
-  54: new StoreVarOpcode('istore', {
+  new StoreVarOpcode('istore', {
     execute: function(rs) {
       return rs.put_cl(this.var_num, rs.pop());
     }
   }),
-  55: new StoreVarOpcode('lstore', {
+  new StoreVarOpcode('lstore', {
     execute: function(rs) {
       return rs.put_cl2(this.var_num, rs.pop2());
     }
   }),
-  56: new StoreVarOpcode('fstore', {
+  new StoreVarOpcode('fstore', {
     execute: function(rs) {
       return rs.put_cl(this.var_num, rs.pop());
     }
   }),
-  57: new StoreVarOpcode('dstore', {
+  new StoreVarOpcode('dstore', {
     execute: function(rs) {
       return rs.put_cl2(this.var_num, rs.pop2());
     }
   }),
-  58: new StoreVarOpcode('astore', {
+  new StoreVarOpcode('astore', {
     execute: function(rs) {
       return rs.put_cl(this.var_num, rs.pop());
     }
   }),
-  59: new StoreOpcode('istore_0'),
-  60: new StoreOpcode('istore_1'),
-  61: new StoreOpcode('istore_2'),
-  62: new StoreOpcode('istore_3'),
-  63: new StoreOpcode('lstore_0'),
-  64: new StoreOpcode('lstore_1'),
-  65: new StoreOpcode('lstore_2'),
-  66: new StoreOpcode('lstore_3'),
-  67: new StoreOpcode('fstore_0'),
-  68: new StoreOpcode('fstore_1'),
-  69: new StoreOpcode('fstore_2'),
-  70: new StoreOpcode('fstore_3'),
-  71: new StoreOpcode('dstore_0'),
-  72: new StoreOpcode('dstore_1'),
-  73: new StoreOpcode('dstore_2'),
-  74: new StoreOpcode('dstore_3'),
-  75: new StoreOpcode('astore_0'),
-  76: new StoreOpcode('astore_1'),
-  77: new StoreOpcode('astore_2'),
-  78: new StoreOpcode('astore_3'),
-  79: new ArrayStoreOpcode('iastore'),
-  80: new ArrayStoreOpcode('lastore'),
-  81: new ArrayStoreOpcode('fastore'),
-  82: new ArrayStoreOpcode('dastore'),
-  83: new ArrayStoreOpcode('aastore'),
-  84: new ArrayStoreOpcode('bastore'),
-  85: new ArrayStoreOpcode('castore'),
-  86: new ArrayStoreOpcode('sastore'),
-  87: new Opcode('pop', {
+  new StoreOpcode('istore_0'),
+  new StoreOpcode('istore_1'),
+  new StoreOpcode('istore_2'),
+  new StoreOpcode('istore_3'),
+  new StoreOpcode('lstore_0'),
+  new StoreOpcode('lstore_1'),
+  new StoreOpcode('lstore_2'),
+  new StoreOpcode('lstore_3'),
+  new StoreOpcode('fstore_0'),
+  new StoreOpcode('fstore_1'),
+  new StoreOpcode('fstore_2'),
+  new StoreOpcode('fstore_3'),
+  new StoreOpcode('dstore_0'),
+  new StoreOpcode('dstore_1'),
+  new StoreOpcode('dstore_2'),
+  new StoreOpcode('dstore_3'),
+  new StoreOpcode('astore_0'),
+  new StoreOpcode('astore_1'),
+  new StoreOpcode('astore_2'),
+  new StoreOpcode('astore_3'),
+  new ArrayStoreOpcode('iastore'),
+  new ArrayStoreOpcode('lastore'),
+  new ArrayStoreOpcode('fastore'),
+  new ArrayStoreOpcode('dastore'),
+  new ArrayStoreOpcode('aastore'),
+  new ArrayStoreOpcode('bastore'),
+  new ArrayStoreOpcode('castore'),
+  new ArrayStoreOpcode('sastore'),
+  new Opcode('pop', {
     execute: function(rs) {
       return rs.pop();
     }
   }),
-  88: new Opcode('pop2', {
+  new Opcode('pop2', {
     execute: function(rs) {
       return rs.pop2();
     }
   }),
-  89: new Opcode('dup', {
+  new Opcode('dup', {
     execute: function(rs) {
       var v;
 
@@ -948,7 +949,7 @@ export var opcodes = {
       return rs.push2(v, v);
     }
   }),
-  90: new Opcode('dup_x1', {
+  new Opcode('dup_x1', {
     execute: function(rs) {
       var v1, v2;
 
@@ -957,7 +958,7 @@ export var opcodes = {
       return rs.push_array([v1, v2, v1]);
     }
   }),
-  91: new Opcode('dup_x2', {
+  new Opcode('dup_x2', {
     execute: function(rs) {
       var v1, v2, v3, _ref9;
 
@@ -965,7 +966,7 @@ export var opcodes = {
       return rs.push_array([v1, v3, v2, v1]);
     }
   }),
-  92: new Opcode('dup2', {
+  new Opcode('dup2', {
     execute: function(rs) {
       var v1, v2;
 
@@ -974,7 +975,7 @@ export var opcodes = {
       return rs.push_array([v2, v1, v2, v1]);
     }
   }),
-  93: new Opcode('dup2_x1', {
+  new Opcode('dup2_x1', {
     execute: function(rs) {
       var v1, v2, v3, _ref9;
 
@@ -982,7 +983,7 @@ export var opcodes = {
       return rs.push_array([v2, v1, v3, v2, v1]);
     }
   }),
-  94: new Opcode('dup2_x2', {
+  new Opcode('dup2_x2', {
     execute: function(rs) {
       var v1, v2, v3, v4, _ref9;
 
@@ -990,7 +991,7 @@ export var opcodes = {
       return rs.push_array([v2, v1, v4, v3, v2, v1]);
     }
   }),
-  95: new Opcode('swap', {
+  new Opcode('swap', {
     execute: function(rs) {
       var v1, v2;
 
@@ -999,67 +1000,67 @@ export var opcodes = {
       return rs.push2(v2, v1);
     }
   }),
-  96: new Opcode('iadd', {
+  new Opcode('iadd', {
     execute: function(rs) {
       return rs.push((rs.pop() + rs.pop()) | 0);
     }
   }),
-  97: new Opcode('ladd', {
+  new Opcode('ladd', {
     execute: function(rs) {
       return rs.push2(rs.pop2().add(rs.pop2()), null);
     }
   }),
-  98: new Opcode('fadd', {
+  new Opcode('fadd', {
     execute: function(rs) {
       return rs.push(util.wrap_float(rs.pop() + rs.pop()));
     }
   }),
-  99: new Opcode('dadd', {
+  new Opcode('dadd', {
     execute: function(rs) {
       return rs.push2(rs.pop2() + rs.pop2(), null);
     }
   }),
-  100: new Opcode('isub', {
+  new Opcode('isub', {
     execute: function(rs) {
       return rs.push((-rs.pop() + rs.pop()) | 0);
     }
   }),
-  101: new Opcode('lsub', {
+  new Opcode('lsub', {
     execute: function(rs) {
       return rs.push2(rs.pop2().negate().add(rs.pop2()), null);
     }
   }),
-  102: new Opcode('fsub', {
+  new Opcode('fsub', {
     execute: function(rs) {
       return rs.push(util.wrap_float(-rs.pop() + rs.pop()));
     }
   }),
-  103: new Opcode('dsub', {
+  new Opcode('dsub', {
     execute: function(rs) {
       return rs.push2(-rs.pop2() + rs.pop2(), null);
     }
   }),
-  104: new Opcode('imul', {
+  new Opcode('imul', {
     execute: function(rs) {
       return rs.push(Math.imul(rs.pop(), rs.pop()));
     }
   }),
-  105: new Opcode('lmul', {
+  new Opcode('lmul', {
     execute: function(rs) {
       return rs.push2(rs.pop2().multiply(rs.pop2()), null);
     }
   }),
-  106: new Opcode('fmul', {
+  new Opcode('fmul', {
     execute: function(rs) {
       return rs.push(util.wrap_float(rs.pop() * rs.pop()));
     }
   }),
-  107: new Opcode('dmul', {
+  new Opcode('dmul', {
     execute: function(rs) {
       return rs.push2(rs.pop2() * rs.pop2(), null);
     }
   }),
-  108: new Opcode('idiv', {
+  new Opcode('idiv', {
     execute: function(rs) {
       var v;
 
@@ -1067,7 +1068,7 @@ export var opcodes = {
       return rs.push(util.int_div(rs, rs.pop(), v));
     }
   }),
-  109: new Opcode('ldiv', {
+  new Opcode('ldiv', {
     execute: function(rs) {
       var v;
 
@@ -1075,7 +1076,7 @@ export var opcodes = {
       return rs.push2(util.long_div(rs, rs.pop2(), v), null);
     }
   }),
-  110: new Opcode('fdiv', {
+  new Opcode('fdiv', {
     execute: function(rs) {
       var a;
 
@@ -1083,7 +1084,7 @@ export var opcodes = {
       return rs.push(util.wrap_float(rs.pop() / a));
     }
   }),
-  111: new Opcode('ddiv', {
+  new Opcode('ddiv', {
     execute: function(rs) {
       var v;
 
@@ -1091,7 +1092,7 @@ export var opcodes = {
       return rs.push2(rs.pop2() / v, null);
     }
   }),
-  112: new Opcode('irem', {
+  new Opcode('irem', {
     execute: function(rs) {
       var v2;
 
@@ -1099,7 +1100,7 @@ export var opcodes = {
       return rs.push(util.int_mod(rs, rs.pop(), v2));
     }
   }),
-  113: new Opcode('lrem', {
+  new Opcode('lrem', {
     execute: function(rs) {
       var v2;
 
@@ -1107,7 +1108,7 @@ export var opcodes = {
       return rs.push2(util.long_mod(rs, rs.pop2(), v2), null);
     }
   }),
-  114: new Opcode('frem', {
+  new Opcode('frem', {
     execute: function(rs) {
       var b;
 
@@ -1115,7 +1116,7 @@ export var opcodes = {
       return rs.push(rs.pop() % b);
     }
   }),
-  115: new Opcode('drem', {
+  new Opcode('drem', {
     execute: function(rs) {
       var v2;
 
@@ -1123,27 +1124,27 @@ export var opcodes = {
       return rs.push2(rs.pop2() % v2, null);
     }
   }),
-  116: new Opcode('ineg', {
+  new Opcode('ineg', {
     execute: function(rs) {
       return rs.push(-rs.pop() | 0);
     }
   }),
-  117: new Opcode('lneg', {
+  new Opcode('lneg', {
     execute: function(rs) {
       return rs.push2(rs.pop2().negate(), null);
     }
   }),
-  118: new Opcode('fneg', {
+  new Opcode('fneg', {
     execute: function(rs) {
       return rs.push(-rs.pop());
     }
   }),
-  119: new Opcode('dneg', {
+  new Opcode('dneg', {
     execute: function(rs) {
       return rs.push2(-rs.pop2(), null);
     }
   }),
-  120: new Opcode('ishl', {
+  new Opcode('ishl', {
     execute: function(rs) {
       var s;
 
@@ -1151,7 +1152,7 @@ export var opcodes = {
       return rs.push(rs.pop() << s);
     }
   }),
-  121: new Opcode('lshl', {
+  new Opcode('lshl', {
     execute: function(rs) {
       var s;
 
@@ -1159,7 +1160,7 @@ export var opcodes = {
       return rs.push2(rs.pop2().shiftLeft(gLong.fromInt(s)), null);
     }
   }),
-  122: new Opcode('ishr', {
+  new Opcode('ishr', {
     execute: function(rs) {
       var s;
 
@@ -1167,7 +1168,7 @@ export var opcodes = {
       return rs.push(rs.pop() >> s);
     }
   }),
-  123: new Opcode('lshr', {
+  new Opcode('lshr', {
     execute: function(rs) {
       var s;
 
@@ -1175,7 +1176,7 @@ export var opcodes = {
       return rs.push2(rs.pop2().shiftRight(gLong.fromInt(s)), null);
     }
   }),
-  124: new Opcode('iushr', {
+  new Opcode('iushr', {
     execute: function(rs) {
       var s;
 
@@ -1183,7 +1184,7 @@ export var opcodes = {
       return rs.push(rs.pop() >>> s);
     }
   }),
-  125: new Opcode('lushr', {
+  new Opcode('lushr', {
     execute: function(rs) {
       var s;
 
@@ -1191,86 +1192,86 @@ export var opcodes = {
       return rs.push2(rs.pop2().shiftRightUnsigned(gLong.fromInt(s)), null);
     }
   }),
-  126: new Opcode('iand', {
+  new Opcode('iand', {
     execute: function(rs) {
       return rs.push(rs.pop() & rs.pop());
     }
   }),
-  127: new Opcode('land', {
+  new Opcode('land', {
     execute: function(rs) {
       return rs.push2(rs.pop2().and(rs.pop2()), null);
     }
   }),
-  128: new Opcode('ior', {
+  new Opcode('ior', {
     execute: function(rs) {
       return rs.push(rs.pop() | rs.pop());
     }
   }),
-  129: new Opcode('lor', {
+  new Opcode('lor', {
     execute: function(rs) {
       return rs.push2(rs.pop2().or(rs.pop2()), null);
     }
   }),
-  130: new Opcode('ixor', {
+  new Opcode('ixor', {
     execute: function(rs) {
       return rs.push(rs.pop() ^ rs.pop());
     }
   }),
-  131: new Opcode('lxor', {
+  new Opcode('lxor', {
     execute: function(rs) {
       return rs.push2(rs.pop2().xor(rs.pop2()), null);
     }
   }),
-  132: new IIncOpcode('iinc'),
-  133: new Opcode('i2l', {
+  new IIncOpcode('iinc'),
+  new Opcode('i2l', {
     execute: function(rs) {
       return rs.push2(gLong.fromInt(rs.pop()), null);
     }
   }),
-  134: new Opcode('i2f', {
+  new Opcode('i2f', {
     execute: function(rs) {}
   }),
-  135: new Opcode('i2d', {
+  new Opcode('i2d', {
     execute: function(rs) {
       return rs.push(null);
     }
   }),
-  136: new Opcode('l2i', {
+  new Opcode('l2i', {
     execute: function(rs) {
       return rs.push(rs.pop2().toInt());
     }
   }),
-  137: new Opcode('l2f', {
+  new Opcode('l2f', {
     execute: function(rs) {
       return rs.push(rs.pop2().toNumber());
     }
   }),
-  138: new Opcode('l2d', {
+  new Opcode('l2d', {
     execute: function(rs) {
       return rs.push2(rs.pop2().toNumber(), null);
     }
   }),
-  139: new Opcode('f2i', {
+  new Opcode('f2i', {
     execute: function(rs) {
       return rs.push(util.float2int(rs.pop()));
     }
   }),
-  140: new Opcode('f2l', {
+  new Opcode('f2l', {
     execute: function(rs) {
       return rs.push2(gLong.fromNumber(rs.pop()), null);
     }
   }),
-  141: new Opcode('f2d', {
+  new Opcode('f2d', {
     execute: function(rs) {
       return rs.push(null);
     }
   }),
-  142: new Opcode('d2i', {
+  new Opcode('d2i', {
     execute: function(rs) {
       return rs.push(util.float2int(rs.pop2()));
     }
   }),
-  143: new Opcode('d2l', {
+  new Opcode('d2l', {
     execute: function(rs) {
       var d_val;
 
@@ -1284,27 +1285,27 @@ export var opcodes = {
       }
     }
   }),
-  144: new Opcode('d2f', {
+  new Opcode('d2f', {
     execute: function(rs) {
       return rs.push(util.wrap_float(rs.pop2()));
     }
   }),
-  145: new Opcode('i2b', {
+  new Opcode('i2b', {
     execute: function(rs) {
       return rs.push((rs.pop() << 24) >> 24);
     }
   }),
-  146: new Opcode('i2c', {
+  new Opcode('i2c', {
     execute: function(rs) {
       return rs.push(rs.pop() & 0xFFFF);
     }
   }),
-  147: new Opcode('i2s', {
+  new Opcode('i2s', {
     execute: function(rs) {
       return rs.push((rs.pop() << 16) >> 16);
     }
   }),
-  148: new Opcode('lcmp', {
+  new Opcode('lcmp', {
     execute: function(rs) {
       var v2;
 
@@ -1312,7 +1313,7 @@ export var opcodes = {
       return rs.push(rs.pop2().compare(v2));
     }
   }),
-  149: new Opcode('fcmpl', {
+  new Opcode('fcmpl', {
     execute: function(rs) {
       var v2, _ref9;
 
@@ -1320,7 +1321,7 @@ export var opcodes = {
       return rs.push((_ref9 = util.cmp(rs.pop(), v2)) != null ? _ref9 : -1);
     }
   }),
-  150: new Opcode('fcmpg', {
+  new Opcode('fcmpg', {
     execute: function(rs) {
       var v2, _ref9;
 
@@ -1328,7 +1329,7 @@ export var opcodes = {
       return rs.push((_ref9 = util.cmp(rs.pop(), v2)) != null ? _ref9 : 1);
     }
   }),
-  151: new Opcode('dcmpl', {
+  new Opcode('dcmpl', {
     execute: function(rs) {
       var v2, _ref9;
 
@@ -1336,7 +1337,7 @@ export var opcodes = {
       return rs.push((_ref9 = util.cmp(rs.pop2(), v2)) != null ? _ref9 : -1);
     }
   }),
-  152: new Opcode('dcmpg', {
+  new Opcode('dcmpg', {
     execute: function(rs) {
       var v2, _ref9;
 
@@ -1344,99 +1345,99 @@ export var opcodes = {
       return rs.push((_ref9 = util.cmp(rs.pop2(), v2)) != null ? _ref9 : 1);
     }
   }),
-  153: new UnaryBranchOpcode('ifeq', {
+  new UnaryBranchOpcode('ifeq', {
     cmp: function(v) {
       return v === 0;
     }
   }),
-  154: new UnaryBranchOpcode('ifne', {
+  new UnaryBranchOpcode('ifne', {
     cmp: function(v) {
       return v !== 0;
     }
   }),
-  155: new UnaryBranchOpcode('iflt', {
+  new UnaryBranchOpcode('iflt', {
     cmp: function(v) {
       return v < 0;
     }
   }),
-  156: new UnaryBranchOpcode('ifge', {
+  new UnaryBranchOpcode('ifge', {
     cmp: function(v) {
       return v >= 0;
     }
   }),
-  157: new UnaryBranchOpcode('ifgt', {
+  new UnaryBranchOpcode('ifgt', {
     cmp: function(v) {
       return v > 0;
     }
   }),
-  158: new UnaryBranchOpcode('ifle', {
+  new UnaryBranchOpcode('ifle', {
     cmp: function(v) {
       return v <= 0;
     }
   }),
-  159: new BinaryBranchOpcode('if_icmpeq', {
+  new BinaryBranchOpcode('if_icmpeq', {
     cmp: function(v1, v2) {
       return v1 === v2;
     }
   }),
-  160: new BinaryBranchOpcode('if_icmpne', {
+  new BinaryBranchOpcode('if_icmpne', {
     cmp: function(v1, v2) {
       return v1 !== v2;
     }
   }),
-  161: new BinaryBranchOpcode('if_icmplt', {
+  new BinaryBranchOpcode('if_icmplt', {
     cmp: function(v1, v2) {
       return v1 < v2;
     }
   }),
-  162: new BinaryBranchOpcode('if_icmpge', {
+  new BinaryBranchOpcode('if_icmpge', {
     cmp: function(v1, v2) {
       return v1 >= v2;
     }
   }),
-  163: new BinaryBranchOpcode('if_icmpgt', {
+  new BinaryBranchOpcode('if_icmpgt', {
     cmp: function(v1, v2) {
       return v1 > v2;
     }
   }),
-  164: new BinaryBranchOpcode('if_icmple', {
+  new BinaryBranchOpcode('if_icmple', {
     cmp: function(v1, v2) {
       return v1 <= v2;
     }
   }),
-  165: new BinaryBranchOpcode('if_acmpeq', {
+  new BinaryBranchOpcode('if_acmpeq', {
     cmp: function(v1, v2) {
       return v1 === v2;
     }
   }),
-  166: new BinaryBranchOpcode('if_acmpne', {
+  new BinaryBranchOpcode('if_acmpne', {
     cmp: function(v1, v2) {
       return v1 !== v2;
     }
   }),
-  167: new BranchOpcode('goto', {
+  new BranchOpcode('goto', {
     execute: function(rs) {
       return this.inc_pc(rs, this.offset);
     }
   }),
-  168: new BranchOpcode('jsr', {
+  new BranchOpcode('jsr', {
     execute: jsr
   }),
-  169: new Opcode('ret', {
+  new Opcode('ret', {
     byte_count: 1,
     execute: function(rs) {
       return this.goto_pc(rs, rs.cl(this.args[0]));
     }
   }),
-  170: new TableSwitchOpcode('tableswitch'),
-  171: new LookupSwitchOpcode('lookupswitch'),
-  172: new ReturnOpcode('ireturn'),
-  173: new ReturnOpcode('lreturn'),
-  174: new ReturnOpcode('freturn'),
-  175: new ReturnOpcode('dreturn'),
-  176: new ReturnOpcode('areturn'),
-  177: new ReturnOpcode('return'),
-  178: new FieldOpcode('getstatic', {
+  new TableSwitchOpcode('tableswitch'),
+  new LookupSwitchOpcode('lookupswitch'),
+  new ReturnOpcode('ireturn'),
+  new ReturnOpcode('lreturn'),
+  new ReturnOpcode('freturn'),
+  new ReturnOpcode('dreturn'),
+  new ReturnOpcode('areturn'),
+  new ReturnOpcode('return'),
+  new FieldOpcode('getstatic', {
     execute: function(rs) {
       var cls_type, new_execute, ref_cls, _ref9,
         _this = this;
@@ -1469,7 +1470,7 @@ export var opcodes = {
       }
     }
   }),
-  179: new FieldOpcode('putstatic', {
+  new FieldOpcode('putstatic', {
     execute: function(rs) {
       var cls_type, new_execute, ref_cls, _ref9,
         _this = this;
@@ -1502,7 +1503,7 @@ export var opcodes = {
       }
     }
   }),
-  180: new FieldOpcode('getfield', {
+  new FieldOpcode('getfield', {
     execute: function(rs) {
       var cls, field, name, new_execute, obj, _ref9,
         _this = this;
@@ -1534,7 +1535,7 @@ export var opcodes = {
       }
     }
   }),
-  181: new FieldOpcode('putfield', {
+  new FieldOpcode('putfield', {
     execute: function(rs) {
       var cls_obj, field, name, new_execute, _obj, _ref10, _ref9,
         _this = this;
@@ -1570,11 +1571,12 @@ export var opcodes = {
       }
     }
   }),
-  182: new DynInvokeOpcode('invokevirtual'),
-  183: new InvokeOpcode('invokespecial'),
-  184: new InvokeOpcode('invokestatic'),
-  185: new DynInvokeOpcode('invokeinterface'),
-  187: new ClassOpcode('new', {
+  new DynInvokeOpcode('invokevirtual'),
+  new InvokeOpcode('invokespecial'),
+  new InvokeOpcode('invokestatic'),
+  new DynInvokeOpcode('invokeinterface'),
+  null,  // invokedynamic
+  new ClassOpcode('new', {
     execute: function(rs) {
       var _this = this;
 
@@ -1610,12 +1612,12 @@ export var opcodes = {
       }
     }
   }),
-  188: new NewArrayOpcode('newarray', {
+  new NewArrayOpcode('newarray', {
     execute: function(rs) {
       return rs.push(rs.heap_newarray(this.element_type, rs.pop()));
     }
   }),
-  189: new ClassOpcode('anewarray', {
+  new ClassOpcode('anewarray', {
     execute: function(rs) {
       var cls, new_execute,
         _this = this;
@@ -1636,17 +1638,17 @@ export var opcodes = {
       }
     }
   }),
-  190: new Opcode('arraylength', {
+  new Opcode('arraylength', {
     execute: function(rs) {
       return rs.push(rs.check_null(rs.pop()).array.length);
     }
   }),
-  191: new Opcode('athrow', {
+  new Opcode('athrow', {
     execute: function(rs) {
       throw new JavaException(rs.pop());
     }
   }),
-  192: new ClassOpcode('checkcast', {
+  new ClassOpcode('checkcast', {
     execute: function(rs) {
       var new_execute,
         _this = this;
@@ -1674,7 +1676,7 @@ export var opcodes = {
       }
     }
   }),
-  193: new ClassOpcode('instanceof', {
+  new ClassOpcode('instanceof', {
     execute: function(rs) {
       var new_execute,
         _this = this;
@@ -1698,37 +1700,37 @@ export var opcodes = {
       }
     }
   }),
-  194: new Opcode('monitorenter', {
+  new Opcode('monitorenter', {
     execute: function(rs) {
       if (!monitorenter(rs, rs.pop(), this)) {
         throw ReturnException;
       }
     }
   }),
-  195: new Opcode('monitorexit', {
+  new Opcode('monitorexit', {
     execute: function(rs) {
       return monitorexit(rs, rs.pop());
     }
   }),
-  197: new MultiArrayOpcode('multianewarray'),
-  198: new UnaryBranchOpcode('ifnull', {
+  new MultiArrayOpcode('multianewarray'),
+  new UnaryBranchOpcode('ifnull', {
     cmp: function(v) {
       return v == null;
     }
   }),
-  199: new UnaryBranchOpcode('ifnonnull', {
+  new UnaryBranchOpcode('ifnonnull', {
     cmp: function(v) {
       return v != null;
     }
   }),
-  200: new BranchOpcode('goto_w', {
+  new BranchOpcode('goto_w', {
     byte_count: 4,
     execute: function(rs) {
       return this.inc_pc(rs, this.offset);
     }
   }),
-  201: new BranchOpcode('jsr_w', {
+  new BranchOpcode('jsr_w', {
     byte_count: 4,
     execute: jsr
   })
-}
+];
