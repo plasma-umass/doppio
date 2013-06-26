@@ -289,10 +289,6 @@ class root.StoreVarOpcode extends root.StoreOpcode
   annotate: (idx, pool) -> "\t#{@var_num}"
 
 class root.SwitchOpcode extends root.BranchOpcode
-  constructor: (name, params) ->
-    super name, params
-    @byte_count = null
-
   annotate: (idx, pool) -> "{\n" +
     ("\t\t#{match}: #{idx + offset};\n" for match, offset of @offsets).join('') +
     "\t\tdefault: #{idx + @_default} }"
