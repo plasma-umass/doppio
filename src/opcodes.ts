@@ -481,7 +481,7 @@ export class StoreVarOpcode2 extends LoadVarOpcode {
 }
 
 export class LookupSwitchOpcode extends BranchOpcode {
-  public offsets: {number: number; };
+  public offsets: any;
   public _default: number;
 
   public annotate(idx: number, pool: any): string {
@@ -861,7 +861,7 @@ export var opcodes : Opcode[] = [
   new Opcode('lsub', 0, ((rs) => rs.push2(rs.pop2().negate().add(rs.pop2()), null))),
   new Opcode('fsub', 0, ((rs) => rs.push(util.wrap_float(-rs.pop() + rs.pop())))),
   new Opcode('dsub', 0, ((rs) => rs.push2(-rs.pop2() + rs.pop2(), null))),
-  new Opcode('imul', 0, ((rs) => rs.push(Math.imul(rs.pop(), rs.pop())))),
+  new Opcode('imul', 0, ((rs) => rs.push(Math['imul'](rs.pop(), rs.pop())))),
   new Opcode('lmul', 0, ((rs) => rs.push2(rs.pop2().multiply(rs.pop2()), null))),
   new Opcode('fmul', 0, ((rs) => rs.push(util.wrap_float(rs.pop() * rs.pop())))),
   new Opcode('dmul', 0, ((rs) => rs.push2(rs.pop2() * rs.pop2(), null))),
@@ -1003,7 +1003,7 @@ export var opcodes : Opcode[] = [
   new BinaryBranchOpcode('if_acmpne', ((v1,v2) => v1 !== v2)),
   new GotoOpcode('goto', 0),
   new JSROpcode('jsr', 2),
-  new Opcode('ret', 1, ((rs)=>this.goto_pc(rs, rs.cl(this.args[0])))),
+  new Opcode('ret', 1, function(rs){this.goto_pc(rs, rs.cl(this.args[0]))}),
   new TableSwitchOpcode('tableswitch'),
   new LookupSwitchOpcode('lookupswitch'),
   new ReturnOpcode('ireturn'),
@@ -1012,141 +1012,124 @@ export var opcodes : Opcode[] = [
   new ReturnOpcode2('dreturn'),
   new ReturnOpcode('areturn'),
   new VoidReturnOpcode('return'),
-
-  // OPCODE CONVERSION PROGRESS ENDS HERE
-
-  new FieldOpcode('getstatic', {
-    execute: function(rs) {
-      var cls_type, new_execute, ref_cls, _ref9,
-        _this = this;
-
-      ref_cls = rs.get_class(this.field_spec["class"], true);
-      new_execute = (_ref9 = this.field_spec.type) !== 'J' && _ref9 !== 'D' ? function(rs) {
-        rs.push(this.cls.static_get(rs, this.field_spec.name));
-      } : function(rs) {
-        rs.push2(this.cls.static_get(rs, this.field_spec.name), null);
-      };
-      if (ref_cls != null) {
-        cls_type = ref_cls.field_lookup(rs, this.field_spec.name).cls.get_type();
-        this.cls = rs.get_class(cls_type, true);
-        if (this.cls != null) {
-          new_execute.call(this, rs);
-          this.execute = new_execute;
-        } else {
-          rs.async_op(function(resume_cb, except_cb) {
-            return rs.get_cl().initialize_class(rs, cls_type, (function(class_file) {
-              return resume_cb(void 0, void 0, true, false);
-            }), except_cb);
-          });
-        }
-      } else {
-        rs.async_op(function(resume_cb, except_cb) {
-          return rs.get_cl().initialize_class(rs, _this.field_spec["class"], (function(class_file) {
-            return resume_cb(void 0, void 0, true, false);
-          }), except_cb);
-        });
-      }
+  // field access
+  new FieldOpcode('getstatic', function(rs) {
+    var desc = this.field_spec.class_descriptor;
+    var ref_cls = rs.get_class(desc, true);
+    var new_execute;
+    if (this.field_spec.type == 'J' || this.field_spec.type == 'D') {
+      new_execute = (rs) => rs.push2(this.cls.static_get(rs, this.field_spec.name), null)
+    } else {
+      new_execute = (rs) => rs.push(this.cls.static_get(rs, this.field_spec.name))
     }
-  }),
-  new FieldOpcode('putstatic', {
-    execute: function(rs) {
-      var cls_type, new_execute, ref_cls, _ref9,
-        _this = this;
-
-      ref_cls = rs.get_class(this.field_spec["class"], true);
-      new_execute = (_ref9 = this.field_spec.type) !== 'J' && _ref9 !== 'D' ? function(rs) {
-        return this.cls.static_put(rs, this.field_spec.name, rs.pop());
-      } : function(rs) {
-        return this.cls.static_put(rs, this.field_spec.name, rs.pop2());
-      };
-      if (ref_cls != null) {
-        cls_type = ref_cls.field_lookup(rs, this.field_spec.name).cls.get_type();
-        this.cls = rs.get_class(cls_type, true);
-        if (this.cls != null) {
-          new_execute.call(this, rs);
-          this.execute = new_execute;
-        } else {
-          rs.async_op(function(resume_cb, except_cb) {
-            return rs.get_cl().initialize_class(rs, cls_type, (function(class_file) {
-              return resume_cb(void 0, void 0, true, false);
-            }), except_cb);
-          });
-        }
-      } else {
-        rs.async_op(function(resume_cb, except_cb) {
-          return rs.get_cl().initialize_class(rs, _this.field_spec["class"], (function(class_file) {
-            return resume_cb(void 0, void 0, true, false);
-          }), except_cb);
-        });
-      }
-    }
-  }),
-  new FieldOpcode('getfield', {
-    execute: function(rs) {
-      var cls, field, name, new_execute, obj, _ref9,
-        _this = this;
-
-      obj = rs.check_null(rs.peek());
-      cls = rs.get_class(this.field_spec["class"], true);
-      if (cls != null) {
-        field = cls.field_lookup(rs, this.field_spec.name);
-        name = field.cls.get_type() + this.field_spec.name;
-        new_execute = (_ref9 = this.field_spec.type) !== 'J' && _ref9 !== 'D' ? function(rs) {
-          var val;
-
-          val = rs.check_null(rs.pop()).get_field(rs, name);
-          rs.push(val);
-        } : function(rs) {
-          var val;
-
-          val = rs.check_null(rs.pop()).get_field(rs, name);
-          rs.push2(val, null);
-        };
+    if (ref_cls != null) {
+      var cls_type = ref_cls.field_lookup(rs, this.field_spec.name).cls.get_type();
+      this.cls = rs.get_class(cls_type, true);
+      if (this.cls != null) {
         new_execute.call(this, rs);
         this.execute = new_execute;
       } else {
         rs.async_op(function(resume_cb, except_cb) {
-          return rs.get_cl().resolve_class(rs, _this.field_spec["class"], (function() {
-            return resume_cb(void 0, void 0, true, false);
+          rs.get_cl().initialize_class(rs, cls_type, (function(class_file) {
+            resume_cb(undefined, undefined, true, false);
           }), except_cb);
         });
       }
+    } else {
+      rs.async_op(function(resume_cb, except_cb) {
+        rs.get_cl().initialize_class(rs, desc, (function(class_file) {
+          resume_cb(undefined, undefined, true, false);
+        }), except_cb);
+      });
     }
   }),
-  new FieldOpcode('putfield', {
-    execute: function(rs) {
-      var cls_obj, field, name, new_execute, _obj, _ref10, _ref9,
-        _this = this;
-
-      if ((_ref9 = this.field_spec.type) === 'J' || _ref9 === 'D') {
-        _obj = rs.check_null(rs.peek(2));
-      } else {
-        _obj = rs.check_null(rs.peek(1));
-      }
-      cls_obj = rs.get_class(this.field_spec["class"], true);
-      if (cls_obj != null) {
-        field = cls_obj.field_lookup(rs, this.field_spec.name);
-        name = field.cls.get_type() + this.field_spec.name;
-        new_execute = (_ref10 = this.field_spec.type) !== 'J' && _ref10 !== 'D' ? function(rs) {
-          var val;
-
-          val = rs.pop();
-          return rs.check_null(rs.pop()).set_field(rs, name, val);
-        } : function(rs) {
-          var val;
-
-          val = rs.pop2();
-          return rs.check_null(rs.pop()).set_field(rs, name, val);
-        };
+  new FieldOpcode('putstatic', function(rs) {
+    var desc = this.field_spec.class_descriptor;
+    var ref_cls = rs.get_class(desc, true);
+    var new_execute;
+    if (this.field_spec.type == 'J' || this.field_spec.type == 'D') {
+      new_execute = (rs) => this.cls.static_put(rs, this.field_spec.name, rs.pop2())
+    } else {
+      new_execute = (rs) => this.cls.static_put(rs, this.field_spec.name, rs.pop())
+    }
+    if (ref_cls != null) {
+      var cls_type = ref_cls.field_lookup(rs, this.field_spec.name).cls.get_type();
+      this.cls = rs.get_class(cls_type, true);
+      if (this.cls != null) {
         new_execute.call(this, rs);
         this.execute = new_execute;
       } else {
         rs.async_op(function(resume_cb, except_cb) {
-          return rs.get_cl().resolve_class(rs, _this.field_spec["class"], (function() {
-            return resume_cb(void 0, void 0, true, false);
+          rs.get_cl().initialize_class(rs, cls_type, (function(class_file) {
+            resume_cb(undefined, undefined, true, false);
           }), except_cb);
         });
       }
+      return;
+    }
+    rs.async_op(function(resume_cb, except_cb) {
+      rs.get_cl().initialize_class(rs, desc, (function(class_file) {
+        resume_cb(undefined, undefined, true, false);
+      }), except_cb);
+    });
+  }),
+  new FieldOpcode('getfield', function(rs) {
+    var desc = this.field_spec.class_descriptor;
+    var obj = rs.check_null(rs.peek());
+    var cls = rs.get_class(desc, true);
+    if (cls != null) {
+      var field = cls.field_lookup(rs, this.field_spec.name);
+      var name = field.cls.get_type() + this.field_spec.name;
+      var new_execute;
+      if (this.field_spec.type == 'J' || this.field_spec.type == 'D') {
+        new_execute = (rs) => rs.push2(rs.check_null(rs.pop()).get_field(rs, name), null);
+      } else {
+        new_execute = (rs) => rs.push(rs.check_null(rs.pop()).get_field(rs, name));
+      }
+      new_execute.call(this, rs);
+      this.execute = new_execute;
+      return;
+    }
+    rs.async_op(function(resume_cb, except_cb) {
+      rs.get_cl().resolve_class(rs, desc, (function() {
+        resume_cb(undefined, undefined, true, false);
+      }), except_cb);
+    });
+  }),
+  new FieldOpcode('putfield', function(rs) {
+    var desc = this.field_spec.class_descriptor;
+    var cls_obj, field, name, new_execute, _obj, _ref10, _ref9;
+    var is_cat_2 = (this.field_spec.type == 'J' || this.field_spec.type == 'D');
+    var _obj;
+    if (is_cat_2) {
+      _obj = rs.check_null(rs.peek(2));
+    } else {
+      _obj = rs.check_null(rs.peek(1));
+    }
+    var cls_obj = rs.get_class(desc, true);
+    if (cls_obj != null) {
+      var field = cls_obj.field_lookup(rs, this.field_spec.name);
+      var name = field.cls.get_type() + this.field_spec.name;
+      var new_execute;
+      if (is_cat_2) {
+        new_execute = function(rs) {
+          var val = rs.pop2();
+          rs.check_null(rs.pop()).set_field(rs, name, val);
+        }
+      } else {
+        new_execute = function(rs) {
+          var val = rs.pop();
+          rs.check_null(rs.pop()).set_field(rs, name, val);
+        };
+      }
+      new_execute.call(this, rs);
+      this.execute = new_execute;
+    } else {
+      rs.async_op(function(resume_cb, except_cb) {
+        rs.get_cl().resolve_class(rs, desc, (function() {
+          resume_cb(undefined, undefined, true, false);
+        }), except_cb);
+      });
     }
   }),
   new DynInvokeOpcode('invokevirtual'),
@@ -1154,93 +1137,70 @@ export var opcodes : Opcode[] = [
   new InvokeOpcode('invokestatic'),
   new DynInvokeOpcode('invokeinterface'),
   null,  // invokedynamic
-  new ClassOpcode('new', {
-    execute: function(rs) {
-      var _this = this;
-
-      this.cls = rs.get_class(this["class"], true);
-      if (this.cls != null) {
-        if (this.cls.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/ClassLoader;'))) {
-          rs.push(new JavaClassLoaderObject(rs, this.cls));
-          return this.execute = function(rs) {
-            rs.push(new JavaClassLoaderObject(rs, this.cls));
-          };
-        } else {
-          rs.push(new JavaObject(rs, this.cls));
-          return this.execute = function(rs) {
-            rs.push(new JavaObject(rs, this.cls));
-          };
-        }
+  new ClassOpcode('new', function(rs) {
+    var desc = this.class_descriptor;
+    this.cls = rs.get_class(desc, true);
+    if (this.cls != null) {
+      if (this.cls.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/ClassLoader;'))) {
+        rs.push(new JavaClassLoaderObject(rs, this.cls));
+        this.execute = (rs) => rs.push(new JavaClassLoaderObject(rs, this.cls));
       } else {
-        return rs.async_op(function(resume_cb, except_cb) {
-          var success_fn;
-
-          success_fn = function(class_file) {
-            var obj;
-
-            if (class_file.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/ClassLoader;'))) {
-              obj = new JavaClassLoaderObject(rs, class_file);
-            } else {
-              obj = new JavaObject(rs, class_file);
-            }
-            return resume_cb(obj, void 0, true);
-          };
-          return rs.get_cl().initialize_class(rs, _this["class"], success_fn, except_cb);
-        });
+        rs.push(new JavaObject(rs, this.cls));
+        this.execute = (rs) => rs.push(new JavaObject(rs, this.cls));
       }
+    } else {
+      rs.async_op(function(resume_cb, except_cb) {
+        var success_fn = function(class_file) {
+          var obj;
+          if (class_file.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/ClassLoader;'))) {
+            obj = new JavaClassLoaderObject(rs, class_file);
+          } else {
+            obj = new JavaObject(rs, class_file);
+          }
+          resume_cb(obj, undefined, true);
+        };
+        rs.get_cl().initialize_class(rs, desc, success_fn, except_cb);
+      });
     }
   }),
   new NewArrayOpcode('newarray'),
-  new ClassOpcode('anewarray', {
-    execute: function(rs) {
-      var cls, new_execute,
-        _this = this;
-
-      cls = rs.get_cl().get_resolved_class(this["class"], true);
-      if (cls != null) {
-        new_execute = function(rs) {
-          rs.push(rs.heap_newarray(this["class"], rs.pop()));
-        };
-        new_execute.call(this, rs);
-        this.execute = new_execute;
-      } else {
-        rs.async_op(function(resume_cb, except_cb) {
-          return rs.get_cl().resolve_class(rs, _this["class"], (function(class_file) {
-            return resume_cb(void 0, void 0, true, false);
-          }), except_cb);
-        });
-      }
+  new ClassOpcode('anewarray', function(rs) {
+    var desc = this.class_descriptor;
+    var cls = rs.get_cl().get_resolved_class(desc, true);
+    if (cls != null) {
+      var new_execute = (rs) => rs.push(rs.heap_newarray(desc, rs.pop()));
+      new_execute.call(this, rs);
+      this.execute = new_execute;
+    } else {
+      rs.async_op(function(resume_cb, except_cb) {
+        rs.get_cl().resolve_class(rs, desc, (function(class_file) {
+          resume_cb(undefined, undefined, true, false);
+        }), except_cb);
+      });
     }
   }),
   new Opcode('arraylength', 0, ((rs) => rs.push(rs.check_null(rs.pop()).array.length))),
   new Opcode('athrow', 0, function(rs){throw new JavaException(rs.pop())}),
-  new ClassOpcode('checkcast', {
-    execute: function(rs) {
-      var new_execute,
-        _this = this;
-
-      this.cls = rs.get_cl().get_resolved_class(this["class"], true);
-      if (this.cls != null) {
-        new_execute = function(rs) {
-          var candidate_class, o, target_class;
-
-          o = rs.peek();
-          if ((o != null) && !o.cls.is_castable(this.cls)) {
-            target_class = this.cls.toExternalString();
-            candidate_class = o.cls.toExternalString();
-            return rs.java_throw(rs.get_bs_class('Ljava/lang/ClassCastException;'), "" + candidate_class + " cannot be cast to " + target_class);
-          }
-        };
-        new_execute.call(this, rs);
-        return this.execute = new_execute;
-      } else {
-        return rs.async_op(function(resume_cb, except_cb) {
-          return rs.get_cl().resolve_class(rs, _this["class"], (function() {
-            return resume_cb(void 0, void 0, true, false);
-          }), except_cb);
-        });
-      }
+  new ClassOpcode('checkcast', function(rs) {
+    var desc = this.class_descriptor;
+    this.cls = rs.get_cl().get_resolved_class(desc, true);
+    if (this.cls != null) {
+      var new_execute = function(rs: any): void {
+        var o = rs.peek();
+        if ((o != null) && !o.cls.is_castable(this.cls)) {
+          var target_class = this.cls.toExternalString();
+          var candidate_class = o.cls.toExternalString();
+          rs.java_throw(rs.get_bs_class('Ljava/lang/ClassCastException;'), "" + candidate_class + " cannot be cast to " + target_class);
+        }
+      };
+      new_execute.call(this, rs);
+      this.execute = new_execute;
+      return;
     }
+    rs.async_op(function(resume_cb, except_cb) {
+      rs.get_cl().resolve_class(rs, desc,
+        (() => resume_cb(undefined, undefined, true, false)), except_cb);
+    });
   }),
   new ClassOpcode('instanceof', function(rs) {
     var desc = this.class_descriptor;
