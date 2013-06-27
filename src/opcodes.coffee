@@ -593,7 +593,7 @@ root.opcodes = {
   131: new root.Opcode 'lxor', { execute: (rs) -> rs.push2(rs.pop2().xor(rs.pop2()), null) }
   132: new root.IIncOpcode 'iinc'
   133: new root.Opcode 'i2l', { execute: (rs) -> rs.push2 gLong.fromInt(rs.pop()), null }
-  134: new root.Opcode 'i2f', { execute: (rs) -> }
+  134: new root.Opcode 'i2f', { execute: (rs) -> }  # Intentional no-op: ints and floats have the same representation
   135: new root.Opcode 'i2d', { execute: (rs) -> rs.push null }
   136: new root.Opcode 'l2i', { execute: (rs) -> rs.push rs.pop2().toInt() }
   137: new root.Opcode 'l2f', { execute: (rs) -> rs.push rs.pop2().toNumber() }
