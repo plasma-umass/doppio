@@ -286,7 +286,17 @@ export class BranchOpcode extends Opcode {
   }
 }
 
-export class JSROpcode extends BranchOpcode {
+export class GotoOpcode extends BranchOpcode {
+  constructor(name: string, byte_count: number) {
+    super(name);
+    this.byte_count = byte_count;
+  }
+  private _execute(rs: any): void {
+    this.inc_pc(rs, this.offset);
+  }
+}
+
+export class JSROpcode extends GotoOpcode {
   private _execute(rs: any): void {
     rs.push(rs.curr_pc() + this.byte_count + 1);
     this.inc_pc(rs, this.offset);
@@ -514,8 +524,8 @@ var NewArray_arr_types : {number: string; } = {
 export class NewArrayOpcode extends Opcode {
   public element_type : string
 
-  constructor(name: string, execute?: Function) {
-    super(name, 1, execute);
+  constructor(name: string) {
+    super(name, 1);
   }
 
   public take_args(code_array: any, constant_pool: any): void {
@@ -524,6 +534,10 @@ export class NewArrayOpcode extends Opcode {
 
   public annotate(idx: number, pool: any): string {
     return "\t" + util.internal2external[this.element_type];
+  }
+
+  private _execute(rs: any): void {
+    rs.push(rs.heap_newarray(this.element_type, rs.pop()));
   }
 }
 
@@ -812,351 +826,141 @@ export var opcodes : Opcode[] = [
   new Opcode('swap', 0, function(rs) {
       var v1 = rs.pop();
       var v2 = rs.pop();
-      return rs.push2(v2, v1);}),
+      rs.push2(v2, v1);}),
   // math opcodes
   new Opcode('iadd', 0, ((rs) => rs.push((rs.pop() + rs.pop()) | 0))),
-
-  // OPCODE CONVERSION PROGRESS ENDS HERE
-
-  new Opcode('ladd', {
-    execute: function(rs) {
-      return rs.push2(rs.pop2().add(rs.pop2()), null);
-    }
+  new Opcode('ladd', 0, ((rs) => rs.push2(rs.pop2().add(rs.pop2()), null))),
+  new Opcode('fadd', 0, ((rs) => rs.push(util.wrap_float(rs.pop() + rs.pop())))),
+  new Opcode('dadd', 0, ((rs) => rs.push2(rs.pop2() + rs.pop2(), null))),
+  new Opcode('isub', 0, ((rs) => rs.push((-rs.pop() + rs.pop()) | 0))),
+  new Opcode('lsub', 0, ((rs) => rs.push2(rs.pop2().negate().add(rs.pop2()), null))),
+  new Opcode('fsub', 0, ((rs) => rs.push(util.wrap_float(-rs.pop() + rs.pop())))),
+  new Opcode('dsub', 0, ((rs) => rs.push2(-rs.pop2() + rs.pop2(), null))),
+  new Opcode('imul', 0, ((rs) => rs.push(Math.imul(rs.pop(), rs.pop())))),
+  new Opcode('lmul', 0, ((rs) => rs.push2(rs.pop2().multiply(rs.pop2()), null))),
+  new Opcode('fmul', 0, ((rs) => rs.push(util.wrap_float(rs.pop() * rs.pop())))),
+  new Opcode('dmul', 0, ((rs) => rs.push2(rs.pop2() * rs.pop2(), null))),
+  new Opcode('idiv', 0, function(rs) {
+    var v = rs.pop();
+    rs.push(util.int_div(rs, rs.pop(), v));
   }),
-  new Opcode('fadd', {
-    execute: function(rs) {
-      return rs.push(util.wrap_float(rs.pop() + rs.pop()));
-    }
+  new Opcode('ldiv', 0, function(rs) {
+    var v = rs.pop2();
+    rs.push2(util.long_div(rs, rs.pop2(), v), null);
   }),
-  new Opcode('dadd', {
-    execute: function(rs) {
-      return rs.push2(rs.pop2() + rs.pop2(), null);
-    }
+  new Opcode('fdiv', 0, function(rs) {
+    var a = rs.pop();
+    rs.push(util.wrap_float(rs.pop() / a));
   }),
-  new Opcode('isub', {
-    execute: function(rs) {
-      return rs.push((-rs.pop() + rs.pop()) | 0);
-    }
+  new Opcode('ddiv', 0, function(rs) {
+    var v = rs.pop2();
+    rs.push2(rs.pop2() / v, null);
   }),
-  new Opcode('lsub', {
-    execute: function(rs) {
-      return rs.push2(rs.pop2().negate().add(rs.pop2()), null);
-    }
+  new Opcode('irem', 0, function(rs) {
+    var v2 = rs.pop();
+    rs.push(util.int_mod(rs, rs.pop(), v2));
   }),
-  new Opcode('fsub', {
-    execute: function(rs) {
-      return rs.push(util.wrap_float(-rs.pop() + rs.pop()));
-    }
+  new Opcode('lrem', 0, function(rs) {
+    var v2 = rs.pop2();
+    rs.push2(util.long_mod(rs, rs.pop2(), v2), null);
   }),
-  new Opcode('dsub', {
-    execute: function(rs) {
-      return rs.push2(-rs.pop2() + rs.pop2(), null);
-    }
+  new Opcode('frem', 0, function(rs) {
+    var b = rs.pop();
+    rs.push(rs.pop() % b);
   }),
-  new Opcode('imul', {
-    execute: function(rs) {
-      return rs.push(Math.imul(rs.pop(), rs.pop()));
-    }
+  new Opcode('drem', 0, function(rs) {
+    var v2 = rs.pop2();
+    rs.push2(rs.pop2() % v2, null);
   }),
-  new Opcode('lmul', {
-    execute: function(rs) {
-      return rs.push2(rs.pop2().multiply(rs.pop2()), null);
-    }
+  new Opcode('ineg', 0, ((rs) => rs.push(-rs.pop() | 0))),
+  new Opcode('lneg', 0, ((rs) => rs.push2(rs.pop2().negate(), null))),
+  new Opcode('fneg', 0, ((rs) => rs.push(-rs.pop()))),
+  new Opcode('dneg', 0, ((rs) => rs.push2(-rs.pop2(), null))),
+  new Opcode('ishl', 0, function(rs) {
+    var s = rs.pop();
+    rs.push(rs.pop() << s);
   }),
-  new Opcode('fmul', {
-    execute: function(rs) {
-      return rs.push(util.wrap_float(rs.pop() * rs.pop()));
-    }
+  new Opcode('lshl', 0, function(rs) {
+    var s = rs.pop();
+    rs.push2(rs.pop2().shiftLeft(gLong.fromInt(s)), null);
   }),
-  new Opcode('dmul', {
-    execute: function(rs) {
-      return rs.push2(rs.pop2() * rs.pop2(), null);
-    }
+  new Opcode('ishr', 0, function(rs) {
+    var s = rs.pop();
+    rs.push(rs.pop() >> s);
   }),
-  new Opcode('idiv', {
-    execute: function(rs) {
-      var v;
-
-      v = rs.pop();
-      return rs.push(util.int_div(rs, rs.pop(), v));
-    }
+  new Opcode('lshr', 0, function(rs) {
+    var s = rs.pop();
+    rs.push2(rs.pop2().shiftRight(gLong.fromInt(s)), null);
   }),
-  new Opcode('ldiv', {
-    execute: function(rs) {
-      var v;
-
-      v = rs.pop2();
-      return rs.push2(util.long_div(rs, rs.pop2(), v), null);
-    }
+  new Opcode('iushr', 0, function(rs) {
+    var s = rs.pop();
+    rs.push(rs.pop() >>> s);
   }),
-  new Opcode('fdiv', {
-    execute: function(rs) {
-      var a;
-
-      a = rs.pop();
-      return rs.push(util.wrap_float(rs.pop() / a));
-    }
+  new Opcode('lushr', 0, function(rs) {
+    var s = rs.pop();
+    rs.push2(rs.pop2().shiftRightUnsigned(gLong.fromInt(s)), null);
   }),
-  new Opcode('ddiv', {
-    execute: function(rs) {
-      var v;
-
-      v = rs.pop2();
-      return rs.push2(rs.pop2() / v, null);
-    }
-  }),
-  new Opcode('irem', {
-    execute: function(rs) {
-      var v2;
-
-      v2 = rs.pop();
-      return rs.push(util.int_mod(rs, rs.pop(), v2));
-    }
-  }),
-  new Opcode('lrem', {
-    execute: function(rs) {
-      var v2;
-
-      v2 = rs.pop2();
-      return rs.push2(util.long_mod(rs, rs.pop2(), v2), null);
-    }
-  }),
-  new Opcode('frem', {
-    execute: function(rs) {
-      var b;
-
-      b = rs.pop();
-      return rs.push(rs.pop() % b);
-    }
-  }),
-  new Opcode('drem', {
-    execute: function(rs) {
-      var v2;
-
-      v2 = rs.pop2();
-      return rs.push2(rs.pop2() % v2, null);
-    }
-  }),
-  new Opcode('ineg', {
-    execute: function(rs) {
-      return rs.push(-rs.pop() | 0);
-    }
-  }),
-  new Opcode('lneg', {
-    execute: function(rs) {
-      return rs.push2(rs.pop2().negate(), null);
-    }
-  }),
-  new Opcode('fneg', {
-    execute: function(rs) {
-      return rs.push(-rs.pop());
-    }
-  }),
-  new Opcode('dneg', {
-    execute: function(rs) {
-      return rs.push2(-rs.pop2(), null);
-    }
-  }),
-  new Opcode('ishl', {
-    execute: function(rs) {
-      var s;
-
-      s = rs.pop();
-      return rs.push(rs.pop() << s);
-    }
-  }),
-  new Opcode('lshl', {
-    execute: function(rs) {
-      var s;
-
-      s = rs.pop();
-      return rs.push2(rs.pop2().shiftLeft(gLong.fromInt(s)), null);
-    }
-  }),
-  new Opcode('ishr', {
-    execute: function(rs) {
-      var s;
-
-      s = rs.pop();
-      return rs.push(rs.pop() >> s);
-    }
-  }),
-  new Opcode('lshr', {
-    execute: function(rs) {
-      var s;
-
-      s = rs.pop();
-      return rs.push2(rs.pop2().shiftRight(gLong.fromInt(s)), null);
-    }
-  }),
-  new Opcode('iushr', {
-    execute: function(rs) {
-      var s;
-
-      s = rs.pop();
-      return rs.push(rs.pop() >>> s);
-    }
-  }),
-  new Opcode('lushr', {
-    execute: function(rs) {
-      var s;
-
-      s = rs.pop();
-      return rs.push2(rs.pop2().shiftRightUnsigned(gLong.fromInt(s)), null);
-    }
-  }),
-  new Opcode('iand', {
-    execute: function(rs) {
-      return rs.push(rs.pop() & rs.pop());
-    }
-  }),
-  new Opcode('land', {
-    execute: function(rs) {
-      return rs.push2(rs.pop2().and(rs.pop2()), null);
-    }
-  }),
-  new Opcode('ior', {
-    execute: function(rs) {
-      return rs.push(rs.pop() | rs.pop());
-    }
-  }),
-  new Opcode('lor', {
-    execute: function(rs) {
-      return rs.push2(rs.pop2().or(rs.pop2()), null);
-    }
-  }),
-  new Opcode('ixor', {
-    execute: function(rs) {
-      return rs.push(rs.pop() ^ rs.pop());
-    }
-  }),
-  new Opcode('lxor', {
-    execute: function(rs) {
-      return rs.push2(rs.pop2().xor(rs.pop2()), null);
-    }
-  }),
+  new Opcode('iand', 0, ((rs) => rs.push(rs.pop() & rs.pop()))),
+  new Opcode('land', 0, ((rs) => rs.push2(rs.pop2().and(rs.pop2()), null))),
+  new Opcode('ior', 0, ((rs) => rs.push(rs.pop() | rs.pop()))),
+  new Opcode('lor', 0, ((rs) => rs.push2(rs.pop2().or(rs.pop2()), null))),
+  new Opcode('ixor', 0, ((rs) => rs.push(rs.pop() ^ rs.pop()))),
+  new Opcode('lxor', 0, ((rs) => rs.push2(rs.pop2().xor(rs.pop2()), null))),
   new IIncOpcode('iinc'),
-  new Opcode('i2l', {
-    execute: function(rs) {
-      return rs.push2(gLong.fromInt(rs.pop()), null);
+  new Opcode('i2l', 0, ((rs) => rs.push2(gLong.fromInt(rs.pop()), null))),
+  // Intentional no-op: ints and floats have the same representation.
+  new Opcode('i2f', 0, function(rs){}),
+  new Opcode('i2d', 0, ((rs) => rs.push(null))),
+  new Opcode('l2i', 0, ((rs) => rs.push(rs.pop2().toInt()))),
+  new Opcode('l2f', 0, ((rs) => rs.push(rs.pop2().toNumber()))),
+  new Opcode('l2d', 0, ((rs) => rs.push2(rs.pop2().toNumber(), null))),
+  new Opcode('f2i', 0, ((rs) => rs.push(util.float2int(rs.pop())))),
+  new Opcode('f2l', 0, ((rs) => rs.push2(gLong.fromNumber(rs.pop()), null))),
+  new Opcode('f2d', 0, ((rs) => rs.push(null))),
+  new Opcode('d2i', 0, ((rs) => rs.push(util.float2int(rs.pop2())))),
+  new Opcode('d2l', 0, function(rs){
+    var d_val = rs.pop2();
+    if (d_val === Number.POSITIVE_INFINITY) {
+      rs.push2(gLong.MAX_VALUE, null);
+    } else if (d_val === Number.NEGATIVE_INFINITY) {
+      rs.push2(gLong.MIN_VALUE, null);
+    } else {
+      rs.push2(gLong.fromNumber(d_val), null);
     }
   }),
-  new Opcode('i2f', {
-    execute: function(rs) {}
+  new Opcode('d2f', 0, ((rs) => rs.push(util.wrap_float(rs.pop2())))),
+  // set all high-order bits to 1
+  new Opcode('i2b', 0, ((rs) => rs.push((rs.pop() << 24) >> 24))),
+  // 16-bit unsigned integer
+  new Opcode('i2c', 0, ((rs) => rs.push(rs.pop() & 0xFFFF))),
+  new Opcode('i2s', 0, ((rs) => rs.push((rs.pop() << 16) >> 16))),
+  new Opcode('lcmp', 0, function(rs){
+    var v2 = rs.pop2();
+    rs.push(rs.pop2().compare(v2));
   }),
-  new Opcode('i2d', {
-    execute: function(rs) {
-      return rs.push(null);
-    }
+  new Opcode('fcmpl', 0, function(rs) {
+    var v2 = rs.pop();
+    var res = util.cmp(rs.pop(), v2);
+    if (res == null) rs.push(-1);
+    else             rs.push(res);
   }),
-  new Opcode('l2i', {
-    execute: function(rs) {
-      return rs.push(rs.pop2().toInt());
-    }
+  new Opcode('fcmpg', 0, function(rs) {
+    var v2 = rs.pop();
+    var res = util.cmp(rs.pop(), v2);
+    if (res == null) rs.push(1);
+    else             rs.push(res);
   }),
-  new Opcode('l2f', {
-    execute: function(rs) {
-      return rs.push(rs.pop2().toNumber());
-    }
+  new Opcode('dcmpl', 0, function(rs) {
+    var v2 = rs.pop2();
+    var res = util.cmp(rs.pop2(), v2);
+    if (res == null) rs.push(-1);
+    else             rs.push(res);
   }),
-  new Opcode('l2d', {
-    execute: function(rs) {
-      return rs.push2(rs.pop2().toNumber(), null);
-    }
-  }),
-  new Opcode('f2i', {
-    execute: function(rs) {
-      return rs.push(util.float2int(rs.pop()));
-    }
-  }),
-  new Opcode('f2l', {
-    execute: function(rs) {
-      return rs.push2(gLong.fromNumber(rs.pop()), null);
-    }
-  }),
-  new Opcode('f2d', {
-    execute: function(rs) {
-      return rs.push(null);
-    }
-  }),
-  new Opcode('d2i', {
-    execute: function(rs) {
-      return rs.push(util.float2int(rs.pop2()));
-    }
-  }),
-  new Opcode('d2l', {
-    execute: function(rs) {
-      var d_val;
-
-      d_val = rs.pop2();
-      if (d_val === Number.POSITIVE_INFINITY) {
-        return rs.push2(gLong.MAX_VALUE, null);
-      } else if (d_val === Number.NEGATIVE_INFINITY) {
-        return rs.push2(gLong.MIN_VALUE, null);
-      } else {
-        return rs.push2(gLong.fromNumber(d_val), null);
-      }
-    }
-  }),
-  new Opcode('d2f', {
-    execute: function(rs) {
-      return rs.push(util.wrap_float(rs.pop2()));
-    }
-  }),
-  new Opcode('i2b', {
-    execute: function(rs) {
-      return rs.push((rs.pop() << 24) >> 24);
-    }
-  }),
-  new Opcode('i2c', {
-    execute: function(rs) {
-      return rs.push(rs.pop() & 0xFFFF);
-    }
-  }),
-  new Opcode('i2s', {
-    execute: function(rs) {
-      return rs.push((rs.pop() << 16) >> 16);
-    }
-  }),
-  new Opcode('lcmp', {
-    execute: function(rs) {
-      var v2;
-
-      v2 = rs.pop2();
-      return rs.push(rs.pop2().compare(v2));
-    }
-  }),
-  new Opcode('fcmpl', {
-    execute: function(rs) {
-      var v2, _ref9;
-
-      v2 = rs.pop();
-      return rs.push((_ref9 = util.cmp(rs.pop(), v2)) != null ? _ref9 : -1);
-    }
-  }),
-  new Opcode('fcmpg', {
-    execute: function(rs) {
-      var v2, _ref9;
-
-      v2 = rs.pop();
-      return rs.push((_ref9 = util.cmp(rs.pop(), v2)) != null ? _ref9 : 1);
-    }
-  }),
-  new Opcode('dcmpl', {
-    execute: function(rs) {
-      var v2, _ref9;
-
-      v2 = rs.pop2();
-      return rs.push((_ref9 = util.cmp(rs.pop2(), v2)) != null ? _ref9 : -1);
-    }
-  }),
-  new Opcode('dcmpg', {
-    execute: function(rs) {
-      var v2, _ref9;
-
-      v2 = rs.pop2();
-      return rs.push((_ref9 = util.cmp(rs.pop2(), v2)) != null ? _ref9 : 1);
-    }
+  new Opcode('dcmpg', 0, function(rs) {
+    var v2 = rs.pop2();
+    var res = util.cmp(rs.pop2(), v2);
+    if (res == null) rs.push(1);
+    else             rs.push(res);
   }),
   new UnaryBranchOpcode('ifeq', ((v) => v === 0)),
   new UnaryBranchOpcode('ifne', ((v) => v !== 0)),
@@ -1172,15 +976,9 @@ export var opcodes : Opcode[] = [
   new BinaryBranchOpcode('if_icmple', ((v1,v2) => v1 <= v2)),
   new BinaryBranchOpcode('if_acmpeq', ((v1,v2) => v1 === v2)),
   new BinaryBranchOpcode('if_acmpne', ((v1,v2) => v1 !== v2)),
-  new BranchOpcode('goto', 0, ((rs)=>this.inc_pc(rs, this.offset))),
-  new JSROpcode('jsr'),
-
-  new Opcode('ret', {
-    byte_count: 1,
-    execute: function(rs) {
-      return this.goto_pc(rs, rs.cl(this.args[0]));
-    }
-  }),
+  new GotoOpcode('goto', 0),
+  new JSROpcode('jsr', 2),
+  new Opcode('ret', 1, ((rs)=>this.goto_pc(rs, rs.cl(this.args[0])))),
   new TableSwitchOpcode('tableswitch'),
   new LookupSwitchOpcode('lookupswitch'),
   new ReturnOpcode('ireturn'),
@@ -1189,6 +987,9 @@ export var opcodes : Opcode[] = [
   new ReturnOpcode2('dreturn'),
   new ReturnOpcode('areturn'),
   new VoidReturnOpcode('return'),
+
+  // OPCODE CONVERSION PROGRESS ENDS HERE
+
   new FieldOpcode('getstatic', {
     execute: function(rs) {
       var cls_type, new_execute, ref_cls, _ref9,
@@ -1196,9 +997,9 @@ export var opcodes : Opcode[] = [
 
       ref_cls = rs.get_class(this.field_spec["class"], true);
       new_execute = (_ref9 = this.field_spec.type) !== 'J' && _ref9 !== 'D' ? function(rs) {
-        return rs.push(this.cls.static_get(rs, this.field_spec.name));
+        rs.push(this.cls.static_get(rs, this.field_spec.name));
       } : function(rs) {
-        return rs.push2(this.cls.static_get(rs, this.field_spec.name), null);
+        rs.push2(this.cls.static_get(rs, this.field_spec.name), null);
       };
       if (ref_cls != null) {
         cls_type = ref_cls.field_lookup(rs, this.field_spec.name).cls.get_type();
@@ -1269,12 +1070,12 @@ export var opcodes : Opcode[] = [
           var val;
 
           val = rs.check_null(rs.pop()).get_field(rs, name);
-          return rs.push(val);
+          rs.push(val);
         } : function(rs) {
           var val;
 
           val = rs.check_null(rs.pop()).get_field(rs, name);
-          return rs.push2(val, null);
+          rs.push2(val, null);
         };
         new_execute.call(this, rs);
         this.execute = new_execute;
@@ -1337,12 +1138,12 @@ export var opcodes : Opcode[] = [
         if (this.cls.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/ClassLoader;'))) {
           rs.push(new JavaClassLoaderObject(rs, this.cls));
           return this.execute = function(rs) {
-            return rs.push(new JavaClassLoaderObject(rs, this.cls));
+            rs.push(new JavaClassLoaderObject(rs, this.cls));
           };
         } else {
           rs.push(new JavaObject(rs, this.cls));
           return this.execute = function(rs) {
-            return rs.push(new JavaObject(rs, this.cls));
+            rs.push(new JavaObject(rs, this.cls));
           };
         }
       } else {
@@ -1364,11 +1165,7 @@ export var opcodes : Opcode[] = [
       }
     }
   }),
-  new NewArrayOpcode('newarray', {
-    execute: function(rs) {
-      return rs.push(rs.heap_newarray(this.element_type, rs.pop()));
-    }
-  }),
+  new NewArrayOpcode('newarray'),
   new ClassOpcode('anewarray', {
     execute: function(rs) {
       var cls, new_execute,
@@ -1377,7 +1174,7 @@ export var opcodes : Opcode[] = [
       cls = rs.get_cl().get_resolved_class(this["class"], true);
       if (cls != null) {
         new_execute = function(rs) {
-          return rs.push(rs.heap_newarray(this["class"], rs.pop()));
+          rs.push(rs.heap_newarray(this["class"], rs.pop()));
         };
         new_execute.call(this, rs);
         this.execute = new_execute;
@@ -1390,16 +1187,8 @@ export var opcodes : Opcode[] = [
       }
     }
   }),
-  new Opcode('arraylength', {
-    execute: function(rs) {
-      return rs.push(rs.check_null(rs.pop()).array.length);
-    }
-  }),
-  new Opcode('athrow', {
-    execute: function(rs) {
-      throw new JavaException(rs.pop());
-    }
-  }),
+  new Opcode('arraylength', 0, ((rs) => rs.push(rs.check_null(rs.pop()).array.length))),
+  new Opcode('athrow', 0, function(rs){throw new JavaException(rs.pop())}),
   new ClassOpcode('checkcast', {
     execute: function(rs) {
       var new_execute,
@@ -1428,61 +1217,32 @@ export var opcodes : Opcode[] = [
       }
     }
   }),
-  new ClassOpcode('instanceof', {
-    execute: function(rs) {
-      var new_execute,
-        _this = this;
-
-      this.cls = rs.get_cl().get_resolved_class(this["class"], true);
-      if (this.cls != null) {
-        new_execute = function(rs) {
-          var o;
-
-          o = rs.pop();
-          return rs.push(o != null ? o.cls.is_castable(this.cls) + 0 : 0);
-        };
-        new_execute.call(this, rs);
-        return this.execute = new_execute;
-      } else {
-        return rs.async_op(function(resume_cb, except_cb) {
-          return rs.get_cl().resolve_class(rs, _this["class"], (function() {
-            return resume_cb(void 0, void 0, true, false);
-          }), except_cb);
-        });
-      }
+  new ClassOpcode('instanceof', function(rs) {
+    var desc = this.class_descriptor;
+    this.cls = rs.get_cl().get_resolved_class(desc, true);
+    if (this.cls != null) {
+      var new_execute = function(rs) {
+        var o = rs.pop();
+        rs.push(o != null ? o.cls.is_castable(this.cls) + 0 : 0);
+      };
+      new_execute.call(this, rs);
+      this.execute = new_execute;
+      return;
+    }
+    rs.async_op(function(resume_cb, except_cb) {
+      rs.get_cl().resolve_class(rs, desc,
+        (() => resume_cb(undefined, undefined, true, false)), except_cb);
+    });
+  }),
+  new Opcode('monitorenter', 0, function(rs){
+    if (!monitorenter(rs, rs.pop(), this)) {
+      throw ReturnException;
     }
   }),
-  new Opcode('monitorenter', {
-    execute: function(rs) {
-      if (!monitorenter(rs, rs.pop(), this)) {
-        throw ReturnException;
-      }
-    }
-  }),
-  new Opcode('monitorexit', {
-    execute: function(rs) {
-      return monitorexit(rs, rs.pop());
-    }
-  }),
+  new Opcode('monitorexit', 0, ((rs) => monitorexit(rs, rs.pop()))),
   new MultiArrayOpcode('multianewarray'),
-  new UnaryBranchOpcode('ifnull', {
-    cmp: function(v) {
-      return v == null;
-    }
-  }),
-  new UnaryBranchOpcode('ifnonnull', {
-    cmp: function(v) {
-      return v != null;
-    }
-  }),
-  new BranchOpcode('goto_w', {
-    byte_count: 4,
-    execute: function(rs) {
-      return this.inc_pc(rs, this.offset);
-    }
-  }),
-  new BranchOpcode('jsr_w', {
-    byte_count: 4,
-    execute: jsr
-  })
+  new UnaryBranchOpcode('ifnull', ((v) => v == null)),
+  new UnaryBranchOpcode('ifnonnull', ((v) => v != null)),
+  new GotoOpcode('goto_w', 4),
+  new JSROpcode('jsr_w', 4)
 ];
