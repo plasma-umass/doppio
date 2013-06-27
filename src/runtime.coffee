@@ -9,7 +9,7 @@ util = require './util'
 {log,vtrace,trace,debug,error} = require './logging'
 {YieldIOException,ReturnException,JavaException} = require './exceptions'
 {JavaObject,JavaArray,thread_name} = require './java_object'
-jvm = require './jvm'
+jvm = null
 process = node?.process ? global.process
 
 class root.CallStack
@@ -73,6 +73,9 @@ class root.RuntimeState
   run_count = 0
 
   constructor: (@print, @_async_input, @bcl) ->
+    # XXX: Because we do manual dependency resolution in the browser, and this
+    #      is only needed for dump_state.
+    jvm = require './jvm'
     @input_buffer = []
     @bcl.reset()
     @startup_time = gLong.fromNumber (new Date).getTime()

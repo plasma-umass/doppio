@@ -246,6 +246,14 @@ commands =
         controller.reprompt()
     return null  # no reprompt, because we handle it ourselves
   java: (args, cb) ->
+    jvm.dump_state = false
+    # XXX: dump-state support
+    for i in [0...args.length]
+      if args[i] is '-Xdump-state'
+        jvm.dump_state = true
+        args.splice i, 1
+        break
+
     if !args[0]? or (args[0] == '-classpath' and args.length < 3)
       return "Usage: java [-classpath path1:path2...] class [args...]"
     if args[0] == '-classpath'
