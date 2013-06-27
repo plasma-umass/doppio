@@ -23,7 +23,7 @@ export class Opcode {
     this.orig_execute = this.execute;
   }
 
-  public take_args(code_array: any): void {
+  public take_args(code_array: any, constant_pool: any): void {
     this.args = [];
     for (var i = 0; i < this.byte_count; i++) {
       this.args.push(code_array.get_uint(1));
@@ -31,7 +31,7 @@ export class Opcode {
   }
 
   // called to provide opcode annotations for disassembly and vtrace
-  public annotate(): string {
+  public annotate(idx: number, pool: any): string {
     return '';
   }
 
@@ -42,14 +42,18 @@ export class Opcode {
     }
   }
 
+  public _execute(rs: any): boolean {
+    throw new Error("ERROR: Unimplemented opcode.");
+  }
+
   // Increments the PC properly by the given offset.
   // Subtracts the byte_count and 1 before setting the offset so that the outer
   // loop can be simple.
-  private inc_pc(rs: any, offset: number): void {
+  public inc_pc(rs: any, offset: number): void {
     rs.inc_pc(offset - 1 - this.byte_count);
   }
 
-  private goto_pc(rs: any, new_pc: number): void {
+  public goto_pc(rs: any, new_pc: number): void {
     rs.goto_pc(new_pc - 1 - this.byte_count);
   }
 }
@@ -110,7 +114,7 @@ export class InvokeOpcode extends Opcode {
     return "\t#" + this.method_spec_ref + ";" + info;
   }
 
-  private _execute(rs: any): boolean {
+  public _execute(rs: any): boolean {
     var cls = rs.get_class(this.method_spec["class"], true);
     if (cls != null) {
       var my_sf = rs.curr_frame();
@@ -196,7 +200,7 @@ export class DynInvokeOpcode extends InvokeOpcode {
     return "\t#" + this.method_spec_ref + extra + ";" + info;
   }
 
-  private _execute(rs: any): boolean {
+  public _execute(rs: any): boolean {
     var cls = rs.get_class(this.method_spec["class"], true);
     if (cls != null) {
       var my_sf = rs.curr_frame();
@@ -247,7 +251,7 @@ export class LoadConstantOpcode extends Opcode {
     return anno + this.constant.value;
   }
 
-  private _execute(rs: any): void {
+  public _execute(rs: any): bool {
     switch (this.constant.type) {
       case 'String':
         rs.push(rs.init_string(this.str_constant.value, true));
@@ -267,6 +271,7 @@ export class LoadConstantOpcode extends Opcode {
         else
           rs.push(this.constant.value);
     }
+    return true;
   }
 }
 
@@ -291,15 +296,17 @@ export class GotoOpcode extends BranchOpcode {
     super(name);
     this.byte_count = byte_count;
   }
-  private _execute(rs: any): void {
+  public _execute(rs: any): bool {
     this.inc_pc(rs, this.offset);
+    return true;
   }
 }
 
 export class JSROpcode extends GotoOpcode {
-  private _execute(rs: any): void {
+  public _execute(rs: any): bool {
     rs.push(rs.curr_pc() + this.byte_count + 1);
     this.inc_pc(rs, this.offset);
+    return true;
   }
 }
 
@@ -311,10 +318,11 @@ export class UnaryBranchOpcode extends BranchOpcode {
     this.cmp = cmp;
   }
 
-  private _execute(rs: any): void {
+  public _execute(rs: any): bool {
     if (this.cmp(rs.pop())) {
       this.inc_pc(rs, this.offset);
     }
+    return true;
   }
 }
 
@@ -326,12 +334,13 @@ export class BinaryBranchOpcode extends BranchOpcode {
     this.cmp = cmp;
   }
 
-  private _execute(rs: any): void {
+  public _execute(rs: any): bool {
     var v2 = rs.pop();
     var v1 = rs.pop();
     if (this.cmp(v1, v2)) {
       this.inc_pc(rs, this.offset);
     }
+    return true;
   }
 }
 
@@ -346,8 +355,9 @@ export class PushOpcode extends Opcode {
     return "\t" + this.value;
   }
 
-  private _execute(rs: any): void {
+  public _execute(rs: any): bool {
     rs.push(this.value);
+    return true;
   }
 }
 
@@ -373,9 +383,10 @@ export class IIncOpcode extends Opcode {
     return "\t" + this.index + ", " + this["const"];
   }
 
-  private _execute(rs: any): void {
+  public _execute(rs: any): bool {
     var v = rs.cl(this.index) + this["const"];
     rs.put_cl(this.index, v | 0);
+    return true;
   }
 }
 
@@ -387,15 +398,17 @@ export class LoadOpcode extends Opcode {
     this.var_num = parseInt(this.name[6]);
   }
 
-  private _execute(rs: any): void {
+  public _execute(rs: any): bool {
     rs.push(rs.cl(this.var_num));
+    return true;
   }
 }
 
 // For category 2 types.
 export class LoadOpcode2 extends LoadOpcode {
-  private _execute(rs: any): void {
+  public _execute(rs: any): bool {
     rs.push2(rs.cl(this.var_num), null);
+    return true;
   }
 }
 
@@ -416,8 +429,9 @@ export class LoadVarOpcode extends LoadOpcode {
 }
 
 export class LoadVarOpcode2 extends LoadVarOpcode {
-  private _execute(rs: any): void {
+  public _execute(rs: any): bool {
     rs.push2(rs.cl(this.var_num), null);
+    return true;
   }
 }
 
@@ -429,15 +443,17 @@ export class StoreOpcode extends Opcode {
     this.var_num = parseInt(this.name[7]);
   }
 
-  private _execute(rs: any): void {
+  public _execute(rs: any): bool {
     rs.put_cl(this.var_num, rs.pop());
+    return true;
   }
 }
 
 // For category 2 types.
 export class StoreOpcode2 extends StoreOpcode {
-  private _execute(rs: any): void {
+  public _execute(rs: any): bool {
     rs.put_cl2(this.var_num, rs.pop2());
+    return true;
   }
 }
 
@@ -458,8 +474,9 @@ export class StoreVarOpcode extends StoreOpcode {
 }
 
 export class StoreVarOpcode2 extends LoadVarOpcode {
-  private _execute(rs: any): void {
+  public _execute(rs: any): bool {
     rs.put_cl2(this.var_num, rs.pop2());
+    return true;
   }
 }
 
@@ -490,13 +507,14 @@ export class LookupSwitchOpcode extends BranchOpcode {
     this.byte_count = padding_size + 8 * (npairs + 1);
   }
 
-  private _execute(rs: any): void {
+  public _execute(rs: any): bool {
     var offset = this.offsets[rs.pop()];
     if (offset) {
       this.inc_pc(rs, offset);
     } else {
       this.inc_pc(rs, this._default);
     }
+    return true;
   }
 }
 
@@ -536,8 +554,9 @@ export class NewArrayOpcode extends Opcode {
     return "\t" + util.internal2external[this.element_type];
   }
 
-  private _execute(rs: any): void {
+  public _execute(rs: any): bool {
     rs.push(rs.heap_newarray(this.element_type, rs.pop()));
+    return true;
   }
 }
 
@@ -560,7 +579,7 @@ export class MultiArrayOpcode extends Opcode {
     return "\t#" + this.class_ref + ",  " + this.dim + ";";
   }
 
-  private _execute(rs: any): void {
+  public _execute(rs: any): bool {
     var _this = this;
 
     var cls = rs.get_class(this.class_descriptor, true);
@@ -570,7 +589,7 @@ export class MultiArrayOpcode extends Opcode {
             ((class_file) => resume_cb(undefined, undefined, true, false)),
             except_cb);
       });
-      return;
+      return true;
     }
     // cls is loaded. Create a new execute function to avoid this overhead.
     var new_execute = function(rs: any): void {
@@ -605,11 +624,12 @@ export class MultiArrayOpcode extends Opcode {
     };
     new_execute.call(this, rs);
     this.execute = new_execute;
+    return true;
   }
 }
 
 export class ArrayLoadOpcode extends Opcode {
-  private _execute(rs: any): void {
+  public _execute(rs: any): bool {
     var idx = rs.pop();
     var obj = rs.check_null(rs.pop());
     var len = obj.array.length;
@@ -621,11 +641,12 @@ export class ArrayLoadOpcode extends Opcode {
     if (this.name[0] === 'l' || this.name[0] === 'd') {
       rs.push(null);
     }
+    return true;
   }
 }
 
 export class ArrayStoreOpcode extends Opcode {
-  private _execute(rs: any): void {
+  public _execute(rs: any): bool {
     var value = (this.name[0] === 'l' || this.name[0] === 'd') ? rs.pop2() : rs.pop();
     var idx = rs.pop();
     var obj = rs.check_null(rs.pop());
@@ -635,29 +656,33 @@ export class ArrayStoreOpcode extends Opcode {
         idx + " not in length " + len + " array of type " + obj.cls.get_type());
     }
     obj.array[idx] = value;
+    return true;
   }
 }
 
 export class ReturnOpcode extends Opcode {
-  private _execute(rs: any): void {
+  public _execute(rs: any): bool {
     var cf = rs.meta_stack().pop();
     rs.push(cf.stack[0]);
     rs.should_return = true;
+    return true;
   }
 }
 
 export class ReturnOpcode2 extends Opcode {
-  private _execute(rs: any): void {
+  public _execute(rs: any): bool {
     var cf = rs.meta_stack().pop();
     rs.push2(cf.stack[0], null);
     rs.should_return = true;
+    return true;
   }
 }
 
 export class VoidReturnOpcode extends Opcode {
-  private _execute(rs: any): void {
+  public _execute(rs: any): bool {
     rs.meta_stack().pop();
     rs.should_return = true;
+    return true;
   }
 }
 
