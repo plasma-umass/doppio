@@ -601,7 +601,7 @@ export class MultiArrayOpcode extends Opcode {
       for (var d = 0; d < this.dim; ++d) {
         arr_types.push(this.class_descriptor.slice(d));
       }
-      var init_arr = function(curr_dim: number): JavaArray {
+      var init_arr = function(curr_dim: number): java_object.JavaArray {
         var len = counts[curr_dim];
         if (len < 0) {
           rs.java_throw(rs.get_bs_class('Ljava/lang/NegativeArraySizeException;'),
