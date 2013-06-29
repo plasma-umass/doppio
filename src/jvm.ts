@@ -132,22 +132,22 @@ export function run_class(rs: any, class_name: string, cmdline_args: string[], d
   };
   run_program = function () {
     trace("run_program");
-    return rs.run_until_finished((function () {
-      return rs.init_threads();
+    rs.run_until_finished((function () {
+      rs.init_threads();
     }), true, function (success) {
         if (!success) {
           return;
         }
         if (rs.system_initialized != null) {
-          return run_main();
+          run_main();
         } else {
-          return rs.run_until_finished((function () {
-            return rs.init_system_class();
+          rs.run_until_finished((function () {
+            rs.init_system_class();
           }), true, function (success) {
               if (!success) {
                 return;
               }
-              return run_main();
+              run_main();
             });
         }
       });

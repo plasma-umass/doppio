@@ -5,6 +5,7 @@ import underscore = module('vendor/_.js');
 import gLong = module('./gLong');
 import util = module('./util');
 import logging = module('./logging');
+import runtime = module('./runtime');
 //import ClassLoader = require('./ClassLoader')
 
 export class JavaArray {
@@ -159,6 +160,30 @@ export class JavaObject {
   // Convert a Java String object into an equivalent JS one.
   public jvm2js_str(): string {
     return util.chars2js_str(this.fields['Ljava/lang/String;value'], this.fields['Ljava/lang/String;offset'], this.fields['Ljava/lang/String;count']);
+  }
+}
+
+export class JavaThreadObject extends JavaObject {
+  public $meta_stack: runtime.CallStack;
+  public $isAlive: bool;
+  public wakeup_time: number;
+  constructor(rs: any, obj?: any) {
+    var cls = {
+      get_type: function () {
+        return 'Ljava/lang/Thread;';
+      },
+      loader: rs.get_bs_cl(),
+      get_default_fields: {
+        // XXX: Hack for now.
+      }
+    };
+    super(rs, cls, obj);
+    this.$isAlive = true;
+    this.wakeup_time = Infinity;
+  }
+
+  public clone(rs: any): JavaObject {
+    return new JavaThreadObject(rs, underscore.clone(this.fields));
   }
 }
 

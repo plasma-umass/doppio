@@ -16,6 +16,7 @@ var ReturnException = exceptions.ReturnException;
 var JavaException = exceptions.JavaException;
 var JavaObject = java_object.JavaObject;
 var JavaArray = java_object.JavaArray;
+var JavaThreadObject = java_object.JavaThreadObject;
 var thread_name = java_object.thread_name;
 var process = typeof node !== "undefined" ? node.process : global.process;
 
@@ -93,17 +94,16 @@ export class CallStack {
 }
 
 export class StackFrame {
-  private method: any
-  private locals: any[]
+  public method: any
+  public locals: any[]
   public stack: any[]
-  private pc: number
-  private runner: (any) => any
+  public pc: number
+  public runner: (any) => any
   private native: boolean
   private name: string
   
   // Used by Native Frames
   public error: (any)=>any
-
 
   constructor(method: any, locals: any[], stack: any[]) {
     this.method = method;
@@ -190,7 +190,7 @@ export class RuntimeState {
   private lock_counts: any;
   private waiting_threads: any;
   private thread_pool: any[];
-  private curr_thread: any;
+  private curr_thread: java_object.JavaThreadObject;
   private max_m_count: number;
   private unusual_termination: boolean;
   private stashed_done_cb: (any)=>any
@@ -211,9 +211,9 @@ export class RuntimeState {
     this.lock_counts = {};
     this.waiting_threads = {};
     this.thread_pool = [];
-    this.curr_thread = {
-      $meta_stack: new CallStack()
-    };
+    
+    var ct = new JavaThreadObject(this);
+    this.curr_thread = ct;
     this.max_m_count = 100000;
   }
 
@@ -259,14 +259,14 @@ export class RuntimeState {
     init_next_core_class();
   }
 
-  public init_threads() {
+  public init_threads(): void {
     var group, my_sf,
       _this = this;
 
     my_sf = this.curr_frame();
     this.push((group = new JavaObject(this, this.get_bs_class('Ljava/lang/ThreadGroup;'))));
     this.get_bs_class('Ljava/lang/ThreadGroup;').method_lookup(this, '<init>()V').setup_stack(this);
-    return my_sf.runner = function () {
+    my_sf.runner = function () {
       var ct;
 
       ct = null;
@@ -279,7 +279,7 @@ export class RuntimeState {
         _this.get_bs_class('Ljava/lang/Thread;').static_fields.threadInitNumber = 1;
         return debug("### finished thread init ###");
       };
-      return ct = new JavaObject(_this, _this.get_bs_class('Ljava/lang/Thread;'), {
+      ct = new JavaObject(_this, _this.get_bs_class('Ljava/lang/Thread;'), {
         'Ljava/lang/Thread;name': _this.init_carr('main'),
         'Ljava/lang/Thread;priority': 1,
         'Ljava/lang/Thread;group': group,
@@ -288,11 +288,11 @@ export class RuntimeState {
     };
   }
 
-  public meta_stack() {
+  public meta_stack(): CallStack {
     return this.curr_thread.$meta_stack;
   }
 
-  public java_throw(cls: any, msg: string) {
+  public java_throw(cls: any, msg: string): void {
     var my_sf, v,
       _this = this;
 
@@ -313,19 +313,19 @@ export class RuntimeState {
     throw ReturnException;
   }
 
-  public init_system_class() {
+  public init_system_class(): void {
     var my_sf;
 
     my_sf = this.curr_frame();
     this.get_bs_class('Ljava/lang/System;').get_method('initializeSystemClass()V').setup_stack(this);
-    return my_sf.runner = function () {
+    my_sf.runner = function () {
       my_sf.runner = null;
       this.system_initialized = true;
-      return debug("### finished system class initialization ###");
+      debug("### finished system class initialization ###");
     };
   }
 
-  public init_args(initial_args: any[]) {
+  public init_args(initial_args: any[]): void {
     var a, args;
 
     args = new JavaArray(this, this.get_bs_class('[Ljava/lang/String;'), (function () {
@@ -339,10 +339,10 @@ export class RuntimeState {
       return _results;
     }).call(this));
     this.curr_thread.$meta_stack = new CallStack([args]);
-    return debug("### finished runtime state initialization ###");
+    debug("### finished runtime state initialization ###");
   }
 
-  public dump_state(snapshot?, suffix?) {
+  public dump_state(snapshot?, suffix?): void {
     var fs, _ref5;
 
     if (snapshot == null) {
@@ -350,7 +350,7 @@ export class RuntimeState {
     }
     suffix = suffix != null ? "-" + suffix : '';
     fs = (_ref5 = typeof node !== "undefined" && node !== null ? node.fs : void 0) != null ? _ref5 : require('fs');
-    return fs.writeFileSync("./core-" + (thread_name(this, this.curr_thread)) + suffix + ".json", JSON.stringify(snapshot.serialize()), 'utf8', true);
+    fs.writeFileSync("./core-" + (thread_name(this, this.curr_thread)) + suffix + ".json", JSON.stringify(snapshot.serialize()), 'utf8', true);
   }
 
   public choose_next_thread(blacklist, cb) {
