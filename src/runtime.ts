@@ -184,16 +184,18 @@ export class RuntimeState {
   private run_stamp: number;
   private mem_start_addrs: number[];
   private mem_blocks: any;
-  private high_oref: number;
+  public high_oref: number;
   private string_pool: util.SafeMap;
-  private lock_refs: any;
-  private lock_counts: any;
-  private waiting_threads: any;
+  public lock_refs: any;
+  public lock_counts: any;
+  public waiting_threads: any;
   private thread_pool: java_object.JavaThreadObject[];
-  private curr_thread: java_object.JavaThreadObject;
+  public curr_thread: java_object.JavaThreadObject;
   private max_m_count: number;
-  private unusual_termination: boolean;
-  private stashed_done_cb: (any)=>any
+  public unusual_termination: boolean;
+  private stashed_done_cb: (any) => any;
+  public should_return: bool;
+  public system_initialized: bool;
 
   constructor(print: (string) => any, _async_input: (cb: (string) => any) => any, bcl: any) {
     this.print = print;
@@ -315,12 +317,13 @@ export class RuntimeState {
 
   public init_system_class(): void {
     var my_sf;
+    var _this = this;
 
     my_sf = this.curr_frame();
     this.get_bs_class('Ljava/lang/System;').get_method('initializeSystemClass()V').setup_stack(this);
     my_sf.runner = function () {
       my_sf.runner = null;
-      this.system_initialized = true;
+      _this.system_initialized = true;
       debug("### finished system class initialization ###");
     };
   }
@@ -527,7 +530,7 @@ export class RuntimeState {
     return this.curr_frame().pc += n;
   }
 
-  public check_null(obj: java_object.JavaObject): java_object.JavaObject {
+  public check_null<T>(obj: T): T {
     if (obj == null) {
       this.java_throw(this.get_bs_class('Ljava/lang/NullPointerException;'), '');
     }
@@ -620,7 +623,7 @@ export class RuntimeState {
     }
   }
 
-  public async_op(cb: ()=>void): void {
+  public async_op(cb: (resume_cb: (arg1:any, arg2?:any, isBytecode?:bool, advancePc?:bool)=>void, except_cb: (e_fcn: ()=>void)=>void)=>void): void {
     throw new YieldIOException(cb);
   }
 

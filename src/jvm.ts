@@ -2,6 +2,7 @@
 
 import util = module('./util');
 import logging = module('./logging')
+import runtime = module('./runtime')
 
 declare var node
 var _ref;
@@ -45,7 +46,7 @@ export function reset_system_properties() {
   };
 }
 
-export function read_classfile(cls: any, cb: any, failure_cb: (exp_cb: ()=>void)=>void) {
+export function read_classfile(cls: any, cb: (data: number[])=>void, failure_cb: (exp_cb: ()=>void)=>void) {
   var data, e, filename, p, _i, _len, _ref3;
 
   cls = cls.slice(1, -1);
@@ -93,7 +94,7 @@ export function set_classpath(jcl_path: string, classpath: string) {
   }
 }
 
-export function run_class(rs: any, class_name: string, cmdline_args: string[], done_cb: (arg: any)=>void) {
+export function run_class(rs: runtime.RuntimeState, class_name: string, cmdline_args: string[], done_cb: (arg: any)=>void) {
   var class_descriptor, main_method, main_sig, run_main, run_program;
 
   class_descriptor = "L" + class_name + ";";
@@ -148,7 +149,7 @@ export function run_class(rs: any, class_name: string, cmdline_args: string[], d
                 return;
               }
               run_main();
-            });
+          });
         }
       });
   };

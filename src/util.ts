@@ -1,5 +1,7 @@
 import gLong = module('./gLong');
 import logging = module('./logging')
+import runtime = module('./runtime')
+import java_object = module('./java_object')
 
 // default module: util
 export var INT_MAX = Math.pow(2, 31) - 1;
@@ -66,14 +68,14 @@ export function arrayset<T>(len: number, val :T): T[] {
   return array;
 }
 
-export function int_mod(rs: any, a: number, b: number): number {
+export function int_mod(rs: runtime.RuntimeState, a: number, b: number): number {
   if (b === 0) {
     rs.java_throw(rs.get_bs_class('Ljava/lang/ArithmeticException;'), '/ by zero');
   }
   return a % b;
 }
 
-export function int_div(rs: any, a: number, b: number): number {
+export function int_div(rs: runtime.RuntimeState, a: number, b: number): number {
   if (b === 0) {
     rs.java_throw(rs.get_bs_class('Ljava/lang/ArithmeticException;'), '/ by zero');
   }
@@ -86,14 +88,14 @@ export function int_div(rs: any, a: number, b: number): number {
   return (a / b) | 0;
 }
 
-export function long_mod(rs: any, a: gLong, b: gLong): gLong {
+export function long_mod(rs: runtime.RuntimeState, a: gLong, b: gLong): gLong {
   if (b.isZero()) {
     rs.java_throw(rs.get_bs_class('Ljava/lang/ArithmeticException;'), '/ by zero');
   }
   return a.modulo(b);
 }
 
-export function long_div(rs: any, a: gLong, b: gLong): gLong {
+export function long_div(rs: runtime.RuntimeState, a: gLong, b: gLong): gLong {
   if (b.isZero()) {
     rs.java_throw(rs.get_bs_class('Ljava/lang/ArithmeticException;'), '/ by zero');
   }
@@ -221,7 +223,7 @@ export function read_uint(bytes: number[]): number {
 }
 
 // Convert :count chars starting from :offset in a Java character array into a JS string
-export function chars2js_str(jvm_carr: any, offset?: number, count?: number): string {
+export function chars2js_str(jvm_carr: java_object.JavaArray, offset?: number, count?: number): string {
   var off = offset || 0;
   return bytes2str(jvm_carr.array).substr(off, count);
 }

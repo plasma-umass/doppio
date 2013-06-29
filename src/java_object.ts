@@ -13,22 +13,22 @@ export class JavaArray {
   public array: any[]
   public ref: number
 
-  constructor(rs, cls, obj) {
+  constructor(rs: runtime.RuntimeState, cls, obj) {
     this.cls = cls;
     this.ref = rs.high_oref++;
     this.array = obj;
   }
 
-  public clone(rs): JavaArray {
+  public clone(rs: runtime.RuntimeState): JavaArray {
     // note: we don't clone the type, because they're effectively immutable
     return new JavaArray(rs, this.cls, underscore.clone(this.array));
   }
 
-  public get_field_from_offset(rs: any, offset: gLong): any {
+  public get_field_from_offset(rs: runtime.RuntimeState, offset: gLong): any {
     return this.array[offset.toInt()];
   }
 
-  public set_field_from_offset(rs: any, offset: gLong, value: any): void {
+  public set_field_from_offset(rs: runtime.RuntimeState, offset: gLong, value: any): void {
     this.array[offset.toInt()] = value;
   }
 
@@ -62,7 +62,7 @@ export class JavaObject {
   public fields : any
   public ref : number
 
-  constructor(rs: any, cls: any, obj?: any) {
+  constructor(rs: runtime.RuntimeState, cls: any, obj?: any) {
     this.cls = cls;
     if (obj == null) {
       obj = {};
@@ -77,12 +77,12 @@ export class JavaObject {
     }
   }
 
-  public clone(rs: any): JavaObject {
+  public clone(rs: runtime.RuntimeState): JavaObject {
     // note: we don't clone the type, because they're effectively immutable
     return new JavaObject(rs, this.cls, underscore.clone(this.fields));
   }
 
-  public set_field(rs: any, name: string, val: any): void {
+  public set_field(rs: runtime.RuntimeState, name: string, val: any): void {
     if (this.fields[name] !== undefined) {
       this.fields[name] = val;
     } else {
@@ -90,14 +90,14 @@ export class JavaObject {
     }
   }
 
-  public get_field(rs: any, name: string): any {
+  public get_field(rs: runtime.RuntimeState, name: string): any {
     if (this.fields[name] !== undefined) {
       return this.fields[name];
     }
     return rs.java_throw(this.cls.loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name);
   }
 
-  public get_field_from_offset(rs: any, offset: gLong): any {
+  public get_field_from_offset(rs: runtime.RuntimeState, offset: gLong): any {
     var f = this._get_field_from_offset(rs, this.cls, offset.toInt());
     if (f.field.access_flags['static']) {
       return f.cls_obj.static_get(rs, f.field.name);
@@ -105,7 +105,7 @@ export class JavaObject {
     return this.get_field(rs, f.cls + f.field.name);
   }
 
-  private _get_field_from_offset(rs: any, cls: any, offset: number): any {
+  private _get_field_from_offset(rs: runtime.RuntimeState, cls: any, offset: number): any {
     var classname = cls.get_type();
     while (cls != null) {
       var jco_ref = cls.get_class_object(rs).ref;
@@ -122,7 +122,7 @@ export class JavaObject {
     return rs.java_throw(this.cls.loader.get_initialized_class('Ljava/lang/NullPointerException;'), "field " + offset + " doesn't exist in class " + classname);
   }
 
-  public set_field_from_offset(rs: any, offset: gLong, value: any): void {
+  public set_field_from_offset(rs: runtime.RuntimeState, offset: gLong, value: any): void {
     var f = this._get_field_from_offset(rs, this.cls, offset.toInt());
     if (f.field.access_flags['static']) {
       f.cls_obj.static_put(rs, f.field.name, value);
@@ -169,7 +169,7 @@ export class JavaThreadObject extends JavaObject {
   public wakeup_time: number;
   public $park_count: number;
   public $park_timeout: number;
-  constructor(rs: any, obj?: any) {
+  constructor(rs: runtime.RuntimeState, obj?: any) {
     var cls = {
       get_type: function () {
         return 'Ljava/lang/Thread;';
@@ -186,13 +186,13 @@ export class JavaThreadObject extends JavaObject {
     this.$park_timeout = Infinity;
   }
 
-  public clone(rs: any): JavaObject {
+  public clone(rs: runtime.RuntimeState): JavaObject {
     return new JavaThreadObject(rs, underscore.clone(this.fields));
   }
 }
 
 export class JavaClassObject extends JavaObject {
-  constructor(rs: any, public $cls: any) {
+  constructor(rs: runtime.RuntimeState, public $cls: any) {
     super(rs, rs.get_bs_cl().get_resolved_class('Ljava/lang/Class;'));
   }
 
@@ -204,7 +204,7 @@ export class JavaClassObject extends JavaObject {
 // Each JavaClassLoaderObject is a unique ClassLoader.
 export class JavaClassLoaderObject extends JavaObject {
   public $loader: any
-  constructor(rs: any, cls: any) {
+  constructor(rs: runtime.RuntimeState, cls: any) {
     super(rs, cls);
     //this.$loader = new ClassLoader.CustomClassLoader(rs.get_bs_cl(), this);
   }
@@ -236,6 +236,6 @@ export class JavaClassLoaderObject extends JavaObject {
   }
 }
 
-export function thread_name(rs: any, thread: JavaObject): string {
+export function thread_name(rs: runtime.RuntimeState, thread: JavaObject): string {
   return util.chars2js_str(thread.get_field(rs, 'Ljava/lang/Thread;name'));
 }
