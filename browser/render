@@ -1,0 +1,42 @@
+#! /usr/bin/env coffee
+
+marked   = require 'marked'
+{argv}   = require 'optimist'
+mustache = require 'mustache'
+{exec}   = require 'child_process'
+fs       = require 'fs'
+path     = require 'path'
+
+marked.setOptions
+  smartypants: true
+  smartLists:  true
+
+render = (opts) -> console.log(mustache.render(template, opts))
+
+fullpath = (filename) -> path.resolve __dirname, filename
+
+name = process.argv[2]
+filepath = fullpath "#{name}.mustache"
+template = fs.readFileSync(filepath).toString()
+
+opts =
+  release: argv.release
+
+switch name
+  when 'index'
+    exec 'git rev-parse HEAD', (err, stdout, stderr) ->
+      throw err if err
+
+      opts.git_hash = stdout
+      opts.git_short_hash = stdout[..6]
+      opts.date = (new Date()).toLocaleDateString()
+
+      render opts
+
+  when 'about'
+    opts.about = marked(fs.readFileSync(fullpath("_about.md")).toString())
+
+    render opts
+
+  when 'swing'
+    render opts
