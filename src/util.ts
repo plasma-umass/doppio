@@ -23,9 +23,42 @@ if (Math['imul'] == null) {
   };
 }
 
+if (!Array.prototype.indexOf) {
+  Array.prototype.indexOf = function (searchElement, fromIndex?) {
+    if (this == null) {
+      throw new TypeError();
+    }
+    var t = Object(this);
+    var len = t.length >>> 0;
+
+    if (len === 0) {
+      return -1;
+    }
+    var n = 0;
+    if (fromIndex !== undefined) {
+      n = Number(fromIndex);
+      if (n != n) { // shortcut for verifying if it's NaN
+        n = 0;
+      } else if (n != 0 && n != Infinity && n != -Infinity) {
+        n = (n > 0 || -1) * Math.floor(Math.abs(n));
+      }
+    }
+    if (n >= len) {
+      return -1;
+    }
+    var k = n >= 0 ? n : Math.max(len - Math.abs(n), 0);
+    for (; k < len; k++) {
+      if (k in t && t[k] === searchElement) {
+        return k;
+      }
+    }
+    return -1;
+  }
+}
+
 // Creates and initializes *JavaScript* array to *val* in each element slot.
 // Like memset, but for arrays.
-export function arrayset(len: number, val :number): number[] {
+export function arrayset<T>(len: number, val :T): T[] {
   var array = new Array(len);
   for (var i = 0; i < len; i++) {
     array[i] = val;
