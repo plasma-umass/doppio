@@ -167,6 +167,8 @@ export class JavaThreadObject extends JavaObject {
   public $meta_stack: runtime.CallStack;
   public $isAlive: bool;
   public wakeup_time: number;
+  public $park_count: number;
+  public $park_timeout: number;
   constructor(rs: any, obj?: any) {
     var cls = {
       get_type: function () {
@@ -180,6 +182,8 @@ export class JavaThreadObject extends JavaObject {
     super(rs, cls, obj);
     this.$isAlive = true;
     this.wakeup_time = Infinity;
+    this.$park_count = 0;
+    this.$park_timeout = Infinity;
   }
 
   public clone(rs: any): JavaObject {

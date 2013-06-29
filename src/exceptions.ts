@@ -6,7 +6,11 @@ import logging = module('./logging')
 
 // default module: exceptions
 
-export class HaltException {
+export interface DoppioException {
+  toplevel_catch_handler(rs: any): void
+}
+
+export class HaltException implements DoppioException {
   constructor(public exit_code: number) {}
 
   public toplevel_catch_handler(): void {
@@ -24,7 +28,7 @@ export class YieldException {
 
 export class YieldIOException extends YieldException {}
 
-export class JavaException {
+export class JavaException implements DoppioException {
   constructor(public exception: any) {}
 
   public method_catch_handler(rs: any, cf: any, top_of_stack: any): boolean {

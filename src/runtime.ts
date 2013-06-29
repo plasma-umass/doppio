@@ -179,7 +179,7 @@ export class RuntimeState {
   private print: (string) => any;
   private _async_input: (cb: (string) => any) => any;
   private bcl: any;
-  private input_buffer: any[];
+  private input_buffer: number[];
   private startup_time: gLong;
   private run_stamp: number;
   private mem_start_addrs: number[];
@@ -189,7 +189,7 @@ export class RuntimeState {
   private lock_refs: any;
   private lock_counts: any;
   private waiting_threads: any;
-  private thread_pool: any[];
+  private thread_pool: java_object.JavaThreadObject[];
   private curr_thread: java_object.JavaThreadObject;
   private max_m_count: number;
   private unusual_termination: boolean;
@@ -239,7 +239,7 @@ export class RuntimeState {
     return this.curr_frame().method.cls.loader;
   }
 
-  public preinitialize_core_classes(resume_cb: () => any, except_cb: (cb: () => any) => any) {
+  public preinitialize_core_classes(resume_cb: () => any, except_cb: (cb: () => any) => any): void {
     var core_classes, i, init_next_core_class,
       _this = this;
 
@@ -353,7 +353,7 @@ export class RuntimeState {
     fs.writeFileSync("./core-" + (thread_name(this, this.curr_thread)) + suffix + ".json", JSON.stringify(snapshot.serialize()), 'utf8', true);
   }
 
-  public choose_next_thread(blacklist, cb) {
+  public choose_next_thread(blacklist: java_object.JavaThreadObject[], cb: (jto: java_object.JavaThreadObject)=>void): void {
     var b, bl, current_time, key, t, wakeup_time, _i, _j, _len, _len1, _ref5, _ref6, _ref7,
       _this = this;
 
@@ -396,16 +396,16 @@ export class RuntimeState {
     }
     if ((Infinity > wakeup_time && wakeup_time > current_time)) {
       debug("TE(choose_next_thread): waiting until " + wakeup_time + " and trying again");
-      return setTimeout((function () {
-        return _this.choose_next_thread(null, cb);
+      setTimeout((function () {
+        _this.choose_next_thread(null, cb);
       }), wakeup_time - current_time);
     } else {
       debug("TE(choose_next_thread): no thread found, sticking with curr_thread");
-      return cb(this.curr_thread);
+      cb(this.curr_thread);
     }
   }
 
-  public wait(monitor, yieldee) {
+  public wait(monitor: java_object.JavaObject, yieldee?: java_object.JavaThreadObject): void {
     var _this = this;
 
     debug("TE(wait): waiting " + (thread_name(this, this.curr_thread)) + " on lock " + monitor.ref);
@@ -415,14 +415,14 @@ export class RuntimeState {
       this.waiting_threads[monitor] = [this.curr_thread];
     }
     if (yieldee != null) {
-      return this["yield"](yieldee);
+      return this.yield(yieldee);
     }
-    return this.choose_next_thread(this.waiting_threads[monitor], (function (nt) {
-      return _this["yield"](nt);
+    this.choose_next_thread(this.waiting_threads[monitor], (function (nt) {
+      _this.yield(nt);
     }));
   }
 
-  public yield(yieldee) {
+  public yield(yieldee: java_object.JavaThreadObject): void {
     var new_thread_sf, old_thread_sf,
       _this = this;
 
@@ -438,85 +438,74 @@ export class RuntimeState {
     };
   }
 
-  public init_park_state(thread) {
-    var _ref5, _ref6;
-
-    if ((_ref5 = thread.$park_count) == null) {
-      thread.$park_count = 0;
-    }
-    return (_ref6 = thread.$park_timeout) != null ? _ref6 : thread.$park_timeout = Infinity;
-  }
-
-  public park(thread, timeout) {
+  public park(thread: java_object.JavaThreadObject, timeout: number): void {
     var _this = this;
 
-    this.init_park_state(thread);
     thread.$park_count++;
     thread.$park_timeout = timeout;
     debug("TE(park): parking " + (thread_name(this, thread)) + " (count: " + thread.$park_count + ", timeout: " + thread.$park_timeout + ")");
     if (this.parked(thread)) {
-      return this.choose_next_thread(null, (function (nt) {
-        return _this["yield"](nt);
+      this.choose_next_thread(null, (function (nt) {
+        _this.yield(nt);
       }));
     }
   }
 
-  public unpark(thread) {
-    this.init_park_state(thread);
+  public unpark(thread: java_object.JavaThreadObject): void {
     debug("TE(unpark): unparking " + (thread_name(this, thread)));
     thread.$park_count--;
     thread.$park_timeout = Infinity;
     if (!this.parked(thread)) {
-      return this["yield"](thread);
+      return this.yield(thread);
     }
   }
 
-  public parked(thread) {
+  public parked(thread: java_object.JavaThreadObject): bool {
     return thread.$park_count > 0;
   }
 
-  public curr_frame() {
+  public curr_frame(): StackFrame {
     return this.meta_stack().curr_frame();
   }
 
-  public cl(idx) {
+  public cl(idx: number): any {
     return this.curr_frame().locals[idx];
   }
 
-  public put_cl(idx, val) {
-    return this.curr_frame().locals[idx] = val;
+  public put_cl(idx: number, val: any): void {
+    this.curr_frame().locals[idx] = val;
   }
 
-  public put_cl2(idx, val) {
+  public put_cl2(idx: number, val: any): void {
     this.put_cl(idx, val);
-    return (typeof UNSAFE !== "undefined" && UNSAFE !== null) || this.put_cl(idx + 1, null);
+    (typeof UNSAFE !== "undefined" && UNSAFE !== null) || this.put_cl(idx + 1, null);
   }
 
-  public push(arg) {
+  public push(arg: any): number {
     return this.curr_frame().stack.push(arg);
   }
 
-  public push2(arg1, arg2) {
+  public push2(arg1: any, arg2: any): number {
     return this.curr_frame().stack.push(arg1, arg2);
   }
 
-  public push_array(args) {
+  public push_array(args: any[]): void {
     var cs;
 
     cs = this.curr_frame().stack;
-    return Array.prototype.push.apply(cs, args);
+    Array.prototype.push.apply(cs, args);
   }
 
-  public pop() {
+  public pop(): any {
     return this.curr_frame().stack.pop();
   }
 
-  public pop2() {
+  public pop2(): any {
     this.pop();
     return this.pop();
   }
 
-  public peek(depth) {
+  public peek(depth?: number): any {
     var s;
 
     if (depth == null) {
@@ -526,26 +515,26 @@ export class RuntimeState {
     return s[s.length - 1 - depth];
   }
 
-  public curr_pc() {
+  public curr_pc(): number {
     return this.curr_frame().pc;
   }
 
-  public goto_pc(pc) {
+  public goto_pc(pc): number {
     return this.curr_frame().pc = pc;
   }
 
-  public inc_pc(n) {
+  public inc_pc(n): number {
     return this.curr_frame().pc += n;
   }
 
-  public check_null(obj) {
+  public check_null(obj: java_object.JavaObject): java_object.JavaObject {
     if (obj == null) {
       this.java_throw(this.get_bs_class('Ljava/lang/NullPointerException;'), '');
     }
     return obj;
   }
 
-  public heap_newarray(type, len) {
+  public heap_newarray(type: string, len: number): java_object.JavaArray {
     var _ref5;
 
     if (len < 0) {
@@ -560,7 +549,7 @@ export class RuntimeState {
     }
   }
 
-  public init_string(str, intern?) {
+  public init_string(str: string, intern?: bool): java_object.JavaObject {
     var carr, jvm_str, s;
 
     if (intern == null) {
@@ -580,7 +569,7 @@ export class RuntimeState {
     return jvm_str;
   }
 
-  public init_carr(str) {
+  public init_carr(str: string): java_object.JavaArray {
     var carr, i, _i, _ref5;
 
     carr = new Array(str.length);
@@ -590,10 +579,10 @@ export class RuntimeState {
     return new JavaArray(this, this.get_bs_class('[C'), carr);
   }
 
-  public block_addr(address) {
+  public block_addr(l_address: gLong): number {
     var addr, block_addr, _i, _len, _ref5;
 
-    address = address.toNumber();
+    var address = l_address.toNumber();
     if (typeof DataView !== "undefined" && DataView !== null) {
       block_addr = this.mem_start_addrs[0];
       _ref5 = this.mem_start_addrs.slice(1);
@@ -614,13 +603,13 @@ export class RuntimeState {
     })();
   }
 
-  public handle_toplevel_exception(e, no_threads, done_cb) {
+  public handle_toplevel_exception(e: any, no_threads: bool, done_cb: (bool)=>void): void {
     var _this = this;
 
     this.unusual_termination = true;
     if (e.toplevel_catch_handler != null) {
       this.run_until_finished((function () {
-        return e.toplevel_catch_handler(_this);
+        e.toplevel_catch_handler(_this);
       }), no_threads, done_cb);
     } else {
       error("\nInternal JVM Error:", e);
@@ -631,15 +620,15 @@ export class RuntimeState {
     }
   }
 
-  public async_op(cb) {
+  public async_op(cb: ()=>void): void {
     throw new YieldIOException(cb);
   }
 
-  public run_until_finished(setup_fn, no_threads, done_cb) {
+  public run_until_finished(setup_fn: ()=>void, no_threads: bool, done_cb: (bool)=>void): void {
     var _this = this;
 
-    return setImmediate((function () {
-      var duration, e, failure_fn, frames_to_pop, m_count, ms_per_m, sf, stack, start_time, success_fn;
+    setImmediate((function () {
+      var duration, e, failure_fn, frames_to_pop, m_count, ms_per_m, sf, stack: CallStack, start_time, success_fn;
 
       _this.stashed_done_cb = done_cb;
       try {
@@ -736,7 +725,7 @@ export class RuntimeState {
     }));
   }
 
-  public async_input(n_bytes, resume) {
+  public async_input(n_bytes: number, resume: (string)=>void): void {
     var data,
       _this = this;
 
@@ -746,11 +735,11 @@ export class RuntimeState {
       resume(data);
       return;
     }
-    return this._async_input(function (data) {
+    this._async_input(function (data) {
       if (data.length > n_bytes) {
         _this.input_buffer = data.slice(n_bytes);
       }
-      return resume(data.slice(0, n_bytes));
+      resume(data.slice(0, n_bytes));
     });
   }
 }
