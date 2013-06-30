@@ -5,7 +5,8 @@ export interface ConstantPoolItem {
   size: number;
   type: string;
   value: any;
-  from_bytes(bytes_array: util.BytesArray, constant_pool: {[n: number]: ConstantPoolItem}): ConstantPoolItem;
+  from_bytes(bytes_array: util.BytesArray, constant_pool: { [n: number]: ConstantPoolItem }): ConstantPoolItem;
+  deref(): any;
 }
 
 export class SimpleReference {
@@ -34,10 +35,6 @@ export class SimpleReference {
 
 export class ClassReference extends SimpleReference {
   public static type = 'class';
-  constructor(constant_pool: ConstantPool, value: any) {
-    super(constant_pool, value);
-  }
-
   public deref(): any {
     var pool_obj;
 
