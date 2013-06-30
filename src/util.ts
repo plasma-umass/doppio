@@ -246,21 +246,37 @@ export function array_to_bytestr(bytecode_array: number[]): string {
   return rv;
 }
 
-export function parse_flags(flag_byte: number): any {
+export interface Flags {
+  "public": bool;
+  "private": bool;
+  "protected": bool;
+  "static": bool;
+  "final": bool;
+  "synchronized": bool;
+  "super": bool;
+  "volatile": bool;
+  "transient": bool;
+  "native": bool;
+  "interface": bool;
+  "abstract": bool;
+  "strict": bool;
+}
+
+export function parse_flags(flag_byte: number): Flags {
   return {
-    "public": flag_byte & 0x1,
-    "private": flag_byte & 0x2,
-    "protected": flag_byte & 0x4,
-    "static": flag_byte & 0x8,
-    "final": flag_byte & 0x10,
-    "synchronized": flag_byte & 0x20,
-    "super": flag_byte & 0x20,
-    "volatile": flag_byte & 0x40,
-    "transient": flag_byte & 0x80,
-    "native": flag_byte & 0x100,
-    "interface": flag_byte & 0x200,
-    "abstract": flag_byte & 0x400,
-    "strict": flag_byte & 0x800
+    "public": (flag_byte & 0x1) > 0,
+    "private": (flag_byte & 0x2) > 0,
+    "protected": (flag_byte & 0x4) > 0,
+    "static": (flag_byte & 0x8) > 0,
+    "final": (flag_byte & 0x10) > 0,
+    "synchronized": (flag_byte & 0x20) > 0,
+    "super": (flag_byte & 0x20) > 0,
+    "volatile": (flag_byte & 0x40) > 0,
+    "transient": (flag_byte & 0x80) > 0,
+    "native": (flag_byte & 0x100) > 0,
+    "interface": (flag_byte & 0x200) > 0,
+    "abstract": (flag_byte & 0x400)> 0,
+    "strict": (flag_byte & 0x800) > 0
   };
 }
 

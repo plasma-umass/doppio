@@ -469,7 +469,7 @@ export class EnclosingMethod implements Attribute {
   }
 }
 
-function make_attributes(bytes_array: util.BytesArray, constant_pool: any): Attribute[] {
+export function make_attributes(bytes_array: util.BytesArray, constant_pool: any): Attribute[] {
   var attr, attr_len, attr_types, attrs, i, name, new_len, num_attrs, old_len, _i;
 
   attr_types = {

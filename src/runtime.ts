@@ -181,7 +181,7 @@ export class RuntimeState {
   private bcl: any;
   private input_buffer: number[];
   private startup_time: gLong;
-  private run_stamp: number;
+  public run_stamp: number;
   private mem_start_addrs: number[];
   private mem_blocks: any;
   public high_oref: number;
