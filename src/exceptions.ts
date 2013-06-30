@@ -2,9 +2,8 @@ declare module 'vendor/_.js' {
   export function find(list: any[], pred: any): any;
 }
 import underscore = module('vendor/_.js');
-import logging = module('./logging')
-
-// default module: exceptions
+import logging = module('./logging');
+import runtime = module('./runtime');
 
 export interface DoppioException {
   toplevel_catch_handler(rs: any): void
@@ -31,7 +30,7 @@ export class YieldIOException extends YieldException {}
 export class JavaException implements DoppioException {
   constructor(public exception: any) {}
 
-  public method_catch_handler(rs: any, cf: any, top_of_stack: any): boolean {
+  public method_catch_handler(rs: runtime.RuntimeState, cf: runtime.StackFrame, top_of_stack: boolean): boolean {
     var method = cf.method;
     if (!top_of_stack && method.has_bytecode) {
       cf.pc -= 3;  // rewind the invoke opcode
@@ -71,7 +70,7 @@ export class JavaException implements DoppioException {
     return false;
   }
 
-  public toplevel_catch_handler(rs: any): void {
+  public toplevel_catch_handler(rs: runtime.RuntimeState): void {
     logging.debug("\nUncaught " + this.exception.cls.get_type());
     var msg = this.exception.get_field(rs, 'Ljava/lang/Throwable;detailMessage');
     if (msg != null) {

@@ -12,6 +12,7 @@ import logging = module('./logging');
 import JVM = module('./jvm');
 import exceptions = module('./exceptions');
 import java_object = module('./java_object');
+import ConstantPool = module('./ConstantPool');
 
 
 var ReturnException = exceptions.ReturnException;
@@ -36,7 +37,7 @@ export class AbstractMethodField {
     this.cls = cls;
   }
 
-  public parse(bytes_array: util.BytesArray, constant_pool: any, idx: number): void {
+  public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool, idx: number): void {
     this.idx = idx;
     this.access_byte = bytes_array.get_uint(2);
     this.access_flags = util.parse_flags(this.access_byte);
@@ -160,7 +161,7 @@ export class Method extends AbstractMethodField {
     return "" + (this.cls.get_type()) + "::" + this.name + this.raw_descriptor;
   }
 
-  public parse(bytes_array: util.BytesArray, constant_pool: any, idx: number): void {
+  public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool, idx: number): void {
     var c, sig;
     super.parse(bytes_array, constant_pool, idx);
     sig = this.full_signature();
