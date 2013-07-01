@@ -802,7 +802,7 @@ native_methods =
             fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
             rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if fd is -1
             unless fd is 0
-              bytes_left = fs.fstatSync(file).size - _this.$pos
+              bytes_left = fs.fstatSync(fd).size - _this.$pos
               to_skip = Math.min(n_bytes.toNumber(), bytes_left)
               _this.$pos += to_skip
               return gLong.fromNumber(to_skip)
@@ -914,11 +914,11 @@ native_methods =
                 else
                   fs.open filepath, 'w', (err, fd) ->
                     if err?
-                      except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), e.message
+                      except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), err.message
                     else
                       fs.close fd, (err) ->
                         if err?
-                          except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), e.message
+                          except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), err.message
                         else
                           resume_cb true
         o 'createFileExclusively(Ljava/lang/String;Z)Z', (rs, _this, path) ->  # Apple-java version
@@ -930,11 +930,11 @@ native_methods =
                 else
                   fs.open filepath, 'w', (err, fd) ->
                     if err?
-                      except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), e.message
+                      except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), err.message
                     else
                       fs.close fd, (err) ->
                         if err?
-                          except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), e.message
+                          except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), err.message
                         else
                           resume_cb true
         o 'delete0(Ljava/io/File;)Z', (rs, _this, file) ->
