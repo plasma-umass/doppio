@@ -4,6 +4,8 @@ import logging = module('./logging');
 import exceptions = module('./exceptions');
 import java_object = module('./java_object');
 import JVM = module('./jvm');
+import methods = module('./methods');
+import ClassData = module('./ClassData');
 
 declare var node, UNSAFE;
 declare var setImmediate: (cb: (any)=>any)=>void
@@ -94,13 +96,17 @@ export class CallStack {
 }
 
 export class StackFrame {
-  public method: any
-  public locals: any[]
-  public stack: any[]
-  public pc: number
-  public runner: (any) => any
-  private native: boolean
-  private name: string
+  public method: any;
+  public locals: any[];
+  public stack: any[];
+  public pc: number;
+  public runner: (any) => any;
+  private native: boolean;
+  public name: string;
+
+  // XXX: Super kludge: DO NOT USE. Used by the ClassLoader on native frames.
+  // We should... remove this...
+  public cdata: ClassData.ClassData;
   
   // Used by Native Frames
   public error: (any)=>any
@@ -193,7 +199,7 @@ export class RuntimeState {
   public curr_thread: java_object.JavaThreadObject;
   private max_m_count: number;
   public unusual_termination: boolean;
-  private stashed_done_cb: (any) => any;
+  public stashed_done_cb: (any) => any;
   public should_return: bool;
   public system_initialized: bool;
 
@@ -623,7 +629,7 @@ export class RuntimeState {
     }
   }
 
-  public async_op(cb: (resume_cb: (arg1:any, arg2?:any, isBytecode?:bool, advancePc?:bool)=>void, except_cb: (e_fcn: ()=>void)=>void)=>void): void {
+  public async_op(cb: (resume_cb: (arg1?:any, arg2?:any, isBytecode?:bool, advancePc?:bool)=>void, except_cb: (e_fcn: ()=>void, discardStackFrame?:bool)=>void)=>void): void {
     throw new YieldIOException(cb);
   }
 

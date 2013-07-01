@@ -123,8 +123,8 @@ export class Method extends AbstractMethodField {
   private return_type: string;
   // Code is either a function, or a CodeAttribute. We should have a factory method
   // that constructs NativeMethod objects and BytecodeMethod objects.
-  private code: any;
-  private has_bytecode: bool;
+  public code: any;
+  public has_bytecode: bool;
 
   public parse_descriptor(raw_descriptor: string): void {
     var field, p, param_carr, param_str, return_str, __, _i, _len, _ref3, _ref4;
