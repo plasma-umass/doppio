@@ -284,7 +284,7 @@ export class BranchOpcode extends Opcode {
     super(name, 2, execute);
   }
 
-  public take_args(code_array: util.BytesArray, constant_pool: any): void {
+  public take_args(code_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
     this.offset = code_array.get_int(this.byte_count);
   }
 
@@ -353,7 +353,7 @@ export class PushOpcode extends Opcode {
     this.value = code_array.get_int(this.byte_count);
   }
 
-  public annotate(idx: number, pool: any): string {
+  public annotate(idx: number, pool: ConstantPool.ConstantPool): string {
     return "\t" + this.value;
   }
 
@@ -470,7 +470,7 @@ export class StoreVarOpcode extends StoreOpcode {
       this.var_num = code_array.get_uint(1);
     }
   }
-  public annotate(idx: number, pool: any): string {
+  public annotate(idx: number, pool: ConstantPool.ConstantPool): string {
     return "\t" + this.var_num;
   }
 }
@@ -483,7 +483,7 @@ export class StoreVarOpcode2 extends LoadVarOpcode {
 }
 
 export class LookupSwitchOpcode extends BranchOpcode {
-  public offsets: any;
+  public offsets: {[key:number]:number};
   public _default: number;
 
   public annotate(idx: number, pool: ConstantPool.ConstantPool): string {
