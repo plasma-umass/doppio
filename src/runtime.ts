@@ -6,6 +6,7 @@ import java_object = module('./java_object');
 import JVM = module('./jvm');
 import methods = module('./methods');
 import ClassData = module('./ClassData');
+import ClassLoader = module('./ClassLoader');
 
 declare var node, UNSAFE;
 declare var setImmediate: (cb: (any)=>any)=>void
@@ -26,7 +27,7 @@ export interface StackFrameSnapshot {
   name: string;
   pc: number;
   native: bool;
-  loader: any;
+  loader: ClassLoader.ClassLoader;
   stack: any[];
   locals: any[];
 }
@@ -96,7 +97,7 @@ export class CallStack {
 }
 
 export class StackFrame {
-  public method: any;
+  public method: methods.Method;
   public locals: any[];
   public stack: any[];
   public pc: number;
@@ -111,7 +112,7 @@ export class StackFrame {
   // Used by Native Frames
   public error: (any)=>any
 
-  constructor(method: any, locals: any[], stack: any[]) {
+  constructor(method: methods.Method, locals: any[], stack: any[]) {
     this.method = method;
     this.locals = locals;
     this.stack = stack;
@@ -121,7 +122,7 @@ export class StackFrame {
     this.name = this.method.full_signature();
   }
 
-  public snap(visited: any): { serialize: () => StackFrameSnapshot } {
+  public snap(visited: {[name:string]:bool}): { serialize: () => StackFrameSnapshot } {
     var rv,
       _this = this;
 
@@ -165,7 +166,8 @@ export class StackFrame {
   public static native_frame(name: string, handler?: (any)=>any, error_handler?:(any)=>any): StackFrame {
     var sf;
 
-    sf = new StackFrame({
+    // XXX: Super kludge!
+    sf = new StackFrame(<methods.Method>{
       full_signature: function () {
         return name;
       }
@@ -184,7 +186,7 @@ var run_count = 0;
 export class RuntimeState {
   private print: (string) => any;
   private _async_input: (cb: (string) => any) => any;
-  private bcl: any;
+  private bcl: ClassLoader.BootstrapClassLoader;
   private input_buffer: number[];
   private startup_time: gLong;
   public run_stamp: number;
@@ -203,7 +205,7 @@ export class RuntimeState {
   public should_return: bool;
   public system_initialized: bool;
 
-  constructor(print: (string) => any, _async_input: (cb: (string) => any) => any, bcl: any) {
+  constructor(print: (string) => any, _async_input: (cb: (string) => any) => any, bcl: ClassLoader.BootstrapClassLoader) {
     this.print = print;
     this._async_input = _async_input;
     this.bcl = bcl;
@@ -225,25 +227,25 @@ export class RuntimeState {
     this.max_m_count = 100000;
   }
 
-  public get_bs_cl(): any {
+  public get_bs_cl(): ClassLoader.BootstrapClassLoader {
     return this.bcl;
   }
 
-  public get_bs_class(type: string, handle_null?: boolean): any {
+  public get_bs_class(type: string, handle_null?: boolean): ClassData.ClassData {
     if (handle_null == null) {
       handle_null = false;
     }
     return this.bcl.get_initialized_class(type, handle_null);
   }
 
-  public get_class(type: string, handle_null?: boolean): any {
+  public get_class(type: string, handle_null?: boolean): ClassData.ClassData {
     if (handle_null == null) {
       handle_null = false;
     }
     return this.curr_frame().method.cls.loader.get_initialized_class(type, handle_null);
   }
 
-  public get_cl(): any {
+  public get_cl(): ClassLoader.ClassLoader {
     return this.curr_frame().method.cls.loader;
   }
 
@@ -300,7 +302,7 @@ export class RuntimeState {
     return this.curr_thread.$meta_stack;
   }
 
-  public java_throw(cls: any, msg: string): void {
+  public java_throw(cls: ClassData.ReferenceClassData, msg: string): void {
     var my_sf, v,
       _this = this;
 
@@ -528,11 +530,11 @@ export class RuntimeState {
     return this.curr_frame().pc;
   }
 
-  public goto_pc(pc): number {
+  public goto_pc(pc: number): number {
     return this.curr_frame().pc = pc;
   }
 
-  public inc_pc(n): number {
+  public inc_pc(n: number): number {
     return this.curr_frame().pc += n;
   }
 
