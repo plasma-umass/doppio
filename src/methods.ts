@@ -6,7 +6,7 @@ import underscore = module('vendor/_.js');
 import util = module('./util');
 import opcodes = module('./opcodes');
 import attributes = module('./attributes');
-//import natives = module('./natives');
+import natives = module('./natives');
 import runtime = module('./runtime');
 import logging = module('./logging');
 import JVM = module('./jvm');
@@ -20,8 +20,6 @@ var vtrace = logging.vtrace, trace = logging.trace, debug_vars = logging.debug_v
 var JavaArray = java_object.JavaArray;
 var JavaObject = java_object.JavaObject;
 var thread_name = java_object.thread_name;
-// XXX: Temporary solution.
-declare var natives;
 declare var RELEASE;
 
 export class AbstractMethodField {
