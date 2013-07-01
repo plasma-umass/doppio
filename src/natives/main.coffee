@@ -975,7 +975,7 @@ native_methods =
                 unless stats?
                   resume_cb gLong.ZERO, null
                 else
-                  resume_cb gLong.fromNumber (new Date(stats.mtime)).getTime(), null
+                  resume_cb gLong.fromNumber((new Date(stats.mtime)).getTime()), null
         o 'setLastModifiedTime(Ljava/io/File;J)Z', (rs, _this, file, time) ->
             mtime = time.toNumber()
             atime = (new Date).getTime()
