@@ -6,11 +6,12 @@ import java_object = module('./java_object');
 var JavaObject = java_object.JavaObject, JavaClassObject = java_object.JavaClassObject;
 import logging = module('./logging');
 import methods = module('./methods');
+import runtime = module('./runtime');
 var trace = logging.trace;
 
 export class ClassData {
   public loader: any;
-  public access_flags: any;
+  public access_flags: util.Flags;
   public initialized: bool;
   public resolved: bool;
   private jco: java_object.JavaClassObject;
@@ -19,16 +20,16 @@ export class ClassData {
   public super_class: string;
   public super_class_cdata: ClassData;
 
-  constructor(loader) {
+  constructor(loader: any) {
     this.loader = loader != null ? loader : null;
-    this.access_flags = {};
+    this.access_flags = null;
     this.initialized = false;
     this.resolved = false;
     this.jco = null;
     this.reset_bit = 0;
   }
 
-  public reset() {
+  public reset(): void {
     var iface, sc, _i, _len, _ref1;
 
     this.jco = null;
@@ -46,11 +47,11 @@ export class ClassData {
     }
   }
 
-  public toExternalString() {
+  public toExternalString(): string {
     return util.ext_classname(this.this_class);
   }
 
-  public getLoadState() {
+  public getLoadState(): string {
     if (this.initialized) {
       return 'initialized';
     } else if (this.resolved) {
@@ -60,58 +61,60 @@ export class ClassData {
     }
   }
 
-  public get_class_loader() {
+  public get_class_loader(): any {
     return this.loader;
   }
 
-  public get_type() {
+  public get_type(): string {
     return this.this_class;
   }
 
-  public get_super_class_type() {
+  public get_super_class_type(): string {
     return this.super_class;
   }
 
-  public get_super_class() {
+  public get_super_class(): ClassData {
     return this.super_class_cdata;
   }
 
-  public get_interface_types() {
+  public get_interface_types(): string[] {
     return [];
   }
 
-  public get_interfaces() {
+  public get_interfaces(): ClassData[] {
     return [];
   }
 
-  public get_class_object(rs) {
+  public get_class_object(rs: runtime.RuntimeState): java_object.JavaClassObject {
     if (this.jco == null) {
       this.jco = new JavaClassObject(rs, this);
     }
     return this.jco;
   }
 
-  public get_method(name: string) {
+  public get_method(name: string): methods.Method {
     return null;
   }
 
-  public get_methods() {
+  public get_methods(): { [name: string]: methods.Method } {
     return {};
   }
 
-  public get_fields() {
+  public get_fields(): methods.Field[] {
     return [];
   }
 
-  public method_lookup(rs, sig) {
-    return rs.java_throw(rs.get_bs_class('Ljava/lang/NoSuchMethodError;'), "No such method found in " + (util.ext_classname(this.get_type())) + "::" + sig);
+  public method_lookup(rs: runtime.RuntimeState, sig: string): methods.Method {
+    rs.java_throw(rs.get_bs_class('Ljava/lang/NoSuchMethodError;'), "No such method found in " + (util.ext_classname(this.get_type())) + "::" + sig);
+    return null; // TypeScript can't infer that rs.java_throw *always* throws an exception.
   }
 
-  public field_lookup(rs, name) {
-    return rs.java_throw(rs.get_bs_class('Ljava/lang/NoSuchFieldError;'), "No such field found in " + (util.ext_classname(this.get_type())) + "::" + name);
+  public field_lookup(rs: runtime.RuntimeState, name: string): methods.Field {
+    rs.java_throw(rs.get_bs_class('Ljava/lang/NoSuchFieldError;'), "No such field found in " + (util.ext_classname(this.get_type())) + "::" + name);
+    return null; // TypeScript can't infer that rs.java_throw *always* throws an exception.
   }
 
-  public is_initialized() {
+  public is_initialized(): bool {
     var _ref1;
 
     if (this.initialized) {
@@ -127,15 +130,15 @@ export class ClassData {
     return this.initialized;
   }
 
-  public is_resolved() {
+  public is_resolved(): bool {
     return this.resolved;
   }
 
-  public is_subinterface(target) {
+  public is_subinterface(target: ClassData): bool {
     return false;
   }
 
-  public is_subclass(target) {
+  public is_subclass(target: ClassData): bool {
     if (this === target) {
       return true;
     }
@@ -145,24 +148,24 @@ export class ClassData {
     return this.get_super_class().is_subclass(target);
   }
 
-  public is_castable(target) {
+  public is_castable(target: ClassData): bool {
     throw new Error("Unimplemented.");
   }
 }
 
 export class PrimitiveClassData extends ClassData {
-  constructor(this_class, loader) {
+  constructor(this_class: string, loader: any) {
     super(loader);
     this.this_class = this_class;
     this.initialized = true;
     this.resolved = true;
   }
 
-  public is_castable(target) {
+  public is_castable(target: ClassData): bool {
     return this.this_class === target.this_class;
   }
 
-  public box_class_name() {
+  public box_class_name(): string {
     switch (this.this_class) {
       case 'B':
         return 'Ljava/lang/Byte;';
@@ -185,7 +188,7 @@ export class PrimitiveClassData extends ClassData {
     }
   }
 
-  public create_wrapper_object(rs, value) {
+  public create_wrapper_object(rs: runtime.RuntimeState, value: any): java_object.JavaObject {
     var box_name, wrapped;
 
     box_name = this.box_class_name();
@@ -199,14 +202,14 @@ export class ArrayClassData extends ClassData {
   private component_type: string;
   private component_class_cdata: ClassData;
 
-  constructor(component_type, loader) {
+  constructor(component_type: string, loader: any) {
     super(loader);
     this.component_type = component_type;
     this.this_class = "[" + this.component_type;
     this.super_class = 'Ljava/lang/Object;';
   }
 
-  public reset() {
+  public reset(): void {
     super.reset();
     var ccls;
     ccls = this.get_component_class();
@@ -215,30 +218,30 @@ export class ArrayClassData extends ClassData {
     }
   }
 
-  public get_component_type() {
+  public get_component_type(): string {
     return this.component_type;
   }
 
-  public get_component_class() {
+  public get_component_class(): ClassData {
     return this.component_class_cdata;
   }
 
-  public field_lookup(rs, name) {
+  public field_lookup(rs: runtime.RuntimeState, name: string): methods.Field {
     return this.super_class_cdata.field_lookup(rs, name);
   }
 
-  public method_lookup(rs, sig) {
+  public method_lookup(rs: runtime.RuntimeState, sig: string): methods.Method {
     return this.super_class_cdata.method_lookup(rs, sig);
   }
 
-  public set_resolved(super_class_cdata, component_class_cdata) {
+  public set_resolved(super_class_cdata: ClassData, component_class_cdata: ClassData): void {
     this.super_class_cdata = super_class_cdata;
     this.component_class_cdata = component_class_cdata;
     this.resolved = true;
-    return this.initialized = true;
+    this.initialized = true;
   }
 
-  public is_castable(target) {
+  public is_castable(target: ClassData): bool {
     var _ref1;
 
     if (!(target instanceof ArrayClassData)) {
@@ -250,7 +253,7 @@ export class ArrayClassData extends ClassData {
       }
       return target.get_type() === 'Ljava/lang/Object;';
     }
-    return this.get_component_class().is_castable(target.get_component_class());
+    return this.get_component_class().is_castable((<ArrayClassData> target).get_component_class());
   }
 }
 
@@ -259,7 +262,7 @@ export class ReferenceClassData extends ClassData {
   private major_version: number;
   private constant_pool: ConstantPool.ConstantPool;
   private access_byte: number;
-  private interfaces: any[];
+  private interfaces: string[];
   private fields: methods.Field[];
   private fl_cache: { [name: string]: methods.Field };
   private methods: { [name: string]: methods.Method };
@@ -269,7 +272,7 @@ export class ReferenceClassData extends ClassData {
   private interface_cdatas: ReferenceClassData[];
   private default_fields: { [name: string]: any };
 
-  constructor(raw_bytes_array: number[], loader) {
+  constructor(raw_bytes_array: number[], loader: any) {
     super(loader);
     var f, i, isize, m, mkey, num_fields, num_methods, super_ref, _i, _j, _len, _ref1, _ref2;
     var bytes_array = new util.BytesArray(raw_bytes_array);
@@ -334,41 +337,39 @@ export class ReferenceClassData extends ClassData {
     this.static_fields = Object.create(null);
   }
 
-  public reset() {
+  public reset(): void {
     super.reset();
     var method, _i, _len, _ref1, _results;
     this.initialized = false;
     this.static_fields = Object.create(null);
     _ref1 = this.methods;
-    _results = [];
     for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
       method = _ref1[_i];
-      _results.push(method.initialize());
+      method.initialize();
     }
-    return _results;
   }
 
-  public get_interfaces() {
+  public get_interfaces(): ReferenceClassData[] {
     return this.interface_cdatas;
   }
 
-  public get_interface_types() {
+  public get_interface_types(): string[] {
     return this.interfaces;
   }
 
-  public get_fields() {
+  public get_fields(): methods.Field[] {
     return this.fields;
   }
 
-  public get_method(sig) {
+  public get_method(sig: string): methods.Method {
     return this.methods[sig];
   }
 
-  public get_methods() {
+  public get_methods(): { [name: string]: methods.Method } {
     return this.methods;
   }
 
-  public get_attribute(name) {
+  public get_attribute(name: string): attributes.Attribute {
     var attr, _i, _len, _ref1;
 
     _ref1 = this.attrs;
@@ -381,7 +382,7 @@ export class ReferenceClassData extends ClassData {
     return null;
   }
 
-  public get_attributes(name) {
+  public get_attributes(name: string): attributes.Attribute {
     var attr, _i, _len, _ref1, _results;
 
     _ref1 = this.attrs;
@@ -395,7 +396,7 @@ export class ReferenceClassData extends ClassData {
     return _results;
   }
 
-  public get_default_fields() {
+  public get_default_fields(): { [name: string]: any } {
     if (this.default_fields) {
       return this.default_fields;
     }
@@ -403,7 +404,7 @@ export class ReferenceClassData extends ClassData {
     return this.default_fields;
   }
 
-  private _initialize_static_field(rs, name) {
+  private _initialize_static_field(rs: runtime.RuntimeState, name: string): void {
     var cv, cva, f;
 
     f = this.fl_cache[name];
@@ -418,7 +419,7 @@ export class ReferenceClassData extends ClassData {
     }
   }
 
-  public static_get(rs, name) {
+  public static_get(rs: runtime.RuntimeState, name: string): any {
     if (this.static_fields[name] !== void 0) {
       return this.static_fields[name];
     }
@@ -426,23 +427,23 @@ export class ReferenceClassData extends ClassData {
     return this.static_get(rs, name);
   }
 
-  public static_put(rs, name, val) {
+  public static_put(rs: runtime.RuntimeState, name: string, val: any): void {
     if (this.static_fields[name] !== void 0) {
-      return this.static_fields[name] = val;
+      this.static_fields[name] = val;
     } else {
       this._initialize_static_field(rs, name);
-      return this.static_put(rs, name, val);
+      this.static_put(rs, name, val);
     }
   }
 
-  public set_resolved(super_class_cdata, interface_cdatas) {
+  public set_resolved(super_class_cdata: ClassData, interface_cdatas: ClassData[]): void {
     this.super_class_cdata = super_class_cdata;
     trace("Class " + (this.get_type()) + " is now resolved.");
     this.interface_cdatas = interface_cdatas != null ? interface_cdatas : [];
-    return this.resolved = true;
+    this.resolved = true;
   }
 
-  public construct_default_fields() {
+  public construct_default_fields(): void {
     var cls, f, val, _i, _len, _ref1;
 
     cls = this;
@@ -461,7 +462,7 @@ export class ReferenceClassData extends ClassData {
     }
   }
 
-  public field_lookup(rs, name, null_handled?) {
+  public field_lookup(rs: runtime.RuntimeState, name: string, null_handled?: bool): methods.Field {
     var field;
 
     field = this.fl_cache[name];
@@ -473,10 +474,10 @@ export class ReferenceClassData extends ClassData {
       this.fl_cache[name] = field;
       return field;
     }
-    return rs.java_throw(rs.get_bs_class('Ljava/lang/NoSuchFieldError;'), "No such field found in " + (util.ext_classname(this.get_type())) + "::" + name);
+    rs.java_throw(rs.get_bs_class('Ljava/lang/NoSuchFieldError;'), "No such field found in " + (util.ext_classname(this.get_type())) + "::" + name);
   }
 
-  private _field_lookup(rs, name) {
+  private _field_lookup(rs: runtime.RuntimeState, name: string): methods.Field {
     var field, ifc_cls, sc, _i, _j, _len, _len1, _ref1, _ref2;
 
     _ref1 = this.fields;
@@ -504,7 +505,7 @@ export class ReferenceClassData extends ClassData {
     return null;
   }
 
-  public method_lookup(rs, sig) {
+  public method_lookup(rs: runtime.RuntimeState, sig: string): methods.Method {
     var eh, handlers, method, _i, _len, _ref1;
 
     if (this.ml_cache[sig] != null) {
@@ -525,7 +526,7 @@ export class ReferenceClassData extends ClassData {
     return method;
   }
 
-  private _method_lookup(rs, sig) {
+  private _method_lookup(rs: runtime.RuntimeState, sig: string): methods.Method {
     var ifc, parent, _i, _len, _ref1;
 
     if (sig in this.ml_cache) {
@@ -552,7 +553,7 @@ export class ReferenceClassData extends ClassData {
     return this.ml_cache[sig] = null;
   }
 
-  public resolve_method(rs, sig, success_fn, failure_fn) {
+  public resolve_method(rs: runtime.RuntimeState, sig: string, success_fn: (mthd:methods.Method)=>void, failure_fn: (e_cb:()=>void)=>void) {
     var handlers, i, m, next_handler,
       _this = this;
 
@@ -577,7 +578,7 @@ export class ReferenceClassData extends ClassData {
     return next_handler();
   }
 
-  public is_castable(target) {
+  public is_castable(target: ClassData): bool {
     if (!(target instanceof ReferenceClassData)) {
       return false;
     }
@@ -596,7 +597,7 @@ export class ReferenceClassData extends ClassData {
     }
   }
 
-  public is_subinterface(target): bool {
+  public is_subinterface(target: ClassData): bool {
     var super_iface, _i, _len, _ref1;
 
     if (this.this_class === target.this_class) {
