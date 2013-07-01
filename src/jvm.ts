@@ -15,7 +15,7 @@ export var show_NYI_natives: bool = false;
 export var dump_state: bool = false;
 
 var vendor_path = typeof node !== "undefined" ? '/home/doppio/vendor' : path.resolve(__dirname, '../vendor');
-var system_properties: any
+export var system_properties: any
 
 export function reset_system_properties() {
   system_properties = {
