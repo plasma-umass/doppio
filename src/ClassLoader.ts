@@ -268,12 +268,10 @@ export class ClassLoader {
   }
 
   public get_resolved_class(type_str: string, null_handled?:bool): ClassData.ClassData {
-    var cdata;
-
     if (null_handled == null) {
       null_handled = false;
     }
-    cdata = this.get_loaded_class(type_str, null_handled);
+    var cdata = this.get_loaded_class(type_str, null_handled);
     if (cdata != null ? cdata.is_resolved() : void 0) {
       return cdata;
     }
@@ -284,13 +282,11 @@ export class ClassLoader {
   }
 
   public get_initialized_class(type_str: string, null_handled?:bool): any {
-    var cdata;
-
     if (null_handled == null) {
       null_handled = false;
     }
-    cdata = this.get_resolved_class(type_str, null_handled);
-    if (cdata != null ? cdata.is_initialized() : void 0) {
+    var cdata = this.get_resolved_class(type_str, null_handled);
+    if (cdata != null && cdata.is_initialized()) {
       return cdata;
     }
     if (null_handled) {
@@ -300,17 +296,17 @@ export class ClassLoader {
   }
 
   public _initialize_class(rs: runtime.RuntimeState, cdata: ClassData.ClassData, success_fn: (cd:ClassData.ClassData)=>void, failure_fn:(e_fn:()=>void, discardStackFrame?:bool)=>void): void {
-    var class_file, clinit, first_clinit, first_native_frame, next_nf,
+    var class_file, clinit, next_nf,
       _this = this;
 
     trace("Actually initializing class " + (cdata.get_type()) + "...");
     if (!(cdata instanceof ReferenceClassData)) {
-      (typeof UNSAFE !== "undefined" && UNSAFE !== null) || (function () {
-        throw new Error("Tried to initialize a non-reference type: " + (cdata.get_type()));
-      })();
+      if (typeof UNSAFE !== "undefined" && UNSAFE !== null) {
+        throw new Error("Tried to initialize a non-reference type: " + cdata.get_type();
+      }
     }
-    first_clinit = true;
-    first_native_frame = StackFrame.native_frame("$clinit", (function () {
+    var first_clinit = true;
+    var first_native_frame = StackFrame.native_frame("$clinit", (function () {
       if (rs.curr_frame() !== first_native_frame) {
         throw new Error("The top of the meta stack should be this native frame, but it is not: " + (rs.curr_frame().name) + " at " + (rs.meta_stack().length()));
       }
@@ -319,30 +315,24 @@ export class ClassLoader {
         return success_fn(cdata);
       });
     }), (function (e) {
-        var cls, nf, v;
-
         rs.curr_frame().cdata.reset();
         if (e instanceof JavaException) {
           if (e.exception.cls.get_type() === 'Ljava/lang/NoClassDefFoundError;') {
             rs.meta_stack().pop();
             throw e;
           }
-          nf = rs.curr_frame();
+          var nf = rs.curr_frame();
           nf.runner = function () {
-            var rv;
-
-            rv = rs.pop();
+            var rv = rs.pop();
             rs.meta_stack().pop();
             throw new JavaException(rv);
           };
           nf.error = function () {
             rs.meta_stack().pop();
-            return failure_fn((function () {
-              throw e;
-            }));
+            return failure_fn((function () {throw e;}));
           };
-          cls = _this.bootstrap.get_resolved_class('Ljava/lang/ExceptionInInitializerError;');
-          v = new JavaObject(rs, cls);
+          var cls = _this.bootstrap.get_resolved_class('Ljava/lang/ExceptionInInitializerError;');
+          var v = new JavaObject(rs, cls);
           rs.push_array([v, v, e.exception]);
           return cls.method_lookup(rs, '<init>(Ljava/lang/Throwable;)V').setup_stack(rs);
         } else {
