@@ -231,14 +231,14 @@ export class RuntimeState {
     return this.bcl;
   }
 
-  public get_bs_class(type: string, handle_null?: boolean): ClassData.ClassData {
+  public get_bs_class(type: string, handle_null?: boolean): any {
     if (handle_null == null) {
       handle_null = false;
     }
     return this.bcl.get_initialized_class(type, handle_null);
   }
 
-  public get_class(type: string, handle_null?: boolean): ClassData.ClassData {
+  public get_class(type: string, handle_null?: boolean): any {
     if (handle_null == null) {
       handle_null = false;
     }
