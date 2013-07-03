@@ -272,7 +272,7 @@ export class ClassLoader {
       null_handled = false;
     }
     var cdata = this.get_loaded_class(type_str, null_handled);
-    if (cdata != null ? cdata.is_resolved() : void 0) {
+    if (cdata != null ? cdata.is_resolved() : false) {
       return cdata;
     }
     if (null_handled) {
@@ -302,7 +302,7 @@ export class ClassLoader {
     trace("Actually initializing class " + (cdata.get_type()) + "...");
     if (!(cdata instanceof ReferenceClassData)) {
       if (typeof UNSAFE !== "undefined" && UNSAFE !== null) {
-        throw new Error("Tried to initialize a non-reference type: " + cdata.get_type();
+        throw new Error("Tried to initialize a non-reference type: " + cdata.get_type());
       }
     }
     var first_clinit = true;
