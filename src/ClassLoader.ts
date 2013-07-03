@@ -283,7 +283,7 @@ export class ClassLoader {
     throw new Error("Error in get_resolved_class: Class " + type_str + " is not resolved.");
   }
 
-  public get_initialized_class(type_str: string, null_handled?:bool): ClassData.ClassData {
+  public get_initialized_class(type_str: string, null_handled?:bool): any {
     var cdata;
 
     if (null_handled == null) {
