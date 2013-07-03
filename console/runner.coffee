@@ -155,6 +155,7 @@ if require.main == module
                 break
             catch e
               # Do nothing; iterate.
+        return  # avoid accumulating results
     when argv.non_standard['count-logs']
       count = 0
       old_log = console.log
