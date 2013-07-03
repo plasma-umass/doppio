@@ -1,8 +1,5 @@
-declare module 'vendor/_.js' {
-  export function clone(x: any): any;
-  export function find<T>(array: T[], finder: (T)=>bool): T;
-}
-import underscore = module('vendor/_.js');
+
+var underscore = require('../vendor/_.js');
 import util = module('./util');
 import opcodes = module('./opcodes');
 import attributes = module('./attributes');

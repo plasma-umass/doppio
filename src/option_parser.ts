@@ -1,13 +1,7 @@
 /// <reference path="node.d.ts" />
-declare module 'vendor/_.js' {
-  export function isString(x: any): boolean;
-}
-import underscore = module('vendor/_.js');
 
-// default module: option_parser
-
+var underscore = require('../vendor/_.js');
 var options = null;
-
 var description = null;
 
 export function describe(new_description: any): void {

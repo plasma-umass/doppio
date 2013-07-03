@@ -1,7 +1,5 @@
-declare module 'vendor/_.js' {
-  export function clone(x: any): any;
-}
-import underscore = module('vendor/_.js');
+
+var underscore = require('../vendor/_.js');
 import gLong = module('./gLong');
 import util = module('./util');
 import logging = module('./logging');
