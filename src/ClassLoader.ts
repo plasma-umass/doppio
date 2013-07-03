@@ -272,7 +272,7 @@ export class ClassLoader {
       null_handled = false;
     }
     var cdata = this.get_loaded_class(type_str, null_handled);
-    if (cdata != null ? cdata.is_resolved() : false) {
+    if (cdata != null && cdata.is_resolved()) {
       return cdata;
     }
     if (null_handled) {
