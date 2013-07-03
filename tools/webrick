@@ -1,0 +1,56 @@
+#! /usr/bin/env coffee
+
+{argv} = require 'optimist'
+http   = require 'http'
+path   = require 'path'
+
+class DoppioServer
+  constructor: ->
+    @Mode =
+      DEV: 0
+      REL: 2
+
+    @Browser =
+      CHROME:  'chrome'
+      FIREFOX: 'firefox'
+      SAFARI:  'safari'
+      OPERA:   'opera'
+
+  options: (args) ->
+    options =
+      verbosity: 1
+      mode: @Mode.REL
+      logdir: './logs'
+
+    if argv.release then options.mode = @Mode.REL
+    if argv.dev then options.mode = @Mode.DEV
+
+  modestring: (mode) ->
+    switch mode
+      when @Mode.DEV then 'development'
+      when @Mode.REL then 'release'
+      else 'invalid mode'
+
+  p1: (m) -> @pn 1, m
+  p2: (m) -> @pn 2, m
+  p3: (m) -> @pn 3, m
+  pn: (n, m) -> console.log m if n <= @options.verbosity
+
+  start: ->
+    dir =
+      switch @options.mode
+        when @Mode.REL then 'release'
+        when @Mode.DEV then 'dev'
+
+    root = path.resolve __dirname, 'build'
+
+    @p1 "Creating server in #{@modestring(@options.mode)} mode."
+
+    # @server = http.stuff()
+
+    @p1 "Starting server."
+
+
+
+doppio = new DoppioServer()
+doppio.start()
