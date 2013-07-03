@@ -26,11 +26,9 @@ function stub(obj, name, replacement, wrapped) {
   }
 }
 
-function extract_all_to(files, dest_dir) {
-  var file, filepath;
-
-  for (filepath in files) {
-    file = files[filepath];
+function extract_all_to(files: string[], dest_dir: string): void {
+  for (var filepath in files) {
+    var file = files[filepath];
     filepath = path.join(dest_dir, filepath);
     if (file.options.dir || filepath.slice(-1) === '/') {
       if (!fs.existsSync(filepath)) {
@@ -42,19 +40,17 @@ function extract_all_to(files, dest_dir) {
   }
 }
 
-function extract_jar(jar_path, main_class_name?) {
-  var JSZip, jar_name, tmpdir, unzipper;
-
-  JSZip = require('node-zip');
-  unzipper = new JSZip(fs.readFileSync(jar_path, 'binary'), {
+function extract_jar(jar_path: string, main_class_name?: string): string {
+  var JSZip = require('node-zip');
+  var unzipper = new JSZip(fs.readFileSync(jar_path, 'binary'), {
     base64: false,
     checkCRC32: true
   });
-  jar_name = path.basename(jar_path, '.jar');
+  var jar_name = path.basename(jar_path, '.jar');
   if (!fs.existsSync('/tmp/doppio')) {
     fs.mkdirSync('/tmp/doppio');
   }
-  tmpdir = "/tmp/doppio/" + jar_name;
+  var tmpdir = "/tmp/doppio/" + jar_name;
   if (!fs.existsSync(tmpdir)) {
     fs.mkdirSync(tmpdir);
   }
@@ -63,15 +59,13 @@ function extract_jar(jar_path, main_class_name?) {
   return tmpdir;
 }
 
-function find_main_class(extracted_jar_dir) {
-  var line, manifest, manifest_path, match, _i, _len, _ref;
-
-  manifest_path = "" + extracted_jar_dir + "/META-INF/MANIFEST.MF";
-  manifest = fs.readFileSync(manifest_path, 'utf8');
-  _ref = manifest.split('\n');
-  for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-    line = _ref[_i];
-    match = line.match(/Main-Class: (\S+)/);
+function find_main_class(extracted_jar_dir: string): string {
+  // find the main class in the manifest
+  var manifest_path = extracted_jar_dir + "/META-INF/MANIFEST.MF";
+  var manifest = fs.readFileSync(manifest_path, 'utf8');
+  var manifest_lines = manifest.split('\n');
+  for (var i = 0; i < manifest_lines.length; i++) {
+    var match = manifest_lines[i].match(/Main-Class: (\S+)/);
     if (match != null) {
       return match[1].replace(/\./g, '/');
     }
@@ -79,15 +73,15 @@ function find_main_class(extracted_jar_dir) {
 }
 
 function print_help(option_descriptions) {
-  var launcher, script;
-
-  launcher = process.argv[0];
-  script = require('path').relative(process.cwd(), process.argv[1]);
+  var launcher = process.argv[0];
+  var script = require('path').relative(process.cwd(), process.argv[1]);
   console.log("Usage: " + launcher + " " + script + " [flags] /path/to/classfile [args for main()]\n");
   return console.log(option_descriptions);
 }
 
 
+// note that optimist does not know how to parse quoted string parameters, so we must
+// place the arguments to the java program after '--' rather than as a normal flag value.
 optparse.describe({
   standard: {
     classpath: {
@@ -133,34 +127,30 @@ if (argv.standard.X) {
   return print_help(optparse.show_non_standard_help());
 }
 
-logging.log_level = (function () {
-  var _ref;
-
-  if (argv.non_standard.log != null) {
-    if (/[0-9]+/.test(argv.non_standard.log)) {
-      return argv.non_standard.log + 0;
-    } else {
-      level = logging[(_ref = argv.non_standard.log) != null ? _ref.toUpperCase() : void 0];
-      if (level == null) {
-        throw 'Unrecognized log level: should be one of [0-10]|vtrace|trace|debug|error.';
-      }
-      return level;
-    }
+if (argv.non_standard.log != null) {
+  if (/[0-9]+/.test(argv.non_standard.log)) {
+    logging.log_level = argv.non_standard.log + 0;
   } else {
-    return logging.ERROR;
+    var level = logging[argv.non_standard.log.toUpperCase()];
+    if (level == null) {
+      throw 'Unrecognized log level: should be one of [0-10]|vtrace|trace|debug|error.';
+    }
+    logging.log_level = level;
   }
-})();
+} else {
+  logging.log_level = logging.ERROR;
+}
 
 jvm.show_NYI_natives = argv.non_standard['show-nyi-natives'];
 jvm.dump_state = argv.non_standard['dump-state'];
 if (argv.standard.classpath != null) {
-  jvm.set_classpath("" + __dirname + "/../vendor/classes", argv.standard.classpath);
+  jvm.set_classpath(__dirname + "/../vendor/classes", argv.standard.classpath);
 } else {
-  jvm.set_classpath("" + __dirname + "/../vendor/classes", '.');
+  jvm.set_classpath(__dirname + "/../vendor/classes", '.');
 }
 underscore.extend(jvm.system_properties, argv.properties);
 var cname = argv.className;
-if ((cname != null ? cname.slice(-6) : void 0) === '.class') {
+if (cname != null && cname.slice(-6) === '.class') {
   cname = cname.slice(0, -6);
 }
 if (!((cname != null) || (argv.standard.jar != null))) {
@@ -168,11 +158,11 @@ if (!((cname != null) || (argv.standard.jar != null))) {
 }
 var main_args = argv._;
 var stdout = process.stdout.write.bind(process.stdout);
-function read_stdin(resume) {
+function read_stdin(resume): void {
   process.stdin.resume();
-  return process.stdin.once('data', function (data) {
+  process.stdin.once('data', function (data) {
     process.stdin.pause();
-    return resume(data);
+    resume(data);
   });
 }
 
@@ -185,29 +175,27 @@ if (argv.standard.jar != null) {
     console.error("No Main-Class found in " + argv.standard.jar);
   }
 }
-function run(done_cb) {
-  return jvm.run_class(rs, cname, main_args, done_cb);
+function run(done_cb): void {
+  jvm.run_class(rs, cname, main_args, done_cb);
 }
 var done_cb = (function () {
   switch (false) {
     case !argv.non_standard['list-class-cache']:
       return function () {
-        var cpath, e, file, fpath, k, scriptdir, _i, _len, _ref, _results;
-
-        scriptdir = path.resolve(__dirname + "/..");
-        _ref = rs.get_bs_cl().get_loaded_class_list(true);
-        _results = [];
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          k = _ref[_i];
-          file = "" + k + ".class";
+        var scriptdir = path.resolve(__dirname + "/..");
+        var classes = rs.get_bs_cl().get_loaded_class_list(true);
+        var _results = [];
+        for (var i = 0; i < classes.length; i++) {
+          var file = classes[i] + ".class";
+          // Find where it (file) was loaded from.
           _results.push((function () {
             var _j, _len1, _ref1, _results1;
 
             _ref1 = jvm.system_properties['java.class.path'];
             _results1 = [];
             for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-              cpath = _ref1[_j];
-              fpath = cpath + file;
+              var cpath = _ref1[_j];
+              var fpath = cpath + file;
               try {
                 if (fs.statSync(fpath).isFile()) {
                   fpath = path.resolve(fpath).substr(scriptdir.length + 1);
@@ -219,7 +207,7 @@ var done_cb = (function () {
                   _results1.push(void 0);
                 }
               } catch (_error) {
-                e = _error;
+                // Do nothing; iterate.
               }
             }
             return _results1;
@@ -273,6 +261,6 @@ process.on('SIGINT', function () {
   if (jvm.dump_state) {
     rs.dump_state();
   }
-  return process.exit(0);
+  process.exit(0);
 });
 run(done_cb);
