@@ -84,7 +84,7 @@ function fixed_width(num: number, width: number) {
   return (new Array(width - num_str.length + 1)).join(' ') + num_str;
 }
 
-export function disassemble(class_file) {
+export function disassemble(class_file): string {
   return show_disassembly(make_dis(class_file));
 }
 

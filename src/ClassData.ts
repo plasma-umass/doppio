@@ -3,7 +3,8 @@ import ConstantPool = module('./ConstantPool');
 import attributes = module('./attributes');
 import opcodes = module('./opcodes');
 import java_object = module('./java_object');
-var JavaObject = java_object.JavaObject, JavaClassObject = java_object.JavaClassObject;
+var JavaObject = java_object.JavaObject;
+var JavaClassObject = java_object.JavaClassObject;
 import logging = module('./logging');
 import methods = module('./methods');
 import runtime = module('./runtime');
@@ -272,7 +273,7 @@ export class ReferenceClassData extends ClassData {
   private interface_cdatas: ReferenceClassData[];
   private default_fields: { [name: string]: any };
 
-  constructor(raw_bytes_array: number[], loader: any) {
+  constructor(raw_bytes_array: number[], loader?: any) {
     super(loader);
     var f, i, isize, m, mkey, num_fields, num_methods, super_ref, _i, _j, _len, _ref1, _ref2;
     var bytes_array = new util.BytesArray(raw_bytes_array);
