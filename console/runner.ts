@@ -1,8 +1,6 @@
 /// <reference path="../src/node.d.ts" />
-declare module 'vendor/_.js' {
-  export function extend(x: any, y: any): any;
-}
-import underscore = module('vendor/_.js');
+
+var underscore = require('../vendor/_.js');
 var fs = require('fs');
 var path = require('path');
 import jvm = module('../src/jvm');
