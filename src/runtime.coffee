@@ -443,11 +443,12 @@ class root.RuntimeState
         )
       )
       @meta_stack().push(nf)
-      # Setup the stack with the method.
+      # Add the arguments to the stack.
       @push_array args
-      # Call the method.
+      # Setup dat stack frame
       method.setup_stack(@)
-      # Push ourselves back into the execution loop.
+      # Push ourselves back into the execution loop
+      # to call the method!
       @run_until_finished((->), false, @stashed_done_cb)
 
   run_until_finished: (setup_fn, no_threads, done_cb) ->
