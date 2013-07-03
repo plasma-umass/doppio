@@ -7,23 +7,36 @@ mustache = require 'mustache'
 fs       = require 'fs'
 path     = require 'path'
 
+# Set Markdown rendering options
 marked.setOptions
-  smartypants: true
-  smartLists:  true
+  smartypants: true # Enable the SmartyPants extension for nicer quotes and dashes
+  smartLists:  true # Enable more intelligent list rendering
 
-render = (opts) -> console.log(mustache.render(template, opts))
+render = (opts) -> console.log(mustache.render(template, opts, partials))
 
 fullpath = (filename) -> path.resolve __dirname, filename
 
-name = process.argv[2]
-filepath = fullpath "#{name}.mustache"
-template = fs.readFileSync(filepath).toString()
+readfile = (filename) -> fs.readFileSync(fullpath(filename)).toString()
 
+# The first argument passed to the script is the name of the template to be rendered
+name = process.argv[2]
+# Read the contents of the template file
+template = readfile "#{name}.mustache"
+
+# Create an object to hold common options used by all templates
 opts =
   release: argv.release
 
+# Load the contents of partials needed by the templates into an object
+partial_names = ['_navbar']
+partials = {}
+for p in partial_names
+  partials[p] = readfile "#{p}.mustache"
+
+# Configure any template-specific options and render the final HTML page
 switch name
   when 'index'
+    # Asynchronously get the current Git SHA hash
     exec 'git rev-parse HEAD', (err, stdout, stderr) ->
       throw err if err
 
@@ -34,7 +47,7 @@ switch name
       render opts
 
   when 'about'
-    opts.about = marked(fs.readFileSync(fullpath("_about.md")).toString())
+    opts.about = marked readfile "_about.md"
 
     render opts
 
