@@ -178,84 +178,65 @@ if (argv.standard.jar != null) {
 function run(done_cb): void {
   jvm.run_class(rs, cname, main_args, done_cb);
 }
-var done_cb = (function () {
-  switch (false) {
-    case !argv.non_standard['list-class-cache']:
-      return function () {
-        var scriptdir = path.resolve(__dirname + "/..");
-        var classes = rs.get_bs_cl().get_loaded_class_list(true);
-        var _results = [];
-        for (var i = 0; i < classes.length; i++) {
-          var file = classes[i] + ".class";
-          // Find where it (file) was loaded from.
-          _results.push((function () {
-            var _j, _len1, _ref1, _results1;
-
-            _ref1 = jvm.system_properties['java.class.path'];
-            _results1 = [];
-            for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-              var cpath = _ref1[_j];
-              var fpath = cpath + file;
-              try {
-                if (fs.statSync(fpath).isFile()) {
-                  fpath = path.resolve(fpath).substr(scriptdir.length + 1);
-                  if (fs.existsSync(fpath)) {
-                    console.log(fpath);
-                  }
-                  break;
-                } else {
-                  _results1.push(void 0);
-                }
-              } catch (_error) {
-                // Do nothing; iterate.
-              }
+var done_cb;
+if (argv.non_standard['list-class-cache']) {
+  done_cb = function () {
+    var scriptdir = path.resolve(__dirname + "/..");
+    var classes = rs.get_bs_cl().get_loaded_class_list(true);
+    var cpaths = jvm.system_properties['java.class.path'];
+    for (var i = 0; i < classes.length; i++) {
+      var file = classes[i] + ".class";
+      // Find where the file was loaded from.
+      for (var j = 0; j < cpaths.length; j++) {
+        var fpath = cpaths[j] + file;
+        try {
+          if (fs.statSync(fpath).isFile()) {
+            fpath = path.resolve(fpath).substr(scriptdir.length + 1);
+            if (fs.existsSync(fpath)) {
+              console.log(fpath);
             }
-            return _results1;
-          })());
+            break;
+          }
+        } catch (_error) {
+          // Do nothing; iterate.
         }
-        return _results;
-      };
-    case !argv.non_standard['count-logs']:
-      var count = 0;
-      var old_log = console.log;
-      console.log = function () {
-        return ++count;
-      };
-      return function () {
+      }
+    }
+  };
+} else if (argv.non_standard['count-logs']) {
+    var count = 0;
+    var old_log = console.log;
+    console.log = function () { ++count; };
+    done_cb = function () {
+      console.log = old_log;
+      console.log("console.log() was called a total of " + count + " times.");
+    };
+    } else if (argv.non_standard['skip-logs'] != null) {
+    count = parseInt(argv.non_standard['skip-logs'], 10);
+    old_log = console.log;
+    console.log = function () {
+      if (--count === 0) {
         console.log = old_log;
-        return console.log("console.log() was called a total of " + count + " times.");
-      };
-    case argv.non_standard['skip-logs'] == null:
-      count = parseInt(argv.non_standard['skip-logs'], 10);
-      old_log = console.log;
-      console.log = function () {
-        if (--count === 0) {
-          return console.log = old_log;
-        }
-      };
-      return function () { };
-    case !argv.non_standard['benchmark']:
-      console.log('Starting cold-cache run...');
-      var cold_start = (new Date).getTime();
-      return function () {
-        var mid_point;
+      }
+    };
+    done_cb = function () {};
+  } else if (argv.non_standard['benchmark']) {
+    console.log('Starting cold-cache run...');
+    var cold_start = (new Date).getTime();
+    done_cb = function () {
+      var mid_point = (new Date).getTime();
+      console.log('Starting hot-cache run...');
+      rs = new runtime.RuntimeState(stdout, read_stdin, bs_cl);
+      run(function () {
+        var finished = (new Date).getTime();
+        console.log("Timing:\n\t" + (mid_point - cold_start) + " ms cold\n\t"
+                    + (finished - mid_point) + " ms hot");
+      });
+    };
+  } else {
+    done_cb = function (success) { process.exit(!success ? 1 : 0); };
+}
 
-        mid_point = (new Date).getTime();
-        console.log('Starting hot-cache run...');
-        rs = new runtime.RuntimeState(stdout, read_stdin, bs_cl);
-        return run(function () {
-          var finished;
-
-          finished = (new Date).getTime();
-          return console.log("Timing:\n\t" + (mid_point - cold_start) + " ms cold\n\t" + (finished - mid_point) + " ms hot");
-        });
-      };
-    default:
-      return function (success) {
-        return process.exit(!success ? 1 : 0);
-      };
-  }
-})();
 process.on('SIGINT', function () {
   console.error('Doppio caught SIGINT');
   if (jvm.dump_state) {
