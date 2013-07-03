@@ -13,6 +13,7 @@ function access_string(access_flags: any): string {
   return ordered_flags.filter((flag: string) => access_flags[flag]).join(' ');
 }
 
+// format floats and doubles in the javap way
 function format_decimal(val: number, type_char: string): string {
   var m, _ref;
 
@@ -43,6 +44,8 @@ function format_decimal(val: number, type_char: string): string {
   return str + type_char;
 }
 
+// format the entries for displaying the constant pool. e.g. as '#5.#6' or
+// '3.14159f'
 function format(entry): string {
   var val = entry.value;
   switch (entry.type) {
@@ -63,6 +66,7 @@ function format(entry): string {
   }
 }
 
+// pretty-print our field types, e.g. as 'PackageName.ClassName[][]'
 function pp_type(field_type): string {
   if (util.is_array_type(field_type)) {
     return pp_type(util.get_component_type(field_type)) + '[]';
@@ -74,6 +78,7 @@ function print_excs(excs) {
   return "   throws " + excs.map(util.ext_classname).join(', ');
 }
 
+// For printing columns.
 function fixed_width(num: number, width: number) {
   var num_str = num.toString();
   return (new Array(width - num_str.length + 1)).join(' ') + num_str;
@@ -85,7 +90,7 @@ export function disassemble(class_file) {
 
 function make_dis(class_file) {
   var cls, code, const_attr, dis, entry, f, field, flags, icls, icls_group, m, method, ops, pool, sig, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref10, _ref11, _ref12, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8, _ref9;
-
+  // standard class stuff
   dis = {
     source_file: (_ref = (_ref1 = class_file.get_attribute('SourceFile')) != null ? _ref1.filename : void 0) != null ? _ref : null,
     is_deprecated: class_file.get_attribute('Deprecated') != null,
@@ -102,6 +107,7 @@ function make_dis(class_file) {
     fields: [],
     methods: []
   };
+  // constant pool entries
   pool = class_file.constant_pool;
   pool.each(function(idx, entry) {
     return dis.constant_pool.push({
@@ -111,36 +117,29 @@ function make_dis(class_file) {
       extra: util.format_extra_info(entry)
     });
   });
+  // inner classes
   _ref4 = class_file.get_attributes('InnerClasses');
   for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
     icls = _ref4[_i];
     icls_group = [];
     _ref5 = icls.classes;
     for (_j = 0, _len1 = _ref5.length; _j < _len1; _j++) {
-      cls = _ref5[_j];
-      flags = util.parse_flags(cls.inner_access_flags);
+      var cls = _ref5[_j];
+      var flags = util.parse_flags(cls.inner_access_flags);
+      var astr = '';
+      if (flags['public']) { astr += 'public '; }
+      if (flags['abstract']) { astr += 'abstract '; }
       icls_group.push({
-        access_string: ((function() {
-          var _k, _len2, _ref6, _results;
-
-          _ref6 = ['public', 'abstract'];
-          _results = [];
-          for (_k = 0, _len2 = _ref6.length; _k < _len2; _k++) {
-            f = _ref6[_k];
-            if (flags[f]) {
-              _results.push(f + ' ');
-            }
-          }
-          return _results;
-        })()).join(''),
+        access_string: astr,
         type: util.descriptor2typestr(pool.get(cls.inner_info_index).deref()),
-        raw: cls,
+        raw: cls,  // useful for inner/outer indices
         name: cls.inner_name_index > 0 ? pool.get(cls.inner_name_index).value : null,
         outer_type: cls.outer_info_index > 0 ? pool.get(cls.outer_info_index).deref() : null
       });
     }
     dis.inner_classes.push(icls_group);
   }
+  // fields
   _ref6 = class_file.get_fields();
   for (_k = 0, _len2 = _ref6.length; _k < _len2; _k++) {
     f = _ref6[_k];
@@ -158,6 +157,7 @@ function make_dis(class_file) {
     }
     dis.fields.push(field);
   }
+  // methods
   _ref9 = class_file.get_methods();
   for (sig in _ref9) {
     m = _ref9[sig];
@@ -223,8 +223,10 @@ function show_disassembly(dis): string {
     for (_j = 0, _len1 = icls_group.length; _j < _len1; _j++) {
       icls = icls_group[_j];
       if (icls.name == null) {
+        // anonymous inner class
         rv += "   " + icls.access_string + "#" + icls.raw.inner_info_index + "; //class " + icls.type + "\n";
       } else {
+        // it's a named inner class
         rv += "   " + icls.access_string + "#" + icls.raw.inner_name_index + "= #" + icls.raw.inner_info_index;
         if (icls.outer_type == null) {
           rv += "; //" + icls.name + "=class " + icls.type + "\n";
