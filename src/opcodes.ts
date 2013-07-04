@@ -1020,7 +1020,7 @@ export var opcodes : Opcode[] = [
   new VoidReturnOpcode('return'),
   // field access
   new FieldOpcode('getstatic', function(rs) {
-    var desc = this.field_spec.class_descriptor;
+    var desc = this.field_spec.class;
     var ref_cls = rs.get_class(desc, true);
     var new_execute;
     if (this.field_spec.type == 'J' || this.field_spec.type == 'D') {
@@ -1050,7 +1050,7 @@ export var opcodes : Opcode[] = [
     }
   }),
   new FieldOpcode('putstatic', function(rs) {
-    var desc = this.field_spec.class_descriptor;
+    var desc = this.field_spec.class;
     var ref_cls = rs.get_class(desc, true);
     var new_execute;
     if (this.field_spec.type == 'J' || this.field_spec.type == 'D') {
@@ -1080,7 +1080,7 @@ export var opcodes : Opcode[] = [
     });
   }),
   new FieldOpcode('getfield', function(rs) {
-    var desc = this.field_spec.class_descriptor;
+    var desc = this.field_spec.class;
     var obj = rs.check_null(rs.peek());
     var cls = rs.get_class(desc, true);
     if (cls != null) {
@@ -1103,7 +1103,7 @@ export var opcodes : Opcode[] = [
     });
   }),
   new FieldOpcode('putfield', function(rs) {
-    var desc = this.field_spec.class_descriptor;
+    var desc = this.field_spec.class;
     var cls_obj, field, name, new_execute, _obj, _ref10, _ref9;
     var is_cat_2 = (this.field_spec.type == 'J' || this.field_spec.type == 'D');
     var _obj;
@@ -1144,7 +1144,7 @@ export var opcodes : Opcode[] = [
   new DynInvokeOpcode('invokeinterface'),
   null,  // invokedynamic
   new ClassOpcode('new', function(rs) {
-    var desc = this.class_descriptor;
+    var desc = this.class;
     this.cls = rs.get_class(desc, true);
     if (this.cls != null) {
       if (this.cls.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/ClassLoader;'))) {
@@ -1176,7 +1176,7 @@ export var opcodes : Opcode[] = [
   }),
   new NewArrayOpcode('newarray'),
   new ClassOpcode('anewarray', function(rs) {
-    var desc = this.class_descriptor;
+    var desc = this.class;
     var cls = rs.get_cl().get_resolved_class(desc, true);
     if (cls != null) {
       var new_execute = (rs) => rs.push(rs.heap_newarray(desc, rs.pop()));
@@ -1193,7 +1193,7 @@ export var opcodes : Opcode[] = [
   new Opcode('arraylength', 0, ((rs) => rs.push(rs.check_null(rs.pop()).array.length))),
   new Opcode('athrow', 0, function(rs){throw new JavaException(rs.pop())}),
   new ClassOpcode('checkcast', function(rs) {
-    var desc = this.class_descriptor;
+    var desc = this.class;
     this.cls = rs.get_cl().get_resolved_class(desc, true);
     if (this.cls != null) {
       var new_execute = function(rs: runtime.RuntimeState): void {
@@ -1215,7 +1215,7 @@ export var opcodes : Opcode[] = [
     });
   }),
   new ClassOpcode('instanceof', function(rs) {
-    var desc = this.class_descriptor;
+    var desc = this.class;
     this.cls = rs.get_cl().get_resolved_class(desc, true);
     if (this.cls != null) {
       var new_execute = function(rs) {
