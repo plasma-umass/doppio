@@ -108,7 +108,7 @@ export class StackFrame {
   // XXX: Super kludge: DO NOT USE. Used by the ClassLoader on native frames.
   // We should... remove this...
   public cdata: ClassData.ClassData;
-  
+
   // Used by Native Frames
   public error: (any)=>any
 
@@ -289,7 +289,7 @@ export class RuntimeState {
         thread_cls.static_fields['threadInitNumber'] = 1;
         debug("### finished thread init ###");
       };
-      ct = new JavaObject(_this, thread_cls, {
+      ct = new JavaThreadObject(_this, {
         'Ljava/lang/Thread;name': _this.init_carr('main'),
         'Ljava/lang/Thread;priority': 1,
         'Ljava/lang/Thread;group': group,

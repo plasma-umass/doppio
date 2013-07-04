@@ -169,16 +169,21 @@ export class JavaThreadObject extends JavaObject {
   public $park_count: number;
   public $park_timeout: number;
   constructor(rs: runtime.RuntimeState, obj?: any) {
-    var cls = <ClassData.ReferenceClassData> {
-      get_type: (() => 'Ljava/lang/Thread;'),
-      loader: rs.get_bs_cl(),
-      get_default_fields: (() => null)  // XXX: Hack for now.
-    };
-    super(rs, cls, obj);
+    var cls = <ClassData.ReferenceClassData> rs.get_bs_cl().get_resolved_class('Ljava/lang/Thread;', true);
+    // First thread to bootstrap us into the JVM.
+    if (cls == null) {
+      cls = <ClassData.ReferenceClassData> {
+        get_type: (() => 'Ljava/lang/Thread;'),
+        loader: rs.get_bs_cl(),
+        get_default_fields: (() => null)  // XXX: Hack for now.
+      };
+    }
+    super(rs, <ClassData.ReferenceClassData> cls, obj);
     this.$isAlive = true;
     this.wakeup_time = Infinity;
     this.$park_count = 0;
     this.$park_timeout = Infinity;
+    this.$meta_stack = new runtime.CallStack();
   }
 
   public clone(rs: runtime.RuntimeState): JavaObject {
