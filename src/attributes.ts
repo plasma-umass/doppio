@@ -401,6 +401,7 @@ export function make_attributes(bytes_array: util.BytesArray, constant_pool: Con
     'RuntimeVisibleAnnotations': RuntimeVisibleAnnotations,
     'AnnotationDefault': AnnotationDefault,
     'EnclosingMethod': EnclosingMethod
+    // NYI: LocalVariableTypeTable
   };
   var num_attrs = bytes_array.get_uint(2);
   var attrs = [];
@@ -417,6 +418,7 @@ export function make_attributes(bytes_array: util.BytesArray, constant_pool: Con
       }
       attrs.push(attr);
     } else {
+      // we must silently ignore other attrs
       bytes_array.skip(attr_len);
     }
   }
