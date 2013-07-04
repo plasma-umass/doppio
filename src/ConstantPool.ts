@@ -263,13 +263,11 @@ export class ConstantPool {
   public get(idx: number): ConstantPoolItem {
     var _ref;
 
-    return (function() {
-      if ((_ref = this.constant_pool[idx]) != null) {
-        return _ref;
-      } else {
-        throw new Error("Invalid constant_pool reference: " + idx);
-      }
-    }).call(this);
+    if ((_ref = this.constant_pool[idx]) != null) {
+      return _ref;
+    } else {
+      throw new Error("Invalid constant_pool reference: " + idx);
+    }
   }
 
   public each<T>(fn: (number, ConstantPoolItem)=>T): T[] {
