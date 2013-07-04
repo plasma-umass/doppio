@@ -4,7 +4,6 @@ import util = module('./util');
 import logging = module('./logging');
 var trace = logging.trace;
 import runtime = module('./runtime');
-var StackFrame = runtime.StackFrame;
 import exceptions = module('./exceptions');
 var JavaException = exceptions.JavaException;
 import java_object = module('./java_object');
@@ -304,7 +303,7 @@ export class ClassLoader {
       }
     }
     var first_clinit = true;
-    var first_native_frame = StackFrame.native_frame("$clinit", (function () {
+    var first_native_frame = runtime.StackFrame.native_frame("$clinit", (function () {
       if (rs.curr_frame() !== first_native_frame) {
         throw new Error("The top of the meta stack should be this native frame, but it is not: " + (rs.curr_frame().name) + " at " + (rs.meta_stack().length()));
       }
@@ -351,7 +350,7 @@ export class ClassLoader {
           first_clinit = false;
           rs.meta_stack().push(first_native_frame);
         } else {
-          next_nf = StackFrame.native_frame("$clinit_secondary", (function () {
+          next_nf = runtime.StackFrame.native_frame("$clinit_secondary", (function () {
             return rs.meta_stack().pop();
           }), (function (e) {
               rs.curr_frame().cdata.reset();
@@ -508,7 +507,7 @@ export class BootstrapClassLoader extends ClassLoader {
         return failure_fn(function () {
           var cls, msg, v;
 
-          rs.meta_stack().push(StackFrame.native_frame('$class_not_found', (function () {
+          rs.meta_stack().push(runtime.StackFrame.native_frame('$class_not_found', (function () {
             var cls, v;
 
             rs.curr_frame().runner = function () {
@@ -557,7 +556,7 @@ export class CustomClassLoader extends ClassLoader {
       explicit = false;
     }
     trace("ASYNCHRONOUS: resolve_class " + type_str + " [custom]");
-    rs.meta_stack().push(StackFrame.native_frame("$" + (this.loader_obj.cls.get_type()), (function () {
+    rs.meta_stack().push(runtime.StackFrame.native_frame("$" + (this.loader_obj.cls.get_type()), (function () {
       var cls, jclo;
 
       jclo = rs.pop();
