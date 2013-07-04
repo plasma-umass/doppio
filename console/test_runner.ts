@@ -1,3 +1,4 @@
+"use strict";
 var print = require('util').print;
 var fs = require('fs');
 var path = require('path');

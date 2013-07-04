@@ -1,3 +1,4 @@
+"use strict";
 import gLong = module('./gLong');
 import util = module('./util');
 
@@ -34,7 +35,7 @@ export class SimpleReference {
 }
 
 export class ClassReference extends SimpleReference {
-  public static type = 'class';
+  public type = 'class';
   public deref(): any {
     var pool_obj;
 
@@ -44,7 +45,7 @@ export class ClassReference extends SimpleReference {
 }
 
 export class StringReference extends SimpleReference {
-  public static type = 'String';
+  public type = 'String';
   constructor(constant_pool: ConstantPool, value: any) {
     super(constant_pool, value);
   }
@@ -83,15 +84,15 @@ export class AbstractMethodFieldReference {
 }
 
 export class MethodReference extends AbstractMethodFieldReference {
-  public static type = 'Method';
+  public type = 'Method';
 }
 
 export class InterfaceMethodReference extends AbstractMethodFieldReference {
-  public static type = 'InterfaceMethod';
+  public type = 'InterfaceMethod';
 }
 
 export class FieldReference extends AbstractMethodFieldReference {
-  public static type = 'Field';
+  public type = 'Field';
   public deref(): any {
     var sig;
 
@@ -106,7 +107,7 @@ export class FieldReference extends AbstractMethodFieldReference {
 
 export class MethodSignature {
   public static size = 1;
-  public static type = 'NameAndType';
+  public type = 'NameAndType';
   public constant_pool: ConstantPool;
   public value: any;
   constructor(constant_pool, value) {
@@ -136,7 +137,7 @@ export class MethodSignature {
 
 export class ConstString {
   public static size = 1;
-  public static type = 'Asciz';
+  public type = 'Asciz';
   public value: any;
   constructor(value: any) {
     this.value = value;
@@ -154,7 +155,7 @@ export class ConstString {
 
 export class ConstInt32 {
   public static size = 1;
-  public static type = 'int';
+  public type = 'int';
   public value: any;
   constructor(value) {
     this.value = value;
@@ -172,7 +173,7 @@ export class ConstInt32 {
 
 export class ConstFloat {
   public static size = 1;
-  public static type = 'float';
+  public type = 'float';
   public value: any;
   constructor(value) {
     this.value = value;
@@ -190,7 +191,7 @@ export class ConstFloat {
 
 export class ConstLong {
   public static size = 2;
-  public static type = 'Long';
+  public type = 'Long';
   public value: any;
   constructor(value) {
     this.value = value;
@@ -209,7 +210,7 @@ export class ConstLong {
 
 export class ConstDouble {
   public static size = 2;
-  public static type = 'double';
+  public type = 'double';
   public value: any;
   constructor(value) {
     this.value = value;
@@ -263,13 +264,11 @@ export class ConstantPool {
   public get(idx: number): ConstantPoolItem {
     var _ref;
 
-    return (function() {
-      if ((_ref = this.constant_pool[idx]) != null) {
-        return _ref;
-      } else {
-        throw new Error("Invalid constant_pool reference: " + idx);
-      }
-    }).call(this);
+    if ((_ref = this.constant_pool[idx]) != null) {
+      return _ref;
+    } else {
+      throw new Error("Invalid constant_pool reference: " + idx);
+    }
   }
 
   public each<T>(fn: (number, ConstantPoolItem)=>T): T[] {

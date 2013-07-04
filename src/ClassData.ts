@@ -1,3 +1,4 @@
+"use strict";
 import util = module('./util');
 import ConstantPool = module('./ConstantPool');
 import attributes = module('./attributes');

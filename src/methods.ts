@@ -1,4 +1,3 @@
-
 import util = module('./util');
 import opcodes = module('./opcodes');
 import attributes = module('./attributes');
