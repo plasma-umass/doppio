@@ -9,7 +9,7 @@ import ClassData = module('./ClassData');
 var ClassLoader = null;
 
 export class JavaArray {
-  public cls: any
+  public cls: ClassData.ArrayClassData
   public array: any[]
   public ref: number
 

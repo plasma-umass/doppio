@@ -1852,52 +1852,35 @@ native_methods['java']['lang']['Class'] = [
   }), o('isArray()Z', function(rs, _this) {
     return _this.$cls instanceof ArrayClassData;
   }), o('getSuperclass()L!/!/!;', function(rs, _this) {
-    var cls;
-
     if (_this.$cls instanceof PrimitiveClassData) {
       return null;
     }
-    cls = _this.$cls;
+    var cls = _this.$cls;
     if (cls.access_flags["interface"] || (cls.get_super_class() == null)) {
       return null;
     }
     return cls.get_super_class().get_class_object(rs);
-  }), o('getDeclaredFields0(Z)[Ljava/lang/reflect/Field;', function(rs, _this, public_only) {
-    var base_array, f, fields;
-
-    fields = _this.$cls.get_fields();
+  }), o('getDeclaredFields0(Z)[Ljava/lang/reflect/Field;', function(rs, _this, public_only: boolean) {
+    var fields = _this.$cls.get_fields();
     if (public_only) {
-      fields = (function() {
-        var _i, _len, _results;
-
-        _results = [];
-        for (_i = 0, _len = fields.length; _i < _len; _i++) {
-          f = fields[_i];
-          if (f.access_flags["public"]) {
-            _results.push(f);
-          }
-        }
-        return _results;
-      })();
+      fields = fields.filter((f) => f.access_flags["public"]);
     }
-    base_array = [];
+    var base_array = [];
     rs.async_op(function(resume_cb, except_cb) {
-      var fetch_next_field, i;
-
-      i = -1;
-      fetch_next_field = function() {
+      var i = -1;
+      function fetch_next_field() {
         i++;
         if (i < fields.length) {
-          f = fields[i];
-          return f.reflector(rs, (function(jco) {
+          fields[i].reflector(rs, (function(jco) {
             base_array.push(jco);
             return fetch_next_field();
           }), except_cb);
         } else {
-          return resume_cb(new JavaArray(rs, rs.get_bs_class('[Ljava/lang/reflect/Field;'), base_array));
+          var field_arr_cls = rs.get_bs_class('[Ljava/lang/reflect/Field;');
+          resume_cb(new JavaArray(rs, field_arr_cls, base_array));
         }
       };
-      return fetch_next_field();
+      fetch_next_field();
     });
   }), o('getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;', function(rs, _this, public_only) {
     var base_array, m, methods, sig;
