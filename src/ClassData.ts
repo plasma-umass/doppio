@@ -211,6 +211,7 @@ export class ArrayClassData extends ClassData {
     this.component_type = component_type;
     this.this_class = "[" + this.component_type;
     this.super_class = 'Ljava/lang/Object;';
+    this.access_flags = util.parse_flags(0);  // no flags set
   }
 
   public reset(): void {
