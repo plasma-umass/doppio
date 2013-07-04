@@ -11,7 +11,9 @@ function access_string(access_flags: any): string {
   if (!access_flags["interface"]) {
     ordered_flags.push('abstract');
   }
-  return ordered_flags.filter((flag: string) => access_flags[flag]).join(' ');
+  return ordered_flags.filter((flag: string) => access_flags[flag])
+                      .map((flag: string) => flag + ' ')
+                      .join('');
 }
 
 // format floats and doubles in the javap way
