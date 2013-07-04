@@ -1007,7 +1007,7 @@ export var opcodes : Opcode[] = [
   new BinaryBranchOpcode('if_icmple', ((v1,v2) => v1 <= v2)),
   new BinaryBranchOpcode('if_acmpeq', ((v1,v2) => v1 === v2)),
   new BinaryBranchOpcode('if_acmpne', ((v1,v2) => v1 !== v2)),
-  new GotoOpcode('goto', 0),
+  new GotoOpcode('goto', 2),
   new JSROpcode('jsr', 2),
   new Opcode('ret', 1, function(rs){this.goto_pc(rs, rs.cl(this.args[0]))}),
   new TableSwitchOpcode('tableswitch'),
