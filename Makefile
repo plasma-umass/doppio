@@ -43,7 +43,7 @@ BROWSER_HTML      := $(BROWSER_TEMPLATES:.mustache=.html)
 # the order here is important: must match the order of includes
 # in the browser frontend html.
 COMMON_BROWSER_SRCS = vendor/_.js \
-	src/gLong.js \
+	src/gLong.ts \
 	browser/node.ts \
 	src/logging.ts \
 	src/exceptions.ts \
@@ -73,7 +73,7 @@ benchmark_BROWSER_SRCS := $(COMMON_BROWSER_SRCS) \
 	browser/frontend.ts
 # Sources for an in-browser doppio.js library. Same ordering requirement applies.
 library_BROWSER_SRCS := vendor/_.js \
-	src/gLong.js \
+	src/gLong.ts \
 	src/logging.ts \
 	src/exceptions.ts \
 	src/util.ts \
@@ -265,6 +265,8 @@ build/release/compressed.js build/benchmark/compressed.js build/library/compress
 	mkdir -p $(dir $@)/browser/doppio-source
 	for src in $($*_BROWSER_SRCS); do \
 		if [ "$${src##*.}" == "ts" ]; then \
+			mkdir -p `dirname $(dir $@)browser/doppio-source/$$src`; \
+			$(SED) -r "s/^( *)(debug|v?trace).*$$/\1\`\`/" < $$src > $(dir $@)browser/doppio-source/$$src ; \
 			$(TSC) --sourcemap --out $(dir $@) $$src; \
 		else \
 			cat $${src}; \
@@ -282,7 +284,7 @@ build/dev/%.js: %.ts
 
 build/release/%.js: %.ts
 	@mkdir -p $(dir $@)
-	$(TSC) --sourcemap --out $(dir $@) $(@:.js=.ts)
-	mv $@ $(@:.js=-orig.js)
-	$(UGLIFYJS) --source-map ${@:.js=.map} --in-source-map ${@:.js=.map} --define RELEASE --define UNSAFE --no-mangle --unsafe --beautify -o $@ $(@:.js=-orig.js)
-	rm $(@:.js=-orig.js)
+	$(TSC) --out $(dir $@) $<
+	$(SED) -r "s/^( *)(debug|v?trace).*$$//" $@ > $(@:.js=-orig.js)
+	$(UGLIFYJS) --define RELEASE --define UNSAFE --no-mangle --unsafe --beautify -o $@ $(@:.js=-orig.js)
+
