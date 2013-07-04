@@ -169,6 +169,8 @@ export class JavaThreadObject extends JavaObject {
   public wakeup_time: number;
   public $park_count: number;
   public $park_timeout: number;
+  // XXX: Used if it's a 'fake' Thread object. I'm so sorry.
+  public fake: bool;
   constructor(rs: runtime.RuntimeState, obj?: any) {
     var cls = <ClassData.ReferenceClassData> rs.get_bs_cl().get_resolved_class('Ljava/lang/Thread;', true);
     // First thread to bootstrap us into the JVM.
@@ -178,6 +180,9 @@ export class JavaThreadObject extends JavaObject {
         loader: rs.get_bs_cl(),
         get_default_fields: (() => null)  // XXX: Hack for now.
       };
+      this.fake = true;
+    } else {
+      this.fake = false;
     }
     super(rs, <ClassData.ReferenceClassData> cls, obj);
     this.$isAlive = true;
