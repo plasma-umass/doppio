@@ -68,13 +68,17 @@ export class Field extends AbstractMethodField {
     this.type = raw_descriptor;
   }
 
+  // Must be called asynchronously.
   public reflector(rs: runtime.RuntimeState, success_fn: (reflectedField: java_object.JavaObject)=>void, failure_fn: (e_fn: ()=>void)=>void): void {
     var _this = this;
     var found = <attributes.Signature> this.get_attribute("Signature");
+    // note: sig is the generic type parameter (if one exists), not the full
+    // field type.
     var sig = (found != null) ? found.sig : null;
     function create_obj(clazz_obj: java_object.JavaClassObject, type_obj: java_object.JavaObject) {
       var field_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/reflect/Field;');
       return new JavaObject(rs, field_cls, {
+        // XXX this leaves out 'annotations'
         'Ljava/lang/reflect/Field;clazz': clazz_obj,
         'Ljava/lang/reflect/Field;name': rs.init_string(_this.name, true),
         'Ljava/lang/reflect/Field;type': type_obj,
@@ -84,6 +88,9 @@ export class Field extends AbstractMethodField {
       });
     };
     var clazz_obj = this.cls.get_class_object(rs);
+    // type_obj may not be loaded, so we asynchronously load it here.
+    // In the future, we can speed up reflection by having a synchronous_reflector
+    // method that we can try first, and which may fail.
     this.cls.loader.resolve_class(rs, this.type, (function (type_cls) {
       var type_obj = type_cls.get_class_object(rs);
       var rv = create_obj(clazz_obj, type_obj);
