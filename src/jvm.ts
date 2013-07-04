@@ -157,7 +157,7 @@ export function run_class(rs: runtime.RuntimeState, class_name: string, cmdline_
     return rs.async_op(function (resume_cb, except_cb) {
       return rs.preinitialize_core_classes(run_program, (function (e) {
         // Error during preinitialization? Abort abort abort!
-        throw e;
+        e();
       }));
     });
   }), true, (function () { }));
