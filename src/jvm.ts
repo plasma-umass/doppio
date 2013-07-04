@@ -50,7 +50,7 @@ export function read_classfile(cls: any, cb: (data: number[])=>void, failure_cb:
   var data, e, filename, p, _i, _len, _ref3;
 
   cls = cls.slice(1, -1);
-  _ref3 = this.system_properties['java.class.path'];
+  _ref3 = system_properties['java.class.path'];
   for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
     p = _ref3[_i];
     filename = "" + p + "/" + cls + ".class";
