@@ -1,6 +1,5 @@
 "use strict"
 
-#!/usr/bin/env coffee
 readline = require 'readline'
 {argv} = require 'optimist'
 jvm = require '../src/jvm'
@@ -11,7 +10,7 @@ repl_run = (rs, cname, args, done_cb) ->
   cname = cname[0...-6] if cname[-6..] is '.class'
   jvm.run_class rs, cname, args, done_cb
 
-read_stdin = (n_bytes, resume) ->
+read_stdin = (resume) ->
   process.stdin.resume()
   process.stdin.once 'data', (data) ->
     process.stdin.pause()
@@ -24,8 +23,8 @@ if require.main == module
   rs = new RuntimeState(write_stdout, read_stdin, new BootstrapClassLoader(jvm.read_classfile))
 
   # create the REPL
-  stdin = process.openStdin()
-  repl = readline.createInterface stdin, process.stdout
+  process.stdin.resume()
+  repl = readline.createInterface process.stdin, process.stdout
 
   # set up handlers
   repl.on 'close', ->
