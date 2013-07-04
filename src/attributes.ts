@@ -9,7 +9,7 @@ export interface Attribute {
 }
 
 export class ExceptionHandler implements Attribute {
-  public static name = 'ExceptionHandler'
+  public name = 'ExceptionHandler'
   private start_pc: number
   private end_pc: number
   private handler_pc: number
@@ -24,14 +24,14 @@ export class ExceptionHandler implements Attribute {
 }
 
 export class Code implements Attribute {
-  public static name = 'Code';
+  public name = 'Code';
   private constant_pool: ConstantPool.ConstantPool;
   private max_stack: number;
   private max_locals: number;
   private code_len: number;
   private _code_array: util.BytesArray;
   private exception_handlers: ExceptionHandler[];
-  private run_stamp: number;
+  public run_stamp: number;
   private opcodes: opcodes.Opcode[];
   private attrs: Attribute[];
 
@@ -117,7 +117,7 @@ export class Code implements Attribute {
 }
 
 export class LineNumberTable implements Attribute {
-  public static name = 'LineNumberTable';
+  public name = 'LineNumberTable';
   private entries: { 'start_pc': number; 'line_number': number }[];
 
   public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool) {
@@ -150,7 +150,7 @@ export class LineNumberTable implements Attribute {
 }
 
 export class SourceFile implements Attribute {
-  public static name = 'SourceFile';
+  public name = 'SourceFile';
   private filename: string
 
   public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool) {
@@ -159,7 +159,7 @@ export class SourceFile implements Attribute {
 }
 
 export class StackMapTable implements Attribute {
-  public static name = 'StackMapTable';
+  public name = 'StackMapTable';
   private num_entries: number
   private entries: { frame_name: string; frame_type: number }[]
 
@@ -297,7 +297,7 @@ export class StackMapTable implements Attribute {
 }
 
 export class LocalVariableTable implements Attribute {
-  public static name = 'LocalVariableTable';
+  public name = 'LocalVariableTable';
   private num_entries: number
   private entries: { start_pc: number; length: number; name: string; descriptor: string; ref: number }[]
 
@@ -341,7 +341,7 @@ export class LocalVariableTable implements Attribute {
 }
 
 export class Exceptions implements Attribute {
-  public static name = 'Exceptions';
+  public name = 'Exceptions';
   private num_exceptions: number
   private exceptions: Object[]
 
@@ -372,7 +372,7 @@ export class Exceptions implements Attribute {
 }
 
 export class InnerClasses implements Attribute {
-  public static name = 'InnerClasses';
+  public name = 'InnerClasses';
   private classes: Object[]
 
   public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
@@ -401,7 +401,7 @@ export class InnerClasses implements Attribute {
 }
 
 export class ConstantValue implements Attribute {
-  public static name = 'ConstantValue';
+  public name = 'ConstantValue';
   private ref: number
   private value: any
 
@@ -415,32 +415,29 @@ export class ConstantValue implements Attribute {
 }
 
 export class Synthetic implements Attribute {
-  public static name = 'Synthetic';
+  public name = 'Synthetic';
   public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool) { }
 }
 
 export class Deprecated implements Attribute {
-  public static name = 'Deprecated';
+  public name = 'Deprecated';
   public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool) { }
 }
 
 export class Signature implements Attribute {
-  public static name = 'Signature';
+  public name = 'Signature';
   private raw_bytes: number[]
-  private ref: number
-  private sig: Object
+  public sig: string
 
   public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool, attr_len?: number) {
-    var ref;
-
     this.raw_bytes = bytes_array.read(attr_len);
-    ref = util.read_uint(this.raw_bytes);
+    var ref = util.read_uint(this.raw_bytes);
     this.sig = constant_pool.get(ref).value;
   }
 }
 
 export class RuntimeVisibleAnnotations implements Attribute {
-  public static name = 'RuntimeVisibleAnnotations';
+  public name = 'RuntimeVisibleAnnotations';
   private raw_bytes: number[]
   public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool, attr_len?: number) {
     this.raw_bytes = bytes_array.read(attr_len);
@@ -448,7 +445,7 @@ export class RuntimeVisibleAnnotations implements Attribute {
 }
 
 export class AnnotationDefault implements Attribute {
-  public static name = 'AnnotationDefault';
+  public name = 'AnnotationDefault';
   private raw_bytes: number[]
   public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool, attr_len?: number) {
     this.raw_bytes = bytes_array.read(attr_len);
@@ -456,7 +453,7 @@ export class AnnotationDefault implements Attribute {
 }
 
 export class EnclosingMethod implements Attribute {
-  public static name = 'EnclosingMethod';
+  public name = 'EnclosingMethod';
   private enc_class: any
   private enc_method: any
   public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool) {
