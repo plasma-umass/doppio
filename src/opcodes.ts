@@ -1147,10 +1147,10 @@ export var opcodes : Opcode[] = [
     var desc = this.class;
     this.cls = rs.get_class(desc, true);
     if (this.cls != null) {
-      if (this.cls.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/ClassLoader;'))) {
+      if (this.cls.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/ClassLoader;', true))) {
         rs.push(new JavaClassLoaderObject(rs, this.cls));
         this.execute = (rs) => rs.push(new JavaClassLoaderObject(rs, this.cls));
-      } else if (this.cls.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/Thread;'))) {
+      } else if (this.cls.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/Thread;', true))) {
         rs.push(new java_object.JavaThreadObject(rs));
         this.execute = (rs) => rs.push(new java_object.JavaThreadObject(rs));
       } else {
@@ -1161,9 +1161,9 @@ export var opcodes : Opcode[] = [
       rs.async_op(function(resume_cb, except_cb) {
         var success_fn = function(class_file) {
           var obj;
-          if (class_file.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/ClassLoader;'))) {
+          if (class_file.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/ClassLoader;', true))) {
             obj = new JavaClassLoaderObject(rs, class_file);
-          } else if (class_file.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/Thread;'))) {
+          } else if (class_file.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/Thread;', true))) {
             obj = new java_object.JavaThreadObject(rs);
           } else {
             obj = new JavaObject(rs, class_file);
