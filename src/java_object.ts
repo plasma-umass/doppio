@@ -1,4 +1,4 @@
-
+"use strict";
 var underscore = require('../vendor/_.js');
 import gLong = module('./gLong');
 import util = module('./util');

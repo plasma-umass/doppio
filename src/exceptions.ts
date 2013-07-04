@@ -1,4 +1,4 @@
-
+"use strict";
 var underscore = require('../vendor/_.js');
 import logging = module('./logging');
 import runtime = module('./runtime');

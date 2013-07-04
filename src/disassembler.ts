@@ -1,3 +1,4 @@
+"use strict";
 import util = module('./util');
 
 function pad_left(value: string, padding: number): string {

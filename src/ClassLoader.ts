@@ -1,3 +1,4 @@
+"use strict";
 import ClassData = module('./ClassData');
 var ReferenceClassData = ClassData.ReferenceClassData, PrimitiveClassData = ClassData.PrimitiveClassData, ArrayClassData = ClassData.ArrayClassData;
 import util = module('./util');
