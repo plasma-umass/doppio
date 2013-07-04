@@ -37,10 +37,11 @@ export class SimpleReference {
 export class ClassReference extends SimpleReference {
   public type = 'class';
   public deref(): any {
-    var pool_obj;
-
-    pool_obj = this.constant_pool[this.value];
-    return (typeof pool_obj.deref === "function" ? pool_obj.deref() : void 0) || util.typestr2descriptor(pool_obj.value);
+    var pool_obj = this.constant_pool[this.value];
+    if (typeof pool_obj.deref === "function") {
+      return pool_obj.deref();
+    }
+    return util.typestr2descriptor(pool_obj.value);
   }
 }
 
@@ -94,9 +95,7 @@ export class InterfaceMethodReference extends AbstractMethodFieldReference {
 export class FieldReference extends AbstractMethodFieldReference {
   public type = 'Field';
   public deref(): any {
-    var sig;
-
-    sig = this.value.sig.deref();
+    var sig = this.value.sig.deref();
     return {
       "class": this.value.class_ref.deref(),
       name: sig.name,
