@@ -32,7 +32,7 @@ export class Code implements Attribute {
   private code_len: number;
   private _code_array: util.BytesArray;
   private exception_handlers: ExceptionHandler[];
-  private run_stamp: number;
+  public run_stamp: number;
   private opcodes: opcodes.Opcode[];
   private attrs: Attribute[];
 
@@ -428,14 +428,11 @@ export class Deprecated implements Attribute {
 export class Signature implements Attribute {
   public name = 'Signature';
   private raw_bytes: number[];
-  private ref: number;
-  private sig: Object;
+  public sig: string;
 
   public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool, attr_len?: number) {
-    var ref;
-
     this.raw_bytes = bytes_array.read(attr_len);
-    ref = util.read_uint(this.raw_bytes);
+    var ref = util.read_uint(this.raw_bytes);
     this.sig = constant_pool.get(ref).value;
   }
 }
