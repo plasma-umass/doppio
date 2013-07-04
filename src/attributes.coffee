@@ -55,6 +55,7 @@ class Code
   each_opcode: (fn) ->
     for i in [0..@code_len] when i of @opcodes
       fn(i, @opcodes[i])
+    return
 
   get_attribute: (name) ->
     for attr in @attrs then if attr.name is name then return attr
