@@ -438,7 +438,7 @@ export class ClassLoader {
 }
 
 export class BootstrapClassLoader extends ClassLoader {
-  private read_classfile: (typestr: string, success_cb: (data: number[]) => void, failure_cb: () => void) => void;
+  private read_classfile: (typestr: string, success_cb: (data: number[]) => void, failure_cb: (exp_cb: ()=>void) => void) => void;
   constructor(read_classfile: (typestr: string, success_cb: (data: number[])=>void, failure_cb: ()=>void)=>void) {
     super(this);
     this.read_classfile = read_classfile;
@@ -503,7 +503,12 @@ export class BootstrapClassLoader extends ClassLoader {
     }
     this.read_classfile(type_str, (function (data) {
       _this.define_class(rs, type_str, data, success_fn, failure_fn, true, explicit);
-    }), (function () {
+    }), (function (e) {
+        try {
+          e();
+        } catch (exp) {
+          trace("Failed to read class " + type_str + ": " + exp + "\n" + exp.stack);
+        }
         return failure_fn(function () {
           var cls, msg, v;
 
