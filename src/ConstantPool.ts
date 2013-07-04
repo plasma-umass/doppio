@@ -190,7 +190,7 @@ export class ConstFloat {
 
 export class ConstLong {
   public static size = 2;
-  public type = 'Long';
+  public type = 'long';
   public value: any;
   constructor(value) {
     this.value = value;
