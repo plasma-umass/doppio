@@ -5,7 +5,7 @@ import util = module('./util');
 import logging = module('./logging');
 import runtime = module('./runtime');
 import ClassData = module('./ClassData');
-//import ClassLoader = require('./ClassLoader')
+import ClassLoader = require('./ClassLoader')
 
 export class JavaArray {
   public cls: any
@@ -201,7 +201,7 @@ export class JavaClassLoaderObject extends JavaObject {
   public $loader: any
   constructor(rs: runtime.RuntimeState, cls: any) {
     super(rs, cls);
-    //this.$loader = new ClassLoader.CustomClassLoader(rs.get_bs_cl(), this);
+    this.$loader = new ClassLoader.CustomClassLoader(rs.get_bs_cl(), this);
   }
 
   public serialize(visited: any): any {
