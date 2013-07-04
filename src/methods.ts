@@ -85,7 +85,7 @@ export class Field extends AbstractMethodField {
 
   public reflector(rs: runtime.RuntimeState, success_fn: (reflectedField: java_object.JavaObject)=>void, failure_fn: (e_fn: ()=>void)=>void): void {
     var _this = this;
-    var found = underscore.find(this.attrs, (a) => a.name === "Signature");
+    var found = underscore.find(this.attrs, (a:attributes.Attribute) => a.name === "Signature");
     var sig = (found != null) ? found.sig : undefined;
     function create_obj(clazz_obj: java_object.JavaClassObject, type_obj: java_object.JavaObject) {
       var field_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/reflect/Field;');
@@ -171,7 +171,7 @@ export class Method extends AbstractMethodField {
       }
     } else {
       this.has_bytecode = true;
-      this.code = underscore.find(this.attrs, (a) => a.name === 'Code');
+      this.code = underscore.find(this.attrs, (a:attributes.Attribute) => a.name === 'Code');
     }
   }
 
@@ -183,16 +183,16 @@ export class Method extends AbstractMethodField {
       is_constructor = false;
     }
     typestr = is_constructor ? 'Ljava/lang/reflect/Constructor;' : 'Ljava/lang/reflect/Method;';
-    exceptions = (_ref3 = (_ref4 = underscore.find(this.attrs, function (a) {
+    exceptions = (_ref3 = (_ref4 = underscore.find(this.attrs, function (a:attributes.Attribute) {
       return a.name === 'Exceptions';
     })) != null ? _ref4.exceptions : void 0) != null ? _ref3 : [];
-    anns = (_ref5 = underscore.find(this.attrs, function (a) {
+    anns = (_ref5 = underscore.find(this.attrs, function (a:attributes.Attribute) {
       return a.name === 'RuntimeVisibleAnnotations';
     })) != null ? _ref5.raw_bytes : void 0;
-    adefs = (_ref6 = underscore.find(this.attrs, function (a) {
+    adefs = (_ref6 = underscore.find(this.attrs, function (a:attributes.Attribute) {
       return a.name === 'AnnotationDefault';
     })) != null ? _ref6.raw_bytes : void 0;
-    sig = (_ref7 = underscore.find(this.attrs, function (a) {
+    sig = (_ref7 = underscore.find(this.attrs, function (a:attributes.Attribute) {
       return a.name === 'Signature';
     })) != null ? _ref7.sig : void 0;
     obj = {};
