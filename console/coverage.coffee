@@ -39,9 +39,10 @@ setup_native_stats = ->
   native_stats
 
 print_usage = (stats) ->
-  names = (name for name,count of stats)
+  names = (name for name of stats)
   names.sort (a, b) -> stats[b] - stats[a]
   console.log stats[name], name for name in names
+  return
 
 print_unused = (stats, stats_name) ->
   unused_count = 0
