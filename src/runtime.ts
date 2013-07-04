@@ -222,6 +222,7 @@ export class RuntimeState {
     this.lock_counts = {};
     this.waiting_threads = {};
     this.thread_pool = [];
+    this.should_return = false;
 
     var ct = new JavaThreadObject(this);
     this.curr_thread = ct;
