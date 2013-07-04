@@ -1,7 +1,5 @@
 "use strict"
 
-# pull in external modules
-_ = require '../vendor/_.js'
 util = require './util'
 opcodes = require './opcodes'
 attributes = require './attributes'
@@ -43,7 +41,7 @@ class root.Field extends AbstractMethodField
   reflector: (rs, success_fn, failure_fn) ->
     # note: sig is the generic type parameter (if one exists), not the full
     # field type.
-    sig = _.find(@attrs, (a) -> a.name == "Signature")?.sig
+    sig = @get_attribute("Signature")?.sig
 
     create_obj = (clazz_obj, type_obj) =>
       new JavaObject rs, rs.get_bs_class('Ljava/lang/reflect/Field;'), {
@@ -100,16 +98,16 @@ class root.Method extends AbstractMethodField
       else
         # micro-optimization for registerNatives and initIDs, don't even bother making a function
         @code = null
-    else
+    else if not @access_flags.abstract
       @has_bytecode = true
-      @code = _.find(@attrs, (a) -> a.name == 'Code')
+      @code = @get_attribute 'Code'
 
   reflector: (rs, is_constructor=false, success_fn, failure_fn) ->
     typestr = if is_constructor then 'Ljava/lang/reflect/Constructor;' else 'Ljava/lang/reflect/Method;'
-    exceptions = _.find(@attrs, (a) -> a.name == 'Exceptions')?.exceptions ? []
-    anns = _.find(@attrs, (a) -> a.name == 'RuntimeVisibleAnnotations')?.raw_bytes
-    adefs = _.find(@attrs, (a) -> a.name == 'AnnotationDefault')?.raw_bytes
-    sig =  _.find(@attrs, (a) -> a.name == 'Signature')?.sig
+    exceptions = @get_attribute('Exceptions')?.exceptions ? []
+    anns = @get_attribute('RuntimeVisibleAnnotations')?.raw_bytes
+    adefs = @get_attribute('AnnotationDefault')?.raw_bytes
+    sig =  @get_attribute('Signature')?.sig
     obj = {}
 
     clazz_obj = @cls.get_class_object(rs)
