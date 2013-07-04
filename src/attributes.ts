@@ -181,6 +181,7 @@ export class StackMapTable implements Attribute {
 
   public parse_entries(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): { frame_name: string; frame_type: number } {
     var frame_type, i, num_locals, num_stack_items;
+    var _this = this;
 
     frame_type = bytes_array.get_uint(1);
     if ((0 <= frame_type && frame_type < 64)) {
@@ -225,7 +226,7 @@ export class StackMapTable implements Attribute {
 
           _results = [];
           for (i = _i = 0, _ref1 = frame_type - 251; _i < _ref1; i = _i += 1) {
-            _results.push(this.parse_verification_type_info(bytes_array, constant_pool));
+            _results.push(_this.parse_verification_type_info(bytes_array, constant_pool));
           }
           return _results;
         })()
@@ -241,7 +242,7 @@ export class StackMapTable implements Attribute {
 
           _results = [];
           for (i = _i = 0; _i < num_locals; i = _i += 1) {
-            _results.push(this.parse_verification_type_info(bytes_array, constant_pool));
+            _results.push(_this.parse_verification_type_info(bytes_array, constant_pool));
           }
           return _results;
         })(),
@@ -251,7 +252,7 @@ export class StackMapTable implements Attribute {
 
           _results = [];
           for (i = _i = 0; _i < num_stack_items; i = _i += 1) {
-            _results.push(this.parse_verification_type_info(bytes_array, constant_pool));
+            _results.push(_this.parse_verification_type_info(bytes_array, constant_pool));
           }
           return _results;
         })()
