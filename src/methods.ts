@@ -10,6 +10,7 @@ import JVM = module('./jvm');
 import exceptions = module('./exceptions');
 import java_object = module('./java_object');
 import ConstantPool = module('./ConstantPool');
+import ClassData = module('./ClassData');
 
 
 var ReturnException = exceptions.ReturnException;
@@ -83,14 +84,12 @@ export class Field extends AbstractMethodField {
   }
 
   public reflector(rs: runtime.RuntimeState, success_fn: (reflectedField: java_object.JavaObject)=>void, failure_fn: (e_fn: ()=>void)=>void): void {
-    var clazz_obj, create_obj, sig, _ref2,
-      _this = this;
-
-    sig = (_ref2 = underscore.find(this.attrs, function (a) {
-      return a.name === "Signature";
-    })) != null ? _ref2.sig : void 0;
-    create_obj = function (clazz_obj: java_object.JavaClassObject, type_obj: java_object.JavaObject) {
-      return new JavaObject(rs, rs.get_bs_class('Ljava/lang/reflect/Field;'), {
+    var _this = this;
+    var found = underscore.find(this.attrs, (a) => a.name === "Signature");
+    var sig = (found != null) ? found.sig : undefined;
+    function create_obj(clazz_obj: java_object.JavaClassObject, type_obj: java_object.JavaObject) {
+      var field_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/reflect/Field;');
+      return new JavaObject(rs, field_cls, {
         'Ljava/lang/reflect/Field;clazz': clazz_obj,
         'Ljava/lang/reflect/Field;name': rs.init_string(_this.name, true),
         'Ljava/lang/reflect/Field;type': type_obj,
@@ -99,12 +98,10 @@ export class Field extends AbstractMethodField {
         'Ljava/lang/reflect/Field;signature': sig != null ? rs.init_string(sig) : null
       });
     };
-    clazz_obj = this.cls.get_class_object(rs);
+    var clazz_obj = this.cls.get_class_object(rs);
     this.cls.loader.resolve_class(rs, this.type, (function (type_cls) {
-      var rv, type_obj;
-
-      type_obj = type_cls.get_class_object(rs);
-      rv = create_obj(clazz_obj, type_obj);
+      var type_obj = type_cls.get_class_object(rs);
+      var rv = create_obj(clazz_obj, type_obj);
       success_fn(rv);
     }), failure_fn);
   }
@@ -122,65 +119,59 @@ export class Method extends AbstractMethodField {
   public has_bytecode: bool;
 
   public parse_descriptor(raw_descriptor: string): void {
-    var field, p, param_carr, param_str, return_str, __, _i, _len, _ref3, _ref4;
-
-    this.reset_caches = false;
-    _ref3 = /\(([^)]*)\)(.*)/.exec(raw_descriptor), __ = _ref3[0], param_str = _ref3[1], return_str = _ref3[2];
-    param_carr = param_str.split('');
-    this.param_types = ((function () {
-      var _results;
-
-      _results = [];
-      while ((field = util.carr2descriptor(param_carr))) {
-        _results.push(field);
-      }
-      return _results;
-    })());
+    this.reset_caches = false;  // Switched to 'true' in web frontend between JVM invocations.
+    var match = /\(([^)]*)\)(.*)/.exec(raw_descriptor);
+    var param_str = match[1];
+    var return_str = match[2];
+    var param_carr = param_str.split('');
+    this.param_types = [];
+    var field;
+    while (field = util.carr2descriptor(param_carr)) {
+      this.param_types.push(field);
+    }
     this.param_bytes = 0;
-    _ref4 = this.param_types;
-    for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
-      p = _ref4[_i];
-      this.param_bytes += p === 'D' || p === 'J' ? 2 : 1;
+    for (var i = 0; i < this.param_types.length; i++) {
+      var p = this.param_types[i];
+      this.param_bytes += (p === 'D' || p === 'J') ? 2 : 1;
     }
     if (!this.access_flags["static"]) {
       this.param_bytes++;
     }
     this.num_args = this.param_types.length;
     if (!this.access_flags["static"]) {
+      // nonstatic methods get 'this'
       this.num_args++;
     }
     this.return_type = return_str;
   }
 
   public full_signature(): string {
-    return "" + (this.cls.get_type()) + "::" + this.name + this.raw_descriptor;
+    return this.cls.get_type() + "::" + this.name + this.raw_descriptor;
   }
 
   public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool, idx: number): void {
-    var c, sig;
     super.parse(bytes_array, constant_pool, idx);
-    sig = this.full_signature();
+    var sig = this.full_signature();
+    var c;
     if ((c = trapped_methods[sig]) != null) {
       this.code = c;
       this.access_flags["native"] = true;
     } else if (this.access_flags["native"]) {
       if ((c = native_methods[sig]) != null) {
-        return this.code = c;
+        this.code = c;
       } else if (sig.indexOf('::registerNatives()V', 1) < 0 && sig.indexOf('::initIDs()V', 1) < 0) {
         if (JVM.show_NYI_natives) {
           console.log(sig);
         }
         this.code = function (rs) {
-          return rs.java_throw(rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), "Native method '" + sig + "' not implemented.\nPlease fix or file a bug at https://github.com/int3/doppio/issues");
+          rs.java_throw(rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), "Native method '" + sig + "' not implemented.\nPlease fix or file a bug at https://github.com/int3/doppio/issues");
         };
       } else {
-        return this.code = null;
+        this.code = null;
       }
     } else {
       this.has_bytecode = true;
-      this.code = underscore.find(this.attrs, function (a) {
-        return a.name === 'Code';
-      });
+      this.code = underscore.find(this.attrs, (a) => a.name === 'Code');
     }
   }
 
@@ -207,29 +198,22 @@ export class Method extends AbstractMethodField {
     obj = {};
     clazz_obj = this.cls.get_class_object(rs);
     this.cls.loader.resolve_class(rs, this.return_type, (function (rt_cls) {
-      var etype_objs, fetch_catch_type, fetch_etype, fetch_ptype, handlers, i, j, k, param_type_objs, rt_obj, _ref8;
-
-      rt_obj = rt_cls.get_class_object(rs);
-      j = -1;
-      etype_objs = [];
-      i = -1;
-      param_type_objs = [];
-      k = 0;
-      if ((((_ref8 = _this.code) != null ? _ref8.exception_handlers : void 0) != null) && _this.code.exception_handlers.length > 0) {
-        handlers = [
-          {
-            catch_type: 'Ljava/lang/Throwable;'
-          }
-        ];
+      var rt_obj = rt_cls.get_class_object(rs);
+      var j = -1;
+      var etype_objs = [];
+      var i = -1;
+      var param_type_objs = [];
+      var k = 0;
+      var handlers;
+      if (_this.code != null && _this.code.exception_handlers != null && _this.code.exception_handlers.length > 0) {
+        handlers = [{catch_type: 'Ljava/lang/Throwable;'}];
         Array.prototype.push.apply(handlers, _this.code.exception_handlers);
       } else {
         handlers = [];
       }
-      fetch_catch_type = function () {
-        var eh;
-
+      function fetch_catch_type() {
         if (k < handlers.length) {
-          eh = handlers[k++];
+          var eh = handlers[k++];
           if (eh.catch_type === '<any>') {
             return fetch_catch_type();
           }
@@ -238,31 +222,32 @@ export class Method extends AbstractMethodField {
           return fetch_ptype();
         }
       };
-      fetch_etype = function () {
-        var e_desc;
-
+      function fetch_etype() {
         j++;
         if (j < exceptions.length) {
-          e_desc = exceptions[j];
+          var e_desc = exceptions[j];
           return _this.cls.loader.resolve_class(rs, e_desc, (function (cls) {
             etype_objs[j] = cls.get_class_object(rs);
             return fetch_etype();
           }), failure_fn);
         } else {
+          var jco_arr_cls = <ClassData.ArrayClassData> rs.get_bs_class('[Ljava/lang/Class;');
+          var byte_arr_cls = <ClassData.ArrayClassData> rs.get_bs_class('[B');
+          var cls = <ClassData.ReferenceClassData> rs.get_bs_class(typestr);
           obj[typestr + 'clazz'] = clazz_obj;
           obj[typestr + 'name'] = rs.init_string(_this.name, true);
-          obj[typestr + 'parameterTypes'] = new JavaArray(rs, rs.get_bs_class('[Ljava/lang/Class;'), param_type_objs);
+          obj[typestr + 'parameterTypes'] = new JavaArray(rs, jco_arr_cls, param_type_objs);
           obj[typestr + 'returnType'] = rt_obj;
-          obj[typestr + 'exceptionTypes'] = new JavaArray(rs, rs.get_bs_class('[Ljava/lang/Class;'), etype_objs);
+          obj[typestr + 'exceptionTypes'] = new JavaArray(rs, jco_arr_cls, etype_objs);
           obj[typestr + 'modifiers'] = _this.access_byte;
           obj[typestr + 'slot'] = _this.idx;
           obj[typestr + 'signature'] = sig != null ? rs.init_string(sig) : null;
-          obj[typestr + 'annotations'] = anns != null ? new JavaArray(rs, rs.get_bs_class('[B'), anns) : null;
-          obj[typestr + 'annotationDefault'] = adefs != null ? new JavaArray(rs, rs.get_bs_class('[B'), adefs) : null;
-          return success_fn(new JavaObject(rs, rs.get_bs_class(typestr), obj));
+          obj[typestr + 'annotations'] = anns != null ? new JavaArray(rs, byte_arr_cls, anns) : null;
+          obj[typestr + 'annotationDefault'] = adefs != null ? new JavaArray(rs, byte_arr_cls, adefs) : null;
+          return success_fn(new JavaObject(rs, cls, obj));
         }
       };
-      fetch_ptype = function () {
+      function fetch_ptype() {
         i++;
         if (i < _this.param_types.length) {
           return _this.cls.loader.resolve_class(rs, _this.param_types[i], (function (cls) {
@@ -278,26 +263,21 @@ export class Method extends AbstractMethodField {
   }
 
   public take_params(caller_stack: any[]): any[] {
-    var params, start;
-
-    start = caller_stack.length - this.param_bytes;
-    params = caller_stack.slice(start);
+    var start = caller_stack.length - this.param_bytes;
+    var params = caller_stack.slice(start);
     caller_stack.length -= this.param_bytes;
     return params;
   }
 
   public convert_params(rs: runtime.RuntimeState, params: any[]): any[] {
-    var converted_params, p, param_idx, _i, _len, _ref3;
-
-    converted_params = [rs];
-    param_idx = 0;
+    var converted_params = [rs];
+    var param_idx = 0;
     if (!this.access_flags["static"]) {
       converted_params.push(params[0]);
       param_idx = 1;
     }
-    _ref3 = this.param_types;
-    for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
-      p = _ref3[_i];
+    for (var i = 0; i < this.param_types.length; i++) {
+      var p = this.param_types[i];
       converted_params.push(params[param_idx]);
       param_idx += (p === 'J' || p === 'D') ? 2 : 1;
     }
@@ -387,16 +367,16 @@ export class Method extends AbstractMethodField {
   }
 
   public setup_stack(runtime_state: runtime.RuntimeState): runtime.StackFrame {
-    var c, c_params, caller_stack, i, ms, params, sf: runtime.StackFrame, _ref3,
-      _this = this;
+    var sf: runtime.StackFrame;
+    var _this = this;
 
-    ms = runtime_state.meta_stack();
-    caller_stack = runtime_state.curr_frame().stack;
-    params = this.take_params(caller_stack);
+    var ms = runtime_state.meta_stack();
+    var caller_stack = runtime_state.curr_frame().stack;
+    var params = this.take_params(caller_stack);
     if (this.access_flags["native"]) {
       if (this.code != null) {
         ms.push(sf = new runtime.StackFrame(this, [], []));
-        c_params = this.convert_params(runtime_state, params);
+        var c_params = this.convert_params(runtime_state, params);
         sf.runner = function () {
           return _this.run_manually(_this.code, runtime_state, c_params);
         };
@@ -405,16 +385,16 @@ export class Method extends AbstractMethodField {
       return null;
     }
     if (this.access_flags.abstract) {
-      runtime_state.java_throw(runtime_state.get_bs_class('Ljava/lang/Error;'), "called abstract method: " + (this.full_signature()));
+      var err_cls = <ClassData.ReferenceClassData> runtime_state.get_bs_class('Ljava/lang/Error;');
+      runtime_state.java_throw(err_cls, "called abstract method: " + this.full_signature());
     }
     ms.push(sf = new runtime.StackFrame(this, params, []));
     if (this.code.run_stamp < runtime_state.run_stamp) {
       this.code.run_stamp = runtime_state.run_stamp;
       this.code.parse_code();
       if (this.access_flags.synchronized) {
-        _ref3 = this.code.opcodes;
-        for (i in _ref3) {
-          c = _ref3[i];
+        for (var i in this.code.opcodes) {
+          var c = this.code.opcodes[i];
           if (c.name.match(/^[ildfa]?return$/)) {
             (function (c) {
               return c.execute = function (rs) {
@@ -426,9 +406,7 @@ export class Method extends AbstractMethodField {
         }
       }
     }
-    sf.runner = function () {
-      return _this.run_bytecode(runtime_state);
-    };
+    sf.runner = () => _this.run_bytecode(runtime_state);
     return sf;
   }
 }

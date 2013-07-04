@@ -178,8 +178,7 @@ export class ClassLoader {
   }
 
   public define_class(rs: runtime.RuntimeState, type_str: string, data: number[], success_fn: (cd:ClassData.ClassData)=>void, failure_fn: (e_cb:()=>void)=>void, parallel?: bool, explicit?:bool): void {
-    var cdata, clsdata, msg, process_resolved_classes, resolved_already, to_resolve, type, types, _i, _len,
-      _this = this;
+    var type, _i, _len, _this = this;
 
     if (parallel == null) {
       parallel = false;
@@ -188,39 +187,40 @@ export class ClassLoader {
       explicit = false;
     }
     trace("Defining class " + type_str + "...");
-    cdata = new ReferenceClassData(data, this);
+    var cdata = new ReferenceClassData(data, this);
     if ((type = cdata.get_type()) !== type_str) {
-      msg = "" + (util.descriptor2typestr(type_str)) + " (wrong name: " + (util.descriptor2typestr(type)) + ")";
+      var msg = util.descriptor2typestr(type_str) + " (wrong name: " + util.descriptor2typestr(type) + ")";
       return failure_fn((function () {
-        rs.java_throw(_this.get_initialized_class('Ljava/lang/NoClassDefFoundError;'), msg);
+        var err_cls = <ClassData.ReferenceClassData> _this.get_initialized_class('Ljava/lang/NoClassDefFoundError;');
+        rs.java_throw(err_cls, msg);
       }));
     }
     this._add_class(type_str, cdata);
-    types = cdata.get_interface_types();
+    var types = cdata.get_interface_types();
     types.push(cdata.get_super_class_type());
-    to_resolve = [];
-    resolved_already = [];
+    var to_resolve = [];
+    var resolved_already = [];
     for (_i = 0, _len = types.length; _i < _len; _i++) {
       type = types[_i];
       if (type == null) {
         continue;
       }
-      clsdata = this.get_resolved_class(type, true);
+      var clsdata = this.get_resolved_class(type, true);
       if (clsdata != null) {
         resolved_already.push(clsdata);
       } else {
         to_resolve.push(type);
       }
     }
-    process_resolved_classes = function (cdatas) {
-      var a_cdata, interface_cdatas, super_cdata, super_type, _j, _len1;
+    function process_resolved_classes(cdatas) {
+      var _j, _len1;
 
       cdatas = resolved_already.concat(cdatas);
-      super_cdata = null;
-      interface_cdatas = [];
-      super_type = cdata.get_super_class_type();
+      var super_cdata = null;
+      var interface_cdatas = [];
+      var super_type = cdata.get_super_class_type();
       for (_j = 0, _len1 = cdatas.length; _j < _len1; _j++) {
-        a_cdata = cdatas[_j];
+        var a_cdata = cdatas[_j];
         type = a_cdata.get_type();
         if (type === super_type) {
           super_cdata = a_cdata;
@@ -230,7 +230,7 @@ export class ClassLoader {
       }
       cdata.set_resolved(super_cdata, interface_cdatas);
       return success_fn(cdata);
-    };
+    }
     if (to_resolve.length > 0) {
       if (false) {
         return this._parallel_class_resolve(rs, to_resolve, process_resolved_classes, failure_fn, explicit);
@@ -243,12 +243,10 @@ export class ClassLoader {
   }
 
   public get_loaded_class(type_str: string, null_handled?:bool): ClassData.ClassData {
-    var cdata;
-
     if (null_handled == null) {
       null_handled = false;
     }
-    cdata = this._get_class(type_str);
+    var cdata = this._get_class(type_str);
     if (cdata != null) {
       return cdata;
     }
@@ -281,7 +279,7 @@ export class ClassLoader {
     throw new Error("Error in get_resolved_class: Class " + type_str + " is not resolved.");
   }
 
-  public get_initialized_class(type_str: string, null_handled?:bool): any {
+  public get_initialized_class(type_str: string, null_handled?:bool): ClassData.ClassData {
     if (null_handled == null) {
       null_handled = false;
     }
@@ -331,7 +329,7 @@ export class ClassLoader {
             rs.meta_stack().pop();
             return failure_fn((function () {throw e;}));
           };
-          var cls = _this.bootstrap.get_resolved_class('Ljava/lang/ExceptionInInitializerError;');
+          var cls = <ClassData.ReferenceClassData> _this.bootstrap.get_resolved_class('Ljava/lang/ExceptionInInitializerError;');
           var v = new JavaObject(rs, cls);
           rs.push_array([v, v, e.exception]);
           return cls.method_lookup(rs, '<init>(Ljava/lang/Throwable;)V').setup_stack(rs);

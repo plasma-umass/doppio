@@ -4,6 +4,7 @@ import gLong = module('./gLong');
 import util = module('./util');
 import logging = module('./logging');
 import runtime = module('./runtime');
+import ClassData = module('./ClassData');
 //import ClassLoader = require('./ClassLoader')
 
 export class JavaArray {
@@ -11,7 +12,7 @@ export class JavaArray {
   public array: any[]
   public ref: number
 
-  constructor(rs: runtime.RuntimeState, cls, obj) {
+  constructor(rs: runtime.RuntimeState, cls: ClassData.ArrayClassData, obj) {
     this.cls = cls;
     this.ref = rs.high_oref++;
     this.array = obj;
@@ -60,7 +61,7 @@ export class JavaObject {
   public fields : any
   public ref : number
 
-  constructor(rs: runtime.RuntimeState, cls: any, obj?: any) {
+  constructor(rs: runtime.RuntimeState, cls: ClassData.ReferenceClassData, obj?: any) {
     this.cls = cls;
     if (obj == null) {
       obj = {};
@@ -168,14 +169,10 @@ export class JavaThreadObject extends JavaObject {
   public $park_count: number;
   public $park_timeout: number;
   constructor(rs: runtime.RuntimeState, obj?: any) {
-    var cls = {
-      get_type: function () {
-        return 'Ljava/lang/Thread;';
-      },
+    var cls = <ClassData.ReferenceClassData> {
+      get_type: (() => 'Ljava/lang/Thread;'),
       loader: rs.get_bs_cl(),
-      get_default_fields: {
-        // XXX: Hack for now.
-      }
+      get_default_fields: (() => null)  // XXX: Hack for now.
     };
     super(rs, cls, obj);
     this.$isAlive = true;
@@ -191,7 +188,7 @@ export class JavaThreadObject extends JavaObject {
 
 export class JavaClassObject extends JavaObject {
   constructor(rs: runtime.RuntimeState, public $cls: any) {
-    super(rs, rs.get_bs_cl().get_resolved_class('Ljava/lang/Class;'));
+    super(rs, <ClassData.ReferenceClassData> rs.get_bs_cl().get_resolved_class('Ljava/lang/Class;'));
   }
 
   public toString() {
