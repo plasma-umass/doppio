@@ -3,6 +3,7 @@ import util = module('./util');
 import exceptions = module('./exceptions');
 import runtime = module('./runtime');
 import ConstantPool = module('./ConstantPool');
+import ClassData = module('./ClassData');
 var JavaException = exceptions.JavaException;
 var ReturnException = exceptions.ReturnException;
 import java_object = module('./java_object');
@@ -117,7 +118,7 @@ export class InvokeOpcode extends Opcode {
   }
 
   public _execute(rs: runtime.RuntimeState): boolean {
-    var cls = rs.get_class(this.method_spec["class"], true);
+    var cls = <ClassData.ReferenceClassData> rs.get_class(this.method_spec["class"], true);
     if (cls != null) {
       var my_sf = rs.curr_frame();
       var m = cls.method_lookup(rs, this.method_spec.sig);
@@ -606,8 +607,8 @@ export class MultiArrayOpcode extends Opcode {
       var init_arr = function(curr_dim: number): java_object.JavaArray {
         var len = counts[curr_dim];
         if (len < 0) {
-          rs.java_throw(rs.get_bs_class('Ljava/lang/NegativeArraySizeException;'),
-            "Tried to init dimension " + curr_dim + " of a " + _this.dim + " dimensional " + _this.class_descriptor + " array with length " + len);
+          var err_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/NegativeArraySizeException;');
+          rs.java_throw(err_cls, "Tried to init dimension " + curr_dim + " of a " + _this.dim + " dimensional " + _this.class_descriptor + " array with length " + len);
         }
         var type = arr_types[curr_dim];
         var array = new Array(len);
@@ -620,7 +621,7 @@ export class MultiArrayOpcode extends Opcode {
             array[i] = init_arr(curr_dim + 1);
           }
         }
-        return new JavaArray(rs, rs.get_bs_class(type), array);
+        return new JavaArray(rs, <ClassData.ArrayClassData> rs.get_bs_class(type), array);
       };
       rs.push(init_arr(0));
     };
@@ -636,7 +637,8 @@ export class ArrayLoadOpcode extends Opcode {
     var obj = rs.check_null<java_object.JavaArray>(rs.pop());
     var len = obj.array.length;
     if (idx < 0 || idx >= len) {
-      rs.java_throw(rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;'),
+      var err_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;');
+      rs.java_throw(err_cls,
         idx + " not in length " + len + " array of type " + obj.cls.get_type());
     }
     rs.push(obj.array[idx]);
@@ -654,7 +656,8 @@ export class ArrayStoreOpcode extends Opcode {
     var obj = rs.check_null(rs.pop());
     var len = obj.array.length;
     if (idx < 0 || idx >= len) {
-      rs.java_throw(rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;'),
+      var err_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;');
+      rs.java_throw(err_cls,
         idx + " not in length " + len + " array of type " + obj.cls.get_type());
     }
     obj.array[idx] = value;
@@ -726,8 +729,8 @@ export function monitorexit(rs: runtime.RuntimeState, monitor: any): void {
       }
     }
   } else {
-    rs.java_throw(rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;'),
-                  "Tried to monitorexit on lock not held by current thread");
+    var err_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;');
+    rs.java_throw(err_cls, "Tried to monitorexit on lock not held by current thread");
   }
 }
 
@@ -1192,7 +1195,8 @@ export var opcodes : Opcode[] = [
         if ((o != null) && !o.cls.is_castable(this.cls)) {
           var target_class = this.cls.toExternalString();
           var candidate_class = o.cls.toExternalString();
-          rs.java_throw(rs.get_bs_class('Ljava/lang/ClassCastException;'), "" + candidate_class + " cannot be cast to " + target_class);
+          var err_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/ClassCastException;');
+          rs.java_throw(err_cls, candidate_class + " cannot be cast to " + target_class);
         }
       };
       new_execute.call(this, rs);

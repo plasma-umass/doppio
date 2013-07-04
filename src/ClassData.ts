@@ -106,12 +106,14 @@ export class ClassData {
   }
 
   public method_lookup(rs: runtime.RuntimeState, sig: string): methods.Method {
-    rs.java_throw(rs.get_bs_class('Ljava/lang/NoSuchMethodError;'), "No such method found in " + (util.ext_classname(this.get_type())) + "::" + sig);
+    var err_cls = <ReferenceClassData> rs.get_bs_class('Ljava/lang/NoSuchMethodError;');
+    rs.java_throw(err_cls, "No such method found in " + util.ext_classname(this.get_type()) + "::" + sig);
     return null; // TypeScript can't infer that rs.java_throw *always* throws an exception.
   }
 
   public field_lookup(rs: runtime.RuntimeState, name: string): methods.Field {
-    rs.java_throw(rs.get_bs_class('Ljava/lang/NoSuchFieldError;'), "No such field found in " + (util.ext_classname(this.get_type())) + "::" + name);
+    var err_cls = <ReferenceClassData> rs.get_bs_class('Ljava/lang/NoSuchFieldError;');
+    rs.java_throw(err_cls, "No such field found in " + util.ext_classname(this.get_type()) + "::" + name);
     return null; // TypeScript can't infer that rs.java_throw *always* throws an exception.
   }
 
@@ -190,10 +192,9 @@ export class PrimitiveClassData extends ClassData {
   }
 
   public create_wrapper_object(rs: runtime.RuntimeState, value: any): java_object.JavaObject {
-    var box_name, wrapped;
-
-    box_name = this.box_class_name();
-    wrapped = new JavaObject(rs, rs.get_bs_class(box_name));
+    var box_name = this.box_class_name();
+    var box_cls = <ReferenceClassData> rs.get_bs_class(box_name);
+    var wrapped = new JavaObject(rs, box_cls);
     wrapped.fields[box_name + 'value'] = value;
     return wrapped;
   }
@@ -269,7 +270,7 @@ export class ReferenceClassData extends ClassData {
   private methods: { [name: string]: methods.Method };
   private ml_cache: { [name: string]: methods.Method };
   private attrs: attributes.Attribute[];
-  private static_fields: { [name: string]: any };
+  public static_fields: { [name: string]: any };
   private interface_cdatas: ReferenceClassData[];
   private default_fields: { [name: string]: any };
 
@@ -464,9 +465,7 @@ export class ReferenceClassData extends ClassData {
   }
 
   public field_lookup(rs: runtime.RuntimeState, name: string, null_handled?: bool): methods.Field {
-    var field;
-
-    field = this.fl_cache[name];
+    var field = this.fl_cache[name];
     if (field != null) {
       return field;
     }
@@ -475,7 +474,9 @@ export class ReferenceClassData extends ClassData {
       this.fl_cache[name] = field;
       return field;
     }
-    rs.java_throw(rs.get_bs_class('Ljava/lang/NoSuchFieldError;'), "No such field found in " + (util.ext_classname(this.get_type())) + "::" + name);
+    var err_cls = <ReferenceClassData> rs.get_bs_class('Ljava/lang/NoSuchFieldError;');
+    rs.java_throw(err_cls, "No such field found in " + util.ext_classname(this.get_type()) + "::" + name);
+    return null;  // java_throw always throws.
   }
 
   private _field_lookup(rs: runtime.RuntimeState, name: string): methods.Field {
@@ -514,7 +515,8 @@ export class ReferenceClassData extends ClassData {
     }
     method = this._method_lookup(rs, sig);
     if (method == null) {
-      rs.java_throw(rs.get_bs_class('Ljava/lang/NoSuchMethodError;'), "No such method found in " + (util.ext_classname(this.get_type())) + "::" + sig);
+      var err_cls = <ReferenceClassData> rs.get_bs_class('Ljava/lang/NoSuchMethodError;');
+      rs.java_throw(err_cls, "No such method found in " + util.ext_classname(this.get_type()) + "::" + sig);
     }
     if ((handlers = (_ref1 = method.code) != null ? _ref1.exception_handlers : void 0) != null) {
       for (_i = 0, _len = handlers.length; _i < _len; _i++) {

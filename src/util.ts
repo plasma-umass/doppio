@@ -1,7 +1,8 @@
 import gLong = module('./gLong');
-import logging = module('./logging')
-import runtime = module('./runtime')
-import java_object = module('./java_object')
+import logging = module('./logging');
+import runtime = module('./runtime');
+import java_object = module('./java_object');
+import ClassData = module('./ClassData');
 
 // default module: util
 export var INT_MAX = Math.pow(2, 31) - 1;
@@ -70,14 +71,16 @@ export function arrayset<T>(len: number, val :T): T[] {
 
 export function int_mod(rs: runtime.RuntimeState, a: number, b: number): number {
   if (b === 0) {
-    rs.java_throw(rs.get_bs_class('Ljava/lang/ArithmeticException;'), '/ by zero');
+    var err_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/ArithmeticException;');
+    rs.java_throw(err_cls, '/ by zero');
   }
   return a % b;
 }
 
 export function int_div(rs: runtime.RuntimeState, a: number, b: number): number {
   if (b === 0) {
-    rs.java_throw(rs.get_bs_class('Ljava/lang/ArithmeticException;'), '/ by zero');
+    var err_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/ArithmeticException;');
+    rs.java_throw(err_cls, '/ by zero');
   }
   // spec: "if the dividend is the negative integer of largest possible magnitude
   // for the int type, and the divisor is -1, then overflow occurs, and the
@@ -90,14 +93,16 @@ export function int_div(rs: runtime.RuntimeState, a: number, b: number): number 
 
 export function long_mod(rs: runtime.RuntimeState, a: gLong, b: gLong): gLong {
   if (b.isZero()) {
-    rs.java_throw(rs.get_bs_class('Ljava/lang/ArithmeticException;'), '/ by zero');
+    var err_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/ArithmeticException;');
+    rs.java_throw(err_cls, '/ by zero');
   }
   return a.modulo(b);
 }
 
 export function long_div(rs: runtime.RuntimeState, a: gLong, b: gLong): gLong {
   if (b.isZero()) {
-    rs.java_throw(rs.get_bs_class('Ljava/lang/ArithmeticException;'), '/ by zero');
+    var err_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/ArithmeticException;');
+    rs.java_throw(err_cls, '/ by zero');
   }
   return a.div(b);
 }

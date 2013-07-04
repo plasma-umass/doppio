@@ -221,7 +221,7 @@ export class RuntimeState {
     this.lock_counts = {};
     this.waiting_threads = {};
     this.thread_pool = [];
-    
+
     var ct = new JavaThreadObject(this);
     this.curr_thread = ct;
     this.max_m_count = 100000;
@@ -231,14 +231,14 @@ export class RuntimeState {
     return this.bcl;
   }
 
-  public get_bs_class(type: string, handle_null?: boolean): any {
+  public get_bs_class(type: string, handle_null?: boolean): ClassData.ClassData {
     if (handle_null == null) {
       handle_null = false;
     }
     return this.bcl.get_initialized_class(type, handle_null);
   }
 
-  public get_class(type: string, handle_null?: boolean): any {
+  public get_class(type: string, handle_null?: boolean): ClassData.ClassData {
     if (handle_null == null) {
       handle_null = false;
     }
@@ -270,26 +270,26 @@ export class RuntimeState {
   }
 
   public init_threads(): void {
-    var group, my_sf,
+    var group,
       _this = this;
 
-    my_sf = this.curr_frame();
-    this.push((group = new JavaObject(this, this.get_bs_class('Ljava/lang/ThreadGroup;'))));
-    this.get_bs_class('Ljava/lang/ThreadGroup;').method_lookup(this, '<init>()V').setup_stack(this);
+    var my_sf = this.curr_frame();
+    var thread_group_cls = <ClassData.ReferenceClassData> this.get_bs_class('Ljava/lang/ThreadGroup;');
+    var thread_cls = <ClassData.ReferenceClassData> this.get_bs_class('Ljava/lang/Thread;');
+    this.push((group = new JavaObject(this, thread_group_cls)));
+    thread_group_cls.method_lookup(this, '<init>()V').setup_stack(this);
     my_sf.runner = function () {
-      var ct;
-
-      ct = null;
+      var ct = null;
       my_sf.runner = function () {
         my_sf.runner = null;
         ct.$meta_stack = _this.meta_stack();
         _this.curr_thread = ct;
         _this.curr_thread.$isAlive = true;
         _this.thread_pool.push(_this.curr_thread);
-        _this.get_bs_class('Ljava/lang/Thread;').static_fields.threadInitNumber = 1;
-        return debug("### finished thread init ###");
+        thread_cls.static_fields['threadInitNumber'] = 1;
+        debug("### finished thread init ###");
       };
-      ct = new JavaObject(_this, _this.get_bs_class('Ljava/lang/Thread;'), {
+      ct = new JavaObject(_this, thread_cls, {
         'Ljava/lang/Thread;name': _this.init_carr('main'),
         'Ljava/lang/Thread;priority': 1,
         'Ljava/lang/Thread;group': group,
@@ -303,12 +303,10 @@ export class RuntimeState {
   }
 
   public java_throw(cls: ClassData.ReferenceClassData, msg: string): void {
-    var my_sf, v,
-      _this = this;
-
-    v = new JavaObject(this, cls);
+    var _this = this;
+    var v = new JavaObject(this, cls);
     this.push_array([v, v, this.init_string(msg)]);
-    my_sf = this.curr_frame();
+    var my_sf = this.curr_frame();
     cls.method_lookup(this, '<init>(Ljava/lang/String;)V').setup_stack(this);
     my_sf.runner = function () {
       if (my_sf.method.has_bytecode) {
@@ -337,18 +335,9 @@ export class RuntimeState {
   }
 
   public init_args(initial_args: any[]): void {
-    var a, args;
-
-    args = new JavaArray(this, this.get_bs_class('[Ljava/lang/String;'), (function () {
-      var _i, _len, _results;
-
-      _results = [];
-      for (_i = 0, _len = initial_args.length; _i < _len; _i++) {
-        a = initial_args[_i];
-        _results.push(this.init_string(a));
-      }
-      return _results;
-    }).call(this));
+    var _this = this;
+    var str_arr_cls = <ClassData.ArrayClassData> this.get_bs_class('[Ljava/lang/String;');
+    var args = new JavaArray(this, str_arr_cls, initial_args.map((a) => _this.init_string(a)));
     this.curr_thread.$meta_stack = new CallStack([args]);
     debug("### finished runtime state initialization ###");
   }
@@ -540,37 +529,38 @@ export class RuntimeState {
 
   public check_null<T>(obj: T): T {
     if (obj == null) {
-      this.java_throw(this.get_bs_class('Ljava/lang/NullPointerException;'), '');
+      var err_cls = <ClassData.ReferenceClassData> this.get_bs_class('Ljava/lang/NullPointerException;');
+      this.java_throw(err_cls, '');
     }
     return obj;
   }
 
   public heap_newarray(type: string, len: number): java_object.JavaArray {
-    var _ref5;
-
     if (len < 0) {
-      this.java_throw(this.get_bs_class('Ljava/lang/NegativeArraySizeException;'), "Tried to init [" + type + " array with length " + len);
+      var err_cls = <ClassData.ReferenceClassData> this.get_bs_class('Ljava/lang/NegativeArraySizeException;');
+      this.java_throw(err_cls, "Tried to init [" + type + " array with length " + len);
     }
+    var arr_cls = <ClassData.ArrayClassData> this.get_class("[" + type);
     if (type === 'J') {
-      return new JavaArray(this, this.get_bs_class('[J'), util.arrayset<gLong>(len, gLong.ZERO));
-    } else if ((_ref5 = type[0]) === 'L' || _ref5 === '[') {
-      return new JavaArray(this, this.get_class("[" + type), util.arrayset<any>(len, null));
+      return new JavaArray(this, arr_cls, util.arrayset<gLong>(len, gLong.ZERO));
+    } else if (type[0] === 'L' || type[0] === '[') {
+      return new JavaArray(this, arr_cls, util.arrayset<any>(len, null));
     } else {
-      return new JavaArray(this, this.get_class("[" + type), util.arrayset<number>(len, 0));
+      return new JavaArray(this, arr_cls, util.arrayset<number>(len, 0));
     }
   }
 
   public init_string(str: string, intern?: bool): java_object.JavaObject {
-    var carr, jvm_str, s;
-
     if (intern == null) {
       intern = false;
     }
+    var s;
     if (intern && ((s = this.string_pool.get(str)) != null)) {
       return s;
     }
-    carr = this.init_carr(str);
-    jvm_str = new JavaObject(this, this.get_bs_class('Ljava/lang/String;'), {
+    var carr = this.init_carr(str);
+    var str_cls = <ClassData.ReferenceClassData> this.get_bs_class('Ljava/lang/String;');
+    var jvm_str = new JavaObject(this, str_cls, {
       'Ljava/lang/String;value': carr,
       'Ljava/lang/String;count': str.length
     });
@@ -581,13 +571,12 @@ export class RuntimeState {
   }
 
   public init_carr(str: string): java_object.JavaArray {
-    var carr, i, _i, _ref5;
-
-    carr = new Array(str.length);
-    for (i = _i = 0, _ref5 = str.length; _i < _ref5; i = _i += 1) {
+    var carr = new Array(str.length);
+    for (var i  = 0; i < str.length; i++) {
       carr[i] = str.charCodeAt(i);
     }
-    return new JavaArray(this, this.get_bs_class('[C'), carr);
+    var arr_cls = <ClassData.ArrayClassData> this.get_bs_class('[C');
+    return new JavaArray(this, arr_cls, carr);
   }
 
   public block_addr(l_address: gLong): number {
