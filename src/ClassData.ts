@@ -8,6 +8,7 @@ var JavaObject = java_object.JavaObject;
 var JavaClassObject = java_object.JavaClassObject;
 import logging = module('./logging');
 import methods = module('./methods');
+var methodz = null;
 import runtime = module('./runtime');
 var trace = logging.trace;
 
@@ -276,6 +277,9 @@ export class ReferenceClassData extends ClassData {
   private default_fields: { [name: string]: any };
 
   constructor(raw_bytes_array: number[], loader?: any) {
+    if (methodz == null) {
+      methodz = require('./methods');
+    }
     super(loader);
     var f, i, isize, m, mkey, num_fields, num_methods, super_ref, _i, _j, _len, _ref1, _ref2;
     var bytes_array = new util.BytesArray(raw_bytes_array);
@@ -313,7 +317,7 @@ export class ReferenceClassData extends ClassData {
 
       _results = [];
       for (i = _i = 0; _i < num_fields; i = _i += 1) {
-        _results.push(new methods.Field(this));
+        _results.push(new methodz.Field(this));
       }
       return _results;
     }).call(this);
@@ -328,7 +332,7 @@ export class ReferenceClassData extends ClassData {
     this.methods = {};
     this.ml_cache = {};
     for (i = _j = 0; _j < num_methods; i = _j += 1) {
-      m = new methods.Method(this);
+      m = new methodz.Method(this);
       m.parse(bytes_array, this.constant_pool, i);
       mkey = m.name + m.raw_descriptor;
       this.methods[mkey] = m;
