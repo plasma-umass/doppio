@@ -1237,6 +1237,7 @@ export var opcodes : Opcode[] = [
     }
   }),
   new Opcode('monitorexit', 0, ((rs) => monitorexit(rs, rs.pop()))),
+  null,  // hole in the opcode array at 196
   new MultiArrayOpcode('multianewarray'),
   new UnaryBranchOpcode('ifnull', ((v) => v == null)),
   new UnaryBranchOpcode('ifnonnull', ((v) => v != null)),
