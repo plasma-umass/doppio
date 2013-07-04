@@ -16,14 +16,16 @@ class DoppioServer
       SAFARI:  'safari'
       OPERA:   'opera'
 
-  options: (args) ->
-    options =
+    @set_options()
+
+  set_options: (args) ->
+    @options =
       verbosity: 1
       mode: @Mode.REL
       logdir: './logs'
 
-    if argv.release then options.mode = @Mode.REL
-    if argv.dev then options.mode = @Mode.DEV
+    if argv.release then @options.mode = @Mode.REL
+    if argv.dev then @options.mode = @Mode.DEV
 
   modestring: (mode) ->
     switch mode
@@ -47,6 +49,11 @@ class DoppioServer
     @p1 "Creating server in #{@modestring(@options.mode)} mode."
 
     # @server = http.stuff()
+    @server = http.createServer (req, res) ->
+      res.writeHead 200, 'Content-Type': 'text/plain'
+      res.end 'Hello World\n'
+
+    @server.listen 1337, '127.0.0.1'
 
     @p1 "Starting server."
 
