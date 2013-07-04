@@ -1,5 +1,4 @@
 
-var underscore = require('../vendor/_.js');
 import util = module('./util');
 import opcodes = module('./opcodes');
 import attributes = module('./attributes');
@@ -44,11 +43,8 @@ export class AbstractMethodField {
   }
 
   public get_attribute(name: string): attributes.Attribute {
-    var attr, _i, _len, _ref1;
-
-    _ref1 = this.attrs;
-    for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-      attr = _ref1[_i];
+    for (var i = 0; i < this.attrs.length; i++) {
+      var attr = this.attrs[i];
       if (attr.name === name) {
         return attr;
       }
@@ -57,21 +53,11 @@ export class AbstractMethodField {
   }
 
   public get_attributes(name: string): attributes.Attribute[] {
-    var attr, _i, _len, _ref1, _results;
-
-    _ref1 = this.attrs;
-    _results = [];
-    for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-      attr = _ref1[_i];
-      if (attr.name === name) {
-        _results.push(attr);
-      }
-    }
-    return _results;
+    return this.attrs.filter((attr) => attr.name === name);
   }
 
   // To satiate TypeScript. Consider it an 'abstract' method.
-  public parse_descriptor(raw_descriptor: string) {
+  public parse_descriptor(raw_descriptor: string): void {
     throw new Error("Unimplemented error.");
   }
 }
@@ -79,14 +65,14 @@ export class AbstractMethodField {
 export class Field extends AbstractMethodField {
   private type: string;
 
-  public parse_descriptor(raw_descriptor: string) {
-    return this.type = raw_descriptor;
+  public parse_descriptor(raw_descriptor: string): void {
+    this.type = raw_descriptor;
   }
 
   public reflector(rs: runtime.RuntimeState, success_fn: (reflectedField: java_object.JavaObject)=>void, failure_fn: (e_fn: ()=>void)=>void): void {
     var _this = this;
-    var found = underscore.find(this.attrs, (a) => a.name === "Signature");
-    var sig = (found != null) ? found.sig : undefined;
+    var found = <attributes.Signature> this.get_attribute("Signature");
+    var sig = (found != null) ? found.sig : null;
     function create_obj(clazz_obj: java_object.JavaClassObject, type_obj: java_object.JavaObject) {
       var field_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/reflect/Field;');
       return new JavaObject(rs, field_cls, {
@@ -169,9 +155,9 @@ export class Method extends AbstractMethodField {
       } else {
         this.code = null;
       }
-    } else {
+    } else if (!this.access_flags.abstract) {
       this.has_bytecode = true;
-      this.code = underscore.find(this.attrs, (a) => a.name === 'Code');
+      this.code = this.get_attribute('Code');
     }
   }
 
@@ -183,18 +169,10 @@ export class Method extends AbstractMethodField {
       is_constructor = false;
     }
     typestr = is_constructor ? 'Ljava/lang/reflect/Constructor;' : 'Ljava/lang/reflect/Method;';
-    exceptions = (_ref3 = (_ref4 = underscore.find(this.attrs, function (a) {
-      return a.name === 'Exceptions';
-    })) != null ? _ref4.exceptions : void 0) != null ? _ref3 : [];
-    anns = (_ref5 = underscore.find(this.attrs, function (a) {
-      return a.name === 'RuntimeVisibleAnnotations';
-    })) != null ? _ref5.raw_bytes : void 0;
-    adefs = (_ref6 = underscore.find(this.attrs, function (a) {
-      return a.name === 'AnnotationDefault';
-    })) != null ? _ref6.raw_bytes : void 0;
-    sig = (_ref7 = underscore.find(this.attrs, function (a) {
-      return a.name === 'Signature';
-    })) != null ? _ref7.sig : void 0;
+    exceptions = (_ref3 = (_ref4 = this.get_attribute("Exceptions")) != null ? _ref4.exceptions : void 0) != null ? _ref3 : [];
+    anns = (_ref5 = this.get_attribute("RuntimeVisibleAnnotations")) != null ? _ref5.raw_bytes : void 0;
+    adefs = (_ref6 = this.get_attribute("AnnotationDefault")) != null ? _ref6.raw_bytes : void 0;
+    sig = (_ref7 = this.get_attribute("Signature")) != null ? _ref7.sig : void 0;
     obj = {};
     clazz_obj = this.cls.get_class_object(rs);
     this.cls.loader.resolve_class(rs, this.return_type, (function (rt_cls) {
@@ -324,32 +302,30 @@ export class Method extends AbstractMethodField {
   }
 
   public run_bytecode(rs: runtime.RuntimeState): void {
-    var annotation, cf, code, depth, instr, op, pc, _i, _len, _ref3, _ref4;
-
-    trace("entering method " + (this.full_signature()));
-    if (this.reset_caches && (((_ref3 = this.code) != null ? _ref3.opcodes : void 0) != null)) {
-      _ref4 = this.code.opcodes;
-      for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
-        instr = _ref4[_i];
+    trace("entering method " + this.full_signature());
+    var code = this.code.opcodes;
+    if (this.reset_caches) {
+      for (var i = 0; i < code.length; i++) {
+        var instr = code[i];
         if (instr != null) {
           instr.reset_cache();
         }
       }
     }
-    code = this.code.opcodes;
-    cf = rs.curr_frame();
+    var cf = rs.curr_frame();
     if (this.access_flags.synchronized && cf.pc === 0) {
       if (!opcodes.monitorenter(rs, this.method_lock(rs))) {
         cf.pc = 0;
         return;
       }
     }
-    op = code[cf.pc];
+    var op = code[cf.pc];
     while (true) {
+      var annotation;
       if (!((typeof RELEASE !== "undefined" && RELEASE !== null) || logging.log_level < logging.VTRACE)) {
-        pc = cf.pc;
+        var pc = cf.pc;
         if (!op) {
-          throw "" + this.name + ":" + pc + " => (null)";
+          throw this.name + ":" + pc + " => (null)";
         }
         annotation = op.annotate(pc, this.cls.constant_pool);
       }
@@ -357,8 +333,8 @@ export class Method extends AbstractMethodField {
         break;
       }
       if (!((typeof RELEASE !== "undefined" && RELEASE !== null) || logging.log_level < logging.VTRACE)) {
-        vtrace(("" + (this.cls.get_type()) + "::" + this.name + ":" + pc + " => " + op.name) + annotation);
-        depth = rs.meta_stack().length();
+        vtrace(this.cls.get_type() + "::" + this.name + ":" + pc + " => " + op.name + annotation);
+        var depth = rs.meta_stack().length();
         vtrace("D: " + depth + ", S: [" + (debug_vars(cf.stack)) + "], L: [" + (debug_vars(cf.locals)) + "], T: " + (rs.curr_thread.get_field != null ? thread_name(rs, rs.curr_thread) : ""));
       }
       cf.pc += 1 + op.byte_count;
