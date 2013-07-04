@@ -319,7 +319,7 @@ export class Method extends AbstractMethodField {
       }
     }
     var op = code[cf.pc];
-    while (true) {
+    while (!rs.should_return) {
       var annotation;
       if (!((typeof RELEASE !== "undefined" && RELEASE !== null) || logging.log_level < logging.VTRACE)) {
         var pc = cf.pc;
@@ -339,6 +339,7 @@ export class Method extends AbstractMethodField {
       cf.pc += 1 + op.byte_count;
       op = code[cf.pc];
     }
+    rs.should_return = false;
   }
 
   public setup_stack(runtime_state: runtime.RuntimeState): runtime.StackFrame {
