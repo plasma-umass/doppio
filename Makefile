@@ -12,7 +12,7 @@ DIST_NAME = $(shell echo "Doppio_`date +'%y-%m-%d'`.tar.gz")
 # DEPENDENCIES
 DOPPIO_DIR    := $(CURDIR)
 BOOTCLASSPATH := $(DOPPIO_DIR)/vendor/classes
-TSC      := tsc
+TSC      := $(shell npm bin)/tsc
 UGLIFYJS := $(shell npm bin)/uglifyjs
 DOCCO    := $(shell npm bin)/docco
 JAZZLIB  := $(BOOTCLASSPATH)/java/util/zip/DeflaterEngine.class
