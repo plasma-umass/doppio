@@ -1,3 +1,4 @@
+"use strict";
 import jvm = module('./jvm');
 import runtime = module('./runtime');
 var RuntimeState = runtime.RuntimeState;

@@ -1,4 +1,4 @@
-//  _ = require('../vendor/_.js');
+"use strict";
 import gLong = module('./gLong');
 import util = module('./util');
 import runtime = module('./runtime');

@@ -1,4 +1,4 @@
-
+"use strict";
 var fs = require('fs');
 var optimist = require('optimist');
 import util = module('../src/util');

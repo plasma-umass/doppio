@@ -1,3 +1,4 @@
+"use strict";
 import util = module('./util');
 import opcodes = module('./opcodes');
 import ConstantPool = module('./ConstantPool');

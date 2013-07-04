@@ -1,3 +1,4 @@
+"use strict";
 import gLong = module('./gLong');
 import logging = module('./logging');
 import runtime = module('./runtime');

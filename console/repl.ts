@@ -1,3 +1,4 @@
+"use strict";
 var readline = require('readline');
 var argv = require('optimist').argv;
 import jvm = module('../src/jvm');

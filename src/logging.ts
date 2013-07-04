@@ -1,3 +1,4 @@
+"use strict";
 import gLong = module('./gLong');
 
 // default module: logging

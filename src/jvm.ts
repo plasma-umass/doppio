@@ -1,5 +1,5 @@
 ///<reference path='./node.d.ts' />
-
+"use strict";
 import util = module('./util');
 import logging = module('./logging')
 import runtime = module('./runtime')
