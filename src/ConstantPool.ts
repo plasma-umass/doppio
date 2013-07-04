@@ -10,7 +10,7 @@ export interface ConstantPoolItem {
 }
 
 export class SimpleReference {
-  public size = 1;
+  public static size = 1;
   public constant_pool: ConstantPool;
   public value: any;
   constructor(constant_pool: ConstantPool, value: any) {
@@ -51,7 +51,7 @@ export class StringReference extends SimpleReference {
 }
 
 export class AbstractMethodFieldReference {
-  public size = 1;
+  public static size = 1;
   public value: any;
   public constant_pool: ConstantPool;
   constructor(constant_pool: ConstantPool, value: any) {
@@ -105,7 +105,7 @@ export class FieldReference extends AbstractMethodFieldReference {
 }
 
 export class MethodSignature {
-  public size = 1;
+  public static size = 1;
   public type = 'NameAndType';
   public constant_pool: ConstantPool;
   public value: any;
@@ -135,7 +135,7 @@ export class MethodSignature {
 }
 
 export class ConstString {
-  public size = 1;
+  public static size = 1;
   public type = 'Asciz';
   public value: any;
   constructor(value: any) {
@@ -153,7 +153,7 @@ export class ConstString {
 }
 
 export class ConstInt32 {
-  public size = 1;
+  public static size = 1;
   public type = 'int';
   public value: any;
   constructor(value) {
@@ -171,7 +171,7 @@ export class ConstInt32 {
 }
 
 export class ConstFloat {
-  public size = 1;
+  public static size = 1;
   public type = 'float';
   public value: any;
   constructor(value) {
@@ -189,7 +189,7 @@ export class ConstFloat {
 }
 
 export class ConstLong {
-  public size = 2;
+  public static size = 2;
   public type = 'Long';
   public value: any;
   constructor(value) {
@@ -208,7 +208,7 @@ export class ConstLong {
 }
 
 export class ConstDouble {
-  public size = 2;
+  public static size = 2;
   public type = 'double';
   public value: any;
   constructor(value) {
