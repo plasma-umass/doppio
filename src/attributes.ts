@@ -185,6 +185,7 @@ export class StackMapTable implements Attribute {
         offset_delta: [bytes_array.get_uint(2)]
       };
     } else if ((252 <= frame_type && frame_type < 255)) {
+      var offset_delta = bytes_array.get_uint(2);
       var locals = [];
       for (var i = 0; i < frame_type - 251; i++) {
         locals.push(this.parse_verification_type_info(bytes_array, constant_pool));
@@ -192,7 +193,7 @@ export class StackMapTable implements Attribute {
       return {
         frame_type: frame_type,
         frame_name: 'append',
-        offset_delta: bytes_array.get_uint(2),
+        offset_delta: offset_delta,
         locals: locals
       };
     } else if (frame_type === 255) {
