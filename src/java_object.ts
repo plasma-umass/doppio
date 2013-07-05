@@ -60,7 +60,8 @@ export class JavaArray {
 export class JavaObject {
   public cls : any
   public fields : any
-  public ref : number
+  public ref: number
+  public $pos: number // XXX: For file descriptors.
 
   constructor(rs: runtime.RuntimeState, cls: ClassData.ReferenceClassData, obj?: any) {
     this.cls = cls;
