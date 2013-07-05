@@ -44,32 +44,9 @@ export class CallStack {
   }
 
   public snap(): { serialize: () => StackFrameSnapshot[]} {
-    var frame: StackFrame, snapshots: {serialize: ()=>StackFrameSnapshot}[], visited;
-
-    visited = {};
-    snapshots = (function () {
-      var _i, _len, _ref5, _results;
-
-      _ref5 = this._cs;
-      _results = [];
-      for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
-        frame = _ref5[_i];
-        _results.push(frame.snap(visited));
-      }
-      return _results;
-    }).call(this);
-    return {
-      serialize: function () {
-        var ss: { serialize: () => StackFrameSnapshot }, _i, _len, _results;
-
-        _results = [];
-        for (_i = 0, _len = snapshots.length; _i < _len; _i++) {
-          ss = snapshots[_i];
-          _results.push(ss.serialize());
-        }
-        return _results;
-      }
-    };
+    var visited = {};
+    var snapshots = this._cs.map((frame) => frame.snap(visited));
+    return { serialize: (() => snapshots.map((ss) => ss.serialize())) };
   }
 
   public length(): number {
@@ -84,8 +61,8 @@ export class CallStack {
     return this._cs.pop();
   }
 
-  public pop_n(n: number): number {
-    return this._cs.length -= n;
+  public pop_n(n: number): void {
+    this._cs.length -= n;
   }
 
   public curr_frame(): StackFrame {
@@ -102,7 +79,7 @@ export class StackFrame {
   public locals: any[];
   public stack: any[];
   public pc: number;
-  public runner: (any) => any;
+  public runner: () => any;
   private native: boolean;
   public name: string;
 
@@ -124,54 +101,36 @@ export class StackFrame {
   }
 
   public snap(visited: {[name:string]:bool}): { serialize: () => StackFrameSnapshot } {
-    var rv,
-      _this = this;
-
-    rv = {
+    var _this = this;
+    var rv : StackFrameSnapshot = {
       name: this.name,
       pc: this.pc,
-      native: this.native
+      native: this.native,
+      loader: null,
+      stack: null,
+      locals: null
     };
-    return {
-      serialize: function () {
-        var obj, _ref5;
-
-        rv.loader = (_ref5 = _this.method.cls) != null ? _ref5.loader.serialize(visited) : void 0;
-        rv.stack = (function () {
-          var _i, _len, _ref6, _ref7, _results;
-
-          _ref6 = this.stack;
-          _results = [];
-          for (_i = 0, _len = _ref6.length; _i < _len; _i++) {
-            obj = _ref6[_i];
-            _results.push((_ref7 = obj != null ? typeof obj.serialize === "function" ? obj.serialize(visited) : void 0 : void 0) != null ? _ref7 : obj);
-          }
-          return _results;
-        }).call(_this);
-        rv.locals = (function () {
-          var _i, _len, _ref6, _ref7, _results;
-
-          _ref6 = this.locals;
-          _results = [];
-          for (_i = 0, _len = _ref6.length; _i < _len; _i++) {
-            obj = _ref6[_i];
-            _results.push((_ref7 = obj != null ? typeof obj.serialize === "function" ? obj.serialize(visited) : void 0 : void 0) != null ? _ref7 : obj);
-          }
-          return _results;
-        }).call(_this);
-        return rv;
+    function serializer(obj) {
+      if (obj != null && typeof obj.serialize === "function") {
+        return obj.serialize(visited);
       }
-    };
+      return obj;
+    }
+    function s(): StackFrameSnapshot {
+      if (_this.method.cls != null) {
+        rv.loader = _this.method.cls.loader.serialize(visited);
+      }
+      rv.stack = _this.stack.map(serializer);
+      rv.locals = _this.locals.map(serializer);
+      return rv;
+    }
+    return { serialize: s };
   }
 
-  public static native_frame(name: string, handler?: (any)=>any, error_handler?:(any)=>any): StackFrame {
-    var sf;
-
+  public static native_frame(name: string, handler?: ()=>any, error_handler?:(any)=>any): StackFrame {
     // XXX: Super kludge!
-    sf = new StackFrame(<methods.Method>{
-      full_signature: function () {
-        return name;
-      }
+    var sf = new StackFrame(<methods.Method>{
+      full_signature: (() => name)
     }, [], []);
     sf.runner = handler;
     sf.name = name;
@@ -252,12 +211,34 @@ export class RuntimeState {
   }
 
   public preinitialize_core_classes(resume_cb: () => any, except_cb: (cb: () => any) => any): void {
-    var core_classes, i, init_next_core_class,
-      _this = this;
-
-    core_classes = ['Ljava/lang/Class;', 'Ljava/lang/ClassLoader;', 'Ljava/lang/String;', 'Ljava/lang/Error;', 'Ljava/lang/StackTraceElement;', 'Ljava/io/ExpiringCache;', 'Ljava/io/FileDescriptor;', 'Ljava/io/FileNotFoundException;', 'Ljava/io/IOException;', 'Ljava/io/Serializable;', 'Ljava/io/UnixFileSystem;', 'Ljava/lang/ArithmeticException;', 'Ljava/lang/ArrayIndexOutOfBoundsException;', 'Ljava/lang/ArrayStoreException;', 'Ljava/lang/ClassCastException;', 'Ljava/lang/ClassNotFoundException;', 'Ljava/lang/NoClassDefFoundError;', 'Ljava/lang/Cloneable;', 'Ljava/lang/ExceptionInInitializerError;', 'Ljava/lang/IllegalMonitorStateException;', 'Ljava/lang/InterruptedException;', 'Ljava/lang/NegativeArraySizeException;', 'Ljava/lang/NoSuchFieldError;', 'Ljava/lang/NoSuchMethodError;', 'Ljava/lang/NullPointerException;', 'Ljava/lang/reflect/Constructor;', 'Ljava/lang/reflect/Field;', 'Ljava/lang/reflect/Method;', 'Ljava/lang/System;', 'Ljava/lang/Thread;', 'Ljava/lang/ThreadGroup;', 'Ljava/lang/Throwable;', 'Ljava/lang/UnsatisfiedLinkError;', 'Ljava/nio/ByteOrder;', 'Lsun/misc/VM;', 'Lsun/reflect/ConstantPool;', 'Ljava/lang/Byte;', 'Ljava/lang/Character;', 'Ljava/lang/Double;', 'Ljava/lang/Float;', 'Ljava/lang/Integer;', 'Ljava/lang/Long;', 'Ljava/lang/Short;', 'Ljava/lang/Boolean;', '[Lsun/management/MemoryManagerImpl;', '[Lsun/management/MemoryPoolImpl;'];
-    i = -1;
-    init_next_core_class = function () {
+    var core_classes = [
+      'Ljava/lang/Class;', 'Ljava/lang/ClassLoader;', 'Ljava/lang/String;',
+      'Ljava/lang/Error;', 'Ljava/lang/StackTraceElement;',
+      'Ljava/io/ExpiringCache;', 'Ljava/io/FileDescriptor;',
+      'Ljava/io/FileNotFoundException;', 'Ljava/io/IOException;',
+      'Ljava/io/Serializable;', 'Ljava/io/UnixFileSystem;',
+      'Ljava/lang/ArithmeticException;',
+      'Ljava/lang/ArrayIndexOutOfBoundsException;',
+      'Ljava/lang/ArrayStoreException;', 'Ljava/lang/ClassCastException;',
+      'Ljava/lang/ClassNotFoundException;', 'Ljava/lang/NoClassDefFoundError;',
+      'Ljava/lang/Cloneable;', 'Ljava/lang/ExceptionInInitializerError;',
+      'Ljava/lang/IllegalMonitorStateException;',
+      'Ljava/lang/InterruptedException;',
+      'Ljava/lang/NegativeArraySizeException;', 'Ljava/lang/NoSuchFieldError;',
+      'Ljava/lang/NoSuchMethodError;', 'Ljava/lang/NullPointerException;',
+      'Ljava/lang/reflect/Constructor;', 'Ljava/lang/reflect/Field;',
+      'Ljava/lang/reflect/Method;', 'Ljava/lang/System;', 'Ljava/lang/Thread;',
+      'Ljava/lang/ThreadGroup;', 'Ljava/lang/Throwable;',
+      'Ljava/lang/UnsatisfiedLinkError;', 'Ljava/nio/ByteOrder;',
+      'Lsun/misc/VM;', 'Lsun/reflect/ConstantPool;', 'Ljava/lang/Byte;',
+      'Ljava/lang/Character;', 'Ljava/lang/Double;', 'Ljava/lang/Float;',
+      'Ljava/lang/Integer;', 'Ljava/lang/Long;', 'Ljava/lang/Short;',
+      'Ljava/lang/Boolean;', '[Lsun/management/MemoryManagerImpl;',
+      '[Lsun/management/MemoryPoolImpl;'
+    ];
+    var i = -1;
+    var _this = this;
+    function init_next_core_class(): void {
       trace("init_next_core_class");
       i++;
       if (i < core_classes.length) {
@@ -272,13 +253,12 @@ export class RuntimeState {
   }
 
   public init_threads(): void {
-    var group,
-      _this = this;
-
+    var _this = this;
     var my_sf = this.curr_frame();
     var thread_group_cls = <ClassData.ReferenceClassData> this.get_bs_class('Ljava/lang/ThreadGroup;');
     var thread_cls = <ClassData.ReferenceClassData> this.get_bs_class('Ljava/lang/Thread;');
-    this.push((group = new JavaObject(this, thread_group_cls)));
+    var group = new JavaObject(this, thread_group_cls);
+    this.push(group);
     thread_group_cls.method_lookup(this, '<init>()V').setup_stack(this);
     my_sf.runner = function () {
       var ct = null;
@@ -312,9 +292,7 @@ export class RuntimeState {
     cls.method_lookup(this, '<init>(Ljava/lang/String;)V').setup_stack(this);
     my_sf.runner = function () {
       if (my_sf.method.has_bytecode) {
-        my_sf.runner = (function () {
-          return my_sf.method.run_bytecode(_this);
-        });
+        my_sf.runner = () => my_sf.method.run_bytecode(_this);
       } else {
         my_sf.runner = null;
       }
@@ -324,10 +302,8 @@ export class RuntimeState {
   }
 
   public init_system_class(): void {
-    var my_sf;
     var _this = this;
-
-    my_sf = this.curr_frame();
+    var my_sf = this.curr_frame();
     this.get_bs_class('Ljava/lang/System;').get_method('initializeSystemClass()V').setup_stack(this);
     my_sf.runner = function () {
       my_sf.runner = null;
@@ -344,40 +320,38 @@ export class RuntimeState {
     debug("### finished runtime state initialization ###");
   }
 
-  public dump_state(snapshot?, suffix?): void {
-    var fs, _ref5;
-
+  public dump_state(snapshot?: { serialize: () => StackFrameSnapshot[]; }, suffix?: string): void {
     if (snapshot == null) {
       snapshot = this.meta_stack().snap();
     }
     suffix = suffix != null ? "-" + suffix : '';
-    fs = (_ref5 = typeof node !== "undefined" && node !== null ? node.fs : void 0) != null ? _ref5 : require('fs');
-    fs.writeFileSync("./core-" + (thread_name(this, this.curr_thread)) + suffix + ".json", JSON.stringify(snapshot.serialize()), 'utf8', true);
+    var fs;
+    if (typeof node !== "undefined" && node !== null && node.fs != null) {
+      fs = node.fs;
+    } else {
+      fs = require('fs');
+    }
+    var filename = "./core-" + thread_name(this, this.curr_thread) + suffix + ".json";
+    // 4th parameter to writeFileSync ensures this is not stored in localStorage in the browser
+    fs.writeFileSync(filename, JSON.stringify(snapshot.serialize()), 'utf8', true);
   }
 
   public choose_next_thread(blacklist: java_object.JavaThreadObject[], cb: (jto: java_object.JavaThreadObject)=>void): void {
-    var b, bl, current_time, key, t, wakeup_time, _i, _j, _len, _len1, _ref5, _ref6, _ref7,
-      _this = this;
-
+    var _this = this;
     if (blacklist == null) {
       blacklist = [];
-      _ref5 = this.waiting_threads;
-      for (key in _ref5) {
-        bl = _ref5[key];
-        for (_i = 0, _len = bl.length; _i < _len; _i++) {
-          b = bl[_i];
-          blacklist.push(b);
-        }
+      for (var key in this.waiting_threads) {
+        blacklist.push.apply(this.waiting_threads[key]);
       }
     }
-    wakeup_time = (_ref6 = this.curr_thread.wakeup_time) != null ? _ref6 : Infinity;
-    current_time = (new Date).getTime();
-    _ref7 = this.thread_pool;
-    for (_j = 0, _len1 = _ref7.length; _j < _len1; _j++) {
-      t = _ref7[_j];
-      if (!(t !== this.curr_thread && t.$isAlive)) {
-        continue;
-      }
+    var wakeup_time = this.curr_thread.wakeup_time;
+    if (wakeup_time == null) {
+      wakeup_time = Infinity;
+    }
+    var current_time = (new Date).getTime();
+    var eligible_threads = this.thread_pool.filter((t) => t !== this.curr_thread && t.$isAlive);
+    for (var i = 0; i < eligible_threads.length; i++) {
+      var t = eligible_threads[i];
       if (this.parked(t)) {
         if (t.$park_timeout > current_time) {
           continue;
@@ -393,14 +367,12 @@ export class RuntimeState {
         }
         continue;
       }
-      debug("TE(choose_next_thread): choosing thread " + (thread_name(this, t)));
+      debug("TE(choose_next_thread): choosing thread " + thread_name(this, t));
       return cb(t);
     }
     if ((Infinity > wakeup_time && wakeup_time > current_time)) {
       debug("TE(choose_next_thread): waiting until " + wakeup_time + " and trying again");
-      setTimeout((function () {
-        _this.choose_next_thread(null, cb);
-      }), wakeup_time - current_time);
+      setTimeout((() => _this.choose_next_thread(null, cb)), wakeup_time - current_time);
     } else {
       debug("TE(choose_next_thread): no thread found, sticking with curr_thread");
       cb(this.curr_thread);
@@ -408,8 +380,6 @@ export class RuntimeState {
   }
 
   public wait(monitor: java_object.JavaObject, yieldee?: java_object.JavaThreadObject): void {
-    var _this = this;
-
     debug("TE(wait): waiting " + (thread_name(this, this.curr_thread)) + " on lock " + monitor.ref);
     if (this.waiting_threads[monitor] != null) {
       this.waiting_threads[monitor].push(this.curr_thread);
@@ -419,37 +389,27 @@ export class RuntimeState {
     if (yieldee != null) {
       return this.yield(yieldee);
     }
-    this.choose_next_thread(this.waiting_threads[monitor], (function (nt) {
-      _this.yield(nt);
-    }));
+    var _this = this;
+    this.choose_next_thread(this.waiting_threads[monitor], (nt) => _this.yield(nt));
   }
 
   public yield(yieldee: java_object.JavaThreadObject): void {
-    var new_thread_sf, old_thread_sf,
-      _this = this;
-
+    var _this = this;
     debug("TE(yield): yielding " + (thread_name(this, this.curr_thread)) + " to " + (thread_name(this, yieldee)));
-    old_thread_sf = this.curr_frame();
+    var old_thread_sf = this.curr_frame();
     this.curr_thread = yieldee;
-    new_thread_sf = this.curr_frame();
-    new_thread_sf.runner = function () {
-      return _this.meta_stack().pop();
-    };
-    old_thread_sf.runner = function () {
-      return _this.meta_stack().pop();
-    };
+    var new_thread_sf = this.curr_frame();
+    new_thread_sf.runner = (() => _this.meta_stack().pop());
+    old_thread_sf.runner = (() => _this.meta_stack().pop());
   }
 
   public park(thread: java_object.JavaThreadObject, timeout: number): void {
     var _this = this;
-
     thread.$park_count++;
     thread.$park_timeout = timeout;
     debug("TE(park): parking " + (thread_name(this, thread)) + " (count: " + thread.$park_count + ", timeout: " + thread.$park_timeout + ")");
     if (this.parked(thread)) {
-      this.choose_next_thread(null, (function (nt) {
-        _this.yield(nt);
-      }));
+      this.choose_next_thread(null, (nt) => _this.yield(nt));
     }
   }
 
@@ -458,7 +418,7 @@ export class RuntimeState {
     thread.$park_count--;
     thread.$park_timeout = Infinity;
     if (!this.parked(thread)) {
-      return this.yield(thread);
+      this.yield(thread);
     }
   }
 
@@ -492,9 +452,7 @@ export class RuntimeState {
   }
 
   public push_array(args: any[]): void {
-    var cs;
-
-    cs = this.curr_frame().stack;
+    var cs = this.curr_frame().stack;
     Array.prototype.push.apply(cs, args);
   }
 
@@ -508,12 +466,10 @@ export class RuntimeState {
   }
 
   public peek(depth?: number): any {
-    var s;
-
     if (depth == null) {
       depth = 0;
     }
-    s = this.curr_frame().stack;
+    var s = this.curr_frame().stack;
     return s[s.length - 1 - depth];
   }
 
@@ -582,37 +538,31 @@ export class RuntimeState {
   }
 
   public block_addr(l_address: gLong): number {
-    var addr, block_addr, _i, _len, _ref5;
-
     var address = l_address.toNumber();
     if (typeof DataView !== "undefined" && DataView !== null) {
-      block_addr = this.mem_start_addrs[0];
-      _ref5 = this.mem_start_addrs.slice(1);
-      for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
-        addr = _ref5[_i];
+      var block_addr_ = this.mem_start_addrs[0];
+      for (var i = 1; i < this.mem_start_addrs.length; i++) {
+        var addr = this.mem_start_addrs[i];
         if (address < addr) {
-          return block_addr;
+          return block_addr_;
         }
-        block_addr = addr;
+        block_addr_ = addr;
+      }
+      if (typeof UNSAFE !== "undefined" && UNSAFE !== null) {
+        throw new Error("Invalid memory access at " + address);
       }
     } else {
       if (this.mem_blocks[address] != null) {
         return address;
       }
     }
-    return (typeof UNSAFE !== "undefined" && UNSAFE !== null) || (function () {
-      throw new Error("Invalid memory access at " + address);
-    })();
   }
 
   public handle_toplevel_exception(e: any, no_threads: bool, done_cb: (bool)=>void): void {
     var _this = this;
-
     this.unusual_termination = true;
     if (e.toplevel_catch_handler != null) {
-      this.run_until_finished((function () {
-        e.toplevel_catch_handler(_this);
-      }), no_threads, done_cb);
+      this.run_until_finished(() => e.toplevel_catch_handler(_this), no_threads, done_cb);
     } else {
       error("\nInternal JVM Error:", e);
       if ((e != null ? e.stack : void 0) != null) {
@@ -628,28 +578,28 @@ export class RuntimeState {
 
   public run_until_finished(setup_fn: ()=>void, no_threads: bool, done_cb: (bool)=>void): void {
     var _this = this;
+    var stack : CallStack;
+    function nop() {}
 
     setImmediate((function () {
-      var duration, e, failure_fn, frames_to_pop, m_count, ms_per_m, sf, stack: CallStack, start_time, success_fn;
-
       _this.stashed_done_cb = done_cb;
       try {
         setup_fn();
-        start_time = (new Date()).getTime();
-        m_count = _this.max_m_count;
-        sf = _this.curr_frame();
+        var start_time = (new Date()).getTime();
+        var m_count = _this.max_m_count;
+        var sf = _this.curr_frame();
         while ((sf.runner != null) && m_count > 0) {
           sf.runner();
           m_count--;
           sf = _this.curr_frame();
         }
         if ((sf.runner != null) && m_count === 0) {
-          duration = (new Date()).getTime() - start_time;
+          var duration = (new Date()).getTime() - start_time;
           if (duration > 2000 || duration < 1000) {
-            ms_per_m = duration / _this.max_m_count;
+            var ms_per_m = duration / _this.max_m_count;
             _this.max_m_count = (1000 / ms_per_m) | 0;
           }
-          return _this.run_until_finished((function () { }), no_threads, done_cb);
+          return _this.run_until_finished(nop, no_threads, done_cb);
         }
         if (no_threads || _this.thread_pool.length <= 1) {
           return done_cb(true);
@@ -659,14 +609,14 @@ export class RuntimeState {
         _this.thread_pool.splice(_this.thread_pool.indexOf(_this.curr_thread), 1);
         return _this.choose_next_thread(null, function (next_thread) {
           _this.curr_thread = next_thread;
-          return _this.run_until_finished((function () { }), no_threads, done_cb);
+          _this.run_until_finished(nop, no_threads, done_cb);
         });
       } catch (_error) {
-        e = _error;
+        var e = _error;
         if (e === ReturnException) {
-          _this.run_until_finished((function () { }), no_threads, done_cb);
+          _this.run_until_finished(nop, no_threads, done_cb);
         } else if (e instanceof YieldIOException) {
-          success_fn = function (ret1, ret2, bytecode, advance_pc) {
+          var success_fn = function(ret1, ret2, bytecode?, advance_pc?) {
             if (advance_pc == null) {
               advance_pc = true;
             }
@@ -688,21 +638,21 @@ export class RuntimeState {
                 return _this.push(ret2);
               }
             };
-            return _this.run_until_finished((function () { }), no_threads, done_cb);
+            return _this.run_until_finished(nop, no_threads, done_cb);
           };
-          failure_fn = function (e_cb) {
+          var failure_fn = function(e_cb) {
             _this.meta_stack().push(StackFrame.native_frame("async_op"));
             _this.curr_frame().runner = function () {
               _this.meta_stack().pop();
-              return e_cb();
+              e_cb();
             };
-            return _this.run_until_finished((function () { }), no_threads, done_cb);
+            return _this.run_until_finished(nop, no_threads, done_cb);
           };
           e.condition(success_fn, failure_fn);
         } else {
           stack = _this.meta_stack();
           if ((e.method_catch_handler != null) && stack.length() > 1) {
-            frames_to_pop = 0;
+            var frames_to_pop = 0;
             while (!e.method_catch_handler(_this, stack.get_caller(frames_to_pop), frames_to_pop === 0)) {
               if (stack.length() === ++frames_to_pop) {
                 if (JVM.dump_state) {
@@ -714,7 +664,7 @@ export class RuntimeState {
               }
             }
             stack.pop_n(frames_to_pop);
-            _this.run_until_finished((function () { }), no_threads, done_cb);
+            _this.run_until_finished(nop, no_threads, done_cb);
           } else {
             if (JVM.dump_state) {
               _this.dump_state();
@@ -728,15 +678,13 @@ export class RuntimeState {
   }
 
   public async_input(n_bytes: number, resume: (string)=>void): void {
-    var data,
-      _this = this;
-
     if (this.input_buffer.length > 0) {
-      data = this.input_buffer.slice(0, n_bytes);
+      var data = this.input_buffer.slice(0, n_bytes);
       this.input_buffer = this.input_buffer.slice(n_bytes);
       resume(data);
       return;
     }
+    var _this = this;
     this._async_input(function (data) {
       if (data.length > n_bytes) {
         _this.input_buffer = data.slice(n_bytes);
