@@ -9,6 +9,10 @@ import logging = module('./logging');
 var debug = logging.debug, error = logging.error, trace = logging.trace;
 import JVM = module('./jvm');
 
+// For types; shouldn't actually be used.
+import methods = require('./methods');
+import ClassLoader = require('./ClassLoader');
+
 declare var node;
 var path = typeof node !== "undefined" ? node.path : require('path');
 var fs = typeof node !== "undefined" ? node.fs : require('fs');
@@ -48,7 +52,7 @@ export var trapped_methods = {
         Reference: [o('<clinit>()V', function(rs) {})]
       },
       String: [
-        o('hashCode()I', function(rs, _this) {
+        o('hashCode()I', function(rs:runtime.RuntimeState, _this: java_object.JavaObject): number {
           var chars, count, hash, i, offset, _i;
 
           hash = _this.get_field(rs, 'Ljava/lang/String;hash');
@@ -65,14 +69,12 @@ export var trapped_methods = {
         })
       ],
       System: [
-        o('loadLibrary(L!/!/String;)V', function(rs, lib_name) {
-          var lib;
-
-          lib = lib_name.jvm2js_str();
+        o('loadLibrary(L!/!/String;)V', function(rs: runtime.RuntimeState, lib_name: java_object.JavaObject): void {
+          var lib = lib_name.jvm2js_str();
           if (lib !== 'zip' && lib !== 'net' && lib !== 'nio' && lib !== 'awt' && lib !== 'fontmanager') {
-            return rs.java_throw(rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), "no " + lib + " in java.library.path");
+            return rs.java_throw((<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;')), "no " + lib + " in java.library.path");
           }
-        }), o('adjustPropertiesForBackwardCompatibility(L!/util/Properties;)V', function(rs) {}), o('getProperty(L!/!/String;)L!/!/String;', get_property), o('getProperty(L!/!/String;L!/!/String;)L!/!/String;', get_property)
+        }),o('adjustPropertiesForBackwardCompatibility(L!/util/Properties;)V', function(rs) {}), o('getProperty(L!/!/String;)L!/!/String;', get_property), o('getProperty(L!/!/String;L!/!/String;)L!/!/String;', get_property)
       ],
       Terminator: [o('setup()V', function(rs) {})]
     },
@@ -90,18 +92,16 @@ export var trapped_methods = {
     },
     nio: {
       Bits: [
-        o('byteOrder()L!/!/ByteOrder;', function(rs) {
-          var cls;
-
-          cls = rs.get_bs_class('Ljava/nio/ByteOrder;');
+        o('byteOrder()L!/!/ByteOrder;', function(rs:runtime.RuntimeState): java_object.JavaObject {
+          var cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/nio/ByteOrder;');
           return cls.static_get(rs, 'LITTLE_ENDIAN');
-        }), o('copyToByteArray(JLjava/lang/Object;JJ)V', function(rs, srcAddr, dst, dstPos, length) {
-          return unsafe_memcpy(rs, null, srcAddr, dst, dstPos, length);
+        }), o('copyToByteArray(JLjava/lang/Object;JJ)V', function(rs: runtime.RuntimeState, srcAddr: gLong, dst: java_object.JavaArray, dstPos: gLong, length: gLong): void {
+          unsafe_memcpy(rs, null, srcAddr, dst, dstPos, length);
         })
       ],
       charset: {
         Charset$3: [
-          o('run()L!/lang/Object;', function(rs) {
+          o('run()L!/lang/Object;', function(rs: runtime.RuntimeState): java_object.JavaObject {
             return null;
           })
         ]
@@ -110,7 +110,7 @@ export var trapped_methods = {
   }
 };
 
-function doPrivileged(rs, action) {
+function doPrivileged(rs: runtime.RuntimeState, action: methods.Method): void {
   var m, my_sf;
 
   my_sf = rs.curr_frame();
@@ -125,14 +125,14 @@ function doPrivileged(rs, action) {
 
       rv = rs.pop();
       rs.meta_stack().pop();
-      return rs.push(rv);
+      rs.push(rv);
     };
     throw exceptions.ReturnException;
   } else {
-    return rs.async_op(function (resume_cb, except_cb) {
-      return action.cls.resolve_method(rs, 'run()Ljava/lang/Object;', (function () {
+    rs.async_op(function (resume_cb, except_cb) {
+      action.cls.resolve_method(rs, 'run()Ljava/lang/Object;', (function () {
         rs.meta_stack().push({});
-        return resume_cb();
+        resume_cb();
       }), except_cb);
     });
   }
@@ -149,17 +149,17 @@ function stat_fd(fd) {
   }
 }
 
-function stat_file(fname, cb) {
-  return fs.stat(fname, function (err, stat) {
+function stat_file(fname: string, cb: (stat: any)=>void): void {
+  fs.stat(fname, function (err, stat) {
     if (err != null) {
-      return cb(null);
+      cb(null);
     } else {
-      return cb(stat);
+      cb(stat);
     }
   });
 }
 
-function arraycopy_no_check(src, src_pos, dest, dest_pos, length) {
+function arraycopy_no_check(src: java_object.JavaArray, src_pos: number, dest: java_object.JavaArray, dest_pos: number, length: number): void {
   var i, j, _i, _ref5;
 
   j = dest_pos;
@@ -168,7 +168,7 @@ function arraycopy_no_check(src, src_pos, dest, dest_pos, length) {
   }
 }
 
-function arraycopy_check(rs, src, src_pos, dest, dest_pos, length) {
+function arraycopy_check(rs: runtime.RuntimeState, src: java_object.JavaArray, src_pos: number, dest: java_object.JavaArray, dest_pos: number, length: number): void {
   var dest_comp_cls, i, j, _i, _ref5;
 
   j = dest_pos;
@@ -177,73 +177,61 @@ function arraycopy_check(rs, src, src_pos, dest, dest_pos, length) {
     if (src.array[i] === null || src.array[i].cls.is_castable(dest_comp_cls)) {
       dest.array[j] = src.array[i];
     } else {
-      rs.java_throw(rs.get_bs_class('Ljava/lang/ArrayStoreException;'), 'Array element in src cannot be cast to dest array type.');
+      rs.java_throw((<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/ArrayStoreException;')), 'Array element in src cannot be cast to dest array type.');
     }
     j++;
   }
 }
 
-function unsafe_memcpy(rs, src_base, src_offset, dest_base, dest_offset, num_bytes) {
-  var dest_addr, i, src_addr, _i, _j, _k, _l, _m, _n, _results, _results1, _results2, _results3, _results4, _results5;
+function unsafe_memcpy(rs: runtime.RuntimeState, src_base: java_object.JavaArray, src_offset_l: gLong, dest_base: java_object.JavaArray, dest_offset_l: gLong, num_bytes_l: gLong): void {
+  var dest_addr, i, src_addr, _i, _j, _k, _l, _m, _n;
 
-  num_bytes = num_bytes.toNumber();
+  var num_bytes = num_bytes_l.toNumber();
   if (src_base != null) {
-    src_offset = src_offset.toNumber();
+    var src_offset = src_offset_l.toNumber();
     if (dest_base != null) {
-      return arraycopy_no_check(src_base, src_offset, dest_base, dest_offset.toNumber(), num_bytes);
+      return arraycopy_no_check(src_base, src_offset, dest_base, dest_offset_l.toNumber(), num_bytes);
     } else {
-      dest_addr = rs.block_addr(dest_offset);
+      dest_addr = rs.block_addr(dest_offset_l);
       if (typeof DataView !== "undefined" && DataView !== null) {
-        _results = [];
         for (i = _i = 0; _i < num_bytes; i = _i += 1) {
-          _results.push(rs.mem_blocks[dest_addr].setInt8(i, src_base.array[src_offset + i]));
+          rs.mem_blocks[dest_addr].setInt8(i, src_base.array[src_offset + i]);
         }
-        return _results;
       } else {
-        _results1 = [];
         for (i = _j = 0; _j < num_bytes; i = _j += 1) {
-          _results1.push(rs.mem_blocks[dest_addr + i] = src_base.array[src_offset + i]);
+          rs.mem_blocks[dest_addr + i] = src_base.array[src_offset + i];
         }
-        return _results1;
       }
     }
   } else {
-    src_addr = rs.block_addr(src_offset);
+    src_addr = rs.block_addr(src_offset_l);
     if (dest_base != null) {
-      dest_offset = dest_offset.toNumber();
+      var dest_offset = dest_offset_l.toNumber();
       if (typeof DataView !== "undefined" && DataView !== null) {
-        _results2 = [];
         for (i = _k = 0; _k < num_bytes; i = _k += 1) {
-          _results2.push(dest_base.array[dest_offset + i] = rs.mem_blocks[src_addr].getInt8(i));
+          dest_base.array[dest_offset + i] = rs.mem_blocks[src_addr].getInt8(i);
         }
-        return _results2;
       } else {
-        _results3 = [];
         for (i = _l = 0; _l < num_bytes; i = _l += 1) {
-          _results3.push(dest_base.array[dest_offset + i] = rs.mem_blocks[src_addr + i]);
+          dest_base.array[dest_offset + i] = rs.mem_blocks[src_addr + i];
         }
-        return _results3;
       }
     } else {
-      dest_addr = rs.block_addr(dest_offset);
+      dest_addr = rs.block_addr(dest_offset_l);
       if (typeof DataView !== "undefined" && DataView !== null) {
-        _results4 = [];
         for (i = _m = 0; _m < num_bytes; i = _m += 1) {
-          _results4.push(rs.mem_blocks[dest_addr].setInt8(i, rs.mem_blocks[src_addr].getInt8(i)));
+          rs.mem_blocks[dest_addr].setInt8(i, rs.mem_blocks[src_addr].getInt8(i));
         }
-        return _results4;
       } else {
-        _results5 = [];
         for (i = _n = 0; _n < num_bytes; i = _n += 1) {
-          _results5.push(rs.mem_blocks[dest_addr + i] = rs.mem_blocks[src_addr + i]);
+          rs.mem_blocks[dest_addr + i] = rs.mem_blocks[src_addr + i];
         }
-        return _results5;
       }
     }
   }
 }
 
-function unsafe_compare_and_swap(rs, _this, obj, offset, expected, x) {
+function unsafe_compare_and_swap(rs: runtime.RuntimeState, _this: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, expected: any, x: any): boolean {
   var actual;
 
   actual = obj.get_field_from_offset(rs, offset);
@@ -255,7 +243,7 @@ function unsafe_compare_and_swap(rs, _this, obj, offset, expected, x) {
   }
 }
 
-function native_define_class(rs, name, bytes, offset, len, loader, resume_cb, except_cb) {
+function native_define_class(rs: runtime.RuntimeState, name: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number, loader: ClassLoader.ClassLoader, resume_cb: (jco: java_object.JavaClassObject) => void, except_cb: (e_fn: ()=>void)=>void): void {
   var b, raw_bytes;
 
   raw_bytes = (function () {
@@ -269,18 +257,18 @@ function native_define_class(rs, name, bytes, offset, len, loader, resume_cb, ex
     }
     return _results;
   })();
-  return loader.define_class(rs, util.int_classname(name.jvm2js_str()), raw_bytes, (function (cdata) {
-    return resume_cb(cdata.get_class_object(rs));
+  loader.define_class(rs, util.int_classname(name.jvm2js_str()), raw_bytes, (function (cdata) {
+    resume_cb(cdata.get_class_object(rs));
   }), except_cb);
 }
 
-function write_to_file(rs, _this, bytes, offset, len, append) {
+function write_to_file(rs: runtime.RuntimeState, _this: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number): void {
   var fd, fd_obj;
 
   fd_obj = _this.get_field(rs, 'Ljava/io/FileOutputStream;fd');
   fd = fd_obj.get_field(rs, 'Ljava/io/FileDescriptor;fd');
   if (fd === -1) {
-    rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor");
+    rs.java_throw((<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/io/IOException;')), "Bad file descriptor");
   }
   if (fd !== 1 && fd !== 2) {
     _this.$pos += fs.writeSync(fd, new Buffer(bytes.array), offset, len, _this.$pos);
@@ -288,13 +276,13 @@ function write_to_file(rs, _this, bytes, offset, len, append) {
   }
   rs.print(util.chars2js_str(bytes, offset, len));
   if (typeof node !== "undefined" && node !== null) {
-    return rs.async_op(function (cb) {
-      return cb();
+    rs.async_op(function (cb) {
+      cb();
     });
   }
 }
 
-function get_cl_from_jclo(rs, jclo) {
+function get_cl_from_jclo(rs: runtime.RuntimeState, jclo: java_object.JavaClassLoaderObject): ClassLoader.ClassLoader {
   if ((jclo != null) && (jclo.$loader != null)) {
     return jclo.$loader;
   } else {
@@ -302,7 +290,7 @@ function get_cl_from_jclo(rs, jclo) {
   }
 }
 
-function create_stack_trace(rs, throwable) {
+function create_stack_trace(rs: runtime.RuntimeState, throwable: java_object.JavaObject): java_object.JavaObject[] {
   var cls, cstack, i, ln, row, sf, source_file, stacktrace, table, _i, _len, _ref5, _ref6, _ref7, _ref8;
 
   stacktrace = [];
@@ -334,7 +322,7 @@ function create_stack_trace(rs, throwable) {
     } else {
       source_file = 'unknown';
     }
-    stacktrace.push(new JavaObject(rs, rs.get_bs_class('Ljava/lang/StackTraceElement;'), {
+    stacktrace.push(new JavaObject(rs, (<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/StackTraceElement;')), {
       'Ljava/lang/StackTraceElement;declaringClass': rs.init_string(util.ext_classname(cls.get_type())),
       'Ljava/lang/StackTraceElement;methodName': rs.init_string((_ref8 = sf.method.name) != null ? _ref8 : 'unknown'),
       'Ljava/lang/StackTraceElement;fileName': rs.init_string(source_file),
@@ -351,10 +339,8 @@ export var native_methods = {
     },
     doppio: {
       JavaScript: [
-        o('eval(Ljava/lang/String;)Ljava/lang/String;', function(rs, to_eval) {
-          var rv;
-
-          rv = eval(to_eval.jvm2js_str());
+        o('eval(Ljava/lang/String;)Ljava/lang/String;', function(rs: runtime.RuntimeState, to_eval: java_object.JavaObject): java_object.JavaObject {
+          var rv = eval(to_eval.jvm2js_str());
           if (rv != null) {
             return rs.init_string("" + rv);
           } else {

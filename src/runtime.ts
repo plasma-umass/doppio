@@ -34,7 +34,7 @@ export interface StackFrameSnapshot {
 }
 
 export class CallStack {
-  private _cs: StackFrame[]
+  public _cs: StackFrame[]
 
   constructor(initial_stack?: any[]) {
     this._cs = [StackFrame.native_frame('$bootstrap')];
@@ -144,14 +144,14 @@ export class StackFrame {
 
 var run_count = 0;
 export class RuntimeState {
-  private print: (string) => any;
+  public print: (string) => any;
   private _async_input: (cb: (string) => any) => any;
   private bcl: ClassLoader.BootstrapClassLoader;
   private input_buffer: number[];
   private startup_time: gLong;
   public run_stamp: number;
   private mem_start_addrs: number[];
-  private mem_blocks: any;
+  public mem_blocks: any;
   public high_oref: number;
   private string_pool: util.SafeMap;
   public lock_refs: any;
