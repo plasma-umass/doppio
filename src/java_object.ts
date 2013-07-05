@@ -187,7 +187,7 @@ export class JavaThreadObject extends JavaObject {
     }
     super(rs, <ClassData.ReferenceClassData> cls, obj);
     this.$isAlive = true;
-    this.wakeup_time = Infinity;
+    this.wakeup_time = null;
     this.$park_count = 0;
     this.$park_timeout = Infinity;
     this.$meta_stack = new runtime.CallStack();
