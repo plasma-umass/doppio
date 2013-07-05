@@ -198,6 +198,8 @@ unsafe_memcpy = (rs, src_base, src_offset, dest_base, dest_offset, num_bytes) ->
       else
         for i in [0...num_bytes] by 1
           rs.mem_blocks[dest_addr+i] = rs.mem_blocks[src_addr+i]
+  # Avoid CoffeeScript accumulation nonsense.
+  return
 
 unsafe_compare_and_swap = (rs, _this, obj, offset, expected, x) ->
   actual = obj.get_field_from_offset rs, offset
