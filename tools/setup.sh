@@ -96,20 +96,21 @@ echo "Using `javac -version 2>&1` to generate classfiles"
 make java
 
 if ! command -v bundle > /dev/null; then
-    if command -v gem > /dev/null; then
-        echo "installing bundler, need sudo permissions"
-        sudo gem install bundler
-    else
-        echo "warning: could not install bundler because rubygems was not found!"
-        echo "some dependencies may be missing."
+    echo "Would you like to install Guard? (y/n)"
+    read answer;
+    if [ $answer = "y" ]; then
+        if command -v gem > /dev/null; then
+            echo "installing bundler, need sudo permissions"
+            sudo gem install bundler
+            if [ -n "$PKGMGR" ]; then
+                $PKGMGR libffi
+            fi
+            bundle install
+        else
+            echo "warning: could not install bundler because rubygems was not found!"
+        fi
     fi
 fi
-
-if [ -n "$PKGMGR" ]; then
-    $PKGMGR libffi
-fi
-
-command -v bundle > /dev/null && bundle install
 
 # does sed support extended regexps?
 if ! sed -r "" </dev/null >/dev/null 2>&1 && ! command -v gsed >/dev/null; then
@@ -120,9 +121,6 @@ if ! sed -r "" </dev/null >/dev/null 2>&1 && ! command -v gsed >/dev/null; then
         echo "Doppio can run without this, but it is needed for building the full website."
     fi
 fi
-
-# Intentionally fail if pygmentize doesn't exist.
-echo "Checking for pygment (needed to generate docs)... `pygmentize -V`"
 
 echo "Your environment should now be set up correctly."
 echo "Run 'make test' (optionally with -j4) to test Doppio."
