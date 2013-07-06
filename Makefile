@@ -231,10 +231,10 @@ $(foreach TARGET,$(BUILD_TARGETS),$(subst %,$(TARGET),$(BUILD_FOLDERS))):
 build/release/about.html build/benchmark/about.html: browser/_about.md
 
 build/dev/%.html: browser/%.mustache browser/_navbar.mustache
-	browser/render $* > $@
+	browser/render.coffee $* > $@
 
 build/release/%.html build/benchmark/%.html: browser/%.mustache browser/_navbar.mustache
-	browser/render --release $* > $@
+	browser/render.coffee --release $* > $@
 
 build/%/favicon.ico: browser/favicon.ico
 	rsync $< $@
