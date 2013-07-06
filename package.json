@@ -8,6 +8,7 @@
     "node-zip": "*",
     "marked": "*",
     "mustache": "*",
-    "semver": "*"
+    "semver": "*",
+    "express": "3.x"
   }
 }
