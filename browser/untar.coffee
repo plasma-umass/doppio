@@ -15,7 +15,7 @@ root.untar = (bytes, cb, done_cb) ->
       asyncExecute next_file
     else
       done_cb?()
-  asyncExecute next_file, 0
+  asyncExecute next_file
 
 shift_file = (bytes) ->
   header = bytes.read(512)

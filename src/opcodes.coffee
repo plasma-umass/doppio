@@ -101,7 +101,6 @@ class root.DynInvokeOpcode extends root.InvokeOpcode
       @byte_count += 2
     else # invokevirtual
       @count = 1 + get_param_word_size @method_spec.sig
-    @cache = Object.create null
 
   execute: (rs) ->
     cls = rs.get_class(@method_spec.class, true)
@@ -123,6 +122,7 @@ class root.DynInvokeOpcode extends root.InvokeOpcode
       rs.async_op (resume_cb, except_cb) =>
         rs.get_cl().initialize_class rs, @method_spec.class,
           (->resume_cb(undefined, undefined, true, false)), except_cb
+    return
 
   get_param_word_size = (spec) ->
     state = 'name'
@@ -172,8 +172,8 @@ class root.LoadConstantOpcode extends root.Opcode
         # Fetch the jclass object and push it on to the stack. Do not rerun
         # this opcode.
         cdesc = util.typestr2descriptor @str_constant.value
-        rs.async_op (resume_cb, except_cb) =>
-          rs.get_cl().resolve_class(rs, cdesc, ((cls)=>resume_cb cls.get_class_object(rs), undefined, true), except_cb)
+        rs.async_op (resume_cb, except_cb) ->
+          rs.get_cl().resolve_class(rs, cdesc, ((cls)->resume_cb cls.get_class_object(rs), undefined, true), except_cb)
         return
       else
         rs.push @constant.value
@@ -220,8 +220,8 @@ class root.IIncOpcode extends root.Opcode
   constructor: (name, params) ->
     super name, params
 
-  take_args: (code_array, constant_pool, @wide=false) ->
-    if @wide
+  take_args: (code_array, constant_pool, wide=false) ->
+    if wide
       @name += "_w"
       arg_size = 2
       @byte_count = 5
@@ -250,8 +250,8 @@ class root.LoadOpcode extends root.Opcode
     @var_num = parseInt @name[6]  # sneaky hack, works for name =~ /.load_\d/
 
 class root.LoadVarOpcode extends root.LoadOpcode
-  take_args: (code_array, constant_pool, @wide=false) ->
-    if @wide
+  take_args: (code_array, constant_pool, wide=false) ->
+    if wide
       @name += "_w"
       @byte_count = 3
       @var_num = code_array.get_uint 2
@@ -277,8 +277,8 @@ class root.StoreVarOpcode extends root.StoreOpcode
   constructor: (name, params) ->
     super name, params
 
-  take_args: (code_array, constant_pool, @wide=false) ->
-    if @wide
+  take_args: (code_array, constant_pool, wide=false) ->
+    if wide
       @name += "_w"
       @byte_count = 3
       @var_num = code_array.get_uint 2
@@ -289,10 +289,6 @@ class root.StoreVarOpcode extends root.StoreOpcode
   annotate: (idx, pool) -> "\t#{@var_num}"
 
 class root.SwitchOpcode extends root.BranchOpcode
-  constructor: (name, params) ->
-    super name, params
-    @byte_count = null
-
   annotate: (idx, pool) -> "{\n" +
     ("\t\t#{match}: #{idx + offset};\n" for match, offset of @offsets).join('') +
     "\t\tdefault: #{idx + @_default} }"
@@ -310,13 +306,13 @@ class root.LookupSwitchOpcode extends root.SwitchOpcode
     padding_size = (4 - code_array.pos() % 4) % 4
     code_array.skip padding_size
     @_default = code_array.get_int(4)
-    @npairs = code_array.get_int(4)
+    npairs = code_array.get_int(4)
     @offsets = {}
-    for i in [0...@npairs] by 1
+    for i in [0...npairs] by 1
       match = code_array.get_int(4)
       offset = code_array.get_int(4)
       @offsets[match] = offset
-    @byte_count = padding_size + 8 * (@npairs + 1)
+    @byte_count = padding_size + 8 * (npairs + 1)
 
 class root.TableSwitchOpcode extends root.SwitchOpcode
   take_args: (code_array, constant_pool) ->
@@ -324,24 +320,24 @@ class root.TableSwitchOpcode extends root.SwitchOpcode
     padding_size = (4 - code_array.pos() % 4) % 4
     code_array.skip padding_size
     @_default = code_array.get_int(4)
-    @low = code_array.get_int(4)
-    @high = code_array.get_int(4)
+    low = code_array.get_int(4)
+    high = code_array.get_int(4)
     @offsets = {}
-    total_offsets = @high - @low + 1
+    total_offsets = high - low + 1
     for i in [0...total_offsets] by 1
       offset = code_array.get_int(4)
-      @offsets[@low + i] = offset
+      @offsets[low + i] = offset
     @byte_count = padding_size + 12 + 4 * total_offsets
 
 class root.NewArrayOpcode extends root.Opcode
+  arr_types = {4:'Z',5:'C',6:'F',7:'D',8:'B',9:'S',10:'I',11:'J'}
   constructor: (name, params) ->
     super name, params
     @byte_count = 1
-    @arr_types = {4:'Z',5:'C',6:'F',7:'D',8:'B',9:'S',10:'I',11:'J'}
 
   take_args: (code_array,constant_pool) ->
     type_code = code_array.get_uint 1
-    @element_type = @arr_types[type_code]
+    @element_type = arr_types[type_code]
 
   annotate: (idx, pool) -> "\t#{util.internal2external[@element_type]}"
 
@@ -517,11 +513,11 @@ root.opcodes = {
   51: new root.ArrayLoadOpcode 'baload'
   52: new root.ArrayLoadOpcode 'caload'
   53: new root.ArrayLoadOpcode 'saload'
-  54: new root.StoreVarOpcode 'istore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
-  55: new root.StoreVarOpcode 'lstore', { execute: (rs) -> rs.put_cl2(@var_num,rs.pop2()) }
-  56: new root.StoreVarOpcode 'fstore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
-  57: new root.StoreVarOpcode 'dstore', { execute: (rs) -> rs.put_cl2(@var_num,rs.pop2()) }
-  58: new root.StoreVarOpcode 'astore', { execute: (rs) -> rs.put_cl(@var_num,rs.pop()) }
+  54: new root.StoreVarOpcode 'istore'
+  55: new root.StoreVarOpcode 'lstore'
+  56: new root.StoreVarOpcode 'fstore'
+  57: new root.StoreVarOpcode 'dstore'
+  58: new root.StoreVarOpcode 'astore'
   59: new root.StoreOpcode 'istore_0'
   60: new root.StoreOpcode 'istore_1'
   61: new root.StoreOpcode 'istore_2'
@@ -597,7 +593,7 @@ root.opcodes = {
   131: new root.Opcode 'lxor', { execute: (rs) -> rs.push2(rs.pop2().xor(rs.pop2()), null) }
   132: new root.IIncOpcode 'iinc'
   133: new root.Opcode 'i2l', { execute: (rs) -> rs.push2 gLong.fromInt(rs.pop()), null }
-  134: new root.Opcode 'i2f', { execute: (rs) -> }
+  134: new root.Opcode 'i2f', { execute: (rs) -> }  # Intentional no-op: ints and floats have the same representation
   135: new root.Opcode 'i2d', { execute: (rs) -> rs.push null }
   136: new root.Opcode 'l2i', { execute: (rs) -> rs.push rs.pop2().toInt() }
   137: new root.Opcode 'l2f', { execute: (rs) -> rs.push rs.pop2().toNumber() }
@@ -770,6 +766,7 @@ root.opcodes = {
   183: new root.InvokeOpcode 'invokespecial'
   184: new root.InvokeOpcode 'invokestatic'
   185: new root.DynInvokeOpcode 'invokeinterface'
+  # Opcode 186 is invokedynamic, which we currently don't support.
   187: new root.ClassOpcode 'new', { execute: (rs) ->
     @cls = rs.get_class @class, true
     if @cls?

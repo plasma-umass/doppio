@@ -125,7 +125,7 @@ class root.JavaClassLoaderObject extends root.JavaObject
     fields = {}
     fields[k] = v?.serialize?(visited) ? v for k,v of @fields
     loaded = {}
-    for type,cls in @$loader.loaded_classes
+    for type,cls of @$loader.loaded_classes
       loaded["#{type}(#{cls.getLoadState()})"] = cls.loader.serialize(visited)
     {
       type: @cls.get_type()

@@ -62,7 +62,7 @@ COMMON_BROWSER_SRCS = vendor/_.js \
 	src/jvm.coffee \
 	src/testing.coffee \
 	browser/untar.coffee
-library_BROWSER_SRCS := $(COMMON_BROWSER_SRCS)
+
 # Release uses the actual jQuery console.
 release_BROWSER_SRCS := $(COMMON_BROWSER_SRCS) \
 	vendor/jquery.console.js \
@@ -72,13 +72,35 @@ dev_BROWSER_SRCS := $(release_BROWSER_SRCS)
 benchmark_BROWSER_SRCS := $(COMMON_BROWSER_SRCS) \
 	browser/mockconsole.coffee \
 	browser/frontend.coffee
-# they don't survive uglifyjs and are already minified, so include them
-# separately. also, this allows us to put them at the end of the document to
+# Sources for an in-browser doppio.js library. Same ordering requirement applies.
+library_BROWSER_SRCS := vendor/_.js \
+	vendor/gLong.js \
+	src/logging.coffee \
+	src/exceptions.coffee \
+	src/util.coffee \
+	src/java_object.coffee \
+	src/opcodes.coffee \
+	src/attributes.coffee \
+	src/ConstantPool.coffee \
+	src/disassembler.coffee \
+	src/ClassData.coffee \
+	src/natives.coffee \
+	src/methods.coffee \
+	src/runtime.coffee \
+	src/ClassLoader.coffee \
+	src/jvm.coffee
+# These don't survive uglifyjs and are already minified, so include them
+# separately. Also, this allows us to put them at the end of the document to
 # reduce load time.
 ACE_SRCS = vendor/ace/src-min/ace.js \
 	vendor/ace/src-min/mode-java.js \
 	vendor/ace/src-min/theme-twilight.js
-CLI_SRCS := $(wildcard src/*.coffee console/*.coffee)
+CLI_SRCS := $(wildcard src/*.coffee console/*.coffee) src/natives.coffee
+
+# Get list of native sources in alphabetical order.
+NATIVE_SRCS := $(wildcard src/natives/*.coffee src/natives/classes/*.coffee)
+# Get a list of all native classes, excluding inital setup and outro code
+NATIVE_CLASSES := $(wildcard src/natives/classes/*.coffee)
 
 ################################################################################
 # TARGETS
@@ -87,9 +109,17 @@ CLI_SRCS := $(wildcard src/*.coffee console/*.coffee)
 # target's name is present.
 .PHONY: release benchmark dist dependencies java test clean docs build dev library
 
-library: build/library/compressed.js
+# Don't keep this around in the src directory, because it's a generated file.
+.INTERMEDIATE: src/natives.coffee
+
+library: dependencies build/library/compressed.js
+	cp build/library/compressed.js build/library/doppio.min.js
 build/library:
 		mkdir -p build/library
+
+# Concatenate all components of natives.coffee whenever any one changes
+src/natives.coffee: $(NATIVE_SRCS)
+	cat src/natives/main.coffee $(NATIVE_CLASSES) src/natives/outro.coffee > src/natives.coffee
 
 # Builds a release or benchmark version of Doppio without the documentation.
 # This is a static pattern rule. '%' gets substituted for the target name.
@@ -156,6 +186,7 @@ clean:
 	@rm -f tools/*.js tools/preload browser/listings.json doppio doppio-dev
 	@rm -rf build/*
 	@rm -f $(patsubst %.md,%.html,$(wildcard browser/*.md))
+	@rm -f src/natives.coffee
 
 distclean: clean
 	@rm -f $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES)
