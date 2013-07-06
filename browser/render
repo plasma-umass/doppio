@@ -1,7 +1,7 @@
 #! /usr/bin/env coffee
 
 marked   = require 'marked'
-{argv}   = require 'optimist'
+{argv}   = require('optimist').boolean 'release'
 mustache = require 'mustache'
 {exec}   = require 'child_process'
 fs       = require 'fs'
@@ -19,7 +19,7 @@ fullpath = (filename) -> path.resolve __dirname, filename
 readfile = (filename) -> fs.readFileSync(fullpath(filename), 'utf-8')
 
 # The first argument passed to the script is the name of the template to be rendered
-name = process.argv[2]
+name = argv._[0]
 # Read the contents of the template file
 template = readfile "#{name}.mustache"
 
