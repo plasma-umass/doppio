@@ -25,7 +25,6 @@ automatically. Users of other package managers should check that they have:
 
 * `node >= 0.10`
 * `wget`
-* `libffi`
 * `gnu-sed` (i.e. must support the `-r` flag; BSD `sed` doesn't)
 
 Usage
