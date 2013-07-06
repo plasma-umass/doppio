@@ -7,6 +7,8 @@
     "docco": "*",
     "node-zip": "*",
     "marked": "*",
-    "mustache": "*"
+    "mustache": "*",
+    "semver": "*",
+    "express": "3.x"
   }
 }

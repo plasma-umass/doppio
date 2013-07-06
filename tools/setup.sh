@@ -79,18 +79,34 @@ fi
 
 cd ..  # back to start
 
-# Make sure node is present and >= v1.0
-node_outdated=$(perl -le 'use version; print 1 if (version->parse(`node -v`) < version->parse("v0.10"))')
-if [[ $node_outdated == 1 ]]; then
-  echo "node >= v0.10 required"
+# Make sure node is installed
+if ! command -v node > /dev/null; then
   if [ -n "$PKGMGR" ]; then
+    echo "Node.js not found, installing"
     $PKGMGR node
   else
+    echo "Node.js required and could not be installed, please install from http://nodejs.org/"
     exit
   fi
 fi
+
+# Install Node modules (must come before version check because the semver package is needed)
 echo "Installing required node modules"
 npm install
+
+# Make sure the node version is greater than 0.10
+node_outdated=$(node -e "console.log(require('semver').lt(process.versions.node, '0.10.0') ? 1 : 0);")
+
+if [[ $node_outdated == 1 ]]; then
+  echo "node >= v0.10 required"
+  if [ -n "$PKGMGR" ]; then
+    echo "Updating Node.js"
+    $PKGMGR node
+  else
+    echo "Could not update Node.js, please do this manually"
+    exit
+  fi
+fi
 
 echo "Using `javac -version 2>&1` to generate classfiles"
 make java
