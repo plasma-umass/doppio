@@ -34,12 +34,12 @@ Usage
 To run Doppio on localhost:
 
     make dev
-    tools/webrick.rb --dev
+    ./tools/server.coffee --dev
 
 To get the optimized release version:
 
     make release
-    tools/webrick.rb --release
+    ./tools/server.coffee --release
 
 Then point your browser to [http://localhost:8000/](http://localhost:8000/).
 
