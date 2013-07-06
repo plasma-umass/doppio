@@ -26,12 +26,6 @@ class DoppioServer
       DEV: 0
       REL: 2
 
-    @Browser =
-      CHROME:  'chrome'
-      FIREFOX: 'firefox'
-      SAFARI:  'safari'
-      OPERA:   'opera'
-
     @set_options()
 
   set_options: (args) ->
