@@ -353,7 +353,7 @@ export var native_methods = {
   java: {
     lang: {
       ClassLoader: [
-        o('findLoadedClass0(L!/!/String;)L!/!/Class;', function(rs, _this, name) {
+        o('findLoadedClass0(L!/!/String;)L!/!/Class;', function(rs: runtime.RuntimeState, _this: java_object.JavaClassLoaderObject, name: java_object.JavaObject): java_object.JavaClassObject {
           var cls, loader, type;
 
           loader = get_cl_from_jclo(rs, _this);
@@ -364,35 +364,27 @@ export var native_methods = {
           } else {
             return null;
           }
-        }), o('findBootstrapClass(L!/!/String;)L!/!/Class;', function(rs, _this, name) {
-          var type;
-
-          type = util.int_classname(name.jvm2js_str());
-          return rs.async_op(function(resume_cb, except_cb) {
-            return rs.get_bs_cl().resolve_class(rs, type, (function(cls) {
-              return resume_cb(cls.get_class_object(rs));
+        }), o('findBootstrapClass(L!/!/String;)L!/!/Class;', function(rs: runtime.RuntimeState, _this: java_object.JavaClassLoaderObject, name: java_object.JavaObject): void {
+          var type = util.int_classname(name.jvm2js_str());
+          rs.async_op<java_object.JavaClassObject>(function(resume_cb, except_cb) {
+            rs.get_bs_cl().resolve_class(rs, type, (function(cls) {
+              resume_cb(cls.get_class_object(rs));
             }), except_cb, true);
           });
-        }), o('getCaller(I)L!/!/Class;', function(rs, i) {
-          var cls;
-
-          cls = rs.meta_stack().get_caller(i).method.cls;
+        }), o('getCaller(I)L!/!/Class;', function(rs: runtime.RuntimeState, i: number): java_object.JavaClassObject {
+          var cls = rs.meta_stack().get_caller(i).method.cls;
           return cls.get_class_object(rs);
-        }), o('defineClass1(L!/!/String;[BIIL!/security/ProtectionDomain;L!/!/String;Z)L!/!/Class;', function(rs, _this, name, bytes, offset, len, pd, source, unused) {
-          var loader;
-
-          loader = get_cl_from_jclo(rs, _this);
-          return rs.async_op(function(resume_cb, except_cb) {
-            return native_define_class(rs, name, bytes, offset, len, loader, resume_cb, except_cb);
+        }), o('defineClass1(L!/!/String;[BIIL!/security/ProtectionDomain;L!/!/String;Z)L!/!/Class;', function(rs: runtime.RuntimeState, _this: java_object.JavaClassLoaderObject, name: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number, pd: gLong, source: java_object.JavaObject, unused: java_object.JavaObject): void {
+          var loader = get_cl_from_jclo(rs, _this);
+          rs.async_op <java_object.JavaClassObject>(function(resume_cb, except_cb) {
+            native_define_class(rs, name, bytes, offset, len, loader, resume_cb, except_cb);
           });
-        }), o('defineClass1(L!/!/String;[BIIL!/security/ProtectionDomain;L!/!/String;)L!/!/Class;', function(rs, _this, name, bytes, offset, len, pd, source) {
-          var loader;
-
-          loader = get_cl_from_jclo(rs, _this);
-          return rs.async_op(function(resume_cb, except_cb) {
-            return native_define_class(rs, name, bytes, offset, len, loader, resume_cb, except_cb);
+        }), o('defineClass1(L!/!/String;[BIIL!/security/ProtectionDomain;L!/!/String;)L!/!/Class;', function(rs: runtime.RuntimeState, _this: java_object.JavaClassLoaderObject, name: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number, pd: gLong, source: java_object.JavaObject): void {
+          var loader = get_cl_from_jclo(rs, _this);
+          rs.async_op<java_object.JavaClassObject>(function(resume_cb, except_cb) {
+            native_define_class(rs, name, bytes, offset, len, loader, resume_cb, except_cb);
           });
-        }), o('resolveClass0(L!/!/Class;)V', function(rs, _this, cls) {
+        }), o('resolveClass0(L!/!/Class;)V', function(rs: runtime.RuntimeState, _this: java_object.JavaClassLoaderObject, cls: java_object.JavaClassObject): void {
           var loader, type;
 
           loader = get_cl_from_jclo(rs, _this);
@@ -400,16 +392,16 @@ export var native_methods = {
           if (loader.get_resolved_class(type, true) != null) {
             return;
           }
-          return rs.async_op(function(resume_cb, except_cb) {
-            return loader.resolve_class(rs, type, (function() {
-              return resume_cb();
+          rs.async_op<void>(function(resume_cb, except_cb) {
+            loader.resolve_class(rs, type, (function() {
+              resume_cb();
             }), except_cb, true);
           });
         })
       ],
       Compiler: [o('disable()V', function(rs, _this) {}), o('enable()V', function(rs, _this) {})],
       Float: [
-        o('floatToRawIntBits(F)I', function(rs, f_val) {
+        o('floatToRawIntBits(F)I', function(rs: runtime.RuntimeState, f_val: number): number {
           var exp, f_view, i_view, sig, sign;
 
           if (typeof Float32Array !== "undefined" && Float32Array !== null) {
@@ -440,12 +432,12 @@ export var native_methods = {
             sig = Math.round((f_val / Math.pow(2, exp) - 1) * Math.pow(2, 23));
             return (sign << 31) | ((exp + 127) << 23) | sig;
           }
-        }), o('intBitsToFloat(I)F', function(rs, i_val) {
+        }), o('intBitsToFloat(I)F', function(rs: runtime.RuntimeState, i_val: number): number {
           return util.intbits2float(i_val);
         })
       ],
       Double: [
-        o('doubleToRawLongBits(D)J', function(rs, d_val) {
+        o('doubleToRawLongBits(D)J', function(rs: runtime.RuntimeState, d_val: number): gLong {
           var d_view, exp, high_bits, i_view, sig, sign;
 
           if (typeof Float64Array !== "undefined" && Float64Array !== null) {
@@ -478,44 +470,44 @@ export var native_methods = {
           }
           high_bits = sig.getHighBits() | sign | exp;
           return gLong.fromBits(sig.getLowBits(), high_bits);
-        }), o('longBitsToDouble(J)D', function(rs, l_val) {
+        }), o('longBitsToDouble(J)D', function(rs: runtime.RuntimeState, l_val: gLong): number {
           return util.longbits2double(l_val.getHighBits(), l_val.getLowBitsUnsigned());
         })
       ],
       Object: [
-        o('getClass()L!/!/Class;', function(rs, _this) {
+        o('getClass()L!/!/Class;', function(rs: runtime.RuntimeState, _this: java_object.JavaObject): java_object.JavaClassObject {
           return _this.cls.get_class_object(rs);
-        }), o('hashCode()I', function(rs, _this) {
+        }), o('hashCode()I', function(rs: runtime.RuntimeState, _this: java_object.JavaObject): number {
           return _this.ref;
-        }), o('clone()L!/!/!;', function(rs, _this) {
+        }), o('clone()L!/!/!;', function(rs: runtime.RuntimeState, _this: java_object.JavaObject): java_object.JavaObject {
           return _this.clone(rs);
-        }), o('notify()V', function(rs, _this) {
+        }), o('notify()V', function(rs: runtime.RuntimeState, _this: java_object.JavaObject): void {
           var locker, owner;
 
           debug("TE(notify): on lock *" + _this.ref);
           if ((locker = rs.lock_refs[_this]) != null) {
             if (locker !== rs.curr_thread) {
               owner = thread_name(rs, locker);
-              rs.java_throw(rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;'), "Thread '" + owner + "' owns this monitor");
+              rs.java_throw((<ClassData.ReferenceClassData>rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;')), "Thread '" + owner + "' owns this monitor");
             }
           }
           if (rs.waiting_threads[_this] != null) {
-            return rs.waiting_threads[_this].shift();
+            rs.waiting_threads[_this].shift();
           }
-        }), o('notifyAll()V', function(rs, _this) {
+        }), o('notifyAll()V', function(rs: runtime.RuntimeState, _this: java_object.JavaObject): void {
           var locker, owner;
 
           debug("TE(notifyAll): on lock *" + _this.ref);
           if ((locker = rs.lock_refs[_this]) != null) {
             if (locker !== rs.curr_thread) {
               owner = thread_name(rs, locker);
-              rs.java_throw(rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;'), "Thread '" + owner + "' owns this monitor");
+              rs.java_throw((<ClassData.ReferenceClassData>rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;')), "Thread '" + owner + "' owns this monitor");
             }
           }
           if (rs.waiting_threads[_this] != null) {
-            return rs.waiting_threads[_this] = [];
+             rs.waiting_threads[_this] = [];
           }
-        }), o('wait(J)V', function(rs, _this, timeout) {
+        }), o('wait(J)V', function(rs: runtime.RuntimeState, _this: java_object.JavaObject, timeout: gLong): void {
           var locker, owner;
 
           if (timeout !== gLong.ZERO) {
@@ -524,27 +516,25 @@ export var native_methods = {
           if ((locker = rs.lock_refs[_this]) != null) {
             if (locker !== rs.curr_thread) {
               owner = thread_name(rs, locker);
-              rs.java_throw(rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;'), "Thread '" + owner + "' owns this monitor");
+              rs.java_throw((<ClassData.ReferenceClassData>rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;')), "Thread '" + owner + "' owns this monitor");
             }
           }
           rs.lock_refs[_this] = null;
-          return rs.wait(_this);
+          rs.wait(_this);
         })
       ],
       Package: [
-        o('getSystemPackage0(Ljava/lang/String;)Ljava/lang/String;', function(rs, pkg_name_obj) {
-          var pkg_name;
-
-          pkg_name = pkg_name_obj.jvm2js_str();
+        o('getSystemPackage0(Ljava/lang/String;)Ljava/lang/String;', function(rs: runtime.RuntimeState, pkg_name_obj: java_object.JavaObject): java_object.JavaObject {
+          var pkg_name = pkg_name_obj.jvm2js_str();
           if (rs.get_bs_cl().get_package_names().indexOf(pkg_name) >= 0) {
             return pkg_name_obj;
           } else {
             return null;
           }
-        }), o('getSystemPackages0()[Ljava/lang/String;', function(rs) {
+        }), o('getSystemPackages0()[Ljava/lang/String;', function(rs: runtime.RuntimeState): java_object.JavaArray {
           var cls_name;
 
-          return new JavaArray(rs, rs.get_bs_class('[Ljava/lang/String;'), (function() {
+          return new JavaArray(rs, (<ClassData.ArrayClassData>(rs.get_bs_class('[Ljava/lang/String;'))), (function() {
             var _i, _len, _ref5, _results;
 
             _ref5 = rs.get_bs_cl().get_package_names();
@@ -558,17 +548,17 @@ export var native_methods = {
         })
       ],
       ProcessEnvironment: [
-        o('environ()[[B', function(rs) {
+        o('environ()[[B', function(rs: runtime.RuntimeState): java_object.JavaArray {
           var env_arr, k, v, _ref5;
 
           env_arr = [];
           _ref5 = process.env;
           for (k in _ref5) {
             v = _ref5[k];
-            env_arr.push(new JavaArray(rs, rs.get_bs_class('[B'), util.bytestr_to_array(k)));
-            env_arr.push(new JavaArray(rs, rs.get_bs_class('[B'), util.bytestr_to_array(v)));
+            env_arr.push(new JavaArray(rs, (<ClassData.ArrayClassData> rs.get_bs_class('[B')), util.bytestr_to_array(k)));
+            env_arr.push(new JavaArray(rs, (<ClassData.ArrayClassData> rs.get_bs_class('[B')), util.bytestr_to_array(v)));
           }
-          return new JavaArray(rs, rs.get_bs_class('[[B'), env_arr);
+          return new JavaArray(rs, (<ClassData.ArrayClassData> rs.get_bs_class('[[B')), env_arr);
         })
       ],
       reflect: {
