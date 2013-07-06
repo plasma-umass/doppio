@@ -1151,8 +1151,8 @@ export var opcodes : Opcode[] = [
         rs.push(new JavaClassLoaderObject(rs, this.cls));
         this.execute = (rs) => rs.push(new JavaClassLoaderObject(rs, this.cls));
       } else if (this.cls.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/Thread;', true))) {
-        rs.push(new java_object.JavaThreadObject(rs));
-        this.execute = (rs) => rs.push(new java_object.JavaThreadObject(rs));
+        rs.push(new java_object.JavaThreadObject(rs, this.cls));
+        this.execute = (rs) => rs.push(new java_object.JavaThreadObject(rs, this.cls));
       } else {
         rs.push(new JavaObject(rs, this.cls));
         this.execute = (rs) => rs.push(new JavaObject(rs, this.cls));
@@ -1164,7 +1164,7 @@ export var opcodes : Opcode[] = [
           if (class_file.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/ClassLoader;', true))) {
             obj = new JavaClassLoaderObject(rs, class_file);
           } else if (class_file.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/Thread;', true))) {
-            obj = new java_object.JavaThreadObject(rs);
+            obj = new java_object.JavaThreadObject(rs, class_file);
           } else {
             obj = new JavaObject(rs, class_file);
           }

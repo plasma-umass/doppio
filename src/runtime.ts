@@ -183,7 +183,7 @@ export class RuntimeState {
     this.thread_pool = [];
     this.should_return = false;
 
-    var ct = new JavaThreadObject(this);
+    var ct = new JavaThreadObject(this, null);
     this.curr_thread = ct;
     this.max_m_count = 100000;
   }
@@ -271,7 +271,7 @@ export class RuntimeState {
         thread_cls.static_fields['threadInitNumber'] = 1;
         debug("### finished thread init ###");
       };
-      ct = new JavaThreadObject(_this, {
+      ct = new JavaThreadObject(_this, (<ClassData.ReferenceClassData> _this.get_bs_class('Ljava/lang/Thread;')), {
         'Ljava/lang/Thread;name': _this.init_carr('main'),
         'Ljava/lang/Thread;priority': 1,
         'Ljava/lang/Thread;group': group,
