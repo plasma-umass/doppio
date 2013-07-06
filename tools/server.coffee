@@ -1,8 +1,22 @@
 #! /usr/bin/env coffee
 
-express = require 'express'
-{argv}  = require 'optimist'
-path    = require 'path'
+express  = require 'express'
+optimist = require 'optimist'
+path     = require 'path'
+
+{argv} = optimist
+  .boolean(['dev', 'release'])
+  .default('v', 1)
+  .alias('v', 'verbosity')
+
+{exit} = process
+
+fatal = (s) ->
+  console.error s
+  exit 1
+
+unless 0 <= argv.v <= 3
+  fatal "Invalid verbosity: #{argv.v} (should be between 0 and 3)"
 
 class DoppioServer
   constructor: ->
@@ -22,18 +36,20 @@ class DoppioServer
 
   set_options: (args) ->
     @options =
-      verbosity: 1
+      verbosity: argv.verbosity
       mode: @Mode.REL
       logdir: './logs'
 
-    if argv.release then @options.mode = @Mode.REL
     if argv.dev then @options.mode = @Mode.DEV
+    if argv.release then @options.mode = @Mode.REL
+
+    @p3 "Input options: \n#{(key + ': ' + val for key, val of @options).join '\n'}"
 
   modestring: (mode) ->
     switch mode
       when @Mode.DEV then 'development'
       when @Mode.REL then 'release'
-      else 'invalid mode'
+      else 'Invalid mode'
 
   p1: (m) -> @pn 1, m
   p2: (m) -> @pn 2, m
@@ -45,7 +61,7 @@ class DoppioServer
       switch @options.mode
         when @Mode.REL then 'release'
         when @Mode.DEV then 'dev'
-        else
+        else console.error 'Invalid mode'
 
     root = path.resolve __dirname, '../build', dir
 
