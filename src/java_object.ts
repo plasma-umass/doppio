@@ -172,8 +172,7 @@ export class JavaThreadObject extends JavaObject {
   public $park_timeout: number;
   // XXX: Used if it's a 'fake' Thread object. I'm so sorry.
   public fake: bool;
-  constructor(rs: runtime.RuntimeState, obj?: any) {
-    var cls = <ClassData.ReferenceClassData> rs.get_bs_cl().get_resolved_class('Ljava/lang/Thread;', true);
+  constructor(rs: runtime.RuntimeState, cls: ClassData.ReferenceClassData, obj?: any) {
     // First thread to bootstrap us into the JVM.
     if (cls == null) {
       cls = <ClassData.ReferenceClassData> {
@@ -194,7 +193,7 @@ export class JavaThreadObject extends JavaObject {
   }
 
   public clone(rs: runtime.RuntimeState): JavaObject {
-    return new JavaThreadObject(rs, underscore.clone(this.fields));
+    return new JavaThreadObject(rs, this.cls, underscore.clone(this.fields));
   }
 }
 
