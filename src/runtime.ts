@@ -572,7 +572,7 @@ export class RuntimeState {
     }
   }
 
-  public async_op(cb: (resume_cb: (arg1?:any, arg2?:any, isBytecode?:bool, advancePc?:bool)=>void, except_cb: (e_fcn: ()=>void, discardStackFrame?:bool)=>void)=>void): void {
+  public async_op<T>(cb: (resume_cb: (arg1?:T, arg2?:any, isBytecode?:bool, advancePc?:bool)=>void, except_cb: (e_fcn: ()=>void, discardStackFrame?:bool)=>void)=>void): void {
     throw new YieldIOException(cb);
   }
 
