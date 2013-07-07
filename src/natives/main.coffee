@@ -21,7 +21,8 @@ util = require './util'
 runtime = require './runtime'
 {thread_name,JavaObject,JavaArray} = require './java_object'
 exceptions = require './exceptions'
-{log,debug,error,trace} = require './logging'
+logging = require './logging'
+{log,debug,error,trace} = logging
 path = node?.path ? require 'path'
 fs = node?.fs ? require 'fs'
 {ReferenceClassData,PrimitiveClassData,ArrayClassData} = require './ClassData'
@@ -273,6 +274,18 @@ native_methods =
           rv = eval to_eval.jvm2js_str()
           # Coerce to string, if possible.
           if rv? then rs.init_string "#{rv}" else null
+      ],
+      Debug: [
+        o 'SetLogLevel(L!/!/!$LogLevel;)V', (rs, loglevel) ->
+          ll = loglevel.get_field rs, 'Lclasses/doppio/Debug$LogLevel;level'
+          logging.log_level = ll
+        o 'GetLogLevel()L!/!/!$LogLevel;', (rs) ->
+          ll_cls = rs.get_bs_class('Lclasses/doppio/Debug$LogLevel;')
+          return switch logging.log_level
+            when 10 then ll_cls.static_get rs, 'VTRACE'
+            when 9 then ll_cls.static_get rs, 'TRACE'
+            when 5 then ll_cls.static_get rs, 'DEBUG'
+            else ll_cls.static_get rs, 'ERROR'
       ]
   java:
     lang:
