@@ -95,10 +95,10 @@ echo "Installing required node modules"
 npm install
 
 # Make sure the node version is greater than 0.10
-node_outdated=$(node -e "console.log(require('semver').lt(process.versions.node, '0.10.0') ? 1 : 0);")
+node_outdated=$(node -p "require('semver').lt(process.versions.node, '0.10.0')")
 
-if [[ $node_outdated == 1 ]]; then
-  echo "node >= v0.10 required"
+if [[ $node_outdated == "true" ]]; then
+  echo "node >= v0.10.0 required"
   if [ -n "$PKGMGR" ]; then
     echo "Updating Node.js"
     $PKGMGR node
