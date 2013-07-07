@@ -8,6 +8,8 @@ document.location.search.replace /\??(?:([^=]+)=([^&]*)&?)/g, ->
 # True if opened from the view_dump command in the browser console
 browser = get.source is 'browser'
 
+origin = 'http://localhost:8000'
+
 object_refs = {}
 stack_objects = []
 all_objects = []
@@ -98,8 +100,13 @@ cb = (data) ->
 # setup
 if browser
   recieve = (message) ->
-    console.log message
-    cb JSON.parse message.data
+    if message.origin.indexOf(origin) is -1
+      console.error "Invalid message origin: #{message.origin}. Only #{origin} is allowed."
+      return
+
+    data = JSON.parse message.data
+    console.log data
+    cb data
 
   window.addEventListener 'message', recieve, false
 

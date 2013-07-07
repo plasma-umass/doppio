@@ -228,12 +228,18 @@ commands =
     if window.core_dump
       viewer = window.open 'core_viewer.html?source=browser'
       message = JSON.stringify window.core_dump
-      send_dump = -> viewer.postMessage message, '*'
+      origin = 'http://localhost:8000'
+
+      send_dump = -> viewer.postMessage message, origin
       delay = 5000
+
       setTimeout send_dump, delay
+
+      controller.reprompt()
+      return null
+
     else
       'No core file to send. Use java -Xdump-state path/to/failing/class to generate one.'
-
 
   ecj: (args, cb) ->
     jvm.set_classpath '/home/doppio/vendor/classes/', './'
