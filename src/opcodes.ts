@@ -10,6 +10,7 @@ var ReturnException = exceptions.ReturnException;
 import java_object = module('./java_object');
 var JavaObject = java_object.JavaObject;
 var JavaArray = java_object.JavaArray;
+var thread_name = java_object.thread_name;
 var JavaClassLoaderObject = java_object.JavaClassLoaderObject;
 
 export class Opcode {
@@ -731,7 +732,7 @@ export function monitorexit(rs: runtime.RuntimeState, monitor: any): void {
     }
   } else {
     var err_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;');
-    rs.java_throw(err_cls, "Tried to monitorexit on lock not held by current thread");
+    rs.java_throw(err_cls, "Thread " + thread_name(rs, rs.curr_thread) + " tried to monitorexit on lock held by thread " + thread_name(rs, locked_thread) + ".");
   }
 }
 
