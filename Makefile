@@ -136,8 +136,13 @@ dev: dependencies build/dev build/dev/browser \
 	$(patsubst %.coffee,build/dev/%.js,$(filter %.coffee,$(dev_BROWSER_SRCS))) \
 	build/dev/browser/style.css build/dev/index.html build/dev/favicon.ico $(DEMO_CLASSES) \
 	build/dev/browser/mini-rt.tar build/dev/classes build/dev/vendor
+
 	rsync $(filter %.js,$(dev_BROWSER_SRCS)) build/dev/vendor
 	rsync browser/*.svg browser/*.png build/dev/browser/
+	cp browser/core_viewer/core_viewer.css build/dev/browser/core_viewer
+	coffee -c -o build/dev/browser/core_viewer browser/core_viewer/core_viewer.coffee
+	cp browser/core_viewer.html build/dev
+
 	cd build/dev; $(COFFEEC) $(DOPPIO_DIR)/tools/gen_dir_listings.coffee > browser/listings.json
 
 release-cli: $(CLI_SRCS:%.coffee=build/release/%.js) \

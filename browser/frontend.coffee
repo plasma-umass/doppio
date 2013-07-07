@@ -224,6 +224,17 @@ read_dir = (dir, pretty=true, columns=true) ->
   row_list.join('\n')
 
 commands =
+  view_dump: ->
+    if window.core_dump
+      viewer = window.open 'core_viewer.html?source=browser'
+      message = JSON.stringify window.core_dump
+      send_dump = -> viewer.postMessage message, '*'
+      delay = 5000
+      setTimeout send_dump, delay
+    else
+      'No core file to send. Use java -Xdump-state path/to/failing/class to generate one.'
+
+
   ecj: (args, cb) ->
     jvm.set_classpath '/home/doppio/vendor/classes/', './'
     rs = new runtime.RuntimeState(stdout, user_input, bs_cl)

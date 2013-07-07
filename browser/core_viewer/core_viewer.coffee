@@ -1,4 +1,12 @@
-file = if location.search == '' then '../core-main.json' else location.search[1..]
+# Get the GETs
+# Credit: http://stackoverflow.com/questions/439463/how-to-get-get-and-post-variables-with-jquery
+get = {}
+document.location.search.replace /\??(?:([^=]+)=([^&]*)&?)/g, ->
+    decode = (s) -> decodeURIComponent s.split('+').join(' ')
+    get[decode(arguments[1])] = decode(arguments[2])
+
+# True if opened from the view_dump command in the browser console
+browser = get.source is 'browser'
 
 object_refs = {}
 stack_objects = []
@@ -57,8 +65,7 @@ print_object = (obj, div, depth=1) ->
     else
       ul.append $('<li>', html: "#{k}: #{v}")
 
-# setup
-$.get file, ((data) ->
+cb = (data) ->
   main = $('#main')
   frames_div = $('<div>', id: 'frames')
   for frame in data
@@ -86,7 +93,19 @@ $.get file, ((data) ->
   print_object obj, objects_div for obj in stack_objects
   objects_div.prepend $('<h1>', html: 'Objects')
   main.append objects_div
-  gotoHash()), 'json'
+  gotoHash()
+
+# setup
+if browser
+  recieve = (message) ->
+    console.log message
+    cb JSON.parse message.data
+
+  window.addEventListener 'message', recieve, false
+
+else
+  file = if get.file then get.file else '../core-main.json'
+  $.get file, cb, 'json'
 
 gotoHash = ->
   ref = location.hash[1..] # strip the leading '#'
