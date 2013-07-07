@@ -1,4 +1,4 @@
-///<reference path='./node.d.ts' />
+///<reference path='../vendor/node.d.ts' />
 "use strict";
 import util = module('./util');
 import logging = module('./logging')

@@ -1,4 +1,4 @@
-/// <reference path="../src/node.d.ts" />
+/// <reference path="../vendor/node.d.ts" />
 "use strict";
 var underscore = require('../vendor/_.js');
 var fs = require('fs');
