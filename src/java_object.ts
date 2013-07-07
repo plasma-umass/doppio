@@ -58,7 +58,7 @@ export class JavaArray {
 }
 
 export class JavaObject {
-  public cls : any
+  public cls: ClassData.ReferenceClassData
   public fields : any
   public ref: number
   public $pos: number // XXX: For file descriptors.
@@ -198,7 +198,7 @@ export class JavaThreadObject extends JavaObject {
 }
 
 export class JavaClassObject extends JavaObject {
-  constructor(rs: runtime.RuntimeState, public $cls: any) {
+  constructor(rs: runtime.RuntimeState, public $cls: ClassData.ClassData) {
     super(rs, <ClassData.ReferenceClassData> rs.get_bs_cl().get_resolved_class('Ljava/lang/Class;'));
   }
 

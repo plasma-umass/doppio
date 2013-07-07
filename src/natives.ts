@@ -19,7 +19,7 @@ var fs = typeof node !== "undefined" ? node.fs : require('fs');
 import ClassData = module('./ClassData');
 var ReferenceClassData = ClassData.ReferenceClassData, PrimitiveClassData = ClassData.PrimitiveClassData, ArrayClassData = ClassData.ArrayClassData;
 
-function get_property(rs, jvm_key, _default) {
+function get_property(rs: runtime.RuntimeState, jvm_key: java_object.JavaObject, _default: java_object.JavaObject): java_object.JavaObject {
   var jvm, key, val;
 
   if (_default == null) {
@@ -38,7 +38,7 @@ function get_property(rs, jvm_key, _default) {
   }
 }
 
-function o(fn_name, fn) {
+function o(fn_name: string, fn: Function): { fn_name: string; fn: Function} {
   return {
     fn_name: fn_name,
     fn: fn
@@ -332,6 +332,14 @@ function create_stack_trace(rs: runtime.RuntimeState, throwable: java_object.Jav
   return stacktrace.reverse();
 }
 
+function verify_array(rs: runtime.RuntimeState, obj: any): java_object.JavaArray {
+  if (!(obj instanceof java_object.JavaArray)) {
+    var err_cls = <ClassData.ReferenceClassData> this.get_bs_class('Ljava/lang/IllegalArgumentException;');
+    this.java_throw(err_cls, 'Object is not an array.');
+  }
+  return <java_object.JavaArray> obj;
+}
+
 export var native_methods = {
   classes: {
     awt: {
@@ -339,7 +347,7 @@ export var native_methods = {
     },
     doppio: {
       JavaScript: [
-        o('eval(Ljava/lang/String;)Ljava/lang/String;', function(rs: runtime.RuntimeState, to_eval: java_object.JavaObject): java_object.JavaObject {
+        o('eval(Ljava/lang/String;)Ljava/lang/String;', function (rs: runtime.RuntimeState, to_eval: java_object.JavaObject): java_object.JavaObject {
           var rv = eval(to_eval.jvm2js_str());
           if (rv != null) {
             return rs.init_string("" + rv);
@@ -353,7 +361,7 @@ export var native_methods = {
   java: {
     lang: {
       ClassLoader: [
-        o('findLoadedClass0(L!/!/String;)L!/!/Class;', function(rs: runtime.RuntimeState, _this: java_object.JavaClassLoaderObject, name: java_object.JavaObject): java_object.JavaClassObject {
+        o('findLoadedClass0(L!/!/String;)L!/!/Class;', function (rs: runtime.RuntimeState, _this: java_object.JavaClassLoaderObject, name: java_object.JavaObject): java_object.JavaClassObject {
           var cls, loader, type;
 
           loader = get_cl_from_jclo(rs, _this);
@@ -364,27 +372,27 @@ export var native_methods = {
           } else {
             return null;
           }
-        }), o('findBootstrapClass(L!/!/String;)L!/!/Class;', function(rs: runtime.RuntimeState, _this: java_object.JavaClassLoaderObject, name: java_object.JavaObject): void {
+        }), o('findBootstrapClass(L!/!/String;)L!/!/Class;', function (rs: runtime.RuntimeState, _this: java_object.JavaClassLoaderObject, name: java_object.JavaObject): void {
           var type = util.int_classname(name.jvm2js_str());
-          rs.async_op<java_object.JavaClassObject>(function(resume_cb, except_cb) {
-            rs.get_bs_cl().resolve_class(rs, type, (function(cls) {
+          rs.async_op<java_object.JavaClassObject>(function (resume_cb, except_cb) {
+            rs.get_bs_cl().resolve_class(rs, type, (function (cls) {
               resume_cb(cls.get_class_object(rs));
             }), except_cb, true);
           });
-        }), o('getCaller(I)L!/!/Class;', function(rs: runtime.RuntimeState, i: number): java_object.JavaClassObject {
+        }), o('getCaller(I)L!/!/Class;', function (rs: runtime.RuntimeState, i: number): java_object.JavaClassObject {
           var cls = rs.meta_stack().get_caller(i).method.cls;
           return cls.get_class_object(rs);
-        }), o('defineClass1(L!/!/String;[BIIL!/security/ProtectionDomain;L!/!/String;Z)L!/!/Class;', function(rs: runtime.RuntimeState, _this: java_object.JavaClassLoaderObject, name: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number, pd: gLong, source: java_object.JavaObject, unused: java_object.JavaObject): void {
+        }), o('defineClass1(L!/!/String;[BIIL!/security/ProtectionDomain;L!/!/String;Z)L!/!/Class;', function (rs: runtime.RuntimeState, _this: java_object.JavaClassLoaderObject, name: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number, pd: gLong, source: java_object.JavaObject, unused: java_object.JavaObject): void {
           var loader = get_cl_from_jclo(rs, _this);
-          rs.async_op <java_object.JavaClassObject>(function(resume_cb, except_cb) {
+          rs.async_op<java_object.JavaClassObject>(function (resume_cb, except_cb) {
             native_define_class(rs, name, bytes, offset, len, loader, resume_cb, except_cb);
           });
-        }), o('defineClass1(L!/!/String;[BIIL!/security/ProtectionDomain;L!/!/String;)L!/!/Class;', function(rs: runtime.RuntimeState, _this: java_object.JavaClassLoaderObject, name: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number, pd: gLong, source: java_object.JavaObject): void {
+        }), o('defineClass1(L!/!/String;[BIIL!/security/ProtectionDomain;L!/!/String;)L!/!/Class;', function (rs: runtime.RuntimeState, _this: java_object.JavaClassLoaderObject, name: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number, pd: gLong, source: java_object.JavaObject): void {
           var loader = get_cl_from_jclo(rs, _this);
-          rs.async_op<java_object.JavaClassObject>(function(resume_cb, except_cb) {
+          rs.async_op<java_object.JavaClassObject>(function (resume_cb, except_cb) {
             native_define_class(rs, name, bytes, offset, len, loader, resume_cb, except_cb);
           });
-        }), o('resolveClass0(L!/!/Class;)V', function(rs: runtime.RuntimeState, _this: java_object.JavaClassLoaderObject, cls: java_object.JavaClassObject): void {
+        }), o('resolveClass0(L!/!/Class;)V', function (rs: runtime.RuntimeState, _this: java_object.JavaClassLoaderObject, cls: java_object.JavaClassObject): void {
           var loader, type;
 
           loader = get_cl_from_jclo(rs, _this);
@@ -392,16 +400,16 @@ export var native_methods = {
           if (loader.get_resolved_class(type, true) != null) {
             return;
           }
-          rs.async_op<void>(function(resume_cb, except_cb) {
-            loader.resolve_class(rs, type, (function() {
+          rs.async_op<void >(function (resume_cb, except_cb) {
+            loader.resolve_class(rs, type, (function () {
               resume_cb();
             }), except_cb, true);
           });
         })
       ],
-      Compiler: [o('disable()V', function(rs, _this) {}), o('enable()V', function(rs, _this) {})],
+      Compiler: [o('disable()V', function (rs, _this) { }), o('enable()V', function (rs, _this) { })],
       Float: [
-        o('floatToRawIntBits(F)I', function(rs: runtime.RuntimeState, f_val: number): number {
+        o('floatToRawIntBits(F)I', function (rs: runtime.RuntimeState, f_val: number): number {
           var exp, f_view, i_view, sig, sign;
 
           if (typeof Float32Array !== "undefined" && Float32Array !== null) {
@@ -432,12 +440,12 @@ export var native_methods = {
             sig = Math.round((f_val / Math.pow(2, exp) - 1) * Math.pow(2, 23));
             return (sign << 31) | ((exp + 127) << 23) | sig;
           }
-        }), o('intBitsToFloat(I)F', function(rs: runtime.RuntimeState, i_val: number): number {
+        }), o('intBitsToFloat(I)F', function (rs: runtime.RuntimeState, i_val: number): number {
           return util.intbits2float(i_val);
         })
       ],
       Double: [
-        o('doubleToRawLongBits(D)J', function(rs: runtime.RuntimeState, d_val: number): gLong {
+        o('doubleToRawLongBits(D)J', function (rs: runtime.RuntimeState, d_val: number): gLong {
           var d_view, exp, high_bits, i_view, sig, sign;
 
           if (typeof Float64Array !== "undefined" && Float64Array !== null) {
@@ -470,18 +478,18 @@ export var native_methods = {
           }
           high_bits = sig.getHighBits() | sign | exp;
           return gLong.fromBits(sig.getLowBits(), high_bits);
-        }), o('longBitsToDouble(J)D', function(rs: runtime.RuntimeState, l_val: gLong): number {
+        }), o('longBitsToDouble(J)D', function (rs: runtime.RuntimeState, l_val: gLong): number {
           return util.longbits2double(l_val.getHighBits(), l_val.getLowBitsUnsigned());
         })
       ],
       Object: [
-        o('getClass()L!/!/Class;', function(rs: runtime.RuntimeState, _this: java_object.JavaObject): java_object.JavaClassObject {
+        o('getClass()L!/!/Class;', function (rs: runtime.RuntimeState, _this: java_object.JavaObject): java_object.JavaClassObject {
           return _this.cls.get_class_object(rs);
-        }), o('hashCode()I', function(rs: runtime.RuntimeState, _this: java_object.JavaObject): number {
+        }), o('hashCode()I', function (rs: runtime.RuntimeState, _this: java_object.JavaObject): number {
           return _this.ref;
-        }), o('clone()L!/!/!;', function(rs: runtime.RuntimeState, _this: java_object.JavaObject): java_object.JavaObject {
+        }), o('clone()L!/!/!;', function (rs: runtime.RuntimeState, _this: java_object.JavaObject): java_object.JavaObject {
           return _this.clone(rs);
-        }), o('notify()V', function(rs: runtime.RuntimeState, _this: java_object.JavaObject): void {
+        }), o('notify()V', function (rs: runtime.RuntimeState, _this: java_object.JavaObject): void {
           var locker, owner;
 
           debug("TE(notify): on lock *" + _this.ref);
@@ -494,7 +502,7 @@ export var native_methods = {
           if (rs.waiting_threads[_this] != null) {
             rs.waiting_threads[_this].shift();
           }
-        }), o('notifyAll()V', function(rs: runtime.RuntimeState, _this: java_object.JavaObject): void {
+        }), o('notifyAll()V', function (rs: runtime.RuntimeState, _this: java_object.JavaObject): void {
           var locker, owner;
 
           debug("TE(notifyAll): on lock *" + _this.ref);
@@ -505,9 +513,9 @@ export var native_methods = {
             }
           }
           if (rs.waiting_threads[_this] != null) {
-             rs.waiting_threads[_this] = [];
+            rs.waiting_threads[_this] = [];
           }
-        }), o('wait(J)V', function(rs: runtime.RuntimeState, _this: java_object.JavaObject, timeout: gLong): void {
+        }), o('wait(J)V', function (rs: runtime.RuntimeState, _this: java_object.JavaObject, timeout: gLong): void {
           var locker, owner;
 
           if (timeout !== gLong.ZERO) {
@@ -524,17 +532,17 @@ export var native_methods = {
         })
       ],
       Package: [
-        o('getSystemPackage0(Ljava/lang/String;)Ljava/lang/String;', function(rs: runtime.RuntimeState, pkg_name_obj: java_object.JavaObject): java_object.JavaObject {
+        o('getSystemPackage0(Ljava/lang/String;)Ljava/lang/String;', function (rs: runtime.RuntimeState, pkg_name_obj: java_object.JavaObject): java_object.JavaObject {
           var pkg_name = pkg_name_obj.jvm2js_str();
           if (rs.get_bs_cl().get_package_names().indexOf(pkg_name) >= 0) {
             return pkg_name_obj;
           } else {
             return null;
           }
-        }), o('getSystemPackages0()[Ljava/lang/String;', function(rs: runtime.RuntimeState): java_object.JavaArray {
+        }), o('getSystemPackages0()[Ljava/lang/String;', function (rs: runtime.RuntimeState): java_object.JavaArray {
           var cls_name;
 
-          return new JavaArray(rs, (<ClassData.ArrayClassData>(rs.get_bs_class('[Ljava/lang/String;'))), (function() {
+          return new JavaArray(rs, (<ClassData.ArrayClassData>(rs.get_bs_class('[Ljava/lang/String;'))), (function () {
             var _i, _len, _ref5, _results;
 
             _ref5 = rs.get_bs_cl().get_package_names();
@@ -548,7 +556,7 @@ export var native_methods = {
         })
       ],
       ProcessEnvironment: [
-        o('environ()[[B', function(rs: runtime.RuntimeState): java_object.JavaArray {
+        o('environ()[[B', function (rs: runtime.RuntimeState): java_object.JavaArray {
           var env_arr, k, v, _ref5;
 
           env_arr = [];
@@ -563,17 +571,19 @@ export var native_methods = {
       ],
       reflect: {
         Array: [
-          o('newArray(L!/!/Class;I)L!/!/Object;', function(rs, _this, len) {
+          o('newArray(L!/!/Class;I)L!/!/Object;', function (rs: runtime.RuntimeState, _this: java_object.JavaClassObject, len: number): java_object.JavaArray {
             return rs.heap_newarray(_this.$cls.get_type(), len);
-          }), o('getLength(Ljava/lang/Object;)I', function(rs, arr) {
+          }), o('getLength(Ljava/lang/Object;)I', function (rs: runtime.RuntimeState, obj: any): number {
+            var arr = verify_array(rs, obj);
             return rs.check_null(arr).array.length;
-          }), o('set(Ljava/lang/Object;ILjava/lang/Object;)V', function(rs, arr, idx, val) {
+          }), o('set(Ljava/lang/Object;ILjava/lang/Object;)V', function (rs: runtime.RuntimeState, obj: any, idx: number, val: java_object.JavaObject): void {
             var array, ccls, ccname, ecls, illegal_exc, m, my_sf;
+            var arr = verify_array(rs, obj);
 
             my_sf = rs.curr_frame();
             array = rs.check_null(arr).array;
             if (!(idx < array.length)) {
-              rs.java_throw(rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;'), 'Tried to write to an illegal index in an array.');
+              rs.java_throw((<ClassData.ReferenceClassData>rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;')), 'Tried to write to an illegal index in an array.');
             }
             if ((ccls = arr.cls.get_component_class()) instanceof PrimitiveClassData) {
               if (val.cls.is_subclass(rs.get_bs_class(ccls.box_class_name()))) {
@@ -2273,9 +2283,7 @@ function flatten_pkg(pkg) {
   result = {};
   pkg_name_arr = [];
   rec_flatten = function (pkg) {
-    var flattened_inner, fn, fn_name, full_name, full_pkg_name, inner_pkg, method, pkg_name, _i, _len, _results;
-
-    _results = [];
+    var flattened_inner, fn, fn_name, full_name, full_pkg_name, inner_pkg, method, pkg_name, _i, _len;
     for (pkg_name in pkg) {
       inner_pkg = pkg[pkg_name];
       pkg_name_arr.push(pkg_name);
@@ -2305,9 +2313,8 @@ function flatten_pkg(pkg) {
       } else {
         flattened_inner = rec_flatten(inner_pkg);
       }
-      _results.push(pkg_name_arr.pop(pkg_name));
+      pkg_name_arr.pop(pkg_name);
     }
-    return _results;
   };
   rec_flatten(pkg);
   return result;
