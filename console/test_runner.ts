@@ -38,7 +38,8 @@ var optimist = require('optimist')
 
 var argv = optimist.argv;
 if (argv.help) {
-  return optimist.showHelp();
+  optimist.showHelp();
+  process.exit(0);
 }
 if (argv.makefile) {
   makefile_test(argv);

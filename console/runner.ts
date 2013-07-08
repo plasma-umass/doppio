@@ -13,9 +13,7 @@ import optparse = module('../src/option_parser');
 var BootstrapClassLoader = ClassLoader.BootstrapClassLoader;
 
 function stub(obj, name, replacement, wrapped) {
-  var old_fn;
-
-  old_fn = obj[name];
+  var old_fn = obj[name];
   try {
     obj[name] = replacement;
     return wrapped();
@@ -119,10 +117,12 @@ optparse.describe({
 
 var argv = optparse.parse(process.argv);
 if (argv.standard.help) {
-  return print_help(optparse.show_help());
+  print_help(optparse.show_help());
+  process.exit(0);
 }
 if (argv.standard.X) {
-  return print_help(optparse.show_non_standard_help());
+  print_help(optparse.show_non_standard_help());
+  process.exit(0);
 }
 
 if (argv.non_standard.log != null) {
@@ -152,7 +152,8 @@ if (cname != null && cname.slice(-6) === '.class') {
   cname = cname.slice(0, -6);
 }
 if (!((cname != null) || (argv.standard.jar != null))) {
-  return print_help(optparse.show_help());
+  print_help(optparse.show_help());
+  process.exit(0);
 }
 var main_args = argv._;
 var stdout = process.stdout.write.bind(process.stdout);
