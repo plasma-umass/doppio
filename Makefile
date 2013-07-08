@@ -104,9 +104,6 @@ CLI_SRCS := $(wildcard src/*.ts console/*.ts)
 # target's name is present.
 .PHONY: release benchmark dist dependencies java test clean docs build dev library
 
-# Don't keep this around in the src directory, because it's a generated file.
-.INTERMEDIATE: src/natives.ts
-
 library: dependencies build/library/compressed.js
 	cp build/library/compressed.js build/library/doppio.min.js
 build/library:
@@ -165,8 +162,8 @@ test: dependencies $(TESTS)
 %.class: %.java
 	javac -bootclasspath $(BOOTCLASSPATH) $^
 # phony *.test targets allow us to test with -j4 parallelism
-classes/test/%.test: classes/test/%.class classes/test/%.disasm classes/test/%.runout
-	@node console/test_runner.js classes/test/$* --makefile
+classes/test/%.test: release-cli classes/test/%.class classes/test/%.disasm classes/test/%.runout
+	@node build/release/console/test_runner.js classes/test/$* --makefile
 classes/test/%.disasm: classes/test/%.class
 	javap -bootclasspath $(BOOTCLASSPATH) -c -verbose -private classes/test/$* >classes/test/$*.disasm
 # some tests may throw exceptions. The '-' flag tells make to carry on anyway.
@@ -262,29 +259,23 @@ doppio doppio-dev:
 .SECONDEXPANSION:
 build/release/compressed.js build/benchmark/compressed.js build/library/compressed.js: build/%/compressed.js:\
 	build/% $$(%_BROWSER_SRCS)
-	mkdir -p $(dir $@)/browser/doppio-source
 	for src in $($*_BROWSER_SRCS); do \
 		if [ "$${src##*.}" == "ts" ]; then \
-			mkdir -p `dirname $(dir $@)browser/doppio-source/$$src`; \
-			$(SED) -r "s/^( *)(debug|v?trace).*$$/\1\`\`/" < $$src > $(dir $@)browser/doppio-source/$$src ; \
+			mkdir -p $(dir $@); \
+			ln -sfn $$src $(dir $@); \
 			$(TSC) --sourcemap --out $(dir $@) $$src; \
 		else \
 			cat $${src}; \
 		fi; \
 		echo ";"; \
 	done > ${@:compressed.js=uncompressed.js}
-	$(UGLIFYJS) --prefix 2 --source-map-url compressed.map --source-map ${@:.js=.map} --define RELEASE --define UNSAFE --no-mangle --unsafe -o $@ ${@:compressed.js=uncompressed.js}
+	$(UGLIFYJS) --prefix 2 --source-map-url compressed.map --source-map ${@:.js=.map} --define RELEASE --define UNSAFE --unsafe -o $@ ${@:compressed.js=uncompressed.js}
 
 build/dev/%.js: %.ts
-	@mkdir -p $(dir $@)
-	#cp $< $(dir $@)
-	ln -sfn ../../../$< $(dir $@)
-	cd $(dir $@)&& $(TSC) --sourcemap --out . $(notdir $<)
-
+	$(TSC) --sourcemap --out build/dev console/*.ts
 
 build/release/%.js: %.ts
-	@mkdir -p $(dir $@)
-	$(TSC) --out $(dir $@) $<
-	$(SED) -r "s/^( *)(debug|v?trace).*$$//" $@ > $(@:.js=-orig.js)
-	$(UGLIFYJS) --define RELEASE --define UNSAFE --no-mangle --unsafe --beautify -o $@ $(@:.js=-orig.js)
-
+	$(TSC) --out build/release console/*.ts
+# TODO: run uglify on the release JS files. Currently borked because TSC makes
+# everything at once, which throws off our build flow.
+#	$(UGLIFYJS) $@ --define RELEASE --define UNSAFE --unsafe --beautify -o $@
