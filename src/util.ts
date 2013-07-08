@@ -430,8 +430,8 @@ export function verify_int_classname(str: string): boolean {
     return false;
   }
   var parts = str.split('/');
-  for (var part in parts) {
-    if (part.match(/[^$_a-z0-9]/i)) {
+  for (var i = 0; i < parts.length; i++) {
+    if (parts[i].match(/[^$_a-z0-9]/i)) {
       return false;
     }
   }

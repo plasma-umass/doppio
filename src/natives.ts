@@ -1790,9 +1790,7 @@ native_methods['java']['lang']['Class'] = [
   }), o('getName0()L!/!/String;', function(rs, _this) {
     return rs.init_string(_this.$cls.toExternalString());
   }), o('forName0(L!/!/String;ZL!/!/ClassLoader;)L!/!/!;', function(rs, jvm_str, initialize, loader) {
-    var classname;
-
-    classname = util.int_classname(jvm_str.jvm2js_str());
+    var classname = util.int_classname(jvm_str.jvm2js_str());
     if (!util.verify_int_classname(classname)) {
       rs.java_throw(rs.get_bs_class('Ljava/lang/ClassNotFoundException;'), classname);
     }
