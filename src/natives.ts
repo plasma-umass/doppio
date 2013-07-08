@@ -685,11 +685,11 @@ export var native_methods = {
       ],
       String: [
         o('intern()L!/!/!;', function(rs, _this) {
-          var js_str, s;
-
-          js_str = _this.jvm2js_str();
-          if ((s = rs.string_pool.get(js_str)) == null) {
-            s = rs.string_pool.set(js_str, _this);
+          var js_str = _this.jvm2js_str();
+          var s = rs.string_pool.get(js_str);
+          if (s == null) {
+            rs.string_pool.set(js_str, _this);
+            return _this;
           }
           return s;
         })

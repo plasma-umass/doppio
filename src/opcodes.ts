@@ -1082,7 +1082,12 @@ export var opcodes : Opcode[] = [
   }),
   new FieldOpcode('getfield', function(rs) {
     var desc = this.field_spec.class;
+    // Check if the object is null; if we do not do this before get_class, then
+    // we might try to get a class that we have not initialized!
     var obj = rs.check_null(rs.peek());
+    // cls is guaranteed to be in the inheritance hierarchy of obj, so it must be
+    // initialized. However, it may not be loaded in the current class's
+    // ClassLoader...
     var cls = rs.get_class(desc, true);
     if (cls != null) {
       var field = cls.field_lookup(rs, this.field_spec.name);
@@ -1097,6 +1102,7 @@ export var opcodes : Opcode[] = [
       this.execute = new_execute;
       return;
     }
+    // Alright, tell this class's ClassLoader to load the class.
     rs.async_op(function(resume_cb, except_cb) {
       rs.get_cl().resolve_class(rs, desc, (function() {
         resume_cb(undefined, undefined, true, false);
@@ -1104,8 +1110,9 @@ export var opcodes : Opcode[] = [
     });
   }),
   new FieldOpcode('putfield', function(rs) {
+    // Check if the object is null; if we do not do this before get_class, then
+    // we might try to get a class that we have not initialized!
     var desc = this.field_spec.class;
-    var cls_obj, field, name, new_execute, _obj, _ref10, _ref9;
     var is_cat_2 = (this.field_spec.type == 'J' || this.field_spec.type == 'D');
     var _obj;
     if (is_cat_2) {
@@ -1113,6 +1120,9 @@ export var opcodes : Opcode[] = [
     } else {
       _obj = rs.check_null(rs.peek(1));
     }
+    // cls is guaranteed to be in the inheritance hierarchy of obj, so it must be
+    // initialized. However, it may not be loaded in the current class's
+    // ClassLoader...
     var cls_obj = rs.get_class(desc, true);
     if (cls_obj != null) {
       var field = cls_obj.field_lookup(rs, this.field_spec.name);
@@ -1132,6 +1142,7 @@ export var opcodes : Opcode[] = [
       new_execute.call(this, rs);
       this.execute = new_execute;
     } else {
+      // Alright, tell this class's ClassLoader to load the class.
       rs.async_op(function(resume_cb, except_cb) {
         rs.get_cl().resolve_class(rs, desc, (function() {
           resume_cb(undefined, undefined, true, false);
