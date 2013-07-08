@@ -341,7 +341,7 @@ export class RuntimeState {
     if (blacklist == null) {
       blacklist = [];
       for (var key in this.waiting_threads) {
-        blacklist.push.apply(this.waiting_threads[key]);
+        blacklist.push.apply(blacklist, this.waiting_threads[key]);
       }
     }
     var wakeup_time = this.curr_thread.wakeup_time;
