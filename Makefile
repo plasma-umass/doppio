@@ -284,7 +284,7 @@ build/release/compressed.js build/benchmark/compressed.js build/library/compress
 		fi; \
 		echo ";"; \
 	done > ${@:compressed.js=uncompressed.js}
-	$(UGLIFYJS) --prefix 2  --source-map-url compressed.map --source-map ${@:.js=.map} --define RELEASE --define UNSAFE --no-mangle --unsafe -o $@ ${@:compressed.js=uncompressed.js}
+	$(UGLIFYJS) --prefix 2  --source-map-url compressed.map --source-map ${@:.js=.map} --define RELEASE --define UNSAFE --unsafe -o $@ ${@:compressed.js=uncompressed.js}
 
 build/dev/%.js: %.coffee
 	@mkdir -p $(dir $@)
@@ -298,5 +298,5 @@ build/release/%.js: %.coffee
 	$(SED) -r "s/^( *)(debug|v?trace).*$$/\1\`\`/" $< > $(@:.js=.coffeex)
 	$(COFFEEC) --map  -o $(dir $@) $(@:.js=.coffeex)
 	mv $@ $(@:.js=-orig.js)
-	$(UGLIFYJS) --source-map ${@:.js=.map} --in-source-map ${@:.js=.map} --define RELEASE --define UNSAFE --no-mangle --unsafe --beautify -o $@ $(@:.js=-orig.js)
+	$(UGLIFYJS) --source-map ${@:.js=.map} --in-source-map ${@:.js=.map} --define RELEASE --define UNSAFE --unsafe --beautify -o $@ $(@:.js=-orig.js)
 	rm $(@:.js=-orig.js)
