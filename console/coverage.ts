@@ -120,11 +120,13 @@ var optimist = require('optimist')
 
 var argv = optimist.argv;
 if (argv.help) {
-  return optimist.showHelp();
+  optimist.showHelp();
+  process.exit(0);
 }
 if (!(argv.opcodes || argv.natives)) {
   console.error('Must select natives, opcodes, or both');
-  return optimist.showHelp();
+  optimist.showHelp();
+  process.exit(1);
 }
 var op_stats, native_stats;
 if (argv.opcodes) {
