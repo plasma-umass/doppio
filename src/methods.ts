@@ -269,20 +269,19 @@ export class Method extends AbstractMethodField {
   }
 
   public run_manually(func: Function, rs: runtime.RuntimeState, converted_params: any[]): void {
-    var e, ret_type, rv;
-
-    trace("entering native method " + (this.full_signature()));
+    trace("entering native method " + this.full_signature());
+    var rv;
     try {
       rv = func.apply(null, converted_params);
     } catch (_error) {
-      e = _error;
+      var e = _error;
       if (e === ReturnException) {
         return;
       }
       throw e;
     }
     rs.meta_stack().pop();
-    ret_type = this.return_type;
+    var ret_type = this.return_type;
     if (ret_type !== 'V') {
       if (ret_type === 'Z') {
         rs.push(rv + 0);

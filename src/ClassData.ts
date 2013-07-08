@@ -486,26 +486,23 @@ export class ReferenceClassData extends ClassData {
   }
 
   private _field_lookup(rs: runtime.RuntimeState, name: string): methods.Field {
-    var field, ifc_cls, sc, _i, _j, _len, _len1, _ref1, _ref2;
-
-    _ref1 = this.fields;
-    for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-      field = _ref1[_i];
+    for (var i = 0; i < this.fields.length; i++) {
+      var field = this.fields[i];
       if (field.name === name) {
         return field;
       }
     }
-    _ref2 = this.get_interfaces();
-    for (_j = 0, _len1 = _ref2.length; _j < _len1; _j++) {
-      ifc_cls = _ref2[_j];
-      field = ifc_cls.field_lookup(rs, name, true);
+    // These may not be initialized! But we have them loaded.
+    var ifaces = this.get_interfaces();
+    for (var i = 0; i < ifaces.length; i++) {
+      var field = ifaces[i].field_lookup(rs, name, true);
       if (field != null) {
         return field;
       }
     }
-    sc = this.get_super_class();
+    var sc = <ReferenceClassData> this.get_super_class();
     if (sc != null) {
-      field = sc.field_lookup(rs, name, true);
+      var field = sc.field_lookup(rs, name, true);
       if (field != null) {
         return field;
       }

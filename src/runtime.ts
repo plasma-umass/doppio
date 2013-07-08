@@ -512,8 +512,8 @@ export class RuntimeState {
     if (intern == null) {
       intern = false;
     }
-    var s;
-    if (intern && ((s = this.string_pool.get(str)) != null)) {
+    var s = this.string_pool.get(str);
+    if (intern && s != null) {
       return s;
     }
     var carr = this.init_carr(str);
