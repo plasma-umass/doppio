@@ -6,7 +6,7 @@ var nonAsyncCount = 0;
 
 // modern browsers slow the event loop when tab is not in focus,
 // so don't give up control! but guard against stack overflows, too.
-function asyncExecute(fn: Function): void {
+export function asyncExecute(fn: Function): void {
   if ((typeof document !== "undefined" && document !== null) &&
       (document.hidden || document.msHidden) &&
       nonAsyncCount++ < 10000) {
