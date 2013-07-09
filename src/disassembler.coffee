@@ -46,7 +46,7 @@ format = (entry) ->
     when 'float' then format_decimal val, 'f'
     when 'double' then format_decimal val, 'd'
     when 'long' then val + "l"
-    else util.escape_whitespace ((if entry.deref? then "#" else "") + val)
+    else util.escape_whitespace((if entry.deref? then '#' else '') + val).replace(/"/g,'\\"')
 
 # pretty-print our field types, e.g. as 'PackageName.ClassName[][]'
 pp_type = (field_type) ->
@@ -96,7 +96,7 @@ make_dis = (class_file) ->
     for cls in icls.classes
       flags = util.parse_flags cls.inner_access_flags
       icls_group.push
-        access_string: (f+' ' for f in ['public', 'protected', 'private', 'abstract'] when flags[f]).join ''
+        access_string: (f+' ' for f in ['public', 'abstract'] when flags[f]).join ''
         type: util.descriptor2typestr pool.get(cls.inner_info_index).deref()
         raw: cls  # useful for inner/outer indices
         name: if cls.inner_name_index > 0 then pool.get(cls.inner_name_index).value else null

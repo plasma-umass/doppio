@@ -20,6 +20,7 @@ flatten_pkg = (pkg) ->
       else
         flattened_inner = rec_flatten inner_pkg
       pkg_name_arr.pop pkg_name
+    return
   rec_flatten pkg
   result
 

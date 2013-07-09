@@ -21,7 +21,8 @@ util = require './util'
 runtime = require './runtime'
 {thread_name,JavaObject,JavaArray} = require './java_object'
 exceptions = require './exceptions'
-{log,debug,error,trace} = require './logging'
+logging = require './logging'
+{log,debug,error,trace} = logging
 path = node?.path ? require 'path'
 fs = node?.fs ? require 'fs'
 {ReferenceClassData,PrimitiveClassData,ArrayClassData} = require './ClassData'
@@ -198,6 +199,8 @@ unsafe_memcpy = (rs, src_base, src_offset, dest_base, dest_offset, num_bytes) ->
       else
         for i in [0...num_bytes] by 1
           rs.mem_blocks[dest_addr+i] = rs.mem_blocks[src_addr+i]
+  # Avoid CoffeeScript accumulation nonsense.
+  return
 
 unsafe_compare_and_swap = (rs, _this, obj, offset, expected, x) ->
   actual = obj.get_field_from_offset rs, offset
@@ -271,6 +274,18 @@ native_methods =
           rv = eval to_eval.jvm2js_str()
           # Coerce to string, if possible.
           if rv? then rs.init_string "#{rv}" else null
+      ],
+      Debug: [
+        o 'SetLogLevel(L!/!/!$LogLevel;)V', (rs, loglevel) ->
+          ll = loglevel.get_field rs, 'Lclasses/doppio/Debug$LogLevel;level'
+          logging.log_level = ll
+        o 'GetLogLevel()L!/!/!$LogLevel;', (rs) ->
+          ll_cls = rs.get_bs_class('Lclasses/doppio/Debug$LogLevel;')
+          return switch logging.log_level
+            when 10 then ll_cls.static_get rs, 'VTRACE'
+            when 9 then ll_cls.static_get rs, 'TRACE'
+            when 5 then ll_cls.static_get rs, 'DEBUG'
+            else ll_cls.static_get rs, 'ERROR'
       ]
   java:
     lang:
@@ -590,6 +605,11 @@ native_methods =
         o 'interrupt0()V', (rs, _this) ->
             _this.$isInterrupted = true
             return if _this is rs.curr_thread
+            # Parked threads do not raise an interrupt
+            # exception, but do get yielded to
+            if rs.parked _this
+              rs.yield _this
+              return
             debug "TE(interrupt0): interrupting #{thread_name rs, _this}"
             new_thread_sf = util.last _this.$meta_stack._cs
             new_thread_sf.runner = ->
@@ -797,7 +817,7 @@ native_methods =
             fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
             rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if fd is -1
             unless fd is 0
-              bytes_left = fs.fstatSync(file).size - _this.$pos
+              bytes_left = fs.fstatSync(fd).size - _this.$pos
               to_skip = Math.min(n_bytes.toNumber(), bytes_left)
               _this.$pos += to_skip
               return gLong.fromNumber(to_skip)
@@ -909,11 +929,11 @@ native_methods =
                 else
                   fs.open filepath, 'w', (err, fd) ->
                     if err?
-                      except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), e.message
+                      except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), err.message
                     else
                       fs.close fd, (err) ->
                         if err?
-                          except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), e.message
+                          except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), err.message
                         else
                           resume_cb true
         o 'createFileExclusively(Ljava/lang/String;Z)Z', (rs, _this, path) ->  # Apple-java version
@@ -925,11 +945,11 @@ native_methods =
                 else
                   fs.open filepath, 'w', (err, fd) ->
                     if err?
-                      except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), e.message
+                      except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), err.message
                     else
                       fs.close fd, (err) ->
                         if err?
-                          except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), e.message
+                          except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), err.message
                         else
                           resume_cb true
         o 'delete0(Ljava/io/File;)Z', (rs, _this, file) ->
@@ -970,7 +990,7 @@ native_methods =
                 unless stats?
                   resume_cb gLong.ZERO, null
                 else
-                  resume_cb gLong.fromNumber (new Date(stats.mtime)).getTime(), null
+                  resume_cb gLong.fromNumber((new Date(stats.mtime)).getTime()), null
         o 'setLastModifiedTime(Ljava/io/File;J)Z', (rs, _this, file, time) ->
             mtime = time.toNumber()
             atime = (new Date).getTime()
@@ -1271,6 +1291,17 @@ native_methods =
               my_sf.runner = null
               throw (new exceptions.JavaException(exception))
             throw exceptions.ReturnException
+        o 'park(ZJ)V', (rs, _this, absolute, time) ->
+            timeout = Infinity
+            if absolute
+              timeout = time
+            else
+              # time is in nanoseconds, but we don't have that
+              # type of precision
+              timeout = (new Date).getTime() + time / 1000000 if time > 0
+            rs.park rs.curr_thread, timeout
+        o 'unpark(Ljava/lang/Object;)V', (rs, _this, thread) ->
+            rs.unpark thread
       ]
     nio:
       ch:
@@ -1319,92 +1350,3 @@ native_methods =
               # docs.
               gLong.fromNumber(-1)
         ]
-    reflect:
-      ConstantPool: [
-        o 'getLongAt0(Ljava/lang/Object;I)J', (rs, _this, cp, idx) ->
-            cp.get(idx).value
-        o 'getUTF8At0(Ljava/lang/Object;I)Ljava/lang/String;', (rs, _this, cp, idx) ->
-            rs.init_string cp.get(idx).value
-      ]
-      NativeMethodAccessorImpl: [
-        o 'invoke0(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;', (rs,m,obj,params) ->
-            cls = m.get_field rs, 'Ljava/lang/reflect/Method;clazz'
-            slot = m.get_field rs, 'Ljava/lang/reflect/Method;slot'
-            rs.async_op (resume_cb, except_cb) ->
-              cls.$cls.loader.initialize_class rs, cls.$cls.get_type(), ((cls_obj) ->
-                method = (method for sig, method of cls_obj.get_methods() when method.idx is slot)[0]
-                my_sf = rs.curr_frame()
-                rs.push obj unless method.access_flags.static
-                # we don't get unboxing for free anymore, so we have to do it ourselves
-                i = 0
-                for p_type in method.param_types
-                  p = params.array[i++]
-                  if p_type in ['J','D']  # cat 2 primitives
-                    if p?.ref?
-                      primitive_value = p.get_field rs, p.cls.get_type()+'value'
-                      rs.push2 primitive_value, null
-                    else
-                      rs.push2 p, null
-                      i++  # skip past the null spacer
-                  else if util.is_primitive_type(p_type)  # any other primitive
-                    if p?.ref?
-                      primitive_value = p.get_field rs, p.cls.get_type()+'value'
-                      rs.push primitive_value
-                    else
-                      rs.push p
-                  else
-                    rs.push p
-                # Reenter the RuntimeState loop, which should run our new StackFrame.
-                # XXX: We use except_cb because it just replaces the runner function of the
-                # current frame. We need a better story for calling Java threads through
-                # native functions.
-                except_cb ->
-                  method.setup_stack(rs)
-                  # Overwrite my runner.
-                  my_sf.runner = ->
-                    ret_type = m.get_field rs, 'Ljava/lang/reflect/Method;returnType'
-                    descriptor = ret_type.$cls.get_type()
-                    rv = rs.pop()
-                    # pop again if it's a category 2 primitive type
-                    rv = rs.pop() if descriptor in ['J','D']
-                    rs.meta_stack().pop()
-                    # wrap up primitives in their Object box
-                    if util.is_primitive_type(descriptor) and descriptor != 'V'
-                      rs.push ret_type.$cls.create_wrapper_object(rs, rv)
-                    else
-                      rs.push rv
-              ), except_cb
-      ]
-      NativeConstructorAccessorImpl: [
-        o 'newInstance0(Ljava/lang/reflect/Constructor;[Ljava/lang/Object;)Ljava/lang/Object;', (rs,m,params) ->
-            cls = m.get_field rs, 'Ljava/lang/reflect/Constructor;clazz'
-            slot = m.get_field rs, 'Ljava/lang/reflect/Constructor;slot'
-            rs.async_op (resume_cb, except_cb) ->
-              cls.$cls.loader.initialize_class rs, cls.$cls.get_type(), ((cls_obj)->
-                method = (method for sig, method of cls_obj.get_methods() when method.idx is slot)[0]
-                my_sf = rs.curr_frame()
-                obj = new JavaObject rs, cls_obj
-                rs.push obj
-                rs.push_array(params.array) if params?
-                # Reenter the RuntimeState loop, which should run our new StackFrame.
-                # XXX: We use except_cb because it just replaces the runner function of the
-                # current frame. We need a better story for calling Java threads through
-                # native functions.
-                except_cb ->
-                  # Push the constructor's frame onto the stack.
-                  method.setup_stack(rs)
-                  # Overwrite my runner.
-                  my_sf.runner = ->
-                    rs.meta_stack().pop()
-                    rs.push obj
-              ), except_cb
-      ]
-      Reflection: [
-        o 'getCallerClass(I)Ljava/lang/Class;', (rs, frames_to_skip) ->
-            #TODO: disregard frames assoc. with java.lang.reflect.Method.invoke() and its implementation
-            caller = rs.meta_stack().get_caller(frames_to_skip)
-            cls = caller.method.cls
-            return cls.get_class_object(rs)
-        o 'getClassAccessFlags(Ljava/lang/Class;)I', (rs, class_obj) ->
-            class_obj.$cls.access_byte
-      ]

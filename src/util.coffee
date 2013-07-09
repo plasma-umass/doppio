@@ -36,15 +36,6 @@ root.arrayset = (len, val) ->
   array[i] = val for i in [0...len] by 1
   return array
 
-# Creates and initializes a *JavaScript* array to the values contained in the
-# *src* array.
-# TODO: Dynamically check if slice(0) is faster than element-by-element. It's
-#       shockingly faster in most browsers, but much slower in others.
-root.arraycpy = (src) ->
-  array = new Array len
-  array[i] = src[i] for i in [0...src.length] by 1
-  return array
-
 root.int_mod = (rs, a, b) ->
   rs.java_throw rs.get_bs_class('Ljava/lang/ArithmeticException;'), '/ by zero' if b == 0
   a % b
