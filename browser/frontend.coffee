@@ -71,8 +71,9 @@ process_bytecode = (bytecode_string) ->
   new ClassData.ReferenceClassData(bytes_array)
 
 onResize = ->
-  $('#console').height($(window).height() * 0.7)
-  $('#source').height($(window).height() * 0.7)
+  h = $(window).height() * 0.7
+  $('#console').height(h)
+  $('#source').height(h)
 
 $(window).resize(onResize)
 
@@ -110,7 +111,7 @@ $(document).ready ->
           editor.getSession?().setValue("/*\n * Binary file: #{f.name}\n */")
         else
           editor.getSession?().setValue(e.target.result)
-        $('#console').click() # click to restore focus)
+        $('#console').click() # click to restore focus
       if isClass then reader.readAsBinaryString(f) else reader.readAsText(f)
     )
     for f in ev.target.files
@@ -313,8 +314,7 @@ commands =
       # than once is fine too
       editor = ace.edit('source')
       editor.setTheme 'ace/theme/twilight'
-      ext = args[0]?.split('.')[1]
-      if ext is 'java' or not args[0]?
+      if not args[0]? or args[0].split('.')[1] is 'java'
         JavaMode = require("ace/mode/java").Mode
         editor.getSession().setMode(new JavaMode)
       else
@@ -411,18 +411,19 @@ commands =
 tabComplete = ->
   promptText = controller.promptText()
   args = promptText.split /\s+/
-  getCompletions = (args) ->
-    if args.length is 1 then commandCompletions args[0]
-    else if args[0] is 'time' then getCompletions(args[1..])
-    else fileNameCompletions args[0], args
   prefix = longestCommmonPrefix(getCompletions(args))
   return if prefix == ''  # TODO: if we're tab-completing a blank, show all options
   # delete existing text so we can do case correction
   promptText = promptText.substr(0, promptText.length - util.last(args).length)
   controller.promptText(promptText + prefix)
 
+getCompletions = (args) ->
+  if args.length is 1 then commandCompletions args[0]
+  else if args[0] is 'time' then getCompletions(args[1..])
+  else fileNameCompletions args[0], args
+
 commandCompletions = (cmd) ->
-  (name for name, handler of commands when name.substr(0, cmd.length) is cmd)
+  (name for name of commands when name.substr(0, cmd.length) is cmd)
 
 fileNameCompletions = (cmd, args) ->
   validExtension = (fname) ->
