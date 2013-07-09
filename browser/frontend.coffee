@@ -38,12 +38,11 @@ preload = ->
     untar new util.BytesArray(util.bytestr_to_array data), ((percent, path, file) ->
       update_bar(percent, path)
       base_dir = 'vendor/classes/'
-      [base,ext] = path.split('.')
+      ext = path.split('.')[1]
       unless ext is 'class'
         on_complete() if percent == 100
         return
       file_count++
-      cls = base.substr(base_dir.length)
       asyncExecute (->
         # XXX: We convert from bytestr to array to process the tar file, and
         #      then back to a bytestr to store as a file in the filesystem.
