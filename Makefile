@@ -120,7 +120,7 @@ library: dependencies release build/library/compressed.js
 
 library: dependencies build/library/compressed.js
 	cp build/library/compressed.js build/library/doppio.min.js
->>>>>>> upstream/master
+
 build/library:
 		mkdir -p build/library
 
