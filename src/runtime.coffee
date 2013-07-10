@@ -467,6 +467,10 @@ class root.RuntimeState
     # Reset stack depth every time this is called. Prevents us from needing to
     # scatter this around the code everywhere to prevent filling the stack
     setImmediate (=>
+      if @abort_requested
+         @abort_requested() if typeof(@abort_requested) == 'function'
+         return done_cb(false)
+        
       @stashed_done_cb = done_cb  # hack for the case where we error out of <clinit>
       try
         setup_fn()

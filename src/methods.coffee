@@ -221,14 +221,14 @@ class root.Method extends AbstractMethodField
     op = code[cf.pc]
 
     loop
-      unless RELEASE? or logging.log_level < logging.STRACE
+      unless RELEASE? or logging.log_level < logging.VTRACE
         pc = cf.pc
         throw "#{@name}:#{pc} => (null)" unless op
         annotation = op.annotate(pc, @cls.constant_pool)
 
       break if op.execute(rs) is false
 
-      unless RELEASE? or logging.log_level < logging.STRACE
+      unless RELEASE? or logging.log_level < logging.VTRACE
         vtrace "#{@cls.get_type()}::#{@name}:#{pc} => #{op.name}" + annotation
         depth = rs.meta_stack().length()
         vtrace "D: #{depth}, S: [#{debug_vars cf.stack}], L: [#{debug_vars cf.locals}], T: #{thread_name(rs, rs.curr_thread) if rs.curr_thread.get_field? }"

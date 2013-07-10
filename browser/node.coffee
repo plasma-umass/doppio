@@ -491,7 +491,7 @@ class CacheSource extends FileSource
     else
       ls = @index.ls file1
       for f_name in ls
-        @mv f_name, path2 + f_name.substr(path1.length), true, true
+        @mv f_name, file2 + f_name.substr(file1.length), true, true
       @index.rm file1
     return success
 
@@ -521,18 +521,18 @@ class FSState
       for pwdCmp in @pwd.split('/') by -1
         components.unshift(pwdCmp)
     for c, idx in components
-      if c == '..'
-        processed = false
-        i = idx-1
-        while !processed
-          if i < 0 then processed = true
-          if components[i] != ''
-            components[i] = ''
-            components[idx] = ''
-            processed = true
-          i--
+      continue unless c == '..'
+      processed = false
+      i = idx-1
+      while !processed
+        if i < 0 then processed = true
+        if components[i] != ''
+          components[i] = ''
+          components[idx] = ''
+          processed = true
+        i--
     # remove repeated //s
-    path = (c for c, idx in components when c != '').join '/'
+    path = (c for c in components when c != '').join '/'
     if path[0] != '/'
       path = '/' + path
     return path
@@ -573,7 +573,7 @@ class FSState
 
   mkdir: (dir) ->
     dir = @resolve(dir)
-    return false if @is_directory dir or @is_file dir
+    return false if @is_directory(dir) or @is_file(dir)
     return @files.mkdir dir
 
   mv: (file1, file2) ->
@@ -637,7 +637,7 @@ root.fs =
     if stat?
       cb null, stat
     else
-      cb new Error "Invalid file: #{path}", null
+      cb new Error("Invalid file: #{path}"), null
 
   fstatSync: (fp) -> new Stat(fp)
 
@@ -759,7 +759,7 @@ root.fs =
 
   #XXX: Does not work for directory permissions.
   chmodSync: (path, access) ->
-    throw "File #{path1} does not exist." unless fs_state.is_file path
+    throw "File #{path} does not exist." unless fs_state.is_file path
     f = fs_state.open path, 'r'
     f.mod = true
     f.mode = access

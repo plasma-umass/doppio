@@ -74,7 +74,8 @@ class ClassData
     return true if @initialized
     return false unless @is_resolved()
     return false if @get_method('<clinit>()V')?
-    @initialized = if @get_super_class()?.is_initialized() else false
+    scls = @get_super_class()
+    @initialized = scls? and scls.is_initialized()
     return @initialized
   is_resolved: -> @resolved
   is_subinterface: -> false

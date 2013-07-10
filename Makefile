@@ -120,7 +120,7 @@ library: dependencies release build/library/compressed.js
 
 library: dependencies build/library/compressed.js
 	cp build/library/compressed.js build/library/doppio.min.js
->>>>>>> upstream/master
+
 build/library:
 		mkdir -p build/library
 
@@ -291,19 +291,18 @@ build/release/compressed.js build/benchmark/compressed.js build/library/compress
 		fi; \
 		echo ";"; \
 	done > ${@:compressed.js=uncompressed.js}
-	$(UGLIFYJS) --prefix 2  --source-map-url compressed.map --source-map ${@:.js=.map} --define RELEASE --define UNSAFE --unsafe -o $@ ${@:compressed.js=uncompressed.js}
+	$(UGLIFYJS) $(@:compressed.js=uncompressed.js) --prefix 2 --source-map-url compressed.map --source-map $(@:.js=.map) -o $@ -c warnings=false -d UNSAFE=true,RELEASE=true --unsafe
 
 build/dev/%.js: %.coffee
 	@mkdir -p $(dir $@)
-	#cp $< $(dir $@)
 	ln -sfn ../../../$< $(dir $@)
-	cd $(dir $@)&& $(COFFEEC) --map -o . -c $(notdir $<)
+	cd $(dir $@) && $(COFFEEC) --map -o . -c $(notdir $<)
 
 
 build/release/%.js: %.coffee
 	@mkdir -p $(dir $@)
 	$(SED) -r "s/^( *)(debug|v?trace).*$$/\1\`\`/" $< > $(@:.js=.coffeex)
-	$(COFFEEC) --map  -o $(dir $@) $(@:.js=.coffeex)
+	$(COFFEEC) --map -o $(dir $@) $(@:.js=.coffeex)
 	mv $@ $(@:.js=-orig.js)
-	$(UGLIFYJS) --source-map ${@:.js=.map} --in-source-map ${@:.js=.map} --define RELEASE --define UNSAFE --unsafe --beautify -o $@ $(@:.js=-orig.js)
+	$(UGLIFYJS) $(@:.js=-orig.js) --source-map $(@:.js=.map) --in-source-map $(@:.js=.map) --beautify -o $@ -c warnings=false -d UNSAFE=true,RELEASE=true --unsafe
 	rm $(@:.js=-orig.js)
