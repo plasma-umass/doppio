@@ -75,8 +75,25 @@ dev_BROWSER_SRCS := $(release_BROWSER_SRCS)
 benchmark_BROWSER_SRCS := $(COMMON_BROWSER_SRCS) \
 	browser/mockconsole.coffee \
 	browser/frontend.coffee
-# they don't survive uglifyjs and are already minified, so include them
-# separately. also, this allows us to put them at the end of the document to
+# Sources for an in-browser doppio.js library. Same ordering requirement applies.
+library_BROWSER_SRCS := vendor/_.js \
+	vendor/gLong.js \
+	src/logging.coffee \
+	src/exceptions.coffee \
+	src/util.coffee \
+	src/java_object.coffee \
+	src/opcodes.coffee \
+	src/attributes.coffee \
+	src/ConstantPool.coffee \
+	src/disassembler.coffee \
+	src/ClassData.coffee \
+	src/natives.coffee \
+	src/methods.coffee \
+	src/runtime.coffee \
+	src/ClassLoader.coffee \
+	src/jvm.coffee
+# These don't survive uglifyjs and are already minified, so include them
+# separately. Also, this allows us to put them at the end of the document to
 # reduce load time.
 ACE_SRCS = vendor/ace/src-min/ace.js \
 	vendor/ace/src-min/mode-java.js \
@@ -97,6 +114,13 @@ NATIVE_CLASSES := $(wildcard src/natives/classes/*.coffee)
 
 library: dependencies release build/library/compressed.js
 
+
+# Don't keep this around in the src directory, because it's a generated file.
+.INTERMEDIATE: src/natives.coffee
+
+library: dependencies build/library/compressed.js
+	cp build/library/compressed.js build/library/doppio.min.js
+>>>>>>> upstream/master
 build/library:
 		mkdir -p build/library
 
@@ -214,10 +238,10 @@ $(foreach TARGET,$(BUILD_TARGETS),$(subst %,$(TARGET),$(BUILD_FOLDERS))):
 build/release/about.html build/benchmark/about.html: browser/_about.md
 
 build/dev/%.html: browser/%.mustache browser/_navbar.mustache
-	bundle exec browser/render.rb $* > $@
+	browser/render.coffee $* > $@
 
 build/release/%.html build/benchmark/%.html: browser/%.mustache browser/_navbar.mustache
-	bundle exec browser/render.rb --release $* > $@
+	browser/render.coffee --release $* > $@
 
 build/%/favicon.ico: browser/favicon.ico
 	rsync $< $@
@@ -267,7 +291,7 @@ build/release/compressed.js build/benchmark/compressed.js build/library/compress
 		fi; \
 		echo ";"; \
 	done > ${@:compressed.js=uncompressed.js}
-	$(UGLIFYJS) --prefix 2  --source-map-url compressed.map --source-map ${@:.js=.map} --define RELEASE --define UNSAFE --no-mangle --unsafe -o $@ ${@:compressed.js=uncompressed.js}
+	$(UGLIFYJS) --prefix 2  --source-map-url compressed.map --source-map ${@:.js=.map} --define RELEASE --define UNSAFE --unsafe -o $@ ${@:compressed.js=uncompressed.js}
 
 build/dev/%.js: %.coffee
 	@mkdir -p $(dir $@)
@@ -281,5 +305,5 @@ build/release/%.js: %.coffee
 	$(SED) -r "s/^( *)(debug|v?trace).*$$/\1\`\`/" $< > $(@:.js=.coffeex)
 	$(COFFEEC) --map  -o $(dir $@) $(@:.js=.coffeex)
 	mv $@ $(@:.js=-orig.js)
-	$(UGLIFYJS) --source-map ${@:.js=.map} --in-source-map ${@:.js=.map} --define RELEASE --define UNSAFE --no-mangle --unsafe --beautify -o $@ $(@:.js=-orig.js)
+	$(UGLIFYJS) --source-map ${@:.js=.map} --in-source-map ${@:.js=.map} --define RELEASE --define UNSAFE --unsafe --beautify -o $@ $(@:.js=-orig.js)
 	rm $(@:.js=-orig.js)

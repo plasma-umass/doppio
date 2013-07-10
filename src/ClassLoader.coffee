@@ -467,7 +467,7 @@ class root.BootstrapClassLoader extends ClassLoader
             cls.method_lookup(rs, '<init>(Ljava/lang/Throwable;)V').setup_stack(rs) # invokespecial
         ), (->
           rs.meta_stack().pop()
-          failure_fn (-> throw e)
+          failure_fn (-> throw new Error "Failed to throw a #{if explicit then 'ClassNotFoundException' else 'NoClassDefFoundError'}.")
         )
 
         cls = @bootstrap.get_initialized_class 'Ljava/lang/ClassNotFoundException;'

@@ -21,7 +21,8 @@ util = require './util'
 runtime = require './runtime'
 {thread_name,JavaObject,JavaArray} = require './java_object'
 exceptions = require './exceptions'
-{log,debug,error,trace} = require './logging'
+logging = require './logging'
+{log,debug,error,trace} = logging
 path = node?.path ? require 'path'
 fs = node?.fs ? require 'fs'
 {ReferenceClassData,PrimitiveClassData,ArrayClassData} = require './ClassData'
@@ -198,6 +199,8 @@ unsafe_memcpy = (rs, src_base, src_offset, dest_base, dest_offset, num_bytes) ->
       else
         for i in [0...num_bytes] by 1
           rs.mem_blocks[dest_addr+i] = rs.mem_blocks[src_addr+i]
+  # Avoid CoffeeScript accumulation nonsense.
+  return
 
 unsafe_compare_and_swap = (rs, _this, obj, offset, expected, x) ->
   actual = obj.get_field_from_offset rs, offset
@@ -271,6 +274,18 @@ native_methods =
           rv = eval to_eval.jvm2js_str()
           # Coerce to string, if possible.
           if rv? then rs.init_string "#{rv}" else null
+      ],
+      Debug: [
+        o 'SetLogLevel(L!/!/!$LogLevel;)V', (rs, loglevel) ->
+          ll = loglevel.get_field rs, 'Lclasses/doppio/Debug$LogLevel;level'
+          logging.log_level = ll
+        o 'GetLogLevel()L!/!/!$LogLevel;', (rs) ->
+          ll_cls = rs.get_bs_class('Lclasses/doppio/Debug$LogLevel;')
+          return switch logging.log_level
+            when 10 then ll_cls.static_get rs, 'VTRACE'
+            when 9 then ll_cls.static_get rs, 'TRACE'
+            when 5 then ll_cls.static_get rs, 'DEBUG'
+            else ll_cls.static_get rs, 'ERROR'
       ]
   java:
     lang:
@@ -802,7 +817,7 @@ native_methods =
             fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
             rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if fd is -1
             unless fd is 0
-              bytes_left = fs.fstatSync(file).size - _this.$pos
+              bytes_left = fs.fstatSync(fd).size - _this.$pos
               to_skip = Math.min(n_bytes.toNumber(), bytes_left)
               _this.$pos += to_skip
               return gLong.fromNumber(to_skip)
@@ -914,11 +929,11 @@ native_methods =
                 else
                   fs.open filepath, 'w', (err, fd) ->
                     if err?
-                      except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), e.message
+                      except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), err.message
                     else
                       fs.close fd, (err) ->
                         if err?
-                          except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), e.message
+                          except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), err.message
                         else
                           resume_cb true
         o 'createFileExclusively(Ljava/lang/String;Z)Z', (rs, _this, path) ->  # Apple-java version
@@ -930,11 +945,11 @@ native_methods =
                 else
                   fs.open filepath, 'w', (err, fd) ->
                     if err?
-                      except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), e.message
+                      except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), err.message
                     else
                       fs.close fd, (err) ->
                         if err?
-                          except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), e.message
+                          except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), err.message
                         else
                           resume_cb true
         o 'delete0(Ljava/io/File;)Z', (rs, _this, file) ->
@@ -975,7 +990,7 @@ native_methods =
                 unless stats?
                   resume_cb gLong.ZERO, null
                 else
-                  resume_cb gLong.fromNumber (new Date(stats.mtime)).getTime(), null
+                  resume_cb gLong.fromNumber((new Date(stats.mtime)).getTime()), null
         o 'setLastModifiedTime(Ljava/io/File;J)Z', (rs, _this, file, time) ->
             mtime = time.toNumber()
             atime = (new Date).getTime()

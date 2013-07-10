@@ -219,6 +219,7 @@ class root.ReferenceClassData extends ClassData
     @static_fields = Object.create null
     for method in @methods
       method.initialize()
+    return
 
   get_interfaces: -> @interface_cdatas
   get_interface_types: -> @interfaces

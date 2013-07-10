@@ -9,7 +9,7 @@ util = require './util'
 {log,vtrace,trace,debug,error} = require './logging'
 {YieldIOException,ReturnException,JavaException} = require './exceptions'
 {JavaObject,JavaArray,thread_name} = require './java_object'
-jvm = require './jvm'
+jvm = null
 process = node?.process ? global.process
 
 #Support for old browsers. Returns milliseconds since 1 January 1970 00:00:00 UTC
@@ -77,6 +77,9 @@ class root.RuntimeState
   run_count = 0
 
   constructor: (@print, @_async_input, @bcl) ->
+    # XXX: Because we do manual dependency resolution in the browser, and this
+    #      is only needed for dump_state.
+    jvm = require './jvm'
     @input_buffer = []
     @bcl.reset()
     @startup_time = gLong.fromNumber (new Date).getTime()
@@ -215,7 +218,7 @@ class root.RuntimeState
     # initialize the system class
     my_sf = @curr_frame()
     @get_bs_class('Ljava/lang/System;').get_method('initializeSystemClass()V').setup_stack(this)
-    my_sf.runner = ->
+    my_sf.runner = =>
       my_sf.runner = null
       @system_initialized = true
       debug "### finished system class initialization ###"
@@ -379,6 +382,7 @@ class root.RuntimeState
     UNSAFE? || throw new Error "Invalid memory access at #{address}"
 
   handle_toplevel_exception: (e, no_threads, done_cb) ->
+    @unusual_termination = true  # Used for exit codes in console frontend.
     if e.toplevel_catch_handler?
       @run_until_finished (=> e.toplevel_catch_handler(@)), no_threads, done_cb
     else
@@ -392,11 +396,72 @@ class root.RuntimeState
   # return values when it is time to resume the JVM.
   async_op: (cb) -> throw new YieldIOException cb
 
+  # Asynchronously calls the bytecode method with the given arguments and passes
+  # the return result to the callback, or passes a function that throws an
+  # exception to the other callback.
+  # Please only call this from a native method.
+  #
+  # 'cls': An *initialized* ClassData object.
+  # 'method': The method object.
+  # 'args': Array of arguments to the method. If this is a method on an object,
+  #         the first argument should be the object.
+  #         NOTE: If one of these arguments is a double or a long, you
+  #               *must* correctly include a second 'null'!
+  # If this is a constructor, we will automatic
+  call_bytecode: (cls, method, args, success_cb, except_cb) ->
+    # This is all very complicated. When this method calls your
+    # callback, we're in the main loop. We need to give you a
+    # function that allows you to put your return value back onto
+    # the stack. In order to do this, I async_op you one more time
+    # so you can put your return value on the stack and resume again.
+    good_cb = (ret1, ret2) =>
+      @async_op((good) ->
+        good ret1, ret2
+      )
+    bad_cb = (e_fn) =>
+      @async_op((good, bad) ->
+        bad(e_fn)
+      )
+
+    @async_op () =>
+      # Is this a constructor? <init>
+      is_constructor = false
+      if method.name.charAt(0) == '<' and method.name.charAt(1) == 'i'
+        v = new JavaObject @, cls
+        args.unshift v, v
+        is_constructor = true
+
+      # Set up a native frame with the callbacks.
+      nf = root.StackFrame.native_frame("$bytecode_call", (()=>
+          # What kind of method is it? Do we pop 0, 1, or 2?
+          rv = undefined
+          if method.return_type != 'V' or is_constructor
+            if method.return_type == 'J' or method.return_type == 'D'
+              @pop() # null
+            rv = @pop()
+          @meta_stack().pop()
+          success_cb rv, good_cb, bad_cb
+        ), ((e)=>
+          @meta_stack().pop()
+          except_cb((()->throw e),good_cb,bad_cb)
+        )
+      )
+      @meta_stack().push(nf)
+      # Add the arguments to the stack.
+      @push_array args
+      # Setup dat stack frame
+      method.setup_stack(@)
+      # Push ourselves back into the execution loop
+      # to call the method!
+      @run_until_finished((->), false, @stashed_done_cb)
+
+
   # Request jvm execution stops at the next timeout
   async_abort : (cb) -> @abort_requested = cb
-  
+
   # Returns true if the JVM will abort execution in the near future
   is_abort_requested: -> return @abort_requested
+
 
   run_until_finished: (setup_fn, no_threads, done_cb) ->
     # Reset stack depth every time this is called. Prevents us from needing to

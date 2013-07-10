@@ -6,6 +6,7 @@ public class Strings {
     String b = "belvedere";
     String c = "AlPhAbEt";
     String d = "  \t alphabet  \n \t ";
+    String e = "This has \"quotes\"";
     int ia = 5;
     int ib = 6;
 
@@ -22,6 +23,7 @@ public class Strings {
     System.out.println(a.toString());
     System.out.println(d);
     System.out.println(d.trim());
+    System.out.println(e);
     System.out.println(a.replace('a','z'));
     System.out.println(String.valueOf(1));
     // sans newlines

@@ -13,6 +13,8 @@ index.html
 about.html
 .DS_store
 doppio
+# But we want to allow classes/doppio
+!classes/doppio
 doppio-dev
 core-*
 browser/_about.html
