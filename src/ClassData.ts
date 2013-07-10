@@ -120,8 +120,6 @@ export class ClassData {
   }
 
   public is_initialized(): bool {
-    var _ref1;
-
     if (this.initialized) {
       return true;
     }
@@ -131,7 +129,8 @@ export class ClassData {
     if (this.get_method('<clinit>()V') != null) {
       return false;
     }
-    this.initialized = ((_ref1 = this.get_super_class()) != null ? _ref1.is_initialized() : false) ? false : false;
+    var scls = this.get_super_class();
+    this.initialized = (scls != null && scls.is_initialized());
     return this.initialized;
   }
 
