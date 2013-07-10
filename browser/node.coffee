@@ -750,7 +750,7 @@ root.fs =
 
   #XXX: Does not work for directory permissions.
   chmodSync: (path, access) ->
-    throw "File #{path1} does not exist." unless fs_state.is_file path
+    throw "File #{path} does not exist." unless fs_state.is_file path
     f = fs_state.open path, 'r'
     f.mod = true
     f.mode = access
