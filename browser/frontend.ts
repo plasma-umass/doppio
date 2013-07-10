@@ -2,8 +2,6 @@
 /// <reference path="../vendor/jquery.console.d.ts" />
 /// <reference path="../vendor/ace.d.ts" />
 var underscore = require('../vendor/_.js');
-//declare var $;  // until we get a jQuery.d.ts file
-//declare var ace;  // until we get an ace.d.ts file
 declare var node;  // until we convert ./node.ts
 import ClassData = module('../src/ClassData');
 import ClassLoader = module('../src/ClassLoader');
