@@ -226,14 +226,25 @@ read_dir = (dir, pretty=true, columns=true) ->
 commands =
   view_dump: ->
     if window.core_dump
+      # Open the core viewer in a new window and save a reference to it
       viewer = window.open 'core_viewer.html?source=browser'
-      message = JSON.stringify window.core_dump
-      origin = 'http://localhost:8000'
 
-      send_dump = -> viewer.postMessage message, origin
+      # Create a function to send the core dump to the new window
+      send_dump = ->
+        message = JSON.stringify window.core_dump
+        origin = 'http://localhost:8000'
+        viewer.postMessage message, origin
+
+      # Start a timer to send the message after 5 seconds - the window should
+      # have loaded by then
       delay = 5000
+      timer = setTimeout send_dump, delay
 
-      setTimeout send_dump, delay
+      # If the window loads before 5 seconds, send the message straight away
+      # and cancel the timer
+      viewer.onload = ->
+        clearTimeout timer
+        send_dump
 
       controller.reprompt()
       return null
