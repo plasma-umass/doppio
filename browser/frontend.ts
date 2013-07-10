@@ -1,6 +1,9 @@
+/// <reference path="../vendor/jquery.d.ts" />
+/// <reference path="../vendor/jquery.console.d.ts" />
+/// <reference path="../vendor/ace.d.ts" />
 var underscore = require('../vendor/_.js');
-declare var $;  // until we get a jQuery.d.ts file
-declare var ace;  // until we get an ace.d.ts file
+//declare var $;  // until we get a jQuery.d.ts file
+//declare var ace;  // until we get an ace.d.ts file
 declare var node;  // until we convert ./node.ts
 import ClassData = module('../src/ClassData');
 import ClassLoader = module('../src/ClassLoader');
@@ -42,7 +45,7 @@ function preload(): void {
     var preloading_file = $('#preloading-file');
     // +10% hack to make the bar appear fuller before fading kicks in
     var display_perc = Math.min(Math.ceil(percent * 100), 100);
-    bar.width(display_perc + "%", 150);
+    bar.width(display_perc + "%");
     preloading_file.text(display_perc < 100 ? "Loading " + path : "Done!");
   }));
   function on_progress(percent: number, path: string, file: number[]): void {
@@ -109,11 +112,28 @@ function onResize(): void {
 
 $(window).resize(onResize);
 
+// Note: Typescript supposedly has "open interfaces", but I can't get it to
+//  work right, so I'm doing this as a hack.
+
+// Add the .files attr for FileReader event targets.
+interface FileReaderEvent extends ErrorEvent {
+  target: FileReaderEventTarget;
+}
+interface FileReaderEventTarget extends EventTarget {
+  files: string[];
+  error: any;
+}
+
+// Add the .readAsBinaryString function for FileReader.
+interface FileReader2 extends FileReader {
+  readAsBinaryString: (f: any) => string;
+}
+
 $(document).ready(function() {
   onResize();
   editor = $('#editor');
   // set up the local file loaders
-  $('#file').change(function(ev) {
+  $('#file').change(function(ev: FileReaderEvent) {
     if (typeof FileReader === "undefined" || FileReader === null) {
       controller.message("Your browser doesn't support file loading.\nTry using the editor to create files instead.", "error");
       // click to restore focus
@@ -125,8 +145,8 @@ $(document).ready(function() {
     // Need to make a function instead of making this the body of a loop so we
     // don't overwrite "f" before the onload handler calls.
     var file_fcn = (function(f) {
-      var reader = new FileReader;
-      reader.onerror = function(e) {
+      var reader = <FileReader2> new FileReader;
+      reader.onerror = function(e: FileReaderEvent): void {
         switch (e.target.error.code) {
           case e.target.error.NOT_FOUND_ERR:
             return alert("404'd");
@@ -168,7 +188,7 @@ $(document).ready(function() {
   var jqconsole = $('#console');
   controller = jqconsole.console({
     promptLabel: 'doppio > ',
-    commandHandle: function(line) {
+    commandHandle: function(line: string): any {
       var parts = line.trim().split(/\s+/);
       var cmd = parts[0];
       var args = parts.slice(1).filter((a)=> a.length > 0).map((a)=>a.trim());
