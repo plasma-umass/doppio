@@ -563,7 +563,7 @@ class FSState
 
   mkdir: (dir) ->
     dir = @resolve(dir)
-    return false if @is_directory dir or @is_file dir
+    return false if @is_directory(dir) or @is_file(dir)
     return @files.mkdir dir
 
   mv: (file1, file2) ->
