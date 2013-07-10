@@ -511,18 +511,18 @@ class FSState
       for pwdCmp in @pwd.split('/') by -1
         components.unshift(pwdCmp)
     for c, idx in components
-      if c == '..'
-        processed = false
-        i = idx-1
-        while !processed
-          if i < 0 then processed = true
-          if components[i] != ''
-            components[i] = ''
-            components[idx] = ''
-            processed = true
-          i--
+      continue unless c == '..'
+      processed = false
+      i = idx-1
+      while !processed
+        if i < 0 then processed = true
+        if components[i] != ''
+          components[i] = ''
+          components[idx] = ''
+          processed = true
+        i--
     # remove repeated //s
-    path = (c for c, idx in components when c != '').join '/'
+    path = (c for c in components when c != '').join '/'
     if path[0] != '/'
       path = '/' + path
     return path
@@ -628,7 +628,7 @@ root.fs =
     if stat?
       cb null, stat
     else
-      cb new Error "Invalid file: #{path}", null
+      cb new Error("Invalid file: #{path}"), null
 
   fstatSync: (fp) -> new Stat(fp)
 
