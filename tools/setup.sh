@@ -52,7 +52,7 @@ if [ ! -f classes/java/lang/Object.class ]; then
 fi
 
 
-# Download Beanshell 2
+
 if [ ! -f jars/bsh2.jar ]; then
     BSH2_JAR_URL="http://beanshell2.googlecode.com/files/bsh-2.1b5.jar"
     mkdir -p jars
