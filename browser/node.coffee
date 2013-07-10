@@ -480,7 +480,7 @@ class CacheSource extends FileSource
     else
       ls = @index.ls file1
       for f_name in ls
-        @mv f_name, path2 + f_name.substr(path1.length), true, true
+        @mv f_name, file2 + f_name.substr(file1.length), true, true
       @index.rm file1
     return success
 
