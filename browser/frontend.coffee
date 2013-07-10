@@ -31,7 +31,7 @@ preload = ->
       preloading_file = $('#preloading-file')
       # +10% hack to make the bar appear fuller before fading kicks in
       display_perc = Math.min Math.ceil(percent*100), 100
-      bar.width "#{display_perc}%", 150
+      bar.width "#{display_perc}%"
       preloading_file.text(
         if display_perc < 100 then "Loading #{path}"  else "Done!"))
 
