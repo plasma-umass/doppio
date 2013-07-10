@@ -2,7 +2,7 @@
 /// <reference path="../vendor/jquery.console.d.ts" />
 /// <reference path="../vendor/ace.d.ts" />
 var underscore = require('../vendor/_.js');
-declare var node;  // until we convert ./node.ts
+import node = module('./node');
 import ClassData = module('../src/ClassData');
 import ClassLoader = module('../src/ClassLoader');
 import disassembler = module('../src/disassembler');
@@ -484,7 +484,7 @@ var commands = {
       var fnames = node.fs.readdirSync('.');
       for (var i = 0; i < fnames.length; i++) {
         var fname = fnames[i];
-        if (node.fs.statSync(fname).is_directory) {
+        if (node.fs.statSync(fname).isDirectory()) {
           return "ERROR: '" + fname + "' is a directory.";
         }
         node.fs.unlinkSync(fname);
