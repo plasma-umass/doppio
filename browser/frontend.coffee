@@ -10,9 +10,11 @@ editor = null
 progress = null
 bs_cl = null
 
+sys_path = '/sys'
+
 preload = ->
   try
-    data = node.fs.readFileSync("/home/doppio/browser/mini-rt.tar")
+    data = node.fs.readFileSync("#{sys_path}/browser/mini-rt.tar")
   catch e
     console.error e
 
@@ -225,7 +227,7 @@ read_dir = (dir, pretty=true, columns=true) ->
 
 commands =
   ecj: (args, cb) ->
-    jvm.set_classpath '/home/doppio/vendor/classes/', './'
+    jvm.set_classpath "#{sys_path}/vendor/classes/", './'
     rs = new runtime.RuntimeState(stdout, user_input, bs_cl)
     # HACK: -D args unsupported by the console.
     jvm.system_properties['jdt.compiler.useSingleThread'] = true
@@ -237,7 +239,7 @@ commands =
         controller.reprompt()
     return null  # no reprompt, because we handle it ourselves
   javac: (args, cb) ->
-    jvm.set_classpath '/home/doppio/vendor/classes/', './:/home/doppio'
+    jvm.set_classpath "#{sys_path}/vendor/classes/", "./:#{sys_path}/"
     rs = new runtime.RuntimeState(stdout, user_input, bs_cl)
     jvm.run_class rs, 'classes/util/Javac', args, ->
         # HACK: remove any classes that just got compiled from the class cache
@@ -257,11 +259,11 @@ commands =
     if !args[0]? or (args[0] == '-classpath' and args.length < 3)
       return "Usage: java [-classpath path1:path2...] class [args...]"
     if args[0] == '-classpath'
-      jvm.set_classpath '/home/doppio/vendor/classes/', args[1]
+      jvm.set_classpath "#{sys_path}/vendor/classes/", args[1]
       class_name = args[2]
       class_args = args[3..]
     else
-      jvm.set_classpath '/home/doppio/vendor/classes/', './'
+      jvm.set_classpath "#{sys_path}/vendor/classes/", './'
       class_name = args[0]
       class_args = args[1..]
     rs = new runtime.RuntimeState(stdout, user_input, bs_cl)
@@ -284,7 +286,7 @@ commands =
       return ["Could not find class '#{args[0]}'.",'error']
     disassembler.disassemble process_bytecode raw_data
   rhino: (args, cb) ->
-    jvm.set_classpath '/home/doppio/vendor/classes/', './'
+    jvm.set_classpath "#{sys_path}/vendor/classes/", './'
     rs = new runtime.RuntimeState(stdout, user_input, bs_cl)
     jvm.run_class(rs, 'com/sun/tools/script/shell/Main', args, -> controller.reprompt())
     return null  # no reprompt, because we handle it ourselves

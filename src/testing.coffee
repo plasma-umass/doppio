@@ -21,7 +21,7 @@ root.find_test_classes = (doppio_dir) ->
   # a list comprehension. This is intended behavior.
 
 root.run_tests = (test_classes, stdout, hide_diffs, quiet, keep_going, callback) ->
-  doppio_dir = if node? then '/home/doppio/' else path.resolve __dirname, '..'
+  doppio_dir = if node? then '/sys/' else path.resolve __dirname, '..'
   # get the tests, if necessary
   if test_classes?.length > 0
     test_classes = (tc.replace(/\.class$/,'') for tc in test_classes)

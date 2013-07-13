@@ -9,5 +9,9 @@ window.require = (path, herp) ->
   window[name] ?= {}
 
 BrowserFS.install(window)
-BrowserFS.initialize(new BrowserFS.FileSystem.InMemory())
+
+mfs = new BrowserFS.FileSystem.MountableFileSystem()
+mfs.mount('/home', new BrowserFS.FileSystem.LocalStorage())
+mfs.mount('/sys', new BrowserFS.FileSystem.XmlHttpRequest('browser/listings.json'))
+BrowserFS.initialize(mfs)
 window.node = BrowserFS.node
