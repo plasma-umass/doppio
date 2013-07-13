@@ -223,6 +223,8 @@ read_dir = (dir, pretty=true, columns=true) ->
     row_list.push row.join('')
   row_list.join('\n')
 
+location.origin = location.origin or "#{location.protocol}//#{location.host}"
+
 commands =
   view_dump: ->
     if window.core_dump
@@ -232,8 +234,7 @@ commands =
       # Create a function to send the core dump to the new window
       send_dump = ->
         message = JSON.stringify window.core_dump
-        origin = 'http://localhost:8000'
-        viewer.postMessage message, origin
+        viewer.postMessage message, location.origin
 
       # Start a timer to send the message after 5 seconds - the window should
       # have loaded by then
