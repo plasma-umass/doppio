@@ -244,7 +244,7 @@ commands =
       # and cancel the timer
       viewer.onload = ->
         clearTimeout timer
-        send_dump
+        send_dump()
 
       controller.reprompt()
       return null
