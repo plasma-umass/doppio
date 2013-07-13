@@ -45,7 +45,8 @@ BROWSER_HTML      := $(BROWSER_TEMPLATES:.mustache=.html)
 COMMON_BROWSER_SRCS = vendor/_.js \
 	vendor/gLong.js \
 	browser/util.coffee \
-	browser/node.coffee \
+	vendor/browserfs.min.js \
+	browser/node_setup.coffee \
 	src/logging.coffee \
 	src/exceptions.coffee \
 	src/util.coffee \
