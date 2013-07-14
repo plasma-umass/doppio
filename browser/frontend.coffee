@@ -17,7 +17,7 @@ preload = ->
   $('#progress-container').fadeOut 'slow'
   $('#console').click()
   return
-  node.fs.readFile "#{sys_path}/browser/mini-rt.tar", (err, data) ->
+  node.fs.readFile "#{sys_path}/browser/mini-rt.tar", 'binary', (err, data) ->
     if err
       console.error "Error downloading mini-rt.tar: #{err}"
       return
@@ -359,7 +359,7 @@ commands =
           editor.getSession().setMode(new TextMode)
         editor.getSession().setValue(data)
     if args[0]?
-      node.fs.readFile args[0], (err, data) ->
+      node.fs.readFile args[0], 'utf8', (err, data) ->
         if err then controller.message "Could not open file #{args[0]}: #{err}", 'error', true
         else startEditor data
         controller.reprompt()
@@ -370,7 +370,7 @@ commands =
   cat: (args) ->
     fname = args[0]
     return "Usage: cat <file>" unless fname?
-    node.fs.readFile fname, (err, data) ->
+    node.fs.readFile fname, 'utf8', (err, data) ->
       if err
         controller.message "Could not open file #{fname}: #{err}", 'error'
       else
@@ -385,11 +385,15 @@ commands =
   cd: (args) ->
     if args.length > 1 then return "Usage: cd <directory>"
     if args.length == 0 then args.push("~")
-    try
-      node.process.chdir(args[0])
-    catch e
-      return "Invalid directory."
-    true
+    # Verify path exits before going there. chdir does not verify that the
+    # directory exists.
+    node.fs.exists args[0], (doesExist) ->
+      if doesExist
+        node.process.chdir(args[0])
+      else
+        controller.message "Directory #{args[0]} does not exist.\n", 'error', true
+      controller.reprompt()
+    return null
   rm: (args) ->
     return "Usage: rm <file>" unless args[0]?
     if args[0] == '*'
