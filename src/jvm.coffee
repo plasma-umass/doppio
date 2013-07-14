@@ -120,6 +120,6 @@ root.run_class = (rs, class_name, cmdline_args, done_cb) ->
     rs.async_op (resume_cb, except_cb) ->
       rs.preinitialize_core_classes run_program, ((e)->
         # Error during preinitialization? Abort abort abort!
-        throw e
+        e()
       )
   ), true, (->)
