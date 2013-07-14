@@ -13,7 +13,7 @@ root.show_NYI_natives = false
 root.dump_state = false
 
 vendor_path = if node?  # node is only defined if we're in the browser
-  '/home/doppio/vendor'
+  '/sys/vendor'
 else
   path.resolve __dirname, '../vendor'
 

@@ -41,7 +41,7 @@ preload = ->
 
     untar new util.BytesArray(data), ((percent, path, file) ->
       update_bar(percent, path)
-      base_dir = 'vendor/classes/'
+      base_dir = '/sys/vendor/classes/'
       ext = path.split('.')[1]
       unless ext is 'class'
         on_complete() if percent == 100
@@ -209,8 +209,8 @@ $(document).ready ->
         controller.message "File could not be saved: #{err}", 'error'
       else
         controller.message("File saved as '#{fname}'.", 'success')
-      close_editor()
-      e.preventDefault()
+    close_editor()
+    e.preventDefault()
 
   $('#close_btn').click (e) -> close_editor(); e.preventDefault()
   bs_cl = new ClassLoader.BootstrapClassLoader(read_classfile)

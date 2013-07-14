@@ -15,5 +15,5 @@ mfs.mount('/home', new BrowserFS.FileSystem.LocalStorage())
 mfs.mount('/sys', new BrowserFS.FileSystem.XmlHttpRequest('browser/listings.json'))
 BrowserFS.initialize(mfs)
 window.node = BrowserFS.node
-node.fs.mkdirSync('/home/doppio')
+unless node.fs.existsSync '/home/doppio' then node.fs.mkdirSync('/home/doppio')
 node.process.chdir('/home/doppio')
