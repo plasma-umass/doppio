@@ -795,7 +795,9 @@ native_methods =
             rs.async_op (resume_cb, except_cb) ->
               fs.open filepath, 'r', (e, fd) ->
                 if e?
-                  if e.code == 'ENOENT'
+                  # XXX: BrowserFS hack. BFS doesn't support the code attribute
+                  # on errors yet.
+                  if e.code == 'ENOENT' || e.type == 404
                     except_cb ()-> rs.java_throw rs.get_bs_class('Ljava/io/FileNotFoundException;'), "#{filepath} (No such file or directory)"
                   else
                     except_cb ()-> throw e
