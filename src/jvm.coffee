@@ -45,7 +45,7 @@ root.read_classfile = (cls, cb, failure_cb) ->
     filename = "#{p}/#{cls}.class"
     try
       continue unless fs.existsSync filename
-      data = util.bytestr_to_array fs.readFileSync(filename, 'binary')
+      data = fs.readFileSync filename
       cb(data) if data?
       return
     catch e

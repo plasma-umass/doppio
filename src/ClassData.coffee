@@ -160,14 +160,14 @@ class root.ArrayClassData extends ClassData
 # Represents a "reference" Class -- that is, a class that neither represents a
 # primitive nor an array.
 class root.ReferenceClassData extends ClassData
-  constructor: (bytes_array, loader) ->
+  constructor: (buffer, loader) ->
     # XXX: Circular dependency hack.
     unless methods?
       methods = require './methods'
 
     super loader
 
-    bytes_array = new util.BytesArray bytes_array
+    bytes_array = new util.BytesArray buffer
     throw "Magic number invalid" if (bytes_array.get_uint 4) != 0xCAFEBABE
     @minor_version = bytes_array.get_uint 2
     @major_version = bytes_array.get_uint 2

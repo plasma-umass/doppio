@@ -212,8 +212,10 @@ unsafe_compare_and_swap = (rs, _this, obj, offset, expected, x) ->
 
 # avoid code dup among native methods
 native_define_class = (rs, name, bytes, offset, len, loader, resume_cb, except_cb) ->
-  raw_bytes = ((256+b)%256 for b in bytes.array[offset...offset+len])  # convert to raw bytes
-  loader.define_class rs, util.int_classname(name.jvm2js_str()), raw_bytes, ((cdata)->resume_cb(cdata.get_class_object(rs))), except_cb
+  buf = new Buffer len
+  for b,i in bytes.array[offset...offset+len] # Convert to buffer
+    buf.writeUInt8 (256+b)%256, i
+  loader.define_class rs, util.int_classname(name.jvm2js_str()), buf, ((cdata)->resume_cb(cdata.get_class_object(rs))), except_cb
 
 write_to_file = (rs, _this, bytes, offset, len, append) ->
   fd_obj = _this.get_field rs, 'Ljava/io/FileOutputStream;fd'

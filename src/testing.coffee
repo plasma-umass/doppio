@@ -69,8 +69,8 @@ sanitize = (str) ->
 run_disasm_test = (doppio_dir, test_class) ->
   test_path = path.resolve(doppio_dir, test_class)
   javap_disasm = sanitize(fs.readFileSync "#{test_path}.disasm", 'utf8')
-  bytes_array = util.bytestr_to_array fs.readFileSync "#{test_path}.class", 'binary'
-  doppio_disasm = sanitize disassemble new ReferenceClassData bytes_array
+  buffer = fs.readFileSync "#{test_path}.class"
+  doppio_disasm = sanitize disassemble new ReferenceClassData buffer
   return cleandiff doppio_disasm, javap_disasm
 
 run_stdout_test = (doppio_dir, test_class, callback) ->

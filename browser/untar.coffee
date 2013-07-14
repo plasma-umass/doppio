@@ -38,6 +38,6 @@ octal2num = (bytes) ->
 
 if module? and not module.parent
   fs = require 'fs'
-  data = new util.BytesArray util.bytestr_to_array fs.readFileSync '/dev/stdin', 'binary'
+  data = new util.BytesArray fs.readFileSync('/dev/stdin')
   root.untar data, (percent, path, file) ->
     console.log path

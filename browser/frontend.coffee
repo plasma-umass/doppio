@@ -17,7 +17,7 @@ preload = ->
   $('#progress-container').fadeOut 'slow'
   $('#console').click()
   return
-  node.fs.readFile "#{sys_path}/browser/mini-rt.tar", 'binary', (err, data) ->
+  node.fs.readFile "#{sys_path}/browser/mini-rt.tar", (err, data) ->
     if err
       console.error "Error downloading mini-rt.tar: #{err}"
       return
@@ -39,7 +39,7 @@ preload = ->
       preloading_file.text(
         if display_perc < 100 then "Loading #{path}"  else "Done!"))
 
-    untar new util.BytesArray(util.bytestr_to_array data), ((percent, path, file) ->
+    untar new util.BytesArray(data), ((percent, path, file) ->
       update_bar(percent, path)
       base_dir = 'vendor/classes/'
       ext = path.split('.')[1]
@@ -67,7 +67,7 @@ read_classfile = (cls, cb, failure_cb) ->
   cpath = jvm.system_properties['java.class.path']
   i = 0
   try_get = ->
-    node.fs.readFile "#{cpath[i]}#{cls}.class", 'binary', (err, data) ->
+    node.fs.readFile "#{cpath[i]}#{cls}.class", (err, data) ->
       i++
       if err
         if i is cpath.length
@@ -75,7 +75,6 @@ read_classfile = (cls, cb, failure_cb) ->
         else
           try_get()
         return
-      data = util.bytestr_to_array data
       cb data
   # We could launch them all at once, but we would need to ensure that we use
   # the working version that occurs first in the classpath.
