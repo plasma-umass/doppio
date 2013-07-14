@@ -395,21 +395,21 @@ commands =
     if args[0] == '*'
       node.fs.readdir '.', (err, fnames) ->
         if err
-          controller.message "Could not remove '.': #{err}", 'error'
+          controller.message "Could not remove '.': #{err}\n", 'error'
         else
           for fname in fnames
             completed = 0
             node.fs.stat fname, (err, fstat) ->
               if err
-                controller.message "Could not remove '.': #{err}", 'error'
+                controller.message "Could not remove '.': #{err}\n", 'error'
               else if fstat.is_directory
-                controller.message "ERROR: '#{fname}' is a directory.", 'error'
+                controller.message "ERROR: '#{fname}' is a directory.\n", 'error'
               else
                 node.fs.unlink fname, (err) ->
-                  if err then controller.message "Could not remove file: #{err}", true
+                  if err then controller.message "Could not remove file: #{err}\n", 'error', true
                   if ++completed is fname.length then controller.reprompt()
     else node.fs.unlink args[0], (err) ->
-      if err then controller.message "Could not remove file: #{err}", true
+      if err then controller.message "Could not remove file: #{err}\n", 'error', true
       controller.reprompt()
     return null
   emacs: -> "Try 'vim'."
