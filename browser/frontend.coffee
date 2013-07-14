@@ -80,9 +80,7 @@ read_classfile = (cls, cb, failure_cb) ->
   # the working version that occurs first in the classpath.
   try_get()
 
-process_bytecode = (bytecode_string) ->
-  bytes_array = util.bytestr_to_array bytecode_string
-  new ClassData.ReferenceClassData(bytes_array)
+process_bytecode = (buffer) -> new ClassData.ReferenceClassData(buffer)
 
 onResize = ->
   h = $(window).height() * 0.7
@@ -307,11 +305,11 @@ commands =
     return null
   javap: (args) ->
     return "Usage: javap class" unless args[0]?
-    node.fs.readFile "#{args[0]}.class", (err, raw_data) ->
+    node.fs.readFile "#{args[0]}.class", (err, buf) ->
       if err
         controller.message "Could not find class '#{args[0]}'.",'error'
       else
-        controller.message(disassembler.disassemble(process_bytecode(raw_data)), 'success')
+        controller.message(disassembler.disassemble(process_bytecode(buf)), 'success')
     return null
   rhino: (args, cb) ->
     jvm.set_classpath "#{sys_path}/vendor/classes/", './'
@@ -359,8 +357,8 @@ commands =
         editor.getSession().setValue(data)
     if args[0]?
       node.fs.readFile args[0], 'utf8', (err, data) ->
-        if err then controller.message "Could not open file #{args[0]}: #{err}", 'error', true
-        else startEditor data
+        if err then data = defaultFile
+        startEditor data
         controller.reprompt()
       return null
     else
