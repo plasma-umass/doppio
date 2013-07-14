@@ -67,7 +67,7 @@ read_classfile = (cls, cb, failure_cb) ->
   cpath = jvm.system_properties['java.class.path']
   i = 0
   try_get = ->
-    node.fs.readFile "#{cpath[i]}#{cls}.class", (err, data) ->
+    node.fs.readFile "#{cpath[i]}#{cls}.class", 'binary', (err, data) ->
       i++
       if err
         if i is cpath.length

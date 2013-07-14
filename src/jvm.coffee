@@ -74,8 +74,9 @@ root.set_classpath = (jcl_path, classpath) ->
     if class_path.charAt(class_path.length-1) != '/'
       class_path += '/'
     # XXX: Make this asynchronous sometime.
-    if fs.existsSync(class_path)
-      tmp_cp.push(class_path)
+    # XXX: I'm not checking.
+    #if fs.existsSync(class_path)
+    tmp_cp.push(class_path)
   return
 
 # main function that gets called from the frontend
