@@ -226,7 +226,7 @@ class root.BytesArray
     @_index += bytes_count
     rv
 
-  peek: -> @buffer.getUInt8 @start+@_index
+  peek: -> @buffer.readUInt8 @start+@_index
 
   size: -> @end - @start - @_index
 
@@ -234,6 +234,12 @@ class root.BytesArray
     arr = new root.BytesArray @buffer, @start+@_index, @start+@_index+len
     @_index += len
     arr
+
+  # Returns a buffer!
+  slice: (len) ->
+    rv = @buffer.slice @start+@_index, @start+@_index+len
+    @_index += len
+    return rv
 
 root.initial_value = (type_str) ->
   if type_str is 'J' then gLong.ZERO

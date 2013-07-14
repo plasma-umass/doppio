@@ -13,10 +13,6 @@ bs_cl = null
 sys_path = '/sys'
 
 preload = ->
-  $('#overlay').fadeOut 'slow'
-  $('#progress-container').fadeOut 'slow'
-  $('#console').click()
-  return
   node.fs.readFile "#{sys_path}/browser/mini-rt.tar", (err, data) ->
     if err
       console.error "Error downloading mini-rt.tar: #{err}"
@@ -39,22 +35,25 @@ preload = ->
       preloading_file.text(
         if display_perc < 100 then "Loading #{path}"  else "Done!"))
 
+    # Grab the XmlHttpRequest file system.
+    xhrfs = node.fs.getRootFS().mntMap['/sys']
+
+    # Note: Path is relative to XHR mount point (e.g. /vendor/classes rather than
+    # /sys/vendor/classes). They must also be absolute paths.
     untar new util.BytesArray(data), ((percent, path, file) ->
+      if path[0] != '/' then path = "/#{path}"
       update_bar(percent, path)
-      base_dir = '/sys/vendor/classes/'
       ext = path.split('.')[1]
       unless ext is 'class'
         on_complete() if percent == 100
         return
       file_count++
       asyncExecute (->
-        # XXX: We convert from bytestr to array to process the tar file, and
-        #      then back to a bytestr to store as a file in the filesystem.
-        node.fs.writeFile path, util.array_to_bytestr(file), 'utf8', (err, data) ->
-          if err
-            console.error "Error writing #{path}: #{err}"
-            return
-          on_complete() if --file_count == 0 and done
+        try
+          xhrfs.preloadFile path, file
+        catch e
+          console.error "Error writing #{path}: #{e}"
+        on_complete() if --file_count == 0 and done
       ), 0),
       ->
         done = true
