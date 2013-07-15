@@ -217,7 +217,7 @@ $(document).ready ->
 
 # helper function for 'ls'
 read_dir = (dir, pretty=true, columns=true, cb) ->
-  node.fs.readdir dir, (err, contents) ->
+  node.fs.readdir node.path.resolve(dir), (err, contents) ->
     if err or contents.length is 0 then return cb('')
     contents = contents.sort()
     return cb(contents.join('\n')) unless pretty
@@ -380,14 +380,14 @@ commands =
     return null
   cd: (args) ->
     if args.length > 1 then return "Usage: cd <directory>"
-    if args.length == 0 then args.push("~")
+    dir = if args.length == 0 then '/home/doppio' else node.path.resolve(args[0])
     # Verify path exits before going there. chdir does not verify that the
     # directory exists.
-    node.fs.exists args[0], (doesExist) ->
+    node.fs.exists dir, (doesExist) ->
       if doesExist
-        node.process.chdir(args[0])
+        node.process.chdir(dir)
       else
-        controller.message "Directory #{args[0]} does not exist.\n", 'error', true
+        controller.message "Directory #{dir} does not exist.\n", 'error', true
       controller.reprompt()
     return null
   rm: (args) ->
@@ -468,27 +468,34 @@ commands =
 tabComplete = ->
   promptText = controller.promptText()
   args = promptText.split /\s+/
-  prefix = longestCommmonPrefix(getCompletions(args))
-  return if prefix == ''  # TODO: if we're tab-completing a blank, show all options
-  # delete existing text so we can do case correction
-  promptText = promptText.substr(0, promptText.length - util.last(args).length)
-  controller.promptText(promptText + prefix)
+  getCompletions args, (completions) ->
+    prefix = longestCommmonPrefix(completions)
+    return if prefix == ''  # TODO: if we're tab-completing a blank, show all options
+    # delete existing text so we can do case correction
+    promptText = promptText.substr(0, promptText.length - util.last(args).length)
+    controller.promptText(promptText + prefix)
 
-getCompletions = (args) ->
-  if args.length is 1 then commandCompletions args[0]
-  else if args[0] is 'time' then getCompletions(args[1..])
-  else fileNameCompletions args[0], args
+getCompletions = (args, cb) ->
+  if args.length is 1
+    cb filterSubstring(args[0], Object.keys(commands))
+  else if args[0] is 'time'
+    getCompletions(args[1..], cb)
+  else
+    fileNameCompletions args[0], args, cb
+  return
 
-commandCompletions = (cmd) ->
-  (name for name of commands when name.substr(0, cmd.length) is cmd)
+filterSubstring = (prefix, lst) ->
+  (x for x in lst when x.substr(0, prefix.length) is prefix)
 
-fileNameCompletions = (cmd, args) ->
-  validExtension = (fname) ->
-    dot = fname.lastIndexOf('.')
-    ext = if dot is -1 then '' else fname.slice(dot+1)
-    if cmd is 'javac' then ext is 'java'
-    else if cmd is 'javap' or cmd is 'java' then ext is 'class'
-    else true
+validExtension = (cmd, fname) ->
+  dot = fname.lastIndexOf('.')
+  ext = if dot is -1 then '' else fname.slice(dot+1)
+  if cmd is 'javac' then ext is 'java'
+  else if cmd is 'javap' or cmd is 'java' then ext is 'class'
+  else if cmd is 'cd' then false
+  else true
+
+fileNameCompletions = (cmd, args, cb) ->
   chopExt = args.length == 2 and (cmd is 'javap' or cmd is 'java')
   toComplete = util.last(args)
   lastSlash = toComplete.lastIndexOf('/')
@@ -498,24 +505,24 @@ fileNameCompletions = (cmd, args) ->
   else
     dirPfx = ''
     searchPfx = toComplete
-  try
-    dirList = node.fs.readdirSync(if dirPfx == '' then '.' else dirPfx)
-    # Slight cheat.
-    dirList.push('..')
-    dirList.push('.')
-  catch e
-    return []
-
-  completions = []
-  for item in dirList
-    isDir = node.fs.statSync(dirPfx + item)?.isDirectory()
-    continue unless validExtension(item) or isDir
-    if item.slice(0, searchPfx.length) == searchPfx
-      if isDir
-        completions.push(dirPfx + item + '/')
-      else if cmd != 'cd'
-        completions.push(dirPfx + (if chopExt then item.split('.',1)[0] else item))
-  completions
+  dirPath = if dirPfx == '' then '.' else node.path.resolve(dirPfx)
+  node.fs.readdir dirPath, (err, dirList) ->
+    return cb([]) if err?
+    dirList = filterSubstring searchPfx, dirList
+    completions = []
+    num_back = 0
+    for item in dirList
+      do (item) ->
+        node.fs.stat node.path.resolve(dirPfx+item), (err, stats) ->
+          if err?
+          else if stats.isDirectory()
+            completions.push(dirPfx + item + '/')
+          else if validExtension(cmd, item)
+            completions.push(dirPfx + (if chopExt then item.split('.',1)[0] else item))
+          if ++num_back == dirList.length
+            cb(completions)
+    return  # void function
+  return  # void function
 
 # use the awesome greedy regex hack, from http://stackoverflow.com/a/1922153/10601
 longestCommmonPrefix = (lst) -> lst.join(' ').match(/^(\S*)\S*(?: \1\S*)*$/i)[1]
