@@ -86,6 +86,8 @@ onResize = ->
   $('#console').height(h)
   $('#source').height(h)
 
+ps1 = -> node.process.cwd() + '$ '
+
 $(window).resize(onResize)
 
 $(document).ready ->
@@ -134,7 +136,7 @@ $(document).ready ->
 
   jqconsole = $('#console')
   controller = jqconsole.console
-    promptLabel: 'doppio > '
+    promptLabel: ps1()
     commandHandle: (line) ->
       [cmd,args...] = line.trim().split(/\s+/)
       if cmd == '' then return true
@@ -386,6 +388,7 @@ commands =
     node.fs.exists dir, (doesExist) ->
       if doesExist
         node.process.chdir(dir)
+        controller.promptLabel = ps1()
       else
         controller.message "Directory #{dir} does not exist.\n", 'error', true
       controller.reprompt()
