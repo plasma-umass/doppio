@@ -139,7 +139,7 @@ dev: dependencies build/dev build/dev/browser \
 
 	rsync $(filter %.js,$(dev_BROWSER_SRCS)) build/dev/vendor
 	rsync browser/*.svg browser/*.png build/dev/browser/
-	cp browser/core_viewer/core_viewer.css build/dev/browser/core_viewer
+	rsync browser/core_viewer/core_viewer.css build/dev/browser/core_viewer/
 	coffee -c -o build/dev/browser/core_viewer browser/core_viewer/core_viewer.coffee
 	cp browser/core_viewer.html build/dev
 
@@ -289,19 +289,18 @@ build/release/compressed.js build/benchmark/compressed.js build/library/compress
 		fi; \
 		echo ";"; \
 	done > ${@:compressed.js=uncompressed.js}
-	$(UGLIFYJS) --prefix 2  --source-map-url compressed.map --source-map ${@:.js=.map} --define RELEASE --define UNSAFE --no-mangle --unsafe -o $@ ${@:compressed.js=uncompressed.js}
+	$(UGLIFYJS) $(@:compressed.js=uncompressed.js) --prefix 2 --source-map-url compressed.map --source-map $(@:.js=.map) -o $@ -c warnings=false -d UNSAFE=true,RELEASE=true --unsafe
 
 build/dev/%.js: %.coffee
 	@mkdir -p $(dir $@)
-	#cp $< $(dir $@)
 	ln -sfn ../../../$< $(dir $@)
-	cd $(dir $@)&& $(COFFEEC) --map -o . -c $(notdir $<)
+	cd $(dir $@) && $(COFFEEC) --map -o . -c $(notdir $<)
 
 
 build/release/%.js: %.coffee
 	@mkdir -p $(dir $@)
 	$(SED) -r "s/^( *)(debug|v?trace).*$$/\1\`\`/" $< > $(@:.js=.coffeex)
-	$(COFFEEC) --map  -o $(dir $@) $(@:.js=.coffeex)
+	$(COFFEEC) --map -o $(dir $@) $(@:.js=.coffeex)
 	mv $@ $(@:.js=-orig.js)
-	$(UGLIFYJS) --source-map ${@:.js=.map} --in-source-map ${@:.js=.map} --define RELEASE --define UNSAFE --no-mangle --unsafe --beautify -o $@ $(@:.js=-orig.js)
+	$(UGLIFYJS) $(@:.js=-orig.js) --source-map $(@:.js=.map) --in-source-map $(@:.js=.map) --beautify -o $@ -c warnings=false -d UNSAFE=true,RELEASE=true --unsafe
 	rm $(@:.js=-orig.js)
