@@ -35,6 +35,11 @@ public class Reflection {
   public static void main(String[] args)
   throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException,
          InvocationTargetException, NoSuchFieldException {
+    // test multiNewArray
+    int[] arr = (int[]) Array.newInstance(int.class, 4);
+    System.out.println(Arrays.toString(arr));
+    int[][] mat = (int[][]) Array.newInstance(int.class, 2, 3);
+    System.out.println(Arrays.deepToString(mat));
 
     // test getEnclosingMethod0
     System.out.println(Reflection.class.getEnclosingMethod());
