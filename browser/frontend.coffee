@@ -224,32 +224,36 @@ read_dir = (dir, pretty=true, columns=true, cb) ->
     contents = contents.sort()
     return cb(contents.join('\n')) unless pretty
     pretty_list = []
-    max_len = 0
     i = 0
     next_content = ->
       c = contents[i++]
       node.fs.stat (dir+'/'+c), (err, stat) ->
         if stat.isDirectory()
           c += '/'
-        max_len = c.length if c.length > max_len
         pretty_list.push c
         unless i is contents.length
           next_content()
           return
-        return cb(pretty_list.join('\n')) unless columns
-        # XXX: assumes 100-char lines
-        num_cols = (100/(max_len+1))|0
-        col_size = Math.ceil(pretty_list.length/num_cols)
-        column_list = []
-        for [1..num_cols]
-          column_list.push pretty_list.splice(0, col_size)
-        row_list = []
-        rpad = (str,len) -> str + Array(len - str.length + 1).join(' ')
-        for i in [0...col_size]
-          row = (rpad(col[i],max_len+1) for col in column_list when col[i]?)
-          row_list.push row.join('')
-        cb(row_list.join('\n'))
+        cb(if columns then columnize(pretty_list) else pretty_list.join('\n'))
     next_content()
+
+pad_right = (str,len) ->
+  str + Array(len - str.length + 1).join(' ')
+
+columnize = (str_list, line_length=100) ->
+  max_len = 0
+  for s in str_list
+    max_len = s.length if s.length > max_len
+  num_cols = (line_length/(max_len+1))|0
+  col_size = Math.ceil(str_list.length/num_cols)
+  column_list = []
+  for [1..num_cols]
+    column_list.push str_list.splice(0, col_size)
+  row_list = []
+  for i in [0...col_size] by 1
+    row = (pad_right(col[i],max_len+1) for col in column_list when col[i]?)
+    row_list.push row.join('')
+  return row_list.join('\n')
 
 commands =
   ecj: (args, cb) ->
@@ -471,11 +475,17 @@ commands =
 tabComplete = ->
   promptText = controller.promptText()
   args = promptText.split /\s+/
+  last_arg = util.last(args)
   getCompletions args, (completions) ->
     prefix = longestCommmonPrefix(completions)
-    return if prefix == ''  # TODO: if we're tab-completing a blank, show all options
+    if prefix == '' or prefix == last_arg
+      # we're tab-completing a blank, so show all options
+      options = columnize(c.slice(last_arg.length) for c in completions)
+      controller.message options, 'success'
+      controller.promptText(promptText)
+      return
     # delete existing text so we can do case correction
-    promptText = promptText.substr(0, promptText.length - util.last(args).length)
+    promptText = promptText.substr(0, promptText.length - last_arg.length)
     controller.promptText(promptText + prefix)
 
 getCompletions = (args, cb) ->
