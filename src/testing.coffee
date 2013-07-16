@@ -15,7 +15,7 @@ root = exports ? window.testing ?= {}
 
 root.find_test_classes = (doppio_dir, cb) ->
   test_dir = path.resolve doppio_dir, 'classes/test'
-  fs.readdir test_dir, (files) ->
+  fs.readdir test_dir, (err, files) ->
     cb("classes/test/#{path.basename(file, '.java')}" for file in files when path.extname(file) == '.java')
 
 root.run_tests = (test_classes, stdout, hide_diffs, quiet, keep_going, callback) ->
@@ -69,13 +69,13 @@ run_disasm_test = (doppio_dir, test_class, callback) ->
     javap_disasm = sanitize contents
     fs.readFile "#{test_path}.class", (err, buffer) ->
       doppio_disasm = sanitize disassemble new ReferenceClassData buffer
-      callback cleandiff doppio_disasm, javap_disasm
+      callback cleandiff(doppio_disasm, javap_disasm)
 
 run_stdout_test = (doppio_dir, test_class, callback) ->
   doppio_output = ''
   stdout = (str) -> doppio_output += str
   rs = new RuntimeState stdout, (->), new BootstrapClassLoader(jvm.read_classfile)
-  fs.readFile "#{path.resolve doppio_dir, test_class}.runout", 'utf8', (java_output) ->
+  fs.readFile "#{path.resolve doppio_dir, test_class}.runout", 'utf8', (err, java_output) ->
     jvm.run_class rs, test_class, [], ->
       callback cleandiff(doppio_output, java_output)
 
