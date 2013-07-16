@@ -348,6 +348,25 @@ class root.RuntimeState
     else  # numeric array
       new JavaArray @, @get_class("[#{type}"), util.arrayset(len, 0)
 
+  # The given cls is already initialized.
+  heap_multinewarray: (type, counts) ->
+    dim = counts.length
+    init_arr = (curr_dim, type) =>
+      len = counts[curr_dim]
+      if len < 0 then @java_throw(@get_bs_class('Ljava/lang/NegativeArraySizeException;'),
+        "Tried to init dimension #{curr_dim} of a #{dim} dimensional #{type} array with length #{len}")
+      # Gives the JavaScript engine a size hint.
+      array = new Array(len)
+      if curr_dim+1 == dim
+        default_val = util.initial_value type
+        array[i] = default_val for i in [0...len] by 1
+      else
+        next_dim = curr_dim + 1
+        comp_type = type[1..]
+        array[i] = init_arr(next_dim, comp_type) for i in [0...len] by 1
+      return new JavaArray(@, @get_bs_class(type), array)
+    return init_arr(0, type)
+
   # heap object initialization
   init_string: (str,intern=false) ->
     return s if intern and (s = @string_pool.get str)?

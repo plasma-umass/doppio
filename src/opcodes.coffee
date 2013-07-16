@@ -361,23 +361,9 @@ class root.MultiArrayOpcode extends root.Opcode
           ((class_file)=>resume_cb(undefined, undefined, true, false)), except_cb
       return
 
-    new_execute = (rs) ->
+    new_execute = (rs) =>
       counts = rs.curr_frame().stack.splice(-@dim,@dim)
-      default_val = util.initial_value @class[@dim..]
-      arr_types = (@class[d..] for d in [0...@dim] by 1)
-      init_arr = (curr_dim) =>
-        len = counts[curr_dim]
-        if len < 0 then rs.java_throw(rs.get_bs_class('Ljava/lang/NegativeArraySizeException;'),
-          "Tried to init dimension #{curr_dim} of a #{@dim} dimensional #{@class.toString()} array with length #{len}")
-        type = arr_types[curr_dim]
-        # Gives the JavaScript engine a size hint.
-        array = new Array(len)
-        if curr_dim+1 == @dim
-          array[i] = default_val for i in [0...len] by 1
-        else
-          array[i] = init_arr(curr_dim+1) for i in [0...len] by 1
-        new JavaArray rs, rs.get_bs_class(type), array
-      rs.push init_arr 0
+      rs.push rs.heap_multinewarray(@class, counts)
 
     new_execute.call(@, rs)
     @execute = new_execute
