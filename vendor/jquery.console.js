@@ -116,9 +116,19 @@
         var promptText = '';
         var restoreText = '';
         var continuedText = '';
+
         // Prompt history stack
         var history = [];
         var ringn = 0;
+        if (window.localStorage && window.localStorage.history) {
+            try {
+                history = JSON.parse(localStorage.history);
+            }
+            catch (e) {
+                console.error('Previous history is not a valid JSON object.');
+            }
+        }
+
         // For reasons unknown to The Sword of Michael himself, Opera
         // triggers and sends a key character when you hit various
         // keys like PgUp, End, etc. So there is no way of knowing
@@ -359,6 +369,9 @@
         // Add something to the history ring
         function addToHistory(line){
             history.push(line);
+            if (window.localStorage) {
+                localStorage.history = JSON.stringify(history);
+            }
             restoreText = '';
         };
 

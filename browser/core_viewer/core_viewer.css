@@ -45,3 +45,7 @@ ul.fields {
 .array-entry {
   margin: 0 3px;
 }
+
+#filepicker {
+  display: none;
+}

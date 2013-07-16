@@ -223,7 +223,36 @@ read_dir = (dir, pretty=true, columns=true) ->
     row_list.push row.join('')
   row_list.join('\n')
 
+location.origin = location.origin or "#{location.protocol}//#{location.host}"
+
 commands =
+  view_dump: ->
+    if window.core_dump
+      # Open the core viewer in a new window and save a reference to it
+      viewer = window.open 'core_viewer.html?source=browser'
+
+      # Create a function to send the core dump to the new window
+      send_dump = ->
+        message = JSON.stringify window.core_dump
+        viewer.postMessage message, location.origin
+
+      # Start a timer to send the message after 5 seconds - the window should
+      # have loaded by then
+      delay = 5000
+      timer = setTimeout send_dump, delay
+
+      # If the window loads before 5 seconds, send the message straight away
+      # and cancel the timer
+      viewer.onload = ->
+        clearTimeout timer
+        send_dump()
+
+      controller.reprompt()
+      return null
+
+    else
+      'No core file to send. Use java -Xdump-state path/to/failing/class to generate one.'
+
   ecj: (args, cb) ->
     jvm.set_classpath '/home/doppio/vendor/classes/', './'
     rs = new runtime.RuntimeState(stdout, user_input, bs_cl)
