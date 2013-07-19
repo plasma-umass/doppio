@@ -286,9 +286,9 @@ commands =
         args.splice i, 1
         break
 
-    if !args[0]? or (args[0] == '-classpath' and args.length < 3)
+    if !args[0]? or (args[0] in ['-classpath', '-cp'] and args.length < 3)
       return "Usage: java [-classpath path1:path2...] class [args...]"
-    if args[0] == '-classpath'
+    if args[0] in ['-classpath', '-cp']
       jvm.set_classpath "#{sys_path}/vendor/classes/", args[1]
       class_name = args[2]
       class_args = args[3..]
