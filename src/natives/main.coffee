@@ -216,8 +216,12 @@ write_to_file = (rs, _this, bytes, offset, len, append) ->
   fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
   rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if fd is -1
   unless fd in [1, 2]
-    # appends by default in the browser, not sure in actual node.js impl
-    _this.$pos += fs.writeSync(fd, new Buffer(bytes.array), offset, len, _this.$pos)
+    # normal file
+    buf = new Buffer(bytes.array)
+    rs.async_op (cb) ->
+      fs.write fd, buf, offset, len, _this.$pos, (err, num_bytes) ->
+        _this.$pos += num_bytes
+        cb()
     return
   rs.print util.chars2js_str(bytes, offset, len)
   if node?
@@ -885,8 +889,11 @@ native_methods =
         o 'writeBytes([BII)V', (rs, _this, byte_arr, offset, len) ->
             fd_obj = _this.get_field rs, 'Ljava/io/RandomAccessFile;fd'
             fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
-            _this.$pos += fs.writeSync(fd, new Buffer(byte_arr.array), offset,
-                                       len, _this.$pos)
+            buf = new Buffer(byte_arr.array)
+            rs.async_op (cb) ->
+              fs.write fd, buf, offset, len, _this.$pos, (err, num_bytes) ->
+                _this.$pos += num_bytes
+                cb()
         o 'close0()V', (rs, _this) ->
             fd_obj = _this.get_field rs, 'Ljava/io/RandomAccessFile;fd'
             fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
