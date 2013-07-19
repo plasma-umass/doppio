@@ -482,8 +482,9 @@ tabComplete = ->
   getCompletions args, (completions) ->
     prefix = longestCommmonPrefix(completions)
     if prefix == '' or prefix == last_arg
-      # we're tab-completing a blank, so show all options
-      options = columnize(c.slice(last_arg.length) for c in completions)
+      # We've no more sure completions to give, so show all options.
+      common_len = last_arg.lastIndexOf('/') + 1
+      options = columnize(c.slice(common_len) for c in completions)
       controller.message options, 'success'
       controller.promptText(promptText)
       return
