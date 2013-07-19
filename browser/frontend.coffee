@@ -36,7 +36,7 @@ preload = ->
         if display_perc < 100 then "Loading #{path}"  else "Done!"))
 
     # Grab the XmlHttpRequest file system.
-    xhrfs = node.fs.getRootFS().mntMap['/sys']
+    xhrfs = node.fs.getRootFS().mntMap[sys_path]
 
     # Note: Path is relative to XHR mount point (e.g. /vendor/classes rather than
     # /sys/vendor/classes). They must also be absolute paths.
