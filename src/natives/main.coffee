@@ -799,10 +799,10 @@ native_methods =
                 if e?
                   # XXX: BrowserFS hack. BFS doesn't support the code attribute
                   # on errors yet.
-                  if e.code == 'ENOENT' || e.type == 404
-                    except_cb ()-> rs.java_throw rs.get_bs_class('Ljava/io/FileNotFoundException;'), "#{filepath} (No such file or directory)"
+                  if e.code == 'ENOENT' or true
+                    except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/FileNotFoundException;'), "#{filepath} (No such file or directory)"
                   else
-                    except_cb ()-> throw e
+                    except_cb -> throw e
                 else
                   fd_obj = _this.get_field rs, 'Ljava/io/FileInputStream;fd'
                   fd_obj.set_field rs, 'Ljava/io/FileDescriptor;fd', fd
@@ -859,7 +859,9 @@ native_methods =
             rs.async_op (resume_cb, except_cb) ->
               fs.open filepath, mode_str, (e, fd) ->
                 if e?
-                  if e.code == 'ENOENT'
+                  # XXX: BrowserFS hack. BFS doesn't support the code attribute
+                  # on errors yet.
+                  if e.code == 'ENOENT' or true
                     except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/FileNotFoundException;'), "Could not open file #{filepath}"
                   else
                     except_cb -> throw e
