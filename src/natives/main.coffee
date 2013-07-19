@@ -117,12 +117,6 @@ doPrivileged = (rs, action) ->
           resume_cb()),
         except_cb
 
-stat_fd = (fd) ->
-  try
-    return fs.fstatSync fd
-  catch e
-    return null
-
 stat_file = (fname, cb) ->
   fs.stat fname, (err, stat) ->
     if err?
@@ -729,8 +723,9 @@ native_methods =
               fs.open fname.jvm2js_str(), 'a', (err, fd) ->
                 fd_obj = _this.get_field rs, 'Ljava/io/FileOutputStream;fd'
                 fd_obj.set_field rs, 'Ljava/io/FileDescriptor;fd', fd
-                _this.$pos = (stat_fd fd).size
-                resume_cb()
+                fs.fstat fd, (err, stats) ->
+                  _this.$pos = stats.size
+                  resume_cb()
         o 'writeBytes([BIIZ)V', write_to_file  # OpenJDK version
         o 'writeBytes([BII)V', write_to_file   # Apple-java version
         o 'close0()V', (rs, _this) ->
@@ -750,18 +745,22 @@ native_methods =
             fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
             rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if fd is -1
             return 0 if fd is 0 # no buffering for stdin
-            stats = fs.fstatSync fd
-            stats.size - _this.$pos
+            rs.async_op (cb) ->
+              fs.fstat fd, (err, stats) ->
+                cb(stats.size - _this.$pos)
         o 'read()I', (rs, _this) ->
             fd_obj = _this.get_field rs, 'Ljava/io/FileInputStream;fd'
             fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
             rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if fd is -1
             unless fd is 0
               # this is a real file that we've already opened
-              buf = new Buffer((fs.fstatSync fd).size)
-              bytes_read = fs.readSync(fd, buf, 0, 1, _this.$pos)
-              _this.$pos++
-              return if bytes_read == 0 then -1 else buf.readUInt8(0)
+              rs.async_op (cb) ->
+                fs.fstat fd, (err, stats) ->
+                  buf = new Buffer(stats.size)
+                  fs.read fd, buf, 0, 1, _this.$pos, (err, bytes_read) ->
+                    _this.$pos++
+                    cb(if bytes_read == 0 then -1 else buf.readUInt8(0))
+              return
             # reading from System.in, do it async
             rs.async_op (cb) ->
               rs.async_input 1, (byte) ->
@@ -774,16 +773,15 @@ native_methods =
               # this is a real file that we've already opened
               pos = _this.$pos
               buf = new Buffer n_bytes
-              # if at end of file, return -1.
-              filesize = fs.fstatSync(fd).size
-              if filesize > 0 and pos >= filesize-1
-                return -1
-              bytes_read = fs.readSync(fd, buf, 0, n_bytes, pos)
-              # not clear why, but sometimes node doesn't move the file pointer,
-              # so we do it here ourselves
-              _this.$pos += bytes_read
-              byte_arr.array[offset+i] = buf.readUInt8(i) for i in [0...bytes_read] by 1
-              return if bytes_read == 0 and n_bytes isnt 0 then -1 else bytes_read
+              rs.async_op (cb) ->
+                fs.read fd, buf, 0, n_bytes, pos, (err, bytes_read) ->
+                  return cb(-1) if err?  # XXX: should check this
+                  # not clear why, but sometimes node doesn't move the
+                  # file pointer, so we do it here ourselves.
+                  _this.$pos += bytes_read
+                  byte_arr.array[offset+i] = buf.readUInt8(i) for i in [0...bytes_read] by 1
+                  cb(if bytes_read == 0 and n_bytes isnt 0 then -1 else bytes_read)
+              return
             # reading from System.in, do it async
             rs.async_op (cb) ->
               rs.async_input n_bytes, (bytes) ->
@@ -821,10 +819,13 @@ native_methods =
             fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
             rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor" if fd is -1
             unless fd is 0
-              bytes_left = fs.fstatSync(fd).size - _this.$pos
-              to_skip = Math.min(n_bytes.toNumber(), bytes_left)
-              _this.$pos += to_skip
-              return gLong.fromNumber(to_skip)
+              rs.async_op (cb) ->
+                fs.fstat fd, (err, stats) ->
+                  bytes_left = stats.size - _this.$pos
+                  to_skip = Math.min(n_bytes.toNumber(), bytes_left)
+                  _this.$pos += to_skip
+                  cb gLong.fromNumber(to_skip), null
+              return
             # reading from System.in, do it async
             rs.async_op (cb) ->
               rs.async_input n_bytes.toNumber(), (bytes) ->
@@ -867,19 +868,20 @@ native_methods =
         o 'length()J', (rs, _this) ->
             fd_obj = _this.get_field rs, 'Ljava/io/RandomAccessFile;fd'
             fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
-            gLong.fromNumber (stat_fd fd).size
+            rs.async_op (cb) ->
+              fs.fstat fd, (err, stats) ->
+                cb gLong.fromNumber(stats.size), null
         o 'seek(J)V', (rs, _this, pos) -> _this.$pos = pos.toNumber()
         o 'readBytes([BII)I', (rs, _this, byte_arr, offset, len) ->
             fd_obj = _this.get_field rs, 'Ljava/io/RandomAccessFile;fd'
             fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
-            # if at end of file, return -1.
-            if _this.$pos >= fs.fstatSync(fd).size-1
-              return -1
             buf = new Buffer len
-            bytes_read = fs.readSync(fd, buf, 0, len, _this.$pos)
-            byte_arr.array[offset+i] = buf.readUInt8(i) for i in [0...bytes_read] by 1
-            _this.$pos += bytes_read
-            return if bytes_read == 0 and len isnt 0 then -1 else bytes_read
+            rs.async_op (cb) ->
+              fs.read fd, buf, 0,len, _this.$pos, (err, bytes_read) ->
+                return cb(-1) if err?  # XXX: should check this
+                byte_arr.array[offset+i] = buf.readUInt8(i) for i in [0...bytes_read] by 1
+                _this.$pos += bytes_read
+                cb(if bytes_read == 0 and len isnt 0 then -1 else bytes_read)
         o 'writeBytes([BII)V', (rs, _this, byte_arr, offset, len) ->
             fd_obj = _this.get_field rs, 'Ljava/io/RandomAccessFile;fd'
             fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
@@ -1317,10 +1319,11 @@ native_methods =
           # Reports this file's size
           o 'size0(Ljava/io/FileDescriptor;)J', (rs, _this, fd_obj) ->
             fd = fd_obj.get_field rs, 'Ljava/io/FileDescriptor;fd'
-            try
-              return gLong.fromNumber(fs.fstatSync(fd).size)
-            catch e
-              rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), 'Bad file descriptor.'
+            rs.async_op (cb) ->
+              fs.fstat fd, (err, stats) ->
+                if err?
+                  rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), 'Bad file descriptor.'
+                cb gLong.fromNumber(stats.size)
           o 'position0(Ljava/io/FileDescriptor;J)J', (rs, _this, fd, offset) ->
               parent = _this.get_field rs, 'Lsun/nio/ch/FileChannelImpl;parent'
               gLong.fromNumber(
@@ -1336,14 +1339,15 @@ native_methods =
             # read upto len bytes and store into mmap'd buffer at address
             block_addr = rs.block_addr(address)
             buf = new Buffer len
-            bytes_read = fs.readSync(fd, buf, 0, len)
-            if DataView?
-              for i in [0...bytes_read] by 1
-                rs.mem_blocks[block_addr].setInt8(i, buf.readInt8(i))
-            else
-              for i in [0...bytes_read] by 1
-                rs.mem_blocks[block_addr+i] = buf.readInt8(i)
-            return bytes_read
+            rs.async_op (cb) ->
+              fs.read fd, buf, 0, len, (err, bytes_read) ->
+                if DataView?
+                  for i in [0...bytes_read] by 1
+                    rs.mem_blocks[block_addr].setInt8(i, buf.readInt8(i))
+                else
+                  for i in [0...bytes_read] by 1
+                    rs.mem_blocks[block_addr+i] = buf.readInt8(i)
+                cb bytes_read
           o 'preClose0(Ljava/io/FileDescriptor;)V', (rs, fd_obj) ->
             # NOP, I think the actual fs.close is called later. If not, NBD.
         ]
