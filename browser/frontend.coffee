@@ -386,7 +386,10 @@ commands =
     return null
   cd: (args) ->
     if args.length > 1 then return "Usage: cd <directory>"
-    dir = if args.length == 0 then '/home/doppio' else node.path.resolve(args[0])
+    dir = if args.length == 0 or args[0] is '~'
+      # Change to the default (starting) directory.
+      '/demo'
+    else node.path.resolve(args[0])
     # Verify path exits before going there. chdir does not verify that the
     # directory exists.
     node.fs.exists dir, (doesExist) ->

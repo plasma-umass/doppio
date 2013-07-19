@@ -11,9 +11,9 @@ window.require = (path, herp) ->
 BrowserFS.install(window)
 
 mfs = new BrowserFS.FileSystem.MountableFileSystem()
-mfs.mount('/home', new BrowserFS.FileSystem.LocalStorage())
+mfs.mount('/demo', new BrowserFS.FileSystem.LocalStorage())
 mfs.mount('/sys', new BrowserFS.FileSystem.XmlHttpRequest('browser/listings.json'))
 BrowserFS.initialize(mfs)
 window.node = BrowserFS.node
-unless node.fs.existsSync '/home/doppio' then node.fs.mkdirSync('/home/doppio')
-node.process.chdir('/home/doppio')
+unless node.fs.existsSync '/demo' then node.fs.mkdirSync('/demo')
+node.process.chdir('/demo')
