@@ -60,25 +60,6 @@ preload = ->
         on_complete() if file_count == 0
     return
 
-# Read in a binary classfile asynchronously. Return an array of bytes.
-read_classfile = (cls, cb, failure_cb) ->
-  cls = cls[1...-1] # Convert Lfoo/bar/Baz; -> foo/bar/Baz.
-  cpath = jvm.system_properties['java.class.path']
-  i = 0
-  try_get = ->
-    node.fs.readFile "#{cpath[i]}#{cls}.class", (err, data) ->
-      i++
-      if err
-        if i is cpath.length
-          failure_cb -> throw new Error "Error: No file found for class #{cls}."
-        else
-          try_get()
-        return
-      cb data
-  # We could launch them all at once, but we would need to ensure that we use
-  # the working version that occurs first in the classpath.
-  try_get()
-
 process_bytecode = (buffer) -> new ClassData.ReferenceClassData(buffer)
 
 onResize = ->
@@ -214,7 +195,7 @@ $(document).ready ->
     e.preventDefault()
 
   $('#close_btn').click (e) -> close_editor(); e.preventDefault()
-  bs_cl = new ClassLoader.BootstrapClassLoader(read_classfile)
+  bs_cl = new ClassLoader.BootstrapClassLoader(jvm.read_classfile)
   preload()
 
 # helper function for 'ls'
@@ -326,7 +307,7 @@ commands =
     '  ' + cached_classes.sort().join('\n  ')
   # Reset the bootstrap classloader
   clear_cache: ->
-    bs_cl = new ClassLoader.BootstrapClassLoader(read_classfile)
+    bs_cl = new ClassLoader.BootstrapClassLoader(jvm.read_classfile)
     return true
   ls: (args) ->
     if args.length == 0

@@ -39,20 +39,25 @@ root.reset_system_properties = () ->
 # initialize the sysprops on module load
 root.reset_system_properties()
 
+
+# Read in a binary classfile asynchronously. Return an array of bytes.
 root.read_classfile = (cls, cb, failure_cb) ->
   cls = cls[1...-1] # Convert Lfoo/bar/Baz; -> foo/bar/Baz.
-  for p in root.system_properties['java.class.path']
-    filename = "#{p}/#{cls}.class"
-    try
-      continue unless fs.existsSync filename
-      data = fs.readFileSync filename
-      cb(data) if data?
-      return
-    catch e
-      failure_cb(()->throw e) # Signifies an error occurred.
-      return
-
-  failure_cb (()->throw new Error "Error: No file found for class #{cls}.")
+  cpath = root.system_properties['java.class.path']
+  i = 0
+  try_get = ->
+    fs.readFile "#{cpath[i]}#{cls}.class", (err, data) ->
+      i++
+      if err
+        if i is cpath.length
+          failure_cb -> throw new Error "Error: No file found for class #{cls}."
+        else
+          try_get()
+        return
+      cb data
+  # We could launch them all at once, but we would need to ensure that we use
+  # the working version that occurs first in the classpath.
+  try_get()
 
 # Sets the classpath to the given value in typical classpath form:
 # path1:path2:... etc.
