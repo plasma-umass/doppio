@@ -282,12 +282,18 @@ commands =
     return null  # no reprompt, because we handle it ourselves
   test: (args) ->
     return "Usage: test all|[class(es) to test]" unless args[0]?
+    # Change dir to $sys_path, because that's where tests expect to be run from.
+    curr_dir = node.process.cwd()
+    done_cb = ->
+      node.process.chdir curr_dir
+      controller.reprompt()
+    node.process.chdir sys_path
     # method signature is:
     # run_tests(args,stdout,hide_diffs,quiet,keep_going,done_callback)
     if args[0] == 'all'
-      testing.run_tests [], stdout, true, false, true, -> controller.reprompt()
+      testing.run_tests [], stdout, true, false, true, done_cb
     else
-      testing.run_tests args, stdout, false, false, true, -> controller.reprompt()
+      testing.run_tests args, stdout, false, false, true, done_cb
     return null
   javap: (args) ->
     return "Usage: javap class" unless args[0]?
