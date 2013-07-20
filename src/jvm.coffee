@@ -13,7 +13,7 @@ root.show_NYI_natives = false
 root.dump_state = false
 
 vendor_path = if node?  # node is only defined if we're in the browser
-  '/home/doppio/vendor'
+  '/sys/vendor'
 else
   path.resolve __dirname, '../vendor'
 
@@ -39,20 +39,25 @@ root.reset_system_properties = () ->
 # initialize the sysprops on module load
 root.reset_system_properties()
 
+
+# Read in a binary classfile asynchronously. Return an array of bytes.
 root.read_classfile = (cls, cb, failure_cb) ->
   cls = cls[1...-1] # Convert Lfoo/bar/Baz; -> foo/bar/Baz.
-  for p in root.system_properties['java.class.path']
-    filename = "#{p}/#{cls}.class"
-    try
-      continue unless fs.existsSync filename
-      data = util.bytestr_to_array fs.readFileSync(filename, 'binary')
-      cb(data) if data?
-      return
-    catch e
-      failure_cb(()->throw e) # Signifies an error occurred.
-      return
-
-  failure_cb (()->throw new Error "Error: No file found for class #{cls}.")
+  cpath = root.system_properties['java.class.path']
+  i = 0
+  try_get = ->
+    fs.readFile "#{cpath[i]}#{cls}.class", (err, data) ->
+      i++
+      if err
+        if i is cpath.length
+          failure_cb -> throw new Error "Error: No file found for class #{cls}."
+        else
+          try_get()
+        return
+      cb data
+  # We could launch them all at once, but we would need to ensure that we use
+  # the working version that occurs first in the classpath.
+  try_get()
 
 # Sets the classpath to the given value in typical classpath form:
 # path1:path2:... etc.
@@ -74,8 +79,9 @@ root.set_classpath = (jcl_path, classpath) ->
     if class_path.charAt(class_path.length-1) != '/'
       class_path += '/'
     # XXX: Make this asynchronous sometime.
-    if fs.existsSync(class_path)
-      tmp_cp.push(class_path)
+    # XXX: I'm not checking.
+    #if fs.existsSync(class_path)
+    tmp_cp.push(class_path)
   return
 
 # main function that gets called from the frontend
@@ -120,6 +126,6 @@ root.run_class = (rs, class_name, cmdline_args, done_cb) ->
     rs.async_op (resume_cb, except_cb) ->
       rs.preinitialize_core_classes run_program, ((e)->
         # Error during preinitialization? Abort abort abort!
-        throw e
+        e()
       )
   ), true, (->)

@@ -1,4 +1,6 @@
 *.js
+# But we want vendor/*.js
+!vendor/*.js
 *.swp
 *.un~
 *.class

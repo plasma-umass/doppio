@@ -13,49 +13,46 @@ path = node?.path ? require 'path'
 
 root = exports ? window.testing ?= {}
 
-root.find_test_classes = (doppio_dir) ->
+root.find_test_classes = (doppio_dir, cb) ->
   test_dir = path.resolve doppio_dir, 'classes/test'
-  for file in fs.readdirSync(test_dir) when path.extname(file) == '.java'
-    "classes/test/#{path.basename(file, '.java')}"
-  # Note that the lack of return value here implies that the above is actually
-  # a list comprehension. This is intended behavior.
+  fs.readdir test_dir, (err, files) ->
+    cb("classes/test/#{path.basename(file, '.java')}" for file in files when path.extname(file) == '.java')
 
 root.run_tests = (test_classes, stdout, hide_diffs, quiet, keep_going, callback) ->
-  doppio_dir = if node? then '/home/doppio/' else path.resolve __dirname, '..'
-  # get the tests, if necessary
-  if test_classes?.length > 0
-    test_classes = (tc.replace(/\.class$/,'') for tc in test_classes)
-  else
-    test_classes = root.find_test_classes doppio_dir
+  doppio_dir = if node? then '/sys/' else path.resolve __dirname, '..'
   # set up the classpath
   jcl_dir = path.resolve doppio_dir, 'vendor/classes'
   jvm.set_classpath jcl_dir, doppio_dir
 
-  xfails =
-    for failname in (fs.readFileSync 'classes/test/xfail.txt', 'utf-8').split '\n'
-      "classes/test/#{failname}"
+  xfail_file = path.resolve doppio_dir, 'classes/test/xfail.txt'
+  fs.readFile xfail_file, 'utf-8', (err, contents) ->
+    xfails = ("classes/test/#{failname}" for failname in contents.split '\n')
+    # get the tests, if necessary
+    if test_classes?.length > 0
+      _runner((tc.replace(/\.class$/,'') for tc in test_classes), xfails)
+    else
+      root.find_test_classes doppio_dir, (tc) -> _runner(tc, xfails)
 
-  _runner = () ->
+  _runner = (test_classes, xfails) ->
     if test_classes.length == 0
       quiet || keep_going || stdout "Pass\n"
       return callback(false)
     test = test_classes.shift()
     quiet || stdout "testing #{test}...\n"
-    if (disasm_diff = run_disasm_test(doppio_dir, test))?
-      stdout "Failed disasm test #{test}\n"
-      hide_diffs || stdout "#{disasm_diff}\n"
-      return callback(true) unless keep_going
-    run_stdout_test doppio_dir, test, (diff) ->
-      if diff? ^ (test in xfails)
-        if diff?
-          stdout "Failed output test: #{test}\n"
-          hide_diffs || stdout "#{diff}\n"
-        else
-          stdout "Expected failure passed: #{test}\n"
+    run_disasm_test doppio_dir, test, (disasm_diff) ->
+      if disasm_diff?
+        stdout "Failed disasm test #{test}\n"
+        hide_diffs || stdout "#{disasm_diff}\n"
         return callback(true) unless keep_going
-      _runner()
-
-  _runner()
+      run_stdout_test doppio_dir, test, (diff) ->
+        if diff? ^ (test in xfails)
+          if diff?
+            stdout "Failed output test: #{test}\n"
+            hide_diffs || stdout "#{diff}\n"
+          else
+            stdout "Expected failure passed: #{test}\n"
+          return callback(true) unless keep_going
+        _runner(test_classes, xfails)
 
 # remove comments and blank lines, ignore specifics of float/double printing and whitespace
 sanitize = (str) ->
@@ -66,20 +63,21 @@ sanitize = (str) ->
      .replace(/[ ]\n/g, '\n')
      .replace(/\[ \]/g, '[]')
 
-run_disasm_test = (doppio_dir, test_class) ->
+run_disasm_test = (doppio_dir, test_class, callback) ->
   test_path = path.resolve(doppio_dir, test_class)
-  javap_disasm = sanitize(fs.readFileSync "#{test_path}.disasm", 'utf8')
-  bytes_array = util.bytestr_to_array fs.readFileSync "#{test_path}.class", 'binary'
-  doppio_disasm = sanitize disassemble new ReferenceClassData bytes_array
-  return cleandiff doppio_disasm, javap_disasm
+  fs.readFile "#{test_path}.disasm", 'utf8', (err, contents) ->
+    javap_disasm = sanitize contents
+    fs.readFile "#{test_path}.class", (err, buffer) ->
+      doppio_disasm = sanitize disassemble new ReferenceClassData buffer
+      callback cleandiff(doppio_disasm, javap_disasm)
 
 run_stdout_test = (doppio_dir, test_class, callback) ->
-  java_output = fs.readFileSync "#{path.resolve doppio_dir, test_class}.runout", 'utf8'
   doppio_output = ''
   stdout = (str) -> doppio_output += str
   rs = new RuntimeState stdout, (->), new BootstrapClassLoader(jvm.read_classfile)
-  jvm.run_class rs, test_class, [], ->
-    callback cleandiff(doppio_output, java_output)
+  fs.readFile "#{path.resolve doppio_dir, test_class}.runout", 'utf8', (err, java_output) ->
+    jvm.run_class rs, test_class, [], ->
+      callback cleandiff(doppio_output, java_output)
 
 cleandiff = (our_str, their_str) ->
   our_lines = our_str.split /\n/
