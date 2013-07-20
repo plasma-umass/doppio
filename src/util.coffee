@@ -193,8 +193,9 @@ root.format_extra_info = (entry) ->
     when 'NameAndType' then "//  #{info.name}:#{info.type}"
     else "\t//  " + root.escape_whitespace info if root.is_string info
 
+# Lightweight wrapper around a buffer.
 class root.BytesArray
-  constructor: (@raw_array, @start=0, @end=@raw_array.length) ->
+  constructor: (@buffer, @start=0, @end=@buffer.length) ->
     @_index = 0
 
   rewind: -> @_index = 0
@@ -206,7 +207,11 @@ class root.BytesArray
   has_bytes: -> @start + @_index < @end
 
   get_uint: (bytes_count) ->
-    rv = root.read_uint @raw_array.slice(@start + @_index, @start + @_index + bytes_count)
+    rv = switch bytes_count
+      when 1 then @buffer.readUInt8 @start + @_index
+      when 2 then @buffer.readUInt16BE @start + @_index
+      when 4 then @buffer.readUInt32BE @start + @_index
+      else throw new Error 'Cannot read a uint of size #{bytes_count}'
     @_index += bytes_count
     return rv
 
@@ -215,18 +220,26 @@ class root.BytesArray
     @get_uint(bytes_count) << bytes_to_set >> bytes_to_set
 
   read: (bytes_count) ->
-    rv = @raw_array[@start+@_index...@start+@_index+bytes_count]
+    rv = []
+    for i in [@start+@_index...@start+@_index+bytes_count] by 1
+      rv.push @buffer.readUInt8 i
     @_index += bytes_count
     rv
 
-  peek: -> @raw_array[@start+@_index]
+  peek: -> @buffer.readUInt8 @start+@_index
 
   size: -> @end - @start - @_index
 
   splice: (len) ->
-    arr = new root.BytesArray @raw_array, @start+@_index, @start+@_index+len
+    arr = new root.BytesArray @buffer, @start+@_index, @start+@_index+len
     @_index += len
     arr
+
+  # Returns a buffer!
+  slice: (len) ->
+    rv = @buffer.slice @start+@_index, @start+@_index+len
+    @_index += len
+    return rv
 
 root.initial_value = (type_str) ->
   if type_str is 'J' then gLong.ZERO

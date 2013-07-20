@@ -1,41 +1,35 @@
 #! /usr/bin/env coffee
 
-# Check if we're in the right directory.
 fs = require 'fs'
 path = require 'path'
 
-# Create / and /home to bootstrap everything.
-fsobj =
-  home:
-    doppio: {}
-
 symLinks = {}
 
-rdSync = (dpath, parentObj, name) ->
+rdSync = (dpath, tree, name) ->
   files = fs.readdirSync(dpath)
-  parentObj[name] = {}
   for file in files
+    # ignore non-essential directories / files
+    continue if file in ['.git', 'node_modules']
     fpath = dpath + '/' + file
     try
-      fstat = fs.statSync(fpath)
-      lstat = fs.lstatSync(fpath)
-
       # Avoid infinite loops.
+      lstat = fs.lstatSync(fpath)
       if lstat.isSymbolicLink()
-        if !symLinks[lstat.dev]? then symLinks[lstat.dev] = {}
-        # Ignore; we've seen it before
-        if symLinks[lstat.dev][lstat.ino]? then continue
+        symLinks[lstat.dev] ?= {}
+        # Ignore if we've seen it before
+        continue if symLinks[lstat.dev][lstat.ino]?
         symLinks[lstat.dev][lstat.ino] = 0
 
+      fstat = fs.statSync(fpath)
       if fstat.isDirectory()
-        rdSync(fpath, parentObj[name], file)
+        tree[file] = child = {}
+        rdSync(fpath, child, file)
       else
-        parentObj[name][file] = null
+        tree[file] = null
     catch e
       # Ignore and move on.
+  return tree
 
-# Gogogogo!
-cur_dir = process.cwd()
-rdSync(cur_dir, fsobj['home'], 'doppio')
+fs_listing = rdSync(process.cwd(), {}, '/')
 
-process.on('exit', (-> console.log JSON.stringify(fsobj)))
+process.on('exit', (-> console.log JSON.stringify(fs_listing)))

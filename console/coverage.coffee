@@ -53,7 +53,7 @@ print_unused = (stats, stats_name) ->
     console.log "#{unused_count} #{stats_name} have yet to be tested."
 
 run_tests = (test_classes, stdout, quiet, callback) ->
-  doppio_dir = if node? then '/home/doppio/' else path.resolve __dirname, '..'
+  doppio_dir = if node? then '/sys' else path.resolve __dirname, '..'
   # get the tests, if necessary
   if test_classes?.length > 0
     test_classes = (tc.replace(/\.class$/,'') for tc in test_classes)
