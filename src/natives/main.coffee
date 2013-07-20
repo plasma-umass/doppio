@@ -1349,7 +1349,7 @@ native_methods =
             block_addr = rs.block_addr(address)
             buf = new Buffer len
             rs.async_op (cb) ->
-              fs.read fd, buf, 0, len, (err, bytes_read) ->
+              fs.read fd, buf, 0, len, 0, (err, bytes_read) ->
                 if DataView?
                   for i in [0...bytes_read] by 1
                     rs.mem_blocks[block_addr].setInt8(i, buf.readInt8(i))
