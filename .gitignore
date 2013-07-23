@@ -31,3 +31,4 @@ classes/test/failures.txt
 *.iml
 .idea
 src/natives.coffee
+*.log
