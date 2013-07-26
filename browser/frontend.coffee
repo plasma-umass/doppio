@@ -236,7 +236,7 @@ columnize = (str_list, line_length=100) ->
     row_list.push row.join('')
   return row_list.join('\n')
 
-location.origin ?= location.origin or "#{location.protocol}//#{location.host}"
+location.origin ?= "#{location.protocol}//#{location.host}"
 
 commands =
   view_dump: ->
