@@ -20,8 +20,12 @@ doppio
 doppio-dev
 core-*
 browser/_about.html
+
 vendor/java_home
 vendor/jars/
+vendor/jquery*
+vendor/underscore
+
 tools/preload
 classes/test/failures.txt
 *.iml
