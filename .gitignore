@@ -26,6 +26,7 @@ vendor/jars/
 vendor/jquery*
 vendor/underscore
 vendor/bootstrap
+vendor/ace-builds
 
 tools/preload
 classes/test/failures.txt
