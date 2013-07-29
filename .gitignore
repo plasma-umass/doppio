@@ -25,6 +25,7 @@ vendor/java_home
 vendor/jars/
 vendor/jquery*
 vendor/underscore
+vendor/bootstrap
 
 tools/preload
 classes/test/failures.txt
