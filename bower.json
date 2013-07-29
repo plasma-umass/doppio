@@ -9,7 +9,7 @@
     "tests"
   ],
   "dependencies": {
-    "jquery-ui": "~1.10.3",
+    "jquery": "~1.10.2",
     "jquery-migrate": "~1.2.1",
     "underscore": "~1.5.1",
     "bootstrap": "~3.0.0-rc1"
