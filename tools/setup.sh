@@ -94,6 +94,9 @@ fi
 echo "Installing required node modules"
 npm install
 
+echo "Installing frontend dependencies"
+`npm bin`/bower install
+
 # Make sure the node version is greater than 0.10
 node_outdated=$(node -p "require('semver').lt(process.versions.node, '0.10.0')")
 
