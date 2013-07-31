@@ -248,7 +248,7 @@ build/release/ace.js build/dev/ace.js build/benchmark/ace.js: $(ACE_SRCS)
 
 # The | prevents the prerequisite from being included in $^, and avoids
 # re-executing the rule when the folder is 'updated' with `mkdir -p`.
-build/%/browser/style.css: vendor/bootstrap/css/bootstrap.min.css \
+build/%/browser/style.css: vendor/bootstrap/dist/css/bootstrap.min.css \
 	browser/style.css | build/%/browser
 	cat $^ > $@
 
@@ -256,8 +256,8 @@ build/%/browser/style.css: vendor/bootstrap/css/bootstrap.min.css \
 $(foreach TARGET,$(BUILD_TARGETS),$(subst %,$(TARGET),build/%/classes build/%/vendor)):
 	ln -sfn $(DOPPIO_DIR)/$(notdir $@) $@
 
-build/%/browser/mini-rt.tar: tools/preload
-	COPYFILE_DISABLE=true && tar -c -T tools/preload -f $@
+# build/%/browser/mini-rt.tar: tools/preload
+# 	COPYFILE_DISABLE=true && tar -c -T tools/preload -f $@
 
 doppio doppio-dev:
 	echo "node \`dirname \$$0\`/build/$(if $(findstring dev,$@),dev,release)/console/runner.js \"\$$@\"" > $@
