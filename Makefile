@@ -256,8 +256,8 @@ build/%/browser/style.css: vendor/bootstrap/dist/css/bootstrap.min.css \
 $(foreach TARGET,$(BUILD_TARGETS),$(subst %,$(TARGET),build/%/classes build/%/vendor)):
 	ln -sfn $(DOPPIO_DIR)/$(notdir $@) $@
 
-# build/%/browser/mini-rt.tar: tools/preload
-# 	COPYFILE_DISABLE=true && tar -c -T tools/preload -f $@
+build/%/browser/mini-rt.tar: tools/preload
+	COPYFILE_DISABLE=true && tar -c -T tools/preload -f $@
 
 doppio doppio-dev:
 	echo "node \`dirname \$$0\`/build/$(if $(findstring dev,$@),dev,release)/console/runner.js \"\$$@\"" > $@
