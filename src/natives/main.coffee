@@ -15,7 +15,7 @@
 "use strict"
 
 # pull in external modules
-_ = require '../vendor/_.js'
+_ = require '../vendor/underscore/underscore.js'
 gLong = require '../vendor/gLong.js'
 util = require './util'
 runtime = require './runtime'
