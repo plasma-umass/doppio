@@ -1,6 +1,6 @@
 #! /usr/bin/env coffee
 
-_ = require '../vendor/_.js'
+_ = require '../vendor/underscore/underscore.js'
 root = exports ? this.option_parser = {}
 
 options = null

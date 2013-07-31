@@ -40,8 +40,7 @@ BROWSER_TEMPLATES := $(wildcard browser/[^_]*.mustache)
 BROWSER_HTML      := $(BROWSER_TEMPLATES:.mustache=.html)
 
 # Third-party sources
-THIRD_PARTY_SRCS := \
-	vendor/jquery/jquery.min.js \
+THIRD_PARTY_SRCS := vendor/jquery/jquery.min.js \
 	vendor/jquery-migrate/jquery-migrate.min.js \
 	vendor/underscore/underscore.js \
 	vendor/browserfs/dist/browserfs.js \
@@ -54,9 +53,7 @@ THIRD_PARTY_SRCS := \
 # SCRIPTS
 # the order here is important: must match the order of includes
 # in the browser frontend html.
-COMMON_BROWSER_SRCS := \
-	$(THIRD_PARTY_SRCS) \
-	browser/node_setup.coffee \
+COMMON_BROWSER_SRCS := browser/node_setup.coffee \
 	browser/util.coffee \
 	src/logging.coffee \
 	src/exceptions.coffee \
@@ -76,7 +73,7 @@ COMMON_BROWSER_SRCS := \
 	browser/untar.coffee
 
 # Release uses the actual jQuery console.
-release_BROWSER_SRCS := $(COMMON_BROWSER_SRCS) \
+release_BROWSER_SRCS := $(THIRD_PARTY_SRCS) $(COMMON_BROWSER_SRCS) \
 	vendor/jquery.console.js \
 	browser/frontend.coffee
 dev_BROWSER_SRCS := $(release_BROWSER_SRCS)

@@ -1,6 +1,6 @@
 "use strict"
 
-_ = require '../vendor/_.js'
+_ = require '../vendor/underscore/underscore.js'
 util = require './util'
 {log,debug,error,trace,vtrace} = require './logging'
 CustomClassLoader = undefined # XXX: Circular dependency hack.
