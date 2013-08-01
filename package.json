@@ -11,5 +11,9 @@
     "mustache": "*",
     "semver": "*",
     "express": "3.x"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/int3/doppio.git"
   }
 }
