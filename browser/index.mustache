@@ -2,12 +2,12 @@
 <html>
 <head>
   <title>Doppio: A JVM in Coffeescript</title>
-  <link href='http://fonts.googleapis.com/css?family=Bitter' rel='stylesheet' type='text/css'>
-  <link rel='stylesheet' type="text/css" href="browser/style.css">
+  <link href='http://fonts.googleapis.com/css?family=Bitter' rel='stylesheet'>
+  <link rel='stylesheet' href="browser/style.css">
 {{#release}}
-  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
-  <script type="text/javascript" src="compressed.js"></script>
-  <script type="text/javascript">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+  <script src="compressed.js"></script>
+  <script>
     var _gaq = _gaq || [];
     _gaq.push(['_setAccount', 'UA-19272049-5']);
     _gaq.push(['_trackPageview']);
@@ -19,33 +19,34 @@
   </script>
 {{/release}}
 {{^release}}
-  <script type="text/javascript" src="vendor/jquery-1.7.1.min.js"></script>
-  <script type="text/javascript" src="vendor/_.js"></script>
-  <script type="text/javascript" src="vendor/browserfs.min.js"></script>
-  <script type="text/javascript" src="browser/node_setup.js"></script>
-  <script type="text/javascript" src="vendor/gLong.js"></script>
-  <script type="text/javascript" src="browser/util.js"></script>
-  <script type="text/javascript" src="src/logging.js"></script>
-  <script type="text/javascript" src="src/exceptions.js"></script>
-  <script type="text/javascript" src="src/util.js"></script>
-  <script type="text/javascript" src="src/java_object.js"></script>
-  <script type="text/javascript" src="src/opcodes.js"></script>
-  <script type="text/javascript" src="src/attributes.js"></script>
-  <script type="text/javascript" src="src/ConstantPool.js"></script>
-  <script type="text/javascript" src="src/disassembler.js"></script>
-  <script type="text/javascript" src="src/ClassData.js"></script>
-  <script type="text/javascript" src="src/natives.js"></script>
-  <script type="text/javascript" src="src/methods.js"></script>
-  <script type="text/javascript" src="src/runtime.js"></script>
-  <script type="text/javascript" src="src/ClassLoader.js"></script>
-  <script type="text/javascript" src="src/jvm.js"></script>
-  <script type="text/javascript" src="src/testing.js"></script>
-  <script type="text/javascript" src="vendor/jquery.console.js"></script>
-  <script type="text/javascript" src="browser/untar.js"></script>
-  <script type="text/javascript" src="browser/frontend.js"></script>
-  <script type="text/javascript" src="vendor/ace/src/ace.js"></script>
-  <script type="text/javascript" src="vendor/ace/src/mode-java.js"></script>
-  <script type="text/javascript" src="vendor/ace/src/theme-twilight.js"></script>
+  <script src="vendor/jquery/jquery.min.js"></script>
+  <script src="vendor/jquery-migrate/jquery-migrate.min.js"></script>
+  <script src="vendor/underscore/underscore.js"></script>
+  <script src="vendor/browserfs/dist/browserfs.js"></script>
+  <script src="browser/node_setup.js"></script>
+  <script src="vendor/gLong.js"></script>
+  <script src="browser/util.js"></script>
+  <script src="src/logging.js"></script>
+  <script src="src/exceptions.js"></script>
+  <script src="src/util.js"></script>
+  <script src="src/java_object.js"></script>
+  <script src="src/opcodes.js"></script>
+  <script src="src/attributes.js"></script>
+  <script src="src/ConstantPool.js"></script>
+  <script src="src/disassembler.js"></script>
+  <script src="src/ClassData.js"></script>
+  <script src="src/natives.js"></script>
+  <script src="src/methods.js"></script>
+  <script src="src/runtime.js"></script>
+  <script src="src/ClassLoader.js"></script>
+  <script src="src/jvm.js"></script>
+  <script src="src/testing.js"></script>
+  <script src="vendor/jquery.console.js"></script>
+  <script src="browser/untar.js"></script>
+  <script src="browser/frontend.js"></script>
+  <script src="vendor/ace-builds/src/ace.js"></script>
+  <script src="vendor/ace-builds/src/mode-java.js"></script>
+  <script src="vendor/ace-builds/src/theme-twilight.js"></script>
 {{/release}}
 </head>
 <body>
@@ -90,8 +91,5 @@
 
   <div id='console'><div id="consoleUnderlay"><img src="browser/coffee.png"/></div></div>
 </div>
-{{#release}}
-<script type="text/javascript" src="ace.js"></script>
-{{/release}}
 </body>
 </html>

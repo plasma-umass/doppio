@@ -370,10 +370,10 @@ commands =
         editor = ace.edit('source')
         editor.setTheme 'ace/theme/twilight'
         if not args[0]? or args[0].split('.')[1] is 'java'
-          JavaMode = require("ace/mode/java").Mode
+          JavaMode = ace.require("ace/mode/java").Mode
           editor.getSession().setMode(new JavaMode)
         else
-          TextMode = require("ace/mode/text").Mode
+          TextMode = ace.require("ace/mode/text").Mode
           editor.getSession().setMode(new TextMode)
         editor.getSession().setValue(data)
     if args[0]?

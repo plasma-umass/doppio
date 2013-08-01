@@ -2,8 +2,6 @@
 set -e
 cd `dirname $0`/..
 
-git submodule update --init --recursive
-
 PLATFORM=`uname -s`
 PKGMGR=""
 
@@ -93,6 +91,9 @@ fi
 # Install Node modules (must come before version check because the semver package is needed)
 echo "Installing required node modules"
 npm install
+
+echo "Installing frontend dependencies"
+`npm bin`/bower install
 
 # Make sure the node version is greater than 0.10
 node_outdated=$(node -p "require('semver').lt(process.versions.node, '0.10.0')")

@@ -20,7 +20,7 @@ unless 0 <= argv.v <= 3
 
 class DoppioServer
   constructor: ->
-    @port = 8000
+    @port = argv.port or 8000
 
     @Mode =
       DEV: 0
