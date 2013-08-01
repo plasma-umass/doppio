@@ -3,8 +3,6 @@
 globals =
     '../vendor/underscore/underscore.js': '_'
 
-console.log globals
-
 # Doppio's custom 'require' function, which BFS monkey-patches.
 window.require = (path, herp) ->
   # XXX: Hackfix for Ace Editor. The Ace Editor clobbers our require definiton,
