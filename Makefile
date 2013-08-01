@@ -40,7 +40,7 @@ BROWSER_TEMPLATES := $(wildcard browser/[^_]*.mustache)
 BROWSER_HTML      := $(BROWSER_TEMPLATES:.mustache=.html)
 
 # Third-party sources
-THIRD_PARTY_SRCS := vendor/jquery-migrate/jquery-migrate.min.js \
+THIRD_PARTY_SRCS := vendor/jquery-migrate/jquery-migrate.js \
 	vendor/underscore/underscore.js \
 	vendor/browserfs/dist/browserfs.js \
 	vendor/gLong.js \
