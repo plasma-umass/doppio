@@ -90,6 +90,12 @@ if ! command -v node > /dev/null; then
   fi
 fi
 
+# Make sure npm is installed
+if ! command -v npm > /dev/null; then
+  echo "npm not found, installing (requires superuser rights)"
+  curl https://npmjs.org/install.sh | sudo sh
+fi
+
 # Install Node modules (must come before version check because the semver package is needed)
 echo "Installing required node modules"
 npm install
