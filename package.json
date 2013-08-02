@@ -1,10 +1,20 @@
 {
   "name": "doppio",
+  "version": "0.3.0",
   "dependencies": {
     "typescript": "0.9",
     "uglify-js": "2",
     "optimist": "~0.3.5",
     "docco": "*",
-    "node-zip": "*"
+    "node-zip": "*",
+    "marked": "*",
+    "mustache": "*",
+    "semver": "*",
+    "express": "3.x",
+    "bower": "~1.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/int3/doppio.git"
   }
 }

@@ -2,8 +2,6 @@
 set -e
 cd `dirname $0`/..
 
-git submodule update --init --recursive
-
 PLATFORM=`uname -s`
 PKGMGR=""
 
@@ -22,9 +20,9 @@ if [ ! -f classes/java/lang/Object.class ]; then
   DOWNLOAD_DIR=`mktemp -d jdk-download.XXX`
   cd $DOWNLOAD_DIR
     DEBS_DOMAIN="http://security.ubuntu.com/ubuntu/pool/main/o/openjdk-6"
-    DEBS=("openjdk-6-jre-headless_6b27-1.12.5-0ubuntu0.12.04.1_i386.deb"
-          "openjdk-6-jdk_6b27-1.12.5-0ubuntu0.12.04.1_i386.deb"
-          "openjdk-6-jre-lib_6b27-1.12.5-0ubuntu0.12.04.1_all.deb")
+    DEBS=("openjdk-6-jre-headless_6b27-1.12.5-0ubuntu0.11.10.1_i386.deb"
+          "openjdk-6-jdk_6b27-1.12.6-1ubuntu0.12.04.2_i386.deb"
+          "openjdk-6-jre-lib_6b27-1.12.5-0ubuntu0.11.10.1_all.deb")
     for DEB in ${DEBS[@]}; do
       wget $DEBS_DOMAIN/$DEB
       ar p $DEB data.tar.gz | tar zx
@@ -37,7 +35,7 @@ if [ ! -f classes/java/lang/Object.class ]; then
     unzip -qq -o -d classes/ "$JAR_PATH"
   done
   if [ ! -e java_home ]; then
-    JH=$DOWNLOAD_DIR/usr/lib/jvm/java-6-openjdk-common/jre
+    JH=$DOWNLOAD_DIR/usr/lib/jvm/java-6-openjdk/jre
     # a number of .properties files are symlinks to /etc; copy the targets over
     # so we do not need to depend on /etc's existence
     for LINK in `find $JH -type l`; do
@@ -79,38 +77,65 @@ fi
 
 cd ..  # back to start
 
-# Make sure node is present and >= v1.0
-node_outdated=$(perl -le 'use version; print 1 if (version->parse(`node -v`) < version->parse("v0.10"))')
-if [[ $node_outdated == 1 ]]; then
-  echo "node >= v0.10 required"
+# Make sure node is installed
+if ! command -v node > /dev/null; then
   if [ -n "$PKGMGR" ]; then
+    echo "Node.js not found, installing"
     $PKGMGR node
   else
+    echo "Node.js required and could not be installed, please install from http://nodejs.org/"
     exit
   fi
 fi
+
+# Make sure npm is installed
+if ! command -v npm > /dev/null; then
+  echo "npm not found, installing (requires superuser rights)"
+  curl https://npmjs.org/install.sh | sudo sh
+fi
+
+# Install Node modules (must come before version check because the semver package is needed)
 echo "Installing required node modules"
 npm install
+# XXX: should install these through package.json
 npm install -g coffee-script typescript
+
+echo "Installing frontend dependencies"
+`npm bin`/bower install
+
+# Make sure the node version is greater than 0.10
+node_outdated=$(node -p "require('semver').lt(process.versions.node, '0.10.0')")
+
+if [[ $node_outdated == "true" ]]; then
+  echo "node >= v0.10.0 required"
+  if [ -n "$PKGMGR" ]; then
+    echo "Updating Node.js"
+    $PKGMGR node
+  else
+    echo "Could not update Node.js, please do this manually"
+    exit
+  fi
+fi
 
 echo "Using `javac -version 2>&1` to generate classfiles"
 make java
 
 if ! command -v bundle > /dev/null; then
-    if command -v gem > /dev/null; then
-        echo "installing bundler, need sudo permissions"
-        sudo gem install bundler
-    else
-        echo "warning: could not install bundler because rubygems was not found!"
-        echo "some dependencies may be missing."
+    echo "Would you like to install Guard? (y/n)"
+    read answer;
+    if [ $answer = "y" ]; then
+        if command -v gem > /dev/null; then
+            echo "installing bundler, need sudo permissions"
+            sudo gem install bundler
+            if [ -n "$PKGMGR" ]; then
+                $PKGMGR libffi
+            fi
+            bundle install
+        else
+            echo "warning: could not install bundler because rubygems was not found!"
+        fi
     fi
 fi
-
-if [ -n "$PKGMGR" ]; then
-    $PKGMGR libffi
-fi
-
-command -v bundle > /dev/null && bundle install
 
 # does sed support extended regexps?
 if ! sed -r "" </dev/null >/dev/null 2>&1 && ! command -v gsed >/dev/null; then
@@ -121,9 +146,6 @@ if ! sed -r "" </dev/null >/dev/null 2>&1 && ! command -v gsed >/dev/null; then
         echo "Doppio can run without this, but it is needed for building the full website."
     fi
 fi
-
-# Intentionally fail if pygmentize doesn't exist.
-echo "Checking for pygment (needed to generate docs)... `pygmentize -V`"
 
 echo "Your environment should now be set up correctly."
 echo "Run 'make test' (optionally with -j4) to test Doppio."
