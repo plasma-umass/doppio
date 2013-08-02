@@ -1,0 +1,51 @@
+body {
+  display: table;
+  table-layout: fixed;
+  width: 75%;
+  margin: 0 auto;
+  font-family: Monaco, Menlo, Consolas, "Courier New", monospace;
+  font-size: 13px;
+}
+
+a {
+  color: blue;
+}
+
+#main {
+  display: table-row;
+  padding: 10px;
+}
+
+#frames, #stack-objects {
+  display: table-cell;
+  padding: 5px;
+}
+
+ul {
+  list-style-type: none;
+  margin-left: 1px;
+  padding-left: 0;
+  overflow: scroll;
+}
+
+ul.fields {
+  padding-left: 1em;
+}
+
+#frames > ul > li, #stack-objects > ul > li {
+  /* extra padding on bottom so OS X scrollbar doesn't obstruct links */
+  padding: 0 5px 10px 5px;
+  margin: 1px;
+}
+
+#frames > ul:nth-child(odd), #stack-objects > ul:nth-child(odd) {
+  background-color: #f8f8f8;
+}
+
+.array-entry {
+  margin: 0 3px;
+}
+
+#filepicker {
+  display: none;
+}
