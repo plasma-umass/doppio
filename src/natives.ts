@@ -355,6 +355,23 @@ export var native_methods = {
             return null;
           }
         })
+      ],
+      Debug: [
+        o('SetLogLevel(L!/!/!$LogLevel;)V', function(rs, loglevel) {
+          logging.log_level = loglevel.get_field(rs, 'Lclasses/doppio/Debug$LogLevel;level');
+        }), o('GetLogLevel()L!/!/!$LogLevel;', function(rs) {
+          var ll_cls = rs.get_bs_class('Lclasses/doppio/Debug$LogLevel;');
+          switch (logging.log_level) {
+            case 10:
+              return ll_cls.static_get(rs, 'VTRACE');
+            case 9:
+              return ll_cls.static_get(rs, 'TRACE');
+            case 5:
+              return ll_cls.static_get(rs, 'DEBUG');
+            default:
+              return ll_cls.static_get(rs, 'ERROR');
+          }
+        })
       ]
     }
   },

@@ -576,6 +576,52 @@ export class RuntimeState {
     throw new YieldIOException(cb);
   }
 
+  public call_bytecode(cls, method, args, success_cb, except_cb) {
+    var _this = this;
+    var good_cb = function(ret1, ret2) {
+      return _this.async_op(function(good) {
+        return good(ret1, ret2);
+      });
+    };
+    var bad_cb = function(e_fn) {
+      return _this.async_op(function(good, bad) {
+        return bad(e_fn);
+      });
+    };
+    return this.async_op(function() {
+      var is_constructor, nf, v;
+
+      is_constructor = false;
+      if (method.name.charAt(0) === '<' && method.name.charAt(1) === 'i') {
+        v = new JavaObject(_this, cls);
+        args.unshift(v, v);
+        is_constructor = true;
+      }
+      nf = StackFrame.native_frame("$bytecode_call", (function() {
+        var rv;
+
+        rv = void 0;
+        if (method.return_type !== 'V' || is_constructor) {
+          if (method.return_type === 'J' || method.return_type === 'D') {
+            _this.pop();
+          }
+          rv = _this.pop();
+        }
+        _this.meta_stack().pop();
+        return success_cb(rv, good_cb, bad_cb);
+      }), (function(e) {
+        _this.meta_stack().pop();
+        return except_cb((function() {
+          throw e;
+        }), good_cb, bad_cb);
+      }));
+      _this.meta_stack().push(nf);
+      _this.push_array(args);
+      method.setup_stack(_this);
+      return _this.run_until_finished((function() {}), false, _this.stashed_done_cb);
+    });
+  }
+
   public run_until_finished(setup_fn: ()=>void, no_threads: bool, done_cb: (bool)=>void): void {
     var _this = this;
     var stack : CallStack;
