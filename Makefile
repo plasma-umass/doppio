@@ -15,6 +15,7 @@ BOOTCLASSPATH := $(DOPPIO_DIR)/vendor/classes
 COFFEEC  := $(shell npm bin)/coffee
 UGLIFYJS := $(shell npm bin)/uglifyjs
 DOCCO    := $(shell npm bin)/docco
+BOWER    := $(shell npm bin)/bower
 JAZZLIB  := $(BOOTCLASSPATH)/java/util/zip/DeflaterEngine.class
 JRE      := $(BOOTCLASSPATH)/java/lang/Object.class
 SED      := $(shell if command -v gsed >/dev/null; then echo "gsed"; else echo "sed"; fi;)
@@ -159,9 +160,9 @@ $(DIST_NAME): release docs
 
 # Installs or checks for any required dependencies.
 dependencies: $(JAZZLIB) $(JRE)
-	@git submodule update --quiet --init --recursive
 	@rm -f classes/test/failures.txt
 	@npm install
+	@$(BOWER) install
 $(JAZZLIB):
 	$(error JazzLib not found. Unzip it to $(BOOTCLASSPATH), or run ./tools/setup.sh.)
 $(JRE):
