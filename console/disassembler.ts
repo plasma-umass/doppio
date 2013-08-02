@@ -15,7 +15,7 @@ if (optimist.argv._.length > 0) {
   fname = '/dev/stdin';
 }
 
-var bytes_array = util.bytestr_to_array(fs.readFileSync(fname, 'binary'));
-var class_data = new ClassData.ReferenceClassData(bytes_array);
+var buffer = fs.readFileSync(fname);
+var class_data = new ClassData.ReferenceClassData(buffer);
 
 console.log(disassembler.disassemble(class_data));
