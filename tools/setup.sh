@@ -115,7 +115,13 @@ if [[ $node_outdated == "true" ]]; then
   fi
 fi
 
-echo "Using `javac -version 2>&1` to generate classfiles"
+javac_version=$(javac -version 2>&1)
+if [[ "$javac_version" =~ "1.7" ]]; then
+  echo "Detected Java 7 (javac version $javac_version). Please use Java 6."
+  exit
+fi
+
+echo "Using $javac_version to generate classfiles"
 make java
 
 if ! command -v bundle > /dev/null; then
