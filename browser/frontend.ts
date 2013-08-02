@@ -354,6 +354,14 @@ var commands = {
     return null;
   },
   java: function(args: string[], cb) {
+    jvm.dump_state = false
+    for (var i = 0; i < args.length; i++) {
+      if (args[i] === '-Xdump-state') {
+        jvm.dump_state = true;
+        args.splice(i, 1);
+        break;
+      }
+    }
     if ((args[0] == null) || (args[0] === '-classpath' && args.length < 3)) {
       return "Usage: java [-classpath path1:path2...] class [args...]";
     }
