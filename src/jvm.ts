@@ -14,7 +14,7 @@ var error = logging.error;
 export var show_NYI_natives: bool = false;
 export var dump_state: bool = false;
 
-var vendor_path = typeof node !== "undefined" ? '/home/doppio/vendor' : path.resolve(__dirname, '../vendor');
+var vendor_path = typeof node !== "undefined" ? '/sys/vendor' : path.resolve(__dirname, '../vendor');
 export var system_properties: any
 
 export function reset_system_properties() {
@@ -46,61 +46,51 @@ export function reset_system_properties() {
   };
 }
 
+// Read in a binary classfile asynchronously. Return an array of bytes.
 export function read_classfile(cls: any, cb: (data: number[])=>void, failure_cb: (exp_cb: ()=>void)=>void) {
-  var data, e, filename, p, _i, _len, _ref3;
-
-  cls = cls.slice(1, -1);
-  _ref3 = system_properties['java.class.path'];
-  for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
-    p = _ref3[_i];
-    filename = "" + p + "/" + cls + ".class";
-    try {
-      if (!fs.existsSync(filename)) {
-        continue;
-      }
-      data = util.bytestr_to_array(fs.readFileSync(filename, 'binary'));
-      if (data != null) {
+  cls = cls.slice(1, -1);  // Convert Lfoo/bar/Baz; -> foo/bar/Baz.
+  var cpath = system_properties['java.class.path'];
+  function try_get(i: number) {
+    fs.readFile(cpath[i] + cls + '.class', function(err, data){
+      if (err) {
+        if (i + 1 == cpath.length) {
+          failure_cb(function(){
+            throw new Error("Error: No file found for class " + cls);
+          });
+        } else {
+          try_get(i + 1);
+        }
+      } else {
         cb(data);
       }
-      return;
-    } catch (_error) {
-      e = _error;
-      failure_cb(function () {
-        throw e;
-      });
-      return;
-    }
+    });
   }
-  failure_cb((function () {
-    throw new Error("Error: No file found for class " + cls + ".");
-  }));
+  // We could launch them all at once, but we would need to ensure that we use
+  // the working version that occurs first in the classpath.
+  try_get(0);
 }
 
 export function set_classpath(jcl_path: string, classpath: string) {
-  var class_path, tmp_cp, _i, _len;
-
-  var classpath2 = classpath.split(':');
-  classpath2.push(jcl_path);
-  this.system_properties['java.class.path'] = tmp_cp = [];
-  for (_i = 0, _len = classpath2.length; _i < _len; _i++) {
-    class_path = classpath2[_i];
-    class_path = path.normalize(class_path);
-    if (class_path.charAt(class_path.length - 1) !== '/') {
-      class_path += '/';
+  var dirs = classpath.split(':');
+  dirs.push(jcl_path);
+  var tmp_classpath = [];
+  for (var i = 0; i < dirs.length; i++) {
+    var cp = path.normalize(dirs[i]);
+    if (cp.charAt(cp.length - 1) !== '/') {
+      cp += '/';
     }
-    if (fs.existsSync(class_path)) {
-      tmp_cp.push(class_path);
-    }
+    // XXX: I'm not checking.
+    // if (fs.existsSync(cp))
+    tmp_classpath.push(cp);
   }
+  this.system_properties['java.class.path'] = tmp_classpath;
 }
 
 export function run_class(rs: runtime.RuntimeState, class_name: string, cmdline_args: string[], done_cb: (arg: any)=>void) {
-  var class_descriptor, main_method, main_sig, run_main, run_program;
-
-  class_descriptor = "L" + class_name + ";";
-  main_sig = 'main([Ljava/lang/String;)V';
-  main_method = null;
-  run_main = function () {
+  var class_descriptor = "L" + class_name + ";";
+  var main_sig = 'main([Ljava/lang/String;)V';
+  var main_method = null;
+  function run_main() {
     trace("run_main");
     rs.run_until_finished((function () {
       rs.async_op(function (resume_cb, except_cb) {
@@ -119,19 +109,23 @@ export function run_class(rs: runtime.RuntimeState, class_name: string, cmdline_
             });
           }), true, function (success) {
               if (!(success && (main_method != null))) {
-                return typeof done_cb === "function" ? done_cb(success) : void 0;
+                if (typeof done_cb === "function") {
+                  done_cb(success);
+                }
               }
               return rs.run_until_finished((function () {
                 return main_method.setup_stack(rs);
               }), false, function (success) {
-                  return typeof done_cb === "function" ? done_cb(success && !rs.unusual_termination) : void 0;
+                  if (typeof done_cb === "function") {
+                    done_cb(success && !rs.unusual_termination);
+                  }
                 });
             });
         }), except_cb);
       });
     }), true, done_cb);
   };
-  run_program = function () {
+  function run_program() {
     trace("run_program");
     rs.run_until_finished((function () {
       rs.init_threads();
