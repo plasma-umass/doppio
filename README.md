@@ -1,8 +1,8 @@
-Typed-Doppio: A JVM in TypeScript
+Doppio: A JVM in Coffeescript
 =================================
 
 _Doppio_ is a double shot of espresso.
-In this case it's also a JVM written in [TypeScript](http://www.typescriptlang.org/).
+In this case it's also a JVM written in [Coffeescript](http://coffeescript.org/).
 
 To try Doppio now, head to the [live demo page](http://int3.github.io/doppio/).
 

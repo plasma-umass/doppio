@@ -181,8 +181,8 @@ test: dependencies $(TESTS)
 %.class: %.java
 	javac -bootclasspath $(BOOTCLASSPATH) $^
 # phony *.test targets allow us to test with -j4 parallelism
-classes/test/%.test: classes/test/%.class classes/test/%.disasm classes/test/%.runout
-	@node console/test_runner.js classes/test/$* --makefile
+classes/test/%.test: release-cli classes/test/%.class classes/test/%.disasm classes/test/%.runout
+	@node build/release/console/test_runner.js classes/test/$* --makefile
 classes/test/%.disasm: classes/test/%.class
 	javap -bootclasspath $(BOOTCLASSPATH) -c -verbose -private classes/test/$* >classes/test/$*.disasm
 # some tests may throw exceptions. The '-' flag tells make to carry on anyway.
