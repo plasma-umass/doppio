@@ -341,7 +341,7 @@ export class Method extends AbstractMethodField {
       if (!((typeof RELEASE !== "undefined" && RELEASE !== null) || logging.log_level < logging.VTRACE)) {
         vtrace(this.cls.get_type() + "::" + this.name + ":" + pc + " => " + op.name + annotation);
         var depth = rs.meta_stack().length();
-        vtrace("D: " + depth + ", S: [" + (debug_vars(cf.stack)) + "], L: [" + (debug_vars(cf.locals)) + "], T: " + (!rs.curr_thread.fake ? thread_name(rs, rs.curr_thread) : ""));
+        vtrace("D: " + depth + ", S: [" + debug_vars(cf.stack) + "], L: [" + debug_vars(cf.locals) + "], T: " + (!rs.curr_thread.fake ? thread_name(rs, rs.curr_thread) : ""));
       }
       cf.pc += 1 + op.byte_count;
       op = code[cf.pc];
