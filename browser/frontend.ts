@@ -1,8 +1,8 @@
 /// <reference path="../vendor/jquery.d.ts" />
 /// <reference path="../vendor/jquery.console.d.ts" />
 /// <reference path="../vendor/ace.d.ts" />
-var underscore = require('../vendor/_.js');
-import node = module('./node');
+var node = require('../vendor/browserfs/dist/browserfs.js');
+var underscore = require('../vendor/underscore/underscore.js');
 import ClassData = module('../src/ClassData');
 import ClassLoader = module('../src/ClassLoader');
 import disassembler = module('../src/disassembler');
@@ -19,93 +19,83 @@ var controller = null;
 var editor = null;
 var progress = null;
 var bs_cl = null;
+var sys_path = '/sys';
 
 function preload(): void {
-  var data;
-  try {
-    data = node.fs.readFileSync("/home/doppio/browser/mini-rt.tar");
-  } catch (_error) {
-    console.error(_error);
-  }
-  if (data == null) return;
-  var file_count = 0;
-  var done = false;
-  var start_untar = (new Date).getTime();
-  function on_complete(): void {
-    var end_untar = (new Date).getTime();
-    console.log("Untarring took a total of " + (end_untar - start_untar) + "ms.");
-    $('#overlay').fadeOut('slow');
-    $('#progress-container').fadeOut('slow');
-    $('#console').click();
-  }
-  var update_bar = underscore.throttle((function(percent, path) {
-    var bar = $('#progress > .bar');
-    var preloading_file = $('#preloading-file');
-    // +10% hack to make the bar appear fuller before fading kicks in
-    var display_perc = Math.min(Math.ceil(percent * 100), 100);
-    bar.width(display_perc + "%");
-    preloading_file.text(display_perc < 100 ? "Loading " + path : "Done!");
-  }));
-  function on_progress(percent: number, path: string, file: number[]): void {
-    update_bar(percent, path);
-    var base_dir = 'vendor/classes/';
-    var ext = path.split('.')[1];
-    if (ext !== 'class') {
-      if (percent === 100) {
-        on_complete();
-      }
+  node.fs.readFile(sys_path + "/browser/mini-rt.tar", function(err, data): void {
+    if (err) {
+      console.error("Error downloading mini-rt.tar:", err);
       return;
     }
-    file_count++;
-    untar.asyncExecute(function() {
-      // XXX: We convert from bytestr to array to process the tar file, and
-      //      then back to a bytestr to store as a file in the filesystem.
-      node.fs.writeFileSync(path, util.array_to_bytestr(file), 'utf8', true);
-      if (--file_count === 0 && done) {
-        return on_complete();
+    var file_count = 0;
+    var done = false;
+    var start_untar = (new Date).getTime();
+    function on_complete(): void {
+      var end_untar = (new Date).getTime();
+      console.log("Untarring took a total of " + (end_untar - start_untar) + "ms.");
+      $('#overlay').fadeOut('slow');
+      $('#progress-container').fadeOut('slow');
+      $('#console').click();
+    }
+    var update_bar = underscore.throttle((function(percent, path) {
+      var bar = $('#progress > .bar');
+      var preloading_file = $('#preloading-file');
+      // +10% hack to make the bar appear fuller before fading kicks in
+      var display_perc = Math.min(Math.ceil(percent * 100), 100);
+      bar.width(display_perc + "%");
+      preloading_file.text(display_perc < 100 ? "Loading " + path : "Done!");
+    }));
+    function on_progress(percent: number, path: string, file: number[]): void {
+      if (path[0] != '/') {
+        path = '/' + path;
       }
-    });
-  }
-  function on_file_done(): void {
-    done = true;
-    if (file_count === 0) {
-      on_complete();
+      update_bar(percent, path);
+      var ext = path.split('.')[1];
+      if (ext !== 'class') {
+        if (percent === 100) {
+          on_complete();
+        }
+        return;
+      }
+      file_count++;
+      untar.asyncExecute(function() {
+        try {
+          xhrfs.preloadFile(path, file);
+        } catch (e) {
+          console.error("Error writing " + path + ":", e);
+        }
+        if (--file_count === 0 && done) {
+          return on_complete();
+        }
+      });
     }
-  }
-  untar.untar(new util.BytesArray(util.bytestr_to_array(data)), on_progress, on_file_done);
-}
-
-// Read in a binary classfile synchronously. Return an array of bytes.
-function read_classfile(cls: string, cb, failure_cb): void {
-  // Convert Lfoo/bar/Baz; -> foo/bar/Baz.
-  var cls = cls.slice(1, -1);
-  var classpath = jvm.system_properties['java.class.path'];
-  for (var i = 0; i < classpath.length; i++) {
-    var fullpath = classpath[i] + cls + ".class";
-    var data;
-    try {
-      data = util.bytestr_to_array(node.fs.readFileSync(fullpath));
-    } catch (_error) {
-      data = null;
+    function on_file_done(): void {
+      done = true;
+      if (file_count === 0) {
+        on_complete();
+      }
     }
-    if (data != null) {
-      return cb(data);
-    }
-  }
-  failure_cb(function(): void {
-    throw new Error("Error: No file found for class " + cls + ".");
+    // Grab the XmlHttpRequest file system.
+    var xhrfs = node.fs.getRootFS().mntMap[sys_path];
+    // Note: Path is relative to XHR mount point (e.g. /vendor/classes rather than
+    // /sys/vendor/classes). They must also be absolute paths.
+    untar.untar(new util.BytesArray(data), on_progress, on_file_done);
   });
 }
 
-function process_bytecode(bytecode_string: string): ClassData.ReferenceClassData {
-  var bytes_array = util.bytestr_to_array(bytecode_string);
-  return new ClassData.ReferenceClassData(bytes_array);
+function process_bytecode(buffer: number[]): ClassData.ReferenceClassData {
+  return new ClassData.ReferenceClassData(buffer);
 }
 
 function onResize(): void {
   var height = $(window).height() * 0.7;
   $('#console').height(height);
   $('#source').height(height);
+}
+
+// Returns prompt text, ala $PS1 in bash.
+function ps1(): string {
+  return node.process.cwd() + '$ ';
 }
 
 $(window).resize(onResize);
@@ -158,19 +148,26 @@ $(document).ready(function() {
       var isClass = ext === 'class';
       reader.onload = function(e) {
         files_uploaded++;
-        node.fs.writeFileSync(node.process.cwd() + '/' + f.name, e.target.result);
-        controller.message("[" + files_uploaded + "/" + num_files + "] File '" + f.name + "' saved.\n", 'success', files_uploaded !== num_files);
-        if (isClass) {
-          if (typeof editor.getSession === "function") {
-            editor.getSession().setValue("/*\n * Binary file: " + f.name + "\n */");
+        var progress = "[" + files_uploaded + "/" + num_files
+                           + "] File '" + f.name + "'";
+        node.fs.writeFile(node.process.cwd() + '/' + f.name, e.target.result, function(err){
+          if (err) {
+            controller.message(progress + " could not be saved: " + err + ".\n",
+                               'error', files_uploaded !== num_files);
+          } else {
+            controller.message(progress + " saved.\n",
+                               'success', files_uploaded !== num_files);
+            if (typeof editor.getSession === "function") {
+              if (isClass) {
+                editor.getSession().setValue("/*\n * Binary file: " + f.name + "\n */");
+              } else {
+                editor.getSession().setValue(e.target.result);
+              }
+            }
           }
-        } else {
-          if (typeof editor.getSession === "function") {
-            editor.getSession().setValue(e.target.result);
-          }
-        }
-        // click to restore focus
-        $('#console').click();
+          // click to restore focus
+          $('#console').click();
+        });
       };
       if (isClass) {
         return reader.readAsBinaryString(f);
@@ -185,7 +182,7 @@ $(document).ready(function() {
   });
   var jqconsole = $('#console');
   controller = jqconsole.console({
-    promptLabel: 'doppio > ',
+    promptLabel: ps1(),
     commandHandle: function(line: string): any {
       var parts = line.trim().split(/\s+/);
       var cmd = parts[0];
@@ -262,8 +259,13 @@ $(document).ready(function() {
     if (contents[contents.length - 1] !== '\n') {
       contents += '\n';
     }
-    node.fs.writeFileSync(fname, contents);
-    controller.message("File saved as '" + fname + "'.", 'success');
+    node.fs.writeFile(fname, contents, function(err){
+      if (err) {
+        controller.message("File could not be saved: " + err, 'error');
+      } else {
+        controller.message("File saved as '" + fname + "'.", 'success');
+      }
+    });
     close_editor();
     e.preventDefault();
   });
@@ -271,60 +273,103 @@ $(document).ready(function() {
     close_editor();
     e.preventDefault();
   });
-  bs_cl = new ClassLoader.BootstrapClassLoader(read_classfile);
+  bs_cl = new ClassLoader.BootstrapClassLoader(jvm.read_classfile);
   preload();
 });
 
-function rpad(str: string, len: number): string {
+function pad_right(str: string, len: number): string {
   return str + Array(len - str.length + 1).join(' ');
 }
 
 // helper function for 'ls'
-function read_dir(dir: string, pretty?: boolean, columns?: boolean): string {
-  if (pretty == null) {
-    pretty = true;
-  }
-  if (columns == null) {
-    columns = true;
-  }
-  var contents = node.fs.readdirSync(dir).sort();
-  if (!pretty) {
-    return contents.join('\n');
-  }
-  var pretty_list = [];
+function read_dir(dir: string, pretty: boolean, columns: boolean, cb: any): void {
+  node.fs.readdir(node.path.resolve(dir), function(err: any, contents: string[]){
+    if (err || contents.length == 0) {
+      return cb('');
+    }
+    contents = contents.sort();
+    if (!pretty) {
+      return cb(contents.join('\n'));
+    }
+    var pretty_list = [];
+    var i = 0;
+    function next_content() {
+      var c = contents[i++];
+      node.fs.stat(dir + '/' + c, function(err, stat){
+        if (stat.isDirectory()) {
+          c += '/';
+        }
+        pretty_list.push(c);
+      });
+      if (i != contents.length) {
+        next_content();
+      } else if (columns) {
+        cb(columnize(pretty_list));
+      } else {
+        cb(pretty_list.join('\n'));
+      }
+    }
+  });
+}
+
+function columnize(str_list: string[], line_length: number = 100): string {
   var max_len = 0;
-  for (var i = 0; i < contents.length; i++) {
-    var c = contents[i];
-    if (node.fs.statSync(dir + '/' + c).isDirectory()) {
-      c += '/';
+  for (var i = 0; i < str_list.length; i++) {
+    var len = str_list[i].length;
+    if (len > max_len) {
+      max_len = len;
     }
-    if (c.length > max_len) {
-      max_len = c.length;
-    }
-    pretty_list.push(c);
   }
-  if (!columns) {
-    return pretty_list.join('\n');
-  }
-  // XXX: assumes 100-char lines
-  var num_cols = (100 / (max_len + 1)) | 0;
-  var col_size = Math.ceil(pretty_list.length / num_cols);
+  var num_cols = (line_length / (max_len + 1)) | 0;
+  var col_size = Math.ceil(str_list.length / num_cols);
   var column_list = [];
   for (var j = 1; 1 <= num_cols; j++) {
-    column_list.push(pretty_list.splice(0, col_size));
+    column_list.push(str_list.splice(0, col_size));
   }
-
-  var make_row = (i) => column_list.filter((col)=>col[i]!=null).map((col)=>rpad(col[i], max_len + 1)).join('');
+  function make_row(i: number): string {
+    return column_list.filter((col)=>col[i]!=null)
+                      .map((col)=>pad_right(col[i], max_len + 1))
+                      .join('');
+  }
   var row_list = [];
   for (var i = 0; i < col_size; i++) {
     row_list.push(make_row(i));
   }
   return row_list.join('\n');
-};
+}
+
+// Set the origin location, if it's not already.
+if (location['origin'] == null) {
+  location['origin'] = location.protocol + "//" + location.host;
+}
 
 var commands = {
+  view_dump: function(args: string[], cb) {
+    if (!window['core_dump']) {
+      return "No core file to send. Use java -Xdump-state path/to/failing/class to generate one.";
+    }
+    // Open the core viewer in a new window and save a reference to it.
+    var viewer = window.open('core_viewer.html?source=browser');
+    // Create a function to send the core dump to the new window.
+    function send_dump(): void {
+      var message = JSON.stringify(window['core_dump']);
+      viewer.postMessage(message, location['origin']);
+    }
+    // Start a timer to send the message after 5 seconds - the window should
+    // have loaded by then.
+    var delay = 5000;
+    var timer = setTimeout(send_dump, delay);
+    // If the window loads before 5 seconds, send the message straight away
+    // and cancel the timer.
+    viewer.onload = function() {
+      clearTimeout(timer);
+      send_dump();
+    }
+    controller.reprompt();
+    return null;
+  },
   ecj: function(args: string[], cb) {
-    jvm.set_classpath('/home/doppio/vendor/classes/', './');
+    jvm.set_classpath(sys_path + '/vendor/classes/', './');
     var rs = new runtime.RuntimeState(stdout, user_input, bs_cl);
     jvm.system_properties['jdt.compiler.useSingleThread'] = true;
     jvm.run_class(rs, 'org/eclipse/jdt/internal/compiler/batch/Main', args, function() {
@@ -340,7 +385,7 @@ var commands = {
     return null;
   },
   javac: function(args: string[], cb) {
-    jvm.set_classpath('/home/doppio/vendor/classes/', './:/home/doppio');
+    jvm.set_classpath(sys_path + '/vendor/classes/', './:/home/doppio');
     var rs = new runtime.RuntimeState(stdout, user_input, bs_cl);
     jvm.run_class(rs, 'classes/util/Javac', args, function() {
       for (var i = 0; i < args.length; i++) {
@@ -362,16 +407,17 @@ var commands = {
         break;
       }
     }
-    if ((args[0] == null) || (args[0] === '-classpath' && args.length < 3)) {
+    if ((args[0] == null) ||
+        ((args[0] === '-classpath' || args[0] === '-cp') && args.length < 3)) {
       return "Usage: java [-classpath path1:path2...] class [args...]";
     }
     var class_args, class_name;
-    if (args[0] === '-classpath') {
-      jvm.set_classpath('/home/doppio/vendor/classes/', args[1]);
+    if (args[0] === '-classpath' || args[0] === '-cp') {
+      jvm.set_classpath(sys_path + '/vendor/classes/', args[1]);
       class_name = args[2];
       class_args = args.slice(3);
     } else {
-      jvm.set_classpath('/home/doppio/vendor/classes/', './');
+      jvm.set_classpath(sys_path + '/vendor/classes/', './');
       class_name = args[0];
       class_args = args.slice(1);
     }
@@ -383,10 +429,17 @@ var commands = {
     if (args[0] == null) {
       return "Usage: test all|[class(es) to test]";
     }
+    // Change dir to $sys_path, because that's where tests expect to be run from.
+    var curr_dir = node.process.cwd();
+    function done_cb(): void {
+      node.process.chdir(curr_dir);
+      controller.reprompt();
+    }
+    node.process.chdir(sys_path);
     if (args[0] === 'all') {
-      testing.run_tests([], stdout, true, false, true, () => controller.reprompt());
+      testing.run_tests([], stdout, true, false, true, done_cb);
     } else {
-      testing.run_tests(args, stdout, false, false, true, () => controller.reprompt());
+      testing.run_tests(args, stdout, false, false, true, done_cb);
     }
     return null;
   },
@@ -394,16 +447,17 @@ var commands = {
     if (args[0] == null) {
       return "Usage: javap class";
     }
-    var raw_data;
-    try {
-      raw_data = node.fs.readFileSync("" + args[0] + ".class");
-    } catch (_error) {
-      return ["Could not find class '" + args[0] + "'.", 'error'];
-    }
-    return disassembler.disassemble(process_bytecode(raw_data));
+    node.fs.readFile(args[0] + '.class', function(err, buf){
+      if (err) {
+        controller.message("Could not find class '" + args[0] + "'.", 'error');
+      } else {
+        controller.message(disassembler.disassemble(process_bytecode(buf)), 'success');
+      }
+    });
+    return null;
   },
   rhino: function(args: string[], cb) {
-    jvm.set_classpath('/home/doppio/vendor/classes/', './');
+    jvm.set_classpath(sys_path + '/vendor/classes/', './');
     var rs = new runtime.RuntimeState(stdout, user_input, bs_cl);
     jvm.run_class(rs, 'com/sun/tools/script/shell/Main', args, () => controller.reprompt());
     return null;
@@ -413,94 +467,141 @@ var commands = {
     return '  ' + cached_classes.sort().join('\n  ');
   },
   clear_cache: function() {
-    bs_cl = new ClassLoader.BootstrapClassLoader(read_classfile);
+    bs_cl = new ClassLoader.BootstrapClassLoader(jvm.read_classfile);
     return true;
   },
   ls: function(args: string[]) {
     if (args.length === 0) {
-      return read_dir('.');
+      read_dir('.', true, true, (listing) => controller.message(listing, 'success'));
     } else if (args.length === 1) {
-      return read_dir(args[0]);
+      read_dir(args[0], true, true, (listing) => controller.message(listing, 'success'));
     } else {
-      return args.map((d) => d + ":\n" + read_dir(d) + "\n").join('\n');
+      function read_next_dir(i: number): void {
+        var dir = args[i];
+        read_dir(dir, true, true, function(listing: string){
+          controller.message(dir + ':\n' + listing + '\n\n', 'success', true);
+          if (i == args.length) {
+            controller.reprompt();
+          } else {
+            read_next_dir(i + 1);
+          }
+        });
+      }
+      read_next_dir(0);
     }
+    return null;
   },
   edit: function(args: string[]) {
-    var data;
-    try {
-      data = args[0] != null ? node.fs.readFileSync(args[0]) : defaultFile;
-    } catch (_error) {
-      data = defaultFile;
+    function start_editor(data: string): void {
+      $('#console').fadeOut('fast', function(): void {
+        $('#filename').val(args[0]);
+        $('#ide').fadeIn('fast');
+        // Initialize the editor. Technically we only need to do this once,
+        // but more is fine too.
+        editor = ace.edit('source');
+        editor.setTheme('ace/theme/twilight');
+        if (args[0] == null || args[0].split('.')[1] === 'java') {
+          var JavaMode = require("ace/mode/java").Mode;
+          editor.getSession().setMode(new JavaMode);
+        } else {
+          var TextMode = require("ace/mode/text").Mode;
+          editor.getSession().setMode(new TextMode);
+        }
+        editor.getSession().setValue(data);
+      });
     }
-    $('#console').fadeOut('fast', function() {
-      $('#filename').val(args[0]);
-      $('#ide').fadeIn('fast');
-      editor = ace.edit('source');
-      editor.setTheme('ace/theme/twilight');
-      if (args[0] == null || args[0].split('.')[1] === 'java') {
-        var JavaMode = require("ace/mode/java").Mode;
-        editor.getSession().setMode(new JavaMode);
+    if (args[0] == null) {
+      start_editor(defaultFile('Test.java'));
+      return true;
+    }
+    node.fs.readFile(args[0], 'utf8', function(err, data: string): void {
+      if (err) {
+        start_editor(defaultFile(args[0]));
       } else {
-        var TextMode = require("ace/mode/text").Mode;
-        editor.getSession().setMode(new TextMode);
+        start_editor(data);
       }
-      return editor.getSession().setValue(data);
+      controller.reprompt();
     });
-    return true;
   },
-  cat: function(args: string[]): string {
+  cat: function(args: string[]) {
     var fname = args[0];
     if (fname == null) {
       return "Usage: cat <file>";
     }
-    try {
-      return node.fs.readFileSync(fname);
-    } catch (_error) {
-      return "ERROR: " + fname + " does not exist.";
-    }
+    node.fs.readFile(fname, 'utf8', function(err, data: string): void {
+      if (err) {
+        controller.message("Could not open file '" + fname + "': " + err, 'error');
+      } else {
+        controller.message(data, 'success');
+      }
+    });
+    return null;
   },
   mv: function(args: string[]) {
     if (args.length < 2) {
       return "Usage: mv <from-file> <to-file>";
     }
-    try {
-      node.fs.renameSync(args[0], args[1]);
-    } catch (_error) {
-      return "Invalid arguments.";
-    }
-    return true;
+    node.fs.rename(args[0], args[1], function(err) {
+      if (err) {
+        controller.message("Could not rename "+args[0]+" to "+args[1]+": "+err, 'error', true);
+      }
+      controller.reprompt();
+    });
+    return null;
   },
   cd: function(args: string[]) {
     if (args.length > 1) {
       return "Usage: cd <directory>";
     }
-    if (args.length === 0) {
-      args.push("~");
+    var dir;
+    if (args.length == 0 || args[0] == '~') {
+      // Change to the default (starting) directory.
+      dir = '/demo';
+    } else {
+      dir = node.path.resolve(args[0]);
     }
-    try {
-      node.process.chdir(args[0]);
-    } catch (_error) {
-      return "Invalid directory.";
-    }
-    return true;
+    // Verify path exists before going there.
+    // chdir does not verify that the directory exists.
+    node.fs.exists(dir, function(doesExist: boolean) {
+      if (doesExist) {
+        node.process.chdir(dir);
+        controller.promptLabel = ps1();
+      } else {
+        controller.message("Directory " + dir + " does not exist.\n", 'error', true);
+      }
+      controller.reprompt();
+    })
+    return null;
   },
-  rm: function(args: string[]): any {
+  rm: function(args: string[]) {
     if (args[0] == null) {
       return "Usage: rm <file>";
     }
-    if (args[0] === '*') {
-      var fnames = node.fs.readdirSync('.');
-      for (var i = 0; i < fnames.length; i++) {
-        var fname = fnames[i];
-        if (node.fs.statSync(fname).isDirectory()) {
-          return "ERROR: '" + fname + "' is a directory.";
+    var completed = 0;
+    function remove_file(file: string, total: number): void {
+      node.fs.unlink(file, function(err){
+        if (err) {
+          controller.message("Could not remove file: " + file + "\n", 'error', true);
         }
-        node.fs.unlinkSync(fname);
-      }
-    } else {
-      node.fs.unlinkSync(args[0]);
+        if (++completed == total) {
+          controller.reprompt();
+        }
+      });
     }
-    return true;
+    if (args[0] === '*') {
+      node.fs.readdir('.', function(err, fnames: string[]){
+        if (err) {
+          controller.message("Could not read '.': " + err, 'error');
+          return;
+        }
+        for (var i = 0; i < fnames.length; i++) {
+          remove_file(fnames[i], fnames.length);
+        }
+      });
+    } else {
+      remove_file(args[0], 1);
+    }
+    return null;
   },
   emacs: function(): string {
     return "Try 'vim'.";
@@ -564,53 +665,52 @@ var commands = {
 };
 
 function tabComplete(): void {
-  var args, getCompletions, prefix, promptText;
-
   var promptText = controller.promptText();
   var args = promptText.split(/\s+/);
-  var prefix = longestCommmonPrefix(getCompletions(args));
-  if (prefix === '') {
-    // TODO: if we're tab-completing a blank, show all options
-    return;
-  }
-  // delete existing text so we can do case correction
-  var promptText = promptText.substr(0, promptText.length - util.last(args).length);
-  controller.promptText(promptText + prefix);
+  var last_arg = util.last(args);
+  getCompletions(args, function(completions: string[]) {
+    var prefix = longestCommmonPrefix(completions);
+    if (prefix == '' || prefix == last_arg) {
+      // We've no more sure completions to give, so show all options.
+      var common_len = last_arg.lastIndexOf('/') + 1;
+      var options = columnize(completions.map((c) => c.slice(common_len)));
+      controller.message(options, 'success');
+      controller.promptText(promptText);
+      return;
+    }
+    // Delete existing text so we can do case correction.
+    promptText = promptText.substr(0, promptText.length -  last_arg.length);
+    controller.promptText(promptText + prefix);
+  });
 }
 
-function getCompletions(args: string[]): string[] {
-  if (args.length === 1) {
-    return commandCompletions(args[0]);
+function getCompletions(args: string[], cb): void {
+  if (args.length == 1) {
+    cb(filterSubstring(args[0], Object.keys(commands)));
   } else if (args[0] === 'time') {
-    return getCompletions(args.slice(1));
+    getCompletions(args.slice(1), cb);
   } else {
-    return fileNameCompletions(args[0], args);
+    fileNameCompletions(args[0], args, cb);
   }
 }
 
-function commandCompletions(cmd: string): string[] {
-  var _results = [];
-  for (var name in commands) {
-    if (name.substr(0, cmd.length) === cmd) {
-      _results.push(name);
-    }
-  }
-  return _results;
+function filterSubstring(prefix: string, lst: string[]): string[] {
+  return lst.filter((x) => x.substr(0, prefix.length) == prefix);
 }
 
-function fileNameCompletions(cmd: string, args: string[]): string[] {
-  function validExtension(fname: string): boolean {
-    var dot = fname.lastIndexOf('.');
-    var ext = dot === -1 ? '' : fname.slice(dot + 1);
-    if (cmd === 'javac') {
-      return ext === 'java';
-    } else if (cmd === 'javap' || cmd === 'java') {
-      return ext === 'class';
-    } else {
-      return true;
-    }
+function validExtension(cmd: string, fname: string): boolean {
+  var dot = fname.lastIndexOf('.');
+  var ext = dot === -1 ? '' : fname.slice(dot + 1);
+  if (cmd === 'javac') {
+    return ext === 'java';
+  } else if (cmd === 'javap' || cmd === 'java') {
+    return ext === 'class';
+  } else {
+    return true;
   }
+}
 
+function fileNameCompletions(cmd: string, args: string[], cb): void {
   var chopExt = args.length === 2 && (cmd === 'javap' || cmd === 'java');
   var toComplete = util.last(args);
   var lastSlash = toComplete.lastIndexOf('/');
@@ -622,29 +722,36 @@ function fileNameCompletions(cmd: string, args: string[]): string[] {
     dirPfx = '';
     searchPfx = toComplete;
   }
-  var dirList;
-  try {
-    dirList = node.fs.readdirSync(dirPfx === '' ? '.' : dirPfx);
-    // Slight cheat.
-    dirList.push('..');
-    dirList.push('.');
-  } catch (_error) {
-    return [];
-  }
-  var completions = [];
-  for (var i = 0; i < dirList.length; i++) {
-    var item = dirList[i];
-    var stat = node.fs.statSync(dirPfx + item);
-    var isDir = stat != null && stat.isDirectory();
-    if ((isDir || validExtension(item)) && item.slice(0, searchPfx.length) === searchPfx) {
-      if (isDir) {
-        completions.push(dirPfx + item + '/');
-      } else if (cmd !== 'cd') {
-        completions.push(dirPfx + (chopExt ? item.split('.', 1)[0] : item));
-      }
+  var dirPath = (dirPfx == '') ? '.' : node.path.resolve(dirPfx);
+  node.fs.readdir(dirPath, function(err, dirList){
+    if (err != null) {
+      return cb([])
     }
-  }
-  return completions;
+    dirList = filterSubstring(searchPfx, dirList);
+    var completions = [];
+    var num_back = 0;
+    function add_completion(item: string): void {
+      node.fs.stat(node.path.resolve(dirPfx + item), function(err, stats) {
+        if (err != null) {
+          // Do nothing.
+        } else if (stats.isDirectory()) {
+          completions.push(dirPfx + item + '/');
+        } else if (validExtension(cmd, item)) {
+          if (chopExt) {
+            completions.push(dirPfx + item.split('.', 1)[0]);
+          } else {
+            completions.push(dirPfx + item);
+          }
+        }
+        if (++num_back == dirList.length) {
+          cb(completions);
+        }
+      });
+    }
+    for (var i = 0; i < dirList.length; i++) {
+      add_completion(dirList[i]);
+    }
+  });
 }
 
 // use the awesome greedy regex hack, from http://stackoverflow.com/a/1922153/10601
@@ -652,6 +759,11 @@ function longestCommmonPrefix(lst: string[]): string {
   return lst.join(' ').match(/^(\S*)\S*(?: \1\S*)*$/i)[1];
 }
 
-var defaultFile = "class Test {\n"
-  + "  public static void main(String[] args) {\n"
-  + "    // enter code here\n  }\n}";
+function defaultFile(filename: string): string {
+  if (filename.indexOf('.java', filename.length - 5) != -1) {
+    return "class " + filename.substr(0, filename.length - 5) + " {\n"
+        + "  public static void main(String[] args) {\n"
+        + "    // enter code here\n  }\n}";
+  }
+  return "";
+}
