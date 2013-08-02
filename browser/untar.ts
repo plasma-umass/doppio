@@ -41,8 +41,9 @@ function shift_file(bytes: util.BytesArray): any[] {
   var fullname = fname;
   if (prefix)
     fullname = prefix + "/" + fname;
-  var body = bytes.read(Math.ceil(size / 512) * 512);
-  var file = body.slice(0, size);
+  var padding = Math.ceil(size / 512) * 512 - size;
+  var file = bytes.slice(size);
+  bytes.skip(padding);
   return [fullname, file];
 }
 
