@@ -1,7 +1,6 @@
 /// <reference path="../vendor/jquery.d.ts" />
 /// <reference path="../vendor/jquery.console.d.ts" />
 /// <reference path="../vendor/ace.d.ts" />
-var node = require('../vendor/browserfs/dist/browserfs.js');
 var underscore = require('../vendor/underscore/underscore.js');
 import ClassData = module('../src/ClassData');
 import ClassLoader = module('../src/ClassLoader');
@@ -11,6 +10,8 @@ import runtime = module('../src/runtime');
 import testing = module('../src/testing');
 import untar = module('./untar');
 import util = module('../src/util');
+import node_setup = module('./node_setup');
+var node = node_setup.node;
 
 // To be initialized on document load
 var stdout = null;
