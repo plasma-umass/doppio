@@ -141,7 +141,14 @@ if [[ $node_outdated == "true" ]]; then
 fi
 
 # The 'tr' command is just for Cygwin environments. Darn Windows!
-echo "Using `$JAVAC -version 2>&1 | tr -d '\r'` to generate classfiles"
+javac_version=$($JAVAC -version 2>&1 | tr -d '\r')
+if [[ "$javac_version" =~ "1.7" ]]; then
+  echo "Detected Java 7 (javac version $javac_version). Please use Java 6."
+  exit
+fi
+
+echo "Using $javac_version to generate classfiles"
+
 make java
 
 if ! command -v bundle > /dev/null; then
