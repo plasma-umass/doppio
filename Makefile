@@ -20,8 +20,7 @@ IS_CYGWIN := $(shell if [[ `uname -s` == CYGWIN* ]]; then echo 1; else echo 0; f
 # CYGWIN WRAPPERS
 # In Cygwin, we have to run these commands on the Windows side of things.
 ifeq (1,$(IS_CYGWIN))
-	# Helper function
-	fix_path  = $(shell cygpath -w $(1))
+	# Helper functions
 	# Need to make a directory junction instead of a symlink.
 	# Link name goes first.
 	sym_link = cmd /c mklink /J `cygpath -w $(2)` `cygpath -w $(1)`
@@ -51,7 +50,6 @@ ifeq (1,$(IS_CYGWIN))
 	JAVAP    := "$(JDK_PATH)/bin/javap"
 else
 	# Helper functions
-	fix_path = $(1)
 	sym_link = ln -sfn $(1) $(2)
 	# Node
     NODE     := node
