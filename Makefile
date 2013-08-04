@@ -11,21 +11,21 @@ DIST_NAME = $(shell echo "Doppio_`date +'%y-%m-%d'`.tar.gz")
 
 # DEPENDENCIES
 DOPPIO_DIR    := $(CURDIR)
-# CYGWIN: This needs to be a relative path for Java to understand it; Java operating
-# in Cygwin doesn't understand Cygwin paths.
-BOOTCLASSPATH := $(shell realpath --relative-to=. $(DOPPIO_DIR)/vendor/classes)
 
 IS_CYGWIN := $(shell if [[ `uname -s` == CYGWIN* ]]; then echo 1; else echo 0; fi)
 
 # CYGWIN WRAPPERS
 # In Cygwin, we have to run these commands on the Windows side of things.
 ifeq (1,$(IS_CYGWIN))
+  # This needs to be a relative path for Java to understand it; Java operating
+	# in Cygwin doesn't understand Cygwin paths.
+	BOOTCLASSPATH := $(shell realpath --relative-to=. $(DOPPIO_DIR)/vendor/classes)
 	# Helper functions
 	# Need to make a directory junction instead of a symlink.
 	# Link name goes first.
 	sym_link = cmd /c mklink /J `cygpath -w $(2)` `cygpath -w $(1)`
 	# Node
-    NODE     := cmd /c node
+  NODE     := cmd /c node
 	NPM      := cmd /c npm
 	NPM_BIN  := $(shell cmd /c npm bin)
 	# Node modules
@@ -44,6 +44,7 @@ ifeq (1,$(IS_CYGWIN))
 	JAVAC    := "$(JDK_PATH)/bin/javac"
 	JAVAP    := "$(JDK_PATH)/bin/javap"
 else
+	BOOTCLASSPATH := $(DOPPIO_DIR)/vendor/classes
 	# Helper functions
 	sym_link = ln -sfn $(1) $(2)
 	# Node
