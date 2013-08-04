@@ -2,14 +2,39 @@
 set -e
 cd `dirname $0`/..
 
+# NOTE: Spaces matter. NPM = npm will end up running the program NPM if it exists (which it does in
+# Cygwin -- case insensitive ftl).
 PLATFORM=`uname -s`
 PKGMGR=""
+NPM=npm
+NODE=node
+JAVA=java
+JAVAC=javac
+JAVAP=javap
 
-if [ "$PLATFORM" = "Darwin" ]; then
+if [[ "$PLATFORM" = "Darwin" ]]; then
     if command -v brew; then
         echo "Found the homebrew package manager."
         PKGMGR="brew install"
     fi
+fi
+
+if [[ "$PLATFORM" == CYGWIN* ]]; then
+	NPM="cmd /c npm"
+	NODE="cmd /c node"
+	_PF=`cmd /c echo "%ProgramFiles%" | tr -d '\r'`
+	JDK_PATH=`find "\`cygpath \"$_PF\"\`/Java" -name jdk1\.6\* | head -n 1`
+	# No need to cmd /c; Java seems to work OK in Cygwin.
+	# We use 'eval' because of the space in the Program Files directory.
+	JAVA="eval \"$JDK_PATH/bin/java.exe\""
+	JAVAC="eval \"$JDK_PATH/bin/javac.exe\""
+	JAVAP="eval \"$JDK_PATH/bin/javap.exe\""
+	BOWER_PATH="`$NPM bin`\\bower.cmd"
+	echo "$BOWER_PATH"
+	# I don't know why, but I'm not supposed to escape the inner quotes.
+	BOWER="cmd /c "$BOWER_PATH""
+else
+	BOWER=`$NPM bin`/bower
 fi
 
 cd vendor
@@ -89,22 +114,20 @@ if ! command -v node > /dev/null; then
 fi
 
 # Make sure npm is installed
-if ! command -v npm > /dev/null; then
+if ! command -v $NPM > /dev/null; then
   echo "npm not found, installing (requires superuser rights)"
   curl https://npmjs.org/install.sh | sudo sh
 fi
 
 # Install Node modules (must come before version check because the semver package is needed)
 echo "Installing required node modules"
-npm install
-# XXX: should install these through package.json
-npm install -g coffee-script typescript
+$NPM install
 
 echo "Installing frontend dependencies"
-`npm bin`/bower install
+$BOWER install
 
 # Make sure the node version is greater than 0.10
-node_outdated=$(node -p "require('semver').lt(process.versions.node, '0.10.0')")
+node_outdated=$($NODE -p "require('semver').lt(process.versions.node, '0.10.0')")
 
 if [[ $node_outdated == "true" ]]; then
   echo "node >= v0.10.0 required"
@@ -117,7 +140,8 @@ if [[ $node_outdated == "true" ]]; then
   fi
 fi
 
-echo "Using `javac -version 2>&1` to generate classfiles"
+# The 'tr' command is just for Cygwin environments. Darn Windows!
+echo "Using `$JAVAC -version 2>&1 | tr -d '\r'` to generate classfiles"
 make java
 
 if ! command -v bundle > /dev/null; then

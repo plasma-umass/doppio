@@ -11,12 +11,64 @@ DIST_NAME = $(shell echo "Doppio_`date +'%y-%m-%d'`.tar.gz")
 
 # DEPENDENCIES
 DOPPIO_DIR    := $(CURDIR)
-BOOTCLASSPATH := $(DOPPIO_DIR)/vendor/classes
-COFFEEC  := coffee
-TSC      := $(shell npm bin)/tsc
-UGLIFYJS := $(shell npm bin)/uglifyjs
-DOCCO    := $(shell npm bin)/docco
-BOWER    := $(shell npm bin)/bower
+# CYGWIN: This needs to be a relative path for Java to understand it; Java operating
+# in Cygwin doesn't understand Cygwin paths.
+BOOTCLASSPATH := $(shell realpath --relative-to=. $(DOPPIO_DIR)/vendor/classes)
+
+IS_CYGWIN := $(shell if [[ `uname -s` == CYGWIN* ]]; then echo 1; else echo 0; fi)
+
+# CYGWIN WRAPPERS
+# In Cygwin, we have to run these commands on the Windows side of things.
+ifeq (1,$(IS_CYGWIN))
+	# Helper function
+	fix_path  = $(shell cygpath -w $(1))
+	# Need to make a directory junction instead of a symlink.
+	# Link name goes first.
+	sym_link = cmd /c mklink /J `cygpath -w $(2)` `cygpath -w $(1)`
+	# Node
+    NODE     := cmd /c node
+	NPM      := cmd /c npm
+	NPM_BIN  := $(shell cmd /c npm bin)
+	# Node modules
+	COFFEEC  := cmd /c "$(NPM_BIN)\coffee.cmd"
+	TSC      := cmd /c "$(NPM_BIN)\tsc.cmd"
+	UGLIFYJS := cmd /c "$(NPM_BIN)\uglifyjs.cmd"
+	DOCCO    := cmd /c "$(NPM_BIN)\docco.cmd"
+	BOWER    := cmd /c "$(NPM_BIN)\bower.cmd"
+	# Java
+	# * Use command prompt to get the location of Program Files.
+	# * Trim the carriage return, which messes up string concatenation in bash.
+	# * Wrap in quotes due to potential (likely) spaces in path.
+	# * Pass to cygpath to get the Unix path.
+	# * Wrap in quotes again.
+	# * Locate the first jdk1.6 folder using find.
+	# * Use the first result.
+	# * Convert back into a Windows path. :-)
+	_PF := $(shell cmd /c echo "%ProgramFiles%" | tr -d '\r')
+	JDK_PATH := $(shell find "`cygpath \"$(_PF)\"`/Java" -name jdk1\.6\* | head -n 1)
+	JAVA     := "$(JDK_PATH)/bin/java"
+	JAVAC    := "$(JDK_PATH)/bin/javac"
+	JAVAP    := "$(JDK_PATH)/bin/javap"
+else
+	# Helper functions
+	fix_path = $(1)
+	sym_link = ln -sfn $(1) $(2)
+	# Node
+    NODE     := node
+	NPM      := npm
+	NPM_BIN  := $(shell npm bin)
+	# Node modules
+	COFFEEC  := $(NPM_BIN)/coffee
+	TSC      := $(NPM_BIN)/tsc
+	UGLIFYJS := $(NPM_BIN)/uglifyjs
+	DOCCO    := $(NPM_BIN)/docco
+	BOWER    := $(NPM_BIN)/bower
+	# Java
+	JAVA     := java
+	JAVAC    := javac
+	JAVAP    := javap
+endif
+
 JAZZLIB  := $(BOOTCLASSPATH)/java/util/zip/DeflaterEngine.class
 JRE      := $(BOOTCLASSPATH)/java/lang/Object.class
 SED      := $(shell if command -v gsed >/dev/null; then echo "gsed"; else echo "sed"; fi;)
@@ -149,7 +201,7 @@ $(DIST_NAME): release docs
 # Installs or checks for any required dependencies.
 dependencies: $(JAZZLIB) $(JRE)
 	@rm -f classes/test/failures.txt
-	@npm install
+	@$(NPM) install
 	@$(BOWER) install
 $(JAZZLIB):
 	$(error JazzLib not found. Unzip it to $(BOOTCLASSPATH), or run ./tools/setup.sh.)
@@ -167,15 +219,18 @@ test: dependencies $(TESTS)
 	@if [[ -s classes/test/xfail.txt ]]; then echo -n 'Expected failures: '; xargs <classes/test/xfail.txt; fi
 # compiling each one by itself is really inefficient...
 %.class: %.java
-	javac -bootclasspath $(BOOTCLASSPATH) $^
+	$(JAVAC) -bootclasspath $(BOOTCLASSPATH) $^
 # phony *.test targets allow us to test with -j4 parallelism
 classes/test/%.test: release-cli classes/test/%.class classes/test/%.disasm classes/test/%.runout
-	@node build/release/console/test_runner.js classes/test/$* --makefile
+	@$(NODE) build/release/console/test_runner.js classes/test/$* --makefile
 classes/test/%.disasm: classes/test/%.class
-	javap -bootclasspath $(BOOTCLASSPATH) -c -verbose -private classes/test/$* >classes/test/$*.disasm
+	# The trim command is to handle the Windows case.
+	$(JAVAP) -bootclasspath $(BOOTCLASSPATH) -c -verbose -private classes/test/$* >classes/test/$*.disasm
+	if [[ $(IS_CYGWIN) = 1 ]]; then dos2unix classes/test/$*.disasm; fi
 # some tests may throw exceptions. The '-' flag tells make to carry on anyway.
 classes/test/%.runout: classes/test/%.class
-	-java -Xbootclasspath/a:$(BOOTCLASSPATH) classes/test/$* &>classes/test/$*.runout
+	-$(JAVA) -Xbootclasspath/a:$(BOOTCLASSPATH) classes/test/$* &>classes/test/$*.runout
+	if [[ $(IS_CYGWIN) = 1 && -e classes/test/$*.runout ]]; then dos2unix classes/test/$*.runout; fi
 
 clean:
 	@rm -f tools/*.js tools/preload browser/listings.json doppio doppio-dev
@@ -241,7 +296,7 @@ build/%/browser/style.css: vendor/bootstrap/docs/assets/css/bootstrap.css \
 
 # Prevent this from being treated as pattern rule (because it has multiple targets)
 $(foreach TARGET,$(BUILD_TARGETS),$(subst %,$(TARGET),build/%/classes build/%/vendor)):
-	ln -sfn $(DOPPIO_DIR)/$(notdir $@) $@
+	$(call sym_link,$(DOPPIO_DIR)/$(notdir $@),$@)
 
 build/%/browser/mini-rt.tar: tools/preload
 	COPYFILE_DISABLE=true && tar -c -T tools/preload -f $@
@@ -263,7 +318,7 @@ build/release/compressed.js build/benchmark/compressed.js build/library/compress
 	for src in $($*_BROWSER_SRCS); do \
 		if [ "$${src##*.}" == "ts" ]; then \
 			mkdir -p $(dir $@); \
-			ln -sfn $$src $(dir $@); \
+			$(call sym_link,$$src,$(dir $@)); \
 			$(TSC) --sourcemap --out $(dir $@) $$src; \
 		else \
 			cat $${src}; \
