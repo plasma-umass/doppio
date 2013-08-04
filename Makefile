@@ -37,12 +37,7 @@ ifeq (1,$(IS_CYGWIN))
 	# Java
 	# * Use command prompt to get the location of Program Files.
 	# * Trim the carriage return, which messes up string concatenation in bash.
-	# * Wrap in quotes due to potential (likely) spaces in path.
-	# * Pass to cygpath to get the Unix path.
-	# * Wrap in quotes again.
-	# * Locate the first jdk1.6 folder using find.
-	# * Use the first result.
-	# * Convert back into a Windows path. :-)
+	# * Convert to Cygwin path, use find command to find JDK directory.
 	_PF := $(shell cmd /c echo "%ProgramFiles%" | tr -d '\r')
 	JDK_PATH := $(shell find "`cygpath \"$(_PF)\"`/Java" -name jdk1\.6\* | head -n 1)
 	JAVA     := "$(JDK_PATH)/bin/java"
