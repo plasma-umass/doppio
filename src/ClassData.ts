@@ -276,13 +276,13 @@ export class ReferenceClassData extends ClassData {
   private interface_cdatas: ReferenceClassData[];
   private default_fields: { [name: string]: any };
 
-  constructor(raw_bytes_array: number[], loader?: any) {
+  constructor(buffer: NodeBuffer, loader?: any) {
     if (methodz == null) {
       methodz = require('./methods');
     }
     super(loader);
     var f, i, isize, m, mkey, num_fields, num_methods, super_ref, _i, _j, _len, _ref1, _ref2;
-    var bytes_array = new util.BytesArray(raw_bytes_array);
+    var bytes_array = new util.BytesArray(buffer);
     if ((bytes_array.get_uint(4)) !== 0xCAFEBABE) {
       throw "Magic number invalid";
     }

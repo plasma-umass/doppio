@@ -47,7 +47,7 @@ export function reset_system_properties() {
 }
 
 // Read in a binary classfile asynchronously. Return an array of bytes.
-export function read_classfile(cls: any, cb: (data: number[])=>void, failure_cb: (exp_cb: ()=>void)=>void) {
+export function read_classfile(cls: any, cb: (data: NodeBuffer)=>void, failure_cb: (exp_cb: ()=>void)=>void) {
   cls = cls.slice(1, -1);  // Convert Lfoo/bar/Baz; -> foo/bar/Baz.
   var cpath = system_properties['java.class.path'];
   function try_get(i: number) {

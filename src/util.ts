@@ -334,9 +334,9 @@ export class BytesArray {
   private end : number;
   private _index : number;
 
-  constructor(private raw_array: number[], start?: number, end?: number) {
+  constructor(private buffer: NodeBuffer, start?: number, end?: number) {
     this.start = start != null ? start : 0;
-    this.end = end != null ? end : this.raw_array.length;
+    this.end = end != null ? end : this.buffer.length;
     this._index = 0;
   }
 
@@ -357,9 +357,19 @@ export class BytesArray {
   }
 
   public get_uint(bytes_count: number): number {
-    var rv = read_uint(this.raw_array.slice(this.start + this._index, this.start + this._index + bytes_count));
+    var readIndex = this.start + this._index;
     this._index += bytes_count;
-    return rv;
+    switch (bytes_count) {
+      case 1:
+        return this.buffer.readUInt8(readIndex);
+      case 2:
+        return this.buffer.readUInt16BE(readIndex);
+      case 4:
+        return this.buffer.readUInt32BE(readIndex);
+      default:
+        this._index -= bytes_count;
+        throw new Error('Cannot read a uint of size ' + bytes_count);
+    }
   }
 
   public get_int(bytes_count: number): number {
@@ -368,13 +378,16 @@ export class BytesArray {
   }
 
   public read(bytes_count: number): number[] {
-    var rv = this.raw_array.slice(this.start + this._index, this.start + this._index + bytes_count);
+    var rv = [];
+    for (var i = this.start + this._index; i < this.start + this._index + bytes_count; i++) {
+      rv.push(this.buffer.readUInt8(i));
+    }
     this._index += bytes_count;
     return rv;
   }
 
   public peek(): number {
-    return this.raw_array[this.start + this._index];
+    return this.buffer.readUInt8(this.start + this._index);
   }
 
   public size(): number {
@@ -382,9 +395,15 @@ export class BytesArray {
   }
 
   public splice(len: number): BytesArray {
-    var arr = new BytesArray(this.raw_array, this.start + this._index, this.start + this._index + len);
+    var arr = new BytesArray(this.buffer, this.start + this._index, this.start + this._index + len);
     this._index += len;
     return arr;
+  }
+
+  public slice(len: number): NodeBuffer {
+    var rv = this.buffer.slice(this.start + this._index, this.start + this._index + len);
+    this._index += len;
+    return rv;
   }
 }
 

@@ -177,7 +177,7 @@ export class ClassLoader {
     return fetch_class(types.shift());
   }
 
-  public define_class(rs: runtime.RuntimeState, type_str: string, data: number[], success_fn: (cd:ClassData.ClassData)=>void, failure_fn: (e_cb:()=>void)=>void, parallel?: bool, explicit?:bool): void {
+  public define_class(rs: runtime.RuntimeState, type_str: string, data: NodeBuffer, success_fn: (cd:ClassData.ClassData)=>void, failure_fn: (e_cb:()=>void)=>void, parallel?: bool, explicit?:bool): void {
     var type, _i, _len, _this = this;
 
     if (parallel == null) {
@@ -439,8 +439,8 @@ export class ClassLoader {
 }
 
 export class BootstrapClassLoader extends ClassLoader {
-  private read_classfile: (typestr: string, success_cb: (data: number[]) => void, failure_cb: (exp_cb: ()=>void) => void) => void;
-  constructor(read_classfile: (typestr: string, success_cb: (data: number[])=>void, failure_cb: ()=>void)=>void) {
+  private read_classfile: (typestr: string, success_cb: (data: NodeBuffer) => void, failure_cb: (exp_cb: ()=>void) => void) => void;
+  constructor(read_classfile: (typestr: string, success_cb: (data: NodeBuffer)=>void, failure_cb: ()=>void)=>void) {
     super(this);
     this.read_classfile = read_classfile;
   }

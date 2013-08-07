@@ -80,8 +80,8 @@ function sanitize(str: string): string {
 function run_disasm_test(doppio_dir: string, test_class: string): string {
   var test_path = path.resolve(doppio_dir, test_class);
   var javap_disasm = sanitize(fs.readFileSync(test_path + ".disasm", 'utf8'));
-  var bytes_array = util.bytestr_to_array(fs.readFileSync(test_path + ".class", 'binary'));
-  var cls = new ClassData.ReferenceClassData(bytes_array)
+  var buff = fs.readFileSync(test_path + ".class");
+  var cls = new ClassData.ReferenceClassData(buff);
   var doppio_disasm = sanitize(disassembler.disassemble(cls));
   return cleandiff(doppio_disasm, javap_disasm);
 }

@@ -244,20 +244,12 @@ function unsafe_compare_and_swap(rs: runtime.RuntimeState, _this: java_object.Ja
 }
 
 function native_define_class(rs: runtime.RuntimeState, name: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number, loader: ClassLoader.ClassLoader, resume_cb: (jco: java_object.JavaClassObject) => void, except_cb: (e_fn: ()=>void)=>void): void {
-  var b, raw_bytes;
-
-  raw_bytes = (function () {
-    var _i, _len, _ref5, _results;
-
-    _ref5 = bytes.array.slice(offset, offset + len);
-    _results = [];
-    for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
-      b = _ref5[_i];
-      _results.push((256 + b) % 256);
-    }
-    return _results;
-  })();
-  loader.define_class(rs, util.int_classname(name.jvm2js_str()), raw_bytes, (function (cdata) {
+  var buff = new Buffer(len);
+  var b_array = bytes.array;
+  for (var i = offset; i < offset + len; i++) {
+    buff.writeUInt8((256+b_array[i])%256, i);
+  }
+  loader.define_class(rs, util.int_classname(name.jvm2js_str()), buff, (function (cdata) {
     resume_cb(cdata.get_class_object(rs));
   }), except_cb);
 }
