@@ -8,7 +8,7 @@ native_methods.java.lang.reflect =
           rs.async_op (resume_cb, except_cb) =>
             rs.get_cl().initialize_class rs, jco.$cls.get_type(), ((cls)->
               type_str = (new Array(counts.length+1)).join('[') + cls.get_type()
-              rs.heap_multinewarray(cls, counts)
+              rs.heap_multinewarray(type_str, counts)
               resume_cb()
             ), except_cb
           return
