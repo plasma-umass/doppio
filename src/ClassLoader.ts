@@ -1,13 +1,13 @@
 "use strict";
-import ClassData = module('./ClassData');
+import ClassData = require('./ClassData');
 var ReferenceClassData = ClassData.ReferenceClassData, PrimitiveClassData = ClassData.PrimitiveClassData, ArrayClassData = ClassData.ArrayClassData;
-import util = module('./util');
-import logging = module('./logging');
+import util = require('./util');
+import logging = require('./logging');
 var trace = logging.trace;
-import runtime = module('./runtime');
-import exceptions = module('./exceptions');
+import runtime = require('./runtime');
+import exceptions = require('./exceptions');
 var JavaException = exceptions.JavaException;
-import java_object = module('./java_object');
+import java_object = require('./java_object');
 var JavaObject = java_object.JavaObject;
 
 declare var UNSAFE;
@@ -33,7 +33,7 @@ export class ClassLoader {
     return Object.keys(pkg_names);
   }
 
-  public get_loaded_class_list(ref_class_only?: bool): string[] {
+  public get_loaded_class_list(ref_class_only?: boolean): string[] {
     var cdata, k, _ref1, _results;
 
     if (ref_class_only == null) {
@@ -116,7 +116,7 @@ export class ClassLoader {
     }
   }
 
-  private _parallel_class_resolve(rs: runtime.RuntimeState, types: string[], success_fn: (cds: ClassData.ClassData[])=>void, failure_fn: (e_cb:()=>void)=>void, explicit?:bool): void {
+  private _parallel_class_resolve(rs: runtime.RuntimeState, types: string[], success_fn: (cds: ClassData.ClassData[])=>void, failure_fn: (e_cb:()=>void)=>void, explicit?:boolean): void {
     var failure, fetch_data, pending_requests, request_finished, resolved, type, _i, _len, _results,
       _this = this;
 
@@ -153,7 +153,7 @@ export class ClassLoader {
     return _results;
   }
 
-  private _regular_class_resolve(rs: runtime.RuntimeState, types: string[], success_fn: (cds: ClassData.ClassData[])=>void, failure_fn: (e_cb:()=>void)=>void, explicit?:bool): void {
+  private _regular_class_resolve(rs: runtime.RuntimeState, types: string[], success_fn: (cds: ClassData.ClassData[])=>void, failure_fn: (e_cb:()=>void)=>void, explicit?:boolean): void {
     var fetch_class, resolved,
       _this = this;
 
@@ -177,7 +177,7 @@ export class ClassLoader {
     return fetch_class(types.shift());
   }
 
-  public define_class(rs: runtime.RuntimeState, type_str: string, data: NodeBuffer, success_fn: (cd:ClassData.ClassData)=>void, failure_fn: (e_cb:()=>void)=>void, parallel?: bool, explicit?:bool): void {
+  public define_class(rs: runtime.RuntimeState, type_str: string, data: NodeBuffer, success_fn: (cd:ClassData.ClassData)=>void, failure_fn: (e_cb:()=>void)=>void, parallel?: boolean, explicit?:boolean): void {
     var type, _i, _len, _this = this;
 
     if (parallel == null) {
@@ -242,7 +242,7 @@ export class ClassLoader {
     }
   }
 
-  public get_loaded_class(type_str: string, null_handled?:bool): ClassData.ClassData {
+  public get_loaded_class(type_str: string, null_handled?:boolean): ClassData.ClassData {
     if (null_handled == null) {
       null_handled = false;
     }
@@ -265,7 +265,7 @@ export class ClassLoader {
     throw new Error("Error in get_loaded_class: Class " + type_str + " is not loaded.");
   }
 
-  public get_resolved_class(type_str: string, null_handled?:bool): ClassData.ClassData {
+  public get_resolved_class(type_str: string, null_handled?:boolean): ClassData.ClassData {
     if (null_handled == null) {
       null_handled = false;
     }
@@ -279,7 +279,7 @@ export class ClassLoader {
     throw new Error("Error in get_resolved_class: Class " + type_str + " is not resolved.");
   }
 
-  public get_initialized_class(type_str: string, null_handled?:bool): ClassData.ClassData {
+  public get_initialized_class(type_str: string, null_handled?:boolean): ClassData.ClassData {
     if (null_handled == null) {
       null_handled = false;
     }
@@ -293,7 +293,7 @@ export class ClassLoader {
     throw new Error("Error in get_initialized_class: Class " + type_str + " is not initialized.");
   }
 
-  public _initialize_class(rs: runtime.RuntimeState, cdata: ClassData.ClassData, success_fn: (cd:ClassData.ClassData)=>void, failure_fn:(e_fn:()=>void, discardStackFrame?:bool)=>void): void {
+  public _initialize_class(rs: runtime.RuntimeState, cdata: ClassData.ClassData, success_fn: (cd:ClassData.ClassData)=>void, failure_fn:(e_fn:()=>void, discardStackFrame?:boolean)=>void): void {
     var class_file, clinit, next_nf,
       _this = this;
 
@@ -379,7 +379,7 @@ export class ClassLoader {
     success_fn(cdata);
   }
 
-  public initialize_class(rs: runtime.RuntimeState, type_str: string, success_fn: (cd:ClassData.ClassData)=>void, failure_fn:(e_fn:()=>void)=>void, explicit?:bool): void {
+  public initialize_class(rs: runtime.RuntimeState, type_str: string, success_fn: (cd:ClassData.ClassData)=>void, failure_fn:(e_fn:()=>void)=>void, explicit?:boolean): void {
     var cdata, component_type,
       _this = this;
 
@@ -411,7 +411,7 @@ export class ClassLoader {
     }), failure_fn, explicit);
   }
 
-  public resolve_class(rs: runtime.RuntimeState, type_str: string, success_fn: (cd:ClassData.ClassData)=>void, failure_fn:(e_fn:()=>void)=>void, explicit?:bool): void {
+  public resolve_class(rs: runtime.RuntimeState, type_str: string, success_fn: (cd:ClassData.ClassData)=>void, failure_fn:(e_fn:()=>void)=>void, explicit?:boolean): void {
     var component_type, rv,
       _this = this;
 
@@ -433,7 +433,7 @@ export class ClassLoader {
     return this._resolve_class(rs, type_str, success_fn, failure_fn, explicit);
   }
 
-  public _resolve_class(rs: runtime.RuntimeState, type_str: string, success_fn: (cd: ClassData.ClassData) => void , failure_fn: (e_fn: () => void ) => void , explicit?: bool): void {
+  public _resolve_class(rs: runtime.RuntimeState, type_str: string, success_fn: (cd: ClassData.ClassData) => void , failure_fn: (e_fn: () => void ) => void , explicit?: boolean): void {
     throw new Error("Unimplemented.");
   }
 }
@@ -445,7 +445,7 @@ export class BootstrapClassLoader extends ClassLoader {
     this.read_classfile = read_classfile;
   }
 
-  public serialize(visited: {[n:string]:bool}): any {
+  public serialize(visited: {[n:string]:boolean}): any {
     var cls, loaded, type, _ref1;
 
     if ('bootstrapLoader' in visited) {
@@ -490,7 +490,7 @@ export class BootstrapClassLoader extends ClassLoader {
     return cdata;
   }
 
-  public _resolve_class(rs: runtime.RuntimeState, type_str: string, success_fn: (cd: ClassData.ClassData)=>void, failure_fn: (e_fn: ()=>void)=>void, explicit?: bool): void {
+  public _resolve_class(rs: runtime.RuntimeState, type_str: string, success_fn: (cd: ClassData.ClassData)=>void, failure_fn: (e_fn: ()=>void)=>void, explicit?: boolean): void {
     var rv,
       _this = this;
 
@@ -551,11 +551,11 @@ export class CustomClassLoader extends ClassLoader {
     this.loader_obj = loader_obj;
   }
 
-  public serialize(visited: {[name:string]:bool}): any {
+  public serialize(visited: {[name:string]:boolean}): any {
     return this.loader_obj.serialize(visited);
   }
 
-  public _resolve_class(rs: runtime.RuntimeState, type_str: string, success_fn: (cd:ClassData.ClassData)=>void, failure_fn: (e_fn:()=>void)=>void, explicit?:bool): void {
+  public _resolve_class(rs: runtime.RuntimeState, type_str: string, success_fn: (cd:ClassData.ClassData)=>void, failure_fn: (e_fn:()=>void)=>void, explicit?:boolean): void {
     var _this = this;
 
     if (explicit == null) {

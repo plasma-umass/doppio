@@ -1,5 +1,5 @@
 "use strict";
-import gLong = module('./gLong');
+import gLong = require('./gLong');
 
 // default module: logging
 

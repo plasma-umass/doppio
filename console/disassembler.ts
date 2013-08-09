@@ -1,9 +1,9 @@
 "use strict";
 var fs = require('fs');
 var optimist = require('optimist');
-import util = module('../src/util');
-import disassembler = module('../src/disassembler');
-import ClassData = module('../src/ClassData');
+import util = require('../src/util');
+import disassembler = require('../src/disassembler');
+import ClassData = require('../src/ClassData');
 
 var fname;
 if (optimist.argv._.length > 0) {

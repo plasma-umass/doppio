@@ -1,10 +1,10 @@
 "use strict";
 var underscore = require('../vendor/underscore/underscore.js');
-import gLong = module('./gLong');
-import util = module('./util');
-import logging = module('./logging');
-import runtime = module('./runtime');
-import ClassData = module('./ClassData');
+import gLong = require('./gLong');
+import util = require('./util');
+import logging = require('./logging');
+import runtime = require('./runtime');
+import ClassData = require('./ClassData');
 // XXX: Circular reference. :|
 var ClassLoader = null;
 
@@ -166,12 +166,12 @@ export class JavaObject {
 
 export class JavaThreadObject extends JavaObject {
   public $meta_stack: runtime.CallStack;
-  public $isAlive: bool;
+  public $isAlive: boolean;
   public wakeup_time: number;
   public $park_count: number;
   public $park_timeout: number;
   // XXX: Used if it's a 'fake' Thread object. I'm so sorry.
-  public fake: bool;
+  public fake: boolean;
   constructor(rs: runtime.RuntimeState, cls: ClassData.ReferenceClassData, obj?: any) {
     // First thread to bootstrap us into the JVM.
     if (cls == null) {

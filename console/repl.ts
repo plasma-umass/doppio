@@ -1,9 +1,9 @@
 "use strict";
 var readline = require('readline');
 var argv = require('optimist').argv;
-import jvm = module('../src/jvm');
-import runtime = module('../src/runtime');
-import ClassLoader = module('../src/ClassLoader');
+import jvm = require('../src/jvm');
+import runtime = require('../src/runtime');
+import ClassLoader = require('../src/ClassLoader');
 var BootstrapClassLoader = ClassLoader.BootstrapClassLoader;
 
 function repl_run(rs: runtime.RuntimeState, cname: string, args: string[], done_cb): void {

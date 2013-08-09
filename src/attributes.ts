@@ -1,7 +1,7 @@
 "use strict";
-import util = module('./util');
-import opcodes = module('./opcodes');
-import ConstantPool = module('./ConstantPool');
+import util = require('./util');
+import opcodes = require('./opcodes');
+import ConstantPool = require('./ConstantPool');
 declare var RELEASE;
 
 export interface Attribute {
@@ -103,7 +103,7 @@ export class Code implements Attribute {
 
 export class LineNumberTable implements Attribute {
   public name = 'LineNumberTable';
-  private entries: { 'start_pc': number; 'line_number': number }[];
+  private entries: { start_pc: number; line_number: number }[];
 
   public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
     this.entries = [];

@@ -3,13 +3,13 @@
 var underscore = require('../vendor/underscore/underscore.js');
 var fs = require('fs');
 var path = require('path');
-import jvm = module('../src/jvm');
-import util = module('../src/util');
-import logging = module('../src/logging');
-import methods = module('../src/methods');
-import runtime = module('../src/runtime');
-import ClassLoader = module('../src/ClassLoader');
-import optparse = module('../src/option_parser');
+import jvm = require('../src/jvm');
+import util = require('../src/util');
+import logging = require('../src/logging');
+import methods = require('../src/methods');
+import runtime = require('../src/runtime');
+import ClassLoader = require('../src/ClassLoader');
+import optparse = require('../src/option_parser');
 var BootstrapClassLoader = ClassLoader.BootstrapClassLoader;
 
 function stub(obj, name, replacement, wrapped) {
@@ -22,7 +22,7 @@ function stub(obj, name, replacement, wrapped) {
   }
 }
 
-function extract_all_to(files: string[], dest_dir: string): void {
+function extract_all_to(files: any[], dest_dir: string): void {
   for (var filepath in files) {
     var file = files[filepath];
     filepath = path.join(dest_dir, filepath);

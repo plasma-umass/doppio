@@ -1,9 +1,9 @@
 "use strict";
-import gLong = module('./gLong');
-import logging = module('./logging');
-import runtime = module('./runtime');
-import java_object = module('./java_object');
-import ClassData = module('./ClassData');
+import gLong = require('./gLong');
+import logging = require('./logging');
+import runtime = require('./runtime');
+import java_object = require('./java_object');
+import ClassData = require('./ClassData');
 
 // default module: util
 export var INT_MAX = Math.pow(2, 31) - 1;
@@ -253,19 +253,19 @@ export function array_to_bytestr(bytecode_array: number[]): string {
 }
 
 export interface Flags {
-  "public": bool;
-  "private": bool;
-  "protected": bool;
-  "static": bool;
-  "final": bool;
-  "synchronized": bool;
-  "super": bool;
-  "volatile": bool;
-  "transient": bool;
-  "native": bool;
-  "interface": bool;
-  "abstract": bool;
-  "strict": bool;
+  public: boolean;
+  private: boolean;
+  protected: boolean;
+  static: boolean;
+  final: boolean;
+  synchronized: boolean;
+  super: boolean;
+  volatile: boolean;
+  transient: boolean;
+  native: boolean;
+  interface: boolean;
+  abstract: boolean;
+  strict: boolean;
 }
 
 export function parse_flags(flag_byte: number): Flags {

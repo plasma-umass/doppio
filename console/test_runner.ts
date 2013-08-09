@@ -2,7 +2,7 @@
 var print = require('util').print;
 var fs = require('fs');
 var path = require('path');
-import testing = module('../src/testing');
+import testing = require('../src/testing');
 
 function makefile_test(argv): void {
   var failpath = path.resolve(__dirname, '../classes/test/failures.txt');

@@ -1,13 +1,13 @@
 "use strict";
-import gLong = module('./gLong');
-import util = module('./util');
-import runtime = module('./runtime');
-import java_object = module('./java_object');
+import gLong = require('./gLong');
+import util = require('./util');
+import runtime = require('./runtime');
+import java_object = require('./java_object');
 var thread_name = java_object.thread_name, JavaObject = java_object.JavaObject, JavaArray = java_object.JavaArray;
-import exceptions = module('./exceptions');
-import logging = module('./logging');
+import exceptions = require('./exceptions');
+import logging = require('./logging');
 var debug = logging.debug, error = logging.error, trace = logging.trace;
-import JVM = module('./jvm');
+import JVM = require('./jvm');
 
 // For types; shouldn't actually be used.
 import methods = require('./methods');
@@ -16,7 +16,7 @@ import ClassLoader = require('./ClassLoader');
 declare var node;
 var path = typeof node !== "undefined" ? node.path : require('path');
 var fs = typeof node !== "undefined" ? node.fs : require('fs');
-import ClassData = module('./ClassData');
+import ClassData = require('./ClassData');
 var ReferenceClassData = ClassData.ReferenceClassData, PrimitiveClassData = ClassData.PrimitiveClassData, ArrayClassData = ClassData.ArrayClassData;
 
 function get_property(rs: runtime.RuntimeState, jvm_key: java_object.JavaObject, _default: java_object.JavaObject): java_object.JavaObject {
@@ -580,6 +580,23 @@ export var native_methods = {
       ],
       reflect: {
         Array: [
+          o('multiNewArray(L!/!/Class;[I)L!/!/Object;', function(rs: runtime.RuntimeState, jco: java_object.JavaClassObject, lens: java_object.JavaArray): any {
+            var _this = this;
+            var counts = lens.array;
+            var cls = rs.get_class(jco.$cls.get_type(), true);
+            if (cls == null) {
+              rs.async_op(function(resume_cb, except_cb) {
+                rs.get_cl().initialize_class(rs, jco.$cls.get_type(), (function(cls) {
+                  var type_str = (new Array(counts.length + 1)).join('[') + cls.get_type();
+                  rs.heap_multinewarray(type_str, counts);
+                  resume_cb();
+                }), except_cb);
+              });
+              return;
+            }
+            var type_str = (new Array(counts.length + 1)).join('[') + cls.get_type();
+            return rs.heap_multinewarray(type_str, counts);
+          }),
           o('newArray(L!/!/Class;I)L!/!/Object;', function (rs: runtime.RuntimeState, _this: java_object.JavaClassObject, len: number): java_object.JavaArray {
             return rs.heap_newarray(_this.$cls.get_type(), len);
           }), o('getLength(Ljava/lang/Object;)I', function (rs: runtime.RuntimeState, obj: any): number {

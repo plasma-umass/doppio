@@ -1,13 +1,13 @@
 "use strict";
-import gLong = module('./gLong');
-import util = module('./util');
-import logging = module('./logging');
-import exceptions = module('./exceptions');
-import java_object = module('./java_object');
-import JVM = module('./jvm');
-import methods = module('./methods');
-import ClassData = module('./ClassData');
-import ClassLoader = module('./ClassLoader');
+import gLong = require('./gLong');
+import util = require('./util');
+import logging = require('./logging');
+import exceptions = require('./exceptions');
+import java_object = require('./java_object');
+import JVM = require('./jvm');
+import methods = require('./methods');
+import ClassData = require('./ClassData');
+import ClassLoader = require('./ClassLoader');
 
 declare var node, UNSAFE;
 declare var setImmediate: (cb: (any)=>any)=>void
@@ -27,7 +27,7 @@ var process = typeof node !== "undefined" ? node.process : global.process;
 export interface StackFrameSnapshot {
   name: string;
   pc: number;
-  native: bool;
+  native: boolean;
   loader: ClassLoader.ClassLoader;
   stack: any[];
   locals: any[];
@@ -100,7 +100,7 @@ export class StackFrame {
     this.name = this.method.full_signature();
   }
 
-  public snap(visited: {[name:string]:bool}): { serialize: () => StackFrameSnapshot } {
+  public snap(visited: {[name:string]:boolean}): { serialize: () => StackFrameSnapshot } {
     var _this = this;
     var rv : StackFrameSnapshot = {
       name: this.name,
@@ -162,8 +162,8 @@ export class RuntimeState {
   private max_m_count: number;
   public unusual_termination: boolean;
   public stashed_done_cb: (any) => any;
-  public should_return: bool;
-  public system_initialized: bool;
+  public should_return: boolean;
+  public system_initialized: boolean;
 
   constructor(print: (string) => any, _async_input: (cb: (string) => any) => any, bcl: ClassLoader.BootstrapClassLoader) {
     this.print = print;
@@ -422,7 +422,7 @@ export class RuntimeState {
     }
   }
 
-  public parked(thread: java_object.JavaThreadObject): bool {
+  public parked(thread: java_object.JavaThreadObject): boolean {
     return thread.$park_count > 0;
   }
 
@@ -508,7 +508,37 @@ export class RuntimeState {
     }
   }
 
-  public init_string(str: string, intern?: bool): java_object.JavaObject {
+  // The innermost component class is already initialized.
+  public heap_multinewarray(type: string, counts: number[]): java_object.JavaArray {
+    var _this = this;
+    var dim = counts.length;
+    var init_arr = function(curr_dim: number, type: string): java_object.JavaArray {
+      var len = counts[curr_dim];
+      if (len < 0) {
+        var err_cls = <ClassData.ReferenceClassData> _this.get_bs_class('Ljava/lang/NegativeArraySizeException;');
+        _this.java_throw(err_cls, "Tried to init dimension " + curr_dim + " of a " + dim + " dimensional " + type + " array with length " + len);
+      }
+      // Gives the JS engine a size hint.
+      var array = new Array(len);
+      if (curr_dim + 1 === dim) {
+        var default_val = util.initial_value(type);
+        for (var i = 0; i < len; i++) {
+          array[i] = default_val;
+        }
+      } else {
+        var next_dim = curr_dim + 1;
+        var comp_type = type.slice(1);
+        for (var i = 0; i < len; i++) {
+          array[i] = init_arr(next_dim, comp_type);
+        }
+      }
+      var arr_cls = <ClassData.ArrayClassData> _this.get_bs_class(type);
+      return new JavaArray(_this, arr_cls, array);
+    };
+    return init_arr(0, type);
+  }
+
+  public init_string(str: string, intern?: boolean): java_object.JavaObject {
     if (intern == null) {
       intern = false;
     }
@@ -558,7 +588,7 @@ export class RuntimeState {
     }
   }
 
-  public handle_toplevel_exception(e: any, no_threads: bool, done_cb: (bool)=>void): void {
+  public handle_toplevel_exception(e: any, no_threads: boolean, done_cb: (boolean)=>void): void {
     var _this = this;
     this.unusual_termination = true;
     if (e.toplevel_catch_handler != null) {
@@ -572,7 +602,7 @@ export class RuntimeState {
     }
   }
 
-  public async_op<T>(cb: (resume_cb: (arg1?:T, arg2?:any, isBytecode?:bool, advancePc?:bool)=>void, except_cb: (e_fcn: ()=>void, discardStackFrame?:bool)=>void)=>void): void {
+  public async_op<T>(cb: (resume_cb: (arg1?:T, arg2?:any, isBytecode?:boolean, advancePc?:boolean)=>void, except_cb: (e_fcn: ()=>void, discardStackFrame?:boolean)=>void)=>void): void {
     throw new YieldIOException(cb);
   }
 
@@ -622,7 +652,7 @@ export class RuntimeState {
     });
   }
 
-  public run_until_finished(setup_fn: ()=>void, no_threads: bool, done_cb: (bool)=>void): void {
+  public run_until_finished(setup_fn: ()=>void, no_threads: boolean, done_cb: (boolean)=>void): void {
     var _this = this;
     var stack : CallStack;
     function nop() {}

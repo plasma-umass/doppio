@@ -1,6 +1,6 @@
 "use strict";
-import gLong = module('./gLong');
-import util = module('./util');
+import gLong = require('./gLong');
+import util = require('./util');
 
 export interface ConstantPoolItem {
   size: number;

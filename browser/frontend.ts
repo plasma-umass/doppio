@@ -2,15 +2,15 @@
 /// <reference path="../vendor/jquery.console.d.ts" />
 /// <reference path="../vendor/ace.d.ts" />
 var underscore = require('../vendor/underscore/underscore.js');
-import ClassData = module('../src/ClassData');
-import ClassLoader = module('../src/ClassLoader');
-import disassembler = module('../src/disassembler');
-import jvm = module('../src/jvm');
-import runtime = module('../src/runtime');
-import testing = module('../src/testing');
-import untar = module('./untar');
-import util = module('../src/util');
-import node_setup = module('./node_setup');
+import ClassData = require('../src/ClassData');
+import ClassLoader = require('../src/ClassLoader');
+import disassembler = require('../src/disassembler');
+import jvm = require('../src/jvm');
+import runtime = require('../src/runtime');
+import testing = require('../src/testing');
+import untar = require('./untar');
+import util = require('../src/util');
+import node_setup = require('./node_setup');
 var node = node_setup.node;
 
 // To be initialized on document load

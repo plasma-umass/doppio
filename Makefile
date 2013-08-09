@@ -270,6 +270,7 @@ tools/preload: release-cli
 BUILD_FOLDERS = build/% build/%/browser build/%/console build/%/src
 $(foreach TARGET,$(BUILD_TARGETS),$(subst %,$(TARGET),$(BUILD_FOLDERS))):
 	mkdir -p $@
+	ln -s vendor $@/vendor
 
 build/release/about.html build/benchmark/about.html: browser/_about.md
 
@@ -313,7 +314,7 @@ build/release/compressed.js build/benchmark/compressed.js build/library/compress
 		if [ "$${src##*.}" == "ts" ]; then \
 			mkdir -p $(dir $@); \
 			$(call sym_link,$$src,$(dir $@)); \
-			$(TSC) --sourcemap --out $(dir $@) $$src; \
+			$(TSC) -m commonjs --sourcemap --outDir $(dir $@) $$src; \
 		else \
 			cat $${src}; \
 		fi; \
@@ -322,10 +323,10 @@ build/release/compressed.js build/benchmark/compressed.js build/library/compress
 	$(UGLIFYJS) --prefix 2 --source-map-url compressed.map --source-map ${@:.js=.map} --define RELEASE --define UNSAFE --unsafe -o $@ ${@:compressed.js=uncompressed.js}
 
 build/dev/%.js: %.ts
-	$(TSC) --sourcemap --out build/dev console/*.ts
+	$(TSC) -m commonjs --sourcemap --outDir build/dev console/*.ts
 
 build/release/%.js: %.ts
-	$(TSC) --out build/release console/*.ts
+	$(TSC) -m commonjs --outDir build/release console/*.ts
 # TODO: run uglify on the release JS files. Currently borked because TSC makes
 # everything at once, which throws off our build flow.
 #	$(UGLIFYJS) $@ --define RELEASE --define UNSAFE --unsafe --beautify -o $@

@@ -1,6 +1,6 @@
 
 declare var setImmediate;
-import util = module('../src/util');
+import util = require('../src/util');
 
 var nonAsyncCount = 0;
 

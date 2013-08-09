@@ -1,13 +1,13 @@
 "use strict";
-import gLong = module('./gLong');
-import util = module('./util');
-import exceptions = module('./exceptions');
-import runtime = module('./runtime');
-import ConstantPool = module('./ConstantPool');
-import ClassData = module('./ClassData');
+import gLong = require('./gLong');
+import util = require('./util');
+import exceptions = require('./exceptions');
+import runtime = require('./runtime');
+import ConstantPool = require('./ConstantPool');
+import ClassData = require('./ClassData');
 var JavaException = exceptions.JavaException;
 var ReturnException = exceptions.ReturnException;
-import java_object = module('./java_object');
+import java_object = require('./java_object');
 var JavaObject = java_object.JavaObject;
 var JavaArray = java_object.JavaArray;
 var thread_name = java_object.thread_name;
@@ -256,7 +256,7 @@ export class LoadConstantOpcode extends Opcode {
     return anno + this.constant.value;
   }
 
-  public _execute(rs: runtime.RuntimeState): bool {
+  public _execute(rs: runtime.RuntimeState): boolean {
     switch (this.constant.type) {
       case 'String':
         rs.push(rs.init_string(this.str_constant.value, true));
@@ -301,14 +301,14 @@ export class GotoOpcode extends BranchOpcode {
     super(name);
     this.byte_count = byte_count;
   }
-  public _execute(rs: runtime.RuntimeState): bool {
+  public _execute(rs: runtime.RuntimeState): boolean {
     this.inc_pc(rs, this.offset);
     return true;
   }
 }
 
 export class JSROpcode extends GotoOpcode {
-  public _execute(rs: runtime.RuntimeState): bool {
+  public _execute(rs: runtime.RuntimeState): boolean {
     rs.push(rs.curr_pc() + this.byte_count + 1);
     this.inc_pc(rs, this.offset);
     return true;
@@ -323,7 +323,7 @@ export class UnaryBranchOpcode extends BranchOpcode {
     this.cmp = cmp;
   }
 
-  public _execute(rs: runtime.RuntimeState): bool {
+  public _execute(rs: runtime.RuntimeState): boolean {
     if (this.cmp(rs.pop())) {
       this.inc_pc(rs, this.offset);
     }
@@ -339,7 +339,7 @@ export class BinaryBranchOpcode extends BranchOpcode {
     this.cmp = cmp;
   }
 
-  public _execute(rs: runtime.RuntimeState): bool {
+  public _execute(rs: runtime.RuntimeState): boolean {
     var v2 = rs.pop();
     var v1 = rs.pop();
     if (this.cmp(v1, v2)) {
@@ -360,7 +360,7 @@ export class PushOpcode extends Opcode {
     return "\t" + this.value;
   }
 
-  public _execute(rs: runtime.RuntimeState): bool {
+  public _execute(rs: runtime.RuntimeState): boolean {
     rs.push(this.value);
     return true;
   }
@@ -388,7 +388,7 @@ export class IIncOpcode extends Opcode {
     return "\t" + this.index + ", " + this["const"];
   }
 
-  public _execute(rs: runtime.RuntimeState): bool {
+  public _execute(rs: runtime.RuntimeState): boolean {
     var v = rs.cl(this.index) + this["const"];
     rs.put_cl(this.index, v | 0);
     return true;
@@ -403,7 +403,7 @@ export class LoadOpcode extends Opcode {
     this.var_num = parseInt(this.name[6]);
   }
 
-  public _execute(rs: runtime.RuntimeState): bool {
+  public _execute(rs: runtime.RuntimeState): boolean {
     rs.push(rs.cl(this.var_num));
     return true;
   }
@@ -411,7 +411,7 @@ export class LoadOpcode extends Opcode {
 
 // For category 2 types.
 export class LoadOpcode2 extends LoadOpcode {
-  public _execute(rs: runtime.RuntimeState): bool {
+  public _execute(rs: runtime.RuntimeState): boolean {
     rs.push2(rs.cl(this.var_num), null);
     return true;
   }
@@ -434,7 +434,7 @@ export class LoadVarOpcode extends LoadOpcode {
 }
 
 export class LoadVarOpcode2 extends LoadVarOpcode {
-  public _execute(rs: runtime.RuntimeState): bool {
+  public _execute(rs: runtime.RuntimeState): boolean {
     rs.push2(rs.cl(this.var_num), null);
     return true;
   }
@@ -448,7 +448,7 @@ export class StoreOpcode extends Opcode {
     this.var_num = parseInt(this.name[7]);
   }
 
-  public _execute(rs: runtime.RuntimeState): bool {
+  public _execute(rs: runtime.RuntimeState): boolean {
     rs.put_cl(this.var_num, rs.pop());
     return true;
   }
@@ -456,7 +456,7 @@ export class StoreOpcode extends Opcode {
 
 // For category 2 types.
 export class StoreOpcode2 extends StoreOpcode {
-  public _execute(rs: runtime.RuntimeState): bool {
+  public _execute(rs: runtime.RuntimeState): boolean {
     rs.put_cl2(this.var_num, rs.pop2());
     return true;
   }
@@ -479,7 +479,7 @@ export class StoreVarOpcode extends StoreOpcode {
 }
 
 export class StoreVarOpcode2 extends LoadVarOpcode {
-  public _execute(rs: runtime.RuntimeState): bool {
+  public _execute(rs: runtime.RuntimeState): boolean {
     rs.put_cl2(this.var_num, rs.pop2());
     return true;
   }
@@ -512,7 +512,7 @@ export class LookupSwitchOpcode extends BranchOpcode {
     this.byte_count = padding_size + 8 * (npairs + 1);
   }
 
-  public _execute(rs: runtime.RuntimeState): bool {
+  public _execute(rs: runtime.RuntimeState): boolean {
     var offset = this.offsets[rs.pop()];
     if (offset) {
       this.inc_pc(rs, offset);
@@ -540,7 +540,7 @@ export class TableSwitchOpcode extends LookupSwitchOpcode {
   }
 }
 
-var NewArray_arr_types : {number: string; } = {
+var NewArray_arr_types : {[t: number]: string; } = {
   4: 'Z', 5: 'C', 6: 'F', 7: 'D', 8: 'B', 9: 'S', 10: 'I', 11: 'J'
 }
 
@@ -559,7 +559,7 @@ export class NewArrayOpcode extends Opcode {
     return "\t" + util.internal2external[this.element_type];
   }
 
-  public _execute(rs: runtime.RuntimeState): bool {
+  public _execute(rs: runtime.RuntimeState): boolean {
     rs.push(rs.heap_newarray(this.element_type, rs.pop()));
     return true;
   }
@@ -584,9 +584,8 @@ export class MultiArrayOpcode extends Opcode {
     return "\t#" + this.class_ref + ",  " + this.dim + ";";
   }
 
-  public _execute(rs: runtime.RuntimeState): bool {
+  public _execute(rs: runtime.RuntimeState): boolean {
     var _this = this;
-
     var cls = rs.get_class(this.class_descriptor, true);
     if (cls == null) {
       rs.async_op(function(resume_cb, except_cb) {
@@ -598,34 +597,8 @@ export class MultiArrayOpcode extends Opcode {
     }
     // cls is loaded. Create a new execute function to avoid this overhead.
     var new_execute = function(rs: runtime.RuntimeState): void {
-      var _this = this;
-
       var counts = rs.curr_frame().stack.splice(-this.dim, this.dim);
-      var default_val = util.initial_value(this.class_descriptor.slice(this.dim));
-      var arr_types = [];
-      for (var d = 0; d < this.dim; ++d) {
-        arr_types.push(this.class_descriptor.slice(d));
-      }
-      var init_arr = function(curr_dim: number): java_object.JavaArray {
-        var len = counts[curr_dim];
-        if (len < 0) {
-          var err_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/NegativeArraySizeException;');
-          rs.java_throw(err_cls, "Tried to init dimension " + curr_dim + " of a " + _this.dim + " dimensional " + _this.class_descriptor + " array with length " + len);
-        }
-        var type = arr_types[curr_dim];
-        var array = new Array(len);
-        if (curr_dim + 1 === _this.dim) {
-          for (var i = 0; i < len; ++i) {
-            array[i] = default_val;
-          }
-        } else {
-          for (var i = 0; i < len; ++i) {
-            array[i] = init_arr(curr_dim + 1);
-          }
-        }
-        return new JavaArray(rs, <ClassData.ArrayClassData> rs.get_bs_class(type), array);
-      };
-      rs.push(init_arr(0));
+      rs.push(rs.heap_multinewarray(_this.class_descriptor, counts));
     };
     new_execute.call(this, rs);
     this.execute = new_execute;
@@ -634,7 +607,7 @@ export class MultiArrayOpcode extends Opcode {
 }
 
 export class ArrayLoadOpcode extends Opcode {
-  public _execute(rs: runtime.RuntimeState): bool {
+  public _execute(rs: runtime.RuntimeState): boolean {
     var idx = rs.pop();
     var obj = rs.check_null<java_object.JavaArray>(rs.pop());
     var len = obj.array.length;
@@ -652,7 +625,7 @@ export class ArrayLoadOpcode extends Opcode {
 }
 
 export class ArrayStoreOpcode extends Opcode {
-  public _execute(rs: runtime.RuntimeState): bool {
+  public _execute(rs: runtime.RuntimeState): boolean {
     var value = (this.name[0] === 'l' || this.name[0] === 'd') ? rs.pop2() : rs.pop();
     var idx = rs.pop();
     var obj = rs.check_null(rs.pop());
@@ -668,7 +641,7 @@ export class ArrayStoreOpcode extends Opcode {
 }
 
 export class ReturnOpcode extends Opcode {
-  public _execute(rs: runtime.RuntimeState): bool {
+  public _execute(rs: runtime.RuntimeState): boolean {
     var cf = rs.meta_stack().pop();
     rs.push(cf.stack[0]);
     rs.should_return = true;
@@ -677,7 +650,7 @@ export class ReturnOpcode extends Opcode {
 }
 
 export class ReturnOpcode2 extends Opcode {
-  public _execute(rs: runtime.RuntimeState): bool {
+  public _execute(rs: runtime.RuntimeState): boolean {
     var cf = rs.meta_stack().pop();
     rs.push2(cf.stack[0], null);
     rs.should_return = true;
@@ -686,7 +659,7 @@ export class ReturnOpcode2 extends Opcode {
 }
 
 export class VoidReturnOpcode extends Opcode {
-  public _execute(rs: runtime.RuntimeState): bool {
+  public _execute(rs: runtime.RuntimeState): boolean {
     rs.meta_stack().pop();
     rs.should_return = true;
     return true;

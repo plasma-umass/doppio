@@ -1,11 +1,11 @@
 "use strict";
 var fs = require('fs');
 var path = require('path');
-import jvm = module('../src/jvm');
-import opcodes = module('../src/opcodes');
-import runtime = module('../src/runtime');
-import ClassLoader = module('../src/ClassLoader');
-import natives = module('../src/natives');
+import jvm = require('../src/jvm');
+import opcodes = require('../src/opcodes');
+import runtime = require('../src/runtime');
+import ClassLoader = require('../src/ClassLoader');
+import natives = require('../src/natives');
 import testing = require('../src/testing');
 
 function setup_opcode_stats() {

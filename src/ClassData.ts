@@ -1,22 +1,22 @@
 "use strict";
-import util = module('./util');
-import ConstantPool = module('./ConstantPool');
-import attributes = module('./attributes');
-import opcodes = module('./opcodes');
-import java_object = module('./java_object');
+import util = require('./util');
+import ConstantPool = require('./ConstantPool');
+import attributes = require('./attributes');
+import opcodes = require('./opcodes');
+import java_object = require('./java_object');
 var JavaObject = java_object.JavaObject;
 var JavaClassObject = java_object.JavaClassObject;
-import logging = module('./logging');
-import methods = module('./methods');
+import logging = require('./logging');
+import methods = require('./methods');
 var methodz = null;
-import runtime = module('./runtime');
+import runtime = require('./runtime');
 var trace = logging.trace;
 
 export class ClassData {
   public loader: any;
   public access_flags: util.Flags;
-  public initialized: bool;
-  public resolved: bool;
+  public initialized: boolean;
+  public resolved: boolean;
   private jco: java_object.JavaClassObject;
   private reset_bit: number;
   public this_class: string;
@@ -119,7 +119,7 @@ export class ClassData {
     return null; // TypeScript can't infer that rs.java_throw *always* throws an exception.
   }
 
-  public is_initialized(): bool {
+  public is_initialized(): boolean {
     if (this.initialized) {
       return true;
     }
@@ -134,15 +134,15 @@ export class ClassData {
     return this.initialized;
   }
 
-  public is_resolved(): bool {
+  public is_resolved(): boolean {
     return this.resolved;
   }
 
-  public is_subinterface(target: ClassData): bool {
+  public is_subinterface(target: ClassData): boolean {
     return false;
   }
 
-  public is_subclass(target: ClassData): bool {
+  public is_subclass(target: ClassData): boolean {
     if (this === target) {
       return true;
     }
@@ -152,7 +152,7 @@ export class ClassData {
     return this.get_super_class().is_subclass(target);
   }
 
-  public is_castable(target: ClassData): bool {
+  public is_castable(target: ClassData): boolean {
     throw new Error("Unimplemented.");
   }
 }
@@ -165,7 +165,7 @@ export class PrimitiveClassData extends ClassData {
     this.resolved = true;
   }
 
-  public is_castable(target: ClassData): bool {
+  public is_castable(target: ClassData): boolean {
     return this.this_class === target.this_class;
   }
 
@@ -245,7 +245,7 @@ export class ArrayClassData extends ClassData {
     this.initialized = true;
   }
 
-  public is_castable(target: ClassData): bool {
+  public is_castable(target: ClassData): boolean {
     var _ref1;
 
     if (!(target instanceof ArrayClassData)) {
@@ -469,7 +469,7 @@ export class ReferenceClassData extends ClassData {
     }
   }
 
-  public field_lookup(rs: runtime.RuntimeState, name: string, null_handled?: bool): methods.Field {
+  public field_lookup(rs: runtime.RuntimeState, name: string, null_handled?: boolean): methods.Field {
     var field = this.fl_cache[name];
     if (field != null) {
       return field;
@@ -583,7 +583,7 @@ export class ReferenceClassData extends ClassData {
     return next_handler();
   }
 
-  public is_castable(target: ClassData): bool {
+  public is_castable(target: ClassData): boolean {
     if (!(target instanceof ReferenceClassData)) {
       return false;
     }
@@ -602,7 +602,7 @@ export class ReferenceClassData extends ClassData {
     }
   }
 
-  public is_subinterface(target: ClassData): bool {
+  public is_subinterface(target: ClassData): boolean {
     var super_iface, _i, _len, _ref1;
 
     if (this.this_class === target.this_class) {

@@ -1,5 +1,5 @@
 "use strict";
-import util = module('./util');
+import util = require('./util');
 
 function pad_left(value: string, padding: number): string {
   var zeroes = new Array(padding).join('0');
@@ -18,8 +18,6 @@ function access_string(access_flags: any): string {
 
 // format floats and doubles in the javap way
 function format_decimal(val: number, type_char: string): string {
-  var m, _ref;
-
   var valStr = val.toString();
   if (type_char === 'f') {
     if (val === util.FLOAT_POS_INFINITY || val === Number.POSITIVE_INFINITY) {
@@ -92,12 +90,13 @@ export function disassemble(class_file): string {
 }
 
 function make_dis(class_file) {
-  var cls, code, const_attr, dis, entry, f, field, flags, icls, icls_group, m, method, ops, pool, sig, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref10, _ref11, _ref12, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8, _ref9;
   // standard class stuff
-  dis = {
-    source_file: (_ref = (_ref1 = class_file.get_attribute('SourceFile')) != null ? _ref1.filename : void 0) != null ? _ref : null,
+  var src_attr = class_file.get_attribute('SourceFile');
+  var rva_attr = class_file.get_attribute('RuntimeVisibleAnnotations');
+  var dis = {
+    source_file: (src_attr != null) ? src_attr.filename : null,
     is_deprecated: class_file.get_attribute('Deprecated') != null,
-    annotation_bytes: (_ref2 = (_ref3 = class_file.get_attribute('RuntimeVisibleAnnotations')) != null ? _ref3.raw_bytes : void 0) != null ? _ref2 : null,
+    annotation_bytes: (rva_attr != null) ? rva_attr.raw_bytes : null,
     interfaces: class_file.get_interface_types(),
     access_string: access_string(class_file.access_flags),
     class_type: (class_file.access_flags["interface"] ? 'interface' : 'class'),
@@ -111,7 +110,7 @@ function make_dis(class_file) {
     methods: []
   };
   // constant pool entries
-  pool = class_file.constant_pool;
+  var pool = class_file.constant_pool;
   pool.each(function(idx, entry) {
     return dis.constant_pool.push({
       idx: idx,
@@ -121,13 +120,12 @@ function make_dis(class_file) {
     });
   });
   // inner classes
-  _ref4 = class_file.get_attributes('InnerClasses');
-  for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
-    icls = _ref4[_i];
-    icls_group = [];
-    _ref5 = icls.classes;
-    for (_j = 0, _len1 = _ref5.length; _j < _len1; _j++) {
-      var cls = _ref5[_j];
+  var inner_classes = class_file.get_attributes('InnerClasses');
+  for (var i = 0; i < inner_classes.length; i++) {
+    var icls = inner_classes[i];
+    var icls_group = [];
+    for (var j = 0; j < icls.classes.length; j++) {
+      var cls = icls.classes[j];
       var flags = util.parse_flags(cls.inner_access_flags);
       var astr = '';
       if (flags['public']) { astr += 'public '; }
@@ -143,53 +141,55 @@ function make_dis(class_file) {
     dis.inner_classes.push(icls_group);
   }
   // fields
-  _ref6 = class_file.get_fields();
-  for (_k = 0, _len2 = _ref6.length; _k < _len2; _k++) {
-    f = _ref6[_k];
-    field = {
+  var fields = class_file.get_fields();
+  for (var i = 0; i < fields.length; i++) {
+    var f = fields[i];
+    var sig = f.get_attribute('Signature');
+    var field = {
       type: f.type,
       name: f.name,
       access_string: access_string(f.access_flags),
-      signature_bytes: (_ref7 = (_ref8 = f.get_attribute('Signature')) != null ? _ref8.raw_bytes : void 0) != null ? _ref7 : null
+      signature_bytes: (sig != null) ? sig.raw_bytes : null,
+      const_type: null,
+      const_value: null
     };
-    const_attr = f.get_attribute('ConstantValue');
+    var const_attr = f.get_attribute('ConstantValue');
     if (const_attr != null) {
-      entry = pool.get(const_attr.ref);
+      var entry = pool.get(const_attr.ref);
       field.const_type = entry.type;
-      field.const_value = (typeof entry.deref === "function" ? entry.deref() : void 0) || format(entry);
+      field.const_value = (typeof entry.deref === "function" ? entry.deref() : format(entry));
     }
     dis.fields.push(field);
   }
   // methods
-  _ref9 = class_file.get_methods();
-  for (sig in _ref9) {
-    m = _ref9[sig];
-    method = {
+  var methods = class_file.get_methods();
+  for (sig in methods) {
+    var m = methods[sig];
+    var exc_attr = m.get_attribute('Exceptions');
+    var method = {
       access_string: access_string(m.access_flags),
       is_synchronized: m.access_flags.synchronized,
-      return_type: (_ref10 = m.return_type) != null ? _ref10 : '',
+      return_type: (m.return_type != null) ? m.return_type : '',
       name: m.name,
       param_types: m.param_types,
-      exceptions: (_ref11 = (_ref12 = m.get_attribute('Exceptions')) != null ? _ref12.exceptions : void 0) != null ? _ref11 : null
+      exceptions: (exc_attr != null) ? exc_attr.exceptions : null
     };
     if (!(m.access_flags["native"] || m.access_flags.abstract)) {
-      code = m.code;
+      var code = m.code;
       code.parse_code();
-      method.code = {
+      method['code'] = {
         max_stack: code.max_stack,
         max_locals: code.max_locals,
         num_args: m.num_args,
         exception_handlers: code.exception_handlers,
         attributes: code.attrs
       };
-      method.code.opcodes = ops = [];
-      code.each_opcode(function(idx, oc) {
-        return ops.push({
-          idx: idx,
-          name: oc.name,
+      var ops = method['code'].opcodes = [];
+      code.each_opcode((idx, oc) => ops.push({
+          idx: idx, name: oc.name,
           annotation: oc.annotate(idx, pool)
-        });
-      });
+        })
+      );
     }
     dis.methods.push(method);
   }

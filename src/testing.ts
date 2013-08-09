@@ -1,11 +1,11 @@
 "use strict";
-import jvm = module('./jvm');
-import runtime = module('./runtime');
+import jvm = require('./jvm');
+import runtime = require('./runtime');
 var RuntimeState = runtime.RuntimeState;
-import util = module('./util');
-import disassembler = module('./disassembler');
-import ClassData = module('./ClassData');
-import ClassLoader = module('./ClassLoader');
+import util = require('./util');
+import disassembler = require('./disassembler');
+import ClassData = require('./ClassData');
+import ClassLoader = require('./ClassLoader');
 var BootstrapClassLoader = ClassLoader.BootstrapClassLoader;
 
 declare var node;

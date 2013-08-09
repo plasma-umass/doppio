@@ -1,7 +1,7 @@
 "use strict";
 var underscore = require('../vendor/underscore/underscore.js');
-import logging = module('./logging');
-import runtime = module('./runtime');
+import logging = require('./logging');
+import runtime = require('./runtime');
 
 export interface DoppioException {
   toplevel_catch_handler(rs: any): void

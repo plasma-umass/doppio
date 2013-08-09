@@ -1,8 +1,8 @@
 ///<reference path='../vendor/node.d.ts' />
 "use strict";
-import util = module('./util');
-import logging = module('./logging')
-import runtime = module('./runtime')
+import util = require('./util');
+import logging = require('./logging')
+import runtime = require('./runtime')
 
 declare var node
 var _ref;
@@ -11,8 +11,8 @@ var path = typeof node !== "undefined" ? node.path : require('path');
 var trace = logging.trace;
 var error = logging.error;
 
-export var show_NYI_natives: bool = false;
-export var dump_state: bool = false;
+export var show_NYI_natives: boolean = false;
+export var dump_state: boolean = false;
 
 var vendor_path = typeof node !== "undefined" ? '/sys/vendor' : path.resolve(__dirname, '../vendor');
 export var system_properties: any

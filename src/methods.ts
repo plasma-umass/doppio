@@ -1,15 +1,15 @@
 "use strict";
-import util = module('./util');
-import opcodes = module('./opcodes');
-import attributes = module('./attributes');
-import natives = module('./natives');
-import runtime = module('./runtime');
-import logging = module('./logging');
-import JVM = module('./jvm');
-import exceptions = module('./exceptions');
-import java_object = module('./java_object');
-import ConstantPool = module('./ConstantPool');
-import ClassData = module('./ClassData');
+import util = require('./util');
+import opcodes = require('./opcodes');
+import attributes = require('./attributes');
+import natives = require('./natives');
+import runtime = require('./runtime');
+import logging = require('./logging');
+import JVM = require('./jvm');
+import exceptions = require('./exceptions');
+import java_object = require('./java_object');
+import ConstantPool = require('./ConstantPool');
+import ClassData = require('./ClassData');
 
 
 var ReturnException = exceptions.ReturnException;
@@ -101,7 +101,7 @@ export class Field extends AbstractMethodField {
 }
 
 export class Method extends AbstractMethodField {
-  private reset_caches: bool;
+  private reset_caches: boolean;
   private param_types: string[];
   private param_bytes: number;
   private num_args: number;
@@ -109,7 +109,7 @@ export class Method extends AbstractMethodField {
   // Code is either a function, or a CodeAttribute. We should have a factory method
   // that constructs NativeMethod objects and BytecodeMethod objects.
   public code: any;
-  public has_bytecode: bool;
+  public has_bytecode: boolean;
 
   public parse_descriptor(raw_descriptor: string): void {
     this.reset_caches = false;  // Switched to 'true' in web frontend between JVM invocations.
@@ -168,7 +168,7 @@ export class Method extends AbstractMethodField {
     }
   }
 
-  public reflector(rs: runtime.RuntimeState, is_constructor: bool, success_fn: (reflectedMethod: java_object.JavaObject)=>void, failure_fn: (e_fn: ()=>void)=>void): void {
+  public reflector(rs: runtime.RuntimeState, is_constructor: boolean, success_fn: (reflectedMethod: java_object.JavaObject)=>void, failure_fn: (e_fn: ()=>void)=>void): void {
     var adefs, anns, clazz_obj, exceptions, obj, sig, typestr, _ref3, _ref4, _ref5, _ref6, _ref7,
       _this = this;
 
