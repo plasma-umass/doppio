@@ -217,14 +217,14 @@ test: dependencies $(TESTS)
 # phony *.test targets allow us to test with -j4 parallelism
 classes/test/%.test: release-cli classes/test/%.class classes/test/%.disasm classes/test/%.runout
 	@$(NODE) build/release/console/test_runner.js classes/test/$* --makefile
+# The trim command is to handle the Windows case.
 classes/test/%.disasm: classes/test/%.class
-	# The trim command is to handle the Windows case.
 	$(JAVAP) -bootclasspath $(BOOTCLASSPATH) -c -verbose -private classes/test/$* >classes/test/$*.disasm
-	if [[ $(IS_CYGWIN) = 1 ]]; then dos2unix classes/test/$*.disasm; fi
+	@if [[ $(IS_CYGWIN) = 1 ]]; then dos2unix classes/test/$*.disasm; fi
 # some tests may throw exceptions. The '-' flag tells make to carry on anyway.
 classes/test/%.runout: classes/test/%.class
 	-$(JAVA) -Xbootclasspath/a:$(BOOTCLASSPATH) classes/test/$* &>classes/test/$*.runout
-	if [[ $(IS_CYGWIN) = 1 && -e classes/test/$*.runout ]]; then dos2unix classes/test/$*.runout; fi
+	@if [[ $(IS_CYGWIN) = 1 && -e classes/test/$*.runout ]]; then dos2unix classes/test/$*.runout; fi
 
 clean:
 	@rm -f tools/*.js tools/preload browser/listings.json doppio doppio-dev
