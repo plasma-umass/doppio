@@ -111,19 +111,15 @@ export var trapped_methods = {
 };
 
 function doPrivileged(rs: runtime.RuntimeState, action: methods.Method): void {
-  var m, my_sf;
-
-  my_sf = rs.curr_frame();
-  m = action.cls.method_lookup(rs, 'run()Ljava/lang/Object;');
+  var my_sf = rs.curr_frame();
+  var m = action.cls.method_lookup(rs, 'run()Ljava/lang/Object;');
   if (m != null) {
     if (!m.access_flags["static"]) {
       rs.push(action);
     }
     m.setup_stack(rs);
     my_sf.runner = function () {
-      var rv;
-
-      rv = rs.pop();
+      var rv = rs.pop();
       rs.meta_stack().pop();
       rs.push(rv);
     };
@@ -139,12 +135,9 @@ function doPrivileged(rs: runtime.RuntimeState, action: methods.Method): void {
 }
 
 function stat_fd(fd) {
-  var e;
-
   try {
     return fs.fstatSync(fd);
   } catch (_error) {
-    e = _error;
     return null;
   }
 }
@@ -160,70 +153,67 @@ function stat_file(fname: string, cb: (stat: any)=>void): void {
 }
 
 function arraycopy_no_check(src: java_object.JavaArray, src_pos: number, dest: java_object.JavaArray, dest_pos: number, length: number): void {
-  var i, j, _i, _ref5;
-
-  j = dest_pos;
-  for (i = _i = src_pos, _ref5 = src_pos + length; _i < _ref5; i = _i += 1) {
+  var j = dest_pos;
+  var end = src_pos + length
+  for (var i = src_pos; i < end; i++) {
     dest.array[j++] = src.array[i];
   }
 }
 
 function arraycopy_check(rs: runtime.RuntimeState, src: java_object.JavaArray, src_pos: number, dest: java_object.JavaArray, dest_pos: number, length: number): void {
-  var dest_comp_cls, i, j, _i, _ref5;
-
-  j = dest_pos;
-  dest_comp_cls = dest.cls.get_component_class();
-  for (i = _i = src_pos, _ref5 = src_pos + length; _i < _ref5; i = _i += 1) {
+  var j = dest_pos;
+  var end = src_pos + length
+  var dest_comp_cls = dest.cls.get_component_class();
+  for (var i = src_pos; i < end; i++) {
     if (src.array[i] === null || src.array[i].cls.is_castable(dest_comp_cls)) {
       dest.array[j] = src.array[i];
     } else {
-      rs.java_throw((<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/ArrayStoreException;')), 'Array element in src cannot be cast to dest array type.');
+      var exc_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/ArrayStoreException;');
+      rs.java_throw(exc_cls, 'Array element in src cannot be cast to dest array type.');
     }
     j++;
   }
 }
 
 function unsafe_memcpy(rs: runtime.RuntimeState, src_base: java_object.JavaArray, src_offset_l: gLong, dest_base: java_object.JavaArray, dest_offset_l: gLong, num_bytes_l: gLong): void {
-  var dest_addr, i, src_addr, _i, _j, _k, _l, _m, _n;
-
   var num_bytes = num_bytes_l.toNumber();
   if (src_base != null) {
     var src_offset = src_offset_l.toNumber();
     if (dest_base != null) {
       return arraycopy_no_check(src_base, src_offset, dest_base, dest_offset_l.toNumber(), num_bytes);
     } else {
-      dest_addr = rs.block_addr(dest_offset_l);
+      var dest_addr = rs.block_addr(dest_offset_l);
       if (typeof DataView !== "undefined" && DataView !== null) {
-        for (i = _i = 0; _i < num_bytes; i = _i += 1) {
+        for (var i = 0; i < num_bytes; i++) {
           rs.mem_blocks[dest_addr].setInt8(i, src_base.array[src_offset + i]);
         }
       } else {
-        for (i = _j = 0; _j < num_bytes; i = _j += 1) {
+        for (var i = 0; i < num_bytes; i++) {
           rs.mem_blocks[dest_addr + i] = src_base.array[src_offset + i];
         }
       }
     }
   } else {
-    src_addr = rs.block_addr(src_offset_l);
+    var src_addr = rs.block_addr(src_offset_l);
     if (dest_base != null) {
       var dest_offset = dest_offset_l.toNumber();
       if (typeof DataView !== "undefined" && DataView !== null) {
-        for (i = _k = 0; _k < num_bytes; i = _k += 1) {
+        for (var i = 0; i < num_bytes; i++) {
           dest_base.array[dest_offset + i] = rs.mem_blocks[src_addr].getInt8(i);
         }
       } else {
-        for (i = _l = 0; _l < num_bytes; i = _l += 1) {
+        for (var i = 0; i < num_bytes; i++) {
           dest_base.array[dest_offset + i] = rs.mem_blocks[src_addr + i];
         }
       }
     } else {
-      dest_addr = rs.block_addr(dest_offset_l);
+      var dest_addr = rs.block_addr(dest_offset_l);
       if (typeof DataView !== "undefined" && DataView !== null) {
-        for (i = _m = 0; _m < num_bytes; i = _m += 1) {
+        for (var i = 0; i < num_bytes; i++) {
           rs.mem_blocks[dest_addr].setInt8(i, rs.mem_blocks[src_addr].getInt8(i));
         }
       } else {
-        for (i = _n = 0; _n < num_bytes; i = _n += 1) {
+        for (var i = 0; i < num_bytes; i++) {
           rs.mem_blocks[dest_addr + i] = rs.mem_blocks[src_addr + i];
         }
       }
@@ -232,9 +222,7 @@ function unsafe_memcpy(rs: runtime.RuntimeState, src_base: java_object.JavaArray
 }
 
 function unsafe_compare_and_swap(rs: runtime.RuntimeState, _this: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, expected: any, x: any): boolean {
-  var actual;
-
-  actual = obj.get_field_from_offset(rs, offset);
+  var actual = obj.get_field_from_offset(rs, offset);
   if (actual === expected) {
     obj.set_field_from_offset(rs, offset, x);
     return true;
@@ -255,10 +243,8 @@ function native_define_class(rs: runtime.RuntimeState, name: java_object.JavaObj
 }
 
 function write_to_file(rs: runtime.RuntimeState, _this: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number): void {
-  var fd, fd_obj;
-
-  fd_obj = _this.get_field(rs, 'Ljava/io/FileOutputStream;fd');
-  fd = fd_obj.get_field(rs, 'Ljava/io/FileDescriptor;fd');
+  var fd_obj = _this.get_field(rs, 'Ljava/io/FileOutputStream;fd');
+  var fd = fd_obj.get_field(rs, 'Ljava/io/FileDescriptor;fd');
   if (fd === -1) {
     rs.java_throw((<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/io/IOException;')), "Bad file descriptor");
   }
@@ -268,44 +254,45 @@ function write_to_file(rs: runtime.RuntimeState, _this: java_object.JavaObject, 
   }
   rs.print(util.chars2js_str(bytes, offset, len));
   if (typeof node !== "undefined" && node !== null) {
-    rs.async_op(function (cb) {
-      cb();
-    });
+    rs.async_op((cb) => cb());
   }
 }
 
 function get_cl_from_jclo(rs: runtime.RuntimeState, jclo: java_object.JavaClassLoaderObject): ClassLoader.ClassLoader {
   if ((jclo != null) && (jclo.$loader != null)) {
     return jclo.$loader;
-  } else {
-    return rs.get_bs_cl();
   }
+  return rs.get_bs_cl();
 }
 
 function create_stack_trace(rs: runtime.RuntimeState, throwable: java_object.JavaObject): java_object.JavaObject[] {
-  var cls, cstack, i, ln, row, sf, source_file, stacktrace, table, _i, _len, _ref5, _ref6, _ref7, _ref8;
+  var source_file, _ref8;
 
-  stacktrace = [];
-  cstack = rs.meta_stack()._cs.slice(1, -1);
-  for (_i = 0, _len = cstack.length; _i < _len; _i++) {
-    sf = cstack[_i];
+  var stacktrace = [];
+  var cstack = rs.meta_stack()._cs.slice(1, -1);
+  for (var i = 0; i < cstack.length; i++) {
+    var sf = cstack[i];
     if (!(!(sf["native"] || sf.locals[0] === throwable))) {
       continue;
     }
-    cls = sf.method.cls;
-    ln = -1;
+    var cls = sf.method.cls;
+    var ln = -1;
     if (throwable.cls.get_type() !== 'Ljava/lang/NoClassDefFoundError;') {
       if (sf.method.access_flags["native"]) {
         source_file = 'Native Method';
       } else {
-        source_file = ((_ref5 = cls.get_attribute('SourceFile')) != null ? _ref5.filename : void 0) || 'unknown';
-        table = (_ref6 = sf.method.code) != null ? _ref6.get_attribute('LineNumberTable') : void 0;
+        var src_attr = cls.get_attribute('SourceFile');
+        source_file = (src_attr != null) ? src_attr.filename : 'unknown';
+        var code = sf.method.code;
+        var table;
+        if (code != null) {
+          table = code.get_attribute('LineNumberTable');
+        }
         if (table == null) {
           break;
         }
-        _ref7 = table.entries;
-        for (i in _ref7) {
-          row = _ref7[i];
+        for (var k in table.entries) {
+          var row = table.entries[k];
           if (row.start_pc <= sf.pc) {
             ln = row.line_number;
           }
@@ -1168,10 +1155,8 @@ export var native_methods = {
         }), o('getFilePointer()J', function(rs, _this) {
           return gLong.fromNumber(_this.$pos);
         }), o('length()J', function(rs, _this) {
-          var fd, fd_obj;
-
-          fd_obj = _this.get_field(rs, 'Ljava/io/RandomAccessFile;fd');
-          fd = fd_obj.get_field(rs, 'Ljava/io/FileDescriptor;fd');
+          var fd_obj = _this.get_field(rs, 'Ljava/io/RandomAccessFile;fd');
+          var fd = fd_obj.get_field(rs, 'Ljava/io/FileDescriptor;fd');
           return gLong.fromNumber((stat_fd(fd)).size);
         }), o('seek(J)V', function(rs, _this, pos) {
           return _this.$pos = pos.toNumber();
