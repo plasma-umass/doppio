@@ -1,6 +1,6 @@
 /// <reference path="../vendor/node.d.ts" />
 "use strict";
-var underscore = require('../vendor/_.js');
+var underscore = require('../vendor/underscore/underscore.js');
 var options = null;
 var description = null;
 

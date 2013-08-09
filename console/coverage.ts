@@ -76,18 +76,12 @@ function print_unused(stats, stats_name): void {
   }
 }
 
-function run_tests(test_classes, stdout, quiet, callback) {
+function run_tests(test_classes, stdout, quiet, callback): void {
   var doppio_dir = path.resolve(__dirname, '..');
-  // get the tests, if necessary
-  if (test_classes != null && test_classes.length > 0) {
-    test_classes = test_classes.map((tc) => tc.replace(/\.class$/, ''));
-  } else {
-    test_classes = testing.find_test_classes(doppio_dir);
-  }
   // set up the classpath
   var jcl_dir = path.resolve(doppio_dir, 'vendor/classes');
   jvm.set_classpath(jcl_dir, doppio_dir);
-  function _runner() {
+  function _runner(test_classes: string[]) {
     if (test_classes.length === 0) {
       return callback();
     }
@@ -98,7 +92,13 @@ function run_tests(test_classes, stdout, quiet, callback) {
     var rs = new runtime.RuntimeState(nop, nop, bcl);
     return jvm.run_class(rs, test, [], _runner);
   }
-  return _runner();
+  // get the tests, if necessary
+  if (test_classes != null && test_classes.length > 0) {
+    test_classes = test_classes.map((tc) => tc.replace(/\.class$/, ''));
+    _runner(test_classes);
+  } else {
+    testing.find_test_classes(doppio_dir, (tcs) => _runner(tcs));
+  }
 }
 
 var print = require('util').print;
