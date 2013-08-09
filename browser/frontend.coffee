@@ -10,13 +10,13 @@ editor = null
 progress = null
 bs_cl = null
 
-preload = ->
-  try
-    data = node.fs.readFileSync("/home/doppio/browser/mini-rt.tar")
-  catch e
-    console.error e
+sys_path = '/sys'
 
-  if data?
+preload = ->
+  node.fs.readFile "#{sys_path}/browser/mini-rt.tar", (err, data) ->
+    if err
+      console.error "Error downloading mini-rt.tar: #{err}"
+      return
     file_count = 0
     done = false
     start_untar = (new Date).getTime()
@@ -35,45 +35,39 @@ preload = ->
       preloading_file.text(
         if display_perc < 100 then "Loading #{path}"  else "Done!"))
 
-    untar new util.BytesArray(util.bytestr_to_array data), ((percent, path, file) ->
+    # Grab the XmlHttpRequest file system.
+    xhrfs = node.fs.getRootFS().mntMap[sys_path]
+
+    # Note: Path is relative to XHR mount point (e.g. /vendor/classes rather than
+    # /sys/vendor/classes). They must also be absolute paths.
+    untar new util.BytesArray(data), ((percent, path, file) ->
+      if path[0] != '/' then path = "/#{path}"
       update_bar(percent, path)
-      base_dir = 'vendor/classes/'
       ext = path.split('.')[1]
       unless ext is 'class'
         on_complete() if percent == 100
         return
       file_count++
       asyncExecute (->
-        # XXX: We convert from bytestr to array to process the tar file, and
-        #      then back to a bytestr to store as a file in the filesystem.
-        node.fs.writeFileSync(path, util.array_to_bytestr(file), 'utf8', true)
+        try
+          xhrfs.preloadFile path, file
+        catch e
+          console.error "Error writing #{path}: #{e}"
         on_complete() if --file_count == 0 and done
       ), 0),
       ->
         done = true
         on_complete() if file_count == 0
+    return
 
-# Read in a binary classfile synchronously. Return an array of bytes.
-read_classfile = (cls, cb, failure_cb) ->
-  cls = cls[1...-1] # Convert Lfoo/bar/Baz; -> foo/bar/Baz.
-  for path in jvm.system_properties['java.class.path']
-    fullpath = "#{path}#{cls}.class"
-    try
-      data = util.bytestr_to_array node.fs.readFileSync(fullpath)
-    catch e
-      data = null
-    return cb(data) if data?
-
-  failure_cb(-> throw new Error "Error: No file found for class #{cls}.")
-
-process_bytecode = (bytecode_string) ->
-  bytes_array = util.bytestr_to_array bytecode_string
-  new ClassData.ReferenceClassData(bytes_array)
+process_bytecode = (buffer) -> new ClassData.ReferenceClassData(buffer)
 
 onResize = ->
   h = $(window).height() * 0.7
   $('#console').height(h)
   $('#source').height(h)
+
+ps1 = -> node.process.cwd() + '$ '
 
 $(window).resize(onResize)
 
@@ -104,14 +98,17 @@ $(document).ready ->
       isClass = ext == 'class'
       reader.onload = (e) ->
         files_uploaded++
-        node.fs.writeFileSync(node.process.cwd() + '/' + f.name, e.target.result)
-        controller.message "[#{files_uploaded}/#{num_files}] File '#{f.name}' saved.\n",
-          'success', files_uploaded != num_files
-        if isClass
-          editor.getSession?().setValue("/*\n * Binary file: #{f.name}\n */")
-        else
-          editor.getSession?().setValue(e.target.result)
-        $('#console').click() # click to restore focus
+        node.fs.writeFile node.process.cwd() + '/' + f.name, e.target.result, (err) ->
+          if err
+            controller.message "[#{files_uploaded}/#{num_files}] File '#{f.name}' could not be saved: #{err}\n", 'error', files_uploaded != num_files
+          else
+            controller.message "[#{files_uploaded}/#{num_files}] File '#{f.name}' saved.\n",
+              'success', files_uploaded != num_files
+            if isClass
+              editor.getSession?().setValue("/*\n * Binary file: #{f.name}\n */")
+            else
+              editor.getSession?().setValue(e.target.result)
+          $('#console').click() # click to restore focus
       if isClass then reader.readAsBinaryString(f) else reader.readAsText(f)
     )
     for f in ev.target.files
@@ -120,7 +117,7 @@ $(document).ready ->
 
   jqconsole = $('#console')
   controller = jqconsole.console
-    promptLabel: 'doppio > '
+    promptLabel: ps1()
     commandHandle: (line) ->
       [cmd,args...] = line.trim().split(/\s+/)
       if cmd == '' then return true
@@ -189,43 +186,88 @@ $(document).ready ->
     fname = $('#filename').val()
     contents = editor.getSession().getValue()
     contents += '\n' unless contents[contents.length-1] == '\n'
-    node.fs.writeFileSync(fname, contents)
-    controller.message("File saved as '#{fname}'.", 'success')
+    node.fs.writeFile fname, contents, (err) ->
+      if err
+        controller.message "File could not be saved: #{err}", 'error'
+      else
+        controller.message("File saved as '#{fname}'.", 'success')
     close_editor()
     e.preventDefault()
 
   $('#close_btn').click (e) -> close_editor(); e.preventDefault()
-  bs_cl = new ClassLoader.BootstrapClassLoader(read_classfile)
+  bs_cl = new ClassLoader.BootstrapClassLoader(jvm.read_classfile)
   preload()
 
 # helper function for 'ls'
-read_dir = (dir, pretty=true, columns=true) ->
-  contents = node.fs.readdirSync(dir).sort()
-  return contents.join('\n') unless pretty
-  pretty_list = []
+read_dir = (dir, pretty=true, columns=true, cb) ->
+  node.fs.readdir node.path.resolve(dir), (err, contents) ->
+    if err or contents.length is 0 then return cb('')
+    contents = contents.sort()
+    return cb(contents.join('\n')) unless pretty
+    pretty_list = []
+    i = 0
+    next_content = ->
+      c = contents[i++]
+      node.fs.stat (dir+'/'+c), (err, stat) ->
+        if stat.isDirectory()
+          c += '/'
+        pretty_list.push c
+        unless i is contents.length
+          next_content()
+          return
+        cb(if columns then columnize(pretty_list) else pretty_list.join('\n'))
+    next_content()
+
+pad_right = (str,len) ->
+  str + Array(len - str.length + 1).join(' ')
+
+columnize = (str_list, line_length=100) ->
   max_len = 0
-  for c in contents
-    if node.fs.statSync(dir+'/'+c).isDirectory()
-      c += '/'
-    max_len = c.length if c.length > max_len
-    pretty_list.push c
-  return pretty_list.join('\n') unless columns
-  # XXX: assumes 100-char lines
-  num_cols = (100/(max_len+1))|0
-  col_size = Math.ceil(pretty_list.length/num_cols)
+  for s in str_list
+    max_len = s.length if s.length > max_len
+  num_cols = (line_length/(max_len+1))|0
+  col_size = Math.ceil(str_list.length/num_cols)
   column_list = []
   for [1..num_cols]
-    column_list.push pretty_list.splice(0, col_size)
+    column_list.push str_list.splice(0, col_size)
   row_list = []
-  rpad = (str,len) -> str + Array(len - str.length + 1).join(' ')
-  for i in [0...col_size]
-    row = (rpad(col[i],max_len+1) for col in column_list when col[i]?)
+  for i in [0...col_size] by 1
+    row = (pad_right(col[i],max_len+1) for col in column_list when col[i]?)
     row_list.push row.join('')
-  row_list.join('\n')
+  return row_list.join('\n')
+
+location.origin ?= location.origin or "#{location.protocol}//#{location.host}"
 
 commands =
+  view_dump: ->
+    if window.core_dump
+      # Open the core viewer in a new window and save a reference to it
+      viewer = window.open 'core_viewer.html?source=browser'
+
+      # Create a function to send the core dump to the new window
+      send_dump = ->
+        message = JSON.stringify window.core_dump
+        viewer.postMessage message, location.origin
+
+      # Start a timer to send the message after 5 seconds - the window should
+      # have loaded by then
+      delay = 5000
+      timer = setTimeout send_dump, delay
+
+      # If the window loads before 5 seconds, send the message straight away
+      # and cancel the timer
+      viewer.onload = ->
+        clearTimeout timer
+        send_dump()
+
+      controller.reprompt()
+      return null
+
+    else
+      'No core file to send. Use java -Xdump-state path/to/failing/class to generate one.'
+
   ecj: (args, cb) ->
-    jvm.set_classpath '/home/doppio/vendor/classes/', './'
+    jvm.set_classpath "#{sys_path}/vendor/classes/", './'
     rs = new runtime.RuntimeState(stdout, user_input, bs_cl)
     # HACK: -D args unsupported by the console.
     jvm.system_properties['jdt.compiler.useSingleThread'] = true
@@ -237,7 +279,7 @@ commands =
         controller.reprompt()
     return null  # no reprompt, because we handle it ourselves
   javac: (args, cb) ->
-    jvm.set_classpath '/home/doppio/vendor/classes/', './:/home/doppio'
+    jvm.set_classpath "#{sys_path}/vendor/classes/", "./:#{sys_path}/"
     rs = new runtime.RuntimeState(stdout, user_input, bs_cl)
     jvm.run_class rs, 'classes/util/Javac', args, ->
         # HACK: remove any classes that just got compiled from the class cache
@@ -254,14 +296,14 @@ commands =
         args.splice i, 1
         break
 
-    if !args[0]? or (args[0] == '-classpath' and args.length < 3)
+    if !args[0]? or (args[0] in ['-classpath', '-cp'] and args.length < 3)
       return "Usage: java [-classpath path1:path2...] class [args...]"
-    if args[0] == '-classpath'
-      jvm.set_classpath '/home/doppio/vendor/classes/', args[1]
+    if args[0] in ['-classpath', '-cp']
+      jvm.set_classpath "#{sys_path}/vendor/classes/", args[1]
       class_name = args[2]
       class_args = args[3..]
     else
-      jvm.set_classpath '/home/doppio/vendor/classes/', './'
+      jvm.set_classpath "#{sys_path}/vendor/classes/", './'
       class_name = args[0]
       class_args = args[1..]
     rs = new runtime.RuntimeState(stdout, user_input, bs_cl)
@@ -269,22 +311,29 @@ commands =
     return null  # no reprompt, because we handle it ourselves
   test: (args) ->
     return "Usage: test all|[class(es) to test]" unless args[0]?
+    # Change dir to $sys_path, because that's where tests expect to be run from.
+    curr_dir = node.process.cwd()
+    done_cb = ->
+      node.process.chdir curr_dir
+      controller.reprompt()
+    node.process.chdir sys_path
     # method signature is:
     # run_tests(args,stdout,hide_diffs,quiet,keep_going,done_callback)
     if args[0] == 'all'
-      testing.run_tests [], stdout, true, false, true, -> controller.reprompt()
+      testing.run_tests [], stdout, true, false, true, done_cb
     else
-      testing.run_tests args, stdout, false, false, true, -> controller.reprompt()
+      testing.run_tests args, stdout, false, false, true, done_cb
     return null
   javap: (args) ->
     return "Usage: javap class" unless args[0]?
-    try
-      raw_data = node.fs.readFileSync("#{args[0]}.class")
-    catch e
-      return ["Could not find class '#{args[0]}'.",'error']
-    disassembler.disassemble process_bytecode raw_data
+    node.fs.readFile "#{args[0]}.class", (err, buf) ->
+      if err
+        controller.message "Could not find class '#{args[0]}'.",'error'
+      else
+        controller.message(disassembler.disassemble(process_bytecode(buf)), 'success')
+    return null
   rhino: (args, cb) ->
-    jvm.set_classpath '/home/doppio/vendor/classes/', './'
+    jvm.set_classpath "#{sys_path}/vendor/classes/", './'
     rs = new runtime.RuntimeState(stdout, user_input, bs_cl)
     jvm.run_class(rs, 'com/sun/tools/script/shell/Main', args, -> controller.reprompt())
     return null  # no reprompt, because we handle it ourselves
@@ -293,68 +342,96 @@ commands =
     '  ' + cached_classes.sort().join('\n  ')
   # Reset the bootstrap classloader
   clear_cache: ->
-    bs_cl = new ClassLoader.BootstrapClassLoader(read_classfile)
+    bs_cl = new ClassLoader.BootstrapClassLoader(jvm.read_classfile)
     return true
   ls: (args) ->
     if args.length == 0
-      read_dir '.'
+      read_dir '.', null, null, (list) ->
+        controller.message list, 'success'
     else if args.length == 1
-      read_dir args[0]
+      read_dir args[0], null, null, (list) ->
+        controller.message list, 'success'
     else
-      ("#{d}:\n#{read_dir d}\n" for d in args).join '\n'
+      read_next_dir = (i) ->
+        d = args[i]
+        read_dir d, null, null, (list) ->
+          controller.message "#{d}:\n#{list}\n\n", 'success', true
+          if i is args.length then return controller.reprompt()
+          read_next_dir(i+1)
+      read_next_dir(0)
+    return null
   edit: (args) ->
-    try
-      data = if args[0]? then node.fs.readFileSync(args[0]) else defaultFile
-    catch e
-      data = defaultFile
-    $('#console').fadeOut 'fast', ->
-      $('#filename').val args[0]
-      $('#ide').fadeIn('fast')
-      # initialize the editor. technically we only need to do this once, but more
-      # than once is fine too
-      editor = ace.edit('source')
-      editor.setTheme 'ace/theme/twilight'
-      if not args[0]? or args[0].split('.')[1] is 'java'
-        JavaMode = require("ace/mode/java").Mode
-        editor.getSession().setMode(new JavaMode)
-      else
-        TextMode = require("ace/mode/text").Mode
-        editor.getSession().setMode(new TextMode)
-      editor.getSession().setValue(data)
-    true
+    startEditor = (data) ->
+      $('#console').fadeOut 'fast', ->
+        $('#filename').val args[0]
+        $('#ide').fadeIn('fast')
+        # initialize the editor. technically we only need to do this once, but more
+        # than once is fine too
+        editor = ace.edit('source')
+        editor.setTheme 'ace/theme/twilight'
+        if not args[0]? or args[0].split('.')[1] is 'java'
+          JavaMode = ace.require("ace/mode/java").Mode
+          editor.getSession().setMode(new JavaMode)
+        else
+          TextMode = ace.require("ace/mode/text").Mode
+          editor.getSession().setMode(new TextMode)
+        editor.getSession().setValue(data)
+    if args[0]?
+      node.fs.readFile args[0], 'utf8', (err, data) ->
+        if err then data = defaultFile
+        startEditor data
+        controller.reprompt()
+      return null
+    else
+      startEditor defaultFile
+      return true
   cat: (args) ->
     fname = args[0]
     return "Usage: cat <file>" unless fname?
-    try
-      return node.fs.readFileSync(fname)
-    catch e
-      return "ERROR: #{fname} does not exist."
+    node.fs.readFile fname, 'utf8', (err, data) ->
+      if err
+        controller.message "Could not open file #{fname}: #{err}", 'error'
+      else
+        controller.message data
+    return null
   mv: (args) ->
     if args.length < 2 then return "Usage: mv <from-file> <to-file>"
-    try
-      node.fs.renameSync(args[0], args[1])
-    catch e
-      return "Invalid arguments."
-    true
+    node.fs.rename args[0], args[1], (err) ->
+      if err then controller.message "Could not rename #{args[0]} to #{args[1]}: #{err}", 'error', true
+      controller.reprompt()
+    return null
   cd: (args) ->
     if args.length > 1 then return "Usage: cd <directory>"
-    if args.length == 0 then args.push("~")
-    try
-      node.process.chdir(args[0])
-    catch e
-      return "Invalid directory."
-    true
+    dir = if args.length == 0 or args[0] is '~'
+      # Change to the default (starting) directory.
+      '/demo'
+    else node.path.resolve(args[0])
+    # Verify path exists before going there. chdir does not verify that the
+    # directory exists.
+    node.fs.exists dir, (doesExist) ->
+      if doesExist
+        node.process.chdir(dir)
+        controller.promptLabel = ps1()
+      else
+        controller.message "Directory #{dir} does not exist.\n", 'error', true
+      controller.reprompt()
+    return null
   rm: (args) ->
     return "Usage: rm <file>" unless args[0]?
     if args[0] == '*'
-      fnames = node.fs.readdirSync('.')
-      for fname in fnames
-        fstat = node.fs.statSync(fname)
-        if fstat.is_directory
-          return "ERROR: '#{fname}' is a directory."
-        node.fs.unlinkSync(fname)
-    else node.fs.unlinkSync args[0]
-    true
+      node.fs.readdir '.', (err, fnames) ->
+        if err
+          controller.message "Could not read '.': #{err}\n", 'error'
+        else
+          completed = 0
+          for fname in fnames
+            node.fs.unlink fname, (err) ->
+              if err then controller.message "Could not remove file: #{err}\n", 'error', true
+              if ++completed is fnames.length then controller.reprompt()
+    else node.fs.unlink args[0], (err) ->
+      if err then controller.message "Could not remove file: #{err}\n", 'error', true
+      controller.reprompt()
+    return null
   emacs: -> "Try 'vim'."
   vim: -> "Try 'emacs'."
   time: (args) ->
@@ -411,27 +488,41 @@ commands =
 tabComplete = ->
   promptText = controller.promptText()
   args = promptText.split /\s+/
-  prefix = longestCommmonPrefix(getCompletions(args))
-  return if prefix == ''  # TODO: if we're tab-completing a blank, show all options
-  # delete existing text so we can do case correction
-  promptText = promptText.substr(0, promptText.length - util.last(args).length)
-  controller.promptText(promptText + prefix)
+  last_arg = util.last(args)
+  getCompletions args, (completions) ->
+    prefix = longestCommmonPrefix(completions)
+    if prefix == '' or prefix == last_arg
+      # We've no more sure completions to give, so show all options.
+      common_len = last_arg.lastIndexOf('/') + 1
+      options = columnize(c.slice(common_len) for c in completions)
+      controller.message options, 'success'
+      controller.promptText(promptText)
+      return
+    # delete existing text so we can do case correction
+    promptText = promptText.substr(0, promptText.length - last_arg.length)
+    controller.promptText(promptText + prefix)
 
-getCompletions = (args) ->
-  if args.length is 1 then commandCompletions args[0]
-  else if args[0] is 'time' then getCompletions(args[1..])
-  else fileNameCompletions args[0], args
+getCompletions = (args, cb) ->
+  if args.length is 1
+    cb filterSubstring(args[0], Object.keys(commands))
+  else if args[0] is 'time'
+    getCompletions(args[1..], cb)
+  else
+    fileNameCompletions args[0], args, cb
+  return
 
-commandCompletions = (cmd) ->
-  (name for name of commands when name.substr(0, cmd.length) is cmd)
+filterSubstring = (prefix, lst) ->
+  (x for x in lst when x.substr(0, prefix.length) is prefix)
 
-fileNameCompletions = (cmd, args) ->
-  validExtension = (fname) ->
-    dot = fname.lastIndexOf('.')
-    ext = if dot is -1 then '' else fname.slice(dot+1)
-    if cmd is 'javac' then ext is 'java'
-    else if cmd is 'javap' or cmd is 'java' then ext is 'class'
-    else true
+validExtension = (cmd, fname) ->
+  dot = fname.lastIndexOf('.')
+  ext = if dot is -1 then '' else fname.slice(dot+1)
+  if cmd is 'javac' then ext is 'java'
+  else if cmd is 'javap' or cmd is 'java' then ext is 'class'
+  else if cmd is 'cd' then false
+  else true
+
+fileNameCompletions = (cmd, args, cb) ->
   chopExt = args.length == 2 and (cmd is 'javap' or cmd is 'java')
   toComplete = util.last(args)
   lastSlash = toComplete.lastIndexOf('/')
@@ -441,24 +532,24 @@ fileNameCompletions = (cmd, args) ->
   else
     dirPfx = ''
     searchPfx = toComplete
-  try
-    dirList = node.fs.readdirSync(if dirPfx == '' then '.' else dirPfx)
-    # Slight cheat.
-    dirList.push('..')
-    dirList.push('.')
-  catch e
-    return []
-
-  completions = []
-  for item in dirList
-    isDir = node.fs.statSync(dirPfx + item)?.isDirectory()
-    continue unless validExtension(item) or isDir
-    if item.slice(0, searchPfx.length) == searchPfx
-      if isDir
-        completions.push(dirPfx + item + '/')
-      else if cmd != 'cd'
-        completions.push(dirPfx + (if chopExt then item.split('.',1)[0] else item))
-  completions
+  dirPath = if dirPfx == '' then '.' else node.path.resolve(dirPfx)
+  node.fs.readdir dirPath, (err, dirList) ->
+    return cb([]) if err?
+    dirList = filterSubstring searchPfx, dirList
+    completions = []
+    num_back = 0
+    for item in dirList
+      do (item) ->
+        node.fs.stat node.path.resolve(dirPfx+item), (err, stats) ->
+          if err?
+          else if stats.isDirectory()
+            completions.push(dirPfx + item + '/')
+          else if validExtension(cmd, item)
+            completions.push(dirPfx + (if chopExt then item.split('.',1)[0] else item))
+          if ++num_back == dirList.length
+            cb(completions)
+    return  # void function
+  return  # void function
 
 # use the awesome greedy regex hack, from http://stackoverflow.com/a/1922153/10601
 longestCommmonPrefix = (lst) -> lst.join(' ').match(/^(\S*)\S*(?: \1\S*)*$/i)[1]

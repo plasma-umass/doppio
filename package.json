@@ -1,5 +1,6 @@
 {
   "name": "doppio",
+  "version": "0.2.0",
   "dependencies": {
     "coffee-script": "1.6.2",
     "uglify-js": "2",
@@ -9,6 +10,11 @@
     "marked": "*",
     "mustache": "*",
     "semver": "*",
-    "express": "3.x"
+    "express": "3.x",
+    "bower": "~1.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/int3/doppio.git"
   }
 }

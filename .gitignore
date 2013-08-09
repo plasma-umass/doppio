@@ -1,4 +1,9 @@
 *.js
+vendor
+!vendor/gLong.js
+!vendor/jquery.console.js
+!vendor/browserfs.min.js
+
 *.swp
 *.un~
 *.class
@@ -18,8 +23,15 @@ doppio
 doppio-dev
 core-*
 browser/_about.html
-vendor/java_home
-vendor/jars/
 tools/preload
 classes/test/failures.txt
+
+# IntelliJ metadata
+*.iml
+.idea
+
+# The concatenated native methods
 src/natives.coffee
+
+# Log files
+*.log

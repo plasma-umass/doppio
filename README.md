@@ -1,5 +1,5 @@
 Doppio: A JVM in Coffeescript
-=============================
+=================================
 
 _Doppio_ is a double shot of espresso.
 In this case it's also a JVM written in [Coffeescript](http://coffeescript.org/).
@@ -50,7 +50,7 @@ The code can also be run from the console. For example:
     ./doppio-dev classes/demo/Fib
     ./doppio-dev classes/demo/Fib 7        # pass an argument to the JVM
     ./doppio-dev -jar my_application.jar   # extract and run a JAR
-    
+
 To get the optimized version, use `make release-cli`. The build products can be
 found in `build/release`, and the runtime can be invoked via `./doppio`.
 
@@ -71,6 +71,6 @@ Run all tests:
 
 Run a specific test, or test with different options:
 
-    console/test_runner.coffee -h
-    console/test_runner.coffee classes/test/Strings
+    node build/dev/console/test_runner.js -h
+    node build/dev/console/test_runner.js classes/test/Strings
 

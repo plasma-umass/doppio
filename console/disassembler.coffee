@@ -13,7 +13,7 @@ if argv._.length > 0
   fname += ".class" if fname.indexOf(".class") == -1
 else
   fname = '/dev/stdin'
-bytes_array = util.bytestr_to_array fs.readFileSync(fname, 'binary')
-class_data = new ReferenceClassData bytes_array
+buffer = fs.readFileSync fname
+class_data = new ReferenceClassData buffer
 
 console.log disassemble class_data

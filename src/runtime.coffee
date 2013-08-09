@@ -3,7 +3,7 @@
 # Things assigned to root will be available outside this module.
 root = exports ? window.runtime ?= {}
 
-_ = require '../vendor/_.js'
+_ = require '../vendor/underscore/underscore.js'
 gLong = require '../vendor/gLong.js'
 util = require './util'
 {log,vtrace,trace,debug,error} = require './logging'
@@ -231,9 +231,15 @@ class root.RuntimeState
   dump_state: (snapshot=@meta_stack().snap(), suffix) ->
     suffix = if suffix? then "-#{suffix}" else ''
     fs = node?.fs ? require 'fs'
-    # 4th parameter to writeFileSync ensures this is not stored in localStorage in the browser
-    fs.writeFileSync "./core-#{thread_name @, @curr_thread}#{suffix}.json",
-      (JSON.stringify snapshot.serialize()), 'utf8', true
+
+    serialized = snapshot.serialize()
+
+    if node
+      window.core_dump = serialized
+    else
+      # 4th parameter to writeFileSync ensures this is not stored in localStorage in the browser
+      fs.writeFileSync "./core-#{thread_name @, @curr_thread}#{suffix}.json",
+        (JSON.stringify serialized), 'utf8', true
 
   choose_next_thread: (blacklist, cb) ->
     unless blacklist?
@@ -351,6 +357,25 @@ class root.RuntimeState
       new JavaArray @, @get_class("[#{type}"), util.arrayset(len, null)
     else  # numeric array
       new JavaArray @, @get_class("[#{type}"), util.arrayset(len, 0)
+
+  # The given cls is already initialized.
+  heap_multinewarray: (type, counts) ->
+    dim = counts.length
+    init_arr = (curr_dim, type) =>
+      len = counts[curr_dim]
+      if len < 0 then @java_throw(@get_bs_class('Ljava/lang/NegativeArraySizeException;'),
+        "Tried to init dimension #{curr_dim} of a #{dim} dimensional #{type} array with length #{len}")
+      # Gives the JavaScript engine a size hint.
+      array = new Array(len)
+      if curr_dim+1 == dim
+        default_val = util.initial_value type
+        array[i] = default_val for i in [0...len] by 1
+      else
+        next_dim = curr_dim + 1
+        comp_type = type[1..]
+        array[i] = init_arr(next_dim, comp_type) for i in [0...len] by 1
+      return new JavaArray(@, @get_bs_class(type), array)
+    return init_arr(0, type)
 
   # heap object initialization
   init_string: (str,intern=false) ->

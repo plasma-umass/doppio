@@ -2,8 +2,6 @@
 set -e
 cd `dirname $0`/..
 
-git submodule update --init --recursive
-
 PLATFORM=`uname -s`
 PKGMGR=""
 
@@ -38,7 +36,7 @@ if [ ! -f classes/java/lang/Object.class ]; then
     unzip -qq -o -d classes/ "$JAR_PATH"
   done
   if [ ! -e java_home ]; then
-    JH=$DOWNLOAD_DIR/usr/lib/jvm/java-6-openjdk-common/jre
+    JH=$DOWNLOAD_DIR/usr/lib/jvm/java-6-openjdk/jre
     # a number of .properties files are symlinks to /etc; copy the targets over
     # so we do not need to depend on /etc's existence
     for LINK in `find $JH -type l`; do
@@ -98,9 +96,18 @@ if ! command -v node > /dev/null; then
   fi
 fi
 
+# Make sure npm is installed
+if ! command -v npm > /dev/null; then
+  echo "npm not found, installing (requires superuser rights)"
+  curl https://npmjs.org/install.sh | sudo sh
+fi
+
 # Install Node modules (must come before version check because the semver package is needed)
 echo "Installing required node modules"
 npm install
+
+echo "Installing frontend dependencies"
+`npm bin`/bower install
 
 # Make sure the node version is greater than 0.10
 node_outdated=$(node -p "require('semver').lt(process.versions.node, '0.10.0')")
@@ -116,7 +123,13 @@ if [[ $node_outdated == "true" ]]; then
   fi
 fi
 
-echo "Using `javac -version 2>&1` to generate classfiles"
+javac_version=$(javac -version 2>&1)
+if [[ "$javac_version" =~ "1.7" ]]; then
+  echo "Detected Java 7 (javac version $javac_version). Please use Java 6."
+  exit
+fi
+
+echo "Using $javac_version to generate classfiles"
 make java
 
 if ! command -v bundle > /dev/null; then

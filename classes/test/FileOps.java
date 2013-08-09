@@ -20,7 +20,7 @@ class FileOps {
       try {
         BufferedReader reader = new BufferedReader(new FileReader(f));
       } catch (Exception e) {
-        System.out.println("Successfully threw exception for nonexistant file.");
+        System.out.println("Successfully threw exception for nonexistent file.");
       }
     }
     {
@@ -47,17 +47,16 @@ class FileOps {
       File f = new File(testDir + "/contains_data.txt");
       System.out.println("Does contains_data.txt exist?: " + f.exists());
       System.out.println("Length of contains_data.txt: " + f.length());
-      System.out.println("Can I write to contains_data.txt?:  " + f.canWrite());
     }
 
     {
-      File f = new File(testDir);
-      System.out.println("Is FileOps a directory?: " + f.isDirectory());
+      File f = new File("/tmp");
+      System.out.println("Is /tmp a directory?: " + f.isDirectory());
       System.out.println("Can I write to it?: " + f.canWrite());
     }
 
     {
-      File f = new File(testDir + "/temp_delete_me.txt");
+      File f = new File( "/tmp/temp_delete_me.txt");
       System.out.println("Does temp_delete_me.txt exist?: " + f.exists());
       System.out.println("Did we successfully create this file?: " + f.createNewFile());
       System.out.println("And does it exist now?: " + f.exists());
@@ -101,7 +100,7 @@ class FileOps {
 
     // Create and delete a directory.
     {
-      File f = new File(testDir + "/tempDir");
+      File f = new File("/tmp/tempDir");
       System.out.println("Does tempDir exist?: " + f.exists());
       System.out.println("Making tempDir: " + f.mkdir());
       System.out.println("Does tempDir exist now?: " + f.exists());
@@ -109,8 +108,8 @@ class FileOps {
       System.out.println("Does tempDir exist now?: " + f.exists());
     }
     {
-      File f = new File(testDir + "/tempDir/tempDir");
-      File f2 = new File(testDir + "/tempDir");
+      File f = new File("/tmp/tempDir/tempDir");
+      File f2 = new File("/tmp/tempDir");
       System.out.println("Does tempDir/tempDir exist?: " + f.exists());
       System.out.println("Making tempDir/tempDir (should fail): " + f.mkdir());
       System.out.println("Does tempDir/tempDir exist now?: " + f.exists());
@@ -126,14 +125,14 @@ class FileOps {
       System.out.println("Does tempDir exist now?: " + f2.exists());
     }
     {
-      File f = new File(testDir);
+      File f = new File("/tmp");
       System.out.println("Trying to create a directory that already exists: " + f.mkdir());
     }
 
     // Rename a file.
     {
-      File f = new File(testDir + "/temp_rename_file.txt");
-      File f2 = new File(testDir + "/temp_rename_file2.txt");
+      File f = new File("/tmp/temp_rename_file.txt");
+      File f2 = new File("/tmp/temp_rename_file2.txt");
       System.out.println("Creating temp_rename_file.txt: " + f.createNewFile());
       System.out.println("Renaming it to temp_rename_file2.txt: " + f.renameTo(f2));
       System.out.println("Old file exist? " + f.exists() + " New file exists? " + f2.exists());
@@ -145,7 +144,7 @@ class FileOps {
 
     // Read only.
     {
-      File f = new File(testDir + "/temp_readonly.txt");
+      File f = new File("/tmp/temp_readonly.txt");
       System.out.println("Creating temp_readonly.txt: " + f.createNewFile());
       System.out.println("Marking as read only: " + f.setReadOnly());
       System.out.println("Can I write to the file?: " + f.canWrite());
