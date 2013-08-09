@@ -53,27 +53,31 @@ THIRD_PARTY_SRCS := vendor/jquery-migrate/jquery-migrate.js \
 # SCRIPTS
 # the order here is important: must match the order of includes
 # in the browser frontend html.
+# The library version is the minimal set of doppio sources that can
+# be embedded into other projects.
+library_BROWSER_SRCS :=  \
+    src/logging.coffee \
+    src/exceptions.coffee \
+    src/util.coffee \
+    src/java_object.coffee \
+    src/opcodes.coffee \
+    src/attributes.coffee \
+    src/ConstantPool.coffee \
+    src/disassembler.coffee \
+    src/ClassData.coffee \
+    src/natives.coffee \
+    src/methods.coffee \
+    src/runtime.coffee \
+    src/ClassLoader.coffee \
+    src/jvm.coffee
+
+# The order here is important: must match the order of includes
+# in the browser frontend html.
 COMMON_BROWSER_SRCS := browser/node_setup.coffee \
 	browser/util.coffee \
-	src/logging.coffee \
-	src/exceptions.coffee \
-	src/util.coffee \
-	src/java_object.coffee \
-	src/opcodes.coffee \
-	src/attributes.coffee \
-	src/ConstantPool.coffee \
-	src/disassembler.coffee \
-	src/ClassData.coffee \
-	src/natives.coffee \
-	src/methods.coffee \
-	src/runtime.coffee \
-	src/ClassLoader.coffee \
-	src/jvm.coffee \
+	$(library_BROWSER_SRCS) \
 	src/testing.coffee \
 	browser/untar.coffee
-
-library_BROWSER_SRCS :=  vendor/gLong.js\
-    $(filter src%,$(COMMON_BROWSER_SRCS))
 
 # Release uses the actual jQuery console.
 release_BROWSER_SRCS := $(THIRD_PARTY_SRCS) $(COMMON_BROWSER_SRCS) \
@@ -84,21 +88,6 @@ dev_BROWSER_SRCS := $(release_BROWSER_SRCS)
 benchmark_BROWSER_SRCS := $(COMMON_BROWSER_SRCS) \
 	browser/mockconsole.coffee \
 	browser/frontend.coffee
-# Sources for an in-browser doppio.js library. Same ordering requirement applies.
-library_BROWSER_SRCS := src/logging.coffee \
-	src/exceptions.coffee \
-	src/util.coffee \
-	src/java_object.coffee \
-	src/opcodes.coffee \
-	src/attributes.coffee \
-	src/ConstantPool.coffee \
-	src/disassembler.coffee \
-	src/ClassData.coffee \
-	src/natives.coffee \
-	src/methods.coffee \
-	src/runtime.coffee \
-	src/ClassLoader.coffee \
-	src/jvm.coffee
 
 CLI_SRCS := $(wildcard src/*.coffee console/*.coffee) src/natives.coffee
 
@@ -113,8 +102,6 @@ NATIVE_CLASSES := $(wildcard src/natives/classes/*.coffee)
 # Protect non-file-based targets from not functioning if a file with the
 # target's name is present.
 .PHONY: release benchmark library dist dependencies java test clean docs build dev library
-
-library: dependencies release build/library/compressed.js
 
 
 # Don't keep this around in the src directory, because it's a generated file.
