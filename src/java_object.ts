@@ -5,8 +5,7 @@ import util = require('./util');
 import logging = require('./logging');
 import runtime = require('./runtime');
 import ClassData = require('./ClassData');
-// XXX: Circular reference. :|
-var ClassLoader = null;
+import ClassLoader = require('./ClassLoader');
 
 export class JavaArray {
   public cls: ClassData.ArrayClassData
@@ -189,7 +188,7 @@ export class JavaThreadObject extends JavaObject {
     this.wakeup_time = null;
     this.$park_count = 0;
     this.$park_timeout = Infinity;
-    this.$meta_stack = new runtime.CallStack();
+    this.$meta_stack = rs.construct_callstack();
   }
 
   public clone(rs: runtime.RuntimeState): JavaObject {
@@ -212,8 +211,7 @@ export class JavaClassLoaderObject extends JavaObject {
   public $loader: any
   constructor(rs: runtime.RuntimeState, cls: any) {
     super(rs, cls);
-    if (ClassLoader === null) ClassLoader = require('./ClassLoader');
-    this.$loader = new ClassLoader.CustomClassLoader(rs.get_bs_cl(), this);
+    this.$loader = rs.construct_cl(this);
   }
 
   public serialize(visited: any): any {

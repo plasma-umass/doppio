@@ -358,7 +358,7 @@ export class Method extends AbstractMethodField {
     var params = this.take_params(caller_stack);
     if (this.access_flags["native"]) {
       if (this.code != null) {
-        ms.push(sf = new runtime.StackFrame(this, [], []));
+        ms.push(sf = runtime_state.construct_stackframe(this, [], []));
         var c_params = this.convert_params(runtime_state, params);
         sf.runner = function () {
           return _this.run_manually(_this.code, runtime_state, c_params);
@@ -371,7 +371,7 @@ export class Method extends AbstractMethodField {
       var err_cls = <ClassData.ReferenceClassData> runtime_state.get_bs_class('Ljava/lang/Error;');
       runtime_state.java_throw(err_cls, "called abstract method: " + this.full_signature());
     }
-    ms.push(sf = new runtime.StackFrame(this, params, []));
+    ms.push(sf = runtime_state.construct_stackframe(this, params, []));
     if (this.code.run_stamp < runtime_state.run_stamp) {
       this.code.run_stamp = runtime_state.run_stamp;
       this.code.parse_code();

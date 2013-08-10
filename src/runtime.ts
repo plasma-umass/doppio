@@ -210,6 +210,20 @@ export class RuntimeState {
     return this.curr_frame().method.cls.loader;
   }
 
+  // XXX: These four methods avoid circular dependencies.
+  public construct_cl(jclo: java_object.JavaClassLoaderObject): ClassLoader.ClassLoader {
+    return new ClassLoader.CustomClassLoader(this.get_bs_cl(), jclo);
+  }
+  public construct_callstack(): CallStack {
+    return new CallStack();
+  }
+  public construct_stackframe(method: methods.Method, locals: any[], stack: any[]): StackFrame {
+    return new StackFrame(method, locals, stack);
+  }
+  public construct_nativeframe(name: string, handler?: ()=>any, error_handler?:(any)=>any): StackFrame {
+    return StackFrame.native_frame(name, handler, error_handler);
+  }
+
   public preinitialize_core_classes(resume_cb: () => any, except_cb: (cb: () => any) => any): void {
     var core_classes = [
       'Ljava/lang/Class;', 'Ljava/lang/ClassLoader;', 'Ljava/lang/String;',

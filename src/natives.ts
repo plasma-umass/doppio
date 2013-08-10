@@ -805,7 +805,7 @@ export var native_methods = {
           var new_thread_sf, old_thread_sf, run_method, thread_runner_sf;
 
           _this.$isAlive = true;
-          _this.$meta_stack = new runtime.CallStack();
+          _this.$meta_stack = rs.construct_callstack();
           rs.thread_pool.push(_this);
           old_thread_sf = rs.curr_frame();
           debug("TE(start0): starting " + (thread_name(rs, _this)) + " from " + (thread_name(rs, rs.curr_thread)));
