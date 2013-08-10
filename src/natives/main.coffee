@@ -1064,6 +1064,7 @@ native_methods =
         o 'getSystemGMTOffsetID()L!/lang/String;', (rs) ->
             null # XXX may not be correct
       ]
+    net: {}
   sun:
     font:
       FontManager: [
@@ -1329,3 +1330,5 @@ native_methods =
               # docs.
               gLong.fromNumber(-1)
         ]
+    net:
+      spi: {}
