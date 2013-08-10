@@ -8,8 +8,8 @@ var JavaObject = java_object.JavaObject;
 var JavaClassObject = java_object.JavaClassObject;
 import logging = require('./logging');
 import methods = require('./methods');
-var methodz = null;
 import runtime = require('./runtime');
+import natives = require('./natives');
 var trace = logging.trace;
 
 export class ClassData {
@@ -24,6 +24,11 @@ export class ClassData {
   public super_class_cdata: ClassData;
 
   constructor(loader: any) {
+    // XXX: Avoids a tough circular dependency.
+    // (ClassData->methods->natives->...)
+    if (!natives.instantiated) {
+      natives.instantiate(ReferenceClassData, PrimitiveClassData, ArrayClassData);
+    }
     this.loader = loader != null ? loader : null;
     this.access_flags = null;
     this.initialized = false;
@@ -277,9 +282,6 @@ export class ReferenceClassData extends ClassData {
   private default_fields: { [name: string]: any };
 
   constructor(buffer: NodeBuffer, loader?: any) {
-    if (methodz == null) {
-      methodz = require('./methods');
-    }
     super(loader);
     var f, i, isize, m, mkey, num_fields, num_methods, super_ref, _i, _j, _len, _ref1, _ref2;
     var bytes_array = new util.BytesArray(buffer);
@@ -317,7 +319,7 @@ export class ReferenceClassData extends ClassData {
 
       _results = [];
       for (i = _i = 0; _i < num_fields; i = _i += 1) {
-        _results.push(new methodz.Field(this));
+        _results.push(new methods.Field(this));
       }
       return _results;
     }).call(this);
@@ -332,7 +334,7 @@ export class ReferenceClassData extends ClassData {
     this.methods = {};
     this.ml_cache = {};
     for (i = _j = 0; _j < num_methods; i = _j += 1) {
-      m = new methodz.Method(this);
+      m = new methods.Method(this);
       m.parse(bytes_array, this.constant_pool, i);
       mkey = m.name + m.raw_descriptor;
       this.methods[mkey] = m;
