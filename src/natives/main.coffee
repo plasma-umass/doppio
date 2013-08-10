@@ -17,6 +17,8 @@
 # pull in external modules
 _ = require '../vendor/underscore/underscore.js'
 gLong = require '../vendor/gLong.js'
+base64 = require '../vendor/websockify/base64.js' if window?
+websock = require '../vendor/websockify/websock.js' if window?
 util = require './util'
 runtime = require './runtime'
 {thread_name,JavaObject,JavaArray} = require './java_object'
