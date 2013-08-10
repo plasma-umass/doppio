@@ -142,7 +142,7 @@ fi
 
 # The 'tr' command is just for Cygwin environments. Darn Windows!
 javac_version=$($JAVAC -version 2>&1 | tr -d '\r')
-if [[ "$javac_version" =~ "1.7" ]]; then
+if [[ "$javac_version" =~ "1\.7" ]]; then
   echo "Detected Java 7 (javac version $javac_version). Please use Java 6."
   exit
 fi
