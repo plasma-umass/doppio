@@ -333,13 +333,10 @@ export class ReferenceClassData extends ClassData {
 
   public reset(): void {
     super.reset();
-    var method, _i, _len, _ref1, _results;
     this.initialized = false;
     this.static_fields = Object.create(null);
-    _ref1 = this.methods;
-    for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-      method = _ref1[_i];
-      method.initialize();
+    for (var k in this.methods) {
+      this.methods[k].initialize();
     }
   }
 
