@@ -5,7 +5,6 @@ import util = require('./util');
 import logging = require('./logging');
 import runtime = require('./runtime');
 import ClassData = require('./ClassData');
-import ReferenceClassData = ClassData.ReferenceClassData;
 import ClassLoader = require('./ClassLoader');
 
 export class JavaArray {
@@ -87,7 +86,8 @@ export class JavaObject {
     if (this.fields[name] !== undefined) {
       this.fields[name] = val;
     } else {
-      rs.java_throw(<ReferenceClassData>this.cls.loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name);
+      rs.java_throw(<ClassData.ReferenceClassData>
+          this.cls.loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name);
     }
   }
 
@@ -95,7 +95,8 @@ export class JavaObject {
     if (this.fields[name] !== undefined) {
       return this.fields[name];
     }
-    return rs.java_throw(<ReferenceClassData>this.cls.loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name);
+    return rs.java_throw(<ClassData.ReferenceClassData>
+        this.cls.loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name);
   }
 
   public get_field_from_offset(rs: runtime.RuntimeState, offset: gLong): any {
@@ -120,7 +121,8 @@ export class JavaObject {
       }
       cls = cls.get_super_class();
     }
-    return rs.java_throw(<ReferenceClassData>this.cls.loader.get_initialized_class('Ljava/lang/NullPointerException;'), "field " + offset + " doesn't exist in class " + classname);
+    return rs.java_throw(<ClassData.ReferenceClassData>
+        this.cls.loader.get_initialized_class('Ljava/lang/NullPointerException;'), "field " + offset + " doesn't exist in class " + classname);
   }
 
   public set_field_from_offset(rs: runtime.RuntimeState, offset: gLong, value: any): void {
