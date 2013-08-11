@@ -63,7 +63,7 @@ export class AbstractMethodField {
 }
 
 export class Field extends AbstractMethodField {
-  private type: string;
+  public type: string;
 
   public parse_descriptor(raw_descriptor: string): void {
     this.type = raw_descriptor;

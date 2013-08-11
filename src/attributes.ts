@@ -326,7 +326,7 @@ export class InnerClasses implements Attribute {
 export class ConstantValue implements Attribute {
   public name = 'ConstantValue';
   private ref: number;
-  private value: any;
+  public value: any;
 
   public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
     this.ref = bytes_array.get_uint(2);

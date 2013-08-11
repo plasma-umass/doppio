@@ -15,7 +15,7 @@ export var FLOAT_NEG_INFINITY_AS_INT = -8388608;
 export var FLOAT_NaN_AS_INT = 0x7fc00000;
 
 if (Math['imul'] == null) {
-  Math['imul'] = function(a, b) {
+  Math['imul'] = function(a: number, b: number) {
     // polyfill from https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Global_Objects/Math/imul
     var ah = (a >>> 16) & 0xffff;
     var al = a & 0xffff;
@@ -135,7 +135,7 @@ export function intbits2float(int32: number): number {
   var sign = (int32 & 0x80000000) >>> 31;
   var exponent = (int32 & 0x7F800000) >>> 23;
   var significand = int32 & 0x007FFFFF;
-  var value;
+  var value : number;
   if (exponent === 0) {  // we must denormalize!
     value = Math.pow(-1, sign) * significand * Math.pow(2, -149);
   } else {
@@ -149,8 +149,6 @@ export function intbits2float(int32: number): number {
 }
 
 export function longbits2double(uint32_a: number, uint32_b: number): number {
-  var value;
-
   if (typeof Uint32Array !== "undefined") {
     var i_view = new Uint32Array(2);
     i_view[0] = uint32_b;
@@ -235,7 +233,7 @@ export function chars2js_str(jvm_carr: java_object.JavaArray, offset?: number, c
 }
 
 export function bytestr_to_array(bytecode_string: string): number[] {
-  var rv = [];
+  var rv : number[] = [];
   for (var i = 0; i < bytecode_string.length; i++) {
     rv.push(bytecode_string.charCodeAt(i) & 0xFF);
   }
@@ -378,7 +376,7 @@ export class BytesArray {
   }
 
   public read(bytes_count: number): number[] {
-    var rv = [];
+    var rv : number[] = [];
     for (var i = this.start + this._index; i < this.start + this._index + bytes_count; i++) {
       rv.push(this.buffer.readUInt8(i));
     }

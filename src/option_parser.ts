@@ -1,7 +1,7 @@
 /// <reference path="../vendor/node.d.ts" />
 "use strict";
 var underscore = require('../vendor/underscore/underscore.js');
-var options = null;
+var options : {[cat:string]:DescriptionCategory} = null;
 var description : Description = null;
 
 export interface Description {
@@ -54,7 +54,7 @@ export function parse(argv: string[]): any {
     standard: {},
     non_standard: {},
     properties: {},
-    _: []
+    _: <string[]> []
   };
 
   while (args.length > 0) {
@@ -69,11 +69,11 @@ export function parse(argv: string[]): any {
       break;
     }
     if (arg.length <= 2) {  // for '-X', mostly
-      args = parse_flag(args, arg, arg.slice(1), options.standard, result.standard);
+      args = parse_flag(args, arg, arg.slice(1), options['standard'], result.standard);
     } else {
       switch (arg[1]) {
         case 'X':
-          args = parse_flag(args, arg, arg.slice(2), options.non_standard, result.non_standard);
+          args = parse_flag(args, arg, arg.slice(2), options['non_standard'], result.non_standard);
           break;
         case 'D':
           var property_kv = arg.slice(2).split('=');
@@ -82,7 +82,7 @@ export function parse(argv: string[]): any {
           result.properties[key] = value;
           break;
         default:
-          args = parse_flag(args, arg, arg.slice(1), options.standard, result.standard);
+          args = parse_flag(args, arg, arg.slice(1), options['standard'], result.standard);
       }
     }
   }

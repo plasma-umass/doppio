@@ -684,7 +684,7 @@ export function monitorenter(rs: runtime.RuntimeState,
         rs.inc_pc(1);
       }
       // dummy, to be popped by rs.yield
-      rs.meta_stack().push({});
+      rs.meta_stack().push(<any>{});
       rs.wait(monitor);
       return false;
     }

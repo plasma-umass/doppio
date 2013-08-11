@@ -9,7 +9,7 @@ import methods = require('./methods');
 import ClassData = require('./ClassData');
 import ClassLoader = require('./ClassLoader');
 
-declare var node, UNSAFE;
+declare var node, UNSAFE : boolean;
 declare var setImmediate: (cb: (any)=>any)=>void
 var vtrace = logging.vtrace;
 var trace = logging.trace;
@@ -53,7 +53,7 @@ export class CallStack {
     return this._cs.length;
   }
 
-  public push(sf): number {
+  public push(sf: StackFrame): number {
     return this._cs.push(sf);
   }
 
@@ -110,7 +110,7 @@ export class StackFrame {
       stack: null,
       locals: null
     };
-    function serializer(obj) {
+    function serializer(obj: any): any {
       if (obj != null && typeof obj.serialize === "function") {
         return obj.serialize(visited);
       }

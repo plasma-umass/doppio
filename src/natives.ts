@@ -139,7 +139,7 @@ function doPrivileged(rs: runtime.RuntimeState, action: methods.Method): void {
   } else {
     rs.async_op(function (resume_cb, except_cb) {
       action.cls.resolve_method(rs, 'run()Ljava/lang/Object;', (function () {
-        rs.meta_stack().push({});
+        rs.meta_stack().push(<any>{});
         resume_cb();
       }), except_cb);
     });

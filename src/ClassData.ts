@@ -19,7 +19,7 @@ export class ClassData {
   public initialized: boolean;
   public resolved: boolean;
   private jco: java_object.JavaClassObject;
-  private reset_bit: number;
+  public reset_bit: number;
   public this_class: string;
   public super_class: string;
   public super_class_cdata: ClassData;
@@ -39,17 +39,15 @@ export class ClassData {
   }
 
   public reset(): void {
-    var iface, sc, _i, _len, _ref1;
-
     this.jco = null;
     this.reset_bit = 0;
-    sc = this.get_super_class();
-    if ((sc != null ? sc.reset_bit : void 0) === 1) {
+    var sc = this.get_super_class();
+    if (sc != null && sc.reset_bit === 1) {
       sc.reset();
     }
-    _ref1 = this.get_interfaces;
-    for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-      iface = _ref1[_i];
+    var _ref1 = this.get_interfaces;
+    for (var _i = 0, _len = _ref1.length; _i < _len; _i++) {
+      var iface = _ref1[_i];
       if (iface.reset_bit === 1) {
         iface.reset();
       }
@@ -221,9 +219,8 @@ export class ArrayClassData extends ClassData {
 
   public reset(): void {
     super.reset();
-    var ccls;
-    ccls = this.get_component_class();
-    if (ccls != null ? ccls.reset_bit : void 0) {
+    var ccls = this.get_component_class();
+    if (ccls && ccls.reset_bit) {
       ccls.reset();
     }
   }
@@ -252,14 +249,13 @@ export class ArrayClassData extends ClassData {
   }
 
   public is_castable(target: ClassData): boolean {
-    var _ref1;
-
     if (!(target instanceof ArrayClassData)) {
       if (target instanceof PrimitiveClassData) {
         return false;
       }
       if (target.access_flags["interface"]) {
-        return (_ref1 = target.get_type()) === 'Ljava/lang/Cloneable;' || _ref1 === 'Ljava/io/Serializable;';
+        var type = target.get_type();
+        return type === 'Ljava/lang/Cloneable;' || type === 'Ljava/io/Serializable;';
       }
       return target.get_type() === 'Ljava/lang/Object;';
     }
@@ -284,14 +280,13 @@ export class ReferenceClassData extends ClassData {
 
   constructor(buffer: NodeBuffer, loader?: ClassLoader.ClassLoader) {
     super(loader);
-    var f, i, isize, m, mkey, num_fields, num_methods, super_ref, _i, _j, _len, _ref1, _ref2;
     var bytes_array = new util.BytesArray(buffer);
     if ((bytes_array.get_uint(4)) !== 0xCAFEBABE) {
       throw "Magic number invalid";
     }
     this.minor_version = bytes_array.get_uint(2);
     this.major_version = bytes_array.get_uint(2);
-    if (!((45 <= (_ref1 = this.major_version) && _ref1 <= 51))) {
+    if (!(45 <= this.major_version && this.major_version <= 51)) {
       throw "Major version invalid";
     }
     this.constant_pool = new ConstantPool.ConstantPool();
@@ -300,44 +295,33 @@ export class ReferenceClassData extends ClassData {
     this.access_flags = util.parse_flags(this.access_byte);
 
     this.this_class = this.constant_pool.get(bytes_array.get_uint(2)).deref();
-    super_ref = bytes_array.get_uint(2);
+    var super_ref = bytes_array.get_uint(2);
     if (super_ref !== 0) {
       this.super_class = this.constant_pool.get(super_ref).deref();
     }
-    isize = bytes_array.get_uint(2);
-    this.interfaces = (function () {
-      var _i, _results;
-
-      _results = [];
-      for (i = _i = 0; _i < isize; i = _i += 1) {
-        _results.push(this.constant_pool.get(bytes_array.get_uint(2)).deref());
-      }
-      return _results;
-    }).call(this);
-    num_fields = bytes_array.get_uint(2);
-    this.fields = (function () {
-      var _i, _results;
-
-      _results = [];
-      for (i = _i = 0; _i < num_fields; i = _i += 1) {
-        _results.push(new methods.Field(this));
-      }
-      return _results;
-    }).call(this);
+    var isize = bytes_array.get_uint(2);
+    this.interfaces = [];
+    for (var _i = 0; _i < isize; ++_i) {
+      this.interfaces.push(this.constant_pool.get(bytes_array.get_uint(2)).deref());
+    }
+    var num_fields = bytes_array.get_uint(2);
+    this.fields = [];
+    for (var _i = 0; _i < num_fields; ++_i) {
+      this.fields.push(new methods.Field(this));
+    }
     this.fl_cache = {};
-    _ref2 = this.fields;
-    for (i = _i = 0, _len = _ref2.length; _i < _len; i = ++_i) {
-      f = _ref2[i];
+    for (var i = 0, _len = this.fields.length; i < _len; ++i) {
+      var f = this.fields[i];
       f.parse(bytes_array, this.constant_pool, i);
       this.fl_cache[f.name] = f;
     }
-    num_methods = bytes_array.get_uint(2);
+    var num_methods = bytes_array.get_uint(2);
     this.methods = {};
     this.ml_cache = {};
-    for (i = _j = 0; _j < num_methods; i = _j += 1) {
-      m = new methods.Method(this);
+    for (var i = 0; i < num_methods; i += 1) {
+      var m = new methods.Method(this);
       m.parse(bytes_array, this.constant_pool, i);
-      mkey = m.name + m.raw_descriptor;
+      var mkey = m.name + m.raw_descriptor;
       this.methods[mkey] = m;
     }
     this.attrs = attributes.make_attributes(bytes_array, this.constant_pool);
@@ -380,11 +364,9 @@ export class ReferenceClassData extends ClassData {
   }
 
   public get_attribute(name: string): attributes.Attribute {
-    var attr, _i, _len, _ref1;
-
-    _ref1 = this.attrs;
-    for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-      attr = _ref1[_i];
+    var _ref1 = this.attrs;
+    for (var _i = 0, _len = _ref1.length; _i < _len; _i++) {
+      var attr = _ref1[_i];
       if (attr.name === name) {
         return attr;
       }
@@ -392,13 +374,11 @@ export class ReferenceClassData extends ClassData {
     return null;
   }
 
-  public get_attributes(name: string): attributes.Attribute {
-    var attr, _i, _len, _ref1, _results;
-
-    _ref1 = this.attrs;
-    _results = [];
-    for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-      attr = _ref1[_i];
+  public get_attributes(name: string): attributes.Attribute[] {
+    var _ref1 = this.attrs;
+    var _results : attributes.Attribute[] = [];
+    for (var _i = 0, _len = _ref1.length; _i < _len; _i++) {
+      var attr = _ref1[_i];
       if (attr.name === name) {
         _results.push(attr);
       }
@@ -415,13 +395,11 @@ export class ReferenceClassData extends ClassData {
   }
 
   private _initialize_static_field(rs: runtime.RuntimeState, name: string): void {
-    var cv, cva, f;
-
-    f = this.fl_cache[name];
-    if (f != null ? f.access_flags["static"] : void 0) {
-      cva = f.get_attribute('ConstantValue');
+    var f = this.fl_cache[name];
+    if (f != null && f.access_flags["static"]) {
+      var cva = <attributes.ConstantValue>f.get_attribute('ConstantValue');
       if (cva != null) {
-        cv = f.type === 'Ljava/lang/String;' ? rs.init_string(cva.value) : cva.value;
+        var cv = f.type === 'Ljava/lang/String;' ? rs.init_string(cva.value) : cva.value;
       }
       this.static_fields[name] = cv != null ? cv : util.initial_value(f.raw_descriptor);
     } else {
@@ -446,29 +424,27 @@ export class ReferenceClassData extends ClassData {
     }
   }
 
-  public set_resolved(super_class_cdata: ClassData, interface_cdatas: ClassData[]): void {
+  public set_resolved(super_class_cdata: ClassData, interface_cdatas: ReferenceClassData[]): void {
     this.super_class_cdata = super_class_cdata;
     trace("Class " + (this.get_type()) + " is now resolved.");
-    this.interface_cdatas = interface_cdatas != null ? interface_cdatas : [];
+    this.interface_cdatas = interface_cdatas;
     this.resolved = true;
   }
 
   public construct_default_fields(): void {
-    var cls, f, val, _i, _len, _ref1;
-
-    cls = this;
+    var cls = this;
     this.default_fields = Object.create(null);
     while (cls != null) {
-      _ref1 = cls.fields;
-      for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-        f = _ref1[_i];
+      var _ref1 = cls.fields;
+      for (var _i = 0, _len = _ref1.length; _i < _len; _i++) {
+        var f = _ref1[_i];
         if (!(!f.access_flags["static"])) {
           continue;
         }
-        val = util.initial_value(f.raw_descriptor);
+        var val = util.initial_value(f.raw_descriptor);
         this.default_fields[cls.get_type() + f.name] = val;
       }
-      cls = cls.get_super_class();
+      cls = <ReferenceClassData>cls.get_super_class();
     }
   }
 
@@ -513,19 +489,18 @@ export class ReferenceClassData extends ClassData {
   }
 
   public method_lookup(rs: runtime.RuntimeState, sig: string): methods.Method {
-    var eh, handlers, method, _i, _len, _ref1;
-
     if (this.ml_cache[sig] != null) {
       return this.ml_cache[sig];
     }
-    method = this._method_lookup(rs, sig);
+    var method = this._method_lookup(rs, sig);
     if (method == null) {
       var err_cls = <ReferenceClassData> rs.get_bs_class('Ljava/lang/NoSuchMethodError;');
       rs.java_throw(err_cls, "No such method found in " + util.ext_classname(this.get_type()) + "::" + sig);
     }
-    if ((handlers = (_ref1 = method.code) != null ? _ref1.exception_handlers : void 0) != null) {
-      for (_i = 0, _len = handlers.length; _i < _len; _i++) {
-        eh = handlers[_i];
+    if (method.code != null && method.code.exception_handlers != null) {
+      var handlers = method.code.exception_handlers;
+      for (var _i = 0, _len = handlers.length; _i < _len; _i++) {
+        var eh = handlers[_i];
         if (!(eh.catch_type === '<any>' || ((this.loader.get_resolved_class(eh.catch_type, true)) != null))) {
           return null;
         }
@@ -535,24 +510,22 @@ export class ReferenceClassData extends ClassData {
   }
 
   private _method_lookup(rs: runtime.RuntimeState, sig: string): methods.Method {
-    var ifc, parent, _i, _len, _ref1;
-
     if (sig in this.ml_cache) {
       return this.ml_cache[sig];
     }
     if (sig in this.methods) {
       return this.ml_cache[sig] = this.methods[sig];
     }
-    parent = this.get_super_class();
+    var parent = <ReferenceClassData>this.get_super_class();
     if (parent != null) {
       this.ml_cache[sig] = parent._method_lookup(rs, sig);
       if (this.ml_cache[sig] != null) {
         return this.ml_cache[sig];
       }
     }
-    _ref1 = this.get_interfaces();
-    for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-      ifc = _ref1[_i];
+    var _ref1 = this.get_interfaces();
+    for (var _i = 0, _len = _ref1.length; _i < _len; _i++) {
+      var ifc = _ref1[_i];
       this.ml_cache[sig] = ifc._method_lookup(rs, sig);
       if (this.ml_cache[sig] != null) {
         return this.ml_cache[sig];
@@ -562,20 +535,17 @@ export class ReferenceClassData extends ClassData {
   }
 
   public resolve_method(rs: runtime.RuntimeState, sig: string, success_fn: (mthd:methods.Method)=>void, failure_fn: (e_cb:()=>void)=>void) {
-    var handlers, i, m, next_handler,
-      _this = this;
+    var _this = this;
 
     trace("ASYNCHRONOUS: resolve_method " + sig);
-    m = this.method_lookup(rs, sig);
-    handlers = m.code.exception_handlers;
-    i = 0;
-    next_handler = function () {
-      var eh;
-
+    var m = this.method_lookup(rs, sig);
+    var handlers = m.code.exception_handlers;
+    var i = 0;
+    var next_handler = function () {
       if (i === handlers.length) {
         return success_fn(m);
       } else {
-        eh = handlers[i++];
+        var eh = handlers[i++];
         if (!(eh.catch_type === '<any>' || _this.loader.get_resolved_class(eh.catch_type, true))) {
           return _this.loader.resolve_class(rs, eh.catch_type, next_handler, failure_fn);
         } else {
@@ -606,14 +576,12 @@ export class ReferenceClassData extends ClassData {
   }
 
   public is_subinterface(target: ClassData): boolean {
-    var super_iface, _i, _len, _ref1;
-
     if (this.this_class === target.this_class) {
       return true;
     }
-    _ref1 = this.get_interfaces();
-    for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-      super_iface = _ref1[_i];
+    var _ref1 = this.get_interfaces();
+    for (var _i = 0, _len = _ref1.length; _i < _len; _i++) {
+      var super_iface = _ref1[_i];
       if (super_iface.is_subinterface(target)) {
         return true;
       }
