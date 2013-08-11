@@ -269,7 +269,7 @@ export class ArrayClassData extends ClassData {
 export class ReferenceClassData extends ClassData {
   private minor_version: number;
   private major_version: number;
-  private constant_pool: ConstantPool.ConstantPool;
+  public constant_pool: ConstantPool.ConstantPool;
   private access_byte: number;
   private interfaces: string[];
   private fields: methods.Field[];

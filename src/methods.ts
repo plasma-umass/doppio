@@ -20,7 +20,7 @@ var thread_name = java_object.thread_name;
 declare var RELEASE;
 
 export class AbstractMethodField {
-  public cls: any;
+  public cls: ClassData.ReferenceClassData;
   public idx: number;
   public access_byte: number;
   public access_flags: util.Flags;

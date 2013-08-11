@@ -1,6 +1,7 @@
 "use strict";
 import gLong = require('./gLong');
 import util = require('./util');
+import attributes = require('./attributes');
 import runtime = require('./runtime');
 import java_object = require('./java_object');
 var thread_name = java_object.thread_name, JavaObject = java_object.JavaObject, JavaArray = java_object.JavaArray;
@@ -292,7 +293,7 @@ function create_stack_trace(rs: runtime.RuntimeState, throwable: java_object.Jav
       if (sf.method.access_flags["native"]) {
         source_file = 'Native Method';
       } else {
-        var src_attr = cls.get_attribute('SourceFile');
+        var src_attr = <attributes.SourceFile> cls.get_attribute('SourceFile');
         source_file = (src_attr != null) ? src_attr.filename : 'unknown';
         var code = sf.method.code;
         var table;

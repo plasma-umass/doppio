@@ -130,7 +130,7 @@ export class LineNumberTable implements Attribute {
 
 export class SourceFile implements Attribute {
   public name = 'SourceFile';
-  private filename: string;
+  public filename: string;
 
   public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool) {
     this.filename = constant_pool.get(bytes_array.get_uint(2)).value;
