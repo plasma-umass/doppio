@@ -154,9 +154,9 @@ export class RuntimeState {
   public mem_blocks: any;
   public high_oref: number;
   private string_pool: util.SafeMap;
-  public lock_refs: any;
-  public lock_counts: any;
-  public waiting_threads: any;
+  public lock_refs: {[lock_id:number]: java_object.JavaThreadObject};
+  public lock_counts: {[lock_id:number]: number};
+  public waiting_threads: {[lock_id:number]: java_object.JavaThreadObject[]};
   private thread_pool: java_object.JavaThreadObject[];
   public curr_thread: java_object.JavaThreadObject;
   private max_m_count: number;
@@ -289,7 +289,9 @@ export class RuntimeState {
         'Ljava/lang/Thread;name': _this.init_carr('main'),
         'Ljava/lang/Thread;priority': 1,
         'Ljava/lang/Thread;group': group,
-        'Ljava/lang/Thread;threadLocals': null
+        'Ljava/lang/Thread;threadLocals': null,
+        'Ljava/lang/Thread;blockerLock': new JavaObject(_this,
+          <ClassData.ReferenceClassData>_this.get_bs_class('Ljava/lang/Object;'))
       });
     };
   }
@@ -395,16 +397,16 @@ export class RuntimeState {
 
   public wait(monitor: java_object.JavaObject, yieldee?: java_object.JavaThreadObject): void {
     debug("TE(wait): waiting " + (thread_name(this, this.curr_thread)) + " on lock " + monitor.ref);
-    if (this.waiting_threads[monitor] != null) {
-      this.waiting_threads[monitor].push(this.curr_thread);
+    if (this.waiting_threads[monitor.ref] != null) {
+      this.waiting_threads[monitor.ref].push(this.curr_thread);
     } else {
-      this.waiting_threads[monitor] = [this.curr_thread];
+      this.waiting_threads[monitor.ref] = [this.curr_thread];
     }
     if (yieldee != null) {
       return this.yield(yieldee);
     }
     var _this = this;
-    this.choose_next_thread(this.waiting_threads[monitor], (nt) => _this.yield(nt));
+    this.choose_next_thread(this.waiting_threads[monitor.ref], (nt) => _this.yield(nt));
   }
 
   public yield(yieldee: java_object.JavaThreadObject): void {

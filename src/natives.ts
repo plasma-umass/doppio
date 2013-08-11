@@ -501,27 +501,27 @@ export var native_methods = {
           var locker, owner;
 
           debug("TE(notify): on lock *" + _this.ref);
-          if ((locker = rs.lock_refs[_this]) != null) {
+          if ((locker = rs.lock_refs[_this.ref]) != null) {
             if (locker !== rs.curr_thread) {
               owner = thread_name(rs, locker);
               rs.java_throw((<ClassData.ReferenceClassData>rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;')), "Thread '" + owner + "' owns this monitor");
             }
           }
-          if (rs.waiting_threads[_this] != null) {
-            rs.waiting_threads[_this].shift();
+          if (rs.waiting_threads[_this.ref] != null) {
+            rs.waiting_threads[_this.ref].shift();
           }
         }), o('notifyAll()V', function (rs: runtime.RuntimeState, _this: java_object.JavaObject): void {
           var locker, owner;
 
           debug("TE(notifyAll): on lock *" + _this.ref);
-          if ((locker = rs.lock_refs[_this]) != null) {
+          if ((locker = rs.lock_refs[_this.ref]) != null) {
             if (locker !== rs.curr_thread) {
               owner = thread_name(rs, locker);
               rs.java_throw((<ClassData.ReferenceClassData>rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;')), "Thread '" + owner + "' owns this monitor");
             }
           }
-          if (rs.waiting_threads[_this] != null) {
-            rs.waiting_threads[_this] = [];
+          if (rs.waiting_threads[_this.ref] != null) {
+            rs.waiting_threads[_this.ref] = [];
           }
         }), o('wait(J)V', function (rs: runtime.RuntimeState, _this: java_object.JavaObject, timeout: gLong): void {
           var locker, owner;
@@ -529,13 +529,13 @@ export var native_methods = {
           if (timeout !== gLong.ZERO) {
             error("TODO(Object::wait): respect the timeout param (" + timeout + ")");
           }
-          if ((locker = rs.lock_refs[_this]) != null) {
+          if ((locker = rs.lock_refs[_this.ref]) != null) {
             if (locker !== rs.curr_thread) {
               owner = thread_name(rs, locker);
               rs.java_throw((<ClassData.ReferenceClassData>rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;')), "Thread '" + owner + "' owns this monitor");
             }
           }
-          rs.lock_refs[_this] = null;
+          rs.lock_refs[_this.ref] = null;
           rs.wait(_this);
         })
       ],
@@ -780,9 +780,12 @@ export var native_methods = {
       Thread: [
         o('currentThread()L!/!/!;', function(rs) {
           return rs.curr_thread;
-        }), o('setPriority0(I)V', function(rs) {}), o('holdsLock(L!/!/Object;)Z', function(rs, obj) {
-          return rs.curr_thread === rs.lock_refs[obj];
-        }), o('isAlive()Z', function(rs, _this) {
+        }),
+        o('setPriority0(I)V', function(rs) {}),
+        o('holdsLock(L!/!/Object;)Z', function(rs, obj) {
+          return rs.curr_thread === rs.lock_refs[obj.ref];
+        }),
+        o('isAlive()Z', function(rs, _this) {
           var _ref5;
 
           return (_ref5 = _this.$isAlive) != null ? _ref5 : false;

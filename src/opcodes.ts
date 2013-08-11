@@ -666,12 +666,17 @@ export class VoidReturnOpcode extends Opcode {
   }
 }
 
-export function monitorenter(rs: runtime.RuntimeState, monitor: any, inst?: Opcode): boolean {
-  var locked_thread = rs.lock_refs[monitor];
+export function monitorenter(rs: runtime.RuntimeState,
+    monitor: java_object.JavaObject, inst?: Opcode): boolean {
+  if (monitor == null) {
+    rs.java_throw(<ClassData.ReferenceClassData>
+      rs.get_bs_class('Ljava/lang/NullPointerException;'), 'Cannot enter a null monitor.');
+  }
+  var locked_thread = rs.lock_refs[monitor.ref];
   if (locked_thread != null) {
     if (locked_thread === rs.curr_thread) {
       // increment lock counter, to only unlock at zero
-      rs.lock_counts[monitor]++;
+      rs.lock_counts[monitor.ref]++;
     } else {
       if (inst != null) {
         inst.inc_pc(rs, 1);
@@ -685,22 +690,22 @@ export function monitorenter(rs: runtime.RuntimeState, monitor: any, inst?: Opco
     }
   } else {
     // this lock not held by any thread
-    rs.lock_refs[monitor] = rs.curr_thread;
-    rs.lock_counts[monitor] = 1;
+    rs.lock_refs[monitor.ref] = rs.curr_thread;
+    rs.lock_counts[monitor.ref] = 1;
   }
   return true;
 }
 
 export function monitorexit(rs: runtime.RuntimeState, monitor: any): void {
-  var locked_thread = rs.lock_refs[monitor];
+  var locked_thread = rs.lock_refs[monitor.ref];
   if (locked_thread == null) return;
   if (locked_thread === rs.curr_thread) {
-    rs.lock_counts[monitor]--;
-    if (rs.lock_counts[monitor] === 0) {
-      delete rs.lock_refs[monitor];
+    rs.lock_counts[monitor.ref]--;
+    if (rs.lock_counts[monitor.ref] === 0) {
+      delete rs.lock_refs[monitor.ref];
       // perform a notifyAll if the lock is now free
-      if (rs.waiting_threads[monitor] != null) {
-        rs.waiting_threads[monitor] = [];
+      if (rs.waiting_threads[monitor.ref] != null) {
+        rs.waiting_threads[monitor.ref] = [];
       }
     }
   } else {
@@ -1217,9 +1222,12 @@ export var opcodes : Opcode[] = [
     });
   }),
   new Opcode('monitorenter', 0, function(rs){
-    if (!monitorenter(rs, rs.pop(), this)) {
+    // we merely peek (instead of pop) here because this op may be called
+    // multiple times
+    if (!monitorenter(rs, rs.peek(), this)) {
       throw ReturnException;
     }
+    rs.pop();
   }),
   new Opcode('monitorexit', 0, ((rs) => monitorexit(rs, rs.pop()))),
   null,  // hole in the opcode array at 196
