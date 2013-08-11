@@ -2,9 +2,11 @@
 var underscore = require('../vendor/underscore/underscore.js');
 import logging = require('./logging');
 import runtime = require('./runtime');
+import java_object = require('./java_object');
+import attributes = require('./attributes');
 
 export interface DoppioException {
-  toplevel_catch_handler(rs: any): void
+  toplevel_catch_handler(rs: runtime.RuntimeState): void
 }
 
 export class HaltException implements DoppioException {
@@ -26,7 +28,7 @@ export class YieldException {
 export class YieldIOException extends YieldException {}
 
 export class JavaException implements DoppioException {
-  constructor(public exception: any) {}
+  constructor(public exception: java_object.JavaObject) {}
 
   public method_catch_handler(rs: runtime.RuntimeState, cf: runtime.StackFrame, top_of_stack: boolean): boolean {
     var method = cf.method;
@@ -51,7 +53,7 @@ export class JavaException implements DoppioException {
       exception_handlers = method.code.exception_handlers;
     var ecls = this.exception.cls;
 
-    var handler = underscore.find(exception_handlers, function(eh: any): boolean {
+    var handler = underscore.find(exception_handlers, function(eh: attributes.ExceptionHandler): boolean {
       // XXX: Kludge. If the class is not loaded, then it is not possible for this to be the correct exception handler
       return (eh.start_pc <= cf.pc && cf.pc < eh.end_pc) && (method.cls.loader.get_resolved_class(eh.catch_type, true) != null) && (eh.catch_type === "<any>" || ecls.is_castable(method.cls.loader.get_resolved_class(eh.catch_type)));
     });

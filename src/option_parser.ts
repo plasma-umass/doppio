@@ -37,7 +37,8 @@ export function describe(new_description: Description): void {
   }
 }
 
-function parse_flag(args: string[], full_key: string, key: string, option_data: any, result_dict: any): string[] {
+function parse_flag(args: string[], full_key: string, key: string,
+    option_data: DescriptionCategory, result_dict: any): string[] {
   if (!option_data[key]) {
     console.error("Unrecognized option '" + full_key + "'");
     process.exit(1);

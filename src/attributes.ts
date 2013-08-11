@@ -11,10 +11,10 @@ export interface Attribute {
 
 export class ExceptionHandler implements Attribute {
   public name = 'ExceptionHandler';
-  private start_pc: number;
-  private end_pc: number;
-  private handler_pc: number;
-  private catch_type: string;
+  public start_pc: number;
+  public end_pc: number;
+  public handler_pc: number;
+  public catch_type: string;
   public parse(bytes_array:util.BytesArray, constant_pool:ConstantPool.ConstantPool): void {
     this.start_pc = bytes_array.get_uint(2);
     this.end_pc = bytes_array.get_uint(2);

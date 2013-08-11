@@ -310,7 +310,7 @@ export class RuntimeState {
       } else {
         my_sf.runner = null;
       }
-      throw new JavaException(_this.pop());
+      throw new JavaException(<java_object.JavaObject>_this.pop());
     };
     throw ReturnException;
   }
