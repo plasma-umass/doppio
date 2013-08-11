@@ -24,7 +24,7 @@ export class ClassData {
   public super_class: string;
   public super_class_cdata: ClassData;
 
-  constructor(loader: any) {
+  constructor(loader: ClassLoader.ClassLoader) {
     // XXX: Avoids a tough circular dependency.
     // (ClassData->methods->natives->...)
     if (!natives.instantiated) {
@@ -70,7 +70,7 @@ export class ClassData {
     }
   }
 
-  public get_class_loader(): any {
+  public get_class_loader(): ClassLoader.ClassLoader {
     return this.loader;
   }
 
@@ -164,7 +164,7 @@ export class ClassData {
 }
 
 export class PrimitiveClassData extends ClassData {
-  constructor(this_class: string, loader: any) {
+  constructor(this_class: string, loader: ClassLoader.ClassLoader) {
     super(loader);
     this.this_class = this_class;
     this.initialized = true;
@@ -211,7 +211,7 @@ export class ArrayClassData extends ClassData {
   private component_type: string;
   private component_class_cdata: ClassData;
 
-  constructor(component_type: string, loader: any) {
+  constructor(component_type: string, loader: ClassLoader.ClassLoader) {
     super(loader);
     this.component_type = component_type;
     this.this_class = "[" + this.component_type;
@@ -282,7 +282,7 @@ export class ReferenceClassData extends ClassData {
   private interface_cdatas: ReferenceClassData[];
   private default_fields: { [name: string]: any };
 
-  constructor(buffer: NodeBuffer, loader?: any) {
+  constructor(buffer: NodeBuffer, loader?: ClassLoader.ClassLoader) {
     super(loader);
     var f, i, isize, m, mkey, num_fields, num_methods, super_ref, _i, _j, _len, _ref1, _ref2;
     var bytes_array = new util.BytesArray(buffer);
