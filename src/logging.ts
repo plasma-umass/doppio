@@ -6,15 +6,12 @@ import gLong = require('./gLong');
 function debug_var(e: any): string {
   if (e === null) {
     return '!';
-  }
-  if (e === void 0) {
+  } else if (e === void 0) {
     return 'undef';
-  }
-  if (e.ref != null) {
+  } else if (e.ref != null) {
     return "*" + e.ref;
-  }
-  if (e instanceof gLong) {
-    return "" + e + "L";
+  } else if (e instanceof gLong) {
+    return e + "L";
   }
   return e;
 }
@@ -41,7 +38,7 @@ function log(level: number, msgs: any[]): void {
       console.log(msg);
     }
   }
-};
+}
 
 export function vtrace(...msgs: any[]): void {
   log(VTRACE, msgs);
