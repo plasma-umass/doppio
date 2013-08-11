@@ -2,20 +2,30 @@
 "use strict";
 var underscore = require('../vendor/underscore/underscore.js');
 var options = null;
-var description = null;
+var description : Description = null;
 
-export function describe(new_description: any): void {
+export interface Description {
+  [category:string]: DescriptionCategory
+}
+
+export interface DescriptionCategory {
+  [opt_name:string]: Option
+}
+
+export interface Option {
+  description: string;
+  has_value?: boolean;
+  alias?: string;
+  aliased_by?: string;
+}
+
+export function describe(new_description: Description): void {
   options = {};
   description = new_description;
   for (var k in description) {
     var category = description[k];
     var category_copy = {};
     for (var opt_name in category) {
-      if (underscore.isString(opt_value)) {
-        // kind of a hack, to allow for shorthand when we don't need to specify
-        // the other options
-        category[opt_name].description = opt_value;
-      }
       var opt_value = category[opt_name];
       category_copy[opt_name] = opt_value;
       if (opt_value.alias != null) {
@@ -92,11 +102,11 @@ function print_col(value: string, width: number): string {
   return rv;
 }
 
-function _show_help(description: any, prefix: string): string {
-  var combined_keys = {};
+function _show_help(category: DescriptionCategory, prefix: string): string {
+  var combined_keys : {[k:string]:Option} = {};
   var key_col_width = Infinity;
-  for (var key in description) {
-    var opt = description[key];
+  for (var key in category) {
+    var opt = category[key];
     var keys = [key];
     if (opt.alias != null) {
       keys.push(opt.alias);
@@ -116,9 +126,9 @@ function _show_help(description: any, prefix: string): string {
 }
 
 export function show_help(): string {
-  return _show_help(description.standard, '');
+  return _show_help(description['standard'], '');
 }
 
 export function show_non_standard_help(): string {
-  return _show_help(description.non_standard, 'X');
+  return _show_help(description['non_standard'], 'X');
 }

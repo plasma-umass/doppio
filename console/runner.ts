@@ -96,22 +96,22 @@ optparse.describe({
       alias: 'h',
       description: 'print this help message'
     },
-    X: 'print help on non-standard options'
+    X: { description: 'print help on non-standard options' }
   },
   non_standard: {
     log: {
       description: 'log level, [0-10]|vtrace|trace|debug|error',
       has_value: true
     },
-    'count-logs': 'count log messages instead of printing them',
+    'count-logs': { description: 'count log messages instead of printing them' },
     'skip-logs': {
       description: 'number of log messages to skip before printing',
       has_value: true
     },
-    'list-class-cache': 'list all of the loaded classes after execution',
-    'show-nyi-natives': 'list any NYI native functions in loaded classes',
-    'dump-state': 'write a "core dump" on unusual termination',
-    benchmark: 'time execution, both hot and cold'
+    'list-class-cache': { description: 'list all of the loaded classes after execution' },
+    'show-nyi-natives': { description: 'list any NYI native functions in loaded classes' },
+    'dump-state': { description: 'write a "core dump" on unusual termination' },
+    benchmark: { description: 'time execution, both hot and cold' }
   }
 });
 
