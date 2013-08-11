@@ -98,7 +98,7 @@ $(document).ready ->
       isClass = ext == 'class'
       reader.onload = (e) ->
         files_uploaded++
-        node.fs.writeFile node.process.cwd() + '/' + f.name, e.target.result, (err) ->
+        node.fs.writeFile node.process.cwd() + '/' + f.name, new Buffer(e.target.result), (err) ->
           if err
             controller.message "[#{files_uploaded}/#{num_files}] File '#{f.name}' could not be saved: #{err}\n", 'error', files_uploaded != num_files
           else
@@ -109,7 +109,7 @@ $(document).ready ->
             else
               editor.getSession?().setValue(e.target.result)
           $('#console').click() # click to restore focus
-      if isClass then reader.readAsBinaryString(f) else reader.readAsText(f)
+      reader.readAsArrayBuffer(f)
     )
     for f in ev.target.files
       file_fcn(f)
