@@ -119,7 +119,7 @@ export function float2int(a: number): number {
 }
 
 export function intbits2float(int32: number): number {
-  if (typeof Int32Array !== "undefined" && Int32Array !== null) {
+  if (typeof Int32Array !== "undefined") {
     var i_view = new Int32Array([int32]);
     var f_view = new Float32Array(i_view.buffer);
     return f_view[0];
@@ -151,7 +151,7 @@ export function intbits2float(int32: number): number {
 export function longbits2double(uint32_a: number, uint32_b: number): number {
   var value;
 
-  if (typeof Uint32Array !== "undefined" && Uint32Array !== null) {
+  if (typeof Uint32Array !== "undefined") {
     var i_view = new Uint32Array(2);
     i_view[0] = uint32_b;
     i_view[1] = uint32_a;
@@ -485,7 +485,7 @@ export function is_array_type(type_str: string): boolean {
 }
 
 export function is_primitive_type(type_str: string): boolean {
-  return internal2external[type_str] !== void 0;
+  return type_str in internal2external;
 }
 
 export function is_reference_type(type_str: string): boolean {
@@ -579,8 +579,8 @@ export class SafeMap {
   }
 
   public set(key: string, value: any): void {
-    // toString() converts key to a primitive, so strict comparison works
-    if (key.toString() != '__proto__') {
+    // non-strict comparison to allow for the possibility of `new String('__proto__')`
+    if (key != '__proto__') {
       this.cache[key] = value;
     } else {
       this.proto_cache = value;
