@@ -43,7 +43,7 @@ native_methods.java.net.PlainSocketImpl = [
       
       error_cb = (msg) -> ->
         clear_state()
-        except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), 'Connection failed!'
+        except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), msg
       
       # Success case
       _this.$ws.on('open', ->
@@ -52,8 +52,8 @@ native_methods.java.net.PlainSocketImpl = [
         resume_cb())
       
       # Error cases
-      _this.$ws.on('close', error_cb('Connection failed!'))
-      _this.$ws.on('error', error_cb('Connection failed!'))
+      _this.$ws.on('close', error_cb('Connection failed! (Closed)'))
+      _this.$ws.on('error', error_cb('Connection failed! (Error)'))
       
       # Timeout case
       id = window.setTimeout(error_cb('Connection timeout!'), timeout) if timeout > 0
