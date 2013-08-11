@@ -23,7 +23,7 @@ import ClassData = require('./ClassData');
 // ClassData->methods->natives->...
 // Dependency occurs due to instanceof checks.
 var ReferenceClassData, PrimitiveClassData, ArrayClassData;
-export var instantiated: bool;
+export var instantiated: boolean;
 instantiated = false;
 export function instantiate(rcd, pcd, acd) {
   ReferenceClassData = rcd;
