@@ -5,6 +5,7 @@ import util = require('./util');
 import logging = require('./logging');
 import runtime = require('./runtime');
 import ClassData = require('./ClassData');
+import ReferenceClassData = ClassData.ReferenceClassData;
 import ClassLoader = require('./ClassLoader');
 
 export class JavaArray {
@@ -86,7 +87,7 @@ export class JavaObject {
     if (this.fields[name] !== undefined) {
       this.fields[name] = val;
     } else {
-      rs.java_throw(this.cls.loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name);
+      rs.java_throw(<ReferenceClassData>this.cls.loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name);
     }
   }
 
@@ -94,7 +95,7 @@ export class JavaObject {
     if (this.fields[name] !== undefined) {
       return this.fields[name];
     }
-    return rs.java_throw(this.cls.loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name);
+    return rs.java_throw(<ReferenceClassData>this.cls.loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name);
   }
 
   public get_field_from_offset(rs: runtime.RuntimeState, offset: gLong): any {
@@ -119,7 +120,7 @@ export class JavaObject {
       }
       cls = cls.get_super_class();
     }
-    return rs.java_throw(this.cls.loader.get_initialized_class('Ljava/lang/NullPointerException;'), "field " + offset + " doesn't exist in class " + classname);
+    return rs.java_throw(<ReferenceClassData>this.cls.loader.get_initialized_class('Ljava/lang/NullPointerException;'), "field " + offset + " doesn't exist in class " + classname);
   }
 
   public set_field_from_offset(rs: runtime.RuntimeState, offset: gLong, value: any): void {
@@ -173,8 +174,10 @@ export class JavaThreadObject extends JavaObject {
   public fake: boolean;
   constructor(rs: runtime.RuntimeState, cls: ClassData.ReferenceClassData, obj?: any) {
     // First thread to bootstrap us into the JVM.
+    // We can't cast cls to ReferenceClassData because it fails to validate.
+    // Instead, we cast to any, which can be assigned to variables of any type.
     if (cls == null) {
-      cls = <ClassData.ReferenceClassData> {
+      cls = <any> {
         get_type: (() => 'Ljava/lang/Thread;'),
         loader: rs.get_bs_cl(),
         get_default_fields: (() => null)  // XXX: Hack for now.
@@ -183,7 +186,7 @@ export class JavaThreadObject extends JavaObject {
     } else {
       this.fake = false;
     }
-    super(rs, <ClassData.ReferenceClassData> cls, obj);
+    super(rs, cls, obj);
     this.$isAlive = true;
     this.wakeup_time = null;
     this.$park_count = 0;

@@ -21,6 +21,10 @@ export class ClassLoader {
     this.loaded_classes = Object.create(null);
   }
 
+  public serialize(visited: {[n:string]:boolean}): any {
+    throw new Error('Abstract method!');
+  }
+
   public get_package_names(): string[] {
     var classes, cls, pkg_names, _i, _len;
 

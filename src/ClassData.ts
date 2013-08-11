@@ -10,10 +10,11 @@ import logging = require('./logging');
 import methods = require('./methods');
 import runtime = require('./runtime');
 import natives = require('./natives');
+import ClassLoader = require('./ClassLoader');
 var trace = logging.trace;
 
 export class ClassData {
-  public loader: any;
+  public loader: ClassLoader.ClassLoader;
   public access_flags: util.Flags;
   public initialized: boolean;
   public resolved: boolean;
@@ -424,7 +425,7 @@ export class ReferenceClassData extends ClassData {
       }
       this.static_fields[name] = cv != null ? cv : util.initial_value(f.raw_descriptor);
     } else {
-      rs.java_throw(this.loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name);
+      rs.java_throw(<ReferenceClassData>this.loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name);
     }
   }
 
