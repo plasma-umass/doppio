@@ -197,11 +197,10 @@ function make_dis(class_file) {
 }
 
 function show_disassembly(dis): string {
-  var attr, b, c, eh, entry, f, i, icls, item, m, o, p, sigbytes, siglen, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _m, _n, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6;
-
   var ifaces = dis.interfaces.map(util.ext_classname).join(',');
   var name = util.ext_classname(dis.class_name);
-  var rv = "Compiled from \"" + ((_ref = dis.source_file) != null ? _ref : 'unknown') + "\"\n" + dis.access_string + dis.class_type + " " + name + " ";
+  var rv = "Compiled from \"" + (dis.source_file != null ? dis.source_file : 'unknown') +
+    "\"\n" + dis.access_string + dis.class_type + " " + name + " ";
   if (dis.class_type === 'interface') {
     rv += ifaces.length > 0 ? "extends " + ifaces + "\n" : '\n';
   } else {
@@ -219,12 +218,11 @@ function show_disassembly(dis): string {
     var abytes = dis.annotation_bytes.map((b)=>pad_left(b.toString(16), 2)).join(' ');
     rv += "  RuntimeVisibleAnnotations: length = 0x" + alen + "\n   " + abytes + "\n";
   }
-  _ref1 = dis.inner_classes;
-  for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-    var icls_group = _ref1[_i];
+  for (var i = 0, _len = dis.inner_classes.length; i < _len; i++) {
+    var icls_group = dis.inner_classes[i];
     rv += "  InnerClass:\n";
-    for (_j = 0, _len1 = icls_group.length; _j < _len1; _j++) {
-      icls = icls_group[_j];
+    for (var j = 0, _len1 = icls_group.length; j < _len1; j++) {
+      var icls = icls_group[j];
       if (icls.name == null) {
         // anonymous inner class
         rv += "   " + icls.access_string + "#" + icls.raw.inner_info_index + "; //class " + icls.type + "\n";
@@ -240,28 +238,24 @@ function show_disassembly(dis): string {
     }
   }
   rv += "  minor version: " + dis.minor_version + "\n  major version: " + dis.major_version + "\n  Constant pool:\n";
-  _ref2 = dis.constant_pool;
-  for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
-    entry = _ref2[_k];
+  for (var i = 0, _len2 = dis.constant_pool.length; i < _len2; i++) {
+    var entry = dis.constant_pool[i];
     rv += "const #" + entry.idx + " = " + entry.type + "\t" + entry.value + ";" + entry.extra + "\n";
   }
   rv += "\n{\n";
-  _ref3 = dis.fields;
-  for (_l = 0, _len3 = _ref3.length; _l < _len3; _l++) {
-    f = _ref3[_l];
+  for (var i = 0, _len3 = dis.fields.length; i < _len3; i++) {
+    var f = dis.fields[i];
     rv += "" + f.access_string + (pp_type(f.type)) + " " + f.name + ";\n";
     if (f.const_type != null) {
       rv += "  Constant value: " + f.const_type + " " + f.const_value + "\n";
     }
     if (f.signature_bytes != null) {
-      siglen = f.signature_bytes.length.toString(16);
-      sigbytes = ((function() {
-        var _len4, _m, _ref4, _results;
-
-        _ref4 = f.signature_bytes;
-        _results = [];
-        for (_m = 0, _len4 = _ref4.length; _m < _len4; _m++) {
-          b = _ref4[_m];
+      var siglen = f.signature_bytes.length.toString(16);
+      var sigbytes = ((function() {
+        var _ref4 = f.signature_bytes;
+        var _results: string[] = [];
+        for (var _m = 0, _len4 = _ref4.length; _m < _len4; _m++) {
+          var b = _ref4[_m];
           _results.push(pad_left(b.toString(16).toUpperCase(), 2));
         }
         return _results;
@@ -270,9 +264,8 @@ function show_disassembly(dis): string {
     }
     rv += "\n\n";
   }
-  _ref4 = dis.methods;
-  for (_m = 0, _len4 = _ref4.length; _m < _len4; _m++) {
-    m = _ref4[_m];
+  for (var _m = 0, _len4 = dis.methods.length; _m < _len4; _m++) {
+    var m = dis.methods[_m];
     rv += m.access_string;
     if (m.is_synchronized) {
       rv += 'synchronized ';
@@ -290,31 +283,26 @@ function show_disassembly(dis): string {
     }
     rv += ";\n";
     if (m.code != null) {
-      c = m.code;
+      var c = m.code;
       rv += "  Code:\n   Stack=" + c.max_stack + ", Locals=" + c.max_locals + ", Args_size=" + c.num_args + "\n";
       rv += ((function() {
-        var _len5, _n, _ref5, _results;
-
-        _ref5 = c.opcodes;
-        _results = [];
-        for (_n = 0, _len5 = _ref5.length; _n < _len5; _n++) {
-          o = _ref5[_n];
+        var _results: string[] = [];
+        for (var _n = 0, _len5 = c.opcodes.length; _n < _len5; _n++) {
+          var o = c.opcodes[_n];
           _results.push("   " + o.idx + ":\t" + o.name + o.annotation + "\n");
         }
         return _results;
       })()).join('');
-      if (((_ref5 = c.exception_handlers) != null ? _ref5.length : void 0) > 0) {
+      var ehs = c.exception_handlers;
+      if (ehs != null && ehs.length > 0) {
         rv += "  Exception table:\n   from   to  target type\n";
-        _ref6 = c.exception_handlers;
-        for (_n = 0, _len5 = _ref6.length; _n < _len5; _n++) {
-          eh = _ref6[_n];
+        for (var _n = 0, _len5 = ehs.length; _n < _len5; _n++) {
+          var eh = ehs[_n];
           rv += ((function() {
-            var _len6, _o, _ref7, _results;
-
-            _ref7 = ['start_pc', 'end_pc', 'handler_pc'];
-            _results = [];
-            for (_o = 0, _len6 = _ref7.length; _o < _len6; _o++) {
-              item = _ref7[_o];
+            var _ref7 = ['start_pc', 'end_pc', 'handler_pc'];
+            var _results: string[] = [];
+            for (var _o = 0, _len6 = _ref7.length; _o < _len6; _o++) {
+              var item = _ref7[_o];
               _results.push(fixed_width(eh[item], 6));
             }
             return _results;
