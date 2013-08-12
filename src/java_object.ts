@@ -12,7 +12,7 @@ export class JavaArray {
   public array: any[]
   public ref: number
 
-  constructor(rs: runtime.RuntimeState, cls: ClassData.ArrayClassData, obj) {
+  constructor(rs: runtime.RuntimeState, cls: ClassData.ArrayClassData, obj: any[]) {
     this.cls = cls;
     this.ref = rs.high_oref++;
     this.array = obj;
@@ -43,7 +43,7 @@ export class JavaArray {
       return "<*" + this.ref + ">";
     }
     visited[this.ref] = true;
-    function elem_serializer(f) {
+    function elem_serializer(f: any) {
       if (!f) return f;
       if (typeof f.serialize !== "function") return f;
       return f.serialize(visited);
@@ -141,17 +141,19 @@ export class JavaObject {
   }
 
   public serialize(visited: any): any {
-    var fields, k, v, _ref2, _ref3;
-
     if (this.ref in visited) {
       return "<*" + this.ref + ">";
     }
     visited[this.ref] = true;
-    fields = {};
-    _ref2 = this.fields;
-    for (k in _ref2) {
-      v = _ref2[k];
-      fields[k] = (_ref3 = v != null ? typeof v.serialize === "function" ? v.serialize(visited) : void 0 : void 0) != null ? _ref3 : v;
+    var fields = {};
+    var _ref2 = this.fields;
+    for (var k in this.fields) {
+      var field = this.fields[k];
+      if (field && field.serialize) {
+        fields[k] = field.serialize(visited);
+      } else {
+        fields[k] = field;
+      }
     }
     return {
       type: this.cls.get_type(),
