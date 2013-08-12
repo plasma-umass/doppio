@@ -5,7 +5,6 @@ import logging = require('./logging')
 import runtime = require('./runtime')
 
 declare var node
-var _ref;
 var fs = typeof node !== "undefined" ? node.fs : require('fs');
 var path = typeof node !== "undefined" ? node.path : require('path');
 var trace = logging.trace;
@@ -19,7 +18,7 @@ export var system_properties: any
 
 export function reset_system_properties() {
   system_properties = {
-    'java.class.path': [],
+    'java.class.path': <string[]> [],
     'java.home': "" + vendor_path + "/java_home",
     'sun.boot.class.path': "" + vendor_path + "/classes",
     'file.encoding': 'UTF-8',
@@ -73,7 +72,7 @@ export function read_classfile(cls: any, cb: (data: NodeBuffer)=>void, failure_c
 export function set_classpath(jcl_path: string, classpath: string) {
   var dirs = classpath.split(':');
   dirs.push(jcl_path);
-  var tmp_classpath = [];
+  var tmp_classpath: string[] = [];
   for (var i = 0; i < dirs.length; i++) {
     var cp = path.normalize(dirs[i]);
     if (cp.charAt(cp.length - 1) !== '/') {

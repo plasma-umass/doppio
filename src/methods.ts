@@ -28,7 +28,7 @@ export class AbstractMethodField {
   public raw_descriptor: string;
   public attrs: attributes.Attribute[];
 
-  constructor(cls) {
+  constructor(cls: ClassData.ReferenceClassData) {
     this.cls = cls;
   }
 
@@ -156,8 +156,10 @@ export class Method extends AbstractMethodField {
         if (JVM.show_NYI_natives) {
           console.log(sig);
         }
-        this.code = function (rs) {
-          rs.java_throw(rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), "Native method '" + sig + "' not implemented.\nPlease fix or file a bug at https://github.com/int3/doppio/issues");
+        this.code = function (rs: runtime.RuntimeState) {
+          rs.java_throw(<ClassData.ReferenceClassData>
+            rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'),
+            "Native method '" + sig + "' not implemented.\nPlease fix or file a bug at https://github.com/int3/doppio/issues");
         };
       } else {
         this.code = null;
@@ -169,19 +171,18 @@ export class Method extends AbstractMethodField {
   }
 
   public reflector(rs: runtime.RuntimeState, is_constructor: boolean, success_fn: (reflectedMethod: java_object.JavaObject)=>void, failure_fn: (e_fn: ()=>void)=>void): void {
-    var adefs, anns, clazz_obj, exceptions, obj, sig, typestr, _ref3, _ref4, _ref5, _ref6, _ref7,
-      _this = this;
+    var _ref3, _ref4, _ref5, _ref6, _ref7, _this = this;
 
     if (is_constructor == null) {
       is_constructor = false;
     }
-    typestr = is_constructor ? 'Ljava/lang/reflect/Constructor;' : 'Ljava/lang/reflect/Method;';
-    exceptions = (_ref3 = (_ref4 = this.get_attribute("Exceptions")) != null ? _ref4.exceptions : void 0) != null ? _ref3 : [];
-    anns = (_ref5 = this.get_attribute("RuntimeVisibleAnnotations")) != null ? _ref5.raw_bytes : void 0;
-    adefs = (_ref6 = this.get_attribute("AnnotationDefault")) != null ? _ref6.raw_bytes : void 0;
-    sig = (_ref7 = this.get_attribute("Signature")) != null ? _ref7.sig : void 0;
-    obj = {};
-    clazz_obj = this.cls.get_class_object(rs);
+    var typestr = is_constructor ? 'Ljava/lang/reflect/Constructor;' : 'Ljava/lang/reflect/Method;';
+    var exceptions = (_ref3 = (_ref4 = this.get_attribute("Exceptions")) != null ? _ref4.exceptions : void 0) != null ? _ref3 : [];
+    var anns = (_ref5 = this.get_attribute("RuntimeVisibleAnnotations")) != null ? _ref5.raw_bytes : void 0;
+    var adefs = (_ref6 = this.get_attribute("AnnotationDefault")) != null ? _ref6.raw_bytes : void 0;
+    var sig = (_ref7 = this.get_attribute("Signature")) != null ? _ref7.sig : void 0;
+    var obj = {};
+    var clazz_obj = this.cls.get_class_object(rs);
     this.cls.loader.resolve_class(rs, this.return_type, (function (rt_cls) {
       var rt_obj = rt_cls.get_class_object(rs);
       var j = -1;
@@ -379,8 +380,8 @@ export class Method extends AbstractMethodField {
         for (var i in this.code.opcodes) {
           var c = this.code.opcodes[i];
           if (c.name.match(/^[ildfa]?return$/)) {
-            (function (c) {
-              return c.execute = function (rs) {
+            (function (c: opcodes.Opcode) {
+              c.execute = function (rs: runtime.RuntimeState) {
                 opcodes.monitorexit(rs, _this.method_lock(rs));
                 return c.orig_execute(rs);
               };

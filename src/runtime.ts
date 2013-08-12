@@ -275,7 +275,7 @@ export class RuntimeState {
     this.push(group);
     thread_group_cls.method_lookup(this, '<init>()V').setup_stack(this);
     my_sf.runner = function () {
-      var ct = null;
+      var ct : java_object.JavaThreadObject = null;
       my_sf.runner = function () {
         my_sf.runner = null;
         ct.$meta_stack = _this.meta_stack();
@@ -635,15 +635,13 @@ export class RuntimeState {
       });
     };
     return this.async_op(function() {
-      var is_constructor, nf, v;
-
-      is_constructor = false;
+      var is_constructor = false;
       if (method.name.charAt(0) === '<' && method.name.charAt(1) === 'i') {
-        v = new JavaObject(_this, cls);
+        var v = new JavaObject(_this, cls);
         args.unshift(v, v);
         is_constructor = true;
       }
-      nf = StackFrame.native_frame("$bytecode_call", (function() {
+      var nf = StackFrame.native_frame("$bytecode_call", (function() {
         var rv;
 
         rv = void 0;
