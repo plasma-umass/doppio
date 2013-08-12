@@ -2,7 +2,7 @@
 import util = require('./util');
 import opcodes = require('./opcodes');
 import ConstantPool = require('./ConstantPool');
-declare var RELEASE;
+declare var RELEASE: boolean;
 
 export interface Attribute {
   name: string;
@@ -82,7 +82,7 @@ export class Code implements Attribute {
     this._code_array.rewind();
   }
 
-  public each_opcode<T>(fn:(number, Opcode)=>T): void {
+  public each_opcode<T>(fn:(p: number, q: opcodes.Opcode)=>T): void {
     for (var i = 0; i < this.code_len; i++) {
       if (this.opcodes[i] != null) {
         fn(i, this.opcodes[i]);
@@ -186,7 +186,7 @@ export class StackMapTable implements Attribute {
       };
     } else if ((252 <= frame_type && frame_type < 255)) {
       var offset_delta = bytes_array.get_uint(2);
-      var locals = [];
+      var locals: string[] = [];
       for (var i = 0; i < frame_type - 251; i++) {
         locals.push(this.parse_verification_type_info(bytes_array, constant_pool));
       }
@@ -199,12 +199,12 @@ export class StackMapTable implements Attribute {
     } else if (frame_type === 255) {
       var offset_delta = bytes_array.get_uint(2);
       var num_locals = bytes_array.get_uint(2);
-      var locals = [];
+      locals = [];
       for (var i = 0; i < num_locals; i++) {
         locals.push(this.parse_verification_type_info(bytes_array, constant_pool));
       }
       var num_stack_items = bytes_array.get_uint(2);
-      var stack = [];
+      var stack: string[] = [];
       for (var i = 0; i < num_stack_items; i++) {
         stack.push(this.parse_verification_type_info(bytes_array, constant_pool));
       }
@@ -293,7 +293,7 @@ export class Exceptions implements Attribute {
 
   public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
     this.num_exceptions = bytes_array.get_uint(2);
-    var exc_refs = [];
+    var exc_refs: number[] = [];
     for (var i = 0; i < this.num_exceptions; i++) {
       exc_refs.push(bytes_array.get_uint(2));
     }
@@ -405,7 +405,7 @@ export function make_attributes(bytes_array: util.BytesArray, constant_pool: Con
     // NYI: LocalVariableTypeTable
   };
   var num_attrs = bytes_array.get_uint(2);
-  var attrs = [];
+  var attrs : Attribute[] = [];
   for (var i = 0; i < num_attrs; i++) {
     var name = constant_pool.get(bytes_array.get_uint(2)).value;
     var attr_len = bytes_array.get_uint(4);
