@@ -49,9 +49,7 @@ export class JavaException implements DoppioException {
       }
       return false;
     }
-    var exception_handlers;
-    if (method.code != null)
-      exception_handlers = method.code.exception_handlers;
+    var exception_handlers = method.code.exception_handlers;
     var ecls = this.exception.cls;
 
     var handler = underscore.find(exception_handlers, function(eh: attributes.ExceptionHandler): boolean {
