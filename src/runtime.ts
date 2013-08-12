@@ -10,7 +10,7 @@ import ClassData = require('./ClassData');
 import ClassLoader = require('./ClassLoader');
 
 declare var node, UNSAFE : boolean;
-declare var setImmediate: (cb: (any)=>any)=>void
+declare var setImmediate: (cb: (p:any)=>any)=>void
 var vtrace = logging.vtrace;
 var trace = logging.trace;
 var debug = logging.debug;
@@ -88,7 +88,7 @@ export class StackFrame {
   public cdata: ClassData.ClassData;
 
   // Used by Native Frames
-  public error: (any)=>any
+  public error: (p:any)=>any
 
   constructor(method: methods.Method, locals: any[], stack: any[]) {
     this.method = method;
@@ -127,7 +127,7 @@ export class StackFrame {
     return { serialize: s };
   }
 
-  public static native_frame(name: string, handler?: ()=>any, error_handler?:(any)=>any): StackFrame {
+  public static native_frame(name: string, handler?: ()=>any, error_handler?:(p:any)=>any): StackFrame {
     // XXX: Super kludge!
     var sf = new StackFrame(<methods.Method>{
       full_signature: (() => name)
@@ -161,7 +161,7 @@ export class RuntimeState {
   public curr_thread: java_object.JavaThreadObject;
   private max_m_count: number;
   public unusual_termination: boolean;
-  public stashed_done_cb: (any) => any;
+  public stashed_done_cb: (p:any) => any;
   public should_return: boolean;
   public system_initialized: boolean;
 
@@ -220,7 +220,7 @@ export class RuntimeState {
   public construct_stackframe(method: methods.Method, locals: any[], stack: any[]): StackFrame {
     return new StackFrame(method, locals, stack);
   }
-  public construct_nativeframe(name: string, handler?: ()=>any, error_handler?:(any)=>any): StackFrame {
+  public construct_nativeframe(name: string, handler?: ()=>any, error_handler?:(p:any)=>any): StackFrame {
     return StackFrame.native_frame(name, handler, error_handler);
   }
 
