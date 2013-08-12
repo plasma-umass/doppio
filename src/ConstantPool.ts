@@ -20,16 +20,12 @@ export class SimpleReference {
   }
 
   public static from_bytes(bytes_array: util.BytesArray, constant_pool: ConstantPool): SimpleReference {
-    var ref, value;
-    value = bytes_array.get_uint(2);
-    ref = new this(constant_pool, value);
-    return ref;
+    var value = bytes_array.get_uint(2);
+    return new this(constant_pool, value);
   }
 
   public deref(): any {
-    var pool_obj;
-
-    pool_obj = this.constant_pool[this.value];
+    var pool_obj = this.constant_pool[this.value];
     return (typeof pool_obj.deref === "function" ? pool_obj.deref() : void 0) || pool_obj.value;
   }
 }
@@ -62,21 +58,16 @@ export class AbstractMethodFieldReference {
   }
 
   public static from_bytes(bytes_array: util.BytesArray, constant_pool: ConstantPool): AbstractMethodFieldReference {
-    var class_ref, ref, sig;
-
-    class_ref = ClassReference.from_bytes(bytes_array, constant_pool);
-    sig = SimpleReference.from_bytes(bytes_array, constant_pool);
-    ref = new this(constant_pool, {
+    var class_ref = ClassReference.from_bytes(bytes_array, constant_pool);
+    var sig = SimpleReference.from_bytes(bytes_array, constant_pool);
+    return new this(constant_pool, {
       class_ref: class_ref,
       sig: sig
     });
-    return ref;
   }
 
   public deref(): any {
-    var sig;
-
-    sig = this.value.sig.deref();
+    var sig = this.value.sig.deref();
     return {
       "class": this.value.class_ref.deref(),
       sig: sig.name + sig.type
@@ -104,29 +95,31 @@ export class FieldReference extends AbstractMethodFieldReference {
   }
 }
 
+export interface MethodSignatureValue {
+  meth_ref:StringReference;
+  type_ref:StringReference;
+}
+
 export class MethodSignature {
   public static size = 1;
   public type = 'NameAndType';
   public constant_pool: ConstantPool;
-  public value: any;
-  constructor(constant_pool, value) {
+  public value: MethodSignatureValue;
+  constructor(constant_pool: ConstantPool, value: MethodSignatureValue) {
     this.constant_pool = constant_pool;
     this.value = value;
   }
 
   public static from_bytes(bytes_array: util.BytesArray, constant_pool: ConstantPool): MethodSignature {
-    var meth_ref, ref, type_ref;
-
-    meth_ref = StringReference.from_bytes(bytes_array, constant_pool);
-    type_ref = StringReference.from_bytes(bytes_array, constant_pool);
-    ref = new this(constant_pool, {
+    var meth_ref = StringReference.from_bytes(bytes_array, constant_pool);
+    var type_ref = StringReference.from_bytes(bytes_array, constant_pool);
+    return new this(constant_pool, <MethodSignatureValue>{
       meth_ref: meth_ref,
       type_ref: type_ref
     });
-    return ref;
   }
 
-  public deref(): any {
+  public deref(): {name:string; type: string} {
     return {
       name: this.value.meth_ref.deref(),
       type: this.value.type_ref.deref()
@@ -143,85 +136,70 @@ export class ConstString {
   }
 
   public static from_bytes(bytes_array: util.BytesArray): ConstString {
-    var const_string, strlen, value;
-
-    strlen = bytes_array.get_uint(2);
-    value = util.bytes2str(bytes_array.read(strlen));
-    const_string = new this(value);
-    return const_string;
+    var strlen = bytes_array.get_uint(2);
+    var value = util.bytes2str(bytes_array.read(strlen));
+    return new this(value);
   }
 }
 
 export class ConstInt32 {
   public static size = 1;
   public type = 'int';
-  public value: any;
-  constructor(value) {
+  public value: number;
+  constructor(value: number) {
     this.value = value;
   }
 
   public static from_bytes(bytes_array: util.BytesArray): ConstInt32 {
-    var int32, uint32, value;
-
-    uint32 = bytes_array.get_uint(4);
-    value = -(1 + ~uint32);
-    int32 = new this(value);
-    return int32;
+    var uint32 = bytes_array.get_uint(4);
+    var value = -(1 + ~uint32);
+    return new this(value);
   }
 }
 
 export class ConstFloat {
   public static size = 1;
   public type = 'float';
-  public value: any;
-  constructor(value) {
+  public value: number;
+  constructor(value: number) {
     this.value = value;
   }
 
   public static from_bytes(bytes_array: util.BytesArray): ConstFloat {
-    var float, uint32, value;
-
-    uint32 = bytes_array.get_uint(4);
-    value = util.intbits2float(uint32 | 0);
-    float = new this(value);
-    return float;
+    var uint32 = bytes_array.get_uint(4);
+    var value = util.intbits2float(uint32 | 0);
+    return new this(value);
   }
 }
 
 export class ConstLong {
   public static size = 2;
   public type = 'long';
-  public value: any;
-  constructor(value) {
+  public value: gLong;
+  constructor(value: gLong) {
     this.value = value;
   }
 
   public static from_bytes(bytes_array: util.BytesArray): ConstLong {
-    var high, long, low, value;
-
-    high = bytes_array.get_uint(4);
-    low = bytes_array.get_uint(4);
-    value = gLong.fromBits(low, high);
-    long = new this(value);
-    return long;
+    var high = bytes_array.get_uint(4);
+    var low = bytes_array.get_uint(4);
+    var value = gLong.fromBits(low, high);
+    return new this(value);
   }
 }
 
 export class ConstDouble {
   public static size = 2;
   public type = 'double';
-  public value: any;
-  constructor(value) {
+  public value: number;
+  constructor(value: number) {
     this.value = value;
   }
 
   public static from_bytes(bytes_array: util.BytesArray): ConstDouble {
-    var double, uint32_a, uint32_b;
-
-    uint32_a = bytes_array.get_uint(4);
-    uint32_b = bytes_array.get_uint(4);
-    double = new this(util.longbits2double(uint32_a, uint32_b));
-    return double;
+    var uint32_a = bytes_array.get_uint(4);
+    var uint32_b = bytes_array.get_uint(4);
+    return new this(util.longbits2double(uint32_a, uint32_b));
   }
 }
 
@@ -230,7 +208,7 @@ export class ConstantPool {
   private constant_pool: { [n: number]: ConstantPoolItem; };
 
   public parse(bytes_array: util.BytesArray): util.BytesArray {
-    var constant_tags: {[n: number]: ConstantPoolItem }, idx, pool_obj, tag;
+    var constant_tags: {[n: number]: ConstantPoolItem };
 
     constant_tags = {
       1: ConstString,
@@ -247,13 +225,13 @@ export class ConstantPool {
     };
     this.cp_count = bytes_array.get_uint(2);
     this.constant_pool = {};
-    idx = 1;
+    var idx = 1;
     while (idx < this.cp_count) {
-      tag = bytes_array.get_uint(1);
+      var tag = bytes_array.get_uint(1);
       if (!((1 <= tag && tag <= 12))) {
         throw "invalid tag: " + tag;
       }
-      pool_obj = constant_tags[tag].from_bytes(bytes_array, this.constant_pool);
+      var pool_obj = constant_tags[tag].from_bytes(bytes_array, this.constant_pool);
       this.constant_pool[idx] = pool_obj;
       idx += constant_tags[tag].size;
     }
@@ -261,20 +239,17 @@ export class ConstantPool {
   }
 
   public get(idx: number): ConstantPoolItem {
-    var _ref;
-
-    if ((_ref = this.constant_pool[idx]) != null) {
+    var _ref = this.constant_pool[idx];
+    if (_ref != null) {
       return _ref;
     } else {
       throw new Error("Invalid constant_pool reference: " + idx);
     }
   }
 
-  public each<T>(fn: (number, ConstantPoolItem)=>T): T[] {
-    var i, _i, _ref, _results;
-
-    _results = [];
-    for (i = _i = 0, _ref = this.cp_count; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
+  public each<T>(fn: (p:number, q:ConstantPoolItem)=>T): T[] {
+    var _results: T[] = [];
+    for (var i = 0, _ref = this.cp_count; i < _ref; ++i) {
       if (i in this.constant_pool) {
         _results.push(fn(i, this.constant_pool[i]));
       }
