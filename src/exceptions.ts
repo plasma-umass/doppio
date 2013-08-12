@@ -3,6 +3,7 @@ var underscore = require('../vendor/underscore/underscore.js');
 import logging = require('./logging');
 import runtime = require('./runtime');
 import java_object = require('./java_object');
+import opcodes = require('./opcodes');
 import attributes = require('./attributes');
 
 export interface DoppioException {
@@ -34,7 +35,7 @@ export class JavaException implements DoppioException {
     var method = cf.method;
     if (!top_of_stack && method.has_bytecode) {
       cf.pc -= 3;  // rewind the invoke opcode
-      var op;
+      var op: opcodes.Opcode;
       while (!(cf.pc <= 0 || (((op = method.code.opcodes[cf.pc]) != null) && op.name.match(/^invoke/)))) {
         --cf.pc;
       }

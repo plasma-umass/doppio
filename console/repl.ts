@@ -36,7 +36,7 @@ repl.on('close', function() {
   repl.output.write('\n');
   repl.input.destroy();
 });
-repl.on('line', function(line) {
+repl.on('line', function(line: string) {
   var toks = line.trim().split(/\s+/);
   if (toks[0] != null && toks[0].length > 0) {
     repl_run(rs, toks[0], toks.slice(1), () => repl.prompt());

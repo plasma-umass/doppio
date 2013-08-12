@@ -68,7 +68,7 @@ function find_main_class(extracted_jar_dir: string): string {
   }
 }
 
-function print_help(option_descriptions) {
+function print_help(option_descriptions: string) {
   var launcher = process.argv[0];
   var script = require('path').relative(process.cwd(), process.argv[1]);
   console.log("Usage: " + launcher + " " + script + " [flags] /path/to/classfile [args for main()]\n");
@@ -233,7 +233,7 @@ if (argv.non_standard['list-class-cache']) {
       });
     };
   } else {
-    done_cb = function (success) { process.exit(!success ? 1 : 0); };
+    done_cb = function (success:boolean) { process.exit(success ? 0 : 1); };
 }
 
 process.on('SIGINT', function () {

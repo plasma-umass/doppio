@@ -17,7 +17,7 @@ var vtrace = logging.vtrace, trace = logging.trace, debug_vars = logging.debug_v
 var JavaArray = java_object.JavaArray;
 var JavaObject = java_object.JavaObject;
 var thread_name = java_object.thread_name;
-declare var RELEASE;
+declare var RELEASE: boolean;
 
 export class AbstractMethodField {
   public cls: ClassData.ReferenceClassData;
@@ -272,7 +272,7 @@ export class Method extends AbstractMethodField {
 
   public run_manually(func: Function, rs: runtime.RuntimeState, converted_params: any[]): void {
     trace("entering native method " + this.full_signature());
-    var rv;
+    var rv: any;
     try {
       rv = func.apply(null, converted_params);
     } catch (_error) {
@@ -328,7 +328,7 @@ export class Method extends AbstractMethodField {
     }
     var op = code[cf.pc];
     while (!rs.should_return) {
-      var annotation;
+      var annotation: string;
       if (!((typeof RELEASE !== "undefined" && RELEASE !== null) || logging.log_level < logging.VTRACE)) {
         var pc = cf.pc;
         if (!op) {
