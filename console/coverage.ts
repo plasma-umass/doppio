@@ -8,15 +8,20 @@ import ClassLoader = require('../src/ClassLoader');
 import natives = require('../src/natives');
 import testing = require('../src/testing');
 
-function setup_opcode_stats() {
+interface Stats {
+  [name:string]: number
+}
+
+function setup_opcode_stats(): Stats {
   // monkeypatch opcode execution
-  var op_stats = {};
-  for (var num in opcodes.opcodes) {
-    var op = opcodes.opcodes[num];
+  var op_stats: {[name:string]: number} = {};
+  for (var i = 0; i < opcodes.opcodes.length; ++i) {
+    var op = opcodes.opcodes[i];
+    if (op === null) continue;
     op_stats[op.name] = 0;
     var old_fn = op.execute;
-    op.execute = (function(old_fn) {
-      return function(rs) {
+    op.execute = (function(old_fn: opcodes.Execute) {
+      return function(rs: runtime.RuntimeState) {
         op_stats[this.name]++;
         return old_fn.call(this, rs);
       };
@@ -25,13 +30,13 @@ function setup_opcode_stats() {
   return op_stats;
 }
 
-function setup_native_stats() {
+function setup_native_stats(): Stats {
   // monkeypatch native and trapped calls
   var native_stats = {};
   for (var sig in natives.native_methods) {
     var func = natives.native_methods[sig];
     native_stats[sig] = 0;
-    natives.native_methods[sig] = (function(func, sig) {
+    natives.native_methods[sig] = (function(func: Function, sig: string) {
       return function(...args: any[]) {
         native_stats[sig]++;
         return func.apply(null, args);
@@ -41,7 +46,7 @@ function setup_native_stats() {
   for (var sig in natives.trapped_methods) {
     var func = natives.trapped_methods[sig];
     native_stats[sig] = 0;
-    natives.trapped_methods[sig] = (function(func, sig) {
+    natives.trapped_methods[sig] = (function(func: Function, sig: string) {
       return function(...args: any[]) {
         native_stats[sig]++;
         return func.apply(null, args);
@@ -51,19 +56,19 @@ function setup_native_stats() {
   return native_stats;
 }
 
-function print_usage(stats): void {
-  var names = [];
+function print_usage(stats: Stats): void {
+  var names: string[] = [];
   for (var name in stats) {
     names.push(name);
   }
   names.sort((a, b) => stats[b] - stats[a]);
   for (var i = 0; i < names.length; i++) {
-    var name = names[i];
+    name = names[i];
     console.log(stats[name], name);
   }
 }
 
-function print_unused(stats, stats_name): void {
+function print_unused(stats: Stats, stats_name: string): void {
   var unused_count = 0;
   for (var name in stats) {
     if (stats[name] === 0) {
@@ -76,12 +81,13 @@ function print_unused(stats, stats_name): void {
   }
 }
 
-function run_tests(test_classes, stdout, quiet, callback): void {
+function run_tests(test_classes: string[], stdout: (p:string)=>void,
+    quiet: boolean, callback: ()=>void): void {
   var doppio_dir = path.resolve(__dirname, '..');
   // set up the classpath
   var jcl_dir = path.resolve(doppio_dir, 'vendor/classes');
   jvm.set_classpath(jcl_dir, doppio_dir);
-  function _runner(test_classes: string[]) {
+  function _runner() {
     if (test_classes.length === 0) {
       return callback();
     }
@@ -95,9 +101,9 @@ function run_tests(test_classes, stdout, quiet, callback): void {
   // get the tests, if necessary
   if (test_classes != null && test_classes.length > 0) {
     test_classes = test_classes.map((tc) => tc.replace(/\.class$/, ''));
-    _runner(test_classes);
+    _runner();
   } else {
-    testing.find_test_classes(doppio_dir, (tcs) => _runner(tcs));
+    testing.find_test_classes(doppio_dir, (tcs) => { test_classes = tcs; _runner() });
   }
 }
 
@@ -128,7 +134,7 @@ if (!(argv.opcodes || argv.natives)) {
   optimist.showHelp();
   process.exit(1);
 }
-var op_stats, native_stats;
+var op_stats: Stats, native_stats: Stats;
 if (argv.opcodes) {
   op_stats = setup_opcode_stats();
 }

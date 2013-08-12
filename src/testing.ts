@@ -20,7 +20,8 @@ export function find_test_classes(doppio_dir: string, cb): void {
     });
   }
 
-export function run_tests(test_classes, stdout, hide_diffs, quiet, keep_going, callback): void {
+export function run_tests(test_classes: string[], stdout, hide_diffs: boolean,
+    quiet: boolean, keep_going: boolean, callback): void {
   var doppio_dir = typeof node !== "undefined" && node !== null ? '/home/doppio/' : path.resolve(__dirname, '..');
   var jcl_dir = path.resolve(doppio_dir, 'vendor/classes');
   jvm.set_classpath(jcl_dir, doppio_dir);
@@ -103,7 +104,7 @@ function cleandiff(our_str: string, their_str: string): string {
   var their_lines = their_str.split(/\n/);
   var oidx = 0;
   var tidx = 0;
-  var diff = [];
+  var diff: string[] = [];
   while (oidx < our_lines.length && tidx < their_lines.length) {
     if (our_lines[oidx++] === their_lines[tidx++]) {
       continue;
