@@ -10,7 +10,7 @@ var JavaException = exceptions.JavaException;
 import java_object = require('./java_object');
 var JavaObject = java_object.JavaObject;
 
-declare var UNSAFE;
+declare var UNSAFE: boolean;
 
 export class ClassLoader {
   public bootstrap: BootstrapClassLoader;
@@ -26,29 +26,25 @@ export class ClassLoader {
   }
 
   public get_package_names(): string[] {
-    var classes, cls, pkg_names, _i, _len;
-
-    classes = this.get_loaded_class_list(true);
-    pkg_names = {};
-    for (_i = 0, _len = classes.length; _i < _len; _i++) {
-      cls = classes[_i];
+    var classes = this.get_loaded_class_list(true);
+    var pkg_names: {[key:string]:boolean} = {};
+    for (var _i = 0, _len = classes.length; _i < _len; _i++) {
+      var cls = classes[_i];
       pkg_names[cls.substring(0, (cls.lastIndexOf('/')) + 1)] = true;
     }
     return Object.keys(pkg_names);
   }
 
   public get_loaded_class_list(ref_class_only?: boolean): string[] {
-    var cdata, k, _ref1, _results;
-
     if (ref_class_only == null) {
       ref_class_only = false;
     }
     if (ref_class_only) {
-      _ref1 = this.loaded_classes;
-      _results = [];
-      for (k in _ref1) {
-        cdata = _ref1[k];
-        if (cdata.major_version != null) {
+      var _ref1 = this.loaded_classes;
+      var _results: string[] = [];
+      for (var k in _ref1) {
+        var cdata = _ref1[k];
+        if ('major_version' in cdata) {
           _results.push(k.slice(1, -1));
         }
       }
@@ -83,10 +79,8 @@ export class ClassLoader {
   }
 
   public _get_class(type_str: string): ClassData.ClassData {
-    var cdata;
-
-    cdata = this.loaded_classes[type_str];
-    if ((cdata != null ? cdata.reset_bit : void 0) === 1) {
+    var cdata = this.loaded_classes[type_str];
+    if (cdata != null && cdata.reset_bit === 1) {
       cdata.reset();
     }
     if (cdata != null) {
@@ -97,10 +91,8 @@ export class ClassLoader {
   }
 
   private _try_define_array_class(type_str: string): ClassData.ClassData {
-    var component_cdata, component_type;
-
-    component_type = util.get_component_type(type_str);
-    component_cdata = this.get_resolved_class(component_type, true);
+    var component_type = util.get_component_type(type_str);
+    var component_cdata = this.get_resolved_class(component_type, true);
     if (component_cdata == null) {
       return null;
     }
@@ -108,12 +100,10 @@ export class ClassLoader {
   }
 
   private _define_array_class(type_str: string, component_cdata: ClassData.ClassData): ClassData.ClassData {
-    var cdata;
-
     if (component_cdata.get_class_loader() !== this) {
       return component_cdata.get_class_loader()._define_array_class(type_str, component_cdata);
     } else {
-      cdata = new ArrayClassData(component_cdata.get_type(), this);
+      var cdata = new ArrayClassData(component_cdata.get_type(), this);
       this._add_class(type_str, cdata);
       cdata.set_resolved(this.bootstrap.get_resolved_class('Ljava/lang/Object;'), component_cdata);
       return cdata;
@@ -121,16 +111,15 @@ export class ClassLoader {
   }
 
   private _parallel_class_resolve(rs: runtime.RuntimeState, types: string[], success_fn: (cds: ClassData.ClassData[])=>void, failure_fn: (e_cb:()=>void)=>void, explicit?:boolean): void {
-    var failure, fetch_data, pending_requests, request_finished, resolved, type, _i, _len, _results,
-      _this = this;
+    var _this = this;
 
     if (explicit == null) {
       explicit = false;
     }
-    pending_requests = types.length;
-    failure = null;
-    resolved = [];
-    request_finished = function () {
+    var pending_requests = types.length;
+    var failure = null;
+    var resolved: ClassData.ClassData[] = [];
+    var request_finished = function () {
       pending_requests--;
       if (pending_requests === 0) {
         if (failure == null) {
@@ -140,7 +129,7 @@ export class ClassLoader {
         }
       }
     };
-    fetch_data = function (type) {
+    var fetch_data = function (type: string) {
       return _this.resolve_class(rs, type, (function (cdata) {
         resolved.push(cdata);
         return request_finished();
@@ -149,17 +138,13 @@ export class ClassLoader {
           return request_finished();
         }), explicit);
     };
-    _results = [];
-    for (_i = 0, _len = types.length; _i < _len; _i++) {
-      type = types[_i];
-      _results.push(fetch_data(type));
+    for (var _i = 0, _len = types.length; _i < _len; _i++) {
+      fetch_data(types[_i]);
     }
-    return _results;
   }
 
   private _regular_class_resolve(rs: runtime.RuntimeState, types: string[], success_fn: (cds: ClassData.ClassData[])=>void, failure_fn: (e_cb:()=>void)=>void, explicit?:boolean): void {
-    var fetch_class, resolved,
-      _this = this;
+    var _this = this;
 
     if (explicit == null) {
       explicit = false;
@@ -167,8 +152,8 @@ export class ClassLoader {
     if (!(types.length > 0)) {
       return success_fn(null);
     }
-    resolved = [];
-    fetch_class = function (type) {
+    var resolved: ClassData.ClassData[] = [];
+    var fetch_class = function (type: string) {
       return _this.resolve_class(rs, type, (function (cdata) {
         resolved.push(cdata);
         if (types.length > 0) {
@@ -182,7 +167,7 @@ export class ClassLoader {
   }
 
   public define_class(rs: runtime.RuntimeState, type_str: string, data: NodeBuffer, success_fn: (cd:ClassData.ClassData)=>void, failure_fn: (e_cb:()=>void)=>void, parallel?: boolean, explicit?:boolean): void {
-    var type, _i, _len, _this = this;
+    var _this = this;
 
     if (parallel == null) {
       parallel = false;
@@ -192,7 +177,8 @@ export class ClassLoader {
     }
     trace("Defining class " + type_str + "...");
     var cdata = new ReferenceClassData(data, this);
-    if ((type = cdata.get_type()) !== type_str) {
+    var type = cdata.get_type();
+    if (type !== type_str) {
       var msg = util.descriptor2typestr(type_str) + " (wrong name: " + util.descriptor2typestr(type) + ")";
       return failure_fn((function () {
         var err_cls = <ClassData.ReferenceClassData> _this.get_initialized_class('Ljava/lang/NoClassDefFoundError;');
@@ -202,28 +188,26 @@ export class ClassLoader {
     this._add_class(type_str, cdata);
     var types = cdata.get_interface_types();
     types.push(cdata.get_super_class_type());
-    var to_resolve = [];
-    var resolved_already = [];
-    for (_i = 0, _len = types.length; _i < _len; _i++) {
+    var to_resolve: string[] = [];
+    var resolved_already: ClassData.ReferenceClassData[] = [];
+    for (var _i = 0, _len = types.length; _i < _len; _i++) {
       type = types[_i];
       if (type == null) {
         continue;
       }
-      var clsdata = this.get_resolved_class(type, true);
+      var clsdata = <ClassData.ReferenceClassData>this.get_resolved_class(type, true);
       if (clsdata != null) {
         resolved_already.push(clsdata);
       } else {
         to_resolve.push(type);
       }
     }
-    function process_resolved_classes(cdatas) {
-      var _j, _len1;
-
+    function process_resolved_classes(cdatas: ClassData.ReferenceClassData[]) {
       cdatas = resolved_already.concat(cdatas);
-      var super_cdata = null;
-      var interface_cdatas = [];
+      var super_cdata: ClassData.ReferenceClassData = null;
+      var interface_cdatas: ClassData.ReferenceClassData[] = [];
       var super_type = cdata.get_super_class_type();
-      for (_j = 0, _len1 = cdatas.length; _j < _len1; _j++) {
+      for (var _j = 0, _len1 = cdatas.length; _j < _len1; _j++) {
         var a_cdata = cdatas[_j];
         type = a_cdata.get_type();
         if (type === super_type) {
@@ -298,8 +282,7 @@ export class ClassLoader {
   }
 
   public _initialize_class(rs: runtime.RuntimeState, cdata: ClassData.ClassData, success_fn: (cd:ClassData.ClassData)=>void, failure_fn:(e_fn:()=>void, discardStackFrame?:boolean)=>void): void {
-    var class_file, clinit, next_nf,
-      _this = this;
+    var _this = this;
 
     trace("Actually initializing class " + (cdata.get_type()) + "...");
     if (!(cdata instanceof ReferenceClassData)) {
@@ -343,11 +326,11 @@ export class ClassLoader {
         }
       }));
     first_native_frame.cdata = cdata;
-    class_file = cdata;
+    var class_file = cdata;
     while ((class_file != null) && !class_file.is_initialized()) {
       trace("initializing class: " + (class_file.get_type()));
       class_file.initialized = true;
-      clinit = class_file.get_method('<clinit>()V');
+      var clinit = class_file.get_method('<clinit>()V');
       if (clinit != null) {
         trace("\tFound <clinit>. Pushing stack frame.");
         if (first_clinit) {
@@ -355,7 +338,7 @@ export class ClassLoader {
           first_clinit = false;
           rs.meta_stack().push(first_native_frame);
         } else {
-          next_nf = rs.construct_nativeframe("$clinit_secondary", (function () {
+          var next_nf = rs.construct_nativeframe("$clinit_secondary", (function () {
             return rs.meta_stack().pop();
           }), (function (e) {
               rs.curr_frame().cdata.reset();
@@ -384,19 +367,18 @@ export class ClassLoader {
   }
 
   public initialize_class(rs: runtime.RuntimeState, type_str: string, success_fn: (cd:ClassData.ClassData)=>void, failure_fn:(e_fn:()=>void)=>void, explicit?:boolean): void {
-    var cdata, component_type,
-      _this = this;
+    var _this = this;
 
     if (explicit == null) {
       explicit = false;
     }
     trace("Initializing class " + type_str + "...");
-    cdata = this.get_initialized_class(type_str, true);
+    var cdata = this.get_initialized_class(type_str, true);
     if (cdata != null) {
       return success_fn(cdata);
     }
     if (util.is_array_type(type_str)) {
-      component_type = util.get_component_type(type_str);
+      var component_type = util.get_component_type(type_str);
       this.resolve_class(rs, component_type, (function (cdata) {
         return success_fn(_this._define_array_class(type_str, cdata));
       }), failure_fn, explicit);
@@ -416,19 +398,18 @@ export class ClassLoader {
   }
 
   public resolve_class(rs: runtime.RuntimeState, type_str: string, success_fn: (cd:ClassData.ClassData)=>void, failure_fn:(e_fn:()=>void)=>void, explicit?:boolean): void {
-    var component_type, rv,
-      _this = this;
+    var _this = this;
 
     if (explicit == null) {
       explicit = false;
     }
     trace("Resolving class " + type_str + "... [general]");
-    rv = this.get_resolved_class(type_str, true);
+    var rv = this.get_resolved_class(type_str, true);
     if (rv != null) {
       return success_fn(rv);
     }
     if (util.is_array_type(type_str)) {
-      component_type = util.get_component_type(type_str);
+      var component_type = util.get_component_type(type_str);
       this.resolve_class(rs, component_type, (function (cdata) {
         return success_fn(_this._define_array_class(type_str, cdata));
       }), failure_fn, explicit);
@@ -450,16 +431,14 @@ export class BootstrapClassLoader extends ClassLoader {
   }
 
   public serialize(visited: {[n:string]:boolean}): any {
-    var cls, loaded, type, _ref1;
-
     if ('bootstrapLoader' in visited) {
       return '<*bootstrapLoader>';
     }
     visited['bootstrapLoader'] = true;
-    loaded = {};
-    _ref1 = this.loaded_classes;
-    for (type in _ref1) {
-      cls = _ref1[type];
+    var loaded = {};
+    var _ref1 = this.loaded_classes;
+    for (var type in _ref1) {
+      var cls = _ref1[type];
       if (type !== "__proto__") {
         loaded["" + type + "(" + (cls.getLoadState()) + ")"] = cls.loader.serialize(visited);
       }
@@ -471,11 +450,9 @@ export class BootstrapClassLoader extends ClassLoader {
   }
 
   public reset(): void {
-    var cls, cname, _ref1;
-
-    _ref1 = this.loaded_classes;
-    for (cname in _ref1) {
-      cls = _ref1[cname];
+    var _ref1 = this.loaded_classes;
+    for (var cname in _ref1) {
+      var cls = _ref1[cname];
       if (cname !== "__proto__") {
         cls.reset_bit = 1;
       }
@@ -483,9 +460,7 @@ export class BootstrapClassLoader extends ClassLoader {
   }
 
   public get_primitive_class(type_str: string): ClassData.PrimitiveClassData {
-    var cdata;
-
-    cdata = this._get_class(type_str);
+    var cdata = <ClassData.PrimitiveClassData>this._get_class(type_str);
     if (cdata != null) {
       return cdata;
     }
@@ -495,14 +470,13 @@ export class BootstrapClassLoader extends ClassLoader {
   }
 
   public _resolve_class(rs: runtime.RuntimeState, type_str: string, success_fn: (cd: ClassData.ClassData)=>void, failure_fn: (e_fn: ()=>void)=>void, explicit?: boolean): void {
-    var rv,
-      _this = this;
+    var _this = this;
 
     if (explicit == null) {
       explicit = false;
     }
     trace("ASYNCHRONOUS: resolve_class " + type_str + " [bootstrap]");
-    rv = this.get_resolved_class(type_str, true);
+    var rv = this.get_resolved_class(type_str, true);
     if (rv != null) {
       return success_fn(rv);
     }
@@ -515,20 +489,16 @@ export class BootstrapClassLoader extends ClassLoader {
           trace("Failed to read class " + type_str + ": " + exp + "\n" + exp.stack);
         }
         return failure_fn(function () {
-          var cls, msg, v;
-
           rs.meta_stack().push(rs.construct_nativeframe('$class_not_found', (function () {
-            var cls, v;
-
             rs.curr_frame().runner = function () {
-              rv = rs.pop();
+              var rv = rs.pop();
               rs.meta_stack().pop();
               throw new JavaException(rv);
             };
             if (!explicit) {
-              rv = rs.pop();
-              cls = _this.bootstrap.get_initialized_class('Ljava/lang/NoClassDefFoundError;');
-              v = new JavaObject(rs, cls);
+              var rv = rs.pop();
+              var cls = <ClassData.ReferenceClassData>_this.bootstrap.get_initialized_class('Ljava/lang/NoClassDefFoundError;');
+              var v = new JavaObject(rs, cls);
               rs.push_array([v, v, rv]);
               return cls.method_lookup(rs, '<init>(Ljava/lang/Throwable;)V').setup_stack(rs);
             }
@@ -538,9 +508,9 @@ export class BootstrapClassLoader extends ClassLoader {
                 throw new Error('Failed to throw a ' + (explicit ? 'ClassNotFoundException' : 'NoClassDefFoundError') + '.');
               }));
             })));
-          cls = _this.bootstrap.get_initialized_class('Ljava/lang/ClassNotFoundException;');
-          v = new JavaObject(rs, cls);
-          msg = rs.init_string(util.ext_classname(type_str));
+          var cls = <ClassData.ReferenceClassData>_this.bootstrap.get_initialized_class('Ljava/lang/ClassNotFoundException;');
+          var v = new JavaObject(rs, cls);
+          var msg = rs.init_string(util.ext_classname(type_str));
           rs.push_array([v, v, msg]);
           return cls.method_lookup(rs, '<init>(Ljava/lang/String;)V').setup_stack(rs);
         });
@@ -567,11 +537,9 @@ export class CustomClassLoader extends ClassLoader {
     }
     trace("ASYNCHRONOUS: resolve_class " + type_str + " [custom]");
     rs.meta_stack().push(rs.construct_nativeframe("$" + (this.loader_obj.cls.get_type()), (function () {
-      var cls, jclo;
-
-      jclo = rs.pop();
+      var jclo = rs.pop();
       rs.meta_stack().pop();
-      cls = jclo.$cls;
+      var cls = jclo.$cls;
       if (_this.get_resolved_class(type_str, true) == null) {
         _this._add_class(type_str, cls);
       }
