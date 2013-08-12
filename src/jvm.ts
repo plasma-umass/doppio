@@ -3,8 +3,10 @@
 import util = require('./util');
 import logging = require('./logging')
 import runtime = require('./runtime')
+import methods = require('./methods')
+import ClassData = require('./ClassData')
 
-declare var node
+declare var node: any;
 var fs = typeof node !== "undefined" ? node.fs : require('fs');
 var path = typeof node !== "undefined" ? node.path : require('path');
 var trace = logging.trace;
@@ -88,25 +90,25 @@ export function set_classpath(jcl_path: string, classpath: string) {
 export function run_class(rs: runtime.RuntimeState, class_name: string, cmdline_args: string[], done_cb: (arg: any)=>void) {
   var class_descriptor = "L" + class_name + ";";
   var main_sig = 'main([Ljava/lang/String;)V';
-  var main_method = null;
+  var main_method: methods.Method = null;
   function run_main() {
     trace("run_main");
     rs.run_until_finished((function () {
       rs.async_op(function (resume_cb, except_cb) {
-        rs.get_bs_cl().initialize_class(rs, class_descriptor, (function (cls) {
+        rs.get_bs_cl().initialize_class(rs, class_descriptor, function (cls: ClassData.ReferenceClassData) {
           rs.init_args(cmdline_args);
-          return rs.run_until_finished((function () {
+          return rs.run_until_finished(function () {
             main_method = cls.method_lookup(rs, main_sig);
             if (main_method != null) {
               return;
             }
             return rs.async_op(function (resume_cb, except_cb) {
-              return cls.resolve_method(rs, main_sig, (function (m) {
+              cls.resolve_method(rs, main_sig, function (m) {
                 main_method = m;
                 return except_cb(function () { });
-              }), except_cb);
+              }, except_cb);
             });
-          }), true, function (success) {
+          }, true, function (success) {
               if (!(success && (main_method != null))) {
                 if (typeof done_cb === "function") {
                   done_cb(success);
@@ -120,7 +122,7 @@ export function run_class(rs: runtime.RuntimeState, class_name: string, cmdline_
                   }
                 });
             });
-        }), except_cb);
+        }, except_cb);
       });
     }), true, done_cb);
   };
@@ -146,14 +148,14 @@ export function run_class(rs: runtime.RuntimeState, class_name: string, cmdline_
         }
       });
   };
-  return rs.run_until_finished((function () {
+  return rs.run_until_finished(function () {
     return rs.async_op(function (resume_cb, except_cb) {
-      return rs.preinitialize_core_classes(run_program, (function (e) {
+      return rs.preinitialize_core_classes(run_program, function (e) {
         // Error during preinitialization? Abort abort abort!
         e();
-      }));
+      });
     });
-  }), true, (function () { }));
+  }, true, function () { });
 }
 
 reset_system_properties();
