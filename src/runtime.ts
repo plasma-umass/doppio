@@ -9,7 +9,7 @@ import methods = require('./methods');
 import ClassData = require('./ClassData');
 import ClassLoader = require('./ClassLoader');
 
-declare var node, UNSAFE : boolean;
+declare var node: any, UNSAFE : boolean;
 declare var setImmediate: (cb: (p:any)=>any)=>void
 var vtrace = logging.vtrace;
 var trace = logging.trace;
@@ -144,7 +144,7 @@ export class StackFrame {
 
 var run_count = 0;
 export class RuntimeState {
-  public print: (string) => any;
+  public print: (p:string) => any;
   private _async_input: (cb: (string) => any) => any;
   private bcl: ClassLoader.BootstrapClassLoader;
   private input_buffer: number[];
@@ -165,7 +165,7 @@ export class RuntimeState {
   public should_return: boolean;
   public system_initialized: boolean;
 
-  constructor(print: (string) => any, _async_input: (cb: (string) => any) => any, bcl: ClassLoader.BootstrapClassLoader) {
+  constructor(print: (p:string) => any, _async_input: (cb: (p:string) => any) => any, bcl: ClassLoader.BootstrapClassLoader) {
     this.print = print;
     this._async_input = _async_input;
     this.bcl = bcl;
@@ -604,7 +604,7 @@ export class RuntimeState {
     }
   }
 
-  public handle_toplevel_exception(e: any, no_threads: boolean, done_cb: (boolean)=>void): void {
+  public handle_toplevel_exception(e: any, no_threads: boolean, done_cb: (p:boolean)=>void): void {
     var _this = this;
     this.unusual_termination = true;
     if (e.toplevel_catch_handler != null) {
@@ -622,14 +622,15 @@ export class RuntimeState {
     throw new YieldIOException(cb);
   }
 
-  public call_bytecode(cls, method, args, success_cb, except_cb) {
+  public call_bytecode(cls: ClassData.ReferenceClassData, method: methods.Method,
+      args: any[], success_cb: any, except_cb: any) {
     var _this = this;
-    var good_cb = function(ret1, ret2) {
+    var good_cb = function(ret1: any, ret2: any) {
       return _this.async_op(function(good) {
         return good(ret1, ret2);
       });
     };
-    var bad_cb = function(e_fn) {
+    var bad_cb = function(e_fn: ()=>void) {
       return _this.async_op(function(good, bad) {
         return bad(e_fn);
       });
@@ -642,14 +643,11 @@ export class RuntimeState {
         is_constructor = true;
       }
       var nf = StackFrame.native_frame("$bytecode_call", (function() {
-        var rv;
-
-        rv = void 0;
         if (method.return_type !== 'V' || is_constructor) {
           if (method.return_type === 'J' || method.return_type === 'D') {
             _this.pop();
           }
-          rv = _this.pop();
+          var rv = _this.pop();
         }
         _this.meta_stack().pop();
         return success_cb(rv, good_cb, bad_cb);
@@ -706,7 +704,7 @@ export class RuntimeState {
         if (e === ReturnException) {
           _this.run_until_finished(nop, no_threads, done_cb);
         } else if (e instanceof YieldIOException) {
-          var success_fn = function(ret1, ret2, bytecode?, advance_pc?) {
+          var success_fn = function(ret1: any, ret2: any, bytecode?:boolean, advance_pc?:boolean) {
             if (advance_pc == null) {
               advance_pc = true;
             }

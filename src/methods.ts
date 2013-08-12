@@ -105,7 +105,7 @@ export class Method extends AbstractMethodField {
   private param_types: string[];
   private param_bytes: number;
   private num_args: number;
-  private return_type: string;
+  public return_type: string;
   // Code is either a function, or a CodeAttribute. We should have a factory method
   // that constructs NativeMethod objects and BytecodeMethod objects.
   public code: any;
