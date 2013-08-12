@@ -186,9 +186,9 @@ export class Method extends AbstractMethodField {
     this.cls.loader.resolve_class(rs, this.return_type, (function (rt_cls) {
       var rt_obj = rt_cls.get_class_object(rs);
       var j = -1;
-      var etype_objs = [];
+      var etype_objs: java_object.JavaClassObject[] = [];
       var i = -1;
-      var param_type_objs = [];
+      var param_type_objs: java_object.JavaClassObject[] = [];
       var k = 0;
       var handlers;
       if (_this.code != null && _this.code.exception_handlers != null && _this.code.exception_handlers.length > 0) {

@@ -8,7 +8,7 @@ import ClassData = require('./ClassData');
 import ClassLoader = require('./ClassLoader');
 var BootstrapClassLoader = ClassLoader.BootstrapClassLoader;
 
-declare var node;
+declare var node: any;
 var path = typeof node !== "undefined" ? node.path : require('path');
 var fs = typeof node !== "undefined" ? node.fs : require('fs');
 
@@ -78,7 +78,7 @@ function sanitize(str: string): string {
 
 function run_disasm_test(doppio_dir: string, test_class: string, callback): void {
   var test_path = path.resolve(doppio_dir, test_class);
-  fs.readFile(test_path + ".disasm", 'utf8', function(err, contents) {
+  fs.readFile(test_path + ".disasm", 'utf8', function(err, contents: string) {
     var javap_disasm = sanitize(contents);
     fs.readFile(test_path + ".class", function(err, buffer) {
       var doppio_disasm = sanitize(disassembler.disassemble(
@@ -90,9 +90,9 @@ function run_disasm_test(doppio_dir: string, test_class: string, callback): void
 
 function run_stdout_test(doppio_dir: string, test_class: string, callback): void {
   var output_filename = path.resolve(doppio_dir, test_class) + ".runout";
-  fs.readFile(output_filename, 'utf8', function(err, java_output) {
+  fs.readFile(output_filename, 'utf8', function(err, java_output: string) {
     var doppio_output = '';
-    var stdout = function(str) { doppio_output += str; };
+    var stdout = function(str: string) { doppio_output += str; };
     var rs = new RuntimeState(stdout, (function() {}), new BootstrapClassLoader(jvm.read_classfile));
     jvm.run_class(rs, test_class, [], () => callback(cleandiff(doppio_output, java_output)));
   });
