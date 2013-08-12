@@ -13,14 +13,18 @@ var JavaArray = java_object.JavaArray;
 var thread_name = java_object.thread_name;
 var JavaClassLoaderObject = java_object.JavaClassLoaderObject;
 
+export interface Execute {
+  (rs: runtime.RuntimeState): any;
+}
+
 export class Opcode {
   public name: string
   public byte_count: number
-  public execute: Function
-  public orig_execute: Function
+  public execute: Execute
+  public orig_execute: Execute
   public args: number[]
 
-  constructor(name: string, byte_count?: number, execute?: Function) {
+  constructor(name: string, byte_count?: number, execute?: Execute) {
     this.name = name;
     this.byte_count = byte_count || 0;
     this.execute = execute || this._execute;
@@ -67,7 +71,7 @@ export class FieldOpcode extends Opcode {
   public field_spec_ref: number
   public field_spec: any
 
-  constructor(name: string, execute?: Function) {
+  constructor(name: string, execute?: Execute) {
     super(name, 2, execute);
   }
 
@@ -86,7 +90,7 @@ export class ClassOpcode extends Opcode {
   public class_ref: number
   public class: any
 
-  constructor(name: string, execute?: Function) {
+  constructor(name: string, execute?: Execute) {
     super(name, 2, execute);
   }
 
@@ -283,7 +287,7 @@ export class LoadConstantOpcode extends Opcode {
 export class BranchOpcode extends Opcode {
   public offset: number
 
-  constructor(name: string, execute?: Function) {
+  constructor(name: string, execute?: Execute) {
     super(name, 2, execute);
   }
 
@@ -371,7 +375,7 @@ export class IIncOpcode extends Opcode {
   public const: number
 
   public take_args(code_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool, wide?: boolean): void {
-    var arg_size;
+    var arg_size: number;
     if (wide) {
       this.name += "_w";
       arg_size = 2;
@@ -717,7 +721,7 @@ export function monitorexit(rs: runtime.RuntimeState, monitor: any): void {
 // These objects are used as prototypes for the parsed instructions in the classfile.
 // Opcodes are in order, indexed by their binary representation.
 export var opcodes : Opcode[] = [
-  new Opcode('nop', 0, function(){}),  // apparently you can't use lambda syntax for a nop
+  new Opcode('nop', 0, function(rs){}),  // apparently you can't use lambda syntax for a nop
   new Opcode('aconst_null', 0, ((rs)=>rs.push(null))),
   new Opcode('iconst_m1', 0, ((rs)=>rs.push(-1))),
   new Opcode('iconst_0', 0, ((rs)=>rs.push(0))),
@@ -1001,7 +1005,7 @@ export var opcodes : Opcode[] = [
   new FieldOpcode('getstatic', function(rs) {
     var desc = this.field_spec.class;
     var ref_cls = rs.get_class(desc, true);
-    var new_execute;
+    var new_execute: Execute;
     if (this.field_spec.type == 'J' || this.field_spec.type == 'D') {
       new_execute = (rs) => rs.push2(this.cls.static_get(rs, this.field_spec.name), null)
     } else {
@@ -1031,7 +1035,7 @@ export var opcodes : Opcode[] = [
   new FieldOpcode('putstatic', function(rs) {
     var desc = this.field_spec.class;
     var ref_cls = rs.get_class(desc, true);
-    var new_execute;
+    var new_execute: Execute;
     if (this.field_spec.type == 'J' || this.field_spec.type == 'D') {
       new_execute = (rs) => this.cls.static_put(rs, this.field_spec.name, rs.pop2())
     } else {
@@ -1070,7 +1074,7 @@ export var opcodes : Opcode[] = [
     if (cls != null) {
       var field = cls.field_lookup(rs, this.field_spec.name);
       var name = field.cls.get_type() + this.field_spec.name;
-      var new_execute;
+      var new_execute: Execute;
       if (this.field_spec.type == 'J' || this.field_spec.type == 'D') {
         new_execute = (rs) => rs.push2(rs.check_null(rs.pop()).get_field(rs, name), null);
       } else {
@@ -1092,12 +1096,7 @@ export var opcodes : Opcode[] = [
     // we might try to get a class that we have not initialized!
     var desc = this.field_spec.class;
     var is_cat_2 = (this.field_spec.type == 'J' || this.field_spec.type == 'D');
-    var _obj;
-    if (is_cat_2) {
-      _obj = rs.check_null(rs.peek(2));
-    } else {
-      _obj = rs.check_null(rs.peek(1));
-    }
+    rs.check_null(rs.peek(is_cat_2 ? 2 : 1));
     // cls is guaranteed to be in the inheritance hierarchy of obj, so it must be
     // initialized. However, it may not be loaded in the current class's
     // ClassLoader...
@@ -1105,7 +1104,7 @@ export var opcodes : Opcode[] = [
     if (cls_obj != null) {
       var field = cls_obj.field_lookup(rs, this.field_spec.name);
       var name = field.cls.get_type() + this.field_spec.name;
-      var new_execute;
+      var new_execute: Execute;
       if (is_cat_2) {
         new_execute = function(rs) {
           var val = rs.pop2();
@@ -1139,18 +1138,18 @@ export var opcodes : Opcode[] = [
     if (this.cls != null) {
       if (this.cls.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/ClassLoader;', true))) {
         rs.push(new JavaClassLoaderObject(rs, this.cls));
-        this.execute = (rs) => rs.push(new JavaClassLoaderObject(rs, this.cls));
+        this.execute = (rs: runtime.RuntimeState) => rs.push(new JavaClassLoaderObject(rs, this.cls));
       } else if (this.cls.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/Thread;', true))) {
         rs.push(new java_object.JavaThreadObject(rs, this.cls));
-        this.execute = (rs) => rs.push(new java_object.JavaThreadObject(rs, this.cls));
+        this.execute = (rs: runtime.RuntimeState) => rs.push(new java_object.JavaThreadObject(rs, this.cls));
       } else {
         rs.push(new JavaObject(rs, this.cls));
-        this.execute = (rs) => rs.push(new JavaObject(rs, this.cls));
+        this.execute = (rs: runtime.RuntimeState) => rs.push(new JavaObject(rs, this.cls));
       }
     } else {
       rs.async_op(function(resume_cb, except_cb) {
-        var success_fn = function(class_file) {
-          var obj;
+        var success_fn = function(class_file: ClassData.ReferenceClassData) {
+          var obj: java_object.JavaObject;
           if (class_file.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/ClassLoader;', true))) {
             obj = new JavaClassLoaderObject(rs, class_file);
           } else if (class_file.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/Thread;', true))) {
@@ -1169,7 +1168,7 @@ export var opcodes : Opcode[] = [
     var desc = this.class;
     var cls = rs.get_cl().get_resolved_class(desc, true);
     if (cls != null) {
-      var new_execute = (rs) => rs.push(rs.heap_newarray(desc, rs.pop()));
+      var new_execute: Execute = (rs) => rs.push(rs.heap_newarray(desc, rs.pop()));
       new_execute.call(this, rs);
       this.execute = new_execute;
     } else {
@@ -1208,7 +1207,7 @@ export var opcodes : Opcode[] = [
     var desc = this.class;
     this.cls = rs.get_cl().get_resolved_class(desc, true);
     if (this.cls != null) {
-      var new_execute = function(rs) {
+      var new_execute = function(rs: runtime.RuntimeState) {
         var o = rs.pop();
         rs.push(o != null ? o.cls.is_castable(this.cls) + 0 : 0);
       };
