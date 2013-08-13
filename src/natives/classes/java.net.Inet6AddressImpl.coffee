@@ -28,15 +28,22 @@ host_allocate_address = (address) ->
 
 native_methods.java.net.Inet6AddressImpl = [
   o 'lookupAllHostAddr(Ljava/lang/String;)[Ljava/net/InetAddress;', (rs, _this, hostname) ->
-    ret = new JavaObject rs, rs.get_bs_class('Ljava/net/Inet4Address;'), {
-      'Ljava/net/Inet4Address;address': host_allocate_address()
-    }
-    new JavaArray rs, rs.get_bs_class('[Ljava/net/InetAddress;'), [ret]
+    debug "Looking up #{hostname}"
+    cdata = rs.get_bs_class('Ljava/net/Inet4Address;')
+    
+    success = (rv, success_cb, except_cb) ->
+      success_cb(new JavaArray(rs, rs.get_bs_class('[Ljava/net/InetAddress;'), [ rv ]))
+    
+    failure = (e_cb, success_cb, except_cb) -> except_cb(e_cb)
+    
+    rs.call_bytecode cdata, cdata.method_lookup(rs, '<init>(Ljava/lang/String;I)V'), [ hostname, host_allocate_address() ], success, failure
+  
+  
   o 'getLocalHostName()Ljava/lang/String;', (rs, _this) ->
-    new JavaString 'localhost'
+    rs.init_string 'localhost'
   
   o 'getHostByAddr([B)Ljava/lang/String;', (rs, _this, addr) ->
-    new JavaString 'blah'
+    rs.init_string 'blah'
   
   o 'isReachable0([BII[BII)Z', (rs, _this, addr, scope, timeout, inf, ttl, if_scope) ->
     false

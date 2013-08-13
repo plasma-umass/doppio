@@ -15,6 +15,9 @@ native_methods.java.net.PlainSocketImpl = [
     # The IPv4 case
     holder = address.get_field rs, 'Ljava/net/InetAddress;holder'
     addy = holder.get_field rs, 'Ljava/net/InetAddress$InetAddressHolder;address'
+
+    debug 'connect!!!'
+
     # Assume scheme is ws for now
     host = 'ws://'
     if host_lookup[addy] is undefined
@@ -42,6 +45,7 @@ native_methods.java.net.PlainSocketImpl = [
         _this.$ws.on('error', ->)
       
       error_cb = (msg) -> ->
+        debug msg
         clear_state()
         except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), msg
       
