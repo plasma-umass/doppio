@@ -27,6 +27,10 @@ automatically. Users of other package managers should check that they have:
 * `wget`
 * `gnu-sed` (i.e. must support the `-r` flag; BSD `sed` doesn't)
 
+*Note for Ubuntu users: The packaged version of node.js is woefully out of date,
+so you'll need to either build it yourself or
+[get it another way](http://stackoverflow.com/q/7214474/10601).*
+
 Usage
 -----
 
