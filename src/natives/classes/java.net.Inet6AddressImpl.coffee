@@ -11,7 +11,7 @@ host_address_inc = ->
   next_host_address[3] = 0 if next_host_address[3] > 255
   next_host_address[2] = 0 if next_host_address[2] > 255
   next_host_address[1] = 0 if next_host_address[1] > 255
-  if next_host_address[0] > 250
+  if next_host_address[] > 250
     error 'Out of addresses'
     next_host_address[0] = 240
 
@@ -36,7 +36,8 @@ native_methods.java.net.Inet6AddressImpl = [
     
     failure = (e_cb, success_cb, except_cb) -> except_cb(e_cb)
     
-    rs.call_bytecode cdata, cdata.method_lookup(rs, '<init>(Ljava/lang/String;I)V'), [ hostname, host_allocate_address() ], success, failure
+    cons = cdata.method_lookup(rs, '<init>(Ljava/lang/String;I)V')
+    rs.call_bytecode cdata, cons, [ hostname, host_allocate_address() ], success, failure
   
   o 'getLocalHostName()Ljava/lang/String;', (rs, _this) ->
     rs.init_string 'localhost'
