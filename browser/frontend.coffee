@@ -84,7 +84,7 @@ $(document).ready ->
       return $('#console').click() # click to restore focus
     num_files = ev.target.files.length
     files_uploaded = 0
-    controller.message "Uploading #{num_files} files...\n", 'success', true
+    controller.message "Uploading #{num_files} files...\n", 'success', true if num_files > 0
     # Need to make a function instead of making this the body of a loop so we
     # don't overwrite "f" before the onload handler calls.
     file_fcn = ((f) ->
