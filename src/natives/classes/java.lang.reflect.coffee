@@ -18,11 +18,16 @@ native_methods.java.lang.reflect =
         rs.heap_newarray jco.$cls.get_type(), len
     o 'getLength(Ljava/lang/Object;)I', (rs, arr) ->
         rs.check_null(arr).array.length
+    o 'get(Ljava/lang/Object;I)Ljava/lang/Object;', (rs, arr, idx) ->
+        array = rs.check_null(arr).array
+        unless idx>=0 && idx < array.length
+          rs.java_throw rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;'), 'Tried to write to an illegal index in an array.'
+        array[idx]
     o 'set(Ljava/lang/Object;ILjava/lang/Object;)V', (rs, arr, idx, val) ->
         my_sf = rs.curr_frame()
         array = rs.check_null(arr).array
 
-        unless idx < array.length
+        unless idx>=0 && idx < array.length
           rs.java_throw rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;'), 'Tried to write to an illegal index in an array.'
 
         if (ccls = arr.cls.get_component_class()) instanceof PrimitiveClassData

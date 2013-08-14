@@ -12,6 +12,10 @@ util = require './util'
 jvm = null
 process = node?.process ? global.process
 
+#Support for old browsers. Returns milliseconds since 1 January 1970 00:00:00 UTC
+
+Date.now ?= -> +(new Date);
+
 class root.CallStack
   constructor: (initial_stack) ->
     @_cs = [root.StackFrame.native_frame('$bootstrap')]
@@ -91,7 +95,7 @@ class root.RuntimeState
     @waiting_threads = {}  # map from monitor -> list of waiting thread objects
     @thread_pool = []
     @curr_thread = {$meta_stack: new root.CallStack()}
-    @max_m_count = 100000
+    @max_m_count = 10000
 
   get_bs_cl: -> @bcl
 
@@ -476,10 +480,22 @@ class root.RuntimeState
       # to call the method!
       @run_until_finished((->), false, @stashed_done_cb)
 
+
+  # Request jvm execution stops at the next timeout
+  async_abort : (cb) -> @abort_requested = cb
+
+  # Returns true if the JVM will abort execution in the near future
+  is_abort_requested: -> return @abort_requested
+
+
   run_until_finished: (setup_fn, no_threads, done_cb) ->
     # Reset stack depth every time this is called. Prevents us from needing to
     # scatter this around the code everywhere to prevent filling the stack
     setImmediate (=>
+      if @abort_requested
+         @abort_requested() if typeof(@abort_requested) == 'function'
+         return done_cb(false)
+        
       @stashed_done_cb = done_cb  # hack for the case where we error out of <clinit>
       try
         setup_fn()
@@ -491,6 +507,11 @@ class root.RuntimeState
           m_count--
           sf = @curr_frame()
         if sf.runner? && m_count == 0
+            
+          if @abort_requested
+              @abort_requested() if typeof(@abort_requested) == 'function'
+              return done_cb(false)
+            
           # Loop has stopped to give the browser some breathing room.
           duration = (new Date()).getTime() - start_time
           # We should yield once every 1-2 seconds or so.
