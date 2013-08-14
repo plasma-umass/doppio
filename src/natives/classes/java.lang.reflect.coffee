@@ -18,7 +18,7 @@ native_methods.java.lang.reflect =
         rs.heap_newarray jco.$cls.get_type(), len
     o 'getLength(Ljava/lang/Object;)I', (rs, arr) ->
         rs.check_null(arr).array.length
-    o 'get(Ljava/lang/Object;I)Ljava/lang/Object', (rs, arr, idx) ->
+    o 'get(Ljava/lang/Object;I)Ljava/lang/Object;', (rs, arr, idx) ->
         array = rs.check_null(arr).array
         unless idx>=0 && idx < array.length
           rs.java_throw rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;'), 'Tried to write to an illegal index in an array.'
