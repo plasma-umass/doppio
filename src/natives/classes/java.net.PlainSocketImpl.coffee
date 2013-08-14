@@ -63,7 +63,11 @@ native_methods.java.net.PlainSocketImpl = [
       id = window.setTimeout(error_cb('Connection timeout!'), timeout) if timeout > 0
       
       # Launch!
-      _this.$ws.open host
+      try
+        _this.$ws.open host
+      catch err
+        error_cb('Connection failed! (exception)')
+      
       
   o 'socketBind(Ljava/net/InetAddress;I)V', (rs, _this, address, port) ->
     rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), 'WebSockets doesn\'t know how to bind'
