@@ -13,6 +13,12 @@ public class BeanShellTest {
        
         System.out.println( bsh.get("answer"));
 
+        bsh.eval("int[][] ary = new int[10][5]; ary[2][3]=5;print( ary[2][3] + ary.length + ary[1].length);");
+        bsh.eval("String[][] ary2 = new String[10][5]; ary2[2][3]=\"Entry\";print( ary2[2][3] + ary2.length + ary2[1].length );");
+
+        bsh.eval("int[][] ioob= new int[10][5]; ioob[4][23]=5;");
+
+        
         bsh.eval("print (1+2)"); 
         
         String strings = "String a = \"alphabet\";\n"+
