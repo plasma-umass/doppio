@@ -33,7 +33,12 @@ native_methods.java.lang.reflect =
     o 'getInt(Ljava/lang/Object;I)I', array_get
     o 'getLong(Ljava/lang/Object;I)J', array_get
     o 'getShort(Ljava/lang/Object;I)S', array_get
-    o 'get(Ljava/lang/Object;I)Ljava/lang/Object;', array_get
+    o 'get(Ljava/lang/Object;I)Ljava/lang/Object;', (rs, arr, idx) ->
+        val = array_get(rs, arr, idx)
+        # Box primitive values (fast check: prims don't have .ref attributes).
+        unless val.ref?
+          return arr.cls.get_component_class().create_wrapper_object(rs, val)
+        val
     o 'set(Ljava/lang/Object;ILjava/lang/Object;)V', (rs, arr, idx, val) ->
         my_sf = rs.curr_frame()
         array = rs.check_null(arr).array

@@ -186,6 +186,8 @@ public class Reflection {
     System.out.println(Array.getBoolean(boolArr, 0));
     // no unboxing should occur here.
     System.out.println(Array.get(integerArr, 0).getClass().getName());
+    // boxing should occur here.
+    System.out.println(Array.get(intArr, 0).getClass().getName());
 
     System.out.println("Checking Array.get*'s exceptions");
     try {
