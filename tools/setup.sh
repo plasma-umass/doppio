@@ -20,9 +20,9 @@ if [ ! -f classes/java/lang/Object.class ]; then
   DOWNLOAD_DIR=`mktemp -d jdk-download.XXX`
   cd $DOWNLOAD_DIR
     DEBS_DOMAIN="http://security.ubuntu.com/ubuntu/pool/main/o/openjdk-6"
-    DEBS=("openjdk-6-jre-headless_6b27-1.12.5-0ubuntu0.11.10.1_i386.deb"
+    DEBS=("openjdk-6-jre-headless_6b27-1.12.6-1ubuntu0.12.04.2_i386.deb"
           "openjdk-6-jdk_6b27-1.12.6-1ubuntu0.12.04.2_i386.deb"
-          "openjdk-6-jre-lib_6b27-1.12.5-0ubuntu0.11.10.1_all.deb")
+          "openjdk-6-jre-lib_6b27-1.12.6-1ubuntu0.12.04.2_all.deb")
     for DEB in ${DEBS[@]}; do
       wget $DEBS_DOMAIN/$DEB
       ar p $DEB data.tar.gz | tar zx
@@ -89,7 +89,7 @@ if ! command -v node > /dev/null; then
 fi
 
 # Make sure the node version is greater than 0.10
-npm install semver  # We need semver to check versions before doing the full `npm install`.
+npm install semver@~2.0.8  # We need semver to check versions before doing the full `npm install`.
 node_outdated=$(node -p "require('semver').lt(process.versions.node, '0.10.0')")
 
 if [[ $node_outdated == "true" ]]; then
