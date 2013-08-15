@@ -11,7 +11,7 @@ host_address_inc = ->
   next_host_address[3] = 0 if next_host_address[3] > 255
   next_host_address[2] = 0 if next_host_address[2] > 255
   next_host_address[1] = 0 if next_host_address[1] > 255
-  if next_host_address[] > 250
+  if next_host_address[0] > 250
     error 'Out of addresses'
     next_host_address[0] = 240
 
@@ -29,7 +29,13 @@ host_allocate_address = (address) ->
 native_methods.java.net.Inet6AddressImpl = [
   o 'lookupAllHostAddr(Ljava/lang/String;)[Ljava/net/InetAddress;', (rs, _this, hostname) ->
     debug "Looking up #{hostname}"
-    cdata = rs.get_bs_class('Ljava/net/Inet4Address;')
+    cdata = rs.get_class('Ljava/net/Inet4Address;')
+    
+    
+    clazz = rs.get_class 'Ljava/net/InetAddress$InetAddressHolder;'
+    fields = clazz.get_fields()
+    for field in fields
+      debug "InetHolder Fields: #{field.name}"
     
     success = (rv, success_cb, except_cb) ->
       success_cb(new JavaArray(rs, rs.get_bs_class('[Ljava/net/InetAddress;'), [ rv ]))
