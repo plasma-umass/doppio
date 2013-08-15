@@ -134,10 +134,17 @@ public class Reflection {
     System.out.println(integerArr[0].getClass().getName());
     System.out.println(integerArr[0]);
 
-    System.out.println("Checking if Array.set's exceptions");
+    System.out.println("Checking Array.set's exceptions");
 
     try {
       Array.set(charArr, 1, new Character('a'));
+    }
+    catch (ArrayIndexOutOfBoundsException e) {
+      System.out.println("Caught ArrayIndexOutOfBoundsException");
+    }
+
+    try {
+      Array.set(charArr, -1, new Character('a'));
     }
     catch (ArrayIndexOutOfBoundsException e) {
       System.out.println("Caught ArrayIndexOutOfBoundsException");
@@ -162,6 +169,33 @@ public class Reflection {
     // behavior.
     try {
       Array.set(byteArr, 1, new Character('a'));
+    }
+    catch (ArrayIndexOutOfBoundsException e) {
+      System.out.println("Caught ArrayIndexOutOfBoundsException");
+    }
+
+    System.out.println("Testing java.lang.reflect.Array.get*");
+    System.out.println(Array.getLength(byteArr));
+    System.out.println(Array.getByte(byteArr, 0));
+    System.out.println(Array.getChar(charArr, 0));
+    System.out.println(Array.getDouble(doubleArr, 0));
+    System.out.println(Array.getFloat(floatArr, 0));
+    System.out.println(Array.getInt(intArr, 0));
+    System.out.println(Array.getLong(longArr, 0));
+    System.out.println(Array.getShort(shortArr, 0));
+    System.out.println(Array.getBoolean(boolArr, 0));
+    // no unboxing should occur here.
+    System.out.println(Array.get(integerArr, 0).getClass().getName());
+
+    System.out.println("Checking Array.get*'s exceptions");
+    try {
+      Array.getChar(charArr, 1);
+    }
+    catch (ArrayIndexOutOfBoundsException e) {
+      System.out.println("Caught ArrayIndexOutOfBoundsException");
+    }
+    try {
+      Array.getChar(charArr, -1);
     }
     catch (ArrayIndexOutOfBoundsException e) {
       System.out.println("Caught ArrayIndexOutOfBoundsException");
