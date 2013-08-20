@@ -17,25 +17,20 @@ host_address_inc = ->
 
 pack_address = (address) ->
   ret = 0
-  for i in [3 .. 0] by -1
-    ret |= (address[i] & 0xFF)
+  for i in [0 .. 3]
     ret <<= 8
+    ret = (ret & 0xFFFFFF00) | (address[i] & 0xFF)
   ret
 
 host_allocate_address = (address) ->
   host_address_inc()
-  host_lookup[pack_address(next_host_address)] = address
+  ret = pack_address(next_host_address)
+  host_lookup[ret] = address
+  ret
 
 native_methods.java.net.Inet6AddressImpl = [
   o 'lookupAllHostAddr(Ljava/lang/String;)[Ljava/net/InetAddress;', (rs, _this, hostname) ->
-    debug "Looking up #{hostname}"
     cdata = rs.get_class('Ljava/net/Inet4Address;')
-    
-    
-    clazz = rs.get_class 'Ljava/net/InetAddress$InetAddressHolder;'
-    fields = clazz.get_fields()
-    for field in fields
-      debug "InetHolder Fields: #{field.name}"
     
     success = (rv, success_cb, except_cb) ->
       success_cb(new JavaArray(rs, rs.get_bs_class('[Ljava/net/InetAddress;'), [ rv ]))
@@ -43,7 +38,7 @@ native_methods.java.net.Inet6AddressImpl = [
     failure = (e_cb, success_cb, except_cb) -> except_cb(e_cb)
     
     cons = cdata.method_lookup(rs, '<init>(Ljava/lang/String;I)V')
-    rs.call_bytecode cdata, cons, [ hostname, host_allocate_address() ], success, failure
+    rs.call_bytecode cdata, cons, [ hostname, host_allocate_address(hostname.jvm2js_str()) ], success, failure
   
   o 'getLocalHostName()Ljava/lang/String;', (rs, _this) ->
     rs.init_string 'localhost'

@@ -16,24 +16,21 @@ native_methods.java.net.PlainSocketImpl = [
     holder = address.get_field rs, 'Ljava/net/InetAddress;holder'
     addy = holder.get_field rs, 'Ljava/net/InetAddress$InetAddressHolder;address'
 
-    debug 'connect!!!'
-
     # Assume scheme is ws for now
     host = 'ws://'
     if host_lookup[addy] is undefined
       # Populate host string based off of IP address
       for i in [3 .. 0] by -1
         shift = i * 8
-        host += "#{(addy & (0xFF << shift)) >> shift}."
+        host += "#{(addy & (0xFF << shift)) >>> shift}."
+      # trim last '.'
+      host = host.substring 0, host.length - 1
     else
       host += host_lookup[addy]
-    # trim last '.'
-    host = host.substring 0, host.length - 1
     # Add port
     host += ":#{port}"
     
     debug "Connecting to #{host} with timeout = #{timeout} ms"
-    
     
     rs.async_op (resume_cb, except_cb) ->
       id = 0
