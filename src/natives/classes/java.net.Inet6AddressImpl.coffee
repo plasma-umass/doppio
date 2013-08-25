@@ -44,7 +44,7 @@ native_methods.java.net.Inet6AddressImpl = [
     rs.init_string 'localhost'
   
   o 'getHostByAddr([B)Ljava/lang/String;', (rs, _this, addr) ->
-    rs.init_string 'blah'
+    rs.init_string ''
   
   o 'isReachable0([BII[BII)Z', (rs, _this, addr, scope, timeout, inf, ttl, if_scope) ->
     false
