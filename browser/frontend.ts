@@ -130,7 +130,9 @@ $(document).ready(function() {
     }
     var num_files = ev.target.files.length;
     var files_uploaded = 0;
-    controller.message("Uploading " + num_files + " files...\n", 'success', true);
+    if (num_files > 0) {
+      controller.message("Uploading " + num_files + " files...\n", 'success', true);
+    }
     // Need to make a function instead of making this the body of a loop so we
     // don't overwrite "f" before the onload handler calls.
     var file_fcn = (function(f) {
@@ -151,7 +153,7 @@ $(document).ready(function() {
         files_uploaded++;
         var progress = "[" + files_uploaded + "/" + num_files
                            + "] File '" + f.name + "'";
-        node.fs.writeFile(node.process.cwd() + '/' + f.name, e.target.result, function(err){
+        node.fs.writeFile(node.process.cwd() + '/' + f.name, new Buffer(e.target.result), function(err){
           if (err) {
             controller.message(progress + " could not be saved: " + err + ".\n",
                                'error', files_uploaded !== num_files);
@@ -170,11 +172,7 @@ $(document).ready(function() {
           $('#console').click();
         });
       };
-      if (isClass) {
-        return reader.readAsBinaryString(f);
-      } else {
-        return reader.readAsText(f);
-      }
+      return reader.readAsArrayBuffer(f);
     });
     var files = ev.target.files;
     for (var i = 0; i < num_files; i++) {

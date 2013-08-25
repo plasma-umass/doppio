@@ -332,6 +332,17 @@ function verify_array(rs: runtime.RuntimeState, obj: any): java_object.JavaArray
   return <java_object.JavaArray> obj;
 }
 
+function array_get(rs, arr, idx) {
+  var array, err_cls;
+
+  array = rs.check_null(arr).array;
+  if (!((0 <= idx && idx < array.length))) {
+    err_cls = rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;');
+    rs.java_throw(err_cls, 'Tried to access an illegal index in an array.');
+  }
+  return array[idx];
+}
+
 export var native_methods = {
   classes: {
     awt: {
@@ -602,13 +613,30 @@ export var native_methods = {
           }), o('getLength(Ljava/lang/Object;)I', function (rs: runtime.RuntimeState, obj: any): number {
             var arr = verify_array(rs, obj);
             return rs.check_null(arr).array.length;
-          }), o('set(Ljava/lang/Object;ILjava/lang/Object;)V', function (rs: runtime.RuntimeState, obj: any, idx: number, val: java_object.JavaObject): void {
+          }), o('getBoolean(Ljava/lang/Object;I)Z', array_get),
+          o('getByte(Ljava/lang/Object;I)B', array_get),
+          o('getChar(Ljava/lang/Object;I)C', array_get),
+          o('getDouble(Ljava/lang/Object;I)D', array_get),
+          o('getFloat(Ljava/lang/Object;I)F', array_get),
+          o('getInt(Ljava/lang/Object;I)I', array_get),
+          o('getLong(Ljava/lang/Object;I)J', array_get),
+          o('getShort(Ljava/lang/Object;I)S', array_get),
+          o('get(Ljava/lang/Object;I)Ljava/lang/Object;', function(rs, arr, idx) {
+            var val;
+
+            val = array_get(rs, arr, idx);
+            if (val.ref == null) {
+              return arr.cls.get_component_class().create_wrapper_object(rs, val);
+            }
+            return val;
+          }),
+          o('set(Ljava/lang/Object;ILjava/lang/Object;)V', function (rs: runtime.RuntimeState, obj: any, idx: number, val: java_object.JavaObject): void {
             var array, ccls, ccname, ecls, illegal_exc, m, my_sf;
             var arr = verify_array(rs, obj);
 
             my_sf = rs.curr_frame();
             array = rs.check_null(arr).array;
-            if (!(idx < array.length)) {
+            if (!((0 <= idx && idx < array.length))) {
               rs.java_throw((<ClassData.ReferenceClassData>rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;')), 'Tried to write to an illegal index in an array.');
             }
             if ((ccls = arr.cls.get_component_class()) instanceof PrimitiveClassData) {
