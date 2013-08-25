@@ -77,7 +77,7 @@ native_methods.java.net.PlainSocketImpl = [
   
   o 'socketAvailable()I', (rs, _this) ->
     rs.async_op (resume_cb) ->
-      window.setTimeout (-> resume_cb(_this.$ws.rQlen())), 1
+      window.setImmediate(-> resume_cb(_this.$ws.rQlen()))
   
   # TODO: Something isn't working here
   o 'socketClose0(Z)V', (rs, _this, useDeferredClose) ->

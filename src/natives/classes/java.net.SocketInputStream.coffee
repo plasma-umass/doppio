@@ -8,7 +8,6 @@ socket_read_async = (impl, b, offset, len, resume_cb) ->
   
 native_methods.java.net.SocketInputStream = [
   o 'init()V', (rs) ->
-    
   o 'socketRead0(Ljava/io/FileDescriptor;[BIII)I', (rs, _this, fd, b, offset, len, timeout) ->
     impl = _this.get_field rs, 'Ljava/net/SocketInputStream;impl'
     rs.async_op (resume_cb) ->
