@@ -1,30 +1,17 @@
 host_lookup = {}
 
 # 240.0.0.0 .. 250.0.0.0 is currently unused address space
-next_host_address = [240,0,0,0]
+next_host_address = 4026531840
 
 host_address_inc = ->
-  next_host_address[3]++
-  next_host_address[2]++ if next_host_address[3] > 255
-  next_host_address[1]++ if next_host_address[2] > 255
-  next_host_address[0]++ if next_host_address[1] > 255
-  next_host_address[3] = 0 if next_host_address[3] > 255
-  next_host_address[2] = 0 if next_host_address[2] > 255
-  next_host_address[1] = 0 if next_host_address[1] > 255
-  if next_host_address[0] > 250
+  next_host_address++
+  if next_host_address > 4194304000
     error 'Out of addresses'
-    next_host_address[0] = 240
-
-pack_address = (address) ->
-  ret = 0
-  for i in [0 .. 3]
-    ret <<= 8
-    ret = (ret & 0xFFFFFF00) | (address[i] & 0xFF)
-  ret
+    next_host_address = 4026531840
 
 host_allocate_address = (address) ->
   host_address_inc()
-  ret = pack_address(next_host_address)
+  ret = next_host_address
   host_lookup[ret] = address
   ret
 
