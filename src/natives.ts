@@ -146,14 +146,6 @@ function doPrivileged(rs: runtime.RuntimeState, action: methods.Method): void {
   }
 }
 
-function stat_fd(fd) {
-  try {
-    return fs.fstatSync(fd);
-  } catch (_error) {
-    return null;
-  }
-}
-
 function stat_file(fname: string, cb: (stat: any)=>void): void {
   fs.stat(fname, function (err, stat) {
     if (err != null) {
@@ -255,18 +247,27 @@ function native_define_class(rs: runtime.RuntimeState, name: java_object.JavaObj
 }
 
 function write_to_file(rs: runtime.RuntimeState, _this: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number): void {
-  var fd_obj = _this.get_field(rs, 'Ljava/io/FileOutputStream;fd');
-  var fd = fd_obj.get_field(rs, 'Ljava/io/FileDescriptor;fd');
+  var buf, fd, fd_obj;
+  fd_obj = _this.get_field(rs, 'Ljava/io/FileOutputStream;fd');
+  fd = fd_obj.get_field(rs, 'Ljava/io/FileDescriptor;fd');
   if (fd === -1) {
-    rs.java_throw((<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/io/IOException;')), "Bad file descriptor");
+    rs.java_throw(<ClassData.ReferenceClassData>rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor");
   }
   if (fd !== 1 && fd !== 2) {
-    _this.$pos += fs.writeSync(fd, new Buffer(bytes.array), offset, len, _this.$pos);
+    buf = new Buffer(bytes.array);
+    rs.async_op(function(cb) {
+      return fs.write(fd, buf, offset, len, _this.$pos, function(err, num_bytes) {
+        _this.$pos += num_bytes;
+        return cb();
+      });
+    });
     return;
   }
   rs.print(util.chars2js_str(bytes, offset, len));
   if (typeof node !== "undefined" && node !== null) {
-    rs.async_op((cb) => cb());
+    return rs.async_op(function(cb) {
+      return cb();
+    });
   }
 }
 
@@ -958,11 +959,15 @@ export var native_methods = {
 
               fd_obj = _this.get_field(rs, 'Ljava/io/FileOutputStream;fd');
               fd_obj.set_field(rs, 'Ljava/io/FileDescriptor;fd', fd);
-              _this.$pos = (stat_fd(fd)).size;
-              return resume_cb();
+              return fs.fstat(fd, function(err, stats) {
+                _this.$pos = stats.size;
+                return resume_cb();
+              });
             });
           });
-        }), o('writeBytes([BIIZ)V', write_to_file), o('writeBytes([BII)V', write_to_file), o('close0()V', function(rs, _this) {
+        }), o('writeBytes([BIIZ)V', write_to_file),
+        o('writeBytes([BII)V', write_to_file),
+        o('close0()V', function(rs, _this) {
           var fd, fd_obj;
 
           fd_obj = _this.get_field(rs, 'Ljava/io/FileOutputStream;fd');
@@ -983,78 +988,61 @@ export var native_methods = {
       ],
       FileInputStream: [
         o('available()I', function(rs, _this) {
-          var fd, fd_obj, stats;
-
-          fd_obj = _this.get_field(rs, 'Ljava/io/FileInputStream;fd');
-          fd = fd_obj.get_field(rs, 'Ljava/io/FileDescriptor;fd');
-          if (fd === -1) {
-            rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor");
-          }
-          if (fd === 0) {
-            return 0;
-          }
-          stats = fs.fstatSync(fd);
-          return stats.size - _this.$pos;
-        }), o('read()I', function(rs, _this) {
-          var buf, bytes_read, fd, fd_obj;
-
-          fd_obj = _this.get_field(rs, 'Ljava/io/FileInputStream;fd');
-          fd = fd_obj.get_field(rs, 'Ljava/io/FileDescriptor;fd');
-          if (fd === -1) {
-            rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor");
-          }
-          if (fd !== 0) {
-            buf = new Buffer((fs.fstatSync(fd)).size);
-            bytes_read = fs.readSync(fd, buf, 0, 1, _this.$pos);
-            _this.$pos++;
-            if (bytes_read === 0) {
-              return -1;
-            } else {
-              return buf.readUInt8(0);
-            }
-          }
-          return rs.async_op(function(cb) {
-            return rs.async_input(1, function(byte) {
-              return cb(byte.length === 0 ? -1 : byte[0]);
-            });
+          var fd, fd_obj;
+          return fd_obj = _this.get_field(rs, "Ljava/io/FileInputStream;fd"), fd = fd_obj.get_field(rs, "Ljava/io/FileDescriptor;fd"),
+          -1 === fd && rs.java_throw(rs.get_bs_class("Ljava/io/IOException;"), "Bad file descriptor"),
+          0 === fd ? 0 : rs.async_op(function(cb) {
+              return fs.fstat(fd, function(err, stats) {
+                  return cb(stats.size - _this.$pos);
+              });
           });
+        }), o('read()I', function(rs, _this) {
+          var fd_obj = _this.get_field(rs, "Ljava/io/FileInputStream;fd")
+          var fd = fd_obj.get_field(rs, "Ljava/io/FileDescriptor;fd");
+          if (-1 === fd)
+            rs.java_throw(rs.get_bs_class("Ljava/io/IOException;"), "Bad file descriptor");
+          if (0 !== fd)
+            rs.async_op(function(cb) {
+              return fs.fstat(fd, function(err, stats) {
+                  var buf;
+                  return buf = new Buffer(stats.size), fs.read(fd, buf, 0, 1, _this.$pos, function(err, bytes_read) {
+                      return _this.$pos++, cb(0 === bytes_read ? -1 : buf.readUInt8(0));
+                  });
+              });
+            });
+          else
+            rs.async_op(function(cb) {
+              return rs.async_input(1, function(byte) {
+                  return cb(0 === byte.length ? -1 : byte[0]);
+              });
+            });
         }), o('readBytes([BII)I', function(rs, _this, byte_arr, offset, n_bytes) {
-          var buf, bytes_read, fd, fd_obj, filesize, i, pos, _i;
-
-          fd_obj = _this.get_field(rs, 'Ljava/io/FileInputStream;fd');
-          fd = fd_obj.get_field(rs, 'Ljava/io/FileDescriptor;fd');
-          if (fd === -1) {
-            rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor");
-          }
-          if (fd !== 0) {
+          var buf, pos;
+          var fd_obj = _this.get_field(rs, "Ljava/io/FileInputStream;fd");
+          var fd = fd_obj.get_field(rs, "Ljava/io/FileDescriptor;fd");
+          if (-1 === fd)
+            rs.java_throw(rs.get_bs_class("Ljava/io/IOException;"), "Bad file descriptor");
+          if (0 !== fd) {
             pos = _this.$pos;
             buf = new Buffer(n_bytes);
-            filesize = fs.fstatSync(fd).size;
-            if (filesize > 0 && pos >= filesize - 1) {
-              return -1;
-            }
-            bytes_read = fs.readSync(fd, buf, 0, n_bytes, pos);
-            _this.$pos += bytes_read;
-            for (i = _i = 0; _i < bytes_read; i = _i += 1) {
-              byte_arr.array[offset + i] = buf.readUInt8(i);
-            }
-            if (bytes_read === 0 && n_bytes !== 0) {
-              return -1;
-            } else {
-              return bytes_read;
-            }
-          }
-          return rs.async_op(function(cb) {
-            return rs.async_input(n_bytes, function(bytes) {
-              var b, idx, _j, _len;
-
-              for (idx = _j = 0, _len = bytes.length; _j < _len; idx = ++_j) {
-                b = bytes[idx];
-                byte_arr.array[offset + idx] = b;
-              }
-              return cb(bytes.length);
+            rs.async_op(function(cb) {
+              return fs.read(fd, buf, 0, n_bytes, pos, function(err, bytes_read) {
+                  var i, _i;
+                  if (null != err) return cb(-1);
+                  for (_this.$pos += bytes_read, i = _i = 0; bytes_read > _i; i = _i += 1) byte_arr.array[offset + i] = buf.readUInt8(i);
+                  return cb(0 === bytes_read && 0 !== n_bytes ? -1 : bytes_read);
+              });
             });
-          });
+          }
+          else {
+            rs.async_op(function(cb) {
+              return rs.async_input(n_bytes, function(bytes) {
+                  var b, idx, _i, _len;
+                  for (idx = _i = 0, _len = bytes.length; _len > _i; idx = ++_i) b = bytes[idx], byte_arr.array[offset + idx] = b;
+                  return cb(bytes.length);
+              });
+            });
+          }
         }), o('open(Ljava/lang/String;)V', function(rs, _this, filename) {
           var filepath;
 
@@ -1099,24 +1087,26 @@ export var native_methods = {
             });
           });
         }), o('skip(J)J', function(rs, _this, n_bytes) {
-          var bytes_left, fd, fd_obj, to_skip;
-
-          fd_obj = _this.get_field(rs, 'Ljava/io/FileInputStream;fd');
-          fd = fd_obj.get_field(rs, 'Ljava/io/FileDescriptor;fd');
-          if (fd === -1) {
-            rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor");
-          }
-          if (fd !== 0) {
-            bytes_left = fs.fstatSync(fd).size - _this.$pos;
-            to_skip = Math.min(n_bytes.toNumber(), bytes_left);
-            _this.$pos += to_skip;
-            return gLong.fromNumber(to_skip);
-          }
-          return rs.async_op(function(cb) {
-            return rs.async_input(n_bytes.toNumber(), function(bytes) {
-              return cb(gLong.fromNumber(bytes.length), null);
+          var fd_obj = _this.get_field(rs, "Ljava/io/FileInputStream;fd");
+          var fd = fd_obj.get_field(rs, "Ljava/io/FileDescriptor;fd");
+          if (-1 === fd)
+            rs.java_throw(rs.get_bs_class("Ljava/io/IOException;"), "Bad file descriptor");
+          if (0 !== fd) {
+            rs.async_op(function(cb) {
+              return fs.fstat(fd, function(err, stats) {
+                  var bytes_left, to_skip;
+                  return bytes_left = stats.size - _this.$pos, to_skip = Math.min(n_bytes.toNumber(), bytes_left),
+                  _this.$pos += to_skip, cb(gLong.fromNumber(to_skip), null);
+              });
             });
-          });
+          }
+          else {
+            rs.async_op(function(cb) {
+              return rs.async_input(n_bytes.toNumber(), function(bytes) {
+                  return cb(gLong.fromNumber(bytes.length), null);
+              });
+            });
+          }
         })
       ],
       ObjectInputStream: [
@@ -1170,36 +1160,39 @@ export var native_methods = {
         }), o('getFilePointer()J', function(rs, _this) {
           return gLong.fromNumber(_this.$pos);
         }), o('length()J', function(rs, _this) {
-          var fd_obj = _this.get_field(rs, 'Ljava/io/RandomAccessFile;fd');
-          var fd = fd_obj.get_field(rs, 'Ljava/io/FileDescriptor;fd');
-          return gLong.fromNumber((stat_fd(fd)).size);
+          var fd, fd_obj;
+          fd_obj = _this.get_field(rs, 'Ljava/io/RandomAccessFile;fd');
+          fd = fd_obj.get_field(rs, 'Ljava/io/FileDescriptor;fd');
+          return rs.async_op(function(cb) {
+            return fs.fstat(fd, function(err, stats) {
+              return cb(gLong.fromNumber(stats.size), null);
+            });
+          });
         }), o('seek(J)V', function(rs, _this, pos) {
           return _this.$pos = pos.toNumber();
         }), o('readBytes([BII)I', function(rs, _this, byte_arr, offset, len) {
-          var buf, bytes_read, fd, fd_obj, i, _i;
-
-          fd_obj = _this.get_field(rs, 'Ljava/io/RandomAccessFile;fd');
-          fd = fd_obj.get_field(rs, 'Ljava/io/FileDescriptor;fd');
-          if (_this.$pos >= fs.fstatSync(fd).size - 1) {
-            return -1;
-          }
-          buf = new Buffer(len);
-          bytes_read = fs.readSync(fd, buf, 0, len, _this.$pos);
-          for (i = _i = 0; _i < bytes_read; i = _i += 1) {
-            byte_arr.array[offset + i] = buf.readUInt8(i);
-          }
-          _this.$pos += bytes_read;
-          if (bytes_read === 0 && len !== 0) {
-            return -1;
-          } else {
-            return bytes_read;
-          }
+          var fd_obj = _this.get_field(rs, "Ljava/io/RandomAccessFile;fd");
+          var fd = fd_obj.get_field(rs, "Ljava/io/FileDescriptor;fd");
+          var buf = new Buffer(len);
+          rs.async_op(function(cb) {
+              fs.read(fd, buf, 0, len, _this.$pos, function(err, bytes_read) {
+                  var i, _i;
+                  if (null != err) return cb(-1);
+                  for (i = _i = 0; bytes_read > _i; i = _i += 1)
+                    byte_arr.array[offset + i] = buf.readUInt8(i);
+                  return _this.$pos += bytes_read, cb(0 === bytes_read && 0 !== len ? -1 : bytes_read);
+              });
+          });
         }), o('writeBytes([BII)V', function(rs, _this, byte_arr, offset, len) {
-          var fd, fd_obj;
-
-          fd_obj = _this.get_field(rs, 'Ljava/io/RandomAccessFile;fd');
-          fd = fd_obj.get_field(rs, 'Ljava/io/FileDescriptor;fd');
-          return _this.$pos += fs.writeSync(fd, new Buffer(byte_arr.array), offset, len, _this.$pos);
+          var fd_obj = _this.get_field(rs, "Ljava/io/RandomAccessFile;fd");
+          var fd = fd_obj.get_field(rs, "Ljava/io/FileDescriptor;fd");
+          var buf = new Buffer(byte_arr.array);
+          rs.async_op(function(cb) {
+              fs.write(fd, buf, offset, len, _this.$pos, function(err, num_bytes) {
+                  _this.$pos += num_bytes;
+                  cb();
+              });
+          });
         }), o('close0()V', function(rs, _this) {
           var fd, fd_obj;
 
@@ -1750,15 +1743,14 @@ export var native_methods = {
           o('initIDs()J', function(rs) {
             return gLong.fromNumber(1024);
           }), o('size0(Ljava/io/FileDescriptor;)J', function(rs, _this, fd_obj) {
-            var e, fd;
-
-            fd = fd_obj.get_field(rs, 'Ljava/io/FileDescriptor;fd');
-            try {
-              return gLong.fromNumber(fs.fstatSync(fd).size);
-            } catch (_error) {
-              e = _error;
-              return rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), 'Bad file descriptor.');
-            }
+            var fd = fd_obj.get_field(rs, "Ljava/io/FileDescriptor;fd");
+            rs.async_op(function(cb, e_cb) {
+                fs.fstat(fd, function(err, stats) {
+                    if (null != err)
+                      e_cb(function() { rs.java_throw(rs.get_bs_class("Ljava/io/IOException;"), "Bad file descriptor."); });
+                    cb(gLong.fromNumber(stats.size));
+                });
+            });
           }), o('position0(Ljava/io/FileDescriptor;J)J', function(rs, _this, fd, offset) {
             var parent;
 
@@ -1767,23 +1759,23 @@ export var native_methods = {
           })
         ],
         FileDispatcher: [
-          o('init()V', function(rs) {}), o('read0(Ljava/io/FileDescriptor;JI)I', function(rs, fd_obj, address, len) {
-            var block_addr, buf, bytes_read, fd, i, _i, _j;
-
-            fd = fd_obj.get_field(rs, 'Ljava/io/FileDescriptor;fd');
-            block_addr = rs.block_addr(address);
-            buf = new Buffer(len);
-            bytes_read = fs.readSync(fd, buf, 0, len);
-            if (typeof DataView !== "undefined" && DataView !== null) {
-              for (i = _i = 0; _i < bytes_read; i = _i += 1) {
-                rs.mem_blocks[block_addr].setInt8(i, buf.readInt8(i));
-              }
-            } else {
-              for (i = _j = 0; _j < bytes_read; i = _j += 1) {
-                rs.mem_blocks[block_addr + i] = buf.readInt8(i);
-              }
-            }
-            return bytes_read;
+          o('init()V', function(rs) {}),
+          o('read0(Ljava/io/FileDescriptor;JI)I', function(rs, fd_obj, address, len) {
+            var fd = fd_obj.get_field(rs, "Ljava/io/FileDescriptor;fd");
+            var block_addr = rs.block_addr(address);
+            var buf = new Buffer(len);
+            rs.async_op(function(cb) {
+                fs.read(fd, buf, 0, len, 0, function(err, bytes_read) {
+                    var i, _i, _j;
+                    if ("undefined" != typeof DataView && null !== DataView)
+                      for (i = 0; bytes_read > i; i++)
+                        rs.mem_blocks[block_addr].setInt8(i, buf.readInt8(i));
+                    else
+                      for (i = 0; bytes_read > i; i++)
+                        rs.mem_blocks[block_addr + i] = buf.readInt8(i);
+                    cb(bytes_read);
+                });
+            });
           }), o('preClose0(Ljava/io/FileDescriptor;)V', function(rs, fd_obj) {})
         ],
         NativeThread: [
