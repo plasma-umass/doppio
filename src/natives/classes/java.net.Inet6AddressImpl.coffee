@@ -1,4 +1,5 @@
 host_lookup = {}
+host_reverse_lookup = {}
 
 # 240.0.0.0 .. 250.0.0.0 is currently unused address space
 next_host_address = 4026531840
@@ -9,10 +10,18 @@ host_address_inc = ->
     error 'Out of addresses'
     next_host_address = 4026531840
 
+pack_address = (address) ->
+  ret = 0
+  for i in [3 .. 0] by -1
+    ret |= (address[i] & 0xFF)
+    ret <<= 8
+  ret
+
 host_allocate_address = (address) ->
   host_address_inc()
   ret = next_host_address
   host_lookup[ret] = address
+  host_reverse_lookup[address] = ret
   ret
 
 native_methods.java.net.Inet6AddressImpl = [
@@ -31,7 +40,10 @@ native_methods.java.net.Inet6AddressImpl = [
     rs.init_string 'localhost'
   
   o 'getHostByAddr([B)Ljava/lang/String;', (rs, _this, addr) ->
-    rs.init_string ''
+    ret = host_reverse_lookup[pack_address(addr.array)]
+    if ret is undefined
+      return null
+    rs.init_string ret
   
   o 'isReachable0([BII[BII)Z', (rs, _this, addr, scope, timeout, inf, ttl, if_scope) ->
     false
