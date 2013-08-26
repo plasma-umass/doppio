@@ -1,3 +1,12 @@
+# See RFC 6455 section 7.4
+websocket_status_to_message = (status) ->
+  switch status
+    when 1000 then return 'Normal closure'
+    when 1001 then return 'Endpoint is going away'
+    when 1002 then return 'WebSocket protocol error'
+    when 1003 then return 'Server received invalid data'
+  'Unknown status code or error'
+
 native_methods.java.net.PlainSocketImpl = [
   o 'socketCreate(Z)V', (rs, _this, isServer) ->
     # Check to make sure we're in a browser and the websocket libraries are present
@@ -41,10 +50,13 @@ native_methods.java.net.PlainSocketImpl = [
         _this.$ws.on('close', ->)
         _this.$ws.on('error', ->)
       
-      error_cb = (msg) -> ->
-        debug msg
+      error_cb = (msg) -> (e) ->
         clear_state()
-        except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), msg
+        except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), msg + ": " + e
+          
+      close_cb = (msg) -> (e) ->
+        clear_state()
+        except_cb -> rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), msg + ": " + websocket_status_to_message(e.status)
       
       # Success case
       _this.$ws.on('open', ->
@@ -53,8 +65,7 @@ native_methods.java.net.PlainSocketImpl = [
         resume_cb())
       
       # Error cases
-      _this.$ws.on('close', error_cb('Connection failed! (Closed)'))
-      _this.$ws.on('error', error_cb('Connection failed! (Error)'))
+      _this.$ws.on('close', close_cb('Connection failed! (Closed)'))
       
       # Timeout case
       id = window.setTimeout(error_cb('Connection timeout!'), timeout) if timeout > 0
@@ -63,7 +74,7 @@ native_methods.java.net.PlainSocketImpl = [
       try
         _this.$ws.open host
       catch err
-        error_cb('Connection failed! (exception)')
+        error_cb('Connection failed! (exception)')(err.message)
       
       
   o 'socketBind(Ljava/net/InetAddress;I)V', (rs, _this, address, port) ->
