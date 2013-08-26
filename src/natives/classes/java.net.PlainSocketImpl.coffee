@@ -19,6 +19,7 @@ native_methods.java.net.PlainSocketImpl = [
     
     # Finally, create our websocket instance
     _this.$ws = new Websock()
+    _this.$is_shutdown = false
 
   o 'socketConnect(Ljava/net/InetAddress;II)V', (rs, _this, address, port, timeout) ->
     # The IPv4 case
@@ -94,7 +95,7 @@ native_methods.java.net.PlainSocketImpl = [
   o 'socketClose0(Z)V', (rs, _this, useDeferredClose) ->
     _this.$ws.close()
   
-  o 'socketShutdown(I)V', (rs, _this, type) ->
+  o 'socketShutdown(I)V', (rs, _this, type) -> _this.$is_shutdown = true
   o 'initProto()V', (rs) ->
   o 'socketSetOption(IZLjava/lang/Object;)V', (rs, _this, cmd, _on, value) ->
   o 'socketGetOption(ILjava/lang/Object;)I', (rs, _this, opt, iaContainerObj) ->
