@@ -71,6 +71,8 @@ native_methods.java.net.PlainSocketImpl = [
       # Timeout case
       id = window.setTimeout(error_cb('Connection timeout!'), timeout) if timeout > 0
       
+      debug "Host: #{host}"
+      
       # Launch!
       try
         _this.$ws.open host

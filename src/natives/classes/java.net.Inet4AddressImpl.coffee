@@ -24,7 +24,7 @@ host_allocate_address = (address) ->
   host_reverse_lookup[address] = ret
   ret
 
-native_methods.java.net.Inet6AddressImpl = [
+native_methods.java.net.Inet4AddressImpl = [
   o 'lookupAllHostAddr(Ljava/lang/String;)[Ljava/net/InetAddress;', (rs, _this, hostname) ->
     cdata = rs.get_class('Ljava/net/Inet4Address;')
     
