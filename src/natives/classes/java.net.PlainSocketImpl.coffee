@@ -68,8 +68,9 @@ native_methods.java.net.PlainSocketImpl = [
       # Error cases
       _this.$ws.on('close', close_cb('Connection failed! (Closed)'))
       
-      # Timeout case
-      id = window.setTimeout(error_cb('Connection timeout!'), timeout) if timeout > 0
+      # Timeout case. In the case of no timeout, we set a default one of 10s.
+      timeout = 10000 if timeout == 0
+      id = window.setTimeout(error_cb('Connection timeout!'), timeout)
       
       debug "Host: #{host}"
       
