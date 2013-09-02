@@ -27,7 +27,7 @@ export function find_test_classes(doppio_dir: string, cb): void {
 
 export function run_tests(test_classes: string[], stdout, hide_diffs: boolean,
     quiet: boolean, keep_going: boolean, callback): void {
-  var doppio_dir = typeof node !== "undefined" && node !== null ? '/home/doppio/' : path.resolve(__dirname, '..');
+  var doppio_dir = typeof node !== "undefined" && node !== null ? './' : path.resolve(__dirname, '..');
   var jcl_dir = path.resolve(doppio_dir, 'vendor/classes');
   jvm.set_classpath(jcl_dir, doppio_dir);
   var xfail_file = path.resolve(doppio_dir, 'classes/test/xfail.txt');
