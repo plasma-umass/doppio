@@ -84,7 +84,7 @@ function preload(): void {
   });
 }
 
-function process_bytecode(buffer: number[]): ClassData.ReferenceClassData {
+function process_bytecode(buffer: any): ClassData.ReferenceClassData {
   return new ClassData.ReferenceClassData(buffer);
 }
 
