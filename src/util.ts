@@ -1,4 +1,5 @@
 "use strict";
+/// <amd-dependency path="./gLong" />
 import gLong = require('./gLong');
 import logging = require('./logging');
 import runtime = require('./runtime');

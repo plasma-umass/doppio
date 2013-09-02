@@ -3,15 +3,15 @@
 declare var BrowserFS;
 
 // Doppio's custom 'require' function, which BFS monkey-patches.
-window['require'] = function(path, herp) {
+//window['require'] = function(path, herp) {
   // XXX: Hackfix for Ace Editor. The Ace Editor clobbers our require definiton,
   // but recalls it with an empty first argument.
-  if (herp != null) {
-    path = herp;
-  }
-  var name = BrowserFS.node.path.basename(path).split('.', 1)[0];
-  return window[name] != null ? window[name] : window[name] = {};
-};
+//  if (herp != null) {
+//    path = herp;
+//  }
+//  var name = BrowserFS.node.path.basename(path).split('.', 1)[0];
+//  return window[name] != null ? window[name] : window[name] = {};
+//};
 
 BrowserFS.install(window);
 

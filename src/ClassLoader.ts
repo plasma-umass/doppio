@@ -1,12 +1,17 @@
 "use strict";
+/// <amd-dependency path="./ClassData" />
 import ClassData = require('./ClassData');
 var ReferenceClassData = ClassData.ReferenceClassData, PrimitiveClassData = ClassData.PrimitiveClassData, ArrayClassData = ClassData.ArrayClassData;
+/// <amd-dependency path="./util" />
 import util = require('./util');
+/// <amd-dependency path="./logging" />
 import logging = require('./logging');
 var trace = logging.trace;
 import runtime = require('./runtime');
+/// <amd-dependency path="./exceptions" />
 import exceptions = require('./exceptions');
 var JavaException = exceptions.JavaException;
+/// <amd-dependency path="./java_object" />
 import java_object = require('./java_object');
 var JavaObject = java_object.JavaObject;
 

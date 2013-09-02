@@ -1,4 +1,5 @@
 "use strict";
+/// <amd-dependency path="./util" />
 import util = require('./util');
 import opcodes = require('./opcodes');
 import ConstantPool = require('./ConstantPool');

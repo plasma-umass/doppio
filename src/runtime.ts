@@ -1,12 +1,19 @@
 "use strict";
+/// <amd-dependency path="./gLong" />
 import gLong = require('./gLong');
+/// <amd-dependency path="./util" />
 import util = require('./util');
+/// <amd-dependency path="./logging" />
 import logging = require('./logging');
+/// <amd-dependency path="./exceptions" />
 import exceptions = require('./exceptions');
+/// <amd-dependency path="./java_object" />
 import java_object = require('./java_object');
+/// <amd-dependency path="./jvm" />
 import JVM = require('./jvm');
 import methods = require('./methods');
 import ClassData = require('./ClassData');
+/// <amd-dependency path="./ClassLoader" />
 import ClassLoader = require('./ClassLoader');
 
 declare var node: any, UNSAFE : boolean;

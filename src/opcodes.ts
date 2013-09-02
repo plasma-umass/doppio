@@ -1,12 +1,16 @@
 "use strict";
+/// <amd-dependency path="./gLong" />
 import gLong = require('./gLong');
+/// <amd-dependency path="./util" />
 import util = require('./util');
+/// <amd-dependency path="./exceptions" />
 import exceptions = require('./exceptions');
 import runtime = require('./runtime');
 import ConstantPool = require('./ConstantPool');
 import ClassData = require('./ClassData');
 var JavaException = exceptions.JavaException;
 var ReturnException = exceptions.ReturnException;
+/// <amd-dependency path="./java_object" />
 import java_object = require('./java_object');
 var JavaObject = java_object.JavaObject;
 var JavaArray = java_object.JavaArray;

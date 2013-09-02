@@ -21,29 +21,24 @@
 {{^release}}
   <script src="vendor/jquery/jquery.min.js"></script>
   <script src="vendor/jquery-migrate/jquery-migrate.min.js"></script>
-  <script src="vendor/underscore/underscore.js"></script>
   <script src="vendor/browserfs/dist/browserfs.js"></script>
-  <script src="browser/node_setup.js"></script>
-  <script src="src/gLong.js"></script>
-  <script src="browser/util.js"></script>
-  <script src="src/logging.js"></script>
-  <script src="src/exceptions.js"></script>
-  <script src="src/util.js"></script>
-  <script src="src/java_object.js"></script>
-  <script src="src/opcodes.js"></script>
-  <script src="src/attributes.js"></script>
-  <script src="src/ConstantPool.js"></script>
-  <script src="src/disassembler.js"></script>
-  <script src="src/ClassData.js"></script>
-  <script src="src/natives.js"></script>
-  <script src="src/methods.js"></script>
-  <script src="src/runtime.js"></script>
-  <script src="src/ClassLoader.js"></script>
-  <script src="src/jvm.js"></script>
-  <script src="src/testing.js"></script>
-  <script src="vendor/jquery.console.js"></script>
-  <script src="browser/untar.js"></script>
-  <script src="browser/frontend.js"></script>
+  <script>
+    BrowserFS.install(window);
+
+    var mfs = new BrowserFS.FileSystem.MountableFileSystem();
+    mfs.mount('/tmp', new BrowserFS.FileSystem.InMemory());
+    mfs.mount('/demo', new BrowserFS.FileSystem.LocalStorage());
+    mfs.mount('/sys', new BrowserFS.FileSystem.XmlHttpRequest('browser/listings.json'));
+    BrowserFS.initialize(mfs);
+
+    window.node = BrowserFS.node;
+    if (!node.fs.existsSync('/demo')) {
+      node.fs.mkdirSync('/demo');
+    }
+    node.fs.mkdirSync('/tmp');
+    node.process.chdir('/demo');
+  </script>
+  <script data-main="browser/frontend.js" src="vendor/require.js"></script>
   <script src="vendor/ace-builds/src/ace.js"></script>
   <script src="vendor/ace-builds/src/mode-java.js"></script>
   <script src="vendor/ace-builds/src/theme-twilight.js"></script>

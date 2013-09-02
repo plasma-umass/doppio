@@ -1,10 +1,15 @@
 "use strict";
+/// <amd-dependency path="./jvm" />
 import jvm = require('./jvm');
+/// <amd-dependency path="./runtime" />
 import runtime = require('./runtime');
 var RuntimeState = runtime.RuntimeState;
 import util = require('./util');
+/// <amd-dependency path="./disassembler" />
 import disassembler = require('./disassembler');
+/// <amd-dependency path="./ClassData" />
 import ClassData = require('./ClassData');
+/// <amd-dependency path="./ClassLoader" />
 import ClassLoader = require('./ClassLoader');
 var BootstrapClassLoader = ClassLoader.BootstrapClassLoader;
 

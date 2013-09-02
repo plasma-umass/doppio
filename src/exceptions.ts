@@ -1,5 +1,7 @@
 "use strict";
+/// <amd-dependency path="../vendor/underscore/underscore" />
 var underscore = require('../vendor/underscore/underscore.js');
+/// <amd-dependency path="./logging" />
 import logging = require('./logging');
 import runtime = require('./runtime');
 import java_object = require('./java_object');
