@@ -21,9 +21,7 @@
 {{^release}}
   <script src="vendor/jquery/jquery.min.js"></script>
   <script src="vendor/jquery-migrate/jquery-migrate.min.js"></script>
-  <script src="vendor/ace-builds/src/ace.js"></script>
-  <script src="vendor/ace-builds/src/mode-java.js"></script>
-  <script src="vendor/ace-builds/src/theme-twilight.js"></script>
+  <script src="vendor/require.js"></script>
   <script src="vendor/browserfs/dist/browserfs.js"></script>
   <script>
     BrowserFS.install(window);
@@ -40,8 +38,10 @@
     }
     node.fs.mkdirSync('/tmp');
     node.process.chdir('/demo');
+    require(["browser/frontend"], function(frontend) {
+      // Kicks everything off!
+    });
   </script>
-  <script data-main="browser/frontend.js" src="vendor/require.js"></script>
 {{/release}}
 </head>
 <body>
