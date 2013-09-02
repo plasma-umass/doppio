@@ -316,6 +316,7 @@ function read_dir(dir: string, pretty: boolean, columns: boolean, cb: any): void
         cb(pretty_list.join('\n'));
       }
     }
+    next_content();
   });
 }
 
@@ -330,7 +331,7 @@ function columnize(str_list: string[], line_length: number = 100): string {
   var num_cols = (line_length / (max_len + 1)) | 0;
   var col_size = Math.ceil(str_list.length / num_cols);
   var column_list = [];
-  for (var j = 1; 1 <= num_cols; j++) {
+  for (var j = 1; j <= num_cols; j++) {
     column_list.push(str_list.splice(0, col_size));
   }
   function make_row(i: number): string {
