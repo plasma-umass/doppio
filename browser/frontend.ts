@@ -300,6 +300,7 @@ function read_dir(dir: string, pretty: boolean, columns: boolean, cb: any): void
     }
     var pretty_list = [];
     var i = 0;
+    var left = contents.length;
     function next_content() {
       var c = contents[i++];
       node.fs.stat(dir + '/' + c, function(err, stat){
@@ -307,13 +308,15 @@ function read_dir(dir: string, pretty: boolean, columns: boolean, cb: any): void
           c += '/';
         }
         pretty_list.push(c);
+        if (--left === 0) {
+          if (columns)
+            cb(columnize(pretty_list));
+          else
+            cb(pretty_list.join('\n'));
+        }
       });
       if (i != contents.length) {
         next_content();
-      } else if (columns) {
-        cb(columnize(pretty_list));
-      } else {
-        cb(pretty_list.join('\n'));
       }
     }
     next_content();
