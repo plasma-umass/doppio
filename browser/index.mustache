@@ -22,9 +22,18 @@
   <script src="vendor/jquery/jquery.min.js"></script>
   <script src="vendor/jquery-migrate/jquery-migrate.min.js"></script>
   <script src="vendor/jquery.console.js"></script>
+  <script src="vendor/underscore/underscore.js"></script>
   <script src="vendor/require.js"></script>
   <script src="vendor/browserfs/dist/browserfs.js"></script>
   <script>
+    // Before we clobber the global require...
+    require.config({
+      shim: {
+        'vendor/underscore/underscore': {
+          exports: '_'
+        }
+      }
+    });
     BrowserFS.install(window);
 
     var mfs = new BrowserFS.FileSystem.MountableFileSystem();
@@ -39,6 +48,7 @@
     }
     node.fs.mkdirSync('/tmp');
     node.process.chdir('/demo');
+
     require(["browser/frontend"], function(frontend) {
       // Kicks everything off!
     });
