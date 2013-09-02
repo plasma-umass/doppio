@@ -234,10 +234,10 @@ $(document).ready(function() {
       "Doppio has been tested with the latest versions of the following desktop browsers:\n" +
       "  Chrome, Safari, Firefox, Opera, Internet Explorer 10, and Internet Explorer 9."
   });
-  function stdout(str: string): void {
+  stdout = function(str: string): void {
     controller.message(str, '', true);
   }
-  function user_input(resume): void {
+  user_input = function(resume): void {
     var oldPrompt = controller.promptLabel;
     controller.promptLabel = '';
     controller.reprompt();
