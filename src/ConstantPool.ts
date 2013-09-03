@@ -1,7 +1,5 @@
 "use strict";
-/// <amd-dependency path="./gLong" />
 import gLong = require('./gLong');
-/// <amd-dependency path="./util" />
 import util = require('./util');
 
 export interface ConstantPoolItem {

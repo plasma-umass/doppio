@@ -1,5 +1,4 @@
 "use strict";
-/// <amd-dependency path="./util" />
 import util = require('./util');
 
 function pad_left(value: string, padding: number): string {

@@ -5,8 +5,8 @@
   <link href='http://fonts.googleapis.com/css?family=Bitter' rel='stylesheet'>
   <link rel='stylesheet' href="browser/style.css">
 {{#release}}
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
   <script src="vendor/browserfs/dist/browserfs.js"></script>
+  <script src="compressed.js"></script>
   <script>
     var _gaq = _gaq || [];
     _gaq.push(['_setAccount', 'UA-19272049-5']);
@@ -16,6 +16,25 @@
       ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
       var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
     })();
+    require.config({
+      shim: {
+        'vendor/underscore/underscore': {
+          exports: '_'
+        },
+        'vendor/jquery/jquery.min': {
+          exports: '$'
+        },
+        'vendor/jquery-migrate/jquery-migrate.min': {
+          deps: ['vendor/jquery/jquery.min']
+        },
+        'vendor/jquery.console': {
+          deps: ['vendor/jquery/jquery.min']
+        }
+      },
+      paths: {
+        "browser/frontend": "compressed"
+      }
+    });
     BrowserFS.install(window);
 
     var mfs = new BrowserFS.FileSystem.MountableFileSystem();
@@ -30,8 +49,10 @@
     }
     node.fs.mkdirSync('/tmp');
     node.process.chdir('/demo');
+    require(["browser/frontend"], function(frontend) {
+      console.log('loaded');
+    });
   </script>
-  <script src="compressed.js"></script>
 {{/release}}
 {{^release}}
   <script src="vendor/require.js"></script>

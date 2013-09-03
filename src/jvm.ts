@@ -1,7 +1,6 @@
 ///<reference path='../vendor/node.d.ts' />
 "use strict";
 import util = require('./util');
-/// <amd-dependency path="./logging" />
 import logging = require('./logging')
 import runtime = require('./runtime')
 import methods = require('./methods')

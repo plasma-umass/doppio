@@ -6,21 +6,13 @@
 /// <reference path="../vendor/ace.d.ts" />
 /// <amd-dependency path="../vendor/underscore/underscore" />
 var underscore = require('../vendor/underscore/underscore');
-/// <amd-dependency path="../src/ClassData" />
 import ClassData = require('../src/ClassData');
-/// <amd-dependency path="../src/ClassData" />
 import ClassLoader = require('../src/ClassLoader');
-/// <amd-dependency path="../src/disassembler" />
 import disassembler = require('../src/disassembler');
-/// <amd-dependency path="../src/jvm" />
 import jvm = require('../src/jvm');
-/// <amd-dependency path="../src/runtime" />
 import runtime = require('../src/runtime');
-/// <amd-dependency path="../src/testing" />
 import testing = require('../src/testing');
-/// <amd-dependency path="./untar" />
 import untar = require('./untar');
-/// <amd-dependency path="../src/util" />
 import util = require('../src/util');
 declare var node;
 

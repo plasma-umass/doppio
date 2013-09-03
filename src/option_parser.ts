@@ -1,6 +1,5 @@
 /// <reference path="../vendor/node.d.ts" />
 "use strict";
-/// <amd-dependency path="../vendor/underscore/underscore" />
 var underscore = require('../vendor/underscore/underscore');
 var options : {[cat:string]:DescriptionCategory} = null;
 var description : Description = null;

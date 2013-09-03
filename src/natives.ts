@@ -1,19 +1,13 @@
 "use strict";
-/// <amd-dependency path="./gLong" />
 import gLong = require('./gLong');
-/// <amd-dependency path="./util" />
 import util = require('./util');
 import attributes = require('./attributes');
 import runtime = require('./runtime');
-/// <amd-dependency path="./java_object" />
 import java_object = require('./java_object');
 var thread_name = java_object.thread_name, JavaObject = java_object.JavaObject, JavaArray = java_object.JavaArray;
-/// <amd-dependency path="./exceptions" />
 import exceptions = require('./exceptions');
-/// <amd-dependency path="./logging" />
 import logging = require('./logging');
 var debug = logging.debug, error = logging.error, trace = logging.trace;
-/// <amd-dependency path="./jvm" />
 import JVM = require('./jvm');
 
 // For types; shouldn't actually be used.
