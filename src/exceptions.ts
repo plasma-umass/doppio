@@ -1,5 +1,5 @@
-"use strict";
 /// <amd-dependency path="../vendor/underscore/underscore" />
+"use strict";
 var underscore = require('../vendor/underscore/underscore');
 import logging = require('./logging');
 import runtime = require('./runtime');

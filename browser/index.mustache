@@ -6,7 +6,7 @@
   <link rel='stylesheet' href="browser/style.css">
 {{#release}}
   <script src="vendor/browserfs/dist/browserfs.js"></script>
-  <script src="compressed.js"></script>
+  <script src="vendor/require.js"></script>
   <script>
     var _gaq = _gaq || [];
     _gaq.push(['_setAccount', 'UA-19272049-5']);
@@ -17,23 +17,15 @@
       var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
     })();
     require.config({
-      shim: {
-        'vendor/underscore/underscore': {
-          exports: '_'
-        },
-        'vendor/jquery/jquery.min': {
-          exports: '$'
-        },
-        'vendor/jquery-migrate/jquery-migrate.min': {
-          deps: ['vendor/jquery/jquery.min']
-        },
-        'vendor/jquery.console': {
-          deps: ['vendor/jquery/jquery.min']
-        }
-      },
       paths: {
         "browser/frontend": "compressed"
-      }
+      },
+      map: {
+        '*': {
+          '../vendor/underscore/underscore': 'vendor/underscore/underscore'
+        }
+      },
+      enforceDefine: true
     });
     BrowserFS.install(window);
 
