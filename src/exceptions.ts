@@ -6,6 +6,7 @@ import runtime = require('./runtime');
 import java_object = require('./java_object');
 import opcodes = require('./opcodes');
 import attributes = require('./attributes');
+var debug = logging.debug;
 
 export interface DoppioException {
   toplevel_catch_handler(rs: runtime.RuntimeState): void
@@ -60,21 +61,21 @@ export class JavaException implements DoppioException {
 
 
     if (handler != null) {
-      logging.debug("caught " + this.exception.cls.get_type() + " in " + method.full_signature() + " as subclass of " + handler.catch_type);
+      debug("caught " + this.exception.cls.get_type() + " in " + method.full_signature() + " as subclass of " + handler.catch_type);
       cf.stack = [this.exception];  // clear out anything on the stack; it was made during the try block
       cf.pc = handler.handler_pc;
       return true;
     }
     // abrupt method invocation completion
-    logging.debug("exception not caught, terminating " + method.full_signature());
+    debug("exception not caught, terminating " + method.full_signature());
     return false;
   }
 
   public toplevel_catch_handler(rs: runtime.RuntimeState): void {
-    logging.debug("\nUncaught " + this.exception.cls.get_type());
+    debug("\nUncaught " + this.exception.cls.get_type());
     var msg = this.exception.get_field(rs, 'Ljava/lang/Throwable;detailMessage');
     if (msg != null) {
-      logging.debug("\t" + msg.jvm2js_str());
+      debug("\t" + msg.jvm2js_str());
     }
     rs.push2(rs.curr_thread, this.exception);
     var thread_cls = rs.get_bs_class('Ljava/lang/Thread;');

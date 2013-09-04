@@ -5,7 +5,9 @@
 /// <amd-dependency path="../vendor/jquery.console" />
 /// <reference path="../vendor/ace.d.ts" />
 /// <amd-dependency path="../vendor/underscore/underscore" />
-"use strict";
+/// <amd-dependency path="../vendor/ace-builds/src/ace" />
+/// <amd-dependency path="../vendor/ace-builds/src/mode-java" />
+/// <amd-dependency path="../vendor/ace-builds/src/theme-twilight" />
 var underscore = require('../vendor/underscore/underscore');
 import ClassData = require('../src/ClassData');
 import ClassLoader = require('../src/ClassLoader');

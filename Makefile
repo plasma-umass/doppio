@@ -3,7 +3,7 @@
 SHELL := /bin/bash
 
 # Will appear as directories under build/
-BUILD_TARGETS = release benchmark dev
+BUILD_TARGETS = release dev dev-cli release-cli
 
 # Can be overridden on the command line. This is the name of the tar.gz file
 # produced when you run `make dist'.
@@ -34,6 +34,8 @@ ifeq (1,$(IS_CYGWIN))
 	UGLIFYJS := cmd /c "$(NPM_BIN)\uglifyjs.cmd"
 	DOCCO    := cmd /c "$(NPM_BIN)\docco.cmd"
 	BOWER    := cmd /c "$(NPM_BIN)\bower.cmd"
+	ICE_CREAM := cmd /c "node $(NPM_BIN)\ice-cream.cmd"
+	R_JS     := cmd /c "node $(NPM_BIN)\r.js.cmd"
 	# Java
 	# * Use command prompt to get the location of Program Files.
 	# * Trim the carriage return, which messes up string concatenation in bash.
@@ -48,7 +50,7 @@ else
 	# Helper functions
 	sym_link = ln -sfn $(1) $(2)
 	# Node
-    NODE     := node
+  NODE     := node
 	NPM      := npm
 	NPM_BIN  := $(shell npm bin)
 	# Node modules
@@ -57,6 +59,8 @@ else
 	UGLIFYJS := $(NPM_BIN)/uglifyjs
 	DOCCO    := $(NPM_BIN)/docco
 	BOWER    := $(NPM_BIN)/bower
+	ICE_CREAM := node $(NPM_BIN)/ice-cream
+	R_JS     := $(NPM_BIN)/r.js
 	# Java
 	JAVA     := java
 	JAVAC    := javac
@@ -65,7 +69,6 @@ endif
 
 JAZZLIB  := $(BOOTCLASSPATH)/java/util/zip/DeflaterEngine.class
 JRE      := $(BOOTCLASSPATH)/java/lang/Object.class
-SED      := $(shell if command -v gsed >/dev/null; then echo "gsed"; else echo "sed"; fi;)
 
 # JAVA
 SOURCES := $(wildcard classes/test/*.java)
@@ -87,63 +90,8 @@ LIB_CLASSES  := $(LIB_SRCS:.java=.class)
 BROWSER_TEMPLATES := $(wildcard browser/[^_]*.mustache)
 BROWSER_HTML      := $(BROWSER_TEMPLATES:.mustache=.html)
 
-# Third-party sources
-THIRD_PARTY_SRCS := vendor/jquery-migrate/jquery-migrate.js \
-	vendor/underscore/underscore.js \
-	vendor/browserfs/dist/browserfs.js \
-	src/gLong.js \
-	vendor/ace-builds/src/ace.js \
-	vendor/ace-builds/src/mode-java.js \
-	vendor/ace-builds/src/theme-twilight.js
-
-# SCRIPTS
-# the order here is important: must match the order of includes
-# in the browser frontend html.
-COMMON_BROWSER_SRCS = browser/node_setup.ts \
-	src/logging.ts \
-	src/exceptions.ts \
-	src/util.ts \
-	src/java_object.ts \
-	src/opcodes.ts \
-	src/attributes.ts \
-	src/ConstantPool.ts \
-	src/disassembler.ts \
-	src/ClassData.ts \
-	src/natives.ts \
-	src/methods.ts \
-	src/runtime.ts \
-	src/ClassLoader.ts \
-	src/jvm.ts \
-	src/testing.ts \
-	browser/untar.ts
-
-# Release uses the actual jQuery console.
-release_BROWSER_SRCS := $(THIRD_PARTY_SRCS) $(COMMON_BROWSER_SRCS) \
-	vendor/jquery.console.js \
-	browser/frontend.ts
-dev_BROWSER_SRCS := $(release_BROWSER_SRCS)
-# Benchmark uses the mock jQuery console.
-benchmark_BROWSER_SRCS := $(COMMON_BROWSER_SRCS) \
-	browser/mockconsole.ts \
-	browser/frontend.ts
-# Sources for an in-browser doppio.js library. Same ordering requirement applies.
-library_BROWSER_SRCS := src/logging.ts \
-	src/exceptions.ts \
-	src/util.ts \
-	src/java_object.ts \
-	src/opcodes.ts \
-	src/attributes.ts \
-	src/ConstantPool.ts \
-	src/disassembler.ts \
-	src/ClassData.ts \
-	src/natives.ts \
-	src/methods.ts \
-	src/runtime.ts \
-	src/ClassLoader.ts \
-	src/jvm.ts
-
 CLI_SRCS := $(wildcard src/*.ts console/*.ts)
-
+BROWSER_SRCS := $(wildcard src/*.ts browser/*.ts)
 
 ################################################################################
 # TARGETS
@@ -151,47 +99,24 @@ CLI_SRCS := $(wildcard src/*.ts console/*.ts)
 # Protect non-file-based targets from not functioning if a file with the
 # target's name is present.
 .PHONY: release benchmark dist dependencies java test clean docs build dev library
+# Never delete these files in the event of a failure.
+.SECONDARY: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES) $(UTIL_CLASSES)
+# Make uses the first valid target as the default target. We place this here so
+# we can neatly organize the dependencies below in groups without worrying about
+# this detail.
+default: library
 
-library: dependencies build/library/compressed.js
-	cp build/library/compressed.js build/library/doppio.min.js
-build/library:
-		mkdir -p build/library
+clean:
+	@rm -f tools/*.js tools/preload browser/listings.json doppio doppio-dev
+	@rm -rf build/*
+	@rm -f $(patsubst %.md,%.html,$(wildcard browser/*.md))
 
-# Builds a release or benchmark version of Doppio without the documentation.
-# This is a static pattern rule. '%' gets substituted for the target name.
-release benchmark: %: dependencies build/% build/%/browser \
-	$(patsubst %,build/\%/%,$(notdir $(BROWSER_HTML))) build/%/favicon.ico \
-	build/%/compressed.js build/%/browser/mini-rt.tar \
-	build/%/browser/style.css $(DEMO_CLASSES) $(UTIL_CLASSES) \
-	build/%/classes build/%/vendor
-	rsync browser/*.svg browser/*.png build/$*/browser/
-	cd build/$*; $(COFFEEC) $(DOPPIO_DIR)/tools/gen_dir_listings.coffee > browser/listings.json
+distclean: clean
+	@rm -f $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES)
 
-# dev: unoptimized build
-dev: dependencies build/dev build/dev/browser \
-	$(patsubst %.ts,build/dev/%.js,$(filter %.ts,$(dev_BROWSER_SRCS))) \
-	build/dev/browser/style.css build/dev/index.html build/dev/favicon.ico $(DEMO_CLASSES) \
-	build/dev/browser/mini-rt.tar build/dev/classes build/dev/vendor
-
-	rsync $(filter %.js,$(dev_BROWSER_SRCS)) build/dev/vendor
-	rsync browser/*.svg browser/*.png build/dev/browser/
-	rsync browser/core_viewer/core_viewer.css build/dev/browser/core_viewer/
-	$(COFFEEC) -c -o build/dev/browser/core_viewer browser/core_viewer/core_viewer.coffee
-	cp browser/core_viewer.html build/dev
-
-	cd build/dev; $(COFFEEC) $(DOPPIO_DIR)/tools/gen_dir_listings.coffee > browser/listings.json
-
-release-cli: $(CLI_SRCS:%.ts=build/release/%.js) \
-	build/release/classes build/release/vendor doppio
-
-dev-cli: $(CLI_SRCS:%.ts=build/dev/%.js) \
-	build/dev/classes build/dev/vendor doppio-dev
-
-# Builds a distributable version of Doppio.
-dist: $(DIST_NAME)
-$(DIST_NAME): release docs
-	tar czf $(DIST_NAME) build/release
-
+################################################################################
+# PRE-REQUISITES
+################################################################################
 # Installs or checks for any required dependencies.
 dependencies: $(JAZZLIB) $(JRE)
 	@rm -f classes/test/failures.txt
@@ -205,6 +130,9 @@ $(JRE):
 # Used to test the chosen Java compiler in setup.sh.
 java: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES) $(UTIL_CLASSES) $(LIB_CLASSES)
 
+################################################################################
+# TESTING
+################################################################################
 # Runs the Java tests in classes/test with the node runner.
 test: dependencies $(TESTS)
 	@echo ''
@@ -216,7 +144,7 @@ test: dependencies $(TESTS)
 	$(JAVAC) -bootclasspath $(BOOTCLASSPATH) $^
 # phony *.test targets allow us to test with -j4 parallelism
 classes/test/%.test: release-cli classes/test/%.class classes/test/%.disasm classes/test/%.runout
-	@$(NODE) build/release/console/test_runner.js classes/test/$* --makefile
+	@$(NODE) build/release-cli/console/test_runner.js classes/test/$* --makefile
 # The trim command is to handle the Windows case.
 classes/test/%.disasm: classes/test/%.class
 	$(JAVAP) -bootclasspath $(BOOTCLASSPATH) -c -verbose -private classes/test/$* >classes/test/$*.disasm
@@ -226,13 +154,51 @@ classes/test/%.runout: classes/test/%.class
 	-$(JAVA) -Xbootclasspath/a:$(BOOTCLASSPATH) classes/test/$* &>classes/test/$*.runout
 	@if [[ $(IS_CYGWIN) = 1 && -e classes/test/$*.runout ]]; then dos2unix classes/test/$*.runout; fi
 
-clean:
-	@rm -f tools/*.js tools/preload browser/listings.json doppio doppio-dev
-	@rm -rf build/*
-	@rm -f $(patsubst %.md,%.html,$(wildcard browser/*.md))
+################################################################################
+# BROWSER
+################################################################################
+library: dependencies build/release/doppio.js
 
-distclean: clean
-	@rm -f $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES)
+# dev: unoptimized build
+dev: dependencies build/dev/classes build/dev/vendor \
+	build/dev/browser/frontend.js build/dev/browser/style.css \
+	build/dev/index.html build/dev/favicon.ico $(DEMO_CLASSES) $(UTIL_CLASSES) \
+	build/dev/browser/mini-rt.tar build/dev/browser/require_dev_config.js
+
+	rsync browser/*.svg browser/*.png build/dev/browser/
+	rsync browser/core_viewer/core_viewer.css build/dev/browser/core_viewer/
+	$(COFFEEC) -c -o build/dev/browser/core_viewer browser/core_viewer/core_viewer.coffee
+	cp browser/core_viewer.html build/dev
+	cd build/dev; $(COFFEEC) $(DOPPIO_DIR)/tools/gen_dir_listings.coffee > browser/listings.json
+
+# Note that this one command compiles the entire development build.
+build/dev/browser/frontend.js: $(BROWSER_SRCS) | build/dev/browser
+	$(TSC) --module amd --outDir build/dev browser/frontend.ts
+
+build/dev/browser/require_dev_config.js: browser/require_dev_config.js | build/dev/browser
+	cp $^ $@
+
+# Builds a release version of Doppio without the documentation.
+# TODO: Finish.
+release: dependencies build/release/classes build/release/vendor \
+	$(patsubst %,build/release/%,$(notdir $(BROWSER_HTML))) \
+	build/release/doppio.js build/release/browser/frontend.js \
+	build/release/favicon.ico build/release/browser/mini-rt.tar \
+	build/release/browser/style.css
+	rsync browser/*.svg browser/*.png build/release/browser/
+	cd build/release; $(COFFEEC) $(DOPPIO_DIR)/tools/gen_dir_listings.coffee > browser/listings.json
+
+build/release/doppio.js: build/release dev
+	$(R_JS) -o browser/build.js
+
+build/release/browser/frontend.js: build/release/browser dev
+	# TODO: Untar
+	$(UGLIFYJS) build/dev/browser/frontend.js -o $@ -c warnings=false -d UNSAFE=true,RELEASE=true --unsafe
+
+# Builds a distributable version of Doppio.
+dist: $(DIST_NAME)
+$(DIST_NAME): release docs
+	tar czf $(DIST_NAME) build/release
 
 # docs need to be generated in one shot so docco can create the full jumplist.
 # This is slow, so we have it as a separate target (even though it is needed
@@ -260,8 +226,44 @@ tools/preload: release-cli
 		echo "Not regenerating tools/preload because you told me so"; \
 	fi
 
+build/%/browser/mini-rt.tar: build/%/browser tools/preload
+	COPYFILE_DISABLE=true && tar -c -T tools/preload -f $@
+
+# The | prevents the prerequisite from being included in $^, and avoids
+# re-executing the rule when the folder is 'updated' with `mkdir -p`.
+build/%/browser/style.css: vendor/bootstrap/docs/assets/css/bootstrap.css \
+	browser/style.css | build/%/browser
+	cat $^ > $@
+
+build/dev/%.html: build/dev browser/%.mustache browser/_navbar.mustache
+	$(COFFEEC) browser/render.coffee $* > $@
+
+build/release/about.html: build/release browser/_about.md
+build/release/%.html: build/release browser/%.mustache browser/_navbar.mustache
+	$(COFFEEC) browser/render.coffee --release $* > $@
+
+build/%/favicon.ico: browser/favicon.ico build/%
+	rsync $< $@
+
 ################################################################################
-# BUILD DIRECTORY TARGETS
+# CLI
+################################################################################
+release-cli: $(CLI_SRCS:%.ts=build/release-cli/%.js) build/release-cli/classes \
+	build/release-cli/vendor doppio
+build/release-cli/%.js: %.ts | dev-cli build/release-cli build/release-cli/src build/release-cli/browser build/release-cli/console
+	$(ICE_CREAM) build/dev-cli/$*.js --remove trace --remove vtrace --remove debug > $@
+	$(UGLIFYJS) $@ -o $@ -c warnings=false -d UNSAFE=true,RELEASE=true --unsafe
+
+dev-cli: build/dev-cli/console/runner.js build/dev-cli/classes build/dev-cli/vendor doppio-dev
+build/dev-cli/console/runner.js: $(CLI_SRCS)
+	$(TSC) --module commonjs --outDir build/dev-cli console/*.ts
+
+doppio doppio-dev:
+	echo "node \`dirname \$$0\`/build/$(if $(findstring dev,$@),dev-cli,release-cli)/console/runner.js \"\$$@\"" > $@
+	chmod +x $@
+
+################################################################################
+# GENERIC BUILD DIRECTORY TARGETS
 ################################################################################
 
 # subst: Use 'manual' substitution because we don't want this to be a pattern
@@ -272,61 +274,6 @@ $(foreach TARGET,$(BUILD_TARGETS),$(subst %,$(TARGET),$(BUILD_FOLDERS))):
 	mkdir -p $@
 	ln -s vendor $@/vendor
 
-build/release/about.html build/benchmark/about.html: browser/_about.md
-
-build/dev/%.html: browser/%.mustache browser/_navbar.mustache
-	$(COFFEEC) browser/render.coffee $* > $@
-
-build/release/%.html build/benchmark/%.html: browser/%.mustache browser/_navbar.mustache
-	$(COFFEEC) browser/render.coffee --release $* > $@
-
-build/%/favicon.ico: browser/favicon.ico
-	rsync $< $@
-
-# The | prevents the prerequisite from being included in $^, and avoids
-# re-executing the rule when the folder is 'updated' with `mkdir -p`.
-build/%/browser/style.css: vendor/bootstrap/docs/assets/css/bootstrap.css \
-	browser/style.css | build/%/browser
-	cat $^ > $@
-
 # Prevent this from being treated as pattern rule (because it has multiple targets)
-$(foreach TARGET,$(BUILD_TARGETS),$(subst %,$(TARGET),build/%/classes build/%/vendor)):
+$(foreach TARGET,$(BUILD_TARGETS),$(subst %,$(TARGET),build/%/classes build/%/vendor)): $(foreach TARGET,$(BUILD_TARGETS),$(subst %,$(TARGET),build/%))
 	$(call sym_link,$(DOPPIO_DIR)/$(notdir $@),$@)
-
-build/%/browser/mini-rt.tar: tools/preload
-	COPYFILE_DISABLE=true && tar -c -T tools/preload -f $@
-
-doppio doppio-dev:
-	echo "node \`dirname \$$0\`/build/$(if $(findstring dev,$@),dev,release)/console/runner.js \"\$$@\"" > $@
-	chmod +x $@
-
-# Never delete these files in the event of a failure.
-.SECONDARY: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES) $(UTIL_CLASSES)
-
-
-# SECONDEXPANSION allows us to use '%' and '$@' in our prerequisites. These
-# variables are not bound when the first expansion occurs. The directive
-# applies to all rules from this point on, so put it at the bottom of the file.
-.SECONDEXPANSION:
-build/release/compressed.js build/benchmark/compressed.js build/library/compressed.js: build/%/compressed.js:\
-	build/% $$(%_BROWSER_SRCS)
-	for src in $($*_BROWSER_SRCS); do \
-		if [ "$${src##*.}" == "ts" ]; then \
-			mkdir -p $(dir $@); \
-			$(call sym_link,$$src,$(dir $@)); \
-			$(TSC) --module m commonjs --sourcemap --outDir $(dir $@) $$src; \
-		else \
-			cat $${src}; \
-		fi; \
-		echo ";"; \
-	done > ${@:compressed.js=uncompressed.js}
-	$(UGLIFYJS) --prefix 2 --source-map-url compressed.map --source-map ${@:.js=.map} --define RELEASE --define UNSAFE --unsafe -o $@ ${@:compressed.js=uncompressed.js}
-
-build/dev/%.js: %.ts
-	$(TSC) --module commonjs --sourcemap --outDir build/dev console/*.ts
-
-build/release/%.js: %.ts
-	$(TSC) --module commonjs --outDir build/release console/*.ts
-# TODO: run uglify on the release JS files. Currently borked because TSC makes
-# everything at once, which throws off our build flow.
-#	$(UGLIFYJS) $@ --define RELEASE --define UNSAFE --unsafe --beautify -o $@

@@ -4,9 +4,9 @@
   <title>Doppio: A JVM in Coffeescript</title>
   <link href='http://fonts.googleapis.com/css?family=Bitter' rel='stylesheet'>
   <link rel='stylesheet' href="browser/style.css">
-{{#release}}
-  <script src="vendor/browserfs/dist/browserfs.js"></script>
   <script src="vendor/require.js"></script>
+{{#release}}
+  <script src="browser/require_config.js"></script>
   <script>
     var _gaq = _gaq || [];
     _gaq.push(['_setAccount', 'UA-19272049-5']);
@@ -16,57 +16,13 @@
       ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
       var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
     })();
-    require.config({
-      paths: {
-        "browser/frontend": "compressed"
-      },
-      map: {
-        '*': {
-          '../vendor/underscore/underscore': 'vendor/underscore/underscore'
-        }
-      },
-      enforceDefine: true
-    });
-    BrowserFS.install(window);
-
-    var mfs = new BrowserFS.FileSystem.MountableFileSystem();
-    mfs.mount('/tmp', new BrowserFS.FileSystem.InMemory());
-    mfs.mount('/demo', new BrowserFS.FileSystem.LocalStorage());
-    mfs.mount('/sys', new BrowserFS.FileSystem.XmlHttpRequest('browser/listings.json'));
-    BrowserFS.initialize(mfs);
-
-    window.node = BrowserFS.node;
-    if (!node.fs.existsSync('/demo')) {
-      node.fs.mkdirSync('/demo');
-    }
-    node.fs.mkdirSync('/tmp');
-    node.process.chdir('/demo');
-    require(["browser/frontend"], function(frontend) {
-      console.log('loaded');
-    });
   </script>
 {{/release}}
 {{^release}}
-  <script src="vendor/require.js"></script>
+  <script src="browser/require_dev_config.js"></script>
+{{/release}}
   <script src="vendor/browserfs/dist/browserfs.js"></script>
   <script>
-    // Before we clobber the global require...
-    require.config({
-      shim: {
-        'vendor/underscore/underscore': {
-          exports: '_'
-        },
-        'vendor/jquery/jquery.min': {
-          exports: '$'
-        },
-        'vendor/jquery-migrate/jquery-migrate.min': {
-          deps: ['vendor/jquery/jquery.min']
-        },
-        'vendor/jquery.console': {
-          deps: ['vendor/jquery/jquery.min']
-        }
-      }
-    });
     BrowserFS.install(window);
 
     var mfs = new BrowserFS.FileSystem.MountableFileSystem();
@@ -86,7 +42,6 @@
       // Kicks everything off!
     });
   </script>
-{{/release}}
 </head>
 <body>
 <div id='progress-container'>
