@@ -13,5 +13,5 @@ native_methods.java.net.SocketOutputStream = [
     # TODO: This can be optimized by accessing the 'Q' directly
     impl.$ws.send b.array.splice(offset, offset + len)
     # Let the browser write it out
-    rs.async_op (resume_cb) -> window.setImmediate(-> resume_cb())
+    rs.async_op (resume_cb) -> setImmediate(-> resume_cb())
 ]
