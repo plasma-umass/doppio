@@ -7,5 +7,5 @@
     // These aren't referenced from runtime. We may want to decouple them
     // at some point.
     include: ['src/testing', 'src/disassembler'],
-    mainConfigFile: 'require_dev_config.js'
+    mainConfigFile: 'require_config.js'
 })

@@ -163,7 +163,7 @@ library: dependencies build/release/doppio.js
 dev: dependencies build/dev/classes build/dev/vendor \
 	build/dev/browser/frontend.js build/dev/browser/style.css \
 	build/dev/index.html build/dev/favicon.ico $(DEMO_CLASSES) $(UTIL_CLASSES) \
-	build/dev/browser/mini-rt.tar build/dev/browser/require_dev_config.js
+	build/dev/browser/mini-rt.tar build/dev/browser/require_config.js
 
 	rsync browser/*.svg browser/*.png build/dev/browser/
 	rsync browser/core_viewer/core_viewer.css build/dev/browser/core_viewer/
@@ -175,7 +175,7 @@ dev: dependencies build/dev/classes build/dev/vendor \
 build/dev/browser/frontend.js: $(BROWSER_SRCS) | build/dev/browser
 	$(TSC) --module amd --outDir build/dev browser/frontend.ts
 
-build/dev/browser/require_dev_config.js: browser/require_dev_config.js | build/dev/browser
+build/dev/browser/require_config.js: browser/require_config.js | build/dev/browser
 	cp $^ $@
 
 # Builds a release version of Doppio without the documentation.
@@ -191,9 +191,8 @@ release: dependencies build/release/classes build/release/vendor \
 build/release/doppio.js: build/release dev
 	$(R_JS) -o browser/build.js
 
-build/release/browser/frontend.js: build/release/browser dev
-	# TODO: Untar
-	$(UGLIFYJS) build/dev/browser/frontend.js -o $@ -c warnings=false -d UNSAFE=true,RELEASE=true --unsafe
+build/release/browser/frontend.js: build/release/doppio.js dev build/release/browser
+	$(R_JS) -o browser/build_frontend.js
 
 # Builds a distributable version of Doppio.
 dist: $(DIST_NAME)

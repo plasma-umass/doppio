@@ -6,7 +6,6 @@
   <link rel='stylesheet' href="browser/style.css">
   <script src="vendor/require.js"></script>
 {{#release}}
-  <script src="browser/require_config.js"></script>
   <script>
     var _gaq = _gaq || [];
     _gaq.push(['_setAccount', 'UA-19272049-5']);
@@ -17,9 +16,11 @@
       var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
     })();
   </script>
+  <script src="doppio.js"></script>
+  <script src="browser/frontend.js"></script>
 {{/release}}
 {{^release}}
-  <script src="browser/require_dev_config.js"></script>
+  <script src="browser/require_config.js"></script>
 {{/release}}
   <script src="vendor/browserfs/dist/browserfs.js"></script>
   <script>
