@@ -13,6 +13,7 @@ import natives = require('./natives');
 import ClassLoader = require('./ClassLoader');
 var trace = logging.trace;
 
+// Represents a single class in the JVM.
 export class ClassData {
   public loader: ClassLoader.ClassLoader;
   public access_flags: util.Flags;
@@ -24,6 +25,8 @@ export class ClassData {
   public super_class: string;
   public super_class_cdata: ClassData;
 
+  // Responsible for setting up all of the fields that are guaranteed to be
+  // present on any ClassData object.
   constructor(loader: ClassLoader.ClassLoader) {
     // XXX: Avoids a tough circular dependency.
     // (ClassData->methods->natives->...)
@@ -35,12 +38,16 @@ export class ClassData {
     this.initialized = false;
     this.resolved = false;
     this.jco = null;
+    // Flip to 1 to trigger reset() call on load.
     this.reset_bit = 0;
   }
 
+  // Resets any ClassData state that may have been built up
+  // We do not reset 'initialized' here; only reference types need to reset that.
   public reset(): void {
     this.jco = null;
     this.reset_bit = 0;
+    // Reset any referenced classes if they are up for reset.
     var sc = this.get_super_class();
     if (sc != null && sc.reset_bit === 1) {
       sc.reset();
@@ -68,6 +75,8 @@ export class ClassData {
     }
   }
 
+  // Returns the ClassLoader object of the classloader that initialized this
+  // class. Returns null for the default classloader.
   public get_class_loader(): ClassLoader.ClassLoader {
     return this.loader;
   }
@@ -123,6 +132,9 @@ export class ClassData {
     return null; // TypeScript can't infer that rs.java_throw *always* throws an exception.
   }
 
+  // Checks if the class file is initialized. It will set @initialized to 'true'
+  // if this class has no static initialization method and its parent classes
+  // are initialized, too.
   public is_initialized(): boolean {
     if (this.initialized) {
       return true;
@@ -169,6 +181,9 @@ export class PrimitiveClassData extends ClassData {
     this.resolved = true;
   }
 
+  // Returns a boolean indicating if this class is an instance of the target class.
+  // "target" is a ClassData object.
+  // The ClassData objects do not need to be initialized; just loaded.
   public is_castable(target: ClassData): boolean {
     return this.this_class === target.this_class;
   }
@@ -199,7 +214,9 @@ export class PrimitiveClassData extends ClassData {
   public create_wrapper_object(rs: runtime.RuntimeState, value: any): java_object.JavaObject {
     var box_name = this.box_class_name();
     var box_cls = <ReferenceClassData> rs.get_bs_class(box_name);
+    // these are all initialized in preinit (for the BSCL, at least)
     var wrapped = new JavaObject(rs, box_cls);
+    // HACK: all primitive wrappers store their value in a private static final field named 'value'
     wrapped.fields[box_name + 'value'] = value;
     return wrapped;
   }
@@ -233,6 +250,7 @@ export class ArrayClassData extends ClassData {
     return this.component_class_cdata;
   }
 
+  // This class itself has no fields/methods, but java/lang/Object does.
   public field_lookup(rs: runtime.RuntimeState, name: string): methods.Field {
     return this.super_class_cdata.field_lookup(rs, name);
   }
@@ -241,6 +259,7 @@ export class ArrayClassData extends ClassData {
     return this.super_class_cdata.method_lookup(rs, sig);
   }
 
+  // Resolved and initialized are the same for array types.
   public set_resolved(super_class_cdata: ClassData, component_class_cdata: ClassData): void {
     this.super_class_cdata = super_class_cdata;
     this.component_class_cdata = component_class_cdata;
@@ -248,21 +267,32 @@ export class ArrayClassData extends ClassData {
     this.initialized = true;
   }
 
+  // Returns a boolean indicating if this class is an instance of the target class.
+  // "target" is a ClassData object.
+  // The ClassData objects do not need to be initialized; just loaded.
+  // See §2.6.7 for casting rules.
   public is_castable(target: ClassData): boolean {
     if (!(target instanceof ArrayClassData)) {
       if (target instanceof PrimitiveClassData) {
         return false;
       }
+      // Must be a reference type.
       if (target.access_flags["interface"]) {
+        // Interface reference type
         var type = target.get_type();
         return type === 'Ljava/lang/Cloneable;' || type === 'Ljava/io/Serializable;';
       }
+      // Non-interface reference type
       return target.get_type() === 'Ljava/lang/Object;';
     }
+    // We are both array types, so it only matters if my component type can be
+    // cast to its component type.
     return this.get_component_class().is_castable((<ArrayClassData> target).get_component_class());
   }
 }
 
+// Represents a "reference" Class -- that is, a class that neither represents a
+// primitive nor an array.
 export class ReferenceClassData extends ClassData {
   private minor_version: number;
   private major_version: number;
@@ -291,19 +321,23 @@ export class ReferenceClassData extends ClassData {
     }
     this.constant_pool = new ConstantPool.ConstantPool();
     this.constant_pool.parse(bytes_array);
+    // bitmask for {public,final,super,interface,abstract} class modifier
     this.access_byte = bytes_array.get_uint(2);
     this.access_flags = util.parse_flags(this.access_byte);
 
     this.this_class = this.constant_pool.get(bytes_array.get_uint(2)).deref();
+    // super reference is 0 when there's no super (basically just java.lang.Object)
     var super_ref = bytes_array.get_uint(2);
     if (super_ref !== 0) {
       this.super_class = this.constant_pool.get(super_ref).deref();
     }
+    // direct interfaces of this class
     var isize = bytes_array.get_uint(2);
     this.interfaces = [];
     for (var _i = 0; _i < isize; ++_i) {
       this.interfaces.push(this.constant_pool.get(bytes_array.get_uint(2)).deref());
     }
+    // fields of this class
     var num_fields = bytes_array.get_uint(2);
     this.fields = [];
     for (var _i = 0; _i < num_fields; ++_i) {
@@ -315,22 +349,31 @@ export class ReferenceClassData extends ClassData {
       f.parse(bytes_array, this.constant_pool, i);
       this.fl_cache[f.name] = f;
     }
+    // class methods
     var num_methods = bytes_array.get_uint(2);
     this.methods = {};
     this.ml_cache = {};
+    // XXX: we may want to populate ml_cache with methods whose exception
+    // handler classes we have already loaded
     for (var i = 0; i < num_methods; i += 1) {
       var m = new methods.Method(this);
       m.parse(bytes_array, this.constant_pool, i);
       var mkey = m.name + m.raw_descriptor;
       this.methods[mkey] = m;
     }
+    // class attributes
     this.attrs = attributes.make_attributes(bytes_array, this.constant_pool);
     if (bytes_array.has_bytes()) {
       throw "Leftover bytes in classfile: " + bytes_array;
     }
+    // Contains the value of all static fields. Will be reset when reset()
+    // is run.
     this.static_fields = Object.create(null);
   }
 
+  // Resets the ClassData for subsequent JVM invocations. Resets all
+  // of the built up state / caches present in the opcode instructions.
+  // Eventually, this will also handle `clinit` duties.
   public reset(): void {
     super.reset();
     this.initialized = false;
@@ -391,6 +434,8 @@ export class ReferenceClassData extends ClassData {
     return this.default_fields;
   }
 
+  // Handles static fields. We lazily create them, since we cannot initialize static
+  // default String values before Ljava/lang/String; is initialized.
   private _initialize_static_field(rs: runtime.RuntimeState, name: string): void {
     var f = this.fl_cache[name];
     if (f != null && f.access_flags["static"]) {
@@ -429,7 +474,9 @@ export class ReferenceClassData extends ClassData {
   }
 
   public construct_default_fields(): void {
+    // init fields from this and inherited ClassDatas
     var cls = this;
+    // Object.create(null) avoids interference with Object.prototype's properties
     this.default_fields = Object.create(null);
     while (cls != null) {
       var _ref1 = cls.fields;
@@ -445,6 +492,8 @@ export class ReferenceClassData extends ClassData {
     }
   }
 
+  // Spec [5.4.3.2][1].
+  // [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#77678
   public field_lookup(rs: runtime.RuntimeState, name: string, null_handled?: boolean): methods.Field {
     var field = this.fl_cache[name];
     if (field != null) {
@@ -456,6 +505,7 @@ export class ReferenceClassData extends ClassData {
       return field;
     }
     var err_cls = <ReferenceClassData> rs.get_bs_class('Ljava/lang/NoSuchFieldError;');
+    // Throw exception
     rs.java_throw(err_cls, "No such field found in " + util.ext_classname(this.get_type()) + "::" + name);
     return null;  // java_throw always throws.
   }
@@ -485,6 +535,9 @@ export class ReferenceClassData extends ClassData {
     return null;
   }
 
+  // Spec [5.4.3.3][1], [5.4.3.4][2].
+  // [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#79473
+  // [2]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#78621
   public method_lookup(rs: runtime.RuntimeState, sig: string): methods.Method {
     if (this.ml_cache[sig] != null) {
       return this.ml_cache[sig];
@@ -499,7 +552,7 @@ export class ReferenceClassData extends ClassData {
       for (var _i = 0, _len = handlers.length; _i < _len; _i++) {
         var eh = handlers[_i];
         if (!(eh.catch_type === '<any>' || ((this.loader.get_resolved_class(eh.catch_type, true)) != null))) {
-          return null;
+          return null; // we found it, but it needs to be resolved
         }
       }
     }
@@ -531,6 +584,8 @@ export class ReferenceClassData extends ClassData {
     return this.ml_cache[sig] = null;
   }
 
+  // this should only be called after method_lookup returns null!
+  // in particular, we assume that the method exists and has exception handlers.
   public resolve_method(rs: runtime.RuntimeState, sig: string, success_fn: (mthd:methods.Method)=>void, failure_fn: (e_cb:()=>void)=>void) {
     var _this = this;
 
@@ -553,25 +608,34 @@ export class ReferenceClassData extends ClassData {
     return next_handler();
   }
 
+  // Returns a boolean indicating if this class is an instance of the target class.
+  // "target" is a ClassData object.
+  // The ClassData objects do not need to be initialized; just loaded.
+  // See §2.6.7 for casting rules.
   public is_castable(target: ClassData): boolean {
     if (!(target instanceof ReferenceClassData)) {
       return false;
     }
     if (this.access_flags["interface"]) {
+      // We are both interfaces
       if (target.access_flags["interface"]) {
         return this.is_subinterface(target);
       }
+      // Only I am an interface
       if (!target.access_flags["interface"]) {
         return target.get_type() === 'Ljava/lang/Object;';
       }
     } else {
+      // I am a regular class, target is an interface
       if (target.access_flags["interface"]) {
         return this.is_subinterface(target);
       }
+      // We are both regular classes
       return this.is_subclass(target);
     }
   }
 
+  // Returns 'true' if I implement the target interface.
   public is_subinterface(target: ClassData): boolean {
     if (this.this_class === target.this_class) {
       return true;

@@ -361,6 +361,7 @@ export class RuntimeVisibleAnnotations implements Attribute {
   public name = 'RuntimeVisibleAnnotations';
   private raw_bytes: number[];
   public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool, attr_len?: number) {
+    // num_annotations = bytes_array.get_uint 2
     this.raw_bytes = bytes_array.read(attr_len);
   }
 }
