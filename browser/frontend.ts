@@ -380,8 +380,10 @@ var commands = {
   ecj: function(args: string[], cb) {
     jvm.set_classpath(sys_path + '/vendor/classes/', './');
     var rs = new runtime.RuntimeState(stdout, user_input, bs_cl);
+    // XXX: -D args unsupported by the console.
     jvm.system_properties['jdt.compiler.useSingleThread'] = true;
     jvm.run_class(rs, 'org/eclipse/jdt/internal/compiler/batch/Main', args, function() {
+      // XXX: remove any classes that just got compiled from the class cache
       for (var i = 0; i < args.length; i++) {
         var c = args[i];
         if (c.match(/\.java$/)) {
@@ -397,6 +399,7 @@ var commands = {
     jvm.set_classpath(sys_path + '/vendor/classes/', './:/home/doppio');
     var rs = new runtime.RuntimeState(stdout, user_input, bs_cl);
     jvm.run_class(rs, 'classes/util/Javac', args, function() {
+      // XXX: remove any classes that just got compiled from the class cache
       for (var i = 0; i < args.length; i++) {
         var c = args[i];
         if (c.match(/\.java$/)) {
@@ -409,6 +412,7 @@ var commands = {
   },
   java: function(args: string[], cb) {
     jvm.dump_state = false
+    // XXX: dump-state support
     for (var i = 0; i < args.length; i++) {
       if (args[i] === '-Xdump-state') {
         jvm.dump_state = true;
@@ -642,7 +646,7 @@ var commands = {
           return;
         }
         var end = (new Date).getTime();
-        if (count++ === 0) {
+        if (count++ === 0) { // first one to warm the cache
           return time_once();
         }
         duration += end - start;
