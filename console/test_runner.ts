@@ -33,6 +33,7 @@ var optimist = require('optimist')
     q: 'Suppress in-progress test output',
     diff: 'Show failed test diff output',
     c: 'Keep going after test failure',
+    // --makefile is only used from the makefile
     h: 'Show this usage'
   }).usage('Usage: $0 path/to/test [flags]');
 

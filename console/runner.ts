@@ -191,6 +191,8 @@ if (argv.non_standard['list-class-cache']) {
         try {
           if (fs.statSync(fpath).isFile()) {
             fpath = path.resolve(fpath).substr(scriptdir.length + 1);
+            // Ensure the truncated path is valid. This ensures that the file
+            // is in a subdirectory of "scriptdir"
             if (fs.existsSync(fpath)) {
               console.log(fpath);
             }
@@ -211,6 +213,7 @@ if (argv.non_standard['list-class-cache']) {
       console.log("console.log() was called a total of " + count + " times.");
     };
     } else if (argv.non_standard['skip-logs'] != null) {
+    // avoid generating unnecessary log data
     count = parseInt(argv.non_standard['skip-logs'], 10);
     old_log = console.log;
     console.log = function () {
@@ -225,6 +228,7 @@ if (argv.non_standard['list-class-cache']) {
     done_cb = function () {
       var mid_point = (new Date).getTime();
       console.log('Starting hot-cache run...');
+      // Reset runtime state
       rs = new runtime.RuntimeState(stdout, read_stdin, bs_cl);
       run(function () {
         var finished = (new Date).getTime();
@@ -233,6 +237,7 @@ if (argv.non_standard['list-class-cache']) {
       });
     };
   } else {
+    // The default done_cb exits with a nonzero code if we failed.
     done_cb = function (success:boolean) { process.exit(success ? 0 : 1); };
 }
 
@@ -243,4 +248,6 @@ process.on('SIGINT', function () {
   }
   process.exit(0);
 });
+
+// Now that everything is set up, run it!
 run(done_cb);
