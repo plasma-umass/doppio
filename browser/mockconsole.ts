@@ -2,7 +2,15 @@
 (function() {
   "use strict";
   var $;
+  /*
+    jQuery module for a mock console that can be controlled through automated
+    tests.
 
+    FEATURES:
+    * Can be used with a 'shell script' that executes each console command one
+      by one.
+    * Buffers output and asynchronously sends it to a server running locally.
+  */
   $ = jQuery;
 
   $.fn.console = function(config) {
@@ -13,9 +21,11 @@
     commands = [];
     uploading = false;
     isComplete = false;
+    // Helper function for making errors purty.
     getErrorDetails = function(url, type, data, textStatus, errorThrown) {
       return "Error during HTTP " + type + " to server.\n" + "---------------------------------\n" + "Details:\n" + "  URL: " + url + "\n" + "  Error Type: " + textStatus + "\n" + "  Additional Error Info: " + errorThrown + "\n" + "  Data: '" + data + "'\n";
     };
+    // All errors involving GET/PUT statements during benchmarks indicate failure.
     getFromServer = function(url, doneFn) {
       return $.ajax({
         url: url
@@ -35,12 +45,15 @@
     sendBufferToServer = function() {
       if (outBuffer.length !== 0 && !uploading) {
         uploading = true;
+        // Send to server.
         postToServer("message", outBuffer, (function() {
           uploading = false;
+          // In case we prevented further uploads...
           if (outBuffer.length > bufferSize) {
             return sendBufferToServer();
           }
         }));
+        // Empty buffer.
         return outBuffer = "";
       }
     };
@@ -60,10 +73,13 @@
       return printInBrowser(msg, "jquery-console-message-error");
     };
     error = function(text) {
+      // We don't buffer errors.
       printErrorInBrowser(text);
       postToServer("error", text);
+      // A single error invalidates benchmark results. Fail fast.
       return complete();
     };
+    // Tells the server we are done benchmarking and halts all command processing.
     complete = function() {
       if (isComplete) {
         return;
@@ -73,7 +89,7 @@
         printInBrowser("\nTest complete. The browser will be killed now. Have " + "a wonderful day! :)\n");
         postToServer("complete");
         return commands = [];
-      } else {
+      } else { // Need to wait for buffer upload to complete.
         return setTimeout(complete, 10);
       }
     };
@@ -85,16 +101,19 @@
     };
     runNextCommand = function() {
       var command, ret;
-
+      // Clear the buffer before we run another command.
       sendBufferToServer();
       if (commands.length > 0) {
         command = commands.shift();
         printInBrowser(extern.promptLabel + command);
         ret = extern.commandHandle(command);
+        // Emulate jQuery console's behavior for different return types.
         if (typeof ret === "boolean") {
           if (ret) {
+            // Command succeeded without a result.
             return extern.reprompt();
           } else {
+            // Command failed.
             error("Command \"" + command + "\" failed.");
             return extern.reprompt();
           }
@@ -106,22 +125,30 @@
           return extern.reprompt();
         }
       } else {
+        // We're done. The browser can be killed now.
         return complete();
       }
     };
     extern = {};
     extern.promptLabel = (_ref = config.promptLabel) != null ? _ref : "> ";
+    // The default command handler.
     errorCommandHandle = function(line) {
       return error("Command handle called before it was set.");
     };
     extern.commandHandle = (_ref1 = config.commandHandle) != null ? _ref1 : errorCommandHandle;
     extern.onreprompt = (_ref2 = config.onreprompt) != null ? _ref2 : null;
+    // NOP
     extern.reset = function() {};
+    // NOP
     extern.notice = function() {};
     extern.message = function(msg, type, noreprompt) {
       if ($.isArray(msg)) {
         message(msg[0]);
       } else {
+        /*
+          TODO: jQuery console supports DOM nodes, so there could be a DOM node
+          here...
+        */
         message(msg);
       }
       if (!noreprompt) {
@@ -137,16 +164,20 @@
     extern.promptText = function(text) {
       return error("PromptText called during a non-interactive test.");
     };
+    // Set up the console for printing stuff.
     container = $(this);
     inner = $('<pre class="jquery-console-inner"></div>');
     container.append(inner);
     printInBrowser("Doppio Automated Benchmark Mode\n" + "-------------------------------\n" + "Doppio will only print fatal errors and running commands to this " + "console. All other output is sent to the benchmark server.\n\n");
+    // Grab commands.
     getFromServer("commands", (function(data) {
       commands = $.parseJSON(data);
       if (!$.isArray(commands)) {
         return error("Retrieved commands are not in an array format.");
       }
     }));
+    // When the console is 'clicked', the test begins. Doppio automatically clicks
+    // the console when loading completes.
     container.click(function() {
       return extern.reprompt();
     });
