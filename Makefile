@@ -179,7 +179,6 @@ build/dev/browser/require_config.js: browser/require_config.js | build/dev/brows
 	cp $^ $@
 
 # Builds a release version of Doppio without the documentation.
-# TODO: Finish.
 release: dependencies build/release/classes build/release/vendor \
 	$(patsubst %,build/release/%,$(notdir $(BROWSER_HTML))) \
 	build/release/doppio.js build/release/browser/frontend.js \
