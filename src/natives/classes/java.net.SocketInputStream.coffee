@@ -13,5 +13,5 @@ native_methods.java.net.SocketInputStream = [
     if impl.$is_shutdown is true
       rs.java_throw rs.get_bs_class('Ljava/io/IOException;'), 'Socket is shutdown.'
     rs.async_op (resume_cb) ->
-      window.setTimeout (socket_read_async impl, b, offset, len, resume_cb), timeout
+      setTimeout (socket_read_async impl, b, offset, len, resume_cb), timeout
 ]

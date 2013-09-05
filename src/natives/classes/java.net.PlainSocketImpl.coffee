@@ -70,7 +70,7 @@ native_methods.java.net.PlainSocketImpl = [
       
       # Timeout case. In the case of no timeout, we set a default one of 10s.
       timeout = 10000 if timeout == 0
-      id = window.setTimeout(error_cb('Connection timeout!'), timeout)
+      id = setTimeout(error_cb('Connection timeout!'), timeout)
       
       debug "Host: #{host}"
       
