@@ -17,7 +17,7 @@ IS_CYGWIN := $(shell if [[ `uname -s` == CYGWIN* ]]; then echo 1; else echo 0; f
 # CYGWIN WRAPPERS
 # In Cygwin, we have to run these commands on the Windows side of things.
 ifeq (1,$(IS_CYGWIN))
-  # This needs to be a relative path for Java to understand it; Java operating
+	# This needs to be a relative path for Java to understand it; Java operating
 	# in Cygwin doesn't understand Cygwin paths.
 	BOOTCLASSPATH := $(shell realpath --relative-to=. $(DOPPIO_DIR)/vendor/classes)
 	# Helper functions
@@ -25,7 +25,7 @@ ifeq (1,$(IS_CYGWIN))
 	# Link name goes first.
 	sym_link = cmd /c mklink /J `cygpath -w $(2)` `cygpath -w $(1)`
 	# Node
-  NODE     := cmd /c node
+	NODE     := cmd /c node
 	NPM      := cmd /c npm
 	NPM_BIN  := $(shell cmd /c npm bin)
 	# Node modules
@@ -50,7 +50,7 @@ else
 	# Helper functions
 	sym_link = ln -sfn $(1) $(2)
 	# Node
-  NODE     := node
+	NODE     := node
 	NPM      := npm
 	NPM_BIN  := $(shell npm bin)
 	# Node modules
