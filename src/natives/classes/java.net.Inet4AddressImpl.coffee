@@ -2,13 +2,14 @@ host_lookup = {}
 host_reverse_lookup = {}
 
 # 240.0.0.0 .. 250.0.0.0 is currently unused address space
-next_host_address = 4026531840
+next_host_address = 0xF0000000
 
-host_address_inc = ->
+next_address = ->
   next_host_address++
-  if next_host_address > 4194304000
+  if next_host_address > 0xFA000000
     error 'Out of addresses'
-    next_host_address = 4026531840
+    next_host_address = 0xF0000000
+  next_host_address
 
 pack_address = (address) ->
   ret = 0
@@ -18,8 +19,7 @@ pack_address = (address) ->
   ret
 
 host_allocate_address = (address) ->
-  host_address_inc()
-  ret = next_host_address
+  ret = next_address()
   host_lookup[ret] = address
   host_reverse_lookup[address] = ret
   ret
