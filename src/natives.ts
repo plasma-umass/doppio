@@ -1206,7 +1206,7 @@ export var native_methods = {
               if (e != null) {
                 // XXX: BrowserFS hack. BFS doesn't support the code attribute
                 // on errors yet.
-                if (e.code === 'ENOENT') {
+                if (e.code === 'ENOENT' || true) {
                   return except_cb(function() {
                     return rs.java_throw(rs.get_bs_class('Ljava/io/FileNotFoundException;'), "" + filepath + " (No such file or directory)");
                   });
@@ -1303,7 +1303,7 @@ export var native_methods = {
               if (e != null) {
                 // XXX: BrowserFS hack. BFS doesn't support the code attribute
                 // on errors yet.
-                if (e.code === 'ENOENT') {
+                if (e.code === 'ENOENT' || true) {
                   return except_cb(function() {
                     return rs.java_throw(rs.get_bs_class('Ljava/io/FileNotFoundException;'), "Could not open file " + filepath);
                   });
