@@ -84,7 +84,7 @@ $(document).ready ->
       return $('#console').click() # click to restore focus
     num_files = ev.target.files.length
     files_uploaded = 0
-    controller.message "Uploading #{num_files} files...\n", 'success', true
+    controller.message "Uploading #{num_files} files...\n", 'success', true if num_files > 0
     # Need to make a function instead of making this the body of a loop so we
     # don't overwrite "f" before the onload handler calls.
     file_fcn = ((f) ->
@@ -98,7 +98,7 @@ $(document).ready ->
       isClass = ext == 'class'
       reader.onload = (e) ->
         files_uploaded++
-        node.fs.writeFile node.process.cwd() + '/' + f.name, e.target.result, (err) ->
+        node.fs.writeFile node.process.cwd() + '/' + f.name, new Buffer(e.target.result), (err) ->
           if err
             controller.message "[#{files_uploaded}/#{num_files}] File '#{f.name}' could not be saved: #{err}\n", 'error', files_uploaded != num_files
           else
@@ -109,7 +109,7 @@ $(document).ready ->
             else
               editor.getSession?().setValue(e.target.result)
           $('#console').click() # click to restore focus
-      if isClass then reader.readAsBinaryString(f) else reader.readAsText(f)
+      reader.readAsArrayBuffer(f)
     )
     for f in ev.target.files
       file_fcn(f)
@@ -352,13 +352,13 @@ commands =
       read_dir args[0], null, null, (list) ->
         controller.message list, 'success'
     else
-      i = 0
-      read_next_dir = ->
-        read_dir args[i++], null, null, (list) ->
+      read_next_dir = (i) ->
+        d = args[i]
+        read_dir d, null, null, (list) ->
           controller.message "#{d}:\n#{list}\n\n", 'success', true
           if i is args.length then return controller.reprompt()
-          read_next_dir()
-      read_next_dir()
+          read_next_dir(i+1)
+      read_next_dir(0)
     return null
   edit: (args) ->
     startEditor = (data) ->
@@ -370,10 +370,10 @@ commands =
         editor = ace.edit('source')
         editor.setTheme 'ace/theme/twilight'
         if not args[0]? or args[0].split('.')[1] is 'java'
-          JavaMode = require("ace/mode/java").Mode
+          JavaMode = ace.require("ace/mode/java").Mode
           editor.getSession().setMode(new JavaMode)
         else
-          TextMode = require("ace/mode/text").Mode
+          TextMode = ace.require("ace/mode/text").Mode
           editor.getSession().setMode(new TextMode)
         editor.getSession().setValue(data)
     if args[0]?
@@ -406,7 +406,7 @@ commands =
       # Change to the default (starting) directory.
       '/demo'
     else node.path.resolve(args[0])
-    # Verify path exits before going there. chdir does not verify that the
+    # Verify path exists before going there. chdir does not verify that the
     # directory exists.
     node.fs.exists dir, (doesExist) ->
       if doesExist
@@ -421,19 +421,13 @@ commands =
     if args[0] == '*'
       node.fs.readdir '.', (err, fnames) ->
         if err
-          controller.message "Could not remove '.': #{err}\n", 'error'
+          controller.message "Could not read '.': #{err}\n", 'error'
         else
+          completed = 0
           for fname in fnames
-            completed = 0
-            node.fs.stat fname, (err, fstat) ->
-              if err
-                controller.message "Could not remove '.': #{err}\n", 'error'
-              else if fstat.is_directory
-                controller.message "ERROR: '#{fname}' is a directory.\n", 'error'
-              else
-                node.fs.unlink fname, (err) ->
-                  if err then controller.message "Could not remove file: #{err}\n", 'error', true
-                  if ++completed is fname.length then controller.reprompt()
+            node.fs.unlink fname, (err) ->
+              if err then controller.message "Could not remove file: #{err}\n", 'error', true
+              if ++completed is fnames.length then controller.reprompt()
     else node.fs.unlink args[0], (err) ->
       if err then controller.message "Could not remove file: #{err}\n", 'error', true
       controller.reprompt()

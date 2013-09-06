@@ -2,7 +2,7 @@
 
 "use strict"
 
-_ = require '../vendor/_.js'
+_ = require '../vendor/underscore/underscore.js'
 fs = require 'fs'
 path = require 'path'
 jvm = require '../src/jvm'

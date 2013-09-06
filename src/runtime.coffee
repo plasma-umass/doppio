@@ -3,7 +3,7 @@
 # Things assigned to root will be available outside this module.
 root = exports ? window.runtime ?= {}
 
-_ = require '../vendor/_.js'
+_ = require '../vendor/underscore/underscore.js'
 gLong = require '../vendor/gLong.js'
 util = require './util'
 {log,vtrace,trace,debug,error} = require './logging'
@@ -230,7 +230,7 @@ class root.RuntimeState
 
     serialized = snapshot.serialize()
 
-    if node
+    if node?
       window.core_dump = serialized
     else
       # 4th parameter to writeFileSync ensures this is not stored in localStorage in the browser

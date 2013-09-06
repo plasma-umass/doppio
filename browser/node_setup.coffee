@@ -1,10 +1,17 @@
 "use strict"
 
+globals =
+    '../vendor/underscore/underscore.js': '_'
+
 # Doppio's custom 'require' function, which BFS monkey-patches.
 window.require = (path, herp) ->
   # XXX: Hackfix for Ace Editor. The Ace Editor clobbers our require definiton,
   # but recalls it with an empty first argument.
   if herp? then path = herp
+
+  if path of globals
+    return window[globals[path]]
+
   [name, ext] = BrowserFS.node.path.basename(path).split '.'
   window[name] ?= {}
 

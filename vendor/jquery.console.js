@@ -445,12 +445,8 @@
 
         // Scroll to the bottom of the view
         function scrollToBottom() {
-            if (jQuery.fn.jquery > "1.6") {
-                inner.prop({ scrollTop: inner.prop("scrollHeight") });
-            }
-            else {
-                inner.attr({ scrollTop: inner.attr("scrollHeight") });
-            }
+            // Hack around jQuery's weirdness; we just want the raw element.
+            inner[0].scrollTop = inner[0].scrollHeight;
         };
 
         function cancelExecution() {

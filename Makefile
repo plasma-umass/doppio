@@ -15,6 +15,7 @@ BOOTCLASSPATH := $(DOPPIO_DIR)/vendor/classes
 COFFEEC  := $(shell npm bin)/coffee
 UGLIFYJS := $(shell npm bin)/uglifyjs
 DOCCO    := $(shell npm bin)/docco
+BOWER    := $(shell npm bin)/bower
 JAZZLIB  := $(BOOTCLASSPATH)/java/util/zip/DeflaterEngine.class
 JRE      := $(BOOTCLASSPATH)/java/lang/Object.class
 SED      := $(shell if command -v gsed >/dev/null; then echo "gsed"; else echo "sed"; fi;)
@@ -39,33 +40,46 @@ LIB_CLASSES  := $(LIB_SRCS:.java=.class)
 BROWSER_TEMPLATES := $(wildcard browser/[^_]*.mustache)
 BROWSER_HTML      := $(BROWSER_TEMPLATES:.mustache=.html)
 
+# Third-party sources
+THIRD_PARTY_SRCS := vendor/jquery-migrate/jquery-migrate.js \
+	vendor/underscore/underscore.js \
+	vendor/browserfs/dist/browserfs.js \
+	vendor/gLong.js \
+	vendor/ace-builds/src/ace.js \
+	vendor/ace-builds/src/mode-java.js \
+	vendor/ace-builds/src/theme-twilight.js
+
 # SCRIPTS
 # the order here is important: must match the order of includes
 # in the browser frontend html.
-COMMON_BROWSER_SRCS = vendor/_.js \
-	vendor/gLong.js \
+# The library version is the minimal set of doppio sources that can
+# be embedded into other projects.
+library_BROWSER_SRCS :=  \
+    src/logging.coffee \
+    src/exceptions.coffee \
+    src/util.coffee \
+    src/java_object.coffee \
+    src/opcodes.coffee \
+    src/attributes.coffee \
+    src/ConstantPool.coffee \
+    src/disassembler.coffee \
+    src/ClassData.coffee \
+    src/natives.coffee \
+    src/methods.coffee \
+    src/runtime.coffee \
+    src/ClassLoader.coffee \
+    src/jvm.coffee
+
+# The order here is important: must match the order of includes
+# in the browser frontend html.
+COMMON_BROWSER_SRCS := browser/node_setup.coffee \
 	browser/util.coffee \
-	vendor/browserfs.min.js \
-	browser/node_setup.coffee \
-	src/logging.coffee \
-	src/exceptions.coffee \
-	src/util.coffee \
-	src/java_object.coffee \
-	src/opcodes.coffee \
-	src/attributes.coffee \
-	src/ConstantPool.coffee \
-	src/disassembler.coffee \
-	src/ClassData.coffee \
-	src/natives.coffee \
-	src/methods.coffee \
-	src/runtime.coffee \
-	src/ClassLoader.coffee \
-	src/jvm.coffee \
+	$(library_BROWSER_SRCS) \
 	src/testing.coffee \
 	browser/untar.coffee
 
 # Release uses the actual jQuery console.
-release_BROWSER_SRCS := $(COMMON_BROWSER_SRCS) \
+release_BROWSER_SRCS := $(THIRD_PARTY_SRCS) $(COMMON_BROWSER_SRCS) \
 	vendor/jquery.console.js \
 	browser/frontend.coffee
 dev_BROWSER_SRCS := $(release_BROWSER_SRCS)
@@ -73,29 +87,7 @@ dev_BROWSER_SRCS := $(release_BROWSER_SRCS)
 benchmark_BROWSER_SRCS := $(COMMON_BROWSER_SRCS) \
 	browser/mockconsole.coffee \
 	browser/frontend.coffee
-# Sources for an in-browser doppio.js library. Same ordering requirement applies.
-library_BROWSER_SRCS := vendor/_.js \
-	vendor/gLong.js \
-	src/logging.coffee \
-	src/exceptions.coffee \
-	src/util.coffee \
-	src/java_object.coffee \
-	src/opcodes.coffee \
-	src/attributes.coffee \
-	src/ConstantPool.coffee \
-	src/disassembler.coffee \
-	src/ClassData.coffee \
-	src/natives.coffee \
-	src/methods.coffee \
-	src/runtime.coffee \
-	src/ClassLoader.coffee \
-	src/jvm.coffee
-# These don't survive uglifyjs and are already minified, so include them
-# separately. Also, this allows us to put them at the end of the document to
-# reduce load time.
-ACE_SRCS = vendor/ace/src-min/ace.js \
-	vendor/ace/src-min/mode-java.js \
-	vendor/ace/src-min/theme-twilight.js
+
 CLI_SRCS := $(wildcard src/*.coffee console/*.coffee) src/natives.coffee
 
 # Get list of native sources in alphabetical order.
@@ -108,7 +100,7 @@ NATIVE_CLASSES := $(wildcard src/natives/classes/*.coffee)
 ################################################################################
 # Protect non-file-based targets from not functioning if a file with the
 # target's name is present.
-.PHONY: release benchmark dist dependencies java test clean docs build dev library
+.PHONY: release benchmark dist dependencies java test clean docs build dev library actualtest
 
 # Don't keep this around in the src directory, because it's a generated file.
 .INTERMEDIATE: src/natives.coffee
@@ -126,7 +118,7 @@ src/natives.coffee: $(NATIVE_SRCS)
 # This is a static pattern rule. '%' gets substituted for the target name.
 release benchmark: %: dependencies build/% build/%/browser \
 	$(patsubst %,build/\%/%,$(notdir $(BROWSER_HTML))) build/%/favicon.ico \
-	build/%/compressed.js build/%/browser/mini-rt.tar build/%/ace.js \
+	build/%/compressed.js build/%/browser/mini-rt.tar \
 	build/%/browser/style.css $(DEMO_CLASSES) $(UTIL_CLASSES) \
 	build/%/classes build/%/vendor
 	rsync browser/*.svg browser/*.png build/$*/browser/
@@ -141,7 +133,7 @@ dev: dependencies build/dev build/dev/browser \
 	rsync $(filter %.js,$(dev_BROWSER_SRCS)) build/dev/vendor
 	rsync browser/*.svg browser/*.png build/dev/browser/
 	rsync browser/core_viewer/core_viewer.css build/dev/browser/core_viewer/
-	coffee -c -o build/dev/browser/core_viewer browser/core_viewer/core_viewer.coffee
+	$(COFFEEC) -c -o build/dev/browser/core_viewer browser/core_viewer/core_viewer.coffee
 	cp browser/core_viewer.html build/dev
 
 	cd build/dev; $(COFFEEC) $(DOPPIO_DIR)/tools/gen_dir_listings.coffee > browser/listings.json
@@ -159,9 +151,9 @@ $(DIST_NAME): release docs
 
 # Installs or checks for any required dependencies.
 dependencies: $(JAZZLIB) $(JRE)
-	@git submodule update --quiet --init --recursive
 	@rm -f classes/test/failures.txt
 	@npm install
+	@$(BOWER) install
 $(JAZZLIB):
 	$(error JazzLib not found. Unzip it to $(BOOTCLASSPATH), or run ./tools/setup.sh.)
 $(JRE):
@@ -170,8 +162,12 @@ $(JRE):
 # Used to test the chosen Java compiler in setup.sh.
 java: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES) $(UTIL_CLASSES) $(LIB_CLASSES)
 
+# Enforce having all the dependencies before running the test cases.
+test: dependencies
+	@make actualtest
+
 # Runs the Java tests in classes/test with the node runner.
-test: dependencies $(TESTS)
+actualtest: $(TESTS)
 	@echo ''
 	@cat classes/test/failures.txt
 	@! test -s classes/test/failures.txt # return 1 if file is nonempty
@@ -237,23 +233,17 @@ $(foreach TARGET,$(BUILD_TARGETS),$(subst %,$(TARGET),$(BUILD_FOLDERS))):
 build/release/about.html build/benchmark/about.html: browser/_about.md
 
 build/dev/%.html: browser/%.mustache browser/_navbar.mustache
-	browser/render.coffee $* > $@
+	$(COFFEEC) browser/render.coffee $* > $@
 
 build/release/%.html build/benchmark/%.html: browser/%.mustache browser/_navbar.mustache
-	browser/render.coffee --release $* > $@
+	$(COFFEEC) browser/render.coffee --release $* > $@
 
 build/%/favicon.ico: browser/favicon.ico
 	rsync $< $@
 
-build/release/ace.js build/dev/ace.js build/benchmark/ace.js: $(ACE_SRCS)
-	for src in $(ACE_SRCS); do \
-		cat $${src}; \
-		echo ";"; \
-	done > $@
-
 # The | prevents the prerequisite from being included in $^, and avoids
 # re-executing the rule when the folder is 'updated' with `mkdir -p`.
-build/%/browser/style.css: vendor/bootstrap/css/bootstrap.min.css \
+build/%/browser/style.css: vendor/bootstrap/docs/assets/css/bootstrap.css \
 	browser/style.css | build/%/browser
 	cat $^ > $@
 

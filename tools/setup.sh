@@ -2,8 +2,6 @@
 set -e
 cd `dirname $0`/..
 
-git submodule update --init --recursive
-
 PLATFORM=`uname -s`
 PKGMGR=""
 
@@ -22,9 +20,9 @@ if [ ! -f classes/java/lang/Object.class ]; then
   DOWNLOAD_DIR=`mktemp -d jdk-download.XXX`
   cd $DOWNLOAD_DIR
     DEBS_DOMAIN="http://security.ubuntu.com/ubuntu/pool/main/o/openjdk-6"
-    DEBS=("openjdk-6-jre-headless_6b27-1.12.5-0ubuntu0.12.04.1_i386.deb"
-          "openjdk-6-jdk_6b27-1.12.5-0ubuntu0.12.04.1_i386.deb"
-          "openjdk-6-jre-lib_6b27-1.12.5-0ubuntu0.12.04.1_all.deb")
+    DEBS=("openjdk-6-jre-headless_6b27-1.12.6-1ubuntu0.12.04.2_i386.deb"
+          "openjdk-6-jdk_6b27-1.12.6-1ubuntu0.12.04.2_i386.deb"
+          "openjdk-6-jre-lib_6b27-1.12.6-1ubuntu0.12.04.2_all.deb")
     for DEB in ${DEBS[@]}; do
       wget $DEBS_DOMAIN/$DEB
       ar p $DEB data.tar.gz | tar zx
@@ -37,7 +35,7 @@ if [ ! -f classes/java/lang/Object.class ]; then
     unzip -qq -o -d classes/ "$JAR_PATH"
   done
   if [ ! -e java_home ]; then
-    JH=$DOWNLOAD_DIR/usr/lib/jvm/java-6-openjdk-common/jre
+    JH=$DOWNLOAD_DIR/usr/lib/jvm/java-6-openjdk/jre
     # a number of .properties files are symlinks to /etc; copy the targets over
     # so we do not need to depend on /etc's existence
     for LINK in `find $JH -type l`; do
@@ -90,11 +88,8 @@ if ! command -v node > /dev/null; then
   fi
 fi
 
-# Install Node modules (must come before version check because the semver package is needed)
-echo "Installing required node modules"
-npm install
-
 # Make sure the node version is greater than 0.10
+npm install semver@~2.0.8  # We need semver to check versions before doing the full `npm install`.
 node_outdated=$(node -p "require('semver').lt(process.versions.node, '0.10.0')")
 
 if [[ $node_outdated == "true" ]]; then
@@ -108,7 +103,26 @@ if [[ $node_outdated == "true" ]]; then
   fi
 fi
 
-echo "Using `javac -version 2>&1` to generate classfiles"
+# Make sure npm is installed
+if ! command -v npm > /dev/null; then
+  echo "npm not found, installing (requires superuser rights)"
+  curl https://npmjs.org/install.sh | sudo sh
+fi
+
+# Install Node modules (must come before version check because the semver package is needed)
+echo "Installing required node modules"
+npm install
+
+echo "Installing frontend dependencies"
+`npm bin`/bower install
+
+javac_version=$(javac -version 2>&1)
+if [[ "$javac_version" =~ "1.7" ]]; then
+  echo "Detected Java 7 (javac version $javac_version). Please use Java 6."
+  exit
+fi
+
+echo "Using $javac_version to generate classfiles"
 make java
 
 if ! command -v bundle > /dev/null; then
