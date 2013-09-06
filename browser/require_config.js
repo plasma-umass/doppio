@@ -12,14 +12,6 @@ require.config({
     'vendor/jquery.console': {
       deps: ['vendor/jquery/jquery.min']
     },
-    'vendor/ace-builds/src/ace': {
-    },
-    'vendor/ace-builds/src/mode-java': {
-      deps: ['vendor/ace-builds/src/ace']
-    },
-    'vendor/ace-builds/src/theme-twilight': {
-      deps: ['vendor/ace-builds/src/ace']
-    },
     'vendor/websockify/web-socket-js/swfobject': {
     },
     'vendor/websockify/web-socket-js/web_socket': {

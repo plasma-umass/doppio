@@ -12,7 +12,6 @@
     "jquery": ">= 1.9.0",
     "jquery-migrate": "~1.2.1",
     "underscore": "~1.5.1",
-    "ace-builds": "~1.1.1",
     "browserfs": "~0.2.0",
     "bootstrap": "2.3.2"
   }
