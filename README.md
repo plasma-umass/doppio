@@ -26,7 +26,6 @@ automatically. Users of other package managers should check that they have:
 
 * `node >= 0.10`
 * `wget`
-* `libffi`
 
 Usage
 -----
