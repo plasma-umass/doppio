@@ -393,7 +393,7 @@ var commands = {
     return null;
   },
   javac: function(args: string[], cb) {
-    jvm.set_classpath(sys_path + '/vendor/classes/', './:/home/doppio');
+    jvm.set_classpath(sys_path + '/vendor/classes/', './:/sys');
     var rs = new runtime.RuntimeState(stdout, user_input, bs_cl);
     jvm.run_class(rs, 'classes/util/Javac', args, function() {
       // XXX: remove any classes that just got compiled from the class cache
