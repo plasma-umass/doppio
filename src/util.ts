@@ -12,6 +12,8 @@ export var FLOAT_POS_INFINITY = Math.pow(2, 128);
 export var FLOAT_NEG_INFINITY = -1 * FLOAT_POS_INFINITY;
 export var FLOAT_POS_INFINITY_AS_INT = 0x7F800000;
 export var FLOAT_NEG_INFINITY_AS_INT = -8388608;
+// We use the JavaScript NaN as our NaN value, and convert it to
+// a NaN value in the SNaN range when an int equivalent is requested.
 export var FLOAT_NaN_AS_INT = 0x7fc00000;
 
 if (Math['imul'] == null) {

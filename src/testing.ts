@@ -23,10 +23,12 @@ export function find_test_classes(doppio_dir: string, cb): void {
 export function run_tests(test_classes: string[], stdout, hide_diffs: boolean,
     quiet: boolean, keep_going: boolean, callback): void {
   var doppio_dir = typeof node !== "undefined" && node !== null ? '/sys/' : path.resolve(__dirname, '..');
+  // set up the classpath
   var jcl_dir = path.resolve(doppio_dir, 'vendor/classes');
   jvm.set_classpath(jcl_dir, doppio_dir);
   var xfail_file = path.resolve(doppio_dir, 'classes/test/xfail.txt');
   function _runner(test_classes: string[], xfails: string[]): void {
+    // get the tests, if necessary
     if (test_classes.length === 0) {
       quiet || keep_going || stdout("Pass\n");
       return callback(false);
@@ -68,6 +70,7 @@ export function run_tests(test_classes: string[], stdout, hide_diffs: boolean,
   });
 }
 
+// remove comments and blank lines, ignore specifics of float/double printing and whitespace
 function sanitize(str: string): string {
   return str.replace(/\/\/.*/g, '')
             .replace(/^\s*$[\n\r]+/mg, '')
