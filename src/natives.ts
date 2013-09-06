@@ -38,9 +38,12 @@ function get_property(rs: runtime.RuntimeState, jvm_key: java_object.JavaObject,
     _default = null;
   }
   key = jvm_key.jvm2js_str();
+  // XXX: Still needed?
   jvm = jvm != null ? jvm : require('./jvm');
   val = jvm.system_properties[key];
+  // special case
   if (key === 'java.class.path') {
+    // the last path is actually the bootclasspath (vendor/classes/)
     return rs.init_string(val.slice(0, val.length - 1).join(':'));
   }
   if (val != null) {
@@ -50,6 +53,7 @@ function get_property(rs: runtime.RuntimeState, jvm_key: java_object.JavaObject,
   }
 }
 
+// convenience function. idea taken from coffeescript's grammar
 function o(fn_name: string, fn: Function): { fn_name: string; fn: Function} {
   return {
     fn_name: fn_name,
@@ -61,9 +65,11 @@ export var trapped_methods = {
   java: {
     lang: {
       ref: {
+        // NOP, because we don't do our own GC and also this starts a thread?!?!?!
         Reference: [o('<clinit>()V', function(rs) {})]
       },
       String: [
+        // trapped here only for speed
         o('hashCode()I', function(rs:runtime.RuntimeState, _this: java_object.JavaObject): number {
           var chars, count, hash, i, offset, _i;
 
@@ -88,14 +94,18 @@ export var trapped_methods = {
           }
         }),o('adjustPropertiesForBackwardCompatibility(L!/util/Properties;)V', function(rs) {}), o('getProperty(L!/!/String;)L!/!/String;', get_property), o('getProperty(L!/!/String;L!/!/String;)L!/!/String;', get_property)
       ],
+      // NOP, because we don't support threads
+      // XXX: We should probably fix this; we support threads now.
       Terminator: [o('setup()V', function(rs) {})]
     },
     util: {
       concurrent: {
         atomic: {
           AtomicInteger: [
-            o('<clinit>()V', function(rs) {}), o('compareAndSet(II)Z', function(rs, _this, expect, update) {
+            o('<clinit>()V', function(rs) {}), // NOP
+            o('compareAndSet(II)Z', function(rs, _this, expect, update) {
               _this.set_field(rs, 'Ljava/util/concurrent/atomic/AtomicInteger;value', update);
+              // always true, because we only have one thread of execution
               return true;
             })
           ]
@@ -113,6 +123,7 @@ export var trapped_methods = {
       ],
       charset: {
         Charset$3: [
+          // this is trapped and NOP'ed for speed
           o('run()L!/lang/Object;', function(rs: runtime.RuntimeState): java_object.JavaObject {
             return null;
           })
@@ -139,7 +150,7 @@ function doPrivileged(rs: runtime.RuntimeState, action: methods.Method): void {
   } else {
     rs.async_op(function (resume_cb, except_cb) {
       action.cls.resolve_method(rs, 'run()Ljava/lang/Object;', (function () {
-        rs.meta_stack().push(<any>{});
+        rs.meta_stack().push(<any>{}); // dummy
         resume_cb();
       }), except_cb);
     });
@@ -156,6 +167,12 @@ function stat_file(fname: string, cb: (stat: any)=>void): void {
   });
 }
 
+// "Fast" array copy; does not have to check every element for illegal
+// assignments. You can do tricks here (if possible) to copy chunks of the array
+// at a time rather than element-by-element.
+// This function *cannot* access any attribute other than 'array' on src due to
+// the special case when src == dest (see code for System.arraycopy below).
+// TODO: Potentially use ParallelArray if available.
 function arraycopy_no_check(src: java_object.JavaArray, src_pos: number, dest: java_object.JavaArray, dest_pos: number, length: number): void {
   var j = dest_pos;
   var end = src_pos + length
@@ -164,11 +181,18 @@ function arraycopy_no_check(src: java_object.JavaArray, src_pos: number, dest: j
   }
 }
 
+// "Slow" array copy; has to check every element for illegal assignments.
+// You cannot do any tricks here; you must copy element by element until you
+// have either copied everything, or encountered an element that cannot be
+// assigned (which causes an exception).
+// Guarantees: src and dest are two different reference types. They cannot be
+//             primitive arrays.
 function arraycopy_check(rs: runtime.RuntimeState, src: java_object.JavaArray, src_pos: number, dest: java_object.JavaArray, dest_pos: number, length: number): void {
   var j = dest_pos;
   var end = src_pos + length
   var dest_comp_cls = dest.cls.get_component_class();
   for (var i = src_pos; i < end; i++) {
+    // Check if null or castable.
     if (src.array[i] === null || src.array[i].cls.is_castable(dest_comp_cls)) {
       dest.array[j] = src.array[i];
     } else {
@@ -180,12 +204,16 @@ function arraycopy_check(rs: runtime.RuntimeState, src: java_object.JavaArray, s
 }
 
 function unsafe_memcpy(rs: runtime.RuntimeState, src_base: java_object.JavaArray, src_offset_l: gLong, dest_base: java_object.JavaArray, dest_offset_l: gLong, num_bytes_l: gLong): void {
+  // XXX assumes base object is an array if non-null
+  // TODO: optimize by copying chunks at a time
   var num_bytes = num_bytes_l.toNumber();
   if (src_base != null) {
     var src_offset = src_offset_l.toNumber();
     if (dest_base != null) {
+      // both are java arrays
       return arraycopy_no_check(src_base, src_offset, dest_base, dest_offset_l.toNumber(), num_bytes);
     } else {
+      // src is an array, dest is a mem block
       var dest_addr = rs.block_addr(dest_offset_l);
       if (typeof DataView !== "undefined" && DataView !== null) {
         for (var i = 0; i < num_bytes; i++) {
@@ -200,6 +228,7 @@ function unsafe_memcpy(rs: runtime.RuntimeState, src_base: java_object.JavaArray
   } else {
     var src_addr = rs.block_addr(src_offset_l);
     if (dest_base != null) {
+      // src is a mem block, dest is an array
       var dest_offset = dest_offset_l.toNumber();
       if (typeof DataView !== "undefined" && DataView !== null) {
         for (var i = 0; i < num_bytes; i++) {
@@ -211,6 +240,7 @@ function unsafe_memcpy(rs: runtime.RuntimeState, src_base: java_object.JavaArray
         }
       }
     } else {
+      // both are mem blocks
       var dest_addr = rs.block_addr(dest_offset_l);
       if (typeof DataView !== "undefined" && DataView !== null) {
         for (var i = 0; i < num_bytes; i++) {
@@ -235,9 +265,11 @@ function unsafe_compare_and_swap(rs: runtime.RuntimeState, _this: java_object.Ja
   }
 }
 
+// avoid code dup among native methods
 function native_define_class(rs: runtime.RuntimeState, name: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number, loader: ClassLoader.ClassLoader, resume_cb: (jco: java_object.JavaClassObject) => void, except_cb: (e_fn: ()=>void)=>void): void {
   var buff = new Buffer(len);
   var b_array = bytes.array;
+  // Convert to buffer
   for (var i = offset; i < offset + len; i++) {
     buff.writeUInt8((256+b_array[i])%256, i);
   }
@@ -254,6 +286,7 @@ function write_to_file(rs: runtime.RuntimeState, _this: java_object.JavaObject, 
     rs.java_throw(<ClassData.ReferenceClassData>rs.get_bs_class('Ljava/io/IOException;'), "Bad file descriptor");
   }
   if (fd !== 1 && fd !== 2) {
+    // normal file
     buf = new Buffer(bytes.array);
     rs.async_op(function(cb) {
       return fs.write(fd, buf, offset, len, _this.$pos, function(err, num_bytes) {
@@ -265,12 +298,15 @@ function write_to_file(rs: runtime.RuntimeState, _this: java_object.JavaObject, 
   }
   rs.print(util.chars2js_str(bytes, offset, len));
   if (typeof node !== "undefined" && node !== null) {
+    // For the browser implementation -- the DOM doesn't get repainted
+    // unless we give the event loop a chance to spin.
     return rs.async_op(function(cb) {
       return cb();
     });
   }
 }
 
+// Have a JavaClassLoaderObject and need its ClassLoader object? Use this method!
 function get_cl_from_jclo(rs: runtime.RuntimeState, jclo: java_object.JavaClassLoaderObject): ClassLoader.ClassLoader {
   if ((jclo != null) && (jclo.$loader != null)) {
     return jclo.$loader;
@@ -278,9 +314,12 @@ function get_cl_from_jclo(rs: runtime.RuntimeState, jclo: java_object.JavaClassL
   return rs.get_bs_cl();
 }
 
+// helper function for stack trace natives (see java/lang/Throwable)
 function create_stack_trace(rs: runtime.RuntimeState, throwable: java_object.JavaObject): java_object.JavaObject[] {
   var source_file, _ref8;
 
+  // we don't want to include the stack frames that were created by
+  // the construction of this exception
   var stacktrace = [];
   var cstack = rs.meta_stack()._cs.slice(1, -1);
   for (var i = 0; i < cstack.length; i++) {
@@ -304,6 +343,7 @@ function create_stack_trace(rs: runtime.RuntimeState, throwable: java_object.Jav
         if (table == null) {
           break;
         }
+        // get the last line number before the stack frame's pc
         for (var k in table.entries) {
           var row = table.entries[k];
           if (row.start_pc <= sf.pc) {
@@ -347,11 +387,14 @@ export var native_methods = {
   classes: {
     awt: {
       CanvasGraphicsEnvironment: []
+      // TODO: implement this
+      // o 'createFontConfiguration()Lsun/awt/FontConfiguration;', (rs) ->
     },
     doppio: {
       JavaScript: [
         o('eval(Ljava/lang/String;)Ljava/lang/String;', function (rs: runtime.RuntimeState, to_eval: java_object.JavaObject): java_object.JavaObject {
           var rv = eval(to_eval.jvm2js_str());
+          // Coerce to string, if possible.
           if (rv != null) {
             return rs.init_string("" + rv);
           } else {
@@ -380,12 +423,14 @@ export var native_methods = {
   },
   java: {
     lang: {
+      // Fun Note: The bootstrap classloader object is represented by null.
       ClassLoader: [
         o('findLoadedClass0(L!/!/String;)L!/!/Class;', function (rs: runtime.RuntimeState, _this: java_object.JavaClassLoaderObject, name: java_object.JavaObject): java_object.JavaClassObject {
           var cls, loader, type;
 
           loader = get_cl_from_jclo(rs, _this);
           type = util.int_classname(name.jvm2js_str());
+          // Return JavaClassObject if loaded, or null otherwise.
           cls = loader.get_resolved_class(type, true);
           if (cls != null) {
             return cls.get_class_object(rs);
@@ -394,6 +439,8 @@ export var native_methods = {
           }
         }), o('findBootstrapClass(L!/!/String;)L!/!/Class;', function (rs: runtime.RuntimeState, _this: java_object.JavaClassLoaderObject, name: java_object.JavaObject): void {
           var type = util.int_classname(name.jvm2js_str());
+          // This returns null in OpenJDK7, but actually can throw an exception
+          // in OpenJDK6.
           rs.async_op<java_object.JavaClassObject>(function (resume_cb, except_cb) {
             rs.get_bs_cl().resolve_class(rs, type, (function (cls) {
               resume_cb(cls.get_class_object(rs));
@@ -420,6 +467,7 @@ export var native_methods = {
           if (loader.get_resolved_class(type, true) != null) {
             return;
           }
+          // Ensure that this class is resolved.
           rs.async_op<void >(function (resume_cb, except_cb) {
             loader.resolve_class(rs, type, (function () {
               resume_cb();
@@ -427,6 +475,7 @@ export var native_methods = {
           });
         })
       ],
+      // NOPs
       Compiler: [o('disable()V', function (rs, _this) { }), o('enable()V', function (rs, _this) { })],
       Float: [
         o('floatToRawIntBits(F)I', function (rs: runtime.RuntimeState, f_val: number): number {
@@ -437,25 +486,40 @@ export var native_methods = {
             i_view = new Int32Array(f_view.buffer);
             return i_view[0];
           }
+          // Special cases!
           if (f_val === 0) {
             return 0;
           }
+          // We map the infinities to JavaScript infinities. Map them back.
           if (f_val === Number.POSITIVE_INFINITY) {
             return util.FLOAT_POS_INFINITY_AS_INT;
           }
           if (f_val === Number.NEGATIVE_INFINITY) {
             return util.FLOAT_NEG_INFINITY_AS_INT;
           }
+          // Convert JavaScript NaN to Float NaN value.
           if (isNaN(f_val)) {
             return util.FLOAT_NaN_AS_INT;
           }
+
+          // We have more bits of precision than a float, so below we round to
+          // the nearest significand. This appears to be what the x86
+          // Java does for normal floating point operations.
+
           sign = f_val < 0 ? 1 : 0;
           f_val = Math.abs(f_val);
+          // Subnormal zone!
+          // (−1)^signbits×2^−126×0.significandbits
+          // Largest subnormal magnitude:
+          // 0000 0000 0111 1111 1111 1111 1111 1111
+          // Smallest subnormal magnitude:
+          // 0000 0000 0000 0000 0000 0000 0000 0001
           if (f_val <= 1.1754942106924411e-38 && f_val >= 1.4012984643248170e-45) {
             exp = 0;
             sig = Math.round((f_val / Math.pow(2, -126)) * Math.pow(2, 23));
             return (sign << 31) | (exp << 23) | sig;
           } else {
+            // Regular FP numbers
             exp = Math.floor(Math.log(f_val) / Math.LN2);
             sig = Math.round((f_val / Math.pow(2, exp) - 1) * Math.pow(2, 23));
             return (sign << 31) | ((exp + 127) << 23) | sig;
@@ -473,23 +537,44 @@ export var native_methods = {
             i_view = new Uint32Array(d_view.buffer);
             return gLong.fromBits(i_view[0], i_view[1]);
           }
+
+          // Fallback for older JS engines
+          // Special cases
           if (d_val === 0) {
             return gLong.ZERO;
           }
           if (d_val === Number.POSITIVE_INFINITY) {
+            // High bits: 0111 1111 1111 0000 0000 0000 0000 0000
+            //  Low bits: 0000 0000 0000 0000 0000 0000 0000 0000
             return gLong.fromBits(0, 2146435072);
           } else if (d_val === Number.NEGATIVE_INFINITY) {
+            // High bits: 1111 1111 1111 0000 0000 0000 0000 0000
+            //  Low bits: 0000 0000 0000 0000 0000 0000 0000 0000
             return gLong.fromBits(0, -1048576);
           } else if (isNaN(d_val)) {
+            // High bits: 0111 1111 1111 1000 0000 0000 0000 0000
+            //  Low bits: 0000 0000 0000 0000 0000 0000 0000 0000
             return gLong.fromBits(0, 2146959360);
           }
           sign = d_val < 0 ? 1 << 31 : 0;
           d_val = Math.abs(d_val);
+
+          // Check if it is a subnormal number.
+          // (-1)s × 0.f × 2-1022
+          // Largest subnormal magnitude:
+          // 0000 0000 0000 1111 1111 1111 1111 1111
+          // 1111 1111 1111 1111 1111 1111 1111 1111
+          // Smallest subnormal magnitude:
+          // 0000 0000 0000 0000 0000 0000 0000 0000
+          // 0000 0000 0000 0000 0000 0000 0000 0001
           if (d_val <= 2.2250738585072010e-308 && d_val >= 5.0000000000000000e-324) {
             exp = 0;
             sig = gLong.fromNumber((d_val / Math.pow(2, -1022)) * Math.pow(2, 52));
           } else {
             exp = Math.floor(Math.log(d_val) / Math.LN2);
+            // If d_val is close to a power of two, there's a chance that exp
+            // will be 1 greater than it should due to loss of accuracy in the
+            // log result.
             if (d_val < Math.pow(2, exp)) {
               exp = exp - 1;
             }
@@ -506,6 +591,7 @@ export var native_methods = {
         o('getClass()L!/!/Class;', function (rs: runtime.RuntimeState, _this: java_object.JavaObject): java_object.JavaClassObject {
           return _this.cls.get_class_object(rs);
         }), o('hashCode()I', function (rs: runtime.RuntimeState, _this: java_object.JavaObject): number {
+          // return the pseudo heap reference, essentially a unique id
           return _this.ref;
         }), o('clone()L!/!/!;', function (rs: runtime.RuntimeState, _this: java_object.JavaObject): java_object.JavaObject {
           return _this.clone(rs);
@@ -580,6 +666,7 @@ export var native_methods = {
           var env_arr, k, v, _ref5;
 
           env_arr = [];
+          // convert to an array of strings of the form [key, value, key, value ...]
           _ref5 = process.env;
           for (k in _ref5) {
             v = _ref5[k];
@@ -625,6 +712,7 @@ export var native_methods = {
             var val;
 
             val = array_get(rs, arr, idx);
+            // Box primitive values (fast check: prims don't have .ref attributes).
             if (val.ref == null) {
               return arr.cls.get_component_class().create_wrapper_object(rs, val);
             }
@@ -680,7 +768,8 @@ export var native_methods = {
       SecurityManager: [
         o('getClassContext()[Ljava/lang/Class;', function(rs, _this) {
           var classes, sf, _i, _ref5;
-
+          // return an array of classes for each method on the stack
+          // starting with the current method and going up the call chain
           classes = [];
           _ref5 = rs.meta_stack()._cs;
           for (_i = _ref5.length - 1; _i >= 0; _i += -1) {
@@ -731,7 +820,9 @@ export var native_methods = {
           return Math.sqrt(d_val);
         }), o('tan(D)D', function(rs, d_val) {
           return Math.tan(d_val);
-        }), o('floor(D)D', function(rs, d_val) {
+        }),
+        // these two are native in OpenJDK but not Apple-Java
+        o('floor(D)D', function(rs, d_val) {
           return Math.floor(d_val);
         }), o('ceil(D)D', function(rs, d_val) {
           return Math.ceil(d_val);
@@ -751,16 +842,20 @@ export var native_methods = {
       System: [
         o('arraycopy(L!/!/Object;IL!/!/Object;II)V', function(rs, src, src_pos, dest, dest_pos, length) {
           var dest_comp_cls, src_comp_cls;
-
+          // Needs to be checked *even if length is 0*.
           if ((src == null) || (dest == null)) {
             rs.java_throw(rs.get_bs_class('Ljava/lang/NullPointerException;'), 'Cannot copy to/from a null array.');
           }
+          // Can't do this on non-array types. Need to check before I check bounds below, or else I'll get an exception.
           if (!(src.cls instanceof ArrayClassData) || !(dest.cls instanceof ArrayClassData)) {
             rs.java_throw(rs.get_bs_class('Ljava/lang/ArrayStoreException;'), 'src and dest arguments must be of array type.');
           }
+          // Also needs to be checked *even if length is 0*.
           if (src_pos < 0 || (src_pos + length) > src.array.length || dest_pos < 0 || (dest_pos + length) > dest.array.length || length < 0) {
+            // System.arraycopy requires IndexOutOfBoundsException, but Java throws an array variant of the exception in practice.
             rs.java_throw(rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;'), 'Tried to write to an illegal index in an array.');
           }
+          // Special case; need to copy the section of src that is being copied into a temporary array before actually doing the copy.
           if (src === dest) {
             src = {
               cls: src.cls,
@@ -769,13 +864,17 @@ export var native_methods = {
             src_pos = 0;
           }
           if (src.cls.is_castable(dest.cls)) {
+            // Fast path
             return arraycopy_no_check(src, src_pos, dest, dest_pos, length);
           } else {
+            // Slow path
+            // Absolutely cannot do this when two different primitive types, or a primitive type and a reference type.
             src_comp_cls = src.cls.get_component_class();
             dest_comp_cls = dest.cls.get_component_class();
             if ((src_comp_cls instanceof PrimitiveClassData) || (dest_comp_cls instanceof PrimitiveClassData)) {
               return rs.java_throw(rs.get_bs_class('Ljava/lang/ArrayStoreException;'), 'If calling arraycopy with a primitive array, both src and dest must be of the same primitive type.');
             } else {
+              // Must be two reference types.
               return arraycopy_check(rs, src, src_pos, dest, dest_pos, length);
             }
           }
@@ -788,6 +887,7 @@ export var native_methods = {
         }), o('initProperties(L!/util/Properties;)L!/util/Properties;', function(rs, props) {
           return rs.push(null);
         }), o('nanoTime()J', function(rs) {
+          // we don't actually have nanosecond precision
           return gLong.fromNumber((new Date).getTime()).multiply(gLong.fromNumber(1000000));
         }), o('setIn0(L!/io/InputStream;)V', function(rs, stream) {
           var sys;
@@ -810,6 +910,7 @@ export var native_methods = {
         o('currentThread()L!/!/!;', function(rs) {
           return rs.curr_thread;
         }),
+        // NOP
         o('setPriority0(I)V', function(rs) {}),
         o('holdsLock(L!/!/Object;)Z', function(rs, obj) {
           return rs.curr_thread === rs.lock_refs[obj.ref];
@@ -833,6 +934,8 @@ export var native_methods = {
           if (_this === rs.curr_thread) {
             return;
           }
+          // Parked threads do not raise an interrupt
+          // exception, but do get yielded to
           if (rs.parked(_this)) {
             rs["yield"](_this);
             return;
@@ -842,7 +945,7 @@ export var native_methods = {
           new_thread_sf.runner = function() {
             return rs.java_throw(rs.get_bs_class('Ljava/lang/InterruptedException;'), 'interrupt0 called');
           };
-          _this.$meta_stack.push({});
+          _this.$meta_stack.push({}); // dummy
           rs["yield"](_this);
           throw exceptions.ReturnException;
         }), o('start0()V', function(rs, _this) {
@@ -859,6 +962,7 @@ export var native_methods = {
           run_method = _this.cls.method_lookup(rs, 'run()V');
           thread_runner_sf = run_method.setup_stack(rs);
           new_thread_sf.runner = function() {
+            // new_thread_sf is the fake SF at index 0
             new_thread_sf.runner = null;
             _this.$isAlive = false;
             return debug("TE(start0): thread died: " + (thread_name(rs, _this)));
@@ -869,6 +973,7 @@ export var native_methods = {
           };
           throw exceptions.ReturnException;
         }), o('sleep(J)V', function(rs, millis) {
+          // sleep is a yield point, plus some fancy wakeup semantics
           rs.curr_thread.wakeup_time = (new Date).getTime() + millis.toNumber();
           return rs.async_op(function(resume_cb) {
             return rs.choose_next_thread(null, function(next_thread) {
@@ -921,6 +1026,7 @@ export var native_methods = {
           var rv;
 
           rv = rs.meta_stack().get_caller(1).method.cls.loader.loader_obj;
+          // The loader_obj of the bootstrap classloader is null.
           if (rv !== void 0) {
             return rv;
           } else {
@@ -940,7 +1046,7 @@ export var native_methods = {
       FileSystem: [
         o('getFileSystem()L!/!/!;', function(rs) {
           var cache1, cache2, cache_init, cdata, my_sf;
-
+          // TODO: avoid making a new FS object each time this gets called? seems to happen naturally in java/io/File...
           my_sf = rs.curr_frame();
           cdata = rs.get_bs_class('Ljava/io/ExpiringCache;');
           cache1 = new JavaObject(rs, cdata);
@@ -949,6 +1055,7 @@ export var native_methods = {
           rs.push2(cache1, cache2);
           cache_init.setup_stack(rs);
           my_sf.runner = function() {
+            // XXX: don't use get_property if we don't want to make java/lang/String objects
             cache_init.setup_stack(rs);
             return my_sf.runner = function() {
               var rv, system_properties;
@@ -993,8 +1100,8 @@ export var native_methods = {
               });
             });
           });
-        }), o('writeBytes([BIIZ)V', write_to_file),
-        o('writeBytes([BII)V', write_to_file),
+        }), o('writeBytes([BIIZ)V', write_to_file), // OpenJDK version
+        o('writeBytes([BII)V', write_to_file), // Apple-java version
         o('close0()V', function(rs, _this) {
           var fd, fd_obj;
 
@@ -1017,6 +1124,8 @@ export var native_methods = {
       FileInputStream: [
         o('available()I', function(rs, _this) {
           var fd, fd_obj;
+          // no buffering for stdin (if fd is 0)
+          // TODO: Uh, fix this mess.
           return fd_obj = _this.get_field(rs, "Ljava/io/FileInputStream;fd"), fd = fd_obj.get_field(rs, "Ljava/io/FileDescriptor;fd"),
           -1 === fd && rs.java_throw(rs.get_bs_class("Ljava/io/IOException;"), "Bad file descriptor"),
           0 === fd ? 0 : rs.async_op(function(cb) {
@@ -1030,6 +1139,7 @@ export var native_methods = {
           if (-1 === fd)
             rs.java_throw(rs.get_bs_class("Ljava/io/IOException;"), "Bad file descriptor");
           if (0 !== fd)
+            // this is a real file that we've already opened
             rs.async_op(function(cb) {
               return fs.fstat(fd, function(err, stats) {
                   var buf;
@@ -1039,6 +1149,7 @@ export var native_methods = {
               });
             });
           else
+            // reading from System.in, do it async
             rs.async_op(function(cb) {
               return rs.async_input(1, function(byte) {
                   return cb(0 === byte.length ? -1 : byte[0]);
@@ -1051,18 +1162,22 @@ export var native_methods = {
           if (-1 === fd)
             rs.java_throw(rs.get_bs_class("Ljava/io/IOException;"), "Bad file descriptor");
           if (0 !== fd) {
+            // this is a real file that we've already opened
             pos = _this.$pos;
             buf = new Buffer(n_bytes);
             rs.async_op(function(cb) {
               return fs.read(fd, buf, 0, n_bytes, pos, function(err, bytes_read) {
                   var i, _i;
-                  if (null != err) return cb(-1);
+                  if (null != err) return cb(-1); // XXX: should check this
+                  // not clear why, but sometimes node doesn't move the
+                  // file pointer, so we do it here ourselves.
                   for (_this.$pos += bytes_read, i = _i = 0; bytes_read > _i; i = _i += 1) byte_arr.array[offset + i] = buf.readUInt8(i);
                   return cb(0 === bytes_read && 0 !== n_bytes ? -1 : bytes_read);
               });
             });
           }
           else {
+            // reading from System.in, do it async
             rs.async_op(function(cb) {
               return rs.async_input(n_bytes, function(bytes) {
                   var b, idx, _i, _len;
@@ -1075,11 +1190,14 @@ export var native_methods = {
           var filepath;
 
           filepath = filename.jvm2js_str();
+          // TODO: actually look at the mode
           return rs.async_op(function(resume_cb, except_cb) {
             return fs.open(filepath, 'r', function(e, fd) {
               var fd_obj;
 
               if (e != null) {
+                // XXX: BrowserFS hack. BFS doesn't support the code attribute
+                // on errors yet.
                 if (e.code === 'ENOENT') {
                   return except_cb(function() {
                     return rs.java_throw(rs.get_bs_class('Ljava/io/FileNotFoundException;'), "" + filepath + " (No such file or directory)");
@@ -1129,8 +1247,10 @@ export var native_methods = {
             });
           }
           else {
+            // reading from System.in, do it async
             rs.async_op(function(cb) {
               return rs.async_input(n_bytes.toNumber(), function(bytes) {
+                  // we don't care about what the input actually was
                   return cb(gLong.fromNumber(bytes.length), null);
               });
             });
@@ -1139,11 +1259,16 @@ export var native_methods = {
       ],
       ObjectInputStream: [
         o('latestUserDefinedLoader()Ljava/lang/ClassLoader;', function(rs) {
-          return null;
+          // Returns the first non-null class loader (not counting class loaders
+          //  of generated reflection implementation classes) up the execution stack,
+          //  or null if only code from the null class loader is on the stack.
+          return null; //  XXX: actually check for class loaders on the stack
         })
       ],
       ObjectStreamClass: [
-        o('initNative()V', function(rs) {}), o('hasStaticInitializer(Ljava/lang/Class;)Z', function(rs, cls) {
+        o('initNative()V', function(rs) {}), // NOP
+        o('hasStaticInitializer(Ljava/lang/Class;)Z', function(rs, cls) {
+          // check if cls has a <clinit> method
           return cls.$cls.get_method('<clinit>()V') != null;
         })
       ],
@@ -1168,6 +1293,8 @@ export var native_methods = {
               var fd_obj;
 
               if (e != null) {
+                // XXX: BrowserFS hack. BFS doesn't support the code attribute
+                // on errors yet.
                 if (e.code === 'ENOENT') {
                   return except_cb(function() {
                     return rs.java_throw(rs.get_bs_class('Ljava/io/FileNotFoundException;'), "Could not open file " + filepath);
@@ -1205,7 +1332,7 @@ export var native_methods = {
           rs.async_op(function(cb) {
               fs.read(fd, buf, 0, len, _this.$pos, function(err, bytes_read) {
                   var i, _i;
-                  if (null != err) return cb(-1);
+                  if (null != err) return cb(-1); // XXX: should check this
                   for (i = _i = 0; bytes_read > _i; i = _i += 1)
                     byte_arr.array[offset + i] = buf.readUInt8(i);
                   return _this.$pos += bytes_read, cb(0 === bytes_read && 0 !== len ? -1 : bytes_read);
@@ -1257,6 +1384,11 @@ export var native_methods = {
               if (stats == null) {
                 return resume_cb(false);
               } else {
+                // XXX: Assuming we're owner/group/other. :)
+                // Shift access so it's present in owner/group/other.
+                // Then, AND with the actual mode, and check if the result is above 0.
+                // That indicates that the access bit we're looking for was set on
+                // one of owner/group/other.
                 mask = access | (access << 3) | (access << 6);
                 return resume_cb((stats.mode & mask) > 0);
               }
@@ -1266,6 +1398,7 @@ export var native_methods = {
           var filepath;
 
           filepath = (file.get_field(rs, 'Ljava/io/File;path')).jvm2js_str();
+          // Already exists.
           return rs.async_op(function(resume_cb) {
             return stat_file(filepath, function(stat) {
               if (stat != null) {
@@ -1277,7 +1410,7 @@ export var native_methods = {
               }
             });
           });
-        }), o('createFileExclusively(Ljava/lang/String;)Z', function(rs, _this, path) {
+        }), o('createFileExclusively(Ljava/lang/String;)Z', function(rs, _this, path) { // OpenJDK version
           var filepath;
 
           filepath = path.jvm2js_str();
@@ -1306,7 +1439,7 @@ export var native_methods = {
               }
             });
           });
-        }), o('createFileExclusively(Ljava/lang/String;Z)Z', function(rs, _this, path) {
+        }), o('createFileExclusively(Ljava/lang/String;Z)Z', function(rs, _this, path) { // Apple-java version
           var filepath;
 
           filepath = path.jvm2js_str();
@@ -1337,7 +1470,9 @@ export var native_methods = {
           });
         }), o('delete0(Ljava/io/File;)Z', function(rs, _this, file) {
           var filepath;
-
+          // Delete the file or directory denoted by the given abstract
+          // pathname, returning true if and only if the operation succeeds.
+          // If file is a directory, it must be empty.
           filepath = (file.get_field(rs, 'Ljava/io/File;path')).jvm2js_str();
           return rs.async_op(function(resume_cb, except_cb) {
             return stat_file(filepath, function(stats) {
@@ -1410,7 +1545,9 @@ export var native_methods = {
               return resume_cb(gLong.fromNumber(err != null ? 0 : stat.size), null);
             });
           });
-        }), o('list(Ljava/io/File;)[Ljava/lang/String;', function(rs, _this, file) {
+        }),
+        // o 'getSpace(Ljava/io/File;I)J', (rs, _this, file, t) ->
+        o('list(Ljava/io/File;)[Ljava/lang/String;', function(rs, _this, file) {
           var filepath;
 
           filepath = file.get_field(rs, 'Ljava/io/File;path');
@@ -1436,7 +1573,6 @@ export var native_methods = {
           });
         }), o('rename0(Ljava/io/File;Ljava/io/File;)Z', function(rs, _this, file1, file2) {
           var file1path, file2path;
-
           file1path = (file1.get_field(rs, 'Ljava/io/File;path')).jvm2js_str();
           file2path = (file2.get_field(rs, 'Ljava/io/File;path')).jvm2js_str();
           return rs.async_op(function(resume_cb) {
@@ -1444,19 +1580,32 @@ export var native_methods = {
               return resume_cb(err != null ? false : true);
             });
           });
-        }), o('setPermission(Ljava/io/File;IZZ)Z', function(rs, _this, file, access, enable, owneronly) {
+        }),
+        // o 'setLastModifiedTime(Ljava/io/File;J)Z', (rs, _this, file, time) ->
+        o('setPermission(Ljava/io/File;IZZ)Z', function(rs, _this, file, access, enable, owneronly) {
           var filepath;
-
+          // Access is equal to one of the following static fields:
+          // * FileSystem.ACCESS_READ (0x04)
+          // * FileSystem.ACCESS_WRITE (0x02)
+          // * FileSystem.ACCESS_EXECUTE (0x01)
+          // These are conveniently identical to their Unix equivalents, which
+          // we have to convert to for Node.
+          // XXX: Currently assuming that the above assumption holds across JCLs.
           filepath = (file.get_field(rs, 'Ljava/io/File;path')).jvm2js_str();
           if (owneronly) {
+            // Shift it 6 bits over into the 'owner' region of the access mode.
             access <<= 6;
           } else {
+            // Clone it into the 'owner' and 'group' regions.
             access |= (access << 6) | (access << 3);
           }
           if (!enable) {
+            // Do an invert and we'll AND rather than OR.
             access = ~access;
           }
+          // Returns true on success, false on failure.
           return rs.async_op(function(resume_cb) {
+            // Fetch existing permissions on file.
             return stat_file(filepath, function(stats) {
               var existing_access;
 
@@ -1464,7 +1613,9 @@ export var native_methods = {
                 return resume_cb(false);
               } else {
                 existing_access = stats.mode;
+                // Apply mask.
                 access = enable ? existing_access | access : existing_access & access;
+                // Set new permissions.
                 return fs.chmod(filepath, access, function(err) {
                   return resume_cb(err != null ? false : true);
                 });
@@ -1473,7 +1624,8 @@ export var native_methods = {
           });
         }), o('setReadOnly(Ljava/io/File;)Z', function(rs, _this, file) {
           var filepath, mask;
-
+          // We'll be unsetting write permissions.
+          // Leading 0o indicates octal.
           filepath = (file.get_field(rs, 'Ljava/io/File;path')).jvm2js_str();
           mask = ~0x92;
           return rs.async_op(function(resume_cb) {
@@ -1503,19 +1655,23 @@ export var native_methods = {
       jar: {
         JarFile: [
           o('getMetaInfEntryNames()[L!/lang/String;', function(rs) {
+            // we don't do verification
             return null;
           })
         ]
       },
       ResourceBundle: [
         o('getClassContext()[L!/lang/Class;', function(rs) {
+          // XXX should walk up the meta_stack and fill in the array properly
           return new JavaArray(rs, rs.get_bs_class('[Ljava/lang/Class;'), [null, null, null]);
         })
       ],
       TimeZone: [
         o('getSystemTimeZoneID(L!/lang/String;L!/lang/String;)L!/lang/String;', function(rs, java_home, country) {
+          // XXX not sure what the local value is
           return rs.init_string('GMT');
         }), o('getSystemGMTOffsetID()L!/lang/String;', function(rs) {
+          // XXX may not be correct
           return null;
         })
       ]
@@ -1524,11 +1680,14 @@ export var native_methods = {
   sun: {
     font: {
       FontManager: [],
+        // TODO: this may be a no-op, but may be important
+        // o 'getFontConfig(Ljava/lang/String;[Lsun/font/FontManager$FontConfigInfo;)V', ->
       FreetypeFontScaler: [o('initIDs(Ljava/lang/Class;)V', function() {})],
       StrikeCache: [
         o('getGlyphCacheDescription([J)V', function(rs, infoArray) {
-          infoArray.array[0] = gLong.fromInt(8);
-          return infoArray.array[1] = gLong.fromInt(8);
+          // XXX: these are guesses, see the javadoc for full descriptions of the infoArray
+          infoArray.array[0] = gLong.fromInt(8);        // size of a pointer
+          return infoArray.array[1] = gLong.fromInt(8); // size of a glyphInfo
         })
       ]
     },
@@ -1540,7 +1699,7 @@ export var native_methods = {
           return rs.init_string("1.2", true);
         }), o('initOptionalSupportFields()V', function(rs) {
           var field_names, name, vm_management_impl, _i, _len, _results;
-
+          // set everything to false
           field_names = ['compTimeMonitoringSupport', 'threadContentionMonitoringSupport', 'currentThreadCpuTimeSupport', 'otherThreadCpuTimeSupport', 'bootClassPathSupport', 'objectMonitorUsageSupport', 'synchronizerUsageSupport'];
           vm_management_impl = rs.get_bs_class('Lsun/management/VMManagementImpl;');
           _results = [];
@@ -1563,8 +1722,10 @@ export var native_methods = {
       ],
       MemoryImpl: [
         o('getMemoryManagers0()[Ljava/lang/management/MemoryManagerMXBean;', function(rs) {
+          // XXX may want to revisit this 'NOP'
           return new JavaArray(rs, rs.get_bs_class('[Lsun/management/MemoryManagerImpl;'), []);
         }), o('getMemoryPools0()[Ljava/lang/management/MemoryPoolMXBean;', function(rs) {
+          // XXX may want to revisit this 'NOP'
           return new JavaArray(rs, rs.get_bs_class('[Lsun/management/MemoryPoolImpl;'), []);
         })
       ]
@@ -1575,23 +1736,31 @@ export var native_methods = {
           var props, sys_cls, vm_cls;
 
           vm_cls = rs.get_bs_class('Lsun/misc/VM;');
+          // this only applies to Java 7
           if (!(vm_cls.major_version >= 51)) {
             return;
           }
+          // XXX: make savedProps refer to the system props
           sys_cls = rs.get_bs_class('Ljava/lang/System;');
           props = sys_cls.static_get(rs, 'props');
           vm_cls = rs.get_bs_class('Lsun/misc/VM;');
           return vm_cls.static_put('savedProps', props);
         })
       ],
+      // TODO: Go down the rabbit hole and create a fast heap implementation
+      // in JavaScript -- with and without typed arrays.
       Unsafe: [
         o('addressSize()I', function(rs, _this) {
           return 4;
         }), o('allocateInstance(Ljava/lang/Class;)Ljava/lang/Object;', function(rs, _this, cls) {
+          // This can trigger class initialization, so check if the class is
+          // initialized.
           cls = cls.$cls;
           if (cls.is_initialized(rs)) {
             return new JavaObject(rs, cls);
           } else {
+            // 1 byte per block. Wasteful, terrible, etc... but good for now.
+            // XXX: Stash allocation size here. Please hate me.
             return rs.async_op(function(resume_cb, except_cb) {
               return cls.loader.initialize_class(rs, cls.get_type(), (function() {
                 return resume_cb(new JavaObject(rs, cls));
@@ -1632,12 +1801,14 @@ export var native_methods = {
           if (typeof DataView !== "undefined" && DataView !== null) {
             delete rs.mem_blocks[address.toNumber()];
           } else {
+            // XXX: Size will be just before address.
             address = address.toNumber();
             num_blocks = rs.mem_blocks[address - 1];
             for (i = _i = 0; _i < num_blocks; i = _i += 1) {
               delete rs.mem_blocks[address + i];
             }
             delete rs.mem_blocks[address - 1];
+            // Restore to the actual start addr where size was.
             address = address - 1;
           }
           return rs.mem_start_addrs.splice(rs.mem_start_addrs.indexOf(address), 1);
@@ -1646,11 +1817,14 @@ export var native_methods = {
 
           block_addr = rs.block_addr(address);
           offset = address - block_addr;
+          // little endian
           if (typeof DataView !== "undefined" && DataView !== null) {
             rs.mem_blocks[block_addr].setInt32(offset, value.getLowBits(), true);
             rs.mem_blocks[block_addr].setInt32(offset + 4, value.getHighBits, true);
           } else {
+            // Break up into 8 bytes. Hurray!
             store_word = function(rs_, address, word) {
+              // Little endian
               rs_.mem_blocks[address] = word & 0xFF;
               rs_.mem_blocks[address + 1] = (word >>> 8) & 0xFF;
               rs_.mem_blocks[address + 2] = (word >>> 16) & 0xFF;
@@ -1666,27 +1840,32 @@ export var native_methods = {
           if (typeof DataView !== "undefined" && DataView !== null) {
             return rs.mem_blocks[block_addr].getInt8(address - block_addr);
           } else {
+            // Blocks are bytes.
             return rs.mem_blocks[block_addr];
           }
         }), o('arrayBaseOffset(Ljava/lang/Class;)I', function(rs, _this, cls) {
           return 0;
         }), o('arrayIndexScale(Ljava/lang/Class;)I', function(rs, _this, cls) {
           return 1;
-        }), o('compareAndSwapObject(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z', unsafe_compare_and_swap), o('compareAndSwapInt(Ljava/lang/Object;JII)Z', unsafe_compare_and_swap), o('compareAndSwapLong(Ljava/lang/Object;JJJ)Z', unsafe_compare_and_swap), o('ensureClassInitialized(Ljava/lang/Class;)V', function(rs, _this, cls) {
+        }), o('compareAndSwapObject(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z', unsafe_compare_and_swap),
+        o('compareAndSwapInt(Ljava/lang/Object;JII)Z', unsafe_compare_and_swap), o('compareAndSwapLong(Ljava/lang/Object;JJJ)Z', unsafe_compare_and_swap), o('ensureClassInitialized(Ljava/lang/Class;)V', function(rs, _this, cls) {
           return rs.async_op(function(resume_cb, except_cb) {
+            // We modify resume_cb since this is a void function.
             return cls.$cls.loader.initialize_class(rs, cls.$cls.get_type(), (function() {
               return resume_cb();
             }), except_cb);
           });
         }), o('staticFieldOffset(Ljava/lang/reflect/Field;)J', function(rs, _this, field) {
           var jco, slot;
-
+          // we technically return a long, but it immediately gets casted to an int
+          // XXX: encode both the class and slot information in an integer
+          //      this may cause collisions, but it seems to work ok
           jco = field.get_field(rs, 'Ljava/lang/reflect/Field;clazz');
           slot = field.get_field(rs, 'Ljava/lang/reflect/Field;slot');
           return gLong.fromNumber(slot + jco.ref);
         }), o('objectFieldOffset(Ljava/lang/reflect/Field;)J', function(rs, _this, field) {
           var jco, slot;
-
+          // see note about staticFieldOffset
           jco = field.get_field(rs, 'Ljava/lang/reflect/Field;clazz');
           slot = field.get_field(rs, 'Ljava/lang/reflect/Field;slot');
           return gLong.fromNumber(slot + jco.ref);
@@ -1738,10 +1917,13 @@ export var native_methods = {
             return native_define_class(rs, name, bytes, offset, len, get_cl_from_jclo(rs, loader), success_cb, except_cb);
           });
         }), o('pageSize()I', function(rs) {
+          // Keep this in sync with sun/nio/ch/FileChannelImpl/initIDs for Mac
+          // JCL compatibility.
           return 1024;
         }), o('throwException(Ljava/lang/Throwable;)V', function(rs, _this, exception) {
           var my_sf;
-
+          // XXX: Copied from java_throw, except instead of making a new Exception,
+          //      we already have one. May want to make this a helper method.
           my_sf = rs.curr_frame();
           my_sf.runner = function() {
             my_sf.runner = null;
@@ -1755,6 +1937,8 @@ export var native_methods = {
           if (absolute) {
             timeout = time;
           } else {
+            // time is in nanoseconds, but we don't have that
+            // type of precision
             if (time > 0) {
               timeout = (new Date).getTime() + time / 1000000;
             }
@@ -1768,9 +1952,15 @@ export var native_methods = {
     nio: {
       ch: {
         FileChannelImpl: [
+          // this poorly-named method actually specifies the page size for mmap
+          // This is the Mac name for sun/misc/Unsafe::pageSize. Apparently they
+          // wanted to ensure page sizes can be > 2GB...
           o('initIDs()J', function(rs) {
+            // arbitrary
             return gLong.fromNumber(1024);
-          }), o('size0(Ljava/io/FileDescriptor;)J', function(rs, _this, fd_obj) {
+          }),
+          // Reports this file's size
+          o('size0(Ljava/io/FileDescriptor;)J', function(rs, _this, fd_obj) {
             var fd = fd_obj.get_field(rs, "Ljava/io/FileDescriptor;fd");
             rs.async_op(function(cb, e_cb) {
                 fs.fstat(fd, function(err, stats) {
@@ -1787,9 +1977,10 @@ export var native_methods = {
           })
         ],
         FileDispatcher: [
-          o('init()V', function(rs) {}),
+          o('init()V', function(rs) {}), // NOP
           o('read0(Ljava/io/FileDescriptor;JI)I', function(rs, fd_obj, address, len) {
             var fd = fd_obj.get_field(rs, "Ljava/io/FileDescriptor;fd");
+            // read upto len bytes and store into mmap'd buffer at address
             var block_addr = rs.block_addr(address);
             var buf = new Buffer(len);
             rs.async_op(function(cb) {
@@ -1804,10 +1995,15 @@ export var native_methods = {
                     cb(bytes_read);
                 });
             });
-          }), o('preClose0(Ljava/io/FileDescriptor;)V', function(rs, fd_obj) {})
+          }),
+          // NOP, I think the actual fs.close is called later. If not, NBD.
+          o('preClose0(Ljava/io/FileDescriptor;)V', function(rs, fd_obj) {})
         ],
         NativeThread: [
-          o("init()V", function(rs) {}), o("current()J", function(rs) {
+          o("init()V", function(rs) {}), // NOP
+          o("current()J", function(rs) {
+            // -1 means that we do not require signaling according to the
+            // docs.
             return gLong.fromNumber(-1);
           })
         ]
@@ -1825,13 +2021,15 @@ native_methods['java']['lang']['Class'] = [
     return prim_cls.get_class_object(rs);
   }), o('getClassLoader0()L!/!/ClassLoader;', function(rs, _this) {
     var loader;
-
+    // The bootstrap classloader is represented as 'null', which is OK
+    // according to the spec.
     loader = _this.$cls.loader;
     if (loader.loader_obj != null) {
       return loader.loader_obj;
     }
     return null;
   }), o('desiredAssertionStatus0(L!/!/!;)Z', function(rs) {
+    // we don't need no stinkin asserts
     return false;
   }), o('getName0()L!/!/String;', function(rs, _this) {
     return rs.init_string(_this.$cls.toExternalString());
@@ -1856,6 +2054,8 @@ native_methods['java']['lang']['Class'] = [
     if (!(_this.$cls instanceof ArrayClassData)) {
       return null;
     }
+    // As this array type is loaded, the component type is guaranteed
+    // to be loaded as well. No need for asynchronicity.
     return _this.$cls.get_component_class().get_class_object(rs);
   }), o('getGenericSignature()Ljava/lang/String;', function(rs, _this) {
     var sig, _ref5;
@@ -2058,6 +2258,10 @@ native_methods['java']['lang']['Class'] = [
       enc_name = null;
       enc_desc = null;
     }
+    // array w/ 3 elements:
+    // - the immediately enclosing class (java/lang/Class)
+    // - the immediately enclosing method or constructor's name (can be null). (String)
+    // - the immediately enclosing method or constructor's descriptor (null iff name is). (String)
     return new JavaArray(rs, rs.get_bs_class('[Ljava/lang/Object;'), [enc_cls, enc_name, enc_desc]);
   }), o('getDeclaringClass()L!/!/!;', function(rs, _this) {
     var cls, declaring_name, entry, icls, my_class, name, _i, _len, _ref5;
@@ -2081,6 +2285,9 @@ native_methods['java']['lang']['Class'] = [
       if (name !== my_class) {
         continue;
       }
+      // XXX(jez): this assumes that the first enclosing entry is also
+      // the immediate enclosing parent, and I'm not 100% sure this is
+      // guaranteed by the spec
       declaring_name = cls.constant_pool.get(entry.outer_info_index).deref();
       return cls.loader.get_resolved_class(declaring_name).get_class_object(rs);
     }
@@ -2141,35 +2348,47 @@ native_methods['java']['lang']['Runtime'] = [
   o('availableProcessors()I', function() {
     return 1;
   }), o('gc()V', function(rs) {
+    // No universal way of forcing browser to GC, so we yield in hopes
+    // that the browser will use it as an opportunity to GC.
     return rs.async_op(function(cb) {
       return cb();
     });
-  }), o('maxMemory()J', function(rs) {
+  }),
+  // Returns the maximum amount of memory that the Java virtual machine will
+  // attempt to use, in bytes, as a Long. If there is no inherent limit then the
+  // value Long.MAX_VALUE will be returned.
+  //
+  // Currently returns Long.MAX_VALUE because unlike other JVMs Doppio has no
+  // hard limit on the heap size.
+  o('maxMemory()J', function(rs) {
     debug("Warning: maxMemory has no meaningful value in Doppio -- there is no hard memory limit.");
     return gLong.MAX_VALUE;
   })
 ];
 
+// Used by invoke0 to handle manually setting up the caller's stack frame
 function setup_caller_stack(rs, method, obj, params) {
   var i, p, p_type, primitive_value, _i, _len, _ref5;
 
   if (!method.access_flags["static"]) {
     rs.push(obj);
   }
+  // we don't get unboxing for free anymore, so we have to do it ourselves
   i = 0;
   _ref5 = method.param_types;
   for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
     p_type = _ref5[_i];
     p = params.array[i++];
+    // cat 2 primitives
     if (p_type === 'J' || p_type === 'D') {
       if ((p != null ? p.ref : void 0) != null) {
         primitive_value = p.get_field(rs, p.cls.get_type() + 'value');
         rs.push2(primitive_value, null);
       } else {
         rs.push2(p, null);
-        i++;
+        i++; // skip past the null spacer
       }
-    } else if (util.is_primitive_type(p_type)) {
+    } else if (util.is_primitive_type(p_type)) { // any other primitive
       if ((p != null ? p.ref : void 0) != null) {
         primitive_value = p.get_field(rs, p.cls.get_type() + 'value');
         rs.push(primitive_value);
@@ -2196,6 +2415,7 @@ native_methods['sun']['reflect'] = {
       var caller_sf, cleanup_runner, cls, cls_obj, m_sig, method, name, p_desc, p_types, pt, ret_descriptor, ret_type, slot;
 
       cls = m.get_field(rs, 'Ljava/lang/reflect/Method;clazz');
+      // make the cleanup runner, before we branch too much
       ret_type = m.get_field(rs, 'Ljava/lang/reflect/Method;returnType');
       ret_descriptor = ret_type.$cls.get_type();
       if (util.is_primitive_type(ret_descriptor) && ret_descriptor !== 'V') {
@@ -2204,6 +2424,7 @@ native_methods['sun']['reflect'] = {
 
           rv = ret_descriptor === 'J' || ret_descriptor === 'D' ? rs.pop2() : rs.pop();
           rs.meta_stack().pop();
+          // wrap up primitives in their Object box
           return rs.push(ret_type.$cls.create_wrapper_object(rs, rv));
         };
       } else {
@@ -2215,7 +2436,8 @@ native_methods['sun']['reflect'] = {
           return rs.push(rv);
         };
       }
-      if (cls.$cls.access_byte & 0x200) {
+      // dispatch this sucka
+      if (cls.$cls.access_byte & 0x200) { // cls is an interface, so we need to virtual dispatch
         cls_obj = rs.check_null(obj).cls;
         name = m.get_field(rs, 'Ljava/lang/reflect/Method;name').jvm2js_str(rs);
         p_types = m.get_field(rs, 'Ljava/lang/reflect/Method;parameterTypes');
@@ -2256,6 +2478,10 @@ native_methods['sun']['reflect'] = {
               return _results;
             })())[0];
             caller_sf = setup_caller_stack(rs, method, obj, params);
+            // Reenter the RuntimeState loop, which should run our new StackFrame.
+            // XXX: We use except_cb because it just replaces the runner function of the
+            // current frame. We need a better story for calling Java threads through
+            // native functions.
             return except_cb(function() {
               method.setup_stack(rs);
               return caller_sf.runner = cleanup_runner;
@@ -2294,8 +2520,14 @@ native_methods['sun']['reflect'] = {
           if (params != null) {
             rs.push_array(params.array);
           }
+          // Reenter the RuntimeState loop, which should run our new StackFrame.
+          // XXX: We use except_cb because it just replaces the runner function of the
+          // current frame. We need a better story for calling Java threads through
+          // native functions.
           return except_cb(function() {
+            // Push the constructor's frame onto the stack.
             method.setup_stack(rs);
+            // Overwrite my runner.
             return my_sf.runner = function() {
               rs.meta_stack().pop();
               return rs.push(obj);
@@ -2310,6 +2542,8 @@ native_methods['sun']['reflect'] = {
       var caller, cls;
 
       caller = rs.meta_stack().get_caller(frames_to_skip);
+      // Note: disregard frames associated with
+      //   java.lang.reflect.Method.invoke() and its implementation.
       if (caller.name.indexOf('Ljava/lang/reflect/Method;::invoke') === 0) {
         caller = rs.meta_stack().get_caller(frames_to_skip + 1);
       }
@@ -2336,6 +2570,7 @@ function flatten_pkg(pkg) {
         for (_i = 0, _len = inner_pkg.length; _i < _len; _i++) {
           method = inner_pkg[_i];
           fn_name = method.fn_name, fn = method.fn;
+          // expand out the '!'s in the method names
           fn_name = fn_name.replace(/!|;/g, (function () {
             var depth;
 
