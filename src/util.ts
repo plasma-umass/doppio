@@ -329,6 +329,7 @@ export function format_extra_info(entry: any): string {
   }
 }
 
+// Lightweight wrapper around a buffer.
 export class BytesArray {
   private start : number;
   private end : number;
