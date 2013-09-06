@@ -1,3 +1,9 @@
+/// <amd-dependency path="../vendor/websockify/base64" />
+/// <amd-dependency path="../vendor/websockify/websock" />
+/// <amd-dependency path="../vendor/websockify/web-socket-js/swfobject" />
+/// <amd-dependency path="../vendor/websockify/web-socket-js/web_socket" />
+/// <amd-dependency path="../vendor/websockify/util" />
+/// <amd-dependency path="../vendor/websockify/webutil" />
 "use strict";
 import gLong = require('./gLong');
 import util = require('./util');
@@ -15,6 +21,8 @@ import methods = require('./methods');
 import ClassLoader = require('./ClassLoader');
 
 declare var node;
+declare var Websock;
+declare var setImmediate;
 var path = typeof node !== "undefined" ? node.path : require('path');
 var fs = typeof node !== "undefined" ? node.fs : require('fs');
 import ClassData = require('./ClassData');
@@ -1675,7 +1683,8 @@ export var native_methods = {
           return null;
         })
       ]
-    }
+    },
+    net: {}
   },
   sun: {
     font: {
@@ -1948,6 +1957,9 @@ export var native_methods = {
           return rs.unpark(thread);
         })
       ]
+    },
+    net: {
+      spi: {}
     },
     nio: {
       ch: {
@@ -2363,6 +2375,266 @@ native_methods['java']['lang']['Runtime'] = [
   o('maxMemory()J', function(rs) {
     debug("Warning: maxMemory has no meaningful value in Doppio -- there is no hard memory limit.");
     return gLong.MAX_VALUE;
+  })
+];
+
+
+native_methods['java']['net']['Inet4Address'] = [o('init()V', function(rs) {})];
+
+var host_lookup = {};
+
+var host_reverse_lookup = {};
+
+// 240.0.0.0 .. 250.0.0.0 is currently unused address space
+var next_host_address = 0xF0000000;
+
+function next_address() {
+  next_host_address++;
+  if (next_host_address > 0xFA000000) {
+    error('Out of addresses');
+    next_host_address = 0xF0000000;
+  }
+  return next_host_address;
+}
+
+function pack_address(address) {
+  var i, ret, _i;
+
+  ret = 0;
+  for (i = _i = 3; _i >= 0; i = _i += -1) {
+    ret |= address[i] & 0xFF;
+    ret <<= 8;
+  }
+  return ret;
+}
+
+function host_allocate_address(address) {
+  var ret;
+
+  ret = next_address();
+  host_lookup[ret] = address;
+  host_reverse_lookup[address] = ret;
+  return ret;
+}
+
+native_methods['java']['net']['Inet4AddressImpl'] = [
+  o('lookupAllHostAddr(Ljava/lang/String;)[Ljava/net/InetAddress;', function(rs, _this, hostname) {
+    var cdata, cons, failure, success;
+
+    cdata = rs.get_class('Ljava/net/Inet4Address;');
+    success = function(rv, success_cb, except_cb) {
+      return success_cb(new JavaArray(rs, rs.get_bs_class('[Ljava/net/InetAddress;'), [rv]));
+    };
+    failure = function(e_cb, success_cb, except_cb) {
+      return except_cb(e_cb);
+    };
+    cons = cdata.method_lookup(rs, '<init>(Ljava/lang/String;I)V');
+    return rs.call_bytecode(cdata, cons, [hostname, host_allocate_address(hostname.jvm2js_str())], success, failure);
+  }), o('getLocalHostName()Ljava/lang/String;', function(rs, _this) {
+    return rs.init_string('localhost');
+  }), o('getHostByAddr([B)Ljava/lang/String;', function(rs, _this, addr) {
+    var ret;
+
+    ret = host_reverse_lookup[pack_address(addr.array)];
+    if (ret === void 0) {
+      return null;
+    }
+    return rs.init_string(ret);
+  }), o('isReachable0([BII[BII)Z', function(rs, _this, addr, scope, timeout, inf, ttl, if_scope) {
+    return false;
+  })
+];
+
+native_methods['java']['net']['Inet6Address'] = [o('init()V', function(rs) {})];
+
+native_methods['java']['net']['InetAddress'] = [o('init()V', function(rs) {})];
+
+native_methods['java']['net']['InetAddressImplFactory'] = [
+  o('isIPv6Supported()Z', function(rs) {
+    return false;
+  })
+];
+
+// See RFC 6455 section 7.4
+function websocket_status_to_message(status) {
+  switch (status) {
+    case 1000:
+      return 'Normal closure';
+    case 1001:
+      return 'Endpoint is going away';
+    case 1002:
+      return 'WebSocket protocol error';
+    case 1003:
+      return 'Server received invalid data';
+  }
+  return 'Unknown status code or error';
+}
+
+native_methods['java']['net']['PlainSocketImpl'] = [
+  o('socketCreate(Z)V', function(rs, _this, isServer) {
+    var fd;
+
+    // Check to make sure we're in a browser and the websocket libraries are present
+    if (typeof node === "undefined" || node === null) {
+      rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), 'WebSockets are disabled');
+    }
+    fd = _this.get_field(rs, 'Ljava/net/SocketImpl;fd');
+    // Make the FileDescriptor valid with a dummy fd
+    fd.set_field(rs, 'Ljava/io/FileDescriptor;fd', 8374);
+    // Finally, create our websocket instance
+    _this.$ws = new Websock();
+    return _this.$is_shutdown = false;
+  }), o('socketConnect(Ljava/net/InetAddress;II)V', function(rs, _this, address, port, timeout) {
+    var addy, holder, host, i, shift, _i;
+    // The IPv4 case
+    holder = address.get_field(rs, 'Ljava/net/InetAddress;holder');
+    addy = holder.get_field(rs, 'Ljava/net/InetAddress$InetAddressHolder;address');
+    // Assume scheme is ws for now
+    host = 'ws://';
+    if (host_lookup[addy] === void 0) {
+      // Populate host string based off of IP address
+      for (i = _i = 3; _i >= 0; i = _i += -1) {
+        shift = i * 8;
+        host += "" + ((addy & (0xFF << shift)) >>> shift) + ".";
+      }
+      // trim last '.'
+      host = host.substring(0, host.length - 1);
+    } else {
+      host += host_lookup[addy];
+    }
+    // Add port
+    host += ":" + port;
+    debug("Connecting to " + host + " with timeout = " + timeout + " ms");
+    return rs.async_op(function(resume_cb, except_cb) {
+      var clear_state, close_cb, err, error_cb, id;
+
+      id = 0;
+      clear_state = function() {
+        window.clearTimeout(id);
+        _this.$ws.on('open', function() {});
+        _this.$ws.on('close', function() {});
+        return _this.$ws.on('error', function() {});
+      };
+      error_cb = function(msg) {
+        return function(e) {
+          clear_state();
+          return except_cb(function() {
+            return rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), msg + ": " + e);
+          });
+        };
+      };
+      close_cb = function(msg) {
+        return function(e) {
+          clear_state();
+          return except_cb(function() {
+            return rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), msg + ": " + websocket_status_to_message(e.status));
+          });
+        };
+      };
+      // Success case
+      _this.$ws.on('open', function() {
+        debug('Open!');
+        clear_state();
+        return resume_cb();
+      });
+      // Error cases
+      _this.$ws.on('close', close_cb('Connection failed! (Closed)'));
+      // Timeout case. In the case of no timeout, we set a default one of 10s.
+      if (timeout === 0) {
+        timeout = 10000;
+      }
+      id = setTimeout(error_cb('Connection timeout!'), timeout);
+      debug("Host: " + host);
+      // Launch!
+      try {
+        return _this.$ws.open(host);
+      } catch (_error) {
+        err = _error;
+        return error_cb('Connection failed! (exception)')(err.message);
+      }
+    });
+  }), o('socketBind(Ljava/net/InetAddress;I)V', function(rs, _this, address, port) {
+    return rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), 'WebSockets doesn\'t know how to bind');
+  }), o('socketListen(I)V', function(rs, _this, port) {
+    return rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), 'WebSockets doesn\'t know how to listen');
+  }), o('socketAccept(Ljava/net/SocketImpl;)V', function(rs, _this, s) {
+    return rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), 'WebSockets doesn\'t know how to accept');
+  }), o('socketAvailable()I', function(rs, _this) {
+    return rs.async_op(function(resume_cb) {
+      return setImmediate(function() {
+        return resume_cb(_this.$ws.rQlen());
+      });
+    });
+  }), o('socketClose0(Z)V', function(rs, _this, useDeferredClose) {
+    // TODO: Something isn't working here
+    return _this.$ws.close();
+  }), o('socketShutdown(I)V', function(rs, _this, type) {
+    return _this.$is_shutdown = true;
+  }), o('initProto()V', function(rs) {}),
+  o('socketSetOption(IZLjava/lang/Object;)V', function(rs, _this, cmd, _on, value) {}),
+  o('socketGetOption(ILjava/lang/Object;)I', function(rs, _this, opt, iaContainerObj) {}),
+  o('socketGetOption1(ILjava/lang/Object;Ljava/io/FileDescriptor;)I', function(rs, _this, opt, iaContainerObj, fd) {}),
+  o('socketSendUrgentData(I)V', function(rs, _this, data) {
+    // Urgent data is meant to jump ahead of the
+    // outbound stream. We keep no notion of this,
+    // so queue up the byte like normal
+    return _this.$ws.send(data);
+  })
+];
+
+function socket_read_async(impl, b, offset, len, resume_cb) {
+  var available, i, read, trimmed_len, _i;
+
+  available = impl.$ws.rQlen();
+  trimmed_len = available < len ? available : len;
+  read = impl.$ws.rQshiftBytes(trimmed_len);
+  for (i = _i = 0; _i < trimmed_len; i = _i += 1) {
+    b.array[offset++] = read[i];
+  }
+  return resume_cb(trimmed_len);
+}
+
+native_methods['java']['net']['SocketInputStream'] = [
+  o('init()V', function(rs) {}), o('socketRead0(Ljava/io/FileDescriptor;[BIII)I', function(rs, _this, fd, b, offset, len, timeout) {
+    var impl;
+
+    impl = _this.get_field(rs, 'Ljava/net/SocketInputStream;impl');
+    if (impl.$is_shutdown === true) {
+      rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), 'Socket is shutdown.');
+    }
+    return rs.async_op(function(resume_cb) {
+      return setTimeout(socket_read_async(impl, b, offset, len, resume_cb), timeout);
+    });
+  })
+];
+
+native_methods['java']['net']['SocketOutputStream'] = [
+  o('init()V', function(rs) {}), o('socketWrite0(Ljava/io/FileDescriptor;[BII)V', function(rs, _this, fd, b, offset, len) {
+    var impl;
+
+    impl = _this.get_field(rs, 'Ljava/net/SocketOutputStream;impl');
+    if (impl.$is_shutdown === true) {
+      rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), 'Socket is shutdown.');
+    }
+    if (impl.$ws.get_raw_state() !== WebSocket.OPEN) {
+      rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), 'Connection isn\'t open');
+    }
+    // TODO: This can be optimized by accessing the 'Q' directly
+    impl.$ws.send(b.array.splice(offset, offset + len));
+    // Let the browser write it out
+    return rs.async_op(function(resume_cb) {
+      return setImmediate(function() {
+        return resume_cb();
+      });
+    });
+  })
+];
+
+native_methods['sun']['net']['spi']['DefaultProxySelector'] = [
+  o('init()Z', function(rs) {
+    return true;
+  }), o('getSystemProxy(Ljava/lang/String;Ljava/lang/String;)Ljava/net/Proxy;', function(rs) {
+    return null;
   })
 ];
 
