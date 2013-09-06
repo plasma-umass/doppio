@@ -127,8 +127,16 @@ export class StackFrame {
     return { serialize: s };
   }
 
+  // Creates a "native stack frame". Handler is called with no arguments for
+  // normal execution, error_handler is called with the uncaught exception.
+  // If error_handler is not specified, then the exception will propagate through
+  // normally.
+  // Used for <clinit> and ClassLoader shenanigans. A native frame handles
+  // bridging the gap between those Java methods and the methods that ended up
+  // triggering them in the first place.
   public static native_frame(name: string, handler?: ()=>any, error_handler?:(p:any)=>any): StackFrame {
     // XXX: Super kludge!
+    // Fake method in the stack frame.
     var sf = new StackFrame(<methods.Method>{
       full_signature: (() => name)
     }, [], []);
@@ -143,6 +151,7 @@ export class StackFrame {
 }
 
 var run_count = 0;
+// Contains all the mutable state of the Java program.
 export class RuntimeState {
   public print: (p:string) => any;
   private _async_input: (cb: (string) => any) => any;
@@ -154,8 +163,11 @@ export class RuntimeState {
   public mem_blocks: any;
   public high_oref: number;
   private string_pool: util.SafeMap;
+  // map from monitor -> thread object
   public lock_refs: {[lock_id:number]: java_object.JavaThreadObject};
+  // map from monitor -> count
   public lock_counts: {[lock_id:number]: number};
+  // map from monitor -> list of waiting thread objects
   public waiting_threads: {[lock_id:number]: java_object.JavaThreadObject[]};
   private thread_pool: java_object.JavaThreadObject[];
   public curr_thread: java_object.JavaThreadObject;
@@ -192,6 +204,7 @@ export class RuntimeState {
     return this.bcl;
   }
 
+  // Get an *initialized* class from the bootstrap classloader.
   public get_bs_class(type: string, handle_null?: boolean): ClassData.ClassData {
     if (handle_null == null) {
       handle_null = false;
@@ -199,6 +212,7 @@ export class RuntimeState {
     return this.bcl.get_initialized_class(type, handle_null);
   }
 
+  // Get an *initialized* class from the classloader of the current class.
   public get_class(type: string, handle_null?: boolean): ClassData.ClassData {
     if (handle_null == null) {
       handle_null = false;
@@ -224,6 +238,9 @@ export class RuntimeState {
     return StackFrame.native_frame(name, handler, error_handler);
   }
 
+  // XXX: We currently 'preinitialize' all of these to avoid an async call
+  // in the middle of JVM execution. We should attempt to prune this down as
+  // much as possible.
   public preinitialize_core_classes(resume_cb: () => any, except_cb: (cb: () => any) => any): void {
     var core_classes = [
       'Ljava/lang/Class;', 'Ljava/lang/ClassLoader;', 'Ljava/lang/String;',
@@ -267,6 +284,7 @@ export class RuntimeState {
   }
 
   public init_threads(): void {
+    // initialize thread objects
     var _this = this;
     var my_sf = this.curr_frame();
     var thread_group_cls = <ClassData.ReferenceClassData> this.get_bs_class('Ljava/lang/ThreadGroup;');
@@ -282,6 +300,7 @@ export class RuntimeState {
         _this.curr_thread = ct;
         _this.curr_thread.$isAlive = true;
         _this.thread_pool.push(_this.curr_thread);
+        // hack to make auto-named threads match native Java
         thread_cls.static_fields['threadInitNumber'] = 1;
         debug("### finished thread init ###");
       };
@@ -300,6 +319,9 @@ export class RuntimeState {
     return this.curr_thread.$meta_stack;
   }
 
+  // Simulate the throwing of a Java exception with message :msg. Not very DRY --
+  // code here is essentially copied from the opcodes themselves -- but
+  // constructing the opcodes manually is inelegant too.
   public java_throw(cls: ClassData.ReferenceClassData, msg: string): void {
     var _this = this;
     var v = new JavaObject(this, cls);
@@ -397,12 +419,14 @@ export class RuntimeState {
 
   public wait(monitor: java_object.JavaObject, yieldee?: java_object.JavaThreadObject): void {
     debug("TE(wait): waiting " + (thread_name(this, this.curr_thread)) + " on lock " + monitor.ref);
+    // add current thread to wait queue
     if (this.waiting_threads[monitor.ref] != null) {
       this.waiting_threads[monitor.ref].push(this.curr_thread);
     } else {
       this.waiting_threads[monitor.ref] = [this.curr_thread];
     }
     if (yieldee != null) {
+      // yield execution to a non-waiting thread
       return this.yield(yieldee);
     }
     var _this = this;
@@ -417,6 +441,8 @@ export class RuntimeState {
     var new_thread_sf = this.curr_frame();
     new_thread_sf.runner = (() => _this.meta_stack().pop());
     old_thread_sf.runner = (() => _this.meta_stack().pop());
+    // Note that we don't throw a ReturnException here, so callers need to
+    // yield the JVM execution themselves.
   }
 
   public park(thread: java_object.JavaThreadObject, timeout: number): void {
@@ -425,6 +451,7 @@ export class RuntimeState {
     thread.$park_timeout = timeout;
     debug("TE(park): parking " + (thread_name(this, thread)) + " (count: " + thread.$park_count + ", timeout: " + thread.$park_timeout + ")");
     if (this.parked(thread)) {
+      // Only choose a new thread if this one will become blocked
       this.choose_next_thread(null, (nt) => _this.yield(nt));
     }
   }
@@ -434,6 +461,7 @@ export class RuntimeState {
     thread.$park_count--;
     thread.$park_timeout = Infinity;
     if (!this.parked(thread)) {
+      // Yield to the unparked thread if it should be unblocked
       this.yield(thread);
     }
   }
@@ -454,6 +482,8 @@ export class RuntimeState {
     this.curr_frame().locals[idx] = val;
   }
 
+  // Category 2 values (longs, doubles) take two slots in Java. Since we only
+  // need one slot to represent a double in JS, we pad it with a null.
   public put_cl2(idx: number, val: any): void {
     this.put_cl(idx, val);
     (typeof UNSAFE !== "undefined" && UNSAFE !== null) || this.put_cl(idx + 1, null);
@@ -476,11 +506,13 @@ export class RuntimeState {
     return this.curr_frame().stack.pop();
   }
 
+  // For category 2 values.
   public pop2(): any {
     this.pop();
     return this.pop();
   }
 
+  // for those cases where we want to avoid the pop/repush combo
   public peek(depth?: number): any {
     if (depth == null) {
       depth = 0;
@@ -489,6 +521,7 @@ export class RuntimeState {
     return s[s.length - 1 - depth];
   }
 
+  // Program counter manipulation.
   public curr_pc(): number {
     return this.curr_frame().pc;
   }
@@ -501,6 +534,7 @@ export class RuntimeState {
     return this.curr_frame().pc += n;
   }
 
+  // Heap manipulation.
   public check_null<T>(obj: T): T {
     if (obj == null) {
       var err_cls = <ClassData.ReferenceClassData> this.get_bs_class('Ljava/lang/NullPointerException;');
@@ -515,11 +549,12 @@ export class RuntimeState {
       this.java_throw(err_cls, "Tried to init [" + type + " array with length " + len);
     }
     var arr_cls = <ClassData.ArrayClassData> this.get_class("[" + type);
+    // Gives the JavaScript engine a size hint.
     if (type === 'J') {
       return new JavaArray(this, arr_cls, util.arrayset<gLong>(len, gLong.ZERO));
-    } else if (type[0] === 'L' || type[0] === '[') {
+    } else if (type[0] === 'L' || type[0] === '[') { // array of objects or other arrays
       return new JavaArray(this, arr_cls, util.arrayset<any>(len, null));
-    } else {
+    } else { // numeric array
       return new JavaArray(this, arr_cls, util.arrayset<number>(len, 0));
     }
   }
@@ -554,6 +589,7 @@ export class RuntimeState {
     return init_arr(0, type);
   }
 
+  // heap object initialization
   public init_string(str: string, intern?: boolean): java_object.JavaObject {
     if (intern == null) {
       intern = false;
@@ -583,6 +619,7 @@ export class RuntimeState {
     return new JavaArray(this, arr_cls, carr);
   }
 
+  // address of the block that this address is contained in
   public block_addr(l_address: gLong): number {
     var address = l_address.toNumber();
     if (typeof DataView !== "undefined" && DataView !== null) {
@@ -598,6 +635,8 @@ export class RuntimeState {
         throw new Error("Invalid memory access at " + address);
       }
     } else {
+      // w/o typed arrays, we just address by 32bits.
+      // We initialize memory to 0, so it should not be 0 or undefined.
       if (this.mem_blocks[address] != null) {
         return address;
       }
@@ -606,7 +645,7 @@ export class RuntimeState {
 
   public handle_toplevel_exception(e: any, no_threads: boolean, done_cb: (p:boolean)=>void): void {
     var _this = this;
-    this.unusual_termination = true;
+    this.unusual_termination = true; // Used for exit codes in console frontend.
     if (e.toplevel_catch_handler != null) {
       this.run_until_finished(() => e.toplevel_catch_handler(_this), no_threads, done_cb);
     } else {
@@ -618,13 +657,33 @@ export class RuntimeState {
     }
   }
 
+  // Pauses the JVM for an asynchronous operation. The callback, cb, will be
+  // called with another callback that it is responsible for calling with any
+  // return values when it is time to resume the JVM.
   public async_op<T>(cb: (resume_cb: (arg1?:T, arg2?:any, isBytecode?:boolean, advancePc?:boolean)=>void, except_cb: (e_fcn: ()=>void, discardStackFrame?:boolean)=>void)=>void): void {
     throw new YieldIOException(cb);
   }
 
+  // Asynchronously calls the bytecode method with the given arguments and passes
+  // the return result to the callback, or passes a function that throws an
+  // exception to the other callback.
+  // Please only call this from a native method.
+  //
+  // 'cls': An *initialized* ClassData object.
+  // 'method': The method object.
+  // 'args': Array of arguments to the method. If this is a method on an object,
+  //         the first argument should be the object.
+  //         NOTE: If one of these arguments is a double or a long, you
+  //               *must* correctly include a second 'null'!
+  // If this is a constructor, we will automatic
   public call_bytecode(cls: ClassData.ReferenceClassData, method: methods.Method,
       args: any[], success_cb: any, except_cb: any) {
     var _this = this;
+    // This is all very complicated. When this method calls your
+    // callback, we're in the main loop. We need to give you a
+    // function that allows you to put your return value back onto
+    // the stack. In order to do this, I async_op you one more time
+    // so you can put your return value on the stack and resume again.
     var good_cb = function(ret1: any, ret2: any) {
       return _this.async_op(function(good) {
         return good(ret1, ret2);
@@ -636,16 +695,19 @@ export class RuntimeState {
       });
     };
     return this.async_op(function() {
+      // Is this a constructor? <init>
       var is_constructor = false;
       if (method.name.charAt(0) === '<' && method.name.charAt(1) === 'i') {
         var v = new JavaObject(_this, cls);
         args.unshift(v, v);
         is_constructor = true;
       }
+      // Set up a native frame with the callbacks.
       var nf = StackFrame.native_frame("$bytecode_call", (function() {
+        // What kind of method is it? Do we pop 0, 1, or 2?
         if (method.return_type !== 'V' || is_constructor) {
           if (method.return_type === 'J' || method.return_type === 'D') {
-            _this.pop();
+            _this.pop(); // null
           }
           var rv = _this.pop();
         }
@@ -658,8 +720,12 @@ export class RuntimeState {
         }), good_cb, bad_cb);
       }));
       _this.meta_stack().push(nf);
+      // Add the arguments to the stack.
       _this.push_array(args);
+      // Setup dat stack frame
       method.setup_stack(_this);
+      // Push ourselves back into the execution loop
+      // to call the method!
       return _this.run_until_finished((function() {}), false, _this.stashed_done_cb);
     });
   }
@@ -669,8 +735,10 @@ export class RuntimeState {
     var stack : CallStack;
     function nop() {}
 
+    // Reset stack depth every time this is called. Prevents us from needing to
+    // scatter this around the code everywhere to prevent filling the stack
     setImmediate((function () {
-      _this.stashed_done_cb = done_cb;
+      _this.stashed_done_cb = done_cb; // hack for the case where we error out of <clinit>
       try {
         setup_fn();
         var start_time = (new Date()).getTime();
@@ -682,16 +750,23 @@ export class RuntimeState {
           sf = _this.curr_frame();
         }
         if ((sf.runner != null) && m_count === 0) {
+          // Loop has stopped to give the browser some breathing room.
           var duration = (new Date()).getTime() - start_time;
+          // We should yield once every 1-2 seconds or so.
           if (duration > 2000 || duration < 1000) {
+            // Figure out what to adjust max_m_count by.
             var ms_per_m = duration / _this.max_m_count;
             _this.max_m_count = (1000 / ms_per_m) | 0;
           }
+          // Call ourselves to yield and resume.
           return _this.run_until_finished(nop, no_threads, done_cb);
         }
+        // we've finished this thread, no more runners
+        // we're done if the only thread is "main"
         if (no_threads || _this.thread_pool.length <= 1) {
           return done_cb(true);
         }
+        // remove the current (finished) thread
         debug("TE(toplevel): finished thread " + (thread_name(_this, _this.curr_thread)));
         _this.curr_thread.$isAlive = false;
         _this.thread_pool.splice(_this.thread_pool.indexOf(_this.curr_thread), 1);
@@ -701,9 +776,13 @@ export class RuntimeState {
         });
       } catch (_error) {
         var e = _error;
+        // XXX: We should remove this and have a better mechanism for 'returning'.
         if (e === ReturnException) {
           _this.run_until_finished(nop, no_threads, done_cb);
         } else if (e instanceof YieldIOException) {
+          // Set "bytecode" if this was triggered by a bytecode instruction (e.g.
+          // class initialization). This causes the method to resume on the next
+          // opcode once success_fn is called.
           var success_fn = function(ret1: any, ret2: any, bytecode?:boolean, advance_pc?:boolean) {
             if (advance_pc == null) {
               advance_pc = true;
@@ -765,6 +844,9 @@ export class RuntimeState {
     }));
   }
 
+  // Provide buffering for the underlying input function, returning at most
+  // n_bytes of data. Underlying _async_input is expected to 'block' if no
+  // data is available.
   public async_input(n_bytes: number, resume: (string)=>void): void {
     if (this.input_buffer.length > 0) {
       var data = this.input_buffer.slice(0, n_bytes);
