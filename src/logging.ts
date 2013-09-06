@@ -3,6 +3,7 @@ import gLong = require('./gLong');
 
 // default module: logging
 
+// used for debugging the stack and local variables
 function debug_var(e: any): string {
   if (e === null) {
     return '!';

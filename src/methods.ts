@@ -162,6 +162,7 @@ export class Method extends AbstractMethodField {
             "Native method '" + sig + "' not implemented.\nPlease fix or file a bug at https://github.com/int3/doppio/issues");
         };
       } else {
+        // micro-optimization for registerNatives and initIDs, don't even bother making a function
         this.code = null;
       }
     } else if (!this.access_flags.abstract) {
@@ -192,6 +193,7 @@ export class Method extends AbstractMethodField {
       var k = 0;
       var handlers;
       if (_this.code != null && _this.code.exception_handlers != null && _this.code.exception_handlers.length > 0) {
+        // HotSpot seems to do this
         handlers = [{catch_type: 'Ljava/lang/Throwable;'}];
         Array.prototype.push.apply(handlers, _this.code.exception_handlers);
       } else {
@@ -217,6 +219,7 @@ export class Method extends AbstractMethodField {
             return fetch_etype();
           }), failure_fn);
         } else {
+          // XXX: missing parameterAnnotations
           var jco_arr_cls = <ClassData.ArrayClassData> rs.get_bs_class('[Ljava/lang/Class;');
           var byte_arr_cls = <ClassData.ArrayClassData> rs.get_bs_class('[B');
           var cls = <ClassData.ReferenceClassData> rs.get_bs_class(typestr);
@@ -251,6 +254,7 @@ export class Method extends AbstractMethodField {
   public take_params(caller_stack: any[]): any[] {
     var start = caller_stack.length - this.param_bytes;
     var params = caller_stack.slice(start);
+    // this is faster than splice()
     caller_stack.length -= this.param_bytes;
     return params;
   }
@@ -296,6 +300,8 @@ export class Method extends AbstractMethodField {
     }
   }
 
+  // Reinitializes the method by removing all cached information from the method.
+  // We amortize the cost by doing it lazily the first time that we call run_bytecode.
   public initialize(): void {
     this.reset_caches = true;
   }
@@ -310,6 +316,7 @@ export class Method extends AbstractMethodField {
 
   public run_bytecode(rs: runtime.RuntimeState): void {
     trace("entering method " + this.full_signature());
+    // main eval loop: execute each opcode, using the pc to iterate through
     var code = this.code.opcodes;
     if (this.reset_caches) {
       for (var i = 0; i < code.length; i++) {
@@ -321,11 +328,13 @@ export class Method extends AbstractMethodField {
     }
     var cf = rs.curr_frame();
     if (this.access_flags.synchronized && cf.pc === 0) {
+      // hack in a monitorenter, which will yield if it fails
       if (!opcodes.monitorenter(rs, this.method_lock(rs))) {
         cf.pc = 0;
         return;
       }
     }
+    // Bootstrap the loop.
     var op = code[cf.pc];
     while (!rs.should_return) {
       var annotation: string;
@@ -372,11 +381,13 @@ export class Method extends AbstractMethodField {
       var err_cls = <ClassData.ReferenceClassData> runtime_state.get_bs_class('Ljava/lang/Error;');
       runtime_state.java_throw(err_cls, "called abstract method: " + this.full_signature());
     }
+    // Finally, the normal case: running a Java method
     ms.push(sf = runtime_state.construct_stackframe(this, params, []));
     if (this.code.run_stamp < runtime_state.run_stamp) {
       this.code.run_stamp = runtime_state.run_stamp;
       this.code.parse_code();
       if (this.access_flags.synchronized) {
+        // hack in a monitorexit for all return opcodes
         for (var i in this.code.opcodes) {
           var c = this.code.opcodes[i];
           if (c.name.match(/^[ildfa]?return$/)) {

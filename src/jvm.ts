@@ -15,6 +15,7 @@ var error = logging.error;
 export var show_NYI_natives: boolean = false;
 export var dump_state: boolean = false;
 
+// node is only defined if we are in the browser.
 var vendor_path = typeof node !== "undefined" ? '/sys/vendor' : path.resolve(__dirname, '../vendor');
 export var system_properties: any
 
@@ -40,10 +41,10 @@ export function reset_system_properties() {
     'os.version': '0',
     'java.vm.name': 'Doppio 64-bit VM',
     'java.vm.vendor': 'Doppio Inc.',
-    'java.awt.headless': (typeof node === "undefined" || node === null).toString(),
+    'java.awt.headless': (typeof node === "undefined" || node === null).toString(), // true if we're using the console frontend
     'java.awt.graphicsenv': 'classes.awt.CanvasGraphicsEnvironment',
-    'useJavaUtilZip': 'true',
-    'jline.terminal': 'jline.UnsupportedTerminal'
+    'useJavaUtilZip': 'true', // hack for sun6javac, avoid ZipFileIndex shenanigans
+    'jline.terminal': 'jline.UnsupportedTerminal' // we can't shell out to `stty`
   };
 }
 
@@ -71,10 +72,21 @@ export function read_classfile(cls: any, cb: (data: NodeBuffer)=>void, failure_c
   try_get(0);
 }
 
+// Sets the classpath to the given value in typical classpath form:
+// path1:path2:... etc.
+// jcl_path is the location of the Java Class Libraries. It is the only path
+// that is implicitly the last item on the classpath.
+// Standardizes the paths for JVM usage.
+// XXX: Should make this asynchronous at some point for checking the existance
+//      of classpaths.
 export function set_classpath(jcl_path: string, classpath: string) {
   var dirs = classpath.split(':');
   dirs.push(jcl_path);
   var tmp_classpath: string[] = [];
+  // All paths must:
+  // * Exist.
+  // * Be a the fully-qualified path.
+  // * Have a trailing /.
   for (var i = 0; i < dirs.length; i++) {
     var cp = path.normalize(dirs[i]);
     if (cp.charAt(cp.length - 1) !== '/') {
@@ -87,6 +99,7 @@ export function set_classpath(jcl_path: string, classpath: string) {
   this.system_properties['java.class.path'] = tmp_classpath;
 }
 
+// main function that gets called from the frontend
 export function run_class(rs: runtime.RuntimeState, class_name: string, cmdline_args: string[], done_cb: (arg: any)=>void) {
   var class_descriptor = "L" + class_name + ";";
   var main_sig = 'main([Ljava/lang/String;)V';
@@ -97,12 +110,14 @@ export function run_class(rs: runtime.RuntimeState, class_name: string, cmdline_
       rs.async_op(function (resume_cb, except_cb) {
         rs.get_bs_cl().initialize_class(rs, class_descriptor, function (cls: ClassData.ReferenceClassData) {
           rs.init_args(cmdline_args);
+          // wrap it in run_until_finished to handle any exceptions correctly
           return rs.run_until_finished(function () {
             main_method = cls.method_lookup(rs, main_sig);
             if (main_method != null) {
               return;
             }
             return rs.async_op(function (resume_cb, except_cb) {
+              // we call except_cb on success because it doesn't pop the callstack
               cls.resolve_method(rs, main_sig, function (m) {
                 main_method = m;
                 return except_cb(function () { });
