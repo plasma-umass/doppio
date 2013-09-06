@@ -511,10 +511,10 @@ var commands = {
         editor = ace.edit('source');
         editor.setTheme('ace/theme/twilight');
         if (args[0] == null || args[0].split('.')[1] === 'java') {
-          var JavaMode = require("ace/mode/java").Mode;
+          var JavaMode = ace.require("ace/mode/java").Mode;
           editor.getSession().setMode(new JavaMode);
         } else {
-          var TextMode = require("ace/mode/text").Mode;
+          var TextMode = ace.require("ace/mode/text").Mode;
           editor.getSession().setMode(new TextMode);
         }
         editor.getSession().setValue(data);
