@@ -1,4 +1,4 @@
-Typed-Doppio: A JVM in TypeScript
+Doppio: A JVM in TypeScript
 =================================
 
 _Doppio_ is a double shot of espresso.
@@ -19,6 +19,7 @@ Getting & Building the Code
     git clone https://github.com/int3/doppio.git
     cd doppio
     tools/setup.sh
+    make
 
 If you have Homebrew, `setup.sh` will try to install a bunch of dependencies
 automatically. Users of other package managers should check that they have:
@@ -26,7 +27,6 @@ automatically. Users of other package managers should check that they have:
 * `node >= 0.10`
 * `wget`
 * `libffi`
-* `gnu-sed` (i.e. must support the `-r` flag; BSD `sed` doesn't)
 
 Usage
 -----
@@ -34,26 +34,26 @@ Usage
 To run Doppio on localhost:
 
     make dev
-    tools/webrick.rb --dev
+    tools/server.coffee --dev
 
 To get the optimized release version:
 
     make release
-    tools/webrick.rb --release
+    tools/server.coffee --release
 
 Then point your browser to [http://localhost:8000/](http://localhost:8000/).
 
 The code can also be run from the console. For example:
 
     make dev-cli
-    node build/dev/console/disassembler.js classes/demo/Fib
+    node build/dev-cli/console/disassembler.js classes/demo/Fib
     # doppio-dev -> node build/dev/console/runner.js
     ./doppio-dev classes/demo/Fib
     ./doppio-dev classes/demo/Fib 7        # pass an argument to the JVM
     ./doppio-dev -jar my_application.jar   # extract and run a JAR
 
 To get the optimized version, use `make release-cli`. The build products can be
-found in `build/release`, and the runtime can be invoked via `./doppio`.
+found in `build/release-cli`, and the runtime can be invoked via `./doppio`.
 
 Automated Rebuilding
 --------------------
@@ -72,6 +72,6 @@ Run all tests:
 
 Run a specific test, or test with different options:
 
-    node build/dev/console/test_runner.js -h
-    node build/dev/console/test_runner.js classes/test/Strings
+    node build/dev-cli/console/test_runner.js -h
+    node build/dev-cli/console/test_runner.js classes/test/Strings
 

@@ -168,15 +168,5 @@ if ! command -v bundle > /dev/null; then
     fi
 fi
 
-# does sed support extended regexps?
-if ! sed -r "" </dev/null >/dev/null 2>&1 && ! command -v gsed >/dev/null; then
-    if [ "$PLATFORM" = "Darwin" ] && [ -n "$PKGMGR" ]; then
-        $PKGMGR gnu-sed
-    else
-        echo "warning: sed does not seem to support extended regular expressions."
-        echo "Doppio can run without this, but it is needed for building the full website."
-    fi
-fi
-
 echo "Your environment should now be set up correctly."
 echo "Run 'make test' (optionally with -j4) to test Doppio."
