@@ -195,7 +195,7 @@ export class DynInvokeOpcode extends InvokeOpcode {
       this.count = code_array.get_uint(1);
       code_array.skip(1);
       this.byte_count += 2;
-    } else {
+    } else { // invokevirtual
       this.count = 1 + get_param_word_size(this.method_spec.sig);
     }
     this.cache = Object.create(null);
@@ -1012,12 +1012,15 @@ export var opcodes : Opcode[] = [
       new_execute = (rs) => rs.push(this.cls.static_get(rs, this.field_spec.name))
     }
     if (ref_cls != null) {
+      // Get the *actual* class that owns this field.
+      // This may not be initialized if it's an interface, so we need to check.
       var cls_type = ref_cls.field_lookup(rs, this.field_spec.name).cls.get_type();
       this.cls = rs.get_class(cls_type, true);
       if (this.cls != null) {
         new_execute.call(this, rs);
         this.execute = new_execute;
       } else {
+        // Initialize cls_type and rerun opcode.
         rs.async_op(function(resume_cb, except_cb) {
           rs.get_cl().initialize_class(rs, cls_type, (function(class_file) {
             resume_cb(undefined, undefined, true, false);
@@ -1025,6 +1028,7 @@ export var opcodes : Opcode[] = [
         });
       }
     } else {
+      // Initialize @field_spec.class and rerun opcode.
       rs.async_op(function(resume_cb, except_cb) {
         rs.get_cl().initialize_class(rs, desc, (function(class_file) {
           resume_cb(undefined, undefined, true, false);
@@ -1033,6 +1037,7 @@ export var opcodes : Opcode[] = [
     }
   }),
   new FieldOpcode('putstatic', function(rs) {
+    // Get the class referenced by the field_spec.
     var desc = this.field_spec.class;
     var ref_cls = rs.get_class(desc, true);
     var new_execute: Execute;
@@ -1042,12 +1047,15 @@ export var opcodes : Opcode[] = [
       new_execute = (rs) => this.cls.static_put(rs, this.field_spec.name, rs.pop())
     }
     if (ref_cls != null) {
+      // Get the *actual* class that owns this field.
+      // This may not be initialized if it's an interface, so we need to check.
       var cls_type = ref_cls.field_lookup(rs, this.field_spec.name).cls.get_type();
       this.cls = rs.get_class(cls_type, true);
       if (this.cls != null) {
         new_execute.call(this, rs);
         this.execute = new_execute;
       } else {
+        // Initialize cls_type and rerun opcode.
         rs.async_op(function(resume_cb, except_cb) {
           rs.get_cl().initialize_class(rs, cls_type, (function(class_file) {
             resume_cb(undefined, undefined, true, false);
@@ -1056,6 +1064,7 @@ export var opcodes : Opcode[] = [
       }
       return;
     }
+    // Initialize @field_spec.class and rerun opcode.
     rs.async_op(function(resume_cb, except_cb) {
       rs.get_cl().initialize_class(rs, desc, (function(class_file) {
         resume_cb(undefined, undefined, true, false);
@@ -1136,6 +1145,7 @@ export var opcodes : Opcode[] = [
     var desc = this.class;
     this.cls = rs.get_class(desc, true);
     if (this.cls != null) {
+      // Check if this is a ClassLoader or not.
       if (this.cls.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/ClassLoader;', true))) {
         rs.push(new JavaClassLoaderObject(rs, this.cls));
         this.execute = (rs: runtime.RuntimeState) => rs.push(new JavaClassLoaderObject(rs, this.cls));
@@ -1144,11 +1154,15 @@ export var opcodes : Opcode[] = [
         this.execute = (rs: runtime.RuntimeState) => rs.push(new java_object.JavaThreadObject(rs, this.cls));
       } else {
         rs.push(new JavaObject(rs, this.cls));
+        // Self-modify; cache the class file lookup.
         this.execute = (rs: runtime.RuntimeState) => rs.push(new JavaObject(rs, this.cls));
       }
     } else {
+      // Initialize @type, create a JavaObject for it, and push it onto the stack.
+      // Do not rerun opcode.
       rs.async_op(function(resume_cb, except_cb) {
         var success_fn = function(class_file: ClassData.ReferenceClassData) {
+          // Check if this is a ClassLoader or not.
           var obj: java_object.JavaObject;
           if (class_file.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/ClassLoader;', true))) {
             obj = new JavaClassLoaderObject(rs, class_file);
@@ -1166,12 +1180,14 @@ export var opcodes : Opcode[] = [
   new NewArrayOpcode('newarray'),
   new ClassOpcode('anewarray', function(rs) {
     var desc = this.class;
+    // Make sure the component class is loaded.
     var cls = rs.get_cl().get_resolved_class(desc, true);
     if (cls != null) {
       var new_execute: Execute = (rs) => rs.push(rs.heap_newarray(desc, rs.pop()));
       new_execute.call(this, rs);
       this.execute = new_execute;
     } else {
+      // Load @class and rerun opcode.
       rs.async_op(function(resume_cb, except_cb) {
         rs.get_cl().resolve_class(rs, desc, (function(class_file) {
           resume_cb(undefined, undefined, true, false);
@@ -1183,6 +1199,7 @@ export var opcodes : Opcode[] = [
   new Opcode('athrow', 0, function(rs){throw new JavaException(rs.pop())}),
   new ClassOpcode('checkcast', function(rs) {
     var desc = this.class;
+    // Ensure the class is loaded.
     this.cls = rs.get_cl().get_resolved_class(desc, true);
     if (this.cls != null) {
       var new_execute = function(rs: runtime.RuntimeState): void {
@@ -1198,6 +1215,7 @@ export var opcodes : Opcode[] = [
       this.execute = new_execute;
       return;
     }
+    // Fetch @class and rerun opcode.
     rs.async_op(function(resume_cb, except_cb) {
       rs.get_cl().resolve_class(rs, desc,
         (() => resume_cb(undefined, undefined, true, false)), except_cb);
@@ -1215,6 +1233,7 @@ export var opcodes : Opcode[] = [
       this.execute = new_execute;
       return;
     }
+    // Fetch @class and rerun opcode.
     rs.async_op(function(resume_cb, except_cb) {
       rs.get_cl().resolve_class(rs, desc,
         (() => resume_cb(undefined, undefined, true, false)), except_cb);
