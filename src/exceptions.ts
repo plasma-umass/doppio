@@ -29,6 +29,7 @@ export class YieldException {
 }
 
 export class YieldIOException extends YieldException {}
+  // Empty class
 
 export class JavaException implements DoppioException {
   constructor(public exception: java_object.JavaObject) {}

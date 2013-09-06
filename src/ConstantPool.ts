@@ -2,6 +2,10 @@
 import gLong = require('./gLong');
 import util = require('./util');
 
+// All objects in the constant pool have the properties @type and @value.
+// *Reference and NameAndType objects all have a @deref method, which resolves
+// all child references to their values (i.e. discarding @type).
+
 export interface ConstantPoolItem {
   size: number;
   type: string;
@@ -32,6 +36,7 @@ export class SimpleReference {
 
 export class ClassReference extends SimpleReference {
   public type = 'class';
+  // the ConstantPool stores class names without the L...; descriptor stuff
   public deref(): any {
     var pool_obj = this.constant_pool[this.value];
     if (typeof pool_obj.deref === "function") {
@@ -152,7 +157,7 @@ export class ConstInt32 {
 
   public static from_bytes(bytes_array: util.BytesArray): ConstInt32 {
     var uint32 = bytes_array.get_uint(4);
-    var value = -(1 + ~uint32);
+    var value = -(1 + ~uint32); // Convert to signed integer ONLY FOR 32 BITS
     return new this(value);
   }
 }
@@ -167,6 +172,7 @@ export class ConstFloat {
 
   public static from_bytes(bytes_array: util.BytesArray): ConstFloat {
     var uint32 = bytes_array.get_uint(4);
+    // We OR with 0 to convert to a signed int.
     var value = util.intbits2float(uint32 | 0);
     return new this(value);
   }
@@ -224,8 +230,9 @@ export class ConstantPool {
       12: MethodSignature
     };
     this.cp_count = bytes_array.get_uint(2);
+    // constant_pool works like an array, but not all indices have values
     this.constant_pool = {};
-    var idx = 1;
+    var idx = 1; // CP indexing starts at zero
     while (idx < this.cp_count) {
       var tag = bytes_array.get_uint(1);
       if (!((1 <= tag && tag <= 12))) {
