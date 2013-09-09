@@ -15,7 +15,6 @@ import enums = require('./enums');
 var ClassState = enums.ClassState;
 var trace = logging.trace;
 
-// SEARCH FOR: this.initialized, this.resolved,
 // Represents a single class in the JVM.
 export class ClassData {
   public loader: ClassLoader.ClassLoader;
