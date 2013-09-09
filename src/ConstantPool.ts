@@ -254,13 +254,11 @@ export class ConstantPool {
     }
   }
 
-  public each<T>(fn: (p:number, q:ConstantPoolItem)=>T): T[] {
-    var _results: T[] = [];
-    for (var i = 0, _ref = this.cp_count; i < _ref; ++i) {
+  public each(fn: (idx:number, item:ConstantPoolItem)=>void): void {
+    for (var i = 0; i < this.cp_count; ++i) {
       if (i in this.constant_pool) {
-        _results.push(fn(i, this.constant_pool[i]));
+        fn(i, this.constant_pool[i]);
       }
     }
-    return _results;
   }
 }

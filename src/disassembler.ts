@@ -111,8 +111,8 @@ function make_dis(class_file) {
   };
   // constant pool entries
   var pool = class_file.constant_pool;
-  pool.each(function(idx, entry) {
-    return dis.constant_pool.push({
+  pool.each(function(idx: number, entry): void {
+    dis.constant_pool.push({
       idx: idx,
       type: entry.type,
       value: format(entry),
