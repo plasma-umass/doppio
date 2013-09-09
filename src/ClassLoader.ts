@@ -9,6 +9,8 @@ import exceptions = require('./exceptions');
 var JavaException = exceptions.JavaException;
 import java_object = require('./java_object');
 var JavaObject = java_object.JavaObject;
+import enums = require('./enums');
+var ClassState = enums.ClassState;
 
 declare var UNSAFE: boolean;
 
@@ -406,7 +408,7 @@ export class ClassLoader {
     var class_file = cdata;
     while ((class_file != null) && !class_file.is_initialized()) {
       trace("initializing class: " + (class_file.get_type()));
-      class_file.initialized = true;
+      class_file.set_state(ClassState.INITIALIZED);
 
       // Run class initialization code. Superclasses get init'ed first.  We
       // don't want to call this more than once per class, so don't do dynamic
@@ -503,7 +505,7 @@ export class ClassLoader {
       // Check if it's initialized already. If this is a CustomClassLoader, it's
       // possible that the class has been retrieved from another ClassLoader,
       // and has already been initialized.
-      if (cdata.is_initialized(rs)) {
+      if (cdata.is_initialized()) {
         return success_fn(cdata);
       } else {
         return _this._initialize_class(rs, cdata, success_fn, failure_fn);
@@ -563,11 +565,11 @@ export class BootstrapClassLoader extends ClassLoader {
     }
     visited['bootstrapLoader'] = true;
     var loaded = {};
-    var _ref1 = this.loaded_classes;
-    for (var type in _ref1) {
-      var cls = _ref1[type];
+    var loaded_classes = this.loaded_classes;
+    for (var type in loaded_classes) {
+      var cls = loaded_classes[type];
       if (type !== "__proto__") {
-        loaded["" + type + "(" + (cls.getLoadState()) + ")"] = cls.loader.serialize(visited);
+        loaded["" + type + "(" + (ClassState[cls.get_state()]) + ")"] = cls.loader.serialize(visited);
       }
     }
     return {

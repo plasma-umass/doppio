@@ -11,16 +11,22 @@ import methods = require('./methods');
 import runtime = require('./runtime');
 import natives = require('./natives');
 import ClassLoader = require('./ClassLoader');
+import enums = require('./enums');
+var ClassState = enums.ClassState;
 var trace = logging.trace;
 
+// SEARCH FOR: this.initialized, this.resolved,
 // Represents a single class in the JVM.
 export class ClassData {
   public loader: ClassLoader.ClassLoader;
-  public access_flags: util.Flags;
-  public initialized: boolean;
-  public resolved: boolean;
-  private jco: java_object.JavaClassObject;
-  public reset_bit: number;
+  public access_flags: util.Flags = null;
+  // We make this private to *enforce* call sites to use our getter functions.
+  // The actual state of this class depends on the state of its parents, and
+  // parents do not inform their children when they change state.
+  private state: enums.ClassState = ClassState.LOADED;
+  private jco: java_object.JavaClassObject = null;
+  // Flip to 1 to trigger reset() call on load.
+  public reset_bit: number = 0;
   public this_class: string;
   public super_class: string;
   public super_class_cdata: ClassData;
@@ -34,12 +40,6 @@ export class ClassData {
       natives.instantiate(ReferenceClassData, PrimitiveClassData, ArrayClassData);
     }
     this.loader = loader != null ? loader : null;
-    this.access_flags = null;
-    this.initialized = false;
-    this.resolved = false;
-    this.jco = null;
-    // Flip to 1 to trigger reset() call on load.
-    this.reset_bit = 0;
   }
 
   // Resets any ClassData state that may have been built up
@@ -52,9 +52,9 @@ export class ClassData {
     if (sc != null && sc.reset_bit === 1) {
       sc.reset();
     }
-    var _ref1 = this.get_interfaces;
-    for (var _i = 0, _len = _ref1.length; _i < _len; _i++) {
-      var iface = _ref1[_i];
+    var ifaces = this.get_interfaces();
+    for (var i = 0; i < ifaces.length; i++) {
+      var iface = ifaces[i];
       if (iface.reset_bit === 1) {
         iface.reset();
       }
@@ -63,16 +63,6 @@ export class ClassData {
 
   public toExternalString(): string {
     return util.ext_classname(this.this_class);
-  }
-
-  public getLoadState(): string {
-    if (this.initialized) {
-      return 'initialized';
-    } else if (this.resolved) {
-      return 'resolved';
-    } else {
-      return 'loaded';
-    }
   }
 
   // Returns the ClassLoader object of the classloader that initialized this
@@ -132,27 +122,25 @@ export class ClassData {
     return null; // TypeScript can't infer that rs.java_throw *always* throws an exception.
   }
 
-  // Checks if the class file is initialized. It will set @initialized to 'true'
-  // if this class has no static initialization method and its parent classes
-  // are initialized, too.
-  public is_initialized(): boolean {
-    if (this.initialized) {
-      return true;
+  public set_state(state:enums.ClassState):void { this.state = state; }
+
+  // Gets the current state of this class.
+  public get_state(): enums.ClassState {
+    if (this.state == ClassState.RESOLVED && this.get_method('<clinit>()V') == null) {
+      // We can promote to INITIALIZED if this class has no static initialization
+      // logic, and its parent class is initialized.
+      var scls = this.get_super_class();
+      if (scls != null && scls.get_state() === ClassState.INITIALIZED) {
+        this.state = ClassState.INITIALIZED;
+      }
     }
-    if (!this.is_resolved()) {
-      return false;
-    }
-    if (this.get_method('<clinit>()V') != null) {
-      return false;
-    }
-    var scls = this.get_super_class();
-    this.initialized = (scls != null && scls.is_initialized());
-    return this.initialized;
+    return this.state;
   }
 
-  public is_resolved(): boolean {
-    return this.resolved;
-  }
+  // Convenience function.
+  public is_initialized(): boolean { return this.get_state() === ClassState.INITIALIZED; }
+  // Convenience function.
+  public is_resolved(): boolean { return this.get_state() !== ClassState.LOADED; }
 
   public is_subinterface(target: ClassData): boolean {
     return false;
@@ -177,8 +165,7 @@ export class PrimitiveClassData extends ClassData {
   constructor(this_class: string, loader: ClassLoader.ClassLoader) {
     super(loader);
     this.this_class = this_class;
-    this.initialized = true;
-    this.resolved = true;
+    this.set_state(ClassState.INITIALIZED);
   }
 
   // Returns a boolean indicating if this class is an instance of the target class.
@@ -216,7 +203,7 @@ export class PrimitiveClassData extends ClassData {
     var box_cls = <ReferenceClassData> rs.get_bs_class(box_name);
     // these are all initialized in preinit (for the BSCL, at least)
     var wrapped = new JavaObject(rs, box_cls);
-    // HACK: all primitive wrappers store their value in a private static final field named 'value'
+    // XXX: all primitive wrappers store their value in a private static final field named 'value'
     wrapped.fields[box_name + 'value'] = value;
     return wrapped;
   }
@@ -263,8 +250,7 @@ export class ArrayClassData extends ClassData {
   public set_resolved(super_class_cdata: ClassData, component_class_cdata: ClassData): void {
     this.super_class_cdata = super_class_cdata;
     this.component_class_cdata = component_class_cdata;
-    this.resolved = true;
-    this.initialized = true;
+    this.set_state(ClassState.INITIALIZED);
   }
 
   // Returns a boolean indicating if this class is an instance of the target class.
@@ -376,7 +362,9 @@ export class ReferenceClassData extends ClassData {
   // Eventually, this will also handle `clinit` duties.
   public reset(): void {
     super.reset();
-    this.initialized = false;
+    if (this.get_state() === ClassState.INITIALIZED) {
+      this.set_state(ClassState.LOADED);
+    }
     this.static_fields = Object.create(null);
     for (var k in this.methods) {
       this.methods[k].initialize();
@@ -404,9 +392,9 @@ export class ReferenceClassData extends ClassData {
   }
 
   public get_attribute(name: string): attributes.Attribute {
-    var _ref1 = this.attrs;
-    for (var _i = 0, _len = _ref1.length; _i < _len; _i++) {
-      var attr = _ref1[_i];
+    var attrs = this.attrs;
+    for (var i = 0; i < attrs.length; i++) {
+      var attr = attrs[i];
       if (attr.name === name) {
         return attr;
       }
@@ -415,15 +403,15 @@ export class ReferenceClassData extends ClassData {
   }
 
   public get_attributes(name: string): attributes.Attribute[] {
-    var _ref1 = this.attrs;
-    var _results : attributes.Attribute[] = [];
-    for (var _i = 0, _len = _ref1.length; _i < _len; _i++) {
-      var attr = _ref1[_i];
+    var attrs = this.attrs;
+    var results : attributes.Attribute[] = [];
+    for (var i = 0; i < attrs.length; i++) {
+      var attr = attrs[i];
       if (attr.name === name) {
-        _results.push(attr);
+        results.push(attr);
       }
     }
-    return _results;
+    return results;
   }
 
   public get_default_fields(): { [name: string]: any } {
@@ -470,7 +458,8 @@ export class ReferenceClassData extends ClassData {
     this.super_class_cdata = super_class_cdata;
     trace("Class " + (this.get_type()) + " is now resolved.");
     this.interface_cdatas = interface_cdatas;
-    this.resolved = true;
+    // TODO: Assert we are not already resolved or initialized?
+    this.set_state(ClassState.RESOLVED);
   }
 
   public construct_default_fields(): void {
@@ -479,9 +468,9 @@ export class ReferenceClassData extends ClassData {
     // Object.create(null) avoids interference with Object.prototype's properties
     this.default_fields = Object.create(null);
     while (cls != null) {
-      var _ref1 = cls.fields;
-      for (var _i = 0, _len = _ref1.length; _i < _len; _i++) {
-        var f = _ref1[_i];
+      var fields = cls.fields;
+      for (var i = 0; i < fields.length; i++) {
+        var f = fields[i];
         if (!(!f.access_flags["static"])) {
           continue;
         }
@@ -549,8 +538,8 @@ export class ReferenceClassData extends ClassData {
     }
     if (method.code != null && method.code.exception_handlers != null) {
       var handlers = method.code.exception_handlers;
-      for (var _i = 0, _len = handlers.length; _i < _len; _i++) {
-        var eh = handlers[_i];
+      for (var i = 0; i < handlers.length; i++) {
+        var eh = handlers[i];
         if (!(eh.catch_type === '<any>' || ((this.loader.get_resolved_class(eh.catch_type, true)) != null))) {
           return null; // we found it, but it needs to be resolved
         }
@@ -573,9 +562,9 @@ export class ReferenceClassData extends ClassData {
         return this.ml_cache[sig];
       }
     }
-    var _ref1 = this.get_interfaces();
-    for (var _i = 0, _len = _ref1.length; _i < _len; _i++) {
-      var ifc = _ref1[_i];
+    var ifaces = this.get_interfaces();
+    for (var i = 0; i < ifaces.length; i++) {
+      var ifc = ifaces[i];
       this.ml_cache[sig] = ifc._method_lookup(rs, sig);
       if (this.ml_cache[sig] != null) {
         return this.ml_cache[sig];
@@ -640,9 +629,9 @@ export class ReferenceClassData extends ClassData {
     if (this.this_class === target.this_class) {
       return true;
     }
-    var _ref1 = this.get_interfaces();
-    for (var _i = 0, _len = _ref1.length; _i < _len; _i++) {
-      var super_iface = _ref1[_i];
+    var ifaces = this.get_interfaces();
+    for (var i = 0; i < ifaces.length; i++) {
+      var super_iface = ifaces[i];
       if (super_iface.is_subinterface(target)) {
         return true;
       }

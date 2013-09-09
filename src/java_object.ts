@@ -7,6 +7,8 @@ import logging = require('./logging');
 import runtime = require('./runtime');
 import ClassData = require('./ClassData');
 import ClassLoader = require('./ClassLoader');
+import enums = require('./enums');
+var ClassState = enums.ClassState;
 
 export class JavaArray {
   public cls: ClassData.ArrayClassData
@@ -175,7 +177,8 @@ export class JavaThreadObject extends JavaObject {
   public wakeup_time: number;
   public $park_count: number;
   public $park_timeout: number;
-  // XXX: Used if it's a 'fake' Thread object. I'm so sorry.
+  // XXX: Used if it's a 'fake' Thread object. I'm so sorry. We need to have a
+  // special subclass for that thread.
   public fake: boolean;
   constructor(rs: runtime.RuntimeState, cls: ClassData.ReferenceClassData, obj?: any) {
     // First thread to bootstrap us into the JVM.
@@ -238,7 +241,7 @@ export class JavaClassLoaderObject extends JavaObject {
     var loaded = {};
     for (var type in this.$loader.loaded_classes) {
       var vcls = this.$loader.loaded_classes[type];
-      loaded[type + "(" + vcls.getLoadState() + ")"] = vcls.loader.serialize(visited);
+      loaded[type + "(" + ClassState[vcls.get_state()] + ")"] = vcls.loader.serialize(visited);
     }
     return {
       type: this.cls.get_type(),
