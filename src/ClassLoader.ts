@@ -36,8 +36,8 @@ export class ClassLoader {
   public get_package_names(): string[] {
     var classes = this.get_loaded_class_list(true);
     var pkg_names: {[key:string]:boolean} = {};
-    for (var _i = 0, _len = classes.length; _i < _len; _i++) {
-      var cls = classes[_i];
+    for (var i = 0; i < classes.length; i++) {
+      var cls = classes[i];
       pkg_names[cls.substring(0, (cls.lastIndexOf('/')) + 1)] = true;
     }
     return Object.keys(pkg_names);
@@ -48,15 +48,16 @@ export class ClassLoader {
       ref_class_only = false;
     }
     if (ref_class_only) {
-      var _ref1 = this.loaded_classes;
-      var _results: string[] = [];
-      for (var k in _ref1) {
-        var cdata = _ref1[k];
+      var loaded_classes = this.loaded_classes;
+      var results: string[] = [];
+      for (var k in loaded_classes) {
+        var cdata = loaded_classes[k];
         if ('major_version' in cdata) {
-          _results.push(k.slice(1, -1));
+          // Remove L and ; from Lname/of/Class;
+          results.push(k.slice(1, -1));
         }
       }
-      return _results;
+      return results;
     } else {
       return Object.keys(this.loaded_classes);
     }
@@ -64,16 +65,14 @@ export class ClassLoader {
 
   // remove a class the Right Way, by also removing any subclasses
   public remove_class(type_str: string): void {
-    var cdata, k, _ref1;
-
     this._rem_class(type_str);
     if (util.is_primitive_type(type_str)) {
       return;
     }
-    _ref1 = this.loaded_classes;
-    for (k in _ref1) {
-      cdata = _ref1[k];
-      if (type_str === (typeof cdata.get_component_type === "function" ? cdata.get_component_type() : void 0) || type_str === cdata.get_super_class_type()) {
+    var loaded_classes = this.loaded_classes;
+    for (var k in loaded_classes) {
+      var cdata = loaded_classes[k];
+      if ((type_str === cdata.get_super_class_type()) || (cdata instanceof ArrayClassData && type_str === (<ClassData.ArrayClassData>cdata).get_component_type())) {
         this.remove_class(k);
       }
     }
@@ -98,11 +97,7 @@ export class ClassLoader {
     if (cdata != null && cdata.reset_bit === 1) {
       cdata.reset();
     }
-    if (cdata != null) {
-      return cdata;
-    } else {
-      return null;
-    }
+    return cdata != null ? cdata : null;
   }
 
   // Defines a new array class with the specified component type.
@@ -160,18 +155,18 @@ export class ClassLoader {
     };
     // Fetches the class data associated with 'type' and adds it to the classloader.
     var fetch_data = function (type: string) {
-      return _this.resolve_class(rs, type, (function (cdata) {
+      _this.resolve_class(rs, type, (function (cdata) {
         resolved.push(cdata);
-        return request_finished();
+        request_finished();
       }), (function (f_fn) {
-          // resolve_class failure
-          failure = f_fn;
-          return request_finished();
-        }), explicit);
+        // resolve_class failure
+        failure = f_fn;
+        request_finished();
+      }), explicit);
     };
     // Kick off all of the requests.
-    for (var _i = 0, _len = types.length; _i < _len; _i++) {
-      fetch_data(types[_i]);
+    for (var i = 0; i < types.length; i++) {
+      fetch_data(types[i]);
     }
   }
 
@@ -182,22 +177,22 @@ export class ClassLoader {
     if (explicit == null) {
       explicit = false;
     }
-    if (!(types.length > 0)) {
+    if (types.length === 0) {
       return success_fn(null);
     }
     // Array of successfully resolved classes.
     var resolved: ClassData.ClassData[] = [];
     var fetch_class = function (type: string) {
-      return _this.resolve_class(rs, type, (function (cdata) {
+      _this.resolve_class(rs, type, (function (cdata) {
         resolved.push(cdata);
         if (types.length > 0) {
-          return fetch_class(types.shift());
+          fetch_class(types.shift());
         } else {
-          return success_fn(resolved);
+          success_fn(resolved);
         }
       }), failure_fn, explicit);
     };
-    return fetch_class(types.shift());
+    fetch_class(types.shift());
   }
 
   // Only called for reference types.
@@ -222,7 +217,7 @@ export class ClassLoader {
     var type = cdata.get_type();
     if (type !== type_str) {
       var msg = util.descriptor2typestr(type_str) + " (wrong name: " + util.descriptor2typestr(type) + ")";
-      return failure_fn((function () {
+      failure_fn((function () {
         var err_cls = <ClassData.ReferenceClassData> _this.get_initialized_class('Ljava/lang/NoClassDefFoundError;');
         rs.java_throw(err_cls, msg);
       }));
@@ -235,8 +230,8 @@ export class ClassLoader {
     var to_resolve: string[] = [];
     var resolved_already: ClassData.ReferenceClassData[] = [];
     // Prune any resolved classes.
-    for (var _i = 0, _len = types.length; _i < _len; _i++) {
-      type = types[_i];
+    for (var i = 0; i < types.length; i++) {
+      type = types[i];
       if (type == null) {
         // super_class could've been null.
         continue;
@@ -253,8 +248,8 @@ export class ClassLoader {
       var super_cdata: ClassData.ReferenceClassData = null;
       var interface_cdatas: ClassData.ReferenceClassData[] = [];
       var super_type = cdata.get_super_class_type();
-      for (var _j = 0, _len1 = cdatas.length; _j < _len1; _j++) {
-        var a_cdata = cdatas[_j];
+      for (var j = 0; j < cdatas.length; j++) {
+        var a_cdata = cdatas[j];
         type = a_cdata.get_type();
         if (type === super_type) {
           super_cdata = a_cdata;
@@ -263,7 +258,7 @@ export class ClassLoader {
         }
       }
       cdata.set_resolved(super_cdata, interface_cdatas);
-      return success_fn(cdata);
+      success_fn(cdata);
     }
     if (to_resolve.length > 0) {
       // if (parallel) {
@@ -581,9 +576,9 @@ export class BootstrapClassLoader extends ClassLoader {
   // Sets the reset bit on all of the classes in the CL to 1.
   // Causes the classes to be reset when they are first resolved.
   public reset(): void {
-    var _ref1 = this.loaded_classes;
-    for (var cname in _ref1) {
-      var cls = _ref1[cname];
+    var loaded_classes = this.loaded_classes;
+    for (var cname in loaded_classes) {
+      var cls = loaded_classes[cname];
       if (cname !== "__proto__") {
         cls.reset_bit = 1;
       }
