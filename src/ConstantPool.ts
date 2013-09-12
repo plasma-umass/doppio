@@ -74,7 +74,7 @@ export class AbstractMethodFieldReference {
   public deref(): any {
     var sig = this.value.sig.deref();
     return {
-      "class": this.value.class_ref.deref(),
+      class_desc: this.value.class_ref.deref(),
       sig: sig.name + sig.type
     };
   }
@@ -93,7 +93,7 @@ export class FieldReference extends AbstractMethodFieldReference {
   public deref(): any {
     var sig = this.value.sig.deref();
     return {
-      "class": this.value.class_ref.deref(),
+      class_desc: this.value.class_ref.deref(),
       name: sig.name,
       type: sig.type
     };

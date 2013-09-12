@@ -88,7 +88,7 @@ export class FieldOpcode extends Opcode {
 
 export class ClassOpcode extends Opcode {
   public class_ref: number
-  public class: any
+  public class_desc: any
 
   constructor(name: string, execute?: Execute) {
     super(name, 2, execute);
@@ -96,7 +96,7 @@ export class ClassOpcode extends Opcode {
 
   public take_args(code_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
     this.class_ref = code_array.get_uint(2);
-    this['class'] = constant_pool.get(this.class_ref).deref();
+    this.class_desc = constant_pool.get(this.class_ref).deref();
   }
 
   public annotate(idx: number, pool: ConstantPool.ConstantPool): string {
@@ -124,7 +124,7 @@ export class InvokeOpcode extends Opcode {
   }
 
   public _execute(rs: runtime.RuntimeState): boolean {
-    var cls = <ClassData.ReferenceClassData> rs.get_class(this.method_spec["class"], true);
+    var cls = <ClassData.ReferenceClassData> rs.get_class(this.method_spec.class_desc, true);
     if (cls != null) {
       var my_sf = rs.curr_frame();
       var m = cls.method_lookup(rs, this.method_spec.sig);
@@ -141,7 +141,7 @@ export class InvokeOpcode extends Opcode {
       }
     } else {
       // Initialize our class and rerun opcode.
-      var classname = this.method_spec["class"];
+      var classname = this.method_spec.class_desc;
       rs.async_op(function(resume_cb, except_cb) {
         rs.get_cl().initialize_class(rs, classname, (() => resume_cb(undefined, undefined, true, false)), except_cb);
       });
@@ -210,7 +210,7 @@ export class DynInvokeOpcode extends InvokeOpcode {
   }
 
   public _execute(rs: runtime.RuntimeState): boolean {
-    var cls = rs.get_class(this.method_spec["class"], true);
+    var cls = rs.get_class(this.method_spec.class_desc, true);
     if (cls != null) {
       var my_sf = rs.curr_frame();
       var stack = my_sf.stack;
@@ -230,7 +230,7 @@ export class DynInvokeOpcode extends InvokeOpcode {
       }
     } else {
       // Initialize our class and rerun opcode.
-      var classname = this.method_spec["class"];
+      var classname = this.method_spec.class_desc;
       rs.async_op(function(resume_cb, except_cb) {
         rs.get_cl().initialize_class(rs, classname, (()=>resume_cb(undefined, undefined, true, false)), except_cb);
       });
@@ -1003,7 +1003,7 @@ export var opcodes : Opcode[] = [
   new VoidReturnOpcode('return'),
   // field access
   new FieldOpcode('getstatic', function(rs) {
-    var desc = this.field_spec.class;
+    var desc = this.field_spec.class_desc;
     var ref_cls = rs.get_class(desc, true);
     var new_execute: Execute;
     if (this.field_spec.type == 'J' || this.field_spec.type == 'D') {
@@ -1038,7 +1038,7 @@ export var opcodes : Opcode[] = [
   }),
   new FieldOpcode('putstatic', function(rs) {
     // Get the class referenced by the field_spec.
-    var desc = this.field_spec.class;
+    var desc = this.field_spec.class_desc;
     var ref_cls = rs.get_class(desc, true);
     var new_execute: Execute;
     if (this.field_spec.type == 'J' || this.field_spec.type == 'D') {
@@ -1072,7 +1072,7 @@ export var opcodes : Opcode[] = [
     });
   }),
   new FieldOpcode('getfield', function(rs) {
-    var desc = this.field_spec.class;
+    var desc = this.field_spec.class_desc;
     // Check if the object is null; if we do not do this before get_class, then
     // we might try to get a class that we have not initialized!
     var obj = rs.check_null(rs.peek());
@@ -1103,7 +1103,7 @@ export var opcodes : Opcode[] = [
   new FieldOpcode('putfield', function(rs) {
     // Check if the object is null; if we do not do this before get_class, then
     // we might try to get a class that we have not initialized!
-    var desc = this.field_spec.class;
+    var desc = this.field_spec.class_desc;
     var is_cat_2 = (this.field_spec.type == 'J' || this.field_spec.type == 'D');
     rs.check_null(rs.peek(is_cat_2 ? 2 : 1));
     // cls is guaranteed to be in the inheritance hierarchy of obj, so it must be
@@ -1142,7 +1142,7 @@ export var opcodes : Opcode[] = [
   new DynInvokeOpcode('invokeinterface'),
   null,  // invokedynamic
   new ClassOpcode('new', function(rs) {
-    var desc = this.class;
+    var desc = this.class_desc;
     this.cls = rs.get_class(desc, true);
     if (this.cls != null) {
       // Check if this is a ClassLoader or not.
@@ -1179,7 +1179,7 @@ export var opcodes : Opcode[] = [
   }),
   new NewArrayOpcode('newarray'),
   new ClassOpcode('anewarray', function(rs) {
-    var desc = this.class;
+    var desc = this.class_desc;
     // Make sure the component class is loaded.
     var cls = rs.get_cl().get_resolved_class(desc, true);
     if (cls != null) {
@@ -1198,7 +1198,7 @@ export var opcodes : Opcode[] = [
   new Opcode('arraylength', 0, ((rs) => rs.push(rs.check_null(rs.pop()).array.length))),
   new Opcode('athrow', 0, function(rs){throw new JavaException(rs.pop())}),
   new ClassOpcode('checkcast', function(rs) {
-    var desc = this.class;
+    var desc = this.class_desc;
     // Ensure the class is loaded.
     this.cls = rs.get_cl().get_resolved_class(desc, true);
     if (this.cls != null) {
@@ -1222,7 +1222,7 @@ export var opcodes : Opcode[] = [
     });
   }),
   new ClassOpcode('instanceof', function(rs) {
-    var desc = this.class;
+    var desc = this.class_desc;
     this.cls = rs.get_cl().get_resolved_class(desc, true);
     if (this.cls != null) {
       var new_execute = function(rs: runtime.RuntimeState) {
