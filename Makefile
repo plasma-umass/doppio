@@ -45,6 +45,8 @@ ifeq (1,$(IS_CYGWIN))
 	JAVA     := "$(JDK_PATH)/bin/java"
 	JAVAC    := "$(JDK_PATH)/bin/javac"
 	JAVAP    := "$(JDK_PATH)/bin/javap"
+	# Git
+	GIT      := git
 else
 	BOOTCLASSPATH := $(DOPPIO_DIR)/vendor/classes
 	# Helper functions
@@ -65,6 +67,8 @@ else
 	JAVA     := java
 	JAVAC    := javac
 	JAVAP    := javap
+	# Git
+	GIT      := git
 endif
 
 JAZZLIB  := $(BOOTCLASSPATH)/java/util/zip/DeflaterEngine.class
@@ -134,7 +138,10 @@ java: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES) $(UTIL_CLASSES) $(LIB_CLA
 # TESTING
 ################################################################################
 # Runs the Java tests in classes/test with the node runner.
-test: dependencies $(TESTS)
+websockify-git:
+	$(GIT) submodule --quiet init
+	$(GIT) submodule update
+test: dependencies websockify-git $(TESTS)
 	@echo ''
 	@cat classes/test/failures.txt
 	@! test -s classes/test/failures.txt # return 1 if file is nonempty
@@ -152,7 +159,8 @@ classes/test/%.disasm: classes/test/%.class
 # some tests may throw exceptions. The '-' flag tells make to carry on anyway.
 classes/test/%.runout: classes/test/%.class
 	-$(JAVA) -Xbootclasspath/a:$(BOOTCLASSPATH) classes/test/$* &>classes/test/$*.runout
-	@if [[ $(IS_CYGWIN) = 1 && -e classes/test/$*.runout ]]; then dos2unix classes/test/$*.runout; fi
+	@if [[ $(IS_CYGWIN) = 1 && -e classes/test/$*.runout ]]; then dos2unix classes/test/$*.runout; fi\
+# Websocket tests require the websockify python script. The submodule needs to be inited and updated.
 
 ################################################################################
 # BROWSER
