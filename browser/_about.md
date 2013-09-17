@@ -4,8 +4,7 @@ Doppio is an implementation of the Java Virtual Machine that can run in just
 about any reasonable JavaScript engine. The goal is to be able to run JVM
 programs in the browser without any plug-ins, which means that any Java programs
 running in it are safely sandboxed by the JavaScript engine. Doppio is written
-in [CoffeeScript][coffeescript], which is a nice terse language that maps
-directly into JavaScript.
+in [TypeScript][typescript], which is a typed superset of JavaScript.
 
 Doppio is also the Italian word for 'double', and is another name for a double
 espresso.
@@ -35,19 +34,12 @@ Check out the [demo!](http://int3.github.io/doppio)
 Doppio was built with the goal of supporting as much of the Java Class Library
 as possible. As the official Java Class Library is mostly implemented in Java,
 Doppio uses the Java 6 JCL with reimplementations of any needed "native
-methods", which were originally implemented in C, in CoffeeScript.
+methods", which were originally implemented in C, in TypeScript.
 
 Doppio is designed to run both on the console and the browser. In the console
-implementation, system calls are handled by Node.JS. In the browser, we emulate
-a simple LocalStorage-backed filesystem with an API very similar to Node's, so
-the same code can operate in both environments. If the browser does not support
-LocalStorage, then the filesystem exists purely in memory and is cleared when
-the user leaves the page.
-
-Since LocalStorage has a storage limit of 5MB, Doppio's web frontend will only
-store files created or modified by the user or by programs run by the user.
-We do this to avoid storing massive amounts of JCL classes in the limited
-storage available to us.
+implementation, system calls are handled by Node.JS. In the browser, we use
+[BrowserFS][browserfs], which emulates Node's filesystem API in the browser;
+it supports storing file data in a wide variety of places.
 
 ### Primitives
 
@@ -86,6 +78,7 @@ At the moment, these yield points occur only at the following times:
 * Starting a new thread.
 * Waiting a thread on a lock (can be explicitly stated in the Java code, or
 implicitly when entering a monitor-guarded method)
+* Certain atomic operations.
 
 We hope to improve thread support in the next release to expand the amount of
 programs that are compatible with Doppio.
@@ -120,11 +113,6 @@ a method is translated into an object and placed into an array of instructions.
 Running a method is a matter of jumping to the correct opcode, calling its
 `run` method, and repeating until the method completes.
 
-We had experimented with doing a giant `switch` statement, but we could not get
-it to perform as well as the one-object-per-instruction design due to the large
-number of JVM opcodes. We hope to perform more experiments in the future to
-see if we can further increase the performance of the main interpreter loop.
-
 -------------
 
 # Roadmap
@@ -134,23 +122,11 @@ before trying to bolt on a compilation engine.
 
 Up next on our roadmap is:
 
-* Improving threads support; due to our yielding strategy, we currently have difficulty with ad-hoc synchronization implemented through atomic instructions.
+* Just-in-time compilation of JVM bytecode to JavaScript to dramatically
+  improve Doppio's performance.
+* Improving our threading support.
 * Running the JVM in a WebWorker (if available) to prevent us from hogging the
-main JavaScript thread.
-* Refactoring core JVM logic for speed.
-* Fixing any remaining bugs in JVM logic.
-* AWT/Swing support for GUI applications.
-* Cloud storage support in our filesystem.
-* Architecting the core JVM so we can eventually implement JIT compilation on
-a per-method basis. There are a number of concerns that we have to deal with
-before this will be possible.
-
-Once we deal with those issues, we'll start looking into per-method JIT
-compilation and control-flow reconstruction (since we're going from low level
-bytecode to high level JavaScript). There is already a large body of work on
-Java decompilation that we can leverage for this task, as well as things like
-[Emscripten's 'Relooper' algorithm][emscripten]. Contributions are definitely
-welcome!
+  main JavaScript thread.
 
 -------------
 
@@ -169,7 +145,8 @@ and [Jonny Leahey][jleahey], and is MIT Licensed.
 [sys-sem]: http://plasma.cs.umass.edu/emery/grad-systems
 [diff]: https://github.com/int3/doppio/blob/master/test/special/Diff.java
 [lzw]: https://github.com/int3/doppio/blob/master/test/special/Lzw.java
-[coffeescript]: http://coffeescript.org/
+[typescript]: http://typescriptlang.org/
+[browserfs]: https://github.com/jvilk/BrowserFS
 [kawa-scheme]: http://www.gnu.org/software/kawa/
 [rhino]: https://developer.mozilla.org/en-US/docs/Rhino
 [localstorage]: http://www.w3.org/TR/webstorage/#the-localstorage-attribute
