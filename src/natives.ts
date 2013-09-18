@@ -1,9 +1,3 @@
-/// <amd-dependency path="../vendor/websockify/base64" />
-/// <amd-dependency path="../vendor/websockify/websock" />
-/// <amd-dependency path="../vendor/websockify/web-socket-js/swfobject" />
-/// <amd-dependency path="../vendor/websockify/web-socket-js/web_socket" />
-/// <amd-dependency path="../vendor/websockify/util" />
-/// <amd-dependency path="../vendor/websockify/webutil" />
 "use strict";
 import gLong = require('./gLong');
 import util = require('./util');
