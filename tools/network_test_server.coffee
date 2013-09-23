@@ -1,3 +1,5 @@
+#! /usr/bin/env coffee
+
 sys = require('sys')
 spawn = require('child_process').spawn
 net = require('net')
@@ -21,8 +23,6 @@ else
 dest_port = 7070
 src_port = if mode is 0 then 7000 else dest_port
 
-sys.puts "Started on localhost:#{dest_port}"
-
 connection = (socket) ->
   address = socket.remoteAddress
   sys.puts "#{address} connected"
@@ -30,9 +30,17 @@ connection = (socket) ->
     sys.puts "#{address} says \"#{data}\""
     socket.write data
   socket.addListener 'close', -> sys.puts "#{address} disconnected"
+  
 
 # Setup a tcp server
 server = net.createServer connection
+server.on 'close', -> sys.puts 'Server closed'
+server.on 'error', (e) ->
+  sys.puts "Server error: #{e.code}"
+  cleanup()
+  process.exit 1
+server.on 'listening', ->
+  sys.puts "Listening on localhost:#{src_port}"
 
 server.listen src_port, "localhost"
 
@@ -48,3 +56,4 @@ if websockify?
       console.log "Websockify exited with error code #{code}!"
     cleanup()
     process.exit code
+

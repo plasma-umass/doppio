@@ -53,7 +53,6 @@ public class Networking {
     }
     
     // I/O
-    
     final OutputStream out = socket.getOutputStream();
     final InputStream in = socket.getInputStream();
     
@@ -67,13 +66,11 @@ public class Networking {
     while(System.currentTimeMillis() - last < 1000) {
       if(in.available() < 1) continue;
       final int read = in.read(buffer);
-      if(read > 0) {
-        System.out.print(new String(buffer, 0, read));
-        last = System.currentTimeMillis();
-      }
+      if(read <= 0) continue;
+      
+      System.out.print(new String(buffer, 0, read));
+      last = System.currentTimeMillis();
     }
-    
-    
     
     socket.close();
     
