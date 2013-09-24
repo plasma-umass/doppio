@@ -138,10 +138,10 @@ java: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES) $(UTIL_CLASSES) $(LIB_CLA
 # TESTING
 ################################################################################
 # Runs the Java tests in classes/test with the node runner.
-websockify-git:
+vendor/websockify-git/websockify.py:
 	$(GIT) submodule --quiet init
 	$(GIT) submodule update
-test: dependencies websockify-git $(TESTS)
+test: dependencies vendor/websockify-git/websockify.py $(TESTS)
 	@echo ''
 	@cat classes/test/failures.txt
 	@! test -s classes/test/failures.txt # return 1 if file is nonempty
