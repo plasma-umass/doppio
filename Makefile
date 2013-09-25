@@ -159,8 +159,7 @@ classes/test/%.disasm: classes/test/%.class
 # some tests may throw exceptions. The '-' flag tells make to carry on anyway.
 classes/test/%.runout: classes/test/%.class
 	-$(JAVA) -Xbootclasspath/a:$(BOOTCLASSPATH) classes/test/$* &>classes/test/$*.runout
-	@if [[ $(IS_CYGWIN) = 1 && -e classes/test/$*.runout ]]; then dos2unix classes/test/$*.runout; fi\
-# Websocket tests require the websockify python script. The submodule needs to be inited and updated.
+	@if [[ $(IS_CYGWIN) = 1 && -e classes/test/$*.runout ]]; then dos2unix classes/test/$*.runout; fi
 
 ################################################################################
 # BROWSER
