@@ -173,7 +173,7 @@ dev: dependencies build/dev/classes build/dev/vendor \
 
 # Note that this one command compiles the entire development build.
 build/dev/browser/frontend.js: $(BROWSER_SRCS) | build/dev/browser
-	$(TSC) --module amd --outDir build/dev browser/frontend.ts
+	$(TSC) --module amd --declaration --outDir build/dev browser/frontend.ts
 
 build/dev/browser/require_config.js: browser/require_config.js | build/dev/browser
 	cp $^ $@

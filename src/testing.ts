@@ -34,6 +34,10 @@ export function run_tests(test_classes: string[], stdout, hide_diffs: boolean,
       return callback(false);
     }
     var test = test_classes.shift();
+    if (test.indexOf('.') !== -1) {
+      // Convert foo.bar.Baz => foo/bar/Baz
+      test = util.descriptor2typestr(util.int_classname(test));
+    }
     quiet || stdout("testing " + test + "...\n");
     run_disasm_test(doppio_dir, test, function(disasm_diff: string) {
       if (disasm_diff != null) {

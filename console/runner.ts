@@ -151,7 +151,8 @@ var cname = argv.className;
 if (cname != null && cname.slice(-6) === '.class') {
   cname = cname.slice(0, -6);
 }
-if (!((cname != null) || (argv.standard.jar != null))) {
+
+if (cname == null && argv.standard.jar == null) {
   print_help(optparse.show_help());
   process.exit(0);
 }
