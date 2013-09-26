@@ -6,7 +6,6 @@
 /// <reference path="../vendor/ace.d.ts" />
 /// <amd-dependency path="../vendor/underscore/underscore" />
 var underscore = require('../vendor/underscore/underscore');
-import ClassData = require('../src/ClassData');
 import ClassLoader = require('../src/ClassLoader');
 import disassembler = require('../src/disassembler');
 import jvm = require('../src/jvm');
@@ -85,10 +84,6 @@ function preload(): void {
     // /sys/vendor/classes). They must also be absolute paths.
     untar.untar(new util.BytesArray(data), on_progress, on_file_done);
   });
-}
-
-function process_bytecode(buffer: any): ClassData.ReferenceClassData {
-  return new ClassData.ReferenceClassData(buffer);
 }
 
 function onResize(): void {
@@ -461,7 +456,7 @@ var commands = {
       if (err) {
         controller.message("Could not find class '" + args[0] + "'.", 'error');
       } else {
-        controller.message(disassembler.disassemble(process_bytecode(buf)), 'success');
+        controller.message(disassembler.disassemble(buf), 'success');
       }
     });
     return null;
