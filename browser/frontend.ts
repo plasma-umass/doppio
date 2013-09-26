@@ -21,6 +21,7 @@ var user_input = null;
 var controller = null;
 var editor = null;
 var progress = null;
+var jvm_state = null;
 var bs_cl = null;
 var sys_path = '/sys';
 
@@ -270,7 +271,8 @@ $(document).ready(function() {
     close_editor();
     e.preventDefault();
   });
-  bs_cl = new ClassLoader.BootstrapClassLoader(jvm.read_classfile);
+  jvm_state = new jvm.JVM();
+  bs_cl = new ClassLoader.BootstrapClassLoader(jvm_state);
   preload();
 });
 
@@ -370,11 +372,11 @@ var commands = {
     return null;
   },
   ecj: function(args: string[], cb) {
-    jvm.set_classpath(sys_path + '/vendor/classes/', './');
-    var rs = new runtime.RuntimeState(stdout, user_input, bs_cl);
+    jvm_state.set_classpath(sys_path + '/vendor/classes/', './');
+    var rs = new runtime.RuntimeState(stdout, user_input, bs_cl, jvm_state);
     // XXX: -D args unsupported by the console.
-    jvm.system_properties['jdt.compiler.useSingleThread'] = true;
-    jvm.run_class(rs, 'org/eclipse/jdt/internal/compiler/batch/Main', args, function() {
+    jvm_state.system_properties['jdt.compiler.useSingleThread'] = true;
+    jvm_state.run_class(rs, 'org/eclipse/jdt/internal/compiler/batch/Main', args, function() {
       // XXX: remove any classes that just got compiled from the class cache
       for (var i = 0; i < args.length; i++) {
         var c = args[i];
@@ -382,15 +384,15 @@ var commands = {
           bs_cl.remove_class(util.int_classname(c.slice(0, -5)));
         }
       }
-      jvm.reset_system_properties();
+      jvm_state.reset_system_properties();
       controller.reprompt();
     });
     return null;
   },
   javac: function(args: string[], cb) {
-    jvm.set_classpath(sys_path + '/vendor/classes/', './:/sys');
-    var rs = new runtime.RuntimeState(stdout, user_input, bs_cl);
-    jvm.run_class(rs, 'classes/util/Javac', args, function() {
+    jvm_state.set_classpath(sys_path + '/vendor/classes/', './:/sys');
+    var rs = new runtime.RuntimeState(stdout, user_input, bs_cl, jvm_state);
+    jvm_state.run_class(rs, 'classes/util/Javac', args, function() {
       // XXX: remove any classes that just got compiled from the class cache
       for (var i = 0; i < args.length; i++) {
         var c = args[i];
@@ -403,11 +405,11 @@ var commands = {
     return null;
   },
   java: function(args: string[], cb) {
-    jvm.dump_state = false
+    jvm_state.dump_state = false
     // XXX: dump-state support
     for (var i = 0; i < args.length; i++) {
       if (args[i] === '-Xdump-state') {
-        jvm.dump_state = true;
+        jvm_state.dump_state = true;
         args.splice(i, 1);
         break;
       }
@@ -418,16 +420,16 @@ var commands = {
     }
     var class_args, class_name;
     if (args[0] === '-classpath' || args[0] === '-cp') {
-      jvm.set_classpath(sys_path + '/vendor/classes/', args[1]);
+      jvm_state.set_classpath(sys_path + '/vendor/classes/', args[1]);
       class_name = args[2];
       class_args = args.slice(3);
     } else {
-      jvm.set_classpath(sys_path + '/vendor/classes/', './');
+      jvm_state.set_classpath(sys_path + '/vendor/classes/', './');
       class_name = args[0];
       class_args = args.slice(1);
     }
-    var rs = new runtime.RuntimeState(stdout, user_input, bs_cl);
-    jvm.run_class(rs, class_name, class_args, () => controller.reprompt());
+    var rs = new runtime.RuntimeState(stdout, user_input, bs_cl, jvm_state);
+    jvm_state.run_class(rs, class_name, class_args, () => controller.reprompt());
     return null;
   },
   test: function(args: string[]) {
@@ -462,9 +464,9 @@ var commands = {
     return null;
   },
   rhino: function(args: string[], cb) {
-    jvm.set_classpath(sys_path + '/vendor/classes/', './');
-    var rs = new runtime.RuntimeState(stdout, user_input, bs_cl);
-    jvm.run_class(rs, 'com/sun/tools/script/shell/Main', args, () => controller.reprompt());
+    jvm_state.set_classpath(sys_path + '/vendor/classes/', './');
+    var rs = new runtime.RuntimeState(stdout, user_input, bs_cl, jvm_state);
+    jvm_state.run_class(rs, 'com/sun/tools/script/shell/Main', args, () => controller.reprompt());
     return null;
   },
   list_cache: function() {
@@ -472,7 +474,7 @@ var commands = {
     return '  ' + cached_classes.sort().join('\n  ');
   },
   clear_cache: function() {
-    bs_cl = new ClassLoader.BootstrapClassLoader(jvm.read_classfile);
+    bs_cl = new ClassLoader.BootstrapClassLoader(jvm_state);
     return true;
   },
   ls: function(args: string[]) {

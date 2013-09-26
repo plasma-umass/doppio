@@ -12,6 +12,8 @@ import ClassLoader = require('../src/ClassLoader');
 import optparse = require('../src/option_parser');
 var BootstrapClassLoader = ClassLoader.BootstrapClassLoader;
 
+var jvm_state;
+
 function stub(obj, name, replacement, wrapped) {
   var old_fn = obj[name];
   try {
@@ -51,7 +53,7 @@ function extract_jar(jar_path: string, main_class_name?: string): string {
     fs.mkdirSync(tmpdir);
   }
   extract_all_to(unzipper.files, tmpdir);
-  jvm.system_properties['java.class.path'].unshift(tmpdir);
+  jvm_state.system_properties['java.class.path'].unshift(tmpdir);
   return tmpdir;
 }
 
@@ -140,13 +142,14 @@ if (argv.non_standard.log != null) {
 }
 
 jvm.show_NYI_natives = argv.non_standard['show-nyi-natives'];
-jvm.dump_state = argv.non_standard['dump-state'];
+jvm_state = new jvm.JVM();
+jvm_state.dump_state = argv.non_standard['dump-state'];
 if (argv.standard.classpath != null) {
-  jvm.set_classpath(__dirname + "/../vendor/classes", argv.standard.classpath);
+  jvm_state.set_classpath(__dirname + "/../vendor/classes", argv.standard.classpath);
 } else {
-  jvm.set_classpath(__dirname + "/../vendor/classes", '.');
+  jvm_state.set_classpath(__dirname + "/../vendor/classes", '.');
 }
-underscore.extend(jvm.system_properties, argv.properties);
+underscore.extend(jvm_state.system_properties, argv.properties);
 var cname = argv.className;
 if (cname != null && cname.slice(-6) === '.class') {
   cname = cname.slice(0, -6);
@@ -166,8 +169,8 @@ function read_stdin(resume): void {
   });
 }
 
-var bs_cl = new BootstrapClassLoader(jvm.read_classfile);
-var rs = new runtime.RuntimeState(stdout, read_stdin, bs_cl);
+var bs_cl = new BootstrapClassLoader(jvm_state);
+var rs = new runtime.RuntimeState(stdout, read_stdin, bs_cl, jvm_state);
 if (argv.standard.jar != null) {
   var jar_dir = extract_jar(argv.standard.jar);
   cname = find_main_class(jar_dir);
@@ -176,14 +179,14 @@ if (argv.standard.jar != null) {
   }
 }
 function run(done_cb): void {
-  jvm.run_class(rs, cname, main_args, done_cb);
+  jvm_state.run_class(rs, cname, main_args, done_cb);
 }
 var done_cb;
 if (argv.non_standard['list-class-cache']) {
   done_cb = function () {
     var scriptdir = path.resolve(__dirname + "/..");
     var classes = rs.get_bs_cl().get_loaded_class_list(true);
-    var cpaths = jvm.system_properties['java.class.path'];
+    var cpaths = jvm_state.system_properties['java.class.path'];
     for (var i = 0; i < classes.length; i++) {
       var file = classes[i] + ".class";
       // Find where the file was loaded from.
@@ -230,7 +233,7 @@ if (argv.non_standard['list-class-cache']) {
       var mid_point = (new Date).getTime();
       console.log('Starting hot-cache run...');
       // Reset runtime state
-      rs = new runtime.RuntimeState(stdout, read_stdin, bs_cl);
+      rs = new runtime.RuntimeState(stdout, read_stdin, bs_cl, jvm_state);
       run(function () {
         var finished = (new Date).getTime();
         console.log("Timing:\n\t" + (mid_point - cold_start) + " ms cold\n\t"
@@ -244,7 +247,7 @@ if (argv.non_standard['list-class-cache']) {
 
 process.on('SIGINT', function () {
   console.error('Doppio caught SIGINT');
-  if (jvm.dump_state) {
+  if (jvm_state.dump_state) {
     rs.dump_state();
   }
   process.exit(0);

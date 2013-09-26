@@ -8,7 +8,6 @@ var thread_name = java_object.thread_name, JavaObject = java_object.JavaObject, 
 import exceptions = require('./exceptions');
 import logging = require('./logging');
 var debug = logging.debug, error = logging.error, trace = logging.trace;
-import JVM = require('./jvm');
 
 // For types; shouldn't actually be used.
 import methods = require('./methods');
@@ -34,15 +33,11 @@ export function instantiate(rcd, pcd, acd) {
 }
 
 function get_property(rs: runtime.RuntimeState, jvm_key: java_object.JavaObject, _default: java_object.JavaObject): java_object.JavaObject {
-  var jvm, key, val;
-
-  if (_default == null) {
+  if (_default === undefined) {
     _default = null;
   }
-  key = jvm_key.jvm2js_str();
-  // XXX: Still needed?
-  jvm = jvm != null ? jvm : require('./jvm');
-  val = jvm.system_properties[key];
+  var key = jvm_key.jvm2js_str();
+  var val = rs.jvm_state.system_properties[key];
   // special case
   if (key === 'java.class.path') {
     // the last path is actually the bootclasspath (vendor/classes/)
@@ -1060,10 +1055,8 @@ export var native_methods = {
             // XXX: don't use get_property if we don't want to make java/lang/String objects
             cache_init.setup_stack(rs);
             return my_sf.runner = function() {
-              var rv, system_properties;
-
-              system_properties = JVM.system_properties;
-              rv = new JavaObject(rs, rs.get_bs_class('Ljava/io/UnixFileSystem;'), {
+              var system_properties = rs.jvm_state.system_properties;
+              var rv = new JavaObject(rs, rs.get_bs_class('Ljava/io/UnixFileSystem;'), {
                 'Ljava/io/UnixFileSystem;cache': cache1,
                 'Ljava/io/UnixFileSystem;javaHomePrefixCache': cache2,
                 'Ljava/io/UnixFileSystem;slash': system_properties['file.separator'].charCodeAt(0),

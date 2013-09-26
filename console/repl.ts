@@ -6,11 +6,13 @@ import runtime = require('../src/runtime');
 import ClassLoader = require('../src/ClassLoader');
 var BootstrapClassLoader = ClassLoader.BootstrapClassLoader;
 
+var jvm_state;
+
 function repl_run(rs: runtime.RuntimeState, cname: string, args: string[], done_cb): void {
   if (cname.slice(-6) === '.class') {
     cname = cname.slice(0, -6);
   }
-  jvm.run_class(rs, cname, args, done_cb);
+  jvm_state.run_class(rs, cname, args, done_cb);
 }
 
 function read_stdin(resume) {
@@ -22,10 +24,11 @@ function read_stdin(resume) {
 }
 
 // initialize the RuntimeState
+jvm_state = new jvm.JVM();
 var write_stdout = process.stdout.write.bind(process.stdout);
-jvm.set_classpath(__dirname + "/../vendor/classes", '.');
-var bcl = new ClassLoader.BootstrapClassLoader(jvm.read_classfile);
-var rs = new runtime.RuntimeState(write_stdout, read_stdin, bcl);
+jvm_state.set_classpath(__dirname + "/../vendor/classes", '.');
+var bcl = new ClassLoader.BootstrapClassLoader(jvm_state);
+var rs = new runtime.RuntimeState(write_stdout, read_stdin, bcl, jvm_state);
 
 // create the REPL
 process.stdin.resume();

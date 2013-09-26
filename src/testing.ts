@@ -10,6 +10,7 @@ var BootstrapClassLoader = ClassLoader.BootstrapClassLoader;
 declare var node: any;
 var path = typeof node !== "undefined" ? node.path : require('path');
 var fs = typeof node !== "undefined" ? node.fs : require('fs');
+var jvm_state = new jvm.JVM();
 
 export function find_test_classes(doppio_dir: string, cb): void {
     var test_dir = path.resolve(doppio_dir, 'classes/test');
@@ -24,7 +25,7 @@ export function run_tests(test_classes: string[], stdout, hide_diffs: boolean,
   var doppio_dir = typeof node !== "undefined" && node !== null ? '/sys/' : path.resolve(__dirname, '..');
   // set up the classpath
   var jcl_dir = path.resolve(doppio_dir, 'vendor/classes');
-  jvm.set_classpath(jcl_dir, doppio_dir);
+  jvm_state.set_classpath(jcl_dir, doppio_dir);
   var xfail_file = path.resolve(doppio_dir, 'classes/test/xfail.txt');
   function _runner(test_classes: string[], xfails: string[]): void {
     // get the tests, if necessary
@@ -99,8 +100,8 @@ function run_stdout_test(doppio_dir: string, test_class: string, callback): void
   fs.readFile(output_filename, 'utf8', function(err, java_output: string) {
     var doppio_output = '';
     var stdout = function(str: string) { doppio_output += str; };
-    var rs = new RuntimeState(stdout, (function() {}), new BootstrapClassLoader(jvm.read_classfile));
-    jvm.run_class(rs, test_class, [], () => callback(cleandiff(doppio_output, java_output)));
+    var rs = new RuntimeState(stdout, (function() {}), new BootstrapClassLoader(jvm_state), jvm_state);
+    jvm_state.run_class(rs, test_class, [], () => callback(cleandiff(doppio_output, java_output)));
   });
 }
 

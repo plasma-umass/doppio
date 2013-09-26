@@ -4,7 +4,7 @@ import util = require('./util');
 import logging = require('./logging');
 import exceptions = require('./exceptions');
 import java_object = require('./java_object');
-import JVM = require('./jvm');
+import jvm = require('./jvm');
 import methods = require('./methods');
 import ClassData = require('./ClassData');
 import ClassLoader = require('./ClassLoader');
@@ -176,11 +176,16 @@ export class RuntimeState {
   public stashed_done_cb: (p:any) => any;
   public should_return: boolean;
   public system_initialized: boolean;
+  public jvm_state: jvm.JVM;
 
-  constructor(print: (p:string) => any, _async_input: (cb: (p:string) => any) => any, bcl: ClassLoader.BootstrapClassLoader) {
+  constructor(print: (p:string) => any,
+              _async_input: (cb: (p:string) => any) => any,
+              bcl: ClassLoader.BootstrapClassLoader,
+              jvm_state: jvm.JVM) {
     this.print = print;
     this._async_input = _async_input;
     this.bcl = bcl;
+    this.jvm_state = jvm_state;
     this.input_buffer = [];
     this.bcl.reset();
     this.startup_time = gLong.fromNumber((new Date()).getTime());
@@ -822,7 +827,7 @@ export class RuntimeState {
             var frames_to_pop = 0;
             while (!e.method_catch_handler(_this, stack.get_caller(frames_to_pop), frames_to_pop === 0)) {
               if (stack.length() === ++frames_to_pop) {
-                if (JVM.dump_state) {
+                if (_this.jvm_state.dump_state) {
                   _this.dump_state();
                 }
                 stack.pop_n(stack.length() - 1);
@@ -833,7 +838,7 @@ export class RuntimeState {
             stack.pop_n(frames_to_pop);
             _this.run_until_finished(nop, no_threads, done_cb);
           } else {
-            if (JVM.dump_state) {
+            if (_this.jvm_state.dump_state) {
               _this.dump_state();
             }
             stack.pop_n(Math.max(stack.length() - 1, 0));

@@ -2,6 +2,7 @@
 import ClassData = require('./ClassData');
 var ReferenceClassData = ClassData.ReferenceClassData, PrimitiveClassData = ClassData.PrimitiveClassData, ArrayClassData = ClassData.ArrayClassData;
 import util = require('./util');
+import jvm = require('./jvm');
 import logging = require('./logging');
 var trace = logging.trace;
 import runtime = require('./runtime');
@@ -544,14 +545,11 @@ export class ClassLoader {
 // The Bootstrap ClassLoader. This is the only ClassLoader that can create
 // primitive types.
 export class BootstrapClassLoader extends ClassLoader {
-  private read_classfile: (typestr: string, success_cb: (data: NodeBuffer) => void, failure_cb: (exp_cb: ()=>void) => void) => void;
-  // read_classfile is an asynchronous method that consumes a type string, a
-  // success_fn, and a failure_fn, and passes the ReferenceClassData
-  // corresponding to that type string to the success_fn.
-  // Passes an error string to failure_fn.
-  constructor(read_classfile: (typestr: string, success_cb: (data: NodeBuffer)=>void, failure_cb: ()=>void)=>void) {
+  private jvm_state: jvm.JVM;
+
+  constructor(jvm_state: jvm.JVM) {
     super(this);
-    this.read_classfile = read_classfile;
+    this.jvm_state = jvm_state;
   }
 
   public serialize(visited: {[n:string]:boolean}): any {
@@ -616,7 +614,7 @@ export class BootstrapClassLoader extends ClassLoader {
     if (rv != null) {
       return success_fn(rv);
     }
-    this.read_classfile(type_str, (function (data) {
+    this.jvm_state.read_classfile(type_str, (function (data) {
       // Fetch super class/interfaces in parallel.
       _this.define_class(rs, type_str, data, success_fn, failure_fn, true, explicit);
     }), (function (e) {

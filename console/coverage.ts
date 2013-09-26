@@ -86,17 +86,18 @@ function run_tests(test_classes: string[], stdout: (p:string)=>void,
   var doppio_dir = path.resolve(__dirname, '..');
   // set up the classpath
   var jcl_dir = path.resolve(doppio_dir, 'vendor/classes');
-  jvm.set_classpath(jcl_dir, doppio_dir);
+  var jvm_state = new jvm.JVM();
+  jvm_state.set_classpath(jcl_dir, doppio_dir);
   function _runner() {
     if (test_classes.length === 0) {
       return callback();
     }
     var test = test_classes.shift();
     quiet || stdout("running " + test + "...\n");
-    var bcl = new ClassLoader.BootstrapClassLoader(jvm.read_classfile)
+    var bcl = new ClassLoader.BootstrapClassLoader(jvm_state)
     function nop() {}
-    var rs = new runtime.RuntimeState(nop, nop, bcl);
-    return jvm.run_class(rs, test, [], _runner);
+    var rs = new runtime.RuntimeState(nop, nop, bcl, jvm_state);
+    return jvm_state.run_class(rs, test, [], _runner);
   }
   // get the tests, if necessary
   if (test_classes != null && test_classes.length > 0) {
