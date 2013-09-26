@@ -4,7 +4,6 @@ import runtime = require('./runtime');
 var RuntimeState = runtime.RuntimeState;
 import util = require('./util');
 import disassembler = require('./disassembler');
-import ClassData = require('./ClassData');
 import ClassLoader = require('./ClassLoader');
 var BootstrapClassLoader = ClassLoader.BootstrapClassLoader;
 
@@ -85,8 +84,7 @@ function run_disasm_test(doppio_dir: string, test_class: string, callback): void
   fs.readFile(test_path + ".disasm", 'utf8', function(err, contents: string) {
     var javap_disasm = sanitize(contents);
     fs.readFile(test_path + ".class", function(err, buffer) {
-      var doppio_disasm = sanitize(disassembler.disassemble(
-          new ClassData.ReferenceClassData(buffer)));
+      var doppio_disasm = sanitize(disassembler.disassemble(buffer));
       callback(cleandiff(doppio_disasm, javap_disasm));
     });
   });

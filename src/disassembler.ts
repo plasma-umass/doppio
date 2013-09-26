@@ -1,5 +1,6 @@
 "use strict";
 import util = require('./util');
+import ClassData = require('./ClassData');
 
 function pad_left(value: string, padding: number): string {
   var zeroes = new Array(padding).join('0');
@@ -85,7 +86,8 @@ function fixed_width(num: number, width: number) {
   return (new Array(width - num_str.length + 1)).join(' ') + num_str;
 }
 
-export function disassemble(class_file): string {
+export function disassemble(buffer): string {
+  var class_file = new ClassData.ReferenceClassData(buffer);
   return show_disassembly(make_dis(class_file));
 }
 
