@@ -12,7 +12,7 @@
     "mustache": "*",
     "semver": "*",
     "express": "3.x",
-    "bower": "~1.0.0",
+    "bower": "*",
     "requirejs": "*",
     "ice-cream": "*"
   },
