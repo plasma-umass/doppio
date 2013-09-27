@@ -155,7 +155,6 @@ var run_count = 0;
 export class RuntimeState {
   public print: (p:string) => any;
   private _async_input: (cb: (string) => any) => any;
-  private bcl: ClassLoader.BootstrapClassLoader;
   private input_buffer: number[];
   private startup_time: gLong;
   public run_stamp: number;
@@ -180,14 +179,11 @@ export class RuntimeState {
 
   constructor(print: (p:string) => any,
               _async_input: (cb: (p:string) => any) => any,
-              bcl: ClassLoader.BootstrapClassLoader,
               jvm_state: jvm.JVM) {
     this.print = print;
     this._async_input = _async_input;
-    this.bcl = bcl;
     this.jvm_state = jvm_state;
     this.input_buffer = [];
-    this.bcl.reset();
     this.startup_time = gLong.fromNumber((new Date()).getTime());
     this.run_stamp = ++run_count;
     this.mem_start_addrs = [1];
@@ -206,7 +202,7 @@ export class RuntimeState {
   }
 
   public get_bs_cl(): ClassLoader.BootstrapClassLoader {
-    return this.bcl;
+    return this.jvm_state.bs_cl;
   }
 
   // Get an *initialized* class from the bootstrap classloader.
@@ -214,7 +210,7 @@ export class RuntimeState {
     if (handle_null == null) {
       handle_null = false;
     }
-    return this.bcl.get_initialized_class(type, handle_null);
+    return this.jvm_state.bs_cl.get_initialized_class(type, handle_null);
   }
 
   // Get an *initialized* class from the classloader of the current class.
@@ -279,7 +275,7 @@ export class RuntimeState {
       i++;
       if (i < core_classes.length) {
         trace("Initializing " + core_classes[i]);
-        _this.bcl.initialize_class(_this, core_classes[i], init_next_core_class, except_cb);
+        _this.jvm_state.bs_cl.initialize_class(_this, core_classes[i], init_next_core_class, except_cb);
       } else {
         trace("Preinitialization complete.");
         resume_cb();

@@ -5,6 +5,7 @@ import logging = require('./logging')
 import runtime = require('./runtime')
 import methods = require('./methods')
 import ClassData = require('./ClassData')
+import ClassLoader = require('./ClassLoader')
 
 var trace = logging.trace;
 var error = logging.error;
@@ -30,9 +31,15 @@ export var show_NYI_natives: boolean = false;
 export class JVM {
   public dump_state: boolean = false;
   public system_properties: {[prop: string]: any};
+  public bs_cl: ClassLoader.BootstrapClassLoader;
 
   constructor() {
+    this.reset_classloader_cache();
     this.reset_system_properties();
+  }
+
+  public reset_classloader_cache(): void {
+    this.bs_cl = new ClassLoader.BootstrapClassLoader(this);
   }
 
   public reset_system_properties(): void {
@@ -120,11 +127,12 @@ export class JVM {
     var class_descriptor = "L" + class_name + ";";
     var main_sig = 'main([Ljava/lang/String;)V';
     var main_method: methods.Method = null;
+    var _this = this;
     function run_main() {
       trace("run_main");
       rs.run_until_finished((function () {
         rs.async_op(function (resume_cb, except_cb) {
-          rs.get_bs_cl().initialize_class(rs, class_descriptor, function (cls: ClassData.ReferenceClassData) {
+          _this.bs_cl.initialize_class(rs, class_descriptor, function (cls: ClassData.ReferenceClassData) {
             rs.init_args(cmdline_args);
             // wrap it in run_until_finished to handle any exceptions correctly
             return rs.run_until_finished(function () {

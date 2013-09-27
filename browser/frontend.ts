@@ -6,7 +6,6 @@
 /// <reference path="../vendor/ace.d.ts" />
 /// <amd-dependency path="../vendor/underscore/underscore" />
 var underscore = require('../vendor/underscore/underscore');
-import ClassLoader = require('../src/ClassLoader');
 import disassembler = require('../src/disassembler');
 import jvm = require('../src/jvm');
 import runtime = require('../src/runtime');
@@ -22,7 +21,6 @@ var controller = null;
 var editor = null;
 var progress = null;
 var jvm_state = null;
-var bs_cl = null;
 var sys_path = '/sys';
 
 function preload(): void {
@@ -272,7 +270,6 @@ $(document).ready(function() {
     e.preventDefault();
   });
   jvm_state = new jvm.JVM();
-  bs_cl = new ClassLoader.BootstrapClassLoader(jvm_state);
   preload();
 });
 
@@ -373,7 +370,7 @@ var commands = {
   },
   ecj: function(args: string[], cb) {
     jvm_state.set_classpath(sys_path + '/vendor/classes/', './');
-    var rs = new runtime.RuntimeState(stdout, user_input, bs_cl, jvm_state);
+    var rs = new runtime.RuntimeState(stdout, user_input, jvm_state);
     // XXX: -D args unsupported by the console.
     jvm_state.system_properties['jdt.compiler.useSingleThread'] = true;
     jvm_state.run_class(rs, 'org/eclipse/jdt/internal/compiler/batch/Main', args, function() {
@@ -381,7 +378,7 @@ var commands = {
       for (var i = 0; i < args.length; i++) {
         var c = args[i];
         if (c.match(/\.java$/)) {
-          bs_cl.remove_class(util.int_classname(c.slice(0, -5)));
+          jvm_state.bs_cl.remove_class(util.int_classname(c.slice(0, -5)));
         }
       }
       jvm_state.reset_system_properties();
@@ -391,13 +388,13 @@ var commands = {
   },
   javac: function(args: string[], cb) {
     jvm_state.set_classpath(sys_path + '/vendor/classes/', './:/sys');
-    var rs = new runtime.RuntimeState(stdout, user_input, bs_cl, jvm_state);
+    var rs = new runtime.RuntimeState(stdout, user_input, jvm_state);
     jvm_state.run_class(rs, 'classes/util/Javac', args, function() {
       // XXX: remove any classes that just got compiled from the class cache
       for (var i = 0; i < args.length; i++) {
         var c = args[i];
         if (c.match(/\.java$/)) {
-          bs_cl.remove_class(util.int_classname(c.slice(0, -5)));
+          jvm_state.bs_cl.remove_class(util.int_classname(c.slice(0, -5)));
         }
       }
       controller.reprompt();
@@ -428,7 +425,7 @@ var commands = {
       class_name = args[0];
       class_args = args.slice(1);
     }
-    var rs = new runtime.RuntimeState(stdout, user_input, bs_cl, jvm_state);
+    var rs = new runtime.RuntimeState(stdout, user_input, jvm_state);
     jvm_state.run_class(rs, class_name, class_args, () => controller.reprompt());
     return null;
   },
@@ -465,16 +462,16 @@ var commands = {
   },
   rhino: function(args: string[], cb) {
     jvm_state.set_classpath(sys_path + '/vendor/classes/', './');
-    var rs = new runtime.RuntimeState(stdout, user_input, bs_cl, jvm_state);
+    var rs = new runtime.RuntimeState(stdout, user_input, jvm_state);
     jvm_state.run_class(rs, 'com/sun/tools/script/shell/Main', args, () => controller.reprompt());
     return null;
   },
   list_cache: function() {
-    var cached_classes = bs_cl.get_loaded_class_list(true);
+    var cached_classes = jvm_state.bs_cl.get_loaded_class_list(true);
     return '  ' + cached_classes.sort().join('\n  ');
   },
   clear_cache: function() {
-    bs_cl = new ClassLoader.BootstrapClassLoader(jvm_state);
+    jvm_state.reset_classloader_cache();
     return true;
   },
   ls: function(args: string[]) {

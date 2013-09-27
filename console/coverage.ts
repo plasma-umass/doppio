@@ -4,7 +4,6 @@ var path = require('path');
 import jvm = require('../src/jvm');
 import opcodes = require('../src/opcodes');
 import runtime = require('../src/runtime');
-import ClassLoader = require('../src/ClassLoader');
 import natives = require('../src/natives');
 import testing = require('../src/testing');
 
@@ -94,9 +93,9 @@ function run_tests(test_classes: string[], stdout: (p:string)=>void,
     }
     var test = test_classes.shift();
     quiet || stdout("running " + test + "...\n");
-    var bcl = new ClassLoader.BootstrapClassLoader(jvm_state)
+    jvm_state.reset_classloader_cache();
     function nop() {}
-    var rs = new runtime.RuntimeState(nop, nop, bcl, jvm_state);
+    var rs = new runtime.RuntimeState(nop, nop, jvm_state);
     return jvm_state.run_class(rs, test, [], _runner);
   }
   // get the tests, if necessary

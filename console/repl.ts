@@ -3,8 +3,6 @@ var readline = require('readline');
 var argv = require('optimist').argv;
 import jvm = require('../src/jvm');
 import runtime = require('../src/runtime');
-import ClassLoader = require('../src/ClassLoader');
-var BootstrapClassLoader = ClassLoader.BootstrapClassLoader;
 
 var jvm_state;
 
@@ -27,8 +25,7 @@ function read_stdin(resume) {
 jvm_state = new jvm.JVM();
 var write_stdout = process.stdout.write.bind(process.stdout);
 jvm_state.set_classpath(__dirname + "/../vendor/classes", '.');
-var bcl = new ClassLoader.BootstrapClassLoader(jvm_state);
-var rs = new runtime.RuntimeState(write_stdout, read_stdin, bcl, jvm_state);
+var rs = new runtime.RuntimeState(write_stdout, read_stdin, jvm_state);
 
 // create the REPL
 process.stdin.resume();

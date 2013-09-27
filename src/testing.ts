@@ -4,8 +4,6 @@ import runtime = require('./runtime');
 var RuntimeState = runtime.RuntimeState;
 import util = require('./util');
 import disassembler = require('./disassembler');
-import ClassLoader = require('./ClassLoader');
-var BootstrapClassLoader = ClassLoader.BootstrapClassLoader;
 
 declare var node: any;
 var path = typeof node !== "undefined" ? node.path : require('path');
@@ -100,7 +98,8 @@ function run_stdout_test(doppio_dir: string, test_class: string, callback): void
   fs.readFile(output_filename, 'utf8', function(err, java_output: string) {
     var doppio_output = '';
     var stdout = function(str: string) { doppio_output += str; };
-    var rs = new RuntimeState(stdout, (function() {}), new BootstrapClassLoader(jvm_state), jvm_state);
+    jvm_state.reset_classloader_cache();
+    var rs = new RuntimeState(stdout, (function() {}), jvm_state);
     jvm_state.run_class(rs, test_class, [], () => callback(cleandiff(doppio_output, java_output)));
   });
 }

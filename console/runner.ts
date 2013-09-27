@@ -8,9 +8,7 @@ import util = require('../src/util');
 import logging = require('../src/logging');
 import methods = require('../src/methods');
 import runtime = require('../src/runtime');
-import ClassLoader = require('../src/ClassLoader');
 import optparse = require('../src/option_parser');
-var BootstrapClassLoader = ClassLoader.BootstrapClassLoader;
 
 var jvm_state;
 
@@ -169,8 +167,7 @@ function read_stdin(resume): void {
   });
 }
 
-var bs_cl = new BootstrapClassLoader(jvm_state);
-var rs = new runtime.RuntimeState(stdout, read_stdin, bs_cl, jvm_state);
+var rs = new runtime.RuntimeState(stdout, read_stdin, jvm_state);
 if (argv.standard.jar != null) {
   var jar_dir = extract_jar(argv.standard.jar);
   cname = find_main_class(jar_dir);
@@ -185,7 +182,7 @@ var done_cb;
 if (argv.non_standard['list-class-cache']) {
   done_cb = function () {
     var scriptdir = path.resolve(__dirname + "/..");
-    var classes = rs.get_bs_cl().get_loaded_class_list(true);
+    var classes = jvm_state.bs_cl.get_loaded_class_list(true);
     var cpaths = jvm_state.system_properties['java.class.path'];
     for (var i = 0; i < classes.length; i++) {
       var file = classes[i] + ".class";
@@ -233,7 +230,7 @@ if (argv.non_standard['list-class-cache']) {
       var mid_point = (new Date).getTime();
       console.log('Starting hot-cache run...');
       // Reset runtime state
-      rs = new runtime.RuntimeState(stdout, read_stdin, bs_cl, jvm_state);
+      rs = new runtime.RuntimeState(stdout, read_stdin, jvm_state);
       run(function () {
         var finished = (new Date).getTime();
         console.log("Timing:\n\t" + (mid_point - cold_start) + " ms cold\n\t"
