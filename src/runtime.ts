@@ -359,18 +359,15 @@ export class RuntimeState {
     debug("### finished runtime state initialization ###");
   }
 
-  public dump_state(snapshot?: { serialize: () => StackFrameSnapshot[]; }, suffix?: string): void {
-    if (snapshot == null) {
-      snapshot = this.meta_stack().snap();
-    }
-    suffix = suffix != null ? "-" + suffix : '';
+  public dump_state(): void {
+    var snapshot = this.meta_stack().snap();
     var fs;
     if (typeof node !== "undefined" && node !== null && node.fs != null) {
       fs = node.fs;
     } else {
       fs = require('fs');
     }
-    var filename = "./core-" + thread_name(this, this.curr_thread) + suffix + ".json";
+    var filename = "./core-" + thread_name(this, this.curr_thread) + ".json";
     // 4th parameter to writeFileSync ensures this is not stored in localStorage in the browser
     fs.writeFileSync(filename, JSON.stringify(snapshot.serialize()), 'utf8', true);
   }
@@ -823,9 +820,7 @@ export class RuntimeState {
             var frames_to_pop = 0;
             while (!e.method_catch_handler(_this, stack.get_caller(frames_to_pop), frames_to_pop === 0)) {
               if (stack.length() === ++frames_to_pop) {
-                if (_this.jvm_state.dump_state) {
-                  _this.dump_state();
-                }
+                _this.jvm_state.dump_state();
                 stack.pop_n(stack.length() - 1);
                 _this.handle_toplevel_exception(e, no_threads, done_cb);
                 return;
@@ -834,9 +829,7 @@ export class RuntimeState {
             stack.pop_n(frames_to_pop);
             _this.run_until_finished(nop, no_threads, done_cb);
           } else {
-            if (_this.jvm_state.dump_state) {
-              _this.dump_state();
-            }
+            _this.jvm_state.dump_state();
             stack.pop_n(Math.max(stack.length() - 1, 0));
             _this.handle_toplevel_exception(e, no_threads, done_cb);
           }
