@@ -2,16 +2,6 @@
 var readline = require('readline');
 var argv = require('optimist').argv;
 import jvm = require('../src/jvm');
-import runtime = require('../src/runtime');
-
-var jvm_state;
-
-function repl_run(rs: runtime.RuntimeState, cname: string, args: string[], done_cb): void {
-  if (cname.slice(-6) === '.class') {
-    cname = cname.slice(0, -6);
-  }
-  jvm_state.run_class(rs, cname, args, done_cb);
-}
 
 function read_stdin(resume) {
   process.stdin.resume();
@@ -20,12 +10,18 @@ function read_stdin(resume) {
     resume(data);
   });
 }
+var write_stdout = process.stdout.write.bind(process.stdout);
 
 // initialize the RuntimeState
-jvm_state = new jvm.JVM();
-var write_stdout = process.stdout.write.bind(process.stdout);
+var jvm_state = new jvm.JVM();
 jvm_state.set_classpath(__dirname + "/../vendor/classes", '.');
-var rs = new runtime.RuntimeState(write_stdout, read_stdin, jvm_state);
+
+function repl_run(cname: string, args: string[], done_cb): void {
+  if (cname.slice(-6) === '.class') {
+    cname = cname.slice(0, -6);
+  }
+  jvm_state.run_class(write_stdout, read_stdin, cname, args, done_cb);
+}
 
 // create the REPL
 process.stdin.resume();
@@ -39,7 +35,7 @@ repl.on('close', function() {
 repl.on('line', function(line: string) {
   var toks = line.trim().split(/\s+/);
   if (toks[0] != null && toks[0].length > 0) {
-    repl_run(rs, toks[0], toks.slice(1), () => repl.prompt());
+    repl_run(toks[0], toks.slice(1), () => repl.prompt());
   } else {
     repl.prompt();
   }

@@ -8,7 +8,6 @@
 var underscore = require('../vendor/underscore/underscore');
 import disassembler = require('../src/disassembler');
 import jvm = require('../src/jvm');
-import runtime = require('../src/runtime');
 import testing = require('../src/testing');
 import untar = require('./untar');
 import util = require('../src/util');
@@ -370,10 +369,9 @@ var commands = {
   },
   ecj: function(args: string[], cb) {
     jvm_state.set_classpath(sys_path + '/vendor/classes/', './');
-    var rs = new runtime.RuntimeState(stdout, user_input, jvm_state);
     // XXX: -D args unsupported by the console.
     jvm_state.system_properties['jdt.compiler.useSingleThread'] = true;
-    jvm_state.run_class(rs, 'org/eclipse/jdt/internal/compiler/batch/Main', args, function() {
+    jvm_state.run_class(stdout, user_input, 'org/eclipse/jdt/internal/compiler/batch/Main', args, function() {
       // XXX: remove any classes that just got compiled from the class cache
       for (var i = 0; i < args.length; i++) {
         var c = args[i];
@@ -388,8 +386,7 @@ var commands = {
   },
   javac: function(args: string[], cb) {
     jvm_state.set_classpath(sys_path + '/vendor/classes/', './:/sys');
-    var rs = new runtime.RuntimeState(stdout, user_input, jvm_state);
-    jvm_state.run_class(rs, 'classes/util/Javac', args, function() {
+    jvm_state.run_class(stdout, user_input, 'classes/util/Javac', args, function() {
       // XXX: remove any classes that just got compiled from the class cache
       for (var i = 0; i < args.length; i++) {
         var c = args[i];
@@ -425,8 +422,7 @@ var commands = {
       class_name = args[0];
       class_args = args.slice(1);
     }
-    var rs = new runtime.RuntimeState(stdout, user_input, jvm_state);
-    jvm_state.run_class(rs, class_name, class_args, () => controller.reprompt());
+    jvm_state.run_class(stdout, user_input, class_name, class_args, () => controller.reprompt());
     return null;
   },
   test: function(args: string[]) {
@@ -462,8 +458,7 @@ var commands = {
   },
   rhino: function(args: string[], cb) {
     jvm_state.set_classpath(sys_path + '/vendor/classes/', './');
-    var rs = new runtime.RuntimeState(stdout, user_input, jvm_state);
-    jvm_state.run_class(rs, 'com/sun/tools/script/shell/Main', args, () => controller.reprompt());
+    jvm_state.run_class(stdout, user_input, 'com/sun/tools/script/shell/Main', args, () => controller.reprompt());
     return null;
   },
   list_cache: function() {

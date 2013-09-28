@@ -3,9 +3,10 @@ var fs = require('fs');
 var path = require('path');
 import jvm = require('../src/jvm');
 import opcodes = require('../src/opcodes');
-import runtime = require('../src/runtime');
 import natives = require('../src/natives');
 import testing = require('../src/testing');
+// only used for types
+import runtime = require('../src/runtime');
 
 interface Stats {
   [name:string]: number
@@ -95,8 +96,7 @@ function run_tests(test_classes: string[], stdout: (p:string)=>void,
     quiet || stdout("running " + test + "...\n");
     jvm_state.reset_classloader_cache();
     function nop() {}
-    var rs = new runtime.RuntimeState(nop, nop, jvm_state);
-    return jvm_state.run_class(rs, test, [], _runner);
+    return jvm_state.run_class(nop, nop, test, [], _runner);
   }
   // get the tests, if necessary
   if (test_classes != null && test_classes.length > 0) {

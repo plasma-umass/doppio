@@ -29,13 +29,22 @@ if (typeof node === "undefined") {
 export var show_NYI_natives: boolean = false;
 
 export class JVM {
-  public dump_state: boolean = false;
+  public should_dump_state: boolean = false;
   public system_properties: {[prop: string]: any};
   public bs_cl: ClassLoader.BootstrapClassLoader;
+  // HACK: only used in run_class, but we need it when dumping state on exit
+  private _rs: runtime.RuntimeState;
 
-  constructor() {
+  constructor(dump_state=false) {
+    this.should_dump_state = dump_state;
     this.reset_classloader_cache();
     this.reset_system_properties();
+  }
+
+  public dump_state(): void {
+    if (this.should_dump_state) {
+      this._rs.dump_state();
+    }
   }
 
   public reset_classloader_cache(): void {
@@ -45,8 +54,8 @@ export class JVM {
   public reset_system_properties(): void {
     this.system_properties = {
       'java.class.path': <string[]> [],
-      'java.home': "" + vendor_path + "/java_home",
-      'sun.boot.class.path': "" + vendor_path + "/classes",
+      'java.home': vendor_path + "/java_home",
+      'sun.boot.class.path': vendor_path + "/classes",
       'file.encoding': 'UTF-8',
       'java.vendor': 'Doppio',
       'java.version': '1.6',
@@ -123,10 +132,15 @@ export class JVM {
   }
 
   // main function that gets called from the frontend
-  public run_class(rs: runtime.RuntimeState, class_name: string, cmdline_args: string[], done_cb: (arg: any)=>void) {
+  public run_class(print: (p:string) => any,
+                   _async_input: (cb: (p:string) => any) => any,
+                   class_name: string,
+                   cmdline_args: string[],
+                   done_cb: (arg: any)=>void) {
     var class_descriptor = "L" + class_name + ";";
     var main_sig = 'main([Ljava/lang/String;)V';
     var main_method: methods.Method = null;
+    var rs = this._rs = new runtime.RuntimeState(print, _async_input, this);
     var _this = this;
     function run_main() {
       trace("run_main");

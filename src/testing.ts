@@ -99,8 +99,8 @@ function run_stdout_test(doppio_dir: string, test_class: string, callback): void
     var doppio_output = '';
     var stdout = function(str: string) { doppio_output += str; };
     jvm_state.reset_classloader_cache();
-    var rs = new RuntimeState(stdout, (function() {}), jvm_state);
-    jvm_state.run_class(rs, test_class, [], () => callback(cleandiff(doppio_output, java_output)));
+    jvm_state.run_class(stdout, (function() {}), test_class, [],
+        () => callback(cleandiff(doppio_output, java_output)));
   });
 }
 

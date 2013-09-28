@@ -6,8 +6,6 @@ var path = require('path');
 import jvm = require('../src/jvm');
 import util = require('../src/util');
 import logging = require('../src/logging');
-import methods = require('../src/methods');
-import runtime = require('../src/runtime');
 import optparse = require('../src/option_parser');
 
 var jvm_state;
@@ -140,8 +138,7 @@ if (argv.non_standard.log != null) {
 }
 
 jvm.show_NYI_natives = argv.non_standard['show-nyi-natives'];
-jvm_state = new jvm.JVM();
-jvm_state.dump_state = argv.non_standard['dump-state'];
+jvm_state = new jvm.JVM(argv.non_standard['dump-state']);
 if (argv.standard.classpath != null) {
   jvm_state.set_classpath(__dirname + "/../vendor/classes", argv.standard.classpath);
 } else {
@@ -167,7 +164,6 @@ function read_stdin(resume): void {
   });
 }
 
-var rs = new runtime.RuntimeState(stdout, read_stdin, jvm_state);
 if (argv.standard.jar != null) {
   var jar_dir = extract_jar(argv.standard.jar);
   cname = find_main_class(jar_dir);
@@ -176,7 +172,7 @@ if (argv.standard.jar != null) {
   }
 }
 function run(done_cb): void {
-  jvm_state.run_class(rs, cname, main_args, done_cb);
+  jvm_state.run_class(stdout, read_stdin, cname, main_args, done_cb);
 }
 var done_cb;
 if (argv.non_standard['list-class-cache']) {
@@ -229,8 +225,6 @@ if (argv.non_standard['list-class-cache']) {
     done_cb = function () {
       var mid_point = (new Date).getTime();
       console.log('Starting hot-cache run...');
-      // Reset runtime state
-      rs = new runtime.RuntimeState(stdout, read_stdin, jvm_state);
       run(function () {
         var finished = (new Date).getTime();
         console.log("Timing:\n\t" + (mid_point - cold_start) + " ms cold\n\t"
@@ -244,9 +238,7 @@ if (argv.non_standard['list-class-cache']) {
 
 process.on('SIGINT', function () {
   console.error('Doppio caught SIGINT');
-  if (jvm_state.dump_state) {
-    rs.dump_state();
-  }
+  jvm_state.dump_state();
   process.exit(0);
 });
 
