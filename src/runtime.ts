@@ -98,7 +98,7 @@ export class RuntimeState {
     return this.curr_frame().method.cls.loader;
   }
 
-  // XXX: These four methods avoid circular dependencies.
+  // XXX: This method avoids a circular dependency between java_object and ClassLoader.
   public construct_cl(jclo: java_object.JavaClassLoaderObject): ClassLoader.ClassLoader {
     return new ClassLoader.CustomClassLoader(this.get_bs_cl(), jclo);
   }
