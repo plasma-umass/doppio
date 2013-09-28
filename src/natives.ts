@@ -2153,20 +2153,9 @@ native_methods['java']['lang']['Class'] = [
         });
     });
   }), o('getInterfaces()[L!/!/!;', function(rs, _this) {
-    var cls, iface, iface_objs, ifaces;
-
-    cls = _this.$cls;
-    ifaces = cls.get_interfaces();
-    iface_objs = (function() {
-      var _i, _len, _results;
-
-      _results = [];
-      for (_i = 0, _len = ifaces.length; _i < _len; _i++) {
-        iface = ifaces[_i];
-        _results.push(iface.get_class_object(rs));
-      }
-      return _results;
-    })();
+    var cls = _this.$cls;
+    var ifaces = cls.get_interfaces();
+    var iface_objs = ifaces.map((iface)=>iface.get_class_object(rs));
     return new JavaArray(rs, rs.get_bs_class('[Ljava/lang/Class;'), iface_objs);
   }), o('getModifiers()I', function(rs, _this) {
     return _this.$cls.access_byte;
@@ -2248,53 +2237,35 @@ native_methods['java']['lang']['Class'] = [
     }
     return null;
   }), o('getDeclaredClasses0()[L!/!/!;', function(rs, _this) {
-    var c, cls, enclosing_name, flat_names, icls, iclses, my_class, ret, _i, _j, _len, _len1, _ref5;
+    var _i, _j, _len, _len1;
 
-    ret = new JavaArray(rs, rs.get_bs_class('[Ljava/lang/Class;'), []);
+    var ret = new JavaArray(rs, rs.get_bs_class('[Ljava/lang/Class;'), []);
     if (!(_this.$cls instanceof ReferenceClassData)) {
       return ret;
     }
-    cls = _this.$cls;
-    my_class = _this.$cls.get_type();
-    iclses = cls.get_attributes('InnerClasses');
+    var cls = _this.$cls;
+    var my_class = _this.$cls.get_type();
+    var iclses = cls.get_attributes('InnerClasses');
     if (iclses.length === 0) {
       return ret;
     }
-    flat_names = [];
-    for (_i = 0, _len = iclses.length; _i < _len; _i++) {
-      icls = iclses[_i];
-      _ref5 = icls.classes;
-      for (_j = 0, _len1 = _ref5.length; _j < _len1; _j++) {
-        c = _ref5[_j];
-        if (!(c.outer_info_index > 0)) {
-          continue;
-        }
-        enclosing_name = cls.constant_pool.get(c.outer_info_index).deref();
-        if (enclosing_name !== my_class) {
-          continue;
-        }
-        flat_names.push(cls.constant_pool.get(c.inner_info_index).deref());
-      }
+    var flat_names = [];
+    for (var i = 0; i < iclses.length; i++) {
+      var names = iclses[i].classes.filter((c) =>
+        // select inner classes where the enclosing class is my_class
+        c.outer_info_index > 0 && cls.constant_pool.get(c.outer_info_index).deref() === my_class)
+      .map((c) => cls.constant_pool.get(c.inner_info_index).deref());
+      flat_names.push.apply(flat_names, names);
     }
     rs.async_op(function(resume_cb, except_cb) {
-      var fetch_next_jco, i;
-
-      i = -1;
-      fetch_next_jco = function() {
-        var name;
-
-        i++;
-        if (i < flat_names.length) {
-          name = flat_names[i];
-          return cls.loader.resolve_class(rs, name, (function(cls) {
+      util.async_foreach(flat_names,
+        function(name: string, next_item: ()=>void){
+          cls.loader.resolve_class(rs, name, (function(cls) {
             ret.array.push(cls.get_class_object(rs));
-            return fetch_next_jco();
+            next_item();
           }), except_cb);
-        } else {
-          return resume_cb(ret);
-        }
-      };
-      return fetch_next_jco();
+        },
+        ()=>resume_cb(ret));
     });
   })
 ];
