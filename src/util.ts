@@ -444,7 +444,7 @@ export function ext_classname(str: string): string {
 }
 
 export function int_classname(str: string): string {
-  return typestr2descriptor(str).replace(/\./g, '/');
+  return typestr2descriptor(str.replace(/\./g, '/'));
 }
 
 export function verify_int_classname(str: string): boolean {
@@ -544,10 +544,9 @@ export function carr2descriptor(carr: string[]): string {
 
 // Converts internal type strings into type descriptors. Reverse of descriptor2typestr.
 export function typestr2descriptor(type_str: string): string {
-  var c = type_str[0];
   if (external2internal[type_str] !== void 0) {
     return external2internal[type_str];
-  } else if (c === '[') {
+  } else if (type_str[0] === '[') {
     return type_str;
   } else {
     return "L" + type_str + ";";

@@ -4,7 +4,6 @@ var underscore = require('../vendor/underscore/underscore');
 var fs = require('fs');
 var path = require('path');
 import jvm = require('../src/jvm');
-import util = require('../src/util');
 import logging = require('../src/logging');
 import optparse = require('../src/option_parser');
 

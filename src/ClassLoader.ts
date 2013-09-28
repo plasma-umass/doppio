@@ -1,6 +1,5 @@
 "use strict";
 import ClassData = require('./ClassData');
-var ReferenceClassData = ClassData.ReferenceClassData, PrimitiveClassData = ClassData.PrimitiveClassData, ArrayClassData = ClassData.ArrayClassData;
 import util = require('./util');
 import jvm = require('./jvm');
 import logging = require('./logging');
@@ -74,7 +73,7 @@ export class ClassLoader {
     var loaded_classes = this.loaded_classes;
     for (var k in loaded_classes) {
       var cdata = loaded_classes[k];
-      if ((type_str === cdata.get_super_class_type()) || (cdata instanceof ArrayClassData && type_str === (<ClassData.ArrayClassData>cdata).get_component_type())) {
+      if ((type_str === cdata.get_super_class_type()) || (cdata instanceof ClassData.ArrayClassData && type_str === (<ClassData.ArrayClassData>cdata).get_component_type())) {
         this.remove_class(k);
       }
     }
@@ -122,7 +121,7 @@ export class ClassLoader {
     if (component_cdata.get_class_loader() !== this) {
       return component_cdata.get_class_loader()._define_array_class(type_str, component_cdata);
     } else {
-      var cdata = new ArrayClassData(component_cdata.get_type(), this);
+      var cdata = new ClassData.ArrayClassData(component_cdata.get_type(), this);
       this._add_class(type_str, cdata);
       cdata.set_resolved(this.bootstrap.get_resolved_class('Ljava/lang/Object;'), component_cdata);
       return cdata;
@@ -215,7 +214,7 @@ export class ClassLoader {
       explicit = false;
     }
     trace("Defining class " + type_str + "...");
-    var cdata = new ReferenceClassData(data, this);
+    var cdata = new ClassData.ReferenceClassData(data, this);
     var type = cdata.get_type();
     if (type !== type_str) {
       var msg = util.descriptor2typestr(type_str) + " (wrong name: " + util.descriptor2typestr(type) + ")";
@@ -344,7 +343,7 @@ export class ClassLoader {
     var _this = this;
 
     trace("Actually initializing class " + (cdata.get_type()) + "...");
-    if (!(cdata instanceof ReferenceClassData)) {
+    if (!(cdata instanceof ClassData.ReferenceClassData)) {
       if (typeof UNSAFE !== "undefined" && UNSAFE !== null) {
         throw new Error("Tried to initialize a non-reference type: " + cdata.get_type());
       }
@@ -590,7 +589,7 @@ export class BootstrapClassLoader extends ClassLoader {
     if (cdata != null) {
       return cdata;
     }
-    cdata = new PrimitiveClassData(type_str, this);
+    cdata = new ClassData.PrimitiveClassData(type_str, this);
     this._add_class(type_str, cdata);
     return cdata;
   }
