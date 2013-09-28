@@ -2094,66 +2094,44 @@ native_methods['java']['lang']['Class'] = [
     }
     var base_array = [];
     rs.async_op(function(resume_cb, except_cb) {
-      var i = -1;
-      function fetch_next_field() {
-        i++;
-        if (i < fields.length) {
-          fields[i].reflector(rs, (function(jco) {
-            base_array.push(jco);
-            return fetch_next_field();
-          }), except_cb);
-        } else {
+      util.async_foreach(fields,
+        function(f, next_item) {
+          f.reflector(rs, function(jco){ base_array.push(jco); next_item()}, except_cb);
+        },
+        function(){
           var field_arr_cls = rs.get_bs_class('[Ljava/lang/reflect/Field;');
           resume_cb(new JavaArray(rs, field_arr_cls, base_array));
-        }
-      };
-      fetch_next_field();
+        });
     });
   }), o('getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;', function(rs, _this, public_only) {
-    var base_array, m, methods, sig;
-
-    methods = _this.$cls.get_methods();
+    var methods = _this.$cls.get_methods();
     methods = (function() {
-      var _results;
-
-      _results = [];
-      for (sig in methods) {
-        m = methods[sig];
+      var _results = [];
+      for (var sig in methods) {
+        var m = methods[sig];
         if (sig[0] !== '<' && (m.access_flags["public"] || !public_only)) {
           _results.push(m);
         }
       }
       return _results;
     })();
-    base_array = [];
+    var base_array = [];
     rs.async_op(function(resume_cb, except_cb) {
-      var fetch_next_method, i;
-
-      i = -1;
-      fetch_next_method = function() {
-        i++;
-        if (i < methods.length) {
-          m = methods[i];
-          return m.reflector(rs, false, (function(jco) {
-            base_array.push(jco);
-            return fetch_next_method();
-          }), except_cb);
-        } else {
-          return resume_cb(new JavaArray(rs, rs.get_bs_class('[Ljava/lang/reflect/Method;'), base_array));
-        }
-      };
-      return fetch_next_method();
+      util.async_foreach(methods,
+        function(m, next_item) {
+          m.reflector(rs, false, function(jco){ base_array.push(jco); next_item()}, except_cb);
+        },
+        function(){
+          var method_arr_cls = rs.get_bs_class('[Ljava/lang/reflect/Method;');
+          resume_cb(new JavaArray(rs, method_arr_cls, base_array));
+        });
     });
   }), o('getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;', function(rs, _this, public_only) {
-    var base_array, ctor_array_cdata, m, methods, sig;
-
-    methods = _this.$cls.get_methods();
+    var methods = _this.$cls.get_methods();
     methods = (function() {
-      var _results;
-
-      _results = [];
-      for (sig in methods) {
-        m = methods[sig];
+      var _results = [];
+      for (var sig in methods) {
+        var m = methods[sig];
         if (m.name === '<init>') {
           _results.push(m);
         }
@@ -2161,38 +2139,18 @@ native_methods['java']['lang']['Class'] = [
       return _results;
     })();
     if (public_only) {
-      methods = (function() {
-        var _i, _len, _results;
-
-        _results = [];
-        for (_i = 0, _len = methods.length; _i < _len; _i++) {
-          m = methods[_i];
-          if (m.access_flags["public"]) {
-            _results.push(m);
-          }
-        }
-        return _results;
-      })();
+      methods = methods.filter((m) => m.access_flags["public"]);
     }
-    ctor_array_cdata = rs.get_bs_class('[Ljava/lang/reflect/Constructor;');
-    base_array = [];
+    var ctor_array_cdata = rs.get_bs_class('[Ljava/lang/reflect/Constructor;');
+    var base_array = [];
     rs.async_op(function(resume_cb, except_cb) {
-      var fetch_next_method, i;
-
-      i = -1;
-      fetch_next_method = function() {
-        i++;
-        if (i < methods.length) {
-          m = methods[i];
-          return m.reflector(rs, true, (function(jco) {
-            base_array.push(jco);
-            return fetch_next_method();
-          }), except_cb);
-        } else {
-          return resume_cb(new JavaArray(rs, ctor_array_cdata, base_array));
-        }
-      };
-      return fetch_next_method();
+      util.async_foreach(methods,
+        function(m, next_item) {
+          m.reflector(rs, true, function(jco){ base_array.push(jco); next_item()}, except_cb);
+        },
+        function(){
+          resume_cb(new JavaArray(rs, ctor_array_cdata, base_array));
+        });
     });
   }), o('getInterfaces()[L!/!/!;', function(rs, _this) {
     var cls, iface, iface_objs, ifaces;

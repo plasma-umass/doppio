@@ -132,20 +132,11 @@ export class RuntimeState {
       'Ljava/lang/Boolean;', '[Lsun/management/MemoryManagerImpl;',
       '[Lsun/management/MemoryPoolImpl;'
     ];
-    var i = -1;
     var _this = this;
-    function init_next_core_class(): void {
-      trace("init_next_core_class");
-      i++;
-      if (i < core_classes.length) {
-        trace("Initializing " + core_classes[i]);
-        _this.jvm_state.bs_cl.initialize_class(_this, core_classes[i], init_next_core_class, except_cb);
-      } else {
-        trace("Preinitialization complete.");
-        resume_cb();
-      }
-    };
-    init_next_core_class();
+    util.async_foreach(core_classes, function(cls: string, next_item: ()=>void) {
+        trace("Initializing " + cls);
+        _this.jvm_state.bs_cl.initialize_class(_this, cls, next_item, except_cb);
+      }, resume_cb);
   }
 
   public init_threads(): void {

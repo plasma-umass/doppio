@@ -5,7 +5,25 @@ import runtime = require('./runtime');
 import java_object = require('./java_object');
 import ClassData = require('./ClassData');
 
-// default module: util
+// Applies an async function to each element of a list, in order.
+// Assumes that the async function expects "success" and "fail" callbacks.
+export function async_foreach<T>(
+      lst: Array<T>,
+      fn: (elem: T, next_item: ()=>void)=>void,
+      done_cb: ()=>void
+    ): void {
+  var i = -1;
+  function process(): void {
+    i++;
+    if (i < lst.length) {
+      fn(lst[i], process);
+    } else {
+      done_cb();
+    }
+  }
+  process();
+}
+
 export var INT_MAX = Math.pow(2, 31) - 1;
 export var INT_MIN = -INT_MAX - 1;
 export var FLOAT_POS_INFINITY = Math.pow(2, 128);

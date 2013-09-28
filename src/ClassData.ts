@@ -580,20 +580,14 @@ export class ReferenceClassData extends ClassData {
     trace("ASYNCHRONOUS: resolve_method " + sig);
     var m = this.method_lookup(rs, sig);
     var handlers = m.code.exception_handlers;
-    var i = 0;
-    var next_handler = function () {
-      if (i === handlers.length) {
-        return success_fn(m);
-      } else {
-        var eh = handlers[i++];
+    util.async_foreach(handlers,
+      function(eh: attributes.ExceptionHandler, next_item: ()=>void) {
         if (!(eh.catch_type === '<any>' || _this.loader.get_resolved_class(eh.catch_type, true))) {
-          return _this.loader.resolve_class(rs, eh.catch_type, next_handler, failure_fn);
+          _this.loader.resolve_class(rs, eh.catch_type, next_item, failure_fn);
         } else {
-          return next_handler();
+          next_item();
         }
-      }
-    };
-    return next_handler();
+      }, ()=>success_fn(m));
   }
 
   // Returns a boolean indicating if this class is an instance of the target class.

@@ -287,27 +287,24 @@ function read_dir(dir: string, pretty: boolean, columns: boolean, cb: any): void
       return cb(contents.join('\n'));
     }
     var pretty_list = [];
-    var i = 0;
-    var left = contents.length;
-    function next_content() {
-      var c = contents[i++];
-      node.fs.stat(dir + '/' + c, function(err, stat){
-        if (stat.isDirectory()) {
-          c += '/';
-        }
-        pretty_list.push(c);
-        if (--left === 0) {
-          if (columns)
-            cb(columnize(pretty_list));
-          else
-            cb(pretty_list.join('\n'));
-        }
+    util.async_foreach(contents,
+      // runs on each element
+      function(c: string, next_item) {
+        node.fs.stat(dir + '/' + c, function(err, stat){
+          if (stat.isDirectory()) {
+            c += '/';
+          }
+          pretty_list.push(c);
+          next_item();
+        });
+      },
+      // runs at the end of processing
+      function() {
+        if (columns)
+          cb(columnize(pretty_list));
+        else
+          cb(pretty_list.join('\n'));
       });
-      if (i != contents.length) {
-        next_content();
-      }
-    }
-    next_content();
   });
 }
 
@@ -475,18 +472,13 @@ var commands = {
     } else if (args.length === 1) {
       read_dir(args[0], true, true, (listing) => controller.message(listing, 'success'));
     } else {
-      function read_next_dir(i: number): void {
-        var dir = args[i];
-        read_dir(dir, true, true, function(listing: string){
-          controller.message(dir + ':\n' + listing + '\n\n', 'success', true);
-          if (i == args.length) {
-            controller.reprompt();
-          } else {
-            read_next_dir(i + 1);
-          }
-        });
-      }
-      read_next_dir(0);
+      util.async_foreach(args,
+        function(dir: string, next_item: ()=>void) {
+          read_dir(dir, true, true, function(listing: string){
+            controller.message(dir + ':\n' + listing + '\n\n', 'success', true);
+            next_item();
+          });
+        }, controller.reprompt);
     }
     return null;
   },
@@ -728,28 +720,26 @@ function fileNameCompletions(cmd: string, args: string[], cb): void {
     }
     dirList = filterSubstring(searchPfx, dirList);
     var completions = [];
-    var num_back = 0;
-    function add_completion(item: string): void {
-      node.fs.stat(node.path.resolve(dirPfx + item), function(err, stats) {
-        if (err != null) {
-          // Do nothing.
-        } else if (stats.isDirectory()) {
-          completions.push(dirPfx + item + '/');
-        } else if (validExtension(cmd, item)) {
-          if (chopExt) {
-            completions.push(dirPfx + item.split('.', 1)[0]);
-          } else {
-            completions.push(dirPfx + item);
+    util.async_foreach(dirList,
+      // runs on each element
+      function(item: string, next_item: ()=>void) {
+        node.fs.stat(node.path.resolve(dirPfx + item), function(err, stats) {
+          if (err != null) {
+            // Do nothing.
+          } else if (stats.isDirectory()) {
+            completions.push(dirPfx + item + '/');
+          } else if (validExtension(cmd, item)) {
+            if (chopExt) {
+              completions.push(dirPfx + item.split('.', 1)[0]);
+            } else {
+              completions.push(dirPfx + item);
+            }
           }
-        }
-        if (++num_back == dirList.length) {
-          cb(completions);
-        }
-      });
-    }
-    for (var i = 0; i < dirList.length; i++) {
-      add_completion(dirList[i]);
-    }
+          next_item();
+        });
+      },
+      // runs at the end of processing
+      () => cb(completions));
   });
 }
 
