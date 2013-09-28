@@ -102,12 +102,6 @@ export class RuntimeState {
   public construct_cl(jclo: java_object.JavaClassLoaderObject): ClassLoader.ClassLoader {
     return new ClassLoader.CustomClassLoader(this.get_bs_cl(), jclo);
   }
-  public construct_stackframe(method: methods.Method, locals: any[], stack: any[]): threading.StackFrame {
-    return new threading.StackFrame(method, locals, stack);
-  }
-  public construct_nativeframe(name: string, handler?: ()=>any, error_handler?:(p:any)=>any): threading.StackFrame {
-    return threading.StackFrame.native_frame(name, handler, error_handler);
-  }
 
   // XXX: We currently 'preinitialize' all of these to avoid an async call
   // in the middle of JVM execution. We should attempt to prune this down as

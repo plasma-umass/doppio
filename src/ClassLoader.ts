@@ -8,6 +8,7 @@ var trace = logging.trace;
 import runtime = require('./runtime');
 import exceptions = require('./exceptions');
 var JavaException = exceptions.JavaException;
+import threading = require('./threading');
 import java_object = require('./java_object');
 var JavaObject = java_object.JavaObject;
 import enums = require('./enums');
@@ -352,7 +353,7 @@ export class ClassLoader {
     // <clinit> functions onto the stack. The last StackFrame pushed will be for
     // the <clinit> function of the topmost uninitialized class in the hierarchy.
     var first_clinit = true;
-    var first_native_frame = rs.construct_nativeframe("$clinit", (function () {
+    var first_native_frame = threading.StackFrame.native_frame("$clinit", (function () {
       if (rs.curr_frame() !== first_native_frame) {
         throw new Error("The top of the meta stack should be this native frame, but it is not: " + (rs.curr_frame().name) + " at " + (rs.meta_stack().length()));
       }
@@ -421,7 +422,7 @@ export class ClassLoader {
           // are only used to handle exceptions.
           rs.meta_stack().push(first_native_frame);
         } else {
-          var next_nf = rs.construct_nativeframe("$clinit_secondary", (function () {
+          var next_nf = threading.StackFrame.native_frame("$clinit_secondary", (function () {
             return rs.meta_stack().pop();
           }), (function (e) {
               // This ClassData is not initialized; reset its state.
@@ -628,7 +629,7 @@ export class BootstrapClassLoader extends ClassLoader {
           // ClassNotFoundException.
           // TODO: Should probably have a better helper for these things
           // (asynchronous object creation)
-          rs.meta_stack().push(rs.construct_nativeframe('$class_not_found', (function () {
+          rs.meta_stack().push(threading.StackFrame.native_frame('$class_not_found', (function () {
             // Rewrite myself -- I have another method to run.
             rs.curr_frame().runner = function () {
               var rv = rs.pop();
@@ -689,7 +690,7 @@ export class CustomClassLoader extends ClassLoader {
       explicit = false;
     }
     trace("ASYNCHRONOUS: resolve_class " + type_str + " [custom]");
-    rs.meta_stack().push(rs.construct_nativeframe("$" + (this.loader_obj.cls.get_type()), (function () {
+    rs.meta_stack().push(threading.StackFrame.native_frame("$" + (this.loader_obj.cls.get_type()), (function () {
       var jclo = rs.pop();
       rs.meta_stack().pop();
       var cls = jclo.$cls;
