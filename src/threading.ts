@@ -39,7 +39,7 @@ export class JavaThreadObject extends java_object.JavaObject {
     this.wakeup_time = null;
     this.$park_count = 0;
     this.$park_timeout = Infinity;
-    this.$meta_stack = rs.construct_callstack();
+    this.$meta_stack = new CallStack();
   }
 
   public clone(rs: runtime.RuntimeState): JavaThreadObject {

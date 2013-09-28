@@ -7,6 +7,7 @@ import java_object = require('./java_object');
 var JavaObject = java_object.JavaObject, JavaArray = java_object.JavaArray;
 import exceptions = require('./exceptions');
 import logging = require('./logging');
+import threading = require('./threading');
 var debug = logging.debug, error = logging.error, trace = logging.trace;
 
 // For types; shouldn't actually be used.
@@ -946,7 +947,7 @@ export var native_methods = {
           var new_thread_sf, old_thread_sf, run_method, thread_runner_sf;
 
           _this.$isAlive = true;
-          _this.$meta_stack = rs.construct_callstack();
+          _this.$meta_stack = new threading.CallStack();
           rs.thread_pool.push(_this);
           old_thread_sf = rs.curr_frame();
           debug("TE(start0): starting " + _this.name(rs) + " from " + rs.curr_thread.name(rs));

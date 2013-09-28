@@ -102,9 +102,6 @@ export class RuntimeState {
   public construct_cl(jclo: java_object.JavaClassLoaderObject): ClassLoader.ClassLoader {
     return new ClassLoader.CustomClassLoader(this.get_bs_cl(), jclo);
   }
-  public construct_callstack(): threading.CallStack {
-    return new threading.CallStack();
-  }
   public construct_stackframe(method: methods.Method, locals: any[], stack: any[]): threading.StackFrame {
     return new threading.StackFrame(method, locals, stack);
   }
