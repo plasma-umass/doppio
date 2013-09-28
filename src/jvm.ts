@@ -43,7 +43,7 @@ export class JVM {
 
   public dump_state(): void {
     if (this.should_dump_state) {
-      this._rs.dump_state();
+      this._rs.curr_thread.dump_state(this._rs);
     }
   }
 

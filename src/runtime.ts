@@ -8,6 +8,7 @@ import jvm = require('./jvm');
 import methods = require('./methods');
 import ClassData = require('./ClassData');
 import ClassLoader = require('./ClassLoader');
+import threading = require('./threading');
 
 declare var node: any, UNSAFE : boolean;
 declare var setImmediate: (cb: (p:any)=>any)=>void
@@ -20,135 +21,7 @@ var ReturnException = exceptions.ReturnException;
 var JavaException = exceptions.JavaException;
 var JavaObject = java_object.JavaObject;
 var JavaArray = java_object.JavaArray;
-var JavaThreadObject = java_object.JavaThreadObject;
-var thread_name = java_object.thread_name;
 var process = typeof node !== "undefined" ? node.process : global.process;
-
-export interface StackFrameSnapshot {
-  name: string;
-  pc: number;
-  native: boolean;
-  loader: ClassLoader.ClassLoader;
-  stack: any[];
-  locals: any[];
-}
-
-export class CallStack {
-  public _cs: StackFrame[]
-
-  constructor(initial_stack?: any[]) {
-    this._cs = [StackFrame.native_frame('$bootstrap')];
-    if (initial_stack != null) {
-      this._cs[0].stack = initial_stack;
-    }
-  }
-
-  public snap(): { serialize: () => StackFrameSnapshot[]} {
-    var visited = {};
-    var snapshots = this._cs.map((frame) => frame.snap(visited));
-    return { serialize: (() => snapshots.map((ss) => ss.serialize())) };
-  }
-
-  public length(): number {
-    return this._cs.length;
-  }
-
-  public push(sf: StackFrame): number {
-    return this._cs.push(sf);
-  }
-
-  public pop(): StackFrame {
-    return this._cs.pop();
-  }
-
-  public pop_n(n: number): void {
-    this._cs.length -= n;
-  }
-
-  public curr_frame(): StackFrame {
-    return util.last(this._cs);
-  }
-
-  public get_caller(frames_to_skip: number): StackFrame {
-    return this._cs[this._cs.length - 1 - frames_to_skip];
-  }
-}
-
-export class StackFrame {
-  public method: methods.Method;
-  public locals: any[];
-  public stack: any[];
-  public pc: number;
-  public runner: () => any;
-  private native: boolean;
-  public name: string;
-
-  // XXX: Super kludge: DO NOT USE. Used by the ClassLoader on native frames.
-  // We should... remove this...
-  public cdata: ClassData.ClassData;
-
-  // Used by Native Frames
-  public error: (p:any)=>any
-
-  constructor(method: methods.Method, locals: any[], stack: any[]) {
-    this.method = method;
-    this.locals = locals;
-    this.stack = stack;
-    this.pc = 0;
-    this.runner = null;
-    this.native = false;
-    this.name = this.method.full_signature();
-  }
-
-  public snap(visited: {[name:string]:boolean}): { serialize: () => StackFrameSnapshot } {
-    var _this = this;
-    var rv : StackFrameSnapshot = {
-      name: this.name,
-      pc: this.pc,
-      native: this.native,
-      loader: null,
-      stack: null,
-      locals: null
-    };
-    function serializer(obj: any): any {
-      if (obj != null && typeof obj.serialize === "function") {
-        return obj.serialize(visited);
-      }
-      return obj;
-    }
-    function s(): StackFrameSnapshot {
-      if (_this.method.cls != null) {
-        rv.loader = _this.method.cls.loader.serialize(visited);
-      }
-      rv.stack = _this.stack.map(serializer);
-      rv.locals = _this.locals.map(serializer);
-      return rv;
-    }
-    return { serialize: s };
-  }
-
-  // Creates a "native stack frame". Handler is called with no arguments for
-  // normal execution, error_handler is called with the uncaught exception.
-  // If error_handler is not specified, then the exception will propagate through
-  // normally.
-  // Used for <clinit> and ClassLoader shenanigans. A native frame handles
-  // bridging the gap between those Java methods and the methods that ended up
-  // triggering them in the first place.
-  public static native_frame(name: string, handler?: ()=>any, error_handler?:(p:any)=>any): StackFrame {
-    // XXX: Super kludge!
-    // Fake method in the stack frame.
-    var sf = new StackFrame(<methods.Method>{
-      full_signature: (() => name)
-    }, [], []);
-    sf.runner = handler;
-    sf.name = name;
-    if (error_handler != null) {
-      sf.error = error_handler;
-    }
-    sf.native = true;
-    return sf;
-  }
-}
 
 var run_count = 0;
 // Contains all the mutable state of the Java program.
@@ -163,13 +36,13 @@ export class RuntimeState {
   public high_oref: number;
   private string_pool: util.SafeMap;
   // map from monitor -> thread object
-  public lock_refs: {[lock_id:number]: java_object.JavaThreadObject};
+  public lock_refs: {[lock_id:number]: threading.JavaThreadObject};
   // map from monitor -> count
   public lock_counts: {[lock_id:number]: number};
   // map from monitor -> list of waiting thread objects
-  public waiting_threads: {[lock_id:number]: java_object.JavaThreadObject[]};
-  private thread_pool: java_object.JavaThreadObject[];
-  public curr_thread: java_object.JavaThreadObject;
+  public waiting_threads: {[lock_id:number]: threading.JavaThreadObject[]};
+  private thread_pool: threading.JavaThreadObject[];
+  public curr_thread: threading.JavaThreadObject;
   private max_m_count: number;
   public unusual_termination: boolean;
   public stashed_done_cb: (p:any) => any;
@@ -196,7 +69,7 @@ export class RuntimeState {
     this.thread_pool = [];
     this.should_return = false;
 
-    var ct = new JavaThreadObject(this, null);
+    var ct = new threading.JavaThreadObject(this, null);
     this.curr_thread = ct;
     this.max_m_count = 100000;
   }
@@ -229,14 +102,14 @@ export class RuntimeState {
   public construct_cl(jclo: java_object.JavaClassLoaderObject): ClassLoader.ClassLoader {
     return new ClassLoader.CustomClassLoader(this.get_bs_cl(), jclo);
   }
-  public construct_callstack(): CallStack {
-    return new CallStack();
+  public construct_callstack(): threading.CallStack {
+    return new threading.CallStack();
   }
-  public construct_stackframe(method: methods.Method, locals: any[], stack: any[]): StackFrame {
-    return new StackFrame(method, locals, stack);
+  public construct_stackframe(method: methods.Method, locals: any[], stack: any[]): threading.StackFrame {
+    return new threading.StackFrame(method, locals, stack);
   }
-  public construct_nativeframe(name: string, handler?: ()=>any, error_handler?:(p:any)=>any): StackFrame {
-    return StackFrame.native_frame(name, handler, error_handler);
+  public construct_nativeframe(name: string, handler?: ()=>any, error_handler?:(p:any)=>any): threading.StackFrame {
+    return threading.StackFrame.native_frame(name, handler, error_handler);
   }
 
   // XXX: We currently 'preinitialize' all of these to avoid an async call
@@ -294,7 +167,7 @@ export class RuntimeState {
     this.push(group);
     thread_group_cls.method_lookup(this, '<init>()V').setup_stack(this);
     my_sf.runner = function () {
-      var ct : java_object.JavaThreadObject = null;
+      var ct : threading.JavaThreadObject = null;
       my_sf.runner = function () {
         my_sf.runner = null;
         ct.$meta_stack = _this.meta_stack();
@@ -305,7 +178,7 @@ export class RuntimeState {
         thread_cls.static_fields['threadInitNumber'] = 1;
         debug("### finished thread init ###");
       };
-      ct = new JavaThreadObject(_this, (<ClassData.ReferenceClassData> _this.get_bs_class('Ljava/lang/Thread;')), {
+      ct = new threading.JavaThreadObject(_this, (<ClassData.ReferenceClassData> _this.get_bs_class('Ljava/lang/Thread;')), {
         'Ljava/lang/Thread;name': _this.init_carr('main'),
         'Ljava/lang/Thread;priority': 1,
         'Ljava/lang/Thread;group': group,
@@ -316,7 +189,7 @@ export class RuntimeState {
     };
   }
 
-  public meta_stack(): CallStack {
+  public meta_stack(): threading.CallStack {
     return this.curr_thread.$meta_stack;
   }
 
@@ -355,24 +228,11 @@ export class RuntimeState {
     var _this = this;
     var str_arr_cls = <ClassData.ArrayClassData> this.get_bs_class('[Ljava/lang/String;');
     var args = new JavaArray(this, str_arr_cls, initial_args.map((a) => _this.init_string(a)));
-    this.curr_thread.$meta_stack = new CallStack([args]);
+    this.curr_thread.$meta_stack = new threading.CallStack([args]);
     debug("### finished runtime state initialization ###");
   }
 
-  public dump_state(): void {
-    var snapshot = this.meta_stack().snap();
-    var fs;
-    if (typeof node !== "undefined" && node !== null && node.fs != null) {
-      fs = node.fs;
-    } else {
-      fs = require('fs');
-    }
-    var filename = "./core-" + thread_name(this, this.curr_thread) + ".json";
-    // 4th parameter to writeFileSync ensures this is not stored in localStorage in the browser
-    fs.writeFileSync(filename, JSON.stringify(snapshot.serialize()), 'utf8', true);
-  }
-
-  public choose_next_thread(blacklist: java_object.JavaThreadObject[], cb: (jto: java_object.JavaThreadObject)=>void): void {
+  public choose_next_thread(blacklist: threading.JavaThreadObject[], cb: (jto: threading.JavaThreadObject)=>void): void {
     var _this = this;
     if (blacklist == null) {
       blacklist = [];
@@ -403,7 +263,7 @@ export class RuntimeState {
         }
         continue;
       }
-      debug("TE(choose_next_thread): choosing thread " + thread_name(this, t));
+      debug("TE(choose_next_thread): choosing thread " + t.name(this));
       return cb(t);
     }
     if ((Infinity > wakeup_time && wakeup_time > current_time)) {
@@ -415,8 +275,8 @@ export class RuntimeState {
     }
   }
 
-  public wait(monitor: java_object.JavaObject, yieldee?: java_object.JavaThreadObject): void {
-    debug("TE(wait): waiting " + (thread_name(this, this.curr_thread)) + " on lock " + monitor.ref);
+  public wait(monitor: java_object.JavaObject, yieldee?: threading.JavaThreadObject): void {
+    debug("TE(wait): waiting " + this.curr_thread.name(this) + " on lock " + monitor.ref);
     // add current thread to wait queue
     if (this.waiting_threads[monitor.ref] != null) {
       this.waiting_threads[monitor.ref].push(this.curr_thread);
@@ -431,9 +291,9 @@ export class RuntimeState {
     this.choose_next_thread(this.waiting_threads[monitor.ref], (nt) => _this.yield(nt));
   }
 
-  public yield(yieldee: java_object.JavaThreadObject): void {
+  public yield(yieldee: threading.JavaThreadObject): void {
     var _this = this;
-    debug("TE(yield): yielding " + (thread_name(this, this.curr_thread)) + " to " + (thread_name(this, yieldee)));
+    debug("TE(yield): yielding " + this.curr_thread.name(this) + " to " + yieldee.name(this));
     var old_thread_sf = this.curr_frame();
     this.curr_thread = yieldee;
     var new_thread_sf = this.curr_frame();
@@ -443,19 +303,19 @@ export class RuntimeState {
     // yield the JVM execution themselves.
   }
 
-  public park(thread: java_object.JavaThreadObject, timeout: number): void {
+  public park(thread: threading.JavaThreadObject, timeout: number): void {
     var _this = this;
     thread.$park_count++;
     thread.$park_timeout = timeout;
-    debug("TE(park): parking " + (thread_name(this, thread)) + " (count: " + thread.$park_count + ", timeout: " + thread.$park_timeout + ")");
+    debug("TE(park): parking " + thread.name(this) + " (count: " + thread.$park_count + ", timeout: " + thread.$park_timeout + ")");
     if (this.parked(thread)) {
       // Only choose a new thread if this one will become blocked
       this.choose_next_thread(null, (nt) => _this.yield(nt));
     }
   }
 
-  public unpark(thread: java_object.JavaThreadObject): void {
-    debug("TE(unpark): unparking " + (thread_name(this, thread)));
+  public unpark(thread: threading.JavaThreadObject): void {
+    debug("TE(unpark): unparking " + thread.name(this));
     thread.$park_count--;
     thread.$park_timeout = Infinity;
     if (!this.parked(thread)) {
@@ -464,11 +324,11 @@ export class RuntimeState {
     }
   }
 
-  public parked(thread: java_object.JavaThreadObject): boolean {
+  public parked(thread: threading.JavaThreadObject): boolean {
     return thread.$park_count > 0;
   }
 
-  public curr_frame(): StackFrame {
+  public curr_frame(): threading.StackFrame {
     return this.meta_stack().curr_frame();
   }
 
@@ -701,7 +561,7 @@ export class RuntimeState {
         is_constructor = true;
       }
       // Set up a native frame with the callbacks.
-      var nf = StackFrame.native_frame("$bytecode_call", (function() {
+      var nf = threading.StackFrame.native_frame("$bytecode_call", (function() {
         // What kind of method is it? Do we pop 0, 1, or 2?
         if (method.return_type !== 'V' || is_constructor) {
           if (method.return_type === 'J' || method.return_type === 'D') {
@@ -730,7 +590,7 @@ export class RuntimeState {
 
   public run_until_finished(setup_fn: ()=>void, no_threads: boolean, done_cb: (boolean)=>void): void {
     var _this = this;
-    var stack : CallStack;
+    var stack : threading.CallStack;
     function nop() {}
 
     // Reset stack depth every time this is called. Prevents us from needing to
@@ -765,7 +625,7 @@ export class RuntimeState {
           return done_cb(true);
         }
         // remove the current (finished) thread
-        debug("TE(toplevel): finished thread " + (thread_name(_this, _this.curr_thread)));
+        debug("TE(toplevel): finished thread " + _this.curr_thread.name(_this));
         _this.curr_thread.$isAlive = false;
         _this.thread_pool.splice(_this.thread_pool.indexOf(_this.curr_thread), 1);
         return _this.choose_next_thread(null, function (next_thread) {
@@ -786,7 +646,7 @@ export class RuntimeState {
               advance_pc = true;
             }
             if (bytecode) {
-              _this.meta_stack().push(StackFrame.native_frame("async_op"));
+              _this.meta_stack().push(threading.StackFrame.native_frame("async_op"));
             }
             _this.curr_frame().runner = function () {
               _this.meta_stack().pop();
@@ -806,7 +666,7 @@ export class RuntimeState {
             return _this.run_until_finished(nop, no_threads, done_cb);
           };
           var failure_fn = function(e_cb) {
-            _this.meta_stack().push(StackFrame.native_frame("async_op"));
+            _this.meta_stack().push(threading.StackFrame.native_frame("async_op"));
             _this.curr_frame().runner = function () {
               _this.meta_stack().pop();
               e_cb();

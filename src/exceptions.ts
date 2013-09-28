@@ -6,6 +6,7 @@ import runtime = require('./runtime');
 import java_object = require('./java_object');
 import opcodes = require('./opcodes');
 import attributes = require('./attributes');
+import threading = require('./threading');
 var debug = logging.debug;
 
 export interface DoppioException {
@@ -34,7 +35,7 @@ export class YieldIOException extends YieldException {}
 export class JavaException implements DoppioException {
   constructor(public exception: java_object.JavaObject) {}
 
-  public method_catch_handler(rs: runtime.RuntimeState, cf: runtime.StackFrame, top_of_stack: boolean): boolean {
+  public method_catch_handler(rs: runtime.RuntimeState, cf: threading.StackFrame, top_of_stack: boolean): boolean {
     var method = cf.method;
     if (!top_of_stack && method.has_bytecode) {
       cf.pc -= 3;  // rewind the invoke opcode

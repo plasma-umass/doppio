@@ -4,7 +4,7 @@ import util = require('./util');
 import attributes = require('./attributes');
 import runtime = require('./runtime');
 import java_object = require('./java_object');
-var thread_name = java_object.thread_name, JavaObject = java_object.JavaObject, JavaArray = java_object.JavaArray;
+var JavaObject = java_object.JavaObject, JavaArray = java_object.JavaArray;
 import exceptions = require('./exceptions');
 import logging = require('./logging');
 var debug = logging.debug, error = logging.error, trace = logging.trace;
@@ -593,12 +593,11 @@ export var native_methods = {
         }), o('clone()L!/!/!;', function (rs: runtime.RuntimeState, _this: java_object.JavaObject): java_object.JavaObject {
           return _this.clone(rs);
         }), o('notify()V', function (rs: runtime.RuntimeState, _this: java_object.JavaObject): void {
-          var locker, owner;
-
+          var locker;
           debug("TE(notify): on lock *" + _this.ref);
           if ((locker = rs.lock_refs[_this.ref]) != null) {
             if (locker !== rs.curr_thread) {
-              owner = thread_name(rs, locker);
+              var owner = locker.name(rs);
               rs.java_throw((<ClassData.ReferenceClassData>rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;')), "Thread '" + owner + "' owns this monitor");
             }
           }
@@ -606,12 +605,11 @@ export var native_methods = {
             rs.waiting_threads[_this.ref].shift();
           }
         }), o('notifyAll()V', function (rs: runtime.RuntimeState, _this: java_object.JavaObject): void {
-          var locker, owner;
-
+          var locker;
           debug("TE(notifyAll): on lock *" + _this.ref);
           if ((locker = rs.lock_refs[_this.ref]) != null) {
             if (locker !== rs.curr_thread) {
-              owner = thread_name(rs, locker);
+              var owner = locker.name(rs);
               rs.java_throw((<ClassData.ReferenceClassData>rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;')), "Thread '" + owner + "' owns this monitor");
             }
           }
@@ -619,14 +617,13 @@ export var native_methods = {
             rs.waiting_threads[_this.ref] = [];
           }
         }), o('wait(J)V', function (rs: runtime.RuntimeState, _this: java_object.JavaObject, timeout: gLong): void {
-          var locker, owner;
-
+          var locker;
           if (timeout !== gLong.ZERO) {
             error("TODO(Object::wait): respect the timeout param (" + timeout + ")");
           }
           if ((locker = rs.lock_refs[_this.ref]) != null) {
             if (locker !== rs.curr_thread) {
-              owner = thread_name(rs, locker);
+              var owner = locker.name(rs);
               rs.java_throw((<ClassData.ReferenceClassData>rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;')), "Thread '" + owner + "' owns this monitor");
             }
           }
@@ -937,7 +934,7 @@ export var native_methods = {
             rs["yield"](_this);
             return;
           }
-          debug("TE(interrupt0): interrupting " + (thread_name(rs, _this)));
+          debug("TE(interrupt0): interrupting " + _this.name(rs));
           new_thread_sf = util.last(_this.$meta_stack._cs);
           new_thread_sf.runner = function() {
             return rs.java_throw(rs.get_bs_class('Ljava/lang/InterruptedException;'), 'interrupt0 called');
@@ -952,7 +949,7 @@ export var native_methods = {
           _this.$meta_stack = rs.construct_callstack();
           rs.thread_pool.push(_this);
           old_thread_sf = rs.curr_frame();
-          debug("TE(start0): starting " + (thread_name(rs, _this)) + " from " + (thread_name(rs, rs.curr_thread)));
+          debug("TE(start0): starting " + _this.name(rs) + " from " + rs.curr_thread.name(rs));
           rs.curr_thread = _this;
           new_thread_sf = rs.curr_frame();
           rs.push(_this);
@@ -962,10 +959,10 @@ export var native_methods = {
             // new_thread_sf is the fake SF at index 0
             new_thread_sf.runner = null;
             _this.$isAlive = false;
-            return debug("TE(start0): thread died: " + (thread_name(rs, _this)));
+            return debug("TE(start0): thread died: " + _this.name(rs));
           };
           old_thread_sf.runner = function() {
-            debug("TE(start0): thread resumed: " + (thread_name(rs, rs.curr_thread)));
+            debug("TE(start0): thread resumed: " + rs.curr_thread.name(rs));
             return rs.meta_stack().pop();
           };
           throw exceptions.ReturnException;

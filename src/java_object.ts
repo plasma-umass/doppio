@@ -171,42 +171,6 @@ export class JavaObject {
   }
 }
 
-export class JavaThreadObject extends JavaObject {
-  public $meta_stack: runtime.CallStack;
-  public $isAlive: boolean;
-  public wakeup_time: number;
-  public $park_count: number;
-  public $park_timeout: number;
-  // XXX: Used if it's a 'fake' Thread object. I'm so sorry. We need to have a
-  // special subclass for that thread.
-  public fake: boolean;
-  constructor(rs: runtime.RuntimeState, cls: ClassData.ReferenceClassData, obj?: any) {
-    // First thread to bootstrap us into the JVM.
-    // We can't cast cls to ReferenceClassData because it fails to validate.
-    // Instead, we cast to any, which can be assigned to variables of any type.
-    if (cls == null) {
-      cls = <any> {
-        get_type: (() => 'Ljava/lang/Thread;'),
-        loader: rs.get_bs_cl(),
-        get_default_fields: (() => null)  // XXX: Hack for now.
-      };
-      this.fake = true;
-    } else {
-      this.fake = false;
-    }
-    super(rs, cls, obj);
-    this.$isAlive = true;
-    this.wakeup_time = null;
-    this.$park_count = 0;
-    this.$park_timeout = Infinity;
-    this.$meta_stack = rs.construct_callstack();
-  }
-
-  public clone(rs: runtime.RuntimeState): JavaObject {
-    return new JavaThreadObject(rs, this.cls, underscore.clone(this.fields));
-  }
-}
-
 export class JavaClassObject extends JavaObject {
   constructor(rs: runtime.RuntimeState, public $cls: ClassData.ClassData) {
     super(rs, <ClassData.ReferenceClassData> rs.get_bs_cl().get_resolved_class('Ljava/lang/Class;'));
@@ -250,8 +214,4 @@ export class JavaClassLoaderObject extends JavaObject {
       loaded: loaded
     };
   }
-}
-
-export function thread_name(rs: runtime.RuntimeState, thread: JavaObject): string {
-  return util.chars2js_str(thread.get_field(rs, 'Ljava/lang/Thread;name'));
 }

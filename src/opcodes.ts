@@ -8,9 +8,9 @@ import ClassData = require('./ClassData');
 var JavaException = exceptions.JavaException;
 var ReturnException = exceptions.ReturnException;
 import java_object = require('./java_object');
+import threading = require('./threading');
 var JavaObject = java_object.JavaObject;
 var JavaArray = java_object.JavaArray;
-var thread_name = java_object.thread_name;
 var JavaClassLoaderObject = java_object.JavaClassLoaderObject;
 
 export interface Execute {
@@ -714,7 +714,7 @@ export function monitorexit(rs: runtime.RuntimeState, monitor: any): void {
     }
   } else {
     var err_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;');
-    rs.java_throw(err_cls, "Thread " + thread_name(rs, rs.curr_thread) + " tried to monitorexit on lock held by thread " + thread_name(rs, locked_thread) + ".");
+    rs.java_throw(err_cls, "Thread " + rs.curr_thread.name(rs) + " tried to monitorexit on lock held by thread " + locked_thread.name(rs) + ".");
   }
 }
 
@@ -1150,8 +1150,8 @@ export var opcodes : Opcode[] = [
         rs.push(new JavaClassLoaderObject(rs, this.cls));
         this.execute = (rs: runtime.RuntimeState) => rs.push(new JavaClassLoaderObject(rs, this.cls));
       } else if (this.cls.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/Thread;', true))) {
-        rs.push(new java_object.JavaThreadObject(rs, this.cls));
-        this.execute = (rs: runtime.RuntimeState) => rs.push(new java_object.JavaThreadObject(rs, this.cls));
+        rs.push(new threading.JavaThreadObject(rs, this.cls));
+        this.execute = (rs: runtime.RuntimeState) => rs.push(new threading.JavaThreadObject(rs, this.cls));
       } else {
         rs.push(new JavaObject(rs, this.cls));
         // Self-modify; cache the class file lookup.
@@ -1167,7 +1167,7 @@ export var opcodes : Opcode[] = [
           if (class_file.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/ClassLoader;', true))) {
             obj = new JavaClassLoaderObject(rs, class_file);
           } else if (class_file.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/Thread;', true))) {
-            obj = new java_object.JavaThreadObject(rs, class_file);
+            obj = new threading.JavaThreadObject(rs, class_file);
           } else {
             obj = new JavaObject(rs, class_file);
           }

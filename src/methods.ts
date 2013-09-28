@@ -10,13 +10,13 @@ import exceptions = require('./exceptions');
 import java_object = require('./java_object');
 import ConstantPool = require('./ConstantPool');
 import ClassData = require('./ClassData');
+import threading = require('./threading');
 
 
 var ReturnException = exceptions.ReturnException;
 var vtrace = logging.vtrace, trace = logging.trace, debug_vars = logging.debug_vars, native_methods = natives.native_methods, trapped_methods = natives.trapped_methods;
 var JavaArray = java_object.JavaArray;
 var JavaObject = java_object.JavaObject;
-var thread_name = java_object.thread_name;
 declare var RELEASE: boolean;
 
 export class AbstractMethodField {
@@ -351,7 +351,7 @@ export class Method extends AbstractMethodField {
       if (!((typeof RELEASE !== "undefined" && RELEASE !== null) || logging.log_level < logging.VTRACE)) {
         vtrace(this.cls.get_type() + "::" + this.name + ":" + pc + " => " + op.name + annotation);
         var depth = rs.meta_stack().length();
-        vtrace("D: " + depth + ", S: [" + debug_vars(cf.stack) + "], L: [" + debug_vars(cf.locals) + "], T: " + (!rs.curr_thread.fake ? thread_name(rs, rs.curr_thread) : ""));
+        vtrace("D: " + depth + ", S: [" + debug_vars(cf.stack) + "], L: [" + debug_vars(cf.locals) + "], T: " + (!rs.curr_thread.fake ? rs.curr_thread.name(rs) : ""));
       }
       cf.pc += 1 + op.byte_count;
       op = code[cf.pc];
@@ -359,8 +359,8 @@ export class Method extends AbstractMethodField {
     rs.should_return = false;
   }
 
-  public setup_stack(runtime_state: runtime.RuntimeState): runtime.StackFrame {
-    var sf: runtime.StackFrame;
+  public setup_stack(runtime_state: runtime.RuntimeState): threading.StackFrame {
+    var sf: threading.StackFrame;
     var _this = this;
 
     var ms = runtime_state.meta_stack();
