@@ -19,12 +19,12 @@ class MesaTest {
 
     public void run() {
       synchronized(obj) {
-        System.out.println("Running " + thread.getName());
+        System.out.println("1: Running " + thread.getName());
         try {
           obj.wait();
         }
         catch (InterruptedException e) {}
-        System.out.println("Finishing " + thread.getName());
+        System.out.println("4: Finishing " + thread.getName());
       }
     }
   }
@@ -39,9 +39,9 @@ class MesaTest {
 
     public void run() {
       synchronized(obj) {
-        System.out.println("Running " + thread.getName());
+        System.out.println("2: Running " + thread.getName());
         obj.notify();
-        System.out.println("Finishing " + thread.getName());
+        System.out.println("3: Finishing " + thread.getName());
       }
     }
   }
