@@ -271,7 +271,7 @@ doppio doppio-dev:
 BUILD_FOLDERS = build/% build/%/browser build/%/console build/%/src
 $(foreach TARGET,$(BUILD_TARGETS),$(subst %,$(TARGET),$(BUILD_FOLDERS))):
 	mkdir -p $@
-	ln -s vendor $@/vendor
+	ln -s $(DOPPIO_DIR)/vendor $@/vendor
 
 # Prevent this from being treated as pattern rule (because it has multiple targets)
 $(foreach TARGET,$(BUILD_TARGETS),$(subst %,$(TARGET),build/%/classes build/%/vendor)): $(foreach TARGET,$(BUILD_TARGETS),$(subst %,$(TARGET),build/%))
