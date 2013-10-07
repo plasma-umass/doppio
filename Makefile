@@ -258,7 +258,7 @@ build/dev-cli/console/runner.js: $(CLI_SRCS)
 	$(TSC) --module commonjs --outDir build/dev-cli console/*.ts
 
 doppio doppio-dev:
-	echo "node \`dirname \$$0\`/build/$(if $(findstring dev,$@),dev-cli,release-cli)/console/runner.js \"\$$@\"" > $@
+	echo "node \$$(dirname \$$0)/build/$(if $(findstring dev,$@),dev-cli,release-cli)/console/runner.js \"\$$@\"" > $@
 	chmod +x $@
 
 ################################################################################
