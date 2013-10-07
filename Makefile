@@ -225,7 +225,7 @@ tools/preload: release-cli
 	fi
 
 build/%/browser/mini-rt.tar: build/%/browser tools/preload
-	COPYFILE_DISABLE=true && tar -c -T <(sort -u tools/preload) -f $@
+	COPYFILE_DISABLE=true && tar -c -h -T <(sort -u tools/preload) -f $@
 
 # The | prevents the prerequisite from being included in $^, and avoids
 # re-executing the rule when the folder is 'updated' with `mkdir -p`.
