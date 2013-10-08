@@ -42,6 +42,14 @@ To get the optimized release version:
 
 Then point your browser to [http://localhost:8000/](http://localhost:8000/).
 
+To include your own code in the browser, place your `.class` files under `vendor/classes`, then re-run `make dev` or `make release`.  For example:
+
+    #in shell
+    cp -ivR /path/to/my/class/files/ vendor/classes/my-classes/
+    
+    #in browser
+    java -cp /sys/vendor/classes/my-classes my/package/MyClass #use slashes, not dots, as package separators
+
 The code can also be run from the console. For example:
 
     make dev-cli
