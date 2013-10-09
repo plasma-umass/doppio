@@ -42,15 +42,24 @@ To get the optimized release version:
 
 Then point your browser to [http://localhost:8000/](http://localhost:8000/).
 
-To include your own code in the browser, place your `.class` files under `vendor/classes`, then re-run `make dev` or `make release`.  For example:
+To include your own code in the browser without manually uploading each file,
+place your `.class` files in a directory under `classes/`,
+then re-run `make dev` or `make release` to re-generate
+the `listings.json` file.
+
+For example:
 
     #in shell
-    cp -ivR /path/to/my/class/files/ vendor/classes/my-classes/
+    cp -ivR /path/to/my/class/files/ classes/my-classes/
     
     #in browser
-    java -cp /sys/vendor/classes/my-classes my/package/MyClass #use slashes, not dots, as package separators
+    java -cp /sys/classes/my-classes my/package/MyClass  # use slashes, not dots, as package separators
 
-The code can also be run from the console. For example:
+We currently don't support loading class files from JARs in the browser,
+but we intend to in the future. For now, unzip the JAR file and use the
+above method to access the class files directly.
+
+Doppio can also be run from the console. For example:
 
     make dev-cli
     node build/dev-cli/console/disassembler.js classes/demo/Fib
