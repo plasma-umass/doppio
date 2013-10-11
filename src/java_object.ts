@@ -90,7 +90,8 @@ export class JavaObject {
       this.fields[name] = val;
     } else {
       rs.java_throw(<ClassData.ReferenceClassData>
-          this.cls.loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name);
+          this.cls.loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'),
+          'Cannot set field ' + name + ' on class ' + this.cls.get_type());
     }
   }
 
@@ -99,7 +100,8 @@ export class JavaObject {
       return this.fields[name];
     }
     return rs.java_throw(<ClassData.ReferenceClassData>
-        this.cls.loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name);
+        this.cls.loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'),
+        'Cannot get field ' + name + ' from class ' + this.cls.get_type());
   }
 
   public get_field_from_offset(rs: runtime.RuntimeState, offset: gLong): any {
