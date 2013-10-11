@@ -1164,7 +1164,7 @@ export var native_methods = {
                   if (null != err) return cb(-1); // XXX: should check this
                   // not clear why, but sometimes node doesn't move the
                   // file pointer, so we do it here ourselves.
-                  for (_this.$pos += bytes_read, i = _i = 0; bytes_read > _i; i = _i += 1) byte_arr.array[offset + i] = buf.readUInt8(i);
+                  for (_this.$pos += bytes_read, i = _i = 0; bytes_read > _i; i = _i += 1) byte_arr.array[offset + i] = buf.readInt8(i);
                   return cb(0 === bytes_read && 0 !== n_bytes ? -1 : bytes_read);
               });
             });
@@ -1327,7 +1327,7 @@ export var native_methods = {
                   var i, _i;
                   if (null != err) return cb(-1); // XXX: should check this
                   for (i = _i = 0; bytes_read > _i; i = _i += 1)
-                    byte_arr.array[offset + i] = buf.readUInt8(i);
+                    byte_arr.array[offset + i] = buf.readInt8(i);
                   return _this.$pos += bytes_read, cb(0 === bytes_read && 0 !== len ? -1 : bytes_read);
               });
           });
