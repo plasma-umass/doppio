@@ -131,6 +131,16 @@ export class JVM {
     this.system_properties['java.class.path'] = tmp_classpath;
   }
 
+  // Prepends a single path to the JVM classpath.
+  // Does not check for the existence of the given path.
+  public prepend_classpath(classpath: string): void {
+    var p = path.normalize(classpath);
+    if (p.charAt(p.length-1) !== '/') {
+      p += '/';
+    }
+    this.system_properties['java.class.path'].unshift(p);
+  }
+
   // main function that gets called from the frontend
   public run_class(print: (p:string) => any,
                    _async_input: (cb: (p:string) => any) => any,

@@ -48,7 +48,7 @@ function extract_jar(jar_path: string, main_class_name?: string): string {
     fs.mkdirSync(tmpdir);
   }
   extract_all_to(unzipper.files, tmpdir);
-  jvm_state.system_properties['java.class.path'].unshift(tmpdir);
+  jvm_state.prepend_classpath(tmpdir + '/');
   return tmpdir;
 }
 
@@ -170,6 +170,7 @@ if (argv.standard.jar != null) {
     console.error("No Main-Class found in " + argv.standard.jar);
   }
 }
+
 function run(done_cb): void {
   jvm_state.run_class(stdout, read_stdin, cname, main_args, done_cb);
 }
