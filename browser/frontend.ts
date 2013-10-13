@@ -396,11 +396,11 @@ var commands = {
     return null;
   },
   java: function(args: string[], cb) {
-    jvm_state.dump_state = false
+    jvm_state.should_dump_state = false
     // XXX: dump-state support
     for (var i = 0; i < args.length; i++) {
       if (args[i] === '-Xdump-state') {
-        jvm_state.dump_state = true;
+        jvm_state.should_dump_state = true;
         args.splice(i, 1);
         break;
       }
