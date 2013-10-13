@@ -12,6 +12,7 @@ import testing = require('../src/testing');
 import untar = require('./untar');
 import util = require('../src/util');
 declare var node;
+declare var JSZip;  // hax
 
 // To be initialized on document load
 var stdout = null;
@@ -407,12 +408,38 @@ var commands = {
     }
     if ((args[0] == null) ||
         ((args[0] === '-classpath' || args[0] === '-cp') && args.length < 3)) {
-      return "Usage: java [-classpath path1:path2...] class [args...]";
+      return "Usage: java [-classpath path1:path2...] [-jar path.jar] class [args...]";
     }
     var class_args, class_name;
     if (args[0] === '-classpath' || args[0] === '-cp') {
       jvm_state.set_classpath(sys_path + '/vendor/classes/', args[1]);
       class_name = args[2];
+      class_args = args.slice(3);
+    } else if (args[0] === '-jar') {
+      // TODO: extract common functionality with console/runner.ts
+      // TODO: make this asynchronous
+      // TODO: error checking / tab-complete fixes
+      var jar_path = args[1];
+      var tmp_dir = '/tmp/jars/' + node.path.basename(jar_path.slice(0,-4)) + '/';
+      if (!node.fs.existsSync(tmp_dir)) {
+        node.fs.mkdirSync(tmp_dir);
+      }
+      var jar = node.fs.readFileSync(jar_path);
+      var jarfile = new JSZip(jar.buff.buffer);
+      // TODO: avoid loading every single file into memory (BFS ZipFS backend?)
+      for (var filepath in jarfile.files) {
+        var file = jarfile.files[filepath];
+        filepath = node.path.join(tmp_dir, filepath);
+        if (file.options.dir || filepath.slice(-1) === '/') {
+          if (!node.fs.existsSync(filepath)) {
+            node.fs.mkdirSync(filepath);
+          }
+        } else {
+          node.fs.writeFileSync(filepath, file.asBinary(), 'binary');
+        }
+      }
+      jvm_state.set_classpath(sys_path + '/vendor/classes/', tmp_dir+':./');
+      class_name = args[2];  // TODO: infer this from the manifest
       class_args = args.slice(3);
     } else {
       jvm_state.set_classpath(sys_path + '/vendor/classes/', './');

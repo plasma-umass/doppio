@@ -12,6 +12,9 @@
   <script src="vendor/util.js"></script>
   <script src="vendor/websock.js"></script>
   <!-- END WebSockify LIBRARY -->
+  <script src="vendor/jszip.js"></script>
+  <script src="vendor/jszip-load.js"></script>
+  <script src="vendor/jszip-inflate.js"></script>
   <script src="vendor/require.js"></script>
 {{#release}}
   <script>
@@ -45,6 +48,7 @@
       node.fs.mkdirSync('/demo');
     }
     node.fs.mkdirSync('/tmp');
+    node.fs.mkdirSync('/tmp/jars');
     node.process.chdir('/demo');
 
     require(["browser/frontend"], function(frontend) {
