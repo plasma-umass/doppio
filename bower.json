@@ -13,6 +13,7 @@
     "jquery-migrate": "~1.2.1",
     "underscore": "~1.5.1",
     "browserfs": "~0.2.0",
-    "bootstrap": "2.3.2"
+    "bootstrap": "2.3.2",
+    "jszip": "*"
   }
 }
