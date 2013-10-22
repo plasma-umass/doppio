@@ -64,7 +64,7 @@ export class JavaThreadObject extends java_object.JavaObject {
         // XXX: should handle this correctly.
         console.error(err);
       } else {
-        rs.print("Wrote core dump to " + filename);
+        rs.print("Wrote core dump to " + filename + "\n");
       }
     });
   }
