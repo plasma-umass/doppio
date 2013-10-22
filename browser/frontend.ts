@@ -345,29 +345,37 @@ var commands = {
     if (args.length < 1) {
       return "Usage: view_dump <core-file.json>\nUse java -Xdump-state path/to/failing/class to generate one.";
     }
-    var dump = "";
-    try {
-      dump = node.fs.readFileSync(args[0], 'utf8');
-    } catch (e) {
-      return "Error reading core dump: " + e.toString();
-    }
-    // Open the core viewer in a new window and save a reference to it.
-    var viewer = window.open('core_viewer.html?source=browser');
-    // Create a function to send the core dump to the new window.
-    function send_dump(): void {
-      viewer.postMessage(dump, location['origin']);
-    }
-    // Start a timer to send the message after 5 seconds - the window should
-    // have loaded by then.
-    var delay = 5000;
-    var timer = setTimeout(send_dump, delay);
-    // If the window loads before 5 seconds, send the message straight away
-    // and cancel the timer.
-    viewer.onload = function() {
-      clearTimeout(timer);
-      send_dump();
-    }
-    controller.reprompt();
+    controller.message('Loading dump file ' + args[0] + '...', 'success', true);
+    node.fs.readFile(args[0], 'utf8', function(err, dump) {
+      if (err) {
+        controller.message(" failed.\nError reading core dump: " + err.toString() + "\n", 'success', true);
+        return controller.reprompt();
+      }
+      // Open the core viewer in a new window and save a reference to it.
+      var viewer = window.open('core_viewer.html?source=browser');
+      // Create a function to send the core dump to the new window.
+      function send_dump(): void {
+        try {
+          viewer.postMessage(dump, location['origin']);
+          controller.message(' success.\n', 'success', true);
+        } catch (e) {
+          controller.message(" failed.\nUnable to send dump information to new window. Check your popup blocker settings.\n", 'success', true);
+        }
+        controller.reprompt();
+      }
+      // RACE CONDITION: The window could load and trigger `onload` before we
+      // configure a callback.
+      // Start a timer to send the message after 5 seconds - the window should
+      // have loaded by then.
+      var delay = 5000;
+      var timer = setTimeout(send_dump, delay);
+      // If the window loads before 5 seconds, send the message straight away
+      // and cancel the timer.
+      viewer.onload = function() {
+        clearTimeout(timer);
+        send_dump();
+      }
+    });
     return null;
   },
   ecj: function(args: string[], cb) {
