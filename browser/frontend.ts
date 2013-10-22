@@ -342,15 +342,20 @@ if (location['origin'] == null) {
 
 var commands = {
   view_dump: function(args: string[], cb) {
-    if (!window['core_dump']) {
-      return "No core file to send. Use java -Xdump-state path/to/failing/class to generate one.";
+    if (args.length < 1) {
+      return "Usage: view_dump <core-file.json>\nUse java -Xdump-state path/to/failing/class to generate one.";
+    }
+    var dump = "";
+    try {
+      dump = node.fs.readFileSync(args[0], 'utf8');
+    } catch (e) {
+      return "Error reading core dump: " + e.toString();
     }
     // Open the core viewer in a new window and save a reference to it.
     var viewer = window.open('core_viewer.html?source=browser');
     // Create a function to send the core dump to the new window.
     function send_dump(): void {
-      var message = JSON.stringify(window['core_dump']);
-      viewer.postMessage(message, location['origin']);
+      viewer.postMessage(dump, location['origin']);
     }
     // Start a timer to send the message after 5 seconds - the window should
     // have loaded by then.
