@@ -18,7 +18,7 @@ interface JQConsoleSettings {
 interface JQConsole {
     (settings?: JQConsoleSettings): JQConsole;
     promptLabel: string;
-    promptText: () => string;
+    promptText: (txt?: string) => string;
     reprompt: () => void;
     onreprompt: () => void;
     message: (msg: string, mtype: string, reprompt?: boolean) => void;

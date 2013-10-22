@@ -1,3 +1,4 @@
+/// <reference path="../vendor/node.d.ts" />
 /// <reference path="../vendor/jquery.d.ts" />
 /// <amd-dependency path="../vendor/jquery/jquery.min" />
 /// <amd-dependency path="../vendor/jquery-migrate/jquery-migrate.min" />
@@ -11,20 +12,19 @@ import jvm = require('../src/jvm');
 import testing = require('../src/testing');
 import untar = require('./untar');
 import util = require('../src/util');
-declare var node;
-declare var JSZip;  // hax
+declare var node: any;
+declare var JSZip: any;  // hax
 
 // To be initialized on document load
-var stdout = null;
-var user_input = null;
-var controller = null;
-var editor = null;
-var progress = null;
-var jvm_state = null;
+var stdout: (str: string)=>void;
+var user_input: (resume: (data: any)=>void)=>void;
+var controller: JQConsole;
+var editor: AceAjax.Editor;
+var jvm_state: jvm.JVM;
 var sys_path = '/sys';
 
 function preload(): void {
-  node.fs.readFile(sys_path + "/browser/mini-rt.tar", function(err, data): void {
+  node.fs.readFile(sys_path + "/browser/mini-rt.tar", function(err: Error, data: NodeBuffer): void {
     if (err) {
       console.error("Error downloading mini-rt.tar:", err);
       return;
@@ -39,7 +39,7 @@ function preload(): void {
       $('#progress-container').fadeOut('slow');
       $('#console').click();
     }
-    var update_bar = underscore.throttle((function(percent, path) {
+    var update_bar = underscore.throttle((function(percent: number, path: string) {
       var bar = $('#progress > .bar');
       var preloading_file = $('#preloading-file');
       // +10% hack to make the bar appear fuller before fading kicks in
@@ -106,7 +106,7 @@ interface FileReaderEvent extends ErrorEvent {
   target: FileReaderEventTarget;
 }
 interface FileReaderEventTarget extends EventTarget {
-  files: string[];
+  files: File[];
   error: any;
 }
 
@@ -117,7 +117,7 @@ interface FileReader2 extends FileReader {
 
 $(document).ready(function() {
   onResize();
-  editor = $('#editor');
+  //editor = $('#editor');
   // set up the local file loaders
   $('#file').change(function(ev: FileReaderEvent) {
     if (typeof FileReader === "undefined" || FileReader === null) {
@@ -132,7 +132,7 @@ $(document).ready(function() {
     }
     // Need to make a function instead of making this the body of a loop so we
     // don't overwrite "f" before the onload handler calls.
-    var file_fcn = (function(f) {
+    var file_fcn = (function(f: File) {
       var reader = <FileReader2> new FileReader;
       reader.onerror = function(e: FileReaderEvent): void {
         switch (e.target.error.code) {
@@ -150,7 +150,7 @@ $(document).ready(function() {
         files_uploaded++;
         var progress = "[" + files_uploaded + "/" + num_files
                            + "] File '" + f.name + "'";
-        node.fs.writeFile(node.process.cwd() + '/' + f.name, new Buffer(e.target.result), function(err){
+        node.fs.writeFile(node.process.cwd() + '/' + f.name, new Buffer(e.target.result), function(err: Error) {
           if (err) {
             controller.message(progress + " could not be saved: " + err + ".\n",
                                'error', files_uploaded !== num_files);
@@ -171,7 +171,7 @@ $(document).ready(function() {
       };
       return reader.readAsArrayBuffer(f);
     });
-    var files = ev.target.files;
+    var files = <File[]>ev.target.files;
     for (var i = 0; i < num_files; i++) {
       file_fcn(files[i]);
     }
@@ -226,12 +226,12 @@ $(document).ready(function() {
   stdout = function(str: string): void {
     controller.message(str, '', true);
   }
-  user_input = function(resume): void {
+  user_input = function(resume: (data: any)=>void): void {
     var oldPrompt = controller.promptLabel;
     controller.promptLabel = '';
     controller.reprompt();
     var oldHandle = controller.commandHandle;
-    controller.commandHandle = function(line) {
+    controller.commandHandle = function(line: string) {
       controller.commandHandle = oldHandle;
       controller.promptLabel = oldPrompt;
       if (line === '\0') {
@@ -239,7 +239,11 @@ $(document).ready(function() {
         resume(0);
       } else {
         line += "\n";  // so BufferedReader knows it has a full line
-        resume(line.map((c,i)=>line.charCodeAt(i)));
+        var data: number[] = [];
+        for (var i = 0; i < line.length; i++) {
+          data.push(line.charCodeAt(i));
+        }
+        resume(data);
       }
     };
   }
@@ -249,13 +253,13 @@ $(document).ready(function() {
       $('#console').fadeIn('fast').click();
     });
   }
-  $('#save_btn').click(function(e) {
+  $('#save_btn').click(function(e: JQueryEventObject) {
     var fname = $('#filename').val();
     var contents = editor.getSession().getValue();
     if (contents[contents.length - 1] !== '\n') {
       contents += '\n';
     }
-    node.fs.writeFile(fname, contents, function(err){
+    node.fs.writeFile(fname, contents, function(err: Error){
       if (err) {
         controller.message("File could not be saved: " + err, 'error');
       } else {
@@ -265,7 +269,7 @@ $(document).ready(function() {
     close_editor();
     e.preventDefault();
   });
-  $('#close_btn').click(function(e) {
+  $('#close_btn').click(function(e: JQueryEventObject) {
     close_editor();
     e.preventDefault();
   });
@@ -279,7 +283,7 @@ function pad_right(str: string, len: number): string {
 
 // helper function for 'ls'
 function read_dir(dir: string, pretty: boolean, columns: boolean, cb: any): void {
-  node.fs.readdir(node.path.resolve(dir), function(err: any, contents: string[]){
+  node.fs.readdir(node.path.resolve(dir), function(err: Error, contents: string[]){
     if (err || contents.length == 0) {
       return cb('');
     }
@@ -287,11 +291,11 @@ function read_dir(dir: string, pretty: boolean, columns: boolean, cb: any): void
     if (!pretty) {
       return cb(contents.join('\n'));
     }
-    var pretty_list = [];
+    var pretty_list: string[] = [];
     util.async_foreach(contents,
       // runs on each element
       function(c: string, next_item) {
-        node.fs.stat(dir + '/' + c, function(err, stat){
+        node.fs.stat(dir + '/' + c, function(err: Error, stat){
           if (stat.isDirectory()) {
             c += '/';
           }
@@ -319,7 +323,7 @@ function columnize(str_list: string[], line_length: number = 100): string {
   }
   var num_cols = (line_length / (max_len + 1)) | 0;
   var col_size = Math.ceil(str_list.length / num_cols);
-  var column_list = [];
+  var column_list: string[][] = [];
   for (var j = 1; j <= num_cols; j++) {
     column_list.push(str_list.splice(0, col_size));
   }
@@ -328,7 +332,7 @@ function columnize(str_list: string[], line_length: number = 100): string {
                       .map((col)=>pad_right(col[i], max_len + 1))
                       .join('');
   }
-  var row_list = [];
+  var row_list: string[] = [];
   for (var i = 0; i < col_size; i++) {
     row_list.push(make_row(i));
   }
@@ -341,12 +345,12 @@ if (location['origin'] == null) {
 }
 
 var commands = {
-  view_dump: function(args: string[], cb) {
+  view_dump: function(args: string[]): string {
     if (args.length < 1) {
       return "Usage: view_dump <core-file.json>\nUse java -Xdump-state path/to/failing/class to generate one.";
     }
     controller.message('Loading dump file ' + args[0] + '...', 'success', true);
-    node.fs.readFile(args[0], 'utf8', function(err, dump) {
+    node.fs.readFile(args[0], 'utf8', function(err: Error, dump: string) {
       if (err) {
         controller.message(" failed.\nError reading core dump: " + err.toString() + "\n", 'success', true);
         return controller.reprompt();
@@ -378,7 +382,7 @@ var commands = {
     });
     return null;
   },
-  ecj: function(args: string[], cb) {
+  ecj: function(args: string[]): string {
     jvm_state.set_classpath(sys_path + '/vendor/classes/', './');
     // XXX: -D args unsupported by the console.
     jvm_state.system_properties['jdt.compiler.useSingleThread'] = true;
@@ -395,7 +399,7 @@ var commands = {
     });
     return null;
   },
-  javac: function(args: string[], cb) {
+  javac: function(args: string[]): string {
     jvm_state.set_classpath(sys_path + '/vendor/classes/', './:/sys');
     jvm_state.run_class(stdout, user_input, 'classes/util/Javac', args, function() {
       // XXX: remove any classes that just got compiled from the class cache
@@ -409,7 +413,7 @@ var commands = {
     });
     return null;
   },
-  java: function(args: string[], cb) {
+  java: function(args: string[]): string {
     jvm_state.should_dump_state = false
     // XXX: dump-state support
     for (var i = 0; i < args.length; i++) {
@@ -423,7 +427,8 @@ var commands = {
         ((args[0] === '-classpath' || args[0] === '-cp') && args.length < 3)) {
       return "Usage: java [-classpath path1:path2...] [-jar path.jar] class [args...]";
     }
-    var class_args, class_name;
+    var class_args: string[];
+    var class_name: string;
     if (args[0] === '-classpath' || args[0] === '-cp') {
       jvm_state.set_classpath(sys_path + '/vendor/classes/', args[1]);
       class_name = args[2];
@@ -462,7 +467,7 @@ var commands = {
     jvm_state.run_class(stdout, user_input, class_name, class_args, () => controller.reprompt());
     return null;
   },
-  test: function(args: string[]) {
+  test: function(args: string[]): string {
     if (args[0] == null) {
       return "Usage: test all|[class(es) to test]";
     }
@@ -480,11 +485,11 @@ var commands = {
     }
     return null;
   },
-  javap: function(args: string[]) {
+  javap: function(args: string[]): string {
     if (args[0] == null) {
       return "Usage: javap class";
     }
-    node.fs.readFile(args[0] + '.class', function(err, buf){
+    node.fs.readFile(args[0] + '.class', function(err: Error, buf: NodeBuffer){
       if (err) {
         controller.message("Could not find class '" + args[0] + "'.", 'error');
       } else {
@@ -493,20 +498,20 @@ var commands = {
     });
     return null;
   },
-  rhino: function(args: string[], cb) {
+  rhino: function(args: string[]): string {
     jvm_state.set_classpath(sys_path + '/vendor/classes/', './');
     jvm_state.run_class(stdout, user_input, 'com/sun/tools/script/shell/Main', args, () => controller.reprompt());
     return null;
   },
-  list_cache: function() {
+  list_cache: function(): string {
     var cached_classes = jvm_state.bs_cl.get_loaded_class_list(true);
     return '  ' + cached_classes.sort().join('\n  ');
   },
-  clear_cache: function() {
+  clear_cache: function(): string {
     jvm_state.reset_classloader_cache();
-    return true;
+    return 'Class cache cleared';
   },
-  ls: function(args: string[]) {
+  ls: function(args: string[]): string {
     if (args.length === 0) {
       read_dir('.', true, true, (listing) => controller.message(listing, 'success'));
     } else if (args.length === 1) {
@@ -545,7 +550,7 @@ var commands = {
       start_editor(defaultFile('Test.java'));
       return true;
     }
-    node.fs.readFile(args[0], 'utf8', function(err, data: string): void {
+    node.fs.readFile(args[0], 'utf8', function(err: Error, data: string): void {
       if (err) {
         start_editor(defaultFile(args[0]));
       } else {
@@ -554,12 +559,12 @@ var commands = {
       controller.reprompt();
     });
   },
-  cat: function(args: string[]) {
+  cat: function(args: string[]): string {
     var fname = args[0];
     if (fname == null) {
       return "Usage: cat <file>";
     }
-    node.fs.readFile(fname, 'utf8', function(err, data: string): void {
+    node.fs.readFile(fname, 'utf8', function(err: Error, data: string): void {
       if (err) {
         controller.message("Could not open file '" + fname + "': " + err, 'error');
       } else {
@@ -568,11 +573,11 @@ var commands = {
     });
     return null;
   },
-  mv: function(args: string[]) {
+  mv: function(args: string[]): string {
     if (args.length < 2) {
       return "Usage: mv <from-file> <to-file>";
     }
-    node.fs.rename(args[0], args[1], function(err) {
+    node.fs.rename(args[0], args[1], function(err: Error) {
       if (err) {
         controller.message("Could not rename "+args[0]+" to "+args[1]+": "+err, 'error', true);
       }
@@ -580,11 +585,11 @@ var commands = {
     });
     return null;
   },
-  cd: function(args: string[]) {
+  cd: function(args: string[]): string {
     if (args.length > 1) {
       return "Usage: cd <directory>";
     }
-    var dir;
+    var dir: string;
     if (args.length == 0 || args[0] == '~') {
       // Change to the default (starting) directory.
       dir = '/demo';
@@ -604,13 +609,13 @@ var commands = {
     })
     return null;
   },
-  rm: function(args: string[]) {
+  rm: function(args: string[]): string {
     if (args[0] == null) {
       return "Usage: rm <file>";
     }
     var completed = 0;
     function remove_file(file: string, total: number): void {
-      node.fs.unlink(file, function(err){
+      node.fs.unlink(file, function(err: Error){
         if (err) {
           controller.message("Could not remove file: " + file + "\n", 'error', true);
         }
@@ -620,7 +625,7 @@ var commands = {
       });
     }
     if (args[0] === '*') {
-      node.fs.readdir('.', function(err, fnames: string[]){
+      node.fs.readdir('.', function(err: Error, fnames: string[]){
         if (err) {
           controller.message("Could not read '.': " + err, 'error');
           return;
@@ -715,7 +720,7 @@ function tabComplete(): void {
   });
 }
 
-function getCompletions(args: string[], cb): void {
+function getCompletions(args: string[], cb: (c: string[])=>void): void {
   if (args.length == 1) {
     cb(filterSubstring(args[0], Object.keys(commands)));
   } else if (args[0] === 'time') {
@@ -741,11 +746,11 @@ function validExtension(cmd: string, fname: string): boolean {
   }
 }
 
-function fileNameCompletions(cmd: string, args: string[], cb): void {
+function fileNameCompletions(cmd: string, args: string[], cb: (c: string[])=>void): void {
   var chopExt = args.length === 2 && (cmd === 'javap' || cmd === 'java');
   var toComplete = util.last(args);
   var lastSlash = toComplete.lastIndexOf('/');
-  var dirPfx, searchPfx;
+  var dirPfx: string, searchPfx: string;
   if (lastSlash >= 0) {
     dirPfx = toComplete.slice(0, lastSlash + 1);
     searchPfx = toComplete.slice(lastSlash + 1);
@@ -754,16 +759,16 @@ function fileNameCompletions(cmd: string, args: string[], cb): void {
     searchPfx = toComplete;
   }
   var dirPath = (dirPfx == '') ? '.' : node.path.resolve(dirPfx);
-  node.fs.readdir(dirPath, function(err, dirList){
+  node.fs.readdir(dirPath, function(err: Error, dirList: string[]){
+    var completions: string[] = [];
     if (err != null) {
-      return cb([])
+      return cb(completions)
     }
     dirList = filterSubstring(searchPfx, dirList);
-    var completions = [];
     util.async_foreach(dirList,
       // runs on each element
       function(item: string, next_item: ()=>void) {
-        node.fs.stat(node.path.resolve(dirPfx + item), function(err, stats) {
+        node.fs.stat(node.path.resolve(dirPfx + item), function(err: Error, stats) {
           if (err != null) {
             // Do nothing.
           } else if (stats.isDirectory()) {
