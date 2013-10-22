@@ -57,10 +57,16 @@ export class JavaThreadObject extends java_object.JavaObject {
     } else {
       fs = require('fs');
     }
-    var filename = "./core-" + this.name(rs) + ".json";
+    var filename = "/tmp/core-" + this.name(rs) + ".json";
     var data = this.$meta_stack.dump_state();
-    // 4th parameter to writeFileSync ensures this is not stored in localStorage in the browser
-    fs.writeFileSync(filename, data, 'utf8', true);
+    fs.writeFile(filename, data, 'utf8', function (err) {
+      if (err) {
+        // XXX: should handle this correctly.
+        console.error(err);
+      } else {
+        rs.print("Wrote core dump to " + filename);
+      }
+    });
   }
 }
 
