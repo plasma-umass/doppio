@@ -662,7 +662,9 @@ export class RuntimeState {
             var frames_to_pop = 0;
             while (!e.method_catch_handler(_this, stack.get_caller(frames_to_pop), frames_to_pop === 0)) {
               if (stack.length() === ++frames_to_pop) {
-                _this.jvm_state.dump_state();
+                if (_this.jvm_state.dump_state) {
+                  _this.jvm_state.dump_state();
+                }
                 stack.pop_n(stack.length() - 1);
                 _this.handle_toplevel_exception(e, no_threads, done_cb);
                 return;
@@ -671,7 +673,9 @@ export class RuntimeState {
             stack.pop_n(frames_to_pop);
             _this.run_until_finished(nop, no_threads, done_cb);
           } else {
-            _this.jvm_state.dump_state();
+            if (_this.jvm_state.dump_state) {
+              _this.jvm_state.dump_state();
+            }
             stack.pop_n(Math.max(stack.length() - 1, 0));
             _this.handle_toplevel_exception(e, no_threads, done_cb);
           }
