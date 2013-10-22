@@ -185,6 +185,9 @@ release: dependencies build/release/classes build/release/vendor \
 	build/release/favicon.ico build/release/browser/mini-rt.tar \
 	build/release/browser/style.css
 	rsync browser/*.svg browser/*.png build/release/browser/
+	rsync browser/core_viewer/core_viewer.css build/release/browser/core_viewer/
+	$(COFFEEC) -c -o build/release/browser/core_viewer browser/core_viewer/core_viewer.coffee
+	cp browser/core_viewer.html build/release
 	cd build/release; $(COFFEEC) $(DOPPIO_DIR)/tools/gen_dir_listings.coffee > browser/listings.json
 
 build/release/doppio.js: build/release dev
