@@ -45,6 +45,8 @@ ifeq (1,$(IS_CYGWIN))
 	JAVA     := "$(JDK_PATH)/bin/java"
 	JAVAC    := "$(JDK_PATH)/bin/javac"
 	JAVAP    := "$(JDK_PATH)/bin/javap"
+	# Git
+	GIT      := git
 else
 	BOOTCLASSPATH := $(DOPPIO_DIR)/vendor/classes
 	# Helper functions
@@ -65,6 +67,8 @@ else
 	JAVA     := java
 	JAVAC    := javac
 	JAVAP    := javap
+	# Git
+	GIT      := git
 endif
 
 JAZZLIB  := $(BOOTCLASSPATH)/java/util/zip/DeflaterEngine.class
@@ -134,7 +138,10 @@ java: $(CLASSES) $(DISASMS) $(RUNOUTS) $(DEMO_CLASSES) $(UTIL_CLASSES) $(LIB_CLA
 # TESTING
 ################################################################################
 # Runs the Java tests in classes/test with the node runner.
-test: dependencies $(TESTS)
+vendor/websockify-git/websockify.py:
+	$(GIT) submodule --quiet init
+	$(GIT) submodule update
+test: dependencies vendor/websockify-git/websockify.py $(TESTS)
 	@echo ''
 	@cat classes/test/failures.txt
 	@! test -s classes/test/failures.txt # return 1 if file is nonempty

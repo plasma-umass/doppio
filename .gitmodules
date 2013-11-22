@@ -1,0 +1,3 @@
+[submodule "vendor/websockify-git"]
+	path = vendor/websockify-git
+	url = git://github.com/kanaka/websockify.git
