@@ -464,6 +464,10 @@ var commands = {
       class_name = args[0];
       class_args = args.slice(1);
     }
+    if (class_name != null && class_name.indexOf('.') !== -1) {
+      // convert to filepath-like format
+      class_name = util.descriptor2typestr(util.int_classname(class_name));
+    }
     jvm_state.run_class(stdout, user_input, class_name, class_args, () => controller.reprompt());
     return null;
   },
