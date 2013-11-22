@@ -6,6 +6,7 @@ var path = require('path');
 import jvm = require('../src/jvm');
 import logging = require('../src/logging');
 import optparse = require('../src/option_parser');
+import util = require('../src/util');
 
 var jvm_state;
 
@@ -147,6 +148,10 @@ underscore.extend(jvm_state.system_properties, argv.properties);
 var cname = argv.className;
 if (cname != null && cname.slice(-6) === '.class') {
   cname = cname.slice(0, -6);
+}
+if (cname != null && cname.indexOf('.') !== -1) {
+  // hack: convert java.foo.Bar to java/foo/Bar
+  cname = util.descriptor2typestr(util.int_classname(cname));
 }
 
 if (cname == null && argv.standard.jar == null) {
