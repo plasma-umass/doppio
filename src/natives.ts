@@ -362,6 +362,19 @@ function create_stack_trace(rs: runtime.RuntimeState, throwable: java_object.Jav
   return stacktrace.reverse();
 }
 
+function get_caller_class(rs: runtime.RuntimeState, frames_to_skip: number): java_object.JavaClassObject {
+  var caller, cls;
+
+  caller = rs.meta_stack().get_caller(frames_to_skip);
+  // Note: disregard frames associated with
+  //   java.lang.reflect.Method.invoke() and its implementation.
+  if (caller.name.indexOf('Ljava/lang/reflect/Method;::invoke') === 0) {
+    caller = rs.meta_stack().get_caller(frames_to_skip + 1);
+  }
+  cls = caller.method.cls;
+  return cls.get_class_object(rs);
+}
+
 function verify_array(rs: runtime.RuntimeState, obj: any): java_object.JavaArray {
   if (!(obj instanceof java_object.JavaArray)) {
     var err_cls = <ClassData.ReferenceClassData> this.get_bs_class('Ljava/lang/IllegalArgumentException;');
@@ -2724,18 +2737,9 @@ native_methods['sun']['reflect'] = {
     })
   ],
   Reflection: [
-    o('getCallerClass(I)Ljava/lang/Class;', function(rs, frames_to_skip) {
-      var caller, cls;
-
-      caller = rs.meta_stack().get_caller(frames_to_skip);
-      // Note: disregard frames associated with
-      //   java.lang.reflect.Method.invoke() and its implementation.
-      if (caller.name.indexOf('Ljava/lang/reflect/Method;::invoke') === 0) {
-        caller = rs.meta_stack().get_caller(frames_to_skip + 1);
-      }
-      cls = caller.method.cls;
-      return cls.get_class_object(rs);
-    }), o('getClassAccessFlags(Ljava/lang/Class;)I', function(rs, class_obj) {
+    o('getCallerClass(I)Ljava/lang/Class;', get_caller_class),
+    o('getCallerClass()Ljava/lang/Class;', function(rs) { return get_caller_class(rs, 0); }),
+    o('getClassAccessFlags(Ljava/lang/Class;)I', function(rs, class_obj) {
       return class_obj.$cls.access_byte;
     })
   ]

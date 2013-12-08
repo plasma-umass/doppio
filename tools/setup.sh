@@ -45,9 +45,9 @@ if [ ! -f classes/java/lang/Object.class ]; then
   DOWNLOAD_DIR=`mktemp -d jdk-download.XXX`
   cd $DOWNLOAD_DIR
     DEBS_DOMAIN="http://security.ubuntu.com/ubuntu/pool/main/o/openjdk-6"
-    DEBS=("openjdk-6-jre-headless_6b27-1.12.5-0ubuntu0.11.10.1_i386.deb"
-          "openjdk-6-jdk_6b27-1.12.6-1ubuntu0.12.04.2_i386.deb"
-          "openjdk-6-jre-lib_6b27-1.12.5-0ubuntu0.11.10.1_all.deb")
+    DEBS=("openjdk-6-jre-headless_6b27-1.12.6-1ubuntu0.12.04.4_i386.deb"
+          "openjdk-6-jdk_6b27-1.12.6-1ubuntu0.12.04.4_i386.deb"
+          "openjdk-6-jre-lib_6b27-1.12.6-1ubuntu0.12.04.4_all.deb")
     for DEB in ${DEBS[@]}; do
       wget $DEBS_DOMAIN/$DEB
       ar p $DEB data.tar.gz | tar zx
@@ -60,7 +60,7 @@ if [ ! -f classes/java/lang/Object.class ]; then
     unzip -qq -o -d classes/ "$JAR_PATH"
   done
   if [ ! -e java_home ]; then
-    JH=$DOWNLOAD_DIR/usr/lib/jvm/java-6-openjdk/jre
+    JH=$DOWNLOAD_DIR/usr/lib/jvm/java-6-openjdk-common/jre
     # a number of .properties files are symlinks to /etc; copy the targets over
     # so we do not need to depend on /etc's existence
     for LINK in `find $JH -type l`; do
