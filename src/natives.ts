@@ -375,6 +375,37 @@ function get_caller_class(rs: runtime.RuntimeState, frames_to_skip: number): jav
   return cls.get_class_object(rs);
 }
 
+function get_declaring_class(rs: runtime.RuntimeState, _this: java_object.JavaClassObject): java_object.JavaClassObject {
+  var cls, declaring_name, entry, icls, my_class, name, _i, _len, _ref5;
+
+  if (!(_this.$cls instanceof ReferenceClassData)) {
+    return null;
+  }
+  cls = _this.$cls;
+  icls = cls.get_attribute('InnerClasses');
+  if (icls == null) {
+    return null;
+  }
+  my_class = _this.$cls.get_type();
+  _ref5 = icls.classes;
+  for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
+    entry = _ref5[_i];
+    if (!(entry.outer_info_index > 0)) {
+      continue;
+    }
+    name = cls.constant_pool.get(entry.inner_info_index).deref();
+    if (name !== my_class) {
+      continue;
+    }
+    // XXX(jez): this assumes that the first enclosing entry is also
+    // the immediate enclosing parent, and I'm not 100% sure this is
+    // guaranteed by the spec
+    declaring_name = cls.constant_pool.get(entry.outer_info_index).deref();
+    return cls.loader.get_resolved_class(declaring_name).get_class_object(rs);
+  }
+  return null;
+}
+
 function verify_array(rs: runtime.RuntimeState, obj: any): java_object.JavaArray {
   if (!(obj instanceof java_object.JavaArray)) {
     var err_cls = <ClassData.ReferenceClassData> this.get_bs_class('Ljava/lang/IllegalArgumentException;');
@@ -2220,36 +2251,9 @@ native_methods['java']['lang']['Class'] = [
     // - the immediately enclosing method or constructor's name (can be null). (String)
     // - the immediately enclosing method or constructor's descriptor (null iff name is). (String)
     return new JavaArray(rs, rs.get_bs_class('[Ljava/lang/Object;'), [enc_cls, enc_name, enc_desc]);
-  }), o('getDeclaringClass()L!/!/!;', function(rs, _this) {
-    var cls, declaring_name, entry, icls, my_class, name, _i, _len, _ref5;
-
-    if (!(_this.$cls instanceof ReferenceClassData)) {
-      return null;
-    }
-    cls = _this.$cls;
-    icls = cls.get_attribute('InnerClasses');
-    if (icls == null) {
-      return null;
-    }
-    my_class = _this.$cls.get_type();
-    _ref5 = icls.classes;
-    for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
-      entry = _ref5[_i];
-      if (!(entry.outer_info_index > 0)) {
-        continue;
-      }
-      name = cls.constant_pool.get(entry.inner_info_index).deref();
-      if (name !== my_class) {
-        continue;
-      }
-      // XXX(jez): this assumes that the first enclosing entry is also
-      // the immediate enclosing parent, and I'm not 100% sure this is
-      // guaranteed by the spec
-      declaring_name = cls.constant_pool.get(entry.outer_info_index).deref();
-      return cls.loader.get_resolved_class(declaring_name).get_class_object(rs);
-    }
-    return null;
-  }), o('getDeclaredClasses0()[L!/!/!;', function(rs, _this) {
+  }), o('getDeclaringClass()L!/!/!;', get_declaring_class),
+  o('getDeclaringClass0()L!/!/!;', get_declaring_class),
+  o('getDeclaredClasses0()[L!/!/!;', function(rs, _this) {
     var _i, _j, _len, _len1;
 
     var ret = new JavaArray(rs, rs.get_bs_class('[Ljava/lang/Class;'), []);
