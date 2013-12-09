@@ -2738,7 +2738,12 @@ native_methods['sun']['reflect'] = {
   ],
   Reflection: [
     o('getCallerClass(I)Ljava/lang/Class;', get_caller_class),
-    o('getCallerClass()Ljava/lang/Class;', function(rs) { return get_caller_class(rs, 0); }),
+    o('getCallerClass0(I)Ljava/lang/Class;', get_caller_class),
+    o('getCallerClass()Ljava/lang/Class;', function(rs) {
+      // 0th item is Reflection class, 1st item is the class that called us,
+      // and 2nd item is the caller of our caller, which is correct.
+      return get_caller_class(rs, 2);
+    }),
     o('getClassAccessFlags(Ljava/lang/Class;)I', function(rs, class_obj) {
       return class_obj.$cls.access_byte;
     })
