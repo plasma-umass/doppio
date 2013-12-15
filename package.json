@@ -17,7 +17,8 @@
     "ice-cream": "*",
     "async": "*",
     "rimraf": "*",
-    "npm": "*"
+    "npm": "*",
+    "request": "*"
   },
   "repository": {
     "type": "git",

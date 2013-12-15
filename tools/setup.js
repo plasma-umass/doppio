@@ -3,7 +3,6 @@
 var fs = require('fs'),
     path = require('path'),
     exec = require('child_process').exec,
-    http = require('http'),
     async, npm;
 
 var DOWNLOAD_DIR,
@@ -41,16 +40,15 @@ function jcl_download(cb) {
         "openjdk-6-jdk_6b27-1.12.6-1ubuntu0.12.04.4_i386.deb",
         "openjdk-6-jre-lib_6b27-1.12.6-1ubuntu0.12.04.4_all.deb"
     ];
+    var request = require('request');
     async.each(DEBS, function(deb, cb2){
       var url = DEBS_DOMAIN + '/' + deb;
       var file = fs.createWriteStream(deb);
-      http.get(url, function(response){
-        response.pipe(file);
-        file.on('finish', function(){
-          file.close();
-          exec('ar p '+deb+' data.tar.gz | tar zx', function(err, stdout, stderr){
-            return cb2(err);
-          });
+      request(url).pipe(file);
+      file.on('finish', function(){
+        file.close();
+        exec('ar p '+deb+' data.tar.gz | tar zx', function(err, stdout, stderr){
+          return cb2(err);
         });
       });
     }, function(err){
@@ -132,14 +130,13 @@ function get_ecj(cb) {
   var ecj_url = "http://www.eclipse.org/downloads/download.php?file=/eclipse/downloads/drops/R-3.7.1-201109091335/ecj-3.7.1.jar";
   if (!fs.existsSync('vendor/jars')) fs.mkdirSync('vendor/jars');
   var ecj_file = fs.createWriteStream(ecj_pathname);
-  http.get(ecj_url, function(response){
-    response.pipe(ecj_file);
-    ecj_file.on('finish', function(){
-      ecj_file.close();
-      // TODO: use node-zip here, instead of exec
-      exec('unzip -qq -o -d vendor/classes/ '+ecj_pathname, function(err, stdout, stderr){
-        return cb(err);
-      });
+  var request = require('request');
+  request(ecj_url).pipe(ecj_file);
+  ecj_file.on('finish', function(){
+    ecj_file.close();
+    // TODO: use node-zip here, instead of exec
+    exec('unzip -qq -o -d vendor/classes/ '+ecj_pathname, function(err, stdout, stderr){
+      return cb(err);
     });
   });
 }
@@ -151,21 +148,20 @@ function patch_jazzlib(cb) {
   if (!fs.existsSync('jazzlib')) fs.mkdirSync('jazzlib');
   var url = "http://downloads.sourceforge.net/project/jazzlib/jazzlib/0.07/jazzlib-binary-0.07-juz.zip";
   var jazzlib_file = fs.createWriteStream('jazzlib/jazzlib.zip');
-  http.get(url, function(response){
-    response.pipe(jazzlib_file);
-    jazzlib_file.on('finish', function(){
-      jazzlib_file.close();
-      // TODO: use node-zip here, instead of exec
-      exec('unzip -qq jazzlib/jazzlib.zip jazzlib/', function(err, stdout, stderr){
-        if (err!==null) return cb(err);
-        for (var fname in fs.readdirSync('jazzlib/java/util/zip')) {
-          if (!fname.match(/\.class$/)) continue;
-          fs.renameSync(path.join('jazzlib/java/util/zip', fname),
-                        path.join('vendor/classes/java/util/zip', fname));
-        }
-        require('rimraf')('jazzlib', function(err){
-          cb(err);
-        });
+  var request = require('request');
+  request(url).pipe(jazzlib_file);
+  jazzlib_file.on('finish', function(){
+    jazzlib_file.close();
+    // TODO: use node-zip here, instead of exec
+    exec('unzip -qq jazzlib/jazzlib.zip -d jazzlib/', function(err, stdout, stderr){
+      if (err!==null) return cb(err);
+      for (var fname in fs.readdirSync('jazzlib/java/util/zip')) {
+        if (!fname.match(/\.class$/)) continue;
+        fs.renameSync(path.join('jazzlib/java/util/zip', fname),
+                      path.join('vendor/classes/java/util/zip', fname));
+      }
+      require('rimraf')('jazzlib', function(err){
+        cb(err);
       });
     });
   });
@@ -231,7 +227,8 @@ function main() {
     update_bower_packages,
     jcl_setup,
     get_ecj,
-    patch_jazzlib
+    patch_jazzlib,
+    make_java
   ], function(err){
     if (err!==null) {
       console.error(err);
@@ -243,23 +240,29 @@ function main() {
 }
 
 // Ensure that the async and npm modules are loaded.
+var needs_bootstrap = false;
 try {
   async = require('async');
   npm = require('npm');
 } catch (err) {
+  needs_bootstrap = true;
   var cmd = 'npm install async npm';
   if (process.platform.match(/CYGWIN/i)) {
     cmd = 'cmd /c ' + cmd;
   }
+  console.log('Bootstrapping required modules: async, npm');
   exec(cmd, function(err, stdout, stderr){
     if (err!==null) {
-      console.error("Couldn't install required npm modules: 'async', 'npm'");
+      console.error(err);
+      console.error("Couldn't install required npm modules: async, npm");
       process.exit(1);
     } else {
       async = require('async');
       npm = require('npm');
+      main();
     }
   });
 }
-
-main();
+if (!needs_bootstrap) {
+  main();
+}
