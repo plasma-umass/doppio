@@ -4,7 +4,7 @@ var fs = require('fs'),
     path = require('path'),
     exec = require('child_process').exec,
     http = require('http'),
-    async;
+    async, npm;
 
 var DOWNLOAD_DIR,
     JAVA = 'java',
@@ -172,7 +172,7 @@ function patch_jazzlib(cb) {
 }
 
 function update_npm_packages(cb) {
-  require('npm').load(function(err, npm){
+  npm.load(function(err, npm){
     if (err !== null) return cb(err);
     console.log("Installing required node modules");
     npm.install(function(err){
@@ -242,20 +242,22 @@ function main() {
   });
 }
 
-// Ensure that the async module is loaded.
+// Ensure that the async and npm modules are loaded.
 try {
   async = require('async');
+  npm = require('npm');
 } catch (err) {
-  var cmd = 'npm install async';
+  var cmd = 'npm install async npm';
   if (process.platform.match(/CYGWIN/i)) {
     cmd = 'cmd /c ' + cmd;
   }
   exec(cmd, function(err, stdout, stderr){
     if (err!==null) {
-      console.error("Couldn't install required npm module 'async'.");
+      console.error("Couldn't install required npm modules: 'async', 'npm'");
       process.exit(1);
     } else {
       async = require('async');
+      npm = require('npm');
     }
   });
 }
