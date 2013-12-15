@@ -242,6 +242,7 @@ function main() {
   });
 }
 
+// Ensure that the async module is loaded.
 try {
   async = require('async');
 } catch (err) {
@@ -252,10 +253,11 @@ try {
   exec(cmd, function(err, stdout, stderr){
     if (err!==null) {
       console.error("Couldn't install required npm module 'async'.");
+      process.exit(1);
     } else {
       async = require('async');
-      main();
     }
   });
 }
 
+main();
