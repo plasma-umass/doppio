@@ -253,6 +253,7 @@ try {
     if (err!==null) {
       console.error("Couldn't install required npm module 'async'.");
     } else {
+      async = require('async');
       main();
     }
   });
