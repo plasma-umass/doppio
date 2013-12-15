@@ -3,10 +3,8 @@
 var fs = require('fs'),
     path = require('path'),
     exec = require('child_process').exec,
-    async = require('async'),
-    http = require('http');
-
-process.chdir(__dirname + '/..');
+    http = require('http'),
+    async;
 
 var DOWNLOAD_DIR,
     JAVA = 'java',
@@ -223,20 +221,40 @@ function make_java(cb) {
   });
 }
 
-async.series([
-  platform_setup,
-  check_java_version,
-  update_npm_packages,
-  check_node_version,
-  update_bower_packages,
-  jcl_setup,
-  get_ecj,
-  patch_jazzlib
-], function(err){
-  if (err!==null) {
-    console.error(err);
-  } else {
-    console.log('Your environment should now be set up correctly.');
-    console.log("Run 'make test' (optionally with -j4) to test Doppio.");
+function main() {
+  process.chdir(__dirname + '/..');
+  async.series([
+    platform_setup,
+    check_java_version,
+    update_npm_packages,
+    check_node_version,
+    update_bower_packages,
+    jcl_setup,
+    get_ecj,
+    patch_jazzlib
+  ], function(err){
+    if (err!==null) {
+      console.error(err);
+    } else {
+      console.log('Your environment should now be set up correctly.');
+      console.log("Run 'make test' (optionally with -j4) to test Doppio.");
+    }
+  });
+}
+
+try {
+  async = require('async');
+} catch (err) {
+  var cmd = 'npm install async';
+  if (process.platform.match(/CYGWIN/i)) {
+    cmd = 'cmd /c ' + cmd;
   }
-});
+  exec(cmd, function(err, stdout, stderr){
+    if (err!==null) {
+      console.error("Couldn't install required npm module 'async'.");
+    } else {
+      main();
+    }
+  });
+}
+
