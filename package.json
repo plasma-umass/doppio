@@ -14,7 +14,10 @@
     "express": "3.x",
     "bower": "*",
     "requirejs": "*",
-    "ice-cream": "*"
+    "ice-cream": "*",
+    "async": "*",
+    "rimraf": "*",
+    "npm": "*"
   },
   "repository": {
     "type": "git",
