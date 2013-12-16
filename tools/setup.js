@@ -28,7 +28,7 @@ function platform_setup(cb) {
 }
 
 function jcl_download(cb) {
-  console.log('Downloading the Java class library');
+  console.log('Downloading the Java class library (big download, may take a while)');
   process.chdir('vendor');
   // Ubuntu (security) repo actual on 24.02.2013
   exec('mktemp -d jdk-download.XXX', function(err, stdout, stderr){
@@ -80,16 +80,38 @@ function symlink_java_home(cb) {
     return cb(null);
   }
   console.log('Symlinking files into java_home');
-  var JH = DOWNLOAD_DIR+'/usr/lib/jvm/java-6-openjdk-common/jre';
+  var JH = DOWNLOAD_DIR+'/usr/lib/jvm/java-6-openjdk-i386/jre';
   // a number of .properties files are symlinks to /etc; copy the targets over
   // so we do not need to depend on /etc's existence
   exec('find '+JH+' -type l', function(err, stdout, stderr){
     if (err !== null) return cb(err);
     var links = stdout.split(/\r?\n/g);
     async.each(links, function(link, cb2){
+      if (link.trim().length === 0) return cb2(null);
       var dest = fs.readlinkSync(link);
       if (dest.match(/^\/etc/)) {
-        fs.renameSync(path.join(DOWNLOAD_DIR, dest), link);
+        try {
+          fs.renameSync(path.join(DOWNLOAD_DIR, dest), link);
+        } catch (e) {
+          // Some /etc symlinks are just broken. Hopefully not a big deal.
+          console.log('warning: broken symlink: '+dest);
+        }
+      } else {
+        var p = path.resolve(path.join(path.dirname(link), dest));
+        // copy in anything that links out of the JH dir
+        if (!p.match(/java-6-openjdk-i386/)) {
+          // XXX: this fails if two symlinks reference the same file
+          try {
+          if (fs.statSync(p).isDirectory()) {
+            fs.unlinkSync(link);
+            fs.renameSync(p, link);
+          } else {
+            fs.renameSync(p, link);
+          }
+        } catch (e) {
+          console.log('warning: broken symlink: '+p);
+        }
+      }
       }
       cb2(null);
     }, function(err){
@@ -112,6 +134,7 @@ function jcl_setup(cb) {
     if (err !== null) return cb(err);
     var rimraf = require('rimraf');
     rimraf(DOWNLOAD_DIR, function(err){
+      process.chdir('..');  // back out of vendor/
       return cb(err);
     });
   });
@@ -155,13 +178,17 @@ function patch_jazzlib(cb) {
     // TODO: use node-zip here, instead of exec
     exec('unzip -qq jazzlib/jazzlib.zip -d jazzlib/', function(err, stdout, stderr){
       if (err!==null) return cb(err);
-      for (var fname in fs.readdirSync('jazzlib/java/util/zip')) {
-        if (!fname.match(/\.class$/)) continue;
-        fs.renameSync(path.join('jazzlib/java/util/zip', fname),
-                      path.join('vendor/classes/java/util/zip', fname));
-      }
-      require('rimraf')('jazzlib', function(err){
-        cb(err);
+      var zipfiles = fs.readdirSync('jazzlib/java/util/zip');
+      async.each(zipfiles, function(fname, cb2){
+        if (!fname.match(/\.class$/)) return cb2(null);
+        fs.rename(path.join('jazzlib/java/util/zip', fname),
+                  path.join('vendor/classes/java/util/zip', fname),
+                  cb2);
+      }, function(err){
+        if (err!==null) return cb(err);
+        require('rimraf')('jazzlib', function(err){
+          cb(err);
+        });
       });
     });
   });
