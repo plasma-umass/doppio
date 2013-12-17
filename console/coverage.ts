@@ -32,7 +32,7 @@ function setup_opcode_stats(): Stats {
 
 function setup_native_stats(): Stats {
   // monkeypatch native and trapped calls
-  var native_stats = {};
+  var native_stats: Stats = {};
   for (var sig in natives.native_methods) {
     var func = natives.native_methods[sig];
     native_stats[sig] = 0;

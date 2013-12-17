@@ -2131,7 +2131,7 @@ native_methods['java']['lang']['Class'] = [
       return null;
     }
     return cls.get_super_class().get_class_object(rs);
-  }), o('getDeclaredFields0(Z)[Ljava/lang/reflect/Field;', function(rs, _this, public_only: boolean) {
+  }), o('getDeclaredFields0(Z)[Ljava/lang/reflect/Field;', function(rs, _this: java_object.JavaClassObject, public_only: boolean) {
     var fields = _this.$cls.get_fields();
     if (public_only) {
       fields = fields.filter((f) => f.access_flags["public"]);
@@ -2147,12 +2147,12 @@ native_methods['java']['lang']['Class'] = [
           resume_cb(new JavaArray(rs, field_arr_cls, base_array));
         });
     });
-  }), o('getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;', function(rs, _this, public_only) {
-    var methods = _this.$cls.get_methods();
-    methods = (function() {
-      var _results = [];
-      for (var sig in methods) {
-        var m = methods[sig];
+  }), o('getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;', function(rs: runtime.RuntimeState, _this: java_object.JavaClassObject, public_only: boolean) {
+    var methodsHash = _this.$cls.get_methods();
+    var methods: methods.Method[] = (function() {
+      var _results: methods.Method[] = [];
+      for (var sig in methodsHash) {
+        var m = methodsHash[sig];
         if (sig[0] !== '<' && (m.access_flags["public"] || !public_only)) {
           _results.push(m);
         }
@@ -2166,16 +2166,16 @@ native_methods['java']['lang']['Class'] = [
           m.reflector(rs, false, function(jco){ base_array.push(jco); next_item()}, except_cb);
         },
         function(){
-          var method_arr_cls = rs.get_bs_class('[Ljava/lang/reflect/Method;');
+          var method_arr_cls = <ClassData.ArrayClassData> rs.get_bs_class('[Ljava/lang/reflect/Method;');
           resume_cb(new JavaArray(rs, method_arr_cls, base_array));
         });
     });
-  }), o('getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;', function(rs, _this, public_only) {
-    var methods = _this.$cls.get_methods();
-    methods = (function() {
-      var _results = [];
-      for (var sig in methods) {
-        var m = methods[sig];
+  }), o('getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;', function(rs: runtime.RuntimeState, _this: java_object.JavaClassObject, public_only: boolean) {
+    var methodsHash = _this.$cls.get_methods();
+    var methods: methods.Method[] = (function() {
+      var _results: methods.Method[] = [];
+      for (var sig in methodsHash) {
+        var m = methodsHash[sig];
         if (m.name === '<init>') {
           _results.push(m);
         }
@@ -2185,7 +2185,7 @@ native_methods['java']['lang']['Class'] = [
     if (public_only) {
       methods = methods.filter((m) => m.access_flags["public"]);
     }
-    var ctor_array_cdata = rs.get_bs_class('[Ljava/lang/reflect/Constructor;');
+    var ctor_array_cdata = <ClassData.ArrayClassData> rs.get_bs_class('[Ljava/lang/reflect/Constructor;');
     var base_array = [];
     rs.async_op(function(resume_cb, except_cb) {
       util.async_foreach(methods,
@@ -2196,11 +2196,11 @@ native_methods['java']['lang']['Class'] = [
           resume_cb(new JavaArray(rs, ctor_array_cdata, base_array));
         });
     });
-  }), o('getInterfaces()[L!/!/!;', function(rs, _this) {
+  }), o('getInterfaces()[L!/!/!;', function(rs: runtime.RuntimeState, _this: java_object.JavaClassObject) {
     var cls = _this.$cls;
     var ifaces = cls.get_interfaces();
     var iface_objs = ifaces.map((iface)=>iface.get_class_object(rs));
-    return new JavaArray(rs, rs.get_bs_class('[Ljava/lang/Class;'), iface_objs);
+    return new JavaArray(rs, <ClassData.ArrayClassData> rs.get_bs_class('[Ljava/lang/Class;'), iface_objs);
   }), o('getModifiers()I', function(rs, _this) {
     return _this.$cls.access_byte;
   }), o('getRawAnnotations()[B', function(rs, _this) {

@@ -1,4 +1,4 @@
-/// <reference path="../vendor/node.d.ts" />
+/// <reference path="../vendor/DefinitelyTyped/node/node.d.ts" />
 "use strict";
 var underscore = require('../vendor/underscore/underscore');
 var options : {[cat:string]:DescriptionCategory} = null;
@@ -24,7 +24,7 @@ export function describe(new_description: Description): void {
   description = new_description;
   for (var k in description) {
     var category = description[k];
-    var category_copy = {};
+    var category_copy: DescriptionCategory = {};
     for (var opt_name in category) {
       var opt_value = category[opt_name];
       category_copy[opt_name] = opt_value;

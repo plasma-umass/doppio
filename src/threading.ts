@@ -90,8 +90,8 @@ export class CallStack {
   }
 
   public dump_state(): string {
-    var visited = {};
-    var snapshots = this._cs.map((frame) => frame.snap(visited));
+    var visited: {[name: string]: boolean} = {};
+    var snapshots = this._cs.map((frame: StackFrame) => frame.snap(visited));
     return JSON.stringify(snapshots.map((ss) => ss.serialize()));
   }
 

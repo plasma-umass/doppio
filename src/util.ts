@@ -64,7 +64,7 @@ if (!Array.prototype.indexOf) {
       if (n != n) { // shortcut for verifying if it's NaN
         n = 0;
       } else if (n != 0 && n != Infinity && n != -Infinity) {
-        n = (n > 0 || -1) * Math.floor(Math.abs(n));
+        n = ((n > 0 ? 1 : 0) || -1) * Math.floor(Math.abs(n));
       }
     }
     if (n >= len) {

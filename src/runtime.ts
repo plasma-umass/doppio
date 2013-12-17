@@ -215,7 +215,7 @@ export class RuntimeState {
   }
 
   public choose_next_thread(blacklist: threading.JavaThreadObject[], cb: (jto: threading.JavaThreadObject)=>void): void {
-    var _this = this;
+    var self = this;
     if (blacklist == null) {
       blacklist = [];
       for (var key in this.waiting_threads) {
@@ -250,7 +250,7 @@ export class RuntimeState {
     }
     if ((Infinity > wakeup_time && wakeup_time > current_time)) {
       debug("TE(choose_next_thread): waiting until " + wakeup_time + " and trying again");
-      setTimeout((() => _this.choose_next_thread(null, cb)), wakeup_time - current_time);
+      setTimeout((() => self.choose_next_thread(null, cb)), wakeup_time - current_time);
     } else {
       debug("TE(choose_next_thread): no thread found, sticking with curr_thread");
       cb(this.curr_thread);
@@ -690,10 +690,10 @@ export class RuntimeState {
       resume(data);
       return;
     }
-    var _this = this;
+    var self = this;
     this._async_input(function (data) {
       if (data.length > n_bytes) {
-        _this.input_buffer = data.slice(n_bytes);
+        self.input_buffer = data.slice(n_bytes);
       }
       resume(data.slice(0, n_bytes));
     });

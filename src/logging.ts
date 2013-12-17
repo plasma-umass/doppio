@@ -18,8 +18,8 @@ function debug_var(e: any): string {
 }
 
 // used for debugging the stack and local variables
-export function debug_vars(arr: Array): string[] {
-  return arr.map(debug_var);
+export function debug_vars(arr: any[]): string[] {
+  return arr.map<string>(debug_var);
 }
 
 // log levels

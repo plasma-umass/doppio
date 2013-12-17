@@ -1,6 +1,7 @@
 "use strict";
 import util = require('./util');
 import ClassData = require('./ClassData');
+import ConstantPool = require('./ConstantPool');
 
 function pad_left(value: string, padding: number): string {
   var zeroes = new Array(padding).join('0');
@@ -48,7 +49,7 @@ function format_decimal(val: number, type_char: string): string {
 
 // format the entries for displaying the constant pool. e.g. as '#5.#6' or
 // '3.14159f'
-function format(entry): string {
+function format(entry: ConstantPool.ConstantPoolItem): string {
   var val = entry.value;
   switch (entry.type) {
     case 'Method':

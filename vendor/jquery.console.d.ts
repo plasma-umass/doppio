@@ -1,4 +1,4 @@
-/// <reference path="jquery.d.ts"/>
+/// <reference path="DefinitelyTyped/jquery/jquery.d.ts"/>
 
 interface JQConsoleSettings {
     promptLabel?: string;

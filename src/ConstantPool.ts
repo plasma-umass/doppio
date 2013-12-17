@@ -5,19 +5,23 @@ import util = require('./util');
 // All objects in the constant pool have the properties @type and @value.
 // *Reference and NameAndType objects all have a @deref method, which resolves
 // all child references to their values (i.e. discarding @type).
-
 export interface ConstantPoolItem {
-  size: number;
-  type: string;
   value: any;
-  from_bytes(bytes_array: util.BytesArray, constant_pool: { [n: number]: ConstantPoolItem }): ConstantPoolItem;
-  deref(): any;
+  type?: string;
+  deref?(): any;
 }
+
+export interface ConstantPoolType {
+  size: number;
+  from_bytes(bytes_array: util.BytesArray, constant_pool: ConstantPool): ConstantPoolItem;
+}
+// Type checks the constructors.
+var _: ConstantPoolType;
 
 export class SimpleReference {
   public static size = 1;
-  public constant_pool: ConstantPool;
   public value: any;
+  public constant_pool: ConstantPool;
   constructor(constant_pool: ConstantPool, value: any) {
     this.constant_pool = constant_pool;
     this.value = value;
@@ -29,7 +33,7 @@ export class SimpleReference {
   }
 
   public deref(): any {
-    var pool_obj = this.constant_pool[this.value];
+    var pool_obj = this.constant_pool.get(this.value);
     return (typeof pool_obj.deref === "function" ? pool_obj.deref() : void 0) || pool_obj.value;
   }
 }
@@ -38,13 +42,14 @@ export class ClassReference extends SimpleReference {
   public type = 'class';
   // the ConstantPool stores class names without the L...; descriptor stuff
   public deref(): any {
-    var pool_obj = this.constant_pool[this.value];
+    var pool_obj = this.constant_pool.get(this.value);
     if (typeof pool_obj.deref === "function") {
       return pool_obj.deref();
     }
     return util.typestr2descriptor(pool_obj.value);
   }
 }
+_ = ClassReference;
 
 export class StringReference extends SimpleReference {
   public type = 'String';
@@ -52,6 +57,7 @@ export class StringReference extends SimpleReference {
     super(constant_pool, value);
   }
 }
+_ = StringReference;
 
 export class AbstractMethodFieldReference {
   public static size = 1;
@@ -83,10 +89,12 @@ export class AbstractMethodFieldReference {
 export class MethodReference extends AbstractMethodFieldReference {
   public type = 'Method';
 }
+_ = MethodReference;
 
 export class InterfaceMethodReference extends AbstractMethodFieldReference {
   public type = 'InterfaceMethod';
 }
+_ = InterfaceMethodReference;
 
 export class FieldReference extends AbstractMethodFieldReference {
   public type = 'Field';
@@ -131,6 +139,7 @@ export class MethodSignature {
     };
   }
 }
+_ = MethodSignature;
 
 export class ConstString {
   public static size = 1;
@@ -146,6 +155,7 @@ export class ConstString {
     return new this(value);
   }
 }
+_ = ConstString;
 
 export class ConstInt32 {
   public static size = 1;
@@ -155,12 +165,13 @@ export class ConstInt32 {
     this.value = value;
   }
 
-  public static from_bytes(bytes_array: util.BytesArray): ConstInt32 {
+  public static from_bytes(bytes_array: util.BytesArray, constant_pool: ConstantPool): ConstInt32 {
     var uint32 = bytes_array.get_uint(4);
     var value = -(1 + ~uint32); // Convert to signed integer ONLY FOR 32 BITS
     return new this(value);
   }
 }
+_ = ConstInt32;
 
 export class ConstFloat {
   public static size = 1;
@@ -170,13 +181,14 @@ export class ConstFloat {
     this.value = value;
   }
 
-  public static from_bytes(bytes_array: util.BytesArray): ConstFloat {
+  public static from_bytes(bytes_array: util.BytesArray, constant_pool: ConstantPool): ConstFloat {
     var uint32 = bytes_array.get_uint(4);
     // We OR with 0 to convert to a signed int.
     var value = util.intbits2float(uint32 | 0);
     return new this(value);
   }
 }
+_ = ConstFloat;
 
 export class ConstLong {
   public static size = 2;
@@ -186,13 +198,14 @@ export class ConstLong {
     this.value = value;
   }
 
-  public static from_bytes(bytes_array: util.BytesArray): ConstLong {
+  public static from_bytes(bytes_array: util.BytesArray, constant_pool: ConstantPool): ConstLong {
     var high = bytes_array.get_uint(4);
     var low = bytes_array.get_uint(4);
     var value = gLong.fromBits(low, high);
     return new this(value);
   }
 }
+_ = ConstLong;
 
 export class ConstDouble {
   public static size = 2;
@@ -202,21 +215,20 @@ export class ConstDouble {
     this.value = value;
   }
 
-  public static from_bytes(bytes_array: util.BytesArray): ConstDouble {
+  public static from_bytes(bytes_array: util.BytesArray, constant_pool: ConstantPool): ConstDouble {
     var uint32_a = bytes_array.get_uint(4);
     var uint32_b = bytes_array.get_uint(4);
     return new this(util.longbits2double(uint32_a, uint32_b));
   }
 }
+_ = ConstDouble;
 
 export class ConstantPool {
   private cp_count: number;
   private constant_pool: { [n: number]: ConstantPoolItem; };
 
   public parse(bytes_array: util.BytesArray): util.BytesArray {
-    var constant_tags: {[n: number]: ConstantPoolItem };
-
-    constant_tags = {
+    var constant_tags: {[n: number]: ConstantPoolType } = {
       1: ConstString,
       3: ConstInt32,
       4: ConstFloat,
@@ -238,7 +250,7 @@ export class ConstantPool {
       if (!((1 <= tag && tag <= 12))) {
         throw "invalid tag: " + tag;
       }
-      var pool_obj = constant_tags[tag].from_bytes(bytes_array, this.constant_pool);
+      var pool_obj = constant_tags[tag].from_bytes(bytes_array, this);
       this.constant_pool[idx] = pool_obj;
       idx += constant_tags[tag].size;
     }
