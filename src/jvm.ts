@@ -6,24 +6,13 @@ import runtime = require('./runtime')
 import methods = require('./methods')
 import ClassData = require('./ClassData')
 import ClassLoader = require('./ClassLoader')
+import fs = require('fs');
+import path = require('path');
 
 var trace = logging.trace;
 var error = logging.error;
 
-var fs, path, vendor_path;
-// TODO: make a util.are_we_in_a_browser() function
-declare var node: any;
-if (typeof node === "undefined") {
-  // we're in the console
-  fs = require('fs');
-  path = require('path');
-  vendor_path = path.resolve(__dirname, '../vendor');
-} else {
-  // we're in the browser
-  fs = node.fs;
-  path = node.path;
-  vendor_path = '/sys/vendor';
-}
+var vendor_path = util.are_in_browser() ? '/sys/vendor' : path.resolve(__dirname, '../vendor');
 
 // poor man's static attribute
 export var show_NYI_natives: boolean = false;
@@ -73,7 +62,7 @@ export class JVM {
       'os.version': '0',
       'java.vm.name': 'Doppio 64-bit VM',
       'java.vm.vendor': 'Doppio Inc.',
-      'java.awt.headless': (typeof node === "undefined" || node === null).toString(), // true if we're using the console frontend
+      'java.awt.headless': (util.are_in_browser()).toString(), // true if we're using the console frontend
       'java.awt.graphicsenv': 'classes.awt.CanvasGraphicsEnvironment',
       'useJavaUtilZip': 'true', // hack for sun6javac, avoid ZipFileIndex shenanigans
       'jline.terminal': 'jline.UnsupportedTerminal' // we can't shell out to `stty`

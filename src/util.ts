@@ -5,6 +5,10 @@ import runtime = require('./runtime');
 import java_object = require('./java_object');
 import ClassData = require('./ClassData');
 
+export function are_in_browser(): boolean {
+  return process.platform === 'browser';
+}
+
 // Applies an async function to each element of a list, in order.
 // Assumes that the async function expects "success" and "fail" callbacks.
 export function async_foreach<T>(

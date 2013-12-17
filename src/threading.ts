@@ -8,8 +8,7 @@ import ClassData = require('./ClassData');
 import ClassLoader = require('./ClassLoader');
 import java_object = require('./java_object');
 import methods = require('./methods');
-
-declare var node: any;
+import fs = require('fs');
 
 export class JavaThreadObject extends java_object.JavaObject {
   public $meta_stack: CallStack;
@@ -51,12 +50,6 @@ export class JavaThreadObject extends java_object.JavaObject {
   }
 
   public dump_state(rs: runtime.RuntimeState): void {
-    var fs;
-    if (typeof node !== "undefined" && node !== null && node.fs != null) {
-      fs = node.fs;
-    } else {
-      fs = require('fs');
-    }
     var filename = "/tmp/core-" + this.name(rs) + ".json";
     var data = this.$meta_stack.dump_state();
     fs.writeFile(filename, data, 'utf8', function (err) {

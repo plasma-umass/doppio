@@ -166,6 +166,7 @@ dev: dependencies build/dev/classes build/dev/vendor \
 	build/dev/browser/mini-rt.tar build/dev/browser/require_config.js
 
 	rsync browser/*.svg browser/*.png build/dev/browser/
+	rsync browser/*.js build/dev/browser/
 	rsync browser/core_viewer/core_viewer.css build/dev/browser/core_viewer/
 	$(COFFEEC) -c -o build/dev/browser/core_viewer browser/core_viewer/core_viewer.coffee
 	cp browser/core_viewer.html build/dev

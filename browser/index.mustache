@@ -35,25 +35,25 @@
 {{/release}}
   <script src="vendor/browserfs/dist/browserfs.js"></script>
   <script>
-    BrowserFS.install(window);
+    // Wrap in a closure; don't pollute the global namespace.
+    (function() {
+      // Define only the globals we expect.
+      window.process = BrowserFS.BFSRequire('process');
+      // TODO: Change to BrowserFS.BFSRequire('buffer').Buffer next BFS release.
+      window.Buffer = BrowserFS.BFSRequire('buffer');
+      var mfs = new BrowserFS.FileSystem.MountableFileSystem();
+      mfs.mount('/tmp', new BrowserFS.FileSystem.InMemory());
+      mfs.mount('/demo', new BrowserFS.FileSystem.LocalStorage());
+      mfs.mount('/sys', new BrowserFS.FileSystem.XmlHttpRequest('browser/listings.json'));
+      BrowserFS.initialize(mfs);
 
-    var mfs = new BrowserFS.FileSystem.MountableFileSystem();
-    mfs.mount('/tmp', new BrowserFS.FileSystem.InMemory());
-    mfs.mount('/demo', new BrowserFS.FileSystem.LocalStorage());
-    mfs.mount('/sys', new BrowserFS.FileSystem.XmlHttpRequest('browser/listings.json'));
-    BrowserFS.initialize(mfs);
+      var fs = BrowserFS.BFSRequire('fs');
+      fs.mkdirSync('/tmp/jars');
 
-    window.node = BrowserFS.node;
-    if (!node.fs.existsSync('/demo')) {
-      node.fs.mkdirSync('/demo');
-    }
-    node.fs.mkdirSync('/tmp');
-    node.fs.mkdirSync('/tmp/jars');
-    node.process.chdir('/demo');
-
-    require(["browser/frontend"], function(frontend) {
-      // Kicks everything off!
-    });
+      require(["browser/frontend"], function(frontend) {
+        // Kicks everything off!
+      });
+    })();
   </script>
 </head>
 <body>

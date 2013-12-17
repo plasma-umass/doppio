@@ -1,4 +1,6 @@
 "use strict";
+import path = require('path');
+import fs = require('fs');
 import gLong = require('./gLong');
 import util = require('./util');
 import attributes = require('./attributes');
@@ -14,11 +16,8 @@ var debug = logging.debug, error = logging.error, trace = logging.trace;
 import methods = require('./methods');
 import ClassLoader = require('./ClassLoader');
 
-declare var node;
 declare var Websock;
 declare var setImmediate;
-var path = typeof node !== "undefined" ? node.path : require('path');
-var fs = typeof node !== "undefined" ? node.fs : require('fs');
 import ClassData = require('./ClassData');
 
 // XXX: Avoids a tough circular dependency
@@ -295,7 +294,7 @@ function write_to_file(rs: runtime.RuntimeState, _this: java_object.JavaObject, 
     return;
   }
   rs.print(util.chars2js_str(bytes, offset, len));
-  if (typeof node !== "undefined" && node !== null) {
+  if (util.are_in_browser()) {
     // For the browser implementation -- the DOM doesn't get repainted
     // unless we give the event loop a chance to spin.
     return rs.async_op(function(cb) {
@@ -1145,7 +1144,7 @@ export var native_methods = {
           fd_obj = _this.get_field(rs, 'Ljava/io/FileOutputStream;fd');
           fd = fd_obj.get_field(rs, 'Ljava/io/FileDescriptor;fd');
           return rs.async_op(function(resume_cb, except_cb) {
-            return fs.close(fd, function(err) {
+            return fs.close(fd, function(err?: ErrnoException) {
               if (err) {
                 return except_cb(function() {
                   return rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), err.message);
@@ -1233,9 +1232,7 @@ export var native_methods = {
               var fd_obj;
 
               if (e != null) {
-                // XXX: BrowserFS hack. BFS doesn't support the code attribute
-                // on errors yet.
-                if (e.code === 'ENOENT' || true) {
+                if (e.code === 'ENOENT') {
                   return except_cb(function() {
                     return rs.java_throw(rs.get_bs_class('Ljava/io/FileNotFoundException;'), "" + filepath + " (No such file or directory)");
                   });
@@ -1258,7 +1255,7 @@ export var native_methods = {
           fd_obj = _this.get_field(rs, 'Ljava/io/FileInputStream;fd');
           fd = fd_obj.get_field(rs, 'Ljava/io/FileDescriptor;fd');
           return rs.async_op(function(resume_cb, except_cb) {
-            return fs.close(fd, function(err) {
+            return fs.close(fd, function(err?: ErrnoException) {
               if (err) {
                 return except_cb(function() {
                   return rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), err.message);
@@ -1391,7 +1388,7 @@ export var native_methods = {
           fd_obj = _this.get_field(rs, 'Ljava/io/RandomAccessFile;fd');
           fd = fd_obj.get_field(rs, 'Ljava/io/FileDescriptor;fd');
           return rs.async_op(function(resume_cb, except_cb) {
-            return fs.close(fd, function(err) {
+            return fs.close(fd, function(err?: ErrnoException) {
               if (err) {
                 return except_cb(function() {
                   return rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), err.message);
@@ -1441,7 +1438,7 @@ export var native_methods = {
               if (stat != null) {
                 return resume_cb(false);
               } else {
-                return fs.mkdir(filepath, function(err) {
+                return fs.mkdir(filepath, function(err?: ErrnoException) {
                   return resume_cb(err != null ? false : true);
                 });
               }
@@ -1462,7 +1459,7 @@ export var native_methods = {
                       return rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), err.message);
                     });
                   } else {
-                    return fs.close(fd, function(err) {
+                    return fs.close(fd, function(err?: ErrnoException) {
                       if (err != null) {
                         return except_cb(function() {
                           return rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), err.message);
@@ -1491,7 +1488,7 @@ export var native_methods = {
                       return rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), err.message);
                     });
                   } else {
-                    return fs.close(fd, function(err) {
+                    return fs.close(fd, function(err?: ErrnoException) {
                       if (err != null) {
                         return except_cb(function() {
                           return rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), err.message);
@@ -1520,13 +1517,13 @@ export var native_methods = {
                   if (files.length > 0) {
                     return resume_cb(false);
                   } else {
-                    return fs.rmdir(filepath, function(err) {
+                    return fs.rmdir(filepath, function(err?: ErrnoException) {
                       return resume_cb(true);
                     });
                   }
                 });
               } else {
-                return fs.unlink(filepath, function(err) {
+                return fs.unlink(filepath, function(err?: ErrnoException) {
                   return resume_cb(true);
                 });
               }
@@ -1569,7 +1566,7 @@ export var native_methods = {
           atime = (new Date).getTime();
           filepath = file.get_field(rs, 'Ljava/io/File;path').jvm2js_str();
           return rs.async_op(function(resume_cb) {
-            return fs.utimes(filepath, atime, mtime, function(err) {
+            return fs.utimes(filepath, atime, mtime, function(err?: ErrnoException) {
               return resume_cb(true);
             });
           });
@@ -1613,7 +1610,7 @@ export var native_methods = {
           file1path = (file1.get_field(rs, 'Ljava/io/File;path')).jvm2js_str();
           file2path = (file2.get_field(rs, 'Ljava/io/File;path')).jvm2js_str();
           return rs.async_op(function(resume_cb) {
-            return fs.rename(file1path, file2path, function(err) {
+            return fs.rename(file1path, file2path, function(err?: ErrnoException) {
               return resume_cb(err != null ? false : true);
             });
           });
@@ -1653,7 +1650,7 @@ export var native_methods = {
                 // Apply mask.
                 access = enable ? existing_access | access : existing_access & access;
                 // Set new permissions.
-                return fs.chmod(filepath, access, function(err) {
+                return fs.chmod(filepath, access, function(err?: ErrnoException) {
                   return resume_cb(err != null ? false : true);
                 });
               }
@@ -1670,7 +1667,7 @@ export var native_methods = {
               if (stats == null) {
                 return resume_cb(false);
               } else {
-                return fs.chmod(filepath, stats.mode & mask, function(err) {
+                return fs.chmod(filepath, stats.mode & mask, function(err?: ErrnoException) {
                   return resume_cb(err != null ? false : true);
                 });
               }
@@ -2406,7 +2403,7 @@ native_methods['java']['net']['PlainSocketImpl'] = [
     var fd;
 
     // Check to make sure we're in a browser and the websocket libraries are present
-    if (typeof node === "undefined" || node === null) {
+    if (!util.are_in_browser()) {
       rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), 'WebSockets are disabled');
     }
     fd = _this.get_field(rs, 'Ljava/net/SocketImpl;fd');

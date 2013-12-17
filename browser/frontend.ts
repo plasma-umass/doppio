@@ -7,12 +7,13 @@
 /// <reference path="../vendor/DefinitelyTyped/ace/ace.d.ts" />
 /// <amd-dependency path="../vendor/underscore/underscore" />
 var underscore = require('../vendor/underscore/underscore');
+import fs = require('fs');
+import path = require('path');
 import disassembler = require('../src/disassembler');
 import jvm = require('../src/jvm');
 import testing = require('../src/testing');
 import untar = require('./untar');
 import util = require('../src/util');
-declare var node: any;
 declare var JSZip: any;  // hax
 
 // To be initialized on document load
@@ -24,7 +25,7 @@ var jvm_state: jvm.JVM;
 var sys_path = '/sys';
 
 function preload(): void {
-  node.fs.readFile(sys_path + "/browser/mini-rt.tar", function(err: Error, data: NodeBuffer): void {
+  fs.readFile(sys_path + "/browser/mini-rt.tar", function(err: Error, data: NodeBuffer): void {
     if (err) {
       console.error("Error downloading mini-rt.tar:", err);
       return;
@@ -78,7 +79,7 @@ function preload(): void {
       }
     }
     // Grab the XmlHttpRequest file system.
-    var xhrfs = node.fs.getRootFS().mntMap[sys_path];
+    var xhrfs = (<any>fs).getRootFS().mntMap[sys_path];
     // Note: Path is relative to XHR mount point (e.g. /vendor/classes rather than
     // /sys/vendor/classes). They must also be absolute paths.
     untar.untar(new util.BytesArray(data), on_progress, on_file_done);
@@ -93,7 +94,7 @@ function onResize(): void {
 
 // Returns prompt text, ala $PS1 in bash.
 function ps1(): string {
-  return node.process.cwd() + '$ ';
+  return process.cwd() + '$ ';
 }
 
 $(window).resize(onResize);
@@ -150,7 +151,7 @@ $(document).ready(function() {
         files_uploaded++;
         var progress = "[" + files_uploaded + "/" + num_files
                            + "] File '" + f.name + "'";
-        node.fs.writeFile(node.process.cwd() + '/' + f.name, new Buffer(e.target.result), function(err: Error) {
+        fs.writeFile(process.cwd() + '/' + f.name, new Buffer(e.target.result), function(err: Error) {
           if (err) {
             controller.message(progress + " could not be saved: " + err + ".\n",
                                'error', files_uploaded !== num_files);
@@ -259,7 +260,7 @@ $(document).ready(function() {
     if (contents[contents.length - 1] !== '\n') {
       contents += '\n';
     }
-    node.fs.writeFile(fname, contents, function(err: Error){
+    fs.writeFile(fname, contents, function(err: Error){
       if (err) {
         controller.message("File could not be saved: " + err, 'error');
       } else {
@@ -283,7 +284,7 @@ function pad_right(str: string, len: number): string {
 
 // helper function for 'ls'
 function read_dir(dir: string, pretty: boolean, columns: boolean, cb: any): void {
-  node.fs.readdir(node.path.resolve(dir), function(err: Error, contents: string[]){
+  fs.readdir(path.resolve(dir), function(err: Error, contents: string[]){
     if (err || contents.length == 0) {
       return cb('');
     }
@@ -295,7 +296,7 @@ function read_dir(dir: string, pretty: boolean, columns: boolean, cb: any): void
     util.async_foreach(contents,
       // runs on each element
       function(c: string, next_item) {
-        node.fs.stat(dir + '/' + c, function(err: Error, stat){
+        fs.stat(dir + '/' + c, function(err: Error, stat){
           if (stat.isDirectory()) {
             c += '/';
           }
@@ -350,7 +351,7 @@ var commands = {
       return "Usage: view_dump <core-file.json>\nUse java -Xdump-state path/to/failing/class to generate one.";
     }
     controller.message('Loading dump file ' + args[0] + '...', 'success', true);
-    node.fs.readFile(args[0], 'utf8', function(err: Error, dump: string) {
+    fs.readFile(args[0], 'utf8', function(err: Error, dump: string) {
       if (err) {
         controller.message(" failed.\nError reading core dump: " + err.toString() + "\n", 'success', true);
         return controller.reprompt();
@@ -438,22 +439,22 @@ var commands = {
       // TODO: make this asynchronous
       // TODO: error checking / tab-complete fixes
       var jar_path = args[1];
-      var tmp_dir = '/tmp/jars/' + node.path.basename(jar_path.slice(0,-4)) + '/';
-      if (!node.fs.existsSync(tmp_dir)) {
-        node.fs.mkdirSync(tmp_dir);
+      var tmp_dir = '/tmp/jars/' + path.basename(jar_path.slice(0,-4)) + '/';
+      if (!fs.existsSync(tmp_dir)) {
+        fs.mkdirSync(tmp_dir);
       }
-      var jar = node.fs.readFileSync(jar_path);
-      var jarfile = new JSZip(jar.buff.buffer);
+      var jar = fs.readFileSync(jar_path);
+      var jarfile = new JSZip((<any>jar).buff.buffer);
       // TODO: avoid loading every single file into memory (BFS ZipFS backend?)
       for (var filepath in jarfile.files) {
         var file = jarfile.files[filepath];
-        filepath = node.path.join(tmp_dir, filepath);
+        filepath = path.join(tmp_dir, filepath);
         if (file.options.dir || filepath.slice(-1) === '/') {
-          if (!node.fs.existsSync(filepath)) {
-            node.fs.mkdirSync(filepath);
+          if (!fs.existsSync(filepath)) {
+            fs.mkdirSync(filepath);
           }
         } else {
-          node.fs.writeFileSync(filepath, file.asBinary(), 'binary');
+          fs.writeFileSync(filepath, file.asBinary(), 'binary');
         }
       }
       jvm_state.set_classpath(sys_path + '/vendor/classes/', tmp_dir+':./');
@@ -476,12 +477,12 @@ var commands = {
       return "Usage: test all|[class(es) to test]";
     }
     // Change dir to $sys_path, because that's where tests expect to be run from.
-    var curr_dir = node.process.cwd();
+    var curr_dir = process.cwd();
     function done_cb(): void {
-      node.process.chdir(curr_dir);
+      process.chdir(curr_dir);
       controller.reprompt();
     }
-    node.process.chdir(sys_path);
+    process.chdir(sys_path);
     if (args[0] === 'all') {
       testing.run_tests([], stdout, true, false, true, done_cb);
     } else {
@@ -493,7 +494,7 @@ var commands = {
     if (args[0] == null) {
       return "Usage: javap class";
     }
-    node.fs.readFile(args[0] + '.class', function(err: Error, buf: NodeBuffer){
+    fs.readFile(args[0] + '.class', function(err: Error, buf: NodeBuffer){
       if (err) {
         controller.message("Could not find class '" + args[0] + "'.", 'error');
       } else {
@@ -554,7 +555,7 @@ var commands = {
       start_editor(defaultFile('Test.java'));
       return true;
     }
-    node.fs.readFile(args[0], 'utf8', function(err: Error, data: string): void {
+    fs.readFile(args[0], 'utf8', function(err: Error, data: string): void {
       if (err) {
         start_editor(defaultFile(args[0]));
       } else {
@@ -568,7 +569,7 @@ var commands = {
     if (fname == null) {
       return "Usage: cat <file>";
     }
-    node.fs.readFile(fname, 'utf8', function(err: Error, data: string): void {
+    fs.readFile(fname, 'utf8', function(err: Error, data: string): void {
       if (err) {
         controller.message("Could not open file '" + fname + "': " + err, 'error');
       } else {
@@ -581,7 +582,7 @@ var commands = {
     if (args.length < 2) {
       return "Usage: mv <from-file> <to-file>";
     }
-    node.fs.rename(args[0], args[1], function(err: Error) {
+    fs.rename(args[0], args[1], function(err?: Error) {
       if (err) {
         controller.message("Could not rename "+args[0]+" to "+args[1]+": "+err, 'error', true);
       }
@@ -598,13 +599,13 @@ var commands = {
       // Change to the default (starting) directory.
       dir = '/demo';
     } else {
-      dir = node.path.resolve(args[0]);
+      dir = path.resolve(args[0]);
     }
     // Verify path exists before going there.
     // chdir does not verify that the directory exists.
-    node.fs.exists(dir, function(doesExist: boolean) {
+    fs.exists(dir, function(doesExist: boolean) {
       if (doesExist) {
-        node.process.chdir(dir);
+        process.chdir(dir);
         controller.promptLabel = ps1();
       } else {
         controller.message("Directory " + dir + " does not exist.\n", 'error', true);
@@ -619,7 +620,7 @@ var commands = {
     }
     var completed = 0;
     function remove_file(file: string, total: number): void {
-      node.fs.unlink(file, function(err: Error){
+      fs.unlink(file, function(err?: Error){
         if (err) {
           controller.message("Could not remove file: " + file + "\n", 'error', true);
         }
@@ -629,7 +630,7 @@ var commands = {
       });
     }
     if (args[0] === '*') {
-      node.fs.readdir('.', function(err: Error, fnames: string[]){
+      fs.readdir('.', function(err: Error, fnames: string[]){
         if (err) {
           controller.message("Could not read '.': " + err, 'error');
           return;
@@ -762,8 +763,8 @@ function fileNameCompletions(cmd: string, args: string[], cb: (c: string[])=>voi
     dirPfx = '';
     searchPfx = toComplete;
   }
-  var dirPath = (dirPfx == '') ? '.' : node.path.resolve(dirPfx);
-  node.fs.readdir(dirPath, function(err: Error, dirList: string[]){
+  var dirPath = (dirPfx == '') ? '.' : path.resolve(dirPfx);
+  fs.readdir(dirPath, function(err: Error, dirList: string[]){
     var completions: string[] = [];
     if (err != null) {
       return cb(completions)
@@ -772,7 +773,7 @@ function fileNameCompletions(cmd: string, args: string[], cb: (c: string[])=>voi
     util.async_foreach(dirList,
       // runs on each element
       function(item: string, next_item: ()=>void) {
-        node.fs.stat(node.path.resolve(dirPfx + item), function(err: Error, stats) {
+        fs.stat(path.resolve(dirPfx + item), function(err: Error, stats) {
           if (err != null) {
             // Do nothing.
           } else if (stats.isDirectory()) {

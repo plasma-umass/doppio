@@ -4,10 +4,8 @@ import runtime = require('./runtime');
 var RuntimeState = runtime.RuntimeState;
 import util = require('./util');
 import disassembler = require('./disassembler');
-
-declare var node: any;
-var path = typeof node !== "undefined" ? node.path : require('path');
-var fs = typeof node !== "undefined" ? node.fs : require('fs');
+import path = require('path');
+import fs = require('fs');
 var jvm_state = new jvm.JVM();
 
 export function find_test_classes(doppio_dir: string, cb): void {
@@ -20,7 +18,7 @@ export function find_test_classes(doppio_dir: string, cb): void {
 
 export function run_tests(test_classes: string[], stdout, hide_diffs: boolean,
     quiet: boolean, keep_going: boolean, callback): void {
-  var doppio_dir = typeof node !== "undefined" && node !== null ? '/sys/' : path.resolve(__dirname, '..');
+  var doppio_dir = util.are_in_browser() ? '/sys/' : path.resolve(__dirname, '..');
   // set up the classpath
   var jcl_dir = path.resolve(doppio_dir, 'vendor/classes');
   jvm_state.set_classpath(jcl_dir, doppio_dir);

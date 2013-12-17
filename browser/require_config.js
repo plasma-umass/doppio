@@ -12,5 +12,9 @@ require.config({
     'vendor/jquery.console': {
       deps: ['vendor/jquery/jquery.min']
     }
+  },
+  paths: {
+    fs: 'browser/fs',
+    path: 'browser/path'
   }
 });

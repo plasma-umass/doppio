@@ -10,7 +10,7 @@ import ClassData = require('./ClassData');
 import ClassLoader = require('./ClassLoader');
 import threading = require('./threading');
 
-declare var node: any, UNSAFE : boolean;
+declare var UNSAFE : boolean;
 declare var setImmediate: (cb: (p:any)=>any)=>void
 var vtrace = logging.vtrace;
 var trace = logging.trace;
@@ -21,7 +21,6 @@ var ReturnException = exceptions.ReturnException;
 var JavaException = exceptions.JavaException;
 var JavaObject = java_object.JavaObject;
 var JavaArray = java_object.JavaArray;
-var process = typeof node !== "undefined" ? node.process : global.process;
 
 var run_count = 0;
 // Contains all the mutable state of the Java program.
