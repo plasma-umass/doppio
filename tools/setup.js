@@ -10,21 +10,87 @@ var DOWNLOAD_DIR,
     JAVAC = 'javac',
     JAVAP = 'javap';
 
-function platform_setup(cb) {
-  if (!process.platform.match(/CYGWIN/i)) return cb(null);
-  exec('cmd /c echo "%ProgramFiles%" | tr -d "\r"', function (err, stdout, stderr){
-    var cmd = 'find "`cygpath \\"' + stdout.trim() + '\\"`/Java" -name jdk1\\.6\\* | head -n 1';
-    if (err !== null) return cb(err);
-    exec(cmd, function(err, stdout, stderr){
-      var JDK_PATH = stdout.trim();
-      // No need to cmd /c; Java seems to work OK in Cygwin.
-      // We use 'eval' because of the space in the Program Files directory.
-      JAVA='eval "'+JDK_PATH+'/bin/java.exe"';
-      JAVAC='eval "'+JDK_PATH+'/bin/javac.exe"';
-      JAVAP='eval "'+JDK_PATH+'/bin/javap.exe"';
-      return cb(err);
+/**
+ * Checks if the given module is available. If not, it installs it with npm.
+ */
+function check_install_module(name, cb) {
+  // Check if it's present.
+  try {
+    require(name);
+    cb();
+  } catch (e) {
+    exec('npm install name', cb);
+  }
+}
+
+/**
+ * Determines the path to JAVA_HOME, and updates the paths to JAVA/JAVAC/JAVAP.
+ */
+function find_java_home(cb) {
+  var fail_msg = "Could not find a working version of Java 6. Please ensure " +
+                 "that you have a version of Java 6 installed on your computer.",
+      userCb = cb;
+  console.log("Finding Java installation directory...");
+  cb = function(err) {
+    if (!err) {
+      console.log("\tJava: " + JAVA);
+      console.log("\tJavap: " + JAVAP);
+      console.log("\tJavac: " + JAVAC);
+    }
+    userCb(err);
+  };
+
+  if (process.platform.match(/win32/i)) {
+    // Windows
+    // N.B.: We cannot include 'winreg' in package.json, as it fails to install
+    //       on *nix environments. :(
+    check_install_module('winreg', function(err) {
+      if (err) return cb(err);
+      var Winreg = require('winreg'), regKey;
+      // Look up JDK path.
+      regKey = new Winreg({
+        key:  '\\SOFTWARE\\JavaSoft\\Java Runtime Environment\\1.6'
+      });
+      regKey.values(function(err, items) {
+        var i, java_home;
+        if (!err) {
+          for (i in items) {
+            if (items[i].name === 'JavaHome') {
+              java_home = items[i].value;
+              JAVA = path.resolve(java_home, 'bin\\java.exe');
+              JAVAC = path.resolve(java_home, 'bin\\javac.exe');
+              JAVAC = path.resolve(java_home, 'bin\\javap.exe');
+              return cb();
+            }
+          }
+        }
+        // err won't contain any useful information; it'll say 'process ended
+        // with code 1'. The end result is: No working java. :(
+        cb(new Error(fail_msg));
+      });
     });
-  });
+  } else {
+    // *nix / Mac
+    // Option 1: Can we invoke 'java' directly?
+    exec(JAVA, function(err, stdout, stderr) {
+      var java_home;
+      if (err) {
+        // Option 2: Is JAVA_HOME defined?
+        if (process.env.JAVA_HOME) {
+          java_home = process.env.JAVA_HOME;
+          JAVA = path.resolve(java_home, 'bin/java');
+          JAVAC = path.resolve(java_home, 'bin/javac');
+          JAVAC = path.resolve(java_home, 'bin/javap');
+        } else {
+          // Java can't be found.
+          cb(new Error(fail_msg));
+        }
+      } else {
+        // 'java' is OK.
+        cb();
+      }
+    });
+  }
 }
 
 function jcl_download(cb) {
@@ -218,10 +284,10 @@ function update_bower_packages(cb) {
 function check_node_version(cb) {
   console.log('Checking node version...');
   if (require('semver').lt(process.versions.node, '0.10.0')) {
-    console.log('node >= v0.10.0 required, please update.');
+    console.log('\tnode >= v0.10.0 required, please update.');
     cb(true);
   }
-  console.log('OK.');
+  console.log('\tOK.');
   cb(null);
 }
 
@@ -232,7 +298,7 @@ function check_java_version(cb) {
       console.log('Detected Java 7 (via javac). Please use Java 6.');
       return cb(true);
     }
-    console.log('OK.');
+    console.log('\tOK.');
     cb(null);
   });
 }
@@ -247,7 +313,7 @@ function make_java(cb) {
 function main() {
   process.chdir(__dirname + '/..');
   async.series([
-    platform_setup,
+    find_java_home,
     check_java_version,
     update_npm_packages,
     check_node_version,
