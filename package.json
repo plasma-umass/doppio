@@ -22,7 +22,8 @@
     "typescript": "0.9.5",
     "coffee-script": "1.6",
     "uglify-js": "2",
-    "bower": "*"
+    "bower": "*",
+    "adm-zip": "*"
   },
   "repository": {
     "type": "git",

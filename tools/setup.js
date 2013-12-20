@@ -10,10 +10,10 @@ var fs = require('fs'),
     request = require('request'),
     semver = require('semver'),
     rimraf = require('rimraf'),
+    AdmZip = require('adm-zip'),
     async = require('async');
 
-var DOWNLOAD_DIR,
-    JAVA = 'java',
+var JAVA = 'java',
     JAVAC = 'javac',
     JAVAP = 'javap',
     // Ubuntu (security) repo actual on 24.02.2013
@@ -28,7 +28,19 @@ var DOWNLOAD_DIR,
     VENDOR_DIR = path.resolve(RUN_DIR, 'vendor'),
     CLASSES_DIR = path.resolve(VENDOR_DIR, 'classes');
 
-console.log(DOWNLOAD_DIR);
+/**
+ * Unzips the file at file_path to dest_dir.
+ */
+function unzip(file_path, dest_dir, cb) {
+  var err;
+  try {
+    var zip = new AdmZip(file_path);
+    zip.extractAllTo(/*target path*/dest_dir, /*overwrite*/true);
+  } catch (e) {
+    err = e;
+  }
+  cb(err);
+}
 
 /**
  * Checks if the given module is available. If not, it installs it with npm.
@@ -153,22 +165,17 @@ function extract_data(deb_path, cb) {
 }
 
 function jcl_download(cb) {
-  var finish_cb = function(err) {
-    process.chdir(RUN_DIR);
-    cb(err);
-  };
-
   console.log('Downloading the Java class library (big download, may take a while)');
-  process.chdir(DOWNLOAD_DIR);
   async.each(DEBS, function(deb, cb2){
     var url = DEBS_DOMAIN + '/' + deb,
-        file = fs.createWriteStream(deb);
+        deb_path = path.resolve(DOWNLOAD_DIR, deb),
+        file = fs.createWriteStream(deb_path);
     request(url).pipe(file);
     file.on('finish', function() {
       file.close();
-      extract_data(deb, cb2);
+      extract_data(deb_path, cb2);
     });
-  }, finish_cb);
+  }, cb);
 }
 
 function extract_jars(cb) {
@@ -180,20 +187,16 @@ function extract_jars(cb) {
     exec(cmd, function(err, stdout, stderr){
       var jar_path = stdout.trim();
       console.log('Extracting the Java class library from ' + jar_path);
-      exec('unzip -qq -o "'+jar_path+'" -x META_INF -d "' + CLASSES_DIR + '"', function(err, stdout, stderr){
-        return cb2(err);
-      });
+      unzip(jar_path, CLASSES_DIR, cb2);
     });
-  }, function(err){
-    return cb(err);
-  });
+  }, cb);
 }
 
 function symlink_java_home(cb) {
   var java_home = path.resolve(VENDOR_DIR, 'java_home'),
       JH = path.resolve(DOWNLOAD_DIR, 'usr', 'lib', 'jvm', 'java-6-openjdk-i386', 'jre');
   if (fs.existsSync(java_home)) {
-    return cb(null);
+    return cb();
   }
   console.log('Symlinking files into java_home');
   // a number of .properties files are symlinks to /etc; copy the targets over
@@ -217,16 +220,14 @@ function symlink_java_home(cb) {
         if (!p.match(/java-6-openjdk-i386/)) {
           // XXX: this fails if two symlinks reference the same file
           try {
-          if (fs.statSync(p).isDirectory()) {
-            fs.unlinkSync(link);
+            if (fs.statSync(p).isDirectory()) {
+              fs.unlinkSync(link);
+            }
             fs.renameSync(p, link);
-          } else {
-            fs.renameSync(p, link);
+          } catch (e) {
+            console.log('warning: broken symlink: '+p);
           }
-        } catch (e) {
-          console.log('warning: broken symlink: '+p);
         }
-      }
       }
       cb2(null);
     }, function(err){
@@ -238,7 +239,7 @@ function symlink_java_home(cb) {
 
 function jcl_setup(cb) {
   // check for the JCL
-  if (fs.existsSync('vendor/classes/java/lang/Object.class')) {
+  if (fs.existsSync(path.resolve(CLASSES_DIR, 'java', 'lang', 'Object.class'))) {
     return cb(null);
   }
   async.series([
@@ -255,41 +256,41 @@ function get_ecj(cb) {
      With Doppio: (see issue #218)
        ./doppio -Djdt.compiler.useSingleThread -jar vendor/jars/ecj.jar -1.6 classes/demo/Fib.java
   */
-  var jar_dir = path.resolve(VENDOR_DIR, 'jars'),
-      ecj_pathname = path.resolve(jar_dir, 'ecj.jar');
-  if (fs.existsSync(ecj_pathname)) return cb(null);
+  var ecj_mainclass = path.resolve(CLASSES_DIR, 'org', 'eclipse', 'jdt', 'internal', 'compiler', 'batch', 'Main'),
+      ecj_url = "http://www.eclipse.org/downloads/download.php?file=/eclipse/downloads/drops/R-3.7.1-201109091335/ecj-3.7.1.jar",
+      ecj_jar_path = path.resolve(DOWNLOAD_DIR, "ecj.jar"),
+      ecj_stream = fs.createWriteStream(ecj_jar_path);
+  if (fs.existsSync(ecj_mainclass)) return cb(null);
   console.log('Downloading the ECJ compiler.');
-  var ecj_url = "http://www.eclipse.org/downloads/download.php?file=/eclipse/downloads/drops/R-3.7.1-201109091335/ecj-3.7.1.jar";
-  if (!fs.existsSync(jar_dir)) fs.mkdirSync(jar_dir);
-  var ecj_file = fs.createWriteStream(ecj_pathname);
-  request(ecj_url).pipe(ecj_file);
-  ecj_file.on('finish', function(){
-    ecj_file.close();
-    // TODO: use node-zip here, instead of exec
-    exec('unzip -qq -o "' + ecj_pathname + '" -x META_INF -d "' + CLASSES_DIR + '"', function(err, stdout, stderr){
-      return cb(err);
-    });
+  request(ecj_url).pipe(ecj_stream).on('finish', function(err) {
+    // close stream.
+    ecj_stream.close();
+    if (err) cb(err);
+    unzip(ecj_jar_path, CLASSES_DIR, cb);
   });
 }
 
 function patch_jazzlib(cb) {
   var jazzlib_dir = path.resolve(DOWNLOAD_DIR, 'jazzlib'),
-      jazzlib_zippath = path.resolve(jazzlib_dir, 'jazzlib.zip');
+      jazzlib_zipfile = path.resolve(DOWNLOAD_DIR, 'jazzlib.zip'),
+      jazzlib_zipfile_stream,
+      url = "http://downloads.sourceforge.net/project/jazzlib/jazzlib/0.07/jazzlib-binary-0.07-juz.zip";
   // check for jazzlib
   if (fs.existsSync(path.resolve(CLASSES_DIR, 'java', 'util', 'zip', 'DeflaterEngine.class'))) return cb(null);
   console.log("patching the class library with Jazzlib");
   if (!fs.existsSync(jazzlib_dir)) fs.mkdirSync(jazzlib_dir);
-  var url = "http://downloads.sourceforge.net/project/jazzlib/jazzlib/0.07/jazzlib-binary-0.07-juz.zip";
-  var jazzlib_file = fs.createWriteStream(jazzlib_zippath);
-  request(url).pipe(jazzlib_file);
-  jazzlib_file.on('finish', function(){
-    jazzlib_file.close();
-    // TODO: use node-zip here, instead of exec
-    exec('unzip -qq "' + jazzlib_zippath + '" -x META_INF -d "' + jazzlib_dir + '"', function(err, stdout, stderr){
+  jazzlib_zipfile_stream = fs.createWriteStream(jazzlib_zipfile);
+  // Download
+  request(url).pipe(jazzlib_zipfile_stream).on('finish', function(err) {
+    jazzlib_zipfile_stream.close();
+    if (err) return cb(err);
+    // Unzip
+    unzip(jazzlib_zipfile, jazzlib_dir, function(err) {
+      // Replace JCL zip classes.
       var jazzlib_zip_dir = path.resolve(jazzlib_dir, 'java', 'util', 'zip'),
-          jcl_zip_dir = path.resolve(VENDOR_DIR, 'classes', 'java', 'util', 'zip');
-      if (err!==null) return cb(err);
-      var zipfiles = fs.readdirSync(jazzlib_zip_dir);
+        jcl_zip_dir = path.resolve(VENDOR_DIR, 'classes', 'java', 'util', 'zip'),
+        zipfiles = fs.readdirSync(jazzlib_zip_dir);
+      if (err) return cb(err);
       async.each(zipfiles, function(fname, cb2){
         if (!fname.match(/\.class$/)) return cb2(null);
         fs.rename(path.join(jazzlib_zip_dir, fname),
@@ -329,7 +330,6 @@ function make_java(cb) {
   });
 }
 
-process.chdir(RUN_DIR);
 // We randomly generated the download directory. It shouldn't exist.
 fs.mkdirSync(DOWNLOAD_DIR);
 async.series([
