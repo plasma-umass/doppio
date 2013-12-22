@@ -178,62 +178,114 @@ function jcl_download(cb) {
   }, cb);
 }
 
+/**
+ * Looks for a file with the given name recursively in `path`.
+ * Returns NULL if the file cannot be found.
+ */
+function find_file(dir, file) {
+  var files = fs.readdirSync(dir),
+      i = 0, filePath, rv;
+  if (files.indexOf(file) !== -1) {
+    return path.resolve(dir, file);
+  } else {
+    // Recurse into all subdirectories.
+    for (i = 0; i < files.length; i++) {
+      filePath = path.resolve(dir, files[i]);
+      // lstatSync, since some symbolic links link to nonexistent locations.
+      if (fs.lstatSync(filePath).isDirectory()) {
+        rv = find_file(filePath, file);
+        if (rv !== null) return rv;
+      }
+    }
+  }
+  return null;
+}
+
 function extract_jars(cb) {
   var jars = ["rt.jar", "tools.jar", "resources.jar", "rhino.jar", "jsse.jar"];
   console.log('Extracting JAR files');
   async.each(jars, function(jar, cb2){
     // Locate jar file.
-    var cmd = 'find "' + path.resolve(DOWNLOAD_DIR, 'usr') + '" -name ' + jar + ' | head -1';
-    exec(cmd, function(err, stdout, stderr){
-      var jar_path = stdout.trim();
-      console.log('Extracting the Java class library from ' + jar_path);
-      unzip(jar_path, CLASSES_DIR, cb2);
-    });
+    var jar_path = find_file(path.resolve(DOWNLOAD_DIR, 'usr'), jar);
+    if (jar_path === null)
+      return cb2(new Error("Could not find jar file " + jar + "."));
+    console.log('Extracting the Java class library from ' + jar_path);
+    unzip(jar_path, CLASSES_DIR, cb2);
   }, cb);
+}
+
+/**
+ * (Helper function) Found is an array of symlinks found thus far. We simply
+ * append to it.
+ */
+function _find_symlinks(dir, found) {
+  var files = fs.readdirSync(dir), i, filePath, stat;
+  // TODO: There's probably a better way to detect symlinks than this.
+  for (i = 0; i < files.length; i++) {
+    filePath = path.resolve(dir, files[i]);
+    try {
+      fs.readlinkSync(filePath);
+      // It's a symbolic link.
+      found.push(filePath);
+    } catch (e) {
+      // Not a symbolic link.
+      stat = fs.statSync(filePath);
+      if (stat.isDirectory()) {
+        // Recurse.
+        _find_symlinks(filePath, found);
+      }
+    }
+  }
+  return found;
+}
+
+/**
+ * Recursively searches the given directory for symlinks. Returns an array of
+ * found symlinks.
+ */
+function find_symlinks(dir) {
+  return _find_symlinks(dir, []);
 }
 
 function symlink_java_home(cb) {
   var java_home = path.resolve(VENDOR_DIR, 'java_home'),
-      JH = path.resolve(DOWNLOAD_DIR, 'usr', 'lib', 'jvm', 'java-6-openjdk-i386', 'jre');
+      JH = path.resolve(DOWNLOAD_DIR, 'usr', 'lib', 'jvm', 'java-6-openjdk-i386', 'jre'),
+      links;
   if (fs.existsSync(java_home)) {
     return cb();
   }
   console.log('Symlinking files into java_home');
   // a number of .properties files are symlinks to /etc; copy the targets over
   // so we do not need to depend on /etc's existence
-  exec('find "' + JH + '" -type l', function(err, stdout, stderr){
-    if (err !== null) return cb(err);
-    var links = stdout.split(/\r?\n/g);
-    async.each(links, function(link, cb2){
-      if (link.trim().length === 0) return cb2(null);
-      var dest = fs.readlinkSync(link);
-      if (dest.match(/^\/etc/)) {
+  links = find_symlinks(JH);
+  async.each(links, function(link, cb2){
+    var dest = fs.readlinkSync(link);
+    if (dest.match(/^\/etc/)) {
+      try {
+        fs.renameSync(path.join(DOWNLOAD_DIR, dest), link);
+      } catch (e) {
+        // Some /etc symlinks are just broken. Hopefully not a big deal.
+        console.log('warning: broken symlink: '+dest);
+      }
+    } else {
+      var p = path.resolve(path.join(path.dirname(link), dest));
+      // copy in anything that links out of the JH dir
+      if (!p.match(/java-6-openjdk-i386/)) {
+        // XXX: this fails if two symlinks reference the same file
         try {
-          fs.renameSync(path.join(DOWNLOAD_DIR, dest), link);
-        } catch (e) {
-          // Some /etc symlinks are just broken. Hopefully not a big deal.
-          console.log('warning: broken symlink: '+dest);
-        }
-      } else {
-        var p = path.resolve(path.join(path.dirname(link), dest));
-        // copy in anything that links out of the JH dir
-        if (!p.match(/java-6-openjdk-i386/)) {
-          // XXX: this fails if two symlinks reference the same file
-          try {
-            if (fs.statSync(p).isDirectory()) {
-              fs.unlinkSync(link);
-            }
-            fs.renameSync(p, link);
-          } catch (e) {
-            console.log('warning: broken symlink: '+p);
+          if (fs.statSync(p).isDirectory()) {
+            fs.unlinkSync(link);
           }
+          fs.renameSync(p, link);
+        } catch (e) {
+          console.log('warning: broken symlink: '+p);
         }
       }
-      cb2(null);
-    }, function(err){
-      fs.renameSync(JH, java_home);
-      return cb(err);
-    });
+    }
+    cb2(null);
+  }, function(err){
+    fs.renameSync(JH, java_home);
+    return cb(err);
   });
 }
 
