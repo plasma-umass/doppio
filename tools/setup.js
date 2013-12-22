@@ -51,7 +51,7 @@ function check_install_module(name, cb) {
     require(name);
     cb();
   } catch (e) {
-    exec('npm install name', cb);
+    exec('npm install ' + name, cb);
   }
 }
 
