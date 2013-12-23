@@ -308,7 +308,7 @@ function get_ecj(cb) {
      With Doppio: (see issue #218)
        ./doppio -Djdt.compiler.useSingleThread -jar vendor/jars/ecj.jar -1.6 classes/demo/Fib.java
   */
-  var ecj_mainclass = path.resolve(CLASSES_DIR, 'org', 'eclipse', 'jdt', 'internal', 'compiler', 'batch', 'Main'),
+  var ecj_mainclass = path.resolve(CLASSES_DIR, 'org', 'eclipse', 'jdt', 'internal', 'compiler', 'batch', 'Main.class'),
       ecj_url = "http://www.eclipse.org/downloads/download.php?file=/eclipse/downloads/drops/R-3.7.1-201109091335/ecj-3.7.1.jar",
       ecj_jar_path = path.resolve(DOWNLOAD_DIR, "ecj.jar"),
       ecj_stream = fs.createWriteStream(ecj_jar_path);
@@ -317,7 +317,7 @@ function get_ecj(cb) {
   request(ecj_url).pipe(ecj_stream).on('finish', function(err) {
     // close stream.
     ecj_stream.close();
-    if (err) cb(err);
+    if (err) return cb(err);
     unzip(ecj_jar_path, CLASSES_DIR, cb);
   });
 }
