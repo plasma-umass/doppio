@@ -23,7 +23,12 @@
     "coffee-script": "1.6",
     "uglify-js": "2",
     "bower": "*",
-    "adm-zip": "*"
+    "adm-zip": "*",
+    "grunt": "*",
+    "grunt-ts": "*",
+    "typescript-require": "*",
+    "grunt-contrib-uglify": "*",
+    "glob": "*"
   },
   "repository": {
     "type": "git",

@@ -1,4 +1,4 @@
-/*jslint node: true */
+/// <reference path="../vendor/DefinitelyTyped/node/node.d.ts" />
 "use strict";
 var fs = require('fs'),
     path = require('path'),
@@ -13,25 +13,25 @@ var fs = require('fs'),
     AdmZip = require('adm-zip'),
     async = require('async');
 
-var JAVA = 'java',
-    JAVAC = 'javac',
-    JAVAP = 'javap',
+var JAVA: string = 'java',
+    JAVAC: string = 'javac',
+    JAVAP: string = 'javap',
     // Ubuntu (security) repo actual on 24.02.2013
-    DEBS_DOMAIN="http://security.ubuntu.com/ubuntu/pool/main/o/openjdk-6",
-    DEBS = [
+    DEBS_DOMAIN: string = "http://security.ubuntu.com/ubuntu/pool/main/o/openjdk-6",
+    DEBS: string[] = [
         "openjdk-6-jre-headless_6b27-1.12.6-1ubuntu0.12.04.4_i386.deb",
         "openjdk-6-jdk_6b27-1.12.6-1ubuntu0.12.04.4_i386.deb",
         "openjdk-6-jre-lib_6b27-1.12.6-1ubuntu0.12.04.4_all.deb"
     ],
-    DOWNLOAD_DIR = path.resolve(os.tmpdir(), "jdk-download" + Math.floor(Math.random()*100000)),
-    RUN_DIR = path.resolve(__dirname, '..'),
-    VENDOR_DIR = path.resolve(RUN_DIR, 'vendor'),
-    CLASSES_DIR = path.resolve(VENDOR_DIR, 'classes');
+    DOWNLOAD_DIR: string = path.resolve(os.tmpdir(), "jdk-download" + Math.floor(Math.random()*100000)),
+    RUN_DIR: string = path.resolve(__dirname, '..'),
+    VENDOR_DIR: string = path.resolve(RUN_DIR, 'vendor'),
+    CLASSES_DIR: string = path.resolve(VENDOR_DIR, 'classes');
 
 /**
  * Unzips the file at file_path to dest_dir.
  */
-function unzip(file_path, dest_dir, cb) {
+function unzip(file_path: string, dest_dir: string, cb: (err?: any) => void): void {
   var err;
   try {
     var zip = new AdmZip(file_path);
@@ -45,7 +45,7 @@ function unzip(file_path, dest_dir, cb) {
 /**
  * Checks if the given module is available. If not, it installs it with npm.
  */
-function check_install_module(name, cb) {
+function check_install_module(name: string, cb: (err?: any) => void): void {
   // Check if it's present.
   try {
     require(name);
@@ -58,12 +58,12 @@ function check_install_module(name, cb) {
 /**
  * Determines the path to JAVA_HOME, and updates the paths to JAVA/JAVAC/JAVAP.
  */
-function find_java_home(cb) {
+function find_java_home(cb: (err?: any) => void): void {
   var fail_msg = "Could not find a working version of Java 6. Please ensure " +
                  "that you have a version of Java 6 installed on your computer.",
       userCb = cb;
   console.log("Finding Java installation directory...");
-  cb = function(err) {
+  cb = function(err?: any) {
     if (!err) {
       console.log("\tJava: " + JAVA);
       console.log("\tJavap: " + JAVAP);
@@ -76,7 +76,7 @@ function find_java_home(cb) {
     // Windows
     // N.B.: We cannot include 'winreg' in package.json, as it fails to install
     //       on *nix environments. :(
-    check_install_module('winreg', function(err) {
+    check_install_module('winreg', function(err?: any) {
       if (err) return cb(err);
       var Winreg = require('winreg'), regKey;
       // Look up JDK path.
@@ -129,7 +129,7 @@ function find_java_home(cb) {
  * Finds data.tar.gz in the given debian package, and extracts it. Calls the
  * callback with an optional error message when finished.
  */
-function extract_data(deb_path, cb) {
+function extract_data(deb_path: string, cb: (err?: any) => void): void {
   var archive = new ar.Archive(fs.readFileSync(deb_path)),
       files = archive.getFiles(), i, file,
       found = false, tarFile = deb_path + ".tar", stream,
@@ -164,7 +164,7 @@ function extract_data(deb_path, cb) {
   }
 }
 
-function jcl_download(cb) {
+function jcl_download(cb: (err?: any) => void): void {
   console.log('Downloading the Java class library (big download, may take a while)');
   async.each(DEBS, function(deb, cb2){
     var url = DEBS_DOMAIN + '/' + deb,
@@ -182,7 +182,7 @@ function jcl_download(cb) {
  * Looks for a file with the given name recursively in `path`.
  * Returns NULL if the file cannot be found.
  */
-function find_file(dir, file) {
+function find_file(dir: string, file: string): string {
   var files = fs.readdirSync(dir),
       i = 0, filePath, rv;
   if (files.indexOf(file) !== -1) {
@@ -201,7 +201,7 @@ function find_file(dir, file) {
   return null;
 }
 
-function extract_jars(cb) {
+function extract_jars(cb: (err?: any) => void): void {
   var jars = ["rt.jar", "tools.jar", "resources.jar", "rhino.jar", "jsse.jar"];
   console.log('Extracting JAR files');
   async.each(jars, function(jar, cb2){
@@ -218,7 +218,7 @@ function extract_jars(cb) {
  * (Helper function) Found is an array of symlinks found thus far. We simply
  * append to it.
  */
-function _find_symlinks(dir, found) {
+function _find_symlinks(dir: string, found: string[]): string[] {
   var files = fs.readdirSync(dir), i, filePath, stat;
   // TODO: There's probably a better way to detect symlinks than this.
   for (i = 0; i < files.length; i++) {
@@ -243,11 +243,11 @@ function _find_symlinks(dir, found) {
  * Recursively searches the given directory for symlinks. Returns an array of
  * found symlinks.
  */
-function find_symlinks(dir) {
+function find_symlinks(dir: string): string[] {
   return _find_symlinks(dir, []);
 }
 
-function symlink_java_home(cb) {
+function symlink_java_home(cb: (err?: any) => void): void {
   var java_home = path.resolve(VENDOR_DIR, 'java_home'),
       JH = path.resolve(DOWNLOAD_DIR, 'usr', 'lib', 'jvm', 'java-6-openjdk-i386', 'jre'),
       links;
@@ -289,7 +289,7 @@ function symlink_java_home(cb) {
   });
 }
 
-function jcl_setup(cb) {
+function jcl_setup(cb: (err?: any) => void): void {
   // check for the JCL
   if (fs.existsSync(path.resolve(CLASSES_DIR, 'java', 'lang', 'Object.class'))) {
     return cb(null);
@@ -301,7 +301,7 @@ function jcl_setup(cb) {
   ], cb);
 }
 
-function get_ecj(cb) {
+function get_ecj(cb: (err?: any) => void): void {
   /* Download Eclipse standalone compiler
      Example uses:
        java -classpath vendor/classes org.eclipse.jdt.internal.compiler.batch.Main A.java
@@ -322,7 +322,7 @@ function get_ecj(cb) {
   });
 }
 
-function patch_jazzlib(cb) {
+function patch_jazzlib(cb: (err?: any) => void): void {
   var jazzlib_dir = path.resolve(DOWNLOAD_DIR, 'jazzlib'),
       jazzlib_zipfile = path.resolve(DOWNLOAD_DIR, 'jazzlib.zip'),
       jazzlib_zipfile_stream,
@@ -337,7 +337,7 @@ function patch_jazzlib(cb) {
     jazzlib_zipfile_stream.close();
     if (err) return cb(err);
     // Unzip
-    unzip(jazzlib_zipfile, jazzlib_dir, function(err) {
+    unzip(jazzlib_zipfile, jazzlib_dir, function(err?: any) {
       // Replace JCL zip classes.
       var jazzlib_zip_dir = path.resolve(jazzlib_dir, 'java', 'util', 'zip'),
         jcl_zip_dir = path.resolve(VENDOR_DIR, 'classes', 'java', 'util', 'zip'),
@@ -353,7 +353,7 @@ function patch_jazzlib(cb) {
   });
 }
 
-function check_node_version(cb) {
+function check_node_version(cb: (err?: any) => void): void {
   console.log('Checking node version...');
   if (semver.lt(process.versions.node, '0.10.0')) {
     console.log('\tnode >= v0.10.0 required, please update.');
@@ -363,7 +363,7 @@ function check_node_version(cb) {
   cb(null);
 }
 
-function check_java_version(cb) {
+function check_java_version(cb: (err?: any) => void): void {
   console.log('Checking java version...');
   exec(JAVAC+' -version', function(err, stdout, stderr){
     if (stderr.match(/1\.7/)) {
@@ -375,7 +375,7 @@ function check_java_version(cb) {
   });
 }
 
-function make_java(cb) {
+function make_java(cb: (err?: any) => void): void {
   console.log('Generating Java classfiles');
   exec('make java', function(err, stdout, stderr){
     cb(err);
