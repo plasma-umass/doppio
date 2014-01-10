@@ -1,12 +1,17 @@
 /**
  * Grunt build file for Doppio.
- * Bootstraps ourselves from JavaScript into TypeScript, with a little help
- * from `typescript-require`.
+ * Bootstraps ourselves from JavaScript into TypeScript.
  */
-var Grunttasks;
-require('typescript-require');
-// typescript-require will compile Grunttasks.ts to JavaScript.
-// It will also use modification time to determine if Grunttasks should be
-// recompiled or not.
-Grunttasks = require('./Grunttasks.ts');
+var Grunttasks, glob = require('glob'), ts_files = [],
+    execSync = require('execSync');
+
+ts_files = glob.sync('tasks/*.ts');
+ts_files.push('Grunttasks.ts');
+
+// Run!
+if (execSync.run('tsc --module commonjs ' + ts_files.join(' ')) !== 0) {
+  throw new Error("Compilation error!");
+}
+
+Grunttasks = require('./Grunttasks');
 module.exports = Grunttasks.setup;

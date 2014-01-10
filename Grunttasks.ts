@@ -1,63 +1,66 @@
 /// <reference path="vendor/DefinitelyTyped/node/node.d.ts" />
 /// <reference path="vendor/DefinitelyTyped/gruntjs/gruntjs.d.ts" />
 /**
- * Contains all of Doppio's build tasks in beautiful TypeScript.
- * If this is too long of a file, we can break this up into separate files that
- * specify individual or groups of Grunt tasks:
- * http://www.thomasboyt.com/2013/09/01/maintainable-grunt.html
+ * Contains all of doppio's grunt build tasks in TypeScript.
  */
 import path = require('path');
 import fs = require('fs');
 import child_process = require('child_process');
 import os = require('os');
-var glob = require("glob"),
-    exec = child_process.exec,
-    async = require("async"),
-    NUM_CPUS = os.cpus().length;
+import url = require('url');
+var exec = child_process.exec,
+    NUM_CPUS = os.cpus().length,
+    DOWNLOAD_DIR: string = "/var/folders/_f/gq2b3cyd3qv8r4dl642488w80000gq/T/jdk-download84508",//path.resolve(os.tmpDir(), "jdk-download" + Math.floor(Math.random()*100000)),
+    DEBS_DOMAIN: string = "http://security.ubuntu.com/ubuntu/pool/main/o/openjdk-6/",
+    DEBS: string[] = [
+        "openjdk-6-jre-headless_6b27-1.12.6-1ubuntu0.12.04.4_i386.deb",
+        "openjdk-6-jdk_6b27-1.12.6-1ubuntu0.12.04.4_i386.deb",
+        "openjdk-6-jre-lib_6b27-1.12.6-1ubuntu0.12.04.4_all.deb"
+    ],
+    ECJ_URL: string = "http://www.eclipse.org/downloads/download.php?file=/eclipse/downloads/drops/R-3.7.1-201109091335/ecj-3.7.1.jar",
+    JAZZLIB_URL: string = "http://downloads.sourceforge.net/project/jazzlib/jazzlib/0.07/jazzlib-binary-0.07-juz.zip",
+    DOWNLOAD_URLS: string[] = [];
 
-/**
- * Symlinks source to dest, and prints out what it is doing through Grunt.
- * Returns a boolean, indicating whether or not it succeeded.
- */
-function symlink(grunt: IGrunt, source: string, dest: string): boolean {
-  var sourceRel: string = path.relative(__dirname, source),
-      destRel: string = path.relative(__dirname, dest),
-      existingLinkPath: string;
-  // Check if symlink exists.
-  try {
-    existingLinkPath = fs.readlinkSync(dest);
-    if (path.resolve(existingLinkPath) === path.resolve(source)) {
-      // Symlink exists and is OK.
-      return true;
-    }
-    else {
-      grunt.log.error('Cannot symlink ' + sourceRel + ' to ' + destRel + ': ' + destRel + ' exists, and links to ' + existingLinkPath + '.');
-      return false;
-    }
-  } catch (e) {
-    if (e.code !== 'ENOENT') {
-      grunt.log.error('Cannot symlink ' + sourceRel + ' to ' + destRel + ': ' + destRel + ' exists and is not a symlink.');
-      return false;
-    }
-  }
-
-  try {
-    fs.symlinkSync(source, dest);
-    grunt.log.ok('Symlinked ' + sourceRel + ' to ' + destRel + '.');
-  } catch (e) {
-    grunt.log.error('Cannot symlink ' + sourceRel + ' to ' + destRel + ': ' + e);
-    return false;
-  }
-
-  return true;
-}
-
+// Prepare DOWNLOAD_URLS prior to Grunt configuration.
+DEBS.forEach(function(e) {
+  DOWNLOAD_URLS.push(DEBS_DOMAIN + e);
+});
+DOWNLOAD_URLS.push(ECJ_URL);
+DOWNLOAD_URLS.push(JAZZLIB_URL);
 
 export function setup(grunt: IGrunt) {
-
   // Project configuration.
   grunt.initConfig({
     pkg: grunt.file.readJSON('package.json'),
+    // Configuration information for doppio's custom build tasks.
+    build: {
+      // Path to Java CLI utils. Will be updated by find_native_java_home task
+      // if needed.
+      java: 'java',
+      javap: 'javap',
+      javac: 'javac',
+      // Where we download JCL stuff.
+      download_dir: DOWNLOAD_DIR
+    },
+    'ice-cream': {
+      'release-cli': {
+        files: [{
+          expand: true,
+          cwd: 'build/dev-cli',
+          src: '(console|src)/*.js',
+          dest: 'build/release-cli'
+        }]
+      }
+    },
+    launcher: {
+      'dev-cli': {
+        name: 'doppio-dev'
+      },
+      'release-cli': {
+        name: 'doppio'
+      }
+    },
+    // Compiles TypeScript files.
     ts: {
       options: {
         sourcemap: true,
@@ -71,21 +74,52 @@ export function setup(grunt: IGrunt) {
         }
       }
     },
-    // Configuration information for all of Doppio's build types.
-    build: {
-      dev_cli: {
-        dirName: "dev-cli",
-        launcherName: "doppio-dev"
+    // Downloads files.
+    'curl-dir': {
+      long: {
+        src: DOWNLOAD_URLS,
+        dest: DOWNLOAD_DIR
+      }
+    },
+    // Unzips files.
+    unzip: {
+      options: {
+        dest_dir: 'vendor/classes'
       },
-      dev: {
-        dirName: "dev"
+      jcl: {
+        files: [{
+          expand: true,
+          src: [
+            DOWNLOAD_DIR + "/**/rt.jar",
+            DOWNLOAD_DIR + "/**/tools.jar",
+            DOWNLOAD_DIR + "/**/resources.jar",
+            DOWNLOAD_DIR + "/**/rhino.jar",
+            DOWNLOAD_DIR + "/**/jsse.jar"
+          ]
+        }]
       },
-      release_cli: {
-        dirName: "release-cli",
-        launcherName: "doppio"
+      ecj: {
+        // We can't get the pathname from the URL, since it has an argument
+        // in it that contains the actual filename.
+        files: [{src: DOWNLOAD_DIR + "/ecj*.jar"}]
       },
-      release: {
-        dirName: "release"
+      jazzlib: {
+        options: {
+          dest_dir: DOWNLOAD_DIR + "/jazzlib"
+        },
+        files: [{src: DOWNLOAD_DIR + "/" + path.basename(url.parse(JAZZLIB_URL).pathname)}]
+      }
+    },
+    extract_deb: {
+      default: {
+        options: {
+          dest_dir: DOWNLOAD_DIR
+        },
+        files: [{
+          expand: true,
+          cwd: DOWNLOAD_DIR,
+          src: "*.deb"
+        }]
       }
     },
     uglify: {
@@ -98,104 +132,37 @@ export function setup(grunt: IGrunt) {
         },
         files: [{
           expand: true,
-          cwd: path.resolve(__dirname, 'build', 'dev-cli'),
+          cwd: 'build/dev-cli',
           src: '(console|src)/*.js',
-          dest: path.resolve(__dirname, 'build', 'release-cli')
+          dest: 'build/release-cli'
+        }]
+      }
+    },
+    copy: {
+      jazzlib: {
+        // Patches Jazzlib.
+        files: [{
+          expand: true,
+          flatten: true,
+          src: DOWNLOAD_DIR + "/jazzlib/java/util/zip/*.class",
+          dest: "vendor/classes/java/util/zip"
         }]
       }
     }
 	});
 
-  grunt.registerTask('make_build_dir', 'Creates the build directory, if not present.', function(target: string) {
-    var buildPath: string = path.resolve(__dirname, "build"),
-        targetPath: string;
-    grunt.config.requires('build.' + target + '.dirName');
-    targetPath = path.resolve(buildPath, grunt.config('build.' + target + '.dirName'));
-    try {
-      if (!fs.existsSync(targetPath)) {
-        if (!fs.existsSync(buildPath)) {
-          fs.mkdirSync(buildPath);
-        }
-        fs.mkdirSync(targetPath);
-        grunt.log.ok("Created build folder build/" + target + ".");
-      }
-    } catch (e) {
-      grunt.log.error('Could not create build folder build/' + target + ".");
-      return false;
-    }
-  });
-
-  grunt.registerTask('symlink', 'Symlinks classes/ and vendor/ folders into given build directory.', function(target: string) {
-    var buildPath: string,
-        classesPath: string = path.resolve(__dirname, "classes"),
-        vendorPath: string = path.resolve(__dirname, "vendor");
-    // Fail task if a build directory was not specified.
-    grunt.config.requires('build.' + target + '.dirName');
-    buildPath = path.resolve(__dirname, 'build', grunt.config('build.' + target + '.dirName'));
-    // Ensure task fails if one of the symlinks fails.
-    return symlink(grunt, classesPath, path.resolve(buildPath, 'classes')) && symlink(grunt, vendorPath, path.resolve(buildPath, 'vendor'));
-  });
-
-  grunt.registerTask('ice-cream', 'Removes debug statements from code.', function(target: string) {
-    var ice_cream_path: string = path.resolve(__dirname, 'node_modules', '.bin', 'ice-cream'),
-        buildPath: string,
-        devPath: string = path.resolve(__dirname, "build", "dev-cli"),
-        done: (status?: boolean) => void = this.async();
-    // Fail task if a build directory was not specified.
-    grunt.config.requires('build.' + target + '.dirName');
-    buildPath = path.resolve(__dirname, 'build', grunt.config('build.' + target + '.dirName'));
-    glob(path.resolve(buildPath,"(console|src)", "*.js"), function (er, files: string[]) {
-      var cmd_args: string = " --remove trace --remove vtrace --remove debug",
-          cmd_start: string = ice_cream_path + " " + devPath + "/",
-          i: number, tasks: Function[] = [];
-      if (er) {
-        grunt.log.error('Could not glob files: ' + er);
-        return done(false);
-      }
-      // Parallelized ice-cream!
-      for (i = 0; i < files.length; i++) {
-        // Closure to capture 'file'.
-        (function(file: string) {
-          tasks.push(function(cb: (err?: any) => void): void {
-            exec(cmd_start + file + cmd_args, function(err: any, stdout: NodeBuffer) {
-              var outputFilePath: string = path.resolve(buildPath, path.relative(devPath, file));
-              if (err) {
-                grunt.log.error("Could not run ice-cream on file " + file + ": " + err);
-                return cb(new Error());
-              }
-              fs.writeFile(outputFilePath, stdout, function(err) {
-                if (err) {
-                  grunt.log.error("Could not write to file " + outputFilePath + ": " + err);
-                  return cb(new Error());
-                }
-              });
-            });
-          });
-        })(files[i]);
-      }
-
-      async.parallelLimit(tasks, NUM_CPUS, function(err: any, results: any[]) {
-        done(err == null);
-      });
-    });
-  });
-
-  grunt.registerTask('launcher', 'Creates a launcher for the given CLI release.', function(target: string) {
+  grunt.registerMultiTask('launcher', 'Creates a launcher for the given CLI release.', function() {
     var launcherName: string, buildPath: string,
-        launcherPath: string, doppioPath: string;
-    // Fail task if a build directory or launcher name was not specified.
-    grunt.config.requires('build.' + target + '.dirName');
-    grunt.config.requires('build.' + target + '.launcherName');
-    buildPath = path.resolve(__dirname, 'build', grunt.config('build.' + target + '.dirName'));
-    launcherName = grunt.config('build.' + target + '.launcherName');
-    launcherPath = path.resolve(__dirname, launcherName);
+        doppioPath: string, options: {name: string} = this.options();
+    buildPath = path.resolve('build', this.target);
+    launcherName = options.name;
     // Relative path for the launcher.
     doppioPath = path.relative(__dirname, path.resolve(buildPath, "console", "runner"));
 
-    if (!fs.existsSync(launcherPath)) {
+    if (!fs.existsSync(launcherName)) {
       try {
         // Write with mode 755.
-        fs.writeFileSync(launcherPath, 'node $(dirname $0)/' + doppioPath + ' "$@"', {mode: 493});
+        fs.writeFileSync(launcherName, 'node $(dirname $0)/' + doppioPath + ' "$@"', {mode: 493});
         grunt.log.ok("Created launcher " + launcherName);
       } catch(e) {
         grunt.log.error("Could not create launcher " + launcherName + ": " + e);
@@ -208,17 +175,102 @@ export function setup(grunt: IGrunt) {
   grunt.loadNpmTasks('grunt-ts');
   // Provides minification.
   grunt.loadNpmTasks('grunt-contrib-uglify');
+  grunt.loadNpmTasks('grunt-contrib-copy');
+  grunt.loadNpmTasks('grunt-curl');
+  // Load our custom tasks.
+  grunt.loadTasks('tasks');
+
+  grunt.registerTask('setup', "Sets up doppio's environment prior to building.", function() {
+    var need_jcl: boolean, need_ecj: boolean, need_jazzlib: boolean;
+    // (Required) Finds local installation of Java.
+    grunt.task.run('find_native_java');
+    need_jcl = !fs.existsSync('vendor/classes/java/lang/Object.class');
+    need_ecj =!fs.existsSync('vendor/classes/org/eclipse/jdt/internal/compiler/batch/Main.class');
+    need_jazzlib = !fs.existsSync('vendor/classes/java/util/zip/DeflaterEngine.class');
+    if (need_jcl || need_ecj || need_jazzlib) {
+      // Create download folder.
+      try { fs.mkdirSync(DOWNLOAD_DIR); } catch (e) { }
+      // Schedule download task.
+      // grunt.task.run('curl-dir');
+    }
+    if (need_jcl) {
+      grunt.task.run('extract_deb');
+      grunt.task.run('unzip:jcl');
+    }
+    if (need_ecj) {
+      grunt.task.run('unzip:ecj');
+    }
+    if (need_jazzlib) {
+      grunt.task.run('unzip:jazzlib');
+      grunt.task.run('copy:jazzlib');
+    }
+    if (!fs.existsSync('vendor/java_home')) {
+      grunt.task.run('setup_java_home');
+    }
+  });
 
   grunt.registerTask('dev-cli',
-    ['make_build_dir:dev_cli',
-     'symlink:dev_cli',
+    ['setup',
+     'make_build_dir:dev_cli',
      'ts:dev_cli',
-     'launcher:dev_cli'])
+     'launcher:dev_cli']);
   grunt.registerTask('release-cli',
-    ['dev-cli',
+    ['setup',
+     'dev-cli',
      'make_build_dir:release_cli',
-     'symlink:release_cli',
      'ice-cream:release_cli',
      'uglify:release_cli',
-     'launcher:release_cli'])
+     'launcher:release_cli']);
+  /**
+   * $(TSC) --module amd --declaration --outDir build/dev browser/frontend.ts
+   * style.css <-- cat
+   * index.html <-- $(COFFEEC) browser/render.coffee $* > $@
+   * DEMO CLASSES <--    compile
+   * UTIL CLASSES <--    compile
+   * mini-rt.tar.gz <--  construct
+   *   COPYFILE_DISABLE=true && tar -c -h -T <(sort -u tools/preload) -f $@
+   * require_config <-- copy over
+   * favicon.ico <--    copy over
+   *
+   * TODO:
+   * - Task for invoking javac on tons of files.
+   *   OR simply invoke javac on all files at once???
+   * - Task for copying files from one location to another.
+   * - Task for catting together files into one file.
+   * - Task for *.tar.gz'ing up a bunch of files (use streams).
+   * - Render task for HTML.
+   * - Generic ice-cream task (input files, output folder)
+   *   -> Use streams to stream to file?
+   *
+   * MORE generic tasks, LESS task code!
+   */
+  grunt.registerTask('dev',
+    ['make_build_dir:dev',
+     'symlink:dev',
+     ])
+  /**
+   * release:
+   * - build dev
+   * - $(R_JS) -o browser/build.js
+   * - $(R_JS) -o browser/build_frontend.js
+   * Stuff with HTML
+   * Stuff with favico
+   * Stuff with mini-rt
+   * Stuff with style.css
+   * Copy over assets (SVG/PNG/etc)
+   * Compile core-viewer
+   *release: $(patsubst %,build/release/%,$(notdir $(BROWSER_HTML))) \
+  build/release/doppio.js build/release/browser/frontend.js \
+  build/release/favicon.ico build/release/browser/mini-rt.tar \
+  build/release/browser/style.css
+  rsync browser/*.svg browser/*.png build/release/browser/
+  rsync browser/core_viewer/core_viewer.css build/release/browser/core_viewer/
+  $(COFFEEC) -c -o build/release/browser/core_viewer browser/core_viewer/core_viewer.coffee
+  cp browser/core_viewer.html build/release
+  cd build/release; $(COFFEEC) $(DOPPIO_DIR)/tools/gen_dir_listings.coffee > browser/listings.json
+
+   */
+  grunt.registerTask('release',
+    ['make_build_dir:release',
+     'symlink:release']);
 };

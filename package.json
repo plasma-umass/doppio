@@ -1,6 +1,7 @@
 {
   "name": "doppio",
   "version": "0.3.0",
+  "engine": "node >= 0.10.0",
   "dependencies": {
     "optimist": "~0.3.5",
     "async": "*"
@@ -26,9 +27,11 @@
     "adm-zip": "*",
     "grunt": "*",
     "grunt-ts": "*",
-    "typescript-require": "*",
     "grunt-contrib-uglify": "*",
-    "glob": "*"
+    "grunt-contrib-copy": "*",
+    "grunt-curl": "*",
+    "glob": "*",
+    "execSync": "*"
   },
   "repository": {
     "type": "git",
