@@ -148,6 +148,30 @@ export function setup(grunt: IGrunt) {
           dest: "vendor/classes/java/util/zip"
         }]
       }
+    },
+    javac: {
+      default: {
+        files: [{
+          expand: true,
+          src: 'classes/+(awt|demo|doppio|test|util)/*.java'
+        }]
+      }
+    },
+    javap: {
+      default: {
+        files: [{
+          expand: true,
+          src: 'classes/test/*.java',
+          ext: '.disasm'
+        }]
+      }
+    },
+    run_java: {
+      default: {
+        expand: true,
+        src: 'classes/test/*.java',
+        ext: '.runout'
+      }
     }
 	});
 
@@ -241,13 +265,22 @@ export function setup(grunt: IGrunt) {
    * - Render task for HTML.
    * - Generic ice-cream task (input files, output folder)
    *   -> Use streams to stream to file?
-   *
+   * - CORE VIEWER, COMPILE.
    * MORE generic tasks, LESS task code!
    */
+  grunt.registerTask('java',
+    ['javac',
+     'javap',
+     'run_java']);
   grunt.registerTask('dev',
-    ['make_build_dir:dev',
-     'symlink:dev',
-     ])
+    ['setup',
+     'java',
+     'make_build_dir:dev',
+     // Write custom task. Consumes things, renders w/ menu.
+     'render',
+     'copy:dev',
+     'cat:dev',
+     'tsc:dev'])
   /**
    * release:
    * - build dev
