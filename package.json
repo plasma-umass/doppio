@@ -29,6 +29,8 @@
     "grunt-ts": "*",
     "grunt-contrib-uglify": "*",
     "grunt-contrib-copy": "*",
+    "grunt-contrib-concat": "*",
+    "grunt-contrib-coffee": "*",
     "grunt-curl": "*",
     "glob": "*",
     "execSync": "*"

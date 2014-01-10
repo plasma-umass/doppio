@@ -34,8 +34,8 @@ function make_build_dir(grunt: IGrunt) {
  * Returns a boolean, indicating whether or not it succeeded.
  */
 function symlink(grunt: IGrunt, source: string, dest: string): boolean {
-  var sourceRel: string = path.relative(__dirname, source),
-      destRel: string = path.relative(__dirname, dest),
+  var sourceRel: string = path.relative(process.cwd(), source),
+      destRel: string = path.relative(process.cwd(), dest),
       existingLinkPath: string;
   // Check if symlink exists.
   try {

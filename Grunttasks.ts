@@ -42,6 +42,12 @@ export function setup(grunt: IGrunt) {
       // Where we download JCL stuff.
       download_dir: DOWNLOAD_DIR
     },
+    make_build_dir: {
+      dev: {}, release: {}, 'dev-cli': {}, 'release-cli': {}
+    },
+    listings: {
+      dev: {}, release: {}
+    },
     'ice-cream': {
       'release-cli': {
         files: [{
@@ -71,6 +77,13 @@ export function setup(grunt: IGrunt) {
         outDir: 'build/dev-cli',
         options: {
           module: 'commonjs'
+        }
+      },
+      dev: {
+        src: ["browser/frontend.ts", "src/*.ts"],
+        outDir: 'build/dev',
+        options: {
+          module: 'amd'
         }
       }
     },
@@ -147,6 +160,14 @@ export function setup(grunt: IGrunt) {
           src: DOWNLOAD_DIR + "/jazzlib/java/util/zip/*.class",
           dest: "vendor/classes/java/util/zip"
         }]
+      },
+      dev: {
+        files: [{
+          expand: true,
+          src: ['browser/*.svg', 'browser/*.png', 'browser/*.js',
+                'browser/core_viewer/*.css', 'browser/mini-rt.tar'],
+          dest: 'build/dev'
+        }, { expand: true, flatten: true, src: 'browser/core_viewer/*.html', dest: 'build/dev'}]
       }
     },
     javac: {
@@ -171,6 +192,57 @@ export function setup(grunt: IGrunt) {
         expand: true,
         src: 'classes/test/*.java',
         ext: '.runout'
+      }
+    },
+    render: {
+      options: {
+        secondary_file: "_navbar"
+      },
+      dev: {
+        files: [{
+          expand: true,
+          flatten: true,
+          src: "browser/!(_)*.mustache",
+          dest: "build/dev",
+          ext: '.html'
+        }]
+      },
+      release: {
+        options: {
+          args: ["--release"]
+        },
+        files: [{
+          expand: true,
+          flatten: true,
+          src: "browser/[^_]*.mustache",
+          dest: "build/release",
+          ext: '.html'
+        }]
+      }
+    },
+    concat: {
+      dev: {
+        src: ['vendor/bootstrap/docs/assets/css/bootstrap.css', 'browser/style.css'],
+        dest: 'build/dev/browser/style.css',
+      },
+      release: {
+        src: ['vendor/bootstrap/docs/assets/css/bootstrap.css', 'browser/style.css'],
+        dest: 'build/release/browser/style.css',
+      }
+    },
+    coffee: {
+      options: {
+        sourcemap: true
+      },
+      dev: {
+        files: {
+          'build/dev/browser/core_viewer/core_viewer.js': 'browser/core_viewer/core_viewer.coffee'
+        }
+      },
+      release: {
+        files: {
+          'build/release/browser/core_viewer/core_viewer.js': 'browser/core_viewer/core_viewer.coffee'
+        }
       }
     }
 	});
@@ -200,6 +272,8 @@ export function setup(grunt: IGrunt) {
   // Provides minification.
   grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-contrib-copy');
+  grunt.loadNpmTasks('grunt-contrib-concat');
+  grunt.loadNpmTasks('grunt-contrib-coffee');
   grunt.loadNpmTasks('grunt-curl');
   // Load our custom tasks.
   grunt.loadTasks('tasks');
@@ -246,26 +320,21 @@ export function setup(grunt: IGrunt) {
      'uglify:release_cli',
      'launcher:release_cli']);
   /**
-   * $(TSC) --module amd --declaration --outDir build/dev browser/frontend.ts
-   * style.css <-- cat
-   * index.html <-- $(COFFEEC) browser/render.coffee $* > $@
-   * DEMO CLASSES <--    compile
-   * UTIL CLASSES <--    compile
+   * [X] $(TSC) --module amd --declaration --outDir build/dev browser/frontend.ts
+   * [X] style.css <-- cat
+   * [X] index.html <-- $(COFFEEC) browser/render.coffee $* > $@
+   * [X] require_config <-- copy over
+   * [X] favicon.ico <--    copy over
    * mini-rt.tar.gz <--  construct
    *   COPYFILE_DISABLE=true && tar -c -h -T <(sort -u tools/preload) -f $@
-   * require_config <-- copy over
-   * favicon.ico <--    copy over
+   * listings.json <-- PRODUCE
    *
    * TODO:
-   * - Task for invoking javac on tons of files.
-   *   OR simply invoke javac on all files at once???
-   * - Task for copying files from one location to another.
-   * - Task for catting together files into one file.
+   * [X] Task for copying files from one location to another.
+   * [X] Task for catting together files into one file.
    * - Task for *.tar.gz'ing up a bunch of files (use streams).
-   * - Render task for HTML.
-   * - Generic ice-cream task (input files, output folder)
-   *   -> Use streams to stream to file?
-   * - CORE VIEWER, COMPILE.
+   * [X] Render task for HTML.
+   * [X] CORE VIEWER, COMPILE.
    * MORE generic tasks, LESS task code!
    */
   grunt.registerTask('java',
@@ -273,14 +342,16 @@ export function setup(grunt: IGrunt) {
      'javap',
      'run_java']);
   grunt.registerTask('dev',
-    ['setup',
-     'java',
+    [//'setup',
+     //'java',
      'make_build_dir:dev',
-     // Write custom task. Consumes things, renders w/ menu.
-     'render',
+     'render:dev',
+     'coffee:dev',
+     'concat:dev',
+     //'mini-rt',
      'copy:dev',
-     'cat:dev',
-     'tsc:dev'])
+     'listings:dev',
+     'ts:dev'])
   /**
    * release:
    * - build dev
