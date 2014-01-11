@@ -45,9 +45,8 @@ export function setup(grunt: IGrunt) {
     make_build_dir: {
       dev: {}, release: {}, 'dev-cli': {}, 'release-cli': {}
     },
-    listings: {
-      dev: {}, release: {}
-    },
+    listings: { dev: {}, release: {} },
+    'mini-rt': { dev: {}, release: {} },
     'ice-cream': {
       'release-cli': {
         files: [{
@@ -320,22 +319,8 @@ export function setup(grunt: IGrunt) {
      'uglify:release_cli',
      'launcher:release_cli']);
   /**
-   * [X] $(TSC) --module amd --declaration --outDir build/dev browser/frontend.ts
-   * [X] style.css <-- cat
-   * [X] index.html <-- $(COFFEEC) browser/render.coffee $* > $@
-   * [X] require_config <-- copy over
-   * [X] favicon.ico <--    copy over
    * mini-rt.tar.gz <--  construct
    *   COPYFILE_DISABLE=true && tar -c -h -T <(sort -u tools/preload) -f $@
-   * listings.json <-- PRODUCE
-   *
-   * TODO:
-   * [X] Task for copying files from one location to another.
-   * [X] Task for catting together files into one file.
-   * - Task for *.tar.gz'ing up a bunch of files (use streams).
-   * [X] Render task for HTML.
-   * [X] CORE VIEWER, COMPILE.
-   * MORE generic tasks, LESS task code!
    */
   grunt.registerTask('java',
     ['javac',

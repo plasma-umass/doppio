@@ -54,7 +54,7 @@ function symlink(grunt: IGrunt, source: string, dest: string): boolean {
   }
 
   try {
-    fs.symlinkSync(source, dest);
+    fs.symlinkSync(path.resolve(source), path.resolve(dest), 'dir');
     grunt.log.ok('Symlinked ' + sourceRel + ' to ' + destRel + '.');
   } catch (e) {
     grunt.fail.fatal('Cannot symlink ' + sourceRel + ' to ' + destRel + ': ' + e);
