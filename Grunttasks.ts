@@ -68,7 +68,9 @@ export function setup(grunt: IGrunt) {
     listings: { options: { output: "<%= resolve(build.build_dir, 'browser', 'listings.json') %>",
                            cwd: "<%= build.build_dir %>" },
                 default: {}},
-    'mini-rt': { options: { output: "<%= resolve(build.build_dir, 'browser', 'mini-rt.tar') %>" },
+    'mini-rt': { options: { output: "<%= resolve(build.build_dir, 'browser', 'mini-rt.tar') %>",
+                            run_class: 'classes/util/Javac',
+                            run_args: ["./classes/test/FileOps.java"] },
                  default: {}},
     'ice-cream': {
       'release-cli': {
@@ -354,7 +356,9 @@ export function setup(grunt: IGrunt) {
      'render:dev',
      'coffee:dev',
      'concat:dev',
-     //'mini-rt:dev',
+     // NOTE: 'release-cli' must run before 'mini-rt'.
+     'release-cli',
+     'mini-rt',
      'copy:dev',
      'listings',
      'ts:dev']);
