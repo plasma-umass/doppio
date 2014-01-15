@@ -3,8 +3,8 @@
 import os = require('os');
 import child_process = require('child_process');
 import fs = require('fs');
-var async = require('async'),
-    exec = child_process.exec;
+import run_command = require('./helpers/run_command');
+var async = require('async');
 
 function ice_cream(grunt: IGrunt) {
   grunt.registerMultiTask('ice-cream', 'Removes debug statements from code.', function() {
@@ -17,17 +17,14 @@ function ice_cream(grunt: IGrunt) {
       // Closure to capture 'file'.
       (function(file: {src: string[]; dest: string}) {
         tasks.push(function(cb: (err?: any) => void): void {
-          exec(ice_cream_path + ' ' + file.src[0] + args, function(err: any, stdout: NodeBuffer) {
-            if (err) {
-              grunt.fail.fatal("Could not run ice-cream on file " + file.src[0] + ": " + err);
-            }
-            fs.writeFile(file.dest, stdout, function(err) {
-              if (err) {
-                grunt.fail.fatal("Could not write to file " + file.dest + ": " + err);
-              }
-              cb();
-            });
-          });
+          var fileStream = fs.createWriteStream(file.dest);
+          run_command.runCommand('node',
+            [ice_cream_path, file.src[0], '--remove', 'trace', '--remove', 'vtrace', '--remove', 'debug'],
+            {},
+            run_command.createWriteCb(fileStream),
+            run_command.nopCb,
+            run_command.createErrorCb(grunt, fileStream, cb, "Could not run ice-cream on file " + file.src[0] + ".")
+          );
         });
       })(files[i]);
     }

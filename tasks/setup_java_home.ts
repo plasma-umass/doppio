@@ -62,8 +62,8 @@ function symlink_java_home(grunt: IGrunt, cb: (err?: any) => void): void {
   if (fs.existsSync(java_home)) {
     return cb();
   }
-  grunt.config.requires('build.download_dir');
-  JH = path.resolve(grunt.config('build.download_dir'), 'usr', 'lib', 'jvm', 'java-6-openjdk-i386', 'jre'),
+  grunt.config.requires('build.scratch_dir');
+  JH = path.resolve(grunt.config('build.scratch_dir'), 'usr', 'lib', 'jvm', 'java-6-openjdk-i386', 'jre'),
   // a number of .properties files are symlinks to /etc; copy the targets over
   // so we do not need to depend on /etc's existence
   links = find_symlinks(JH);
@@ -71,7 +71,7 @@ function symlink_java_home(grunt: IGrunt, cb: (err?: any) => void): void {
     var dest = fs.readlinkSync(link);
     if (dest.match(/^\/etc/)) {
       try {
-        fs.renameSync(path.join(grunt.config('build.download_dir'), dest), link);
+        fs.renameSync(path.join(grunt.config('build.scratch_dir'), dest), link);
       } catch (e) {
         // Some /etc symlinks are just broken. Hopefully not a big deal.
         grunt.log.writeln('warning: broken symlink: ' + dest);

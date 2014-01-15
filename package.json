@@ -31,6 +31,7 @@
     "grunt-contrib-copy": "*",
     "grunt-contrib-concat": "*",
     "grunt-contrib-coffee": "*",
+    "grunt-shell-spawn": "*",
     "grunt-curl": "*",
     "glob": "*",
     "execSync": "*"

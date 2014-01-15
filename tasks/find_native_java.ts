@@ -26,7 +26,7 @@ function find_native_java(grunt: IGrunt) {
           check_java_version(grunt, done);
         };
 
-    grunt.log.writeln("Finding Java installation directory...");
+    grunt.log.writeln("Locating your Java 6 installation...");
     if (process.platform.match(/win32/i)) {
       // Windows
       // N.B.: We cannot include 'winreg' in package.json, as it fails to install

@@ -45,6 +45,10 @@ function extract_data(grunt: IGrunt, archive_file: {src: string[]; dest: string}
         stream.close();
         cb(err);
       };
+  if (fs.existsSync(tarFile)) {
+    grunt.log.writeln('Ignoring file ' + path.basename(archive_file.src[0]) + ' (already extracted).');
+    return cb();
+  }
   grunt.log.writeln('Processing file ' + path.basename(archive_file.src[0]) + '...');
 
   // Iterate through the files to find data.tar.gz.

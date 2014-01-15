@@ -1,24 +1,22 @@
 /// <reference path="../vendor/DefinitelyTyped/node/node.d.ts" />
 /// <reference path="../vendor/DefinitelyTyped/gruntjs/gruntjs.d.ts" />
-import child_process = require('child_process');
 import fs = require('fs');
+import run_command = require('./helpers/run_command');
 
 function listings(grunt: IGrunt) {
 	grunt.registerMultiTask('listings', 'Generates listings.json', function() {
     var done: (status?: boolean) => void = this.async(),
-        cwd = process.cwd(), target: string = this.target,
-        cp = child_process.spawn('node', [cwd + '/node_modules/.bin/coffee', cwd + '/tools/gen_dir_listings.coffee'], {cwd: 'build/' + target}),
-        file = fs.createWriteStream('build/' + target + '/browser/listings.json');
-    cp.stdout.on('data', function(data: NodeBuffer) {
-      file.write(data);
-    });
-    cp.on('close', function(code: number) {
-      file.end();
-      if (code !== 0) {
-        grunt.fail.fatal('Error producing listings.json!');
-      }
-      done();
-    });
+        cwd = process.cwd(),
+        options = this.options(),
+        stream = fs.createWriteStream(options.output),
+        target_cwd = options.cwd;
+    run_command.runCommand('node',
+      [cwd + '/node_modules/.bin/coffee', cwd + '/tools/gen_dir_listings.coffee'],
+      {cwd: options.cwd},
+      run_command.createWriteCb(stream), // stdout
+      run_command.nopCb,                 // stderr
+      run_command.createErrorCb(grunt, stream, done, // when program closes
+        "Error generating listings.json!"))
   });
 }
 

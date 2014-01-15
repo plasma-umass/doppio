@@ -10,7 +10,6 @@ import os = require('os');
 import url = require('url');
 var exec = child_process.exec,
     NUM_CPUS = os.cpus().length,
-    DOWNLOAD_DIR: string = "/var/folders/_f/gq2b3cyd3qv8r4dl642488w80000gq/T/jdk-download84508",//path.resolve(os.tmpDir(), "jdk-download" + Math.floor(Math.random()*100000)),
     DEBS_DOMAIN: string = "http://security.ubuntu.com/ubuntu/pool/main/o/openjdk-6/",
     DEBS: string[] = [
         "openjdk-6-jre-headless_6b27-1.12.6-1ubuntu0.12.04.4_i386.deb",
@@ -32,37 +31,62 @@ export function setup(grunt: IGrunt) {
   // Project configuration.
   grunt.initConfig({
     pkg: grunt.file.readJSON('package.json'),
-    // Configuration information for doppio's custom build tasks.
+    // Calls path.resolve with the given arguments. If any argument is a
+    // template, it is recursively processed until it no longer contains
+    // templates.
+    // Why do we need this? See:
+    // http://stackoverflow.com/questions/21121239/grunt-how-do-recursive-templates-work
+    resolve: function(...segs: string[]): string {
+      var fixedSegs: string[] = [];
+      segs.forEach(function(seg) {
+        while (seg.indexOf('<%=') !== -1) {
+          seg = <any> grunt.config.process(seg);
+        }
+        fixedSegs.push(seg);
+      });
+      return path.resolve.apply(path, fixedSegs);
+    },
+    // doppio build configuration
     build: {
       // Path to Java CLI utils. Will be updated by find_native_java_home task
       // if needed.
       java: 'java',
       javap: 'javap',
       javac: 'javac',
-      // Where we download JCL stuff.
-      download_dir: DOWNLOAD_DIR
+      doppio_dir: __dirname, // Root directory for doppio (same as this file)
+      build_type: "",        // Build type for doppio (dev/dev-cli/etc.) Will be set by 'setup' task.
+      vendor_dir: '<%= resolve(build.doppio_dir, "vendor") %>',
+      jcl_dir: '<%= resolve(build.vendor_dir, "classes") %>',
+      build_dir: '<%= resolve(build.doppio_dir, "build", build.build_type) %>',
+      scratch_dir:  "/var/folders/_f/gq2b3cyd3qv8r4dl642488w80000gq/T/jdk-download84508",//resolve(os.tmpDir(), "jdk-download" + Math.floor(Math.random()*100000)),
     },
     make_build_dir: {
-      dev: {}, release: {}, 'dev-cli': {}, 'release-cli': {}
+      options: { build_dir: "<%= build.build_dir %>" },
+      // It's a multi-task, so you need a default target.
+      default: {}
     },
-    listings: { dev: {}, release: {} },
-    'mini-rt': { dev: {}, release: {} },
+    listings: { options: { output: "<%= resolve(build.build_dir, 'browser', 'listings.json') %>",
+                           cwd: "<%= build.build_dir %>" },
+                default: {}},
+    'mini-rt': { options: { output: "<%= resolve(build.build_dir, 'browser', 'mini-rt.tar') %>" },
+                 default: {}},
     'ice-cream': {
       'release-cli': {
         files: [{
           expand: true,
           cwd: 'build/dev-cli',
-          src: '(console|src)/*.js',
+          src: '+(console|src)/*.js',
           dest: 'build/release-cli'
         }]
       }
     },
     launcher: {
-      'dev-cli': {
-        name: 'doppio-dev'
+      options: { src: '<%= resolve(build.build_dir, "console", "runner.js") %>' },
+      'doppio-dev': {
+        options: { dest: '<%= resolve(build.doppio_dir, "doppio-dev") %>' }
       },
-      'release-cli': {
-        name: 'doppio'
+      'doppio': {
+        options: { dest: '<%= resolve(build.doppio_dir, "doppio") %>' }
       }
     },
     // Compiles TypeScript files.
@@ -71,7 +95,7 @@ export function setup(grunt: IGrunt) {
         sourcemap: true,
         comments: true
       },
-      dev_cli: {
+      'dev-cli': {
         src: ["console/*.ts", "src/*.ts"],
         outDir: 'build/dev-cli',
         options: {
@@ -90,52 +114,46 @@ export function setup(grunt: IGrunt) {
     'curl-dir': {
       long: {
         src: DOWNLOAD_URLS,
-        dest: DOWNLOAD_DIR
+        dest: "<%= build.scratch_dir %>"
       }
     },
     // Unzips files.
     unzip: {
       options: {
-        dest_dir: 'vendor/classes'
+        dest_dir: '<%= build.jcl_dir %>'
       },
       jcl: {
         files: [{
           expand: true,
-          src: [
-            DOWNLOAD_DIR + "/**/rt.jar",
-            DOWNLOAD_DIR + "/**/tools.jar",
-            DOWNLOAD_DIR + "/**/resources.jar",
-            DOWNLOAD_DIR + "/**/rhino.jar",
-            DOWNLOAD_DIR + "/**/jsse.jar"
-          ]
+          src: "<%= resolve(build.scratch_dir, '**/+(rt|tools|resources|rhino|jsse).jar') %>"
         }]
       },
       ecj: {
         // We can't get the pathname from the URL, since it has an argument
         // in it that contains the actual filename.
-        files: [{src: DOWNLOAD_DIR + "/ecj*.jar"}]
+        files: [{expand: true, src: "<%= resolve(build.scratch_dir, 'ecj*.jar') %>"}]
       },
       jazzlib: {
         options: {
-          dest_dir: DOWNLOAD_DIR + "/jazzlib"
+          dest_dir: "<%= resolve(build.scratch_dir, 'jazzlib') %>"
         },
-        files: [{src: DOWNLOAD_DIR + "/" + path.basename(url.parse(JAZZLIB_URL).pathname)}]
+        files: [{src: "<%= resolve(build.scratch_dir, '" + path.basename(url.parse(JAZZLIB_URL).pathname) + "') %>"}]
       }
     },
     extract_deb: {
       default: {
         options: {
-          dest_dir: DOWNLOAD_DIR
+          dest_dir: "<%= build.scratch_dir %>"
         },
         files: [{
           expand: true,
-          cwd: DOWNLOAD_DIR,
+          cwd: "<%= build.scratch_dir %>",
           src: "*.deb"
         }]
       }
     },
     uglify: {
-      release_cli: {
+      'release-cli': {
         warnings: false,
         unsafe: true,
         global_defs: {
@@ -144,8 +162,8 @@ export function setup(grunt: IGrunt) {
         },
         files: [{
           expand: true,
-          cwd: 'build/dev-cli',
-          src: '(console|src)/*.js',
+          cwd: 'build/release-cli',
+          src: '+(console|src)/*.js',
           dest: 'build/release-cli'
         }]
       }
@@ -156,8 +174,8 @@ export function setup(grunt: IGrunt) {
         files: [{
           expand: true,
           flatten: true,
-          src: DOWNLOAD_DIR + "/jazzlib/java/util/zip/*.class",
-          dest: "vendor/classes/java/util/zip"
+          src: "<%= resolve(build.scratch_dir, 'jazzlib/java/util/zip/*.class') %>",
+          dest: "<%= resolve(build.jcl_dir, 'java/util/zip') %>"
         }]
       },
       dev: {
@@ -202,7 +220,7 @@ export function setup(grunt: IGrunt) {
           expand: true,
           flatten: true,
           src: "browser/!(_)*.mustache",
-          dest: "build/dev",
+          dest: "<%= build.build_dir %>",
           ext: '.html'
         }]
       },
@@ -214,7 +232,7 @@ export function setup(grunt: IGrunt) {
           expand: true,
           flatten: true,
           src: "browser/[^_]*.mustache",
-          dest: "build/release",
+          dest: "<%= build.build_dir %>",
           ext: '.html'
         }]
       }
@@ -247,20 +265,17 @@ export function setup(grunt: IGrunt) {
 	});
 
   grunt.registerMultiTask('launcher', 'Creates a launcher for the given CLI release.', function() {
-    var launcherName: string, buildPath: string,
-        doppioPath: string, options: {name: string} = this.options();
-    buildPath = path.resolve('build', this.target);
-    launcherName = options.name;
-    // Relative path for the launcher.
-    doppioPath = path.relative(__dirname, path.resolve(buildPath, "console", "runner"));
+    var launcherPath: string, exePath: string, options = this.options();
+    launcherPath = options.dest;
+    exePath = options.src;
 
-    if (!fs.existsSync(launcherName)) {
+    if (!fs.existsSync(launcherPath)) {
       try {
         // Write with mode 755.
-        fs.writeFileSync(launcherName, 'node $(dirname $0)/' + doppioPath + ' "$@"', {mode: 493});
-        grunt.log.ok("Created launcher " + launcherName);
+        fs.writeFileSync(launcherPath, 'node $(dirname $0)/' + path.relative(path.dirname(launcherPath), exePath) + ' "$@"', {mode: 493});
+        grunt.log.ok("Created launcher " + path.basename(launcherPath));
       } catch(e) {
-        grunt.log.error("Could not create launcher " + launcherName + ": " + e);
+        grunt.log.error("Could not create launcher " + path.basename(launcherPath) + ": " + e);
         return false;
       }
     }
@@ -277,8 +292,13 @@ export function setup(grunt: IGrunt) {
   // Load our custom tasks.
   grunt.loadTasks('tasks');
 
-  grunt.registerTask('setup', "Sets up doppio's environment prior to building.", function() {
+  grunt.registerTask('setup', "Sets up doppio's environment prior to building.", function(build_type: string) {
     var need_jcl: boolean, need_ecj: boolean, need_jazzlib: boolean;
+    if (build_type == null) {
+      grunt.fail.fatal("setup build task needs to know the build type.");
+    }
+    // (Required) Sets the build_type so other directories can resolve properly.
+    grunt.config.set('build.build_type', build_type);
     // (Required) Finds local installation of Java.
     grunt.task.run('find_native_java');
     need_jcl = !fs.existsSync('vendor/classes/java/lang/Object.class');
@@ -286,7 +306,7 @@ export function setup(grunt: IGrunt) {
     need_jazzlib = !fs.existsSync('vendor/classes/java/util/zip/DeflaterEngine.class');
     if (need_jcl || need_ecj || need_jazzlib) {
       // Create download folder.
-      try { fs.mkdirSync(DOWNLOAD_DIR); } catch (e) { }
+      try { fs.mkdirSync(grunt.config('build.scratch_dir')); } catch (e) { }
       // Schedule download task.
       // grunt.task.run('curl-dir');
     }
@@ -307,17 +327,18 @@ export function setup(grunt: IGrunt) {
   });
 
   grunt.registerTask('dev-cli',
-    ['setup',
-     'make_build_dir:dev_cli',
-     'ts:dev_cli',
-     'launcher:dev_cli']);
+    ['setup:dev-cli',
+     'make_build_dir',
+     'ts:dev-cli',
+     'launcher:doppio-dev']);
   grunt.registerTask('release-cli',
-    ['setup',
-     'dev-cli',
-     'make_build_dir:release_cli',
-     'ice-cream:release_cli',
-     'uglify:release_cli',
-     'launcher:release_cli']);
+    ['dev-cli',
+     // Do setup *after* dev-cli, as it has side effects (sets 'build.build_type').
+     'setup:release-cli',
+     'make_build_dir',
+     'ice-cream:release-cli',
+     'uglify:release-cli',
+     'launcher:doppio']);
   /**
    * mini-rt.tar.gz <--  construct
    *   COPYFILE_DISABLE=true && tar -c -h -T <(sort -u tools/preload) -f $@
@@ -327,16 +348,16 @@ export function setup(grunt: IGrunt) {
      'javap',
      'run_java']);
   grunt.registerTask('dev',
-    [//'setup',
-     //'java',
-     'make_build_dir:dev',
+    ['setup:dev',
+     'java',
+     'make_build_dir',
      'render:dev',
      'coffee:dev',
      'concat:dev',
-     //'mini-rt',
+     //'mini-rt:dev',
      'copy:dev',
-     'listings:dev',
-     'ts:dev'])
+     'listings',
+     'ts:dev']);
   /**
    * release:
    * - build dev

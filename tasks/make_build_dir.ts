@@ -9,13 +9,11 @@ import fs = require('fs');
  */
 function make_build_dir(grunt: IGrunt) {
 	grunt.registerMultiTask('make_build_dir', 'Creates the build directory, if not present.', function() {
-    var buildPath: string = "build",
-        targetPath: string;
-    targetPath = path.resolve(buildPath, this.target);
+    var targetPath = this.options().build_dir;
     try {
       if (!fs.existsSync(targetPath)) {
-        if (!fs.existsSync(buildPath)) {
-          fs.mkdirSync(buildPath);
+        if (!fs.existsSync(path.dirname(targetPath))) {
+          fs.mkdirSync(path.dirname(targetPath));
         }
         fs.mkdirSync(targetPath);
         grunt.log.ok("Created build folder build/" + this.target + ".");
