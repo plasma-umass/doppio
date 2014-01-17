@@ -14,8 +14,16 @@ function java(grunt: IGrunt) {
         done: (status?: boolean) => void = this.async();
     grunt.config.requires('build.javac');
     files.forEach(function(e) {
+      var dest = e.src[0].slice(0, -4) + 'class';
+      if (fs.existsSync(dest) && fs.statSync(dest).mtime > fs.statSync(e.src[0]).mtime) {
+        // No need to process file.
+        return;
+      }
       input_files = input_files.concat(e.src);
     });
+    if (input_files.length === 0) {
+      return done();
+    }
     child_process.exec(grunt.config('build.javac') + ' -bootclasspath vendor/classes ' + input_files.join(' '), function(err?: any) {
       if (err) {
         grunt.fail.fatal('Error running javac: ' + err);
@@ -30,6 +38,10 @@ function java(grunt: IGrunt) {
         tasks: Function[] = [];
     grunt.config.requires('build.javap');
     files.forEach(function(file: {src: string[]; dest: string}) {
+      if (fs.existsSync(file.dest) && fs.statSync(file.dest).mtime > fs.statSync(file.src[0]).mtime) {
+        // No need to process file.
+        return;
+      }
       tasks.push(function(cb: (err?: any) => void) {
         // Trim '.java' from filename to get the class name.
         var class_name = file.src[0].slice(0, -5);
@@ -58,6 +70,10 @@ function java(grunt: IGrunt) {
         tasks: Function[] = [];
     grunt.config.requires('build.java');
     files.forEach(function(file: {src: string[]; dest: string}) {
+      if (fs.existsSync(file.dest) && fs.statSync(file.dest).mtime > fs.statSync(file.src[0]).mtime) {
+        // No need to process file.
+        return;
+      }
       tasks.push(function(cb: (err?: any) => void) {
         // Trim '.java' from filename to get the class name.
         var class_name = file.src[0].slice(0, -5);

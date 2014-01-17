@@ -34,7 +34,8 @@
     "grunt-shell-spawn": "*",
     "grunt-curl": "*",
     "glob": "*",
-    "execSync": "*"
+    "execSync": "*",
+    "fstream": "*"
   },
   "repository": {
     "type": "git",

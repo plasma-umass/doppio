@@ -350,14 +350,14 @@ export function setup(grunt: IGrunt) {
      'javap',
      'run_java']);
   grunt.registerTask('dev',
-    ['setup:dev',
+    [// release-cli must run before setup:dev as it mutates build variables.
+     'release-cli',
+     'setup:dev',
      'java',
      'make_build_dir',
      'render:dev',
      'coffee:dev',
      'concat:dev',
-     // NOTE: 'release-cli' must run before 'mini-rt'.
-     'release-cli',
      'mini-rt',
      'copy:dev',
      'listings',
