@@ -53,6 +53,11 @@ function octal2num(bytes: number[]): number {
   for (var idx = 0; idx < bytes.length; idx++) {
     var b = bytes[idx];
     var digit = parseInt(String.fromCharCode(b));
+    // XXX: node-tar, which we use to build mini-rt.tar, incorrectly adds a
+    //      space to the end of octal digits, which is parsed as a NaN.
+    if (isNaN(digit)) {
+      continue;
+    }
     num += digit * Math.pow(8, msd - idx);
   }
   return num;

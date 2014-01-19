@@ -101,14 +101,16 @@ export function setup(grunt: IGrunt) {
         src: ["console/*.ts", "src/*.ts"],
         outDir: 'build/dev-cli',
         options: {
-          module: 'commonjs'
+          module: 'commonjs',
+          sourceRoot: '..'
         }
       },
       dev: {
         src: ["browser/frontend.ts", "src/*.ts"],
         outDir: 'build/dev',
         options: {
-          module: 'amd'
+          module: 'amd',
+          sourceRoot: '..'
         }
       }
     },
@@ -183,10 +185,11 @@ export function setup(grunt: IGrunt) {
       dev: {
         files: [{
           expand: true,
-          src: ['browser/*.svg', 'browser/*.png', 'browser/*.js',
+          src: ['browser/*.svg', 'browser/*.png', 'browser/[^build]*.js',
                 'browser/core_viewer/*.css', 'browser/mini-rt.tar'],
           dest: 'build/dev'
-        }, { expand: true, flatten: true, src: 'browser/core_viewer/*.html', dest: 'build/dev'}]
+        }, { expand: true, flatten: true, src: ['browser/core_viewer.html', 'browser/favicon.ico'], dest: 'build/dev'},
+        {expand: true, src: '+(browser|src)/*.ts', dest: 'build/dev' }]
       }
     },
     javac: {
@@ -341,10 +344,6 @@ export function setup(grunt: IGrunt) {
      'ice-cream:release-cli',
      'uglify:release-cli',
      'launcher:doppio']);
-  /**
-   * mini-rt.tar.gz <--  construct
-   *   COPYFILE_DISABLE=true && tar -c -h -T <(sort -u tools/preload) -f $@
-   */
   grunt.registerTask('java',
     ['javac',
      'javap',

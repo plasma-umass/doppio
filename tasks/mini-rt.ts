@@ -38,16 +38,16 @@ function mini_rt(grunt: IGrunt) {
 }
 
 function generate_mini_rt(grunt: IGrunt, outputFile: string, done: (status?: boolean) => void) {
-  var preloadFiles: string[], i: number, file: string, jcl_dir: string,
+  var preloadFiles: string[], i: number, file: string, vendor_dir: string,
       dirMap: {[dirName: string]: string[]} = {}, doppio_dir: string,
       i: number, file: string, fileDir: string, fileName: string;
   if (fs.existsSync(outputFile)) {
     // Nothing to do.
     return done();
   }
-  grunt.config.requires('build.jcl_dir', 'build.doppio_dir');
-  jcl_dir = grunt.config('build.jcl_dir');
+  grunt.config.requires('build.doppio_dir', 'build.vendor_dir');
   doppio_dir = grunt.config('build.doppio_dir');
+  vendor_dir = grunt.config('build.vendor_dir');
   grunt.log.writeln("Generating file " + outputFile + "...");
   preloadFiles = fs.readFileSync('tools/preload').toString().split('\n');
   if (fs.existsSync('tools/preload-compile-extras')) {
@@ -77,7 +77,7 @@ function generate_mini_rt(grunt: IGrunt, outputFile: string, done: (status?: boo
   // Instead of telling fstream directly to pipe a list of files into the tar
   // file (impossible with fstreams), we use a filter on the *entire JCL
   // directory contents* to tell it which directories and files to include. :(
-  fstream.Reader({path: jcl_dir, type: 'Directory', filter:
+  fstream.Reader({path: vendor_dir, type: 'Directory', filter:
     function() {
       var relPath: string;
       if (this.type === 'File') {
