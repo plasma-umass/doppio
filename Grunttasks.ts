@@ -435,7 +435,7 @@ export function setup(grunt: IGrunt) {
     ['release-cli',
      'unit_test']);
   grunt.registerTask('clean', 'Deletes built files.', function() {
-    ['build', 'doppio', 'doppio-dev', 'tscommand.tmp.txt'].forEach(function (path: string) {
+    ['build', 'doppio', 'doppio-dev', 'tscommand.tmp.txt'].concat(grunt.file.expand(['classes/*/*.+(class|runout|disasm)'])).forEach(function (path: string) {
       if (grunt.file.exists(path)) {
         grunt.file.delete(path);
       }
