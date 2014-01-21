@@ -15,10 +15,10 @@ rdSync = (dpath, tree, name) ->
       # Avoid infinite loops.
       lstat = fs.lstatSync(fpath)
       if lstat.isSymbolicLink()
-        symLinks[lstat.dev] ?= {}
+        realdir = fs.readlinkSync(fpath)
         # Ignore if we've seen it before
-        continue if symLinks[lstat.dev][lstat.ino]?
-        symLinks[lstat.dev][lstat.ino] = 0
+        continue if symLinks[realdir]?
+        symLinks[realdir] = 1
 
       fstat = fs.statSync(fpath)
       if fstat.isDirectory()
