@@ -12,10 +12,7 @@ function make_build_dir(grunt: IGrunt) {
     var targetPath = this.options().build_dir;
     try {
       if (!fs.existsSync(targetPath)) {
-        if (!fs.existsSync(path.dirname(targetPath))) {
-          fs.mkdirSync(path.dirname(targetPath));
-        }
-        fs.mkdirSync(targetPath);
+        grunt.file.mkdir(targetPath);
         grunt.log.ok("Created build folder: " + targetPath);
       }
       // Ensure task fails if one of the symlinks fails.

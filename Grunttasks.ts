@@ -82,7 +82,12 @@ export function setup(grunt: IGrunt) {
         }]
       },
       release: {
-        files: [{src: 'build/release/doppio.js', dest: 'build/release/doppio.js'}]
+        files: [{
+          expand: true,
+          cwd: 'build/dev',
+          src: ['+(src)/*.js', 'vendor/underscore/underscore.js', 'browser/*.js'],
+          dest: '<%= resolve(build.scratch_dir, "tmp_release") %>'
+        }]
       }
     },
     launcher: {
@@ -277,7 +282,8 @@ export function setup(grunt: IGrunt) {
     requirejs: {
       release: {
         options: {
-          baseUrl: 'build/dev',
+          // Consume the ice-cream-processed files.
+          baseUrl: '<%= resolve(build.scratch_dir, "tmp_release") %>',
           mainConfigFile: 'browser/require_config.js',
           name: 'src/runtime',
           out: 'build/release/doppio.js',
@@ -417,7 +423,7 @@ export function setup(grunt: IGrunt) {
      'mini-rt',
      'copy:build',
      'listings',
+     'ice-cream:release',
      'requirejs:release',
-     'requirejs:release-frontend',
-     'ice-cream:release']);
+     'requirejs:release-frontend']);
 };

@@ -19,7 +19,7 @@ function ice_cream(grunt: IGrunt) {
       (function(file: {src: string[]; dest: string}) {
         // Ensure destination folder exists
         if (!fs.existsSync(path.dirname(file.dest))) {
-          fs.mkdirSync(path.dirname(file.dest));
+          grunt.file.mkdir(path.dirname(file.dest));
         }
         tasks.push(function(cb: (err?: any) => void): void {
           var fileStream = fs.createWriteStream(file.dest);
