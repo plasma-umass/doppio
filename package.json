@@ -35,7 +35,8 @@
     "grunt-curl": "*",
     "glob": "*",
     "execSync": "*",
-    "fstream": "*"
+    "fstream": "*",
+    "grunt-lineending": "*"
   },
   "repository": {
     "type": "git",

@@ -266,6 +266,14 @@ export function setup(grunt: IGrunt) {
           'build/release/browser/core_viewer/core_viewer.js': 'browser/core_viewer/core_viewer.coffee'
         }
       }
+    },
+    lineending: {
+      default: {
+        files: [{
+          expand: true,
+          src: ['classes/test/*.+(disasm|runout)']
+        }]
+      }
     }
 	});
 
@@ -293,6 +301,7 @@ export function setup(grunt: IGrunt) {
   grunt.loadNpmTasks('grunt-contrib-copy');
   grunt.loadNpmTasks('grunt-contrib-concat');
   grunt.loadNpmTasks('grunt-contrib-coffee');
+  grunt.loadNpmTasks('grunt-lineending');
   grunt.loadNpmTasks('grunt-curl');
   // Load our custom tasks.
   grunt.loadTasks('tasks');
@@ -347,7 +356,9 @@ export function setup(grunt: IGrunt) {
   grunt.registerTask('java',
     ['javac',
      'javap',
-     'run_java']);
+     'run_java',
+     // Windows: Convert CRLF to LF.
+     'lineending']);
   grunt.registerTask('dev',
     [// release-cli must run before setup:dev as it mutates build variables.
      'release-cli',
