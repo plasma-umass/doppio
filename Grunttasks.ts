@@ -58,7 +58,7 @@ export function setup(grunt: IGrunt) {
       vendor_dir: '<%= resolve(build.doppio_dir, "vendor") %>',
       jcl_dir: '<%= resolve(build.vendor_dir, "classes") %>',
       build_dir: '<%= resolve(build.doppio_dir, "build", build.build_type) %>',
-      scratch_dir:  "/var/folders/_f/gq2b3cyd3qv8r4dl642488w80000gq/T/jdk-download84508",//resolve(os.tmpDir(), "jdk-download" + Math.floor(Math.random()*100000)),
+      scratch_dir: path.resolve(os.tmpDir(), "jdk-download" + Math.floor(Math.random()*100000)),
     },
     make_build_dir: {
       options: { build_dir: "<%= build.build_dir %>" },
@@ -313,7 +313,7 @@ export function setup(grunt: IGrunt) {
       // Create download folder.
       try { fs.mkdirSync(grunt.config('build.scratch_dir')); } catch (e) { }
       // Schedule download task.
-      // grunt.task.run('curl-dir');
+      grunt.task.run('curl-dir');
     }
     if (need_jcl) {
       grunt.task.run('extract_deb');

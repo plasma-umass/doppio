@@ -18,8 +18,8 @@ function find_native_java(grunt: IGrunt) {
             grunt.log.ok("Javap: " + grunt.config('build.javap'));
             grunt.log.ok("Javac: " + grunt.config('build.javac'));
           } else {
-            grunt.fail.fatal("Could not find a working version of Java 6. " +
-                            "Please ensure that you have a version of Java 6 " +
+            grunt.fail.fatal("Could not find a working version of the Java 6 JDK. " +
+                            "Please ensure that you have a version of the Java 6 JDK " +
                             "installed on your computer.");
           }
           // Finally, check Java's version before quitting.
@@ -36,7 +36,7 @@ function find_native_java(grunt: IGrunt) {
         var Winreg = require('winreg'), regKey;
         // Look up JDK path.
         regKey = new Winreg({
-          key:  '\\SOFTWARE\\JavaSoft\\Java Runtime Environment\\1.6'
+          key:  '\\SOFTWARE\\JavaSoft\\Java Development Kit\\1.6'
         });
         regKey.values(function(err, items) {
           var i, java_bin;

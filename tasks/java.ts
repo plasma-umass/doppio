@@ -5,6 +5,14 @@ import os = require('os');
 import fs = require('fs');
 var async = require('async');
 /**
+ * Helper function: If string is a path with spaces in it, surround it with
+ * quotes.
+ */
+function shellEscape(str: string): string {
+  return str.indexOf(' ') !== -1 ? '"' + str + '"' : str;
+}
+
+/**
  * Java-related tasks.
  */
 function java(grunt: IGrunt) {
@@ -24,7 +32,7 @@ function java(grunt: IGrunt) {
     if (input_files.length === 0) {
       return done();
     }
-    child_process.exec(grunt.config('build.javac') + ' -bootclasspath vendor/classes ' + input_files.join(' '), function(err?: any) {
+    child_process.exec(shellEscape(grunt.config('build.javac')) + ' -bootclasspath vendor/classes ' + input_files.join(' '), function(err?: any) {
       if (err) {
         grunt.fail.fatal('Error running javac: ' + err);
       }
@@ -45,7 +53,7 @@ function java(grunt: IGrunt) {
       tasks.push(function(cb: (err?: any) => void) {
         // Trim '.java' from filename to get the class name.
         var class_name = file.src[0].slice(0, -5);
-        child_process.exec(grunt.config('build.javap') + ' -bootclasspath vendor/classes -c -verbose -private ' + class_name, function(err?: any, stdout?: NodeBuffer) {
+        child_process.exec(shellEscape(grunt.config('build.javap')) + ' -bootclasspath vendor/classes -c -verbose -private ' + class_name, function(err?: any, stdout?: NodeBuffer) {
           if (err) {
             grunt.fail.fatal('Error running javap: ' + err);
           } else {
@@ -77,7 +85,7 @@ function java(grunt: IGrunt) {
       tasks.push(function(cb: (err?: any) => void) {
         // Trim '.java' from filename to get the class name.
         var class_name = file.src[0].slice(0, -5);
-        child_process.exec(grunt.config('build.java') + ' -Xbootclasspath/a:vendor/classes ' + class_name, function(err?: any, stdout?: NodeBuffer, stderr?: NodeBuffer) {
+        child_process.exec(shellEscape(grunt.config('build.java')) + ' -Xbootclasspath/a:vendor/classes ' + class_name, function(err?: any, stdout?: NodeBuffer, stderr?: NodeBuffer) {
           if (err) {
             // We expect errors here.
             fs.writeFileSync(file.dest, stdout.toString() + stderr.toString());

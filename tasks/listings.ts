@@ -11,7 +11,7 @@ function listings(grunt: IGrunt) {
         stream = fs.createWriteStream(options.output),
         target_cwd = options.cwd;
     run_command.runCommand('node',
-      [cwd + '/node_modules/.bin/coffee', cwd + '/tools/gen_dir_listings.coffee'],
+      [cwd + '/node_modules/coffee-script/bin/coffee', cwd + '/tools/gen_dir_listings.coffee'],
       {cwd: options.cwd},
       run_command.createWriteCb(stream), // stdout
       run_command.nopCb,                 // stderr

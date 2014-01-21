@@ -3,12 +3,13 @@
 import os = require('os');
 import child_process = require('child_process');
 import fs = require('fs');
+import path = require('path');
 import run_command = require('./helpers/run_command');
 var async = require('async');
 
 function ice_cream(grunt: IGrunt) {
   grunt.registerMultiTask('ice-cream', 'Removes debug statements from code.', function() {
-    var ice_cream_path: string = 'node_modules/.bin/ice-cream',
+    var ice_cream_path: string = 'node_modules/ice-cream/dessert.js',
         files: {src: string[]; dest: string}[] = this.files,
         done: (status?: boolean) => void = this.async(),
         args: string = " --remove trace --remove vtrace --remove debug",
@@ -16,6 +17,10 @@ function ice_cream(grunt: IGrunt) {
     for (i = 0; i < files.length; i++) {
       // Closure to capture 'file'.
       (function(file: {src: string[]; dest: string}) {
+        // Ensure destination folder exists
+        if (!fs.existsSync(path.dirname(file.dest))) {
+          fs.mkdirSync(path.dirname(file.dest));
+        }
         tasks.push(function(cb: (err?: any) => void): void {
           var fileStream = fs.createWriteStream(file.dest);
           run_command.runCommand('node',

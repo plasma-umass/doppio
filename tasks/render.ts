@@ -16,7 +16,7 @@ function render(grunt: IGrunt) {
       tasks.push(function(cb: (err?: any) => void) {
         // Strip '.mustache'
         var name_no_ext = path.basename(file.src[0]).slice(0, -9);
-        child_process.exec('node node_modules/.bin/coffee browser/render.coffee ' + options.args.join(' ') + ' ' + name_no_ext + ' ' + options.secondary_file, function(err?: any, stdout?: NodeBuffer) {
+        child_process.exec('node node_modules/coffee-script/bin/coffee browser/render.coffee ' + options.args.join(' ') + ' ' + name_no_ext + ' ' + options.secondary_file, function(err?: any, stdout?: NodeBuffer) {
           if (err) {
             grunt.fail.fatal('Error running render.coffee: ' + err);
           } else {

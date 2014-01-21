@@ -14,7 +14,7 @@ export function runCommand(command: string, args: string[],
 
 // Common-case callbacks
 
-export function nopCb(data: NodeBuffer) {}
+export function nopCb(data: NodeBuffer) { console.log(data.toString()); }
 export function createWriteCb(stream: WritableStream) {
   return function(data: NodeBuffer) {
     stream.write(data);

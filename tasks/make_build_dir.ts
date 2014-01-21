@@ -16,7 +16,7 @@ function make_build_dir(grunt: IGrunt) {
           fs.mkdirSync(path.dirname(targetPath));
         }
         fs.mkdirSync(targetPath);
-        grunt.log.ok("Created build folder build/" + this.target + ".");
+        grunt.log.ok("Created build folder: " + targetPath);
       }
       // Ensure task fails if one of the symlinks fails.
       return symlink(grunt, 'classes', path.resolve(targetPath, 'classes')) && symlink(grunt, 'vendor', path.resolve(targetPath, 'vendor'));
@@ -52,7 +52,10 @@ function symlink(grunt: IGrunt, source: string, dest: string): boolean {
   }
 
   try {
-    fs.symlinkSync(path.resolve(source), path.resolve(dest), 'dir');
+    // 'junction' argument is needed by Windows. Making a regular symlink requires admin privileges.
+    // Junctions are identical to symlinks, except they cannot link across drives and only work on
+    // folders. Those restrictions are OK for us.
+    fs.symlinkSync(path.resolve(source), path.resolve(dest), 'junction');
     grunt.log.ok('Symlinked ' + sourceRel + ' to ' + destRel + '.');
   } catch (e) {
     grunt.fail.fatal('Cannot symlink ' + sourceRel + ' to ' + destRel + ': ' + e);
