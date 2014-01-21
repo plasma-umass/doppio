@@ -36,7 +36,7 @@ export function untar(bytes: any, cb: Function, done_cb?: Function): void {
 function shift_file(bytes: util.BytesArray): any[] {
   var header = bytes.read(512);
   var fname = util.bytes2str(header.slice(0, 100), true);
-  var size = octal2num(header.slice(124, 124 + 11));
+  var size = parseInt(util.bytes2str(header.slice(124, 124 + 11)), 8);
   var prefix = util.bytes2str(header.slice(345, 345 + 155), true);
   var fullname = fname;
   if (prefix)
@@ -45,20 +45,4 @@ function shift_file(bytes: util.BytesArray): any[] {
   var file = bytes.slice(size);
   bytes.skip(padding);
   return [fullname, file];
-}
-
-function octal2num(bytes: number[]): number {
-  var num = 0;
-  var msd = bytes.length - 1;
-  for (var idx = 0; idx < bytes.length; idx++) {
-    var b = bytes[idx];
-    var digit = parseInt(String.fromCharCode(b));
-    // XXX: node-tar, which we use to build mini-rt.tar, incorrectly adds a
-    //      space to the end of octal digits, which is parsed as a NaN.
-    if (isNaN(digit)) {
-      continue;
-    }
-    num += digit * Math.pow(8, msd - idx);
-  }
-  return num;
 }
