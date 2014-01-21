@@ -80,6 +80,9 @@ export function setup(grunt: IGrunt) {
           src: '+(console|src)/*.js',
           dest: 'build/release-cli'
         }]
+      },
+      release: {
+        files: [{src: 'build/release/doppio.js', dest: 'build/release/doppio.js'}]
       }
     },
     launcher: {
@@ -182,14 +185,14 @@ export function setup(grunt: IGrunt) {
           dest: "<%= resolve(build.jcl_dir, 'java/util/zip') %>"
         }]
       },
-      dev: {
+      build: {
         files: [{
           expand: true,
           src: ['browser/*.svg', 'browser/*.png', 'browser/[^build]*.js',
                 'browser/core_viewer/*.css', 'browser/mini-rt.tar'],
-          dest: 'build/dev'
-        }, { expand: true, flatten: true, src: ['browser/core_viewer.html', 'browser/favicon.ico'], dest: 'build/dev'},
-        {expand: true, src: '+(browser|src)/*.ts', dest: 'build/dev' }]
+          dest: '<%= build.build_dir %>'
+        }, { expand: true, flatten: true, src: ['browser/core_viewer.html', 'browser/favicon.ico'], dest: '<%= build.build_dir %>'},
+        {expand: true, src: '+(browser|src)/*.ts', dest: '<%= build.build_dir %>' }]
       }
     },
     javac: {
@@ -243,13 +246,9 @@ export function setup(grunt: IGrunt) {
       }
     },
     concat: {
-      dev: {
+      default: {
         src: ['vendor/bootstrap/docs/assets/css/bootstrap.css', 'browser/style.css'],
-        dest: 'build/dev/browser/style.css',
-      },
-      release: {
-        src: ['vendor/bootstrap/docs/assets/css/bootstrap.css', 'browser/style.css'],
-        dest: 'build/release/browser/style.css',
+        dest: '<%= resolve(build.build_dir, "browser/style.css") %>',
       }
     },
     coffee: {
@@ -273,6 +272,36 @@ export function setup(grunt: IGrunt) {
           expand: true,
           src: ['classes/test/*.+(disasm|runout)']
         }]
+      }
+    },
+    requirejs: {
+      release: {
+        options: {
+          baseUrl: 'build/dev',
+          mainConfigFile: 'browser/require_config.js',
+          name: 'src/runtime',
+          out: 'build/release/doppio.js',
+          // These aren't referenced from runtime. We may want to decouple them
+          // at some point.
+          include: ['src/testing', 'src/disassembler'],
+          uglify: {
+              defines: {
+                  DEBUG: ['name', 'false'],
+                  RELEASE: ['name', 'true'],
+                  UNSAFE: ['name', 'true']
+              }
+          }
+        }
+      },
+      'release-frontend': {
+        options: {
+          baseUrl: 'build/dev',
+          name: 'browser/frontend',
+          out: 'build/release/browser/frontend.js',
+          mainConfigFile: 'browser/require_config.js',
+          // Don't try to bundle any of the Doppio library sources.
+          exclude: ['src/attributes', 'src/ClassData', 'src/ClassLoader', 'src/ConstantPool', 'src/disassembler', 'src/exceptions', 'src/gLong', 'src/java_object', 'src/jvm', 'src/logging', 'src/methods', 'src/natives', 'src/opcodes', 'src/runtime', 'src/testing', 'src/util', 'vendor/underscore/underscore']
+        }
       }
     }
 	});
@@ -301,6 +330,7 @@ export function setup(grunt: IGrunt) {
   grunt.loadNpmTasks('grunt-contrib-copy');
   grunt.loadNpmTasks('grunt-contrib-concat');
   grunt.loadNpmTasks('grunt-contrib-coffee');
+  grunt.loadNpmTasks('grunt-contrib-requirejs');
   grunt.loadNpmTasks('grunt-lineending');
   grunt.loadNpmTasks('grunt-curl');
   // Load our custom tasks.
@@ -367,34 +397,27 @@ export function setup(grunt: IGrunt) {
      'make_build_dir',
      'render:dev',
      'coffee:dev',
-     'concat:dev',
+     'concat',
      'mini-rt',
-     'copy:dev',
+     'copy:build',
      'listings',
      'ts:dev']);
   /**
    * release:
-   * - build dev
    * - $(R_JS) -o browser/build.js
    * - $(R_JS) -o browser/build_frontend.js
-   * Stuff with HTML
-   * Stuff with favico
-   * Stuff with mini-rt
-   * Stuff with style.css
-   * Copy over assets (SVG/PNG/etc)
-   * Compile core-viewer
-   *release: $(patsubst %,build/release/%,$(notdir $(BROWSER_HTML))) \
-  build/release/doppio.js build/release/browser/frontend.js \
-  build/release/favicon.ico build/release/browser/mini-rt.tar \
-  build/release/browser/style.css
-  rsync browser/*.svg browser/*.png build/release/browser/
-  rsync browser/core_viewer/core_viewer.css build/release/browser/core_viewer/
-  $(COFFEEC) -c -o build/release/browser/core_viewer browser/core_viewer/core_viewer.coffee
-  cp browser/core_viewer.html build/release
-  cd build/release; $(COFFEEC) $(DOPPIO_DIR)/tools/gen_dir_listings.coffee > browser/listings.json
-
    */
   grunt.registerTask('release',
-    ['make_build_dir:release',
-     'symlink:release']);
+    ['dev',
+     'setup:release',
+     'make_build_dir',
+     'render:release',
+     'coffee:release',
+     'concat',
+     'mini-rt',
+     'copy:build',
+     'listings',
+     'requirejs:release',
+     'requirejs:release-frontend',
+     'ice-cream:release']);
 };
