@@ -309,6 +309,14 @@ export function setup(grunt: IGrunt) {
           exclude: ['src/attributes', 'src/ClassData', 'src/ClassLoader', 'src/ConstantPool', 'src/disassembler', 'src/exceptions', 'src/gLong', 'src/java_object', 'src/jvm', 'src/logging', 'src/methods', 'src/natives', 'src/opcodes', 'src/runtime', 'src/testing', 'src/util', 'vendor/underscore/underscore']
         }
       }
+    },
+    unit_test: {
+      default: {
+        files: [{
+          expand: true,
+          src: 'classes/test/*.java'
+        }]
+      }
     }
 	});
 
@@ -408,11 +416,6 @@ export function setup(grunt: IGrunt) {
      'copy:build',
      'listings',
      'ts:dev']);
-  /**
-   * release:
-   * - $(R_JS) -o browser/build.js
-   * - $(R_JS) -o browser/build_frontend.js
-   */
   grunt.registerTask('release',
     ['dev',
      'setup:release',
@@ -426,4 +429,7 @@ export function setup(grunt: IGrunt) {
      'ice-cream:release',
      'requirejs:release',
      'requirejs:release-frontend']);
+  grunt.registerTask('test',
+    ['release-cli',
+     'unit_test']);
 };
