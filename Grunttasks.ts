@@ -320,6 +320,17 @@ export function setup(grunt: IGrunt) {
     }
 	});
 
+  grunt.loadNpmTasks('grunt-ts');
+  grunt.loadNpmTasks('grunt-contrib-uglify');
+  grunt.loadNpmTasks('grunt-contrib-copy');
+  grunt.loadNpmTasks('grunt-contrib-concat');
+  grunt.loadNpmTasks('grunt-contrib-coffee');
+  grunt.loadNpmTasks('grunt-contrib-requirejs');
+  grunt.loadNpmTasks('grunt-lineending');
+  grunt.loadNpmTasks('grunt-curl');
+  // Load our custom tasks.
+  grunt.loadTasks('tasks');
+
   grunt.registerMultiTask('launcher', 'Creates a launcher for the given CLI release.', function() {
     var launcherPath: string, exePath: string, options = this.options();
     launcherPath = options.dest;
@@ -336,19 +347,6 @@ export function setup(grunt: IGrunt) {
       }
     }
   });
-
-  // Provides TypeScript compiler functionality from within Grunt.
-  grunt.loadNpmTasks('grunt-ts');
-  // Provides minification.
-  grunt.loadNpmTasks('grunt-contrib-uglify');
-  grunt.loadNpmTasks('grunt-contrib-copy');
-  grunt.loadNpmTasks('grunt-contrib-concat');
-  grunt.loadNpmTasks('grunt-contrib-coffee');
-  grunt.loadNpmTasks('grunt-contrib-requirejs');
-  grunt.loadNpmTasks('grunt-lineending');
-  grunt.loadNpmTasks('grunt-curl');
-  // Load our custom tasks.
-  grunt.loadTasks('tasks');
 
   grunt.registerTask('setup', "Sets up doppio's environment prior to building.", function(build_type: string) {
     var need_jcl: boolean, need_ecj: boolean, need_jazzlib: boolean;
@@ -383,6 +381,16 @@ export function setup(grunt: IGrunt) {
       grunt.task.run('setup_java_home');
     }
   });
+  grunt.registerTask('java',
+    ['javac',
+     'javap',
+     'run_java',
+     // Windows: Convert CRLF to LF.
+     'lineending']);
+
+  /**
+   * PUBLIC-FACING TARGETS BELOW.
+   */
 
   grunt.registerTask('dev-cli',
     ['setup:dev-cli',
@@ -397,12 +405,6 @@ export function setup(grunt: IGrunt) {
      'ice-cream:release-cli',
      'uglify:release-cli',
      'launcher:doppio']);
-  grunt.registerTask('java',
-    ['javac',
-     'javap',
-     'run_java',
-     // Windows: Convert CRLF to LF.
-     'lineending']);
   grunt.registerTask('dev',
     [// release-cli must run before setup:dev as it mutates build variables.
      'release-cli',
@@ -432,4 +434,12 @@ export function setup(grunt: IGrunt) {
   grunt.registerTask('test',
     ['release-cli',
      'unit_test']);
+  grunt.registerTask('clean', 'Deletes built files.', function() {
+    ['build', 'doppio', 'doppio-dev', 'tscommand.tmp.txt'].forEach(function (path: string) {
+      if (grunt.file.exists(path)) {
+        grunt.file.delete(path);
+      }
+    });
+    grunt.log.writeln('All built files have been deleted, except for Grunt-related tasks (e.g. tasks/*.js and Grunttasks.js).');
+  });
 };
