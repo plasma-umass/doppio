@@ -33,7 +33,6 @@
     "grunt-contrib-coffee": "*",
     "grunt-contrib-requirejs": "*",
     "grunt-contrib-watch": "*",
-    "grunt-shell-spawn": "*",
     "grunt-curl": "*",
     "glob": "*",
     "execSync": "*",

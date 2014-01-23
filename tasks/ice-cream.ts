@@ -1,7 +1,6 @@
 /// <reference path="../vendor/DefinitelyTyped/node/node.d.ts" />
 /// <reference path="../vendor/DefinitelyTyped/gruntjs/gruntjs.d.ts" />
 import os = require('os');
-import child_process = require('child_process');
 import fs = require('fs');
 import path = require('path');
 var async = require('async');
