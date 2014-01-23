@@ -84,7 +84,9 @@ Automated Rebuilding
 
 To automatically rebuild doppio while you modify files, run the following command:
 
-    grunt watch
+    grunt release watch
+
+This will perform a complete build of doppio, and then will watch files to trigger partial rebuilds.
 
 Running Tests
 -------------
