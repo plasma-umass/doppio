@@ -226,13 +226,9 @@ export function setup(grunt: IGrunt) {
       }
     },
     render: {
-      options: {
-        secondary_file: "_navbar"
-      },
       dev: {
         files: [{
           expand: true,
-          flatten: true,
           src: "browser/!(_)*.mustache",
           dest: "<%= build.build_dir %>",
           ext: '.html'
@@ -244,7 +240,6 @@ export function setup(grunt: IGrunt) {
         },
         files: [{
           expand: true,
-          flatten: true,
           src: "browser/[^_]*.mustache",
           dest: "<%= build.build_dir %>",
           ext: '.html'
@@ -317,6 +312,51 @@ export function setup(grunt: IGrunt) {
           expand: true,
           src: 'classes/test/*.java'
         }]
+      }
+    },
+    watch: {
+      options: {
+        // We *need* tasks to share the same context, as setup sets the
+        // appropriate 'build' variables.
+        spawn: false
+      },
+      // Monitors TypeScript source in browser/ and src/ folders. Rebuilds
+      // CLI and browser builds.
+      'ts-source': {
+        files: ['+(browser|src)/*.ts'],
+        tasks: [// Rebuild dev-cli
+                'setup:dev-cli',
+                'ts:dev-cli',
+                // Rebuild release-cli
+                'setup:release-cli',
+                'ice-cream:release-cli',
+                'uglify:release-cli',
+                // Rebuild dev
+                'setup:dev',
+                'ts:dev',
+                // Rebuild release
+                'setup:release',
+                'ice-cream:release',
+                'requirejs:release',
+                'requirejs:release-frontend']
+      },
+      'mustache-templates': {
+        files: ['browser/*.mustache'],
+        tasks: ['setup:dev',
+                'render:dev',
+                'setup:release',
+                'render:release']
+      },
+      css: {
+        files: ['browser/*.css'],
+        tasks: ['setup:dev',
+                'concat',
+                'setup:release',
+                'concat']
+      },
+      java: {
+        files: ['classes/test/*.java'],
+        tasks: ['java']
       }
     }
   });

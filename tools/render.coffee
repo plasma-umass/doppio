@@ -14,7 +14,7 @@ marked.setOptions
 
 render = (opts) -> console.log(mustache.render(template, opts, partials))
 
-fullpath = (filename) -> path.resolve __dirname, filename
+fullpath = (filename) -> path.resolve __dirname, '..', 'browser', filename
 
 readfile = (filename) -> fs.readFileSync(fullpath(filename), 'utf-8')
 

@@ -11,12 +11,15 @@ function render(grunt: IGrunt) {
     var files: {src: string[]; dest: string}[] = this.files,
         done: (status?: boolean) => void = this.async(),
         tasks: Function[] = [],
-        options = this.options({args:[], secondary_file: ""});
+        options = this.options({args:[]});
     files.forEach(function(file: {src: string[]; dest: string}) {
+      if (!grunt.file.exists(path.dirname(file.dest))) {
+        grunt.file.mkdir(path.dirname(file.dest));
+      }
       tasks.push(function(cb: (err?: any) => void) {
         // Strip '.mustache'
         var name_no_ext = path.basename(file.src[0]).slice(0, -9);
-        child_process.exec('node node_modules/coffee-script/bin/coffee tools/render.coffee ' + options.args.join(' ') + ' ' + name_no_ext + ' ' + options.secondary_file, function(err?: any, stdout?: NodeBuffer) {
+        child_process.exec('node node_modules/coffee-script/bin/coffee tools/render.coffee ' + options.args.join(' ') + ' ' + name_no_ext, function(err?: any, stdout?: NodeBuffer) {
           if (err) {
             grunt.fail.fatal('Error running render.coffee: ' + err);
           } else {
