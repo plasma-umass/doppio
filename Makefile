@@ -238,12 +238,12 @@ build/%/browser/style.css: vendor/bootstrap/docs/assets/css/bootstrap.css \
 	cat $^ > $@
 
 build/dev/%.html: build/dev browser/%.mustache browser/_navbar.mustache
-	$(COFFEEC) browser/render.coffee $* > $@
+	$(COFFEEC) tools/render.coffee $* > $@
 
 # XXX: Not all HTML files depend on _about.md, but we need that dependency here
 #      to appropriately regenerate about.html.
 build/release/%.html: build/release browser/%.mustache browser/_navbar.mustache browser/_about.md
-	$(COFFEEC) browser/render.coffee --release $* > $@
+	$(COFFEEC) tools/render.coffee --release $* > $@
 
 build/%/favicon.ico: browser/favicon.ico build/%
 	rsync $< $@
