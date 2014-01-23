@@ -35,3 +35,6 @@ src/natives.coffee
 
 # Log files
 *.log
+
+# grunt-ts command file
+tscommand.tmp.txt
