@@ -4,7 +4,6 @@ import os = require('os');
 import child_process = require('child_process');
 import fs = require('fs');
 import path = require('path');
-import run_command = require('./helpers/run_command');
 var async = require('async');
 
 function ice_cream(grunt: IGrunt) {
@@ -22,14 +21,16 @@ function ice_cream(grunt: IGrunt) {
           grunt.file.mkdir(path.dirname(file.dest));
         }
         tasks.push(function(cb: (err?: any) => void): void {
-          var fileStream = fs.createWriteStream(file.dest);
-          run_command.runCommand('node',
-            [ice_cream_path, file.src[0], '--remove', 'trace', '--remove', 'vtrace', '--remove', 'debug'],
-            {},
-            run_command.createWriteCb(fileStream),
-            run_command.nopCb,
-            run_command.createErrorCb(grunt, fileStream, cb, "Could not run ice-cream on file " + file.src[0] + ".")
-          );
+          grunt.util.spawn({
+            cmd: 'node',
+            args: [ice_cream_path, file.src[0], '--remove', 'trace', '--remove', 'vtrace', '--remove', 'debug']
+          }, function(error, result, code) {
+            if (code !== 0 || error) {
+              grunt.fail.fatal("Could not run ice-cream on file " + file.src[0] + ": " + result.stdout + "\n" + result.stderr);
+            }
+            fs.writeFileSync(file.dest, result.stdout);
+            cb(error);
+          });
         });
       })(files[i]);
     }

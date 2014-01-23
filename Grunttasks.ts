@@ -48,7 +48,7 @@ export function setup(grunt: IGrunt) {
     },
     // doppio build configuration
     build: {
-      // Path to Java CLI utils. Will be updated by find_native_java_home task
+      // Path to Java CLI utils. Will be updated by find_native_java task
       // if needed.
       java: 'java',
       javap: 'javap',
@@ -58,6 +58,7 @@ export function setup(grunt: IGrunt) {
       vendor_dir: '<%= resolve(build.doppio_dir, "vendor") %>',
       jcl_dir: '<%= resolve(build.vendor_dir, "classes") %>',
       build_dir: '<%= resolve(build.doppio_dir, "build", build.build_type) %>',
+      // TODO: Maybe fix this to prevent us from using too much scratch space?
       scratch_dir: path.resolve(os.tmpDir(), "jdk-download" + Math.floor(Math.random()*100000)),
     },
     make_build_dir: {
@@ -85,7 +86,7 @@ export function setup(grunt: IGrunt) {
         files: [{
           expand: true,
           cwd: 'build/dev',
-          src: ['+(src)/*.js', 'vendor/underscore/underscore.js', 'browser/*.js'],
+          src: ['+(src|browser)/*.js', 'vendor/underscore/underscore.js'],
           dest: '<%= resolve(build.scratch_dir, "tmp_release") %>'
         }]
       }
@@ -318,7 +319,7 @@ export function setup(grunt: IGrunt) {
         }]
       }
     }
-	});
+  });
 
   grunt.loadNpmTasks('grunt-ts');
   grunt.loadNpmTasks('grunt-contrib-uglify');
@@ -326,6 +327,7 @@ export function setup(grunt: IGrunt) {
   grunt.loadNpmTasks('grunt-contrib-concat');
   grunt.loadNpmTasks('grunt-contrib-coffee');
   grunt.loadNpmTasks('grunt-contrib-requirejs');
+  grunt.loadNpmTasks('grunt-contrib-watch');
   grunt.loadNpmTasks('grunt-lineending');
   grunt.loadNpmTasks('grunt-curl');
   // Load our custom tasks.
@@ -355,14 +357,12 @@ export function setup(grunt: IGrunt) {
     }
     // (Required) Sets the build_type so other directories can resolve properly.
     grunt.config.set('build.build_type', build_type);
-    // (Required) Finds local installation of Java.
-    grunt.task.run('find_native_java');
     need_jcl = !fs.existsSync('vendor/classes/java/lang/Object.class');
     need_ecj =!fs.existsSync('vendor/classes/org/eclipse/jdt/internal/compiler/batch/Main.class');
     need_jazzlib = !fs.existsSync('vendor/classes/java/util/zip/DeflaterEngine.class');
     if (need_jcl || need_ecj || need_jazzlib) {
-      // Create download folder.
-      try { fs.mkdirSync(grunt.config('build.scratch_dir')); } catch (e) { }
+      // Create download folder. It shouldn't exist, as it is randomly generated.
+      fs.mkdirSync(grunt.config('build.scratch_dir'));
       // Schedule download task.
       grunt.task.run('curl-dir');
     }
@@ -382,7 +382,8 @@ export function setup(grunt: IGrunt) {
     }
   });
   grunt.registerTask('java',
-    ['javac',
+    ['find_native_java',
+     'javac',
      'javap',
      'run_java',
      // Windows: Convert CRLF to LF.
@@ -406,7 +407,8 @@ export function setup(grunt: IGrunt) {
      'uglify:release-cli',
      'launcher:doppio']);
   grunt.registerTask('dev',
-    [// release-cli must run before setup:dev as it mutates build variables.
+    [// We need release-cli for mini-rt, and we must run it first as it mutates
+     // build variables (e.g. build.build_type).
      'release-cli',
      'setup:dev',
      'java',
@@ -433,6 +435,7 @@ export function setup(grunt: IGrunt) {
      'requirejs:release-frontend']);
   grunt.registerTask('test',
     ['release-cli',
+     'java',
      'unit_test']);
   grunt.registerTask('clean', 'Deletes built files.', function() {
     ['build', 'doppio', 'doppio-dev', 'tscommand.tmp.txt'].concat(grunt.file.expand(['classes/*/*.+(class|runout|disasm)'])).forEach(function (path: string) {

@@ -3,7 +3,6 @@
 import os = require('os');
 import fs = require('fs');
 import path = require('path');
-import run_command = require('./helpers/run_command');
 var async = require('async'),
     tar = require('tar'),
     fstream = require('fstream');
@@ -20,17 +19,17 @@ function mini_rt(grunt: IGrunt) {
     run_args.unshift('-Xlist-class-cache');
     run_args.unshift('build/release-cli/console/runner.js');
     if (!fs.existsSync('tools/preload')) {
-      preload_stream = fs.createWriteStream('tools/preload');
       grunt.log.writeln('Generating list of files to preload in browser... (will take about a minute)');
-      run_command.runCommand('node',
-        run_args,
-        {},
-        run_command.createWriteCb(preload_stream), // stdout
-        run_command.nopCb,                 // stderr
-        run_command.createErrorCb(grunt, preload_stream, function(status?: boolean): void {
-          generate_mini_rt(grunt, outputFile, done);
-        }, // when program closes
-          "Error generating listings.json!"));
+      grunt.util.spawn({
+        cmd: 'node',
+        args: run_args
+      }, function(error, result, code) {
+        if (code !== 0 || error) {
+          grunt.fail.fatal("Error generating listings.json: " + result.stderr + error);
+        }
+        fs.writeFileSync('tools/preload', result.stdout);
+        generate_mini_rt(grunt, outputFile, done);
+      });
     } else {
       generate_mini_rt(grunt, outputFile, done);
     }
