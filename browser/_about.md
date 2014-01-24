@@ -122,11 +122,8 @@ before trying to bolt on a compilation engine.
 
 Up next on our roadmap is:
 
-* Just-in-time compilation of JVM bytecode to JavaScript to dramatically
-  improve Doppio's performance.
+* Simplifying interpreter control flow (inside natives, internal exceptions, asynchronous operations, etc).
 * Improving our threading support.
-* Running the JVM in a WebWorker (if available) to prevent us from hogging the
-  main JavaScript thread.
 
 -------------
 
