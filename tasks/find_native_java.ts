@@ -59,7 +59,7 @@ function find_native_java(grunt: IGrunt) {
     } else {
       // *nix / Mac
       // Option 1: Can we invoke 'java' directly?
-      exec(grunt.config('build.java'), function(err, stdout, stderr) {
+      exec(grunt.config('build.java') + ' -version', function(err, stdout, stderr) {
         var java_bin;
         if (err) {
           // Option 2: Is JAVA_HOME defined?
