@@ -229,6 +229,7 @@ export function setup(grunt: IGrunt) {
       dev: {
         files: [{
           expand: true,
+          flatten: true,
           src: "browser/!(_)*.mustache",
           dest: "<%= build.build_dir %>",
           ext: '.html'
@@ -240,7 +241,8 @@ export function setup(grunt: IGrunt) {
         },
         files: [{
           expand: true,
-          src: "browser/[^_]*.mustache",
+          flatten: true,
+          src: "browser/!(_)*.mustache",
           dest: "<%= build.build_dir %>",
           ext: '.html'
         }]
