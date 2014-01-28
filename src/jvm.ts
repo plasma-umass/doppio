@@ -130,6 +130,13 @@ export class JVM {
     this.system_properties['java.class.path'].unshift(p);
   }
 
+  /**
+   * Proxies abort request to runtime state to halt the JVM.
+   */
+  public abort(cb: Function): void {
+    this._rs.abort(cb);
+  }
+
   // main function that gets called from the frontend
   public run_class(print: (p:string) => any,
                    _async_input: (cb: (p:string) => any) => any,

@@ -48,6 +48,7 @@ export class RuntimeState {
   public should_return: boolean;
   public system_initialized: boolean;
   public jvm_state: jvm.JVM;
+  private abort_cb: Function;
 
   constructor(print: (p:string) => any,
               _async_input: (cb: (p:string) => any) => any,
@@ -307,6 +308,10 @@ export class RuntimeState {
 
   public parked(thread: threading.JavaThreadObject): boolean {
     return thread.$park_count > 0;
+  }
+
+  public abort(cb: Function): void {
+    this.abort_cb = cb;
   }
 
   public curr_frame(): threading.StackFrame {
@@ -577,6 +582,12 @@ export class RuntimeState {
     // Reset stack depth every time this is called. Prevents us from needing to
     // scatter this around the code everywhere to prevent filling the stack
     setImmediate((function () {
+      // Check if the user has requested that the JVM abort.
+      if (_this.abort_cb && typeof(_this.abort_cb) === 'function') {
+        _this.abort_cb();
+        return done_cb(false);
+      }
+
       _this.stashed_done_cb = done_cb; // hack for the case where we error out of <clinit>
       try {
         setup_fn();
@@ -589,6 +600,11 @@ export class RuntimeState {
           sf = _this.curr_frame();
         }
         if ((sf.runner != null) && m_count === 0) {
+          // Check if the user has requested that the JVM abort.
+          if (_this.abort_cb && typeof(_this.abort_cb) === 'function') {
+            _this.abort_cb();
+            return done_cb(false);
+          }
           // Loop has stopped to give the browser some breathing room.
           var duration = (new Date()).getTime() - start_time;
           // We should yield once every 1-2 seconds or so.
