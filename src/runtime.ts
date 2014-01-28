@@ -583,7 +583,7 @@ export class RuntimeState {
     // scatter this around the code everywhere to prevent filling the stack
     setImmediate((function () {
       // Check if the user has requested that the JVM abort.
-      if (_this.abort_cb && typeof(_this.abort_cb) === 'function') {
+      if (_this.abort_cb) {
         _this.abort_cb();
         return done_cb(false);
       }
@@ -601,7 +601,7 @@ export class RuntimeState {
         }
         if ((sf.runner != null) && m_count === 0) {
           // Check if the user has requested that the JVM abort.
-          if (_this.abort_cb && typeof(_this.abort_cb) === 'function') {
+          if (_this.abort_cb) {
             _this.abort_cb();
             return done_cb(false);
           }
