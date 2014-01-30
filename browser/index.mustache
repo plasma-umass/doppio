@@ -39,8 +39,7 @@
     (function() {
       // Define only the globals we expect.
       window.process = BrowserFS.BFSRequire('process');
-      // TODO: Change to BrowserFS.BFSRequire('buffer').Buffer next BFS release.
-      window.Buffer = BrowserFS.BFSRequire('buffer');
+      window.Buffer = BrowserFS.BFSRequire('buffer').Buffer;
       var mfs = new BrowserFS.FileSystem.MountableFileSystem();
       mfs.mount('/tmp', new BrowserFS.FileSystem.InMemory());
       mfs.mount('/demo', new BrowserFS.FileSystem.LocalStorage());
