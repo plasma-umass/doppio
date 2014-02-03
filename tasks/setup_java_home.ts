@@ -68,7 +68,7 @@ function symlink_java_home(grunt: IGrunt, cb: (err?: any) => void): void {
   // a number of .properties files are symlinks to /etc; copy the targets over
   // so we do not need to depend on /etc's existence
   links = find_symlinks(JH);
-  async.each(links, function(link, cb2){
+  async.eachSeries(links, function(link, cb2){
     try {
       var dest = fs.readlinkSync(link);
       if (dest.match(/^\/etc/)) {
