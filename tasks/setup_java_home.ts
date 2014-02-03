@@ -2,7 +2,8 @@
 /// <reference path="../vendor/DefinitelyTyped/gruntjs/gruntjs.d.ts" />
 import fs = require('fs');
 import path = require('path');
-var async = require('async');
+var async = require('async'),
+    ncp = require('ncp').ncp;
 
 /**
  * Grunt task that does the following:
@@ -68,33 +69,44 @@ function symlink_java_home(grunt: IGrunt, cb: (err?: any) => void): void {
   // so we do not need to depend on /etc's existence
   links = find_symlinks(JH);
   async.each(links, function(link, cb2){
-    var dest = fs.readlinkSync(link);
-    if (dest.match(/^\/etc/)) {
-      try {
-        fs.renameSync(path.join(grunt.config('build.scratch_dir'), dest), link);
-      } catch (e) {
-        // Some /etc symlinks are just broken. Hopefully not a big deal.
-        grunt.log.writeln('warning: broken symlink: ' + dest);
-      }
-    } else {
-      var p = path.resolve(path.join(path.dirname(link), dest));
-      // copy in anything that links out of the JH dir
-      if (!p.match(/java-6-openjdk-i386/)) {
-        // XXX: this fails if two symlinks reference the same file
-        try {
+    try {
+      var dest = fs.readlinkSync(link);
+      if (dest.match(/^\/etc/)) {
+        ncp(path.join(grunt.config('build.scratch_dir'), dest), link, function(err?: any) {
+          if (err) {
+            // Some /etc symlinks are just broken. Hopefully not a big deal.
+            grunt.log.writeln('warning: broken symlink: ' + dest);
+          }
+          cb2(null);
+        });
+      } else {
+        var p = path.resolve(path.join(path.dirname(link), dest));
+        // copy in anything that links out of the JH dir
+        if (!p.match(/java-6-openjdk-i386/)) {
+          // XXX: this fails if two symlinks reference the same file
           if (fs.statSync(p).isDirectory()) {
             fs.unlinkSync(link);
           }
-          fs.renameSync(p, link);
-        } catch (e) {
-          grunt.log.writeln('warning: broken symlink: ' + p);
+          ncp(p, link, function(err?: any) {
+            if (err) {
+              grunt.log.writeln('warning: broken symlink: ' + p);
+            }
+            cb2(null);
+          });
+        } else {
+          // Nothing to do.
+          cb2(null);
         }
       }
+    } catch (e) {
+      grunt.log.writeln('warning: broken symlink: ' + link);
+      cb2(null);
     }
-    cb2(null);
   }, function(err){
-    fs.renameSync(JH, java_home);
-    return cb(err);
+    ncp(JH, java_home, function(err2?: any) {
+      err2 = err2 ? err2 : err;
+      cb(err2);
+    });
   });
 }
 

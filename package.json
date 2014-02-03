@@ -37,7 +37,8 @@
     "glob": "*",
     "execSync": "*",
     "fstream": "*",
-    "grunt-lineending": "*"
+    "grunt-lineending": "*",
+    "ncp": "*"
   },
   "repository": {
     "type": "git",

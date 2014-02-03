@@ -59,7 +59,7 @@ export function setup(grunt: IGrunt) {
       jcl_dir: '<%= resolve(build.vendor_dir, "classes") %>',
       build_dir: '<%= resolve(build.doppio_dir, "build", build.build_type) %>',
       // TODO: Maybe fix this to prevent us from using too much scratch space?
-      scratch_dir: path.resolve(os.tmpDir(), "jdk-download" + Math.floor(Math.random()*100000)),
+      scratch_dir: path.resolve(os.tmpDir(), "jdk-download" + Math.floor(Math.random()*100000))
     },
     make_build_dir: {
       options: { build_dir: "<%= build.build_dir %>" },
@@ -393,7 +393,8 @@ export function setup(grunt: IGrunt) {
   });
 
   grunt.registerTask('setup', "Sets up doppio's environment prior to building.", function(build_type: string) {
-    var need_jcl: boolean, need_ecj: boolean, need_jazzlib: boolean;
+    var need_jcl: boolean, need_ecj: boolean, need_jazzlib: boolean,
+        need_java_home: boolean;
     if (build_type == null) {
       grunt.fail.fatal("setup build task needs to know the build type.");
     }
@@ -402,14 +403,17 @@ export function setup(grunt: IGrunt) {
     need_jcl = !fs.existsSync('vendor/classes/java/lang/Object.class');
     need_ecj =!fs.existsSync('vendor/classes/org/eclipse/jdt/internal/compiler/batch/Main.class');
     need_jazzlib = !fs.existsSync('vendor/classes/java/util/zip/DeflaterEngine.class');
-    if (need_jcl || need_ecj || need_jazzlib) {
+    need_java_home = !fs.existsSync('vendor/java_home');
+    if (need_jcl || need_ecj || need_jazzlib || need_java_home) {
       // Create download folder. It shouldn't exist, as it is randomly generated.
       fs.mkdirSync(grunt.config('build.scratch_dir'));
       // Schedule download task.
       grunt.task.run('curl-dir');
     }
-    if (need_jcl) {
+    if (need_jcl || need_java_home) {
       grunt.task.run('extract_deb');
+    }
+    if (need_jcl) {
       grunt.task.run('unzip:jcl');
     }
     if (need_ecj) {
@@ -419,7 +423,7 @@ export function setup(grunt: IGrunt) {
       grunt.task.run('unzip:jazzlib');
       grunt.task.run('copy:jazzlib');
     }
-    if (!fs.existsSync('vendor/java_home')) {
+    if (need_java_home) {
       grunt.task.run('setup_java_home');
     }
   });
