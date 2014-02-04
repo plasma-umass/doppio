@@ -138,15 +138,13 @@ export class JVM {
   }
 
   // main function that gets called from the frontend
-  public run_class(print: (p:string) => any,
-                   _async_input: (cb: (p:string) => any) => any,
-                   class_name: string,
+  public run_class(class_name: string,
                    cmdline_args: string[],
                    done_cb: (arg: any)=>void) {
     var class_descriptor = "L" + class_name + ";";
     var main_sig = 'main([Ljava/lang/String;)V';
     var main_method: methods.Method = null;
-    var rs = this._rs = new runtime.RuntimeState(print, _async_input, this);
+    var rs = this._rs = new runtime.RuntimeState(this);
     var _this = this;
     function run_main() {
       trace("run_main");

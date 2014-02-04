@@ -159,15 +159,6 @@ if (cname == null && argv.standard.jar == null) {
   process.exit(0);
 }
 var main_args = argv._;
-var stdout = process.stdout.write.bind(process.stdout);
-function read_stdin(resume): void {
-  process.stdin.resume();
-  process.stdin.once('data', function (data) {
-    process.stdin.pause();
-    resume(data);
-  });
-}
-
 if (argv.standard.jar != null) {
   var jar_dir = extract_jar(argv.standard.jar);
   cname = find_main_class(jar_dir);
@@ -177,7 +168,7 @@ if (argv.standard.jar != null) {
 }
 
 function run(done_cb): void {
-  jvm_state.run_class(stdout, read_stdin, cname, main_args, done_cb);
+  jvm_state.run_class(cname, main_args, done_cb);
 }
 var done_cb;
 if (argv.non_standard['list-class-cache']) {

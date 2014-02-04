@@ -276,7 +276,7 @@ function native_define_class(rs: runtime.RuntimeState, name: java_object.JavaObj
 }
 
 function write_to_file(rs: runtime.RuntimeState, _this: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number): void {
-  var buf, fd, fd_obj;
+  var buf: NodeBuffer, fd, fd_obj;
   fd_obj = _this.get_field(rs, 'Ljava/io/FileOutputStream;fd');
   fd = fd_obj.get_field(rs, 'Ljava/io/FileDescriptor;fd');
   if (fd === -1) {
@@ -293,7 +293,13 @@ function write_to_file(rs: runtime.RuntimeState, _this: java_object.JavaObject, 
     });
     return;
   }
-  rs.print(util.chars2js_str(bytes, offset, len));
+
+  var output: string = util.chars2js_str(bytes, offset, len);
+  if (fd === 1) {
+    process.stdout.write(output);
+  } else if (fd === 2) {
+    process.stderr.write(output);
+  }
   if (util.are_in_browser()) {
     // For the browser implementation -- the DOM doesn't get repainted
     // unless we give the event loop a chance to spin.
@@ -1172,9 +1178,10 @@ export var native_methods = {
         }), o('read()I', function(rs, _this) {
           var fd_obj = _this.get_field(rs, "Ljava/io/FileInputStream;fd")
           var fd = fd_obj.get_field(rs, "Ljava/io/FileDescriptor;fd");
-          if (-1 === fd)
+          if (-1 === fd) {
             rs.java_throw(rs.get_bs_class("Ljava/io/IOException;"), "Bad file descriptor");
-          if (0 !== fd)
+          }
+          if (0 !== fd) {
             // this is a real file that we've already opened
             rs.async_op(function(cb) {
               return fs.fstat(fd, function(err, stats) {
@@ -1184,13 +1191,15 @@ export var native_methods = {
                   });
               });
             });
-          else
+          }
+          else {
             // reading from System.in, do it async
             rs.async_op(function(cb) {
-              return rs.async_input(1, function(byte) {
-                  return cb(0 === byte.length ? -1 : byte[0]);
+              return rs.async_input(1, function(byte: NodeBuffer) {
+                  return cb(0 === byte.length ? -1 : byte.readUInt8(0));
               });
             });
+          }
         }), o('readBytes([BII)I', function(rs, _this, byte_arr, offset, n_bytes) {
           var buf, pos;
           var fd_obj = _this.get_field(rs, "Ljava/io/FileInputStream;fd");
@@ -1215,9 +1224,9 @@ export var native_methods = {
           else {
             // reading from System.in, do it async
             rs.async_op(function(cb) {
-              return rs.async_input(n_bytes, function(bytes) {
+              return rs.async_input(n_bytes, function(bytes: NodeBuffer) {
                   var b, idx, _i, _len;
-                  for (idx = _i = 0, _len = bytes.length; _len > _i; idx = ++_i) b = bytes[idx], byte_arr.array[offset + idx] = b;
+                  for (idx = _i = 0, _len = bytes.length; _len > _i; idx = ++_i) b = bytes.readUInt8(idx), byte_arr.array[offset + idx] = b;
                   return cb(bytes.length);
               });
             });

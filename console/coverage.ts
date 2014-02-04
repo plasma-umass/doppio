@@ -87,16 +87,24 @@ function run_tests(test_classes: string[], stdout: (p:string)=>void,
   // set up the classpath
   var jcl_dir = path.resolve(doppio_dir, 'vendor/classes');
   var jvm_state = new jvm.JVM();
+  var stdout_write = process.stdout.write,
+      stderr_write = process.stderr.write,
+      nop = function(arg1: any, arg2?: any, arg3?: any): boolean { return true; };
   jvm_state.set_classpath(jcl_dir, doppio_dir);
   function _runner() {
+    // Unquiet standard output.
+    process.stdout.write = stdout_write;
+    process.stderr.write = stderr_write;
     if (test_classes.length === 0) {
       return callback();
     }
     var test = test_classes.shift();
     quiet || stdout("running " + test + "...\n");
     jvm_state.reset_classloader_cache();
-    function nop() {}
-    return jvm_state.run_class(nop, nop, test, [], _runner);
+    // Quiet standard output.
+    process.stdout.write = nop;
+    process.stderr.write = nop;
+    return jvm_state.run_class(test, [], _runner);
   }
   // get the tests, if necessary
   if (test_classes != null && test_classes.length > 0) {

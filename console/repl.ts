@@ -3,15 +3,6 @@ var readline = require('readline');
 var argv = require('optimist').argv;
 import jvm = require('../src/jvm');
 
-function read_stdin(resume) {
-  process.stdin.resume();
-  process.stdin.once('data', function(data) {
-    process.stdin.pause();
-    resume(data);
-  });
-}
-var write_stdout = process.stdout.write.bind(process.stdout);
-
 // initialize the RuntimeState
 var jvm_state = new jvm.JVM();
 jvm_state.set_classpath(__dirname + "/../vendor/classes", '.');
@@ -20,7 +11,7 @@ function repl_run(cname: string, args: string[], done_cb): void {
   if (cname.slice(-6) === '.class') {
     cname = cname.slice(0, -6);
   }
-  jvm_state.run_class(write_stdout, read_stdin, cname, args, done_cb);
+  jvm_state.run_class(cname, args, done_cb);
 }
 
 // create the REPL

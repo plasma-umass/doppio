@@ -94,11 +94,28 @@ function run_disasm_test(doppio_dir: string, test_class: string, callback): void
 function run_stdout_test(doppio_dir: string, test_class: string, callback): void {
   var output_filename = path.resolve(doppio_dir, test_class) + ".runout";
   fs.readFile(output_filename, 'utf8', function(err, java_output: string) {
-    var doppio_output = '';
-    var stdout = function(str: string) { doppio_output += str; };
+    var doppio_output = '',
+        // Hook into process.stdout.
+        stdout_write = process.stdout.write,
+        stderr_write = process.stderr.write,
+        new_write = function(data: any, arg2?: any, arg3?: any): boolean {
+          if (typeof(data) !== 'string') {
+            // Buffer.
+            data = data.toString();
+          }
+          doppio_output += data;
+          return true;
+        };
+    process.stdout.write = new_write;
+    process.stderr.write = new_write;
     jvm_state.reset_classloader_cache();
-    jvm_state.run_class(stdout, (function() {}), test_class, [],
-        () => callback(cleandiff(doppio_output, java_output)));
+    jvm_state.run_class(test_class, [],
+      () => {
+        // Re-attach process's standard output.
+        process.stdout.write = stdout_write;
+        process.stderr.write = stderr_write;
+        callback(cleandiff(doppio_output, java_output));
+    });
   });
 }
 

@@ -25,9 +25,6 @@ var JavaArray = java_object.JavaArray;
 var run_count = 0;
 // Contains all the mutable state of the Java program.
 export class RuntimeState {
-  public print: (p:string) => any;
-  private _async_input: (cb: (string) => any) => any;
-  private input_buffer: number[];
   private startup_time: gLong;
   public run_stamp: number;
   private mem_start_addrs: number[];
@@ -50,13 +47,8 @@ export class RuntimeState {
   public jvm_state: jvm.JVM;
   private abort_cb: Function;
 
-  constructor(print: (p:string) => any,
-              _async_input: (cb: (p:string) => any) => any,
-              jvm_state: jvm.JVM) {
-    this.print = print;
-    this._async_input = _async_input;
+  constructor(jvm_state: jvm.JVM) {
     this.jvm_state = jvm_state;
-    this.input_buffer = [];
     this.startup_time = gLong.fromNumber((new Date()).getTime());
     this.run_stamp = ++run_count;
     this.mem_start_addrs = [1];
@@ -695,22 +687,30 @@ export class RuntimeState {
     }));
   }
 
-  // Provide buffering for the underlying input function, returning at most
-  // n_bytes of data. Underlying _async_input is expected to 'block' if no
-  // data is available.
-  public async_input(n_bytes: number, resume: (string)=>void): void {
-    if (this.input_buffer.length > 0) {
-      var data = this.input_buffer.slice(0, n_bytes);
-      this.input_buffer = this.input_buffer.slice(n_bytes);
-      resume(data);
-      return;
+  /**
+   * Provide buffering for the underlying input function, returning at most
+   * n_bytes of data.
+   * @todo Relocate. This doesn't need to be in RuntimeState anymore, and
+   *       should be in 'natives'.
+   */
+  public async_input(n_bytes: number, resume: (NodeBuffer) => void): void {
+    // Try to read n_bytes from stdin's buffer.
+    // <any> is a type hack until DefinitelyTyped updates.
+    var bytes: NodeBuffer = (<any> process.stdin).read(n_bytes);
+    if (bytes === null) {
+      // No input available. Wait for further input.
+      process.stdin.once('readable', function(data: NodeBuffer) {
+        // <any> is a type hack until DefinitelyTyped updates.
+        var bytes = (<any> process.stdin).read(n_bytes);
+        if (bytes === null) {
+          console.log("ERROR: Input is empty - should be impossible.");
+          bytes = new Buffer(0);
+        }
+        resume(bytes);
+      });
+    } else {
+      // Reset stack depth and resume with the given data.
+      setImmediate(function() { resume(bytes); });
     }
-    var self = this;
-    this._async_input(function (data) {
-      if (data.length > n_bytes) {
-        self.input_buffer = data.slice(n_bytes);
-      }
-      resume(data.slice(0, n_bytes));
-    });
   }
 }
