@@ -695,13 +695,22 @@ export class RuntimeState {
    */
   public async_input(n_bytes: number, resume: (NodeBuffer) => void): void {
     // Try to read n_bytes from stdin's buffer.
-    // <any> is a type hack until DefinitelyTyped updates.
-    var bytes: NodeBuffer = (<any> process.stdin).read(n_bytes);
+    var read = function(n_bytes: number): NodeBuffer {
+        // <any> is a type hack until DefinitelyTyped updates.
+        var bytes = (<any> process.stdin).read(n_bytes);
+        if (bytes === null) {
+          // We might have asked for too many bytes. Retrieve the entire stream
+          // buffer.
+          return (<any> process.stdin).read();
+        } else {
+          return bytes;
+        }
+      }, bytes: NodeBuffer = read(n_bytes);
+
     if (bytes === null) {
       // No input available. Wait for further input.
       process.stdin.once('readable', function(data: NodeBuffer) {
-        // <any> is a type hack until DefinitelyTyped updates.
-        var bytes = (<any> process.stdin).read(n_bytes);
+        var bytes = read(n_bytes);
         if (bytes === null) {
           console.log("ERROR: Input is empty - should be impossible.");
           bytes = new Buffer(0);
