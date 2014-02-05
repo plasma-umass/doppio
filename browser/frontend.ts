@@ -237,7 +237,7 @@ $(document).ready(function() {
       controller.promptLabel = oldPrompt;
       if (line === '\0') {
         // EOF
-        resume(0);
+        resume(line);
       } else {
         line += "\n";  // so BufferedReader knows it has a full line
         resume(line);
@@ -274,13 +274,11 @@ $(document).ready(function() {
   // Set up stdout/stderr/stdin.
   process.stdout.on('data', stdout);
   process.stderr.on('data', stdout);
-  process.stdin.on('newListener', function(event: string) {
-    if (event === 'readable') {
-      // Something is waiting for input!
-      user_input(function(data: any) {
-        (<any> process.stdin).write(data);
-      });
-    }
+  process.stdin.on('_read', function() {
+    // Something is looking for stdin input.
+    user_input(function(data: any) {
+      (<any> process.stdin).write(data);
+    });
   });
   jvm_state = new jvm.JVM();
   preload();
