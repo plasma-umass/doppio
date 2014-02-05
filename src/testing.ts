@@ -16,7 +16,7 @@ export function find_test_classes(doppio_dir: string, cb): void {
     });
   }
 
-export function run_tests(test_classes: string[], stdout, hide_diffs: boolean,
+export function run_tests(test_classes: string[], hide_diffs: boolean,
     quiet: boolean, keep_going: boolean, callback): void {
   var doppio_dir = util.are_in_browser() ? '/sys/' : path.resolve(__dirname, '..');
   // set up the classpath
@@ -26,7 +26,7 @@ export function run_tests(test_classes: string[], stdout, hide_diffs: boolean,
   function _runner(test_classes: string[], xfails: string[]): void {
     // get the tests, if necessary
     if (test_classes.length === 0) {
-      quiet || keep_going || stdout("Pass\n");
+      quiet || keep_going || process.stdout.write("Pass\n");
       return callback(false);
     }
     var test = test_classes.shift();
@@ -34,11 +34,11 @@ export function run_tests(test_classes: string[], stdout, hide_diffs: boolean,
       // Convert foo.bar.Baz => foo/bar/Baz
       test = util.descriptor2typestr(util.int_classname(test));
     }
-    quiet || stdout("testing " + test + "...\n");
+    quiet || process.stdout.write("testing " + test + "...\n");
     run_disasm_test(doppio_dir, test, function(disasm_diff: string) {
       if (disasm_diff != null) {
-        stdout("Failed disasm test " + test + "\n");
-        hide_diffs || stdout("" + disasm_diff + "\n");
+        process.stdout.write("Failed disasm test " + test + "\n");
+        hide_diffs || process.stdout.write("" + disasm_diff + "\n");
         if (!keep_going) {
           return callback(true);
         }
@@ -46,10 +46,10 @@ export function run_tests(test_classes: string[], stdout, hide_diffs: boolean,
       run_stdout_test(doppio_dir, test, function(diff: string) {
         if ((diff != null) != (xfails.indexOf(test) >= 0)) {
           if (diff != null) {
-            stdout("Failed output test: " + test + "\n");
-            hide_diffs || stdout(diff + "\n");
+            process.stdout.write("Failed output test: " + test + "\n");
+            hide_diffs || process.stdout.write(diff + "\n");
           } else {
-            stdout("Expected failure passed: " + test + "\n");
+            process.stdout.write("Expected failure passed: " + test + "\n");
           }
           if (!keep_going) {
             return callback(true);

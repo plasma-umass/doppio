@@ -17,7 +17,7 @@ import util = require('../src/util');
 declare var JSZip: any;  // hax
 
 // To be initialized on document load
-var stdout: (str: string)=>void;
+var stdout: (data: NodeBuffer)=>void;
 var user_input: (resume: (data: any)=>void)=>void;
 var controller: JQConsole;
 var editor: AceAjax.Editor;
@@ -224,8 +224,8 @@ $(document).ready(function() {
       "Doppio has been tested with the latest versions of the following desktop browsers:\n" +
       "  Chrome, Safari, Firefox, Opera, Internet Explorer 10, and Internet Explorer 9."
   });
-  stdout = function(str: string): void {
-    controller.message(str, '', true);
+  stdout = function(data: NodeBuffer): void {
+    controller.message(data.toString(), '', true);
   }
   user_input = function(resume: (data: any)=>void): void {
     var oldPrompt = controller.promptLabel;
@@ -240,11 +240,7 @@ $(document).ready(function() {
         resume(0);
       } else {
         line += "\n";  // so BufferedReader knows it has a full line
-        var data: number[] = [];
-        for (var i = 0; i < line.length; i++) {
-          data.push(line.charCodeAt(i));
-        }
-        resume(data);
+        resume(line);
       }
     };
   }
@@ -273,6 +269,18 @@ $(document).ready(function() {
   $('#close_btn').click(function(e: JQueryEventObject) {
     close_editor();
     e.preventDefault();
+  });
+
+  // Set up stdout/stderr/stdin.
+  process.stdout.on('data', stdout);
+  process.stderr.on('data', stdout);
+  process.stdin.on('newListener', function(event: string) {
+    if (event === 'readable') {
+      // Something is waiting for input!
+      user_input(function(data: any) {
+        (<any> process.stdin).write(data);
+      });
+    }
   });
   jvm_state = new jvm.JVM();
   preload();
@@ -387,7 +395,7 @@ var commands = {
     jvm_state.set_classpath(sys_path + '/vendor/classes/', './');
     // XXX: -D args unsupported by the console.
     jvm_state.system_properties['jdt.compiler.useSingleThread'] = true;
-    jvm_state.run_class(stdout, user_input, 'org/eclipse/jdt/internal/compiler/batch/Main', args, function() {
+    jvm_state.run_class('org/eclipse/jdt/internal/compiler/batch/Main', args, function() {
       // XXX: remove any classes that just got compiled from the class cache
       for (var i = 0; i < args.length; i++) {
         var c = args[i];
@@ -402,7 +410,7 @@ var commands = {
   },
   javac: function(args: string[]): string {
     jvm_state.set_classpath(sys_path + '/vendor/classes/', './:/sys');
-    jvm_state.run_class(stdout, user_input, 'classes/util/Javac', args, function() {
+    jvm_state.run_class('classes/util/Javac', args, function() {
       // XXX: remove any classes that just got compiled from the class cache
       for (var i = 0; i < args.length; i++) {
         var c = args[i];
@@ -469,7 +477,7 @@ var commands = {
       // convert to filepath-like format
       class_name = util.descriptor2typestr(util.int_classname(class_name));
     }
-    jvm_state.run_class(stdout, user_input, class_name, class_args, () => controller.reprompt());
+    jvm_state.run_class(class_name, class_args, () => controller.reprompt());
     return null;
   },
   test: function(args: string[]): string {
@@ -484,9 +492,9 @@ var commands = {
     }
     process.chdir(sys_path);
     if (args[0] === 'all') {
-      testing.run_tests([], stdout, true, false, true, done_cb);
+      testing.run_tests([], true, false, true, done_cb);
     } else {
-      testing.run_tests(args, stdout, false, false, true, done_cb);
+      testing.run_tests(args, false, false, true, done_cb);
     }
     return null;
   },
@@ -505,7 +513,7 @@ var commands = {
   },
   rhino: function(args: string[]): string {
     jvm_state.set_classpath(sys_path + '/vendor/classes/', './');
-    jvm_state.run_class(stdout, user_input, 'com/sun/tools/script/shell/Main', args, () => controller.reprompt());
+    jvm_state.run_class('com/sun/tools/script/shell/Main', args, () => controller.reprompt());
     return null;
   },
   list_cache: function(): string {

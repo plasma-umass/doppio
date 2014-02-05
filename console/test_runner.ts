@@ -1,25 +1,28 @@
 "use strict";
-var print = require('util').print;
 var fs = require('fs');
 var path = require('path');
 import testing = require('../src/testing');
 
 function makefile_test(argv): void {
-  var failpath = path.resolve(__dirname, '../classes/test/failures.txt');
+  var failpath = path.resolve(__dirname, '../classes/test/failures.txt'),
+      old_write = process.stdout.write;
   function done_cb(failed: boolean): void {
-    print((failed ? '✗' : '✓'));
+    // Patch stdout back up.
+    process.stdout.write = old_write;
+    process.stdout.write(failed ? '✗' : '✓');
     if (failed) {
       fs.writeSync(outfile, '\n');
     }
     fs.closeSync(outfile);
   };
   var outfile = fs.openSync(failpath, 'a');
-  function stdout(str) { fs.writeSync(outfile, str); };
-  testing.run_tests(argv._, stdout, false, true, argv.c, done_cb);
+  function stdout(str: any, arg2?: any, arg3?: any): boolean { fs.writeSync(outfile, str); return true; };
+  process.stdout.write = stdout;
+  testing.run_tests(argv._, false, true, argv.c, done_cb);
 }
 
 function regular_test(argv): void {
-  testing.run_tests(argv._, print, !argv.diff, argv.q, argv.c, process.exit);
+  testing.run_tests(argv._, !argv.diff, argv.q, argv.c, process.exit);
 }
 
 var optimist = require('optimist')
