@@ -4,7 +4,7 @@ var argv = require('optimist').argv;
 import jvm = require('../src/jvm');
 
 // initialize the RuntimeState
-var jvm_state = new jvm.JVM();
+var jvm_state;// = new jvm.JVM();
 jvm_state.set_classpath(__dirname + "/../vendor/classes", '.');
 
 function repl_run(cname: string, args: string[], done_cb): void {

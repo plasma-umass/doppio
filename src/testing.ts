@@ -6,7 +6,7 @@ import util = require('./util');
 import disassembler = require('./disassembler');
 import path = require('path');
 import fs = require('fs');
-var jvm_state = new jvm.JVM();
+var jvm_state;// = new jvm.JVM();
 
 export function find_test_classes(doppio_dir: string, cb): void {
     var test_dir = path.resolve(doppio_dir, 'classes/test');

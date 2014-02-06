@@ -696,12 +696,11 @@ export class RuntimeState {
   public async_input(n_bytes: number, resume: (NodeBuffer) => void): void {
     // Try to read n_bytes from stdin's buffer.
     var read = function(n_bytes: number): NodeBuffer {
-        // <any> is a type hack until DefinitelyTyped updates.
-        var bytes = (<any> process.stdin).read(n_bytes);
+        var bytes = process.stdin.read(n_bytes);
         if (bytes === null) {
           // We might have asked for too many bytes. Retrieve the entire stream
           // buffer.
-          return (<any> process.stdin).read();
+          return process.stdin.read();
         } else {
           return bytes;
         }

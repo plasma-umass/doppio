@@ -1,6 +1,9 @@
 /// <reference path="../vendor/DefinitelyTyped/node/node.d.ts" />
 "use strict";
-var underscore = require('../vendor/underscore/underscore');
+/**
+ * Option parser for Java-compatible flags.
+ * @todo Avoid global state. Make this a class.
+ */
 var options : {[cat:string]:DescriptionCategory} = null;
 var description : Description = null;
 
@@ -17,6 +20,7 @@ export interface Option {
   has_value?: boolean;
   alias?: string;
   aliased_by?: string;
+  default?: string;
 }
 
 export function describe(new_description: Description): void {
@@ -40,8 +44,7 @@ export function describe(new_description: Description): void {
 function parse_flag(args: string[], full_key: string, key: string,
     option_data: DescriptionCategory, result_dict: any): string[] {
   if (!option_data[key]) {
-    console.error("Unrecognized option '" + full_key + "'");
-    process.exit(1);
+    throw new Error("Unrecognized option '" + full_key + "'.\n");
   }
   var alias = option_data[key].aliased_by || key;
   result_dict[alias] = option_data[key].has_value ? args.pop() : 'true';
@@ -49,13 +52,14 @@ function parse_flag(args: string[], full_key: string, key: string,
 }
 
 export function parse(argv: string[]): any {
-  var args = argv.slice(2).reverse();
   var result = {
     standard: {},
     non_standard: {},
     properties: {},
-    _: <string[]> []
+    _: <string[]> [],
+    raw_args: argv
   };
+  var args = argv.slice(2).reverse();
 
   while (args.length > 0) {
     var arg = args.pop();
@@ -86,12 +90,25 @@ export function parse(argv: string[]): any {
       }
     }
   }
-  return result;
-};
 
-// formatted printing helpers
-function min_width(values: string[]): number {
-  return Math.max.apply(values.map((v)=>v.length));
+  // process default values
+  for (var _category in options) {
+    if (!options.hasOwnProperty(_category)) {
+      continue;
+    }
+    if (!result.hasOwnProperty(_category)) {
+      result[_category] = {};
+    }
+    for (var _key in options[_category]) {
+      if (options[_category].hasOwnProperty(_key) &&
+          options[_category][_key].hasOwnProperty('default') &&
+          !result[_category].hasOwnProperty(_key)) {
+        result[_category][_key] = options[_category][_key].default;
+      }
+    }
+  }
+
+  return result;
 }
 
 function print_col(value: string, width: number): string {
@@ -105,7 +122,7 @@ function print_col(value: string, width: number): string {
 
 function _show_help(category: DescriptionCategory, prefix: string): string {
   var combined_keys : {[k:string]:Option} = {};
-  var key_col_width = Infinity;
+  var key_col_width = 0;
   for (var key in category) {
     var opt = category[key];
     var keys = [key];
@@ -114,14 +131,14 @@ function _show_help(category: DescriptionCategory, prefix: string): string {
     }
     var ckey = keys.map((key: string) => "-" + prefix + key).join(', ');
     combined_keys[ckey] = opt;
-    if (ckey.length < key_col_width) {
+    if (ckey.length > key_col_width) {
       key_col_width = ckey.length;
     }
   }
   var rv = '';
   for (key in combined_keys) {
     var option_desc = combined_keys[key].description;
-    rv += print_col(key, key_col_width) + "    " + option_desc + "\n";
+    rv += "    " + print_col(key, key_col_width) + "    " + option_desc + "\n";
   }
   return rv;
 }

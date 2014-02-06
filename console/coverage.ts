@@ -86,7 +86,7 @@ function run_tests(test_classes: string[], stdout: (p:string)=>void,
   var doppio_dir = path.resolve(__dirname, '..');
   // set up the classpath
   var jcl_dir = path.resolve(doppio_dir, 'vendor/classes');
-  var jvm_state = new jvm.JVM();
+  var jvm_state;// = new jvm.JVM();
   var stdout_write = process.stdout.write,
       stderr_write = process.stderr.write,
       nop = function(arg1: any, arg2?: any, arg3?: any): boolean { return true; };

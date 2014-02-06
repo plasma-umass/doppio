@@ -1,50 +1,71 @@
 ///<reference path='../vendor/DefinitelyTyped/node/node.d.ts' />
 "use strict";
 import util = require('./util');
-import logging = require('./logging')
-import runtime = require('./runtime')
-import methods = require('./methods')
-import ClassData = require('./ClassData')
-import ClassLoader = require('./ClassLoader')
+import logging = require('./logging');
+import runtime = require('./runtime');
+import methods = require('./methods');
+import ClassData = require('./ClassData');
+import ClassLoader = require('./ClassLoader');
 import fs = require('fs');
 import path = require('path');
 
 var trace = logging.trace;
 var error = logging.error;
 
-var vendor_path = util.are_in_browser() ? '/sys/vendor' : path.resolve(__dirname, '../vendor');
-
-// poor man's static attribute
+// XXX: poor man's static attribute
 export var show_NYI_natives: boolean = false;
 
+/**
+ * Doppio's main API. Encapsulates a single JVM.
+ */
 export class JVM {
+  /**
+   * If `true`, the JVM will serialize and dump its internal state to the file
+   * system if it terminates irregularly (e.g. through an uncaught Exception).
+   */
   public should_dump_state: boolean = false;
   public system_properties: {[prop: string]: any};
   public bs_cl: ClassLoader.BootstrapClassLoader;
   // HACK: only used in run_class, but we need it when dumping state on exit
   private _rs: runtime.RuntimeState;
 
-  constructor(dump_state=false) {
-    this.should_dump_state = dump_state;
+  /**
+   * (Async) Construct a new instance of the Java Virtual Machine.
+   * @param {string} [jcl_path=/sys/vendor/classes] - Path to the Java Class Library in the file system.
+   * @param {string} [java_home_path=/sys/vendor/java_home] - Path to `java_home` in the file system.
+   */
+  constructor(done_cb: (err: any, jvm?: JVM) => void,
+              jcl_path: string = '/sys/vendor/classes',
+              java_home_path: string = '/sys/vendor/java_home') {
+    var _this = this;
     this.reset_classloader_cache();
-    this.reset_system_properties();
+    this.reset_system_properties(jcl_path, java_home_path);
+    // Need to check jcl_path and java_home_path.
+    fs.exists(java_home_path, function(exists: boolean): void {
+      if (!exists) {
+        done_cb(new Error("Java home path '" + java_home_path + "' does not exist!"));
+      } else {
+        _this.add_classpath_item(jcl_path, 0, function(added: boolean): void {
+          if (!added) {
+            done_cb(new Error("Java class library path '" + jcl_path + "' does not exist!"));
+          } else {
+            // No error. All good.
+            done_cb(null, _this);
+          }
+        });
+      }
+    });
   }
 
-  public dump_state(): void {
-    if (this.should_dump_state) {
-      this._rs.curr_thread.dump_state(this._rs);
-    }
-  }
-
-  public reset_classloader_cache(): void {
-    this.bs_cl = new ClassLoader.BootstrapClassLoader(this);
-  }
-
-  public reset_system_properties(): void {
+  /**
+   * Resets the JVM's system properties to their default values. Java programs
+   * can retrieve these values.
+   */
+  private reset_system_properties(jcl_path: string, java_home_path: string): void {
     this.system_properties = {
       'java.class.path': <string[]> [],
-      'java.home': vendor_path + "/java_home",
-      'sun.boot.class.path': vendor_path + "/classes",
+      'java.home': java_home_path,
+      'sun.boot.class.path': jcl_path,
       'file.encoding': 'UTF-8',
       'java.vendor': 'Doppio',
       'java.version': '1.6',
@@ -69,65 +90,126 @@ export class JVM {
     };
   }
 
-  // Read in a binary classfile asynchronously. Return an array of bytes.
-  public read_classfile(cls: any, cb: (data: NodeBuffer)=>void, failure_cb: (exp_cb: ()=>void)=>void) {
-    cls = cls.slice(1, -1);  // Convert Lfoo/bar/Baz; -> foo/bar/Baz.
-    var cpath = this.system_properties['java.class.path'];
-    function try_get(i: number) {
-      fs.readFile(cpath[i] + cls + '.class', function(err, data){
-        if (err) {
-          if (i + 1 == cpath.length) {
-            failure_cb(function(){
-              throw new Error("Error: No file found for class " + cls);
-            });
-          } else {
-            try_get(i + 1);
-          }
-        } else {
-          cb(data);
-        }
-      });
+  public dump_state(): void {
+    if (this.should_dump_state) {
+      this._rs.curr_thread.dump_state(this._rs);
     }
-    // We could launch them all at once, but we would need to ensure that we use
-    // the working version that occurs first in the classpath.
-    try_get(0);
   }
 
-  // Sets the classpath to the given value in typical classpath form:
-  // path1:path2:... etc.
-  // jcl_path is the location of the Java Class Libraries. It is the only path
-  // that is implicitly the last item on the classpath.
-  // Standardizes the paths for JVM usage.
-  // XXX: Should make this asynchronous at some point for checking the existance
-  //      of classpaths.
-  public set_classpath(jcl_path: string, classpath: string): void {
-    var dirs = classpath.split(':');
-    dirs.push(jcl_path);
-    var tmp_classpath: string[] = [];
+  public reset_classloader_cache(): void {
+    this.bs_cl = new ClassLoader.BootstrapClassLoader(this);
+  }
+
+  /**
+   * Read in a binary classfile asynchronously. Pass a buffer with the contents
+   * to the callback.
+   * @todo This should really be in the bootstrap class loader.
+   */
+  public read_classfile(cls: any, cb: (data: NodeBuffer)=>void, failure_cb: (exp_cb: ()=>void)=>void) {
+    var cpath = this.system_properties['java.class.path'],
+        try_next = function(i: number): void {
+          fs.readFile(cpath[i] + cls + '.class', function(err, data) {
+            if (err) {
+              if (++i == cpath.length) {
+                failure_cb(function(){
+                  throw new Error("Error: No file found for class " + cls);
+                });
+              } else {
+                // Note: Yup, we're relying on the ++i side effect.
+                try_next(i);
+              }
+            } else {
+              cb(data);
+            }
+          });
+        };
+    cls = cls.slice(1, -1);  // Convert Lfoo/bar/Baz; -> foo/bar/Baz.
+    // We could launch them all at once, but we would need to ensure that we use
+    // the working version that occurs first in the classpath.
+    try_next(0);
+  }
+
+  /**
+   * Add an item to the classpath. Verifies that the path exists prior to
+   * adding.
+   * @param {string} p - The path to add.
+   * @param {number} idx - The index at which to splice in the item.
+   * @param {function} done_cb - Called with a boolean that indicates if the
+   *   path was added or not.
+   */
+  public add_classpath_item(p: string, idx: number, done_cb: (added: boolean) => void) {
+    var i: number, classpath = this.system_properties['java.class.path'];
     // All paths must:
     // * Exist.
     // * Be a the fully-qualified path.
     // * Have a trailing /.
-    for (var i = 0; i < dirs.length; i++) {
-      var cp = path.normalize(dirs[i]);
-      if (cp.charAt(cp.length - 1) !== '/') {
-        cp += '/';
-      }
-      // XXX: I'm not checking.
-      // if (fs.existsSync(cp))
-      tmp_classpath.push(cp);
-    }
-    this.system_properties['java.class.path'] = tmp_classpath;
-  }
-
-  // Prepends a single path to the JVM classpath.
-  // Does not check for the existence of the given path.
-  public prepend_classpath(classpath: string): void {
-    var p = path.normalize(classpath);
-    if (p.charAt(p.length-1) !== '/') {
+    p = path.normalize(p);
+    if (p.charAt(p.length - 1) !== '/') {
       p += '/';
     }
-    this.system_properties['java.class.path'].unshift(p);
+    // Check that this standardized classpath does not already exist.
+    for (i = 0; i < classpath.length; i++) {
+      if (classpath[i] === p) {
+        process.stderr.write("WARNING: Ignoring duplicate classpath item " + p + ".");
+        // If this insertion is at a smaller index than the existing item, splice
+        // out the old one and insert this one.
+        if (i > idx) {
+          classpath.splice(idx, 0, classpath.splice(i, 1));
+        }
+        // Well, technically it *has* been added...
+        return done_cb(true);
+      }
+    }
+
+    fs.exists(p, function(exists: boolean): void {
+      if (!exists) {
+        process.stderr.write("WARNING: Classpath path " + p + " does not exist. Ignoring.\n");
+      } else {
+        // Splice in the new classpath item.
+        classpath.splice(idx, 0, p);
+      }
+      done_cb(exists);
+    });
+  }
+
+  /**
+   * Add an path to the end of the classpath.
+   * @param {string} p - The path to add.
+   * @param {function} done_cb - Called with a boolean that indicates if the
+   *   path was added or not.
+   */
+  public push_classpath_item(p: string, done_cb: (added: boolean) => void) {
+    this.add_classpath_item(p, this.system_properties['java.class.path'].length, done_cb);
+  }
+
+  /**
+   * Add a path to the start of the classpath, *after* the JCL.
+   */
+  public unshift_classpath_item(p: string, done_cb: (added: boolean) => void) {
+    // @todo Add assert function.
+    // assert(this.system_properties['java.class.path'].length > 0);
+    this.add_classpath_item(p, 1, done_cb);
+  }
+
+  /**
+   * Pushes multiple paths onto the end of the classpath.
+   */
+  public push_classpath_items(items: string[], done_cb: (added: boolean[]) => void): void {
+    var i: number = 0, added: boolean[] = [], _this = this,
+        new_done_cb = function(_added: boolean): void {
+          added.push(_added);
+          if (++i === items.length) {
+            done_cb(added);
+          } else {
+            _this.push_classpath_item(items[i], new_done_cb);
+          }
+        };
+    // Need to do this serially to preserve semantics.
+    if (items.length > 0) {
+      this.push_classpath_item(items[i], new_done_cb);
+    } else {
+      done_cb(added);
+    }
   }
 
   /**
@@ -137,10 +219,18 @@ export class JVM {
     this._rs.abort(cb);
   }
 
-  // main function that gets called from the frontend
+  /**
+   * Main function for running a JAR file.
+   */
+  public run_jar(jar_path: string, cmdline_args: string[], done_cb: (arg: boolean) => void): void {
+  }
+
+  /**
+   * Main function for running a class.
+   */
   public run_class(class_name: string,
                    cmdline_args: string[],
-                   done_cb: (arg: any)=>void) {
+                   done_cb: (arg: boolean)=>void) {
     var class_descriptor = "L" + class_name + ";";
     var main_sig = 'main([Ljava/lang/String;)V';
     var main_method: methods.Method = null;
@@ -215,4 +305,49 @@ export class JVM {
     }, true, function () { });
   }
 
+  /**
+   * Returns a list of absolute file paths to each loaded class in the
+   * ClassLoader backed by a class file on the file system.
+   */
+  public list_class_cache(done_cb: (class_cache: string[]) => void): void {
+    var classes: string[] = this.bs_cl.get_loaded_class_list(true),
+        cpaths: string[] = this.system_properties['java.class.path'],
+        i: number, filesLeft: number = classes.length, filePaths: string[] = [],
+        // Called whenever another file is processed.
+        fileDone = function() {
+          if (--filesLeft === 0) {
+            // We have finished examining all files.
+            done_cb(filePaths);
+          }
+        },
+        // Searches for fileName in the given classpaths.
+        searchForFile = function(fileName: string, cpaths: string[]) {
+          var fpath: string;
+          if (cpaths.length === 0) {
+            // Base case. Nothing left to search for; the file wasn't found.
+            fileDone();
+          } else {
+            // Note: Shift is destructive. :)
+            fpath = path.resolve(cpaths.shift(), fileName);
+            fs.stat(fpath, function(err: any, stats?: fs.Stats) {
+              if (err) {
+                // Iterate on cpaths.
+                return searchForFile(fileName, cpaths);
+              } else {
+                // We found it, and can stop iterating.
+                filePaths.push(fpath);
+                fileDone();
+              }
+            });
+          }
+        };
+    for (i = 0; i < classes.length; i++) {
+      // Our ClassLoader currently does not store the provenance of each class
+      // file, unfortunately.
+      // Capture the filename, and asynchronously figure out where each
+      // was loaded from.
+      // Parallelism!!
+      searchForFile(classes[i] + ".class", cpaths.slice(0));
+    }
+  }
 }

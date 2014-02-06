@@ -277,6 +277,8 @@ $(document).ready(function() {
   process.stdin.on('_read', function() {
     // Something is looking for stdin input.
     user_input(function(data: any) {
+      // stdin is typically a readable stream, but it's a duplex in BrowserFS.
+      // hence the type hack.
       (<any> process.stdin).write(data);
     });
   });
