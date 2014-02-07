@@ -63,8 +63,10 @@ export class JVM {
    */
   public reset_system_properties() {
     // Reset while maintaining jcl_path and java_home_path.
-    this._reset_system_properties(this.system_properties['java.class.path'],
-                                  this.system_properties['sun.boot.class.path']);
+    this._reset_system_properties(this.system_properties['sun.boot.class.path'],
+                                  this.system_properties['java.home']);
+    // XXX: jcl_path is known-good; synchronously push it onto classpath.
+    this.system_properties['java.class.path'] = [this.system_properties['sun.boot.class.path']];
   }
 
   /**
@@ -159,14 +161,14 @@ export class JVM {
     // * Exist.
     // * Be a the fully-qualified path.
     // * Have a trailing /.
-    p = path.normalize(p);
+    p = path.resolve(p);
     if (p.charAt(p.length - 1) !== '/') {
       p += '/';
     }
     // Check that this standardized classpath does not already exist.
     for (i = 0; i < classpath.length; i++) {
       if (classpath[i] === p) {
-        process.stderr.write("WARNING: Ignoring duplicate classpath item " + p + ".");
+        process.stderr.write("WARNING: Ignoring duplicate classpath item " + p + ".\n");
         // If this insertion is at a smaller index than the existing item, splice
         // out the old one and insert this one.
         if (i > idx) {

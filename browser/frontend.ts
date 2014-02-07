@@ -290,7 +290,7 @@ $(document).ready(function() {
     } else {
       jvm_state = _jvm_state;
     }
-  });
+  }, '/sys/vendor/classes', '/sys/vendor/java_home');
   preload();
 });
 
