@@ -13,7 +13,7 @@ var trace = logging.trace;
 var error = logging.error;
 
 /**
- * Doppio's main API. Encapsulates a single JVM.
+ * Encapsulates a single JVM instance.
  */
 class JVM {
   /**
@@ -369,5 +369,5 @@ class JVM {
   }
 }
 
-// Causes `require('jvm')` to be the JVM constructor. itself
+// Causes `require('jvm')` to be the JVM constructor itself
 export = JVM;
