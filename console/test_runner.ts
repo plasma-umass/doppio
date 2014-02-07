@@ -3,6 +3,10 @@ var fs = require('fs');
 var path = require('path');
 import testing = require('../src/testing');
 
+var opts = { jcl_path: path.resolve(__dirname, '../vendor/classes'),
+             java_home_path: path.resolve(__dirname, '../vendor/java_home')},
+    doppio_dir = path.dirname(__dirname);
+
 function makefile_test(argv): void {
   var failpath = path.resolve(__dirname, '../classes/test/failures.txt'),
       old_write = process.stdout.write;
@@ -18,11 +22,13 @@ function makefile_test(argv): void {
   var outfile = fs.openSync(failpath, 'a');
   function stdout(str: any, arg2?: any, arg3?: any): boolean { fs.writeSync(outfile, str); return true; };
   process.stdout.write = stdout;
-  testing.run_tests(argv._, false, true, argv.c, done_cb);
+  testing.run_tests(opts, doppio_dir, argv._, false, true, argv.c, done_cb);
 }
 
 function regular_test(argv): void {
-  testing.run_tests(argv._, !argv.diff, argv.q, argv.c, process.exit);
+  testing.run_tests(opts, doppio_dir, argv._, !argv.diff, argv.q, argv.c, function(result: boolean): void {
+    process.exit(result ? 0 : 1);
+  });
 }
 
 var optimist = require('optimist')

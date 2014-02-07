@@ -4,10 +4,11 @@ import runtime = require('./runtime');
 var RuntimeState = runtime.RuntimeState;
 import util = require('./util');
 import disassembler = require('./disassembler');
+import java_cli = require('./java_cli');
 import path = require('path');
 import fs = require('fs');
-var jvm_state;// = new jvm.JVM();
 
+var jvm_state: jvm.JVM;
 export function find_test_classes(doppio_dir: string, cb): void {
     var test_dir = path.resolve(doppio_dir, 'classes/test');
     fs.readdir(test_dir, function(err, files) {
@@ -16,58 +17,91 @@ export function find_test_classes(doppio_dir: string, cb): void {
     });
   }
 
-export function run_tests(test_classes: string[], hide_diffs: boolean,
-    quiet: boolean, keep_going: boolean, callback): void {
-  var doppio_dir = util.are_in_browser() ? '/sys/' : path.resolve(__dirname, '..');
-  // set up the classpath
-  var jcl_dir = path.resolve(doppio_dir, 'vendor/classes');
-  jvm_state.set_classpath(jcl_dir, doppio_dir);
-  var xfail_file = path.resolve(doppio_dir, 'classes/test/xfail.txt');
-  function _runner(test_classes: string[], xfails: string[]): void {
-    // get the tests, if necessary
-    if (test_classes.length === 0) {
-      quiet || keep_going || process.stdout.write("Pass\n");
-      return callback(false);
-    }
-    var test = test_classes.shift();
-    if (test.indexOf('.') !== -1) {
-      // Convert foo.bar.Baz => foo/bar/Baz
-      test = util.descriptor2typestr(util.int_classname(test));
-    }
-    quiet || process.stdout.write("testing " + test + "...\n");
-    run_disasm_test(doppio_dir, test, function(disasm_diff: string) {
-      if (disasm_diff != null) {
-        process.stdout.write("Failed disasm test " + test + "\n");
-        hide_diffs || process.stdout.write("" + disasm_diff + "\n");
-        if (!keep_going) {
-          return callback(true);
-        }
+// @todo Pass in an options object or something. This is unwieldy.
+export function run_tests(opts: java_cli.JavaOptions, doppio_dir: string,
+    test_classes: string[], hide_diffs: boolean, quiet: boolean,
+    keep_going: boolean, callback: (result: boolean) => void): void {
+  var _run_tests = function() {
+    // Add doppio_dir to classpath.
+    jvm_state.push_classpath_item(doppio_dir, function(added: boolean): void {
+      if (!added) {
+        process.stderr.write("Could not add " + doppio_dir + " to classpath.\n");
+        return callback(false);
       }
-      run_stdout_test(doppio_dir, test, function(diff: string) {
-        if ((diff != null) != (xfails.indexOf(test) >= 0)) {
-          if (diff != null) {
-            process.stdout.write("Failed output test: " + test + "\n");
-            hide_diffs || process.stdout.write(diff + "\n");
-          } else {
-            process.stdout.write("Expected failure passed: " + test + "\n");
-          }
-          if (!keep_going) {
-            return callback(true);
-          }
+      var xfail_file = path.resolve(doppio_dir, 'classes/test/xfail.txt');
+      function _runner(test_classes: string[], xfails: string[]): void {
+        // get the tests, if necessary
+        if (test_classes.length === 0) {
+          quiet || keep_going || process.stdout.write("Pass\n");
+          return callback(false);
         }
-        _runner(test_classes, xfails);
+        var test = test_classes.shift();
+        if (test.indexOf('.') !== -1) {
+          // Convert foo.bar.Baz => foo/bar/Baz
+          test = util.descriptor2typestr(util.int_classname(test));
+        }
+        quiet || process.stdout.write("testing " + test + "...\n");
+        run_disasm_test(doppio_dir, test, function(disasm_diff: string) {
+          if (disasm_diff != null) {
+            process.stdout.write("Failed disasm test " + test + "\n");
+            hide_diffs || process.stdout.write("" + disasm_diff + "\n");
+            if (!keep_going) {
+              return callback(true);
+            }
+          }
+          run_stdout_test(doppio_dir, test, function(diff: string) {
+            if ((diff != null) != (xfails.indexOf(test) >= 0)) {
+              if (diff != null) {
+                process.stdout.write("Failed output test: " + test + "\n");
+                hide_diffs || process.stdout.write(diff + "\n");
+              } else {
+                process.stdout.write("Expected failure passed: " + test + "\n");
+              }
+              if (!keep_going) {
+                return callback(true);
+              }
+            }
+            _runner(test_classes, xfails);
+          });
+        });
+      }
+      fs.readFile(xfail_file, 'utf-8', function(err: any, contents: string) {
+        var xfails = contents.split('\n').map((failname) => "classes/test/" + failname);
+        if (test_classes != null && test_classes.length > 0) {
+          test_classes = test_classes.map((tc: string) => tc.replace(/\.class$/, ''));
+          _runner(test_classes, xfails);
+        } else {
+          find_test_classes(doppio_dir, (tcs: string[]) => _runner(tcs, xfails));
+        }
       });
     });
+  };
+
+  // Wrap callback to reset JVM state on exit.
+  callback = (function(old_callback: (result: boolean) => void): (result: boolean) => void {
+    return function(result: boolean): void {
+      jvm_state.reset_classpath();
+      jvm_state.reset_system_properties();
+      old_callback(result);
+    };
+  })(callback);
+
+  if (opts.jvm_state) {
+    // Use old JVM.
+    jvm_state = opts.jvm_state;
+    _run_tests();
+  } else {
+    // Construct new JVM.
+    new jvm.JVM(function(err: any, jvm?: jvm.JVM): void {
+      if (err) {
+        process.stderr.write("Test failed: " + err + "\n");
+        callback(false);
+      } else {
+        jvm_state = jvm;
+        _run_tests();
+      }
+    }, opts.jcl_path, opts.java_home_path);
   }
-  fs.readFile(xfail_file, 'utf-8', function(err: any, contents: string) {
-    var xfails = contents.split('\n').map((failname) => "classes/test/" + failname);
-    if (test_classes != null && test_classes.length > 0) {
-      test_classes = test_classes.map((tc: string) => tc.replace(/\.class$/, ''));
-      _runner(test_classes, xfails);
-    } else {
-      find_test_classes(doppio_dir, (tcs: string[]) => _runner(tcs, xfails));
-    }
-  });
 }
 
 // remove comments and blank lines, ignore specifics of float/double printing and whitespace

@@ -2,10 +2,39 @@
 var readline = require('readline');
 var argv = require('optimist').argv;
 import jvm = require('../src/jvm');
+import path = require('path');
 
 // initialize the RuntimeState
-var jvm_state;// = new jvm.JVM();
-jvm_state.set_classpath(__dirname + "/../vendor/classes", '.');
+var jvm_state;
+new jvm.JVM(function(err: any, jvm?: jvm.JVM): void {
+  if (err) {
+    throw err;
+  }
+  jvm_state = jvm;
+  // create the REPL
+  process.stdin.resume();
+  var repl = readline.createInterface(process.stdin, process.stdout);
+
+  // set up handlers
+  repl.on('close', function() {
+    repl.output.write('\n');
+    repl.input.destroy();
+  });
+  repl.on('line', function(line: string) {
+    var toks = line.trim().split(/\s+/);
+    if (toks[0] != null && toks[0].length > 0) {
+      repl_run(toks[0], toks.slice(1), () => repl.prompt());
+    } else {
+      repl.prompt();
+    }
+  });
+
+  // set the prompt, display it, and begin the loop
+  repl.setPrompt('doppio> ');
+  repl.prompt();
+}, path.resolve(__dirname, "/../vendor/classes", '.'),
+   path.resolve(__dirname, '/../vendor/java_home'));
+
 
 function repl_run(cname: string, args: string[], done_cb): void {
   if (cname.slice(-6) === '.class') {
@@ -13,25 +42,3 @@ function repl_run(cname: string, args: string[], done_cb): void {
   }
   jvm_state.run_class(cname, args, done_cb);
 }
-
-// create the REPL
-process.stdin.resume();
-var repl = readline.createInterface(process.stdin, process.stdout);
-
-// set up handlers
-repl.on('close', function() {
-  repl.output.write('\n');
-  repl.input.destroy();
-});
-repl.on('line', function(line: string) {
-  var toks = line.trim().split(/\s+/);
-  if (toks[0] != null && toks[0].length > 0) {
-    repl_run(toks[0], toks.slice(1), () => repl.prompt());
-  } else {
-    repl.prompt();
-  }
-});
-
-// set the prompt, display it, and begin the loop
-repl.setPrompt('doppio> ');
-repl.prompt();

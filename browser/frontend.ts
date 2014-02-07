@@ -312,11 +312,13 @@ function read_dir(dir: string, pretty: boolean, columns: boolean, cb: any): void
     util.async_foreach(contents,
       // runs on each element
       function(c: string, next_item) {
-        fs.stat(dir + '/' + c, function(err: Error, stat){
-          if (stat.isDirectory()) {
-            c += '/';
+        fs.stat(dir + '/' + c, function(err: Error, stat: fs.Stats) {
+          if (err == null) {
+            if (stat.isDirectory()) {
+              c += '/';
+            }
+            pretty_list.push(c);
           }
-          pretty_list.push(c);
           next_item();
         });
       },
@@ -453,9 +455,9 @@ var commands = {
     }
     process.chdir(sys_path);
     if (args[0] === 'all') {
-      testing.run_tests([], true, false, true, done_cb);
+      testing.run_tests({ jvm_state: jvm_state }, sys_path, [], true, false, true, done_cb);
     } else {
-      testing.run_tests(args, false, false, true, done_cb);
+      testing.run_tests({ jvm_state: jvm_state }, sys_path, args, false, false, true, done_cb);
     }
     return null;
   },
