@@ -14,6 +14,7 @@ import jvm = require('../src/jvm');
 import testing = require('../src/testing');
 import untar = require('./untar');
 import util = require('../src/util');
+import java_cli = require('../src/java_cli');
 declare var JSZip: any;  // hax
 
 // To be initialized on document load
@@ -282,7 +283,14 @@ $(document).ready(function() {
       (<any> process.stdin).write(data);
     });
   });
-  jvm_state = new jvm.JVM();
+  new jvm.JVM(function(err: any, _jvm_state?: jvm.JVM) {
+    if (err) {
+      // Throw the error so it appears in the dev console.
+      throw err;
+    } else {
+      jvm_state = _jvm_state;
+    }
+  });
   preload();
 });
 
@@ -392,10 +400,11 @@ var commands = {
     return null;
   },
   ecj: function(args: string[]): string {
-    jvm_state.set_classpath(sys_path + '/vendor/classes/', './');
-    // XXX: -D args unsupported by the console.
-    jvm_state.system_properties['jdt.compiler.useSingleThread'] = true;
-    jvm_state.run_class('org/eclipse/jdt/internal/compiler/batch/Main', args, function() {
+    args.unshift('org/eclipse/jdt/internal/compiler/batch/Main');
+    args.unshift('-Djdt.compiler.useSingleThread=true');
+    java_cli.java(args, {
+      jvm_state: jvm_state
+    }, function(status: boolean): void {
       // XXX: remove any classes that just got compiled from the class cache
       for (var i = 0; i < args.length; i++) {
         var c = args[i];
@@ -403,14 +412,15 @@ var commands = {
           jvm_state.bs_cl.remove_class(util.int_classname(c.slice(0, -5)));
         }
       }
-      jvm_state.reset_system_properties();
       controller.reprompt();
     });
     return null;
   },
   javac: function(args: string[]): string {
-    jvm_state.set_classpath(sys_path + '/vendor/classes/', './:/sys');
-    jvm_state.run_class('classes/util/Javac', args, function() {
+    args.unshift('classes/util/Javac');
+    java_cli.java(args, {
+      jvm_state: jvm_state
+    }, function(status: boolean): void {
       // XXX: remove any classes that just got compiled from the class cache
       for (var i = 0; i < args.length; i++) {
         var c = args[i];
@@ -423,61 +433,12 @@ var commands = {
     return null;
   },
   java: function(args: string[]): string {
-    jvm_state.should_dump_state = false
-    // XXX: dump-state support
-    for (var i = 0; i < args.length; i++) {
-      if (args[i] === '-Xdump-state') {
-        jvm_state.should_dump_state = true;
-        args.splice(i, 1);
-        break;
-      }
-    }
-    if ((args[0] == null) ||
-        ((args[0] === '-classpath' || args[0] === '-cp') && args.length < 3)) {
-      return "Usage: java [-classpath path1:path2...] [-jar path.jar] class [args...]";
-    }
-    var class_args: string[];
-    var class_name: string;
-    if (args[0] === '-classpath' || args[0] === '-cp') {
-      jvm_state.set_classpath(sys_path + '/vendor/classes/', args[1]);
-      class_name = args[2];
-      class_args = args.slice(3);
-    } else if (args[0] === '-jar') {
-      // TODO: extract common functionality with console/runner.ts
-      // TODO: make this asynchronous
-      // TODO: error checking / tab-complete fixes
-      var jar_path = args[1];
-      var tmp_dir = '/tmp/jars/' + path.basename(jar_path.slice(0,-4)) + '/';
-      if (!fs.existsSync(tmp_dir)) {
-        fs.mkdirSync(tmp_dir);
-      }
-      var jar = fs.readFileSync(jar_path);
-      var jarfile = new JSZip((<any>jar).buff.buffer);
-      // TODO: avoid loading every single file into memory (BFS ZipFS backend?)
-      for (var filepath in jarfile.files) {
-        var file = jarfile.files[filepath];
-        filepath = path.join(tmp_dir, filepath);
-        if (file.options.dir || filepath.slice(-1) === '/') {
-          if (!fs.existsSync(filepath)) {
-            fs.mkdirSync(filepath);
-          }
-        } else {
-          fs.writeFileSync(filepath, file.asBinary(), 'binary');
-        }
-      }
-      jvm_state.set_classpath(sys_path + '/vendor/classes/', tmp_dir+':./');
-      class_name = args[2];  // TODO: infer this from the manifest
-      class_args = args.slice(3);
-    } else {
-      jvm_state.set_classpath(sys_path + '/vendor/classes/', './');
-      class_name = args[0];
-      class_args = args.slice(1);
-    }
-    if (class_name != null && class_name.indexOf('.') !== -1) {
-      // convert to filepath-like format
-      class_name = util.descriptor2typestr(util.int_classname(class_name));
-    }
-    jvm_state.run_class(class_name, class_args, () => controller.reprompt());
+    java_cli.java(args, {
+      jvm_state: jvm_state,
+      launcher_name: 'java'
+    }, function(result: boolean): void {
+      controller.reprompt();
+    });
     return null;
   },
   test: function(args: string[]): string {
@@ -499,21 +460,18 @@ var commands = {
     return null;
   },
   javap: function(args: string[]): string {
-    if (args[0] == null) {
-      return "Usage: javap class";
-    }
-    fs.readFile(args[0] + '.class', function(err: Error, buf: NodeBuffer){
-      if (err) {
-        controller.message("Could not find class '" + args[0] + "'.", 'error');
-      } else {
-        controller.message(disassembler.disassemble(buf), 'success');
-      }
+    disassembler.javap(args, function(status: boolean): void {
+      controller.reprompt();
     });
     return null;
   },
   rhino: function(args: string[]): string {
-    jvm_state.set_classpath(sys_path + '/vendor/classes/', './');
-    jvm_state.run_class('com/sun/tools/script/shell/Main', args, () => controller.reprompt());
+    args.unshift('com/sun/tools/script/shell/Main');
+    java_cli.java(args, {
+      jvm_state: jvm_state
+    }, function(result: boolean): void {
+      controller.reprompt();
+    });
     return null;
   },
   list_cache: function(): string {

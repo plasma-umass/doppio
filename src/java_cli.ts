@@ -112,22 +112,7 @@ export function java(args: string[], opts: JavaOptions,
 
   jvm.show_NYI_natives = argv.non_standard['show-nyi-natives'];
 
-  if (opts.jvm_state) {
-    jvm_state = opts.jvm_state;
-    jvm_cb();
-  } else {
-    // Construct the JVM.
-    jvm_state = new jvm.JVM(function(err?: any): void {
-      if (err) {
-        process.stderr.write("Error constructing JVM:\n");
-        process.stderr.write(err.toString() + "\n");
-        done_cb(false);
-      } else {
-        jvm_cb();
-      }
-    }, opts.jcl_path, opts.java_home_path);
-  }
-
+  // Function that performs processing on the JVM, once constructed/ready.
   jvm_cb = function() {
     // JVM CONFIGURATION
     underscore.extend(jvm_state.system_properties, argv.properties);
@@ -201,7 +186,7 @@ export function java(args: string[], opts: JavaOptions,
 
     // User-supplied classpath items.
     if (argv.standard.classpath != null) {
-      classpath = classpath.concat(argv.standard.classpath.split(';'));
+      classpath = classpath.concat(argv.standard.classpath.split(':'));
     } else {
       // DEFAULT: If no user-supplied classpath, add the current directory to
       // the class path.
@@ -213,6 +198,22 @@ export function java(args: string[], opts: JavaOptions,
       launch_jvm(argv, opts, jvm_state, done_cb, jvm_started);
     });
   };
+
+  if (opts.jvm_state) {
+    jvm_state = opts.jvm_state;
+    jvm_cb();
+  } else {
+    // Construct the JVM.
+    jvm_state = new jvm.JVM(function(err?: any): void {
+      if (err) {
+        process.stderr.write("Error constructing JVM:\n");
+        process.stderr.write(err.toString() + "\n");
+        done_cb(false);
+      } else {
+        jvm_cb();
+      }
+    }, opts.jcl_path, opts.java_home_path);
+  }
 }
 
 /**
@@ -225,6 +226,15 @@ function launch_jvm(argv: any, opts: JavaOptions, jvm_state: jvm.JVM, done_cb: (
   var main_args = argv._,
       cname = argv.className,
       jar_file = argv.standard.jar;
+
+  // Wrap done_cb in a function that resets the JVM's state when finished.
+  done_cb = (function(old_done_cb: (result: boolean) => void): (result: boolean) => void {
+    return function(result: boolean): void {
+      jvm_state.reset_system_properties();
+      jvm_state.reset_classpath();
+      old_done_cb(result);
+    };
+  })(done_cb);
 
   if (cname != null) {
     // Class specified.

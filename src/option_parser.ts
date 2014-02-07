@@ -58,7 +58,7 @@ export function parse(argv: string[]): any {
     properties: {},
     _: <string[]> []
   };
-  var args = argv.slice(2).reverse();
+  var args = argv.reverse();
 
   while (args.length > 0) {
     var arg = args.pop();

@@ -39,7 +39,7 @@ export class JVM {
               java_home_path: string = '/sys/vendor/java_home') {
     var _this = this;
     this.reset_classloader_cache();
-    this.reset_system_properties(jcl_path, java_home_path);
+    this._reset_system_properties(jcl_path, java_home_path);
     // Need to check jcl_path and java_home_path.
     fs.exists(java_home_path, function(exists: boolean): void {
       if (!exists) {
@@ -61,7 +61,16 @@ export class JVM {
    * Resets the JVM's system properties to their default values. Java programs
    * can retrieve these values.
    */
-  private reset_system_properties(jcl_path: string, java_home_path: string): void {
+  public reset_system_properties() {
+    // Reset while maintaining jcl_path and java_home_path.
+    this._reset_system_properties(this.system_properties['java.class.path'],
+                                  this.system_properties['sun.boot.class.path']);
+  }
+
+  /**
+   * [Private] Same as reset_system_properties, but called by the constructor.
+   */
+  private _reset_system_properties(jcl_path: string, java_home_path: string): void {
     this.system_properties = {
       'java.class.path': <string[]> [],
       'java.home': java_home_path,

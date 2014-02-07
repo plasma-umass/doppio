@@ -16,8 +16,8 @@ process.on('SIGINT', function () {
   process.exit(0);
 });
 
-// Run the JVM.
-java_cli.java(process.argv, {
+// Run the JVM. Remove node runner.js from the args.
+java_cli.java(process.argv.slice(2), {
   jcl_path: path.resolve(__dirname, '../vendor/classes'),
   java_home_path: path.resolve(__dirname, '../vendor/java_home'),
   launcher_name: process.argv[0] + " " + path.relative(process.cwd(), process.argv[1])
