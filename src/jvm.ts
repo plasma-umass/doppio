@@ -101,6 +101,13 @@ export class JVM {
   }
 
   /**
+   * Removes all items from the classpath *except* for the JCL path.
+   */
+  public reset_classpath(): void {
+    this.system_properties['java.class.path'] = this.system_properties['java.class.path'].slice(0, 1);
+  }
+
+  /**
    * Read in a binary classfile asynchronously. Pass a buffer with the contents
    * to the callback.
    * @todo This should really be in the bootstrap class loader.

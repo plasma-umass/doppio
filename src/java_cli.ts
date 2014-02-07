@@ -58,6 +58,8 @@ export interface JavaOptions {
   // Name of the command used to launch `java`. Used in the 'usage' portion of
   // the help message.
   launcher_name?: string;
+  // An existing instance of the JVM to use.
+  jvm_state?: jvm.JVM;
 }
 
 /**
@@ -81,7 +83,8 @@ export function java(args: string[], opts: JavaOptions,
                      done_cb: (arg: boolean) => void,
                      jvm_started: (jvm: jvm.JVM) => void = function(jvm: jvm.JVM): void {}): void {
   setupOptparse();
-  var argv = optparse.parse(args), jvm_state: jvm.JVM, classpath: string[] = [];
+  var argv = optparse.parse(args), jvm_state: jvm.JVM, classpath: string[] = [],
+      jvm_cb;
 
   // Default options
   if (!opts.launcher_name) {
@@ -109,14 +112,23 @@ export function java(args: string[], opts: JavaOptions,
 
   jvm.show_NYI_natives = argv.non_standard['show-nyi-natives'];
 
-  // Construct the JVM.
-  jvm_state = new jvm.JVM(function(err?: any): void {
-    if (err) {
-      process.stderr.write("Error constructing JVM:\n");
-      process.stderr.write(err.toString() + "\n");
-      return done_cb(false);
-    }
+  if (opts.jvm_state) {
+    jvm_state = opts.jvm_state;
+    jvm_cb();
+  } else {
+    // Construct the JVM.
+    jvm_state = new jvm.JVM(function(err?: any): void {
+      if (err) {
+        process.stderr.write("Error constructing JVM:\n");
+        process.stderr.write(err.toString() + "\n");
+        done_cb(false);
+      } else {
+        jvm_cb();
+      }
+    }, opts.jcl_path, opts.java_home_path);
+  }
 
+  jvm_cb = function() {
     // JVM CONFIGURATION
     underscore.extend(jvm_state.system_properties, argv.properties);
 
@@ -200,7 +212,7 @@ export function java(args: string[], opts: JavaOptions,
       // Launch the JVM.
       launch_jvm(argv, opts, jvm_state, done_cb, jvm_started);
     });
-  }, opts.jcl_path, opts.java_home_path);
+  };
 }
 
 /**
