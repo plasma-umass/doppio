@@ -1,5 +1,5 @@
 "use strict";
-import jvm = require('./jvm');
+import JVM = require('./jvm');
 import runtime = require('./runtime');
 var RuntimeState = runtime.RuntimeState;
 import util = require('./util');
@@ -8,7 +8,7 @@ import java_cli = require('./java_cli');
 import path = require('path');
 import fs = require('fs');
 
-var jvm_state: jvm.JVM;
+var jvm_state: JVM;
 export function find_test_classes(doppio_dir: string, cb): void {
     var test_dir = path.resolve(doppio_dir, 'classes/test');
     fs.readdir(test_dir, function(err, files) {
@@ -92,7 +92,7 @@ export function run_tests(opts: java_cli.JavaOptions, doppio_dir: string,
     _run_tests();
   } else {
     // Construct new JVM.
-    new jvm.JVM(function(err: any, jvm?: jvm.JVM): void {
+    new JVM(function(err: any, jvm?: JVM): void {
       if (err) {
         process.stderr.write("Test failed: " + err + "\n");
         callback(false);

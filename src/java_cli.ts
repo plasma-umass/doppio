@@ -1,5 +1,5 @@
 import optparse = require('./option_parser');
-import jvm = require('./jvm');
+import JVM = require('./jvm');
 import util = require('./util');
 import logging = require('./logging');
 import path = require('path');
@@ -59,7 +59,7 @@ export interface JavaOptions {
   // the help message.
   launcher_name?: string;
   // An existing instance of the JVM to use.
-  jvm_state?: jvm.JVM;
+  jvm_state?: JVM;
 }
 
 /**
@@ -81,9 +81,9 @@ export interface JavaOptions {
  */
 export function java(args: string[], opts: JavaOptions,
                      done_cb: (arg: boolean) => void,
-                     jvm_started: (jvm: jvm.JVM) => void = function(jvm: jvm.JVM): void {}): void {
+                     jvm_started: (jvm: JVM) => void = function(jvm: JVM): void {}): void {
   setupOptparse();
-  var argv = optparse.parse(args), jvm_state: jvm.JVM, classpath: string[] = [],
+  var argv = optparse.parse(args), jvm_state: JVM, classpath: string[] = [],
       jvm_cb;
 
   // Default options
@@ -110,7 +110,7 @@ export function java(args: string[], opts: JavaOptions,
     logging.log_level = level;
   }
 
-  jvm.show_NYI_natives = argv.non_standard['show-nyi-natives'];
+  JVM.show_NYI_natives = argv.non_standard['show-nyi-natives'];
 
   // Function that performs processing on the JVM, once constructed/ready.
   jvm_cb = function() {
@@ -174,7 +174,7 @@ export function java(args: string[], opts: JavaOptions,
             process.stdout.write("Timing:\n\t" + (mid_point - cold_start) + " ms cold\n\t"
                         + (finished - mid_point) + " ms hot\n");
             old_done_cb(result);
-          }, function(jvm_state: jvm.JVM){});
+          }, function(jvm_state: JVM){});
         };
       })(done_cb);
     }
@@ -204,7 +204,7 @@ export function java(args: string[], opts: JavaOptions,
     jvm_cb();
   } else {
     // Construct the JVM.
-    jvm_state = new jvm.JVM(function(err?: any): void {
+    jvm_state = new JVM(function(err?: any): void {
       if (err) {
         process.stderr.write("Error constructing JVM:\n");
         process.stderr.write(err.toString() + "\n");
@@ -221,8 +221,8 @@ export function java(args: string[], opts: JavaOptions,
  * Figures out from this how to launch the JVM (e.g. using a JAR file or a
  * particular class).
  */
-function launch_jvm(argv: any, opts: JavaOptions, jvm_state: jvm.JVM, done_cb: (result: boolean) => void,
-                    jvm_started: (jvm_state: jvm.JVM) => void): void {
+function launch_jvm(argv: any, opts: JavaOptions, jvm_state: JVM, done_cb: (result: boolean) => void,
+                    jvm_started: (jvm_state: JVM) => void): void {
   var main_args = argv._,
       cname = argv.className,
       jar_file = argv.standard.jar;

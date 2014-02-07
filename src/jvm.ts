@@ -12,13 +12,10 @@ import path = require('path');
 var trace = logging.trace;
 var error = logging.error;
 
-// XXX: poor man's static attribute
-export var show_NYI_natives: boolean = false;
-
 /**
  * Doppio's main API. Encapsulates a single JVM.
  */
-export class JVM {
+class JVM {
   /**
    * If `true`, the JVM will serialize and dump its internal state to the file
    * system if it terminates irregularly (e.g. through an uncaught Exception).
@@ -28,6 +25,8 @@ export class JVM {
   public bs_cl: ClassLoader.BootstrapClassLoader;
   // HACK: only used in run_class, but we need it when dumping state on exit
   private _rs: runtime.RuntimeState;
+  // XXX: Static attribute.
+  public static show_NYI_natives: boolean = false;
 
   /**
    * (Async) Construct a new instance of the Java Virtual Machine.
@@ -369,3 +368,6 @@ export class JVM {
     }
   }
 }
+
+// Causes `require('jvm')` to be the JVM constructor. itself
+export = JVM;

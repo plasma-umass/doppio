@@ -283,7 +283,7 @@ export function setup(grunt: IGrunt) {
           // Consume the ice-cream-processed files.
           baseUrl: '<%= resolve(build.scratch_dir, "tmp_release") %>',
           mainConfigFile: 'browser/require_config.js',
-          name: 'src/runtime',
+          name: 'src/doppio',
           out: 'build/release/doppio.js',
           // These aren't referenced from runtime. We may want to decouple them
           // at some point.

@@ -10,7 +10,7 @@ var underscore = require('../vendor/underscore/underscore');
 import fs = require('fs');
 import path = require('path');
 import disassembler = require('../src/disassembler');
-import jvm = require('../src/jvm');
+import JVM = require('../src/jvm');
 import testing = require('../src/testing');
 import untar = require('./untar');
 import util = require('../src/util');
@@ -22,7 +22,7 @@ var stdout: (data: NodeBuffer)=>void;
 var user_input: (resume: (data: any)=>void)=>void;
 var controller: JQConsole;
 var editor: AceAjax.Editor;
-var jvm_state: jvm.JVM;
+var jvm_state: JVM;
 var sys_path = '/sys';
 
 function preload(): void {
@@ -283,7 +283,7 @@ $(document).ready(function() {
       (<any> process.stdin).write(data);
     });
   });
-  new jvm.JVM(function(err: any, _jvm_state?: jvm.JVM) {
+  new JVM(function(err: any, _jvm_state?: JVM) {
     if (err) {
       // Throw the error so it appears in the dev console.
       throw err;

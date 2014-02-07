@@ -1,7 +1,7 @@
 "use strict";
 import ClassData = require('./ClassData');
 import util = require('./util');
-import jvm = require('./jvm');
+import JVM = require('./jvm');
 import logging = require('./logging');
 var trace = logging.trace;
 import runtime = require('./runtime');
@@ -545,9 +545,9 @@ export class ClassLoader {
 // The Bootstrap ClassLoader. This is the only ClassLoader that can create
 // primitive types.
 export class BootstrapClassLoader extends ClassLoader {
-  private jvm_state: jvm.JVM;
+  private jvm_state: JVM;
 
-  constructor(jvm_state: jvm.JVM) {
+  constructor(jvm_state: JVM) {
     super(this);
     this.jvm_state = jvm_state;
   }

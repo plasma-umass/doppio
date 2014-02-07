@@ -1,7 +1,7 @@
 "use strict";
 var fs = require('fs');
 var path = require('path');
-import jvm = require('../src/jvm');
+import JVM = require('../src/jvm');
 import opcodes = require('../src/opcodes');
 import natives = require('../src/natives');
 import testing = require('../src/testing');
@@ -89,7 +89,7 @@ function run_tests(test_classes: string[], stdout: (p:string)=>void,
       doppio_dir = path.resolve(__dirname, '..'),
       jcl_dir = path.resolve(doppio_dir, 'vendor/classes'),
       java_home_dir = path.resolve(doppio_dir, 'vendor/java_home'),
-      jvm_state: jvm.JVM = new jvm.JVM(function(err: any, jvm?: jvm.JVM): void {
+      jvm_state: JVM = new JVM(function(err: any, jvm?: JVM): void {
         jvm_state.push_classpath_item(doppio_dir, function(success: boolean): void {
           if (!success) {
             throw new Error("Unable to add " + doppio_dir + " to classpath.");

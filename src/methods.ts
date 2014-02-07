@@ -5,7 +5,7 @@ import attributes = require('./attributes');
 import natives = require('./natives');
 import runtime = require('./runtime');
 import logging = require('./logging');
-import jvm = require('./jvm');
+import JVM = require('./jvm');
 import exceptions = require('./exceptions');
 import java_object = require('./java_object');
 import ConstantPool = require('./ConstantPool');
@@ -153,7 +153,7 @@ export class Method extends AbstractMethodField {
       if ((c = native_methods[sig]) != null) {
         this.code = c;
       } else if (sig.indexOf('::registerNatives()V', 1) < 0 && sig.indexOf('::initIDs()V', 1) < 0) {
-        if (jvm.show_NYI_natives) {
+        if (JVM.show_NYI_natives) {
           console.log(sig);
         }
         this.code = function (rs: runtime.RuntimeState) {

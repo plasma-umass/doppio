@@ -1,12 +1,12 @@
 "use strict";
 var readline = require('readline');
 var argv = require('optimist').argv;
-import jvm = require('../src/jvm');
+import JVM = require('../src/jvm');
 import path = require('path');
 
 // initialize the RuntimeState
 var jvm_state;
-new jvm.JVM(function(err: any, jvm?: jvm.JVM): void {
+new JVM(function(err: any, jvm?: JVM): void {
   if (err) {
     throw err;
   }

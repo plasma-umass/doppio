@@ -4,7 +4,7 @@ import util = require('./util');
 import logging = require('./logging');
 import exceptions = require('./exceptions');
 import java_object = require('./java_object');
-import jvm = require('./jvm');
+import JVM = require('./jvm');
 import methods = require('./methods');
 import ClassData = require('./ClassData');
 import ClassLoader = require('./ClassLoader');
@@ -44,10 +44,10 @@ export class RuntimeState {
   public stashed_done_cb: (p:any) => any;
   public should_return: boolean;
   public system_initialized: boolean;
-  public jvm_state: jvm.JVM;
+  public jvm_state: JVM;
   private abort_cb: Function;
 
-  constructor(jvm_state: jvm.JVM) {
+  constructor(jvm_state: JVM) {
     this.jvm_state = jvm_state;
     this.startup_time = gLong.fromNumber((new Date()).getTime());
     this.run_stamp = ++run_count;
