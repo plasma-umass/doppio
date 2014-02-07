@@ -311,7 +311,7 @@ export class JVM {
    */
   public list_class_cache(done_cb: (class_cache: string[]) => void): void {
     var classes: string[] = this.bs_cl.get_loaded_class_list(true),
-        cpaths: string[] = this.system_properties['java.class.path'],
+        cpaths: string[] = this.system_properties['java.class.path'].slice(0),
         i: number, filesLeft: number = classes.length, filePaths: string[] = [],
         // Called whenever another file is processed.
         fileDone = function() {

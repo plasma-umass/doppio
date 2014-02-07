@@ -2,6 +2,38 @@
 import util = require('./util');
 import ClassData = require('./ClassData');
 import ConstantPool = require('./ConstantPool');
+import fs = require('fs');
+
+export function javap(argv: string[], done_cb: (result: boolean) => void) {
+  var fname: string;
+  if (argv.length === 0) {
+    process.stdout.write('Usage: javap class\n');
+    done_cb(false);
+  } else {
+    fname = argv[0];
+    if (fname.indexOf(".class") === -1) {
+      if (fname.indexOf('.') !== -1) {
+        // Convert foo.bar.Baz => foo/bar/Baz
+        fname = util.descriptor2typestr(util.int_classname(fname));
+      }
+      fname += ".class";
+    }
+    fs.readFile(fname, function(err: any, data?: NodeBuffer): void {
+      var rv: boolean = true;
+      if (err) {
+        rv = false;
+        process.stderr.write("Error disassembling " + fname + ":\n"+err+"\n");
+      } else {
+        try {
+          process.stdout.write(disassemble(data) + "\n");
+        } catch(e) {
+          rv = false;
+        }
+      }
+      done_cb(rv);
+    });
+  }
+}
 
 function pad_left(value: string, padding: number): string {
   var zeroes = new Array(padding).join('0');

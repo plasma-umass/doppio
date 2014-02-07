@@ -56,8 +56,7 @@ export function parse(argv: string[]): any {
     standard: {},
     non_standard: {},
     properties: {},
-    _: <string[]> [],
-    raw_args: argv
+    _: <string[]> []
   };
   var args = argv.slice(2).reverse();
 
