@@ -83,14 +83,27 @@ function print_unused(stats: Stats, stats_name: string): void {
 
 function run_tests(test_classes: string[], stdout: (p:string)=>void,
     quiet: boolean, callback: ()=>void): void {
-  var doppio_dir = path.resolve(__dirname, '..');
-  // set up the classpath
-  var jcl_dir = path.resolve(doppio_dir, 'vendor/classes');
-  var jvm_state;// = new jvm.JVM();
   var stdout_write = process.stdout.write,
       stderr_write = process.stderr.write,
-      nop = function(arg1: any, arg2?: any, arg3?: any): boolean { return true; };
-  jvm_state.set_classpath(jcl_dir, doppio_dir);
+      nop = function(arg1: any, arg2?: any, arg3?: any): boolean { return true; },
+      doppio_dir = path.resolve(__dirname, '..'),
+      jcl_dir = path.resolve(doppio_dir, 'vendor/classes'),
+      java_home_dir = path.resolve(doppio_dir, 'vendor/java_home'),
+      jvm_state: jvm.JVM = new jvm.JVM(function(err: any, jvm?: jvm.JVM): void {
+        jvm_state.push_classpath_item(doppio_dir, function(success: boolean): void {
+          if (!success) {
+            throw new Error("Unable to add " + doppio_dir + " to classpath.");
+          }
+          // get the tests, if necessary
+          if (test_classes != null && test_classes.length > 0) {
+            test_classes = test_classes.map((tc) => tc.replace(/\.class$/, ''));
+            _runner();
+          } else {
+            testing.find_test_classes(doppio_dir, (tcs) => { test_classes = tcs; _runner() });
+          }
+        });
+      }, jcl_dir, java_home_dir);
+
   function _runner() {
     // Unquiet standard output.
     process.stdout.write = stdout_write;
@@ -105,13 +118,6 @@ function run_tests(test_classes: string[], stdout: (p:string)=>void,
     process.stdout.write = nop;
     process.stderr.write = nop;
     return jvm_state.run_class(test, [], _runner);
-  }
-  // get the tests, if necessary
-  if (test_classes != null && test_classes.length > 0) {
-    test_classes = test_classes.map((tc) => tc.replace(/\.class$/, ''));
-    _runner();
-  } else {
-    testing.find_test_classes(doppio_dir, (tcs) => { test_classes = tcs; _runner() });
   }
 }
 
