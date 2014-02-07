@@ -9,20 +9,25 @@
 var underscore = require('../vendor/underscore/underscore');
 import fs = require('fs');
 import path = require('path');
-import disassembler = require('../src/disassembler');
-import JVM = require('../src/jvm');
-import testing = require('../src/testing');
+import doppio = require('../src/doppio');
+var disassembler = doppio.disassembler;
+var JVM = doppio.JVM;
+var testing = doppio.testing;
+var java_cli = doppio.java_cli;
 import untar = require('./untar');
 import util = require('../src/util');
-import java_cli = require('../src/java_cli');
 declare var JSZip: any;  // hax
+
+// Imported for type annotations ONLY
+import TJVM = require('../src/jvm');
+// End type annotations.
 
 // To be initialized on document load
 var stdout: (data: NodeBuffer)=>void;
 var user_input: (resume: (data: any)=>void)=>void;
 var controller: JQConsole;
 var editor: AceAjax.Editor;
-var jvm_state: JVM;
+var jvm_state: TJVM;
 var sys_path = '/sys';
 
 function preload(): void {
@@ -283,7 +288,7 @@ $(document).ready(function() {
       (<any> process.stdin).write(data);
     });
   });
-  new JVM(function(err: any, _jvm_state?: JVM) {
+  new JVM(function(err: any, _jvm_state?: TJVM) {
     if (err) {
       // Throw the error so it appears in the dev console.
       throw err;
