@@ -86,7 +86,7 @@ export function setup(grunt: IGrunt) {
         files: [{
           expand: true,
           cwd: 'build/dev',
-          src: ['+(src|browser)/*.js', 'vendor/underscore/underscore.js'],
+          src: ['+(src|browser)/*.js', 'vendor/underscore/underscore.js', 'vendor/almond/almond.js'],
           dest: '<%= resolve(build.scratch_dir, "tmp_release") %>'
         }]
       }
@@ -282,18 +282,25 @@ export function setup(grunt: IGrunt) {
         options: {
           // Consume the ice-cream-processed files.
           baseUrl: '<%= resolve(build.scratch_dir, "tmp_release") %>',
+          name: 'vendor/almond/almond',
+          wrap: {
+            start: '(function(){var process=BrowserFS.BFSRequire("process"),Buffer=BrowserFS.BFSRequire("buffer").Buffer;',
+            end: 'window["doppio"]=require("./src/doppio");})();'
+          },
           mainConfigFile: 'browser/require_config.js',
-          name: 'src/doppio',
           out: 'build/release/doppio.js',
           // These aren't referenced from runtime. We may want to decouple them
           // at some point.
-          include: ['src/testing', 'src/disassembler'],
-          uglify: {
-              defines: {
-                  DEBUG: ['name', 'false'],
-                  RELEASE: ['name', 'true'],
-                  UNSAFE: ['name', 'true']
+          include: ['src/doppio', 'src/testing', 'src/disassembler'],
+          optimize: 'uglify2',
+          uglify2: {
+            compress: {
+              global_defs: {
+                DEBUG: false,
+                RELEASE: true,
+                UNSAFE: true
               }
+            }
           }
         }
       },
@@ -303,8 +310,12 @@ export function setup(grunt: IGrunt) {
           name: 'browser/frontend',
           out: 'build/release/browser/frontend.js',
           mainConfigFile: 'browser/require_config.js',
-          // Don't try to bundle any of the Doppio library sources.
-          exclude: ['src/attributes', 'src/ClassData', 'src/ClassLoader', 'src/ConstantPool', 'src/disassembler', 'src/exceptions', 'src/gLong', 'src/java_object', 'src/jvm', 'src/logging', 'src/methods', 'src/natives', 'src/opcodes', 'src/runtime', 'src/testing', 'src/util', 'vendor/underscore/underscore']
+          paths: {
+            'src/doppio': '../../browser/doppio_stub',
+            // XXX: We only included it for type definitions, but it still
+            // tries to pull it in for some reason :(
+            'src/jvm': '../../browser/jvm_stub'
+          }
         }
       }
     },

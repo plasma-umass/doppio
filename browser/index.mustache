@@ -16,6 +16,7 @@
   <script src="vendor/jszip/jszip-load.js"></script>
   <script src="vendor/jszip/jszip-inflate.js"></script>
   <script src="vendor/require.js"></script>
+  <script src="vendor/browserfs/dist/browserfs.js"></script>
 {{#release}}
   <script>
     var _gaq = _gaq || [];
@@ -33,22 +34,16 @@
 {{^release}}
   <script src="browser/require_config.js"></script>
 {{/release}}
-  <script src="vendor/browserfs/dist/browserfs.js"></script>
   <script>
     // Wrap in a closure; don't pollute the global namespace.
     (function() {
-      // Define only the globals we expect.
-      window.process = BrowserFS.BFSRequire('process');
-      window.Buffer = BrowserFS.BFSRequire('buffer').Buffer;
-      var mfs = new BrowserFS.FileSystem.MountableFileSystem();
+      var mfs = new BrowserFS.FileSystem.MountableFileSystem(),
+          fs = BrowserFS.BFSRequire('fs');
       mfs.mount('/tmp', new BrowserFS.FileSystem.InMemory());
       mfs.mount('/demo', new BrowserFS.FileSystem.LocalStorage());
       mfs.mount('/sys', new BrowserFS.FileSystem.XmlHttpRequest('browser/listings.json'));
       BrowserFS.initialize(mfs);
-
-      var fs = BrowserFS.BFSRequire('fs');
       fs.mkdirSync('/tmp/jars');
-
       require(["browser/frontend"], function(frontend) {
         // Kicks everything off!
       });

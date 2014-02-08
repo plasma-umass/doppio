@@ -6,6 +6,11 @@
 /// <amd-dependency path="../vendor/jquery.console" />
 /// <reference path="../vendor/DefinitelyTyped/ace/ace.d.ts" />
 /// <amd-dependency path="../vendor/underscore/underscore" />
+declare var BrowserFS: {
+  BFSRequire(name: 'process'): NodeProcess;
+  BFSRequire(name: 'buffer'): { Buffer: typeof Buffer };
+  BFSRequire(name: string): any;
+};
 var underscore = require('../vendor/underscore/underscore');
 import fs = require('fs');
 import path = require('path');
@@ -14,6 +19,8 @@ var disassembler = doppio.disassembler;
 var JVM = doppio.JVM;
 var testing = doppio.testing;
 var java_cli = doppio.java_cli;
+var process: NodeProcess = BrowserFS.BFSRequire('process');
+var Buffer: typeof Buffer = BrowserFS.BFSRequire('buffer').Buffer;
 import untar = require('./untar');
 import util = require('../src/util');
 declare var JSZip: any;  // hax

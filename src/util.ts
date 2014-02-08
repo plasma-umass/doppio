@@ -1,6 +1,5 @@
 "use strict";
 import gLong = require('./gLong');
-import logging = require('./logging');
 import runtime = require('./runtime');
 import java_object = require('./java_object');
 import ClassData = require('./ClassData');
