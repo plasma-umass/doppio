@@ -11,31 +11,32 @@ declare var BrowserFS: {
   BFSRequire(name: 'buffer'): { Buffer: typeof Buffer };
   BFSRequire(name: string): any;
 };
-var underscore = require('../vendor/underscore/underscore');
+import doppio = require('../src/doppio');
+import untar = require('./untar');
+// @todo Try to remove this dependency somehow.
+import util = require('../src/util');
 import fs = require('fs');
 import path = require('path');
-import doppio = require('../src/doppio');
-var disassembler = doppio.disassembler;
-var JVM = doppio.JVM;
-var testing = doppio.testing;
-var java_cli = doppio.java_cli;
-var process: NodeProcess = BrowserFS.BFSRequire('process');
-var Buffer: typeof Buffer = BrowserFS.BFSRequire('buffer').Buffer;
-import untar = require('./untar');
-import util = require('../src/util');
 declare var JSZip: any;  // hax
 
 // Imported for type annotations ONLY
 import TJVM = require('../src/jvm');
 // End type annotations.
 
-// To be initialized on document load
-var stdout: (data: NodeBuffer)=>void;
-var user_input: (resume: (data: any)=>void)=>void;
-var controller: JQConsole;
-var editor: AceAjax.Editor;
-var jvm_state: TJVM;
-var sys_path = '/sys';
+var underscore = require('../vendor/underscore/underscore'),
+    disassembler = doppio.disassembler,
+    JVM: typeof doppio.JVM = doppio.JVM,
+    testing = doppio.testing,
+    java_cli = doppio.java_cli,
+    process: NodeProcess = BrowserFS.BFSRequire('process'),
+    Buffer: typeof Buffer = BrowserFS.BFSRequire('buffer').Buffer,
+    // To be initialized on document load
+    stdout: (data: NodeBuffer) => void,
+    user_input: (resume: (data: any) => void) => void,
+    controller: JQConsole,
+    editor: AceAjax.Editor,
+    jvm_state: TJVM,
+    sys_path = '/sys';
 
 function preload(): void {
   fs.readFile(sys_path + "/browser/mini-rt.tar", function(err: Error, data: NodeBuffer): void {

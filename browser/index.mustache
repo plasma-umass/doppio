@@ -33,6 +33,11 @@
 {{/release}}
 {{^release}}
   <script src="browser/require_config.js"></script>
+  <script>
+    // Define globals for the dev build.
+    window['process'] = BrowserFS.BFSRequire('process');
+    window['Buffer'] = BrowserFS.BFSRequire('buffer').Buffer;
+  </script>
 {{/release}}
   <script>
     // Wrap in a closure; don't pollute the global namespace.
