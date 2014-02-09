@@ -328,6 +328,40 @@ export function escape_whitespace(str: string): string {
   return str.replace(/\s/g, escaper);
 }
 
+/**
+ * <init> => "<init>"
+ * foo => foo
+ */
+function format_function_name(name: string): string {
+  if (name.indexOf('<') === 0 && name.indexOf('>') === (name.length - 1)) {
+    name = '"' + name + '"';
+  }
+  return name;
+}
+
+/**
+ * Helper function for format_extra_info.
+ * Converts:
+ * - <init>()V => "<init>":()V
+ * - alloc(I)Lgnu/math/IntNum; => alloc:(I)Lgnu/math/IntNum;
+ */
+function format_method_sig(sig: string): string {
+  var lpIdx = sig.indexOf('(');
+  // assert(lpIdx !== -1);
+  return format_function_name(sig.slice(0, lpIdx)) + ':' + sig.slice(lpIdx);
+}
+
+/**
+ * Mainly:
+ * [I => "[I"
+ */
+function format_class_name(name: string): string {
+  if (name.indexOf('[') === 0 && name.length === 2) {
+    name = '"' + name + '"';
+  }
+  return name;
+}
+
 // if :entry is a reference, display its referent in a comment
 export function format_extra_info(entry: any): string {
   var type = entry.type;
@@ -338,11 +372,13 @@ export function format_extra_info(entry: any): string {
   switch (type) {
     case 'Method':
     case 'InterfaceMethod':
-      return "\t//  " + info.class_desc + "." + info.sig;
+      return "\t//  " + this.descriptor2typestr(info.class_desc) + "." + format_method_sig(info.sig);
     case 'Field':
-      return "\t//  " + info.class_desc + "." + info.name + ":" + info.type;
+      return "\t//  " + this.descriptor2typestr(info.class_desc) + "." + info.name + ":" + info.type;
     case 'NameAndType':
-      return "//  " + info.name + ":" + info.type;
+      return "//  " + format_function_name(info.name) + ":" + info.type;
+    case 'class':
+      return "\t//  " + format_class_name(this.descriptor2typestr(info));
     default:
       if (is_string(info)) {
         return "\t//  " + escape_whitespace(info);
