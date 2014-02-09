@@ -173,6 +173,10 @@ class JVM {
    * [Private] Same as reset_system_properties, but called by the constructor.
    */
   private _reset_system_properties(jcl_path: string, java_home_path: string): void {
+    // XXX: Classpath items must end in '/'. :(
+    if (jcl_path.charAt(jcl_path.length - 1) !== '/') {
+      jcl_path = jcl_path + "/";
+    }
     this.system_properties = {
       'java.class.path': <string[]> [],
       'java.home': java_home_path,
@@ -421,6 +425,8 @@ class JVM {
   public run_class(class_name: string,
                    cmdline_args: string[],
                    done_cb: (arg: boolean)=>void) {
+    // Reset the state of cached classloader items.
+    this.bs_cl.reset();
     var class_descriptor = "L" + class_name + ";";
     var main_sig = 'main([Ljava/lang/String;)V';
     var main_method: methods.Method = null;
