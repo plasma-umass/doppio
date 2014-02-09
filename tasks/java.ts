@@ -86,12 +86,7 @@ function java(grunt: IGrunt) {
         // Trim '.java' from filename to get the class name.
         var class_name = file.src[0].slice(0, -5);
         child_process.exec(shellEscape(grunt.config('build.java')) + ' -Xbootclasspath/a:vendor/classes ' + class_name, function(err?: any, stdout?: NodeBuffer, stderr?: NodeBuffer) {
-          if (err) {
-            // We expect errors here.
-            fs.writeFileSync(file.dest, stdout.toString() + stderr.toString());
-          } else {
-            fs.writeFileSync(file.dest, stdout);
-          }
+          fs.writeFileSync(file.dest, stdout.toString() + stderr.toString());
           cb();
         });
       });
