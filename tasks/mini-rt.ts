@@ -70,7 +70,7 @@ function generate_mini_rt(grunt: IGrunt, outputFile: string, done: (status?: boo
       if (!dirMap.hasOwnProperty(fileDir)) {
         dirMap[fileDir] = [];
       }
-    } while (fileDir !== '.');
+    } while (path.resolve(fileDir) !== path.resolve('.'));
   }
 
   // Instead of telling fstream directly to pipe a list of files into the tar
