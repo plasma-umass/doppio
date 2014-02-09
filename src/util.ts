@@ -338,9 +338,9 @@ export function format_extra_info(entry: any): string {
   switch (type) {
     case 'Method':
     case 'InterfaceMethod':
-      return "\t//  " + info["class"] + "." + info.sig;
+      return "\t//  " + info.class_desc + "." + info.sig;
     case 'Field':
-      return "\t//  " + info["class"] + "." + info.name + ":" + info.type;
+      return "\t//  " + info.class_desc + "." + info.name + ":" + info.type;
     case 'NameAndType':
       return "//  " + info.name + ":" + info.type;
     default:
