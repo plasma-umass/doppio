@@ -52,6 +52,8 @@ export interface JavaOptions {
   jcl_path?: string;
   // Path to `java_home`.
   java_home_path?: string;
+  // Folder to extract JAR files to.
+  jar_file_path?: string;
   // Classpath item that should go after the bootstrap classpath, but before
   // classpath items specified via the -classpath flag.
   implicit_classpath?: string[];
@@ -212,7 +214,7 @@ export function java(args: string[], opts: JavaOptions,
       } else {
         jvm_cb();
       }
-    }, opts.jcl_path, opts.java_home_path);
+    }, opts.jcl_path, opts.java_home_path, opts.jar_file_path);
   }
 }
 
@@ -247,15 +249,7 @@ function launch_jvm(argv: any, opts: JavaOptions, jvm_state: JVM, done_cb: (resu
     }
     jvm_state.run_class(cname, main_args, done_cb);
   } else if (jar_file != null) {
-    // JAR file specified.
-    throw new Error("To Be Implemented");
-    // XXX: Allow frontend to handle somehow. Pass in extract_jar function.
-    // process_jar: (jar_file: string) => string
-    /*var jar_dir = extract_jar(argv.standard.jar);
-    cname = find_main_class(jar_dir);
-    if (cname == null) {
-      console.error("No Main-Class found in " + argv.standard.jar);
-    }*/
+    jvm_state.run_jar(jar_file, main_args, done_cb);
   } else {
     // No class specified, no jar specified!
     return print_help(opts.launcher_name, optparse.show_help(), done_cb, true);

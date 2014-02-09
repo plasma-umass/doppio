@@ -10,7 +10,7 @@ import fs = require('fs');
  * @see http://docs.oracle.com/javase/7/docs/technotes/guides/jar/jar.html#Notes_on_Manifest_and_Signature_Files
  * @todo Add a function for producing a Java object from this.
  */
-export class JAR {
+class JAR {
   private attributes: {[name: string]: string} = {};
   private classpath: string[] = [];
   /**
@@ -104,7 +104,7 @@ export class JAR {
    * Returns NULL if the attribute does not exist.
    * Attribute names are case insensitive
    */
-  public getAttribute(attribute: string, value: string) {
+  public getAttribute(attribute: string): string {
     return this.attributes[attribute.toLowerCase()];
   }
 
@@ -115,3 +115,5 @@ export class JAR {
     return JSON.stringify(this.attributes);
   }
 }
+
+export = JAR;

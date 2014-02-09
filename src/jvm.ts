@@ -8,6 +8,8 @@ import ClassData = require('./ClassData');
 import ClassLoader = require('./ClassLoader');
 import fs = require('fs');
 import path = require('path');
+import JAR = require('./jar');
+declare var BrowserFS;
 
 var trace = logging.trace;
 var error = logging.error;
@@ -27,6 +29,8 @@ class JVM {
   private _rs: runtime.RuntimeState;
   // XXX: Static attribute.
   public static show_NYI_natives: boolean = false;
+  // Maps JAR files to their extraction directory.
+  private jar_map: {[jar_path: string]: string} = {};
 
   /**
    * (Async) Construct a new instance of the Java Virtual Machine.
@@ -35,7 +39,8 @@ class JVM {
    */
   constructor(done_cb: (err: any, jvm?: JVM) => void,
               jcl_path: string = '/sys/vendor/classes',
-              java_home_path: string = '/sys/vendor/java_home') {
+              java_home_path: string = '/sys/vendor/java_home',
+              private jar_file_location: string = '/jars') {
     var _this = this;
     this.reset_classloader_cache();
     this._reset_system_properties(jcl_path, java_home_path);
@@ -44,17 +49,113 @@ class JVM {
       if (!exists) {
         done_cb(new Error("Java home path '" + java_home_path + "' does not exist!"));
       } else {
-        _this.add_classpath_item(jcl_path, 0, function(added: boolean): void {
-          if (!added) {
-            done_cb(new Error("Java class library path '" + jcl_path + "' does not exist!"));
+        // Check if jar_file_location exists and, if not, create it.
+        fs.exists(_this.jar_file_location, function(exists: boolean): void {
+          var next_step = next_step = function() {
+            _this.add_classpath_item(jcl_path, 0, function(added: boolean): void {
+              if (!added) {
+                done_cb(new Error("Java class library path '" + jcl_path + "' does not exist!"));
+              } else {
+                // No error. All good.
+                done_cb(null, _this);
+              }
+            });
+          };
+
+          if (!exists) {
+            fs.mkdir(_this.jar_file_location, function(err?: any): void {
+              if (err) {
+                done_cb(new Error("Unable to create JAR file directory " + _this.jar_file_location + ": " + err));
+              } else {
+                next_step();
+              }
+            });
           } else {
-            // No error. All good.
-            done_cb(null, _this);
+            next_step();
           }
         });
       }
     });
   }
+
+  /**
+   * Uses BrowserFS to mount the jar file in the file system, allowing us to
+   * lazily extract only the files we care about.
+   */
+  private unzip_jar_browser(jar_path: string, cb: (err: any, unzip_path?: string) => void): void {
+    var dest_folder: string = path.resolve(this.jar_file_location, path.basename(jar_path, '.jar')),
+        mfs = (<any>fs).getRootFS();
+    // In case we have mounted this before, unmount.
+    try {
+      mfs.umount(dest_folder);
+    } catch(e) {
+      // We didn't mount it before. Ignore.
+    }
+
+    // Grab the file.
+    fs.readFile(jar_path, function(err: any, data: NodeBuffer) {
+      var jar_fs;
+      if (err) {
+        // File might not have existed, or there was an error reading it.
+        return cb(err);
+      }
+      // Try to mount.
+      try {
+        jar_fs = new BrowserFS.FileSystem.ZipFS(data, path.basename(jar_path));
+        mfs.mount(dest_folder, jar_fs);
+        // Success!
+        cb(null, dest_folder);
+      } catch(e) {
+        cb(e);
+      }
+    });
+  }
+
+  /**
+   * Helper function for unzip_jar_node.
+   */
+  private _extract_all_to(files: any[], dest_dir: string): void {
+    for (var filepath in files) {
+      var file = files[filepath];
+      filepath = path.join(dest_dir, filepath);
+      if (file.options.dir || filepath.slice(-1) === '/') {
+        if (!fs.existsSync(filepath)) {
+          fs.mkdirSync(filepath);
+        }
+      } else {
+        fs.writeFileSync(filepath, file.data, 'binary');
+      }
+    }
+  }
+
+  /**
+   * Uses JSZip to eagerly extract the entire JAR file into a temporary folder.
+   */
+  private unzip_jar_node(jar_path: string, cb: (err: any, unzip_path?: string) => void): void {
+    var JSZip = require('node-zip'),
+        unzipper = new JSZip(fs.readFileSync(jar_path, 'binary'), {
+          base64: false,
+          checkCRC32: true
+        }),
+        dest_folder = path.resolve(this.jar_file_location, path.basename(jar_path, '.jar'));
+
+    try {
+      if (!fs.existsSync(dest_folder)) {
+        fs.mkdirSync(dest_folder);
+      }
+      this._extract_all_to(unzipper.files, dest_folder);
+      // Reset stack depth.
+      setImmediate(function() { return cb(null, dest_folder); });
+    } catch(e) {
+      setImmediate(function() { return cb(e); });
+    }
+  }
+
+  /**
+   * Given a path to a JAR file, returns a path in the file system where the
+   * extracted contents can be read.
+   */
+  private unzip_jar: (jar_path: string, cb: (err: any, unzip_path?: string) => void) => void = util.are_in_browser() ? this.unzip_jar_browser : this.unzip_jar_node;
 
   /**
    * Resets the JVM's system properties to their default values. Java programs
@@ -114,7 +215,19 @@ class JVM {
    * Removes all items from the classpath *except* for the JCL path.
    */
   public reset_classpath(): void {
-    this.system_properties['java.class.path'] = this.system_properties['java.class.path'].slice(0, 1);
+    var jcl: string = this.system_properties['java.class.path'][0],
+        prop: string;
+    this.system_properties['java.class.path'] = [jcl];
+
+    // If the JCL was specified as a JAR file, ensure that we don't muck with
+    // its entry in the JAR map.
+    for (prop in this.jar_map) {
+      if (this.jar_map[prop] === jcl) {
+        this.jar_map = {prop: jcl};
+        return;
+      }
+    }
+    this.jar_map = {};
   }
 
   /**
@@ -155,12 +268,47 @@ class JVM {
    *   path was added or not.
    */
   public add_classpath_item(p: string, idx: number, done_cb: (added: boolean) => void) {
-    var i: number, classpath = this.system_properties['java.class.path'];
+    var i: number, classpath = this.system_properties['java.class.path'], _this = this;
+    p = path.resolve(p);
+
+    if (p.indexOf('.jar') !== -1) {
+      // JAR file, not a path.
+      return this.unzip_jar(p, function(err: any, jar_path?: string): void {
+        var manifest: JAR;
+        if (err) {
+          process.stderr.write("Unable to add JAR file " + p + ": " + err + "\n");
+          done_cb(false);
+        } else {
+          _this.jar_map[p] = jar_path;
+          // Add the JAR file's dependencies before the file itself.
+          manifest = new JAR(jar_path, function(err?: any) {
+            var new_cp_items: string[] = [],
+                i: number = 0,
+                add_next_item = function() {
+                  _this.add_classpath_item(new_cp_items[i], idx + i, function(added: boolean) {
+                    if (++i === new_cp_items.length) {
+                      done_cb(true);
+                    } else {
+                      add_next_item();
+                    }
+                  });
+                };
+            if (!err) {
+              // Successfully parsed the JAR file.
+              new_cp_items = manifest.getClassPath();
+            }
+            new_cp_items.push(jar_path);
+            // Add all of the classpath items.
+            add_next_item();
+          });
+        }
+      });
+    }
+
     // All paths must:
     // * Exist.
     // * Be a the fully-qualified path.
     // * Have a trailing /.
-    p = path.resolve(p);
     if (p.charAt(p.length - 1) !== '/') {
       p += '/';
     }
@@ -240,6 +388,31 @@ class JVM {
    * Main function for running a JAR file.
    */
   public run_jar(jar_path: string, cmdline_args: string[], done_cb: (arg: boolean) => void): void {
+    var _this = this;
+    jar_path = path.resolve(jar_path);
+    this.push_classpath_item(jar_path, function(added: boolean): void {
+      var manifest: JAR, jar_dir: string;
+      if (!added) {
+        process.stderr.write("Unable to process JAR file " + jar_path + "\n");
+        done_cb(false);
+      } else {
+        jar_dir = _this.jar_map[jar_path];
+        // Parse the manifest.
+        manifest = new JAR(jar_dir, function(err?: any): void {
+          var main_class: string;
+          if (err) {
+            process.stderr.write("Unable to parse manifest file for jar file " + jar_path + ".\n");
+            done_cb(false);
+          } else {
+            // Run the main class.
+            main_class = manifest.getAttribute('Main-Class');
+            // XXX: Convert foo.bar.Baz => foo/bar/Baz
+            main_class = util.descriptor2typestr(util.int_classname(main_class));
+            _this.run_class(main_class, cmdline_args, done_cb);
+          }
+        });
+      }
+    });
   }
 
   /**

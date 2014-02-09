@@ -17,7 +17,6 @@ import untar = require('./untar');
 import util = require('../src/util');
 import fs = require('fs');
 import path = require('path');
-declare var JSZip: any;  // hax
 
 // Imported for type annotations ONLY
 import TJVM = require('../src/jvm');
@@ -303,7 +302,7 @@ $(document).ready(function() {
     } else {
       jvm_state = _jvm_state;
     }
-  }, '/sys/vendor/classes', '/sys/vendor/java_home');
+  }, '/sys/vendor/classes', '/sys/vendor/java_home', '/jars');
   preload();
 });
 

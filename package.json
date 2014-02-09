@@ -4,7 +4,8 @@
   "engine": "node >= 0.10.0",
   "dependencies": {
     "optimist": "~0.3.5",
-    "async": "*"
+    "async": "*",
+    "node-zip": "*"
   },
   "devDependencies": {
     "ar": "*",
@@ -18,7 +19,6 @@
     "docco": "*",
     "marked": "*",
     "mustache": "*",
-    "node-zip": "*",
     "semver": "*",
     "typescript": "0.9.5",
     "coffee-script": "1.6",
