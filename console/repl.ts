@@ -3,6 +3,7 @@ var readline = require('readline');
 var argv = require('optimist').argv;
 import JVM = require('../src/jvm');
 import path = require('path');
+import os = require('os');
 
 // initialize the RuntimeState
 var jvm_state;
@@ -33,7 +34,8 @@ new JVM(function(err: any, jvm?: JVM): void {
   repl.setPrompt('doppio> ');
   repl.prompt();
 }, path.resolve(__dirname, "/../vendor/classes", '.'),
-   path.resolve(__dirname, '/../vendor/java_home'));
+   path.resolve(__dirname, '/../vendor/java_home'),
+   path.resolve(os.tmpDir(), 'doppio_jars'));
 
 
 function repl_run(cname: string, args: string[], done_cb): void {

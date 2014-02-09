@@ -100,7 +100,7 @@ export function run_tests(opts: java_cli.JavaOptions, doppio_dir: string,
         jvm_state = jvm;
         _run_tests();
       }
-    }, opts.jcl_path, opts.java_home_path);
+    }, opts.jcl_path, opts.java_home_path, opts.jar_file_path);
   }
 }
 

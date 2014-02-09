@@ -5,6 +5,7 @@ import JVM = require('../src/jvm');
 import opcodes = require('../src/opcodes');
 import natives = require('../src/natives');
 import testing = require('../src/testing');
+import os = require('os');
 // only used for types
 import runtime = require('../src/runtime');
 
@@ -89,6 +90,7 @@ function run_tests(test_classes: string[], stdout: (p:string)=>void,
       doppio_dir = path.resolve(__dirname, '..'),
       jcl_dir = path.resolve(doppio_dir, 'vendor/classes'),
       java_home_dir = path.resolve(doppio_dir, 'vendor/java_home'),
+      jar_file_path = path.resolve(os.tmpDir(), 'doppio_jars'),
       jvm_state: JVM = new JVM(function(err: any, jvm?: JVM): void {
         jvm_state.push_classpath_item(doppio_dir, function(success: boolean): void {
           if (!success) {
@@ -102,7 +104,7 @@ function run_tests(test_classes: string[], stdout: (p:string)=>void,
             testing.find_test_classes(doppio_dir, (tcs) => { test_classes = tcs; _runner() });
           }
         });
-      }, jcl_dir, java_home_dir);
+      }, jcl_dir, java_home_dir, jar_file_path);
 
   function _runner() {
     // Unquiet standard output.

@@ -2,9 +2,11 @@
 var fs = require('fs');
 var path = require('path');
 import testing = require('../src/testing');
+import os = require('os');
 
 var opts = { jcl_path: path.resolve(__dirname, '../vendor/classes'),
-             java_home_path: path.resolve(__dirname, '../vendor/java_home')},
+             java_home_path: path.resolve(__dirname, '../vendor/java_home'),
+             jar_file_path: path.resolve(os.tmpDir(), 'doppio_jars') },
     doppio_dir = path.dirname(__dirname);
 
 function makefile_test(argv): void {
