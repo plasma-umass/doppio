@@ -234,6 +234,8 @@ function launch_jvm(argv: any, opts: JavaOptions, jvm_state: JVM, done_cb: (resu
     return function(result: boolean): void {
       jvm_state.reset_system_properties();
       jvm_state.reset_classpath();
+      // XXX: Remove at some point when we fix this.
+      jvm_state.reset_classloader_cache();
       old_done_cb(result);
     };
   })(done_cb);
