@@ -40,8 +40,8 @@ function get_property(rs: runtime.RuntimeState, jvm_key: java_object.JavaObject,
   var val = rs.jvm_state.system_properties[key];
   // special case
   if (key === 'java.class.path') {
-    // the last path is actually the bootclasspath (vendor/classes/)
-    return rs.init_string(val.slice(0, val.length - 1).join(':'));
+    // the first path is actually the bootclasspath (vendor/classes/)
+    return rs.init_string(val.slice(1, val.length).join(':'));
   }
   if (val != null) {
     return rs.init_string(val, true);
