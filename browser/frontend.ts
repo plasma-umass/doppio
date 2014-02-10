@@ -616,6 +616,18 @@ var commands = {
     });
     return null;
   },
+  mkdir: function(args: string[]): string {
+    if (args.length < 1) {
+      return "Usage: mkdir <dirname>";
+    }
+    fs.mkdir(args[0], function(err?: Error) {
+      if (err) {
+        controller.message("Could not make directory " + args[0] + ".\n", 'error', true);
+      }
+      controller.reprompt();
+    });
+    return null;
+  },
   cd: function(args: string[]): string {
     if (args.length > 1) {
       return "Usage: cd <directory>";
@@ -753,6 +765,7 @@ var commands = {
       "  ls <dir>                -- List files.\n" +
       "  mv <src> <dst>          -- Move / rename a file.\n" +
       "  rm <file>               -- Delete a file.\n" +
+      "  mkdir <dir>             -- Create a directory.\n" +
       "  cd <dir>                -- Change current directory.\n" +
       "  mount_dropbox           -- Mount a Dropbox folder into the file system.\n\n";
       /*"Cache management:\n" +
