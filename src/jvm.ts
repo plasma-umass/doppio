@@ -384,8 +384,10 @@ class JVM {
   /**
    * Proxies abort request to runtime state to halt the JVM.
    */
-  public abort(cb: Function): void {
-    this._rs.abort(cb);
+  public abort(cb: Function = function(){}): void {
+    if (this._rs != null) {
+      this._rs.abort(cb);
+    }
   }
 
   /**
@@ -475,7 +477,7 @@ class JVM {
         rs.init_threads();
       }), true, function (success) {
           if (!success) {
-            return;
+            return done_cb(false);
           }
           if (rs.system_initialized != null) {
             run_main();
@@ -484,7 +486,7 @@ class JVM {
               rs.init_system_class();
             }), true, function (success) {
                 if (!success) {
-                  return;
+                  return done_cb(false);
                 }
                 run_main();
             });
@@ -498,7 +500,12 @@ class JVM {
           e();
         });
       });
-    }, true, function () { });
+    }, true, function(success) {
+      if (!success) {
+        return done_cb(false);
+      }
+      // Otherwise, do nothing.
+    });
   }
 
   /**

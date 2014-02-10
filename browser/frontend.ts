@@ -214,6 +214,11 @@ $(document).ready(function() {
         return controller.message(_error.toString(), 'error');
       }
     },
+    cancelHandle: function(): void {
+      if (jvm_state) {
+        jvm_state.abort();
+      }
+    },
     tabComplete: tabComplete,
     autofocus: false,
     animateScroll: true,
@@ -237,7 +242,7 @@ $(document).ready(function() {
       "Text files can be edited by typing `edit [filename]`.\n\n" +
       "You can also upload your own files using the uploader above the top-right\n" +
       "corner of the console.\n\n" +
-      "Enter 'help' for full a list of commands. Ctrl-D is EOF.\n\n" +
+      "Enter 'help' for full a list of commands. Ctrl+D is EOF. Ctrl+C is SIGINT. \n\n" +
       "DoppioJVM has been tested with the latest versions of the following desktop browsers:\n" +
       "  Chrome, Safari, Firefox, Opera, Internet Explorer 10, and Internet Explorer 11."
   });
