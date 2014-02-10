@@ -45,7 +45,6 @@
       mfs.mount('/demo', new BrowserFS.FileSystem.LocalStorage());
       mfs.mount('/sys', new BrowserFS.FileSystem.XmlHttpRequest('browser/listings.json'));
       BrowserFS.initialize(mfs);
-      fs.mkdirSync('/tmp/jars');
       require(["browser/frontend"], function(frontend) {
         // Kicks everything off!
       });
