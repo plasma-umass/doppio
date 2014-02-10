@@ -7,6 +7,7 @@
   <script src="//cdnjs.cloudflare.com/ajax/libs/ace/1.1.01/ace.js" type="text/javascript" charset="utf-8"></script>
   <script src="//cdnjs.cloudflare.com/ajax/libs/ace/1.1.01/mode-java.js" type="text/javascript" charset="utf-8"></script>
   <script src="//cdnjs.cloudflare.com/ajax/libs/ace/1.1.01/theme-twilight.js" type="text/javascript" charset="utf-8"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/dropbox.js/0.10.2/dropbox.min.js" type="text/javascript" charset="utf-8"></script>
   <!-- BEGIN WebSockify LIBRARY -->
   <script src="vendor/websockify/base64.js"></script>
   <script src="vendor/websockify/util.js"></script>
@@ -42,8 +43,8 @@
       var mfs = new BrowserFS.FileSystem.MountableFileSystem(),
           fs = BrowserFS.BFSRequire('fs');
       BrowserFS.initialize(mfs);
+      mfs.mount('/tmp', new BrowserFS.FileSystem.InMemory());
       fs.mkdirSync('/mnt');
-      mfs.mount('/mnt/localStorage', new BrowserFS.FileSystem.InMemory());
       if (BrowserFS.FileSystem.HTML5FS.isAvailable()) {
         // Try for 50MB storage.
         var html5fs = new BrowserFS.FileSystem.HTML5FS(50*1024, window.PERSISTENT);
@@ -53,7 +54,7 @@
           }
         });
       }
-      mfs.mount('/demo', new BrowserFS.FileSystem.LocalStorage());
+      mfs.mount('/mnt/localStorage', new BrowserFS.FileSystem.LocalStorage());
       mfs.mount('/sys', new BrowserFS.FileSystem.XmlHttpRequest('browser/listings.json'));
       require(["browser/frontend"], function(frontend) {
         // Kicks everything off!

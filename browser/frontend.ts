@@ -11,6 +11,7 @@ declare var BrowserFS: {
   BFSRequire(name: 'buffer'): { Buffer: typeof Buffer };
   BFSRequire(name: string): any;
 };
+declare var Dropbox;
 import doppio = require('../src/doppio');
 import untar = require('./untar');
 // @todo Try to remove this dependency somehow.
@@ -626,6 +627,29 @@ var commands = {
     } else {
       remove_file(args[0], 1);
     }
+    return null;
+  },
+  mount_dropbox: function(args: string[]): string {
+    if (args.length < 1 || args[0] !== 'Y') {
+      return "This command may redirect you to Dropbox's site for authentication.\n" +
+        "If you would like to proceed with mounting Dropbox into the in-browser " +
+        "filesystem, please type \"mount_dropbox Y\".\n" +
+        "Once you have successfully authenticated with Dropbox and the page reloads,\n" +
+        "you will need to type \"mount_dropbox Y\" again to finish mounting.";
+    }
+    var client = new Dropbox.Client({ key: "j07r6fxu4dyd08r" });
+    client.authenticate(function(error: any, data?: any): void {
+      var mfs;
+      if (error == null) {
+        mfs = (<any>fs).getRootFS();
+        mfs.mount('/mnt/dropbox', new (<any>BrowserFS).FileSystem.Dropbox(client));
+        controller.message("Successfully connected to your Dropbox account. You can now access files in the /Apps/DoppioJVM folder of your Dropbox account at /mnt/dropbox.", 'success');
+        return;
+      } else {
+        controller.message("Unable to connect to Dropbox: " + error, 'error');
+        return;
+      }
+    });
     return null;
   },
   emacs: function(): string {
