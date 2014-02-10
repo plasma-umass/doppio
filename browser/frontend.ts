@@ -131,6 +131,8 @@ interface FileReader2 extends FileReader {
 
 $(document).ready(function() {
   onResize();
+  // Put the user in the tmpfs.
+  process.chdir('/tmp');
   //editor = $('#editor');
   // set up the local file loaders
   $('#file').change(function(ev: FileReaderEvent) {
@@ -579,7 +581,7 @@ var commands = {
     var dir: string;
     if (args.length == 0 || args[0] == '~') {
       // Change to the default (starting) directory.
-      dir = '/demo';
+      dir = '/tmp';
     } else {
       dir = path.resolve(args[0]);
     }
