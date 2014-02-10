@@ -2519,6 +2519,12 @@ native_methods['java']['net']['PlainSocketImpl'] = [
   })
 ];
 
+/**
+ * Asynchronously read data from a socket. Note that if this passes 0 to the
+ * callback, Java will think it has received an EOF. Thus, we should wait until:
+ * - We have at least one byte to return.
+ * - The socket is closed.
+ */
 function socket_read_async(impl, b, offset, len, resume_cb) {
   var available, i, read, trimmed_len, _i;
 
@@ -2538,7 +2544,7 @@ native_methods['java']['net']['SocketInputStream'] = [
       rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), 'Socket is shutdown.');
     }
     return rs.async_op(function(resume_cb) {
-      return setTimeout(socket_read_async(impl, b, offset, len, resume_cb), timeout);
+      return setTimeout(function() { socket_read_async(impl, b, offset, len, resume_cb) }, timeout);
     });
   })
 ];
