@@ -840,7 +840,7 @@ export var opcodes : Opcode[] = [
   new Opcode('swap', 0, function(rs) {
       var v1 = rs.pop();
       var v2 = rs.pop();
-      rs.push2(v2, v1);}),
+      rs.push2(v1, v2);}),
   // math opcodes
   new Opcode('iadd', 0, ((rs) => rs.push((rs.pop() + rs.pop()) | 0))),
   new Opcode('ladd', 0, ((rs) => rs.push2(rs.pop2().add(rs.pop2()), null))),
