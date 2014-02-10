@@ -319,7 +319,6 @@ class JVM {
     // Check that this standardized classpath does not already exist.
     for (i = 0; i < classpath.length; i++) {
       if (classpath[i] === p) {
-        process.stderr.write("WARNING: Ignoring duplicate classpath item " + p + ".\n");
         // If this insertion is at a smaller index than the existing item, splice
         // out the old one and insert this one.
         if (i > idx) {
