@@ -2533,9 +2533,7 @@ function socket_read_async(impl, b, offset, len, resume_cb) {
 
 native_methods['java']['net']['SocketInputStream'] = [
   o('init()V', function(rs) {}), o('socketRead0(Ljava/io/FileDescriptor;[BIII)I', function(rs, _this, fd, b, offset, len, timeout) {
-    var impl;
-
-    impl = _this.get_field(rs, 'Ljava/net/SocketInputStream;impl');
+    var impl = _this.get_field(rs, 'Ljava/net/SocketInputStream;impl');
     if (impl.$is_shutdown === true) {
       rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), 'Socket is shutdown.');
     }
@@ -2547,9 +2545,7 @@ native_methods['java']['net']['SocketInputStream'] = [
 
 native_methods['java']['net']['SocketOutputStream'] = [
   o('init()V', function(rs) {}), o('socketWrite0(Ljava/io/FileDescriptor;[BII)V', function(rs, _this, fd, b, offset, len) {
-    var impl;
-
-    impl = _this.get_field(rs, 'Ljava/net/SocketOutputStream;impl');
+    var impl = _this.get_field(rs, 'Ljava/net/SocketOutputStream;impl');
     if (impl.$is_shutdown === true) {
       rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), 'Socket is shutdown.');
     }
@@ -2557,7 +2553,7 @@ native_methods['java']['net']['SocketOutputStream'] = [
       rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), 'Connection isn\'t open');
     }
     // TODO: This can be optimized by accessing the 'Q' directly
-    impl.$ws.send(b.array.splice(offset, offset + len));
+    impl.$ws.send(b.array.slice(offset, offset + len));
     // Let the browser write it out
     return rs.async_op(function(resume_cb) {
       return setImmediate(function() {

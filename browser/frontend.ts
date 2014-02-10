@@ -433,7 +433,8 @@ var commands = {
   javac: function(args: string[]): string {
     args.unshift('classes/util/Javac');
     java_cli.java(args, {
-      jvm_state: jvm_state
+      jvm_state: jvm_state,
+      implicit_classpath: [sys_path]
     }, function(status: boolean): void {
       // XXX: remove any classes that just got compiled from the class cache
       for (var i = 0; i < args.length; i++) {
