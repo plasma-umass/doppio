@@ -489,14 +489,15 @@ var commands = {
     });
     return null;
   },
-  list_cache: function(): string {
+  // Disabled for now.
+  /*list_cache: function(): string {
     var cached_classes = jvm_state.bs_cl.get_loaded_class_list(true);
     return '  ' + cached_classes.sort().join('\n  ');
   },
   clear_cache: function(): string {
     jvm_state.reset_classloader_cache();
     return 'Class cache cleared';
-  },
+  },*/
   ls: function(args: string[]): string {
     if (args.length === 0) {
       read_dir('.', true, true, (listing) => controller.message(listing, 'success'));
@@ -679,10 +680,10 @@ var commands = {
       "  ls <dir>               -- List files.\n" +
       "  mv <src> <dst>         -- Move / rename a file.\n" +
       "  rm <file>              -- Delete a file.\n" +
-      "  cd <dir>               -- Change current directory.\n\n" +
-      "Cache management:\n" +
+      "  cd <dir>               -- Change current directory.\n\n";
+      /*"Cache management:\n" +
       "  list_cache             -- List the cached class files.\n" +
-      "  clear_cache            -- Clear the cached class files.";
+      "  clear_cache            -- Clear the cached class files.";*/
   }
 };
 
