@@ -389,14 +389,16 @@ export class Method extends AbstractMethodField {
       if (this.access_flags.synchronized) {
         // hack in a monitorexit for all return opcodes
         for (var i in this.code.opcodes) {
-          var c = this.code.opcodes[i];
-          if (c.name.match(/^[ildfa]?return$/)) {
-            (function (c: opcodes.Opcode) {
-              c.execute = function (rs: runtime.RuntimeState) {
-                opcodes.monitorexit(rs, _this.method_lock(rs));
-                return c.orig_execute(rs);
-              };
-            })(c);
+          if (this.code.opcodes.hasOwnProperty(i)) {
+            var c = this.code.opcodes[i];
+            if (c.name.match(/^[ildfa]?return$/)) {
+              (function (c: opcodes.Opcode) {
+                c.execute = function (rs: runtime.RuntimeState) {
+                  opcodes.monitorexit(rs, _this.method_lock(rs));
+                  return c.orig_execute(rs);
+                };
+              })(c);
+            }
           }
         }
       }
