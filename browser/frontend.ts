@@ -204,15 +204,37 @@ $(document).ready(function() {
         return true;
       }
       var handler = commands[cmd];
-      try {
-        if (handler != null) {
-          return handler(args);
-        } else {
-          return "Unknown command '" + cmd + "'. Enter 'help' for a list of commands.";
-        }
-      } catch (_error) {
-        return controller.message(_error.toString(), 'error');
+      if (handler == null) {
+        return "Unknown command '" + cmd + "'. Enter 'help' for a list of commands.";
       }
+      // Check for globs (*) in the arguments, and expand them.
+      var expanded_args : string[] = [];
+      util.async_foreach(args,
+        // runs on each element
+        function(arg: string, next_item): void {
+          var starIdx = arg.indexOf('*');
+          if (starIdx === -1) {
+            expanded_args.push(arg);
+            return next_item();
+          }
+          var prefix = arg.slice(0, starIdx);
+          var postfix = arg.slice(starIdx+1);
+          fileNameCompletions('glob', [prefix], function (comps: string[]) {
+            // Filter out completions that don't end in the postfix.
+            var comps = comps.filter((c)=>c.indexOf(postfix, c.length-postfix.length) !== -1);
+            Array.prototype.push.apply(expanded_args, comps);
+            next_item();
+          });
+        },
+        // runs at the end of processing
+        function(): void {
+          try {
+            handler(expanded_args);
+          } catch (_error) {
+            controller.message(_error.toString(), 'error');
+          }
+        }
+      );
     },
     tabComplete: tabComplete,
     autofocus: false,
