@@ -229,7 +229,10 @@ $(document).ready(function() {
         // runs at the end of processing
         function(): void {
           try {
-            handler(expanded_args);
+            var response = handler(expanded_args);
+            if (response !== null) {
+              controller.message(response, 'success');
+            }
           } catch (_error) {
             controller.message(_error.toString(), 'error');
           }
