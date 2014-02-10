@@ -769,9 +769,11 @@ function validExtension(cmd: string, fname: string): boolean {
   var ext = dot === -1 ? '' : fname.slice(dot + 1);
   if (cmd === 'javac') {
     return ext === 'java';
-  } else if (cmd === 'javap' || cmd === 'java') {
+  } else if (cmd === 'javap' || cmd === 'disassemble') {
     return ext === 'class';
-  } else {
+  } else if (cmd === 'java') {
+    return ext === 'class' || ext === 'jar';
+  }else {
     return true;
   }
 }
