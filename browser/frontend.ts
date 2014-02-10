@@ -630,14 +630,19 @@ var commands = {
     return null;
   },
   mount_dropbox: function(args: string[]): string {
+    var api_key: string = "j07r6fxu4dyd08r";
     if (args.length < 1 || args[0] !== 'Y') {
       return "This command may redirect you to Dropbox's site for authentication.\n" +
         "If you would like to proceed with mounting Dropbox into the in-browser " +
         "filesystem, please type \"mount_dropbox Y\".\n" +
         "Once you have successfully authenticated with Dropbox and the page reloads,\n" +
-        "you will need to type \"mount_dropbox Y\" again to finish mounting.";
+        "you will need to type \"mount_dropbox Y\" again to finish mounting.\n" +
+        "If you would like to use your own API key, please type \"mount_dropbox Y your_api_key_here\".";
     }
-    var client = new Dropbox.Client({ key: "j07r6fxu4dyd08r" });
+    if (args.length == 2 && args[1].length === 15) {
+      api_key = args[1];
+    }
+    var client = new Dropbox.Client({ key: api_key });
     client.authenticate(function(error: any, data?: any): void {
       var mfs;
       if (error == null) {
@@ -706,7 +711,8 @@ var commands = {
       "  ls <dir>               -- List files.\n" +
       "  mv <src> <dst>         -- Move / rename a file.\n" +
       "  rm <file>              -- Delete a file.\n" +
-      "  cd <dir>               -- Change current directory.\n\n";
+      "  cd <dir>               -- Change current directory.\n" +
+      "  mount_dropbox          -- Mount a Dropbox folder into the file system.\n\n";
       /*"Cache management:\n" +
       "  list_cache             -- List the cached class files.\n" +
       "  clear_cache            -- Clear the cached class files.";*/
