@@ -450,6 +450,16 @@ var commands = {
     });
     return null;
   },
+  javap: function(args: string[]): string {
+    args.unshift('classes/util/Javap');
+    java_cli.java(args, {
+      jvm_state: jvm_state,
+      implicit_classpath: [sys_path]
+    }, function(status: boolean): void {
+      controller.reprompt();
+    });
+    return null;
+  },
   java: function(args: string[]): string {
     java_cli.java(args, {
       jvm_state: jvm_state,
@@ -477,7 +487,7 @@ var commands = {
     }
     return null;
   },
-  javap: function(args: string[]): string {
+  disassemble: function(args: string[]): string {
     disassembler.javap(args, function(status: boolean): void {
       controller.reprompt();
     });
@@ -700,22 +710,23 @@ var commands = {
   help: function(args: string[]): string {
     return "Ctrl-D is EOF.\n\n" +
       "Java-related commands:\n" +
-      "  javac <source file>    -- Invoke the Java 6 compiler.\n" +
-      "  java <class> [args...] -- Run with command-line arguments.\n" +
-      "  javap <class>          -- Display disassembly.\n" +
-      "  time                   -- Measure how long it takes to run a command.\n" +
-      "  rhino                  -- Run Rhino, the Java-based JavaScript engine.\n\n" +
+      "  javac <source file>     -- Invoke the Java 6 compiler.\n" +
+      "  java <class> [args...]  -- Run with command-line arguments.\n" +
+      "  javap [args...] <class> -- Run the Java 6 disassembler.\n" +
+      "  disassemble <class>     -- Run our own custom Java disassembler.\n" +
+      "  time                    -- Measure how long it takes to run a command.\n" +
+      "  rhino                   -- Run Rhino, the Java-based JavaScript engine.\n\n" +
       "File management:\n" +
-      "  cat <file>             -- Display a file in the console.\n" +
-      "  edit <file>            -- Edit a file.\n" +
-      "  ls <dir>               -- List files.\n" +
-      "  mv <src> <dst>         -- Move / rename a file.\n" +
-      "  rm <file>              -- Delete a file.\n" +
-      "  cd <dir>               -- Change current directory.\n" +
-      "  mount_dropbox          -- Mount a Dropbox folder into the file system.\n\n";
+      "  cat <file>              -- Display a file in the console.\n" +
+      "  edit <file>             -- Edit a file.\n" +
+      "  ls <dir>                -- List files.\n" +
+      "  mv <src> <dst>          -- Move / rename a file.\n" +
+      "  rm <file>               -- Delete a file.\n" +
+      "  cd <dir>                -- Change current directory.\n" +
+      "  mount_dropbox           -- Mount a Dropbox folder into the file system.\n\n";
       /*"Cache management:\n" +
-      "  list_cache             -- List the cached class files.\n" +
-      "  clear_cache            -- Clear the cached class files.";*/
+      "  list_cache              -- List the cached class files.\n" +
+      "  clear_cache             -- Clear the cached class files.";*/
   }
 };
 
