@@ -218,7 +218,7 @@ $(document).ready(function() {
     autofocus: false,
     animateScroll: true,
     promptHistory: true,
-    welcomeMessage: "Welcome to Doppio! You may wish to try the following Java programs:\n" +
+    welcomeMessage: "Welcome to DoppioJVM! You may wish to try the following Java programs:\n" +
       "  java classes/test/FileRead\n" +
       "  java classes/demo/Fib <num>\n" +
       "  java classes/demo/Chatterbot\n" +
@@ -237,8 +237,8 @@ $(document).ready(function() {
       "You can also upload your own files using the uploader above the top-right\n" +
       "corner of the console.\n\n" +
       "Enter 'help' for full a list of commands. Ctrl-D is EOF.\n\n" +
-      "Doppio has been tested with the latest versions of the following desktop browsers:\n" +
-      "  Chrome, Safari, Firefox, Opera, Internet Explorer 10, and Internet Explorer 9."
+      "DoppioJVM has been tested with the latest versions of the following desktop browsers:\n" +
+      "  Chrome, Safari, Firefox, Opera, Internet Explorer 10, and Internet Explorer 11."
   });
   stdout = function(data: NodeBuffer): void {
     controller.message(data.toString(), '', true);
