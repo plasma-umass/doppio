@@ -117,8 +117,14 @@ function sanitize(str: string): string {
 function run_disasm_test(doppio_dir: string, test_class: string, callback): void {
   var test_path = path.resolve(doppio_dir, test_class);
   fs.readFile(test_path + ".disasm", 'utf8', function(err, contents: string) {
+    if (err) {
+      return callback("Unable to open file " + test_path + ".disasm: " + err);
+    }
     var javap_disasm = sanitize(contents);
     fs.readFile(test_path + ".class", function(err, buffer) {
+      if (err) {
+        return callback("Unable to open file " + test_path + ".class: " + err);
+      }
       var doppio_disasm = sanitize(disassembler.disassemble(buffer));
       callback(cleandiff(doppio_disasm, javap_disasm));
     });
@@ -128,6 +134,9 @@ function run_disasm_test(doppio_dir: string, test_class: string, callback): void
 function run_stdout_test(doppio_dir: string, test_class: string, callback): void {
   var output_filename = path.resolve(doppio_dir, test_class) + ".runout";
   fs.readFile(output_filename, 'utf8', function(err, java_output: string) {
+    if (err) {
+      return callback("Unable to open file " + output_filename + ": " + err);
+    }
     var doppio_output = '',
         // Hook into process.stdout.
         stdout_write = process.stdout.write,
