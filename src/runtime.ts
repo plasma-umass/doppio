@@ -700,10 +700,13 @@ export class RuntimeState {
         if (bytes === null) {
           // We might have asked for too many bytes. Retrieve the entire stream
           // buffer.
-          return process.stdin.read();
-        } else {
-          return bytes;
+          bytes = process.stdin.read();
         }
+        // \0 => EOF.
+        if (bytes !== null && bytes.length === 1 && bytes.readUInt8(0) === 0) {
+          bytes = new Buffer(0);
+        }
+        return bytes;
       }, bytes: NodeBuffer = read(n_bytes);
 
     if (bytes === null) {
@@ -711,7 +714,6 @@ export class RuntimeState {
       process.stdin.once('readable', function(data: NodeBuffer) {
         var bytes = read(n_bytes);
         if (bytes === null) {
-          console.log("ERROR: Input is empty - should be impossible.");
           bytes = new Buffer(0);
         }
         resume(bytes);

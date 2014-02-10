@@ -1227,7 +1227,7 @@ export var native_methods = {
               return rs.async_input(n_bytes, function(bytes: NodeBuffer) {
                   var b, idx, _i, _len;
                   for (idx = _i = 0, _len = bytes.length; _len > _i; idx = ++_i) b = bytes.readUInt8(idx), byte_arr.array[offset + idx] = b;
-                  return cb(bytes.length);
+                  return cb(bytes.length === 0 ? -1 : bytes.length);
               });
             });
           }
