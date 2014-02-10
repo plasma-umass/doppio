@@ -219,6 +219,7 @@ $(document).ready(function() {
     animateScroll: true,
     promptHistory: true,
     welcomeMessage: "Welcome to DoppioJVM! You may wish to try the following Java programs:\n" +
+      "  cd /sys\n" +
       "  java classes/test/FileRead\n" +
       "  java classes/demo/Fib <num>\n" +
       "  java classes/demo/Chatterbot\n" +
