@@ -248,22 +248,8 @@ $(document).ready(function() {
     autofocus: false,
     animateScroll: true,
     promptHistory: true,
-    welcomeMessage: "Welcome to DoppioJVM! You may wish to try the following Java programs:\n" +
-      "  cd /sys\n" +
-      "  java classes/test/FileRead\n" +
-      "  java classes/demo/Fib <num>\n" +
-      "  java classes/demo/Chatterbot\n" +
-      "  java classes/demo/RegexTestHarness\n" +
-      "  java classes/demo/GzipDemo c Hello.txt hello.gz (compress)\n" +
-      "  java classes/demo/GzipDemo d hello.gz hello.tmp (decompress)\n" +
-      "  java classes/demo/DiffPrint Hello.txt hello.tmp\n\n" +
-      "We support the stock Sun Java Compiler:\n" +
-      "  javac classes/test/FileRead.java\n" +
-      "  javac classes/demo/Fib.java\n\n" +
-      "(Note: if you edit a program and recompile with javac, you'll need\n" +
-      "  to run 'clear_cache' to see your changes when you run the program.)\n\n" +
-      "We can run Rhino, the Java-based JS engine:\n" +
-      "  rhino\n\n" +
+    welcomeMessage: "Welcome to DoppioJVM!\n" +
+      "Please see the artifact documentation for more information: https://jvilk.github.io/doppio-demo\n\n" +
       "Text files can be edited by typing `edit [filename]`.\n\n" +
       "You can also upload your own files using the uploader above the top-right\n" +
       "corner of the console.\n\n" +
@@ -561,6 +547,16 @@ var commands = {
     });
     return null;
   },
+  kawa: function(args: string[]): string {
+    args.unshift('/sys/jars/kawa-1.13.jar');
+    args.unshift('-jar');
+    java_cli.java(args, {
+      jvm_state: jvm_state
+    }, function(result: boolean): void {
+      controller.reprompt();
+    });
+    return null;
+  },
   // Disabled for now.
   /*list_cache: function(): string {
     var cached_classes = jvm_state.bs_cl.get_loaded_class_list(true);
@@ -786,7 +782,10 @@ var commands = {
       "  javap [args...] <class> -- Run the Java 6 disassembler.\n" +
       "  disassemble <class>     -- Run our own custom Java disassembler.\n" +
       "  time                    -- Measure how long it takes to run a command.\n" +
-      "  rhino                   -- Run Rhino, the Java-based JavaScript engine.\n\n" +
+      "  rhino                   -- Run Rhino, the Java-based JavaScript engine.\n" +
+      "  kawa                    -- Run Kawa, the Java-based Scheme implementation.\n" +
+      "  javap_benchmark         -- Run the javap benchmark from the paper.\n" +
+      "  javac_benchmark         -- Run the javac benchmark from the paper.\n\n" +
       "File management:\n" +
       "  cat <file>              -- Display a file in the console.\n" +
       "  edit <file>             -- Edit a file.\n" +
