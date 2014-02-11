@@ -171,7 +171,7 @@ The source code to both programs are in the `classes/demo` directory.
 
 Known bug:
 
-- Sometimes, the client will print `null` and exit. This is due to an interesting `SocketInputStream` behavior; if the socket does not receive data before a specified timeout, `SocketInputReader` assumes that it received an EOF. [Here's the code -- look what happens with `socketRead0` returns 0.](http://grepcode.com/file/repository.grepcode.com/java/root/jdk/openjdk/6-b14/java/net/SocketInputStream.java#146) :(
+- Sometimes, the client will print `null` and exit. This is due to an interesting `SocketInputStream` behavior; if the socket does not receive data before a specified timeout, `SocketInputReader` assumes that it received an EOF. [Here's the code -- look what happens when `socketRead0` returns 0.](http://grepcode.com/file/repository.grepcode.com/java/root/jdk/openjdk/6-b14/java/net/SocketInputStream.java#146) :(
 
 
 #### Connect to Dropbox
@@ -238,8 +238,10 @@ Emscripten Demo artifact guide
 The Emscripten demo (in the `emscripten` subdirectory of the demo folder) demonstrates the following:
 
 - A C++ application that has been ported to Emscripten is able to use the Doppio file system without any changes.
-- The Doppio file system integrates into the Emscripten environment, giving unmodified C++ programs access to browser persistent storage through the file system.
-- Using the Doppio file system, the Emscripten does not need to preload the entire file system into memory prior to execution. Instead, it is able to load files as the application requests them.
+- The Doppio file system integrates seamlessly into the Emscripten environment.
+- Using the Doppio file system, Emscripten does not need to preload the entire file system into memory prior to execution. Instead, it is able to load files as the application requests them.
+
+§2.1 explains some of the limitations of Emscripten's approach to bringing C++ applications to the web, and §7.2 explains this evaluation.
 
 The C++ application in question is an Emscripten port of the open source game [Me and My Shadow](http://meandmyshadow.sourceforge.net/). 
 
@@ -270,4 +272,6 @@ Things to do:
 
 ### Caveats
 
-In both versions, the "Addons" and "Map Editor" menu items do not function. The first is likely an Emscripten bug. The latter is due to the program attempting to synchronously poll for input. Unlike DoppioJVM, Emscripten cannot emulate synchronous C++ features in terms of asynchronous browser functionality. And since the browser has only asynchronous APIs for prompting for input, this feature of "Me and My Shadow" will remain unsupported in Emscripten until someone refactors the code to use asynchronous C++ APIs.
+In both versions, the "Addons" and "Map Editor" menu items do not function. The first is likely an Emscripten bug. The latter is due to the program attempting to synchronously poll for input. Unlike DoppioJVM, Emscripten cannot emulate synchronous C++ features in terms of asynchronous browser functionality (§2.1). And since the browser has only asynchronous APIs for processing input\*, this feature of "Me and My Shadow" will remain unsupported in Emscripten until someone refactors the code to use asynchronous C++ APIs.
+
+\* [`window.prompt`](https://developer.mozilla.org/en-US/docs/Web/API/Window.prompt) is the one exception.
