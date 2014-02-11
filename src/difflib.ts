@@ -32,10 +32,6 @@ export function text_diff(a_lines: string[], b_lines: string[]): string[] {
 	return (new SequenceMatcher(a_lines, b_lines)).text_diff();
 }
 
-function isjunk(c: string): boolean {
-	return " \t\n\f\r".indexOf(c) !== -1;
-}
-
 // comparison function for sorting lists of numeric tuples
 function __ntuplecomp(a, b) {
 	var mlen = Math.max(a.length, b.length);
@@ -47,13 +43,6 @@ function __ntuplecomp(a, b) {
 	return a.length == b.length ? 0 : (a.length < b.length ? -1 : 1);
 }
 
-// returns a function that returns true if a key passed to the returned function
-// is in the dict (js object) provided to this function; replaces being able to
-// carry around dict.has_key in python...
-function __isindict(dict) {
-	return function (key) { return dict.hasOwnProperty(key); };
-}
-
 // replacement for python's dict.get function -- need easy default values
 function __dictget(dict, key, defaultValue) {
 	return dict.hasOwnProperty(key) ? dict[key] : defaultValue;
@@ -62,72 +51,31 @@ function __dictget(dict, key, defaultValue) {
 export class SequenceMatcher {
 	private a : string[];
 	private b : string[];
-	private matching_blocks;
-	private opcodes;
-	private fullbcount;
-	private isbjunk: (key: string) => boolean;
-	private b2j;
+	private matching_blocks: number[][];
+	private opcodes: any[];
+	private b2j: {[elt: string]: number[]};
 
 	constructor(a: string[], b: string[]) {
 		this.a = a;
 		this.b = b;
-		this.matching_blocks = this.opcodes = this.fullbcount = null;
-		this.__chain_b();
-	}
-
-	private __chain_b(): void {
-		var b = this.b;
-		var n = b.length;
 		var b2j = this.b2j = {};
-		var populardict: {[elt: string]: number} = {};
 		for (var i = 0; i < b.length; i++) {
 			var elt = b[i];
 			if (b2j.hasOwnProperty(elt)) {
-				var indices = b2j[elt];
-				if (n >= 200 && indices.length * 100 > n) {
-					populardict[elt] = 1;
-					delete b2j[elt];
-				} else {
-					indices.push(i);
-				}
+				b2j[elt].push(i);
 			} else {
 				b2j[elt] = [i];
 			}
 		}
-
-		var elt: string;
-		for (elt in populardict) {
-			if (populardict.hasOwnProperty(elt)) {
-				delete b2j[elt];
-			}
-		}
-
-		var junkdict = {};
-		for (elt in populardict) {
-			if (populardict.hasOwnProperty(elt) && isjunk(elt)) {
-				junkdict[elt] = 1;
-				delete populardict[elt];
-			}
-		}
-		for (elt in b2j) {
-			if (b2j.hasOwnProperty(elt) && isjunk(elt)) {
-				junkdict[elt] = 1;
-				delete b2j[elt];
-			}
-		}
-
-		this.isbjunk = __isindict(junkdict);
 	}
 
-	private find_longest_match(alo, ahi, blo, bhi) {
+	private find_longest_match(alo: number, ahi: number, blo: number, bhi: number): number[] {
 		var a = this.a;
 		var b = this.b;
 		var b2j = this.b2j;
-		var isbjunk = this.isbjunk;
 		var besti = alo;
 		var bestj = blo;
 		var bestsize = 0;
-		var j = null;
 
 		var j2len = {};
 		for (var i = alo; i < ahi; i++) {
@@ -135,7 +83,7 @@ export class SequenceMatcher {
 			var jdict = __dictget(b2j, a[i], []);
 			for (var jkey in jdict) {
 				if (jdict.hasOwnProperty(jkey)) {
-					j = jdict[jkey];
+					var j = jdict[jkey];
 					if (j < blo) continue;
 					if (j >= bhi) break;
 					var k = __dictget(j2len, j - 1, 0) + 1
@@ -150,25 +98,13 @@ export class SequenceMatcher {
 			j2len = newj2len;
 		}
 
-		while (besti > alo && bestj > blo && !isbjunk(b[bestj - 1]) && a[besti - 1] == b[bestj - 1]) {
+		while (besti > alo && bestj > blo && a[besti - 1] == b[bestj - 1]) {
 			besti--;
 			bestj--;
 			bestsize++;
 		}
 
 		while (besti + bestsize < ahi && bestj + bestsize < bhi &&
-				!isbjunk(b[bestj + bestsize]) &&
-				a[besti + bestsize] == b[bestj + bestsize]) {
-			bestsize++;
-		}
-
-		while (besti > alo && bestj > blo && isbjunk(b[bestj - 1]) && a[besti - 1] == b[bestj - 1]) {
-			besti--;
-			bestj--;
-			bestsize++;
-		}
-
-		while (besti + bestsize < ahi && bestj + bestsize < bhi && isbjunk(b[bestj + bestsize]) &&
 				a[besti + bestsize] == b[bestj + bestsize]) {
 			bestsize++;
 		}
@@ -176,24 +112,23 @@ export class SequenceMatcher {
 		return [besti, bestj, bestsize];
 	}
 
-	private get_matching_blocks() {
+	private get_matching_blocks(): number[][] {
 		if (this.matching_blocks != null) return this.matching_blocks;
 		var la = this.a.length;
 		var lb = this.b.length;
 
 		var queue = [[0, la, 0, lb]];
 		var matching_blocks = [];
-		var alo, ahi, blo, bhi, qi, i, j, k, x;
 		while (queue.length) {
-			qi = queue.pop();
-			alo = qi[0];
-			ahi = qi[1];
-			blo = qi[2];
-			bhi = qi[3];
-			x = this.find_longest_match(alo, ahi, blo, bhi);
-			i = x[0];
-			j = x[1];
-			k = x[2];
+			var qi = queue.pop();
+			var alo = qi[0];
+			var ahi = qi[1];
+			var blo = qi[2];
+			var bhi = qi[3];
+			var x = this.find_longest_match(alo, ahi, blo, bhi);
+			var i = x[0];
+			var j = x[1];
+			var k = x[2];
 
 			if (k) {
 				matching_blocks.push(x);
@@ -208,23 +143,20 @@ export class SequenceMatcher {
 
 		var i1 = 0,
 		    j1 = 0,
-		    k1 = 0,
-		    block = 0;
+		    k1 = 0;
 		var non_adjacent = [];
-		for (var idx in matching_blocks) {
-			if (matching_blocks.hasOwnProperty(idx)) {
-				block = matching_blocks[idx];
-				var i2 = block[0];
-				var j2 = block[1];
-				var k2 = block[2];
-				if (i1 + k1 == i2 && j1 + k1 == j2) {
-					k1 += k2;
-				} else {
-					if (k1) non_adjacent.push([i1, j1, k1]);
-					i1 = i2;
-					j1 = j2;
-					k1 = k2;
-				}
+		for (var idx=0; idx < matching_blocks.length; idx++) {
+			var block = matching_blocks[idx];
+			var i2 = block[0];
+			var j2 = block[1];
+			var k2 = block[2];
+			if (i1 + k1 == i2 && j1 + k1 == j2) {
+				k1 += k2;
+			} else {
+				if (k1) non_adjacent.push([i1, j1, k1]);
+				i1 = i2;
+				j1 = j2;
+				k1 = k2;
 			}
 		}
 
@@ -235,34 +167,31 @@ export class SequenceMatcher {
 		return this.matching_blocks;
 	}
 
-	private get_opcodes() {
+	private get_opcodes(): any[] {
 		if (this.opcodes != null) return this.opcodes;
 		var i = 0;
 		var j = 0;
-		var answer = [];
+		var answer: any[] = [];
 		this.opcodes = answer;
-		var block, ai, bj, size, tag;
 		var blocks = this.get_matching_blocks();
-		for (var idx in blocks) {
-			if (blocks.hasOwnProperty(idx)) {
-				block = blocks[idx];
-				ai = block[0];
-				bj = block[1];
-				size = block[2];
-				tag = '';
-				if (i < ai && j < bj) {
-					tag = 'replace';
-				} else if (i < ai) {
-					tag = 'delete';
-				} else if (j < bj) {
-					tag = 'insert';
-				}
-				if (tag) answer.push([tag, i, ai, j, bj]);
-				i = ai + size;
-				j = bj + size;
-
-				if (size) answer.push(['equal', ai, i, bj, j]);
+		for (var idx=0; idx < blocks.length; idx++) {
+			var block = blocks[idx];
+			var ai = block[0];
+			var bj = block[1];
+			var size = block[2];
+			var tag = '';
+			if (i < ai && j < bj) {
+				tag = 'replace';
+			} else if (i < ai) {
+				tag = 'delete';
+			} else if (j < bj) {
+				tag = 'insert';
 			}
+			if (tag) answer.push([tag, i, ai, j, bj]);
+			i = ai + size;
+			j = bj + size;
+
+			if (size) answer.push(['equal', ai, i, bj, j]);
 		}
 		return answer;
 	}
