@@ -195,7 +195,7 @@ export function setup(grunt: IGrunt) {
         files: [{
           expand: true,
           src: ['browser/*.svg', 'browser/*.png', 'browser/[^build]*.js',
-                'browser/core_viewer/*.css', 'browser/mini-rt.tar'],
+                'browser/core_viewer/*.css', 'browser/mini-rt.tar', 'benchmark/**/*'],
           dest: '<%= build.build_dir %>'
         }, { expand: true, flatten: true, src: ['browser/core_viewer.html', 'browser/favicon.ico'], dest: '<%= build.build_dir %>'},
         {expand: true, src: '+(browser|src)/*.ts', dest: '<%= build.build_dir %>' }]
