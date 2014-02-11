@@ -32,44 +32,8 @@ export function text_diff(a_lines: string[], b_lines: string[]): string[] {
 	return (new SequenceMatcher(a_lines, b_lines)).text_diff();
 }
 
-var __whitespace = {" ":true, "\t":true, "\n":true, "\f":true, "\r":true};
-
-function defaultJunkFunction(c): boolean {
-	return __whitespace.hasOwnProperty(c);
-}
-
-function stripLinebreaks(str) { return str.replace(/^[\n\r]*|[\n\r]*$/g, ""); }
-
-function stringAsLines(str) {
-	var lfpos = str.indexOf("\n");
-	var crpos = str.indexOf("\r");
-	var linebreak = ((lfpos > -1 && crpos > -1) || crpos < 0) ? "\n" : "\r";
-
-	var lines = str.split(linebreak);
-	for (var i = 0; i < lines.length; i++) {
-		lines[i] = stripLinebreaks(lines[i]);
-	}
-
-	return lines;
-}
-
-// iteration-based reduce implementation
-function __reduce(func, list, initial) {
-	if (initial != null) {
-		var value = initial;
-		var idx = 0;
-	} else if (list) {
-		var value = list[0];
-		var idx = 1;
-	} else {
-		return null;
-	}
-
-	for (; idx < list.length; idx++) {
-		value = func(value, list[idx]);
-	}
-
-	return value;
+function isjunk(c: string): boolean {
+	return " \t\n\f\r".indexOf(c) !== -1;
 }
 
 // comparison function for sorting lists of numeric tuples
@@ -81,10 +45,6 @@ function __ntuplecomp(a, b) {
 	}
 
 	return a.length == b.length ? 0 : (a.length < b.length ? -1 : 1);
-}
-
-function __calculate_ratio(matches: number, length: number): number {
-	return length ? 2.0 * matches / length : 1.0;
 }
 
 // returns a function that returns true if a key passed to the returned function
@@ -105,28 +65,11 @@ export class SequenceMatcher {
 	private matching_blocks;
 	private opcodes;
 	private fullbcount;
-	private isjunk;
-	private isbjunk;
-	private isbpopular;
+	private isbjunk: (key: string) => boolean;
 	private b2j;
 
-	constructor(a: string[], b: string[], isjunk?: any) {
-		this.isjunk = isjunk || defaultJunkFunction;
-		this.set_seqs(a, b);
-	}
-	private set_seqs(a, b): void {
-		this.set_seq1(a);
-		this.set_seq2(b);
-	}
-
-	private set_seq1(a): void {
-		if (a == this.a) return;
+	constructor(a: string[], b: string[]) {
 		this.a = a;
-		this.matching_blocks = this.opcodes = null;
-	}
-
-	private set_seq2(b): void {
-		if (b == this.b) return;
 		this.b = b;
 		this.matching_blocks = this.opcodes = this.fullbcount = null;
 		this.__chain_b();
@@ -136,7 +79,7 @@ export class SequenceMatcher {
 		var b = this.b;
 		var n = b.length;
 		var b2j = this.b2j = {};
-		var populardict: {[elt: string]: any} = {};
+		var populardict: {[elt: string]: number} = {};
 		for (var i = 0; i < b.length; i++) {
 			var elt = b[i];
 			if (b2j.hasOwnProperty(elt)) {
@@ -159,25 +102,21 @@ export class SequenceMatcher {
 			}
 		}
 
-		var isjunk = this.isjunk;
 		var junkdict = {};
-		if (isjunk) {
-			for (elt in populardict) {
-				if (populardict.hasOwnProperty(elt) && isjunk(elt)) {
-					junkdict[elt] = 1;
-					delete populardict[elt];
-				}
+		for (elt in populardict) {
+			if (populardict.hasOwnProperty(elt) && isjunk(elt)) {
+				junkdict[elt] = 1;
+				delete populardict[elt];
 			}
-			for (elt in b2j) {
-				if (b2j.hasOwnProperty(elt) && isjunk(elt)) {
-					junkdict[elt] = 1;
-					delete b2j[elt];
-				}
+		}
+		for (elt in b2j) {
+			if (b2j.hasOwnProperty(elt) && isjunk(elt)) {
+				junkdict[elt] = 1;
+				delete b2j[elt];
 			}
 		}
 
 		this.isbjunk = __isindict(junkdict);
-		this.isbpopular = __isindict(populardict);
 	}
 
 	private find_longest_match(alo, ahi, blo, bhi) {
@@ -191,10 +130,9 @@ export class SequenceMatcher {
 		var j = null;
 
 		var j2len = {};
-		var nothing = [];
 		for (var i = alo; i < ahi; i++) {
 			var newj2len = {};
-			var jdict = __dictget(b2j, a[i], nothing);
+			var jdict = __dictget(b2j, a[i], []);
 			for (var jkey in jdict) {
 				if (jdict.hasOwnProperty(jkey)) {
 					j = jdict[jkey];
@@ -374,95 +312,5 @@ export class SequenceMatcher {
 			diff[i] = a + diff[i] + b;
 		}
 		return diff;
-	}
-
-	// this is a generator function in the python lib, which of course is not supported in javascript
-	// the reimplementation builds up the grouped opcodes into a list in their entirety and returns that.
-	private get_grouped_opcodes(n: number) {
-		if (!n) n = 3;
-		var codes = this.get_opcodes();
-		if (!codes) codes = [["equal", 0, 1, 0, 1]];
-		var code, tag, i1, i2, j1, j2;
-		if (codes[0][0] == 'equal') {
-			code = codes[0];
-			tag = code[0];
-			i1 = code[1];
-			i2 = code[2];
-			j1 = code[3];
-			j2 = code[4];
-			codes[0] = [tag, Math.max(i1, i2 - n), i2, Math.max(j1, j2 - n), j2];
-		}
-		if (codes[codes.length - 1][0] == 'equal') {
-			code = codes[codes.length - 1];
-			tag = code[0];
-			i1 = code[1];
-			i2 = code[2];
-			j1 = code[3];
-			j2 = code[4];
-			codes[codes.length - 1] = [tag, i1, Math.min(i2, i1 + n), j1, Math.min(j2, j1 + n)];
-		}
-
-		var nn = n + n;
-		var group = [];
-		var groups = [];
-		for (var idx in codes) {
-			if (codes.hasOwnProperty(idx)) {
-				code = codes[idx];
-				tag = code[0];
-				i1 = code[1];
-				i2 = code[2];
-				j1 = code[3];
-				j2 = code[4];
-				if (tag == 'equal' && i2 - i1 > nn) {
-					group.push([tag, i1, Math.min(i2, i1 + n), j1, Math.min(j2, j1 + n)]);
-					groups.push(group);
-					group = [];
-					i1 = Math.max(i1, i2-n);
-					j1 = Math.max(j1, j2-n);
-				}
-
-				group.push([tag, i1, i2, j1, j2]);
-			}
-		}
-
-		if (group && !(group.length == 1 && group[0][0] == 'equal')) groups.push(group)
-
-		return groups;
-	}
-
-	private ratio() {
-		var matches = __reduce(
-						function (sum, triple) { return sum + triple[triple.length - 1]; },
-						this.get_matching_blocks(), 0);
-		return __calculate_ratio(matches, this.a.length + this.b.length);
-	}
-
-	private quick_ratio() {
-		var fullbcount, elt;
-		if (this.fullbcount == null) {
-			this.fullbcount = fullbcount = {};
-			for (var i = 0; i < this.b.length; i++) {
-				elt = this.b[i];
-				fullbcount[elt] = __dictget(fullbcount, elt, 0) + 1;
-			}
-		}
-		fullbcount = this.fullbcount;
-
-		var avail = {};
-		var availhas = __isindict(avail);
-		var matches = 0,
-		    numb = 0;
-		for (var i = 0; i < this.a.length; i++) {
-			elt = this.a[i];
-			if (availhas(elt)) {
-				numb = avail[elt];
-			} else {
-				numb = __dictget(fullbcount, elt, 0);
-			}
-			avail[elt] = numb - 1;
-			if (numb > 0) matches++;
-		}
-
-		return __calculate_ratio(matches, this.a.length + this.b.length);
 	}
 }
