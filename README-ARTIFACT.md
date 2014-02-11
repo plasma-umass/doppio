@@ -173,6 +173,9 @@ Known bug:
 
 - Sometimes, the client will print `null` and exit. This is due to an interesting `SocketInputStream` behavior; if the socket does not receive data before a specified timeout, `SocketInputReader` assumes that it received an EOF. [Here's the code -- look what happens when `socketRead0` returns 0.](http://grepcode.com/file/repository.grepcode.com/java/root/jdk/openjdk/6-b14/java/net/SocketInputStream.java#146) :(
 
+#### Store files for later
+
+Any files stored in `/mnt/localStorage` or `/mnt/html5fs` (the latter is only available in Chrome and Opera 15+) will persist in browser-local storage across visits to the demo page. Go ahead and stash some files in there, close the browser, and navigate back to the demo.
 
 #### Connect to Dropbox
 
@@ -181,6 +184,10 @@ Doppio's filesystem supports Dropbox cloud storage accounts. Use the `mount_drop
 Please note that using this feature will *not* reveal your identity to the artifact authors. The artifact authors can see the **number** of users that have used our API key to connect to Dropbox, but not their **identity**.
 
 If you would like, you can use your own API key; development keys are free. You must sign up for one at the [Dropbox Application Console](https://www.dropbox.com/developers/apps). Make sure you add the appropriate OAuth Redirect URI (`http://localhost:8000/` for a locally-served demo). Use the `mount_dropbox` command with no arguments for syntax information.
+
+Once you've connected to Dropbox, navigate to `/mnt/dropbox`. Feel free to create files using the `edit` command, and watch as your native Dropbox client syncs them to your local computer. Or, pop files into the `Apps/DoppioJVM` Dropbox folder, and use `ls` to see them in the DoppioJVM terminal. Note that sometimes Dropbox is slow to sync; check Dropbox's syncing progress in your system tray.
+
+You could even pop some JAR files into the directory and run them in DoppioJVM. Or write+run a Java program to generate files in the directory.
 
 #### Interoperate Java with JavaScript
 
