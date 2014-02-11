@@ -775,7 +775,8 @@ var commands = {
     return time_once();
   },
   help: function(args: string[]): string {
-    return "Ctrl-D is EOF.\n\n" +
+    return "Ctrl-D is EOF.\n" +
+      "Ctrl-C is SIGINT for the JVM.\n\n" +
       "Java-related commands:\n" +
       "  javac <source file>     -- Invoke the Java 6 compiler.\n" +
       "  java <class> [args...]  -- Run with command-line arguments.\n" +
