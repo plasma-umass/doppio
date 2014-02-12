@@ -5,6 +5,7 @@ var RuntimeState = runtime.RuntimeState;
 import util = require('./util');
 import disassembler = require('./disassembler');
 import java_cli = require('./java_cli');
+import difflib = require('./difflib');
 import path = require('path');
 import fs = require('fs');
 
@@ -168,15 +169,8 @@ function cleandiff(our_str: string, their_str: string): string {
   var oidx = 0;
   var tidx = 0;
   var diff: string[] = [];
-  while (oidx < our_lines.length && tidx < their_lines.length) {
-    if (our_lines[oidx++] === their_lines[tidx++]) {
-      continue;
-    }
-    diff.push("D:" + our_lines[oidx - 1] + "\nJ:" + their_lines[tidx - 1]);
-  }
-  diff.push.apply(diff, our_lines.slice(oidx).map((extra) => "D:" + extra));
-  diff.push.apply(diff, their_lines.slice(tidx).map((extra) => "J:" + extra));
+  diff = difflib.text_diff(our_lines, their_lines);
   if (diff.length > 0) {
-    return diff.join('\n');
+    return 'Doppio | Java\n' + diff.join('\n');
   }
 }
