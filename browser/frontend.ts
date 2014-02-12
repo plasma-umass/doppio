@@ -210,19 +210,17 @@ $(document).ready(function() {
       // Check for globs (*) in the arguments, and expand them.
       var expanded_args : string[] = [];
       util.async_foreach(args,
-        // runs on each element
+        // runs on each argument
         function(arg: string, next_item): void {
           var starIdx = arg.indexOf('*');
           if (starIdx === -1) {
+            // Regular element.
             expanded_args.push(arg);
             return next_item();
           }
-          var prefix = arg.slice(0, starIdx);
-          var postfix = arg.slice(starIdx+1);
-          fileNameCompletions('glob', [prefix], function (comps: string[]) {
-            // Filter out completions that don't end in the postfix.
-            var comps = comps.filter((c)=>c.indexOf(postfix, c.length-postfix.length) !== -1);
-            Array.prototype.push.apply(expanded_args, comps);
+          // Glob element.
+          process_glob(arg, function(comps: string[]): void {
+            expanded_args = expanded_args.concat(comps);
             next_item();
           });
         },
@@ -876,4 +874,67 @@ function defaultFile(filename: string): string {
         + "    // enter code here\n  }\n}";
   }
   return "";
+}
+
+/**
+ * Calls `readdir` on each directory, and ignores any files in `dirs`.
+ * Tests the result against the regular expression.
+ * Passes back any directories that pass the test.
+ */
+function expand_dirs(dirs: string[], r: RegExp, cb: (expansion: string[]) => void): void {
+  var expanded: string[] = [];
+  util.async_foreach(dirs, function(dir: string, next_item: () => void): void {
+    fs.readdir(dir, function(err: any, contents?: string[]): void {
+      var i: number;
+      if (err == null) {
+        for (i = 0; i < contents.length; i++) {
+          if (r.test(contents[i])) {
+            // Note: We don't 'resolve' because we don't want the path to become
+            // absolute if it was relative in the first place.
+            expanded.push(path.join(dir, contents[i]));
+          }
+        }
+      }
+      next_item();
+    });
+  }, function() {
+    cb(expanded);
+  });
+}
+
+/**
+ * Constructs a regular expression for a given glob pattern.
+ */
+function construct_regexp(pattern: string): RegExp {
+  // Yay chaining?
+  return new RegExp("^" + pattern.replace(/\./g, "\\.").split('*').join('[^/]*') + "$");
+}
+
+/**
+ * Asynchronous method for processing a Unix glob.
+ */
+function process_glob(glob: string, cb: (expansion: string[]) => void): void {
+  var glob_normalized: string = path.normalize(glob),
+      path_comps: string[] = glob_normalized.split('/'),
+      // We bootstrap the algorithm with '/' or '.', depending on whether or not
+      // the glob is a relative or absolute path.
+      expanded: string[] = [glob.charAt(0) === '/' ? '/' : '.'];
+
+  // Process each component of the path separately.
+  util.async_foreach(path_comps, function(path_comp: string, next_item: () => void): void {
+    var r: RegExp;
+    if (path_comp === "") {
+      // This condition occurs for:
+      // * The first component in an absolute directory.
+      // * The last component in a path that ends in '/' (normalize doesn't remove it).
+      return next_item();
+    }
+    r = construct_regexp(path_comp);
+    expand_dirs(expanded, r, function(_expanded: string[]): void {
+      expanded = _expanded;
+      next_item();
+    });
+  }, function() {
+    cb(expanded);
+  });
 }
