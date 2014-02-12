@@ -59,13 +59,15 @@ For example:
 
     #in shell
     cp -ivR /path/to/my/class/files/ classes/my-classes/
-    
-    #in browser
-    java -cp /sys/classes/my-classes my/package/MyClass  # use slashes, not dots, as package separators
 
-We currently don't support loading class files from JARs in the browser,
-but we intend to in the future. For now, unzip the JAR file and use the
-above method to access the class files directly.
+    #in browser
+    java -cp /sys/classes/my-classes my/package/MyClass
+
+You can also run JAR files in the browser, e.g.:
+
+    java -jar /path/to/jar.jar
+    # Or if you don't want to run the JAR file's main class...
+    java -cp /path/to/jar.jar package.MyClass
 
 doppio can also be run from the console. For example:
 
