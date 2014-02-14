@@ -156,11 +156,16 @@ function formatKlass(title: string, data: {[left: string]: string}): string {
  * Prints the result.
  */
 function printResult(result: {[klassName: string]: {[sig: string]: string}}): void {
-  var klassName: string;
+  var klassName: string, printed: boolean = false;
   for (klassName in result) {
+    printed = true;
     if (result.hasOwnProperty(klassName)) {
       console.log(formatKlass(klassName, result[klassName]) + "\n");
     }
+  }
+
+  if (!printed) {
+    console.log("All native method implementations match native methods in your class files.");
   }
 }
 

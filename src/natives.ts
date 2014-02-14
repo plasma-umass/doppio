@@ -493,14 +493,6 @@ export var native_methods = {
               resume_cb(cls.get_class_object(rs));
             }), except_cb, true);
           });
-        }), o('getCaller(I)L!/!/Class;', function (rs: runtime.RuntimeState, i: number): java_object.JavaClassObject {
-          var cls = rs.meta_stack().get_caller(i).method.cls;
-          return cls.get_class_object(rs);
-        }), o('defineClass1(L!/!/String;[BIIL!/security/ProtectionDomain;L!/!/String;Z)L!/!/Class;', function (rs: runtime.RuntimeState, _this: java_object.JavaClassLoaderObject, name: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number, pd: gLong, source: java_object.JavaObject, unused: java_object.JavaObject): void {
-          var loader = get_cl_from_jclo(rs, _this);
-          rs.async_op<java_object.JavaClassObject>(function (resume_cb, except_cb) {
-            native_define_class(rs, name, bytes, offset, len, loader, resume_cb, except_cb);
-          });
         }), o('defineClass1(L!/!/String;[BIIL!/security/ProtectionDomain;L!/!/String;)L!/!/Class;', function (rs: runtime.RuntimeState, _this: java_object.JavaClassLoaderObject, name: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number, pd: gLong, source: java_object.JavaObject): void {
           var loader = get_cl_from_jclo(rs, _this);
           rs.async_op<java_object.JavaClassObject>(function (resume_cb, except_cb) {
@@ -1064,21 +1056,6 @@ export var native_methods = {
         })
       ]
     },
-    sql: {
-      DriverManager: [
-        o('getCallerClassLoader()Ljava/lang/ClassLoader;', function(rs) {
-          var rv;
-
-          rv = rs.meta_stack().get_caller(1).method.cls.loader.loader_obj;
-          // The loader_obj of the bootstrap classloader is null.
-          if (rv !== void 0) {
-            return rv;
-          } else {
-            return null;
-          }
-        })
-      ]
-    },
     io: {
       Console: [
         o('encoding()L!/lang/String;', function() {
@@ -1142,8 +1119,7 @@ export var native_methods = {
               });
             });
           });
-        }), o('writeBytes([BIIZ)V', write_to_file), // OpenJDK version
-        o('writeBytes([BII)V', write_to_file), // Apple-java version
+        }), o('writeBytes([BII)V', write_to_file),
         o('close0()V', function(rs, _this) {
           var fd, fd_obj;
 
@@ -1453,36 +1429,7 @@ export var native_methods = {
               }
             });
           });
-        }), o('createFileExclusively(Ljava/lang/String;)Z', function(rs, _this, path) { // OpenJDK version
-          var filepath;
-
-          filepath = path.jvm2js_str();
-          return rs.async_op(function(resume_cb, except_cb) {
-            return stat_file(filepath, function(stat) {
-              if (stat != null) {
-                return resume_cb(false);
-              } else {
-                return fs.open(filepath, 'w', function(err, fd) {
-                  if (err != null) {
-                    return except_cb(function() {
-                      return rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), err.message);
-                    });
-                  } else {
-                    return fs.close(fd, function(err?: ErrnoException) {
-                      if (err != null) {
-                        return except_cb(function() {
-                          return rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), err.message);
-                        });
-                      } else {
-                        return resume_cb(true);
-                      }
-                    });
-                  }
-                });
-              }
-            });
-          });
-        }), o('createFileExclusively(Ljava/lang/String;Z)Z', function(rs, _this, path) { // Apple-java version
+        }), o('createFileExclusively(Ljava/lang/String;Z)Z', function(rs, _this, path) {
           var filepath;
 
           filepath = path.jvm2js_str();
@@ -1703,12 +1650,6 @@ export var native_methods = {
           })
         ]
       },
-      ResourceBundle: [
-        o('getClassContext()[L!/lang/Class;', function(rs) {
-          // XXX should walk up the meta_stack and fill in the array properly
-          return new JavaArray(rs, rs.get_bs_class('[Ljava/lang/Class;'), [null, null, null]);
-        })
-      ],
       TimeZone: [
         o('getSystemTimeZoneID(L!/lang/String;L!/lang/String;)L!/lang/String;', function(rs, java_home, country) {
           // XXX not sure what the local value is
@@ -1752,8 +1693,6 @@ export var native_methods = {
             _results.push(vm_management_impl.static_put(rs, name, 0));
           }
           return _results;
-        }), o('isThreadAllocatedMemoryEnabled()Z', function() {
-          return false;
         }), o('isThreadContentionMonitoringEnabled()Z', function() {
           return false;
         }), o('isThreadCpuTimeEnabled()Z', function() {
@@ -1826,8 +1765,6 @@ export var native_methods = {
           }
           rs.mem_start_addrs.push(next_addr + size);
           return gLong.fromNumber(next_addr);
-        }), o('copyMemory(Ljava/lang/Object;JLjava/lang/Object;JJ)V', function(rs, _this, src_base, src_offset, dest_base, dest_offset, num_bytes) {
-          return unsafe_memcpy(rs, src_base, src_offset, dest_base, dest_offset, num_bytes);
         }), o('setMemory(JJB)V', function(rs, _this, address, bytes, value) {
           var block_addr, i, _i;
 
@@ -2257,8 +2194,7 @@ native_methods['java']['lang']['Class'] = [
     // - the immediately enclosing method or constructor's name (can be null). (String)
     // - the immediately enclosing method or constructor's descriptor (null iff name is). (String)
     return new JavaArray(rs, rs.get_bs_class('[Ljava/lang/Object;'), [enc_cls, enc_name, enc_desc]);
-  }), o('getDeclaringClass()L!/!/!;', get_declaring_class),
-  o('getDeclaringClass0()L!/!/!;', get_declaring_class),
+  }), o('getDeclaringClass0()L!/!/!;', get_declaring_class),
   o('getDeclaredClasses0()[L!/!/!;', function(rs, _this) {
     var _i, _j, _len, _len1;
 
@@ -2377,7 +2313,7 @@ native_methods['java']['net']['Inet4AddressImpl'] = [
       return null;
     }
     return rs.init_string(ret);
-  }), o('isReachable0([BII[BII)Z', function(rs, _this, addr, scope, timeout, inf, ttl, if_scope) {
+  }), o('isReachable0([BI[BI)Z', function(rs, _this, addr, scope, timeout, inf, ttl, if_scope) {
     return false;
   })
 ];
@@ -2749,7 +2685,6 @@ native_methods['sun']['reflect'] = {
     })
   ],
   Reflection: [
-    o('getCallerClass(I)Ljava/lang/Class;', get_caller_class),
     o('getCallerClass0(I)Ljava/lang/Class;', get_caller_class),
     o('getCallerClass()Ljava/lang/Class;', function(rs) {
       // 0th item is Reflection class, 1st item is the class that called us,
