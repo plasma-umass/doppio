@@ -105,6 +105,7 @@ export function setup(grunt: IGrunt) {
       options: {
         sourcemap: true,
         comments: true
+        // noImplicitAny: true
       },
       'dev-cli': {
         src: ["console/*.ts", "src/*.ts"],
