@@ -37,14 +37,17 @@ function extract_deb(grunt: IGrunt) {
  * callback with an optional error message when finished.
  */
 function extract_data(grunt: IGrunt, archive_file: {src: string[]; dest: string}, dest_dir: string, cb: (err?: any) => void): void {
-  var archive = new ar.Archive(fs.readFileSync(archive_file.src[0])),
-      files = archive.getFiles(), i, file,
-      found = false, tarFile = archive_file.src[0] + ".tar", stream,
-      stream_finish_cb = function(err) {
-        // Close the stream before passing the callback.
-        stream.close();
-        cb(err);
-      };
+  var archive = new ar.Archive(fs.readFileSync(archive_file.src[0]));
+  var files = archive.getFiles();
+  var found = false;
+  var tarFile = archive_file.src[0] + ".tar";
+  var stream: fs.ReadStream;
+  function stream_finish_cb(err: any): void {
+    // Close the stream before passing the callback.
+    // XXX: DefinitelyTyped's node.d.ts doesn't have a 'close' defined.
+    (<any> stream).close();
+    cb(err);
+  };
   if (fs.existsSync(tarFile)) {
     grunt.log.writeln('Ignoring file ' + path.basename(archive_file.src[0]) + ' (already extracted).');
     return cb();
@@ -52,8 +55,8 @@ function extract_data(grunt: IGrunt, archive_file: {src: string[]; dest: string}
   grunt.log.writeln('Processing file ' + path.basename(archive_file.src[0]) + '...');
 
   // Iterate through the files to find data.tar.gz.
-  for (i = 0; i < files.length; i++) {
-    file = files[i];
+  for (var i = 0; i < files.length; i++) {
+    var file = files[i];
     if (file.name() === 'data.tar.gz') {
       found = true;
       break;

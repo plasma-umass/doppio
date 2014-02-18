@@ -28,17 +28,17 @@ function setup_java_home(grunt: IGrunt) {
  * append to it.
  */
 function _find_symlinks(dir: string, found: string[]): string[] {
-  var files = fs.readdirSync(dir), i, filePath, stat;
+  var files = fs.readdirSync(dir);
   // TODO: There's probably a better way to detect symlinks than this.
-  for (i = 0; i < files.length; i++) {
-    filePath = path.resolve(dir, files[i]);
+  for (var i = 0; i < files.length; i++) {
+    var filePath = path.resolve(dir, files[i]);
     try {
       fs.readlinkSync(filePath);
       // It's a symbolic link.
       found.push(filePath);
     } catch (e) {
       // Not a symbolic link.
-      stat = fs.statSync(filePath);
+      var stat = fs.statSync(filePath);
       if (stat.isDirectory()) {
         // Recurse.
         _find_symlinks(filePath, found);
@@ -57,18 +57,16 @@ function find_symlinks(dir: string): string[] {
 }
 
 function symlink_java_home(grunt: IGrunt, cb: (err?: any) => void): void {
-  var java_home: string = 'vendor/java_home',
-      JH: string,
-      links;
+  var java_home = 'vendor/java_home';
   if (fs.existsSync(java_home)) {
     return cb();
   }
   grunt.config.requires('build.scratch_dir');
-  JH = path.resolve(grunt.config('build.scratch_dir'), 'usr', 'lib', 'jvm', 'java-6-openjdk-i386', 'jre'),
+  var JH = path.resolve(grunt.config('build.scratch_dir'), 'usr', 'lib', 'jvm', 'java-6-openjdk-i386', 'jre');
   // a number of .properties files are symlinks to /etc; copy the targets over
   // so we do not need to depend on /etc's existence
-  links = find_symlinks(JH);
-  async.eachSeries(links, function(link, cb2){
+  var links = find_symlinks(JH);
+  async.eachSeries(links, function(link: string, cb2: (err?: any) => void): void {
     try {
       var dest = fs.readlinkSync(link);
       if (dest.match(/^\/etc/)) {
@@ -102,8 +100,8 @@ function symlink_java_home(grunt: IGrunt, cb: (err?: any) => void): void {
       grunt.log.writeln('warning: broken symlink: ' + link);
       cb2(null);
     }
-  }, function(err){
-    ncp(JH, java_home, function(err2?: any) {
+  }, function(err: any): void {
+    ncp(JH, java_home, function(err2?: any): void {
       err2 = err2 ? err2 : err;
       cb(err2);
     });

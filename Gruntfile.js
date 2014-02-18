@@ -32,7 +32,7 @@ ts_files.forEach(function(e, i) {
 });
 
 // Run!
-result = execSync.exec(ts_path + ' --module commonjs ' + ts_files_to_compile.join(' '));
+result = execSync.exec(ts_path + ' --noImplicitAny --module commonjs ' + ts_files_to_compile.join(' '));
 if (result.code !== 0) {
   throw new Error("Compilation error: " + result.stdout + "\n" + result.stderr);
 }

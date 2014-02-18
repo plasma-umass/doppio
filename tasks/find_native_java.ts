@@ -33,17 +33,17 @@ function find_native_java(grunt: IGrunt) {
       //       on *nix environments. :(
       check_install_module(grunt, 'winreg', function(err?: any) {
         if (err) return cb(err);
-        var Winreg = require('winreg'), regKey;
+        var Winreg = require('winreg');
         // Look up JDK path.
-        regKey = new Winreg({
+        var regKey = new Winreg({
           key:  '\\SOFTWARE\\JavaSoft\\Java Development Kit\\1.6'
         });
-        regKey.values(function(err, items) {
-          var i, java_bin;
+        // XXX: We don't have typings for winreg.
+        regKey.values(function(err: any, items: any) {
           if (!err) {
-            for (i in items) {
+            for (var i in items) {
               if (items[i].name === 'JavaHome') {
-                java_bin = path.resolve(items[i].value, 'bin');
+                var java_bin = path.resolve(items[i].value, 'bin');
                 grunt.config.set('build.java', path.resolve(java_bin, 'java.exe'));
                 grunt.config.set('build.javac', path.resolve(java_bin, 'javac.exe'));
                 grunt.config.set('build.javap', path.resolve(java_bin, 'javap.exe'));
@@ -60,11 +60,10 @@ function find_native_java(grunt: IGrunt) {
       // *nix / Mac
       // Option 1: Can we invoke 'java' directly?
       exec(grunt.config('build.java') + ' -version', function(err, stdout, stderr) {
-        var java_bin;
         if (err) {
           // Option 2: Is JAVA_HOME defined?
           if (process.env.JAVA_HOME) {
-            java_bin = path.resolve(process.env.JAVA_HOME, 'bin');
+            var java_bin = path.resolve(process.env.JAVA_HOME, 'bin');
             grunt.config.set('build.java', path.resolve(java_bin, 'java'));
             grunt.config.set('build.javac', path.resolve(java_bin, 'javac'));
             grunt.config.set('build.javap', path.resolve(java_bin, 'javap'));
