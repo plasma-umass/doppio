@@ -2,6 +2,7 @@
 /// <reference path="../vendor/DefinitelyTyped/gruntjs/gruntjs.d.ts" />
 import path = require('path');
 import child_process = require('child_process');
+var semver = require('semver');
 var exec = child_process.exec;
 /**
  * Grunt task that does the following:
@@ -85,8 +86,9 @@ function find_native_java(grunt: IGrunt) {
  */
 function check_java_version(grunt: IGrunt, cb: (status?: boolean) => void): void {
   exec(grunt.config('build.javac') + ' -version', function(err, stdout, stderr) {
-    if (stderr.toString().match(/1\.7/)) {
-      grunt.fail.fatal('Detected Java 7 (via javac). Please use Java 6.');
+    var java_version = /(\d+\.\d+\.\d+)/.exec(stderr.toString())[1];
+    if (!semver.satisfies(java_version, '<1.7.0')) {
+      grunt.fail.fatal('Detected Java '+java_version+' (via javac). Please use Java <= 1.6');
     }
     return cb();
   });
