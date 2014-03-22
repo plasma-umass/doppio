@@ -411,6 +411,23 @@ function get_declaring_class(rs: runtime.RuntimeState, _this: java_object.JavaCl
   return null;
 }
 
+
+function get_class_context(rs: runtime.RuntimeState, _this: any): java_object.JavaArray {
+  // return an array of classes for each method on the stack
+  // starting with the current method and going up the call chain
+  var classes = [];
+  var callstack = rs.meta_stack()._cs;
+  for (var i = callstack.length - 1; i >= 0; i--) {
+    var sf = callstack[i];
+    if (!sf["native"]) {
+      classes.push(sf.method.cls.get_class_object(rs));
+    }
+  }
+  var arr_cls = <ClassData.ArrayClassData> rs.get_bs_class('[Ljava/lang/Class;');
+  return new JavaArray(rs, arr_cls, classes);
+}
+
+
 function verify_array(rs: runtime.RuntimeState, obj: any): java_object.JavaArray {
   if (!(obj instanceof java_object.JavaArray)) {
     var err_cls = <ClassData.ReferenceClassData> this.get_bs_class('Ljava/lang/IllegalArgumentException;');
@@ -802,20 +819,7 @@ export var native_methods = {
         ]
       },
       SecurityManager: [
-        o('getClassContext()[Ljava/lang/Class;', function(rs, _this) {
-          var classes, sf, _i, _ref5;
-          // return an array of classes for each method on the stack
-          // starting with the current method and going up the call chain
-          classes = [];
-          _ref5 = rs.meta_stack()._cs;
-          for (_i = _ref5.length - 1; _i >= 0; _i += -1) {
-            sf = _ref5[_i];
-            if (!sf["native"]) {
-              classes.push(sf.method.cls.get_class_object(rs));
-            }
-          }
-          return new JavaArray(rs, rs.get_bs_class('[Ljava/lang/Class;'), classes);
-        })
+        o('getClassContext()[Ljava/lang/Class;', get_class_context)
       ],
       Shutdown: [
         o('halt0(I)V', function(rs, status) {
@@ -1658,6 +1662,9 @@ export var native_methods = {
           // XXX may not be correct
           return null;
         })
+      ],
+      ResourceBundle: [
+        o('getClassContext()[Ljava/lang/Class;', get_class_context)
       ]
     },
     net: {}
@@ -2194,7 +2201,9 @@ native_methods['java']['lang']['Class'] = [
     // - the immediately enclosing method or constructor's name (can be null). (String)
     // - the immediately enclosing method or constructor's descriptor (null iff name is). (String)
     return new JavaArray(rs, rs.get_bs_class('[Ljava/lang/Object;'), [enc_cls, enc_name, enc_desc]);
-  }), o('getDeclaringClass0()L!/!/!;', get_declaring_class),
+  }),
+  o('getDeclaringClass0()L!/!/!;', get_declaring_class),
+  o('getDeclaringClass()L!/!/!;', get_declaring_class),
   o('getDeclaredClasses0()[L!/!/!;', function(rs, _this) {
     var _i, _j, _len, _len1;
 
@@ -2686,6 +2695,7 @@ native_methods['sun']['reflect'] = {
   ],
   Reflection: [
     o('getCallerClass0(I)Ljava/lang/Class;', get_caller_class),
+    o('getCallerClass(I)Ljava/lang/Class;', get_caller_class),
     o('getCallerClass()Ljava/lang/Class;', function(rs) {
       // 0th item is Reflection class, 1st item is the class that called us,
       // and 2nd item is the caller of our caller, which is correct.
