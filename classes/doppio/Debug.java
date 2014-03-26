@@ -26,4 +26,7 @@ public class Debug {
    */
   public static native void SetLogLevel(LogLevel level);
   public static native LogLevel GetLogLevel();
+
+  public static native void ResetPerfLogger();
+  public static native void GeneratePerfReport(String filename);
 }

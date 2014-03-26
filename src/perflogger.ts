@@ -1,3 +1,5 @@
+var getTime: () => number = typeof performance !== 'undefined' ? performance.now : Date.now;
+
 /**
  * A simple performance logger. Records how much time the application spends
  * in particular states.
@@ -23,7 +25,7 @@ class PerfLogger {
   public recordEvent(state: number): void {
     var currTime: number;
     if (state !== this.currentState) {
-      currTime = performance.now();
+      currTime = getTime();
       // State change.
       if (this.stateStart > -1) {
         // Record duration of current state.
@@ -36,6 +38,8 @@ class PerfLogger {
   }
 
   public finish(): any {
+    // Flush current state runtime w/ impossible enum value.
+    this.recordEvent(-1.1);
     // Serialize output.
     var states = Object.keys(this.stateDurationMap), i: number, output = {};
     for (i = 0; i < states.length; i++) {

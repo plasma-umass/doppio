@@ -11,3 +11,10 @@ export enum ClassState {
   // parsed, and statically initialized.
   INITIALIZED
 }
+
+export enum DoppioState {
+  // Performing work.
+  RUNNING,
+  // Threading overhead.
+  YIELDING
+}
