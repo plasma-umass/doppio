@@ -11,6 +11,7 @@ import exceptions = require('./exceptions');
 import logging = require('./logging');
 import threading = require('./threading');
 import enums = require('./enums');
+import PerfLogger = require('./perflogger');
 var debug = logging.debug, error = logging.error, trace = logging.trace;
 
 // For types; shouldn't actually be used.
@@ -483,12 +484,13 @@ export var native_methods = {
               return ll_cls.static_get(rs, 'ERROR');
           }
         }), o('ResetPerfLogger()V', function(rs: runtime.RuntimeState) {
-          rs.instantiatePerfLogger();
+          var pl: PerfLogger = PerfLogger.getInstance();
+          pl.reset();
           // Current event: Running.
-          rs.getPerfLogger().recordEvent(enums.DoppioState.RUNNING);
+          pl.recordEvent(enums.DoppioState.RUNNING);
         }), o('GeneratePerfReport(Ljava/lang/String;)V', function(rs: runtime.RuntimeState, jvmstr: java_object.JavaObject) {
           var fname: string = jvmstr.jvm2js_str(),
-            report: any = rs.getPerfLogger().finish();
+            report: any = PerfLogger.getInstance().finish();
           rs.async_op(function(resume_cb, except_cb) {
             fs.writeFile(fname, JSON.stringify(report), { encoding: 'utf8' }, function(e) {
               if (e) {

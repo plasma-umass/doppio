@@ -1,3 +1,5 @@
+import enums = require('./enums');
+
 var getTime: () => number = typeof performance !== 'undefined' ? performance.now : Date.now;
 
 /**
@@ -6,11 +8,22 @@ var getTime: () => number = typeof performance !== 'undefined' ? performance.now
  */
 class PerfLogger {
   private currentState: number;
-  private stateStart: number = -1;
-  private stateDurationMap: {[state: number]: number} = {};
+  private stateStart: number;
+  private stateDurationMap: {[state: number]: number};
 
   constructor(private possibleStates: any) {
+    this.reset();
+  }
+
+  public reset() {
     var stateName: string, state: number;
+
+    // Reset state.
+    this.currentState = undefined;
+    this.stateStart = -1;
+    this.stateDurationMap = {};
+
+    // Set all valid states to 0 duration.
     for (stateName in this.possibleStates) {
       if (this.possibleStates.hasOwnProperty(stateName)) {
         // Enums contain both string => num lookup and num => string lookup.
@@ -51,6 +64,11 @@ class PerfLogger {
 
   public getDuration(state: number): number {
     return this.stateDurationMap[state];
+  }
+
+  private static instance: PerfLogger = new PerfLogger(enums.DoppioState);
+  public static getInstance(): PerfLogger {
+    return this.instance;
   }
 }
 

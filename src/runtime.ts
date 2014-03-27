@@ -9,7 +9,6 @@ import methods = require('./methods');
 import ClassData = require('./ClassData');
 import ClassLoader = require('./ClassLoader');
 import threading = require('./threading');
-import PerfLogger = require('./perflogger');
 import Enums = require('./enums');
 
 declare var UNSAFE : boolean;
@@ -27,7 +26,6 @@ var JavaArray = java_object.JavaArray;
 var run_count = 0;
 // Contains all the mutable state of the Java program.
 export class RuntimeState {
-  private perflogger: PerfLogger;
   private startup_time: gLong;
   public run_stamp: number;
   private mem_start_addrs: number[];
@@ -67,15 +65,6 @@ export class RuntimeState {
     var ct = new threading.JavaThreadObject(this, null);
     this.curr_thread = ct;
     this.max_m_count = 100000;
-    this.instantiatePerfLogger();
-  }
-
-  public instantiatePerfLogger() {
-    this.perflogger = new PerfLogger(Enums.DoppioState);
-  }
-
-  public getPerfLogger(): PerfLogger {
-    return this.perflogger;
   }
 
   public get_bs_cl(): ClassLoader.BootstrapClassLoader {
