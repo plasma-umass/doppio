@@ -1,6 +1,6 @@
 import enums = require('./enums');
 
-var getTime: () => number = typeof performance !== 'undefined' ? performance.now : Date.now;
+var getTime: () => number = typeof performance !== 'undefined' ? () => { return performance.now(); } : Date.now;
 
 /**
  * A simple performance logger. Records how much time the application spends
