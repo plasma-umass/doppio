@@ -15,6 +15,8 @@ export enum ClassState {
 export enum DoppioState {
   // Performing work.
   RUNNING,
-  // Threading overhead.
-  YIELDING
+  // Suspend-and-resume overhead.
+  YIELDING,
+  // Suspend-and-resume for responsiveness overhead.
+  RESPONSIVENESS_YIELD
 }

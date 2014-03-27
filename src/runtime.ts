@@ -15,14 +15,24 @@ import PerfLogger = require('./perflogger');
 declare var UNSAFE : boolean;
 declare var setImmediate;
 
+var forResponsiveness: boolean = false;
+
 // Wrap setImmediate locally.
-var setImmediate2 = ((ogSetImmediate: (cb: Function) => void): (cb: Function) => void => {
+var setImmediate2 = ((ogSetImmediate: (cb: Function) => void): (cb: Function, _forResponsiveness?: boolean) => void => {
   var pl: PerfLogger = PerfLogger.getInstance();
-  return (fcn: Function): void => {
+  return (fcn: Function, _forResponsiveness?: boolean): void => {
+    if (_forResponsiveness) {
+      forResponsiveness = _forResponsiveness;
+    }
     ogSetImmediate(() => {
       pl.recordEvent(enums.DoppioState.RUNNING);
       fcn();
-      pl.recordEvent(enums.DoppioState.YIELDING);
+      if (forResponsiveness) {
+        pl.recordEvent(enums.DoppioState.RESPONSIVENESS_YIELD);
+        forResponsiveness = false;
+      } else {
+        pl.recordEvent(enums.DoppioState.YIELDING);
+      }
     });
   };
 })(setImmediate);
@@ -581,7 +591,7 @@ export class RuntimeState {
     });
   }
 
-  public run_until_finished(setup_fn: ()=>void, no_threads: boolean, done_cb: (boolean)=>void): void {
+  public run_until_finished(setup_fn: ()=>void, no_threads: boolean, done_cb: (boolean)=>void, forResponsiveness?: boolean): void {
     var _this = this;
     var stack : threading.CallStack;
     function nop() {}
@@ -621,7 +631,7 @@ export class RuntimeState {
             _this.max_m_count = (1000 / ms_per_m) | 0;
           }
           // Call ourselves to yield and resume.
-          return _this.run_until_finished(nop, no_threads, done_cb);
+          return _this.run_until_finished(nop, no_threads, done_cb, true);
         }
         // we've finished this thread, no more runners
         // we're done if the only thread is "main"
@@ -699,7 +709,7 @@ export class RuntimeState {
           }
         }
       }
-    }));
+    }), forResponsiveness);
   }
 
   /**
