@@ -33,6 +33,15 @@ var setImmediate2 = ((ogSetImmediate: (cb: Function) => void): (cb: Function) =>
   };
 })(setImmediate);
 
+var w = (fcn: any): any => {
+  return () => {
+    var pl: PerfLogger = PerfLogger.getInstance();
+    pl.recordEvent(enums.DoppioState.RUNNING);
+    fcn.apply(null, arguments);
+    pl.recordEvent(enums.DoppioState.YIELDING);
+  };
+}
+
 import ClassData = require('./ClassData');
 
 // XXX: Avoids a tough circular dependency
@@ -170,13 +179,13 @@ function doPrivileged(rs: runtime.RuntimeState, action: methods.Method): void {
 }
 
 function stat_file(fname: string, cb: (stat: any)=>void): void {
-  fs.stat(fname, function (err, stat) {
+  fs.stat(fname, w(function (err, stat) {
     if (err != null) {
       cb(null);
     } else {
       cb(stat);
     }
-  });
+  }));
 }
 
 // "Fast" array copy; does not have to check every element for illegal
@@ -301,10 +310,10 @@ function write_to_file(rs: runtime.RuntimeState, _this: java_object.JavaObject, 
     // normal file
     buf = new Buffer(bytes.array);
     rs.async_op(function(cb) {
-      return fs.write(fd, buf, offset, len, _this.$pos, function(err, num_bytes) {
+      return fs.write(fd, buf, offset, len, _this.$pos, w(function(err, num_bytes) {
         _this.$pos += num_bytes;
         return cb();
-      });
+      }));
     });
     return;
   }
@@ -505,14 +514,14 @@ export var native_methods = {
           var fname: string = jvmstr.jvm2js_str(),
             report: any = PerfLogger.getInstance().finish();
           rs.async_op(function(resume_cb, except_cb) {
-            fs.writeFile(fname, JSON.stringify(report), { encoding: 'utf8' }, function(e) {
+            fs.writeFile(fname, JSON.stringify(report), { encoding: 'utf8' }, w(function(e) {
               if (e) {
                 // XXX: Too lazy to do this right. Not important for evaluation
                 // right now.
                 console.error("FAILED TO WRITE REPORT: " + e);
               }
               resume_cb();
-            });
+            }));
           });
         })
       ]
@@ -1134,27 +1143,27 @@ export var native_methods = {
       FileOutputStream: [
         o('open(L!/lang/String;)V', function(rs, _this, fname) {
           return rs.async_op(function(resume_cb) {
-            return fs.open(fname.jvm2js_str(), 'w', function(err, fd) {
+            return fs.open(fname.jvm2js_str(), 'w', w(function(err, fd) {
               var fd_obj;
 
               fd_obj = _this.get_field(rs, 'Ljava/io/FileOutputStream;fd');
               fd_obj.set_field(rs, 'Ljava/io/FileDescriptor;fd', fd);
               _this.$pos = 0;
               return resume_cb();
-            });
+            }));
           });
         }), o('openAppend(Ljava/lang/String;)V', function(rs, _this, fname) {
           return rs.async_op(function(resume_cb) {
-            return fs.open(fname.jvm2js_str(), 'a', function(err, fd) {
+            return fs.open(fname.jvm2js_str(), 'a', w(function(err, fd) {
               var fd_obj;
 
               fd_obj = _this.get_field(rs, 'Ljava/io/FileOutputStream;fd');
               fd_obj.set_field(rs, 'Ljava/io/FileDescriptor;fd', fd);
-              return fs.fstat(fd, function(err, stats) {
+              return fs.fstat(fd, w(function(err, stats) {
                 _this.$pos = stats.size;
                 return resume_cb();
-              });
-            });
+              }));
+            }));
           });
         }), o('writeBytes([BII)V', write_to_file),
         o('close0()V', function(rs, _this) {
@@ -1163,7 +1172,7 @@ export var native_methods = {
           fd_obj = _this.get_field(rs, 'Ljava/io/FileOutputStream;fd');
           fd = fd_obj.get_field(rs, 'Ljava/io/FileDescriptor;fd');
           return rs.async_op(function(resume_cb, except_cb) {
-            return fs.close(fd, function(err?: ErrnoException) {
+            return fs.close(fd, w(function(err?: ErrnoException) {
               if (err) {
                 return except_cb(function() {
                   return rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), err.message);
@@ -1172,7 +1181,7 @@ export var native_methods = {
                 fd_obj.set_field(rs, 'Ljava/io/FileDescriptor;fd', -1);
                 return resume_cb();
               }
-            });
+            }));
           });
         })
       ],
@@ -1184,9 +1193,9 @@ export var native_methods = {
           return fd_obj = _this.get_field(rs, "Ljava/io/FileInputStream;fd"), fd = fd_obj.get_field(rs, "Ljava/io/FileDescriptor;fd"),
           -1 === fd && rs.java_throw(rs.get_bs_class("Ljava/io/IOException;"), "Bad file descriptor"),
           0 === fd ? 0 : rs.async_op(function(cb) {
-              return fs.fstat(fd, function(err, stats) {
+              return fs.fstat(fd, w(function(err, stats) {
                   return cb(stats.size - _this.$pos);
-              });
+              }));
           });
         }), o('read()I', function(rs, _this) {
           var fd_obj = _this.get_field(rs, "Ljava/io/FileInputStream;fd")
@@ -1197,12 +1206,12 @@ export var native_methods = {
           if (0 !== fd) {
             // this is a real file that we've already opened
             rs.async_op(function(cb) {
-              return fs.fstat(fd, function(err, stats) {
+              return fs.fstat(fd, w(function(err, stats) {
                   var buf;
-                  return buf = new Buffer(stats.size), fs.read(fd, buf, 0, 1, _this.$pos, function(err, bytes_read) {
+                  return buf = new Buffer(stats.size), fs.read(fd, buf, 0, 1, _this.$pos, w(function(err, bytes_read) {
                       return _this.$pos++, cb(0 === bytes_read ? -1 : buf.readUInt8(0));
-                  });
-              });
+                  }));
+              }));
             });
           }
           else {
@@ -1224,14 +1233,14 @@ export var native_methods = {
             pos = _this.$pos;
             buf = new Buffer(n_bytes);
             rs.async_op(function(cb) {
-              return fs.read(fd, buf, 0, n_bytes, pos, function(err, bytes_read) {
+              return fs.read(fd, buf, 0, n_bytes, pos, w(function(err, bytes_read) {
                   var i, _i;
                   if (null != err) return cb(-1); // XXX: should check this
                   // not clear why, but sometimes node doesn't move the
                   // file pointer, so we do it here ourselves.
                   for (_this.$pos += bytes_read, i = _i = 0; bytes_read > _i; i = _i += 1) byte_arr.array[offset + i] = buf.readInt8(i);
                   return cb(0 === bytes_read && 0 !== n_bytes ? -1 : bytes_read);
-              });
+              }));
             });
           }
           else {
@@ -1250,7 +1259,7 @@ export var native_methods = {
           filepath = filename.jvm2js_str();
           // TODO: actually look at the mode
           return rs.async_op(function(resume_cb, except_cb) {
-            return fs.open(filepath, 'r', function(e, fd) {
+            return fs.open(filepath, 'r', w(function(e, fd) {
               var fd_obj;
 
               if (e != null) {
@@ -1269,7 +1278,7 @@ export var native_methods = {
                 _this.$pos = 0;
                 return resume_cb();
               }
-            });
+            }));
           });
         }), o('close0()V', function(rs, _this) {
           var fd, fd_obj;
@@ -1277,7 +1286,7 @@ export var native_methods = {
           fd_obj = _this.get_field(rs, 'Ljava/io/FileInputStream;fd');
           fd = fd_obj.get_field(rs, 'Ljava/io/FileDescriptor;fd');
           return rs.async_op(function(resume_cb, except_cb) {
-            return fs.close(fd, function(err?: ErrnoException) {
+            return fs.close(fd, w(function(err?: ErrnoException) {
               if (err) {
                 return except_cb(function() {
                   return rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), err.message);
@@ -1286,7 +1295,7 @@ export var native_methods = {
                 fd_obj.set_field(rs, 'Ljava/io/FileDescriptor;fd', -1);
                 return resume_cb();
               }
-            });
+            }));
           });
         }), o('skip(J)J', function(rs, _this, n_bytes) {
           var fd_obj = _this.get_field(rs, "Ljava/io/FileInputStream;fd");
@@ -1295,11 +1304,11 @@ export var native_methods = {
             rs.java_throw(rs.get_bs_class("Ljava/io/IOException;"), "Bad file descriptor");
           if (0 !== fd) {
             rs.async_op(function(cb) {
-              return fs.fstat(fd, function(err, stats) {
+              return fs.fstat(fd, w(function(err, stats) {
                   var bytes_left, to_skip;
                   return bytes_left = stats.size - _this.$pos, to_skip = Math.min(n_bytes.toNumber(), bytes_left),
                   _this.$pos += to_skip, cb(gLong.fromNumber(to_skip), null);
-              });
+              }));
             });
           }
           else {
@@ -1345,7 +1354,7 @@ export var native_methods = {
             }
           })();
           return rs.async_op(function(resume_cb, except_cb) {
-            return fs.open(filepath, mode_str, function(e, fd) {
+            return fs.open(filepath, mode_str, w(function(e, fd) {
               var fd_obj;
 
               if (e != null) {
@@ -1366,7 +1375,7 @@ export var native_methods = {
                 _this.$pos = 0;
                 return resume_cb();
               }
-            });
+            }));
           });
         }), o('getFilePointer()J', function(rs, _this) {
           return gLong.fromNumber(_this.$pos);
@@ -1375,9 +1384,9 @@ export var native_methods = {
           fd_obj = _this.get_field(rs, 'Ljava/io/RandomAccessFile;fd');
           fd = fd_obj.get_field(rs, 'Ljava/io/FileDescriptor;fd');
           return rs.async_op(function(cb) {
-            return fs.fstat(fd, function(err, stats) {
+            return fs.fstat(fd, w(function(err, stats) {
               return cb(gLong.fromNumber(stats.size), null);
-            });
+            }));
           });
         }), o('seek(J)V', function(rs, _this, pos) {
           return _this.$pos = pos.toNumber();
@@ -1386,23 +1395,23 @@ export var native_methods = {
           var fd = fd_obj.get_field(rs, "Ljava/io/FileDescriptor;fd");
           var buf = new Buffer(len);
           rs.async_op(function(cb) {
-              fs.read(fd, buf, 0, len, _this.$pos, function(err, bytes_read) {
+              fs.read(fd, buf, 0, len, _this.$pos, w(function(err, bytes_read) {
                   var i, _i;
                   if (null != err) return cb(-1); // XXX: should check this
                   for (i = _i = 0; bytes_read > _i; i = _i += 1)
                     byte_arr.array[offset + i] = buf.readInt8(i);
                   return _this.$pos += bytes_read, cb(0 === bytes_read && 0 !== len ? -1 : bytes_read);
-              });
+              }));
           });
         }), o('writeBytes([BII)V', function(rs, _this, byte_arr, offset, len) {
           var fd_obj = _this.get_field(rs, "Ljava/io/RandomAccessFile;fd");
           var fd = fd_obj.get_field(rs, "Ljava/io/FileDescriptor;fd");
           var buf = new Buffer(byte_arr.array);
           rs.async_op(function(cb) {
-              fs.write(fd, buf, offset, len, _this.$pos, function(err, num_bytes) {
+              fs.write(fd, buf, offset, len, _this.$pos, w(function(err, num_bytes) {
                   _this.$pos += num_bytes;
                   cb();
-              });
+              }));
           });
         }), o('close0()V', function(rs, _this) {
           var fd, fd_obj;
@@ -1410,7 +1419,7 @@ export var native_methods = {
           fd_obj = _this.get_field(rs, 'Ljava/io/RandomAccessFile;fd');
           fd = fd_obj.get_field(rs, 'Ljava/io/FileDescriptor;fd');
           return rs.async_op(function(resume_cb, except_cb) {
-            return fs.close(fd, function(err?: ErrnoException) {
+            return fs.close(fd, w(function(err?: ErrnoException) {
               if (err) {
                 return except_cb(function() {
                   return rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), err.message);
@@ -1419,7 +1428,7 @@ export var native_methods = {
                 fd_obj.set_field(rs, 'Ljava/io/FileDescriptor;fd', -1);
                 return resume_cb();
               }
-            });
+            }));
           });
         })
       ],
@@ -1460,9 +1469,9 @@ export var native_methods = {
               if (stat != null) {
                 return resume_cb(false);
               } else {
-                return fs.mkdir(filepath, function(err?: ErrnoException) {
+                return fs.mkdir(filepath, w(function(err?: ErrnoException) {
                   return resume_cb(err != null ? false : true);
-                });
+                }));
               }
             });
           });
@@ -1475,13 +1484,13 @@ export var native_methods = {
               if (stat != null) {
                 return resume_cb(false);
               } else {
-                return fs.open(filepath, 'w', function(err, fd) {
+                return fs.open(filepath, 'w', w(function(err, fd) {
                   if (err != null) {
                     return except_cb(function() {
                       return rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), err.message);
                     });
                   } else {
-                    return fs.close(fd, function(err?: ErrnoException) {
+                    return fs.close(fd, w(function(err?: ErrnoException) {
                       if (err != null) {
                         return except_cb(function() {
                           return rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), err.message);
@@ -1489,9 +1498,9 @@ export var native_methods = {
                       } else {
                         return resume_cb(true);
                       }
-                    });
+                    }));
                   }
-                });
+                }));
               }
             });
           });
@@ -1506,19 +1515,19 @@ export var native_methods = {
               if (stats == null) {
                 return resume_cb(false);
               } else if (stats.isDirectory()) {
-                return fs.readdir(filepath, function(err, files) {
+                return fs.readdir(filepath, w(function(err, files) {
                   if (files.length > 0) {
                     return resume_cb(false);
                   } else {
-                    return fs.rmdir(filepath, function(err?: ErrnoException) {
+                    return fs.rmdir(filepath, w(function(err?: ErrnoException) {
                       return resume_cb(true);
-                    });
+                    }));
                   }
-                });
+                }));
               } else {
-                return fs.unlink(filepath, function(err?: ErrnoException) {
+                return fs.unlink(filepath, w(function(err?: ErrnoException) {
                   return resume_cb(true);
-                });
+                }));
               }
             });
           });
@@ -1559,18 +1568,18 @@ export var native_methods = {
           atime = (new Date).getTime();
           filepath = file.get_field(rs, 'Ljava/io/File;path').jvm2js_str();
           return rs.async_op(function(resume_cb) {
-            return fs.utimes(filepath, atime, mtime, function(err?: ErrnoException) {
+            return fs.utimes(filepath, atime, mtime, w(function(err?: ErrnoException) {
               return resume_cb(true);
-            });
+            }));
           });
         }), o('getLength(Ljava/io/File;)J', function(rs, _this, file) {
           var filepath;
 
           filepath = file.get_field(rs, 'Ljava/io/File;path');
           return rs.async_op(function(resume_cb) {
-            return fs.stat(filepath.jvm2js_str(), function(err, stat) {
+            return fs.stat(filepath.jvm2js_str(), w(function(err, stat) {
               return resume_cb(gLong.fromNumber(err != null ? 0 : stat.size), null);
-            });
+            }));
           });
         }),
         // o 'getSpace(Ljava/io/File;I)J', (rs, _this, file, t) ->
@@ -1579,7 +1588,7 @@ export var native_methods = {
 
           filepath = file.get_field(rs, 'Ljava/io/File;path');
           return rs.async_op(function(resume_cb) {
-            return fs.readdir(filepath.jvm2js_str(), function(err, files) {
+            return fs.readdir(filepath.jvm2js_str(), w(function(err, files) {
               var f;
 
               if (err != null) {
@@ -1596,16 +1605,16 @@ export var native_methods = {
                   return _results;
                 })()));
               }
-            });
+            }));
           });
         }), o('rename0(Ljava/io/File;Ljava/io/File;)Z', function(rs, _this, file1, file2) {
           var file1path, file2path;
           file1path = (file1.get_field(rs, 'Ljava/io/File;path')).jvm2js_str();
           file2path = (file2.get_field(rs, 'Ljava/io/File;path')).jvm2js_str();
           return rs.async_op(function(resume_cb) {
-            return fs.rename(file1path, file2path, function(err?: ErrnoException) {
+            return fs.rename(file1path, file2path, w(function(err?: ErrnoException) {
               return resume_cb(err != null ? false : true);
-            });
+            }));
           });
         }),
         // o 'setLastModifiedTime(Ljava/io/File;J)Z', (rs, _this, file, time) ->
@@ -1643,9 +1652,9 @@ export var native_methods = {
                 // Apply mask.
                 access = enable ? existing_access | access : existing_access & access;
                 // Set new permissions.
-                return fs.chmod(filepath, access, function(err?: ErrnoException) {
+                return fs.chmod(filepath, access, w(function(err?: ErrnoException) {
                   return resume_cb(err != null ? false : true);
-                });
+                }));
               }
             });
           });
@@ -1660,9 +1669,9 @@ export var native_methods = {
               if (stats == null) {
                 return resume_cb(false);
               } else {
-                return fs.chmod(filepath, stats.mode & mask, function(err?: ErrnoException) {
+                return fs.chmod(filepath, stats.mode & mask, w(function(err?: ErrnoException) {
                   return resume_cb(err != null ? false : true);
-                });
+                }));
               }
             });
           });
@@ -1987,11 +1996,11 @@ export var native_methods = {
           o('size0(Ljava/io/FileDescriptor;)J', function(rs, _this, fd_obj) {
             var fd = fd_obj.get_field(rs, "Ljava/io/FileDescriptor;fd");
             rs.async_op(function(cb, e_cb) {
-                fs.fstat(fd, function(err, stats) {
+                fs.fstat(fd, w(function(err, stats) {
                     if (null != err)
                       e_cb(function() { rs.java_throw(rs.get_bs_class("Ljava/io/IOException;"), "Bad file descriptor."); });
                     cb(gLong.fromNumber(stats.size));
-                });
+                }));
             });
           }), o('position0(Ljava/io/FileDescriptor;J)J', function(rs, _this, fd, offset) {
             var parent;
@@ -2008,7 +2017,7 @@ export var native_methods = {
             var block_addr = rs.block_addr(address);
             var buf = new Buffer(len);
             rs.async_op(function(cb) {
-                fs.read(fd, buf, 0, len, 0, function(err, bytes_read) {
+                fs.read(fd, buf, 0, len, 0, w(function(err, bytes_read) {
                     var i, _i, _j;
                     if ("undefined" != typeof DataView && null !== DataView)
                       for (i = 0; bytes_read > i; i++)
@@ -2017,7 +2026,7 @@ export var native_methods = {
                       for (i = 0; bytes_read > i; i++)
                         rs.mem_blocks[block_addr + i] = buf.readInt8(i);
                     cb(bytes_read);
-                });
+                }));
             });
           }),
           // NOP, I think the actual fs.close is called later. If not, NBD.

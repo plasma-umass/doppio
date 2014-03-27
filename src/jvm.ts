@@ -26,6 +26,15 @@ var setImmediate2 = ((ogSetImmediate: (cb: Function) => void): (cb: Function) =>
   };
 })(setImmediate);
 
+var w = (fcn: any): any => {
+  return () => {
+    var pl: PerfLogger = PerfLogger.getInstance();
+    pl.recordEvent(enums.DoppioState.RUNNING);
+    fcn.apply(null, arguments);
+    pl.recordEvent(enums.DoppioState.YIELDING);
+  };
+}
+
 var trace = logging.trace;
 var error = logging.error;
 
@@ -60,12 +69,12 @@ class JVM {
     this.reset_classloader_cache();
     this._reset_system_properties(jcl_path, java_home_path);
     // Need to check jcl_path and java_home_path.
-    fs.exists(java_home_path, function(exists: boolean): void {
+    fs.exists(java_home_path, w(function(exists: boolean): void {
       if (!exists) {
         done_cb(new Error("Java home path '" + java_home_path + "' does not exist!"));
       } else {
         // Check if jar_file_location exists and, if not, create it.
-        fs.exists(_this.jar_file_location, function(exists: boolean): void {
+        fs.exists(_this.jar_file_location, w(function(exists: boolean): void {
           var next_step = next_step = function() {
             _this.add_classpath_item(jcl_path, 0, function(added: boolean): void {
               if (!added) {
@@ -78,19 +87,19 @@ class JVM {
           };
 
           if (!exists) {
-            fs.mkdir(_this.jar_file_location, function(err?: any): void {
+            fs.mkdir(_this.jar_file_location, w(function(err?: any): void {
               if (err) {
                 done_cb(new Error("Unable to create JAR file directory " + _this.jar_file_location + ": " + err));
               } else {
                 next_step();
               }
-            });
+            }));
           } else {
             next_step();
           }
-        });
+        }));
       }
-    });
+    }));
   }
 
   /**
@@ -108,7 +117,7 @@ class JVM {
     }
 
     // Grab the file.
-    fs.readFile(jar_path, function(err: any, data: NodeBuffer) {
+    fs.readFile(jar_path, w(function(err: any, data: NodeBuffer) {
       var jar_fs;
       if (err) {
         // File might not have existed, or there was an error reading it.
@@ -123,7 +132,7 @@ class JVM {
       } catch(e) {
         cb(e);
       }
-    });
+    }));
   }
 
   /**
@@ -257,7 +266,7 @@ class JVM {
   public read_classfile(cls: any, cb: (data: NodeBuffer)=>void, failure_cb: (exp_cb: ()=>void)=>void) {
     var cpath = this.system_properties['java.class.path'],
         try_next = function(i: number): void {
-          fs.readFile(cpath[i] + cls + '.class', function(err, data) {
+          fs.readFile(cpath[i] + cls + '.class', w(function(err, data) {
             if (err) {
               if (++i == cpath.length) {
                 failure_cb(function(){
@@ -270,7 +279,7 @@ class JVM {
             } else {
               cb(data);
             }
-          });
+          }));
         };
     cls = cls.slice(1, -1);  // Convert Lfoo/bar/Baz; -> foo/bar/Baz.
     // We could launch them all at once, but we would need to ensure that we use
@@ -344,7 +353,7 @@ class JVM {
       }
     }
 
-    fs.exists(p, function(exists: boolean): void {
+    fs.exists(p, w(function(exists: boolean): void {
       if (!exists) {
         process.stderr.write("WARNING: Classpath path " + p + " does not exist. Ignoring.\n");
       } else {
@@ -352,7 +361,7 @@ class JVM {
         classpath.splice(idx, 0, p);
       }
       done_cb(exists);
-    });
+    }));
   }
 
   /**
@@ -546,7 +555,7 @@ class JVM {
           } else {
             // Note: Shift is destructive. :)
             fpath = path.resolve(cpaths.shift(), fileName);
-            fs.stat(fpath, function(err: any, stats?: fs.Stats) {
+            fs.stat(fpath, w(function(err: any, stats?: fs.Stats) {
               if (err) {
                 // Iterate on cpaths.
                 return searchForFile(fileName, cpaths);
@@ -555,7 +564,7 @@ class JVM {
                 filePaths.push(fpath);
                 fileDone();
               }
-            });
+            }));
           }
         };
     for (i = 0; i < classes.length; i++) {
