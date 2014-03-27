@@ -19,10 +19,10 @@ import methods = require('./methods');
 import ClassLoader = require('./ClassLoader');
 
 declare var Websock;
-declare var setImmediate: (cb: Function) => void;
+declare var setImmediate;
 
-// Wrap setImmediate.
-setImmediate = ((ogSetImmediate: (cb: Function) => void): (cb: Function) => void => {
+// Wrap setImmediate locally.
+var setImmediate2 = ((ogSetImmediate: (cb: Function) => void): (cb: Function) => void => {
   var pl: PerfLogger = PerfLogger.getInstance();
   return (fcn: Function): void => {
     ogSetImmediate(() => {
@@ -2476,7 +2476,7 @@ native_methods['java']['net']['PlainSocketImpl'] = [
     return rs.java_throw(rs.get_bs_class('Ljava/io/IOException;'), 'WebSockets doesn\'t know how to accept');
   }), o('socketAvailable()I', function(rs, _this) {
     return rs.async_op(function(resume_cb) {
-      return setImmediate(function() {
+      return setImmediate2(function() {
         return resume_cb(_this.$ws.rQlen());
       });
     });
@@ -2540,7 +2540,7 @@ native_methods['java']['net']['SocketOutputStream'] = [
     impl.$ws.send(b.array.slice(offset, offset + len));
     // Let the browser write it out
     return rs.async_op(function(resume_cb) {
-      return setImmediate(function() {
+      return setImmediate2(function() {
         return resume_cb();
       });
     });

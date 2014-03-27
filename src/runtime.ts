@@ -13,10 +13,10 @@ import enums = require('./enums');
 import PerfLogger = require('./perflogger');
 
 declare var UNSAFE : boolean;
-declare var setImmediate: (cb: (p:any)=>any)=>void
+declare var setImmediate;
 
-// Wrap setImmediate.
-setImmediate = ((ogSetImmediate: (cb: Function) => void): (cb: Function) => void => {
+// Wrap setImmediate locally.
+var setImmediate2 = ((ogSetImmediate: (cb: Function) => void): (cb: Function) => void => {
   var pl: PerfLogger = PerfLogger.getInstance();
   return (fcn: Function): void => {
     ogSetImmediate(() => {
@@ -588,7 +588,7 @@ export class RuntimeState {
 
     // Reset stack depth every time this is called. Prevents us from needing to
     // scatter this around the code everywhere to prevent filling the stack
-    setImmediate((function () {
+    setImmediate2((function () {
       // Check if the user has requested that the JVM abort.
       if (_this.abort_cb) {
         _this.abort_cb();
@@ -735,7 +735,7 @@ export class RuntimeState {
       });
     } else {
       // Reset stack depth and resume with the given data.
-      setImmediate(function() { resume(bytes); });
+      setImmediate2(function() { resume(bytes); });
     }
   }
 }

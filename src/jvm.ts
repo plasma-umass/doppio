@@ -14,8 +14,8 @@ import PerfLogger = require('./perflogger');
 declare var BrowserFS;
 declare var setImmediate;
 
-// Wrap setImmediate.
-setImmediate = ((ogSetImmediate: (cb: Function) => void): (cb: Function) => void => {
+// Wrap setImmediate locally.
+var setImmediate2 = ((ogSetImmediate: (cb: Function) => void): (cb: Function) => void => {
   var pl: PerfLogger = PerfLogger.getInstance();
   return (fcn: Function): void => {
     ogSetImmediate(() => {
@@ -160,9 +160,9 @@ class JVM {
       }
       this._extract_all_to(unzipper.files, dest_folder);
       // Reset stack depth.
-      setImmediate(function() { return cb(null, dest_folder); });
+      setImmediate2(function() { return cb(null, dest_folder); });
     } catch(e) {
-      setImmediate(function() { return cb(e); });
+      setImmediate2(function() { return cb(e); });
     }
   }
 
