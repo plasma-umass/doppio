@@ -19,7 +19,20 @@ import methods = require('./methods');
 import ClassLoader = require('./ClassLoader');
 
 declare var Websock;
-declare var setImmediate;
+declare var setImmediate: (cb: Function) => void;
+
+// Wrap setImmediate.
+setImmediate = ((ogSetImmediate: (cb: Function) => void): (cb: Function) => void => {
+  var pl: PerfLogger = PerfLogger.getInstance();
+  return (fcn: Function): void => {
+    ogSetImmediate(() => {
+      pl.recordEvent(enums.DoppioState.RUNNING);
+      fcn();
+      pl.recordEvent(enums.DoppioState.YIELDING);
+    });
+  };
+})(setImmediate);
+
 import ClassData = require('./ClassData');
 
 // XXX: Avoids a tough circular dependency

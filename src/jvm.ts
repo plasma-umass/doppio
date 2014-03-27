@@ -9,7 +9,22 @@ import ClassLoader = require('./ClassLoader');
 import fs = require('fs');
 import path = require('path');
 import JAR = require('./jar');
+import enums = require('./enums');
+import PerfLogger = require('./perflogger');
 declare var BrowserFS;
+declare var setImmediate;
+
+// Wrap setImmediate.
+setImmediate = ((ogSetImmediate: (cb: Function) => void): (cb: Function) => void => {
+  var pl: PerfLogger = PerfLogger.getInstance();
+  return (fcn: Function): void => {
+    ogSetImmediate(() => {
+      pl.recordEvent(enums.DoppioState.RUNNING);
+      fcn();
+      pl.recordEvent(enums.DoppioState.YIELDING);
+    });
+  };
+})(setImmediate);
 
 var trace = logging.trace;
 var error = logging.error;

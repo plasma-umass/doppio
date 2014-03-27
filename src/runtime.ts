@@ -9,10 +9,24 @@ import methods = require('./methods');
 import ClassData = require('./ClassData');
 import ClassLoader = require('./ClassLoader');
 import threading = require('./threading');
-import Enums = require('./enums');
+import enums = require('./enums');
+import PerfLogger = require('./perflogger');
 
 declare var UNSAFE : boolean;
 declare var setImmediate: (cb: (p:any)=>any)=>void
+
+// Wrap setImmediate.
+setImmediate = ((ogSetImmediate: (cb: Function) => void): (cb: Function) => void => {
+  var pl: PerfLogger = PerfLogger.getInstance();
+  return (fcn: Function): void => {
+    ogSetImmediate(() => {
+      pl.recordEvent(enums.DoppioState.RUNNING);
+      fcn();
+      pl.recordEvent(enums.DoppioState.YIELDING);
+    });
+  };
+})(setImmediate);
+
 var vtrace = logging.vtrace;
 var trace = logging.trace;
 var debug = logging.debug;
