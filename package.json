@@ -20,7 +20,7 @@
     "marked": "*",
     "mustache": "*",
     "semver": "*",
-    "typescript": "0.9.7",
+    "typescript": "1.0",
     "coffee-script": "1.6",
     "uglify-js": "2",
     "bower": "*",
