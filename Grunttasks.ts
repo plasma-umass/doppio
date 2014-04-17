@@ -104,7 +104,8 @@ export function setup(grunt: IGrunt) {
     ts: {
       options: {
         sourcemap: true,
-        comments: true
+        comments: true,
+        declaration: true
         // noImplicitAny: true
       },
       'dev-cli': {

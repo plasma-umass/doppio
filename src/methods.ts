@@ -102,7 +102,7 @@ export class Field extends AbstractMethodField {
 
 export class Method extends AbstractMethodField {
   private reset_caches: boolean;
-  private param_types: string[];
+  public param_types: string[];
   private param_bytes: number;
   private num_args: number;
   public return_type: string;
