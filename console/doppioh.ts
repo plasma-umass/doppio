@@ -57,7 +57,7 @@ setupOptparse();
 
 var argv = optparse.parse(process.argv.slice(2));
 
-if (argv.standard.h || !argv.standard.typescript) {
+if (argv.standard.h) {
   return printHelp();
 }
 if (!argv.standard.classpath) argv.standard.classpath = '.';
@@ -129,6 +129,7 @@ interface ITemplate {
  */
 class TSTemplate implements ITemplate {
   private relativeInterfacePath: string;
+  private classesSeen: string[] = [];
   constructor(outputPath: string, private interfacePath: string) {
     this.relativeInterfacePath = path.relative(outputPath, interfacePath);
   }
@@ -148,14 +149,22 @@ class TSTemplate implements ITemplate {
     }
   }
   public fileEnd(stream: WritableStream): void {
-    // Nothing.
-    // TODO: Some sort of export statement.
+    var i: number;
+    // Export everything!
+    stream.write("\n// Export line. This is what DoppioJVM sees.\n({");
+    for (i = 0; i < this.classesSeen.length; i++) {
+      var kls = this.classesSeen[i];
+      if (i > 0) stream.write(',');
+      stream.write("\n  " + kls + ': ' + kls);
+    }
+    stream.write("\n})\n");
   }
   public classStart(stream: WritableStream, className: string): void {
-    stream.write(new Buffer("\nclass " + className + " {\n"));
+    stream.write("\nclass " + className + " {\n");
+    this.classesSeen.push(className);
   }
   public classEnd(stream: WritableStream, className: string): void {
-    stream.write(new Buffer("\n}\n"));
+    stream.write("\n}\n");
   }
   public method(stream: WritableStream, methodName: string, isStatic: boolean, argTypes: string[], rType: string): void {
     // Construct the argument signature, figured out from the methodName.
@@ -166,7 +175,7 @@ class TSTemplate implements ITemplate {
     for (i = 0; i < argTypes.length; i++) {
       argSig += ', arg' + i + ': ' + this.jvmtype2tstype(argTypes[i]);
     }
-    stream.write(new Buffer("\n  public static '" + methodName + "'(" + argSig + "): " + this.jvmtype2tstype(rType) + " {\n\n  }\n"));
+    stream.write("\n  public static '" + methodName + "'(" + argSig + "): " + this.jvmtype2tstype(rType) + " {\n\n  }\n");
   }
 
   private jvmtype2tstype(jvmType: string): string {
@@ -209,19 +218,25 @@ class TSTemplate implements ITemplate {
  */
 class JSTemplate implements ITemplate {
   private firstMethod: boolean = true;
+  private firstClass: boolean = true;
   public getExtension(): string { return 'js'; }
   public fileStart(stream: WritableStream): void {
+    stream.write("// This entire object is exported. Feel free to define private helper functions above it.\n({");
   }
   public fileEnd(stream: WritableStream): void {
-    // Nothing.
-    // TODO: Some sort of export statement.
+    stream.write("\n})\n");
   }
   public classStart(stream: WritableStream, className: string): void {
     this.firstMethod = true;
-    stream.write(new Buffer("\nvar " + className + " = {\n"));
+    if (this.firstClass) {
+      this.firstClass = false;
+    } else {
+      stream.write(",\n");
+    }
+    stream.write("\n  '" + className + "': {\n");
   }
   public classEnd(stream: WritableStream, className: string): void {
-    stream.write(new Buffer("\n\n};\n"));
+    stream.write("\n\n  }");
   }
   public method(stream: WritableStream, methodName: string, isStatic: boolean, argTypes: string[], rType: string): void {
     // Construct the argument signature, figured out from the methodName.
@@ -238,7 +253,7 @@ class JSTemplate implements ITemplate {
       // End the previous method.
       stream.write(',\n');
     }
-    stream.write(new Buffer("\n  '" + methodName + "': function(" + argSig + ") {\n\n  }"));
+    stream.write("\n    '" + methodName + "': function(" + argSig + ") {\n\n    }");
   }
 }
 
