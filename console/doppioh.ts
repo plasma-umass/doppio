@@ -183,9 +183,9 @@ class TSTemplate implements ITemplate {
       return 'java_object.JavaArray';
     } else if (util.is_reference_type(jvmType)) {
       switch (jvmType) {
-        case 'java/lang/ClassLoader':
+        case 'Ljava/lang/ClassLoader;':
           return 'java_object.JavaClassLoaderObject';
-        case 'java/lang/Class':
+        case 'Ljava/lang/Class;':
           return 'java_object.JavaClassObject';
         default:
           return 'java_object.JavaObject';
@@ -205,7 +205,8 @@ class TSTemplate implements ITemplate {
         case 'V':
           return 'void';
         case 'Z':
-          return 'boolean';
+          // XXX: We should really probably use a boolean type at some point.
+          return 'number';
         default:
           throw new Error('Invalid JVM primitive type: ' + jvmType);
       }
