@@ -58,7 +58,8 @@ setupOptparse();
 var argv = optparse.parse(process.argv.slice(2));
 
 if (argv.standard.h) {
-  return printHelp();
+  printHelp();
+  process.exit(1);
 }
 if (!argv.standard.classpath) argv.standard.classpath = '.';
 if (!argv.standard.directory) argv.standard.directory = '.';
