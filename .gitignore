@@ -38,3 +38,4 @@ src/natives.coffee
 
 # grunt-ts command file
 tscommand.tmp.txt
+.tscache
