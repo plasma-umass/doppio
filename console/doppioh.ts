@@ -155,7 +155,7 @@ class TSTemplate implements ITemplate {
     for (i = 0; i < this.classesSeen.length; i++) {
       var kls = this.classesSeen[i];
       if (i > 0) stream.write(',');
-      stream.write("\n  " + kls + ': ' + kls);
+      stream.write("\n  '" + kls.replace(/_/g, '/') + "': " + kls);
     }
     stream.write("\n})\n");
   }
@@ -233,7 +233,7 @@ class JSTemplate implements ITemplate {
     } else {
       stream.write(",\n");
     }
-    stream.write("\n  '" + className + "': {\n");
+    stream.write("\n  '" + className.replace(/_/g, '/') + "': {\n");
   }
   public classEnd(stream: WritableStream, className: string): void {
     stream.write("\n\n  }");
