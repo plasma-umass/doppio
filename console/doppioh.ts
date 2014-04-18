@@ -175,7 +175,16 @@ class TSTemplate implements ITemplate {
     for (i = 0; i < argTypes.length; i++) {
       argSig += ', arg' + i + ': ' + this.jvmtype2tstype(argTypes[i]);
     }
-    stream.write("\n  public static '" + methodName + "'(" + argSig + "): " + this.jvmtype2tstype(rType) + " {\n\n  }\n");
+    stream.write("\n  public static '" + methodName + "'(" + argSig + "): " + this.jvmtype2tstype(rType) + " {\n");
+    stream.write("    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');\n");
+
+    var trueRtype = this.jvmtype2tstype(rType);
+    if (trueRtype.indexOf('java_object') === 0 || trueRtype === 'gLong') {
+      stream.write("    // Satisfy TypeScript return type.\n    return null;\n");
+    } else if (trueRtype === 'number') {
+      stream.write("    // Satisfy TypeScript return type.\n    return 0;\n");
+    }
+    stream.write("  }\n");
   }
 
   private jvmtype2tstype(jvmType: string): string {
@@ -254,7 +263,9 @@ class JSTemplate implements ITemplate {
       // End the previous method.
       stream.write(',\n');
     }
-    stream.write("\n    '" + methodName + "': function(" + argSig + ") {\n\n    }");
+    stream.write("\n    '" + methodName + "': function(" + argSig + ") {");
+    stream.write("\n      rs.java_throw(rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');");
+    stream.write("\n    }");
   }
 }
 
