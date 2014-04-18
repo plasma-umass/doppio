@@ -57,7 +57,7 @@ setupOptparse();
 
 var argv = optparse.parse(process.argv.slice(2));
 
-if (argv.standard.h) {
+if (argv.standard.help) {
   printHelp();
   process.exit(1);
 }
