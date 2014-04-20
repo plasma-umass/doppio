@@ -64,6 +64,8 @@ export class JavaObject {
   public fields : any
   public ref: number
   public $pos: number // XXX: For file descriptors.
+  public $ws: IWebsock; // XXX: For sockets.
+  public $is_shutdown: boolean; //XXX: For sockets.
 
   constructor(rs: runtime.RuntimeState, cls: ClassData.ReferenceClassData, obj?: any) {
     this.cls = cls;
@@ -279,4 +281,17 @@ export function arraycopy_check(rs: runtime.RuntimeState, src: JavaArray, src_po
     }
     j++;
   }
+}
+
+/**
+ * Partial typing for Websockify WebSockets.
+ */
+export interface IWebsock {
+  rQlen(): number;
+  rQshiftBytes(len: number): number[];
+  on(eventName: string, cb: Function): void;
+  open(uri: string): void;
+  close(): void;
+  send(data: number): void;
+  send(data: number[]): void;
 }
