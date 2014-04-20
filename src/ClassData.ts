@@ -280,7 +280,7 @@ export class ArrayClassData extends ClassData {
 // primitive nor an array.
 export class ReferenceClassData extends ClassData {
   private minor_version: number;
-  private major_version: number;
+  public major_version: number;
   public constant_pool: ConstantPool.ConstantPool;
   public access_byte: number;
   private interfaces: string[];

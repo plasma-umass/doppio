@@ -27,7 +27,7 @@ var run_count = 0;
 export class RuntimeState {
   private startup_time: gLong;
   public run_stamp: number;
-  private mem_start_addrs: number[];
+  public mem_start_addrs: number[];
   public mem_blocks: any;
   public high_oref: number;
   public string_pool: util.SafeMap;
