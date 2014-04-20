@@ -241,21 +241,6 @@ export function native_define_class(rs: runtime.RuntimeState, name: JavaObject, 
   }), except_cb);
 }
 
-export function get_class_context(rs: runtime.RuntimeState, _this: JavaObject): JavaArray {
-  // return an array of classes for each method on the stack
-  // starting with the current method and going up the call chain
-  var classes = [];
-  var callstack = rs.meta_stack()._cs;
-  for (var i = callstack.length - 1; i >= 0; i--) {
-    var sf = callstack[i];
-    if (!sf["native"]) {
-      classes.push(sf.method.cls.get_class_object(rs));
-    }
-  }
-  var arr_cls = <ClassData.ArrayClassData> rs.get_bs_class('[Ljava/lang/Class;');
-  return new JavaArray(rs, arr_cls, classes);
-}
-
 /**
  * "Fast" array copy; does not have to check every element for illegal
  * assignments. You can do tricks here (if possible) to copy chunks of the array

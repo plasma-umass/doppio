@@ -42,20 +42,6 @@ function o(fn_name: string, fn: Function): { fn_name: string; fn: Function} {
 
 export var trapped_methods = {
   java: {
-    util: {
-      concurrent: {
-        atomic: {
-          AtomicInteger: [
-            o('<clinit>()V', function(rs) {}), // NOP
-            o('compareAndSet(II)Z', function(rs, _this, expect, update) {
-              _this.set_field(rs, 'Ljava/util/concurrent/atomic/AtomicInteger;value', update);
-              // always true, because we only have one thread of execution
-              return true;
-            })
-          ]
-        }
-      }
-    },
     nio: {
       Bits: [
         o('byteOrder()L!/!/ByteOrder;', function(rs:runtime.RuntimeState): java_object.JavaObject {
@@ -840,37 +826,6 @@ export var native_methods = {
             });
           });
         })
-      ]
-    },
-    util: {
-      concurrent: {
-        atomic: {
-          AtomicLong: [
-            o('VMSupportsCS8()Z', function() {
-              return true;
-            })
-          ]
-        }
-      },
-      jar: {
-        JarFile: [
-          o('getMetaInfEntryNames()[L!/lang/String;', function(rs) {
-            // we don't do verification
-            return null;
-          })
-        ]
-      },
-      TimeZone: [
-        o('getSystemTimeZoneID(L!/lang/String;L!/lang/String;)L!/lang/String;', function(rs, java_home, country) {
-          // XXX not sure what the local value is
-          return rs.init_string('GMT');
-        }), o('getSystemGMTOffsetID()L!/lang/String;', function(rs) {
-          // XXX may not be correct
-          return null;
-        })
-      ],
-      ResourceBundle: [
-        o('getClassContext()[Ljava/lang/Class;', java_object.get_class_context)
       ]
     },
     net: {}

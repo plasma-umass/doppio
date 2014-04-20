@@ -880,7 +880,20 @@ class java_lang_Runtime {
 
 class java_lang_SecurityManager {
 
-  public static 'getClassContext()[Ljava/lang/Class;': (rs: runtime.RuntimeState, javaThis: java_object.JavaObject) => java_object.JavaArray = java_object.get_class_context;
+  public static 'getClassContext()[Ljava/lang/Class;'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject): java_object.JavaArray {
+    // return an array of classes for each method on the stack
+    // starting with the current method and going up the call chain
+    var classes = [];
+    var callstack = rs.meta_stack()._cs;
+    for (var i = callstack.length - 1; i >= 0; i--) {
+      var sf = callstack[i];
+      if (!sf["native"]) {
+        classes.push(sf.method.cls.get_class_object(rs));
+      }
+    }
+    var arr_cls = <ClassData.ArrayClassData> rs.get_bs_class('[Ljava/lang/Class;');
+    return new java_object.JavaArray(rs, arr_cls, classes);
+  }
 
   public static 'currentClassLoader0()Ljava/lang/ClassLoader;'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject): java_object.JavaClassLoaderObject {
     rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
