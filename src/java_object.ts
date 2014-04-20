@@ -217,3 +217,81 @@ export class JavaClassLoaderObject extends JavaObject {
     };
   }
 }
+
+// XXX: Temporarily moved from natives.
+
+// Have a JavaClassLoaderObject and need its ClassLoader object? Use this method!
+export function get_cl_from_jclo(rs: runtime.RuntimeState, jclo: JavaClassLoaderObject): ClassLoader.ClassLoader {
+  if ((jclo != null) && (jclo.$loader != null)) {
+    return jclo.$loader;
+  }
+  return rs.get_bs_cl();
+}
+
+// avoid code dup among native methods
+export function native_define_class(rs: runtime.RuntimeState, name: JavaObject, bytes: JavaArray, offset: number, len: number, loader: ClassLoader.ClassLoader, resume_cb: (jco: JavaClassObject) => void, except_cb: (e_fn: () => void) => void): void {
+  var buff = new Buffer(len);
+  var b_array = bytes.array;
+  // Convert to buffer
+  for (var i = offset; i < offset + len; i++) {
+    buff.writeUInt8((256 + b_array[i]) % 256, i);
+  }
+  loader.define_class(rs, util.int_classname(name.jvm2js_str()), buff, (function (cdata) {
+    resume_cb(cdata.get_class_object(rs));
+  }), except_cb);
+}
+
+export function get_class_context(rs: runtime.RuntimeState, _this: JavaObject): JavaArray {
+  // return an array of classes for each method on the stack
+  // starting with the current method and going up the call chain
+  var classes = [];
+  var callstack = rs.meta_stack()._cs;
+  for (var i = callstack.length - 1; i >= 0; i--) {
+    var sf = callstack[i];
+    if (!sf["native"]) {
+      classes.push(sf.method.cls.get_class_object(rs));
+    }
+  }
+  var arr_cls = <ClassData.ArrayClassData> rs.get_bs_class('[Ljava/lang/Class;');
+  return new JavaArray(rs, arr_cls, classes);
+}
+
+/**
+ * "Fast" array copy; does not have to check every element for illegal
+ * assignments. You can do tricks here (if possible) to copy chunks of the array
+ * at a time rather than element-by-element.
+ * This function *cannot* access any attribute other than 'array' on src due to
+ * the special case when src == dest (see code for System.arraycopy below).
+ * TODO: Potentially use ParallelArray if available.
+ */
+export function arraycopy_no_check(src: JavaArray, src_pos: number, dest: JavaArray, dest_pos: number, length: number): void {
+  var j = dest_pos;
+  var end = src_pos + length
+  for (var i = src_pos; i < end; i++) {
+    dest.array[j++] = src.array[i];
+  }
+}
+
+/**
+ * "Slow" array copy; has to check every element for illegal assignments.
+ * You cannot do any tricks here; you must copy element by element until you
+ * have either copied everything, or encountered an element that cannot be
+ * assigned (which causes an exception).
+ * Guarantees: src and dest are two different reference types. They cannot be
+ *             primitive arrays.
+ */
+export function arraycopy_check(rs: runtime.RuntimeState, src: JavaArray, src_pos: number, dest: JavaArray, dest_pos: number, length: number): void {
+  var j = dest_pos;
+  var end = src_pos + length
+  var dest_comp_cls = dest.cls.get_component_class();
+  for (var i = src_pos; i < end; i++) {
+    // Check if null or castable.
+    if (src.array[i] === null || src.array[i].cls.is_castable(dest_comp_cls)) {
+      dest.array[j] = src.array[i];
+    } else {
+      var exc_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/ArrayStoreException;');
+      rs.java_throw(exc_cls, 'Array element in src cannot be cast to dest array type.');
+    }
+    j++;
+  }
+}

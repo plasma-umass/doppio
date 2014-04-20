@@ -30,14 +30,14 @@ export class RuntimeState {
   private mem_start_addrs: number[];
   public mem_blocks: any;
   public high_oref: number;
-  private string_pool: util.SafeMap;
+  public string_pool: util.SafeMap;
   // map from monitor -> thread object
   public lock_refs: {[lock_id:number]: threading.JavaThreadObject};
   // map from monitor -> count
   public lock_counts: {[lock_id:number]: number};
   // map from monitor -> list of waiting thread objects
   public waiting_threads: {[lock_id:number]: threading.JavaThreadObject[]};
-  private thread_pool: threading.JavaThreadObject[];
+  public thread_pool: threading.JavaThreadObject[];
   public curr_thread: threading.JavaThreadObject;
   private max_m_count: number;
   public unusual_termination: boolean;

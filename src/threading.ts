@@ -13,6 +13,7 @@ import fs = require('fs');
 export class JavaThreadObject extends java_object.JavaObject {
   public $meta_stack: CallStack;
   public $isAlive: boolean;
+  public $isInterrupted: boolean;
   public wakeup_time: number;
   public $park_count: number;
   public $park_timeout: number;

@@ -303,7 +303,7 @@ export class Exceptions implements Attribute {
 
 export class InnerClasses implements Attribute {
   public name = 'InnerClasses';
-  private classes: Object[];
+  public classes: Object[];
 
   public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
     var num_classes = bytes_array.get_uint(2);
@@ -359,7 +359,7 @@ export class Signature implements Attribute {
 
 export class RuntimeVisibleAnnotations implements Attribute {
   public name = 'RuntimeVisibleAnnotations';
-  private raw_bytes: number[];
+  public raw_bytes: number[];
   public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool, attr_len?: number) {
     // num_annotations = bytes_array.get_uint 2
     this.raw_bytes = bytes_array.read(attr_len);
@@ -376,8 +376,8 @@ export class AnnotationDefault implements Attribute {
 
 export class EnclosingMethod implements Attribute {
   public name = 'EnclosingMethod';
-  private enc_class: any;
-  private enc_method: any;
+  public enc_class: any;
+  public enc_method: any;
   public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool) {
     this.enc_class = constant_pool.get(bytes_array.get_uint(2)).deref();
     var method_ref = bytes_array.get_uint(2);
