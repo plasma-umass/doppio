@@ -43,43 +43,6 @@ function o(fn_name: string, fn: Function): { fn_name: string; fn: Function} {
 
 
 export var native_methods = {
-  classes: {
-    awt: {
-      CanvasGraphicsEnvironment: []
-      // TODO: implement this
-      // o 'createFontConfiguration()Lsun/awt/FontConfiguration;', (rs) ->
-    },
-    doppio: {
-      JavaScript: [
-        o('eval(Ljava/lang/String;)Ljava/lang/String;', function (rs: runtime.RuntimeState, to_eval: java_object.JavaObject): java_object.JavaObject {
-          var rv = eval(to_eval.jvm2js_str());
-          // Coerce to string, if possible.
-          if (rv != null) {
-            return rs.init_string("" + rv);
-          } else {
-            return null;
-          }
-        })
-      ],
-      Debug: [
-        o('SetLogLevel(L!/!/!$LogLevel;)V', function(rs, loglevel) {
-          logging.log_level = loglevel.get_field(rs, 'Lclasses/doppio/Debug$LogLevel;level');
-        }), o('GetLogLevel()L!/!/!$LogLevel;', function(rs) {
-          var ll_cls = rs.get_bs_class('Lclasses/doppio/Debug$LogLevel;');
-          switch (logging.log_level) {
-            case 10:
-              return ll_cls.static_get(rs, 'VTRACE');
-            case 9:
-              return ll_cls.static_get(rs, 'TRACE');
-            case 5:
-              return ll_cls.static_get(rs, 'DEBUG');
-            default:
-              return ll_cls.static_get(rs, 'ERROR');
-          }
-        })
-      ]
-    }
-  }
 };
 
 function flatten_pkg(pkg) {
