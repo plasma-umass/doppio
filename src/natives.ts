@@ -40,30 +40,6 @@ function o(fn_name: string, fn: Function): { fn_name: string; fn: Function} {
   };
 }
 
-function doPrivileged(rs: runtime.RuntimeState, action: methods.Method): void {
-  var my_sf = rs.curr_frame();
-  var m = action.cls.method_lookup(rs, 'run()Ljava/lang/Object;');
-  if (m != null) {
-    if (!m.access_flags["static"]) {
-      rs.push(action);
-    }
-    m.setup_stack(rs);
-    my_sf.runner = function () {
-      var rv = rs.pop();
-      rs.meta_stack().pop();
-      rs.push(rv);
-    };
-    throw exceptions.ReturnException;
-  } else {
-    rs.async_op(function (resume_cb, except_cb) {
-      action.cls.resolve_method(rs, 'run()Ljava/lang/Object;', (function () {
-        rs.meta_stack().push(<any>{}); // dummy
-        resume_cb();
-      }), except_cb);
-    });
-  }
-}
-
 
 
 export var native_methods = {
@@ -103,45 +79,8 @@ export var native_methods = {
         })
       ]
     }
-  },
-  java: {
-    security: {
-      AccessController: [
-        o('doPrivileged(L!/!/PrivilegedAction;)L!/lang/Object;', doPrivileged), o('doPrivileged(L!/!/PrivilegedAction;L!/!/AccessControlContext;)L!/lang/Object;', doPrivileged), o('doPrivileged(L!/!/PrivilegedExceptionAction;)L!/lang/Object;', doPrivileged), o('doPrivileged(L!/!/PrivilegedExceptionAction;L!/!/AccessControlContext;)L!/lang/Object;', doPrivileged), o('getStackAccessControlContext()Ljava/security/AccessControlContext;', function(rs) {
-          return null;
-        })
-      ]
-    }
-  },
-  sun: {
-    font: {
-      FontManager: [],
-        // TODO: this may be a no-op, but may be important
-        // o 'getFontConfig(Ljava/lang/String;[Lsun/font/FontManager$FontConfigInfo;)V', ->
-      FreetypeFontScaler: [o('initIDs(Ljava/lang/Class;)V', function() {})],
-      StrikeCache: [
-        o('getGlyphCacheDescription([J)V', function(rs, infoArray) {
-          // XXX: these are guesses, see the javadoc for full descriptions of the infoArray
-          infoArray.array[0] = gLong.fromInt(8);        // size of a pointer
-          return infoArray.array[1] = gLong.fromInt(8); // size of a glyphInfo
-        })
-      ]
-    },
-    net: {
-      spi: {}
-    }
   }
 };
-
-
-
-native_methods['sun']['net']['spi']['DefaultProxySelector'] = [
-  o('init()Z', function(rs) {
-    return true;
-  }), o('getSystemProxy(Ljava/lang/String;Ljava/lang/String;)Ljava/net/Proxy;', function(rs) {
-    return null;
-  })
-];
 
 function flatten_pkg(pkg) {
   var pkg_name_arr, rec_flatten, result;
