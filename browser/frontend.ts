@@ -327,14 +327,14 @@ $(document).ready(function() {
       (<any> process.stdin).write(data);
     });
   });
-  new JVM(function(err: any, _jvm_state?: TJVM) {
+  new JVM((err: any, _jvm_state?: TJVM) => {
     if (err) {
       // Throw the error so it appears in the dev console.
       throw err;
     } else {
       jvm_state = _jvm_state;
     }
-  }, '/sys/vendor/classes', '/sys/vendor/java_home', '/jars');
+  }, '/sys/vendor/classes', '/sys/vendor/java_home', '/jars', ['/sys/src/natives']);
   preload();
 });
 

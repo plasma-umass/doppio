@@ -7,7 +7,7 @@ import os = require('os');
 
 // initialize the RuntimeState
 var jvm_state;
-new JVM(function(err: any, jvm?: JVM): void {
+new JVM((err: any, jvm?: JVM): void => {
   if (err) {
     throw err;
   }
@@ -35,7 +35,8 @@ new JVM(function(err: any, jvm?: JVM): void {
   repl.prompt();
 }, path.resolve(__dirname, "/../vendor/classes", '.'),
    path.resolve(__dirname, '/../vendor/java_home'),
-   path.resolve(os.tmpDir(), 'doppio_jars'));
+   path.resolve(os.tmpDir(), 'doppio_jars'),
+   [path.resolve(__dirname, '../src/natives')]);
 
 
 function repl_run(cname: string, args: string[], done_cb): void {

@@ -44,6 +44,7 @@ class JVM {
               private native_classpath: string[] = ['/sys/src/natives']) {
     this.reset_classloader_cache();
     this._reset_system_properties(jcl_path, java_home_path);
+
     // Need to check jcl_path and java_home_path.
     fs.exists(java_home_path, (exists: boolean): void => {
       if (!exists) {
@@ -76,6 +77,44 @@ class JVM {
         });
       }
     });
+  }
+
+  /**
+   * Loads in all of the native method modules prior to execution.
+   * Currently a hack around our bad classloader.
+   */
+  private initializeNatives(done_cb: () => void): void {
+    var next_dir = () => {
+      if (i === this.native_classpath.length) {
+        // Next phase: Load up the files.
+        var count: number = process_files.length;
+        process_files.forEach((file) => {
+          fs.readFile(file, (err, data) => {
+            if (!err)
+              this._rs.registerNatives(this._rs.evalNativeModule(data.toString()));
+            if (--count) {
+              done_cb();
+            }
+          });
+        });
+      } else {
+        var dir = this.native_classpath[i++];
+        fs.readdir(dir, (err, files) => {
+          if (err) return done_cb();
+
+          var j: number, file: string;
+          for (j = 0; j < files.length; j++) {
+            file = files[j];
+            if (file.substring(file.length - 3, file.length) === '.js') {
+              process_files.push(path.join(dir, file));
+            }
+          }
+          next_dir();
+        });
+      }
+    }, i: number = 0, process_files: string[] = [];
+
+    next_dir();
   }
 
   /**
@@ -492,18 +531,21 @@ class JVM {
           }
         });
     };
-    return rs.run_until_finished(function () {
-      return rs.async_op(function (resume_cb, except_cb) {
-        return rs.preinitialize_core_classes(run_program, function (e) {
-          // Error during preinitialization? Abort abort abort!
-          e();
+
+    this.initializeNatives(() => {
+      rs.run_until_finished(() => {
+        rs.async_op((resume_cb, except_cb) => {
+          rs.preinitialize_core_classes(run_program, (e) => {
+            // Error during preinitialization? Abort abort abort!
+            e();
+          });
         });
-      });
-    }, true, function(success) {
-      if (!success) {
-        return done_cb(false);
-      }
-      // Otherwise, do nothing.
+      }, true, (success) => {
+          if (!success) {
+            done_cb(false);
+          }
+          // Otherwise, do nothing.
+        });
     });
   }
 

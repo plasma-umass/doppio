@@ -6,7 +6,8 @@ import os = require('os');
 
 var opts = { jcl_path: path.resolve(__dirname, '../vendor/classes'),
              java_home_path: path.resolve(__dirname, '../vendor/java_home'),
-             jar_file_path: path.resolve(os.tmpDir(), 'doppio_jars') },
+             jar_file_path: path.resolve(os.tmpDir(), 'doppio_jars'),
+             native_classpath: [path.resolve(__dirname, '../src/natives')]},
     doppio_dir = path.dirname(__dirname);
 
 function makefile_test(argv): void {

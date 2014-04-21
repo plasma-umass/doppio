@@ -109,7 +109,7 @@ export function setup(grunt: IGrunt) {
         // noImplicitAny: true
       },
       'dev-cli': {
-        src: ["console/*.ts", "src/*.ts"],
+        src: ["console/*.ts", "src/**/*.ts"],
         outDir: 'build/dev-cli',
         options: {
           module: 'commonjs',

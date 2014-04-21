@@ -22,6 +22,7 @@ java_cli.java(process.argv.slice(2), {
   jcl_path: path.resolve(__dirname, '../vendor/classes'),
   java_home_path: path.resolve(__dirname, '../vendor/java_home'),
   jar_file_path: path.resolve(os.tmpDir(), 'doppio_jars'),
+  native_classpath: [path.resolve(__dirname, '../src/natives')],
   launcher_name: process.argv[0] + " " + path.relative(process.cwd(), process.argv[1])
 }, done_cb, function(jvm: JVM): void {
   jvm_state = jvm;

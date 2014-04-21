@@ -68,6 +68,17 @@ export class RuntimeState {
   }
 
   /**
+   * XXX: Hack to evaluate native modules in an environment with
+   * java_object and ClassData defined.
+   */
+  public evalNativeModule(mod: string): any {
+    "use strict";
+    // Terrible hack.
+    mod = mod.replace(/require\((\'|\")..\/(.*)(\'|\")\);/g, 'require($1./$2$1);');
+    return eval(mod);
+  }
+
+  /**
    * Register native methods with the virtual machine.
    */
   public registerNatives(newNatives: { [clsName: string]: { [methSig: string]: Function } }): void {
