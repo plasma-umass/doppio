@@ -25,7 +25,7 @@ var JavaArray = java_object.JavaArray;
 var run_count = 0;
 // Contains all the mutable state of the Java program.
 export class RuntimeState {
-  private startup_time: gLong;
+  public startup_time: gLong;
   public run_stamp: number;
   public mem_start_addrs: number[];
   public mem_blocks: any;

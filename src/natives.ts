@@ -111,8 +111,7 @@ export var native_methods = {
           return null;
         })
       ]
-    },
-    net: {}
+    }
   },
   sun: {
     font: {
@@ -125,43 +124,6 @@ export var native_methods = {
           // XXX: these are guesses, see the javadoc for full descriptions of the infoArray
           infoArray.array[0] = gLong.fromInt(8);        // size of a pointer
           return infoArray.array[1] = gLong.fromInt(8); // size of a glyphInfo
-        })
-      ]
-    },
-    management: {
-      VMManagementImpl: [
-        o('getStartupTime()J', function(rs) {
-          return rs.startup_time;
-        }), o('getVersion0()Ljava/lang/String;', function(rs) {
-          return rs.init_string("1.2", true);
-        }), o('initOptionalSupportFields()V', function(rs) {
-          var field_names, name, vm_management_impl, _i, _len, _results;
-          // set everything to false
-          field_names = ['compTimeMonitoringSupport', 'threadContentionMonitoringSupport', 'currentThreadCpuTimeSupport', 'otherThreadCpuTimeSupport', 'bootClassPathSupport', 'objectMonitorUsageSupport', 'synchronizerUsageSupport'];
-          vm_management_impl = rs.get_bs_class('Lsun/management/VMManagementImpl;');
-          _results = [];
-          for (_i = 0, _len = field_names.length; _i < _len; _i++) {
-            name = field_names[_i];
-            _results.push(vm_management_impl.static_put(rs, name, 0));
-          }
-          return _results;
-        }), o('isThreadContentionMonitoringEnabled()Z', function() {
-          return false;
-        }), o('isThreadCpuTimeEnabled()Z', function() {
-          return false;
-        }), o('getAvailableProcessors()I', function() {
-          return 1;
-        }), o('getProcessId()I', function() {
-          return 1;
-        })
-      ],
-      MemoryImpl: [
-        o('getMemoryManagers0()[Ljava/lang/management/MemoryManagerMXBean;', function(rs) {
-          // XXX may want to revisit this 'NOP'
-          return new JavaArray(rs, rs.get_bs_class('[Lsun/management/MemoryManagerImpl;'), []);
-        }), o('getMemoryPools0()[Ljava/lang/management/MemoryPoolMXBean;', function(rs) {
-          // XXX may want to revisit this 'NOP'
-          return new JavaArray(rs, rs.get_bs_class('[Lsun/management/MemoryPoolImpl;'), []);
         })
       ]
     },
