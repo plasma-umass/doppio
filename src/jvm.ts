@@ -32,6 +32,43 @@ class JVM {
   // Maps JAR files to their extraction directory.
   private jar_map: {[jar_path: string]: string} = {};
 
+  private static initialNatives: { [clsName: string]: { [methodName: string]: Function } } = {};
+  /**
+   * Register native methods with the JVM. Will be cloned into the next JVM
+   * instantiation.
+   * 
+   * Used by DoppioJVM for core Java Class Library files. We recommend external
+   * DoppioJVM users define their natives in files alongside their class files.
+   */
+  public static registerNatives(natives: { [clsName: string]: { [methodName: string]: Function } }) {
+    var clsName: string;
+    for (clsName in natives) {
+      if (natives.hasOwnProperty(clsName)) {
+        this.initialNatives[clsName] = natives[clsName];
+      }
+    }
+  }
+
+  /**
+   * Returns a clone of the core native methods registered with the JVM.
+   */
+  private static getNatives(): { [clsName: string]: { [methodName: string]: Function } } {
+    var nativesClone: { [clsName: string]: { [methodName: string]: Function } } = {},
+      clsName: string, methName: string;
+    for (clsName in this.initialNatives) {
+      if (this.initialNatives.hasOwnProperty(clsName)) {
+        var clsMthds = this.initialNatives[clsName];
+        nativesClone[clsName] = {};
+        for (methName in clsMthds) {
+          if (clsMthds.hasOwnProperty(methName)) {
+            nativesClone[clsName][methName] = clsMthds[methName];
+          }
+        }
+      }
+    }
+    return nativesClone;
+  }
+
   /**
    * (Async) Construct a new instance of the Java Virtual Machine.
    * @param {string} [jcl_path=/sys/vendor/classes] - Path to the Java Class Library in the file system.
