@@ -46,6 +46,7 @@ export class RuntimeState {
   public system_initialized: boolean;
   public jvm_state: JVM;
   private abort_cb: Function;
+  private natives: { [clsName: string]: { [methSig: string]: Function } } = {};
 
   constructor(jvm_state: JVM) {
     this.jvm_state = jvm_state;
@@ -64,6 +65,51 @@ export class RuntimeState {
     var ct = new threading.JavaThreadObject(this, null);
     this.curr_thread = ct;
     this.max_m_count = 100000;
+  }
+
+  /**
+   * Register native methods with the virtual machine.
+   */
+  public registerNatives(newNatives: { [clsName: string]: { [methSig: string]: Function } }): void {
+    var clsName: string, methSig: string;
+    for (clsName in newNatives) {
+      if (newNatives.hasOwnProperty(clsName)) {
+        if (!this.natives.hasOwnProperty(clsName)) {
+          this.natives[clsName] = {};
+        }
+        var clsMethods = newNatives[clsName];
+        for (methSig in clsMethods) {
+          if (clsMethods.hasOwnProperty(methSig)) {
+            // Don't check if it exists already. This allows us to overwrite
+            // native methods dynamically at runtime.
+            this.natives[clsName][methSig] = clsMethods[methSig];
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Convenience function. Register a single native method with the virtual
+   * machine. Can be used to update existing native methods based on runtime
+   * information.
+   */
+  public registerNative(clsName: string, methSig: string, native: Function): void {
+    this.registerNatives({ clsName: { methSig: native } });
+  }
+
+  /**
+   * Retrieve the native method for the given method of the given class.
+   * Returns null if none found.
+   */
+  public getNative(clsName: string, methSig: string): Function {
+    if (this.natives.hasOwnProperty(clsName)) {
+      var clsMethods = this.natives[clsName];
+      if (clsMethods.hasOwnProperty(methSig)) {
+        return clsMethods[methSig];
+      }
+    }
+    return null;
   }
 
   public get_bs_cl(): ClassLoader.BootstrapClassLoader {

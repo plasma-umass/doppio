@@ -14,7 +14,6 @@ import java_object = require("../../build/dev-cli/src/java_object");
 import jvm = require("../../build/dev-cli/src/jvm");
 import logging = require("../../build/dev-cli/src/logging");
 import methods = require("../../build/dev-cli/src/methods");
-import natives = require("../../build/dev-cli/src/natives");
 import opcodes = require("../../build/dev-cli/src/opcodes");
 import option_parser = require("../../build/dev-cli/src/option_parser");
 import runtime = require("../../build/dev-cli/src/runtime");
@@ -148,7 +147,6 @@ class sun_font_StrikeCache {
 
 }
 
-// Export line. This is what DoppioJVM sees.
 ({
   'sun/font/FreetypeFontScaler': sun_font_FreetypeFontScaler,
   'sun/font/StrikeCache': sun_font_StrikeCache

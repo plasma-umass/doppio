@@ -14,28 +14,12 @@ import java_object = require("../../build/dev-cli/src/java_object");
 import jvm = require("../../build/dev-cli/src/jvm");
 import logging = require("../../build/dev-cli/src/logging");
 import methods = require("../../build/dev-cli/src/methods");
-import natives = require("../../build/dev-cli/src/natives");
 import opcodes = require("../../build/dev-cli/src/opcodes");
 import option_parser = require("../../build/dev-cli/src/option_parser");
 import runtime = require("../../build/dev-cli/src/runtime");
 import testing = require("../../build/dev-cli/src/testing");
 import threading = require("../../build/dev-cli/src/threading");
 import util = require("../../build/dev-cli/src/util");
-
-class java_util_concurrent_atomic_AtomicInteger {
-
-  public static 'compareAndSet(II)Z'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject, expect: number, update: number): boolean {
-    javaThis.set_field(rs, 'Ljava/util/concurrent/atomic/AtomicInteger;value', update);
-    // always true, because we only have one thread of execution
-    // @todo Fix: Actually check expected value!
-    return true;
-  }
-
-  public static '<clinit>()V'(rs: runtime.RuntimeState): void {
-    // NOP
-  }
-
-}
 
 class java_util_concurrent_atomic_AtomicLong {
 
@@ -99,9 +83,7 @@ class java_util_TimeZone {
 
 }
 
-// Export line. This is what DoppioJVM sees.
 ({
-  'java/util/concurrent/atomic/AtomicInteger': java_util_concurrent_atomic_AtomicInteger,
   'java/util/concurrent/atomic/AtomicLong': java_util_concurrent_atomic_AtomicLong,
   'java/util/jar/JarFile': java_util_jar_JarFile,
   'java/util/logging/FileHandler': java_util_logging_FileHandler,

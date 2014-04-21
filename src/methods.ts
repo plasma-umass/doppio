@@ -2,7 +2,6 @@
 import util = require('./util');
 import opcodes = require('./opcodes');
 import attributes = require('./attributes');
-import natives = require('./natives');
 import runtime = require('./runtime');
 import logging = require('./logging');
 import JVM = require('./jvm');
@@ -11,13 +10,146 @@ import java_object = require('./java_object');
 import ConstantPool = require('./ConstantPool');
 import ClassData = require('./ClassData');
 import threading = require('./threading');
+import gLong = require('./gLong');
 
 
 var ReturnException = exceptions.ReturnException;
-var vtrace = logging.vtrace, trace = logging.trace, debug_vars = logging.debug_vars, native_methods = natives.native_methods, trapped_methods = natives.trapped_methods;
+var vtrace = logging.vtrace, trace = logging.trace, debug_vars = logging.debug_vars;
 var JavaArray = java_object.JavaArray;
 var JavaObject = java_object.JavaObject;
 declare var RELEASE: boolean;
+
+function get_property(rs: runtime.RuntimeState, jvm_key: java_object.JavaObject, _default: java_object.JavaObject = null): java_object.JavaObject {
+  var key = jvm_key.jvm2js_str();
+  var val = rs.jvm_state.system_properties[key];
+  // special case
+  if (key === 'java.class.path') {
+    // the first path is actually the bootclasspath (vendor/classes/)
+    return rs.init_string(val.slice(1, val.length).join(':'));
+  }
+  if (val != null) {
+    return rs.init_string(val, true);
+  } else {
+    return _default;
+  }
+}
+
+function unsafe_memcpy(rs: runtime.RuntimeState, src_base: java_object.JavaArray, src_offset_l: gLong, dest_base: java_object.JavaArray, dest_offset_l: gLong, num_bytes_l: gLong): void {
+  // XXX assumes base object is an array if non-null
+  // TODO: optimize by copying chunks at a time
+  var num_bytes = num_bytes_l.toNumber();
+  if (src_base != null) {
+    var src_offset = src_offset_l.toNumber();
+    if (dest_base != null) {
+      // both are java arrays
+      return java_object.arraycopy_no_check(src_base, src_offset, dest_base, dest_offset_l.toNumber(), num_bytes);
+    } else {
+      // src is an array, dest is a mem block
+      var dest_addr = rs.block_addr(dest_offset_l);
+      if (typeof DataView !== "undefined" && DataView !== null) {
+        for (var i = 0; i < num_bytes; i++) {
+          rs.mem_blocks[dest_addr].setInt8(i, src_base.array[src_offset + i]);
+        }
+      } else {
+        for (var i = 0; i < num_bytes; i++) {
+          rs.mem_blocks[dest_addr + i] = src_base.array[src_offset + i];
+        }
+      }
+    }
+  } else {
+    var src_addr = rs.block_addr(src_offset_l);
+    if (dest_base != null) {
+      // src is a mem block, dest is an array
+      var dest_offset = dest_offset_l.toNumber();
+      if (typeof DataView !== "undefined" && DataView !== null) {
+        for (var i = 0; i < num_bytes; i++) {
+          dest_base.array[dest_offset + i] = rs.mem_blocks[src_addr].getInt8(i);
+        }
+      } else {
+        for (var i = 0; i < num_bytes; i++) {
+          dest_base.array[dest_offset + i] = rs.mem_blocks[src_addr + i];
+        }
+      }
+    } else {
+      // both are mem blocks
+      var dest_addr = rs.block_addr(dest_offset_l);
+      if (typeof DataView !== "undefined" && DataView !== null) {
+        for (var i = 0; i < num_bytes; i++) {
+          rs.mem_blocks[dest_addr].setInt8(i, rs.mem_blocks[src_addr].getInt8(i));
+        }
+      } else {
+        for (var i = 0; i < num_bytes; i++) {
+          rs.mem_blocks[dest_addr + i] = rs.mem_blocks[src_addr + i];
+        }
+      }
+    }
+  }
+}
+
+var trapped_methods = {
+  'java/lang/ref/Reference': {
+    // NOP, because we don't do our own GC and also this starts a thread?!?!?!
+    '<clinit>()V': function (rs: runtime.RuntimeState): void { }
+  },
+  'java/lang/String': {
+    // trapped here only for speed
+    'hashCode()I': function (rs: runtime.RuntimeState, javaThis: java_object.JavaObject): number {
+      var i: number, hash: number = javaThis.get_field(rs, 'Ljava/lang/String;hash');
+      if (hash === 0) {
+        var offset = javaThis.get_field(rs, 'Ljava/lang/String;offset'),
+          chars = javaThis.get_field(rs, 'Ljava/lang/String;value').array,
+          count = javaThis.get_field(rs, 'Ljava/lang/String;count');
+        for (i = 0; i < count; i++) {
+          hash = (hash * 31 + chars[offset++]) | 0;
+        }
+        javaThis.set_field(rs, 'Ljava/lang/String;hash', hash);
+      }
+      return hash;
+    }
+  },
+  'java/lang/System': {
+    'loadLibrary(Ljava/lang/String;)V': function (rs: runtime.RuntimeState, lib_name: java_object.JavaObject): void {
+      var lib = lib_name.jvm2js_str();
+      if (lib !== 'zip' && lib !== 'net' && lib !== 'nio' && lib !== 'awt' && lib !== 'fontmanager') {
+        return rs.java_throw((<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;')), "no " + lib + " in java.library.path");
+      }
+    },
+    'getProperty(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;': get_property,
+    'getProperty(Ljava/lang/String;)Ljava/lang/String;': get_property
+  },
+  'java/lang/Terminator': {
+    'setup()V': function (rs: runtime.RuntimeState): void {
+      // XXX: We should probably fix this; we support threads now.
+      // Historically: NOP'd because we didn't support threads.
+    }
+  },
+  'java/util/concurrent/atomic/AtomicInteger': {
+    '<clinit>()V': function (rs: runtime.RuntimeState): void {
+      // NOP
+    },
+    'compareAndSet(II)Z': function (rs: runtime.RuntimeState, javaThis: java_object.JavaObject, expect: number, update: number): boolean {
+      javaThis.set_field(rs, 'Ljava/util/concurrent/atomic/AtomicInteger;value', update);
+      // always true, because we only have one thread of execution
+      // @todo Fix: Actually check expected value!
+      return true;
+    }
+  },
+  'java/nio/Bits': {
+    'byteOrder()Ljava/nio/ByteOrder;': function (rs: runtime.RuntimeState): java_object.JavaObject {
+      var cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/nio/ByteOrder;');
+      return cls.static_get(rs, 'LITTLE_ENDIAN');
+    },
+    'copyToByteArray(JLjava/lang/Object;JJ)V': function (rs: runtime.RuntimeState, srcAddr: gLong, dst: java_object.JavaArray, dstPos: gLong, length: gLong): void {
+      unsafe_memcpy(rs, null, srcAddr, dst, dstPos, length);
+    }
+  },
+  'java/nio/charset/Charset$3': {
+    // this is trapped and NOP'ed for speed
+    'run()Ljava/lang/Object;': function(rs: runtime.RuntimeState, javaThis: java_object.JavaObject): java_object.JavaObject {
+      return null;
+    }
+  }
+};
 
 export class AbstractMethodField {
   public cls: ClassData.ReferenceClassData;
@@ -144,22 +276,27 @@ export class Method extends AbstractMethodField {
 
   public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool, idx: number): void {
     super.parse(bytes_array, constant_pool, idx);
-    var sig = this.full_signature();
-    var c;
-    if ((c = trapped_methods[sig]) != null) {
+    var sig = this.full_signature(),
+      clsName = this.cls.get_type(),
+      methSig = this.name + this.raw_descriptor,
+      c: Function;
+
+    if (trapped_methods[clsName] && ((c = trapped_methods[clsName][methSig]) != null)) {
       this.code = c;
       this.access_flags["native"] = true;
     } else if (this.access_flags["native"]) {
-      if ((c = native_methods[sig]) != null) {
-        this.code = c;
-      } else if (sig.indexOf('::registerNatives()V', 1) < 0 && sig.indexOf('::initIDs()V', 1) < 0) {
-        if (JVM.show_NYI_natives) {
-          console.log(sig);
-        }
+      if (sig.indexOf('::registerNatives()V', 1) < 0 && sig.indexOf('::initIDs()V', 1) < 0) {
         this.code = function (rs: runtime.RuntimeState) {
-          rs.java_throw(<ClassData.ReferenceClassData>
-            rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'),
-            "Native method '" + sig + "' not implemented.\nPlease fix or file a bug at https://github.com/int3/doppio/issues");
+          // Try to fetch the native method.
+          var c = rs.getNative(clsName, methSig);
+          if (c == null) {
+            rs.java_throw(<ClassData.ReferenceClassData>
+              rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'),
+              "Native method '" + sig + "' not implemented.\nPlease fix or file a bug at https://github.com/int3/doppio/issues");
+          } else {
+            this.code = c;
+            c.apply(this, arguments);
+          }
         };
       } else {
         // micro-optimization for registerNatives and initIDs, don't even bother making a function

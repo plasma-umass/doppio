@@ -9,7 +9,6 @@ var JavaClassObject = java_object.JavaClassObject;
 import logging = require('./logging');
 import methods = require('./methods');
 import runtime = require('./runtime');
-import natives = require('./natives');
 import ClassLoader = require('./ClassLoader');
 import enums = require('./enums');
 var ClassState = enums.ClassState;
@@ -32,13 +31,8 @@ export class ClassData {
 
   // Responsible for setting up all of the fields that are guaranteed to be
   // present on any ClassData object.
-  constructor(loader: ClassLoader.ClassLoader) {
-    // XXX: Avoids a tough circular dependency.
-    // (ClassData->methods->natives->...)
-    if (!natives.instantiated) {
-      natives.instantiate(ReferenceClassData, PrimitiveClassData, ArrayClassData);
-    }
-    this.loader = loader != null ? loader : null;
+  constructor(loader: ClassLoader.ClassLoader = null) {
+    this.loader = loader;
   }
 
   // Resets any ClassData state that may have been built up

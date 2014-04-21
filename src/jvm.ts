@@ -32,43 +32,6 @@ class JVM {
   // Maps JAR files to their extraction directory.
   private jar_map: {[jar_path: string]: string} = {};
 
-  private static initialNatives: { [clsName: string]: { [methodName: string]: Function } } = {};
-  /**
-   * Register native methods with the JVM. Will be cloned into the next JVM
-   * instantiation.
-   * 
-   * Used by DoppioJVM for core Java Class Library files. We recommend external
-   * DoppioJVM users define their natives in files alongside their class files.
-   */
-  public static registerNatives(natives: { [clsName: string]: { [methodName: string]: Function } }) {
-    var clsName: string;
-    for (clsName in natives) {
-      if (natives.hasOwnProperty(clsName)) {
-        this.initialNatives[clsName] = natives[clsName];
-      }
-    }
-  }
-
-  /**
-   * Returns a clone of the core native methods registered with the JVM.
-   */
-  private static getNatives(): { [clsName: string]: { [methodName: string]: Function } } {
-    var nativesClone: { [clsName: string]: { [methodName: string]: Function } } = {},
-      clsName: string, methName: string;
-    for (clsName in this.initialNatives) {
-      if (this.initialNatives.hasOwnProperty(clsName)) {
-        var clsMthds = this.initialNatives[clsName];
-        nativesClone[clsName] = {};
-        for (methName in clsMthds) {
-          if (clsMthds.hasOwnProperty(methName)) {
-            nativesClone[clsName][methName] = clsMthds[methName];
-          }
-        }
-      }
-    }
-    return nativesClone;
-  }
-
   /**
    * (Async) Construct a new instance of the Java Virtual Machine.
    * @param {string} [jcl_path=/sys/vendor/classes] - Path to the Java Class Library in the file system.
@@ -77,32 +40,32 @@ class JVM {
   constructor(done_cb: (err: any, jvm?: JVM) => void,
               jcl_path: string = '/sys/vendor/classes',
               java_home_path: string = '/sys/vendor/java_home',
-              private jar_file_location: string = '/jars') {
-    var _this = this;
+              private jar_file_location: string = '/jars',
+              private native_classpath: string[] = ['/sys/src/natives']) {
     this.reset_classloader_cache();
     this._reset_system_properties(jcl_path, java_home_path);
     // Need to check jcl_path and java_home_path.
-    fs.exists(java_home_path, function(exists: boolean): void {
+    fs.exists(java_home_path, (exists: boolean): void => {
       if (!exists) {
         done_cb(new Error("Java home path '" + java_home_path + "' does not exist!"));
       } else {
         // Check if jar_file_location exists and, if not, create it.
-        fs.exists(_this.jar_file_location, function(exists: boolean): void {
-          var next_step = next_step = function() {
-            _this.add_classpath_item(jcl_path, 0, function(added: boolean): void {
+        fs.exists(this.jar_file_location, (exists: boolean): void => {
+          var next_step = next_step = () => {
+            this.add_classpath_item(jcl_path, 0, (added: boolean): void => {
               if (!added) {
                 done_cb(new Error("Java class library path '" + jcl_path + "' does not exist!"));
               } else {
                 // No error. All good.
-                done_cb(null, _this);
+                done_cb(null, this);
               }
             });
           };
 
           if (!exists) {
-            fs.mkdir(_this.jar_file_location, function(err?: any): void {
+            fs.mkdir(this.jar_file_location, (err?: any): void => {
               if (err) {
-                done_cb(new Error("Unable to create JAR file directory " + _this.jar_file_location + ": " + err));
+                done_cb(new Error("Unable to create JAR file directory " + this.jar_file_location + ": " + err));
               } else {
                 next_step();
               }
@@ -278,11 +241,11 @@ class JVM {
    */
   public read_classfile(cls: any, cb: (data: NodeBuffer)=>void, failure_cb: (exp_cb: ()=>void)=>void) {
     var cpath = this.system_properties['java.class.path'],
-        try_next = function(i: number): void {
-          fs.readFile(cpath[i] + cls + '.class', function(err, data) {
+        try_next = (i: number): void => {
+          fs.readFile(cpath[i] + cls + '.class', (err, data) => {
             if (err) {
               if (++i == cpath.length) {
-                failure_cb(function(){
+                failure_cb(() => {
                   throw new Error("Error: No file found for class " + cls);
                 });
               } else {
@@ -309,24 +272,24 @@ class JVM {
    *   path was added or not.
    */
   public add_classpath_item(p: string, idx: number, done_cb: (added: boolean) => void) {
-    var i: number, classpath = this.system_properties['java.class.path'], _this = this;
+    var i: number, classpath = this.system_properties['java.class.path'];
     p = path.resolve(p);
 
     if (p.indexOf('.jar') !== -1) {
       // JAR file, not a path.
-      return this.unzip_jar(p, function(err: any, jar_path?: string): void {
+      return this.unzip_jar(p, (err: any, jar_path?: string): void => {
         var manifest: JAR;
         if (err) {
           process.stderr.write("Unable to add JAR file " + p + ": " + err + "\n");
           done_cb(false);
         } else {
-          _this.jar_map[p] = jar_path;
+          this.jar_map[p] = jar_path;
           // Add the JAR file's dependencies before the file itself.
-          manifest = new JAR(jar_path, function(err?: any) {
+          manifest = new JAR(jar_path, (err?: any) => {
             var new_cp_items: string[] = [],
                 i: number = 0,
                 add_next_item = function() {
-                  _this.add_classpath_item(new_cp_items[i], idx + i, function(added: boolean) {
+                  this.add_classpath_item(new_cp_items[i], idx + i, (added: boolean) => {
                     if (++i === new_cp_items.length) {
                       done_cb(true);
                     } else {
@@ -366,7 +329,7 @@ class JVM {
       }
     }
 
-    fs.exists(p, function(exists: boolean): void {
+    fs.exists(p, (exists: boolean): void => {
       if (!exists) {
         process.stderr.write("WARNING: Classpath path " + p + " does not exist. Ignoring.\n");
       } else {

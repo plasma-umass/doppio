@@ -3,7 +3,6 @@ var fs = require('fs');
 var path = require('path');
 import JVM = require('../src/jvm');
 import opcodes = require('../src/opcodes');
-import natives = require('../src/natives');
 import testing = require('../src/testing');
 import os = require('os');
 // only used for types
@@ -31,6 +30,7 @@ function setup_opcode_stats(): Stats {
   return op_stats;
 }
 
+/**
 function setup_native_stats(): Stats {
   // monkeypatch native and trapped calls
   var native_stats: Stats = {};
@@ -56,6 +56,7 @@ function setup_native_stats(): Stats {
   }
   return native_stats;
 }
+*/
 
 function print_usage(stats: Stats): void {
   var names: string[] = [];
@@ -155,7 +156,7 @@ if (argv.opcodes) {
   op_stats = setup_opcode_stats();
 }
 if (argv.natives) {
-  native_stats = setup_native_stats();
+  // native_stats = setup_native_stats();
 }
 run_tests(argv._, print, argv.quiet, function() {
   if (argv['print-usage'] != null) {

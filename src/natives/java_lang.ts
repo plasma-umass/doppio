@@ -14,7 +14,6 @@ import java_object = require("../../build/dev-cli/src/java_object");
 import jvm = require("../../build/dev-cli/src/jvm");
 import logging = require("../../build/dev-cli/src/logging");
 import methods = require("../../build/dev-cli/src/methods");
-import natives = require("../../build/dev-cli/src/natives");
 import opcodes = require("../../build/dev-cli/src/opcodes");
 import option_parser = require("../../build/dev-cli/src/option_parser");
 import runtime = require("../../build/dev-cli/src/runtime");
@@ -87,21 +86,6 @@ function create_stack_trace(rs: runtime.RuntimeState, throwable: java_object.Jav
     }));
   }
   return stacktrace.reverse();
-}
-
-function get_property(rs: runtime.RuntimeState, jvm_key: java_object.JavaObject, _default: java_object.JavaObject = null): java_object.JavaObject {
-  var key = jvm_key.jvm2js_str();
-  var val = rs.jvm_state.system_properties[key];
-  // special case
-  if (key === 'java.class.path') {
-    // the first path is actually the bootclasspath (vendor/classes/)
-    return rs.init_string(val.slice(1, val.length).join(':'));
-  }
-  if (val != null) {
-    return rs.init_string(val, true);
-  } else {
-    return _default;
-  }
 }
 
 class java_lang_Class {
@@ -686,13 +670,6 @@ class java_lang_ref_Finalizer {
 
 }
 
-class java_lang_ref_Reference {
-
-  // NOP. We don't do our own GC.
-  public static '<clinit>()V'(rs: runtime.RuntimeState): void {}
-
-}
-
 class java_lang_reflect_Array {
 
   public static 'getLength(Ljava/lang/Object;)I'(rs: runtime.RuntimeState, obj: java_object.JavaObject): number {
@@ -1046,20 +1023,6 @@ class java_lang_StrictMath {
 
 class java_lang_String {
 
-  public static 'hashCode()I'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject): number {
-    var i: number, hash: number = javaThis.get_field(rs, 'Ljava/lang/String;hash');
-    if (hash === 0) {
-      var offset = javaThis.get_field(rs, 'Ljava/lang/String;offset'),
-        chars = javaThis.get_field(rs, 'Ljava/lang/String;value').array,
-        count = javaThis.get_field(rs, 'Ljava/lang/String;count');
-      for (i = 0; i < count; i++) {
-        hash = (hash * 31 + chars[offset++]) | 0;
-      }
-      javaThis.set_field(rs, 'Ljava/lang/String;hash', hash);
-    }
-    return hash;
-  }
-
   public static 'intern()Ljava/lang/String;'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject): java_object.JavaObject {
     var js_str = javaThis.jvm2js_str(),
       s = rs.string_pool.get(js_str);
@@ -1153,30 +1116,10 @@ class java_lang_System {
     rs.push(null);
   }
 
-  public static 'getProperty(Ljava/lang/String;)Ljava/lang/String;': (rs: runtime.RuntimeState, arg0: java_object.JavaObject) => java_object.JavaObject = get_property;
-
-  public static 'getProperty(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;': (rs: runtime.RuntimeState, arg0: java_object.JavaObject, arg1: java_object.JavaObject) => java_object.JavaObject = get_property;
-
-  public static 'loadLibrary(Ljava/lang/String;)V'(rs: runtime.RuntimeState, lib_name: java_object.JavaObject): void {
-    var lib = lib_name.jvm2js_str();
-    if (lib !== 'zip' && lib !== 'net' && lib !== 'nio' && lib !== 'awt' && lib !== 'fontmanager') {
-      return rs.java_throw((<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;')), "no " + lib + " in java.library.path");
-    }
-  }
-
   public static 'mapLibraryName(Ljava/lang/String;)Ljava/lang/String;'(rs: runtime.RuntimeState, arg0: java_object.JavaObject): java_object.JavaObject {
     rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
-  }
-
-}
-
-class java_lang_Terminator {
-
-  public static 'setup()V'(rs: runtime.RuntimeState): void {
-    // XXX: We should probably fix this; we support threads now.
-    // Historically: NOP'd because we didn't support threads.
   }
 
 }
@@ -1353,7 +1296,6 @@ class java_lang_UNIXProcess {
 
 }
 
-// Export line. This is what DoppioJVM sees.
 ({
   'java/lang/Class': java_lang_Class,
   'java/lang/ClassLoader$NativeLibrary': java_lang_ClassLoader$NativeLibrary,
@@ -1365,7 +1307,6 @@ class java_lang_UNIXProcess {
   'java/lang/Package': java_lang_Package,
   'java/lang/ProcessEnvironment': java_lang_ProcessEnvironment,
   'java/lang/ref/Finalizer': java_lang_ref_Finalizer,
-  'java/lang/ref/Reference': java_lang_ref_Reference,
   'java/lang/reflect/Array': java_lang_reflect_Array,
   'java/lang/reflect/Proxy': java_lang_reflect_Proxy,
   'java/lang/Runtime': java_lang_Runtime,
@@ -1374,7 +1315,6 @@ class java_lang_UNIXProcess {
   'java/lang/StrictMath': java_lang_StrictMath,
   'java/lang/String': java_lang_String,
   'java/lang/System': java_lang_System,
-  'java/lang/Terminator': java_lang_Terminator,
   'java/lang/Thread': java_lang_Thread,
   'java/lang/Throwable': java_lang_Throwable,
   'java/lang/UNIXProcess': java_lang_UNIXProcess
