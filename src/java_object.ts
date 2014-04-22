@@ -8,6 +8,7 @@ import runtime = require('./runtime');
 import ClassData = require('./ClassData');
 import ClassLoader = require('./ClassLoader');
 import enums = require('./enums');
+import assert = require('./assert');
 var ClassState = enums.ClassState;
 
 export class JavaArray {
@@ -66,6 +67,7 @@ export class JavaObject {
   public $pos: number // XXX: For file descriptors.
   public $ws: IWebsock; // XXX: For sockets.
   public $is_shutdown: boolean; //XXX: For sockets.
+  private $monitor: Monitor;
 
   constructor(rs: runtime.RuntimeState, cls: ClassData.ReferenceClassData, obj?: any) {
     this.cls = cls;
@@ -104,6 +106,14 @@ export class JavaObject {
     return rs.java_throw(<ClassData.ReferenceClassData>
         this.cls.loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'),
         'Cannot get field ' + name + ' from class ' + this.cls.get_type());
+  }
+
+  public getMonitor(): Monitor {
+    if (this.$monitor) {
+      return this.$monitor;
+    } else {
+      return this.$monitor = new Monitor();
+    }
   }
 
   public get_field_from_offset(rs: runtime.RuntimeState, offset: gLong): any {
@@ -294,4 +304,195 @@ export interface IWebsock {
   close(): void;
   send(data: number): void;
   send(data: number[]): void;
+}
+
+
+/**
+ * Represents a JVM monitor.
+ */
+export class Monitor {
+  /**
+   * The owner of the monitor.
+   */
+  private owner: JVMThread = null;
+  /**
+   * Number of times that the current owner has locked this monitor.
+   */
+  private count: number = 0;
+  /**
+   * Queue of JVM threads that are waiting for the current owner to relinquish
+   * the monitor.
+   */
+  private blocked: JVMThread[] = [];
+  /**
+   * Queue of JVM threads that are waiting for a JVM thread to notify them.
+   */
+  private waiting: JVMThread[] = [];
+  /**
+   * Contains the timer ids returned from setTimeout for all of the
+   * TIMED_WAITING threads.
+   */
+  private waitTimers: { [threadRef: number]: number } = {};
+
+  /**
+   * Attempts to acquire the monitor.
+   * 
+   * Thread transitions:
+   * * RUNNABLE => RUNNABLE
+   * * RUNNABLE => BLOCKED
+   * 
+   * @param thread The thread that is trying to acquire the monitor.
+   * @return True if successfull, false if not.
+   */
+  public enter(thread: JVMThread): boolean {
+    var owner = this.owner;
+    if (owner === null || owner === thread) {
+      assert(owner === null ? this.count === 0 : true);
+      this.owner = thread;
+      this.count++;
+      return true;
+    } else {
+      /**
+       * "If another thread already owns the monitor associated with objectref,
+       *  the thread blocks until the monitor's entry count is zero, then tries
+       *  again to gain ownership."
+       * @from http://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.monitorenter
+       */
+      thread.setState(enums.ThreadState.BLOCKED);
+      this.blocked.push(thread);
+      return false;
+    }
+  }
+
+  /**
+   * Exits the monitor. Handles notifying the waiting threads if the lock
+   * becomes available.
+   * 
+   * Thread transitions:
+   * * *NONE* on the argument thread.
+   * * A *BLOCKED* thread may be scheduled if the owner gives up the monitor.
+   * 
+   * @param thread The thread that is exiting the monitor.
+   */
+  public exit(thread: JVMThread): void {
+    var owner = this.owner;
+    if (owner === thread) {
+      if (--this.count === 0 && this.blocked.length > 0) {
+        // Unblock the thread at the head of the queue.
+        var unblocked = this.blocked.shift();
+        unblocked.setState(enums.ThreadState.RUNNABLE);
+      }
+    } else {
+      /**
+       * "If the thread that executes monitorexit is not the owner of the
+       *  monitor associated with the instance referenced by objectref,
+       *  monitorexit throws an IllegalMonitorStateException."
+       * @from http://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.monitorexit
+       */
+      thread.throwNewException(thread.getInitializedClass('Ljava/lang/IllegalMonitorStateException;'), "Cannot exit a monitor that you do not own.");
+    }
+  }
+
+  /**
+   * "Causes the current thread to wait until another thread invokes the
+   *  notify() method or the notifyAll() method for this object, or some other
+   *  thread interrupts the current thread, or a certain amount of real time
+   *  has elapsed."
+   * We coalesce all possible wait configurations into this one function.
+   * @from http://docs.oracle.com/javase/7/docs/api/java/lang/Object.html#wait(long, int)
+   * @param thread The thread that wants to wait on this monitor.
+   * @param timeoutMs? An optional timeout that specifies how long the thread
+   *   should wait, in milliseconds.
+   * @param timeoutNs? An optional timeout that specifies how long the thread
+   *   should wait, in nanosecond precision (currently ignored).
+   * @todo Use high-precision timers in browsers that support it.
+   */
+  public wait(thread: JVMThread, timeoutMs?: number, timeoutNs?: number): void {
+    // INVARIANT: Thread shouldn't currently be blocked on a monitor.
+    assert(thread.getState() !== enums.ThreadState.BLOCKED);
+    this.waiting.push(thread);
+    if (timeoutMs != null) {
+      // Scheduler a timer that wakes up the thread.
+      this.waitTimers[thread.ref] = setTimeout(() => {
+        this.unwait(thread, true);
+      }, timeoutMs);
+      thread.setState(enums.ThreadState.TIMED_WAITING);
+    } else {
+      thread.setState(enums.ThreadState.WAITING);
+    }
+  }
+
+  /**
+   * Removes the specified thread from the waiting set, and makes it RUNNABLE
+   * again.
+   * @param thread The thread to remove.
+   * @param fromTimer Indicates if this function call was triggered from a
+   *   timer event.
+   */
+  private unwait(thread: JVMThread, fromTimer: boolean): void {
+    // Step 1: Remove the thread from the waiting set.
+    var idx = this.waiting.indexOf(thread);
+    this.waiting.splice(idx, 1);
+    // Step 2: Remove the timer, if applicable.
+    if (thread.getState() === enums.ThreadState.TIMED_WAITING) {
+      var timerId = this.waitTimers[thread.ref];
+      assert(timerId != null);
+      if (!fromTimer) {
+        // Cancel the timer if the timer did not trigger this event.
+        clearTimeout(timerId);
+      }
+    }
+    // Step 3: Make thread runnable again.
+    thread.setState(enums.ThreadState.RUNNABLE);
+  }
+
+  /**
+   * Notifies a single waiting thread.
+   * @param thread The notifying thread. *MUST* be the owner.
+   */
+  public notify(thread: JVMThread): void {
+    if (this.owner === thread) {
+      var waiting = this.waiting;
+      if (waiting.length > 0) {
+        // Notify the thread at the top of the waiting queue.
+        this.unwait(waiting[0], false);
+      }
+    } else {
+      /**
+       * "Throws IllegalMonitorStateException if the current thread is not the
+       *  owner of this object's monitor."
+       * @from http://docs.oracle.com/javase/7/docs/api/java/lang/Object.html#notify()
+       */
+      thread.throwNewException(thread.getInitializedClass('Ljava/lang/IllegalMonitorStateException;'), "Cannot notify on a monitor that you do not own.");
+    }
+  }
+
+  /**
+   * Notifies all waiting threads.
+   * @param thread The notifying thread. *MUST* be the owner.
+   */
+  public notifyAll(thread: JVMThread): void {
+    if (this.owner === thread) {
+      var waiting = this.waiting;
+      // 'unwait' mutates waiting to remove the no-longer-waiting thread.
+      // It also handles canceling timers.
+      while (waiting.length > 0) {
+        this.unwait(waiting[0], false);
+      }
+    } else {
+      /**
+       * "Throws IllegalMonitorStateException if the current thread is not the
+       *  owner of this object's monitor."
+       * @from http://docs.oracle.com/javase/7/docs/api/java/lang/Object.html#notifyAll()
+       */
+      thread.throwNewException(thread.getInitializedClass('Ljava/lang/IllegalMonitorStateException;'), "Cannot notifyAll on a monitor that you do not own.");
+    }
+  }
+
+  /**
+   * @return The owner of the monitor.
+   */
+  public getOwner(): JVMThread {
+    return this.owner;
+  }
 }

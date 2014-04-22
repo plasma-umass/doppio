@@ -12,11 +12,6 @@ import logging = require('./logging');
 var debug = logging.debug;
 
 /**
- * @todo Monitors. Add methods on thread that returns a boolean that indicates
- *   success/failure.
- */
-
-/**
  * Represents a stack frame.
  */
 interface IStackFrame {
