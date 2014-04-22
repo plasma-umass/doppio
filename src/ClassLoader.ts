@@ -28,70 +28,6 @@ export class ClassLoader {
     this.loaded_classes = Object.create(null);
   }
 
-  public serialize(visited: {[n:string]:boolean}): any {
-    throw new Error('Abstract method!');
-  }
-
-  // Don't prune reference classes; if you do, we'll be iterating over
-  // each class twice.
-  public get_package_names(): string[] {
-    var classes = this.get_loaded_class_list(true);
-    var pkg_names: {[key:string]:boolean} = {};
-    for (var i = 0; i < classes.length; i++) {
-      var cls = classes[i];
-      pkg_names[cls.substring(0, (cls.lastIndexOf('/')) + 1)] = true;
-    }
-    return Object.keys(pkg_names);
-  }
-
-  public get_loaded_class_list(ref_class_only?: boolean): string[] {
-    if (ref_class_only == null) {
-      ref_class_only = false;
-    }
-    if (ref_class_only) {
-      var loaded_classes = this.loaded_classes;
-      var results: string[] = [];
-      for (var k in loaded_classes) {
-        var cdata = loaded_classes[k];
-        if ('major_version' in cdata) {
-          // Remove L and ; from Lname/of/Class;
-          results.push(k.slice(1, -1));
-        }
-      }
-      return results;
-    } else {
-      return Object.keys(this.loaded_classes);
-    }
-  }
-
-  // remove a class the Right Way, by also removing any subclasses
-  public remove_class(type_str: string): void {
-    this._rem_class(type_str);
-    if (util.is_primitive_type(type_str)) {
-      return;
-    }
-    var loaded_classes = this.loaded_classes;
-    for (var k in loaded_classes) {
-      var cdata = loaded_classes[k];
-      if ((type_str === cdata.get_super_class_type()) || (cdata instanceof ClassData.ArrayClassData && type_str === (<ClassData.ArrayClassData>cdata).get_component_type())) {
-        this.remove_class(k);
-      }
-    }
-  }
-
-  // Remove a class. Should only be used in the event of a class loading failure.
-  private _rem_class(type_str: string): void {
-    delete this.loaded_classes[type_str];
-  }
-
-  // Adds a class to this ClassLoader.
-  public _add_class(type_str: string, cdata: ClassData.ClassData): void {
-    // XXX: JVM appears to allow define_class to be called twice on same class.
-    // Does it actually replace the old class???
-    // UNSAFE? || throw new Error "ClassLoader tried to overwrite class #{type_str} with a new version." if @loaded_classes[type_str]?
-    this.loaded_classes[type_str] = cdata;
-  }
-
   // Retrieves a class in this ClassLoader. Returns null if it does not exist.
   public _get_class(type_str: string): ClassData.ClassData {
     var cdata = this.loaded_classes[type_str];
@@ -569,18 +505,6 @@ export class BootstrapClassLoader extends ClassLoader {
       ref: 'bootstrapLoader',
       loaded: loaded
     };
-  }
-
-  // Sets the reset bit on all of the classes in the CL to 1.
-  // Causes the classes to be reset when they are first resolved.
-  public reset(): void {
-    var loaded_classes = this.loaded_classes;
-    for (var cname in loaded_classes) {
-      var cls = loaded_classes[cname];
-      if (cname !== "__proto__") {
-        cls.reset_bit = 1;
-      }
-    }
   }
 
   // Returns the given primitive class. Creates it if needed.

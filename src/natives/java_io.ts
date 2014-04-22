@@ -8,6 +8,41 @@ import exceptions = require('../exceptions');
 import fs = require('fs');
 import path = require('path');
 
+/**
+ * Provide buffering for the underlying input function, returning at most
+ * n_bytes of data.
+ */
+function async_input(n_bytes: number, resume: (NodeBuffer) => void): void {
+  // Try to read n_bytes from stdin's buffer.
+  var read = function (n_bytes: number): NodeBuffer {
+    var bytes = process.stdin.read(n_bytes);
+    if (bytes === null) {
+      // We might have asked for too many bytes. Retrieve the entire stream
+      // buffer.
+      bytes = process.stdin.read();
+    }
+    // \0 => EOF.
+    if (bytes !== null && bytes.length === 1 && bytes.readUInt8(0) === 0) {
+      bytes = new Buffer(0);
+    }
+    return bytes;
+  }, bytes: NodeBuffer = read(n_bytes);
+
+  if (bytes === null) {
+    // No input available. Wait for further input.
+    process.stdin.once('readable', function (data: NodeBuffer) {
+      var bytes = read(n_bytes);
+      if (bytes === null) {
+        bytes = new Buffer(0);
+      }
+      resume(bytes);
+    });
+  } else {
+    // Reset stack depth and resume with the given data.
+    setImmediate(function () { resume(bytes); });
+  }
+}
+
 function stat_file(fname: string, cb: (stat: fs.Stats) => void): void {
   fs.stat(fname, (err, stat) => {
     if (err != null) {
@@ -95,7 +130,7 @@ class java_io_FileInputStream {
     else {
       // reading from System.in, do it async
       rs.async_op(function (cb) {
-        return rs.async_input(1, function (byte: NodeBuffer) {
+        async_input(1, function (byte: NodeBuffer) {
           return cb(0 === byte.length ? -1 : byte.readUInt8(0));
         });
       });
@@ -126,7 +161,7 @@ class java_io_FileInputStream {
     else {
       // reading from System.in, do it async
       rs.async_op(function (cb) {
-        return rs.async_input(n_bytes, function (bytes: NodeBuffer) {
+        async_input(n_bytes, function (bytes: NodeBuffer) {
           var b, idx, _i, _len;
           for (idx = _i = 0, _len = bytes.length; _len > _i; idx = ++_i) b = bytes.readUInt8(idx), byte_arr.array[offset + idx] = b;
           return cb(bytes.length === 0 ? -1 : bytes.length);
@@ -152,7 +187,7 @@ class java_io_FileInputStream {
     else {
       // reading from System.in, do it async
       rs.async_op(function (cb) {
-        return rs.async_input(n_bytes.toNumber(), function (bytes) {
+        async_input(n_bytes.toNumber(), function (bytes) {
           // we don't care about what the input actually was
           return cb(gLong.fromNumber(bytes.length), null);
         });

@@ -31,9 +31,9 @@ export class Code implements Attribute {
   private max_locals: number;
   private code_len: number;
   private _code_array: util.BytesArray;
-  private exception_handlers: ExceptionHandler[];
+  public exception_handlers: ExceptionHandler[];
   public run_stamp: number;
-  private opcodes: opcodes.Opcode[];
+  public opcodes: opcodes.Opcode[];
   private attrs: Attribute[];
 
   public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool) {
