@@ -9,29 +9,30 @@ import ClassData = require('./ClassData');
 import ClassLoader = require('./ClassLoader');
 import enums = require('./enums');
 import assert = require('./assert');
-var ClassState = enums.ClassState;
+import threading = require('./threading');
+var ClassState = enums.ClassState,
+  ref: number = 0;
 
 export class JavaArray {
   public cls: ClassData.ArrayClassData
   public array: any[]
-  public ref: number
+  public ref: number = ref++;
 
-  constructor(rs: runtime.RuntimeState, cls: ClassData.ArrayClassData, obj: any[]) {
+  constructor(cls: ClassData.ArrayClassData, obj: any[]) {
     this.cls = cls;
-    this.ref = rs.high_oref++;
     this.array = obj;
   }
 
-  public clone(rs: runtime.RuntimeState): JavaArray {
+  public clone(): JavaArray {
     // note: we don't clone the type, because they're effectively immutable
-    return new JavaArray(rs, this.cls, underscore.clone(this.array));
+    return new JavaArray(this.cls, underscore.clone(this.array));
   }
 
-  public get_field_from_offset(rs: runtime.RuntimeState, offset: gLong): any {
+  public get_field_from_offset(offset: gLong): any {
     return this.array[offset.toInt()];
   }
 
-  public set_field_from_offset(rs: runtime.RuntimeState, offset: gLong, value: any): void {
+  public set_field_from_offset(offset: gLong, value: any): void {
     this.array[offset.toInt()] = value;
   }
 
@@ -63,18 +64,17 @@ export class JavaArray {
 export class JavaObject {
   public cls: ClassData.ReferenceClassData
   public fields : any
-  public ref: number
+  public ref: number = ref++;
   public $pos: number // XXX: For file descriptors.
   public $ws: IWebsock; // XXX: For sockets.
   public $is_shutdown: boolean; //XXX: For sockets.
   private $monitor: Monitor;
 
-  constructor(rs: runtime.RuntimeState, cls: ClassData.ReferenceClassData, obj?: any) {
+  constructor(cls: ClassData.ReferenceClassData, obj?: any) {
     this.cls = cls;
     if (obj == null) {
       obj = {};
     }
-    this.ref = rs.high_oref++;
     // Use default fields as a prototype.
     this.fields = Object.create(this.cls.get_default_fields());
     for (var field in obj) {
@@ -84,28 +84,26 @@ export class JavaObject {
     }
   }
 
-  public clone(rs: runtime.RuntimeState): JavaObject {
+  public clone(): JavaObject {
     // note: we don't clone the type, because they're effectively immutable
-    return new JavaObject(rs, this.cls, underscore.clone(this.fields));
+    return new JavaObject(this.cls, underscore.clone(this.fields));
   }
 
-  public set_field(rs: runtime.RuntimeState, name: string, val: any): void {
+  public set_field(thread: threading.JVMThread, name: string, val: any): void {
     if (this.fields[name] !== undefined) {
       this.fields[name] = val;
     } else {
-      rs.java_throw(<ClassData.ReferenceClassData>
-          this.cls.loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'),
-          'Cannot set field ' + name + ' on class ' + this.cls.get_type());
+      thread.throwNewException('Ljava/lang/NoSuchFieldError;',
+        'Cannot set field ' + name + ' on class ' + this.cls.get_type());
     }
   }
 
-  public get_field(rs: runtime.RuntimeState, name: string): any {
+  public get_field(thread: threading.JVMThread, name: string): any {
     if (this.fields[name] !== undefined) {
       return this.fields[name];
     }
-    return rs.java_throw(<ClassData.ReferenceClassData>
-        this.cls.loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'),
-        'Cannot get field ' + name + ' from class ' + this.cls.get_type());
+    thread.throwNewException('Ljava/lang/NoSuchFieldError;',
+      'Cannot get field ' + name + ' from class ' + this.cls.get_type());
   }
 
   public getMonitor(): Monitor {
@@ -116,18 +114,18 @@ export class JavaObject {
     }
   }
 
-  public get_field_from_offset(rs: runtime.RuntimeState, offset: gLong): any {
-    var f = this._get_field_from_offset(rs, this.cls, offset.toInt());
+  public get_field_from_offset(thread: threading.JVMThread, offset: gLong): any {
+    var f = this._get_field_from_offset(thread, this.cls, offset.toInt());
     if (f.field.access_flags['static']) {
-      return f.cls_obj.static_get(rs, f.field.name);
+      return f.cls_obj.static_get(thread, f.field.name);
     }
-    return this.get_field(rs, f.cls + f.field.name);
+    return this.get_field(thread, f.cls + f.field.name);
   }
 
-  private _get_field_from_offset(rs: runtime.RuntimeState, cls: any, offset: number): any {
+  private _get_field_from_offset(thread: threading.JVMThread, cls: any, offset: number): any {
     var classname = cls.get_type();
     while (cls != null) {
-      var jco_ref = cls.get_class_object(rs).ref;
+      var jco_ref = cls.get_class_object(thread).ref;
       var f = cls.get_fields()[offset - jco_ref];
       if (f != null) {
         return {
@@ -138,16 +136,16 @@ export class JavaObject {
       }
       cls = cls.get_super_class();
     }
-    return rs.java_throw(<ClassData.ReferenceClassData>
-        this.cls.loader.get_initialized_class('Ljava/lang/NullPointerException;'), "field " + offset + " doesn't exist in class " + classname);
+    thread.throwNewException('Ljava/lang/NullPointerException;',
+      "field " + offset + " doesn't exist in class " + classname);
   }
 
-  public set_field_from_offset(rs: runtime.RuntimeState, offset: gLong, value: any): void {
-    var f = this._get_field_from_offset(rs, this.cls, offset.toInt());
+  public set_field_from_offset(thread: threading.JVMThread, offset: gLong, value: any): void {
+    var f = this._get_field_from_offset(thread, this.cls, offset.toInt());
     if (f.field.access_flags['static']) {
-      f.cls_obj.static_put(rs, f.field.name, value);
+      f.cls_obj.static_put(thread, f.field.name, value);
     } else {
-      this.set_field(rs, f.cls + f.field.name, value);
+      this.set_field(thread, f.cls + f.field.name, value);
     }
   }
 
@@ -306,6 +304,23 @@ export interface IWebsock {
   send(data: number[]): void;
 }
 
+export function initString(cl: ClassLoader.ClassLoader, str: string): JavaObject {
+  var carr = initCarr(cl, str);
+  var str_cls = <ClassData.ReferenceClassData> cl.getInitializedClass('Ljava/lang/String;');
+  return new JavaObject(str_cls, {
+    'Ljava/lang/String;value': carr,
+    'Ljava/lang/String;count': str.length
+  });
+}
+
+export function initCarr(cl: ClassLoader.ClassLoader, str: string): JavaArray {
+  var carr = new Array(str.length);
+  for (var i = 0; i < str.length; i++) {
+    carr[i] = str.charCodeAt(i);
+  }
+  var arr_cls = <ClassData.ArrayClassData> cl.getLoadedClass('[C');
+  return new JavaArray(arr_cls, carr);
+}
 
 /**
  * Represents a JVM monitor.
@@ -314,7 +329,7 @@ export class Monitor {
   /**
    * The owner of the monitor.
    */
-  private owner: JVMThread = null;
+  private owner: threading.JVMThread = null;
   /**
    * Number of times that the current owner has locked this monitor.
    */
@@ -323,11 +338,11 @@ export class Monitor {
    * Queue of JVM threads that are waiting for the current owner to relinquish
    * the monitor.
    */
-  private blocked: JVMThread[] = [];
+  private blocked: threading.JVMThread[] = [];
   /**
    * Queue of JVM threads that are waiting for a JVM thread to notify them.
    */
-  private waiting: JVMThread[] = [];
+  private waiting: threading.JVMThread[] = [];
   /**
    * Contains the timer ids returned from setTimeout for all of the
    * TIMED_WAITING threads.
@@ -344,7 +359,7 @@ export class Monitor {
    * @param thread The thread that is trying to acquire the monitor.
    * @return True if successfull, false if not.
    */
-  public enter(thread: JVMThread): boolean {
+  public enter(thread: threading.JVMThread): boolean {
     var owner = this.owner;
     if (owner === null || owner === thread) {
       assert(owner === null ? this.count === 0 : true);
@@ -374,7 +389,7 @@ export class Monitor {
    * 
    * @param thread The thread that is exiting the monitor.
    */
-  public exit(thread: JVMThread): void {
+  public exit(thread: threading.JVMThread): void {
     var owner = this.owner;
     if (owner === thread) {
       if (--this.count === 0 && this.blocked.length > 0) {
@@ -407,7 +422,7 @@ export class Monitor {
    *   should wait, in nanosecond precision (currently ignored).
    * @todo Use high-precision timers in browsers that support it.
    */
-  public wait(thread: JVMThread, timeoutMs?: number, timeoutNs?: number): void {
+  public wait(thread: threading.JVMThread, timeoutMs?: number, timeoutNs?: number): void {
     // INVARIANT: Thread shouldn't currently be blocked on a monitor.
     assert(thread.getState() !== enums.ThreadState.BLOCKED);
     this.waiting.push(thread);
@@ -429,7 +444,7 @@ export class Monitor {
    * @param fromTimer Indicates if this function call was triggered from a
    *   timer event.
    */
-  private unwait(thread: JVMThread, fromTimer: boolean): void {
+  private unwait(thread: threading.JVMThread, fromTimer: boolean): void {
     // Step 1: Remove the thread from the waiting set.
     var idx = this.waiting.indexOf(thread);
     this.waiting.splice(idx, 1);
@@ -450,7 +465,7 @@ export class Monitor {
    * Notifies a single waiting thread.
    * @param thread The notifying thread. *MUST* be the owner.
    */
-  public notify(thread: JVMThread): void {
+  public notify(thread: threading.JVMThread): void {
     if (this.owner === thread) {
       var waiting = this.waiting;
       if (waiting.length > 0) {
@@ -471,7 +486,7 @@ export class Monitor {
    * Notifies all waiting threads.
    * @param thread The notifying thread. *MUST* be the owner.
    */
-  public notifyAll(thread: JVMThread): void {
+  public notifyAll(thread: threading.JVMThread): void {
     if (this.owner === thread) {
       var waiting = this.waiting;
       // 'unwait' mutates waiting to remove the no-longer-waiting thread.
@@ -492,7 +507,7 @@ export class Monitor {
   /**
    * @return The owner of the monitor.
    */
-  public getOwner(): JVMThread {
+  public getOwner(): threading.JVMThread {
     return this.owner;
   }
 }

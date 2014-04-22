@@ -4,13 +4,14 @@ import ConstantPool = require('./ConstantPool');
 import attributes = require('./attributes');
 import opcodes = require('./opcodes');
 import java_object = require('./java_object');
+import threading = require('./threading');
 var JavaObject = java_object.JavaObject;
 var JavaClassObject = java_object.JavaClassObject;
 import logging = require('./logging');
 import methods = require('./methods');
-import runtime = require('./runtime');
 import ClassLoader = require('./ClassLoader');
 import enums = require('./enums');
+import assert = require('./assert');
 var ClassState = enums.ClassState;
 var trace = logging.trace;
 
@@ -103,19 +104,36 @@ export class ClassData {
     return [];
   }
 
-  public method_lookup(rs: runtime.RuntimeState, sig: string): methods.Method {
-    var err_cls = <ReferenceClassData> rs.get_bs_class('Ljava/lang/NoSuchMethodError;');
-    rs.java_throw(err_cls, "No such method found in " + util.ext_classname(this.get_type()) + "::" + sig);
-    return null; // TypeScript can't infer that rs.java_throw *always* throws an exception.
+  public method_lookup(thread: threading.JVMThread, sig: string): methods.Method {
+    thread.throwNewException('Ljava/lang/NoSuchMethodError;', "No such method found in " + util.ext_classname(this.get_type()) + "::" + sig);
+    return null;
   }
 
-  public field_lookup(rs: runtime.RuntimeState, name: string): methods.Field {
-    var err_cls = <ReferenceClassData> rs.get_bs_class('Ljava/lang/NoSuchFieldError;');
-    rs.java_throw(err_cls, "No such field found in " + util.ext_classname(this.get_type()) + "::" + name);
-    return null; // TypeScript can't infer that rs.java_throw *always* throws an exception.
+  public field_lookup(thread: threading.JVMThread, name: string): methods.Field {
+    thread.throwNewException('Ljava/lang/NoSuchFieldError;', "No such field found in " + util.ext_classname(this.get_type()) + "::" + name);
+    return null;
   }
 
-  public set_state(state:enums.ClassState):void { this.state = state; }
+  /**
+   * Attempt to synchronously resolve this class using its loader. Should only
+   * be called on ClassData in the LOADED state.
+   */
+  public tryToResolve(): boolean {
+    throw new Error("Abstract method.");
+  }
+
+  /**
+   * Attempt to synchronously initialize this class.
+   */
+  public tryToInitialize(): boolean {
+    throw new Error("Abstract method.");
+  }
+
+  public set_state(state: enums.ClassState): void {
+    // Assertion: Make sure we're never traveling backwards!
+    assert(this.state <= state);
+    this.state = state;
+  }
 
   // Gets the current state of this class.
   public get_state(): enums.ClassState {
@@ -200,6 +218,14 @@ export class PrimitiveClassData extends ClassData {
     wrapped.fields[box_name + 'value'] = value;
     return wrapped;
   }
+
+  public tryToResolve(): boolean {
+    return true;
+  }
+
+  public tryToInitialize(): boolean {
+    return true;
+  }
 }
 
 export class ArrayClassData extends ClassData {
@@ -240,10 +266,28 @@ export class ArrayClassData extends ClassData {
   }
 
   // Resolved and initialized are the same for array types.
-  public set_resolved(super_class_cdata: ClassData, component_class_cdata: ClassData): void {
+  public setResolved(super_class_cdata: ClassData, component_class_cdata: ClassData): void {
     this.super_class_cdata = super_class_cdata;
     this.component_class_cdata = component_class_cdata;
     this.set_state(ClassState.INITIALIZED);
+  }
+
+  public tryToResolve(): boolean {
+    var loader = this.loader,
+      superClassCdata = loader.getResolvedClass(this.super_class),
+      componentClassCdata = loader.getResolvedClass(this.component_type);
+
+    if (superClassCdata === null || componentClassCdata === null) {
+      return false;
+    } else {
+      this.setResolved(superClassCdata, componentClassCdata);
+      return true;
+    }
+  }
+
+  public tryToInitialize(): boolean {
+    // Arrays are initialized once resolved.
+    return this.tryToResolve();
   }
 
   // Returns a boolean indicating if this class is an instance of the target class.
@@ -447,12 +491,42 @@ export class ReferenceClassData extends ClassData {
     }
   }
 
-  public set_resolved(super_class_cdata: ClassData, interface_cdatas: ReferenceClassData[]): void {
+  public setResolved(super_class_cdata: ClassData, interface_cdatas: ReferenceClassData[]): void {
     this.super_class_cdata = super_class_cdata;
     trace("Class " + (this.get_type()) + " is now resolved.");
     this.interface_cdatas = interface_cdatas;
     // TODO: Assert we are not already resolved or initialized?
     this.set_state(ClassState.RESOLVED);
+  }
+
+  public tryToResolve(): boolean {
+    assert(this.get_state() === ClassState.LOADED);
+    // Need to grab the super class, and interfaces.
+    var loader = this.loader,
+      // NOTE: The super_class of java/lang/Object is null.
+      superClassCdata = this.super_class != null ? loader.getResolvedClass(this.super_class) : null,
+      interfaceCdatas: ReferenceClassData[] = [], i: number;
+
+    if (superClassCdata === null && this.super_class != null) {
+      return false;
+    }
+
+    for (i = 0; i < this.interfaces.length; i++) {
+      var icls = <ReferenceClassData> loader.getResolvedClass(this.interfaces[i]);
+      if (icls === null) {
+        return false;
+      }
+      interfaceCdatas.push(icls);
+    }
+
+    // It worked!
+    this.setResolved(superClassCdata, interfaceCdatas);
+    return true;
+  }
+
+  public tryToInitialize(): boolean {
+    // You can't synchronously initialize a reference class type.
+    return false;
   }
 
   public construct_default_fields(): void {
@@ -520,7 +594,7 @@ export class ReferenceClassData extends ClassData {
   // Spec [5.4.3.3][1], [5.4.3.4][2].
   // [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#79473
   // [2]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#78621
-  public method_lookup(rs: runtime.RuntimeState, sig: string): methods.Method {
+  public method_lookup(thread: threading.JVMThread, sig: string): methods.Method {
     if (this.ml_cache[sig] != null) {
       return this.ml_cache[sig];
     }

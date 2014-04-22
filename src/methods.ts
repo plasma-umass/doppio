@@ -443,11 +443,11 @@ export class Method extends AbstractMethodField {
     this.reset_caches = true;
   }
 
-  public method_lock(rs: runtime.RuntimeState): any {
+  public method_lock(frame: threading.BytecodeStackFrame): java_object.Monitor {
     if (this.access_flags["static"]) {
-      return this.cls.get_class_object(rs);
+      return this.cls.get_class_object().getMonitor();
     } else {
-      return rs.cl(0);
+      return frame.locals[0].getMonitor();
     }
   }
 

@@ -9,22 +9,54 @@ export function are_in_browser(): boolean {
 }
 
 // Applies an async function to each element of a list, in order.
-// Assumes that the async function expects "success" and "fail" callbacks.
 export function async_foreach<T>(
       lst: Array<T>,
-      fn: (elem: T, next_item: ()=>void)=>void,
-      done_cb: ()=>void
+      fn: (elem: T, next_item: (err?: any)=>void)=>void,
+      done_cb: (err?: any)=>void
     ): void {
   var i = -1;
-  function process(): void {
-    i++;
-    if (i < lst.length) {
-      fn(lst[i], process);
+  function process(err?: any): void {
+    if (err) {
+      done_cb(err);
     } else {
-      done_cb();
+      i++;
+      if (i < lst.length) {
+        fn(lst[i], process);
+      } else {
+        done_cb();
+      }
     }
   }
   process();
+}
+
+/**
+ * Applies the function to each element of the list in order in series.
+ * The first element that returns success halts the process, and triggers
+ * done_cb. If no elements return success, done_cb is triggered with no
+ * arguments.
+ * 
+ * I wrote this specifically for classloading, but it may have uses elsewhere.
+ */
+export function async_find<T>(
+    lst: Array<T>,
+    fn: (elem: T, nextItem: (success: boolean) => void) => void,
+    done_cb: (elem?: T) => void
+  ): void {
+  var i = -1;
+  function process(success: boolean): void {
+    if (success) {
+      done_cb(lst[i]);
+    } else {
+      i++;
+      if (i < lst.length) {
+        fn(lst[i], process);
+      } else {
+        done_cb();
+      }
+    }
+  }
+  process(false);
 }
 
 export var INT_MAX = Math.pow(2, 31) - 1;

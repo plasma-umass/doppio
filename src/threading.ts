@@ -14,7 +14,7 @@ var debug = logging.debug;
 /**
  * Represents a stack frame.
  */
-interface IStackFrame {
+export interface IStackFrame {
   /**
    * Runs or resumes the method, as configured.
    */
@@ -23,13 +23,13 @@ interface IStackFrame {
    * Configures the method to resume after a method call.
    * @rv The return value from the method call, if applicable.
    */
-  scheduleResume: (rv?: any) => void;
+  scheduleResume: (thread: JVMThread, rv?: any) => void;
   /**
    * Checks if the method can handle the given exception. If so,
    * configures the stack frame to handle the exception.
    * @return True if the method can handle the exception.
    */
-  scheduleException: (e: java_object.JavaObject) => boolean;
+  scheduleException: (thread: JVMThread, e: java_object.JavaObject) => boolean;
   /**
    * This stack frame's type.
    */
@@ -39,7 +39,7 @@ interface IStackFrame {
 /**
  * Represents a stack frame for a bytecode method.
  */
-class BytecodeStackFrame implements IStackFrame {
+export class BytecodeStackFrame implements IStackFrame {
   public pc: number = 0;
   public locals: any[] = [];
   public stack: any[];
@@ -57,7 +57,13 @@ class BytecodeStackFrame implements IStackFrame {
   public run(thread: JVMThread): void {
     var method = this.method, code = (<attributes.Code> this.method.code).opcodes;
     if (method.access_flags.synchronized && this.pc === 0) {
-       // XXX: Hack in a monitorenter!
+      // We are starting a synchronized method! These must implicitly enter
+      // their respective locks.
+      if (!method.method_lock(this).enter(thread)) {
+        // Failed. Thread is automatically blocked. Return.
+        assert(thread.getState() === enums.ThreadState.BLOCKED);
+        return;
+      }
     }
 
     while (thread.getState() === enums.ThreadState.RUNNABLE) {
@@ -71,13 +77,13 @@ class BytecodeStackFrame implements IStackFrame {
     // XXX: Monitorexit if return opcode???
   }
 
-  public scheduleResume(rv?: any): void {
+  public scheduleResume(thread: JVMThread, rv?: any): void {
     if (rv) {
       this.stack.push(rv);
     }
   }
 
-  public scheduleException(e: java_object.JavaObject): boolean {
+  public scheduleException(thread: JVMThread, e: java_object.JavaObject): boolean {
     // STEP 1: We need the pc value of the invoke opcode that caused this mess.
     // Rewind until we find it.
     var code: attributes.Code = this.method.code,
@@ -120,6 +126,10 @@ class BytecodeStackFrame implements IStackFrame {
     } else {
       // abrupt method invocation completion
       debug("exception not caught, terminating " + method.full_signature());
+      // STEP 4: Synchronized method? Exit from the method's monitor.
+      if (method.access_flags.synchronized) {
+        method.method_lock(this).exit(thread);
+      }
       return false;
     }
   }
@@ -162,7 +172,7 @@ class NativeStackFrame implements IStackFrame {
   /**
    * N/A
    */
-  public scheduleResume(rv?: any): void {
+  public scheduleResume(thread: JVMThread, rv?: any): void {
     // NOP
   }
 
@@ -170,7 +180,7 @@ class NativeStackFrame implements IStackFrame {
    * Not relevant; the first execution block of a native method will never
    * receive an exception.
    */
-  public scheduleException(e: java_object.JavaObject): boolean {
+  public scheduleException(thread: JVMThread, e: java_object.JavaObject): boolean {
     return false;
   }
 
@@ -208,7 +218,7 @@ class InternalStackFrame implements IStackFrame {
   /**
    * Resumes the JavaScript code that created this stack frame.
    */
-  public scheduleResume(rv?: any): void {
+  public scheduleResume(thread: JVMThread, rv?: any): void {
     this.isException = false;
     this.val = rv;
   }
@@ -217,7 +227,7 @@ class InternalStackFrame implements IStackFrame {
    * Resumes the JavaScript code that created this stack frame with the given
    * exception.
    */
-  public scheduleException(e: java_object.JavaObject): boolean {
+  public scheduleException(thread: JVMThread, e: java_object.JavaObject): boolean {
     this.isException = true;
     this.val = e;
     return true;
@@ -307,8 +317,8 @@ export class JVMThread extends java_object.JavaObject {
   /**
    * Initializes a new JVM thread. Starts the thread in the NEW state.
    */
-  constructor(private rs: runtime.RuntimeState, private tpool: ThreadPool, cls: ClassData.ReferenceClassData, obj?: any) {
-    super(rs, cls, obj);
+  constructor(private tpool: ThreadPool, cls: ClassData.ReferenceClassData, obj?: any) {
+    super(cls, obj);
   }
 
   /**
@@ -403,10 +413,10 @@ export class JVMThread extends java_object.JavaObject {
   public asyncReturn(rv: java_object.JavaObject): void;
   public asyncReturn(rv: java_object.JavaArray): void;
   public asyncReturn(rv?: any): void {
-    var stack = this.stack;
+    var stack = this.stack, frame: IStackFrame;
     assert(this.state === enums.ThreadState.RUNNABLE || this.state === enums.ThreadState.WAITING);
     // Pop off the current method.
-    stack.pop();
+    frame = stack.pop();
     // Tell the top of the stack that this RV is waiting for it.
     var idx: number = stack.length - 1;
     // If idx is 0, then the thread will TERMINATE next time it enters its main
@@ -453,7 +463,7 @@ export class JVMThread extends java_object.JavaObject {
     }
 
     // Find a stack frame that can handle the exception.
-    while (stack.length > 0 && !stack[idx].scheduleException(exception)) {
+    while (stack.length > 0 && !stack[idx].scheduleException(this, exception)) {
       stack.pop();
       idx--;
     }
@@ -472,17 +482,20 @@ export class JVMThread extends java_object.JavaObject {
   /**
    * Construct a new exception object of the given class with the given message.
    * Convenience function for native JavaScript code.
+   * @param clsName Name of the class (e.g. "Ljava/lang/Throwable;")
+   * @param msg The message to include with the exception.
    */
-  public throwNewException(cls: ClassData.ReferenceClassData, msg: string) {
-    var e = new java_object.JavaObject(this.rs, cls),
+  public throwNewException(clsName: string, msg: string) {
+    var cls: ClassData.ReferenceClassData = null,
+      e = new java_object.JavaObject(this.rs, cls),
       cnstrctr = cls.method_lookup(this, '<init>(Ljava/lang/String;)V');
 
     // Construct the exception, and throw it when done.
-    this.runMethod(cnstrctr, [e, e, java_object.initString(msg)], (e, rv) => {
-      if (e) {
-        this.throwException(e);
+    this.runMethod(cnstrctr, [e, java_object.initString(msg)], (err, rv) => {
+      if (err) {
+        this.throwException(err);
       } else {
-        this.throwException(rv);
+        this.throwException(e);
       }
     });
   }
