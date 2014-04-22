@@ -1,12 +1,8 @@
 "use strict";
 import gLong = require('./gLong');
 import util = require('./util');
-import exceptions = require('./exceptions');
-import runtime = require('./runtime');
 import ConstantPool = require('./ConstantPool');
 import ClassData = require('./ClassData');
-var JavaException = exceptions.JavaException;
-var ReturnException = exceptions.ReturnException;
 import java_object = require('./java_object');
 import threading = require('./threading');
 var JavaObject = java_object.JavaObject;
@@ -14,7 +10,7 @@ var JavaArray = java_object.JavaArray;
 var JavaClassLoaderObject = java_object.JavaClassLoaderObject;
 
 export interface Execute {
-  (rs: runtime.RuntimeState): any;
+  (thread: threading.JVMThread, stack: any[], locals: any[]): any;
 }
 
 export class Opcode {
@@ -51,7 +47,7 @@ export class Opcode {
     }
   }
 
-  public _execute(rs: runtime.RuntimeState): boolean {
+  public _execute(thread: threading.JVMThread): boolean {
     throw new Error("ERROR: Unimplemented opcode.");
   }
 

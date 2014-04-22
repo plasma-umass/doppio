@@ -1,5 +1,6 @@
 import runtime = require('./runtime');
 import ClassData = require('./ClassData');
+import ClassLoader = require('./ClassLoader');
 import java_object = require('./java_object');
 import methods = require('./methods');
 import enums = require('./enums');
@@ -74,7 +75,7 @@ export class BytecodeStackFrame implements IStackFrame {
       this.pc += 1 + op.byte_count;
     }
 
-    // XXX: Monitorexit if return opcode???
+    // XXX: Monitorexit if return opcode!
   }
 
   public scheduleResume(thread: JVMThread, rv?: any): void {
@@ -102,7 +103,7 @@ export class BytecodeStackFrame implements IStackFrame {
     for (i = 0; i < exceptionHandlers.length; i++) {
       var eh = exceptionHandlers[i];
       if (eh.start_pc <= pc && pc < eh.end_pc) {
-        var resolvedCatchType = method.cls.loader.get_resolved_class(eh.catch_type, true);
+        var resolvedCatchType = method.cls.loader.getResolvedClass(eh.catch_type);
         // NOTE: If this exception handler type isn't resolved, then this
         // couldn't possibly be the right exception handler -- all of the classes
         // that the exception could be cast as must be resolved by now.
@@ -317,7 +318,8 @@ export class JVMThread extends java_object.JavaObject {
   /**
    * Initializes a new JVM thread. Starts the thread in the NEW state.
    */
-  constructor(private tpool: ThreadPool, cls: ClassData.ReferenceClassData, obj?: any) {
+  constructor(private bsCl: ClassLoader.BootstrapClassLoader,
+    private tpool: ThreadPool, cls: ClassData.ReferenceClassData, obj?: any) {
     super(cls, obj);
   }
 
@@ -470,8 +472,9 @@ export class JVMThread extends java_object.JavaObject {
 
     if (stack.length === 0) {
       // !!! UNCAUGHT EXCEPTION !!!
-      var threadCls = <ClassData.ReferenceClassData> this.rs.get_bs_class('Ljava/lang/Thread;'),
-        dispatchMethod = threadCls.method_lookup(this.rs, 'dispatchUncaughtException(Ljava/lang/Throwable;)V');
+      var threadCls = <ClassData.ReferenceClassData> this.bsCl.getResolvedClass('Ljava/lang/Thread;'),
+        dispatchMethod = threadCls.method_lookup(this, 'dispatchUncaughtException(Ljava/lang/Throwable;)V');
+      assert(dispatchMethod != null);
       this.runMethod(dispatchMethod, [this, exception]);
     } else {
       // Thread is now runnable.
@@ -486,12 +489,12 @@ export class JVMThread extends java_object.JavaObject {
    * @param msg The message to include with the exception.
    */
   public throwNewException(clsName: string, msg: string) {
-    var cls: ClassData.ReferenceClassData = null,
-      e = new java_object.JavaObject(this.rs, cls),
+    var cls = <ClassData.ReferenceClassData> this.bsCl.getInitializedClass(clsName),
+      e = new java_object.JavaObject(cls),
       cnstrctr = cls.method_lookup(this, '<init>(Ljava/lang/String;)V');
 
     // Construct the exception, and throw it when done.
-    this.runMethod(cnstrctr, [e, java_object.initString(msg)], (err, rv) => {
+    this.runMethod(cnstrctr, [e, java_object.initString(this.bsCl, msg)], (err, rv) => {
       if (err) {
         this.throwException(err);
       } else {
