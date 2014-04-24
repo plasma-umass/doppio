@@ -23,8 +23,9 @@ export interface IStackFrame {
   /**
    * Configures the method to resume after a method call.
    * @rv The return value from the method call, if applicable.
+   * @rv2 The second return value, which will always be null if applicable.
    */
-  scheduleResume: (thread: JVMThread, rv?: any) => void;
+  scheduleResume: (thread: JVMThread, rv?: any, rv2?: any) => void;
   /**
    * Checks if the method can handle the given exception. If so,
    * configures the stack frame to handle the exception.
@@ -44,6 +45,7 @@ export class BytecodeStackFrame implements IStackFrame {
   public pc: number = 0;
   public locals: any[] = [];
   public stack: any[];
+  public returnToThreadLoop: boolean = false;
 
   /**
    * Constructs a bytecode method's stack frame.
@@ -67,23 +69,31 @@ export class BytecodeStackFrame implements IStackFrame {
       }
     }
 
-    while (thread.getState() === enums.ThreadState.RUNNABLE) {
+    // Reset the returnToThreadLoop switch. The current value is leftover
+    // from the previous time this method was run, and is meaningless.
+    this.returnToThreadLoop = false;
+
+    // Run until we get the signal to return to the thread loop.
+    while (!this.returnToThreadLoop) {
       var op = code[this.pc];
-      if (op.execute(thread) === false) {
-        break;
-      }
-      this.pc += 1 + op.byte_count;
+      op.execute(thread, this);
     }
 
     // XXX: Monitorexit if return opcode!
   }
 
-  public scheduleResume(thread: JVMThread, rv?: any): void {
+  public scheduleResume(thread: JVMThread, rv?: any, rv2?: any): void {
     if (rv) {
       this.stack.push(rv);
     }
+    if (rv2) {
+      this.stack.push(rv2);
+    }
   }
 
+  /**
+   * @todo Make potentially asynchronous! Need to invoke ClassLoader on exception handlers.
+   */
   public scheduleException(thread: JVMThread, e: java_object.JavaObject): boolean {
     // STEP 1: We need the pc value of the invoke opcode that caused this mess.
     // Rewind until we find it.
@@ -136,6 +146,13 @@ export class BytecodeStackFrame implements IStackFrame {
   }
 
   /**
+   * Returns the classloader for the stack frame.
+   */
+  public getLoader(): ClassLoader.ClassLoader {
+    return this.method.cls.loader;
+  }
+
+  /**
    * Indicates the type of this stack frame.
    */
   public type: enums.StackFrameType = enums.StackFrameType.BYTECODE;
@@ -173,7 +190,7 @@ class NativeStackFrame implements IStackFrame {
   /**
    * N/A
    */
-  public scheduleResume(thread: JVMThread, rv?: any): void {
+  public scheduleResume(thread: JVMThread, rv?: any, rv2?: any): void {
     // NOP
   }
 
@@ -324,6 +341,13 @@ export class JVMThread extends java_object.JavaObject {
   }
 
   /**
+   * Retrieve the bootstrap classloader.
+   */
+  public getBsCl(): ClassLoader.BootstrapClassLoader {
+    return this.bsCl;
+  }
+
+  /**
    * The thread's main execution loop. Everything starts here!
    * NOTE: This should only be called from the ThreadPool.
    */
@@ -409,12 +433,7 @@ export class JVMThread extends java_object.JavaObject {
    * 
    * It is not valid to call this method if the thread is in any other state.
    */
-  public asyncReturn(): void;
-  public asyncReturn(rv: number): void;
-  public asyncReturn(rv: gLong): void;
-  public asyncReturn(rv: java_object.JavaObject): void;
-  public asyncReturn(rv: java_object.JavaArray): void;
-  public asyncReturn(rv?: any): void {
+  public asyncReturn(rv?: any, rv2?: any): void {
     var stack = this.stack, frame: IStackFrame;
     assert(this.state === enums.ThreadState.RUNNABLE || this.state === enums.ThreadState.WAITING);
     // Pop off the current method.
@@ -424,7 +443,7 @@ export class JVMThread extends java_object.JavaObject {
     // If idx is 0, then the thread will TERMINATE next time it enters its main
     // loop.
     if (idx >= 0) {
-      stack[idx].scheduleResume(rv);
+      stack[idx].scheduleResume(rv, rv2);
     }
 
     // Thread state transition.

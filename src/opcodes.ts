@@ -5,27 +5,25 @@ import ConstantPool = require('./ConstantPool');
 import ClassData = require('./ClassData');
 import java_object = require('./java_object');
 import threading = require('./threading');
+import enums = require('./enums');
 var JavaObject = java_object.JavaObject;
 var JavaArray = java_object.JavaArray;
 var JavaClassLoaderObject = java_object.JavaClassLoaderObject;
 
 export interface Execute {
-  (thread: threading.JVMThread, stack: any[], locals: any[]): any;
+  (thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void;
 }
 
 export class Opcode {
-  public name: string
-  public byte_count: number
-  public execute: Execute
-  public orig_execute: Execute
-  public args: number[]
+  public name: string;
+  public byte_count: number;
+  public execute: Execute;
+  public args: number[];
 
   constructor(name: string, byte_count?: number, execute?: Execute) {
     this.name = name;
     this.byte_count = byte_count || 0;
-    this.execute = execute || this._execute;
-    // Backup so we can reset caching between JVM invocations.
-    this.orig_execute = this.execute;
+    this.execute = execute || this._execute;;
   }
 
   public take_args(code_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
@@ -35,31 +33,22 @@ export class Opcode {
     }
   }
 
-  // called to provide opcode annotations for disassembly and vtrace
+  /**
+   * Called to provide opcode annotations for disassembly and vtrace
+   */
   public annotate(idx: number, pool: ConstantPool.ConstantPool): string {
     return '';
   }
 
-  // Used to reset any cached information between JVM invocations.
-  public reset_cache(): void {
-    if (this.execute !== this.orig_execute) {
-      this.execute = this.orig_execute;
-    }
-  }
-
-  public _execute(thread: threading.JVMThread): boolean {
+  public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
     throw new Error("ERROR: Unimplemented opcode.");
   }
 
-  // Increments the PC properly by the given offset.
-  // Subtracts the byte_count and 1 before setting the offset so that the outer
-  // loop can be simple.
-  public inc_pc(rs: runtime.RuntimeState, offset: number): number {
-    return rs.inc_pc(offset - 1 - this.byte_count);
-  }
-
-  public goto_pc(rs: runtime.RuntimeState, new_pc: number): number {
-    return rs.goto_pc(new_pc - 1 - this.byte_count);
+  /**
+   * Increments the PC after a successful opcode execution.
+   */
+  public incPc(frame: threading.BytecodeStackFrame): void {
+    frame.pc += 1 + this.byte_count;
   }
 }
 
@@ -102,8 +91,8 @@ export class ClassOpcode extends Opcode {
 }
 
 export class InvokeOpcode extends Opcode {
-  public method_spec_ref: number
-  public method_spec: any
+  public method_spec_ref: number;
+  public method_spec: any;
 
   constructor(name: string) {
     super(name, 2);
@@ -119,28 +108,29 @@ export class InvokeOpcode extends Opcode {
     return "\t#" + this.method_spec_ref + ";" + info;
   }
 
-  public _execute(rs: runtime.RuntimeState): boolean {
-    var cls = <ClassData.ReferenceClassData> rs.get_class(this.method_spec.class_desc, true);
+  public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
+    var cls = <ClassData.ReferenceClassData> frame.getLoader().getInitializedClass(this.method_spec.class_desc);
     if (cls != null) {
-      var my_sf = rs.curr_frame();
-      var m = cls.method_lookup(rs, this.method_spec.sig);
+      var m = cls.method_lookup(thread, this.method_spec.sig);
       if (m != null) {
-        if (m.setup_stack(rs) != null) {
-          my_sf.pc += 1 + this.byte_count;
-          return false;
-        }
+        thread.runMethod(m, m.take_params(frame.stack));
+        frame.returnToThreadLoop = true;
+        // When this method resumes, we will proceed to the next opcode.
+        this.incPc(frame);
       } else {
-        var sig = this.method_spec.sig;
-        rs.async_op(function(resume_cb, except_cb) {
-          cls.resolve_method(rs, sig, (() => resume_cb(undefined, undefined, true, false)), except_cb);
-        });
+        // Could not find method! An exception has been thrown.
+        frame.returnToThreadLoop = true;
+        return;
       }
     } else {
       // Initialize our class and rerun opcode.
       var classname = this.method_spec.class_desc;
-      rs.async_op(function(resume_cb, except_cb) {
-        rs.get_cl().initialize_class(rs, classname, (() => resume_cb(undefined, undefined, true, false)), except_cb);
-      });
+      thread.setState(enums.ThreadState.WAITING);
+      frame.returnToThreadLoop = true;
+      frame.getLoader().initializeClass(thread, classname, (cdata: ClassData.ClassData) => {
+        // Resume the thread.
+        thread.setState(enums.ThreadState.RUNNABLE);
+      }, false);
     }
   }
 }
@@ -205,31 +195,32 @@ export class DynInvokeOpcode extends InvokeOpcode {
     return "\t#" + this.method_spec_ref + extra + ";" + info;
   }
 
-  public _execute(rs: runtime.RuntimeState): boolean {
-    var cls = rs.get_class(this.method_spec.class_desc, true);
+  public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
+    var cls = frame.getLoader().getInitializedClass(this.method_spec.class_desc);
     if (cls != null) {
-      var my_sf = rs.curr_frame();
-      var stack = my_sf.stack;
+      var stack = frame.stack;
       var obj = stack[stack.length - this.count];
-      var cls_obj = rs.check_null(obj).cls;
-      var m = cls_obj.method_lookup(rs, this.method_spec.sig);
-      if (m != null) {
-        if (m.setup_stack(rs) != null) {
-          my_sf.pc += 1 + this.byte_count;
-          return false;
-        }
+      if (obj == null) {
+        thread.throwNewException('Ljava/lang/NullPointerException;', '');
+        frame.returnToThreadLoop = true;
       } else {
-        var sig = this.method_spec.sig;
-        rs.async_op(function(resume_cb, except_cb) {
-          cls_obj.resolve_method(rs, sig, (()=>resume_cb(undefined, undefined, true, false)), except_cb);
-        });
+        var m = cls.method_lookup(thread, this.method_spec.sig);
+        if (m != null) {
+          thread.runMethod(m, m.take_params(stack));
+          this.incPc(frame);
+          frame.returnToThreadLoop = true;
+        } else {
+          // Method could not be found, and an exception has been thrown.
+          frame.returnToThreadLoop = true;
+        }
       }
     } else {
       // Initialize our class and rerun opcode.
       var classname = this.method_spec.class_desc;
-      rs.async_op(function(resume_cb, except_cb) {
-        rs.get_cl().initialize_class(rs, classname, (()=>resume_cb(undefined, undefined, true, false)), except_cb);
-      });
+      thread.setState(enums.ThreadState.WAITING);
+      frame.getLoader().initializeClass(thread, classname, (cdata) => {
+        thread.setState(enums.ThreadState.RUNNABLE);
+      }, false);
     }
   }
 }
@@ -256,27 +247,31 @@ export class LoadConstantOpcode extends Opcode {
     return anno + this.constant.value;
   }
 
-  public _execute(rs: runtime.RuntimeState): boolean {
+  public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
     switch (this.constant.type) {
       case 'String':
-        rs.push(rs.init_string(this.str_constant.value, true));
+        frame.stack.push(java_object.initString(thread.getBsCl(), this.str_constant.value, true));
+        this.incPc(frame);
         break;
       case 'class':
-        // XXX: Make this rewrite itself to cache the jclass object.
         // Fetch the jclass object and push it on to the stack. Do not rerun
         // this opcode.
         var cdesc = util.typestr2descriptor(this.str_constant.value);
-        rs.async_op(function(resume_cb, except_cb) {
-          rs.get_cl().resolve_class(rs, cdesc, ((cls)=>resume_cb(cls.get_class_object(rs), undefined, true)), except_cb);
-        });
+        thread.setState(enums.ThreadState.WAITING);
+        frame.getLoader().resolveClass(thread, cdesc, (cdata: ClassData.ClassData) => {
+          frame.stack.push(cdata.get_class_object());
+          this.incPc(frame);
+          thread.setState(enums.ThreadState.RUNNABLE);
+        }, false);
         break;
       default:
         if (this.name === 'ldc2_w')
-          rs.push2(this.constant.value, null);
+          frame.stack.push(this.constant.value, null);
         else
-          rs.push(this.constant.value);
+          frame.stack.push(this.constant.value);
+        this.incPc(frame);
+        break;
     }
-    return true;
   }
 }
 
@@ -301,56 +296,56 @@ export class GotoOpcode extends BranchOpcode {
     super(name);
     this.byte_count = byte_count;
   }
-  public _execute(rs: runtime.RuntimeState): boolean {
-    this.inc_pc(rs, this.offset);
-    return true;
+  public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
+    frame.pc += this.offset;
   }
 }
 
 export class JSROpcode extends GotoOpcode {
-  public _execute(rs: runtime.RuntimeState): boolean {
-    rs.push(rs.curr_pc() + this.byte_count + 1);
-    this.inc_pc(rs, this.offset);
-    return true;
+  public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
+    frame.stack.push(frame.pc + this.byte_count + 1);
+    frame.pc += this.offset;
   }
 }
 
 export class UnaryBranchOpcode extends BranchOpcode {
-  private cmp: Function  // TODO: specialize this type
+  private cmp: Function;  // TODO: specialize this type
 
   constructor(name: string, cmp: Function) {
     super(name);
     this.cmp = cmp;
   }
 
-  public _execute(rs: runtime.RuntimeState): boolean {
-    if (this.cmp(rs.pop())) {
-      this.inc_pc(rs, this.offset);
+  public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
+    if (this.cmp(frame.stack.pop())) {
+      frame.pc += this.offset;
+    } else {
+      this.incPc(frame);
     }
-    return true;
   }
 }
 
 export class BinaryBranchOpcode extends BranchOpcode {
-  private cmp: Function  // TODO: specialize this type
+  private cmp: Function;  // TODO: specialize this type
 
   constructor(name: string, cmp: Function) {
     super(name);
     this.cmp = cmp;
   }
 
-  public _execute(rs: runtime.RuntimeState): boolean {
-    var v2 = rs.pop();
-    var v1 = rs.pop();
+  public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
+    var v2 = frame.stack.pop();
+    var v1 = frame.stack.pop();
     if (this.cmp(v1, v2)) {
-      this.inc_pc(rs, this.offset);
+      frame.pc += this.offset;
+    } else {
+      this.incPc(frame);
     }
-    return true;
   }
 }
 
 export class PushOpcode extends Opcode {
-  public value: number
+  public value: number;
 
   public take_args(code_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
     this.value = code_array.get_int(this.byte_count);
@@ -360,9 +355,9 @@ export class PushOpcode extends Opcode {
     return "\t" + this.value;
   }
 
-  public _execute(rs: runtime.RuntimeState): boolean {
-    rs.push(this.value);
-    return true;
+  public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
+    frame.stack.push(this.value);
+    this.incPc(frame);
   }
 }
 
@@ -388,10 +383,10 @@ export class IIncOpcode extends Opcode {
     return "\t" + this.index + ", " + this["const"];
   }
 
-  public _execute(rs: runtime.RuntimeState): boolean {
-    var v = rs.cl(this.index) + this["const"];
-    rs.put_cl(this.index, v | 0);
-    return true;
+  public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
+    var v = frame.locals[this.index] + this["const"];
+    frame.locals[this.index] = v | 0;
+    this.incPc(frame);
   }
 }
 
@@ -403,17 +398,17 @@ export class LoadOpcode extends Opcode {
     this.var_num = parseInt(this.name[6]);
   }
 
-  public _execute(rs: runtime.RuntimeState): boolean {
-    rs.push(rs.cl(this.var_num));
-    return true;
+  public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
+    frame.stack.push(frame.locals[this.var_num]);
+    this.incPc(frame);
   }
 }
 
 // For category 2 types.
 export class LoadOpcode2 extends LoadOpcode {
-  public _execute(rs: runtime.RuntimeState): boolean {
-    rs.push2(rs.cl(this.var_num), null);
-    return true;
+  public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
+    frame.stack.push(frame.locals[this.var_num], null);
+    this.incPc(frame);
   }
 }
 
@@ -434,9 +429,9 @@ export class LoadVarOpcode extends LoadOpcode {
 }
 
 export class LoadVarOpcode2 extends LoadVarOpcode {
-  public _execute(rs: runtime.RuntimeState): boolean {
-    rs.push2(rs.cl(this.var_num), null);
-    return true;
+  public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
+    frame.stack.push(frame.locals[this.var_num], null);
+    this.incPc(frame);
   }
 }
 
@@ -448,17 +443,21 @@ export class StoreOpcode extends Opcode {
     this.var_num = parseInt(this.name[7]);
   }
 
-  public _execute(rs: runtime.RuntimeState): boolean {
-    rs.put_cl(this.var_num, rs.pop());
-    return true;
+  public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
+    frame.locals[this.var_num] = frame.stack.pop();
+    this.incPc(frame);
   }
 }
 
 // For category 2 types.
 export class StoreOpcode2 extends StoreOpcode {
-  public _execute(rs: runtime.RuntimeState): boolean {
-    rs.put_cl2(this.var_num, rs.pop2());
-    return true;
+  public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
+    var stack = frame.stack, varNum = this.var_num, locals = frame.locals;
+    // First value is a NULL.
+    locals[varNum+1] = stack.pop();
+    // Second value is the real value.
+    locals[varNum] = stack.pop();
+    this.incPc(frame);
   }
 }
 
@@ -479,9 +478,13 @@ export class StoreVarOpcode extends StoreOpcode {
 }
 
 export class StoreVarOpcode2 extends LoadVarOpcode {
-  public _execute(rs: runtime.RuntimeState): boolean {
-    rs.put_cl2(this.var_num, rs.pop2());
-    return true;
+  public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
+    var stack = frame.stack, varNum = this.var_num, locals = frame.locals;
+    // First value is NULL.
+    locals[varNum + 1] = stack.pop();
+    // Second value is the true value.
+    locals[varNum] = stack.pop();
+    this.incPc(frame);
   }
 }
 
@@ -512,14 +515,13 @@ export class LookupSwitchOpcode extends BranchOpcode {
     this.byte_count = padding_size + 8 * (npairs + 1);
   }
 
-  public _execute(rs: runtime.RuntimeState): boolean {
-    var offset = this.offsets[rs.pop()];
+  public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
+    var offset = this.offsets[frame.stack.pop()];
     if (offset) {
-      this.inc_pc(rs, offset);
+      frame.pc += offset;
     } else {
-      this.inc_pc(rs, this._default);
+      frame.pc += this._default;
     }
-    return true;
   }
 }
 
@@ -559,9 +561,10 @@ export class NewArrayOpcode extends Opcode {
     return "\t" + util.internal2external[this.element_type];
   }
 
-  public _execute(rs: runtime.RuntimeState): boolean {
-    rs.push(rs.heap_newarray(this.element_type, rs.pop()));
-    return true;
+  public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
+    var stack = frame.stack;
+    stack.push(java_object.heap_newarray(this.element_type, stack.pop()));
+    this.incPc(frame);
   }
 }
 
@@ -584,155 +587,178 @@ export class MultiArrayOpcode extends Opcode {
     return "\t#" + this.class_ref + ",  " + this.dim + ";";
   }
 
-  public _execute(rs: runtime.RuntimeState): boolean {
-    var _this = this;
-    var cls = rs.get_class(this.class_descriptor, true);
+  public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
+    var cls = frame.getLoader().getInitializedClass(this.class_descriptor);
     if (cls == null) {
-      rs.async_op(function(resume_cb, except_cb) {
-        rs.get_cl().initialize_class(rs, _this.class_descriptor,
-            ((class_file) => resume_cb(undefined, undefined, true, false)),
-            except_cb);
-      });
-      return true;
+      thread.setState(enums.ThreadState.WAITING);
+      frame.getLoader().initializeClass(thread, this.class_descriptor, (cdata) => {
+        thread.setState(enums.ThreadState.RUNNABLE);
+      }, false);
+      frame.returnToThreadLoop = true;
+    } else {
+      // cls is loaded. Create a new execute function to avoid this overhead.
+      var new_execute = (thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void => {
+        var stack = frame.stack,
+          counts = stack.splice(-this.dim, this.dim);
+        stack.push(java_object.heap_multinewaray(this.class_descriptor, counts));
+        this.incPc(frame);
+      };
+      new_execute.call(this, thread, frame);
+      this.execute = new_execute;
     }
-    // cls is loaded. Create a new execute function to avoid this overhead.
-    var new_execute = function(rs: runtime.RuntimeState): void {
-      var counts = rs.curr_frame().stack.splice(-this.dim, this.dim);
-      rs.push(rs.heap_multinewarray(_this.class_descriptor, counts));
-    };
-    new_execute.call(this, rs);
-    this.execute = new_execute;
-    return true;
   }
 }
 
 export class ArrayLoadOpcode extends Opcode {
-  public _execute(rs: runtime.RuntimeState): boolean {
-    var idx = rs.pop();
-    var obj = rs.check_null<java_object.JavaArray>(rs.pop());
-    var len = obj.array.length;
-    if (idx < 0 || idx >= len) {
-      var err_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;');
-      rs.java_throw(err_cls,
-        idx + " not in length " + len + " array of type " + obj.cls.get_type());
+  public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
+    var stack = frame.stack,
+      idx = stack.pop(),
+      obj = <java_object.JavaArray> stack.pop();//rs.check_null<java_object.JavaArray>(rs.pop());
+    if (obj == null) {
+      thread.throwNewException('Ljava/lang/NullPointerException;', '');
+      frame.returnToThreadLoop = true;
+    } else {
+      var len = obj.array.length;
+      if (idx < 0 || idx >= len) {
+        thread.throwNewException('Ljava/lang/ArrayIndexOutOfBoundsException;', idx + " not in length " + len + " array of type " + obj.cls.get_type());
+        frame.returnToThreadLoop = true;
+      } else {
+        stack.push(obj.array[idx]);
+        if (this.name[0] === 'l' || this.name[0] === 'd') {
+          stack.push(null);
+        }
+        this.incPc(frame);
+      }
     }
-    rs.push(obj.array[idx]);
-    if (this.name[0] === 'l' || this.name[0] === 'd') {
-      rs.push(null);
-    }
-    return true;
   }
 }
 
 export class ArrayStoreOpcode extends Opcode {
-  public _execute(rs: runtime.RuntimeState): boolean {
-    var value = (this.name[0] === 'l' || this.name[0] === 'd') ? rs.pop2() : rs.pop();
-    var idx = rs.pop();
-    var obj = rs.check_null(rs.pop());
-    var len = obj.array.length;
-    if (idx < 0 || idx >= len) {
-      var err_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;');
-      rs.java_throw(err_cls,
-        idx + " not in length " + len + " array of type " + obj.cls.get_type());
+  public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
+    var stack = frame.stack;
+    if (this.name[0] === 'l' || this.name[0] === 'd') {
+      // pop2: Ignore the first pop.
+      stack.pop();
     }
-    obj.array[idx] = value;
-    return true;
+
+    var value = stack.pop(),
+      idx = stack.pop(),
+      obj = <java_object.JavaArray> stack.pop();
+    if (obj == null) {
+      thread.throwNewException('Ljava/lang/NullPointerException;', '');
+      frame.returnToThreadLoop = true;
+    } else {
+      var len = obj.array.length;
+      if (idx < 0 || idx >= len) {
+        thread.throwNewException('Ljava/lang/ArrayIndexOutOfBoundsException;', idx + " not in length " + len + " array of type " + obj.cls.get_type());
+        frame.returnToThreadLoop = true;
+      } else {
+        obj.array[idx] = value;
+        this.incPc(frame);
+      }
+    }
   }
 }
 
 export class ReturnOpcode extends Opcode {
-  public _execute(rs: runtime.RuntimeState): boolean {
-    var cf = rs.meta_stack().pop();
-    rs.push(cf.stack[0]);
-    rs.should_return = true;
-    return true;
+  public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
+    frame.returnToThreadLoop = true;
+    if (frame.method.access_flags.synchronized) {
+      // monitorexit
+      frame.method.method_lock(frame).exit(thread);
+    }
+    thread.asyncReturn(frame.stack[0]);
   }
 }
 
 export class ReturnOpcode2 extends Opcode {
-  public _execute(rs: runtime.RuntimeState): boolean {
-    var cf = rs.meta_stack().pop();
-    rs.push2(cf.stack[0], null);
-    rs.should_return = true;
-    return true;
+  public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
+    frame.returnToThreadLoop = true;
+    if (frame.method.access_flags.synchronized) {
+      // monitorexit
+      frame.method.method_lock(frame).exit(thread);
+    }
+    thread.asyncReturn(frame.stack[0], null);
   }
 }
 
 export class VoidReturnOpcode extends Opcode {
-  public _execute(rs: runtime.RuntimeState): boolean {
-    rs.meta_stack().pop();
-    rs.should_return = true;
-    return true;
-  }
-}
-
-export function monitorenter(rs: runtime.RuntimeState,
-    monitor: java_object.JavaObject, inst?: Opcode): boolean {
-  if (monitor == null) {
-    rs.java_throw(<ClassData.ReferenceClassData>
-      rs.get_bs_class('Ljava/lang/NullPointerException;'), 'Cannot enter a null monitor.');
-  }
-  var locked_thread = rs.lock_refs[monitor.ref];
-  if (locked_thread != null) {
-    if (locked_thread === rs.curr_thread) {
-      // increment lock counter, to only unlock at zero
-      rs.lock_counts[monitor.ref]++;
-    } else {
-      if (inst != null) {
-        inst.inc_pc(rs, 1);
-      } else {
-        rs.inc_pc(1);
-      }
-      // dummy, to be popped by rs.yield
-      rs.meta_stack().push(<any>{});
-      rs.wait(monitor);
-      return false;
+  public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
+    frame.returnToThreadLoop = true;
+    if (frame.method.access_flags.synchronized) {
+      // monitorexit
+      frame.method.method_lock(frame).exit(thread);
     }
-  } else {
-    // this lock not held by any thread
-    rs.lock_refs[monitor.ref] = rs.curr_thread;
-    rs.lock_counts[monitor.ref] = 1;
-  }
-  return true;
-}
-
-export function monitorexit(rs: runtime.RuntimeState, monitor: any): void {
-  var locked_thread = rs.lock_refs[monitor.ref];
-  if (locked_thread == null) return;
-  if (locked_thread === rs.curr_thread) {
-    rs.lock_counts[monitor.ref]--;
-    if (rs.lock_counts[monitor.ref] === 0) {
-      delete rs.lock_refs[monitor.ref];
-      // perform a notifyAll if the lock is now free
-      if (rs.waiting_threads[monitor.ref] != null) {
-        rs.waiting_threads[monitor.ref] = [];
-      }
-    }
-  } else {
-    var err_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;');
-    rs.java_throw(err_cls, "Thread " + rs.curr_thread.name(rs) + " tried to monitorexit on lock held by thread " + locked_thread.name(rs) + ".");
+    thread.asyncReturn();
   }
 }
 
 // These objects are used as prototypes for the parsed instructions in the classfile.
 // Opcodes are in order, indexed by their binary representation.
 export var opcodes : Opcode[] = [
-  new Opcode('nop', 0, function(rs){}),  // apparently you can't use lambda syntax for a nop
-  new Opcode('aconst_null', 0, ((rs)=>rs.push(null))),
-  new Opcode('iconst_m1', 0, ((rs)=>rs.push(-1))),
-  new Opcode('iconst_0', 0, ((rs)=>rs.push(0))),
-  new Opcode('iconst_1', 0, ((rs)=>rs.push(1))),
-  new Opcode('iconst_2', 0, ((rs)=>rs.push(2))),
-  new Opcode('iconst_3', 0, ((rs)=>rs.push(3))),
-  new Opcode('iconst_4', 0, ((rs)=>rs.push(4))),
-  new Opcode('iconst_5', 0, ((rs)=>rs.push(5))),
-  new Opcode('lconst_0', 0, ((rs)=>rs.push2(gLong.ZERO, null))),
-  new Opcode('lconst_1', 0, ((rs)=>rs.push2(gLong.ONE, null))),
-  new Opcode('fconst_0', 0, ((rs)=>rs.push(0))),
-  new Opcode('fconst_1', 0, ((rs)=>rs.push(1))),
-  new Opcode('fconst_2', 0, ((rs)=>rs.push(2))),
-  new Opcode('dconst_0', 0, ((rs)=>rs.push2(0, null))),
-  new Opcode('dconst_1', 0, ((rs)=>rs.push2(1, null))),
+  new Opcode('nop', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    this.incPc(frame);
+  }),
+  new Opcode('aconst_null', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    frame.stack.push(null);
+    this.incPc(frame);
+  }),
+  new Opcode('iconst_m1', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    frame.stack.push(-1);
+    this.incPc(frame);
+  }),
+  new Opcode('iconst_0', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    frame.stack.push(0);
+    this.incPc(frame);
+  }),
+  new Opcode('iconst_1', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    frame.stack.push(1);
+    this.incPc(frame);
+  }),
+  new Opcode('iconst_2', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    frame.stack.push(2);
+    this.incPc(frame);
+  }),
+  new Opcode('iconst_3', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    frame.stack.push(3);
+    this.incPc(frame);
+  }),
+  new Opcode('iconst_4', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    frame.stack.push(4);
+    this.incPc(frame);
+  }),
+  new Opcode('iconst_5', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    frame.stack.push(5);
+    this.incPc(frame);
+  }),
+  new Opcode('lconst_0', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    frame.stack.push(gLong.ZERO, null);
+    this.incPc(frame);
+  }),
+  new Opcode('lconst_1', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    frame.stack.push(gLong.ONE, null);
+    this.incPc(frame);
+  }),
+  new Opcode('fconst_0', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    frame.stack.push(0);
+    this.incPc(frame);
+  }),
+  new Opcode('fconst_1', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    frame.stack.push(1);
+    this.incPc(frame);
+  }),
+  new Opcode('fconst_2', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    frame.stack.push(2);
+    this.incPc(frame);
+  }),
+  new Opcode('dconst_0', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    frame.stack.push(0, null);
+    this.incPc(frame);
+  }),
+  new Opcode('dconst_1', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    frame.stack.push(1, null);
+    this.incPc(frame);
+  }),
   new PushOpcode('bipush', 1),
   new PushOpcode('sipush', 2),
   new LoadConstantOpcode('ldc', 1),
@@ -806,39 +832,74 @@ export var opcodes : Opcode[] = [
   new ArrayStoreOpcode('sastore'),
 
   // stack manipulation opcodes
-  new Opcode('pop', 0, ((rs)=>rs.pop())),
-  new Opcode('pop2', 0, ((rs)=>rs.pop2())),
-  new Opcode('dup', 0, function(rs) {var v = rs.pop(); rs.push2(v, v);}),
-  new Opcode('dup_x1', 0, function(rs) {
-      var v1 = rs.pop();
-      var v2 = rs.pop();
-      rs.push_array([v1, v2, v1]);}),
-  new Opcode('dup_x2', 0, function(rs) {
-      var v1 = rs.pop();
-      var v2 = rs.pop();
-      var v3 = rs.pop();
-      rs.push_array([v1, v3, v2, v1]);}),
-  new Opcode('dup2', 0, function(rs) {
-      var v1 = rs.pop();
-      var v2 = rs.pop();
-      rs.push_array([v2, v1, v2, v1]);}),
-  new Opcode('dup2_x1', 0, function(rs) {
-      var v1 = rs.pop();
-      var v2 = rs.pop();
-      var v3 = rs.pop();
-      rs.push_array([v2, v1, v3, v2, v1]);}),
-  new Opcode('dup2_x2', 0, function(rs) {
-      var v1 = rs.pop();
-      var v2 = rs.pop();
-      var v3 = rs.pop();
-      var v4 = rs.pop();
-      rs.push_array([v2, v1, v4, v3, v2, v1]);}),
-  new Opcode('swap', 0, function(rs) {
-      var v1 = rs.pop();
-      var v2 = rs.pop();
-      rs.push2(v1, v2);}),
+  new Opcode('pop', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    frame.stack.pop();
+    this.incPc(frame);
+  }),
+  new Opcode('pop2', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.pop();
+    stack.pop();
+    this.incPc(frame);
+  }),
+  new Opcode('dup', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack,
+      v = stack.pop();
+    stack.push(v, v);
+    this.incPc(frame);
+  }),
+  new Opcode('dup_x1', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack,
+      v1 = stack.pop(),
+      v2 = stack.pop();
+    stack.push(v1, v2, v1);
+    this.incPc(frame);
+  }),
+  new Opcode('dup_x2', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack,
+      v1 = stack.pop(),
+      v2 = stack.pop(),
+      v3 = stack.pop();
+    stack.push(v1, v3, v2, v1);
+    this.incPc(frame);
+  }),
+  new Opcode('dup2', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack,
+      v1 = stack.pop(),
+      v2 = stack.pop();
+    stack.push(v2, v1, v2, v1);
+    this.incPc(frame);
+  }),
+  new Opcode('dup2_x1', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack,
+      v1 = stack.pop(),
+      v2 = stack.pop(),
+      v3 = stack.pop();
+    stack.push(v2, v1, v3, v2, v1);
+    this.incPc(frame);
+  }),
+  new Opcode('dup2_x2', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack,
+      v1 = stack.pop(),
+      v2 = stack.pop(),
+      v3 = stack.pop(),
+      v4 = stack.pop();
+    stack.push(v2, v1, v4, v3, v2, v1);
+    this.incPc(frame);
+  }),
+  new Opcode('swap', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack,
+     v1 = stack.pop(),
+     v2 = stack.pop();
+    stack.push(v1, v2);
+    this.incPc(frame);
+  }),
   // math opcodes
-  new Opcode('iadd', 0, ((rs) => rs.push((rs.pop() + rs.pop()) | 0))),
+  new Opcode('iadd', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push((stack.pop() + stack.pop()) | 0);
+    this.incPc(frame);
+  }),
   new Opcode('ladd', 0, ((rs) => rs.push2(rs.pop2().add(rs.pop2()), null))),
   new Opcode('fadd', 0, ((rs) => rs.push(util.wrap_float(rs.pop() + rs.pop())))),
   new Opcode('dadd', 0, ((rs) => rs.push2(rs.pop2() + rs.pop2(), null))),
@@ -988,7 +1049,9 @@ export var opcodes : Opcode[] = [
   new BinaryBranchOpcode('if_acmpne', ((v1,v2) => v1 !== v2)),
   new GotoOpcode('goto', 2),
   new JSROpcode('jsr', 2),
-  new Opcode('ret', 1, function(rs){this.goto_pc(rs, rs.cl(this.args[0]))}),
+  new Opcode('ret', 1, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    frame.pc = frame.locals[this.args[0]] - 1 - this.byte_count;
+  }),
   new TableSwitchOpcode('tableswitch'),
   new LookupSwitchOpcode('lookupswitch'),
   new ReturnOpcode('ireturn'),

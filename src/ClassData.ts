@@ -598,24 +598,16 @@ export class ReferenceClassData extends ClassData {
     if (this.ml_cache[sig] != null) {
       return this.ml_cache[sig];
     }
-    var method = this._method_lookup(rs, sig);
+    var method = this._method_lookup(sig);
     if (method == null) {
-      var err_cls = <ReferenceClassData> rs.get_bs_class('Ljava/lang/NoSuchMethodError;');
-      rs.java_throw(err_cls, "No such method found in " + util.ext_classname(this.get_type()) + "::" + sig);
+      thread.throwNewException('Ljava/lang/NoSuchMethodError;', "No such method found in " + util.ext_classname(this.get_type()) + "::" + sig);
+      return null;
+    } else {
+      return method;
     }
-    if (method.code != null && method.code.exception_handlers != null) {
-      var handlers = method.code.exception_handlers;
-      for (var i = 0; i < handlers.length; i++) {
-        var eh = handlers[i];
-        if (!(eh.catch_type === '<any>' || ((this.loader.get_resolved_class(eh.catch_type, true)) != null))) {
-          return null; // we found it, but it needs to be resolved
-        }
-      }
-    }
-    return method;
   }
 
-  private _method_lookup(rs: runtime.RuntimeState, sig: string): methods.Method {
+  private _method_lookup(sig: string): methods.Method {
     if (sig in this.ml_cache) {
       return this.ml_cache[sig];
     }
@@ -624,7 +616,7 @@ export class ReferenceClassData extends ClassData {
     }
     var parent = <ReferenceClassData>this.get_super_class();
     if (parent != null) {
-      this.ml_cache[sig] = parent._method_lookup(rs, sig);
+      this.ml_cache[sig] = parent._method_lookup(sig);
       if (this.ml_cache[sig] != null) {
         return this.ml_cache[sig];
       }
@@ -632,30 +624,12 @@ export class ReferenceClassData extends ClassData {
     var ifaces = this.get_interfaces();
     for (var i = 0; i < ifaces.length; i++) {
       var ifc = ifaces[i];
-      this.ml_cache[sig] = ifc._method_lookup(rs, sig);
+      this.ml_cache[sig] = ifc._method_lookup(sig);
       if (this.ml_cache[sig] != null) {
         return this.ml_cache[sig];
       }
     }
     return this.ml_cache[sig] = null;
-  }
-
-  // this should only be called after method_lookup returns null!
-  // in particular, we assume that the method exists and has exception handlers.
-  public resolve_method(rs: runtime.RuntimeState, sig: string, success_fn: (mthd:methods.Method)=>void, failure_fn: (e_cb:()=>void)=>void) {
-    var _this = this;
-
-    trace("ASYNCHRONOUS: resolve_method " + sig);
-    var m = this.method_lookup(rs, sig);
-    var handlers = m.code.exception_handlers;
-    util.async_foreach(handlers,
-      function(eh: attributes.ExceptionHandler, next_item: ()=>void) {
-        if (!(eh.catch_type === '<any>' || _this.loader.get_resolved_class(eh.catch_type, true))) {
-          _this.loader.resolve_class(rs, eh.catch_type, next_item, failure_fn);
-        } else {
-          next_item();
-        }
-      }, ()=>success_fn(m));
   }
 
   // Returns a boolean indicating if this class is an instance of the target class.
