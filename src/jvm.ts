@@ -2,7 +2,6 @@
 "use strict";
 import util = require('./util');
 import logging = require('./logging');
-import runtime = require('./runtime');
 import methods = require('./methods');
 import ClassData = require('./ClassData');
 import ClassLoader = require('./ClassLoader');
@@ -10,7 +9,9 @@ import fs = require('fs');
 import path = require('path');
 import JAR = require('./jar');
 import java_object = require('./java_object');
-declare var BrowserFS;
+import threading = require('./threading');
+import enums = require('./enums');
+import Heap = require('./heap');
 
 var trace = logging.trace;
 var error = logging.error;
@@ -19,21 +20,14 @@ var error = logging.error;
  * Encapsulates a single JVM instance.
  */
 class JVM {
-  /**
-   * If `true`, the JVM will serialize and dump its internal state to the file
-   * system if it terminates irregularly (e.g. through an uncaught Exception).
-   */
-  public should_dump_state: boolean = false;
-  public system_properties: {[prop: string]: any};
-  public bs_cl: ClassLoader.BootstrapClassLoader;
-  // HACK: only used in run_class, but we need it when dumping state on exit
-  private _rs: runtime.RuntimeState;
-  // XXX: Static attribute.
-  public static show_NYI_natives: boolean = false;
-  // Maps JAR files to their extraction directory.
-  private jar_map: { [jar_path: string]: string } = {};
+  private system_properties: {[prop: string]: any};
   private internedStrings: { [str: string]: java_object.JavaObject } = {};
   private bsCl: ClassLoader.BootstrapClassLoader;
+  private threadPool: threading.ThreadPool;
+  private natives: { [clsName: string]: { [methSig: string]: Function } } = {};
+  // 20MB heap
+  // @todo Make heap resizeable.
+  private heap = new Heap(20 * 1024 * 1024);
 
   /**
    * (Async) Construct a new instance of the Java Virtual Machine.
@@ -44,42 +38,34 @@ class JVM {
               jcl_path: string = '/sys/vendor/classes',
               java_home_path: string = '/sys/vendor/java_home',
               private jar_file_location: string = '/jars',
-              private native_classpath: string[] = ['/sys/src/natives']) {
-    this.reset_classloader_cache();
-    this._reset_system_properties(jcl_path, java_home_path);
+              private native_classpath: string[]= ['/sys/src/natives']) {
+    jcl_path = path.resolve(jcl_path);
+    java_home_path = path.resolve(java_home_path);
+    this._initSystemProperties(jcl_path, java_home_path);
+    // Construct BSCL.
+    // Initialize natives.
+    // Bootstrap JVM.
+  }
 
-    // Need to check jcl_path and java_home_path.
-    fs.exists(java_home_path, (exists: boolean): void => {
-      if (!exists) {
-        done_cb(new Error("Java home path '" + java_home_path + "' does not exist!"));
-      } else {
-        // Check if jar_file_location exists and, if not, create it.
-        fs.exists(this.jar_file_location, (exists: boolean): void => {
-          var next_step = next_step = () => {
-            this.add_classpath_item(jcl_path, 0, (added: boolean): void => {
-              if (!added) {
-                done_cb(new Error("Java class library path '" + jcl_path + "' does not exist!"));
-              } else {
-                // No error. All good.
-                done_cb(null, this);
-              }
-            });
-          };
+  /**
+   * Retrieve the given system property.
+   */
+  public getSystemProperty(prop: string): any {
+    return this.system_properties[prop];
+  }
 
-          if (!exists) {
-            fs.mkdir(this.jar_file_location, (err?: any): void => {
-              if (err) {
-                done_cb(new Error("Unable to create JAR file directory " + this.jar_file_location + ": " + err));
-              } else {
-                next_step();
-              }
-            });
-          } else {
-            next_step();
-          }
-        });
-      }
-    });
+  /**
+   * Sets the given system property.
+   */
+  public setSystemProperty(prop: string, val: any): void {
+    this.system_properties[prop] = val;
+  }
+
+  /**
+   * Retrieve the unmanaged heap.
+   */
+  public getHeap(): Heap {
+    return this.heap;
   }
 
   /**
@@ -94,8 +80,64 @@ class JVM {
   }
 
   /**
+   * XXX: Hack to evaluate native modules in an environment with
+   * java_object and ClassData defined.
+   */
+  private evalNativeModule(mod: string): any {
+    "use strict";
+    // Terrible hack.
+    mod = mod.replace(/require\((\'|\")..\/(.*)(\'|\")\);/g, 'require($1./$2$1);');
+    return eval(mod);
+  }
+
+  /**
+   * Register native methods with the virtual machine.
+   */
+  public registerNatives(newNatives: { [clsName: string]: { [methSig: string]: Function } }): void {
+    var clsName: string, methSig: string;
+    for (clsName in newNatives) {
+      if (newNatives.hasOwnProperty(clsName)) {
+        if (!this.natives.hasOwnProperty(clsName)) {
+          this.natives[clsName] = {};
+        }
+        var clsMethods = newNatives[clsName];
+        for (methSig in clsMethods) {
+          if (clsMethods.hasOwnProperty(methSig)) {
+            // Don't check if it exists already. This allows us to overwrite
+            // native methods dynamically at runtime.
+            this.natives[clsName][methSig] = clsMethods[methSig];
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Convenience function. Register a single native method with the virtual
+   * machine. Can be used to update existing native methods based on runtime
+   * information.
+   */
+  public registerNative(clsName: string, methSig: string, native: Function): void {
+    this.registerNatives({ clsName: { methSig: native } });
+  }
+
+  /**
+   * Retrieve the native method for the given method of the given class.
+   * Returns null if none found.
+   */
+  public getNative(clsName: string, methSig: string): Function {
+    if (this.natives.hasOwnProperty(clsName)) {
+      var clsMethods = this.natives[clsName];
+      if (clsMethods.hasOwnProperty(methSig)) {
+        return clsMethods[methSig];
+      }
+    }
+    return null;
+  }
+
+  /**
    * Loads in all of the native method modules prior to execution.
-   * Currently a hack around our bad classloader.
+   * Currently a hack around our classloader.
    */
   private initializeNatives(done_cb: () => void): void {
     var next_dir = () => {
@@ -105,7 +147,7 @@ class JVM {
         process_files.forEach((file) => {
           fs.readFile(file, (err, data) => {
             if (!err)
-              this._rs.registerNatives(this._rs.evalNativeModule(data.toString()));
+              this.registerNatives(this.evalNativeModule(data.toString()));
             if (--count) {
               done_cb();
             }
@@ -132,91 +174,12 @@ class JVM {
   }
 
   /**
-   * Uses BrowserFS to mount the jar file in the file system, allowing us to
-   * lazily extract only the files we care about.
-   */
-  private unzip_jar_browser(jar_path: string, cb: (err: any, unzip_path?: string) => void): void {
-    var dest_folder: string = path.resolve(this.jar_file_location, path.basename(jar_path, '.jar')),
-        mfs = (<any>fs).getRootFS();
-    // In case we have mounted this before, unmount.
-    try {
-      mfs.umount(dest_folder);
-    } catch(e) {
-      // We didn't mount it before. Ignore.
-    }
-
-    // Grab the file.
-    fs.readFile(jar_path, function(err: any, data: NodeBuffer) {
-      var jar_fs;
-      if (err) {
-        // File might not have existed, or there was an error reading it.
-        return cb(err);
-      }
-      // Try to mount.
-      try {
-        jar_fs = new BrowserFS.FileSystem.ZipFS(data, path.basename(jar_path));
-        mfs.mount(dest_folder, jar_fs);
-        // Success!
-        cb(null, dest_folder);
-      } catch(e) {
-        cb(e);
-      }
-    });
-  }
-
-  /**
-   * Helper function for unzip_jar_node.
-   */
-  private _extract_all_to(files: any[], dest_dir: string): void {
-    for (var filepath in files) {
-      var file = files[filepath];
-      filepath = path.join(dest_dir, filepath);
-      if (file.options.dir || filepath.slice(-1) === '/') {
-        if (!fs.existsSync(filepath)) {
-          fs.mkdirSync(filepath);
-        }
-      } else {
-        fs.writeFileSync(filepath, file.data, 'binary');
-      }
-    }
-  }
-
-  /**
-   * Uses JSZip to eagerly extract the entire JAR file into a temporary folder.
-   */
-  private unzip_jar_node(jar_path: string, cb: (err: any, unzip_path?: string) => void): void {
-    var JSZip = require('node-zip'),
-        unzipper = new JSZip(fs.readFileSync(jar_path, 'binary'), {
-          base64: false,
-          checkCRC32: true
-        }),
-        dest_folder = path.resolve(this.jar_file_location, path.basename(jar_path, '.jar'));
-
-    try {
-      if (!fs.existsSync(dest_folder)) {
-        fs.mkdirSync(dest_folder);
-      }
-      this._extract_all_to(unzipper.files, dest_folder);
-      // Reset stack depth.
-      setImmediate(function() { return cb(null, dest_folder); });
-    } catch(e) {
-      setImmediate(function() { return cb(e); });
-    }
-  }
-
-  /**
-   * Given a path to a JAR file, returns a path in the file system where the
-   * extracted contents can be read.
-   */
-  private unzip_jar: (jar_path: string, cb: (err: any, unzip_path?: string) => void) => void = util.are_in_browser() ? this.unzip_jar_browser : this.unzip_jar_node;
-
-  /**
-   * Resets the JVM's system properties to their default values. Java programs
+   * Sets the JVM's system properties to their default values. Java programs
    * can retrieve these values.
    */
-  public reset_system_properties() {
+  public initSystemProperties() {
     // Reset while maintaining jcl_path and java_home_path.
-    this._reset_system_properties(this.system_properties['sun.boot.class.path'],
+    this._initSystemProperties(this.system_properties['sun.boot.class.path'],
                                   this.system_properties['java.home']);
     // XXX: jcl_path is known-good; synchronously push it onto classpath.
     this.system_properties['java.class.path'] = [this.system_properties['sun.boot.class.path']];
@@ -225,11 +188,7 @@ class JVM {
   /**
    * [Private] Same as reset_system_properties, but called by the constructor.
    */
-  private _reset_system_properties(jcl_path: string, java_home_path: string): void {
-    // XXX: Classpath items must end in '/'. :(
-    if (jcl_path.charAt(jcl_path.length - 1) !== '/') {
-      jcl_path = jcl_path + "/";
-    }
+  private _initSystemProperties(jcl_path: string, java_home_path: string): void {
     this.system_properties = {
       'java.class.path': <string[]> [],
       'java.home': java_home_path,
@@ -258,355 +217,21 @@ class JVM {
     };
   }
 
-  public dump_state(): void {
-    if (this.should_dump_state) {
-      this._rs.curr_thread.dump_state(this._rs);
-    }
-  }
-
-  public reset_classloader_cache(): void {
-    this.bs_cl = new ClassLoader.BootstrapClassLoader(this);
-  }
-
-  /**
-   * Removes all items from the classpath *except* for the JCL path.
-   */
-  public reset_classpath(): void {
-    var jcl: string = this.system_properties['java.class.path'][0],
-        prop: string;
-    this.system_properties['java.class.path'] = [jcl];
-
-    // If the JCL was specified as a JAR file, ensure that we don't muck with
-    // its entry in the JAR map.
-    for (prop in this.jar_map) {
-      if (this.jar_map[prop] === jcl) {
-        this.jar_map = {prop: jcl};
-        return;
-      }
-    }
-    this.jar_map = {};
-  }
-
-  /**
-   * Read in a binary classfile asynchronously. Pass a buffer with the contents
-   * to the callback.
-   * @todo This should really be in the bootstrap class loader.
-   */
-  public read_classfile(cls: any, cb: (data: NodeBuffer)=>void, failure_cb: (exp_cb: ()=>void)=>void) {
-    var cpath = this.system_properties['java.class.path'],
-        try_next = (i: number): void => {
-          fs.readFile(cpath[i] + cls + '.class', (err, data) => {
-            if (err) {
-              if (++i == cpath.length) {
-                failure_cb(() => {
-                  throw new Error("Error: No file found for class " + cls);
-                });
-              } else {
-                // Note: Yup, we're relying on the ++i side effect.
-                try_next(i);
-              }
-            } else {
-              cb(data);
-            }
-          });
-        };
-    cls = cls.slice(1, -1);  // Convert Lfoo/bar/Baz; -> foo/bar/Baz.
-    // We could launch them all at once, but we would need to ensure that we use
-    // the working version that occurs first in the classpath.
-    try_next(0);
-  }
-
-  /**
-   * Add an item to the classpath. Verifies that the path exists prior to
-   * adding.
-   * @param {string} p - The path to add.
-   * @param {number} idx - The index at which to splice in the item.
-   * @param {function} done_cb - Called with a boolean that indicates if the
-   *   path was added or not.
-   */
-  public add_classpath_item(p: string, idx: number, done_cb: (added: boolean) => void) {
-    var i: number, classpath = this.system_properties['java.class.path'];
-    p = path.resolve(p);
-
-    if (p.indexOf('.jar') !== -1) {
-      // JAR file, not a path.
-      return this.unzip_jar(p, (err: any, jar_path?: string): void => {
-        var manifest: JAR;
-        if (err) {
-          process.stderr.write("Unable to add JAR file " + p + ": " + err + "\n");
-          done_cb(false);
-        } else {
-          this.jar_map[p] = jar_path;
-          // Add the JAR file's dependencies before the file itself.
-          manifest = new JAR(jar_path, (err?: any) => {
-            var new_cp_items: string[] = [],
-                i: number = 0,
-                add_next_item = function() {
-                  this.add_classpath_item(new_cp_items[i], idx + i, (added: boolean) => {
-                    if (++i === new_cp_items.length) {
-                      done_cb(true);
-                    } else {
-                      add_next_item();
-                    }
-                  });
-                };
-            if (!err) {
-              // Successfully parsed the JAR file.
-              new_cp_items = manifest.getClassPath();
-            }
-            new_cp_items.push(jar_path);
-            // Add all of the classpath items.
-            add_next_item();
-          });
-        }
-      });
-    }
-
-    // All paths must:
-    // * Exist.
-    // * Be a the fully-qualified path.
-    // * Have a trailing /.
-    if (p.charAt(p.length - 1) !== '/') {
-      p += '/';
-    }
-    // Check that this standardized classpath does not already exist.
-    for (i = 0; i < classpath.length; i++) {
-      if (classpath[i] === p) {
-        // If this insertion is at a smaller index than the existing item, splice
-        // out the old one and insert this one.
-        if (i > idx) {
-          classpath.splice(idx, 0, classpath.splice(i, 1));
-        }
-        // Well, technically it *has* been added...
-        return done_cb(true);
-      }
-    }
-
-    fs.exists(p, (exists: boolean): void => {
-      if (!exists) {
-        process.stderr.write("WARNING: Classpath path " + p + " does not exist. Ignoring.\n");
-      } else {
-        // Splice in the new classpath item.
-        classpath.splice(idx, 0, p);
-      }
-      done_cb(exists);
-    });
-  }
-
-  /**
-   * Add an path to the end of the classpath.
-   * @param {string} p - The path to add.
-   * @param {function} done_cb - Called with a boolean that indicates if the
-   *   path was added or not.
-   */
-  public push_classpath_item(p: string, done_cb: (added: boolean) => void) {
-    this.add_classpath_item(p, this.system_properties['java.class.path'].length, done_cb);
-  }
-
-  /**
-   * Add a path to the start of the classpath, *after* the JCL.
-   */
-  public unshift_classpath_item(p: string, done_cb: (added: boolean) => void) {
-    // @todo Add assert function.
-    // assert(this.system_properties['java.class.path'].length > 0);
-    this.add_classpath_item(p, 1, done_cb);
-  }
-
-  /**
-   * Pushes multiple paths onto the end of the classpath.
-   */
-  public push_classpath_items(items: string[], done_cb: (added: boolean[]) => void): void {
-    var i: number = 0, added: boolean[] = [], _this = this,
-        new_done_cb = function(_added: boolean): void {
-          added.push(_added);
-          if (++i === items.length) {
-            done_cb(added);
-          } else {
-            _this.push_classpath_item(items[i], new_done_cb);
-          }
-        };
-    // Need to do this serially to preserve semantics.
-    if (items.length > 0) {
-      this.push_classpath_item(items[i], new_done_cb);
-    } else {
-      done_cb(added);
-    }
-  }
-
   /**
    * Proxies abort request to runtime state to halt the JVM.
    */
-  public abort(cb: Function = function(){}): void {
-    if (this._rs != null) {
-      this._rs.abort(cb);
+  public abort(): void {
+    var threads = this.threadPool.getThreads(), i: number;
+    for (i = 0; i < threads.length; i++) {
+      threads[i].setState(enums.ThreadState.TERMINATED);
     }
   }
 
   /**
-   * Main function for running a JAR file.
+   * Retrieves the bootstrap class loader.
    */
-  public run_jar(jar_path: string, cmdline_args: string[], done_cb: (arg: boolean) => void): void {
-    var _this = this;
-    jar_path = path.resolve(jar_path);
-    this.push_classpath_item(jar_path, function(added: boolean): void {
-      var manifest: JAR, jar_dir: string;
-      if (!added) {
-        process.stderr.write("Unable to process JAR file " + jar_path + "\n");
-        done_cb(false);
-      } else {
-        jar_dir = _this.jar_map[jar_path];
-        // Parse the manifest.
-        manifest = new JAR(jar_dir, function(err?: any): void {
-          var main_class: string;
-          if (err) {
-            process.stderr.write("Unable to parse manifest file for jar file " + jar_path + ".\n");
-            done_cb(false);
-          } else {
-            // Run the main class.
-            main_class = manifest.getAttribute('Main-Class');
-            // XXX: Convert foo.bar.Baz => foo/bar/Baz
-            main_class = util.descriptor2typestr(util.int_classname(main_class));
-            _this.run_class(main_class, cmdline_args, done_cb);
-          }
-        });
-      }
-    });
-  }
-
-  /**
-   * Main function for running a class.
-   */
-  public run_class(class_name: string,
-                   cmdline_args: string[],
-                   done_cb: (arg: boolean)=>void) {
-    // Reset the state of cached classloader items.
-    this.bs_cl.reset();
-    var class_descriptor = "L" + class_name + ";";
-    var main_sig = 'main([Ljava/lang/String;)V';
-    var main_method: methods.Method = null;
-    var rs = this._rs = new runtime.RuntimeState(this);
-    var _this = this;
-    function run_main() {
-      trace("run_main");
-      rs.run_until_finished((function () {
-        rs.async_op(function (resume_cb, except_cb) {
-          _this.bs_cl.initialize_class(rs, class_descriptor, function (cls: ClassData.ReferenceClassData) {
-            rs.init_args(cmdline_args);
-            // wrap it in run_until_finished to handle any exceptions correctly
-            return rs.run_until_finished(function () {
-              main_method = cls.method_lookup(rs, main_sig);
-              if (main_method != null) {
-                return;
-              }
-              return rs.async_op(function (resume_cb, except_cb) {
-                // we call except_cb on success because it doesn't pop the callstack
-                cls.resolve_method(rs, main_sig, function (m) {
-                  main_method = m;
-                  return except_cb(function () { });
-                }, except_cb);
-              });
-            }, true, function (success) {
-                if (!(success && (main_method != null))) {
-                  if (typeof done_cb === "function") {
-                    done_cb(success);
-                  }
-                }
-                return rs.run_until_finished((function () {
-                  return main_method.setup_stack(rs);
-                }), false, function (success) {
-                    if (typeof done_cb === "function") {
-                      done_cb(success && !rs.unusual_termination);
-                    }
-                  });
-              });
-          }, except_cb);
-        });
-      }), true, done_cb);
-    };
-    function run_program() {
-      trace("run_program");
-      rs.run_until_finished((function () {
-        rs.init_threads();
-      }), true, function (success) {
-          if (!success) {
-            return done_cb(false);
-          }
-          if (rs.system_initialized != null) {
-            run_main();
-          } else {
-            rs.run_until_finished((function () {
-              rs.init_system_class();
-            }), true, function (success) {
-                if (!success) {
-                  return done_cb(false);
-                }
-                run_main();
-            });
-          }
-        });
-    };
-
-    this.initializeNatives(() => {
-      rs.run_until_finished(() => {
-        rs.async_op((resume_cb, except_cb) => {
-          rs.preinitialize_core_classes(run_program, (e) => {
-            // Error during preinitialization? Abort abort abort!
-            e();
-          });
-        });
-      }, true, (success) => {
-          if (!success) {
-            done_cb(false);
-          }
-          // Otherwise, do nothing.
-        });
-    });
-  }
-
-  /**
-   * Returns a list of absolute file paths to each loaded class in the
-   * ClassLoader backed by a class file on the file system.
-   */
-  public list_class_cache(done_cb: (class_cache: string[]) => void): void {
-    var classes: string[] = this.bs_cl.get_loaded_class_list(true),
-        cpaths: string[] = this.system_properties['java.class.path'].slice(0),
-        i: number, filesLeft: number = classes.length, filePaths: string[] = [],
-        // Called whenever another file is processed.
-        fileDone = function() {
-          if (--filesLeft === 0) {
-            // We have finished examining all files.
-            done_cb(filePaths);
-          }
-        },
-        // Searches for fileName in the given classpaths.
-        searchForFile = function(fileName: string, cpaths: string[]) {
-          var fpath: string;
-          if (cpaths.length === 0) {
-            // Base case. Nothing left to search for; the file wasn't found.
-            fileDone();
-          } else {
-            // Note: Shift is destructive. :)
-            fpath = path.resolve(cpaths.shift(), fileName);
-            fs.stat(fpath, function(err: any, stats?: fs.Stats) {
-              if (err) {
-                // Iterate on cpaths.
-                return searchForFile(fileName, cpaths);
-              } else {
-                // We found it, and can stop iterating.
-                filePaths.push(fpath);
-                fileDone();
-              }
-            });
-          }
-        };
-    for (i = 0; i < classes.length; i++) {
-      // Our ClassLoader currently does not store the provenance of each class
-      // file, unfortunately.
-      // Capture the filename, and asynchronously figure out where each
-      // was loaded from.
-      // Parallelism!!
-      searchForFile(classes[i] + ".class", cpaths.slice(0));
-    }
+  public getBootstrapClassLoader(): ClassLoader.BootstrapClassLoader {
+    return this.bsCl;
   }
 }
 

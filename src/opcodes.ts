@@ -9,7 +9,7 @@ import ClassLoader = require('./ClassLoader');
 import enums = require('./enums');
 var JavaObject = java_object.JavaObject;
 var JavaArray = java_object.JavaArray;
-var JavaClassLoaderObject = java_object.JavaClassLoaderObject;
+var JavaClassLoaderObject = ClassLoader.JavaClassLoaderObject;
 
 /**
  * Helper function: Pops off two items, returns the second.
@@ -693,7 +693,7 @@ export class ReturnOpcode extends Opcode {
     frame.returnToThreadLoop = true;
     if (frame.method.access_flags.synchronized) {
       // monitorexit
-      frame.method.method_lock(frame).exit(thread);
+      frame.method.method_lock(thread, frame).exit(thread);
     }
     thread.asyncReturn(frame.stack[0]);
   }
@@ -704,7 +704,7 @@ export class ReturnOpcode2 extends Opcode {
     frame.returnToThreadLoop = true;
     if (frame.method.access_flags.synchronized) {
       // monitorexit
-      frame.method.method_lock(frame).exit(thread);
+      frame.method.method_lock(thread, frame).exit(thread);
     }
     thread.asyncReturn(frame.stack[0], null);
   }
@@ -715,7 +715,7 @@ export class VoidReturnOpcode extends Opcode {
     frame.returnToThreadLoop = true;
     if (frame.method.access_flags.synchronized) {
       // monitorexit
-      frame.method.method_lock(frame).exit(thread);
+      frame.method.method_lock(thread, frame).exit(thread);
     }
     thread.asyncReturn();
   }

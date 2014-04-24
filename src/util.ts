@@ -126,6 +126,20 @@ export function float2int(a: number): number {
   }
 }
 
+/**
+ * Converts a byte array to a buffer.
+ */
+export function byteArray2Buffer(bytes: number[], offset: number = 0, len: number = bytes.length): NodeBuffer {
+  var buff = new Buffer(len), i: number;
+  for (i = 0; i < len; i++) {
+    buff.writeUInt8(bytes[offset + i], i); 
+  }
+  return buff;
+}
+
+/**
+ * @todo Remove and use Buffers for conversion.
+ */
 export function intbits2float(int32: number): number {
   if (typeof Int32Array !== "undefined") {
     var i_view = new Int32Array([int32]);
@@ -135,9 +149,9 @@ export function intbits2float(int32: number): number {
   // Fallback for older JS engines
 
   // Map +/- infinity to JavaScript equivalents
-  if (int32 === FLOAT_POS_INFINITY_AS_INT) {
+  if (int32 === enums.Constants.FLOAT_POS_INFINITY_AS_INT) {
     return Number.POSITIVE_INFINITY;
-  } else if (int32 === FLOAT_NEG_INFINITY_AS_INT) {
+  } else if (int32 === enums.Constants.FLOAT_NEG_INFINITY_AS_INT) {
     return Number.NEGATIVE_INFINITY;
   }
   var sign = (int32 & 0x80000000) >>> 31;
@@ -150,12 +164,15 @@ export function intbits2float(int32: number): number {
     value = Math.pow(-1, sign) * (1 + significand * Math.pow(2, -23)) * Math.pow(2, exponent - 127);
   }
   // NaN check
-  if (value < FLOAT_NEG_INFINITY || value > FLOAT_POS_INFINITY) {
+  if (value < enums.Constants.FLOAT_NEG_INFINITY || value > enums.Constants.FLOAT_POS_INFINITY) {
     value = NaN;
   }
   return value;
 }
 
+/**
+ * @todo Remove and use Buffers for conversion
+ */
 export function longbits2double(uint32_a: number, uint32_b: number): number {
   if (typeof Uint32Array !== "undefined") {
     var i_view = new Uint32Array(2);

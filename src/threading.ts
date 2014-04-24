@@ -1,4 +1,3 @@
-import runtime = require('./runtime');
 import ClassData = require('./ClassData');
 import ClassLoader = require('./ClassLoader');
 import java_object = require('./java_object');
@@ -63,7 +62,7 @@ export class BytecodeStackFrame implements IStackFrame {
     if (method.access_flags.synchronized && this.pc === 0) {
       // We are starting a synchronized method! These must implicitly enter
       // their respective locks.
-      if (!method.method_lock(this).enter(thread)) {
+      if (!method.method_lock(thread, this).enter(thread)) {
         // Failed. Thread is automatically blocked. Return.
         assert(thread.getState() === enums.ThreadState.BLOCKED);
         return;
@@ -140,7 +139,7 @@ export class BytecodeStackFrame implements IStackFrame {
       debug("exception not caught, terminating " + method.full_signature());
       // STEP 4: Synchronized method? Exit from the method's monitor.
       if (method.access_flags.synchronized) {
-        method.method_lock(this).exit(thread);
+        method.method_lock(thread, this).exit(thread);
       }
       return false;
     }
@@ -264,6 +263,11 @@ export class ThreadPool {
 
   constructor(private jvm: JVM, private bsCl: ClassLoader.BootstrapClassLoader) {
 
+  }
+
+  public getThreads(): JVMThread[] {
+    // Return a copy of our internal array.
+    return this.threads.slice(0);
   }
 
   public newThread(cls: ClassData.ReferenceClassData): JVMThread {

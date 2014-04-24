@@ -85,9 +85,9 @@ export class ClassData {
     return [];
   }
 
-  public get_class_object(rs: runtime.RuntimeState): java_object.JavaClassObject {
+  public get_class_object(thread: threading.JVMThread): java_object.JavaClassObject {
     if (this.jco == null) {
-      this.jco = new JavaClassObject(rs, this);
+      this.jco = new JavaClassObject(thread, this);
     }
     return this.jco;
   }
@@ -209,11 +209,11 @@ export class PrimitiveClassData extends ClassData {
     }
   }
 
-  public create_wrapper_object(rs: runtime.RuntimeState, value: any): java_object.JavaObject {
+  public create_wrapper_object(thread: threading.JVMThread, value: any): java_object.JavaObject {
     var box_name = this.box_class_name();
-    var box_cls = <ReferenceClassData> rs.get_bs_class(box_name);
+    var box_cls = <ReferenceClassData> thread.getBsCl().getInitializedClass(box_name);
     // these are all initialized in preinit (for the BSCL, at least)
-    var wrapped = new JavaObject(rs, box_cls);
+    var wrapped = new JavaObject(box_cls);
     // XXX: all primitive wrappers store their value in a private static final field named 'value'
     wrapped.fields[box_name + 'value'] = value;
     return wrapped;
@@ -257,12 +257,12 @@ export class ArrayClassData extends ClassData {
   }
 
   // This class itself has no fields/methods, but java/lang/Object does.
-  public field_lookup(rs: runtime.RuntimeState, name: string): methods.Field {
-    return this.super_class_cdata.field_lookup(rs, name);
+  public field_lookup(thread: threading.JVMThread, name: string): methods.Field {
+    return this.super_class_cdata.field_lookup(thread, name);
   }
 
-  public method_lookup(rs: runtime.RuntimeState, sig: string): methods.Method {
-    return this.super_class_cdata.method_lookup(rs, sig);
+  public method_lookup(thread: threading.JVMThread, sig: string): methods.Method {
+    return this.super_class_cdata.method_lookup(thread, sig);
   }
 
   // Resolved and initialized are the same for array types.
@@ -461,34 +461,42 @@ export class ReferenceClassData extends ClassData {
 
   // Handles static fields. We lazily create them, since we cannot initialize static
   // default String values before Ljava/lang/String; is initialized.
-  private _initialize_static_field(rs: runtime.RuntimeState, name: string): void {
+  private _initialize_static_field(thread: threading.JVMThread, name: string): boolean {
     var f = this.fl_cache[name];
     if (f != null && f.access_flags["static"]) {
       var cva = <attributes.ConstantValue>f.get_attribute('ConstantValue');
       if (cva != null) {
-        var cv = f.type === 'Ljava/lang/String;' ? rs.init_string(cva.value) : cva.value;
+        var cv = f.type === 'Ljava/lang/String;' ? java_object.initString(thread.getBsCl(), cva.value) : cva.value;
       }
       this.static_fields[name] = cv != null ? cv : util.initial_value(f.raw_descriptor);
+      return true;
     } else {
-      rs.java_throw(<ReferenceClassData>this.loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name);
+      thread.throwNewException('Ljava/lang/NoSuchFieldError;', name);
+      return false;
     }
   }
 
-  public static_get(rs: runtime.RuntimeState, name: string): any {
+  public static_get(thread: threading.JVMThread, name: string): any {
     if (this.static_fields[name] !== void 0) {
       return this.static_fields[name];
     }
-    this._initialize_static_field(rs, name);
-    return this.static_get(rs, name);
+    if (this._initialize_static_field(thread, name)) {
+      return this.static_get(thread, name);
+    } else {
+      return undefined;
+    }
   }
 
-  public static_put(rs: runtime.RuntimeState, name: string, val: any): void {
+  public static_put(thread: threading.JVMThread, name: string, val: any): boolean {
     if (this.static_fields[name] !== void 0) {
       this.static_fields[name] = val;
+      return true;
     } else {
-      this._initialize_static_field(rs, name);
-      this.static_put(rs, name, val);
+      if (this._initialize_static_field(thread, name)) {
+        return this.static_put(thread, name, val);
+      }  
     }
+    return false;
   }
 
   public setResolved(super_class_cdata: ClassData, interface_cdatas: ReferenceClassData[]): void {
@@ -550,23 +558,20 @@ export class ReferenceClassData extends ClassData {
 
   // Spec [5.4.3.2][1].
   // [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#77678
-  public field_lookup(rs: runtime.RuntimeState, name: string, null_handled?: boolean): methods.Field {
+  public field_lookup(thread: threading.JVMThread, name: string, null_handled?: boolean): methods.Field {
     var field = this.fl_cache[name];
     if (field != null) {
       return field;
     }
-    field = this._field_lookup(rs, name);
+    field = this._field_lookup(thread, name);
     if ((field != null) || null_handled === true) {
       this.fl_cache[name] = field;
       return field;
     }
-    var err_cls = <ReferenceClassData> rs.get_bs_class('Ljava/lang/NoSuchFieldError;');
-    // Throw exception
-    rs.java_throw(err_cls, "No such field found in " + util.ext_classname(this.get_type()) + "::" + name);
-    return null;  // java_throw always throws.
+    thread.throwNewException('Ljava/lang/NoSuchFieldError;', "No such field found in " + util.ext_classname(this.get_type()) + "::" + name);
   }
 
-  private _field_lookup(rs: runtime.RuntimeState, name: string): methods.Field {
+  private _field_lookup(thread: threading.JVMThread, name: string): methods.Field {
     for (var i = 0; i < this.fields.length; i++) {
       var field = this.fields[i];
       if (field.name === name) {
@@ -576,14 +581,14 @@ export class ReferenceClassData extends ClassData {
     // These may not be initialized! But we have them loaded.
     var ifaces = this.get_interfaces();
     for (var i = 0; i < ifaces.length; i++) {
-      var field = ifaces[i].field_lookup(rs, name, true);
+      var field = ifaces[i].field_lookup(thread, name, true);
       if (field != null) {
         return field;
       }
     }
     var sc = <ReferenceClassData> this.get_super_class();
     if (sc != null) {
-      var field = sc.field_lookup(rs, name, true);
+      var field = sc.field_lookup(thread, name, true);
       if (field != null) {
         return field;
       }

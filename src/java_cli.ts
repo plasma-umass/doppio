@@ -115,7 +115,8 @@ export function java(args: string[], opts: JavaOptions,
     logging.log_level = level;
   }
 
-  JVM.show_NYI_natives = argv.non_standard['show-nyi-natives'];
+  // @todo Reintroduce
+  // JVM.show_NYI_natives = argv.non_standard['show-nyi-natives'];
 
   // Function that performs processing on the JVM, once constructed/ready.
   jvm_cb = () => {

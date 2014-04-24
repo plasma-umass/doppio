@@ -2,6 +2,7 @@
 import util = require('./util');
 import ClassData = require('./ClassData');
 import ConstantPool = require('./ConstantPool');
+import enums = require('./enums');
 import fs = require('fs');
 
 export function javap(argv: string[], done_cb: (result: boolean) => void) {
@@ -54,9 +55,9 @@ function access_string(access_flags: any): string {
 function format_decimal(val: number, type_char: string): string {
   var valStr = val.toString();
   if (type_char === 'f') {
-    if (val === util.FLOAT_POS_INFINITY || val === Number.POSITIVE_INFINITY) {
+    if (val === enums.Constants.FLOAT_POS_INFINITY || val === Number.POSITIVE_INFINITY) {
       valStr = "Infinity";
-    } else if (val === util.FLOAT_NEG_INFINITY || val === Number.NEGATIVE_INFINITY) {
+    } else if (val === enums.Constants.FLOAT_NEG_INFINITY || val === Number.NEGATIVE_INFINITY) {
       valStr = "-Infinity";
     } else if (val === NaN) {
       valStr = "NaN";

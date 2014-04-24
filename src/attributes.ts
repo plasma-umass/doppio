@@ -289,7 +289,7 @@ export class LocalVariableTable implements Attribute {
 export class Exceptions implements Attribute {
   public name = 'Exceptions';
   private num_exceptions: number;
-  private exceptions: Object[];
+  public exceptions: Object[];
 
   public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
     this.num_exceptions = bytes_array.get_uint(2);
@@ -368,7 +368,7 @@ export class RuntimeVisibleAnnotations implements Attribute {
 
 export class AnnotationDefault implements Attribute {
   public name = 'AnnotationDefault';
-  private raw_bytes: number[];
+  public raw_bytes: number[];
   public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool, attr_len?: number) {
     this.raw_bytes = bytes_array.read(attr_len);
   }

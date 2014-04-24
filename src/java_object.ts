@@ -4,7 +4,6 @@ var underscore = require('../vendor/underscore/underscore');
 import gLong = require('./gLong');
 import util = require('./util');
 import logging = require('./logging');
-import runtime = require('./runtime');
 import ClassData = require('./ClassData');
 import ClassLoader = require('./ClassLoader');
 import enums = require('./enums');
@@ -195,62 +194,14 @@ export class JavaClassObject extends JavaObject {
   }
 }
 
-// Each JavaClassLoaderObject is a unique ClassLoader.
-export class JavaClassLoaderObject extends JavaObject {
-  public $loader: any
-  constructor(thread: threading.JVMThread, cls: any) {
-    super(rs, cls);
-    this.$loader = rs.construct_cl(this);
-  }
-
-  public serialize(visited: any): any {
-    if (visited[this.ref]) {
-      return "<*" + this.ref + ">";
-    }
-    visited[this.ref] = true;
-    var fields = {};
-    for (var k in this.fields) {
-      var f = this.fields[k];
-      if (!f || (typeof f.serialize !== "function"))
-        fields[k] = f;
-      else
-        fields[k] = f.serialize(visited);
-    }
-    var loaded = {};
-    for (var type in this.$loader.loaded_classes) {
-      var vcls = this.$loader.loaded_classes[type];
-      loaded[type + "(" + ClassState[vcls.get_state()] + ")"] = vcls.loader.serialize(visited);
-    }
-    return {
-      type: this.cls.get_type(),
-      ref: this.ref,
-      fields: fields,
-      loaded: loaded
-    };
-  }
-}
-
 // XXX: Temporarily moved from natives.
 
 // Have a JavaClassLoaderObject and need its ClassLoader object? Use this method!
-export function get_cl_from_jclo(rs: runtime.RuntimeState, jclo: JavaClassLoaderObject): ClassLoader.ClassLoader {
+export function get_cl_from_jclo(thread: threading.JVMThread, jclo: ClassLoader.JavaClassLoaderObject): ClassLoader.ClassLoader {
   if ((jclo != null) && (jclo.$loader != null)) {
     return jclo.$loader;
   }
-  return rs.get_bs_cl();
-}
-
-// avoid code dup among native methods
-export function native_define_class(rs: runtime.RuntimeState, name: JavaObject, bytes: JavaArray, offset: number, len: number, loader: ClassLoader.ClassLoader, resume_cb: (jco: JavaClassObject) => void, except_cb: (e_fn: () => void) => void): void {
-  var buff = new Buffer(len);
-  var b_array = bytes.array;
-  // Convert to buffer
-  for (var i = offset; i < offset + len; i++) {
-    buff.writeUInt8((256 + b_array[i]) % 256, i);
-  }
-  loader.define_class(rs, util.int_classname(name.jvm2js_str()), buff, (function (cdata) {
-    resume_cb(cdata.get_class_object(rs));
-  }), except_cb);
+  return thread.getBsCl();
 }
 
 /**
@@ -277,7 +228,7 @@ export function arraycopy_no_check(src: JavaArray, src_pos: number, dest: JavaAr
  * Guarantees: src and dest are two different reference types. They cannot be
  *             primitive arrays.
  */
-export function arraycopy_check(rs: runtime.RuntimeState, src: JavaArray, src_pos: number, dest: JavaArray, dest_pos: number, length: number): void {
+export function arraycopy_check(thread: threading.JVMThread, src: JavaArray, src_pos: number, dest: JavaArray, dest_pos: number, length: number): void {
   var j = dest_pos;
   var end = src_pos + length
   var dest_comp_cls = dest.cls.get_component_class();
@@ -286,8 +237,8 @@ export function arraycopy_check(rs: runtime.RuntimeState, src: JavaArray, src_po
     if (src.array[i] === null || src.array[i].cls.is_castable(dest_comp_cls)) {
       dest.array[j] = src.array[i];
     } else {
-      var exc_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/ArrayStoreException;');
-      rs.java_throw(exc_cls, 'Array element in src cannot be cast to dest array type.');
+      thread.throwNewException('Ljava/lang/ArrayStoreException;', 'Array element in src cannot be cast to dest array type.');
+      return;
     }
     j++;
   }
@@ -406,7 +357,7 @@ export class Monitor {
        *  monitorexit throws an IllegalMonitorStateException."
        * @from http://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.monitorexit
        */
-      thread.throwNewException(thread.getInitializedClass('Ljava/lang/IllegalMonitorStateException;'), "Cannot exit a monitor that you do not own.");
+      thread.throwNewException('Ljava/lang/IllegalMonitorStateException;', "Cannot exit a monitor that you do not own.");
     }
   }
 
@@ -480,7 +431,7 @@ export class Monitor {
        *  owner of this object's monitor."
        * @from http://docs.oracle.com/javase/7/docs/api/java/lang/Object.html#notify()
        */
-      thread.throwNewException(thread.getInitializedClass('Ljava/lang/IllegalMonitorStateException;'), "Cannot notify on a monitor that you do not own.");
+      thread.throwNewException('Ljava/lang/IllegalMonitorStateException;', "Cannot notify on a monitor that you do not own.");
     }
   }
 
@@ -502,7 +453,7 @@ export class Monitor {
        *  owner of this object's monitor."
        * @from http://docs.oracle.com/javase/7/docs/api/java/lang/Object.html#notifyAll()
        */
-      thread.throwNewException(thread.getInitializedClass('Ljava/lang/IllegalMonitorStateException;'), "Cannot notifyAll on a monitor that you do not own.");
+      thread.throwNewException('Ljava/lang/IllegalMonitorStateException;', "Cannot notifyAll on a monitor that you do not own.");
     }
   }
 

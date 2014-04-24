@@ -10,6 +10,7 @@ import assert = require('./assert');
 import path = require('path');
 import fs = require('fs');
 var debug = logging.debug;
+declare var BrowserFS;
 
 /**
  * Base classloader class. Contains common class resolution and instantiation
@@ -26,6 +27,13 @@ export class ClassLoader {
    *   to retrieve primitive types.
    */
   constructor(private bootstrap: BootstrapClassLoader) { }
+
+  /**
+   * Retrieve a listing of classes that are loaded in this class loader.
+   */
+  public getLoadedClassNames(): string[] {
+    return Object.keys(this.loadedClasses);
+  }
 
   /**
    * Adds the specified class to the classloader. As opposed to defineClass,
@@ -190,6 +198,30 @@ export class ClassLoader {
   }
 
   /**
+   * Convenience function: Resolve many classes. Calls cb with null should
+   * an error occur.
+   */
+  public resolveClasses(thread: threading.JVMThread, typeStrs: string[], cb: (classes: { [typeStr: string]: ClassData.ClassData }) => void) {
+    var classes: { [typeStr: string]: ClassData.ClassData } = {};
+    util.async_foreach<string>(typeStrs, (typeStr: string, next_item: (err?: any) => void) => {
+      this.resolveClass(thread, typeStr, (cdata) => {
+        if (cdata === null) {
+          next_item("Error resolving class: " + typeStr);
+        } else {
+          classes[typeStr] = cdata;
+          next_item();
+        }
+      });
+    }, (err?: any): void => {
+      if (err) {
+        cb(null);
+      } else {
+        cb(classes);
+      }
+    });
+  }
+
+  /**
    * Asynchronously *resolves* the given class by loading the class and
    * resolving its super class, interfaces, and/or component classes.
    */
@@ -345,37 +377,100 @@ export class BootstrapClassLoader extends ClassLoader {
    *   *beginning* of the array is the classpath item added last.
    */
   private classPath: string[];
+  /**
+   * The path where jar files should be extracted.
+   */
+  private extractionPath: string;
 
   /**
    * Constructs the bootstrap classloader with the given classpath.
    * @param classPath The classpath, where the *first* item is the *last*
    *   classpath searched. Meaning, the classPath[0] should be the bootstrap
    *   class path.
+   * @param extractionPath The path where jar files should be extracted.
+   * @param cb Called once all of the classpath items have been checked.
+   *   Passes an error if one occurs.
    */
-  constructor(classPath: string[]) {
+  constructor(classPath: string[], extractionPath: string, cb: (e?: any) => void) {
     super(this);
-    // For convenience, it's much easier when the first item in the array is
-    // searched first. So we reverse the input array.
-    this.classPath = classPath.reverse();
+    this.classPath = [];
+    this.extractionPath = path.resolve(extractionPath);
+    // XXX: Must be initialized here rather than at the property definition
+    // because we reference 'this' in the call to 'super'.
+    this.unzipJar = util.are_in_browser() ? this.unzipJarBrowser : this.unzipJarNode;
+
+    // Checks all of the classpaths. Add only those that exist.
+    var checkClasspaths = (cb: (e?: any) => void) => {
+      util.async_foreach<string>(classPath, (p: string, next_item: (err?: any) => void) => {
+        this.addClassPathItem(p, (success: boolean) => {
+          // Ignore the success condition. It's not an error to pass an invalid
+          // classpath to the JVM.
+          next_item();
+        });
+      }, cb);
+    };
+
+
+    // Prepare the extraction path.
+    fs.exists(this.extractionPath, (exists: boolean) => {
+      if (!exists) {
+        fs.mkdir(this.extractionPath, (err?) => {
+          if (err) {
+            cb(new Error("Unable to create JAR file directory " + this.extractionPath + ": " + err));
+          } else {
+            checkClasspaths(cb);
+          }
+        });
+      } else {
+        checkClasspaths(cb);
+      }
+    });
   }
 
   /**
    * Adds the given classpath to the class path. If added already, we move it
    * to the front of the classpath.
+   * 
+   * Verifies that the path exists prior to adding.
+   * 
    * @param p The path to add.
    */
-  public addClassPath(p: string) {
+  public addClassPathItem(p: string, cb: (success: boolean) => void) {
     var classPath = this.classPath;
     // Standardize.
     p = path.resolve(p);
 
-    var existingIdx = classPath.indexOf(p);
-    if (existingIdx !== -1) {
-      // Remove it before adding it in again.
-      classPath.splice(existingIdx, 1);
+    // Check if the item exists.
+    fs.stat(p, (err, stats: fs.Stats) => {
+      if (err) {
+        cb(false);
+      } else {
+        if (stats.isFile()) {
+          // JAR file. Extract first.
+          this.unzipJar(p, (err, unzipPath?: string) => {
+            if (err) {
+              cb(false);
+            } else {
+              addPath(p, cb);
+            }
+          });
+        } else {
+          // Directory.
+          addPath(p, cb);
+        }
+      }
+    });
+
+    function addPath(p: string, cb: (success: boolean) => void) {
+      var existingIdx = classPath.indexOf(p);
+      if (existingIdx !== -1) {
+        // Remove it before adding it in again.
+        classPath.splice(existingIdx, 1);
+      }
+      // Add to the front of the classpath.
+      classPath.unshift(p);
+      cb(true);
     }
-    // Add to the front of the classpath.
-    classPath.unshift(p);
   }
 
   /**
@@ -420,6 +515,115 @@ export class BootstrapClassLoader extends ClassLoader {
       }
     });
   }
+
+  /**
+   * Uses BrowserFS to mount the jar file in the file system, allowing us to
+   * lazily extract only the files we care about.
+   */
+  private unzipJarBrowser(jar_path: string, cb: (err: any, unzip_path?: string) => void): void {
+    var dest_folder: string = path.resolve(this.extractionPath, path.basename(jar_path, '.jar')),
+      mfs = (<any>fs).getRootFS();
+    // In case we have mounted this before, unmount.
+    try {
+      mfs.umount(dest_folder);
+    } catch (e) {
+      // We didn't mount it before. Ignore.
+    }
+
+    // Grab the file.
+    fs.readFile(jar_path, function (err: any, data: NodeBuffer) {
+      var jar_fs;
+      if (err) {
+        // File might not have existed, or there was an error reading it.
+        return cb(err);
+      }
+      // Try to mount.
+      try {
+        jar_fs = new BrowserFS.FileSystem.ZipFS(data, path.basename(jar_path));
+        mfs.mount(dest_folder, jar_fs);
+        // Success!
+        cb(null, dest_folder);
+      } catch (e) {
+        cb(e);
+      }
+    });
+  }
+
+  /**
+   * Helper function for unzip_jar_node.
+   */
+  private _extractAllTo(files: any[], dest_dir: string): void {
+    for (var filepath in files) {
+      var file = files[filepath];
+      filepath = path.join(dest_dir, filepath);
+      if (file.options.dir || filepath.slice(-1) === '/') {
+        if (!fs.existsSync(filepath)) {
+          fs.mkdirSync(filepath);
+        }
+      } else {
+        fs.writeFileSync(filepath, file.data, 'binary');
+      }
+    }
+  }
+
+  /**
+   * Uses JSZip to eagerly extract the entire JAR file into a temporary folder.
+   */
+  private unzipJarNode(jar_path: string, cb: (err: any, unzip_path?: string) => void): void {
+    var JSZip = require('node-zip'),
+      unzipper = new JSZip(fs.readFileSync(jar_path, 'binary'), {
+        base64: false,
+        checkCRC32: true
+      }),
+      dest_folder = path.resolve(this.extractionPath, path.basename(jar_path, '.jar'));
+
+    try {
+      if (!fs.existsSync(dest_folder)) {
+        fs.mkdirSync(dest_folder);
+      }
+      this._extractAllTo(unzipper.files, dest_folder);
+      // Reset stack depth.
+      setImmediate(function () { return cb(null, dest_folder); });
+    } catch (e) {
+      setImmediate(function () { return cb(e); });
+    }
+  }
+
+  /**
+   * Given a path to a JAR file, returns a path in the file system where the
+   * extracted contents can be read.
+   */
+  private unzipJar: (jar_path: string, cb: (err: any, unzipPath?: string) => void) => void;
+
+  /**
+   * Returns a listing of absolute paths to the class files loaded in the
+   * bootstrap class loader.
+   */
+  public getLoadedClassFiles(cb: (files: string[]) => void): void {
+    var loadedClasses = this.getLoadedClassNames(),
+      loadedClassFiles = [];
+    util.async_foreach<string>(loadedClasses, (className: string, next_item: (err?: any) => void) => {
+      if (util.is_reference_type(className)) {
+        // Figure out from whence it came.
+        util.async_foreach<string>(this.classPath, (cPath: string, next_cpath: (err?: any) => void) => {
+          var pathToClass = path.resolve(cPath, className);
+          fs.exists(pathToClass, (exists: boolean) => {
+            if (exists) {
+              loadedClassFiles.push(pathToClass);
+              // Short circuit.
+              next_item();
+            } else {
+              next_cpath();
+            }
+          });
+        }, next_item);
+      } else {
+        next_item();
+      }
+    }, (err?: any) => {
+      cb(loadedClassFiles);
+    });
+  }
 }
 
 /**
@@ -428,7 +632,7 @@ export class BootstrapClassLoader extends ClassLoader {
  */
 export class CustomClassLoader extends ClassLoader {
   constructor(bootstrap: BootstrapClassLoader,
-    private loaderObj: java_object.JavaClassLoaderObject) {
+    private loaderObj: JavaClassLoaderObject) {
     super(bootstrap);
   }
 
@@ -481,5 +685,40 @@ export class CustomClassLoader extends ClassLoader {
         cb(null);
       });
     }
+  }
+}
+
+// Each JavaClassLoaderObject is a unique ClassLoader.
+export class JavaClassLoaderObject extends java_object.JavaObject {
+  public $loader: any
+  constructor(thread: threading.JVMThread, cls: any) {
+    super(cls);
+    this.$loader = new CustomClassLoader(thread.getBsCl(), this);
+  }
+
+  public serialize(visited: any): any {
+    if (visited[this.ref]) {
+      return "<*" + this.ref + ">";
+    }
+    visited[this.ref] = true;
+    var fields = {};
+    for (var k in this.fields) {
+      var f = this.fields[k];
+      if (!f || (typeof f.serialize !== "function"))
+        fields[k] = f;
+      else
+        fields[k] = f.serialize(visited);
+    }
+    var loaded = {};
+    for (var type in this.$loader.loaded_classes) {
+      var vcls = this.$loader.loaded_classes[type];
+      loaded[type + "(" + enums.ClassState[vcls.get_state()] + ")"] = vcls.loader.serialize(visited);
+    }
+    return {
+      type: this.cls.get_type(),
+      ref: this.ref,
+      fields: fields,
+      loaded: loaded
+    };
   }
 }
