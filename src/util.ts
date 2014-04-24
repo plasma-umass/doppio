@@ -1,8 +1,9 @@
 "use strict";
 import gLong = require('./gLong');
-import runtime = require('./runtime');
 import java_object = require('./java_object');
 import ClassData = require('./ClassData');
+import threading = require('./threading');
+import enums = require('./enums');
 
 export function are_in_browser(): boolean {
   return process.platform === 'browser';
@@ -58,16 +59,6 @@ export function async_find<T>(
   }
   process(false);
 }
-
-export var INT_MAX = Math.pow(2, 31) - 1;
-export var INT_MIN = -INT_MAX - 1;
-export var FLOAT_POS_INFINITY = Math.pow(2, 128);
-export var FLOAT_NEG_INFINITY = -1 * FLOAT_POS_INFINITY;
-export var FLOAT_POS_INFINITY_AS_INT = 0x7F800000;
-export var FLOAT_NEG_INFINITY_AS_INT = -8388608;
-// We use the JavaScript NaN as our NaN value, and convert it to
-// a NaN value in the SNaN range when an int equivalent is requested.
-export var FLOAT_NaN_AS_INT = 0x7fc00000;
 
 if (Math['imul'] == null) {
   Math['imul'] = function(a: number, b: number) {
@@ -125,49 +116,11 @@ export function arrayset<T>(len: number, val :T): T[] {
   return array;
 }
 
-export function int_mod(rs: runtime.RuntimeState, a: number, b: number): number {
-  if (b === 0) {
-    var err_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/ArithmeticException;');
-    rs.java_throw(err_cls, '/ by zero');
-  }
-  return a % b;
-}
-
-export function int_div(rs: runtime.RuntimeState, a: number, b: number): number {
-  if (b === 0) {
-    var err_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/ArithmeticException;');
-    rs.java_throw(err_cls, '/ by zero');
-  }
-  // spec: "if the dividend is the negative integer of largest possible magnitude
-  // for the int type, and the divisor is -1, then overflow occurs, and the
-  // result is equal to the dividend."
-  if (a === INT_MIN && b === -1) {
-    return a;
-  }
-  return (a / b) | 0;
-}
-
-export function long_mod(rs: runtime.RuntimeState, a: gLong, b: gLong): gLong {
-  if (b.isZero()) {
-    var err_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/ArithmeticException;');
-    rs.java_throw(err_cls, '/ by zero');
-  }
-  return a.modulo(b);
-}
-
-export function long_div(rs: runtime.RuntimeState, a: gLong, b: gLong): gLong {
-  if (b.isZero()) {
-    var err_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/ArithmeticException;');
-    rs.java_throw(err_cls, '/ by zero');
-  }
-  return a.div(b);
-}
-
 export function float2int(a: number): number {
-  if (a > INT_MAX) {
-    return INT_MAX;
-  } else if (a < INT_MIN) {
-    return INT_MIN;
+  if (a > enums.Constants.INT_MAX) {
+    return enums.Constants.INT_MAX;
+  } else if (a < enums.Constants.INT_MIN) {
+    return enums.Constants.INT_MIN;
   } else {
     return a | 0;
   }

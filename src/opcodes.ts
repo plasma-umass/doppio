@@ -5,10 +5,55 @@ import ConstantPool = require('./ConstantPool');
 import ClassData = require('./ClassData');
 import java_object = require('./java_object');
 import threading = require('./threading');
+import ClassLoader = require('./ClassLoader');
 import enums = require('./enums');
 var JavaObject = java_object.JavaObject;
 var JavaArray = java_object.JavaArray;
 var JavaClassLoaderObject = java_object.JavaClassLoaderObject;
+
+/**
+ * Helper function: Pops off two items, returns the second.
+ */
+function pop2(stack: any[]): any {
+  // Ignore NULL.
+  stack.pop();
+  return stack.pop();
+}
+
+/**
+ * Helper function: Checks if object is null. Throws a NullPointerException
+ * if it is.
+ * @return True if the object is null.
+ */
+function isNull(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, obj: any): boolean {
+  if (obj == null) {
+    thread.throwNewException('Ljava/lang/NullPointerException;', '');
+    return frame.returnToThreadLoop = true;
+  }
+  return false;
+}
+
+/**
+ * Helper function: Pauses the thread and initializes a class.
+ */
+function initializeClass(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, typeStr: string): void {
+  thread.setState(enums.ThreadState.WAITING);
+  frame.getLoader().initializeClass(thread, typeStr, (cdata: ClassData.ClassData) => {
+    thread.setState(enums.ThreadState.RUNNABLE);
+  }, false);
+  frame.returnToThreadLoop = true;
+}
+
+/**
+ * Helper function: Pauses the thread and resolves a class.
+ */
+function resolveClass(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, typeStr: string): void {
+  thread.setState(enums.ThreadState.WAITING);
+  frame.getLoader().resolveClass(thread, typeStr, (cdata: ClassData.ClassData) => {
+    thread.setState(enums.ThreadState.RUNNABLE);
+  }, false);
+  frame.returnToThreadLoop = true;
+}
 
 export interface Execute {
   (thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void;
@@ -23,7 +68,7 @@ export class Opcode {
   constructor(name: string, byte_count?: number, execute?: Execute) {
     this.name = name;
     this.byte_count = byte_count || 0;
-    this.execute = execute || this._execute;;
+    this.execute = execute || this._execute;
   }
 
   public take_args(code_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
@@ -125,12 +170,7 @@ export class InvokeOpcode extends Opcode {
     } else {
       // Initialize our class and rerun opcode.
       var classname = this.method_spec.class_desc;
-      thread.setState(enums.ThreadState.WAITING);
-      frame.returnToThreadLoop = true;
-      frame.getLoader().initializeClass(thread, classname, (cdata: ClassData.ClassData) => {
-        // Resume the thread.
-        thread.setState(enums.ThreadState.RUNNABLE);
-      }, false);
+      initializeClass(thread, frame, classname);
     }
   }
 }
@@ -200,10 +240,7 @@ export class DynInvokeOpcode extends InvokeOpcode {
     if (cls != null) {
       var stack = frame.stack;
       var obj = stack[stack.length - this.count];
-      if (obj == null) {
-        thread.throwNewException('Ljava/lang/NullPointerException;', '');
-        frame.returnToThreadLoop = true;
-      } else {
+      if (!isNull(thread, frame, obj)) {
         var m = cls.method_lookup(thread, this.method_spec.sig);
         if (m != null) {
           thread.runMethod(m, m.take_params(stack));
@@ -214,13 +251,11 @@ export class DynInvokeOpcode extends InvokeOpcode {
           frame.returnToThreadLoop = true;
         }
       }
+      // 'obj' is NULL. isNull took care of throwing an exception for us.
     } else {
       // Initialize our class and rerun opcode.
       var classname = this.method_spec.class_desc;
-      thread.setState(enums.ThreadState.WAITING);
-      frame.getLoader().initializeClass(thread, classname, (cdata) => {
-        thread.setState(enums.ThreadState.RUNNABLE);
-      }, false);
+      initializeClass(thread, frame, classname);
     }
   }
 }
@@ -250,7 +285,7 @@ export class LoadConstantOpcode extends Opcode {
   public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
     switch (this.constant.type) {
       case 'String':
-        frame.stack.push(java_object.initString(thread.getBsCl(), this.str_constant.value, true));
+        frame.stack.push(thread.getThreadPool().getJVM().internString(this.str_constant.value));
         this.incPc(frame);
         break;
       case 'class':
@@ -259,10 +294,11 @@ export class LoadConstantOpcode extends Opcode {
         var cdesc = util.typestr2descriptor(this.str_constant.value);
         thread.setState(enums.ThreadState.WAITING);
         frame.getLoader().resolveClass(thread, cdesc, (cdata: ClassData.ClassData) => {
-          frame.stack.push(cdata.get_class_object());
+          frame.stack.push(cdata.get_class_object(thread));
           this.incPc(frame);
           thread.setState(enums.ThreadState.RUNNABLE);
         }, false);
+        frame.returnToThreadLoop = true;
         break;
       default:
         if (this.name === 'ldc2_w')
@@ -309,9 +345,9 @@ export class JSROpcode extends GotoOpcode {
 }
 
 export class UnaryBranchOpcode extends BranchOpcode {
-  private cmp: Function;  // TODO: specialize this type
+  private cmp: (v: number) => boolean;
 
-  constructor(name: string, cmp: Function) {
+  constructor(name: string, cmp: (v: number) => boolean) {
     super(name);
     this.cmp = cmp;
   }
@@ -326,9 +362,9 @@ export class UnaryBranchOpcode extends BranchOpcode {
 }
 
 export class BinaryBranchOpcode extends BranchOpcode {
-  private cmp: Function;  // TODO: specialize this type
+  private cmp: (v1: number, v2: number) => boolean;
 
-  constructor(name: string, cmp: Function) {
+  constructor(name: string, cmp: (v1: number, v2: number) => boolean) {
     super(name);
     this.cmp = cmp;
   }
@@ -563,7 +599,7 @@ export class NewArrayOpcode extends Opcode {
 
   public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
     var stack = frame.stack;
-    stack.push(java_object.heap_newarray(this.element_type, stack.pop()));
+    stack.push(java_object.heapNewArray(thread, frame.getLoader(), this.element_type, stack.pop()));
     this.incPc(frame);
   }
 }
@@ -590,17 +626,13 @@ export class MultiArrayOpcode extends Opcode {
   public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
     var cls = frame.getLoader().getInitializedClass(this.class_descriptor);
     if (cls == null) {
-      thread.setState(enums.ThreadState.WAITING);
-      frame.getLoader().initializeClass(thread, this.class_descriptor, (cdata) => {
-        thread.setState(enums.ThreadState.RUNNABLE);
-      }, false);
-      frame.returnToThreadLoop = true;
+      initializeClass(thread, frame, this.class_descriptor);
     } else {
       // cls is loaded. Create a new execute function to avoid this overhead.
       var new_execute = (thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void => {
         var stack = frame.stack,
           counts = stack.splice(-this.dim, this.dim);
-        stack.push(java_object.heap_multinewaray(this.class_descriptor, counts));
+        stack.push(java_object.heapMultiNewArray(thread, frame.getLoader(), this.class_descriptor, counts));
         this.incPc(frame);
       };
       new_execute.call(this, thread, frame);
@@ -614,10 +646,7 @@ export class ArrayLoadOpcode extends Opcode {
     var stack = frame.stack,
       idx = stack.pop(),
       obj = <java_object.JavaArray> stack.pop();//rs.check_null<java_object.JavaArray>(rs.pop());
-    if (obj == null) {
-      thread.throwNewException('Ljava/lang/NullPointerException;', '');
-      frame.returnToThreadLoop = true;
-    } else {
+    if (!isNull(thread, frame, obj)) {
       var len = obj.array.length;
       if (idx < 0 || idx >= len) {
         thread.throwNewException('Ljava/lang/ArrayIndexOutOfBoundsException;', idx + " not in length " + len + " array of type " + obj.cls.get_type());
@@ -630,6 +659,7 @@ export class ArrayLoadOpcode extends Opcode {
         this.incPc(frame);
       }
     }
+    // 'obj' is NULL. isNull threw an exception for us.
   }
 }
 
@@ -644,10 +674,7 @@ export class ArrayStoreOpcode extends Opcode {
     var value = stack.pop(),
       idx = stack.pop(),
       obj = <java_object.JavaArray> stack.pop();
-    if (obj == null) {
-      thread.throwNewException('Ljava/lang/NullPointerException;', '');
-      frame.returnToThreadLoop = true;
-    } else {
+    if (!isNull(thread, frame, obj)) {
       var len = obj.array.length;
       if (idx < 0 || idx >= len) {
         thread.throwNewException('Ljava/lang/ArrayIndexOutOfBoundsException;', idx + " not in length " + len + " array of type " + obj.cls.get_type());
@@ -657,6 +684,7 @@ export class ArrayStoreOpcode extends Opcode {
         this.incPc(frame);
       }
     }
+    // 'obj' is NULL. isNull threw an exception for us.
   }
 }
 
@@ -695,7 +723,7 @@ export class VoidReturnOpcode extends Opcode {
 
 // These objects are used as prototypes for the parsed instructions in the classfile.
 // Opcodes are in order, indexed by their binary representation.
-export var opcodes : Opcode[] = [
+export var opcodes: Opcode[] = [
   new Opcode('nop', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     this.incPc(frame);
   }),
@@ -838,8 +866,7 @@ export var opcodes : Opcode[] = [
   }),
   new Opcode('pop2', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     var stack = frame.stack;
-    stack.pop();
-    stack.pop();
+    pop2(stack);
     this.incPc(frame);
   }),
   new Opcode('dup', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
@@ -889,8 +916,8 @@ export var opcodes : Opcode[] = [
   }),
   new Opcode('swap', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     var stack = frame.stack,
-     v1 = stack.pop(),
-     v2 = stack.pop();
+      v1 = stack.pop(),
+      v2 = stack.pop();
     stack.push(v1, v2);
     this.incPc(frame);
   }),
@@ -900,153 +927,361 @@ export var opcodes : Opcode[] = [
     stack.push((stack.pop() + stack.pop()) | 0);
     this.incPc(frame);
   }),
-  new Opcode('ladd', 0, ((rs) => rs.push2(rs.pop2().add(rs.pop2()), null))),
-  new Opcode('fadd', 0, ((rs) => rs.push(util.wrap_float(rs.pop() + rs.pop())))),
-  new Opcode('dadd', 0, ((rs) => rs.push2(rs.pop2() + rs.pop2(), null))),
-  new Opcode('isub', 0, ((rs) => rs.push((-rs.pop() + rs.pop()) | 0))),
-  new Opcode('lsub', 0, ((rs) => rs.push2(rs.pop2().negate().add(rs.pop2()), null))),
-  new Opcode('fsub', 0, ((rs) => rs.push(util.wrap_float(-rs.pop() + rs.pop())))),
-  new Opcode('dsub', 0, ((rs) => rs.push2(-rs.pop2() + rs.pop2(), null))),
-  new Opcode('imul', 0, ((rs) => rs.push(Math['imul'](rs.pop(), rs.pop())))),
-  new Opcode('lmul', 0, ((rs) => rs.push2(rs.pop2().multiply(rs.pop2()), null))),
-  new Opcode('fmul', 0, ((rs) => rs.push(util.wrap_float(rs.pop() * rs.pop())))),
-  new Opcode('dmul', 0, ((rs) => rs.push2(rs.pop2() * rs.pop2(), null))),
-  new Opcode('idiv', 0, function(rs) {
-    var v = rs.pop();
-    rs.push(util.int_div(rs, rs.pop(), v));
+  new Opcode('ladd', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    // push2
+    stack.push(pop2(stack).add(pop2(stack)), null);
+    this.incPc(frame);
   }),
-  new Opcode('ldiv', 0, function(rs) {
-    var v = rs.pop2();
-    rs.push2(util.long_div(rs, rs.pop2(), v), null);
+  new Opcode('fadd', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push(util.wrap_float(stack.pop() + stack.pop()))
+    this.incPc(frame);
   }),
-  new Opcode('fdiv', 0, function(rs) {
-    var a = rs.pop();
-    rs.push(util.wrap_float(rs.pop() / a));
+  new Opcode('dadd', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    // push2
+    stack.push(pop2(stack) + pop2(stack), null);
+    this.incPc(frame);
   }),
-  new Opcode('ddiv', 0, function(rs) {
-    var v = rs.pop2();
-    rs.push2(rs.pop2() / v, null);
+  new Opcode('isub', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push((-stack.pop() + stack.pop()) | 0);
+    this.incPc(frame);
   }),
-  new Opcode('irem', 0, function(rs) {
-    var v2 = rs.pop();
-    rs.push(util.int_mod(rs, rs.pop(), v2));
+  new Opcode('lsub', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push(pop2(stack).negate().add(pop2(stack)), null);
+    this.incPc(frame);
   }),
-  new Opcode('lrem', 0, function(rs) {
-    var v2 = rs.pop2();
-    rs.push2(util.long_mod(rs, rs.pop2(), v2), null);
+  new Opcode('fsub', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push(util.wrap_float(-stack.pop() + stack.pop()));
+    this.incPc(frame);
   }),
-  new Opcode('frem', 0, function(rs) {
-    var b = rs.pop();
-    rs.push(rs.pop() % b);
+  new Opcode('dsub', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push(-pop2(stack) + pop2(stack), null);
+    this.incPc(frame);
   }),
-  new Opcode('drem', 0, function(rs) {
-    var v2 = rs.pop2();
-    rs.push2(rs.pop2() % v2, null);
+  new Opcode('imul', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push(Math['imul'](stack.pop(), stack.pop()));
+    this.incPc(frame);
   }),
-  new Opcode('ineg', 0, ((rs) => rs.push(-rs.pop() | 0))),
-  new Opcode('lneg', 0, ((rs) => rs.push2(rs.pop2().negate(), null))),
-  new Opcode('fneg', 0, ((rs) => rs.push(-rs.pop()))),
-  new Opcode('dneg', 0, ((rs) => rs.push2(-rs.pop2(), null))),
-  new Opcode('ishl', 0, function(rs) {
-    var s = rs.pop();
-    rs.push(rs.pop() << s);
+  new Opcode('lmul', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    // push2
+    stack.push(pop2(stack).multiply(pop2(stack)), null);
+    this.incPc(frame);
   }),
-  new Opcode('lshl', 0, function(rs) {
-    var s = rs.pop();
-    rs.push2(rs.pop2().shiftLeft(gLong.fromInt(s)), null);
+  new Opcode('fmul', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push(util.wrap_float(stack.pop() * stack.pop()));
+    this.incPc(frame);
   }),
-  new Opcode('ishr', 0, function(rs) {
-    var s = rs.pop();
-    rs.push(rs.pop() >> s);
+  new Opcode('dmul', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push(pop2(stack) * pop2(stack), null);
+    this.incPc(frame);
   }),
-  new Opcode('lshr', 0, function(rs) {
-    var s = rs.pop();
-    rs.push2(rs.pop2().shiftRight(gLong.fromInt(s)), null);
-  }),
-  new Opcode('iushr', 0, function(rs) {
-    var s = rs.pop();
-    rs.push(rs.pop() >>> s);
-  }),
-  new Opcode('lushr', 0, function(rs) {
-    var s = rs.pop();
-    rs.push2(rs.pop2().shiftRightUnsigned(gLong.fromInt(s)), null);
-  }),
-  new Opcode('iand', 0, ((rs) => rs.push(rs.pop() & rs.pop()))),
-  new Opcode('land', 0, ((rs) => rs.push2(rs.pop2().and(rs.pop2()), null))),
-  new Opcode('ior', 0, ((rs) => rs.push(rs.pop() | rs.pop()))),
-  new Opcode('lor', 0, ((rs) => rs.push2(rs.pop2().or(rs.pop2()), null))),
-  new Opcode('ixor', 0, ((rs) => rs.push(rs.pop() ^ rs.pop()))),
-  new Opcode('lxor', 0, ((rs) => rs.push2(rs.pop2().xor(rs.pop2()), null))),
-  new IIncOpcode('iinc'),
-  new Opcode('i2l', 0, ((rs) => rs.push2(gLong.fromInt(rs.pop()), null))),
-  // Intentional no-op: ints and floats have the same representation.
-  new Opcode('i2f', 0, function(rs){}),
-  new Opcode('i2d', 0, ((rs) => rs.push(null))),
-  new Opcode('l2i', 0, ((rs) => rs.push(rs.pop2().toInt()))),
-  new Opcode('l2f', 0, ((rs) => rs.push(rs.pop2().toNumber()))),
-  new Opcode('l2d', 0, ((rs) => rs.push2(rs.pop2().toNumber(), null))),
-  new Opcode('f2i', 0, ((rs) => rs.push(util.float2int(rs.pop())))),
-  new Opcode('f2l', 0, ((rs) => rs.push2(gLong.fromNumber(rs.pop()), null))),
-  new Opcode('f2d', 0, ((rs) => rs.push(null))),
-  new Opcode('d2i', 0, ((rs) => rs.push(util.float2int(rs.pop2())))),
-  new Opcode('d2l', 0, function(rs){
-    var d_val = rs.pop2();
-    if (d_val === Number.POSITIVE_INFINITY) {
-      rs.push2(gLong.MAX_VALUE, null);
-    } else if (d_val === Number.NEGATIVE_INFINITY) {
-      rs.push2(gLong.MIN_VALUE, null);
+  new Opcode('idiv', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack, b: number = stack.pop(), a: number = stack.pop();
+    if (b === 0) {
+      thread.throwNewException('Ljava/lang/ArithmeticException;', 'Division by zero.');
+      frame.returnToThreadLoop = true;
     } else {
-      rs.push2(gLong.fromNumber(d_val), null);
+      // spec: "if the dividend is the negative integer of largest possible magnitude
+      // for the int type, and the divisor is -1, then overflow occurs, and the
+      // result is equal to the dividend."
+      if (a === enums.Constants.INT_MIN && b === -1) {
+        stack.push(a);
+      } else {
+        stack.push((a / b) | 0);
+      }
+      this.incPc(frame);
     }
   }),
-  new Opcode('d2f', 0, ((rs) => rs.push(util.wrap_float(rs.pop2())))),
+  new Opcode('ldiv', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack,
+      b: gLong = pop2(stack),
+      a: gLong = pop2(stack);
+    if (b.isZero()) {
+      thread.throwNewException('Ljava/lang/ArithmeticException;', 'Division by zero.');
+      frame.returnToThreadLoop = true;
+    } else {
+      stack.push(a.div(b), null);
+      this.incPc(frame);
+    }
+  }),
+  new Opcode('fdiv', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack,
+      a: number = stack.pop();
+    stack.push(util.wrap_float(stack.pop() / a));
+    this.incPc(frame);
+  }),
+  new Opcode('ddiv', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack,
+      v: number = pop2(stack);
+    stack.push(pop2(stack) / v, null);
+    this.incPc(frame);
+  }),
+  new Opcode('irem', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack,
+      b: number = stack.pop(),
+      a: number = stack.pop();
+    if (b === 0) {
+      thread.throwNewException('Ljava/lang/ArithmeticException;', 'Division by zero.');
+      frame.returnToThreadLoop = true;
+    } else {
+      stack.push(a % b);
+      this.incPc(frame);
+    }
+  }),
+  new Opcode('lrem', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack,
+      b: gLong = pop2(stack),
+      a: gLong = pop2(stack);
+    if (b.isZero()) {
+      thread.throwNewException('Ljava/lang/ArithmeticException;', 'Division by zero.');
+      frame.returnToThreadLoop = true;
+    } else {
+      stack.push(a.modulo(b), null);
+      this.incPc(frame);
+    }
+  }),
+  new Opcode('frem', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack,
+      b: number = stack.pop();
+    stack.push(stack.pop() % b);
+    this.incPc(frame);
+  }),
+  new Opcode('drem', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack,
+      b: number = pop2(stack);
+    stack.push(pop2(stack) % b, null);
+    this.incPc(frame);
+  }),
+  new Opcode('ineg', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push(-stack.pop() | 0);
+    this.incPc(frame);
+  }),
+  new Opcode('lneg', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push(pop2(stack).negate(), null);
+    this.incPc(frame);
+  }),
+  new Opcode('fneg', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push(-stack.pop());
+    this.incPc(frame);
+  }),
+  new Opcode('dneg', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push(-pop2(stack), null);
+    this.incPc(frame);
+  }),
+  new Opcode('ishl', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack,
+      s: number = stack.pop();
+    stack.push(stack.pop() << s);
+    this.incPc(frame);
+  }),
+  new Opcode('lshl', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack,
+      s: number = stack.pop();
+    stack.push(pop2(stack).shiftLeft(gLong.fromInt(s)), null);
+    this.incPc(frame);
+  }),
+  new Opcode('ishr', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack,
+      s: number = stack.pop();
+    stack.push(stack.pop() >> s);
+    this.incPc(frame);
+  }),
+  new Opcode('lshr', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack,
+      s: number = stack.pop();
+    stack.push(pop2(stack).shiftRight(gLong.fromInt(s)), null);
+    this.incPc(frame);
+  }),
+  new Opcode('iushr', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack,
+      s: number = stack.pop();
+    stack.push(stack.pop() >>> s);
+    this.incPc(frame);
+  }),
+  new Opcode('lushr', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack,
+      s: number = stack.pop();
+    stack.push(pop2(stack).shiftRightUnsigned(gLong.fromInt(s)), null);
+    this.incPc(frame);
+  }),
+  new Opcode('iand', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push(stack.pop() & stack.pop());
+    this.incPc(frame);
+  }),
+  new Opcode('land', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push(pop2(stack).and(pop2(stack)), null);
+    this.incPc(frame);
+  }),
+  new Opcode('ior', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push(stack.pop() | stack.pop());
+    this.incPc(frame);
+  }),
+  new Opcode('lor', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push(pop2(stack).or(pop2(stack)), null);
+    this.incPc(frame);
+  }),
+  new Opcode('ixor', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push(stack.pop() ^ stack.pop());
+    this.incPc(frame);
+  }),
+  new Opcode('lxor', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push(pop2(stack).xor(pop2(stack)), null);
+    this.incPc(frame);
+  }),
+  new IIncOpcode('iinc'),
+  new Opcode('i2l', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push(gLong.fromInt(stack.pop()), null);
+    this.incPc(frame);
+  }),
+  // Intentional no-op: ints and floats have the same representation.
+  new Opcode('i2f', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    this.incPc(frame);
+  }),
+  new Opcode('i2d', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    frame.stack.push(null);
+    this.incPc(frame);
+  }),
+  new Opcode('l2i', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push(pop2(stack).toInt());
+    this.incPc(frame);
+  }),
+  new Opcode('l2f', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push(pop2(stack).toNumber());
+    this.incPc(frame);
+  }),
+  new Opcode('l2d', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push(pop2(stack).toNumber(), null);
+    this.incPc(frame);
+  }),
+  new Opcode('f2i', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push(util.float2int(stack.pop()));
+    this.incPc(frame);
+  }),
+  new Opcode('f2l', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push(gLong.fromNumber(stack.pop()), null);
+    this.incPc(frame);
+  }),
+  new Opcode('f2d', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    frame.stack.push(null);
+    this.incPc(frame);
+  }),
+  new Opcode('d2i', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push(util.float2int(pop2(stack)));
+    this.incPc(frame);
+  }),
+  new Opcode('d2l', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack,
+      d_val: number = pop2(stack);
+    if (d_val === Number.POSITIVE_INFINITY) {
+      stack.push(gLong.MAX_VALUE, null);
+    } else if (d_val === Number.NEGATIVE_INFINITY) {
+      stack.push(gLong.MIN_VALUE, null);
+    } else {
+      stack.push(gLong.fromNumber(d_val), null);
+    }
+    this.incPc(frame);
+  }),
+  new Opcode('d2f', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push(util.wrap_float(pop2(stack)));
+    this.incPc(frame);
+  }),
   // set all high-order bits to 1
-  new Opcode('i2b', 0, ((rs) => rs.push((rs.pop() << 24) >> 24))),
+  new Opcode('i2b', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push((stack.pop() << 24) >> 24);
+    this.incPc(frame);
+  }),
   // 16-bit unsigned integer
-  new Opcode('i2c', 0, ((rs) => rs.push(rs.pop() & 0xFFFF))),
-  new Opcode('i2s', 0, ((rs) => rs.push((rs.pop() << 16) >> 16))),
-  new Opcode('lcmp', 0, function(rs){
-    var v2 = rs.pop2();
-    rs.push(rs.pop2().compare(v2));
+  new Opcode('i2c', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push(stack.pop() & 0xFFFF);
+    this.incPc(frame);
   }),
-  new Opcode('fcmpl', 0, function(rs) {
-    var v2 = rs.pop();
-    var res = util.cmp(rs.pop(), v2);
-    if (res == null) rs.push(-1);
-    else             rs.push(res);
+  new Opcode('i2s', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack;
+    stack.push((stack.pop() << 16) >> 16);
+    this.incPc(frame);
   }),
-  new Opcode('fcmpg', 0, function(rs) {
-    var v2 = rs.pop();
-    var res = util.cmp(rs.pop(), v2);
-    if (res == null) rs.push(1);
-    else             rs.push(res);
+  new Opcode('lcmp', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack,
+      v2: gLong = pop2(stack);
+    stack.push(pop2(stack).compare(v2));
+    this.incPc(frame);
   }),
-  new Opcode('dcmpl', 0, function(rs) {
-    var v2 = rs.pop2();
-    var res = util.cmp(rs.pop2(), v2);
-    if (res == null) rs.push(-1);
-    else             rs.push(res);
+  new Opcode('fcmpl', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack,
+      v2 = stack.pop(),
+      res = util.cmp(stack.pop(), v2);
+    if (res == null) stack.push(-1);
+    else stack.push(res);
+    this.incPc(frame);
   }),
-  new Opcode('dcmpg', 0, function(rs) {
-    var v2 = rs.pop2();
-    var res = util.cmp(rs.pop2(), v2);
-    if (res == null) rs.push(1);
-    else             rs.push(res);
+  new Opcode('fcmpg', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack,
+      v2 = stack.pop(),
+      res = util.cmp(stack.pop(), v2);
+    if (res == null) stack.push(1);
+    else stack.push(res);
+    this.incPc(frame);
   }),
-  new UnaryBranchOpcode('ifeq', ((v) => v === 0)),
-  new UnaryBranchOpcode('ifne', ((v) => v !== 0)),
-  new UnaryBranchOpcode('iflt', ((v) => v < 0)),
-  new UnaryBranchOpcode('ifge', ((v) => v >= 0)),
-  new UnaryBranchOpcode('ifgt', ((v) => v > 0)),
-  new UnaryBranchOpcode('ifle', ((v) => v <= 0)),
-  new BinaryBranchOpcode('if_icmpeq', ((v1,v2) => v1 === v2)),
-  new BinaryBranchOpcode('if_icmpne', ((v1,v2) => v1 !== v2)),
-  new BinaryBranchOpcode('if_icmplt', ((v1,v2) => v1 < v2)),
-  new BinaryBranchOpcode('if_icmpge', ((v1,v2) => v1 >= v2)),
-  new BinaryBranchOpcode('if_icmpgt', ((v1,v2) => v1 > v2)),
-  new BinaryBranchOpcode('if_icmple', ((v1,v2) => v1 <= v2)),
-  new BinaryBranchOpcode('if_acmpeq', ((v1,v2) => v1 === v2)),
-  new BinaryBranchOpcode('if_acmpne', ((v1,v2) => v1 !== v2)),
+  new Opcode('dcmpl', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack,
+      v2 = pop2(stack),
+      res = util.cmp(pop2(stack), v2);
+    if (res == null) stack.push(-1);
+    else stack.push(res);
+    this.incPc(frame);
+  }),
+  new Opcode('dcmpg', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack,
+      v2 = pop2(stack),
+      res = util.cmp(pop2(stack), v2);
+    if (res == null) stack.push(1);
+    else stack.push(res);
+    this.incPc(frame);
+  }),
+  new UnaryBranchOpcode('ifeq', ((v: number): boolean => v === 0)),
+  new UnaryBranchOpcode('ifne', ((v: number): boolean => v !== 0)),
+  new UnaryBranchOpcode('iflt', ((v: number): boolean => v < 0)),
+  new UnaryBranchOpcode('ifge', ((v: number): boolean => v >= 0)),
+  new UnaryBranchOpcode('ifgt', ((v: number): boolean => v > 0)),
+  new UnaryBranchOpcode('ifle', ((v: number): boolean => v <= 0)),
+  new BinaryBranchOpcode('if_icmpeq', ((v1: number, v2: number): boolean => v1 === v2)),
+  new BinaryBranchOpcode('if_icmpne', ((v1: number, v2: number): boolean => v1 !== v2)),
+  new BinaryBranchOpcode('if_icmplt', ((v1: number, v2: number): boolean => v1 < v2)),
+  new BinaryBranchOpcode('if_icmpge', ((v1: number, v2: number): boolean => v1 >= v2)),
+  new BinaryBranchOpcode('if_icmpgt', ((v1: number, v2: number): boolean => v1 > v2)),
+  new BinaryBranchOpcode('if_icmple', ((v1: number, v2: number): boolean => v1 <= v2)),
+  new BinaryBranchOpcode('if_acmpeq', ((v1: number, v2: number): boolean => v1 === v2)),
+  new BinaryBranchOpcode('if_acmpne', ((v1: number, v2: number): boolean => v1 !== v2)),
   new GotoOpcode('goto', 2),
   new JSROpcode('jsr', 2),
   new Opcode('ret', 1, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
@@ -1061,138 +1296,196 @@ export var opcodes : Opcode[] = [
   new ReturnOpcode('areturn'),
   new VoidReturnOpcode('return'),
   // field access
-  new FieldOpcode('getstatic', function(rs) {
-    var desc = this.field_spec.class_desc;
-    var ref_cls = rs.get_class(desc, true);
-    var new_execute: Execute;
+  new FieldOpcode('getstatic', function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var desc = this.field_spec.class_desc, loader = frame.getLoader(),
+      ref_cls = loader.getInitializedClass(desc),
+      new_execute: Execute;
     if (this.field_spec.type == 'J' || this.field_spec.type == 'D') {
-      new_execute = (rs) => rs.push2(this.cls.static_get(rs, this.field_spec.name), null)
+      new_execute = (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) => {
+        var stack = frame.stack;
+        stack.push(this.cls.static_get(thread, this.field_spec.name), null);
+        this.incPc(frame);
+      };
     } else {
-      new_execute = (rs) => rs.push(this.cls.static_get(rs, this.field_spec.name))
+      new_execute = (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) => {
+        var stack = frame.stack;
+        stack.push(this.cls.static_get(thread, this.field_spec.name));
+        this.incPc(frame);
+      }
     }
     if (ref_cls != null) {
       // Get the *actual* class that owns this field.
       // This may not be initialized if it's an interface, so we need to check.
-      var cls_type = ref_cls.field_lookup(rs, this.field_spec.name).cls.get_type();
-      this.cls = rs.get_class(cls_type, true);
-      if (this.cls != null) {
-        new_execute.call(this, rs);
-        this.execute = new_execute;
+      var cls_type = ref_cls.field_lookup(thread, this.field_spec.name).cls.get_type();
+      if (cls_type != null) {
+        this.cls = loader.getInitializedClass(cls_type);
+        if (this.cls != null) {
+          new_execute.call(this, thread, frame);
+          this.execute = new_execute;
+        } else {
+          // Initialize cls_type and rerun opcode.
+          initializeClass(thread, frame, cls_type);
+        }
       } else {
-        // Initialize cls_type and rerun opcode.
-        rs.async_op(function(resume_cb, except_cb) {
-          rs.get_cl().initialize_class(rs, cls_type, (function(class_file) {
-            resume_cb(undefined, undefined, true, false);
-          }), except_cb);
-        });
+        // Field not found.
+        frame.returnToThreadLoop = true;
       }
     } else {
       // Initialize @field_spec.class and rerun opcode.
-      rs.async_op(function(resume_cb, except_cb) {
-        rs.get_cl().initialize_class(rs, desc, (function(class_file) {
-          resume_cb(undefined, undefined, true, false);
-        }), except_cb);
-      });
+      initializeClass(thread, frame, desc);
     }
   }),
-  new FieldOpcode('putstatic', function(rs) {
+  new FieldOpcode('putstatic', function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     // Get the class referenced by the field_spec.
-    var desc = this.field_spec.class_desc;
-    var ref_cls = rs.get_class(desc, true);
-    var new_execute: Execute;
+    var desc = this.field_spec.class_desc, loader = frame.getLoader(),
+      ref_cls = loader.getInitializedClass(desc),
+      new_execute: Execute;
     if (this.field_spec.type == 'J' || this.field_spec.type == 'D') {
-      new_execute = (rs) => this.cls.static_put(rs, this.field_spec.name, rs.pop2())
+      new_execute = (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) => {
+        this.cls.static_put(thread, this.field_spec.name, pop2(frame.stack));
+        this.incPc(frame);
+      };
     } else {
-      new_execute = (rs) => this.cls.static_put(rs, this.field_spec.name, rs.pop())
+      new_execute = (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) => {
+        this.cls.static_put(thread, this.field_spec.name, frame.stack.pop());
+        this.incPc(frame);
+      };
     }
     if (ref_cls != null) {
       // Get the *actual* class that owns this field.
       // This may not be initialized if it's an interface, so we need to check.
-      var cls_type = ref_cls.field_lookup(rs, this.field_spec.name).cls.get_type();
-      this.cls = rs.get_class(cls_type, true);
-      if (this.cls != null) {
-        new_execute.call(this, rs);
-        this.execute = new_execute;
-      } else {
-        // Initialize cls_type and rerun opcode.
-        rs.async_op(function(resume_cb, except_cb) {
-          rs.get_cl().initialize_class(rs, cls_type, (function(class_file) {
-            resume_cb(undefined, undefined, true, false);
-          }), except_cb);
-        });
-      }
-      return;
-    }
-    // Initialize @field_spec.class and rerun opcode.
-    rs.async_op(function(resume_cb, except_cb) {
-      rs.get_cl().initialize_class(rs, desc, (function(class_file) {
-        resume_cb(undefined, undefined, true, false);
-      }), except_cb);
-    });
-  }),
-  new FieldOpcode('getfield', function(rs) {
-    var desc = this.field_spec.class_desc;
-    // Check if the object is null; if we do not do this before get_class, then
-    // we might try to get a class that we have not initialized!
-    var obj = rs.check_null(rs.peek());
-    // cls is guaranteed to be in the inheritance hierarchy of obj, so it must be
-    // initialized. However, it may not be loaded in the current class's
-    // ClassLoader...
-    var cls = rs.get_class(desc, true);
-    if (cls != null) {
-      var field = cls.field_lookup(rs, this.field_spec.name);
-      var name = field.cls.get_type() + this.field_spec.name;
-      var new_execute: Execute;
-      if (this.field_spec.type == 'J' || this.field_spec.type == 'D') {
-        new_execute = (rs) => rs.push2(rs.check_null(rs.pop()).get_field(rs, name), null);
-      } else {
-        new_execute = (rs) => rs.push(rs.check_null(rs.pop()).get_field(rs, name));
-      }
-      new_execute.call(this, rs);
-      this.execute = new_execute;
-      return;
-    }
-    // Alright, tell this class's ClassLoader to load the class.
-    rs.async_op(function(resume_cb, except_cb) {
-      rs.get_cl().resolve_class(rs, desc, (function() {
-        resume_cb(undefined, undefined, true, false);
-      }), except_cb);
-    });
-  }),
-  new FieldOpcode('putfield', function(rs) {
-    // Check if the object is null; if we do not do this before get_class, then
-    // we might try to get a class that we have not initialized!
-    var desc = this.field_spec.class_desc;
-    var is_cat_2 = (this.field_spec.type == 'J' || this.field_spec.type == 'D');
-    rs.check_null(rs.peek(is_cat_2 ? 2 : 1));
-    // cls is guaranteed to be in the inheritance hierarchy of obj, so it must be
-    // initialized. However, it may not be loaded in the current class's
-    // ClassLoader...
-    var cls_obj = rs.get_class(desc, true);
-    if (cls_obj != null) {
-      var field = cls_obj.field_lookup(rs, this.field_spec.name);
-      var name = field.cls.get_type() + this.field_spec.name;
-      var new_execute: Execute;
-      if (is_cat_2) {
-        new_execute = function(rs) {
-          var val = rs.pop2();
-          rs.check_null(rs.pop()).set_field(rs, name, val);
+      var cls_type = ref_cls.field_lookup(thread, this.field_spec.name).cls.get_type();
+      if (cls_type != null) {
+        this.cls = loader.getInitializedClass(cls_type);
+        if (this.cls != null) {
+          new_execute.call(this, thread, frame);
+          this.execute = new_execute;
+        } else {
+          // Initialize cls_type and rerun opcode.
+          initializeClass(thread, frame, cls_type);
         }
       } else {
-        new_execute = function(rs) {
-          var val = rs.pop();
-          rs.check_null(rs.pop()).set_field(rs, name, val);
-        };
+        // Field not found.
+        frame.returnToThreadLoop = true;
       }
-      new_execute.call(this, rs);
-      this.execute = new_execute;
     } else {
-      // Alright, tell this class's ClassLoader to load the class.
-      rs.async_op(function(resume_cb, except_cb) {
-        rs.get_cl().resolve_class(rs, desc, (function() {
-          resume_cb(undefined, undefined, true, false);
-        }), except_cb);
-      });
+      // Initialize @field_spec.class and rerun opcode.
+      initializeClass(thread, frame, desc);
+    }
+  }),
+  new FieldOpcode('getfield', function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack,
+      desc = this.field_spec.class_desc,
+      obj: java_object.JavaObject = stack[stack.length - 1],
+      loader = frame.getLoader();
+    // Check if the object is null; if we do not do this before get_class, then
+    // we might try to get a class that we have not initialized!
+    if (!isNull(thread, frame, obj)) {
+      // cls is guaranteed to be in the inheritance hierarchy of obj, so it must be
+      // initialized. However, it may not be loaded in the current class's
+      // ClassLoader...
+      var cls = loader.getInitializedClass(desc);
+      if (cls != null) {
+        var field = cls.field_lookup(thread, this.field_spec.name);
+        if (field != null) {
+          var name = field.cls.get_type() + this.field_spec.name;
+          var new_execute: Execute;
+          if (this.field_spec.type == 'J' || this.field_spec.type == 'D') {
+            new_execute = (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) => {
+              var stack = frame.stack, obj: java_object.JavaObject = stack.pop();
+              if (!isNull(thread, frame, obj)) {
+                var val = obj.get_field(thread, name);
+                if (val !== undefined) {
+                  // SUCCESS
+                  stack.push(val, null);
+                  this.incPc(frame);
+                } else {
+                  // FAILED
+                  frame.returnToThreadLoop = true;
+                }
+              }
+            };
+          } else {
+            new_execute = (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) => {
+              var stack = frame.stack, obj: java_object.JavaObject = stack.pop();
+              if (!isNull(thread, frame, obj)) {
+                var val = obj.get_field(thread, name);
+                if (val !== undefined) {
+                  stack.push(val);
+                  this.incPc(frame);
+                } else {
+                  frame.returnToThreadLoop = true;
+                }
+              }
+            };
+          }
+          new_execute.call(this, thread, frame);
+          this.execute = new_execute;
+        } else {
+          // Field was NULL; field_lookup threw an exception for us.
+          frame.returnToThreadLoop = true;
+        }
+      } else {
+        // Alright, tell this class's ClassLoader to load the class.
+        resolveClass(thread, frame, desc);
+      }
+    }
+  }),
+  new FieldOpcode('putfield', function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    // Check if the object is null; if we do not do this before get_class, then
+    // we might try to get a class that we have not initialized!
+    var stack = frame.stack,
+      desc = this.field_spec.class_desc,
+      is_cat_2 = (this.field_spec.type == 'J' || this.field_spec.type == 'D'),
+      obj = stack[stack.length - 1 - (is_cat_2 ? 2 : 1)],
+      loader = frame.getLoader();
+    if (!isNull(thread, frame, obj)) {
+      // cls is guaranteed to be in the inheritance hierarchy of obj, so it must be
+      // initialized. However, it may not be loaded in the current class's
+      // ClassLoader...
+      var cls_obj = loader.getInitializedClass(desc);
+      if (cls_obj != null) {
+        var field = cls_obj.field_lookup(thread, this.field_spec.name);
+        if (field != null) {
+          var name = field.cls.get_type() + this.field_spec.name,
+            new_execute: Execute;
+          if (is_cat_2) {
+            new_execute = function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+              var stack = frame.stack, val = pop2(stack),
+                obj: java_object.JavaObject = stack.pop();
+              if (!isNull(thread, frame, obj)) {
+                if (obj.set_field(thread, name, val)) {
+                  this.incPc(frame);
+                } else {
+                  // Field not found.
+                  frame.returnToThreadLoop = true;
+                }
+              }
+            }
+          } else {
+            new_execute = function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+              var stack = frame.stack, val = stack.pop(),
+                obj: java_object.JavaObject = stack.pop();
+              if (!isNull(thread, frame, obj)) {
+                if (obj.set_field(thread, name, val)) {
+                  this.incPc(frame);
+                } else {
+                  // Field not found.
+                  frame.returnToThreadLoop = true;
+                }
+              }
+            };
+          }
+          new_execute.call(this, thread, frame);
+          this.execute = new_execute;
+        } else {
+          // Field not found exception.
+          frame.returnToThreadLoop = true;
+        }
+      } else {
+        // Alright, tell this class's ClassLoader to load the class.
+        resolveClass(thread, frame, desc);
+      }
     }
   }),
   new DynInvokeOpcode('invokevirtual'),
@@ -1200,117 +1493,127 @@ export var opcodes : Opcode[] = [
   new InvokeOpcode('invokestatic'),
   new DynInvokeOpcode('invokeinterface'),
   null,  // invokedynamic
-  new ClassOpcode('new', function(rs) {
+  new ClassOpcode('new', function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     var desc = this.class_desc;
-    this.cls = rs.get_class(desc, true);
+    this.cls = frame.getLoader().getInitializedClass(desc);
     if (this.cls != null) {
-      // Check if this is a ClassLoader or not.
-      if (this.cls.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/ClassLoader;', true))) {
-        rs.push(new JavaClassLoaderObject(rs, this.cls));
-        this.execute = (rs: runtime.RuntimeState) => rs.push(new JavaClassLoaderObject(rs, this.cls));
-      } else if (this.cls.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/Thread;', true))) {
-        rs.push(new threading.JavaThreadObject(rs, this.cls));
-        this.execute = (rs: runtime.RuntimeState) => rs.push(new threading.JavaThreadObject(rs, this.cls));
-      } else {
-        rs.push(new JavaObject(rs, this.cls));
-        // Self-modify; cache the class file lookup.
-        this.execute = (rs: runtime.RuntimeState) => rs.push(new JavaObject(rs, this.cls));
-      }
-    } else {
-      // Initialize @type, create a JavaObject for it, and push it onto the stack.
-      // Do not rerun opcode.
-      rs.async_op(function(resume_cb, except_cb) {
-        var success_fn = function(class_file: ClassData.ReferenceClassData) {
-          // Check if this is a ClassLoader or not.
-          var obj: java_object.JavaObject;
-          if (class_file.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/ClassLoader;', true))) {
-            obj = new JavaClassLoaderObject(rs, class_file);
-          } else if (class_file.is_castable(rs.get_bs_cl().get_resolved_class('Ljava/lang/Thread;', true))) {
-            obj = new threading.JavaThreadObject(rs, class_file);
-          } else {
-            obj = new JavaObject(rs, class_file);
-          }
-          resume_cb(obj, undefined, true);
+      // XXX: Check if this is a ClassLoader / Thread / other.
+      if (this.cls.is_castable(thread.getBsCl().getResolvedClass('Ljava/lang/ClassLoader;'))) {
+        this.execute = (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) => {
+          frame.stack.push(new JavaClassLoaderObject(thread, this.cls));
+          this.incPc(frame);
         };
-        rs.get_cl().initialize_class(rs, desc, success_fn, except_cb);
-      });
+      } else if (this.cls.is_castable(thread.getBsCl().getResolvedClass('Ljava/lang/Thread;'))) {
+        this.execute = (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) => {
+          frame.stack.push(thread.getThreadPool().newThread(this.cls));
+          this.incPc(frame);
+        };
+      } else {
+        // Self-modify; cache the class file lookup.
+        this.execute = (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) => {
+          frame.stack.push(new JavaObject(this.cls));
+          this.incPc(frame);
+        };
+      }
+      // Rerun opcode.
+      this.execute.call(this, thread, frame);
+    } else {
+      // Initialize @type and rerun opcode.
+      initializeClass(thread, frame, desc);
     }
   }),
   new NewArrayOpcode('newarray'),
-  new ClassOpcode('anewarray', function(rs) {
+  new ClassOpcode('anewarray', function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     var desc = this.class_desc;
     // Make sure the component class is loaded.
-    var cls = rs.get_cl().get_resolved_class(desc, true);
+    var cls = frame.getLoader().getResolvedClass(desc);
     if (cls != null) {
-      var new_execute: Execute = (rs) => rs.push(rs.heap_newarray(desc, rs.pop()));
-      new_execute.call(this, rs);
+      var new_execute: Execute = (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) => {
+        var stack = frame.stack;
+        stack.push(java_object.heapNewArray(thread, frame.getLoader(), desc, stack.pop()));
+        this.incPc(frame);
+      };
+      new_execute.call(this, thread, frame);
       this.execute = new_execute;
     } else {
       // Load @class and rerun opcode.
-      rs.async_op(function(resume_cb, except_cb) {
-        rs.get_cl().resolve_class(rs, desc, (function(class_file) {
-          resume_cb(undefined, undefined, true, false);
-        }), except_cb);
-      });
+      resolveClass(thread, frame, desc);
     }
   }),
-  new Opcode('arraylength', 0, ((rs) => rs.push(rs.check_null(rs.pop()).array.length))),
-  new Opcode('athrow', 0, function(rs){throw new JavaException(rs.pop())}),
-  new ClassOpcode('checkcast', function(rs) {
+  new Opcode('arraylength', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack, obj: java_object.JavaArray = stack.pop();
+    if (!isNull(thread, frame, obj)) {
+      stack.push(obj.array.length);
+      this.incPc();
+    }
+    // obj is NULL. isNull threw an exception for us.
+  }),
+  new Opcode('athrow', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    thread.throwException(frame.stack.pop());
+  }),
+  new ClassOpcode('checkcast', function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     var desc = this.class_desc;
     // Ensure the class is loaded.
-    this.cls = rs.get_cl().get_resolved_class(desc, true);
+    this.cls = frame.getLoader().getResolvedClass(desc);
     if (this.cls != null) {
-      var new_execute = function(rs: runtime.RuntimeState): void {
-        var o = rs.peek();
+      var new_execute = function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
+        var stack = frame.stack,
+          o = stack[stack.length - 1];
         if ((o != null) && !o.cls.is_castable(this.cls)) {
           var target_class = this.cls.toExternalString();
           var candidate_class = o.cls.toExternalString();
-          var err_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/ClassCastException;');
-          rs.java_throw(err_cls, candidate_class + " cannot be cast to " + target_class);
+          thread.throwNewException('Ljava/lang/ClassCastException;', candidate_class + " cannot be cast to " + target_class);
+          frame.returnToThreadLoop = true;
+        } else {
+          // Success!
+          this.incPc(frame);
         }
       };
-      new_execute.call(this, rs);
+      new_execute.call(this, thread, frame);
       this.execute = new_execute;
-      return;
+    } else {
+      resolveClass(thread, frame, desc);
     }
-    // Fetch @class and rerun opcode.
-    rs.async_op(function(resume_cb, except_cb) {
-      rs.get_cl().resolve_class(rs, desc,
-        (() => resume_cb(undefined, undefined, true, false)), except_cb);
-    });
   }),
-  new ClassOpcode('instanceof', function(rs) {
-    var desc = this.class_desc;
-    this.cls = rs.get_cl().get_resolved_class(desc, true);
+  new ClassOpcode('instanceof', function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var desc = this.class_desc, loader = frame.getLoader();
+    this.cls = loader.getResolvedClass(desc);
     if (this.cls != null) {
-      var new_execute = function(rs: runtime.RuntimeState) {
-        var o = rs.pop();
-        rs.push(o != null ? o.cls.is_castable(this.cls) + 0 : 0);
+      var new_execute = function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+        var stack = frame.stack,
+          o = stack.pop();
+        stack.push(o != null ? o.cls.is_castable(this.cls) + 0 : 0);
+        this.incPc(frame);
       };
-      new_execute.call(this, rs);
+      new_execute.call(this, thread, frame);
       this.execute = new_execute;
-      return;
+    } else {
+      // Fetch class and rerun opcode.
+      resolveClass(thread, frame, desc);
     }
-    // Fetch @class and rerun opcode.
-    rs.async_op(function(resume_cb, except_cb) {
-      rs.get_cl().resolve_class(rs, desc,
-        (() => resume_cb(undefined, undefined, true, false)), except_cb);
-    });
   }),
-  new Opcode('monitorenter', 0, function(rs){
-    // we merely peek (instead of pop) here because this op may be called
-    // multiple times
-    if (!monitorenter(rs, rs.peek(), this)) {
-      throw ReturnException;
+  new Opcode('monitorenter', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var stack = frame.stack, monitor: java_object.Monitor = stack[stack.length - 1];
+    if (!monitor.enter(thread)) {
+      // Opcode failed, and will be rerun again once the monitor is free.
+      // The thread is now in the BLOCKED state. Tell the frame to return to
+      // the thread loop.
+      frame.returnToThreadLoop = true;
+    } else {
+      // Opcode succeeded. Pop off the monitor.
+      stack.pop();
+      this.incPc(frame);
     }
-    rs.pop();
   }),
-  new Opcode('monitorexit', 0, ((rs) => monitorexit(rs, rs.pop()))),
+  new Opcode('monitorexit', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+    var monitor: java_object.Monitor = frame.stack.pop();
+    monitor.exit(thread);
+    this.incPc(frame);
+  }),
   null,  // hole in the opcode array at 196
   new MultiArrayOpcode('multianewarray'),
-  new UnaryBranchOpcode('ifnull', ((v) => v == null)),
-  new UnaryBranchOpcode('ifnonnull', ((v) => v != null)),
+  new UnaryBranchOpcode('ifnull', ((v: number): boolean => v == null)),
+  new UnaryBranchOpcode('ifnonnull', ((v: number): boolean => v != null)),
   new GotoOpcode('goto_w', 4),
   new JSROpcode('jsr_w', 4)
 ];

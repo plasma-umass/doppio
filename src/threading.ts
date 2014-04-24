@@ -9,6 +9,7 @@ import gLong = require('./gLong');
 import opcodes = require('./opcodes');
 import attributes = require('./attributes');
 import logging = require('./logging');
+import JVM = require('./jvm');
 
 var debug = logging.debug;
 
@@ -261,6 +262,20 @@ export class ThreadPool {
   private threads: JVMThread[] = [];
   private runningThread: JVMThread;
 
+  constructor(private jvm: JVM, private bsCl: ClassLoader.BootstrapClassLoader) {
+
+  }
+
+  public newThread(cls: ClassData.ReferenceClassData): JVMThread {
+    var thread = new JVMThread(this.bsCl, this, cls);
+    this.threads.push(thread);
+    return thread;
+  }
+
+  public getJVM(): JVM {
+    return this.jvm;
+  }
+
   private findNextThread(): JVMThread {
     var i: number, threads = this.threads;
     for (i = 0; i < threads.length; i++) {
@@ -345,6 +360,13 @@ export class JVMThread extends java_object.JavaObject {
    */
   public getBsCl(): ClassLoader.BootstrapClassLoader {
     return this.bsCl;
+  }
+
+  /**
+   * Retrieve the thread pool that this thread belongs to.
+   */
+  public getThreadPool(): ThreadPool {
+    return this.tpool;
   }
 
   /**

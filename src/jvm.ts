@@ -9,6 +9,7 @@ import ClassLoader = require('./ClassLoader');
 import fs = require('fs');
 import path = require('path');
 import JAR = require('./jar');
+import java_object = require('./java_object');
 declare var BrowserFS;
 
 var trace = logging.trace;
@@ -30,7 +31,9 @@ class JVM {
   // XXX: Static attribute.
   public static show_NYI_natives: boolean = false;
   // Maps JAR files to their extraction directory.
-  private jar_map: {[jar_path: string]: string} = {};
+  private jar_map: { [jar_path: string]: string } = {};
+  private internedStrings: { [str: string]: java_object.JavaObject } = {};
+  private bsCl: ClassLoader.BootstrapClassLoader;
 
   /**
    * (Async) Construct a new instance of the Java Virtual Machine.
@@ -77,6 +80,17 @@ class JVM {
         });
       }
     });
+  }
+
+  /**
+   * Interns the given JavaScript string. Returns the interned string.
+   */
+  public internString(str: string): java_object.JavaObject {
+    var internedString = this.internedStrings[str];
+    if (internedString == null) {
+      internedString = this.internedStrings[str] = java_object.initString(this.bsCl, str);
+    }
+    return internedString;
   }
 
   /**

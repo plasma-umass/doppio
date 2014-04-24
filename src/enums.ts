@@ -54,3 +54,19 @@ export enum StackFrameType {
    */
   NATIVE
 }
+
+/**
+ * Various constant values. Enum'd so they are inlined by the TypeScript
+ * compiler.
+ */
+export enum Constants {
+  INT_MAX = Math.pow(2, 31) - 1,
+  INT_MIN = -INT_MAX - 1,
+  FLOAT_POS_INFINITY = Math.pow(2, 128),
+  FLOAT_NEG_INFINITY = -1 * FLOAT_POS_INFINITY,
+  FLOAT_POS_INFINITY_AS_INT = 0x7F800000,
+  FLOAT_NEG_INFINITY_AS_INT = -8388608,
+  // We use the JavaScript NaN as our NaN value, and convert it to
+  // a NaN value in the SNaN range when an int equivalent is requested.
+  FLOAT_NaN_AS_INT = 0x7fc00000
+}

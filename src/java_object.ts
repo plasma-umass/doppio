@@ -89,12 +89,14 @@ export class JavaObject {
     return new JavaObject(this.cls, underscore.clone(this.fields));
   }
 
-  public set_field(thread: threading.JVMThread, name: string, val: any): void {
+  public set_field(thread: threading.JVMThread, name: string, val: any): boolean {
     if (this.fields[name] !== undefined) {
       this.fields[name] = val;
+      return true;
     } else {
       thread.throwNewException('Ljava/lang/NoSuchFieldError;',
         'Cannot set field ' + name + ' on class ' + this.cls.get_type());
+      return false;
     }
   }
 
@@ -184,8 +186,8 @@ export class JavaObject {
 }
 
 export class JavaClassObject extends JavaObject {
-  constructor(rs: runtime.RuntimeState, public $cls: ClassData.ClassData) {
-    super(rs, <ClassData.ReferenceClassData> rs.get_bs_cl().get_resolved_class('Ljava/lang/Class;'));
+  constructor(thread: threading.JVMThread, public $cls: ClassData.ClassData) {
+    super(<ClassData.ReferenceClassData> thread.getBsCl().getResolvedClass('Ljava/lang/Class;'));
   }
 
   public toString() {
@@ -196,7 +198,7 @@ export class JavaClassObject extends JavaObject {
 // Each JavaClassLoaderObject is a unique ClassLoader.
 export class JavaClassLoaderObject extends JavaObject {
   public $loader: any
-  constructor(rs: runtime.RuntimeState, cls: any) {
+  constructor(thread: threading.JVMThread, cls: any) {
     super(rs, cls);
     this.$loader = rs.construct_cl(this);
   }
@@ -511,3 +513,52 @@ export class Monitor {
     return this.owner;
   }
 }
+
+export function heapNewArray(thread: threading.JVMThread, loader: ClassLoader.ClassLoader, type: string, len: number): JavaArray {
+  if (len < 0) {
+    thread.throwNewException('Ljava/lang/NegativeArraySizeException;', "Tried to init [" + type + " array with length " + len);
+  } else {
+    var arr_cls = <ClassData.ArrayClassData> loader.getInitializedClass("[" + type);
+    // Gives the JavaScript engine a size hint.
+    if (type === 'J') {
+      return new JavaArray(arr_cls, util.arrayset<gLong>(len, gLong.ZERO));
+    } else if (type[0] === 'L' || type[0] === '[') { // array of objects or other arrays
+      return new JavaArray(arr_cls, util.arrayset<any>(len, null));
+    } else { // numeric array
+      return new JavaArray(arr_cls, util.arrayset<number>(len, 0));
+    }
+  }
+}
+
+// The innermost component class is already initialized.
+export function heapMultiNewArray(thread: threading.JVMThread, loader: ClassLoader.ClassLoader, type: string, counts: number[]): JavaArray {
+  var dim = counts.length;
+  function init_arr(curr_dim: number, type: string): JavaArray {
+    var len = counts[curr_dim];
+    if (len < 0) {
+      thread.throwNewException('Ljava/lang/NegativeArraySizeException;', "Tried to init dimension " + curr_dim + " of a " + dim + " dimensional " + type + " array with length " + len);
+    } else {
+      // Gives the JS engine a size hint.
+      var array = new Array(len);
+      if (curr_dim + 1 === dim) {
+        var default_val = util.initial_value(type);
+        for (var i = 0; i < len; i++) {
+          array[i] = default_val;
+        }
+      } else {
+        var next_dim = curr_dim + 1;
+        var comp_type = type.slice(1);
+        for (var i = 0; i < len; i++) {
+          if (array[i] = init_arr(next_dim, comp_type) == null) {
+            // Exception occurred.
+            return undefined;
+          }
+        }
+      }
+      var arr_cls = <ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(type);
+      return new JavaArray(arr_cls, array);
+    }
+  }
+  return init_arr(0, type);
+}
+
