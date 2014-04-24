@@ -15,12 +15,40 @@ import Heap = require('./heap');
 
 var trace = logging.trace;
 var error = logging.error;
+// XXX: We currently initialize these classes at JVM bootup. This is expensive.
+// We should attempt to prune this list as much as possible.
+var coreClasses = [
+  'Ljava/lang/Class;', 'Ljava/lang/ClassLoader;', 'Ljava/lang/String;',
+  'Ljava/lang/Error;', 'Ljava/lang/StackTraceElement;',
+  'Ljava/io/ExpiringCache;', 'Ljava/io/FileDescriptor;',
+  'Ljava/io/FileNotFoundException;', 'Ljava/io/IOException;',
+  'Ljava/io/Serializable;', 'Ljava/io/UnixFileSystem;',
+  'Ljava/lang/ArithmeticException;',
+  'Ljava/lang/ArrayIndexOutOfBoundsException;',
+  'Ljava/lang/ArrayStoreException;', 'Ljava/lang/ClassCastException;',
+  'Ljava/lang/ClassNotFoundException;', 'Ljava/lang/NoClassDefFoundError;',
+  'Ljava/lang/Cloneable;', 'Ljava/lang/ExceptionInInitializerError;',
+  'Ljava/lang/IllegalMonitorStateException;',
+  'Ljava/lang/InterruptedException;',
+  'Ljava/lang/NegativeArraySizeException;', 'Ljava/lang/NoSuchFieldError;',
+  'Ljava/lang/NoSuchMethodError;', 'Ljava/lang/NullPointerException;',
+  'Ljava/lang/reflect/Constructor;', 'Ljava/lang/reflect/Field;',
+  'Ljava/lang/reflect/Method;', 'Ljava/lang/System;', 'Ljava/lang/Thread;',
+  'Ljava/lang/ThreadGroup;', 'Ljava/lang/Throwable;',
+  'Ljava/lang/UnsatisfiedLinkError;', 'Ljava/nio/ByteOrder;',
+  'Lsun/misc/VM;', 'Lsun/reflect/ConstantPool;', 'Ljava/lang/Byte;',
+  'Ljava/lang/Character;', 'Ljava/lang/Double;', 'Ljava/lang/Float;',
+  'Ljava/lang/Integer;', 'Ljava/lang/Long;', 'Ljava/lang/Short;',
+  'Ljava/lang/Boolean;', '[Lsun/management/MemoryManagerImpl;',
+  '[Lsun/management/MemoryPoolImpl;'
+];
+
 
 /**
  * Encapsulates a single JVM instance.
  */
 class JVM {
-  private system_properties: {[prop: string]: any};
+  private systemProperties: {[prop: string]: any};
   private internedStrings: { [str: string]: java_object.JavaObject } = {};
   private bsCl: ClassLoader.BootstrapClassLoader;
   private threadPool: threading.ThreadPool;
@@ -28,37 +56,82 @@ class JVM {
   // 20MB heap
   // @todo Make heap resizeable.
   private heap = new Heap(20 * 1024 * 1024);
+  private nativeClasspath: string[];
 
   /**
    * (Async) Construct a new instance of the Java Virtual Machine.
-   * @param {string} [jcl_path=/sys/vendor/classes] - Path to the Java Class Library in the file system.
-   * @param {string} [java_home_path=/sys/vendor/java_home] - Path to `java_home` in the file system.
    */
-  constructor(done_cb: (err: any, jvm?: JVM) => void,
-              jcl_path: string = '/sys/vendor/classes',
-              java_home_path: string = '/sys/vendor/java_home',
-              private jar_file_location: string = '/jars',
-              private native_classpath: string[]= ['/sys/src/natives']) {
-    jcl_path = path.resolve(jcl_path);
-    java_home_path = path.resolve(java_home_path);
-    this._initSystemProperties(jcl_path, java_home_path);
-    // Construct BSCL.
-    // Initialize natives.
-    // Bootstrap JVM.
+  constructor(opts: {
+    // Path to the Java Class Library (JCL).
+    jclPath: string;
+    // Non-JCL paths on the class path.
+    classpath: string[];
+    // Path to JAVA_HOME.
+    javaHomePath: string;
+    // Path where we can extract JAR files.
+    extractionPath: string;
+    // XXX: Path where native methods are located.
+    nativeClasspath: string[];
+  }, cb: (e: any, jvm?: JVM) => void) {
+    var jclPath = path.resolve(opts.jclPath),
+      javaHomePath = path.resolve(opts.javaHomePath);
+    this.nativeClasspath = opts.nativeClasspath;
+    this._initSystemProperties(jclPath, javaHomePath);
+
+    // CURRENT DOPPIO:
+    // - initialize threads
+    // - initialize main class
+    // - run main method
+
+    // Step 0: Initialize natives.
+    this.initializeNatives(() => {
+      // Step 1: Construct the bootstrap class loader.
+      this.bsCl = new ClassLoader.BootstrapClassLoader([jclPath].concat(opts.classpath), opts.extractionPath, (e?: any) => {
+        if (e) {
+          cb(e);
+        } else {
+          // Step 2: Fake a thread.
+          var firstThread = this.threadPool.newThread(null);
+          // Step 3: Resolve Ljava/lang/Thread so we can make our thread a bit more legitimate.
+          this.bsCl.resolveClass(firstThread, 'Ljava/lang/Thread;', (cdata: ClassData.ClassData) => {
+            if (cdata == null) {
+              // Failed.
+              cb("Failed to resolve java/lang/Thread.");
+            } else {
+              firstThread.cls = <ClassData.ReferenceClassData> cdata;
+              // Step 4: Now, preinitialize all of those classes.
+              util.async_foreach<string>(coreClasses, (coreClass: string, next_item: (err?: any) => void) => {
+                this.bsCl.initializeClass(firstThread, coreClass, (cdata: ClassData.ClassData) => {
+                  if (cdata == null) {
+                    cb("Failed to initialize " + coreClass);
+                  } else {
+                    next_item();
+                  }
+                });
+              }, (err?: any) => {
+                // Step 5: Initialize threads.
+              });
+            }
+          }, false);
+        }
+      });
+    });
   }
+
+
 
   /**
    * Retrieve the given system property.
    */
   public getSystemProperty(prop: string): any {
-    return this.system_properties[prop];
+    return this.systemProperties[prop];
   }
 
   /**
    * Sets the given system property.
    */
   public setSystemProperty(prop: string, val: any): void {
-    this.system_properties[prop] = val;
+    this.systemProperties[prop] = val;
   }
 
   /**
@@ -138,10 +211,11 @@ class JVM {
   /**
    * Loads in all of the native method modules prior to execution.
    * Currently a hack around our classloader.
+   * @todo Make neater with util.async stuff.
    */
   private initializeNatives(done_cb: () => void): void {
     var next_dir = () => {
-      if (i === this.native_classpath.length) {
+      if (i === this.nativeClasspath.length) {
         // Next phase: Load up the files.
         var count: number = process_files.length;
         process_files.forEach((file) => {
@@ -154,7 +228,7 @@ class JVM {
           });
         });
       } else {
-        var dir = this.native_classpath[i++];
+        var dir = this.nativeClasspath[i++];
         fs.readdir(dir, (err, files) => {
           if (err) return done_cb();
 
@@ -179,17 +253,17 @@ class JVM {
    */
   public initSystemProperties() {
     // Reset while maintaining jcl_path and java_home_path.
-    this._initSystemProperties(this.system_properties['sun.boot.class.path'],
-                                  this.system_properties['java.home']);
+    this._initSystemProperties(this.systemProperties['sun.boot.class.path'],
+                                  this.systemProperties['java.home']);
     // XXX: jcl_path is known-good; synchronously push it onto classpath.
-    this.system_properties['java.class.path'] = [this.system_properties['sun.boot.class.path']];
+    this.systemProperties['java.class.path'] = [this.systemProperties['sun.boot.class.path']];
   }
 
   /**
    * [Private] Same as reset_system_properties, but called by the constructor.
    */
   private _initSystemProperties(jcl_path: string, java_home_path: string): void {
-    this.system_properties = {
+    this.systemProperties = {
       'java.class.path': <string[]> [],
       'java.home': java_home_path,
       'sun.boot.class.path': jcl_path,

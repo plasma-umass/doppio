@@ -121,7 +121,7 @@ export function java(args: string[], opts: JavaOptions,
   // Function that performs processing on the JVM, once constructed/ready.
   jvm_cb = () => {
     // JVM CONFIGURATION
-    underscore.extend(jvm_state.system_properties, argv.properties);
+    underscore.extend(jvm_state.systemProperties, argv.properties);
 
     if (argv.non_standard['dump-state']) {
       jvm_state.should_dump_state = argv.non_standard['dump-state'];
