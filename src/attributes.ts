@@ -112,7 +112,7 @@ export class Code implements Attribute {
 
 export class LineNumberTable implements Attribute {
   public name = 'LineNumberTable';
-  private entries: { start_pc: number; line_number: number }[];
+  public entries: { start_pc: number; line_number: number }[];
 
   public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
     this.entries = [];

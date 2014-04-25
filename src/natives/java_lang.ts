@@ -1,140 +1,151 @@
-import runtime = require('../runtime');
 import java_object = require('../java_object');
 import logging = require('../logging');
 import ClassData = require('../ClassData');
 import gLong = require('../gLong');
 import util = require('../util');
-import exceptions = require('../exceptions');
 import attributes = require('../attributes');
 import methods = require('../methods');
 import threading = require('../threading');
+import ClassLoader = require('../ClassLoader');
+import enums = require('../enums');
 
-function array_get(rs: runtime.RuntimeState, arr: java_object.JavaArray, idx: number): any {
-  var array = rs.check_null(arr).array;
-  if (!((0 <= idx && idx < array.length))) {
-    var err_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;');
-    rs.java_throw(err_cls, 'Tried to access an illegal index in an array.');
+function array_get(thread: threading.JVMThread, arr: java_object.JavaArray, idx: number): any {
+  if (arr == null) {
+    thread.throwNewException('Ljava/lang/NullPointerException;', '');
+  } else {
+    var array = arr.array;
+    if (idx < 0 || idx >= array.length) {
+      thread.throwNewException('Ljava/lang/ArrayIndexOutOfBoundsException;', 'Tried to access an illegal index in an array.');
+    } else {
+      return array[idx];
+    }
   }
-  return array[idx];
 }
 
-function verify_array(rs: runtime.RuntimeState, obj: java_object.JavaObject): java_object.JavaArray {
-  if (!(obj instanceof java_object.JavaArray)) {
-    var err_cls = <ClassData.ReferenceClassData> this.get_bs_class('Ljava/lang/IllegalArgumentException;');
-    this.java_throw(err_cls, 'Object is not an array.');
+function isNotNull(thread: threading.JVMThread, obj: any): boolean {
+  if (obj == null) {
+    thread.throwNewException('Ljava/lang/NullPointerException;', '');
+    return false;
+  } else {
+    return true;
   }
-  return <java_object.JavaArray><any> obj;
+}
+
+function verify_array(thread: threading.JVMThread, obj: java_object.JavaArray): boolean {
+  if (!(obj instanceof java_object.JavaArray)) {
+    thread.throwNewException('Ljava/lang/IllegalArgumentException;', 'Object is not an array.');
+    return false;
+  } else {
+    return true;
+  }
 }
 
 // helper function for stack trace natives (see java/lang/Throwable)
-function create_stack_trace(rs: runtime.RuntimeState, throwable: java_object.JavaObject): java_object.JavaObject[] {
-  var source_file, _ref8;
+function create_stack_trace(thread: threading.JVMThread, throwable: java_object.JavaObject): java_object.JavaObject[] {
+  var stacktrace = [],
+    cstack = thread.getStackTrace(),
+    i: number, j: number, bsCl = thread.getBsCl(),
+    stackTraceElementCls = <ClassData.ReferenceClassData> bsCl.getInitializedClass('Ljava/lang/StackTraceElement;');
+  // Ignore any stack frames involved in the construction of this throwable.
+  // @todo There has to be a better way! What does the JVM do?
+  while (cstack[cstack.length - 1].locals[0] === throwable) {
+    cstack.pop();
+  }
 
-  // we don't want to include the stack frames that were created by
-  // the construction of this exception
-  var stacktrace = [];
-  var cstack = rs.meta_stack()._cs.slice(1, -1);
-  for (var i = 0; i < cstack.length; i++) {
-    var sf = cstack[i];
-    if (!(!(sf["native"] || sf.locals[0] === throwable))) {
-      continue;
-    }
-    var cls = sf.method.cls;
-    var ln = -1;
+  for (i = 0; i < cstack.length; i++) {
+    var sf = cstack[i],
+      cls = sf.method.cls,
+      ln = -1,
+      sourceFile: string;
     if (throwable.cls.get_type() !== 'Ljava/lang/NoClassDefFoundError;') {
-      if (sf.method.access_flags["native"]) {
-        source_file = 'Native Method';
+      if (sf.method.access_flags.native) {
+        sourceFile = 'Native Method';
       } else {
-        var src_attr = <attributes.SourceFile> cls.get_attribute('SourceFile');
-        source_file = (src_attr != null) ? src_attr.filename : 'unknown';
-        var code = sf.method.code;
-        var table;
-        if (code != null) {
-          table = code.get_attribute('LineNumberTable');
-        }
-        if (table == null) {
-          break;
-        }
+        var srcAttr = <attributes.SourceFile> cls.get_attribute('SourceFile'),
+          code = sf.method.getCodeAttribute(),
+          table = <attributes.LineNumberTable> code.get_attribute('LineNumberTable');
+        sourceFile = (srcAttr != null) ? srcAttr.filename : 'unknown';
+
         // get the last line number before the stack frame's pc
-        for (var k in table.entries) {
-          var row = table.entries[k];
+        for (j = 0; j < table.entries.length; j++) {
+          var row = table.entries[j];
           if (row.start_pc <= sf.pc) {
             ln = row.line_number;
           }
         }
       }
     } else {
-      source_file = 'unknown';
+      sourceFile = 'unknown';
     }
-    stacktrace.push(new java_object.JavaObject(rs, (<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/StackTraceElement;')), {
-      'Ljava/lang/StackTraceElement;declaringClass': rs.init_string(util.ext_classname(cls.get_type())),
-      'Ljava/lang/StackTraceElement;methodName': rs.init_string((_ref8 = sf.method.name) != null ? _ref8 : 'unknown'),
-      'Ljava/lang/StackTraceElement;fileName': rs.init_string(source_file),
+    stacktrace.push(new java_object.JavaObject(stackTraceElementCls), {
+      'Ljava/lang/StackTraceElement;declaringClass': java_object.initString(bsCl, util.ext_classname(cls.get_type())),
+      'Ljava/lang/StackTraceElement;methodName': java_object.initString(bsCl, sf.method.name != null ? sf.method.name : 'unknown'),
+      'Ljava/lang/StackTraceElement;fileName': java_object.initString(bsCl, sourceFile),
       'Ljava/lang/StackTraceElement;lineNumber': ln
-    }));
+    });
   }
   return stacktrace.reverse();
 }
 
 class java_lang_Class {
 
-  public static 'forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;'(rs: runtime.RuntimeState, jvm_str: java_object.JavaObject, initialize: number, jclo: java_object.JavaClassLoaderObject): void {
+  public static 'forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;'(thread: threading.JVMThread, jvm_str: java_object.JavaObject, initialize: number, jclo: ClassLoader.JavaClassLoaderObject): void {
     var classname = util.int_classname(jvm_str.jvm2js_str());
     if (!util.verify_int_classname(classname)) {
-      rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/ClassNotFoundException;'), classname);
-    }
-    var loader = java_object.get_cl_from_jclo(rs, jclo);
-    rs.async_op(function (resume_cb, except_cb) {
+      thread.throwNewException('Ljava/lang/ClassNotFoundException;', classname);
+    } else {
+      var loader = java_object.get_cl_from_jclo(thread, jclo);
+      thread.setState(enums.ThreadState.WAITING);
       if (initialize) {
-        return loader.initialize_class(rs, classname, ((cls) => {
-          return resume_cb(cls.get_class_object(rs));
-        }), except_cb, true);
+        loader.initializeClass(thread, classname, (cls: ClassData.ReferenceClassData) => {
+          if (cls != null) {
+            thread.asyncReturn(cls.get_class_object(thread));
+          }
+        });
       } else {
-        return loader.resolve_class(rs, classname, ((cls) => {
-          return resume_cb(cls.get_class_object(rs));
-        }), except_cb, true);
+        loader.resolveClass(thread, classname, (cls: ClassData.ReferenceClassData) => {
+          if (cls != null) {
+            thread.asyncReturn(cls.get_class_object(thread));
+          }
+        });
       }
-    });
+    }
   }
 
-  public static 'isInstance(Ljava/lang/Object;)Z'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassObject, obj: java_object.JavaObject): boolean {
+  public static 'isInstance(Ljava/lang/Object;)Z'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject, obj: java_object.JavaObject): boolean {
     return obj.cls.is_castable(javaThis.$cls);
   }
 
-  public static 'isAssignableFrom(Ljava/lang/Class;)Z'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassObject, cls: java_object.JavaClassObject): boolean {
+  public static 'isAssignableFrom(Ljava/lang/Class;)Z'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject, cls: java_object.JavaClassObject): boolean {
     return cls.$cls.is_castable(javaThis.$cls);
   }
 
-  public static 'isInterface()Z'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassObject): boolean {
+  public static 'isInterface()Z'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): boolean {
     if (!(javaThis.$cls instanceof ClassData.ReferenceClassData)) {
       return false;
     }
     return javaThis.$cls.access_flags["interface"];
   }
 
-  public static 'isArray()Z'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassObject): boolean {
+  public static 'isArray()Z'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): boolean {
     return javaThis.$cls instanceof ClassData.ArrayClassData;
   }
 
-  public static 'isPrimitive()Z'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassObject): boolean {
+  public static 'isPrimitive()Z'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): boolean {
     return javaThis.$cls instanceof ClassData.PrimitiveClassData;
   }
 
-  public static 'getName0()Ljava/lang/String;'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassObject): java_object.JavaObject {
-    return rs.init_string(javaThis.$cls.toExternalString());
+  public static 'getName0()Ljava/lang/String;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaObject {
+    return java_object.initString(thread.getBsCl(), javaThis.$cls.toExternalString());
   }
 
-  public static 'getClassLoader0()Ljava/lang/ClassLoader;'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassObject): java_object.JavaClassLoaderObject {
+  public static 'getClassLoader0()Ljava/lang/ClassLoader;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): ClassLoader.JavaClassLoaderObject {
     // The bootstrap classloader is represented as 'null', which is OK
     // according to the spec.
-    var loader = javaThis.$cls.loader;
-    if ((<any>loader).loader_obj != null) {
-      return (<any>loader).loader_obj;
-    }
-    return null;
+    return javaThis.$cls.loader.getLoaderObject();
   }
 
-  public static 'getSuperclass()Ljava/lang/Class;'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassObject): java_object.JavaClassObject {
+  public static 'getSuperclass()Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaClassObject {
     if (javaThis.$cls instanceof ClassData.PrimitiveClassData) {
       return null;
     }
@@ -142,41 +153,42 @@ class java_lang_Class {
     if (cls.access_flags["interface"] || (cls.get_super_class() == null)) {
       return null;
     }
-    return cls.get_super_class().get_class_object(rs);
+    return cls.get_super_class().get_class_object(thread);
   }
 
-  public static 'getInterfaces()[Ljava/lang/Class;'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassObject): java_object.JavaArray {
+  public static 'getInterfaces()[Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaArray {
     var cls = javaThis.$cls;
     var ifaces = cls.get_interfaces();
-    var iface_objs = ifaces.map((iface) => iface.get_class_object(rs));
-    return new java_object.JavaArray(rs, <ClassData.ArrayClassData> rs.get_bs_class('[Ljava/lang/Class;'), iface_objs);
+    var iface_objs = ifaces.map((iface) => iface.get_class_object(thread));
+    return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[Ljava/lang/Class;'), iface_objs);
   }
 
-  public static 'getComponentType()Ljava/lang/Class;'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassObject): java_object.JavaClassObject {
+  public static 'getComponentType()Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaClassObject {
     if (!(javaThis.$cls instanceof ClassData.ArrayClassData)) {
       return null;
     }
     // As this array type is loaded, the component type is guaranteed
     // to be loaded as well. No need for asynchronicity.
-    return (<ClassData.ArrayClassData>javaThis.$cls).get_component_class().get_class_object(rs);
+    return (<ClassData.ArrayClassData>javaThis.$cls).get_component_class().get_class_object(thread);
   }
 
-  public static 'getModifiers()I'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassObject): number {
+  public static 'getModifiers()I'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): number {
     return (<ClassData.ReferenceClassData> javaThis.$cls).access_byte;
   }
 
-  public static 'getSigners()[Ljava/lang/Object;'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassObject): java_object.JavaArray {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'getSigners()[Ljava/lang/Object;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaArray {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'setSigners([Ljava/lang/Object;)V'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassObject, arg0: java_object.JavaArray): void {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'setSigners([Ljava/lang/Object;)V'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject, arg0: java_object.JavaArray): void {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'getEnclosingMethod0()[Ljava/lang/Object;'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassObject): java_object.JavaArray {
-    var enc_desc, enc_name;
+  public static 'getEnclosingMethod0()[Ljava/lang/Object;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaArray {
+    var enc_desc: java_object.JavaObject, enc_name: java_object.JavaObject,
+      bsCl = thread.getBsCl();
     
     if (!(javaThis.$cls instanceof ClassData.ReferenceClassData)) {
       return null;
@@ -186,10 +198,10 @@ class java_lang_Class {
     if (em == null) {
       return null;
     }
-    var enc_cls = cls.loader.get_resolved_class(em.enc_class).get_class_object(rs);
+    var enc_cls = cls.loader.getResolvedClass(em.enc_class).get_class_object(thread);
     if (em.enc_method != null) {
-      enc_name = rs.init_string(em.enc_method.name);
-      enc_desc = rs.init_string(em.enc_method.type);
+      enc_name = java_object.initString(bsCl, em.enc_method.name);
+      enc_desc = java_object.initString(bsCl, em.enc_method.type);
     } else {
       enc_name = null;
       enc_desc = null;
@@ -198,10 +210,10 @@ class java_lang_Class {
     // - the immediately enclosing class (java/lang/Class)
     // - the immediately enclosing method or constructor's name (can be null). (String)
     // - the immediately enclosing method or constructor's descriptor (null iff name is). (String)
-    return new java_object.JavaArray(rs, <ClassData.ArrayClassData> rs.get_bs_class('[Ljava/lang/Object;'), [enc_cls, enc_name, enc_desc]);
+    return new java_object.JavaArray(<ClassData.ArrayClassData> bsCl.getInitializedClass('[Ljava/lang/Object;'), [enc_cls, enc_name, enc_desc]);
   }
 
-  public static 'getDeclaringClass0()Ljava/lang/Class;'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassObject): java_object.JavaClassObject {
+  public static 'getDeclaringClass0()Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaClassObject {
     var declaring_name, entry, name, _i, _len;
 
     if (!(javaThis.$cls instanceof ClassData.ReferenceClassData)) {
@@ -227,39 +239,39 @@ class java_lang_Class {
       // the immediate enclosing parent, and I'm not 100% sure this is
       // guaranteed by the spec
       declaring_name = cls.constant_pool.get(entry.outer_info_index).deref();
-      return cls.loader.get_resolved_class(declaring_name).get_class_object(rs);
+      return cls.loader.getResolvedClass(declaring_name).get_class_object(thread);
     }
     return null;
   }
 
-  public static 'getProtectionDomain0()Ljava/security/ProtectionDomain;'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassObject): java_object.JavaObject {
+  public static 'getProtectionDomain0()Ljava/security/ProtectionDomain;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaObject {
     return null;
   }
 
-  public static 'setProtectionDomain0(Ljava/security/ProtectionDomain;)V'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassObject, arg0: java_object.JavaObject): void {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'setProtectionDomain0(Ljava/security/ProtectionDomain;)V'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject, arg0: java_object.JavaObject): void {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;'(rs: runtime.RuntimeState, jvm_str: java_object.JavaObject): java_object.JavaClassObject {
+  public static 'getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;'(thread: threading.JVMThread, jvm_str: java_object.JavaObject): java_object.JavaClassObject {
     var type_desc = util.typestr2descriptor(jvm_str.jvm2js_str()),
-      prim_cls = rs.get_bs_class(type_desc);
-    return prim_cls.get_class_object(rs);
+      prim_cls = thread.getBsCl().getInitializedClass(type_desc);
+    return prim_cls.get_class_object(thread);
   }
 
-  public static 'getGenericSignature()Ljava/lang/String;'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassObject): java_object.JavaObject {
+  public static 'getGenericSignature()Ljava/lang/String;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaObject {
     var sigAttr = <attributes.Signature> (<ClassData.ReferenceClassData> javaThis.$cls).get_attribute('Signature');
     if (sigAttr != null && sigAttr.sig != null) {
-      return rs.init_string(sigAttr.sig);
+      return java_object.initString(thread.getBsCl(), sigAttr.sig);
     } else {
       return null;
     }
   }
 
-  public static 'getRawAnnotations()[B'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassObject): java_object.JavaArray {
+  public static 'getRawAnnotations()[B'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaArray {
     var cls = <ClassData.ReferenceClassData> javaThis.$cls,
       annotations = <attributes.RuntimeVisibleAnnotations> cls.get_attribute('RuntimeVisibleAnnotations');
     if (annotations != null) {
-      return new java_object.JavaArray(rs, <ClassData.ArrayClassData> rs.get_bs_class('[B'), annotations.raw_bytes);
+      return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[B'), annotations.raw_bytes);
     }
 
     var methods = cls.get_methods();
@@ -268,39 +280,42 @@ class java_lang_Class {
         var m = methods[sig];
         annotations = <attributes.RuntimeVisibleAnnotations> m.get_attribute('RuntimeVisibleAnnotations');
         if (annotations != null) {
-          return new java_object.JavaArray(rs, <ClassData.ArrayClassData> rs.get_bs_class('[B'), annotations.raw_bytes);
+          return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[B'), annotations.raw_bytes);
         }
       }
     }
     return null;
   }
 
-  public static 'getConstantPool()Lsun/reflect/ConstantPool;'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassObject): java_object.JavaObject {
+  public static 'getConstantPool()Lsun/reflect/ConstantPool;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaObject {
     var cls = <ClassData.ReferenceClassData> javaThis.$cls;
-    return new java_object.JavaObject(rs, <ClassData.ReferenceClassData> rs.get_bs_class('Lsun/reflect/ConstantPool;'), {
+    return new java_object.JavaObject(<ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass('Lsun/reflect/ConstantPool;'), {
       'Lsun/reflect/ConstantPool;constantPoolOop': cls.constant_pool
     });
   }
 
-  public static 'getDeclaredFields0(Z)[Ljava/lang/reflect/Field;'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassObject, public_only: number): void {
+  public static 'getDeclaredFields0(Z)[Ljava/lang/reflect/Field;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject, public_only: number): void {
     var fields = javaThis.$cls.get_fields();
     if (public_only) {
       fields = fields.filter((f) => f.access_flags["public"]);
     }
     var base_array = [];
-    rs.async_op(function (resume_cb, except_cb) {
-      util.async_foreach(fields,
-        function (f, next_item) {
-          f.reflector(rs, function (jco) { base_array.push(jco); next_item() }, except_cb);
-        },
-        function () {
-          var field_arr_cls = <ClassData.ArrayClassData> rs.get_bs_class('[Ljava/lang/reflect/Field;');
-          resume_cb(new java_object.JavaArray(rs, field_arr_cls, base_array));
+    thread.setState(enums.ThreadState.WAITING);
+    util.async_foreach(fields,
+      (f, next_item) => {
+        f.reflector(thread, (jco) => {
+          if (jco != null) {
+            base_array.push(jco);
+            next_item();
+          }
         });
-    });
+      }, () => {
+        var field_arr_cls = <ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[Ljava/lang/reflect/Field;');
+        thread.asyncReturn(new java_object.JavaArray(field_arr_cls, base_array));
+      });
   }
 
-  public static 'getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassObject, public_only: number): void {
+  public static 'getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject, public_only: number): void {
     var methodsHash = javaThis.$cls.get_methods();
     var methods: methods.Method[] = (function () {
       var _results: methods.Method[] = [];
@@ -313,19 +328,22 @@ class java_lang_Class {
       return _results;
     })();
     var base_array = [];
-    rs.async_op(function (resume_cb, except_cb) {
-      util.async_foreach(methods,
-        function (m, next_item) {
-          m.reflector(rs, false, function (jco) { base_array.push(jco); next_item() }, except_cb);
-        },
-        function () {
-          var method_arr_cls = <ClassData.ArrayClassData> rs.get_bs_class('[Ljava/lang/reflect/Method;');
-          resume_cb(new java_object.JavaArray(rs, method_arr_cls, base_array));
+    thread.setState(enums.ThreadState.WAITING);
+    util.async_foreach(methods,
+      (m, next_item) => {
+        m.reflector(thread, false, (jco) => {
+          if (jco != null) {
+            base_array.push(jco);
+            next_item()
+          }
         });
-    });
+      }, () => {
+        var method_arr_cls = <ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[Ljava/lang/reflect/Method;');
+        thread.asyncReturn(new java_object.JavaArray(method_arr_cls, base_array));
+      });
   }
 
-  public static 'getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassObject, public_only: number): void {
+  public static 'getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject, public_only: number): void {
     var methodsHash = javaThis.$cls.get_methods();
     var methods: methods.Method[] = (function () {
       var _results: methods.Method[] = [];
@@ -340,23 +358,24 @@ class java_lang_Class {
     if (public_only) {
       methods = methods.filter((m) => m.access_flags["public"]);
     }
-    var ctor_array_cdata = <ClassData.ArrayClassData> rs.get_bs_class('[Ljava/lang/reflect/Constructor;');
+    var ctor_array_cdata = <ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[Ljava/lang/reflect/Constructor;');
     var base_array = [];
-    rs.async_op(function (resume_cb, except_cb) {
-      util.async_foreach(methods,
-        function (m, next_item) {
-          m.reflector(rs, true, function (jco) { base_array.push(jco); next_item() }, except_cb);
-        },
-        function () {
-          resume_cb(new java_object.JavaArray(rs, ctor_array_cdata, base_array));
+    thread.setState(enums.ThreadState.WAITING);
+    util.async_foreach(methods,
+      (m, next_item) => {
+        m.reflector(thread, true, (jco) => {
+          if (jco != null) {
+            base_array.push(jco);
+            next_item()
+          }
         });
-    });
+      }, () => {
+        thread.asyncReturn(new java_object.JavaArray(ctor_array_cdata, base_array));
+      });
   }
 
-  public static 'getDeclaredClasses0()[Ljava/lang/Class;'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassObject): any {
-    var _i, _j, _len, _len1;
-
-    var ret = new java_object.JavaArray(rs, <ClassData.ArrayClassData> rs.get_bs_class('[Ljava/lang/Class;'), []),
+  public static 'getDeclaredClasses0()[Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): any {
+    var ret = new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[Ljava/lang/Class;'), []),
       cls = <ClassData.ReferenceClassData> javaThis.$cls;
     if (!(cls instanceof ClassData.ReferenceClassData)) {
       return ret;
@@ -374,20 +393,21 @@ class java_lang_Class {
         .map((c: any) => cls.constant_pool.get(c.inner_info_index).deref());
       flat_names.push.apply(flat_names, names);
     }
-    rs.async_op(function (resume_cb, except_cb) {
-      util.async_foreach(flat_names,
-        function (name: string, next_item: () => void) {
-          cls.loader.resolve_class(rs, name, (function (cls) {
-            ret.array.push(cls.get_class_object(rs));
+    thread.setState(enums.ThreadState.WAITING);
+    util.async_foreach(flat_names,
+      (name: string, next_item: () => void) => {
+        cls.loader.resolveClass(thread, name, (cls) => {
+          if (cls != null) {
+            ret.array.push(cls.get_class_object(thread));
             next_item();
-          }), except_cb);
-        },
-        () => resume_cb(ret));
-    });
+          }
+        });
+      }, () => thread.asyncReturn(ret));
   }
 
-  public static 'desiredAssertionStatus0(Ljava/lang/Class;)Z'(rs: runtime.RuntimeState, arg0: java_object.JavaClassObject): boolean {
+  public static 'desiredAssertionStatus0(Ljava/lang/Class;)Z'(thread: threading.JVMThread, arg0: java_object.JavaClassObject): boolean {
     // we don't need no stinkin asserts
+    // @todo Actually need stinkin asserts
     return false;
   }
 
@@ -395,18 +415,18 @@ class java_lang_Class {
 
 class java_lang_ClassLoader$NativeLibrary {
 
-  public static 'load(Ljava/lang/String;)V'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject, arg0: java_object.JavaObject): void {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'load(Ljava/lang/String;)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject): void {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'find(Ljava/lang/String;)J'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject, arg0: java_object.JavaObject): gLong {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'find(Ljava/lang/String;)J'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject): gLong {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'unload()V'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject): void {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'unload()V'(thread: threading.JVMThread, javaThis: java_object.JavaObject): void {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
 }
@@ -414,64 +434,65 @@ class java_lang_ClassLoader$NativeLibrary {
 // Fun Note: The bootstrap classloader object is represented by null.
 class java_lang_ClassLoader {
 
-  public static 'defineClass0(Ljava/lang/String;[BIILjava/security/ProtectionDomain;)Ljava/lang/Class;'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassLoaderObject, arg0: java_object.JavaObject, arg1: java_object.JavaArray, arg2: number, arg3: number, arg4: java_object.JavaObject): java_object.JavaClassObject {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'defineClass0(Ljava/lang/String;[BIILjava/security/ProtectionDomain;)Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: ClassLoader.JavaClassLoaderObject, arg0: java_object.JavaObject, arg1: java_object.JavaArray, arg2: number, arg3: number, arg4: java_object.JavaObject): java_object.JavaClassObject {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'defineClass1(Ljava/lang/String;[BIILjava/security/ProtectionDomain;Ljava/lang/String;)Ljava/lang/Class;'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassLoaderObject, name: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number, pd: gLong, source: java_object.JavaObject): void {
-    var loader = java_object.get_cl_from_jclo(rs, javaThis);
-    rs.async_op<java_object.JavaClassObject>(function (resume_cb, except_cb) {
-      java_object.native_define_class(rs, name, bytes, offset, len, loader, resume_cb, except_cb);
-    });
+  public static 'defineClass1(Ljava/lang/String;[BIILjava/security/ProtectionDomain;Ljava/lang/String;)Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: ClassLoader.JavaClassLoaderObject, name: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number, pd: gLong, source: java_object.JavaObject): java_object.JavaClassObject {
+    var loader = java_object.get_cl_from_jclo(thread, javaThis),
+      cls = loader.defineClass(thread, name.jvm2js_str(), util.byteArray2Buffer(bytes.array, offset, len));
+    if (cls != null) {
+      return cls.get_class_object(thread);
+    }
   }
 
-  public static 'defineClass2(Ljava/lang/String;Ljava/nio/ByteBuffer;IILjava/security/ProtectionDomain;Ljava/lang/String;)Ljava/lang/Class;'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassLoaderObject, arg0: java_object.JavaObject, arg1: java_object.JavaObject, arg2: number, arg3: number, arg4: java_object.JavaObject, arg5: java_object.JavaObject): java_object.JavaClassObject {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'defineClass2(Ljava/lang/String;Ljava/nio/ByteBuffer;IILjava/security/ProtectionDomain;Ljava/lang/String;)Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: ClassLoader.JavaClassLoaderObject, arg0: java_object.JavaObject, arg1: java_object.JavaObject, arg2: number, arg3: number, arg4: java_object.JavaObject, arg5: java_object.JavaObject): java_object.JavaClassObject {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'resolveClass0(Ljava/lang/Class;)V'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassLoaderObject, cls: java_object.JavaClassObject): void {
-    var loader = java_object.get_cl_from_jclo(rs, javaThis),
+  public static 'resolveClass0(Ljava/lang/Class;)V'(thread: threading.JVMThread, javaThis: ClassLoader.JavaClassLoaderObject, cls: java_object.JavaClassObject): void {
+    var loader = java_object.get_cl_from_jclo(thread, javaThis),
       type = cls.$cls.get_type();
-    if (loader.get_resolved_class(type, true) != null) {
+    if (loader.getResolvedClass(type) != null) {
       return;
     }
     // Ensure that this class is resolved.
-    rs.async_op<void>(function (resume_cb, except_cb) {
-      loader.resolve_class(rs, type, (function () {
-        resume_cb();
-      }), except_cb, true);
-    });
+    thread.setState(enums.ThreadState.WAITING);
+    loader.resolveClass(thread, type, () => {
+      thread.asyncReturn();
+    }, true);
   }
 
-  public static 'findBootstrapClass(Ljava/lang/String;)Ljava/lang/Class;'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassLoaderObject, name: java_object.JavaObject): void {
+  public static 'findBootstrapClass(Ljava/lang/String;)Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: ClassLoader.JavaClassLoaderObject, name: java_object.JavaObject): void {
     var type = util.int_classname(name.jvm2js_str());
     // This returns null in OpenJDK7, but actually can throw an exception
     // in OpenJDK6.
-    rs.async_op<java_object.JavaClassObject>(function (resume_cb, except_cb) {
-      rs.get_bs_cl().resolve_class(rs, type, (function (cls) {
-        resume_cb(cls.get_class_object(rs));
-      }), except_cb, true);
-    });
+    thread.setState(enums.ThreadState.WAITING);
+    thread.getBsCl().resolveClass(thread, type, (cls) => {
+      if (cls != null) {
+        thread.asyncReturn(cls.get_class_object(thread));
+      }
+    }, true);
   }
 
-  public static 'findLoadedClass0(Ljava/lang/String;)Ljava/lang/Class;'(rs: runtime.RuntimeState, javaThis: java_object.JavaClassLoaderObject, name: java_object.JavaObject): java_object.JavaClassObject {
-    var loader = java_object.get_cl_from_jclo(rs, javaThis),
+  public static 'findLoadedClass0(Ljava/lang/String;)Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: ClassLoader.JavaClassLoaderObject, name: java_object.JavaObject): java_object.JavaClassObject {
+    var loader = java_object.get_cl_from_jclo(thread, javaThis),
       type = util.int_classname(name.jvm2js_str()),
       // Return JavaClassObject if loaded, or null otherwise.
-      cls = loader.get_resolved_class(type, true);
+      cls = loader.getResolvedClass(type);
     if (cls != null) {
-      return cls.get_class_object(rs);
+      return cls.get_class_object(thread);
     } else {
       return null;
     }
   }
 
-  public static 'retrieveDirectives()Ljava/lang/AssertionStatusDirectives;'(rs: runtime.RuntimeState): java_object.JavaObject {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'retrieveDirectives()Ljava/lang/AssertionStatusDirectives;'(thread: threading.JVMThread): java_object.JavaObject {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
@@ -480,35 +501,35 @@ class java_lang_ClassLoader {
 
 class java_lang_Compiler {
 
-  public static 'initialize()V'(rs: runtime.RuntimeState): void {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'initialize()V'(thread: threading.JVMThread): void {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'registerNatives()V'(rs: runtime.RuntimeState): void {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'registerNatives()V'(thread: threading.JVMThread): void {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'compileClass(Ljava/lang/Class;)Z'(rs: runtime.RuntimeState, arg0: java_object.JavaClassObject): number {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'compileClass(Ljava/lang/Class;)Z'(thread: threading.JVMThread, arg0: java_object.JavaClassObject): number {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'compileClasses(Ljava/lang/String;)Z'(rs: runtime.RuntimeState, arg0: java_object.JavaObject): number {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'compileClasses(Ljava/lang/String;)Z'(thread: threading.JVMThread, arg0: java_object.JavaObject): number {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'command(Ljava/lang/Object;)Ljava/lang/Object;'(rs: runtime.RuntimeState, arg0: java_object.JavaObject): java_object.JavaObject {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'command(Ljava/lang/Object;)Ljava/lang/Object;'(thread: threading.JVMThread, arg0: java_object.JavaObject): java_object.JavaObject {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
   // NOP'd.
-  public static 'enable()V'(rs: runtime.RuntimeState): void {}
-  public static 'disable()V'(rs: runtime.RuntimeState): void {}
+  public static 'enable()V'(thread: threading.JVMThread): void {}
+  public static 'disable()V'(thread: threading.JVMThread): void {}
 
 }
 
@@ -517,12 +538,12 @@ var conversionBuffer = new Buffer(8);
 
 class java_lang_Double {
 
-  public static 'doubleToRawLongBits(D)J'(rs: runtime.RuntimeState, num: number): gLong {
+  public static 'doubleToRawLongBits(D)J'(thread: threading.JVMThread, num: number): gLong {
     conversionBuffer.writeDoubleLE(num, 0);
     return gLong.fromBits(conversionBuffer.readUInt32LE(0), conversionBuffer.readUInt32LE(4));
   }
 
-  public static 'longBitsToDouble(J)D'(rs: runtime.RuntimeState, num: gLong): number {
+  public static 'longBitsToDouble(J)D'(thread: threading.JVMThread, num: gLong): number {
     conversionBuffer.writeInt32LE(num.getLowBits(), 0);
     conversionBuffer.writeInt32LE(num.getHighBits(), 0);
     return conversionBuffer.readDoubleLE(0);
@@ -532,12 +553,12 @@ class java_lang_Double {
 
 class java_lang_Float {
 
-  public static 'floatToRawIntBits(F)I'(rs: runtime.RuntimeState, num: number): number {
+  public static 'floatToRawIntBits(F)I'(thread: threading.JVMThread, num: number): number {
     conversionBuffer.writeFloatLE(num, 0);
     return conversionBuffer.readInt32LE(0);
   }
 
-  public static 'intBitsToFloat(I)F'(rs: runtime.RuntimeState, num: number): number {
+  public static 'intBitsToFloat(I)F'(thread: threading.JVMThread, num: number): number {
     conversionBuffer.writeInt32LE(num, 0);
     return conversionBuffer.readFloatLE(0);
   }
@@ -546,87 +567,55 @@ class java_lang_Float {
 
 class java_lang_Object {
 
-  public static 'getClass()Ljava/lang/Class;'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject): java_object.JavaClassObject {
-    return javaThis.cls.get_class_object(rs);
+  public static 'getClass()Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaObject): java_object.JavaClassObject {
+    return javaThis.cls.get_class_object(thread);
   }
 
-  public static 'hashCode()I'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject): number {
+  public static 'hashCode()I'(thread: threading.JVMThread, javaThis: java_object.JavaObject): number {
     return javaThis.ref;
   }
 
-  public static 'clone()Ljava/lang/Object;'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject): java_object.JavaObject {
-    return javaThis.clone(rs);
+  public static 'clone()Ljava/lang/Object;'(thread: threading.JVMThread, javaThis: java_object.JavaObject): java_object.JavaObject {
+    return javaThis.clone();
   }
 
-  public static 'notify()V'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject): void {
+  public static 'notify()V'(thread: threading.JVMThread, javaThis: java_object.JavaObject): void {
     var locker;
     logging.debug("TE(notify): on lock *" + javaThis.ref);
-    if ((locker = rs.lock_refs[javaThis.ref]) != null) {
-      if (locker !== rs.curr_thread) {
-        var owner = locker.name(rs);
-        rs.java_throw((<ClassData.ReferenceClassData>rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;')), "Thread '" + owner + "' owns this monitor");
-      }
-    }
-    if (rs.waiting_threads[javaThis.ref] != null) {
-      rs.waiting_threads[javaThis.ref].shift();
-    }
+    javaThis.getMonitor().notify(thread);
   }
 
-  public static 'notifyAll()V'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject): void {
+  public static 'notifyAll()V'(thread: threading.JVMThread, javaThis: java_object.JavaObject): void {
     var locker;
     logging.debug("TE(notifyAll): on lock *" + javaThis.ref);
-    if ((locker = rs.lock_refs[javaThis.ref]) != null) {
-      if (locker !== rs.curr_thread) {
-        var owner = locker.name(rs);
-        rs.java_throw((<ClassData.ReferenceClassData>rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;')), "Thread '" + owner + "' owns this monitor");
-      }
-    }
-    if (rs.waiting_threads[javaThis.ref] != null) {
-      rs.waiting_threads[javaThis.ref] = [];
-    }
+    javaThis.getMonitor().notifyAll(thread);
   }
 
-  public static 'wait(J)V'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject, timeout: gLong): void {
-    var locker;
-    if (timeout !== gLong.ZERO) {
-      logging.error("TODO(Object::wait): respect the timeout param (" + timeout + ")");
-    }
-    if ((locker = rs.lock_refs[javaThis.ref]) != null) {
-      if (locker !== rs.curr_thread) {
-        var owner = locker.name(rs);
-        rs.java_throw((<ClassData.ReferenceClassData>rs.get_bs_class('Ljava/lang/IllegalMonitorStateException;')), "Thread '" + owner + "' owns this monitor");
-      }
-    }
-    rs.lock_refs[javaThis.ref] = null;
-    rs.wait(javaThis);
+  public static 'wait(J)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, timeout: gLong): void {
+    javaThis.getMonitor().wait(thread, timeout.toNumber());
   }
 
 }
 
 class java_lang_Package {
 
-  public static 'getSystemPackage0(Ljava/lang/String;)Ljava/lang/String;'(rs: runtime.RuntimeState, pkg_name_obj: java_object.JavaObject): java_object.JavaObject {
+  public static 'getSystemPackage0(Ljava/lang/String;)Ljava/lang/String;'(thread: threading.JVMThread, pkg_name_obj: java_object.JavaObject): java_object.JavaObject {
     var pkg_name = pkg_name_obj.jvm2js_str();
-    if (rs.get_bs_cl().get_package_names().indexOf(pkg_name) >= 0) {
+    if (thread.getBsCl().getPackageNames().indexOf(pkg_name) >= 0) {
       return pkg_name_obj;
     } else {
       return null;
     }
   }
 
-  public static 'getSystemPackages0()[Ljava/lang/String;'(rs: runtime.RuntimeState): java_object.JavaArray {
-    var cls_name;
-
-    return new java_object.JavaArray(rs, (<ClassData.ArrayClassData>(rs.get_bs_class('[Ljava/lang/String;'))), (function () {
-      var _i, _len, _ref5, _results;
-
-      _ref5 = rs.get_bs_cl().get_package_names();
-      _results = [];
-      for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
-        cls_name = _ref5[_i];
-        _results.push(rs.init_string(cls_name));
+  public static 'getSystemPackages0()[Ljava/lang/String;'(thread: threading.JVMThread): java_object.JavaArray {
+    return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[Ljava/lang/String;'), (() => {
+      var pkgNames = thread.getBsCl().getPackageNames(), i: number,
+        results: java_object.JavaObject[] = [];
+      for (i = 0; i < pkgNames.length; i++) {
+        results.push(java_object.initString(thread.getBsCl(), pkgNames[i]));
       }
-      return _results;
+      return results;
     })());
   }
 
@@ -634,187 +623,177 @@ class java_lang_Package {
 
 class java_lang_ProcessEnvironment {
 
-  public static 'environ()[[B'(rs: runtime.RuntimeState): java_object.JavaArray {
-    var env_arr, k, v, _ref5;
-
-    env_arr = [];
+  public static 'environ()[[B'(thread: threading.JVMThread): java_object.JavaArray {
+    var env_arr: java_object.JavaArray[] = [], env = process.env,
+      key: string, v: string;
     // convert to an array of strings of the form [key, value, key, value ...]
-    _ref5 = process.env;
-    for (k in _ref5) {
-      v = _ref5[k];
-      env_arr.push(new java_object.JavaArray(rs, (<ClassData.ArrayClassData> rs.get_bs_class('[B')), util.bytestr_to_array(k)));
-      env_arr.push(new java_object.JavaArray(rs, (<ClassData.ArrayClassData> rs.get_bs_class('[B')), util.bytestr_to_array(v)));
+    for (key in env) {
+      v = env[key];
+      env_arr.push(new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[B'), util.bytestr_to_array(key)));
+      env_arr.push(new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[B'), util.bytestr_to_array(v)));
     }
-    return new java_object.JavaArray(rs, (<ClassData.ArrayClassData> rs.get_bs_class('[[B')), env_arr);
+    return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[[B'), env_arr);
   }
 
 }
 
 class java_lang_ref_Finalizer {
 
-  public static 'invokeFinalizeMethod(Ljava/lang/Object;)V'(rs: runtime.RuntimeState, arg0: java_object.JavaObject): void {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'invokeFinalizeMethod(Ljava/lang/Object;)V'(thread: threading.JVMThread, arg0: java_object.JavaObject): void {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
 }
 
 class java_lang_reflect_Array {
 
-  public static 'getLength(Ljava/lang/Object;)I'(rs: runtime.RuntimeState, obj: java_object.JavaObject): number {
-    var arr = verify_array(rs, obj);
-    return rs.check_null(arr).array.length;
+  public static 'getLength(Ljava/lang/Object;)I'(thread: threading.JVMThread, arr: java_object.JavaArray): number {
+    if (verify_array(thread, arr)) {
+      if (isNotNull(thread, arr)) {
+        return arr.array.length;
+      }
+    }
   }
 
-  public static 'get(Ljava/lang/Object;I)Ljava/lang/Object;'(rs: runtime.RuntimeState, arr: java_object.JavaArray, idx: number): java_object.JavaObject {
-    var val = array_get(rs, arr, idx);
-    // Box primitive values (fast check: prims don't have .ref attributes).
-    if (val.ref == null) {
-      return (<ClassData.PrimitiveClassData> arr.cls.get_component_class()).create_wrapper_object(rs, val);
+  public static 'get(Ljava/lang/Object;I)Ljava/lang/Object;'(thread: threading.JVMThread, arr: java_object.JavaArray, idx: number): java_object.JavaObject {
+    var val = array_get(thread, arr, idx);
+    if (val != null) {
+      // Box primitive values (fast check: prims don't have .ref attributes).
+      if (val.ref == null) {
+        return (<ClassData.PrimitiveClassData> arr.cls.get_component_class()).create_wrapper_object(thread, val);
+      }
     }
     return val;
   }
 
-  public static 'getBoolean(Ljava/lang/Object;I)Z': (rs: runtime.RuntimeState, arg0: java_object.JavaArray, arg1: number) => number = array_get;
-  public static 'getByte(Ljava/lang/Object;I)B': (rs: runtime.RuntimeState, arg0: java_object.JavaArray, arg1: number) => number = array_get;
-  public static 'getChar(Ljava/lang/Object;I)C': (rs: runtime.RuntimeState, arg0: java_object.JavaArray, arg1: number) => number = array_get;
-  public static 'getShort(Ljava/lang/Object;I)S': (rs: runtime.RuntimeState, arg0: java_object.JavaArray, arg1: number) => number = array_get;
-  public static 'getInt(Ljava/lang/Object;I)I': (rs: runtime.RuntimeState, arg0: java_object.JavaArray, arg1: number) => number = array_get;
-  public static 'getLong(Ljava/lang/Object;I)J': (rs: runtime.RuntimeState, arg0: java_object.JavaArray, arg1: number) => gLong = array_get;
-  public static 'getFloat(Ljava/lang/Object;I)F': (rs: runtime.RuntimeState, arg0: java_object.JavaArray, arg1: number) => number = array_get;
-  public static 'getDouble(Ljava/lang/Object;I)D': (rs: runtime.RuntimeState, arg0: java_object.JavaArray, arg1: number) => number = array_get;
+  public static 'getBoolean(Ljava/lang/Object;I)Z': (thread: threading.JVMThread, arg0: java_object.JavaArray, arg1: number) => number = array_get;
+  public static 'getByte(Ljava/lang/Object;I)B': (thread: threading.JVMThread, arg0: java_object.JavaArray, arg1: number) => number = array_get;
+  public static 'getChar(Ljava/lang/Object;I)C': (thread: threading.JVMThread, arg0: java_object.JavaArray, arg1: number) => number = array_get;
+  public static 'getShort(Ljava/lang/Object;I)S': (thread: threading.JVMThread, arg0: java_object.JavaArray, arg1: number) => number = array_get;
+  public static 'getInt(Ljava/lang/Object;I)I': (thread: threading.JVMThread, arg0: java_object.JavaArray, arg1: number) => number = array_get;
+  public static 'getLong(Ljava/lang/Object;I)J': (thread: threading.JVMThread, arg0: java_object.JavaArray, arg1: number) => gLong = array_get;
+  public static 'getFloat(Ljava/lang/Object;I)F': (thread: threading.JVMThread, arg0: java_object.JavaArray, arg1: number) => number = array_get;
+  public static 'getDouble(Ljava/lang/Object;I)D': (thread: threading.JVMThread, arg0: java_object.JavaArray, arg1: number) => number = array_get;
 
-  public static 'set(Ljava/lang/Object;ILjava/lang/Object;)V'(rs: runtime.RuntimeState, obj: java_object.JavaObject, idx: number, val: java_object.JavaObject): void {
-    var ccname, ecls, illegal_exc, m;
-    var arr = verify_array(rs, obj),
-      my_sf = rs.curr_frame(),
-      array = rs.check_null(arr).array;
-    if (!((0 <= idx && idx < array.length))) {
-      rs.java_throw((<ClassData.ReferenceClassData>rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;')), 'Tried to write to an illegal index in an array.');
-    }
-
-    var ccls = arr.cls.get_component_class();
-    if (ccls instanceof ClassData.PrimitiveClassData) {
-      if (val.cls.is_subclass(rs.get_bs_class((<ClassData.PrimitiveClassData> ccls).box_class_name()))) {
-        ccname = ccls.get_type();
-        m = val.cls.method_lookup(rs, "" + util.internal2external[ccname] + "Value()" + ccname);
-        rs.push(val);
-        m.setup_stack(rs);
-        my_sf.runner = function () {
-          array[idx] = ccname === 'J' || ccname === 'D' ? rs.pop2() : rs.pop();
-          return rs.meta_stack().pop();
-        };
-        throw exceptions.ReturnException;
+  public static 'set(Ljava/lang/Object;ILjava/lang/Object;)V'(thread: threading.JVMThread, arr: java_object.JavaArray, idx: number, val: java_object.JavaObject): void {
+    if (verify_array(thread, arr) && isNotNull(thread, arr)) {
+      if (idx < 0 || idx >= arr.array.length) {
+        thread.throwNewException('Ljava/lang/ArrayIndexOutOfBoundsException;', 'Tried to write to an illegal index in an array.');
+      } else {
+        var ccls = arr.cls.get_component_class();
+        if (ccls instanceof ClassData.PrimitiveClassData) {
+          if (val.cls.is_subclass(thread.getBsCl().getInitializedClass((<ClassData.PrimitiveClassData> ccls).box_class_name()))) {
+            var ccname = ccls.get_type(),
+              m = val.cls.method_lookup(thread, "" + util.internal2external[ccname] + "Value()" + ccname);
+            thread.runMethod(m, [val], (e?, rv?) => {
+              if (e) {
+                thread.throwException(e);
+              } else {
+                thread.asyncReturn();
+              }
+            });
+          }
+        } else if (val.cls.is_subclass(ccls)) {
+          arr.array[idx] = val;
+        } else {
+          thread.throwNewException('Ljava/lang/IllegalArgumentException;', 'argument type mismatch');
+        }
       }
-    } else if (val.cls.is_subclass(ccls)) {
-      array[idx] = val;
-      return;
-    }
-    illegal_exc = 'Ljava/lang/IllegalArgumentException;';
-    if ((ecls = rs.get_bs_class(illegal_exc, true)) != null) {
-      return rs.java_throw(ecls, 'argument type mismatch');
-    } else {
-      return rs.async_op(function (resume_cb, except_cb) {
-        return rs.get_cl().initialize_class(rs, illegal_exc, (function (ecls) {
-          return except_cb((function () {
-            return rs.java_throw(ecls, 'argument type mismatch');
-          }));
-        }), except_cb);
-      });
     }
   }
 
-  public static 'setBoolean(Ljava/lang/Object;IZ)V'(rs: runtime.RuntimeState, arg0: java_object.JavaObject, arg1: number, arg2: number): void {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'setBoolean(Ljava/lang/Object;IZ)V'(thread: threading.JVMThread, arg0: java_object.JavaObject, arg1: number, arg2: number): void {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'setByte(Ljava/lang/Object;IB)V'(rs: runtime.RuntimeState, arg0: java_object.JavaObject, arg1: number, arg2: number): void {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'setByte(Ljava/lang/Object;IB)V'(thread: threading.JVMThread, arg0: java_object.JavaObject, arg1: number, arg2: number): void {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'setChar(Ljava/lang/Object;IC)V'(rs: runtime.RuntimeState, arg0: java_object.JavaObject, arg1: number, arg2: number): void {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'setChar(Ljava/lang/Object;IC)V'(thread: threading.JVMThread, arg0: java_object.JavaObject, arg1: number, arg2: number): void {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'setShort(Ljava/lang/Object;IS)V'(rs: runtime.RuntimeState, arg0: java_object.JavaObject, arg1: number, arg2: number): void {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'setShort(Ljava/lang/Object;IS)V'(thread: threading.JVMThread, arg0: java_object.JavaObject, arg1: number, arg2: number): void {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'setInt(Ljava/lang/Object;II)V'(rs: runtime.RuntimeState, arg0: java_object.JavaObject, arg1: number, arg2: number): void {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'setInt(Ljava/lang/Object;II)V'(thread: threading.JVMThread, arg0: java_object.JavaObject, arg1: number, arg2: number): void {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'setLong(Ljava/lang/Object;IJ)V'(rs: runtime.RuntimeState, arg0: java_object.JavaObject, arg1: number, arg2: gLong): void {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'setLong(Ljava/lang/Object;IJ)V'(thread: threading.JVMThread, arg0: java_object.JavaObject, arg1: number, arg2: gLong): void {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'setFloat(Ljava/lang/Object;IF)V'(rs: runtime.RuntimeState, arg0: java_object.JavaObject, arg1: number, arg2: number): void {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'setFloat(Ljava/lang/Object;IF)V'(thread: threading.JVMThread, arg0: java_object.JavaObject, arg1: number, arg2: number): void {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'setDouble(Ljava/lang/Object;ID)V'(rs: runtime.RuntimeState, arg0: java_object.JavaObject, arg1: number, arg2: number): void {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'setDouble(Ljava/lang/Object;ID)V'(thread: threading.JVMThread, arg0: java_object.JavaObject, arg1: number, arg2: number): void {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'newArray(Ljava/lang/Class;I)Ljava/lang/Object;'(rs: runtime.RuntimeState, cls: java_object.JavaClassObject, len: number): java_object.JavaArray {
-    return rs.heap_newarray(cls.$cls.get_type(), len);
+  public static 'newArray(Ljava/lang/Class;I)Ljava/lang/Object;'(thread: threading.JVMThread, cls: java_object.JavaClassObject, len: number): java_object.JavaArray {
+    return java_object.heapNewArray(thread, cls.$cls.loader, cls.$cls.get_type(), len);
   }
 
-  public static 'multiNewArray(Ljava/lang/Class;[I)Ljava/lang/Object;'(rs: runtime.RuntimeState, jco: java_object.JavaClassObject, lens: java_object.JavaArray): java_object.JavaArray {
+  public static 'multiNewArray(Ljava/lang/Class;[I)Ljava/lang/Object;'(thread: threading.JVMThread, jco: java_object.JavaClassObject, lens: java_object.JavaArray): java_object.JavaArray {
     var counts = lens.array;
-    var cls = rs.get_class(jco.$cls.get_type(), true);
+    var cls = jco.$cls.loader.getInitializedClass(jco.$cls.get_type());
     if (cls == null) {
-      rs.async_op((resume_cb, except_cb) => {
-        rs.get_cl().initialize_class(rs, jco.$cls.get_type(), ((cls) => {
-          var type_str = (new Array(counts.length + 1)).join('[') + cls.get_type();
-          rs.heap_multinewarray(type_str, counts);
-          resume_cb();
-        }), except_cb);
+      thread.setState(enums.ThreadState.WAITING);
+      jco.$cls.loader.initializeClass(thread, jco.$cls.get_type(), (cls) => {
+        var type_str = (new Array(counts.length + 1)).join('[') + cls.get_type();
+        thread.asyncReturn(java_object.heapMultiNewArray(thread, jco.$cls.loader, type_str, counts));
       });
-      return;
+    } else {
+      var type_str = (new Array(counts.length + 1)).join('[') + cls.get_type();
+      return java_object.heapMultiNewArray(thread, jco.$cls.loader, type_str, counts);
     }
-    var type_str = (new Array(counts.length + 1)).join('[') + cls.get_type();
-    return rs.heap_multinewarray(type_str, counts);
   }
 
 }
 
 class java_lang_reflect_Proxy {
 
-  public static 'defineClass0(Ljava/lang/ClassLoader;Ljava/lang/String;[BII)Ljava/lang/Class;'(rs: runtime.RuntimeState, cl: java_object.JavaClassLoaderObject, name: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number): void {
-    return rs.async_op((success_cb, except_cb) => {
-      return java_object.native_define_class(rs, name, bytes, offset, len, java_object.get_cl_from_jclo(rs, cl), success_cb, except_cb);
-    });
+  public static 'defineClass0(Ljava/lang/ClassLoader;Ljava/lang/String;[BII)Ljava/lang/Class;'(thread: threading.JVMThread, cl: ClassLoader.JavaClassLoaderObject, name: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number): java_object.JavaClassObject {
+    var loader = java_object.get_cl_from_jclo(thread, cl),
+      cls = loader.defineClass(thread, name.jvm2js_str(), util.byteArray2Buffer(bytes.array, offset, len));
+    if (cls != null) {
+      return cls.get_class_object(thread);
+    }
   }
 
 }
 
 class java_lang_Runtime {
 
-  public static 'availableProcessors()I'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject): number {
+  public static 'availableProcessors()I'(thread: threading.JVMThread, javaThis: java_object.JavaObject): number {
     return 1;
   }
 
-  public static 'freeMemory()J'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject): gLong {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'freeMemory()J'(thread: threading.JVMThread, javaThis: java_object.JavaObject): gLong {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'totalMemory()J'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject): gLong {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'totalMemory()J'(thread: threading.JVMThread, javaThis: java_object.JavaObject): gLong {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
   /**
-   * Returns the maximum amount of memory that the Java virtual machine will
+   * Returns the maximum amount of memory that the Java Virtual Machine will
    * attempt to use, in bytes, as a Long. If there is no inherent limit then the
    * value Long.MAX_VALUE will be returned.
    *
    * Currently returns Long.MAX_VALUE because unlike other JVMs Doppio has no
    * hard limit on the heap size.
    */
-  public static 'maxMemory()J'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject): gLong {
+  public static 'maxMemory()J'(thread: threading.JVMThread, javaThis: java_object.JavaObject): gLong {
     logging.debug("Warning: maxMemory has no meaningful value in Doppio -- there is no hard memory limit.");
     return gLong.MAX_VALUE;
   }
@@ -823,63 +802,62 @@ class java_lang_Runtime {
    * No universal way of forcing browser to GC, so we yield in hopes
    * that the browser will use it as an opportunity to GC.
    */
-  public static 'gc()V'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject): void {
-    return rs.async_op((cb) => {
-      return cb();
+  public static 'gc()V'(thread: threading.JVMThread, javaThis: java_object.JavaObject): void {
+    thread.setState(enums.ThreadState.WAITING);
+    setImmediate(() => {
+      thread.asyncReturn();
     });
   }
 
-  public static 'runFinalization0()V'(rs: runtime.RuntimeState): void {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'runFinalization0()V'(thread: threading.JVMThread): void {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'traceInstructions(Z)V'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject, arg0: number): void {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'traceInstructions(Z)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: number): void {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'traceMethodCalls(Z)V'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject, arg0: number): void {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'traceMethodCalls(Z)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: number): void {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
 }
 
 class java_lang_SecurityManager {
 
-  public static 'getClassContext()[Ljava/lang/Class;'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject): java_object.JavaArray {
+  public static 'getClassContext()[Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaObject): java_object.JavaArray {
     // return an array of classes for each method on the stack
     // starting with the current method and going up the call chain
-    var classes = [];
-    var callstack = rs.meta_stack()._cs;
-    for (var i = callstack.length - 1; i >= 0; i--) {
-      var sf = callstack[i];
-      if (!sf["native"]) {
-        classes.push(sf.method.cls.get_class_object(rs));
-      }
+    var classes: java_object.JavaClassObject[] = [],
+      stack = thread.getStackTrace(),
+      i: number;
+    for (i = stack.length - 1; i >= 0; i--) {
+      var sf = stack[i];
+      classes.push(sf.method.cls.get_class_object(thread));
     }
-    var arr_cls = <ClassData.ArrayClassData> rs.get_bs_class('[Ljava/lang/Class;');
-    return new java_object.JavaArray(rs, arr_cls, classes);
+    return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[Ljava/lang/Class;'), classes);
   }
 
-  public static 'currentClassLoader0()Ljava/lang/ClassLoader;'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject): java_object.JavaClassLoaderObject {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'currentClassLoader0()Ljava/lang/ClassLoader;'(thread: threading.JVMThread, javaThis: java_object.JavaObject): ClassLoader.JavaClassLoaderObject {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'classDepth(Ljava/lang/String;)I'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject, arg0: java_object.JavaObject): number {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'classDepth(Ljava/lang/String;)I'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject): number {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'classLoaderDepth0()I'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject): number {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'classLoaderDepth0()I'(thread: threading.JVMThread, javaThis: java_object.JavaObject): number {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'currentLoadedClass0()Ljava/lang/Class;'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject): java_object.JavaClassObject {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'currentLoadedClass0()Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaObject): java_object.JavaClassObject {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
@@ -888,59 +866,60 @@ class java_lang_SecurityManager {
 
 class java_lang_Shutdown {
 
-  public static 'halt0(I)V'(rs: runtime.RuntimeState, status: number): void {
-    throw new exceptions.HaltException(status);
+  public static 'halt0(I)V'(thread: threading.JVMThread, status: number): void {
+    // @todo Actually add a mechanism to abort with a code.
+    thread.getThreadPool().getJVM().abort();
   }
 
-  public static 'runAllFinalizers()V'(rs: runtime.RuntimeState): void {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'runAllFinalizers()V'(thread: threading.JVMThread): void {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
 }
 
 class java_lang_StrictMath {
 
-  public static 'sin(D)D'(rs: runtime.RuntimeState, d_val: number): number {
+  public static 'sin(D)D'(thread: threading.JVMThread, d_val: number): number {
     return Math.sin(d_val);
   }
 
-  public static 'cos(D)D'(rs: runtime.RuntimeState, d_val: number): number {
+  public static 'cos(D)D'(thread: threading.JVMThread, d_val: number): number {
     return Math.cos(d_val);
   }
 
-  public static 'tan(D)D'(rs: runtime.RuntimeState, d_val: number): number {
+  public static 'tan(D)D'(thread: threading.JVMThread, d_val: number): number {
     return Math.tan(d_val);
   }
 
-  public static 'asin(D)D'(rs: runtime.RuntimeState, d_val: number): number {
+  public static 'asin(D)D'(thread: threading.JVMThread, d_val: number): number {
     return Math.asin(d_val);
   }
 
-  public static 'acos(D)D'(rs: runtime.RuntimeState, d_val: number): number {
+  public static 'acos(D)D'(thread: threading.JVMThread, d_val: number): number {
     return Math.acos(d_val);
   }
 
-  public static 'atan(D)D'(rs: runtime.RuntimeState, d_val: number): number {
+  public static 'atan(D)D'(thread: threading.JVMThread, d_val: number): number {
     return Math.atan(d_val);
   }
 
-  public static 'exp(D)D'(rs: runtime.RuntimeState, d_val: number): number {
+  public static 'exp(D)D'(thread: threading.JVMThread, d_val: number): number {
     return Math.exp(d_val);
   }
 
-  public static 'log(D)D'(rs: runtime.RuntimeState, d_val: number): number {
+  public static 'log(D)D'(thread: threading.JVMThread, d_val: number): number {
     return Math.log(d_val);
   }
 
-  public static 'log10(D)D'(rs: runtime.RuntimeState, d_val: number): number {
+  public static 'log10(D)D'(thread: threading.JVMThread, d_val: number): number {
     return Math.log(d_val) / Math.LN10;
   }
 
-  public static 'sqrt(D)D'(rs: runtime.RuntimeState, d_val: number): number {
+  public static 'sqrt(D)D'(thread: threading.JVMThread, d_val: number): number {
     return Math.sqrt(d_val);
   }
 
-  public static 'cbrt(D)D'(rs: runtime.RuntimeState, d_val: number): number {
+  public static 'cbrt(D)D'(thread: threading.JVMThread, d_val: number): number {
     var is_neg = d_val < 0;
     if (is_neg) {
       return -Math.pow(-d_val, 1 / 3);
@@ -949,60 +928,60 @@ class java_lang_StrictMath {
     }
   }
 
-  public static 'IEEEremainder(DD)D'(rs: runtime.RuntimeState, arg0: number, arg1: number): number {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'IEEEremainder(DD)D'(thread: threading.JVMThread, arg0: number, arg1: number): number {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'ceil(D)D'(rs: runtime.RuntimeState, d_val: number): number {
+  public static 'ceil(D)D'(thread: threading.JVMThread, d_val: number): number {
     return Math.ceil(d_val);
   }
 
-  public static 'floor(D)D'(rs: runtime.RuntimeState, d_val: number): number {
+  public static 'floor(D)D'(thread: threading.JVMThread, d_val: number): number {
     return Math.floor(d_val);
   }
 
-  public static 'atan2(DD)D'(rs: runtime.RuntimeState, y: number, x: number): number {
+  public static 'atan2(DD)D'(thread: threading.JVMThread, y: number, x: number): number {
     return Math.atan2(y, x);
   }
 
-  public static 'pow(DD)D'(rs: runtime.RuntimeState, base: number, exp: number): number {
+  public static 'pow(DD)D'(thread: threading.JVMThread, base: number, exp: number): number {
     return Math.pow(base, exp);
   }
 
-  public static 'sinh(D)D'(rs: runtime.RuntimeState, d_val: number): number {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'sinh(D)D'(thread: threading.JVMThread, d_val: number): number {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'cosh(D)D'(rs: runtime.RuntimeState, d_val: number): number {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'cosh(D)D'(thread: threading.JVMThread, d_val: number): number {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'tanh(D)D'(rs: runtime.RuntimeState, d_val: number): number {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'tanh(D)D'(thread: threading.JVMThread, d_val: number): number {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'hypot(DD)D'(rs: runtime.RuntimeState, arg0: number, arg1: number): number {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'hypot(DD)D'(thread: threading.JVMThread, arg0: number, arg1: number): number {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'expm1(D)D'(rs: runtime.RuntimeState, d_val: number): number {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'expm1(D)D'(thread: threading.JVMThread, d_val: number): number {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'log1p(D)D'(rs: runtime.RuntimeState, d_val: number): number {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'log1p(D)D'(thread: threading.JVMThread, d_val: number): number {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
@@ -1011,101 +990,98 @@ class java_lang_StrictMath {
 
 class java_lang_String {
 
-  public static 'intern()Ljava/lang/String;'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject): java_object.JavaObject {
-    var js_str = javaThis.jvm2js_str(),
-      s = rs.string_pool.get(js_str);
-    if (s == null) {
-      rs.string_pool.set(js_str, javaThis);
-      return javaThis;
-    }
-    return s;
+  public static 'intern()Ljava/lang/String;'(thread: threading.JVMThread, javaThis: java_object.JavaObject): java_object.JavaObject {
+    return thread.getThreadPool().getJVM().internString(javaThis.jvm2js_str(), javaThis);
   }
 
 }
 
 class java_lang_System {
 
-  public static 'setIn0(Ljava/io/InputStream;)V'(rs: runtime.RuntimeState, stream: java_object.JavaObject): void {
-    var sys = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/System;');
-    return sys.static_put(rs, 'in', stream);
+  public static 'setIn0(Ljava/io/InputStream;)V'(thread: threading.JVMThread, stream: java_object.JavaObject): void {
+    var sys = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass('Ljava/lang/System;');
+    sys.static_put(thread, 'in', stream);
   }
 
-  public static 'setOut0(Ljava/io/PrintStream;)V'(rs: runtime.RuntimeState, stream: java_object.JavaObject): void {
-    var sys = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/System;');
-    return sys.static_put(rs, 'out', stream);
+  public static 'setOut0(Ljava/io/PrintStream;)V'(thread: threading.JVMThread, stream: java_object.JavaObject): void {
+    var sys = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass('Ljava/lang/System;');
+    sys.static_put(thread, 'out', stream);
   }
 
-  public static 'setErr0(Ljava/io/PrintStream;)V'(rs: runtime.RuntimeState, stream: java_object.JavaObject): void {
-    var sys = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/System;');
-    return sys.static_put(rs, 'err', stream);
+  public static 'setErr0(Ljava/io/PrintStream;)V'(thread: threading.JVMThread, stream: java_object.JavaObject): void {
+    var sys = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass('Ljava/lang/System;');
+    sys.static_put(thread, 'err', stream);
   }
 
-  public static 'currentTimeMillis()J'(rs: runtime.RuntimeState): gLong {
+  public static 'currentTimeMillis()J'(thread: threading.JVMThread): gLong {
     return gLong.fromNumber((new Date).getTime());
   }
 
   /**
    * @todo Use performance.now() if available.
    */
-  public static 'nanoTime()J'(rs: runtime.RuntimeState): gLong {
+  public static 'nanoTime()J'(thread: threading.JVMThread): gLong {
     return gLong.fromNumber((new Date).getTime()).multiply(gLong.fromNumber(1000000));
   }
 
-  public static 'arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V'(rs: runtime.RuntimeState, src: java_object.JavaArray, src_pos: number, dest: java_object.JavaArray, dest_pos: number, length: number): void {
+  public static 'arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V'(thread: threading.JVMThread, src: java_object.JavaArray, src_pos: number, dest: java_object.JavaArray, dest_pos: number, length: number): void {
     var dest_comp_cls, src_comp_cls;
     // Needs to be checked *even if length is 0*.
     if ((src == null) || (dest == null)) {
-      rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/NullPointerException;'), 'Cannot copy to/from a null array.');
+      thread.throwNewException('Ljava/lang/NullPointerException;', 'Cannot copy to/from a null array.');
     }
     // Can't do this on non-array types. Need to check before I check bounds below, or else I'll get an exception.
-    if (!(src.cls instanceof ClassData.ArrayClassData) || !(dest.cls instanceof ClassData.ArrayClassData)) {
-      rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/ArrayStoreException;'), 'src and dest arguments must be of array type.');
+    else if (!(src.cls instanceof ClassData.ArrayClassData) || !(dest.cls instanceof ClassData.ArrayClassData)) {
+      thread.throwNewException('Ljava/lang/ArrayStoreException;', 'src and dest arguments must be of array type.');
     }
     // Also needs to be checked *even if length is 0*.
-    if (src_pos < 0 || (src_pos + length) > src.array.length || dest_pos < 0 || (dest_pos + length) > dest.array.length || length < 0) {
+    else if (src_pos < 0 || (src_pos + length) > src.array.length || dest_pos < 0 || (dest_pos + length) > dest.array.length || length < 0) {
       // System.arraycopy requires IndexOutOfBoundsException, but Java throws an array variant of the exception in practice.
-      rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/ArrayIndexOutOfBoundsException;'), 'Tried to write to an illegal index in an array.');
-    }
-    // Special case; need to copy the section of src that is being copied into a temporary array before actually doing the copy.
-    if (src === dest) {
-      src = <any> {
-        cls: src.cls,
-        array: src.array.slice(src_pos, src_pos + length)
-      };
-      src_pos = 0;
-    }
-    if (src.cls.is_castable(dest.cls)) {
-      // Fast path
-      return java_object.arraycopy_no_check(src, src_pos, dest, dest_pos, length);
+      thread.throwNewException('Ljava/lang/ArrayIndexOutOfBoundsException;', 'Tried to write to an illegal index in an array.');
     } else {
-      // Slow path
-      // Absolutely cannot do this when two different primitive types, or a primitive type and a reference type.
-      src_comp_cls = src.cls.get_component_class();
-      dest_comp_cls = dest.cls.get_component_class();
-      if ((src_comp_cls instanceof ClassData.PrimitiveClassData) || (dest_comp_cls instanceof ClassData.PrimitiveClassData)) {
-        return rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/ArrayStoreException;'), 'If calling arraycopy with a primitive array, both src and dest must be of the same primitive type.');
+      // Special case; need to copy the section of src that is being copied into a temporary array before actually doing the copy.
+      if (src === dest) {
+        src = <any> {
+          cls: src.cls,
+          array: src.array.slice(src_pos, src_pos + length)
+        };
+        src_pos = 0;
+      }
+      if (src.cls.is_castable(dest.cls)) {
+        // Fast path
+        java_object.arraycopy_no_check(src, src_pos, dest, dest_pos, length);
       } else {
-        // Must be two reference types.
-        return java_object.arraycopy_check(rs, src, src_pos, dest, dest_pos, length);
+        // Slow path
+        // Absolutely cannot do this when two different primitive types, or a primitive type and a reference type.
+        src_comp_cls = src.cls.get_component_class();
+        dest_comp_cls = dest.cls.get_component_class();
+        if ((src_comp_cls instanceof ClassData.PrimitiveClassData) || (dest_comp_cls instanceof ClassData.PrimitiveClassData)) {
+          thread.throwNewException('Ljava/lang/ArrayStoreException;', 'If calling arraycopy with a primitive array, both src and dest must be of the same primitive type.');
+        } else {
+          // Must be two reference types.
+          java_object.arraycopy_check(thread, src, src_pos, dest, dest_pos, length);
+        }
       }
     }
   }
 
-  public static 'identityHashCode(Ljava/lang/Object;)I'(rs: runtime.RuntimeState, x: java_object.JavaObject): number {
+  public static 'identityHashCode(Ljava/lang/Object;)I'(thread: threading.JVMThread, x: java_object.JavaObject): number {
     if (x != null && x.ref != null) {
       return x.ref;
     }
     return 0;
   }
 
-  public static 'initProperties(Ljava/util/Properties;)Ljava/util/Properties;'(rs: runtime.RuntimeState, arg0: java_object.JavaObject): void {
+  /**
+   * @todo Store our system properties in a proper JVM hashMap, as is expected.
+   */
+  public static 'initProperties(Ljava/util/Properties;)Ljava/util/Properties;'(thread: threading.JVMThread, arg0: java_object.JavaObject): void {
     // return value should not be used
     // @todo WAT
-    rs.push(null);
   }
 
-  public static 'mapLibraryName(Ljava/lang/String;)Ljava/lang/String;'(rs: runtime.RuntimeState, arg0: java_object.JavaObject): java_object.JavaObject {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'mapLibraryName(Ljava/lang/String;)Ljava/lang/String;'(thread: threading.JVMThread, arg0: java_object.JavaObject): java_object.JavaObject {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
@@ -1114,57 +1090,41 @@ class java_lang_System {
 
 class java_lang_Thread {
 
-  public static 'currentThread()Ljava/lang/Thread;'(rs: runtime.RuntimeState): java_object.JavaObject {
-    return rs.curr_thread;
+  public static 'currentThread()Ljava/lang/Thread;'(thread: threading.JVMThread): java_object.JavaObject {
+    return thread;
   }
 
-  public static 'yield()V'(rs: runtime.RuntimeState): void {
-    return rs.async_op(function (resume_cb) {
-      return rs.choose_next_thread(null, (next_thread) => {
-        rs['yield'](next_thread);
-        return resume_cb();
-      });
+  public static 'yield()V'(thread: threading.JVMThread): void {
+    // Force the thread scheduler to pick another thread by waiting for a short
+    // amount of time.
+    // @todo Build this into the scheduler?
+    thread.setState(enums.ThreadState.WAITING);
+    setImmediate(() => {
+      thread.setState(enums.ThreadState.RUNNABLE);
     });
   }
 
-  public static 'sleep(J)V'(rs: runtime.RuntimeState, millis: gLong): void {
-    // sleep is a yield point, plus some fancy wakeup semantics
-    rs.curr_thread.wakeup_time = (new Date).getTime() + millis.toNumber();
-    return rs.async_op(function (resume_cb) {
-      return rs.choose_next_thread(null, function (next_thread) {
-        rs["yield"](next_thread);
-        return resume_cb();
+  public static 'sleep(J)V'(thread: threading.JVMThread, millis: gLong): void {
+    thread.setState(enums.ThreadState.TIMED_WAITING);
+    setTimeout(() => {
+      thread.setState(enums.ThreadState.RUNNABLE);
+    }, millis.toNumber());
+  }
+
+  public static 'start0()V'(thread: threading.JVMThread, javaThis: threading.JVMThread): void {
+    var runMethod = javaThis.cls.method_lookup(thread, 'run()V');
+    if (runMethod != null) {
+      javaThis.runMethod(runMethod, [javaThis], (e?, rv?) => {
+        if (e) {
+          // XXX: Figure out how this works.
+          javaThis.getThreadPool().getJVM().handleUncaughtException(javaThis, e, () => { });
+        }
+        javaThis.setState(enums.ThreadState.TERMINATED);
       });
-    });
+    }
   }
 
-  public static 'start0()V'(rs: runtime.RuntimeState, javaThis: threading.JavaThreadObject): void {
-    var new_thread_sf, old_thread_sf, run_method, thread_runner_sf;
-
-    javaThis.$isAlive = true;
-    javaThis.$meta_stack = new threading.CallStack();
-    rs.thread_pool.push(javaThis);
-    old_thread_sf = rs.curr_frame();
-    logging.debug("TE(start0): starting " + javaThis.name(rs) + " from " + rs.curr_thread.name(rs));
-    rs.curr_thread = javaThis;
-    new_thread_sf = rs.curr_frame();
-    rs.push(javaThis);
-    run_method = javaThis.cls.method_lookup(rs, 'run()V');
-    thread_runner_sf = run_method.setup_stack(rs);
-    new_thread_sf.runner = function () {
-      // new_thread_sf is the fake SF at index 0
-      new_thread_sf.runner = null;
-      javaThis.$isAlive = false;
-      logging.debug("TE(start0): thread died: " + javaThis.name(rs));
-    };
-    old_thread_sf.runner = function () {
-      logging.debug("TE(start0): thread resumed: " + rs.curr_thread.name(rs));
-      return rs.meta_stack().pop();
-    };
-    throw exceptions.ReturnException;
-  }
-
-  public static 'isInterrupted(Z)Z'(rs: runtime.RuntimeState, javaThis: threading.JavaThreadObject, clear_flag: number): boolean {
+  public static 'isInterrupted(Z)Z'(thread: threading.JVMThread, javaThis: threading.JVMThread, clear_flag: number): boolean {
     var tmp = javaThis.$isInterrupted;
     if (tmp == null) {
       tmp = false;
@@ -1176,50 +1136,56 @@ class java_lang_Thread {
     return tmp;
   }
 
-  public static 'isAlive()Z'(rs: runtime.RuntimeState, javaThis: threading.JavaThreadObject): boolean {
-    var tmp = javaThis.$isAlive;
-    return tmp == null ? false : tmp;
+  public static 'isAlive()Z'(thread: threading.JVMThread, javaThis: threading.JVMThread): boolean {
+    var state = javaThis.getState();
+    return state !== enums.ThreadState.TERMINATED && state !== enums.ThreadState.NEW;
   }
 
-  public static 'countStackFrames()I'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject): number {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
-    // Satisfy TypeScript return type.
-    return 0;
+  public static 'countStackFrames()I'(thread: threading.JVMThread, javaThis: java_object.JavaObject): number {
+    return thread.getStackTrace().length;
   }
 
-  public static 'holdsLock(Ljava/lang/Object;)Z'(rs: runtime.RuntimeState, obj: java_object.JavaObject): boolean {
-    return rs.curr_thread === rs.lock_refs[obj.ref];
+  public static 'holdsLock(Ljava/lang/Object;)Z'(thread: threading.JVMThread, obj: java_object.JavaObject): boolean {
+    var mon = obj.getMonitor();
+    return mon.getOwner() === thread;
   }
 
-  public static 'dumpThreads([Ljava/lang/Thread;)[[Ljava/lang/StackTraceElement;'(rs: runtime.RuntimeState, arg0: java_object.JavaArray): java_object.JavaArray {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
-    // Satisfy TypeScript return type.
-    return null;
-  }
-
-  public static 'getThreads()[Ljava/lang/Thread;'(rs: runtime.RuntimeState): java_object.JavaArray {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'dumpThreads([Ljava/lang/Thread;)[[Ljava/lang/StackTraceElement;'(thread: threading.JVMThread, arg0: java_object.JavaArray): java_object.JavaArray {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'setPriority0(I)V'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject, arg0: number): void {
+  public static 'getThreads()[Ljava/lang/Thread;'(thread: threading.JVMThread): java_object.JavaArray {
+    return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[Ljava/lang/Thread;'), thread.getThreadPool().getThreads());
+  }
+
+  public static 'setPriority0(I)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: number): void {
     // NOP
   }
 
-  public static 'stop0(Ljava/lang/Object;)V'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject, arg0: java_object.JavaObject): void {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'stop0(Ljava/lang/Object;)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject): void {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'suspend0()V'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject): void {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'suspend0()V'(thread: threading.JVMThread, javaThis: java_object.JavaObject): void {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'resume0()V'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject): void {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'resume0()V'(thread: threading.JVMThread, javaThis: java_object.JavaObject): void {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'interrupt0()V'(rs: runtime.RuntimeState, javaThis: threading.JavaThreadObject): void {
+  /**
+   * Interrupts this thread.
+   * Unless the current thread is interrupting itself, which is always permitted, the checkAccess method of this thread is invoked, which may cause a SecurityException to be thrown.
+   * If this thread is blocked in an invocation of the Object.wait(), wait(long), or Object.wait(long,int) methods of the Object class, or of the join(), join(long), join(long,int), sleep(long), or sleep(long,int), methods of this class, then its interrupt status will be cleared and it will receive an InterruptedException.
+   * If this thread is blocked in an I/O operation upon an java.nio.channels.InterruptibleChannel then the channel will be closed, the thread's interrupt status will be set, and the thread will receive a java.nio.channels.ClosedByInterruptException.
+   * If this thread is blocked in a java.nio.channels.Selector then the thread's interrupt status will be set and it will return immediately from the selection operation, possibly with a non-zero value, just as if the selector's java.nio.channels.Selector.wakeup() method were invoked.
+   * If none of the previous conditions hold then this thread's interrupt status will be set.
+   * Interrupting a thread that is not alive need not have any effect.
+   */
+  public static 'interrupt0()V'(thread: threading.JVMThread, javaThis: threading.JavaThreadObject): void {
     javaThis.$isInterrupted = true;
     if (javaThis === rs.curr_thread) {
       return;
@@ -1242,44 +1208,48 @@ class java_lang_Thread {
 
 }
 
+/**
+ * @todo Don't create a stack trace every time an element is created. Use the
+ * field in the object.
+ */
 class java_lang_Throwable {
 
-  public static 'fillInStackTrace()Ljava/lang/Throwable;'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject): java_object.JavaObject {
-    var strace = new java_object.JavaArray(rs, <ClassData.ArrayClassData> rs.get_bs_class('[Ljava/lang/StackTraceElement;'), create_stack_trace(rs, javaThis));
-    javaThis.set_field(rs, 'Ljava/lang/Throwable;stackTrace', strace);
+  public static 'fillInStackTrace()Ljava/lang/Throwable;'(thread: threading.JVMThread, javaThis: java_object.JavaObject): java_object.JavaObject {
+    var strace = new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[Ljava/lang/StackTraceElement;'), create_stack_trace(thread, javaThis));
+    javaThis.set_field(thread, 'Ljava/lang/Throwable;stackTrace', strace);
     return javaThis;
   }
 
-  public static 'getStackTraceDepth()I'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject): number {
-    return create_stack_trace(rs, javaThis).length;
+  public static 'getStackTraceDepth()I'(thread: threading.JVMThread, javaThis: java_object.JavaObject): number {
+    return create_stack_trace(thread, javaThis).length;
   }
 
-  public static 'getStackTraceElement(I)Ljava/lang/StackTraceElement;'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject, depth: number): java_object.JavaObject {
-    return create_stack_trace(rs, javaThis)[depth];
+  public static 'getStackTraceElement(I)Ljava/lang/StackTraceElement;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, depth: number): java_object.JavaObject {
+    return create_stack_trace(thread, javaThis)[depth];
   }
 
 }
 
 class java_lang_UNIXProcess {
 
-  public static 'waitForProcessExit(I)I'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject, arg0: number): number {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'waitForProcessExit(I)I'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: number): number {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'forkAndExec([B[BI[BI[BZLjava/io/FileDescriptor;Ljava/io/FileDescriptor;Ljava/io/FileDescriptor;)I'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject, prog: java_object.JavaArray, argBlock: java_object.JavaArray, arg2: number, arg3: java_object.JavaArray, arg4: number, arg5: java_object.JavaArray, arg6: number, arg7: java_object.JavaObject, arg8: java_object.JavaObject, arg9: java_object.JavaObject): void {
+  public static 'forkAndExec([B[BI[BI[BZLjava/io/FileDescriptor;Ljava/io/FileDescriptor;Ljava/io/FileDescriptor;)I'(thread: threading.JVMThread, javaThis: java_object.JavaObject, prog: java_object.JavaArray, argBlock: java_object.JavaArray, arg2: number, arg3: java_object.JavaArray, arg4: number, arg5: java_object.JavaArray, arg6: number, arg7: java_object.JavaObject, arg8: java_object.JavaObject, arg9: java_object.JavaObject): void {
     var progname = util.chars2js_str(prog, 0, prog.array.length),
       args = util.chars2js_str(argBlock, 0, argBlock.array.length);
-    return rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/Error;'), "Doppio doesn't support forking processes. Command was: `" + progname + " " + args + "`");
+    thread.throwNewException('Ljava/lang/Error;', "Doppio doesn't support forking processes. Command was: `" + progname + " " + args + "`");
   }
 
-  public static 'destroyProcess(I)V'(rs: runtime.RuntimeState, arg0: number): void {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'destroyProcess(I)V'(thread: threading.JVMThread, arg0: number): void {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'initIDs()V'(rs: runtime.RuntimeState): void {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'initIDs()V'(thread: threading.JVMThread): void {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
 }

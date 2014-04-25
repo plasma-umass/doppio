@@ -188,7 +188,9 @@ export class BytecodeStackFrame implements IStackFrame {
   public getStackTraceFrame(): IStackTraceFrame {
     return {
       method: this.method,
-      pc: this.pc
+      pc: this.pc,
+      stack: this.stack.slice(0),
+      locals: this.locals.slice(0)
     };
   }
 }
@@ -248,7 +250,9 @@ class NativeStackFrame implements IStackFrame {
   public getStackTraceFrame(): IStackTraceFrame {
     return {
       method: this.method,
-      pc: -1
+      pc: -1,
+      stack: [],
+      locals: []
     };
   }
 }
@@ -393,6 +397,8 @@ export class ThreadPool {
 export interface IStackTraceFrame {
   method: methods.Method;
   pc: number;
+  stack: any[];
+  locals: any[];
 }
 
 /**

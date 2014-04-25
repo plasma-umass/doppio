@@ -284,7 +284,7 @@ export class Method extends AbstractMethodField {
     }
   }
 
-  public reflector(thread: threading.JVMThread, loader: ClassLoader.ClassLoader, is_constructor: boolean, cb: (reflectedMethod: java_object.JavaObject)=>void): void {
+  public reflector(thread: threading.JVMThread, is_constructor: boolean, cb: (reflectedMethod: java_object.JavaObject)=>void): void {
     if (is_constructor == null) {
       is_constructor = false;
     }
@@ -298,7 +298,8 @@ export class Method extends AbstractMethodField {
       clazz_obj = this.cls.get_class_object(thread),
       toResolve: string[] = [],
       bsCl: ClassLoader.BootstrapClassLoader = thread.getBsCl(),
-      jvm = thread.getThreadPool().getJVM();
+      jvm = thread.getThreadPool().getJVM(),
+      loader = this.cls.loader;
 
     toResolve.push(this.return_type);
     toResolve.push.apply(toResolve, this.param_types);

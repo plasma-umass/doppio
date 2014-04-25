@@ -210,10 +210,14 @@ class JVM {
   /**
    * Interns the given JavaScript string. Returns the interned string.
    */
-  public internString(str: string): java_object.JavaObject {
+  public internString(str: string, javaObj?: java_object.JavaObject): java_object.JavaObject {
     var internedString = this.internedStrings[str];
     if (internedString == null) {
-      internedString = this.internedStrings[str] = java_object.initString(this.bsCl, str);
+      if (javaObj) {
+        internedString = this.internedStrings[str] = javaObj;
+      } else {
+        internedString = this.internedStrings[str] = java_object.initString(this.bsCl, str);
+      }
     }
     return internedString;
   }
@@ -336,7 +340,7 @@ class JVM {
       'file.encoding': 'UTF-8',
       'java.vendor': 'Doppio',
       'java.version': '1.6',
-      'java.vendor.url': 'https://github.com/int3/doppio',
+      'java.vendor.url': 'https://github.com/plasma-umass/doppio',
       'java.class.version': '50.0',
       'java.specification.version': '1.6',
       'line.separator': '\n',

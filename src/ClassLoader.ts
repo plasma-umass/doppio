@@ -365,6 +365,13 @@ export class ClassLoader {
   public throwClassNotFoundException(thread: threading.JVMThread, typeStr: string, explicit: boolean): void {
     thread.throwNewException(explicit ? 'Ljava/lang/ClassNotFoundException;' : 'Ljava/lang/NoClassDefFoundError;', 'Could not load class: ' + typeStr);
   }
+
+  /**
+   * Returns the JVM object corresponding to this ClassLoader.
+   */
+  public getLoaderObject(): JavaClassLoaderObject {
+    throw new Error('Abstract method');
+  }
 }
 
 /**
@@ -437,6 +444,21 @@ export class BootstrapClassLoader extends ClassLoader {
         checkClasspaths(cb);
       }
     });
+  }
+
+  /**
+   * Returns a listing of loaded packages.
+   */
+  public getPackageNames(): string[] {
+    var classNames = this.getLoadedClassNames(), i: number, className: string,
+      finalPackages: {[pkgNames: string]: boolean } = { };
+    for (i = 0; i < classNames.length; i++) {
+      className = classNames[i];
+      if (util.is_reference_type(className)) {
+        finalPackages[className.substring(1, (className.lastIndexOf('/')) + 1)] = true;
+      }
+    }
+    return Object.keys(finalPackages);
   }
 
   /**
@@ -661,6 +683,15 @@ export class BootstrapClassLoader extends ClassLoader {
     }, (err?: any) => {
       cb(loadedClassFiles);
     });
+  }
+
+  /**
+   * Returns the JVM object corresponding to this ClassLoader.
+   * @todo Represent the bootstrap by something other than 'null'.
+   * @todo These should be one-in-the-same.
+   */
+  public getLoaderObject(): JavaClassLoaderObject {
+    return null;
   }
 }
 
