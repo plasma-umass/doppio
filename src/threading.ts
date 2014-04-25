@@ -517,10 +517,9 @@ export class JVMThread extends java_object.JavaObject {
 
     if (stack.length === 0) {
       // !!! UNCAUGHT EXCEPTION !!!
-      var threadCls = <ClassData.ReferenceClassData> this.bsCl.getResolvedClass('Ljava/lang/Thread;'),
-        dispatchMethod = threadCls.method_lookup(this, 'dispatchUncaughtException(Ljava/lang/Throwable;)V');
-      assert(dispatchMethod != null);
-      this.runMethod(dispatchMethod, [this, exception]);
+      // This should actually never happen. All executions should end at the
+      // internal frame created by runMethod.
+      assert(false);
     } else {
       // Thread is now runnable.
       this.setState(enums.ThreadState.RUNNABLE);

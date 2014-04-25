@@ -7,6 +7,7 @@ import java_object = require('./java_object');
 import methods = require('./methods');
 import logging = require('./logging');
 import assert = require('./assert');
+import JAR = require('./jar');
 import path = require('path');
 import fs = require('fs');
 var debug = logging.debug;
@@ -381,6 +382,15 @@ export class BootstrapClassLoader extends ClassLoader {
    * The path where jar files should be extracted.
    */
   private extractionPath: string;
+  /**
+   * All of the currently loaded JAR files.
+   */
+  private jarFiles: { [jarPath: string]: JAR };
+  /**
+   * Maps the file system path to .jar files to the file system path where it
+   * is extracted.
+   */
+  private jarFilePaths: { [jarPath: string]: string };
 
   /**
    * Constructs the bootstrap classloader with the given classpath.
@@ -398,6 +408,8 @@ export class BootstrapClassLoader extends ClassLoader {
     // XXX: Must be initialized here rather than at the property definition
     // because we reference 'this' in the call to 'super'.
     this.unzipJar = util.are_in_browser() ? this.unzipJarBrowser : this.unzipJarNode;
+    this.jarFiles = {};
+    this.jarFilePaths = {};
 
     // Checks all of the classpaths. Add only those that exist.
     var checkClasspaths = (cb: (e?: any) => void) => {
@@ -451,7 +463,8 @@ export class BootstrapClassLoader extends ClassLoader {
             if (err) {
               cb(false);
             } else {
-              addPath(p, cb);
+              this.jarFilePaths[p] = unzipPath;
+              addPath(unzipPath, cb);
             }
           });
         } else {
@@ -461,7 +474,7 @@ export class BootstrapClassLoader extends ClassLoader {
       }
     });
 
-    function addPath(p: string, cb: (success: boolean) => void) {
+    var addPath = (p: string, cb: (success: boolean) => void) => {
       var existingIdx = classPath.indexOf(p);
       if (existingIdx !== -1) {
         // Remove it before adding it in again.
@@ -469,8 +482,33 @@ export class BootstrapClassLoader extends ClassLoader {
       }
       // Add to the front of the classpath.
       classPath.unshift(p);
-      cb(true);
+      // Check for a manifest. If it exists, add it, and then add its classpath
+      // items.
+      var manifestPath = path.resolve(p, 'META-INF', 'MANIFEST.MF');
+      fs.exists(manifestPath, (exists) => {
+        if (exists) {
+          var jar = new JAR(p, (err) => {
+            // Only add the jar file if we successfully parsed it.
+            if (!err) {
+              this.jarFiles[p] = jar;
+            }
+            cb(true);
+          });
+        } else {
+          cb(true);
+        }
+      });
+    };
+  }
+
+  /**
+   * Retrieve the JAR object for the given jar file loaded in the class loader.
+   */
+  public getJar(jarPath: string): JAR {
+    if (this.jarFilePaths.hasOwnProperty(jarPath)) {
+      return this.jarFiles[this.jarFilePaths[jarPath]];
     }
+    return null;
   }
 
   /**

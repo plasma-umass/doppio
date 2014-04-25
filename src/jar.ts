@@ -18,8 +18,7 @@ class JAR {
    */
   constructor(dir: string, doneCb: (err?: Error)=>void) {
     // Try to read the MANIFEST file.
-    var _this = this;
-    fs.readFile(path.resolve(dir, 'META-INF/MANIFEST.MF'), function(err, data) {
+    fs.readFile(path.resolve(dir, 'META-INF/MANIFEST.MF'), (err, data) => {
       if (err) return doneCb(err);
       // Parse the file!
       // If a line *begins* with a space, then it's a continuation of the
@@ -45,7 +44,7 @@ class JAR {
           // EOF!
           if (currentAttribute !== null) {
             // Set the previously-parsed value.
-            _this._setAttribute(currentAttribute, currentValue);
+            this._setAttribute(currentAttribute, currentValue);
             currentAttribute = null;
           }
         }
@@ -56,7 +55,7 @@ class JAR {
           // New value.
           if (currentAttribute !== null) {
             // Set the previously-parsed value.
-            _this._setAttribute(currentAttribute, currentValue);
+            this._setAttribute(currentAttribute, currentValue);
           }
           // Split on :.
           var split = line.split(':');

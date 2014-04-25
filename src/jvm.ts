@@ -12,6 +12,7 @@ import java_object = require('./java_object');
 import threading = require('./threading');
 import enums = require('./enums');
 import Heap = require('./heap');
+import assert = require('./assert');
 
 var trace = logging.trace;
 var error = logging.error;
@@ -78,11 +79,6 @@ class JVM {
     this.nativeClasspath = opts.nativeClasspath;
     this._initSystemProperties(jclPath, javaHomePath);
 
-    // CURRENT DOPPIO:
-    // - initialize threads
-    // - initialize main class
-    // - run main method
-
     // Step 0: Initialize natives.
     this.initializeNatives(() => {
       // Step 1: Construct the bootstrap class loader.
@@ -109,7 +105,21 @@ class JVM {
                   }
                 });
               }, (err?: any) => {
-                // Step 5: Initialize threads.
+                // Step 5: Construct a ThreadGroup object for the first thread.
+                var threadGroupCls = <ClassData.ReferenceClassData> this.bsCl.getInitializedClass('Ljava/lang/ThreadGroup;'),
+                  groupObj = new java_object.JavaObject(threadGroupCls),
+                  cnstrctr = threadGroupCls.method_lookup(firstThread, '<init>()V');
+                firstThread.runMethod(cnstrctr, [groupObj], (e?, rv?) => {
+                  // Step 6: Initialize the fields of our firstThread to make it real.
+                  // @todo Perhaps associate ThreadGroup with ThreadPool...?
+                  firstThread.set_field(firstThread, 'Ljava/lang/Thread;name', java_object.initCarr(this.bsCl, 'main'));
+                  firstThread.set_field(firstThread, 'Ljava/lang/Thread;priority', 1);
+                  firstThread.set_field(firstThread, 'Ljava/lang/Thread;group', groupObj);
+                  firstThread.set_field(firstThread, 'Ljava/lang/Thread;threadLocals', null);
+                  firstThread.set_field(firstThread, 'Ljava/lang/Thread;blockerLock', new java_object.JavaObject(<ClassData.ReferenceClassData> this.bsCl.getInitializedClass('Ljava/lang/Object;')));
+                  // Ready for execution!
+                  cb(null, this);
+                });
               });
             }
           }, false);
@@ -118,7 +128,63 @@ class JVM {
     });
   }
 
+  /**
+   * Run the specified class on this JVM instance.
+   * @param className The name of the class to run. Can be specified in either
+   *   foo.bar.Baz or foo/bar/Baz format.
+   * @param args Command line arguments passed to the class.
+   * @param cb Called when the JVM finishes executing. Called with 'true' if
+   *   the JVM exited normally, 'false' if there was an error.
+   */
+  public runClass(className: string, args: string[], cb: (result: boolean) => void): void {
+    var thread = this.threadPool.getThreads()[0];
+    assert(thread != null);
+    // Convert foo.bar.Baz => foo/bar/Baz.
+    className = className.replace(/\./g, '/');
+    // Initialize the class.
+    this.bsCl.initializeClass(thread, className, (cdata: ClassData.ReferenceClassData) => {
+      if (cdata != null) {
+        // Convert the arguments.
+        var strArrCls = <ClassData.ArrayClassData> this.bsCl.getInitializedClass('[Ljava/lang/String;'),
+          jvmifiedArgs = new java_object.JavaArray(strArrCls, args.map((a: string): java_object.JavaObject => java_object.initString(this.bsCl, a)));
 
+        // Find the main method, and run it.
+        var method = cdata.method_lookup(thread, 'main([Ljava/lang/String;)V');
+        thread.runMethod(method, [jvmifiedArgs], (e?, rv?) => {
+          if (e) {
+            // Handle the uncaught exception properly.
+            this.handleUncaughtException(thread, e, (e?, rv?) => {
+              cb(false);
+            });
+          } else {
+            cb(true);
+          }
+        });
+      } else {
+        // There was an error.
+        cb(false);
+      }
+    });
+  }
+
+  /**
+   * Run the specified JAR file on this JVM instance.
+   * @param jarFile Path to the JAR file.
+   * @param args Command line arguments passed to the class.
+   * @param cb Called when the JVM finishes executing. Called with 'true' if
+   *   the JVM exited normally, 'false' if there was an error.
+   */
+  public runJar(jarFile: string, args: string[], cb: (result: boolean) => void): void {
+    this.bsCl.addClassPathItem(jarFile, (success) => {
+      if (!success) {
+        cb(success);
+      } else {
+        // Find the jar file's main class in its manifest.
+        var jarFile = this.bsCl.getJar(jarFile);
+        this.runClass(jarFile.getAttribute('Main-Class'), args, cb);
+      }
+    });
+  }
 
   /**
    * Retrieve the given system property.
@@ -157,7 +223,7 @@ class JVM {
    * java_object and ClassData defined.
    */
   private evalNativeModule(mod: string): any {
-    "use strict";
+    "use strict"; // Prevent eval from being terrible.
     // Terrible hack.
     mod = mod.replace(/require\((\'|\")..\/(.*)(\'|\")\);/g, 'require($1./$2$1);');
     return eval(mod);
@@ -306,6 +372,17 @@ class JVM {
    */
   public getBootstrapClassLoader(): ClassLoader.BootstrapClassLoader {
     return this.bsCl;
+  }
+
+  /**
+   * Handles an uncaught exception on a thread. Placed here to prevent
+   * threading.JVMThread from becoming super JVM specialized.
+   */
+  public handleUncaughtException(thread: threading.JVMThread, exception: java_object.JavaObject, cb: (e?: java_object.JavaObject, rv?: any) => void) {
+    var threadCls = <ClassData.ReferenceClassData> this.bsCl.getResolvedClass('Ljava/lang/Thread;'),
+      dispatchMethod = threadCls.method_lookup(thread, 'dispatchUncaughtException(Ljava/lang/Throwable;)V');
+    assert(dispatchMethod != null);
+    thread.runMethod(dispatchMethod, [thread, exception], cb);
   }
 }
 
