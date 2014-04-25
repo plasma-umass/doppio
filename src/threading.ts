@@ -58,7 +58,7 @@ export class BytecodeStackFrame implements IStackFrame {
   }
 
   public run(thread: JVMThread): void {
-    var method = this.method, code = (<attributes.Code> this.method.code).opcodes;
+    var method = this.method, code = this.method.getCode();
     if (method.access_flags.synchronized && this.pc === 0) {
       // We are starting a synchronized method! These must implicitly enter
       // their respective locks.
@@ -78,8 +78,6 @@ export class BytecodeStackFrame implements IStackFrame {
       var op = code[this.pc];
       op.execute(thread, this);
     }
-
-    // XXX: Monitorexit if return opcode!
   }
 
   public scheduleResume(thread: JVMThread, rv?: any, rv2?: any): void {
@@ -92,13 +90,18 @@ export class BytecodeStackFrame implements IStackFrame {
   }
 
   /**
-   * @todo Make potentially asynchronous! Need to invoke ClassLoader on exception handlers.
+   * Checks if this method can handle the specified exception 'e'.
+   * Returns true if it can, or if it needs to asynchronously resolve some
+   * classes.
+   * 
+   * In the latter case, scheduleException will handle rethrowing the exception
+   * in the event that it can't actually handle it.
    */
   public scheduleException(thread: JVMThread, e: java_object.JavaObject): boolean {
     // STEP 1: We need the pc value of the invoke opcode that caused this mess.
     // Rewind until we find it.
-    var code: attributes.Code = this.method.code,
-      opcodes: opcodes.Opcode[] = code.opcodes,
+    var code = this.method.getCodeAttribute(),
+      opcodes: opcodes.Opcode[] = this.method.getCode(),
       pc = this.pc, method = this.method;
     pc -= 3;
     while (pc >= 0 && (opcodes[pc] == null || opcodes[pc].name.indexOf('invoke') !== 0)) {
@@ -113,14 +116,34 @@ export class BytecodeStackFrame implements IStackFrame {
     for (i = 0; i < exceptionHandlers.length; i++) {
       var eh = exceptionHandlers[i];
       if (eh.start_pc <= pc && pc < eh.end_pc) {
-        var resolvedCatchType = method.cls.loader.getResolvedClass(eh.catch_type);
-        // NOTE: If this exception handler type isn't resolved, then this
-        // couldn't possibly be the right exception handler -- all of the classes
-        // that the exception could be cast as must be resolved by now.
-        if (resolvedCatchType != null) {
-          if (eh.catch_type === "<any>" || ecls.is_castable(resolvedCatchType)) {
-            handler = eh;
-            break;
+        if (eh.catch_type === "<any>") {
+          handler = eh;
+          break;
+        } else {
+          var resolvedCatchType = method.cls.loader.getResolvedClass(eh.catch_type);
+          if (resolvedCatchType != null) {
+            if (ecls.is_castable(resolvedCatchType)) {
+              handler = eh;
+              break;
+            }
+          } else {
+            // ASYNC PATH: We'll need to asynchronously resolve these handlers.
+            var handlerClasses: string[] = [];
+            exceptionHandlers.forEach((handler: attributes.ExceptionHandler) => {
+              if (handler.catch_type !== "<any>") {
+                handlerClasses.push(handler.catch_type);
+              }
+            });
+            method.cls.loader.resolveClasses(thread, handlerClasses, (classes) => {
+              if (classes !== null) {
+                // Rethrow the exception to trigger scheduleException again.
+                // @todo If the ClassLoader throws an exception during resolution,
+                // this could result in an infinite loop.
+                thread.throwException(e);
+              }
+            });
+            // Tell the thread we'll handle it.
+            return true;
           }
         }
       }
@@ -171,7 +194,7 @@ class NativeStackFrame implements IStackFrame {
    */
   constructor(public method: methods.Method, private args: any[]) {
     assert(method.access_flags.native);
-    this.nativeMethod = method.code;
+    this.nativeMethod = method.getNativeFunction();
   }
 
   /**

@@ -33,7 +33,7 @@ export class Code implements Attribute {
   private _code_array: util.BytesArray;
   public exception_handlers: ExceptionHandler[];
   public run_stamp: number;
-  public opcodes: opcodes.Opcode[];
+  private opcodes: opcodes.Opcode[];
   private attrs: Attribute[];
 
   public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool) {
@@ -60,7 +60,16 @@ export class Code implements Attribute {
     this.run_stamp = 0;
   }
 
-  public parse_code(): void {
+  public getCode(): opcodes.Opcode[] {
+    if (this.opcodes != null) {
+      return this.opcodes;
+    } else {
+      this.parseCode();
+      return this.opcodes;
+    }
+  }
+
+  private parseCode(): void {
     this.opcodes = new Array(this.code_len);
     while (this._code_array.has_bytes()) {
       var op_index = this._code_array.pos();

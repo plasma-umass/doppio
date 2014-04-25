@@ -4,16 +4,15 @@ import opcodes = require('./opcodes');
 import attributes = require('./attributes');
 import logging = require('./logging');
 import JVM = require('./jvm');
-import exceptions = require('./exceptions');
 import java_object = require('./java_object');
 import ConstantPool = require('./ConstantPool');
 import ClassData = require('./ClassData');
 import threading = require('./threading');
 import gLong = require('./gLong');
 import ClassLoader = require('./ClassLoader');
+import assert = require('./assert');
 
 
-var ReturnException = exceptions.ReturnException;
 var vtrace = logging.vtrace, trace = logging.trace, debug_vars = logging.debug_vars;
 var JavaArray = java_object.JavaArray;
 var JavaObject = java_object.JavaObject;
@@ -205,8 +204,7 @@ export class Method extends AbstractMethodField {
   public return_type: string;
   // Code is either a function, or a CodeAttribute. We should have a factory method
   // that constructs NativeMethod objects and BytecodeMethod objects.
-  public code: any;
-  public has_bytecode: boolean;
+  private code: any;
 
   public parse_descriptor(raw_descriptor: string): void {
     this.reset_caches = false;  // Switched to 'true' in web frontend between JVM invocations.
@@ -239,6 +237,21 @@ export class Method extends AbstractMethodField {
     return this.cls.get_type() + "::" + this.name + this.raw_descriptor;
   }
 
+  public getCode(): opcodes.Opcode[] {
+    assert(!this.access_flags.native && !this.access_flags.abstract);
+    return (<attributes.Code> this.code).getCode();
+  }
+
+  public getCodeAttribute(): attributes.Code {
+    assert(!this.access_flags.native && !this.access_flags.abstract);
+    return this.code;
+  }
+
+  public getNativeFunction(): Function {
+    assert(this.access_flags.native && typeof (this.code) === 'function');
+    return this.code;
+  }
+
   public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool, idx: number): void {
     super.parse(bytes_array, constant_pool, idx);
     var sig = this.full_signature(),
@@ -267,7 +280,6 @@ export class Method extends AbstractMethodField {
         this.code = () => { };
       }
     } else if (!this.access_flags.abstract) {
-      this.has_bytecode = true;
       this.code = this.get_attribute('Code');
     }
   }
