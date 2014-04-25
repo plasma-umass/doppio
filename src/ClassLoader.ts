@@ -724,6 +724,14 @@ export class CustomClassLoader extends ClassLoader {
       });
     }
   }
+
+  /**
+   * Returns the JVM object corresponding to this ClassLoader.
+   * @todo These should be one-in-the-same.
+   */
+  public getLoaderObject(): JavaClassLoaderObject {
+    return this.loaderObj;
+  }
 }
 
 // Each JavaClassLoaderObject is a unique ClassLoader.

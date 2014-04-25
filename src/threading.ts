@@ -36,6 +36,11 @@ export interface IStackFrame {
    * This stack frame's type.
    */
   type: enums.StackFrameType;
+  /**
+   * Retrieve a stack trace frame from this stack trace. If this stack frame
+   * should not be language-visible, return null.
+   */
+  getStackTraceFrame(): IStackTraceFrame;
 }
 
 /**
@@ -179,6 +184,13 @@ export class BytecodeStackFrame implements IStackFrame {
    * Indicates the type of this stack frame.
    */
   public type: enums.StackFrameType = enums.StackFrameType.BYTECODE;
+
+  public getStackTraceFrame(): IStackTraceFrame {
+    return {
+      method: this.method,
+      pc: this.pc
+    };
+  }
 }
 
 /**
@@ -206,7 +218,13 @@ class NativeStackFrame implements IStackFrame {
     var rv: any = this.nativeMethod.apply(null, this.args);
     if (thread.getState() === enums.ThreadState.RUNNABLE) {
       // Normal native method exit.
-      thread.asyncReturn(rv);
+      var returnType = this.method.return_type;
+      if (returnType === 'J' || returnType === 'D') {
+        // Two stack return values for methods that return a long or a double.
+        thread.asyncReturn(rv, null);
+      } else {
+        thread.asyncReturn(rv);
+      }
     }
   }
 
@@ -226,6 +244,13 @@ class NativeStackFrame implements IStackFrame {
   }
 
   public type: enums.StackFrameType = enums.StackFrameType.NATIVE;
+
+  public getStackTraceFrame(): IStackTraceFrame {
+    return {
+      method: this.method,
+      pc: -1
+    };
+  }
 }
 
 /**
@@ -275,6 +300,11 @@ class InternalStackFrame implements IStackFrame {
   }
 
   public type: enums.StackFrameType = enums.StackFrameType.INTERNAL;
+
+  public getStackTraceFrame(): IStackTraceFrame {
+    // These should not be language visible.
+    return null;
+  }
 }
 
 /**
@@ -360,6 +390,11 @@ export class ThreadPool {
   }
 }
 
+export interface IStackTraceFrame {
+  method: methods.Method;
+  pc: number;
+}
+
 /**
  * Represents a single JVM thread.
  */
@@ -394,6 +429,21 @@ export class JVMThread extends java_object.JavaObject {
    */
   public getThreadPool(): ThreadPool {
     return this.tpool;
+  }
+
+  /**
+   * Retrieves the current stack trace.
+   */
+  public getStackTrace(): IStackTraceFrame[] {
+    var trace: IStackTraceFrame[] = [], i: number,
+      frame: IStackTraceFrame;
+    for (i = 0; i < this.stack.length; i++) {
+      frame = this.stack[i].getStackTraceFrame();
+      if (frame != null) {
+        trace.push(frame);
+      }
+    }
+    return trace;
   }
 
   /**
@@ -482,9 +532,16 @@ export class JVMThread extends java_object.JavaObject {
    * 
    * It is not valid to call this method if the thread is in any other state.
    */
+  public asyncReturn(): void;
+  public asyncReturn(rv: number): void;
+  public asyncReturn(rv: java_object.JavaObject): void;
+  public asyncReturn(rv: java_object.JavaArray): void;
+  public asyncReturn(rv: number, rv2: any): void;
+  public asyncReturn(rv: gLong, rv2: any): void;
   public asyncReturn(rv?: any, rv2?: any): void {
     var stack = this.stack, frame: IStackFrame;
     assert(this.state === enums.ThreadState.RUNNABLE || this.state === enums.ThreadState.WAITING);
+    assert(typeof (rv) !== 'boolean' && rv2 == null);
     // Pop off the current method.
     frame = stack.pop();
     // Tell the top of the stack that this RV is waiting for it.
@@ -554,6 +611,7 @@ export class JVMThread extends java_object.JavaObject {
    * Convenience function for native JavaScript code.
    * @param clsName Name of the class (e.g. "Ljava/lang/Throwable;")
    * @param msg The message to include with the exception.
+   * @todo Initialize class if need be.
    */
   public throwNewException(clsName: string, msg: string) {
     var cls = <ClassData.ReferenceClassData> this.bsCl.getInitializedClass(clsName),
