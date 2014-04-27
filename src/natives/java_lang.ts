@@ -95,7 +95,7 @@ class java_lang_Class {
       thread.throwNewException('Ljava/lang/ClassNotFoundException;', classname);
     } else {
       var loader = java_object.get_cl_from_jclo(thread, jclo);
-      thread.setState(enums.ThreadState.WAITING);
+      thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
       if (initialize) {
         loader.initializeClass(thread, classname, (cls: ClassData.ReferenceClassData) => {
           if (cls != null) {
@@ -300,7 +300,7 @@ class java_lang_Class {
       fields = fields.filter((f) => f.access_flags["public"]);
     }
     var base_array = [];
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     util.async_foreach(fields,
       (f, next_item) => {
         f.reflector(thread, (jco) => {
@@ -328,7 +328,7 @@ class java_lang_Class {
       return _results;
     })();
     var base_array = [];
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     util.async_foreach(methods,
       (m, next_item) => {
         m.reflector(thread, false, (jco) => {
@@ -360,7 +360,7 @@ class java_lang_Class {
     }
     var ctor_array_cdata = <ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[Ljava/lang/reflect/Constructor;');
     var base_array = [];
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     util.async_foreach(methods,
       (m, next_item) => {
         m.reflector(thread, true, (jco) => {
@@ -393,7 +393,7 @@ class java_lang_Class {
         .map((c: any) => cls.constant_pool.get(c.inner_info_index).deref());
       flat_names.push.apply(flat_names, names);
     }
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     util.async_foreach(flat_names,
       (name: string, next_item: () => void) => {
         cls.loader.resolveClass(thread, name, (cls) => {
@@ -461,7 +461,7 @@ class java_lang_ClassLoader {
       return;
     }
     // Ensure that this class is resolved.
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     loader.resolveClass(thread, type, () => {
       thread.asyncReturn();
     }, true);
@@ -471,7 +471,7 @@ class java_lang_ClassLoader {
     var type = util.int_classname(name.jvm2js_str());
     // This returns null in OpenJDK7, but actually can throw an exception
     // in OpenJDK6.
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     thread.getBsCl().resolveClass(thread, type, (cls) => {
       if (cls != null) {
         thread.asyncReturn(cls.get_class_object(thread));
@@ -742,7 +742,7 @@ class java_lang_reflect_Array {
     var counts = lens.array;
     var cls = jco.$cls.loader.getInitializedClass(jco.$cls.get_type());
     if (cls == null) {
-      thread.setState(enums.ThreadState.WAITING);
+      thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
       jco.$cls.loader.initializeClass(thread, jco.$cls.get_type(), (cls) => {
         var type_str = (new Array(counts.length + 1)).join('[') + cls.get_type();
         thread.asyncReturn(java_object.heapMultiNewArray(thread, jco.$cls.loader, type_str, counts));
@@ -803,7 +803,7 @@ class java_lang_Runtime {
    * that the browser will use it as an opportunity to GC.
    */
   public static 'gc()V'(thread: threading.JVMThread, javaThis: java_object.JavaObject): void {
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     setImmediate(() => {
       thread.asyncReturn();
     });
@@ -1098,16 +1098,16 @@ class java_lang_Thread {
     // Force the thread scheduler to pick another thread by waiting for a short
     // amount of time.
     // @todo Build this into the scheduler?
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     setImmediate(() => {
-      thread.setState(enums.ThreadState.RUNNABLE);
+      thread.setStatus(enums.ThreadStatus.RUNNABLE);
     });
   }
 
   public static 'sleep(J)V'(thread: threading.JVMThread, millis: gLong): void {
-    thread.setState(enums.ThreadState.TIMED_WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     setTimeout(() => {
-      thread.setState(enums.ThreadState.RUNNABLE);
+      thread.setStatus(enums.ThreadStatus.RUNNABLE);
     }, millis.toNumber());
   }
 
@@ -1119,7 +1119,7 @@ class java_lang_Thread {
           // XXX: Figure out how this works.
           javaThis.getThreadPool().getJVM().handleUncaughtException(javaThis, e, () => { });
         }
-        javaThis.setState(enums.ThreadState.TERMINATED);
+        javaThis.setStatus(enums.ThreadStatus.TERMINATED);
       });
     }
   }
@@ -1137,8 +1137,8 @@ class java_lang_Thread {
   }
 
   public static 'isAlive()Z'(thread: threading.JVMThread, javaThis: threading.JVMThread): boolean {
-    var state = javaThis.getState();
-    return state !== enums.ThreadState.TERMINATED && state !== enums.ThreadState.NEW;
+    var state = javaThis.getStatus();
+    return state !== enums.ThreadStatus.TERMINATED && state !== enums.ThreadStatus.NEW;
   }
 
   public static 'countStackFrames()I'(thread: threading.JVMThread, javaThis: java_object.JavaObject): number {
@@ -1178,32 +1178,65 @@ class java_lang_Thread {
 
   /**
    * Interrupts this thread.
-   * Unless the current thread is interrupting itself, which is always permitted, the checkAccess method of this thread is invoked, which may cause a SecurityException to be thrown.
-   * If this thread is blocked in an invocation of the Object.wait(), wait(long), or Object.wait(long,int) methods of the Object class, or of the join(), join(long), join(long,int), sleep(long), or sleep(long,int), methods of this class, then its interrupt status will be cleared and it will receive an InterruptedException.
-   * If this thread is blocked in an I/O operation upon an java.nio.channels.InterruptibleChannel then the channel will be closed, the thread's interrupt status will be set, and the thread will receive a java.nio.channels.ClosedByInterruptException.
-   * If this thread is blocked in a java.nio.channels.Selector then the thread's interrupt status will be set and it will return immediately from the selection operation, possibly with a non-zero value, just as if the selector's java.nio.channels.Selector.wakeup() method were invoked.
-   * If none of the previous conditions hold then this thread's interrupt status will be set.
+   *
+   * Unless the current thread is interrupting itself, which is always
+   * permitted, the checkAccess method of this thread is invoked, which may
+   * cause a SecurityException to be thrown.
+   *
+   * - If this thread is blocked in an invocation of the Object.wait(),
+   *   wait(long), or Object.wait(long,int) methods of the Object class, or of
+   *   the join(), join(long), join(long,int), sleep(long), or sleep(long,int),
+   *   methods of this class, then its interrupt status will be cleared and it
+   *   will receive an InterruptedException.
+   *
+   * - If this thread is blocked in an I/O operation upon an
+   *   java.nio.channels.InterruptibleChannel then the channel will be closed,
+   *   the thread's interrupt status will be set, and the thread will receive a
+   *   java.nio.channels.ClosedByInterruptException.
+   *
+   * - If this thread is blocked in a java.nio.channels.Selector then the
+   *   thread's interrupt status will be set and it will return immediately from
+   *   the selection operation, possibly with a non-zero value, just as if the
+   *   selector's java.nio.channels.Selector.wakeup() method were invoked.
+   *
+   * - If none of the previous conditions hold then this thread's interrupt
+   *   status will be set.
+   *
    * Interrupting a thread that is not alive need not have any effect.
    */
-  public static 'interrupt0()V'(thread: threading.JVMThread, javaThis: threading.JavaThreadObject): void {
-    javaThis.$isInterrupted = true;
-    if (javaThis === rs.curr_thread) {
-      return;
+  public static 'interrupt0()V'(thread: threading.JVMThread, javaThis: threading.JVMThread): void {
+    // See if we have access to modify this thread.
+    var checkAccessMethod = javaThis.cls.method_lookup(thread, 'checkAccess()V');
+    if (checkAccessMethod != null) {
+      thread.runMethod(checkAccessMethod, [javaThis], (e?, rv?) => {
+        if (e) {
+          // SecurityException. Rethrow it.
+          thread.throwException(e);
+        } else {
+          // Check if thread is alive.
+          var status = javaThis.getStatus();
+          switch (status) {
+            case enums.ThreadStatus.NEW:
+            case enums.ThreadStatus.TERMINATED:
+              // Thread is not alive. NOP.
+              return;
+            case enums.ThreadStatus.BLOCKED:
+            case enums.ThreadStatus.WAITING:
+            case enums.ThreadStatus.TIMED_WAITING:
+              // Thread is waiting or blocked on a monitor. Clear interrupted
+              // status, and throw an interrupted exception.
+              javaThis.setInterrupted(false);
+              // Remove monitor...
+              javaThis.throwNewException('Ljava/lang/InterruptedException;', 'interrupt0 called');
+              return;
+            default:
+              // Set the interrupted status.
+              javaThis.setInterrupted(true);
+              return;
+          }
+        }
+      });
     }
-    // Parked threads do not raise an interrupt
-    // exception, but do get yielded to
-    if (rs.parked(javaThis)) {
-      rs["yield"](javaThis);
-      return;
-    }
-    logging.debug("TE(interrupt0): interrupting " + javaThis.name(rs));
-    var new_thread_sf = util.last(javaThis.$meta_stack._cs);
-    new_thread_sf.runner = function () {
-      return rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/InterruptedException;'), 'interrupt0 called');
-    };
-    javaThis.$meta_stack.push(<any> {}); // dummy
-    rs["yield"](javaThis);
-    throw exceptions.ReturnException;
   }
 
 }

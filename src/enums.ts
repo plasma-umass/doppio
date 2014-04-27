@@ -18,19 +18,24 @@ export enum ClassState {
 
 /**
  * A thread can be in one of these states at any given point in time.
- * From: http://docs.oracle.com/javase/1.5.0/docs/api/java/lang/Thread.State.html
  */
-export enum ThreadState {
+export enum ThreadStatus {
   // A thread that has not yet started is in this state.
   NEW,
-  // A thread executing in the Java virtual machine is in this state.
+  // A thread that is actively running. Only one thread can be running at once.
+  RUNNING,
+  // A thread that is not actively running, but is ready to run.
   RUNNABLE,
   // A thread that is blocked waiting for a monitor lock is in this state.
   BLOCKED,
-  // A thread that is waiting indefinitely for another thread to perform a particular action is in this state.
+  // A thread that is waiting indefinitely for another thread to perform a
+  // particular action is in this state.
   WAITING,
-  // A thread that is waiting for another thread to perform an action for up to a specified waiting time is in this state.
+  // A thread that is waiting for another thread to perform an action for up to
+  // a specified waiting time is in this state.
   TIMED_WAITING,
+  // A thread that is waiting for an asynchronous browser operation to complete.
+  ASYNC_WAITING,
   // A thread that has exited is in this state.
   TERMINATED
 }

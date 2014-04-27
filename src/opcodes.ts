@@ -37,9 +37,9 @@ function isNull(thread: threading.JVMThread, frame: threading.BytecodeStackFrame
  * Helper function: Pauses the thread and initializes a class.
  */
 function initializeClass(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, typeStr: string): void {
-  thread.setState(enums.ThreadState.WAITING);
+  thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
   frame.getLoader().initializeClass(thread, typeStr, (cdata: ClassData.ClassData) => {
-    thread.setState(enums.ThreadState.RUNNABLE);
+    thread.setStatus(enums.ThreadStatus.RUNNABLE);
   }, false);
   frame.returnToThreadLoop = true;
 }
@@ -48,9 +48,9 @@ function initializeClass(thread: threading.JVMThread, frame: threading.BytecodeS
  * Helper function: Pauses the thread and resolves a class.
  */
 function resolveClass(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, typeStr: string): void {
-  thread.setState(enums.ThreadState.WAITING);
+  thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
   frame.getLoader().resolveClass(thread, typeStr, (cdata: ClassData.ClassData) => {
-    thread.setState(enums.ThreadState.RUNNABLE);
+    thread.setStatus(enums.ThreadStatus.RUNNABLE);
   }, false);
   frame.returnToThreadLoop = true;
 }
@@ -292,11 +292,11 @@ export class LoadConstantOpcode extends Opcode {
         // Fetch the jclass object and push it on to the stack. Do not rerun
         // this opcode.
         var cdesc = util.typestr2descriptor(this.str_constant.value);
-        thread.setState(enums.ThreadState.WAITING);
+        thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
         frame.getLoader().resolveClass(thread, cdesc, (cdata: ClassData.ClassData) => {
           frame.stack.push(cdata.get_class_object(thread));
           this.incPc(frame);
-          thread.setState(enums.ThreadState.RUNNABLE);
+          thread.setStatus(enums.ThreadStatus.RUNNABLE);
         }, false);
         frame.returnToThreadLoop = true;
         break;

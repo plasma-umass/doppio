@@ -304,11 +304,11 @@ export class Monitor {
 
   /**
    * Attempts to acquire the monitor.
-   * 
+   *
    * Thread transitions:
    * * RUNNABLE => RUNNABLE
    * * RUNNABLE => BLOCKED
-   * 
+   *
    * @param thread The thread that is trying to acquire the monitor.
    * @return True if successfull, false if not.
    */
@@ -326,7 +326,7 @@ export class Monitor {
        *  again to gain ownership."
        * @from http://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.monitorenter
        */
-      thread.setState(enums.ThreadState.BLOCKED);
+      thread.setStatus(enums.ThreadStatus.BLOCKED, this);
       this.blocked.push(thread);
       return false;
     }
@@ -335,11 +335,11 @@ export class Monitor {
   /**
    * Exits the monitor. Handles notifying the waiting threads if the lock
    * becomes available.
-   * 
+   *
    * Thread transitions:
    * * *NONE* on the argument thread.
    * * A *BLOCKED* thread may be scheduled if the owner gives up the monitor.
-   * 
+   *
    * @param thread The thread that is exiting the monitor.
    */
   public exit(thread: threading.JVMThread): void {
@@ -348,7 +348,7 @@ export class Monitor {
       if (--this.count === 0 && this.blocked.length > 0) {
         // Unblock the thread at the head of the queue.
         var unblocked = this.blocked.shift();
-        unblocked.setState(enums.ThreadState.RUNNABLE);
+        unblocked.setStatus(enums.ThreadStatus.RUNNABLE);
       }
     } else {
       /**
@@ -377,16 +377,16 @@ export class Monitor {
    */
   public wait(thread: threading.JVMThread, timeoutMs?: number, timeoutNs?: number): void {
     // INVARIANT: Thread shouldn't currently be blocked on a monitor.
-    assert(thread.getState() !== enums.ThreadState.BLOCKED);
+    assert(thread.getStatus() !== enums.ThreadStatus.BLOCKED);
     this.waiting.push(thread);
     if (timeoutMs != null) {
       // Scheduler a timer that wakes up the thread.
       this.waitTimers[thread.ref] = setTimeout(() => {
         this.unwait(thread, true);
       }, timeoutMs);
-      thread.setState(enums.ThreadState.TIMED_WAITING);
+      thread.setStatus(enums.ThreadStatus.TIMED_WAITING, this);
     } else {
-      thread.setState(enums.ThreadState.WAITING);
+      thread.setStatus(enums.ThreadStatus.WAITING, this);
     }
   }
 
@@ -397,12 +397,12 @@ export class Monitor {
    * @param fromTimer Indicates if this function call was triggered from a
    *   timer event.
    */
-  private unwait(thread: threading.JVMThread, fromTimer: boolean): void {
+  public unwait(thread: threading.JVMThread, fromTimer: boolean): void {
     // Step 1: Remove the thread from the waiting set.
     var idx = this.waiting.indexOf(thread);
     this.waiting.splice(idx, 1);
     // Step 2: Remove the timer, if applicable.
-    if (thread.getState() === enums.ThreadState.TIMED_WAITING) {
+    if (thread.getStatus() === enums.ThreadStatus.TIMED_WAITING) {
       var timerId = this.waitTimers[thread.ref];
       assert(timerId != null);
       if (!fromTimer) {
@@ -411,7 +411,7 @@ export class Monitor {
       }
     }
     // Step 3: Make thread runnable again.
-    thread.setState(enums.ThreadState.RUNNABLE);
+    thread.setStatus(enums.ThreadStatus.RUNNABLE);
   }
 
   /**

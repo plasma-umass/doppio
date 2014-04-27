@@ -367,7 +367,7 @@ class JVM {
   public abort(): void {
     var threads = this.threadPool.getThreads(), i: number;
     for (i = 0; i < threads.length; i++) {
-      threads[i].setState(enums.ThreadState.TERMINATED);
+      threads[i].setStatus(enums.ThreadStatus.TERMINATED);
     }
   }
 

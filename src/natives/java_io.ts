@@ -90,7 +90,7 @@ class java_io_FileInputStream {
   public static 'open(Ljava/lang/String;)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, filename: java_object.JavaObject): void {
     var filepath = filename.jvm2js_str();
     // TODO: actually look at the mode
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     fs.open(filepath, 'r', function (e, fd) {
       if (e != null) {
         if (e.code === 'ENOENT') {
@@ -114,7 +114,7 @@ class java_io_FileInputStream {
       thread.throwNewException("Ljava/io/IOException;", "Bad file descriptor");
     } else if (0 !== fd) {
       // this is a real file that we've already opened
-      thread.setState(enums.ThreadState.WAITING);
+      thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
       fs.fstat(fd, (err, stats) => {
         var buf = new Buffer(stats.size);
         fs.read(fd, buf, 0, 1, javaThis.$pos, (err, bytes_read) => {
@@ -124,7 +124,7 @@ class java_io_FileInputStream {
       });
     } else {
       // reading from System.in, do it async
-      thread.setState(enums.ThreadState.WAITING);
+      thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
       async_input(1, (byte: NodeBuffer) => {
         thread.asyncReturn(0 === byte.length ? -1 : byte.readUInt8(0));
       });
@@ -141,7 +141,7 @@ class java_io_FileInputStream {
       // this is a real file that we've already opened
       pos = javaThis.$pos;
       buf = new Buffer(n_bytes);
-      thread.setState(enums.ThreadState.WAITING);
+      thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
       fs.read(fd, buf, 0, n_bytes, pos, (err, bytes_read) => {
         var i: number;
         if (null != err) {
@@ -158,7 +158,7 @@ class java_io_FileInputStream {
       });
     } else {
       // reading from System.in, do it async
-      thread.setState(enums.ThreadState.WAITING);
+      thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
       async_input(n_bytes, (bytes: NodeBuffer) => {
         var b, idx: number;
         for (idx = 0; idx < bytes.length; idx++) {
@@ -176,7 +176,7 @@ class java_io_FileInputStream {
     if (-1 === fd) {
       thread.throwNewException("Ljava/io/IOException;", "Bad file descriptor");
     } else if (0 !== fd) {
-      thread.setState(enums.ThreadState.WAITING);
+      thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
       fs.fstat(fd, (err, stats) => {
         var bytes_left = stats.size - javaThis.$pos,
           to_skip = Math.min(n_bytes.toNumber(), bytes_left);
@@ -185,7 +185,7 @@ class java_io_FileInputStream {
       });
     } else {
       // reading from System.in, do it async
-      thread.setState(enums.ThreadState.WAITING);
+      thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
       async_input(n_bytes.toNumber(), (bytes) => {
         // we don't care about what the input actually was
         thread.asyncReturn(gLong.fromNumber(bytes.length), null);
@@ -203,7 +203,7 @@ class java_io_FileInputStream {
       // no buffering for stdin (if fd is 0)
       return 0;
     } else {
-      thread.setState(enums.ThreadState.WAITING);
+      thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
       fs.fstat(fd, (err, stats) => {
         thread.asyncReturn(stats.size - javaThis.$pos);
       });
@@ -217,7 +217,7 @@ class java_io_FileInputStream {
   public static 'close0()V'(thread: threading.JVMThread, javaThis: java_object.JavaObject): void {
     var fd_obj = javaThis.get_field(thread, 'Ljava/io/FileInputStream;fd'),
       fd = fd_obj.get_field(thread, 'Ljava/io/FileDescriptor;fd');
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     fs.close(fd, (err?: ErrnoException) => {
       if (err) {
         thread.throwNewException('Ljava/io/IOException;', err.message);
@@ -233,7 +233,7 @@ class java_io_FileInputStream {
 class java_io_FileOutputStream {
 
   public static 'open(Ljava/lang/String;)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, fname: java_object.JavaObject): void {
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     fs.open(fname.jvm2js_str(), 'w', (err, fd) => {
       var fd_obj = javaThis.get_field(thread, 'Ljava/io/FileOutputStream;fd');
       fd_obj.set_field(thread, 'Ljava/io/FileDescriptor;fd', fd);
@@ -243,7 +243,7 @@ class java_io_FileOutputStream {
   }
 
   public static 'openAppend(Ljava/lang/String;)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, fname: java_object.JavaObject): void {
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     fs.open(fname.jvm2js_str(), 'a', (err, fd) => {
       var fd_obj = javaThis.get_field(thread, 'Ljava/io/FileOutputStream;fd');
       fd_obj.set_field(thread, 'Ljava/io/FileDescriptor;fd', fd);
@@ -267,7 +267,7 @@ class java_io_FileOutputStream {
     } else if (fd !== 1 && fd !== 2) {
       // normal file
       buf = new Buffer(bytes.array);
-      thread.setState(enums.ThreadState.WAITING);
+      thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
       fs.write(fd, buf, offset, len, javaThis.$pos, (err, num_bytes) => {
         javaThis.$pos += num_bytes;
         thread.asyncReturn();
@@ -283,7 +283,7 @@ class java_io_FileOutputStream {
       if (util.are_in_browser()) {
         // For the browser implementation -- the DOM doesn't get repainted
         // unless we give the event loop a chance to spin.
-        thread.setState(enums.ThreadState.WAITING);
+        thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
         setImmediate(() => thread.asyncReturn());
       }
     }
@@ -292,7 +292,7 @@ class java_io_FileOutputStream {
   public static 'close0()V'(thread: threading.JVMThread, javaThis: java_object.JavaObject): void {
     var fd_obj = javaThis.get_field(thread, 'Ljava/io/FileOutputStream;fd'),
       fd = fd_obj.get_field(thread, 'Ljava/io/FileDescriptor;fd');
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     fs.close(fd, (err?: ErrnoException) => {
       if (err) {
         thread.throwNewException('Ljava/io/IOException;', err.message);
@@ -313,7 +313,7 @@ class java_io_FileSystem {
 
   public static 'getFileSystem()Ljava/io/FileSystem;'(thread: threading.JVMThread): void {
     // First run! Construct the file system.
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
 
     var bsCl = thread.getBsCl();
     // Create the UnixFileSystem object.
@@ -407,7 +407,7 @@ class java_io_RandomAccessFile {
         mode_str = 'rs+';
         break;
     }
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     fs.open(filepath, mode_str, (e, fd) => {
       if (e != null) {
         thread.throwNewException('Ljava/io/FileNotFoundException;', "Could not open file " + filepath + ": " + e);
@@ -430,7 +430,7 @@ class java_io_RandomAccessFile {
     var fd_obj = javaThis.get_field(thread, "Ljava/io/RandomAccessFile;fd"),
       fd = fd_obj.get_field(thread, "Ljava/io/FileDescriptor;fd"),
       buf = new Buffer(len);
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     fs.read(fd, buf, 0, len, javaThis.$pos, function (err, bytes_read) {
       var i: number;
       if (err != null) {
@@ -453,7 +453,7 @@ class java_io_RandomAccessFile {
     var fd_obj = javaThis.get_field(thread, "Ljava/io/RandomAccessFile;fd"),
       fd = fd_obj.get_field(thread, "Ljava/io/FileDescriptor;fd"),
       buf = new Buffer(byte_arr.array);
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     fs.write(fd, buf, offset, len, javaThis.$pos, (err, num_bytes) => {
       javaThis.$pos += num_bytes;
       thread.asyncReturn();
@@ -471,7 +471,7 @@ class java_io_RandomAccessFile {
   public static 'length()J'(thread: threading.JVMThread, javaThis: java_object.JavaObject): void {
     var fd_obj = javaThis.get_field(thread, 'Ljava/io/RandomAccessFile;fd'),
       fd = fd_obj.get_field(thread, 'Ljava/io/FileDescriptor;fd');
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     fs.fstat(fd, (err, stats) => {
       thread.asyncReturn(gLong.fromNumber(stats.size), null);
     });
@@ -488,7 +488,7 @@ class java_io_RandomAccessFile {
   public static 'close0()V'(thread: threading.JVMThread, javaThis: java_object.JavaObject): void {
     var fd_obj = javaThis.get_field(thread, 'Ljava/io/RandomAccessFile;fd'),
       fd = fd_obj.get_field(thread, 'Ljava/io/FileDescriptor;fd');
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     fs.close(fd, (err?: ErrnoException) => {
       if (err) {
         thread.throwNewException('Ljava/io/IOException;', err.message);
@@ -510,7 +510,7 @@ class java_io_UnixFileSystem {
 
   public static 'getBooleanAttributes0(Ljava/io/File;)I'(thread: threading.JVMThread, javaThis: java_object.JavaObject, file: java_object.JavaObject): void {
     var filepath = file.get_field(thread, 'Ljava/io/File;path');
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     stat_file(filepath.jvm2js_str(), (stats) => {
       if (stats == null) {
         thread.asyncReturn(0);
@@ -526,7 +526,7 @@ class java_io_UnixFileSystem {
 
   public static 'checkAccess(Ljava/io/File;I)Z'(thread: threading.JVMThread, javaThis: java_object.JavaObject, file: java_object.JavaObject, access: number): void {
     var filepath = file.get_field(thread, 'Ljava/io/File;path');
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     stat_file(filepath.jvm2js_str(), (stats) => {
       if (stats == null) {
         thread.asyncReturn(0);
@@ -544,7 +544,7 @@ class java_io_UnixFileSystem {
 
   public static 'getLastModifiedTime(Ljava/io/File;)J'(thread: threading.JVMThread, javaThis: java_object.JavaObject, file: java_object.JavaObject): void {
     var filepath = file.get_field(thread, 'Ljava/io/File;path').jvm2js_str();
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     stat_file(filepath, function (stats) {
       if (stats == null) {
         thread.asyncReturn(gLong.ZERO, null);
@@ -556,7 +556,7 @@ class java_io_UnixFileSystem {
 
   public static 'getLength(Ljava/io/File;)J'(thread: threading.JVMThread, javaThis: java_object.JavaObject, file: java_object.JavaObject): void {
     var filepath = file.get_field(thread, 'Ljava/io/File;path');
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     fs.stat(filepath.jvm2js_str(), (err, stat) => {
       thread.asyncReturn(gLong.fromNumber(err != null ? 0 : stat.size), null);
     });
@@ -583,7 +583,7 @@ class java_io_UnixFileSystem {
       access = ~access;
     }
     // Returns true on success, false on failure.
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     // Fetch existing permissions on file.
     stat_file(filepath, (stats) => {
       if (stats == null) {
@@ -602,7 +602,7 @@ class java_io_UnixFileSystem {
 
   public static 'createFileExclusively(Ljava/lang/String;Z)Z'(thread: threading.JVMThread, javaThis: java_object.JavaObject, path: java_object.JavaObject, arg1: number): void {
     var filepath = path.jvm2js_str();
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     stat_file(filepath, (stat) => {
       if (stat != null) {
         thread.asyncReturn(0);
@@ -629,7 +629,7 @@ class java_io_UnixFileSystem {
     // pathname, returning true if and only if the operation succeeds.
     // If file is a directory, it must be empty.
     var filepath = (file.get_field(thread, 'Ljava/io/File;path')).jvm2js_str();
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     stat_file(filepath, (stats) => {
       if (stats == null) {
         thread.asyncReturn(0);
@@ -654,7 +654,7 @@ class java_io_UnixFileSystem {
   public static 'list(Ljava/io/File;)[Ljava/lang/String;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, file: java_object.JavaObject): void {
     var filepath = file.get_field(thread, 'Ljava/io/File;path'),
       bsCl = thread.getBsCl();
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     fs.readdir(filepath.jvm2js_str(), (err, files) => {
       if (err != null) {
         thread.asyncReturn(null);
@@ -674,7 +674,7 @@ class java_io_UnixFileSystem {
   public static 'createDirectory(Ljava/io/File;)Z'(thread: threading.JVMThread, javaThis: java_object.JavaObject, file: java_object.JavaObject): void {
     var filepath = (file.get_field(thread, 'Ljava/io/File;path')).jvm2js_str();
     // Already exists.
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     stat_file(filepath, (stat) => {
       if (stat != null) {
         thread.asyncReturn(0);
@@ -689,7 +689,7 @@ class java_io_UnixFileSystem {
   public static 'rename0(Ljava/io/File;Ljava/io/File;)Z'(thread: threading.JVMThread, javaThis: java_object.JavaObject, file1: java_object.JavaObject, file2: java_object.JavaObject): void {
     var file1path = (file1.get_field(thread, 'Ljava/io/File;path')).jvm2js_str(),
       file2path = (file2.get_field(thread, 'Ljava/io/File;path')).jvm2js_str();
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     fs.rename(file1path, file2path, (err?: ErrnoException) => {
       thread.asyncReturn(err != null ? 0 : 1);
     });
@@ -699,7 +699,7 @@ class java_io_UnixFileSystem {
     var mtime = time.toNumber(),
       atime = (new Date).getTime(),
       filepath = file.get_field(thread, 'Ljava/io/File;path').jvm2js_str();
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     fs.utimes(filepath, atime, mtime, (err?: ErrnoException) => {
       thread.asyncReturn(1);
     });
@@ -710,7 +710,7 @@ class java_io_UnixFileSystem {
     // Leading 0o indicates octal.
     var filepath = (file.get_field(thread, 'Ljava/io/File;path')).jvm2js_str(),
       mask = ~0x92;
-    thread.setState(enums.ThreadState.WAITING);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     stat_file(filepath, (stats) => {
       if (stats == null) {
         thread.asyncReturn(0);

@@ -583,7 +583,16 @@ class sun_misc_Version {
 
 class sun_misc_VM {
 
-  public static 'getThreadStateValues([[I[[Ljava/lang/String;)V'(rs: runtime.RuntimeState, arg0: java_object.JavaArray, arg1: java_object.JavaArray): void {
+  /**
+   * Fill in vmThreadStateValues with int arrays, each of which contains
+   * the threadStatus values mapping to the Thread.State enum constant.
+   *
+   * Fill in vmThreadStateNames with String arrays, each of which contains
+   * the name of each threadStatus value of the format:
+   *    <Thread.State.name()>[.<Substate name>]
+   * e.g. WAITING.OBJECT_WAIT
+   */
+  public static 'getThreadStateValues([[I[[Ljava/lang/String;)V'(rs: runtime.RuntimeState, vmThreadStateValues: java_object.JavaArray, vmThreadStateNames: java_object.JavaArray): void {
     rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
   }
 
