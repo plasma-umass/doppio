@@ -221,11 +221,19 @@ class NativeStackFrame implements IStackFrame {
     if (thread.getStatus() === enums.ThreadStatus.RUNNABLE) {
       // Normal native method exit.
       var returnType = this.method.return_type;
-      if (returnType === 'J' || returnType === 'D') {
-        // Two stack return values for methods that return a long or a double.
-        thread.asyncReturn(rv, null);
-      } else {
-        thread.asyncReturn(rv);
+      switch (returnType) {
+        case 'J':
+        case 'D':
+          // Two stack return values for methods that return a long or a double.
+          thread.asyncReturn(rv, null);
+          break;
+        case 'Z':
+          // Convert to a number.
+          thread.asyncReturn(rv ? 1 : 0);
+          break;
+        default:
+          thread.asyncReturn(rv);
+          break;
       }
     }
   }
@@ -317,6 +325,7 @@ class InternalStackFrame implements IStackFrame {
 export class ThreadPool {
   private threads: JVMThread[] = [];
   private runningThread: JVMThread;
+  private parkCounts: { [threadRef: number]: number } = {};
 
   constructor(private jvm: JVM, private bsCl: ClassLoader.BootstrapClassLoader) {
 
@@ -378,6 +387,35 @@ export class ThreadPool {
       this.runningThread = null;
       this.scheduleNextThread();
     }
+  }
+
+  public park(thread: JVMThread): void {
+    if (!this.parkCounts.hasOwnProperty("" + thread.ref)) {
+      this.parkCounts[thread.ref] = 0;
+    }
+
+    if (++this.parkCounts[thread.ref] > 0) {
+      thread.setStatus(enums.ThreadStatus.PARKED);
+    }
+  }
+
+  public unpark(thread: JVMThread): void {
+    if (!this.parkCounts.hasOwnProperty("" + thread.ref)) {
+      this.parkCounts[thread.ref] = 0;
+    }
+
+    if (--this.parkCounts[thread.ref] <= 0) {
+      thread.setStatus(enums.ThreadStatus.RUNNABLE);
+    }
+  }
+
+  public completelyUnpark(thread: JVMThread): void {
+    this.parkCounts[thread.ref] = 0;
+    thread.setStatus(enums.ThreadStatus.RUNNABLE);
+  }
+
+  public isParked(thread: JVMThread): boolean {
+    return this.parkCounts[thread.ref] > 0;
   }
 }
 
@@ -500,6 +538,8 @@ export class JVMThread extends java_object.JavaObject {
         return true;
       case enums.ThreadStatus.TERMINATED:
         return true;
+      case enums.ThreadStatus.PARKED:
+        return this.getThreadPool().isParked(this);
       default:
         // Invalid ThreadStatus.
         return false;

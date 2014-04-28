@@ -36,6 +36,8 @@ export enum ThreadStatus {
   TIMED_WAITING,
   // A thread that is waiting for an asynchronous browser operation to complete.
   ASYNC_WAITING,
+  // A thread that is parked.
+  PARKED,
   // A thread that has exited is in this state.
   TERMINATED
 }

@@ -58,6 +58,7 @@ class JVM {
   // @todo Make heap resizeable.
   private heap = new Heap(20 * 1024 * 1024);
   private nativeClasspath: string[];
+  private startupTime = new Date();
 
   /**
    * (Async) Construct a new instance of the Java Virtual Machine.
@@ -387,6 +388,10 @@ class JVM {
       dispatchMethod = threadCls.method_lookup(thread, 'dispatchUncaughtException(Ljava/lang/Throwable;)V');
     assert(dispatchMethod != null);
     thread.runMethod(dispatchMethod, [thread, exception], cb);
+  }
+
+  public getStartupTime(): Date {
+    return this.startupTime;
   }
 }
 

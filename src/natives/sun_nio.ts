@@ -1,67 +1,68 @@
-import runtime = require('../runtime');
+import threading = require('../threading');
 import java_object = require('../java_object');
 import logging = require('../logging');
 import ClassData = require('../ClassData');
 import gLong = require('../gLong');
 import util = require('../util');
-import exceptions = require('../exceptions');
+import enums = require('../enums');
 import fs = require('fs');
 
 class sun_nio_ch_FileChannelImpl {
 
-  public static 'lock0(Ljava/io/FileDescriptor;ZJJZ)I'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: number, arg2: gLong, arg3: gLong, arg4: number): number {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'lock0(Ljava/io/FileDescriptor;ZJJZ)I'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: number, arg2: gLong, arg3: gLong, arg4: number): number {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'release0(Ljava/io/FileDescriptor;JJ)V'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: gLong, arg2: gLong): void {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'release0(Ljava/io/FileDescriptor;JJ)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: gLong, arg2: gLong): void {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'map0(IJJ)J'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject, arg0: number, arg1: gLong, arg2: gLong): gLong {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'map0(IJJ)J'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: number, arg1: gLong, arg2: gLong): gLong {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'unmap0(JJ)I'(rs: runtime.RuntimeState, arg0: gLong, arg1: gLong): number {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'unmap0(JJ)I'(thread: threading.JVMThread, arg0: gLong, arg1: gLong): number {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'force0(Ljava/io/FileDescriptor;Z)I'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: number): number {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'force0(Ljava/io/FileDescriptor;Z)I'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: number): number {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'truncate0(Ljava/io/FileDescriptor;J)I'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: gLong): number {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'truncate0(Ljava/io/FileDescriptor;J)I'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: gLong): number {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'transferTo0(IJJI)J'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject, arg0: number, arg1: gLong, arg2: gLong, arg3: number): gLong {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'transferTo0(IJJI)J'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: number, arg1: gLong, arg2: gLong, arg3: number): gLong {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'position0(Ljava/io/FileDescriptor;J)J'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject, fd: java_object.JavaObject, offset: gLong): gLong {
-    var parent = javaThis.get_field(rs, 'Lsun/nio/ch/FileChannelImpl;parent');
+  public static 'position0(Ljava/io/FileDescriptor;J)J'(thread: threading.JVMThread, javaThis: java_object.JavaObject, fd: java_object.JavaObject, offset: gLong): gLong {
+    var parent = javaThis.get_field(thread, 'Lsun/nio/ch/FileChannelImpl;parent');
     return gLong.fromNumber(offset.equals(gLong.NEG_ONE) ? parent.$pos : parent.$pos = offset.toNumber());
   }
 
-  public static 'size0(Ljava/io/FileDescriptor;)J'(rs: runtime.RuntimeState, javaThis: java_object.JavaObject, fd_obj: java_object.JavaObject): void {
-    var fd = fd_obj.get_field(rs, "Ljava/io/FileDescriptor;fd");
-    rs.async_op(function (cb, e_cb) {
-      fs.fstat(fd, function (err, stats) {
-        if (null != err)
-          e_cb(() => { rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class("Ljava/io/IOException;"), "Bad file descriptor."); });
-        cb(gLong.fromNumber(stats.size));
-      });
+  public static 'size0(Ljava/io/FileDescriptor;)J'(thread: threading.JVMThread, javaThis: java_object.JavaObject, fd_obj: java_object.JavaObject): void {
+    var fd = fd_obj.get_field(thread, "Ljava/io/FileDescriptor;fd");
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    fs.fstat(fd, (err, stats) => {
+      if (null != err) {
+        thread.throwNewException("Ljava/io/IOException;", "Bad file descriptor.");
+      } else {
+        thread.asyncReturn(gLong.fromNumber(stats.size), null);
+      }
     });
   }
 
@@ -70,7 +71,7 @@ class sun_nio_ch_FileChannelImpl {
    * This is the Mac name for sun/misc/Unsafe::pageSize. Apparently they
    * wanted to ensure page sizes can be > 2GB...
    */
-  public static 'initIDs()J'(rs: runtime.RuntimeState): gLong {
+  public static 'initIDs()J'(thread: threading.JVMThread): gLong {
     // arbitrary
     return gLong.fromNumber(1024);
   }
@@ -79,68 +80,68 @@ class sun_nio_ch_FileChannelImpl {
 
 class sun_nio_ch_FileDispatcher {
 
-  public static 'read0(Ljava/io/FileDescriptor;JI)I'(rs: runtime.RuntimeState, fd_obj: java_object.JavaObject, address: gLong, len: number): void {
-    var fd = fd_obj.get_field(rs, "Ljava/io/FileDescriptor;fd"),
+  public static 'read0(Ljava/io/FileDescriptor;JI)I'(thread: threading.JVMThread, fd_obj: java_object.JavaObject, address: gLong, len: number): void {
+    var fd = fd_obj.get_field(thread, "Ljava/io/FileDescriptor;fd"),
       // read upto len bytes and store into mmap'd buffer at address
-      block_addr = rs.block_addr(address),
+      addr = address.toNumber(),
       buf = new Buffer(len);
-    rs.async_op((cb) => {
-      fs.read(fd, buf, 0, len, 0, function (err, bytes_read) {
-        var i: number;
-        if ("undefined" != typeof DataView && null !== DataView)
-          for (i = 0; bytes_read > i; i++)
-            rs.mem_blocks[block_addr].setInt8(i, buf.readInt8(i));
-        else
-          for (i = 0; bytes_read > i; i++)
-            rs.mem_blocks[block_addr + i] = buf.readInt8(i);
-        cb(bytes_read);
-      });
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    fs.read(fd, buf, 0, len, 0, (err, bytes_read) => {
+      if (err) {
+        thread.throwNewException("Ljava/io/IOException;", 'Error reading file: ' + err);
+      } else {
+        var i: number, heap = thread.getThreadPool().getJVM().getHeap();
+        for (i = 0; i < bytes_read; i++) {
+          heap.set_byte(addr + i, buf.readUInt8(i));
+        }
+        thread.asyncReturn(bytes_read);
+      }
     });
   }
 
-  public static 'pread0(Ljava/io/FileDescriptor;JIJ)I'(rs: runtime.RuntimeState, arg0: java_object.JavaObject, arg1: gLong, arg2: number, arg3: gLong): number {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'pread0(Ljava/io/FileDescriptor;JIJ)I'(thread: threading.JVMThread, arg0: java_object.JavaObject, arg1: gLong, arg2: number, arg3: gLong): number {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'readv0(Ljava/io/FileDescriptor;JI)J'(rs: runtime.RuntimeState, arg0: java_object.JavaObject, arg1: gLong, arg2: number): gLong {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'readv0(Ljava/io/FileDescriptor;JI)J'(thread: threading.JVMThread, arg0: java_object.JavaObject, arg1: gLong, arg2: number): gLong {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'write0(Ljava/io/FileDescriptor;JI)I'(rs: runtime.RuntimeState, arg0: java_object.JavaObject, arg1: gLong, arg2: number): number {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'write0(Ljava/io/FileDescriptor;JI)I'(thread: threading.JVMThread, arg0: java_object.JavaObject, arg1: gLong, arg2: number): number {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'pwrite0(Ljava/io/FileDescriptor;JIJ)I'(rs: runtime.RuntimeState, arg0: java_object.JavaObject, arg1: gLong, arg2: number, arg3: gLong): number {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'pwrite0(Ljava/io/FileDescriptor;JIJ)I'(thread: threading.JVMThread, arg0: java_object.JavaObject, arg1: gLong, arg2: number, arg3: gLong): number {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'writev0(Ljava/io/FileDescriptor;JI)J'(rs: runtime.RuntimeState, arg0: java_object.JavaObject, arg1: gLong, arg2: number): gLong {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'writev0(Ljava/io/FileDescriptor;JI)J'(thread: threading.JVMThread, arg0: java_object.JavaObject, arg1: gLong, arg2: number): gLong {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'close0(Ljava/io/FileDescriptor;)V'(rs: runtime.RuntimeState, arg0: java_object.JavaObject): void {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'close0(Ljava/io/FileDescriptor;)V'(thread: threading.JVMThread, arg0: java_object.JavaObject): void {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'preClose0(Ljava/io/FileDescriptor;)V'(rs: runtime.RuntimeState, arg0: java_object.JavaObject): void {
+  public static 'preClose0(Ljava/io/FileDescriptor;)V'(thread: threading.JVMThread, arg0: java_object.JavaObject): void {
     // NOP, I think the actual fs.close is called later. If not, NBD.
   }
 
-  public static 'closeIntFD(I)V'(rs: runtime.RuntimeState, arg0: number): void {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'closeIntFD(I)V'(thread: threading.JVMThread, arg0: number): void {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'init()V'(rs: runtime.RuntimeState): void {
+  public static 'init()V'(thread: threading.JVMThread): void {
     // NOP
   }
 
@@ -148,17 +149,17 @@ class sun_nio_ch_FileDispatcher {
 
 class sun_nio_ch_NativeThread {
 
-  public static 'current()J'(rs: runtime.RuntimeState): gLong {
+  public static 'current()J'(thread: threading.JVMThread): gLong {
     // -1 means that we do not require signaling according to the
     // docs.
     return gLong.fromNumber(-1);
   }
 
-  public static 'signal(J)V'(rs: runtime.RuntimeState, arg0: gLong): void {
-    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');
+  public static 'signal(J)V'(thread: threading.JVMThread, arg0: gLong): void {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'init()V'(rs: runtime.RuntimeState): void {
+  public static 'init()V'(thread: threading.JVMThread): void {
     // NOP
   }
 

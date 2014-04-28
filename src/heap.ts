@@ -73,6 +73,10 @@ class Heap {
     return this._buffer.readUInt8 (addr);
   }
 
+  set_byte(addr: number, value: number): void {
+    this._buffer.writeUInt8(value, addr);
+  }
+
   /**
    * Copy len bytes from srcAddr to dstAddr.
    */

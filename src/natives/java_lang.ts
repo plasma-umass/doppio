@@ -1234,6 +1234,10 @@ class java_lang_Thread {
               }
               javaThis.throwNewException('Ljava/lang/InterruptedException;', 'interrupt0 called');
               return;
+            case enums.ThreadStatus.PARKED:
+              // Parked threads become unparked when interrupted.
+              javaThis.getThreadPool().completelyUnpark(javaThis);
+              // FALL-THROUGH
             default:
               var objCls = thread.getBsCl().getInitializedClass('Ljava/lang/Object;'),
                 // If we are in the following methods, we throw an InterruptedException:
