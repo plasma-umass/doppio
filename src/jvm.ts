@@ -87,6 +87,7 @@ class JVM {
         if (e) {
           cb(e);
         } else {
+          this.threadPool = new threading.ThreadPool(this, this.bsCl);
           // Step 2: Fake a thread.
           var firstThread = this.threadPool.newThread(null);
           // Step 3: Resolve Ljava/lang/Thread so we can make our thread a bit more legitimate.

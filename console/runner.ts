@@ -11,9 +11,6 @@ var jvm_state: JVM;
 
 process.on('SIGINT', function () {
   console.error('Doppio caught SIGINT');
-  if (jvm_state) {
-    jvm_state.dump_state();
-  }
   process.exit(0);
 });
 

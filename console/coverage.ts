@@ -6,13 +6,12 @@ import opcodes = require('../src/opcodes');
 import testing = require('../src/testing');
 import os = require('os');
 // only used for types
-import runtime = require('../src/runtime');
 
 interface Stats {
   [name:string]: number
 }
 
-function setup_opcode_stats(): Stats {
+/*function setup_opcode_stats(): Stats {
   // monkeypatch opcode execution
   var op_stats: {[name:string]: number} = {};
   for (var i = 0; i < opcodes.opcodes.length; ++i) {
@@ -28,7 +27,7 @@ function setup_opcode_stats(): Stats {
     })(old_fn);
   }
   return op_stats;
-}
+}*/
 
 /**
 function setup_native_stats(): Stats {
@@ -82,7 +81,7 @@ function print_unused(stats: Stats, stats_name: string): void {
     console.log(unused_count + " " + stats_name + " have yet to be tested.");
   }
 }
-
+/*
 function run_tests(test_classes: string[], stdout: (p:string)=>void,
     quiet: boolean, callback: ()=>void): void {
   var stdout_write = process.stdout.write,
@@ -123,7 +122,7 @@ function run_tests(test_classes: string[], stdout: (p:string)=>void,
     return jvm_state.run_class(test, [], _runner);
   }
 }
-
+*/
 var print = require('util').print;
 var optimist = require('optimist')
   .boolean(['n', 'o', 'q', 'h'])
@@ -153,12 +152,12 @@ if (!(argv.opcodes || argv.natives)) {
 }
 var op_stats: Stats, native_stats: Stats;
 if (argv.opcodes) {
-  op_stats = setup_opcode_stats();
+  //op_stats = setup_opcode_stats();
 }
 if (argv.natives) {
   // native_stats = setup_native_stats();
 }
-run_tests(argv._, print, argv.quiet, function() {
+/*run_tests(argv._, print, argv.quiet, function() {
   if (argv['print-usage'] != null) {
     if (argv.opcodes) {
       print_usage(op_stats);
@@ -174,4 +173,4 @@ run_tests(argv._, print, argv.quiet, function() {
       print_unused(native_stats, 'native methods');
     }
   }
-});
+});*/

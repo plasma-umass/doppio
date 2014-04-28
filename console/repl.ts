@@ -7,7 +7,7 @@ import os = require('os');
 
 // initialize the RuntimeState
 var jvm_state;
-new JVM((err: any, jvm?: JVM): void => {
+/*new JVM((err: any, jvm?: JVM): void => {
   if (err) {
     throw err;
   }
@@ -37,7 +37,7 @@ new JVM((err: any, jvm?: JVM): void => {
    path.resolve(__dirname, '/../vendor/java_home'),
    path.resolve(os.tmpDir(), 'doppio_jars'),
    [path.resolve(__dirname, '../src/natives')]);
-
+*/
 
 function repl_run(cname: string, args: string[], done_cb): void {
   if (cname.slice(-6) === '.class') {
