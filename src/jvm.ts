@@ -88,15 +88,16 @@ class JVM {
           cb(e);
         } else {
           this.threadPool = new threading.ThreadPool(this, this.bsCl);
-          // Step 2: Fake a thread.
-          var firstThread = this.threadPool.newThread(null);
-          // Step 3: Resolve Ljava/lang/Thread so we can make our thread a bit more legitimate.
-          this.bsCl.resolveClass(firstThread, 'Ljava/lang/Thread;', (cdata: ClassData.ClassData) => {
+          // Step 2: Resolve Ljava/lang/Thread so we can fake a thread.
+          // NOTE: This should never actually use the Thread object unless
+          // there's an error loading java/lang/Thread and associated classes.
+          this.bsCl.resolveClass(null, 'Ljava/lang/Thread;', (cdata: ClassData.ReferenceClassData) => {
             if (cdata == null) {
               // Failed.
               cb("Failed to resolve java/lang/Thread.");
             } else {
-              firstThread.cls = <ClassData.ReferenceClassData> cdata;
+              // Step 3: Fake a thread.
+              var firstThread = this.threadPool.newThread(cdata);
               // Step 4: Now, preinitialize all of those classes.
               util.async_foreach<string>(coreClasses, (coreClass: string, next_item: (err?: any) => void) => {
                 this.bsCl.initializeClass(firstThread, coreClass, (cdata: ClassData.ClassData) => {
@@ -294,7 +295,7 @@ class JVM {
           fs.readFile(file, (err, data) => {
             if (!err)
               this.registerNatives(this.evalNativeModule(data.toString()));
-            if (--count) {
+            if (--count === 0) {
               done_cb();
             }
           });

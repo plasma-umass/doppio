@@ -14,7 +14,7 @@ export function async_foreach<T>(
       lst: Array<T>,
       fn: (elem: T, next_item: (err?: any)=>void)=>void,
       done_cb: (err?: any)=>void
-    ): void {
+  ): void {
   var i = -1;
   function process(err?: any): void {
     if (err) {

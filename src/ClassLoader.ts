@@ -429,7 +429,6 @@ export class BootstrapClassLoader extends ClassLoader {
       }, cb);
     };
 
-
     // Prepare the extraction path.
     fs.exists(this.extractionPath, (exists: boolean) => {
       if (!exists) {
@@ -554,11 +553,11 @@ export class BootstrapClassLoader extends ClassLoader {
     // Search the class path for the class.
     var clsFilePath = util.descriptor2typestr(typeStr);
     util.async_find<string>(this.classPath, (p: string, callback: (success: boolean) => void): void => {
-      fs.exists(path.join(p, clsFilePath), callback);
+      fs.exists(path.join(p, clsFilePath + ".class"), callback);
     }, (foundPath?: string): void => {
       if (foundPath) {
         // Read the class file, define the class!
-        var clsPath = path.join(foundPath, clsFilePath);
+        var clsPath = path.join(foundPath, clsFilePath + ".class");
         fs.readFile(clsPath, (err, data: NodeBuffer) => {
           if (err) {
             this.throwClassNotFoundException(thread, typeStr, explicit);
