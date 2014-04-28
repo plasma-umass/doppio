@@ -1226,10 +1226,17 @@ class java_lang_Thread {
               // Thread is waiting or blocked on a monitor. Clear interrupted
               // status, and throw an interrupted exception.
               javaThis.setInterrupted(false);
-              // Remove monitor...
+              // Exit the monitor.
+              var monitor = javaThis.getMonitor();
+              if (status === enums.ThreadStatus.BLOCKED) {
+                monitor.unblock(javaThis);
+              } else {
+                monitor.unwait(javaThis, false);
+              }
               javaThis.throwNewException('Ljava/lang/InterruptedException;', 'interrupt0 called');
               return;
             default:
+              // Check if we are in the "sleep" or "join" methods cuz they require throwing an IE.
               // Set the interrupted status.
               javaThis.setInterrupted(true);
               return;

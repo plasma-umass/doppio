@@ -98,7 +98,7 @@ export class BytecodeStackFrame implements IStackFrame {
    * Checks if this method can handle the specified exception 'e'.
    * Returns true if it can, or if it needs to asynchronously resolve some
    * classes.
-   * 
+   *
    * In the latter case, scheduleException will handle rethrowing the exception
    * in the event that it can't actually handle it.
    */
@@ -352,7 +352,7 @@ export class ThreadPool {
     if (!this.runningThread) {
       this.runningThread = thread;
       // Schedule the thread to run.
-      setImmediate(() => { this.run(); });
+      setImmediate(() => { thread.setStatus(enums.ThreadStatus.RUNNING); });
     }
   }
 
@@ -378,18 +378,6 @@ export class ThreadPool {
       setImmediate(() => {
         this.run();
       });
-    }
-  }
-
-  public run() {
-    if (this.runningThread) {
-      this.runningThread.run();
-    } else {
-      this.runningThread = this.findNextThread();
-      if (this.runningThread) {
-        this.runningThread.run();
-      }
-      // Nothing to do. Need to wait until a thread becomes RUNNABLE.
     }
   }
 }
@@ -434,10 +422,16 @@ export class JVMThread extends java_object.JavaObject {
     super(cls, obj);
   }
 
+  /**
+   * Check if this thread's interrupted flag is set.
+   */
   public isInterrupted(): boolean {
     return this.interrupted;
   }
 
+  /**
+   * Set or unset this thread's interrupted flag.
+   */
   public setInterrupted(interrupted: boolean): void {
     this.interrupted = interrupted;
   }
@@ -473,9 +467,8 @@ export class JVMThread extends java_object.JavaObject {
 
   /**
    * The thread's main execution loop. Everything starts here!
-   * NOTE: This should only be called from the ThreadPool.
    */
-  public run(): void {
+  private run(): void {
     var stack = this.stack;
     while (this.status === enums.ThreadStatus.RUNNING && stack.length > 0) {
       stack[stack.length - 1].run(this);
@@ -494,8 +487,14 @@ export class JVMThread extends java_object.JavaObject {
     if (this.status !== status) {
       // Illegal transition: Terminated => anything else
       assert(this.status !== enums.ThreadStatus.TERMINATED);
+      assert(status === enums.ThreadStatus.RUNNING ? this.status === enums.ThreadStatus.RUNNABLE : true);
       this.status = status;
+      this.monitor = null;
       switch (status) {
+        case enums.ThreadStatus.RUNNING:
+          // I'm now scheduled to run!
+          this.run();
+          break;
         case enums.ThreadStatus.RUNNABLE:
           // Inform the thread pool, in case no threads are currently scheduled.
           this.tpool.nowRunnable(this);
@@ -515,6 +514,13 @@ export class JVMThread extends java_object.JavaObject {
           this.tpool.nowBlocked(this);
       }
     }
+  }
+
+  /**
+   * Get this thread's monitor.
+   */
+  public getMonitor(): java_object.Monitor {
+    return this.monitor;
   }
 
   /**

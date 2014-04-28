@@ -415,6 +415,16 @@ export class Monitor {
   }
 
   /**
+   * Removes the specified thread from being blocked on the monitor.
+   */
+  public unblock(thread: threading.JVMThread): void {
+    var unblockIdx = this.blocked.indexOf(thread);
+    if (unblockIdx !== -1) {
+      this.blocked.splice(unblockIdx, 1);
+    }
+  }
+
+  /**
    * Notifies a single waiting thread.
    * @param thread The notifying thread. *MUST* be the owner.
    */
