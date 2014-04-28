@@ -337,17 +337,20 @@ export class ThreadPool {
     return this.jvm;
   }
 
-  private findNextThread(): JVMThread {
+  private scheduleNextThread(): void {
     var i: number, threads = this.threads;
+    assert(this.runningThread == null);
     for (i = 0; i < threads.length; i++) {
       if (threads[i].getStatus() === enums.ThreadStatus.RUNNABLE) {
-        return threads[i];
+        this.runningThread = threads[i];
+        setImmediate(() => { threads[i].setStatus(enums.ThreadStatus.RUNNING); });
+        return;
       }
     }
     return null;
   }
 
-  public nowRunnable(thread: JVMThread): void {
+  public threadRunnable(thread: JVMThread): void {
     // We only care if no threads are running right now.
     if (!this.runningThread) {
       this.runningThread = thread;
@@ -356,7 +359,7 @@ export class ThreadPool {
     }
   }
 
-  public nowTerminated(thread: JVMThread): void {
+  public threadTerminated(thread: JVMThread): void {
     var idx: number = this.threads.indexOf(thread);
     assert(idx >= 0);
     // Remove the specified thread from the threadpool.
@@ -365,19 +368,15 @@ export class ThreadPool {
     // If this was the running thread, schedule a new one to run.
     if (this.runningThread === thread) {
       this.runningThread = null;
-      setImmediate(() => {
-        this.run();
-      });
+      this.scheduleNextThread();
     }
   }
 
-  public nowBlocked(thread: JVMThread): void {
+  public threadSuspended(thread: JVMThread): void {
     // If this was the running thread, schedule a new one to run.
     if (thread === this.runningThread) {
       this.runningThread = null;
-      setImmediate(() => {
-        this.run();
-      });
+      this.scheduleNextThread();
     }
   }
 }
@@ -481,6 +480,33 @@ export class JVMThread extends java_object.JavaObject {
   }
 
   /**
+   * [DEBUG] Performs a sanity check on the thread.
+   */
+  private sanityCheck(): boolean {
+    switch (this.status) {
+      case enums.ThreadStatus.NEW:
+        return true;
+      case enums.ThreadStatus.RUNNING:
+        return this.stack.length > 0;
+      case enums.ThreadStatus.RUNNABLE:
+        return this.stack.length > 0;
+      case enums.ThreadStatus.TIMED_WAITING:
+        return this.monitor != null && this.monitor.isTimedWaiting(this);
+      case enums.ThreadStatus.WAITING:
+        return this.monitor != null && this.monitor.isWaiting(this);
+      case enums.ThreadStatus.BLOCKED:
+        return this.monitor != null && this.monitor.isBlocked(this);
+      case enums.ThreadStatus.ASYNC_WAITING:
+        return true;
+      case enums.ThreadStatus.TERMINATED:
+        return true;
+      default:
+        // Invalid ThreadStatus.
+        return false;
+    }
+  }
+
+  /**
    * Changes the thread's current state.
    */
   public setStatus(status: enums.ThreadStatus, monitor?: java_object.Monitor): void {
@@ -497,11 +523,11 @@ export class JVMThread extends java_object.JavaObject {
           break;
         case enums.ThreadStatus.RUNNABLE:
           // Inform the thread pool, in case no threads are currently scheduled.
-          this.tpool.nowRunnable(this);
+          this.tpool.threadRunnable(this);
           break;
         case enums.ThreadStatus.TERMINATED:
           // Tell the threadpool to forget about us.
-          this.tpool.nowTerminated(this);
+          this.tpool.threadTerminated(this);
           break;
         case enums.ThreadStatus.BLOCKED:
         case enums.ThreadStatus.TIMED_WAITING:
@@ -511,7 +537,7 @@ export class JVMThread extends java_object.JavaObject {
           // FALLTHROUGH
         default:
           // Tell the threadpool we can't run right now.
-          this.tpool.nowBlocked(this);
+          this.tpool.threadSuspended(this);
       }
     }
   }

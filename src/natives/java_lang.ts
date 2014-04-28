@@ -1101,6 +1101,7 @@ class java_lang_Thread {
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     setImmediate(() => {
       thread.setStatus(enums.ThreadStatus.RUNNABLE);
+      thread.asyncReturn();
     });
   }
 
@@ -1108,6 +1109,7 @@ class java_lang_Thread {
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     setTimeout(() => {
       thread.setStatus(enums.ThreadStatus.RUNNABLE);
+      thread.asyncReturn();
     }, millis.toNumber());
   }
 
@@ -1118,22 +1120,19 @@ class java_lang_Thread {
         if (e) {
           // XXX: Figure out how this works.
           javaThis.getThreadPool().getJVM().handleUncaughtException(javaThis, e, () => { });
+        } else {
+          javaThis.setStatus(enums.ThreadStatus.TERMINATED);
         }
-        javaThis.setStatus(enums.ThreadStatus.TERMINATED);
       });
     }
   }
 
-  public static 'isInterrupted(Z)Z'(thread: threading.JVMThread, javaThis: threading.JVMThread, clear_flag: number): boolean {
-    var tmp = javaThis.$isInterrupted;
-    if (tmp == null) {
-      tmp = false;
+  public static 'isInterrupted(Z)Z'(thread: threading.JVMThread, javaThis: threading.JVMThread, clearFlag: number): boolean {
+    var isInterrupted = javaThis.isInterrupted();
+    if (clearFlag) {
+      javaThis.setInterrupted(false);
     }
-
-    if (clear_flag) {
-      javaThis.$isInterrupted = false;
-    }
-    return tmp;
+    return isInterrupted;
   }
 
   public static 'isAlive()Z'(thread: threading.JVMThread, javaThis: threading.JVMThread): boolean {
@@ -1236,9 +1235,25 @@ class java_lang_Thread {
               javaThis.throwNewException('Ljava/lang/InterruptedException;', 'interrupt0 called');
               return;
             default:
-              // Check if we are in the "sleep" or "join" methods cuz they require throwing an IE.
-              // Set the interrupted status.
-              javaThis.setInterrupted(true);
+              var objCls = thread.getBsCl().getInitializedClass('Ljava/lang/Object;'),
+                // If we are in the following methods, we throw an InterruptedException:
+                interruptMethods: methods.Method[] = [
+                  objCls.method_lookup(thread, 'join()V'),       // * Object.join()
+                  objCls.method_lookup(thread, 'join(J)V'),     // * Object.join(long)
+                  objCls.method_lookup(thread, 'join(JI)V'),   // * Object.join(long, int)
+                  objCls.method_lookup(thread, 'sleep(J)V'),   // * Object.sleep(long)
+                  objCls.method_lookup(thread, 'sleep(JI)V') // * Object.sleep(long, int)
+                ],
+                stackTrace = javaThis.getStackTrace(),
+                currentMethod = stackTrace[stackTrace.length - 1].method;
+              if (interruptMethods.indexOf(currentMethod) !== -1) {
+                // Clear interrupt state before throwing the exception.
+                javaThis.setInterrupted(false);
+                javaThis.throwNewException('Ljava/lang/InterruptedException;', 'interrupt0 called');
+              } else {
+                // Set the interrupted status.
+                javaThis.setInterrupted(true);
+              }
               return;
           }
         }

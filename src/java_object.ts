@@ -473,6 +473,21 @@ export class Monitor {
   public getOwner(): threading.JVMThread {
     return this.owner;
   }
+
+  public isWaiting(thread: threading.JVMThread): boolean {
+    // Waiting, but *not* timed waiting.
+    return this.waiting.indexOf(thread) !== -1 && !this.waitTimers.hasOwnProperty("" + thread.ref);
+  }
+
+  public isTimedWaiting(thread: threading.JVMThread): boolean {
+    // Timed waiting, *not* waiting.
+    return this.waiting.indexOf(thread) !== -1 && this.waitTimers.hasOwnProperty("" + thread.ref);
+  }
+
+  public isBlocked(thread: threading.JVMThread): boolean {
+    // Blocked.
+    return this.blocked.indexOf(thread) !== -1;
+  }
 }
 
 export function heapNewArray(thread: threading.JVMThread, loader: ClassLoader.ClassLoader, type: string, len: number): JavaArray {
