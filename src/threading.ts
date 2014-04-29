@@ -81,6 +81,7 @@ export class BytecodeStackFrame implements IStackFrame {
     // Run until we get the signal to return to the thread loop.
     while (!this.returnToThreadLoop) {
       var op = code[this.pc];
+      console.log(op.annotate(this.pc, method.cls.constant_pool));
       op.execute(thread, this);
     }
   }
@@ -218,7 +219,7 @@ class NativeStackFrame implements IStackFrame {
   public run(thread: JVMThread): void {
     this.args.unshift(thread);
     var rv: any = this.nativeMethod.apply(null, this.args);
-    if (thread.getStatus() === enums.ThreadStatus.RUNNABLE) {
+    if (thread.getStatus() === enums.ThreadStatus.RUNNING) {
       // Normal native method exit.
       var returnType = this.method.return_type;
       switch (returnType) {
