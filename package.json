@@ -5,7 +5,8 @@
   "dependencies": {
     "optimist": "~0.3.5",
     "async": "*",
-    "node-zip": "*"
+    "node-zip": "*",
+    "source-map-support": "*"
   },
   "devDependencies": {
     "ar": "*",

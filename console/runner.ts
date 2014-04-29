@@ -4,6 +4,10 @@ import java_cli = require('../src/java_cli');
 import JVM = require('../src/jvm');
 import path = require('path');
 import os = require('os');
+// Makes our stack traces point to the TypeScript source code lines.
+require('source-map-support').install({
+  handleUncaughtExceptions: true
+});
 
 function done_cb(success:boolean): void { process.exit(success ? 0 : 1); };
 
