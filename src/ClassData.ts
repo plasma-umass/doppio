@@ -544,7 +544,7 @@ export class ReferenceClassData extends ClassData {
       var fields = cls.fields;
       for (var i = 0; i < fields.length; i++) {
         var f = fields[i];
-        if (!(!f.access_flags["static"])) {
+        if (f.access_flags["static"]) {
           continue;
         }
         var val = util.initial_value(f.raw_descriptor);

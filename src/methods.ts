@@ -106,6 +106,14 @@ var trapped_methods = {
   }
 };
 
+function getTrappedMethod(clsName: string, methSig: string): Function {
+  clsName = util.descriptor2typestr(clsName);
+  if (trapped_methods.hasOwnProperty(clsName) && trapped_methods[clsName].hasOwnProperty(methSig)) {
+    return trapped_methods[clsName][methSig];
+  }
+  return null;
+}
+
 export class AbstractMethodField {
   public cls: ClassData.ReferenceClassData;
   public idx: number;
@@ -258,8 +266,8 @@ export class Method extends AbstractMethodField {
       methSig = this.name + this.raw_descriptor,
       c: Function;
 
-    if (trapped_methods[clsName] && ((c = trapped_methods[clsName][methSig]) != null)) {
-      this.code = c;
+    if (getTrappedMethod(clsName, methSig) != null) {
+      this.code = getTrappedMethod(clsName, methSig);
       this.access_flags["native"] = true;
     } else if (this.access_flags["native"]) {
       if (sig.indexOf('::registerNatives()V', 1) < 0 && sig.indexOf('::initIDs()V', 1) < 0) {

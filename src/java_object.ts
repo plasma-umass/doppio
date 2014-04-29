@@ -9,6 +9,7 @@ import ClassLoader = require('./ClassLoader');
 import enums = require('./enums');
 import assert = require('./assert');
 import threading = require('./threading');
+import methods = require('./methods');
 var ClassState = enums.ClassState,
   ref: number = 0;
 
@@ -69,11 +70,8 @@ export class JavaObject {
   public $is_shutdown: boolean; //XXX: For sockets.
   private $monitor: Monitor;
 
-  constructor(cls: ClassData.ReferenceClassData, obj?: any) {
+  constructor(cls: ClassData.ReferenceClassData, obj: any = {}) {
     this.cls = cls;
-    if (obj == null) {
-      obj = {};
-    }
     // Use default fields as a prototype.
     this.fields = Object.create(this.cls.get_default_fields());
     for (var field in obj) {
@@ -123,7 +121,7 @@ export class JavaObject {
     return this.get_field(thread, f.cls + f.field.name);
   }
 
-  private _get_field_from_offset(thread: threading.JVMThread, cls: any, offset: number): any {
+  private _get_field_from_offset(thread: threading.JVMThread, cls: ClassData.ReferenceClassData, offset: number): { field: methods.Field; cls: string; cls_obj: ClassData.ReferenceClassData }  {
     var classname = cls.get_type();
     while (cls != null) {
       var jco_ref = cls.get_class_object(thread).ref;
@@ -135,7 +133,7 @@ export class JavaObject {
           cls_obj: cls
         };
       }
-      cls = cls.get_super_class();
+      cls = <ClassData.ReferenceClassData> cls.get_super_class();
     }
     thread.throwNewException('Ljava/lang/NullPointerException;',
       "field " + offset + " doesn't exist in class " + classname);

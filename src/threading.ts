@@ -65,7 +65,7 @@ export class BytecodeStackFrame implements IStackFrame {
 
   public run(thread: JVMThread): void {
     var method = this.method, code = this.method.getCode();
-    if (this.pc === 0 && this.method.name === 'results') {
+    if (this.pc === 0) {
       console.log("T" + thread.ref + " " + this.method.full_signature() + " [Bytecode]");
     }
     if (method.access_flags.synchronized && this.pc === 0) {

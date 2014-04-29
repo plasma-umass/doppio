@@ -317,7 +317,7 @@ export class ClassLoader {
     // We'll reset it if it fails.
     cdata.set_state(enums.ClassState.INITIALIZED);
     if (clinit != null) {
-      console.log("Running static initialization for class " + typeStr + "...");
+      console.log("T" + thread.ref + " Running static initialization for class " + typeStr + "...");
       thread.runMethod(clinit, [], (e?: java_object.JavaObject, rv?: any) => {
         if (e) {
           console.log("Initialization of class " + typeStr + " failed.");
