@@ -66,7 +66,7 @@ export class BytecodeStackFrame implements IStackFrame {
   public run(thread: JVMThread): void {
     var method = this.method, code = this.method.getCode();
     if (this.pc === 0) {
-      console.log(this.method.cls.get_type() + "::" + this.method.name + " [Bytecode]");
+      console.log("T" + thread.ref + " " + this.method.full_signature() + " [Bytecode]");
     }
     if (method.access_flags.synchronized && this.pc === 0) {
       // We are starting a synchronized method! These must implicitly enter
@@ -85,8 +85,8 @@ export class BytecodeStackFrame implements IStackFrame {
     // Run until we get the signal to return to the thread loop.
     while (!this.returnToThreadLoop) {
       var op = code[this.pc];
-      console.log("D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
-      console.log(method.cls.get_type() + "::" + method.name + ":" + this.pc + " => " + op.name + op.annotate(this.pc, method.cls.constant_pool));
+      //console.log("D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
+      //console.log(method.cls.get_type() + "::" + method.name + ":" + this.pc + " => " + op.name + op.annotate(this.pc, method.cls.constant_pool));
       op.execute(thread, this);
     }
   }
@@ -222,11 +222,10 @@ class NativeStackFrame implements IStackFrame {
    * NOTE: Should only be called once.
    */
   public run(thread: JVMThread): void {
-    console.log(this.method.cls.get_type() + "::" + this.method.name + " [Native Code]");
+    console.log("T" + thread.ref + " " + this.method.full_signature() + " [Native Code]");
     this.args.unshift(thread);
     var rv: any = this.nativeMethod.apply(null, this.args);
     if (thread.getStatus() === enums.ThreadStatus.RUNNING) {
-      // console.log(this.method.cls.get_type() + "::" + this.method.name + " [Native Code] Returned " + rv);
       // Normal native method exit.
       var returnType = this.method.return_type;
       switch (returnType) {

@@ -13,6 +13,8 @@ function doPrivileged(thread: threading.JVMThread, action: java_object.JavaObjec
     if (!m.access_flags["static"]) {
       args.push(action);
     }
+    var strace = thread.getStackTrace();
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     thread.runMethod(m, args, (e?, rv?) => {
       if (e) {
         // Wrap exception in a PrivilegedActionException, and throw it.

@@ -593,6 +593,8 @@ class java_lang_Object {
 
   public static 'wait(J)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, timeout: gLong): void {
     javaThis.getMonitor().wait(thread, timeout.toNumber());
+    // When we wake up, resume the calling function.
+    thread.framePop();
   }
 
 }
