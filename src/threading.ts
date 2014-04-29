@@ -85,7 +85,7 @@ export class BytecodeStackFrame implements IStackFrame {
     // Run until we get the signal to return to the thread loop.
     while (!this.returnToThreadLoop) {
       var op = code[this.pc];
-      if (method.name === 'results') {
+      if (method.name) {
         console.log("D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
         console.log(method.cls.get_type() + "::" + method.name + ":" + this.pc + " => " + op.name + op.annotate(this.pc, method.cls.constant_pool));
       }
@@ -111,17 +111,23 @@ export class BytecodeStackFrame implements IStackFrame {
    * in the event that it can't actually handle it.
    */
   public scheduleException(thread: JVMThread, e: java_object.JavaObject): boolean {
-    // STEP 1: We need the pc value of the invoke opcode that caused this mess.
+    // STEP 1: We need the pc value of the opcode that caused this mess.
     // Rewind until we find it.
     var code = this.method.getCodeAttribute(),
       opcodes: opcodes.Opcode[] = this.method.getCode(),
       pc = this.pc, method = this.method;
-    pc -= 3;
-    while (pc >= 0 && (opcodes[pc] == null || opcodes[pc].name.indexOf('invoke') !== 0)) {
-      pc--;
+
+    // If the opcode is athrow, then we probably threw the exception.
+    // @todo This... probably isn't robust. Pre-refactor Doppio used a TopOfStack
+    // boolean, but we can't do that cuz scheduleException may be async.
+    if (opcodes[pc].name !== 'athrow') {
+      pc -= 3;
+      while (pc >= 0 && (opcodes[pc] == null || opcodes[pc].name.indexOf('invoke') !== 0)) {
+        pc--;
+      }
+      // We either found it, or we're at 0. Good enuff.
+      this.pc = pc;
     }
-    // We either found it, or we're at 0. Good enuff.
-    this.pc = pc;
 
     // STEP 2: See if we can find an appropriate handler for this exception!
     var exceptionHandlers = code.exception_handlers,

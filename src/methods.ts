@@ -310,7 +310,9 @@ export class Method extends AbstractMethodField {
 
     toResolve.push(this.return_type);
     toResolve.push.apply(toResolve, this.param_types);
-    toResolve.push.apply(toResolve, exceptionAttr.exceptions);
+    if (exceptionAttr != null) {
+      toResolve.push.apply(toResolve, exceptionAttr.exceptions);
+    }
 
     loader.resolveClasses(thread, toResolve, (classes) => {
       if (classes === null) {
@@ -327,8 +329,10 @@ export class Method extends AbstractMethodField {
           param_type_objs.push(classes[this.param_types[i]].get_class_object(thread));
         }
         var etype_objs: java_object.JavaClassObject[] = [];
-        for (i = 0; i < exceptionAttr.exceptions; i++) {
-          etype_objs.push(classes[<string> exceptionAttr.exceptions[i]].get_class_object(thread));
+        if (exceptionAttr != null) {
+          for (i = 0; i < exceptionAttr.exceptions; i++) {
+            etype_objs.push(classes[<string> exceptionAttr.exceptions[i]].get_class_object(thread));
+          }
         }
         obj[typestr + 'clazz'] = clazz_obj;
         obj[typestr + 'name'] = jvm.internString(this.name);

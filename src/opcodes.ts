@@ -1551,6 +1551,7 @@ export var opcodes: Opcode[] = [
   }),
   new Opcode('athrow', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     thread.throwException(frame.stack.pop());
+    frame.returnToThreadLoop = true;
   }),
   new ClassOpcode('checkcast', function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     var desc = this.class_desc;
