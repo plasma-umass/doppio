@@ -361,7 +361,8 @@ export class ThreadPool {
 
   public threadRunnable(thread: JVMThread): void {
     // We only care if no threads are running right now.
-    if (!this.runningThread) {
+    console.log("Thread " + thread.ref + " is now runnable!");
+    if (this.runningThread == null) {
       this.runningThread = thread;
       // Schedule the thread to run.
       setImmediate(() => { thread.setStatus(enums.ThreadStatus.RUNNING); });
@@ -506,10 +507,12 @@ export class JVMThread extends java_object.JavaObject {
    * The thread's main execution loop. Everything starts here!
    */
   private run(): void {
+    console.log("Thread " + this.ref + " is now running!");
     var stack = this.stack;
     while (this.status === enums.ThreadStatus.RUNNING && stack.length > 0) {
       stack[stack.length - 1].run(this);
     }
+    console.log("Thread " + this.ref + " is suspending: " + enums.ThreadStatus[this.status]);
 
     if (stack.length === 0) {
       // This thread has finished!
@@ -554,6 +557,12 @@ export class JVMThread extends java_object.JavaObject {
       // Illegal transition: Terminated => anything else
       assert(this.status !== enums.ThreadStatus.TERMINATED);
       assert(status === enums.ThreadStatus.RUNNING ? this.status === enums.ThreadStatus.RUNNABLE : true);
+
+      // NOP. RUNNING => RUNNABLE makes no sense.
+      if (status === enums.ThreadStatus.RUNNABLE && this.status === enums.ThreadStatus.RUNNING) {
+        return;
+      }
+
       this.status = status;
       this.monitor = null;
       switch (status) {
