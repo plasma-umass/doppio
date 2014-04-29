@@ -135,9 +135,17 @@ class JVM {
                   }
                 });
               }, (err?: any) => {
-                // Ready for execution!
-                console.log("Ready for execution!");
-                cb(null, this);
+                // Initialize the system class (initializes things like println/etc).
+                var sysInit = this.bsCl.getInitializedClass('Ljava/lang/System;').get_method('initializeSystemClass()V');
+                firstThread.runMethod(sysInit, [], (e?, rv?) => {
+                  if (e) {
+                    cb("Failed to initialize system class.");
+                  } else {
+                    // Ready for execution!
+                    console.log("Ready for execution!");
+                    cb(null, this);
+                  }
+                });
               });
             }
           }, false);
@@ -157,8 +165,8 @@ class JVM {
   public runClass(className: string, args: string[], cb: (result: boolean) => void): void {
     var thread = this.threadPool.getThreads()[0];
     assert(thread != null);
-    // Convert foo.bar.Baz => foo/bar/Baz.
-    className = className.replace(/\./g, '/');
+    // Convert foo.bar.Baz => Lfoo/bar/Baz;
+    className = "L" + className.replace(/\./g, '/') + ";";
     // Initialize the class.
     this.bsCl.initializeClass(thread, className, (cdata: ClassData.ReferenceClassData) => {
       if (cdata != null) {

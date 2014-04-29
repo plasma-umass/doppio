@@ -65,7 +65,7 @@ export class BytecodeStackFrame implements IStackFrame {
 
   public run(thread: JVMThread): void {
     var method = this.method, code = this.method.getCode();
-    if (this.pc === 0) {
+    if (this.pc === 0 && this.method.name === 'results') {
       console.log("T" + thread.ref + " " + this.method.full_signature() + " [Bytecode]");
     }
     if (method.access_flags.synchronized && this.pc === 0) {
@@ -85,8 +85,10 @@ export class BytecodeStackFrame implements IStackFrame {
     // Run until we get the signal to return to the thread loop.
     while (!this.returnToThreadLoop) {
       var op = code[this.pc];
-      //console.log("D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
-      //console.log(method.cls.get_type() + "::" + method.name + ":" + this.pc + " => " + op.name + op.annotate(this.pc, method.cls.constant_pool));
+      if (method.name === 'results') {
+        console.log("D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
+        console.log(method.cls.get_type() + "::" + method.name + ":" + this.pc + " => " + op.name + op.annotate(this.pc, method.cls.constant_pool));
+      }
       op.execute(thread, this);
     }
   }
