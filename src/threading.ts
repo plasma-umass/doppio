@@ -126,7 +126,6 @@ export class BytecodeStackFrame implements IStackFrame {
         pc--;
       }
       // We either found it, or we're at 0. Good enuff.
-      this.pc = pc;
     }
 
     // STEP 2: See if we can find an appropriate handler for this exception!
@@ -147,12 +146,14 @@ export class BytecodeStackFrame implements IStackFrame {
             }
           } else {
             // ASYNC PATH: We'll need to asynchronously resolve these handlers.
+            debug(method.full_signature() + " needs to resolve some exception types...");
             var handlerClasses: string[] = [];
             exceptionHandlers.forEach((handler: attributes.ExceptionHandler) => {
               if (handler.catch_type !== "<any>") {
                 handlerClasses.push(handler.catch_type);
               }
             });
+            thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
             method.cls.loader.resolveClasses(thread, handlerClasses, (classes) => {
               if (classes !== null) {
                 // Rethrow the exception to trigger scheduleException again.
@@ -730,6 +731,9 @@ export class JVMThread extends java_object.JavaObject {
     }
 
     // Find a stack frame that can handle the exception.
+    // Set our status *before* scheduling the exception. Some exception handlers
+    // may want to do something asynchronous before resuming execution.
+    this.setStatus(enums.ThreadStatus.RUNNABLE);
     while (stack.length > 0 && !stack[idx].scheduleException(this, exception)) {
       stack.pop();
       idx--;
@@ -740,9 +744,6 @@ export class JVMThread extends java_object.JavaObject {
       // This should actually never happen. All executions should end at the
       // internal frame created by runMethod.
       assert(false);
-    } else {
-      // Thread is now runnable.
-      this.setStatus(enums.ThreadStatus.RUNNABLE);
     }
   }
 
