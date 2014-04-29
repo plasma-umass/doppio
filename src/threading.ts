@@ -600,9 +600,9 @@ export class JVMThread extends java_object.JavaObject {
   }
 
   /**
-   * Get this thread's monitor.
+   * Get the monitor that this thread is waiting or blocked on.
    */
-  public getMonitor(): java_object.Monitor {
+  public getMonitorBlock(): java_object.Monitor {
     return this.monitor;
   }
 

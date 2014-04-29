@@ -1226,7 +1226,7 @@ class java_lang_Thread {
               // status, and throw an interrupted exception.
               javaThis.setInterrupted(false);
               // Exit the monitor.
-              var monitor = javaThis.getMonitor();
+              var monitor = javaThis.getMonitorBlock();
               if (status === enums.ThreadStatus.BLOCKED) {
                 monitor.unblock(javaThis);
               } else {

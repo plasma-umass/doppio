@@ -108,7 +108,7 @@ export class JavaObject {
   }
 
   public getMonitor(): Monitor {
-    if (this.$monitor) {
+    if (this.$monitor != null) {
       return this.$monitor;
     } else {
       return this.$monitor = new Monitor();

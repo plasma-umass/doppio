@@ -353,9 +353,11 @@ export class Method extends AbstractMethodField {
 
   public method_lock(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): java_object.Monitor {
     if (this.access_flags["static"]) {
+      // Static methods lock the class.
       return this.cls.get_class_object(thread).getMonitor();
     } else {
-      return frame.locals[0].getMonitor();
+      // Non-static methods lock the instance.
+      return (<java_object.JavaObject> frame.locals[0]).getMonitor();
     }
   }
 }
