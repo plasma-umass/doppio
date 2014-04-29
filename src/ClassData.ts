@@ -130,8 +130,6 @@ export class ClassData {
   }
 
   public set_state(state: enums.ClassState): void {
-    // Assertion: Make sure we're never traveling backwards!
-    assert(this.state <= state);
     this.state = state;
   }
 

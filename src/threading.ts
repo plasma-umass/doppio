@@ -81,7 +81,7 @@ export class BytecodeStackFrame implements IStackFrame {
     // Run until we get the signal to return to the thread loop.
     while (!this.returnToThreadLoop) {
       var op = code[this.pc];
-      console.log(op.annotate(this.pc, method.cls.constant_pool));
+      console.log(method.cls.get_type() + "::" + method.name + ":" + this.pc + " => " + op.name + op.annotate(this.pc, method.cls.constant_pool));
       op.execute(thread, this);
     }
   }
@@ -279,7 +279,7 @@ class InternalStackFrame implements IStackFrame {
    * @param cb Callback function. Called with an exception if one occurs, or
    *   the return value from the called method, if relevant.
    */
-  constructor(private cb: (thread: JVMThread, e?: java_object.JavaObject, rv?: any) => void) {
+  constructor(private cb: (e?: java_object.JavaObject, rv?: any) => void) {
   }
 
   public run(thread: JVMThread): void {
@@ -288,9 +288,9 @@ class InternalStackFrame implements IStackFrame {
     // Pause the thread before returning into native JavaScript code.
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     if (this.isException) {
-      this.cb(thread, this.val);
+      this.cb(this.val);
     } else {
-      this.cb(thread, null, this.val);
+      this.cb(null, this.val);
     }
   }
 
