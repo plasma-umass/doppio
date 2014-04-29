@@ -48,8 +48,8 @@ export interface IStackFrame {
  */
 export class BytecodeStackFrame implements IStackFrame {
   public pc: number = 0;
-  public locals: any[] = [];
-  public stack: any[];
+  public locals: any[];
+  public stack: any[] = [];
   public returnToThreadLoop: boolean = false;
 
   /**
@@ -59,7 +59,7 @@ export class BytecodeStackFrame implements IStackFrame {
    */
   constructor(public method: methods.Method, args: any[]) {
     assert(!method.access_flags.native && !method.access_flags.abstract);
-    this.stack = args;
+    this.locals = args;
   }
 
   public run(thread: JVMThread): void {
@@ -81,6 +81,7 @@ export class BytecodeStackFrame implements IStackFrame {
     // Run until we get the signal to return to the thread loop.
     while (!this.returnToThreadLoop) {
       var op = code[this.pc];
+      console.log("D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
       console.log(method.cls.get_type() + "::" + method.name + ":" + this.pc + " => " + op.name + op.annotate(this.pc, method.cls.constant_pool));
       op.execute(thread, this);
     }
