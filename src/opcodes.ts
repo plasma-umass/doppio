@@ -239,9 +239,10 @@ export class DynInvokeOpcode extends InvokeOpcode {
     var cls = frame.getLoader().getInitializedClass(this.method_spec.class_desc);
     if (cls != null) {
       var stack = frame.stack;
-      var obj = stack[stack.length - this.count];
+      var obj: java_object.JavaObject = stack[stack.length - this.count];
       if (!isNull(thread, frame, obj)) {
-        var m = cls.method_lookup(thread, this.method_spec.sig);
+        // Use the class of the *object*.
+        var m = obj.cls.method_lookup(thread, this.method_spec.sig);
         if (m != null) {
           thread.runMethod(m, m.take_params(stack));
           this.incPc(frame);
@@ -1544,7 +1545,7 @@ export var opcodes: Opcode[] = [
     var stack = frame.stack, obj: java_object.JavaArray = stack.pop();
     if (!isNull(thread, frame, obj)) {
       stack.push(obj.array.length);
-      this.incPc();
+      this.incPc(frame);
     }
     // obj is NULL. isNull threw an exception for us.
   }),

@@ -264,7 +264,7 @@ export class Method extends AbstractMethodField {
       this.access_flags["native"] = true;
     } else if (this.access_flags["native"]) {
       if (sig.indexOf('::registerNatives()V', 1) < 0 && sig.indexOf('::initIDs()V', 1) < 0) {
-        this.code = function (thread: threading.JVMThread) {
+        this.code = (thread: threading.JVMThread) => {
           // Try to fetch the native method.
           var jvm = thread.getThreadPool().getJVM(),
             c = jvm.getNative(clsName, methSig);
@@ -272,7 +272,7 @@ export class Method extends AbstractMethodField {
             thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', "Native method '" + sig + "' not implemented.\nPlease fix or file a bug at https://github.com/plasma-umass/doppio/issues");
           } else {
             this.code = c;
-            c.apply(this, arguments);
+            return c.apply(this, arguments);
           }
         };
       } else {

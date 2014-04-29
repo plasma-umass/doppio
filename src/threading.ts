@@ -58,7 +58,8 @@ export class BytecodeStackFrame implements IStackFrame {
    * @param args The arguments to pass to the bytecode method.
    */
   constructor(public method: methods.Method, args: any[]) {
-    assert(!method.access_flags.native && !method.access_flags.abstract);
+    assert(!method.access_flags.native, 'Cannot run a native method using a BytecodeStackFrame.');
+    assert(!method.access_flags.abstract, 'Cannot run an abstract method!');
     this.locals = args;
   }
 
@@ -88,10 +89,10 @@ export class BytecodeStackFrame implements IStackFrame {
   }
 
   public scheduleResume(thread: JVMThread, rv?: any, rv2?: any): void {
-    if (rv) {
+    if (rv !== undefined) {
       this.stack.push(rv);
     }
-    if (rv2) {
+    if (rv2 !== undefined) {
       this.stack.push(rv2);
     }
   }
@@ -218,9 +219,11 @@ class NativeStackFrame implements IStackFrame {
    * NOTE: Should only be called once.
    */
   public run(thread: JVMThread): void {
+    console.log(this.method.cls.get_type() + "::" + this.method.name + " [Native Code]");
     this.args.unshift(thread);
     var rv: any = this.nativeMethod.apply(null, this.args);
     if (thread.getStatus() === enums.ThreadStatus.RUNNING) {
+      console.log(this.method.cls.get_type() + "::" + this.method.name + " [Native Code] Returned " + rv);
       // Normal native method exit.
       var returnType = this.method.return_type;
       switch (returnType) {
@@ -363,7 +366,6 @@ export class ThreadPool {
 
   public threadRunnable(thread: JVMThread): void {
     // We only care if no threads are running right now.
-    console.log("Thread " + thread.ref + " is now runnable!");
     if (this.runningThread == null) {
       this.runningThread = thread;
       // Schedule the thread to run.
@@ -564,6 +566,7 @@ export class JVMThread extends java_object.JavaObject {
       if (status === enums.ThreadStatus.RUNNABLE && this.status === enums.ThreadStatus.RUNNING) {
         return;
       }
+      console.log("Thread " + this.ref + " State Change: " + enums.ThreadStatus[this.status] + " => " + enums.ThreadStatus[status]);
 
       this.status = status;
       this.monitor = null;
@@ -663,17 +666,17 @@ export class JVMThread extends java_object.JavaObject {
   public asyncReturn(rv: number, rv2: any): void;
   public asyncReturn(rv: gLong, rv2: any): void;
   public asyncReturn(rv?: any, rv2?: any): void {
-    var stack = this.stack, frame: IStackFrame;
+    var stack = this.stack;
     assert(this.status === enums.ThreadStatus.RUNNING || this.status === enums.ThreadStatus.RUNNABLE || this.status === enums.ThreadStatus.ASYNC_WAITING);
     assert(typeof (rv) !== 'boolean' && rv2 == null);
     // Pop off the current method.
-    frame = stack.pop();
+    stack.pop();
     // Tell the top of the stack that this RV is waiting for it.
     var idx: number = stack.length - 1;
     // If idx is 0, then the thread will TERMINATE next time it enters its main
     // loop.
     if (idx >= 0) {
-      stack[idx].scheduleResume(rv, rv2);
+      stack[idx].scheduleResume(this, rv, rv2);
     }
 
     // Thread state transition.
@@ -700,12 +703,13 @@ export class JVMThread extends java_object.JavaObject {
    * Or, if the exception is uncaught, one of the following transitions:
    * * RUNNING => TERMINATED
    * * RUNNABLE => TERMINATED
-   * * WAITING => TERMINATED
+   * * ASYNC_WAITING => TERMINATED
    *
    * It is not valid to call this method if the thread is in any other state.
    */
   public throwException(exception: java_object.JavaObject): void {
-    assert(this.status === enums.ThreadStatus.RUNNING || this.status === enums.ThreadStatus.RUNNABLE || this.status === enums.ThreadStatus.WAITING);
+    assert(this.status === enums.ThreadStatus.RUNNING || this.status === enums.ThreadStatus.RUNNABLE || this.status === enums.ThreadStatus.ASYNC_WAITING,
+      "Tried to throw exception while thread was in state " + enums.ThreadStatus[this.status]);
     assert(this.stack.length > 0);
     var stack = this.stack, idx: number = stack.length - 1;
     // When a native or internal stack frame throws an exception, it cannot

@@ -281,6 +281,7 @@ class JVM {
    * Returns null if none found.
    */
   public getNative(clsName: string, methSig: string): Function {
+    clsName = util.descriptor2typestr(clsName);
     if (this.natives.hasOwnProperty(clsName)) {
       var clsMethods = this.natives[clsName];
       if (clsMethods.hasOwnProperty(methSig)) {
