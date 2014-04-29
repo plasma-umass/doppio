@@ -191,7 +191,7 @@ export class ClassLoader {
   /**
    * Asynchronously loads the given class. Works differently for bootstrap and
    * custom class loaders.
-   * 
+   *
    * Should never be invoked directly! Use loadClass.
    */
   public _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit?: boolean): void {
@@ -245,7 +245,7 @@ export class ClassLoader {
         // Gotta resolve 'em all!
         util.async_foreach<string>(toResolve, (aTypeStr: string, next: (err?: any) => void): void => {
           // SPECIAL CASE: super class was null (java/lang/Object).
-          if (aTypeStr === null) {
+          if (aTypeStr == null) {
             return next();
           }
           this.resolveClass(thread, aTypeStr, (aCdata: ClassData.ClassData) => {
@@ -287,16 +287,23 @@ export class ClassLoader {
         // Initialize the super class, and then this class.
         // Must be a reference type.
         assert(util.is_reference_type(typeStr));
-        this.initializeClass(thread, cdata.get_super_class_type(), (superCdata: ClassData.ClassData) => {
-          if (superCdata == null) {
-            // Nothing to do. Initializing the super class failed.
-            cb(null);
-          } else {
-            // Initialize myself. We can directly use the caller's callback
-            // here, since once I'm initialized we're finished.
-            this._initializeClass(thread, typeStr, <ClassData.ReferenceClassData> cdata, cb);
-          }
-        });
+        var superClassType = cdata.get_super_class_type();
+        if (superClassType != null) {
+          this.initializeClass(thread, superClassType, (superCdata: ClassData.ClassData) => {
+            if (superCdata == null) {
+              // Nothing to do. Initializing the super class failed.
+              cb(null);
+            } else {
+              // Initialize myself. We can directly use the caller's callback
+              // here, since once I'm initialized we're finished.
+              this._initializeClass(thread, typeStr, <ClassData.ReferenceClassData> cdata, cb);
+            }
+          });
+        } else {
+          // java/lang/Object's parent is NULL.
+          // Continue initializing this class.
+          this._initializeClass(thread, typeStr, <ClassData.ReferenceClassData> cdata, cb);
+        }
       }
     }, explicit);
   }
