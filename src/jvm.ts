@@ -19,7 +19,8 @@ var error = logging.error;
 // XXX: We currently initialize these classes at JVM bootup. This is expensive.
 // We should attempt to prune this list as much as possible.
 var coreClasses = [
-  'Ljava/lang/Class;', 'Ljava/lang/ClassLoader;', 'Ljava/lang/String;',
+  'Ljava/lang/String;',
+  'Ljava/lang/Class;', 'Ljava/lang/ClassLoader;',
   'Ljava/lang/Error;', 'Ljava/lang/StackTraceElement;',
   'Ljava/io/FileDescriptor;',
   'Ljava/io/FileNotFoundException;', 'Ljava/io/IOException;',

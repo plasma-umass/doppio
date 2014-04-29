@@ -371,7 +371,9 @@ export class ThreadPool {
   }
 
   public threadTerminated(thread: JVMThread): void {
-    var idx: number = this.threads.indexOf(thread);
+    // XXX: Fix this once I figure out a decent way to boot up the JVM without
+    // creating a bunch of threads.
+    /*var idx: number = this.threads.indexOf(thread);
     assert(idx >= 0);
     // Remove the specified thread from the threadpool.
     this.threads.splice(idx, 1);
@@ -380,7 +382,7 @@ export class ThreadPool {
     if (this.runningThread === thread) {
       this.runningThread = null;
       this.scheduleNextThread();
-    }
+    }*/
   }
 
   public threadSuspended(thread: JVMThread): void {
@@ -555,8 +557,6 @@ export class JVMThread extends java_object.JavaObject {
    */
   public setStatus(status: enums.ThreadStatus, monitor?: java_object.Monitor): void {
     if (this.status !== status) {
-      // Illegal transition: Terminated => anything else
-      assert(this.status !== enums.ThreadStatus.TERMINATED);
       assert(status === enums.ThreadStatus.RUNNING ? this.status === enums.ThreadStatus.RUNNABLE : true);
 
       // NOP. RUNNING => RUNNABLE makes no sense.
@@ -617,11 +617,16 @@ export class JVMThread extends java_object.JavaObject {
    * * RUNNING => RUNNABLE
    * * RUNNABLE => RUNNABLE
    * * ASYNC_WAITING => RUNNABLE
+   * * [XXX: JVM bootup hack] TERMINATED => RUNNABLE
    *
    * It is not valid to call this method if the thread is in any other state.
    */
   public runMethod(method: methods.Method, args: any[], cb?: (e?: java_object.JavaObject, rv?: any) => void): void {
-    assert(this.status === enums.ThreadStatus.NEW || this.status === enums.ThreadStatus.RUNNING || this.status === enums.ThreadStatus.RUNNABLE || this.status === enums.ThreadStatus.ASYNC_WAITING);
+    assert(this.status === enums.ThreadStatus.NEW ||
+      this.status === enums.ThreadStatus.RUNNING ||
+      this.status === enums.ThreadStatus.RUNNABLE ||
+      this.status === enums.ThreadStatus.ASYNC_WAITING ||
+      this.status === enums.ThreadStatus.TERMINATED, "Tried to run method while thread was in state " + enums.ThreadStatus[this.status]);
     if (cb) {
       // Callback specified. Need to add an internal stack frame that will handle
       // calling back into JavaScript land.
@@ -753,8 +758,9 @@ export class JVMThread extends java_object.JavaObject {
     } else {
       // Initialization required.
       this.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-      this.bsCl.initializeClass(this, clsName, (cdata) => {
+      this.bsCl.initializeClass(this, clsName, (cdata: ClassData.ReferenceClassData) => {
         if (cdata != null) {
+          cls = cdata;
           throwException();
         }
       }, false);

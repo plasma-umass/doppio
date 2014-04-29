@@ -165,7 +165,6 @@ export class InvokeOpcode extends Opcode {
       } else {
         // Could not find method! An exception has been thrown.
         frame.returnToThreadLoop = true;
-        return;
       }
     } else {
       // Initialize our class and rerun opcode.
