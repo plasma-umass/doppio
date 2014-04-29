@@ -27,7 +27,6 @@ function pop2(stack: any[]): any {
  */
 function isNull(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, obj: any): boolean {
   if (obj == null) {
-    throw new Error("NULL");
     thread.throwNewException('Ljava/lang/NullPointerException;', '');
     return frame.returnToThreadLoop = true;
   }
@@ -1594,8 +1593,8 @@ export var opcodes: Opcode[] = [
     }
   }),
   new Opcode('monitorenter', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack, monitor: java_object.Monitor = stack[stack.length - 1];
-    if (!monitor.enter(thread)) {
+    var stack = frame.stack, monitorObj: java_object.JavaObject = stack[stack.length - 1];
+    if (!monitorObj.getMonitor().enter(thread)) {
       // Opcode failed, and will be rerun again once the monitor is free.
       // The thread is now in the BLOCKED state. Tell the frame to return to
       // the thread loop.
@@ -1607,8 +1606,8 @@ export var opcodes: Opcode[] = [
     }
   }),
   new Opcode('monitorexit', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var monitor: java_object.Monitor = frame.stack.pop();
-    monitor.exit(thread);
+    var monitorObj: java_object.JavaObject = frame.stack.pop();
+    monitorObj.getMonitor().exit(thread);
     this.incPc(frame);
   }),
   null,  // hole in the opcode array at 196

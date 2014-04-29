@@ -21,8 +21,9 @@ var error = logging.error;
 var coreClasses = [
   'Ljava/lang/String;',
   'Ljava/lang/Class;', 'Ljava/lang/ClassLoader;',
+  'Ljava/lang/reflect/Constructor;', 'Ljava/lang/reflect/Field;',
+  'Ljava/lang/reflect/Method;',
   'Ljava/lang/Error;', 'Ljava/lang/StackTraceElement;',
-  'Ljava/io/FileDescriptor;',
   'Ljava/io/FileNotFoundException;', 'Ljava/io/IOException;',
   'Ljava/io/Serializable;',
   'Ljava/lang/ArithmeticException;',
@@ -34,13 +35,13 @@ var coreClasses = [
   'Ljava/lang/InterruptedException;',
   'Ljava/lang/NegativeArraySizeException;', 'Ljava/lang/NoSuchFieldError;',
   'Ljava/lang/NoSuchMethodError;', 'Ljava/lang/NullPointerException;',
-  'Ljava/lang/reflect/Constructor;', 'Ljava/lang/reflect/Field;',
-  'Ljava/lang/reflect/Method;', 'Ljava/lang/System;', 'Ljava/lang/Thread;',
+  'Ljava/lang/System;', 'Ljava/lang/Thread;',
   'Ljava/lang/ThreadGroup;', 'Ljava/lang/Throwable;',
   'Ljava/lang/UnsatisfiedLinkError;', 'Ljava/nio/ByteOrder;',
   'Lsun/misc/VM;', 'Lsun/reflect/ConstantPool;', 'Ljava/lang/Byte;',
   'Ljava/lang/Character;', 'Ljava/lang/Double;', 'Ljava/lang/Float;',
   'Ljava/lang/Integer;', 'Ljava/lang/Long;', 'Ljava/lang/Short;',
+  'Ljava/io/FileDescriptor;',
   'Ljava/lang/Boolean;', '[Lsun/management/MemoryManagerImpl;',
   '[Lsun/management/MemoryPoolImpl;'
 ];
@@ -84,7 +85,6 @@ class JVM {
     // Step 0: Initialize natives.
     console.log("Initializing natives...");
     this.initializeNatives(() => {
-      console.log("Initialized: " + Object.keys(this.natives));
       console.log("Constructing bootstrap class loader...");
       // Step 1: Construct the bootstrap class loader.
       this.bsCl = new ClassLoader.BootstrapClassLoader([jclPath].concat(opts.classpath), opts.extractionPath, (e?: any) => {
@@ -111,27 +111,33 @@ class JVM {
                   if (cdata == null) {
                     cb("Failed to initialize " + coreClass);
                   } else {
-                    next_item();
+                    // One of the later preinitialized classes references Thread.group.
+                    // Initialize the system's ThreadGroup now.
+                    if (coreClass === 'Ljava/lang/ThreadGroup;') {
+                      // Step 5: Construct a ThreadGroup object for the first thread.
+                      console.log("Constructing a ThreadGroup...");
+                      var threadGroupCls = <ClassData.ReferenceClassData> this.bsCl.getInitializedClass('Ljava/lang/ThreadGroup;'),
+                        groupObj = new java_object.JavaObject(threadGroupCls),
+                        cnstrctr = threadGroupCls.method_lookup(firstThread, '<init>()V');
+                      firstThread.runMethod(cnstrctr, [groupObj], (e?, rv?) => {
+                        // Step 6: Initialize the fields of our firstThread to make it real.
+                        // @todo Perhaps associate ThreadGroup with ThreadPool...?
+                        firstThread.set_field(firstThread, 'Ljava/lang/Thread;name', java_object.initCarr(this.bsCl, 'main'));
+                        firstThread.set_field(firstThread, 'Ljava/lang/Thread;priority', 1);
+                        firstThread.set_field(firstThread, 'Ljava/lang/Thread;group', groupObj);
+                        firstThread.set_field(firstThread, 'Ljava/lang/Thread;threadLocals', null);
+                        firstThread.set_field(firstThread, 'Ljava/lang/Thread;blockerLock', new java_object.JavaObject(<ClassData.ReferenceClassData> this.bsCl.getInitializedClass('Ljava/lang/Object;')));
+                        next_item();
+                      });
+                    } else {
+                      next_item();
+                    }
                   }
                 });
               }, (err?: any) => {
-                // Step 5: Construct a ThreadGroup object for the first thread.
-                console.log("Constructing a ThreadGroup...");
-                var threadGroupCls = <ClassData.ReferenceClassData> this.bsCl.getInitializedClass('Ljava/lang/ThreadGroup;'),
-                  groupObj = new java_object.JavaObject(threadGroupCls),
-                  cnstrctr = threadGroupCls.method_lookup(firstThread, '<init>()V');
-                firstThread.runMethod(cnstrctr, [groupObj], (e?, rv?) => {
-                  // Step 6: Initialize the fields of our firstThread to make it real.
-                  // @todo Perhaps associate ThreadGroup with ThreadPool...?
-                  firstThread.set_field(firstThread, 'Ljava/lang/Thread;name', java_object.initCarr(this.bsCl, 'main'));
-                  firstThread.set_field(firstThread, 'Ljava/lang/Thread;priority', 1);
-                  firstThread.set_field(firstThread, 'Ljava/lang/Thread;group', groupObj);
-                  firstThread.set_field(firstThread, 'Ljava/lang/Thread;threadLocals', null);
-                  firstThread.set_field(firstThread, 'Ljava/lang/Thread;blockerLock', new java_object.JavaObject(<ClassData.ReferenceClassData> this.bsCl.getInitializedClass('Ljava/lang/Object;')));
-                  // Ready for execution!
-                  console.log("Ready for execution!");
-                  cb(null, this);
-                });
+                // Ready for execution!
+                console.log("Ready for execution!");
+                cb(null, this);
               });
             }
           }, false);

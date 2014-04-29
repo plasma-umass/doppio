@@ -161,22 +161,21 @@ export class Field extends AbstractMethodField {
    * fails.
    */
   public reflector(thread: threading.JVMThread, cb: (reflectedField: java_object.JavaObject)=>void): void {
-    var _this = this;
     var found = <attributes.Signature> this.get_attribute("Signature");
     // note: sig is the generic type parameter (if one exists), not the full
     // field type.
     var sig = (found != null) ? found.sig : null;
     var jvm = thread.getThreadPool().getJVM();
     var bsCl = thread.getBsCl();
-    function create_obj(clazz_obj: java_object.JavaClassObject, type_obj: java_object.JavaObject) {
+    var create_obj = (clazz_obj: java_object.JavaClassObject, type_obj: java_object.JavaObject) => {
       var field_cls = <ClassData.ReferenceClassData> bsCl.getInitializedClass('Ljava/lang/reflect/Field;');
       return new java_object.JavaObject(field_cls, {
         // XXX this leaves out 'annotations'
         'Ljava/lang/reflect/Field;clazz': clazz_obj,
-        'Ljava/lang/reflect/Field;name': jvm.internString(_this.name),
+        'Ljava/lang/reflect/Field;name': jvm.internString(this.name),
         'Ljava/lang/reflect/Field;type': type_obj,
-        'Ljava/lang/reflect/Field;modifiers': _this.access_byte,
-        'Ljava/lang/reflect/Field;slot': _this.idx,
+        'Ljava/lang/reflect/Field;modifiers': this.access_byte,
+        'Ljava/lang/reflect/Field;slot': this.idx,
         'Ljava/lang/reflect/Field;signature': sig != null ? java_object.initString(bsCl, sig) : null
       });
     };

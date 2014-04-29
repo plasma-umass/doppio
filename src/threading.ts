@@ -65,6 +65,9 @@ export class BytecodeStackFrame implements IStackFrame {
 
   public run(thread: JVMThread): void {
     var method = this.method, code = this.method.getCode();
+    if (this.pc === 0) {
+      console.log(this.method.cls.get_type() + "::" + this.method.name + " [Bytecode]");
+    }
     if (method.access_flags.synchronized && this.pc === 0) {
       // We are starting a synchronized method! These must implicitly enter
       // their respective locks.
@@ -223,7 +226,7 @@ class NativeStackFrame implements IStackFrame {
     this.args.unshift(thread);
     var rv: any = this.nativeMethod.apply(null, this.args);
     if (thread.getStatus() === enums.ThreadStatus.RUNNING) {
-      console.log(this.method.cls.get_type() + "::" + this.method.name + " [Native Code] Returned " + rv);
+      // console.log(this.method.cls.get_type() + "::" + this.method.name + " [Native Code] Returned " + rv);
       // Normal native method exit.
       var returnType = this.method.return_type;
       switch (returnType) {
@@ -513,12 +516,12 @@ export class JVMThread extends java_object.JavaObject {
    * The thread's main execution loop. Everything starts here!
    */
   private run(): void {
-    console.log("Thread " + this.ref + " is now running!");
+    // console.log("Thread " + this.ref + " is now running!");
     var stack = this.stack;
     while (this.status === enums.ThreadStatus.RUNNING && stack.length > 0) {
       stack[stack.length - 1].run(this);
     }
-    console.log("Thread " + this.ref + " is suspending: " + enums.ThreadStatus[this.status]);
+    // console.log("Thread " + this.ref + " is suspending: " + enums.ThreadStatus[this.status]);
 
     if (stack.length === 0) {
       // This thread has finished!
@@ -566,7 +569,7 @@ export class JVMThread extends java_object.JavaObject {
       if (status === enums.ThreadStatus.RUNNABLE && this.status === enums.ThreadStatus.RUNNING) {
         return;
       }
-      console.log("Thread " + this.ref + " State Change: " + enums.ThreadStatus[this.status] + " => " + enums.ThreadStatus[status]);
+      // console.log("Thread " + this.ref + " State Change: " + enums.ThreadStatus[this.status] + " => " + enums.ThreadStatus[status]);
 
       this.status = status;
       this.monitor = null;
