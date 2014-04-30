@@ -162,6 +162,7 @@ class sun_reflect_NativeMethodAccessorImpl {
       args = args.concat(params.array);
     }
 
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     thread.runMethod(m, args, (e?, rv?) => {
       if (e) {
         thread.throwException(e);
