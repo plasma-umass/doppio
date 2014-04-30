@@ -544,7 +544,7 @@ class java_lang_Double {
 
   public static 'longBitsToDouble(J)D'(thread: threading.JVMThread, num: gLong): number {
     conversionBuffer.writeInt32LE(num.getLowBits(), 0);
-    conversionBuffer.writeInt32LE(num.getHighBits(), 0);
+    conversionBuffer.writeInt32LE(num.getHighBits(), 4);
     return conversionBuffer.readDoubleLE(0);
   }
 

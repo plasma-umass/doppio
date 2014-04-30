@@ -27,7 +27,6 @@ function get_property(thread: threading.JVMThread, jvm_key: java_object.JavaObje
     return java_object.initString(thread.getBsCl(), val.slice(1, val.length).join(':'));
   }
   if (val != null) {
-    logging.debug("Get property: " + key + " => " + val);
     return jvm.internString(val);
   } else {
     return _default;

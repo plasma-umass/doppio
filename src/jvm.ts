@@ -83,15 +83,15 @@ class JVM {
     this._initSystemProperties(jclPath, javaHomePath);
 
     // Step 0: Initialize natives.
-    console.log("Initializing natives...");
+    //console.log("Initializing natives...");
     this.initializeNatives(() => {
-      console.log("Constructing bootstrap class loader...");
+      //console.log("Constructing bootstrap class loader...");
       // Step 1: Construct the bootstrap class loader.
       this.bsCl = new ClassLoader.BootstrapClassLoader([jclPath].concat(opts.classpath), opts.extractionPath, (e?: any) => {
         if (e) {
           cb(e);
         } else {
-          console.log("Resolving java/lang/Thread...");
+          //console.log("Resolving java/lang/Thread...");
           this.threadPool = new threading.ThreadPool(this, this.bsCl);
           // Step 2: Resolve Ljava/lang/Thread so we can fake a thread.
           // NOTE: This should never actually use the Thread object unless
@@ -104,9 +104,9 @@ class JVM {
               // Step 3: Fake a thread.
               var firstThread = this.threadPool.newThread(cdata);
               // Step 4: Now, preinitialize all of those classes.
-              console.log("Preinitializing classes...");
+              //console.log("Preinitializing classes...");
               util.async_foreach<string>(coreClasses, (coreClass: string, next_item: (err?: any) => void) => {
-                console.log("Initializing " + coreClass + "...");
+                //console.log("Initializing " + coreClass + "...");
                 this.bsCl.initializeClass(firstThread, coreClass, (cdata: ClassData.ClassData) => {
                   if (cdata == null) {
                     cb("Failed to initialize " + coreClass);
@@ -115,7 +115,7 @@ class JVM {
                     // Initialize the system's ThreadGroup now.
                     if (coreClass === 'Ljava/lang/ThreadGroup;') {
                       // Step 5: Construct a ThreadGroup object for the first thread.
-                      console.log("Constructing a ThreadGroup...");
+                      //console.log("Constructing a ThreadGroup...");
                       var threadGroupCls = <ClassData.ReferenceClassData> this.bsCl.getInitializedClass('Ljava/lang/ThreadGroup;'),
                         groupObj = new java_object.JavaObject(threadGroupCls),
                         cnstrctr = threadGroupCls.method_lookup(firstThread, '<init>()V');
@@ -142,7 +142,7 @@ class JVM {
                     cb("Failed to initialize system class.");
                   } else {
                     // Ready for execution!
-                    console.log("Ready for execution!");
+                    //console.log("Ready for execution!");
                     cb(null, this);
                   }
                 });
