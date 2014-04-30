@@ -373,7 +373,7 @@ export class ClassLoader {
    * If the program explicitly called loadClass, then we throw the ClassNotFoundException.
    */
   public throwClassNotFoundException(thread: threading.JVMThread, typeStr: string, explicit: boolean): void {
-    thread.throwNewException(explicit ? 'Ljava/lang/ClassNotFoundException;' : 'Ljava/lang/NoClassDefFoundError;', 'Could not load class: ' + typeStr);
+    thread.throwNewException(explicit ? 'Ljava/lang/ClassNotFoundException;' : 'Ljava/lang/NoClassDefFoundError;', 'Could not load class: ' + util.ext_classname(typeStr));
   }
 
   /**
