@@ -132,7 +132,7 @@ export function float2int(a: number): number {
 export function byteArray2Buffer(bytes: number[], offset: number = 0, len: number = bytes.length): NodeBuffer {
   var buff = new Buffer(len), i: number;
   for (i = 0; i < len; i++) {
-    buff.writeUInt8(bytes[offset + i], i); 
+    buff.writeInt8(bytes[offset + i], i);
   }
   return buff;
 }

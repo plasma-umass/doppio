@@ -27,7 +27,6 @@ function pop2(stack: any[]): any {
  */
 function isNull(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, obj: any): boolean {
   if (obj == null) {
-    throw new Error("NULL OH NOOO");
     thread.throwNewException('Ljava/lang/NullPointerException;', '');
     return frame.returnToThreadLoop = true;
   }

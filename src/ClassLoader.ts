@@ -27,7 +27,7 @@ export class ClassLoader {
    * @param bootstrap The JVM's bootstrap classloader. ClassLoaders use it
    *   to retrieve primitive types.
    */
-  constructor(private bootstrap: BootstrapClassLoader) { }
+  constructor(public bootstrap: BootstrapClassLoader) { }
 
   /**
    * Retrieve a listing of classes that are loaded in this class loader.
@@ -742,7 +742,7 @@ export class CustomClassLoader extends ClassLoader {
     // Invoke the custom class loader.
     var loadClassMethod = this.getLoadClassMethod(thread);
     if (loadClassMethod) {
-      thread.runMethod(loadClassMethod, [this.loaderObj, java_object.initString(this, util.ext_classname(typeStr))],
+      thread.runMethod(loadClassMethod, [this.loaderObj, java_object.initString(this.bootstrap, util.ext_classname(typeStr))],
         (e?: java_object.JavaObject, jco?: java_object.JavaClassObject): void => {
           if (e) {
             // Exception! There was an issue defining the class.
