@@ -123,7 +123,9 @@ class sun_reflect_NativeConstructorAccessorImpl {
         if (e) {
           thread.throwException(e);
         } else {
-          thread.asyncReturn(rv);
+          // rv is not defined, since constructors do not return a value.
+          // Return the object we passed to the constructor.
+          thread.asyncReturn(obj);
         }
       });
     }, true);

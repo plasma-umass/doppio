@@ -27,6 +27,7 @@ function get_property(thread: threading.JVMThread, jvm_key: java_object.JavaObje
     return java_object.initString(thread.getBsCl(), val.slice(1, val.length).join(':'));
   }
   if (val != null) {
+    logging.debug("Get property: " + key + " => " + val);
     return jvm.internString(val);
   } else {
     return _default;
@@ -38,7 +39,7 @@ var trapped_methods = {
     // NOP, because we don't do our own GC and also this starts a thread?!?!?!
     '<clinit>()V': function (thread: threading.JVMThread): void { }
   },
-  'java/lang/String': {
+  /*'java/lang/String': {
     // trapped here only for speed
     'hashCode()I': function (thread: threading.JVMThread, javaThis: java_object.JavaObject): number {
       var i: number, hash: number = javaThis.get_field(thread, 'Ljava/lang/String;hash');
@@ -53,7 +54,7 @@ var trapped_methods = {
       }
       return hash;
     }
-  },
+  },*/
   'java/lang/System': {
     'loadLibrary(Ljava/lang/String;)V': function (thread: threading.JVMThread, lib_name: java_object.JavaObject): void {
       var lib = lib_name.jvm2js_str();

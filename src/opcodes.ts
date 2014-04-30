@@ -1286,7 +1286,7 @@ export var opcodes: Opcode[] = [
   new GotoOpcode('goto', 2),
   new JSROpcode('jsr', 2),
   new Opcode('ret', 1, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.pc = frame.locals[this.args[0]] - 1 - this.byte_count;
+    frame.pc = frame.locals[this.args[0]];
   }),
   new TableSwitchOpcode('tableswitch'),
   new LookupSwitchOpcode('lookupswitch'),
