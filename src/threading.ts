@@ -87,8 +87,8 @@ export class BytecodeStackFrame implements IStackFrame {
     // Run until we get the signal to return to the thread loop.
     while (!this.returnToThreadLoop) {
       var op = code[this.pc];
-      //console.log("D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
-      //console.log(method.cls.get_type() + "::" + method.name + ":" + this.pc + " => " + op.name + op.annotate(this.pc, method.cls.constant_pool));
+      console.log("D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
+      console.log(method.cls.get_type() + "::" + method.name + ":" + this.pc + " => " + op.name + op.annotate(this.pc, method.cls.constant_pool));
       op.execute(thread, this);
     }
     //console.log("AFTER: D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
@@ -233,8 +233,7 @@ class NativeStackFrame implements IStackFrame {
    */
   public run(thread: JVMThread): void {
     console.log("T" + thread.ref + " " + this.method.full_signature() + " [Native Code]");
-    this.args.unshift(thread);
-    var rv: any = this.nativeMethod.apply(null, this.args);
+    var rv: any = this.nativeMethod.apply(null, this.method.convertArgs(thread, this.args));
     if (thread.getStatus() === enums.ThreadStatus.RUNNING) {
       // Normal native method exit.
       var returnType = this.method.return_type;
@@ -363,25 +362,27 @@ export class ThreadPool {
     return this.jvm;
   }
 
+  /**
+   * Schedules and runs the next thread.
+   * Should be triggered from setImmediate so the stack is reset.
+   */
   private scheduleNextThread(): void {
     var i: number, threads = this.threads;
-    assert(this.runningThread == null);
-    for (i = 0; i < threads.length; i++) {
-      if (threads[i].getStatus() === enums.ThreadStatus.RUNNABLE) {
-        this.runningThread = threads[i];
-        setImmediate(() => { threads[i].setStatus(enums.ThreadStatus.RUNNING); });
-        return;
+    if (this.runningThread == null) {
+      for (i = 0; i < threads.length; i++) {
+        if (threads[i].getStatus() === enums.ThreadStatus.RUNNABLE) {
+          this.runningThread = threads[i];
+          threads[i].setStatus(enums.ThreadStatus.RUNNING);
+          break;
+        }
       }
     }
-    return null;
   }
 
   public threadRunnable(thread: JVMThread): void {
     // We only care if no threads are running right now.
     if (this.runningThread == null) {
-      this.runningThread = thread;
-      // Schedule the thread to run.
-      setImmediate(() => { thread.setStatus(enums.ThreadStatus.RUNNING); });
+      setImmediate(() => { this.scheduleNextThread(); });
     }
   }
 
@@ -404,7 +405,7 @@ export class ThreadPool {
     // If this was the running thread, schedule a new one to run.
     if (thread === this.runningThread) {
       this.runningThread = null;
-      this.scheduleNextThread();
+      setImmediate(() => { this.scheduleNextThread(); });
     }
   }
 

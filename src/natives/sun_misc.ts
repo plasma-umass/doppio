@@ -135,9 +135,8 @@ class sun_misc_Unsafe {
     return obj.set_field_from_offset(thread, offset, new_value);
   }
 
-  public static 'getByte(Ljava/lang/Object;J)B'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, address: gLong): number {
-    var heap = thread.getThreadPool().getJVM().getHeap();
-    return heap.get_byte(address.toNumber());
+  public static 'getByte(Ljava/lang/Object;J)B'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
+    return obj.get_field_from_offset(thread, offset);
   }
 
   public static 'putByte(Ljava/lang/Object;JB)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
@@ -164,13 +163,8 @@ class sun_misc_Unsafe {
     return obj.get_field_from_offset(thread, offset);
   }
 
-  public static 'putLong(Ljava/lang/Object;JJ)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, address: gLong, value: gLong): void {
-    var heap = thread.getThreadPool().getJVM().getHeap(),
-      addr = address.toNumber();
-
-    // LE
-    heap.store_word(addr, value.getLowBits());
-    heap.store_word(addr + 4, value.getHighBits());
+  public static 'putLong(Ljava/lang/Object;JJ)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, x: gLong): void {
+    obj.set_field_from_offset(thread, offset, x);
   }
 
   public static 'getFloat(Ljava/lang/Object;J)F'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
@@ -189,10 +183,9 @@ class sun_misc_Unsafe {
     obj.set_field_from_offset(thread, offset, new_value);
   }
 
-  public static 'getByte(J)B'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: gLong): number {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    // Satisfy TypeScript return type.
-    return 0;
+  public static 'getByte(J)B'(thread: threading.JVMThread, javaThis: java_object.JavaObject, address: gLong): number {
+    var heap = thread.getThreadPool().getJVM().getHeap();
+    return heap.get_byte(address.toNumber());
   }
 
   public static 'putByte(JB)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: gLong, arg1: number): void {
@@ -235,8 +228,13 @@ class sun_misc_Unsafe {
     return null;
   }
 
-  public static 'putLong(JJ)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: gLong, arg1: gLong): void {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+  public static 'putLong(JJ)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, address: gLong, value: gLong): void {
+    var heap = thread.getThreadPool().getJVM().getHeap(),
+      addr = address.toNumber();
+
+    // LE
+    heap.store_word(addr, value.getLowBits());
+    heap.store_word(addr + 4, value.getHighBits());
   }
 
   public static 'getFloat(J)F'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: gLong): number {

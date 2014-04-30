@@ -350,7 +350,38 @@ export class Method extends AbstractMethodField {
     });
   }
 
-  public take_params(caller_stack: any[]): any[] {
+  /**
+   * Convert the arguments to this method into a form suitable for a native
+   * implementation.
+   *
+   * The JVM uses two parameter slots for double and long values, since they
+   * consist of two JVM machine words (32-bits). Doppio stores the entire value
+   * in one slot, and stores a NULL in the second.
+   *
+   * This function strips out these NULLs so the arguments are in a more
+   * consistent form. The return value is the arguments to this function without
+   * these NULL values. It also adds the 'thread' object to the start of the
+   * arguments array.
+   */
+  public convertArgs(thread: threading.JVMThread, params: any[]): any[] {
+    var convertedArgs = [thread], argIdx = 0, i: number;
+    if (!this.access_flags["static"]) {
+      convertedArgs.push(params[0]);
+      argIdx = 1;
+    }
+    for (i = 0; i < this.param_types.length; i++) {
+      var p = this.param_types[i];
+      convertedArgs.push(params[argIdx]);
+      argIdx += (p === 'J' || p === 'D') ? 2 : 1;
+    }
+    return convertedArgs;
+  }
+
+  /**
+   * Takes the arguments to this function from the top of the input stack,
+   * and returns them as a new array.
+   */
+  public takeArgs(caller_stack: any[]): any[] {
     var start = caller_stack.length - this.param_bytes;
     var params = caller_stack.slice(start);
     // this is faster than splice()

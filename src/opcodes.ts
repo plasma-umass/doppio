@@ -159,7 +159,7 @@ export class InvokeOpcode extends Opcode {
     if (cls != null) {
       var m = cls.method_lookup(thread, this.method_spec.sig);
       if (m != null) {
-        thread.runMethod(m, m.take_params(frame.stack));
+        thread.runMethod(m, m.takeArgs(frame.stack));
         frame.returnToThreadLoop = true;
         // When this method resumes, we will proceed to the next opcode.
         this.incPc(frame);
@@ -244,7 +244,7 @@ export class DynInvokeOpcode extends InvokeOpcode {
         // Use the class of the *object*.
         var m = obj.cls.method_lookup(thread, this.method_spec.sig);
         if (m != null) {
-          thread.runMethod(m, m.take_params(stack));
+          thread.runMethod(m, m.takeArgs(stack));
           this.incPc(frame);
           frame.returnToThreadLoop = true;
         } else {
