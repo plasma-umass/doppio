@@ -630,7 +630,7 @@ export class MultiArrayOpcode extends Opcode {
       initializeClass(thread, frame, this.class_descriptor);
     } else {
       // cls is loaded. Create a new execute function to avoid this overhead.
-      var new_execute = (thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void => {
+      var new_execute = function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
         var stack = frame.stack,
           counts = stack.splice(-this.dim, this.dim);
         stack.push(java_object.heapMultiNewArray(thread, frame.getLoader(), this.class_descriptor, counts));
@@ -1302,13 +1302,13 @@ export var opcodes: Opcode[] = [
       ref_cls = loader.getInitializedClass(desc),
       new_execute: Execute;
     if (this.field_spec.type == 'J' || this.field_spec.type == 'D') {
-      new_execute = (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) => {
+      new_execute = function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
         var stack = frame.stack;
         stack.push(this.cls.static_get(thread, this.field_spec.name), null);
         this.incPc(frame);
       };
     } else {
-      new_execute = (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) => {
+      new_execute = function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
         var stack = frame.stack;
         stack.push(this.cls.static_get(thread, this.field_spec.name));
         this.incPc(frame);
@@ -1342,12 +1342,12 @@ export var opcodes: Opcode[] = [
       ref_cls = loader.getInitializedClass(desc),
       new_execute: Execute;
     if (this.field_spec.type == 'J' || this.field_spec.type == 'D') {
-      new_execute = (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) => {
+      new_execute = function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
         this.cls.static_put(thread, this.field_spec.name, pop2(frame.stack));
         this.incPc(frame);
       };
     } else {
-      new_execute = (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) => {
+      new_execute = function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
         this.cls.static_put(thread, this.field_spec.name, frame.stack.pop());
         this.incPc(frame);
       };
@@ -1392,7 +1392,7 @@ export var opcodes: Opcode[] = [
           var name = field.cls.get_type() + this.field_spec.name;
           var new_execute: Execute;
           if (this.field_spec.type == 'J' || this.field_spec.type == 'D') {
-            new_execute = (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) => {
+            new_execute = function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
               var stack = frame.stack, obj: java_object.JavaObject = stack.pop();
               if (!isNull(thread, frame, obj)) {
                 var val = obj.get_field(thread, name);
@@ -1407,7 +1407,7 @@ export var opcodes: Opcode[] = [
               }
             };
           } else {
-            new_execute = (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) => {
+            new_execute = function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
               var stack = frame.stack, obj: java_object.JavaObject = stack.pop();
               if (!isNull(thread, frame, obj)) {
                 var val = obj.get_field(thread, name);
@@ -1500,18 +1500,18 @@ export var opcodes: Opcode[] = [
     if (this.cls != null) {
       // XXX: Check if this is a ClassLoader / Thread / other.
       if (this.cls.is_castable(thread.getBsCl().getResolvedClass('Ljava/lang/ClassLoader;'))) {
-        this.execute = (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) => {
-          frame.stack.push(new JavaClassLoaderObject(thread, this.cls));
+        this.execute = function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+          frame.stack.push(new ClassLoader.JavaClassLoaderObject(thread, this.cls));
           this.incPc(frame);
         };
       } else if (this.cls.is_castable(thread.getBsCl().getResolvedClass('Ljava/lang/Thread;'))) {
-        this.execute = (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) => {
+        this.execute = function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
           frame.stack.push(thread.getThreadPool().newThread(this.cls));
           this.incPc(frame);
         };
       } else {
         // Self-modify; cache the class file lookup.
-        this.execute = (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) => {
+        this.execute = function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
           frame.stack.push(new JavaObject(this.cls));
           this.incPc(frame);
         };
@@ -1529,7 +1529,7 @@ export var opcodes: Opcode[] = [
     // Make sure the component class is loaded.
     var cls = frame.getLoader().getResolvedClass(desc);
     if (cls != null) {
-      var new_execute: Execute = (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) => {
+      var new_execute: Execute = function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
         var stack = frame.stack;
         stack.push(java_object.heapNewArray(thread, frame.getLoader(), desc, stack.pop()));
         this.incPc(frame);

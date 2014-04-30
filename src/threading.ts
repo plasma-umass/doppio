@@ -66,7 +66,7 @@ export class BytecodeStackFrame implements IStackFrame {
   public run(thread: JVMThread): void {
     var method = this.method, code = this.method.getCode();
     if (this.pc === 0) {
-      console.log("T" + thread.ref + " " + this.method.full_signature() + " [Bytecode]");
+      //console.log("T" + thread.ref + " " + this.method.full_signature() + " [Bytecode]");
     }
     if (method.access_flags.synchronized && this.pc === 0) {
       // We are starting a synchronized method! These must implicitly enter
@@ -82,13 +82,13 @@ export class BytecodeStackFrame implements IStackFrame {
     // from the previous time this method was run, and is meaningless.
     this.returnToThreadLoop = false;
 
-    console.log("Resuming " + this.method.full_signature() + ":" + this.pc + " [Bytecode]");
+    //console.log("Resuming " + this.method.full_signature() + ":" + this.pc + " [Bytecode]");
     //console.log("BEFORE: D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
     // Run until we get the signal to return to the thread loop.
     while (!this.returnToThreadLoop) {
       var op = code[this.pc];
-      console.log("D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
-      console.log(method.cls.get_type() + "::" + method.name + ":" + this.pc + " => " + op.name + op.annotate(this.pc, method.cls.constant_pool));
+      //console.log("D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
+      //console.log(method.cls.get_type() + "::" + method.name + ":" + this.pc + " => " + op.name + op.annotate(this.pc, method.cls.constant_pool));
       op.execute(thread, this);
     }
     //console.log("AFTER: D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
@@ -232,7 +232,7 @@ class NativeStackFrame implements IStackFrame {
    * NOTE: Should only be called once.
    */
   public run(thread: JVMThread): void {
-    console.log("T" + thread.ref + " " + this.method.full_signature() + " [Native Code]");
+    //console.log("T" + thread.ref + " " + this.method.full_signature() + " [Native Code]");
     var rv: any = this.nativeMethod.apply(null, this.method.convertArgs(thread, this.args));
     if (thread.getStatus() === enums.ThreadStatus.RUNNING) {
       // Normal native method exit.
@@ -685,7 +685,7 @@ export class JVMThread extends java_object.JavaObject {
     // Pop off the current method.
     var frame = stack.pop();
     if (frame.type != enums.StackFrameType.INTERNAL) {
-      console.log("RETURNING FROM " + (<methods.Method> (<any>frame).method).full_signature() + " RV: " + rv + " RV2: " + rv2);
+      //console.log("RETURNING FROM " + (<methods.Method> (<any>frame).method).full_signature() + " RV: " + rv + " RV2: " + rv2);
     }
     // Tell the top of the stack that this RV is waiting for it.
     var idx: number = stack.length - 1;

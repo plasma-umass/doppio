@@ -51,7 +51,6 @@ function create_stack_trace(thread: threading.JVMThread, throwable: java_object.
   while (cstack[cstack.length - 1].locals[0] === throwable) {
     cstack.pop();
   }
-  console.log("\nBEGIN STACK TRACE");
   for (i = 0; i < cstack.length; i++) {
     var sf = cstack[i],
       cls = sf.method.cls,
@@ -77,15 +76,13 @@ function create_stack_trace(thread: threading.JVMThread, throwable: java_object.
     } else {
       sourceFile = 'unknown';
     }
-    console.log(cls.get_type() + "::" + sf.method.full_signature() + " " + sourceFile + ":" + ln);
-    stacktrace.push(new java_object.JavaObject(stackTraceElementCls), {
+    stacktrace.push(new java_object.JavaObject(stackTraceElementCls, {
       'Ljava/lang/StackTraceElement;declaringClass': java_object.initString(bsCl, util.ext_classname(cls.get_type())),
       'Ljava/lang/StackTraceElement;methodName': java_object.initString(bsCl, sf.method.name != null ? sf.method.name : 'unknown'),
       'Ljava/lang/StackTraceElement;fileName': java_object.initString(bsCl, sourceFile),
       'Ljava/lang/StackTraceElement;lineNumber': ln
-    });
+    }));
   }
-  console.log("\n");
   return stacktrace.reverse();
 }
 
