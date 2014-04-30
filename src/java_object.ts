@@ -28,11 +28,11 @@ export class JavaArray {
     return new JavaArray(this.cls, underscore.clone(this.array));
   }
 
-  public get_field_from_offset(offset: gLong): any {
+  public get_field_from_offset(thread: threading.JVMThread, offset: gLong): any {
     return this.array[offset.toInt()];
   }
 
-  public set_field_from_offset(offset: gLong, value: any): void {
+  public set_field_from_offset(thread: threading.JVMThread, offset: gLong, value: any): void {
     this.array[offset.toInt()] = value;
   }
 
