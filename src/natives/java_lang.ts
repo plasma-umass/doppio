@@ -48,7 +48,7 @@ function create_stack_trace(thread: threading.JVMThread, throwable: java_object.
     stackTraceElementCls = <ClassData.ReferenceClassData> bsCl.getInitializedClass('Ljava/lang/StackTraceElement;');
   // Ignore any stack frames involved in the construction of this throwable.
   // @todo There has to be a better way! What does the JVM do?
-  while (cstack[cstack.length - 1].locals[0] === throwable) {
+  while (cstack[cstack.length - 1].method.access_flags.native || cstack[cstack.length - 1].locals[0] === throwable) {
     cstack.pop();
   }
   for (i = 0; i < cstack.length; i++) {

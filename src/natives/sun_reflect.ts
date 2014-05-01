@@ -87,8 +87,7 @@ class sun_reflect_ConstantPool {
     return null;
   }
 
-  public static 'getUTF8At0(Ljava/lang/Object;I)Ljava/lang/String;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, cpo: java_object.JavaObject, idx: number): java_object.JavaObject {
-    var cp = <ConstantPool.ConstantPool> cpo.get_field(thread, 'Lsun/reflect/ConstantPool;constantPoolOop');
+  public static 'getUTF8At0(Ljava/lang/Object;I)Ljava/lang/String;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, cp: ConstantPool.ConstantPool, idx: number): java_object.JavaObject {
     return java_object.initString(thread.getBsCl(), cp.get(idx).value);
   }
 

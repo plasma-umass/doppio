@@ -212,7 +212,7 @@ function make_dis(class_file) {
     };
     if (!(m.access_flags["native"] || m.access_flags.abstract)) {
       var code = m.code;
-      code.parse_code();
+      m.getCode();
       method['code'] = {
         max_stack: code.max_stack,
         max_locals: code.max_locals,
