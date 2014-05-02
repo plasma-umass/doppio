@@ -523,7 +523,7 @@ export function heapMultiNewArray(thread: threading.JVMThread, loader: ClassLoad
         var next_dim = curr_dim + 1;
         var comp_type = type.slice(1);
         for (var i = 0; i < len; i++) {
-          if (array[i] = init_arr(next_dim, comp_type) == null) {
+          if ((array[i] = init_arr(next_dim, comp_type)) == null) {
             // Exception occurred.
             return undefined;
           }
