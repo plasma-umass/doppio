@@ -755,7 +755,7 @@ export class JVMThread extends java_object.JavaObject {
       // !!! UNCAUGHT EXCEPTION !!!
       // This should actually never happen. All executions should end at the
       // internal frame created by runMethod.
-      assert(false);
+      assert(false, 'No stack frame was able to handle the exception.');
     }
   }
 
