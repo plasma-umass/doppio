@@ -119,7 +119,7 @@ export class BytecodeStackFrame implements IStackFrame {
       pc = this.pc, method = this.method;
 
     // Only rewind if we're not at the top of the stack.
-    if (this !== thread.currFrame()) {
+    if (this !== thread.exceptionStackFrame) {
       pc -= 3;
       while (pc >= 0 && (opcodes[pc] == null || opcodes[pc].name.indexOf('invoke') !== 0)) {
         pc--;
@@ -470,6 +470,11 @@ export class JVMThread extends java_object.JavaObject {
   private monitor: java_object.Monitor = null;
 
   /**
+   * The stack frame that originally threw the current exception.
+   */
+  public exceptionStackFrame: IStackFrame = null;
+
+  /**
    * Initializes a new JVM thread. Starts the thread in the NEW state.
    */
   constructor(private bsCl: ClassLoader.BootstrapClassLoader,
@@ -705,10 +710,6 @@ export class JVMThread extends java_object.JavaObject {
     this.stack.pop();
   }
 
-  public currFrame(): IStackFrame {
-    return this.stack[this.stack.length-1];
-  }
-
   /**
    * Throws the given JVM exception. Causes the thread to unwind the stack until
    * it can find a stack frame that can handle the exception.
@@ -730,6 +731,7 @@ export class JVMThread extends java_object.JavaObject {
       "Tried to throw exception while thread was in state " + enums.ThreadStatus[this.status]);
     assert(this.stack.length > 0);
     var stack = this.stack, idx: number = stack.length - 1;
+    this.exceptionStackFrame = stack[idx];
     // When a native or internal stack frame throws an exception, it cannot
     // process its own exception.
     if (stack[idx].type !== enums.StackFrameType.BYTECODE) {
@@ -745,6 +747,9 @@ export class JVMThread extends java_object.JavaObject {
       stack.pop();
       idx--;
     }
+
+    // Reset.
+    this.exceptionStackFrame = null;
 
     if (stack.length === 0) {
       // !!! UNCAUGHT EXCEPTION !!!
