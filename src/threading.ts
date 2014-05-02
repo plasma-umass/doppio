@@ -118,10 +118,8 @@ export class BytecodeStackFrame implements IStackFrame {
       opcodes: opcodes.Opcode[] = this.method.getCode(),
       pc = this.pc, method = this.method;
 
-    // If the opcode is athrow, then we probably threw the exception.
-    // @todo This... probably isn't robust. Pre-refactor Doppio used a TopOfStack
-    // boolean, but we can't do that cuz scheduleException may be async.
-    if (opcodes[pc].name !== 'athrow') {
+    // Only rewind if we're not at the top of the stack.
+    if (this !== thread.currFrame()) {
       pc -= 3;
       while (pc >= 0 && (opcodes[pc] == null || opcodes[pc].name.indexOf('invoke') !== 0)) {
         pc--;
@@ -705,6 +703,10 @@ export class JVMThread extends java_object.JavaObject {
    */
   public framePop(): void {
     this.stack.pop();
+  }
+
+  public currFrame(): IStackFrame {
+    return this.stack[this.stack.length-1];
   }
 
   /**
