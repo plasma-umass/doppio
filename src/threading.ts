@@ -66,7 +66,7 @@ export class BytecodeStackFrame implements IStackFrame {
   public run(thread: JVMThread): void {
     var method = this.method, code = this.method.getCode();
     if (this.pc === 0) {
-      //console.log("T" + thread.ref + " " + this.method.full_signature() + " [Bytecode]");
+      logging.vtrace("T" + thread.ref + " " + this.method.full_signature() + " [Bytecode]");
     }
     if (method.access_flags.synchronized && this.pc === 0) {
       // We are starting a synchronized method! These must implicitly enter
@@ -82,16 +82,16 @@ export class BytecodeStackFrame implements IStackFrame {
     // from the previous time this method was run, and is meaningless.
     this.returnToThreadLoop = false;
 
-    //console.log("Resuming " + this.method.full_signature() + ":" + this.pc + " [Bytecode]");
-    //console.log("BEFORE: D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
+    logging.vtrace("Resuming " + this.method.full_signature() + ":" + this.pc + " [Bytecode]");
+    logging.vtrace("BEFORE: D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
     // Run until we get the signal to return to the thread loop.
     while (!this.returnToThreadLoop) {
       var op = code[this.pc];
-      //console.log("D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
-      //console.log(method.cls.get_type() + "::" + method.name + ":" + this.pc + " => " + op.name + op.annotate(this.pc, method.cls.constant_pool));
+      logging.vtrace("D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
+      logging.vtrace(method.cls.get_type() + "::" + method.name + ":" + this.pc + " => " + op.name + op.annotate(this.pc, method.cls.constant_pool));
       op.execute(thread, this);
     }
-    //console.log("AFTER: D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
+    logging.vtrace("AFTER: D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
   }
 
   public scheduleResume(thread: JVMThread, rv?: any, rv2?: any): void {
