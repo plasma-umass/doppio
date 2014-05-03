@@ -202,6 +202,8 @@ export class PrimitiveClassData extends ClassData {
         return 'Ljava/lang/Short;';
       case 'Z':
         return 'Ljava/lang/Boolean;';
+      case 'V':
+        return 'Ljava/lang/Void;';
       default:
         throw new Error("Tried to box a non-primitive class: " + this.this_class);
     }
@@ -212,8 +214,10 @@ export class PrimitiveClassData extends ClassData {
     var box_cls = <ReferenceClassData> thread.getBsCl().getInitializedClass(box_name);
     // these are all initialized in preinit (for the BSCL, at least)
     var wrapped = new JavaObject(box_cls);
-    // XXX: all primitive wrappers store their value in a private static final field named 'value'
-    wrapped.fields[box_name + 'value'] = value;
+    if (box_name !== 'V') {
+      // XXX: all primitive wrappers store their value in a private static final field named 'value'
+      wrapped.fields[box_name + 'value'] = value;
+    }
     return wrapped;
   }
 

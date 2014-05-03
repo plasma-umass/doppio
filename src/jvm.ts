@@ -41,7 +41,7 @@ var coreClasses = [
   'Lsun/misc/VM;', 'Lsun/reflect/ConstantPool;', 'Ljava/lang/Byte;',
   'Ljava/lang/Character;', 'Ljava/lang/Double;', 'Ljava/lang/Float;',
   'Ljava/lang/Integer;', 'Ljava/lang/Long;', 'Ljava/lang/Short;',
-  'Ljava/io/FileDescriptor;',
+  'Ljava/lang/Void;', 'Ljava/io/FileDescriptor;',
   'Ljava/lang/Boolean;', '[Lsun/management/MemoryManagerImpl;',
   '[Lsun/management/MemoryPoolImpl;'
 ];

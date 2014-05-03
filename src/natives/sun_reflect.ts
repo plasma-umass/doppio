@@ -166,7 +166,7 @@ class sun_reflect_NativeMethodAccessorImpl {
       if (e) {
         thread.throwException(e);
       } else {
-        if (util.is_primitive_type(ret_type)) {
+        if (util.is_primitive_type(m.return_type)) {
           // wrap up primitives in their Object box
           thread.asyncReturn(ret_type.$cls.create_wrapper_object(thread, rv));
         } else {
