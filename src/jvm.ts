@@ -52,7 +52,7 @@ var coreClasses = [
  */
 class JVM {
   private systemProperties: {[prop: string]: any};
-  private internedStrings: { [str: string]: java_object.JavaObject } = {};
+  private internedStrings: util.SafeMap = new util.SafeMap();
   private bsCl: ClassLoader.BootstrapClassLoader;
   private threadPool: threading.ThreadPool;
   private natives: { [clsName: string]: { [methSig: string]: Function } } = {};
@@ -237,15 +237,15 @@ class JVM {
    * Interns the given JavaScript string. Returns the interned string.
    */
   public internString(str: string, javaObj?: java_object.JavaObject): java_object.JavaObject {
-    var internedString = this.internedStrings[str];
-    if (internedString == null) {
-      if (javaObj) {
-        internedString = this.internedStrings[str] = javaObj;
-      } else {
-        internedString = this.internedStrings[str] = java_object.initString(this.bsCl, str);
+    if (this.internedStrings.has(str)) {
+      return this.internedStrings.get(str);
+    } else {
+      if (!javaObj) {
+        javaObj = java_object.initString(this.bsCl, str);
       }
+      this.internedStrings.set(str, javaObj);
+      return javaObj;
     }
-    return internedString;
   }
 
   /**
