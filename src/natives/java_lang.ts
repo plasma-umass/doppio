@@ -288,6 +288,8 @@ class java_lang_Class {
 
   public static 'getConstantPool()Lsun/reflect/ConstantPool;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaObject {
     var cls = <ClassData.ReferenceClassData> javaThis.$cls;
+    // @todo Make this a proper JavaObject. I don't think the JCL uses it as such,
+    // but right now this function fails any automated sanity checks on return values.
     return new java_object.JavaObject(<ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass('Lsun/reflect/ConstantPool;'), {
       'Lsun/reflect/ConstantPool;constantPoolOop': cls.constant_pool
     });
@@ -1077,8 +1079,7 @@ class java_lang_System {
    * @todo Store our system properties in a proper JVM hashMap, as is expected.
    */
   public static 'initProperties(Ljava/util/Properties;)Ljava/util/Properties;'(thread: threading.JVMThread, arg0: java_object.JavaObject): void {
-    // return value should not be used
-    // @todo WAT
+    return null;
   }
 
   public static 'mapLibraryName(Ljava/lang/String;)Ljava/lang/String;'(thread: threading.JVMThread, arg0: java_object.JavaObject): java_object.JavaObject {

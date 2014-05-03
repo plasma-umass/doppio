@@ -160,8 +160,6 @@ export class InvokeOpcode extends Opcode {
       if (m != null) {
         thread.runMethod(m, m.takeArgs(frame.stack));
         frame.returnToThreadLoop = true;
-        // When this method resumes, we will proceed to the next opcode.
-        this.incPc(frame);
       } else {
         // Could not find method! An exception has been thrown.
         frame.returnToThreadLoop = true;
@@ -244,7 +242,6 @@ export class DynInvokeOpcode extends InvokeOpcode {
         var m = obj.cls.method_lookup(thread, this.method_spec.sig);
         if (m != null) {
           thread.runMethod(m, m.takeArgs(stack));
-          this.incPc(frame);
           frame.returnToThreadLoop = true;
         } else {
           // Method could not be found, and an exception has been thrown.

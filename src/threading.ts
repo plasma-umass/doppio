@@ -9,6 +9,7 @@ import opcodes = require('./opcodes');
 import attributes = require('./attributes');
 import logging = require('./logging');
 import JVM = require('./jvm');
+import util = require('./util');
 
 var debug = logging.debug;
 
@@ -95,6 +96,8 @@ export class BytecodeStackFrame implements IStackFrame {
   }
 
   public scheduleResume(thread: JVMThread, rv?: any, rv2?: any): void {
+    // Advance to the next opcode.
+    this.method.getCode()[this.pc].incPc(this);
     if (rv !== undefined) {
       this.stack.push(rv);
     }
@@ -112,23 +115,11 @@ export class BytecodeStackFrame implements IStackFrame {
    * in the event that it can't actually handle it.
    */
   public scheduleException(thread: JVMThread, e: java_object.JavaObject): boolean {
-    // STEP 1: We need the pc value of the opcode that caused this mess.
-    // Rewind until we find it.
     var code = this.method.getCodeAttribute(),
       opcodes: opcodes.Opcode[] = this.method.getCode(),
-      pc = this.pc, method = this.method;
-
-    // Only rewind if we're not at the top of the stack.
-    if (this !== thread.exceptionStackFrame) {
-      pc -= 3;
-      while (pc >= 0 && (opcodes[pc] == null || opcodes[pc].name.indexOf('invoke') !== 0)) {
-        pc--;
-      }
-      // We either found it, or we're at 0. Good enuff.
-    }
-
-    // STEP 2: See if we can find an appropriate handler for this exception!
-    var exceptionHandlers = code.exception_handlers,
+      pc = this.pc, method = this.method,
+      // STEP 1: See if we can find an appropriate handler for this exception!
+      exceptionHandlers = code.exception_handlers,
       ecls = e.cls, handler: attributes.ExceptionHandler, i: number;
     for (i = 0; i < exceptionHandlers.length; i++) {
       var eh = exceptionHandlers[i];
@@ -168,7 +159,7 @@ export class BytecodeStackFrame implements IStackFrame {
       }
     }
 
-    // STEP 3: Either continue on if we could not find an appropriate handler,
+    // STEP 2: Either continue on if we could not find an appropriate handler,
     // or set up the stack for appropriate resumption.
     if (handler != null) {
       // Found the handler.
@@ -179,7 +170,7 @@ export class BytecodeStackFrame implements IStackFrame {
     } else {
       // abrupt method invocation completion
       debug("exception not caught, terminating " + method.full_signature());
-      // STEP 4: Synchronized method? Exit from the method's monitor.
+      // STEP 3: Synchronized method? Exit from the method's monitor.
       if (method.access_flags.synchronized) {
         method.method_lock(thread, this).exit(thread);
       }
@@ -230,7 +221,7 @@ class NativeStackFrame implements IStackFrame {
    * NOTE: Should only be called once.
    */
   public run(thread: JVMThread): void {
-    //console.log("T" + thread.ref + " " + this.method.full_signature() + " [Native Code]");
+    logging.vtrace("T" + thread.ref + " " + this.method.full_signature() + " [Native Code]");
     var rv: any = this.nativeMethod.apply(null, this.method.convertArgs(thread, this.args));
     if (thread.getStatus() === enums.ThreadStatus.RUNNING) {
       // Normal native method exit.
@@ -470,11 +461,6 @@ export class JVMThread extends java_object.JavaObject {
   private monitor: java_object.Monitor = null;
 
   /**
-   * The stack frame that originally threw the current exception.
-   */
-  public exceptionStackFrame: IStackFrame = null;
-
-  /**
    * Initializes a new JVM thread. Starts the thread in the NEW state.
    */
   constructor(private bsCl: ClassLoader.BootstrapClassLoader,
@@ -688,7 +674,8 @@ export class JVMThread extends java_object.JavaObject {
     // Pop off the current method.
     var frame = stack.pop();
     if (frame.type != enums.StackFrameType.INTERNAL) {
-      //console.log("RETURNING FROM " + (<methods.Method> (<any>frame).method).full_signature() + " RV: " + rv + " RV2: " + rv2);
+      var frameCast = <BytecodeStackFrame> frame;
+      checkReturnValue(frameCast.method, frameCast.method.return_type, this.bsCl, frameCast.method.cls.get_class_loader(), rv, rv2);
     }
     // Tell the top of the stack that this RV is waiting for it.
     var idx: number = stack.length - 1;
@@ -731,7 +718,7 @@ export class JVMThread extends java_object.JavaObject {
       "Tried to throw exception while thread was in state " + enums.ThreadStatus[this.status]);
     assert(this.stack.length > 0);
     var stack = this.stack, idx: number = stack.length - 1;
-    this.exceptionStackFrame = stack[idx];
+
     // When a native or internal stack frame throws an exception, it cannot
     // process its own exception.
     if (stack[idx].type !== enums.StackFrameType.BYTECODE) {
@@ -747,9 +734,6 @@ export class JVMThread extends java_object.JavaObject {
       stack.pop();
       idx--;
     }
-
-    // Reset.
-    this.exceptionStackFrame = null;
 
     if (stack.length === 0) {
       // !!! UNCAUGHT EXCEPTION !!!
@@ -793,5 +777,80 @@ export class JVMThread extends java_object.JavaObject {
         }
       }, false);
     }
+  }
+}
+
+/**
+ * Asserts that the return value of the function passes basic sanity checks.
+ */
+function checkReturnValue(method: methods.Method, returnType: string, bsCl: ClassLoader.BootstrapClassLoader, cl: ClassLoader.ClassLoader, rv1: any, rv2: any) {
+  try {
+    var cls: ClassData.ClassData;
+    if (util.is_primitive_type(returnType)) {
+      switch (returnType) {
+        case 'Z': // Boolean
+          assert(rv2 === undefined);
+          assert(rv1 === 1 || rv1 === 0);
+          break;
+        case 'B': // Byte
+          assert(rv2 === undefined);
+          assert(rv1 <= 127 && rv1 >= -128);
+          break;
+        case 'C':
+          assert(rv2 === undefined);
+          assert(rv1 <= 65535 && rv1 >= 0);
+          break;
+        case 'S':
+          assert(rv2 === undefined);
+          assert(rv1 <= 32767 && rv1 >= -32768);
+          break;
+        case 'I': // int
+          assert(rv2 === undefined);
+          assert(rv1 <= 2147483647 && rv1 >= -2147483648);
+          break;
+        case 'J': // long //-9223372036854775808 to 9223372036854775807
+          assert(rv2 === null);
+          assert((<gLong>rv1).lessThanOrEqual(gLong.MAX_VALUE) && (<gLong>rv1).greaterThanOrEqual(gLong.MIN_VALUE));
+          break;
+        case 'F': // Float
+          assert(rv2 === undefined);
+          assert(util.wrap_float(rv1) === rv1);
+          break;
+        case 'D': // Double
+          assert(rv2 === null);
+          assert(typeof rv1 === 'number');
+          break;
+        case 'V':
+          assert(rv1 === undefined && rv2 === undefined);
+          break;
+      }
+    } else if (util.is_array_type(returnType)) {
+      assert(rv2 === undefined);
+      assert(rv1 === null || rv1 instanceof java_object.JavaArray);
+      if (rv1 != null) {
+        cls = cl.getInitializedClass(returnType);
+        if (cls === null) {
+          cls = bsCl.getInitializedClass(returnType);
+        }
+        assert(cls != null);
+        assert(rv1.cls.is_castable(cls));
+      }
+    } else {
+      assert(util.is_reference_type(returnType));
+      assert(rv2 === undefined);
+      assert(rv1 === null || rv1 instanceof java_object.JavaObject || rv1 instanceof java_object.JavaArray);
+      if (rv1 != null) {
+        cls = cl.getInitializedClass(returnType);
+        if (cls === null) {
+          cls = bsCl.getInitializedClass(returnType);
+        }
+        assert(cls != null);
+        assert(rv1.cls.is_castable(cls));
+      }
+    }
+  } catch (e) {
+    console.log("Failure during method " + method.full_signature());
+    console.log("Actual RV: " + rv1);
+    throw e;
   }
 }
