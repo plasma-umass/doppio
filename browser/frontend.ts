@@ -7,7 +7,7 @@
 /// <reference path="../vendor/DefinitelyTyped/ace/ace.d.ts" />
 /// <amd-dependency path="../vendor/underscore/underscore" />
 declare var BrowserFS: {
-  BFSRequire(name: 'process'): NodeProcess;
+  BFSRequire(name: 'process'): NodeJS.Process;
   BFSRequire(name: 'buffer'): { Buffer: typeof Buffer };
   BFSRequire(name: string): any;
 };
@@ -28,7 +28,7 @@ var underscore = require('../vendor/underscore/underscore'),
     JVM: typeof doppio.JVM = doppio.JVM,
     testing = doppio.testing,
     java_cli = doppio.java_cli,
-    process: NodeProcess = BrowserFS.BFSRequire('process'),
+    process: NodeJS.Process = BrowserFS.BFSRequire('process'),
     Buffer: typeof Buffer = BrowserFS.BFSRequire('buffer').Buffer,
     // To be initialized on document load
     stdout: (data: NodeBuffer) => void,

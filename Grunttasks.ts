@@ -12,9 +12,9 @@ var exec = child_process.exec,
     NUM_CPUS = os.cpus().length,
     DEBS_DOMAIN: string = "http://security.ubuntu.com/ubuntu/pool/main/o/openjdk-6/",
     DEBS: string[] = [
-        "openjdk-6-jre-headless_6b30-1.13.1-1ubuntu2~0.12.04.3_i386.deb",
-        "openjdk-6-jdk_6b30-1.13.1-1ubuntu2~0.12.04.3_i386.deb",
-        "openjdk-6-jre-lib_6b30-1.13.1-1ubuntu2~0.12.04.3_all.deb"
+        "openjdk-6-jdk_6b31-1.13.3-1ubuntu1~0.12.04.2_i386.deb",
+        "openjdk-6-jre-headless_6b31-1.13.3-1ubuntu1~0.12.04.2_i386.deb",
+        "openjdk-6-jre-lib_6b31-1.13.3-1ubuntu1~0.12.04.2_all.deb" 
     ],
     ECJ_URL: string = "http://www.eclipse.org/downloads/download.php?file=/eclipse/downloads/drops/R-3.7.1-201109091335/ecj-3.7.1.jar",
     JAZZLIB_URL: string = "http://downloads.sourceforge.net/project/jazzlib/jazzlib/0.07/jazzlib-binary-0.07-juz.zip",
