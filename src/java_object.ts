@@ -419,6 +419,7 @@ export class Monitor {
     var unblockIdx = this.blocked.indexOf(thread);
     if (unblockIdx !== -1) {
       this.blocked.splice(unblockIdx, 1);
+      thread.setStatus(enums.ThreadStatus.RUNNABLE);
     }
   }
 

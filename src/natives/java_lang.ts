@@ -1241,14 +1241,14 @@ class java_lang_Thread {
               javaThis.getThreadPool().completelyUnpark(javaThis);
               // FALL-THROUGH
             default:
-              var objCls = thread.getBsCl().getInitializedClass('Ljava/lang/Object;'),
+              var threadCls = thread.getBsCl().getInitializedClass('Ljava/lang/Thread;'),
                 // If we are in the following methods, we throw an InterruptedException:
                 interruptMethods: methods.Method[] = [
-                  objCls.method_lookup(thread, 'join()V'),       // * Object.join()
-                  objCls.method_lookup(thread, 'join(J)V'),     // * Object.join(long)
-                  objCls.method_lookup(thread, 'join(JI)V'),   // * Object.join(long, int)
-                  objCls.method_lookup(thread, 'sleep(J)V'),   // * Object.sleep(long)
-                  objCls.method_lookup(thread, 'sleep(JI)V') // * Object.sleep(long, int)
+                  threadCls.method_lookup(thread, 'join()V'),   // * Thread.join()
+                  threadCls.method_lookup(thread, 'join(J)V'),  // * Thread.join(long)
+                  threadCls.method_lookup(thread, 'join(JI)V'), // * Thread.join(long, int)
+                  threadCls.method_lookup(thread, 'sleep(J)V'), // * Thread.sleep(long)
+                  threadCls.method_lookup(thread, 'sleep(JI)V') // * Thread.sleep(long, int)
                 ],
                 stackTrace = javaThis.getStackTrace(),
                 currentMethod = stackTrace[stackTrace.length - 1].method;
