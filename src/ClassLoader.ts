@@ -89,6 +89,7 @@ export class ClassLoader {
    * Defines a new array class with this loader.
    */
   public defineArrayClass(typeStr: string): ClassData.ArrayClassData {
+    assert(this.getLoadedClass(util.get_component_type(typeStr)) != null);
     var arrayClass = new ClassData.ArrayClassData(util.get_component_type(typeStr), this);
     this.addClass(typeStr, arrayClass);
     return arrayClass;
@@ -109,9 +110,23 @@ export class ClassLoader {
         // Primitive classes must be fetched from the bootstrap classloader.
         return this.bootstrap.getPrimitiveClass(typeStr);
       } else if (util.is_array_type(typeStr)) {
-        // Array classes can be *loaded* synchronously. Resolving, on the other
-        // hand, might need to be done asynchronously.
-        return this.defineArrayClass(typeStr);
+        // We might be able to load this array class synchronously.
+        // Component class must be loaded. And we must define the array class
+        // with the component class's loader.
+        var component = this.getLoadedClass(util.get_component_type(typeStr));
+        if (component != null) {
+          var componentCl = component.get_class_loader();
+          if (componentCl === this) {
+            // We're responsible for defining the array class.
+            return this.defineArrayClass(typeStr);
+          } else {
+            // Delegate to the other loader, then add the class to our loaded
+            // roster.
+            cls = componentCl.getLoadedClass(typeStr);
+            this.addClass(typeStr, cls);
+            return cls;
+          }
+        }
       }
       return null;
     }
@@ -181,10 +196,17 @@ export class ClassLoader {
       });
     } else {
       // Async it is!
-      // NOTE: Must be a reference type. Array and primitives can be *loaded*
-      // synchronously.
-      assert(util.is_reference_type(typeStr));
-      this._loadClass(thread, typeStr, cb, explicit);
+      if (util.is_reference_type(typeStr)) {
+        this._loadClass(thread, typeStr, cb, explicit);
+      } else {
+        // Array
+        this._loadClass(thread, util.get_component_type(typeStr), (cdata) => {
+          if (cdata != null) {
+            // Synchronously will work now.
+            cb(this.getLoadedClass(typeStr));
+          }
+        }, explicit);
+      }
     }
   }
 
