@@ -30,6 +30,16 @@ function find_native_java(grunt: IGrunt) {
     grunt.log.writeln("Locating your Java 6 installation...");
     if (process.platform.match(/win32/i)) {
       // Windows
+      // Option 1: is JAVA_HOME defined?
+      if (process.env.JAVA_HOME) {
+        var java_bin = path.resolve(process.env.JAVA_HOME, 'bin');
+        grunt.config.set('build.java', path.resolve(java_bin, 'java'));
+        grunt.config.set('build.javac', path.resolve(java_bin, 'javac'));
+        grunt.config.set('build.javap', path.resolve(java_bin, 'javap'));
+        return cb();
+      }
+
+      // Option 2: Can we find it in the registry?
       // N.B.: We cannot include 'winreg' in package.json, as it fails to install
       //       on *nix environments. :(
       check_install_module(grunt, 'winreg', function(err?: any) {
@@ -37,6 +47,7 @@ function find_native_java(grunt: IGrunt) {
         var Winreg = require('winreg');
         // Look up JDK path.
         var regKey = new Winreg({
+          hive: Winreg.HKLM,
           key:  '\\SOFTWARE\\JavaSoft\\Java Development Kit\\1.6'
         });
         // XXX: We don't have typings for winreg.
@@ -85,7 +96,10 @@ function find_native_java(grunt: IGrunt) {
  * Ensures that the version of Java we found was Java 6.
  */
 function check_java_version(grunt: IGrunt, cb: (status?: boolean) => void): void {
-  exec(grunt.config('build.javac') + ' -version', function(err, stdout, stderr) {
+  exec('"' + grunt.config('build.javac') + '" -version', function(err, stdout, stderr) {
+    if (err) {
+      throw err;
+    }
     var java_version = /(\d+\.\d+\.\d+)/.exec(stderr.toString())[1];
     if (!semver.satisfies(java_version, '<1.7.0')) {
       grunt.fail.fatal('Detected Java '+java_version+' (via javac). Please use Java <= 1.6');
