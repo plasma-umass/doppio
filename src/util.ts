@@ -615,15 +615,15 @@ export function last(array: any[]): any {
   return array[array.length - 1];
 }
 
-export class SafeMap {
-  private cache: any;
-  private proto_cache: any
+export class SafeMap<T> {
+  private cache: {[key: string]: T};
+  private proto_cache: T;
 
   constructor() {
     this.cache = Object.create(null);  // has no defined properties aside from __proto__
   }
 
-  public get(key: string): any {
+  public get(key: string): T {
     if (this.cache[key] != null) {
       return this.cache[key];
     }
@@ -637,7 +637,7 @@ export class SafeMap {
     return this.get(key) !== void 0;
   }
 
-  public set(key: string, value: any): void {
+  public set(key: string, value: T): void {
     // non-strict comparison to allow for the possibility of `new String('__proto__')`
     if (key != '__proto__') {
       this.cache[key] = value;

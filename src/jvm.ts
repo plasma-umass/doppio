@@ -52,7 +52,7 @@ var coreClasses = [
  */
 class JVM {
   private systemProperties: {[prop: string]: any};
-  private internedStrings: util.SafeMap = new util.SafeMap();
+  private internedStrings: util.SafeMap<java_object.JavaObject> = new util.SafeMap<java_object.JavaObject>();
   private bsCl: ClassLoader.BootstrapClassLoader;
   private threadPool: threading.ThreadPool;
   private natives: { [clsName: string]: { [methSig: string]: Function } } = {};
