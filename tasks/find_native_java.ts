@@ -99,7 +99,7 @@ function check_java_version(grunt: IGrunt, cb: (status?: boolean) => void): void
 
 /**
  * Retrieves the given registry key using the REG command line utility.
- * Returns an error if it fails, or the key as a dictionary if it succeeds.\
+ * Returns an error if it fails, or the key as a dictionary if it succeeds.
  * 
  * Inspired by node-winreg, but rewritten here due to a bug in that module.
  * https://github.com/fresc81/node-winreg
