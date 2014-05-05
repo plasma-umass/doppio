@@ -62,7 +62,7 @@ function symlink_java_home(grunt: IGrunt, cb: (err?: any) => void): void {
     return cb();
   }
   grunt.config.requires('build.scratch_dir');
-  var JH = path.resolve(grunt.config('build.scratch_dir'), 'usr', 'lib', 'jvm', 'java-6-openjdk-i386', 'jre');
+  var JH = path.resolve(grunt.config('build.scratch_dir'), 'usr', 'lib', 'jvm', 'java-6-openjdk-common', 'jre');
   // a number of .properties files are symlinks to /etc; copy the targets over
   // so we do not need to depend on /etc's existence
   var links = find_symlinks(JH);
@@ -80,7 +80,7 @@ function symlink_java_home(grunt: IGrunt, cb: (err?: any) => void): void {
       } else {
         var p = path.resolve(path.join(path.dirname(link), dest));
         // copy in anything that links out of the JH dir
-        if (!p.match(/java-6-openjdk-i386/)) {
+        if (!p.match(/java-6-openjdk-common/)) {
           // XXX: this fails if two symlinks reference the same file
           if (fs.statSync(p).isDirectory()) {
             fs.unlinkSync(link);
