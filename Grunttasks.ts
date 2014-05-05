@@ -12,9 +12,9 @@ var exec = child_process.exec,
     NUM_CPUS = os.cpus().length,
     DEBS_DOMAIN: string = "http://security.ubuntu.com/ubuntu/pool/main/o/openjdk-6/",
     DEBS: string[] = [
-        "openjdk-6-jre-headless_6b30-1.13.1-1ubuntu2~0.12.04.3_i386.deb",
-        "openjdk-6-jdk_6b30-1.13.1-1ubuntu2~0.12.04.3_i386.deb",
-        "openjdk-6-jre-lib_6b30-1.13.1-1ubuntu2~0.12.04.3_all.deb"
+      "openjdk-6-jdk_6b31-1.13.3-1ubuntu1~0.12.04.2_i386.deb",
+      "openjdk-6-jre-headless_6b31-1.13.3-1ubuntu1~0.12.04.2_i386.deb",
+      "openjdk-6-jre-lib_6b31-1.13.3-1ubuntu1~0.12.04.2_all.deb"
     ],
     ECJ_URL: string = "http://www.eclipse.org/downloads/download.php?file=/eclipse/downloads/drops/R-3.7.1-201109091335/ecj-3.7.1.jar",
     JAZZLIB_URL: string = "http://downloads.sourceforge.net/project/jazzlib/jazzlib/0.07/jazzlib-binary-0.07-juz.zip",
@@ -407,7 +407,7 @@ export function setup(grunt: IGrunt) {
 
   grunt.registerTask('setup', "Sets up doppio's environment prior to building.", function(build_type: string) {
     var need_jcl: boolean, need_ecj: boolean, need_jazzlib: boolean,
-        need_java_home: boolean;
+      need_java_home: boolean, tasks: string[] = [];
     if (build_type == null) {
       grunt.fail.fatal("setup build task needs to know the build type.");
     }
@@ -421,24 +421,25 @@ export function setup(grunt: IGrunt) {
       // Create download folder. It shouldn't exist, as it is randomly generated.
       fs.mkdirSync(grunt.config('build.scratch_dir'));
       // Schedule download task.
-      grunt.task.run('curl-dir');
+      tasks.push('curl-dir');
     }
     if (need_jcl || need_java_home) {
-      grunt.task.run('extract_deb');
+      tasks.push('extract_deb');
     }
     if (need_jcl) {
-      grunt.task.run('unzip:jcl');
+      tasks.push('unzip:jcl');
     }
     if (need_ecj) {
-      grunt.task.run('unzip:ecj');
+      tasks.push('unzip:ecj');
     }
     if (need_jazzlib) {
-      grunt.task.run('unzip:jazzlib');
-      grunt.task.run('copy:jazzlib');
+      tasks.push('unzip:jazzlib');
+      tasks.push('copy:jazzlib');
     }
     if (need_java_home) {
-      grunt.task.run('setup_java_home');
+      tasks.push('setup_java_home');
     }
+    grunt.task.run(tasks);
   });
   grunt.registerTask('java',
     ['find_native_java',

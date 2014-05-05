@@ -341,10 +341,23 @@ export class ThreadPool {
     return this.threads.slice(0);
   }
 
+  private addThread(thread: JVMThread): void {
+    if (this.threads.indexOf(thread) === -1) {
+      this.threads.push(thread);
+    }
+  }
+
   public newThread(cls: ClassData.ReferenceClassData): JVMThread {
     var thread = new JVMThread(this.bsCl, this, cls);
-    this.threads.push(thread);
+    this.addThread(thread);
     return thread;
+  }
+
+  /**
+   * Resurrects a previously-terminated thread.
+   */
+  public resurrectThread(thread: JVMThread): void {
+    this.addThread(thread);
   }
 
   public getJVM(): JVM {
@@ -353,32 +366,32 @@ export class ThreadPool {
 
   /**
    * Schedules and runs the next thread.
-   * Should be triggered from setImmediate so the stack is reset.
    */
   private scheduleNextThread(): void {
-    var i: number, threads = this.threads;
-    if (this.runningThread == null) {
-      for (i = 0; i < threads.length; i++) {
-        if (threads[i].getStatus() === enums.ThreadStatus.RUNNABLE) {
-          this.runningThread = threads[i];
-          threads[i].setStatus(enums.ThreadStatus.RUNNING);
-          break;
+    // Reset stack depth, start at beginning of new JS event.
+    setImmediate(() => {
+      var i: number, threads = this.threads;
+      if (this.runningThread == null) {
+        for (i = 0; i < threads.length; i++) {
+          if (threads[i].getStatus() === enums.ThreadStatus.RUNNABLE) {
+            this.runningThread = threads[i];
+            threads[i].setStatus(enums.ThreadStatus.RUNNING);
+            break;
+          }
         }
       }
-    }
+    });
   }
 
   public threadRunnable(thread: JVMThread): void {
     // We only care if no threads are running right now.
     if (this.runningThread == null) {
-      setImmediate(() => { this.scheduleNextThread(); });
+      this.scheduleNextThread();
     }
   }
 
   public threadTerminated(thread: JVMThread): void {
-    // XXX: Fix this once I figure out a decent way to boot up the JVM without
-    // creating a bunch of threads.
-    /*var idx: number = this.threads.indexOf(thread);
+    var idx: number = this.threads.indexOf(thread);
     assert(idx >= 0);
     // Remove the specified thread from the threadpool.
     this.threads.splice(idx, 1);
@@ -387,14 +400,14 @@ export class ThreadPool {
     if (this.runningThread === thread) {
       this.runningThread = null;
       this.scheduleNextThread();
-    }*/
+    }
   }
 
   public threadSuspended(thread: JVMThread): void {
     // If this was the running thread, schedule a new one to run.
     if (thread === this.runningThread) {
       this.runningThread = null;
-      setImmediate(() => { this.scheduleNextThread(); });
+      this.scheduleNextThread();
     }
   }
 
@@ -558,42 +571,121 @@ export class JVMThread extends java_object.JavaObject {
   }
 
   /**
-   * Changes the thread's current state.
+   * Transitions the thread from one state to the next.
    */
   public setStatus(status: enums.ThreadStatus, monitor?: java_object.Monitor): void {
+    function invalidTransition() {
+      throw new Error("Invalid state transition: " + enums.ThreadStatus[oldStatus] + " => " + enums.ThreadStatus[status]);
+    }
+
     if (this.status !== status) {
-      assert(status === enums.ThreadStatus.RUNNING ? this.status === enums.ThreadStatus.RUNNABLE : true);
+      var oldStatus = this.status;
+      logging.vtrace("T" + this.ref + " " + enums.ThreadStatus[oldStatus] + " => " + enums.ThreadStatus[status]);
 
-      // NOP. RUNNING => RUNNABLE makes no sense.
-      if (status === enums.ThreadStatus.RUNNABLE && this.status === enums.ThreadStatus.RUNNING) {
-        return;
-      }
-      // console.log("Thread " + this.ref + " State Change: " + enums.ThreadStatus[this.status] + " => " + enums.ThreadStatus[status]);
-
+      // Optimistically change state.
       this.status = status;
       this.monitor = null;
-      switch (status) {
+      // Transition: this.status => status
+      switch (oldStatus) {
+        case enums.ThreadStatus.NEW:
+          switch (status) {
+            case enums.ThreadStatus.RUNNABLE:
+            case enums.ThreadStatus.ASYNC_WAITING:
+              break;
+            default:
+              invalidTransition();
+          }
+          break;
         case enums.ThreadStatus.RUNNING:
-          // I'm now scheduled to run!
-          this.run();
+          switch (status) {
+            case enums.ThreadStatus.RUNNABLE:
+              // Downgrade; ignore.
+              // @todo May want to make this possible for purposes of responsiveness.
+              this.status = enums.ThreadStatus.RUNNING;
+              return;
+            case enums.ThreadStatus.TERMINATED:
+              break;
+            case enums.ThreadStatus.BLOCKED:
+            case enums.ThreadStatus.WAITING:
+            case enums.ThreadStatus.TIMED_WAITING:
+              assert(monitor != null);
+              this.monitor = monitor;
+              break;
+            case enums.ThreadStatus.ASYNC_WAITING:
+            case enums.ThreadStatus.PARKED:
+              break;
+            default:
+              invalidTransition();
+          }
           break;
         case enums.ThreadStatus.RUNNABLE:
-          // Inform the thread pool, in case no threads are currently scheduled.
-          this.tpool.threadRunnable(this);
+          switch (status) {
+            case enums.ThreadStatus.ASYNC_WAITING:
+            case enums.ThreadStatus.RUNNABLE:
+            case enums.ThreadStatus.RUNNING:
+              break;
+            default:
+              invalidTransition();
+          }
+          break;
+        case enums.ThreadStatus.ASYNC_WAITING:
+          switch (status) {
+            case enums.ThreadStatus.RUNNABLE:
+            case enums.ThreadStatus.TERMINATED:
+              break;
+            default:
+              invalidTransition();
+          }
+          break;
+        case enums.ThreadStatus.WAITING:
+        case enums.ThreadStatus.TIMED_WAITING:
+        case enums.ThreadStatus.BLOCKED:
+        case enums.ThreadStatus.PARKED:
+          switch (status) {
+            case enums.ThreadStatus.RUNNABLE:
+              break;
+            default:
+              invalidTransition();
+          }
           break;
         case enums.ThreadStatus.TERMINATED:
-          // Tell the threadpool to forget about us.
+          switch (status) {
+            case enums.ThreadStatus.NEW:
+              // Resurrect thread.
+              this.tpool.resurrectThread(this);
+              break;
+            case enums.ThreadStatus.RUNNABLE:
+            case enums.ThreadStatus.ASYNC_WAITING:
+              // Transition to new first.
+              // TERMINATED => NEW => [status]
+              this.status = enums.ThreadStatus.TERMINATED;
+              this.setStatus(enums.ThreadStatus.NEW);
+              this.setStatus(status);
+              return;
+            default:
+              invalidTransition();
+          }
+          break;
+        default:
+          invalidTransition();
+      }
+
+      /** Post-transition validation common actions **/
+      switch (this.status) {
+        case enums.ThreadStatus.RUNNABLE:
+          // Tell the threadpool we're ready to run.
+          this.tpool.threadRunnable(this);
+          break;
+        case enums.ThreadStatus.RUNNING:
+          // I'm scheduled to run!
+          this.run();
+          break;
+        case enums.ThreadStatus.TERMINATED:
           this.tpool.threadTerminated(this);
           break;
-        case enums.ThreadStatus.BLOCKED:
-        case enums.ThreadStatus.TIMED_WAITING:
-        case enums.ThreadStatus.WAITING:
-          assert(monitor !== null);
-          this.monitor = monitor;
-          // FALLTHROUGH
         default:
-          // Tell the threadpool we can't run right now.
           this.tpool.threadSuspended(this);
+          break;
       }
     }
   }
