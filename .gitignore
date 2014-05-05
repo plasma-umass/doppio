@@ -13,7 +13,6 @@ vendor
 *.tar.gz
 node_modules
 build
-docs
 index.html
 about.html
 .DS_store
