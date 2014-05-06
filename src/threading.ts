@@ -205,6 +205,7 @@ export class BytecodeStackFrame implements IStackFrame {
  */
 class NativeStackFrame implements IStackFrame {
   private nativeMethod: Function;
+  private dead: boolean = false;
 
   /**
    * Constructs a native method's stack frame.
@@ -223,7 +224,7 @@ class NativeStackFrame implements IStackFrame {
   public run(thread: JVMThread): void {
     logging.vtrace("T" + thread.ref + " " + this.method.full_signature() + " [Native Code]");
     var rv: any = this.nativeMethod.apply(null, this.method.convertArgs(thread, this.args));
-    if (thread.getStatus() === enums.ThreadStatus.RUNNING) {
+    if (thread.getStatus() === enums.ThreadStatus.RUNNING && !this.dead) {
       // Normal native method exit.
       var returnType = this.method.return_type;
       switch (returnType) {
@@ -255,6 +256,8 @@ class NativeStackFrame implements IStackFrame {
    * receive an exception.
    */
   public scheduleException(thread: JVMThread, e: java_object.JavaObject): boolean {
+    // Looks like we were interrupted by an exception.
+    this.dead = true;
     return false;
   }
 
@@ -811,9 +814,8 @@ export class JVMThread extends java_object.JavaObject {
     assert(this.stack.length > 0);
     var stack = this.stack, idx: number = stack.length - 1;
 
-    // When a native or internal stack frame throws an exception, it cannot
-    // process its own exception.
-    if (stack[idx].type !== enums.StackFrameType.BYTECODE) {
+    // An internal stack frame cannot process its own thrown exception.
+    if (stack[idx].type === enums.StackFrameType.INTERNAL) {
       stack.pop();
       idx--;
     }
