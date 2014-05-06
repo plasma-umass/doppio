@@ -163,13 +163,13 @@ export class BytecodeStackFrame implements IStackFrame {
     // or set up the stack for appropriate resumption.
     if (handler != null) {
       // Found the handler.
-      debug("{BOLD}EXCEPTION CAUGHT{/BOLD}: Caught {GREEN}" + e.cls.get_type() + "{/GREEN} in {YELLOW}" + method.full_signature() + "{/YELLOW} as subclass of {GREEN}" + handler.catch_type + "{/GREEN}");
+      debug("{BOLD}{YELLOW}" + method.full_signature() + "{/YELLOW}{/BOLD}: Caught {GREEN}" + e.cls.get_type() + "{/GREEN} as subclass of {GREEN}" + handler.catch_type + "{/GREEN}");
       this.stack = [e]; // clear out anything on the stack; it was made during the try block
       this.pc = handler.handler_pc;
       return true;
     } else {
       // abrupt method invocation completion
-      debug("{BOLD}EXCEPTION NOT CAUGHT{/BOLD}: Terminating {YELLOW}" + method.full_signature() + "{/YELLOW} due to exception of type {GREEN}" + e.cls.get_type() + "{/GREEN}");
+      debug("{BOLD}{YELLOW}" + method.full_signature() + "{/YELLOW}{/BOLD}: Did not catch {GREEN}" + e.cls.get_type() + "{/GREEN}.");
       // STEP 3: Synchronized method? Exit from the method's monitor.
       if (method.access_flags.synchronized) {
         method.method_lock(thread, this).exit(thread);

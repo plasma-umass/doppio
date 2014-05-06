@@ -325,12 +325,12 @@ export class Method extends AbstractMethodField {
         var cls = <ClassData.ReferenceClassData> bsCl.getInitializedClass(typestr);
         var param_type_objs: java_object.JavaClassObject[] = [];
         var i;
-        for (i = 0; i < this.param_types; i++) {
+        for (i = 0; i < this.param_types.length; i++) {
           param_type_objs.push(classes[this.param_types[i]].get_class_object(thread));
         }
         var etype_objs: java_object.JavaClassObject[] = [];
         if (exceptionAttr != null) {
-          for (i = 0; i < exceptionAttr.exceptions; i++) {
+          for (i = 0; i < exceptionAttr.exceptions.length; i++) {
             etype_objs.push(classes[<string> exceptionAttr.exceptions[i]].get_class_object(thread));
           }
         }
