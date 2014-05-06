@@ -78,6 +78,11 @@ export class ClassLoader {
     try {
       var classData = new ClassData.ReferenceClassData(data, this);
       this.addClass(typeStr, classData);
+      if (this instanceof BootstrapClassLoader) {
+        logging.debug("[BOOTSTRAP] Defining class " + typeStr);
+      } else {
+        logging.debug("[CUSTOM] Defining class " + typeStr);
+      }
       return classData;
     } catch (e) {
       thread.throwNewException('Ljava/lang/ClassFormatError;', e);
@@ -580,6 +585,7 @@ export class BootstrapClassLoader extends ClassLoader {
    * Asynchronously load the given class from the classpath.
    */
   public _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
+    logging.debug('[BOOTSTRAP] Loading class ' + typeStr);
     // This method is only valid for reference types!
     assert(util.is_reference_type(typeStr));
     // Search the class path for the class.
@@ -759,6 +765,7 @@ export class CustomClassLoader extends ClassLoader {
    *   false otherwise. This changes the exception/error that we throw.
    */
   public _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
+    logging.debug('[CUSTOM] Loading class ' + typeStr);
     // This method is only valid for reference types!
     assert(util.is_reference_type(typeStr));
     // Invoke the custom class loader.
@@ -798,12 +805,15 @@ export class CustomClassLoader extends ClassLoader {
 
 // Each JavaClassLoaderObject is a unique ClassLoader.
 export class JavaClassLoaderObject extends java_object.JavaObject {
-  public $loader: any
+  public $loader: ClassLoader;
   constructor(thread: threading.JVMThread, cls: any) {
     super(cls);
     this.$loader = new CustomClassLoader(thread.getBsCl(), this);
   }
 
+  /**
+   * @todo Remove or refactor.
+   */
   public serialize(visited: any): any {
     if (visited[this.ref]) {
       return "<*" + this.ref + ">";
@@ -817,11 +827,12 @@ export class JavaClassLoaderObject extends java_object.JavaObject {
       else
         fields[k] = f.serialize(visited);
     }
-    var loaded = {};
-    for (var type in this.$loader.loaded_classes) {
-      var vcls = this.$loader.loaded_classes[type];
-      loaded[type + "(" + enums.ClassState[vcls.get_state()] + ")"] = vcls.loader.serialize(visited);
-    }
+    var loaded = {},
+      loadedClasses = this.$loader.getLoadedClassNames();
+    loadedClasses.forEach((type: string) => {
+      var vcls = this.$loader.getLoadedClass(type);
+      //loaded[type + "(" + enums.ClassState[vcls.get_state()] + ")"] = vcls.loader.serialize(visited);
+    });
     return {
       type: this.cls.get_type(),
       ref: this.ref,

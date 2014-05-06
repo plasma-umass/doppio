@@ -32,7 +32,7 @@ export class ClassData {
 
   // Responsible for setting up all of the fields that are guaranteed to be
   // present on any ClassData object.
-  constructor(loader: ClassLoader.ClassLoader = null) {
+  constructor(loader: ClassLoader.ClassLoader) {
     this.loader = loader;
   }
 

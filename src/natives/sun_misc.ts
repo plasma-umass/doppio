@@ -341,7 +341,7 @@ class sun_misc_Unsafe {
   public static 'defineClass(Ljava/lang/String;[BIILjava/lang/ClassLoader;Ljava/security/ProtectionDomain;)Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, name: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number, loaderObj: ClassLoader.JavaClassLoaderObject, pd: java_object.JavaObject): java_object.JavaClassObject {
     var loader = java_object.get_cl_from_jclo(thread, loaderObj);
     if (loader != null) {
-      return loader.defineClass(thread, name.jvm2js_str(), util.byteArray2Buffer(bytes.array, offset, length)).get_class_object(thread);
+      return loader.defineClass(thread, util.int_classname(name.jvm2js_str()), util.byteArray2Buffer(bytes.array, offset, length)).get_class_object(thread);
     }
   }
 

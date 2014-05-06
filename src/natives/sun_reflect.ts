@@ -7,6 +7,7 @@ import util = require('../util');
 import methods = require('../methods');
 import ConstantPool = require('../ConstantPool');
 import enums = require('../enums');
+import assert = require('../assert');
 
 class sun_reflect_ConstantPool {
 
@@ -100,33 +101,35 @@ class sun_reflect_NativeConstructorAccessorImpl {
       slot = m.get_field(thread, 'Ljava/lang/reflect/Constructor;slot');
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     cls.$cls.loader.initializeClass(thread, cls.$cls.get_type(), (cls_obj: ClassData.ReferenceClassData) => {
-      var methods = cls_obj.get_methods(), sig: string,
-        method: methods.Method,
-        obj = new java_object.JavaObject(cls_obj),
-        args: any[] = [obj];
+      if (cls_obj != null) {
+        var methods = cls_obj.get_methods(), sig: string,
+          method: methods.Method,
+          obj = new java_object.JavaObject(cls_obj),
+          args: any[] = [obj];
 
-      for (sig in methods) {
-        if (methods.hasOwnProperty(sig)) {
-          var aMethod = methods[sig];
-          if (aMethod.idx === slot) {
-            method = aMethod;
-            break;
+        for (sig in methods) {
+          if (methods.hasOwnProperty(sig)) {
+            var aMethod = methods[sig];
+            if (aMethod.idx === slot) {
+              method = aMethod;
+              break;
+            }
           }
         }
-      }
 
-      if (params != null) {
-        args = args.concat(params.array);
-      }
-      thread.runMethod(method, args, (e?, rv?) => {
-        if (e) {
-          thread.throwException(e);
-        } else {
-          // rv is not defined, since constructors do not return a value.
-          // Return the object we passed to the constructor.
-          thread.asyncReturn(obj);
+        if (params != null) {
+          args = args.concat(params.array);
         }
-      });
+        thread.runMethod(method, args, (e?, rv?) => {
+          if (e) {
+            thread.throwException(e);
+          } else {
+            // rv is not defined, since constructors do not return a value.
+            // Return the object we passed to the constructor.
+            thread.asyncReturn(obj);
+          }
+        });
+      }
     }, true);
   }
 

@@ -443,7 +443,7 @@ class java_lang_ClassLoader {
 
   public static 'defineClass1(Ljava/lang/String;[BIILjava/security/ProtectionDomain;Ljava/lang/String;)Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: ClassLoader.JavaClassLoaderObject, name: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number, pd: gLong, source: java_object.JavaObject): java_object.JavaClassObject {
     var loader = java_object.get_cl_from_jclo(thread, javaThis),
-      cls = loader.defineClass(thread, name.jvm2js_str(), util.byteArray2Buffer(bytes.array, offset, len));
+      cls = loader.defineClass(thread, util.int_classname(name.jvm2js_str()), util.byteArray2Buffer(bytes.array, offset, len));
     if (cls != null) {
       return cls.get_class_object(thread);
     }
@@ -762,7 +762,7 @@ class java_lang_reflect_Proxy {
 
   public static 'defineClass0(Ljava/lang/ClassLoader;Ljava/lang/String;[BII)Ljava/lang/Class;'(thread: threading.JVMThread, cl: ClassLoader.JavaClassLoaderObject, name: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number): java_object.JavaClassObject {
     var loader = java_object.get_cl_from_jclo(thread, cl),
-      cls = loader.defineClass(thread, name.jvm2js_str(), util.byteArray2Buffer(bytes.array, offset, len));
+      cls = loader.defineClass(thread, util.int_classname(name.jvm2js_str()), util.byteArray2Buffer(bytes.array, offset, len));
     if (cls != null) {
       return cls.get_class_object(thread);
     }
