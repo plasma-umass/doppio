@@ -593,9 +593,9 @@ class java_lang_Object {
   }
 
   public static 'wait(J)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, timeout: gLong): void {
-    javaThis.getMonitor().wait(thread, timeout.toNumber());
-    // When we wake up, resume the calling function.
-    thread.framePop();
+    javaThis.getMonitor().wait(thread, (fromTimer: boolean) => {
+      thread.asyncReturn();
+    }, timeout.toNumber());
   }
 
 }
@@ -1118,14 +1118,7 @@ class java_lang_Thread {
   public static 'start0()V'(thread: threading.JVMThread, javaThis: threading.JVMThread): void {
     var runMethod = javaThis.cls.method_lookup(thread, 'run()V');
     if (runMethod != null) {
-      javaThis.runMethod(runMethod, [javaThis], (e?, rv?) => {
-        if (e) {
-          // XXX: Figure out how this works.
-          javaThis.getThreadPool().getJVM().handleUncaughtException(javaThis, e, () => { });
-        } else {
-          javaThis.setStatus(enums.ThreadStatus.TERMINATED);
-        }
-      });
+      javaThis.runMethod(runMethod, [javaThis]);
     }
   }
 
@@ -1206,6 +1199,10 @@ class java_lang_Thread {
    * Interrupting a thread that is not alive need not have any effect.
    */
   public static 'interrupt0()V'(thread: threading.JVMThread, javaThis: threading.JVMThread): void {
+    function throwInterruptedException() {
+      javaThis.throwNewException('Ljava/lang/InterruptedException;', 'interrupt0 called');
+    }
+
     // See if we have access to modify this thread.
     var checkAccessMethod = javaThis.cls.method_lookup(thread, 'checkAccess()V');
     if (checkAccessMethod != null) {
@@ -1220,7 +1217,7 @@ class java_lang_Thread {
             case enums.ThreadStatus.NEW:
             case enums.ThreadStatus.TERMINATED:
               // Thread is not alive. NOP.
-              return;
+              return thread.asyncReturn();
             case enums.ThreadStatus.BLOCKED:
             case enums.ThreadStatus.WAITING:
             case enums.ThreadStatus.TIMED_WAITING:
@@ -1230,12 +1227,12 @@ class java_lang_Thread {
               // Exit the monitor.
               var monitor = javaThis.getMonitorBlock();
               if (status === enums.ThreadStatus.BLOCKED) {
-                monitor.unblock(javaThis);
+                monitor.unblock(javaThis, true);
+                throwInterruptedException();
               } else {
-                monitor.unwait(javaThis, false);
+                monitor.unwait(javaThis, false, true, throwInterruptedException);
               }
-              javaThis.throwNewException('Ljava/lang/InterruptedException;', 'interrupt0 called');
-              return;
+              return thread.asyncReturn();
             case enums.ThreadStatus.PARKED:
               // Parked threads become unparked when interrupted.
               javaThis.getThreadPool().completelyUnpark(javaThis);
@@ -1260,7 +1257,7 @@ class java_lang_Thread {
                 // Set the interrupted status.
                 javaThis.setInterrupted(true);
               }
-              return;
+              return thread.asyncReturn();
           }
         }
       });

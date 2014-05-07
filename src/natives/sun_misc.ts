@@ -606,8 +606,8 @@ class sun_misc_VM {
     threadStateArray[RUNNABLE] = new java_object.JavaArray(intArrCls, [enums.ThreadStatus.RUNNING, enums.ThreadStatus.RUNNABLE]);
     threadStateNamesArray[RUNNABLE] = jvmStrArr(['RUNNABLE.RUNNING', 'RUNNABLE.RUNNABLE']);
 
-    threadStateArray[BLOCKED] = new java_object.JavaArray(intArrCls, [enums.ThreadStatus.BLOCKED]);
-    threadStateNamesArray[BLOCKED] = jvmStrArr(['BLOCKED.BLOCKED']);
+    threadStateArray[BLOCKED] = new java_object.JavaArray(intArrCls, [enums.ThreadStatus.BLOCKED, enums.ThreadStatus.UNINTERRUPTABLY_BLOCKED]);
+    threadStateNamesArray[BLOCKED] = jvmStrArr(['BLOCKED.BLOCKED', 'BLOCKED.UNINTERRUPTABLY_BLOCKED']);
 
     // @todo Distinguish between TIMED parks, and UNTIMED parks.
     threadStateArray[WAITING] = new java_object.JavaArray(intArrCls, [enums.ThreadStatus.WAITING, enums.ThreadStatus.ASYNC_WAITING, enums.ThreadStatus.PARKED]);

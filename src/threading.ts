@@ -52,6 +52,7 @@ export class BytecodeStackFrame implements IStackFrame {
   public locals: any[];
   public stack: any[] = [];
   public returnToThreadLoop: boolean = false;
+  public lockedMethodLock: boolean = false;
 
   /**
    * Constructs a bytecode method's stack frame.
@@ -60,6 +61,8 @@ export class BytecodeStackFrame implements IStackFrame {
    */
   constructor(public method: methods.Method, args: any[]) {
     assert(!method.access_flags.native, 'Cannot run a native method using a BytecodeStackFrame.');
+    // @todo This should be a runtime error, since reflection can cause you to
+    // try to do this.
     assert(!method.access_flags.abstract, 'Cannot run an abstract method!');
     this.locals = args;
   }
@@ -69,12 +72,17 @@ export class BytecodeStackFrame implements IStackFrame {
     if (this.pc === 0) {
       logging.vtrace("T" + thread.ref + " " + this.method.full_signature() + " [Bytecode]");
     }
-    if (method.access_flags.synchronized && this.pc === 0) {
+    if (method.access_flags.synchronized && !this.lockedMethodLock) {
       // We are starting a synchronized method! These must implicitly enter
       // their respective locks.
-      if (!method.method_lock(thread, this).enter(thread)) {
+      this.lockedMethodLock = method.method_lock(thread, this).enter(thread, () => {
+        // Lock succeeded. Set the flag so we don't attempt to reacquire it
+        // when this method reruns.
+        this.lockedMethodLock = true;
+      });
+      if (!this.lockedMethodLock) {
         // Failed. Thread is automatically blocked. Return.
-        assert(thread.getStatus() === enums.ThreadStatus.BLOCKED);
+        assert(thread.getStatus() === enums.ThreadStatus.BLOCKED, "Failed to enter a monitor. Thread must be BLOCKED.");
         return;
       }
     }
@@ -205,7 +213,6 @@ export class BytecodeStackFrame implements IStackFrame {
  */
 class NativeStackFrame implements IStackFrame {
   private nativeMethod: Function;
-  private dead: boolean = false;
 
   /**
    * Constructs a native method's stack frame.
@@ -224,7 +231,8 @@ class NativeStackFrame implements IStackFrame {
   public run(thread: JVMThread): void {
     logging.vtrace("T" + thread.ref + " " + this.method.full_signature() + " [Native Code]");
     var rv: any = this.nativeMethod.apply(null, this.method.convertArgs(thread, this.args));
-    if (thread.getStatus() === enums.ThreadStatus.RUNNING && !this.dead) {
+    // Ensure thread is running, and we are the running method.
+    if (thread.getStatus() === enums.ThreadStatus.RUNNING && thread.currentMethod() === this.method) {
       // Normal native method exit.
       var returnType = this.method.return_type;
       switch (returnType) {
@@ -256,8 +264,6 @@ class NativeStackFrame implements IStackFrame {
    * receive an exception.
    */
   public scheduleException(thread: JVMThread, e: java_object.JavaObject): boolean {
-    // Looks like we were interrupted by an exception.
-    this.dead = true;
     return false;
   }
 
@@ -334,9 +340,15 @@ export class ThreadPool {
   private threads: JVMThread[] = [];
   private runningThread: JVMThread;
   private parkCounts: { [threadRef: number]: number } = {};
+  /**
+   * Called when the ThreadPool becomes empty. This is usually a sign that
+   * execution has finished, and the JVM should be terminated.
+   */
+  private emptyCallback: () => void;
 
-  constructor(private jvm: JVM, private bsCl: ClassLoader.BootstrapClassLoader) {
-
+  constructor(private jvm: JVM, private bsCl: ClassLoader.BootstrapClassLoader,
+    emptyCallback: () => void) {
+    this.emptyCallback = emptyCallback;
   }
 
   public getThreads(): JVMThread[] {
@@ -382,6 +394,11 @@ export class ThreadPool {
             break;
           }
         }
+      }
+
+      // Tell the JVM that execution may be over.
+      if (threads.length === 0) {
+        this.emptyCallback();
       }
     });
   }
@@ -492,6 +509,20 @@ export class JVMThread extends java_object.JavaObject {
   }
 
   /**
+   * Returns the currently running method. Returns NULL if stack is empty.
+   */
+  public currentMethod(): methods.Method {
+    var stack = this.stack, idx = stack.length, method: methods.Method;
+    while (--idx >= 0) {
+      method = stack[idx].getStackTraceFrame().method;
+      if (method !== null) {
+        return method;
+      }
+    }
+    return null;
+  }
+
+  /**
    * Set or unset this thread's interrupted flag.
    */
   public setInterrupted(interrupted: boolean): void {
@@ -574,6 +605,17 @@ export class JVMThread extends java_object.JavaObject {
   }
 
   /**
+   * Should only be called by setStatus.
+   * Updates both the JVMThread object and this object.
+   */
+  private rawSetStatus(newStatus: enums.ThreadStatus): void {
+    this.status = newStatus;
+    // Ensures that JVM code can introspect on our threads.
+    // @todo Merge these fields.
+    this.set_field(this, 'Ljava/lang/Thread;threadStatus', newStatus);
+  }
+
+  /**
    * Transitions the thread from one state to the next.
    */
   public setStatus(status: enums.ThreadStatus, monitor?: java_object.Monitor): void {
@@ -586,9 +628,11 @@ export class JVMThread extends java_object.JavaObject {
       logging.vtrace("T" + this.ref + " " + enums.ThreadStatus[oldStatus] + " => " + enums.ThreadStatus[status]);
 
       // Optimistically change state.
-      this.status = status;
+      this.rawSetStatus(status);
       this.monitor = null;
       // Transition: this.status => status
+      // @todo Move this into a debug-build validation function, and minimize
+      // code in this method.
       switch (oldStatus) {
         case enums.ThreadStatus.NEW:
           switch (status) {
@@ -604,15 +648,13 @@ export class JVMThread extends java_object.JavaObject {
             case enums.ThreadStatus.RUNNABLE:
               // Downgrade; ignore.
               // @todo May want to make this possible for purposes of responsiveness.
-              this.status = enums.ThreadStatus.RUNNING;
+              this.rawSetStatus(enums.ThreadStatus.RUNNING);
               return;
             case enums.ThreadStatus.TERMINATED:
               break;
             case enums.ThreadStatus.BLOCKED:
             case enums.ThreadStatus.WAITING:
             case enums.ThreadStatus.TIMED_WAITING:
-              assert(monitor != null);
-              this.monitor = monitor;
               break;
             case enums.ThreadStatus.ASYNC_WAITING:
             case enums.ThreadStatus.PARKED:
@@ -642,8 +684,17 @@ export class JVMThread extends java_object.JavaObject {
           break;
         case enums.ThreadStatus.WAITING:
         case enums.ThreadStatus.TIMED_WAITING:
+          switch (status) {
+            case enums.ThreadStatus.UNINTERRUPTABLY_BLOCKED:
+            case enums.ThreadStatus.RUNNABLE:
+              break;
+            default:
+              invalidTransition();
+          }
+          break;
         case enums.ThreadStatus.BLOCKED:
         case enums.ThreadStatus.PARKED:
+        case enums.ThreadStatus.UNINTERRUPTABLY_BLOCKED:
           switch (status) {
             case enums.ThreadStatus.RUNNABLE:
               break;
@@ -661,7 +712,7 @@ export class JVMThread extends java_object.JavaObject {
             case enums.ThreadStatus.ASYNC_WAITING:
               // Transition to new first.
               // TERMINATED => NEW => [status]
-              this.status = enums.ThreadStatus.TERMINATED;
+              this.rawSetStatus(enums.ThreadStatus.TERMINATED);
               this.setStatus(enums.ThreadStatus.NEW);
               this.setStatus(status);
               return;
@@ -686,6 +737,13 @@ export class JVMThread extends java_object.JavaObject {
         case enums.ThreadStatus.TERMINATED:
           this.tpool.threadTerminated(this);
           break;
+        case enums.ThreadStatus.BLOCKED:
+        case enums.ThreadStatus.UNINTERRUPTABLY_BLOCKED:
+        case enums.ThreadStatus.WAITING:
+        case enums.ThreadStatus.TIMED_WAITING:
+          assert(monitor != null);
+          this.monitor = monitor;
+          // FALL-THROUGH
         default:
           this.tpool.threadSuspended(this);
           break;
@@ -727,7 +785,7 @@ export class JVMThread extends java_object.JavaObject {
       this.status === enums.ThreadStatus.RUNNING ||
       this.status === enums.ThreadStatus.RUNNABLE ||
       this.status === enums.ThreadStatus.ASYNC_WAITING ||
-      this.status === enums.ThreadStatus.TERMINATED, "Tried to run method while thread was in state " + enums.ThreadStatus[this.status]);
+      this.status === enums.ThreadStatus.TERMINATED, "T " + this.ref + ": Tried to run method while thread was in state " + enums.ThreadStatus[this.status]);
     if (cb) {
       // Callback specified. Need to add an internal stack frame that will handle
       // calling back into JavaScript land.
@@ -830,10 +888,8 @@ export class JVMThread extends java_object.JavaObject {
     }
 
     if (stack.length === 0) {
-      // !!! UNCAUGHT EXCEPTION !!!
-      // This should actually never happen. All executions should end at the
-      // internal frame created by runMethod.
-      assert(false, 'No stack frame was able to handle the exception.');
+      // Uncaught exception!
+      this.handleUncaughtException(exception);
     }
   }
 
@@ -871,6 +927,16 @@ export class JVMThread extends java_object.JavaObject {
         }
       }, false);
     }
+  }
+
+  /**
+   * Handles an uncaught exception on a thread.
+   */
+  public handleUncaughtException(exception: java_object.JavaObject) {
+    var threadCls = <ClassData.ReferenceClassData> this.bsCl.getResolvedClass('Ljava/lang/Thread;'),
+      dispatchMethod = threadCls.method_lookup(this, 'dispatchUncaughtException(Ljava/lang/Throwable;)V');
+    assert(dispatchMethod != null);
+    this.runMethod(dispatchMethod, [this, exception]);
   }
 }
 

@@ -61,6 +61,7 @@ class JVM {
   private heap = new Heap(20 * 1024 * 1024);
   private nativeClasspath: string[];
   private startupTime = new Date();
+  private terminationCb: (success: boolean) => void = null;
 
   /**
    * (Async) Construct a new instance of the Java Virtual Machine.
@@ -83,16 +84,15 @@ class JVM {
     this._initSystemProperties(jclPath, javaHomePath);
 
     // Step 0: Initialize natives.
-    //console.log("Initializing natives...");
     this.initializeNatives(() => {
-      //console.log("Constructing bootstrap class loader...");
       // Step 1: Construct the bootstrap class loader.
       this.bsCl = new ClassLoader.BootstrapClassLoader([jclPath].concat(opts.classpath), opts.extractionPath, (e?: any) => {
         if (e) {
           cb(e);
         } else {
-          //console.log("Resolving java/lang/Thread...");
-          this.threadPool = new threading.ThreadPool(this, this.bsCl);
+          this.threadPool = new threading.ThreadPool(this, this.bsCl, () => {
+            this.emptyThreadPool();
+          });
           // Step 2: Resolve Ljava/lang/Thread so we can fake a thread.
           // NOTE: This should never actually use the Thread object unless
           // there's an error loading java/lang/Thread and associated classes.
@@ -104,9 +104,7 @@ class JVM {
               // Step 3: Fake a thread.
               var firstThread = this.threadPool.newThread(cdata);
               // Step 4: Now, preinitialize all of those classes.
-              //console.log("Preinitializing classes...");
               util.async_foreach<string>(coreClasses, (coreClass: string, next_item: (err?: any) => void) => {
-                //console.log("Initializing " + coreClass + "...");
                 this.bsCl.initializeClass(firstThread, coreClass, (cdata: ClassData.ClassData) => {
                   if (cdata == null) {
                     cb("Failed to initialize " + coreClass);
@@ -115,7 +113,6 @@ class JVM {
                     // Initialize the system's ThreadGroup now.
                     if (coreClass === 'Ljava/lang/ThreadGroup;') {
                       // Step 5: Construct a ThreadGroup object for the first thread.
-                      //console.log("Constructing a ThreadGroup...");
                       var threadGroupCls = <ClassData.ReferenceClassData> this.bsCl.getInitializedClass('Ljava/lang/ThreadGroup;'),
                         groupObj = new java_object.JavaObject(threadGroupCls),
                         cnstrctr = threadGroupCls.method_lookup(firstThread, '<init>()V');
@@ -142,7 +139,6 @@ class JVM {
                     cb("Failed to initialize system class.");
                   } else {
                     // Ready for execution!
-                    //console.log("Ready for execution!");
                     cb(null, this);
                   }
                 });
@@ -176,16 +172,11 @@ class JVM {
 
         // Find the main method, and run it.
         var method = cdata.method_lookup(thread, 'main([Ljava/lang/String;)V');
-        thread.runMethod(method, [jvmifiedArgs], (e?, rv?) => {
-          if (e) {
-            // Handle the uncaught exception properly.
-            this.handleUncaughtException(thread, e, (e?, rv?) => {
-              cb(false);
-            });
-          } else {
-            cb(true);
-          }
-        });
+
+        // Set the terminationCb here. The JVM will now terminate once all
+        // threads have finished executing.
+        this.terminationCb = cb;
+        thread.runMethod(method, [jvmifiedArgs]);
       } else {
         // There was an error.
         cb(false);
@@ -210,6 +201,15 @@ class JVM {
         this.runClass(jarFile.getAttribute('Main-Class'), args, cb);
       }
     });
+  }
+  
+  /**
+   * Called when the ThreadPool is empty.
+   */
+  private emptyThreadPool() {
+    if (this.terminationCb != null) {
+      this.terminationCb(true);
+    }
   }
 
   /**
@@ -403,17 +403,6 @@ class JVM {
    */
   public getBootstrapClassLoader(): ClassLoader.BootstrapClassLoader {
     return this.bsCl;
-  }
-
-  /**
-   * Handles an uncaught exception on a thread. Placed here to prevent
-   * threading.JVMThread from becoming super JVM specialized.
-   */
-  public handleUncaughtException(thread: threading.JVMThread, exception: java_object.JavaObject, cb: (e?: java_object.JavaObject, rv?: any) => void) {
-    var threadCls = <ClassData.ReferenceClassData> this.bsCl.getResolvedClass('Ljava/lang/Thread;'),
-      dispatchMethod = threadCls.method_lookup(thread, 'dispatchUncaughtException(Ljava/lang/Throwable;)V');
-    assert(dispatchMethod != null);
-    thread.runMethod(dispatchMethod, [thread, exception], cb);
   }
 
   public getStartupTime(): Date {

@@ -690,7 +690,10 @@ export class ReturnOpcode extends Opcode {
     frame.returnToThreadLoop = true;
     if (frame.method.access_flags.synchronized) {
       // monitorexit
-      frame.method.method_lock(thread, frame).exit(thread);
+      if (!frame.method.method_lock(thread, frame).exit(thread)) {
+        // monitorexit threw an exception.
+        return;
+      }
     }
     thread.asyncReturn(frame.stack[0]);
   }
@@ -701,7 +704,10 @@ export class ReturnOpcode2 extends Opcode {
     frame.returnToThreadLoop = true;
     if (frame.method.access_flags.synchronized) {
       // monitorexit
-      frame.method.method_lock(thread, frame).exit(thread);
+      if (!frame.method.method_lock(thread, frame).exit(thread)) {
+        // monitorexit threw an exception.
+        return;
+      }
     }
     thread.asyncReturn(frame.stack[0], null);
   }
@@ -712,7 +718,10 @@ export class VoidReturnOpcode extends Opcode {
     frame.returnToThreadLoop = true;
     if (frame.method.access_flags.synchronized) {
       // monitorexit
-      frame.method.method_lock(thread, frame).exit(thread);
+      if (!frame.method.method_lock(thread, frame).exit(thread)) {
+        // monitorexit threw an exception.
+        return;
+      }
     }
     thread.asyncReturn();
   }
@@ -1591,22 +1600,30 @@ export var opcodes: Opcode[] = [
     }
   }),
   new Opcode('monitorenter', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack, monitorObj: java_object.JavaObject = stack[stack.length - 1];
-    if (!monitorObj.getMonitor().enter(thread)) {
-      // Opcode failed, and will be rerun again once the monitor is free.
+    var stack = frame.stack, monitorObj: java_object.JavaObject = stack.pop(),
+      monitorEntered = () => {
+        // [Note: Thread is now in the RUNNABLE state.]
+        // Increment the PC.
+        this.incPc(frame);
+      };
+
+    if (!monitorObj.getMonitor().enter(thread, monitorEntered)) {
+      // Opcode failed. monitorEntered will be run once we own the monitor.
       // The thread is now in the BLOCKED state. Tell the frame to return to
       // the thread loop.
       frame.returnToThreadLoop = true;
     } else {
-      // Opcode succeeded. Pop off the monitor.
-      stack.pop();
-      this.incPc(frame);
+      monitorEntered();
     }
   }),
   new Opcode('monitorexit', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     var monitorObj: java_object.JavaObject = frame.stack.pop();
-    monitorObj.getMonitor().exit(thread);
-    this.incPc(frame);
+    if (monitorObj.getMonitor().exit(thread)) {
+      this.incPc(frame);
+    } else {
+      // monitorexit failed, and threw an exception.
+      frame.returnToThreadLoop = true;
+    }
   }),
   null,  // hole in the opcode array at 196
   new MultiArrayOpcode('multianewarray'),

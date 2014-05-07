@@ -18,6 +18,14 @@ export enum ClassState {
 
 /**
  * A thread can be in one of these states at any given point in time.
+ * 
+ * NOTE: When altering ThreadStatus, remember to update the following things.
+ * 
+ * - Thread.setStatus: Manages and validates transitions between states.
+ * - sun.misc.VM.getThreadStateValues: Maps ThreadStatus values to Thread.State
+ *   values.
+ * - Assertion statements in Thread regarding its status.
+ * - The thread transition diagram in the docs folder.
  */
 export enum ThreadStatus {
   // A thread that has not yet started is in this state.
@@ -28,6 +36,11 @@ export enum ThreadStatus {
   RUNNABLE,
   // A thread that is blocked waiting for a monitor lock is in this state.
   BLOCKED,
+  // A thread that is blocked waiting for a monitor lock that was previously
+  // interrupted from waiting on a monitor is in this state.
+  // Why? Well, the thread has *already* been interrupted once, but cannot
+  // process the interruption until it regains the lock.
+  UNINTERRUPTABLY_BLOCKED,
   // A thread that is waiting indefinitely for another thread to perform a
   // particular action is in this state.
   WAITING,

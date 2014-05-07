@@ -286,36 +286,100 @@ export class Monitor {
    */
   private count: number = 0;
   /**
-   * Queue of JVM threads that are waiting for the current owner to relinquish
-   * the monitor.
+   * JVM threads that are waiting for the current owner to relinquish the
+   * monitor.
    */
-  private blocked: threading.JVMThread[] = [];
+  private blocked: {
+    [threadRef: number]: {
+      /**
+       * The blocked thread.
+       */
+      thread: threading.JVMThread;
+      /**
+       * A callback that should be triggered once the thread becomes the
+       * owner of the monitor.
+       */
+      cb: () => void;
+      /**
+       * The lock count to restore once the thread owns the lock.
+       */
+      count: number;
+    }
+  } = {};
   /**
    * Queue of JVM threads that are waiting for a JVM thread to notify them.
    */
-  private waiting: threading.JVMThread[] = [];
-  /**
-   * Contains the timer ids returned from setTimeout for all of the
-   * TIMED_WAITING threads.
-   */
-  private waitTimers: { [threadRef: number]: number } = {};
+  private waiting: {
+    [threadRef: number]: {
+      /**
+       * The blocked thread.
+       */
+      thread: threading.JVMThread;
+      /**
+       * A callback that should be triggered once the thread owns the monitor.
+       */
+      cb: (fromTimer: boolean) => void;
+      /**
+       * The thread's lock count at the time it invoked Object.wait.
+       */
+      count: number;
+      /**
+       * True if the thread issued waiting with a timeout.
+       */
+      isTimed: boolean;
+      /**
+       * The timer ID for the timeout callback, if isTimed is true. Allows us
+       * to revoke timeout timers before they execute.
+       */
+      timer?: number;
+    }
+  } = {};
 
   /**
    * Attempts to acquire the monitor.
    *
    * Thread transitions:
-   * * RUNNABLE => RUNNABLE
-   * * RUNNABLE => BLOCKED
+   * * RUNNABLE => BLOCKED [If fails to acquire lock]
    *
    * @param thread The thread that is trying to acquire the monitor.
-   * @return True if successfull, false if not.
+   * @param cb If this method returns false, then this callback will be
+   *   triggered once the thread becomes owner of the monitor. At that time,
+   *   the thread will be in the RUNNABLE state. 
+   * @return True if successfull, false if not. If not successful, the thread
+   *   becomes BLOCKED, and the input callback will be triggered once the
+   *   thread owns the monitor and is RUNNABLE.
    */
-  public enter(thread: threading.JVMThread): boolean {
-    var owner = this.owner;
-    if (owner === null || owner === thread) {
-      assert(owner === null ? this.count === 0 : true);
-      this.owner = thread;
+  public enter(thread: threading.JVMThread, cb: () => void): boolean {
+    if (this.owner === thread) {
       this.count++;
+      return true;
+    } else {
+      return this.contendForLock(thread, 1, enums.ThreadStatus.BLOCKED, cb);
+    }
+  }
+
+  /**
+   * Generic version of Monitor.enter for contending for the lock.
+   * 
+   * Thread transitions:
+   * * RUNNABLE => UNINTERRUPTIBLY_BLOCKED [If fails to acquire lock]
+   * * RUNNABLE => BLOCKED [If fails to acquire lock]
+   * 
+   * @param thread The thread contending for the lock.
+   * @param count The lock count to use once the thread owns the lock.
+   * @param blockStatus The ThreadStatus to use should the thread need to
+   *   contend for the lock (either BLOCKED or UNINTERRUPTIBLY_BLOCKED).
+   * @param cb The callback to call once the thread becomes owner of the lock.
+   * @return True if the thread immediately acquired the lock, false if the
+   *   thread is now blocked on the lock.
+   */
+  private contendForLock(thread: threading.JVMThread, count: number, blockStatus: enums.ThreadStatus, cb: () => void): boolean {
+    var owner = this.owner;
+    assert(owner != thread, "Thread attempting to contend for lock it already owns!");
+    if (owner === null) {
+      assert(this.count === 0);
+      this.owner = thread;
+      this.count = count;
       return true;
     } else {
       /**
@@ -324,8 +388,8 @@ export class Monitor {
        *  again to gain ownership."
        * @from http://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.monitorenter
        */
-      thread.setStatus(enums.ThreadStatus.BLOCKED, this);
-      this.blocked.push(thread);
+      thread.setStatus(blockStatus, this);
+      this.blocked[thread.ref] = { thread: thread, cb: cb, count: count };
       return false;
     }
   }
@@ -339,14 +403,14 @@ export class Monitor {
    * * A *BLOCKED* thread may be scheduled if the owner gives up the monitor.
    *
    * @param thread The thread that is exiting the monitor.
+   * @return True if exit succeeded, false if an exception occurred.
    */
-  public exit(thread: threading.JVMThread): void {
+  public exit(thread: threading.JVMThread): boolean {
     var owner = this.owner;
     if (owner === thread) {
-      if (--this.count === 0 && this.blocked.length > 0) {
-        // Unblock the thread at the head of the queue.
-        var unblocked = this.blocked.shift();
-        unblocked.setStatus(enums.ThreadStatus.RUNNABLE);
+      if (--this.count === 0) {
+        this.owner = null;
+        this.appointNewOwner();
       }
     } else {
       /**
@@ -357,69 +421,152 @@ export class Monitor {
        */
       thread.throwNewException('Ljava/lang/IllegalMonitorStateException;', "Cannot exit a monitor that you do not own.");
     }
+    return owner === thread;
+  }
+
+  /**
+   * Chooses one of the blocked threads to become the monitor's owner.
+   */
+  private appointNewOwner() {
+    var blockedThreadRefs = Object.keys(this.blocked);
+    if (blockedThreadRefs.length > 0) {
+      // Unblock a random thread.
+      var unblockedRef = blockedThreadRefs[Math.floor(Math.random() * blockedThreadRefs.length)],
+        // XXX: Typing hack. Key must be a number.
+        unblocked = this.blocked[<number><any>unblockedRef];
+      this.unblock(unblocked.thread, false);
+    }
   }
 
   /**
    * "Causes the current thread to wait until another thread invokes the
    *  notify() method or the notifyAll() method for this object, or some other
    *  thread interrupts the current thread, or a certain amount of real time
-   *  has elapsed."
+   *  has elapsed.
+   * 
+   *  This method causes the current thread (call it T) to place itself in the
+   *  wait set for this object and then to relinquish any and all
+   *  synchronization claims on this object."
+   * 
    * We coalesce all possible wait configurations into this one function.
    * @from http://docs.oracle.com/javase/7/docs/api/java/lang/Object.html#wait(long, int)
    * @param thread The thread that wants to wait on this monitor.
+   * @param cb The callback triggered once the thread wakes up.
    * @param timeoutMs? An optional timeout that specifies how long the thread
-   *   should wait, in milliseconds.
+   *   should wait, in milliseconds. If this value is 0, then we ignore it.
    * @param timeoutNs? An optional timeout that specifies how long the thread
    *   should wait, in nanosecond precision (currently ignored).
    * @todo Use high-precision timers in browsers that support it.
+   * @return True if the wait succeeded, false if it triggered an exception.
    */
-  public wait(thread: threading.JVMThread, timeoutMs?: number, timeoutNs?: number): void {
-    // INVARIANT: Thread shouldn't currently be blocked on a monitor.
-    assert(thread.getStatus() !== enums.ThreadStatus.BLOCKED);
-    this.waiting.push(thread);
-    if (timeoutMs != null) {
-      // Scheduler a timer that wakes up the thread.
-      this.waitTimers[thread.ref] = setTimeout(() => {
-        this.unwait(thread, true);
-      }, timeoutMs);
-      thread.setStatus(enums.ThreadStatus.TIMED_WAITING, this);
+  public wait(thread: threading.JVMThread, cb: (fromTimer: boolean) => void, timeoutMs?: number, timeoutNs?: number): boolean {
+    if (this.getOwner() === thread) {
+      // INVARIANT: Thread shouldn't currently be blocked on a monitor.
+      assert(thread.getStatus() !== enums.ThreadStatus.BLOCKED);
+      this.waiting[thread.ref] = {
+        thread: thread,
+        cb: cb,
+        count: this.count,
+        isTimed: timeoutMs != null
+      };
+
+      // Revoke ownership.
+      this.owner = null;
+      this.count = 0;
+
+      if (timeoutMs != null && timeoutMs !== 0) {
+        // Scheduler a timer that wakes up the thread.
+        this.waiting[thread.ref].timer = setTimeout(() => {
+          this.unwait(thread, true);
+        }, timeoutMs);
+        thread.setStatus(enums.ThreadStatus.TIMED_WAITING, this);
+      } else {
+        thread.setStatus(enums.ThreadStatus.WAITING, this);
+      }
+
+      // Select a new owner.
+      this.appointNewOwner();
+      return true;
     } else {
-      thread.setStatus(enums.ThreadStatus.WAITING, this);
+      /**
+       * "The current thread must own this object's monitor"
+       */
+      thread.throwNewException('Ljava/lang/IllegalMonitorStateException;', "Cannot wait on an object that you do not own.");
+      return false;
     }
   }
 
   /**
-   * Removes the specified thread from the waiting set, and makes it RUNNABLE
-   * again.
+   * Removes the specified thread from the waiting set, and makes it compete
+   * for the monitor lock. Once it acquires the lock, we restore its lock
+   * count prior to triggering the wait callback.
+   * 
+   * If the thread is interrupted, the wait callback is *not* triggered.
+   * 
    * @param thread The thread to remove.
    * @param fromTimer Indicates if this function call was triggered from a
    *   timer event.
+   * @param [interrupting] If true, then we are *interrupting* the wait. Do not
+   *   trigger the wait callback.
+   * @param [unwaitCb] If interrupting is true, then this callback is triggered
+   *   once the thread reacquires the lock.
    */
-  public unwait(thread: threading.JVMThread, fromTimer: boolean): void {
+  public unwait(thread: threading.JVMThread, fromTimer: boolean, interrupting: boolean = false, unwaitCb: () => void = null): void {
     // Step 1: Remove the thread from the waiting set.
-    var idx = this.waiting.indexOf(thread);
-    this.waiting.splice(idx, 1);
-    // Step 2: Remove the timer, if applicable.
-    if (thread.getStatus() === enums.ThreadStatus.TIMED_WAITING) {
-      var timerId = this.waitTimers[thread.ref];
+    var waitEntry = this.waiting[thread.ref],
+      // Interrupting a previously-waiting thread before it acquires a lock
+      // makes no semantic sense, as the thread is currently suspended in a
+      // synchronized block that requires ownership of the monitor.
+      blockStatus = enums.ThreadStatus.UNINTERRUPTABLY_BLOCKED,
+      blockCb = () => {
+        // Thread is RUNNABLE before we trigger the callback.
+        thread.setStatus(enums.ThreadStatus.RUNNABLE);
+        if(interrupting) {
+          unwaitCb();
+        } else {
+          waitEntry.cb(fromTimer);
+        }
+      };
+    assert(waitEntry != null);
+    delete this.waiting[thread.ref];
+    // Step 2: Remove the timer if the timer did not trigger this event.
+    if (thread.getStatus() === enums.ThreadStatus.TIMED_WAITING && !fromTimer) {
+      var timerId = waitEntry.timer;
       assert(timerId != null);
-      if (!fromTimer) {
-        // Cancel the timer if the timer did not trigger this event.
-        clearTimeout(timerId);
-      }
+      clearTimeout(timerId);
     }
-    // Step 3: Make thread runnable again.
-    thread.setStatus(enums.ThreadStatus.RUNNABLE);
+
+    // Step 3: Acquire the monitor [ASYNC]
+    if (this.contendForLock(thread, waitEntry.count, blockStatus, blockCb)) {
+      // Success! Trigger the blockCb anyway. If 'contendForLock' returns false,
+      // it will trigger blockCb once the thread acquires the lock.
+      blockCb();
+    }
   }
 
   /**
-   * Removes the specified thread from being blocked on the monitor.
+   * Removes the specified thread from being blocked on the monitor so it can
+   * re-compete for ownership.
+   * @param [interrupting] If true, we are interrupting the monitor block. The
+   *   thread should not acquire the lock, and the block callback should not
+   *   be triggered.
    */
-  public unblock(thread: threading.JVMThread): void {
-    var unblockIdx = this.blocked.indexOf(thread);
-    if (unblockIdx !== -1) {
-      this.blocked.splice(unblockIdx, 1);
+  public unblock(thread: threading.JVMThread, interrupting: boolean = false): void {
+    var blockEntry = this.blocked[thread.ref];
+    // Cannot interrupt an uninterruptibly blocked thread.
+    assert(interrupting ? thread.getStatus() === enums.ThreadStatus.BLOCKED : true);
+    if (blockEntry != null) {
+      delete this.blocked[thread.ref];
       thread.setStatus(enums.ThreadStatus.RUNNABLE);
+      if (!interrupting) {
+        // No one else can own the monitor.
+        assert(this.owner == null && this.count === 0, "T" + thread.ref + ": We're not interrupting a block, but someone else owns the monitor?! Owned by " + (this.owner == null ? "[no one]" : "" + this.owner.ref) + " Count: " + this.count);
+        // Assign this thread as the monitor owner.
+        this.owner = thread;
+        this.count = blockEntry.count;
+        // Trigger the callback.
+        blockEntry.cb();
+      }
     }
   }
 
@@ -429,10 +576,10 @@ export class Monitor {
    */
   public notify(thread: threading.JVMThread): void {
     if (this.owner === thread) {
-      var waiting = this.waiting;
-      if (waiting.length > 0) {
-        // Notify the thread at the top of the waiting queue.
-        this.unwait(waiting[0], false);
+      var waitingRefs = Object.keys(this.waiting);
+      if (waitingRefs.length > 0) {
+        // Notify a random thread.
+        this.unwait(this.waiting[<number><any>waitingRefs[Math.floor(Math.random() * waitingRefs.length)]].thread, false);
       }
     } else {
       /**
@@ -450,11 +597,10 @@ export class Monitor {
    */
   public notifyAll(thread: threading.JVMThread): void {
     if (this.owner === thread) {
-      var waiting = this.waiting;
-      // 'unwait' mutates waiting to remove the no-longer-waiting thread.
-      // It also handles canceling timers.
-      while (waiting.length > 0) {
-        this.unwait(waiting[0], false);
+      var waitingRefs = Object.keys(this.waiting), i: number;
+      // Notify each thread.
+      for (i = 0; i < waitingRefs.length; i++) {
+        this.unwait(this.waiting[<number><any>waitingRefs[i]].thread, false);
       }
     } else {
       /**
@@ -475,17 +621,17 @@ export class Monitor {
 
   public isWaiting(thread: threading.JVMThread): boolean {
     // Waiting, but *not* timed waiting.
-    return this.waiting.indexOf(thread) !== -1 && !this.waitTimers.hasOwnProperty("" + thread.ref);
+    return this.waiting[thread.ref] != null && !this.waiting[thread.ref].isTimed;
   }
 
   public isTimedWaiting(thread: threading.JVMThread): boolean {
     // Timed waiting, *not* waiting.
-    return this.waiting.indexOf(thread) !== -1 && this.waitTimers.hasOwnProperty("" + thread.ref);
+    return this.waiting[thread.ref] != null && this.waiting[thread.ref].isTimed;
   }
 
   public isBlocked(thread: threading.JVMThread): boolean {
     // Blocked.
-    return this.blocked.indexOf(thread) !== -1;
+    return this.blocked[thread.ref] != null;
   }
 }
 
