@@ -46,13 +46,17 @@ class WaitTest {
       c.thread.getState() != Thread.State.WAITING &&
       d.thread.getState() != Thread.State.WAITING &&
       e.thread.getState() != Thread.State.WAITING) {
-      // Sleepy sleep sleep. Forces a yield.
-      System.out.println("Sleepy sleep sleep.");
       Thread.currentThread().sleep(50);
     }
     // Interrupt one
     System.out.println("Interrupting one thread.");
     a.thread.interrupt();
+    
+    // Wait for the thread to terminate.
+    while (a.thread.getState() != Thread.State.TERMINATED) {
+      Thread.currentThread().sleep(50);
+    }
+    
     synchronized(obj) {
       System.out.println("Notifying one thread.");
       // Notify one
