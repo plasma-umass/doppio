@@ -1,5 +1,6 @@
 "use strict";
 import gLong = require('./gLong');
+import ByteStream = require('./ByteStream');
 import util = require('./util');
 
 // All objects in the constant pool have the properties @type and @value.
@@ -13,7 +14,7 @@ export interface ConstantPoolItem {
 
 export interface ConstantPoolType {
   size: number;
-  from_bytes(bytes_array: util.ByteStream, constant_pool: ConstantPool): ConstantPoolItem;
+  from_bytes(bytes_array: ByteStream, constant_pool: ConstantPool): ConstantPoolItem;
 }
 // Type checks the constructors.
 var _: ConstantPoolType;
@@ -27,7 +28,7 @@ export class SimpleReference {
     this.value = value;
   }
 
-  public static from_bytes(bytes_array: util.ByteStream, constant_pool: ConstantPool): SimpleReference {
+  public static from_bytes(bytes_array: ByteStream, constant_pool: ConstantPool): SimpleReference {
     var value = bytes_array.getUint16();
     return new this(constant_pool, value);
   }
@@ -68,7 +69,7 @@ export class AbstractMethodFieldReference {
     this.value = value;
   }
 
-  public static from_bytes(bytes_array: util.ByteStream, constant_pool: ConstantPool): AbstractMethodFieldReference {
+  public static from_bytes(bytes_array: ByteStream, constant_pool: ConstantPool): AbstractMethodFieldReference {
     var class_ref = ClassReference.from_bytes(bytes_array, constant_pool);
     var sig = SimpleReference.from_bytes(bytes_array, constant_pool);
     return new this(constant_pool, {
@@ -123,7 +124,7 @@ export class MethodSignature {
     this.value = value;
   }
 
-  public static from_bytes(bytes_array: util.ByteStream, constant_pool: ConstantPool): MethodSignature {
+  public static from_bytes(bytes_array: ByteStream, constant_pool: ConstantPool): MethodSignature {
     var meth_ref = StringReference.from_bytes(bytes_array, constant_pool);
     var type_ref = StringReference.from_bytes(bytes_array, constant_pool);
     return new this(constant_pool, <MethodSignatureValue>{
@@ -149,7 +150,7 @@ export class ConstString {
     this.value = value;
   }
 
-  public static from_bytes(bytes_array: util.ByteStream): ConstString {
+  public static from_bytes(bytes_array: ByteStream): ConstString {
     var strlen = bytes_array.getUint16();
     var value = util.bytes2str(bytes_array.read(strlen));
     return new this(value);
@@ -165,7 +166,7 @@ export class ConstInt32 {
     this.value = value;
   }
 
-  public static from_bytes(bytes_array: util.ByteStream, constant_pool: ConstantPool): ConstInt32 {
+  public static from_bytes(bytes_array: ByteStream, constant_pool: ConstantPool): ConstInt32 {
     return new this(bytes_array.getInt32());
   }
 }
@@ -179,7 +180,7 @@ export class ConstFloat {
     this.value = value;
   }
 
-  public static from_bytes(bytes_array: util.ByteStream, constant_pool: ConstantPool): ConstFloat {
+  public static from_bytes(bytes_array: ByteStream, constant_pool: ConstantPool): ConstFloat {
     return new this(bytes_array.getFloat());
   }
 }
@@ -193,7 +194,7 @@ export class ConstLong {
     this.value = value;
   }
 
-  public static from_bytes(bytes_array: util.ByteStream, constant_pool: ConstantPool): ConstLong {
+  public static from_bytes(bytes_array: ByteStream, constant_pool: ConstantPool): ConstLong {
     return new this(bytes_array.getInt64());
   }
 }
@@ -207,7 +208,7 @@ export class ConstDouble {
     this.value = value;
   }
 
-  public static from_bytes(bytes_array: util.ByteStream, constant_pool: ConstantPool): ConstDouble {
+  public static from_bytes(bytes_array: ByteStream, constant_pool: ConstantPool): ConstDouble {
     return new this(bytes_array.getDouble());
   }
 }
@@ -217,7 +218,7 @@ export class ConstantPool {
   private cp_count: number;
   private constant_pool: { [n: number]: ConstantPoolItem; };
 
-  public parse(bytes_array: util.ByteStream): util.ByteStream {
+  public parse(bytes_array: ByteStream): ByteStream {
     var constant_tags: {[n: number]: ConstantPoolType } = {
       1: ConstString,
       3: ConstInt32,

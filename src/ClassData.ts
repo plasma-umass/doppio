@@ -1,5 +1,6 @@
 "use strict";
 import util = require('./util');
+import ByteStream = require('./ByteStream');
 import ConstantPool = require('./ConstantPool');
 import attributes = require('./attributes');
 import opcodes = require('./opcodes');
@@ -335,7 +336,7 @@ export class ReferenceClassData extends ClassData {
 
   constructor(buffer: NodeBuffer, loader?: ClassLoader.ClassLoader) {
     super(loader);
-    var bytes_array = new util.ByteStream(buffer);
+    var bytes_array = new ByteStream(buffer);
     if ((bytes_array.getUint32()) !== 0xCAFEBABE) {
       throw "Magic number invalid";
     }
