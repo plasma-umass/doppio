@@ -357,13 +357,10 @@ export class Deprecated implements Attribute {
 
 export class Signature implements Attribute {
   public name = 'Signature';
-  private raw_bytes: number[];
   public sig: string;
 
   public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool, attr_len?: number) {
-    this.raw_bytes = bytes_array.read(attr_len);
-    var ref = util.read_uint(this.raw_bytes);
-    this.sig = constant_pool.get(ref).value;
+    this.sig = constant_pool.get(bytes_array.getUint16()).value;
   }
 }
 

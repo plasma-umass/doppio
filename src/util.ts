@@ -194,16 +194,6 @@ export function lshift(x: number, n: number): number {
   return x * Math.pow(2, n);
 }
 
-export function read_uint(bytes: number[]): number {
-  var n = bytes.length - 1;
-  // sum up the byte values shifted left to the right alignment.
-  var sum = 0;
-  for (var i = 0; i <= n; i++) {
-    sum += lshift(bytes[i], 8 * (n - i));
-  }
-  return sum;
-}
-
 // Convert :count chars starting from :offset in a Java character array into a JS string
 export function chars2js_str(jvm_carr: java_object.JavaArray, offset?: number, count?: number): string {
   var off = offset || 0;
