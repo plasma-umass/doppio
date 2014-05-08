@@ -289,7 +289,7 @@ class JVM {
   private evalNativeModule(mod: string): any {
     "use strict"; // Prevent eval from being terrible.
     // Terrible hack.
-    mod = mod.replace(/require\((\'|\")..\/(.*)(\'|\")\);/g, 'require($1./$2$1);');
+    mod = mod.replace(/require\((\'|\")..\/([a-zA-Z_0-9]*)(\'|\")\)/g, 'require($1./$2$1)');
     return eval(mod);
   }
 

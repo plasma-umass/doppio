@@ -78,7 +78,7 @@ export function setup(grunt: IGrunt) {
         files: [{
           expand: true,
           cwd: 'build/dev-cli',
-          src: '+(console|src)/*.js',
+          src: '+(console|src)/**/*.js',
           dest: 'build/release-cli'
         }]
       },
@@ -178,7 +178,7 @@ export function setup(grunt: IGrunt) {
         files: [{
           expand: true,
           cwd: 'build/release-cli',
-          src: '+(console|src)/*.js',
+          src: '+(console|src)/**/*.js',
           dest: 'build/release-cli'
         }]
       }
