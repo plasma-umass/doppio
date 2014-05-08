@@ -11,7 +11,7 @@ import logging = require('./logging');
 import JVM = require('./jvm');
 import util = require('./util');
 
-var debug = logging.debug;
+var debug = logging.debug, vtrace = logging.vtrace;
 
 /**
  * Represents a stack frame.
@@ -70,7 +70,7 @@ export class BytecodeStackFrame implements IStackFrame {
   public run(thread: JVMThread): void {
     var method = this.method, code = this.method.getCode();
     if (this.pc === 0) {
-      logging.vtrace("T" + thread.ref + " " + this.method.full_signature() + " [Bytecode]");
+      vtrace("T" + thread.ref + " " + this.method.full_signature() + " [Bytecode]");
     }
     if (method.access_flags.synchronized && !this.lockedMethodLock) {
       // We are starting a synchronized method! These must implicitly enter
@@ -91,16 +91,16 @@ export class BytecodeStackFrame implements IStackFrame {
     // from the previous time this method was run, and is meaningless.
     this.returnToThreadLoop = false;
 
-    logging.vtrace("Resuming " + this.method.full_signature() + ":" + this.pc + " [Bytecode]");
-    logging.vtrace("BEFORE: D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
+    vtrace("Resuming " + this.method.full_signature() + ":" + this.pc + " [Bytecode]");
+    vtrace("BEFORE: D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
     // Run until we get the signal to return to the thread loop.
     while (!this.returnToThreadLoop) {
       var op = code[this.pc];
-      logging.vtrace("D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
-      logging.vtrace(method.cls.get_type() + "::" + method.name + ":" + this.pc + " => " + op.name + op.annotate(this.pc, method.cls.constant_pool));
+      vtrace("D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
+      vtrace(method.cls.get_type() + "::" + method.name + ":" + this.pc + " => " + op.name + op.annotate(this.pc, method.cls.constant_pool));
       op.execute(thread, this);
     }
-    logging.vtrace("AFTER: D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
+    vtrace("AFTER: D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
   }
 
   public scheduleResume(thread: JVMThread, rv?: any, rv2?: any): void {
@@ -229,7 +229,7 @@ class NativeStackFrame implements IStackFrame {
    * NOTE: Should only be called once.
    */
   public run(thread: JVMThread): void {
-    logging.vtrace("T" + thread.ref + " " + this.method.full_signature() + " [Native Code]");
+    vtrace("T" + thread.ref + " " + this.method.full_signature() + " [Native Code]");
     var rv: any = this.nativeMethod.apply(null, this.method.convertArgs(thread, this.args));
     // Ensure thread is running, and we are the running method.
     if (thread.getStatus() === enums.ThreadStatus.RUNNING && thread.currentMethod() === this.method) {
@@ -625,7 +625,7 @@ export class JVMThread extends java_object.JavaObject {
 
     if (this.status !== status) {
       var oldStatus = this.status;
-      logging.vtrace("T" + this.ref + " " + enums.ThreadStatus[oldStatus] + " => " + enums.ThreadStatus[status]);
+      vtrace("T" + this.ref + " " + enums.ThreadStatus[oldStatus] + " => " + enums.ThreadStatus[status]);
 
       // Optimistically change state.
       this.rawSetStatus(status);

@@ -79,9 +79,9 @@ export class ClassLoader {
       var classData = new ClassData.ReferenceClassData(data, this);
       this.addClass(typeStr, classData);
       if (this instanceof BootstrapClassLoader) {
-        logging.debug("[BOOTSTRAP] Defining class " + typeStr);
+        debug("[BOOTSTRAP] Defining class " + typeStr);
       } else {
-        logging.debug("[CUSTOM] Defining class " + typeStr);
+        debug("[CUSTOM] Defining class " + typeStr);
       }
       return classData;
     } catch (e) {
@@ -585,7 +585,7 @@ export class BootstrapClassLoader extends ClassLoader {
    * Asynchronously load the given class from the classpath.
    */
   public _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
-    logging.debug('[BOOTSTRAP] Loading class ' + typeStr);
+    debug('[BOOTSTRAP] Loading class ' + typeStr);
     // This method is only valid for reference types!
     assert(util.is_reference_type(typeStr));
     // Search the class path for the class.
@@ -765,7 +765,7 @@ export class CustomClassLoader extends ClassLoader {
    *   false otherwise. This changes the exception/error that we throw.
    */
   public _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
-    logging.debug('[CUSTOM] Loading class ' + typeStr);
+    debug('[CUSTOM] Loading class ' + typeStr);
     // This method is only valid for reference types!
     assert(util.is_reference_type(typeStr));
     // Invoke the custom class loader.

@@ -6,6 +6,8 @@ import util = require('../util');
 import threading = require('../threading');
 import enums = require('../enums');
 
+var debug = logging.debug;
+
 declare var Websock: {
   new (): java_object.IWebsock;
 }
@@ -172,7 +174,7 @@ class java_net_PlainSocketImpl {
     }
     // Add port
     host += ":" + port;
-    logging.debug("Connecting to " + host + " with timeout = " + timeout + " ms");
+    debug("Connecting to " + host + " with timeout = " + timeout + " ms");
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     var id = 0,
       clear_state = () => {
@@ -195,7 +197,7 @@ class java_net_PlainSocketImpl {
       };
     // Success case
     javaThis.$ws.on('open', () => {
-      logging.debug('Open!');
+      debug('Open!');
       clear_state();
       thread.asyncReturn();
     });
@@ -206,7 +208,7 @@ class java_net_PlainSocketImpl {
       timeout = 10000;
     }
     id = setTimeout(error_cb('Connection timeout!'), timeout);
-    logging.debug("Host: " + host);
+    debug("Host: " + host);
     // Launch!
     try {
       javaThis.$ws.open(host);

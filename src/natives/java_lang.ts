@@ -9,6 +9,8 @@ import threading = require('../threading');
 import ClassLoader = require('../ClassLoader');
 import enums = require('../enums');
 
+var debug = logging.debug;
+
 function array_get(thread: threading.JVMThread, arr: java_object.JavaArray, idx: number): any {
   if (arr == null) {
     thread.throwNewException('Ljava/lang/NullPointerException;', '');
@@ -582,13 +584,13 @@ class java_lang_Object {
 
   public static 'notify()V'(thread: threading.JVMThread, javaThis: java_object.JavaObject): void {
     var locker;
-    logging.debug("TE(notify): on lock *" + javaThis.ref);
+    debug("TE(notify): on lock *" + javaThis.ref);
     javaThis.getMonitor().notify(thread);
   }
 
   public static 'notifyAll()V'(thread: threading.JVMThread, javaThis: java_object.JavaObject): void {
     var locker;
-    logging.debug("TE(notifyAll): on lock *" + javaThis.ref);
+    debug("TE(notifyAll): on lock *" + javaThis.ref);
     javaThis.getMonitor().notifyAll(thread);
   }
 
@@ -797,7 +799,7 @@ class java_lang_Runtime {
    * hard limit on the heap size.
    */
   public static 'maxMemory()J'(thread: threading.JVMThread, javaThis: java_object.JavaObject): gLong {
-    logging.debug("Warning: maxMemory has no meaningful value in Doppio -- there is no hard memory limit.");
+    debug("Warning: maxMemory has no meaningful value in Doppio -- there is no hard memory limit.");
     return gLong.MAX_VALUE;
   }
 
