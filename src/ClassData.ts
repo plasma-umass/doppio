@@ -335,35 +335,35 @@ export class ReferenceClassData extends ClassData {
 
   constructor(buffer: NodeBuffer, loader?: ClassLoader.ClassLoader) {
     super(loader);
-    var bytes_array = new util.BytesArray(buffer);
-    if ((bytes_array.get_uint(4)) !== 0xCAFEBABE) {
+    var bytes_array = new util.ByteStream(buffer);
+    if ((bytes_array.getUint32()) !== 0xCAFEBABE) {
       throw "Magic number invalid";
     }
-    this.minor_version = bytes_array.get_uint(2);
-    this.major_version = bytes_array.get_uint(2);
+    this.minor_version = bytes_array.getUint16();
+    this.major_version = bytes_array.getUint16();
     if (!(45 <= this.major_version && this.major_version <= 51)) {
       throw "Major version invalid";
     }
     this.constant_pool = new ConstantPool.ConstantPool();
     this.constant_pool.parse(bytes_array);
     // bitmask for {public,final,super,interface,abstract} class modifier
-    this.access_byte = bytes_array.get_uint(2);
+    this.access_byte = bytes_array.getUint16();
     this.access_flags = util.parse_flags(this.access_byte);
 
-    this.this_class = this.constant_pool.get(bytes_array.get_uint(2)).deref();
+    this.this_class = this.constant_pool.get(bytes_array.getUint16()).deref();
     // super reference is 0 when there's no super (basically just java.lang.Object)
-    var super_ref = bytes_array.get_uint(2);
+    var super_ref = bytes_array.getUint16();
     if (super_ref !== 0) {
       this.super_class = this.constant_pool.get(super_ref).deref();
     }
     // direct interfaces of this class
-    var isize = bytes_array.get_uint(2);
+    var isize = bytes_array.getUint16();
     this.interfaces = [];
     for (var _i = 0; _i < isize; ++_i) {
-      this.interfaces.push(this.constant_pool.get(bytes_array.get_uint(2)).deref());
+      this.interfaces.push(this.constant_pool.get(bytes_array.getUint16()).deref());
     }
     // fields of this class
-    var num_fields = bytes_array.get_uint(2);
+    var num_fields = bytes_array.getUint16();
     this.fields = [];
     for (var _i = 0; _i < num_fields; ++_i) {
       this.fields.push(new methods.Field(this));
@@ -375,7 +375,7 @@ export class ReferenceClassData extends ClassData {
       this.fl_cache[f.name] = f;
     }
     // class methods
-    var num_methods = bytes_array.get_uint(2);
+    var num_methods = bytes_array.getUint16();
     this.methods = {};
     this.ml_cache = {};
     // XXX: we may want to populate ml_cache with methods whose exception
@@ -388,7 +388,7 @@ export class ReferenceClassData extends ClassData {
     }
     // class attributes
     this.attrs = attributes.make_attributes(bytes_array, this.constant_pool);
-    if (bytes_array.has_bytes()) {
+    if (bytes_array.hasBytes()) {
       throw "Leftover bytes in classfile: " + bytes_array;
     }
     // Contains the value of all static fields. Will be reset when reset()
@@ -470,7 +470,7 @@ export class ReferenceClassData extends ClassData {
       if (cva != null) {
         var cv = f.type === 'Ljava/lang/String;' ? java_object.initString(thread.getBsCl(), cva.value) : cva.value;
       }
-      this.static_fields[name] = cv != null ? cv : util.initial_value(f.raw_descriptor);
+      this.static_fields[name] = cv != null ? cv : util.initialValue(f.raw_descriptor);
       return true;
     } else {
       thread.throwNewException('Ljava/lang/NoSuchFieldError;', name);
@@ -551,7 +551,7 @@ export class ReferenceClassData extends ClassData {
         if (f.access_flags["static"]) {
           continue;
         }
-        var val = util.initial_value(f.raw_descriptor);
+        var val = util.initialValue(f.raw_descriptor);
         this.default_fields[cls.get_type() + f.name] = val;
       }
       cls = <ReferenceClassData>cls.get_super_class();

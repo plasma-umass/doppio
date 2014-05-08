@@ -85,6 +85,8 @@ export class ClassLoader {
       }
       return classData;
     } catch (e) {
+      console.log(e);
+      console.log(e.stack);
       thread.throwNewException('Ljava/lang/ClassFormatError;', e);
       return null;
     }

@@ -662,7 +662,7 @@ export function heapMultiNewArray(thread: threading.JVMThread, loader: ClassLoad
       // Gives the JS engine a size hint.
       var array = new Array(len);
       if (curr_dim + 1 === dim) {
-        var default_val = util.initial_value(type);
+        var default_val = util.initialValue(type);
         for (var i = 0; i < len; i++) {
           array[i] = default_val;
         }

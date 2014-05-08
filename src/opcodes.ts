@@ -71,10 +71,10 @@ export class Opcode {
     this.execute = execute || this._execute;
   }
 
-  public take_args(code_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
+  public take_args(code_array: util.ByteStream, constant_pool: ConstantPool.ConstantPool): void {
     this.args = [];
     for (var i = 0; i < this.byte_count; i++) {
-      this.args.push(code_array.get_uint(1));
+      this.args.push(code_array.getUint8());
     }
   }
 
@@ -105,8 +105,8 @@ export class FieldOpcode extends Opcode {
     super(name, 2, execute);
   }
 
-  public take_args(code_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
-    this.field_spec_ref = code_array.get_uint(2);
+  public take_args(code_array: util.ByteStream, constant_pool: ConstantPool.ConstantPool): void {
+    this.field_spec_ref = code_array.getUint16();
     this.field_spec = constant_pool.get(this.field_spec_ref).deref();
   }
 
@@ -124,8 +124,8 @@ export class ClassOpcode extends Opcode {
     super(name, 2, execute);
   }
 
-  public take_args(code_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
-    this.class_ref = code_array.get_uint(2);
+  public take_args(code_array: util.ByteStream, constant_pool: ConstantPool.ConstantPool): void {
+    this.class_ref = code_array.getUint16();
     this.class_desc = constant_pool.get(this.class_ref).deref();
   }
 
@@ -143,8 +143,8 @@ export class InvokeOpcode extends Opcode {
     super(name, 2);
   }
 
-  public take_args(code_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
-    this.method_spec_ref = code_array.get_uint(2);
+  public take_args(code_array: util.ByteStream, constant_pool: ConstantPool.ConstantPool): void {
+    this.method_spec_ref = code_array.getUint16();
     this.method_spec = constant_pool.get(this.method_spec_ref).deref();
   }
 
@@ -211,11 +211,11 @@ export class DynInvokeOpcode extends InvokeOpcode {
   public count: number
   private cache: any
 
-  public take_args(code_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
+  public take_args(code_array: util.ByteStream, constant_pool: ConstantPool.ConstantPool): void {
     super.take_args(code_array, constant_pool);
     // invokeinterface has two redundant bytes
     if (this.name === 'invokeinterface') {
-      this.count = code_array.get_uint(1);
+      this.count = code_array.getUint8();
       code_array.skip(1);
       this.byte_count += 2;
     } else { // invokevirtual
@@ -262,8 +262,8 @@ export class LoadConstantOpcode extends Opcode {
   public constant: any
   public str_constant: any
 
-  public take_args(code_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
-    this.constant_ref = code_array.get_uint(this.byte_count);
+  public take_args(code_array: util.ByteStream, constant_pool: ConstantPool.ConstantPool): void {
+    this.constant_ref = code_array.getUint(this.byte_count);
     this.constant = constant_pool.get(this.constant_ref);
     var ctype = this.constant.type;
     if (ctype === 'String' || ctype === 'class') {
@@ -315,8 +315,8 @@ export class BranchOpcode extends Opcode {
     super(name, 2, execute);
   }
 
-  public take_args(code_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
-    this.offset = code_array.get_int(this.byte_count);
+  public take_args(code_array: util.ByteStream, constant_pool: ConstantPool.ConstantPool): void {
+    this.offset = code_array.getInt(this.byte_count);
   }
 
   public annotate(idx: number, pool: ConstantPool.ConstantPool): string {
@@ -380,8 +380,8 @@ export class BinaryBranchOpcode extends BranchOpcode {
 export class PushOpcode extends Opcode {
   public value: number;
 
-  public take_args(code_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
-    this.value = code_array.get_int(this.byte_count);
+  public take_args(code_array: util.ByteStream, constant_pool: ConstantPool.ConstantPool): void {
+    this.value = code_array.getInt(this.byte_count);
   }
 
   public annotate(idx: number, pool: ConstantPool.ConstantPool): string {
@@ -398,7 +398,7 @@ export class IIncOpcode extends Opcode {
   public index: number
   public const: number
 
-  public take_args(code_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool, wide?: boolean): void {
+  public take_args(code_array: util.ByteStream, constant_pool: ConstantPool.ConstantPool, wide?: boolean): void {
     var arg_size: number;
     if (wide) {
       this.name += "_w";
@@ -408,8 +408,8 @@ export class IIncOpcode extends Opcode {
       arg_size = 1;
       this.byte_count = 2;
     }
-    this.index = code_array.get_uint(arg_size);
-    this["const"] = code_array.get_int(arg_size);
+    this.index = code_array.getUint(arg_size);
+    this["const"] = code_array.getInt(arg_size);
   }
 
   public annotate(idx: number, pool: ConstantPool.ConstantPool): string {
@@ -426,7 +426,7 @@ export class IIncOpcode extends Opcode {
 export class LoadOpcode extends Opcode {
   public var_num : number
 
-  public take_args(code_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
+  public take_args(code_array: util.ByteStream, constant_pool: ConstantPool.ConstantPool): void {
     // sneaky hack, works for name =~ /.load_\d/
     this.var_num = parseInt(this.name[6]);
   }
@@ -446,14 +446,14 @@ export class LoadOpcode2 extends LoadOpcode {
 }
 
 export class LoadVarOpcode extends LoadOpcode {
-  public take_args(code_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool, wide?: boolean): void {
+  public take_args(code_array: util.ByteStream, constant_pool: ConstantPool.ConstantPool, wide?: boolean): void {
     if (wide) {
       this.name += "_w";
       this.byte_count = 3;
-      this.var_num = code_array.get_uint(2);
+      this.var_num = code_array.getUint16();
     } else {
       this.byte_count = 1;
-      this.var_num = code_array.get_uint(1);
+      this.var_num = code_array.getUint8();
     }
   }
   public annotate(idx: number, pool: ConstantPool.ConstantPool): string {
@@ -471,7 +471,7 @@ export class LoadVarOpcode2 extends LoadVarOpcode {
 export class StoreOpcode extends Opcode {
   public var_num : number
 
-  public take_args(code_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
+  public take_args(code_array: util.ByteStream, constant_pool: ConstantPool.ConstantPool): void {
     // sneaky hack, works for name =~ /.store_\d/
     this.var_num = parseInt(this.name[7]);
   }
@@ -495,14 +495,14 @@ export class StoreOpcode2 extends StoreOpcode {
 }
 
 export class StoreVarOpcode extends StoreOpcode {
-  public take_args(code_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool, wide?: boolean): void {
+  public take_args(code_array: util.ByteStream, constant_pool: ConstantPool.ConstantPool, wide?: boolean): void {
     if (wide) {
       this.name += "_w";
       this.byte_count = 3;
-      this.var_num = code_array.get_uint(2);
+      this.var_num = code_array.getUint16();
     } else {
       this.byte_count = 1;
-      this.var_num = code_array.get_uint(1);
+      this.var_num = code_array.getUint8();
     }
   }
   public annotate(idx: number, pool: ConstantPool.ConstantPool): string {
@@ -534,16 +534,16 @@ export class LookupSwitchOpcode extends BranchOpcode {
     return rv + "\t\tdefault: " + (idx + this._default) + " }";
   }
 
-  public take_args(code_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
+  public take_args(code_array: util.ByteStream, constant_pool: ConstantPool.ConstantPool): void {
     // account for padding that ensures alignment
     var padding_size = (4 - code_array.pos() % 4) % 4;
     code_array.skip(padding_size);
-    this._default = code_array.get_int(4);
-    var npairs = code_array.get_int(4);
+    this._default = code_array.getInt32();
+    var npairs = code_array.getInt32();
     this.offsets = {};
     for (var i = 0; i < npairs; ++i) {
-      var match = code_array.get_int(4);
-      this.offsets[match] = code_array.get_int(4);
+      var match = code_array.getInt32();
+      this.offsets[match] = code_array.getInt32();
     }
     this.byte_count = padding_size + 8 * (npairs + 1);
   }
@@ -559,17 +559,17 @@ export class LookupSwitchOpcode extends BranchOpcode {
 }
 
 export class TableSwitchOpcode extends LookupSwitchOpcode {
-  public take_args(code_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
+  public take_args(code_array: util.ByteStream, constant_pool: ConstantPool.ConstantPool): void {
     // account for padding that ensures alignment
     var padding_size = (4 - code_array.pos() % 4) % 4;
     code_array.skip(padding_size);
-    this._default = code_array.get_int(4);
-    var low = code_array.get_int(4);
-    var high = code_array.get_int(4);
+    this._default = code_array.getInt32();
+    var low = code_array.getInt32();
+    var high = code_array.getInt32();
     this.offsets = {};
     var total_offsets = high - low + 1;
     for (var i = 0; i < total_offsets; ++i) {
-      this.offsets[low + i] = code_array.get_int(4);
+      this.offsets[low + i] = code_array.getInt32();
     }
     this.byte_count = padding_size + 12 + 4 * total_offsets;
   }
@@ -586,8 +586,8 @@ export class NewArrayOpcode extends Opcode {
     super(name, 1);
   }
 
-  public take_args(code_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
-    this.element_type = NewArray_arr_types[code_array.get_uint(1)];
+  public take_args(code_array: util.ByteStream, constant_pool: ConstantPool.ConstantPool): void {
+    this.element_type = NewArray_arr_types[code_array.getUint8()];
   }
 
   public annotate(idx: number, pool: ConstantPool.ConstantPool): string {
@@ -610,10 +610,10 @@ export class MultiArrayOpcode extends Opcode {
     super(name, 3);
   }
 
-  public take_args(code_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
-    this.class_ref = code_array.get_uint(2);
+  public take_args(code_array: util.ByteStream, constant_pool: ConstantPool.ConstantPool): void {
+    this.class_ref = code_array.getUint16();
     this.class_descriptor = constant_pool.get(this.class_ref).deref();
-    this.dim = code_array.get_uint(1);
+    this.dim = code_array.getUint8();
   }
 
   public annotate(idx: number, pool: ConstantPool.ConstantPool): string {

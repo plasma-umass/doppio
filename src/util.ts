@@ -157,73 +157,6 @@ export function byteArray2Buffer(bytes: number[], offset: number = 0, len: numbe
   return buff;
 }
 
-/**
- * @todo Remove and use Buffers for conversion.
- */
-export function intbits2float(int32: number): number {
-  if (typeof Int32Array !== "undefined") {
-    var i_view = new Int32Array([int32]);
-    var f_view = new Float32Array(i_view.buffer);
-    return f_view[0];
-  }
-  // Fallback for older JS engines
-
-  // Map +/- infinity to JavaScript equivalents
-  if (int32 === enums.Constants.FLOAT_POS_INFINITY_AS_INT) {
-    return Number.POSITIVE_INFINITY;
-  } else if (int32 === enums.Constants.FLOAT_NEG_INFINITY_AS_INT) {
-    return Number.NEGATIVE_INFINITY;
-  }
-  var sign = (int32 & 0x80000000) >>> 31;
-  var exponent = (int32 & 0x7F800000) >>> 23;
-  var significand = int32 & 0x007FFFFF;
-  var value : number;
-  if (exponent === 0) {  // we must denormalize!
-    value = Math.pow(-1, sign) * significand * Math.pow(2, -149);
-  } else {
-    value = Math.pow(-1, sign) * (1 + significand * Math.pow(2, -23)) * Math.pow(2, exponent - 127);
-  }
-  // NaN check
-  if (value < enums.Constants.FLOAT_NEG_INFINITY || value > enums.Constants.FLOAT_POS_INFINITY) {
-    value = NaN;
-  }
-  return value;
-}
-
-/**
- * @todo Remove and use Buffers for conversion
- */
-export function longbits2double(uint32_a: number, uint32_b: number): number {
-  if (typeof Uint32Array !== "undefined") {
-    var i_view = new Uint32Array(2);
-    i_view[0] = uint32_b;
-    i_view[1] = uint32_a;
-    var d_view = new Float64Array(i_view.buffer);
-    return d_view[0];
-  }
-  var sign = (uint32_a & 0x80000000) >>> 31;
-  var exponent = (uint32_a & 0x7FF00000) >>> 20;
-  var significand = lshift(uint32_a & 0x000FFFFF, 32) + uint32_b;
-
-  // Special values!
-  if (exponent === 0 && significand === 0) {
-    return 0;
-  }
-  if (exponent === 2047) {
-    if (significand === 0) {
-      if (sign === 1) {
-        return Number.NEGATIVE_INFINITY;
-      }
-      return Number.POSITIVE_INFINITY;
-    } else {
-      return NaN;
-    }
-  }
-  if (exponent === 0)  // we must denormalize!
-    return Math.pow(-1, sign) * significand * Math.pow(2, -1074);
-  return Math.pow(-1, sign) * (1 + significand * Math.pow(2, -52)) * Math.pow(2, exponent - 1023);
-}
-
 // Call this ONLY on the result of two non-NaN numbers.
 export function wrap_float(a: number): number {
   if (a > 3.40282346638528860e+38) {
@@ -402,22 +335,28 @@ export function format_extra_info(entry: any): string {
     case 'class':
       return "\t//  " + format_class_name(this.descriptor2typestr(info));
     default:
-      if (is_string(info)) {
+      if (typeof info === 'string' || info instanceof String) {
         return "\t//  " + escape_whitespace(info);
       }
   }
 }
 
 // Lightweight wrapper around a buffer.
-export class BytesArray {
-  private start : number;
-  private end : number;
+export class ByteStream {
   private _index : number;
 
-  constructor(private buffer: NodeBuffer, start?: number, end?: number) {
-    this.start = start != null ? start : 0;
-    this.end = end != null ? end : this.buffer.length;
+  constructor(private buffer: NodeBuffer) {
     this._index = 0;
+  }
+
+  /**
+   * Returns the current read index, and increments the index by the indicated
+   * amount.
+   */
+  private incIndex(inc: number): number {
+    var readIndex = this._index;
+    this._index += inc;
+    return readIndex;
   }
 
   public rewind(): void {
@@ -428,74 +367,106 @@ export class BytesArray {
     return this._index;
   }
 
-  public skip(bytes_count: number): void {
-    this._index += bytes_count;
+  public skip(bytesCount: number): void {
+    this._index += bytesCount;
   }
 
-  public has_bytes(): boolean {
-    return this.start + this._index < this.end;
+  public hasBytes(): boolean {
+    return this._index < this.buffer.length;
   }
 
-  public get_uint(bytes_count: number): number {
-    var readIndex = this.start + this._index;
-    this._index += bytes_count;
-    switch (bytes_count) {
+  public getFloat(): number {
+    return this.buffer.readFloatBE(this.incIndex(4));
+  }
+
+  public getDouble(): number {
+    return this.buffer.readDoubleBE(this.incIndex(8));
+  }
+
+  public getUint(byteCount: number): number {
+    switch (byteCount) {
       case 1:
-        return this.buffer.readUInt8(readIndex);
+        return this.getUint8();
       case 2:
-        return this.buffer.readUInt16BE(readIndex);
+        return this.getUint16();
       case 4:
-        return this.buffer.readUInt32BE(readIndex);
+        return this.getUint32();
       default:
-        this._index -= bytes_count;
-        throw new Error('Cannot read a uint of size ' + bytes_count);
+        throw new Error("Invalid byte count for getUint: " + byteCount);
     }
   }
 
-  public get_int(bytes_count: number): number {
-    var bytes_to_set = 32 - bytes_count * 8;
-    return this.get_uint(bytes_count) << bytes_to_set >> bytes_to_set;
+  public getInt(byteCount: number): number {
+    switch (byteCount) {
+      case 1:
+        return this.getInt8();
+      case 2:
+        return this.getInt16();
+      case 4:
+        return this.getInt32();
+      default:
+        throw new Error("Invalid byte count for getUint: " + byteCount);
+    }
   }
 
-  public read(bytes_count: number): number[] {
-    var rv : number[] = [];
-    for (var i = this.start + this._index; i < this.start + this._index + bytes_count; i++) {
+  public getUint8(): number {
+    return this.buffer.readUInt8(this.incIndex(1));
+  }
+
+  public getUint16(): number {
+    return this.buffer.readUInt16BE(this.incIndex(2));
+  }
+
+  public getUint32(): number {
+    return this.buffer.readUInt32BE(this.incIndex(4));
+  }
+
+  public getInt8(): number {
+    return this.buffer.readInt8(this.incIndex(1));
+  }
+
+  public getInt16(): number {
+    return this.buffer.readInt16BE(this.incIndex(2));
+  }
+
+  public getInt32(): number {
+    return this.buffer.readInt32BE(this.incIndex(4));
+  }
+
+  public getInt64(): gLong {
+    var high = this.getUint32();
+    var low = this.getUint32();
+    return gLong.fromBits(low, high);
+  }
+
+  /**
+   * @todo Remove this entirely, and use a Node buffer.
+   */
+  public read(bytesCount: number): number[] {
+    var rv: number[] = [], end = this._index + bytesCount;
+    for (var i = this._index; i < end; i++) {
       rv.push(this.buffer.readUInt8(i));
     }
-    this._index += bytes_count;
+    this._index += bytesCount;
     return rv;
-  }
-
-  public peek(): number {
-    return this.buffer.readUInt8(this.start + this._index);
   }
 
   public size(): number {
-    return this.end - this.start - this._index;
+    return this.buffer.length - this._index;
   }
 
-  public splice(len: number): BytesArray {
-    var arr = new BytesArray(this.buffer, this.start + this._index, this.start + this._index + len);
+  public slice(len: number): ByteStream {
+    var arr = new ByteStream(this.buffer.slice(this._index, this._index + len));
     this._index += len;
     return arr;
   }
-
-  public slice(len: number): NodeBuffer {
-    var rv = this.buffer.slice(this.start + this._index, this.start + this._index + len);
-    this._index += len;
-    return rv;
-  }
 }
 
-export function initial_value(type_str: string): any {
+export function initialValue(type_str: string): any {
   if (type_str === 'J') return gLong.ZERO;
   var c = type_str[0];
   if (c === '[' || c === 'L') return null;
   return 0;
-}
-
-export function is_string(obj: any): boolean {
-  return typeof obj === 'string' || obj instanceof String;
 }
 
 // Java classes are represented internally using slashes as delimiters.
@@ -629,10 +600,6 @@ export function bytes2str(bytes: number[], null_terminate?: boolean): string {
     rv += String.fromCharCode(x <= 0x7f ? x : x <= 0xdf ? (y = bytes[idx++], ((x & 0x1f) << 6) + (y & 0x3f)) : (y = bytes[idx++], z = bytes[idx++], ((x & 0xf) << 12) + ((y & 0x3f) << 6) + (z & 0x3f)));
   }
   return rv;
-}
-
-export function last(array: any[]): any {
-  return array[array.length - 1];
 }
 
 export class SafeMap<T> {
