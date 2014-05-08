@@ -5,14 +5,6 @@ import threading = require('../src/threading');
 import enums = require('../src/enums');
 var statuses = Object.keys(threading.validTransitions);
 
-/**
- * digraph sample2 {
-A -> B [ label = "Edge A to B" ];
-B -> C [ label = "Edge B to C" ];
-A [label="Node A"];
-}
- */
-
 process.stdout.write('digraph thread_transition_graph {\n');
 // Emit nodes first.
 statuses.forEach((status: string) => {
