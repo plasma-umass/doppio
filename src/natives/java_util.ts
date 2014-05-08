@@ -46,9 +46,26 @@ class java_util_TimeZone {
 
 }
 
+class java_util_ResourceBundle {
+
+  public static 'getClassContext()[Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaObject): java_object.JavaArray {
+    // return an array of classes for each method on the stack
+    // starting with the current method and going up the call chain
+    var classes: java_object.JavaClassObject[] = [],
+      stack = thread.getStackTrace(),
+      i: number;
+    for (i = stack.length - 1; i >= 0; i--) {
+      var sf = stack[i];
+      classes.push(sf.method.cls.get_class_object(thread));
+    }
+    return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[Ljava/lang/Class;'), classes);
+  }
+}
+
 ({
   'java/util/concurrent/atomic/AtomicLong': java_util_concurrent_atomic_AtomicLong,
   'java/util/jar/JarFile': java_util_jar_JarFile,
   'java/util/logging/FileHandler': java_util_logging_FileHandler,
+  'java/util/ResourceBundle': java_util_ResourceBundle,
   'java/util/TimeZone': java_util_TimeZone
 })
