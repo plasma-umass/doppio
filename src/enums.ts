@@ -21,11 +21,10 @@ export enum ClassState {
  * 
  * NOTE: When altering ThreadStatus, remember to update the following things.
  * 
- * - Thread.setStatus: Manages and validates transitions between states.
+ * - Thread.validTransitions: Describes each valid thread transition.
  * - sun.misc.VM.getThreadStateValues: Maps ThreadStatus values to Thread.State
  *   values.
  * - Assertion statements in Thread regarding its status.
- * - The thread transition diagram in the docs folder.
  */
 export enum ThreadStatus {
   // A thread that has not yet started is in this state.

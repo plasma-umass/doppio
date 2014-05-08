@@ -623,108 +623,25 @@ export class JVMThread extends java_object.JavaObject {
       throw new Error("Invalid state transition: " + enums.ThreadStatus[oldStatus] + " => " + enums.ThreadStatus[status]);
     }
 
-    if (this.status !== status) {
+    // Ignore RUNNING => RUNNABLE transitions.
+    if (this.status !== status && !(this.status === enums.ThreadStatus.RUNNING && status === enums.ThreadStatus.RUNNABLE)) {
       var oldStatus = this.status;
       vtrace("T" + this.ref + " " + enums.ThreadStatus[oldStatus] + " => " + enums.ThreadStatus[status]);
+      assert(validateThreadTransition(oldStatus, status), "Invalid thread transition: " + enums.ThreadStatus[oldStatus] + " => " + enums.ThreadStatus[status]);
 
       // Optimistically change state.
       this.rawSetStatus(status);
       this.monitor = null;
-      // Transition: this.status => status
-      // @todo Move this into a debug-build validation function, and minimize
-      // code in this method.
+
+      /** Pre-transition actions **/
       switch (oldStatus) {
-        case enums.ThreadStatus.NEW:
-          switch (status) {
-            case enums.ThreadStatus.RUNNABLE:
-            case enums.ThreadStatus.ASYNC_WAITING:
-              break;
-            default:
-              invalidTransition();
-          }
-          break;
-        case enums.ThreadStatus.RUNNING:
-          switch (status) {
-            case enums.ThreadStatus.RUNNABLE:
-              // Downgrade; ignore.
-              // @todo May want to make this possible for purposes of responsiveness.
-              this.rawSetStatus(enums.ThreadStatus.RUNNING);
-              return;
-            case enums.ThreadStatus.TERMINATED:
-              break;
-            case enums.ThreadStatus.BLOCKED:
-            case enums.ThreadStatus.WAITING:
-            case enums.ThreadStatus.TIMED_WAITING:
-              break;
-            case enums.ThreadStatus.ASYNC_WAITING:
-            case enums.ThreadStatus.PARKED:
-              break;
-            default:
-              invalidTransition();
-          }
-          break;
-        case enums.ThreadStatus.RUNNABLE:
-          switch (status) {
-            case enums.ThreadStatus.ASYNC_WAITING:
-            case enums.ThreadStatus.RUNNABLE:
-            case enums.ThreadStatus.RUNNING:
-              break;
-            default:
-              invalidTransition();
-          }
-          break;
-        case enums.ThreadStatus.ASYNC_WAITING:
-          switch (status) {
-            case enums.ThreadStatus.RUNNABLE:
-            case enums.ThreadStatus.TERMINATED:
-              break;
-            default:
-              invalidTransition();
-          }
-          break;
-        case enums.ThreadStatus.WAITING:
-        case enums.ThreadStatus.TIMED_WAITING:
-          switch (status) {
-            case enums.ThreadStatus.UNINTERRUPTABLY_BLOCKED:
-            case enums.ThreadStatus.RUNNABLE:
-              break;
-            default:
-              invalidTransition();
-          }
-          break;
-        case enums.ThreadStatus.BLOCKED:
-        case enums.ThreadStatus.PARKED:
-        case enums.ThreadStatus.UNINTERRUPTABLY_BLOCKED:
-          switch (status) {
-            case enums.ThreadStatus.RUNNABLE:
-              break;
-            default:
-              invalidTransition();
-          }
-          break;
         case enums.ThreadStatus.TERMINATED:
-          switch (status) {
-            case enums.ThreadStatus.NEW:
-              // Resurrect thread.
-              this.tpool.resurrectThread(this);
-              break;
-            case enums.ThreadStatus.RUNNABLE:
-            case enums.ThreadStatus.ASYNC_WAITING:
-              // Transition to new first.
-              // TERMINATED => NEW => [status]
-              this.rawSetStatus(enums.ThreadStatus.TERMINATED);
-              this.setStatus(enums.ThreadStatus.NEW);
-              this.setStatus(status);
-              return;
-            default:
-              invalidTransition();
-          }
+          // Resurrect thread.
+          this.tpool.resurrectThread(this);
           break;
-        default:
-          invalidTransition();
       }
 
-      /** Post-transition validation common actions **/
+      /** Post-transition actions **/
       switch (this.status) {
         case enums.ThreadStatus.RUNNABLE:
           // Tell the threadpool we're ready to run.
@@ -828,7 +745,9 @@ export class JVMThread extends java_object.JavaObject {
     var frame = stack.pop();
     if (frame.type != enums.StackFrameType.INTERNAL) {
       var frameCast = <BytecodeStackFrame> frame;
-      checkReturnValue(frameCast.method, frameCast.method.return_type, this.bsCl, frameCast.method.cls.get_class_loader(), rv, rv2);
+      assert(validateReturnValue(frameCast.method,
+        frameCast.method.return_type, this.bsCl,
+        frameCast.method.cls.get_class_loader(), rv, rv2), "Invalid return value");
     }
     // Tell the top of the stack that this RV is waiting for it.
     var idx: number = stack.length - 1;
@@ -869,22 +788,24 @@ export class JVMThread extends java_object.JavaObject {
   public throwException(exception: java_object.JavaObject): void {
     assert(this.status === enums.ThreadStatus.RUNNING || this.status === enums.ThreadStatus.RUNNABLE || this.status === enums.ThreadStatus.ASYNC_WAITING,
       "Tried to throw exception while thread was in state " + enums.ThreadStatus[this.status]);
-    assert(this.stack.length > 0);
     var stack = this.stack, idx: number = stack.length - 1;
 
-    // An internal stack frame cannot process its own thrown exception.
-    if (stack[idx].type === enums.StackFrameType.INTERNAL) {
-      stack.pop();
-      idx--;
-    }
+    // Stack may actually be empty, so guard against this.
+    if (idx >= 0) {
+      // An internal stack frame cannot process its own thrown exception.
+      if (stack[idx].type === enums.StackFrameType.INTERNAL) {
+        stack.pop();
+        idx--;
+      }
 
-    // Find a stack frame that can handle the exception.
-    // Set our status *before* scheduling the exception. Some exception handlers
-    // may want to do something asynchronous before resuming execution.
-    this.setStatus(enums.ThreadStatus.RUNNABLE);
-    while (stack.length > 0 && !stack[idx].scheduleException(this, exception)) {
-      stack.pop();
-      idx--;
+      // Find a stack frame that can handle the exception.
+      // Set our status *before* scheduling the exception. Some exception handlers
+      // may want to do something asynchronous before resuming execution.
+      this.setStatus(enums.ThreadStatus.RUNNABLE);
+      while (stack.length > 0 && !stack[idx].scheduleException(this, exception)) {
+        stack.pop();
+        idx--;
+      }
     }
 
     if (stack.length === 0) {
@@ -941,9 +862,58 @@ export class JVMThread extends java_object.JavaObject {
 }
 
 /**
- * Asserts that the return value of the function passes basic sanity checks.
+ * [DEBUG] Stores all of the valid thread transitions.
+ * @todo Any way to make this smaller?
+ * @todo Move into 'debug' module that we NOP out in release builds.
  */
-function checkReturnValue(method: methods.Method, returnType: string, bsCl: ClassLoader.BootstrapClassLoader, cl: ClassLoader.ClassLoader, rv1: any, rv2: any) {
+export var validTransitions: { [oldStatus: number]: { [newStatus: number]: string } } = {};
+validTransitions[enums.ThreadStatus.NEW] = {};
+validTransitions[enums.ThreadStatus.NEW][enums.ThreadStatus.RUNNABLE] = "RunMethod invoked on new thread";
+validTransitions[enums.ThreadStatus.NEW][enums.ThreadStatus.ASYNC_WAITING] = "[JVM bootup only] Internal operation occurs on new thread";
+validTransitions[enums.ThreadStatus.ASYNC_WAITING] = {};
+validTransitions[enums.ThreadStatus.ASYNC_WAITING][enums.ThreadStatus.RUNNABLE] = "Async operation completes";
+validTransitions[enums.ThreadStatus.ASYNC_WAITING][enums.ThreadStatus.TERMINATED] = "RunMethod completes and callstack is empty";
+validTransitions[enums.ThreadStatus.BLOCKED] = {};
+validTransitions[enums.ThreadStatus.BLOCKED][enums.ThreadStatus.RUNNABLE] = "Acquires monitor, or is interrupted";
+validTransitions[enums.ThreadStatus.PARKED] = {};
+validTransitions[enums.ThreadStatus.PARKED][enums.ThreadStatus.RUNNABLE] = "Balancing unpark, or is interrupted";
+validTransitions[enums.ThreadStatus.RUNNABLE] = {};
+validTransitions[enums.ThreadStatus.RUNNABLE][enums.ThreadStatus.RUNNING] = "Scheduled to run";
+validTransitions[enums.ThreadStatus.RUNNING] = {};
+validTransitions[enums.ThreadStatus.RUNNING][enums.ThreadStatus.RUNNABLE] = "[Ignored transition; stays RUNNING]";
+validTransitions[enums.ThreadStatus.RUNNING][enums.ThreadStatus.ASYNC_WAITING] = "Thread performs an asynchronous JavaScript operation";
+validTransitions[enums.ThreadStatus.RUNNING][enums.ThreadStatus.TERMINATED] = "Callstack is empty";
+validTransitions[enums.ThreadStatus.RUNNING][enums.ThreadStatus.BLOCKED] = "Thread waits to acquire monitor";
+validTransitions[enums.ThreadStatus.RUNNING][enums.ThreadStatus.WAITING] = "Thread waits on monitor (Object.wait)";
+validTransitions[enums.ThreadStatus.RUNNING][enums.ThreadStatus.TIMED_WAITING] = "Thread waits on monitor with timeout (Object.wait)";
+validTransitions[enums.ThreadStatus.RUNNING][enums.ThreadStatus.PARKED] = "Thread parks itself";
+validTransitions[enums.ThreadStatus.TERMINATED] = {};
+validTransitions[enums.ThreadStatus.TERMINATED][enums.ThreadStatus.NEW] = "Thread is resurrected for re-use";
+validTransitions[enums.ThreadStatus.TERMINATED][enums.ThreadStatus.RUNNABLE] = "Thread is resurrected for re-use";
+validTransitions[enums.ThreadStatus.TERMINATED][enums.ThreadStatus.ASYNC_WAITING] = "[JVM Bootup] Thread is resurrected for internal operation";
+validTransitions[enums.ThreadStatus.TIMED_WAITING] = {};
+validTransitions[enums.ThreadStatus.TIMED_WAITING][enums.ThreadStatus.RUNNABLE] = "Timer expires, or thread is interrupted, and thread immediately acquires lock";
+validTransitions[enums.ThreadStatus.TIMED_WAITING][enums.ThreadStatus.UNINTERRUPTABLY_BLOCKED] = "Thread is interrupted or notified, or timer expires, and lock already owned";
+validTransitions[enums.ThreadStatus.UNINTERRUPTABLY_BLOCKED] = {};
+validTransitions[enums.ThreadStatus.UNINTERRUPTABLY_BLOCKED][enums.ThreadStatus.RUNNABLE] = "Thread acquires monitor";
+validTransitions[enums.ThreadStatus.WAITING] = {};
+validTransitions[enums.ThreadStatus.WAITING][enums.ThreadStatus.RUNNABLE] = "Thread is interrupted, and immediately acquires lock";
+validTransitions[enums.ThreadStatus.WAITING][enums.ThreadStatus.UNINTERRUPTABLY_BLOCKED] = "Thread is notified or interrupted, and does not immediately acquire lock";
+
+/**
+ * [DEBUG] Ensures that a thread transition is legal.
+ */
+function validateThreadTransition(oldStatus: enums.ThreadStatus, newStatus: enums.ThreadStatus): boolean {
+  var rv = validTransitions.hasOwnProperty("" + oldStatus) &&
+    validTransitions[oldStatus].hasOwnProperty("" + newStatus);
+  return rv;
+}
+
+/**
+ * [DEBUG] Asserts that the return value of the function passes basic sanity
+ * checks.
+ */
+function validateReturnValue(method: methods.Method, returnType: string, bsCl: ClassLoader.BootstrapClassLoader, cl: ClassLoader.ClassLoader, rv1: any, rv2: any): boolean {
   try {
     var cls: ClassData.ClassData;
     if (util.is_primitive_type(returnType)) {
@@ -1009,8 +979,7 @@ function checkReturnValue(method: methods.Method, returnType: string, bsCl: Clas
       }
     }
   } catch (e) {
-    console.log("Failure during method " + method.full_signature());
-    console.log("Actual RV: " + rv1);
-    throw e;
+    return false;
   }
+  return true;
 }

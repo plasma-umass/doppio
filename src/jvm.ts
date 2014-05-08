@@ -111,7 +111,6 @@ class JVM {
      */
     bootupTasks.push((next: (err?: any) => void) => {
       this.threadPool = new threading.ThreadPool(this, this.bsCl, () => {
-        // XXX change!
         this.emptyThreadPool();
       });
       // Resolve Ljava/lang/Thread so we can fake a thread.
@@ -177,6 +176,9 @@ class JVM {
       if (err) {
         cb(err);
       } else {
+        // XXX: Without setImmediate, the firstThread won't clear out the stack
+        // frame that triggered us, and the firstThread won't transition to a
+        // 'terminated' status.
         setImmediate(() => {
           cb(null, this);
         });
