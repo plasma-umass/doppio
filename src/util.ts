@@ -471,34 +471,4 @@ export function bytes2str(bytes: number[], null_terminate?: boolean): string {
   return rv;
 }
 
-export class SafeMap<T> {
-  private cache: {[key: string]: T};
-  private proto_cache: T;
 
-  constructor() {
-    this.cache = Object.create(null);  // has no defined properties aside from __proto__
-  }
-
-  public get(key: string): T {
-    if (this.cache[key] != null) {
-      return this.cache[key];
-    }
-    if (key == '__proto__' && this.proto_cache !== undefined) {
-      return this.proto_cache;
-    }
-    return undefined;
-  }
-
-  public has(key: string): boolean {
-    return this.get(key) !== void 0;
-  }
-
-  public set(key: string, value: T): void {
-    // non-strict comparison to allow for the possibility of `new String('__proto__')`
-    if (key != '__proto__') {
-      this.cache[key] = value;
-    } else {
-      this.proto_cache = value;
-    }
-  }
-}

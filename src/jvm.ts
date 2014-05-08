@@ -1,6 +1,7 @@
 ///<reference path='../vendor/DefinitelyTyped/node/node.d.ts' />
 "use strict";
 import util = require('./util');
+import SafeMap = require('./SafeMap');
 import logging = require('./logging');
 import methods = require('./methods');
 import ClassData = require('./ClassData');
@@ -52,7 +53,7 @@ var coreClasses = [
  */
 class JVM {
   private systemProperties: {[prop: string]: any};
-  private internedStrings: util.SafeMap<java_object.JavaObject> = new util.SafeMap<java_object.JavaObject>();
+  private internedStrings: SafeMap<java_object.JavaObject> = new SafeMap<java_object.JavaObject>();
   private bsCl: ClassLoader.BootstrapClassLoader;
   private threadPool: threading.ThreadPool;
   private natives: { [clsName: string]: { [methSig: string]: Function } } = {};
