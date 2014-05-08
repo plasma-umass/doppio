@@ -32,6 +32,26 @@ export function async_foreach<T>(
 }
 
 /**
+ * Runs the specified tasks in series.
+ */
+export function asyncSeries(tasks: {(next: (err?: any) => void): void}[], doneCb: (err?: any) => void) {
+  var i = -1;
+  function process(err?: any): void {
+    if (err) {
+      doneCb(err);
+    } else {
+      i++;
+      if (i < tasks.length) {
+        tasks[i](process);
+      } else {
+        doneCb();
+      }
+    }
+  }
+  process();
+}
+
+/**
  * Applies the function to each element of the list in order in series.
  * The first element that returns success halts the process, and triggers
  * done_cb. If no elements return success, done_cb is triggered with no

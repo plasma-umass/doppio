@@ -62,6 +62,8 @@ class JVM {
   private nativeClasspath: string[];
   private startupTime = new Date();
   private terminationCb: (success: boolean) => void = null;
+  // The initial JVM thread used to kick off execution.
+  private firstThread: threading.JVMThread;
 
   /**
    * (Async) Construct a new instance of the Java Virtual Machine.
@@ -79,74 +81,106 @@ class JVM {
     nativeClasspath: string[];
   }, cb: (e: any, jvm?: JVM) => void) {
     var jclPath = path.resolve(opts.jclPath),
-      javaHomePath = path.resolve(opts.javaHomePath);
+      javaHomePath = path.resolve(opts.javaHomePath),
+      // JVM bootup tasks, from first to last task.
+      bootupTasks: {(next: (err?: any) => void): void}[] = [],
+      firstThread: threading.JVMThread;
+    // @todo Resolve these, and integrate it into the ClassLoader?
     this.nativeClasspath = opts.nativeClasspath;
     this._initSystemProperties(jclPath, javaHomePath);
 
-    // Step 0: Initialize natives.
-    this.initializeNatives(() => {
-      // Step 1: Construct the bootstrap class loader.
-      this.bsCl = new ClassLoader.BootstrapClassLoader([jclPath].concat(opts.classpath), opts.extractionPath, (e?: any) => {
-        if (e) {
-          cb(e);
+    /**
+     * Task #1: Initialize native methods.
+     */
+    bootupTasks.push((next: (err?: any) => void) => {
+      this.initializeNatives(next);
+    });
+
+    /**
+     * Task #2: Construct the bootstrap class loader.
+     */
+    bootupTasks.push((next: (err?: any) => void) => {
+      this.bsCl =
+        new ClassLoader.BootstrapClassLoader([jclPath].concat(opts.classpath),
+          opts.extractionPath, next);
+    });
+
+    /**
+     * Task #3: Construct the thread pool, resolve thread class, and construct
+     * the first thread.
+     */
+    bootupTasks.push((next: (err?: any) => void) => {
+      this.threadPool = new threading.ThreadPool(this, this.bsCl, () => {
+        // XXX change!
+        this.emptyThreadPool();
+      });
+      // Resolve Ljava/lang/Thread so we can fake a thread.
+      // NOTE: This should never actually use the Thread object unless
+      // there's an error loading java/lang/Thread and associated classes.
+      this.bsCl.resolveClass(null, 'Ljava/lang/Thread;', (cdata: ClassData.ReferenceClassData) => {
+        if (cdata == null) {
+          // Failed.
+          next("Failed to resolve java/lang/Thread.");
         } else {
-          this.threadPool = new threading.ThreadPool(this, this.bsCl, () => {
-            this.emptyThreadPool();
-          });
-          // Step 2: Resolve Ljava/lang/Thread so we can fake a thread.
-          // NOTE: This should never actually use the Thread object unless
-          // there's an error loading java/lang/Thread and associated classes.
-          this.bsCl.resolveClass(null, 'Ljava/lang/Thread;', (cdata: ClassData.ReferenceClassData) => {
-            if (cdata == null) {
-              // Failed.
-              cb("Failed to resolve java/lang/Thread.");
-            } else {
-              // Step 3: Fake a thread.
-              var firstThread = this.threadPool.newThread(cdata);
-              // Step 4: Now, preinitialize all of those classes.
-              util.async_foreach<string>(coreClasses, (coreClass: string, next_item: (err?: any) => void) => {
-                this.bsCl.initializeClass(firstThread, coreClass, (cdata: ClassData.ClassData) => {
-                  if (cdata == null) {
-                    cb("Failed to initialize " + coreClass);
-                  } else {
-                    // One of the later preinitialized classes references Thread.group.
-                    // Initialize the system's ThreadGroup now.
-                    if (coreClass === 'Ljava/lang/ThreadGroup;') {
-                      // Step 5: Construct a ThreadGroup object for the first thread.
-                      var threadGroupCls = <ClassData.ReferenceClassData> this.bsCl.getInitializedClass('Ljava/lang/ThreadGroup;'),
-                        groupObj = new java_object.JavaObject(threadGroupCls),
-                        cnstrctr = threadGroupCls.method_lookup(firstThread, '<init>()V');
-                      firstThread.runMethod(cnstrctr, [groupObj], (e?, rv?) => {
-                        // Step 6: Initialize the fields of our firstThread to make it real.
-                        // @todo Perhaps associate ThreadGroup with ThreadPool...?
-                        firstThread.set_field(firstThread, 'Ljava/lang/Thread;name', java_object.initCarr(this.bsCl, 'main'));
-                        firstThread.set_field(firstThread, 'Ljava/lang/Thread;priority', 1);
-                        firstThread.set_field(firstThread, 'Ljava/lang/Thread;group', groupObj);
-                        firstThread.set_field(firstThread, 'Ljava/lang/Thread;threadLocals', null);
-                        firstThread.set_field(firstThread, 'Ljava/lang/Thread;blockerLock', new java_object.JavaObject(<ClassData.ReferenceClassData> this.bsCl.getInitializedClass('Ljava/lang/Object;')));
-                        next_item();
-                      });
-                    } else {
-                      next_item();
-                    }
-                  }
-                });
-              }, (err?: any) => {
-                // Initialize the system class (initializes things like println/etc).
-                var sysInit = this.bsCl.getInitializedClass('Ljava/lang/System;').get_method('initializeSystemClass()V');
-                firstThread.runMethod(sysInit, [], (e?, rv?) => {
-                  if (e) {
-                    cb("Failed to initialize system class.");
-                  } else {
-                    // Ready for execution!
-                    cb(null, this);
-                  }
-                });
-              });
-            }
-          }, false);
+          //Fake a thread.
+          firstThread = this.firstThread = this.threadPool.newThread(cdata);
+          next();
         }
       });
+    });
+
+    /**
+     * Task #4: Preinitialize some essential JVM classes, and initializes the
+     * JVM's ThreadGroup once that class is initialized.
+     */
+    bootupTasks.push((next: (err?: any) => void) => {
+      util.async_foreach<string>(coreClasses, (coreClass: string, next_item: (err?: any) => void) => {
+        this.bsCl.initializeClass(firstThread, coreClass, (cdata: ClassData.ClassData) => {
+          if (cdata == null) {
+            next_item("Failed to initialize " + coreClass);
+          } else {
+            // One of the later preinitialized classes references Thread.group.
+            // Initialize the system's ThreadGroup now.
+            if (coreClass === 'Ljava/lang/ThreadGroup;') {
+              // Construct a ThreadGroup object for the first thread.
+              var threadGroupCls = <ClassData.ReferenceClassData> this.bsCl.getInitializedClass('Ljava/lang/ThreadGroup;'),
+                groupObj = new java_object.JavaObject(threadGroupCls),
+                cnstrctr = threadGroupCls.method_lookup(firstThread, '<init>()V');
+              firstThread.runMethod(cnstrctr, [groupObj], (e?, rv?) => {
+                // Initialize the fields of our firstThread to make it real.
+                firstThread.set_field(firstThread, 'Ljava/lang/Thread;name', java_object.initCarr(this.bsCl, 'main'));
+                firstThread.set_field(firstThread, 'Ljava/lang/Thread;priority', 1);
+                firstThread.set_field(firstThread, 'Ljava/lang/Thread;group', groupObj);
+                firstThread.set_field(firstThread, 'Ljava/lang/Thread;threadLocals', null);
+                firstThread.set_field(firstThread, 'Ljava/lang/Thread;blockerLock', new java_object.JavaObject(<ClassData.ReferenceClassData> this.bsCl.getInitializedClass('Ljava/lang/Object;')));
+                next_item();
+              });
+            } else {
+              next_item();
+            }
+          }
+        });
+      }, next);
+    });
+
+    /**
+     * Task #5: Initialize the system class.
+     */
+    bootupTasks.push((next: (err?: any) => void) => {
+      // Initialize the system class (initializes things like println/etc).
+      var sysInit = this.bsCl.getInitializedClass('Ljava/lang/System;').get_method('initializeSystemClass()V');
+      firstThread.runMethod(sysInit, [], next);
+    });
+
+    // Perform bootup tasks, and then trigger the callback function.
+    util.asyncSeries(bootupTasks, (err?: any) => {
+      if (err) {
+        cb(err);
+      } else {
+        setImmediate(() => {
+          cb(null, this);
+        });
+      }
     });
   }
 
@@ -159,8 +193,8 @@ class JVM {
    *   the JVM exited normally, 'false' if there was an error.
    */
   public runClass(className: string, args: string[], cb: (result: boolean) => void): void {
-    var thread = this.threadPool.getThreads()[0];
-    assert(thread != null);
+    var thread = this.firstThread;
+    assert(thread != null && thread.getStatus() === enums.ThreadStatus.TERMINATED);
     // Convert foo.bar.Baz => Lfoo/bar/Baz;
     className = "L" + className.replace(/\./g, '/') + ";";
     // Initialize the class.
@@ -186,23 +220,23 @@ class JVM {
 
   /**
    * Run the specified JAR file on this JVM instance.
-   * @param jarFile Path to the JAR file.
+   * @param jarFilePath Path to the JAR file.
    * @param args Command line arguments passed to the class.
    * @param cb Called when the JVM finishes executing. Called with 'true' if
    *   the JVM exited normally, 'false' if there was an error.
    */
-  public runJar(jarFile: string, args: string[], cb: (result: boolean) => void): void {
-    this.bsCl.addClassPathItem(jarFile, (success) => {
+  public runJar(jarFilePath: string, args: string[], cb: (result: boolean) => void): void {
+    this.bsCl.addClassPathItem(jarFilePath, (success) => {
       if (!success) {
         cb(success);
       } else {
         // Find the jar file's main class in its manifest.
-        var jarFile = this.bsCl.getJar(jarFile);
+        var jarFile = this.bsCl.getJar(jarFilePath);
         this.runClass(jarFile.getAttribute('Main-Class'), args, cb);
       }
     });
   }
-  
+
   /**
    * Called when the ThreadPool is empty.
    */

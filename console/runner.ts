@@ -9,7 +9,7 @@ require('source-map-support').install({
   handleUncaughtExceptions: true
 });
 
-function done_cb(success:boolean): void { process.exit(success ? 0 : 1); };
+function done_cb(success:boolean): void { process.exit(success ? 0 : 1); }
 
 var jvm_state: JVM;
 

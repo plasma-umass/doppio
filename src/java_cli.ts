@@ -185,11 +185,6 @@ export function java(args: string[], opts: JavaOptions,
     classpath.push(process.cwd());
   }
 
-  /*jvm_state.push_classpath_items(classpath, (status: boolean[]): void => {
-    // Launch the JVM.
-    launch_jvm(argv, opts, jvm_state, done_cb, jvm_started);
-  underscore.extend(jvm_state.systemProperties, argv.properties);
-  });*/
   // Construct the JVM.
   jvm_state = new JVM({
     jclPath: opts.jcl_path,

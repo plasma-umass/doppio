@@ -658,7 +658,7 @@ export class BootstrapClassLoader extends ClassLoader {
           fs.mkdirSync(filepath);
         }
       } else {
-        fs.writeFileSync(filepath, file.data, 'binary');
+        fs.writeFileSync(filepath, file._data, 'binary');
       }
     }
   }

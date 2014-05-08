@@ -4,6 +4,11 @@ var path = require('path');
 import testing = require('../src/testing');
 import os = require('os');
 
+// Makes our stack traces point to the TypeScript source code lines.
+require('source-map-support').install({
+  handleUncaughtExceptions: true
+});
+
 var opts = { jcl_path: path.resolve(__dirname, '../vendor/classes'),
              java_home_path: path.resolve(__dirname, '../vendor/java_home'),
              jar_file_path: path.resolve(os.tmpDir(), 'doppio_jars'),

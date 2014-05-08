@@ -293,7 +293,7 @@ export function setup(grunt: IGrunt) {
           out: 'build/release/doppio.js',
           // These aren't referenced from runtime. We may want to decouple them
           // at some point.
-          include: ['src/doppio', 'src/testing', 'src/disassembler'],
+          include: ['src/doppio', 'src/testing'],
           optimize: 'uglify2',
           uglify2: {
             compress: {

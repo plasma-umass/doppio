@@ -8,7 +8,7 @@ class ConcurrentClinit {
       System.out.println("Initializing Foo with " + Thread.currentThread().getName());
       state = 1;
       try {
-        Thread.sleep(100);
+        Thread.sleep(500);
       }
       catch (InterruptedException e) {
         System.out.println("Interrupted");
