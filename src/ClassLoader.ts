@@ -565,6 +565,8 @@ export class BootstrapClassLoader extends ClassLoader {
    * Retrieve the JAR object for the given jar file loaded in the class loader.
    */
   public getJar(jarPath: string): JAR {
+    // Standardize path.
+    jarPath = path.resolve(jarPath);
     if (this.jarFilePaths.hasOwnProperty(jarPath)) {
       return this.jarFiles[this.jarFilePaths[jarPath]];
     }
