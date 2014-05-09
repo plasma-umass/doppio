@@ -85,8 +85,6 @@ export class ClassLoader {
       }
       return classData;
     } catch (e) {
-      console.log(e);
-      console.log(e.stack);
       thread.throwNewException('Ljava/lang/ClassFormatError;', e);
       return null;
     }
@@ -207,7 +205,7 @@ export class ClassLoader {
         this._loadClass(thread, typeStr, cb, explicit);
       } else {
         // Array
-        this._loadClass(thread, util.get_component_type(typeStr), (cdata) => {
+        this.loadClass(thread, util.get_component_type(typeStr), (cdata) => {
           if (cdata != null) {
             // Synchronously will work now.
             cb(this.getLoadedClass(typeStr));
