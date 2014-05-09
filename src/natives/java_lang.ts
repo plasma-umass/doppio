@@ -58,15 +58,15 @@ function create_stack_trace(thread: threading.JVMThread, throwable: java_object.
       cls = sf.method.cls,
       ln = -1,
       sourceFile: string;
-    if (throwable.cls.get_type() !== 'Ljava/lang/NoClassDefFoundError;') {
-      if (sf.method.access_flags.native) {
-        sourceFile = 'Native Method';
-      } else {
-        var srcAttr = <attributes.SourceFile> cls.get_attribute('SourceFile'),
-          code = sf.method.getCodeAttribute(),
-          table = <attributes.LineNumberTable> code.get_attribute('LineNumberTable');
-        sourceFile = (srcAttr != null) ? srcAttr.filename : 'unknown';
+    if (sf.method.access_flags.native) {
+      sourceFile = 'Native Method';
+    } else {
+      var srcAttr = <attributes.SourceFile> cls.get_attribute('SourceFile'),
+        code = sf.method.getCodeAttribute(),
+        table = <attributes.LineNumberTable> code.get_attribute('LineNumberTable');
+      sourceFile = (srcAttr != null) ? srcAttr.filename : 'unknown';
 
+      if (table != null) {
         // get the last line number before the stack frame's pc
         for (j = 0; j < table.entries.length; j++) {
           var row = table.entries[j];
@@ -74,9 +74,9 @@ function create_stack_trace(thread: threading.JVMThread, throwable: java_object.
             ln = row.line_number;
           }
         }
+      } else {
+        ln = -1;
       }
-    } else {
-      sourceFile = 'unknown';
     }
     stacktrace.push(new java_object.JavaObject(stackTraceElementCls, {
       'Ljava/lang/StackTraceElement;declaringClass': java_object.initString(bsCl, util.ext_classname(cls.get_type())),

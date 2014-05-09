@@ -24,8 +24,9 @@ function get_property(thread: threading.JVMThread, jvm_key: java_object.JavaObje
     val = jvm.getSystemProperty(key);
   // special case
   if (key === 'java.class.path') {
+    // Fetch from bootstrap classloader instead.
     // the first path is actually the bootclasspath (vendor/classes/)
-    return java_object.initString(thread.getBsCl(), val.slice(1, val.length).join(':'));
+    return java_object.initString(thread.getBsCl(), thread.getBsCl().getClassPath().slice(1).join(':'));
   }
   if (val != null) {
     return jvm.internString(val);

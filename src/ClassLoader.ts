@@ -734,6 +734,14 @@ export class BootstrapClassLoader extends ClassLoader {
   public getLoaderObject(): JavaClassLoaderObject {
     return null;
   }
+
+  /**
+   * Returns the current classpath.
+   */
+  public getClassPath(): string[] {
+    // Reverse it so it is the expected order (last item is first search target)
+    return this.classPath.slice(0).reverse();
+  }
 }
 
 /**
