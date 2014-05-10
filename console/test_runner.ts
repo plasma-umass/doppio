@@ -1,40 +1,58 @@
 "use strict";
-var fs = require('fs');
-var path = require('path');
 import testing = require('../src/testing');
 import os = require('os');
+import fs = require('fs');
+import path = require('path');
 
 // Makes our stack traces point to the TypeScript source code lines.
 require('source-map-support').install({
   handleUncaughtExceptions: true
 });
 
-var opts = { jcl_path: path.resolve(__dirname, '../vendor/classes'),
-             java_home_path: path.resolve(__dirname, '../vendor/java_home'),
-             jar_file_path: path.resolve(os.tmpDir(), 'doppio_jars'),
-             native_classpath: [path.resolve(__dirname, '../src/natives')]},
-    doppio_dir = path.dirname(__dirname);
+// Default options.
+var opts: testing.TestOptions = {
+  jcl_path: path.resolve(__dirname, path.join('..', 'vendor', 'classes')),
+  java_home_path: path.resolve(__dirname, path.join('..', 'vendor', 'java_home')),
+  jar_file_path: path.resolve(os.tmpDir(), 'doppio_jars'),
+  native_classpath: [path.resolve(__dirname, path.join('..', 'src', 'natives'))],
+  doppioDir: path.dirname(__dirname),
+  hideDiffs: false,
+  quiet: false,
+  keepGoing: false
+};
 
-function makefile_test(argv): void {
+function makefileTest(argv): void {
   var failpath = path.resolve(__dirname, '../classes/test/failures.txt'),
-      old_write = process.stdout.write;
-  function done_cb(failed: boolean): void {
+      old_write = process.stdout.write,
+      outfile = fs.openSync(failpath, 'a');
+
+  process.stdout.write = (str: any, arg2?: any, arg3?: any): boolean => {
+    var buff = new Buffer(str);
+    fs.writeSync(outfile, buff, 0, buff.length, null);
+    return true;
+  };
+
+  opts.testClasses = argv._;
+  opts.quiet = true;
+  opts.keepGoing = argv.c;
+
+  testing.runTests(opts, (failed: boolean): void => {
     // Patch stdout back up.
     process.stdout.write = old_write;
     process.stdout.write(failed ? '✗' : '✓');
     if (failed) {
-      fs.writeSync(outfile, '\n');
+      fs.writeSync(outfile, new Buffer('\n'), 0, 1, null);
     }
     fs.closeSync(outfile);
-  };
-  var outfile = fs.openSync(failpath, 'a');
-  function stdout(str: any, arg2?: any, arg3?: any): boolean { fs.writeSync(outfile, str); return true; };
-  process.stdout.write = stdout;
-  testing.run_tests(opts, doppio_dir, argv._, false, true, argv.c, done_cb);
+  });
 }
 
-function regular_test(argv): void {
-  testing.run_tests(opts, doppio_dir, argv._, !argv.diff, argv.q, argv.c, function(result: boolean): void {
+function regularTest(argv): void {
+  opts.testClasses = argv._;
+  opts.hideDiffs = !argv.diff;
+  opts.quiet = argv.q;
+  opts.keepGoing = argv.c;
+  testing.runTests(opts, (result: boolean): void => {
     process.exit(result ? 0 : 1);
   });
 }
@@ -60,7 +78,7 @@ if (argv.help) {
   process.exit(0);
 }
 if (argv.makefile) {
-  makefile_test(argv);
+  makefileTest(argv);
 } else {
-  regular_test(argv);
+  regularTest(argv);
 }

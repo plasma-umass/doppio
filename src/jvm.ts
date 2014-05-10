@@ -429,6 +429,7 @@ class JVM {
    * Proxies abort request to runtime state to halt the JVM.
    */
   public abort(): void {
+    console.log("Abort called.");
     var threads = this.threadPool.getThreads(), i: number;
     for (i = 0; i < threads.length; i++) {
       threads[i].setStatus(enums.ThreadStatus.TERMINATED);

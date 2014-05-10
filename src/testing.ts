@@ -6,122 +6,216 @@ import difflib = require('./difflib');
 import path = require('path');
 import fs = require('fs');
 
-var jvm_state: JVM;
-export function find_test_classes(doppio_dir: string, cb): void {
-    var test_dir = path.resolve(doppio_dir, 'classes/test');
-    fs.readdir(test_dir, function(err, files) {
-      cb(files.filter((file) => path.extname(file) === '.java')
-              .map((file)=>"classes/test/" + path.basename(file, '.java')));
-    });
+/**
+ * Variables and code for hooking into standard output.
+ */
+var testOutput: string = '',
+  stdoutWrite = process.stdout.write,
+  stderrWrite = process.stderr.write,
+  newWrite = function(data: any, arg2?: any, arg3?: any): boolean {
+    if (typeof(data) !== 'string') {
+      // Buffer.
+      data = data.toString();
+    }
+    testOutput += data;
+    return true;
+  };
+
+/**
+ * Starts recording Doppio's output streams.
+ */
+function startRecordingOutput(): void {
+  // Reset previous output.
+  testOutput = '';
+  // Patch up standard output.
+  process.stdout.write = newWrite;
+  process.stderr.write = newWrite;
+}
+
+/**
+ * Stops recording Doppio's output streams.
+ * @return The recorded output.
+ */
+function stopRecordingOutput(): string {
+  // Unpatch standard output.
+  process.stdout.write = stdoutWrite;
+  process.stderr.write = stderrWrite;
+  return testOutput;
+}
+
+/**
+ * Doppio testing options.
+ */
+export interface TestOptions extends java_cli.JavaOptions {
+  /**
+   * Directory where Doppio is located.
+   */
+  doppioDir: string;
+  /**
+   * Classes to test. Each can be in one of the following forms:
+   * - foo.bar.Baz
+   * - foo/bar/Baz
+   */
+  testClasses?: string[];
+  /**
+   * If 'true', then the test runner will not print the output diff of a failing
+   * test to the console.
+   */
+  hideDiffs: boolean;
+  /**
+   * If 'true', the runner will not print anything to the console.
+   */
+  quiet: boolean;
+  /**
+   * If 'true', the test runner will continue executing in the face of a
+   * failure.
+   */
+  keepGoing: boolean;
+}
+
+/**
+ * Represents a single unit test, where we compare Doppio's output to the native
+ * JVM.
+ */
+class DoppioTest {
+  /**
+   * Test runner options.
+   */
+  private opts: TestOptions;
+  /**
+   * The class to test.
+   */
+  private cls: string;
+  /**
+   * Path to the file recording the output from the native JVM.
+   */
+  private outFile: string;
+
+  constructor(opts: TestOptions, cls: string) {
+    this.opts = opts;
+    if (cls.indexOf('.') !== -1) {
+      // Convert foo.bar.Baz => foo/bar/Baz
+      cls = util.descriptor2typestr(util.int_classname(cls));
+    }
+    this.cls = cls;
+    this.outFile = path.resolve(opts.doppioDir, cls) + ".runout";
   }
 
-// @todo Pass in an options object or something. This is unwieldy.
-export function run_tests(opts: java_cli.JavaOptions, doppio_dir: string,
-    test_classes: string[], hide_diffs: boolean, quiet: boolean,
-    keep_going: boolean, callback: (result: boolean) => void): void {
-
-  var xfail_file = path.resolve(doppio_dir, 'classes/test/xfail.txt');
-  function _runner(test_classes: string[], xfails: string[]): void {
-    // get the tests, if necessary
-    if (test_classes.length === 0) {
-      quiet || keep_going || process.stdout.write("Pass\n");
-      return callback(false);
-    }
-    var test = test_classes.shift();
-    if (test.indexOf('.') !== -1) {
-      // Convert foo.bar.Baz => foo/bar/Baz
-      test = util.descriptor2typestr(util.int_classname(test));
-    }
-    quiet || process.stdout.write("testing " + test + "...\n");
-    // Construct new JVM for each test.
+  /**
+   * Constructs a new JVM for the test.
+   */
+  private constructJVM(cb: (err: any, jvm?: JVM) => void): void {
     new JVM({
-      jclPath: opts.jcl_path,
-      classpath: [doppio_dir],
-      javaHomePath: opts.java_home_path,
-      extractionPath: opts.jar_file_path,
-      nativeClasspath: opts.native_classpath
-    }, (err: any, jvm?: JVM): void => {
+      jclPath: this.opts.jcl_path,
+      classpath: [this.opts.doppioDir],
+      javaHomePath: this.opts.java_home_path,
+      extractionPath: this.opts.jar_file_path,
+      nativeClasspath: this.opts.native_classpath
+    }, cb);
+  }
+
+  /**
+   * Print the given message. NOP if the 'quiet' flag is supplied'
+   */
+  private print(msg: string): void {
+    this.opts.quiet || process.stdout.write(msg);
+  }
+
+  /**
+   * Runs the unit test.
+   */
+  public run(cb: (success: boolean) => void) {
+    this.print("[" + this.cls + "]: Running... ");
+    this.constructJVM((err: any, jvm?: JVM) => {
       if (err) {
-        process.stderr.write("Test failed: " + err + "\n");
-        callback(false);
+        this.print("fail.\n\tCould not construct JVM:\n" + err);
+        cb(false);
       } else {
-        jvm_state = jvm;
-        run_stdout_test(doppio_dir, test, function(diff: string) {
-          if ((diff != null) != (xfails.indexOf(test) >= 0)) {
-            if (diff != null) {
-              process.stdout.write("Failed output test: " + test + "\n");
-              hide_diffs || process.stdout.write(diff + "\n");
+        startRecordingOutput();
+        jvm.runClass(this.cls, [], (success: boolean) => {
+          var output = stopRecordingOutput();
+          fs.readFile(this.outFile, { encoding: 'utf8' }, (err, data?: string) => {
+            var diffStr: string;
+            if (err) {
+              this.print("fail.\n\tCould not read runout file:\n" + err);
+              cb(false);
             } else {
-              process.stdout.write("Expected failure passed: " + test + "\n");
+              diffStr = diff(output, data);
+              if (diffStr == null) {
+                this.print('pass.\n');
+                cb(true);
+              } else {
+                this.print('fail.\n\tOutput does not match native JVM.\n')
+                // Print diff.
+                if (!this.opts.hideDiffs) {
+                  this.print(diffStr);
+                }
+                cb(false);
+              }
             }
-            if (!keep_going) {
-              return callback(true);
-            }
-          }
-          _runner(test_classes, xfails);
+          });
         });
       }
     });
   }
-  fs.readFile(xfail_file, 'utf-8', function(err: any, contents: string) {
-    var xfails = contents.split('\n').map((failname) => "classes/test/" + failname);
-    if (test_classes != null && test_classes.length > 0) {
-      test_classes = test_classes.map((tc: string) => tc.replace(/\.class$/, ''));
-      _runner(test_classes, xfails);
-    } else {
-      find_test_classes(doppio_dir, (tcs: string[]) => _runner(tcs, xfails));
-    }
-  });
 }
 
-// remove comments and blank lines, ignore specifics of float/double printing and whitespace
-function sanitize(str: string): string {
-  return str.replace(/\/\/.*/g, '')
-            .replace(/^\s*$[\n\r]+/mg, '')
-            .replace(/(float|double)\t.*/g, '$1')
-            .replace(/[ \t\r]+/g, ' ')
-            .replace(/[ ]\n/g, '\n')
-            .replace(/\[ \]/g, '[]');
-}
-
-function run_stdout_test(doppio_dir: string, test_class: string, callback: (diff: string) => void): void {
-  var output_filename = path.resolve(doppio_dir, test_class) + ".runout";
-  fs.readFile(output_filename, 'utf8', function(err, java_output: string) {
+/**
+ * Locate all of Doppio's test classes, and pass them to the callback.
+ */
+export function findTestClasses(doppioDir: string, cb: (files: string[]) => void): void {
+  var testDir = path.resolve(doppioDir, path.join('classes', 'test'));
+  fs.readdir(testDir, (err, files) => {
     if (err) {
-      return callback("Unable to open file " + output_filename + ": " + err);
+      cb([]);
+    } else {
+      cb(files.filter((file) => path.extname(file) === '.java')
+              .map((file)=>path.join('classes','test', path.basename(file, '.java'))));
     }
-    var doppio_output = '',
-        // Hook into process.stdout.
-        stdout_write = process.stdout.write,
-        stderr_write = process.stderr.write,
-        new_write = function(data: any, arg2?: any, arg3?: any): boolean {
-          if (typeof(data) !== 'string') {
-            // Buffer.
-            data = data.toString();
-          }
-          doppio_output += data;
-          return true;
-        };
-    process.stdout.write = new_write;
-    process.stderr.write = new_write;
-    jvm_state.runClass(test_class, [],
-      (success: boolean) => {
-        // Re-attach process's standard output.
-        process.stdout.write = stdout_write;
-        process.stderr.write = stderr_write;
-        callback(cleandiff(doppio_output, java_output));
-    });
   });
 }
 
-function cleandiff(our_str: string, their_str: string): string {
-  var our_lines = our_str.split(/\n/);
-  var their_lines = their_str.split(/\n/);
-  var oidx = 0;
-  var tidx = 0;
-  var diff: string[] = [];
-  diff = difflib.text_diff(our_lines, their_lines);
+/**
+ * Run a series of tests.
+ */
+export function runTests(opts: TestOptions, cb: (result: boolean) => void): void {
+  var testClasses = opts.testClasses,
+    tests: DoppioTest[];
+  if (testClasses == null || testClasses.length === 0) {
+    // If no test classes are specified, run ALL the tests!
+    findTestClasses(opts.doppioDir, (testClasses) => {
+      opts.testClasses = testClasses;
+      runTests(opts, cb);
+    });
+  } else {
+    tests = testClasses.map((testClass: string): DoppioTest => {
+      return new DoppioTest(opts, testClass);
+    });
+    util.async_foreach(tests, (test: DoppioTest, nextItem: (err?: any) => void): void => {
+      test.run((success: boolean) => {
+        if (success || opts.keepGoing) {
+          nextItem();
+        } else {
+          nextItem("Test failed.");
+        }
+      });
+    }, (err?: any): void => {
+      cb(err == null);
+    });
+  }
+}
+
+/**
+ * Returns a formatted diff between doppioOut and nativeOut.
+ * Returns NULL if the strings are identical.
+ */
+function diff(doppioOut: string, nativeOut: string): string {
+  // @todo Robust to Windows line breaks!
+  var doppioLines = doppioOut.split(/\n/),
+    jvmLines = nativeOut.split(/\n/),
+    diff: string[] = difflib.text_diff(doppioLines, jvmLines);
   if (diff.length > 0) {
     return 'Doppio | Java\n' + diff.join('\n');
   }
+  return null;
 }
