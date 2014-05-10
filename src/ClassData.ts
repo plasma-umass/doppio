@@ -497,7 +497,7 @@ export class ReferenceClassData extends ClassData {
     } else {
       if (this._initialize_static_field(thread, name)) {
         return this.static_put(thread, name, val);
-      }  
+      }
     }
     return false;
   }
@@ -511,27 +511,28 @@ export class ReferenceClassData extends ClassData {
   }
 
   public tryToResolve(): boolean {
-    assert(this.get_state() === ClassState.LOADED);
-    // Need to grab the super class, and interfaces.
-    var loader = this.loader,
-      // NOTE: The super_class of java/lang/Object is null.
-      superClassCdata = this.super_class != null ? loader.getResolvedClass(this.super_class) : null,
-      interfaceCdatas: ReferenceClassData[] = [], i: number;
+    if (this.get_state() === ClassState.LOADED) {
+      // Need to grab the super class, and interfaces.
+      var loader = this.loader,
+        // NOTE: The super_class of java/lang/Object is null.
+        superClassCdata = this.super_class != null ? loader.getResolvedClass(this.super_class) : null,
+        interfaceCdatas: ReferenceClassData[] = [], i: number;
 
-    if (superClassCdata === null && this.super_class != null) {
-      return false;
-    }
-
-    for (i = 0; i < this.interfaces.length; i++) {
-      var icls = <ReferenceClassData> loader.getResolvedClass(this.interfaces[i]);
-      if (icls === null) {
+      if (superClassCdata === null && this.super_class != null) {
         return false;
       }
-      interfaceCdatas.push(icls);
-    }
 
-    // It worked!
-    this.setResolved(superClassCdata, interfaceCdatas);
+      for (i = 0; i < this.interfaces.length; i++) {
+        var icls = <ReferenceClassData> loader.getResolvedClass(this.interfaces[i]);
+        if (icls === null) {
+          return false;
+        }
+        interfaceCdatas.push(icls);
+      }
+
+      // It worked!
+      this.setResolved(superClassCdata, interfaceCdatas);
+    }
     return true;
   }
 

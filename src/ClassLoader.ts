@@ -14,6 +14,45 @@ var debug = logging.debug;
 declare var BrowserFS;
 
 /**
+ * Used to lock classes for loading/initialization.
+ */
+class ClassLocks {
+  /**
+   * typrStr => array of callbacks to trigger when operation completes.
+   */
+  private locks: { [typeStr: string]: { (cdata: ClassData.ClassData): void }[] } = {};
+
+  constructor() {}
+
+  /**
+   * Checks if the lock for the given class is already taken. If not, it takes
+   * the lock. If it is taken, we enqueue the callback.
+   * NOTE: For convenience, will handle triggering the owner's callback as well.
+   */
+  public tryLock(typeStr: string, cb: (cdata: ClassData.ClassData) => void): boolean {
+    if (typeof this.locks[typeStr] === 'undefined') {
+      this.locks[typeStr] = [cb];
+      return true;
+    } else {
+      this.locks[typeStr].push(cb);
+      return false;
+    }
+  }
+
+  /**
+   * Releases the lock on the given string.
+   */
+  public unlock(typeStr: string, cdata: ClassData.ClassData): void {
+    var cbs = this.locks[typeStr], i: number;
+    // Trigger each of the callbacks.
+    for (i = 0; i < cbs.length; i++) {
+      cbs[i](cdata);
+    }
+    delete this.locks[typeStr];
+  }
+}
+
+/**
  * Base classloader class. Contains common class resolution and instantiation
  * logic.
  */
@@ -22,6 +61,16 @@ export class ClassLoader {
    * Stores loaded *reference* and *array* classes.
    */
   private loadedClasses: { [typeStr: string]: ClassData.ClassData } = {};
+  /**
+   * Stores callbacks that are waiting for another thread to finish loading
+   * the specified class.
+   */
+  private loadClassLocks: ClassLocks = new ClassLocks();
+  /**
+   * Stores callbacks that are waiting for another thread to finish initializing
+   * the specified class.
+   */
+  private initializeClassLocks: ClassLocks = new ClassLocks();
 
   /**
    * @param bootstrap The JVM's bootstrap classloader. ClassLoaders use it
@@ -200,17 +249,22 @@ export class ClassLoader {
         cb(cdata);
       });
     } else {
-      // Async it is!
-      if (util.is_reference_type(typeStr)) {
-        this._loadClass(thread, typeStr, cb, explicit);
-      } else {
-        // Array
-        this.loadClass(thread, util.get_component_type(typeStr), (cdata) => {
-          if (cdata != null) {
-            // Synchronously will work now.
-            cb(this.getLoadedClass(typeStr));
-          }
-        }, explicit);
+      // Check the loadClass lock for this class.
+      if (this.loadClassLocks.tryLock(typeStr, cb)) {
+        // Async it is!
+        if (util.is_reference_type(typeStr)) {
+          this._loadClass(thread, typeStr, (cdata) => {
+            this.loadClassLocks.unlock(typeStr, cdata);
+          }, explicit);
+        } else {
+          // Array
+          this.loadClass(thread, util.get_component_type(typeStr), (cdata) => {
+            if (cdata != null) {
+              // Synchronously will work now.
+              this.loadClassLocks.unlock(typeStr, this.getLoadedClass(typeStr));
+            }
+          }, explicit);
+        }
       }
     }
   }
@@ -310,7 +364,7 @@ export class ClassLoader {
         setImmediate(() => {
           cb(cdata);
         });
-      } else {
+      } else if (this.initializeClassLocks.tryLock(typeStr, cb)) {
         // Initialize the super class, and then this class.
         // Must be a reference type.
         assert(util.is_reference_type(typeStr));
@@ -319,17 +373,20 @@ export class ClassLoader {
           this.initializeClass(thread, superClassType, (superCdata: ClassData.ClassData) => {
             if (superCdata == null) {
               // Nothing to do. Initializing the super class failed.
-              cb(null);
+              this.initializeClassLocks.tryLock(typeStr, null);
             } else {
-              // Initialize myself. We can directly use the caller's callback
-              // here, since once I'm initialized we're finished.
-              this._initializeClass(thread, typeStr, <ClassData.ReferenceClassData> cdata, cb);
+              // Initialize myself.
+              this._initializeClass(thread, typeStr, <ClassData.ReferenceClassData> cdata, (cdata) => {
+                this.initializeClassLocks.unlock(typeStr, cdata);
+              });
             }
           });
         } else {
           // java/lang/Object's parent is NULL.
           // Continue initializing this class.
-          this._initializeClass(thread, typeStr, <ClassData.ReferenceClassData> cdata, cb);
+          this._initializeClass(thread, typeStr, <ClassData.ReferenceClassData> cdata, (cdata) => {
+            this.initializeClassLocks.unlock(typeStr, cdata);
+          });
         }
       }
     }, explicit);
@@ -585,6 +642,8 @@ export class BootstrapClassLoader extends ClassLoader {
 
   /**
    * Asynchronously load the given class from the classpath.
+   *
+   * SHOULD ONLY BE INVOKED INTERNALLY BY THE CLASSLOADER.
    */
   public _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
     debug('[BOOTSTRAP] Loading class ' + typeStr);
@@ -766,6 +825,9 @@ export class CustomClassLoader extends ClassLoader {
   /**
    * Asynchronously load the given class from the classpath. Calls the
    * classloader's loadClass method.
+   *
+   * SHOULD ONLY BE INVOKED BY THE CLASS LOADER.
+   *
    * @param thread The thread that triggered the loading.
    * @param typeStr The type string of the class.
    * @param cb The callback that will be called with the loaded class. It will
