@@ -148,7 +148,7 @@ class DoppioTest {
                 this.print('fail.\n\tOutput does not match native JVM.\n')
                 // Print diff.
                 if (!this.opts.hideDiffs) {
-                  this.print(diffStr);
+                  this.print(diffStr + "\n");
                 }
                 cb(false);
               }

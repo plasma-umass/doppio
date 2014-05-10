@@ -395,11 +395,6 @@ export class ThreadPool {
           }
         }
       }
-
-      // Tell the JVM that execution may be over.
-      if (threads.length === 0) {
-        this.emptyCallback();
-      }
     });
   }
 
@@ -419,7 +414,12 @@ export class ThreadPool {
     // If this was the running thread, schedule a new one to run.
     if (this.runningThread === thread) {
       this.runningThread = null;
-      this.scheduleNextThread();
+      if (this.threads.length > 0) {
+        this.scheduleNextThread();
+      } else {
+        // Tell the JVM that execution is over.
+        this.emptyCallback();
+      }
     }
   }
 
@@ -827,7 +827,7 @@ export class JVMThread extends java_object.JavaObject {
           cnstrctr = cls.method_lookup(this, '<init>(Ljava/lang/String;)V');
 
         // Construct the exception, and throw it when done.
-        this.runMethod(cnstrctr, [e, java_object.initString(this.bsCl, msg)], (err, rv) => {
+        this.runMethod(cnstrctr, [e, java_object.initString(this.bsCl, msg)], (err?, rv?) => {
           if (err) {
             this.throwException(err);
           } else {
