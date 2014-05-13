@@ -57,8 +57,24 @@ function find_native_java(grunt: IGrunt) {
         };
       get_registry_key('HKLM\\SOFTWARE\\JavaSoft\\Java Development Kit\\1.6', valueCb);
       get_registry_key('HKLM\\SOFTWARE\\Wow6432Node\\JavaSoft\\Java Development Kit\\1.6', valueCb);
+    } else if (process.platform.match(/darwin/i)) {
+      // OS X: locate Java 6 with java_home
+      exec('/usr/libexec/java_home -version 1.6', function (err, stdout, stderr) {
+        if (err) {
+          cb(new Error("Cannot run /usr/libexec/java_home"));
+        } else {
+          var javaHome = stdout.toString().replace('\n', '');
+          var java_bin = path.resolve(javaHome, 'bin');
+
+          grunt.config.set('build.java', path.resolve(java_bin, 'java'));
+          grunt.config.set('build.javac', path.resolve(java_bin, 'javac'));
+          grunt.config.set('build.javap', path.resolve(java_bin, 'javap'));
+
+          cb();
+        }
+      });
     } else {
-      // *nix / Mac
+      // *nix
       // Option 1: Can we invoke 'java' directly?
       exec(grunt.config('build.java') + ' -version', function(err, stdout, stderr) {
         if (err) {
