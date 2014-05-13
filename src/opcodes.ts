@@ -40,7 +40,9 @@ function isNull(thread: threading.JVMThread, frame: threading.BytecodeStackFrame
 function initializeClass(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, typeStr: string): void {
   thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
   frame.getLoader().initializeClass(thread, typeStr, (cdata: ClassData.ClassData) => {
-    thread.setStatus(enums.ThreadStatus.RUNNABLE);
+    if (cdata != null) {
+      thread.setStatus(enums.ThreadStatus.RUNNABLE);
+    }
   }, false);
   frame.returnToThreadLoop = true;
 }
@@ -51,7 +53,9 @@ function initializeClass(thread: threading.JVMThread, frame: threading.BytecodeS
 function resolveClass(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, typeStr: string): void {
   thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
   frame.getLoader().resolveClass(thread, typeStr, (cdata: ClassData.ClassData) => {
-    thread.setStatus(enums.ThreadStatus.RUNNABLE);
+    if (cdata != null) {
+      thread.setStatus(enums.ThreadStatus.RUNNABLE);
+    }
   }, false);
   frame.returnToThreadLoop = true;
 }
@@ -292,9 +296,11 @@ export class LoadConstantOpcode extends Opcode {
         var cdesc = util.typestr2descriptor(this.str_constant.value);
         thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
         frame.getLoader().resolveClass(thread, cdesc, (cdata: ClassData.ClassData) => {
-          frame.stack.push(cdata.get_class_object(thread));
-          this.incPc(frame);
-          thread.setStatus(enums.ThreadStatus.RUNNABLE);
+          if (cdata != null) {
+            frame.stack.push(cdata.get_class_object(thread));
+            this.incPc(frame);
+            thread.setStatus(enums.ThreadStatus.RUNNABLE);
+          }
         }, false);
         frame.returnToThreadLoop = true;
         break;
