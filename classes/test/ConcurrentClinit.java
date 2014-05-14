@@ -34,12 +34,12 @@ class ConcurrentClinit {
       public void run() {
         new Foo("main");
       }
-    });
+    }, "Thread A");
     Thread b = new Thread(new Runnable() {
       public void run() {
         new Bar();
       }
-    });
+    }, "Thread B");
 
     a.start();
     while (state != 1) Thread.yield();
