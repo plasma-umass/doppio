@@ -467,7 +467,7 @@ export class Monitor {
         thread: thread,
         cb: cb,
         count: this.count,
-        isTimed: timeoutMs != null
+        isTimed: timeoutMs != null && timeoutMs !== 0
       };
 
       // Revoke ownership.
