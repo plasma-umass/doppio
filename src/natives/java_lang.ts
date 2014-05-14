@@ -583,18 +583,17 @@ class java_lang_Object {
   }
 
   public static 'notify()V'(thread: threading.JVMThread, javaThis: java_object.JavaObject): void {
-    var locker;
     debug("TE(notify): on lock *" + javaThis.ref);
     javaThis.getMonitor().notify(thread);
   }
 
   public static 'notifyAll()V'(thread: threading.JVMThread, javaThis: java_object.JavaObject): void {
-    var locker;
     debug("TE(notifyAll): on lock *" + javaThis.ref);
     javaThis.getMonitor().notifyAll(thread);
   }
 
   public static 'wait(J)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, timeout: gLong): void {
+    debug("TE(wait): on lock *" + javaThis.ref);
     javaThis.getMonitor().wait(thread, (fromTimer: boolean) => {
       thread.asyncReturn();
     }, timeout.toNumber());
