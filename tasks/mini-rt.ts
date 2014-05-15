@@ -13,7 +13,7 @@ function mini_rt(grunt: IGrunt) {
         options = this.options({run_args: []}),
         run_args: string[] = options.run_args,
         run_class: string = options.run_class,
-        preload_stream: WritableStream,
+        preload_stream: NodeJS.WritableStream,
         outputFile: string = options.output;
     run_args.unshift(run_class);
     run_args.unshift('-Xlist-class-cache');
