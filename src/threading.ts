@@ -652,7 +652,7 @@ export class JVMThread extends java_object.JavaObject {
           this.run();
           break;
         case enums.ThreadStatus.TERMINATED:
-          this.tpool.threadTerminated(this);
+          this.exit();
           break;
         case enums.ThreadStatus.BLOCKED:
         case enums.ThreadStatus.UNINTERRUPTABLY_BLOCKED:
@@ -665,6 +665,30 @@ export class JVMThread extends java_object.JavaObject {
           this.tpool.threadSuspended(this);
           break;
       }
+    }
+  }
+
+  /**
+   * Called when a thread finishes executing.
+   */
+  private exit(): void {
+    var monitor: java_object.Monitor = this.getMonitor(),
+      phase2 = () => {
+        // Notify everyone.
+        monitor.notifyAll(this);
+        // Exit monitor.
+        monitor.exit(this);
+        // Become terminated before the other threads start running.
+        this.rawSetStatus(enums.ThreadStatus.TERMINATED);
+        // Remove ourselves from the thread pool.
+        this.tpool.threadTerminated(this);
+      };
+    // Revert our status to ASYNC_WAITING so we can acquire a monitor.
+    this.rawSetStatus(enums.ThreadStatus.ASYNC_WAITING);
+
+    // Acquire the monitor associated with our JavaObject.
+    if (monitor.enter(this, phase2)) {
+      phase2();
     }
   }
 
