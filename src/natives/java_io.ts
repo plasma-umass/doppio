@@ -218,7 +218,7 @@ class java_io_FileInputStream {
     var fd_obj = javaThis.get_field(thread, 'Ljava/io/FileInputStream;fd'),
       fd = fd_obj.get_field(thread, 'Ljava/io/FileDescriptor;fd');
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    fs.close(fd, (err?: ErrnoException) => {
+    fs.close(fd, (err?: NodeJS.ErrnoException) => {
       if (err) {
         thread.throwNewException('Ljava/io/IOException;', err.message);
       } else {
@@ -293,7 +293,7 @@ class java_io_FileOutputStream {
     var fd_obj = javaThis.get_field(thread, 'Ljava/io/FileOutputStream;fd'),
       fd = fd_obj.get_field(thread, 'Ljava/io/FileDescriptor;fd');
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    fs.close(fd, (err?: ErrnoException) => {
+    fs.close(fd, (err?: NodeJS.ErrnoException) => {
       if (err) {
         thread.throwNewException('Ljava/io/IOException;', err.message);
       } else {
@@ -489,7 +489,7 @@ class java_io_RandomAccessFile {
     var fd_obj = javaThis.get_field(thread, 'Ljava/io/RandomAccessFile;fd'),
       fd = fd_obj.get_field(thread, 'Ljava/io/FileDescriptor;fd');
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    fs.close(fd, (err?: ErrnoException) => {
+    fs.close(fd, (err?: NodeJS.ErrnoException) => {
       if (err) {
         thread.throwNewException('Ljava/io/IOException;', err.message);
       } else {
@@ -593,7 +593,7 @@ class java_io_UnixFileSystem {
         // Apply mask.
         access = enable ? existing_access | access : existing_access & access;
         // Set new permissions.
-        fs.chmod(filepath, access, (err?: ErrnoException) => {
+        fs.chmod(filepath, access, (err?: NodeJS.ErrnoException) => {
           thread.asyncReturn(err != null ? 0 : 1);
         });
       }
@@ -611,7 +611,7 @@ class java_io_UnixFileSystem {
           if (err != null) {
             thread.throwNewException('Ljava/io/IOException;', err.message);
           } else {
-            fs.close(fd, (err?: ErrnoException) => {
+            fs.close(fd, (err?: NodeJS.ErrnoException) => {
               if (err != null) {
                 thread.throwNewException('Ljava/io/IOException;', err.message);
               } else {
@@ -638,13 +638,13 @@ class java_io_UnixFileSystem {
           if (files.length > 0) {
             thread.asyncReturn(0);
           } else {
-            fs.rmdir(filepath, (err?: ErrnoException) => {
+            fs.rmdir(filepath, (err?: NodeJS.ErrnoException) => {
               thread.asyncReturn(1);
             });
           }
         });
       } else {
-        fs.unlink(filepath, (err?: ErrnoException) => {
+        fs.unlink(filepath, (err?: NodeJS.ErrnoException) => {
           thread.asyncReturn(1);
         });
       }
@@ -679,7 +679,7 @@ class java_io_UnixFileSystem {
       if (stat != null) {
         thread.asyncReturn(0);
       } else {
-        fs.mkdir(filepath, (err?: ErrnoException) => {
+        fs.mkdir(filepath, (err?: NodeJS.ErrnoException) => {
           thread.asyncReturn(err != null ? 0 : 1);
         });
       }
@@ -690,7 +690,7 @@ class java_io_UnixFileSystem {
     var file1path = (file1.get_field(thread, 'Ljava/io/File;path')).jvm2js_str(),
       file2path = (file2.get_field(thread, 'Ljava/io/File;path')).jvm2js_str();
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    fs.rename(file1path, file2path, (err?: ErrnoException) => {
+    fs.rename(file1path, file2path, (err?: NodeJS.ErrnoException) => {
       thread.asyncReturn(err != null ? 0 : 1);
     });
   }
@@ -700,7 +700,7 @@ class java_io_UnixFileSystem {
       atime = (new Date).getTime(),
       filepath = file.get_field(thread, 'Ljava/io/File;path').jvm2js_str();
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    fs.utimes(filepath, atime, mtime, (err?: ErrnoException) => {
+    fs.utimes(filepath, atime, mtime, (err?: NodeJS.ErrnoException) => {
       thread.asyncReturn(1);
     });
   }
@@ -715,7 +715,7 @@ class java_io_UnixFileSystem {
       if (stats == null) {
         thread.asyncReturn(0);
       } else {
-        fs.chmod(filepath, stats.mode & mask, (err?: ErrnoException) => {
+        fs.chmod(filepath, stats.mode & mask, (err?: NodeJS.ErrnoException) => {
           thread.asyncReturn(err != null ? 0 : 1);
         });
       }

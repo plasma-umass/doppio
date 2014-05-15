@@ -88,7 +88,7 @@ function getFiles(dirName: string): string[] {
   return rv;
 }
 
-function processClassData(stream: WritableStream, template: ITemplate, classData: ClassData.ReferenceClassData) {
+function processClassData(stream: NodeJS.WritableStream, template: ITemplate, classData: ClassData.ReferenceClassData) {
   var fixedClassName: string = classData.this_class.replace(/\//g, '_'),
     nativeFound: boolean = false;
   // Shave off L and ;
@@ -118,11 +118,11 @@ function processClassData(stream: WritableStream, template: ITemplate, classData
  */
 interface ITemplate {
   getExtension(): string;
-  fileStart(stream: WritableStream): void;
-  fileEnd(stream: WritableStream): void;
-  classStart(stream: WritableStream, className: string): void;
-  classEnd(stream: WritableStream, className: string): void;
-  method(stream: WritableStream, methodName: string, isStatic: boolean, argTypes: string[], rv: string): void;
+  fileStart(stream: NodeJS.WritableStream): void;
+  fileEnd(stream: NodeJS.WritableStream): void;
+  classStart(stream: NodeJS.WritableStream, className: string): void;
+  classEnd(stream: NodeJS.WritableStream, className: string): void;
+  method(stream: NodeJS.WritableStream, methodName: string, isStatic: boolean, argTypes: string[], rv: string): void;
 }
 
 /**
@@ -135,7 +135,7 @@ class TSTemplate implements ITemplate {
     this.relativeInterfacePath = path.relative(outputPath, interfacePath);
   }
   public getExtension(): string { return 'ts'; }
-  public fileStart(stream: WritableStream): void {
+  public fileStart(stream: NodeJS.WritableStream): void {
     // Reference all of the doppio interfaces.
     var srcInterfacePath: string = path.join(this.interfacePath, 'src'),
       files = fs.readdirSync(srcInterfacePath),
@@ -149,7 +149,7 @@ class TSTemplate implements ITemplate {
       }
     }
   }
-  public fileEnd(stream: WritableStream): void {
+  public fileEnd(stream: NodeJS.WritableStream): void {
     var i: number;
     // Export everything!
     stream.write("\n// Export line. This is what DoppioJVM sees.\n({");
@@ -160,14 +160,14 @@ class TSTemplate implements ITemplate {
     }
     stream.write("\n})\n");
   }
-  public classStart(stream: WritableStream, className: string): void {
+  public classStart(stream: NodeJS.WritableStream, className: string): void {
     stream.write("\nclass " + className + " {\n");
     this.classesSeen.push(className);
   }
-  public classEnd(stream: WritableStream, className: string): void {
+  public classEnd(stream: NodeJS.WritableStream, className: string): void {
     stream.write("\n}\n");
   }
-  public method(stream: WritableStream, methodName: string, isStatic: boolean, argTypes: string[], rType: string): void {
+  public method(stream: NodeJS.WritableStream, methodName: string, isStatic: boolean, argTypes: string[], rType: string): void {
     // Construct the argument signature, figured out from the methodName.
     var argSig: string = 'rs: runtime.RuntimeState', i: number;
     if (!isStatic) {
@@ -231,13 +231,13 @@ class JSTemplate implements ITemplate {
   private firstMethod: boolean = true;
   private firstClass: boolean = true;
   public getExtension(): string { return 'js'; }
-  public fileStart(stream: WritableStream): void {
+  public fileStart(stream: NodeJS.WritableStream): void {
     stream.write("// This entire object is exported. Feel free to define private helper functions above it.\n({");
   }
-  public fileEnd(stream: WritableStream): void {
+  public fileEnd(stream: NodeJS.WritableStream): void {
     stream.write("\n})\n");
   }
-  public classStart(stream: WritableStream, className: string): void {
+  public classStart(stream: NodeJS.WritableStream, className: string): void {
     this.firstMethod = true;
     if (this.firstClass) {
       this.firstClass = false;
@@ -246,10 +246,10 @@ class JSTemplate implements ITemplate {
     }
     stream.write("\n  '" + className.replace(/_/g, '/') + "': {\n");
   }
-  public classEnd(stream: WritableStream, className: string): void {
+  public classEnd(stream: NodeJS.WritableStream, className: string): void {
     stream.write("\n\n  }");
   }
-  public method(stream: WritableStream, methodName: string, isStatic: boolean, argTypes: string[], rType: string): void {
+  public method(stream: NodeJS.WritableStream, methodName: string, isStatic: boolean, argTypes: string[], rType: string): void {
     // Construct the argument signature, figured out from the methodName.
     var argSig: string = 'rs', i: number;
     if (!isStatic) {
@@ -278,7 +278,7 @@ var classpath: string[] = argv.standard.classpath.split(':'),
   targetName: string = argv.className.replace(/\//g, '_').replace(/\./g, '_'),
   className: string = argv.className.replace(/\./g, '/'),
   template: ITemplate = argv.standard.typescript ? new TSTemplate(argv.standard.directory, argv.standard.typescript) : new JSTemplate(),
-  stream: WritableStream = fs.createWriteStream(path.join(argv.standard.directory, targetName + '.' + template.getExtension())),
+  stream: NodeJS.WritableStream = fs.createWriteStream(path.join(argv.standard.directory, targetName + '.' + template.getExtension())),
   targetLocation: string;
 
 
