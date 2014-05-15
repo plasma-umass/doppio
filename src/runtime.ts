@@ -616,7 +616,9 @@ export class RuntimeState {
         // remove the current (finished) thread
         debug("TE(toplevel): finished thread " + _this.curr_thread.name(_this));
         _this.curr_thread.$isAlive = false;
-        _this.thread_pool.splice(_this.thread_pool.indexOf(_this.curr_thread), 1);
+        if(_this.thread_pool.indexOf(_this.curr_thread) > 0){
+            _this.thread_pool.splice(_this.thread_pool.indexOf(_this.curr_thread), 1);
+        }
         return _this.choose_next_thread(null, function (next_thread) {
           _this.curr_thread = next_thread;
           _this.run_until_finished(nop, no_threads, done_cb);
