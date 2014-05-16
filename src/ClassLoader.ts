@@ -320,8 +320,8 @@ export class ClassLoader {
           // Array: Super class + component type.
           toResolve.push((<ClassData.ArrayClassData>cdata).get_component_type());
         } else {
-          // Reference: Super class + interface types.
-          toResolve = toResolve.concat(cdata.get_interface_types());
+          // Reference: interface types + super class.
+          toResolve = cdata.get_interface_types().concat(toResolve);
         }
         // Gotta resolve 'em all!
         util.async_foreach<string>(toResolve, (aTypeStr: string, next: (err?: any) => void): void => {
