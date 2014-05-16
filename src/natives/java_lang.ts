@@ -445,10 +445,16 @@ class java_lang_ClassLoader {
 
   public static 'defineClass1(Ljava/lang/String;[BIILjava/security/ProtectionDomain;Ljava/lang/String;)Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: ClassLoader.JavaClassLoaderObject, name: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number, pd: gLong, source: java_object.JavaObject): java_object.JavaClassObject {
     var loader = java_object.get_cl_from_jclo(thread, javaThis),
-      cls = loader.defineClass(thread, util.int_classname(name.jvm2js_str()), util.byteArray2Buffer(bytes.array, offset, len));
-    if (cls != null) {
-      return cls.get_class_object(thread);
+      type = util.int_classname(name.jvm2js_str()),
+      cls = loader.defineClass(thread, type, util.byteArray2Buffer(bytes.array, offset, len));
+    if (cls == null) {
+      return null;
     }
+    // Ensure that this class is resolved.
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    loader.resolveClass(thread, type, () => {
+      thread.asyncReturn(cls.get_class_object(thread));
+    }, true);
   }
 
   public static 'defineClass2(Ljava/lang/String;Ljava/nio/ByteBuffer;IILjava/security/ProtectionDomain;Ljava/lang/String;)Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: ClassLoader.JavaClassLoaderObject, arg0: java_object.JavaObject, arg1: java_object.JavaObject, arg2: number, arg3: number, arg4: java_object.JavaObject, arg5: java_object.JavaObject): java_object.JavaClassObject {
