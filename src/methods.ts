@@ -308,10 +308,24 @@ export class Method extends AbstractMethodField {
       toResolve: string[] = [],
       bsCl: ClassLoader.BootstrapClassLoader = thread.getBsCl(),
       jvm = thread.getThreadPool().getJVM(),
-      loader = this.cls.loader;
+      loader = this.cls.loader,
+      hasCode = (!this.access_flags.native && !this.access_flags.abstract);
 
+    // Resolve the return type.
     toResolve.push(this.return_type);
+    // Resolve exception handler types.
+    if (hasCode && this.code.exception_handlers.length > 0) {
+      toResolve.push('Ljava/lang/Throwable;');  // Mimic native java.
+      var eh = this.code.exception_handlers;
+      for (var i=0; i<eh.length; i++) {
+        if (eh[i].catch_type !== '<any>') {
+          toResolve.push(eh[i].catch_type);
+        }
+      }
+    }
+    // Resolve parameter types.
     toResolve.push.apply(toResolve, this.param_types);
+    // Resolve checked exception types.
     if (exceptionAttr != null) {
       toResolve.push.apply(toResolve, exceptionAttr.exceptions);
     }
