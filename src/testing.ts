@@ -213,7 +213,7 @@ function diff(doppioOut: string, nativeOut: string): string {
   // @todo Robust to Windows line breaks!
   var doppioLines = doppioOut.split(/\n/),
     jvmLines = nativeOut.split(/\n/),
-    diff: string[] = difflib.text_diff(doppioLines, jvmLines);
+    diff: string[] = difflib.text_diff(doppioLines, jvmLines, 2);
   if (diff.length > 0) {
     return 'Doppio | Java\n' + diff.join('\n');
   }
