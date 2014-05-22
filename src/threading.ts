@@ -903,6 +903,7 @@ validTransitions[enums.ThreadStatus.PARKED] = {};
 validTransitions[enums.ThreadStatus.PARKED][enums.ThreadStatus.RUNNABLE] = "Balancing unpark, or is interrupted";
 validTransitions[enums.ThreadStatus.RUNNABLE] = {};
 validTransitions[enums.ThreadStatus.RUNNABLE][enums.ThreadStatus.RUNNING] = "Scheduled to run";
+validTransitions[enums.ThreadStatus.RUNNABLE][enums.ThreadStatus.ASYNC_WAITING] = "Scheduled to run thread performs an asynchronous JavaScript operation";
 validTransitions[enums.ThreadStatus.RUNNING] = {};
 validTransitions[enums.ThreadStatus.RUNNING][enums.ThreadStatus.RUNNABLE] = "[Ignored transition; stays RUNNING]";
 validTransitions[enums.ThreadStatus.RUNNING][enums.ThreadStatus.ASYNC_WAITING] = "Thread performs an asynchronous JavaScript operation";
