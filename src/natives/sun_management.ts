@@ -10,12 +10,12 @@ class sun_management_MemoryImpl {
 
   public static 'getMemoryPools0()[Ljava/lang/management/MemoryPoolMXBean;'(thread: threading.JVMThread): java_object.JavaArray {
     // XXX may want to revisit this 'NOP'
-    return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[Lsun/management/MemoryPoolImpl;'), []);
+    return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Lsun/management/MemoryPoolImpl;'), []);
   }
 
   public static 'getMemoryManagers0()[Ljava/lang/management/MemoryManagerMXBean;'(thread: threading.JVMThread): java_object.JavaArray {
     // XXX may want to revisit this 'NOP'
-    return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[Lsun/management/MemoryManagerImpl;'), []);
+    return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Lsun/management/MemoryManagerImpl;'), []);
   }
 
   public static 'getMemoryUsage0(Z)Ljava/lang/management/MemoryUsage;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: number): java_object.JavaObject {
@@ -39,7 +39,7 @@ class sun_management_VMManagementImpl {
   public static 'initOptionalSupportFields()V'(thread: threading.JVMThread): void {
     var i: number,
       field_names = ['compTimeMonitoringSupport', 'threadContentionMonitoringSupport', 'currentThreadCpuTimeSupport', 'otherThreadCpuTimeSupport', 'bootClassPathSupport', 'objectMonitorUsageSupport', 'synchronizerUsageSupport'],
-      vm_management_impl = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass('Lsun/management/VMManagementImpl;');
+      vm_management_impl = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass(thread, 'Lsun/management/VMManagementImpl;');
     // set everything to false
     for (i = 0; i < field_names.length; i++) {
       var name = field_names[i];

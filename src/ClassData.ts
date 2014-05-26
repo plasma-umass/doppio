@@ -212,7 +212,7 @@ export class PrimitiveClassData extends ClassData {
 
   public create_wrapper_object(thread: threading.JVMThread, value: any): java_object.JavaObject {
     var box_name = this.box_class_name();
-    var box_cls = <ReferenceClassData> thread.getBsCl().getInitializedClass(box_name);
+    var box_cls = <ReferenceClassData> thread.getBsCl().getInitializedClass(thread, box_name);
     // these are all initialized in preinit (for the BSCL, at least)
     var wrapped = new JavaObject(box_cls);
     if (box_name !== 'V') {

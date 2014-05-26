@@ -143,7 +143,7 @@ class JVM {
             // Initialize the system's ThreadGroup now.
             if (coreClass === 'Ljava/lang/ThreadGroup;') {
               // Construct a ThreadGroup object for the first thread.
-              var threadGroupCls = <ClassData.ReferenceClassData> this.bsCl.getInitializedClass('Ljava/lang/ThreadGroup;'),
+              var threadGroupCls = <ClassData.ReferenceClassData> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/ThreadGroup;'),
                 groupObj = new java_object.JavaObject(threadGroupCls),
                 cnstrctr = threadGroupCls.method_lookup(firstThread, '<init>()V');
               firstThread.runMethod(cnstrctr, [groupObj], (e?, rv?) => {
@@ -152,7 +152,7 @@ class JVM {
                 firstThread.set_field(firstThread, 'Ljava/lang/Thread;priority', 1);
                 firstThread.set_field(firstThread, 'Ljava/lang/Thread;group', groupObj);
                 firstThread.set_field(firstThread, 'Ljava/lang/Thread;threadLocals', null);
-                firstThread.set_field(firstThread, 'Ljava/lang/Thread;blockerLock', new java_object.JavaObject(<ClassData.ReferenceClassData> this.bsCl.getInitializedClass('Ljava/lang/Object;')));
+                firstThread.set_field(firstThread, 'Ljava/lang/Thread;blockerLock', new java_object.JavaObject(<ClassData.ReferenceClassData> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/Object;')));
                 next_item();
               });
             } else {
@@ -168,7 +168,7 @@ class JVM {
      */
     bootupTasks.push((next: (err?: any) => void) => {
       // Initialize the system class (initializes things like println/etc).
-      var sysInit = this.bsCl.getInitializedClass('Ljava/lang/System;').get_method('initializeSystemClass()V');
+      var sysInit = this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/System;').get_method('initializeSystemClass()V');
       firstThread.runMethod(sysInit, [], next);
     });
 
@@ -204,7 +204,7 @@ class JVM {
     this.bsCl.initializeClass(thread, className, (cdata: ClassData.ReferenceClassData) => {
       if (cdata != null) {
         // Convert the arguments.
-        var strArrCls = <ClassData.ArrayClassData> this.bsCl.getInitializedClass('[Ljava/lang/String;'),
+        var strArrCls = <ClassData.ArrayClassData> this.bsCl.getInitializedClass(thread, '[Ljava/lang/String;'),
           jvmifiedArgs = new java_object.JavaArray(strArrCls, args.map((a: string): java_object.JavaObject => java_object.initString(this.bsCl, a)));
 
         // Find the main method, and run it.

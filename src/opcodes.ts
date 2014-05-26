@@ -159,7 +159,7 @@ export class InvokeOpcode extends Opcode {
   }
 
   public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
-    var cls = <ClassData.ReferenceClassData> frame.getLoader().getInitializedClass(this.method_spec.class_desc);
+    var cls = <ClassData.ReferenceClassData> frame.getLoader().getInitializedClass(thread, this.method_spec.class_desc);
     if (cls != null) {
       var m = cls.method_lookup(thread, this.method_spec.sig);
       if (m != null) {
@@ -238,7 +238,7 @@ export class DynInvokeOpcode extends InvokeOpcode {
   }
 
   public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
-    var cls = frame.getLoader().getInitializedClass(this.method_spec.class_desc);
+    var cls = frame.getLoader().getInitializedClass(thread, this.method_spec.class_desc);
     if (cls != null) {
       var stack = frame.stack;
       var obj: java_object.JavaObject = stack[stack.length - this.count];
@@ -628,7 +628,7 @@ export class MultiArrayOpcode extends Opcode {
   }
 
   public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
-    var cls = frame.getLoader().getInitializedClass(this.class_descriptor);
+    var cls = frame.getLoader().getInitializedClass(thread, this.class_descriptor);
     if (cls == null) {
       initializeClass(thread, frame, this.class_descriptor);
     } else {
@@ -1311,7 +1311,7 @@ export var opcodes: Opcode[] = [
   // field access
   new FieldOpcode('getstatic', function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     var desc = this.field_spec.class_desc, loader = frame.getLoader(),
-      ref_cls = loader.getInitializedClass(desc),
+      ref_cls = loader.getInitializedClass(thread, desc),
       new_execute: Execute;
     if (this.field_spec.type == 'J' || this.field_spec.type == 'D') {
       new_execute = function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
@@ -1331,7 +1331,7 @@ export var opcodes: Opcode[] = [
       // This may not be initialized if it's an interface, so we need to check.
       var cls_type = ref_cls.field_lookup(thread, this.field_spec.name).cls.get_type();
       if (cls_type != null) {
-        this.cls = loader.getInitializedClass(cls_type);
+        this.cls = loader.getInitializedClass(thread, cls_type);
         if (this.cls != null) {
           new_execute.call(this, thread, frame);
           this.execute = new_execute;
@@ -1351,7 +1351,7 @@ export var opcodes: Opcode[] = [
   new FieldOpcode('putstatic', function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     // Get the class referenced by the field_spec.
     var desc = this.field_spec.class_desc, loader = frame.getLoader(),
-      ref_cls = loader.getInitializedClass(desc),
+      ref_cls = loader.getInitializedClass(thread, desc),
       new_execute: Execute;
     if (this.field_spec.type == 'J' || this.field_spec.type == 'D') {
       new_execute = function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
@@ -1369,7 +1369,7 @@ export var opcodes: Opcode[] = [
       // This may not be initialized if it's an interface, so we need to check.
       var cls_type = ref_cls.field_lookup(thread, this.field_spec.name).cls.get_type();
       if (cls_type != null) {
-        this.cls = loader.getInitializedClass(cls_type);
+        this.cls = loader.getInitializedClass(thread, cls_type);
         if (this.cls != null) {
           new_execute.call(this, thread, frame);
           this.execute = new_execute;
@@ -1397,7 +1397,7 @@ export var opcodes: Opcode[] = [
       // cls is guaranteed to be in the inheritance hierarchy of obj, so it must be
       // initialized. However, it may not be loaded in the current class's
       // ClassLoader...
-      var cls = loader.getInitializedClass(desc);
+      var cls = loader.getInitializedClass(thread, desc);
       if (cls != null) {
         var field = cls.field_lookup(thread, this.field_spec.name);
         if (field != null) {
@@ -1456,7 +1456,7 @@ export var opcodes: Opcode[] = [
       // cls is guaranteed to be in the inheritance hierarchy of obj, so it must be
       // initialized. However, it may not be loaded in the current class's
       // ClassLoader...
-      var cls_obj = loader.getInitializedClass(desc);
+      var cls_obj = loader.getInitializedClass(thread, desc);
       if (cls_obj != null) {
         var field = cls_obj.field_lookup(thread, this.field_spec.name);
         if (field != null) {
@@ -1508,7 +1508,7 @@ export var opcodes: Opcode[] = [
   null,  // invokedynamic
   new ClassOpcode('new', function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     var desc = this.class_desc;
-    this.cls = frame.getLoader().getInitializedClass(desc);
+    this.cls = frame.getLoader().getInitializedClass(thread, desc);
     if (this.cls != null) {
       // XXX: Check if this is a ClassLoader / Thread / other.
       if (this.cls.is_castable(thread.getBsCl().getResolvedClass('Ljava/lang/ClassLoader;'))) {

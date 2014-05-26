@@ -659,7 +659,7 @@ class java_io_UnixFileSystem {
       if (err != null) {
         thread.asyncReturn(null);
       } else {
-        thread.asyncReturn(new java_object.JavaArray(<ClassData.ArrayClassData> bsCl.getInitializedClass('[Ljava/lang/String;'), (() => {
+        thread.asyncReturn(new java_object.JavaArray(<ClassData.ArrayClassData> bsCl.getInitializedClass(thread, '[Ljava/lang/String;'), (() => {
           var i: number, len = files.length,
             results: java_object.JavaObject[] = [];
           for (i = 0; i < len; i++) {

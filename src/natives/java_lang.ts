@@ -48,7 +48,7 @@ function create_stack_trace(thread: threading.JVMThread, throwable: java_object.
   var stacktrace = [],
     cstack = thread.getStackTrace(),
     i: number, j: number, bsCl = thread.getBsCl(),
-    stackTraceElementCls = <ClassData.ReferenceClassData> bsCl.getInitializedClass('Ljava/lang/StackTraceElement;');
+    stackTraceElementCls = <ClassData.ReferenceClassData> bsCl.getInitializedClass(thread, 'Ljava/lang/StackTraceElement;');
   /**
    * OK, so we need to toss the following stack frames:
    * - The stack frame for this method.
@@ -174,7 +174,7 @@ class java_lang_Class {
     var cls = javaThis.$cls;
     var ifaces = cls.get_interfaces();
     var iface_objs = ifaces.map((iface) => iface.get_class_object(thread));
-    return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[Ljava/lang/Class;'), iface_objs);
+    return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/Class;'), iface_objs);
   }
 
   public static 'getComponentType()Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaClassObject {
@@ -224,7 +224,7 @@ class java_lang_Class {
     // - the immediately enclosing class (java/lang/Class)
     // - the immediately enclosing method or constructor's name (can be null). (String)
     // - the immediately enclosing method or constructor's descriptor (null iff name is). (String)
-    return new java_object.JavaArray(<ClassData.ArrayClassData> bsCl.getInitializedClass('[Ljava/lang/Object;'), [enc_cls, enc_name, enc_desc]);
+    return new java_object.JavaArray(<ClassData.ArrayClassData> bsCl.getInitializedClass(thread, '[Ljava/lang/Object;'), [enc_cls, enc_name, enc_desc]);
   }
 
   public static 'getDeclaringClass0()Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaClassObject {
@@ -268,7 +268,7 @@ class java_lang_Class {
 
   public static 'getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;'(thread: threading.JVMThread, jvm_str: java_object.JavaObject): java_object.JavaClassObject {
     var type_desc = util.typestr2descriptor(jvm_str.jvm2js_str()),
-      prim_cls = thread.getBsCl().getInitializedClass(type_desc);
+      prim_cls = thread.getBsCl().getInitializedClass(thread, type_desc);
     return prim_cls.get_class_object(thread);
   }
 
@@ -285,7 +285,7 @@ class java_lang_Class {
     var cls = <ClassData.ReferenceClassData> javaThis.$cls,
       annotations = <attributes.RuntimeVisibleAnnotations> cls.get_attribute('RuntimeVisibleAnnotations');
     if (annotations != null) {
-      return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[B'), annotations.raw_bytes);
+      return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[B'), annotations.raw_bytes);
     }
 
     var methods = cls.get_methods();
@@ -294,7 +294,7 @@ class java_lang_Class {
         var m = methods[sig];
         annotations = <attributes.RuntimeVisibleAnnotations> m.get_attribute('RuntimeVisibleAnnotations');
         if (annotations != null) {
-          return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[B'), annotations.raw_bytes);
+          return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[B'), annotations.raw_bytes);
         }
       }
     }
@@ -305,7 +305,7 @@ class java_lang_Class {
     var cls = <ClassData.ReferenceClassData> javaThis.$cls;
     // @todo Make this a proper JavaObject. I don't think the JCL uses it as such,
     // but right now this function fails any automated sanity checks on return values.
-    return new java_object.JavaObject(<ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass('Lsun/reflect/ConstantPool;'), {
+    return new java_object.JavaObject(<ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass(thread, 'Lsun/reflect/ConstantPool;'), {
       'Lsun/reflect/ConstantPool;constantPoolOop': cls.constant_pool
     });
   }
@@ -326,7 +326,7 @@ class java_lang_Class {
           }
         });
       }, () => {
-        var field_arr_cls = <ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[Ljava/lang/reflect/Field;');
+        var field_arr_cls = <ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/reflect/Field;');
         thread.asyncReturn(new java_object.JavaArray(field_arr_cls, base_array));
       });
   }
@@ -354,7 +354,7 @@ class java_lang_Class {
           }
         });
       }, () => {
-        var method_arr_cls = <ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[Ljava/lang/reflect/Method;');
+        var method_arr_cls = <ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/reflect/Method;');
         thread.asyncReturn(new java_object.JavaArray(method_arr_cls, base_array));
       });
   }
@@ -374,7 +374,7 @@ class java_lang_Class {
     if (public_only) {
       methods = methods.filter((m) => m.access_flags["public"]);
     }
-    var ctor_array_cdata = <ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[Ljava/lang/reflect/Constructor;');
+    var ctor_array_cdata = <ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/reflect/Constructor;');
     var base_array = [];
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     util.async_foreach(methods,
@@ -391,7 +391,7 @@ class java_lang_Class {
   }
 
   public static 'getDeclaredClasses0()[Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): any {
-    var ret = new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[Ljava/lang/Class;'), []),
+    var ret = new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/Class;'), []),
       cls = <ClassData.ReferenceClassData> javaThis.$cls;
     if (!(cls instanceof ClassData.ReferenceClassData)) {
       return ret;
@@ -632,7 +632,7 @@ class java_lang_Package {
   }
 
   public static 'getSystemPackages0()[Ljava/lang/String;'(thread: threading.JVMThread): java_object.JavaArray {
-    return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[Ljava/lang/String;'), (() => {
+    return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/String;'), (() => {
       var pkgNames = thread.getBsCl().getPackageNames(), i: number,
         results: java_object.JavaObject[] = [];
       for (i = 0; i < pkgNames.length; i++) {
@@ -652,10 +652,10 @@ class java_lang_ProcessEnvironment {
     // convert to an array of strings of the form [key, value, key, value ...]
     for (key in env) {
       v = env[key];
-      env_arr.push(new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[B'), util.bytestr_to_array(key)));
-      env_arr.push(new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[B'), util.bytestr_to_array(v)));
+      env_arr.push(new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[B'), util.bytestr_to_array(key)));
+      env_arr.push(new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[B'), util.bytestr_to_array(v)));
     }
-    return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[[B'), env_arr);
+    return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[[B'), env_arr);
   }
 
 }
@@ -705,7 +705,7 @@ class java_lang_reflect_Array {
       } else {
         var ccls = arr.cls.get_component_class();
         if (ccls instanceof ClassData.PrimitiveClassData) {
-          if (val.cls.is_subclass(thread.getBsCl().getInitializedClass((<ClassData.PrimitiveClassData> ccls).box_class_name()))) {
+          if (val.cls.is_subclass(thread.getBsCl().getInitializedClass(thread, (<ClassData.PrimitiveClassData> ccls).box_class_name()))) {
             var ccname = ccls.get_type(),
               m = val.cls.method_lookup(thread, "" + util.internal2external[ccname] + "Value()" + ccname);
             thread.runMethod(m, [val], (e?, rv?) => {
@@ -763,7 +763,7 @@ class java_lang_reflect_Array {
 
   public static 'multiNewArray(Ljava/lang/Class;[I)Ljava/lang/Object;'(thread: threading.JVMThread, jco: java_object.JavaClassObject, lens: java_object.JavaArray): java_object.JavaArray {
     var counts = lens.array;
-    var cls = jco.$cls.loader.getInitializedClass(jco.$cls.get_type());
+    var cls = jco.$cls.loader.getInitializedClass(thread, jco.$cls.get_type());
     if (cls == null) {
       thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
       jco.$cls.loader.initializeClass(thread, jco.$cls.get_type(), (cls) => {
@@ -858,7 +858,7 @@ class java_lang_SecurityManager {
       var sf = stack[i];
       classes.push(sf.method.cls.get_class_object(thread));
     }
-    return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[Ljava/lang/Class;'), classes);
+    return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/Class;'), classes);
   }
 
   public static 'currentClassLoader0()Ljava/lang/ClassLoader;'(thread: threading.JVMThread, javaThis: java_object.JavaObject): ClassLoader.JavaClassLoaderObject {
@@ -1022,17 +1022,17 @@ class java_lang_String {
 class java_lang_System {
 
   public static 'setIn0(Ljava/io/InputStream;)V'(thread: threading.JVMThread, stream: java_object.JavaObject): void {
-    var sys = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass('Ljava/lang/System;');
+    var sys = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass(thread, 'Ljava/lang/System;');
     sys.static_put(thread, 'in', stream);
   }
 
   public static 'setOut0(Ljava/io/PrintStream;)V'(thread: threading.JVMThread, stream: java_object.JavaObject): void {
-    var sys = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass('Ljava/lang/System;');
+    var sys = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass(thread, 'Ljava/lang/System;');
     sys.static_put(thread, 'out', stream);
   }
 
   public static 'setErr0(Ljava/io/PrintStream;)V'(thread: threading.JVMThread, stream: java_object.JavaObject): void {
-    var sys = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass('Ljava/lang/System;');
+    var sys = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass(thread, 'Ljava/lang/System;');
     sys.static_put(thread, 'err', stream);
   }
 
@@ -1171,7 +1171,7 @@ class java_lang_Thread {
   }
 
   public static 'getThreads()[Ljava/lang/Thread;'(thread: threading.JVMThread): java_object.JavaArray {
-    return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[Ljava/lang/Thread;'), thread.getThreadPool().getThreads());
+    return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/Thread;'), thread.getThreadPool().getThreads());
   }
 
   public static 'setPriority0(I)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: number): void {
@@ -1258,7 +1258,7 @@ class java_lang_Thread {
               javaThis.getThreadPool().completelyUnpark(javaThis);
               // FALL-THROUGH
             default:
-              var threadCls = thread.getBsCl().getInitializedClass('Ljava/lang/Thread;'),
+              var threadCls = thread.getBsCl().getInitializedClass(thread, 'Ljava/lang/Thread;'),
                 // If we are in the following methods, we throw an InterruptedException:
                 interruptMethods: methods.Method[] = [
                   threadCls.method_lookup(thread, 'join()V'),   // * Thread.join()
@@ -1293,7 +1293,7 @@ class java_lang_Thread {
 class java_lang_Throwable {
 
   public static 'fillInStackTrace()Ljava/lang/Throwable;'(thread: threading.JVMThread, javaThis: java_object.JavaObject): java_object.JavaObject {
-    var strace = new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[Ljava/lang/StackTraceElement;'), create_stack_trace(thread, javaThis));
+    var strace = new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/StackTraceElement;'), create_stack_trace(thread, javaThis));
     javaThis.set_field(thread, 'Ljava/lang/Throwable;stackTrace', strace);
     return javaThis;
   }

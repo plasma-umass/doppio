@@ -10,7 +10,7 @@ class classes_doppio_Debug {
   }
 
   public static 'GetLogLevel()Lclasses/doppio/Debug$LogLevel;'(thread: threading.JVMThread): java_object.JavaObject {
-    var ll_cls = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass('Lclasses/doppio/Debug$LogLevel;');
+    var ll_cls = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass(thread, 'Lclasses/doppio/Debug$LogLevel;');
     switch (logging.log_level) {
       case 10:
         return ll_cls.static_get(thread, 'VTRACE');

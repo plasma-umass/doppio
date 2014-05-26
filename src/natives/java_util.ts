@@ -58,7 +58,7 @@ class java_util_ResourceBundle {
       var sf = stack[i];
       classes.push(sf.method.cls.get_class_object(thread));
     }
-    return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass('[Ljava/lang/Class;'), classes);
+    return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/Class;'), classes);
   }
 }
 

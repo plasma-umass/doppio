@@ -85,7 +85,7 @@ var trapped_methods = {
   },
   'java/nio/Bits': {
     'byteOrder()Ljava/nio/ByteOrder;': function (thread: threading.JVMThread): java_object.JavaObject {
-      var cls = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass('Ljava/nio/ByteOrder;');
+      var cls = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass(thread, 'Ljava/nio/ByteOrder;');
       return cls.static_get(thread, 'LITTLE_ENDIAN');
     },
     'copyToByteArray(JLjava/lang/Object;JJ)V': function (thread: threading.JVMThread, srcAddr: gLong, dst: java_object.JavaArray, dstPos: gLong, length: gLong): void {
@@ -178,7 +178,7 @@ export class Field extends AbstractMethodField {
     var jvm = thread.getThreadPool().getJVM();
     var bsCl = thread.getBsCl();
     var create_obj = (clazz_obj: java_object.JavaClassObject, type_obj: java_object.JavaObject) => {
-      var field_cls = <ClassData.ReferenceClassData> bsCl.getInitializedClass('Ljava/lang/reflect/Field;');
+      var field_cls = <ClassData.ReferenceClassData> bsCl.getInitializedClass(thread, 'Ljava/lang/reflect/Field;');
       return new java_object.JavaObject(field_cls, {
         // XXX this leaves out 'annotations'
         'Ljava/lang/reflect/Field;clazz': clazz_obj,
@@ -336,9 +336,9 @@ export class Method extends AbstractMethodField {
         cb(null);
       } else {
         // XXX: missing parameterAnnotations
-        var jco_arr_cls = <ClassData.ArrayClassData> bsCl.getInitializedClass('[Ljava/lang/Class;');
-        var byte_arr_cls = <ClassData.ArrayClassData> bsCl.getInitializedClass('[B');
-        var cls = <ClassData.ReferenceClassData> bsCl.getInitializedClass(typestr);
+        var jco_arr_cls = <ClassData.ArrayClassData> bsCl.getInitializedClass(thread, '[Ljava/lang/Class;');
+        var byte_arr_cls = <ClassData.ArrayClassData> bsCl.getInitializedClass(thread, '[B');
+        var cls = <ClassData.ReferenceClassData> bsCl.getInitializedClass(thread, typestr);
         var param_type_objs: java_object.JavaClassObject[] = [];
         var i;
         for (i = 0; i < this.param_types.length; i++) {

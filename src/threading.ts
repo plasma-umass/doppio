@@ -769,7 +769,7 @@ export class JVMThread extends java_object.JavaObject {
     var frame = stack.pop();
     if (frame.type != enums.StackFrameType.INTERNAL) {
       var frameCast = <BytecodeStackFrame> frame;
-      assert(validateReturnValue(frameCast.method,
+      assert(validateReturnValue(this, frameCast.method,
         frameCast.method.return_type, this.bsCl,
         frameCast.method.cls.get_class_loader(), rv, rv2), "Invalid return value");
     }
@@ -845,7 +845,7 @@ export class JVMThread extends java_object.JavaObject {
    * @param msg The message to include with the exception.
    */
   public throwNewException(clsName: string, msg: string) {
-    var cls = <ClassData.ReferenceClassData> this.bsCl.getInitializedClass(clsName),
+    var cls = <ClassData.ReferenceClassData> this.bsCl.getInitializedClass(this, clsName),
       throwException = () => {
         var e = new java_object.JavaObject(cls),
           cnstrctr = cls.method_lookup(this, '<init>(Ljava/lang/String;)V');
@@ -938,7 +938,7 @@ function validateThreadTransition(oldStatus: enums.ThreadStatus, newStatus: enum
  * [DEBUG] Asserts that the return value of the function passes basic sanity
  * checks.
  */
-function validateReturnValue(method: methods.Method, returnType: string, bsCl: ClassLoader.BootstrapClassLoader, cl: ClassLoader.ClassLoader, rv1: any, rv2: any): boolean {
+function validateReturnValue(thread: JVMThread, method: methods.Method, returnType: string, bsCl: ClassLoader.BootstrapClassLoader, cl: ClassLoader.ClassLoader, rv1: any, rv2: any): boolean {
   try {
     var cls: ClassData.ClassData;
     if (util.is_primitive_type(returnType)) {
@@ -983,9 +983,9 @@ function validateReturnValue(method: methods.Method, returnType: string, bsCl: C
       assert(rv2 === undefined);
       assert(rv1 === null || rv1 instanceof java_object.JavaArray);
       if (rv1 != null) {
-        cls = cl.getInitializedClass(returnType);
+        cls = cl.getInitializedClass(thread, returnType);
         if (cls === null) {
-          cls = bsCl.getInitializedClass(returnType);
+          cls = bsCl.getInitializedClass(thread, returnType);
         }
         assert(cls != null);
         assert(rv1.cls.is_castable(cls));
@@ -995,9 +995,9 @@ function validateReturnValue(method: methods.Method, returnType: string, bsCl: C
       assert(rv2 === undefined);
       assert(rv1 === null || rv1 instanceof java_object.JavaObject || rv1 instanceof java_object.JavaArray);
       if (rv1 != null) {
-        cls = cl.getInitializedClass(returnType);
+        cls = cl.getInitializedClass(thread, returnType);
         if (cls === null) {
-          cls = bsCl.getInitializedClass(returnType);
+          cls = bsCl.getInitializedClass(thread, returnType);
         }
         assert(cls != null);
         assert(rv1.cls.is_castable(cls));

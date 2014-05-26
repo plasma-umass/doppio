@@ -257,7 +257,7 @@ export interface IWebsock {
 
 export function initString(cl: ClassLoader.ClassLoader, str: string): JavaObject {
   var carr = initCarr(cl, str);
-  var str_cls = <ClassData.ReferenceClassData> cl.getInitializedClass('Ljava/lang/String;');
+  var str_cls = <ClassData.ReferenceClassData> cl.getInitializedClass(null, 'Ljava/lang/String;');
   return new JavaObject(str_cls, {
     'Ljava/lang/String;value': carr,
     'Ljava/lang/String;count': str.length
@@ -639,7 +639,7 @@ export function heapNewArray(thread: threading.JVMThread, loader: ClassLoader.Cl
   if (len < 0) {
     thread.throwNewException('Ljava/lang/NegativeArraySizeException;', "Tried to init [" + type + " array with length " + len);
   } else {
-    var arr_cls = <ClassData.ArrayClassData> loader.getInitializedClass("[" + type);
+    var arr_cls = <ClassData.ArrayClassData> loader.getInitializedClass(thread, "[" + type);
     // Gives the JavaScript engine a size hint.
     if (type === 'J') {
       return new JavaArray(arr_cls, util.arrayset<gLong>(len, gLong.ZERO));
@@ -676,7 +676,7 @@ export function heapMultiNewArray(thread: threading.JVMThread, loader: ClassLoad
           }
         }
       }
-      var arr_cls = <ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(type);
+      var arr_cls = <ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, type);
       return new JavaArray(arr_cls, array);
     }
   }
