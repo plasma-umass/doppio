@@ -8,6 +8,7 @@ import methods = require('../methods');
 import threading = require('../threading');
 import ClassLoader = require('../ClassLoader');
 import enums = require('../enums');
+import assert = require('../assert');
 
 var debug = logging.debug;
 
@@ -48,11 +49,23 @@ function create_stack_trace(thread: threading.JVMThread, throwable: java_object.
     cstack = thread.getStackTrace(),
     i: number, j: number, bsCl = thread.getBsCl(),
     stackTraceElementCls = <ClassData.ReferenceClassData> bsCl.getInitializedClass('Ljava/lang/StackTraceElement;');
-  // Ignore any stack frames involved in the construction of this throwable.
-  // @todo There has to be a better way! What does the JVM do?
-  while (cstack.length > 0 && (cstack[cstack.length - 1].method.access_flags.native || cstack[cstack.length - 1].locals[0] === throwable)) {
+  /**
+   * OK, so we need to toss the following stack frames:
+   * - The stack frame for this method.
+   * - If we're still constructing the throwable object, we need to toss any
+   *   stack frames involved in constructing the throwable. But if we're not,
+   *   then there's no other frames we should cut.
+   */
+  cstack.pop(); // The stack frame for this method.
+  // Bytecode methods involved in constructing the throwable. We assume that
+  // there are no native methods involved in the mix other than this one.
+  while (cstack.length > 0 &&
+    !cstack[cstack.length - 1].method.access_flags.native &&
+    cstack[cstack.length - 1].locals[0] === throwable) {
     cstack.pop();
   }
+  assert(cstack.length > 0);
+
   for (i = 0; i < cstack.length; i++) {
     var sf = cstack[i],
       cls = sf.method.cls,
