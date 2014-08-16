@@ -4,7 +4,7 @@ doppio: A JVM in TypeScript
 _doppio_ is a double shot of espresso.
 In this case it's also a JVM written in [TypeScript](http://www.typescriptlang.org/).
 
-To try doppio now, head to the [live demo page](http://int3.github.io/doppio/).
+To try doppio now, head to the [live demo page](http://plasma-umass.github.io/doppio/).
 
 To learn more, head to the [doppio wiki](https://github.com/int3/doppio/wiki).
 
