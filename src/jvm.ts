@@ -155,6 +155,13 @@ class JVM {
                 firstThread.set_field(firstThread, 'Ljava/lang/Thread;blockerLock', new java_object.JavaObject(<ClassData.ReferenceClassData> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/Object;')));
                 next_item();
               });
+            } else if (coreClass === 'Ljava/lang/Thread;') {
+              // Make firstThread a *real* thread.
+              var threadCls = <ClassData.ReferenceClassData> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/Thread;'),
+                cnstrctr = threadCls.method_lookup(firstThread, '<init>()V');
+              firstThread.runMethod(cnstrctr, [firstThread], (e?, rv?) => {
+                next_item();
+              });
             } else {
               next_item();
             }

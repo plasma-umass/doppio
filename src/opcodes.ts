@@ -1001,7 +1001,7 @@ export var opcodes: Opcode[] = [
   new Opcode('idiv', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     var stack = frame.stack, b: number = stack.pop(), a: number = stack.pop();
     if (b === 0) {
-      thread.throwNewException('Ljava/lang/ArithmeticException;', 'Division by zero.');
+      thread.throwNewException('Ljava/lang/ArithmeticException;', '/ by zero');
       frame.returnToThreadLoop = true;
     } else {
       // spec: "if the dividend is the negative integer of largest possible magnitude
@@ -1020,7 +1020,7 @@ export var opcodes: Opcode[] = [
       b: gLong = pop2(stack),
       a: gLong = pop2(stack);
     if (b.isZero()) {
-      thread.throwNewException('Ljava/lang/ArithmeticException;', 'Division by zero.');
+      thread.throwNewException('Ljava/lang/ArithmeticException;', '/ by zero');
       frame.returnToThreadLoop = true;
     } else {
       stack.push(a.div(b), null);
@@ -1044,7 +1044,7 @@ export var opcodes: Opcode[] = [
       b: number = stack.pop(),
       a: number = stack.pop();
     if (b === 0) {
-      thread.throwNewException('Ljava/lang/ArithmeticException;', 'Division by zero.');
+      thread.throwNewException('Ljava/lang/ArithmeticException;', '/ by zero');
       frame.returnToThreadLoop = true;
     } else {
       stack.push(a % b);
@@ -1056,7 +1056,7 @@ export var opcodes: Opcode[] = [
       b: gLong = pop2(stack),
       a: gLong = pop2(stack);
     if (b.isZero()) {
-      thread.throwNewException('Ljava/lang/ArithmeticException;', 'Division by zero.');
+      thread.throwNewException('Ljava/lang/ArithmeticException;', '/ by zero');
       frame.returnToThreadLoop = true;
     } else {
       stack.push(a.modulo(b), null);

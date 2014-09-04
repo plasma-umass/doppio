@@ -771,7 +771,7 @@ export class JVMThread extends java_object.JavaObject {
       var frameCast = <BytecodeStackFrame> frame;
       assert(validateReturnValue(this, frameCast.method,
         frameCast.method.return_type, this.bsCl,
-        frameCast.method.cls.get_class_loader(), rv, rv2), "Invalid return value");
+        frameCast.method.cls.get_class_loader(), rv, rv2), "Invalid return value for method " + frameCast.method.name);
     }
     // Tell the top of the stack that this RV is waiting for it.
     var idx: number = stack.length - 1;
@@ -969,7 +969,8 @@ function validateReturnValue(thread: JVMThread, method: methods.Method, returnTy
           break;
         case 'F': // Float
           assert(rv2 === undefined);
-          assert(util.wrap_float(rv1) === rv1);
+          // NaN !== NaN, so we have to have a special case here.
+          assert(util.wrap_float(rv1) === rv1 || (isNaN(rv1) && isNaN(util.wrap_float(rv1))));
           break;
         case 'D': // Double
           assert(rv2 === null);

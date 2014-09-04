@@ -203,7 +203,7 @@ class java_lang_Class {
   public static 'getEnclosingMethod0()[Ljava/lang/Object;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaArray {
     var enc_desc: java_object.JavaObject, enc_name: java_object.JavaObject,
       bsCl = thread.getBsCl();
-    
+
     if (!(javaThis.$cls instanceof ClassData.ReferenceClassData)) {
       return null;
     }
@@ -1128,10 +1128,16 @@ class java_lang_Thread {
   }
 
   public static 'sleep(J)V'(thread: threading.JVMThread, millis: gLong): void {
+    var beforeMethod = thread.currentMethod();
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     setTimeout(() => {
-      thread.setStatus(enums.ThreadStatus.RUNNABLE);
-      thread.asyncReturn();
+      // Check if the thread was interrupted during our sleep. Interrupting
+      // sleep causes an exception, so we need to ignore the setTimeout
+      // callback in this case.
+      if (beforeMethod === thread.currentMethod()) {
+        thread.setStatus(enums.ThreadStatus.RUNNABLE);
+        thread.asyncReturn();
+      }
     }, millis.toNumber());
   }
 
