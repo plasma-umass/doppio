@@ -552,9 +552,9 @@ class sun_misc_VM {
    * the name of each threadStatus value of the format:
    *    <Thread.State.name()>[.<Substate name>]
    * e.g. WAITING.OBJECT_WAIT
-   * 
+   *
    * Note: Both of these arrays are preinitialized to the correct length.
-   * 
+   *
    * Here's an example output:
    * vmThreadStateValues = [
    *   [enums.ThreadStatus.NEW],
@@ -563,7 +563,7 @@ class sun_misc_VM {
    * vmThreadStateNames = [
    *   ["NEW.NEW"]
    * ];
-   * 
+   *
    * The actual indices of the state values *does not* need to match the
    * Thread.State enum values! The JVM uses the beginning of the *strings*
    * in the vmThreadStateNames array to figure out which index is associated

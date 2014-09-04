@@ -639,6 +639,10 @@ export class JVMThread extends java_object.JavaObject {
           // Resurrect thread.
           this.tpool.resurrectThread(this);
           break;
+        case enums.ThreadStatus.PARKED:
+          // XXX: Return from sun.misc.Unsafe.park
+          this.asyncReturn();
+          break;
       }
 
       /** Post-transition actions **/
