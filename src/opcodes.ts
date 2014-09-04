@@ -602,9 +602,15 @@ export class NewArrayOpcode extends Opcode {
   }
 
   public _execute(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
-    var stack = frame.stack;
-    stack.push(java_object.heapNewArray(thread, frame.getLoader(), this.element_type, stack.pop()));
-    this.incPc(frame);
+    var stack = frame.stack,
+      newArray = java_object.heapNewArray(thread, frame.getLoader(), this.element_type, stack.pop());
+    // If newArray is undefined, then an exception was thrown.
+    if (newArray !== undefined) {
+      stack.push(newArray);
+      this.incPc(frame);
+    } else {
+      frame.returnToThreadLoop = true;
+    }
   }
 }
 
@@ -635,9 +641,15 @@ export class MultiArrayOpcode extends Opcode {
       // cls is loaded. Create a new execute function to avoid this overhead.
       var new_execute = function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame): void {
         var stack = frame.stack,
-          counts = stack.splice(-this.dim, this.dim);
-        stack.push(java_object.heapMultiNewArray(thread, frame.getLoader(), this.class_descriptor, counts));
-        this.incPc(frame);
+          counts = stack.splice(-this.dim, this.dim),
+          newArray = java_object.heapMultiNewArray(thread, frame.getLoader(), this.class_descriptor, counts);
+        // If newArray is undefined, an exception was thrown.
+        if (newArray !== undefined) {
+          stack.push(newArray);
+          this.incPc(frame);
+        } else {
+          frame.returnToThreadLoop = true;
+        }
       };
       new_execute.call(this, thread, frame);
       this.execute = new_execute;
@@ -1542,9 +1554,15 @@ export var opcodes: Opcode[] = [
     var cls = frame.getLoader().getResolvedClass(desc);
     if (cls != null) {
       var new_execute: Execute = function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-        var stack = frame.stack;
-        stack.push(java_object.heapNewArray(thread, frame.getLoader(), desc, stack.pop()));
-        this.incPc(frame);
+        var stack = frame.stack,
+          newArray = java_object.heapNewArray(thread, frame.getLoader(), desc, stack.pop());
+        // If newArray is undefined, then an exception was thrown.
+        if (newArray !== undefined) {
+          stack.push(newArray);
+          this.incPc(frame);
+        } else {
+          frame.returnToThreadLoop = true;
+        }
       };
       new_execute.call(this, thread, frame);
       this.execute = new_execute;

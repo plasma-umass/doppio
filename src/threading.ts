@@ -91,16 +91,16 @@ export class BytecodeStackFrame implements IStackFrame {
     // from the previous time this method was run, and is meaningless.
     this.returnToThreadLoop = false;
 
-    vtrace("Resuming " + this.method.full_signature() + ":" + this.pc + " [Bytecode]");
-    vtrace("BEFORE: D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
+    vtrace("T" + thread.ref + " Resuming " + this.method.full_signature() + ":" + this.pc + " [Bytecode]");
+    vtrace("T" + thread.ref + " BEFORE: D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
     // Run until we get the signal to return to the thread loop.
     while (!this.returnToThreadLoop) {
       var op = code[this.pc];
-      vtrace("D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
-      vtrace(method.cls.get_type() + "::" + method.name + ":" + this.pc + " => " + op.name + op.annotate(this.pc, method.cls.constant_pool));
+      vtrace("T" + thread.ref + " D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
+      vtrace("T" + thread.ref + " " + method.cls.get_type() + "::" + method.name + ":" + this.pc + " => " + op.name + op.annotate(this.pc, method.cls.constant_pool));
       op.execute(thread, this);
     }
-    vtrace("AFTER: D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
+    vtrace("T" + thread.ref + " AFTER: D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
   }
 
   public scheduleResume(thread: JVMThread, rv?: any, rv2?: any): void {
