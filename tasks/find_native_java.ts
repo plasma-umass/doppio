@@ -58,8 +58,8 @@ function find_native_java(grunt: IGrunt) {
       get_registry_key('HKLM\\SOFTWARE\\JavaSoft\\Java Development Kit\\1.6', valueCb);
       get_registry_key('HKLM\\SOFTWARE\\Wow6432Node\\JavaSoft\\Java Development Kit\\1.6', valueCb);
     } else if (process.platform.match(/darwin/i)) {
-      // OS X: locate Java 6 with java_home
-      exec('/usr/libexec/java_home -version 1.6', function (err, stdout, stderr) {
+      // OS X: locate Java 6+ with java_home
+      exec('/usr/libexec/java_home -version 1.6+', function (err, stdout, stderr) {
         if (err) {
           cb(new Error("Cannot run /usr/libexec/java_home"));
         } else {
@@ -106,7 +106,7 @@ function check_java_version(grunt: IGrunt, cb: (status?: boolean) => void): void
       throw err;
     }
     var java_version = /(\d+\.\d+\.\d+)/.exec(stderr.toString())[1];
-    if (!semver.satisfies(java_version, '<1.7.0')) {
+    if (!semver.satisfies(java_version, '<=1.8.0')) {
       grunt.fail.fatal('Detected Java '+java_version+' (via javac). Please use Java <= 1.6');
     }
     return cb();

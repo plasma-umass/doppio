@@ -301,7 +301,7 @@ export class ReferenceClassData extends ClassData {
     }
     this.minor_version = bytes_array.get_uint(2);
     this.major_version = bytes_array.get_uint(2);
-    if (!(45 <= this.major_version && this.major_version <= 51)) {
+    if (!(45 <= this.major_version && this.major_version <= 52)) {
       throw "Major version invalid";
     }
     this.constant_pool = new ConstantPool.ConstantPool();
