@@ -174,7 +174,8 @@ class sun_reflect_NativeMethodAccessorImpl {
       args.push(obj);
     }
     if (params != null) {
-      args = args.concat(params.array);
+      // Unbox any primitives in the arguments array, and pad them if they are 64-bit.
+      args = args.concat(util.unboxArguments(thread, m.param_types, params.array));
     }
 
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);

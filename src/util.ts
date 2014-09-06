@@ -471,4 +471,31 @@ export function bytes2str(bytes: number[], null_terminate?: boolean): string {
   return rv;
 }
 
+/**
+ * Java's reflection APIs need to unbox primitive arguments to function calls,
+ * as they are boxed in an Object array. This utility function converts
+ * an array of arguments into the appropriate form prior to function invocation.
+ * Note that this includes padding category 2 primitives, which consume two
+ * slots in the array (doubles/longs).
+ */
+export function unboxArguments(thread: threading.JVMThread, paramTypes: string[], args: java_object.JavaObject[]): any[] {
+  var rv = [], i: number, type: string, arg: java_object.JavaObject;
+  for (i = 0; i < paramTypes.length; i++) {
+    type = paramTypes[i];
+    arg = args[i];
+    if (is_primitive_type(type)) {
+      // Unbox the primitive type. 
+      rv.push(arg.get_field(thread, arg.cls.get_type() + 'value'));
+      if (type === 'J' || type === 'D') {
+        // 64-bit primitives take up two argument slots. Doppio uses a NULL for the second slot.
+        rv.push(null); 
+      }
+    } else {
+      // Reference type; do not change.
+      rv.push(arg); 
+    }
+  }
+  return rv;
+}
+
 
