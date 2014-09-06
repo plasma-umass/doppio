@@ -184,8 +184,14 @@ class sun_reflect_NativeMethodAccessorImpl {
         thread.throwException(e);
       } else {
         if (util.is_primitive_type(m.return_type)) {
-          // wrap up primitives in their Object box
-          thread.asyncReturn(ret_type.$cls.create_wrapper_object(thread, rv));
+          if (m.return_type === 'V') {
+            // apparently the JVM returns NULL when there's a void return value,
+            // rather than autoboxing a Void object. Go figure!
+            thread.asyncReturn(null);
+          } else {
+            // wrap up primitives in their Object box
+            thread.asyncReturn(ret_type.$cls.create_wrapper_object(thread, rv));
+          }
         } else {
           thread.asyncReturn(rv);
         }
