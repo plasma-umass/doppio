@@ -185,7 +185,7 @@ class sun_misc_Unsafe {
 
   public static 'getByte(J)B'(thread: threading.JVMThread, javaThis: java_object.JavaObject, address: gLong): number {
     var heap = thread.getThreadPool().getJVM().getHeap();
-    return heap.get_byte(address.toNumber());
+    return heap.get_signed_byte(address.toNumber());
   }
 
   public static 'putByte(JB)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: gLong, arg1: number): void {
@@ -283,7 +283,7 @@ class sun_misc_Unsafe {
       bytesNum: number = bytes.toNumber(),
       heap = thread.getThreadPool().getJVM().getHeap();
     for (i = 0; i < bytesNum; i++) {
-      heap.set_byte(addr + i, value);
+      heap.set_signed_byte(addr + i, value);
     }
   }
 

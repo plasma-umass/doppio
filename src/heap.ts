@@ -21,7 +21,7 @@ class Heap {
     this._freeLists = new Array<number>(Heap._numSizeClasses);
     for (var i = 0; i < Heap._numSizeClasses; i++) {
       this._freeLists[i] = [];
-    } 
+    }
   }
 
   // Allocate size bytes, returning the "address".
@@ -73,8 +73,16 @@ class Heap {
     return this._buffer.readUInt8 (addr);
   }
 
+  get_signed_byte(addr: number): number {
+    return this._buffer.readInt8(addr);
+  }
+
   set_byte(addr: number, value: number): void {
     this._buffer.writeUInt8(value, addr);
+  }
+
+  set_signed_byte(addr: number, value: number): void {
+    this._buffer.writeInt8(value, addr);
   }
 
   /**
@@ -160,4 +168,3 @@ class Heap {
 }
 
 export = Heap;
-

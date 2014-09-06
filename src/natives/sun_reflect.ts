@@ -137,6 +137,10 @@ class sun_reflect_NativeConstructorAccessorImpl {
 
 class sun_reflect_NativeMethodAccessorImpl {
 
+  /**
+   * Invoke the specified method on the given object with the given parameters.
+   * If the method is an interface method, perform a virtual method dispatch.
+   */
   public static 'invoke0(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;'(thread: threading.JVMThread, mObj: java_object.JavaObject, obj: java_object.JavaObject, params: java_object.JavaArray): void {
     var cls = <ClassData.ReferenceClassData> (<java_object.JavaClassObject> mObj.get_field(thread, 'Ljava/lang/reflect/Method;clazz')).$cls,
       slot: number = mObj.get_field(thread, 'Ljava/lang/reflect/Method;slot'),
@@ -154,6 +158,15 @@ class sun_reflect_NativeMethodAccessorImpl {
           m = aMethod;
           break;
         }
+      }
+    }
+    
+    if (cls.access_flags['interface']) {
+      // It's an interface method. Look up the implementation in the object.
+      m = obj.cls.method_lookup(thread, m.name + m.raw_descriptor);
+      if (m == null) {
+        // Method not found, exception thrown. Return.
+        return;
       }
     }
 
@@ -181,9 +194,30 @@ class sun_reflect_NativeMethodAccessorImpl {
 
 }
 
+/**
+ * From JDK documentation:
+ *   Returns the class of the method realFramesToSkip frames up the stack
+ *   (zero-based), ignoring frames associated with
+ *   java.lang.reflect.Method.invoke() and its implementation. The first
+ *   frame is that associated with this method, so getCallerClass(0) returns
+ *   the Class object for sun.reflect.Reflection. Frames associated with
+ *   java.lang.reflect.Method.invoke() and its implementation are completely
+ *   ignored and do not count toward the number of "real" frames skipped.
+ */
 function get_caller_class(thread: threading.JVMThread, framesToSkip: number): java_object.JavaClassObject {
-  var caller = thread.getStackTrace();
-  return caller[caller.length - 1 - framesToSkip].method.cls.get_class_object(thread);
+  var caller = thread.getStackTrace(),
+    idx = caller.length - 1 - framesToSkip,
+    frame: threading.IStackTraceFrame = caller[idx];
+  while (frame.method.full_signature().indexOf('Ljava/lang/reflect/Method;::invoke') === 0) {
+    if (idx === 0) {
+      // No more stack to search!
+      // XXX: What does the JDK do here, throw an exception?
+      return null;
+    }
+    frame = caller[--idx];
+  }
+  
+  return frame.method.cls.get_class_object(thread);
 }
 
 class sun_reflect_Reflection {
