@@ -36,11 +36,11 @@ function makefileTest(argv): void {
   opts.quiet = true;
   opts.keepGoing = argv.c;
 
-  testing.runTests(opts, (failed: boolean): void => {
+  testing.runTests(opts, (success: boolean): void => {
     // Patch stdout back up.
     process.stdout.write = old_write;
-    process.stdout.write(failed ? '✗' : '✓');
-    if (failed) {
+    process.stdout.write(success ? '✓' : '✗');
+    if (success) {
       fs.writeSync(outfile, new Buffer('\n'), 0, 1, null);
     }
     fs.closeSync(outfile);
