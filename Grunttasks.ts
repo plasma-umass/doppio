@@ -176,16 +176,16 @@ export function setup(grunt: IGrunt) {
       }
     },
     uglify: {
-      'release-cli': {
-        options: {
-          warnings: false,
-          unsafe: true,
-          compress: {
-            global_defs: {
-              RELEASE: true
-            }
+      options: {
+        warnings: false,
+        unsafe: true,
+        compress: {
+          global_defs: {
+            RELEASE: true
           }
-        },
+        }
+      },
+      'release-cli': {
         files: [{
           expand: true,
           cwd: 'build/release-cli',
@@ -194,17 +194,6 @@ export function setup(grunt: IGrunt) {
         }]
       },
       natives: {
-        options: {
-          warnings: true,
-          unsafe: true,
-          compress: {
-            global_defs: {
-              RELEASE: true,
-            },
-            // Prevent uglify from optimizing away the export.
-            side_effects: false
-          }
-        },
         files: [{
           expand: true,
           cwd: '<%= build.build_dir %>',
