@@ -9,6 +9,7 @@ import enums = require('../enums');
 import methods = require('../methods');
 import fs = require('fs');
 import path = require('path');
+declare var registerNatives: (defs: any) => void;
 
 /**
  * Provide buffering for the underlying input function, returning at most
@@ -734,7 +735,7 @@ class java_io_UnixFileSystem {
 
 }
 
-({
+registerNatives({
   'java/io/Console': java_io_Console,
   'java/io/FileDescriptor': java_io_FileDescriptor,
   'java/io/FileInputStream': java_io_FileInputStream,
@@ -745,4 +746,4 @@ class java_io_UnixFileSystem {
   'java/io/ObjectStreamClass': java_io_ObjectStreamClass,
   'java/io/RandomAccessFile': java_io_RandomAccessFile,
   'java/io/UnixFileSystem': java_io_UnixFileSystem
-})
+});

@@ -6,6 +6,7 @@ import gLong = require('../gLong');
 import util = require('../util');
 import enums = require('../enums');
 import ClassLoader = require('../ClassLoader');
+declare var registerNatives: (defs: any) => void;
 
 function unsafe_compare_and_swap(thread: threading.JVMThread, _this: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, expected: any, x: any): boolean {
   var actual = obj.get_field_from_offset(thread, offset);
@@ -645,7 +646,7 @@ class sun_misc_VMSupport {
 
 }
 
-({
+registerNatives({
   'sun/misc/GC': sun_misc_GC,
   'sun/misc/MessageUtils': sun_misc_MessageUtils,
   'sun/misc/NativeSignalHandler': sun_misc_NativeSignalHandler,
@@ -655,4 +656,4 @@ class sun_misc_VMSupport {
   'sun/misc/Version': sun_misc_Version,
   'sun/misc/VM': sun_misc_VM,
   'sun/misc/VMSupport': sun_misc_VMSupport
-})
+});

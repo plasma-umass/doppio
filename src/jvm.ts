@@ -300,7 +300,16 @@ class JVM {
     "use strict"; // Prevent eval from being terrible.
     // Terrible hack.
     mod = mod.replace(/require\((\'|\")..\/([a-zA-Z_0-9]*)(\'|\")\)/g, 'require($1./$2$1)');
-    return eval(mod);
+    var rv;
+    /**
+     * Called by the native method file. Registers the package's native
+     * methods with the JVM.
+     */
+    function registerNatives(defs: any): void {
+      rv = defs;
+    }
+    eval(mod);
+    return rv;
   }
 
   /**

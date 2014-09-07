@@ -6,6 +6,7 @@ import gLong = require('../gLong');
 import util = require('../util');
 import enums = require('../enums');
 import fs = require('fs');
+declare var registerNatives: (defs: any) => void;
 
 class sun_nio_ch_FileChannelImpl {
 
@@ -165,8 +166,8 @@ class sun_nio_ch_NativeThread {
 
 }
 
-({
+registerNatives({
   'sun/nio/ch/FileChannelImpl': sun_nio_ch_FileChannelImpl,
   'sun/nio/ch/FileDispatcher': sun_nio_ch_FileDispatcher,
   'sun/nio/ch/NativeThread': sun_nio_ch_NativeThread
-})
+});

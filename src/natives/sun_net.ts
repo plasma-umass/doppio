@@ -4,6 +4,7 @@ import logging = require('../logging');
 import ClassData = require('../ClassData');
 import gLong = require('../gLong');
 import util = require('../util');
+declare var registerNatives: (defs: any) => void;
 
 class sun_net_spi_DefaultProxySelector {
 
@@ -17,6 +18,6 @@ class sun_net_spi_DefaultProxySelector {
 
 }
 
-({
+registerNatives({
   'sun/net/spi/DefaultProxySelector': sun_net_spi_DefaultProxySelector
-})
+});

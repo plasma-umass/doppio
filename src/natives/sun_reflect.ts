@@ -8,6 +8,7 @@ import methods = require('../methods');
 import ConstantPool = require('../ConstantPool');
 import enums = require('../enums');
 import assert = require('../assert');
+declare var registerNatives: (defs: any) => void;
 
 class sun_reflect_ConstantPool {
 
@@ -243,9 +244,9 @@ class sun_reflect_Reflection {
 
 }
 
-({
+registerNatives({
   'sun/reflect/ConstantPool': sun_reflect_ConstantPool,
   'sun/reflect/NativeConstructorAccessorImpl': sun_reflect_NativeConstructorAccessorImpl,
   'sun/reflect/NativeMethodAccessorImpl': sun_reflect_NativeMethodAccessorImpl,
   'sun/reflect/Reflection': sun_reflect_Reflection
-})
+});

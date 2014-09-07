@@ -9,6 +9,7 @@ import threading = require('../threading');
 import ClassLoader = require('../ClassLoader');
 import enums = require('../enums');
 import assert = require('../assert');
+declare var registerNatives: (defs: any) => void;
 
 var debug = logging.debug;
 
@@ -1341,7 +1342,7 @@ class java_lang_UNIXProcess {
 
 }
 
-({
+registerNatives({
   'java/lang/Class': java_lang_Class,
   'java/lang/ClassLoader$NativeLibrary': java_lang_ClassLoader$NativeLibrary,
   'java/lang/ClassLoader': java_lang_ClassLoader,
@@ -1363,4 +1364,4 @@ class java_lang_UNIXProcess {
   'java/lang/Thread': java_lang_Thread,
   'java/lang/Throwable': java_lang_Throwable,
   'java/lang/UNIXProcess': java_lang_UNIXProcess
-})
+});

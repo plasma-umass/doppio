@@ -2,6 +2,7 @@ import threading = require('../threading');
 import java_object = require('../java_object');
 import logging = require('../logging');
 import ClassData = require('../ClassData');
+declare var registerNatives: (defs: any) => void;
 
 class classes_doppio_Debug {
 
@@ -39,7 +40,7 @@ class classes_doppio_JavaScript {
 
 }
 
-({
+registerNatives({
   'classes/doppio/Debug': classes_doppio_Debug,
   'classes/doppio/JavaScript': classes_doppio_JavaScript
-})
+});

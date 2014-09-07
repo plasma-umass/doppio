@@ -5,6 +5,7 @@ import gLong = require('../gLong');
 import util = require('../util');
 import threading = require('../threading');
 import enums = require('../enums');
+declare var registerNatives: (defs: any) => void;
 
 var debug = logging.debug;
 
@@ -319,7 +320,7 @@ class java_net_SocketOutputStream {
 
 }
 
-({
+registerNatives({
   'java/net/Inet4Address': java_net_Inet4Address,
   'java/net/Inet4AddressImpl': java_net_Inet4AddressImpl,
   'java/net/Inet6Address': java_net_Inet6Address,
@@ -328,4 +329,4 @@ class java_net_SocketOutputStream {
   'java/net/PlainSocketImpl': java_net_PlainSocketImpl,
   'java/net/SocketInputStream': java_net_SocketInputStream,
   'java/net/SocketOutputStream': java_net_SocketOutputStream
-})
+});

@@ -5,6 +5,7 @@ import ClassData = require('../ClassData');
 import gLong = require('../gLong');
 import util = require('../util');
 import enums = require('../enums');
+declare var registerNatives: (defs: any) => void;
 
 function doPrivileged(thread: threading.JVMThread, action: java_object.JavaObject, ctx?: java_object.JavaObject): void {
   var m = action.cls.method_lookup(thread, 'run()Ljava/lang/Object;'),
@@ -60,6 +61,6 @@ class java_security_AccessController {
 
 }
 
-({
+registerNatives({
   'java/security/AccessController': java_security_AccessController
-})
+});

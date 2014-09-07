@@ -5,6 +5,7 @@ import ClassData = require('../ClassData');
 import gLong = require('../gLong');
 import util = require('../util');
 import enums = require('../enums');
+declare var registerNatives: (defs: any) => void;
 
 class java_util_concurrent_atomic_AtomicLong {
 
@@ -62,10 +63,10 @@ class java_util_ResourceBundle {
   }
 }
 
-({
+registerNatives({
   'java/util/concurrent/atomic/AtomicLong': java_util_concurrent_atomic_AtomicLong,
   'java/util/jar/JarFile': java_util_jar_JarFile,
   'java/util/logging/FileHandler': java_util_logging_FileHandler,
   'java/util/ResourceBundle': java_util_ResourceBundle,
   'java/util/TimeZone': java_util_TimeZone
-})
+});

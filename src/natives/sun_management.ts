@@ -5,6 +5,7 @@ import ClassData = require('../ClassData');
 import gLong = require('../gLong');
 import util = require('../util');
 import enums = require('../enums');
+declare var registerNatives: (defs: any) => void;
 
 class sun_management_MemoryImpl {
 
@@ -195,7 +196,7 @@ class sun_management_VMManagementImpl {
 
 }
 
-({
+registerNatives({
   'sun/management/MemoryImpl': sun_management_MemoryImpl,
   'sun/management/VMManagementImpl': sun_management_VMManagementImpl
-})
+});

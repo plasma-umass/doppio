@@ -4,6 +4,7 @@ import logging = require('../logging');
 import ClassData = require('../ClassData');
 import gLong = require('../gLong');
 import util = require('../util');
+declare var registerNatives: (defs: any) => void;
 
 class sun_font_FreetypeFontScaler {
 
@@ -131,7 +132,7 @@ class sun_font_StrikeCache {
 
 }
 
-({
+registerNatives({
   'sun/font/FreetypeFontScaler': sun_font_FreetypeFontScaler,
   'sun/font/StrikeCache': sun_font_StrikeCache
-})
+});
