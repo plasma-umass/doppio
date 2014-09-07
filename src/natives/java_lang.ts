@@ -712,9 +712,12 @@ class java_lang_reflect_Array {
               if (e) {
                 thread.throwException(e);
               } else {
+                arr.array[idx] = rv;
                 thread.asyncReturn();
               }
             });
+          } else {
+            thread.throwNewException('Ljava/lang/IllegalArgumentException;', 'argument type mismatch');
           }
         } else if (val.cls.is_subclass(ccls)) {
           arr.array[idx] = val;
