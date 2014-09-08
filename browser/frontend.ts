@@ -18,13 +18,13 @@ import untar = require('./untar');
 import util = require('../src/util');
 import fs = require('fs');
 import path = require('path');
+import ByteStream = require('../src/ByteStream');
 
 // Imported for type annotations ONLY
 import TJVM = require('../src/jvm');
 // End type annotations.
 
 var underscore = require('../vendor/underscore/underscore'),
-    disassembler = doppio.disassembler,
     JVM: typeof doppio.JVM = doppio.JVM,
     testing = doppio.testing,
     java_cli = doppio.java_cli,
@@ -37,6 +37,20 @@ var underscore = require('../vendor/underscore/underscore'),
     editor: AceAjax.Editor,
     jvm_state: TJVM,
     sys_path = '/sys';
+
+/**
+ * Construct a JavaOptions object with the default demo fields filled in.
+ * Optionally merge it with the custom arguments specified.
+ */
+function constructJavaOptions(customArgs: {[prop: string]: any} = {}) {
+  return underscore.extend({
+    jcl_path: '/sys/vendor/classes',
+    implicit_classpath: [],
+    java_home_path: '/sys/vendor/java_home',
+    jar_file_path: '/jars',
+    native_classpath: ['/sys/src/natives']
+  }, customArgs);
+}
 
 function preload(): void {
   fs.readFile(sys_path + "/browser/mini-rt.tar", function(err: Error, data: NodeBuffer): void {
@@ -96,7 +110,7 @@ function preload(): void {
     var xhrfs = (<any>fs).getRootFS().mntMap[sys_path];
     // Note: Path is relative to XHR mount point (e.g. /vendor/classes rather than
     // /sys/vendor/classes). They must also be absolute paths.
-    untar.untar(new util.BytesArray(data), on_progress, on_file_done);
+    untar.untar(new ByteStream(data), on_progress, on_file_done);
   });
 }
 
@@ -327,14 +341,6 @@ $(document).ready(function() {
       (<any> process.stdin).write(data);
     });
   });
-  new JVM((err: any, _jvm_state?: TJVM) => {
-    if (err) {
-      // Throw the error so it appears in the dev console.
-      throw err;
-    } else {
-      jvm_state = _jvm_state;
-    }
-  }, '/sys/vendor/classes', '/sys/vendor/java_home', '/jars', ['/sys/src/natives']);
   preload();
 });
 
@@ -448,53 +454,51 @@ var commands = {
   ecj: function(args: string[]): string {
     args.unshift('org/eclipse/jdt/internal/compiler/batch/Main');
     args.unshift('-Djdt.compiler.useSingleThread=true');
-    java_cli.java(args, {
-      jvm_state: jvm_state
-    }, function(status: boolean): void {
-      // XXX: remove any classes that just got compiled from the class cache
-      for (var i = 0; i < args.length; i++) {
-        var c = args[i];
-        if (c.match(/\.java$/)) {
-          jvm_state.bs_cl.remove_class(util.int_classname(c.slice(0, -5)));
-        }
-      }
+    java_cli.java(args, constructJavaOptions({
+      launcher_name: 'ecj'
+    }), function(status: boolean): void {
+      jvm_state = undefined;
       controller.reprompt();
+    }, (jvm: TJVM) => {
+      jvm_state = jvm;
     });
     return null;
   },
   javac: function(args: string[]): string {
     args.unshift('classes/util/Javac');
-    java_cli.java(args, {
-      jvm_state: jvm_state,
-      implicit_classpath: [sys_path]
-    }, function(status: boolean): void {
-      // XXX: remove any classes that just got compiled from the class cache
-      for (var i = 0; i < args.length; i++) {
-        var c = args[i];
-        if (c.match(/\.java$/)) {
-          jvm_state.bs_cl.remove_class(util.int_classname(c.slice(0, -5)));
-        }
-      }
+    java_cli.java(args, constructJavaOptions({
+      implicit_classpath: [sys_path],
+      launcher_name: 'javac'
+    }), function(status: boolean): void {
+      jvm_state = undefined;
       controller.reprompt();
+    }, (jvm: TJVM) => {
+      jvm_state = jvm;
     });
     return null;
   },
   javap: function(args: string[]): string {
     args.unshift('classes/util/Javap');
-    java_cli.java(args, {
-      jvm_state: jvm_state,
-      implicit_classpath: [sys_path]
-    }, function(status: boolean): void {
+    java_cli.java(args, constructJavaOptions({
+      implicit_classpath: [sys_path],
+      launcher_name: 'javap'
+    }), function(status: boolean): void {
+      jvm_state = undefined;
       controller.reprompt();
+    }, (jvm: TJVM) => {
+      jvm_state = jvm;
     });
     return null;
   },
   java: function(args: string[]): string {
-    java_cli.java(args, {
-      jvm_state: jvm_state,
+    java_cli.java(args, constructJavaOptions({
+      implicit_classpath: ['.'],
       launcher_name: 'java'
-    }, function(result: boolean): void {
+    }), function(result: boolean): void {
+      jvm_state = undefined;
       controller.reprompt();
+    }, (jvm: TJVM) => {
+      jvm_state = jvm;
     });
     return null;
   },
@@ -509,37 +513,22 @@ var commands = {
       controller.reprompt();
     }
     process.chdir(sys_path);
-    if (args[0] === 'all') {
-      testing.run_tests({ jvm_state: jvm_state }, sys_path, [], true, false, true, done_cb);
-    } else {
-      testing.run_tests({ jvm_state: jvm_state }, sys_path, args, false, false, true, done_cb);
-    }
-    return null;
-  },
-  disassemble: function(args: string[]): string {
-    disassembler.javap(args, function(status: boolean): void {
-      controller.reprompt();
-    });
+    testing.runTests(constructJavaOptions({
+      doppioDir: sys_path,
+      testClasses: args[0] === 'all' ? null : args,
+      hideDiffs: args[0] === 'all' ? true : false,
+      quiet: false,
+      keepGoing: true
+    }), done_cb);
     return null;
   },
   rhino: function(args: string[]): string {
     args.unshift('com/sun/tools/script/shell/Main');
-    java_cli.java(args, {
-      jvm_state: jvm_state
-    }, function(result: boolean): void {
+    java_cli.java(args, constructJavaOptions(), function(result: boolean): void {
       controller.reprompt();
     });
     return null;
   },
-  // Disabled for now.
-  /*list_cache: function(): string {
-    var cached_classes = jvm_state.bs_cl.get_loaded_class_list(true);
-    return '  ' + cached_classes.sort().join('\n  ');
-  },
-  clear_cache: function(): string {
-    jvm_state.reset_classloader_cache();
-    return 'Class cache cleared';
-  },*/
   ls: function(args: string[]): string {
     if (args.length === 0) {
       read_dir('.', true, true, (listing) => controller.message(listing, 'success'));
@@ -754,7 +743,6 @@ var commands = {
       "  javac <source file>     -- Invoke the Java 6 compiler.\n" +
       "  java <class> [args...]  -- Run with command-line arguments.\n" +
       "  javap [args...] <class> -- Run the Java 6 disassembler.\n" +
-      "  disassemble <class>     -- Run our own custom Java disassembler.\n" +
       "  time                    -- Measure how long it takes to run a command.\n" +
       "  rhino                   -- Run Rhino, the Java-based JavaScript engine.\n\n" +
       "File management:\n" +
@@ -766,16 +754,13 @@ var commands = {
       "  mkdir <dir>             -- Create a directory.\n" +
       "  cd <dir>                -- Change current directory.\n" +
       "  mount_dropbox           -- Mount a Dropbox folder into the file system.\n\n";
-      /*"Cache management:\n" +
-      "  list_cache              -- List the cached class files.\n" +
-      "  clear_cache             -- Clear the cached class files.";*/
   }
 };
 
 function tabComplete(): void {
   var promptText = controller.promptText();
   var args = promptText.split(/\s+/);
-  var last_arg = util.last(args);
+  var last_arg = underscore.last(args);
   getCompletions(args, function(completions: string[]) {
     var prefix = longestCommmonPrefix(completions);
     if (prefix == '' || prefix == last_arg) {
@@ -811,7 +796,7 @@ function validExtension(cmd: string, fname: string): boolean {
   var ext = dot === -1 ? '' : fname.slice(dot + 1);
   if (cmd === 'javac') {
     return ext === 'java';
-  } else if (cmd === 'javap' || cmd === 'disassemble') {
+  } else if (cmd === 'javap') {
     return ext === 'class';
   } else if (cmd === 'java') {
     return ext === 'class' || ext === 'jar';
@@ -822,7 +807,7 @@ function validExtension(cmd: string, fname: string): boolean {
 
 function fileNameCompletions(cmd: string, args: string[], cb: (c: string[])=>void): void {
   var chopExt = args.length === 2 && (cmd === 'javap' || cmd === 'java');
-  var toComplete = util.last(args);
+  var toComplete = underscore.last(args);
   var lastSlash = toComplete.lastIndexOf('/');
   var dirPfx: string, searchPfx: string;
   if (lastSlash >= 0) {

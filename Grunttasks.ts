@@ -14,7 +14,7 @@ var exec = child_process.exec,
     DEBS: string[] = [
         "openjdk-6-jdk_6b31-1.13.3-1ubuntu1~0.12.04.2_i386.deb",
         "openjdk-6-jre-headless_6b31-1.13.3-1ubuntu1~0.12.04.2_i386.deb",
-        "openjdk-6-jre-lib_6b31-1.13.3-1ubuntu1~0.12.04.2_all.deb" 
+        "openjdk-6-jre-lib_6b31-1.13.3-1ubuntu1~0.12.04.2_all.deb"
     ],
     ECJ_URL: string = "http://www.eclipse.org/downloads/download.php?file=/eclipse/downloads/drops/R-3.7.1-201109091335/ecj-3.7.1.jar",
     JAZZLIB_URL: string = "http://downloads.sourceforge.net/project/jazzlib/jazzlib/0.07/jazzlib-binary-0.07-juz.zip",
@@ -94,7 +94,7 @@ export function setup(grunt: IGrunt) {
         files: [{
           expand: true,
           cwd: 'build/dev',
-          src: ['+(src|browser)/*.js', 'vendor/underscore/underscore.js', 'vendor/almond/almond.js'],
+          src: ['+(src|browser)/**/*.js', 'vendor/underscore/underscore.js', 'vendor/almond/almond.js'],
           dest: '<%= resolve(build.scratch_dir, "tmp_release") %>'
         }]
       }
@@ -125,7 +125,7 @@ export function setup(grunt: IGrunt) {
         }
       },
       dev: {
-        src: ["browser/frontend.ts", "src/*.ts"],
+        src: ["browser/frontend.ts", "src/**/*.ts"],
         outDir: 'build/dev',
         options: {
           module: 'amd',
@@ -510,6 +510,7 @@ export function setup(grunt: IGrunt) {
      'copy:build',
      'listings',
      'ice-cream:release',
+     'uglify:natives',
      'requirejs:release',
      'requirejs:release-frontend']);
   grunt.registerTask('test',

@@ -55,7 +55,7 @@
         });
       }
       mfs.mount('/mnt/localStorage', new BrowserFS.FileSystem.LocalStorage());
-      mfs.mount('/sys', new BrowserFS.FileSystem.XmlHttpRequest('browser/listings.json'));
+      mfs.mount('/sys', new BrowserFS.FileSystem.XmlHttpRequest('browser/listings.json', ''));
       require(["browser/frontend"], function(frontend) {
         // Kicks everything off!
       });

@@ -111,6 +111,10 @@ class ByteStream {
     return rv;
   }
 
+  public peek(): number {
+    return this.buffer.readUInt8(this._index);
+  }
+
   public size(): number {
     return this.buffer.length - this._index;
   }
