@@ -11,7 +11,17 @@ import logging = require('./logging');
 import JVM = require('./jvm');
 import util = require('./util');
 
-var debug = logging.debug, vtrace = logging.vtrace;
+var debug = logging.debug, vtrace = logging.vtrace,
+  // The number of method resumes we should allow before yielding for
+  // responsiveness. Updated using a cumulative moving average to ensure
+  // Doppio is responsive.
+  maxMethodResumes: number = 10000,
+  // The number of method resumes until Doppio should yield again.
+  methodResumesLeft: number = maxMethodResumes,
+  // How responsive Doppio should aim to be, in milliseconds.
+  responsiveness: number = 1000,
+  // Used for the CMA.
+  numSamples: number = 1;
 
 /**
  * Represents a stack frame.
@@ -563,10 +573,30 @@ export class JVMThread extends java_object.JavaObject {
    */
   private run(): void {
     // console.log("Thread " + this.ref + " is now running!");
-    var stack = this.stack;
+    var stack = this.stack,
+      startTime: number = (new Date()).getTime(),
+      endTime: number,
+      duration: number,
+      estMaxMethodResumes: number;
+
+    // Reset counter. Threads always start from a fresh stack / yield.
+    methodResumesLeft = maxMethodResumes;
     while (this.status === enums.ThreadStatus.RUNNING && stack.length > 0) {
       stack[stack.length - 1].run(this);
+      if (--methodResumesLeft === 0) {
+        endTime = (new Date()).getTime();
+        duration = endTime - startTime;
+        // Estimated number of methods we can resume before needing to yield.
+        estMaxMethodResumes = Math.floor((maxMethodResumes / duration) * responsiveness);
+        // Update CMA.
+        maxMethodResumes = (estMaxMethodResumes + numSamples * maxMethodResumes) / (numSamples + 1);
+        numSamples++;
+        // Yield.
+        this.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+        setImmediate(() => { this.setStatus(enums.ThreadStatus.RUNNABLE); });
+      }
     }
+
     // console.log("Thread " + this.ref + " is suspending: " + enums.ThreadStatus[this.status]);
 
     if (stack.length === 0) {
