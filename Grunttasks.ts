@@ -200,6 +200,14 @@ export function setup(grunt: IGrunt) {
           src: 'src/natives/*.js',
           dest: '<%= build.build_dir %>'
         }]
+      },
+      'natives-browser': {
+        files: [{
+          expand: true,
+          cwd: '<%= resolve(build.scratch_dir, "tmp_release") %>',
+          src: 'src/natives/*.js',
+          dest: '<%= build.build_dir %>'
+        }]
       }
     },
     copy: {
@@ -508,9 +516,9 @@ export function setup(grunt: IGrunt) {
      'concat',
      'mini-rt',
      'copy:build',
-     'listings',
      'ice-cream:release',
-     'uglify:natives',
+     'uglify:natives-browser',
+     'listings',
      'requirejs:release',
      'requirejs:release-frontend']);
   grunt.registerTask('test',
