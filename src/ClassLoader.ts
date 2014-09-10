@@ -99,13 +99,13 @@ export class ClassLoader {
   /**
    * Adds the specified class to the classloader. As opposed to defineClass,
    * which defines a new class from bytes with the classloader.
-   * 
+   *
    * What's the difference?
    * * Classes created with defineClass are defined by this classloader.
    * * Classes added with addClass may have been defined by a different
    *   classloader. This happens when a custom class loader's loadClass
    *   function proxies classloading to a different classloader.
-   * 
+   *
    * @param typeStr The type string of the class.
    * @param classData The class data object representing the class.
    */
@@ -118,7 +118,7 @@ export class ClassLoader {
   /**
    * No-frills. Get the class if it's defined in the class loader, no matter
    * what shape it is in.
-   * 
+   *
    * Should only be used internally by ClassLoader subclasses.
    */
   public getClass(typeStr: string): ClassData.ClassData {
@@ -417,10 +417,10 @@ export class ClassLoader {
     var clinit = cdata.get_method('<clinit>()V');
     // We'll reset it if it fails.
     if (clinit != null) {
-      //console.log("T" + thread.ref + " Running static initialization for class " + typeStr + "...");
+      debug("T" + thread.ref + " Running static initialization for class " + typeStr + "...");
       thread.runMethod(clinit, [], (e?: java_object.JavaObject, rv?: any) => {
         if (e) {
-          //console.log("Initialization of class " + typeStr + " failed.");
+          debug("Initialization of class " + typeStr + " failed.");
           cdata.set_state(enums.ClassState.RESOLVED);
           /**
            * "The class or interface initialization method must have completed
@@ -457,7 +457,7 @@ export class ClassLoader {
           }
         } else {
           cdata.set_state(enums.ClassState.INITIALIZED);
-          //console.log("Initialization of class " + typeStr + " succeeded.");
+          debug("Initialization of class " + typeStr + " succeeded.");
           // Normal case! Initialization succeeded.
           cb(cdata);
         }
@@ -575,9 +575,9 @@ export class BootstrapClassLoader extends ClassLoader {
   /**
    * Adds the given classpath to the class path. If added already, we move it
    * to the front of the classpath.
-   * 
+   *
    * Verifies that the path exists prior to adding.
-   * 
+   *
    * @param p The path to add.
    */
   public addClassPathItem(p: string, cb: (success: boolean) => void) {
@@ -677,6 +677,7 @@ export class BootstrapClassLoader extends ClassLoader {
         var clsPath = path.join(foundPath, clsFilePath + ".class");
         fs.readFile(clsPath, (err, data: NodeBuffer) => {
           if (err) {
+            debug("Failed to load class " + typeStr + ": " + err);
             this.throwClassNotFoundException(thread, typeStr, explicit);
             cb(null);
           } else {
@@ -686,6 +687,7 @@ export class BootstrapClassLoader extends ClassLoader {
         });
       } else {
         // No such class.
+        debug("Could not find class " + typeStr);
         this.throwClassNotFoundException(thread, typeStr, explicit);
         cb(null);
       }

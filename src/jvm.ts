@@ -300,6 +300,7 @@ class JVM {
     "use strict"; // Prevent eval from being terrible.
     // Terrible hack.
     mod = mod.replace(/require\((\'|\")..\/([a-zA-Z_0-9]*)(\'|\")\)/g, 'require($1./$2$1)');
+    mod = mod.replace(/\/\/# sourceMappingURL=[a-zA-Z_0-9]+\.js\.map/g, '');
     var rv;
     /**
      * Called by the native method file. Registers the package's native
@@ -307,6 +308,26 @@ class JVM {
      */
     function registerNatives(defs: any): void {
       rv = defs;
+    }
+    /**
+     *
+     */
+    function define(resources: string[], module: Function) {
+      var args = [];
+      resources.forEach((resource: string) => {
+        switch (resource) {
+          case 'require':
+            args.push(require);
+            break;
+          case 'exports':
+            args.push({});
+            break;
+          default:
+            args.push(require(resource.replace(/..\/([a-zA-Z_0-9]*)/g, './$1')));
+            break;
+        }
+      });
+      module.apply(null, args);
     }
     eval(mod);
     return rv;
