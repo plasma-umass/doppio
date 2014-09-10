@@ -14,6 +14,7 @@ import threading = require('./threading');
 import enums = require('./enums');
 import Heap = require('./heap');
 import assert = require('./assert');
+declare var requirejs;
 
 var trace = logging.trace;
 var error = logging.error;
@@ -298,41 +299,56 @@ class JVM {
    */
   private evalNativeModule(mod: string): any {
     "use strict"; // Prevent eval from being terrible.
-    // Terrible hack.
-    // ../<module> => ./<module> for CommonJS modules.
-    mod = mod.replace(/require\((\'|\")..\/([a-zA-Z_0-9]*)(\'|\")\)/g, 'require($1./$2$1)');
-    // Remove source mapping URL, since it causes the eval to fail?
-    mod = mod.replace(/\/\/# sourceMappingURL=[a-zA-Z_0-9]+\.js\.map/g, '');
-    var rv;
-    /**
-     * Called by the native method file. Registers the package's native
-     * methods with the JVM.
-     */
-    function registerNatives(defs: any): void {
-      rv = defs;
-    }
-    /**
-     * Emulate AMD module 'define' function for natives compiled as AMD modules.
-     */
-    function define(resources: string[], module: Function) {
-      var args = [];
-      resources.forEach((resource: string) => {
-        switch (resource) {
-          case 'require':
-            args.push(require);
-            break;
-          case 'exports':
-            args.push({});
-            break;
-          default:
-            // ../<module> => ./<module>
-            args.push(require(resource.replace(/..\/([a-zA-Z_0-9]*)/g, './$1')));
-            break;
-        }
-      });
-      module.apply(null, args);
-    }
-    eval(mod);
+    var rv, savedRequire = typeof require !== 'undefined' ? require : function(moduleName: string): any {
+      // require isn't defined in the browser for some reason? but requirejs works; it just
+      // requires an absolute module name.
+      if (moduleName.charAt(0) === '.') {
+        moduleName = './src' + moduleName.slice(1);
+      }
+      return requirejs(moduleName);
+    };
+    (() => {
+      /**
+       * Called by the native method file. Registers the package's native
+       * methods with the JVM.
+       */
+      function registerNatives(defs: any): void {
+        rv = defs;
+      }
+      /**
+       * Emulate the CommonJS 'require' function for natives compiled as CommonJS
+       * modules.
+       *
+       * Redirects module requests for "../<module>.js" to "./<module>.js", as
+       * the JVM lives in a separate directory from natives.
+       *
+       * @todo This is not robust to arbitrary native definition locations!
+       */
+      function require(moduleName: string): any {
+        return savedRequire(moduleName.replace(/..\/([a-zA-Z_0-9]*)/g, './$1'));
+      }
+      /**
+       * Emulate AMD module 'define' function for natives compiled as AMD modules.
+       */
+      function define(resources: string[], module: Function) {
+        var args = [];
+        resources.forEach((resource: string) => {
+          switch (resource) {
+            case 'require':
+              args.push(require);
+              break;
+            case 'exports':
+              args.push({});
+              break;
+            default:
+              args.push(require(resource));
+              break;
+          }
+        });
+        module.apply(null, args);
+      }
+      eval(mod);
+    })();
     return rv;
   }
 
