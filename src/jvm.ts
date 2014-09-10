@@ -299,7 +299,9 @@ class JVM {
   private evalNativeModule(mod: string): any {
     "use strict"; // Prevent eval from being terrible.
     // Terrible hack.
+    // ../<module> => ./<module> for CommonJS modules.
     mod = mod.replace(/require\((\'|\")..\/([a-zA-Z_0-9]*)(\'|\")\)/g, 'require($1./$2$1)');
+    // Remove source mapping URL, since it causes the eval to fail?
     mod = mod.replace(/\/\/# sourceMappingURL=[a-zA-Z_0-9]+\.js\.map/g, '');
     var rv;
     /**
@@ -310,7 +312,7 @@ class JVM {
       rv = defs;
     }
     /**
-     *
+     * Emulate AMD module 'define' function for natives compiled as AMD modules.
      */
     function define(resources: string[], module: Function) {
       var args = [];
@@ -323,6 +325,7 @@ class JVM {
             args.push({});
             break;
           default:
+            // ../<module> => ./<module>
             args.push(require(resource.replace(/..\/([a-zA-Z_0-9]*)/g, './$1')));
             break;
         }

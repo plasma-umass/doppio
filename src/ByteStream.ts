@@ -124,6 +124,10 @@ class ByteStream {
     this._index += len;
     return arr;
   }
+
+  public getBuffer(): NodeBuffer {
+    return this.buffer;
+  }
 }
 
 export = ByteStream;

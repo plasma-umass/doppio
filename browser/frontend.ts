@@ -76,7 +76,7 @@ function preload(): void {
       bar.width(display_perc + "%");
       preloading_file.text(display_perc < 100 ? "Loading " + path : "Done!");
     }));
-    function on_progress(percent: number, path: string, file: number[]): void {
+    function on_progress(percent: number, path: string, file: ByteStream): void {
       if (path[0] != '/') {
         path = '/' + path;
       }
@@ -91,7 +91,7 @@ function preload(): void {
       file_count++;
       untar.asyncExecute(function() {
         try {
-          xhrfs.preloadFile(path, file);
+          xhrfs.preloadFile(path, file.getBuffer());
         } catch (e) {
           console.error("Error writing " + path + ":", e);
         }
