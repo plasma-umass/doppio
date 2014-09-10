@@ -490,12 +490,18 @@ class sun_misc_Unsafe {
   public static 'park(ZJ)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, absolute: number, time: gLong): void {
     var timeout = Infinity;
     if (absolute) {
-      timeout = time.toNumber();
+      // Time is an absolute time (milliseconds since Epoch).
+      // Calculate the timeout from the current time.
+      timeout = time.toNumber() - (new Date()).getTime();
+      if (timeout < 0) {
+        // Forbid negative timeouts.
+        timeout = 0;
+      }
     } else {
       // time is in nanoseconds, but we don't have that
       // type of precision
       if (time.toNumber() > 0) {
-        timeout = (new Date).getTime() + time.toNumber() / 1000000;
+        timeout = time.toNumber() / 1000000;
       }
     }
     thread.getThreadPool().park(thread);
