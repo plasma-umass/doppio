@@ -62,10 +62,11 @@ class FileOps {
       System.out.println("And does it exist now?: " + f.exists());
       long lm = f.lastModified();
       System.out.println("Can I write to it?: " + f.canWrite());
-      f.setWritable(false);
-      System.out.println("How about now?: " + f.canWrite());
-      f.setWritable(true);
-      System.out.println("And now?: " + f.canWrite());
+      // BrowserFS doesn't implement chmod anymore for the temporary file system.
+      // f.setWritable(false);
+      // System.out.println("How about now?: " + f.canWrite());
+      // f.setWritable(true);
+      // System.out.println("And now?: " + f.canWrite());
       System.out.println("File size: " + f.length());
       // write over empty file
       FileWriter fw = new FileWriter(f);
@@ -146,7 +147,8 @@ class FileOps {
     {
       File f = new File("/tmp/temp_readonly.txt");
       System.out.println("Creating temp_readonly.txt: " + f.createNewFile());
-      System.out.println("Marking as read only: " + f.setReadOnly());
+      // BrowserFS doesn't support chmod in its temporary file system anymore.
+      // System.out.println("Marking as read only: " + f.setReadOnly());
       System.out.println("Can I write to the file?: " + f.canWrite());
       System.out.println("Can I read the file?: " + f.canRead());
       // make sure we can open a read-only file with RandomAccessFile
