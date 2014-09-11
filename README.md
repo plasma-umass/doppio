@@ -6,7 +6,7 @@ In this case it's also a JVM written in [TypeScript](http://www.typescriptlang.o
 
 To try doppio now, head to the [live demo page](http://plasma-umass.github.io/doppio/).
 
-To learn more, head to the [doppio wiki](https://github.com/int3/doppio/wiki).
+To learn more, head to the [doppio wiki](https://github.com/plasma-umass/doppio/wiki).
 
 You can also get in touch via our [mailing list][mail] or via the IRC channel
 \#plasma-umass on Freenode.
@@ -29,7 +29,7 @@ If you are on Windows, you will need the following installed:
 
 Run the following commands to build doppio. Note that your first time building may take some time, as the build script will download the entire Java Class Library.
 
-    git clone https://github.com/int3/doppio.git
+    git clone https://github.com/plasma-umass/doppio.git
     cd doppio
     npm install
     bower install
