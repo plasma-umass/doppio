@@ -399,6 +399,14 @@ class JVM {
   }
 
   /**
+   * !!DO NOT MUTATE THE RETURNED VALUE!!
+   * Used by the find_invalid_natives tool.
+   */
+  public getNatives(): { [clsName: string]: { [methSig: string]: Function } } {
+    return this.natives;
+  }
+
+  /**
    * Loads in all of the native method modules prior to execution.
    * Currently a hack around our classloader.
    * @todo Make neater with util.async stuff.

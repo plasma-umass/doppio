@@ -40,7 +40,14 @@ function setupOptparse() {
       'show-nyi-natives': { description: 'list any NYI native functions in loaded classes' },
       'dump-state': { description: 'write a "core dump" on unusual termination' },
       benchmark: { description: 'time execution, both hot and cold' },
-      'native-classpath': { description: 'directories where package-based native methods can be found'}
+      'native-classpath': {
+        description: 'directories where package-based native methods can be found',
+        has_value: true
+      },
+      'bootclasspath/a': {
+        description: '\'boot\' classpath items; doppio simply appends these to the classpath',
+        has_value: true
+      }
     }
   });
 }
@@ -174,6 +181,11 @@ export function java(args: string[], opts: JavaOptions,
   // Programmer-supplied classpath items.
   if (opts.hasOwnProperty('implicit_classpath')) {
     classpath = opts.implicit_classpath;
+  }
+
+  // 'boot' classpath items.
+  if (argv.non_standard['bootclasspath/a']) {
+    classpath = classpath.concat(argv.non_standard['bootclasspath/a'].split(':'));
   }
 
   // User-supplied classpath items.
