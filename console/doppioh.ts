@@ -2,10 +2,10 @@
 /*
  * Doppioh is DoppioJVM's answer to javah, although we realize the 'h' no longer
  * has a meaning.
- * 
+ *
  * Given a class or package name, Doppioh will generate JavaScript or TypeScript
  * templates for the native methods of that class or package.
- * 
+ *
  * Options:
  * -classpath Where to search for classes/packages.
  * -d [dir]   Output directory
@@ -55,9 +55,10 @@ function printHelp(): void {
 
 setupOptparse();
 
+// Remove "node" and "path/to/doppioh.js".
 var argv = optparse.parse(process.argv.slice(2));
 
-if (argv.standard.help) {
+if (argv.standard.help || process.argv.length === 2) {
   printHelp();
   process.exit(1);
 }
@@ -152,13 +153,13 @@ class TSTemplate implements ITemplate {
   public fileEnd(stream: NodeJS.WritableStream): void {
     var i: number;
     // Export everything!
-    stream.write("\n// Export line. This is what DoppioJVM sees.\n({");
+    stream.write("\n// Export line. This is what DoppioJVM sees.\nregisterNatives({");
     for (i = 0; i < this.classesSeen.length; i++) {
       var kls = this.classesSeen[i];
       if (i > 0) stream.write(',');
       stream.write("\n  '" + kls.replace(/_/g, '/') + "': " + kls);
     }
-    stream.write("\n})\n");
+    stream.write("\n});\n");
   }
   public classStart(stream: NodeJS.WritableStream, className: string): void {
     stream.write("\nclass " + className + " {\n");
@@ -169,7 +170,7 @@ class TSTemplate implements ITemplate {
   }
   public method(stream: NodeJS.WritableStream, methodName: string, isStatic: boolean, argTypes: string[], rType: string): void {
     // Construct the argument signature, figured out from the methodName.
-    var argSig: string = 'rs: runtime.RuntimeState', i: number;
+    var argSig: string = 'thread: threading.JVMThread', i: number;
     if (!isStatic) {
       argSig += ', javaThis: java_object.JavaObject';
     }
@@ -177,7 +178,7 @@ class TSTemplate implements ITemplate {
       argSig += ', arg' + i + ': ' + this.jvmtype2tstype(argTypes[i]);
     }
     stream.write("\n  public static '" + methodName + "'(" + argSig + "): " + this.jvmtype2tstype(rType) + " {\n");
-    stream.write("    rs.java_throw(<ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');\n");
+    stream.write("    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');\n");
 
     var trueRtype = this.jvmtype2tstype(rType);
     if (trueRtype.indexOf('java_object') === 0 || trueRtype === 'gLong') {
@@ -232,10 +233,10 @@ class JSTemplate implements ITemplate {
   private firstClass: boolean = true;
   public getExtension(): string { return 'js'; }
   public fileStart(stream: NodeJS.WritableStream): void {
-    stream.write("// This entire object is exported. Feel free to define private helper functions above it.\n({");
+    stream.write("// This entire object is exported. Feel free to define private helper functions above it.\nregisterNatives({");
   }
   public fileEnd(stream: NodeJS.WritableStream): void {
-    stream.write("\n})\n");
+    stream.write("\n});\n");
   }
   public classStart(stream: NodeJS.WritableStream, className: string): void {
     this.firstMethod = true;
@@ -251,7 +252,7 @@ class JSTemplate implements ITemplate {
   }
   public method(stream: NodeJS.WritableStream, methodName: string, isStatic: boolean, argTypes: string[], rType: string): void {
     // Construct the argument signature, figured out from the methodName.
-    var argSig: string = 'rs', i: number;
+    var argSig: string = 'thread', i: number;
     if (!isStatic) {
       argSig += ', javaThis';
     }
@@ -265,7 +266,7 @@ class JSTemplate implements ITemplate {
       stream.write(',\n');
     }
     stream.write("\n    '" + methodName + "': function(" + argSig + ") {");
-    stream.write("\n      rs.java_throw(rs.get_bs_class('Ljava/lang/UnsatisfiedLinkError;'), 'Native method not implemented.');");
+    stream.write("\n      thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');");
     stream.write("\n    }");
   }
 }
