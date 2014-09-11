@@ -13,6 +13,7 @@ public class Threading extends Thread {
     System.out.println("main thread was interrupted: " + Thread.currentThread().interrupted());
 
     Threading t = new Threading("hello-thread");
+    System.out.println(t.isAlive());
     System.out.println(t.holdsLock(t));  // should be false
     synchronized (t) {
       System.out.println(t.holdsLock(t));  // should be true

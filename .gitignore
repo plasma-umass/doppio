@@ -1,4 +1,5 @@
 *.js
+*.js.map
 vendor
 !vendor/gLong.js
 !vendor/jquery.console.js
@@ -13,7 +14,6 @@ vendor
 *.tar.gz
 node_modules
 build
-docs
 index.html
 about.html
 .DS_store

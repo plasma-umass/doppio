@@ -1,41 +1,84 @@
 "use strict";
 import gLong = require('./gLong');
-import runtime = require('./runtime');
 import java_object = require('./java_object');
 import ClassData = require('./ClassData');
+import threading = require('./threading');
+import enums = require('./enums');
 
 export function are_in_browser(): boolean {
   return process.platform === 'browser';
 }
 
 // Applies an async function to each element of a list, in order.
-// Assumes that the async function expects "success" and "fail" callbacks.
 export function async_foreach<T>(
       lst: Array<T>,
-      fn: (elem: T, next_item: ()=>void)=>void,
-      done_cb: ()=>void
-    ): void {
+      fn: (elem: T, next_item: (err?: any)=>void)=>void,
+      done_cb: (err?: any)=>void
+  ): void {
   var i = -1;
-  function process(): void {
-    i++;
-    if (i < lst.length) {
-      fn(lst[i], process);
+  function process(err?: any): void {
+    if (err) {
+      done_cb(err);
     } else {
-      done_cb();
+      i++;
+      if (i < lst.length) {
+        fn(lst[i], process);
+      } else {
+        done_cb();
+      }
     }
   }
   process();
 }
 
-export var INT_MAX = Math.pow(2, 31) - 1;
-export var INT_MIN = -INT_MAX - 1;
-export var FLOAT_POS_INFINITY = Math.pow(2, 128);
-export var FLOAT_NEG_INFINITY = -1 * FLOAT_POS_INFINITY;
-export var FLOAT_POS_INFINITY_AS_INT = 0x7F800000;
-export var FLOAT_NEG_INFINITY_AS_INT = -8388608;
-// We use the JavaScript NaN as our NaN value, and convert it to
-// a NaN value in the SNaN range when an int equivalent is requested.
-export var FLOAT_NaN_AS_INT = 0x7fc00000;
+/**
+ * Runs the specified tasks in series.
+ */
+export function asyncSeries(tasks: {(next: (err?: any) => void): void}[], doneCb: (err?: any) => void) {
+  var i = -1;
+  function process(err?: any): void {
+    if (err) {
+      doneCb(err);
+    } else {
+      i++;
+      if (i < tasks.length) {
+        tasks[i](process);
+      } else {
+        doneCb();
+      }
+    }
+  }
+  process();
+}
+
+/**
+ * Applies the function to each element of the list in order in series.
+ * The first element that returns success halts the process, and triggers
+ * done_cb. If no elements return success, done_cb is triggered with no
+ * arguments.
+ * 
+ * I wrote this specifically for classloading, but it may have uses elsewhere.
+ */
+export function async_find<T>(
+    lst: Array<T>,
+    fn: (elem: T, nextItem: (success: boolean) => void) => void,
+    done_cb: (elem?: T) => void
+  ): void {
+  var i = -1;
+  function process(success: boolean): void {
+    if (success) {
+      done_cb(lst[i]);
+    } else {
+      i++;
+      if (i < lst.length) {
+        fn(lst[i], process);
+      } else {
+        done_cb();
+      }
+    }
+  }
+  process(false);
+}
 
 if (Math['imul'] == null) {
   Math['imul'] = function(a: number, b: number) {
@@ -93,113 +136,25 @@ export function arrayset<T>(len: number, val :T): T[] {
   return array;
 }
 
-export function int_mod(rs: runtime.RuntimeState, a: number, b: number): number {
-  if (b === 0) {
-    var err_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/ArithmeticException;');
-    rs.java_throw(err_cls, '/ by zero');
-  }
-  return a % b;
-}
-
-export function int_div(rs: runtime.RuntimeState, a: number, b: number): number {
-  if (b === 0) {
-    var err_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/ArithmeticException;');
-    rs.java_throw(err_cls, '/ by zero');
-  }
-  // spec: "if the dividend is the negative integer of largest possible magnitude
-  // for the int type, and the divisor is -1, then overflow occurs, and the
-  // result is equal to the dividend."
-  if (a === INT_MIN && b === -1) {
-    return a;
-  }
-  return (a / b) | 0;
-}
-
-export function long_mod(rs: runtime.RuntimeState, a: gLong, b: gLong): gLong {
-  if (b.isZero()) {
-    var err_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/ArithmeticException;');
-    rs.java_throw(err_cls, '/ by zero');
-  }
-  return a.modulo(b);
-}
-
-export function long_div(rs: runtime.RuntimeState, a: gLong, b: gLong): gLong {
-  if (b.isZero()) {
-    var err_cls = <ClassData.ReferenceClassData> rs.get_bs_class('Ljava/lang/ArithmeticException;');
-    rs.java_throw(err_cls, '/ by zero');
-  }
-  return a.div(b);
-}
-
 export function float2int(a: number): number {
-  if (a > INT_MAX) {
-    return INT_MAX;
-  } else if (a < INT_MIN) {
-    return INT_MIN;
+  if (a > enums.Constants.INT_MAX) {
+    return enums.Constants.INT_MAX;
+  } else if (a < enums.Constants.INT_MIN) {
+    return enums.Constants.INT_MIN;
   } else {
     return a | 0;
   }
 }
 
-export function intbits2float(int32: number): number {
-  if (typeof Int32Array !== "undefined") {
-    var i_view = new Int32Array([int32]);
-    var f_view = new Float32Array(i_view.buffer);
-    return f_view[0];
+/**
+ * Converts a byte array to a buffer.
+ */
+export function byteArray2Buffer(bytes: number[], offset: number = 0, len: number = bytes.length): NodeBuffer {
+  var buff = new Buffer(len), i: number;
+  for (i = 0; i < len; i++) {
+    buff.writeInt8(bytes[offset + i], i);
   }
-  // Fallback for older JS engines
-
-  // Map +/- infinity to JavaScript equivalents
-  if (int32 === FLOAT_POS_INFINITY_AS_INT) {
-    return Number.POSITIVE_INFINITY;
-  } else if (int32 === FLOAT_NEG_INFINITY_AS_INT) {
-    return Number.NEGATIVE_INFINITY;
-  }
-  var sign = (int32 & 0x80000000) >>> 31;
-  var exponent = (int32 & 0x7F800000) >>> 23;
-  var significand = int32 & 0x007FFFFF;
-  var value : number;
-  if (exponent === 0) {  // we must denormalize!
-    value = Math.pow(-1, sign) * significand * Math.pow(2, -149);
-  } else {
-    value = Math.pow(-1, sign) * (1 + significand * Math.pow(2, -23)) * Math.pow(2, exponent - 127);
-  }
-  // NaN check
-  if (value < FLOAT_NEG_INFINITY || value > FLOAT_POS_INFINITY) {
-    value = NaN;
-  }
-  return value;
-}
-
-export function longbits2double(uint32_a: number, uint32_b: number): number {
-  if (typeof Uint32Array !== "undefined") {
-    var i_view = new Uint32Array(2);
-    i_view[0] = uint32_b;
-    i_view[1] = uint32_a;
-    var d_view = new Float64Array(i_view.buffer);
-    return d_view[0];
-  }
-  var sign = (uint32_a & 0x80000000) >>> 31;
-  var exponent = (uint32_a & 0x7FF00000) >>> 20;
-  var significand = lshift(uint32_a & 0x000FFFFF, 32) + uint32_b;
-
-  // Special values!
-  if (exponent === 0 && significand === 0) {
-    return 0;
-  }
-  if (exponent === 2047) {
-    if (significand === 0) {
-      if (sign === 1) {
-        return Number.NEGATIVE_INFINITY;
-      }
-      return Number.POSITIVE_INFINITY;
-    } else {
-      return NaN;
-    }
-  }
-  if (exponent === 0)  // we must denormalize!
-    return Math.pow(-1, sign) * significand * Math.pow(2, -1074);
-  return Math.pow(-1, sign) * (1 + significand * Math.pow(2, -52)) * Math.pow(2, exponent - 1023);
+  return buff;
 }
 
 // Call this ONLY on the result of two non-NaN numbers.
@@ -237,16 +192,6 @@ export function cmp(a: any, b: any): number {
 // (see http://stackoverflow.com/questions/337355/javascript-bitwise-shift-of-long-long-number)
 export function lshift(x: number, n: number): number {
   return x * Math.pow(2, n);
-}
-
-export function read_uint(bytes: number[]): number {
-  var n = bytes.length - 1;
-  // sum up the byte values shifted left to the right alignment.
-  var sum = 0;
-  for (var i = 0; i <= n; i++) {
-    sum += lshift(bytes[i], 8 * (n - i));
-  }
-  return sum;
 }
 
 // Convert :count chars starting from :offset in a Java character array into a JS string
@@ -380,100 +325,17 @@ export function format_extra_info(entry: any): string {
     case 'class':
       return "\t//  " + format_class_name(this.descriptor2typestr(info));
     default:
-      if (is_string(info)) {
+      if (typeof info === 'string' || info instanceof String) {
         return "\t//  " + escape_whitespace(info);
       }
   }
 }
 
-// Lightweight wrapper around a buffer.
-export class BytesArray {
-  private start : number;
-  private end : number;
-  private _index : number;
-
-  constructor(private buffer: NodeBuffer, start?: number, end?: number) {
-    this.start = start != null ? start : 0;
-    this.end = end != null ? end : this.buffer.length;
-    this._index = 0;
-  }
-
-  public rewind(): void {
-    this._index = 0;
-  }
-
-  public pos(): number {
-    return this._index;
-  }
-
-  public skip(bytes_count: number): void {
-    this._index += bytes_count;
-  }
-
-  public has_bytes(): boolean {
-    return this.start + this._index < this.end;
-  }
-
-  public get_uint(bytes_count: number): number {
-    var readIndex = this.start + this._index;
-    this._index += bytes_count;
-    switch (bytes_count) {
-      case 1:
-        return this.buffer.readUInt8(readIndex);
-      case 2:
-        return this.buffer.readUInt16BE(readIndex);
-      case 4:
-        return this.buffer.readUInt32BE(readIndex);
-      default:
-        this._index -= bytes_count;
-        throw new Error('Cannot read a uint of size ' + bytes_count);
-    }
-  }
-
-  public get_int(bytes_count: number): number {
-    var bytes_to_set = 32 - bytes_count * 8;
-    return this.get_uint(bytes_count) << bytes_to_set >> bytes_to_set;
-  }
-
-  public read(bytes_count: number): number[] {
-    var rv : number[] = [];
-    for (var i = this.start + this._index; i < this.start + this._index + bytes_count; i++) {
-      rv.push(this.buffer.readUInt8(i));
-    }
-    this._index += bytes_count;
-    return rv;
-  }
-
-  public peek(): number {
-    return this.buffer.readUInt8(this.start + this._index);
-  }
-
-  public size(): number {
-    return this.end - this.start - this._index;
-  }
-
-  public splice(len: number): BytesArray {
-    var arr = new BytesArray(this.buffer, this.start + this._index, this.start + this._index + len);
-    this._index += len;
-    return arr;
-  }
-
-  public slice(len: number): NodeBuffer {
-    var rv = this.buffer.slice(this.start + this._index, this.start + this._index + len);
-    this._index += len;
-    return rv;
-  }
-}
-
-export function initial_value(type_str: string): any {
+export function initialValue(type_str: string): any {
   if (type_str === 'J') return gLong.ZERO;
   var c = type_str[0];
   if (c === '[' || c === 'L') return null;
   return 0;
-}
-
-export function is_string(obj: any): boolean {
-  return typeof obj === 'string' || obj instanceof String;
 }
 
 // Java classes are represented internally using slashes as delimiters.
@@ -609,38 +471,31 @@ export function bytes2str(bytes: number[], null_terminate?: boolean): string {
   return rv;
 }
 
-export function last(array: any[]): any {
-  return array[array.length - 1];
-}
-
-export class SafeMap {
-  private cache: any;
-  private proto_cache: any
-
-  constructor() {
-    this.cache = Object.create(null);  // has no defined properties aside from __proto__
-  }
-
-  public get(key: string): any {
-    if (this.cache[key] != null) {
-      return this.cache[key];
-    }
-    if (key == '__proto__' && this.proto_cache !== undefined) {
-      return this.proto_cache;
-    }
-    return undefined;
-  }
-
-  public has(key: string): boolean {
-    return this.get(key) !== void 0;
-  }
-
-  public set(key: string, value: any): void {
-    // non-strict comparison to allow for the possibility of `new String('__proto__')`
-    if (key != '__proto__') {
-      this.cache[key] = value;
+/**
+ * Java's reflection APIs need to unbox primitive arguments to function calls,
+ * as they are boxed in an Object array. This utility function converts
+ * an array of arguments into the appropriate form prior to function invocation.
+ * Note that this includes padding category 2 primitives, which consume two
+ * slots in the array (doubles/longs).
+ */
+export function unboxArguments(thread: threading.JVMThread, paramTypes: string[], args: java_object.JavaObject[]): any[] {
+  var rv = [], i: number, type: string, arg: java_object.JavaObject;
+  for (i = 0; i < paramTypes.length; i++) {
+    type = paramTypes[i];
+    arg = args[i];
+    if (is_primitive_type(type)) {
+      // Unbox the primitive type. 
+      rv.push(arg.get_field(thread, arg.cls.get_type() + 'value'));
+      if (type === 'J' || type === 'D') {
+        // 64-bit primitives take up two argument slots. Doppio uses a NULL for the second slot.
+        rv.push(null); 
+      }
     } else {
-      this.proto_cache = value;
+      // Reference type; do not change.
+      rv.push(arg); 
     }
   }
+  return rv;
 }
+
+

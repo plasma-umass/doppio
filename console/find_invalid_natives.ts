@@ -11,7 +11,6 @@ import fs = require('fs');
 import path = require('path');
 import class_data = require('../src/ClassData');
 import methods = require('../src/methods');
-import natives = require('../src/natives');
 import util = require('../src/util');
 var ReferenceClassData = class_data.ReferenceClassData,
     classpath: string[] = [path.resolve(__dirname, '..', 'vendor', 'classes'),
@@ -81,7 +80,7 @@ function getNativeSigs(className: string): string[] {
  * What it says on the tin. Returns an array of class names (in foo/bar/Baz
  * format) that have native methods implemented in Doppio.
  */
-function getClassesWithImplementedNatives(): {[pkgName: string]: string[]} {
+/*function getClassesWithImplementedNatives(): {[pkgName: string]: string[]} {
   var nativeImpls: any = natives.native_methods, currMethodName: string,
       methods: {[pkgName: string]: string[]} = {},
       nameSplit: string[], klassName: string, methodSig: string;
@@ -97,7 +96,7 @@ function getClassesWithImplementedNatives(): {[pkgName: string]: string[]} {
     }
   }
   return methods;
-}
+}*/
 
 /**
  * Given two arrays, returns any items in the first array that are not in the
@@ -173,8 +172,8 @@ function printResult(result: {[klassName: string]: {[sig: string]: string}}): vo
  * Main function.
  */
 function main() {
-  var implNatives: {[pkgName: string]: string[]} =
-        getClassesWithImplementedNatives(),
+  var implNatives: { [pkgName: string]: string[] } = {},
+        //getClassesWithImplementedNatives(),
       klassNatives: string[], klassImplNatives: string[], klassName: string,
       missingNatives: string[],
       similarMap: {[klassName: string]: {[sig: string]: string}} = {};

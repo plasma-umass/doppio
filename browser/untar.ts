@@ -1,6 +1,7 @@
 
 declare var setImmediate;
 import util = require('../src/util');
+import ByteStream = require('../src/ByteStream');
 
 var nonAsyncCount = 0;
 
@@ -17,7 +18,7 @@ export function asyncExecute(fn: Function): void {
   }
 }
 
-export function untar(bytes: any, cb: Function, done_cb?: Function): void {
+export function untar(bytes: ByteStream, cb: Function, done_cb?: Function): void {
   function next_file(): void {
     var _ref1 = shift_file(bytes);
     var path : string = _ref1[0];
@@ -33,7 +34,7 @@ export function untar(bytes: any, cb: Function, done_cb?: Function): void {
   asyncExecute(next_file);
 }
 
-function shift_file(bytes: util.BytesArray): any[] {
+function shift_file(bytes: ByteStream): any[] {
   var header = bytes.read(512);
   var fname = util.bytes2str(header.slice(0, 100), true);
   var size = parseInt(util.bytes2str(header.slice(124, 124 + 11)), 8);

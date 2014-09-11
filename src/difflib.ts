@@ -28,8 +28,8 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF S
 DAMAGE.
 ***/
 /* Original author: Chas Emerick <cemerick@snowtide.com> */
-export function text_diff(a_lines: string[], b_lines: string[]): string[] {
-	return (new SequenceMatcher(a_lines, b_lines)).text_diff();
+export function text_diff(a_lines: string[], b_lines: string[], context: number): string[] {
+	return (new SequenceMatcher(a_lines, b_lines)).text_diff(context);
 }
 
 // comparison function for sorting lists of numeric tuples
@@ -196,12 +196,13 @@ export class SequenceMatcher {
 		return answer;
 	}
 
-	public text_diff(): string[] {
+	public text_diff(context: number): string[] {
 		var opcodes = this.get_opcodes();
 		var diff: string[] = [];
 		var a_side: string[] = [];
 		var b_side: string[] = [];
 		var a_max_len = 0;
+		var last_seen = -1;
 		for (var op_idx=0; op_idx<opcodes.length; op_idx++) {
 			var op = opcodes[op_idx];
 			if (op[0] === 'equal') continue;
@@ -216,6 +217,21 @@ export class SequenceMatcher {
 			case 'delete': c = ' < '; break;
 			case 'insert': c = ' > '; break;
 			case 'replace': c = ' | '; break;
+			}
+			for (var i=Math.max(last_seen+1,start-context); i<start; i++) {
+				var prefix = i + ': ';
+				if (i < this.a.length) {
+					a_side.push(prefix + this.a[i]);
+					a_max_len = Math.max(a_max_len, this.a[i].length + prefix.length);
+				} else {
+					a_side.push(prefix);
+				}
+				if (i < this.b.length) {
+					b_side.push(this.b[i]);
+				} else {
+					b_side.push('');
+				}
+				diff.push('   ');
 			}
 			for (var i=start; i<=end; i++) {
 				var prefix = i + ': ';
@@ -232,6 +248,7 @@ export class SequenceMatcher {
 				}
 				diff.push(c);
 			}
+			last_seen = end;
 		}
 		for (var i=0; i<diff.length; i++) {
 			var a = a_side[i];

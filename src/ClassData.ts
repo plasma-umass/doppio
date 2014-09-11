@@ -1,17 +1,18 @@
 "use strict";
 import util = require('./util');
+import ByteStream = require('./ByteStream');
 import ConstantPool = require('./ConstantPool');
 import attributes = require('./attributes');
 import opcodes = require('./opcodes');
 import java_object = require('./java_object');
+import threading = require('./threading');
 var JavaObject = java_object.JavaObject;
 var JavaClassObject = java_object.JavaClassObject;
 import logging = require('./logging');
 import methods = require('./methods');
-import runtime = require('./runtime');
-import natives = require('./natives');
 import ClassLoader = require('./ClassLoader');
 import enums = require('./enums');
+import assert = require('./assert');
 var ClassState = enums.ClassState;
 var trace = logging.trace;
 
@@ -33,12 +34,7 @@ export class ClassData {
   // Responsible for setting up all of the fields that are guaranteed to be
   // present on any ClassData object.
   constructor(loader: ClassLoader.ClassLoader) {
-    // XXX: Avoids a tough circular dependency.
-    // (ClassData->methods->natives->...)
-    if (!natives.instantiated) {
-      natives.instantiate(ReferenceClassData, PrimitiveClassData, ArrayClassData);
-    }
-    this.loader = loader != null ? loader : null;
+    this.loader = loader;
   }
 
   // Resets any ClassData state that may have been built up
@@ -90,9 +86,9 @@ export class ClassData {
     return [];
   }
 
-  public get_class_object(rs: runtime.RuntimeState): java_object.JavaClassObject {
+  public get_class_object(thread: threading.JVMThread): java_object.JavaClassObject {
     if (this.jco == null) {
-      this.jco = new JavaClassObject(rs, this);
+      this.jco = new JavaClassObject(thread, this);
     }
     return this.jco;
   }
@@ -109,19 +105,34 @@ export class ClassData {
     return [];
   }
 
-  public method_lookup(rs: runtime.RuntimeState, sig: string): methods.Method {
-    var err_cls = <ReferenceClassData> rs.get_bs_class('Ljava/lang/NoSuchMethodError;');
-    rs.java_throw(err_cls, "No such method found in " + util.ext_classname(this.get_type()) + "::" + sig);
-    return null; // TypeScript can't infer that rs.java_throw *always* throws an exception.
+  public method_lookup(thread: threading.JVMThread, sig: string): methods.Method {
+    thread.throwNewException('Ljava/lang/NoSuchMethodError;', "No such method found in " + util.ext_classname(this.get_type()) + "::" + sig);
+    return null;
   }
 
-  public field_lookup(rs: runtime.RuntimeState, name: string): methods.Field {
-    var err_cls = <ReferenceClassData> rs.get_bs_class('Ljava/lang/NoSuchFieldError;');
-    rs.java_throw(err_cls, "No such field found in " + util.ext_classname(this.get_type()) + "::" + name);
-    return null; // TypeScript can't infer that rs.java_throw *always* throws an exception.
+  public field_lookup(thread: threading.JVMThread, name: string): methods.Field {
+    thread.throwNewException('Ljava/lang/NoSuchFieldError;', "No such field found in " + util.ext_classname(this.get_type()) + "::" + name);
+    return null;
   }
 
-  public set_state(state:enums.ClassState):void { this.state = state; }
+  /**
+   * Attempt to synchronously resolve this class using its loader. Should only
+   * be called on ClassData in the LOADED state.
+   */
+  public tryToResolve(): boolean {
+    throw new Error("Abstract method.");
+  }
+
+  /**
+   * Attempt to synchronously initialize this class.
+   */
+  public tryToInitialize(): boolean {
+    throw new Error("Abstract method.");
+  }
+
+  public set_state(state: enums.ClassState): void {
+    this.state = state;
+  }
 
   // Gets the current state of this class.
   public get_state(): enums.ClassState {
@@ -192,19 +203,31 @@ export class PrimitiveClassData extends ClassData {
         return 'Ljava/lang/Short;';
       case 'Z':
         return 'Ljava/lang/Boolean;';
+      case 'V':
+        return 'Ljava/lang/Void;';
       default:
         throw new Error("Tried to box a non-primitive class: " + this.this_class);
     }
   }
 
-  public create_wrapper_object(rs: runtime.RuntimeState, value: any): java_object.JavaObject {
+  public create_wrapper_object(thread: threading.JVMThread, value: any): java_object.JavaObject {
     var box_name = this.box_class_name();
-    var box_cls = <ReferenceClassData> rs.get_bs_class(box_name);
+    var box_cls = <ReferenceClassData> thread.getBsCl().getInitializedClass(thread, box_name);
     // these are all initialized in preinit (for the BSCL, at least)
-    var wrapped = new JavaObject(rs, box_cls);
-    // XXX: all primitive wrappers store their value in a private static final field named 'value'
-    wrapped.fields[box_name + 'value'] = value;
+    var wrapped = new JavaObject(box_cls);
+    if (box_name !== 'V') {
+      // XXX: all primitive wrappers store their value in a private static final field named 'value'
+      wrapped.fields[box_name + 'value'] = value;
+    }
     return wrapped;
+  }
+
+  public tryToResolve(): boolean {
+    return true;
+  }
+
+  public tryToInitialize(): boolean {
+    return true;
   }
 }
 
@@ -237,19 +260,37 @@ export class ArrayClassData extends ClassData {
   }
 
   // This class itself has no fields/methods, but java/lang/Object does.
-  public field_lookup(rs: runtime.RuntimeState, name: string): methods.Field {
-    return this.super_class_cdata.field_lookup(rs, name);
+  public field_lookup(thread: threading.JVMThread, name: string): methods.Field {
+    return this.super_class_cdata.field_lookup(thread, name);
   }
 
-  public method_lookup(rs: runtime.RuntimeState, sig: string): methods.Method {
-    return this.super_class_cdata.method_lookup(rs, sig);
+  public method_lookup(thread: threading.JVMThread, sig: string): methods.Method {
+    return this.super_class_cdata.method_lookup(thread, sig);
   }
 
   // Resolved and initialized are the same for array types.
-  public set_resolved(super_class_cdata: ClassData, component_class_cdata: ClassData): void {
+  public setResolved(super_class_cdata: ClassData, component_class_cdata: ClassData): void {
     this.super_class_cdata = super_class_cdata;
     this.component_class_cdata = component_class_cdata;
     this.set_state(ClassState.INITIALIZED);
+  }
+
+  public tryToResolve(): boolean {
+    var loader = this.loader,
+      superClassCdata = loader.getResolvedClass(this.super_class),
+      componentClassCdata = loader.getResolvedClass(this.component_type);
+
+    if (superClassCdata === null || componentClassCdata === null) {
+      return false;
+    } else {
+      this.setResolved(superClassCdata, componentClassCdata);
+      return true;
+    }
+  }
+
+  public tryToInitialize(): boolean {
+    // Arrays are initialized once resolved.
+    return this.tryToResolve();
   }
 
   // Returns a boolean indicating if this class is an instance of the target class.
@@ -280,7 +321,7 @@ export class ArrayClassData extends ClassData {
 // primitive nor an array.
 export class ReferenceClassData extends ClassData {
   private minor_version: number;
-  private major_version: number;
+  public major_version: number;
   public constant_pool: ConstantPool.ConstantPool;
   public access_byte: number;
   private interfaces: string[];
@@ -295,35 +336,35 @@ export class ReferenceClassData extends ClassData {
 
   constructor(buffer: NodeBuffer, loader?: ClassLoader.ClassLoader) {
     super(loader);
-    var bytes_array = new util.BytesArray(buffer);
-    if ((bytes_array.get_uint(4)) !== 0xCAFEBABE) {
+    var bytes_array = new ByteStream(buffer);
+    if ((bytes_array.getUint32()) !== 0xCAFEBABE) {
       throw "Magic number invalid";
     }
-    this.minor_version = bytes_array.get_uint(2);
-    this.major_version = bytes_array.get_uint(2);
+    this.minor_version = bytes_array.getUint16();
+    this.major_version = bytes_array.getUint16();
     if (!(45 <= this.major_version && this.major_version <= 51)) {
       throw "Major version invalid";
     }
     this.constant_pool = new ConstantPool.ConstantPool();
     this.constant_pool.parse(bytes_array);
     // bitmask for {public,final,super,interface,abstract} class modifier
-    this.access_byte = bytes_array.get_uint(2);
+    this.access_byte = bytes_array.getUint16();
     this.access_flags = util.parse_flags(this.access_byte);
 
-    this.this_class = this.constant_pool.get(bytes_array.get_uint(2)).deref();
+    this.this_class = this.constant_pool.get(bytes_array.getUint16()).deref();
     // super reference is 0 when there's no super (basically just java.lang.Object)
-    var super_ref = bytes_array.get_uint(2);
+    var super_ref = bytes_array.getUint16();
     if (super_ref !== 0) {
       this.super_class = this.constant_pool.get(super_ref).deref();
     }
     // direct interfaces of this class
-    var isize = bytes_array.get_uint(2);
+    var isize = bytes_array.getUint16();
     this.interfaces = [];
     for (var _i = 0; _i < isize; ++_i) {
-      this.interfaces.push(this.constant_pool.get(bytes_array.get_uint(2)).deref());
+      this.interfaces.push(this.constant_pool.get(bytes_array.getUint16()).deref());
     }
     // fields of this class
-    var num_fields = bytes_array.get_uint(2);
+    var num_fields = bytes_array.getUint16();
     this.fields = [];
     for (var _i = 0; _i < num_fields; ++_i) {
       this.fields.push(new methods.Field(this));
@@ -335,7 +376,7 @@ export class ReferenceClassData extends ClassData {
       this.fl_cache[f.name] = f;
     }
     // class methods
-    var num_methods = bytes_array.get_uint(2);
+    var num_methods = bytes_array.getUint16();
     this.methods = {};
     this.ml_cache = {};
     // XXX: we may want to populate ml_cache with methods whose exception
@@ -348,7 +389,7 @@ export class ReferenceClassData extends ClassData {
     }
     // class attributes
     this.attrs = attributes.make_attributes(bytes_array, this.constant_pool);
-    if (bytes_array.has_bytes()) {
+    if (bytes_array.hasBytes()) {
       throw "Leftover bytes in classfile: " + bytes_array;
     }
     // Contains the value of all static fields. Will be reset when reset()
@@ -423,42 +464,81 @@ export class ReferenceClassData extends ClassData {
 
   // Handles static fields. We lazily create them, since we cannot initialize static
   // default String values before Ljava/lang/String; is initialized.
-  private _initialize_static_field(rs: runtime.RuntimeState, name: string): void {
+  private _initialize_static_field(thread: threading.JVMThread, name: string): boolean {
     var f = this.fl_cache[name];
     if (f != null && f.access_flags["static"]) {
       var cva = <attributes.ConstantValue>f.get_attribute('ConstantValue');
       if (cva != null) {
-        var cv = f.type === 'Ljava/lang/String;' ? rs.init_string(cva.value) : cva.value;
+        var cv = f.type === 'Ljava/lang/String;' ? java_object.initString(thread.getBsCl(), cva.value) : cva.value;
       }
-      this.static_fields[name] = cv != null ? cv : util.initial_value(f.raw_descriptor);
+      this.static_fields[name] = cv != null ? cv : util.initialValue(f.raw_descriptor);
+      return true;
     } else {
-      rs.java_throw(<ReferenceClassData>this.loader.get_initialized_class('Ljava/lang/NoSuchFieldError;'), name);
+      thread.throwNewException('Ljava/lang/NoSuchFieldError;', name);
+      return false;
     }
   }
 
-  public static_get(rs: runtime.RuntimeState, name: string): any {
+  public static_get(thread: threading.JVMThread, name: string): any {
     if (this.static_fields[name] !== void 0) {
       return this.static_fields[name];
     }
-    this._initialize_static_field(rs, name);
-    return this.static_get(rs, name);
-  }
-
-  public static_put(rs: runtime.RuntimeState, name: string, val: any): void {
-    if (this.static_fields[name] !== void 0) {
-      this.static_fields[name] = val;
+    if (this._initialize_static_field(thread, name)) {
+      return this.static_get(thread, name);
     } else {
-      this._initialize_static_field(rs, name);
-      this.static_put(rs, name, val);
+      return undefined;
     }
   }
 
-  public set_resolved(super_class_cdata: ClassData, interface_cdatas: ReferenceClassData[]): void {
+  public static_put(thread: threading.JVMThread, name: string, val: any): boolean {
+    if (this.static_fields[name] !== void 0) {
+      this.static_fields[name] = val;
+      return true;
+    } else {
+      if (this._initialize_static_field(thread, name)) {
+        return this.static_put(thread, name, val);
+      }
+    }
+    return false;
+  }
+
+  public setResolved(super_class_cdata: ClassData, interface_cdatas: ReferenceClassData[]): void {
     this.super_class_cdata = super_class_cdata;
     trace("Class " + (this.get_type()) + " is now resolved.");
     this.interface_cdatas = interface_cdatas;
     // TODO: Assert we are not already resolved or initialized?
     this.set_state(ClassState.RESOLVED);
+  }
+
+  public tryToResolve(): boolean {
+    if (this.get_state() === ClassState.LOADED) {
+      // Need to grab the super class, and interfaces.
+      var loader = this.loader,
+        // NOTE: The super_class of java/lang/Object is null.
+        superClassCdata = this.super_class != null ? loader.getResolvedClass(this.super_class) : null,
+        interfaceCdatas: ReferenceClassData[] = [], i: number;
+
+      if (superClassCdata === null && this.super_class != null) {
+        return false;
+      }
+
+      for (i = 0; i < this.interfaces.length; i++) {
+        var icls = <ReferenceClassData> loader.getResolvedClass(this.interfaces[i]);
+        if (icls === null) {
+          return false;
+        }
+        interfaceCdatas.push(icls);
+      }
+
+      // It worked!
+      this.setResolved(superClassCdata, interfaceCdatas);
+    }
+    return true;
+  }
+
+  public tryToInitialize(): boolean {
+    // You can't synchronously initialize a reference class type.
+    return false;
   }
 
   public construct_default_fields(): void {
@@ -470,10 +550,10 @@ export class ReferenceClassData extends ClassData {
       var fields = cls.fields;
       for (var i = 0; i < fields.length; i++) {
         var f = fields[i];
-        if (!(!f.access_flags["static"])) {
+        if (f.access_flags["static"]) {
           continue;
         }
-        var val = util.initial_value(f.raw_descriptor);
+        var val = util.initialValue(f.raw_descriptor);
         this.default_fields[cls.get_type() + f.name] = val;
       }
       cls = <ReferenceClassData>cls.get_super_class();
@@ -482,23 +562,20 @@ export class ReferenceClassData extends ClassData {
 
   // Spec [5.4.3.2][1].
   // [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#77678
-  public field_lookup(rs: runtime.RuntimeState, name: string, null_handled?: boolean): methods.Field {
+  public field_lookup(thread: threading.JVMThread, name: string, null_handled?: boolean): methods.Field {
     var field = this.fl_cache[name];
     if (field != null) {
       return field;
     }
-    field = this._field_lookup(rs, name);
+    field = this._field_lookup(thread, name);
     if ((field != null) || null_handled === true) {
       this.fl_cache[name] = field;
       return field;
     }
-    var err_cls = <ReferenceClassData> rs.get_bs_class('Ljava/lang/NoSuchFieldError;');
-    // Throw exception
-    rs.java_throw(err_cls, "No such field found in " + util.ext_classname(this.get_type()) + "::" + name);
-    return null;  // java_throw always throws.
+    thread.throwNewException('Ljava/lang/NoSuchFieldError;', "No such field found in " + util.ext_classname(this.get_type()) + "::" + name);
   }
 
-  private _field_lookup(rs: runtime.RuntimeState, name: string): methods.Field {
+  private _field_lookup(thread: threading.JVMThread, name: string): methods.Field {
     for (var i = 0; i < this.fields.length; i++) {
       var field = this.fields[i];
       if (field.name === name) {
@@ -508,14 +585,14 @@ export class ReferenceClassData extends ClassData {
     // These may not be initialized! But we have them loaded.
     var ifaces = this.get_interfaces();
     for (var i = 0; i < ifaces.length; i++) {
-      var field = ifaces[i].field_lookup(rs, name, true);
+      var field = ifaces[i].field_lookup(thread, name, true);
       if (field != null) {
         return field;
       }
     }
     var sc = <ReferenceClassData> this.get_super_class();
     if (sc != null) {
-      var field = sc.field_lookup(rs, name, true);
+      var field = sc.field_lookup(thread, name, true);
       if (field != null) {
         return field;
       }
@@ -526,28 +603,20 @@ export class ReferenceClassData extends ClassData {
   // Spec [5.4.3.3][1], [5.4.3.4][2].
   // [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#79473
   // [2]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#78621
-  public method_lookup(rs: runtime.RuntimeState, sig: string): methods.Method {
+  public method_lookup(thread: threading.JVMThread, sig: string): methods.Method {
     if (this.ml_cache[sig] != null) {
       return this.ml_cache[sig];
     }
-    var method = this._method_lookup(rs, sig);
+    var method = this._method_lookup(sig);
     if (method == null) {
-      var err_cls = <ReferenceClassData> rs.get_bs_class('Ljava/lang/NoSuchMethodError;');
-      rs.java_throw(err_cls, "No such method found in " + util.ext_classname(this.get_type()) + "::" + sig);
+      thread.throwNewException('Ljava/lang/NoSuchMethodError;', "No such method found in " + util.ext_classname(this.get_type()) + "::" + sig);
+      return null;
+    } else {
+      return method;
     }
-    if (method.code != null && method.code.exception_handlers != null) {
-      var handlers = method.code.exception_handlers;
-      for (var i = 0; i < handlers.length; i++) {
-        var eh = handlers[i];
-        if (!(eh.catch_type === '<any>' || ((this.loader.get_resolved_class(eh.catch_type, true)) != null))) {
-          return null; // we found it, but it needs to be resolved
-        }
-      }
-    }
-    return method;
   }
 
-  private _method_lookup(rs: runtime.RuntimeState, sig: string): methods.Method {
+  private _method_lookup(sig: string): methods.Method {
     if (sig in this.ml_cache) {
       return this.ml_cache[sig];
     }
@@ -556,7 +625,7 @@ export class ReferenceClassData extends ClassData {
     }
     var parent = <ReferenceClassData>this.get_super_class();
     if (parent != null) {
-      this.ml_cache[sig] = parent._method_lookup(rs, sig);
+      this.ml_cache[sig] = parent._method_lookup(sig);
       if (this.ml_cache[sig] != null) {
         return this.ml_cache[sig];
       }
@@ -564,30 +633,12 @@ export class ReferenceClassData extends ClassData {
     var ifaces = this.get_interfaces();
     for (var i = 0; i < ifaces.length; i++) {
       var ifc = ifaces[i];
-      this.ml_cache[sig] = ifc._method_lookup(rs, sig);
+      this.ml_cache[sig] = ifc._method_lookup(sig);
       if (this.ml_cache[sig] != null) {
         return this.ml_cache[sig];
       }
     }
     return this.ml_cache[sig] = null;
-  }
-
-  // this should only be called after method_lookup returns null!
-  // in particular, we assume that the method exists and has exception handlers.
-  public resolve_method(rs: runtime.RuntimeState, sig: string, success_fn: (mthd:methods.Method)=>void, failure_fn: (e_cb:()=>void)=>void) {
-    var _this = this;
-
-    trace("ASYNCHRONOUS: resolve_method " + sig);
-    var m = this.method_lookup(rs, sig);
-    var handlers = m.code.exception_handlers;
-    util.async_foreach(handlers,
-      function(eh: attributes.ExceptionHandler, next_item: ()=>void) {
-        if (!(eh.catch_type === '<any>' || _this.loader.get_resolved_class(eh.catch_type, true))) {
-          _this.loader.resolve_class(rs, eh.catch_type, next_item, failure_fn);
-        } else {
-          next_item();
-        }
-      }, ()=>success_fn(m));
   }
 
   // Returns a boolean indicating if this class is an instance of the target class.

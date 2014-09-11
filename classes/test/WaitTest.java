@@ -17,12 +17,16 @@ class WaitTest {
     }
 
     public void run() {
-      synchronized(obj) {
+      synchronized (obj) {
         try {
+          //System.out.println("Waiting.");
           obj.wait();
         }
         catch (InterruptedException e) {
           System.out.println("Interrupted");
+          if (Thread.currentThread().isInterrupted()) {
+            System.out.println("And the interrupted flag is set!");
+          }
           return;
         }
         System.out.println("Not interrupted");
@@ -30,14 +34,38 @@ class WaitTest {
     }
   }
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws InterruptedException {
     Foo a = new Foo();
     Foo b = new Foo();
-    if (a.thread.isAlive()) a.thread.interrupt();
-    synchronized (obj) {
-      Thread.currentThread().yield();
+    Foo c = new Foo();
+    Foo d = new Foo();
+    Foo e = new Foo();
+    // Wait for a and b to be in the waiting state.
+    while (a.thread.getState() != Thread.State.WAITING &&
+      b.thread.getState() != Thread.State.WAITING &&
+      c.thread.getState() != Thread.State.WAITING &&
+      d.thread.getState() != Thread.State.WAITING &&
+      e.thread.getState() != Thread.State.WAITING) {
+      Thread.currentThread().sleep(50);
     }
-    if (b.thread.isAlive()) b.thread.interrupt();
+    // Interrupt one
+    System.out.println("Interrupting one thread.");
+    a.thread.interrupt();
+    
+    // Wait for the thread to terminate.
+    while (a.thread.getState() != Thread.State.TERMINATED) {
+      Thread.currentThread().sleep(50);
+    }
+    
+    synchronized(obj) {
+      System.out.println("Notifying one thread.");
+      // Notify one
+      obj.notify();
+      System.out.println("Notifying the rest of the threads.");
+      // Notify the rest
+      obj.notifyAll();
+      System.out.println("Main thread relinquishing lock!");
+    }
   }
 
 }

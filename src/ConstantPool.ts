@@ -1,5 +1,6 @@
 "use strict";
 import gLong = require('./gLong');
+import ByteStream = require('./ByteStream');
 import util = require('./util');
 
 // All objects in the constant pool have the properties @type and @value.
@@ -13,7 +14,7 @@ export interface ConstantPoolItem {
 
 export interface ConstantPoolType {
   size: number;
-  from_bytes(bytes_array: util.BytesArray, constant_pool: ConstantPool): ConstantPoolItem;
+  from_bytes(bytes_array: ByteStream, constant_pool: ConstantPool): ConstantPoolItem;
 }
 // Type checks the constructors.
 var _: ConstantPoolType;
@@ -27,8 +28,8 @@ export class SimpleReference {
     this.value = value;
   }
 
-  public static from_bytes(bytes_array: util.BytesArray, constant_pool: ConstantPool): SimpleReference {
-    var value = bytes_array.get_uint(2);
+  public static from_bytes(bytes_array: ByteStream, constant_pool: ConstantPool): SimpleReference {
+    var value = bytes_array.getUint16();
     return new this(constant_pool, value);
   }
 
@@ -68,7 +69,7 @@ export class AbstractMethodFieldReference {
     this.value = value;
   }
 
-  public static from_bytes(bytes_array: util.BytesArray, constant_pool: ConstantPool): AbstractMethodFieldReference {
+  public static from_bytes(bytes_array: ByteStream, constant_pool: ConstantPool): AbstractMethodFieldReference {
     var class_ref = ClassReference.from_bytes(bytes_array, constant_pool);
     var sig = SimpleReference.from_bytes(bytes_array, constant_pool);
     return new this(constant_pool, {
@@ -123,7 +124,7 @@ export class MethodSignature {
     this.value = value;
   }
 
-  public static from_bytes(bytes_array: util.BytesArray, constant_pool: ConstantPool): MethodSignature {
+  public static from_bytes(bytes_array: ByteStream, constant_pool: ConstantPool): MethodSignature {
     var meth_ref = StringReference.from_bytes(bytes_array, constant_pool);
     var type_ref = StringReference.from_bytes(bytes_array, constant_pool);
     return new this(constant_pool, <MethodSignatureValue>{
@@ -149,8 +150,8 @@ export class ConstString {
     this.value = value;
   }
 
-  public static from_bytes(bytes_array: util.BytesArray): ConstString {
-    var strlen = bytes_array.get_uint(2);
+  public static from_bytes(bytes_array: ByteStream): ConstString {
+    var strlen = bytes_array.getUint16();
     var value = util.bytes2str(bytes_array.read(strlen));
     return new this(value);
   }
@@ -165,10 +166,8 @@ export class ConstInt32 {
     this.value = value;
   }
 
-  public static from_bytes(bytes_array: util.BytesArray, constant_pool: ConstantPool): ConstInt32 {
-    var uint32 = bytes_array.get_uint(4);
-    var value = -(1 + ~uint32); // Convert to signed integer ONLY FOR 32 BITS
-    return new this(value);
+  public static from_bytes(bytes_array: ByteStream, constant_pool: ConstantPool): ConstInt32 {
+    return new this(bytes_array.getInt32());
   }
 }
 _ = ConstInt32;
@@ -181,11 +180,8 @@ export class ConstFloat {
     this.value = value;
   }
 
-  public static from_bytes(bytes_array: util.BytesArray, constant_pool: ConstantPool): ConstFloat {
-    var uint32 = bytes_array.get_uint(4);
-    // We OR with 0 to convert to a signed int.
-    var value = util.intbits2float(uint32 | 0);
-    return new this(value);
+  public static from_bytes(bytes_array: ByteStream, constant_pool: ConstantPool): ConstFloat {
+    return new this(bytes_array.getFloat());
   }
 }
 _ = ConstFloat;
@@ -198,11 +194,8 @@ export class ConstLong {
     this.value = value;
   }
 
-  public static from_bytes(bytes_array: util.BytesArray, constant_pool: ConstantPool): ConstLong {
-    var high = bytes_array.get_uint(4);
-    var low = bytes_array.get_uint(4);
-    var value = gLong.fromBits(low, high);
-    return new this(value);
+  public static from_bytes(bytes_array: ByteStream, constant_pool: ConstantPool): ConstLong {
+    return new this(bytes_array.getInt64());
   }
 }
 _ = ConstLong;
@@ -215,10 +208,8 @@ export class ConstDouble {
     this.value = value;
   }
 
-  public static from_bytes(bytes_array: util.BytesArray, constant_pool: ConstantPool): ConstDouble {
-    var uint32_a = bytes_array.get_uint(4);
-    var uint32_b = bytes_array.get_uint(4);
-    return new this(util.longbits2double(uint32_a, uint32_b));
+  public static from_bytes(bytes_array: ByteStream, constant_pool: ConstantPool): ConstDouble {
+    return new this(bytes_array.getDouble());
   }
 }
 _ = ConstDouble;
@@ -227,7 +218,7 @@ export class ConstantPool {
   private cp_count: number;
   private constant_pool: { [n: number]: ConstantPoolItem; };
 
-  public parse(bytes_array: util.BytesArray): util.BytesArray {
+  public parse(bytes_array: ByteStream): ByteStream {
     var constant_tags: {[n: number]: ConstantPoolType } = {
       1: ConstString,
       3: ConstInt32,
@@ -241,12 +232,12 @@ export class ConstantPool {
       11: InterfaceMethodReference,
       12: MethodSignature
     };
-    this.cp_count = bytes_array.get_uint(2);
+    this.cp_count = bytes_array.getUint16();
     // constant_pool works like an array, but not all indices have values
     this.constant_pool = {};
     var idx = 1; // CP indexing starts at zero
     while (idx < this.cp_count) {
-      var tag = bytes_array.get_uint(1);
+      var tag = bytes_array.getUint8();
       if (!((1 <= tag && tag <= 12))) {
         throw "invalid tag: " + tag;
       }

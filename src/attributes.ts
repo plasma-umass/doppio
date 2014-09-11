@@ -1,12 +1,13 @@
 "use strict";
 import util = require('./util');
+import ByteStream = require('./ByteStream');
 import opcodes = require('./opcodes');
 import ConstantPool = require('./ConstantPool');
 declare var RELEASE: boolean;
 
 export interface Attribute {
   name: string;
-  parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void;
+  parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): void;
 }
 
 export class ExceptionHandler implements Attribute {
@@ -15,11 +16,11 @@ export class ExceptionHandler implements Attribute {
   public end_pc: number;
   public handler_pc: number;
   public catch_type: string;
-  public parse(bytes_array:util.BytesArray, constant_pool:ConstantPool.ConstantPool): void {
-    this.start_pc = bytes_array.get_uint(2);
-    this.end_pc = bytes_array.get_uint(2);
-    this.handler_pc = bytes_array.get_uint(2);
-    var cti = bytes_array.get_uint(2);
+  public parse(bytes_array: ByteStream, constant_pool:ConstantPool.ConstantPool): void {
+    this.start_pc = bytes_array.getUint16();
+    this.end_pc = bytes_array.getUint16();
+    this.handler_pc = bytes_array.getUint16();
+    var cti = bytes_array.getUint16();
     this.catch_type = cti === 0 ? "<any>" : constant_pool.get(cti).deref();
   }
 }
@@ -30,25 +31,25 @@ export class Code implements Attribute {
   private max_stack: number;
   private max_locals: number;
   private code_len: number;
-  private _code_array: util.BytesArray;
-  private exception_handlers: ExceptionHandler[];
+  private _code_array: ByteStream;
+  public exception_handlers: ExceptionHandler[];
   public run_stamp: number;
   private opcodes: opcodes.Opcode[];
   private attrs: Attribute[];
 
-  public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool) {
+  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool) {
     this.constant_pool = constant_pool;
-    this.max_stack = bytes_array.get_uint(2);
-    this.max_locals = bytes_array.get_uint(2);
-    this.code_len = bytes_array.get_uint(4);
+    this.max_stack = bytes_array.getUint16();
+    this.max_locals = bytes_array.getUint16();
+    this.code_len = bytes_array.getUint32();
     if (this.code_len === 0) {
       (typeof RELEASE !== "undefined" && RELEASE !== null) || (function() {
         throw "Code.parse error: Code length is zero";
       })();
     }
-    this._code_array = bytes_array.splice(this.code_len);
+    this._code_array = bytes_array.slice(this.code_len);
     this.opcodes = null;
-    var except_len = bytes_array.get_uint(2);
+    var except_len = bytes_array.getUint16();
     this.exception_handlers = [];
     for (var i = 0; i < except_len; i++) {
       var eh = new ExceptionHandler();
@@ -60,15 +61,24 @@ export class Code implements Attribute {
     this.run_stamp = 0;
   }
 
-  public parse_code(): void {
+  public getCode(): opcodes.Opcode[] {
+    if (this.opcodes != null) {
+      return this.opcodes;
+    } else {
+      this.parseCode();
+      return this.opcodes;
+    }
+  }
+
+  private parseCode(): void {
     this.opcodes = new Array(this.code_len);
-    while (this._code_array.has_bytes()) {
+    while (this._code_array.hasBytes()) {
       var op_index = this._code_array.pos();
-      var c = this._code_array.get_uint(1);
+      var c = this._code_array.getUint8();
       var wide = c === 196;
       if (wide) {
         // wide opcode needs to be handled specially
-        c = this._code_array.get_uint(1);
+        c = this._code_array.getUint8();
       }
       if (opcodes.opcodes[c] == null) {
         (typeof RELEASE !== "undefined" && RELEASE !== null) || (function() {
@@ -103,14 +113,14 @@ export class Code implements Attribute {
 
 export class LineNumberTable implements Attribute {
   public name = 'LineNumberTable';
-  private entries: { start_pc: number; line_number: number }[];
+  public entries: { start_pc: number; line_number: number }[];
 
-  public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
+  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): void {
     this.entries = [];
-    var lnt_len = bytes_array.get_uint(2);
+    var lnt_len = bytes_array.getUint16();
     for (var i = 0; i < lnt_len; i++) {
-      var spc = bytes_array.get_uint(2);
-      var ln = bytes_array.get_uint(2);
+      var spc = bytes_array.getUint16();
+      var ln = bytes_array.getUint16();
       this.entries.push({
         'start_pc': spc,
         'line_number': ln
@@ -132,8 +142,8 @@ export class SourceFile implements Attribute {
   public name = 'SourceFile';
   public filename: string;
 
-  public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool) {
-    this.filename = constant_pool.get(bytes_array.get_uint(2)).value;
+  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool) {
+    this.filename = constant_pool.get(bytes_array.getUint16()).value;
   }
 }
 
@@ -142,16 +152,16 @@ export class StackMapTable implements Attribute {
   private num_entries: number;
   private entries: { frame_name: string; frame_type: number }[]
 
-  public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool) {
-    this.num_entries = bytes_array.get_uint(2);
+  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool) {
+    this.num_entries = bytes_array.getUint16();
     this.entries = []
     for (var i = 0; i < this.num_entries; i++) {
       this.entries.push(this.parse_entries(bytes_array, constant_pool));
     }
   }
 
-  public parse_entries(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): { frame_name: string; frame_type: number } {
-    var frame_type = bytes_array.get_uint(1);
+  public parse_entries(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): { frame_name: string; frame_type: number } {
+    var frame_type = bytes_array.getUint8();
     if ((0 <= frame_type && frame_type < 64)) {
       return {
         frame_type: frame_type,
@@ -169,23 +179,23 @@ export class StackMapTable implements Attribute {
       return {
         frame_type: frame_type,
         frame_name: 'same_locals_1_stack_item_frame_extended',
-        offset_delta: bytes_array.get_uint(2),
+        offset_delta: bytes_array.getUint16(),
         stack: [this.parse_verification_type_info(bytes_array, constant_pool)]
       };
     } else if ((248 <= frame_type && frame_type < 251)) {
       return {
         frame_type: frame_type,
         frame_name: 'chop',
-        offset_delta: [bytes_array.get_uint(2)]
+        offset_delta: [bytes_array.getUint16()]
       };
     } else if (frame_type === 251) {
       return {
         frame_type: frame_type,
         frame_name: 'same_frame_extended',
-        offset_delta: [bytes_array.get_uint(2)]
+        offset_delta: [bytes_array.getUint16()]
       };
     } else if ((252 <= frame_type && frame_type < 255)) {
-      var offset_delta = bytes_array.get_uint(2);
+      var offset_delta = bytes_array.getUint16();
       var locals: string[] = [];
       for (var i = 0; i < frame_type - 251; i++) {
         locals.push(this.parse_verification_type_info(bytes_array, constant_pool));
@@ -197,13 +207,13 @@ export class StackMapTable implements Attribute {
         locals: locals
       };
     } else if (frame_type === 255) {
-      var offset_delta = bytes_array.get_uint(2);
-      var num_locals = bytes_array.get_uint(2);
+      var offset_delta = bytes_array.getUint16();
+      var num_locals = bytes_array.getUint16();
       locals = [];
       for (var i = 0; i < num_locals; i++) {
         locals.push(this.parse_verification_type_info(bytes_array, constant_pool));
       }
-      var num_stack_items = bytes_array.get_uint(2);
+      var num_stack_items = bytes_array.getUint16();
       var stack: string[] = [];
       for (var i = 0; i < num_stack_items; i++) {
         stack.push(this.parse_verification_type_info(bytes_array, constant_pool));
@@ -220,13 +230,13 @@ export class StackMapTable implements Attribute {
     }
   }
 
-  public parse_verification_type_info(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): string {
-    var tag = bytes_array.get_uint(1);
+  public parse_verification_type_info(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): string {
+    var tag = bytes_array.getUint8();
     if (tag === 7) {
-      var cls = constant_pool.get(bytes_array.get_uint(2)).deref();
+      var cls = constant_pool.get(bytes_array.getUint16()).deref();
       return 'class ' + (/\w/.test(cls[0]) ? util.descriptor2typestr(cls) : "\"" + cls + "\"");
     } else if (tag === 8) {
-      return 'uninitialized ' + bytes_array.get_uint(2);
+      return 'uninitialized ' + bytes_array.getUint16();
     } else {
       var tag_to_type = ['bogus', 'int', 'float', 'double', 'long', 'null', 'this', 'object', 'uninitialized'];
       return tag_to_type[tag];
@@ -257,21 +267,21 @@ export class LocalVariableTable implements Attribute {
   private num_entries: number;
   private entries: { start_pc: number; length: number; name: string; descriptor: string; ref: number }[];
 
-  public parse(bytes_array: util.BytesArray, constant_pool:ConstantPool.ConstantPool) {
-    this.num_entries = bytes_array.get_uint(2);
+  public parse(bytes_array: ByteStream, constant_pool:ConstantPool.ConstantPool) {
+    this.num_entries = bytes_array.getUint16();
     this.entries = [];
     for (var i = 0; i < this.num_entries; i++) {
       this.entries.push(this.parse_entries(bytes_array, constant_pool));
     }
   }
 
-  public parse_entries(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): { start_pc: number; length: number; name: string; descriptor: string; ref: number } {
+  public parse_entries(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): { start_pc: number; length: number; name: string; descriptor: string; ref: number } {
     return {
-      start_pc: bytes_array.get_uint(2),
-      length: bytes_array.get_uint(2),
-      name: constant_pool.get(bytes_array.get_uint(2)).value,
-      descriptor: constant_pool.get(bytes_array.get_uint(2)).value,
-      ref: bytes_array.get_uint(2)
+      start_pc: bytes_array.getUint16(),
+      length: bytes_array.getUint16(),
+      name: constant_pool.get(bytes_array.getUint16()).value,
+      descriptor: constant_pool.get(bytes_array.getUint16()).value,
+      ref: bytes_array.getUint16()
     };
   }
 
@@ -289,13 +299,13 @@ export class LocalVariableTable implements Attribute {
 export class Exceptions implements Attribute {
   public name = 'Exceptions';
   private num_exceptions: number;
-  private exceptions: Object[];
+  public exceptions: Object[];
 
-  public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
-    this.num_exceptions = bytes_array.get_uint(2);
+  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): void {
+    this.num_exceptions = bytes_array.getUint16();
     var exc_refs: number[] = [];
     for (var i = 0; i < this.num_exceptions; i++) {
-      exc_refs.push(bytes_array.get_uint(2));
+      exc_refs.push(bytes_array.getUint16());
     }
     this.exceptions = exc_refs.map((ref) => constant_pool.get(ref).deref());
   }
@@ -303,22 +313,22 @@ export class Exceptions implements Attribute {
 
 export class InnerClasses implements Attribute {
   public name = 'InnerClasses';
-  private classes: Object[];
+  public classes: Object[];
 
-  public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
-    var num_classes = bytes_array.get_uint(2);
+  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): void {
+    var num_classes = bytes_array.getUint16();
     this.classes = [];
     for (var i = 0; i < num_classes; i++) {
       this.classes.push(this.parse_class(bytes_array, constant_pool));
     }
   }
 
-  public parse_class(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): Object {
+  public parse_class(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): Object {
     return {
-      inner_info_index: bytes_array.get_uint(2),
-      outer_info_index: bytes_array.get_uint(2),
-      inner_name_index: bytes_array.get_uint(2),
-      inner_access_flags: bytes_array.get_uint(2)
+      inner_info_index: bytes_array.getUint16(),
+      outer_info_index: bytes_array.getUint16(),
+      inner_name_index: bytes_array.getUint16(),
+      inner_access_flags: bytes_array.getUint16()
     };
   }
 }
@@ -328,8 +338,8 @@ export class ConstantValue implements Attribute {
   private ref: number;
   public value: any;
 
-  public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): void {
-    this.ref = bytes_array.get_uint(2);
+  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): void {
+    this.ref = bytes_array.getUint16();
     var valref = constant_pool.get(this.ref);
     this.value = (typeof valref.deref === "function") ? valref.deref() : valref.value;
   }
@@ -337,30 +347,27 @@ export class ConstantValue implements Attribute {
 
 export class Synthetic implements Attribute {
   public name = 'Synthetic';
-  public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool) { }
+  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool) { }
 }
 
 export class Deprecated implements Attribute {
   public name = 'Deprecated';
-  public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool) { }
+  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool) { }
 }
 
 export class Signature implements Attribute {
   public name = 'Signature';
-  private raw_bytes: number[];
   public sig: string;
 
-  public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool, attr_len?: number) {
-    this.raw_bytes = bytes_array.read(attr_len);
-    var ref = util.read_uint(this.raw_bytes);
-    this.sig = constant_pool.get(ref).value;
+  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool, attr_len?: number) {
+    this.sig = constant_pool.get(bytes_array.getUint16()).value;
   }
 }
 
 export class RuntimeVisibleAnnotations implements Attribute {
   public name = 'RuntimeVisibleAnnotations';
-  private raw_bytes: number[];
-  public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool, attr_len?: number) {
+  public raw_bytes: number[];
+  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool, attr_len?: number) {
     // num_annotations = bytes_array.get_uint 2
     this.raw_bytes = bytes_array.read(attr_len);
   }
@@ -368,26 +375,26 @@ export class RuntimeVisibleAnnotations implements Attribute {
 
 export class AnnotationDefault implements Attribute {
   public name = 'AnnotationDefault';
-  private raw_bytes: number[];
-  public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool, attr_len?: number) {
+  public raw_bytes: number[];
+  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool, attr_len?: number) {
     this.raw_bytes = bytes_array.read(attr_len);
   }
 }
 
 export class EnclosingMethod implements Attribute {
   public name = 'EnclosingMethod';
-  private enc_class: any;
-  private enc_method: any;
-  public parse(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool) {
-    this.enc_class = constant_pool.get(bytes_array.get_uint(2)).deref();
-    var method_ref = bytes_array.get_uint(2);
+  public enc_class: any;
+  public enc_method: any;
+  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool) {
+    this.enc_class = constant_pool.get(bytes_array.getUint16()).deref();
+    var method_ref = bytes_array.getUint16();
     if (method_ref > 0) {
       this.enc_method = constant_pool.get(method_ref).deref();
     }
   }
 }
 
-export function make_attributes(bytes_array: util.BytesArray, constant_pool: ConstantPool.ConstantPool): Attribute[] {
+export function make_attributes(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): Attribute[] {
   var attr_types = {
     'Code': Code,
     'LineNumberTable': LineNumberTable,
@@ -405,11 +412,11 @@ export function make_attributes(bytes_array: util.BytesArray, constant_pool: Con
     'EnclosingMethod': EnclosingMethod
     // NYI: LocalVariableTypeTable
   };
-  var num_attrs = bytes_array.get_uint(2);
+  var num_attrs = bytes_array.getUint16();
   var attrs : Attribute[] = [];
   for (var i = 0; i < num_attrs; i++) {
-    var name = constant_pool.get(bytes_array.get_uint(2)).value;
-    var attr_len = bytes_array.get_uint(4);
+    var name = constant_pool.get(bytes_array.getUint16()).value;
+    var attr_len = bytes_array.getUint32();
     if (attr_types[name] != null) {
       var attr = new attr_types[name];
       var old_len = bytes_array.size();

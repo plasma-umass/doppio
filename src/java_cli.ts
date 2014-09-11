@@ -39,7 +39,15 @@ function setupOptparse() {
       'list-class-cache': { description: 'list all of the loaded classes after execution' },
       'show-nyi-natives': { description: 'list any NYI native functions in loaded classes' },
       'dump-state': { description: 'write a "core dump" on unusual termination' },
-      benchmark: { description: 'time execution, both hot and cold' }
+      benchmark: { description: 'time execution, both hot and cold' },
+      'native-classpath': {
+        description: 'directories where package-based native methods can be found',
+        has_value: true
+      },
+      'bootclasspath/a': {
+        description: '\'boot\' classpath items; doppio simply appends these to the classpath',
+        has_value: true
+      }
     }
   });
 }
@@ -50,6 +58,8 @@ function setupOptparse() {
 export interface JavaOptions {
   // Path to the Java Class Library.
   jcl_path?: string;
+  // Path to package-based natives. There should be at least one for the JCL.
+  native_classpath: string[];
   // Path to `java_home`.
   java_home_path?: string;
   // Folder to extract JAR files to.
@@ -60,8 +70,6 @@ export interface JavaOptions {
   // Name of the command used to launch `java`. Used in the 'usage' portion of
   // the help message.
   launcher_name?: string;
-  // An existing instance of the JVM to use.
-  jvm_state?: JVM;
 }
 
 /**
@@ -85,8 +93,8 @@ export function java(args: string[], opts: JavaOptions,
                      done_cb: (arg: boolean) => void,
                      jvm_started: (jvm: JVM) => void = function(jvm: JVM): void {}): void {
   setupOptparse();
-  var argv = optparse.parse(args), jvm_state: JVM, classpath: string[] = [],
-      jvm_cb;
+  var argv = optparse.parse(args), classpath: string[] = [],
+    jvm_cb, jvm_state: JVM;
 
   // Default options
   if (!opts.launcher_name) {
@@ -112,110 +120,105 @@ export function java(args: string[], opts: JavaOptions,
     logging.log_level = level;
   }
 
-  JVM.show_NYI_natives = argv.non_standard['show-nyi-natives'];
-
-  // Function that performs processing on the JVM, once constructed/ready.
-  jvm_cb = function() {
-    // JVM CONFIGURATION
-    underscore.extend(jvm_state.system_properties, argv.properties);
-
-    if (argv.non_standard['dump-state']) {
-      jvm_state.should_dump_state = argv.non_standard['dump-state'];
-    }
-
-    if (argv.non_standard['list-class-cache']) {
-      // Redefine done_cb so we print the loaded class files on JVM exit.
-      done_cb = (function(old_done_cb: (arg: boolean) => void): (arg: boolean) => void {
-        return function(result: boolean): void {
-          jvm_state.list_class_cache(function(fpaths: string[]) {
-            process.stdout.write(fpaths.join('\n') + '\n');
-            old_done_cb(result);
-          });
-        };
-      })(done_cb);
-    } else if (argv.non_standard['count-logs']) {
-      // Redefine done_cb so we print the number of times `console.log` was called on
-      // JVM exit.
-      done_cb = (function (old_done_cb: (result: boolean) => void): (result: boolean) => void {
-        var count = 0,
-          old_log = console.log,
-          new_log = function () { ++count; };
-        console.log = new_log;
-        return function(result: boolean): void {
-          console.log = old_log;
-          process.stdout.write("console.log was called a total of " + count + " times.");
+  if (argv.non_standard['list-class-cache']) {
+    // Redefine done_cb so we print the loaded class files on JVM exit.
+    done_cb = ((old_done_cb: (arg: boolean) => void): (arg: boolean) => void => {
+      return (result: boolean): void => {
+        jvm_state.getBootstrapClassLoader().getLoadedClassFiles((fpaths: string[]) => {
+          process.stdout.write(fpaths.join('\n') + '\n');
           old_done_cb(result);
-        };
-      })(done_cb);
-    } else if (argv.non_standard['skip-logs'] != null) {
-      // avoid generating unnecessary log data
-      done_cb = (function (old_done_cb: (result: boolean) => void): (result: boolean) => void {
-        var count = parseInt(argv.non_standard['skip-logs'], 10),
-            old_log = console.log;
-        console.log = function () {
-          if (--count === 0) {
-            console.log = old_log;
-          }
-        };
-        return function(result: boolean): void {
-          // Ensure we replace log, even if count didn't decrement to 0.
+        });
+      };
+    })(done_cb);
+  } else if (argv.non_standard['count-logs']) {
+    // Redefine done_cb so we print the number of times `console.log` was called on
+    // JVM exit.
+    done_cb = ((old_done_cb: (result: boolean) => void): (result: boolean) => void => {
+      var count = 0,
+        old_log = console.log,
+        new_log = function () { ++count; };
+      console.log = new_log;
+      return function(result: boolean): void {
+        console.log = old_log;
+        process.stdout.write("console.log was called a total of " + count + " times.");
+        old_done_cb(result);
+      };
+    })(done_cb);
+  } else if (argv.non_standard['skip-logs'] != null) {
+    // avoid generating unnecessary log data
+    done_cb = ((old_done_cb: (result: boolean) => void): (result: boolean) => void => {
+      var count = parseInt(argv.non_standard['skip-logs'], 10),
+          old_log = console.log;
+      console.log = function () {
+        if (--count === 0) {
           console.log = old_log;
+        }
+      };
+      return (result: boolean): void => {
+        // Ensure we replace log, even if count didn't decrement to 0.
+        console.log = old_log;
+        old_done_cb(result);
+      };
+    })(done_cb);
+  } else if (argv.non_standard['benchmark']) {
+    // Wrap the done_cb so that we trigger a second run once the first finishes.
+    done_cb = ((old_done_cb: (result: boolean) => void): (result: boolean) => void => {
+      var cold_start = (new Date).getTime();
+      process.stdout.write('Starting cold-cache run...\n');
+      return (result: boolean): void => {
+        var mid_point = (new Date).getTime();
+        process.stdout.write('Starting hot-cache run...\n');
+        launch_jvm(argv, opts, jvm_state, (result: boolean) => {
+          var finished = (new Date).getTime();
+          process.stdout.write("Timing:\n\t" + (mid_point - cold_start) + " ms cold\n\t"
+                      + (finished - mid_point) + " ms hot\n");
           old_done_cb(result);
-        };
-      })(done_cb);
-    } else if (argv.non_standard['benchmark']) {
-      // Wrap the done_cb so that we trigger a second run once the first finishes.
-      done_cb = (function (old_done_cb: (result: boolean) => void): (result: boolean) => void {
-        var cold_start = (new Date).getTime();
-        process.stdout.write('Starting cold-cache run...\n');
-        return function(result: boolean): void {
-          var mid_point = (new Date).getTime();
-          process.stdout.write('Starting hot-cache run...\n');
-          launch_jvm(argv, opts, jvm_state, function(result: boolean) {
-            var finished = (new Date).getTime();
-            process.stdout.write("Timing:\n\t" + (mid_point - cold_start) + " ms cold\n\t"
-                        + (finished - mid_point) + " ms hot\n");
-            old_done_cb(result);
-          }, function(jvm_state: JVM){});
-        };
-      })(done_cb);
-    }
-
-    // Programmer-supplied classpath items.
-    if (opts.hasOwnProperty('implicit_classpath')) {
-      classpath = opts.implicit_classpath;
-    }
-
-    // User-supplied classpath items.
-    if (argv.standard.classpath != null) {
-      classpath = classpath.concat(argv.standard.classpath.split(':'));
-    } else {
-      // DEFAULT: If no user-supplied classpath, add the current directory to
-      // the class path.
-      classpath.push(process.cwd());
-    }
-
-    jvm_state.push_classpath_items(classpath, function(status: boolean[]): void {
-      // Launch the JVM.
-      launch_jvm(argv, opts, jvm_state, done_cb, jvm_started);
-    });
-  };
-
-  if (opts.jvm_state) {
-    jvm_state = opts.jvm_state;
-    jvm_cb();
-  } else {
-    // Construct the JVM.
-    jvm_state = new JVM(function(err?: any): void {
-      if (err) {
-        process.stderr.write("Error constructing JVM:\n");
-        process.stderr.write(err.toString() + "\n");
-        done_cb(false);
-      } else {
-        jvm_cb();
-      }
-    }, opts.jcl_path, opts.java_home_path, opts.jar_file_path);
+        }, (jvm_state: JVM) => {});
+      };
+    })(done_cb);
   }
+
+  // Programmer-supplied classpath items.
+  if (opts.hasOwnProperty('implicit_classpath')) {
+    classpath = opts.implicit_classpath;
+  }
+
+  // 'boot' classpath items.
+  if (argv.non_standard['bootclasspath/a']) {
+    classpath = classpath.concat(argv.non_standard['bootclasspath/a'].split(':'));
+  }
+
+  // User-supplied classpath items.
+  if (argv.standard.classpath != null) {
+    classpath = classpath.concat(argv.standard.classpath.split(':'));
+  } else {
+    // DEFAULT: If no user-supplied classpath, add the current directory to
+    // the class path.
+    classpath.push(process.cwd());
+  }
+
+  // Construct the JVM.
+  jvm_state = new JVM({
+    jclPath: opts.jcl_path,
+    classpath: classpath,
+    javaHomePath: opts.java_home_path,
+    extractionPath: opts.jar_file_path,
+    nativeClasspath: opts.native_classpath
+  }, (err?: any): void => {
+    if (err) {
+      process.stderr.write("Error constructing JVM:\n");
+      process.stderr.write(err.toString() + "\n");
+      done_cb(false);
+    } else {
+      if (argv.properties != null) {
+        var propName: string;
+        for (propName in argv.properties) {
+          jvm_state.setSystemProperty(propName, argv.properties[propName]);
+        }
+      }
+      launch_jvm(argv, opts, jvm_state, done_cb, jvm_started);
+    }
+  });
 }
 
 /**
@@ -229,17 +232,6 @@ function launch_jvm(argv: any, opts: JavaOptions, jvm_state: JVM, done_cb: (resu
       cname = argv.className,
       jar_file = argv.standard.jar;
 
-  // Wrap done_cb in a function that resets the JVM's state when finished.
-  done_cb = (function(old_done_cb: (result: boolean) => void): (result: boolean) => void {
-    return function(result: boolean): void {
-      jvm_state.reset_system_properties();
-      jvm_state.reset_classpath();
-      // XXX: Remove at some point when we fix this.
-      jvm_state.reset_classloader_cache();
-      old_done_cb(result);
-    };
-  })(done_cb);
-
   if (cname != null) {
     // Class specified.
     if (cname.slice(-6) === '.class') {
@@ -249,9 +241,9 @@ function launch_jvm(argv: any, opts: JavaOptions, jvm_state: JVM, done_cb: (resu
       // hack: convert java.foo.Bar to java/foo/Bar
       cname = util.descriptor2typestr(util.int_classname(cname));
     }
-    jvm_state.run_class(cname, main_args, done_cb);
+    jvm_state.runClass(cname, main_args, done_cb);
   } else if (jar_file != null) {
-    jvm_state.run_jar(jar_file, main_args, done_cb);
+    jvm_state.runJar(jar_file, main_args, done_cb);
   } else {
     // No class specified, no jar specified!
     return print_help(opts.launcher_name, optparse.show_help(), done_cb, true);

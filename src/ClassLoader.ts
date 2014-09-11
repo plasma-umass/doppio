@@ -1,722 +1,935 @@
-"use strict";
+///<reference path='../vendor/DefinitelyTyped/node/node.d.ts' />
 import ClassData = require('./ClassData');
-import util = require('./util');
-import JVM = require('./jvm');
-import logging = require('./logging');
-var trace = logging.trace;
-import runtime = require('./runtime');
-import exceptions = require('./exceptions');
-var JavaException = exceptions.JavaException;
 import threading = require('./threading');
-import java_object = require('./java_object');
-var JavaObject = java_object.JavaObject;
 import enums = require('./enums');
-var ClassState = enums.ClassState;
+import util = require('./util');
+import java_object = require('./java_object');
+import methods = require('./methods');
+import logging = require('./logging');
+import assert = require('./assert');
+import JAR = require('./jar');
+import path = require('path');
+import fs = require('fs');
+var debug = logging.debug;
+declare var BrowserFS;
 
-declare var UNSAFE: boolean;
+/**
+ * Used to lock classes for loading/initialization.
+ */
+class ClassLocks {
+  /**
+   * typrStr => array of callbacks to trigger when operation completes.
+   */
+  private locks: { [typeStr: string]: { thread: threading.JVMThread; cb: (cdata: ClassData.ClassData) => void }[] } = {};
 
-// Base ClassLoader class. Handles interacting with the raw data structure used
-// to store the classes.
-// Requires a reference to the bootstrap classloader for primitive class
-// references.
-export class ClassLoader {
-  public bootstrap: BootstrapClassLoader;
-  public loaded_classes: { [typestr: string]: ClassData.ClassData };
+  constructor() {}
 
-  constructor(bootstrap: BootstrapClassLoader) {
-    this.bootstrap = bootstrap;
-    this.loaded_classes = Object.create(null);
-  }
-
-  public serialize(visited: {[n:string]:boolean}): any {
-    throw new Error('Abstract method!');
-  }
-
-  // Don't prune reference classes; if you do, we'll be iterating over
-  // each class twice.
-  public get_package_names(): string[] {
-    var classes = this.get_loaded_class_list(true);
-    var pkg_names: {[key:string]:boolean} = {};
-    for (var i = 0; i < classes.length; i++) {
-      var cls = classes[i];
-      pkg_names[cls.substring(0, (cls.lastIndexOf('/')) + 1)] = true;
-    }
-    return Object.keys(pkg_names);
-  }
-
-  public get_loaded_class_list(ref_class_only?: boolean): string[] {
-    if (ref_class_only == null) {
-      ref_class_only = false;
-    }
-    if (ref_class_only) {
-      var loaded_classes = this.loaded_classes;
-      var results: string[] = [];
-      for (var k in loaded_classes) {
-        var cdata = loaded_classes[k];
-        if ('major_version' in cdata) {
-          // Remove L and ; from Lname/of/Class;
-          results.push(k.slice(1, -1));
-        }
-      }
-      return results;
+  /**
+   * Checks if the lock for the given class is already taken. If not, it takes
+   * the lock. If it is taken, we enqueue the callback.
+   * NOTE: For convenience, will handle triggering the owner's callback as well.
+   */
+  public tryLock(typeStr: string, thread: threading.JVMThread, cb: (cdata: ClassData.ClassData) => void): boolean {
+    if (typeof this.locks[typeStr] === 'undefined') {
+      this.locks[typeStr] = [{cb: cb, thread: thread}];
+      return true;
     } else {
-      return Object.keys(this.loaded_classes);
+      this.locks[typeStr].push({cb: cb, thread: thread});
+      return false;
     }
   }
 
-  // remove a class the Right Way, by also removing any subclasses
-  public remove_class(type_str: string): void {
-    this._rem_class(type_str);
-    if (util.is_primitive_type(type_str)) {
-      return;
+  /**
+   * Releases the lock on the given string.
+   */
+  public unlock(typeStr: string, cdata: ClassData.ClassData): void {
+    var cbs = this.locks[typeStr], i: number;
+    // Trigger each of the callbacks.
+    for (i = 0; i < cbs.length; i++) {
+      cbs[i].cb(cdata);
     }
-    var loaded_classes = this.loaded_classes;
-    for (var k in loaded_classes) {
-      var cdata = loaded_classes[k];
-      if ((type_str === cdata.get_super_class_type()) || (cdata instanceof ClassData.ArrayClassData && type_str === (<ClassData.ArrayClassData>cdata).get_component_type())) {
-        this.remove_class(k);
-      }
-    }
+    delete this.locks[typeStr];
   }
 
-  // Remove a class. Should only be used in the event of a class loading failure.
-  private _rem_class(type_str: string): void {
-    delete this.loaded_classes[type_str];
-  }
-
-  // Adds a class to this ClassLoader.
-  public _add_class(type_str: string, cdata: ClassData.ClassData): void {
-    // XXX: JVM appears to allow define_class to be called twice on same class.
-    // Does it actually replace the old class???
-    // UNSAFE? || throw new Error "ClassLoader tried to overwrite class #{type_str} with a new version." if @loaded_classes[type_str]?
-    this.loaded_classes[type_str] = cdata;
-  }
-
-  // Retrieves a class in this ClassLoader. Returns null if it does not exist.
-  public _get_class(type_str: string): ClassData.ClassData {
-    var cdata = this.loaded_classes[type_str];
-    if (cdata != null && cdata.reset_bit === 1) {
-      cdata.reset();
+  /**
+   * Returns the owning thread of a given lock. Returns null if the specified
+   * type string is not locked.
+   */
+  public getOwner(typeStr: string): threading.JVMThread {
+    if (this.locks[typeStr]) {
+      return this.locks[typeStr][0].thread;
     }
-    return cdata != null ? cdata : null;
-  }
-
-  // Defines a new array class with the specified component type.
-  // Returns null if the component type is not loaded.
-  // Returns the ClassData object for this class (array classes do not have
-  // JavaClassObjects).
-  private _try_define_array_class(type_str: string): ClassData.ClassData {
-    var component_type = util.get_component_type(type_str);
-    var component_cdata = this.get_resolved_class(component_type, true);
-    if (component_cdata == null) {
-      return null;
-    }
-    return this._define_array_class(type_str, component_cdata);
-  }
-
-  // Defines a new array class with the specified component ClassData.
-  // If the component ClassData object comes from another ClassLoader, invoke
-  // this method on that ClassLoader.
-  private _define_array_class(type_str: string, component_cdata: ClassData.ClassData): ClassData.ClassData {
-    if (component_cdata.get_class_loader() !== this) {
-      return component_cdata.get_class_loader()._define_array_class(type_str, component_cdata);
-    } else {
-      var cdata = new ClassData.ArrayClassData(component_cdata.get_type(), this);
-      this._add_class(type_str, cdata);
-      cdata.set_resolved(this.bootstrap.get_resolved_class('Ljava/lang/Object;'), component_cdata);
-      return cdata;
-    }
-  }
-
-  // Called by define_class to fetch all interfaces and superclasses in parallel.
-  private _parallel_class_resolve(rs: runtime.RuntimeState, types: string[], success_fn: (cds: ClassData.ClassData[])=>void, failure_fn: (e_cb:()=>void)=>void, explicit?:boolean): void {
-    var _this = this;
-
-    if (explicit == null) {
-      explicit = false;
-    }
-    // Number of callbacks waiting to be called.
-    var pending_requests = types.length;
-    // Set to a callback that throws an exception.
-    var failure = null;
-    // Array of successfully resolved classes.
-    var resolved: ClassData.ClassData[] = [];
-    // Called each time a requests finishes, whether in error or in success.
-    var request_finished = function () {
-      pending_requests--;
-      // pending_requests is 0? Then I am the last callback. Call success_fn.
-      if (pending_requests === 0) {
-        if (failure == null) {
-          return success_fn(resolved);
-        } else {
-          // Throw the exception.
-          return failure_fn(failure);
-        }
-      }
-    };
-    // Fetches the class data associated with 'type' and adds it to the classloader.
-    var fetch_data = function (type: string) {
-      _this.resolve_class(rs, type, (function (cdata) {
-        resolved.push(cdata);
-        request_finished();
-      }), (function (f_fn) {
-        // resolve_class failure
-        failure = f_fn;
-        request_finished();
-      }), explicit);
-    };
-    // Kick off all of the requests.
-    for (var i = 0; i < types.length; i++) {
-      fetch_data(types[i]);
-    }
-  }
-
-  // Resolves the classes represented by the type strings in types one by one.
-  private _regular_class_resolve(rs: runtime.RuntimeState, types: string[], success_fn: (cds: ClassData.ClassData[])=>void, failure_fn: (e_cb:()=>void)=>void, explicit?:boolean): void {
-    var _this = this;
-
-    if (explicit == null) {
-      explicit = false;
-    }
-    if (types.length === 0) {
-      return success_fn(null);
-    }
-    // Array of successfully resolved classes.
-    var resolved: ClassData.ClassData[] = [];
-    var fetch_class = function (type: string) {
-      _this.resolve_class(rs, type, (function (cdata) {
-        resolved.push(cdata);
-        if (types.length > 0) {
-          fetch_class(types.shift());
-        } else {
-          success_fn(resolved);
-        }
-      }), failure_fn, explicit);
-    };
-    fetch_class(types.shift());
-  }
-
-  // Only called for reference types.
-  // Ensures that the class is resolved by ensuring that its super classes and
-  // interfaces are also resolved (hence, it is asynchronous).
-  // Calls the success_fn with the ClassData object for this class.
-  // Calls the failure_fn with a function that throws the appropriate exception
-  // in the event of a failure.
-  // If 'parallel' is 'true', then we call resolve_class multiple times in
-  // parallel (used by the bootstrap classloader).
-  public define_class(rs: runtime.RuntimeState, type_str: string, data: NodeBuffer, success_fn: (cd:ClassData.ClassData)=>void, failure_fn: (e_cb:()=>void)=>void, parallel?: boolean, explicit?:boolean): void {
-    var _this = this;
-
-    if (parallel == null) {
-      parallel = false;
-    }
-    if (explicit == null) {
-      explicit = false;
-    }
-    trace("Defining class " + type_str + "...");
-    var cdata = new ClassData.ReferenceClassData(data, this);
-    var type = cdata.get_type();
-    if (type !== type_str) {
-      var msg = util.descriptor2typestr(type_str) + " (wrong name: " + util.descriptor2typestr(type) + ")";
-      failure_fn((function () {
-        var err_cls = <ClassData.ReferenceClassData> _this.get_initialized_class('Ljava/lang/NoClassDefFoundError;');
-        rs.java_throw(err_cls, msg);
-      }));
-    }
-    // Add the class before we fetch its super class / interfaces.
-    this._add_class(type_str, cdata);
-    // What classes are we fetching?
-    var types = cdata.get_interface_types();
-    types.push(cdata.get_super_class_type());
-    var to_resolve: string[] = [];
-    var resolved_already: ClassData.ReferenceClassData[] = [];
-    // Prune any resolved classes.
-    for (var i = 0; i < types.length; i++) {
-      type = types[i];
-      if (type == null) {
-        // super_class could've been null.
-        continue;
-      }
-      var clsdata = <ClassData.ReferenceClassData>this.get_resolved_class(type, true);
-      if (clsdata != null) {
-        resolved_already.push(clsdata);
-      } else {
-        to_resolve.push(type);
-      }
-    }
-    function process_resolved_classes(cdatas: ClassData.ReferenceClassData[]) {
-      cdatas = resolved_already.concat(cdatas);
-      var super_cdata: ClassData.ReferenceClassData = null;
-      var interface_cdatas: ClassData.ReferenceClassData[] = [];
-      var super_type = cdata.get_super_class_type();
-      for (var j = 0; j < cdatas.length; j++) {
-        var a_cdata = cdatas[j];
-        type = a_cdata.get_type();
-        if (type === super_type) {
-          super_cdata = a_cdata;
-        } else {
-          interface_cdatas.push(a_cdata);
-        }
-      }
-      cdata.set_resolved(super_cdata, interface_cdatas);
-      success_fn(cdata);
-    }
-    if (to_resolve.length > 0) {
-      // if (parallel) {
-      if (false) {
-        return this._parallel_class_resolve(rs, to_resolve, process_resolved_classes, failure_fn, explicit);
-      } else {
-        return this._regular_class_resolve(rs, to_resolve, process_resolved_classes, failure_fn, explicit);
-      }
-    } else {
-      // Everything is already resolved.
-      return process_resolved_classes([]);
-    }
-  }
-
-  // Synchronous method that checks if we have loaded a given method. If so,
-  // it returns it. Otherwise, it throws an exception.
-  // If null_handled is set, it simply returns null.
-  public get_loaded_class(type_str: string, null_handled?:boolean): ClassData.ClassData {
-    if (null_handled == null) {
-      null_handled = false;
-    }
-    var cdata = this._get_class(type_str);
-    if (cdata != null) {
-      return cdata;
-    }
-    // If it's an array class, we might be able to get it synchronously...
-    if (util.is_array_type(type_str)) {
-      cdata = this._try_define_array_class(type_str);
-      if (cdata != null) {
-        return cdata;
-      }
-    }
-    // If it's a primitive class, get it from the bootstrap classloader.
-    if (util.is_primitive_type(type_str)) {
-      return this.bootstrap.get_primitive_class(type_str);
-    }
-    if (null_handled) {
-      return null;
-    }
-    throw new Error("Error in get_loaded_class: Class " + type_str + " is not loaded.");
-  }
-
-  // Synchronous method that checks if the given class is resolved
-  // already, and returns it if so. If it is not, it throws an exception.
-  // If null_handled is set, it simply returns null.
-  public get_resolved_class(type_str: string, null_handled?:boolean): ClassData.ClassData {
-    if (null_handled == null) {
-      null_handled = false;
-    }
-    var cdata = this.get_loaded_class(type_str, null_handled);
-    if (cdata != null && cdata.is_resolved()) {
-      return cdata;
-    }
-    if (null_handled) {
-      return null;
-    }
-    throw new Error("Error in get_resolved_class: Class " + type_str + " is not resolved.");
-  }
-
-  // Same as get_resolved_class, but for initialized classes.
-  public get_initialized_class(type_str: string, null_handled?:boolean): ClassData.ClassData {
-    if (null_handled == null) {
-      null_handled = false;
-    }
-    var cdata = this.get_resolved_class(type_str, null_handled);
-    if (cdata != null && cdata.is_initialized()) {
-      return cdata;
-    }
-    if (null_handled) {
-      return null;
-    }
-    throw new Error("Error in get_initialized_class: Class " + type_str + " is not initialized.");
-  }
-
-  // Asynchronously initializes the given class, and passes the ClassData
-  // representation to success_fn.
-  // Passes a callback to failure_fn that throws an exception in the event of
-  // an error.
-  // This function makes the assumption that cdata is a ReferenceClassData
-  public _initialize_class(rs: runtime.RuntimeState, cdata: ClassData.ClassData, success_fn: (cd:ClassData.ClassData)=>void, failure_fn:(e_fn:()=>void, discardStackFrame?:boolean)=>void): void {
-    var _this = this;
-
-    trace("Actually initializing class " + (cdata.get_type()) + "...");
-    if (!(cdata instanceof ClassData.ReferenceClassData)) {
-      if (typeof UNSAFE !== "undefined" && UNSAFE !== null) {
-        throw new Error("Tried to initialize a non-reference type: " + cdata.get_type());
-      }
-    }
-    // Iterate through the class hierarchy, pushing StackFrames that run
-    // <clinit> functions onto the stack. The last StackFrame pushed will be for
-    // the <clinit> function of the topmost uninitialized class in the hierarchy.
-    var first_clinit = true;
-    var first_native_frame = threading.StackFrame.native_frame("$clinit", (function () {
-      if (rs.curr_frame() !== first_native_frame) {
-        throw new Error("The top of the meta stack should be this native frame, but it is not: " + (rs.curr_frame().name) + " at " + (rs.meta_stack().length()));
-      }
-      rs.meta_stack().pop();
-      // success_fn is responsible for getting us back into the runtime state
-      // execution loop.
-      return rs.async_op(function () {
-        return success_fn(cdata);
-      });
-    }), (function (e) {
-        // This ClassData is not initialized since we failed.
-        rs.curr_frame().cdata.reset();
-        if (e instanceof JavaException) {
-          // Rethrow e if it's a java/lang/NoClassDefFoundError. Why? 'Cuz HotSpot
-          // does it.
-          if (e.exception.cls.get_type() === 'Ljava/lang/NoClassDefFoundError;') {
-            rs.meta_stack().pop();
-            throw e;
-          }
-          // We hijack the current native frame to transform the exception into a
-          // ExceptionInInitializerError, then call failure_fn to throw it.
-          // failure_fn is responsible for getting us back into the runtime state
-          // loop.
-          // We don't use the java_throw helper since this Exception object takes
-          // a Throwable as an argument.
-          var nf = rs.curr_frame();
-          nf.runner = function () {
-            var rv = rs.pop();
-            rs.meta_stack().pop();
-            // Throw the exception.
-            throw new JavaException(rv);
-          };
-          nf.error = function () {
-            rs.meta_stack().pop();
-            return failure_fn((function () {throw e;}));
-          };
-          var cls = <ClassData.ReferenceClassData> _this.bootstrap.get_resolved_class('Ljava/lang/ExceptionInInitializerError;');
-          var v = new JavaObject(rs, cls);
-          rs.push_array([v, v, e.exception]);
-          return cls.method_lookup(rs, '<init>(Ljava/lang/Throwable;)V').setup_stack(rs);
-        } else {
-          // Not a Java exception?
-          // No idea what this is; let's get outta dodge and rethrow it.
-          rs.meta_stack().pop();
-          throw e;
-        }
-      }));
-    first_native_frame.cdata = cdata; // TODO: Rename vars.
-    var class_file = cdata;
-    while ((class_file != null) && !class_file.is_initialized()) {
-      trace("initializing class: " + (class_file.get_type()));
-      class_file.set_state(ClassState.INITIALIZED);
-
-      // Run class initialization code. Superclasses get init'ed first.  We
-      // don't want to call this more than once per class, so don't do dynamic
-      // lookup. See spec [2.17.4][1].
-      // [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/Concepts.doc.html#19075
-      var clinit = class_file.get_method('<clinit>()V');
-      if (clinit != null) {
-        trace("\tFound <clinit>. Pushing stack frame.");
-        // Push a native frame; needed to handle exceptions and the callback.
-        if (first_clinit) {
-          trace("\tFirst <clinit> in the loop.");
-          first_clinit = false;
-          // The first frame calls success_fn on success. Subsequent frames
-          // are only used to handle exceptions.
-          rs.meta_stack().push(first_native_frame);
-        } else {
-          var next_nf = threading.StackFrame.native_frame("$clinit_secondary", (function () {
-            return rs.meta_stack().pop();
-          }), (function (e) {
-              // This ClassData is not initialized; reset its state.
-              rs.curr_frame().cdata.reset();
-              // Pop myself off.
-              rs.meta_stack().pop();
-              // Find the next Native Frame (prevents them from trying to run
-              // their static initialization methods)
-              while (!rs.curr_frame()["native"]) {
-                rs.meta_stack().pop();
-              }
-              // Rethrow the Exception to pass it on to the next native frame.
-              // The boolean value prevents failure_fn from discarding the current
-              // stack frame.
-              return rs.async_op((function () {
-                failure_fn((function () {
-                  throw e;
-                }), true);
-              }));
-            }));
-          next_nf.cdata = class_file;
-          rs.meta_stack().push(next_nf);
-        }
-        clinit.setup_stack(rs);
-      }
-      class_file = class_file.get_super_class();
-    }
-    if (!first_clinit) {
-      // Push ourselves back into the execution loop to run the <clinit> methods.
-      rs.run_until_finished((function () { }), false, rs.stashed_done_cb);
-      return;
-    }
-    // Classes did not have any clinit functions.
-    success_fn(cdata);
-  }
-
-  // Asynchronously loads, resolves, and initializes the given class, and passes its
-  // ClassData representation to success_fn.
-  // Passes a callback to failure_fn that throws an exception in the event
-  // of an error.
-  // Set 'explicit' to 'true' if this is explicitly invoked by the program and
-  // not by an internal JVM mechanism.
-  public initialize_class(rs: runtime.RuntimeState, type_str: string, success_fn: (cd:ClassData.ClassData)=>void, failure_fn:(e_fn:()=>void)=>void, explicit?:boolean): void {
-    var _this = this;
-
-    if (explicit == null) {
-      explicit = false;
-    }
-    trace("Initializing class " + type_str + "...");
-    // Let's see if we can do this synchronously.
-    // Note that primitive types are guaranteed to be created synchronously
-    // here.
-    var cdata = this.get_initialized_class(type_str, true);
-    if (cdata != null) {
-      return success_fn(cdata);
-    }
-    // If it's an array type, the asynchronous part only involves its
-    // component type. Short circuit here.
-    if (util.is_array_type(type_str)) {
-      var component_type = util.get_component_type(type_str);
-      // Component type doesn't need to be initialized; just resolved.
-      this.resolve_class(rs, component_type, (function (cdata) {
-        return success_fn(_this._define_array_class(type_str, cdata));
-      }), failure_fn, explicit);
-      return;
-    }
-
-    // Only reference types will make it to this point. :-)
-
-    // Is it at least resolved?
-    cdata = this.get_resolved_class(type_str, true);
-    if (cdata != null) {
-      return this._initialize_class(rs, cdata, success_fn, failure_fn);
-    }
-    // OK, OK. We'll have to asynchronously load it AND initialize it.
-    return this.resolve_class(rs, type_str, (function (cdata) {
-      // Check if it's initialized already. If this is a CustomClassLoader, it's
-      // possible that the class has been retrieved from another ClassLoader,
-      // and has already been initialized.
-      if (cdata.is_initialized()) {
-        return success_fn(cdata);
-      } else {
-        return _this._initialize_class(rs, cdata, success_fn, failure_fn);
-      }
-    }), failure_fn, explicit);
-  }
-
-  // Loads the class indicated by the given type_str. Passes the ClassFile
-  // object for the class to success_fn.
-  // Set 'explicit' to 'true' if this is explicitly invoked by the program and
-  // not by an internal JVM mechanism.
-  public resolve_class(rs: runtime.RuntimeState, type_str: string, success_fn: (cd:ClassData.ClassData)=>void, failure_fn:(e_fn:()=>void)=>void, explicit?:boolean): void {
-    var _this = this;
-
-    if (explicit == null) {
-      explicit = false;
-    }
-    trace("Resolving class " + type_str + "... [general]");
-    var rv = this.get_resolved_class(type_str, true);
-    if (rv != null) {
-      return success_fn(rv);
-    }
-    // If it's an array type, the asynchronous part only involves its
-    // component type. Short circuit here.
-    if (util.is_array_type(type_str)) {
-      var component_type = util.get_component_type(type_str);
-      this.resolve_class(rs, component_type, (function (cdata) {
-        return success_fn(_this._define_array_class(type_str, cdata));
-      }), failure_fn, explicit);
-      return;
-    }
-    // Unresolved reference class. Let's resolve it.
-    return this._resolve_class(rs, type_str, success_fn, failure_fn, explicit);
-  }
-
-  public _resolve_class(rs: runtime.RuntimeState, type_str: string, success_fn: (cd: ClassData.ClassData) => void , failure_fn: (e_fn: () => void ) => void , explicit?: boolean): void {
-    throw new Error("Unimplemented.");
+    return null;
   }
 }
 
-// The Bootstrap ClassLoader. This is the only ClassLoader that can create
-// primitive types.
-export class BootstrapClassLoader extends ClassLoader {
-  private jvm_state: JVM;
+/**
+ * Base classloader class. Contains common class resolution and instantiation
+ * logic.
+ */
+export class ClassLoader {
+  /**
+   * Stores loaded *reference* and *array* classes.
+   */
+  private loadedClasses: { [typeStr: string]: ClassData.ClassData } = {};
+  /**
+   * Stores callbacks that are waiting for another thread to finish loading
+   * the specified class.
+   */
+  private loadClassLocks: ClassLocks = new ClassLocks();
+  /**
+   * Stores callbacks that are waiting for another thread to finish initializing
+   * the specified class.
+   */
+  private initializeClassLocks: ClassLocks = new ClassLocks();
 
-  constructor(jvm_state: JVM) {
-    super(this);
-    this.jvm_state = jvm_state;
+  /**
+   * @param bootstrap The JVM's bootstrap classloader. ClassLoaders use it
+   *   to retrieve primitive types.
+   */
+  constructor(public bootstrap: BootstrapClassLoader) { }
+
+  /**
+   * Retrieve a listing of classes that are loaded in this class loader.
+   */
+  public getLoadedClassNames(): string[] {
+    return Object.keys(this.loadedClasses);
   }
 
-  public serialize(visited: {[n:string]:boolean}): any {
-    if ('bootstrapLoader' in visited) {
-      return '<*bootstrapLoader>';
+  /**
+   * Adds the specified class to the classloader. As opposed to defineClass,
+   * which defines a new class from bytes with the classloader.
+   *
+   * What's the difference?
+   * * Classes created with defineClass are defined by this classloader.
+   * * Classes added with addClass may have been defined by a different
+   *   classloader. This happens when a custom class loader's loadClass
+   *   function proxies classloading to a different classloader.
+   *
+   * @param typeStr The type string of the class.
+   * @param classData The class data object representing the class.
+   */
+  public addClass(typeStr: string, classData: ClassData.ClassData): void {
+    // If the class is already added, ensure it is the same class we are adding again.
+    assert(this.loadedClasses[typeStr] != null ? this.loadedClasses[typeStr] === classData : true);
+    this.loadedClasses[typeStr] = classData;
+  }
+
+  /**
+   * No-frills. Get the class if it's defined in the class loader, no matter
+   * what shape it is in.
+   *
+   * Should only be used internally by ClassLoader subclasses.
+   */
+  public getClass(typeStr: string): ClassData.ClassData {
+    return this.loadedClasses[typeStr];
+  }
+
+  /**
+   * Defines a new class with the class loader from an array of bytes.
+   * @param thread The thread that is currently in control when this class is
+   *   being defined. An exception may be thrown if there is an issue parsing
+   *   the class file.
+   * @param typeStr The type string of the class (e.g. "Ljava/lang/Object;")
+   * @param data The data associated with the class as a binary blob.
+   * @return The defined class, or null if there was an issue.
+   */
+  public defineClass(thread: threading.JVMThread, typeStr: string, data: NodeBuffer): ClassData.ReferenceClassData {
+    try {
+      var classData = new ClassData.ReferenceClassData(data, this);
+      this.addClass(typeStr, classData);
+      if (this instanceof BootstrapClassLoader) {
+        debug("[BOOTSTRAP] Defining class " + typeStr);
+      } else {
+        debug("[CUSTOM] Defining class " + typeStr);
+      }
+      return classData;
+    } catch (e) {
+      thread.throwNewException('Ljava/lang/ClassFormatError;', e);
+      return null;
     }
-    visited['bootstrapLoader'] = true;
-    var loaded = {};
-    var loaded_classes = this.loaded_classes;
-    for (var type in loaded_classes) {
-      var cls = loaded_classes[type];
-      if (type !== "__proto__") {
-        loaded["" + type + "(" + (ClassState[cls.get_state()]) + ")"] = cls.loader.serialize(visited);
+  }
+
+  /**
+   * Defines a new array class with this loader.
+   */
+  public defineArrayClass(typeStr: string): ClassData.ArrayClassData {
+    assert(this.getLoadedClass(util.get_component_type(typeStr)) != null);
+    var arrayClass = new ClassData.ArrayClassData(util.get_component_type(typeStr), this);
+    this.addClass(typeStr, arrayClass);
+    return arrayClass;
+  }
+
+  /**
+   * Attempts to retrieve the given loaded class.
+   * @param typeStr The name of the class.
+   * @return Returns the loaded class, or null if no such class is currently
+   *   loaded.
+   */
+  public getLoadedClass(typeStr: string): ClassData.ClassData {
+    var cls = this.loadedClasses[typeStr];
+    if (cls != null) {
+      return cls;
+    } else {
+      if (util.is_primitive_type(typeStr)) {
+        // Primitive classes must be fetched from the bootstrap classloader.
+        return this.bootstrap.getPrimitiveClass(typeStr);
+      } else if (util.is_array_type(typeStr)) {
+        // We might be able to load this array class synchronously.
+        // Component class must be loaded. And we must define the array class
+        // with the component class's loader.
+        var component = this.getLoadedClass(util.get_component_type(typeStr));
+        if (component != null) {
+          var componentCl = component.get_class_loader();
+          if (componentCl === this) {
+            // We're responsible for defining the array class.
+            return this.defineArrayClass(typeStr);
+          } else {
+            // Delegate to the other loader, then add the class to our loaded
+            // roster.
+            cls = componentCl.getLoadedClass(typeStr);
+            this.addClass(typeStr, cls);
+            return cls;
+          }
+        }
+      }
+      return null;
+    }
+  }
+
+  /**
+   * Attempts to retrieve the given resolved class.
+   * @param typeStr The name of the class.
+   * @return Returns the class if it is both loaded and resolved. Returns null
+   *   if this is not the case.
+   */
+  public getResolvedClass(typeStr: string): ClassData.ClassData {
+    var cls = this.getLoadedClass(typeStr);
+    if (cls !== null) {
+      var state = cls.get_state();
+      switch (state) {
+        case enums.ClassState.RESOLVED:
+        case enums.ClassState.INITIALIZED:
+          // An initialized class is already resolved.
+          return cls;
+        case enums.ClassState.LOADED:
+          // See if we can promote this to resolved.
+          if (cls.tryToResolve()) {
+            return cls;
+          } else {
+            return null;
+          }
+        default:
+          // Class is not resolved.
+          return null;
+      }
+    } else {
+      return cls;
+    }
+  }
+
+  /**
+   * Attempts to retrieve the given initialized class.
+   * @param typeStr The name of the class.
+   * @return Returns the class if it is initialized. Returns null if this is
+   *   not the case.
+   */
+  public getInitializedClass(thread: threading.JVMThread, typeStr: string): ClassData.ClassData {
+    var cls = this.getLoadedClass(typeStr);
+    if (cls !== null) {
+      if (cls.get_state() === enums.ClassState.INITIALIZED) {
+        return cls;
+      } else if (cls.tryToInitialize()) {
+        return cls;
+      } else {
+        // Check if the thread owns the initialized lock. If so, that thread
+        // can treat the class as already initialized.
+        if (this.initializeClassLocks.getOwner(typeStr) === thread) {
+          return cls;
+        }
+        return null;
+      }
+    } else {
+      return cls;
+    }
+  }
+
+  /**
+   * Asynchronously loads the given class.
+   */
+  public loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
+    // See if we can grab this synchronously first.
+    var cdata = this.getLoadedClass(typeStr);
+    if (cdata) {
+      setImmediate(() => {
+        cb(cdata);
+      });
+    } else {
+      // Check the loadClass lock for this class.
+      if (this.loadClassLocks.tryLock(typeStr, thread, cb)) {
+        // Async it is!
+        if (util.is_reference_type(typeStr)) {
+          this._loadClass(thread, typeStr, (cdata) => {
+            this.loadClassLocks.unlock(typeStr, cdata);
+          }, explicit);
+        } else {
+          // Array
+          this.loadClass(thread, util.get_component_type(typeStr), (cdata) => {
+            if (cdata != null) {
+              // Synchronously will work now.
+              this.loadClassLocks.unlock(typeStr, this.getLoadedClass(typeStr));
+            }
+          }, explicit);
+        }
       }
     }
-    return {
-      ref: 'bootstrapLoader',
-      loaded: loaded
+  }
+
+  /**
+   * Asynchronously loads the given class. Works differently for bootstrap and
+   * custom class loaders.
+   *
+   * Should never be invoked directly! Use loadClass.
+   */
+  public _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit?: boolean): void {
+    throw new Error("Abstract method!");
+  }
+
+  /**
+   * Convenience function: Resolve many classes. Calls cb with null should
+   * an error occur.
+   */
+  public resolveClasses(thread: threading.JVMThread, typeStrs: string[], cb: (classes: { [typeStr: string]: ClassData.ClassData }) => void) {
+    var classes: { [typeStr: string]: ClassData.ClassData } = {};
+    util.async_foreach<string>(typeStrs, (typeStr: string, next_item: (err?: any) => void) => {
+      this.resolveClass(thread, typeStr, (cdata) => {
+        if (cdata === null) {
+          next_item("Error resolving class: " + typeStr);
+        } else {
+          classes[typeStr] = cdata;
+          next_item();
+        }
+      });
+    }, (err?: any): void => {
+      if (err) {
+        cb(null);
+      } else {
+        cb(classes);
+      }
+    });
+  }
+
+  /**
+   * Asynchronously *resolves* the given class by loading the class and
+   * resolving its super class, interfaces, and/or component classes.
+   */
+  public resolveClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
+    this.loadClass(thread, typeStr, (cdata: ClassData.ClassData) => {
+      if (cdata === null || cdata.is_resolved()) {
+        // Nothing to do! Either cdata is null, an exception triggered, and we
+        // failed, or cdata is already resolved.
+        setImmediate(() => { cb(cdata); });
+      } else {
+        assert(!util.is_primitive_type(typeStr));
+        var toResolve: string[] = [cdata.get_super_class_type()];
+        if (util.is_array_type(typeStr)) {
+          // Array: Super class + component type.
+          toResolve.push((<ClassData.ArrayClassData>cdata).get_component_type());
+        } else {
+          // Reference: interface types + super class.
+          toResolve = cdata.get_interface_types().concat(toResolve);
+        }
+        // Gotta resolve 'em all!
+        util.async_foreach<string>(toResolve, (aTypeStr: string, next: (err?: any) => void): void => {
+          // SPECIAL CASE: super class was null (java/lang/Object).
+          if (aTypeStr == null) {
+            return next();
+          }
+          this.resolveClass(thread, aTypeStr, (aCdata: ClassData.ClassData) => {
+            if (aCdata === null) {
+              next('Failed to resolve ' + aTypeStr);
+            } else {
+              next();
+            }
+          }, explicit);
+        }, (err?: any) => {
+          if (err) {
+            // An exception has already been thrown when one of the classes
+            // failed to load.
+            cb(null);
+          } else {
+            // Success! This synchronous resolution should succeed now.
+            cdata.tryToResolve();
+            assert(cdata.is_resolved());
+            cb(cdata);
+          }
+        });
+      }
+    }, explicit);
+  }
+
+  /**
+   * Asynchronously *initializes* the given class and its super classes.
+   */
+  public initializeClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
+    // Get the resolved class.
+    this.resolveClass(thread, typeStr, (cdata: ClassData.ClassData) => {
+      if (cdata === null || cdata.is_initialized() || this.initializeClassLocks.getOwner(typeStr) === thread) {
+        // Nothing to do! Either resolution failed and an exception has already
+        // been thrown, cdata is already initialized, or the current thread is
+        // initializing the class.
+        setImmediate(() => {
+          cb(cdata);
+        });
+      } else if (this.initializeClassLocks.tryLock(typeStr, thread, cb)) {
+        // Initialize the super class, and then this class.
+        // Must be a reference type.
+        assert(util.is_reference_type(typeStr));
+        var superClassType = cdata.get_super_class_type();
+        if (superClassType != null) {
+          this.initializeClass(thread, superClassType, (superCdata: ClassData.ClassData) => {
+            if (superCdata == null) {
+              // Nothing to do. Initializing the super class failed.
+              this.initializeClassLocks.unlock(typeStr, null);
+            } else {
+              // Initialize myself.
+              this._initializeClass(thread, typeStr, <ClassData.ReferenceClassData> cdata, (cdata) => {
+                this.initializeClassLocks.unlock(typeStr, cdata);
+              });
+            }
+          });
+        } else {
+          // java/lang/Object's parent is NULL.
+          // Continue initializing this class.
+          this._initializeClass(thread, typeStr, <ClassData.ReferenceClassData> cdata, (cdata) => {
+            this.initializeClassLocks.unlock(typeStr, cdata);
+          });
+        }
+      }
+    }, explicit);
+  }
+
+  /**
+   * Helper function. Initializes the specified class alone. Assumes super
+   * class is already initialized.
+   */
+  private _initializeClass(thread: threading.JVMThread, typeStr: string, cdata: ClassData.ReferenceClassData, cb: (cdata: ClassData.ClassData) => void): void {
+    var clinit = cdata.get_method('<clinit>()V');
+    // We'll reset it if it fails.
+    if (clinit != null) {
+      debug("T" + thread.ref + " Running static initialization for class " + typeStr + "...");
+      thread.runMethod(clinit, [], (e?: java_object.JavaObject, rv?: any) => {
+        if (e) {
+          debug("Initialization of class " + typeStr + " failed.");
+          cdata.set_state(enums.ClassState.RESOLVED);
+          /**
+           * "The class or interface initialization method must have completed
+           *  abruptly by throwing some exception E. If the class of E is not
+           *  Error or one of its subclasses, then create a new instance of the
+           *  class ExceptionInInitializerError with E as the argument, and use
+           *  this object in place of E."
+           * @url http://docs.oracle.com/javase/specs/jvms/se7/html/jvms-5.html#jvms-5.5
+           */
+          if (e.cls.is_castable(this.bootstrap.getResolvedClass('Ljava/lang/Error;'))) {
+            // 'e' is 'Error or one of its subclasses'.
+            thread.throwException(e);
+            cb(null);
+          } else {
+            // Wrap the error.
+            this.initializeClass(thread, 'Ljava/lang/ExceptionInInitializerError;', (cdata: ClassData.ReferenceClassData) => {
+              if (cdata == null) {
+                // Exceptional failure right here: *We failed to construct ExceptionInInitializerError*!
+                // initializeClass will throw an exception on our behalf;
+                // nothing to do.
+                cb(null);
+              } else {
+                // Construct the object!
+                var e2 = new java_object.JavaObject(cdata),
+                  cnstrctr = cdata.get_method('<init>(Ljava/lang/Throwable;)V');
+                // Construct the ExceptionInInitializerError!
+                thread.runMethod(cnstrctr, [e2, e], (e?: java_object.JavaObject, rv?: any) => {
+                  // Throw the newly-constructed error!
+                  thread.throwException(e2);
+                  cb(null);
+                });
+              }
+            });
+          }
+        } else {
+          cdata.set_state(enums.ClassState.INITIALIZED);
+          debug("Initialization of class " + typeStr + " succeeded.");
+          // Normal case! Initialization succeeded.
+          cb(cdata);
+        }
+      });
+    } else {
+      // Class doesn't have a static initializer.
+      cdata.set_state(enums.ClassState.INITIALIZED);
+      cb(cdata);
+    }
+  }
+
+  /**
+   * Throws the appropriate exception/error for a class not being found.
+   * If loading was implicitly triggered by the JVM, we call NoClassDefFoundError.
+   * If the program explicitly called loadClass, then we throw the ClassNotFoundException.
+   */
+  public throwClassNotFoundException(thread: threading.JVMThread, typeStr: string, explicit: boolean): void {
+    thread.throwNewException(explicit ? 'Ljava/lang/ClassNotFoundException;' : 'Ljava/lang/NoClassDefFoundError;', 'Cannot load class: ' + util.ext_classname(typeStr));
+  }
+
+  /**
+   * Returns the JVM object corresponding to this ClassLoader.
+   */
+  public getLoaderObject(): JavaClassLoaderObject {
+    throw new Error('Abstract method');
+  }
+}
+
+/**
+ * The JVM's bootstrap class loader. Loads classes directly from files on the
+ * file system.
+ */
+export class BootstrapClassLoader extends ClassLoader {
+  /**
+   * The classpath. The first path in the array is the first searched.
+   * Meaning: The *end* of this array is the bootstrap class loader, and the
+   *   *beginning* of the array is the classpath item added last.
+   */
+  private classPath: string[];
+  /**
+   * The path where jar files should be extracted.
+   */
+  private extractionPath: string;
+  /**
+   * All of the currently loaded JAR files.
+   */
+  private jarFiles: { [jarPath: string]: JAR };
+  /**
+   * Maps the file system path to .jar files to the file system path where it
+   * is extracted.
+   */
+  private jarFilePaths: { [jarPath: string]: string };
+
+  /**
+   * Constructs the bootstrap classloader with the given classpath.
+   * @param classPath The classpath, where the *first* item is the *last*
+   *   classpath searched. Meaning, the classPath[0] should be the bootstrap
+   *   class path.
+   * @param extractionPath The path where jar files should be extracted.
+   * @param cb Called once all of the classpath items have been checked.
+   *   Passes an error if one occurs.
+   */
+  constructor(classPath: string[], extractionPath: string, cb: (e?: any) => void) {
+    super(this);
+    this.classPath = [];
+    this.extractionPath = path.resolve(extractionPath);
+    // XXX: Must be initialized here rather than at the property definition
+    // because we reference 'this' in the call to 'super'.
+    this.unzipJar = util.are_in_browser() ? this.unzipJarBrowser : this.unzipJarNode;
+    this.jarFiles = {};
+    this.jarFilePaths = {};
+
+    // Checks all of the classpaths. Add only those that exist.
+    var checkClasspaths = (cb: (e?: any) => void) => {
+      util.async_foreach<string>(classPath, (p: string, next_item: (err?: any) => void) => {
+        this.addClassPathItem(p, (success: boolean) => {
+          // Ignore the success condition. It's not an error to pass an invalid
+          // classpath to the JVM.
+          next_item();
+        });
+      }, cb);
+    };
+
+    // Prepare the extraction path.
+    fs.exists(this.extractionPath, (exists: boolean) => {
+      if (!exists) {
+        fs.mkdir(this.extractionPath, (err?) => {
+          if (err) {
+            cb(new Error("Unable to create JAR file directory " + this.extractionPath + ": " + err));
+          } else {
+            checkClasspaths(cb);
+          }
+        });
+      } else {
+        checkClasspaths(cb);
+      }
+    });
+  }
+
+  /**
+   * Returns a listing of loaded packages.
+   */
+  public getPackageNames(): string[] {
+    var classNames = this.getLoadedClassNames(), i: number, className: string,
+      finalPackages: {[pkgNames: string]: boolean } = { };
+    for (i = 0; i < classNames.length; i++) {
+      className = classNames[i];
+      if (util.is_reference_type(className)) {
+        finalPackages[className.substring(1, (className.lastIndexOf('/')) + 1)] = true;
+      }
+    }
+    return Object.keys(finalPackages);
+  }
+
+  /**
+   * Adds the given classpath to the class path. If added already, we move it
+   * to the front of the classpath.
+   *
+   * Verifies that the path exists prior to adding.
+   *
+   * @param p The path to add.
+   */
+  public addClassPathItem(p: string, cb: (success: boolean) => void) {
+    var classPath = this.classPath;
+    // Standardize.
+    p = path.resolve(p);
+
+    // Check if the item exists.
+    fs.stat(p, (err, stats: fs.Stats) => {
+      if (err) {
+        cb(false);
+      } else {
+        if (stats.isFile()) {
+          // JAR file. Extract first.
+          this.unzipJar(p, (err, unzipPath?: string) => {
+            if (err) {
+              cb(false);
+            } else {
+              this.jarFilePaths[p] = unzipPath;
+              addPath(unzipPath, cb);
+            }
+          });
+        } else {
+          // Directory.
+          addPath(p, cb);
+        }
+      }
+    });
+
+    var addPath = (p: string, cb: (success: boolean) => void) => {
+      var existingIdx = classPath.indexOf(p);
+      if (existingIdx !== -1) {
+        // Remove it before adding it in again.
+        classPath.splice(existingIdx, 1);
+      }
+      // Add to the front of the classpath.
+      classPath.unshift(p);
+      // Check for a manifest. If it exists, add it, and then add its classpath
+      // items.
+      var manifestPath = path.resolve(p, 'META-INF', 'MANIFEST.MF');
+      fs.exists(manifestPath, (exists) => {
+        if (exists) {
+          var jar = new JAR(p, (err) => {
+            // Only add the jar file if we successfully parsed it.
+            if (!err) {
+              this.jarFiles[p] = jar;
+            }
+            cb(true);
+          });
+        } else {
+          cb(true);
+        }
+      });
     };
   }
 
-  // Sets the reset bit on all of the classes in the CL to 1.
-  // Causes the classes to be reset when they are first resolved.
-  public reset(): void {
-    var loaded_classes = this.loaded_classes;
-    for (var cname in loaded_classes) {
-      var cls = loaded_classes[cname];
-      if (cname !== "__proto__") {
-        cls.reset_bit = 1;
-      }
+  /**
+   * Retrieve the JAR object for the given jar file loaded in the class loader.
+   */
+  public getJar(jarPath: string): JAR {
+    // Standardize path.
+    jarPath = path.resolve(jarPath);
+    if (this.jarFilePaths.hasOwnProperty(jarPath)) {
+      return this.jarFiles[this.jarFilePaths[jarPath]];
     }
+    return null;
   }
 
-  // Returns the given primitive class. Creates it if needed.
-  public get_primitive_class(type_str: string): ClassData.PrimitiveClassData {
-    var cdata = <ClassData.PrimitiveClassData>this._get_class(type_str);
-    if (cdata != null) {
-      return cdata;
+  /**
+   * Retrieves or defines the specified primitive class.
+   */
+  public getPrimitiveClass(typeStr: string): ClassData.PrimitiveClassData {
+    var cdata = <ClassData.PrimitiveClassData> this.getClass(typeStr);
+    if (cdata == null) {
+      cdata = new ClassData.PrimitiveClassData(typeStr, this);
+      this.addClass(typeStr, cdata);
     }
-    cdata = new ClassData.PrimitiveClassData(type_str, this);
-    this._add_class(type_str, cdata);
     return cdata;
   }
 
-  // Asynchronously retrieves the given class, and passes its ClassData
-  // representation to success_fn.
-  // Passes a callback to failure_fn that throws an exception in the event
-  // of an error.
-  // Called only:
-  // * With a type_str referring to a Reference Class.
-  // * If the class is not already loaded.
-  // Set 'explicit' to 'true' if this is explicitly invoked by the program and
-  // not by an internal JVM mechanism.
-  public _resolve_class(rs: runtime.RuntimeState, type_str: string, success_fn: (cd: ClassData.ClassData)=>void, failure_fn: (e_fn: ()=>void)=>void, explicit?: boolean): void {
-    var _this = this;
-
-    if (explicit == null) {
-      explicit = false;
-    }
-    trace("ASYNCHRONOUS: resolve_class " + type_str + " [bootstrap]");
-    var rv = this.get_resolved_class(type_str, true);
-    if (rv != null) {
-      return success_fn(rv);
-    }
-    this.jvm_state.read_classfile(type_str, (function (data) {
-      // Fetch super class/interfaces in parallel.
-      _this.define_class(rs, type_str, data, success_fn, failure_fn, true, explicit);
-    }), (function (e) {
-        try {
-          e();
-        } catch (exp) {
-          trace("Failed to read class " + type_str + ": " + exp + "\n" + exp.stack);
-        }
-        return failure_fn(function () {
-          // We create a new frame to create a NoClassDefFoundError and a
-          // ClassNotFoundException.
-          // TODO: Should probably have a better helper for these things
-          // (asynchronous object creation)
-          rs.meta_stack().push(threading.StackFrame.native_frame('$class_not_found', (function () {
-            // Rewrite myself -- I have another method to run.
-            rs.curr_frame().runner = function () {
-              var rv = rs.pop();
-              rs.meta_stack().pop();
-              // Throw the exception.
-              throw new JavaException(rv);
-            };
-            // If this was implicitly called by the JVM, we call NoClassDefFoundError.
-            // If the program explicitly called this, then we throw the ClassNotFoundException.
-            if (!explicit) {
-              var rv = rs.pop();
-              var cls = <ClassData.ReferenceClassData>_this.bootstrap.get_initialized_class('Ljava/lang/NoClassDefFoundError;');
-              var v = new JavaObject(rs, cls);
-              rs.push_array([v, v, rv]); // dup, ldc
-              return cls.method_lookup(rs, '<init>(Ljava/lang/Throwable;)V').setup_stack(rs); // invokespecial
-            }
-          }), (function () {
-              rs.meta_stack().pop();
-              return failure_fn((function () {
-                throw new Error('Failed to throw a ' + (explicit ? 'ClassNotFoundException' : 'NoClassDefFoundError') + '.');
-              }));
-            })));
-          var cls = <ClassData.ReferenceClassData>_this.bootstrap.get_initialized_class('Ljava/lang/ClassNotFoundException;');
-          var v = new JavaObject(rs, cls); // new
-          var msg = rs.init_string(util.ext_classname(type_str));
-          rs.push_array([v, v, msg]); // dup, ldc
-          return cls.method_lookup(rs, '<init>(Ljava/lang/String;)V').setup_stack(rs); // invokespecial
+  /**
+   * Asynchronously load the given class from the classpath.
+   *
+   * SHOULD ONLY BE INVOKED INTERNALLY BY THE CLASSLOADER.
+   */
+  public _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
+    debug('[BOOTSTRAP] Loading class ' + typeStr);
+    // This method is only valid for reference types!
+    assert(util.is_reference_type(typeStr));
+    // Search the class path for the class.
+    var clsFilePath = util.descriptor2typestr(typeStr);
+    util.async_find<string>(this.classPath, (p: string, callback: (success: boolean) => void): void => {
+      fs.exists(path.join(p, clsFilePath + ".class"), callback);
+    }, (foundPath?: string): void => {
+      if (foundPath) {
+        // Read the class file, define the class!
+        var clsPath = path.join(foundPath, clsFilePath + ".class");
+        fs.readFile(clsPath, (err, data: NodeBuffer) => {
+          if (err) {
+            debug("Failed to load class " + typeStr + ": " + err);
+            this.throwClassNotFoundException(thread, typeStr, explicit);
+            cb(null);
+          } else {
+            // We can read the class, all is well!
+            cb(this.defineClass(thread, typeStr, data));
+          }
         });
-      }));
+      } else {
+        // No such class.
+        debug("Could not find class " + typeStr);
+        this.throwClassNotFoundException(thread, typeStr, explicit);
+        cb(null);
+      }
+    });
+  }
+
+  /**
+   * Uses BrowserFS to mount the jar file in the file system, allowing us to
+   * lazily extract only the files we care about.
+   */
+  private unzipJarBrowser(jar_path: string, cb: (err: any, unzip_path?: string) => void): void {
+    var dest_folder: string = path.resolve(this.extractionPath, path.basename(jar_path, '.jar')),
+      mfs = (<any>fs).getRootFS();
+    // In case we have mounted this before, unmount.
+    try {
+      mfs.umount(dest_folder);
+    } catch (e) {
+      // We didn't mount it before. Ignore.
+    }
+
+    // Grab the file.
+    fs.readFile(jar_path, function (err: any, data: NodeBuffer) {
+      var jar_fs;
+      if (err) {
+        // File might not have existed, or there was an error reading it.
+        return cb(err);
+      }
+      // Try to mount.
+      try {
+        jar_fs = new BrowserFS.FileSystem.ZipFS(data, path.basename(jar_path));
+        mfs.mount(dest_folder, jar_fs);
+        // Success!
+        cb(null, dest_folder);
+      } catch (e) {
+        cb(e);
+      }
+    });
+  }
+
+  /**
+   * Helper function for unzip_jar_node.
+   */
+  private _extractAllTo(files: any[], dest_dir: string): void {
+    for (var filepath in files) {
+      var file = files[filepath];
+      filepath = path.join(dest_dir, filepath);
+      if (file.options.dir || filepath.slice(-1) === '/') {
+        if (!fs.existsSync(filepath)) {
+          fs.mkdirSync(filepath);
+        }
+      } else {
+        fs.writeFileSync(filepath, file._data, 'binary');
+      }
+    }
+  }
+
+  /**
+   * Uses JSZip to eagerly extract the entire JAR file into a temporary folder.
+   */
+  private unzipJarNode(jar_path: string, cb: (err: any, unzip_path?: string) => void): void {
+    var JSZip = require('node-zip'),
+      unzipper = new JSZip(fs.readFileSync(jar_path, 'binary'), {
+        base64: false,
+        checkCRC32: true
+      }),
+      dest_folder = path.resolve(this.extractionPath, path.basename(jar_path, '.jar'));
+
+    try {
+      if (!fs.existsSync(dest_folder)) {
+        fs.mkdirSync(dest_folder);
+      }
+      this._extractAllTo(unzipper.files, dest_folder);
+      // Reset stack depth.
+      setImmediate(function () { return cb(null, dest_folder); });
+    } catch (e) {
+      setImmediate(function () { return cb(e); });
+    }
+  }
+
+  /**
+   * Given a path to a JAR file, returns a path in the file system where the
+   * extracted contents can be read.
+   */
+  private unzipJar: (jar_path: string, cb: (err: any, unzipPath?: string) => void) => void;
+
+  /**
+   * Returns a listing of absolute paths to the class files loaded in the
+   * bootstrap class loader.
+   */
+  public getLoadedClassFiles(cb: (files: string[]) => void): void {
+    var loadedClasses = this.getLoadedClassNames(),
+      loadedClassFiles = [];
+    util.async_foreach<string>(loadedClasses, (className: string, next_item: (err?: any) => void) => {
+      if (util.is_reference_type(className)) {
+        // Figure out from whence it came.
+        util.async_foreach<string>(this.classPath, (cPath: string, next_cpath: (err?: any) => void) => {
+          var pathToClass = path.resolve(cPath, className);
+          fs.exists(pathToClass, (exists: boolean) => {
+            if (exists) {
+              loadedClassFiles.push(pathToClass);
+              // Short circuit.
+              next_item();
+            } else {
+              next_cpath();
+            }
+          });
+        }, next_item);
+      } else {
+        next_item();
+      }
+    }, (err?: any) => {
+      cb(loadedClassFiles);
+    });
+  }
+
+  /**
+   * Returns the JVM object corresponding to this ClassLoader.
+   * @todo Represent the bootstrap by something other than 'null'.
+   * @todo These should be one-in-the-same.
+   */
+  public getLoaderObject(): JavaClassLoaderObject {
+    return null;
+  }
+
+  /**
+   * Returns the current classpath.
+   */
+  public getClassPath(): string[] {
+    // Reverse it so it is the expected order (last item is first search target)
+    return this.classPath.slice(0).reverse();
   }
 }
 
+/**
+ * A Custom ClassLoader. Loads classes by calling loadClass on the user-defined
+ * loader.
+ */
 export class CustomClassLoader extends ClassLoader {
-  private loader_obj: java_object.JavaClassLoaderObject;
-  // @loader_obj is the JavaObject for the java/lang/ClassLoader instance that
-  // represents this ClassLoader.
-  // @bootstrap is an instance of the bootstrap class loader.
-  constructor(bootstrap: BootstrapClassLoader, loader_obj: java_object.JavaClassLoaderObject) {
+  constructor(bootstrap: BootstrapClassLoader,
+    private loaderObj: JavaClassLoaderObject) {
     super(bootstrap);
-    this.loader_obj = loader_obj;
   }
 
-  public serialize(visited: {[name:string]:boolean}): any {
-    return this.loader_obj.serialize(visited);
-  }
-
-  // Asynchronously retrieves the given class, and passes its ClassData
-  // representation to success_fn.
-  // Passes a callback to failure_fn that throws an exception in the event
-  // of an error.
-  // Called only:
-  // * With a type_str referring to a Reference Class.
-  // * If the class is not already loaded.
-  public _resolve_class(rs: runtime.RuntimeState, type_str: string, success_fn: (cd:ClassData.ClassData)=>void, failure_fn: (e_fn:()=>void)=>void, explicit?:boolean): void {
-    var _this = this;
-
-    if (explicit == null) {
-      explicit = false;
+  private loadClassMethod: methods.Method;
+  private getLoadClassMethod(thread: threading.JVMThread): methods.Method {
+    if (this.loadClassMethod) {
+      return this.loadClassMethod;
+    } else {
+      // This will trigger an exception on the JVM thread if the method does
+      // not exist.
+      return this.loadClassMethod = this.loaderObj.cls.method_lookup(thread, 'loadClass(Ljava/lang/String;)Ljava/lang/Class;');
     }
-    trace("ASYNCHRONOUS: resolve_class " + type_str + " [custom]");
-    rs.meta_stack().push(threading.StackFrame.native_frame("$" + (this.loader_obj.cls.get_type()), (function () {
-      var jclo = rs.pop();
-      rs.meta_stack().pop();
-      var cls = jclo.$cls;
-      if (_this.get_resolved_class(type_str, true) == null) {
-        // If loadClass delegated to another ClassLoader, it will not have called
-        // defineClass on the result. If so, we will need to stash this class.
-        _this._add_class(type_str, cls);
-      }
-      return rs.async_op(function () {
-        return success_fn(cls);
-      });
-    }), (function (e) {
-        rs.meta_stack().pop();
-        // XXX: Convert the exception.
-        return rs.async_op(function () {
-          return failure_fn(function () {
-            throw e;
-          });
+  }
+
+  /**
+   * Asynchronously load the given class from the classpath. Calls the
+   * classloader's loadClass method.
+   *
+   * SHOULD ONLY BE INVOKED BY THE CLASS LOADER.
+   *
+   * @param thread The thread that triggered the loading.
+   * @param typeStr The type string of the class.
+   * @param cb The callback that will be called with the loaded class. It will
+   *   be passed a null if there is an error -- which also indicates that it
+   *   threw an exception on the JVM thread.
+   * @param explicit 'True' if loadClass was explicitly invoked by the program,
+   *   false otherwise. This changes the exception/error that we throw.
+   */
+  public _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
+    debug('[CUSTOM] Loading class ' + typeStr);
+    // This method is only valid for reference types!
+    assert(util.is_reference_type(typeStr));
+    // Invoke the custom class loader.
+    var loadClassMethod = this.getLoadClassMethod(thread);
+    if (loadClassMethod) {
+      thread.runMethod(loadClassMethod, [this.loaderObj, java_object.initString(this.bootstrap, util.ext_classname(typeStr))],
+        (e?: java_object.JavaObject, jco?: java_object.JavaClassObject): void => {
+          if (e) {
+            // Exception! There was an issue defining the class.
+            this.throwClassNotFoundException(thread, typeStr, explicit);
+            cb(null);
+          } else {
+            // Add the class returned by loadClass, in case the classloader
+            // proxied loading to another classloader.
+            var cls = jco.$cls;
+            this.addClass(typeStr, cls);
+            cb(cls);
+          }
         });
-      })));
-    rs.push2(this.loader_obj, rs.init_string(util.ext_classname(type_str)));
-    // We don't care about the return value of this function, as
-    // define_class handles registering the ClassData with the class loader.
-    // define_class also handles recalling resolve_class for any needed super
-    // classes and interfaces.
-    this.loader_obj.cls.method_lookup(rs, 'loadClass(Ljava/lang/String;)Ljava/lang/Class;').setup_stack(rs);
-    // Push ourselves back into the execution loop to run the method.
-    rs.run_until_finished((function () { }), false, rs.stashed_done_cb);
+    } else {
+      // loadClassMethod doesn't exist, and we already threw an exception on
+      // the thread... nothing to do!
+      setImmediate(() => {
+        cb(null);
+      });
+    }
+  }
+
+  /**
+   * Returns the JVM object corresponding to this ClassLoader.
+   * @todo These should be one-in-the-same.
+   */
+  public getLoaderObject(): JavaClassLoaderObject {
+    return this.loaderObj;
+  }
+}
+
+// Each JavaClassLoaderObject is a unique ClassLoader.
+export class JavaClassLoaderObject extends java_object.JavaObject {
+  public $loader: ClassLoader;
+  constructor(thread: threading.JVMThread, cls: any) {
+    super(cls);
+    this.$loader = new CustomClassLoader(thread.getBsCl(), this);
+  }
+
+  /**
+   * @todo Remove or refactor.
+   */
+  public serialize(visited: any): any {
+    if (visited[this.ref]) {
+      return "<*" + this.ref + ">";
+    }
+    visited[this.ref] = true;
+    var fields = {};
+    for (var k in this.fields) {
+      var f = this.fields[k];
+      if (!f || (typeof f.serialize !== "function"))
+        fields[k] = f;
+      else
+        fields[k] = f.serialize(visited);
+    }
+    var loaded = {},
+      loadedClasses = this.$loader.getLoadedClassNames();
+    loadedClasses.forEach((type: string) => {
+      var vcls = this.$loader.getLoadedClass(type);
+      //loaded[type + "(" + enums.ClassState[vcls.get_state()] + ")"] = vcls.loader.serialize(visited);
+    });
+    return {
+      type: this.cls.get_type(),
+      ref: this.ref,
+      fields: fields,
+      loaded: loaded
+    };
   }
 }

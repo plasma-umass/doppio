@@ -4,16 +4,17 @@ import java_cli = require('../src/java_cli');
 import JVM = require('../src/jvm');
 import path = require('path');
 import os = require('os');
+// Makes our stack traces point to the TypeScript source code lines.
+require('source-map-support').install({
+  handleUncaughtExceptions: true
+});
 
-function done_cb(success:boolean): void { process.exit(success ? 0 : 1); };
+function done_cb(success:boolean): void { process.exit(success ? 0 : 1); }
 
 var jvm_state: JVM;
 
 process.on('SIGINT', function () {
   console.error('Doppio caught SIGINT');
-  if (jvm_state) {
-    jvm_state.dump_state();
-  }
   process.exit(0);
 });
 
@@ -22,6 +23,7 @@ java_cli.java(process.argv.slice(2), {
   jcl_path: path.resolve(__dirname, '../vendor/classes'),
   java_home_path: path.resolve(__dirname, '../vendor/java_home'),
   jar_file_path: path.resolve(os.tmpDir(), 'doppio_jars'),
+  native_classpath: [path.resolve(__dirname, '../src/natives')],
   launcher_name: process.argv[0] + " " + path.relative(process.cwd(), process.argv[1])
 }, done_cb, function(jvm: JVM): void {
   jvm_state = jvm;

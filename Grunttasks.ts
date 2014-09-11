@@ -36,9 +36,9 @@ export function setup(grunt: IGrunt) {
     // templates.
     // Why do we need this? See:
     // http://stackoverflow.com/questions/21121239/grunt-how-do-recursive-templates-work
-    resolve: function(...segs: string[]): string {
+    resolve: function (...segs: string[]): string {
       var fixedSegs: string[] = [];
-      segs.forEach(function(seg) {
+      segs.forEach(function (seg) {
         while (seg.indexOf('<%=') !== -1) {
           seg = <any> grunt.config.process(seg);
         }
@@ -59,26 +59,34 @@ export function setup(grunt: IGrunt) {
       jcl_dir: '<%= resolve(build.vendor_dir, "classes") %>',
       build_dir: '<%= resolve(build.doppio_dir, "build", build.build_type) %>',
       // TODO: Maybe fix this to prevent us from using too much scratch space?
-      scratch_dir: path.resolve(os.tmpDir(), "jdk-download" + Math.floor(Math.random()*100000))
+      scratch_dir: path.resolve(os.tmpDir(), "jdk-download" + Math.floor(Math.random() * 100000))
     },
     make_build_dir: {
       options: { build_dir: "<%= build.build_dir %>" },
       // It's a multi-task, so you need a default target.
       default: {}
     },
-    listings: { options: { output: "<%= resolve(build.build_dir, 'browser', 'listings.json') %>",
-                           cwd: "<%= build.build_dir %>" },
-                default: {}},
-    'mini-rt': { options: { output: "<%= resolve(build.build_dir, 'browser', 'mini-rt.tar') %>",
-                            run_class: 'classes/util/Javac',
-                            run_args: ["./classes/test/FileOps.java"] },
-                 default: {}},
+    listings: {
+      options: {
+        output: "<%= resolve(build.build_dir, 'browser', 'listings.json') %>",
+        cwd: "<%= build.build_dir %>"
+      },
+      default: {}
+    },
+    'mini-rt': {
+      options: {
+        output: "<%= resolve(build.build_dir, 'browser', 'mini-rt.tar') %>",
+        run_class: 'classes/util/Javac',
+        run_args: ["./classes/test/FileOps.java"]
+      },
+      default: {}
+    },
     'ice-cream': {
       'release-cli': {
         files: [{
           expand: true,
           cwd: 'build/dev-cli',
-          src: '+(console|src)/*.js',
+          src: '+(console|src)/**/*.js',
           dest: 'build/release-cli'
         }]
       },
@@ -86,7 +94,7 @@ export function setup(grunt: IGrunt) {
         files: [{
           expand: true,
           cwd: 'build/dev',
-          src: ['+(src|browser)/*.js', 'vendor/underscore/underscore.js', 'vendor/almond/almond.js'],
+          src: ['+(src|browser)/**/*.js', 'vendor/underscore/underscore.js', 'vendor/almond/almond.js'],
           dest: '<%= resolve(build.scratch_dir, "tmp_release") %>'
         }]
       }
@@ -109,7 +117,7 @@ export function setup(grunt: IGrunt) {
         // noImplicitAny: true
       },
       'dev-cli': {
-        src: ["console/*.ts", "src/*.ts"],
+        src: ["console/*.ts", "src/**/*.ts"],
         outDir: 'build/dev-cli',
         options: {
           module: 'commonjs',
@@ -117,7 +125,7 @@ export function setup(grunt: IGrunt) {
         }
       },
       dev: {
-        src: ["browser/frontend.ts", "src/*.ts"],
+        src: ["browser/frontend.ts", "src/**/*.ts"],
         outDir: 'build/dev',
         options: {
           module: 'amd',
@@ -146,13 +154,13 @@ export function setup(grunt: IGrunt) {
       ecj: {
         // We can't get the pathname from the URL, since it has an argument
         // in it that contains the actual filename.
-        files: [{expand: true, src: "<%= resolve(build.scratch_dir, 'ecj*.jar') %>"}]
+        files: [{ expand: true, src: "<%= resolve(build.scratch_dir, 'ecj*.jar') %>" }]
       },
       jazzlib: {
         options: {
           dest_dir: "<%= resolve(build.scratch_dir, 'jazzlib') %>"
         },
-        files: [{src: "<%= resolve(build.scratch_dir, '" + path.basename(url.parse(JAZZLIB_URL).pathname) + "') %>"}]
+        files: [{ src: "<%= resolve(build.scratch_dir, '" + path.basename(url.parse(JAZZLIB_URL).pathname) + "') %>" }]
       }
     },
     extract_deb: {
@@ -168,18 +176,37 @@ export function setup(grunt: IGrunt) {
       }
     },
     uglify: {
-      'release-cli': {
+      options: {
         warnings: false,
         unsafe: true,
-        global_defs: {
-          UNSAFE: true,
-          RELEASE: true
-        },
+        compress: {
+          global_defs: {
+            RELEASE: true
+          }
+        }
+      },
+      'release-cli': {
         files: [{
           expand: true,
           cwd: 'build/release-cli',
           src: '+(console|src)/*.js',
           dest: 'build/release-cli'
+        }]
+      },
+      natives: {
+        files: [{
+          expand: true,
+          cwd: '<%= build.build_dir %>',
+          src: 'src/natives/*.js',
+          dest: '<%= build.build_dir %>'
+        }]
+      },
+      'natives-browser': {
+        files: [{
+          expand: true,
+          cwd: '<%= resolve(build.scratch_dir, "tmp_release") %>',
+          src: 'src/natives/*.js',
+          dest: '<%= build.build_dir %>'
         }]
       }
     },
@@ -293,14 +320,12 @@ export function setup(grunt: IGrunt) {
           out: 'build/release/doppio.js',
           // These aren't referenced from runtime. We may want to decouple them
           // at some point.
-          include: ['src/doppio', 'src/testing', 'src/disassembler'],
+          include: ['src/doppio', 'src/testing'],
           optimize: 'uglify2',
           uglify2: {
             compress: {
               global_defs: {
-                DEBUG: false,
-                RELEASE: true,
-                UNSAFE: true
+                RELEASE: true
               }
             }
           }
@@ -346,6 +371,7 @@ export function setup(grunt: IGrunt) {
                 'setup:release-cli',
                 'ice-cream:release-cli',
                 'uglify:release-cli',
+                'uglify:natives',
                 // Rebuild dev
                 'setup:dev',
                 'ts:dev',
@@ -407,7 +433,7 @@ export function setup(grunt: IGrunt) {
 
   grunt.registerTask('setup', "Sets up doppio's environment prior to building.", function(build_type: string) {
     var need_jcl: boolean, need_ecj: boolean, need_jazzlib: boolean,
-        need_java_home: boolean;
+      need_java_home: boolean, tasks: string[] = [];
     if (build_type == null) {
       grunt.fail.fatal("setup build task needs to know the build type.");
     }
@@ -421,24 +447,25 @@ export function setup(grunt: IGrunt) {
       // Create download folder. It shouldn't exist, as it is randomly generated.
       fs.mkdirSync(grunt.config('build.scratch_dir'));
       // Schedule download task.
-      grunt.task.run('curl-dir');
+      tasks.push('curl-dir');
     }
     if (need_jcl || need_java_home) {
-      grunt.task.run('extract_deb');
+      tasks.push('extract_deb');
     }
     if (need_jcl) {
-      grunt.task.run('unzip:jcl');
+      tasks.push('unzip:jcl');
     }
     if (need_ecj) {
-      grunt.task.run('unzip:ecj');
+      tasks.push('unzip:ecj');
     }
     if (need_jazzlib) {
-      grunt.task.run('unzip:jazzlib');
-      grunt.task.run('copy:jazzlib');
+      tasks.push('unzip:jazzlib');
+      tasks.push('copy:jazzlib');
     }
     if (need_java_home) {
-      grunt.task.run('setup_java_home');
+      tasks.push('setup_java_home');
     }
+    grunt.task.run(tasks);
   });
   grunt.registerTask('java',
     ['find_native_java',
@@ -464,6 +491,7 @@ export function setup(grunt: IGrunt) {
      'make_build_dir',
      'ice-cream:release-cli',
      'uglify:release-cli',
+     'uglify:natives',
      'launcher:doppio']);
   grunt.registerTask('dev',
     [// We need release-cli for mini-rt, and we must run it first as it mutates
@@ -488,8 +516,9 @@ export function setup(grunt: IGrunt) {
      'concat',
      'mini-rt',
      'copy:build',
-     'listings',
      'ice-cream:release',
+     'uglify:natives-browser',
+     'listings',
      'requirejs:release',
      'requirejs:release-frontend']);
   grunt.registerTask('test',
