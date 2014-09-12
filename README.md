@@ -13,6 +13,11 @@ You can also get in touch via our [mailing list][mail] or via the IRC channel
 
 [mail]: https://groups.google.com/forum/?fromgroups#!forum/plasma-umass-gsoc
 
+Integrating Into Your Site
+--------------------------
+
+Check out our [Developer Guide](https://github.com/plasma-umass/doppio/wiki/Doppio-Developer-Guide) for information on how you can integrate doppio into your website!
+
 Getting & Building the Code
 ---------------------------
 
