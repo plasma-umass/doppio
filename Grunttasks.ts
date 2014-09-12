@@ -106,6 +106,12 @@ export function setup(grunt: IGrunt) {
       },
       'doppio': {
         options: { dest: '<%= resolve(build.doppio_dir, "doppio") %>' }
+      },
+      'doppioh': {
+        options: {
+          src: '<%= resolve(build.build_dir, "console", "doppioh.js") %>',
+          dest: '<%= resolve(build.doppio_dir, "doppioh") %>'
+        }
       }
     },
     // Compiles TypeScript files.
@@ -492,7 +498,8 @@ export function setup(grunt: IGrunt) {
      'ice-cream:release-cli',
      'uglify:release-cli',
      'uglify:natives',
-     'launcher:doppio']);
+     'launcher:doppio',
+     'launcher:doppioh']);
   grunt.registerTask('dev',
     [// We need release-cli for mini-rt, and we must run it first as it mutates
      // build variables (e.g. build.build_type).

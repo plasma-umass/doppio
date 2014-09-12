@@ -3,6 +3,7 @@ import JVM = require('./jvm');
 import util = require('./util');
 import logging = require('./logging');
 import path = require('path');
+import interfaces = require('./interfaces');
 var underscore = require('../vendor/underscore/underscore');
 
 /**
@@ -55,21 +56,10 @@ function setupOptparse() {
 /**
  * Doppio-specific configuration options passed to this Java interface.
  */
-export interface JavaOptions {
-  // Path to the Java Class Library.
-  jcl_path?: string;
-  // Path to package-based natives. There should be at least one for the JCL.
-  native_classpath: string[];
-  // Path to `java_home`.
-  java_home_path?: string;
-  // Folder to extract JAR files to.
-  jar_file_path?: string;
-  // Classpath item that should go after the bootstrap classpath, but before
-  // classpath items specified via the -classpath flag.
-  implicit_classpath?: string[];
+export interface JVMCLIOptions extends interfaces.JVMOptions {
   // Name of the command used to launch `java`. Used in the 'usage' portion of
   // the help message.
-  launcher_name?: string;
+  launcherName?: string;
 }
 
 /**
@@ -84,27 +74,26 @@ export interface JavaOptions {
  * @param {function} [jvm_started] - Called with the JVM object once we have invoked it.
  * @example <caption>Equivalent to `java classes/demo/Fib 3`</caption>
  *   doppio.java(['classes/demo/Fib', '3'],
- *     {jcl_path: '/sys/vendor/classes',
- *      java_home_path: '/sys/vendor/java_home'}, function() {
+ *     {jclPath: '/sys/vendor/classes',
+ *      javaHomePath: '/sys/vendor/java_home'}, function() {
  *     // Resume whatever your frontend is doing.
  *   });
  */
-export function java(args: string[], opts: JavaOptions,
+export function java(args: string[], opts: JVMCLIOptions,
                      done_cb: (arg: boolean) => void,
                      jvm_started: (jvm: JVM) => void = function(jvm: JVM): void {}): void {
   setupOptparse();
-  var argv = optparse.parse(args), classpath: string[] = [],
-    jvm_cb, jvm_state: JVM;
+  var argv = optparse.parse(args), jvm_cb, jvm_state: JVM;
 
   // Default options
-  if (!opts.launcher_name) {
-    opts.launcher_name = 'java';
+  if (!opts.launcherName) {
+    opts.launcherName = 'java';
   }
 
   if (argv.standard.help) {
-    return print_help(opts.launcher_name, optparse.show_help(), done_cb, true);
+    return print_help(opts.launcherName, optparse.show_help(), done_cb, true);
   } else if (argv.standard.X) {
-    return print_help(opts.launcher_name, optparse.show_non_standard_help(), done_cb, true);
+    return print_help(opts.launcherName, optparse.show_non_standard_help(), done_cb, true);
   }
 
   // GLOBAL CONFIGURATION
@@ -115,7 +104,7 @@ export function java(args: string[], opts: JavaOptions,
     var level = logging[argv.non_standard.log.toUpperCase()];
     if (level == null) {
       process.stderr.write('Unrecognized log level.');
-      return print_help(opts.launcher_name, optparse.show_help(), done_cb, false);
+      return print_help(opts.launcherName, optparse.show_help(), done_cb, false);
     }
     logging.log_level = level;
   }
@@ -178,33 +167,22 @@ export function java(args: string[], opts: JavaOptions,
     })(done_cb);
   }
 
-  // Programmer-supplied classpath items.
-  if (opts.hasOwnProperty('implicit_classpath')) {
-    classpath = opts.implicit_classpath;
-  }
-
   // 'boot' classpath items.
   if (argv.non_standard['bootclasspath/a']) {
-    classpath = classpath.concat(argv.non_standard['bootclasspath/a'].split(':'));
+    opts.classpath = opts.classpath.concat(argv.non_standard['bootclasspath/a'].split(':'));
   }
 
   // User-supplied classpath items.
   if (argv.standard.classpath != null) {
-    classpath = classpath.concat(argv.standard.classpath.split(':'));
+    opts.classpath = opts.classpath.concat(argv.standard.classpath.split(':'));
   } else {
     // DEFAULT: If no user-supplied classpath, add the current directory to
     // the class path.
-    classpath.push(process.cwd());
+    opts.classpath.push(process.cwd());
   }
 
   // Construct the JVM.
-  jvm_state = new JVM({
-    jclPath: opts.jcl_path,
-    classpath: classpath,
-    javaHomePath: opts.java_home_path,
-    extractionPath: opts.jar_file_path,
-    nativeClasspath: opts.native_classpath
-  }, (err?: any): void => {
+  jvm_state = new JVM(opts, (err?: any): void => {
     if (err) {
       process.stderr.write("Error constructing JVM:\n");
       process.stderr.write(err.toString() + "\n");
@@ -226,7 +204,7 @@ export function java(args: string[], opts: JavaOptions,
  * Figures out from this how to launch the JVM (e.g. using a JAR file or a
  * particular class).
  */
-function launch_jvm(argv: any, opts: JavaOptions, jvm_state: JVM, done_cb: (result: boolean) => void,
+function launch_jvm(argv: any, opts: JVMCLIOptions, jvm_state: JVM, done_cb: (result: boolean) => void,
                     jvm_started: (jvm_state: JVM) => void): void {
   var main_args = argv._,
       cname = argv.className,
@@ -246,7 +224,7 @@ function launch_jvm(argv: any, opts: JavaOptions, jvm_state: JVM, done_cb: (resu
     jvm_state.runJar(jar_file, main_args, done_cb);
   } else {
     // No class specified, no jar specified!
-    return print_help(opts.launcher_name, optparse.show_help(), done_cb, true);
+    return print_help(opts.launcherName, optparse.show_help(), done_cb, true);
   }
   jvm_started(jvm_state);
 }

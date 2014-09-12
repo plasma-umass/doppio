@@ -14,6 +14,7 @@ import threading = require('./threading');
 import enums = require('./enums');
 import Heap = require('./heap');
 import assert = require('./assert');
+import interfaces = require('./interfaces');
 declare var requirejs;
 
 var trace = logging.trace;
@@ -70,18 +71,7 @@ class JVM {
   /**
    * (Async) Construct a new instance of the Java Virtual Machine.
    */
-  constructor(opts: {
-    // Path to the Java Class Library (JCL).
-    jclPath: string;
-    // Non-JCL paths on the class path.
-    classpath: string[];
-    // Path to JAVA_HOME.
-    javaHomePath: string;
-    // Path where we can extract JAR files.
-    extractionPath: string;
-    // XXX: Path where native methods are located.
-    nativeClasspath: string[];
-  }, cb: (e: any, jvm?: JVM) => void) {
+  constructor(opts: interfaces.JVMOptions, cb: (e: any, jvm?: JVM) => void) {
     var jclPath = path.resolve(opts.jclPath),
       javaHomePath = path.resolve(opts.javaHomePath),
       // JVM bootup tasks, from first to last task.

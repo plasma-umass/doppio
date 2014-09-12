@@ -1134,7 +1134,7 @@ export var opcodes: Opcode[] = [
   new Opcode('iushr', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     var stack = frame.stack,
       s: number = stack.pop();
-    stack.push(stack.pop() >>> s);
+    stack.push((stack.pop() >>> s)|0);
     this.incPc(frame);
   }),
   new Opcode('lushr', 0, function (thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {

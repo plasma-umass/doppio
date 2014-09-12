@@ -805,7 +805,7 @@ export class JVMThread extends java_object.JavaObject {
       var frameCast = <BytecodeStackFrame> frame;
       assert(validateReturnValue(this, frameCast.method,
         frameCast.method.return_type, this.bsCl,
-        frameCast.method.cls.get_class_loader(), rv, rv2), "Invalid return value for method " + frameCast.method.name);
+        frameCast.method.cls.get_class_loader(), rv, rv2), "Invalid return value for method " + frameCast.method.full_signature());
     }
     // Tell the top of the stack that this RV is waiting for it.
     var idx: number = stack.length - 1;

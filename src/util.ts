@@ -56,7 +56,7 @@ export function asyncSeries(tasks: {(next: (err?: any) => void): void}[], doneCb
  * The first element that returns success halts the process, and triggers
  * done_cb. If no elements return success, done_cb is triggered with no
  * arguments.
- * 
+ *
  * I wrote this specifically for classloading, but it may have uses elsewhere.
  */
 export function async_find<T>(
@@ -87,9 +87,9 @@ if (Math['imul'] == null) {
     var al = a & 0xffff;
     var bh = (b >>> 16) & 0xffff;
     var bl = b & 0xffff;
-    // the shift by 0 fixes the sign on the high part, and the |0 prevents
-    // overflow on the high part.
-    return (al * bl) + (((ah * bl + al * bh) << 16) >>> 0) | 0;
+    // the shift by 0 fixes the sign on the high part
+    // the final |0 converts the unsigned value into a signed value
+    return ((al * bl) + (((ah * bl + al * bh) << 16) >>> 0)|0);
   };
 }
 
@@ -484,18 +484,16 @@ export function unboxArguments(thread: threading.JVMThread, paramTypes: string[]
     type = paramTypes[i];
     arg = args[i];
     if (is_primitive_type(type)) {
-      // Unbox the primitive type. 
+      // Unbox the primitive type.
       rv.push(arg.get_field(thread, arg.cls.get_type() + 'value'));
       if (type === 'J' || type === 'D') {
         // 64-bit primitives take up two argument slots. Doppio uses a NULL for the second slot.
-        rv.push(null); 
+        rv.push(null);
       }
     } else {
       // Reference type; do not change.
-      rv.push(arg); 
+      rv.push(arg);
     }
   }
   return rv;
 }
-
-
