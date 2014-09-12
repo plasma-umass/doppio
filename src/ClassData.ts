@@ -553,7 +553,7 @@ export class ReferenceClassData extends ClassData {
         return false;
       }
 
-      // Check if this class have a static initializer.
+      // Check if this class has a static initializer.
       var clinit = this.get_method('<clinit>()V');
       if (clinit != null) {
         // Nope; this class needs to do the full initialization song-and-dance.

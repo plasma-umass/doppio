@@ -1030,11 +1030,20 @@ function validateReturnValue(thread: JVMThread, method: methods.Method, returnTy
       assert(rv2 === undefined);
       assert(rv1 === null || rv1 instanceof java_object.JavaObject || rv1 instanceof java_object.JavaArray);
       if (rv1 != null) {
-        cls = cl.getInitializedClass(thread, returnType);
+        cls = cl.getResolvedClass(returnType);
         if (cls === null) {
-          cls = bsCl.getInitializedClass(thread, returnType);
+          cls = bsCl.getResolvedClass(returnType);
         }
         assert(cls != null);
+        if (!cls.access_flags["interface"]) {
+          // You can return an interface type without initializing it,
+          // since they don't need to be initialized until you try to
+          // invoke one of their methods.
+          // NOTE: We don't check if the class is in the INITIALIZED state,
+          // since it is possible that it is currently in th process of being
+          // initialized. getInitializedClass handles this subtlety.
+          assert(cl.getInitializedClass(thread, returnType) != null || bsCl.getInitializedClass(thread, returnType) != null);
+        }
         assert(rv1.cls.is_castable(cls));
       }
     }
