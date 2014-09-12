@@ -90,6 +90,10 @@ export function java(args: string[], opts: JVMCLIOptions,
     opts.launcherName = 'java';
   }
 
+  if (!opts.classpath) {
+    opts.classpath = [];
+  }
+
   if (argv.standard.help) {
     return print_help(opts.launcherName, optparse.show_help(), done_cb, true);
   } else if (argv.standard.X) {
