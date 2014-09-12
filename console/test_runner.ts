@@ -41,7 +41,7 @@ function makefileTest(argv): void {
     // Patch stdout back up.
     process.stdout.write = old_write;
     process.stdout.write(success ? '✓' : '✗');
-    if (success) {
+    if (!success) {
       fs.writeSync(outfile, new Buffer('\n'), 0, 1, null);
     }
     fs.closeSync(outfile);
