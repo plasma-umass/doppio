@@ -44,11 +44,11 @@ var underscore = require('../vendor/underscore/underscore'),
  */
 function constructJavaOptions(customArgs: {[prop: string]: any} = {}) {
   return underscore.extend({
-    jcl_path: '/sys/vendor/classes',
-    implicit_classpath: [],
-    java_home_path: '/sys/vendor/java_home',
-    jar_file_path: '/jars',
-    native_classpath: ['/sys/src/natives']
+    jclPath: '/sys/vendor/classes',
+    classpath: [],
+    javaHomePath: '/sys/vendor/java_home',
+    extractionPath: '/jars',
+    nativeClasspath: ['/sys/src/natives']
   }, customArgs);
 }
 
@@ -455,7 +455,7 @@ var commands = {
     args.unshift('org/eclipse/jdt/internal/compiler/batch/Main');
     args.unshift('-Djdt.compiler.useSingleThread=true');
     java_cli.java(args, constructJavaOptions({
-      launcher_name: 'ecj'
+      launcherName: 'ecj'
     }), function(status: boolean): void {
       jvm_state = undefined;
       controller.reprompt();
@@ -467,8 +467,8 @@ var commands = {
   javac: function(args: string[]): string {
     args.unshift('classes/util/Javac');
     java_cli.java(args, constructJavaOptions({
-      implicit_classpath: [sys_path],
-      launcher_name: 'javac'
+      classpath: [sys_path],
+      launcherName: 'javac'
     }), function(status: boolean): void {
       jvm_state = undefined;
       controller.reprompt();
@@ -480,8 +480,8 @@ var commands = {
   javap: function(args: string[]): string {
     args.unshift('classes/util/Javap');
     java_cli.java(args, constructJavaOptions({
-      implicit_classpath: [sys_path],
-      launcher_name: 'javap'
+      classpath: [sys_path],
+      launcherName: 'javap'
     }), function(status: boolean): void {
       jvm_state = undefined;
       controller.reprompt();
@@ -492,8 +492,8 @@ var commands = {
   },
   java: function(args: string[]): string {
     java_cli.java(args, constructJavaOptions({
-      implicit_classpath: ['.'],
-      launcher_name: 'java'
+      classpath: ['.'],
+      launcherName: 'java'
     }), function(result: boolean): void {
       jvm_state = undefined;
       controller.reprompt();

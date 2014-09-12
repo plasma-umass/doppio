@@ -11,10 +11,11 @@ require('source-map-support').install({
 
 // Default options.
 var opts: testing.TestOptions = {
-  jcl_path: path.resolve(__dirname, path.join('..', 'vendor', 'classes')),
-  java_home_path: path.resolve(__dirname, path.join('..', 'vendor', 'java_home')),
-  jar_file_path: path.resolve(os.tmpDir(), 'doppio_jars'),
-  native_classpath: [path.resolve(__dirname, path.join('..', 'src', 'natives'))],
+  jclPath: path.resolve(__dirname, path.join('..', 'vendor', 'classes')),
+  javaHomePath: path.resolve(__dirname, path.join('..', 'vendor', 'java_home')),
+  extractionPath: path.resolve(os.tmpDir(), 'doppio_jars'),
+  classpath: null,
+  nativeClasspath: [path.resolve(__dirname, path.join('..', 'src', 'natives'))],
   doppioDir: path.dirname(__dirname),
   hideDiffs: false,
   quiet: false,

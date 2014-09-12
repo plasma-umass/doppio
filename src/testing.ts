@@ -5,6 +5,7 @@ import java_cli = require('./java_cli');
 import difflib = require('./difflib');
 import path = require('path');
 import fs = require('fs');
+import interfaces = require('./interfaces');
 
 /**
  * Variables and code for hooking into standard output.
@@ -46,7 +47,7 @@ function stopRecordingOutput(): string {
 /**
  * Doppio testing options.
  */
-export interface TestOptions extends java_cli.JavaOptions {
+export interface TestOptions extends interfaces.JVMOptions {
   /**
    * Directory where Doppio is located.
    */
@@ -106,11 +107,11 @@ class DoppioTest {
    */
   private constructJVM(cb: (err: any, jvm?: JVM) => void): void {
     new JVM({
-      jclPath: this.opts.jcl_path,
+      jclPath: this.opts.jclPath,
       classpath: [this.opts.doppioDir],
-      javaHomePath: this.opts.java_home_path,
-      extractionPath: this.opts.jar_file_path,
-      nativeClasspath: this.opts.native_classpath
+      javaHomePath: this.opts.javaHomePath,
+      extractionPath: this.opts.extractionPath,
+      nativeClasspath: this.opts.nativeClasspath
     }, cb);
   }
 

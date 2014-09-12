@@ -536,8 +536,36 @@ export class ReferenceClassData extends ClassData {
     return true;
   }
 
+  /**
+   * Attempt to synchronously initialize. This is possible if there is no
+   * static initializer, and the parent classes are properly initialized.
+   */
   public tryToInitialize(): boolean {
-    // You can't synchronously initialize a reference class type.
+    if (this.get_state() === ClassState.INITIALIZED) {
+      // Already initialized.
+      return true;
+    }
+
+    if (this.get_state() === ClassState.RESOLVED || this.tryToResolve()) {
+      // Ensure parent is initialized.
+      if (this.super_class_cdata != null && !this.super_class_cdata.tryToInitialize()) {
+        // Parent failed to initialize.
+        return false;
+      }
+
+      // Check if this class have a static initializer.
+      var clinit = this.get_method('<clinit>()V');
+      if (clinit != null) {
+        // Nope; this class needs to do the full initialization song-and-dance.
+        return false;
+      } else {
+        // No static initializer! This class is initialized!
+        this.set_state(ClassState.INITIALIZED);
+        return true;
+      }
+    }
+
+    // This class is not resolved.
     return false;
   }
 
