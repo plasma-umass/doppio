@@ -27,7 +27,7 @@ import TJVM = require('../src/jvm');
 var underscore = require('../vendor/underscore/underscore'),
     JVM: typeof doppio.JVM = doppio.JVM,
     testing = doppio.testing,
-    java_cli = doppio.java_cli,
+    java_cli = doppio.javaCli,
     process: NodeJS.Process = BrowserFS.BFSRequire('process'),
     Buffer: typeof Buffer = BrowserFS.BFSRequire('buffer').Buffer,
     // To be initialized on document load
