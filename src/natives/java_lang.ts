@@ -188,7 +188,7 @@ class java_lang_Class {
   }
 
   public static 'getModifiers()I'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): number {
-    return (<ClassData.ReferenceClassData> javaThis.$cls).access_byte;
+    return javaThis.$cls.access_byte;
   }
 
   public static 'getSigners()[Ljava/lang/Object;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaArray {

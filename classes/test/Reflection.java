@@ -202,6 +202,16 @@ public class Reflection {
     catch (ArrayIndexOutOfBoundsException e) {
       System.out.println("Caught ArrayIndexOutOfBoundsException");
     }
+
+    // Primitive classes, array classes, and modifiers.
+    Class arrayByteClass = Class.forName("[B");
+    System.out.println(arrayByteClass.getName());
+    System.out.println(arrayByteClass.getCanonicalName());
+    System.out.println(arrayByteClass.getModifiers());
+    Class byteClass = arrayByteClass.getComponentType();
+    System.out.println(byteClass.getName());
+    System.out.println(byteClass.getCanonicalName());
+    System.out.println(byteClass.getModifiers());
   }
 
   interface Iface {

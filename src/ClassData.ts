@@ -19,7 +19,8 @@ var trace = logging.trace;
 // Represents a single class in the JVM.
 export class ClassData {
   public loader: ClassLoader.ClassLoader;
-  public access_flags: util.Flags = null;
+  public access_byte: number;
+  public access_flags: util.Flags;
   // We make this private to *enforce* call sites to use our getter functions.
   // The actual state of this class depends on the state of its parents, and
   // parents do not inform their children when they change state.
@@ -175,6 +176,9 @@ export class PrimitiveClassData extends ClassData {
   constructor(this_class: string, loader: ClassLoader.ClassLoader) {
     super(loader);
     this.this_class = this_class;
+    // PrimitiveClassData objects are ABSTRACT, FINAL, and PUBLIC.
+    this.access_byte = 0x411;
+    this.access_flags = util.parse_flags(this.access_byte);
     this.set_state(ClassState.INITIALIZED);
   }
 
@@ -240,7 +244,9 @@ export class ArrayClassData extends ClassData {
     this.component_type = component_type;
     this.this_class = "[" + this.component_type;
     this.super_class = 'Ljava/lang/Object;';
-    this.access_flags = util.parse_flags(0);  // no flags set
+    // ArrayClassData objects are ABSTRACT, FINAL, and PUBLIC.
+    this.access_byte = 0x411;
+    this.access_flags = util.parse_flags(this.access_byte);
   }
 
   public reset(): void {
@@ -323,7 +329,6 @@ export class ReferenceClassData extends ClassData {
   private minor_version: number;
   public major_version: number;
   public constant_pool: ConstantPool.ConstantPool;
-  public access_byte: number;
   private interfaces: string[];
   private fields: methods.Field[];
   private fl_cache: { [name: string]: methods.Field };
