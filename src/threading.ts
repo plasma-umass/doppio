@@ -349,6 +349,7 @@ class InternalStackFrame implements IStackFrame {
 export class ThreadPool {
   private threads: JVMThread[] = [];
   private runningThread: JVMThread;
+  private runningThreadIndex: number = -1;
   private parkCounts: { [threadRef: number]: number } = {};
   /**
    * Called when the ThreadPool becomes empty. This is usually a sign that
@@ -395,12 +396,17 @@ export class ThreadPool {
   private scheduleNextThread(): void {
     // Reset stack depth, start at beginning of new JS event.
     setImmediate(() => {
-      var i: number, threads = this.threads;
+      var i: number, i_fixed: number, threads = this.threads, thread: JVMThread;
       if (this.runningThread == null) {
         for (i = 0; i < threads.length; i++) {
-          if (threads[i].getStatus() === enums.ThreadStatus.RUNNABLE) {
-            this.runningThread = threads[i];
-            threads[i].setStatus(enums.ThreadStatus.RUNNING);
+          // Cycle through the threads, starting at the thread just past the
+          // previously-run thread. (Round Robin scheduling algorithm)
+          i_fixed = (this.runningThreadIndex + 1 + i) % threads.length;
+          thread = threads[i_fixed];
+          if (thread.getStatus() === enums.ThreadStatus.RUNNABLE) {
+            this.runningThread = thread;
+            this.runningThreadIndex = i_fixed;
+            thread.setStatus(enums.ThreadStatus.RUNNING);
             break;
           }
         }
@@ -424,12 +430,18 @@ export class ThreadPool {
     // If this was the running thread, schedule a new one to run.
     if (this.runningThread === thread) {
       this.runningThread = null;
+      // The runningThreadIndex is currently pointing to the *next* thread we
+      // should schedule, so take it back by one.
+      this.runningThreadIndex = this.runningThreadIndex - 1;
       if (this.threads.length > 0) {
         this.scheduleNextThread();
       } else {
         // Tell the JVM that execution is over.
         this.emptyCallback();
       }
+    } else {
+      // Update the index so it still points to the running thread.
+      this.runningThreadIndex = this.threads.indexOf(this.runningThread);
     }
   }
 
