@@ -26,6 +26,7 @@
     "uglify-js": "2",
     "bower": "*",
     "adm-zip": "*",
+    "lzma-purejs": "*",
     "grunt": "*",
     "grunt-ts": "*",
     "grunt-contrib-uglify": "*",
