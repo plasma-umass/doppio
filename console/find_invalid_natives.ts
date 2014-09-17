@@ -189,7 +189,7 @@ function main() {
 }
 
 new JVM({
-  jclPath: path.resolve(__dirname, '../vendor/classes'),
+  bootstrapClasspath: [path.resolve(__dirname, '../vendor/classes')],
   javaHomePath: path.resolve(__dirname, '../vendor/java_home'),
   extractionPath: path.resolve(os.tmpDir(), 'doppio_jars'),
   classpath: [],

@@ -8,8 +8,8 @@
  * Standard JVM options.
  */
 export interface JVMOptions{
-  // Path to the Java Class Library (JCL).
-  jclPath: string;
+  // The bootstrap classpath, including paths related to the Java Class Library (JCL).
+  bootstrapClasspath: string[];
   // Non-JCL paths on the class path.
   classpath: string[];
   // Path to JAVA_HOME.

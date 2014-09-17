@@ -54,7 +54,7 @@ var coreClasses = [
  * Encapsulates a single JVM instance.
  */
 class JVM {
-  private systemProperties: {[prop: string]: any};
+  private systemProperties: {[prop: string]: string};
   private internedStrings: SafeMap<java_object.JavaObject> = new SafeMap<java_object.JavaObject>();
   private bsCl: ClassLoader.BootstrapClassLoader;
   private threadPool: threading.ThreadPool;
@@ -72,14 +72,15 @@ class JVM {
    * (Async) Construct a new instance of the Java Virtual Machine.
    */
   constructor(opts: interfaces.JVMOptions, cb: (e: any, jvm?: JVM) => void) {
-    var jclPath = path.resolve(opts.jclPath),
+    var bootstrapClasspath: string[] = opts.bootstrapClasspath.map((p: string): string => path.resolve(p)),
+      javaClassPath: string[] = opts.classpath.map((p: string): string => path.resolve(p)),
       javaHomePath = path.resolve(opts.javaHomePath),
       // JVM bootup tasks, from first to last task.
       bootupTasks: {(next: (err?: any) => void): void}[] = [],
       firstThread: threading.JVMThread;
     // @todo Resolve these, and integrate it into the ClassLoader?
     this.nativeClasspath = opts.nativeClasspath;
-    this._initSystemProperties(jclPath, javaHomePath);
+    this._initSystemProperties(bootstrapClasspath, javaClassPath, javaHomePath);
 
     /**
      * Task #1: Initialize native methods.
@@ -93,7 +94,7 @@ class JVM {
      */
     bootupTasks.push((next: (err?: any) => void) => {
       this.bsCl =
-        new ClassLoader.BootstrapClassLoader([jclPath].concat(opts.classpath),
+        new ClassLoader.BootstrapClassLoader(bootstrapClasspath.concat(opts.classpath),
           opts.extractionPath, next);
     });
 
@@ -250,14 +251,14 @@ class JVM {
   /**
    * Retrieve the given system property.
    */
-  public getSystemProperty(prop: string): any {
+  public getSystemProperty(prop: string): string {
     return this.systemProperties[prop];
   }
 
   /**
    * Sets the given system property.
    */
-  public setSystemProperty(prop: string, val: any): void {
+  public setSystemProperty(prop: string, val: string): void {
     this.systemProperties[prop] = val;
   }
 
@@ -436,25 +437,13 @@ class JVM {
   }
 
   /**
-   * Sets the JVM's system properties to their default values. Java programs
-   * can retrieve these values.
-   */
-  public initSystemProperties() {
-    // Reset while maintaining jcl_path and java_home_path.
-    this._initSystemProperties(this.systemProperties['sun.boot.class.path'],
-                                  this.systemProperties['java.home']);
-    // XXX: jcl_path is known-good; synchronously push it onto classpath.
-    this.systemProperties['java.class.path'] = [this.systemProperties['sun.boot.class.path']];
-  }
-
-  /**
    * [Private] Same as reset_system_properties, but called by the constructor.
    */
-  private _initSystemProperties(jcl_path: string, java_home_path: string): void {
+  private _initSystemProperties(bootstrapClasspath: string[], javaClassPath: string[], javaHomePath: string): void {
     this.systemProperties = {
-      'java.class.path': <string[]> [],
-      'java.home': java_home_path,
-      'sun.boot.class.path': jcl_path,
+      'java.class.path': javaClassPath.join(':'),
+      'java.home': javaHomePath,
+      'sun.boot.class.path': bootstrapClasspath.join(':'),
       'file.encoding': 'UTF-8',
       'java.vendor': 'Doppio',
       'java.version': '1.6',

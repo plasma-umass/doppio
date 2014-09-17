@@ -44,7 +44,7 @@ var underscore = require('../vendor/underscore/underscore'),
  */
 function constructJavaOptions(customArgs: {[prop: string]: any} = {}) {
   return underscore.extend({
-    jclPath: '/sys/vendor/classes',
+    bootstrapClasspath: ['/sys/vendor/classes'],
     classpath: [],
     javaHomePath: '/sys/vendor/java_home',
     extractionPath: '/jars',

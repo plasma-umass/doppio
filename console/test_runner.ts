@@ -11,7 +11,7 @@ require('source-map-support').install({
 
 // Default options.
 var opts: testing.TestOptions = {
-  jclPath: path.resolve(__dirname, path.join('..', 'vendor', 'classes')),
+  bootstrapClasspath: [path.resolve(__dirname, path.join('..', 'vendor', 'classes'))],
   javaHomePath: path.resolve(__dirname, path.join('..', 'vendor', 'java_home')),
   extractionPath: path.resolve(os.tmpDir(), 'doppio_jars'),
   classpath: null,

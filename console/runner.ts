@@ -20,7 +20,7 @@ process.on('SIGINT', function () {
 
 // Run the JVM. Remove node runner.js from the args.
 java_cli.java(process.argv.slice(2), {
-  jclPath: path.resolve(__dirname, '../vendor/classes'),
+  bootstrapClasspath: [path.resolve(__dirname, '../vendor/classes')],
   javaHomePath: path.resolve(__dirname, '../vendor/java_home'),
   extractionPath: path.resolve(os.tmpDir(), 'doppio_jars'),
   classpath: null,

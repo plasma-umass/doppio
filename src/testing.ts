@@ -107,7 +107,7 @@ class DoppioTest {
    */
   private constructJVM(cb: (err: any, jvm?: JVM) => void): void {
     new JVM({
-      jclPath: this.opts.jclPath,
+      bootstrapClasspath: this.opts.bootstrapClasspath,
       classpath: [this.opts.doppioDir],
       javaHomePath: this.opts.javaHomePath,
       extractionPath: this.opts.extractionPath,

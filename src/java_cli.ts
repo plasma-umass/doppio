@@ -74,7 +74,7 @@ export interface JVMCLIOptions extends interfaces.JVMOptions {
  * @param {function} [jvm_started] - Called with the JVM object once we have invoked it.
  * @example <caption>Equivalent to `java classes/demo/Fib 3`</caption>
  *   doppio.java(['classes/demo/Fib', '3'],
- *     {jclPath: '/sys/vendor/classes',
+ *     {bootstrapClasspath: '/sys/vendor/classes',
  *      javaHomePath: '/sys/vendor/java_home'}, function() {
  *     // Resume whatever your frontend is doing.
  *   });
@@ -171,9 +171,9 @@ export function java(args: string[], opts: JVMCLIOptions,
     })(done_cb);
   }
 
-  // 'boot' classpath items.
+  // Bootstrap classpath items.
   if (argv.non_standard['bootclasspath/a']) {
-    opts.classpath = opts.classpath.concat(argv.non_standard['bootclasspath/a'].split(':'));
+    opts.bootstrapClasspath = opts.bootstrapClasspath.concat(argv.non_standard['bootclasspath/a'].split(':'));
   }
 
   // User-supplied classpath items.
