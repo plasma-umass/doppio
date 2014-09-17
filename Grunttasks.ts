@@ -16,6 +16,7 @@ var exec = child_process.exec,
         "openjdk-6-jre-headless_6b32-1.13.4-4ubuntu0.12.04.2_i386.deb",
         "openjdk-6-jre-lib_6b32-1.13.4-4ubuntu0.12.04.2_all.deb" 
     ],
+    TZDATA_DEB: string = "http://security.ubuntu.com/ubuntu/pool/main/t/tzdata/tzdata-java_2014e-0ubuntu0.13.10_all.deb",
     ECJ_URL: string = "http://www.eclipse.org/downloads/download.php?file=/eclipse/downloads/drops/R-3.7.1-201109091335/ecj-3.7.1.jar",
     JAZZLIB_URL: string = "http://downloads.sourceforge.net/project/jazzlib/jazzlib/0.07/jazzlib-binary-0.07-juz.zip",
     DOWNLOAD_URLS: string[] = [];
@@ -24,6 +25,7 @@ var exec = child_process.exec,
 DEBS.forEach(function(e) {
   DOWNLOAD_URLS.push(DEBS_DOMAIN + e);
 });
+DOWNLOAD_URLS.push(TZDATA_DEB);
 DOWNLOAD_URLS.push(ECJ_URL);
 DOWNLOAD_URLS.push(JAZZLIB_URL);
 
@@ -440,7 +442,8 @@ export function setup(grunt: IGrunt) {
     need_jcl = !fs.existsSync('vendor/classes/java/lang/Object.class');
     need_ecj =!fs.existsSync('vendor/classes/org/eclipse/jdt/internal/compiler/batch/Main.class');
     need_jazzlib = !fs.existsSync('vendor/classes/java/util/zip/DeflaterEngine.class');
-    need_java_home = !fs.existsSync('vendor/java_home');
+    // Check for java_home *AND* time zone data.
+    need_java_home = !(fs.existsSync('vendor/java_home') && fs.existsSync('vendor/java_home/lib/zi/ZoneInfoMappings'));
     if (need_jcl || need_ecj || need_jazzlib || need_java_home) {
       // Create download folder. It shouldn't exist, as it is randomly generated.
       fs.mkdirSync(grunt.config('build.scratch_dir'));

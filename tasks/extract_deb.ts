@@ -6,8 +6,7 @@ import zlib = require('zlib');
 import path = require('path');
 var async = require('async'),
     ar = require('ar'),
-    tar = require('tar'),
-    lzma = require('lzma-purejs');
+    tar = require('tar');
 
 function extract_deb(grunt: IGrunt) {
   grunt.registerMultiTask('extract_deb', 'Extracts the contents of the given Debian package.', function() {
@@ -67,30 +66,24 @@ function extract_data(grunt: IGrunt, archive_file: {src: string[]; dest: string}
   // Iterate through the files to find data.tar.gz.
   for (var i = 0; i < files.length; i++) {
     var file = files[i];
-    if (file.name() === 'data.tar.gz' || file.name() === 'data.tar.xz') {
+    if (file.name() === 'data.tar.gz') {
       found = true;
+      break;
+    } else if (file.name() === 'data.tar.xz') {
+      grunt.fatal("Debian archive uses the tar.xz file format, which we do not support.");
       break;
     }
   }
 
   if (found) {
-    if (file.name() === 'data.tar.gz') {
-      // Decompress the file: Gunzip
-      zlib.gunzip(file.fileData(), function (err, buff) {
-        if (err) {
-          cb(err);
-        } else {
-          extract_tarfile(buff);
-        }
-      });
-    } else {
-      // Decompress the file: LZMA
-      try {
-        extract_tarfile(new Buffer(lzma.decompressFile(file.fileData())));
-      } catch (err) {
+    // Decompress the file: Gunzip
+    zlib.gunzip(file.fileData(), function (err, buff) {
+      if (err) {
         cb(err);
+      } else {
+        extract_tarfile(buff);
       }
-    }
+    });
   } else {
     cb(new Error("Could not find data.tar.gz in " + archive_file.src[0] + "."));
   }

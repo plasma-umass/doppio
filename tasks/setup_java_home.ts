@@ -18,6 +18,11 @@ function setup_java_home(grunt: IGrunt) {
       if (err) {
         grunt.fail.fatal("Error creating java_home: " + err);
       }
+
+      // Ensure time zone data is present.
+      if (!fs.existsSync(path.resolve('vendor', 'java_home', 'lib', 'zi', 'ZoneInfoMappings'))) {
+        grunt.fail.fatal("Error: java_home is missing time zone data!");
+      }
       done();
     });
   });
@@ -64,7 +69,7 @@ function find_symlinks(dir: string): string[] {
  */
 function copy_java_home_dir(grunt: IGrunt, dir_name: string, cb: (err?: any) => void): void {
   var JH = path.resolve(grunt.config('build.scratch_dir'), 'usr', 'lib', 'jvm', dir_name, 'jre'),
-    doppio_java_home = 'vendor/java_home'
+    doppio_java_home = path.resolve('vendor', 'java_home');
   // a number of .properties files are symlinks to /etc; copy the targets over
   // so we do not need to depend on /etc's existence
   var links = find_symlinks(JH);
@@ -103,7 +108,7 @@ function copy_java_home_dir(grunt: IGrunt, dir_name: string, cb: (err?: any) => 
       cb2(null);
     }
   }, function(err: any): void {
-    ncp(JH, doppio_java_home, function(err2?: any): void {
+    ncp(JH, doppio_java_home, (err2?: any): void => {
       err2 = err2 ? err2 : err;
       cb(err2);
     });
