@@ -75,10 +75,6 @@ function find_native_java(grunt: IGrunt) {
       });
     } else {
       // *nix
-      // Option 1: Can we invoke 'java' directly?
-      exec(grunt.config('build.java') + ' -version', function(err, stdout, stderr) {
-        if (err) {
-          // Option 2: Is JAVA_HOME defined?
           if (process.env.JAVA_HOME) {
             var java_bin = path.resolve(process.env.JAVA_HOME, 'bin');
             grunt.config.set('build.java', path.resolve(java_bin, 'java'));
@@ -88,11 +84,6 @@ function find_native_java(grunt: IGrunt) {
             // Java can't be found.
             cb(new Error());
           }
-        } else {
-          // 'java' is OK.
-          cb();
-        }
-      });
     }
   });
 };
