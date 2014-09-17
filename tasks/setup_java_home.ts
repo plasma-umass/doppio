@@ -56,13 +56,15 @@ function find_symlinks(dir: string): string[] {
   return _find_symlinks(dir, []);
 }
 
-function symlink_java_home(grunt: IGrunt, cb: (err?: any) => void): void {
-  var java_home = 'vendor/java_home';
-  if (fs.existsSync(java_home)) {
-    return cb();
-  }
-  grunt.config.requires('build.scratch_dir');
-  var JH = path.resolve(grunt.config('build.scratch_dir'), 'usr', 'lib', 'jvm', 'java-6-openjdk-common', 'jre');
+/**
+ * Copy the specified Java Home directory from our temporary directory over to
+ * vendor/java_home.
+ * @param java_home The folder in our temporary directory to copy over.
+ * @param cb Called once copying is complete, or an error occurs.
+ */
+function copy_java_home_dir(grunt: IGrunt, dir_name: string, cb: (err?: any) => void): void {
+  var JH = path.resolve(grunt.config('build.scratch_dir'), 'usr', 'lib', 'jvm', dir_name, 'jre'),
+    doppio_java_home = 'vendor/java_home'
   // a number of .properties files are symlinks to /etc; copy the targets over
   // so we do not need to depend on /etc's existence
   var links = find_symlinks(JH);
@@ -80,7 +82,7 @@ function symlink_java_home(grunt: IGrunt, cb: (err?: any) => void): void {
       } else {
         var p = path.resolve(path.join(path.dirname(link), dest));
         // copy in anything that links out of the JH dir
-        if (!p.match(/java-6-openjdk-common/)) {
+        if (p.indexOf(dir_name) === -1) {
           // XXX: this fails if two symlinks reference the same file
           if (fs.statSync(p).isDirectory()) {
             fs.unlinkSync(link);
@@ -101,11 +103,20 @@ function symlink_java_home(grunt: IGrunt, cb: (err?: any) => void): void {
       cb2(null);
     }
   }, function(err: any): void {
-    ncp(JH, java_home, function(err2?: any): void {
+    ncp(JH, doppio_java_home, function(err2?: any): void {
       err2 = err2 ? err2 : err;
       cb(err2);
     });
   });
+}
+
+function symlink_java_home(grunt: IGrunt, cb: (err?: any) => void): void {
+  var java_home = 'vendor/java_home';
+  if (fs.existsSync(java_home)) {
+    return cb();
+  }
+  grunt.config.requires('build.scratch_dir');
+  copy_java_home_dir(grunt, 'java-6-openjdk-i386', cb);
 }
 
 // Export our task.
