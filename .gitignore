@@ -18,6 +18,7 @@ index.html
 about.html
 .DS_store
 doppio
+doppioh
 # But we want to allow classes/doppio
 !classes/doppio
 doppio-dev
