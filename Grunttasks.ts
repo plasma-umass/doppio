@@ -53,6 +53,7 @@ export function setup(grunt: IGrunt) {
       java: 'java',
       javap: 'javap',
       javac: 'javac',
+      is_java_6: true,
       doppio_dir: __dirname, // Root directory for doppio (same as this file)
       build_type: "",        // Build type for doppio (dev/dev-cli/etc.) Will be set by 'setup' task.
       vendor_dir: '<%= resolve(build.doppio_dir, "vendor") %>',
@@ -244,15 +245,6 @@ export function setup(grunt: IGrunt) {
         }]
       }
     },
-    javap: {
-      default: {
-        files: [{
-          expand: true,
-          src: 'classes/test/*.java',
-          ext: '.disasm'
-        }]
-      }
-    },
     run_java: {
       default: {
         expand: true,
@@ -308,7 +300,7 @@ export function setup(grunt: IGrunt) {
       default: {
         files: [{
           expand: true,
-          src: ['classes/test/*.+(disasm|runout)']
+          src: ['classes/test/*.+(runout)']
         }]
       }
     },
@@ -476,7 +468,6 @@ export function setup(grunt: IGrunt) {
   grunt.registerTask('java',
     ['find_native_java',
      'javac',
-     'javap',
      'run_java',
      // Windows: Convert CRLF to LF.
      'lineending']);
@@ -533,7 +524,7 @@ export function setup(grunt: IGrunt) {
      'java',
      'unit_test']);
   grunt.registerTask('clean', 'Deletes built files.', function() {
-    ['build', 'doppio', 'doppio-dev', 'tscommand.tmp.txt'].concat(grunt.file.expand(['classes/*/*.+(class|runout|disasm)'])).forEach(function (path: string) {
+    ['build', 'doppio', 'doppio-dev', 'tscommand.tmp.txt'].concat(grunt.file.expand(['classes/*/*.+(class|runout)'])).forEach(function (path: string) {
       if (grunt.file.exists(path)) {
         grunt.file.delete(path);
       }

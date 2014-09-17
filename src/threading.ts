@@ -581,6 +581,43 @@ export class JVMThread extends java_object.JavaObject {
   }
 
   /**
+   * [DEBUG] Return a printable string of the thread's current stack trace.
+   */
+  public getPrintableStackTrace(): string {
+    var rv: string = "";
+    this.getStackTrace().reverse().forEach((trace: IStackTraceFrame) => {
+      rv += "\tat " + util.ext_classname(trace.method.cls.this_class) + "." + trace.method.name + "(";
+      if (trace.pc >= 0) {
+        // Bytecode method
+        var code = trace.method.getCodeAttribute();
+        var table = <attributes.LineNumberTable> code.get_attribute('LineNumberTable');
+        var srcAttr = <attributes.SourceFile> trace.method.cls.get_attribute('SourceFile');
+        if (srcAttr != null) {
+          rv += srcAttr.filename;
+        } else {
+          rv += 'unknown';
+        }
+        if (table != null) {
+          var lastLine: number = -1, lastPc: number = -1;
+          table.entries.forEach((entry) => {
+            if (entry.start_pc < trace.pc && lastPc < entry.start_pc) {
+              lastPc = entry.start_pc;
+              lastLine = entry.line_number;
+            }
+          });
+          rv += ":" + lastLine;
+          rv += " Bytecode offset: " + trace.pc;
+        }
+      } else {
+        // Native method.
+        rv += "native";
+      }
+      rv += ")\n";
+    });
+    return rv;
+  }
+
+  /**
    * The thread's main execution loop. Everything starts here!
    */
   private run(): void {

@@ -40,38 +40,6 @@ function java(grunt: IGrunt) {
     });
   });
 
-  grunt.registerMultiTask('javap', 'Run javap on input files.', function() {
-    var files: {src: string[]; dest: string}[] = this.files,
-        done: (status?: boolean) => void = this.async(),
-        tasks: Function[] = [];
-    grunt.config.requires('build.javap');
-    files.forEach(function(file: {src: string[]; dest: string}) {
-      if (fs.existsSync(file.dest) && fs.statSync(file.dest).mtime > fs.statSync(file.src[0]).mtime) {
-        // No need to process file.
-        return;
-      }
-      tasks.push(function(cb: (err?: any) => void) {
-        // Trim '.java' from filename to get the class name.
-        var class_name = file.src[0].slice(0, -5);
-        child_process.exec(shellEscape(grunt.config('build.javap')) + ' -bootclasspath vendor/classes -c -verbose -private ' + class_name, function(err?: any, stdout?: NodeBuffer) {
-          if (err) {
-            grunt.fail.fatal('Error running javap: ' + err);
-          } else {
-            fs.writeFileSync(file.dest, stdout);
-          }
-          cb();
-        });
-      });
-    });
-
-    async.parallelLimit(tasks, os.cpus().length, function(err?: any) {
-      if (err) {
-        grunt.fail.fatal('javap failed: ' + err);
-      }
-      done();
-    });
-  });
-
   grunt.registerMultiTask('run_java', 'Run java on input files.', function() {
     var files: {src: string[]; dest: string}[] = this.files,
         done: (status?: boolean) => void = this.async(),
