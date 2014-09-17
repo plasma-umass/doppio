@@ -13,7 +13,7 @@ class MesaTest {
     Thread thread;
 
     Foo() {
-      thread = new Thread(this);
+      thread = new Thread(this, "Foo-Thread");
       thread.start();
     }
 
@@ -33,7 +33,7 @@ class MesaTest {
     Thread thread;
 
     Bar() {
-      thread = new Thread(this);
+      thread = new Thread(this, "Bar-Thread");
       thread.start();
     }
 
