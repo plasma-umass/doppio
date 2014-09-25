@@ -1803,7 +1803,7 @@ export class Opcodes {
       case 'class':
         // Fetch the jclass object and push it on to the stack. Do not rerun
         // this opcode.
-        var cdesc = util.typestr2descriptor(constant.deref());
+        var cdesc = constant.deref();
         thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
         frame.getLoader().resolveClass(thread, cdesc, (cdata: ClassData.ClassData) => {
           if (cdata != null) {
@@ -1831,7 +1831,7 @@ export class Opcodes {
       case 'class':
         // Fetch the jclass object and push it on to the stack. Do not rerun
         // this opcode.
-        var cdesc = util.typestr2descriptor(constant.deref());
+        var cdesc = constant.deref();
         thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
         frame.getLoader().resolveClass(thread, cdesc, (cdata: ClassData.ClassData) => {
           if (cdata != null) {
