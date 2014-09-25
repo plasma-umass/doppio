@@ -60,6 +60,11 @@ export class StringReference extends SimpleReference {
 }
 _ = StringReference;
 
+export interface MethodDescriptor {
+  class_desc: string;
+  sig: string;
+}
+
 export class AbstractMethodFieldReference {
   public static size = 1;
   public value: any;
@@ -96,6 +101,12 @@ export class InterfaceMethodReference extends AbstractMethodFieldReference {
   public type = 'InterfaceMethod';
 }
 _ = InterfaceMethodReference;
+
+export interface FieldReferenceValue {
+  class_desc: string;
+  name: string;
+  type: string;
+}
 
 export class FieldReference extends AbstractMethodFieldReference {
   public type = 'Field';

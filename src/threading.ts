@@ -78,7 +78,8 @@ export class BytecodeStackFrame implements IStackFrame {
   }
 
   public run(thread: JVMThread): void {
-    var method = this.method, code = this.method.getCode();
+    var method = this.method, code = this.method.getCodeAttribute().getCode(),
+      opcodeTable = opcodes.LookupTable;
     if (this.pc === 0) {
       vtrace("T" + thread.ref + " " + this.method.full_signature() + " [Bytecode]");
     }
@@ -105,17 +106,32 @@ export class BytecodeStackFrame implements IStackFrame {
     vtrace("T" + thread.ref + " BEFORE: D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
     // Run until we get the signal to return to the thread loop.
     while (!this.returnToThreadLoop) {
-      var op = code[this.pc];
+      var op = code.readUInt8(this.pc);
       vtrace("T" + thread.ref + " D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
-      vtrace("T" + thread.ref + " " + method.cls.get_type() + "::" + method.name + ":" + this.pc + " => " + op.name + op.annotate(this.pc, method.cls.constant_pool));
-      op.execute(thread, this);
+      vtrace("T" + thread.ref + " " + method.cls.get_type() + "::" + method.name + ":" + this.pc + " => " + enums.OpCode[op]); //+ op.annotate(this.pc, method.cls.constant_pool));
+      opcodeTable[op](thread, this, code, this.pc);
     }
     vtrace("T" + thread.ref + " AFTER: D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
   }
 
   public scheduleResume(thread: JVMThread, rv?: any, rv2?: any): void {
     // Advance to the next opcode.
-    this.method.getCode()[this.pc].incPc(this);
+    var prevOp = this.method.getCodeAttribute().getCode().readUInt8(this.pc);
+    switch(prevOp) {
+      case enums.OpCode.INVOKEINTERFACE:
+        this.pc += 5;
+        break;
+      case enums.OpCode.INVOKESPECIAL:
+      case enums.OpCode.INVOKESTATIC:
+      case enums.OpCode.INVOKEVIRTUAL:
+        this.pc += 3;
+        break;
+      default:
+        // Should be impossible.
+        assert(false, "Resuming from a non-invoke opcode! Opcode: " + enums.OpCode[prevOp] + " [" + prevOp + "]");
+        break;
+    }
+
     if (rv !== undefined) {
       this.stack.push(rv);
     }
@@ -133,11 +149,10 @@ export class BytecodeStackFrame implements IStackFrame {
    * in the event that it can't actually handle it.
    */
   public scheduleException(thread: JVMThread, e: java_object.JavaObject): boolean {
-    var code = this.method.getCodeAttribute(),
-      opcodes: opcodes.Opcode[] = this.method.getCode(),
+    var codeAttr = this.method.getCodeAttribute(),
       pc = this.pc, method = this.method,
       // STEP 1: See if we can find an appropriate handler for this exception!
-      exceptionHandlers = code.exception_handlers,
+      exceptionHandlers = codeAttr.exception_handlers,
       ecls = e.cls, handler: attributes.ExceptionHandler, i: number;
     for (i = 0; i < exceptionHandlers.length; i++) {
       var eh = exceptionHandlers[i];

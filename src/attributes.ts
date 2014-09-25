@@ -30,25 +30,21 @@ export class Code implements Attribute {
   private constant_pool: ConstantPool.ConstantPool;
   private max_stack: number;
   private max_locals: number;
-  private code_len: number;
-  private _code_array: ByteStream;
   public exception_handlers: ExceptionHandler[];
-  public run_stamp: number;
-  private opcodes: opcodes.Opcode[];
   private attrs: Attribute[];
+  private code: NodeBuffer;
 
   public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool) {
     this.constant_pool = constant_pool;
     this.max_stack = bytes_array.getUint16();
     this.max_locals = bytes_array.getUint16();
-    this.code_len = bytes_array.getUint32();
-    if (this.code_len === 0) {
-      (typeof RELEASE !== "undefined" && RELEASE !== null) || (function() {
+    var code_len = bytes_array.getUint32();
+    if (code_len === 0) {
+      (typeof RELEASE !== "undefined" && RELEASE !== null) || (() => {
         throw "Code.parse error: Code length is zero";
       })();
     }
-    this._code_array = bytes_array.slice(this.code_len);
-    this.opcodes = null;
+    this.code = bytes_array.slice(code_len).getBuffer();
     var except_len = bytes_array.getUint16();
     this.exception_handlers = [];
     for (var i = 0; i < except_len; i++) {
@@ -58,46 +54,10 @@ export class Code implements Attribute {
     }
     // yes, there are even attrs on attrs. BWOM... BWOM...
     this.attrs = make_attributes(bytes_array, constant_pool);
-    this.run_stamp = 0;
   }
 
-  public getCode(): opcodes.Opcode[] {
-    if (this.opcodes != null) {
-      return this.opcodes;
-    } else {
-      this.parseCode();
-      return this.opcodes;
-    }
-  }
-
-  private parseCode(): void {
-    this.opcodes = new Array(this.code_len);
-    while (this._code_array.hasBytes()) {
-      var op_index = this._code_array.pos();
-      var c = this._code_array.getUint8();
-      var wide = c === 196;
-      if (wide) {
-        // wide opcode needs to be handled specially
-        c = this._code_array.getUint8();
-      }
-      if (opcodes.opcodes[c] == null) {
-        (typeof RELEASE !== "undefined" && RELEASE !== null) || (function() {
-          throw "unknown opcode code: " + c;
-        })();
-      }
-      var op = Object.create(opcodes.opcodes[c]);
-      op.take_args(this._code_array, this.constant_pool, wide);
-      this.opcodes[op_index] = op;
-    }
-    this._code_array.rewind();
-  }
-
-  public each_opcode<T>(fn:(p: number, q: opcodes.Opcode)=>T): void {
-    for (var i = 0; i < this.code_len; i++) {
-      if (this.opcodes[i] != null) {
-        fn(i, this.opcodes[i]);
-      }
-    }
+  public getCode(): NodeBuffer {
+    return this.code;
   }
 
   public get_attribute(name: string): Attribute {

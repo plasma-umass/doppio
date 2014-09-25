@@ -1,7 +1,6 @@
 "use strict";
 import util = require('./util');
 import ByteStream = require('./ByteStream');
-import opcodes = require('./opcodes');
 import attributes = require('./attributes');
 import logging = require('./logging');
 import JVM = require('./jvm');
@@ -245,11 +244,6 @@ export class Method extends AbstractMethodField {
 
   public full_signature(): string {
     return this.cls.get_type() + "::" + this.name + this.raw_descriptor;
-  }
-
-  public getCode(): opcodes.Opcode[] {
-    assert(!this.access_flags.native && !this.access_flags.abstract);
-    return (<attributes.Code> this.code).getCode();
   }
 
   public getCodeAttribute(): attributes.Code {
