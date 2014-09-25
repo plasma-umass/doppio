@@ -867,7 +867,7 @@ export class Opcodes {
     var stack = frame.stack;
     // Ignore NULL.
     stack.pop();
-    stack.push(stack.pop().toNumber());
+    stack.push(stack.pop().toNumber(), null);
     frame.pc++;
   }
 
