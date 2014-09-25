@@ -1406,7 +1406,7 @@ export class Opcodes {
   public static putfield(thread:threading.JVMThread, frame:threading.BytecodeStackFrame, code:NodeBuffer, pc:number) {
     var fieldSpec = getDesc<ConstantPool.FieldReferenceValue>(code, pc, frame.method.cls.constant_pool),
       loader = frame.getLoader(),
-      obj = frame.stack[frame.stack.length - 1];
+      obj = frame.stack[frame.stack.length - ((fieldSpec.type == 'J' || fieldSpec.type == 'D') ? 3 : 2)];
     // Check if the object is null; if we do not do this before get_class, then
     // we might try to get a class that we have not initialized!
     if (!isNull(thread, frame, obj)) {
