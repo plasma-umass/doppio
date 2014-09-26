@@ -870,6 +870,16 @@ export class JVMThread extends java_object.JavaObject {
     var frame = stack.pop();
     if (frame.type != enums.StackFrameType.INTERNAL) {
       var frameCast = <BytecodeStackFrame> frame;
+      if (frame.type === enums.StackFrameType.BYTECODE) {
+        // This line will be preceded by a line that prints the method, so can be short n' sweet.
+        if (frameCast.method.return_type !== 'V') {
+          vtrace("  Returning: " + logging.debug_var(rv));
+        }
+      } else {
+        // Native methods can asyncReturn at any point, so print more information.
+        vtrace("T" + this.ref + " D" + (this.getStackTrace().length + 1) + " Returning value from " + frameCast.method.full_signature() + " [Native]: " + (frameCast.method.return_type === 'V' ? 'void' : logging.debug_var(rv)));
+      }
+
       if (frameCast.method.return_type !== 'V') {
         vtrace("\nT" + this.ref + " D" + (this.getStackTrace().length + 1) + " Returning value from " + frameCast.method.full_signature() + " [" + (frameCast.method.access_flags.native ? 'Native' : 'Bytecode') + "]: " + logging.debug_var(rv));
       }
