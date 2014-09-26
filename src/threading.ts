@@ -81,8 +81,12 @@ export class BytecodeStackFrame implements IStackFrame {
     var method = this.method, code = this.method.getCodeAttribute().getCode(),
       opcodeTable = opcodes.LookupTable;
     if (this.pc === 0) {
-      vtrace("T" + thread.ref + " " + this.method.full_signature() + " [Bytecode]");
+      vtrace("\nT" + thread.ref + " D" + thread.getStackTrace().length + " Running " + this.method.full_signature() + " [Bytecode]:");
+    } else {
+      vtrace("\nT" + thread.ref + " D" + thread.getStackTrace().length + " Resuming " + this.method.full_signature() + ":" + this.pc + " [Bytecode]:");
     }
+    vtrace("  S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "]");
+
     if (method.access_flags.synchronized && !this.lockedMethodLock) {
       // We are starting a synchronized method! These must implicitly enter
       // their respective locks.
@@ -102,16 +106,15 @@ export class BytecodeStackFrame implements IStackFrame {
     // from the previous time this method was run, and is meaningless.
     this.returnToThreadLoop = false;
 
-    vtrace("T" + thread.ref + " Resuming " + this.method.full_signature() + ":" + this.pc + " [Bytecode]");
-    vtrace("T" + thread.ref + " BEFORE: D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
     // Run until we get the signal to return to the thread loop.
     while (!this.returnToThreadLoop) {
       var op = code.readUInt8(this.pc);
-      vtrace("T" + thread.ref + " D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
-      vtrace("T" + thread.ref + " " + method.cls.get_type() + "::" + method.name + ":" + this.pc + " => " + enums.OpCode[op]); //+ op.annotate(this.pc, method.cls.constant_pool));
+      vtrace("  " + this.pc + " " + annotateOpcode(op, this, code, this.pc));
       opcodeTable[op](thread, this, code, this.pc);
+      if (!this.returnToThreadLoop) {
+        vtrace("    S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "]");
+      }
     }
-    vtrace("T" + thread.ref + " AFTER: D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
   }
 
   public scheduleResume(thread: JVMThread, rv?: any, rv2?: any): void {
@@ -254,7 +257,7 @@ class NativeStackFrame implements IStackFrame {
    * NOTE: Should only be called once.
    */
   public run(thread: JVMThread): void {
-    vtrace("T" + thread.ref + " " + this.method.full_signature() + " [Native Code]");
+    vtrace("\nT" + thread.ref + " D" + thread.getStackTrace().length + " Running " + this.method.full_signature() + " [Native]:");
     var rv: any = this.nativeMethod.apply(null, this.method.convertArgs(thread, this.args));
     // Ensure thread is running, and we are the running method.
     if (thread.getStatus() === enums.ThreadStatus.RUNNING && thread.currentMethod() === this.method) {
@@ -720,7 +723,7 @@ export class JVMThread extends java_object.JavaObject {
     // Ignore RUNNING => RUNNABLE transitions.
     if (this.status !== status && !(this.status === enums.ThreadStatus.RUNNING && status === enums.ThreadStatus.RUNNABLE)) {
       var oldStatus = this.status;
-      vtrace("T" + this.ref + " " + enums.ThreadStatus[oldStatus] + " => " + enums.ThreadStatus[status]);
+      vtrace("\nT" + this.ref + " " + enums.ThreadStatus[oldStatus] + " => " + enums.ThreadStatus[status]);
       assert(validateThreadTransition(oldStatus, status), "Invalid thread transition: " + enums.ThreadStatus[oldStatus] + " => " + enums.ThreadStatus[status]);
 
       // Optimistically change state.
@@ -867,6 +870,9 @@ export class JVMThread extends java_object.JavaObject {
     var frame = stack.pop();
     if (frame.type != enums.StackFrameType.INTERNAL) {
       var frameCast = <BytecodeStackFrame> frame;
+      if (frameCast.method.return_type !== 'V') {
+        vtrace("\nT" + this.ref + " D" + (this.getStackTrace().length + 1) + " Returning value from " + frameCast.method.full_signature() + " [" + (frameCast.method.access_flags.native ? 'Native' : 'Bytecode') + "]: " + logging.debug_var(rv));
+      }
       assert(validateReturnValue(this, frameCast.method,
         frameCast.method.return_type, this.bsCl,
         frameCast.method.cls.get_class_loader(), rv, rv2), "Invalid return value for method " + frameCast.method.full_signature());
@@ -1115,4 +1121,22 @@ function validateReturnValue(thread: JVMThread, method: methods.Method, returnTy
     return false;
   }
   return true;
+}
+
+// TODO: Prefix behind DEBUG, cache lowercase opcode names.
+export var OpcodeLayoutPrinters: {[layoutAtom: number]: (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => string} = {};
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.OPCODE_ONLY] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase();
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.CONSTANT_POOL] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + frame.method.cls.constant_pool.get(code.readUInt16BE(pc + 1)).deref();
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.CONSTANT_POOL_UINT8] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + frame.method.cls.constant_pool.get(code.readUInt8(pc + 1)).deref();
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.CONSTANT_POOL_AND_UINT8_VALUE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + frame.method.cls.constant_pool.get(code.readUInt16BE(pc + 1)).deref() + " " + code.readUInt8(pc + 3);
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.UINT8_VALUE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readUInt8(pc + 1);
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.UINT8_AND_INT8_VALUE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readUInt8(pc + 1) + " " + code.readInt8(pc + 2);
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.INT8_VALUE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readInt8(pc + 1);
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.INT16_VALUE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readInt16BE(pc + 1);
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.INT32_VALUE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readInt32BE(pc + 1);
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.ARRAY_TYPE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + opcodes.ArrayTypes[code.readUInt8(pc + 1)];
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.WIDE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase();
+
+function annotateOpcode(op: number, frame: BytecodeStackFrame, code: NodeBuffer, pc: number): string {
+  return OpcodeLayoutPrinters[enums.OpcodeLayouts[op]](frame, code, pc);
 }

@@ -357,4 +357,58 @@ export enum OpCode {
   GETFIELD_FAST64 = 0xdc,
   PUTFIELD_FAST32 = 0xdd,
   PUTFIELD_FAST64 = 0xde
-};
+}
+
+export enum OpcodeLayoutType {
+  OPCODE_ONLY,
+  CONSTANT_POOL_UINT8,
+  CONSTANT_POOL,
+  CONSTANT_POOL_AND_UINT8_VALUE,
+  UINT8_VALUE,
+  UINT8_AND_INT8_VALUE,
+  INT8_VALUE,
+  INT16_VALUE,
+  INT32_VALUE,
+  // LOOKUPSWITCH,
+  // TABLESWITCH,
+  ARRAY_TYPE,
+  WIDE
+}
+
+// Contains the opcode layout types for each valid opcode.
+// To conserve code space, it's assumed all opcodes not in the table
+// are OPCODE_ONLY.
+var olt: OpcodeLayoutType[] = new Array(0xff);
+(() => {
+  for (var i = 0; i < 0xff; i++) {
+    olt[i] = OpcodeLayoutType.OPCODE_ONLY;
+  }
+})();
+function assignOpcodeLayout(layoutType: OpcodeLayoutType, opcodes: OpCode[]): void {
+  opcodes.forEach((opcode) => {
+    olt[opcode] = layoutType;
+  });
+}
+assignOpcodeLayout(OpcodeLayoutType.UINT8_VALUE,
+  [OpCode.ALOAD, OpCode.ASTORE, OpCode.DLOAD, OpCode.DSTORE,
+   OpCode.FLOAD, OpCode.FSTORE, OpCode.ILOAD, OpCode.ISTORE,
+   OpCode.LLOAD, OpCode.LSTORE, OpCode.RET]);
+assignOpcodeLayout(OpcodeLayoutType.CONSTANT_POOL_UINT8, [OpCode.LDC]);
+assignOpcodeLayout(OpcodeLayoutType.CONSTANT_POOL,
+  [OpCode.LDC_W, OpCode.LDC2_W,
+   OpCode.ANEWARRAY, OpCode.CHECKCAST, OpCode.GETFIELD,
+   OpCode.GETSTATIC, OpCode.INSTANCEOF, OpCode.INVOKEDYNAMIC,
+   OpCode.INVOKESPECIAL, OpCode.INVOKESTATIC, OpCode.INVOKEVIRTUAL,
+   OpCode.NEW, OpCode.PUTFIELD, OpCode.PUTSTATIC]);
+assignOpcodeLayout(OpcodeLayoutType.CONSTANT_POOL_AND_UINT8_VALUE,
+  [OpCode.INVOKEINTERFACE, OpCode.MULTIANEWARRAY]);
+assignOpcodeLayout(OpcodeLayoutType.INT8_VALUE, [OpCode.BIPUSH]);
+assignOpcodeLayout(OpcodeLayoutType.INT16_VALUE,
+  [OpCode.SIPUSH, OpCode.GOTO, OpCode.IFGT, OpCode.IFEQ, OpCode.IFGE, OpCode.IFLE,
+   OpCode.IFLT, OpCode.IFNE, OpCode.IFNULL, OpCode.IFNONNULL, OpCode.IF_ICMPLE,
+   OpCode.JSR])
+assignOpcodeLayout(OpcodeLayoutType.INT32_VALUE, [OpCode.GOTO_W, OpCode.JSR_W]);
+assignOpcodeLayout(OpcodeLayoutType.UINT8_AND_INT8_VALUE, [OpCode.IINC]);
+assignOpcodeLayout(OpcodeLayoutType.ARRAY_TYPE, [OpCode.NEWARRAY]);
+
+export var OpcodeLayouts = olt;

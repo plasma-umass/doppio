@@ -93,7 +93,7 @@ export function getDesc<T>(code: NodeBuffer, pc: number, constantPool: ConstantP
   return <T> constantPool.get(code.readUInt16BE(pc + 1)).deref();
 }
 
-var NewArray_arr_types : {[t: number]: string; } = {
+export var ArrayTypes : {[t: number]: string; } = {
   4: 'Z', 5: 'C', 6: 'F', 7: 'D', 8: 'B', 9: 'S', 10: 'I', 11: 'J'
 };
 
@@ -1609,7 +1609,7 @@ export class Opcodes {
 
   public static newarray(thread:threading.JVMThread, frame:threading.BytecodeStackFrame, code:NodeBuffer, pc:number) {
     var stack = frame.stack,
-      elementType = NewArray_arr_types[code.readUInt8(pc + 1)],
+      elementType = ArrayTypes[code.readUInt8(pc + 1)],
       newArray = java_object.heapNewArray(thread, frame.getLoader(), elementType, stack.pop());
     // If newArray is undefined, then an exception was thrown.
     if (newArray !== undefined) {
