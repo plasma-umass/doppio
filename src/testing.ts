@@ -11,8 +11,8 @@ import interfaces = require('./interfaces');
  * Variables and code for hooking into standard output.
  */
 var testOutput: string = '',
-  stdoutWrite = process.stdout.write,
-  stderrWrite = process.stderr.write,
+  stdoutWrite,
+  stderrWrite,
   newWrite = function(data: any, arg2?: any, arg3?: any): boolean {
     if (typeof(data) !== 'string') {
       // Buffer.
@@ -26,6 +26,8 @@ var testOutput: string = '',
  * Starts recording Doppio's output streams.
  */
 function startRecordingOutput(): void {
+  stdoutWrite = process.stdout.write;
+  stderrWrite = process.stderr.write;
   // Reset previous output.
   testOutput = '';
   // Patch up standard output.
@@ -64,7 +66,7 @@ export interface TestOptions extends interfaces.JVMOptions {
    */
   hideDiffs: boolean;
   /**
-   * If 'true', the runner will not print anything to the console.
+   * If 'true', the runner will not print status messages to the console.
    */
   quiet: boolean;
   /**
@@ -149,7 +151,7 @@ class DoppioTest {
                 this.print('fail.\n\tOutput does not match native JVM.\n')
                 // Print diff.
                 if (!this.opts.hideDiffs) {
-                  this.print(diffStr + "\n");
+                  process.stdout.write(this.cls + ": " + diffStr + "\n");
                 }
                 cb(false);
               }
