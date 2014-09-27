@@ -389,6 +389,7 @@ function assignOpcodeLayout(layoutType: OpcodeLayoutType, opcodes: OpCode[]): vo
     olt[opcode] = layoutType;
   });
 }
+
 assignOpcodeLayout(OpcodeLayoutType.UINT8_VALUE,
   [OpCode.ALOAD, OpCode.ASTORE, OpCode.DLOAD, OpCode.DSTORE,
    OpCode.FLOAD, OpCode.FSTORE, OpCode.ILOAD, OpCode.ISTORE,
@@ -399,7 +400,12 @@ assignOpcodeLayout(OpcodeLayoutType.CONSTANT_POOL,
    OpCode.ANEWARRAY, OpCode.CHECKCAST, OpCode.GETFIELD,
    OpCode.GETSTATIC, OpCode.INSTANCEOF, OpCode.INVOKEDYNAMIC,
    OpCode.INVOKESPECIAL, OpCode.INVOKESTATIC, OpCode.INVOKEVIRTUAL,
-   OpCode.NEW, OpCode.PUTFIELD, OpCode.PUTSTATIC]);
+   OpCode.NEW, OpCode.PUTFIELD, OpCode.PUTSTATIC,
+   OpCode.GETSTATIC_FAST32, OpCode.GETSTATIC_FAST64, OpCode.NEW_FAST,
+   OpCode.NEW_CL_FAST, OpCode.NEW_THREAD_FAST, OpCode.ANEWARRAY_FAST,
+   OpCode.CHECKCAST_FAST, OpCode.INSTANCEOF_FAST, OpCode.MULTIANEWARRAY_FAST,
+   OpCode.PUTSTATIC_FAST32, OpCode.PUTFIELD_FAST32, OpCode.PUTFIELD_FAST64,
+   OpCode.GETFIELD_FAST32, OpCode.GETFIELD_FAST64]);
 assignOpcodeLayout(OpcodeLayoutType.CONSTANT_POOL_AND_UINT8_VALUE,
   [OpCode.INVOKEINTERFACE, OpCode.MULTIANEWARRAY]);
 assignOpcodeLayout(OpcodeLayoutType.INT8_VALUE, [OpCode.BIPUSH]);

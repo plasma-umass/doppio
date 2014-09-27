@@ -1136,7 +1136,20 @@ function validateReturnValue(thread: JVMThread, method: methods.Method, returnTy
 
 function printConstantPoolItem(cpi: ConstantPool.ConstantPoolItem): string {
   if (cpi.deref != null) {
-    return cpi.deref();
+    var deref = cpi.deref();
+    switch (cpi.type) {
+      case 'Method':
+      case 'InterfaceMethod':
+        return deref.class_desc + "." + deref.sig;
+      case 'Field':
+        // class_desc / name / type
+        return deref.class_desc + "." + deref.name + ":" + deref.type;
+      case 'NameAndType':
+        // name / type
+        return deref.name + ":" + deref.type;
+      default:
+        return deref;
+    }
   }
   return logging.debug_var(cpi.value);
 }
