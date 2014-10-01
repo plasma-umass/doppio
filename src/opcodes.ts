@@ -1134,28 +1134,28 @@ export class Opcodes {
 
   public static tableswitch(thread:threading.JVMThread, frame:threading.BytecodeStackFrame, code:NodeBuffer, pc:number) {
     // Ignore padding bytes. The +1 is to skip the opcode byte.
-    pc += (4 - pc % 4) % 4 + 1;
+    pc += ((4 - (pc + 1) % 4) % 4) + 1;
     var defaultOffset = code.readInt32BE(pc),
       low = code.readInt32BE(pc + 4),
       high = code.readInt32BE(pc + 8),
       offset = frame.stack.pop();
 
     if (offset >= low || offset <= high) {
-      frame.pc += code.readInt32BE(pc + 8 + (offset - low) * 4);
+      frame.pc += code.readInt32BE(pc + 12 + (offset - low) * 4);
     } else {
       frame.pc += defaultOffset;
     }
   }
 
   public static lookupswitch(thread:threading.JVMThread, frame:threading.BytecodeStackFrame, code:NodeBuffer, pc:number) {
-    // Skip padding bytes.
-    pc += (4 - pc % 4) % 4;
+    // Skip padding bytes. The +1 is to skip the opcode byte.
+    pc += ((4 - (pc + 1) % 4) % 4) + 1;
     var defaultOffset = code.readInt32BE(pc),
       nPairs = code.readInt32BE(pc + 4),
       i:number,
       v:number = frame.stack.pop();
 
-    pc += 4;
+    pc += 8;
     for (i = 0; i < nPairs; i++) {
       if (code.readInt32BE(pc) === v) {
         frame.pc += code.readInt32BE(pc + 4);
