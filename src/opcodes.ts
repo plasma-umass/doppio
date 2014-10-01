@@ -1789,8 +1789,8 @@ export class Opcodes {
     frame.pc += code.readInt32BE(pc + 1);
   }
 
-  public static nop() {
-    // NOP.
+  public static nop(thread:threading.JVMThread, frame:threading.BytecodeStackFrame) {
+    frame.pc += 1;
   }
 
   public static ldc(thread:threading.JVMThread, frame:threading.BytecodeStackFrame, code: NodeBuffer, pc:number) {
