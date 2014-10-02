@@ -1141,9 +1141,7 @@ export class Opcodes {
       offset = frame.stack.pop();
 
     if (offset >= low && offset <= high) {
-      console.log(frame.pc);
       frame.pc += code.readInt32BE(pc + 12 + ((offset - low) * 4));
-      console.log(frame.pc);
     } else {
       frame.pc += defaultOffset;
     }
