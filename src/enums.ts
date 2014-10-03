@@ -412,7 +412,8 @@ assignOpcodeLayout(OpcodeLayoutType.INT8_VALUE, [OpCode.BIPUSH]);
 assignOpcodeLayout(OpcodeLayoutType.INT16_VALUE,
   [OpCode.SIPUSH, OpCode.GOTO, OpCode.IFGT, OpCode.IFEQ, OpCode.IFGE, OpCode.IFLE,
    OpCode.IFLT, OpCode.IFNE, OpCode.IFNULL, OpCode.IFNONNULL, OpCode.IF_ICMPLE,
-   OpCode.JSR])
+   OpCode.IF_ACMPEQ, OpCode.IF_ACMPNE, OpCode.IF_ICMPEQ, OpCode.IF_ICMPGE,
+   OpCode.IF_ICMPGT, OpCode.IF_ICMPLT, OpCode.IF_ICMPNE, OpCode.JSR])
 assignOpcodeLayout(OpcodeLayoutType.INT32_VALUE, [OpCode.GOTO_W, OpCode.JSR_W]);
 assignOpcodeLayout(OpcodeLayoutType.UINT8_AND_INT8_VALUE, [OpCode.IINC]);
 assignOpcodeLayout(OpcodeLayoutType.ARRAY_TYPE, [OpCode.NEWARRAY]);

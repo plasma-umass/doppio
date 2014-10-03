@@ -923,7 +923,7 @@ export class Opcodes {
 
   public static i2c(thread:threading.JVMThread, frame:threading.BytecodeStackFrame) {
     var stack = frame.stack;
-    stack.push((stack.pop() << 24) >> 24);
+    stack.push(stack.pop() & 0xFFFF);
     frame.pc++;
   }
 
@@ -1887,7 +1887,7 @@ export class Opcodes {
         frame.pc = frame.locals[index];
         break;
       case enums.OpCode.IINC:
-        var value = code.readInt16BE(pc + 2);
+        var value = code.readInt16BE(pc + 4);
         frame.locals[index] = (frame.locals[index] + value) | 0;
         // wide iinc has 2 extra bytes.
         frame.pc += 2;
