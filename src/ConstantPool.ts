@@ -228,6 +228,7 @@ _ = ConstDouble;
 export class ConstantPool {
   private cp_count: number;
   private constant_pool: { [n: number]: ConstantPoolItem; };
+  private cachedData: { [n: number]: any } = {};
 
   public parse(bytes_array: ByteStream): ByteStream {
     var constant_tags: {[n: number]: ConstantPoolType } = {
@@ -274,5 +275,13 @@ export class ConstantPool {
         fn(i, this.constant_pool[i]);
       }
     }
+  }
+
+  public stash<T>(i: number, item: T): void {
+    this.cachedData[i] = item;
+  }
+
+  public getFromStash<T>(i: number):T {
+    return this.cachedData[i];
   }
 }

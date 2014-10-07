@@ -93,6 +93,20 @@ export function getDesc<T>(code: NodeBuffer, pc: number, constantPool: ConstantP
   return <T> constantPool.get(code.readUInt16BE(pc + 1)).deref();
 }
 
+/**
+ * Stash an item at the same offset as the CP item that the opcode references.
+ */
+export function stashCPItem<T>(code: NodeBuffer, pc: number, constantPool: ConstantPool.ConstantPool, item: T): void {
+  constantPool.stash(code.readUInt16BE(pc + 1), item);
+}
+
+/**
+ * Retrieve a stashed item from the constant pool.
+ */
+export function getFromCPStash<T>(code: NodeBuffer, pc: number, constantPool: ConstantPool.ConstantPool): T {
+  return constantPool.getFromStash<T>(code.readUInt16BE(pc + 1));
+}
+
 export var ArrayTypes : {[t: number]: string; } = {
   4: 'Z', 5: 'C', 6: 'F', 7: 'D', 8: 'B', 9: 'S', 10: 'I', 11: 'J'
 };
@@ -1233,6 +1247,7 @@ export class Opcodes {
           } else {
             code.writeUInt8(enums.OpCode.GETSTATIC_FAST32, pc);
           }
+          stashCPItem(code, pc, frame.method.cls.constant_pool, cls);
         } else {
           // Initialize clsType and rerun opcode
           initializeClass(thread, frame, clsType);
@@ -1252,9 +1267,7 @@ export class Opcodes {
    */
   public static getstatic_fast32(thread:threading.JVMThread, frame:threading.BytecodeStackFrame, code:NodeBuffer, pc:number) {
     var fieldSpec = getDesc<ConstantPool.FieldReferenceValue>(code, pc, frame.method.cls.constant_pool),
-      loader = frame.getLoader(),
-      refCls = <ClassData.ReferenceClassData> loader.getInitializedClass(thread, fieldSpec.class_desc),
-      cls = <ClassData.ReferenceClassData> loader.getInitializedClass(thread, refCls.field_lookup(thread, fieldSpec.name).cls.get_type());
+      cls = getFromCPStash<ClassData.ReferenceClassData>(code, pc, frame.method.cls.constant_pool);
 
     frame.stack.push(cls.static_get(thread, fieldSpec.name));
     frame.pc += 3;
@@ -1268,9 +1281,7 @@ export class Opcodes {
    */
   public static getstatic_fast64(thread:threading.JVMThread, frame:threading.BytecodeStackFrame, code:NodeBuffer, pc:number) {
     var fieldSpec = getDesc<ConstantPool.FieldReferenceValue>(code, pc, frame.method.cls.constant_pool),
-      loader = frame.getLoader(),
-      refCls = <ClassData.ReferenceClassData> loader.getInitializedClass(thread, fieldSpec.class_desc),
-      cls = <ClassData.ReferenceClassData> loader.getInitializedClass(thread, refCls.field_lookup(thread, fieldSpec.name).cls.get_type());
+      cls = getFromCPStash<ClassData.ReferenceClassData>(code, pc, frame.method.cls.constant_pool);
 
     frame.stack.push(cls.static_get(thread, fieldSpec.name), null);
     frame.pc += 3;
@@ -1295,6 +1306,7 @@ export class Opcodes {
           } else {
             code.writeUInt8(enums.OpCode.PUTSTATIC_FAST32, pc);
           }
+          stashCPItem(code, pc, frame.method.cls.constant_pool, cls);
         } else {
           // Initialize clsType and rerun opcode
           initializeClass(thread, frame, clsType);
@@ -1314,9 +1326,7 @@ export class Opcodes {
    */
   public static putstatic_fast32(thread:threading.JVMThread, frame:threading.BytecodeStackFrame, code:NodeBuffer, pc:number) {
     var fieldSpec = getDesc<ConstantPool.FieldReferenceValue>(code, pc, frame.method.cls.constant_pool),
-      loader = frame.getLoader(),
-      refCls = <ClassData.ReferenceClassData> loader.getInitializedClass(thread, fieldSpec.class_desc),
-      cls = <ClassData.ReferenceClassData> loader.getInitializedClass(thread, refCls.field_lookup(thread, fieldSpec.name).cls.get_type());
+      cls = getFromCPStash<ClassData.ReferenceClassData>(code, pc, frame.method.cls.constant_pool);
 
     cls.static_put(thread, fieldSpec.name, frame.stack.pop());
     frame.pc += 3;
@@ -1330,9 +1340,7 @@ export class Opcodes {
    */
   public static putstatic_fast64(thread:threading.JVMThread, frame:threading.BytecodeStackFrame, code:NodeBuffer, pc:number) {
     var fieldSpec = getDesc<ConstantPool.FieldReferenceValue>(code, pc, frame.method.cls.constant_pool),
-      loader = frame.getLoader(),
-      refCls = <ClassData.ReferenceClassData> loader.getInitializedClass(thread, fieldSpec.class_desc),
-      cls = <ClassData.ReferenceClassData> loader.getInitializedClass(thread, refCls.field_lookup(thread, fieldSpec.name).cls.get_type());
+      cls = getFromCPStash<ClassData.ReferenceClassData>(code, pc, frame.method.cls.constant_pool);
 
     cls.static_put(thread, fieldSpec.name, pop2(frame.stack));
     frame.pc += 3;
@@ -1357,6 +1365,7 @@ export class Opcodes {
           } else {
             code.writeUInt8(enums.OpCode.GETFIELD_FAST32, pc);
           }
+          stashCPItem(code, pc, frame.method.cls.constant_pool, field.cls.get_type() + fieldSpec.name);
           // Rerun opcode
         } else {
           // Field was NULL; field_lookup threw an exception for us.
@@ -1370,13 +1379,10 @@ export class Opcodes {
   }
 
   public static getfield_fast32(thread:threading.JVMThread, frame:threading.BytecodeStackFrame, code:NodeBuffer, pc:number) {
-    var fieldSpec = getDesc<ConstantPool.FieldReferenceValue>(code, pc, frame.method.cls.constant_pool),
-      loader = frame.getLoader(),
-      stack = frame.stack, obj: java_object.JavaObject = stack.pop(),
-      cls = loader.getInitializedClass(thread, fieldSpec.class_desc),
-      field = cls.field_lookup(thread, fieldSpec.name);
+    var fieldName = getFromCPStash<string>(code, pc, frame.method.cls.constant_pool),
+      stack = frame.stack, obj: java_object.JavaObject = stack.pop();
     if (!isNull(thread, frame, obj)) {
-      var val = obj.get_field(thread, field.cls.get_type() + fieldSpec.name);
+      var val = obj.get_field(thread, fieldName);
       if (val !== undefined) {
         stack.push(val);
         frame.pc += 3;
@@ -1387,13 +1393,10 @@ export class Opcodes {
   }
 
   public static getfield_fast64(thread:threading.JVMThread, frame:threading.BytecodeStackFrame, code:NodeBuffer, pc:number) {
-    var fieldSpec = getDesc<ConstantPool.FieldReferenceValue>(code, pc, frame.method.cls.constant_pool),
-      loader = frame.getLoader(),
-      stack = frame.stack, obj: java_object.JavaObject = stack.pop(),
-      cls = loader.getInitializedClass(thread, fieldSpec.class_desc),
-      field = cls.field_lookup(thread, fieldSpec.name);
+    var fieldName = getFromCPStash<string>(code, pc, frame.method.cls.constant_pool),
+      stack = frame.stack, obj: java_object.JavaObject = stack.pop();
     if (!isNull(thread, frame, obj)) {
-      var val = obj.get_field(thread, field.cls.get_type() + fieldSpec.name);
+      var val = obj.get_field(thread, fieldName);
       if (val !== undefined) {
         stack.push(val, null);
         frame.pc += 3;
@@ -1422,6 +1425,7 @@ export class Opcodes {
           } else {
             code.writeUInt8(enums.OpCode.PUTFIELD_FAST32, pc);
           }
+          stashCPItem(code, pc, frame.method.cls.constant_pool, field.cls.get_type() + fieldSpec.name);
           // Rerun opcode
         } else {
           // Field was NULL; field_lookup threw an exception for us.
@@ -1435,15 +1439,13 @@ export class Opcodes {
   }
 
   public static putfield_fast32(thread:threading.JVMThread, frame:threading.BytecodeStackFrame, code:NodeBuffer, pc:number) {
-    var fieldSpec = getDesc<ConstantPool.FieldReferenceValue>(code, pc, frame.method.cls.constant_pool),
-      loader = frame.getLoader(),
-      stack = frame.stack,
+    var stack = frame.stack,
       val = stack.pop(),
       obj: java_object.JavaObject = stack.pop(),
-      cls = loader.getInitializedClass(thread, fieldSpec.class_desc),
-      field = cls.field_lookup(thread, fieldSpec.name);
+      fieldName = getFromCPStash<string>(code, pc, frame.method.cls.constant_pool);
+
     if (!isNull(thread, frame, obj)) {
-      if (obj.set_field(thread, field.cls.get_type() + fieldSpec.name, val)) {
+      if (obj.set_field(thread, fieldName, val)) {
         frame.pc += 3;
       } else {
         // Field not found.
@@ -1454,15 +1456,13 @@ export class Opcodes {
   }
 
   public static putfield_fast64(thread:threading.JVMThread, frame:threading.BytecodeStackFrame, code:NodeBuffer, pc:number) {
-    var fieldSpec = getDesc<ConstantPool.FieldReferenceValue>(code, pc, frame.method.cls.constant_pool),
-      loader = frame.getLoader(),
-      stack = frame.stack,
+    var stack = frame.stack,
       val = pop2(stack),
       obj: java_object.JavaObject = stack.pop(),
-      cls = loader.getInitializedClass(thread, fieldSpec.class_desc),
-      field = cls.field_lookup(thread, fieldSpec.name);
+      fieldName = getFromCPStash<string>(code, pc, frame.method.cls.constant_pool);
+
     if (!isNull(thread, frame, obj)) {
-      if (obj.set_field(thread, field.cls.get_type() + fieldSpec.name, val)) {
+      if (obj.set_field(thread, fieldName, val)) {
         frame.pc += 3;
       } else {
         // Field not found.
@@ -1579,6 +1579,7 @@ export class Opcodes {
       } else {
         code.writeUInt8(enums.OpCode.NEW_FAST, pc);
       }
+      stashCPItem(code, pc, frame.method.cls.constant_pool, cls);
       // Return to thread, rerun opcode.
     } else {
       // Initialize type and rerun opcode.
@@ -1587,22 +1588,19 @@ export class Opcodes {
   }
 
   public static new_cl_fast(thread:threading.JVMThread, frame:threading.BytecodeStackFrame, code:NodeBuffer, pc:number) {
-    var desc = getDesc<string>(code, pc, frame.method.cls.constant_pool),
-      cls = <ClassData.ReferenceClassData> frame.getLoader().getInitializedClass(thread, desc);
+    var cls = getFromCPStash<ClassData.ReferenceClassData>(code, pc, frame.method.cls.constant_pool);
     frame.stack.push(new ClassLoader.JavaClassLoaderObject(thread, cls));
     frame.pc += 3;
   }
 
   public static new_thread_fast(thread:threading.JVMThread, frame:threading.BytecodeStackFrame, code:NodeBuffer, pc:number) {
-    var desc = getDesc<string>(code, pc, frame.method.cls.constant_pool),
-      cls = <ClassData.ReferenceClassData> frame.getLoader().getInitializedClass(thread, desc);
+    var cls = getFromCPStash<ClassData.ReferenceClassData>(code, pc, frame.method.cls.constant_pool);
     frame.stack.push(thread.getThreadPool().newThread(cls));
     frame.pc += 3;
   }
 
   public static new_fast(thread:threading.JVMThread, frame:threading.BytecodeStackFrame, code:NodeBuffer, pc:number) {
-    var desc = getDesc<string>(code, pc, frame.method.cls.constant_pool),
-      cls = <ClassData.ReferenceClassData> frame.getLoader().getInitializedClass(thread, desc);
+    var cls = getFromCPStash<ClassData.ReferenceClassData>(code, pc, frame.method.cls.constant_pool);
     frame.stack.push(new JavaObject(cls));
     frame.pc += 3;
   }
@@ -1627,6 +1625,7 @@ export class Opcodes {
     if (cls != null) {
       // Rewrite and rerun.
       code.writeUInt8(enums.OpCode.ANEWARRAY_FAST, pc);
+      stashCPItem(code, pc, frame.method.cls.constant_pool, cls);
     } else {
       // Load class and rerun opcode.
       resolveClass(thread, frame, desc);
@@ -1667,14 +1666,14 @@ export class Opcodes {
     if (cls != null) {
       // Rewrite to fast version, and re-execute.
       code.writeUInt8(enums.OpCode.CHECKCAST_FAST, pc);
+      stashCPItem(code, pc, frame.method.cls.constant_pool, cls);
     } else {
       resolveClass(thread, frame, desc);
     }
   }
 
   public static checkcast_fast(thread:threading.JVMThread, frame:threading.BytecodeStackFrame, code:NodeBuffer, pc:number) {
-    var desc = getDesc<string>(code, pc, frame.method.cls.constant_pool),
-      cls = frame.getLoader().getResolvedClass(desc),
+    var cls = getFromCPStash<ClassData.ClassData>(code, pc, frame.method.cls.constant_pool),
       stack = frame.stack,
       o:java_object.JavaObject = stack[stack.length - 1];
     if ((o != null) && !o.cls.is_castable(cls)) {
@@ -1694,6 +1693,7 @@ export class Opcodes {
     if (cls != null) {
       // Rewrite and rerun.
       code.writeUInt8(enums.OpCode.INSTANCEOF_FAST, pc);
+      stashCPItem(code, pc, frame.method.cls.constant_pool, cls);
     } else {
       // Fetch class and rerun opcode.
       resolveClass(thread, frame, desc);
@@ -1701,9 +1701,7 @@ export class Opcodes {
   }
 
   public static instanceof_fast(thread:threading.JVMThread, frame:threading.BytecodeStackFrame, code:NodeBuffer, pc:number) {
-    var desc = getDesc<string>(code, pc, frame.method.cls.constant_pool),
-      loader = frame.getLoader(),
-      cls = loader.getResolvedClass(desc),
+    var cls = getFromCPStash<ClassData.ClassData>(code, pc, frame.method.cls.constant_pool),
       stack = frame.stack,
       o = stack.pop();
     stack.push(o != null ? o.cls.is_castable(cls) + 0 : 0);
