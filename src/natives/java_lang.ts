@@ -65,8 +65,7 @@ function create_stack_trace(thread: threading.JVMThread, throwable: java_object.
     cstack[cstack.length - 1].locals[0] === throwable) {
     cstack.pop();
   }
-  assert(cstack.length > 0);
-
+  
   for (i = 0; i < cstack.length; i++) {
     var sf = cstack[i],
       cls = sf.method.cls,
@@ -762,7 +761,8 @@ class java_lang_reflect_Array {
   }
 
   public static 'newArray(Ljava/lang/Class;I)Ljava/lang/Object;'(thread: threading.JVMThread, cls: java_object.JavaClassObject, len: number): java_object.JavaArray {
-    return java_object.heapNewArray(thread, cls.$cls.loader, cls.$cls.get_type(), len);
+    var arrCls = <ClassData.ArrayClassData> cls.$cls.loader.getResolvedClass("[" + cls.$cls.get_type());
+    return java_object.heapNewArray(thread, arrCls, len);
   }
 
   public static 'multiNewArray(Ljava/lang/Class;[I)Ljava/lang/Object;'(thread: threading.JVMThread, jco: java_object.JavaClassObject, lens: java_object.JavaArray): java_object.JavaArray {

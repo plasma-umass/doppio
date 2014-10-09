@@ -635,18 +635,18 @@ export class Monitor {
   }
 }
 
-export function heapNewArray(thread: threading.JVMThread, loader: ClassLoader.ClassLoader, type: string, len: number): JavaArray {
+export function heapNewArray(thread: threading.JVMThread, cls: ClassData.ArrayClassData, len: number): JavaArray {
+  var type: string = cls.this_class.slice(1);
   if (len < 0) {
     thread.throwNewException('Ljava/lang/NegativeArraySizeException;', "Tried to init [" + type + " array with length " + len);
   } else {
-    var arr_cls = <ClassData.ArrayClassData> loader.getInitializedClass(thread, "[" + type);
     // Gives the JavaScript engine a size hint.
     if (type === 'J') {
-      return new JavaArray(arr_cls, util.arrayset<gLong>(len, gLong.ZERO));
+      return new JavaArray(cls, util.arrayset<gLong>(len, gLong.ZERO));
     } else if (type[0] === 'L' || type[0] === '[') { // array of objects or other arrays
-      return new JavaArray(arr_cls, util.arrayset<any>(len, null));
+      return new JavaArray(cls, util.arrayset<any>(len, null));
     } else { // numeric array
-      return new JavaArray(arr_cls, util.arrayset<number>(len, 0));
+      return new JavaArray(cls, util.arrayset<number>(len, 0));
     }
   }
 }

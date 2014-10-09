@@ -1168,6 +1168,10 @@ OpcodeLayoutPrinters[enums.OpcodeLayoutType.INT32_VALUE] = (frame: BytecodeStack
 OpcodeLayoutPrinters[enums.OpcodeLayoutType.ARRAY_TYPE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + opcodes.ArrayTypes[code.readUInt8(pc + 1)];
 OpcodeLayoutPrinters[enums.OpcodeLayoutType.WIDE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase();
 
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.CLASS_STASH] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase();
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.FIELD_NAME_STASH] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase();
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.STATIC_FIELD_STASH] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase();
+
 function annotateOpcode(op: number, frame: BytecodeStackFrame, code: NodeBuffer, pc: number): string {
   return OpcodeLayoutPrinters[enums.OpcodeLayouts[op]](frame, code, pc);
 }

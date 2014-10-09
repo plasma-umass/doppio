@@ -11,9 +11,6 @@ import enums = require('./enums');
 import interfaces = require('./interfaces');
 import assert = require('./assert');
 var JavaObject = java_object.JavaObject;
-/**
- * TODO: Are IDs already unique? e.g. class IDs are within constant pool?
- */
 
 /**
  * Interface for individual opcode implementations.
@@ -22,6 +19,13 @@ export interface OpcodeImplementation {
   (thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code?: NodeBuffer, position?: number): void;
 }
 
+/**
+ * Stashes information pertinent to a static field.
+ */
+export interface StaticFieldStash {
+  cls: ClassData.ReferenceClassData;
+  name: string;
+}
 
 /**
  * Helper function: Checks if object is null. Throws a NullPointerException
@@ -94,10 +98,10 @@ export function getDesc<T>(code: NodeBuffer, pc: number, constantPool: ConstantP
 }
 
 /**
- * Stash an item at the same offset as the CP item that the opcode references.
+ * Stash an item into the constant pool.
  */
 export function stashCPItem<T>(code: NodeBuffer, pc: number, constantPool: ConstantPool.ConstantPool, item: T): void {
-  constantPool.stash(code.readUInt16BE(pc + 1), item);
+  code.writeUInt16BE(constantPool.stash<T>(item), pc + 1);
 }
 
 /**
@@ -183,7 +187,7 @@ export class Opcodes {
   private static _aload_64(thread:threading.JVMThread, frame:threading.BytecodeStackFrame) {
     var stack = frame.stack,
       idx = stack.pop(),
-      obj = <java_object.JavaArray> stack.pop();//rs.check_null<java_object.JavaArray>(rs.pop());
+      obj = <java_object.JavaArray> stack.pop();
     if (!isNull(thread, frame, obj)) {
       var len = obj.array.length;
       if (idx < 0 || idx >= len) {
@@ -1247,7 +1251,7 @@ export class Opcodes {
           } else {
             code.writeUInt8(enums.OpCode.GETSTATIC_FAST32, pc);
           }
-          stashCPItem(code, pc, frame.method.cls.constant_pool, cls);
+          stashCPItem<StaticFieldStash>(code, pc, frame.method.cls.constant_pool, {cls: <ClassData.ReferenceClassData> cls, name: fieldSpec.name});
         } else {
           // Initialize clsType and rerun opcode
           initializeClass(thread, frame, clsType);
@@ -1266,10 +1270,8 @@ export class Opcodes {
    * Retrieves a 32-bit value.
    */
   public static getstatic_fast32(thread:threading.JVMThread, frame:threading.BytecodeStackFrame, code:NodeBuffer, pc:number) {
-    var fieldSpec = getDesc<ConstantPool.FieldReferenceValue>(code, pc, frame.method.cls.constant_pool),
-      cls = getFromCPStash<ClassData.ReferenceClassData>(code, pc, frame.method.cls.constant_pool);
-
-    frame.stack.push(cls.static_get(thread, fieldSpec.name));
+    var fieldInfo = getFromCPStash<StaticFieldStash>(code, pc, frame.method.cls.constant_pool);
+    frame.stack.push(fieldInfo.cls.static_get(thread, fieldInfo.name));
     frame.pc += 3;
   }
 
@@ -1280,10 +1282,8 @@ export class Opcodes {
    * Retrieves a 64-bit value.
    */
   public static getstatic_fast64(thread:threading.JVMThread, frame:threading.BytecodeStackFrame, code:NodeBuffer, pc:number) {
-    var fieldSpec = getDesc<ConstantPool.FieldReferenceValue>(code, pc, frame.method.cls.constant_pool),
-      cls = getFromCPStash<ClassData.ReferenceClassData>(code, pc, frame.method.cls.constant_pool);
-
-    frame.stack.push(cls.static_get(thread, fieldSpec.name), null);
+    var fieldInfo = getFromCPStash<StaticFieldStash>(code, pc, frame.method.cls.constant_pool);
+    frame.stack.push(fieldInfo.cls.static_get(thread, fieldInfo.name), null);
     frame.pc += 3;
   }
 
@@ -1306,7 +1306,7 @@ export class Opcodes {
           } else {
             code.writeUInt8(enums.OpCode.PUTSTATIC_FAST32, pc);
           }
-          stashCPItem(code, pc, frame.method.cls.constant_pool, cls);
+          stashCPItem<StaticFieldStash>(code, pc, frame.method.cls.constant_pool, {cls: <ClassData.ReferenceClassData> cls, name: fieldSpec.name});
         } else {
           // Initialize clsType and rerun opcode
           initializeClass(thread, frame, clsType);
@@ -1325,10 +1325,9 @@ export class Opcodes {
    * Puts a 32-bit value.
    */
   public static putstatic_fast32(thread:threading.JVMThread, frame:threading.BytecodeStackFrame, code:NodeBuffer, pc:number) {
-    var fieldSpec = getDesc<ConstantPool.FieldReferenceValue>(code, pc, frame.method.cls.constant_pool),
-      cls = getFromCPStash<ClassData.ReferenceClassData>(code, pc, frame.method.cls.constant_pool);
+    var fieldInfo = getFromCPStash<StaticFieldStash>(code, pc, frame.method.cls.constant_pool);
 
-    cls.static_put(thread, fieldSpec.name, frame.stack.pop());
+    fieldInfo.cls.static_put(thread, fieldInfo.name, frame.stack.pop());
     frame.pc += 3;
   }
 
@@ -1339,10 +1338,9 @@ export class Opcodes {
    * Puts a 64-bit value.
    */
   public static putstatic_fast64(thread:threading.JVMThread, frame:threading.BytecodeStackFrame, code:NodeBuffer, pc:number) {
-    var fieldSpec = getDesc<ConstantPool.FieldReferenceValue>(code, pc, frame.method.cls.constant_pool),
-      cls = getFromCPStash<ClassData.ReferenceClassData>(code, pc, frame.method.cls.constant_pool);
+    var fieldInfo = getFromCPStash<StaticFieldStash>(code, pc, frame.method.cls.constant_pool);
 
-    cls.static_put(thread, fieldSpec.name, pop2(frame.stack));
+    fieldInfo.cls.static_put(thread, fieldInfo.name, pop2(frame.stack));
     frame.pc += 3;
   }
 
@@ -1607,8 +1605,9 @@ export class Opcodes {
 
   public static newarray(thread:threading.JVMThread, frame:threading.BytecodeStackFrame, code:NodeBuffer, pc:number) {
     var stack = frame.stack,
-      elementType = ArrayTypes[code.readUInt8(pc + 1)],
-      newArray = java_object.heapNewArray(thread, frame.getLoader(), elementType, stack.pop());
+      type = "[" + ArrayTypes[code.readUInt8(pc + 1)],
+      cls = frame.getLoader().getInitializedClass(thread, type),
+      newArray = java_object.heapNewArray(thread, <ClassData.ArrayClassData> cls, stack.pop());
     // If newArray is undefined, then an exception was thrown.
     if (newArray !== undefined) {
       stack.push(newArray);
@@ -1620,12 +1619,12 @@ export class Opcodes {
 
   public static anewarray(thread:threading.JVMThread, frame:threading.BytecodeStackFrame, code:NodeBuffer, pc:number) {
     var desc = getDesc<string>(code, pc, frame.method.cls.constant_pool),
-    // Make sure the component class is loaded.
+      // Make sure the component class is loaded.
       cls = frame.getLoader().getResolvedClass(desc);
     if (cls != null) {
       // Rewrite and rerun.
       code.writeUInt8(enums.OpCode.ANEWARRAY_FAST, pc);
-      stashCPItem(code, pc, frame.method.cls.constant_pool, cls);
+      stashCPItem(code, pc, frame.method.cls.constant_pool, frame.getLoader().getResolvedClass("[" + desc));
     } else {
       // Load class and rerun opcode.
       resolveClass(thread, frame, desc);
@@ -1633,9 +1632,8 @@ export class Opcodes {
   }
 
   public static anewarray_fast(thread:threading.JVMThread, frame:threading.BytecodeStackFrame, code:NodeBuffer, pc:number) {
-    var desc = getDesc<string>(code, pc, frame.method.cls.constant_pool),
-      stack = frame.stack,
-      newArray = java_object.heapNewArray(thread, frame.getLoader(), desc, stack.pop());
+    var stack = frame.stack,
+      newArray = java_object.heapNewArray(thread, getFromCPStash<ClassData.ArrayClassData>(code, pc, frame.method.cls.constant_pool), stack.pop());
     // If newArray is undefined, then an exception was thrown.
     if (newArray !== undefined) {
       stack.push(newArray);
@@ -1661,7 +1659,7 @@ export class Opcodes {
 
   public static checkcast(thread:threading.JVMThread, frame:threading.BytecodeStackFrame, code:NodeBuffer, pc:number) {
     var desc = getDesc<string>(code, pc, frame.method.cls.constant_pool),
-    // Ensure the class is loaded.
+      // Ensure the class is loaded.
       cls = frame.getLoader().getResolvedClass(desc);
     if (cls != null) {
       // Rewrite to fast version, and re-execute.
