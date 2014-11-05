@@ -1,3 +1,6 @@
+/**
+ * Contains JVM opcode implementations for the JVM interpreter.
+ */
 "use strict";
 import gLong = require('./gLong');
 import util = require('./util');
@@ -118,7 +121,7 @@ export var ArrayTypes : {[t: number]: string; } = {
 /**
  * In the JVM, 64-bit parameters are two words long. Everything else is 1.
  * This method parses a method descriptor, and returns the length of the
- * parameters in terms of machien words.
+ * parameters in terms of machine words.
  * @todo Bake this into method objects, memoize results.
  */
 export function getParamWordSize(signature: string): number {
