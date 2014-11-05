@@ -115,6 +115,12 @@ export var ArrayTypes : {[t: number]: string; } = {
   4: 'Z', 5: 'C', 6: 'F', 7: 'D', 8: 'B', 9: 'S', 10: 'I', 11: 'J'
 };
 
+/**
+ * In the JVM, 64-bit parameters are two words long. Everything else is 1.
+ * This method parses a method descriptor, and returns the length of the
+ * parameters in terms of machien words.
+ * @todo Bake this into method objects, memoize results.
+ */
 export function getParamWordSize(signature: string): number {
   var state = 'name';
   var size = 0;

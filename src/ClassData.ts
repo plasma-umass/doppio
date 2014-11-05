@@ -16,7 +16,9 @@ import assert = require('./assert');
 var ClassState = enums.ClassState;
 var trace = logging.trace;
 
-// Represents a single class in the JVM.
+/**
+ * Represents a single class in the JVM.
+ */
 export class ClassData {
   public loader: ClassLoader.ClassLoader;
   public access_byte: number;
@@ -26,8 +28,6 @@ export class ClassData {
   // parents do not inform their children when they change state.
   private state: enums.ClassState = ClassState.LOADED;
   private jco: java_object.JavaClassObject = null;
-  // Flip to 1 to trigger reset() call on load.
-  public reset_bit: number = 0;
   public this_class: string;
   public super_class: string;
   public super_class_cdata: ClassData;
@@ -36,25 +36,6 @@ export class ClassData {
   // present on any ClassData object.
   constructor(loader: ClassLoader.ClassLoader) {
     this.loader = loader;
-  }
-
-  // Resets any ClassData state that may have been built up
-  // We do not reset 'initialized' here; only reference types need to reset that.
-  public reset(): void {
-    this.jco = null;
-    this.reset_bit = 0;
-    // Reset any referenced classes if they are up for reset.
-    var sc = this.get_super_class();
-    if (sc != null && sc.reset_bit === 1) {
-      sc.reset();
-    }
-    var ifaces = this.get_interfaces();
-    for (var i = 0; i < ifaces.length; i++) {
-      var iface = ifaces[i];
-      if (iface.reset_bit === 1) {
-        iface.reset();
-      }
-    }
   }
 
   public toExternalString(): string {
@@ -249,14 +230,6 @@ export class ArrayClassData extends ClassData {
     this.access_flags = util.parse_flags(this.access_byte);
   }
 
-  public reset(): void {
-    super.reset();
-    var ccls = this.get_component_class();
-    if (ccls && ccls.reset_bit) {
-      ccls.reset();
-    }
-  }
-
   public get_component_type(): string {
     return this.component_type;
   }
@@ -400,20 +373,6 @@ export class ReferenceClassData extends ClassData {
     // Contains the value of all static fields. Will be reset when reset()
     // is run.
     this.static_fields = Object.create(null);
-  }
-
-  // Resets the ClassData for subsequent JVM invocations. Resets all
-  // of the built up state / caches present in the opcode instructions.
-  // Eventually, this will also handle `clinit` duties.
-  public reset(): void {
-    super.reset();
-    if (this.get_state() === ClassState.INITIALIZED) {
-      this.set_state(ClassState.LOADED);
-    }
-    this.static_fields = Object.create(null);
-    for (var k in this.methods) {
-      this.methods[k].initialize();
-    }
   }
 
   public get_interfaces(): ReferenceClassData[] {
