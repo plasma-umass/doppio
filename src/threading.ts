@@ -656,7 +656,6 @@ export class JVMThread extends java_object.JavaObject {
    * The thread's main execution loop. Everything starts here!
    */
   private run(): void {
-    // console.log("Thread " + this.ref + " is now running!");
     var stack = this.stack,
       startTime: number = (new Date()).getTime(),
       endTime: number,
@@ -680,8 +679,6 @@ export class JVMThread extends java_object.JavaObject {
         setImmediate(() => { this.setStatus(enums.ThreadStatus.RUNNABLE); });
       }
     }
-
-    // console.log("Thread " + this.ref + " is suspending: " + enums.ThreadStatus[this.status]);
 
     if (stack.length === 0) {
       // This thread has finished!
