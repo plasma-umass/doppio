@@ -64,13 +64,15 @@ export class BytecodeStackFrame implements IStackFrame {
   public stack: any[] = [];
   public returnToThreadLoop: boolean = false;
   public lockedMethodLock: boolean = false;
+  public method: methods.Method;
 
   /**
    * Constructs a bytecode method's stack frame.
    * @param method The bytecode method to run.
    * @param args The arguments to pass to the bytecode method.
    */
-  constructor(public method: methods.Method, args: any[]) {
+  constructor(method: methods.Method, args: any[]) {
+    this.method = method;
     assert(!method.access_flags.native, 'Cannot run a native method using a BytecodeStackFrame.');
     // @todo This should be a runtime error, since reflection can cause you to
     // try to do this.
@@ -121,7 +123,7 @@ export class BytecodeStackFrame implements IStackFrame {
   public scheduleResume(thread: JVMThread, rv?: any, rv2?: any): void {
     // Advance to the next opcode.
     var prevOp = this.method.getCodeAttribute().getCode().readUInt8(this.pc);
-    switch(prevOp) {
+    switch (prevOp) {
       case enums.OpCode.INVOKEINTERFACE:
         this.pc += 5;
         break;
@@ -181,7 +183,7 @@ export class BytecodeStackFrame implements IStackFrame {
               }
             });
             thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-            method.cls.loader.resolveClasses(thread, handlerClasses, (classes) => {
+            method.cls.loader.resolveClasses(thread, handlerClasses, (classes: { [name: string]: ClassData.ClassData; }) => {
               if (classes !== null) {
                 // Rethrow the exception to trigger scheduleException again.
                 // @todo If the ClassLoader throws an exception during resolution,
@@ -242,13 +244,17 @@ export class BytecodeStackFrame implements IStackFrame {
  */
 class NativeStackFrame implements IStackFrame {
   private nativeMethod: Function;
+  public method: methods.Method;
+  private args: any[];
 
   /**
    * Constructs a native method's stack frame.
    * @param method The native method to run.
    * @param args The arguments to pass to the native method.
    */
-  constructor(public method: methods.Method, private args: any[]) {
+  constructor(method: methods.Method, args: any[]) {
+    this.method = method;
+    this.args = args;
     assert(method.access_flags.native);
     this.nativeMethod = method.getNativeFunction();
   }
@@ -316,12 +322,14 @@ class NativeStackFrame implements IStackFrame {
 class InternalStackFrame implements IStackFrame {
   private isException: boolean = false;
   private val: any;
+  private cb: (e?: java_object.JavaObject, rv?: any) => void;
 
   /**
    * @param cb Callback function. Called with an exception if one occurs, or
    *   the return value from the called method, if relevant.
    */
-  constructor(private cb: (e?: java_object.JavaObject, rv?: any) => void) {
+  constructor(cb: (e?: java_object.JavaObject, rv?: any) => void) {
+    this.cb = cb;
   }
 
   public run(thread: JVMThread): void {
@@ -375,9 +383,13 @@ export class ThreadPool {
    * execution has finished, and the JVM should be terminated.
    */
   private emptyCallback: () => void;
+  private jvm: JVM;
+  private bsCl: ClassLoader.BootstrapClassLoader;
 
-  constructor(private jvm: JVM, private bsCl: ClassLoader.BootstrapClassLoader,
+  constructor(jvm: JVM, bsCl: ClassLoader.BootstrapClassLoader,
     emptyCallback: () => void) {
+    this.jvm = jvm;
+    this.bsCl = bsCl;
     this.emptyCallback = emptyCallback;
   }
 
@@ -415,16 +427,16 @@ export class ThreadPool {
   private scheduleNextThread(): void {
     // Reset stack depth, start at beginning of new JS event.
     setImmediate(() => {
-      var i: number, i_fixed: number, threads = this.threads, thread: JVMThread;
+      var i: number, iFixed: number, threads = this.threads, thread: JVMThread;
       if (this.runningThread == null) {
         for (i = 0; i < threads.length; i++) {
           // Cycle through the threads, starting at the thread just past the
           // previously-run thread. (Round Robin scheduling algorithm)
-          i_fixed = (this.runningThreadIndex + 1 + i) % threads.length;
-          thread = threads[i_fixed];
+          iFixed = (this.runningThreadIndex + 1 + i) % threads.length;
+          thread = threads[iFixed];
           if (thread.getStatus() === enums.ThreadStatus.RUNNABLE) {
             this.runningThread = thread;
-            this.runningThreadIndex = i_fixed;
+            this.runningThreadIndex = iFixed;
             thread.setStatus(enums.ThreadStatus.RUNNING);
             break;
           }
@@ -533,13 +545,17 @@ export class JVMThread extends java_object.JavaObject {
    * monitor that is involved.
    */
   private monitor: java_object.Monitor = null;
+  private bsCl: ClassLoader.BootstrapClassLoader;
+  private tpool: ThreadPool;
 
   /**
    * Initializes a new JVM thread. Starts the thread in the NEW state.
    */
-  constructor(private bsCl: ClassLoader.BootstrapClassLoader,
-    private tpool: ThreadPool, cls: ClassData.ReferenceClassData, obj?: any) {
+  constructor(bsCl: ClassLoader.BootstrapClassLoader, tpool: ThreadPool,
+    cls: ClassData.ReferenceClassData, obj?: any) {
     super(cls, obj);
+    this.bsCl = bsCl;
+    this.tpool = tpool;
   }
 
   /**
@@ -618,7 +634,7 @@ export class JVMThread extends java_object.JavaObject {
         }
         if (table != null) {
           var lastLine: number = -1, lastPc: number = -1;
-          table.entries.forEach((entry) => {
+          table.entries.forEach((entry: { start_pc: number; line_number: number }) => {
             if (entry.start_pc < trace.pc && lastPc < entry.start_pc) {
               lastPc = entry.start_pc;
               lastLine = entry.line_number;
@@ -731,7 +747,7 @@ export class JVMThread extends java_object.JavaObject {
       this.rawSetStatus(status);
       this.monitor = null;
 
-      /** Pre-transition actions **/
+      /* Pre-transition actions */
       switch (oldStatus) {
         case enums.ThreadStatus.TERMINATED:
           // Resurrect thread.
@@ -743,7 +759,7 @@ export class JVMThread extends java_object.JavaObject {
           break;
       }
 
-      /** Post-transition actions **/
+      /* Post-transition actions */
       switch (this.status) {
         case enums.ThreadStatus.RUNNABLE:
           // Tell the threadpool we're ready to run.
@@ -966,7 +982,7 @@ export class JVMThread extends java_object.JavaObject {
           cnstrctr = cls.method_lookup(this, '<init>(Ljava/lang/String;)V');
 
         // Construct the exception, and throw it when done.
-        this.runMethod(cnstrctr, [e, java_object.initString(this.bsCl, msg)], (err?, rv?) => {
+        this.runMethod(cnstrctr, [e, java_object.initString(this.bsCl, msg)], (err?: java_object.JavaObject, rv?: any) => {
           if (err) {
             this.throwException(err);
           } else {
@@ -1080,7 +1096,7 @@ function validateReturnValue(thread: JVMThread, method: methods.Method, returnTy
           break;
         case 'J': // long //-9223372036854775808 to 9223372036854775807
           assert(rv2 === null);
-          assert((<gLong>rv1).lessThanOrEqual(gLong.MAX_VALUE) && (<gLong>rv1).greaterThanOrEqual(gLong.MIN_VALUE));
+          assert((<gLong> rv1).lessThanOrEqual(gLong.MAX_VALUE) && (<gLong> rv1).greaterThanOrEqual(gLong.MIN_VALUE));
           break;
         case 'F': // Float
           assert(rv2 === undefined);
