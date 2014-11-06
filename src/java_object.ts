@@ -476,7 +476,8 @@ export class Monitor {
 
       if (timeoutMs != null && timeoutMs !== 0) {
         // Scheduler a timer that wakes up the thread.
-        this.waiting[thread.ref].timer = setTimeout(() => {
+        // XXX: Casting to 'number', since NodeJS typings specify a Timer.
+        this.waiting[thread.ref].timer = <number><any> setTimeout(() => {
           this.unwait(thread, true);
         }, timeoutMs);
         thread.setStatus(enums.ThreadStatus.TIMED_WAITING, this);
