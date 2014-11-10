@@ -7,7 +7,7 @@ import fs = require('fs');
  * - Creates directory.
  * - Symlinks in 'classes' and 'vendor'.
  */
-function make_build_dir(grunt: IGrunt) {
+function makeBuildDir(grunt: IGrunt) {
 	grunt.registerMultiTask('make_build_dir', 'Creates the build directory, if not present.', function() {
     var targetPath = this.options().build_dir;
     try {
@@ -38,8 +38,7 @@ function symlink(grunt: IGrunt, source: string, dest: string): boolean {
     if (path.resolve(existingLinkPath) === path.resolve(source)) {
       // Symlink exists and is OK.
       return true;
-    }
-    else {
+    } else {
       grunt.fail.fatal('Cannot symlink ' + sourceRel + ' to ' + destRel + ': ' + destRel + ' exists, and links to ' + existingLinkPath + '.');
     }
   } catch (e) {
@@ -60,4 +59,4 @@ function symlink(grunt: IGrunt, source: string, dest: string): boolean {
   return true;
 }
 
-(module).exports = make_build_dir;
+export = makeBuildDir;

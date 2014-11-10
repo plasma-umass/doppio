@@ -1,9 +1,10 @@
 /// <reference path="../vendor/DefinitelyTyped/node/node.d.ts" />
 /// <reference path="../vendor/DefinitelyTyped/gruntjs/gruntjs.d.ts" />
+/// <reference path="../vendor/DefinitelyTyped/async/async.d.ts" />
 import child_process = require('child_process');
 import os = require('os');
 import fs = require('fs');
-var async = require('async');
+import async = require('async');
 /**
  * Helper function: If string is a path with spaces in it, surround it with
  * quotes.
@@ -18,21 +19,21 @@ function shellEscape(str: string): string {
 function java(grunt: IGrunt) {
   grunt.registerMultiTask('javac', 'Run javac on input files.', function() {
     var files: {src: string[]; dest: string}[] = this.files,
-        input_files: string[] = [],
+        inputFiles: string[] = [],
         done: (status?: boolean) => void = this.async();
     grunt.config.requires('build.javac');
-    files.forEach(function(e) {
+      files.forEach(function (e: { src: string[]; dest: string }) {
       var dest = e.src[0].slice(0, -4) + 'class';
       if (fs.existsSync(dest) && fs.statSync(dest).mtime > fs.statSync(e.src[0]).mtime) {
         // No need to process file.
         return;
       }
-      input_files = input_files.concat(e.src);
+      inputFiles = inputFiles.concat(e.src);
     });
-    if (input_files.length === 0) {
+    if (inputFiles.length === 0) {
       return done();
     }
-    child_process.exec(shellEscape(grunt.config('build.javac')) + ' -bootclasspath vendor/classes -source 1.6 -target 1.6 ' + input_files.join(' '), function(err?: any) {
+    child_process.exec(shellEscape(grunt.config('build.javac')) + ' -bootclasspath ' + grunt.config('build.jcl_dir') + ' -source 1.6 -target 1.6 ' + inputFiles.join(' '), function(err?: any) {
       if (err) {
         grunt.fail.fatal('Error running javac: ' + err);
       }
@@ -52,8 +53,8 @@ function java(grunt: IGrunt) {
       }
       tasks.push(function(cb: (err?: any) => void) {
         // Trim '.java' from filename to get the class name.
-        var class_name = file.src[0].slice(0, -5);
-        child_process.exec(shellEscape(grunt.config('build.java')) + ' -Xbootclasspath/a:vendor/classes ' + class_name, function(err?: any, stdout?: NodeBuffer, stderr?: NodeBuffer) {
+        var className = file.src[0].slice(0, -5);
+        child_process.exec(shellEscape(grunt.config('build.java')) + ' -Xbootclasspath/a:' + grunt.config('build.jcl_dir') + ' ' + className, function(err?: any, stdout?: NodeBuffer, stderr?: NodeBuffer) {
           fs.writeFileSync(file.dest, stdout.toString() + stderr.toString());
           cb();
         });
@@ -69,4 +70,4 @@ function java(grunt: IGrunt) {
   });
 }
 
-(module).exports = java;
+export = java;

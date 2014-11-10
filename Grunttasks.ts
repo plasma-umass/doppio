@@ -5,29 +5,7 @@
  */
 import path = require('path');
 import fs = require('fs');
-import child_process = require('child_process');
 import os = require('os');
-import url = require('url');
-var exec = child_process.exec,
-    NUM_CPUS = os.cpus().length,
-    DEBS_DOMAIN: string = "http://security.ubuntu.com/ubuntu/pool/main/o/openjdk-6/",
-    DEBS: string[] = [
-        "openjdk-6-jdk_6b32-1.13.4-4ubuntu0.12.04.2_i386.deb",
-        "openjdk-6-jre-headless_6b32-1.13.4-4ubuntu0.12.04.2_i386.deb",
-        "openjdk-6-jre-lib_6b32-1.13.4-4ubuntu0.12.04.2_all.deb" 
-    ],
-    TZDATA_DEB: string = "http://security.ubuntu.com/ubuntu/pool/main/t/tzdata/tzdata-java_2014e-0ubuntu0.13.10_all.deb",
-    ECJ_URL: string = "http://www.eclipse.org/downloads/download.php?file=/eclipse/downloads/drops/R-3.7.1-201109091335/ecj-3.7.1.jar",
-    JAZZLIB_URL: string = "http://downloads.sourceforge.net/project/jazzlib/jazzlib/0.07/jazzlib-binary-0.07-juz.zip",
-    DOWNLOAD_URLS: string[] = [];
-
-// Prepare DOWNLOAD_URLS prior to Grunt configuration.
-DEBS.forEach(function(e) {
-  DOWNLOAD_URLS.push(DEBS_DOMAIN + e);
-});
-DOWNLOAD_URLS.push(TZDATA_DEB);
-DOWNLOAD_URLS.push(ECJ_URL);
-DOWNLOAD_URLS.push(JAZZLIB_URL);
 
 export function setup(grunt: IGrunt) {
   // Project configuration.
@@ -40,7 +18,7 @@ export function setup(grunt: IGrunt) {
     // http://stackoverflow.com/questions/21121239/grunt-how-do-recursive-templates-work
     resolve: function (...segs: string[]): string {
       var fixedSegs: string[] = [];
-      segs.forEach(function (seg) {
+      segs.forEach(function (seg: string) {
         while (seg.indexOf('<%=') !== -1) {
           seg = <any> grunt.config.process(seg);
         }
@@ -59,7 +37,8 @@ export function setup(grunt: IGrunt) {
       doppio_dir: __dirname, // Root directory for doppio (same as this file)
       build_type: "",        // Build type for doppio (dev/dev-cli/etc.) Will be set by 'setup' task.
       vendor_dir: '<%= resolve(build.doppio_dir, "vendor") %>',
-      jcl_dir: '<%= resolve(build.vendor_dir, "classes") %>',
+      java_home_dir: '<%= resolve(build.doppio_dir, "vendor", "java_home") %>',
+      jcl_dir: '<%= resolve(build.java_home_dir, "classes") %>',
       build_dir: '<%= resolve(build.doppio_dir, "build", build.build_type) %>',
       // TODO: Maybe fix this to prevent us from using too much scratch space?
       scratch_dir: path.resolve(os.tmpDir(), "jdk-download" + Math.floor(Math.random() * 100000))
@@ -145,43 +124,15 @@ export function setup(grunt: IGrunt) {
     // Downloads files.
     'curl-dir': {
       long: {
-        src: DOWNLOAD_URLS,
-        dest: "<%= build.scratch_dir %>"
+        src: 'https://github.com/plasma-umass/doppio_jcl/releases/download/v1.0/java_home.tar.gz',
+        dest: "<%= build.vendor_dir %>"
       }
     },
-    // Unzips files.
-    unzip: {
-      options: {
-        dest_dir: '<%= build.jcl_dir %>'
-      },
-      jcl: {
-        files: [{
-          expand: true,
-          src: "<%= resolve(build.scratch_dir, '**/+(rt|tools|resources|rhino|jsse).jar') %>"
-        }]
-      },
-      ecj: {
-        // We can't get the pathname from the URL, since it has an argument
-        // in it that contains the actual filename.
-        files: [{ expand: true, src: "<%= resolve(build.scratch_dir, 'ecj*.jar') %>" }]
-      },
-      jazzlib: {
-        options: {
-          dest_dir: "<%= resolve(build.scratch_dir, 'jazzlib') %>"
-        },
-        files: [{ src: "<%= resolve(build.scratch_dir, '" + path.basename(url.parse(JAZZLIB_URL).pathname) + "') %>" }]
-      }
-    },
-    extract_deb: {
-      default: {
-        options: {
-          dest_dir: "<%= build.scratch_dir %>"
-        },
-        files: [{
-          expand: true,
-          cwd: "<%= build.scratch_dir %>",
-          src: "*.deb"
-        }]
+    untar: {
+      java_home: {
+        files: {
+          "<%= build.vendor_dir %>": "<%= resolve(build.vendor_dir, 'java_home.tar.gz') %>"
+        }
       }
     },
     uglify: {
@@ -220,15 +171,6 @@ export function setup(grunt: IGrunt) {
       }
     },
     copy: {
-      jazzlib: {
-        // Patches Jazzlib.
-        files: [{
-          expand: true,
-          flatten: true,
-          src: "<%= resolve(build.scratch_dir, 'jazzlib/java/util/zip/*.class') %>",
-          dest: "<%= resolve(build.jcl_dir, 'java/util/zip') %>"
-        }]
-      },
       build: {
         files: [{
           expand: true,
@@ -411,6 +353,7 @@ export function setup(grunt: IGrunt) {
   grunt.loadNpmTasks('grunt-contrib-watch');
   grunt.loadNpmTasks('grunt-lineending');
   grunt.loadNpmTasks('grunt-curl');
+  grunt.loadNpmTasks('grunt-untar');
   // Load our custom tasks.
   grunt.loadTasks('tasks');
 
@@ -419,54 +362,35 @@ export function setup(grunt: IGrunt) {
     launcherPath = options.dest;
     exePath = options.src;
 
-    if (!fs.existsSync(launcherPath)) {
+    if (!grunt.file.exists(launcherPath) && !grunt.file.exists(launcherPath + ".bat")) {
       try {
-        // Write with mode 755.
-        fs.writeFileSync(launcherPath, 'node $(dirname $0)/' + path.relative(path.dirname(launcherPath), exePath) + ' "$@"', {mode: 493});
+        if (process.platform.match(/win32/i)) {
+          fs.writeFileSync(launcherPath + ".bat", 'node %~dp0\\' + path.relative(path.dirname(launcherPath), exePath) + ' %*');
+        } else {
+          // Write with mode 755.
+          fs.writeFileSync(launcherPath, 'node $(dirname $0)/' + path.relative(path.dirname(launcherPath), exePath) + ' "$@"', { mode: 493 });
+        }
+
         grunt.log.ok("Created launcher " + path.basename(launcherPath));
-      } catch(e) {
+      } catch (e) {
         grunt.log.error("Could not create launcher " + path.basename(launcherPath) + ": " + e);
         return false;
       }
     }
   });
 
-  grunt.registerTask('setup', "Sets up doppio's environment prior to building.", function(build_type: string) {
-    var need_jcl: boolean, need_ecj: boolean, need_jazzlib: boolean,
-      need_java_home: boolean, tasks: string[] = [];
-    if (build_type == null) {
+  grunt.registerTask('setup', "Sets up doppio's environment prior to building.", function(buildType: string) {
+    if (!buildType) {
       grunt.fail.fatal("setup build task needs to know the build type.");
     }
     // (Required) Sets the build_type so other directories can resolve properly.
-    grunt.config.set('build.build_type', build_type);
-    need_jcl = !fs.existsSync('vendor/classes/java/lang/Object.class');
-    need_ecj =!fs.existsSync('vendor/classes/org/eclipse/jdt/internal/compiler/batch/Main.class');
-    need_jazzlib = !fs.existsSync('vendor/classes/java/util/zip/DeflaterEngine.class');
-    // Check for java_home *AND* time zone data.
-    need_java_home = !(fs.existsSync('vendor/java_home') && fs.existsSync('vendor/java_home/lib/zi/ZoneInfoMappings'));
-    if (need_jcl || need_ecj || need_jazzlib || need_java_home) {
-      // Create download folder. It shouldn't exist, as it is randomly generated.
-      fs.mkdirSync(grunt.config('build.scratch_dir'));
-      // Schedule download task.
-      tasks.push('curl-dir');
+    grunt.config.set('build.build_type', buildType);
+
+    // Fetch java_home files if it's missing.
+    if (!grunt.file.exists(<string> grunt.config.get('build.java_home_dir'))) {
+      grunt.log.writeln("Running one-time java_home setup; this could take a few minutes!");
+      grunt.task.run(['curl-dir', 'untar', 'delete_jh_tar']);
     }
-    if (need_jcl || need_java_home) {
-      tasks.push('extract_deb');
-    }
-    if (need_jcl) {
-      tasks.push('unzip:jcl');
-    }
-    if (need_ecj) {
-      tasks.push('unzip:ecj');
-    }
-    if (need_jazzlib) {
-      tasks.push('unzip:jazzlib');
-      tasks.push('copy:jazzlib');
-    }
-    if (need_java_home) {
-      tasks.push('setup_java_home');
-    }
-    grunt.task.run(tasks);
   });
   grunt.registerTask('java',
     ['find_native_java',
@@ -474,6 +398,9 @@ export function setup(grunt: IGrunt) {
      'run_java',
      // Windows: Convert CRLF to LF.
      'lineending']);
+  grunt.registerTask('delete_jh_tar', "Deletes java_home.tar.gz post-extraction.", function () {
+    grunt.file.delete(path.resolve('vendor', 'java_home.tar.gz'));
+  });
 
   /**
    * PUBLIC-FACING TARGETS BELOW.
