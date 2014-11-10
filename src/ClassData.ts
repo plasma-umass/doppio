@@ -3,20 +3,20 @@ import util = require('./util');
 import ByteStream = require('./ByteStream');
 import ConstantPool = require('./ConstantPool');
 import attributes = require('./attributes');
-import opcodes = require('./opcodes');
 import java_object = require('./java_object');
 import threading = require('./threading');
-var JavaObject = java_object.JavaObject;
-var JavaClassObject = java_object.JavaClassObject;
 import logging = require('./logging');
 import methods = require('./methods');
 import ClassLoader = require('./ClassLoader');
 import enums = require('./enums');
-import assert = require('./assert');
+var JavaObject = java_object.JavaObject;
+var JavaClassObject = java_object.JavaClassObject;
 var ClassState = enums.ClassState;
 var trace = logging.trace;
 
-// Represents a single class in the JVM.
+/**
+ * Represents a single class in the JVM.
+ */
 export class ClassData {
   public loader: ClassLoader.ClassLoader;
   public access_byte: number;
@@ -26,8 +26,6 @@ export class ClassData {
   // parents do not inform their children when they change state.
   private state: enums.ClassState = ClassState.LOADED;
   private jco: java_object.JavaClassObject = null;
-  // Flip to 1 to trigger reset() call on load.
-  public reset_bit: number = 0;
   public this_class: string;
   public super_class: string;
   public super_class_cdata: ClassData;
@@ -36,25 +34,6 @@ export class ClassData {
   // present on any ClassData object.
   constructor(loader: ClassLoader.ClassLoader) {
     this.loader = loader;
-  }
-
-  // Resets any ClassData state that may have been built up
-  // We do not reset 'initialized' here; only reference types need to reset that.
-  public reset(): void {
-    this.jco = null;
-    this.reset_bit = 0;
-    // Reset any referenced classes if they are up for reset.
-    var sc = this.get_super_class();
-    if (sc != null && sc.reset_bit === 1) {
-      sc.reset();
-    }
-    var ifaces = this.get_interfaces();
-    for (var i = 0; i < ifaces.length; i++) {
-      var iface = ifaces[i];
-      if (iface.reset_bit === 1) {
-        iface.reset();
-      }
-    }
   }
 
   public toExternalString(): string {
@@ -249,14 +228,6 @@ export class ArrayClassData extends ClassData {
     this.access_flags = util.parse_flags(this.access_byte);
   }
 
-  public reset(): void {
-    super.reset();
-    var ccls = this.get_component_class();
-    if (ccls && ccls.reset_bit) {
-      ccls.reset();
-    }
-  }
-
   public get_component_type(): string {
     return this.component_type;
   }
@@ -341,7 +312,8 @@ export class ReferenceClassData extends ClassData {
 
   constructor(buffer: NodeBuffer, loader?: ClassLoader.ClassLoader) {
     super(loader);
-    var bytes_array = new ByteStream(buffer);
+    var bytes_array = new ByteStream(buffer),
+      i: number = 0;
     if ((bytes_array.getUint32()) !== 0xCAFEBABE) {
       throw "Magic number invalid";
     }
@@ -365,17 +337,17 @@ export class ReferenceClassData extends ClassData {
     // direct interfaces of this class
     var isize = bytes_array.getUint16();
     this.interfaces = [];
-    for (var _i = 0; _i < isize; ++_i) {
+    for (i = 0; i < isize; ++i) {
       this.interfaces.push(this.constant_pool.get(bytes_array.getUint16()).deref());
     }
     // fields of this class
     var num_fields = bytes_array.getUint16();
     this.fields = [];
-    for (var _i = 0; _i < num_fields; ++_i) {
+    for (i = 0; i < num_fields; ++i) {
       this.fields.push(new methods.Field(this));
     }
     this.fl_cache = {};
-    for (var i = 0, _len = this.fields.length; i < _len; ++i) {
+    for (i = 0; i < this.fields.length; ++i) {
       var f = this.fields[i];
       f.parse(bytes_array, this.constant_pool, i);
       this.fl_cache[f.name] = f;
@@ -386,7 +358,7 @@ export class ReferenceClassData extends ClassData {
     this.ml_cache = {};
     // XXX: we may want to populate ml_cache with methods whose exception
     // handler classes we have already loaded
-    for (var i = 0; i < num_methods; i += 1) {
+    for (i = 0; i < num_methods; i += 1) {
       var m = new methods.Method(this);
       m.parse(bytes_array, this.constant_pool, i);
       var mkey = m.name + m.raw_descriptor;
@@ -400,20 +372,6 @@ export class ReferenceClassData extends ClassData {
     // Contains the value of all static fields. Will be reset when reset()
     // is run.
     this.static_fields = Object.create(null);
-  }
-
-  // Resets the ClassData for subsequent JVM invocations. Resets all
-  // of the built up state / caches present in the opcode instructions.
-  // Eventually, this will also handle `clinit` duties.
-  public reset(): void {
-    super.reset();
-    if (this.get_state() === ClassState.INITIALIZED) {
-      this.set_state(ClassState.LOADED);
-    }
-    this.static_fields = Object.create(null);
-    for (var k in this.methods) {
-      this.methods[k].initialize();
-    }
   }
 
   public get_interfaces(): ReferenceClassData[] {
@@ -609,23 +567,24 @@ export class ReferenceClassData extends ClassData {
   }
 
   private _field_lookup(thread: threading.JVMThread, name: string): methods.Field {
-    for (var i = 0; i < this.fields.length; i++) {
-      var field = this.fields[i];
+    var i: number = 0, field: methods.Field;
+    for (i = 0; i < this.fields.length; i++) {
+      field = this.fields[i];
       if (field.name === name) {
         return field;
       }
     }
     // These may not be initialized! But we have them loaded.
     var ifaces = this.get_interfaces();
-    for (var i = 0; i < ifaces.length; i++) {
-      var field = ifaces[i].field_lookup(thread, name, true);
+    for (i = 0; i < ifaces.length; i++) {
+      field = ifaces[i].field_lookup(thread, name, true);
       if (field != null) {
         return field;
       }
     }
     var sc = <ReferenceClassData> this.get_super_class();
     if (sc != null) {
-      var field = sc.field_lookup(thread, name, true);
+      field = sc.field_lookup(thread, name, true);
       if (field != null) {
         return field;
       }

@@ -228,6 +228,7 @@ _ = ConstDouble;
 export class ConstantPool {
   private cp_count: number;
   private constant_pool: { [n: number]: ConstantPoolItem; };
+  private cachedData: any[] = [];
 
   public parse(bytes_array: ByteStream): ByteStream {
     var constant_tags: {[n: number]: ConstantPoolType } = {
@@ -274,5 +275,31 @@ export class ConstantPool {
         fn(i, this.constant_pool[i]);
       }
     }
+  }
+
+  public stash<T>(item: T): number {
+    var idx = this.cachedData.indexOf(item);
+    if (idx === -1) {
+      // XXX: Check if it's a field stash.
+      if (item.hasOwnProperty('name') && item.hasOwnProperty('cls')) {
+        var name = (<any>item).name, cls = (<any>item).cls;
+        this.cachedData.forEach((item2: any, i: number) => {
+          if (item2.hasOwnProperty('name') && item2.hasOwnProperty('cls')
+            && item2.name === name && item2.cls === cls) {
+            idx = i;
+          }
+        });
+      }
+      if (idx > -1) {
+        return idx;
+      }
+      return this.cachedData.push(item) - 1;
+    } else {
+      return idx;
+    }
+  }
+
+  public getFromStash<T>(i: number):T {
+    return this.cachedData[i];
   }
 }

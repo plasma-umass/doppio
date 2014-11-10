@@ -208,7 +208,8 @@ class java_net_PlainSocketImpl {
     if (timeout === 0) {
       timeout = 10000;
     }
-    id = setTimeout(error_cb('Connection timeout!'), timeout);
+    // XXX: Casting to a number because NodeJS typings specify a Timer object.
+    id = <number><any> setTimeout(error_cb('Connection timeout!'), timeout);
     debug("Host: " + host);
     // Launch!
     try {

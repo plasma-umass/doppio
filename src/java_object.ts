@@ -344,7 +344,7 @@ export class Monitor {
    * @param thread The thread that is trying to acquire the monitor.
    * @param cb If this method returns false, then this callback will be
    *   triggered once the thread becomes owner of the monitor. At that time,
-   *   the thread will be in the RUNNABLE state. 
+   *   the thread will be in the RUNNABLE state.
    * @return True if successfull, false if not. If not successful, the thread
    *   becomes BLOCKED, and the input callback will be triggered once the
    *   thread owns the monitor and is RUNNABLE.
@@ -360,11 +360,11 @@ export class Monitor {
 
   /**
    * Generic version of Monitor.enter for contending for the lock.
-   * 
+   *
    * Thread transitions:
    * * RUNNABLE => UNINTERRUPTIBLY_BLOCKED [If fails to acquire lock]
    * * RUNNABLE => BLOCKED [If fails to acquire lock]
-   * 
+   *
    * @param thread The thread contending for the lock.
    * @param count The lock count to use once the thread owns the lock.
    * @param blockStatus The ThreadStatus to use should the thread need to
@@ -443,11 +443,11 @@ export class Monitor {
    *  notify() method or the notifyAll() method for this object, or some other
    *  thread interrupts the current thread, or a certain amount of real time
    *  has elapsed.
-   * 
+   *
    *  This method causes the current thread (call it T) to place itself in the
    *  wait set for this object and then to relinquish any and all
    *  synchronization claims on this object."
-   * 
+   *
    * We coalesce all possible wait configurations into this one function.
    * @from http://docs.oracle.com/javase/7/docs/api/java/lang/Object.html#wait(long, int)
    * @param thread The thread that wants to wait on this monitor.
@@ -476,7 +476,8 @@ export class Monitor {
 
       if (timeoutMs != null && timeoutMs !== 0) {
         // Scheduler a timer that wakes up the thread.
-        this.waiting[thread.ref].timer = setTimeout(() => {
+        // XXX: Casting to 'number', since NodeJS typings specify a Timer.
+        this.waiting[thread.ref].timer = <number><any> setTimeout(() => {
           this.unwait(thread, true);
         }, timeoutMs);
         thread.setStatus(enums.ThreadStatus.TIMED_WAITING, this);
@@ -500,9 +501,9 @@ export class Monitor {
    * Removes the specified thread from the waiting set, and makes it compete
    * for the monitor lock. Once it acquires the lock, we restore its lock
    * count prior to triggering the wait callback.
-   * 
+   *
    * If the thread is interrupted, the wait callback is *not* triggered.
-   * 
+   *
    * @param thread The thread to remove.
    * @param fromTimer Indicates if this function call was triggered from a
    *   timer event.
@@ -635,18 +636,18 @@ export class Monitor {
   }
 }
 
-export function heapNewArray(thread: threading.JVMThread, loader: ClassLoader.ClassLoader, type: string, len: number): JavaArray {
+export function heapNewArray(thread: threading.JVMThread, cls: ClassData.ArrayClassData, len: number): JavaArray {
+  var type: string = cls.this_class.slice(1);
   if (len < 0) {
     thread.throwNewException('Ljava/lang/NegativeArraySizeException;', "Tried to init [" + type + " array with length " + len);
   } else {
-    var arr_cls = <ClassData.ArrayClassData> loader.getInitializedClass(thread, "[" + type);
     // Gives the JavaScript engine a size hint.
     if (type === 'J') {
-      return new JavaArray(arr_cls, util.arrayset<gLong>(len, gLong.ZERO));
+      return new JavaArray(cls, util.arrayset<gLong>(len, gLong.ZERO));
     } else if (type[0] === 'L' || type[0] === '[') { // array of objects or other arrays
-      return new JavaArray(arr_cls, util.arrayset<any>(len, null));
+      return new JavaArray(cls, util.arrayset<any>(len, null));
     } else { // numeric array
-      return new JavaArray(arr_cls, util.arrayset<number>(len, 0));
+      return new JavaArray(cls, util.arrayset<number>(len, 0));
     }
   }
 }
@@ -676,10 +677,9 @@ export function heapMultiNewArray(thread: threading.JVMThread, loader: ClassLoad
           }
         }
       }
-      var arr_cls = <ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, type);
+      var arr_cls = <ClassData.ArrayClassData> loader.getInitializedClass(thread, type);
       return new JavaArray(arr_cls, array);
     }
   }
   return init_arr(0, type);
 }
-

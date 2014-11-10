@@ -10,7 +10,6 @@
   },
   "devDependencies": {
     "adm-zip": "*",
-    "ar": "*",
     "bower": "*",
     "coffee-script": "1.6",
     "docco": "*",
@@ -39,7 +38,7 @@
     "rimraf": "*",
     "semver": "*",
     "tar": "*",
-    "typescript": "1.0",
+    "typescript": "1.1",
     "uglify-js": "2"
   },
   "repository": {
