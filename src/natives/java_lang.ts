@@ -65,7 +65,7 @@ function create_stack_trace(thread: threading.JVMThread, throwable: java_object.
     cstack[cstack.length - 1].locals[0] === throwable) {
     cstack.pop();
   }
-  
+
   for (i = 0; i < cstack.length; i++) {
     var sf = cstack[i],
       cls = sf.method.cls,
@@ -103,7 +103,7 @@ function create_stack_trace(thread: threading.JVMThread, throwable: java_object.
 
 class java_lang_Class {
 
-  public static 'forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;'(thread: threading.JVMThread, jvm_str: java_object.JavaObject, initialize: number, jclo: ClassLoader.JavaClassLoaderObject): void {
+  public static 'forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;Ljava/lang/Class;)Ljava/lang/Class;'(thread: threading.JVMThread, jvm_str: java_object.JavaObject, initialize: number, jclo: ClassLoader.JavaClassLoaderObject, caller: java_object.JavaObject): void {
     var classname = util.int_classname(jvm_str.jvm2js_str());
     if (!util.verify_int_classname(classname)) {
       thread.throwNewException('Ljava/lang/ClassNotFoundException;', classname);
