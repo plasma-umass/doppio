@@ -40,7 +40,9 @@ function makefileTest(argv): void {
   testing.runTests(opts, (success: boolean): void => {
     // Patch stdout back up.
     process.stdout.write = old_write;
-    process.stdout.write(success ? '✓' : '✗');
+    // Windows command prompt doesn't support all Unicode characters.
+    // Use 'X' in that environment instead of the fancy X.
+    process.stdout.write(success ? '✓' : process.platform.match(/win32/i) ? 'X' : '✗');
     if (!success) {
       fs.writeSync(outfile, new Buffer('\n'), 0, 1, null);
     }
