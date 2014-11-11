@@ -47,6 +47,8 @@ function makefileTest(argv): void {
       fs.writeSync(outfile, new Buffer('\n'), 0, 1, null);
     }
     fs.closeSync(outfile);
+    // Error code in the event of a failed test.
+    process.exit(success ? 0 : 1);
   });
 }
 
