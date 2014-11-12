@@ -2,9 +2,7 @@ import optparse = require('./option_parser');
 import JVM = require('./jvm');
 import util = require('./util');
 import logging = require('./logging');
-import path = require('path');
 import interfaces = require('./interfaces');
-var underscore = require('../vendor/underscore/underscore');
 
 /**
  * Initializes the option parser with the options for the `java` command.
@@ -83,7 +81,7 @@ export function java(args: string[], opts: JVMCLIOptions,
                      done_cb: (arg: boolean) => void,
                      jvm_started: (jvm: JVM) => void = function(jvm: JVM): void {}): void {
   setupOptparse();
-  var argv = optparse.parse(args), jvm_cb, jvm_state: JVM;
+  var argv = optparse.parse(args), jvm_state: JVM;
 
   // Default options
   if (!opts.launcherName) {

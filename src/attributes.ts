@@ -1,12 +1,10 @@
 "use strict";
 import util = require('./util');
 import ByteStream = require('./ByteStream');
-import opcodes = require('./opcodes');
 import ConstantPool = require('./ConstantPool');
-import enums = require('./enums');
 declare var RELEASE: boolean;
 
-export interface Attribute {
+export interface IAttribute {
   name: string;
   parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): void;
 }
@@ -18,13 +16,13 @@ export interface IInnerClassInfo {
   inner_access_flags: number;
 }
 
-export class ExceptionHandler implements Attribute {
+export class ExceptionHandler implements IAttribute {
   public name = 'ExceptionHandler';
   public start_pc: number;
   public end_pc: number;
   public handler_pc: number;
   public catch_type: string;
-  public parse(bytes_array: ByteStream, constant_pool:ConstantPool.ConstantPool): void {
+  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): void {
     this.start_pc = bytes_array.getUint16();
     this.end_pc = bytes_array.getUint16();
     this.handler_pc = bytes_array.getUint16();
@@ -33,13 +31,13 @@ export class ExceptionHandler implements Attribute {
   }
 }
 
-export class Code implements Attribute {
+export class Code implements IAttribute {
   public name = 'Code';
   private constant_pool: ConstantPool.ConstantPool;
   private max_stack: number;
   private max_locals: number;
   public exception_handlers: ExceptionHandler[];
-  private attrs: Attribute[];
+  private attrs: IAttribute[];
   private code: NodeBuffer;
 
   public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool) {
@@ -58,7 +56,7 @@ export class Code implements Attribute {
     for (var i = 0; i < except_len; i++) {
       var eh = new ExceptionHandler();
       this.exception_handlers.push(eh);
-      eh.parse(bytes_array, constant_pool)
+      eh.parse(bytes_array, constant_pool);
     }
     // yes, there are even attrs on attrs. BWOM... BWOM...
     this.attrs = make_attributes(bytes_array, constant_pool);
@@ -68,7 +66,7 @@ export class Code implements Attribute {
     return this.code;
   }
 
-  public get_attribute(name: string): Attribute {
+  public get_attribute(name: string): IAttribute {
     for (var i = 0; i < this.attrs.length; i++) {
       var attr = this.attrs[i];
       if (attr.name === name) {
@@ -79,7 +77,7 @@ export class Code implements Attribute {
   }
 }
 
-export class LineNumberTable implements Attribute {
+export class LineNumberTable implements IAttribute {
   public name = 'LineNumberTable';
   public entries: { start_pc: number; line_number: number }[];
 
@@ -106,7 +104,7 @@ export class LineNumberTable implements Attribute {
   }
 }
 
-export class SourceFile implements Attribute {
+export class SourceFile implements IAttribute {
   public name = 'SourceFile';
   public filename: string;
 
@@ -115,14 +113,14 @@ export class SourceFile implements Attribute {
   }
 }
 
-export class StackMapTable implements Attribute {
+export class StackMapTable implements IAttribute {
   public name = 'StackMapTable';
   private num_entries: number;
-  private entries: { frame_name: string; frame_type: number }[]
+  private entries: { frame_name: string; frame_type: number }[];
 
   public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool) {
     this.num_entries = bytes_array.getUint16();
-    this.entries = []
+    this.entries = [];
     for (var i = 0; i < this.num_entries; i++) {
       this.entries.push(this.parse_entries(bytes_array, constant_pool));
     }
@@ -230,12 +228,12 @@ export class StackMapTable implements Attribute {
   }
 }
 
-export class LocalVariableTable implements Attribute {
+export class LocalVariableTable implements IAttribute {
   public name = 'LocalVariableTable';
   private num_entries: number;
   private entries: { start_pc: number; length: number; name: string; descriptor: string; ref: number }[];
 
-  public parse(bytes_array: ByteStream, constant_pool:ConstantPool.ConstantPool) {
+  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool) {
     this.num_entries = bytes_array.getUint16();
     this.entries = [];
     for (var i = 0; i < this.num_entries; i++) {
@@ -264,7 +262,7 @@ export class LocalVariableTable implements Attribute {
   }
 }
 
-export class Exceptions implements Attribute {
+export class Exceptions implements IAttribute {
   public name = 'Exceptions';
   private num_exceptions: number;
   public exceptions: string[];
@@ -279,7 +277,7 @@ export class Exceptions implements Attribute {
   }
 }
 
-export class InnerClasses implements Attribute {
+export class InnerClasses implements IAttribute {
   public name = 'InnerClasses';
   public classes: IInnerClassInfo[];
 
@@ -301,7 +299,7 @@ export class InnerClasses implements Attribute {
   }
 }
 
-export class ConstantValue implements Attribute {
+export class ConstantValue implements IAttribute {
   public name = 'ConstantValue';
   private ref: number;
   public value: ConstantPool.IConstantPoolItem;
@@ -312,17 +310,17 @@ export class ConstantValue implements Attribute {
   }
 }
 
-export class Synthetic implements Attribute {
+export class Synthetic implements IAttribute {
   public name = 'Synthetic';
   public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool) { }
 }
 
-export class Deprecated implements Attribute {
+export class Deprecated implements IAttribute {
   public name = 'Deprecated';
   public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool) { }
 }
 
-export class Signature implements Attribute {
+export class Signature implements IAttribute {
   public name = 'Signature';
   public sig: string;
 
@@ -331,7 +329,7 @@ export class Signature implements Attribute {
   }
 }
 
-export class RuntimeVisibleAnnotations implements Attribute {
+export class RuntimeVisibleAnnotations implements IAttribute {
   public name = 'RuntimeVisibleAnnotations';
   public raw_bytes: number[];
   public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool, attr_len?: number) {
@@ -340,7 +338,7 @@ export class RuntimeVisibleAnnotations implements Attribute {
   }
 }
 
-export class AnnotationDefault implements Attribute {
+export class AnnotationDefault implements IAttribute {
   public name = 'AnnotationDefault';
   public raw_bytes: number[];
   public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool, attr_len?: number) {
@@ -348,7 +346,7 @@ export class AnnotationDefault implements Attribute {
   }
 }
 
-export class EnclosingMethod implements Attribute {
+export class EnclosingMethod implements IAttribute {
   public name = 'EnclosingMethod';
   public enc_class: string;
   public enc_method: ConstantPool.MethodReference;
@@ -361,7 +359,7 @@ export class EnclosingMethod implements Attribute {
   }
 }
 
-export function make_attributes(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): Attribute[] {
+export function make_attributes(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): IAttribute[] {
   var attr_types = {
     'Code': Code,
     'LineNumberTable': LineNumberTable,
@@ -380,7 +378,7 @@ export function make_attributes(bytes_array: ByteStream, constant_pool: Constant
     // NYI: LocalVariableTypeTable
   };
   var num_attrs = bytes_array.getUint16();
-  var attrs : Attribute[] = [];
+  var attrs : IAttribute[] = [];
   for (var i = 0; i < num_attrs; i++) {
     var name = (<ConstantPool.ConstUTF8> constant_pool.get(bytes_array.getUint16())).value;
     var attr_len = bytes_array.getUint32();

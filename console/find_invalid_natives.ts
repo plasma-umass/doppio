@@ -11,7 +11,6 @@ import fs = require('fs');
 import path = require('path');
 import class_data = require('../src/ClassData');
 import methods = require('../src/methods');
-import util = require('../src/util');
 import JVM = require('../src/jvm');
 import os = require('os');
 var ReferenceClassData = class_data.ReferenceClassData,
@@ -60,7 +59,7 @@ function getEditDistance(a: string, b: string): number {
  * className should be in pkg/Name format, not pkg.Name.
  */
 function getNativeSigs(className: string): string[] {
-  var rv: string[] = [], i: number, p: string;
+  var rv: string[] = [], i: number;
   for (i = 0; i < classpath.length; i++) {
     var klass: class_data.ReferenceClassData,
         klass_path: string = path.resolve(classpath[i], className + ".class"),
@@ -136,7 +135,7 @@ function getSimilar(strs: string[], candidates: string[]): {[sig: string]: strin
 }
 
 function formatKlass(title: string, data: {[left: string]: string}): string {
-  var left: string, right: string, output: string[] = [], i: number;
+  var left: string, output: string[] = [];
   // Determine the width of each column by finding the longest data item.
   output.push(title);
   for (left in data) {

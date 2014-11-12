@@ -312,7 +312,7 @@ export class ReferenceClassData extends ClassData {
   private fl_cache: { [name: string]: methods.Field };
   private methods: { [name: string]: methods.Method };
   private ml_cache: { [name: string]: methods.Method };
-  private attrs: attributes.Attribute[];
+  private attrs: attributes.IAttribute[];
   public static_fields: { [name: string]: any };
   private interface_cdatas: ReferenceClassData[];
   private default_fields: { [name: string]: any };
@@ -401,7 +401,7 @@ export class ReferenceClassData extends ClassData {
     return this.methods;
   }
 
-  public get_attribute(name: string): attributes.Attribute {
+  public get_attribute(name: string): attributes.IAttribute {
     var attrs = this.attrs;
     for (var i = 0; i < attrs.length; i++) {
       var attr = attrs[i];
@@ -412,9 +412,9 @@ export class ReferenceClassData extends ClassData {
     return null;
   }
 
-  public get_attributes(name: string): attributes.Attribute[] {
+  public get_attributes(name: string): attributes.IAttribute[] {
     var attrs = this.attrs;
-    var results : attributes.Attribute[] = [];
+    var results : attributes.IAttribute[] = [];
     for (var i = 0; i < attrs.length; i++) {
       var attr = attrs[i];
       if (attr.name === name) {

@@ -16,21 +16,21 @@ class JAR {
   /**
    * Calls doneCb when it is finished opening and parsing the MANIFEST file.
    */
-  constructor(dir: string, doneCb: (err?: Error)=>void) {
+  constructor(dir: string, doneCb: (err?: Error) => void) {
     // Try to read the MANIFEST file.
     fs.readFile(path.resolve(dir, 'META-INF/MANIFEST.MF'), (err, data) => {
       if (err) return doneCb(err);
       // Parse the file!
       // If a line *begins* with a space, then it's a continuation of the
       // previous value.
-      var currentAttribute:string = null;
-      var currentValue:string = "";
+      var currentAttribute: string = null;
+      var currentValue: string = "";
       // Figure out which line ending the MANIFEST uses.
       var ending = '\n';
       var dataStr = data.toString("utf8");
       var npos = dataStr.indexOf('\n');
       var rpos = dataStr.indexOf('\r');
-      if (npos === rpos+1) ending = '\r\n';
+      if (npos === rpos + 1) ending = '\r\n';
       else if (rpos > -1) ending = '\r';
 
       var lines = dataStr.split(ending);

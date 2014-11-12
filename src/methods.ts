@@ -2,7 +2,6 @@
 import util = require('./util');
 import ByteStream = require('./ByteStream');
 import attributes = require('./attributes');
-import logging = require('./logging');
 import JVM = require('./jvm');
 import java_object = require('./java_object');
 import ConstantPool = require('./ConstantPool');
@@ -12,11 +11,8 @@ import gLong = require('./gLong');
 import ClassLoader = require('./ClassLoader');
 import assert = require('./assert');
 
-
-var vtrace = logging.vtrace, trace = logging.trace, debug_vars = logging.debug_vars;
 var JavaArray = java_object.JavaArray;
 var JavaObject = java_object.JavaObject;
-declare var RELEASE: boolean;
 
 function get_property(thread: threading.JVMThread, jvm_key: java_object.JavaObject, _default: java_object.JavaObject = null): java_object.JavaObject {
   var key = jvm_key.jvm2js_str(), jvm: JVM = thread.getThreadPool().getJVM(),
@@ -123,7 +119,7 @@ export class AbstractMethodField {
   public access_flags: util.Flags;
   public name: string;
   public raw_descriptor: string;
-  public attrs: attributes.Attribute[];
+  public attrs: attributes.IAttribute[];
 
   constructor(cls: ClassData.ReferenceClassData) {
     this.cls = cls;
@@ -139,7 +135,7 @@ export class AbstractMethodField {
     this.attrs = attributes.make_attributes(bytes_array, constant_pool);
   }
 
-  public get_attribute(name: string): attributes.Attribute {
+  public get_attribute(name: string): attributes.IAttribute {
     for (var i = 0; i < this.attrs.length; i++) {
       var attr = this.attrs[i];
       if (attr.name === name) {
@@ -149,7 +145,7 @@ export class AbstractMethodField {
     return null;
   }
 
-  public get_attributes(name: string): attributes.Attribute[] {
+  public get_attributes(name: string): attributes.IAttribute[] {
     return this.attrs.filter((attr) => attr.name === name);
   }
 
@@ -170,7 +166,7 @@ export class Field extends AbstractMethodField {
    * Calls cb with the reflectedField if it succeeds. Calls cb with null if it
    * fails.
    */
-  public reflector(thread: threading.JVMThread, cb: (reflectedField: java_object.JavaObject)=>void): void {
+  public reflector(thread: threading.JVMThread, cb: (reflectedField: java_object.JavaObject) => void): void {
     var found = <attributes.Signature> this.get_attribute("Signature");
     // note: sig is the generic type parameter (if one exists), not the full
     // field type.
@@ -260,8 +256,7 @@ export class Method extends AbstractMethodField {
     super.parse(bytes_array, constant_pool, idx);
     var sig = this.full_signature(),
       clsName = this.cls.get_type(),
-      methSig = this.name + this.raw_descriptor,
-      c: Function;
+      methSig = this.name + this.raw_descriptor;
 
     if (getTrappedMethod(clsName, methSig) != null) {
       this.code = getTrappedMethod(clsName, methSig);
@@ -288,7 +283,7 @@ export class Method extends AbstractMethodField {
     }
   }
 
-  public reflector(thread: threading.JVMThread, is_constructor: boolean, cb: (reflectedMethod: java_object.JavaObject)=>void): void {
+  public reflector(thread: threading.JVMThread, is_constructor: boolean, cb: (reflectedMethod: java_object.JavaObject) => void): void {
     if (is_constructor == null) {
       is_constructor = false;
     }
@@ -312,7 +307,7 @@ export class Method extends AbstractMethodField {
     if (hasCode && this.code.exception_handlers.length > 0) {
       toResolve.push('Ljava/lang/Throwable;');  // Mimic native java.
       var eh = this.code.exception_handlers;
-      for (var i=0; i<eh.length; i++) {
+      for (var i = 0; i < eh.length; i++) {
         if (eh[i].catch_type !== '<any>') {
           toResolve.push(eh[i].catch_type);
         }

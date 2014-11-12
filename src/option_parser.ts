@@ -4,15 +4,15 @@
  * Option parser for Java-compatible flags.
  * @todo Avoid global state. Make this a class.
  */
-var options : {[cat:string]:DescriptionCategory} = null;
+var options : {[cat: string]: DescriptionCategory} = null;
 var description : Description = null;
 
 export interface Description {
-  [category:string]: DescriptionCategory
+  [category: string]: DescriptionCategory
 }
 
 export interface DescriptionCategory {
-  [opt_name:string]: Option
+  [opt_name: string]: Option
 }
 
 export interface Option {

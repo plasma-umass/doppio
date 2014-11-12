@@ -7,7 +7,7 @@
 /**
  * Standard JVM options.
  */
-export interface JVMOptions{
+export interface JVMOptions {
   // The bootstrap classpath, including paths related to the Java Class Library (JCL).
   bootstrapClasspath: string[];
   // Non-JCL paths on the class path.

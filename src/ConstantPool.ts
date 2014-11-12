@@ -8,7 +8,6 @@ import ClassData = require('./ClassData');
 import java_object = require('./java_object');
 import methods = require('./methods');
 import ClassLoader = require('./ClassLoader');
-import threading = require('./threading');
 
 /**
  * Represents a constant pool item. Use the item's type to discriminate among them.

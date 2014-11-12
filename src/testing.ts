@@ -1,7 +1,6 @@
 "use strict";
 import JVM = require('./jvm');
 import util = require('./util');
-import java_cli = require('./java_cli');
 import difflib = require('./difflib');
 import path = require('path');
 import fs = require('fs');
@@ -148,7 +147,7 @@ class DoppioTest {
                 this.print('pass.\n');
                 cb(true);
               } else {
-                this.print('fail.\n\tOutput does not match native JVM.\n')
+                this.print('fail.\n\tOutput does not match native JVM.\n');
                 // Print diff.
                 if (!this.opts.hideDiffs) {
                   process.stdout.write(this.cls + ": " + diffStr + "\n");
@@ -173,7 +172,7 @@ export function findTestClasses(doppioDir: string, cb: (files: string[]) => void
       cb([]);
     } else {
       cb(files.filter((file) => path.extname(file) === '.java')
-              .map((file)=>path.join('classes','test', path.basename(file, '.java'))));
+              .map((file) => path.join('classes','test', path.basename(file, '.java'))));
     }
   });
 }

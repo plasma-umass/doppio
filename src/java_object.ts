@@ -3,19 +3,17 @@
 var underscore = require('../vendor/underscore/underscore');
 import gLong = require('./gLong');
 import util = require('./util');
-import logging = require('./logging');
 import ClassData = require('./ClassData');
 import ClassLoader = require('./ClassLoader');
 import enums = require('./enums');
 import assert = require('./assert');
 import threading = require('./threading');
 import methods = require('./methods');
-var ClassState = enums.ClassState,
-  ref: number = 0;
+var ref: number = 0;
 
 export class JavaArray {
-  public cls: ClassData.ArrayClassData
-  public array: any[]
+  public cls: ClassData.ArrayClassData;
+  public array: any[];
   public ref: number = ref++;
 
   constructor(cls: ClassData.ArrayClassData, obj: any[]) {
@@ -62,12 +60,12 @@ export class JavaArray {
 }
 
 export class JavaObject {
-  public cls: ClassData.ReferenceClassData
-  public fields : any
+  public cls: ClassData.ReferenceClassData;
+  public fields: any;
   public ref: number = ref++;
-  public $pos: number // XXX: For file descriptors.
+  public $pos: number; // XXX: For file descriptors.
   public $ws: IWebsock; // XXX: For sockets.
-  public $is_shutdown: boolean; //XXX: For sockets.
+  public $is_shutdown: boolean; // XXX: For sockets.
   private $monitor: Monitor;
 
   constructor(cls: ClassData.ReferenceClassData, obj: any = {}) {
@@ -212,7 +210,7 @@ export function get_cl_from_jclo(thread: threading.JVMThread, jclo: ClassLoader.
  */
 export function arraycopy_no_check(src: JavaArray, src_pos: number, dest: JavaArray, dest_pos: number, length: number): void {
   var j = dest_pos;
-  var end = src_pos + length
+  var end = src_pos + length;
   for (var i = src_pos; i < end; i++) {
     dest.array[j++] = src.array[i];
   }
@@ -228,7 +226,7 @@ export function arraycopy_no_check(src: JavaArray, src_pos: number, dest: JavaAr
  */
 export function arraycopy_check(thread: threading.JVMThread, src: JavaArray, src_pos: number, dest: JavaArray, dest_pos: number, length: number): void {
   var j = dest_pos;
-  var end = src_pos + length
+  var end = src_pos + length;
   var dest_comp_cls = dest.cls.get_component_class();
   for (var i = src_pos; i < end; i++) {
     // Check if null or castable.
@@ -522,7 +520,7 @@ export class Monitor {
       blockCb = () => {
         // Thread is RUNNABLE before we trigger the callback.
         thread.setStatus(enums.ThreadStatus.RUNNABLE);
-        if(interrupting) {
+        if (interrupting) {
           unwaitCb();
         } else {
           waitEntry.cb(fromTimer);

@@ -1777,7 +1777,7 @@ export class Opcodes {
       case enums.ConstantPoolItemType.STRING:
         var constString: ConstantPool.ConstString = <any> constant;
         if (constString.value == null) {
-          constString.value = thread.getThreadPool().getJVM().internString(constString.stringValue)
+          constString.value = thread.getThreadPool().getJVM().internString(constString.stringValue);
         }
         frame.stack.push(constString.value);
         frame.pc += 2;
@@ -1810,7 +1810,7 @@ export class Opcodes {
       case enums.ConstantPoolItemType.STRING:
         var constString: ConstantPool.ConstString = <any> constant;
         if (constString.value == null) {
-          constString.value = thread.getThreadPool().getJVM().internString(constString.stringValue)
+          constString.value = thread.getThreadPool().getJVM().internString(constString.stringValue);
         }
         frame.stack.push(constString.value);
         frame.pc += 3;

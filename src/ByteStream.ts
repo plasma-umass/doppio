@@ -7,7 +7,7 @@ import assert = require('./assert');
  * A ByteStream, implemented using a NodeBuffer.
  */
 class ByteStream {
-  private _index: number = 0
+  private _index: number = 0;
 
   constructor(private buffer: NodeBuffer) {}
 
