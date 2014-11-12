@@ -37,7 +37,7 @@ function findNativeJava(grunt: IGrunt) {
         checkJavaVersion(grunt, (isJava6: boolean, javaVersion: string) => {
           if (!isJava6) {
             grunt.log.warn('Detected Java ' + javaVersion + ' (via javac). Unit tests ' +
-              'are not guaranteed to pass on version of Java > 1.6.');
+              'are not guaranteed to pass on versions of Java > 1.6.');
           }
           grunt.config.set('build.is_java_6', isJava6);
           done(true);
