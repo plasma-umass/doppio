@@ -9,6 +9,7 @@ import threading = require('../threading');
 import ClassLoader = require('../ClassLoader');
 import enums = require('../enums');
 import assert = require('../assert');
+import ConstantPool = require('../ConstantPool');
 declare var registerNatives: (defs: any) => void;
 
 var debug = logging.debug;
@@ -214,8 +215,8 @@ class java_lang_Class {
     }
     var enc_cls = cls.loader.getResolvedClass(em.enc_class).get_class_object(thread);
     if (em.enc_method != null) {
-      enc_name = java_object.initString(bsCl, em.enc_method.name);
-      enc_desc = java_object.initString(bsCl, em.enc_method.type);
+      enc_name = java_object.initString(bsCl, em.enc_method.nameAndTypeInfo.name);
+      enc_desc = java_object.initString(bsCl, em.enc_method.nameAndTypeInfo.descriptor);
     } else {
       enc_name = null;
       enc_desc = null;
@@ -239,20 +240,20 @@ class java_lang_Class {
       return null;
     }
     var my_class = cls.get_type(),
-      _ref5 = icls.classes;
-    for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
-      entry = _ref5[_i];
+      innerClassInfo = icls.classes;
+    for (_i = 0, _len = innerClassInfo.length; _i < _len; _i++) {
+      entry = innerClassInfo[_i];
       if (!(entry.outer_info_index > 0)) {
         continue;
       }
-      name = cls.constant_pool.get(entry.inner_info_index).deref();
+      name = (<ConstantPool.ClassReference> cls.constant_pool.get(entry.inner_info_index)).name;
       if (name !== my_class) {
         continue;
       }
       // XXX(jez): this assumes that the first enclosing entry is also
       // the immediate enclosing parent, and I'm not 100% sure this is
       // guaranteed by the spec
-      declaring_name = cls.constant_pool.get(entry.outer_info_index).deref();
+      declaring_name = (<ConstantPool.ClassReference> cls.constant_pool.get(entry.outer_info_index)).name;
       return cls.loader.getResolvedClass(declaring_name).get_class_object(thread);
     }
     return null;
@@ -403,10 +404,10 @@ class java_lang_Class {
     }
     var flat_names = [];
     for (var i = 0; i < iclses.length; i++) {
-      var names = iclses[i].classes.filter((c: any) =>
+      var names = iclses[i].classes.filter((c: attributes.IInnerClassInfo) =>
         // select inner classes where the enclosing class is my_class
-        c.outer_info_index > 0 && cls.constant_pool.get(c.outer_info_index).deref() === my_class)
-        .map((c: any) => cls.constant_pool.get(c.inner_info_index).deref());
+        c.outer_info_index > 0 && (<ConstantPool.ClassReference> cls.constant_pool.get(c.outer_info_index)).name === my_class)
+        .map((c: attributes.IInnerClassInfo) => (<ConstantPool.ClassReference> cls.constant_pool.get(c.inner_info_index)).name);
       flat_names.push.apply(flat_names, names);
     }
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);

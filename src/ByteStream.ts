@@ -1,6 +1,7 @@
 ﻿/// <reference path="../vendor/DefinitelyTyped/node/node.d.ts" />
 "use strict";
 import gLong = require('./gLong');
+import assert = require('./assert');
 
 /**
  * A ByteStream, implemented using a NodeBuffer.
@@ -22,6 +23,11 @@ class ByteStream {
 
   public rewind(): void {
     this._index = 0;
+  }
+
+  public seek(idx: number) {
+    assert(idx >= 0 && idx < this.buffer.length, "Invalid seek position.");
+    this._index = idx;
   }
 
   public pos(): number {

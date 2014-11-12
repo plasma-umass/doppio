@@ -133,8 +133,8 @@ export class AbstractMethodField {
     this.idx = idx;
     this.access_byte = bytes_array.getUint16();
     this.access_flags = util.parse_flags(this.access_byte);
-    this.name = constant_pool.get(bytes_array.getUint16()).value;
-    this.raw_descriptor = constant_pool.get(bytes_array.getUint16()).value;
+    this.name = (<ConstantPool.ConstUTF8> constant_pool.get(bytes_array.getUint16())).value;
+    this.raw_descriptor = (<ConstantPool.ConstUTF8> constant_pool.get(bytes_array.getUint16())).value;
     this.parse_descriptor(this.raw_descriptor);
     this.attrs = attributes.make_attributes(bytes_array, constant_pool);
   }

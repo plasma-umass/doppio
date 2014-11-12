@@ -127,8 +127,15 @@ export class ClassData {
     return this.state;
   }
 
-  // Convenience function.
-  public is_initialized(): boolean { return this.get_state() === ClassState.INITIALIZED; }
+  /**
+   * Check if the class is initialized.
+   * @param thread The thread that is performing the check. If initialization
+   *   is in progress on that thread, then the class is, for all intents and
+   *   purposes, initialized.
+   */
+  public is_initialized(thread: threading.JVMThread): boolean {
+    return this.get_state() === ClassState.INITIALIZED || this.get_class_loader().getInitializedClass(thread, this.this_class) === this;
+  }
   // Convenience function.
   public is_resolved(): boolean { return this.get_state() !== ClassState.LOADED; }
 
@@ -328,17 +335,17 @@ export class ReferenceClassData extends ClassData {
     this.access_byte = bytes_array.getUint16();
     this.access_flags = util.parse_flags(this.access_byte);
 
-    this.this_class = this.constant_pool.get(bytes_array.getUint16()).deref();
+    this.this_class = (<ConstantPool.ClassReference> this.constant_pool.get(bytes_array.getUint16())).name;
     // super reference is 0 when there's no super (basically just java.lang.Object)
     var super_ref = bytes_array.getUint16();
     if (super_ref !== 0) {
-      this.super_class = this.constant_pool.get(super_ref).deref();
+      this.super_class = (<ConstantPool.ClassReference> this.constant_pool.get(super_ref)).name;
     }
     // direct interfaces of this class
     var isize = bytes_array.getUint16();
     this.interfaces = [];
     for (i = 0; i < isize; ++i) {
-      this.interfaces.push(this.constant_pool.get(bytes_array.getUint16()).deref());
+      this.interfaces.push((<ConstantPool.ClassReference> this.constant_pool.get(bytes_array.getUint16())).name);
     }
     // fields of this class
     var num_fields = bytes_array.getUint16();
@@ -430,11 +437,24 @@ export class ReferenceClassData extends ClassData {
   private _initialize_static_field(thread: threading.JVMThread, name: string): boolean {
     var f = this.fl_cache[name];
     if (f != null && f.access_flags["static"]) {
-      var cva = <attributes.ConstantValue>f.get_attribute('ConstantValue');
+      var cva = <attributes.ConstantValue> f.get_attribute('ConstantValue'),
+        cv = null;
       if (cva != null) {
-        var cv = f.type === 'Ljava/lang/String;' ? java_object.initString(thread.getBsCl(), cva.value) : cva.value;
+        switch (cva.value.getType()) {
+          case enums.ConstantPoolItemType.STRING:
+            var stringCPI = <ConstantPool.ConstString> cva.value;
+            if (stringCPI.value === null) {
+              stringCPI.value = thread.getThreadPool().getJVM().internString(stringCPI.stringValue);
+            }
+            cv = stringCPI.value;
+            break;
+          default:
+            // TODO: Type better.
+            cv = (<any> cva.value).value;
+            break;
+        }
       }
-      this.static_fields[name] = cv != null ? cv : util.initialValue(f.raw_descriptor);
+      this.static_fields[name] = cv !== null ? cv : util.initialValue(f.raw_descriptor);
       return true;
     } else {
       thread.throwNewException('Ljava/lang/NoSuchFieldError;', name);

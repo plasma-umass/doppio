@@ -91,6 +91,27 @@ export enum Constants {
 }
 
 /**
+ * Integer indicating the type of a constant pool item.
+ * @url https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.4-140
+ */
+export enum ConstantPoolItemType {
+  CLASS = 7,
+  FIELDREF = 9,
+  METHODREF = 10,
+  INTERFACE_METHODREF = 11,
+  STRING = 8,
+  INTEGER = 3,
+  FLOAT = 4,
+  LONG = 5,
+  DOUBLE = 6,
+  NAME_AND_TYPE = 12,
+  UTF8 = 1,
+  METHOD_HANDLE = 15,
+  METHOD_TYPE = 16,
+  INVOKE_DYNAMIC = 18
+}
+
+/**
  * Characters used on the terminal to format output.
  * Maps each type of formatting to its [beginning, end] characters as an array.
  *
@@ -356,7 +377,9 @@ export enum OpCode {
   GETFIELD_FAST32 = 0xdb,
   GETFIELD_FAST64 = 0xdc,
   PUTFIELD_FAST32 = 0xdd,
-  PUTFIELD_FAST64 = 0xde
+  PUTFIELD_FAST64 = 0xde,
+  INVOKESPECIAL_FAST = 0xdf,
+  INVOKESTATIC_FAST = 0xf0
 }
 
 export enum OpcodeLayoutType {
@@ -403,7 +426,8 @@ assignOpcodeLayout(OpcodeLayoutType.CONSTANT_POOL,
    OpCode.ANEWARRAY, OpCode.CHECKCAST, OpCode.GETFIELD,
    OpCode.GETSTATIC, OpCode.INSTANCEOF, OpCode.INVOKEDYNAMIC,
    OpCode.INVOKESPECIAL, OpCode.INVOKESTATIC, OpCode.INVOKEVIRTUAL,
-   OpCode.NEW, OpCode.PUTFIELD, OpCode.PUTSTATIC, OpCode.MULTIANEWARRAY_FAST
+   OpCode.NEW, OpCode.PUTFIELD, OpCode.PUTSTATIC, OpCode.MULTIANEWARRAY_FAST,
+   OpCode.INVOKESPECIAL_FAST, OpCode.INVOKESTATIC_FAST
 ]);
 assignOpcodeLayout(OpcodeLayoutType.CONSTANT_POOL_AND_UINT8_VALUE,
   [OpCode.INVOKEINTERFACE, OpCode.MULTIANEWARRAY]);

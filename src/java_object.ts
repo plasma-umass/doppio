@@ -652,7 +652,6 @@ export function heapNewArray(thread: threading.JVMThread, cls: ClassData.ArrayCl
   }
 }
 
-// The innermost component class is already initialized.
 export function heapMultiNewArray(thread: threading.JVMThread, loader: ClassLoader.ClassLoader, type: string, counts: number[]): JavaArray {
   var dim = counts.length;
   function init_arr(curr_dim: number, type: string): JavaArray {

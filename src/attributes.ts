@@ -3,11 +3,19 @@ import util = require('./util');
 import ByteStream = require('./ByteStream');
 import opcodes = require('./opcodes');
 import ConstantPool = require('./ConstantPool');
+import enums = require('./enums');
 declare var RELEASE: boolean;
 
 export interface Attribute {
   name: string;
   parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): void;
+}
+
+export interface IInnerClassInfo {
+  inner_info_index: number;
+  outer_info_index: number;
+  inner_name_index: number;
+  inner_access_flags: number;
 }
 
 export class ExceptionHandler implements Attribute {
@@ -21,7 +29,7 @@ export class ExceptionHandler implements Attribute {
     this.end_pc = bytes_array.getUint16();
     this.handler_pc = bytes_array.getUint16();
     var cti = bytes_array.getUint16();
-    this.catch_type = cti === 0 ? "<any>" : constant_pool.get(cti).deref();
+    this.catch_type = cti === 0 ? "<any>" : (<ConstantPool.ClassReference> constant_pool.get(cti)).name;
   }
 }
 
@@ -103,7 +111,7 @@ export class SourceFile implements Attribute {
   public filename: string;
 
   public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool) {
-    this.filename = constant_pool.get(bytes_array.getUint16()).value;
+    this.filename = (<ConstantPool.ConstUTF8> constant_pool.get(bytes_array.getUint16())).value;
   }
 }
 
@@ -193,7 +201,7 @@ export class StackMapTable implements Attribute {
   public parse_verification_type_info(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): string {
     var tag = bytes_array.getUint8();
     if (tag === 7) {
-      var cls = constant_pool.get(bytes_array.getUint16()).deref();
+      var cls = (<ConstantPool.ClassReference> constant_pool.get(bytes_array.getUint16())).name;
       return 'class ' + (/\w/.test(cls[0]) ? util.descriptor2typestr(cls) : "\"" + cls + "\"");
     } else if (tag === 8) {
       return 'uninitialized ' + bytes_array.getUint16();
@@ -239,8 +247,8 @@ export class LocalVariableTable implements Attribute {
     return {
       start_pc: bytes_array.getUint16(),
       length: bytes_array.getUint16(),
-      name: constant_pool.get(bytes_array.getUint16()).value,
-      descriptor: constant_pool.get(bytes_array.getUint16()).value,
+      name: (<ConstantPool.ConstUTF8> constant_pool.get(bytes_array.getUint16())).value,
+      descriptor: (<ConstantPool.ConstUTF8> constant_pool.get(bytes_array.getUint16())).value,
       ref: bytes_array.getUint16()
     };
   }
@@ -259,7 +267,7 @@ export class LocalVariableTable implements Attribute {
 export class Exceptions implements Attribute {
   public name = 'Exceptions';
   private num_exceptions: number;
-  public exceptions: Object[];
+  public exceptions: string[];
 
   public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): void {
     this.num_exceptions = bytes_array.getUint16();
@@ -267,13 +275,13 @@ export class Exceptions implements Attribute {
     for (var i = 0; i < this.num_exceptions; i++) {
       exc_refs.push(bytes_array.getUint16());
     }
-    this.exceptions = exc_refs.map((ref) => constant_pool.get(ref).deref());
+    this.exceptions = exc_refs.map((ref) => (<ConstantPool.ClassReference> constant_pool.get(ref)).name);
   }
 }
 
 export class InnerClasses implements Attribute {
   public name = 'InnerClasses';
-  public classes: Object[];
+  public classes: IInnerClassInfo[];
 
   public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): void {
     var num_classes = bytes_array.getUint16();
@@ -283,7 +291,7 @@ export class InnerClasses implements Attribute {
     }
   }
 
-  public parse_class(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): Object {
+  public parse_class(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): IInnerClassInfo {
     return {
       inner_info_index: bytes_array.getUint16(),
       outer_info_index: bytes_array.getUint16(),
@@ -296,12 +304,11 @@ export class InnerClasses implements Attribute {
 export class ConstantValue implements Attribute {
   public name = 'ConstantValue';
   private ref: number;
-  public value: any;
+  public value: ConstantPool.IConstantPoolItem;
 
   public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): void {
     this.ref = bytes_array.getUint16();
-    var valref = constant_pool.get(this.ref);
-    this.value = (typeof valref.deref === "function") ? valref.deref() : valref.value;
+    this.value = constant_pool.get(this.ref);
   }
 }
 
@@ -320,7 +327,7 @@ export class Signature implements Attribute {
   public sig: string;
 
   public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool, attr_len?: number) {
-    this.sig = constant_pool.get(bytes_array.getUint16()).value;
+    this.sig = (<ConstantPool.ConstUTF8> constant_pool.get(bytes_array.getUint16())).value;
   }
 }
 
@@ -343,13 +350,13 @@ export class AnnotationDefault implements Attribute {
 
 export class EnclosingMethod implements Attribute {
   public name = 'EnclosingMethod';
-  public enc_class: any;
-  public enc_method: any;
+  public enc_class: string;
+  public enc_method: ConstantPool.MethodReference;
   public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool) {
-    this.enc_class = constant_pool.get(bytes_array.getUint16()).deref();
+    this.enc_class = (<ConstantPool.ClassReference> constant_pool.get(bytes_array.getUint16())).name;
     var method_ref = bytes_array.getUint16();
     if (method_ref > 0) {
-      this.enc_method = constant_pool.get(method_ref).deref();
+      this.enc_method = <ConstantPool.MethodReference> constant_pool.get(method_ref);
     }
   }
 }
@@ -375,7 +382,7 @@ export function make_attributes(bytes_array: ByteStream, constant_pool: Constant
   var num_attrs = bytes_array.getUint16();
   var attrs : Attribute[] = [];
   for (var i = 0; i < num_attrs; i++) {
-    var name = constant_pool.get(bytes_array.getUint16()).value;
+    var name = (<ConstantPool.ConstUTF8> constant_pool.get(bytes_array.getUint16())).value;
     var attr_len = bytes_array.getUint32();
     if (attr_types[name] != null) {
       var attr = new attr_types[name];

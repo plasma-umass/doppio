@@ -130,6 +130,8 @@ export class BytecodeStackFrame implements IStackFrame {
       case enums.OpCode.INVOKESPECIAL:
       case enums.OpCode.INVOKESTATIC:
       case enums.OpCode.INVOKEVIRTUAL:
+      case enums.OpCode.INVOKESTATIC_FAST:
+      case enums.OpCode.INVOKESPECIAL_FAST:
         this.pc += 3;
         break;
       default:
@@ -1147,24 +1149,26 @@ function validateReturnValue(thread: JVMThread, method: methods.Method, returnTy
   return true;
 }
 
-function printConstantPoolItem(cpi: ConstantPool.ConstantPoolItem): string {
-  if (cpi.deref != null) {
-    var deref = cpi.deref();
-    switch (cpi.type) {
-      case 'Method':
-      case 'InterfaceMethod':
-        return deref.class_desc + "." + deref.sig;
-      case 'Field':
-        // class_desc / name / type
-        return deref.class_desc + "." + deref.name + ":" + deref.type;
-      case 'NameAndType':
-        // name / type
-        return deref.name + ":" + deref.type;
-      default:
-        return deref;
-    }
+function printConstantPoolItem(cpi: ConstantPool.IConstantPoolItem): string {
+  switch (cpi.getType()) {
+    case enums.ConstantPoolItemType.METHODREF:
+      var cpiMR = <ConstantPool.MethodReference> cpi;
+      return cpiMR.classInfo.name + "." + cpiMR.methodSignature;
+    case enums.ConstantPoolItemType.INTERFACE_METHODREF:
+      var cpiIM = <ConstantPool.InterfaceMethodReference> cpi;
+      return cpiIM.classInfo.name + "." + cpiIM.methodSignature;
+    case enums.ConstantPoolItemType.FIELDREF:
+      var cpiFR = <ConstantPool.FieldReference> cpi;
+      return cpiFR.classInfo.name + "." + cpiFR.fieldName + ":" + cpiFR.nameAndTypeInfo.descriptor;
+    case enums.ConstantPoolItemType.NAME_AND_TYPE:
+      var cpiNAT = <ConstantPool.NameAndTypeInfo> cpi;
+      return cpiNAT.name + ":" + cpiNAT.descriptor;
+    case enums.ConstantPoolItemType.CLASS:
+      var cpiClass = <ConstantPool.ClassReference> cpi;
+      return cpiClass.name;
+    default:
+      return logging.debug_var((<any> cpi).value);
   }
-  return logging.debug_var(cpi.value);
 }
 
 // TODO: Prefix behind DEBUG, cache lowercase opcode names.

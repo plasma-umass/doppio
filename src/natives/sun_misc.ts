@@ -356,7 +356,7 @@ class sun_misc_Unsafe {
     // This can trigger class initialization, so check if the class is
     // initialized.
     var cls = <ClassData.ReferenceClassData> jco.$cls;
-    if (cls.is_initialized()) {
+    if (cls.is_initialized(thread)) {
       return new java_object.JavaObject(cls);
     } else {
       thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);

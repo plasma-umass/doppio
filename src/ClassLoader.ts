@@ -374,7 +374,7 @@ export class ClassLoader {
   public initializeClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
     // Get the resolved class.
     this.resolveClass(thread, typeStr, (cdata: ClassData.ClassData) => {
-      if (cdata === null || cdata.is_initialized() || this.initializeClassLocks.getOwner(typeStr) === thread) {
+      if (cdata === null || cdata.is_initialized(thread)) {
         // Nothing to do! Either resolution failed and an exception has already
         // been thrown, cdata is already initialized, or the current thread is
         // initializing the class.

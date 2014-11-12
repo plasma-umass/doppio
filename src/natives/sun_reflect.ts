@@ -68,7 +68,7 @@ class sun_reflect_ConstantPool {
 
   public static 'getLongAt0(Ljava/lang/Object;I)J'(thread: threading.JVMThread, javaThis: java_object.JavaObject, cpo: java_object.JavaObject, idx: number): gLong {
     var cp = <ConstantPool.ConstantPool> cpo.get_field(thread, 'Lsun/reflect/ConstantPool;constantPoolOop');
-    return cp.get(idx).value;
+    return (<ConstantPool.ConstLong> cp.get(idx)).value;
   }
 
   public static 'getFloatAt0(Ljava/lang/Object;I)F'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: number): number {
@@ -90,7 +90,7 @@ class sun_reflect_ConstantPool {
   }
 
   public static 'getUTF8At0(Ljava/lang/Object;I)Ljava/lang/String;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, cp: ConstantPool.ConstantPool, idx: number): java_object.JavaObject {
-    return java_object.initString(thread.getBsCl(), cp.get(idx).value);
+    return java_object.initString(thread.getBsCl(), (<ConstantPool.ConstUTF8> cp.get(idx)).value);
   }
 
 }
