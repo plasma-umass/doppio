@@ -88,7 +88,7 @@ function generate_mini_rt(grunt: IGrunt, outputFile: string, done: (status?: boo
         return dirMap.hasOwnProperty(dirPath);
       }
     }
-  }).pipe(/* Note: undefined argument is hacking around typing bug. Should be fixed once my change is merged. */tar.Pack(undefined)).pipe(fstream.Writer(outputFile)).on('close', function() { done(); });
+  }).pipe(tar.Pack()).pipe(fstream.Writer(outputFile)).on('close', function() { done(); });
 }
 
 export = mini_rt;

@@ -64,8 +64,7 @@ function checkJavaVersion(grunt: IGrunt, cb: (is_java_6: boolean, java_version: 
       throw err;
     }
     var javaVersion = /(\d+\.\d+\.\d+)/.exec(stderr.toString())[1];
-    // XXX: Papering around typing bug. Submitted a fix to DT; pending merge.
-    return cb(<boolean><any>semver.satisfies(javaVersion, '<1.7.0'), javaVersion);
+    return cb(semver.satisfies(javaVersion, '<1.7.0'), javaVersion);
   });
 }
 
