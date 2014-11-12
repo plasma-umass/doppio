@@ -77,19 +77,16 @@ function generate_mini_rt(grunt: IGrunt, outputFile: string, done: (status?: boo
   // directory contents* to tell it which directories and files to include. :(
   fstream.Reader({path: vendorDir, type: 'Directory', filter:
     function() {
-      var relPath: string;
+      var dirPath: string;
       if (this.type === 'File') {
-        // It's a file. Get its parent directory path relative to the Doppio
-        // directory, and see if it needs to be preloaded.
-        relPath = path.relative(doppioDir, path.dirname(this.path));
-        return dirMap.hasOwnProperty(relPath) &&
-               dirMap[relPath].indexOf(path.basename(this.path)) !== -1;
+        dirPath = path.resolve(path.dirname(this.path));
+        return dirMap.hasOwnProperty(dirPath) &&
+               dirMap[dirPath].indexOf(path.basename(this.path)) !== -1;
       } else {
         // Directory. Make sure it's in the index.
-        relPath = path.relative(doppioDir, this.path);
-        return dirMap.hasOwnProperty(relPath);
+        dirPath = path.resolve(this.path);
+        return dirMap.hasOwnProperty(dirPath);
       }
-      return false;
     }
   }).pipe(/* Note: undefined argument is hacking around typing bug. Should be fixed once my change is merged. */tar.Pack(undefined)).pipe(fstream.Writer(outputFile)).on('close', function() { done(); });
 }

@@ -782,14 +782,20 @@ export class BootstrapClassLoader extends ClassLoader {
       loadedClassFiles = [];
     util.async_foreach<string>(loadedClasses, (className: string, next_item: (err?: any) => void) => {
       if (util.is_reference_type(className)) {
+        var classFileName = util.descriptor2typestr(className) + ".class";
         // Figure out from whence it came.
         util.async_foreach<string>(this.classPath, (cPath: string, next_cpath: (err?: any) => void) => {
-          var pathToClass = path.resolve(cPath, className);
+          var pathToClass = path.resolve(cPath, classFileName);
           fs.exists(pathToClass, (exists: boolean) => {
             if (exists) {
-              loadedClassFiles.push(pathToClass);
-              // Short circuit.
-              next_item();
+              // Get the real path to this file (resolves symbolic links).
+              fs.realpath(pathToClass, (err: any, realPath: string) => {
+                if (!err) {
+                  loadedClassFiles.push(realPath);
+                  // Short circuit.
+                  next_item();
+                }
+              });
             } else {
               next_cpath();
             }
