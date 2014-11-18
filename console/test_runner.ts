@@ -20,7 +20,16 @@ var opts: testing.TestOptions = {
   hideDiffs: false,
   quiet: false,
   keepGoing: false
-};
+}, passChar: string, failChar: string;
+
+if (process.platform.match(/win32/i)) {
+  // Windows command prompt doesn't support Unicode characters.
+  passChar = "√";
+  failChar = "X";
+} else {
+  passChar = '✓';
+  failChar = '✗';
+}
 
 function makefileTest(argv): void {
   var failpath = path.resolve(__dirname, '../classes/test/failures.txt'),
@@ -40,9 +49,7 @@ function makefileTest(argv): void {
   testing.runTests(opts, (success: boolean): void => {
     // Patch stdout back up.
     process.stdout.write = old_write;
-    // Windows command prompt doesn't support all Unicode characters.
-    // Use 'X' in that environment instead of the fancy X.
-    process.stdout.write(success ? '✓' : process.platform.match(/win32/i) ? 'X' : '✗');
+    process.stdout.write(success ? passChar : failChar);
     if (!success) {
       fs.writeSync(outfile, new Buffer('\n'), 0, 1, null);
     }

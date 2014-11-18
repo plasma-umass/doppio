@@ -38,7 +38,7 @@
     "rimraf": "*",
     "semver": "*",
     "tar": "*",
-    "typescript": "1.1",
+    "typescript": "1.3",
     "uglify-js": "2"
   },
   "repository": {
