@@ -1159,7 +1159,11 @@ function printConstantPoolItem(cpi: ConstantPool.IConstantPoolItem): string {
       return cpiIM.classInfo.name + "." + cpiIM.methodSignature;
     case enums.ConstantPoolItemType.FIELDREF:
       var cpiFR = <ConstantPool.FieldReference> cpi;
-      return cpiFR.classInfo.name + "." + cpiFR.fieldName + ":" + cpiFR.nameAndTypeInfo.descriptor;
+      if (cpiFR.fullFieldName !== null) {
+        return cpiFR.fullFieldName + cpiFR.nameAndTypeInfo.descriptor;
+      } else {
+        return cpiFR.classInfo.name + "." + cpiFR.fieldName + ":" + cpiFR.nameAndTypeInfo.descriptor;
+      }
     case enums.ConstantPoolItemType.NAME_AND_TYPE:
       var cpiNAT = <ConstantPool.NameAndTypeInfo> cpi;
       return cpiNAT.name + ":" + cpiNAT.descriptor;
@@ -1184,10 +1188,6 @@ OpcodeLayoutPrinters[enums.OpcodeLayoutType.INT16_VALUE] = (frame: BytecodeStack
 OpcodeLayoutPrinters[enums.OpcodeLayoutType.INT32_VALUE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readInt32BE(pc + 1);
 OpcodeLayoutPrinters[enums.OpcodeLayoutType.ARRAY_TYPE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + opcodes.ArrayTypes[code.readUInt8(pc + 1)];
 OpcodeLayoutPrinters[enums.OpcodeLayoutType.WIDE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase();
-
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.CLASS_STASH] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase();
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.FIELD_NAME_STASH] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase();
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.STATIC_FIELD_STASH] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase();
 
 function annotateOpcode(op: number, frame: BytecodeStackFrame, code: NodeBuffer, pc: number): string {
   return OpcodeLayoutPrinters[enums.OpcodeLayouts[op]](frame, code, pc);

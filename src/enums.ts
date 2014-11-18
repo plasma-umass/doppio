@@ -395,10 +395,7 @@ export enum OpcodeLayoutType {
   // LOOKUPSWITCH,
   // TABLESWITCH,
   ARRAY_TYPE,
-  WIDE,
-  CLASS_STASH,
-  FIELD_NAME_STASH,
-  STATIC_FIELD_STASH
+  WIDE
 }
 
 // Contains the opcode layout types for each valid opcode.
@@ -427,7 +424,12 @@ assignOpcodeLayout(OpcodeLayoutType.CONSTANT_POOL,
    OpCode.GETSTATIC, OpCode.INSTANCEOF, OpCode.INVOKEDYNAMIC,
    OpCode.INVOKESPECIAL, OpCode.INVOKESTATIC, OpCode.INVOKEVIRTUAL,
    OpCode.NEW, OpCode.PUTFIELD, OpCode.PUTSTATIC, OpCode.MULTIANEWARRAY_FAST,
-   OpCode.INVOKESPECIAL_FAST, OpCode.INVOKESTATIC_FAST
+   OpCode.INVOKESPECIAL_FAST, OpCode.INVOKESTATIC_FAST, OpCode.CHECKCAST_FAST,
+   OpCode.NEW_FAST, OpCode.NEW_CL_FAST, OpCode.NEW_THREAD_FAST,
+   OpCode.ANEWARRAY_FAST, OpCode.INSTANCEOF_FAST, OpCode.GETSTATIC_FAST32,
+   OpCode.GETSTATIC_FAST64, OpCode.PUTSTATIC_FAST32, OpCode.PUTSTATIC_FAST64,
+   OpCode.PUTFIELD_FAST32, OpCode.PUTFIELD_FAST64,
+   OpCode.GETFIELD_FAST32, OpCode.GETFIELD_FAST64
 ]);
 assignOpcodeLayout(OpcodeLayoutType.CONSTANT_POOL_AND_UINT8_VALUE,
   [OpCode.INVOKEINTERFACE, OpCode.MULTIANEWARRAY]);
@@ -440,17 +442,5 @@ assignOpcodeLayout(OpcodeLayoutType.INT16_VALUE,
 assignOpcodeLayout(OpcodeLayoutType.INT32_VALUE, [OpCode.GOTO_W, OpCode.JSR_W]);
 assignOpcodeLayout(OpcodeLayoutType.UINT8_AND_INT8_VALUE, [OpCode.IINC]);
 assignOpcodeLayout(OpcodeLayoutType.ARRAY_TYPE, [OpCode.NEWARRAY]);
-assignOpcodeLayout(OpcodeLayoutType.CLASS_STASH, [
-  OpCode.NEW_FAST, OpCode.NEW_CL_FAST, OpCode.NEW_THREAD_FAST,
-  OpCode.ANEWARRAY_FAST, OpCode.CHECKCAST_FAST, OpCode.INSTANCEOF_FAST
-]);
-assignOpcodeLayout(OpcodeLayoutType.STATIC_FIELD_STASH, [
-  OpCode.GETSTATIC_FAST32, OpCode.GETSTATIC_FAST64, OpCode.PUTSTATIC_FAST32,
-  OpCode.PUTSTATIC_FAST64
-]);
-assignOpcodeLayout(OpcodeLayoutType.FIELD_NAME_STASH, [
-  OpCode.PUTFIELD_FAST32, OpCode.PUTFIELD_FAST64,
-  OpCode.GETFIELD_FAST32, OpCode.GETFIELD_FAST64
-]);
 
 export var OpcodeLayouts = olt;
