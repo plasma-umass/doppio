@@ -239,7 +239,7 @@ export class Method extends AbstractMethodField {
   }
 
   public full_signature(): string {
-    return this.cls.get_type() + "::" + this.name + this.raw_descriptor;
+    return util.ext_classname(this.cls.get_type()) + "::" + this.name + this.raw_descriptor;
   }
 
   public getCodeAttribute(): attributes.Code {

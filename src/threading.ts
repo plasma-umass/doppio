@@ -1153,23 +1153,19 @@ function printConstantPoolItem(cpi: ConstantPool.IConstantPoolItem): string {
   switch (cpi.getType()) {
     case enums.ConstantPoolItemType.METHODREF:
       var cpiMR = <ConstantPool.MethodReference> cpi;
-      return cpiMR.classInfo.name + "." + cpiMR.methodSignature;
+      return util.ext_classname(cpiMR.classInfo.name) + "." + cpiMR.methodSignature;
     case enums.ConstantPoolItemType.INTERFACE_METHODREF:
       var cpiIM = <ConstantPool.InterfaceMethodReference> cpi;
-      return cpiIM.classInfo.name + "." + cpiIM.methodSignature;
+      return util.ext_classname(cpiIM.classInfo.name) + "." + cpiIM.methodSignature;
     case enums.ConstantPoolItemType.FIELDREF:
       var cpiFR = <ConstantPool.FieldReference> cpi;
-      if (cpiFR.fullFieldName !== null) {
-        return cpiFR.fullFieldName + cpiFR.nameAndTypeInfo.descriptor;
-      } else {
-        return cpiFR.classInfo.name + "." + cpiFR.fieldName + ":" + cpiFR.nameAndTypeInfo.descriptor;
-      }
+      return util.ext_classname(cpiFR.classInfo.name) + "." + cpiFR.fieldName + ":" + util.ext_classname(cpiFR.nameAndTypeInfo.descriptor);
     case enums.ConstantPoolItemType.NAME_AND_TYPE:
       var cpiNAT = <ConstantPool.NameAndTypeInfo> cpi;
       return cpiNAT.name + ":" + cpiNAT.descriptor;
     case enums.ConstantPoolItemType.CLASS:
       var cpiClass = <ConstantPool.ClassReference> cpi;
-      return cpiClass.name;
+      return util.ext_classname(cpiClass.name);
     default:
       return logging.debug_var((<any> cpi).value);
   }

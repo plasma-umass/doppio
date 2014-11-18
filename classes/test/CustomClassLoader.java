@@ -15,6 +15,7 @@ public class CustomClassLoader extends ClassLoader {
     }
 
     // 2. get class file name from class name
+    // NOTE: Resource paths are *always* '/' separated, regardless of platform!
     String clsFile = className.replace('.', '/') + ".class";
 
     // 3. get bytes for class

@@ -337,8 +337,11 @@ export function initialValue(type_str: string): any {
   return 0;
 }
 
-// Java classes are represented internally using slashes as delimiters.
-// These helper functions convert between the two representations.
+/**
+ * Java classes are represented internally using slashes as delimiters.
+ * These helper functions convert between the two representations.
+ * Ljava/lang/Class; => java.lang.Class
+ */
 export function ext_classname(str: string): string {
   return descriptor2typestr(str).replace(/\//g, '.');
 }
@@ -411,10 +414,12 @@ export function is_reference_type(type_str: string): boolean {
   return type_str[0] === 'L';
 }
 
-// Converts type descriptors into standardized internal type strings.
-//   Ljava/lang/Class; => java/lang/Class   Reference types
-//   [Ljava/lang/Class; is unchanged        Array types
-//   C => char                              Primitive types
+/**
+ * Converts type descriptors into standardized internal type strings.
+ * Ljava/lang/Class; => java/lang/Class   Reference types
+ * [Ljava/lang/Class; is unchanged        Array types
+ * C => char                              Primitive types
+ */
 export function descriptor2typestr(type_str: string): string {
   var c = type_str[0];
   if (c in internal2external) return internal2external[c];

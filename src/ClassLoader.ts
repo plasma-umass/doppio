@@ -755,15 +755,15 @@ export class BootstrapClassLoader extends ClassLoader {
         base64: false,
         checkCRC32: true
       }),
-      destFolder = path.resolve(this.extractionPath, path.basename(jar_path, '.jar'));
+      dest_folder = path.resolve(this.extractionPath, path.basename(jar_path, '.jar'));
 
     try {
-      if (!fs.existsSync(destFolder)) {
-        fs.mkdirSync(destFolder);
+      if (!fs.existsSync(dest_folder)) {
+        fs.mkdirSync(dest_folder);
       }
-      this._extractAllTo(unzipper.files, destFolder);
+      this._extractAllTo(unzipper.files, dest_folder);
       // Reset stack depth.
-      setImmediate(function () { return cb(null, destFolder); });
+      setImmediate(function () { return cb(null, dest_folder); });
     } catch (e) {
       setImmediate(function () { return cb(e); });
     }
