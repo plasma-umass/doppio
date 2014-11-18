@@ -46,6 +46,8 @@ var CP_CLASSES: { [n: number]: IConstantPoolType } = {};
  *   u1 bytes[length];
  * }
  * ```
+ * TODO: Avoid decoding into a string if possible, as the JVM represents them
+ * as char arrays.
  */
 export class ConstUTF8 implements IConstantPoolItem {
   public value: string;

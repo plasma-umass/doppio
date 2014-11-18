@@ -15,8 +15,8 @@ class ConcurrentClinit {
       }
       System.out.println("Finished initializing Foo with " + Thread.currentThread().getName());
     }
-    Foo(String whence) {
-      System.out.println("Made a Foo from "+whence);
+    Foo() {
+      System.out.println("Made a Foo");
     }
   }
 
@@ -24,7 +24,8 @@ class ConcurrentClinit {
     static {
       System.out.println("Initializing Bar with " + Thread.currentThread().getName());
       state = 2;
-      new Foo("Bar");
+      new Foo();
+      while (state != 3) Thread.yield();
       System.out.println("Finished initializing Bar with " + Thread.currentThread().getName());
     }
   }
@@ -32,7 +33,8 @@ class ConcurrentClinit {
   public static void main(String[] args) throws InterruptedException {
     Thread a = new Thread(new Runnable() {
       public void run() {
-        new Foo("main");
+        new Foo();
+        state = 3;
       }
     }, "Thread A");
     Thread b = new Thread(new Runnable() {

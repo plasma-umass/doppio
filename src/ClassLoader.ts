@@ -698,29 +698,29 @@ export class BootstrapClassLoader extends ClassLoader {
    * Uses BrowserFS to mount the jar file in the file system, allowing us to
    * lazily extract only the files we care about.
    */
-  private unzipJarBrowser(jar_path: string, cb: (err: any, unzip_path?: string) => void): void {
-    var dest_folder: string = path.resolve(this.extractionPath, path.basename(jar_path, '.jar')),
+  private unzipJarBrowser(jarPath: string, cb: (err: any, unzipPath?: string) => void): void {
+    var destFolder: string = path.resolve(this.extractionPath, path.basename(jarPath, '.jar')),
       mfs = (<any>fs).getRootFS();
     // In case we have mounted this before, unmount.
     try {
-      mfs.umount(dest_folder);
+      mfs.umount(destFolder);
     } catch (e) {
       // We didn't mount it before. Ignore.
     }
 
     // Grab the file.
-    fs.readFile(jar_path, function (err: any, data: NodeBuffer) {
-      var jar_fs;
+    fs.readFile(jarPath, function (err: any, data: Buffer) {
+      var jarFS;
       if (err) {
         // File might not have existed, or there was an error reading it.
         return cb(err);
       }
       // Try to mount.
       try {
-        jar_fs = new BrowserFS.FileSystem.ZipFS(data, path.basename(jar_path));
-        mfs.mount(dest_folder, jar_fs);
+        jarFS = new BrowserFS.FileSystem.ZipFS(data, path.basename(jarPath));
+        mfs.mount(destFolder, jarFS);
         // Success!
-        cb(null, dest_folder);
+        cb(null, destFolder);
       } catch (e) {
         cb(e);
       }
@@ -730,16 +730,18 @@ export class BootstrapClassLoader extends ClassLoader {
   /**
    * Helper function for unzip_jar_node.
    */
-  private _extractAllTo(files: any[], dest_dir: string): void {
+  private _extractAllTo(files: { [filePath: string]: any }, dest_dir: string): void {
     for (var filepath in files) {
-      var file = files[filepath];
-      filepath = path.join(dest_dir, filepath);
-      if (file.options.dir || filepath.slice(-1) === '/') {
-        if (!fs.existsSync(filepath)) {
-          fs.mkdirSync(filepath);
+      if (files.hasOwnProperty(filepath)) {
+        var file = files[filepath];
+        filepath = path.join(dest_dir, filepath);
+        if (file.options.dir || filepath.slice(-1) === '/') {
+          if (!fs.existsSync(filepath)) {
+            fs.mkdirSync(filepath);
+          }
+        } else {
+          fs.writeFileSync(filepath, file._data, 'binary');
         }
-      } else {
-        fs.writeFileSync(filepath, file._data, 'binary');
       }
     }
   }
@@ -747,21 +749,21 @@ export class BootstrapClassLoader extends ClassLoader {
   /**
    * Uses JSZip to eagerly extract the entire JAR file into a temporary folder.
    */
-  private unzipJarNode(jar_path: string, cb: (err: any, unzip_path?: string) => void): void {
+  private unzipJarNode(jar_path: string, cb: (err: any, unzipPath?: string) => void): void {
     var JSZip = require('node-zip'),
       unzipper = new JSZip(fs.readFileSync(jar_path, 'binary'), {
         base64: false,
         checkCRC32: true
       }),
-      dest_folder = path.resolve(this.extractionPath, path.basename(jar_path, '.jar'));
+      destFolder = path.resolve(this.extractionPath, path.basename(jar_path, '.jar'));
 
     try {
-      if (!fs.existsSync(dest_folder)) {
-        fs.mkdirSync(dest_folder);
+      if (!fs.existsSync(destFolder)) {
+        fs.mkdirSync(destFolder);
       }
-      this._extractAllTo(unzipper.files, dest_folder);
+      this._extractAllTo(unzipper.files, destFolder);
       // Reset stack depth.
-      setImmediate(function () { return cb(null, dest_folder); });
+      setImmediate(function () { return cb(null, destFolder); });
     } catch (e) {
       setImmediate(function () { return cb(e); });
     }
