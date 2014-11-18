@@ -201,7 +201,7 @@ class JVM {
         thread.runMethod(method, [jvmifiedArgs]);
       } else {
         // There was an error.
-        cb(false);
+        this.terminationCb = cb;
       }
     });
   }
