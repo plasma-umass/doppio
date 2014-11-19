@@ -125,6 +125,7 @@ export class BytecodeStackFrame implements IStackFrame {
     var prevOp = this.method.getCodeAttribute().getCode().readUInt8(this.pc);
     switch (prevOp) {
       case enums.OpCode.INVOKEINTERFACE:
+      case enums.OpCode.INVOKEINTERFACE_FAST:
         this.pc += 5;
         break;
       case enums.OpCode.INVOKESPECIAL:
@@ -132,6 +133,7 @@ export class BytecodeStackFrame implements IStackFrame {
       case enums.OpCode.INVOKEVIRTUAL:
       case enums.OpCode.INVOKESTATIC_FAST:
       case enums.OpCode.INVOKESPECIAL_FAST:
+      case enums.OpCode.INVOKEVIRTUAL_FAST:
         this.pc += 3;
         break;
       default:

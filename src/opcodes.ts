@@ -1419,6 +1419,30 @@ export class Opcodes {
 
   public static invokevirtual(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: NodeBuffer, pc: number) {
     var methodReference = <ConstantPool.MethodReference> frame.method.cls.constant_pool.get(code.readUInt16BE(pc + 1)),
+      loader = frame.getLoader(),
+      count = 1 + methodReference.getParamWordSize(),
+      stack = frame.stack,
+      obj: java_object.JavaObject = stack[stack.length - count];
+
+    // Check if the object is null first.
+    if (!isNull(thread, frame, obj)) {
+      // Ensure referenced class is loaded in the current classloader.
+      // Even though we don't use this class for anything, and we know that it
+      // must be loaded because it is in the object's inheritance hierarchy,
+      // it needs to be present in the current classloader.
+      if (methodReference.classInfo.getClass(loader, 0)) {
+        // Current classloader has the class. Rewrite to fast and rerun.
+        code.writeUInt8(enums.OpCode.INVOKEVIRTUAL_FAST, pc);
+      } else {
+        // Get current classloader to load the class.
+        initializeClass(thread, frame, methodReference.classInfo.name);
+      }
+    }
+    // Object is NULL; NPE has been thrown.
+  }
+
+  public static invokevirtual_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: NodeBuffer, pc: number) {
+    var methodReference = <ConstantPool.MethodReference> frame.method.cls.constant_pool.get(code.readUInt16BE(pc + 1)),
       count = 1 + methodReference.getParamWordSize(),
       stack = frame.stack,
       obj: java_object.JavaObject = stack[stack.length - count];
@@ -1438,27 +1462,33 @@ export class Opcodes {
 
   public static invokeinterface(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: NodeBuffer, pc: number) {
     var methodReference = <ConstantPool.MethodReference> frame.method.cls.constant_pool.get(code.readUInt16BE(pc + 1)),
-      cls = methodReference.classInfo.getClass(frame.getLoader(), 0),
-      count = code.readUInt8(pc + 3);
+      cls = methodReference.classInfo.getClass(frame.getLoader(), 0);
     if (cls != null && cls.is_initialized(thread)) {
-      var stack = frame.stack,
-        obj: java_object.JavaObject = stack[stack.length - count];
-      if (!isNull(thread, frame, obj)) {
-        // Use the class of the *object*.
-        var m = obj.cls.method_lookup(thread, methodReference.methodSignature);
-        if (m != null) {
-          thread.runMethod(m, m.takeArgs(stack));
-          frame.returnToThreadLoop = true;
-        } else {
-          // Method could not be found, and an exception has been thrown.
-          frame.returnToThreadLoop = true;
-        }
-      }
-      // Object is NULL; NPE has been thrown.
+      // Rewrite to fast and rerun.
+      code.writeUInt8(enums.OpCode.INVOKEINTERFACE_FAST, pc);
     } else {
       // Initialize our class and rerun opcode.
       initializeClass(thread, frame, methodReference.classInfo.name);
     }
+  }
+
+  public static invokeinterface_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: NodeBuffer, pc: number) {
+    var methodReference = <ConstantPool.MethodReference> frame.method.cls.constant_pool.get(code.readUInt16BE(pc + 1)),
+      count = code.readUInt8(pc + 3),
+      stack = frame.stack,
+      obj: java_object.JavaObject = stack[stack.length - count];
+    if (!isNull(thread, frame, obj)) {
+      // Use the class of the *object*.
+      var m = obj.cls.method_lookup(thread, methodReference.methodSignature);
+      if (m != null) {
+        thread.runMethod(m, m.takeArgs(stack));
+        frame.returnToThreadLoop = true;
+      } else {
+        // Method could not be found, and an exception has been thrown.
+        frame.returnToThreadLoop = true;
+      }
+    }
+    // Object is NULL; NPE has been thrown.
   }
 
   public static invokedynamic(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
@@ -1474,7 +1504,7 @@ export class Opcodes {
    *  The resolved method is selected for invocation unless all of the following conditions are true:
    * - The ACC_SUPER flag (Table 4.1) is set for the current class.
    * - The class of the resolved method is a superclass of the current class.
-   * - The resolved method is not an instance initialization method (§2.9).
+   * - The resolved method is not an instance initialization method (ï¿½2.9).
    * If the above conditions are true, the actual method to be invoked is selected by the following lookup procedure. Let C be the direct superclass of the current class:
    * - If C contains a declaration for an instance method with the same name and descriptor as the resolved method, then this method will be invoked. The lookup procedure terminates.
    * - Otherwise, if C has a superclass, this same lookup procedure is performed recursively using the direct superclass of C. The method to be invoked is the result of the recursive invocation of this lookup procedure.
