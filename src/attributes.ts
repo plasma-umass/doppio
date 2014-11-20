@@ -322,6 +322,24 @@ export class EnclosingMethod implements IAttribute {
   }
 }
 
+export class BootstrapMethods implements IAttribute {
+  public name = 'BootstrapMethods';
+  public bootstrapMethods: Array<[ConstantPool.MethodHandle,ConstantPool.IConstantPoolItem[]]>;
+  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool, attr_len?: number) {
+    var numBootstrapMethods = bytes_array.getUint16();
+    this.bootstrapMethods = [];
+    for (var i = 0; i < numBootstrapMethods; i++) {
+      var method_handle = <ConstantPool.MethodHandle> constant_pool.get(bytes_array.getUint16());
+      var num_args = bytes_array.getUint16();
+      var args: ConstantPool.IConstantPoolItem[] = [];
+      for (var j = 0; j < num_args; j++) {
+        args.push(constant_pool.get(bytes_array.getUint16()));
+      }
+      this.bootstrapMethods.push([method_handle, args]);
+    }
+  }
+}
+
 export function make_attributes(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): IAttribute[] {
   var attr_types = {
     'Code': Code,
@@ -337,7 +355,8 @@ export function make_attributes(bytes_array: ByteStream, constant_pool: Constant
     'Signature': Signature,
     'RuntimeVisibleAnnotations': RuntimeVisibleAnnotations,
     'AnnotationDefault': AnnotationDefault,
-    'EnclosingMethod': EnclosingMethod
+    'EnclosingMethod': EnclosingMethod,
+    'BootstrapMethods': BootstrapMethods
     // NYI: LocalVariableTypeTable
   };
   var num_attrs = bytes_array.getUint16();
