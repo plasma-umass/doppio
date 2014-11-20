@@ -145,7 +145,13 @@ export class ClassLoader {
       }
       return classData;
     } catch (e) {
-      thread.throwNewException('Ljava/lang/ClassFormatError;', e);
+      if (thread === null) {
+        // This will only happen when we're loading java/lang/Thread for
+        // the very first time.
+        logging.error('JVM initialization failed: ' + e);
+      } else {
+        thread.throwNewException('Ljava/lang/ClassFormatError;', e);
+      }
       return null;
     }
   }
