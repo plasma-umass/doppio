@@ -14,7 +14,7 @@ import methods = require('../src/methods');
 import JVM = require('../src/jvm');
 import os = require('os');
 var ReferenceClassData = class_data.ReferenceClassData,
-    classpath: string[] = [path.resolve(__dirname, '..', 'vendor', 'classes'),
+    classpath: string[] = [path.resolve(__dirname, '..', 'vendor', 'java_home', 'classes'),
                            path.resolve(__dirname, '..')],
     jvmObject: JVM;
 
