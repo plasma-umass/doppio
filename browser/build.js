@@ -5,7 +5,7 @@
     out: '../build/release/doppio.js',
     // These aren't referenced from runtime. We may want to decouple them
     // at some point.
-    include: ['src/testing', 'src/disassembler'],
+    include: ['src/testing'],
     mainConfigFile: 'require_config.js',
     uglify: {
         defines: {

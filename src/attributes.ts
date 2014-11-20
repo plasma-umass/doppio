@@ -93,15 +93,6 @@ export class LineNumberTable implements IAttribute {
       });
     }
   }
-
-  public disassemblyOutput(): string {
-    var rv = "  LineNumberTable:\n";
-    for (var i = 0; i < this.entries.length; i++) {
-      var entry = this.entries[i];
-      rv += "   line " + entry.line_number + ": " + entry.start_pc + "\n";
-    }
-    return rv;
-  }
 }
 
 export class SourceFile implements IAttribute {
@@ -208,24 +199,6 @@ export class StackMapTable implements IAttribute {
       return tag_to_type[tag];
     }
   }
-
-  public disassemblyOutput(): string {
-    var rv = "  StackMapTable: number_of_entries = " + this.num_entries + "\n";
-    for (var i = 0; i < this.entries.length; i++) {
-      var entry = this.entries[i];
-      rv += "   frame_type = " + entry.frame_type + " /* " + entry.frame_name + " */\n";
-      if (entry['offset_delta'] != null) {
-        rv += "     offset_delta = " + entry['offset_delta'] + "\n";
-      }
-      if (entry['locals'] != null) {
-        rv += "     locals = [ " + (entry['locals'].join(', ')) + " ]\n";
-      }
-      if (entry['stack'] != null) {
-        rv += "     stack = [ " + (entry['stack'].join(', ')) + " ]\n";
-      }
-    }
-    return rv;
-  }
 }
 
 export class LocalVariableTable implements IAttribute {
@@ -249,16 +222,6 @@ export class LocalVariableTable implements IAttribute {
       descriptor: (<ConstantPool.ConstUTF8> constant_pool.get(bytes_array.getUint16())).value,
       ref: bytes_array.getUint16()
     };
-  }
-
-  public disassemblyOutput(): string {
-    var rv = "  LocalVariableTable:\n   Start  Length  Slot  Name   Signature\n";
-    for (var i = 0; i < this.num_entries; i++) {
-      var entry = this.entries[i];
-      rv += "   " + entry.start_pc + "      " + entry.length + "      " + entry.ref;
-      rv += "" + entry.name + "      " + entry.descriptor + "\n";
-    }
-    return rv;
   }
 }
 

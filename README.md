@@ -77,7 +77,6 @@ You can also run JAR files in the browser, e.g.:
 doppio can also be run from the console. For example:
 
     grunt dev-cli
-    node build/dev-cli/console/disassembler.js classes/demo/Fib
     # doppio-dev -> node build/dev/console/runner.js
     ./doppio-dev classes/demo/Fib
     ./doppio-dev classes/demo/Fib 7        # pass an argument to the JVM
