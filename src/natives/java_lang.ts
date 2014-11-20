@@ -154,12 +154,6 @@ class java_lang_Class {
     return java_object.initString(thread.getBsCl(), javaThis.$cls.toExternalString());
   }
 
-  public static 'getClassLoader0()Ljava/lang/ClassLoader;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): ClassLoader.JavaClassLoaderObject {
-    // The bootstrap classloader is represented as 'null', which is OK
-    // according to the spec.
-    return javaThis.$cls.loader.getLoaderObject();
-  }
-
   public static 'getSuperclass()Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaClassObject {
     if (javaThis.$cls instanceof ClassData.PrimitiveClassData) {
       return null;
