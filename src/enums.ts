@@ -55,6 +55,18 @@ export enum ThreadStatus {
 }
 
 /**
+ * Java-visible thread state values.
+ */
+export enum JVMTIThreadState {
+  ALIVE = 0x0001,
+  TERMINATED = 0x0002,
+  RUNNABLE = 0x0004,
+  BLOCKED_ON_MONITOR_ENTER = 0x0400,
+  WAITING_INDEFINITELY = 0x0010,
+  WAITING_WITH_TIMEOUT = 0x0020
+}
+
+/**
  * Indicates the type of a stack frame.
  */
 export enum StackFrameType {

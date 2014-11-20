@@ -724,10 +724,39 @@ export class JVMThread extends java_object.JavaObject {
    * Updates both the JVMThread object and this object.
    */
   private rawSetStatus(newStatus: enums.ThreadStatus): void {
+    var jvmNewStatus: number = 0;
     this.status = newStatus;
+    // Map our status value back to JVM's threadStatus value.
     // Ensures that JVM code can introspect on our threads.
-    // @todo Merge these fields.
-    this.set_field(this, 'Ljava/lang/Thread;threadStatus', newStatus);
+    switch (newStatus) {
+      case enums.ThreadStatus.NEW:
+        jvmNewStatus |= enums.JVMTIThreadState.ALIVE;
+        break;
+      case enums.ThreadStatus.RUNNING:
+      case enums.ThreadStatus.RUNNABLE:
+        jvmNewStatus |= enums.JVMTIThreadState.RUNNABLE;
+        break;
+      case enums.ThreadStatus.BLOCKED:
+      case enums.ThreadStatus.UNINTERRUPTABLY_BLOCKED:
+        jvmNewStatus |= enums.JVMTIThreadState.BLOCKED_ON_MONITOR_ENTER;
+        break;
+      case enums.ThreadStatus.WAITING:
+      case enums.ThreadStatus.ASYNC_WAITING:
+      case enums.ThreadStatus.PARKED:
+        jvmNewStatus |= enums.JVMTIThreadState.WAITING_INDEFINITELY;
+        break;
+      case enums.ThreadStatus.TIMED_WAITING:
+        jvmNewStatus |= enums.JVMTIThreadState.WAITING_WITH_TIMEOUT;
+        break;
+      case enums.ThreadStatus.TERMINATED:
+        jvmNewStatus |= enums.JVMTIThreadState.TERMINATED;
+        break;
+      default:
+        jvmNewStatus = enums.JVMTIThreadState.RUNNABLE;
+        break;
+    }
+
+    this.set_field(this, 'Ljava/lang/Thread;threadStatus', jvmNewStatus);
   }
 
   /**
