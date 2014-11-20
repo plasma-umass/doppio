@@ -1308,6 +1308,12 @@ class java_lang_Throwable {
     javaThis.set_field(thread, 'Ljava/lang/Throwable;stackTrace', strace);
     return javaThis;
   }
+  // Java 8 version. I don't know what the integer argument is for.
+  public static 'fillInStackTrace(I)Ljava/lang/Throwable;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: number): java_object.JavaObject {
+    var strace = new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/StackTraceElement;'), create_stack_trace(thread, javaThis));
+    javaThis.set_field(thread, 'Ljava/lang/Throwable;stackTrace', strace);
+    return javaThis;
+  }
 
   public static 'getStackTraceDepth()I'(thread: threading.JVMThread, javaThis: java_object.JavaObject): number {
     return create_stack_trace(thread, javaThis).length;
