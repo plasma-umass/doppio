@@ -242,7 +242,8 @@ export class ClassReference implements IConstantPoolItem {
   public static fromBytes(byteStream: ByteStream, constantPool: ConstantPool): IConstantPoolItem {
     var nameIndex = byteStream.getUint16(),
       cpItem = constantPool.get(nameIndex);
-    assert(cpItem.getType() === enums.ConstantPoolItemType.UTF8);
+    assert(cpItem.getType() === enums.ConstantPoolItemType.UTF8,
+      'ConstantPool ClassReference type != UTF8');
     // The ConstantPool stores class names without the L...; descriptor stuff
     return new this(util.typestr2descriptor((<ConstUTF8> cpItem).value));
   }
@@ -280,7 +281,8 @@ export class NameAndTypeInfo implements IConstantPoolItem {
       nameConst = <ConstUTF8> constantPool.get(nameIndex),
       descriptorConst = <ConstUTF8> constantPool.get(descriptorIndex);
     assert(nameConst.getType() === enums.ConstantPoolItemType.UTF8 &&
-      descriptorConst.getType() === enums.ConstantPoolItemType.UTF8);
+      descriptorConst.getType() === enums.ConstantPoolItemType.UTF8,
+      'ConstantPool NameAndTypeInfo types != UTF8');
     return new this(nameConst.value, descriptorConst.value);
   }
 }
@@ -318,7 +320,8 @@ export class ConstString implements IConstantPoolItem {
   public static fromBytes(byteStream: ByteStream, constantPool: ConstantPool): IConstantPoolItem {
     var stringIndex = byteStream.getUint16(),
       utf8Info = <ConstUTF8> constantPool.get(stringIndex);
-    assert(utf8Info.getType() === enums.ConstantPoolItemType.UTF8);
+    assert(utf8Info.getType() === enums.ConstantPoolItemType.UTF8,
+      'ConstantPool ConstString type != UTF8');
     return new this(utf8Info.value);
   }
 }
@@ -408,7 +411,8 @@ export class MethodReference implements IConstantPoolItem {
       classInfo = <ClassReference> constantPool.get(classIndex),
       nameAndTypeInfo = <NameAndTypeInfo> constantPool.get(nameAndTypeIndex);
     assert(classInfo.getType() === enums.ConstantPoolItemType.CLASS &&
-      nameAndTypeInfo.getType() === enums.ConstantPoolItemType.NAME_AND_TYPE);
+      nameAndTypeInfo.getType() === enums.ConstantPoolItemType.NAME_AND_TYPE,
+      'ConstantPool MethodReference types mismatch');
     return new this(classInfo, nameAndTypeInfo);
   }
 
@@ -463,7 +467,8 @@ export class InterfaceMethodReference implements IConstantPoolItem {
       classInfo = <ClassReference> constantPool.get(classIndex),
       nameAndTypeInfo = <NameAndTypeInfo> constantPool.get(nameAndTypeIndex);
     assert(classInfo.getType() === enums.ConstantPoolItemType.CLASS &&
-      nameAndTypeInfo.getType() === enums.ConstantPoolItemType.NAME_AND_TYPE);
+      nameAndTypeInfo.getType() === enums.ConstantPoolItemType.NAME_AND_TYPE,
+      'ConstantPool InterfaceMethodReference types mismatch');
     return new this(classInfo, nameAndTypeInfo);
   }
 }
@@ -517,7 +522,8 @@ export class FieldReference implements IConstantPoolItem {
       classInfo = <ClassReference> constantPool.get(classIndex),
       nameAndTypeInfo = <NameAndTypeInfo> constantPool.get(nameAndTypeIndex);
     assert(classInfo.getType() === enums.ConstantPoolItemType.CLASS &&
-      nameAndTypeInfo.getType() === enums.ConstantPoolItemType.NAME_AND_TYPE);
+      nameAndTypeInfo.getType() === enums.ConstantPoolItemType.NAME_AND_TYPE,
+      'ConstantPool FieldReference types mismatch');
     return new this(classInfo, nameAndTypeInfo);
   }
 }
@@ -598,7 +604,8 @@ export class ConstantPool {
     while (idx < cpCount) {
       itemOffset = byteStream.pos();
       tag = byteStream.getUint8();
-      assert(CP_CLASSES[tag] !== null && CP_CLASSES[tag] !== undefined);
+      assert(CP_CLASSES[tag] !== null && CP_CLASSES[tag] !== undefined,
+        'Unknown ConstantPool tag: ' + tag);
       itemTier = CONSTANT_POOL_TIER[tag];
       if (itemTier > 0) {
         deferredQueue[itemTier - 1].push({ offset: itemOffset, index: idx });
