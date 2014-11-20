@@ -69,9 +69,6 @@ var trapped_methods = {
     }
   },
   'java/util/concurrent/atomic/AtomicInteger': {
-    '<clinit>()V': function (thread: threading.JVMThread): void {
-      // NOP
-    },
     'compareAndSet(II)Z': function (thread: threading.JVMThread, javaThis: java_object.JavaObject, expect: number, update: number): boolean {
       javaThis.set_field(thread, 'Ljava/util/concurrent/atomic/AtomicInteger;value', update);
       // always true, because we only have one thread of execution

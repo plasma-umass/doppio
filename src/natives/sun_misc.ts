@@ -630,14 +630,22 @@ class sun_misc_VM {
   public static 'initialize()V'(thread: threading.JVMThread): void {
     var vm_cls = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass(thread, 'Lsun/misc/VM;');
     // this only applies to Java 7
-    if (!(vm_cls.major_version >= 51)) {
+    if (vm_cls.major_version < 51) {
       return;
     }
-    // XXX: make savedProps refer to the system props
-    var sys_cls = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass(thread, 'Ljava/lang/System;'),
-      props = sys_cls.static_get(thread, 'props');
-    vm_cls = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass(thread, 'Lsun/misc/VM;');
-    vm_cls.static_put(thread, 'savedProps', props);
+    // Hack: make an empty savedProps
+    var props_cls = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass(thread, 'Ljava/util/Properties;');
+    var props = new java_object.JavaObject(props_cls);
+    var m = props_cls.get_method('<init>()V');
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.runMethod(m, [props], (e?, rv?) => {
+      if (e) {
+        thread.throwException(e);
+      } else {
+        vm_cls.static_put(thread, 'savedProps', props);
+        thread.asyncReturn();
+      }
+    });
   }
 
 }

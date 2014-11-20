@@ -290,6 +290,11 @@ class java_io_FileOutputStream {
     }
   }
 
+  // Java 8 version (dunno what the boolean is)
+  public static 'writeBytes([BIIZ)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number, arg: number): void {
+    java_io_FileOutputStream['writeBytes([BII)V'](thread, javaThis, bytes, offset, len);
+  }
+
   public static 'close0()V'(thread: threading.JVMThread, javaThis: java_object.JavaObject): void {
     var fd_obj = javaThis.get_field(thread, 'Ljava/io/FileOutputStream;fd'),
       fd = fd_obj.get_field(thread, 'Ljava/io/FileDescriptor;fd');

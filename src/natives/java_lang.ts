@@ -126,6 +126,11 @@ class java_lang_Class {
       }
     }
   }
+  // Java 8 version
+  public static 'forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;'(thread: threading.JVMThread, jvm_str: java_object.JavaObject, initialize: number, jclo: ClassLoader.JavaClassLoaderObject): void {
+    // Just call the older version; they're the same.
+    java_lang_Class['forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;Ljava/lang/Class;)Ljava/lang/Class;'](thread, jvm_str, initialize, jclo, null);
+  }
 
   public static 'isInstance(Ljava/lang/Object;)Z'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject, obj: java_object.JavaObject): boolean {
     return obj.cls.is_castable(javaThis.$cls);
@@ -1103,8 +1108,8 @@ class java_lang_System {
   /**
    * @todo Store our system properties in a proper JVM hashMap, as is expected.
    */
-  public static 'initProperties(Ljava/util/Properties;)Ljava/util/Properties;'(thread: threading.JVMThread, arg0: java_object.JavaObject): void {
-    return null;
+  public static 'initProperties(Ljava/util/Properties;)Ljava/util/Properties;'(thread: threading.JVMThread, props: java_object.JavaObject): java_object.JavaObject {
+    return props;  // XXX: this is just an empty Properties object.
   }
 
   public static 'mapLibraryName(Ljava/lang/String;)Ljava/lang/String;'(thread: threading.JVMThread, arg0: java_object.JavaObject): java_object.JavaObject {
@@ -1310,9 +1315,7 @@ class java_lang_Throwable {
   }
   // Java 8 version. I don't know what the integer argument is for.
   public static 'fillInStackTrace(I)Ljava/lang/Throwable;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: number): java_object.JavaObject {
-    var strace = new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/StackTraceElement;'), create_stack_trace(thread, javaThis));
-    javaThis.set_field(thread, 'Ljava/lang/Throwable;stackTrace', strace);
-    return javaThis;
+    return java_lang_Throwable['fillInStackTrace()Ljava/lang/Throwable;'](thread, javaThis);
   }
 
   public static 'getStackTraceDepth()I'(thread: threading.JVMThread, javaThis: java_object.JavaObject): number {
