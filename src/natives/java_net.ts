@@ -260,11 +260,6 @@ class java_net_PlainSocketImpl {
     return 0;
   }
 
-  public static 'socketGetOption1(ILjava/lang/Object;Ljava/io/FileDescriptor;)I'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: number, arg1: java_object.JavaObject, arg2: java_object.JavaObject): number {
-    // NOP
-    return 0;
-  }
-
   public static 'socketSendUrgentData(I)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, data: number): void {
     // Urgent data is meant to jump ahead of the
     // outbound stream. We keep no notion of this,

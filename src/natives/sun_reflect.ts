@@ -224,7 +224,7 @@ function get_caller_class(thread: threading.JVMThread, framesToSkip: number): ja
     }
     frame = caller[--idx];
   }
-  
+
   return frame.method.cls.get_class_object(thread);
 }
 
@@ -236,7 +236,7 @@ class sun_reflect_Reflection {
     return get_caller_class(thread, 2);
   }
 
-  public static 'getCallerClass0(I)Ljava/lang/Class;': (thread: threading.JVMThread, frames_to_skip: number) => java_object.JavaClassObject = get_caller_class;
+  public static 'getCallerClass(I)Ljava/lang/Class;': (thread: threading.JVMThread, frames_to_skip: number) => java_object.JavaClassObject = get_caller_class;
 
   public static 'getClassAccessFlags(Ljava/lang/Class;)I'(thread: threading.JVMThread, class_obj: java_object.JavaClassObject): number {
     return (<ClassData.ReferenceClassData> class_obj.$cls).access_byte;

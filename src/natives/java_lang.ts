@@ -104,7 +104,7 @@ function create_stack_trace(thread: threading.JVMThread, throwable: java_object.
 
 class java_lang_Class {
 
-  public static 'forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;Ljava/lang/Class;)Ljava/lang/Class;'(thread: threading.JVMThread, jvm_str: java_object.JavaObject, initialize: number, jclo: ClassLoader.JavaClassLoaderObject, caller: java_object.JavaObject): void {
+  public static 'forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;'(thread: threading.JVMThread, jvm_str: java_object.JavaObject, initialize: number, jclo: ClassLoader.JavaClassLoaderObject): void {
     var classname = util.int_classname(jvm_str.jvm2js_str());
     if (!util.verify_int_classname(classname)) {
       thread.throwNewException('Ljava/lang/ClassNotFoundException;', classname);
@@ -125,11 +125,6 @@ class java_lang_Class {
         });
       }
     }
-  }
-  // Java 8 version
-  public static 'forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;'(thread: threading.JVMThread, jvm_str: java_object.JavaObject, initialize: number, jclo: ClassLoader.JavaClassLoaderObject): void {
-    // Just call the older version; they're the same.
-    java_lang_Class['forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;Ljava/lang/Class;)Ljava/lang/Class;'](thread, jvm_str, initialize, jclo, null);
   }
 
   public static 'isInstance(Ljava/lang/Object;)Z'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject, obj: java_object.JavaObject): boolean {
@@ -176,15 +171,11 @@ class java_lang_Class {
     return cls.get_super_class().get_class_object(thread);
   }
 
-  public static 'getInterfaces()[Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaArray {
+  public static 'getInterfaces0()[Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaArray {
     var cls = javaThis.$cls;
     var ifaces = cls.get_interfaces();
     var iface_objs = ifaces.map((iface) => iface.get_class_object(thread));
     return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/Class;'), iface_objs);
-  }
-  // Java 8 version
-  public static 'getInterfaces0()[Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaArray {
-    return java_lang_Class['getInterfaces()[Ljava/lang/Class;'](thread, javaThis);
   }
 
   public static 'getComponentType()Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaClassObject {
@@ -272,27 +263,19 @@ class java_lang_Class {
     return null;
   }
 
-  public static 'setProtectionDomain0(Ljava/security/ProtectionDomain;)V'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject, arg0: java_object.JavaObject): void {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-  }
-
   public static 'getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;'(thread: threading.JVMThread, jvm_str: java_object.JavaObject): java_object.JavaClassObject {
     var type_desc = util.typestr2descriptor(jvm_str.jvm2js_str()),
       prim_cls = thread.getBsCl().getInitializedClass(thread, type_desc);
     return prim_cls.get_class_object(thread);
   }
 
-  public static 'getGenericSignature()Ljava/lang/String;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaObject {
+  public static 'getGenericSignature0()Ljava/lang/String;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaObject {
     var sigAttr = <attributes.Signature> (<ClassData.ReferenceClassData> javaThis.$cls).get_attribute('Signature');
     if (sigAttr != null && sigAttr.sig != null) {
       return java_object.initString(thread.getBsCl(), sigAttr.sig);
     } else {
       return null;
     }
-  }
-  // Java 8 version
-  public static 'getGenericSignature0()Ljava/lang/String;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaObject {
-    return java_lang_Class['getGenericSignature()Ljava/lang/String;'](thread, javaThis);
   }
 
   public static 'getRawAnnotations()[B'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaArray {
@@ -445,7 +428,7 @@ class java_lang_Class {
 
 class java_lang_ClassLoader$NativeLibrary {
 
-  public static 'load(Ljava/lang/String;)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject): void {
+  public static 'load(Ljava/lang/String;Z)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, name: java_object.JavaObject, isBuildIn: number): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
@@ -455,7 +438,7 @@ class java_lang_ClassLoader$NativeLibrary {
     return null;
   }
 
-  public static 'unload()V'(thread: threading.JVMThread, javaThis: java_object.JavaObject): void {
+  public static 'unload(Ljava/lang/String;)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, name: java_object.JavaObject): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
@@ -670,14 +653,6 @@ class java_lang_ProcessEnvironment {
       env_arr.push(new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[B'), util.bytestr_to_array(v)));
     }
     return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[[B'), env_arr);
-  }
-
-}
-
-class java_lang_ref_Finalizer {
-
-  public static 'invokeFinalizeMethod(Ljava/lang/Object;)V'(thread: threading.JVMThread, arg0: java_object.JavaObject): void {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
 }
@@ -973,14 +948,6 @@ class java_lang_StrictMath {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
-  }
-
-  public static 'ceil(D)D'(thread: threading.JVMThread, d_val: number): number {
-    return Math.ceil(d_val);
-  }
-
-  public static 'floor(D)D'(thread: threading.JVMThread, d_val: number): number {
-    return Math.floor(d_val);
   }
 
   public static 'atan2(DD)D'(thread: threading.JVMThread, y: number, x: number): number {
@@ -1316,14 +1283,13 @@ class java_lang_Thread {
  */
 class java_lang_Throwable {
 
-  public static 'fillInStackTrace()Ljava/lang/Throwable;'(thread: threading.JVMThread, javaThis: java_object.JavaObject): java_object.JavaObject {
+  /**
+   * NOTE: Integer is only there to distinguish this function from non-native fillInStackTrace()V.
+   */
+  public static 'fillInStackTrace(I)Ljava/lang/Throwable;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, dummy: number): java_object.JavaObject {
     var strace = new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/StackTraceElement;'), create_stack_trace(thread, javaThis));
     javaThis.set_field(thread, 'Ljava/lang/Throwable;stackTrace', strace);
     return javaThis;
-  }
-  // Java 8 version. I don't know what the integer argument is for.
-  public static 'fillInStackTrace(I)Ljava/lang/Throwable;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: number): java_object.JavaObject {
-    return java_lang_Throwable['fillInStackTrace()Ljava/lang/Throwable;'](thread, javaThis);
   }
 
   public static 'getStackTraceDepth()I'(thread: threading.JVMThread, javaThis: java_object.JavaObject): number {
@@ -1344,17 +1310,15 @@ class java_lang_UNIXProcess {
     return 0;
   }
 
-  public static 'forkAndExec([B[BI[BI[BZLjava/io/FileDescriptor;Ljava/io/FileDescriptor;Ljava/io/FileDescriptor;)I'(thread: threading.JVMThread, javaThis: java_object.JavaObject, prog: java_object.JavaArray, argBlock: java_object.JavaArray, arg2: number, arg3: java_object.JavaArray, arg4: number, arg5: java_object.JavaArray, arg6: number, arg7: java_object.JavaObject, arg8: java_object.JavaObject, arg9: java_object.JavaObject): void {
-    var progname = util.chars2js_str(prog, 0, prog.array.length),
-      args = util.chars2js_str(argBlock, 0, argBlock.array.length);
-    thread.throwNewException('Ljava/lang/Error;', "Doppio doesn't support forking processes. Command was: `" + progname + " " + args + "`");
+  public static 'forkAndExec(I[B[B[BI[BI[B[IZ)I'(thread: threading.JVMThread, javaThis: java_object.JavaObject): void {
+    thread.throwNewException('Ljava/lang/Error;', "Doppio doesn't support forking processes.");
   }
 
-  public static 'destroyProcess(I)V'(thread: threading.JVMThread, arg0: number): void {
+  public static 'destroyProcess(IZ)V'(thread: threading.JVMThread, arg0: number): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'initIDs()V'(thread: threading.JVMThread): void {
+  public static 'init()V'(thread: threading.JVMThread): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
@@ -1370,7 +1334,6 @@ registerNatives({
   'java/lang/Object': java_lang_Object,
   'java/lang/Package': java_lang_Package,
   'java/lang/ProcessEnvironment': java_lang_ProcessEnvironment,
-  'java/lang/ref/Finalizer': java_lang_ref_Finalizer,
   'java/lang/reflect/Array': java_lang_reflect_Array,
   'java/lang/reflect/Proxy': java_lang_reflect_Proxy,
   'java/lang/Runtime': java_lang_Runtime,

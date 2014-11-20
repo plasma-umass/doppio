@@ -279,17 +279,21 @@ class sun_misc_Unsafe {
     return null;
   }
 
-  public static 'setMemory(JJB)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, address: gLong, bytes: gLong, value: number): void {
-    var i: number, addr = address.toNumber(),
-      bytesNum: number = bytes.toNumber(),
-      heap = thread.getThreadPool().getJVM().getHeap();
-    for (i = 0; i < bytesNum; i++) {
-      heap.set_signed_byte(addr + i, value);
+  public static 'setMemory(Ljava/lang/Object;JJB)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, address: gLong, bytes: gLong, value: number): void {
+    if (obj === null) {
+      // Address is absolute.
+      var i: number, addr = address.toNumber(),
+        bytesNum: number = bytes.toNumber(),
+        heap = thread.getThreadPool().getJVM().getHeap();
+      for (i = 0; i < bytesNum; i++) {
+        heap.set_signed_byte(addr + i, value);
+      }
+    } else {
+      // I have no idea what the semantics are when the object is specified.
+      // I think it means use the object as the starting address... which doesn't
+      // make sense for us.
+      thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     }
-  }
-  // Java 8 version
-  public static 'setMemory(Ljava/lang/Object;JJB)V'(thread: threading.JVMThread, obj: java_object.JavaObject, address: gLong, bytes: gLong, value: number): void {
-    sun_misc_Unsafe['setMemory(JJB)V'](thread, obj, address, bytes, value);
   }
 
   public static 'copyMemory(Ljava/lang/Object;JLjava/lang/Object;JJ)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: gLong, arg2: java_object.JavaObject, arg3: gLong, arg4: gLong): void {
@@ -348,12 +352,6 @@ class sun_misc_Unsafe {
     if (loader != null) {
       return loader.defineClass(thread, util.int_classname(name.jvm2js_str()), util.byteArray2Buffer(bytes.array, offset, len)).get_class_object(thread);
     }
-  }
-
-  public static 'defineClass(Ljava/lang/String;[BII)Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: java_object.JavaArray, arg2: number, arg3: number): java_object.JavaClassObject {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    // Satisfy TypeScript return type.
-    return null;
   }
 
   public static 'allocateInstance(Ljava/lang/Class;)Ljava/lang/Object;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, jco: java_object.JavaClassObject): any {
@@ -652,10 +650,21 @@ class sun_misc_VM {
     });
   }
 
-  // Java 8 support
-  public static 'latestUserDefinedLoader()Ljava/lang/ClassLoader;'(thread: threading.JVMThread): void {
-    // TODO: this breaks classes/test/Serialization under Java 8
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+  /**
+   * Returns the first non-null class loader (not counting class loaders
+   * of generated reflection implementation classes) up the execution stack,
+   * or null if only code from the null class loader is on the stack.
+   */
+  public static 'latestUserDefinedLoader()Ljava/lang/ClassLoader;'(thread: threading.JVMThread): ClassLoader.JavaClassLoaderObject {
+    var stackTrace = thread.getStackTrace(), i: number,
+      bsCl = thread.getBsCl(), loader: ClassLoader.ClassLoader;
+    for (i = 0; i < stackTrace.length; i++) {
+      loader = stackTrace[i].method.cls.loader;
+      if (loader !== bsCl) {
+        return (<ClassLoader.CustomClassLoader> loader).getLoaderObject();
+      }
+    }
+    return null;
   }
 
 }
