@@ -287,6 +287,10 @@ class sun_misc_Unsafe {
       heap.set_signed_byte(addr + i, value);
     }
   }
+  // Java 8 version
+  public static 'setMemory(Ljava/lang/Object;JJB)V'(thread: threading.JVMThread, obj: java_object.JavaObject, address: gLong, bytes: gLong, value: number): void {
+    sun_misc_Unsafe['setMemory(JJB)V'](thread, obj, address, bytes, value);
+  }
 
   public static 'copyMemory(Ljava/lang/Object;JLjava/lang/Object;JJ)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: gLong, arg2: java_object.JavaObject, arg3: gLong, arg4: gLong): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
@@ -646,6 +650,12 @@ class sun_misc_VM {
         thread.asyncReturn();
       }
     });
+  }
+
+  // Java 8 support
+  public static 'latestUserDefinedLoader()Ljava/lang/ClassLoader;'(thread: threading.JVMThread): void {
+    // TODO: this breaks classes/test/Serialization under Java 8
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
 }

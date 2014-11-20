@@ -166,6 +166,16 @@ class sun_nio_ch_NativeThread {
 
 }
 
+// Java 8 support
+class sun_nio_ch_IOUtil {
+
+  public static 'iovMax()I'(thread: threading.JVMThread): number {
+    // Maximum number of IOVectors supported. Let's punt and say zero.
+    return 0;
+  }
+
+}
+
 registerNatives({
   'sun/nio/ch/FileChannelImpl': sun_nio_ch_FileChannelImpl,
   'sun/nio/ch/FileDispatcher': sun_nio_ch_FileDispatcher,

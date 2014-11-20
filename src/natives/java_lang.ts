@@ -182,6 +182,10 @@ class java_lang_Class {
     var iface_objs = ifaces.map((iface) => iface.get_class_object(thread));
     return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/Class;'), iface_objs);
   }
+  // Java 8 version
+  public static 'getInterfaces0()[Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaArray {
+    return java_lang_Class['getInterfaces()[Ljava/lang/Class;'](thread, javaThis);
+  }
 
   public static 'getComponentType()Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaClassObject {
     if (!(javaThis.$cls instanceof ClassData.ArrayClassData)) {
@@ -285,6 +289,10 @@ class java_lang_Class {
     } else {
       return null;
     }
+  }
+  // Java 8 version
+  public static 'getGenericSignature0()Ljava/lang/String;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaObject {
+    return java_lang_Class['getGenericSignature()Ljava/lang/String;'](thread, javaThis);
   }
 
   public static 'getRawAnnotations()[B'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaArray {

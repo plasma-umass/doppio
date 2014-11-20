@@ -107,6 +107,13 @@ class java_io_FileInputStream {
       }
     });
   }
+  // Java 8 versions
+  public static 'open0(Ljava/lang/String;)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, filename: java_object.JavaObject): void {
+    java_io_FileInputStream['open(Ljava/lang/String;)V'](thread, javaThis, filename);
+  }
+  public static 'read0()I'(thread: threading.JVMThread, javaThis: java_object.JavaObject): void {
+    java_io_FileInputStream['read()I'](thread, javaThis);
+  }
 
   public static 'read()I'(thread: threading.JVMThread, javaThis: java_object.JavaObject): void {
     var fd_obj = javaThis.get_field(thread, "Ljava/io/FileInputStream;fd")
@@ -241,6 +248,11 @@ class java_io_FileOutputStream {
       javaThis.$pos = 0;
       thread.asyncReturn();
     });
+  }
+  // Java 8 version
+  public static 'open0(Ljava/lang/String;Z)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, filename: java_object.JavaObject, arg: number): void {
+    // TODO: figure out what the boolean arg is.
+    java_io_FileOutputStream['open(Ljava/lang/String;)V'](thread, javaThis, filename);
   }
 
   public static 'openAppend(Ljava/lang/String;)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, fname: java_object.JavaObject): void {
@@ -424,6 +436,13 @@ class java_io_RandomAccessFile {
         thread.asyncReturn();
       }
     });
+  }
+  // Java 8 versions
+  public static 'open0(Ljava/lang/String;I)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, filename: java_object.JavaObject, mode: number): void {
+    java_io_RandomAccessFile['open(Ljava/lang/String;I)V'](thread, javaThis, filename, mode);
+  }
+  public static 'seek0(J)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, pos: gLong): void {
+    java_io_RandomAccessFile['seek(J)V'](thread, javaThis, pos);
   }
 
   public static 'read()I'(thread: threading.JVMThread, javaThis: java_object.JavaObject): number {
@@ -628,6 +647,10 @@ class java_io_UnixFileSystem {
         });
       }
     });
+  }
+  // Java 8 version
+  public static 'createFileExclusively(Ljava/lang/String;)Z'(thread: threading.JVMThread, javaThis: java_object.JavaObject, path: java_object.JavaObject): void {
+    return java_io_UnixFileSystem['createFileExclusively(Ljava/lang/String;Z)Z'](thread, javaThis, path, 0);
   }
 
   public static 'delete0(Ljava/io/File;)Z'(thread: threading.JVMThread, javaThis: java_object.JavaObject, file: java_object.JavaObject): void {
