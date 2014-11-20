@@ -72,7 +72,7 @@ function checkJavaVersion(grunt: IGrunt, cb: (is_java_6: boolean, java_version: 
  * Uses the Mac's java_home utility to find an appropriate version of Java.
  */
 function macFindJavaHome(grunt: IGrunt, cb: (success: boolean, java_home?: string) => void): void {
-  async.eachSeries(['6', '7', '8'], (version: string, iterator_cb: (java_home?: string) => void) => {
+  async.eachSeries(['8'], (version: string, iterator_cb: (java_home?: string) => void) => {
     exec('/usr/libexec/java_home -version 1.' + version, (err: Error, stdout: Buffer, stderr: Buffer) => {
       if (err) {
         iterator_cb();
