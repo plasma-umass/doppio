@@ -529,6 +529,47 @@ export class FieldReference implements IConstantPoolItem {
 }
 CP_CLASSES[enums.ConstantPoolItemType.FIELDREF] = FieldReference;
 
+/**
+ * Used by an invokedynamic instruction to specify a bootstrap method,
+ * the dynamic invocation name, the argument and return types of the call,
+ * and optionally, a sequence of additional constants called static arguments
+ * to the bootstrap method.
+ * ```
+ * CONSTANT_InvokeDynamic_info {
+ *   u1 tag;
+ *   u2 bootstrap_method_attr_index;
+ *   u2 name_and_type_index;
+ * }
+ * ```
+ */
+export class InvokeDynamic implements IConstantPoolItem {
+  // @todo Actually use this index.
+  public bootstrapMethodAttrIndex: number;
+  public methodSignature: string;
+  public nameAndTypeInfo: NameAndTypeInfo;
+  constructor(bootstrapMethodAttrIndex: number, nameAndTypeInfo: NameAndTypeInfo) {
+    this.bootstrapMethodAttrIndex = bootstrapMethodAttrIndex;
+    this.methodSignature = nameAndTypeInfo.name + nameAndTypeInfo.descriptor;
+    this.nameAndTypeInfo = nameAndTypeInfo;
+  }
+
+  public getType(): enums.ConstantPoolItemType {
+    return enums.ConstantPoolItemType.INVOKE_DYNAMIC;
+  }
+
+  public static size: number = 1;
+  public static infoByteSize: number = 4;
+  public static fromBytes(byteStream: ByteStream, constantPool: ConstantPool): IConstantPoolItem {
+    var bootstrapMethodAttrIndex = byteStream.getUint16(),
+      nameAndTypeIndex = byteStream.getUint16(),
+      nameAndTypeInfo = <NameAndTypeInfo> constantPool.get(nameAndTypeIndex);
+    assert(nameAndTypeInfo.getType() === enums.ConstantPoolItemType.NAME_AND_TYPE,
+      'ConstantPool InvokeDynamic types mismatch');
+    return new this(bootstrapMethodAttrIndex, nameAndTypeInfo);
+  }
+}
+CP_CLASSES[enums.ConstantPoolItemType.INVOKE_DYNAMIC] = InvokeDynamic;
+
 // #endregion
 
 /**
@@ -569,7 +610,7 @@ var CONSTANT_POOL_TIER: number[] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
       enums.ConstantPoolItemType.FIELDREF,
       enums.ConstantPoolItemType.METHODREF,
       enums.ConstantPoolItemType.INTERFACE_METHODREF,
-      enums.ConstantPoolItemType.INVOKE_DYNAMIC // @todo Implement
+      enums.ConstantPoolItemType.INVOKE_DYNAMIC
     ],
     // Tier 3
     [
