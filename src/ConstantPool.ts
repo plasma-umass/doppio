@@ -327,6 +327,37 @@ export class ConstString implements IConstantPoolItem {
 }
 CP_CLASSES[enums.ConstantPoolItemType.STRING] = ConstString;
 
+/**
+ * Represents a given method type.
+ * ```
+ * CONSTANT_MethodType_info {
+ *   u1 tag;
+ *   u2 descriptor_index;
+ * }
+ * ```
+ */
+export class MethodType implements IConstantPoolItem {
+  public descriptor: string;
+  constructor(descriptor: string) {
+    this.descriptor = descriptor;
+  }
+
+  public getType(): enums.ConstantPoolItemType {
+    return enums.ConstantPoolItemType.METHOD_TYPE;
+  }
+
+  public static size: number = 1;
+  public static infoByteSize: number = 2;
+  public static fromBytes(byteStream: ByteStream, constantPool: ConstantPool): IConstantPoolItem {
+    var descriptorIndex = byteStream.getUint16(),
+      utf8Info = <ConstUTF8> constantPool.get(descriptorIndex);
+    assert(utf8Info.getType() === enums.ConstantPoolItemType.UTF8,
+      'ConstantPool MethodType type != UTF8');
+    return new this(utf8Info.value);
+  }
+}
+CP_CLASSES[enums.ConstantPoolItemType.METHOD_TYPE] = MethodType;
+
 // #endregion
 
 // #region Tier 2
@@ -572,6 +603,67 @@ CP_CLASSES[enums.ConstantPoolItemType.INVOKE_DYNAMIC] = InvokeDynamic;
 
 // #endregion
 
+// #region Tier 3
+
+/**
+ * Represents a given method handle.
+ * ```
+ * CONSTANT_MethodHandle_info {
+ *   u1 tag;
+ *   u1 reference_kind;
+ *   u2 reference_index;
+ * }
+ * ```
+ */
+export class MethodHandle implements IConstantPoolItem {
+  // @todo Use a union type here:
+  //   FieldReference|MethodReference|InterfaceMethodReference
+  public reference: IConstantPoolItem;
+  constructor(reference: IConstantPoolItem) {
+    this.reference = reference;
+  }
+
+  public getType(): enums.ConstantPoolItemType {
+    return enums.ConstantPoolItemType.METHOD_HANDLE;
+  }
+
+  public static size: number = 1;
+  public static infoByteSize: number = 3;
+  public static fromBytes(byteStream: ByteStream, constantPool: ConstantPool): IConstantPoolItem {
+    var referenceKind = byteStream.getUint8(),
+      referenceIndex = byteStream.getUint16();
+    assert(0 < referenceKind && referenceKind < 10,
+      'ConstantPool MethodHandle invalid referenceKind: ' + referenceKind);
+    var reference: IConstantPoolItem;
+    if (1 <= referenceIndex && referenceIndex <= 4) {
+      // 1 (REF_getField), 2 (REF_getStatic), 3 (REF_putField), or 4 (REF_putStatic)
+      reference = <FieldReference> constantPool.get(referenceIndex);
+    } else if (5 <= referenceIndex && referenceIndex <= 8) {
+      // 5 (REF_invokeVirtual), 6 (REF_invokeStatic), 7 (REF_invokeSpecial), or 8 (REF_newInvokeSpecial)
+      reference = <MethodReference> constantPool.get(referenceIndex);
+    } else {
+      // 9 (REF_invokeInterface)
+      reference = <InterfaceMethodReference> constantPool.get(referenceIndex);
+    }
+    if (referenceKind >= 5) {
+      var name: string = reference.nameAndTypeInfo.name;
+      if (referenceKind == 8) {
+        // ensure name is <init>
+        assert(name == '<init>',
+          'ConstantPool MethodHandle invalid method name for REF_newInvokeSpecial: ' + name);
+      } else {
+        // ensure name is not <init> or <clinit>
+        assert(name != '<init>' && name != '<clinit>',
+          'ConstantPool MethodHandle invalid method name: ' + name);
+      }
+    }
+    return new this(reference);
+  }
+}
+CP_CLASSES[enums.ConstantPoolItemType.METHOD_HANDLE] = MethodHandle;
+
+// #endregion
+
 /**
  * Constant pool type *resolution tiers*. Value is the tier, key is the
  * constant pool type.
@@ -603,7 +695,7 @@ var CONSTANT_POOL_TIER: number[] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
       enums.ConstantPoolItemType.CLASS,
       enums.ConstantPoolItemType.STRING,
       enums.ConstantPoolItemType.NAME_AND_TYPE,
-      enums.ConstantPoolItemType.METHOD_TYPE // @todo Implement
+      enums.ConstantPoolItemType.METHOD_TYPE
     ],
     // Tier 2
     [
@@ -614,7 +706,7 @@ var CONSTANT_POOL_TIER: number[] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     ],
     // Tier 3
     [
-      enums.ConstantPoolItemType.METHOD_HANDLE // @todo Implement
+      enums.ConstantPoolItemType.METHOD_HANDLE
     ]
   ]);
 
