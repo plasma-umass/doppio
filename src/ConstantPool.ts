@@ -646,7 +646,7 @@ export class MethodHandle implements IConstantPoolItem {
       reference = <InterfaceMethodReference> constantPool.get(referenceIndex);
     }
     if (referenceKind >= 5) {
-      var name: string = reference.nameAndTypeInfo.name;
+      var name: string = (<MethodReference> reference).nameAndTypeInfo.name;
       if (referenceKind == 8) {
         // ensure name is <init>
         assert(name == '<init>',
