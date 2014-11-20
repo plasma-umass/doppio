@@ -34,17 +34,17 @@ function findNativeJava(grunt: IGrunt) {
             "preferably for Java 6, installed on your computer.");
         }
         // Finally, check Java's version before quitting.
-        checkJavaVersion(grunt, (isJava6: boolean, javaVersion: string) => {
-          if (!isJava6) {
+        checkJavaVersion(grunt, (isJava8: boolean, javaVersion: string) => {
+          if (!isJava8) {
             grunt.log.warn('Detected Java ' + javaVersion + ' (via javac). Unit tests ' +
-              'are not guaranteed to pass on versions of Java > 1.6.');
+              'are not guaranteed to pass on versions of Java < 1.8.');
           }
-          grunt.config.set('build.is_java_6', isJava6);
+          grunt.config.set('build.is_java_8', isJava8);
           done(true);
         });
       };
 
-    grunt.log.writeln("Locating your Java 6 installation...");
+    grunt.log.writeln("Locating your Java 8 installation...");
     if (process.platform.match(/win32/i)) {
       windowsFindJavaHome(grunt, cb);
     } else if (process.platform.match(/darwin/i)) {
@@ -58,13 +58,13 @@ function findNativeJava(grunt: IGrunt) {
 /**
  * Checks if the version of Java we found was Java 6.
  */
-function checkJavaVersion(grunt: IGrunt, cb: (is_java_6: boolean, java_version: string) => void): void {
+function checkJavaVersion(grunt: IGrunt, cb: (is_java_8: boolean, java_version: string) => void): void {
   exec('"' + grunt.config('build.javac') + '" -version', function (err: Error, stdout: Buffer, stderr: Buffer) {
     if (err) {
       throw err;
     }
     var javaVersion = /(\d+\.\d+\.\d+)/.exec(stderr.toString())[1];
-    return cb(semver.satisfies(javaVersion, '<1.7.0'), javaVersion);
+    return cb(semver.satisfies(javaVersion, '>=1.8.0'), javaVersion);
   });
 }
 
