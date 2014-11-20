@@ -1,7 +1,6 @@
 "use strict";
 import gLong = require('./gLong');
 import java_object = require('./java_object');
-import ClassData = require('./ClassData');
 import threading = require('./threading');
 import enums = require('./enums');
 
@@ -12,8 +11,8 @@ export function are_in_browser(): boolean {
 // Applies an async function to each element of a list, in order.
 export function async_foreach<T>(
       lst: Array<T>,
-      fn: (elem: T, next_item: (err?: any)=>void)=>void,
-      done_cb: (err?: any)=>void
+      fn: (elem: T, next_item: (err?: any) => void) => void,
+      done_cb: (err?: any) => void
   ): void {
   var i = -1;
   function process(err?: any): void {
@@ -89,7 +88,7 @@ if (Math['imul'] == null) {
     var bl = b & 0xffff;
     // the shift by 0 fixes the sign on the high part
     // the final |0 converts the unsigned value into a signed value
-    return ((al * bl) + (((ah * bl + al * bh) << 16) >>> 0)|0);
+    return ((al * bl) + (((ah * bl + al * bh) << 16) >>> 0) | 0);
   };
 }
 
@@ -123,12 +122,12 @@ if (!Array.prototype.indexOf) {
       }
     }
     return -1;
-  }
+  };
 }
 
 // Creates and initializes *JavaScript* array to *val* in each element slot.
 // Like memset, but for arrays.
-export function arrayset<T>(len: number, val :T): T[] {
+export function arrayset<T>(len: number, val : T): T[] {
   var array = new Array(len);
   for (var i = 0; i < len; i++) {
     array[i] = val;
@@ -247,7 +246,7 @@ export function parse_flags(flag_byte: number): Flags {
     "transient": (flag_byte & 0x80) > 0,
     "native": (flag_byte & 0x100) > 0,
     "interface": (flag_byte & 0x200) > 0,
-    "abstract": (flag_byte & 0x400)> 0,
+    "abstract": (flag_byte & 0x400) > 0,
     "strict": (flag_byte & 0x800) > 0
   };
 }
@@ -338,8 +337,11 @@ export function initialValue(type_str: string): any {
   return 0;
 }
 
-// Java classes are represented internally using slashes as delimiters.
-// These helper functions convert between the two representations.
+/**
+ * Java classes are represented internally using slashes as delimiters.
+ * These helper functions convert between the two representations.
+ * Ljava/lang/Class; => java.lang.Class
+ */
 export function ext_classname(str: string): string {
   return descriptor2typestr(str).replace(/\//g, '.');
 }
@@ -412,10 +414,12 @@ export function is_reference_type(type_str: string): boolean {
   return type_str[0] === 'L';
 }
 
-// Converts type descriptors into standardized internal type strings.
-//   Ljava/lang/Class; => java/lang/Class   Reference types
-//   [Ljava/lang/Class; is unchanged        Array types
-//   C => char                              Primitive types
+/**
+ * Converts type descriptors into standardized internal type strings.
+ * Ljava/lang/Class; => java/lang/Class   Reference types
+ * [Ljava/lang/Class; is unchanged        Array types
+ * C => char                              Primitive types
+ */
 export function descriptor2typestr(type_str: string): string {
   var c = type_str[0];
   if (c in internal2external) return internal2external[c];

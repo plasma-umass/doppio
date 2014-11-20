@@ -9,6 +9,7 @@ import threading = require('../threading');
 import ClassLoader = require('../ClassLoader');
 import enums = require('../enums');
 import assert = require('../assert');
+import ConstantPool = require('../ConstantPool');
 declare var registerNatives: (defs: any) => void;
 
 var debug = logging.debug;
@@ -65,7 +66,6 @@ function create_stack_trace(thread: threading.JVMThread, throwable: java_object.
     cstack[cstack.length - 1].locals[0] === throwable) {
     cstack.pop();
   }
-  assert(cstack.length > 0);
 
   for (i = 0; i < cstack.length; i++) {
     var sf = cstack[i],
@@ -104,7 +104,7 @@ function create_stack_trace(thread: threading.JVMThread, throwable: java_object.
 
 class java_lang_Class {
 
-  public static 'forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;'(thread: threading.JVMThread, jvm_str: java_object.JavaObject, initialize: number, jclo: ClassLoader.JavaClassLoaderObject): void {
+  public static 'forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;Ljava/lang/Class;)Ljava/lang/Class;'(thread: threading.JVMThread, jvm_str: java_object.JavaObject, initialize: number, jclo: ClassLoader.JavaClassLoaderObject, caller: java_object.JavaObject): void {
     var classname = util.int_classname(jvm_str.jvm2js_str());
     if (!util.verify_int_classname(classname)) {
       thread.throwNewException('Ljava/lang/ClassNotFoundException;', classname);
@@ -215,8 +215,8 @@ class java_lang_Class {
     }
     var enc_cls = cls.loader.getResolvedClass(em.enc_class).get_class_object(thread);
     if (em.enc_method != null) {
-      enc_name = java_object.initString(bsCl, em.enc_method.name);
-      enc_desc = java_object.initString(bsCl, em.enc_method.type);
+      enc_name = java_object.initString(bsCl, em.enc_method.nameAndTypeInfo.name);
+      enc_desc = java_object.initString(bsCl, em.enc_method.nameAndTypeInfo.descriptor);
     } else {
       enc_name = null;
       enc_desc = null;
@@ -240,20 +240,20 @@ class java_lang_Class {
       return null;
     }
     var my_class = cls.get_type(),
-      _ref5 = icls.classes;
-    for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
-      entry = _ref5[_i];
+      innerClassInfo = icls.classes;
+    for (_i = 0, _len = innerClassInfo.length; _i < _len; _i++) {
+      entry = innerClassInfo[_i];
       if (!(entry.outer_info_index > 0)) {
         continue;
       }
-      name = cls.constant_pool.get(entry.inner_info_index).deref();
+      name = (<ConstantPool.ClassReference> cls.constant_pool.get(entry.inner_info_index)).name;
       if (name !== my_class) {
         continue;
       }
       // XXX(jez): this assumes that the first enclosing entry is also
       // the immediate enclosing parent, and I'm not 100% sure this is
       // guaranteed by the spec
-      declaring_name = cls.constant_pool.get(entry.outer_info_index).deref();
+      declaring_name = (<ConstantPool.ClassReference> cls.constant_pool.get(entry.outer_info_index)).name;
       return cls.loader.getResolvedClass(declaring_name).get_class_object(thread);
     }
     return null;
@@ -404,10 +404,10 @@ class java_lang_Class {
     }
     var flat_names = [];
     for (var i = 0; i < iclses.length; i++) {
-      var names = iclses[i].classes.filter((c: any) =>
+      var names = iclses[i].classes.filter((c: attributes.IInnerClassInfo) =>
         // select inner classes where the enclosing class is my_class
-        c.outer_info_index > 0 && cls.constant_pool.get(c.outer_info_index).deref() === my_class)
-        .map((c: any) => cls.constant_pool.get(c.inner_info_index).deref());
+        c.outer_info_index > 0 && (<ConstantPool.ClassReference> cls.constant_pool.get(c.outer_info_index)).name === my_class)
+        .map((c: attributes.IInnerClassInfo) => (<ConstantPool.ClassReference> cls.constant_pool.get(c.inner_info_index)).name);
       flat_names.push.apply(flat_names, names);
     }
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
@@ -762,7 +762,8 @@ class java_lang_reflect_Array {
   }
 
   public static 'newArray(Ljava/lang/Class;I)Ljava/lang/Object;'(thread: threading.JVMThread, cls: java_object.JavaClassObject, len: number): java_object.JavaArray {
-    return java_object.heapNewArray(thread, cls.$cls.loader, cls.$cls.get_type(), len);
+    var arrCls = <ClassData.ArrayClassData> cls.$cls.loader.getResolvedClass("[" + cls.$cls.get_type());
+    return java_object.heapNewArray(thread, arrCls, len);
   }
 
   public static 'multiNewArray(Ljava/lang/Class;[I)Ljava/lang/Object;'(thread: threading.JVMThread, jco: java_object.JavaClassObject, lens: java_object.JavaArray): java_object.JavaArray {

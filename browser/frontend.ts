@@ -44,7 +44,7 @@ var underscore = require('../vendor/underscore/underscore'),
  */
 function constructJavaOptions(customArgs: {[prop: string]: any} = {}) {
   return underscore.extend({
-    bootstrapClasspath: ['/sys/vendor/classes'],
+    bootstrapClasspath: ['/sys/vendor/java_home/classes'],
     classpath: [],
     javaHomePath: '/sys/vendor/java_home',
     extractionPath: '/jars',
@@ -181,7 +181,7 @@ $(document).ready(function() {
         files_uploaded++;
         var progress = "[" + files_uploaded + "/" + num_files
                            + "] File '" + f.name + "'";
-        fs.writeFile(process.cwd() + '/' + f.name, new Buffer(e.target.result), function(err: Error) {
+        fs.writeFile(process.cwd() + '/' + f.name, new Buffer((<any> e.target).result), function(err: Error) {
           if (err) {
             controller.message(progress + " could not be saved: " + err + ".\n",
                                'error', files_uploaded !== num_files);
@@ -192,7 +192,7 @@ $(document).ready(function() {
               if (isClass) {
                 editor.getSession().setValue("/*\n * Binary file: " + f.name + "\n */");
               } else {
-                editor.getSession().setValue(e.target.result);
+                editor.getSession().setValue((<any> e.target).result);
               }
             }
           }

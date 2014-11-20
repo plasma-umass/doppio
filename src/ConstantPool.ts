@@ -2,266 +2,638 @@
 import gLong = require('./gLong');
 import ByteStream = require('./ByteStream');
 import util = require('./util');
+import enums = require('./enums');
+import assert = require('./assert');
+import ClassData = require('./ClassData');
+import java_object = require('./java_object');
+import methods = require('./methods');
+import ClassLoader = require('./ClassLoader');
 
-// All objects in the constant pool have the properties @type and @value.
-// *Reference and NameAndType objects all have a @deref method, which resolves
-// all child references to their values (i.e. discarding @type).
-export interface ConstantPoolItem {
-  value: any;
-  type?: string;
-  deref?(): any;
+/**
+ * Represents a constant pool item. Use the item's type to discriminate among them.
+ */
+export interface IConstantPoolItem {
+  getType(): enums.ConstantPoolItemType;
 }
 
-export interface ConstantPoolType {
+/**
+ * All constant pool items have a static constructor function.
+ */
+export interface IConstantPoolType {
+  fromBytes(byteStream: ByteStream, constantPool: ConstantPool): IConstantPoolItem;
+  /**
+   * The resulting size in the constant pool, in machine words.
+   */
   size: number;
-  from_bytes(bytes_array: ByteStream, constant_pool: ConstantPool): ConstantPoolItem;
+  /**
+   * The bytesize on disk of the item's information past the tag byte.
+   */
+  infoByteSize: number;
 }
-// Type checks the constructors.
-var _: ConstantPoolType;
+/**
+ * Stores all of the constant pool classes, keyed on their enum value.
+ */
+var CP_CLASSES: { [n: number]: IConstantPoolType } = {};
 
-export class SimpleReference {
-  public static size = 1;
-  public value: any;
-  public constant_pool: ConstantPool;
-  constructor(constant_pool: ConstantPool, value: any) {
-    this.constant_pool = constant_pool;
+// #region Tier 0
+
+/**
+ * Represents a constant UTF-8 string.
+ * ```
+ * CONSTANT_Utf8_info {
+ *   u1 tag;
+ *   u2 length;
+ *   u1 bytes[length];
+ * }
+ * ```
+ * TODO: Avoid decoding into a string if possible, as the JVM represents them
+ * as char arrays.
+ */
+export class ConstUTF8 implements IConstantPoolItem {
+  public value: string;
+  constructor(value: string) {
     this.value = value;
   }
 
-  public static from_bytes(bytes_array: ByteStream, constant_pool: ConstantPool): SimpleReference {
-    var value = bytes_array.getUint16();
-    return new this(constant_pool, value);
+  public getType(): enums.ConstantPoolItemType {
+    return enums.ConstantPoolItemType.UTF8;
   }
 
-  public deref(): any {
-    var pool_obj = this.constant_pool.get(this.value);
-    return (typeof pool_obj.deref === "function" ? pool_obj.deref() : void 0) || pool_obj.value;
-  }
-}
-
-export class ClassReference extends SimpleReference {
-  public type = 'class';
-  // the ConstantPool stores class names without the L...; descriptor stuff
-  public deref(): any {
-    var pool_obj = this.constant_pool.get(this.value);
-    if (typeof pool_obj.deref === "function") {
-      return pool_obj.deref();
-    }
-    return util.typestr2descriptor(pool_obj.value);
+  public static size: number = 1;
+  // Variable-size.
+  public static infoByteSize: number = 0;
+  public static fromBytes(byteStream: ByteStream, constantPool: ConstantPool): IConstantPoolItem {
+    var strlen = byteStream.getUint16();
+    return new this(util.bytes2str(byteStream.read(strlen)));
   }
 }
-_ = ClassReference;
+CP_CLASSES[enums.ConstantPoolItemType.UTF8] = ConstUTF8;
 
-export class StringReference extends SimpleReference {
-  public type = 'String';
-  constructor(constant_pool: ConstantPool, value: any) {
-    super(constant_pool, value);
-  }
-}
-_ = StringReference;
-
-export class AbstractMethodFieldReference {
-  public static size = 1;
-  public value: any;
-  public constant_pool: ConstantPool;
-  constructor(constant_pool: ConstantPool, value: any) {
-    this.constant_pool = constant_pool;
-    this.value = value;
-  }
-
-  public static from_bytes(bytes_array: ByteStream, constant_pool: ConstantPool): AbstractMethodFieldReference {
-    var class_ref = ClassReference.from_bytes(bytes_array, constant_pool);
-    var sig = SimpleReference.from_bytes(bytes_array, constant_pool);
-    return new this(constant_pool, {
-      class_ref: class_ref,
-      sig: sig
-    });
-  }
-
-  public deref(): any {
-    var sig = this.value.sig.deref();
-    return {
-      class_desc: this.value.class_ref.deref(),
-      sig: sig.name + sig.type
-    };
-  }
-}
-
-export class MethodReference extends AbstractMethodFieldReference {
-  public type = 'Method';
-}
-_ = MethodReference;
-
-export class InterfaceMethodReference extends AbstractMethodFieldReference {
-  public type = 'InterfaceMethod';
-}
-_ = InterfaceMethodReference;
-
-export class FieldReference extends AbstractMethodFieldReference {
-  public type = 'Field';
-  public deref(): any {
-    var sig = this.value.sig.deref();
-    return {
-      class_desc: this.value.class_ref.deref(),
-      name: sig.name,
-      type: sig.type
-    };
-  }
-}
-
-export interface MethodSignatureValue {
-  meth_ref:StringReference;
-  type_ref:StringReference;
-}
-
-export class MethodSignature {
-  public static size = 1;
-  public type = 'NameAndType';
-  public constant_pool: ConstantPool;
-  public value: MethodSignatureValue;
-  constructor(constant_pool: ConstantPool, value: MethodSignatureValue) {
-    this.constant_pool = constant_pool;
-    this.value = value;
-  }
-
-  public static from_bytes(bytes_array: ByteStream, constant_pool: ConstantPool): MethodSignature {
-    var meth_ref = StringReference.from_bytes(bytes_array, constant_pool);
-    var type_ref = StringReference.from_bytes(bytes_array, constant_pool);
-    return new this(constant_pool, <MethodSignatureValue>{
-      meth_ref: meth_ref,
-      type_ref: type_ref
-    });
-  }
-
-  public deref(): {name:string; type: string} {
-    return {
-      name: this.value.meth_ref.deref(),
-      type: this.value.type_ref.deref()
-    };
-  }
-}
-_ = MethodSignature;
-
-export class ConstString {
-  public static size = 1;
-  public type = 'Asciz';
-  public value: any;
-  constructor(value: any) {
-    this.value = value;
-  }
-
-  public static from_bytes(bytes_array: ByteStream): ConstString {
-    var strlen = bytes_array.getUint16();
-    var value = util.bytes2str(bytes_array.read(strlen));
-    return new this(value);
-  }
-}
-_ = ConstString;
-
-export class ConstInt32 {
-  public static size = 1;
-  public type = 'int';
+/**
+ * Represents a constant 32-bit integer.
+ * ```
+ * CONSTANT_Integer_info {
+ *   u1 tag;
+ *   u4 bytes;
+ * }
+ * ```
+ */
+export class ConstInt32 implements IConstantPoolItem {
   public value: number;
   constructor(value: number) {
     this.value = value;
   }
 
-  public static from_bytes(bytes_array: ByteStream, constant_pool: ConstantPool): ConstInt32 {
-    return new this(bytes_array.getInt32());
+  public getType(): enums.ConstantPoolItemType {
+    return enums.ConstantPoolItemType.INTEGER;
+  }
+
+  public static size: number = 1;
+  public static infoByteSize: number = 4;
+  public static fromBytes(byteStream: ByteStream, constantPool: ConstantPool): IConstantPoolItem {
+    return new this(byteStream.getInt32());
   }
 }
-_ = ConstInt32;
+CP_CLASSES[enums.ConstantPoolItemType.INTEGER] = ConstInt32;
 
-export class ConstFloat {
-  public static size = 1;
-  public type = 'float';
+/**
+ * Represents a constant 32-bit floating point number.
+ * ```
+ * CONSTANT_Float_info {
+ *   u1 tag;
+ *   u4 bytes;
+ * }
+ * ```
+ */
+export class ConstFloat implements IConstantPoolItem {
   public value: number;
   constructor(value: number) {
     this.value = value;
   }
 
-  public static from_bytes(bytes_array: ByteStream, constant_pool: ConstantPool): ConstFloat {
-    return new this(bytes_array.getFloat());
+  public getType(): enums.ConstantPoolItemType {
+    return enums.ConstantPoolItemType.FLOAT;
+  }
+
+  public static size: number = 1;
+  public static infoByteSize: number = 4;
+  public static fromBytes(byteStream: ByteStream, constantPool: ConstantPool): IConstantPoolItem {
+    return new this(byteStream.getFloat());
   }
 }
-_ = ConstFloat;
+CP_CLASSES[enums.ConstantPoolItemType.FLOAT] = ConstFloat;
 
-export class ConstLong {
-  public static size = 2;
-  public type = 'long';
+/**
+ * Represents a constant 64-bit integer.
+ * ```
+ * CONSTANT_Long_info {
+ *   u1 tag;
+ *   u4 high_bytes;
+ *   u4 low_bytes;
+ * }
+ * ```
+ */
+export class ConstLong implements IConstantPoolItem {
   public value: gLong;
   constructor(value: gLong) {
     this.value = value;
   }
 
-  public static from_bytes(bytes_array: ByteStream, constant_pool: ConstantPool): ConstLong {
-    return new this(bytes_array.getInt64());
+  public getType(): enums.ConstantPoolItemType {
+    return enums.ConstantPoolItemType.LONG;
+  }
+
+  public static size: number = 2;
+  public static infoByteSize: number = 8;
+  public static fromBytes(byteStream: ByteStream, constantPool: ConstantPool): IConstantPoolItem {
+    return new this(byteStream.getInt64());
   }
 }
-_ = ConstLong;
+CP_CLASSES[enums.ConstantPoolItemType.LONG] = ConstLong;
 
-export class ConstDouble {
-  public static size = 2;
-  public type = 'double';
+/**
+ * Represents a constant 64-bit floating point number.
+ * ```
+ * CONSTANT_Double_info {
+ *   u1 tag;
+ *   u4 high_bytes;
+ *   u4 low_bytes;
+ * }
+ * ```
+ */
+export class ConstDouble implements IConstantPoolItem {
   public value: number;
   constructor(value: number) {
     this.value = value;
   }
 
-  public static from_bytes(bytes_array: ByteStream, constant_pool: ConstantPool): ConstDouble {
-    return new this(bytes_array.getDouble());
+  public getType(): enums.ConstantPoolItemType {
+    return enums.ConstantPoolItemType.DOUBLE;
+  }
+
+  public static size: number = 2;
+  public static infoByteSize: number = 8;
+  public static fromBytes(byteStream: ByteStream, constantPool: ConstantPool): IConstantPoolItem {
+    return new this(byteStream.getDouble());
   }
 }
-_ = ConstDouble;
+CP_CLASSES[enums.ConstantPoolItemType.DOUBLE] = ConstDouble;
 
-export class ConstantPool {
-  private cp_count: number;
-  private constant_pool: { [n: number]: ConstantPoolItem; };
+// #endregion
 
-  public parse(bytes_array: ByteStream): ByteStream {
-    var constant_tags: {[n: number]: ConstantPoolType } = {
-      1: ConstString,
-      3: ConstInt32,
-      4: ConstFloat,
-      5: ConstLong,
-      6: ConstDouble,
-      7: ClassReference,
-      8: StringReference,
-      9: FieldReference,
-      10: MethodReference,
-      11: InterfaceMethodReference,
-      12: MethodSignature
-    };
-    this.cp_count = bytes_array.getUint16();
-    // constant_pool works like an array, but not all indices have values
-    this.constant_pool = {};
-    var idx = 1; // CP indexing starts at zero
-    while (idx < this.cp_count) {
-      var tag = bytes_array.getUint8();
-      if (!((1 <= tag && tag <= 12))) {
-        throw "invalid tag: " + tag;
-      }
-      var pool_obj = constant_tags[tag].from_bytes(bytes_array, this);
-      this.constant_pool[idx] = pool_obj;
-      idx += constant_tags[tag].size;
-    }
-    return bytes_array;
+// #region Tier 1
+
+/**
+ * Represents a class or interface.
+ * ```
+ * CONSTANT_Class_info {
+ *   u1 tag;
+ *   u2 name_index;
+ * }
+ * ```
+ * @todo Have a global cache of class reference objects.
+ */
+export class ClassReference implements IConstantPoolItem {
+  /**
+   * The name of the class, in full descriptor form, e.g.:
+   * Lfoo/bar/Baz;
+   */
+  public name: string;
+  /**
+   * Contains stashed ClassData objects for the given class keyed on the
+   * number of nested arrays (e.g. 0 is the class reference for `name`,
+   * 1 is the class reference for `name[]`, etc.).
+   * If `name` is an array type, 0 is *still* `name`. Meaning, it's the
+   * array depth tacked on to `name`.
+   */
+  public cdata: ClassData.ClassData[] = [];
+  constructor(name: string) {
+    this.name = name;
   }
 
-  public get(idx: number): ConstantPoolItem {
-    var _ref = this.constant_pool[idx];
-    if (_ref != null) {
-      return _ref;
+  public getType(): enums.ConstantPoolItemType {
+    return enums.ConstantPoolItemType.CLASS;
+  }
+
+  /**
+   * Retrieve a stashed class, or attempt to synchronously fetch it
+   * from the classloader.
+   * Returns null if the class needs to be asynchronously loaded.
+   * @note Does not check for initialization!
+   */
+  public getClass(cl: ClassLoader.ClassLoader, arrayDepth: number): ClassData.ClassData {
+    var cd = this.cdata[arrayDepth];
+    if (cd === undefined || cd === null) {
+      cd = this.cdata[arrayDepth] = cl.getResolvedClass(this._getName(arrayDepth));
+    }
+    return cd;
+  }
+
+  private _getName(arrayDepth: number) {
+    if (arrayDepth === 0) {
+      return this.name;
     } else {
-      throw new Error("Invalid constant_pool reference: " + idx);
+      return "[" + this._getName(arrayDepth - 1);
     }
   }
 
-  public each(fn: (idx:number, item:ConstantPoolItem)=>void): void {
-    for (var i = 0; i < this.cp_count; ++i) {
-      if (i in this.constant_pool) {
-        fn(i, this.constant_pool[i]);
-      }
+  public static size: number = 1;
+  public static infoByteSize: number = 2;
+  public static fromBytes(byteStream: ByteStream, constantPool: ConstantPool): IConstantPoolItem {
+    var nameIndex = byteStream.getUint16(),
+      cpItem = constantPool.get(nameIndex);
+    assert(cpItem.getType() === enums.ConstantPoolItemType.UTF8);
+    // The ConstantPool stores class names without the L...; descriptor stuff
+    return new this(util.typestr2descriptor((<ConstUTF8> cpItem).value));
+  }
+}
+CP_CLASSES[enums.ConstantPoolItemType.CLASS] = ClassReference;
+
+/**
+ * Represents a field or method without indicating which class or interface
+ * type it belongs to.
+ * ```
+ * CONSTANT_NameAndType_info {
+ *   u1 tag;
+ *   u2 name_index;
+ *   u2 descriptor_index;
+ * }
+ * ```
+ */
+export class NameAndTypeInfo implements IConstantPoolItem {
+  public name: string;
+  public descriptor: string;
+  constructor(name: string, descriptor: string) {
+    this.name = name;
+    this.descriptor = descriptor;
+  }
+
+  public getType(): enums.ConstantPoolItemType {
+    return enums.ConstantPoolItemType.NAME_AND_TYPE;
+  }
+
+  public static size: number = 1;
+  public static infoByteSize: number = 4;
+  public static fromBytes(byteStream: ByteStream, constantPool: ConstantPool): IConstantPoolItem {
+    var nameIndex = byteStream.getUint16(),
+      descriptorIndex = byteStream.getUint16(),
+      nameConst = <ConstUTF8> constantPool.get(nameIndex),
+      descriptorConst = <ConstUTF8> constantPool.get(descriptorIndex);
+    assert(nameConst.getType() === enums.ConstantPoolItemType.UTF8 &&
+      descriptorConst.getType() === enums.ConstantPoolItemType.UTF8);
+    return new this(nameConst.value, descriptorConst.value);
+  }
+}
+CP_CLASSES[enums.ConstantPoolItemType.NAME_AND_TYPE] = NameAndTypeInfo;
+
+/**
+ * Represents constant objects of the type java.lang.String.
+ * ```
+ * CONSTANT_String_info {
+ *   u1 tag;
+ *   u2 string_index;
+ * }
+ * ```
+ */
+export class ConstString implements IConstantPoolItem {
+  /**
+   * The constant JVM string. If null, it should be created and interned.
+   * We don't do that here to avoid circular references.
+   */
+  public value: java_object.JavaObject = null;
+  /**
+   * The JavaScript string value for this string.
+   */
+  public stringValue: string;
+  constructor(stringValue: string) {
+    this.stringValue = stringValue;
+  }
+
+  public getType(): enums.ConstantPoolItemType {
+    return enums.ConstantPoolItemType.STRING;
+  }
+
+  public static size: number = 1;
+  public static infoByteSize: number = 2;
+  public static fromBytes(byteStream: ByteStream, constantPool: ConstantPool): IConstantPoolItem {
+    var stringIndex = byteStream.getUint16(),
+      utf8Info = <ConstUTF8> constantPool.get(stringIndex);
+    assert(utf8Info.getType() === enums.ConstantPoolItemType.UTF8);
+    return new this(utf8Info.value);
+  }
+}
+CP_CLASSES[enums.ConstantPoolItemType.STRING] = ConstString;
+
+// #endregion
+
+// #region Tier 2
+
+function _getParamWordSize(signature: string): number {
+  var state = 'name', size = 0;
+  for (var i = 0; i < signature.length; i++) {
+    var c = signature[i];
+    switch (state) {
+      case 'name':
+        if (c === '(') {
+          state = 'type';
+        }
+        break;
+      case 'type':
+        if (c === ')') {
+          return size;
+        }
+        if (c === 'J' || c === 'D') {
+          size += 2;
+        } else {
+          ++size;
+        }
+        if (c === 'L') {
+          state = 'class';
+        } else if (c === '[') {
+          state = 'array';
+        }
+        break;
+      case 'class':
+        if (c === ';') {
+          state = 'type';
+        }
+        break;
+      case 'array':
+        if (c === 'L') {
+          state = 'class';
+        } else if (c !== '[') {
+          state = 'type';
+        }
     }
+  }
+}
+
+/**
+ * Represents a particular method.
+ * ```
+ * CONSTANT_Methodref_info {
+ *   u1 tag;
+ *   u2 class_index;
+ *   u2 name_and_type_index;
+ * }
+ * ```
+ */
+export class MethodReference implements IConstantPoolItem {
+  /**
+   * The signature of the method, e.g. foo()V.
+   */
+  public methodSignature: string;
+  /**
+   * The actual method.
+   */
+  public method: methods.Method = null;
+  public classInfo: ClassReference;
+  public nameAndTypeInfo: NameAndTypeInfo;
+  private paramWordSize: number = -1;
+  constructor(classInfo: ClassReference, nameAndTypeInfo: NameAndTypeInfo) {
+    this.classInfo = classInfo;
+    this.methodSignature = nameAndTypeInfo.name + nameAndTypeInfo.descriptor;
+    this.nameAndTypeInfo = nameAndTypeInfo;
+  }
+
+  public getType(): enums.ConstantPoolItemType {
+    return enums.ConstantPoolItemType.METHODREF;
+  }
+
+  public static size: number = 1;
+  public static infoByteSize: number = 4;
+  public static fromBytes(byteStream: ByteStream, constantPool: ConstantPool): IConstantPoolItem {
+    var classIndex = byteStream.getUint16(),
+      nameAndTypeIndex = byteStream.getUint16(),
+      classInfo = <ClassReference> constantPool.get(classIndex),
+      nameAndTypeInfo = <NameAndTypeInfo> constantPool.get(nameAndTypeIndex);
+    assert(classInfo.getType() === enums.ConstantPoolItemType.CLASS &&
+      nameAndTypeInfo.getType() === enums.ConstantPoolItemType.NAME_AND_TYPE);
+    return new this(classInfo, nameAndTypeInfo);
+  }
+
+  /**
+   * In the JVM, 64-bit parameters are two words long. Everything else is 1.
+   * This method parses a method descriptor, and returns the length of the
+   * parameters in terms of machine words.
+   */
+  public getParamWordSize(): number {
+    if (this.paramWordSize >= 0) {
+      return this.paramWordSize;
+    } else {
+      return this.paramWordSize = _getParamWordSize(this.methodSignature);
+    }
+  }
+}
+CP_CLASSES[enums.ConstantPoolItemType.METHODREF] = MethodReference;
+
+/**
+ * Represents a particular interface method.
+ * ```
+ * CONSTANT_InterfaceMethodref_info {
+ *   u1 tag;
+ *   u2 class_index;
+ *   u2 name_and_type_index;
+ * }
+ * ```
+ */
+export class InterfaceMethodReference implements IConstantPoolItem {
+  /**
+   * The specific interface method referenced.
+   */
+  public method: methods.Method = null;
+  public classInfo: ClassReference;
+  public methodSignature: string;
+  public nameAndTypeInfo: NameAndTypeInfo;
+  constructor(classInfo: ClassReference, nameAndTypeInfo: NameAndTypeInfo) {
+    this.classInfo = classInfo;
+    this.methodSignature = nameAndTypeInfo.name + nameAndTypeInfo.descriptor;
+    this.nameAndTypeInfo = nameAndTypeInfo;
+  }
+
+  public getType(): enums.ConstantPoolItemType {
+    return enums.ConstantPoolItemType.INTERFACE_METHODREF;
+  }
+
+  public static size: number = 1;
+  public static infoByteSize: number = 4;
+  public static fromBytes(byteStream: ByteStream, constantPool: ConstantPool): IConstantPoolItem {
+    var classIndex = byteStream.getUint16(),
+      nameAndTypeIndex = byteStream.getUint16(),
+      classInfo = <ClassReference> constantPool.get(classIndex),
+      nameAndTypeInfo = <NameAndTypeInfo> constantPool.get(nameAndTypeIndex);
+    assert(classInfo.getType() === enums.ConstantPoolItemType.CLASS &&
+      nameAndTypeInfo.getType() === enums.ConstantPoolItemType.NAME_AND_TYPE);
+    return new this(classInfo, nameAndTypeInfo);
+  }
+}
+CP_CLASSES[enums.ConstantPoolItemType.INTERFACE_METHODREF] = InterfaceMethodReference;
+
+/**
+ * Represents a particular field.
+ * ```
+ * CONSTANT_Fieldref_info {
+ *   u1 tag;
+ *   u2 class_index;
+ *   u2 name_and_type_index;
+ * }
+ * ```
+ */
+export class FieldReference implements IConstantPoolItem {
+  /**
+   * Name of the field. Primarily needed for static fields.
+   */
+  public fieldName: string;
+  /**
+   * The name of the class that the field belongs to + its name. Needed
+   * primarily for object fields.
+   * e.g.:
+   * Lfoo/bar/Baz;value
+   * We don't know this value until the referenced class is resolved and we
+   * perform field resolution.
+   */
+  public fullFieldName: string = null;
+  /**
+   * The class that owns this particular field.
+   */
+  public owningClass: ClassData.ReferenceClassData = null;
+  public classInfo: ClassReference;
+  public nameAndTypeInfo: NameAndTypeInfo;
+  constructor(classInfo: ClassReference, nameAndTypeInfo: NameAndTypeInfo) {
+    this.classInfo = classInfo;
+    this.fieldName = nameAndTypeInfo.name;
+    this.nameAndTypeInfo = nameAndTypeInfo;
+  }
+
+  public getType(): enums.ConstantPoolItemType {
+    return enums.ConstantPoolItemType.FIELDREF;
+  }
+
+  public static size: number = 1;
+  public static infoByteSize: number = 4;
+  public static fromBytes(byteStream: ByteStream, constantPool: ConstantPool): IConstantPoolItem {
+    var classIndex = byteStream.getUint16(),
+      nameAndTypeIndex = byteStream.getUint16(),
+      classInfo = <ClassReference> constantPool.get(classIndex),
+      nameAndTypeInfo = <NameAndTypeInfo> constantPool.get(nameAndTypeIndex);
+    assert(classInfo.getType() === enums.ConstantPoolItemType.CLASS &&
+      nameAndTypeInfo.getType() === enums.ConstantPoolItemType.NAME_AND_TYPE);
+    return new this(classInfo, nameAndTypeInfo);
+  }
+}
+CP_CLASSES[enums.ConstantPoolItemType.FIELDREF] = FieldReference;
+
+// #endregion
+
+/**
+ * Constant pool type *resolution tiers*. Value is the tier, key is the
+ * constant pool type.
+ * Tier 0 has no references to other constant pool items, and can be resolved
+ * first.
+ * Tier 1 refers to tier 0 items.
+ * Tier n refers to tier n-1 items and below.
+ * Initialized in the given fashion to give the JS engine a tasty type hint.
+ */
+var CONSTANT_POOL_TIER: number[] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+// Populate CONSTANT_POOL_TIER. Put into a closure to avoid scope pollution.
+((tierInfos: enums.ConstantPoolItemType[][]) => {
+  tierInfos.forEach((tierInfo: enums.ConstantPoolItemType[], index: number) => {
+    tierInfo.forEach((type: enums.ConstantPoolItemType) => {
+      CONSTANT_POOL_TIER[type] = index;
+    });
+  });
+})([
+    // Tier 0
+    [
+      enums.ConstantPoolItemType.UTF8,
+      enums.ConstantPoolItemType.INTEGER,
+      enums.ConstantPoolItemType.FLOAT,
+      enums.ConstantPoolItemType.LONG,
+      enums.ConstantPoolItemType.DOUBLE
+    ],
+    // Tier 1
+    [
+      enums.ConstantPoolItemType.CLASS,
+      enums.ConstantPoolItemType.STRING,
+      enums.ConstantPoolItemType.NAME_AND_TYPE,
+      enums.ConstantPoolItemType.METHOD_TYPE // @todo Implement
+    ],
+    // Tier 2
+    [
+      enums.ConstantPoolItemType.FIELDREF,
+      enums.ConstantPoolItemType.METHODREF,
+      enums.ConstantPoolItemType.INTERFACE_METHODREF,
+      enums.ConstantPoolItemType.INVOKE_DYNAMIC // @todo Implement
+    ],
+    // Tier 3
+    [
+      enums.ConstantPoolItemType.METHOD_HANDLE // @todo Implement
+    ]
+  ]);
+
+/**
+ * Represents a constant pool for a particular class.
+ */
+export class ConstantPool {
+  /**
+   * The core constant pool array. Note that some indices are undefined.
+   */
+  private constantPool: IConstantPoolItem[];
+
+  public parse(byteStream: ByteStream): ByteStream {
+    var cpCount = byteStream.getUint16(),
+      // First key is the tier.
+      deferredQueue: { offset: number; index: number }[][] = [[], [], []],
+      // The ending offset of the constant pool items.
+      endIdx = 0, idx = 1,
+      // Tag of the currently-being-processed item.
+      tag = 0,
+      // Offset of the currently-being-processed item.
+      itemOffset = 0,
+      // Tier of the currently-being-processed item.
+      itemTier = 0;
+    this.constantPool = new Array<IConstantPoolItem>(cpCount);
+
+    // Scan for tier info.
+    while (idx < cpCount) {
+      itemOffset = byteStream.pos();
+      tag = byteStream.getUint8();
+      assert(CP_CLASSES[tag] !== null && CP_CLASSES[tag] !== undefined);
+      itemTier = CONSTANT_POOL_TIER[tag];
+      if (itemTier > 0) {
+        deferredQueue[itemTier - 1].push({ offset: itemOffset, index: idx });
+        byteStream.skip(CP_CLASSES[tag].infoByteSize);
+      } else {
+        this.constantPool[idx] = CP_CLASSES[tag].fromBytes(byteStream, this);
+      }
+      idx += CP_CLASSES[tag].size;
+    }
+    endIdx = byteStream.pos();
+
+    // Process tiers.
+    deferredQueue.forEach((deferredItems: { offset: number; index: number; }[]) => {
+      deferredItems.forEach((item: { offset: number; index: number; }) => {
+        byteStream.seek(item.offset);
+        tag = byteStream.getUint8();
+        this.constantPool[item.index] = CP_CLASSES[tag].fromBytes(byteStream, this);
+      });
+    });
+
+    // Return to the correct offset, at the end of the CP data.
+    byteStream.seek(endIdx);
+    return byteStream;
+  }
+
+  public get(idx: number): IConstantPoolItem {
+    assert(this.constantPool[idx] !== undefined, "Invalid ConstantPool reference.");
+    return this.constantPool[idx];
+  }
+
+  public each(fn: (idx: number, item: IConstantPoolItem) => void): void {
+    this.constantPool.forEach((item: IConstantPoolItem, idx: number) => {
+      if (item !== undefined) {
+        fn(idx, item);
+      }
+    });
   }
 }

@@ -1,17 +1,15 @@
 /// <reference path="../vendor/DefinitelyTyped/node/node.d.ts" />
 /// <reference path="../vendor/DefinitelyTyped/gruntjs/gruntjs.d.ts" />
+/// <reference path="../vendor/DefinitelyTyped/async/async.d.ts" />
 import child_process = require('child_process');
 import os = require('os');
-import path = require('path');
-import fs = require('fs');
-var async = require('async');
+import async = require('async');
 
-function unit_test(grunt: IGrunt) {
+function unitTest(grunt: IGrunt) {
 	grunt.registerMultiTask('unit_test', 'Run doppio unit tests.', function() {
-    var files: {src: string[]; dest: string}[] = this.files,
-        done: (status?: boolean) => void = this.async(),
-        tasks: Function[] = [],
-        options = this.options({args:[], secondary_file: ""});
+    var files: { src: string[]; dest: string }[] = this.files,
+      done: (status?: boolean) => void = this.async(),
+      tasks: Function[] = [], testFailed = false;
     // Delete failures.txt if it exists.
     if (grunt.file.exists('classes/test/failures.txt')) {
       grunt.file.delete('classes/test/failures.txt');
@@ -19,10 +17,11 @@ function unit_test(grunt: IGrunt) {
     files.forEach(function(file: {src: string[]; dest: string}) {
       tasks.push(function(cb: (err?: any) => void) {
         // Strip '.java'
-        var name_no_ext = file.src[0].slice(0, -5);
-        child_process.exec('node build/release-cli/console/test_runner.js ' + name_no_ext + ' --makefile', function(err?: any, stdout?: NodeBuffer, stderr?: NodeBuffer) {
+        var nameNoExt = file.src[0].slice(0, -5),
+          cProcess = child_process.exec('node build/release-cli/console/test_runner.js ' + nameNoExt + ' --makefile', function (err?: any, stdout?: Buffer, stderr?: Buffer) {
           if (err) {
             grunt.log.write(stdout.toString() + stderr.toString());
+            testFailed = true;
           } else {
             grunt.log.write(stdout.toString());
           }
@@ -37,9 +36,9 @@ function unit_test(grunt: IGrunt) {
       if (grunt.file.exists('classes/test/failures.txt')) {
         grunt.log.writeln(grunt.file.read('classes/test/failures.txt'));
       }
-      done();
+      done(!testFailed);
     });
   });
 }
 
-(module).exports = unit_test;
+export = unitTest;

@@ -11,7 +11,7 @@ require('source-map-support').install({
 
 // Default options.
 var opts: testing.TestOptions = {
-  bootstrapClasspath: [path.resolve(__dirname, path.join('..', 'vendor', 'classes'))],
+  bootstrapClasspath: [path.resolve(__dirname, path.join('..', 'vendor', 'java_home', 'classes'))],
   javaHomePath: path.resolve(__dirname, path.join('..', 'vendor', 'java_home')),
   extractionPath: path.resolve(os.tmpDir(), 'doppio_jars'),
   classpath: null,
@@ -20,7 +20,16 @@ var opts: testing.TestOptions = {
   hideDiffs: false,
   quiet: false,
   keepGoing: false
-};
+}, passChar: string, failChar: string;
+
+if (process.platform.match(/win32/i)) {
+  // Windows command prompt doesn't support Unicode characters.
+  passChar = "√";
+  failChar = "X";
+} else {
+  passChar = '✓';
+  failChar = '✗';
+}
 
 function makefileTest(argv): void {
   var failpath = path.resolve(__dirname, '../classes/test/failures.txt'),
@@ -40,11 +49,13 @@ function makefileTest(argv): void {
   testing.runTests(opts, (success: boolean): void => {
     // Patch stdout back up.
     process.stdout.write = old_write;
-    process.stdout.write(success ? '✓' : '✗');
+    process.stdout.write(success ? passChar : failChar);
     if (!success) {
       fs.writeSync(outfile, new Buffer('\n'), 0, 1, null);
     }
     fs.closeSync(outfile);
+    // Error code in the event of a failed test.
+    process.exit(success ? 0 : 1);
   });
 }
 

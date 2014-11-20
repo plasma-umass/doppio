@@ -5,7 +5,7 @@ import enums = require('./enums');
 // default module: logging
 
 // used for debugging the stack and local variables
-function debug_var(e: any): string {
+export function debug_var(e: any): string {
   if (e === null) {
     return '!';
   } else if (e === void 0) {
@@ -102,4 +102,3 @@ export function debug(...msgs: any[]): void {
 export function error(...msgs: any[]): void {
   log(ERROR, msgs);
 }
-

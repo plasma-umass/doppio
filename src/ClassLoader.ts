@@ -374,7 +374,7 @@ export class ClassLoader {
   public initializeClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
     // Get the resolved class.
     this.resolveClass(thread, typeStr, (cdata: ClassData.ClassData) => {
-      if (cdata === null || cdata.is_initialized() || this.initializeClassLocks.getOwner(typeStr) === thread) {
+      if (cdata === null || cdata.is_initialized(thread)) {
         // Nothing to do! Either resolution failed and an exception has already
         // been thrown, cdata is already initialized, or the current thread is
         // initializing the class.
@@ -698,29 +698,29 @@ export class BootstrapClassLoader extends ClassLoader {
    * Uses BrowserFS to mount the jar file in the file system, allowing us to
    * lazily extract only the files we care about.
    */
-  private unzipJarBrowser(jar_path: string, cb: (err: any, unzip_path?: string) => void): void {
-    var dest_folder: string = path.resolve(this.extractionPath, path.basename(jar_path, '.jar')),
+  private unzipJarBrowser(jarPath: string, cb: (err: any, unzipPath?: string) => void): void {
+    var destFolder: string = path.resolve(this.extractionPath, path.basename(jarPath, '.jar')),
       mfs = (<any>fs).getRootFS();
     // In case we have mounted this before, unmount.
     try {
-      mfs.umount(dest_folder);
+      mfs.umount(destFolder);
     } catch (e) {
       // We didn't mount it before. Ignore.
     }
 
     // Grab the file.
-    fs.readFile(jar_path, function (err: any, data: NodeBuffer) {
-      var jar_fs;
+    fs.readFile(jarPath, function (err: any, data: Buffer) {
+      var jarFS;
       if (err) {
         // File might not have existed, or there was an error reading it.
         return cb(err);
       }
       // Try to mount.
       try {
-        jar_fs = new BrowserFS.FileSystem.ZipFS(data, path.basename(jar_path));
-        mfs.mount(dest_folder, jar_fs);
+        jarFS = new BrowserFS.FileSystem.ZipFS(data, path.basename(jarPath));
+        mfs.mount(destFolder, jarFS);
         // Success!
-        cb(null, dest_folder);
+        cb(null, destFolder);
       } catch (e) {
         cb(e);
       }
@@ -730,16 +730,18 @@ export class BootstrapClassLoader extends ClassLoader {
   /**
    * Helper function for unzip_jar_node.
    */
-  private _extractAllTo(files: any[], dest_dir: string): void {
+  private _extractAllTo(files: { [filePath: string]: any }, dest_dir: string): void {
     for (var filepath in files) {
-      var file = files[filepath];
-      filepath = path.join(dest_dir, filepath);
-      if (file.options.dir || filepath.slice(-1) === '/') {
-        if (!fs.existsSync(filepath)) {
-          fs.mkdirSync(filepath);
+      if (files.hasOwnProperty(filepath)) {
+        var file = files[filepath];
+        filepath = path.join(dest_dir, filepath);
+        if (file.options.dir || filepath.slice(-1) === '/') {
+          if (!fs.existsSync(filepath)) {
+            fs.mkdirSync(filepath);
+          }
+        } else {
+          fs.writeFileSync(filepath, file._data, 'binary');
         }
-      } else {
-        fs.writeFileSync(filepath, file._data, 'binary');
       }
     }
   }
@@ -747,7 +749,7 @@ export class BootstrapClassLoader extends ClassLoader {
   /**
    * Uses JSZip to eagerly extract the entire JAR file into a temporary folder.
    */
-  private unzipJarNode(jar_path: string, cb: (err: any, unzip_path?: string) => void): void {
+  private unzipJarNode(jar_path: string, cb: (err: any, unzipPath?: string) => void): void {
     var JSZip = require('node-zip'),
       unzipper = new JSZip(fs.readFileSync(jar_path, 'binary'), {
         base64: false,
@@ -782,14 +784,20 @@ export class BootstrapClassLoader extends ClassLoader {
       loadedClassFiles = [];
     util.async_foreach<string>(loadedClasses, (className: string, next_item: (err?: any) => void) => {
       if (util.is_reference_type(className)) {
+        var classFileName = util.descriptor2typestr(className) + ".class";
         // Figure out from whence it came.
         util.async_foreach<string>(this.classPath, (cPath: string, next_cpath: (err?: any) => void) => {
-          var pathToClass = path.resolve(cPath, className);
+          var pathToClass = path.resolve(cPath, classFileName);
           fs.exists(pathToClass, (exists: boolean) => {
             if (exists) {
-              loadedClassFiles.push(pathToClass);
-              // Short circuit.
-              next_item();
+              // Get the real path to this file (resolves symbolic links).
+              fs.realpath(pathToClass, (err: any, realPath: string) => {
+                if (!err) {
+                  loadedClassFiles.push(realPath);
+                  // Short circuit.
+                  next_item();
+                }
+              });
             } else {
               next_cpath();
             }

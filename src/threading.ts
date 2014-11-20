@@ -10,6 +10,7 @@ import attributes = require('./attributes');
 import logging = require('./logging');
 import JVM = require('./jvm');
 import util = require('./util');
+import ConstantPool = require('./ConstantPool');
 
 var debug = logging.debug, vtrace = logging.vtrace,
   // The number of method resumes we should allow before yielding for
@@ -63,13 +64,15 @@ export class BytecodeStackFrame implements IStackFrame {
   public stack: any[] = [];
   public returnToThreadLoop: boolean = false;
   public lockedMethodLock: boolean = false;
+  public method: methods.Method;
 
   /**
    * Constructs a bytecode method's stack frame.
    * @param method The bytecode method to run.
    * @param args The arguments to pass to the bytecode method.
    */
-  constructor(public method: methods.Method, args: any[]) {
+  constructor(method: methods.Method, args: any[]) {
+    this.method = method;
     assert(!method.access_flags.native, 'Cannot run a native method using a BytecodeStackFrame.');
     // @todo This should be a runtime error, since reflection can cause you to
     // try to do this.
@@ -78,10 +81,15 @@ export class BytecodeStackFrame implements IStackFrame {
   }
 
   public run(thread: JVMThread): void {
-    var method = this.method, code = this.method.getCode();
+    var method = this.method, code = this.method.getCodeAttribute().getCode(),
+      opcodeTable = opcodes.LookupTable;
     if (this.pc === 0) {
-      vtrace("T" + thread.ref + " " + this.method.full_signature() + " [Bytecode]");
+      vtrace("\nT" + thread.ref + " D" + thread.getStackTrace().length + " Running " + this.method.full_signature() + " [Bytecode]:");
+    } else {
+      vtrace("\nT" + thread.ref + " D" + thread.getStackTrace().length + " Resuming " + this.method.full_signature() + ":" + this.pc + " [Bytecode]:");
     }
+    vtrace("  S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "]");
+
     if (method.access_flags.synchronized && !this.lockedMethodLock) {
       // We are starting a synchronized method! These must implicitly enter
       // their respective locks.
@@ -101,21 +109,39 @@ export class BytecodeStackFrame implements IStackFrame {
     // from the previous time this method was run, and is meaningless.
     this.returnToThreadLoop = false;
 
-    vtrace("T" + thread.ref + " Resuming " + this.method.full_signature() + ":" + this.pc + " [Bytecode]");
-    vtrace("T" + thread.ref + " BEFORE: D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
     // Run until we get the signal to return to the thread loop.
     while (!this.returnToThreadLoop) {
-      var op = code[this.pc];
-      vtrace("T" + thread.ref + " D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
-      vtrace("T" + thread.ref + " " + method.cls.get_type() + "::" + method.name + ":" + this.pc + " => " + op.name + op.annotate(this.pc, method.cls.constant_pool));
-      op.execute(thread, this);
+      var op = code.readUInt8(this.pc);
+      vtrace("  " + this.pc + " " + annotateOpcode(op, this, code, this.pc) + " [" + op + "]");
+      opcodeTable[op](thread, this, code, this.pc);
+      if (!this.returnToThreadLoop) {
+        vtrace("    S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "]");
+      }
     }
-    vtrace("T" + thread.ref + " AFTER: D: " + thread.getStackTrace().length + ", S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "], T: " + thread.ref);
   }
 
   public scheduleResume(thread: JVMThread, rv?: any, rv2?: any): void {
     // Advance to the next opcode.
-    this.method.getCode()[this.pc].incPc(this);
+    var prevOp = this.method.getCodeAttribute().getCode().readUInt8(this.pc);
+    switch (prevOp) {
+      case enums.OpCode.INVOKEINTERFACE:
+      case enums.OpCode.INVOKEINTERFACE_FAST:
+        this.pc += 5;
+        break;
+      case enums.OpCode.INVOKESPECIAL:
+      case enums.OpCode.INVOKESTATIC:
+      case enums.OpCode.INVOKEVIRTUAL:
+      case enums.OpCode.INVOKESTATIC_FAST:
+      case enums.OpCode.INVOKESPECIAL_FAST:
+      case enums.OpCode.INVOKEVIRTUAL_FAST:
+        this.pc += 3;
+        break;
+      default:
+        // Should be impossible.
+        assert(false, "Resuming from a non-invoke opcode! Opcode: " + enums.OpCode[prevOp] + " [" + prevOp + "]");
+        break;
+    }
+
     if (rv !== undefined) {
       this.stack.push(rv);
     }
@@ -133,11 +159,10 @@ export class BytecodeStackFrame implements IStackFrame {
    * in the event that it can't actually handle it.
    */
   public scheduleException(thread: JVMThread, e: java_object.JavaObject): boolean {
-    var code = this.method.getCodeAttribute(),
-      opcodes: opcodes.Opcode[] = this.method.getCode(),
+    var codeAttr = this.method.getCodeAttribute(),
       pc = this.pc, method = this.method,
       // STEP 1: See if we can find an appropriate handler for this exception!
-      exceptionHandlers = code.exception_handlers,
+      exceptionHandlers = codeAttr.exception_handlers,
       ecls = e.cls, handler: attributes.ExceptionHandler, i: number;
     for (i = 0; i < exceptionHandlers.length; i++) {
       var eh = exceptionHandlers[i];
@@ -162,7 +187,7 @@ export class BytecodeStackFrame implements IStackFrame {
               }
             });
             thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-            method.cls.loader.resolveClasses(thread, handlerClasses, (classes) => {
+            method.cls.loader.resolveClasses(thread, handlerClasses, (classes: { [name: string]: ClassData.ClassData; }) => {
               if (classes !== null) {
                 // Rethrow the exception to trigger scheduleException again.
                 // @todo If the ClassLoader throws an exception during resolution,
@@ -223,13 +248,17 @@ export class BytecodeStackFrame implements IStackFrame {
  */
 class NativeStackFrame implements IStackFrame {
   private nativeMethod: Function;
+  public method: methods.Method;
+  private args: any[];
 
   /**
    * Constructs a native method's stack frame.
    * @param method The native method to run.
    * @param args The arguments to pass to the native method.
    */
-  constructor(public method: methods.Method, private args: any[]) {
+  constructor(method: methods.Method, args: any[]) {
+    this.method = method;
+    this.args = args;
     assert(method.access_flags.native);
     this.nativeMethod = method.getNativeFunction();
   }
@@ -239,7 +268,7 @@ class NativeStackFrame implements IStackFrame {
    * NOTE: Should only be called once.
    */
   public run(thread: JVMThread): void {
-    vtrace("T" + thread.ref + " " + this.method.full_signature() + " [Native Code]");
+    vtrace("\nT" + thread.ref + " D" + thread.getStackTrace().length + " Running " + this.method.full_signature() + " [Native]:");
     var rv: any = this.nativeMethod.apply(null, this.method.convertArgs(thread, this.args));
     // Ensure thread is running, and we are the running method.
     if (thread.getStatus() === enums.ThreadStatus.RUNNING && thread.currentMethod() === this.method) {
@@ -297,12 +326,14 @@ class NativeStackFrame implements IStackFrame {
 class InternalStackFrame implements IStackFrame {
   private isException: boolean = false;
   private val: any;
+  private cb: (e?: java_object.JavaObject, rv?: any) => void;
 
   /**
    * @param cb Callback function. Called with an exception if one occurs, or
    *   the return value from the called method, if relevant.
    */
-  constructor(private cb: (e?: java_object.JavaObject, rv?: any) => void) {
+  constructor(cb: (e?: java_object.JavaObject, rv?: any) => void) {
+    this.cb = cb;
   }
 
   public run(thread: JVMThread): void {
@@ -356,9 +387,13 @@ export class ThreadPool {
    * execution has finished, and the JVM should be terminated.
    */
   private emptyCallback: () => void;
+  private jvm: JVM;
+  private bsCl: ClassLoader.BootstrapClassLoader;
 
-  constructor(private jvm: JVM, private bsCl: ClassLoader.BootstrapClassLoader,
+  constructor(jvm: JVM, bsCl: ClassLoader.BootstrapClassLoader,
     emptyCallback: () => void) {
+    this.jvm = jvm;
+    this.bsCl = bsCl;
     this.emptyCallback = emptyCallback;
   }
 
@@ -396,16 +431,16 @@ export class ThreadPool {
   private scheduleNextThread(): void {
     // Reset stack depth, start at beginning of new JS event.
     setImmediate(() => {
-      var i: number, i_fixed: number, threads = this.threads, thread: JVMThread;
+      var i: number, iFixed: number, threads = this.threads, thread: JVMThread;
       if (this.runningThread == null) {
         for (i = 0; i < threads.length; i++) {
           // Cycle through the threads, starting at the thread just past the
           // previously-run thread. (Round Robin scheduling algorithm)
-          i_fixed = (this.runningThreadIndex + 1 + i) % threads.length;
-          thread = threads[i_fixed];
+          iFixed = (this.runningThreadIndex + 1 + i) % threads.length;
+          thread = threads[iFixed];
           if (thread.getStatus() === enums.ThreadStatus.RUNNABLE) {
             this.runningThread = thread;
-            this.runningThreadIndex = i_fixed;
+            this.runningThreadIndex = iFixed;
             thread.setStatus(enums.ThreadStatus.RUNNING);
             break;
           }
@@ -514,13 +549,17 @@ export class JVMThread extends java_object.JavaObject {
    * monitor that is involved.
    */
   private monitor: java_object.Monitor = null;
+  private bsCl: ClassLoader.BootstrapClassLoader;
+  private tpool: ThreadPool;
 
   /**
    * Initializes a new JVM thread. Starts the thread in the NEW state.
    */
-  constructor(private bsCl: ClassLoader.BootstrapClassLoader,
-    private tpool: ThreadPool, cls: ClassData.ReferenceClassData, obj?: any) {
+  constructor(bsCl: ClassLoader.BootstrapClassLoader, tpool: ThreadPool,
+    cls: ClassData.ReferenceClassData, obj?: any) {
     super(cls, obj);
+    this.bsCl = bsCl;
+    this.tpool = tpool;
   }
 
   /**
@@ -599,7 +638,7 @@ export class JVMThread extends java_object.JavaObject {
         }
         if (table != null) {
           var lastLine: number = -1, lastPc: number = -1;
-          table.entries.forEach((entry) => {
+          table.entries.forEach((entry: { start_pc: number; line_number: number }) => {
             if (entry.start_pc < trace.pc && lastPc < entry.start_pc) {
               lastPc = entry.start_pc;
               lastLine = entry.line_number;
@@ -621,7 +660,6 @@ export class JVMThread extends java_object.JavaObject {
    * The thread's main execution loop. Everything starts here!
    */
   private run(): void {
-    // console.log("Thread " + this.ref + " is now running!");
     var stack = this.stack,
       startTime: number = (new Date()).getTime(),
       endTime: number,
@@ -645,8 +683,6 @@ export class JVMThread extends java_object.JavaObject {
         setImmediate(() => { this.setStatus(enums.ThreadStatus.RUNNABLE); });
       }
     }
-
-    // console.log("Thread " + this.ref + " is suspending: " + enums.ThreadStatus[this.status]);
 
     if (stack.length === 0) {
       // This thread has finished!
@@ -705,14 +741,14 @@ export class JVMThread extends java_object.JavaObject {
     // Ignore RUNNING => RUNNABLE transitions.
     if (this.status !== status && !(this.status === enums.ThreadStatus.RUNNING && status === enums.ThreadStatus.RUNNABLE)) {
       var oldStatus = this.status;
-      vtrace("T" + this.ref + " " + enums.ThreadStatus[oldStatus] + " => " + enums.ThreadStatus[status]);
+      vtrace("\nT" + this.ref + " " + enums.ThreadStatus[oldStatus] + " => " + enums.ThreadStatus[status]);
       assert(validateThreadTransition(oldStatus, status), "Invalid thread transition: " + enums.ThreadStatus[oldStatus] + " => " + enums.ThreadStatus[status]);
 
       // Optimistically change state.
       this.rawSetStatus(status);
       this.monitor = null;
 
-      /** Pre-transition actions **/
+      /* Pre-transition actions */
       switch (oldStatus) {
         case enums.ThreadStatus.TERMINATED:
           // Resurrect thread.
@@ -724,7 +760,7 @@ export class JVMThread extends java_object.JavaObject {
           break;
       }
 
-      /** Post-transition actions **/
+      /* Post-transition actions */
       switch (this.status) {
         case enums.ThreadStatus.RUNNABLE:
           // Tell the threadpool we're ready to run.
@@ -852,6 +888,19 @@ export class JVMThread extends java_object.JavaObject {
     var frame = stack.pop();
     if (frame.type != enums.StackFrameType.INTERNAL) {
       var frameCast = <BytecodeStackFrame> frame;
+      if (frame.type === enums.StackFrameType.BYTECODE) {
+        // This line will be preceded by a line that prints the method, so can be short n' sweet.
+        if (frameCast.method.return_type !== 'V') {
+          vtrace("  Returning: " + logging.debug_var(rv));
+        }
+      } else {
+        // Native methods can asyncReturn at any point, so print more information.
+        vtrace("T" + this.ref + " D" + (this.getStackTrace().length + 1) + " Returning value from " + frameCast.method.full_signature() + " [Native]: " + (frameCast.method.return_type === 'V' ? 'void' : logging.debug_var(rv)));
+      }
+
+      if (frameCast.method.return_type !== 'V') {
+        vtrace("\nT" + this.ref + " D" + (this.getStackTrace().length + 1) + " Returning value from " + frameCast.method.full_signature() + " [" + (frameCast.method.access_flags.native ? 'Native' : 'Bytecode') + "]: " + logging.debug_var(rv));
+      }
       assert(validateReturnValue(this, frameCast.method,
         frameCast.method.return_type, this.bsCl,
         frameCast.method.cls.get_class_loader(), rv, rv2), "Invalid return value for method " + frameCast.method.full_signature());
@@ -934,7 +983,7 @@ export class JVMThread extends java_object.JavaObject {
           cnstrctr = cls.method_lookup(this, '<init>(Ljava/lang/String;)V');
 
         // Construct the exception, and throw it when done.
-        this.runMethod(cnstrctr, [e, java_object.initString(this.bsCl, msg)], (err?, rv?) => {
+        this.runMethod(cnstrctr, [e, java_object.initString(this.bsCl, msg)], (err?: java_object.JavaObject, rv?: any) => {
           if (err) {
             this.throwException(err);
           } else {
@@ -1048,7 +1097,7 @@ function validateReturnValue(thread: JVMThread, method: methods.Method, returnTy
           break;
         case 'J': // long //-9223372036854775808 to 9223372036854775807
           assert(rv2 === null);
-          assert((<gLong>rv1).lessThanOrEqual(gLong.MAX_VALUE) && (<gLong>rv1).greaterThanOrEqual(gLong.MIN_VALUE));
+          assert((<gLong> rv1).lessThanOrEqual(gLong.MAX_VALUE) && (<gLong> rv1).greaterThanOrEqual(gLong.MIN_VALUE));
           break;
         case 'F': // Float
           assert(rv2 === undefined);
@@ -1100,4 +1149,44 @@ function validateReturnValue(thread: JVMThread, method: methods.Method, returnTy
     return false;
   }
   return true;
+}
+
+function printConstantPoolItem(cpi: ConstantPool.IConstantPoolItem): string {
+  switch (cpi.getType()) {
+    case enums.ConstantPoolItemType.METHODREF:
+      var cpiMR = <ConstantPool.MethodReference> cpi;
+      return util.ext_classname(cpiMR.classInfo.name) + "." + cpiMR.methodSignature;
+    case enums.ConstantPoolItemType.INTERFACE_METHODREF:
+      var cpiIM = <ConstantPool.InterfaceMethodReference> cpi;
+      return util.ext_classname(cpiIM.classInfo.name) + "." + cpiIM.methodSignature;
+    case enums.ConstantPoolItemType.FIELDREF:
+      var cpiFR = <ConstantPool.FieldReference> cpi;
+      return util.ext_classname(cpiFR.classInfo.name) + "." + cpiFR.fieldName + ":" + util.ext_classname(cpiFR.nameAndTypeInfo.descriptor);
+    case enums.ConstantPoolItemType.NAME_AND_TYPE:
+      var cpiNAT = <ConstantPool.NameAndTypeInfo> cpi;
+      return cpiNAT.name + ":" + cpiNAT.descriptor;
+    case enums.ConstantPoolItemType.CLASS:
+      var cpiClass = <ConstantPool.ClassReference> cpi;
+      return util.ext_classname(cpiClass.name);
+    default:
+      return logging.debug_var((<any> cpi).value);
+  }
+}
+
+// TODO: Prefix behind DEBUG, cache lowercase opcode names.
+export var OpcodeLayoutPrinters: {[layoutAtom: number]: (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => string} = {};
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.OPCODE_ONLY] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase();
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.CONSTANT_POOL] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + printConstantPoolItem(frame.method.cls.constant_pool.get(code.readUInt16BE(pc + 1)));
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.CONSTANT_POOL_UINT8] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + printConstantPoolItem(frame.method.cls.constant_pool.get(code.readUInt8(pc + 1)));
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.CONSTANT_POOL_AND_UINT8_VALUE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + printConstantPoolItem(frame.method.cls.constant_pool.get(code.readUInt16BE(pc + 1))) + " " + code.readUInt8(pc + 3);
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.UINT8_VALUE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readUInt8(pc + 1);
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.UINT8_AND_INT8_VALUE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readUInt8(pc + 1) + " " + code.readInt8(pc + 2);
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.INT8_VALUE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readInt8(pc + 1);
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.INT16_VALUE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readInt16BE(pc + 1);
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.INT32_VALUE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readInt32BE(pc + 1);
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.ARRAY_TYPE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + opcodes.ArrayTypes[code.readUInt8(pc + 1)];
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.WIDE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase();
+
+function annotateOpcode(op: number, frame: BytecodeStackFrame, code: NodeBuffer, pc: number): string {
+  return OpcodeLayoutPrinters[enums.OpcodeLayouts[op]](frame, code, pc);
 }

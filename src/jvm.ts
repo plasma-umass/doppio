@@ -2,23 +2,19 @@
 "use strict";
 import util = require('./util');
 import SafeMap = require('./SafeMap');
-import logging = require('./logging');
 import methods = require('./methods');
 import ClassData = require('./ClassData');
 import ClassLoader = require('./ClassLoader');
 import fs = require('fs');
 import path = require('path');
-import JAR = require('./jar');
 import java_object = require('./java_object');
 import threading = require('./threading');
 import enums = require('./enums');
 import Heap = require('./heap');
 import assert = require('./assert');
 import interfaces = require('./interfaces');
-declare var requirejs;
+declare var requirejs: any;
 
-var trace = logging.trace;
-var error = logging.error;
 // XXX: We currently initialize these classes at JVM bootup. This is expensive.
 // We should attempt to prune this list as much as possible.
 var coreClasses = [
@@ -27,20 +23,9 @@ var coreClasses = [
   'Ljava/lang/reflect/Constructor;', 'Ljava/lang/reflect/Field;',
   'Ljava/lang/reflect/Method;',
   'Ljava/lang/Error;', 'Ljava/lang/StackTraceElement;',
-  'Ljava/io/FileNotFoundException;', 'Ljava/io/IOException;',
-  'Ljava/io/Serializable;',
-  'Ljava/lang/ArithmeticException;',
-  'Ljava/lang/ArrayIndexOutOfBoundsException;',
-  'Ljava/lang/ArrayStoreException;', 'Ljava/lang/ClassCastException;',
-  'Ljava/lang/ClassNotFoundException;', 'Ljava/lang/NoClassDefFoundError;',
-  'Ljava/lang/Cloneable;', 'Ljava/lang/ExceptionInInitializerError;',
-  'Ljava/lang/IllegalMonitorStateException;',
-  'Ljava/lang/InterruptedException;',
-  'Ljava/lang/NegativeArraySizeException;', 'Ljava/lang/NoSuchFieldError;',
-  'Ljava/lang/NoSuchMethodError;', 'Ljava/lang/NullPointerException;',
   'Ljava/lang/System;', 'Ljava/lang/Thread;',
   'Ljava/lang/ThreadGroup;', 'Ljava/lang/Throwable;',
-  'Ljava/lang/UnsatisfiedLinkError;', 'Ljava/nio/ByteOrder;',
+  'Ljava/nio/ByteOrder;',
   'Lsun/misc/VM;', 'Lsun/reflect/ConstantPool;', 'Ljava/lang/Byte;',
   'Ljava/lang/Character;', 'Ljava/lang/Double;', 'Ljava/lang/Float;',
   'Ljava/lang/Integer;', 'Ljava/lang/Long;', 'Ljava/lang/Short;',
@@ -61,9 +46,9 @@ class JVM {
   private natives: { [clsName: string]: { [methSig: string]: Function } } = {};
   // 20MB heap
   // @todo Make heap resizeable.
-  private heap = new Heap(20 * 1024 * 1024);
+  private heap: Heap = new Heap(20 * 1024 * 1024);
   private nativeClasspath: string[];
-  private startupTime = new Date();
+  private startupTime: Date = new Date();
   private terminationCb: (success: boolean) => void = null;
   // The initial JVM thread used to kick off execution.
   private firstThread: threading.JVMThread;
@@ -85,14 +70,14 @@ class JVM {
     /**
      * Task #1: Initialize native methods.
      */
-    bootupTasks.push((next: (err?: any) => void) => {
+    bootupTasks.push((next: (err?: any) => void): void => {
       this.initializeNatives(next);
     });
 
     /**
      * Task #2: Construct the bootstrap class loader.
      */
-    bootupTasks.push((next: (err?: any) => void) => {
+    bootupTasks.push((next: (err?: any) => void): void => {
       this.bsCl =
         new ClassLoader.BootstrapClassLoader(bootstrapClasspath.concat(opts.classpath),
           opts.extractionPath, next);
@@ -102,8 +87,8 @@ class JVM {
      * Task #3: Construct the thread pool, resolve thread class, and construct
      * the first thread.
      */
-    bootupTasks.push((next: (err?: any) => void) => {
-      this.threadPool = new threading.ThreadPool(this, this.bsCl, () => {
+    bootupTasks.push((next: (err?: any) => void): void => {
+      this.threadPool = new threading.ThreadPool(this, this.bsCl, (): void => {
         this.emptyThreadPool();
       });
       // Resolve Ljava/lang/Thread so we can fake a thread.
@@ -114,7 +99,7 @@ class JVM {
           // Failed.
           next("Failed to resolve java/lang/Thread.");
         } else {
-          //Fake a thread.
+          // Fake a thread.
           firstThread = this.firstThread = this.threadPool.newThread(cdata);
           next();
         }
@@ -125,9 +110,10 @@ class JVM {
      * Task #4: Preinitialize some essential JVM classes, and initializes the
      * JVM's ThreadGroup once that class is initialized.
      */
-    bootupTasks.push((next: (err?: any) => void) => {
+    bootupTasks.push((next: (err?: any) => void): void => {
       util.async_foreach<string>(coreClasses, (coreClass: string, next_item: (err?: any) => void) => {
         this.bsCl.initializeClass(firstThread, coreClass, (cdata: ClassData.ClassData) => {
+          var cnstrctr: methods.Method;
           if (cdata == null) {
             next_item("Failed to initialize " + coreClass);
           } else {
@@ -136,9 +122,9 @@ class JVM {
             if (coreClass === 'Ljava/lang/ThreadGroup;') {
               // Construct a ThreadGroup object for the first thread.
               var threadGroupCls = <ClassData.ReferenceClassData> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/ThreadGroup;'),
-                groupObj = new java_object.JavaObject(threadGroupCls),
-                cnstrctr = threadGroupCls.method_lookup(firstThread, '<init>()V');
-              firstThread.runMethod(cnstrctr, [groupObj], (e?, rv?) => {
+                groupObj = new java_object.JavaObject(threadGroupCls);
+              cnstrctr = threadGroupCls.method_lookup(firstThread, '<init>()V');
+              firstThread.runMethod(cnstrctr, [groupObj], (e?: java_object.JavaObject, rv?: any) => {
                 // Initialize the fields of our firstThread to make it real.
                 firstThread.set_field(firstThread, 'Ljava/lang/Thread;name', java_object.initCarr(this.bsCl, 'main'));
                 firstThread.set_field(firstThread, 'Ljava/lang/Thread;priority', 1);
@@ -149,9 +135,9 @@ class JVM {
               });
             } else if (coreClass === 'Ljava/lang/Thread;') {
               // Make firstThread a *real* thread.
-              var threadCls = <ClassData.ReferenceClassData> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/Thread;'),
-                cnstrctr = threadCls.method_lookup(firstThread, '<init>()V');
-              firstThread.runMethod(cnstrctr, [firstThread], (e?, rv?) => {
+              var threadCls = <ClassData.ReferenceClassData> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/Thread;');
+              cnstrctr = threadCls.method_lookup(firstThread, '<init>()V');
+              firstThread.runMethod(cnstrctr, [firstThread], (e?: java_object.JavaObject, rv?: any) => {
                 next_item();
               });
             } else {
@@ -165,14 +151,14 @@ class JVM {
     /**
      * Task #5: Initialize the system class.
      */
-    bootupTasks.push((next: (err?: any) => void) => {
+    bootupTasks.push((next: (err?: any) => void): void => {
       // Initialize the system class (initializes things like println/etc).
       var sysInit = this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/System;').get_method('initializeSystemClass()V');
       firstThread.runMethod(sysInit, [], next);
     });
 
     // Perform bootup tasks, and then trigger the callback function.
-    util.asyncSeries(bootupTasks, (err?: any) => {
+    util.asyncSeries(bootupTasks, (err?: any): void => {
       if (err) {
         cb(err);
       } else {
@@ -215,7 +201,7 @@ class JVM {
         thread.runMethod(method, [jvmifiedArgs]);
       } else {
         // There was an error.
-        cb(false);
+        this.terminationCb = cb;
       }
     });
   }
@@ -228,7 +214,7 @@ class JVM {
    *   the JVM exited normally, 'false' if there was an error.
    */
   public runJar(jarFilePath: string, args: string[], cb: (result: boolean) => void): void {
-    this.bsCl.addClassPathItem(jarFilePath, (success) => {
+    this.bsCl.addClassPathItem(jarFilePath, (success: boolean) => {
       if (!success) {
         cb(success);
       } else {
@@ -299,6 +285,7 @@ class JVM {
       return requirejs(moduleName);
     };
     (() => {
+      /* tslint:disable:no-unused-variable */
       /**
        * Called by the native method file. Registers the package's native
        * methods with the JVM.
@@ -339,6 +326,7 @@ class JVM {
         module.apply(null, args);
       }
       eval(mod);
+      /* tslint:enable:no-unused-variable */
     })();
     return rv;
   }
@@ -402,38 +390,41 @@ class JVM {
    * Currently a hack around our classloader.
    * @todo Make neater with util.async stuff.
    */
-  private initializeNatives(done_cb: () => void): void {
-    var next_dir = () => {
+  private initializeNatives(doneCb: () => void): void {
+    var nextDir = () => {
       if (i === this.nativeClasspath.length) {
         // Next phase: Load up the files.
-        var count: number = process_files.length;
-        process_files.forEach((file) => {
-          fs.readFile(file, (err, data) => {
-            if (!err)
+        var count: number = processFiles.length;
+        processFiles.forEach((file: string) => {
+          fs.readFile(file, (err: any, data: NodeBuffer) => {
+            if (!err) {
               this.registerNatives(this.evalNativeModule(data.toString()));
+            }
             if (--count === 0) {
-              done_cb();
+              doneCb();
             }
           });
         });
       } else {
         var dir = this.nativeClasspath[i++];
-        fs.readdir(dir, (err, files) => {
-          if (err) return done_cb();
+        fs.readdir(dir, (err: any, files: string[]) => {
+          if (err) {
+            return doneCb();
+          }
 
           var j: number, file: string;
           for (j = 0; j < files.length; j++) {
             file = files[j];
             if (file.substring(file.length - 3, file.length) === '.js') {
-              process_files.push(path.join(dir, file));
+              processFiles.push(path.join(dir, file));
             }
           }
-          next_dir();
+          nextDir();
         });
       }
-    }, i: number = 0, process_files: string[] = [];
+    }, i: number = 0, processFiles: string[] = [];
 
-    next_dir();
+    nextDir();
   }
 
   /**
