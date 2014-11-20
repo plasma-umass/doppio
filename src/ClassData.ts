@@ -438,7 +438,7 @@ export class ReferenceClassData extends ClassData {
     var f = this.fl_cache[name];
     if (f != null && f.access_flags["static"]) {
       var cva = <attributes.ConstantValue> f.get_attribute('ConstantValue'),
-        cv = null;
+        cv: any = null;
       if (cva != null) {
         switch (cva.value.getType()) {
           case enums.ConstantPoolItemType.STRING:

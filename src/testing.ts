@@ -10,8 +10,8 @@ import interfaces = require('./interfaces');
  * Variables and code for hooking into standard output.
  */
 var testOutput: string = '',
-  stdoutWrite,
-  stderrWrite,
+  stdoutWrite: typeof process.stdout.write,
+  stderrWrite: typeof process.stderr.write,
   newWrite = function(data: any, arg2?: any, arg3?: any): boolean {
     if (typeof(data) !== 'string') {
       // Buffer.

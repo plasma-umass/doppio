@@ -218,7 +218,7 @@ export class Method extends AbstractMethodField {
     var return_str = match[2];
     var param_carr = param_str.split('');
     this.param_types = [];
-    var field;
+    var field: string;
     while (field = util.carr2descriptor(param_carr)) {
       this.param_types.push(field);
     }
@@ -330,7 +330,7 @@ export class Method extends AbstractMethodField {
         var byte_arr_cls = <ClassData.ArrayClassData> bsCl.getInitializedClass(thread, '[B');
         var cls = <ClassData.ReferenceClassData> bsCl.getInitializedClass(thread, typestr);
         var param_type_objs: java_object.JavaClassObject[] = [];
-        var i;
+        var i: number;
         for (i = 0; i < this.param_types.length; i++) {
           param_type_objs.push(classes[this.param_types[i]].get_class_object(thread));
         }

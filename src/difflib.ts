@@ -33,7 +33,7 @@ export function text_diff(a_lines: string[], b_lines: string[], context: number)
 }
 
 // comparison function for sorting lists of numeric tuples
-function __ntuplecomp(a, b) {
+function __ntuplecomp(a: number[], b: number[]) {
 	var mlen = Math.max(a.length, b.length);
 	for (var i = 0; i < mlen; i++) {
 		if (a[i] < b[i]) return -1;
@@ -44,7 +44,7 @@ function __ntuplecomp(a, b) {
 }
 
 // replacement for python's dict.get function -- need easy default values
-function __dictget(dict, key, defaultValue) {
+function __dictget(dict: any, key: any, defaultValue: any): any {
 	return dict.hasOwnProperty(key) ? dict[key] : defaultValue;
 }
 
@@ -69,7 +69,8 @@ export class SequenceMatcher {
 		}
 	}
 
-	private find_longest_match(alo: number, ahi: number, blo: number, bhi: number): number[] {
+	private find_longest_match(alo: number, ahi: number,
+		                       blo: number, bhi: number): [number,number,number] {
 		var a = this.a;
 		var b = this.b;
 		var b2j = this.b2j;
@@ -118,7 +119,7 @@ export class SequenceMatcher {
 		var lb = this.b.length;
 
 		var queue = [[0, la, 0, lb]];
-		var matching_blocks = [];
+		var matching_blocks: Array<[number,number,number]> = [];
 		while (queue.length) {
 			var qi = queue.pop();
 			var alo = qi[0];
@@ -144,7 +145,7 @@ export class SequenceMatcher {
 		var i1 = 0,
 		    j1 = 0,
 		    k1 = 0;
-		var non_adjacent = [];
+		var non_adjacent: Array<[number,number,number]> = [];
 		for (var idx=0; idx < matching_blocks.length; idx++) {
 			var block = matching_blocks[idx];
 			var i2 = block[0];

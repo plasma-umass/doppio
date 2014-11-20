@@ -483,7 +483,7 @@ export function bytes2str(bytes: number[], null_terminate?: boolean): string {
  * slots in the array (doubles/longs).
  */
 export function unboxArguments(thread: threading.JVMThread, paramTypes: string[], args: java_object.JavaObject[]): any[] {
-  var rv = [], i: number, type: string, arg: java_object.JavaObject;
+  var rv: any[] = [], i: number, type: string, arg: java_object.JavaObject;
   for (i = 0; i < paramTypes.length; i++) {
     type = paramTypes[i];
     arg = args[i];

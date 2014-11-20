@@ -18,7 +18,7 @@ class Heap {
     this._remaining = size;  // the whole thing is available.
     this._offset    = 0;     // start of the buffer.
     // Initialize the freelists.
-    this._freeLists = new Array<number>(Heap._numSizeClasses);
+    this._freeLists = new Array<Array<number>>(Heap._numSizeClasses);
     for (var i = 0; i < Heap._numSizeClasses; i++) {
       this._freeLists[i] = [];
     }
@@ -160,7 +160,7 @@ class Heap {
   private static _chunkSize : number = 4096;    // should be a power of two.
 
   // The size class array of stuff.
-  private _freeLists;
+  private _freeLists : Array<Array<number>>;
 
   // A map of size classes per chunk (see above).
   private _sizeMap : HashTable<number> = {};

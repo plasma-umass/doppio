@@ -231,7 +231,7 @@ function launch_jvm(argv: any, opts: JVMCLIOptions, jvm_state: JVM, done_cb: (re
   jvm_started(jvm_state);
 }
 
-function print_help(launcherName, str: string, done_cb: (arg: boolean) => void, rv: boolean): void {
+function print_help(launcherName: string, str: string, done_cb: (arg: boolean) => void, rv: boolean): void {
   process.stdout.write("Usage: " + launcherName +
     " [flags]  /path/to/classfile [args for main()]\n" + str + "\n");
   return done_cb(rv);

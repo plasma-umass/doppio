@@ -193,7 +193,7 @@ new JVM({
   extractionPath: path.resolve(os.tmpDir(), 'doppio_jars'),
   classpath: [],
   nativeClasspath: [path.resolve(__dirname, '../src/natives')]
-}, function(err, _jvmObject: JVM) {
+}, function(err: any, _jvmObject: JVM) {
   jvmObject = _jvmObject;
   main();
 });

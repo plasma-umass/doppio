@@ -276,7 +276,7 @@ class JVM {
    */
   private evalNativeModule(mod: string): any {
     "use strict"; // Prevent eval from being terrible.
-    var rv, savedRequire = typeof require !== 'undefined' ? require : function(moduleName: string): any {
+    var rv: any, savedRequire = typeof require !== 'undefined' ? require : function(moduleName: string): any {
       // require isn't defined in the browser for some reason? but requirejs works; it just
       // requires an absolute module name.
       if (moduleName.charAt(0) === '.') {
@@ -309,7 +309,7 @@ class JVM {
        * Emulate AMD module 'define' function for natives compiled as AMD modules.
        */
       function define(resources: string[], module: Function) {
-        var args = [];
+        var args: any[] = [];
         resources.forEach((resource: string) => {
           switch (resource) {
             case 'require':

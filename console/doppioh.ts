@@ -77,7 +77,7 @@ function findFile(fileName: string): string {
 }
 
 function getFiles(dirName: string): string[] {
-  var rv = [], files = fs.readdirSync(dirName), i: number, file: string;
+  var rv: string[] = [], files = fs.readdirSync(dirName), i: number, file: string;
   for (i = 0; i < files.length; i++) {
     file = path.join(dirName, files[i]);
     if (fs.statSync(file).isDirectory()) {
