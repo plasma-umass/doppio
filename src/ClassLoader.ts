@@ -121,7 +121,7 @@ export class ClassLoader {
    *
    * Should only be used internally by ClassLoader subclasses.
    */
-  public getClass(typeStr: string): ClassData.ClassData {
+  protected getClass(typeStr: string): ClassData.ClassData {
     return this.loadedClasses[typeStr];
   }
 
@@ -159,7 +159,7 @@ export class ClassLoader {
   /**
    * Defines a new array class with this loader.
    */
-  public defineArrayClass(typeStr: string): ClassData.ArrayClassData {
+  protected defineArrayClass(typeStr: string): ClassData.ArrayClassData {
     assert(this.getLoadedClass(util.get_component_type(typeStr)) != null);
     var arrayClass = new ClassData.ArrayClassData(util.get_component_type(typeStr), this);
     this.addClass(typeStr, arrayClass);
@@ -297,7 +297,7 @@ export class ClassLoader {
    *
    * Should never be invoked directly! Use loadClass.
    */
-  public _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit?: boolean): void {
+  protected _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit?: boolean): void {
     throw new Error("Abstract method!");
   }
 
@@ -480,7 +480,7 @@ export class ClassLoader {
    * If loading was implicitly triggered by the JVM, we call NoClassDefFoundError.
    * If the program explicitly called loadClass, then we throw the ClassNotFoundException.
    */
-  public throwClassNotFoundException(thread: threading.JVMThread, typeStr: string, explicit: boolean): void {
+  protected throwClassNotFoundException(thread: threading.JVMThread, typeStr: string, explicit: boolean): void {
     thread.throwNewException(explicit ? 'Ljava/lang/ClassNotFoundException;' : 'Ljava/lang/NoClassDefFoundError;', 'Cannot load class: ' + util.ext_classname(typeStr));
   }
 
@@ -669,7 +669,7 @@ export class BootstrapClassLoader extends ClassLoader {
    *
    * SHOULD ONLY BE INVOKED INTERNALLY BY THE CLASSLOADER.
    */
-  public _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
+  protected _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
     debug('[BOOTSTRAP] Loading class ' + typeStr);
     // This method is only valid for reference types!
     assert(util.is_reference_type(typeStr));
@@ -870,7 +870,7 @@ export class CustomClassLoader extends ClassLoader {
    * @param explicit 'True' if loadClass was explicitly invoked by the program,
    *   false otherwise. This changes the exception/error that we throw.
    */
-  public _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
+  protected _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
     debug('[CUSTOM] Loading class ' + typeStr);
     // This method is only valid for reference types!
     assert(util.is_reference_type(typeStr));
