@@ -45,63 +45,6 @@ function verify_array(thread: threading.JVMThread, obj: java_object.JavaArray): 
   }
 }
 
-// helper function for stack trace natives (see java/lang/Throwable)
-function create_stack_trace(thread: threading.JVMThread, throwable: java_object.JavaObject): java_object.JavaObject[] {
-  var stacktrace = [],
-    cstack = thread.getStackTrace(),
-    i: number, j: number, bsCl = thread.getBsCl(),
-    stackTraceElementCls = <ClassData.ReferenceClassData> bsCl.getInitializedClass(thread, 'Ljava/lang/StackTraceElement;');
-  /**
-   * OK, so we need to toss the following stack frames:
-   * - The stack frame for this method.
-   * - If we're still constructing the throwable object, we need to toss any
-   *   stack frames involved in constructing the throwable. But if we're not,
-   *   then there's no other frames we should cut.
-   */
-  cstack.pop(); // The stack frame for this method.
-  // Bytecode methods involved in constructing the throwable. We assume that
-  // there are no native methods involved in the mix other than this one.
-  while (cstack.length > 0 &&
-    !cstack[cstack.length - 1].method.access_flags.native &&
-    cstack[cstack.length - 1].locals[0] === throwable) {
-    cstack.pop();
-  }
-
-  for (i = 0; i < cstack.length; i++) {
-    var sf = cstack[i],
-      cls = sf.method.cls,
-      ln = -1,
-      sourceFile: string;
-    if (sf.method.access_flags.native) {
-      sourceFile = 'Native Method';
-    } else {
-      var srcAttr = <attributes.SourceFile> cls.get_attribute('SourceFile'),
-        code = sf.method.getCodeAttribute(),
-        table = <attributes.LineNumberTable> code.get_attribute('LineNumberTable');
-      sourceFile = (srcAttr != null) ? srcAttr.filename : 'unknown';
-
-      if (table != null) {
-        // get the last line number before the stack frame's pc
-        for (j = 0; j < table.entries.length; j++) {
-          var row = table.entries[j];
-          if (row.start_pc <= sf.pc) {
-            ln = row.line_number;
-          }
-        }
-      } else {
-        ln = -1;
-      }
-    }
-    stacktrace.push(new java_object.JavaObject(stackTraceElementCls, {
-      'Ljava/lang/StackTraceElement;declaringClass': java_object.initString(bsCl, util.ext_classname(cls.get_type())),
-      'Ljava/lang/StackTraceElement;methodName': java_object.initString(bsCl, sf.method.name != null ? sf.method.name : 'unknown'),
-      'Ljava/lang/StackTraceElement;fileName': java_object.initString(bsCl, sourceFile),
-      'Ljava/lang/StackTraceElement;lineNumber': ln
-    }));
-  }
-  return stacktrace.reverse();
-}
-
 class java_lang_Class {
 
   public static 'forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;'(thread: threading.JVMThread, jvm_str: java_object.JavaObject, initialize: number, jclo: ClassLoader.JavaClassLoaderObject): void {
@@ -1074,7 +1017,7 @@ class java_lang_System {
     return 0;
   }
 
-  public static 'initProperties(Ljava/util/Properties;)Ljava/util/Properties;'(thread: threading.JVMThread, props: java_object.JavaObject): V {
+  public static 'initProperties(Ljava/util/Properties;)Ljava/util/Properties;'(thread: threading.JVMThread, props: java_object.JavaObject): void {
     var setProperty = props.cls.method_lookup(thread, 'setProperty(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;'),
       jvm = thread.getThreadPool().getJVM(),
       properties = jvm.getSystemPropertyNames();
@@ -1299,17 +1242,70 @@ class java_lang_Throwable {
    * NOTE: Integer is only there to distinguish this function from non-native fillInStackTrace()V.
    */
   public static 'fillInStackTrace(I)Ljava/lang/Throwable;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, dummy: number): java_object.JavaObject {
-    var strace = new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/StackTraceElement;'), create_stack_trace(thread, javaThis));
-    javaThis.set_field(thread, 'Ljava/lang/Throwable;stackTrace', strace);
+    var stacktrace = [],
+      cstack = thread.getStackTrace(),
+      i: number, j: number, bsCl = thread.getBsCl(),
+      stackTraceElementCls = <ClassData.ReferenceClassData> bsCl.getInitializedClass(thread, 'Ljava/lang/StackTraceElement;'),
+      strace: java_object.JavaArray;
+    /**
+     * OK, so we need to toss the following stack frames:
+     * - The stack frame for this method.
+     * - If we're still constructing the throwable object, we need to toss any
+     *   stack frames involved in constructing the throwable. But if we're not,
+     *   then there's no other frames we should cut.
+     */
+    cstack.pop(); // The stack frame for this method.
+    // Bytecode methods involved in constructing the throwable. We assume that
+    // there are no native methods involved in the mix other than this one.
+    while (cstack.length > 0 &&
+      !cstack[cstack.length - 1].method.access_flags.native &&
+      cstack[cstack.length - 1].locals[0] === javaThis) {
+      cstack.pop();
+    }
+
+    for (i = 0; i < cstack.length; i++) {
+      var sf = cstack[i],
+        cls = sf.method.cls,
+        ln = -1,
+        sourceFile: string;
+      if (sf.method.access_flags.native) {
+        sourceFile = 'Native Method';
+      } else {
+        var srcAttr = <attributes.SourceFile> cls.get_attribute('SourceFile'),
+          code = sf.method.getCodeAttribute(),
+          table = <attributes.LineNumberTable> code.get_attribute('LineNumberTable');
+        sourceFile = (srcAttr != null) ? srcAttr.filename : 'unknown';
+
+        if (table != null) {
+          // get the last line number before the stack frame's pc
+          for (j = 0; j < table.entries.length; j++) {
+            var row = table.entries[j];
+            if (row.start_pc <= sf.pc) {
+              ln = row.line_number;
+            }
+          }
+        } else {
+          ln = -1;
+        }
+      }
+      stacktrace.push(new java_object.JavaObject(stackTraceElementCls, {
+        'Ljava/lang/StackTraceElement;declaringClass': java_object.initString(bsCl, util.ext_classname(cls.get_type())),
+        'Ljava/lang/StackTraceElement;methodName': java_object.initString(bsCl, sf.method.name != null ? sf.method.name : 'unknown'),
+        'Ljava/lang/StackTraceElement;fileName': java_object.initString(bsCl, sourceFile),
+        'Ljava/lang/StackTraceElement;lineNumber': ln
+      }));
+    }
+    strace = new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/StackTraceElement;'), stacktrace.reverse());
+    javaThis.set_field(thread, 'Ljava/lang/Throwable;backtrace', strace);
     return javaThis;
   }
 
   public static 'getStackTraceDepth()I'(thread: threading.JVMThread, javaThis: java_object.JavaObject): number {
-    return create_stack_trace(thread, javaThis).length;
+    return javaThis.get_field(thread, 'Ljava/lang/Throwable;backtrace').array.length;
   }
 
   public static 'getStackTraceElement(I)Ljava/lang/StackTraceElement;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, depth: number): java_object.JavaObject {
-    return create_stack_trace(thread, javaThis)[depth];
+    return javaThis.get_field(thread, 'Ljava/lang/Throwable;backtrace').array[depth];
   }
 
 }
