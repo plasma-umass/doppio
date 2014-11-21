@@ -46,7 +46,8 @@ public class Exceptional {
       }
       catch (Exception e) {
         System.out.println(e.getMessage());
-        System.out.println("trace depth: " + e.getStackTrace().length);
+        // Note: Some JDK versions may have +/- an extra stack frame.
+        System.out.println("is trace depth >= 5?: " + (e.getStackTrace().length >= 5 ? "yes" : "no"));
       }
 
       // check that NYI natives have the right error type
