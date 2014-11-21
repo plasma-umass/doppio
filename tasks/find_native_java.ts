@@ -127,21 +127,34 @@ function windowsFindJavaHome(grunt: IGrunt, cb: (success: boolean, java_home?: s
  * Find Java in *nix by checking the JAVA_HOME environment variable, or using the version of Java on the PATH.
  */
 function nixFindJavaHome(grunt: IGrunt, cb: (success: boolean, javaHome?: string) => void): void {
-  // Option 1: Is JAVA_HOME defined?
-  if (process.env.JAVA_HOME) {
-    cb(true, process.env.JAVA_HOME);
-  } else {
-    // Option 2: Can we invoke 'java' directly?
-    exec(grunt.config('build.java') + ' -version', function(err: Error, stdout: Buffer, stderr: Buffer) {
-      if (err) {
-        // Java can't be found.
-        cb(false);
-      } else {
-        // 'java' is OK.
-        cb(true);
+  // Option 1: Try the 'update-java-alternatives' tool
+  exec('update-java-alternatives -l', (err: Error, stdout: Buffer, stderr: Buffer) => {
+    if (!err) {
+      var alts = stdout.toString().split('\n');
+      for (var i=0; i<alts.length; i++) {
+        if (alts[i].match(/1\.8/)) {
+          var javaHome = alts[i].split(' ')[2];
+          cb(true, javaHome);
+          return
+        }
       }
-    });
-  }
+    }
+    // Option 2: Is JAVA_HOME defined?
+    if (process.env.JAVA_HOME) {
+      cb(true, process.env.JAVA_HOME);
+    } else {
+      // Option 3: Can we invoke 'java' directly?
+      exec(grunt.config('build.java') + ' -version', function(err: Error, stdout: Buffer, stderr: Buffer) {
+        if (err) {
+          // Java can't be found.
+          cb(false);
+        } else {
+          // 'java' is OK.
+          cb(true);
+        }
+      });
+    }
+  });
 }
 
 /**
