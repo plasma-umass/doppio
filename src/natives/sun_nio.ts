@@ -63,7 +63,6 @@ class sun_nio_ch_NativeThread {
 
 }
 
-// Java 8 support
 class sun_nio_ch_IOUtil {
 
   public static 'iovMax()I'(thread: threading.JVMThread): number {
@@ -73,7 +72,40 @@ class sun_nio_ch_IOUtil {
 
 }
 
+class sun_nio_ch_FileDispatcherImpl {
+
+  public static 'init()V'(thread: threading.JVMThread): void {
+
+  }
+
+  public static 'read0(Ljava/io/FileDescriptor;JI)I'(thread: threading.JVMThread, fd_obj: java_object.JavaObject, address: gLong, len: number): void {
+    var fd = fd_obj.get_field(thread, "Ljava/io/FileDescriptor;fd"),
+      // read upto len bytes and store into mmap'd buffer at address
+      addr = address.toNumber(),
+      buf = new Buffer(len);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    fs.read(fd, buf, 0, len, 0, (err, bytes_read) => {
+      if (err) {
+        thread.throwNewException("Ljava/io/IOException;", 'Error reading file: ' + err);
+      } else {
+        var i: number, heap = thread.getThreadPool().getJVM().getHeap();
+        for (i = 0; i < bytes_read; i++) {
+          heap.set_byte(addr + i, buf.readUInt8(i));
+        }
+        thread.asyncReturn(bytes_read);
+      }
+    });
+  }
+
+  public static 'preClose0(Ljava/io/FileDescriptor;)V'(thread: threading.JVMThread, arg0: java_object.JavaObject): void {
+    // NOP, I think the actual fs.close is called later. If not, NBD.
+  }
+
+}
+
 registerNatives({
   'sun/nio/ch/FileChannelImpl': sun_nio_ch_FileChannelImpl,
-  'sun/nio/ch/NativeThread': sun_nio_ch_NativeThread
+  'sun/nio/ch/NativeThread': sun_nio_ch_NativeThread,
+  'sun/nio/ch/IOUtil': sun_nio_ch_IOUtil,
+  'sun/nio/ch/FileDispatcherImpl': sun_nio_ch_FileDispatcherImpl
 });

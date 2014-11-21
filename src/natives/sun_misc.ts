@@ -296,8 +296,69 @@ class sun_misc_Unsafe {
     }
   }
 
-  public static 'copyMemory(Ljava/lang/Object;JLjava/lang/Object;JJ)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: gLong, arg2: java_object.JavaObject, arg3: gLong, arg4: gLong): void {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+  /**
+   * Sets all bytes in a given block of memory to a copy of another
+   * block.
+   *
+   * <p>This method determines each block's base address by means of two parameters,
+   * and so it provides (in effect) a <em>double-register</em> addressing mode,
+   * as discussed in {@link #getInt(Object,long)}.  When the object reference is null,
+   * the offset supplies an absolute base address.
+   *
+   * <p>The transfers are in coherent (atomic) units of a size determined
+   * by the address and length parameters.  If the effective addresses and
+   * length are all even modulo 8, the transfer takes place in 'long' units.
+   * If the effective addresses and length are (resp.) even modulo 4 or 2,
+   * the transfer takes place in units of 'int' or 'short'.
+   *
+   * @since 1.7
+   */
+  public static 'copyMemory(Ljava/lang/Object;JLjava/lang/Object;JJ)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, srcBase: java_object.JavaObject, srcOffset: gLong, destBase: java_object.JavaObject, destOffset: gLong, bytes: gLong): void {
+    var heap = thread.getThreadPool().getJVM().getHeap(),
+      srcAddr = srcOffset.toNumber(),
+      destAddr = destOffset.toNumber(),
+      length = bytes.toNumber();
+    if (srcBase === null && destBase === null) {
+      // memcopy semantics w/ srcoffset/destoffset as absolute offsets.
+      heap.memcpy(srcAddr, destAddr, length);
+    } else if (srcBase === null && destBase !== null) {
+      // OK, so... destBase is an array, destOffset is a byte offset from the
+      // start of the array. Need to copy data from the heap directly into the array.
+      if (util.is_array_type(destBase.cls.this_class) && util.is_primitive_type((<ClassData.ArrayClassData><any>destBase.cls).get_component_type())) {
+        var destArray: java_object.JavaArray = <any> destBase, i: number;
+        switch (destArray.cls.get_component_type()) {
+          case 'B':
+            for (i = 0; i < length; i++) {
+              destArray.array[destAddr + i] = heap.get_byte(srcAddr + i);
+            }
+            break;
+          /*case 'C':
+            break;
+          case 'D':
+            break;
+          case 'F':
+            break;
+          case 'I':
+            break;
+          case 'J':
+            break;
+          case 'S':
+            break;
+          case 'Z':
+            break;*/
+          default:
+            // I have no idea what the appropriate semantics are for this.
+            thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+            break;
+        }
+      } else {
+        // I have no idea what the appropriate semantics are for this.
+        thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+      }
+    } else {
+      // I have no idea what the appropriate semantics are for this.
+      thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+    }
   }
 
   public static 'freeMemory(J)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, address: gLong): void {
