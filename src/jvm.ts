@@ -244,6 +244,13 @@ class JVM {
   }
 
   /**
+   * Retrieve an array of all of the system property names.
+   */
+  public getSystemPropertyNames(): string[] {
+    return Object.keys(this.systemProperties);
+  }
+
+  /**
    * Sets the given system property.
    */
   public setSystemProperty(prop: string, val: string): void {

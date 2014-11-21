@@ -14,53 +14,20 @@ import assert = require('./assert');
 var JavaArray = java_object.JavaArray;
 var JavaObject = java_object.JavaObject;
 
-function get_property(thread: threading.JVMThread, jvm_key: java_object.JavaObject, _default: java_object.JavaObject = null): java_object.JavaObject {
-  var key = jvm_key.jvm2js_str(), jvm: JVM = thread.getThreadPool().getJVM(),
-    val = jvm.getSystemProperty(key);
-  // special case
-  if (key === 'java.class.path') {
-    // Fetch from bootstrap classloader instead.
-    // the first path is actually the bootclasspath (vendor/classes/)
-    // XXX: Not robust to multiple bootstrap paths.
-    return java_object.initString(thread.getBsCl(), thread.getBsCl().getClassPath().slice(1).join(':'));
-  }
-  if (val != null) {
-    return jvm.internString(val);
-  } else {
-    return _default;
-  }
-}
+
 
 var trapped_methods = {
   'java/lang/ref/Reference': {
     // NOP, because we don't do our own GC and also this starts a thread?!?!?!
     '<clinit>()V': function (thread: threading.JVMThread): void { }
   },
-  /*'java/lang/String': {
-    // trapped here only for speed
-    'hashCode()I': function (thread: threading.JVMThread, javaThis: java_object.JavaObject): number {
-      var i: number, hash: number = javaThis.get_field(thread, 'Ljava/lang/String;hash');
-      if (hash === 0) {
-        var offset = javaThis.get_field(thread, 'Ljava/lang/String;offset'),
-          chars = javaThis.get_field(thread, 'Ljava/lang/String;value').array,
-          count = javaThis.get_field(thread, 'Ljava/lang/String;count');
-        for (i = 0; i < count; i++) {
-          hash = (hash * 31 + chars[offset++]) | 0;
-        }
-        javaThis.set_field(thread, 'Ljava/lang/String;hash', hash);
-      }
-      return hash;
-    }
-  },*/
   'java/lang/System': {
     'loadLibrary(Ljava/lang/String;)V': function (thread: threading.JVMThread, lib_name: java_object.JavaObject): void {
       var lib = lib_name.jvm2js_str();
       if (lib !== 'zip' && lib !== 'net' && lib !== 'nio' && lib !== 'awt' && lib !== 'fontmanager') {
         thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', "no " + lib + " in java.library.path");
       }
-    },
-    'getProperty(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;': get_property,
-    'getProperty(Ljava/lang/String;)Ljava/lang/String;': get_property
+    }
   },
   'java/lang/Terminator': {
     'setup()V': function (thread: threading.JVMThread): void {

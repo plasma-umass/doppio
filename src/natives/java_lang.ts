@@ -1074,11 +1074,29 @@ class java_lang_System {
     return 0;
   }
 
-  /**
-   * @todo Store our system properties in a proper JVM hashMap, as is expected.
-   */
-  public static 'initProperties(Ljava/util/Properties;)Ljava/util/Properties;'(thread: threading.JVMThread, props: java_object.JavaObject): java_object.JavaObject {
-    return props;  // XXX: this is just an empty Properties object.
+  public static 'initProperties(Ljava/util/Properties;)Ljava/util/Properties;'(thread: threading.JVMThread, props: java_object.JavaObject): V {
+    var setProperty = props.cls.method_lookup(thread, 'setProperty(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;'),
+      jvm = thread.getThreadPool().getJVM(),
+      properties = jvm.getSystemPropertyNames();
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    util.async_foreach(properties, (propertyName: string, next_item: (err?: any) => void) => {
+      var propertyVal = jvm.getSystemProperty(propertyName);
+      if (propertyName === 'java.class.path') {
+        // Fetch from bootstrap classloader instead.
+        // the first path is actually the bootclasspath (vendor/classes/)
+        // XXX: Not robust to multiple bootstrap paths.
+        propertyVal = thread.getBsCl().getClassPath().slice(1).join(':');
+      }
+      thread.runMethod(setProperty, [props, jvm.internString(propertyName), jvm.internString(propertyVal)], (e?, rv?) => {
+        next_item(e);
+      });
+    }, (err?: any) => {
+      if (err) {
+        thread.throwException(err);
+      } else {
+        thread.asyncReturn(props);
+      }
+    });
   }
 
   public static 'mapLibraryName(Ljava/lang/String;)Ljava/lang/String;'(thread: threading.JVMThread, arg0: java_object.JavaObject): java_object.JavaObject {
