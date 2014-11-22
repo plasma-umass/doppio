@@ -1491,7 +1491,9 @@ export class Opcodes {
     // Object is NULL; NPE has been thrown.
   }
 
-  public static invokedynamic(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
+  public static invokedynamic(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+    var callSiteSpecifier = <ConstantPool.InvokeDynamic> frame.method.cls.constant_pool.get(code.readUInt16BE(pc + 1));
+    callSiteSpecifier.bootstrapMethod = frame.method.cls.getBootstrapMethod(callSiteSpecifier.bootstrapMethodAttrIndex);
     throwException(thread, frame, "Ljava/lang/Error;", "Invokedynamic not implemented.");
   }
 

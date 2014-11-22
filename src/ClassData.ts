@@ -424,6 +424,14 @@ export class ReferenceClassData extends ClassData {
     return results;
   }
 
+  /**
+   * Get the bootstrap method information for an InvokeDynamic opcode.
+   */
+  public getBootstrapMethod(idx: number): [ConstantPool.MethodHandle, ConstantPool.IConstantPoolItem[]] {
+    var bms = <attributes.BootstrapMethods> this.get_attribute('BootstrapMethods');
+    return bms.bootstrapMethods[idx];
+  }
+
   public get_default_fields(): { [name: string]: any } {
     if (this.default_fields) {
       return this.default_fields;

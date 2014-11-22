@@ -138,6 +138,23 @@ export enum StackMapTableEntryType {
 }
 
 /**
+ * Integer indicating the reference type of a MethodHandle item in the constant
+ * pool.
+ * @see https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.4.8
+ */
+export enum MethodHandleReferenceKind {
+  GETFIELD = 1,
+  GETSTATIC = 2,
+  PUTFIELD = 3,
+  PUTSTATIC = 4,
+  INVOKEVIRTUAL = 5,
+  INVOKESTATIC = 6,
+  INVOKESPECIAL = 7,
+  NEWINVOKESPECIAL = 8,
+  INVOKEINTERFACE = 9
+}
+
+/**
  * Characters used on the terminal to format output.
  * Maps each type of formatting to its [beginning, end] characters as an array.
  *

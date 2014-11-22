@@ -578,6 +578,8 @@ export class InvokeDynamic implements IConstantPoolItem {
   public bootstrapMethodAttrIndex: number;
   public methodSignature: string;
   public nameAndTypeInfo: NameAndTypeInfo;
+  public bootstrapMethod: [MethodHandle, IConstantPoolItem[]] = null;
+
   constructor(bootstrapMethodAttrIndex: number, nameAndTypeInfo: NameAndTypeInfo) {
     this.bootstrapMethodAttrIndex = bootstrapMethodAttrIndex;
     this.methodSignature = nameAndTypeInfo.name + nameAndTypeInfo.descriptor;
@@ -619,8 +621,10 @@ export class MethodHandle implements IConstantPoolItem {
   // @todo Use a union type here:
   //   FieldReference|MethodReference|InterfaceMethodReference
   public reference: IConstantPoolItem;
-  constructor(reference: IConstantPoolItem) {
+  public referenceType: enums.MethodHandleReferenceKind;
+  constructor(reference: IConstantPoolItem, referenceType: enums.MethodHandleReferenceKind) {
     this.reference = reference;
+    this.referenceType = referenceType;
   }
 
   public getType(): enums.ConstantPoolItemType {
@@ -630,34 +634,34 @@ export class MethodHandle implements IConstantPoolItem {
   public static size: number = 1;
   public static infoByteSize: number = 3;
   public static fromBytes(byteStream: ByteStream, constantPool: ConstantPool): IConstantPoolItem {
-    var referenceKind = byteStream.getUint8(),
-      referenceIndex = byteStream.getUint16();
+    var referenceKind: enums.MethodHandleReferenceKind = byteStream.getUint8(),
+      referenceIndex = byteStream.getUint16(),
+      reference: IConstantPoolItem = constantPool.get(referenceIndex);
+
     assert(0 < referenceKind && referenceKind < 10,
       'ConstantPool MethodHandle invalid referenceKind: ' + referenceKind);
-    var reference: IConstantPoolItem;
-    if (1 <= referenceIndex && referenceIndex <= 4) {
-      // 1 (REF_getField), 2 (REF_getStatic), 3 (REF_putField), or 4 (REF_putStatic)
-      reference = <FieldReference> constantPool.get(referenceIndex);
-    } else if (5 <= referenceIndex && referenceIndex <= 8) {
-      // 5 (REF_invokeVirtual), 6 (REF_invokeStatic), 7 (REF_invokeSpecial), or 8 (REF_newInvokeSpecial)
-      reference = <MethodReference> constantPool.get(referenceIndex);
-    } else {
-      // 9 (REF_invokeInterface)
-      reference = <InterfaceMethodReference> constantPool.get(referenceIndex);
-    }
-    if (referenceKind >= 5) {
-      var name: string = (<MethodReference> reference).nameAndTypeInfo.name;
-      if (referenceKind == 8) {
-        // ensure name is <init>
-        assert(name == '<init>',
-          'ConstantPool MethodHandle invalid method name for REF_newInvokeSpecial: ' + name);
-      } else {
-        // ensure name is not <init> or <clinit>
-        assert(name != '<init>' && name != '<clinit>',
-          'ConstantPool MethodHandle invalid method name: ' + name);
+    // Sanity check.
+    assert((() => {
+      switch (referenceKind) {
+        case enums.MethodHandleReferenceKind.GETFIELD:
+        case enums.MethodHandleReferenceKind.GETSTATIC:
+        case enums.MethodHandleReferenceKind.PUTFIELD:
+        case enums.MethodHandleReferenceKind.PUTSTATIC:
+          return reference.getType() === enums.ConstantPoolItemType.FIELDREF;
+        case enums.MethodHandleReferenceKind.INVOKEVIRTUAL:
+        case enums.MethodHandleReferenceKind.INVOKESTATIC:
+        case enums.MethodHandleReferenceKind.INVOKESPECIAL:
+        case enums.MethodHandleReferenceKind.INVOKEINTERFACE:
+          return reference.getType() === enums.ConstantPoolItemType.METHODREF
+            && (<MethodReference>reference).nameAndTypeInfo.name[0] !== '<';
+        case enums.MethodHandleReferenceKind.NEWINVOKESPECIAL:
+          return reference.getType() === enums.ConstantPoolItemType.METHODREF
+            && (<MethodReference>reference).nameAndTypeInfo.name === '<init>';
       }
-    }
-    return new this(reference);
+      return true;
+    })(), "Invalid constant pool reference for method handle reference type: " + enums.MethodHandleReferenceKind[referenceKind]);
+
+    return new this(reference, referenceKind);
   }
 }
 CP_CLASSES[enums.ConstantPoolItemType.METHOD_HANDLE] = MethodHandle;
