@@ -166,7 +166,7 @@ class java_lang_Class {
   }
 
   public static 'getDeclaringClass0()Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaClassObject {
-    var declaring_name, entry, name, _i, _len;
+    var declaring_name, entry: attributes.IInnerClassInfo, name, _i, _len;
 
     if (!(javaThis.$cls instanceof ClassData.ReferenceClassData)) {
       return null;
@@ -180,17 +180,17 @@ class java_lang_Class {
       innerClassInfo = icls.classes;
     for (_i = 0, _len = innerClassInfo.length; _i < _len; _i++) {
       entry = innerClassInfo[_i];
-      if (!(entry.outer_info_index > 0)) {
+      if (!(entry.outerInfoIndex > 0)) {
         continue;
       }
-      name = (<ConstantPool.ClassReference> cls.constant_pool.get(entry.inner_info_index)).name;
+      name = (<ConstantPool.ClassReference> cls.constant_pool.get(entry.innerInfoIndex)).name;
       if (name !== my_class) {
         continue;
       }
       // XXX(jez): this assumes that the first enclosing entry is also
       // the immediate enclosing parent, and I'm not 100% sure this is
       // guaranteed by the spec
-      declaring_name = (<ConstantPool.ClassReference> cls.constant_pool.get(entry.outer_info_index)).name;
+      declaring_name = (<ConstantPool.ClassReference> cls.constant_pool.get(entry.outerInfoIndex)).name;
       return cls.loader.getResolvedClass(declaring_name).get_class_object(thread);
     }
     return null;
