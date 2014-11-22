@@ -150,10 +150,10 @@ class java_lang_Class {
     if (em == null) {
       return null;
     }
-    var enc_cls = cls.loader.getResolvedClass(em.enc_class).get_class_object(thread);
-    if (em.enc_method != null) {
-      enc_name = java_object.initString(bsCl, em.enc_method.nameAndTypeInfo.name);
-      enc_desc = java_object.initString(bsCl, em.enc_method.nameAndTypeInfo.descriptor);
+    var enc_cls = em.encClass.getClass(cls.loader, 0).get_class_object(thread);
+    if (em.encMethod != null) {
+      enc_name = java_object.initString(bsCl, em.encMethod.nameAndTypeInfo.name);
+      enc_desc = java_object.initString(bsCl, em.encMethod.nameAndTypeInfo.descriptor);
     } else {
       enc_name = null;
       enc_desc = null;
@@ -219,7 +219,7 @@ class java_lang_Class {
     var cls = <ClassData.ReferenceClassData> javaThis.$cls,
       annotations = <attributes.RuntimeVisibleAnnotations> cls.get_attribute('RuntimeVisibleAnnotations');
     if (annotations != null) {
-      return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[B'), annotations.raw_bytes);
+      return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[B'), annotations.rawBytes);
     }
 
     var methods = cls.get_methods();
@@ -228,7 +228,7 @@ class java_lang_Class {
         var m = methods[sig];
         annotations = <attributes.RuntimeVisibleAnnotations> m.get_attribute('RuntimeVisibleAnnotations');
         if (annotations != null) {
-          return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[B'), annotations.raw_bytes);
+          return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[B'), annotations.rawBytes);
         }
       }
     }
@@ -339,8 +339,8 @@ class java_lang_Class {
     for (var i = 0; i < iclses.length; i++) {
       var names = iclses[i].classes.filter((c: attributes.IInnerClassInfo) =>
         // select inner classes where the enclosing class is my_class
-        c.outer_info_index > 0 && (<ConstantPool.ClassReference> cls.constant_pool.get(c.outer_info_index)).name === my_class)
-        .map((c: attributes.IInnerClassInfo) => (<ConstantPool.ClassReference> cls.constant_pool.get(c.inner_info_index)).name);
+        c.outerInfoIndex > 0 && (<ConstantPool.ClassReference> cls.constant_pool.get(c.outerInfoIndex)).name === my_class)
+        .map((c: attributes.IInnerClassInfo) => (<ConstantPool.ClassReference> cls.constant_pool.get(c.innerInfoIndex)).name);
       flat_names.push.apply(flat_names, names);
     }
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
@@ -1273,17 +1273,11 @@ class java_lang_Throwable {
       } else {
         var srcAttr = <attributes.SourceFile> cls.get_attribute('SourceFile'),
           code = sf.method.getCodeAttribute(),
-          table = <attributes.LineNumberTable> code.get_attribute('LineNumberTable');
+          table = <attributes.LineNumberTable> code.getAttribute('LineNumberTable');
         sourceFile = (srcAttr != null) ? srcAttr.filename : 'unknown';
 
         if (table != null) {
-          // get the last line number before the stack frame's pc
-          for (j = 0; j < table.entries.length; j++) {
-            var row = table.entries[j];
-            if (row.start_pc <= sf.pc) {
-              ln = row.line_number;
-            }
-          }
+          ln = table.getLineNumber(sf.pc);
         } else {
           ln = -1;
         }

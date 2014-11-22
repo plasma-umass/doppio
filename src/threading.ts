@@ -162,16 +162,16 @@ export class BytecodeStackFrame implements IStackFrame {
     var codeAttr = this.method.getCodeAttribute(),
       pc = this.pc, method = this.method,
       // STEP 1: See if we can find an appropriate handler for this exception!
-      exceptionHandlers = codeAttr.exception_handlers,
+      exceptionHandlers = codeAttr.exceptionHandlers,
       ecls = e.cls, handler: attributes.ExceptionHandler, i: number;
     for (i = 0; i < exceptionHandlers.length; i++) {
       var eh = exceptionHandlers[i];
-      if (eh.start_pc <= pc && pc < eh.end_pc) {
-        if (eh.catch_type === "<any>") {
+      if (eh.startPC <= pc && pc < eh.endPC) {
+        if (eh.catchType === "<any>") {
           handler = eh;
           break;
         } else {
-          var resolvedCatchType = method.cls.loader.getResolvedClass(eh.catch_type);
+          var resolvedCatchType = method.cls.loader.getResolvedClass(eh.catchType);
           if (resolvedCatchType != null) {
             if (ecls.is_castable(resolvedCatchType)) {
               handler = eh;
@@ -182,8 +182,8 @@ export class BytecodeStackFrame implements IStackFrame {
             debug(method.full_signature() + " needs to resolve some exception types...");
             var handlerClasses: string[] = [];
             exceptionHandlers.forEach((handler: attributes.ExceptionHandler) => {
-              if (handler.catch_type !== "<any>") {
-                handlerClasses.push(handler.catch_type);
+              if (handler.catchType !== "<any>") {
+                handlerClasses.push(handler.catchType);
               }
             });
             thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
@@ -206,9 +206,9 @@ export class BytecodeStackFrame implements IStackFrame {
     // or set up the stack for appropriate resumption.
     if (handler != null) {
       // Found the handler.
-      debug("{BOLD}{YELLOW}" + method.full_signature() + "{/YELLOW}{/BOLD}: Caught {GREEN}" + e.cls.get_type() + "{/GREEN} as subclass of {GREEN}" + handler.catch_type + "{/GREEN}");
+      debug("{BOLD}{YELLOW}" + method.full_signature() + "{/YELLOW}{/BOLD}: Caught {GREEN}" + e.cls.get_type() + "{/GREEN} as subclass of {GREEN}" + handler.catchType + "{/GREEN}");
       this.stack = [e]; // clear out anything on the stack; it was made during the try block
-      this.pc = handler.handler_pc;
+      this.pc = handler.handlerPC;
       return true;
     } else {
       // abrupt method invocation completion
@@ -629,7 +629,7 @@ export class JVMThread extends java_object.JavaObject {
       if (trace.pc >= 0) {
         // Bytecode method
         var code = trace.method.getCodeAttribute();
-        var table = <attributes.LineNumberTable> code.get_attribute('LineNumberTable');
+        var table = <attributes.LineNumberTable> code.getAttribute('LineNumberTable');
         var srcAttr = <attributes.SourceFile> trace.method.cls.get_attribute('SourceFile');
         if (srcAttr != null) {
           rv += srcAttr.filename;
@@ -637,14 +637,8 @@ export class JVMThread extends java_object.JavaObject {
           rv += 'unknown';
         }
         if (table != null) {
-          var lastLine: number = -1, lastPc: number = -1;
-          table.entries.forEach((entry: { start_pc: number; line_number: number }) => {
-            if (entry.start_pc < trace.pc && lastPc < entry.start_pc) {
-              lastPc = entry.start_pc;
-              lastLine = entry.line_number;
-            }
-          });
-          rv += ":" + lastLine;
+          var lineNumber = table.getLineNumber(trace.pc);
+          rv += ":" + lineNumber;
           rv += " Bytecode offset: " + trace.pc;
         }
       } else {

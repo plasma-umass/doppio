@@ -372,7 +372,7 @@ export class ReferenceClassData extends ClassData {
       this.methods[mkey] = m;
     }
     // class attributes
-    this.attrs = attributes.make_attributes(bytes_array, this.constant_pool);
+    this.attrs = attributes.makeAttributes(bytes_array, this.constant_pool);
     if (bytes_array.hasBytes()) {
       throw "Leftover bytes in classfile: " + bytes_array;
     }
@@ -405,7 +405,7 @@ export class ReferenceClassData extends ClassData {
     var attrs = this.attrs;
     for (var i = 0; i < attrs.length; i++) {
       var attr = attrs[i];
-      if (attr.name === name) {
+      if (attr.getName() === name) {
         return attr;
       }
     }
@@ -417,7 +417,7 @@ export class ReferenceClassData extends ClassData {
     var results : attributes.IAttribute[] = [];
     for (var i = 0; i < attrs.length; i++) {
       var attr = attrs[i];
-      if (attr.name === name) {
+      if (attr.getName() === name) {
         results.push(attr);
       }
     }

@@ -124,6 +124,20 @@ export enum ConstantPoolItemType {
 }
 
 /**
+ * Integer indicating the type of a StackMapTable entry.
+ * @see https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.7.4
+ */
+export enum StackMapTableEntryType {
+  SAME_FRAME,
+  SAME_LOCALS_1_STACK_ITEM_FRAME,
+  SAME_LOCALS_1_STACK_ITEM_FRAME_EXTENDED,
+  CHOP_FRAME,
+  SAME_FRAME_EXTENDED,
+  APPEND_FRAME,
+  FULL_FRAME
+}
+
+/**
  * Characters used on the terminal to format output.
  * Maps each type of formatting to its [beginning, end] characters as an array.
  *

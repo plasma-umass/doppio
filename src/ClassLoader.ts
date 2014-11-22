@@ -149,6 +149,7 @@ export class ClassLoader {
         // This will only happen when we're loading java/lang/Thread for
         // the very first time.
         logging.error('JVM initialization failed: ' + e);
+        logging.error(e.stack);
       } else {
         thread.throwNewException('Ljava/lang/ClassFormatError;', e);
       }

@@ -96,13 +96,13 @@ export class AbstractMethodField {
     this.name = (<ConstantPool.ConstUTF8> constant_pool.get(bytes_array.getUint16())).value;
     this.raw_descriptor = (<ConstantPool.ConstUTF8> constant_pool.get(bytes_array.getUint16())).value;
     this.parse_descriptor(this.raw_descriptor);
-    this.attrs = attributes.make_attributes(bytes_array, constant_pool);
+    this.attrs = attributes.makeAttributes(bytes_array, constant_pool);
   }
 
   public get_attribute(name: string): attributes.IAttribute {
     for (var i = 0; i < this.attrs.length; i++) {
       var attr = this.attrs[i];
-      if (attr.name === name) {
+      if (attr.getName() === name) {
         return attr;
       }
     }
@@ -110,7 +110,7 @@ export class AbstractMethodField {
   }
 
   public get_attributes(name: string): attributes.IAttribute[] {
-    return this.attrs.filter((attr) => attr.name === name);
+    return this.attrs.filter((attr) => attr.getName() === name);
   }
 
   // To satiate TypeScript. Consider it an 'abstract' method.
@@ -268,12 +268,13 @@ export class Method extends AbstractMethodField {
     // Resolve the return type.
     toResolve.push(this.return_type);
     // Resolve exception handler types.
-    if (hasCode && this.code.exception_handlers.length > 0) {
+    var code: attributes.Code = this.code;
+    if (hasCode && code.exceptionHandlers.length > 0) {
       toResolve.push('Ljava/lang/Throwable;');  // Mimic native java.
-      var eh = this.code.exception_handlers;
+      var eh = code.exceptionHandlers;
       for (var i = 0; i < eh.length; i++) {
-        if (eh[i].catch_type !== '<any>') {
-          toResolve.push(eh[i].catch_type);
+        if (eh[i].catchType !== '<any>') {
+          toResolve.push(eh[i].catchType);
         }
       }
     }
@@ -312,8 +313,8 @@ export class Method extends AbstractMethodField {
         obj[typestr + 'modifiers'] = this.access_byte;
         obj[typestr + 'slot'] = this.idx;
         obj[typestr + 'signature'] = sigAttr != null ? jvm.internString(sigAttr.sig) : null;
-        obj[typestr + 'annotations'] = annAttr != null ? new JavaArray(byte_arr_cls, annAttr.raw_bytes) : null;
-        obj[typestr + 'annotationDefault'] = annDefaultAttr != null ? new JavaArray(byte_arr_cls, annDefaultAttr.raw_bytes) : null;
+        obj[typestr + 'annotations'] = annAttr != null ? new JavaArray(byte_arr_cls, annAttr.rawBytes) : null;
+        obj[typestr + 'annotationDefault'] = annDefaultAttr != null ? new JavaArray(byte_arr_cls, annDefaultAttr.rawBytes) : null;
         cb(new JavaObject(cls, obj));
       }
     });
