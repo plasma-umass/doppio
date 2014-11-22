@@ -648,10 +648,12 @@ export class MethodHandle implements IConstantPoolItem {
         case enums.MethodHandleReferenceKind.PUTFIELD:
         case enums.MethodHandleReferenceKind.PUTSTATIC:
           return reference.getType() === enums.ConstantPoolItemType.FIELDREF;
+        case enums.MethodHandleReferenceKind.INVOKEINTERFACE:
+          return reference.getType() === enums.ConstantPoolItemType.INTERFACE_METHODREF
+            && (<MethodReference>reference).nameAndTypeInfo.name[0] !== '<';
         case enums.MethodHandleReferenceKind.INVOKEVIRTUAL:
         case enums.MethodHandleReferenceKind.INVOKESTATIC:
         case enums.MethodHandleReferenceKind.INVOKESPECIAL:
-        case enums.MethodHandleReferenceKind.INVOKEINTERFACE:
           return reference.getType() === enums.ConstantPoolItemType.METHODREF
             && (<MethodReference>reference).nameAndTypeInfo.name[0] !== '<';
         case enums.MethodHandleReferenceKind.NEWINVOKESPECIAL:
