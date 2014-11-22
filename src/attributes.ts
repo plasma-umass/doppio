@@ -7,7 +7,7 @@ import assert = require('./assert');
 declare var RELEASE: boolean;
 
 export interface IAttributeClass {
-  parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool, attrLen?: number): IAttribute;
+  parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool, attrLen: number): IAttribute;
 }
 
 export interface IAttribute {

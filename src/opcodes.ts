@@ -1492,11 +1492,11 @@ export class Opcodes {
   }
 
   public static invokedynamic(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    throwException(thread, frame, "Ljava/lang/Error", "Invokedynamic not implemented.");
+    throwException(thread, frame, "Ljava/lang/Error;", "Invokedynamic not implemented.");
   }
 
   public static breakpoint(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    throwException(thread, frame, "Ljava/lang/Error", "breakpoint not implemented.");
+    throwException(thread, frame, "Ljava/lang/Error;", "breakpoint not implemented.");
   }
 
   /**
