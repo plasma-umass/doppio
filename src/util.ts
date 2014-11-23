@@ -396,6 +396,48 @@ for (var k in internal2external) {
   external2internal[internal2external[k]] = k;
 }
 
+/**
+ * Given a method descriptor, returns the typestrings for the return type
+ * and the parameters.
+ * 
+ * e.g. (Ljava/lang/Class;Z)Ljava/lang/String; =>
+ *        ["Ljava/lang/Class;", "Z", "Ljava/lang/String;"]
+ */
+export function getTypes(methodDescriptor: string): string[] {
+  var i = 0, types: string[] = [], endIdx: number;
+  for (i = 0; i < methodDescriptor.length; i++) {
+    switch (methodDescriptor.charAt(i)) {
+      case '(':
+      case ')':
+        //Skip.
+        break;
+      case 'L':
+        // Reference type.
+        endIdx = methodDescriptor.indexOf(';', i);
+        types.push(methodDescriptor.slice(i, endIdx + 1));
+        i = endIdx;
+        break;
+      case '[':
+        endIdx = i + 1;
+        // Find the start of the component.
+        while (methodDescriptor.charAt(endIdx) === '[') {
+          endIdx++;
+        }
+        if (methodDescriptor.charAt(endIdx) === 'L') {
+          // Reference component. Read ahead to end.
+          endIdx = methodDescriptor.indexOf(';', endIdx);
+          types.push(methodDescriptor.slice(i, endIdx + 1));
+        } else {
+          // Primitive component.
+          types.push(methodDescriptor.slice(i, endIdx + 1));
+        }
+        i = endIdx;
+        break;
+    }
+  }
+  return types;
+}
+
 // Get the component type of an array type string.
 // Cut off the [L and ; for arrays of classes.
 export function get_component_type(type_str: string): string {

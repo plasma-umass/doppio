@@ -239,6 +239,13 @@ export class ArrayClassData extends ClassData {
     return this.component_type;
   }
 
+  /**
+   * XXX: Avoid a circular reference in constantpool, for now.
+   */
+  public create(obj: any[]): java_object.JavaArray {
+    return new java_object.JavaArray(this, obj);
+  }
+
   public get_component_class(): ClassData {
     return this.component_class_cdata;
   }

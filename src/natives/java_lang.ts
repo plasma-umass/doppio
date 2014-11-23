@@ -1326,6 +1326,14 @@ class java_lang_UNIXProcess {
 
 }
 
+class java_lang_invoke_MethodHandleNatives {
+
+  public static 'getConstant(I)I'(thread: threading.JVMThread, arg0: number): number {
+    // I have no idea what the semantics are, but returning 0 disables some internal MH-related counting.
+    return 0;
+  }
+}
+
 registerNatives({
   'java/lang/Class': java_lang_Class,
   'java/lang/ClassLoader$NativeLibrary': java_lang_ClassLoader$NativeLibrary,
@@ -1346,5 +1354,6 @@ registerNatives({
   'java/lang/System': java_lang_System,
   'java/lang/Thread': java_lang_Thread,
   'java/lang/Throwable': java_lang_Throwable,
-  'java/lang/UNIXProcess': java_lang_UNIXProcess
+  'java/lang/UNIXProcess': java_lang_UNIXProcess,
+  'java/lang/invoke/MethodHandleNatives': java_lang_invoke_MethodHandleNatives
 });

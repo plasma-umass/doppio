@@ -97,12 +97,7 @@ function windowsFindJavaHome(grunt: IGrunt, cb: (success: boolean, java_home?: s
   // Windows: JDK path is in either of the following registry keys:
   // - HKLM\Software\JavaSoft\Java Development Kit\1.[version] [JDK arch == OS arch]
   // - HKLM\Software\Wow6432Node\JavaSoft\Java Development Kit\1.[version] [32-bit JDK Arch, 64-bit OS arch]
-  // Check both for Java 6, 7, and 8.
   var keysToCheck: string[] = [
-      'HKLM\\SOFTWARE\\JavaSoft\\Java Development Kit\\1.6',
-      'HKLM\\SOFTWARE\\Wow6432Node\\JavaSoft\\Java Development Kit\\1.6',
-      'HKLM\\SOFTWARE\\JavaSoft\\Java Development Kit\\1.7',
-      'HKLM\\SOFTWARE\\Wow6432Node\\JavaSoft\\Java Development Kit\\1.7',
       'HKLM\\SOFTWARE\\JavaSoft\\Java Development Kit\\1.8',
       'HKLM\\SOFTWARE\\Wow6432Node\\JavaSoft\\Java Development Kit\\1.8'
     ];

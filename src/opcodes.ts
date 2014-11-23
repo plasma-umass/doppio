@@ -1492,9 +1492,19 @@ export class Opcodes {
   }
 
   public static invokedynamic(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    var callSiteSpecifier = <ConstantPool.InvokeDynamic> frame.method.cls.constant_pool.get(code.readUInt16BE(pc + 1));
-    callSiteSpecifier.bootstrapMethod = frame.method.cls.getBootstrapMethod(callSiteSpecifier.bootstrapMethodAttrIndex);
-    throwException(thread, frame, "Ljava/lang/Error;", "Invokedynamic not implemented.");
+    var callSiteSpecifier = <ConstantPool.InvokeDynamic> frame.method.cls.constant_pool.get(code.readUInt16BE(pc + 1)),
+      bMethod = frame.method.cls.getBootstrapMethod(callSiteSpecifier.bootstrapMethodAttrIndex);
+    callSiteSpecifier.bootstrapMethod = bMethod;
+
+    if (bMethod[0].methodHandle !== null) {
+      throwException(thread, frame, "Ljava/lang/Error;", "Invokedynamic not implemented.");
+    } else {
+      thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+      bMethod[0].constructMethodHandle(thread, frame.method.cls, frame.getLoader(), () => {
+        thread.setStatus(enums.ThreadStatus.RUNNABLE);
+      });
+      frame.returnToThreadLoop = true;
+    }
   }
 
   public static breakpoint(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
