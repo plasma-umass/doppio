@@ -71,7 +71,11 @@ class java_lang_Class {
   }
 
   public static 'isInstance(Ljava/lang/Object;)Z'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject, obj: java_object.JavaObject): boolean {
-    return obj.cls.is_castable(javaThis.$cls);
+    if (obj !== null) {
+      return obj.cls.is_castable(javaThis.$cls);
+    } else {
+      return false;
+    }
   }
 
   public static 'isAssignableFrom(Ljava/lang/Class;)Z'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject, cls: java_object.JavaClassObject): boolean {
@@ -1331,6 +1335,56 @@ class java_lang_invoke_MethodHandleNatives {
   public static 'getConstant(I)I'(thread: threading.JVMThread, arg0: number): number {
     // I have no idea what the semantics are, but returning 0 disables some internal MH-related counting.
     return 0;
+  }
+
+  public static 'resolve(Ljava/lang/invoke/MemberName;Ljava/lang/Class;)Ljava/lang/invoke/MemberName;'(thread: threading.JVMThread, memberName: java_object.JavaObject, caller: java_object.JavaClassObject): java_object.JavaObject {
+    // From src/share/vm/prims/methodHandles.cpp in the HotSpot source:
+    //    An unresolved member name is a mere symbolic reference.
+    //    Resolving it plants a vmtarget/vmindex in it,
+    //    which refers directly to JVM internals.
+    //
+    // TODO: Any reason to actually modify anything here, other than efficiency?
+    var type: java_object.JavaObject = memberName.get_field(thread, 'Ljava/lang/invoke/MemberName;type'),
+      accessByte: number, name: string = (<java_object.JavaObject> memberName.get_field(thread, 'Ljava/lang/invoke/MemberName;name')).jvm2js_str(),
+      clazz = (<java_object.JavaClassObject> memberName.get_field(thread, 'Ljava/lang/invoke/MemberName;clazz')).$cls;
+    if (type.cls.this_class === 'Ljava/lang/Class;') {
+      // Get the access byte of the field.
+      accessByte = clazz.field_lookup(thread, name).access_byte;
+      finish();
+      return memberName;
+    } else {
+      // Get the access flags of the method.
+      // *sigh*... Translate the MethodType object into a descriptor.
+      var methodDescriptor: java_object.JavaObject = type.get_field(thread, 'Ljava/lang/invoke/MethodType;methodDescriptor');
+      if (methodDescriptor === null) {
+        // FINE! Tell it to create it.
+        thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+        thread.runMethod(type.cls.method_lookup(thread, 'toMethodDescriptorString()Ljava/lang/String;'), [type], (e?: java_object.JavaObject, str?: java_object.JavaObject) => {
+          if (e) {
+            thread.throwException(e);
+          } else {
+            methodDescriptor = str;
+            findMethodAccessByteAndFinish();
+            thread.asyncReturn(memberName);
+          }
+        });
+      } else {
+        findMethodAccessByteAndFinish();
+      }
+    }
+
+    function findMethodAccessByteAndFinish() {
+      console.log(clazz.this_class + "::" + name + methodDescriptor.jvm2js_str());
+      accessByte = clazz.method_lookup(thread, name + methodDescriptor.jvm2js_str()).access_byte;
+      finish();
+    }
+
+    function finish() {
+      // Blit in the member's access flags by ORing the byte with what's already
+      // in the MemberName. They use the top 8 bits for other data,
+      // and reserve the bottom 0 for the field or method's information.
+      memberName.set_field(thread, 'Ljava/lang/invoke/MemberName;flags', memberName.get_field(thread, 'Ljava/lang/invoke/MemberName;flags') | accessByte);
+    }
   }
 }
 
