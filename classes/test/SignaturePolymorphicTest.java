@@ -3,7 +3,7 @@ package classes.test;
 import java.lang.invoke.*;
 
 /**
- * Tests Java's new variadic / signature polymorphic methods.
+ * Tests Java's new signature polymorphic methods.
  * The below code generates invokevirtual instructions that involve
  * signature polymorphic methods.
  */
