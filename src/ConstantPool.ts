@@ -749,14 +749,14 @@ export class MethodHandle implements IConstantPoolItem {
   /**
    * Asynchronously constructs a JVM-visible MethodHandle object for this
    * MethodHandle.
-   * 
+   *
    * Requires producing the following, and passing it to a MethodHandle
    * constructor:
    * * [java.lang.Class] The defining class.
    * * [java.lang.String] The name of the field/method/etc.
    * * [java.lang.invoke.MethodType | java.lang.Class] The type of the field OR,
    *   if a method, the type of the method descriptor.
-   * 
+   *
    * If needed, this function will resolve needed classes.
    */
   public constructMethodHandle(thread: threading.JVMThread, caller: ClassData.ClassData, cl: ClassLoader.ClassLoader, cb: (err: any, methodHandle: java_object.JavaObject) => void): void {

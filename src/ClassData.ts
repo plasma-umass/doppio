@@ -643,6 +643,32 @@ export class ReferenceClassData extends ClassData {
     }
   }
 
+  private signaturePolymorphicMethodLookup(sig: string): methods.Method {
+    // No, this is not a joke. Spec 2.9:
+    // A method is signature polymorphic if all of the following are true:
+    // * It is declared in the java.lang.invoke.MethodHandle class.
+    // * It has a single formal parameter of type Object[].
+    // * It has a return type of Object.
+    // * It has the ACC_VARARGS and ACC_NATIVE flags set.
+    var functionName: string = sig.slice(0, sig.indexOf('('));
+    if (this.this_class === 'Ljava/lang/invoke/MethodHandle;') {
+      // We could do this generally and slow, but jamvm doesn't do that:
+      // http://sourceforge.net/p/jamvm/code/ci/master/tree/src/classlib/openjdk/mh.c#l657
+      // ...so let's do it fast and specific to our JDK!
+      switch (functionName) {
+        case "invoke":
+        case "invokeExact":
+        case "invokeBasic":
+        case "linkToVirtual":
+        case "linkToStatic":
+        case "linkToSpecial":
+        case "linkToInterface":
+          return this.methods[functionName + "([Ljava/lang/Object;)Ljava/lang/Object;"];
+      }
+    }
+    return null;
+  }
+
   private _method_lookup(sig: string): methods.Method {
     if (sig in this.ml_cache) {
       return this.ml_cache[sig];
@@ -664,6 +690,10 @@ export class ReferenceClassData extends ClassData {
       if (this.ml_cache[sig] != null) {
         return this.ml_cache[sig];
       }
+    }
+
+    if (this.this_class === 'Ljava/lang/invoke/MethodHandle;') {
+      return this.ml_cache[sig] = this.signaturePolymorphicMethodLookup(sig);
     }
     return this.ml_cache[sig] = null;
   }
