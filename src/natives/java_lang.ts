@@ -1370,11 +1370,11 @@ class java_lang_invoke_MethodHandleNatives {
         });
       } else {
         findMethodAccessByteAndFinish();
+        return memberName;
       }
     }
 
     function findMethodAccessByteAndFinish() {
-      console.log(clazz.this_class + "::" + name + methodDescriptor.jvm2js_str());
       accessByte = clazz.method_lookup(thread, name + methodDescriptor.jvm2js_str()).access_byte;
       finish();
     }
