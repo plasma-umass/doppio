@@ -1332,6 +1332,20 @@ class java_lang_UNIXProcess {
 
 class java_lang_invoke_MethodHandleNatives {
 
+  public static 'init(Ljava/lang/invoke/MemberName;Ljava/lang/Object;)V'(thread: threading.JVMThread, self: java_object.JavaObject, ref: java_object.JavaObject): void {
+    // 'ref' is a Method, Constructor, or Field object from java.lang.reflect.
+    // The JVM expects us to use these objects to fill in JVM-specific
+    // information here, e.g. the address of the method that needs to be
+    // called.
+    //
+    // But we're not going to do that.
+    // HOWEVER, it DOES want us to get the class object for this MemberName.
+    var clzProp: string = ref.cls.this_class + "clazz";
+
+    var clazz: java_object.JavaClassObject = ref.get_field(thread, clzProp);
+    self.set_field(thread, 'Ljava/lang/invoke/MemberName;clazz', clazz);
+  }
+
   public static 'getConstant(I)I'(thread: threading.JVMThread, arg0: number): number {
     // I have no idea what the semantics are, but returning 0 disables some internal MH-related counting.
     return 0;

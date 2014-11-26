@@ -584,6 +584,15 @@ class sun_misc_Unsafe {
     return 0;
   }
 
+  /**
+   * Detect if the given class may need to be initialized. This is often
+   * needed in conjunction with obtaining the static field base of a
+   * class.
+   * @return false only if a call to {@code ensureClassInitialized} would have no effect
+   */
+  public static 'shouldBeInitialized(Ljava/lang/Class;)Z'(thread: threading.JVMThread, javaThis: java_object.JavaObject, cls: java_object.JavaClassObject): number {
+    return !cls.$cls.is_initialized(thread) ? 1 : 0;
+  }
 }
 
 class sun_misc_Version {
