@@ -41,7 +41,7 @@ export function setup(grunt: IGrunt) {
       jcl_dir: '<%= resolve(build.java_home_dir, "classes") %>',
       build_dir: '<%= resolve(build.doppio_dir, "build", build.build_type) %>',
       // TODO: Maybe fix this to prevent us from using too much scratch space?
-      scratch_dir: path.resolve(os.tmpDir(), "jdk-download" + Math.floor(Math.random() * 100000))
+      scratch_dir: path.resolve(os.tmpdir(), "jdk-download" + Math.floor(Math.random() * 100000))
     },
     make_build_dir: {
       options: { build_dir: "<%= build.build_dir %>" },
