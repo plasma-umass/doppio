@@ -593,6 +593,26 @@ class sun_misc_Unsafe {
   public static 'shouldBeInitialized(Ljava/lang/Class;)Z'(thread: threading.JVMThread, javaThis: java_object.JavaObject, cls: java_object.JavaClassObject): number {
     return !cls.$cls.is_initialized(thread) ? 1 : 0;
   }
+
+  /**
+   * Define a class but do not make it known to the class loader or system dictionary.
+   *
+   * For each CP entry, the corresponding CP patch must either be null or have
+   * the format that matches its tag:
+   *
+   * * Integer, Long, Float, Double: the corresponding wrapper object type from java.lang
+   * * Utf8: a string (must have suitable syntax if used as signature or name)
+   * * Class: any java.lang.Class object
+   * * String: any object (not just a java.lang.String)
+   * * InterfaceMethodRef: (NYI) a method handle to invoke on that call site's arguments
+   *
+   * @params hostClass context for linkage, access control, protection domain, and class loader
+   * @params data      bytes of a class file
+   * @params cpPatches where non-null entries exist, they replace corresponding CP entries in data
+   */
+  public static 'defineAnonymousClass(Ljava/lang/Class;[B[Ljava/lang/Object;)Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, hostClass: java_object.JavaClassObject, data: java_object.JavaArray, cpPatches: java_object.JavaArray): java_object.JavaClassObject {
+    return new ClassData.ReferenceClassData(new Buffer(data.array), hostClass.$cls.get_class_loader(), cpPatches).get_class_object(thread);
+  }
 }
 
 class sun_misc_Version {

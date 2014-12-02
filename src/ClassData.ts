@@ -324,7 +324,7 @@ export class ReferenceClassData extends ClassData {
   private interface_cdatas: ReferenceClassData[];
   private default_fields: { [name: string]: any };
 
-  constructor(buffer: NodeBuffer, loader?: ClassLoader.ClassLoader) {
+  constructor(buffer: NodeBuffer, loader?: ClassLoader.ClassLoader, cpPatches?: java_object.JavaArray) {
     super(loader);
     var bytes_array = new ByteStream(buffer),
       i: number = 0;
@@ -337,7 +337,7 @@ export class ReferenceClassData extends ClassData {
       throw "Major version invalid";
     }
     this.constant_pool = new ConstantPool.ConstantPool();
-    this.constant_pool.parse(bytes_array);
+    this.constant_pool.parse(bytes_array, cpPatches);
     // bitmask for {public,final,super,interface,abstract} class modifier
     this.access_byte = bytes_array.getUint16();
     this.access_flags = util.parse_flags(this.access_byte);

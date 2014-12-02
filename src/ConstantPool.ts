@@ -664,7 +664,7 @@ export class InvokeDynamic implements IConstantPoolItem {
    * Once a CallSite is defined for a particular lexical occurrence of
    * InvokeDynamic, the CallSite will be reused for each future execution
    * of that particular occurrence.
-   * 
+   *
    * We store the CallSite objects here for future retrieval.
    */
   private callSiteObjects: { [pc: number]: java_object.JavaObject } = {};
@@ -795,7 +795,7 @@ export class MethodHandle implements IConstantPoolItem {
     } else {
       definingClassObject = definingClass.get_class_object(thread);
       getType();
-    }    
+    }
   }
 
   public static size: number = 1;
@@ -895,7 +895,7 @@ export class ConstantPool {
    */
   private constantPool: IConstantPoolItem[];
 
-  public parse(byteStream: ByteStream): ByteStream {
+  public parse(byteStream: ByteStream, cpPatches: java_object.JavaArray = null): ByteStream {
     var cpCount = byteStream.getUint16(),
       // First key is the tier.
       deferredQueue: { offset: number; index: number }[][] = [[], [], []],
@@ -932,6 +932,51 @@ export class ConstantPool {
         byteStream.seek(item.offset);
         tag = byteStream.getUint8();
         this.constantPool[item.index] = CP_CLASSES[tag].fromBytes(byteStream, this);
+        if (cpPatches !== null && cpPatches[item.index] !== null && cpPatches[item.index] !== undefined) {
+          /*
+           * For each CP entry, the corresponding CP patch must either be null or have
+           * the format that matches its tag:
+           *
+           * * Integer, Long, Float, Double: the corresponding wrapper object type from java.lang
+           * * Utf8: a string (must have suitable syntax if used as signature or name)
+           * * Class: any java.lang.Class object
+           * * String: any object (not just a java.lang.String)
+           * * InterfaceMethodRef: (NYI) a method handle to invoke on that call site's arguments
+           */
+          var patchObj: java_object.JavaObject = cpPatches[item.index];
+          switch (patchObj.cls.this_class) {
+            case 'Ljava/lang/Integer;':
+              assert(tag === enums.ConstantPoolItemType.INTEGER);
+              (<ConstInt32> this.constantPool[item.index]).value = patchObj.get_field(null, 'Ljava/lang/Integer;value');
+              break;
+            case 'Ljava/lang/Long;':
+              assert(tag === enums.ConstantPoolItemType.LONG);
+              (<ConstLong> this.constantPool[item.index]).value = patchObj.get_field(null, 'Ljava/lang/Long;value');
+              break;
+            case 'Ljava/lang/Float;':
+              assert(tag === enums.ConstantPoolItemType.FLOAT);
+              (<ConstFloat> this.constantPool[item.index]).value = patchObj.get_field(null, 'Ljava/lang/Float;value');
+              break;
+            case 'Ljava/lang/Double;':
+              assert(tag === enums.ConstantPoolItemType.DOUBLE);
+              (<ConstDouble> this.constantPool[item.index]).value = patchObj.get_field(null, 'Ljava/lang/Double;value');
+              break;
+            case 'Ljava/lang/String;':
+              assert(tag === enums.ConstantPoolItemType.UTF8);
+              (<ConstUTF8> this.constantPool[item.index]).value = patchObj.jvm2js_str();
+              break;
+            case 'Ljava/lang/Class;':
+              assert(tag === enums.ConstantPoolItemType.CLASS);
+              (<ClassReference> this.constantPool[item.index]).name = (<java_object.JavaClassObject> patchObj).$cls.this_class;
+              (<ClassReference> this.constantPool[item.index]).cdata[0] = (<java_object.JavaClassObject> patchObj).$cls;
+              break;
+            default:
+              assert(tag === enums.ConstantPoolItemType.STRING);
+              (<ConstString> this.constantPool[item.index]).stringValue = patchObj.jvm2js_str();
+              (<ConstString> this.constantPool[item.index]).value = patchObj;
+              break;
+          }
+        }
       });
     });
 
