@@ -361,7 +361,7 @@ class java_lang_Class {
 
   public static 'desiredAssertionStatus0(Ljava/lang/Class;)Z'(thread: threading.JVMThread, arg0: java_object.JavaClassObject): boolean {
     // we don't need no stinkin asserts
-    // @todo Actually need stinkin asserts
+    // @todo Support a command-line flag to enable/disable assertions, like Java.
     return false;
   }
 
@@ -1330,20 +1330,78 @@ class java_lang_UNIXProcess {
 
 }
 
+/**
+ * Misc. MemberName-specific constants, enum'd so they get inlined.
+ */
+enum MemberNameConstants {
+  /* Bit masks for FLAGS for particular types */
+  IS_METHOD           = 0x00010000, // method (not constructor)
+  IS_CONSTRUCTOR      = 0x00020000, // constructor
+  IS_FIELD            = 0x00040000, // field
+  IS_TYPE             = 0x00080000, // nested type
+  CALLER_SENSITIVE    = 0x00100000, // @CallerSensitive annotation detected
+  /* Passed in in matchFlags argument of MHN.getMembers */
+  SEARCH_SUPERCLASSES = 0x00100000,
+  SEARCH_INTERFACES   = 0x00200000,
+  /* Number of bits to shift over the reference kind into the MN's flags. */
+  REFERENCE_KIND_SHIFT = 24,
+  /* Mask to extract member type. */
+  ALL_KINDS = (IS_METHOD | IS_CONSTRUCTOR | IS_FIELD | IS_TYPE)
+}
+
 class java_lang_invoke_MethodHandleNatives {
-
+  /**
+   * I'm going by JAMVM's implementation of this method, which is very easy
+   * to understand:
+   * http://sourceforge.net/p/jamvm/code/ci/master/tree/src/classlib/openjdk/mh.c#l388
+   *
+   * The second argument is a Reflection object for the specified member,
+   * which is either a Field, Method, or Constructor.
+   *
+   * We need to:
+   * * Set "clazz" field to item's declaring class in the reflection object.
+   * * Set "flags" field to items's flags, OR'd with its type (method/field/
+   *   constructor), and OR'd with its reference kind shifted up by 24.
+   * * Set "vmtarget" to a pointer to the member.
+   *
+   * NOTE: As a non-native VM, we ignore "vmtarget". Also, "vmtarget" is an
+   * "injected field" that is not exposed to JVM code, and we don't support
+   * those yet.
+   */
   public static 'init(Ljava/lang/invoke/MemberName;Ljava/lang/Object;)V'(thread: threading.JVMThread, self: java_object.JavaObject, ref: java_object.JavaObject): void {
-    // 'ref' is a Method, Constructor, or Field object from java.lang.reflect.
-    // The JVM expects us to use these objects to fill in JVM-specific
-    // information here, e.g. the address of the method that needs to be
-    // called.
-    //
-    // But we're not going to do that.
-    // HOWEVER, it DOES want us to get the class object for this MemberName.
-    var clzProp: string = ref.cls.this_class + "clazz";
-
-    var clazz: java_object.JavaClassObject = ref.get_field(thread, clzProp);
+    var clazz: java_object.JavaClassObject = ref.get_field(thread, ref.cls.this_class + "clazz"),
+      flags: number = ref.get_field(thread, ref.cls.this_class + "modifiers"),
+      flagsParsed: util.Flags = util.parse_flags(flags),
+      refKind: number, method: methods.Method;
     self.set_field(thread, 'Ljava/lang/invoke/MemberName;clazz', clazz);
+
+    switch (ref.cls.this_class) {
+      case "Ljava/lang/reflect/Method;":
+        flags |= MemberNameConstants.IS_METHOD;
+        if (flagsParsed.static) {
+          refKind = enums.MethodHandleReferenceKind.INVOKESTATIC;
+        } else if (clazz.$cls.access_flags.interface) {
+          refKind = enums.MethodHandleReferenceKind.INVOKEINTERFACE;
+        } else {
+          refKind = enums.MethodHandleReferenceKind.INVOKEVIRTUAL;
+        }
+        // TODO: Is the @CallerSensitive annotation present on the method? Requires a slot->method lookup function.
+        break;
+      case "Ljava/lang/reflect/Constructor;":
+        flags |= MemberNameConstants.IS_CONSTRUCTOR;
+        refKind = enums.MethodHandleReferenceKind.INVOKESPECIAL;
+        // TODO: Is the @CallerSensitive annotation present on the method? Requires a slot->method lookup function.
+        break;
+      case "Ljava/lang/reflect/Field;":
+        flags |= MemberNameConstants.IS_FIELD;
+        refKind = flagsParsed.static ? enums.MethodHandleReferenceKind.GETSTATIC : enums.MethodHandleReferenceKind.GETFIELD;
+        break;
+      default:
+        thread.throwNewException("Ljava/lang/InternalError;", "init: Invalid target.");
+        break;
+    }
+    flags |= refKind << MemberNameConstants.REFERENCE_KIND_SHIFT;
+    self.set_field(thread, 'Ljava/lang/invoke/MemberName;flags', flags);
   }
 
   public static 'getConstant(I)I'(thread: threading.JVMThread, arg0: number): number {
@@ -1351,53 +1409,57 @@ class java_lang_invoke_MethodHandleNatives {
     return 0;
   }
 
-  public static 'resolve(Ljava/lang/invoke/MemberName;Ljava/lang/Class;)Ljava/lang/invoke/MemberName;'(thread: threading.JVMThread, memberName: java_object.JavaObject, caller: java_object.JavaClassObject): java_object.JavaObject {
-    // From src/share/vm/prims/methodHandles.cpp in the HotSpot source:
-    //    An unresolved member name is a mere symbolic reference.
-    //    Resolving it plants a vmtarget/vmindex in it,
-    //    which refers directly to JVM internals.
-    //
-    // TODO: Any reason to actually modify anything here, other than efficiency?
+  /**
+   * I'm going by JAMVM's implementation of resolve:
+   * http://sourceforge.net/p/jamvm/code/ci/master/tree/src/classlib/openjdk/mh.c#l1266
+   *
+   * Resolve appears to perform dynamic lookup, and updates flags and
+   * "vmtarget" appropriately.
+   */
+  public static 'resolve(Ljava/lang/invoke/MemberName;Ljava/lang/Class;)Ljava/lang/invoke/MemberName;'(thread: threading.JVMThread, memberName: java_object.JavaObject, mh_class: java_object.JavaClassObject): java_object.JavaObject {
     var type: java_object.JavaObject = memberName.get_field(thread, 'Ljava/lang/invoke/MemberName;type'),
-      accessByte: number, name: string = (<java_object.JavaObject> memberName.get_field(thread, 'Ljava/lang/invoke/MemberName;name')).jvm2js_str(),
-      clazz = (<java_object.JavaClassObject> memberName.get_field(thread, 'Ljava/lang/invoke/MemberName;clazz')).$cls;
-    if (type.cls.this_class === 'Ljava/lang/Class;') {
-      // Get the access byte of the field.
-      accessByte = clazz.field_lookup(thread, name).access_byte;
-      finish();
-      return memberName;
-    } else {
-      // Get the access flags of the method.
-      // *sigh*... Translate the MethodType object into a descriptor.
-      var methodDescriptor: java_object.JavaObject = type.get_field(thread, 'Ljava/lang/invoke/MethodType;methodDescriptor');
-      if (methodDescriptor === null) {
-        // FINE! Tell it to create it.
+      name: string = (<java_object.JavaObject> memberName.get_field(thread, 'Ljava/lang/invoke/MemberName;name')).jvm2js_str(),
+      clazz = (<java_object.JavaClassObject> memberName.get_field(thread, 'Ljava/lang/invoke/MemberName;clazz')).$cls,
+      flags: number = memberName.get_field(thread, 'Ljava/lang/invoke/MemberName;flags');
+
+    if (clazz === null || name == null || type == null) {
+      thread.throwNewException("Ljava/lang/IllegalArgumentException;", "Invalid MemberName.");
+      return;
+    }
+
+    switch (flags & MemberNameConstants.ALL_KINDS) {
+      case MemberNameConstants.IS_CONSTRUCTOR:
+      case MemberNameConstants.IS_METHOD:
+        // Need to perform method lookup.
+        // XXX: Should have a better way than this! >_<
         thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
         thread.runMethod(type.cls.method_lookup(thread, 'toMethodDescriptorString()Ljava/lang/String;'), [type], (e?: java_object.JavaObject, str?: java_object.JavaObject) => {
           if (e) {
             thread.throwException(e);
           } else {
-            methodDescriptor = str;
-            findMethodAccessByteAndFinish();
+            processMethod(str.jvm2js_str());
             thread.asyncReturn(memberName);
           }
         });
-      } else {
-        findMethodAccessByteAndFinish();
+        break;
+      case MemberNameConstants.IS_FIELD:
+        flags |= clazz.field_lookup(thread, name).access_byte;
+        finish();
         return memberName;
-      }
+        break;
+      default:
+        thread.throwNewException('Ljava/lang/LinkageError;', 'resolve member name');
+        break;
     }
 
-    function findMethodAccessByteAndFinish() {
-      accessByte = clazz.method_lookup(thread, name + methodDescriptor.jvm2js_str()).access_byte;
+    function processMethod(desc: string) {
+      var method: methods.Method = clazz.method_lookup(thread, name + desc);
+      flags |= method.access_byte;
       finish();
     }
 
     function finish() {
-      // Blit in the member's access flags by ORing the byte with what's already
-      // in the MemberName. They use the top 8 bits for other data,
-      // and reserve the bottom 0 for the field or method's information.
-      memberName.set_field(thread, 'Ljava/lang/invoke/MemberName;flags', memberName.get_field(thread, 'Ljava/lang/invoke/MemberName;flags') | accessByte);
+      memberName.set_field(thread, 'Ljava/lang/invoke/MemberName;flags', flags);
     }
   }
 }
