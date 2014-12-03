@@ -124,7 +124,8 @@ function windowsFindJavaHome(grunt: IGrunt, cb: (success: boolean, java_home?: s
 function nixFindJavaHome(grunt: IGrunt, cb: (success: boolean, javaHome?: string) => void): void {
   // Option 1: Try the 'update-java-alternatives' tool
   exec('update-java-alternatives -l', (err: Error, stdout: Buffer, stderr: Buffer) => {
-    if (!err) {
+    // This returns error code 1 on success, for some reason.
+    if (!err || (<any>err).code == 1) {
       var alts = stdout.toString().split('\n');
       for (var i=0; i<alts.length; i++) {
         if (alts[i].match(/1\.8/)) {
