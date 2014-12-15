@@ -285,7 +285,7 @@ class java_io_FileOutputStream {
       });
     } else {
       // stdout or stderr
-      var output: string = util.chars2js_str(bytes, offset, len);
+      var output: string = util.chars2jsStr(bytes, offset, len);
       if (fd === 1) {
         process.stdout.write(output);
       } else if (fd === 2) {

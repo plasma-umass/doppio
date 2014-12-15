@@ -536,7 +536,7 @@ export class Opcodes {
 
   public static fadd(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     var stack = frame.stack;
-    stack.push(util.wrap_float(stack.pop() + stack.pop()));
+    stack.push(util.wrapFloat(stack.pop() + stack.pop()));
     frame.pc++;
   }
 
@@ -555,7 +555,7 @@ export class Opcodes {
 
   public static fsub(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     var stack = frame.stack;
-    stack.push(util.wrap_float(-stack.pop() + stack.pop()));
+    stack.push(util.wrapFloat(-stack.pop() + stack.pop()));
     frame.pc++;
   }
 
@@ -586,7 +586,7 @@ export class Opcodes {
 
   public static fmul(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     var stack = frame.stack;
-    stack.push(util.wrap_float(stack.pop() * stack.pop()));
+    stack.push(util.wrapFloat(stack.pop() * stack.pop()));
     frame.pc++;
   }
 
@@ -628,7 +628,7 @@ export class Opcodes {
   public static fdiv(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     var stack = frame.stack,
       a: number = stack.pop();
-    stack.push(util.wrap_float(stack.pop() / a));
+    stack.push(util.wrapFloat(stack.pop() / a));
     frame.pc++;
   }
 
@@ -869,7 +869,7 @@ export class Opcodes {
   public static d2f(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     var stack = frame.stack;
     stack.pop();
-    stack.push(util.wrap_float(stack.pop()));
+    stack.push(util.wrapFloat(stack.pop()));
     frame.pc++;
   }
 
@@ -901,11 +901,14 @@ export class Opcodes {
   public static fcmpl(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     var stack = frame.stack,
       v2 = stack.pop(),
-      res = util.cmp(stack.pop(), v2);
-    if (res == null) {
-      stack.push(-1);
+      v1 = stack.pop();
+    if (v1 === v2) {
+      stack.push(0);
+    } else if (v1 > v2) {
+      stack.push(1);
     } else {
-      stack.push(res);
+      // v1 < v2, and if v1 or v2 is NaN.
+      stack.push(-1);
     }
     frame.pc++;
   }
@@ -913,11 +916,14 @@ export class Opcodes {
   public static fcmpg(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     var stack = frame.stack,
       v2 = stack.pop(),
-      res = util.cmp(stack.pop(), v2);
-    if (res == null) {
-      stack.push(1);
+      v1 = stack.pop();
+    if (v1 === v2) {
+      stack.push(0);
+    } else if (v1 < v2) {
+      stack.push(-1);
     } else {
-      stack.push(res);
+      // v1 > v2, and if v1 or v2 is NaN.
+      stack.push(1);
     }
     frame.pc++;
   }
@@ -925,11 +931,14 @@ export class Opcodes {
   public static dcmpl(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     var stack = frame.stack,
       v2 = pop2(stack),
-      res = util.cmp(pop2(stack), v2);
-    if (res == null) {
-      stack.push(-1);
+      v1 = pop2(stack);
+    if (v1 === v2) {
+      stack.push(0);
+    } else if (v1 > v2) {
+      stack.push(1);
     } else {
-      stack.push(res);
+      // v1 < v2, and if v1 or v2 is NaN.
+      stack.push(-1);
     }
     frame.pc++;
   }
@@ -937,11 +946,14 @@ export class Opcodes {
   public static dcmpg(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     var stack = frame.stack,
       v2 = pop2(stack),
-      res = util.cmp(pop2(stack), v2);
-    if (res == null) {
-      stack.push(1);
+      v1 = pop2(stack);
+    if (v1 === v2) {
+      stack.push(0);
+    } else if (v1 < v2) {
+      stack.push(-1);
     } else {
-      stack.push(res);
+      // v1 > v2, and if v1 or v2 is NaN.
+      stack.push(1);
     }
     frame.pc++;
   }
@@ -1127,7 +1139,7 @@ export class Opcodes {
 
   public static return(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     frame.returnToThreadLoop = true;
-    if (frame.method.access_flags.synchronized) {
+    if (frame.method.access_flags.isSynchronized()) {
       // monitorexit
       if (!frame.method.method_lock(thread, frame).exit(thread)) {
         // monitorexit threw an exception.
@@ -1141,7 +1153,7 @@ export class Opcodes {
 
   private static _return_32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     frame.returnToThreadLoop = true;
-    if (frame.method.access_flags.synchronized) {
+    if (frame.method.access_flags.isSynchronized()) {
       // monitorexit
       if (!frame.method.method_lock(thread, frame).exit(thread)) {
         // monitorexit threw an exception.
@@ -1159,7 +1171,7 @@ export class Opcodes {
 
   private static _return_64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     frame.returnToThreadLoop = true;
-    if (frame.method.access_flags.synchronized) {
+    if (frame.method.access_flags.isSynchronized()) {
       // monitorexit
       if (!frame.method.method_lock(thread, frame).exit(thread)) {
         // monitorexit threw an exception.
@@ -1563,7 +1575,7 @@ export class Opcodes {
       if (cls != null && cls.is_initialized(thread)) {
         var m = cls.method_lookup(thread, methodReference.methodSignature);
         if (m != null) {
-          assert(m.access_flags.static, "Invokestatic can only be used on static functions.");
+          assert(m.access_flags.isStatic(), "Invokestatic can only be used on static functions.");
           // Stash, rewrite, and rerun.
           methodReference.method = m;
           code.writeUInt8(enums.OpCode.INVOKESTATIC_FAST, pc);

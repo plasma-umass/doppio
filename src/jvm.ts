@@ -113,7 +113,7 @@ class JVM {
      * JVM's ThreadGroup once that class is initialized.
      */
     bootupTasks.push((next: (err?: any) => void): void => {
-      util.async_foreach<string>(coreClasses, (coreClass: string, next_item: (err?: any) => void) => {
+      util.asyncForEach<string>(coreClasses, (coreClass: string, next_item: (err?: any) => void) => {
         this.bsCl.initializeClass(firstThread, coreClass, (cdata: ClassData.ClassData) => {
           var cnstrctr: methods.Method;
           if (cdata == null) {

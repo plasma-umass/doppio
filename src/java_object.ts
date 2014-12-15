@@ -40,23 +40,6 @@ export class JavaArray {
     }
     return "<" + this.cls.get_type() + " of length " + this.array.length + " (*" + this.ref + ")>";
   }
-
-  public serialize(visited: any): any {
-    if (visited[this.ref]) {
-      return "<*" + this.ref + ">";
-    }
-    visited[this.ref] = true;
-    function elem_serializer(f: any) {
-      if (!f) return f;
-      if (typeof f.serialize !== "function") return f;
-      return f.serialize(visited);
-    }
-    return {
-      'type': this.cls.get_type(),
-      'ref': this.ref,
-      'array': this.array.map(elem_serializer)
-    };
-  }
 }
 
 export class JavaObject {
@@ -113,7 +96,7 @@ export class JavaObject {
 
   public get_field_from_offset(thread: threading.JVMThread, offset: gLong): any {
     var f = this._get_field_from_offset(thread, this.cls, offset.toInt());
-    if (f.field.access_flags['static']) {
+    if (f.field.access_flags.isStatic()) {
       return f.cls_obj.static_get(thread, f.field.name);
     }
     return this.get_field(thread, f.cls + f.field.name);
@@ -139,7 +122,7 @@ export class JavaObject {
 
   public set_field_from_offset(thread: threading.JVMThread, offset: gLong, value: any): void {
     var f = this._get_field_from_offset(thread, this.cls, offset.toInt());
-    if (f.field.access_flags['static']) {
+    if (f.field.access_flags.isStatic()) {
       f.cls_obj.static_put(thread, f.field.name, value);
     } else {
       this.set_field(thread, f.cls + f.field.name, value);
@@ -152,31 +135,9 @@ export class JavaObject {
     return "<" + this.cls.get_type() + " (*" + this.ref + ")>";
   }
 
-  public serialize(visited: any): any {
-    if (this.ref in visited) {
-      return "<*" + this.ref + ">";
-    }
-    visited[this.ref] = true;
-    var fields = {};
-    var _ref2 = this.fields;
-    for (var k in this.fields) {
-      var field = this.fields[k];
-      if (field && field.serialize) {
-        fields[k] = field.serialize(visited);
-      } else {
-        fields[k] = field;
-      }
-    }
-    return {
-      type: this.cls.get_type(),
-      ref: this.ref,
-      fields: fields
-    };
-  }
-
   // Convert a Java String object into an equivalent JS one.
   public jvm2js_str(): string {
-    return util.chars2js_str(this.fields['Ljava/lang/String;value'], this.fields['Ljava/lang/String;offset'], this.fields['Ljava/lang/String;count']);
+    return util.chars2jsStr(this.fields['Ljava/lang/String;value'], this.fields['Ljava/lang/String;offset'], this.fields['Ljava/lang/String;count']);
   }
 }
 

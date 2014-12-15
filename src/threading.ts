@@ -73,10 +73,10 @@ export class BytecodeStackFrame implements IStackFrame {
    */
   constructor(method: methods.Method, args: any[]) {
     this.method = method;
-    assert(!method.access_flags.native, 'Cannot run a native method using a BytecodeStackFrame.');
+    assert(!method.access_flags.isNative(), 'Cannot run a native method using a BytecodeStackFrame.');
     // @todo This should be a runtime error, since reflection can cause you to
     // try to do this.
-    assert(!method.access_flags.abstract, 'Cannot run an abstract method!');
+    assert(!method.access_flags.isAbstract(), 'Cannot run an abstract method!');
     this.locals = args;
   }
 
@@ -90,7 +90,7 @@ export class BytecodeStackFrame implements IStackFrame {
     }
     vtrace("  S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "]");
 
-    if (method.access_flags.synchronized && !this.lockedMethodLock) {
+    if (method.access_flags.isSynchronized() && !this.lockedMethodLock) {
       // We are starting a synchronized method! These must implicitly enter
       // their respective locks.
       this.lockedMethodLock = method.method_lock(thread, this).enter(thread, () => {
@@ -214,7 +214,7 @@ export class BytecodeStackFrame implements IStackFrame {
       // abrupt method invocation completion
       debug("{BOLD}{YELLOW}" + method.full_signature() + "{/YELLOW}{/BOLD}: Did not catch {GREEN}" + e.cls.get_type() + "{/GREEN}.");
       // STEP 3: Synchronized method? Exit from the method's monitor.
-      if (method.access_flags.synchronized) {
+      if (method.access_flags.isSynchronized()) {
         method.method_lock(thread, this).exit(thread);
       }
       return false;
@@ -259,7 +259,7 @@ class NativeStackFrame implements IStackFrame {
   constructor(method: methods.Method, args: any[]) {
     this.method = method;
     this.args = args;
-    assert(method.access_flags.native);
+    assert(method.access_flags.isNative());
     this.nativeMethod = method.getNativeFunction();
   }
 
@@ -876,7 +876,7 @@ export class JVMThread extends java_object.JavaObject {
     }
 
     // Add a new stack frame for the method.
-    if (method.access_flags.native) {
+    if (method.access_flags.isNative()) {
       this.stack.push(new NativeStackFrame(method, args));
     } else {
       this.stack.push(new BytecodeStackFrame(method, args));
@@ -922,7 +922,7 @@ export class JVMThread extends java_object.JavaObject {
       }
 
       if (frameCast.method.return_type !== 'V') {
-        vtrace("\nT" + this.ref + " D" + (this.getStackTrace().length + 1) + " Returning value from " + frameCast.method.full_signature() + " [" + (frameCast.method.access_flags.native ? 'Native' : 'Bytecode') + "]: " + logging.debug_var(rv));
+        vtrace("\nT" + this.ref + " D" + (this.getStackTrace().length + 1) + " Returning value from " + frameCast.method.full_signature() + " [" + (frameCast.method.access_flags.isNative() ? 'Native' : 'Bytecode') + "]: " + logging.debug_var(rv));
       }
       assert(validateReturnValue(this, frameCast.method,
         frameCast.method.return_type, this.bsCl,
@@ -1125,7 +1125,7 @@ function validateReturnValue(thread: JVMThread, method: methods.Method, returnTy
         case 'F': // Float
           assert(rv2 === undefined);
           // NaN !== NaN, so we have to have a special case here.
-          assert(util.wrap_float(rv1) === rv1 || (isNaN(rv1) && isNaN(util.wrap_float(rv1))));
+          assert(util.wrapFloat(rv1) === rv1 || (isNaN(rv1) && isNaN(util.wrapFloat(rv1))));
           break;
         case 'D': // Double
           assert(rv2 === null);
@@ -1156,7 +1156,7 @@ function validateReturnValue(thread: JVMThread, method: methods.Method, returnTy
           cls = bsCl.getResolvedClass(returnType);
         }
         assert(cls != null);
-        if (!cls.access_flags["interface"]) {
+        if (!cls.access_flags.isInterface()) {
           // You can return an interface type without initializing it,
           // since they don't need to be initialized until you try to
           // invoke one of their methods.

@@ -161,8 +161,8 @@ class sun_reflect_NativeMethodAccessorImpl {
         }
       }
     }
-    
-    if (cls.access_flags['interface']) {
+
+    if (cls.access_flags.isInterface()) {
       // It's an interface method. Look up the implementation in the object.
       m = obj.cls.method_lookup(thread, m.name + m.raw_descriptor);
       if (m == null) {
@@ -171,7 +171,7 @@ class sun_reflect_NativeMethodAccessorImpl {
       }
     }
 
-    if (!m.access_flags.static) {
+    if (!m.access_flags.isStatic()) {
       args.push(obj);
     }
     if (params != null) {

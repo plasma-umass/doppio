@@ -92,7 +92,7 @@ export class AbstractMethodField {
   public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool, idx: number): void {
     this.idx = idx;
     this.access_byte = bytes_array.getUint16();
-    this.access_flags = util.parse_flags(this.access_byte);
+    this.access_flags = new util.Flags(this.access_byte);
     this.name = (<ConstantPool.ConstUTF8> constant_pool.get(bytes_array.getUint16())).value;
     this.raw_descriptor = (<ConstantPool.ConstUTF8> constant_pool.get(bytes_array.getUint16())).value;
     this.parse_descriptor(this.raw_descriptor);
@@ -191,11 +191,11 @@ export class Method extends AbstractMethodField {
       var p = this.param_types[i];
       this.param_bytes += (p === 'D' || p === 'J') ? 2 : 1;
     }
-    if (!this.access_flags["static"]) {
+    if (!this.access_flags.isStatic()) {
       this.param_bytes++;
     }
     this.num_args = this.param_types.length;
-    if (!this.access_flags["static"]) {
+    if (!this.access_flags.isStatic()) {
       // nonstatic methods get 'this'
       this.num_args++;
     }
@@ -207,12 +207,12 @@ export class Method extends AbstractMethodField {
   }
 
   public getCodeAttribute(): attributes.Code {
-    assert(!this.access_flags.native && !this.access_flags.abstract);
+    assert(!this.access_flags.isNative() && !this.access_flags.isAbstract());
     return this.code;
   }
 
   public getNativeFunction(): Function {
-    assert(this.access_flags.native && typeof (this.code) === 'function');
+    assert(this.access_flags.isNative() && typeof (this.code) === 'function');
     return this.code;
   }
 
@@ -224,8 +224,8 @@ export class Method extends AbstractMethodField {
 
     if (getTrappedMethod(clsName, methSig) != null) {
       this.code = getTrappedMethod(clsName, methSig);
-      this.access_flags["native"] = true;
-    } else if (this.access_flags["native"]) {
+      this.access_flags.setNative(true);
+    } else if (this.access_flags.isNative()) {
       if (sig.indexOf('::registerNatives()V', 1) < 0 && sig.indexOf('::initIDs()V', 1) < 0) {
         this.code = (thread: threading.JVMThread) => {
           // Try to fetch the native method.
@@ -242,7 +242,7 @@ export class Method extends AbstractMethodField {
         // NOP.
         this.code = () => { };
       }
-    } else if (!this.access_flags.abstract) {
+    } else if (!this.access_flags.isAbstract()) {
       this.code = this.get_attribute('Code');
     }
   }
@@ -263,7 +263,7 @@ export class Method extends AbstractMethodField {
       bsCl: ClassLoader.BootstrapClassLoader = thread.getBsCl(),
       jvm = thread.getThreadPool().getJVM(),
       loader = this.cls.loader,
-      hasCode = (!this.access_flags.native && !this.access_flags.abstract);
+      hasCode = (!this.access_flags.isNative() && !this.access_flags.isAbstract());
 
     // Resolve the return type.
     toResolve.push(this.return_type);
@@ -335,7 +335,7 @@ export class Method extends AbstractMethodField {
    */
   public convertArgs(thread: threading.JVMThread, params: any[]): any[] {
     var convertedArgs = [thread], argIdx = 0, i: number;
-    if (!this.access_flags["static"]) {
+    if (!this.access_flags.isStatic()) {
       convertedArgs.push(params[0]);
       argIdx = 1;
     }
@@ -366,7 +366,7 @@ export class Method extends AbstractMethodField {
   }
 
   public method_lock(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): java_object.Monitor {
-    if (this.access_flags["static"]) {
+    if (this.access_flags.isStatic()) {
       // Static methods lock the class.
       return this.cls.get_class_object(thread).getMonitor();
     } else {

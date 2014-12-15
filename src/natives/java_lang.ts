@@ -86,7 +86,7 @@ class java_lang_Class {
     if (!(javaThis.$cls instanceof ClassData.ReferenceClassData)) {
       return false;
     }
-    return javaThis.$cls.access_flags["interface"];
+    return javaThis.$cls.access_flags.isInterface();
   }
 
   public static 'isArray()Z'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): boolean {
@@ -106,7 +106,7 @@ class java_lang_Class {
       return null;
     }
     var cls = javaThis.$cls;
-    if (cls.access_flags["interface"] || (cls.get_super_class() == null)) {
+    if (cls.access_flags.isInterface() || (cls.get_super_class() == null)) {
       return null;
     }
     return cls.get_super_class().get_class_object(thread);
@@ -251,11 +251,11 @@ class java_lang_Class {
   public static 'getDeclaredFields0(Z)[Ljava/lang/reflect/Field;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject, public_only: number): void {
     var fields = javaThis.$cls.get_fields();
     if (public_only) {
-      fields = fields.filter((f) => f.access_flags["public"]);
+      fields = fields.filter((f) => f.access_flags.isPublic());
     }
     var base_array = [];
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    util.async_foreach(fields,
+    util.asyncForEach(fields,
       (f, next_item) => {
         f.reflector(thread, (jco) => {
           if (jco != null) {
@@ -275,7 +275,7 @@ class java_lang_Class {
       var _results: methods.Method[] = [];
       for (var sig in methodsHash) {
         var m = methodsHash[sig];
-        if (sig[0] !== '<' && (m.access_flags["public"] || !public_only)) {
+        if (sig[0] !== '<' && (m.access_flags.isPublic() || !public_only)) {
           _results.push(m);
         }
       }
@@ -283,7 +283,7 @@ class java_lang_Class {
     })();
     var base_array = [];
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    util.async_foreach(methods,
+    util.asyncForEach(methods,
       (m, next_item) => {
         m.reflector(thread, false, (jco) => {
           if (jco != null) {
@@ -310,12 +310,12 @@ class java_lang_Class {
       return _results;
     })();
     if (public_only) {
-      methods = methods.filter((m) => m.access_flags["public"]);
+      methods = methods.filter((m) => m.access_flags.isPublic());
     }
     var ctor_array_cdata = <ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/reflect/Constructor;');
     var base_array = [];
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    util.async_foreach(methods,
+    util.asyncForEach(methods,
       (m, next_item) => {
         m.reflector(thread, true, (jco) => {
           if (jco != null) {
@@ -348,7 +348,7 @@ class java_lang_Class {
       flat_names.push.apply(flat_names, names);
     }
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    util.async_foreach(flat_names,
+    util.asyncForEach(flat_names,
       (name: string, next_item: () => void) => {
         cls.loader.resolveClass(thread, name, (cls) => {
           if (cls != null) {
@@ -590,8 +590,8 @@ class java_lang_ProcessEnvironment {
     // convert to an array of strings of the form [key, value, key, value ...]
     for (key in env) {
       v = env[key];
-      env_arr.push(new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[B'), util.bytestr_to_array(key)));
-      env_arr.push(new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[B'), util.bytestr_to_array(v)));
+      env_arr.push(new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[B'), util.bytestr2Array(key)));
+      env_arr.push(new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[B'), util.bytestr2Array(v)));
     }
     return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[[B'), env_arr);
   }
@@ -1026,7 +1026,7 @@ class java_lang_System {
       jvm = thread.getThreadPool().getJVM(),
       properties = jvm.getSystemPropertyNames();
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    util.async_foreach(properties, (propertyName: string, next_item: (err?: any) => void) => {
+    util.asyncForEach(properties, (propertyName: string, next_item: (err?: any) => void) => {
       var propertyVal = jvm.getSystemProperty(propertyName);
       if (propertyName === 'java.class.path') {
         // Fetch from bootstrap classloader instead.
@@ -1262,7 +1262,7 @@ class java_lang_Throwable {
     // Bytecode methods involved in constructing the throwable. We assume that
     // there are no native methods involved in the mix other than this one.
     while (cstack.length > 0 &&
-      !cstack[cstack.length - 1].method.access_flags.native &&
+      !cstack[cstack.length - 1].method.access_flags.isNative() &&
       cstack[cstack.length - 1].locals[0] === javaThis) {
       cstack.pop();
     }
@@ -1272,7 +1272,7 @@ class java_lang_Throwable {
         cls = sf.method.cls,
         ln = -1,
         sourceFile: string;
-      if (sf.method.access_flags.native) {
+      if (sf.method.access_flags.isNative()) {
         sourceFile = 'Native Method';
       } else {
         var srcAttr = <attributes.SourceFile> cls.get_attribute('SourceFile'),
@@ -1371,16 +1371,16 @@ class java_lang_invoke_MethodHandleNatives {
   public static 'init(Ljava/lang/invoke/MemberName;Ljava/lang/Object;)V'(thread: threading.JVMThread, self: java_object.JavaObject, ref: java_object.JavaObject): void {
     var clazz: java_object.JavaClassObject = ref.get_field(thread, ref.cls.this_class + "clazz"),
       flags: number = ref.get_field(thread, ref.cls.this_class + "modifiers"),
-      flagsParsed: util.Flags = util.parse_flags(flags),
+      flagsParsed: util.Flags = new util.Flags(flags),
       refKind: number, method: methods.Method;
     self.set_field(thread, 'Ljava/lang/invoke/MemberName;clazz', clazz);
 
     switch (ref.cls.this_class) {
       case "Ljava/lang/reflect/Method;":
         flags |= MemberNameConstants.IS_METHOD;
-        if (flagsParsed.static) {
+        if (flagsParsed.isStatic()) {
           refKind = enums.MethodHandleReferenceKind.INVOKESTATIC;
-        } else if (clazz.$cls.access_flags.interface) {
+        } else if (clazz.$cls.access_flags.isInterface()) {
           refKind = enums.MethodHandleReferenceKind.INVOKEINTERFACE;
         } else {
           refKind = enums.MethodHandleReferenceKind.INVOKEVIRTUAL;
@@ -1394,7 +1394,7 @@ class java_lang_invoke_MethodHandleNatives {
         break;
       case "Ljava/lang/reflect/Field;":
         flags |= MemberNameConstants.IS_FIELD;
-        refKind = flagsParsed.static ? enums.MethodHandleReferenceKind.GETSTATIC : enums.MethodHandleReferenceKind.GETFIELD;
+        refKind = flagsParsed.isStatic() ? enums.MethodHandleReferenceKind.GETSTATIC : enums.MethodHandleReferenceKind.GETFIELD;
         break;
       default:
         thread.throwNewException("Ljava/lang/InternalError;", "init: Invalid target.");

@@ -86,12 +86,12 @@ export class ClassData {
   }
 
   public method_lookup(thread: threading.JVMThread, sig: string): methods.Method {
-    thread.throwNewException('Ljava/lang/NoSuchMethodError;', "No such method found in " + util.ext_classname(this.get_type()) + "::" + sig);
+    thread.throwNewException('Ljava/lang/NoSuchMethodError;', "No such method found in " + this.toExternalString() + "::" + sig);
     return null;
   }
 
   public field_lookup(thread: threading.JVMThread, name: string): methods.Field {
-    thread.throwNewException('Ljava/lang/NoSuchFieldError;', "No such field found in " + util.ext_classname(this.get_type()) + "::" + name);
+    thread.throwNewException('Ljava/lang/NoSuchFieldError;', "No such field found in " + this.toExternalString() + "::" + name);
     return null;
   }
 
@@ -164,7 +164,7 @@ export class PrimitiveClassData extends ClassData {
     this.this_class = this_class;
     // PrimitiveClassData objects are ABSTRACT, FINAL, and PUBLIC.
     this.access_byte = 0x411;
-    this.access_flags = util.parse_flags(this.access_byte);
+    this.access_flags = new util.Flags(this.access_byte);
     this.set_state(ClassState.INITIALIZED);
   }
 
@@ -232,7 +232,7 @@ export class ArrayClassData extends ClassData {
     this.super_class = 'Ljava/lang/Object;';
     // ArrayClassData objects are ABSTRACT, FINAL, and PUBLIC.
     this.access_byte = 0x411;
-    this.access_flags = util.parse_flags(this.access_byte);
+    this.access_flags = new util.Flags(this.access_byte);
   }
 
   public get_component_type(): string {
@@ -294,7 +294,7 @@ export class ArrayClassData extends ClassData {
         return false;
       }
       // Must be a reference type.
-      if (target.access_flags["interface"]) {
+      if (target.access_flags.isInterface()) {
         // Interface reference type
         var type = target.get_type();
         return type === 'Ljava/lang/Cloneable;' || type === 'Ljava/io/Serializable;';
@@ -340,7 +340,7 @@ export class ReferenceClassData extends ClassData {
     this.constant_pool.parse(bytes_array, cpPatches);
     // bitmask for {public,final,super,interface,abstract} class modifier
     this.access_byte = bytes_array.getUint16();
-    this.access_flags = util.parse_flags(this.access_byte);
+    this.access_flags = new util.Flags(this.access_byte);
 
     this.this_class = (<ConstantPool.ClassReference> this.constant_pool.get(bytes_array.getUint16())).name;
     // super reference is 0 when there's no super (basically just java.lang.Object)
@@ -451,7 +451,7 @@ export class ReferenceClassData extends ClassData {
   // default String values before Ljava/lang/String; is initialized.
   private _initialize_static_field(thread: threading.JVMThread, name: string): boolean {
     var f = this.fl_cache[name];
-    if (f != null && f.access_flags["static"]) {
+    if (f != null && f.access_flags.isStatic()) {
       var cva = <attributes.ConstantValue> f.get_attribute('ConstantValue'),
         cv: any = null;
       if (cva != null) {
@@ -576,7 +576,7 @@ export class ReferenceClassData extends ClassData {
       var fields = cls.fields;
       for (var i = 0; i < fields.length; i++) {
         var f = fields[i];
-        if (f.access_flags["static"]) {
+        if (f.access_flags.isStatic()) {
           continue;
         }
         var val = util.initialValue(f.raw_descriptor);
@@ -598,7 +598,7 @@ export class ReferenceClassData extends ClassData {
       this.fl_cache[name] = field;
       return field;
     }
-    thread.throwNewException('Ljava/lang/NoSuchFieldError;', "No such field found in " + util.ext_classname(this.get_type()) + "::" + name);
+    thread.throwNewException('Ljava/lang/NoSuchFieldError;', "No such field found in " + this.toExternalString() + "::" + name);
   }
 
   private _field_lookup(thread: threading.JVMThread, name: string): methods.Field {
@@ -636,7 +636,7 @@ export class ReferenceClassData extends ClassData {
     }
     var method = this._method_lookup(sig);
     if (method == null) {
-      thread.throwNewException('Ljava/lang/NoSuchMethodError;', "No such method found in " + util.ext_classname(this.get_type()) + "::" + sig);
+      thread.throwNewException('Ljava/lang/NoSuchMethodError;', "No such method found in " + this.toExternalString() + "::" + sig);
       return null;
     } else {
       return method;
@@ -706,18 +706,18 @@ export class ReferenceClassData extends ClassData {
     if (!(target instanceof ReferenceClassData)) {
       return false;
     }
-    if (this.access_flags["interface"]) {
+    if (this.access_flags.isInterface()) {
       // We are both interfaces
-      if (target.access_flags["interface"]) {
+      if (target.access_flags.isInterface()) {
         return this.is_subinterface(target);
       }
       // Only I am an interface
-      if (!target.access_flags["interface"]) {
+      if (!target.access_flags.isInterface()) {
         return target.get_type() === 'Ljava/lang/Object;';
       }
     } else {
       // I am a regular class, target is an interface
-      if (target.access_flags["interface"]) {
+      if (target.access_flags.isInterface()) {
         return this.is_subinterface(target);
       }
       // We are both regular classes

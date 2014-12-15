@@ -308,7 +308,7 @@ export class ClassLoader {
    */
   public resolveClasses(thread: threading.JVMThread, typeStrs: string[], cb: (classes: { [typeStr: string]: ClassData.ClassData }) => void) {
     var classes: { [typeStr: string]: ClassData.ClassData } = {};
-    util.async_foreach<string>(typeStrs, (typeStr: string, next_item: (err?: any) => void) => {
+    util.asyncForEach<string>(typeStrs, (typeStr: string, next_item: (err?: any) => void) => {
       this.resolveClass(thread, typeStr, (cdata) => {
         if (cdata === null) {
           next_item("Error resolving class: " + typeStr);
@@ -347,7 +347,7 @@ export class ClassLoader {
           toResolve = cdata.get_interface_types().concat(toResolve);
         }
         // Gotta resolve 'em all!
-        util.async_foreach<string>(toResolve, (aTypeStr: string, next: (err?: any) => void): void => {
+        util.asyncForEach<string>(toResolve, (aTypeStr: string, next: (err?: any) => void): void => {
           // SPECIAL CASE: super class was null (java/lang/Object).
           if (aTypeStr == null) {
             return next();
@@ -539,7 +539,7 @@ export class BootstrapClassLoader extends ClassLoader {
 
     // Checks all of the classpaths. Add only those that exist.
     var checkClasspaths = (cb: (e?: any) => void) => {
-      util.async_foreach<string>(classPath, (p: string, next_item: (err?: any) => void) => {
+      util.asyncForEach<string>(classPath, (p: string, next_item: (err?: any) => void) => {
         this.addClassPathItem(p, (success: boolean) => {
           // Ignore the success condition. It's not an error to pass an invalid
           // classpath to the JVM.
@@ -676,7 +676,7 @@ export class BootstrapClassLoader extends ClassLoader {
     assert(util.is_reference_type(typeStr));
     // Search the class path for the class.
     var clsFilePath = util.descriptor2typestr(typeStr);
-    util.async_find<string>(this.classPath, (p: string, callback: (success: boolean) => void): void => {
+    util.asyncFind<string>(this.classPath, (p: string, callback: (success: boolean) => void): void => {
       fs.exists(path.join(p, clsFilePath + ".class"), callback);
     }, (foundPath?: string): void => {
       if (foundPath) {
@@ -789,11 +789,11 @@ export class BootstrapClassLoader extends ClassLoader {
   public getLoadedClassFiles(cb: (files: string[]) => void): void {
     var loadedClasses = this.getLoadedClassNames(),
       loadedClassFiles = [];
-    util.async_foreach<string>(loadedClasses, (className: string, next_item: (err?: any) => void) => {
+    util.asyncForEach<string>(loadedClasses, (className: string, next_item: (err?: any) => void) => {
       if (util.is_reference_type(className)) {
         var classFileName = util.descriptor2typestr(className) + ".class";
         // Figure out from whence it came.
-        util.async_foreach<string>(this.classPath, (cPath: string, next_cpath: (err?: any) => void) => {
+        util.asyncForEach<string>(this.classPath, (cPath: string, next_cpath: (err?: any) => void) => {
           var pathToClass = path.resolve(cPath, classFileName);
           fs.exists(pathToClass, (exists: boolean) => {
             if (exists) {
@@ -916,35 +916,5 @@ export class JavaClassLoaderObject extends java_object.JavaObject {
   constructor(thread: threading.JVMThread, cls: any) {
     super(cls);
     this.$loader = new CustomClassLoader(thread.getBsCl(), this);
-  }
-
-  /**
-   * @todo Remove or refactor.
-   */
-  public serialize(visited: any): any {
-    if (visited[this.ref]) {
-      return "<*" + this.ref + ">";
-    }
-    visited[this.ref] = true;
-    var fields = {};
-    for (var k in this.fields) {
-      var f = this.fields[k];
-      if (!f || (typeof f.serialize !== "function"))
-        fields[k] = f;
-      else
-        fields[k] = f.serialize(visited);
-    }
-    var loaded = {},
-      loadedClasses = this.$loader.getLoadedClassNames();
-    loadedClasses.forEach((type: string) => {
-      var vcls = this.$loader.getLoadedClass(type);
-      //loaded[type + "(" + enums.ClassState[vcls.get_state()] + ")"] = vcls.loader.serialize(visited);
-    });
-    return {
-      type: this.cls.get_type(),
-      ref: this.ref,
-      fields: fields,
-      loaded: loaded
-    };
   }
 }
