@@ -96,7 +96,7 @@ export class JavaObject {
 
   public get_field_from_offset(thread: threading.JVMThread, offset: gLong): any {
     var f = this._get_field_from_offset(thread, this.cls, offset.toInt());
-    if (f.field.access_flags.isStatic()) {
+    if (f.field.accessFlags.isStatic()) {
       return f.cls_obj.static_get(thread, f.field.name);
     }
     return this.get_field(thread, f.cls + f.field.name);
@@ -122,7 +122,7 @@ export class JavaObject {
 
   public set_field_from_offset(thread: threading.JVMThread, offset: gLong, value: any): void {
     var f = this._get_field_from_offset(thread, this.cls, offset.toInt());
-    if (f.field.access_flags.isStatic()) {
+    if (f.field.accessFlags.isStatic()) {
       f.cls_obj.static_put(thread, f.field.name, value);
     } else {
       this.set_field(thread, f.cls + f.field.name, value);

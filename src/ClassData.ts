@@ -9,18 +9,19 @@ import logging = require('./logging');
 import methods = require('./methods');
 import ClassLoader = require('./ClassLoader');
 import enums = require('./enums');
+import ClassLock = require('./ClassLock');
 var JavaObject = java_object.JavaObject;
 var JavaClassObject = java_object.JavaClassObject;
 var ClassState = enums.ClassState;
 var trace = logging.trace;
+var debug = logging.debug;
 
 /**
  * Represents a single class in the JVM.
  */
 export class ClassData {
   public loader: ClassLoader.ClassLoader;
-  public access_byte: number;
-  public access_flags: util.Flags;
+  public accessFlags: util.Flags;
   // We make this private to *enforce* call sites to use our getter functions.
   // The actual state of this class depends on the state of its parents, and
   // parents do not inform their children when they change state.
@@ -28,10 +29,12 @@ export class ClassData {
   private jco: java_object.JavaClassObject = null;
   public this_class: string;
   public super_class: string;
-  public super_class_cdata: ClassData;
+  public super_class_cdata: ReferenceClassData;
 
-  // Responsible for setting up all of the fields that are guaranteed to be
-  // present on any ClassData object.
+  /**
+   * Responsible for setting up all of the fields that are guaranteed to be
+   * present on any ClassData object.
+   */
   constructor(loader: ClassLoader.ClassLoader) {
     this.loader = loader;
   }
@@ -40,8 +43,10 @@ export class ClassData {
     return util.ext_classname(this.this_class);
   }
 
-  // Returns the ClassLoader object of the classloader that initialized this
-  // class. Returns null for the default classloader.
+  /**
+   * Returns the ClassLoader object of the classloader that initialized this
+   * class. Returns null for the default classloader.
+   */
   public get_class_loader(): ClassLoader.ClassLoader {
     return this.loader;
   }
@@ -114,7 +119,9 @@ export class ClassData {
     this.state = state;
   }
 
-  // Gets the current state of this class.
+  /**
+   * Gets the current state of this class.
+   */
   public get_state(): enums.ClassState {
     if (this.state == ClassState.RESOLVED && this.get_method('<clinit>()V') == null) {
       // We can promote to INITIALIZED if this class has no static initialization
@@ -134,7 +141,7 @@ export class ClassData {
    *   purposes, initialized.
    */
   public is_initialized(thread: threading.JVMThread): boolean {
-    return this.get_state() === ClassState.INITIALIZED || this.get_class_loader().getInitializedClass(thread, this.this_class) === this;
+    return this.get_state() === ClassState.INITIALIZED;
   }
   // Convenience function.
   public is_resolved(): boolean { return this.get_state() !== ClassState.LOADED; }
@@ -163,14 +170,15 @@ export class PrimitiveClassData extends ClassData {
     super(loader);
     this.this_class = this_class;
     // PrimitiveClassData objects are ABSTRACT, FINAL, and PUBLIC.
-    this.access_byte = 0x411;
-    this.access_flags = new util.Flags(this.access_byte);
+    this.accessFlags = new util.Flags(0x411);
     this.set_state(ClassState.INITIALIZED);
   }
 
-  // Returns a boolean indicating if this class is an instance of the target class.
-  // "target" is a ClassData object.
-  // The ClassData objects do not need to be initialized; just loaded.
+  /**
+   * Returns a boolean indicating if this class is an instance of the target class.
+   * "target" is a ClassData object.
+   * The ClassData objects do not need to be initialized; just loaded.
+   */
   public is_castable(target: ClassData): boolean {
     return this.this_class === target.this_class;
   }
@@ -231,8 +239,7 @@ export class ArrayClassData extends ClassData {
     this.this_class = "[" + this.component_type;
     this.super_class = 'Ljava/lang/Object;';
     // ArrayClassData objects are ABSTRACT, FINAL, and PUBLIC.
-    this.access_byte = 0x411;
-    this.access_flags = new util.Flags(this.access_byte);
+    this.accessFlags = new util.Flags(0x411);
   }
 
   public get_component_type(): string {
@@ -250,7 +257,9 @@ export class ArrayClassData extends ClassData {
     return this.component_class_cdata;
   }
 
-  // This class itself has no fields/methods, but java/lang/Object does.
+  /**
+   * This class itself has no fields/methods, but java/lang/Object does.
+   */
   public field_lookup(thread: threading.JVMThread, name: string): methods.Field {
     return this.super_class_cdata.field_lookup(thread, name);
   }
@@ -259,8 +268,10 @@ export class ArrayClassData extends ClassData {
     return this.super_class_cdata.method_lookup(thread, sig);
   }
 
-  // Resolved and initialized are the same for array types.
-  public setResolved(super_class_cdata: ClassData, component_class_cdata: ClassData): void {
+  /**
+   * Resolved and initialized are the same for array types.
+   */
+  public setResolved(super_class_cdata: ReferenceClassData, component_class_cdata: ClassData): void {
     this.super_class_cdata = super_class_cdata;
     this.component_class_cdata = component_class_cdata;
     this.set_state(ClassState.INITIALIZED);
@@ -268,7 +279,7 @@ export class ArrayClassData extends ClassData {
 
   public tryToResolve(): boolean {
     var loader = this.loader,
-      superClassCdata = loader.getResolvedClass(this.super_class),
+      superClassCdata = <ReferenceClassData> loader.getResolvedClass(this.super_class),
       componentClassCdata = loader.getResolvedClass(this.component_type);
 
     if (superClassCdata === null || componentClassCdata === null) {
@@ -284,17 +295,19 @@ export class ArrayClassData extends ClassData {
     return this.tryToResolve();
   }
 
-  // Returns a boolean indicating if this class is an instance of the target class.
-  // "target" is a ClassData object.
-  // The ClassData objects do not need to be initialized; just loaded.
-  // See §2.6.7 for casting rules.
+  /**
+   * Returns a boolean indicating if this class is an instance of the target class.
+   * "target" is a ClassData object.
+   * The ClassData objects do not need to be initialized; just loaded.
+   * See §2.6.7 for casting rules.
+   */
   public is_castable(target: ClassData): boolean {
     if (!(target instanceof ArrayClassData)) {
       if (target instanceof PrimitiveClassData) {
         return false;
       }
       // Must be a reference type.
-      if (target.access_flags.isInterface()) {
+      if (target.accessFlags.isInterface()) {
         // Interface reference type
         var type = target.get_type();
         return type === 'Ljava/lang/Cloneable;' || type === 'Ljava/io/Serializable;';
@@ -308,8 +321,10 @@ export class ArrayClassData extends ClassData {
   }
 }
 
-// Represents a "reference" Class -- that is, a class that neither represents a
-// primitive nor an array.
+/**
+ * Represents a "reference" Class -- that is, a class that neither represents a
+ * primitive nor an array.
+ */
 export class ReferenceClassData extends ClassData {
   private minor_version: number;
   public major_version: number;
@@ -323,6 +338,10 @@ export class ReferenceClassData extends ClassData {
   public static_fields: { [name: string]: any };
   private interface_cdatas: ReferenceClassData[];
   private default_fields: { [name: string]: any };
+  /**
+   * Initialization lock.
+   */
+  private initLock: ClassLock = new ClassLock();
 
   constructor(buffer: NodeBuffer, loader?: ClassLoader.ClassLoader, cpPatches?: java_object.JavaArray) {
     super(loader);
@@ -339,8 +358,7 @@ export class ReferenceClassData extends ClassData {
     this.constant_pool = new ConstantPool.ConstantPool();
     this.constant_pool.parse(bytes_array, cpPatches);
     // bitmask for {public,final,super,interface,abstract} class modifier
-    this.access_byte = bytes_array.getUint16();
-    this.access_flags = new util.Flags(this.access_byte);
+    this.accessFlags = new util.Flags(bytes_array.getUint16());
 
     this.this_class = (<ConstantPool.ClassReference> this.constant_pool.get(bytes_array.getUint16())).name;
     // super reference is 0 when there's no super (basically just java.lang.Object)
@@ -447,11 +465,13 @@ export class ReferenceClassData extends ClassData {
     return this.default_fields;
   }
 
-  // Handles static fields. We lazily create them, since we cannot initialize static
-  // default String values before Ljava/lang/String; is initialized.
+  /**
+   * Handles static fields. We lazily create them, since we cannot initialize static
+   * default String values before Ljava/lang/String; is initialized.
+   */
   private _initialize_static_field(thread: threading.JVMThread, name: string): boolean {
     var f = this.fl_cache[name];
-    if (f != null && f.access_flags.isStatic()) {
+    if (f != null && f.accessFlags.isStatic()) {
       var cva = <attributes.ConstantValue> f.get_attribute('ConstantValue'),
         cv: any = null;
       if (cva != null) {
@@ -500,7 +520,7 @@ export class ReferenceClassData extends ClassData {
     return false;
   }
 
-  public setResolved(super_class_cdata: ClassData, interface_cdatas: ReferenceClassData[]): void {
+  public setResolved(super_class_cdata: ReferenceClassData, interface_cdatas: ReferenceClassData[]): void {
     this.super_class_cdata = super_class_cdata;
     trace("Class " + (this.get_type()) + " is now resolved.");
     this.interface_cdatas = interface_cdatas;
@@ -513,7 +533,7 @@ export class ReferenceClassData extends ClassData {
       // Need to grab the super class, and interfaces.
       var loader = this.loader,
         // NOTE: The super_class of java/lang/Object is null.
-        superClassCdata = this.super_class != null ? loader.getResolvedClass(this.super_class) : null,
+        superClassCdata = <ReferenceClassData> (this.super_class != null ? loader.getResolvedClass(this.super_class) : null),
         interfaceCdatas: ReferenceClassData[] = [], i: number;
 
       if (superClassCdata === null && this.super_class != null) {
@@ -576,7 +596,7 @@ export class ReferenceClassData extends ClassData {
       var fields = cls.fields;
       for (var i = 0; i < fields.length; i++) {
         var f = fields[i];
-        if (f.access_flags.isStatic()) {
+        if (f.accessFlags.isStatic()) {
           continue;
         }
         var val = util.initialValue(f.raw_descriptor);
@@ -586,8 +606,10 @@ export class ReferenceClassData extends ClassData {
     }
   }
 
-  // Spec [5.4.3.2][1].
-  // [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#77678
+  /**
+   * Spec [5.4.3.2][1].
+   * [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#77678
+   */
   public field_lookup(thread: threading.JVMThread, name: string, null_handled?: boolean): methods.Field {
     var field = this.fl_cache[name];
     if (field != null) {
@@ -627,9 +649,11 @@ export class ReferenceClassData extends ClassData {
     return null;
   }
 
-  // Spec [5.4.3.3][1], [5.4.3.4][2].
-  // [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#79473
-  // [2]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#78621
+  /**
+   * Spec [5.4.3.3][1], [5.4.3.4][2].
+   * [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#79473
+   * [2]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#78621
+   */
   public method_lookup(thread: threading.JVMThread, sig: string): methods.Method {
     if (this.ml_cache[sig] != null) {
       return this.ml_cache[sig];
@@ -698,26 +722,28 @@ export class ReferenceClassData extends ClassData {
     return this.ml_cache[sig] = null;
   }
 
-  // Returns a boolean indicating if this class is an instance of the target class.
-  // "target" is a ClassData object.
-  // The ClassData objects do not need to be initialized; just loaded.
-  // See §2.6.7 for casting rules.
+  /**
+   * Returns a boolean indicating if this class is an instance of the target class.
+   * "target" is a ClassData object.
+   * The ClassData objects do not need to be initialized; just loaded.
+   * See §2.6.7 for casting rules.
+   */
   public is_castable(target: ClassData): boolean {
     if (!(target instanceof ReferenceClassData)) {
       return false;
     }
-    if (this.access_flags.isInterface()) {
+    if (this.accessFlags.isInterface()) {
       // We are both interfaces
-      if (target.access_flags.isInterface()) {
+      if (target.accessFlags.isInterface()) {
         return this.is_subinterface(target);
       }
       // Only I am an interface
-      if (!target.access_flags.isInterface()) {
+      if (!target.accessFlags.isInterface()) {
         return target.get_type() === 'Ljava/lang/Object;';
       }
     } else {
       // I am a regular class, target is an interface
-      if (target.access_flags.isInterface()) {
+      if (target.accessFlags.isInterface()) {
         return this.is_subinterface(target);
       }
       // We are both regular classes
@@ -725,7 +751,9 @@ export class ReferenceClassData extends ClassData {
     }
   }
 
-  // Returns 'true' if I implement the target interface.
+  /**
+   * Returns 'true' if I implement the target interface.
+   */
   public is_subinterface(target: ClassData): boolean {
     if (this.this_class === target.this_class) {
       return true;
@@ -741,5 +769,127 @@ export class ReferenceClassData extends ClassData {
       return false;
     }
     return this.get_super_class().is_subinterface(target);
+  }
+
+  /**
+   * Asynchronously *initializes* the class and its super classes.
+   * Throws a Java exception on the thread if initialization fails.
+   * @param thread The thread that is performing the initialization.
+   * @param cb Callback to invoke when completed. Contains a reference to the
+   *   class if it succeeds, or NULL if a failure occurs.
+   * @param [explicit] Defaults to true. If true, this class is being
+   *   *explicitly* initialized by a user. If false, the JVM is implicitly
+   *   initializing the class.
+   */
+  public initialize(thread: threading.JVMThread, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
+    if (this.is_resolved()) {
+      if (this.is_initialized(thread)) {
+        // Nothing to do! Either resolution failed and an exception has already
+        // been thrown, cdata is already initialized, or the current thread is
+        // initializing the class.
+        setImmediate(() => {
+          cb(this);
+        });
+      } else if (this.initLock.tryLock(thread, cb)) {
+        // Initialize the super class, and then this class.
+        if (this.super_class_cdata != null) {
+          this.super_class_cdata.initialize(thread, (cdata: ClassData) => {
+            if (cdata == null) {
+              // Nothing to do. Initializing the super class failed.
+              this.initLock.unlock(null);
+            } else {
+              // Initialize myself.
+              this._initialize(thread, (cdata: ClassData) => {
+                this.initLock.unlock(cdata);
+              });
+            }
+          });
+        } else {
+          // java/lang/Object's parent is NULL.
+          // Continue initializing this class.
+          this._initialize(thread, (cdata: ClassData) => {
+            this.initLock.unlock(cdata);
+          });
+        }
+      }
+    } else {
+      // Resolve first, then initialize.
+      this.get_class_loader().resolveClass(thread, this.this_class, (cdata: ClassData) => {
+        if (cdata !== null) {
+          this.initialize(thread, cb, explicit);
+        } else {
+          // Else: An exception was thrown.
+          cb(cdata);
+        }
+      }, explicit);
+    }
+  }
+
+  /**
+   * Helper function. Initializes this class alone. Assumes super class is
+   * already initialized.
+   */
+  private _initialize(thread: threading.JVMThread, cb: (cdata: ClassData) => void): void {
+    var clinit = this.get_method('<clinit>()V');
+    // We'll reset it if it fails.
+    if (clinit != null) {
+      debug("T" + thread.ref + " Running static initialization for class " + this.this_class + "...");
+      thread.runMethod(clinit, [], (e?: java_object.JavaObject, rv?: any) => {
+        if (e) {
+          debug("Initialization of class " + this.this_class + " failed.");
+          this.set_state(enums.ClassState.RESOLVED);
+          /**
+           * "The class or interface initialization method must have completed
+           *  abruptly by throwing some exception E. If the class of E is not
+           *  Error or one of its subclasses, then create a new instance of the
+           *  class ExceptionInInitializerError with E as the argument, and use
+           *  this object in place of E."
+           * @url http://docs.oracle.com/javase/specs/jvms/se7/html/jvms-5.html#jvms-5.5
+           */
+          if (e.cls.is_castable(thread.getBsCl().getResolvedClass('Ljava/lang/Error;'))) {
+            // 'e' is 'Error or one of its subclasses'.
+            thread.throwException(e);
+            cb(null);
+          } else {
+            // Wrap the error.
+            thread.getBsCl().initializeClass(thread, 'Ljava/lang/ExceptionInInitializerError;', (cdata: ReferenceClassData) => {
+              if (cdata == null) {
+                // Exceptional failure right here: *We failed to construct ExceptionInInitializerError*!
+                // initializeClass will throw an exception on our behalf;
+                // nothing to do.
+                cb(null);
+              } else {
+                // Construct the object!
+                var e2 = new java_object.JavaObject(cdata),
+                  cnstrctr = cdata.get_method('<init>(Ljava/lang/Throwable;)V');
+                // Construct the ExceptionInInitializerError!
+                thread.runMethod(cnstrctr, [e2, e], (e?: java_object.JavaObject, rv?: any) => {
+                  // Throw the newly-constructed error!
+                  thread.throwException(e2);
+                  cb(null);
+                });
+              }
+            });
+          }
+        } else {
+          this.set_state(enums.ClassState.INITIALIZED);
+          debug("Initialization of class " + this.this_class + " succeeded.");
+          // Normal case! Initialization succeeded.
+          cb(this);
+        }
+      });
+    } else {
+      // Class doesn't have a static initializer.
+      this.set_state(enums.ClassState.INITIALIZED);
+      cb(this);
+    }
+  }
+
+  /**
+   * A reference class can be treated as initialized in a thread if that thread
+   * is in the process of initializing it.
+   */
+  public is_initialized(thread: threading.JVMThread): boolean {
+    return this.get_state() === ClassState.INITIALIZED || this.initLock.getOwner() === thread;
   }
 }

@@ -98,13 +98,13 @@ function processClassData(stream: NodeJS.WritableStream, template: ITemplate, cl
   var methods = classData.get_methods();
   for (var mname in methods) {
     if (methods.hasOwnProperty(mname)) {
-      if (methods[mname].access_flags["native"]) {
+      if (methods[mname].accessFlags.isNative()) {
         if (!nativeFound) {
           template.classStart(stream, fixedClassName);
           nativeFound = true;
         }
         var method = methods[mname];
-        template.method(stream, mname, method.access_flags["static"], method.param_types, method.return_type);
+        template.method(stream, mname, method.accessFlags.isStatic(), method.param_types, method.return_type);
       }
     }
   }

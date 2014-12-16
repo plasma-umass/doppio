@@ -162,7 +162,7 @@ class sun_reflect_NativeMethodAccessorImpl {
       }
     }
 
-    if (cls.access_flags.isInterface()) {
+    if (cls.accessFlags.isInterface()) {
       // It's an interface method. Look up the implementation in the object.
       m = obj.cls.method_lookup(thread, m.name + m.raw_descriptor);
       if (m == null) {
@@ -171,7 +171,7 @@ class sun_reflect_NativeMethodAccessorImpl {
       }
     }
 
-    if (!m.access_flags.isStatic()) {
+    if (!m.accessFlags.isStatic()) {
       args.push(obj);
     }
     if (params != null) {
@@ -239,7 +239,7 @@ class sun_reflect_Reflection {
   public static 'getCallerClass(I)Ljava/lang/Class;': (thread: threading.JVMThread, frames_to_skip: number) => java_object.JavaClassObject = get_caller_class;
 
   public static 'getClassAccessFlags(Ljava/lang/Class;)I'(thread: threading.JVMThread, class_obj: java_object.JavaClassObject): number {
-    return (<ClassData.ReferenceClassData> class_obj.$cls).access_byte;
+    return (<ClassData.ReferenceClassData> class_obj.$cls).accessFlags.getRawByte();
   }
 
 }

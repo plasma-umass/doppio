@@ -1139,7 +1139,7 @@ export class Opcodes {
 
   public static return(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     frame.returnToThreadLoop = true;
-    if (frame.method.access_flags.isSynchronized()) {
+    if (frame.method.accessFlags.isSynchronized()) {
       // monitorexit
       if (!frame.method.method_lock(thread, frame).exit(thread)) {
         // monitorexit threw an exception.
@@ -1153,7 +1153,7 @@ export class Opcodes {
 
   private static _return_32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     frame.returnToThreadLoop = true;
-    if (frame.method.access_flags.isSynchronized()) {
+    if (frame.method.accessFlags.isSynchronized()) {
       // monitorexit
       if (!frame.method.method_lock(thread, frame).exit(thread)) {
         // monitorexit threw an exception.
@@ -1171,7 +1171,7 @@ export class Opcodes {
 
   private static _return_64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     frame.returnToThreadLoop = true;
-    if (frame.method.access_flags.isSynchronized()) {
+    if (frame.method.accessFlags.isSynchronized()) {
       // monitorexit
       if (!frame.method.method_lock(thread, frame).exit(thread)) {
         // monitorexit threw an exception.
@@ -1575,7 +1575,7 @@ export class Opcodes {
       if (cls != null && cls.is_initialized(thread)) {
         var m = cls.method_lookup(thread, methodReference.methodSignature);
         if (m != null) {
-          assert(m.access_flags.isStatic(), "Invokestatic can only be used on static functions.");
+          assert(m.accessFlags.isStatic(), "Invokestatic can only be used on static functions.");
           // Stash, rewrite, and rerun.
           methodReference.method = m;
           code.writeUInt8(enums.OpCode.INVOKESTATIC_FAST, pc);

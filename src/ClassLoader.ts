@@ -1,6 +1,7 @@
 ///<reference path='../vendor/DefinitelyTyped/node/node.d.ts' />
 import ClassData = require('./ClassData');
 import threading = require('./threading');
+import ClassLock = require('./ClassLock');
 import enums = require('./enums');
 import util = require('./util');
 import java_object = require('./java_object');
@@ -14,13 +15,13 @@ var debug = logging.debug;
 declare var BrowserFS;
 
 /**
- * Used to lock classes for loading/initialization.
+ * Used to lock classes for loading.
  */
 class ClassLocks {
   /**
    * typrStr => array of callbacks to trigger when operation completes.
    */
-  private locks: { [typeStr: string]: { thread: threading.JVMThread; cb: (cdata: ClassData.ClassData) => void }[] } = {};
+  private locks: { [typeStr: string]: ClassLock } = {};
 
   constructor() {}
 
@@ -31,23 +32,17 @@ class ClassLocks {
    */
   public tryLock(typeStr: string, thread: threading.JVMThread, cb: (cdata: ClassData.ClassData) => void): boolean {
     if (typeof this.locks[typeStr] === 'undefined') {
-      this.locks[typeStr] = [{cb: cb, thread: thread}];
-      return true;
-    } else {
-      this.locks[typeStr].push({cb: cb, thread: thread});
-      return false;
+      this.locks[typeStr] = new ClassLock();
     }
+    return this.locks[typeStr].tryLock(thread, cb);
   }
 
   /**
    * Releases the lock on the given string.
    */
   public unlock(typeStr: string, cdata: ClassData.ClassData): void {
-    var cbs = this.locks[typeStr], i: number;
-    // Trigger each of the callbacks.
-    for (i = 0; i < cbs.length; i++) {
-      cbs[i].cb(cdata);
-    }
+    this.locks[typeStr].unlock(cdata);
+    // No need for this lock to remain.
     delete this.locks[typeStr];
   }
 
@@ -57,7 +52,7 @@ class ClassLocks {
    */
   public getOwner(typeStr: string): threading.JVMThread {
     if (this.locks[typeStr]) {
-      return this.locks[typeStr][0].thread;
+      return this.locks[typeStr].getOwner();
     }
     return null;
   }
@@ -77,11 +72,6 @@ export class ClassLoader {
    * the specified class.
    */
   private loadClassLocks: ClassLocks = new ClassLocks();
-  /**
-   * Stores callbacks that are waiting for another thread to finish initializing
-   * the specified class.
-   */
-  private initializeClassLocks: ClassLocks = new ClassLocks();
 
   /**
    * @param bootstrap The JVM's bootstrap classloader. ClassLoaders use it
@@ -244,16 +234,11 @@ export class ClassLoader {
   public getInitializedClass(thread: threading.JVMThread, typeStr: string): ClassData.ClassData {
     var cls = this.getLoadedClass(typeStr);
     if (cls !== null) {
-      if (cls.get_state() === enums.ClassState.INITIALIZED) {
+      if (cls.is_initialized(thread)) {
         return cls;
       } else if (cls.tryToInitialize()) {
         return cls;
       } else {
-        // Check if the thread owns the initialized lock. If so, that thread
-        // can treat the class as already initialized.
-        if (this.initializeClassLocks.getOwner(typeStr) === thread) {
-          return cls;
-        }
         return null;
       }
     } else {
@@ -377,6 +362,7 @@ export class ClassLoader {
 
   /**
    * Asynchronously *initializes* the given class and its super classes.
+   * @TODO: Remove; force code to initialize on class instances.
    */
   public initializeClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
     // Get the resolved class.
@@ -388,92 +374,11 @@ export class ClassLoader {
         setImmediate(() => {
           cb(cdata);
         });
-      } else if (this.initializeClassLocks.tryLock(typeStr, thread, cb)) {
-        // Initialize the super class, and then this class.
-        // Must be a reference type.
+      } else {
         assert(util.is_reference_type(typeStr));
-        var superClassType = cdata.get_super_class_type();
-        if (superClassType != null) {
-          this.initializeClass(thread, superClassType, (superCdata: ClassData.ClassData) => {
-            if (superCdata == null) {
-              // Nothing to do. Initializing the super class failed.
-              this.initializeClassLocks.unlock(typeStr, null);
-            } else {
-              // Initialize myself.
-              this._initializeClass(thread, typeStr, <ClassData.ReferenceClassData> cdata, (cdata) => {
-                this.initializeClassLocks.unlock(typeStr, cdata);
-              });
-            }
-          });
-        } else {
-          // java/lang/Object's parent is NULL.
-          // Continue initializing this class.
-          this._initializeClass(thread, typeStr, <ClassData.ReferenceClassData> cdata, (cdata) => {
-            this.initializeClassLocks.unlock(typeStr, cdata);
-          });
-        }
+        (<ClassData.ReferenceClassData> cdata).initialize(thread, cb, explicit);
       }
     }, explicit);
-  }
-
-  /**
-   * Helper function. Initializes the specified class alone. Assumes super
-   * class is already initialized.
-   */
-  private _initializeClass(thread: threading.JVMThread, typeStr: string, cdata: ClassData.ReferenceClassData, cb: (cdata: ClassData.ClassData) => void): void {
-    var clinit = cdata.get_method('<clinit>()V');
-    // We'll reset it if it fails.
-    if (clinit != null) {
-      debug("T" + thread.ref + " Running static initialization for class " + typeStr + "...");
-      thread.runMethod(clinit, [], (e?: java_object.JavaObject, rv?: any) => {
-        if (e) {
-          debug("Initialization of class " + typeStr + " failed.");
-          cdata.set_state(enums.ClassState.RESOLVED);
-          /**
-           * "The class or interface initialization method must have completed
-           *  abruptly by throwing some exception E. If the class of E is not
-           *  Error or one of its subclasses, then create a new instance of the
-           *  class ExceptionInInitializerError with E as the argument, and use
-           *  this object in place of E."
-           * @url http://docs.oracle.com/javase/specs/jvms/se7/html/jvms-5.html#jvms-5.5
-           */
-          if (e.cls.is_castable(this.bootstrap.getResolvedClass('Ljava/lang/Error;'))) {
-            // 'e' is 'Error or one of its subclasses'.
-            thread.throwException(e);
-            cb(null);
-          } else {
-            // Wrap the error.
-            this.initializeClass(thread, 'Ljava/lang/ExceptionInInitializerError;', (cdata: ClassData.ReferenceClassData) => {
-              if (cdata == null) {
-                // Exceptional failure right here: *We failed to construct ExceptionInInitializerError*!
-                // initializeClass will throw an exception on our behalf;
-                // nothing to do.
-                cb(null);
-              } else {
-                // Construct the object!
-                var e2 = new java_object.JavaObject(cdata),
-                  cnstrctr = cdata.get_method('<init>(Ljava/lang/Throwable;)V');
-                // Construct the ExceptionInInitializerError!
-                thread.runMethod(cnstrctr, [e2, e], (e?: java_object.JavaObject, rv?: any) => {
-                  // Throw the newly-constructed error!
-                  thread.throwException(e2);
-                  cb(null);
-                });
-              }
-            });
-          }
-        } else {
-          cdata.set_state(enums.ClassState.INITIALIZED);
-          debug("Initialization of class " + typeStr + " succeeded.");
-          // Normal case! Initialization succeeded.
-          cb(cdata);
-        }
-      });
-    } else {
-      // Class doesn't have a static initializer.
-      cdata.set_state(enums.ClassState.INITIALIZED);
-      cb(cdata);
-    }
   }
 
   /**

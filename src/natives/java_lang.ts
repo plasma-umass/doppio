@@ -86,7 +86,7 @@ class java_lang_Class {
     if (!(javaThis.$cls instanceof ClassData.ReferenceClassData)) {
       return false;
     }
-    return javaThis.$cls.access_flags.isInterface();
+    return javaThis.$cls.accessFlags.isInterface();
   }
 
   public static 'isArray()Z'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): boolean {
@@ -106,7 +106,7 @@ class java_lang_Class {
       return null;
     }
     var cls = javaThis.$cls;
-    if (cls.access_flags.isInterface() || (cls.get_super_class() == null)) {
+    if (cls.accessFlags.isInterface() || (cls.get_super_class() == null)) {
       return null;
     }
     return cls.get_super_class().get_class_object(thread);
@@ -129,7 +129,7 @@ class java_lang_Class {
   }
 
   public static 'getModifiers()I'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): number {
-    return javaThis.$cls.access_byte;
+    return javaThis.$cls.accessFlags.getRawByte();
   }
 
   public static 'getSigners()[Ljava/lang/Object;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaArray {
@@ -251,7 +251,7 @@ class java_lang_Class {
   public static 'getDeclaredFields0(Z)[Ljava/lang/reflect/Field;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject, public_only: number): void {
     var fields = javaThis.$cls.get_fields();
     if (public_only) {
-      fields = fields.filter((f) => f.access_flags.isPublic());
+      fields = fields.filter((f) => f.accessFlags.isPublic());
     }
     var base_array = [];
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
@@ -275,7 +275,7 @@ class java_lang_Class {
       var _results: methods.Method[] = [];
       for (var sig in methodsHash) {
         var m = methodsHash[sig];
-        if (sig[0] !== '<' && (m.access_flags.isPublic() || !public_only)) {
+        if (sig[0] !== '<' && (m.accessFlags.isPublic() || !public_only)) {
           _results.push(m);
         }
       }
@@ -310,7 +310,7 @@ class java_lang_Class {
       return _results;
     })();
     if (public_only) {
-      methods = methods.filter((m) => m.access_flags.isPublic());
+      methods = methods.filter((m) => m.accessFlags.isPublic());
     }
     var ctor_array_cdata = <ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/reflect/Constructor;');
     var base_array = [];
@@ -1262,7 +1262,7 @@ class java_lang_Throwable {
     // Bytecode methods involved in constructing the throwable. We assume that
     // there are no native methods involved in the mix other than this one.
     while (cstack.length > 0 &&
-      !cstack[cstack.length - 1].method.access_flags.isNative() &&
+      !cstack[cstack.length - 1].method.accessFlags.isNative() &&
       cstack[cstack.length - 1].locals[0] === javaThis) {
       cstack.pop();
     }
@@ -1272,7 +1272,7 @@ class java_lang_Throwable {
         cls = sf.method.cls,
         ln = -1,
         sourceFile: string;
-      if (sf.method.access_flags.isNative()) {
+      if (sf.method.accessFlags.isNative()) {
         sourceFile = 'Native Method';
       } else {
         var srcAttr = <attributes.SourceFile> cls.get_attribute('SourceFile'),
@@ -1380,7 +1380,7 @@ class java_lang_invoke_MethodHandleNatives {
         flags |= MemberNameConstants.IS_METHOD;
         if (flagsParsed.isStatic()) {
           refKind = enums.MethodHandleReferenceKind.INVOKESTATIC;
-        } else if (clazz.$cls.access_flags.isInterface()) {
+        } else if (clazz.$cls.accessFlags.isInterface()) {
           refKind = enums.MethodHandleReferenceKind.INVOKEINTERFACE;
         } else {
           refKind = enums.MethodHandleReferenceKind.INVOKEVIRTUAL;
@@ -1443,7 +1443,7 @@ class java_lang_invoke_MethodHandleNatives {
         });
         break;
       case MemberNameConstants.IS_FIELD:
-        flags |= clazz.field_lookup(thread, name).access_byte;
+        flags |= clazz.field_lookup(thread, name).accessFlags.getRawByte();
         finish();
         return memberName;
         break;
@@ -1454,7 +1454,7 @@ class java_lang_invoke_MethodHandleNatives {
 
     function processMethod(desc: string) {
       var method: methods.Method = clazz.method_lookup(thread, name + desc);
-      flags |= method.access_byte;
+      flags |= method.accessFlags.getRawByte();
       finish();
     }
 

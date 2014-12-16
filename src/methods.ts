@@ -79,8 +79,7 @@ function getTrappedMethod(clsName: string, methSig: string): Function {
 export class AbstractMethodField {
   public cls: ClassData.ReferenceClassData;
   public idx: number;
-  public access_byte: number;
-  public access_flags: util.Flags;
+  public accessFlags: util.Flags;
   public name: string;
   public raw_descriptor: string;
   public attrs: attributes.IAttribute[];
@@ -91,8 +90,7 @@ export class AbstractMethodField {
 
   public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool, idx: number): void {
     this.idx = idx;
-    this.access_byte = bytes_array.getUint16();
-    this.access_flags = new util.Flags(this.access_byte);
+    this.accessFlags = new util.Flags(bytes_array.getUint16());
     this.name = (<ConstantPool.ConstUTF8> constant_pool.get(bytes_array.getUint16())).value;
     this.raw_descriptor = (<ConstantPool.ConstUTF8> constant_pool.get(bytes_array.getUint16())).value;
     this.parse_descriptor(this.raw_descriptor);
@@ -144,7 +142,7 @@ export class Field extends AbstractMethodField {
         'Ljava/lang/reflect/Field;clazz': clazz_obj,
         'Ljava/lang/reflect/Field;name': jvm.internString(this.name),
         'Ljava/lang/reflect/Field;type': type_obj,
-        'Ljava/lang/reflect/Field;modifiers': this.access_byte,
+        'Ljava/lang/reflect/Field;modifiers': this.accessFlags.getRawByte(),
         'Ljava/lang/reflect/Field;slot': this.idx,
         'Ljava/lang/reflect/Field;signature': sig != null ? java_object.initString(bsCl, sig) : null
       });
@@ -191,11 +189,11 @@ export class Method extends AbstractMethodField {
       var p = this.param_types[i];
       this.param_bytes += (p === 'D' || p === 'J') ? 2 : 1;
     }
-    if (!this.access_flags.isStatic()) {
+    if (!this.accessFlags.isStatic()) {
       this.param_bytes++;
     }
     this.num_args = this.param_types.length;
-    if (!this.access_flags.isStatic()) {
+    if (!this.accessFlags.isStatic()) {
       // nonstatic methods get 'this'
       this.num_args++;
     }
@@ -207,12 +205,12 @@ export class Method extends AbstractMethodField {
   }
 
   public getCodeAttribute(): attributes.Code {
-    assert(!this.access_flags.isNative() && !this.access_flags.isAbstract());
+    assert(!this.accessFlags.isNative() && !this.accessFlags.isAbstract());
     return this.code;
   }
 
   public getNativeFunction(): Function {
-    assert(this.access_flags.isNative() && typeof (this.code) === 'function');
+    assert(this.accessFlags.isNative() && typeof (this.code) === 'function');
     return this.code;
   }
 
@@ -224,8 +222,8 @@ export class Method extends AbstractMethodField {
 
     if (getTrappedMethod(clsName, methSig) != null) {
       this.code = getTrappedMethod(clsName, methSig);
-      this.access_flags.setNative(true);
-    } else if (this.access_flags.isNative()) {
+      this.accessFlags.setNative(true);
+    } else if (this.accessFlags.isNative()) {
       if (sig.indexOf('::registerNatives()V', 1) < 0 && sig.indexOf('::initIDs()V', 1) < 0) {
         this.code = (thread: threading.JVMThread) => {
           // Try to fetch the native method.
@@ -242,7 +240,7 @@ export class Method extends AbstractMethodField {
         // NOP.
         this.code = () => { };
       }
-    } else if (!this.access_flags.isAbstract()) {
+    } else if (!this.accessFlags.isAbstract()) {
       this.code = this.get_attribute('Code');
     }
   }
@@ -263,7 +261,7 @@ export class Method extends AbstractMethodField {
       bsCl: ClassLoader.BootstrapClassLoader = thread.getBsCl(),
       jvm = thread.getThreadPool().getJVM(),
       loader = this.cls.loader,
-      hasCode = (!this.access_flags.isNative() && !this.access_flags.isAbstract());
+      hasCode = (!this.accessFlags.isNative() && !this.accessFlags.isAbstract());
 
     // Resolve the return type.
     toResolve.push(this.return_type);
@@ -310,7 +308,7 @@ export class Method extends AbstractMethodField {
         obj[typestr + 'parameterTypes'] = new JavaArray(jco_arr_cls, param_type_objs);
         obj[typestr + 'returnType'] = classes[this.return_type].get_class_object(thread);
         obj[typestr + 'exceptionTypes'] = new JavaArray(jco_arr_cls, etype_objs);
-        obj[typestr + 'modifiers'] = this.access_byte;
+        obj[typestr + 'modifiers'] = this.accessFlags.getRawByte();
         obj[typestr + 'slot'] = this.idx;
         obj[typestr + 'signature'] = sigAttr != null ? jvm.internString(sigAttr.sig) : null;
         obj[typestr + 'annotations'] = annAttr != null ? new JavaArray(byte_arr_cls, annAttr.rawBytes) : null;
@@ -335,7 +333,7 @@ export class Method extends AbstractMethodField {
    */
   public convertArgs(thread: threading.JVMThread, params: any[]): any[] {
     var convertedArgs = [thread], argIdx = 0, i: number;
-    if (!this.access_flags.isStatic()) {
+    if (!this.accessFlags.isStatic()) {
       convertedArgs.push(params[0]);
       argIdx = 1;
     }
@@ -366,7 +364,7 @@ export class Method extends AbstractMethodField {
   }
 
   public method_lock(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): java_object.Monitor {
-    if (this.access_flags.isStatic()) {
+    if (this.accessFlags.isStatic()) {
       // Static methods lock the class.
       return this.cls.get_class_object(thread).getMonitor();
     } else {

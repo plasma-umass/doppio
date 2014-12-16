@@ -11,7 +11,7 @@ function doPrivileged(thread: threading.JVMThread, action: java_object.JavaObjec
   var m = action.cls.method_lookup(thread, 'run()Ljava/lang/Object;'),
     args: any[] = [];
   if (m != null) {
-    if (!m.access_flags.isStatic()) {
+    if (!m.accessFlags.isStatic()) {
       args.push(action);
     }
     var strace = thread.getStackTrace();
