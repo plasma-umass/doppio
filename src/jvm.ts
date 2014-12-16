@@ -125,7 +125,7 @@ class JVM {
               // Construct a ThreadGroup object for the first thread.
               var threadGroupCls = <ClassData.ReferenceClassData> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/ThreadGroup;'),
                 groupObj = new java_object.JavaObject(threadGroupCls);
-              cnstrctr = threadGroupCls.method_lookup(firstThread, '<init>()V');
+              cnstrctr = threadGroupCls.methodLookup(firstThread, '<init>()V');
               firstThread.runMethod(cnstrctr, [groupObj], (e?: java_object.JavaObject, rv?: any) => {
                 // Initialize the fields of our firstThread to make it real.
                 firstThread.set_field(firstThread, 'Ljava/lang/Thread;name', java_object.initCarr(this.bsCl, 'main'));
@@ -138,7 +138,7 @@ class JVM {
             } else if (coreClass === 'Ljava/lang/Thread;') {
               // Make firstThread a *real* thread.
               var threadCls = <ClassData.ReferenceClassData> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/Thread;');
-              cnstrctr = threadCls.method_lookup(firstThread, '<init>()V');
+              cnstrctr = threadCls.methodLookup(firstThread, '<init>()V');
               firstThread.runMethod(cnstrctr, [firstThread], (e?: java_object.JavaObject, rv?: any) => {
                 next_item();
               });
@@ -155,7 +155,7 @@ class JVM {
      */
     bootupTasks.push((next: (err?: any) => void): void => {
       // Initialize the system class (initializes things like println/etc).
-      var sysInit = this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/System;').get_method('initializeSystemClass()V');
+      var sysInit = this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/System;').getMethod('initializeSystemClass()V');
       firstThread.runMethod(sysInit, [], next);
     });
 
@@ -195,7 +195,7 @@ class JVM {
           jvmifiedArgs = new java_object.JavaArray(strArrCls, args.map((a: string): java_object.JavaObject => java_object.initString(this.bsCl, a)));
 
         // Find the main method, and run it.
-        var method = cdata.method_lookup(thread, 'main([Ljava/lang/String;)V');
+        var method = cdata.methodLookup(thread, 'main([Ljava/lang/String;)V');
 
         // Set the terminationCb here. The JVM will now terminate once all
         // threads have finished executing.

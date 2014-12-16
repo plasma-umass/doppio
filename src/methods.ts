@@ -46,7 +46,7 @@ var trapped_methods = {
   'java/nio/Bits': {
     'byteOrder()Ljava/nio/ByteOrder;': function (thread: threading.JVMThread): java_object.JavaObject {
       var cls = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass(thread, 'Ljava/nio/ByteOrder;');
-      return cls.static_get(thread, 'LITTLE_ENDIAN');
+      return cls.staticGet(thread, 'LITTLE_ENDIAN');
     },
     'copyToByteArray(JLjava/lang/Object;JJ)V': function (thread: threading.JVMThread, srcAddr: gLong, dst: java_object.JavaArray, dstPos: gLong, length: gLong): void {
       var heap = thread.getThreadPool().getJVM().getHeap(),
@@ -147,13 +147,13 @@ export class Field extends AbstractMethodField {
         'Ljava/lang/reflect/Field;signature': sig != null ? java_object.initString(bsCl, sig) : null
       });
     };
-    var clazz_obj = this.cls.get_class_object(thread);
+    var clazz_obj = this.cls.getClassObject(thread);
     // type_obj may not be loaded, so we asynchronously load it here.
     // In the future, we can speed up reflection by having a synchronous_reflector
     // method that we can try first, and which may fail.
-    this.cls.loader.resolveClass(thread, this.type, (cdata: ClassData.ClassData) => {
+    this.cls.getLoader().resolveClass(thread, this.type, (cdata: ClassData.ClassData) => {
       if (cdata != null) {
-        var type_obj = cdata.get_class_object(thread),
+        var type_obj = cdata.getClassObject(thread),
           rv = create_obj(clazz_obj, type_obj);
         cb(rv);
       } else {
@@ -201,7 +201,7 @@ export class Method extends AbstractMethodField {
   }
 
   public full_signature(): string {
-    return util.ext_classname(this.cls.get_type()) + "::" + this.name + this.raw_descriptor;
+    return util.ext_classname(this.cls.getInternalName()) + "::" + this.name + this.raw_descriptor;
   }
 
   public getCodeAttribute(): attributes.Code {
@@ -217,7 +217,7 @@ export class Method extends AbstractMethodField {
   public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool, idx: number): void {
     super.parse(bytes_array, constant_pool, idx);
     var sig = this.full_signature(),
-      clsName = this.cls.get_type(),
+      clsName = this.cls.getInternalName(),
       methSig = this.name + this.raw_descriptor;
 
     if (getTrappedMethod(clsName, methSig) != null) {
@@ -256,11 +256,11 @@ export class Method extends AbstractMethodField {
       annDefaultAttr = <attributes.AnnotationDefault> this.get_attribute("AnnotationDefault"),
       sigAttr = <attributes.Signature> this.get_attribute("Signature"),
       obj = {},
-      clazz_obj = this.cls.get_class_object(thread),
+      clazz_obj = this.cls.getClassObject(thread),
       toResolve: string[] = [],
       bsCl: ClassLoader.BootstrapClassLoader = thread.getBsCl(),
       jvm = thread.getThreadPool().getJVM(),
-      loader = this.cls.loader,
+      loader = this.cls.getLoader(),
       hasCode = (!this.accessFlags.isNative() && !this.accessFlags.isAbstract());
 
     // Resolve the return type.
@@ -295,18 +295,18 @@ export class Method extends AbstractMethodField {
         var param_type_objs: java_object.JavaClassObject[] = [];
         var i: number;
         for (i = 0; i < this.param_types.length; i++) {
-          param_type_objs.push(classes[this.param_types[i]].get_class_object(thread));
+          param_type_objs.push(classes[this.param_types[i]].getClassObject(thread));
         }
         var etype_objs: java_object.JavaClassObject[] = [];
         if (exceptionAttr != null) {
           for (i = 0; i < exceptionAttr.exceptions.length; i++) {
-            etype_objs.push(classes[<string> exceptionAttr.exceptions[i]].get_class_object(thread));
+            etype_objs.push(classes[<string> exceptionAttr.exceptions[i]].getClassObject(thread));
           }
         }
         obj[typestr + 'clazz'] = clazz_obj;
         obj[typestr + 'name'] = jvm.internString(this.name);
         obj[typestr + 'parameterTypes'] = new JavaArray(jco_arr_cls, param_type_objs);
-        obj[typestr + 'returnType'] = classes[this.return_type].get_class_object(thread);
+        obj[typestr + 'returnType'] = classes[this.return_type].getClassObject(thread);
         obj[typestr + 'exceptionTypes'] = new JavaArray(jco_arr_cls, etype_objs);
         obj[typestr + 'modifiers'] = this.accessFlags.getRawByte();
         obj[typestr + 'slot'] = this.idx;
@@ -366,7 +366,7 @@ export class Method extends AbstractMethodField {
   public method_lock(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): java_object.Monitor {
     if (this.accessFlags.isStatic()) {
       // Static methods lock the class.
-      return this.cls.get_class_object(thread).getMonitor();
+      return this.cls.getClassObject(thread).getMonitor();
     } else {
       // Non-static methods lock the instance.
       return (<java_object.JavaObject> frame.locals[0]).getMonitor();

@@ -67,7 +67,7 @@ function getNativeSigs(className: string): string[] {
         method_name: string;
     if (fs.existsSync(klass_path)) {
       klass = new ReferenceClassData(fs.readFileSync(klass_path));
-      methods = klass.get_methods();
+      methods = klass.getMethods();
       for (method_name in methods) {
         if (methods[method_name].accessFlags.isNative()) {
           rv.push(method_name);

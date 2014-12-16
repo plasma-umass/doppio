@@ -193,7 +193,7 @@ CP_CLASSES[enums.ConstantPoolItemType.DOUBLE] = ConstDouble;
  *   u2 name_index;
  * }
  * ```
- * @todo Have a global cache of class reference objects.
+ * @todo Have a classloader-local cache of class reference objects.
  */
 export class ClassReference implements IConstantPoolItem {
   /**
@@ -202,13 +202,15 @@ export class ClassReference implements IConstantPoolItem {
    */
   public name: string;
   /**
-   * Contains stashed ClassData objects for the given class keyed on the
-   * number of nested arrays (e.g. 0 is the class reference for `name`,
-   * 1 is the class reference for `name[]`, etc.).
-   * If `name` is an array type, 0 is *still* `name`. Meaning, it's the
-   * array depth tacked on to `name`.
+   * Contains a stashed ClassData object for this class. Can be an array
+   * or a reference class.
    */
-  public cdata: ClassData.ClassData[] = [];
+  public cls: ClassData.ClassData = null;
+  /**
+   * Contains a stashed *Array*ClassData for the array version of this class
+   * (i.e. '[' + name).
+   */
+  public arrayClass: ClassData.ArrayClassData = null;
   constructor(name: string) {
     this.name = name;
   }
@@ -218,25 +220,41 @@ export class ClassReference implements IConstantPoolItem {
   }
 
   /**
-   * Retrieve a stashed class, or attempt to synchronously fetch it
-   * from the classloader.
+   * Attempt to retrieve this class synchronously.
    * Returns null if the class needs to be asynchronously loaded.
    * @note Does not check for initialization!
    */
-  public getClass(cl: ClassLoader.ClassLoader, arrayDepth: number): ClassData.ClassData {
-    var cd = this.cdata[arrayDepth];
-    if (cd === undefined || cd === null) {
-      cd = this.cdata[arrayDepth] = cl.getResolvedClass(this._getName(arrayDepth));
+  public tryGetClass(cl: ClassLoader.ClassLoader): ClassData.ClassData {
+    if (this.cls === null) {
+      this.cls = cl.getResolvedClass(this.name);
     }
-    return cd;
+    return this.cls;
   }
 
-  private _getName(arrayDepth: number) {
-    if (arrayDepth === 0) {
-      return this.name;
-    } else {
-      return "[" + this._getName(arrayDepth - 1);
+  /**
+   * Asynchronously resolves the class.
+   */
+  public getClass(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, cb: (cdata: ClassData.ClassData) => void): void {
+    if (this.cls !== null) {
+      // Short circuit.
+      setImmediate(() => cb(this.cls));
+      return;
     }
+
+    cl.resolveClass(thread, this.name, (cdata: ClassData.ClassData) => {
+      this.cls = cdata;
+      cb(cdata);
+    });
+  }
+
+  /**
+   * Retrieves an array version of this class.
+   */
+  public getArrayClass(cl: ClassLoader.ClassLoader): ClassData.ArrayClassData {
+    if (this.arrayClass === null) {
+      this.arrayClass = <ClassData.ArrayClassData> cl.getResolvedClass("[" + this.name);
+    }
+    return this.arrayClass;
   }
 
   public static size: number = 1;
@@ -456,12 +474,12 @@ export class MethodReference implements IConstantPoolItem {
     } else {
       cl.initializeClass(thread, 'Ljava/lang/invoke/MethodHandleNatives;', (cdata: ClassData.ClassData) => {
         if (cdata !== null) {
-          var makeImpl = cdata.method_lookup(thread, 'findMethodHandleType(Ljava/lang/Class;[Ljava/lang/Class;)Ljava/lang/invoke/MethodType;'),
+          var makeImpl = cdata.methodLookup(thread, 'findMethodHandleType(Ljava/lang/Class;[Ljava/lang/Class;)Ljava/lang/invoke/MethodType;'),
             classes = util.getTypes(this.nameAndTypeInfo.descriptor);
           classes.push('[Ljava/lang/Class;');
           // Need the return type and parameter types.
           cl.resolveClasses(thread, classes, (classMap: { [name: string]: ClassData.ClassData }) => {
-            var types = classes.map((cls: string) => classMap[cls].get_class_object(thread));
+            var types = classes.map((cls: string) => classMap[cls].getClassObject(thread));
             types.pop(); // Discard '[Ljava/lang/Class;'
             var rtype = types.pop(), // Return type.,
               ptypes = (<ClassData.ArrayClassData> classMap['[Ljava/lang/Class;']).create(types);
@@ -529,12 +547,12 @@ export class InterfaceMethodReference implements IConstantPoolItem {
     } else {
       cl.initializeClass(thread, 'Ljava/lang/invoke/MethodHandleNatives;', (cdata: ClassData.ClassData) => {
         if (cdata !== null) {
-          var makeImpl = cdata.method_lookup(thread, 'findMethodHandleType(Ljava/lang/Class;[Ljava/lang/Class;)Ljava/lang/invoke/MethodType;'),
+          var makeImpl = cdata.methodLookup(thread, 'findMethodHandleType(Ljava/lang/Class;[Ljava/lang/Class;)Ljava/lang/invoke/MethodType;'),
             classes = util.getTypes(this.nameAndTypeInfo.descriptor);
           classes.push('[Ljava/lang/Class;');
           // Need the return type and parameter types.
           cl.resolveClasses(thread, classes, (classMap: { [name: string]: ClassData.ClassData }) => {
-            var types = classes.map((cls: string) => classMap[cls].get_class_object(thread));
+            var types = classes.map((cls: string) => classMap[cls].getClassObject(thread));
             types.pop(); // Discard '[Ljava/lang/Class;'
             var rtype = types.pop(), // Return type.,
               ptypes = (<ClassData.ArrayClassData> classMap['[Ljava/lang/Class;']).create(types);
@@ -618,12 +636,12 @@ export class FieldReference implements IConstantPoolItem {
         if (cdata !== null) {
           // NOTE: Do not stash class; `owningClass` is expected to be an
           // initialized class, not just resolved.
-          cb(null, cdata.get_class_object(thread));
+          cb(null, cdata.getClassObject(thread));
         }
         // Else, the classloader threw an exception on the thread.
       });
     } else {
-      cb(null, this.owningClass.get_class_object(thread));
+      cb(null, this.owningClass.getClassObject(thread));
     }
   }
 
@@ -763,7 +781,7 @@ export class MethodHandle implements IConstantPoolItem {
     var definingClassRef: ClassReference = this.reference.classInfo,
       nameAndTypeInfo: NameAndTypeInfo = this.reference.nameAndTypeInfo,
       isMethod: boolean = this.reference.getType() === enums.ConstantPoolItemType.FIELDREF ? false : true,
-      definingClass: ClassData.ClassData = definingClassRef.getClass(cl, 0),
+      definingClass: ClassData.ClassData = definingClassRef.tryGetClass(cl),
       definingClassObject: java_object.JavaClassObject,
       name: java_object.JavaObject = thread.getThreadPool().getJVM().internString(nameAndTypeInfo.name),
       getType = () => {
@@ -771,8 +789,8 @@ export class MethodHandle implements IConstantPoolItem {
           if (!e) {
             // Construct the method handle!
             var methodHandleNatives = cl.getInitializedClass(thread, 'Ljava/lang/invoke/MethodHandleNatives;'),
-              linkMethodHandleConstant = methodHandleNatives.method_lookup(thread, 'linkMethodHandleConstant(Ljava/lang/Class;ILjava/lang/Class;Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/invoke/MethodHandle;');
-            thread.runMethod(linkMethodHandleConstant, [caller.get_class_object(thread), this.referenceType, definingClassObject, name, type], (e?: java_object.JavaObject, methodHandle?: java_object.JavaObject) => {
+              linkMethodHandleConstant = methodHandleNatives.methodLookup(thread, 'linkMethodHandleConstant(Ljava/lang/Class;ILjava/lang/Class;Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/invoke/MethodHandle;');
+            thread.runMethod(linkMethodHandleConstant, [caller.getClassObject(thread), this.referenceType, definingClassObject, name, type], (e?: java_object.JavaObject, methodHandle?: java_object.JavaObject) => {
               if (e) {
                 thread.throwException(e);
               } else {
@@ -788,12 +806,12 @@ export class MethodHandle implements IConstantPoolItem {
 
     if (definingClass === null) {
       cl.resolveClass(thread, definingClassRef.name, (cdata: ClassData.ClassData) => {
-        definingClassRef.cdata[0] = cdata;
-        definingClassObject = cdata.get_class_object(thread);
+        definingClassRef.cls = cdata;
+        definingClassObject = cdata.getClassObject(thread);
         getType();
       });
     } else {
-      definingClassObject = definingClass.get_class_object(thread);
+      definingClassObject = definingClass.getClassObject(thread);
       getType();
     }
   }
@@ -944,7 +962,7 @@ export class ConstantPool {
            * * InterfaceMethodRef: (NYI) a method handle to invoke on that call site's arguments
            */
           var patchObj: java_object.JavaObject = cpPatches[item.index];
-          switch (patchObj.cls.this_class) {
+          switch (patchObj.cls.getInternalName()) {
             case 'Ljava/lang/Integer;':
               assert(tag === enums.ConstantPoolItemType.INTEGER);
               (<ConstInt32> this.constantPool[item.index]).value = patchObj.get_field(null, 'Ljava/lang/Integer;value');
@@ -967,8 +985,8 @@ export class ConstantPool {
               break;
             case 'Ljava/lang/Class;':
               assert(tag === enums.ConstantPoolItemType.CLASS);
-              (<ClassReference> this.constantPool[item.index]).name = (<java_object.JavaClassObject> patchObj).$cls.this_class;
-              (<ClassReference> this.constantPool[item.index]).cdata[0] = (<java_object.JavaClassObject> patchObj).$cls;
+              (<ClassReference> this.constantPool[item.index]).name = (<java_object.JavaClassObject> patchObj).$cls.getInternalName();
+              (<ClassReference> this.constantPool[item.index]).cls = (<java_object.JavaClassObject> patchObj).$cls;
               break;
             default:
               assert(tag === enums.ConstantPoolItemType.STRING);

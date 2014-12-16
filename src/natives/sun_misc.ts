@@ -324,9 +324,9 @@ class sun_misc_Unsafe {
     } else if (srcBase === null && destBase !== null) {
       // OK, so... destBase is an array, destOffset is a byte offset from the
       // start of the array. Need to copy data from the heap directly into the array.
-      if (util.is_array_type(destBase.cls.this_class) && util.is_primitive_type((<ClassData.ArrayClassData><any>destBase.cls).get_component_type())) {
+      if (util.is_array_type(destBase.cls.getInternalName()) && util.is_primitive_type((<ClassData.ArrayClassData><any>destBase.cls).getComponentClass().getInternalName())) {
         var destArray: java_object.JavaArray = <any> destBase, i: number;
-        switch (destArray.cls.get_component_type()) {
+        switch (destArray.cls.getComponentClass().getInternalName()) {
           case 'B':
             for (i = 0; i < length; i++) {
               destArray.array[destAddr + i] = heap.get_byte(srcAddr + i);
@@ -387,7 +387,7 @@ class sun_misc_Unsafe {
 
   public static 'ensureClassInitialized(Ljava/lang/Class;)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, cls: java_object.JavaClassObject): void {
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    cls.$cls.loader.initializeClass(thread, cls.$cls.get_type(), () => {
+    cls.$cls.getLoader().initializeClass(thread, cls.$cls.getInternalName(), () => {
       thread.asyncReturn();
     }, true);
   }
@@ -411,7 +411,7 @@ class sun_misc_Unsafe {
   public static 'defineClass(Ljava/lang/String;[BIILjava/lang/ClassLoader;Ljava/security/ProtectionDomain;)Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, name: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number, loaderObj: ClassLoader.JavaClassLoaderObject, pd: java_object.JavaObject): java_object.JavaClassObject {
     var loader = java_object.get_cl_from_jclo(thread, loaderObj);
     if (loader != null) {
-      return loader.defineClass(thread, util.int_classname(name.jvm2js_str()), util.byteArray2Buffer(bytes.array, offset, len)).get_class_object(thread);
+      return loader.defineClass(thread, util.int_classname(name.jvm2js_str()), util.byteArray2Buffer(bytes.array, offset, len)).getClassObject(thread);
     }
   }
 
@@ -419,11 +419,11 @@ class sun_misc_Unsafe {
     // This can trigger class initialization, so check if the class is
     // initialized.
     var cls = <ClassData.ReferenceClassData> jco.$cls;
-    if (cls.is_initialized(thread)) {
+    if (cls.isInitialized(thread)) {
       return new java_object.JavaObject(cls);
     } else {
       thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-      cls.loader.initializeClass(thread, cls.get_type(), () => {
+      cls.getLoader().initializeClass(thread, cls.getInternalName(), () => {
         thread.asyncReturn(new java_object.JavaObject(cls));
       });
     }
@@ -591,7 +591,7 @@ class sun_misc_Unsafe {
    * @return false only if a call to {@code ensureClassInitialized} would have no effect
    */
   public static 'shouldBeInitialized(Ljava/lang/Class;)Z'(thread: threading.JVMThread, javaThis: java_object.JavaObject, cls: java_object.JavaClassObject): number {
-    return !cls.$cls.is_initialized(thread) ? 1 : 0;
+    return !cls.$cls.isInitialized(thread) ? 1 : 0;
   }
 
   /**
@@ -611,7 +611,7 @@ class sun_misc_Unsafe {
    * @params cpPatches where non-null entries exist, they replace corresponding CP entries in data
    */
   public static 'defineAnonymousClass(Ljava/lang/Class;[B[Ljava/lang/Object;)Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, hostClass: java_object.JavaClassObject, data: java_object.JavaArray, cpPatches: java_object.JavaArray): java_object.JavaClassObject {
-    return new ClassData.ReferenceClassData(new Buffer(data.array), hostClass.$cls.get_class_loader(), cpPatches).get_class_object(thread);
+    return new ClassData.ReferenceClassData(new Buffer(data.array), hostClass.$cls.getLoader(), cpPatches).getClassObject(thread);
   }
 }
 
@@ -646,19 +646,19 @@ class sun_misc_VM {
   public static 'initialize()V'(thread: threading.JVMThread): void {
     var vm_cls = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass(thread, 'Lsun/misc/VM;');
     // this only applies to Java 7
-    if (vm_cls.major_version < 51) {
+    if (vm_cls.majorVersion < 51) {
       return;
     }
     // Hack: make an empty savedProps
     var props_cls = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass(thread, 'Ljava/util/Properties;');
     var props = new java_object.JavaObject(props_cls);
-    var m = props_cls.get_method('<init>()V');
+    var m = props_cls.getMethod('<init>()V');
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     thread.runMethod(m, [props], (e?, rv?) => {
       if (e) {
         thread.throwException(e);
       } else {
-        vm_cls.static_put(thread, 'savedProps', props);
+        vm_cls.staticPut(thread, 'savedProps', props);
         thread.asyncReturn();
       }
     });
@@ -673,7 +673,7 @@ class sun_misc_VM {
     var stackTrace = thread.getStackTrace(), i: number,
       bsCl = thread.getBsCl(), loader: ClassLoader.ClassLoader;
     for (i = 0; i < stackTrace.length; i++) {
-      loader = stackTrace[i].method.cls.loader;
+      loader = stackTrace[i].method.cls.getLoader();
       if (loader !== bsCl) {
         return (<ClassLoader.CustomClassLoader> loader).getLoaderObject();
       }

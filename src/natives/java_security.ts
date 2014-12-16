@@ -8,7 +8,7 @@ import enums = require('../enums');
 declare var registerNatives: (defs: any) => void;
 
 function doPrivileged(thread: threading.JVMThread, action: java_object.JavaObject, ctx?: java_object.JavaObject): void {
-  var m = action.cls.method_lookup(thread, 'run()Ljava/lang/Object;'),
+  var m = action.cls.methodLookup(thread, 'run()Ljava/lang/Object;'),
     args: any[] = [];
   if (m != null) {
     if (!m.accessFlags.isStatic()) {
@@ -23,7 +23,7 @@ function doPrivileged(thread: threading.JVMThread, action: java_object.JavaObjec
         thread.getBsCl().initializeClass(thread, 'Ljava/security/PrivilegedActionException;', (cdata: ClassData.ReferenceClassData) => {
           if (cdata != null) {
             var eobj = new java_object.JavaObject(cdata),
-              m2 = cdata.method_lookup(thread, '<init>(Ljava/lang/Exception;)V');
+              m2 = cdata.methodLookup(thread, '<init>(Ljava/lang/Exception;)V');
             thread.runMethod(m2, [eobj, e], (e?, rv?) => {
               if (e) {
                 // Failed to construct a PrivilegedActionException? Dang.

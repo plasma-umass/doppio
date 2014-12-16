@@ -90,12 +90,12 @@ function getFiles(dirName: string): string[] {
 }
 
 function processClassData(stream: NodeJS.WritableStream, template: ITemplate, classData: ClassData.ReferenceClassData) {
-  var fixedClassName: string = classData.this_class.replace(/\//g, '_'),
+  var fixedClassName: string = classData.getInternalName().replace(/\//g, '_'),
     nativeFound: boolean = false;
   // Shave off L and ;
   fixedClassName = fixedClassName.substring(1, fixedClassName.length - 1);
 
-  var methods = classData.get_methods();
+  var methods = classData.getMethods();
   for (var mname in methods) {
     if (methods.hasOwnProperty(mname)) {
       if (methods[mname].accessFlags.isNative()) {

@@ -177,7 +177,7 @@ export class ClassLoader {
         // with the component class's loader.
         var component = this.getLoadedClass(util.get_component_type(typeStr));
         if (component != null) {
-          var componentCl = component.get_class_loader();
+          var componentCl = component.getLoader();
           if (componentCl === this) {
             // We're responsible for defining the array class.
             return this.defineArrayClass(typeStr);
@@ -203,25 +203,13 @@ export class ClassLoader {
   public getResolvedClass(typeStr: string): ClassData.ClassData {
     var cls = this.getLoadedClass(typeStr);
     if (cls !== null) {
-      var state = cls.get_state();
-      switch (state) {
-        case enums.ClassState.RESOLVED:
-        case enums.ClassState.INITIALIZED:
-          // An initialized class is already resolved.
-          return cls;
-        case enums.ClassState.LOADED:
-          // See if we can promote this to resolved.
-          if (cls.tryToResolve()) {
-            return cls;
-          } else {
-            return null;
-          }
-        default:
-          // Class is not resolved.
-          return null;
+      if (cls.isResolved() || cls.tryToResolve()) {
+        return cls;
+      } else {
+        return null;
       }
     } else {
-      return cls;
+      return null;
     }
   }
 
@@ -234,9 +222,7 @@ export class ClassLoader {
   public getInitializedClass(thread: threading.JVMThread, typeStr: string): ClassData.ClassData {
     var cls = this.getLoadedClass(typeStr);
     if (cls !== null) {
-      if (cls.is_initialized(thread)) {
-        return cls;
-      } else if (cls.tryToInitialize()) {
+      if (cls.isInitialized(thread) || cls.tryToInitialize()) {
         return cls;
       } else {
         return null;
@@ -317,57 +303,23 @@ export class ClassLoader {
    */
   public resolveClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
     this.loadClass(thread, typeStr, (cdata: ClassData.ClassData) => {
-      if (cdata === null || cdata.is_resolved()) {
+      if (cdata === null || cdata.isResolved()) {
         // Nothing to do! Either cdata is null, an exception triggered, and we
         // failed, or cdata is already resolved.
         setImmediate(() => { cb(cdata); });
       } else {
-        assert(!util.is_primitive_type(typeStr));
-        var toResolve: string[] = [cdata.get_super_class_type()];
-        if (util.is_array_type(typeStr)) {
-          // Array: Super class + component type.
-          toResolve.push((<ClassData.ArrayClassData>cdata).get_component_type());
-        } else {
-          // Reference: interface types + super class.
-          toResolve = cdata.get_interface_types().concat(toResolve);
-        }
-        // Gotta resolve 'em all!
-        util.asyncForEach<string>(toResolve, (aTypeStr: string, next: (err?: any) => void): void => {
-          // SPECIAL CASE: super class was null (java/lang/Object).
-          if (aTypeStr == null) {
-            return next();
-          }
-          this.resolveClass(thread, aTypeStr, (aCdata: ClassData.ClassData) => {
-            if (aCdata === null) {
-              next('Failed to resolve ' + aTypeStr);
-            } else {
-              next();
-            }
-          }, explicit);
-        }, (err?: any) => {
-          if (err) {
-            // An exception has already been thrown when one of the classes
-            // failed to load.
-            cb(null);
-          } else {
-            // Success! This synchronous resolution should succeed now.
-            cdata.tryToResolve();
-            assert(cdata.is_resolved());
-            cb(cdata);
-          }
-        });
+        cdata.resolve(thread, cb, explicit);
       }
     }, explicit);
   }
 
   /**
    * Asynchronously *initializes* the given class and its super classes.
-   * @TODO: Remove; force code to initialize on class instances.
    */
   public initializeClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
     // Get the resolved class.
     this.resolveClass(thread, typeStr, (cdata: ClassData.ClassData) => {
-      if (cdata === null || cdata.is_initialized(thread)) {
+      if (cdata === null || cdata.isInitialized(thread)) {
         // Nothing to do! Either resolution failed and an exception has already
         // been thrown, cdata is already initialized, or the current thread is
         // initializing the class.
@@ -758,7 +710,7 @@ export class CustomClassLoader extends ClassLoader {
     } else {
       // This will trigger an exception on the JVM thread if the method does
       // not exist.
-      return this.loadClassMethod = this.loaderObj.cls.method_lookup(thread, 'loadClass(Ljava/lang/String;)Ljava/lang/Class;');
+      return this.loadClassMethod = this.loaderObj.cls.methodLookup(thread, 'loadClass(Ljava/lang/String;)Ljava/lang/Class;');
     }
   }
 

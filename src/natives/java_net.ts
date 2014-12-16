@@ -91,7 +91,7 @@ class java_net_Inet4AddressImpl {
 
   public static 'lookupAllHostAddr(Ljava/lang/String;)[Ljava/net/InetAddress;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, hostname: java_object.JavaObject): void {
     var cdata = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass(thread, 'Ljava/net/Inet4Address;'),
-      cons = cdata.method_lookup(thread, '<init>(Ljava/lang/String;I)V');
+      cons = cdata.methodLookup(thread, '<init>(Ljava/lang/String;I)V');
     thread.runMethod(cons, [hostname, host_allocate_address(hostname.jvm2js_str())], (e?, rv?) => {
       if (e) {
         thread.throwException(e);

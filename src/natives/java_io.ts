@@ -352,7 +352,7 @@ class java_io_ObjectStreamClass {
 
   public static 'hasStaticInitializer(Ljava/lang/Class;)Z'(thread: threading.JVMThread, jco: java_object.JavaClassObject): boolean {
     // check if cls has a <clinit> method
-    return jco.$cls.get_method('<clinit>()V') != null;
+    return jco.$cls.getMethod('<clinit>()V') != null;
   }
 
 }

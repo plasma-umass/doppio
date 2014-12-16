@@ -36,9 +36,9 @@ export class JavaArray {
 
   public toString(): string {
     if (this.array.length <= 10) {
-      return "<" + this.cls.get_type() + " [" + this.array + "] (*" + this.ref + ")>";
+      return "<" + this.cls.getInternalName() + " [" + this.array + "] (*" + this.ref + ")>";
     }
-    return "<" + this.cls.get_type() + " of length " + this.array.length + " (*" + this.ref + ")>";
+    return "<" + this.cls.getInternalName() + " of length " + this.array.length + " (*" + this.ref + ")>";
   }
 }
 
@@ -54,7 +54,7 @@ export class JavaObject {
   constructor(cls: ClassData.ReferenceClassData, obj: any = {}) {
     this.cls = cls;
     // Use default fields as a prototype.
-    this.fields = Object.create(this.cls.get_default_fields());
+    this.fields = Object.create(this.cls.getDefaultFields());
     for (var field in obj) {
       if (obj.hasOwnProperty(field)) {
         this.fields[field] = obj[field];
@@ -73,7 +73,7 @@ export class JavaObject {
       return true;
     } else {
       thread.throwNewException('Ljava/lang/NoSuchFieldError;',
-        'Cannot set field ' + name + ' on class ' + this.cls.get_type());
+        'Cannot set field ' + name + ' on class ' + this.cls.getInternalName());
       return false;
     }
   }
@@ -83,7 +83,7 @@ export class JavaObject {
       return this.fields[name];
     }
     thread.throwNewException('Ljava/lang/NoSuchFieldError;',
-      'Cannot get field ' + name + ' from class ' + this.cls.get_type());
+      'Cannot get field ' + name + ' from class ' + this.cls.getInternalName());
   }
 
   public getMonitor(): Monitor {
@@ -97,24 +97,24 @@ export class JavaObject {
   public get_field_from_offset(thread: threading.JVMThread, offset: gLong): any {
     var f = this._get_field_from_offset(thread, this.cls, offset.toInt());
     if (f.field.accessFlags.isStatic()) {
-      return f.cls_obj.static_get(thread, f.field.name);
+      return f.cls_obj.staticGet(thread, f.field.name);
     }
     return this.get_field(thread, f.cls + f.field.name);
   }
 
   private _get_field_from_offset(thread: threading.JVMThread, cls: ClassData.ReferenceClassData, offset: number): { field: methods.Field; cls: string; cls_obj: ClassData.ReferenceClassData }  {
-    var classname = cls.get_type();
+    var classname = cls.getInternalName();
     while (cls != null) {
-      var jco_ref = cls.get_class_object(thread).ref;
-      var f = cls.get_fields()[offset - jco_ref];
+      var jco_ref = cls.getClassObject(thread).ref;
+      var f = cls.getFields()[offset - jco_ref];
       if (f != null) {
         return {
           field: f,
-          cls: cls.get_type(),
+          cls: cls.getInternalName(),
           cls_obj: cls
         };
       }
-      cls = <ClassData.ReferenceClassData> cls.get_super_class();
+      cls = <ClassData.ReferenceClassData> cls.getSuperClass();
     }
     thread.throwNewException('Ljava/lang/NullPointerException;',
       "field " + offset + " doesn't exist in class " + classname);
@@ -123,16 +123,16 @@ export class JavaObject {
   public set_field_from_offset(thread: threading.JVMThread, offset: gLong, value: any): void {
     var f = this._get_field_from_offset(thread, this.cls, offset.toInt());
     if (f.field.accessFlags.isStatic()) {
-      f.cls_obj.static_put(thread, f.field.name, value);
+      f.cls_obj.staticPut(thread, f.field.name, value);
     } else {
       this.set_field(thread, f.cls + f.field.name, value);
     }
   }
 
   public toString(): string {
-    if (this.cls.get_type() === 'Ljava/lang/String;')
-      return "<" + this.cls.get_type() + " '" + (this.jvm2js_str()) + "' (*" + this.ref + ")>";
-    return "<" + this.cls.get_type() + " (*" + this.ref + ")>";
+    if (this.cls.getInternalName() === 'Ljava/lang/String;')
+      return "<" + this.cls.getInternalName() + " '" + (this.jvm2js_str()) + "' (*" + this.ref + ")>";
+    return "<" + this.cls.getInternalName() + " (*" + this.ref + ")>";
   }
 
   // Convert a Java String object into an equivalent JS one.
@@ -147,7 +147,7 @@ export class JavaClassObject extends JavaObject {
   }
 
   public toString() {
-    return "<Class " + this.$cls.get_type() + " (*" + this.ref + ")>";
+    return "<Class " + this.$cls.getInternalName() + " (*" + this.ref + ")>";
   }
 }
 
@@ -188,7 +188,7 @@ export function arraycopy_no_check(src: JavaArray, src_pos: number, dest: JavaAr
 export function arraycopy_check(thread: threading.JVMThread, src: JavaArray, src_pos: number, dest: JavaArray, dest_pos: number, length: number): void {
   var j = dest_pos;
   var end = src_pos + length;
-  var dest_comp_cls = dest.cls.get_component_class();
+  var dest_comp_cls = dest.cls.getComponentClass();
   for (var i = src_pos; i < end; i++) {
     // Check if null or castable.
     if (src.array[i] === null || src.array[i].cls.is_castable(dest_comp_cls)) {
@@ -596,7 +596,7 @@ export class Monitor {
 }
 
 export function heapNewArray(thread: threading.JVMThread, cls: ClassData.ArrayClassData, len: number): JavaArray {
-  var type: string = cls.this_class.slice(1);
+  var type: string = cls.getInternalName().slice(1);
   if (len < 0) {
     thread.throwNewException('Ljava/lang/NegativeArraySizeException;', "Tried to init [" + type + " array with length " + len);
   } else {

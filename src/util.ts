@@ -494,7 +494,7 @@ export function unboxArguments(thread: threading.JVMThread, paramTypes: string[]
     arg = args[i];
     if (is_primitive_type(type)) {
       // Unbox the primitive type.
-      rv.push(arg.get_field(thread, arg.cls.get_type() + 'value'));
+      rv.push(arg.get_field(thread, arg.cls.getInternalName() + 'value'));
       if (type === 'J' || type === 'D') {
         // 64-bit primitives take up two argument slots. Doppio uses a NULL for the second slot.
         rv.push(null);

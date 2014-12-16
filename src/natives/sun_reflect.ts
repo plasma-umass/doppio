@@ -101,9 +101,9 @@ class sun_reflect_NativeConstructorAccessorImpl {
     var cls = <java_object.JavaClassObject> m.get_field(thread, 'Ljava/lang/reflect/Constructor;clazz'),
       slot = m.get_field(thread, 'Ljava/lang/reflect/Constructor;slot');
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    cls.$cls.loader.initializeClass(thread, cls.$cls.get_type(), (cls_obj: ClassData.ReferenceClassData) => {
+    cls.$cls.getLoader().initializeClass(thread, cls.$cls.getInternalName(), (cls_obj: ClassData.ReferenceClassData) => {
       if (cls_obj != null) {
-        var methods = cls_obj.get_methods(), sig: string,
+        var methods = cls_obj.getMethods(), sig: string,
           method: methods.Method,
           obj = new java_object.JavaObject(cls_obj),
           args: any[] = [obj];
@@ -147,7 +147,7 @@ class sun_reflect_NativeMethodAccessorImpl {
       slot: number = mObj.get_field(thread, 'Ljava/lang/reflect/Method;slot'),
       ret_type = mObj.get_field(thread, 'Ljava/lang/reflect/Method;returnType'),
       m: methods.Method,
-      methods = cls.get_methods(),
+      methods = cls.getMethods(),
       sig: string, args: any[] = [];
 
     // Find the method object.
@@ -164,7 +164,7 @@ class sun_reflect_NativeMethodAccessorImpl {
 
     if (cls.accessFlags.isInterface()) {
       // It's an interface method. Look up the implementation in the object.
-      m = obj.cls.method_lookup(thread, m.name + m.raw_descriptor);
+      m = obj.cls.methodLookup(thread, m.name + m.raw_descriptor);
       if (m == null) {
         // Method not found, exception thrown. Return.
         return;
@@ -225,7 +225,7 @@ function get_caller_class(thread: threading.JVMThread, framesToSkip: number): ja
     frame = caller[--idx];
   }
 
-  return frame.method.cls.get_class_object(thread);
+  return frame.method.cls.getClassObject(thread);
 }
 
 class sun_reflect_Reflection {

@@ -57,13 +57,13 @@ class java_lang_Class {
       if (initialize) {
         loader.initializeClass(thread, classname, (cls: ClassData.ReferenceClassData) => {
           if (cls != null) {
-            thread.asyncReturn(cls.get_class_object(thread));
+            thread.asyncReturn(cls.getClassObject(thread));
           }
         });
       } else {
         loader.resolveClass(thread, classname, (cls: ClassData.ReferenceClassData) => {
           if (cls != null) {
-            thread.asyncReturn(cls.get_class_object(thread));
+            thread.asyncReturn(cls.getClassObject(thread));
           }
         });
       }
@@ -72,14 +72,14 @@ class java_lang_Class {
 
   public static 'isInstance(Ljava/lang/Object;)Z'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject, obj: java_object.JavaObject): boolean {
     if (obj !== null) {
-      return obj.cls.is_castable(javaThis.$cls);
+      return obj.cls.isCastable(javaThis.$cls);
     } else {
       return false;
     }
   }
 
   public static 'isAssignableFrom(Ljava/lang/Class;)Z'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject, cls: java_object.JavaClassObject): boolean {
-    return cls.$cls.is_castable(javaThis.$cls);
+    return cls.$cls.isCastable(javaThis.$cls);
   }
 
   public static 'isInterface()Z'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): boolean {
@@ -98,7 +98,7 @@ class java_lang_Class {
   }
 
   public static 'getName0()Ljava/lang/String;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaObject {
-    return java_object.initString(thread.getBsCl(), javaThis.$cls.toExternalString());
+    return java_object.initString(thread.getBsCl(), javaThis.$cls.getExternalName());
   }
 
   public static 'getSuperclass()Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaClassObject {
@@ -106,16 +106,16 @@ class java_lang_Class {
       return null;
     }
     var cls = javaThis.$cls;
-    if (cls.accessFlags.isInterface() || (cls.get_super_class() == null)) {
+    if (cls.accessFlags.isInterface() || (cls.getSuperClass() == null)) {
       return null;
     }
-    return cls.get_super_class().get_class_object(thread);
+    return cls.getSuperClass().getClassObject(thread);
   }
 
   public static 'getInterfaces0()[Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaArray {
     var cls = javaThis.$cls;
-    var ifaces = cls.get_interfaces();
-    var iface_objs = ifaces.map((iface) => iface.get_class_object(thread));
+    var ifaces = cls.getInterfaces();
+    var iface_objs = ifaces.map((iface) => iface.getClassObject(thread));
     return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/Class;'), iface_objs);
   }
 
@@ -125,7 +125,7 @@ class java_lang_Class {
     }
     // As this array type is loaded, the component type is guaranteed
     // to be loaded as well. No need for asynchronicity.
-    return (<ClassData.ArrayClassData>javaThis.$cls).get_component_class().get_class_object(thread);
+    return (<ClassData.ArrayClassData>javaThis.$cls).getComponentClass().getClassObject(thread);
   }
 
   public static 'getModifiers()I'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): number {
@@ -150,11 +150,11 @@ class java_lang_Class {
       return null;
     }
     var cls: ClassData.ReferenceClassData = <ClassData.ReferenceClassData> javaThis.$cls,
-      em: attributes.EnclosingMethod = <attributes.EnclosingMethod> cls.get_attribute('EnclosingMethod');
+      em: attributes.EnclosingMethod = <attributes.EnclosingMethod> cls.getAttribute('EnclosingMethod');
     if (em == null) {
       return null;
     }
-    var enc_cls = em.encClass.getClass(cls.loader, 0).get_class_object(thread);
+    var enc_cls = em.encClass.tryGetClass(cls.getLoader()).getClassObject(thread);
     if (em.encMethod != null) {
       enc_name = java_object.initString(bsCl, em.encMethod.nameAndTypeInfo.name);
       enc_desc = java_object.initString(bsCl, em.encMethod.nameAndTypeInfo.descriptor);
@@ -176,26 +176,26 @@ class java_lang_Class {
       return null;
     }
     var cls = <ClassData.ReferenceClassData> javaThis.$cls,
-      icls = <attributes.InnerClasses> cls.get_attribute('InnerClasses');
+      icls = <attributes.InnerClasses> cls.getAttribute('InnerClasses');
     if (icls == null) {
       return null;
     }
-    var my_class = cls.get_type(),
+    var my_class = cls.getInternalName(),
       innerClassInfo = icls.classes;
     for (_i = 0, _len = innerClassInfo.length; _i < _len; _i++) {
       entry = innerClassInfo[_i];
       if (!(entry.outerInfoIndex > 0)) {
         continue;
       }
-      name = (<ConstantPool.ClassReference> cls.constant_pool.get(entry.innerInfoIndex)).name;
+      name = (<ConstantPool.ClassReference> cls.constantPool.get(entry.innerInfoIndex)).name;
       if (name !== my_class) {
         continue;
       }
       // XXX(jez): this assumes that the first enclosing entry is also
       // the immediate enclosing parent, and I'm not 100% sure this is
       // guaranteed by the spec
-      declaring_name = (<ConstantPool.ClassReference> cls.constant_pool.get(entry.outerInfoIndex)).name;
-      return cls.loader.getResolvedClass(declaring_name).get_class_object(thread);
+      declaring_name = (<ConstantPool.ClassReference> cls.constantPool.get(entry.outerInfoIndex)).name;
+      return cls.getLoader().getResolvedClass(declaring_name).getClassObject(thread);
     }
     return null;
   }
@@ -207,11 +207,11 @@ class java_lang_Class {
   public static 'getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;'(thread: threading.JVMThread, jvm_str: java_object.JavaObject): java_object.JavaClassObject {
     var type_desc = util.typestr2descriptor(jvm_str.jvm2js_str()),
       prim_cls = thread.getBsCl().getInitializedClass(thread, type_desc);
-    return prim_cls.get_class_object(thread);
+    return prim_cls.getClassObject(thread);
   }
 
   public static 'getGenericSignature0()Ljava/lang/String;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaObject {
-    var sigAttr = <attributes.Signature> (<ClassData.ReferenceClassData> javaThis.$cls).get_attribute('Signature');
+    var sigAttr = <attributes.Signature> (<ClassData.ReferenceClassData> javaThis.$cls).getAttribute('Signature');
     if (sigAttr != null && sigAttr.sig != null) {
       return java_object.initString(thread.getBsCl(), sigAttr.sig);
     } else {
@@ -221,12 +221,12 @@ class java_lang_Class {
 
   public static 'getRawAnnotations()[B'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaArray {
     var cls = <ClassData.ReferenceClassData> javaThis.$cls,
-      annotations = <attributes.RuntimeVisibleAnnotations> cls.get_attribute('RuntimeVisibleAnnotations');
+      annotations = <attributes.RuntimeVisibleAnnotations> cls.getAttribute('RuntimeVisibleAnnotations');
     if (annotations != null) {
       return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[B'), annotations.rawBytes);
     }
 
-    var methods = cls.get_methods();
+    var methods = cls.getMethods();
     for (var sig in methods) {
       if (methods.hasOwnProperty(sig)) {
         var m = methods[sig];
@@ -244,12 +244,12 @@ class java_lang_Class {
     // @todo Make this a proper JavaObject. I don't think the JCL uses it as such,
     // but right now this function fails any automated sanity checks on return values.
     return new java_object.JavaObject(<ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass(thread, 'Lsun/reflect/ConstantPool;'), {
-      'Lsun/reflect/ConstantPool;constantPoolOop': cls.constant_pool
+      'Lsun/reflect/ConstantPool;constantPoolOop': cls.constantPool
     });
   }
 
   public static 'getDeclaredFields0(Z)[Ljava/lang/reflect/Field;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject, public_only: number): void {
-    var fields = javaThis.$cls.get_fields();
+    var fields = javaThis.$cls.getFields();
     if (public_only) {
       fields = fields.filter((f) => f.accessFlags.isPublic());
     }
@@ -270,7 +270,7 @@ class java_lang_Class {
   }
 
   public static 'getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject, public_only: number): void {
-    var methodsHash = javaThis.$cls.get_methods();
+    var methodsHash = javaThis.$cls.getMethods();
     var methods: methods.Method[] = (function () {
       var _results: methods.Method[] = [];
       for (var sig in methodsHash) {
@@ -298,7 +298,7 @@ class java_lang_Class {
   }
 
   public static 'getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject, public_only: number): void {
-    var methodsHash = javaThis.$cls.get_methods();
+    var methodsHash = javaThis.$cls.getMethods();
     var methods: methods.Method[] = (function () {
       var _results: methods.Method[] = [];
       for (var sig in methodsHash) {
@@ -334,8 +334,8 @@ class java_lang_Class {
     if (!(cls instanceof ClassData.ReferenceClassData)) {
       return ret;
     }
-    var my_class = cls.get_type();
-    var iclses = <attributes.InnerClasses[]> cls.get_attributes('InnerClasses');
+    var my_class = cls.getInternalName();
+    var iclses = <attributes.InnerClasses[]> cls.getAttributes('InnerClasses');
     if (iclses.length === 0) {
       return ret;
     }
@@ -343,16 +343,16 @@ class java_lang_Class {
     for (var i = 0; i < iclses.length; i++) {
       var names = iclses[i].classes.filter((c: attributes.IInnerClassInfo) =>
         // select inner classes where the enclosing class is my_class
-        c.outerInfoIndex > 0 && (<ConstantPool.ClassReference> cls.constant_pool.get(c.outerInfoIndex)).name === my_class)
-        .map((c: attributes.IInnerClassInfo) => (<ConstantPool.ClassReference> cls.constant_pool.get(c.innerInfoIndex)).name);
+        c.outerInfoIndex > 0 && (<ConstantPool.ClassReference> cls.constantPool.get(c.outerInfoIndex)).name === my_class)
+        .map((c: attributes.IInnerClassInfo) => (<ConstantPool.ClassReference> cls.constantPool.get(c.innerInfoIndex)).name);
       flat_names.push.apply(flat_names, names);
     }
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     util.asyncForEach(flat_names,
       (name: string, next_item: () => void) => {
-        cls.loader.resolveClass(thread, name, (cls) => {
+        cls.getLoader().resolveClass(thread, name, (cls) => {
           if (cls != null) {
-            ret.array.push(cls.get_class_object(thread));
+            ret.array.push(cls.getClassObject(thread));
             next_item();
           }
         });
@@ -404,7 +404,7 @@ class java_lang_ClassLoader {
     // Ensure that this class is resolved.
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     loader.resolveClass(thread, type, () => {
-      thread.asyncReturn(cls.get_class_object(thread));
+      thread.asyncReturn(cls.getClassObject(thread));
     }, true);
   }
 
@@ -416,7 +416,7 @@ class java_lang_ClassLoader {
 
   public static 'resolveClass0(Ljava/lang/Class;)V'(thread: threading.JVMThread, javaThis: ClassLoader.JavaClassLoaderObject, cls: java_object.JavaClassObject): void {
     var loader = java_object.get_cl_from_jclo(thread, javaThis),
-      type = cls.$cls.get_type();
+      type = cls.$cls.getInternalName();
     if (loader.getResolvedClass(type) != null) {
       return;
     }
@@ -434,7 +434,7 @@ class java_lang_ClassLoader {
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     thread.getBsCl().resolveClass(thread, type, (cls) => {
       if (cls != null) {
-        thread.asyncReturn(cls.get_class_object(thread));
+        thread.asyncReturn(cls.getClassObject(thread));
       }
     }, true);
   }
@@ -445,7 +445,7 @@ class java_lang_ClassLoader {
       // Return JavaClassObject if loaded, or null otherwise.
       cls = loader.getResolvedClass(type);
     if (cls != null) {
-      return cls.get_class_object(thread);
+      return cls.getClassObject(thread);
     } else {
       return null;
     }
@@ -528,7 +528,7 @@ class java_lang_Float {
 class java_lang_Object {
 
   public static 'getClass()Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaObject): java_object.JavaClassObject {
-    return javaThis.cls.get_class_object(thread);
+    return javaThis.cls.getClassObject(thread);
   }
 
   public static 'hashCode()I'(thread: threading.JVMThread, javaThis: java_object.JavaObject): number {
@@ -611,9 +611,9 @@ class java_lang_reflect_Array {
   public static 'get(Ljava/lang/Object;I)Ljava/lang/Object;'(thread: threading.JVMThread, arr: java_object.JavaArray, idx: number): java_object.JavaObject {
     var val = array_get(thread, arr, idx);
     if (val != null) {
-      // Box primitive values (fast check: prims don't have .ref attributes).
+      // Box primitive values.
       if (val.ref == null) {
-        return (<ClassData.PrimitiveClassData> arr.cls.get_component_class()).create_wrapper_object(thread, val);
+        return (<ClassData.PrimitiveClassData> arr.cls.getComponentClass()).createWrapperObject(thread, val);
       }
     }
     return val;
@@ -633,11 +633,11 @@ class java_lang_reflect_Array {
       if (idx < 0 || idx >= arr.array.length) {
         thread.throwNewException('Ljava/lang/ArrayIndexOutOfBoundsException;', 'Tried to write to an illegal index in an array.');
       } else {
-        var ccls = arr.cls.get_component_class();
+        var ccls = arr.cls.getComponentClass();
         if (ccls instanceof ClassData.PrimitiveClassData) {
-          if (val.cls.is_subclass(thread.getBsCl().getInitializedClass(thread, (<ClassData.PrimitiveClassData> ccls).box_class_name()))) {
-            var ccname = ccls.get_type(),
-              m = val.cls.method_lookup(thread, "" + util.internal2external[ccname] + "Value()" + ccname);
+          if (val.cls.isSubclass(thread.getBsCl().getInitializedClass(thread, (<ClassData.PrimitiveClassData> ccls).boxClassName()))) {
+            var ccname = ccls.getInternalName(),
+              m = val.cls.methodLookup(thread, "" + util.internal2external[ccname] + "Value()" + ccname);
             thread.runMethod(m, [val], (e?, rv?) => {
               if (e) {
                 thread.throwException(e);
@@ -649,7 +649,7 @@ class java_lang_reflect_Array {
           } else {
             thread.throwNewException('Ljava/lang/IllegalArgumentException;', 'argument type mismatch');
           }
-        } else if (val.cls.is_subclass(ccls)) {
+        } else if (val.cls.isSubclass(ccls)) {
           arr.array[idx] = val;
         } else {
           thread.throwNewException('Ljava/lang/IllegalArgumentException;', 'argument type mismatch');
@@ -691,22 +691,22 @@ class java_lang_reflect_Array {
   }
 
   public static 'newArray(Ljava/lang/Class;I)Ljava/lang/Object;'(thread: threading.JVMThread, cls: java_object.JavaClassObject, len: number): java_object.JavaArray {
-    var arrCls = <ClassData.ArrayClassData> cls.$cls.loader.getResolvedClass("[" + cls.$cls.get_type());
+    var arrCls = <ClassData.ArrayClassData> cls.$cls.getLoader().getResolvedClass("[" + cls.$cls.getInternalName());
     return java_object.heapNewArray(thread, arrCls, len);
   }
 
   public static 'multiNewArray(Ljava/lang/Class;[I)Ljava/lang/Object;'(thread: threading.JVMThread, jco: java_object.JavaClassObject, lens: java_object.JavaArray): java_object.JavaArray {
     var counts = lens.array;
-    var cls = jco.$cls.loader.getInitializedClass(thread, jco.$cls.get_type());
+    var cls = jco.$cls.getLoader().getInitializedClass(thread, jco.$cls.getInternalName());
     if (cls == null) {
       thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-      jco.$cls.loader.initializeClass(thread, jco.$cls.get_type(), (cls) => {
-        var type_str = (new Array(counts.length + 1)).join('[') + cls.get_type();
-        thread.asyncReturn(java_object.heapMultiNewArray(thread, jco.$cls.loader, type_str, counts));
+      jco.$cls.getLoader().initializeClass(thread, jco.$cls.getInternalName(), (cls) => {
+        var type_str = (new Array(counts.length + 1)).join('[') + cls.getInternalName();
+        thread.asyncReturn(java_object.heapMultiNewArray(thread, jco.$cls.getLoader(), type_str, counts));
       });
     } else {
-      var type_str = (new Array(counts.length + 1)).join('[') + cls.get_type();
-      return java_object.heapMultiNewArray(thread, jco.$cls.loader, type_str, counts);
+      var type_str = (new Array(counts.length + 1)).join('[') + cls.getInternalName();
+      return java_object.heapMultiNewArray(thread, jco.$cls.getLoader(), type_str, counts);
     }
   }
 
@@ -718,7 +718,7 @@ class java_lang_reflect_Proxy {
     var loader = java_object.get_cl_from_jclo(thread, cl),
       cls = loader.defineClass(thread, util.int_classname(name.jvm2js_str()), util.byteArray2Buffer(bytes.array, offset, len));
     if (cls != null) {
-      return cls.get_class_object(thread);
+      return cls.getClassObject(thread);
     }
   }
 
@@ -790,7 +790,7 @@ class java_lang_SecurityManager {
       i: number;
     for (i = stack.length - 1; i >= 0; i--) {
       var sf = stack[i];
-      classes.push(sf.method.cls.get_class_object(thread));
+      classes.push(sf.method.cls.getClassObject(thread));
     }
     return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/Class;'), classes);
   }
@@ -949,17 +949,17 @@ class java_lang_System {
 
   public static 'setIn0(Ljava/io/InputStream;)V'(thread: threading.JVMThread, stream: java_object.JavaObject): void {
     var sys = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass(thread, 'Ljava/lang/System;');
-    sys.static_put(thread, 'in', stream);
+    sys.staticPut(thread, 'in', stream);
   }
 
   public static 'setOut0(Ljava/io/PrintStream;)V'(thread: threading.JVMThread, stream: java_object.JavaObject): void {
     var sys = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass(thread, 'Ljava/lang/System;');
-    sys.static_put(thread, 'out', stream);
+    sys.staticPut(thread, 'out', stream);
   }
 
   public static 'setErr0(Ljava/io/PrintStream;)V'(thread: threading.JVMThread, stream: java_object.JavaObject): void {
     var sys = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass(thread, 'Ljava/lang/System;');
-    sys.static_put(thread, 'err', stream);
+    sys.staticPut(thread, 'err', stream);
   }
 
   public static 'currentTimeMillis()J'(thread: threading.JVMThread): gLong {
@@ -996,14 +996,14 @@ class java_lang_System {
         };
         src_pos = 0;
       }
-      if (src.cls.is_castable(dest.cls)) {
+      if (src.cls.isCastable(dest.cls)) {
         // Fast path
         java_object.arraycopy_no_check(src, src_pos, dest, dest_pos, length);
       } else {
         // Slow path
         // Absolutely cannot do this when two different primitive types, or a primitive type and a reference type.
-        src_comp_cls = src.cls.get_component_class();
-        dest_comp_cls = dest.cls.get_component_class();
+        src_comp_cls = src.cls.getComponentClass();
+        dest_comp_cls = dest.cls.getComponentClass();
         if ((src_comp_cls instanceof ClassData.PrimitiveClassData) || (dest_comp_cls instanceof ClassData.PrimitiveClassData)) {
           thread.throwNewException('Ljava/lang/ArrayStoreException;', 'If calling arraycopy with a primitive array, both src and dest must be of the same primitive type.');
         } else {
@@ -1022,7 +1022,7 @@ class java_lang_System {
   }
 
   public static 'initProperties(Ljava/util/Properties;)Ljava/util/Properties;'(thread: threading.JVMThread, props: java_object.JavaObject): void {
-    var setProperty = props.cls.method_lookup(thread, 'setProperty(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;'),
+    var setProperty = props.cls.methodLookup(thread, 'setProperty(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;'),
       jvm = thread.getThreadPool().getJVM(),
       properties = jvm.getSystemPropertyNames();
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
@@ -1086,7 +1086,7 @@ class java_lang_Thread {
   }
 
   public static 'start0()V'(thread: threading.JVMThread, javaThis: threading.JVMThread): void {
-    var runMethod = javaThis.cls.method_lookup(thread, 'run()V');
+    var runMethod = javaThis.cls.methodLookup(thread, 'run()V');
     if (runMethod != null) {
       javaThis.runMethod(runMethod, [javaThis]);
     }
@@ -1174,7 +1174,7 @@ class java_lang_Thread {
     }
 
     // See if we have access to modify this thread.
-    var checkAccessMethod = javaThis.cls.method_lookup(thread, 'checkAccess()V');
+    var checkAccessMethod = javaThis.cls.methodLookup(thread, 'checkAccess()V');
     if (checkAccessMethod != null) {
       thread.runMethod(checkAccessMethod, [javaThis], (e?, rv?) => {
         if (e) {
@@ -1211,11 +1211,11 @@ class java_lang_Thread {
               var threadCls = thread.getBsCl().getInitializedClass(thread, 'Ljava/lang/Thread;'),
                 // If we are in the following methods, we throw an InterruptedException:
                 interruptMethods: methods.Method[] = [
-                  threadCls.method_lookup(thread, 'join()V'),   // * Thread.join()
-                  threadCls.method_lookup(thread, 'join(J)V'),  // * Thread.join(long)
-                  threadCls.method_lookup(thread, 'join(JI)V'), // * Thread.join(long, int)
-                  threadCls.method_lookup(thread, 'sleep(J)V'), // * Thread.sleep(long)
-                  threadCls.method_lookup(thread, 'sleep(JI)V') // * Thread.sleep(long, int)
+                  threadCls.methodLookup(thread, 'join()V'),   // * Thread.join()
+                  threadCls.methodLookup(thread, 'join(J)V'),  // * Thread.join(long)
+                  threadCls.methodLookup(thread, 'join(JI)V'), // * Thread.join(long, int)
+                  threadCls.methodLookup(thread, 'sleep(J)V'), // * Thread.sleep(long)
+                  threadCls.methodLookup(thread, 'sleep(JI)V') // * Thread.sleep(long, int)
                 ],
                 stackTrace = javaThis.getStackTrace(),
                 currentMethod = stackTrace[stackTrace.length - 1].method;
@@ -1275,7 +1275,7 @@ class java_lang_Throwable {
       if (sf.method.accessFlags.isNative()) {
         sourceFile = 'Native Method';
       } else {
-        var srcAttr = <attributes.SourceFile> cls.get_attribute('SourceFile'),
+        var srcAttr = <attributes.SourceFile> cls.getAttribute('SourceFile'),
           code = sf.method.getCodeAttribute(),
           table = <attributes.LineNumberTable> code.getAttribute('LineNumberTable');
         sourceFile = (srcAttr != null) ? srcAttr.filename : 'unknown';
@@ -1287,7 +1287,7 @@ class java_lang_Throwable {
         }
       }
       stacktrace.push(new java_object.JavaObject(stackTraceElementCls, {
-        'Ljava/lang/StackTraceElement;declaringClass': java_object.initString(bsCl, util.ext_classname(cls.get_type())),
+        'Ljava/lang/StackTraceElement;declaringClass': java_object.initString(bsCl, util.ext_classname(cls.getInternalName())),
         'Ljava/lang/StackTraceElement;methodName': java_object.initString(bsCl, sf.method.name != null ? sf.method.name : 'unknown'),
         'Ljava/lang/StackTraceElement;fileName': java_object.initString(bsCl, sourceFile),
         'Ljava/lang/StackTraceElement;lineNumber': ln
@@ -1369,13 +1369,13 @@ class java_lang_invoke_MethodHandleNatives {
    * those yet.
    */
   public static 'init(Ljava/lang/invoke/MemberName;Ljava/lang/Object;)V'(thread: threading.JVMThread, self: java_object.JavaObject, ref: java_object.JavaObject): void {
-    var clazz: java_object.JavaClassObject = ref.get_field(thread, ref.cls.this_class + "clazz"),
-      flags: number = ref.get_field(thread, ref.cls.this_class + "modifiers"),
+    var clazz: java_object.JavaClassObject = ref.get_field(thread, ref.cls.getInternalName() + "clazz"),
+      flags: number = ref.get_field(thread, ref.cls.getInternalName() + "modifiers"),
       flagsParsed: util.Flags = new util.Flags(flags),
       refKind: number, method: methods.Method;
     self.set_field(thread, 'Ljava/lang/invoke/MemberName;clazz', clazz);
 
-    switch (ref.cls.this_class) {
+    switch (ref.cls.getInternalName()) {
       case "Ljava/lang/reflect/Method;":
         flags |= MemberNameConstants.IS_METHOD;
         if (flagsParsed.isStatic()) {
@@ -1433,7 +1433,7 @@ class java_lang_invoke_MethodHandleNatives {
         // Need to perform method lookup.
         // XXX: Should have a better way than this! >_<
         thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-        thread.runMethod(type.cls.method_lookup(thread, 'toMethodDescriptorString()Ljava/lang/String;'), [type], (e?: java_object.JavaObject, str?: java_object.JavaObject) => {
+        thread.runMethod(type.cls.methodLookup(thread, 'toMethodDescriptorString()Ljava/lang/String;'), [type], (e?: java_object.JavaObject, str?: java_object.JavaObject) => {
           if (e) {
             thread.throwException(e);
           } else {
@@ -1443,7 +1443,7 @@ class java_lang_invoke_MethodHandleNatives {
         });
         break;
       case MemberNameConstants.IS_FIELD:
-        flags |= clazz.field_lookup(thread, name).accessFlags.getRawByte();
+        flags |= clazz.fieldLookup(thread, name).accessFlags.getRawByte();
         finish();
         return memberName;
         break;
@@ -1453,7 +1453,7 @@ class java_lang_invoke_MethodHandleNatives {
     }
 
     function processMethod(desc: string) {
-      var method: methods.Method = clazz.method_lookup(thread, name + desc);
+      var method: methods.Method = clazz.methodLookup(thread, name + desc);
       flags |= method.accessFlags.getRawByte();
       finish();
     }
