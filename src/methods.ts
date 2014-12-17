@@ -78,7 +78,7 @@ function getTrappedMethod(clsName: string, methSig: string): Function {
 
 export class AbstractMethodField {
   public cls: ClassData.ReferenceClassData;
-  public idx: number;
+  public slot: number = -1;
   public accessFlags: util.Flags;
   public name: string;
   public raw_descriptor: string;
@@ -88,13 +88,19 @@ export class AbstractMethodField {
     this.cls = cls;
   }
 
-  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool, idx: number): void {
-    this.idx = idx;
+  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): void {
     this.accessFlags = new util.Flags(bytes_array.getUint16());
     this.name = (<ConstantPool.ConstUTF8> constant_pool.get(bytes_array.getUint16())).value;
     this.raw_descriptor = (<ConstantPool.ConstUTF8> constant_pool.get(bytes_array.getUint16())).value;
     this.parse_descriptor(this.raw_descriptor);
     this.attrs = attributes.makeAttributes(bytes_array, constant_pool);
+  }
+
+  /**
+   * Sets the field or method's slot. Called once its class is resolved.
+   */
+  public setSlot(slot: number): void {
+    this.slot = slot;
   }
 
   public get_attribute(name: string): attributes.IAttribute {
@@ -143,7 +149,7 @@ export class Field extends AbstractMethodField {
         'Ljava/lang/reflect/Field;name': jvm.internString(this.name),
         'Ljava/lang/reflect/Field;type': type_obj,
         'Ljava/lang/reflect/Field;modifiers': this.accessFlags.getRawByte(),
-        'Ljava/lang/reflect/Field;slot': this.idx,
+        'Ljava/lang/reflect/Field;slot': this.slot,
         'Ljava/lang/reflect/Field;signature': sig != null ? java_object.initString(bsCl, sig) : null
       });
     };
@@ -214,8 +220,8 @@ export class Method extends AbstractMethodField {
     return this.code;
   }
 
-  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool, idx: number): void {
-    super.parse(bytes_array, constant_pool, idx);
+  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): void {
+    super.parse(bytes_array, constant_pool);
     var sig = this.full_signature(),
       clsName = this.cls.getInternalName(),
       methSig = this.name + this.raw_descriptor;
@@ -309,7 +315,7 @@ export class Method extends AbstractMethodField {
         obj[typestr + 'returnType'] = classes[this.return_type].getClassObject(thread);
         obj[typestr + 'exceptionTypes'] = new JavaArray(jco_arr_cls, etype_objs);
         obj[typestr + 'modifiers'] = this.accessFlags.getRawByte();
-        obj[typestr + 'slot'] = this.idx;
+        obj[typestr + 'slot'] = this.slot;
         obj[typestr + 'signature'] = sigAttr != null ? jvm.internString(sigAttr.sig) : null;
         obj[typestr + 'annotations'] = annAttr != null ? new JavaArray(byte_arr_cls, annAttr.rawBytes) : null;
         obj[typestr + 'annotationDefault'] = annDefaultAttr != null ? new JavaArray(byte_arr_cls, annDefaultAttr.rawBytes) : null;

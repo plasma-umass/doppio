@@ -221,19 +221,19 @@ class java_lang_Class {
 
   public static 'getRawAnnotations()[B'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaArray {
     var cls = <ClassData.ReferenceClassData> javaThis.$cls,
-      annotations = <attributes.RuntimeVisibleAnnotations> cls.getAttribute('RuntimeVisibleAnnotations');
-    if (annotations != null) {
+      annotations = <attributes.RuntimeVisibleAnnotations> cls.getAttribute('RuntimeVisibleAnnotations'),
+      methods: methods.Method[], i: number, m: methods.Method;
+    if (annotations !== null) {
       return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[B'), annotations.rawBytes);
     }
 
-    var methods = cls.getMethods();
-    for (var sig in methods) {
-      if (methods.hasOwnProperty(sig)) {
-        var m = methods[sig];
-        annotations = <attributes.RuntimeVisibleAnnotations> m.get_attribute('RuntimeVisibleAnnotations');
-        if (annotations != null) {
-          return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[B'), annotations.rawBytes);
-        }
+    // See if any methods have runtime visible annotations.
+    methods = cls.getMethods();
+    for (i = 0; i < methods.length; i++) {
+      m = methods[i];
+      annotations = <attributes.RuntimeVisibleAnnotations> m.get_attribute('RuntimeVisibleAnnotations');
+      if (annotations !== null) {
+        return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[B'), annotations.rawBytes);
       }
     }
     return null;
@@ -269,62 +269,41 @@ class java_lang_Class {
       });
   }
 
-  public static 'getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject, public_only: number): void {
-    var methodsHash = javaThis.$cls.getMethods();
-    var methods: methods.Method[] = (function () {
-      var _results: methods.Method[] = [];
-      for (var sig in methodsHash) {
-        var m = methodsHash[sig];
-        if (sig[0] !== '<' && (m.accessFlags.isPublic() || !public_only)) {
-          _results.push(m);
-        }
-      }
-      return _results;
-    })();
-    var base_array = [];
+  public static 'getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject, publicOnly: number): void {
+    var methods: methods.Method[] = javaThis.$cls.getMethods().filter((m: methods.Method) => {
+      return m.name[0] !== '<' && (m.accessFlags.isPublic() || !publicOnly);
+    }), baseArray: java_object.JavaObject[] = [];
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     util.asyncForEach(methods,
-      (m, next_item) => {
-        m.reflector(thread, false, (jco) => {
-          if (jco != null) {
-            base_array.push(jco);
-            next_item()
+      (m, nextItem) => {
+        m.reflector(thread, false, (methodObj: java_object.JavaObject) => {
+          if (methodObj !== null) {
+            baseArray.push(methodObj);
+            nextItem()
           }
         });
       }, () => {
-        var method_arr_cls = <ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/reflect/Method;');
-        thread.asyncReturn(new java_object.JavaArray(method_arr_cls, base_array));
+        var methodArrCls = <ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/reflect/Method;');
+        thread.asyncReturn(new java_object.JavaArray(methodArrCls, baseArray));
       });
   }
 
-  public static 'getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject, public_only: number): void {
-    var methodsHash = javaThis.$cls.getMethods();
-    var methods: methods.Method[] = (function () {
-      var _results: methods.Method[] = [];
-      for (var sig in methodsHash) {
-        var m = methodsHash[sig];
-        if (m.name === '<init>') {
-          _results.push(m);
-        }
-      }
-      return _results;
-    })();
-    if (public_only) {
-      methods = methods.filter((m) => m.accessFlags.isPublic());
-    }
-    var ctor_array_cdata = <ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/reflect/Constructor;');
-    var base_array = [];
+  public static 'getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject, publicOnly: number): void {
+    var methods: methods.Method[] = javaThis.$cls.getMethods().filter((m: methods.Method) => {
+      return m.name === '<init>' && (!publicOnly || m.accessFlags.isPublic());
+    }), ctorArrayCdata = <ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/reflect/Constructor;'),
+      baseArray: java_object.JavaObject[] = [];
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     util.asyncForEach(methods,
-      (m, next_item) => {
-        m.reflector(thread, true, (jco) => {
-          if (jco != null) {
-            base_array.push(jco);
-            next_item()
+      (m: methods.Method, nextItem: (err?: any) => void) => {
+        m.reflector(thread, true, (methodObj: java_object.JavaObject) => {
+          if (methodObj !== null) {
+            baseArray.push(methodObj);
+            nextItem()
           }
         });
       }, () => {
-        thread.asyncReturn(new java_object.JavaArray(ctor_array_cdata, base_array));
+        thread.asyncReturn(new java_object.JavaArray(ctorArrayCdata, baseArray));
       });
   }
 

@@ -102,23 +102,20 @@ class sun_reflect_NativeConstructorAccessorImpl {
       slot = m.get_field(thread, 'Ljava/lang/reflect/Constructor;slot');
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     cls.$cls.initialize(thread, (cls_obj: ClassData.ReferenceClassData) => {
-      if (cls_obj != null) {
-        var methods = cls_obj.getMethods(), sig: string,
+      if (cls_obj !== null) {
+        var methods = cls_obj.getMethods(),
           method: methods.Method,
           obj = new java_object.JavaObject(cls_obj),
-          args: any[] = [obj];
+          args: any[] = [obj], i: number;
 
-        for (sig in methods) {
-          if (methods.hasOwnProperty(sig)) {
-            var aMethod = methods[sig];
-            if (aMethod.idx === slot) {
-              method = aMethod;
-              break;
-            }
+        for (i = 0; i < methods.length; i++) {
+          if (methods[i].slot === slot) {
+            method = methods[i];
+            break;
           }
         }
 
-        if (params != null) {
+        if (params !== null) {
           args = args.concat(params.array);
         }
         thread.runMethod(method, args, (e?, rv?) => {
@@ -148,17 +145,14 @@ class sun_reflect_NativeMethodAccessorImpl {
       ret_type = mObj.get_field(thread, 'Ljava/lang/reflect/Method;returnType'),
       m: methods.Method,
       methods = cls.getMethods(),
-      sig: string, args: any[] = [];
+      args: any[] = [], i: number;
 
     // Find the method object.
     // @todo This should probably be easier to get to from a reflected object.
-    for (sig in methods) {
-      if (methods.hasOwnProperty(sig)) {
-        var aMethod = methods[sig];
-        if (aMethod.idx === slot) {
-          m = aMethod;
-          break;
-        }
+    for (i = 0; i < methods.length; i++) {
+      if (methods[i].slot === slot) {
+        m = methods[i];
+        break;
       }
     }
 

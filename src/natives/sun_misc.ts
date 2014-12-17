@@ -9,9 +9,9 @@ import ClassLoader = require('../ClassLoader');
 declare var registerNatives: (defs: any) => void;
 
 function unsafe_compare_and_swap(thread: threading.JVMThread, _this: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, expected: any, x: any): boolean {
-  var actual = obj.get_field_from_offset(thread, offset);
+  var actual = obj.getFieldFromSlot(thread, offset);
   if (actual === expected) {
-    obj.set_field_from_offset(thread, offset, x);
+    obj.setFieldFromSlot(thread, offset, x);
     return true;
   } else {
     return false;
@@ -113,31 +113,31 @@ class sun_misc_Signal {
 class sun_misc_Unsafe {
 
   public static 'getInt(Ljava/lang/Object;J)I'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putInt(Ljava/lang/Object;JI)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
-    return obj.set_field_from_offset(thread, offset, new_value);
+    return obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'getObject(Ljava/lang/Object;J)Ljava/lang/Object;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): java_object.JavaObject {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putObject(Ljava/lang/Object;JLjava/lang/Object;)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_obj: java_object.JavaObject): void {
-    return obj.set_field_from_offset(thread, offset, new_obj);
+    return obj.setFieldFromSlot(thread, offset, new_obj);
   }
 
   public static 'getBoolean(Ljava/lang/Object;J)Z'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putBoolean(Ljava/lang/Object;JZ)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
-    return obj.set_field_from_offset(thread, offset, new_value);
+    return obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'getByte(Ljava/lang/Object;J)B'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putByte(Ljava/lang/Object;JB)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
@@ -145,7 +145,7 @@ class sun_misc_Unsafe {
   }
 
   public static 'getShort(Ljava/lang/Object;J)S'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putShort(Ljava/lang/Object;JS)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
@@ -153,35 +153,35 @@ class sun_misc_Unsafe {
   }
 
   public static 'getChar(Ljava/lang/Object;J)C'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putChar(Ljava/lang/Object;JC)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
-    return obj.set_field_from_offset(thread, offset, new_value);
+    return obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'getLong(Ljava/lang/Object;J)J'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): gLong {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putLong(Ljava/lang/Object;JJ)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, x: gLong): void {
-    obj.set_field_from_offset(thread, offset, x);
+    obj.setFieldFromSlot(thread, offset, x);
   }
 
   public static 'getFloat(Ljava/lang/Object;J)F'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putFloat(Ljava/lang/Object;JF)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
-    obj.set_field_from_offset(thread, offset, new_value);
+    obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'getDouble(Ljava/lang/Object;J)D'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putDouble(Ljava/lang/Object;JD)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
-    obj.set_field_from_offset(thread, offset, new_value);
+    obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'getByte(J)B'(thread: threading.JVMThread, javaThis: java_object.JavaObject, address: gLong): number {
@@ -367,17 +367,13 @@ class sun_misc_Unsafe {
   }
 
   public static 'staticFieldOffset(Ljava/lang/reflect/Field;)J'(thread: threading.JVMThread, javaThis: java_object.JavaObject, field: java_object.JavaObject): gLong {
-    // XXX: encode both the class and slot information in an integer
-    //      this may cause collisions, but it seems to work ok
-    var jco = field.get_field(thread, 'Ljava/lang/reflect/Field;clazz'),
-      slot = field.get_field(thread, 'Ljava/lang/reflect/Field;slot');
-    return gLong.fromNumber(slot + jco.ref);
+    var slot = field.get_field(thread, 'Ljava/lang/reflect/Field;slot');
+    return gLong.fromNumber(slot);
   }
 
   public static 'objectFieldOffset(Ljava/lang/reflect/Field;)J'(thread: threading.JVMThread, javaThis: java_object.JavaObject, field: java_object.JavaObject): gLong {
-    var jco = field.get_field(thread, 'Ljava/lang/reflect/Field;clazz'),
-      slot = field.get_field(thread, 'Ljava/lang/reflect/Field;slot');
-    return gLong.fromNumber(slot + jco.ref);
+    var slot = field.get_field(thread, 'Ljava/lang/reflect/Field;slot');
+    return gLong.fromNumber(slot);
   }
 
   public static 'staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, field: java_object.JavaObject): java_object.JavaObject {
@@ -454,87 +450,87 @@ class sun_misc_Unsafe {
   public static 'compareAndSwapLong(Ljava/lang/Object;JJJ)Z': (thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: gLong, arg2: gLong, arg3: gLong) => boolean = unsafe_compare_and_swap;
 
   public static 'getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): java_object.JavaObject {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putObjectVolatile(Ljava/lang/Object;JLjava/lang/Object;)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: java_object.JavaObject): void {
-    obj.set_field_from_offset(thread, offset, new_value);
+    obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'getIntVolatile(Ljava/lang/Object;J)I'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putIntVolatile(Ljava/lang/Object;JI)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
-    obj.set_field_from_offset(thread, offset, new_value);
+    obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'getBooleanVolatile(Ljava/lang/Object;J)Z'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putBooleanVolatile(Ljava/lang/Object;JZ)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
-    obj.set_field_from_offset(thread, offset, new_value);
+    obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'getByteVolatile(Ljava/lang/Object;J)B'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putByteVolatile(Ljava/lang/Object;JB)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
-    obj.set_field_from_offset(thread, offset, new_value);
+    obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'getShortVolatile(Ljava/lang/Object;J)S'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putShortVolatile(Ljava/lang/Object;JS)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
-    obj.set_field_from_offset(thread, offset, new_value);
+    obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'getCharVolatile(Ljava/lang/Object;J)C'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putCharVolatile(Ljava/lang/Object;JC)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
-    obj.set_field_from_offset(thread, offset, new_value);
+    obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'getLongVolatile(Ljava/lang/Object;J)J'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): gLong {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putLongVolatile(Ljava/lang/Object;JJ)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: gLong): void {
-    obj.set_field_from_offset(thread, offset, new_value);
+    obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'getFloatVolatile(Ljava/lang/Object;J)F'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putFloatVolatile(Ljava/lang/Object;JF)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
-    obj.set_field_from_offset(thread, offset, new_value);
+    obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'getDoubleVolatile(Ljava/lang/Object;J)D'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putDoubleVolatile(Ljava/lang/Object;JD)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
-    obj.set_field_from_offset(thread, offset, new_value);
+    obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'putOrderedObject(Ljava/lang/Object;JLjava/lang/Object;)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_obj: java_object.JavaObject): void {
-    obj.set_field_from_offset(thread, offset, new_obj);
+    obj.setFieldFromSlot(thread, offset, new_obj);
   }
 
   public static 'putOrderedInt(Ljava/lang/Object;JI)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
-    obj.set_field_from_offset(thread, offset, new_value);
+    obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'putOrderedLong(Ljava/lang/Object;JJ)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: gLong): void {
-    obj.set_field_from_offset(thread, offset, new_value);
+    obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   /**

@@ -26,11 +26,11 @@ export class JavaArray {
     return new JavaArray(this.cls, underscore.clone(this.array));
   }
 
-  public get_field_from_offset(thread: threading.JVMThread, offset: gLong): any {
+  public getFieldFromSlot(thread: threading.JVMThread, offset: gLong): any {
     return this.array[offset.toInt()];
   }
 
-  public set_field_from_offset(thread: threading.JVMThread, offset: gLong, value: any): void {
+  public setFieldFromSlot(thread: threading.JVMThread, offset: gLong, value: any): void {
     this.array[offset.toInt()] = value;
   }
 
@@ -50,6 +50,8 @@ export class JavaObject {
   public $ws: IWebsock; // XXX: For sockets.
   public $is_shutdown: boolean; // XXX: For sockets.
   private $monitor: Monitor;
+  public vmindex: number; // XXX: For MemberName
+  public vmtarget: ClassData.ClassData; // XXX: For MemberName.
 
   constructor(cls: ClassData.ReferenceClassData, obj: any = {}) {
     this.cls = cls;
@@ -94,38 +96,20 @@ export class JavaObject {
     }
   }
 
-  public get_field_from_offset(thread: threading.JVMThread, offset: gLong): any {
-    var f = this._get_field_from_offset(thread, this.cls, offset.toInt());
-    if (f.field.accessFlags.isStatic()) {
-      return f.cls_obj.staticGet(thread, f.field.name);
+  public getFieldFromSlot(thread: threading.JVMThread, slot: gLong): any {
+    var f = this.cls.getFieldFromSlot(slot.toNumber());
+    if (f.accessFlags.isStatic()) {
+      return f.cls.staticGet(thread, f.name);
     }
-    return this.get_field(thread, f.cls + f.field.name);
+    return this.get_field(thread, f.cls.getInternalName() + f.name);
   }
 
-  private _get_field_from_offset(thread: threading.JVMThread, cls: ClassData.ReferenceClassData, offset: number): { field: methods.Field; cls: string; cls_obj: ClassData.ReferenceClassData }  {
-    var classname = cls.getInternalName();
-    while (cls != null) {
-      var jco_ref = cls.getClassObject(thread).ref;
-      var f = cls.getFields()[offset - jco_ref];
-      if (f != null) {
-        return {
-          field: f,
-          cls: cls.getInternalName(),
-          cls_obj: cls
-        };
-      }
-      cls = <ClassData.ReferenceClassData> cls.getSuperClass();
-    }
-    thread.throwNewException('Ljava/lang/NullPointerException;',
-      "field " + offset + " doesn't exist in class " + classname);
-  }
-
-  public set_field_from_offset(thread: threading.JVMThread, offset: gLong, value: any): void {
-    var f = this._get_field_from_offset(thread, this.cls, offset.toInt());
-    if (f.field.accessFlags.isStatic()) {
-      f.cls_obj.staticPut(thread, f.field.name, value);
+  public setFieldFromSlot(thread: threading.JVMThread, slot: gLong, value: any): void {
+    var f = this.cls.getFieldFromSlot(slot.toNumber());
+    if (f.accessFlags.isStatic()) {
+      f.cls.staticPut(thread, f.name, value);
     } else {
-      this.set_field(thread, f.cls + f.field.name, value);
+      this.set_field(thread, f.cls.getInternalName() + f.name, value);
     }
   }
 

@@ -103,8 +103,8 @@ export class ClassData {
   /**
    * Retrieve all of the methods defined on this class.
    */
-  public getMethods(): { [name: string]: methods.Method } {
-    return {};
+  public getMethods(): methods.Method[] {
+    return [];
   }
 
   /**
@@ -198,6 +198,14 @@ export class ClassData {
   public initialize(thread: threading.JVMThread, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
     throw new Error("Unimplemented.");
   }
+
+  public getFieldFromSlot(slot: number): methods.Field {
+    return null;
+  }
+
+  public getMethodFromSlot(slot: number): methods.Method {
+    return null;
+  }
 }
 
 export class PrimitiveClassData extends ClassData {
@@ -287,6 +295,14 @@ export class ArrayClassData extends ClassData {
     // ArrayClassData objects are ABSTRACT, FINAL, and PUBLIC.
     this.accessFlags = new util.Flags(0x411);
     this.componentClassName = component_type;
+  }
+
+  public getFieldFromSlot(slot: number): methods.Field {
+    return this.superClass.getFieldFromSlot(slot);
+  }
+
+  public getMethodFromSlot(slot: number): methods.Method {
+    return this.superClass.getMethodFromSlot(slot);
   }
 
   /**
@@ -404,15 +420,39 @@ export class ReferenceClassData extends ClassData {
   public majorVersion: number;
   public constantPool: ConstantPool.ConstantPool;
   private fields: methods.Field[];
-  private flCache: { [name: string]: methods.Field };
-  private methods: { [name: string]: methods.Method };
-  private mlCache: { [name: string]: methods.Method };
+  /**
+   * Maps a field's full name, including owning class, to its field object.
+   * Lazily populated.
+   */
+  private fieldLookupCache: { [name: string]: methods.Field };
+  private methods: methods.Method[];
+  /**
+   * Maps a method's full name to its method object. Contains methods declared
+   * in other classes.
+   * Lazily populated. Does not contain overridden methods. Used for virtual
+   * dispatch.
+   */
+  private methodLookupCache: { [name: string]: methods.Method };
   private attrs: attributes.IAttribute[];
   public staticFields: { [name: string]: any };
   private interfaceClasses: ReferenceClassData[] = null;
   private defaultFields: { [name: string]: any };
   private superClassRef: ConstantPool.ClassReference = null;
-  private interfaceRefs: ConstantPool.ClassReference[] = [];
+  private interfaceRefs: ConstantPool.ClassReference[];
+  /**
+   * Base number for slot lookups for methods. Equal to the total number of
+   * methods in parent classes.
+   *
+   * Initialized once the class is resolved.
+   */
+  private slotMethodBase: number = -1;
+  /**
+   * Base number of slot lookups for fields. Equal to the total number of
+   * fields in parent classes.
+   *
+   * Initialized once the class is resolved.
+   */
+  private slotFieldBase: number = -1;
   /**
    * Initialization lock.
    */
@@ -443,30 +483,32 @@ export class ReferenceClassData extends ClassData {
     }
     // direct interfaces of this class
     var isize = byteStream.getUint16();
+    this.interfaceRefs = new Array<ConstantPool.ClassReference>(isize);
     for (i = 0; i < isize; ++i) {
-      this.interfaceRefs.push((<ConstantPool.ClassReference> this.constantPool.get(byteStream.getUint16())));
+      this.interfaceRefs[i] = <ConstantPool.ClassReference> this.constantPool.get(byteStream.getUint16());
     }
     // fields of this class
-    var num_fields = byteStream.getUint16();
-    this.fields = [];
-    for (i = 0; i < num_fields; ++i) {
-      this.fields.push(new methods.Field(this));
+    var numFields = byteStream.getUint16();
+    this.fields = new Array<methods.Field>(numFields);
+    for (i = 0; i < numFields; ++i) {
+      this.fields[i] = new methods.Field(this);
     }
-    this.flCache = {};
+    this.fieldLookupCache = {};
     for (i = 0; i < this.fields.length; ++i) {
       var f = this.fields[i];
-      f.parse(byteStream, this.constantPool, i);
-      this.flCache[f.name] = f;
+      f.parse(byteStream, this.constantPool);
+      this.fieldLookupCache[f.name] = f;
     }
     // class methods
     var numMethods = byteStream.getUint16();
-    this.methods = {};
-    this.mlCache = {};
-    for (i = 0; i < numMethods; i += 1) {
+    this.methods = new Array<methods.Method>(numMethods);
+    this.methodLookupCache = {};
+    for (i = 0; i < numMethods; i++) {
       var m = new methods.Method(this);
-      m.parse(byteStream, this.constantPool, i);
+      m.parse(byteStream, this.constantPool);
       var mkey = m.name + m.raw_descriptor;
-      this.methods[mkey] = m;
+      this.methodLookupCache[mkey] = m;
+      this.methods[i] = m;
     }
     // class attributes
     this.attrs = attributes.makeAttributes(byteStream, this.constantPool);
@@ -493,11 +535,25 @@ export class ReferenceClassData extends ClassData {
     return this.fields;
   }
 
+  /**
+   * Retrieve a method with the given signature from this particular class.
+   */
   public getMethod(sig: string): methods.Method {
-    return this.methods[sig];
+    // Method lookup cache is guaranteed to have this particular method's
+    // methods, but it may have methods created by parent classes and such.
+    var m = this.methodLookupCache[sig];
+    if (m !== undefined && m.cls === this) {
+      return m;
+    } else {
+      return null;
+    }
   }
 
-  public getMethods(): { [name: string]: methods.Method } {
+  /**
+   * Get the methods belonging to this particular class.
+   * DO NOT MUTATE!
+   */
+  public getMethods(): methods.Method[] {
     return this.methods;
   }
 
@@ -545,7 +601,7 @@ export class ReferenceClassData extends ClassData {
    * default String values before Ljava/lang/String; is initialized.
    */
   private _initializeStaticField(thread: threading.JVMThread, name: string): boolean {
-    var f = this.flCache[name];
+    var f = this.fieldLookupCache[name];
     if (f != null && f.accessFlags.isStatic()) {
       var cva = <attributes.ConstantValue> f.get_attribute('ConstantValue'),
         cv: any = null;
@@ -595,12 +651,65 @@ export class ReferenceClassData extends ClassData {
     return false;
   }
 
+  protected getSlotMethodBase(): number { return this.slotMethodBase; }
+  protected getSlotFieldBase(): number { return this.slotFieldBase; }
+
   public setResolved(super_class_cdata: ReferenceClassData, interface_cdatas: ReferenceClassData[]): void {
     this.superClass = super_class_cdata;
+    if (super_class_cdata !== null) {
+      this.slotMethodBase = this.superClass.getSlotMethodBase() + this.superClass.getMethods().length;
+      this.slotFieldBase = this.superClass.getSlotFieldBase() + this.superClass.getFields().length;
+    } else {
+      this.slotMethodBase = 0;
+      this.slotFieldBase = 0;
+    }
+    // Populate method / field slots.
+    // TODO: Interface methods and fields???
+    this.methods.forEach((m: methods.Method, i: number) => {
+      m.slot = this.slotMethodBase + i;
+    });
+    this.fields.forEach((f: methods.Field, i: number) => {
+      f.slot = this.slotFieldBase + i;
+    });
+
     trace("Class " + (this.getInternalName()) + " is now resolved.");
     this.interfaceClasses = interface_cdatas;
     // TODO: Assert we are not already resolved or initialized?
     this.setState(ClassState.RESOLVED);
+  }
+
+  public getFieldFromSlot(slot: number): methods.Field {
+    if (slot >= this.slotFieldBase) {
+      var f = this.fields[slot - this.slotFieldBase];
+      if (f !== undefined) {
+        return f;
+      } else {
+        return null;
+      }
+    } else {
+      if (this.superClass !== null) {
+        return this.superClass.getFieldFromSlot(slot);
+      } else {
+        return null;
+      }
+    }
+  }
+
+  public getMethodFromSlot(slot: number): methods.Method {
+    if (slot >= this.slotMethodBase) {
+      var m = this.methods[slot - this.slotMethodBase];
+      if (m !== undefined) {
+        return m;
+      } else {
+        return null;
+      }
+    } else {
+      if (this.superClass !== null) {
+        return this.superClass.getMethodFromSlot(slot);
+      } else {
+        return null;
+      }
+    }
   }
 
   public tryToResolve(): boolean {
@@ -686,13 +795,13 @@ export class ReferenceClassData extends ClassData {
    * [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#77678
    */
   public fieldLookup(thread: threading.JVMThread, name: string, null_handled?: boolean): methods.Field {
-    var field = this.flCache[name];
+    var field = this.fieldLookupCache[name];
     if (field != null) {
       return field;
     }
     field = this._fieldLookup(thread, name);
     if ((field != null) || null_handled === true) {
-      this.flCache[name] = field;
+      this.fieldLookupCache[name] = field;
       return field;
     }
     thread.throwNewException('Ljava/lang/NoSuchFieldError;', "No such field found in " + this.getExternalName() + "::" + name);
@@ -730,8 +839,8 @@ export class ReferenceClassData extends ClassData {
    * [2]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#78621
    */
   public methodLookup(thread: threading.JVMThread, sig: string): methods.Method {
-    if (this.mlCache[sig] != null) {
-      return this.mlCache[sig];
+    if (this.methodLookupCache[sig] != null) {
+      return this.methodLookupCache[sig];
     }
     var method = this._methodLookup(sig);
     if (method == null) {
@@ -762,39 +871,36 @@ export class ReferenceClassData extends ClassData {
         case "linkToStatic":
         case "linkToSpecial":
         case "linkToInterface":
-          return this.methods[functionName + "([Ljava/lang/Object;)Ljava/lang/Object;"];
+          return this.methodLookupCache[functionName + "([Ljava/lang/Object;)Ljava/lang/Object;"];
       }
     }
     return null;
   }
 
   private _methodLookup(sig: string): methods.Method {
-    if (sig in this.mlCache) {
-      return this.mlCache[sig];
-    }
-    if (sig in this.methods) {
-      return this.mlCache[sig] = this.methods[sig];
+    if (sig in this.methodLookupCache) {
+      return this.methodLookupCache[sig];
     }
     var parent = <ReferenceClassData> this.getSuperClass();
     if (parent != null) {
-      this.mlCache[sig] = parent._methodLookup(sig);
-      if (this.mlCache[sig] != null) {
-        return this.mlCache[sig];
+      this.methodLookupCache[sig] = parent._methodLookup(sig);
+      if (this.methodLookupCache[sig] != null) {
+        return this.methodLookupCache[sig];
       }
     }
     var ifaces = this.getInterfaces();
     for (var i = 0; i < ifaces.length; i++) {
       var ifc = ifaces[i];
-      this.mlCache[sig] = ifc._methodLookup(sig);
-      if (this.mlCache[sig] != null) {
-        return this.mlCache[sig];
+      this.methodLookupCache[sig] = ifc._methodLookup(sig);
+      if (this.methodLookupCache[sig] != null) {
+        return this.methodLookupCache[sig];
       }
     }
 
     if (this.className === 'Ljava/lang/invoke/MethodHandle;') {
-      return this.mlCache[sig] = this.signaturePolymorphicMethodLookup(sig);
+      return this.methodLookupCache[sig] = this.signaturePolymorphicMethodLookup(sig);
     }
-    return this.mlCache[sig] = null;
+    return this.methodLookupCache[sig] = null;
   }
 
   /**
