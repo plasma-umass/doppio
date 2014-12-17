@@ -878,7 +878,7 @@ export class ReferenceClassData extends ClassData {
                 this.initLock.unlock(cdata);
               });
             }
-          });
+          }, explicit);
         } else {
           // java/lang/Object's parent is NULL.
           // Continue initializing this class.
@@ -989,7 +989,7 @@ export class ReferenceClassData extends ClassData {
           }
           nextItem();
         }
-      });
+      }, explicit);
     }, (err?: any) => {
       if (!err) {
         this.setResolved(superClass, interfaceClasses);
