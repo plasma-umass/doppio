@@ -47,6 +47,7 @@ export function pop2(stack: any[]): any {
 }
 
 export function initializeClassFromClass(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, cls: ClassData.ClassData): void {
+  thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
   cls.initialize(thread, (cdata: ClassData.ClassData) => {
     if (cdata != null) {
       thread.setStatus(enums.ThreadStatus.RUNNABLE);
