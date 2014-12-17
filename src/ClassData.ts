@@ -194,6 +194,10 @@ export class ClassData {
   public resolve(thread: threading.JVMThread, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
     throw new Error("Unimplemented.");
   }
+
+  public initialize(thread: threading.JVMThread, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
+    throw new Error("Unimplemented.");
+  }
 }
 
 export class PrimitiveClassData extends ClassData {
@@ -384,6 +388,10 @@ export class ArrayClassData extends ClassData {
     // We are both array types, so it only matters if my component type can be
     // cast to its component type.
     return this.getComponentClass().isCastable((<ArrayClassData> target).getComponentClass());
+  }
+
+  public initialize(thread: threading.JVMThread, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
+    this.resolve(thread, cb, explicit);
   }
 }
 
@@ -881,7 +889,7 @@ export class ReferenceClassData extends ClassData {
       }
     } else {
       // Resolve first, then initialize.
-      this.getLoader().resolveClass(thread, this.className, (cdata: ClassData) => {
+      this.resolve(thread, (cdata: ClassData) => {
         if (cdata !== null) {
           this.initialize(thread, cb, explicit);
         } else {

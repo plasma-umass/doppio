@@ -191,7 +191,7 @@ export function arraycopy_check(thread: threading.JVMThread, src: JavaArray, src
   var dest_comp_cls = dest.cls.getComponentClass();
   for (var i = src_pos; i < end; i++) {
     // Check if null or castable.
-    if (src.array[i] === null || src.array[i].cls.is_castable(dest_comp_cls)) {
+    if (src.array[i] === null || (<JavaObject> src.array[i]).cls.isCastable(dest_comp_cls)) {
       dest.array[j] = src.array[i];
     } else {
       thread.throwNewException('Ljava/lang/ArrayStoreException;', 'Array element in src cannot be cast to dest array type.');

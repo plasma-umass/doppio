@@ -101,7 +101,7 @@ class sun_reflect_NativeConstructorAccessorImpl {
     var cls = <java_object.JavaClassObject> m.get_field(thread, 'Ljava/lang/reflect/Constructor;clazz'),
       slot = m.get_field(thread, 'Ljava/lang/reflect/Constructor;slot');
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    cls.$cls.getLoader().initializeClass(thread, cls.$cls.getInternalName(), (cls_obj: ClassData.ReferenceClassData) => {
+    cls.$cls.initialize(thread, (cls_obj: ClassData.ReferenceClassData) => {
       if (cls_obj != null) {
         var methods = cls_obj.getMethods(), sig: string,
           method: methods.Method,

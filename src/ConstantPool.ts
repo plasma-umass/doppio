@@ -234,7 +234,7 @@ export class ClassReference implements IConstantPoolItem {
   /**
    * Asynchronously resolves the class.
    */
-  public getClass(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, cb: (cdata: ClassData.ClassData) => void): void {
+  public getClass(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
     if (this.cls !== null) {
       // Short circuit.
       setImmediate(() => cb(this.cls));
@@ -244,7 +244,7 @@ export class ClassReference implements IConstantPoolItem {
     cl.resolveClass(thread, this.name, (cdata: ClassData.ClassData) => {
       this.cls = cdata;
       cb(cdata);
-    });
+    }, explicit);
   }
 
   /**
@@ -632,7 +632,7 @@ export class FieldReference implements IConstantPoolItem {
    */
   public getMethodHandleType(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, cb: (e: any, type: java_object.JavaObject) => void): void {
     if (this.owningClass === null) {
-      cl.resolveClass(thread, this.classInfo.name, (cdata: ClassData.ClassData) => {
+      this.classInfo.getClass(thread, cl, (cdata: ClassData.ClassData) => {
         if (cdata !== null) {
           // NOTE: Do not stash class; `owningClass` is expected to be an
           // initialized class, not just resolved.
@@ -805,8 +805,7 @@ export class MethodHandle implements IConstantPoolItem {
     assert(this.methodHandle === null, "Should not be constructing the same MethodHandle twice!");
 
     if (definingClass === null) {
-      cl.resolveClass(thread, definingClassRef.name, (cdata: ClassData.ClassData) => {
-        definingClassRef.cls = cdata;
+      definingClassRef.getClass(thread, cl, (cdata: ClassData.ClassData) => {
         definingClassObject = cdata.getClassObject(thread);
         getType();
       });

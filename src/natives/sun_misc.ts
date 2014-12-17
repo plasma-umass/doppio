@@ -387,8 +387,10 @@ class sun_misc_Unsafe {
 
   public static 'ensureClassInitialized(Ljava/lang/Class;)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, cls: java_object.JavaClassObject): void {
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    cls.$cls.getLoader().initializeClass(thread, cls.$cls.getInternalName(), () => {
-      thread.asyncReturn();
+    cls.$cls.initialize(thread, (cdata: ClassData.ClassData) => {
+      if (cdata != null) {
+        thread.asyncReturn();
+      }
     }, true);
   }
 
@@ -423,7 +425,7 @@ class sun_misc_Unsafe {
       return new java_object.JavaObject(cls);
     } else {
       thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-      cls.getLoader().initializeClass(thread, cls.getInternalName(), () => {
+      cls.initialize(thread, () => {
         thread.asyncReturn(new java_object.JavaObject(cls));
       });
     }

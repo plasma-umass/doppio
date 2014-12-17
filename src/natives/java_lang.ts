@@ -170,7 +170,7 @@ class java_lang_Class {
   }
 
   public static 'getDeclaringClass0()Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaClassObject {
-    var declaring_name, entry: attributes.IInnerClassInfo, name, _i, _len;
+    var declaring_name: ConstantPool.ClassReference, entry: attributes.IInnerClassInfo, name: string, i: number, len: number;
 
     if (!(javaThis.$cls instanceof ClassData.ReferenceClassData)) {
       return null;
@@ -182,8 +182,8 @@ class java_lang_Class {
     }
     var my_class = cls.getInternalName(),
       innerClassInfo = icls.classes;
-    for (_i = 0, _len = innerClassInfo.length; _i < _len; _i++) {
-      entry = innerClassInfo[_i];
+    for (i = 0, len = innerClassInfo.length; i < len; i++) {
+      entry = innerClassInfo[i];
       if (!(entry.outerInfoIndex > 0)) {
         continue;
       }
@@ -194,8 +194,8 @@ class java_lang_Class {
       // XXX(jez): this assumes that the first enclosing entry is also
       // the immediate enclosing parent, and I'm not 100% sure this is
       // guaranteed by the spec
-      declaring_name = (<ConstantPool.ClassReference> cls.constantPool.get(entry.outerInfoIndex)).name;
-      return cls.getLoader().getResolvedClass(declaring_name).getClassObject(thread);
+      declaring_name = (<ConstantPool.ClassReference> cls.constantPool.get(entry.outerInfoIndex));
+      return declaring_name.tryGetClass(cls.getLoader()).getClassObject(thread);
     }
     return null;
   }
@@ -339,21 +339,21 @@ class java_lang_Class {
     if (iclses.length === 0) {
       return ret;
     }
-    var flat_names = [];
+    var flat_names: ConstantPool.ClassReference[] = [];
     for (var i = 0; i < iclses.length; i++) {
       var names = iclses[i].classes.filter((c: attributes.IInnerClassInfo) =>
         // select inner classes where the enclosing class is my_class
         c.outerInfoIndex > 0 && (<ConstantPool.ClassReference> cls.constantPool.get(c.outerInfoIndex)).name === my_class)
-        .map((c: attributes.IInnerClassInfo) => (<ConstantPool.ClassReference> cls.constantPool.get(c.innerInfoIndex)).name);
+        .map((c: attributes.IInnerClassInfo) => (<ConstantPool.ClassReference> cls.constantPool.get(c.innerInfoIndex)));
       flat_names.push.apply(flat_names, names);
     }
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     util.asyncForEach(flat_names,
-      (name: string, next_item: () => void) => {
-        cls.getLoader().resolveClass(thread, name, (cls) => {
+      (clsRef: ConstantPool.ClassReference, nextItem: () => void) => {
+        clsRef.getClass(thread, cls.getLoader(), (cls) => {
           if (cls != null) {
             ret.array.push(cls.getClassObject(thread));
-            next_item();
+            nextItem();
           }
         });
       }, () => thread.asyncReturn(ret));
@@ -403,7 +403,7 @@ class java_lang_ClassLoader {
     }
     // Ensure that this class is resolved.
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    loader.resolveClass(thread, type, () => {
+    cls.resolve(thread, () => {
       thread.asyncReturn(cls.getClassObject(thread));
     }, true);
   }
@@ -415,15 +415,17 @@ class java_lang_ClassLoader {
   }
 
   public static 'resolveClass0(Ljava/lang/Class;)V'(thread: threading.JVMThread, javaThis: ClassLoader.JavaClassLoaderObject, cls: java_object.JavaClassObject): void {
-    var loader = java_object.get_cl_from_jclo(thread, javaThis),
-      type = cls.$cls.getInternalName();
-    if (loader.getResolvedClass(type) != null) {
+    var loader = java_object.get_cl_from_jclo(thread, javaThis);
+    if (cls.$cls.isResolved()) {
       return;
     }
     // Ensure that this class is resolved.
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    loader.resolveClass(thread, type, () => {
-      thread.asyncReturn();
+    cls.$cls.resolve(thread, (cdata: ClassData.ClassData) => {
+      if (cdata !== null) {
+        thread.asyncReturn();
+      }
+      // Else: An exception occurred.
     }, true);
   }
 
@@ -697,16 +699,15 @@ class java_lang_reflect_Array {
 
   public static 'multiNewArray(Ljava/lang/Class;[I)Ljava/lang/Object;'(thread: threading.JVMThread, jco: java_object.JavaClassObject, lens: java_object.JavaArray): java_object.JavaArray {
     var counts = lens.array;
-    var cls = jco.$cls.getLoader().getInitializedClass(thread, jco.$cls.getInternalName());
-    if (cls == null) {
+    if (jco.$cls.isInitialized(thread)) {
+      var type_str = (new Array(counts.length + 1)).join('[') + jco.$cls.getInternalName();
+      return java_object.heapMultiNewArray(thread, jco.$cls.getLoader(), type_str, counts);
+    } else {
       thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-      jco.$cls.getLoader().initializeClass(thread, jco.$cls.getInternalName(), (cls) => {
+      jco.$cls.initialize(thread, (cls) => {
         var type_str = (new Array(counts.length + 1)).join('[') + cls.getInternalName();
         thread.asyncReturn(java_object.heapMultiNewArray(thread, jco.$cls.getLoader(), type_str, counts));
       });
-    } else {
-      var type_str = (new Array(counts.length + 1)).join('[') + cls.getInternalName();
-      return java_object.heapMultiNewArray(thread, jco.$cls.getLoader(), type_str, counts);
     }
   }
 

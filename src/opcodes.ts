@@ -46,12 +46,8 @@ export function pop2(stack: any[]): any {
   return stack.pop();
 }
 
-/**
- * Helper function: Pauses the thread and initializes a class.
- */
-export function initializeClass(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, typeStr: string): void {
-  thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-  frame.getLoader().initializeClass(thread, typeStr, (cdata: ClassData.ClassData) => {
+export function initializeClassFromClass(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, cls: ClassData.ClassData): void {
+  cls.initialize(thread, (cdata: ClassData.ClassData) => {
     if (cdata != null) {
       thread.setStatus(enums.ThreadStatus.RUNNABLE);
     }
@@ -60,11 +56,28 @@ export function initializeClass(thread: threading.JVMThread, frame: threading.By
 }
 
 /**
+ * Helper function: Pauses the thread and initializes a class.
+ */
+export function initializeClass(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, clsRef: ConstantPool.ClassReference): void {
+  thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+  clsRef.getClass(thread, frame.getLoader(), (cdata: ClassData.ClassData) => {
+    if (cdata != null) {
+      cdata.initialize(thread, (cdata: ClassData.ClassData) => {
+        if (cdata != null) {
+          thread.setStatus(enums.ThreadStatus.RUNNABLE);
+        }
+      }, false);
+    }
+  }, false);
+  frame.returnToThreadLoop = true;
+}
+
+/**
  * Helper function: Pauses the thread and resolves a class.
  */
-export function resolveClass(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, typeStr: string): void {
+export function resolveClass(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, clsRef: ConstantPool.ClassReference): void {
   thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-  frame.getLoader().resolveClass(thread, typeStr, (cdata: ClassData.ClassData) => {
+  clsRef.getClass(thread, frame.getLoader(), (cdata: ClassData.ClassData) => {
     if (cdata != null) {
       thread.setStatus(enums.ThreadStatus.RUNNABLE);
     }
@@ -1192,10 +1205,9 @@ export class Opcodes {
     if (refCls != null && refCls.isInitialized(thread)) {
       // Get the *actual* class that owns this field.
       // This may not be initialized if it's an interface, so we need to check.
-      var clsType = refCls.fieldLookup(thread, fieldInfo.fieldName).cls.getInternalName();
-      if (clsType != null) {
-        var cls = <ClassData.ReferenceClassData> loader.getInitializedClass(thread, clsType);
-        if (cls != null) {
+      var fieldOwnerCls = refCls.fieldLookup(thread, fieldInfo.fieldName).cls;
+      if (fieldOwnerCls != null) {
+        if (fieldOwnerCls.isInitialized(thread)) {
           // Opcode is ready to execute! Rewrite to a 'fast' version,
           // and run the fast version.
           if (fieldInfo.nameAndTypeInfo.descriptor === 'J' || fieldInfo.nameAndTypeInfo.descriptor === 'D') {
@@ -1204,15 +1216,15 @@ export class Opcodes {
             code.writeUInt8(enums.OpCode.GETSTATIC_FAST32, pc);
           }
           // Stash the result of field lookup.
-          fieldInfo.owningClass = cls;
+          fieldInfo.owningClass = fieldOwnerCls;
         } else {
-          // Initialize clsType and rerun opcode
-          initializeClass(thread, frame, clsType);
+          // Initialize class and rerun opcode
+          initializeClassFromClass(thread, frame, fieldOwnerCls);
         }
       }
     } else {
       // Initialize fieldSpec.class and rerun opcode.
-      initializeClass(thread, frame, fieldInfo.classInfo.name);
+      initializeClass(thread, frame, fieldInfo.classInfo);
     }
   }
 
@@ -1249,10 +1261,9 @@ export class Opcodes {
     if (refCls != null && refCls.isInitialized(thread)) {
       // Get the *actual* class that owns this field.
       // This may not be initialized if it's an interface, so we need to check.
-      var clsType = refCls.fieldLookup(thread, fieldInfo.fieldName).cls.getInternalName();
-      if (clsType != null) {
-        var cls = <ClassData.ReferenceClassData> loader.getInitializedClass(thread, clsType);
-        if (cls != null) {
+      var fieldOwnerCls = refCls.fieldLookup(thread, fieldInfo.fieldName).cls;
+      if (fieldOwnerCls != null) {
+        if (fieldOwnerCls.isInitialized(thread)) {
           // Opcode is ready to execute! Rewrite to a 'fast' version,
           // and run the fast version.
           if (fieldInfo.nameAndTypeInfo.descriptor === 'J' || fieldInfo.nameAndTypeInfo.descriptor === 'D') {
@@ -1261,15 +1272,15 @@ export class Opcodes {
             code.writeUInt8(enums.OpCode.PUTSTATIC_FAST32, pc);
           }
           // Stash the resolved class.
-          fieldInfo.owningClass = cls;
+          fieldInfo.owningClass = fieldOwnerCls;
         } else {
           // Initialize clsType and rerun opcode
-          initializeClass(thread, frame, clsType);
+          initializeClassFromClass(thread, frame, fieldOwnerCls);
         }
       }
     } else {
       // Initialize fieldSpec.class and rerun opcode.
-      initializeClass(thread, frame, fieldInfo.classInfo.name);
+      initializeClass(thread, frame, fieldInfo.classInfo);
     }
   }
 
@@ -1326,7 +1337,7 @@ export class Opcodes {
         }
       } else {
         // Alright, tell this class's ClassLoader to load the class.
-        resolveClass(thread, frame, fieldInfo.classInfo.name);
+        resolveClass(thread, frame, fieldInfo.classInfo);
       }
     }
   }
@@ -1390,7 +1401,7 @@ export class Opcodes {
         }
       } else {
         // Alright, tell this class's ClassLoader to load the class.
-        resolveClass(thread, frame, fieldInfo.classInfo.name);
+        resolveClass(thread, frame, fieldInfo.classInfo);
       }
     }
   }
@@ -1447,7 +1458,7 @@ export class Opcodes {
         code.writeUInt8(enums.OpCode.INVOKEVIRTUAL_FAST, pc);
       } else {
         // Get current classloader to load the class.
-        initializeClass(thread, frame, methodReference.classInfo.name);
+        initializeClass(thread, frame, methodReference.classInfo);
       }
     }
     // Object is NULL; NPE has been thrown.
@@ -1480,7 +1491,7 @@ export class Opcodes {
       code.writeUInt8(enums.OpCode.INVOKEINTERFACE_FAST, pc);
     } else {
       // Initialize our class and rerun opcode.
-      initializeClass(thread, frame, methodReference.classInfo.name);
+      initializeClass(thread, frame, methodReference.classInfo);
     }
   }
 
@@ -1553,7 +1564,7 @@ export class Opcodes {
         }
       } else {
         // Initialize our class and rerun opcode.
-        initializeClass(thread, frame, methodReference.classInfo.name);
+        initializeClass(thread, frame, methodReference.classInfo);
       }
     }
   }
@@ -1585,7 +1596,7 @@ export class Opcodes {
         }
       } else {
         // Initialize our class and rerun opcode.
-        initializeClass(thread, frame, methodReference.classInfo.name);
+        initializeClass(thread, frame, methodReference.classInfo);
       }
     }
   }
@@ -1612,7 +1623,7 @@ export class Opcodes {
       // Return to thread, rerun opcode.
     } else {
       // Initialize type and rerun opcode.
-      initializeClass(thread, frame, classRef.name);
+      initializeClass(thread, frame, classRef);
     }
   }
 
@@ -1654,7 +1665,7 @@ export class Opcodes {
   public static anewarray(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: NodeBuffer, pc: number) {
     var classRef = <ConstantPool.ClassReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       // Make sure the component class is loaded (note: does *not* need to be initialized).
-      cls = frame.getLoader().getResolvedClass(classRef.name);
+      cls = classRef.tryGetClass(frame.getLoader());
     if (cls != null) {
       // Rewrite and rerun.
       code.writeUInt8(enums.OpCode.ANEWARRAY_FAST, pc);
@@ -1662,7 +1673,7 @@ export class Opcodes {
       classRef.getArrayClass(frame.getLoader());
     } else {
       // Load class and rerun opcode.
-      resolveClass(thread, frame, classRef.name);
+      resolveClass(thread, frame, classRef);
     }
   }
 
@@ -1701,7 +1712,7 @@ export class Opcodes {
       // Rewrite to fast version, and re-execute.
       code.writeUInt8(enums.OpCode.CHECKCAST_FAST, pc);
     } else {
-      resolveClass(thread, frame, classRef.name);
+      resolveClass(thread, frame, classRef);
     }
   }
 
@@ -1729,7 +1740,7 @@ export class Opcodes {
       code.writeUInt8(enums.OpCode.INSTANCEOF_FAST, pc);
     } else {
       // Fetch class and rerun opcode.
-      resolveClass(thread, frame, classRef.name);
+      resolveClass(thread, frame, classRef);
     }
   }
 
@@ -1774,7 +1785,7 @@ export class Opcodes {
     var classRef = <ConstantPool.ClassReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       cls = classRef.tryGetClass(frame.getLoader());
     if (cls == null) {
-      initializeClass(thread, frame, classRef.name);
+      initializeClass(thread, frame, classRef);
     } else {
       // Rewrite and rerun.
       code.writeUInt8(enums.OpCode.MULTIANEWARRAY_FAST, pc);
@@ -1839,9 +1850,9 @@ export class Opcodes {
       case enums.ConstantPoolItemType.CLASS:
         // Fetch the jclass object and push it on to the stack. Do not rerun
         // this opcode.
-        var cdesc = (<ConstantPool.ClassReference> constant).name;
+        var clsRef = (<ConstantPool.ClassReference> constant);
         thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-        frame.getLoader().resolveClass(thread, cdesc, (cdata: ClassData.ClassData) => {
+        clsRef.getClass(thread, frame.getLoader(), (cdata: ClassData.ClassData) => {
           if (cdata != null) {
             frame.stack.push(cdata.getClassObject(thread));
             frame.pc += 2;
@@ -1872,9 +1883,9 @@ export class Opcodes {
       case enums.ConstantPoolItemType.CLASS:
         // Fetch the jclass object and push it on to the stack. Do not rerun
         // this opcode.
-        var cdesc = (<ConstantPool.ClassReference> constant).name;
+        var clsRef = (<ConstantPool.ClassReference> constant);
         thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-        frame.getLoader().resolveClass(thread, cdesc, (cdata: ClassData.ClassData) => {
+        clsRef.getClass(thread, frame.getLoader(), (cdata: ClassData.ClassData) => {
           if (cdata != null) {
             frame.stack.push(cdata.getClassObject(thread));
             frame.pc += 3;
