@@ -50,8 +50,7 @@ export class JavaObject {
   public $ws: IWebsock; // XXX: For sockets.
   public $is_shutdown: boolean; // XXX: For sockets.
   private $monitor: Monitor;
-  public vmindex: number; // XXX: For MemberName
-  public vmtarget: ClassData.ClassData; // XXX: For MemberName.
+  public vmtarget: methods.AbstractMethodField; // XXX: For MemberName.
 
   constructor(cls: ClassData.ReferenceClassData, obj: any = {}) {
     this.cls = cls;

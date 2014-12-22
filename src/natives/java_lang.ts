@@ -1329,6 +1329,68 @@ enum MemberNameConstants {
   ALL_KINDS = (IS_METHOD | IS_CONSTRUCTOR | IS_FIELD | IS_TYPE)
 }
 
+/**
+ * Given a MemberName object and a reflective field/method/constructor,
+ * initialize the member name:
+ * - name: Name of the field/method.
+ * - clazz: Class that owns the member.
+ * - flags: Encodes the reference type of the member and the member's access flags.
+ * - type: String encoding of the type (method descriptor, or class name of field type in descriptor form)
+ * - vmtarget: Contains the VM-specific pointer to the member (in our case, a Method or Field object)
+ (set clazz, updates flags, sets vmtarget).
+ */
+function initializeMemberName(thread: threading.JVMThread, mn: java_object.JavaObject, ref: methods.AbstractMethodField) {
+  var flags: number = mn.get_field(thread, 'Ljava/lang/invoke/MemberName;flags'),
+    type: java_object.JavaObject = mn.get_field(thread, 'Ljava/lang/invoke/MemberName;type'),
+    name: java_object.JavaObject = mn.get_field(thread, 'Ljava/lang/invoke/MemberName;name'),
+    refKind: number;
+  // Sometimes, we'll get an unresolved MN with partial info. Don't mess with
+  // their flags, since they have an operation defined already (e.g. SETFIELD).
+  if (flags === 0) {
+    // Determine the reference type.
+    if (ref instanceof methods.Method) {
+       flags = MemberNameConstants.IS_METHOD;
+       if (ref.cls.accessFlags.isInterface()) {
+         refKind = enums.MethodHandleReferenceKind.INVOKEINTERFACE;
+       } else if (ref.accessFlags.isStatic()) {
+         refKind = enums.MethodHandleReferenceKind.INVOKESTATIC;
+       } else if (ref.name[0] === '<') {
+         flags = MemberNameConstants.IS_CONSTRUCTOR;
+         refKind = enums.MethodHandleReferenceKind.INVOKESPECIAL;
+       } else {
+         refKind = enums.MethodHandleReferenceKind.INVOKEVIRTUAL;
+       }
+    } else {
+      flags = MemberNameConstants.IS_FIELD;
+      // Assume a GET.
+      if (ref.accessFlags.isStatic()) {
+        refKind = enums.MethodHandleReferenceKind.GETSTATIC;
+      } else {
+        refKind = enums.MethodHandleReferenceKind.GETFIELD;
+      }
+    }
+    flags |= refKind << MemberNameConstants.REFERENCE_KIND_SHIFT;
+  }
+  flags |= ref.accessFlags.getRawByte();
+  // Initialize type if we need to.
+  if (type === null) {
+    if (ref instanceof methods.Method) {
+      type = thread.getThreadPool().getJVM().internString(ref.raw_descriptor);
+    } else {
+      type = thread.getThreadPool().getJVM().internString((<methods.Field> ref).type);
+    }
+  }
+  // Initialize name if we need to.
+  if (name === null) {
+    name = thread.getThreadPool().getJVM().internString(ref.name);
+  }
+  mn.set_field(thread, 'Ljava/lang/invoke/MemberName;clazz', ref.cls.getClassObject(thread));
+  mn.set_field(thread, 'Ljava/lang/invoke/MemberName;flags', flags);
+  mn.set_field(thread, 'Ljava/lang/invoke/MemberName;type', type);
+  mn.set_field(thread, 'Ljava/lang/invoke/MemberName;name', name);
+  mn.vmtarget = ref;
+}
+
 class java_lang_invoke_MethodHandleNatives {
   /**
    * I'm going by JAMVM's implementation of this method, which is very easy
@@ -1342,19 +1404,20 @@ class java_lang_invoke_MethodHandleNatives {
    * * Set "clazz" field to item's declaring class in the reflection object.
    * * Set "flags" field to items's flags, OR'd with its type (method/field/
    *   constructor), and OR'd with its reference kind shifted up by 24.
-   * * Set "vmtarget" to a pointer to the member.
+   * * Set "vmtarget" to the relevant Field or Method object.
    *
-   * NOTE: As a non-native VM, we ignore "vmtarget". Also, "vmtarget" is an
-   * "injected field" that is not exposed to JVM code, and we don't support
-   * those yet.
+   * This method "resolves" the MemberName unambiguously using the provided
+   * reflection object.
+   *
+   * Note: Don't need to set 'type' in this case.
    */
   public static 'init(Ljava/lang/invoke/MemberName;Ljava/lang/Object;)V'(thread: threading.JVMThread, self: java_object.JavaObject, ref: java_object.JavaObject): void {
     var clazz: java_object.JavaClassObject = ref.get_field(thread, ref.cls.getInternalName() + "clazz"),
       flags: number = ref.get_field(thread, ref.cls.getInternalName() + "modifiers"),
       flagsParsed: util.Flags = new util.Flags(flags),
-      refKind: number, method: methods.Method;
+      refKind: number,
+      vmtarget: methods.AbstractMethodField;
     self.set_field(thread, 'Ljava/lang/invoke/MemberName;clazz', clazz);
-
     switch (ref.cls.getInternalName()) {
       case "Ljava/lang/reflect/Method;":
         flags |= MemberNameConstants.IS_METHOD;
@@ -1365,16 +1428,20 @@ class java_lang_invoke_MethodHandleNatives {
         } else {
           refKind = enums.MethodHandleReferenceKind.INVOKEVIRTUAL;
         }
+        vmtarget = (<java_object.JavaClassObject> ref.get_field(thread, 'Ljava/lang/reflect/Method;clazz')).$cls.getMethods()[ref.get_field(thread, 'Ljava/lang/reflect/Method;slot')];
         // TODO: Is the @CallerSensitive annotation present on the method? Requires a slot->method lookup function.
         break;
       case "Ljava/lang/reflect/Constructor;":
         flags |= MemberNameConstants.IS_CONSTRUCTOR;
         refKind = enums.MethodHandleReferenceKind.INVOKESPECIAL;
         // TODO: Is the @CallerSensitive annotation present on the method? Requires a slot->method lookup function.
+        vmtarget = (<java_object.JavaClassObject> ref.get_field(thread, 'Ljava/lang/reflect/Constructor;clazz')).$cls.getMethods()[ref.get_field(thread, 'Ljava/lang/reflect/Constructor;slot')];
         break;
       case "Ljava/lang/reflect/Field;":
         flags |= MemberNameConstants.IS_FIELD;
         refKind = flagsParsed.isStatic() ? enums.MethodHandleReferenceKind.GETSTATIC : enums.MethodHandleReferenceKind.GETFIELD;
+        // Set vmtarget to the field.
+        vmtarget = (<java_object.JavaClassObject> ref.get_field(thread, 'Ljava/lang/reflect/Field;clazz')).$cls.getFields()[ref.get_field(thread, 'Ljava/lang/reflect/Field;slot')];
         break;
       default:
         thread.throwNewException("Ljava/lang/InternalError;", "init: Invalid target.");
@@ -1382,6 +1449,7 @@ class java_lang_invoke_MethodHandleNatives {
     }
     flags |= refKind << MemberNameConstants.REFERENCE_KIND_SHIFT;
     self.set_field(thread, 'Ljava/lang/invoke/MemberName;flags', flags);
+    self.vmtarget = vmtarget;
   }
 
   public static 'getConstant(I)I'(thread: threading.JVMThread, arg0: number): number {
@@ -1392,21 +1460,23 @@ class java_lang_invoke_MethodHandleNatives {
   /**
    * I'm going by JAMVM's implementation of resolve:
    * http://sourceforge.net/p/jamvm/code/ci/master/tree/src/classlib/openjdk/mh.c#l1266
+   * @todo It doesn't do anything with the lookupClass... is that for permission checks?
    *
-   * Resolve appears to perform dynamic lookup, and updates flags and
-   * "vmtarget" appropriately.
+   * Resolve performs dynamic lookup, updates flags, and sets "vmtarget".
    */
-  public static 'resolve(Ljava/lang/invoke/MemberName;Ljava/lang/Class;)Ljava/lang/invoke/MemberName;'(thread: threading.JVMThread, memberName: java_object.JavaObject, mh_class: java_object.JavaClassObject): java_object.JavaObject {
+  public static 'resolve(Ljava/lang/invoke/MemberName;Ljava/lang/Class;)Ljava/lang/invoke/MemberName;'(thread: threading.JVMThread, memberName: java_object.JavaObject, lookupClass: java_object.JavaClassObject): java_object.JavaObject {
     var type: java_object.JavaObject = memberName.get_field(thread, 'Ljava/lang/invoke/MemberName;type'),
       name: string = (<java_object.JavaObject> memberName.get_field(thread, 'Ljava/lang/invoke/MemberName;name')).jvm2js_str(),
       clazz = (<java_object.JavaClassObject> memberName.get_field(thread, 'Ljava/lang/invoke/MemberName;clazz')).$cls,
-      flags: number = memberName.get_field(thread, 'Ljava/lang/invoke/MemberName;flags');
+      flags: number = memberName.get_field(thread, 'Ljava/lang/invoke/MemberName;flags'),
+      vmtarget: methods.AbstractMethodField;
 
     if (clazz === null || name == null || type == null) {
       thread.throwNewException("Ljava/lang/IllegalArgumentException;", "Invalid MemberName.");
       return;
     }
 
+    assert((flags & MemberNameConstants.CALLER_SENSITIVE) === 0, "Not yet supported: Caller sensitive methods.");
     switch (flags & MemberNameConstants.ALL_KINDS) {
       case MemberNameConstants.IS_CONSTRUCTOR:
       case MemberNameConstants.IS_METHOD:
@@ -1417,30 +1487,113 @@ class java_lang_invoke_MethodHandleNatives {
           if (e) {
             thread.throwException(e);
           } else {
-            processMethod(str.jvm2js_str());
-            thread.asyncReturn(memberName);
+            vmtarget = clazz.methodLookup(thread, name + str.jvm2js_str());
+            if (vmtarget !== null) {
+              initializeMemberName(thread, memberName, vmtarget);
+              thread.asyncReturn(memberName);
+            }
+            // Else: An exception was thrown.
           }
         });
         break;
       case MemberNameConstants.IS_FIELD:
-        flags |= clazz.fieldLookup(thread, name).accessFlags.getRawByte();
-        finish();
-        return memberName;
+        vmtarget = clazz.fieldLookup(thread, name);
+        if (vmtarget !== null) {
+          initializeMemberName(thread, memberName, vmtarget);
+          return memberName;
+        }
+        // Else: an exception was thrown.
         break;
       default:
         thread.throwNewException('Ljava/lang/LinkageError;', 'resolve member name');
         break;
     }
+  }
 
-    function processMethod(desc: string) {
-      var method: methods.Method = clazz.methodLookup(thread, name + desc);
-      flags |= method.accessFlags.getRawByte();
-      finish();
+  /**
+   * Follows the same logic as sun.misc.Unsafe's objectFieldOffset.
+   */
+  public static 'objectFieldOffset(Ljava/lang/invoke/MemberName;)J'(thread: threading.JVMThread, memberName: java_object.JavaObject): gLong {
+    if (memberName['vmtarget'] === undefined) {
+      thread.throwNewException("Ljava/lang/IllegalStateException;", "Attempted to retrieve the offset for an unresolved MemberName.");
+    } else {
+      return gLong.fromNumber(memberName.vmtarget.slot);
+    }
+  }
+
+  /**
+   * Get the members of the given class that match the specified flags, skipping
+   * the specified number of members. For each non-skipped matching member,
+   * fill in the fields of a MemberName objects in the results array.
+   * If there are more matches than can fit in the array, do *not* overrun
+   * the array. Return the total number of matching non-skipped members.
+   * TODO: Access checks?
+   */
+  public static 'getMembers(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Class;I[Ljava/lang/invoke/MemberName;)I'(
+    thread: threading.JVMThread, defc: java_object.JavaClassObject,
+    matchName: java_object.JavaObject, matchSig: java_object.JavaObject,
+    matchFlags: number, caller: java_object.JavaClassObject, skip: number,
+    results: java_object.JavaArray
+  ): number {
+    // General search flags.
+    var searchSuperclasses = 0 !== (matchFlags & MemberNameConstants.SEARCH_SUPERCLASSES),
+      searchInterfaces = 0 !== (matchFlags & MemberNameConstants.SEARCH_INTERFACES),
+      matched = 0, targetClass = defc.$cls, methods: methods.Method[],
+      fields: methods.Field[], matchArray = results.array,
+      name: string = matchName !== null ? matchName.jvm2js_str() : null,
+      sig: string = matchSig !== null ? matchSig.jvm2js_str() : null;
+
+    /**
+     * Helper function: Adds matched items to the array once we've skipped
+     * enough.
+     */
+    function addMatch(item: methods.AbstractMethodField) {
+      if (skip >= 0) {
+        if (matched < matchArray.length) {
+          initializeMemberName(thread, matchArray[matched], item);
+        }
+        matched++;
+      } else {
+        skip--;
+      }
     }
 
-    function finish() {
-      memberName.set_field(thread, 'Ljava/lang/invoke/MemberName;flags', flags);
+    // TODO: Support these flags.
+    assert(!searchSuperclasses && !searchInterfaces, "Unsupported: Non-local getMembers calls.");
+
+    // Constructors
+    if (0 !== (matchFlags & MemberNameConstants.IS_CONSTRUCTOR) && (name === null || name === "<init>")) {
+      methods = targetClass.getMethods();
+      methods.forEach((m: methods.Method) => {
+        if (m.name === "<init>" && (sig === null || sig === m.raw_descriptor)) {
+          addMatch(m);
+        }
+      });
     }
+
+    // Methods
+    if (0 !== (matchFlags & MemberNameConstants.IS_METHOD)) {
+      methods = targetClass.getMethods();
+      methods.forEach((m: methods.Method) => {
+        if (m.name !== "<init>" && (name === null || name === m.name) && (sig === null || sig === m.raw_descriptor)) {
+          addMatch(m);
+        }
+      });
+    }
+
+    // Fields
+    if (0 !== (matchFlags & MemberNameConstants.IS_FIELD) && sig === null) {
+      fields = targetClass.getFields();
+      fields.forEach((f: methods.Field) => {
+        if (name === null || name === f.name) {
+          addMatch(f);
+        }
+      });
+    }
+
+    // TODO: Inner types (IS_TYPE).
+    assert(0 == (matchFlags & MemberNameConstants.IS_TYPE), "Unsupported: Getting inner type MemberNames.");
+    return matched;
   }
 }
 
