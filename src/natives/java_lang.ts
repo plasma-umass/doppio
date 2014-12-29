@@ -1337,7 +1337,7 @@ enum MemberNameConstants {
  * - flags: Encodes the reference type of the member and the member's access flags.
  * - type: String encoding of the type (method descriptor, or class name of field type in descriptor form)
  * - vmtarget: Contains the VM-specific pointer to the member (in our case, a Method or Field object)
- (set clazz, updates flags, sets vmtarget).
+ * (set clazz, updates flags, sets vmtarget).
  */
 function initializeMemberName(thread: threading.JVMThread, mn: java_object.JavaObject, ref: methods.AbstractMethodField) {
   var flags: number = mn.get_field(thread, 'Ljava/lang/invoke/MemberName;flags'),
@@ -1597,6 +1597,32 @@ class java_lang_invoke_MethodHandleNatives {
   }
 }
 
+class java_lang_invoke_MethodHandle {
+  /**
+   * Invokes the method handle, allowing any caller type descriptor, but requiring an exact type match.
+   *
+   * If this native method is invoked directly via java.lang.reflect.Method.invoke,
+   * via JNI, or indirectly via java.lang.invoke.MethodHandles.Lookup.unreflect,
+   * it will throw an UnsupportedOperationException.
+   *
+   * @throws WrongMethodTypeException if the target's type is not identical with the caller's symbolic type descriptor
+   * @throws Throwable anything thrown by the underlying method propagates unchanged through the method handle call
+   */
+  public static 'invokeExact([Ljava/lang/Object;)Ljava/lang/Object;'(thread: threading.JVMThread, mh: java_object.JavaObject, args: java_object.JavaArray): void {
+    // Like other JVMs, we bake the semantics of invoke/invokeExact directly
+    // into the bytecode. Thus, this version of the method will *only* be
+    // invoked via reflection, causing this exception.
+    thread.throwNewException("Ljava/lang/UnsupportedOperationException;", "MethodHandle.invokeExact cannot be invoked reflectively");
+  }
+
+  public static 'invoke([Ljava/lang/Object;)Ljava/lang/Object;'(thread: threading.JVMThread, mh: java_object.JavaObject, args: java_object.JavaArray): void {
+    // Like other JVMs, we bake the semantics of invoke/invokeExact directly
+    // into the bytecode. Thus, this version of the method will *only* be
+    // invoked via reflection, causing this exception.
+    thread.throwNewException("Ljava/lang/UnsupportedOperationException;", "MethodHandle.invoke cannot be invoked reflectively");
+  }
+}
+
 registerNatives({
   'java/lang/Class': java_lang_Class,
   'java/lang/ClassLoader$NativeLibrary': java_lang_ClassLoader$NativeLibrary,
@@ -1618,5 +1644,6 @@ registerNatives({
   'java/lang/Thread': java_lang_Thread,
   'java/lang/Throwable': java_lang_Throwable,
   'java/lang/UNIXProcess': java_lang_UNIXProcess,
-  'java/lang/invoke/MethodHandleNatives': java_lang_invoke_MethodHandleNatives
+  'java/lang/invoke/MethodHandleNatives': java_lang_invoke_MethodHandleNatives,
+  'java/lang/invoke/MethodHandle': java_lang_invoke_MethodHandle
 });

@@ -103,17 +103,9 @@ class sun_reflect_NativeConstructorAccessorImpl {
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     cls.$cls.initialize(thread, (cls_obj: ClassData.ReferenceClassData) => {
       if (cls_obj !== null) {
-        var methods = cls_obj.getMethods(),
-          method: methods.Method,
+        var method: methods.Method = cls_obj.getMethodFromSlot(slot),
           obj = new java_object.JavaObject(cls_obj),
           args: any[] = [obj], i: number;
-
-        for (i = 0; i < methods.length; i++) {
-          if (methods[i].slot === slot) {
-            method = methods[i];
-            break;
-          }
-        }
 
         if (params !== null) {
           args = args.concat(params.array);
@@ -143,18 +135,8 @@ class sun_reflect_NativeMethodAccessorImpl {
     var cls = <ClassData.ReferenceClassData> (<java_object.JavaClassObject> mObj.get_field(thread, 'Ljava/lang/reflect/Method;clazz')).$cls,
       slot: number = mObj.get_field(thread, 'Ljava/lang/reflect/Method;slot'),
       ret_type = mObj.get_field(thread, 'Ljava/lang/reflect/Method;returnType'),
-      m: methods.Method,
-      methods = cls.getMethods(),
+      m: methods.Method = cls.getMethodFromSlot(slot),
       args: any[] = [], i: number;
-
-    // Find the method object.
-    // @todo This should probably be easier to get to from a reflected object.
-    for (i = 0; i < methods.length; i++) {
-      if (methods[i].slot === slot) {
-        m = methods[i];
-        break;
-      }
-    }
 
     if (cls.accessFlags.isInterface()) {
       // It's an interface method. Look up the implementation in the object.

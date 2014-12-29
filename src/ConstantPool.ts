@@ -284,6 +284,7 @@ CP_CLASSES[enums.ConstantPoolItemType.CLASS] = ClassReference;
 export class NameAndTypeInfo implements IConstantPoolItem {
   public name: string;
   public descriptor: string;
+  public methodType: java_object.JavaObject = null;
   constructor(name: string, descriptor: string) {
     this.name = name;
     this.descriptor = descriptor;
@@ -291,6 +292,21 @@ export class NameAndTypeInfo implements IConstantPoolItem {
 
   public getType(): enums.ConstantPoolItemType {
     return enums.ConstantPoolItemType.NAME_AND_TYPE;
+  }
+
+  /**
+   * Construct or retrieve the MethodType object corresponding to this
+   * NameAndTypeInfo entry.
+   */
+  public getMethodType(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, cb: (e: any, type: java_object.JavaObject) => void) {
+    if (this.methodType !== null) {
+      cb(null, this.methodType);
+    } else {
+      util.createMethodType(thread, cl, this.descriptor, (e: any, type: java_object.JavaObject) => {
+        this.methodType = type;
+        cb(e, type);
+      });
+    }
   }
 
   public static size: number = 1;
@@ -444,7 +460,16 @@ export class MethodReference implements IConstantPoolItem {
   public classInfo: ClassReference;
   public nameAndTypeInfo: NameAndTypeInfo;
   private paramWordSize: number = -1;
-  private methodTypeObject: java_object.JavaObject = null;
+  /**
+   * For signature polymorphic functions, contains a reference to the MemberName
+   * object for the method that invokes the desired function.
+   */
+  public memberName: java_object.JavaObject = null;
+  /**
+   * For signature polymorphic functions, contains an object that needs to be
+   * pushed onto the stack before invoking memberName.
+   */
+  public appendix: java_object.JavaObject = null;
   constructor(classInfo: ClassReference, nameAndTypeInfo: NameAndTypeInfo) {
     this.classInfo = classInfo;
     this.methodSignature = nameAndTypeInfo.name + nameAndTypeInfo.descriptor;
@@ -453,6 +478,56 @@ export class MethodReference implements IConstantPoolItem {
 
   public getType(): enums.ConstantPoolItemType {
     return enums.ConstantPoolItemType.METHODREF;
+  }
+
+  public isSignaturePolymorphic(): boolean {
+    return this.classInfo.name === 'Ljava/lang/invoke/MethodHandle;' &&
+      (this.nameAndTypeInfo.name === 'invoke' || this.nameAndTypeInfo.name === 'invokeExact');
+  }
+
+  public resolveMemberName(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, accessingClazz: ClassData.ReferenceClassData, cb: (e: java_object.JavaObject) => void): void {
+    if (this.memberName) {
+      setImmediate(() => cb(null));
+      return;
+    }
+
+    var linkMethod: methods.Method = thread.getBsCl()
+      .getInitializedClass(thread, 'Ljava/lang/invoke/MethodHandleNatives;')
+      /* MemberName linkMethod(Class<?> callerClass, int refKind, Class<?> defc,
+         String name, Object type,
+         Object[] appendixResult) */
+      .methodLookup(thread, 'linkMethod(Ljava/lang/Class;ILjava/lang/Class;Ljava/lang/String;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/invoke/MemberName;'),
+      appendix: java_object.JavaArray = (<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/Object;')).create([null]),
+      type: java_object.JavaObject,
+      finishLinkingMethod = () => {
+        thread.runMethod(linkMethod, [accessingClazz.getClassObject(thread),
+          enums.MethodHandleReferenceKind.INVOKEVIRTUAL,
+          this.classInfo.cls.getClassObject(thread),
+          thread.getThreadPool().getJVM().internString(this.nameAndTypeInfo.name),
+          this.nameAndTypeInfo.methodType, appendix],
+          (e?: java_object.JavaObject, rv?: java_object.JavaObject) => {
+            if (e !== null) {
+              cb(e);
+            } else {
+              this.appendix = appendix.array[0];
+              this.memberName = rv;
+              cb(null);
+            }
+          });
+        };
+
+    // Get the method's type.
+    if (this.nameAndTypeInfo.methodType !== null) {
+      finishLinkingMethod();
+    } else {
+      this.nameAndTypeInfo.getMethodType(thread, cl, (e: java_object.JavaObject, mt: java_object.JavaObject) => {
+        if (e) {
+          cb(e);
+        } else {
+          finishLinkingMethod();
+        }
+      });
+    }
   }
 
   public static size: number = 1;
@@ -466,35 +541,6 @@ export class MethodReference implements IConstantPoolItem {
       nameAndTypeInfo.getType() === enums.ConstantPoolItemType.NAME_AND_TYPE,
       'ConstantPool MethodReference types mismatch');
     return new this(classInfo, nameAndTypeInfo);
-  }
-
-  public getMethodHandleType(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, cb: (e: any, type: java_object.JavaObject) => void): void {
-    if (this.methodTypeObject !== null) {
-      cb(null, this.methodTypeObject);
-    } else {
-      cl.initializeClass(thread, 'Ljava/lang/invoke/MethodHandleNatives;', (cdata: ClassData.ClassData) => {
-        if (cdata !== null) {
-          var makeImpl = cdata.methodLookup(thread, 'findMethodHandleType(Ljava/lang/Class;[Ljava/lang/Class;)Ljava/lang/invoke/MethodType;'),
-            classes = util.getTypes(this.nameAndTypeInfo.descriptor);
-          classes.push('[Ljava/lang/Class;');
-          // Need the return type and parameter types.
-          cl.resolveClasses(thread, classes, (classMap: { [name: string]: ClassData.ClassData }) => {
-            var types = classes.map((cls: string) => classMap[cls].getClassObject(thread));
-            types.pop(); // Discard '[Ljava/lang/Class;'
-            var rtype = types.pop(), // Return type.,
-              ptypes = (<ClassData.ArrayClassData> classMap['[Ljava/lang/Class;']).create(types);
-            thread.runMethod(makeImpl, [rtype, ptypes], (e?: java_object.JavaObject, methodTypeObj?: java_object.JavaObject) => {
-              if (e) {
-                thread.throwException(e);
-              } else {
-                this.methodTypeObject = methodTypeObj;
-                cb(null, methodTypeObj);
-              }
-            });
-          });
-        }
-      });
-    }
   }
 
   /**

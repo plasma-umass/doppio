@@ -15,6 +15,7 @@ import threading = require('./threading');
 import ClassLoader = require('./ClassLoader');
 import enums = require('./enums');
 import assert = require('./assert');
+import methods = require('./methods');
 var JavaObject = java_object.JavaObject;
 
 /**
@@ -1449,14 +1450,38 @@ export class Opcodes {
       obj: java_object.JavaObject = stack[stack.length - count];
 
     // Check if the object is null first.
-    if (!isNull(thread, frame, obj)) {
+    // NOTE: Omit NULL check if method is signature polymorphic, as it's
+    // possible that the pointed-to object is incorrect; these methods can
+    // push an 'appendix' object to the stack first, meaning the true target
+    // of the method is actually at a lower depth.
+    if (methodReference.isSignaturePolymorphic() || !isNull(thread, frame, obj)) {
       // Ensure referenced class is loaded in the current classloader.
       // Even though we don't use this class for anything, and we know that it
       // must be loaded because it is in the object's inheritance hierarchy,
       // it needs to be present in the current classloader.
       if (methodReference.classInfo.tryGetClass(loader)) {
-        // Current classloader has the class. Rewrite to fast and rerun.
-        code.writeUInt8(enums.OpCode.INVOKEVIRTUAL_FAST, pc);
+        if (methodReference.isSignaturePolymorphic()) {
+          if (methodReference.memberName !== null) {
+            // Already resolved. Rewrite opcode and rerun.
+            console.log(stack.length);
+            code.writeUInt8(enums.OpCode.INVOKEHANDLE, pc);
+          } else {
+            console.log(stack.length);
+            // Need to resolve its MemberName.
+            thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+            methodReference.resolveMemberName(thread, frame.getLoader(), frame.method.cls, (e: java_object.JavaObject) => {
+              if (e) {
+                thread.throwException(e);
+              } else {
+                thread.setStatus(enums.ThreadStatus.RUNNABLE);
+              }
+            });
+            frame.returnToThreadLoop = true;
+          }
+        } else {
+          // Current classloader has the class. Rewrite to fast and rerun.
+          code.writeUInt8(enums.OpCode.INVOKEVIRTUAL_FAST, pc);
+        }
       } else {
         // Get current classloader to load the class.
         initializeClass(thread, frame, methodReference.classInfo);
@@ -1527,6 +1552,29 @@ export class Opcodes {
       bMethod[0].constructMethodHandle(thread, frame.method.cls, frame.getLoader(), () => {
         thread.setStatus(enums.ThreadStatus.RUNNABLE);
       });
+      frame.returnToThreadLoop = true;
+    }
+  }
+
+  /**
+   * Opcode for MethodHandle.invoke and MethodHandle.invokeExact.
+   */
+  public static invokehandle(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+    var methodReference = <ConstantPool.MethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
+      stack = frame.stack,
+      obj: java_object.JavaObject,
+      m: methods.Method = <methods.Method> methodReference.memberName.vmtarget,
+      count = 1 + m.param_bytes,
+      appendix = methodReference.appendix;
+      console.log(stack.length);
+    // Push appendix *before* resolving obj.
+    if (appendix !== null) {
+      stack.push(appendix);
+    }
+    obj = stack[stack.length - count];
+
+    if (!isNull(thread, frame, obj)) {
+      thread.runMethod(m, m.takeArgs(stack));
       frame.returnToThreadLoop = true;
     }
   }

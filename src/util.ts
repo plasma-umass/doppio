@@ -4,6 +4,10 @@ import java_object = require('./java_object');
 import threading = require('./threading');
 import enums = require('./enums');
 
+// For type information
+import ClassLoader = require('./ClassLoader');
+import ClassData = require('./ClassData');
+
 export function are_in_browser(): boolean {
   return process.platform === 'browser';
 }
@@ -217,7 +221,7 @@ export enum FlagMasks {
 }
 
 /**
- * Represents a 'flag byte'. See §4 of the JVM spec.
+ * Represents a 'flag byte'. See ï¿½4 of the JVM spec.
  */
 export class Flags {
   private byte: number;
@@ -362,7 +366,7 @@ for (var k in internal2external) {
 /**
  * Given a method descriptor, returns the typestrings for the return type
  * and the parameters.
- * 
+ *
  * e.g. (Ljava/lang/Class;Z)Ljava/lang/String; =>
  *        ["Ljava/lang/Class;", "Z", "Ljava/lang/String;"]
  */
@@ -505,4 +509,32 @@ export function unboxArguments(thread: threading.JVMThread, paramTypes: string[]
     }
   }
   return rv;
+}
+
+/**
+ * Given a method descriptor as a JS string, returns a corresponding MethodType
+ * object.
+ */
+export function createMethodType(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, descriptor: string, cb: (e: any, type: java_object.JavaObject) => void) {
+  cl.initializeClass(thread, 'Ljava/lang/invoke/MethodHandleNatives;', (cdata: ClassData.ClassData) => {
+    if (cdata !== null) {
+      var makeImpl = cdata.methodLookup(thread, 'findMethodHandleType(Ljava/lang/Class;[Ljava/lang/Class;)Ljava/lang/invoke/MethodType;'),
+      classes = getTypes(descriptor);
+      classes.push('[Ljava/lang/Class;');
+      // Need the return type and parameter types.
+      cl.resolveClasses(thread, classes, (classMap: { [name: string]: ClassData.ClassData }) => {
+        var types = classes.map((cls: string) => classMap[cls].getClassObject(thread));
+        types.pop(); // Discard '[Ljava/lang/Class;'
+        var rtype = types.pop(), // Return type.
+          ptypes = (<ClassData.ArrayClassData> classMap['[Ljava/lang/Class;']).create(types);
+        thread.runMethod(makeImpl, [rtype, ptypes], (e?: java_object.JavaObject, methodTypeObj?: java_object.JavaObject) => {
+          if (e) {
+            thread.throwException(e);
+          } else {
+            cb(null, methodTypeObj);
+          }
+        });
+      });
+    }
+  });
 }
