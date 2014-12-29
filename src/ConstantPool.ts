@@ -995,7 +995,7 @@ export class ConstantPool {
         byteStream.seek(item.offset);
         tag = byteStream.getUint8();
         this.constantPool[item.index] = CP_CLASSES[tag].fromBytes(byteStream, this);
-        if (cpPatches !== null && cpPatches[item.index] !== null && cpPatches[item.index] !== undefined) {
+        if (cpPatches !== null && cpPatches.array[item.index] !== null && cpPatches.array[item.index] !== undefined) {
           /*
            * For each CP entry, the corresponding CP patch must either be null or have
            * the format that matches its tag:
@@ -1006,7 +1006,7 @@ export class ConstantPool {
            * * String: any object (not just a java.lang.String)
            * * InterfaceMethodRef: (NYI) a method handle to invoke on that call site's arguments
            */
-          var patchObj: java_object.JavaObject = cpPatches[item.index];
+          var patchObj: java_object.JavaObject = cpPatches.array[item.index];
           switch (patchObj.cls.getInternalName()) {
             case 'Ljava/lang/Integer;':
               assert(tag === enums.ConstantPoolItemType.INTEGER);
@@ -1035,7 +1035,7 @@ export class ConstantPool {
               break;
             default:
               assert(tag === enums.ConstantPoolItemType.STRING);
-              (<ConstString> this.constantPool[item.index]).stringValue = patchObj.jvm2js_str();
+              (<ConstString> this.constantPool[item.index]).stringValue = "";
               (<ConstString> this.constantPool[item.index]).value = patchObj;
               break;
           }
