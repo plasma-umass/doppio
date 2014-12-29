@@ -1463,10 +1463,8 @@ export class Opcodes {
         if (methodReference.isSignaturePolymorphic()) {
           if (methodReference.memberName !== null) {
             // Already resolved. Rewrite opcode and rerun.
-            console.log(stack.length);
             code.writeUInt8(enums.OpCode.INVOKEHANDLE, pc);
           } else {
-            console.log(stack.length);
             // Need to resolve its MemberName.
             thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
             methodReference.resolveMemberName(thread, frame.getLoader(), frame.method.cls, (e: java_object.JavaObject) => {
@@ -1564,10 +1562,11 @@ export class Opcodes {
       stack = frame.stack,
       obj: java_object.JavaObject,
       m: methods.Method = <methods.Method> methodReference.memberName.vmtarget,
-      count = 1 + m.param_bytes,
+      // NOTE: m may be static or not static, so the count is up to its "bytecode behavior".
+      // Currently, Java only generates static bytecode methods.
+      count = m.param_bytes,
       appendix = methodReference.appendix;
-      console.log(stack.length);
-    // Push appendix *before* resolving obj.
+
     if (appendix !== null) {
       stack.push(appendix);
     }

@@ -170,7 +170,6 @@ export class Field extends AbstractMethodField {
 }
 
 export class Method extends AbstractMethodField {
-  private reset_caches: boolean;
   public param_types: string[];
   private param_bytes: number;
   private num_args: number;
@@ -180,7 +179,6 @@ export class Method extends AbstractMethodField {
   private code: any;
 
   public parse_descriptor(raw_descriptor: string): void {
-    this.reset_caches = false;  // Switched to 'true' in web frontend between JVM invocations.
     var match = /\(([^)]*)\)(.*)/.exec(raw_descriptor);
     var param_str = match[1];
     var return_str = match[2];
@@ -361,12 +359,6 @@ export class Method extends AbstractMethodField {
     // this is faster than splice()
     caller_stack.length -= this.param_bytes;
     return params;
-  }
-
-  // Reinitializes the method by removing all cached information from the method.
-  // We amortize the cost by doing it lazily the first time that we call run_bytecode.
-  public initialize(): void {
-    this.reset_caches = true;
   }
 
   public method_lock(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): java_object.Monitor {
