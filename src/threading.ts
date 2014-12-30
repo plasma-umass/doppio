@@ -135,6 +135,7 @@ export class BytecodeStackFrame implements IStackFrame {
       case enums.OpCode.INVOKESPECIAL_FAST:
       case enums.OpCode.INVOKEVIRTUAL_FAST:
       case enums.OpCode.INVOKEHANDLE:
+      case enums.OpCode.INVOKEBASIC:
         this.pc += 3;
         break;
       default:

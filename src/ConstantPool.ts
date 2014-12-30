@@ -485,6 +485,11 @@ export class MethodReference implements IConstantPoolItem {
       (this.nameAndTypeInfo.name === 'invoke' || this.nameAndTypeInfo.name === 'invokeExact');
   }
 
+  public isInvokeBasic(): boolean {
+    return this.classInfo.name === 'Ljava/lang/invoke/MethodHandle;' &&
+      this.nameAndTypeInfo.name === 'invokeBasic';
+  }
+
   public resolveMemberName(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, accessingClazz: ClassData.ReferenceClassData, cb: (e: java_object.JavaObject) => void): void {
     if (this.memberName) {
       setImmediate(() => cb(null));

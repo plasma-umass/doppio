@@ -425,7 +425,8 @@ export enum OpCode {
   INVOKESTATIC_FAST = 0xf0,
   INVOKEVIRTUAL_FAST = 0xf1,
   INVOKEINTERFACE_FAST = 0xf2,
-  INVOKEHANDLE = 0xf3
+  INVOKEHANDLE = 0xf3,
+  INVOKEBASIC = 0xf4
 }
 
 export enum OpcodeLayoutType {
