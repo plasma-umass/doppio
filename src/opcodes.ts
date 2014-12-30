@@ -1618,6 +1618,64 @@ export class Opcodes {
     }
   }
 
+  /**
+   * Also used for linkToStatic.
+   */
+  public static linktospecial(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+    var methodReference = <ConstantPool.MethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
+      stack = frame.stack,
+      // Final argument is the relevant MemberNane.
+      memberName: java_object.JavaObject = stack[stack.length - 1],
+      vmtarget: methods.Method;
+
+    assert(memberName !== null && memberName.cls.getInternalName() === "Ljava/lang/invoke/MemberName;");
+    vmtarget = <methods.Method> memberName.vmtarget;
+    thread.runMethod(vmtarget, vmtarget.takeArgs(stack));
+    frame.returnToThreadLoop = true;
+  }
+
+  public static linktovirtual(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+    var methodReference = <ConstantPool.MethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
+      count = 1 + methodReference.getParamWordSize(),
+      obj: java_object.JavaObject = stack[stack.length - count],
+      stack = frame.stack,
+      // Final argument is the relevant MemberName.
+      memberName: java_object.JavaObject = stack[stack.length - 1],
+      vmtarget: methods.Method;
+
+    assert(memberName !== null && memberName.cls.getInternalName() === "Ljava/lang/invoke/MemberName;");
+    vmtarget = <methods.Method> memberName.vmtarget;
+    // Dynamically look up the method on the class of the object.
+    if (!isNull(thread, frame, obj)) {
+      vmtarget = obj.cls.methodLookup(thread, vmtarget.full_signature());
+      if (vmtarget !== null) {
+        thread.runMethod(vmtarget, vmtarget.takeArgs(stack));
+      }
+      frame.returnToThreadLoop = true;
+    }
+  }
+
+  public static linktointerface(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+    var methodReference = <ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
+      count = code.readUInt8(pc + 3),
+      stack = frame.stack,
+      obj: java_object.JavaObject = stack[stack.length - count],
+      memberName: java_object.JavaObject = stack[stack.length - 1],
+      vmtarget: methods.Method;
+
+    assert(memberName !== null && memberName.cls.getInternalName() === "Ljava/lang/invoke/MemberName;");
+    vmtarget = <methods.Method> memberName.vmtarget;
+    if (!isNull(thread, frame, obj)) {
+      // Use the class of the *object*.
+      vmtarget = obj.cls.methodLookup(thread, vmtarget.full_signature());
+      if (vmtarget != null) {
+        thread.runMethod(vmtarget, vmtarget.takeArgs(stack));
+      }
+      // Else: Method could not be found, and an exception has been thrown.
+      frame.returnToThreadLoop = true;  
+    }
+    // Object is NULL; NPE has been thrown.
+  }
   public static breakpoint(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     throwException(thread, frame, "Ljava/lang/Error;", "breakpoint not implemented.");
   }
@@ -1665,15 +1723,32 @@ export class Opcodes {
   public static invokestatic(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: NodeBuffer, pc: number) {
     var methodReference = <ConstantPool.MethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     if (methodReference.method !== null) {
+      var newOpcode: enums.OpCode = enums.OpCode.INVOKESTATIC_FAST;
+      if (methodReference.method.isSignaturePolymorphic()) {
+        switch (methodReference.method.name) {
+          case 'linkToVirtual':
+            newOpcode = enums.OpCode.LINKTOVIRTUAL;
+            break;
+          case 'linkToStatic':
+          case 'linkToSpecial':
+            newOpcode = enums.OpCode.LINKTOSPECIAL;
+            break;
+          case 'linkToInterface':
+            newOpcode = enums.OpCode.LINKTOINTERFACE;
+            break;
+          default:
+            assert(false, "Should be impossible.");
+            break;
+        }
+      }
       // Rewrite and rerun.
-      code.writeUInt8(enums.OpCode.INVOKESTATIC_FAST, pc);
+      code.writeUInt8(newOpcode, pc);
     } else {
       var cls = methodReference.classInfo.tryGetClass(frame.getLoader());
       if (cls != null && cls.isInitialized(thread)) {
         if (methodReference.ensureMethodSet(thread)) {
           assert(methodReference.method.accessFlags.isStatic(), "Invokestatic can only be used on static functions.");
-          // Rewrite and rerun.
-          code.writeUInt8(enums.OpCode.INVOKESTATIC_FAST, pc);
+          // Rerun to rewrite.
         } else {
           // Could not find method! An exception has been thrown.
           frame.returnToThreadLoop = true;
@@ -1685,6 +1760,10 @@ export class Opcodes {
     }
   }
 
+  /**
+   * @todo Merge with invokespecial_fast and rename appropriately; opcodes are
+   * identical.
+   */
   public static invokestatic_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: NodeBuffer, pc: number) {
     var methodReference = <ConstantPool.MethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       m = methodReference.method;
