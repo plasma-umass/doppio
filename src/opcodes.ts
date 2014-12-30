@@ -1573,8 +1573,7 @@ export class Opcodes {
     obj = stack[stack.length - count];
 
     if (!isNull(thread, frame, obj)) {
-      var args: java_object.JavaObject[] = m.takeArgs(stack);
-      thread.runMethod(m, args);
+      thread.runMethod(m, m.takeArgs(stack));
       frame.returnToThreadLoop = true;
     }
   }

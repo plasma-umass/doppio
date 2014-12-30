@@ -400,6 +400,10 @@ export function getTypes(methodDescriptor: string): string[] {
         }
         i = endIdx;
         break;
+      default:
+        // Primitive type.
+        types.push(methodDescriptor.charAt(i));
+        break;
     }
   }
   return types;
