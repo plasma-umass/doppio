@@ -480,14 +480,19 @@ export class MethodReference implements IConstantPoolItem {
     return enums.ConstantPoolItemType.METHODREF;
   }
 
-  public isSignaturePolymorphic(): boolean {
-    return this.classInfo.name === 'Ljava/lang/invoke/MethodHandle;' &&
-      (this.nameAndTypeInfo.name === 'invoke' || this.nameAndTypeInfo.name === 'invokeExact');
-  }
+  /**
+   * Ensures that this.method is set.
+   */
+  public ensureMethodSet(thread: threading.JVMThread): boolean {
+    if (this.method !== null) {
+      return true;
+    }
 
-  public isInvokeBasic(): boolean {
-    return this.classInfo.name === 'Ljava/lang/invoke/MethodHandle;' &&
-      this.nameAndTypeInfo.name === 'invokeBasic';
+    if (this.classInfo.cls !== null) {
+      this.method = this.classInfo.cls.methodLookup(thread, this.nameAndTypeInfo.name + this.nameAndTypeInfo.descriptor);
+    }
+
+    return this.method !== null;
   }
 
   public resolveMemberName(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, accessingClazz: ClassData.ReferenceClassData, cb: (e: java_object.JavaObject) => void): void {

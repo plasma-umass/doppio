@@ -370,4 +370,19 @@ export class Method extends AbstractMethodField {
       return (<java_object.JavaObject> frame.locals[0]).getMonitor();
     }
   }
+
+  /**
+   * Check if this is a signature polymorphic method.
+   * From S2.9:
+   * A method is signature polymorphic if and only if all of the following conditions hold :
+   * * It is declared in the java.lang.invoke.MethodHandle class.
+   * * It has a single formal parameter of type Object[].
+   * * It has a return type of Object.
+   * * It has the ACC_VARARGS and ACC_NATIVE flags set.
+   */
+  public isSignaturePolymorphic(): boolean {
+    return this.cls.getInternalName() === 'Ljava/lang/invoke/MethodHandle;' &&
+      this.accessFlags.isNative() && this.accessFlags.isVarArgs() &&
+      this.raw_descriptor === '([Ljava/lang/Object;)Ljava/lang/Object;';
+  }
 }

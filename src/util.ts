@@ -214,6 +214,7 @@ export enum FlagMasks {
   SUPER = 0x20,
   VOLATILE = 0x40,
   TRANSIENT = 0x80,
+  VARARGS = 0x80,
   NATIVE = 0x100,
   INTERFACE = 0x200,
   ABSTRACT = 0x400,
@@ -222,6 +223,7 @@ export enum FlagMasks {
 
 /**
  * Represents a 'flag byte'. See �4 of the JVM spec.
+ * @todo Separate METHOD flags and CLASS flags.
  */
 export class Flags {
   private byte: number;
@@ -290,6 +292,10 @@ export class Flags {
     } else {
       this.byte = this.byte & (~FlagMasks.NATIVE);
     }
+  }
+
+  public isVarArgs(): boolean {
+    return (this.byte & FlagMasks.VARARGS) > 0;
   }
 
   public getRawByte(): number {

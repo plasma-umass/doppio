@@ -1447,40 +1447,51 @@ export class Opcodes {
       loader = frame.getLoader(),
       count = 1 + methodReference.getParamWordSize(),
       stack = frame.stack,
-      obj: java_object.JavaObject = stack[stack.length - count];
+      obj: java_object.JavaObject = stack[stack.length - count],
+      m: methods.Method;
 
     // Check if the object is null first.
-    // NOTE: Omit NULL check if method is signature polymorphic, as it's
-    // possible that the pointed-to object is incorrect; these methods can
-    // push an 'appendix' object to the stack first, meaning the true target
-    // of the method is actually at a lower depth.
-    if (methodReference.isSignaturePolymorphic() || !isNull(thread, frame, obj)) {
+    if (!isNull(thread, frame, obj)) {
       // Ensure referenced class is loaded in the current classloader.
       // Even though we don't use this class for anything, and we know that it
       // must be loaded because it is in the object's inheritance hierarchy,
       // it needs to be present in the current classloader.
       if (methodReference.classInfo.tryGetClass(loader)) {
-        if (methodReference.isSignaturePolymorphic()) {
-          if (methodReference.memberName !== null) {
-            // Already resolved. Rewrite opcode and rerun.
-            code.writeUInt8(enums.OpCode.INVOKEHANDLE, pc);
+        if (methodReference.ensureMethodSet(thread)) {
+          m = methodReference.method;
+          if (m.isSignaturePolymorphic()) {
+            switch (m.name) {
+              case 'invokeBasic':
+                code.writeUInt8(enums.OpCode.INVOKEBASIC, pc);
+                break;
+              case 'invoke':
+              case 'invokeExact':
+                if (methodReference.memberName !== null) {
+                  // Already resolved. Rewrite opcode and rerun.
+                  code.writeUInt8(enums.OpCode.INVOKEHANDLE, pc);
+                } else {
+                  // Need to resolve its MemberName.
+                  thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+                  methodReference.resolveMemberName(thread, frame.getLoader(), frame.method.cls, (e: java_object.JavaObject) => {
+                    if (e) {
+                      thread.throwException(e);
+                    } else {
+                      thread.setStatus(enums.ThreadStatus.RUNNABLE);
+                    }
+                  });
+                  frame.returnToThreadLoop = true;
+                }
+                break;
+              default:
+                throwException(thread, frame, 'Ljava/lang/AbstractMethodError;', 'Invalid signature polymorphic method: ' + m.full_signature);
+                break;
+            }
           } else {
-            // Need to resolve its MemberName.
-            thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-            methodReference.resolveMemberName(thread, frame.getLoader(), frame.method.cls, (e: java_object.JavaObject) => {
-              if (e) {
-                thread.throwException(e);
-              } else {
-                thread.setStatus(enums.ThreadStatus.RUNNABLE);
-              }
-            });
-            frame.returnToThreadLoop = true;
+            code.writeUInt8(enums.OpCode.INVOKEVIRTUAL_FAST, pc);
           }
-        } else if (methodReference.isInvokeBasic()) {
-          code.writeUInt8(enums.OpCode.INVOKEBASIC, pc);
         } else {
-          // Current classloader has the class. Rewrite to fast and rerun.
-          code.writeUInt8(enums.OpCode.INVOKEVIRTUAL_FAST, pc);
+          // Else: Method not found; exception thrown.
+          frame.returnToThreadLoop = true;
         }
       } else {
         // Get current classloader to load the class.
@@ -1630,10 +1641,8 @@ export class Opcodes {
     } else {
       var cls = methodReference.classInfo.tryGetClass(frame.getLoader());
       if (cls != null && cls.isInitialized(thread)) {
-        var m = cls.methodLookup(thread, methodReference.methodSignature);
-        if (m != null) {
-          // Stash, rewrite, and rerun.
-          methodReference.method = m;
+        if (methodReference.ensureMethodSet(thread)) {
+          // Rerun.
           code.writeUInt8(enums.OpCode.INVOKESPECIAL_FAST, pc);
         } else {
           // Could not find method! An exception has been thrown.
@@ -1661,11 +1670,9 @@ export class Opcodes {
     } else {
       var cls = methodReference.classInfo.tryGetClass(frame.getLoader());
       if (cls != null && cls.isInitialized(thread)) {
-        var m = cls.methodLookup(thread, methodReference.methodSignature);
-        if (m != null) {
-          assert(m.accessFlags.isStatic(), "Invokestatic can only be used on static functions.");
-          // Stash, rewrite, and rerun.
-          methodReference.method = m;
+        if (methodReference.ensureMethodSet(thread)) {
+          assert(methodReference.method.accessFlags.isStatic(), "Invokestatic can only be used on static functions.");
+          // Rewrite and rerun.
           code.writeUInt8(enums.OpCode.INVOKESTATIC_FAST, pc);
         } else {
           // Could not find method! An exception has been thrown.
