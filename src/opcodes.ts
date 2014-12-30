@@ -1613,6 +1613,7 @@ export class Opcodes {
       mn = lmbdaForm.get_field(thread, 'Ljava/lang/invoke/LambdaForm;vmentry');
       assert(mn.vmtarget !== null && mn.vmtarget !== undefined, "vmtarget must be defined");
       m = <methods.Method> mn.vmtarget;
+      assert(count === m.param_bytes, "vmtarget must have same argument size as method reference.");
       thread.runMethod(m, m.takeArgs(stack));
       frame.returnToThreadLoop = true;
     }
@@ -1624,12 +1625,14 @@ export class Opcodes {
   public static linktospecial(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
     var methodReference = <ConstantPool.MethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       stack = frame.stack,
-      // Final argument is the relevant MemberNane.
-      memberName: java_object.JavaObject = stack[stack.length - 1],
+      // Final argument is the relevant MemberName. Function args are right
+      // before it.
+      memberName: java_object.JavaObject = stack.pop(),
       vmtarget: methods.Method;
 
     assert(memberName !== null && memberName.cls.getInternalName() === "Ljava/lang/invoke/MemberName;");
     vmtarget = <methods.Method> memberName.vmtarget;
+    assert(vmtarget.param_bytes === (methodReference.getParamWordSize() - 1));
     thread.runMethod(vmtarget, vmtarget.takeArgs(stack));
     frame.returnToThreadLoop = true;
   }
@@ -1637,10 +1640,11 @@ export class Opcodes {
   public static linktovirtual(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
     var methodReference = <ConstantPool.MethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       count = 1 + methodReference.getParamWordSize(),
-      obj: java_object.JavaObject = stack[stack.length - count],
       stack = frame.stack,
-      // Final argument is the relevant MemberName.
-      memberName: java_object.JavaObject = stack[stack.length - 1],
+      obj: java_object.JavaObject = stack[stack.length - count],
+      // Final argument is the relevant MemberName. Function args are right
+      // before it.
+      memberName: java_object.JavaObject = stack.pop(),
       vmtarget: methods.Method;
 
     assert(memberName !== null && memberName.cls.getInternalName() === "Ljava/lang/invoke/MemberName;");
@@ -1649,6 +1653,7 @@ export class Opcodes {
     if (!isNull(thread, frame, obj)) {
       vmtarget = obj.cls.methodLookup(thread, vmtarget.full_signature());
       if (vmtarget !== null) {
+        assert(vmtarget.param_bytes === (count - 1));
         thread.runMethod(vmtarget, vmtarget.takeArgs(stack));
       }
       frame.returnToThreadLoop = true;
@@ -1660,7 +1665,7 @@ export class Opcodes {
       count = code.readUInt8(pc + 3),
       stack = frame.stack,
       obj: java_object.JavaObject = stack[stack.length - count],
-      memberName: java_object.JavaObject = stack[stack.length - 1],
+      memberName: java_object.JavaObject = stack.pop(),
       vmtarget: methods.Method;
 
     assert(memberName !== null && memberName.cls.getInternalName() === "Ljava/lang/invoke/MemberName;");
@@ -1668,11 +1673,12 @@ export class Opcodes {
     if (!isNull(thread, frame, obj)) {
       // Use the class of the *object*.
       vmtarget = obj.cls.methodLookup(thread, vmtarget.full_signature());
+      assert(vmtarget.param_bytes === (count - 1));
       if (vmtarget != null) {
         thread.runMethod(vmtarget, vmtarget.takeArgs(stack));
       }
       // Else: Method could not be found, and an exception has been thrown.
-      frame.returnToThreadLoop = true;  
+      frame.returnToThreadLoop = true;
     }
     // Object is NULL; NPE has been thrown.
   }
