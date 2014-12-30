@@ -597,6 +597,18 @@ export class InterfaceMethodReference implements IConstantPoolItem {
     return enums.ConstantPoolItemType.INTERFACE_METHODREF;
   }
 
+  public ensureMethodSet(thread: threading.JVMThread): boolean {
+    if (this.method !== null) {
+      return true;
+    }
+
+    if (this.classInfo.cls !== null) {
+      this.method = this.classInfo.cls.methodLookup(thread, this.nameAndTypeInfo.name + this.nameAndTypeInfo.descriptor);
+    }
+
+    return this.method !== null;
+  }
+
   public getMethodHandleType(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, cb: (e: any, type: java_object.JavaObject) => void): void {
     if (this.methodTypeObject !== null) {
       cb(null, this.methodTypeObject);

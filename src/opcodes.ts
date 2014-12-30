@@ -1521,7 +1521,7 @@ export class Opcodes {
   }
 
   public static invokeinterface(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: NodeBuffer, pc: number) {
-    var methodReference = <ConstantPool.MethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
+    var methodReference = <ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       cls = methodReference.classInfo.tryGetClass(frame.getLoader());
     if (cls != null && cls.isInitialized(thread)) {
       // Rewrite to fast and rerun.
@@ -1533,7 +1533,7 @@ export class Opcodes {
   }
 
   public static invokeinterface_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: NodeBuffer, pc: number) {
-    var methodReference = <ConstantPool.MethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
+    var methodReference = <ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       count = code.readUInt8(pc + 3),
       stack = frame.stack,
       obj: java_object.JavaObject = stack[stack.length - count];
@@ -1634,7 +1634,7 @@ export class Opcodes {
    * - Otherwise, an AbstractMethodError is raised.
    */
   public static invokespecial(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: NodeBuffer, pc: number) {
-    var methodReference = <ConstantPool.MethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
+    var methodReference = <ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     if (methodReference.method !== null) {
       // Rewrite and rerun.
       code.writeUInt8(enums.OpCode.INVOKESPECIAL_FAST, pc);
