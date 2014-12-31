@@ -1662,7 +1662,7 @@ export class Opcodes {
 
   public static linktointerface(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
     var methodReference = <ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
-      count = code.readUInt8(pc + 3),
+      count = methodReference.getParamWordSize(),
       stack = frame.stack,
       obj: java_object.JavaObject = stack[stack.length - count],
       memberName: java_object.JavaObject = stack.pop(),
