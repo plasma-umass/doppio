@@ -1639,7 +1639,7 @@ export class Opcodes {
 
   public static linktovirtual(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
     var methodReference = <ConstantPool.MethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
-      count = 1 + methodReference.getParamWordSize(),
+      count = methodReference.getParamWordSize(),
       stack = frame.stack,
       obj: java_object.JavaObject = stack[stack.length - count],
       // Final argument is the relevant MemberName. Function args are right
@@ -1651,7 +1651,7 @@ export class Opcodes {
     vmtarget = <methods.Method> memberName.vmtarget;
     // Dynamically look up the method on the class of the object.
     if (!isNull(thread, frame, obj)) {
-      vmtarget = obj.cls.methodLookup(thread, vmtarget.full_signature());
+      vmtarget = obj.cls.methodLookup(thread, vmtarget.name + vmtarget.raw_descriptor);
       if (vmtarget !== null) {
         assert(vmtarget.param_bytes === (count - 1));
         thread.runMethod(vmtarget, vmtarget.takeArgs(stack));
@@ -1672,7 +1672,7 @@ export class Opcodes {
     vmtarget = <methods.Method> memberName.vmtarget;
     if (!isNull(thread, frame, obj)) {
       // Use the class of the *object*.
-      vmtarget = obj.cls.methodLookup(thread, vmtarget.full_signature());
+      vmtarget = obj.cls.methodLookup(thread, vmtarget.name + vmtarget.raw_descriptor);
       assert(vmtarget.param_bytes === (count - 1));
       if (vmtarget != null) {
         thread.runMethod(vmtarget, vmtarget.takeArgs(stack));
