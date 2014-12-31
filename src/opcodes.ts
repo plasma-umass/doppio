@@ -1661,7 +1661,7 @@ export class Opcodes {
   }
 
   public static linktointerface(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    var methodReference = <ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
+    var methodReference = <ConstantPool.MethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       count = methodReference.getParamWordSize(),
       stack = frame.stack,
       obj: java_object.JavaObject = stack[stack.length - count],
@@ -1673,8 +1673,8 @@ export class Opcodes {
     if (!isNull(thread, frame, obj)) {
       // Use the class of the *object*.
       vmtarget = obj.cls.methodLookup(thread, vmtarget.name + vmtarget.raw_descriptor);
-      assert(vmtarget.param_bytes === (count - 1));
       if (vmtarget != null) {
+        assert(vmtarget.param_bytes === (count - 1));
         thread.runMethod(vmtarget, vmtarget.takeArgs(stack));
       }
       // Else: Method could not be found, and an exception has been thrown.

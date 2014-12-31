@@ -1216,10 +1216,6 @@ class java_lang_Thread {
 
 }
 
-/**
- * @todo Don't create a stack trace every time an element is created. Use the
- * field in the object.
- */
 class java_lang_Throwable {
 
   /**
@@ -1594,6 +1590,37 @@ class java_lang_invoke_MethodHandleNatives {
     // TODO: Inner types (IS_TYPE).
     assert(0 == (matchFlags & MemberNameConstants.IS_TYPE), "Unsupported: Getting inner type MemberNames.");
     return matched;
+  }
+
+  /**
+   * Debug native in the JDK: Gets a named constant from MethodHandleNatives.Constants.
+   */
+  public static 'getNamedCon(I[Ljava/lang/Object;)I'(thread: threading.JVMThread, fieldNum: number, args: java_object.JavaArray): void {
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.getBsCl().initializeClass(thread, "Ljava/lang/invoke/MethodHandleNatives$Constants;", (constantsCls: ClassData.ClassData) => {
+      if (constantsCls === null) {
+        return;
+      }
+      var constants = (<ClassData.ReferenceClassData> constantsCls).getFields().filter((field: methods.Field) => field.accessFlags.isStatic() && field.accessFlags.isFinal());
+      if (fieldNum < constants.length) {
+        var field = constants[fieldNum];
+        args.array[0] = java_object.initString(thread.getBsCl(), field.name);
+        thread.asyncReturn((<ClassData.ReferenceClassData> constantsCls).staticGet(thread, field.name));
+      }
+      thread.asyncReturn(-1);
+    });
+  }
+
+  public static 'getMemberVMInfo(Ljava/lang/invoke/MemberName;)Ljava/lang/Object;'(thread: threading.JVMThread, mname: java_object.JavaObject): java_object.JavaObject {
+    // Return an array.
+    var vmtarget = mname.vmtarget,
+      refKind = mname.get_field(thread, 'Ljava/lang/invoke/MemberName;flags') >>> MemberNameConstants.REFERENCE_KIND_SHIFT;
+    return new java_object.JavaArray(thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/Object;'), [
+      // Slot object. Expects negative number for non-dispatch types...?
+      (<ClassData.PrimitiveClassData> thread.getBsCl().getInitializedClass(thread, 'J')).createWrapperObject(thread, gLong.fromNumber((refKind === enums.MethodHandleReferenceKind.INVOKEVIRTUAL || refKind === enums.MethodHandleReferenceKind.INVOKEINTERFACE || vmtarget instanceof methods.Field) ? vmtarget.slot : -1)),
+      // Class if field, membername if method
+      (vmtarget instanceof methods.Field) ? vmtarget.cls.getClassObject(thread) : mname
+    ]);
   }
 }
 
