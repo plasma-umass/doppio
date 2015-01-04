@@ -19,7 +19,8 @@ var opts: testing.TestOptions = {
   doppioDir: path.dirname(__dirname),
   hideDiffs: false,
   quiet: false,
-  keepGoing: false
+  keepGoing: false,
+  assertionsEnabled: false
 }, passChar: string, failChar: string;
 
 if (process.platform.match(/win32/i)) {

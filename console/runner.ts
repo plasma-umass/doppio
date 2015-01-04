@@ -25,7 +25,8 @@ java_cli.java(process.argv.slice(2), {
   extractionPath: path.resolve(os.tmpDir(), 'doppio_jars'),
   classpath: null,
   nativeClasspath: [path.resolve(__dirname, '../src/natives')],
-  launcherName: process.argv[0] + " " + path.relative(process.cwd(), process.argv[1])
+  launcherName: process.argv[0] + " " + path.relative(process.cwd(), process.argv[1]),
+  assertionsEnabled: false
 }, done_cb, function(jvm: JVM): void {
   jvm_state = jvm;
 });

@@ -48,7 +48,8 @@ function constructJavaOptions(customArgs: {[prop: string]: any} = {}) {
     classpath: [],
     javaHomePath: '/sys/vendor/java_home',
     extractionPath: '/jars',
-    nativeClasspath: ['/sys/src/natives']
+    nativeClasspath: ['/sys/src/natives'],
+    assertionsEnabled: false
   }, customArgs);
 }
 

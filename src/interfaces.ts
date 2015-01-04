@@ -18,4 +18,6 @@ export interface JVMOptions {
   extractionPath: string;
   // XXX: Path where native methods are located.
   nativeClasspath: string[];
+  // True if assertions are enabled, false otherwise.
+  assertionsEnabled: boolean;
 }

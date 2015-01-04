@@ -54,6 +54,7 @@ class JVM {
   private terminationCb: (success: boolean) => void = null;
   // The initial JVM thread used to kick off execution.
   private firstThread: threading.JVMThread;
+  private assertionsEnabled: boolean;
 
   /**
    * (Async) Construct a new instance of the Java Virtual Machine.
@@ -67,6 +68,7 @@ class JVM {
       firstThread: threading.JVMThread;
     // @todo Resolve these, and integrate it into the ClassLoader?
     this.nativeClasspath = opts.nativeClasspath;
+    this.assertionsEnabled = opts.assertionsEnabled;
     this._initSystemProperties(bootstrapClasspath, javaClassPath, javaHomePath);
 
     /**
@@ -487,6 +489,13 @@ class JVM {
 
   public getStartupTime(): Date {
     return this.startupTime;
+  }
+
+  /**
+   * Returns `true` if assertions are enabled, false otherwise.
+   */
+  public areAssertionsEnabled(): boolean {
+    return this.assertionsEnabled;
   }
 }
 

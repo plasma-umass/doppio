@@ -1577,7 +1577,7 @@ export class Opcodes {
       m: methods.Method = <methods.Method> methodReference.memberName.vmtarget,
       // NOTE: m may be static or not static, so the count is up to its "bytecode behavior".
       // Currently, Java only generates static bytecode methods.
-      count = m.param_bytes,
+      count = m.getParamWordSize(),
       appendix = methodReference.appendix;
 
     if (appendix !== null) {
@@ -1613,7 +1613,7 @@ export class Opcodes {
       mn = lmbdaForm.get_field(thread, 'Ljava/lang/invoke/LambdaForm;vmentry');
       assert(mn.vmtarget !== null && mn.vmtarget !== undefined, "vmtarget must be defined");
       m = <methods.Method> mn.vmtarget;
-      assert(count === m.param_bytes, "vmtarget must have same argument size as method reference.");
+      assert(count === m.getParamWordSize(), "vmtarget must have same argument size as method reference.");
       thread.runMethod(m, m.takeArgs(stack));
       frame.returnToThreadLoop = true;
     }
@@ -1632,7 +1632,7 @@ export class Opcodes {
 
     assert(memberName !== null && memberName.cls.getInternalName() === "Ljava/lang/invoke/MemberName;");
     vmtarget = <methods.Method> memberName.vmtarget;
-    assert(vmtarget.param_bytes === (methodReference.getParamWordSize() - 1));
+    assert(vmtarget.getParamWordSize() === (methodReference.getParamWordSize() - 1));
     thread.runMethod(vmtarget, vmtarget.takeArgs(stack));
     frame.returnToThreadLoop = true;
   }
@@ -1653,7 +1653,7 @@ export class Opcodes {
     if (!isNull(thread, frame, obj)) {
       vmtarget = obj.cls.methodLookup(thread, vmtarget.name + vmtarget.raw_descriptor);
       if (vmtarget !== null) {
-        assert(vmtarget.param_bytes === (count - 1));
+        assert(vmtarget.getParamWordSize() === (count - 1));
         thread.runMethod(vmtarget, vmtarget.takeArgs(stack));
       }
       frame.returnToThreadLoop = true;
@@ -1674,7 +1674,7 @@ export class Opcodes {
       // Use the class of the *object*.
       vmtarget = obj.cls.methodLookup(thread, vmtarget.name + vmtarget.raw_descriptor);
       if (vmtarget != null) {
-        assert(vmtarget.param_bytes === (count - 1));
+        assert(vmtarget.getParamWordSize() === (count - 1));
         thread.runMethod(vmtarget, vmtarget.takeArgs(stack));
       }
       // Else: Method could not be found, and an exception has been thrown.

@@ -112,7 +112,8 @@ class DoppioTest {
       classpath: [this.opts.doppioDir],
       javaHomePath: this.opts.javaHomePath,
       extractionPath: this.opts.extractionPath,
-      nativeClasspath: this.opts.nativeClasspath
+      nativeClasspath: this.opts.nativeClasspath,
+      assertionsEnabled: false
     }, cb);
   }
 

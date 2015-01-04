@@ -339,9 +339,7 @@ class java_lang_Class {
   }
 
   public static 'desiredAssertionStatus0(Ljava/lang/Class;)Z'(thread: threading.JVMThread, arg0: java_object.JavaClassObject): boolean {
-    // we don't need no stinkin asserts
-    // @todo Support a command-line flag to enable/disable assertions, like Java.
-    return false;
+    return thread.getThreadPool().getJVM().areAssertionsEnabled();
   }
 
 }
@@ -1615,7 +1613,7 @@ class java_lang_invoke_MethodHandleNatives {
     // Return an array.
     var vmtarget = mname.vmtarget,
       refKind = mname.get_field(thread, 'Ljava/lang/invoke/MemberName;flags') >>> MemberNameConstants.REFERENCE_KIND_SHIFT;
-    return new java_object.JavaArray(thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/Object;'), [
+    return <java_object.JavaObject><any> new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/Object;'), [
       // Slot object. Expects negative number for non-dispatch types...?
       (<ClassData.PrimitiveClassData> thread.getBsCl().getInitializedClass(thread, 'J')).createWrapperObject(thread, gLong.fromNumber((refKind === enums.MethodHandleReferenceKind.INVOKEVIRTUAL || refKind === enums.MethodHandleReferenceKind.INVOKEINTERFACE || vmtarget instanceof methods.Field) ? vmtarget.slot : -1)),
       // Class if field, membername if method

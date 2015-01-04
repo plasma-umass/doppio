@@ -208,6 +208,15 @@ export class Method extends AbstractMethodField {
     return util.ext_classname(this.cls.getInternalName()) + "::" + this.name + this.raw_descriptor;
   }
 
+  /**
+   * Get the number of machine words (32-bit words) required to store the
+   * parameters to this function. Includes adding in a machine word for 'this'
+   * for non-static functions.
+   */
+  public getParamWordSize(): number {
+    return this.param_bytes;
+  }
+
   public getCodeAttribute(): attributes.Code {
     assert(!this.accessFlags.isNative() && !this.accessFlags.isAbstract());
     return this.code;
