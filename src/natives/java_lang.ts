@@ -1424,20 +1424,20 @@ class java_lang_invoke_MethodHandleNatives {
         } else {
           refKind = enums.MethodHandleReferenceKind.INVOKEVIRTUAL;
         }
-        vmtarget = (<java_object.JavaClassObject> ref.get_field(thread, 'Ljava/lang/reflect/Method;clazz')).$cls.getMethods()[ref.get_field(thread, 'Ljava/lang/reflect/Method;slot')];
+        vmtarget = clazz.$cls.getMethodFromSlot(ref.get_field(thread, 'Ljava/lang/reflect/Method;slot'));
         // TODO: Is the @CallerSensitive annotation present on the method? Requires a slot->method lookup function.
         break;
       case "Ljava/lang/reflect/Constructor;":
         flags |= MemberNameConstants.IS_CONSTRUCTOR;
         refKind = enums.MethodHandleReferenceKind.INVOKESPECIAL;
         // TODO: Is the @CallerSensitive annotation present on the method? Requires a slot->method lookup function.
-        vmtarget = (<java_object.JavaClassObject> ref.get_field(thread, 'Ljava/lang/reflect/Constructor;clazz')).$cls.getMethods()[ref.get_field(thread, 'Ljava/lang/reflect/Constructor;slot')];
+        vmtarget = clazz.$cls.getMethodFromSlot(ref.get_field(thread, 'Ljava/lang/reflect/Constructor;slot'));
         break;
       case "Ljava/lang/reflect/Field;":
         flags |= MemberNameConstants.IS_FIELD;
         refKind = flagsParsed.isStatic() ? enums.MethodHandleReferenceKind.GETSTATIC : enums.MethodHandleReferenceKind.GETFIELD;
         // Set vmtarget to the field.
-        vmtarget = (<java_object.JavaClassObject> ref.get_field(thread, 'Ljava/lang/reflect/Field;clazz')).$cls.getFields()[ref.get_field(thread, 'Ljava/lang/reflect/Field;slot')];
+        vmtarget = clazz.$cls.getFieldFromSlot(ref.get_field(thread, 'Ljava/lang/reflect/Field;slot'));
         break;
       default:
         thread.throwNewException("Ljava/lang/InternalError;", "init: Invalid target.");
@@ -1467,7 +1467,7 @@ class java_lang_invoke_MethodHandleNatives {
       flags: number = memberName.get_field(thread, 'Ljava/lang/invoke/MemberName;flags'),
       vmtarget: methods.AbstractMethodField;
 
-    if (clazz === null || name == null || type == null) {
+    if (clazz == null || name == null || type == null) {
       thread.throwNewException("Ljava/lang/IllegalArgumentException;", "Invalid MemberName.");
       return;
     }
