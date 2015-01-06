@@ -13,7 +13,7 @@ require('source-map-support').install({
 var opts: testing.TestOptions = {
   bootstrapClasspath: [path.resolve(__dirname, path.join('..', 'vendor', 'java_home', 'classes'))],
   javaHomePath: path.resolve(__dirname, path.join('..', 'vendor', 'java_home')),
-  extractionPath: path.resolve(os.tmpDir(), 'doppio_jars'),
+  extractionPath: path.resolve(os.tmpdir(), 'doppio_jars'),
   classpath: null,
   nativeClasspath: [path.resolve(__dirname, path.join('..', 'src', 'natives'))],
   doppioDir: path.dirname(__dirname),

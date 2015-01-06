@@ -190,7 +190,7 @@ function main() {
 new JVM({
   bootstrapClasspath: [path.resolve(__dirname, '../vendor/java_home/classes')],
   javaHomePath: path.resolve(__dirname, '../vendor/java_home'),
-  extractionPath: path.resolve(os.tmpDir(), 'doppio_jars'),
+  extractionPath: path.resolve(os.tmpdir(), 'doppio_jars'),
   classpath: [],
   nativeClasspath: [path.resolve(__dirname, '../src/natives')],
   assertionsEnabled: false
