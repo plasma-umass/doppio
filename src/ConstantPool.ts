@@ -284,7 +284,9 @@ CP_CLASSES[enums.ConstantPoolItemType.CLASS] = ClassReference;
 export class NameAndTypeInfo implements IConstantPoolItem {
   public name: string;
   public descriptor: string;
-  public methodType: java_object.JavaObject = null;
+  // Stores a MethodType if NameAndTypeInfo is a method descriptor, or the
+  // class of a field if NameAndTypeInfo is a field descriptor.
+  public type: java_object.JavaObject = null;
   constructor(name: string, descriptor: string) {
     this.name = name;
     this.descriptor = descriptor;
@@ -299,12 +301,27 @@ export class NameAndTypeInfo implements IConstantPoolItem {
    * NameAndTypeInfo entry.
    */
   public getMethodType(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, cb: (e: any, type: java_object.JavaObject) => void) {
-    if (this.methodType !== null) {
-      cb(null, this.methodType);
+    assert(this.descriptor[0] === '(', "Must be a method type.");
+    if (this.type !== null) {
+      cb(null, this.type);
     } else {
       util.createMethodType(thread, cl, this.descriptor, (e: any, type: java_object.JavaObject) => {
-        this.methodType = type;
+        this.type = type;
         cb(e, type);
+      });
+    }
+  }
+
+  public getFieldType(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, cb: (e: any, type: java_object.JavaObject) => void) {
+    assert(this.descriptor[0] !== '(', 'Must be a field type.');
+    if (this.type !== null) {
+      cb(null, this.type);
+    } else {
+      // Fetch the class associated with the descriptor.
+      cl.initializeClass(thread, this.descriptor, (cdata: ClassData.ClassData) => {
+        if (cdata !== null) {
+          cb(null, cdata.getClassObject(thread));
+        }
       });
     }
   }
@@ -480,6 +497,10 @@ export class MethodReference implements IConstantPoolItem {
     return enums.ConstantPoolItemType.METHODREF;
   }
 
+  public getMethodHandleType(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, cb: (e: any, type: java_object.JavaObject) => void): void {
+    this.nameAndTypeInfo.getMethodType(thread, cl, cb);
+  }
+
   /**
    * Ensures that this.method is set.
    */
@@ -514,7 +535,7 @@ export class MethodReference implements IConstantPoolItem {
           enums.MethodHandleReferenceKind.INVOKEVIRTUAL,
           this.classInfo.cls.getClassObject(thread),
           thread.getThreadPool().getJVM().internString(this.nameAndTypeInfo.name),
-          this.nameAndTypeInfo.methodType, appendix],
+          this.nameAndTypeInfo.type, appendix],
           (e?: java_object.JavaObject, rv?: java_object.JavaObject) => {
             if (e !== null) {
               cb(e);
@@ -527,7 +548,7 @@ export class MethodReference implements IConstantPoolItem {
         };
 
     // Get the method's type.
-    if (this.nameAndTypeInfo.methodType !== null) {
+    if (this.nameAndTypeInfo.type !== null) {
       finishLinkingMethod();
     } else {
       this.nameAndTypeInfo.getMethodType(thread, cl, (e: java_object.JavaObject, mt: java_object.JavaObject) => {
@@ -610,32 +631,7 @@ export class InterfaceMethodReference implements IConstantPoolItem {
   }
 
   public getMethodHandleType(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, cb: (e: any, type: java_object.JavaObject) => void): void {
-    if (this.methodTypeObject !== null) {
-      cb(null, this.methodTypeObject);
-    } else {
-      cl.initializeClass(thread, 'Ljava/lang/invoke/MethodHandleNatives;', (cdata: ClassData.ClassData) => {
-        if (cdata !== null) {
-          var makeImpl = cdata.methodLookup(thread, 'findMethodHandleType(Ljava/lang/Class;[Ljava/lang/Class;)Ljava/lang/invoke/MethodType;'),
-            classes = util.getTypes(this.nameAndTypeInfo.descriptor);
-          classes.push('[Ljava/lang/Class;');
-          // Need the return type and parameter types.
-          cl.resolveClasses(thread, classes, (classMap: { [name: string]: ClassData.ClassData }) => {
-            var types = classes.map((cls: string) => classMap[cls].getClassObject(thread));
-            types.pop(); // Discard '[Ljava/lang/Class;'
-            var rtype = types.pop(), // Return type.,
-              ptypes = (<ClassData.ArrayClassData> classMap['[Ljava/lang/Class;']).create(types);
-            thread.runMethod(makeImpl, [rtype, ptypes], (e?: java_object.JavaObject, methodTypeObj?: java_object.JavaObject) => {
-              if (e) {
-                thread.throwException(e);
-              } else {
-                this.methodTypeObject = methodTypeObj;
-                cb(null, methodTypeObj);
-              }
-            });
-          });
-        }
-      });
-    }
+    this.nameAndTypeInfo.getMethodType(thread, cl, cb);
   }
 
   public static size: number = 1;
@@ -677,12 +673,9 @@ export class FieldReference implements IConstantPoolItem {
    * perform field resolution.
    */
   public fullFieldName: string = null;
-  /**
-   * The class that owns this particular field.
-   */
-  public owningClass: ClassData.ReferenceClassData = null;
   public classInfo: ClassReference;
   public nameAndTypeInfo: NameAndTypeInfo;
+  public owningClass: ClassData.ReferenceClassData = null;
   constructor(classInfo: ClassReference, nameAndTypeInfo: NameAndTypeInfo) {
     this.classInfo = classInfo;
     this.fieldName = nameAndTypeInfo.name;
@@ -695,22 +688,10 @@ export class FieldReference implements IConstantPoolItem {
 
   /**
    * Returns the `type` argument needed for constructing a method handle to this
-   * field reference. In this case, it's a reference to the field's owning
-   * class.
+   * field reference. In this case, it's the class of the field's type.
    */
   public getMethodHandleType(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, cb: (e: any, type: java_object.JavaObject) => void): void {
-    if (this.owningClass === null) {
-      this.classInfo.getClass(thread, cl, (cdata: ClassData.ClassData) => {
-        if (cdata !== null) {
-          // NOTE: Do not stash class; `owningClass` is expected to be an
-          // initialized class, not just resolved.
-          cb(null, cdata.getClassObject(thread));
-        }
-        // Else, the classloader threw an exception on the thread.
-      });
-    } else {
-      cb(null, this.owningClass.getClassObject(thread));
-    }
+    this.nameAndTypeInfo.getFieldType(thread, cl, cb);
   }
 
   public static size: number = 1;
