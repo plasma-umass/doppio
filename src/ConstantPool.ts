@@ -394,7 +394,7 @@ export class MethodType implements IConstantPoolItem {
   /**
    * A MethodType object for this constant pool item.
    */
-  public type: java_object.JavaObject;
+  public type: java_object.JavaObject = null;
   constructor(descriptor: string) {
     this.descriptor = descriptor;
   }
@@ -865,6 +865,20 @@ export class InvokeDynamic implements IConstantPoolItem {
             break;
         }
       }, (err?: any) => {
+        assert(rv.length === cpItems.length, "Must have all args prepared.");
+        assert((() => {
+          var status = true;
+          cpItems.forEach((cpItem: IConstantPoolItem, i: number) => {
+            if (rv[i] === undefined) {
+              console.log("Undefined item at arg " + i + ": " + enums.ConstantPoolItemType[cpItem.getType()]);
+              status = false;
+            } else if (rv[i] === null) {
+              console.log("Null item at arg " + i + ": " + enums.ConstantPoolItemType[cpItem.getType()]);
+              status = false;
+            }
+          });
+          return status;
+        })(), "Arguments cannot be undefined or null.");
         cb(rv);
       });
     }
