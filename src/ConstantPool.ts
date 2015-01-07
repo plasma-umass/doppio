@@ -391,12 +391,27 @@ CP_CLASSES[enums.ConstantPoolItemType.STRING] = ConstString;
  */
 export class MethodType implements IConstantPoolItem {
   public descriptor: string;
+  /**
+   * A MethodType object for this constant pool item.
+   */
+  public type: java_object.JavaObject;
   constructor(descriptor: string) {
     this.descriptor = descriptor;
   }
 
   public getType(): enums.ConstantPoolItemType {
     return enums.ConstantPoolItemType.METHOD_TYPE;
+  }
+
+  public getMethodType(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, cb: (e: any, type: java_object.JavaObject) => void) {
+    if (this.type !== null) {
+      cb(null, this.type);
+    } else {
+      util.createMethodType(thread, cl, this.descriptor, (e: any, type: java_object.JavaObject) => {
+        this.type = type;
+        cb(e, type);
+      });
+    }
   }
 
   public static size: number = 1;
@@ -724,7 +739,6 @@ CP_CLASSES[enums.ConstantPoolItemType.FIELDREF] = FieldReference;
  */
 export class InvokeDynamic implements IConstantPoolItem {
   public bootstrapMethodAttrIndex: number;
-  public methodSignature: string;
   public nameAndTypeInfo: NameAndTypeInfo;
   public bootstrapMethod: [MethodHandle, IConstantPoolItem[]] = null;
   /**
@@ -732,13 +746,13 @@ export class InvokeDynamic implements IConstantPoolItem {
    * InvokeDynamic, the CallSite will be reused for each future execution
    * of that particular occurrence.
    *
-   * We store the CallSite objects here for future retrieval.
+   * We store the CallSite objects here for future retrieval, along with an
+   * optional 'appendix' argument.
    */
-  private callSiteObjects: { [pc: number]: java_object.JavaObject } = {};
+  private callSiteObjects: { [pc: number]: [java_object.JavaObject, java_object.JavaObject] } = {};
 
   constructor(bootstrapMethodAttrIndex: number, nameAndTypeInfo: NameAndTypeInfo) {
     this.bootstrapMethodAttrIndex = bootstrapMethodAttrIndex;
-    this.methodSignature = nameAndTypeInfo.name + nameAndTypeInfo.descriptor;
     this.nameAndTypeInfo = nameAndTypeInfo;
   }
 
@@ -746,7 +760,7 @@ export class InvokeDynamic implements IConstantPoolItem {
     return enums.ConstantPoolItemType.INVOKE_DYNAMIC;
   }
 
-  public getCallSiteObject(pc: number): java_object.JavaObject {
+  public getCallSiteObject(pc: number): [java_object.JavaObject, java_object.JavaObject] {
     var cso = this.callSiteObjects[pc]
     if (cso) {
       return cso;
@@ -755,11 +769,145 @@ export class InvokeDynamic implements IConstantPoolItem {
     }
   }
 
-  public stashCallSiteObject(pc: number, obj: java_object.JavaObject): void {
-    // Only use this object if the CSO for this call site isn't defined yet.
-    if (this.getCallSiteObject(pc) === null) {
-      this.callSiteObjects[pc] = obj;
+  public constructCallSiteObject(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, clazz: ClassData.ReferenceClassData, pc: number, cb: (cso: java_object.JavaObject) => void): void {
+    assert(this.callSiteObjects[pc] === undefined, 'Should be impossible to construct same callsite object twice.');
+    var bootstrapMethod = clazz.getBootstrapMethod(this.bootstrapMethodAttrIndex);
+    /**
+     * A call site specifier gives a symbolic reference to a method handle which
+     * is to serve as the bootstrap method for a dynamic call site (§4.7.23).
+     * The method handle is resolved to obtain a reference to an instance of
+     * java.lang.invoke.MethodHandle (§5.4.3.5).
+     */
+    function getMethodHandle(cb: (mh: java_object.JavaObject) => void): void {
+      if (bootstrapMethod[0].methodHandle !== null) {
+        cb(bootstrapMethod[0].methodHandle);
+      } else {
+        bootstrapMethod[0].constructMethodHandle(thread, clazz, cl, () => {
+          cb(bootstrapMethod[0].methodHandle);
+        });
+      }
     }
+
+    /**
+     * A call site specifier gives zero or more static arguments, which
+     * communicate application-specific metadata to the bootstrap method. Any
+     * static arguments which are symbolic references to classes, method
+     * handles, or method types are resolved, as if by invocation of the ldc
+     * instruction (§ldc), to obtain references to Class objects,
+     * java.lang.invoke.MethodHandle objects, and java.lang.invoke.MethodType
+     * objects respectively. Any static arguments that are string literals are
+     * used to obtain references to String objects.
+     *
+     * TODO: Cache objects on bootstrapMethods!
+     */
+    function getArguments(cb: (args: java_object.JavaObject[]) => void): void {
+      var cpItems = bootstrapMethod[1], rv: java_object.JavaObject[] = [];
+      util.asyncForEach(cpItems, (cpItem: IConstantPoolItem, nextItem: (err?: any) => void) => {
+        switch (cpItem.getType()) {
+          case enums.ConstantPoolItemType.CLASS:
+            (<ClassReference> cpItem).getClass(thread, cl, (cdata: ClassData.ClassData) => {
+              assert(cdata !== null, "TODO: Figure out what to do when this fails...");
+              rv.push(cdata.getClassObject(thread));
+              nextItem();
+            }, false);
+            break;
+          case enums.ConstantPoolItemType.METHOD_HANDLE:
+            var mh = <MethodHandle> cpItem;
+            if (mh.methodHandle !== null) {
+              rv.push(mh.methodHandle);
+              nextItem();
+            } else {
+              mh.constructMethodHandle(thread, clazz, cl, (err: any, methodHandle: java_object.JavaObject) => {
+                if (err) {
+                  assert(false, "TODO: Figure out what to do here...");
+                }
+                rv.push(methodHandle);
+                nextItem();
+              });
+            }
+            break;
+          case enums.ConstantPoolItemType.METHOD_TYPE:
+            (<MethodType> cpItem).getMethodType(thread, cl, (e: any, mt: java_object.JavaObject) => {
+              if (e) {
+                assert(false, "TODO: Figure out what to do here...");
+              }
+              rv.push(mt);
+              nextItem();
+            });
+            break;
+          case enums.ConstantPoolItemType.STRING:
+            // TODO: Bake this into the CP item.
+            var cString = <ConstString> cpItem;
+            if (cString.value === null) {
+              cString.value = thread.getThreadPool().getJVM().internString(cString.stringValue);
+            }
+            rv.push(cString.value);
+            nextItem();
+            break;
+          case enums.ConstantPoolItemType.UTF8:
+            rv.push(thread.getThreadPool().getJVM().internString((<ConstUTF8> cpItem).value));
+            nextItem();
+            break;
+          case enums.ConstantPoolItemType.INTEGER:
+            rv.push((<ClassData.PrimitiveClassData> cl.getInitializedClass(thread, 'Ljava/lang/Integer;')).createWrapperObject(thread, (<ConstInt32> cpItem).value));
+            break;
+          case enums.ConstantPoolItemType.LONG:
+            rv.push((<ClassData.PrimitiveClassData> cl.getInitializedClass(thread, 'Ljava/lang/Long;')).createWrapperObject(thread, (<ConstLong> cpItem).value));
+            break;
+          case enums.ConstantPoolItemType.FLOAT:
+            rv.push((<ClassData.PrimitiveClassData> cl.getInitializedClass(thread, 'Ljava/lang/Float;')).createWrapperObject(thread, (<ConstFloat> cpItem).value));
+            break;
+          case enums.ConstantPoolItemType.DOUBLE:
+            rv.push((<ClassData.PrimitiveClassData> cl.getInitializedClass(thread, 'Ljava/lang/Double;')).createWrapperObject(thread, (<ConstDouble> cpItem).value));
+            break;
+          default:
+            assert(false, "Invalid CPItem for static args: " + enums.ConstantPoolItemType[cpItem.getType()]);
+            break;
+        }
+      }, (err?: any) => {
+        cb(rv);
+      });
+    }
+
+    /**
+     * A call site specifier gives a method descriptor, TD. A reference to an
+     * instance of java.lang.invoke.MethodType is obtained as if by resolution
+     * of a symbolic reference to a method type with the same parameter and
+     * return types as TD (§5.4.3.5).
+     */
+    this.nameAndTypeInfo.getMethodType(thread, cl, (e: any, mt: java_object.JavaObject) => {
+      if (e) {
+        thread.throwException(e);
+      } else {
+        getMethodHandle((mh: java_object.JavaObject) => {
+          getArguments((args: java_object.JavaObject[]) => {
+            /**
+             * Do what all OpenJDK-based JVMs do: Call
+             * MethodHandleNatives.linkCallSite with:
+             * - The class w/ the invokedynamic instruction
+             * - The bootstrap method
+             * - The name string from the nameAndTypeInfo
+             * - The methodType object from the nameAndTypeInfo
+             * - The static arguments from the bootstrap method.
+             * - A 1-length appendix box.
+             */
+            var methodName = thread.getThreadPool().getJVM().internString(this.nameAndTypeInfo.name),
+              appendixArr = (<ClassData.ArrayClassData> cl.getInitializedClass(thread, '[Ljava/lang/Object;')).create([null]),
+              staticArgs = (<ClassData.ArrayClassData> cl.getInitializedClass(thread, '[Ljava/lang/Object;')).create(args),
+              mhn = cl.getInitializedClass(thread, 'Ljava/lang/invoke/MethodHandleNatives;');
+            thread.runMethod(mhn.methodLookup(thread, 'linkCallSite(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/invoke/MemberName;'),
+              [clazz.getClassObject(thread), mh, methodName, mt, staticArgs, appendixArr], (e?: any, rv?: any) => {
+              if (e) {
+                thread.throwException(e);
+              } else {
+                this.callSiteObjects[pc] = [rv, appendixArr.array[0]];
+                cb(rv);
+              }
+            });
+          });
+        });
+      }
+    });
   }
 
   public static size: number = 1;

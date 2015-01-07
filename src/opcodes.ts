@@ -1552,19 +1552,29 @@ export class Opcodes {
   }
 
   public static invokedynamic(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    var callSiteSpecifier = <ConstantPool.InvokeDynamic> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
-      bMethod = frame.method.cls.getBootstrapMethod(callSiteSpecifier.bootstrapMethodAttrIndex);
-    callSiteSpecifier.bootstrapMethod = bMethod;
+    var callSiteSpecifier = <ConstantPool.InvokeDynamic> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
 
-    if (bMethod[0].methodHandle !== null) {
-      throwException(thread, frame, "Ljava/lang/Error;", "Invokedynamic not implemented.");
-    } else {
-      thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-      bMethod[0].constructMethodHandle(thread, frame.method.cls, frame.getLoader(), () => {
-        thread.setStatus(enums.ThreadStatus.RUNNABLE);
-      });
-      frame.returnToThreadLoop = true;
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    callSiteSpecifier.constructCallSiteObject(thread, frame.getLoader(), frame.method.cls, pc, (mn: java_object.JavaObject) => {
+      assert(mn.vmtarget instanceof methods.Method, "MethodName should be resolved...");
+      code.writeUInt8(enums.OpCode.INVOKEDYNAMIC_FAST, pc);
+    });
+    frame.returnToThreadLoop = true;
+  }
+
+  public static invokedynamic_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+    var callSiteSpecifier = <ConstantPool.InvokeDynamic> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
+      cso = callSiteSpecifier.getCallSiteObject(pc),
+      appendix = cso[1],
+      m: methods.Method = <methods.Method> cso[0].vmtarget,
+      stack = frame.stack;
+
+    if (appendix !== null) {
+      stack.push(appendix);
     }
+
+    thread.runMethod(m, m.takeArgs(stack));
+    frame.returnToThreadLoop = true;
   }
 
   /**
