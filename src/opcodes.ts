@@ -1558,6 +1558,8 @@ export class Opcodes {
     callSiteSpecifier.constructCallSiteObject(thread, frame.getLoader(), frame.method.cls, pc, (mn: java_object.JavaObject) => {
       assert(mn.vmtarget instanceof methods.Method, "MethodName should be resolved...");
       code.writeUInt8(enums.OpCode.INVOKEDYNAMIC_FAST, pc);
+      // Resume and rerun fast opcode.
+      thread.setStatus(enums.ThreadStatus.RUNNABLE);
     });
     frame.returnToThreadLoop = true;
   }

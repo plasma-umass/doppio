@@ -107,6 +107,11 @@ class sun_reflect_NativeConstructorAccessorImpl {
           obj = new java_object.JavaObject(cls_obj),
           args: any[] = [obj], i: number;
 
+        if (slot === -1) {
+          // HACK: Need to manually look up. :|
+          method = cls_obj.methodLookup(thread, "<init>" + util.getDescriptorString(thread.getBsCl().getInitializedClass(thread, 'V').getClassObject(thread), m.get_field(thread, 'Ljava/lang/reflect/Constructor;parameterTypes')));
+        }
+
         if (params !== null) {
           args = args.concat(params.array);
         }

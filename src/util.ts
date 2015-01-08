@@ -548,3 +548,18 @@ export function createMethodType(thread: threading.JVMThread, cl: ClassLoader.Cl
     }
   });
 }
+
+/**
+ * Given a return type as a Class object, and an array of class objects for
+ * parameter types, returns the descriptor string for the method type.
+ */
+export function getDescriptorString(rtype: java_object.JavaClassObject, ptypes?: java_object.JavaArray): string {
+  var rv = "(";
+  if (ptypes !== undefined && ptypes !== null) {
+    ptypes.array.forEach((ptype: java_object.JavaClassObject) => {
+      rv += ptype.$cls.getInternalName();
+    });
+  }
+  rv += ")" + rtype.$cls.getInternalName();
+  return rv;
+}
