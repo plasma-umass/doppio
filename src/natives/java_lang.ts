@@ -1646,6 +1646,30 @@ class java_lang_invoke_MethodHandle {
     // invoked via reflection, causing this exception.
     thread.throwNewException("Ljava/lang/UnsupportedOperationException;", "MethodHandle.invoke cannot be invoked reflectively");
   }
+
+  /**
+   * Unlike invoke and invokeExact, invokeBasic *can* be invoked reflectively,
+   * and thus it has an implementation here. Note that invokeBasic is private,
+   * and thus can only be invoked by trusted OpenJDK code.
+   */
+  public static 'invokeBasic([Ljava/lang/Object;)Ljava/lang/Object;'(thread: threading.JVMThread, ...args: any[]): void {
+    var mh: java_object.JavaObject = args[0],
+      lmbdaForm: java_object.JavaObject = mh.get_field(thread, 'Ljava/lang/invoke/MethodHandle;form'),
+      mn: java_object.JavaObject = lmbdaForm.get_field(thread, 'Ljava/lang/invoke/LambdaForm;vmentry'),
+      m: methods.Method;
+
+    assert(mn.vmtarget !== null && mn.vmtarget !== undefined, "vmtarget must be defined");
+    m = <methods.Method> mn.vmtarget;
+    assert(args.length === m.getParamWordSize(), "vmtarget must have same argument size as method reference.");
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.runMethod(m, args, (e, rv) => {
+      if (e) {
+        thread.throwException(e);
+      } else {
+        thread.asyncReturn(rv);
+      }
+    });
+  }
 }
 
 registerNatives({

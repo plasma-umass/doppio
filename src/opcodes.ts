@@ -1665,8 +1665,16 @@ export class Opcodes {
     if (!isNull(thread, frame, obj)) {
       vmtarget = obj.cls.methodLookup(thread, vmtarget.name + vmtarget.raw_descriptor);
       if (vmtarget !== null) {
-        assert(vmtarget.getParamWordSize() === (count - 1));
-        thread.runMethod(vmtarget, vmtarget.takeArgs(stack));
+        if (!vmtarget.isSignaturePolymorphic()) {
+          assert(vmtarget.getParamWordSize() === (count - 1));
+          thread.runMethod(vmtarget, vmtarget.takeArgs(stack));
+        } else {
+          // Otherwise, use the method reference's descriptor for figuring out
+          // what to pop from the stack.
+          thread.runMethod(vmtarget, stack.slice(stack.length - (count - 1)));
+          // this is faster than splice()
+          stack.length -= count - 1;
+        }
       }
       frame.returnToThreadLoop = true;
     }

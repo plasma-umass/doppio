@@ -217,6 +217,15 @@ export class Method extends AbstractMethodField {
     return this.param_bytes;
   }
 
+  /**
+   * Get the number of parameters required for this function. Distinct from
+   * `getParamWordSize()`, since in this function, 64-bit values are counted
+   * once.
+   */
+  public getNumberOfParameters(): number {
+    return this.num_args;
+  }
+
   public getCodeAttribute(): attributes.Code {
     assert(!this.accessFlags.isNative() && !this.accessFlags.isAbstract());
     return this.code;
@@ -345,6 +354,12 @@ export class Method extends AbstractMethodField {
    * arguments array.
    */
   public convertArgs(thread: threading.JVMThread, params: any[]): any[] {
+    if (this.isSignaturePolymorphic()) {
+      // These don't need any conversion, and have arbitrary arguments.
+      // Just append the thread object.
+      params.unshift(thread);
+      return params;
+    }
     var convertedArgs = [thread], argIdx = 0, i: number;
     if (!this.accessFlags.isStatic()) {
       convertedArgs.push(params[0]);

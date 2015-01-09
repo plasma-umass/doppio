@@ -406,12 +406,19 @@ class sun_misc_Unsafe {
     return 1024;
   }
 
-  public static 'defineClass(Ljava/lang/String;[BIILjava/lang/ClassLoader;Ljava/security/ProtectionDomain;)Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, name: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number, loaderObj: ClassLoader.JavaClassLoaderObject, pd: java_object.JavaObject): java_object.JavaClassObject {
+  public static 'defineClass(Ljava/lang/String;[BIILjava/lang/ClassLoader;Ljava/security/ProtectionDomain;)Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, name: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number, loaderObj: ClassLoader.JavaClassLoaderObject, pd: java_object.JavaObject): void {
     var loader = java_object.get_cl_from_jclo(thread, loaderObj);
     if (loader != null) {
       var cdata: ClassData.ClassData = loader.defineClass(thread, util.int_classname(name.jvm2js_str()), util.byteArray2Buffer(bytes.array, offset, len));
       if (cdata !== null) {
-        return cdata.getClassObject(thread);
+        thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+        // Resolve the class, since we're handing it back to the application
+        // and we expect these things to be resolved.
+        cdata.resolve(thread, (cdata: ClassData.ClassData) => {
+          if (cdata !== null) {
+            thread.asyncReturn(cdata.getClassObject(thread));
+          }
+        });
       }
     }
   }
