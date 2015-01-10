@@ -204,6 +204,11 @@ export class Method extends AbstractMethodField {
     this.return_type = return_str;
   }
 
+  public isHidden(): boolean {
+    var rva = this.get_attribute('RuntimeVisibleAnnotations');
+    return rva !== null && rva.isHidden;
+  }
+
   public full_signature(): string {
     return util.ext_classname(this.cls.getInternalName()) + "::" + this.name + this.raw_descriptor;
   }

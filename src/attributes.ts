@@ -7,7 +7,7 @@ import assert = require('./assert');
 declare var RELEASE: boolean;
 
 export interface IAttributeClass {
-  parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool, attrLen: number): IAttribute;
+  parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool, attrLen: number, name: string): IAttribute;
 }
 
 export interface IAttribute {
@@ -451,9 +451,11 @@ export class Signature implements IAttribute {
 
 export class RuntimeVisibleAnnotations implements IAttribute {
   public rawBytes: number[];
+  public isHidden: boolean;
 
-  constructor(rawBytes: number[]) {
+  constructor(rawBytes: number[], isHidden: boolean) {
     this.rawBytes = rawBytes;
+    this.isHidden = isHidden;
   }
 
   public getName() {
@@ -463,7 +465,72 @@ export class RuntimeVisibleAnnotations implements IAttribute {
   public static parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool, attrLen?: number): IAttribute {
     // No need to parse; OpenJDK parses these from within Java code from
     // the raw bytes.
-    return new this(byteStream.read(attrLen));
+    // ...but we need to look for the 'Hidden' annotation, which specifies if
+    // the method should be omitted from stack frames.
+
+    /**
+     * Skip the current RuntimeVisibleAnnotation.
+     */
+    function skipAnnotation() {
+      byteStream.skip(2); // type index
+      var numValuePairs = byteStream.getUint16(),
+        i: number;
+      for (i = 0; i < numValuePairs; i++) {
+        byteStream.skip(2); // element name index
+        skipElementValue();
+      }
+    }
+
+    /**
+     * Skip this particular element value.
+     */
+    function skipElementValue() {
+      var tag = String.fromCharCode(byteStream.getUint8());
+      switch(tag) {
+        case 'e':
+          // Fall-through.
+          byteStream.skip(2);
+        case 'Z':
+        case 'B':
+        case 'C':
+        case 'S':
+        case 'I':
+        case 'F':
+        case 'J':
+        case 'D':
+        case 's':
+        case 'c':
+          byteStream.skip(2);
+          break;
+        case '@':
+          skipAnnotation();
+          break;
+        case '[':
+          var numValues = byteStream.getUint16(), i: number;
+          for (i = 0; i < numValues; i++) {
+            skipElementValue();
+          }
+          break;
+
+      }
+    }
+
+    var rawBytes = byteStream.read(attrLen),
+      isHidden = false;
+    byteStream.seek(byteStream.pos() - rawBytes.length);
+    var numAttributes = byteStream.getUint16(), i: number;
+    for (i = 0; i < numAttributes; i++) {
+      var typeName = (<ConstantPool.ConstUTF8> constantPool.get(byteStream.getUint16()));
+      // Rewind.
+      byteStream.seek(byteStream.pos() - 2);
+      skipAnnotation();
+      if (typeName.value === 'Ljava/lang/invoke/LambdaForm$Hidden;') {
+        isHidden = true;
+        break;
+      }
+    }
+
+    return new this(rawBytes, isHidden);
   }
 }
 
@@ -559,7 +626,7 @@ export function makeAttributes(byteStream: ByteStream, constantPool: ConstantPoo
     var attrLen = byteStream.getUint32();
     if (attrTypes[name] != null) {
       var oldLen = byteStream.size();
-      var attr = attrTypes[name].parse(byteStream, constantPool, attrLen);
+      var attr = attrTypes[name].parse(byteStream, constantPool, attrLen, name);
       var newLen = byteStream.size();
       assert((oldLen - newLen) <= attrLen, "A parsed attribute read beyond its data! " + name);
       if (oldLen - newLen !== attrLen) {

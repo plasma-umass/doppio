@@ -1246,6 +1246,12 @@ class java_lang_Throwable {
         cls = sf.method.cls,
         ln = -1,
         sourceFile: string;
+      // Java 8: Ignore 'Hidden' methods. These are involved in constructing
+      // Lambdas, and shouldn't be use-visible.
+      if (sf.method.isHidden()) {
+        continue;
+      }
+
       if (sf.method.accessFlags.isNative()) {
         sourceFile = 'Native Method';
       } else {
