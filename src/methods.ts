@@ -205,7 +205,7 @@ export class Method extends AbstractMethodField {
   }
 
   public isHidden(): boolean {
-    var rva = this.get_attribute('RuntimeVisibleAnnotations');
+    var rva: attributes.RuntimeVisibleAnnotations = <any> this.get_attribute('RuntimeVisibleAnnotations');
     return rva !== null && rva.isHidden;
   }
 

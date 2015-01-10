@@ -117,7 +117,15 @@ class sun_reflect_NativeConstructorAccessorImpl {
         }
         thread.runMethod(method, args, (e?, rv?) => {
           if (e) {
-            thread.throwException(e);
+            // Wrap in a java.lang.reflect.InvocationTargetException
+            thread.getBsCl().initializeClass(thread, 'Ljava/lang/reflect/InvocationTargetException;', (cdata: ClassData.ReferenceClassData) => {
+              if (cdata !== null) {
+                var wrappedE = new java_object.JavaObject(cdata);
+                thread.runMethod(cdata.methodLookup(thread, '<init>(Ljava/lang/Throwable;)V'), [wrappedE, e], (e?, rv?) => {
+                  thread.throwException(e ? e : wrappedE);
+                });
+              }
+            });
           } else {
             // rv is not defined, since constructors do not return a value.
             // Return the object we passed to the constructor.
@@ -163,7 +171,15 @@ class sun_reflect_NativeMethodAccessorImpl {
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     thread.runMethod(m, args, (e?, rv?) => {
       if (e) {
-        thread.throwException(e);
+        // Wrap in a java.lang.reflect.InvocationTargetException
+        thread.getBsCl().initializeClass(thread, 'Ljava/lang/reflect/InvocationTargetException;', (cdata: ClassData.ReferenceClassData) => {
+          if (cdata !== null) {
+            var wrappedE = new java_object.JavaObject(cdata);
+            thread.runMethod(cdata.methodLookup(thread, '<init>(Ljava/lang/Throwable;)V'), [wrappedE, e], (e?, rv?) => {
+              thread.throwException(e ? e : wrappedE);
+            });
+          }
+        });
       } else {
         if (util.is_primitive_type(m.return_type)) {
           if (m.return_type === 'V') {
