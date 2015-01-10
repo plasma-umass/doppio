@@ -151,7 +151,8 @@ public class SlotTest {
         m.invoke(null, 4);
       } catch (Throwable t) {
         System.out.println("Caught exception: " + t);
-        t.printStackTrace();
+        // Difference in stack trace line numbers. :(
+        // t.printStackTrace();
       }
     } catch (NoSuchMethodException e) {
       System.out.println("No such method: " + e);
