@@ -2050,10 +2050,48 @@ export class Opcodes {
         }, false);
         frame.returnToThreadLoop = true;
         break;
-      default:
+      case enums.ConstantPoolItemType.METHOD_HANDLE:
+        var mh = <ConstantPool.MethodHandle> constant;
+        if (mh.methodHandle !== null) {
+          frame.stack.push(mh.methodHandle);
+          frame.pc += 2;
+        } else {
+          thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+          mh.constructMethodHandle(thread, frame.method.cls, frame.getLoader(), (err: any, methodHandle: java_object.JavaObject) => {
+            if (err) {
+              thread.throwException(err);
+            } else {
+              frame.stack.push(methodHandle);
+              frame.pc += 2;
+              thread.setStatus(enums.ThreadStatus.RUNNABLE);
+            }
+          });
+          frame.returnToThreadLoop = true;
+        }
+        break;
+      case enums.ConstantPoolItemType.METHOD_TYPE:
+        thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+        (<ConstantPool.MethodType> constant).getMethodType(thread, frame.getLoader(), (e: any, mt: java_object.JavaObject) => {
+          if (e) {
+            thread.throwException(e);
+          } else {
+            frame.stack.push(mt);
+            frame.pc += 2;
+            thread.setStatus(enums.ThreadStatus.RUNNABLE);
+          }
+        });
+        frame.returnToThreadLoop = true;
+        break;
+      case enums.ConstantPoolItemType.INTEGER:
+      case enums.ConstantPoolItemType.LONG:
+      case enums.ConstantPoolItemType.FLOAT:
+      case enums.ConstantPoolItemType.DOUBLE:
         // TODO: Type this better.
         frame.stack.push((<any> constant).value);
         frame.pc += 2;
+        break;
+      default:
+        assert(false, "Invalid CP Item: " + enums.ConstantPoolItemType[constant.getType()]);
         break;
     }
   }
@@ -2083,10 +2121,48 @@ export class Opcodes {
         }, false);
         frame.returnToThreadLoop = true;
         break;
-      default:
+      case enums.ConstantPoolItemType.METHOD_HANDLE:
+        var mh = <ConstantPool.MethodHandle> constant;
+        if (mh.methodHandle !== null) {
+          frame.stack.push(mh.methodHandle);
+          frame.pc += 3;
+        } else {
+          thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+          mh.constructMethodHandle(thread, frame.method.cls, frame.getLoader(), (err: any, methodHandle: java_object.JavaObject) => {
+            if (err) {
+              thread.throwException(err);
+            } else {
+              frame.stack.push(methodHandle);
+              frame.pc += 3;
+              thread.setStatus(enums.ThreadStatus.RUNNABLE);
+            }
+          });
+          frame.returnToThreadLoop = true;
+        }
+        break;
+      case enums.ConstantPoolItemType.METHOD_TYPE:
+        thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+        (<ConstantPool.MethodType> constant).getMethodType(thread, frame.getLoader(), (e: any, mt: java_object.JavaObject) => {
+          if (e) {
+            thread.throwException(e);
+          } else {
+            frame.stack.push(mt);
+            frame.pc += 3;
+            thread.setStatus(enums.ThreadStatus.RUNNABLE);
+          }
+        });
+        frame.returnToThreadLoop = true;
+        break;
+      case enums.ConstantPoolItemType.INTEGER:
+      case enums.ConstantPoolItemType.LONG:
+      case enums.ConstantPoolItemType.FLOAT:
+      case enums.ConstantPoolItemType.DOUBLE:
         // TODO: Type this better.
         frame.stack.push((<any> constant).value);
         frame.pc += 3;
+        break;
+      default:
+        assert(false, "Invalid CP Item: " + enums.ConstantPoolItemType[constant.getType()]);
         break;
     }
   }
