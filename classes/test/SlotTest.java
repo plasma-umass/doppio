@@ -65,6 +65,8 @@ public class SlotTest {
   }
 
   public static void main(String[] args) {
+    // Map stderr to stdout to prevent nondeterministic interleavings from mucking up test results.
+    System.setErr(System.out);
     ISpeak.ISpeakHelperStatic ishs = new ISpeak.ISpeakHelperStatic();
     ishs.accessTest();
 
