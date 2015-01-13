@@ -554,8 +554,8 @@ export class EnclosingMethod implements IAttribute {
    * Note: Is NULL if the current class is not immediately enclosed by a method
    * or a constructor.
    */
-  public encMethod: ConstantPool.MethodReference;
-  constructor(encClass: ConstantPool.ClassReference, encMethod: ConstantPool.MethodReference) {
+  public encMethod: ConstantPool.NameAndTypeInfo;
+  constructor(encClass: ConstantPool.ClassReference, encMethod: ConstantPool.NameAndTypeInfo) {
     this.encClass = encClass;
     this.encMethod = encMethod;
   }
@@ -566,9 +566,10 @@ export class EnclosingMethod implements IAttribute {
 
   public static parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool): IAttribute {
     var encClass = (<ConstantPool.ClassReference> constantPool.get(byteStream.getUint16())),
-      methodRef = byteStream.getUint16(), encMethod: ConstantPool.MethodReference = null;
+      methodRef = byteStream.getUint16(), encMethod: ConstantPool.NameAndTypeInfo = null;
     if (methodRef > 0) {
-      encMethod = <ConstantPool.MethodReference> constantPool.get(methodRef);
+      encMethod = <ConstantPool.NameAndTypeInfo> constantPool.get(methodRef);
+      assert(encMethod.getType() === enums.ConstantPoolItemType.NAME_AND_TYPE, "Enclosing method must be a name and type info.");
     }
     return new this(encClass, encMethod);
   }

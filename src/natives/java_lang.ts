@@ -156,8 +156,8 @@ class java_lang_Class {
     }
     var enc_cls = em.encClass.tryGetClass(cls.getLoader()).getClassObject(thread);
     if (em.encMethod != null) {
-      enc_name = java_object.initString(bsCl, em.encMethod.nameAndTypeInfo.name);
-      enc_desc = java_object.initString(bsCl, em.encMethod.nameAndTypeInfo.descriptor);
+      enc_name = java_object.initString(bsCl, em.encMethod.name);
+      enc_desc = java_object.initString(bsCl, em.encMethod.descriptor);
     } else {
       enc_name = null;
       enc_desc = null;
