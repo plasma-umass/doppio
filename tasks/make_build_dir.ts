@@ -16,8 +16,7 @@ function makeBuildDir(grunt: IGrunt) {
         grunt.log.ok("Created build folder: " + targetPath);
       }
       // Ensure task fails if one of the symlinks fails.
-      return true;
-      //return symlink(grunt, 'classes', path.resolve(targetPath, 'classes')) && symlink(grunt, 'vendor', path.resolve(targetPath, 'vendor'));
+      return symlink(grunt, 'classes', path.resolve(targetPath, 'classes')) && symlink(grunt, 'vendor', path.resolve(targetPath, 'vendor'));
     } catch (e) {
       grunt.log.error('Could not create build folder build/' + this.target + ".");
       return false;
