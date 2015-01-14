@@ -316,6 +316,48 @@ class java_net_SocketOutputStream {
 
 }
 
+class java_net_NetworkInterface {
+  public static 'init()V'(thread: threading.JVMThread): void {
+    // NOP
+  }
+
+  public static 'getAll()[Ljava/net/NetworkInterface;'(thread: threading.JVMThread): void {
+    // Create a fake network interface bound to 127.1.1.1.
+    var bsCl = thread.getBsCl();
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    bsCl.initializeClass(thread, 'Ljava/net/NetworkInterface;', (niCls: ClassData.ReferenceClassData) => {
+      if (niCls !== null) {
+        bsCl.initializeClass(thread, 'Ljava/net/InetAddress;', (inetCls: ClassData.ReferenceClassData) => {
+          if (inetCls !== null) {
+            var iName = thread.getThreadPool().getJVM().internString('doppio1');
+            thread.runMethod(inetCls.methodLookup(thread, 'getByAddress(Ljava/lang/String;[B)Ljava/net/InetAddress;'),
+              [iName,
+               (<ClassData.ArrayClassData> bsCl.getInitializedClass(thread, '[B')).create([127,1,1,1])], (e?, rv?) => {
+              if (e) {
+                thread.throwException(e);
+              } else {
+                var inetArrCls: ClassData.ArrayClassData = <any> bsCl.getInitializedClass(thread, '[Ljava/net/InetAddress;'),
+                  niObj = new java_object.JavaObject(niCls);
+                thread.runMethod(niCls.methodLookup(thread, '<init>(Ljava/lang/String;I[Ljava/net/InetAddress;)V'), [niObj, iName, 0, inetArrCls.create([rv])], (e?, rv?) => {
+                  if (e) {
+                    thread.throwException(e);
+                  } else {
+                    thread.asyncReturn((<ClassData.ArrayClassData> bsCl.getInitializedClass(thread, '[Ljava/net/NetworkInterface;')).create([niObj]));
+                  }
+                });
+              }
+            });
+          }
+        });
+      }
+    });
+  }
+
+  public static 'getMacAddr0([BLjava/lang/String;I)[B'(thread: threading.JVMThread, inAddr: java_object.JavaArray, name: java_object.JavaObject, ind: number): java_object.JavaArray {
+    return (<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[B')).create([1,1,1,1,1,1]);
+  }
+}
+
 registerNatives({
   'java/net/Inet4Address': java_net_Inet4Address,
   'java/net/Inet4AddressImpl': java_net_Inet4AddressImpl,
@@ -324,5 +366,6 @@ registerNatives({
   'java/net/InetAddressImplFactory': java_net_InetAddressImplFactory,
   'java/net/PlainSocketImpl': java_net_PlainSocketImpl,
   'java/net/SocketInputStream': java_net_SocketInputStream,
-  'java/net/SocketOutputStream': java_net_SocketOutputStream
+  'java/net/SocketOutputStream': java_net_SocketOutputStream,
+  'java/net/NetworkInterface': java_net_NetworkInterface
 });
