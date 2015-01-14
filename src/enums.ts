@@ -55,6 +55,18 @@ export enum ThreadStatus {
 }
 
 /**
+ * Java-visible thread state values.
+ */
+export enum JVMTIThreadState {
+  ALIVE = 0x0001,
+  TERMINATED = 0x0002,
+  RUNNABLE = 0x0004,
+  BLOCKED_ON_MONITOR_ENTER = 0x0400,
+  WAITING_INDEFINITELY = 0x0010,
+  WAITING_WITH_TIMEOUT = 0x0020
+}
+
+/**
  * Indicates the type of a stack frame.
  */
 export enum StackFrameType {
@@ -109,6 +121,37 @@ export enum ConstantPoolItemType {
   METHOD_HANDLE = 15,
   METHOD_TYPE = 16,
   INVOKE_DYNAMIC = 18
+}
+
+/**
+ * Integer indicating the type of a StackMapTable entry.
+ * @see https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.7.4
+ */
+export enum StackMapTableEntryType {
+  SAME_FRAME,
+  SAME_LOCALS_1_STACK_ITEM_FRAME,
+  SAME_LOCALS_1_STACK_ITEM_FRAME_EXTENDED,
+  CHOP_FRAME,
+  SAME_FRAME_EXTENDED,
+  APPEND_FRAME,
+  FULL_FRAME
+}
+
+/**
+ * Integer indicating the reference type of a MethodHandle item in the constant
+ * pool.
+ * @see https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.4.8
+ */
+export enum MethodHandleReferenceKind {
+  GETFIELD = 1,
+  GETSTATIC = 2,
+  PUTFIELD = 3,
+  PUTSTATIC = 4,
+  INVOKEVIRTUAL = 5,
+  INVOKESTATIC = 6,
+  INVOKESPECIAL = 7,
+  NEWINVOKESPECIAL = 8,
+  INVOKEINTERFACE = 9
 }
 
 /**
@@ -381,7 +424,13 @@ export enum OpCode {
   INVOKESPECIAL_FAST = 0xdf,
   INVOKESTATIC_FAST = 0xf0,
   INVOKEVIRTUAL_FAST = 0xf1,
-  INVOKEINTERFACE_FAST = 0xf2
+  INVOKEINTERFACE_FAST = 0xf2,
+  INVOKEHANDLE = 0xf3,
+  INVOKEBASIC = 0xf4,
+  LINKTOSPECIAL = 0xf5,
+  LINKTOINTERFACE = 0xf6,
+  LINKTOVIRTUAL = 0xf7,
+  INVOKEDYNAMIC_FAST = 0xf8
 }
 
 export enum OpcodeLayoutType {

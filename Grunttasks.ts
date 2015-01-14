@@ -33,7 +33,7 @@ export function setup(grunt: IGrunt) {
       java: 'java',
       javap: 'javap',
       javac: 'javac',
-      is_java_6: true,
+      is_java_8: true,
       doppio_dir: __dirname, // Root directory for doppio (same as this file)
       build_type: "",        // Build type for doppio (dev/dev-cli/etc.) Will be set by 'setup' task.
       vendor_dir: '<%= resolve(build.doppio_dir, "vendor") %>',
@@ -124,7 +124,7 @@ export function setup(grunt: IGrunt) {
     // Downloads files.
     'curl-dir': {
       long: {
-        src: 'https://github.com/plasma-umass/doppio_jcl/releases/download/v1.0/java_home.tar.gz',
+        src: 'https://github.com/plasma-umass/doppio_jcl/releases/download/8v1.0/java_home.tar.gz',
         dest: "<%= build.vendor_dir %>"
       }
     },

@@ -14,13 +14,13 @@ class classes_doppio_Debug {
     var ll_cls = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass(thread, 'Lclasses/doppio/Debug$LogLevel;');
     switch (logging.log_level) {
       case 10:
-        return ll_cls.static_get(thread, 'VTRACE');
+        return ll_cls.staticGet(thread, 'VTRACE');
       case 9:
-        return ll_cls.static_get(thread, 'TRACE');
+        return ll_cls.staticGet(thread, 'TRACE');
       case 5:
-        return ll_cls.static_get(thread, 'DEBUG');
+        return ll_cls.staticGet(thread, 'DEBUG');
       default:
-        return ll_cls.static_get(thread, 'ERROR');
+        return ll_cls.staticGet(thread, 'ERROR');
     }
   }
 

@@ -19,9 +19,12 @@ public class Threading extends Thread {
       System.out.println(t.holdsLock(t));  // should be true
     }
     System.out.println(t.isInterrupted());  // should be false
+	System.out.println(t.getState()); // should be NEW.
     t.run();
     t.start();
+	System.out.println(t.getState()); // should be RUNNABLE.
     t.join();
+	System.out.println(t.getState()); // should be TERMINATED.
     System.out.println("joined in "+Thread.currentThread().getName());
     Q q = new Q();
     new Producer(q);

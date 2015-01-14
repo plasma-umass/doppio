@@ -48,7 +48,8 @@ function constructJavaOptions(customArgs: {[prop: string]: any} = {}) {
     classpath: [],
     javaHomePath: '/sys/vendor/java_home',
     extractionPath: '/jars',
-    nativeClasspath: ['/sys/src/natives']
+    nativeClasspath: ['/sys/src/natives'],
+    assertionsEnabled: false
   }, customArgs);
 }
 
@@ -223,7 +224,7 @@ $(document).ready(function() {
       }
       // Check for globs (*) in the arguments, and expand them.
       var expanded_args : string[] = [];
-      util.async_foreach(args,
+      util.asyncForEach(args,
         // runs on each argument
         function(arg: string, next_item): void {
           var starIdx = arg.indexOf('*');
@@ -359,7 +360,7 @@ function read_dir(dir: string, pretty: boolean, columns: boolean, cb: any): void
       return cb(contents.join('\n'));
     }
     var pretty_list: string[] = [];
-    util.async_foreach(contents,
+    util.asyncForEach(contents,
       // runs on each element
       function(c: string, next_item) {
         fs.stat(dir + '/' + c, function(err: Error, stat: fs.Stats) {
@@ -535,7 +536,7 @@ var commands = {
     } else if (args.length === 1) {
       read_dir(args[0], true, true, (listing) => controller.message(listing, 'success'));
     } else {
-      util.async_foreach(args,
+      util.asyncForEach(args,
         function(dir: string, next_item: ()=>void) {
           read_dir(dir, true, true, function(listing: string){
             controller.message(dir + ':\n' + listing + '\n\n', 'success', true);
@@ -824,7 +825,7 @@ function fileNameCompletions(cmd: string, args: string[], cb: (c: string[])=>voi
       return cb(completions)
     }
     dirList = filterSubstring(searchPfx, dirList);
-    util.async_foreach(dirList,
+    util.asyncForEach(dirList,
       // runs on each element
       function(item: string, next_item: ()=>void) {
         fs.stat(path.resolve(dirPfx + item), function(err: Error, stats) {
@@ -868,7 +869,7 @@ function defaultFile(filename: string): string {
  */
 function expand_dirs(dirs: string[], r: RegExp, cb: (expansion: string[]) => void): void {
   var expanded: string[] = [];
-  util.async_foreach(dirs, function(dir: string, next_item: () => void): void {
+  util.asyncForEach(dirs, function(dir: string, next_item: () => void): void {
     fs.readdir(dir, function(err: any, contents?: string[]): void {
       var i: number;
       if (err == null) {
@@ -906,7 +907,7 @@ function process_glob(glob: string, cb: (expansion: string[]) => void): void {
       expanded: string[] = [glob.charAt(0) === '/' ? '/' : '.'];
 
   // Process each component of the path separately.
-  util.async_foreach(path_comps, function(path_comp: string, next_item: () => void): void {
+  util.asyncForEach(path_comps, function(path_comp: string, next_item: () => void): void {
     var r: RegExp;
     if (path_comp === "") {
       // This condition occurs for:

@@ -4,12 +4,16 @@ import java_object = require('./java_object');
 import threading = require('./threading');
 import enums = require('./enums');
 
+// For type information
+import ClassLoader = require('./ClassLoader');
+import ClassData = require('./ClassData');
+
 export function are_in_browser(): boolean {
   return process.platform === 'browser';
 }
 
 // Applies an async function to each element of a list, in order.
-export function async_foreach<T>(
+export function asyncForEach<T>(
       lst: Array<T>,
       fn: (elem: T, next_item: (err?: any) => void) => void,
       done_cb: (err?: any) => void
@@ -58,7 +62,7 @@ export function asyncSeries(tasks: {(next: (err?: any) => void): void}[], doneCb
  *
  * I wrote this specifically for classloading, but it may have uses elsewhere.
  */
-export function async_find<T>(
+export function asyncFind<T>(
     lst: Array<T>,
     fn: (elem: T, nextItem: (success: boolean) => void) => void,
     done_cb: (elem?: T) => void
@@ -157,7 +161,7 @@ export function byteArray2Buffer(bytes: number[], offset: number = 0, len: numbe
 }
 
 // Call this ONLY on the result of two non-NaN numbers.
-export function wrap_float(a: number): number {
+export function wrapFloat(a: number): number {
   if (a > 3.40282346638528860e+38) {
     return Number.POSITIVE_INFINITY;
   }
@@ -173,160 +177,129 @@ export function wrap_float(a: number): number {
   return a;
 }
 
-export function cmp(a: any, b: any): number {
-  if (a === b) {
-    return 0;
-  }
-  if (a < b) {
-    return -1;
-  }
-  if (a > b) {
-    return 1;
-  }
-  // this will occur if either a or b is NaN
-  return null;
-}
-
-// implements x<<n without the braindead javascript << operator
-// (see http://stackoverflow.com/questions/337355/javascript-bitwise-shift-of-long-long-number)
-export function lshift(x: number, n: number): number {
-  return x * Math.pow(2, n);
-}
-
 // Convert :count chars starting from :offset in a Java character array into a JS string
-export function chars2js_str(jvm_carr: java_object.JavaArray, offset?: number, count?: number): string {
+export function chars2jsStr(jvmCarr: java_object.JavaArray, offset?: number, count?: number): string {
   var off = offset || 0;
-  return bytes2str(jvm_carr.array).substr(off, count);
+  return bytes2str(jvmCarr.array).substr(off, count);
 }
 
-export function bytestr_to_array(bytecode_string: string): number[] {
+export function bytestr2Array(byteStr: string): number[] {
   var rv : number[] = [];
-  for (var i = 0; i < bytecode_string.length; i++) {
-    rv.push(bytecode_string.charCodeAt(i) & 0xFF);
+  for (var i = 0; i < byteStr.length; i++) {
+    rv.push(byteStr.charCodeAt(i) & 0xFF);
   }
   return rv;
 }
 
-export function array_to_bytestr(bytecode_array: number[]): string {
+export function array2bytestr(byteArray: number[]): string {
   // XXX: We'd like to use String.fromCharCode(bytecode_array...)
   //  but that fails on Webkit with arrays longer than 2^31. See issue #129 for details.
   var rv = '';
-  for (var i = 0; i < bytecode_array.length; i++) {
-    rv += String.fromCharCode(bytecode_array[i]);
+  for (var i = 0; i < byteArray.length; i++) {
+    rv += String.fromCharCode(byteArray[i]);
   }
   return rv;
 }
 
-export interface Flags {
-  public: boolean;
-  private: boolean;
-  protected: boolean;
-  static: boolean;
-  final: boolean;
-  synchronized: boolean;
-  super: boolean;
-  volatile: boolean;
-  transient: boolean;
-  native: boolean;
-  interface: boolean;
-  abstract: boolean;
-  strict: boolean;
-}
-
-export function parse_flags(flag_byte: number): Flags {
-  return {
-    "public": (flag_byte & 0x1) > 0,
-    "private": (flag_byte & 0x2) > 0,
-    "protected": (flag_byte & 0x4) > 0,
-    "static": (flag_byte & 0x8) > 0,
-    "final": (flag_byte & 0x10) > 0,
-    "synchronized": (flag_byte & 0x20) > 0,
-    "super": (flag_byte & 0x20) > 0,
-    "volatile": (flag_byte & 0x40) > 0,
-    "transient": (flag_byte & 0x80) > 0,
-    "native": (flag_byte & 0x100) > 0,
-    "interface": (flag_byte & 0x200) > 0,
-    "abstract": (flag_byte & 0x400) > 0,
-    "strict": (flag_byte & 0x800) > 0
-  };
-}
-
-function escaper(c: string, ...args: any[]): string {
-  switch (c) {
-    case "\n":
-      return "\\n";
-    case "\r":
-      return "\\r";
-    case "\t":
-      return "\\t";
-    case "\v":
-      return "\\v";
-    case "\f":
-      return "\\f";
-    default:
-      return c;
-  }
-}
-
-export function escape_whitespace(str: string): string {
-  return str.replace(/\s/g, escaper);
+/**
+ * Bit masks for the flag byte.
+ */
+export enum FlagMasks {
+  PUBLIC = 0x1,
+  PRIVATE = 0x2,
+  PROTECTED = 0x4,
+  STATIC = 0x8,
+  FINAL = 0x10,
+  SYNCHRONIZED = 0x20,
+  SUPER = 0x20,
+  VOLATILE = 0x40,
+  TRANSIENT = 0x80,
+  VARARGS = 0x80,
+  NATIVE = 0x100,
+  INTERFACE = 0x200,
+  ABSTRACT = 0x400,
+  STRICT = 0x800
 }
 
 /**
- * <init> => "<init>"
- * foo => foo
+ * Represents a 'flag byte'. See �4 of the JVM spec.
+ * @todo Separate METHOD flags and CLASS flags.
  */
-function format_function_name(name: string): string {
-  if (name.indexOf('<') === 0 && name.indexOf('>') === (name.length - 1)) {
-    name = '"' + name + '"';
+export class Flags {
+  private byte: number;
+  constructor(byte: number) {
+    this.byte = byte;
   }
-  return name;
-}
 
-/**
- * Helper function for format_extra_info.
- * Converts:
- * - <init>()V => "<init>":()V
- * - alloc(I)Lgnu/math/IntNum; => alloc:(I)Lgnu/math/IntNum;
- */
-function format_method_sig(sig: string): string {
-  var lpIdx = sig.indexOf('(');
-  // assert(lpIdx !== -1);
-  return format_function_name(sig.slice(0, lpIdx)) + ':' + sig.slice(lpIdx);
-}
-
-/**
- * Mainly:
- * [I => "[I"
- */
-function format_class_name(name: string): string {
-  if (name.indexOf('[') === 0 && name.length === 2) {
-    name = '"' + name + '"';
+  public isPublic(): boolean {
+    return (this.byte & FlagMasks.PUBLIC) > 0;
   }
-  return name;
-}
 
-// if :entry is a reference, display its referent in a comment
-export function format_extra_info(entry: any): string {
-  var type = entry.type;
-  var info = typeof entry.deref === "function" ? entry.deref() : void 0;
-  if (!info) {
-    return "";
+  public isPrivate(): boolean {
+    return (this.byte & FlagMasks.PRIVATE) > 0;
   }
-  switch (type) {
-    case 'Method':
-    case 'InterfaceMethod':
-      return "\t//  " + this.descriptor2typestr(info.class_desc) + "." + format_method_sig(info.sig);
-    case 'Field':
-      return "\t//  " + this.descriptor2typestr(info.class_desc) + "." + info.name + ":" + info.type;
-    case 'NameAndType':
-      return "//  " + format_function_name(info.name) + ":" + info.type;
-    case 'class':
-      return "\t//  " + format_class_name(this.descriptor2typestr(info));
-    default:
-      if (typeof info === 'string' || info instanceof String) {
-        return "\t//  " + escape_whitespace(info);
-      }
+
+  public isProtected(): boolean {
+    return (this.byte & FlagMasks.PROTECTED) > 0;
+  }
+
+  public isStatic(): boolean {
+    return (this.byte & FlagMasks.STATIC) > 0;
+  }
+
+  public isFinal(): boolean {
+    return (this.byte & FlagMasks.FINAL) > 0;
+  }
+
+  public isSynchronized(): boolean {
+    return (this.byte & FlagMasks.SYNCHRONIZED) > 0;
+  }
+
+  public isSuper(): boolean {
+    return (this.byte & FlagMasks.SUPER) > 0;
+  }
+
+  public isVolatile(): boolean {
+    return (this.byte & FlagMasks.VOLATILE) > 0;
+  }
+
+  public isTransient(): boolean {
+    return (this.byte & FlagMasks.TRANSIENT) > 0;
+  }
+
+  public isNative(): boolean {
+    return (this.byte & FlagMasks.NATIVE) > 0;
+  }
+
+  public isInterface(): boolean {
+    return (this.byte & FlagMasks.INTERFACE) > 0;
+  }
+
+  public isAbstract(): boolean {
+    return (this.byte & FlagMasks.ABSTRACT) > 0;
+  }
+
+  public isStrict(): boolean {
+    return (this.byte & FlagMasks.STRICT) > 0;
+  }
+
+  /**
+   * Changes a function to native. Used for trapped methods.
+   */
+  public setNative(n: boolean): void {
+    if (n) {
+      this.byte = this.byte | FlagMasks.NATIVE;
+    } else {
+      this.byte = this.byte & (~FlagMasks.NATIVE);
+    }
+  }
+
+  public isVarArgs(): boolean {
+    return (this.byte & FlagMasks.VARARGS) > 0;
+  }
+
+  public getRawByte(): number {
+    return this.byte;
   }
 }
 
@@ -394,6 +367,52 @@ export var internal2external = {
 export var external2internal = {};
 for (var k in internal2external) {
   external2internal[internal2external[k]] = k;
+}
+
+/**
+ * Given a method descriptor, returns the typestrings for the return type
+ * and the parameters.
+ *
+ * e.g. (Ljava/lang/Class;Z)Ljava/lang/String; =>
+ *        ["Ljava/lang/Class;", "Z", "Ljava/lang/String;"]
+ */
+export function getTypes(methodDescriptor: string): string[] {
+  var i = 0, types: string[] = [], endIdx: number;
+  for (i = 0; i < methodDescriptor.length; i++) {
+    switch (methodDescriptor.charAt(i)) {
+      case '(':
+      case ')':
+        //Skip.
+        break;
+      case 'L':
+        // Reference type.
+        endIdx = methodDescriptor.indexOf(';', i);
+        types.push(methodDescriptor.slice(i, endIdx + 1));
+        i = endIdx;
+        break;
+      case '[':
+        endIdx = i + 1;
+        // Find the start of the component.
+        while (methodDescriptor.charAt(endIdx) === '[') {
+          endIdx++;
+        }
+        if (methodDescriptor.charAt(endIdx) === 'L') {
+          // Reference component. Read ahead to end.
+          endIdx = methodDescriptor.indexOf(';', endIdx);
+          types.push(methodDescriptor.slice(i, endIdx + 1));
+        } else {
+          // Primitive component.
+          types.push(methodDescriptor.slice(i, endIdx + 1));
+        }
+        i = endIdx;
+        break;
+      default:
+        // Primitive type.
+        types.push(methodDescriptor.charAt(i));
+        break;
+    }
+  }
+  return types;
 }
 
 // Get the component type of an array type string.
@@ -489,7 +508,7 @@ export function unboxArguments(thread: threading.JVMThread, paramTypes: string[]
     arg = args[i];
     if (is_primitive_type(type)) {
       // Unbox the primitive type.
-      rv.push(arg.get_field(thread, arg.cls.get_type() + 'value'));
+      rv.push(arg.get_field(thread, arg.cls.getInternalName() + 'value'));
       if (type === 'J' || type === 'D') {
         // 64-bit primitives take up two argument slots. Doppio uses a NULL for the second slot.
         rv.push(null);
@@ -499,5 +518,48 @@ export function unboxArguments(thread: threading.JVMThread, paramTypes: string[]
       rv.push(arg);
     }
   }
+  return rv;
+}
+
+/**
+ * Given a method descriptor as a JS string, returns a corresponding MethodType
+ * object.
+ */
+export function createMethodType(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, descriptor: string, cb: (e: any, type: java_object.JavaObject) => void) {
+  cl.initializeClass(thread, 'Ljava/lang/invoke/MethodHandleNatives;', (cdata: ClassData.ClassData) => {
+    if (cdata !== null) {
+      var makeImpl = cdata.methodLookup(thread, 'findMethodHandleType(Ljava/lang/Class;[Ljava/lang/Class;)Ljava/lang/invoke/MethodType;'),
+      classes = getTypes(descriptor);
+      classes.push('[Ljava/lang/Class;');
+      // Need the return type and parameter types.
+      cl.resolveClasses(thread, classes, (classMap: { [name: string]: ClassData.ClassData }) => {
+        var types = classes.map((cls: string) => classMap[cls].getClassObject(thread));
+        types.pop(); // Discard '[Ljava/lang/Class;'
+        var rtype = types.pop(), // Return type.
+          ptypes = (<ClassData.ArrayClassData> classMap['[Ljava/lang/Class;']).create(types);
+        thread.runMethod(makeImpl, [rtype, ptypes], (e?: java_object.JavaObject, methodTypeObj?: java_object.JavaObject) => {
+          if (e) {
+            thread.throwException(e);
+          } else {
+            cb(null, methodTypeObj);
+          }
+        });
+      });
+    }
+  });
+}
+
+/**
+ * Given a return type as a Class object, and an array of class objects for
+ * parameter types, returns the descriptor string for the method type.
+ */
+export function getDescriptorString(rtype: java_object.JavaClassObject, ptypes?: java_object.JavaArray): string {
+  var rv = "(";
+  if (ptypes !== undefined && ptypes !== null) {
+    ptypes.array.forEach((ptype: java_object.JavaClassObject) => {
+      rv += ptype.$cls.getInternalName();
+    });
+  }
+  rv += ")" + rtype.$cls.getInternalName();
   return rv;
 }

@@ -54,6 +54,7 @@ class JVM {
   private terminationCb: (success: boolean) => void = null;
   // The initial JVM thread used to kick off execution.
   private firstThread: threading.JVMThread;
+  private assertionsEnabled: boolean;
 
   /**
    * (Async) Construct a new instance of the Java Virtual Machine.
@@ -67,6 +68,7 @@ class JVM {
       firstThread: threading.JVMThread;
     // @todo Resolve these, and integrate it into the ClassLoader?
     this.nativeClasspath = opts.nativeClasspath;
+    this.assertionsEnabled = opts.assertionsEnabled;
     this._initSystemProperties(bootstrapClasspath, javaClassPath, javaHomePath);
 
     /**
@@ -113,7 +115,7 @@ class JVM {
      * JVM's ThreadGroup once that class is initialized.
      */
     bootupTasks.push((next: (err?: any) => void): void => {
-      util.async_foreach<string>(coreClasses, (coreClass: string, next_item: (err?: any) => void) => {
+      util.asyncForEach<string>(coreClasses, (coreClass: string, next_item: (err?: any) => void) => {
         this.bsCl.initializeClass(firstThread, coreClass, (cdata: ClassData.ClassData) => {
           var cnstrctr: methods.Method;
           if (cdata == null) {
@@ -125,7 +127,7 @@ class JVM {
               // Construct a ThreadGroup object for the first thread.
               var threadGroupCls = <ClassData.ReferenceClassData> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/ThreadGroup;'),
                 groupObj = new java_object.JavaObject(threadGroupCls);
-              cnstrctr = threadGroupCls.method_lookup(firstThread, '<init>()V');
+              cnstrctr = threadGroupCls.methodLookup(firstThread, '<init>()V');
               firstThread.runMethod(cnstrctr, [groupObj], (e?: java_object.JavaObject, rv?: any) => {
                 // Initialize the fields of our firstThread to make it real.
                 firstThread.set_field(firstThread, 'Ljava/lang/Thread;name', java_object.initCarr(this.bsCl, 'main'));
@@ -138,7 +140,7 @@ class JVM {
             } else if (coreClass === 'Ljava/lang/Thread;') {
               // Make firstThread a *real* thread.
               var threadCls = <ClassData.ReferenceClassData> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/Thread;');
-              cnstrctr = threadCls.method_lookup(firstThread, '<init>()V');
+              cnstrctr = threadCls.methodLookup(firstThread, '<init>()V');
               firstThread.runMethod(cnstrctr, [firstThread], (e?: java_object.JavaObject, rv?: any) => {
                 next_item();
               });
@@ -155,7 +157,7 @@ class JVM {
      */
     bootupTasks.push((next: (err?: any) => void): void => {
       // Initialize the system class (initializes things like println/etc).
-      var sysInit = this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/System;').get_method('initializeSystemClass()V');
+      var sysInit = this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/System;').getMethod('initializeSystemClass()V');
       firstThread.runMethod(sysInit, [], next);
     });
 
@@ -195,7 +197,7 @@ class JVM {
           jvmifiedArgs = new java_object.JavaArray(strArrCls, args.map((a: string): java_object.JavaObject => java_object.initString(this.bsCl, a)));
 
         // Find the main method, and run it.
-        var method = cdata.method_lookup(thread, 'main([Ljava/lang/String;)V');
+        var method = cdata.methodLookup(thread, 'main([Ljava/lang/String;)V');
 
         // Set the terminationCb here. The JVM will now terminate once all
         // threads have finished executing.
@@ -241,6 +243,13 @@ class JVM {
    */
   public getSystemProperty(prop: string): string {
     return this.systemProperties[prop];
+  }
+
+  /**
+   * Retrieve an array of all of the system property names.
+   */
+  public getSystemPropertyNames(): string[] {
+    return Object.keys(this.systemProperties);
   }
 
   /**
@@ -439,10 +448,10 @@ class JVM {
       'sun.boot.class.path': bootstrapClasspath.join(':'),
       'file.encoding': 'UTF-8',
       'java.vendor': 'Doppio',
-      'java.version': '1.6',
+      'java.version': '1.8',
       'java.vendor.url': 'https://github.com/plasma-umass/doppio',
-      'java.class.version': '50.0',
-      'java.specification.version': '1.6',
+      'java.class.version': '52.0',
+      'java.specification.version': '1.8',
       'line.separator': '\n',
       'file.separator': path.sep,
       'path.separator': ':',
@@ -480,6 +489,13 @@ class JVM {
 
   public getStartupTime(): Date {
     return this.startupTime;
+  }
+
+  /**
+   * Returns `true` if assertions are enabled, false otherwise.
+   */
+  public areAssertionsEnabled(): boolean {
+    return this.assertionsEnabled;
   }
 }
 

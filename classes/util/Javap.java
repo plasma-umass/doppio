@@ -22,16 +22,6 @@ public class Javap {
 
   static void runJavap(String[] args)
   throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
-    // We have to do some manuevers because javap has a terrible interface:
-    // * calling the main method calls System.exit
-    // * calling the provided 'entry' method closes System.out !
-    // So we have to hack around privacy restrictions and do it ourselves.
-    PrintWriter out = new PrintWriter(new OutputStreamWriter(System.out));
-    sun.tools.javap.Main javap = new sun.tools.javap.Main(out);
-    Method perform = javap.getClass().getDeclaredMethod("perform",args.getClass());
-    perform.setAccessible(true);  // it's private
-    perform.invoke(javap, (Object)args);
-    out.flush();
+    com.sun.tools.javap.Main.main(args);
   }
 }
-

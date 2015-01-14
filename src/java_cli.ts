@@ -23,7 +23,8 @@ function setupOptparse() {
         has_value: true
       },
       help: { alias: 'h', description: 'print this help message' },
-      X: { description: 'print help on non-standard options' }
+      X: { description: 'print help on non-standard options' },
+      enableassertions: { alias: 'ea', description: 'enable debug assertions' }
     },
     non_standard: {
       log: {
@@ -167,6 +168,10 @@ export function java(args: string[], opts: JVMCLIOptions,
         }, (jvm_state: JVM) => {});
       };
     })(done_cb);
+  }
+
+  if (argv.standard.enableassertions) {
+    opts.assertionsEnabled = true;
   }
 
   // Bootstrap classpath items.

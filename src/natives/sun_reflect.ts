@@ -101,29 +101,31 @@ class sun_reflect_NativeConstructorAccessorImpl {
     var cls = <java_object.JavaClassObject> m.get_field(thread, 'Ljava/lang/reflect/Constructor;clazz'),
       slot = m.get_field(thread, 'Ljava/lang/reflect/Constructor;slot');
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    cls.$cls.loader.initializeClass(thread, cls.$cls.get_type(), (cls_obj: ClassData.ReferenceClassData) => {
-      if (cls_obj != null) {
-        var methods = cls_obj.get_methods(), sig: string,
-          method: methods.Method,
+    cls.$cls.initialize(thread, (cls_obj: ClassData.ReferenceClassData) => {
+      if (cls_obj !== null) {
+        var method: methods.Method = cls_obj.getMethodFromSlot(slot),
           obj = new java_object.JavaObject(cls_obj),
-          args: any[] = [obj];
+          args: any[] = [obj], i: number;
 
-        for (sig in methods) {
-          if (methods.hasOwnProperty(sig)) {
-            var aMethod = methods[sig];
-            if (aMethod.idx === slot) {
-              method = aMethod;
-              break;
-            }
-          }
+        if (slot === -1) {
+          // HACK: Need to manually look up. :|
+          method = cls_obj.methodLookup(thread, "<init>" + util.getDescriptorString(thread.getBsCl().getInitializedClass(thread, 'V').getClassObject(thread), m.get_field(thread, 'Ljava/lang/reflect/Constructor;parameterTypes')));
         }
 
-        if (params != null) {
+        if (params !== null) {
           args = args.concat(params.array);
         }
         thread.runMethod(method, args, (e?, rv?) => {
           if (e) {
-            thread.throwException(e);
+            // Wrap in a java.lang.reflect.InvocationTargetException
+            thread.getBsCl().initializeClass(thread, 'Ljava/lang/reflect/InvocationTargetException;', (cdata: ClassData.ReferenceClassData) => {
+              if (cdata !== null) {
+                var wrappedE = new java_object.JavaObject(cdata);
+                thread.runMethod(cdata.methodLookup(thread, '<init>(Ljava/lang/Throwable;)V'), [wrappedE, e], (e?, rv?) => {
+                  thread.throwException(e ? e : wrappedE);
+                });
+              }
+            });
           } else {
             // rv is not defined, since constructors do not return a value.
             // Return the object we passed to the constructor.
@@ -145,33 +147,20 @@ class sun_reflect_NativeMethodAccessorImpl {
   public static 'invoke0(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;'(thread: threading.JVMThread, mObj: java_object.JavaObject, obj: java_object.JavaObject, params: java_object.JavaArray): void {
     var cls = <ClassData.ReferenceClassData> (<java_object.JavaClassObject> mObj.get_field(thread, 'Ljava/lang/reflect/Method;clazz')).$cls,
       slot: number = mObj.get_field(thread, 'Ljava/lang/reflect/Method;slot'),
-      ret_type = mObj.get_field(thread, 'Ljava/lang/reflect/Method;returnType'),
-      m: methods.Method,
-      methods = cls.get_methods(),
-      sig: string, args: any[] = [];
+      ret_type = <java_object.JavaClassObject> mObj.get_field(thread, 'Ljava/lang/reflect/Method;returnType'),
+      m: methods.Method = cls.getMethodFromSlot(slot),
+      args: any[] = [], i: number;
 
-    // Find the method object.
-    // @todo This should probably be easier to get to from a reflected object.
-    for (sig in methods) {
-      if (methods.hasOwnProperty(sig)) {
-        var aMethod = methods[sig];
-        if (aMethod.idx === slot) {
-          m = aMethod;
-          break;
-        }
-      }
-    }
-    
-    if (cls.access_flags['interface']) {
+    if (cls.accessFlags.isInterface()) {
       // It's an interface method. Look up the implementation in the object.
-      m = obj.cls.method_lookup(thread, m.name + m.raw_descriptor);
+      m = obj.cls.methodLookup(thread, m.name + m.raw_descriptor);
       if (m == null) {
         // Method not found, exception thrown. Return.
         return;
       }
     }
 
-    if (!m.access_flags.static) {
+    if (!m.accessFlags.isStatic()) {
       args.push(obj);
     }
     if (params != null) {
@@ -182,7 +171,15 @@ class sun_reflect_NativeMethodAccessorImpl {
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     thread.runMethod(m, args, (e?, rv?) => {
       if (e) {
-        thread.throwException(e);
+        // Wrap in a java.lang.reflect.InvocationTargetException
+        thread.getBsCl().initializeClass(thread, 'Ljava/lang/reflect/InvocationTargetException;', (cdata: ClassData.ReferenceClassData) => {
+          if (cdata !== null) {
+            var wrappedE = new java_object.JavaObject(cdata);
+            thread.runMethod(cdata.methodLookup(thread, '<init>(Ljava/lang/Throwable;)V'), [wrappedE, e], (e?, rv?) => {
+              thread.throwException(e ? e : wrappedE);
+            });
+          }
+        });
       } else {
         if (util.is_primitive_type(m.return_type)) {
           if (m.return_type === 'V') {
@@ -191,7 +188,7 @@ class sun_reflect_NativeMethodAccessorImpl {
             thread.asyncReturn(null);
           } else {
             // wrap up primitives in their Object box
-            thread.asyncReturn(ret_type.$cls.create_wrapper_object(thread, rv));
+            thread.asyncReturn((<ClassData.PrimitiveClassData> ret_type.$cls).createWrapperObject(thread, rv));
           }
         } else {
           thread.asyncReturn(rv);
@@ -224,8 +221,8 @@ function get_caller_class(thread: threading.JVMThread, framesToSkip: number): ja
     }
     frame = caller[--idx];
   }
-  
-  return frame.method.cls.get_class_object(thread);
+
+  return frame.method.cls.getClassObject(thread);
 }
 
 class sun_reflect_Reflection {
@@ -236,10 +233,10 @@ class sun_reflect_Reflection {
     return get_caller_class(thread, 2);
   }
 
-  public static 'getCallerClass0(I)Ljava/lang/Class;': (thread: threading.JVMThread, frames_to_skip: number) => java_object.JavaClassObject = get_caller_class;
+  public static 'getCallerClass(I)Ljava/lang/Class;': (thread: threading.JVMThread, frames_to_skip: number) => java_object.JavaClassObject = get_caller_class;
 
   public static 'getClassAccessFlags(Ljava/lang/Class;)I'(thread: threading.JVMThread, class_obj: java_object.JavaClassObject): number {
-    return (<ClassData.ReferenceClassData> class_obj.$cls).access_byte;
+    return (<ClassData.ReferenceClassData> class_obj.$cls).accessFlags.getRawByte();
   }
 
 }

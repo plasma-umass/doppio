@@ -34,17 +34,17 @@ function findNativeJava(grunt: IGrunt) {
             "preferably for Java 6, installed on your computer.");
         }
         // Finally, check Java's version before quitting.
-        checkJavaVersion(grunt, (isJava6: boolean, javaVersion: string) => {
-          if (!isJava6) {
+        checkJavaVersion(grunt, (isJava8: boolean, javaVersion: string) => {
+          if (!isJava8) {
             grunt.log.warn('Detected Java ' + javaVersion + ' (via javac). Unit tests ' +
-              'are not guaranteed to pass on versions of Java > 1.6.');
+              'are not guaranteed to pass on versions of Java < 1.8.');
           }
-          grunt.config.set('build.is_java_6', isJava6);
+          grunt.config.set('build.is_java_8', isJava8);
           done(true);
         });
       };
 
-    grunt.log.writeln("Locating your Java 6 installation...");
+    grunt.log.writeln("Locating your Java 8 installation...");
     if (process.platform.match(/win32/i)) {
       windowsFindJavaHome(grunt, cb);
     } else if (process.platform.match(/darwin/i)) {
@@ -58,13 +58,13 @@ function findNativeJava(grunt: IGrunt) {
 /**
  * Checks if the version of Java we found was Java 6.
  */
-function checkJavaVersion(grunt: IGrunt, cb: (is_java_6: boolean, java_version: string) => void): void {
+function checkJavaVersion(grunt: IGrunt, cb: (is_java_8: boolean, java_version: string) => void): void {
   exec('"' + grunt.config('build.javac') + '" -version', function (err: Error, stdout: Buffer, stderr: Buffer) {
     if (err) {
       throw err;
     }
     var javaVersion = /(\d+\.\d+\.\d+)/.exec(stderr.toString())[1];
-    return cb(semver.satisfies(javaVersion, '<1.7.0'), javaVersion);
+    return cb(semver.satisfies(javaVersion, '>=1.8.0'), javaVersion);
   });
 }
 
@@ -72,7 +72,7 @@ function checkJavaVersion(grunt: IGrunt, cb: (is_java_6: boolean, java_version: 
  * Uses the Mac's java_home utility to find an appropriate version of Java.
  */
 function macFindJavaHome(grunt: IGrunt, cb: (success: boolean, java_home?: string) => void): void {
-  async.eachSeries(['6', '7', '8'], (version: string, iterator_cb: (java_home?: string) => void) => {
+  async.eachSeries(['8'], (version: string, iterator_cb: (java_home?: string) => void) => {
     exec('/usr/libexec/java_home -version 1.' + version, (err: Error, stdout: Buffer, stderr: Buffer) => {
       if (err) {
         iterator_cb();
@@ -97,12 +97,7 @@ function windowsFindJavaHome(grunt: IGrunt, cb: (success: boolean, java_home?: s
   // Windows: JDK path is in either of the following registry keys:
   // - HKLM\Software\JavaSoft\Java Development Kit\1.[version] [JDK arch == OS arch]
   // - HKLM\Software\Wow6432Node\JavaSoft\Java Development Kit\1.[version] [32-bit JDK Arch, 64-bit OS arch]
-  // Check both for Java 6, 7, and 8.
   var keysToCheck: string[] = [
-      'HKLM\\SOFTWARE\\JavaSoft\\Java Development Kit\\1.6',
-      'HKLM\\SOFTWARE\\Wow6432Node\\JavaSoft\\Java Development Kit\\1.6',
-      'HKLM\\SOFTWARE\\JavaSoft\\Java Development Kit\\1.7',
-      'HKLM\\SOFTWARE\\Wow6432Node\\JavaSoft\\Java Development Kit\\1.7',
       'HKLM\\SOFTWARE\\JavaSoft\\Java Development Kit\\1.8',
       'HKLM\\SOFTWARE\\Wow6432Node\\JavaSoft\\Java Development Kit\\1.8'
     ];
@@ -127,21 +122,35 @@ function windowsFindJavaHome(grunt: IGrunt, cb: (success: boolean, java_home?: s
  * Find Java in *nix by checking the JAVA_HOME environment variable, or using the version of Java on the PATH.
  */
 function nixFindJavaHome(grunt: IGrunt, cb: (success: boolean, javaHome?: string) => void): void {
-  // Option 1: Is JAVA_HOME defined?
-  if (process.env.JAVA_HOME) {
-    cb(true, process.env.JAVA_HOME);
-  } else {
-    // Option 2: Can we invoke 'java' directly?
-    exec(grunt.config('build.java') + ' -version', function(err: Error, stdout: Buffer, stderr: Buffer) {
-      if (err) {
-        // Java can't be found.
-        cb(false);
-      } else {
-        // 'java' is OK.
-        cb(true);
+  // Option 1: Try the 'update-java-alternatives' tool
+  exec('update-java-alternatives -l', (err: Error, stdout: Buffer, stderr: Buffer) => {
+    // This returns error code 1 on success, for some reason.
+    if (!err || (<any>err).code == 1) {
+      var alts = stdout.toString().split('\n');
+      for (var i=0; i<alts.length; i++) {
+        if (alts[i].match(/1\.8/)) {
+          var javaHome = alts[i].split(' ')[2];
+          cb(true, javaHome);
+          return
+        }
       }
-    });
-  }
+    }
+    // Option 2: Is JAVA_HOME defined?
+    if (process.env.JAVA_HOME) {
+      cb(true, process.env.JAVA_HOME);
+    } else {
+      // Option 3: Can we invoke 'java' directly?
+      exec(grunt.config('build.java') + ' -version', function(err: Error, stdout: Buffer, stderr: Buffer) {
+        if (err) {
+          // Java can't be found.
+          cb(false);
+        } else {
+          // 'java' is OK.
+          cb(true);
+        }
+      });
+    }
+  });
 }
 
 /**

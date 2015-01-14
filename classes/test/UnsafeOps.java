@@ -3,6 +3,7 @@ package classes.test;
 
 import java.lang.reflect.Field;
 import sun.misc.Unsafe;
+import classes.test.Interfaces;
 
 /* Still needs to be tested:
 defineClass(Ljava/lang/String;[BIILjava/lang/ClassLoader;Ljava/security/ProtectionDomain;)Ljava/lang/Class;
@@ -71,6 +72,17 @@ public class UnsafeOps {
     } catch (Exception exception) {
       System.out.println("Caught an exception! Is it the same as the one I threw? "+((e == exception)?"true":"false"));
     }
+    // Test staticFieldOffset
+    /*{
+
+
+      // Animal.f
+      long offset = unsafe.staticFieldOffset(Interfaces.Animal.getField('f'));
+    }
+    // Test objectFieldOffset
+    {
+
+    }*/
   }
 
   class Foo {

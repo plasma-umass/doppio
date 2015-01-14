@@ -70,7 +70,7 @@ class Heap {
   // Access a byte at this location.
   get_byte(addr: number): number {
     // TODO: add sanity checks?
-    return this._buffer.readUInt8 (addr);
+    return this._buffer.readUInt8(addr);
   }
 
   get_signed_byte(addr: number): number {

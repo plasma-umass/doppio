@@ -33,7 +33,7 @@ function java(grunt: IGrunt) {
     if (inputFiles.length === 0) {
       return done();
     }
-    child_process.exec(shellEscape(grunt.config('build.javac')) + ' -bootclasspath ' + grunt.config('build.jcl_dir') + ' -source 1.6 -target 1.6 ' + inputFiles.join(' '), function(err?: any) {
+    child_process.exec(shellEscape(grunt.config('build.javac')) + ' -bootclasspath ' + grunt.config('build.jcl_dir') + ' -source 1.8 -target 1.8 ' + inputFiles.join(' '), function(err?: any) {
       if (err) {
         grunt.fail.fatal('Error running javac: ' + err);
       }

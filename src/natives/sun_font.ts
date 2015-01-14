@@ -70,14 +70,8 @@ class sun_font_FreetypeFontScaler {
     return null;
   }
 
-  public static 'disposeNativeScaler(J)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: gLong): void {
+  public static 'disposeNativeScaler(Lsun/font/Font2D;J)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: gLong): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-  }
-
-  public static 'getGlyphCodeNative(JC)I'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: gLong, arg1: number): number {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    // Satisfy TypeScript return type.
-    return 0;
   }
 
   public static 'getNumGlyphsNative(J)I'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: gLong): number {
@@ -98,7 +92,7 @@ class sun_font_FreetypeFontScaler {
     return null;
   }
 
-  public static 'createScalerContextNative(J[DZIIFF)J'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: gLong, arg1: java_object.JavaArray, arg2: number, arg3: number, arg4: number, arg5: number, arg6: number): gLong {
+  public static 'createScalerContextNative(J[DIIFF)J'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: gLong, arg1: java_object.JavaArray, arg2: number, arg3: number, arg4: number, arg5: number, arg6: number): gLong {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;

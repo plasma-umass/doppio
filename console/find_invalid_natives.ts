@@ -14,7 +14,7 @@ import methods = require('../src/methods');
 import JVM = require('../src/jvm');
 import os = require('os');
 var ReferenceClassData = class_data.ReferenceClassData,
-    classpath: string[] = [path.resolve(__dirname, '..', 'vendor', 'classes'),
+    classpath: string[] = [path.resolve(__dirname, '..', 'vendor', 'java_home', 'classes'),
                            path.resolve(__dirname, '..')],
     jvmObject: JVM;
 
@@ -63,16 +63,16 @@ function getNativeSigs(className: string): string[] {
   for (i = 0; i < classpath.length; i++) {
     var klass: class_data.ReferenceClassData,
         klass_path: string = path.resolve(classpath[i], className + ".class"),
-        methods: { [name: string]: methods.Method },
+        methods: methods.Method[],
         method_name: string;
     if (fs.existsSync(klass_path)) {
       klass = new ReferenceClassData(fs.readFileSync(klass_path));
-      methods = klass.get_methods();
-      for (method_name in methods) {
-        if (methods[method_name].access_flags["native"]) {
-          rv.push(method_name);
+      methods = klass.getMethods();
+      methods.forEach((m: methods.Method) => {
+        if (m.accessFlags.isNative()) {
+          rv.push(m.name + m.raw_descriptor);
         }
-      }
+      });
     }
   }
   return rv;
@@ -190,9 +190,10 @@ function main() {
 new JVM({
   bootstrapClasspath: [path.resolve(__dirname, '../vendor/java_home/classes')],
   javaHomePath: path.resolve(__dirname, '../vendor/java_home'),
-  extractionPath: path.resolve(os.tmpDir(), 'doppio_jars'),
+  extractionPath: path.resolve(os.tmpdir(), 'doppio_jars'),
   classpath: [],
-  nativeClasspath: [path.resolve(__dirname, '../src/natives')]
+  nativeClasspath: [path.resolve(__dirname, '../src/natives')],
+  assertionsEnabled: false
 }, function(err: any, _jvmObject: JVM) {
   jvmObject = _jvmObject;
   main();

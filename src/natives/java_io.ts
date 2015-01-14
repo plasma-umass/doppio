@@ -88,7 +88,7 @@ class java_io_FileDescriptor {
 
 class java_io_FileInputStream {
 
-  public static 'open(Ljava/lang/String;)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, filename: java_object.JavaObject): void {
+  public static 'open0(Ljava/lang/String;)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, filename: java_object.JavaObject): void {
     var filepath = filename.jvm2js_str();
     // TODO: actually look at the mode
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
@@ -107,15 +107,8 @@ class java_io_FileInputStream {
       }
     });
   }
-  // Java 8 versions
-  public static 'open0(Ljava/lang/String;)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, filename: java_object.JavaObject): void {
-    java_io_FileInputStream['open(Ljava/lang/String;)V'](thread, javaThis, filename);
-  }
-  public static 'read0()I'(thread: threading.JVMThread, javaThis: java_object.JavaObject): void {
-    java_io_FileInputStream['read()I'](thread, javaThis);
-  }
 
-  public static 'read()I'(thread: threading.JVMThread, javaThis: java_object.JavaObject): void {
+  public static 'read0()I'(thread: threading.JVMThread, javaThis: java_object.JavaObject): void {
     var fd_obj = javaThis.get_field(thread, "Ljava/io/FileInputStream;fd")
           var fd = fd_obj.get_field(thread, "Ljava/io/FileDescriptor;fd");
     if (-1 === fd) {
@@ -239,25 +232,14 @@ class java_io_FileInputStream {
 }
 
 class java_io_FileOutputStream {
-
-  public static 'open(Ljava/lang/String;)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, fname: java_object.JavaObject): void {
+  /**
+   * Opens a file, with the specified name, for overwriting or appending.
+   * @param name name of file to be opened
+   * @param append whether the file is to be opened in append mode
+   */
+  public static 'open0(Ljava/lang/String;Z)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, name: java_object.JavaObject, append: number): void {
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    fs.open(fname.jvm2js_str(), 'w', (err, fd) => {
-      var fd_obj = javaThis.get_field(thread, 'Ljava/io/FileOutputStream;fd');
-      fd_obj.set_field(thread, 'Ljava/io/FileDescriptor;fd', fd);
-      javaThis.$pos = 0;
-      thread.asyncReturn();
-    });
-  }
-  // Java 8 version
-  public static 'open0(Ljava/lang/String;Z)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, filename: java_object.JavaObject, arg: number): void {
-    // TODO: figure out what the boolean arg is.
-    java_io_FileOutputStream['open(Ljava/lang/String;)V'](thread, javaThis, filename);
-  }
-
-  public static 'openAppend(Ljava/lang/String;)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, fname: java_object.JavaObject): void {
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    fs.open(fname.jvm2js_str(), 'a', (err, fd) => {
+    fs.open(name.jvm2js_str(), append ? 'a' : 'w', (err, fd) => {
       var fd_obj = javaThis.get_field(thread, 'Ljava/io/FileOutputStream;fd');
       fd_obj.set_field(thread, 'Ljava/io/FileDescriptor;fd', fd);
       fs.fstat(fd, (err, stats) => {
@@ -267,11 +249,27 @@ class java_io_FileOutputStream {
     });
   }
 
-  public static 'write(I)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: number): void {
+  /**
+   * Writes the specified byte to this file output stream.
+   *
+   * @param   b   the byte to be written.
+   * @param   append   {@code true} if the write operation first
+   *     advances the position to the end of file
+   */
+  public static 'write(IZ)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, b: number, append: number): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'writeBytes([BII)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number): void {
+  /**
+   * Writes a sub array as a sequence of bytes.
+   * @param b the data to be written
+   * @param off the start offset in the data
+   * @param len the number of bytes that are written
+   * @param append {@code true} to first advance the position to the
+   *     end of file
+   * @exception IOException If an I/O error has occurred.
+   */
+  public static 'writeBytes([BIIZ)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number, append: number): void {
     var buf: NodeBuffer, fd, fd_obj;
     fd_obj = javaThis.get_field(thread, 'Ljava/io/FileOutputStream;fd');
     fd = fd_obj.get_field(thread, 'Ljava/io/FileDescriptor;fd');
@@ -287,7 +285,7 @@ class java_io_FileOutputStream {
       });
     } else {
       // stdout or stderr
-      var output: string = util.chars2js_str(bytes, offset, len);
+      var output: string = util.chars2jsStr(bytes, offset, len);
       if (fd === 1) {
         process.stdout.write(output);
       } else if (fd === 2) {
@@ -300,11 +298,6 @@ class java_io_FileOutputStream {
         setImmediate(() => thread.asyncReturn());
       }
     }
-  }
-
-  // Java 8 version (dunno what the boolean is)
-  public static 'writeBytes([BIIZ)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number, arg: number): void {
-    java_io_FileOutputStream['writeBytes([BII)V'](thread, javaThis, bytes, offset, len);
   }
 
   public static 'close0()V'(thread: threading.JVMThread, javaThis: java_object.JavaObject): void {
@@ -327,33 +320,6 @@ class java_io_FileOutputStream {
 
 }
 
-class java_io_FileSystem {
-
-  public static 'getFileSystem()Ljava/io/FileSystem;'(thread: threading.JVMThread): void {
-    // First run! Construct the file system.
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-
-    var bsCl = thread.getBsCl();
-    // Create the UnixFileSystem object.
-    bsCl.initializeClass(thread, 'Ljava/io/UnixFileSystem;', (ufsClass: ClassData.ReferenceClassData) => {
-      var ufsObj = new java_object.JavaObject(ufsClass),
-        ufsInit = ufsClass.method_lookup(thread, '<init>()V');
-      thread.runMethod(ufsInit, [ufsObj], (e?, rv?) => {
-        if (e) {
-          thread.throwException(e);
-        } else {
-          // Rewrite the native method.
-          thread.getThreadPool().getJVM().registerNative('java/io/FileSystem', 'getFileSystem()Ljava/io/FileSystem;', (thread: threading.JVMThread): java_object.JavaObject => {
-            return ufsObj;
-          });
-          thread.asyncReturn(ufsObj);
-        }
-      });
-    });
-  }
-
-}
-
 class java_io_ObjectInputStream {
 
   public static 'bytesToFloats([BI[FII)V'(thread: threading.JVMThread, arg0: java_object.JavaArray, arg1: number, arg2: java_object.JavaArray, arg3: number, arg4: number): void {
@@ -362,23 +328,6 @@ class java_io_ObjectInputStream {
 
   public static 'bytesToDoubles([BI[DII)V'(thread: threading.JVMThread, arg0: java_object.JavaArray, arg1: number, arg2: java_object.JavaArray, arg3: number, arg4: number): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-  }
-
-  /**
-   * Returns the first non-null class loader (not counting class loaders
-   * of generated reflection implementation classes) up the execution stack,
-   * or null if only code from the null class loader is on the stack.
-   */
-  public static 'latestUserDefinedLoader()Ljava/lang/ClassLoader;'(thread: threading.JVMThread): ClassLoader.JavaClassLoaderObject {
-    var stackTrace = thread.getStackTrace(), i: number, method: methods.Method,
-      bsCl = thread.getBsCl(), loader: ClassLoader.ClassLoader;
-    for (i = 0; i < stackTrace.length; i++) {
-      loader = stackTrace[i].method.cls.loader;
-      if (loader !== bsCl) {
-        return (<ClassLoader.CustomClassLoader> loader).getLoaderObject();
-      }
-    }
-    return null;
   }
 
 }
@@ -403,14 +352,14 @@ class java_io_ObjectStreamClass {
 
   public static 'hasStaticInitializer(Ljava/lang/Class;)Z'(thread: threading.JVMThread, jco: java_object.JavaClassObject): boolean {
     // check if cls has a <clinit> method
-    return jco.$cls.get_method('<clinit>()V') != null;
+    return jco.$cls.getMethod('<clinit>()V') != null;
   }
 
 }
 
 class java_io_RandomAccessFile {
 
-  public static 'open(Ljava/lang/String;I)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, filename: java_object.JavaObject, mode: number): void {
+  public static 'open0(Ljava/lang/String;I)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, filename: java_object.JavaObject, mode: number): void {
     var filepath = filename.jvm2js_str(),
       mode_str: string;
     switch (mode) {
@@ -437,15 +386,8 @@ class java_io_RandomAccessFile {
       }
     });
   }
-  // Java 8 versions
-  public static 'open0(Ljava/lang/String;I)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, filename: java_object.JavaObject, mode: number): void {
-    java_io_RandomAccessFile['open(Ljava/lang/String;I)V'](thread, javaThis, filename, mode);
-  }
-  public static 'seek0(J)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, pos: gLong): void {
-    java_io_RandomAccessFile['seek(J)V'](thread, javaThis, pos);
-  }
 
-  public static 'read()I'(thread: threading.JVMThread, javaThis: java_object.JavaObject): number {
+  public static 'read0()I'(thread: threading.JVMThread, javaThis: java_object.JavaObject): number {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
@@ -470,7 +412,7 @@ class java_io_RandomAccessFile {
     });
   }
 
-  public static 'write(I)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: number): void {
+  public static 'write0(I)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: number): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
@@ -489,7 +431,7 @@ class java_io_RandomAccessFile {
     return gLong.fromNumber(javaThis.$pos);
   }
 
-  public static 'seek(J)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, pos: gLong): void {
+  public static 'seek0(J)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, pos: gLong): void {
     javaThis.$pos = pos.toNumber();
   }
 
@@ -625,7 +567,7 @@ class java_io_UnixFileSystem {
     });
   }
 
-  public static 'createFileExclusively(Ljava/lang/String;Z)Z'(thread: threading.JVMThread, javaThis: java_object.JavaObject, path: java_object.JavaObject, arg1: number): void {
+  public static 'createFileExclusively(Ljava/lang/String;)Z'(thread: threading.JVMThread, javaThis: java_object.JavaObject, path: java_object.JavaObject): void {
     var filepath = path.jvm2js_str();
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     stat_file(filepath, (stat) => {
@@ -647,10 +589,6 @@ class java_io_UnixFileSystem {
         });
       }
     });
-  }
-  // Java 8 version
-  public static 'createFileExclusively(Ljava/lang/String;)Z'(thread: threading.JVMThread, javaThis: java_object.JavaObject, path: java_object.JavaObject): void {
-    return java_io_UnixFileSystem['createFileExclusively(Ljava/lang/String;Z)Z'](thread, javaThis, path, 0);
   }
 
   public static 'delete0(Ljava/io/File;)Z'(thread: threading.JVMThread, javaThis: java_object.JavaObject, file: java_object.JavaObject): void {
@@ -768,7 +706,6 @@ registerNatives({
   'java/io/FileDescriptor': java_io_FileDescriptor,
   'java/io/FileInputStream': java_io_FileInputStream,
   'java/io/FileOutputStream': java_io_FileOutputStream,
-  'java/io/FileSystem': java_io_FileSystem,
   'java/io/ObjectInputStream': java_io_ObjectInputStream,
   'java/io/ObjectOutputStream': java_io_ObjectOutputStream,
   'java/io/ObjectStreamClass': java_io_ObjectStreamClass,

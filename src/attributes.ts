@@ -2,74 +2,96 @@
 import util = require('./util');
 import ByteStream = require('./ByteStream');
 import ConstantPool = require('./ConstantPool');
+import enums = require('./enums');
+import assert = require('./assert');
 declare var RELEASE: boolean;
 
+export interface IAttributeClass {
+  parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool, attrLen: number, name: string): IAttribute;
+}
+
 export interface IAttribute {
-  name: string;
-  parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): void;
+  getName(): string;
 }
 
 export interface IInnerClassInfo {
-  inner_info_index: number;
-  outer_info_index: number;
-  inner_name_index: number;
-  inner_access_flags: number;
+  innerInfoIndex: number;
+  outerInfoIndex: number;
+  innerNameIndex: number;
+  innerAccessFlags: number;
 }
 
 export class ExceptionHandler implements IAttribute {
-  public name = 'ExceptionHandler';
-  public start_pc: number;
-  public end_pc: number;
-  public handler_pc: number;
-  public catch_type: string;
-  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): void {
-    this.start_pc = bytes_array.getUint16();
-    this.end_pc = bytes_array.getUint16();
-    this.handler_pc = bytes_array.getUint16();
-    var cti = bytes_array.getUint16();
-    this.catch_type = cti === 0 ? "<any>" : (<ConstantPool.ClassReference> constant_pool.get(cti)).name;
+  public startPC: number;
+  public endPC: number;
+  public handlerPC: number;
+  public catchType: string;
+  constructor(startPC: number, endPC: number, handlerPC: number, catchType: string) {
+    this.startPC = startPC;
+    this.endPC = endPC;
+    this.handlerPC = handlerPC;
+    this.catchType = catchType;
+  }
+  public getName() {
+    return 'ExceptionHandler';
+  }
+  public static parse(bytesArray: ByteStream, constantPool: ConstantPool.ConstantPool): IAttribute {
+    var startPC = bytesArray.getUint16(),
+      endPC = bytesArray.getUint16(),
+      handlerPC = bytesArray.getUint16(),
+      cti = bytesArray.getUint16(),
+      catchType = cti === 0 ? "<any>" : (<ConstantPool.ClassReference> constantPool.get(cti)).name;
+    return new this(startPC, endPC, handlerPC, catchType);
   }
 }
 
 export class Code implements IAttribute {
-  public name = 'Code';
-  private constant_pool: ConstantPool.ConstantPool;
-  private max_stack: number;
-  private max_locals: number;
-  public exception_handlers: ExceptionHandler[];
+  private maxStack: number;
+  private maxLocals: number;
+  public exceptionHandlers: ExceptionHandler[];
   private attrs: IAttribute[];
-  private code: NodeBuffer;
+  private code: Buffer;
 
-  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool) {
-    this.constant_pool = constant_pool;
-    this.max_stack = bytes_array.getUint16();
-    this.max_locals = bytes_array.getUint16();
-    var code_len = bytes_array.getUint32();
-    if (code_len === 0) {
-      (typeof RELEASE !== "undefined" && RELEASE !== null) || (() => {
-        throw "Code.parse error: Code length is zero";
-      })();
+  constructor(maxStack: number, maxLocals: number, exceptionHandlers: ExceptionHandler[], attrs: IAttribute[], code: Buffer) {
+    this.maxStack = maxStack;
+    this.maxLocals = maxLocals;
+    this.exceptionHandlers = exceptionHandlers;
+    this.attrs = attrs;
+    this.code = code;
+  }
+
+  public getName() {
+    return 'Code';
+  }
+
+  public static parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool): IAttribute {
+    var maxStack = byteStream.getUint16(),
+      maxLocals = byteStream.getUint16(),
+      codeLen = byteStream.getUint32();
+    if (codeLen === 0) {
+      if (RELEASE) {
+        throw "Error parsing code: Code length is zero";
+      }
     }
-    this.code = bytes_array.slice(code_len).getBuffer();
-    var except_len = bytes_array.getUint16();
-    this.exception_handlers = [];
-    for (var i = 0; i < except_len; i++) {
-      var eh = new ExceptionHandler();
-      this.exception_handlers.push(eh);
-      eh.parse(bytes_array, constant_pool);
+    var code = byteStream.slice(codeLen).getBuffer(),
+      exceptLen = byteStream.getUint16(),
+      exceptionHandlers = [];
+    for (var i = 0; i < exceptLen; i++) {
+      exceptionHandlers.push(ExceptionHandler.parse(byteStream, constantPool));
     }
     // yes, there are even attrs on attrs. BWOM... BWOM...
-    this.attrs = make_attributes(bytes_array, constant_pool);
+    var attrs = makeAttributes(byteStream, constantPool);
+    return new this(maxStack, maxLocals, exceptionHandlers, attrs, code);
   }
 
   public getCode(): NodeBuffer {
     return this.code;
   }
 
-  public get_attribute(name: string): IAttribute {
+  public getAttribute(name: string): IAttribute {
     for (var i = 0; i < this.attrs.length; i++) {
       var attr = this.attrs[i];
-      if (attr.name === name) {
+      if (attr.getName() === name) {
         return attr;
       }
     }
@@ -77,146 +99,209 @@ export class Code implements IAttribute {
   }
 }
 
-export class LineNumberTable implements IAttribute {
-  public name = 'LineNumberTable';
-  public entries: { start_pc: number; line_number: number }[];
+export interface ILineNumberTableEntry {
+  startPC: number;
+  lineNumber: number;
+}
 
-  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): void {
-    this.entries = [];
-    var lnt_len = bytes_array.getUint16();
-    for (var i = 0; i < lnt_len; i++) {
-      var spc = bytes_array.getUint16();
-      var ln = bytes_array.getUint16();
-      this.entries.push({
-        'start_pc': spc,
-        'line_number': ln
+export class LineNumberTable implements IAttribute {
+  private entries: ILineNumberTableEntry[];
+
+  constructor(entries: ILineNumberTableEntry[]) {
+    this.entries = entries;
+  }
+
+  public getName() {
+    return 'LineNumberTable';
+  }
+
+  /**
+   * Returns the relevant source code line number for the specified program
+   * counter.
+   */
+  public getLineNumber(pc: number): number {
+    var j: number, lineNumber = -1;
+    // get the last line number before the stack frame's pc
+    for (j = 0; j < this.entries.length; j++) {
+      var entry = this.entries[j];
+      if (entry.startPC <= pc) {
+        lineNumber = entry.lineNumber;
+      } else {
+        // Further entries are past the PC.
+        break;
+      }
+    }
+    return lineNumber;
+  }
+
+  public static parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool): IAttribute {
+    var entries: ILineNumberTableEntry[] = [];
+    var lntLen = byteStream.getUint16();
+    for (var i = 0; i < lntLen; i++) {
+      var spc = byteStream.getUint16();
+      var ln = byteStream.getUint16();
+      entries.push({
+        'startPC': spc,
+        'lineNumber': ln
       });
     }
+    return new this(entries);
   }
 }
 
 export class SourceFile implements IAttribute {
-  public name = 'SourceFile';
   public filename: string;
 
-  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool) {
-    this.filename = (<ConstantPool.ConstUTF8> constant_pool.get(bytes_array.getUint16())).value;
+  constructor(filename: string) {
+    this.filename = filename;
+  }
+
+  public getName() {
+    return 'SourceFile';
+  }
+
+  public static parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool): IAttribute {
+    return new this((<ConstantPool.ConstUTF8> constantPool.get(byteStream.getUint16())).value);
   }
 }
 
-export class StackMapTable implements IAttribute {
-  public name = 'StackMapTable';
-  private num_entries: number;
-  private entries: { frame_name: string; frame_type: number }[];
+export interface IStackMapTableEntry {
+  type: enums.StackMapTableEntryType;
+  offsetDelta: number;
+}
 
-  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool) {
-    this.num_entries = bytes_array.getUint16();
-    this.entries = [];
-    for (var i = 0; i < this.num_entries; i++) {
-      this.entries.push(this.parse_entries(bytes_array, constant_pool));
-    }
+export class StackMapTable implements IAttribute {
+  private entries: IStackMapTableEntry[];
+
+  constructor(entries: IStackMapTableEntry[]) {
+    this.entries = entries;
   }
 
-  public parse_entries(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): { frame_name: string; frame_type: number } {
-    var frame_type = bytes_array.getUint8();
-    if ((0 <= frame_type && frame_type < 64)) {
+  public getName() {
+    return 'StackMapTable';
+  }
+
+  public static parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool): IAttribute {
+    var numEntries = byteStream.getUint16(),
+      entries = [];
+    for (var i = 0; i < numEntries; i++) {
+      entries.push(this.parseEntry(byteStream, constantPool));
+    }
+    return new this(entries);
+  }
+
+  private static parseEntry(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool): IStackMapTableEntry {
+    var frameType = byteStream.getUint8(), locals: string[],
+      offsetDelta: number, i: number;
+    if (frameType < 64) {
       return {
-        frame_type: frame_type,
-        frame_name: 'same'
+        type: enums.StackMapTableEntryType.SAME_FRAME,
+        offsetDelta: frameType
       };
-    } else if ((64 <= frame_type && frame_type < 128)) {
+    } else if (frameType < 128) {
       return {
-        frame_type: frame_type,
-        frame_name: 'same_locals_1_stack_item',
-        stack: [this.parse_verification_type_info(bytes_array, constant_pool)]
+        type: enums.StackMapTableEntryType.SAME_LOCALS_1_STACK_ITEM_FRAME,
+        offsetDelta: frameType - 64,
+        stack: [this.parseVerificationTypeInfo(byteStream, constantPool)]
       };
-    } else if ((128 <= frame_type && frame_type < 247)) {
+    } else if (frameType < 247) {
       // reserved for future use
-    } else if (frame_type === 247) {
+    } else if (frameType === 247) {
       return {
-        frame_type: frame_type,
-        frame_name: 'same_locals_1_stack_item_frame_extended',
-        offset_delta: bytes_array.getUint16(),
-        stack: [this.parse_verification_type_info(bytes_array, constant_pool)]
+        type: enums.StackMapTableEntryType.SAME_LOCALS_1_STACK_ITEM_FRAME_EXTENDED,
+        offsetDelta: byteStream.getUint16(),
+        stack: [this.parseVerificationTypeInfo(byteStream, constantPool)]
       };
-    } else if ((248 <= frame_type && frame_type < 251)) {
+    } else if (frameType < 251) {
       return {
-        frame_type: frame_type,
-        frame_name: 'chop',
-        offset_delta: [bytes_array.getUint16()]
+        type: enums.StackMapTableEntryType.CHOP_FRAME,
+        offsetDelta: byteStream.getUint16(),
+        k: 251 - frameType
       };
-    } else if (frame_type === 251) {
+    } else if (frameType === 251) {
       return {
-        frame_type: frame_type,
-        frame_name: 'same_frame_extended',
-        offset_delta: [bytes_array.getUint16()]
+        type: enums.StackMapTableEntryType.SAME_FRAME_EXTENDED,
+        offsetDelta: byteStream.getUint16()
       };
-    } else if ((252 <= frame_type && frame_type < 255)) {
-      var offset_delta = bytes_array.getUint16();
-      var locals: string[] = [];
-      for (var i = 0; i < frame_type - 251; i++) {
-        locals.push(this.parse_verification_type_info(bytes_array, constant_pool));
+    } else if (frameType < 255) {
+      offsetDelta = byteStream.getUint16();
+      locals = [];
+      for (i = 0; i < frameType - 251; i++) {
+        locals.push(this.parseVerificationTypeInfo(byteStream, constantPool));
       }
       return {
-        frame_type: frame_type,
-        frame_name: 'append',
-        offset_delta: offset_delta,
+        type: enums.StackMapTableEntryType.APPEND_FRAME,
+        offsetDelta: offsetDelta,
         locals: locals
       };
-    } else if (frame_type === 255) {
-      var offset_delta = bytes_array.getUint16();
-      var num_locals = bytes_array.getUint16();
+    } else if (frameType === 255) {
+      offsetDelta = byteStream.getUint16();
+      var numLocals = byteStream.getUint16();
       locals = [];
-      for (var i = 0; i < num_locals; i++) {
-        locals.push(this.parse_verification_type_info(bytes_array, constant_pool));
+      for (i = 0; i < numLocals; i++) {
+        locals.push(this.parseVerificationTypeInfo(byteStream, constantPool));
       }
-      var num_stack_items = bytes_array.getUint16();
+      var numStackItems = byteStream.getUint16();
       var stack: string[] = [];
-      for (var i = 0; i < num_stack_items; i++) {
-        stack.push(this.parse_verification_type_info(bytes_array, constant_pool));
+      for (i = 0; i < numStackItems; i++) {
+        stack.push(this.parseVerificationTypeInfo(byteStream, constantPool));
       }
       return {
-        frame_type: frame_type,
-        frame_name: 'full_frame',
-        offset_delta: offset_delta,
-        num_locals: num_locals,
+        type: enums.StackMapTableEntryType.FULL_FRAME,
+        offsetDelta: offsetDelta,
+        numLocals: numLocals,
         locals: locals,
-        num_stack_items: num_stack_items,
+        numStackItems: numStackItems,
         stack: stack
       };
     }
   }
 
-  public parse_verification_type_info(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): string {
-    var tag = bytes_array.getUint8();
+  private static parseVerificationTypeInfo(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool): string {
+    var tag = byteStream.getUint8();
     if (tag === 7) {
-      var cls = (<ConstantPool.ClassReference> constant_pool.get(bytes_array.getUint16())).name;
+      var cls = (<ConstantPool.ClassReference> constantPool.get(byteStream.getUint16())).name;
       return 'class ' + (/\w/.test(cls[0]) ? util.descriptor2typestr(cls) : "\"" + cls + "\"");
     } else if (tag === 8) {
-      return 'uninitialized ' + bytes_array.getUint16();
+      return 'uninitialized ' + byteStream.getUint16();
     } else {
-      var tag_to_type = ['bogus', 'int', 'float', 'double', 'long', 'null', 'this', 'object', 'uninitialized'];
-      return tag_to_type[tag];
+      var tagToType = ['bogus', 'int', 'float', 'double', 'long', 'null', 'this', 'object', 'uninitialized'];
+      return tagToType[tag];
     }
   }
 }
 
-export class LocalVariableTable implements IAttribute {
-  public name = 'LocalVariableTable';
-  private num_entries: number;
-  private entries: { start_pc: number; length: number; name: string; descriptor: string; ref: number }[];
+export interface ILocalVariableTableEntry {
+  startPC: number;
+  length: number;
+  name: string;
+  descriptor: string;
+  ref: number;
+}
 
-  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool) {
-    this.num_entries = bytes_array.getUint16();
-    this.entries = [];
-    for (var i = 0; i < this.num_entries; i++) {
-      this.entries.push(this.parse_entries(bytes_array, constant_pool));
-    }
+export class LocalVariableTable implements IAttribute {
+  private entries: ILocalVariableTableEntry[];
+
+  constructor(entries: ILocalVariableTableEntry[]) {
+    this.entries = entries;
   }
 
-  public parse_entries(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): { start_pc: number; length: number; name: string; descriptor: string; ref: number } {
+  public getName() {
+    return 'LocalVariableTable';
+  }
+
+  public static parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool): IAttribute {
+    var numEntries = byteStream.getUint16(),
+      entries = [];
+    for (var i = 0; i < numEntries; i++) {
+      entries.push(this.parseEntries(byteStream, constantPool));
+    }
+    return new this(entries);
+  }
+
+  private static parseEntries(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): ILocalVariableTableEntry {
     return {
-      start_pc: bytes_array.getUint16(),
+      startPC: bytes_array.getUint16(),
       length: bytes_array.getUint16(),
       name: (<ConstantPool.ConstUTF8> constant_pool.get(bytes_array.getUint16())).value,
       descriptor: (<ConstantPool.ConstUTF8> constant_pool.get(bytes_array.getUint16())).value,
@@ -225,128 +310,305 @@ export class LocalVariableTable implements IAttribute {
   }
 }
 
+export interface ILocalVariableTypeTableEntry {
+  startPC: number;
+  length: number;
+  name: string;
+  signature: string;
+  index: number;
+}
+
+export class LocalVariableTypeTable implements IAttribute {
+  public entries: ILocalVariableTypeTableEntry[];
+  constructor(entries: ILocalVariableTypeTableEntry[]) {
+    this.entries = entries;
+  }
+  public getName(): string {
+    return 'LocalVariableTypeTable';
+  }
+
+  public static parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool): IAttribute {
+    var numEntries = byteStream.getUint16(), i: number,
+      entries: ILocalVariableTypeTableEntry[] = [];
+    for (i = 0; i < numEntries; i++) {
+      entries.push(this.parseTableEntry(byteStream, constantPool));
+    }
+    return new this(entries);
+  }
+
+  private static parseTableEntry(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool): ILocalVariableTypeTableEntry {
+    return {
+      startPC: byteStream.getUint16(),
+      length: byteStream.getUint16(),
+      name: (<ConstantPool.ConstUTF8> constantPool.get(byteStream.getUint16())).value,
+      signature: (<ConstantPool.ConstUTF8> constantPool.get(byteStream.getUint16())).value,
+      index: byteStream.getUint16()
+    };
+  }
+}
+
 export class Exceptions implements IAttribute {
-  public name = 'Exceptions';
-  private num_exceptions: number;
   public exceptions: string[];
 
-  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): void {
-    this.num_exceptions = bytes_array.getUint16();
-    var exc_refs: number[] = [];
-    for (var i = 0; i < this.num_exceptions; i++) {
-      exc_refs.push(bytes_array.getUint16());
+  constructor(exceptions: string[]) {
+    this.exceptions = exceptions;
+  }
+
+  public getName() {
+    return 'Exceptions';
+  }
+
+  public static parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool): IAttribute {
+    var numExceptions = byteStream.getUint16();
+    var excRefs: number[] = [];
+    for (var i = 0; i < numExceptions; i++) {
+      excRefs.push(byteStream.getUint16());
     }
-    this.exceptions = exc_refs.map((ref) => (<ConstantPool.ClassReference> constant_pool.get(ref)).name);
+    return new this(excRefs.map((ref: number) => (<ConstantPool.ClassReference> constantPool.get(ref)).name));
   }
 }
 
 export class InnerClasses implements IAttribute {
-  public name = 'InnerClasses';
   public classes: IInnerClassInfo[];
 
-  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): void {
-    var num_classes = bytes_array.getUint16();
-    this.classes = [];
-    for (var i = 0; i < num_classes; i++) {
-      this.classes.push(this.parse_class(bytes_array, constant_pool));
-    }
+  constructor(classes: IInnerClassInfo[]) {
+    this.classes = classes;
   }
 
-  public parse_class(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): IInnerClassInfo {
+  public getName() {
+    return 'InnerClasses';
+  }
+
+  public static parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): IAttribute {
+    var numClasses = bytes_array.getUint16(),
+      classes = [];
+    for (var i = 0; i < numClasses; i++) {
+      classes.push(this.parseClass(bytes_array, constant_pool));
+    }
+    return new this(classes);
+  }
+
+  public static parseClass(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool): IInnerClassInfo {
     return {
-      inner_info_index: bytes_array.getUint16(),
-      outer_info_index: bytes_array.getUint16(),
-      inner_name_index: bytes_array.getUint16(),
-      inner_access_flags: bytes_array.getUint16()
+      innerInfoIndex: byteStream.getUint16(),
+      outerInfoIndex: byteStream.getUint16(),
+      innerNameIndex: byteStream.getUint16(),
+      innerAccessFlags: byteStream.getUint16()
     };
   }
 }
 
 export class ConstantValue implements IAttribute {
-  public name = 'ConstantValue';
-  private ref: number;
   public value: ConstantPool.IConstantPoolItem;
 
-  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): void {
-    this.ref = bytes_array.getUint16();
-    this.value = constant_pool.get(this.ref);
+  constructor(value: ConstantPool.IConstantPoolItem) {
+    this.value = value;
+  }
+
+  public getName() {
+    return 'ConstantValue';
+  }
+
+  public static parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): IAttribute {
+    var ref = bytes_array.getUint16();
+    return new this(constant_pool.get(ref));
   }
 }
 
 export class Synthetic implements IAttribute {
-  public name = 'Synthetic';
-  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool) { }
+  public getName() {
+    return 'Synthetic';
+  }
+  public static parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool): IAttribute {
+    return new this();
+  }
 }
 
 export class Deprecated implements IAttribute {
-  public name = 'Deprecated';
-  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool) { }
+  public getName() {
+    return 'Deprecated';
+  }
+  public static parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool): IAttribute {
+    return new this();
+  }
 }
 
 export class Signature implements IAttribute {
-  public name = 'Signature';
   public sig: string;
 
-  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool, attr_len?: number) {
-    this.sig = (<ConstantPool.ConstUTF8> constant_pool.get(bytes_array.getUint16())).value;
+  constructor(sig: string) {
+    this.sig = sig;
+  }
+
+  public getName() {
+    return 'Signature';
+  }
+
+  public static parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool): IAttribute {
+    return new this((<ConstantPool.ConstUTF8> constantPool.get(byteStream.getUint16())).value);
   }
 }
 
 export class RuntimeVisibleAnnotations implements IAttribute {
-  public name = 'RuntimeVisibleAnnotations';
-  public raw_bytes: number[];
-  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool, attr_len?: number) {
-    // num_annotations = bytes_array.get_uint 2
-    this.raw_bytes = bytes_array.read(attr_len);
+  public rawBytes: number[];
+  public isHidden: boolean;
+
+  constructor(rawBytes: number[], isHidden: boolean) {
+    this.rawBytes = rawBytes;
+    this.isHidden = isHidden;
+  }
+
+  public getName() {
+    return 'RuntimeVisibleAnnotations';
+  }
+
+  public static parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool, attrLen?: number): IAttribute {
+    // No need to parse; OpenJDK parses these from within Java code from
+    // the raw bytes.
+    // ...but we need to look for the 'Hidden' annotation, which specifies if
+    // the method should be omitted from stack frames.
+
+    /**
+     * Skip the current RuntimeVisibleAnnotation.
+     */
+    function skipAnnotation() {
+      byteStream.skip(2); // type index
+      var numValuePairs = byteStream.getUint16(),
+        i: number;
+      for (i = 0; i < numValuePairs; i++) {
+        byteStream.skip(2); // element name index
+        skipElementValue();
+      }
+    }
+
+    /**
+     * Skip this particular element value.
+     */
+    function skipElementValue() {
+      var tag = String.fromCharCode(byteStream.getUint8());
+      switch(tag) {
+        case 'e':
+          // Fall-through.
+          byteStream.skip(2);
+        case 'Z':
+        case 'B':
+        case 'C':
+        case 'S':
+        case 'I':
+        case 'F':
+        case 'J':
+        case 'D':
+        case 's':
+        case 'c':
+          byteStream.skip(2);
+          break;
+        case '@':
+          skipAnnotation();
+          break;
+        case '[':
+          var numValues = byteStream.getUint16(), i: number;
+          for (i = 0; i < numValues; i++) {
+            skipElementValue();
+          }
+          break;
+
+      }
+    }
+
+    var rawBytes = byteStream.read(attrLen),
+      isHidden = false;
+    byteStream.seek(byteStream.pos() - rawBytes.length);
+    var numAttributes = byteStream.getUint16(), i: number;
+    for (i = 0; i < numAttributes; i++) {
+      var typeName = (<ConstantPool.ConstUTF8> constantPool.get(byteStream.getUint16()));
+      // Rewind.
+      byteStream.seek(byteStream.pos() - 2);
+      skipAnnotation();
+      if (typeName.value === 'Ljava/lang/invoke/LambdaForm$Hidden;') {
+        isHidden = true;
+        break;
+      }
+    }
+
+    return new this(rawBytes, isHidden);
   }
 }
 
 export class AnnotationDefault implements IAttribute {
-  public name = 'AnnotationDefault';
-  public raw_bytes: number[];
-  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool, attr_len?: number) {
-    this.raw_bytes = bytes_array.read(attr_len);
+  public rawBytes: number[];
+  constructor(rawBytes: number[]) {
+    this.rawBytes = rawBytes;
+  }
+
+  public getName() {
+    return 'AnnotationDefault';
+  }
+  public static parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool, attrLen?: number): IAttribute {
+    return new this(byteStream.read(attrLen));
   }
 }
 
 export class EnclosingMethod implements IAttribute {
-  public name = 'EnclosingMethod';
-  public enc_class: string;
-  public enc_method: ConstantPool.MethodReference;
-  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool) {
-    this.enc_class = (<ConstantPool.ClassReference> constant_pool.get(bytes_array.getUint16())).name;
-    var method_ref = bytes_array.getUint16();
-    if (method_ref > 0) {
-      this.enc_method = <ConstantPool.MethodReference> constant_pool.get(method_ref);
+  public encClass: ConstantPool.ClassReference;
+  /**
+   * Note: Is NULL if the current class is not immediately enclosed by a method
+   * or a constructor.
+   */
+  public encMethod: ConstantPool.NameAndTypeInfo;
+  constructor(encClass: ConstantPool.ClassReference, encMethod: ConstantPool.NameAndTypeInfo) {
+    this.encClass = encClass;
+    this.encMethod = encMethod;
+  }
+
+  public getName() {
+    return 'EnclosingMethod';
+  }
+
+  public static parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool): IAttribute {
+    var encClass = (<ConstantPool.ClassReference> constantPool.get(byteStream.getUint16())),
+      methodRef = byteStream.getUint16(), encMethod: ConstantPool.NameAndTypeInfo = null;
+    if (methodRef > 0) {
+      encMethod = <ConstantPool.NameAndTypeInfo> constantPool.get(methodRef);
+      assert(encMethod.getType() === enums.ConstantPoolItemType.NAME_AND_TYPE, "Enclosing method must be a name and type info.");
     }
+    return new this(encClass, encMethod);
   }
 }
 
 export class BootstrapMethods implements IAttribute {
-  public name = 'BootstrapMethods';
-  public bootstrapMethods: Array<[ConstantPool.MethodHandle,ConstantPool.IConstantPoolItem[]]>;
-  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool, attr_len?: number) {
-    var numBootstrapMethods = bytes_array.getUint16();
-    this.bootstrapMethods = [];
+  public bootstrapMethods: Array<[ConstantPool.MethodHandle, ConstantPool.IConstantPoolItem[]]>;
+  constructor(bootstrapMethods: Array<[ConstantPool.MethodHandle, ConstantPool.IConstantPoolItem[]]>) {
+    this.bootstrapMethods = bootstrapMethods;
+  }
+
+  public getName() {
+    return 'BootstrapMethods';
+  }
+
+  public static parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool): IAttribute {
+    var numBootstrapMethods = byteStream.getUint16(),
+      bootstrapMethods: Array<[ConstantPool.MethodHandle, ConstantPool.IConstantPoolItem[]]> = [];
     for (var i = 0; i < numBootstrapMethods; i++) {
-      var method_handle = <ConstantPool.MethodHandle> constant_pool.get(bytes_array.getUint16());
-      var num_args = bytes_array.getUint16();
+      var methodHandle = <ConstantPool.MethodHandle> constantPool.get(byteStream.getUint16());
+      var numArgs = byteStream.getUint16();
       var args: ConstantPool.IConstantPoolItem[] = [];
-      for (var j = 0; j < num_args; j++) {
-        args.push(constant_pool.get(bytes_array.getUint16()));
+      for (var j = 0; j < numArgs; j++) {
+        args.push(constantPool.get(byteStream.getUint16()));
       }
-      this.bootstrapMethods.push([method_handle, args]);
+      bootstrapMethods.push([methodHandle, args]);
     }
+    return new this(bootstrapMethods);
   }
 }
 
-export function make_attributes(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): IAttribute[] {
-  var attr_types = {
+export function makeAttributes(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool): IAttribute[]{
+  var attrTypes: { [name: string]: IAttributeClass } = {
     'Code': Code,
     'LineNumberTable': LineNumberTable,
     'SourceFile': SourceFile,
     'StackMapTable': StackMapTable,
     'LocalVariableTable': LocalVariableTable,
+    'LocalVariableTypeTable': LocalVariableTypeTable,
     'ConstantValue': ConstantValue,
     'Exceptions': Exceptions,
     'InnerClasses': InnerClasses,
@@ -357,25 +619,24 @@ export function make_attributes(bytes_array: ByteStream, constant_pool: Constant
     'AnnotationDefault': AnnotationDefault,
     'EnclosingMethod': EnclosingMethod,
     'BootstrapMethods': BootstrapMethods
-    // NYI: LocalVariableTypeTable
   };
-  var num_attrs = bytes_array.getUint16();
+  var numAttrs = byteStream.getUint16();
   var attrs : IAttribute[] = [];
-  for (var i = 0; i < num_attrs; i++) {
-    var name = (<ConstantPool.ConstUTF8> constant_pool.get(bytes_array.getUint16())).value;
-    var attr_len = bytes_array.getUint32();
-    if (attr_types[name] != null) {
-      var attr = new attr_types[name];
-      var old_len = bytes_array.size();
-      attr.parse(bytes_array, constant_pool, attr_len);
-      var new_len = bytes_array.size();
-      if (old_len - new_len !== attr_len) {
-        bytes_array.skip(attr_len - old_len + new_len);
+  for (var i = 0; i < numAttrs; i++) {
+    var name = (<ConstantPool.ConstUTF8> constantPool.get(byteStream.getUint16())).value;
+    var attrLen = byteStream.getUint32();
+    if (attrTypes[name] != null) {
+      var oldLen = byteStream.size();
+      var attr = attrTypes[name].parse(byteStream, constantPool, attrLen, name);
+      var newLen = byteStream.size();
+      assert((oldLen - newLen) <= attrLen, "A parsed attribute read beyond its data! " + name);
+      if (oldLen - newLen !== attrLen) {
+        byteStream.skip(attrLen - oldLen + newLen);
       }
       attrs.push(attr);
     } else {
       // we must silently ignore other attrs
-      bytes_array.skip(attr_len);
+      byteStream.skip(attrLen);
     }
   }
   return attrs;

@@ -9,9 +9,9 @@ import ClassLoader = require('../ClassLoader');
 declare var registerNatives: (defs: any) => void;
 
 function unsafe_compare_and_swap(thread: threading.JVMThread, _this: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, expected: any, x: any): boolean {
-  var actual = obj.get_field_from_offset(thread, offset);
+  var actual = obj.getFieldFromSlot(thread, offset);
   if (actual === expected) {
-    obj.set_field_from_offset(thread, offset, x);
+    obj.setFieldFromSlot(thread, offset, x);
     return true;
   } else {
     return false;
@@ -113,31 +113,31 @@ class sun_misc_Signal {
 class sun_misc_Unsafe {
 
   public static 'getInt(Ljava/lang/Object;J)I'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putInt(Ljava/lang/Object;JI)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
-    return obj.set_field_from_offset(thread, offset, new_value);
+    return obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'getObject(Ljava/lang/Object;J)Ljava/lang/Object;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): java_object.JavaObject {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putObject(Ljava/lang/Object;JLjava/lang/Object;)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_obj: java_object.JavaObject): void {
-    return obj.set_field_from_offset(thread, offset, new_obj);
+    return obj.setFieldFromSlot(thread, offset, new_obj);
   }
 
   public static 'getBoolean(Ljava/lang/Object;J)Z'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putBoolean(Ljava/lang/Object;JZ)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
-    return obj.set_field_from_offset(thread, offset, new_value);
+    return obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'getByte(Ljava/lang/Object;J)B'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putByte(Ljava/lang/Object;JB)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
@@ -145,7 +145,7 @@ class sun_misc_Unsafe {
   }
 
   public static 'getShort(Ljava/lang/Object;J)S'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putShort(Ljava/lang/Object;JS)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
@@ -153,35 +153,35 @@ class sun_misc_Unsafe {
   }
 
   public static 'getChar(Ljava/lang/Object;J)C'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putChar(Ljava/lang/Object;JC)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
-    return obj.set_field_from_offset(thread, offset, new_value);
+    return obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'getLong(Ljava/lang/Object;J)J'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): gLong {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putLong(Ljava/lang/Object;JJ)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, x: gLong): void {
-    obj.set_field_from_offset(thread, offset, x);
+    obj.setFieldFromSlot(thread, offset, x);
   }
 
   public static 'getFloat(Ljava/lang/Object;J)F'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putFloat(Ljava/lang/Object;JF)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
-    obj.set_field_from_offset(thread, offset, new_value);
+    obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'getDouble(Ljava/lang/Object;J)D'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putDouble(Ljava/lang/Object;JD)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
-    obj.set_field_from_offset(thread, offset, new_value);
+    obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'getByte(J)B'(thread: threading.JVMThread, javaThis: java_object.JavaObject, address: gLong): number {
@@ -279,21 +279,86 @@ class sun_misc_Unsafe {
     return null;
   }
 
-  public static 'setMemory(JJB)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, address: gLong, bytes: gLong, value: number): void {
-    var i: number, addr = address.toNumber(),
-      bytesNum: number = bytes.toNumber(),
-      heap = thread.getThreadPool().getJVM().getHeap();
-    for (i = 0; i < bytesNum; i++) {
-      heap.set_signed_byte(addr + i, value);
+  public static 'setMemory(Ljava/lang/Object;JJB)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, address: gLong, bytes: gLong, value: number): void {
+    if (obj === null) {
+      // Address is absolute.
+      var i: number, addr = address.toNumber(),
+        bytesNum: number = bytes.toNumber(),
+        heap = thread.getThreadPool().getJVM().getHeap();
+      for (i = 0; i < bytesNum; i++) {
+        heap.set_signed_byte(addr + i, value);
+      }
+    } else {
+      // I have no idea what the semantics are when the object is specified.
+      // I think it means use the object as the starting address... which doesn't
+      // make sense for us.
+      thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     }
   }
-  // Java 8 version
-  public static 'setMemory(Ljava/lang/Object;JJB)V'(thread: threading.JVMThread, obj: java_object.JavaObject, address: gLong, bytes: gLong, value: number): void {
-    sun_misc_Unsafe['setMemory(JJB)V'](thread, obj, address, bytes, value);
-  }
 
-  public static 'copyMemory(Ljava/lang/Object;JLjava/lang/Object;JJ)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: gLong, arg2: java_object.JavaObject, arg3: gLong, arg4: gLong): void {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+  /**
+   * Sets all bytes in a given block of memory to a copy of another
+   * block.
+   *
+   * <p>This method determines each block's base address by means of two parameters,
+   * and so it provides (in effect) a <em>double-register</em> addressing mode,
+   * as discussed in {@link #getInt(Object,long)}.  When the object reference is null,
+   * the offset supplies an absolute base address.
+   *
+   * <p>The transfers are in coherent (atomic) units of a size determined
+   * by the address and length parameters.  If the effective addresses and
+   * length are all even modulo 8, the transfer takes place in 'long' units.
+   * If the effective addresses and length are (resp.) even modulo 4 or 2,
+   * the transfer takes place in units of 'int' or 'short'.
+   *
+   * @since 1.7
+   */
+  public static 'copyMemory(Ljava/lang/Object;JLjava/lang/Object;JJ)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, srcBase: java_object.JavaObject, srcOffset: gLong, destBase: java_object.JavaObject, destOffset: gLong, bytes: gLong): void {
+    var heap = thread.getThreadPool().getJVM().getHeap(),
+      srcAddr = srcOffset.toNumber(),
+      destAddr = destOffset.toNumber(),
+      length = bytes.toNumber();
+    if (srcBase === null && destBase === null) {
+      // memcopy semantics w/ srcoffset/destoffset as absolute offsets.
+      heap.memcpy(srcAddr, destAddr, length);
+    } else if (srcBase === null && destBase !== null) {
+      // OK, so... destBase is an array, destOffset is a byte offset from the
+      // start of the array. Need to copy data from the heap directly into the array.
+      if (util.is_array_type(destBase.cls.getInternalName()) && util.is_primitive_type((<ClassData.ArrayClassData><any>destBase.cls).getComponentClass().getInternalName())) {
+        var destArray: java_object.JavaArray = <any> destBase, i: number;
+        switch (destArray.cls.getComponentClass().getInternalName()) {
+          case 'B':
+            for (i = 0; i < length; i++) {
+              destArray.array[destAddr + i] = heap.get_byte(srcAddr + i);
+            }
+            break;
+          /*case 'C':
+            break;
+          case 'D':
+            break;
+          case 'F':
+            break;
+          case 'I':
+            break;
+          case 'J':
+            break;
+          case 'S':
+            break;
+          case 'Z':
+            break;*/
+          default:
+            // I have no idea what the appropriate semantics are for this.
+            thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+            break;
+        }
+      } else {
+        // I have no idea what the appropriate semantics are for this.
+        thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+      }
+    } else {
+      // I have no idea what the appropriate semantics are for this.
+      thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+    }
   }
 
   public static 'freeMemory(J)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, address: gLong): void {
@@ -302,17 +367,13 @@ class sun_misc_Unsafe {
   }
 
   public static 'staticFieldOffset(Ljava/lang/reflect/Field;)J'(thread: threading.JVMThread, javaThis: java_object.JavaObject, field: java_object.JavaObject): gLong {
-    // XXX: encode both the class and slot information in an integer
-    //      this may cause collisions, but it seems to work ok
-    var jco = field.get_field(thread, 'Ljava/lang/reflect/Field;clazz'),
-      slot = field.get_field(thread, 'Ljava/lang/reflect/Field;slot');
-    return gLong.fromNumber(slot + jco.ref);
+    var slot = field.get_field(thread, 'Ljava/lang/reflect/Field;slot');
+    return gLong.fromNumber(slot);
   }
 
   public static 'objectFieldOffset(Ljava/lang/reflect/Field;)J'(thread: threading.JVMThread, javaThis: java_object.JavaObject, field: java_object.JavaObject): gLong {
-    var jco = field.get_field(thread, 'Ljava/lang/reflect/Field;clazz'),
-      slot = field.get_field(thread, 'Ljava/lang/reflect/Field;slot');
-    return gLong.fromNumber(slot + jco.ref);
+    var slot = field.get_field(thread, 'Ljava/lang/reflect/Field;slot');
+    return gLong.fromNumber(slot);
   }
 
   public static 'staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, field: java_object.JavaObject): java_object.JavaObject {
@@ -322,8 +383,10 @@ class sun_misc_Unsafe {
 
   public static 'ensureClassInitialized(Ljava/lang/Class;)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, cls: java_object.JavaClassObject): void {
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    cls.$cls.loader.initializeClass(thread, cls.$cls.get_type(), () => {
-      thread.asyncReturn();
+    cls.$cls.initialize(thread, (cdata: ClassData.ClassData) => {
+      if (cdata != null) {
+        thread.asyncReturn();
+      }
     }, true);
   }
 
@@ -343,28 +406,32 @@ class sun_misc_Unsafe {
     return 1024;
   }
 
-  public static 'defineClass(Ljava/lang/String;[BIILjava/lang/ClassLoader;Ljava/security/ProtectionDomain;)Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, name: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number, loaderObj: ClassLoader.JavaClassLoaderObject, pd: java_object.JavaObject): java_object.JavaClassObject {
+  public static 'defineClass(Ljava/lang/String;[BIILjava/lang/ClassLoader;Ljava/security/ProtectionDomain;)Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, name: java_object.JavaObject, bytes: java_object.JavaArray, offset: number, len: number, loaderObj: ClassLoader.JavaClassLoaderObject, pd: java_object.JavaObject): void {
     var loader = java_object.get_cl_from_jclo(thread, loaderObj);
     if (loader != null) {
-      return loader.defineClass(thread, util.int_classname(name.jvm2js_str()), util.byteArray2Buffer(bytes.array, offset, len)).get_class_object(thread);
+      var cdata: ClassData.ClassData = loader.defineClass(thread, util.int_classname(name.jvm2js_str()), util.byteArray2Buffer(bytes.array, offset, len));
+      if (cdata !== null) {
+        thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+        // Resolve the class, since we're handing it back to the application
+        // and we expect these things to be resolved.
+        cdata.resolve(thread, (cdata: ClassData.ClassData) => {
+          if (cdata !== null) {
+            thread.asyncReturn(cdata.getClassObject(thread));
+          }
+        });
+      }
     }
-  }
-
-  public static 'defineClass(Ljava/lang/String;[BII)Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: java_object.JavaArray, arg2: number, arg3: number): java_object.JavaClassObject {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    // Satisfy TypeScript return type.
-    return null;
   }
 
   public static 'allocateInstance(Ljava/lang/Class;)Ljava/lang/Object;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, jco: java_object.JavaClassObject): any {
     // This can trigger class initialization, so check if the class is
     // initialized.
     var cls = <ClassData.ReferenceClassData> jco.$cls;
-    if (cls.is_initialized(thread)) {
+    if (cls.isInitialized(thread)) {
       return new java_object.JavaObject(cls);
     } else {
       thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-      cls.loader.initializeClass(thread, cls.get_type(), () => {
+      cls.initialize(thread, () => {
         thread.asyncReturn(new java_object.JavaObject(cls));
       });
     }
@@ -393,87 +460,87 @@ class sun_misc_Unsafe {
   public static 'compareAndSwapLong(Ljava/lang/Object;JJJ)Z': (thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: gLong, arg2: gLong, arg3: gLong) => boolean = unsafe_compare_and_swap;
 
   public static 'getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): java_object.JavaObject {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putObjectVolatile(Ljava/lang/Object;JLjava/lang/Object;)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: java_object.JavaObject): void {
-    obj.set_field_from_offset(thread, offset, new_value);
+    obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'getIntVolatile(Ljava/lang/Object;J)I'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putIntVolatile(Ljava/lang/Object;JI)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
-    obj.set_field_from_offset(thread, offset, new_value);
+    obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'getBooleanVolatile(Ljava/lang/Object;J)Z'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putBooleanVolatile(Ljava/lang/Object;JZ)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
-    obj.set_field_from_offset(thread, offset, new_value);
+    obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'getByteVolatile(Ljava/lang/Object;J)B'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putByteVolatile(Ljava/lang/Object;JB)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
-    obj.set_field_from_offset(thread, offset, new_value);
+    obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'getShortVolatile(Ljava/lang/Object;J)S'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putShortVolatile(Ljava/lang/Object;JS)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
-    obj.set_field_from_offset(thread, offset, new_value);
+    obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'getCharVolatile(Ljava/lang/Object;J)C'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putCharVolatile(Ljava/lang/Object;JC)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
-    obj.set_field_from_offset(thread, offset, new_value);
+    obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'getLongVolatile(Ljava/lang/Object;J)J'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): gLong {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putLongVolatile(Ljava/lang/Object;JJ)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: gLong): void {
-    obj.set_field_from_offset(thread, offset, new_value);
+    obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'getFloatVolatile(Ljava/lang/Object;J)F'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putFloatVolatile(Ljava/lang/Object;JF)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
-    obj.set_field_from_offset(thread, offset, new_value);
+    obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'getDoubleVolatile(Ljava/lang/Object;J)D'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong): number {
-    return obj.get_field_from_offset(thread, offset);
+    return obj.getFieldFromSlot(thread, offset);
   }
 
   public static 'putDoubleVolatile(Ljava/lang/Object;JD)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
-    obj.set_field_from_offset(thread, offset, new_value);
+    obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'putOrderedObject(Ljava/lang/Object;JLjava/lang/Object;)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_obj: java_object.JavaObject): void {
-    obj.set_field_from_offset(thread, offset, new_obj);
+    obj.setFieldFromSlot(thread, offset, new_obj);
   }
 
   public static 'putOrderedInt(Ljava/lang/Object;JI)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: number): void {
-    obj.set_field_from_offset(thread, offset, new_value);
+    obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   public static 'putOrderedLong(Ljava/lang/Object;JJ)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, obj: java_object.JavaObject, offset: gLong, new_value: gLong): void {
-    obj.set_field_from_offset(thread, offset, new_value);
+    obj.setFieldFromSlot(thread, offset, new_value);
   }
 
   /**
@@ -525,6 +592,35 @@ class sun_misc_Unsafe {
     return 0;
   }
 
+  /**
+   * Detect if the given class may need to be initialized. This is often
+   * needed in conjunction with obtaining the static field base of a
+   * class.
+   * @return false only if a call to {@code ensureClassInitialized} would have no effect
+   */
+  public static 'shouldBeInitialized(Ljava/lang/Class;)Z'(thread: threading.JVMThread, javaThis: java_object.JavaObject, cls: java_object.JavaClassObject): number {
+    return !cls.$cls.isInitialized(thread) ? 1 : 0;
+  }
+
+  /**
+   * Define a class but do not make it known to the class loader or system dictionary.
+   *
+   * For each CP entry, the corresponding CP patch must either be null or have
+   * the format that matches its tag:
+   *
+   * * Integer, Long, Float, Double: the corresponding wrapper object type from java.lang
+   * * Utf8: a string (must have suitable syntax if used as signature or name)
+   * * Class: any java.lang.Class object
+   * * String: any object (not just a java.lang.String)
+   * * InterfaceMethodRef: (NYI) a method handle to invoke on that call site's arguments
+   *
+   * @params hostClass context for linkage, access control, protection domain, and class loader
+   * @params data      bytes of a class file
+   * @params cpPatches where non-null entries exist, they replace corresponding CP entries in data
+   */
+  public static 'defineAnonymousClass(Ljava/lang/Class;[B[Ljava/lang/Object;)Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, hostClass: java_object.JavaClassObject, data: java_object.JavaArray, cpPatches: java_object.JavaArray): java_object.JavaClassObject {
+    return new ClassData.ReferenceClassData(new Buffer(data.array), hostClass.$cls.getLoader(), cpPatches).getClassObject(thread);
+  }
 }
 
 class sun_misc_Version {
@@ -555,107 +651,42 @@ class sun_misc_Version {
 
 class sun_misc_VM {
 
-  /**
-   * Fill in vmThreadStateValues with int arrays, each of which contains
-   * the threadStatus values mapping to the Thread.State enum constant.
-   *
-   * Fill in vmThreadStateNames with String arrays, each of which contains
-   * the name of each threadStatus value of the format:
-   *    <Thread.State.name()>[.<Substate name>]
-   * e.g. WAITING.OBJECT_WAIT
-   *
-   * Note: Both of these arrays are preinitialized to the correct length.
-   *
-   * Here's an example output:
-   * vmThreadStateValues = [
-   *   [enums.ThreadStatus.NEW],
-   *   ...
-   * ];
-   * vmThreadStateNames = [
-   *   ["NEW.NEW"]
-   * ];
-   *
-   * The actual indices of the state values *does not* need to match the
-   * Thread.State enum values! The JVM uses the beginning of the *strings*
-   * in the vmThreadStateNames array to figure out which index is associated
-   * with each state.
-   */
-  public static 'getThreadStateValues([[I[[Ljava/lang/String;)V'(thread: threading.JVMThread, vmThreadStateValues: java_object.JavaArray, vmThreadStateNames: java_object.JavaArray): void {
-    var bsCl = thread.getBsCl(),
-      threadStateArray: java_object.JavaArray[] = vmThreadStateValues.array,
-      threadStateNamesArray: java_object.JavaArray[] = vmThreadStateNames.array,
-      intArrCls = <ClassData.ArrayClassData> vmThreadStateValues.cls.get_component_class(),
-      strArrCls = <ClassData.ArrayClassData> vmThreadStateNames.cls.get_component_class(),
-      // NOTE: These values do not need to map to Thread.State, but they need
-      // to be contiguous.
-      // A thread that has not yet started is in this state.
-      NEW = 0,
-      // A thread executing in the Java virtual machine is in this state.
-      RUNNABLE = 1,
-      // A thread that is blocked waiting for a monitor lock is in this state.
-      BLOCKED = 2,
-      // A thread that is waiting indefinitely for another thread to perform a
-      // particular action is in this state.
-      WAITING = 3,
-      // A thread that is waiting for another thread to perform an action for up
-      // to a specified waiting time is in this state.
-      TIMED_WAITING = 4,
-      // A thread that has exited is in this state.
-      TERMINATED = 5;
-
-    function jvmStrArr(strs: string[]): java_object.JavaArray {
-      var arr: java_object.JavaObject[] = [], i: number;
-      for (i = 0; i < strs.length; i++) {
-        arr.push(java_object.initString(bsCl, strs[i]));
-      }
-      return new java_object.JavaArray(strArrCls, arr);
-    }
-
-    threadStateArray[NEW] = new java_object.JavaArray(intArrCls, [enums.ThreadStatus.NEW]);
-    threadStateNamesArray[NEW] = jvmStrArr(['NEW.NEW']);
-
-    threadStateArray[RUNNABLE] = new java_object.JavaArray(intArrCls, [enums.ThreadStatus.RUNNING, enums.ThreadStatus.RUNNABLE]);
-    threadStateNamesArray[RUNNABLE] = jvmStrArr(['RUNNABLE.RUNNING', 'RUNNABLE.RUNNABLE']);
-
-    threadStateArray[BLOCKED] = new java_object.JavaArray(intArrCls, [enums.ThreadStatus.BLOCKED, enums.ThreadStatus.UNINTERRUPTABLY_BLOCKED]);
-    threadStateNamesArray[BLOCKED] = jvmStrArr(['BLOCKED.BLOCKED', 'BLOCKED.UNINTERRUPTABLY_BLOCKED']);
-
-    // @todo Distinguish between TIMED parks, and UNTIMED parks.
-    threadStateArray[WAITING] = new java_object.JavaArray(intArrCls, [enums.ThreadStatus.WAITING, enums.ThreadStatus.ASYNC_WAITING, enums.ThreadStatus.PARKED]);
-    threadStateNamesArray[WAITING] = jvmStrArr(['WAITING.WAITING', 'WAITING.ASYNC_WAITING', 'WAITING.PARKED']);
-
-    threadStateArray[TIMED_WAITING] = new java_object.JavaArray(intArrCls, [enums.ThreadStatus.TIMED_WAITING]);
-    threadStateNamesArray[TIMED_WAITING] = jvmStrArr(['TIMED_WAITING.TIMED_WAITING']);
-
-    threadStateArray[TERMINATED] = new java_object.JavaArray(intArrCls, [enums.ThreadStatus.TERMINATED]);
-    threadStateNamesArray[TERMINATED] = jvmStrArr(['TERMINATED.TERMINATED']);
-  }
-
   public static 'initialize()V'(thread: threading.JVMThread): void {
     var vm_cls = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass(thread, 'Lsun/misc/VM;');
     // this only applies to Java 7
-    if (vm_cls.major_version < 51) {
+    if (vm_cls.majorVersion < 51) {
       return;
     }
     // Hack: make an empty savedProps
     var props_cls = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass(thread, 'Ljava/util/Properties;');
     var props = new java_object.JavaObject(props_cls);
-    var m = props_cls.get_method('<init>()V');
+    var m = props_cls.getMethod('<init>()V');
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     thread.runMethod(m, [props], (e?, rv?) => {
       if (e) {
         thread.throwException(e);
       } else {
-        vm_cls.static_put(thread, 'savedProps', props);
+        vm_cls.staticPut(thread, 'savedProps', props);
         thread.asyncReturn();
       }
     });
   }
 
-  // Java 8 support
-  public static 'latestUserDefinedLoader()Ljava/lang/ClassLoader;'(thread: threading.JVMThread): void {
-    // TODO: this breaks classes/test/Serialization under Java 8
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+  /**
+   * Returns the first non-null class loader (not counting class loaders
+   * of generated reflection implementation classes) up the execution stack,
+   * or null if only code from the null class loader is on the stack.
+   */
+  public static 'latestUserDefinedLoader()Ljava/lang/ClassLoader;'(thread: threading.JVMThread): ClassLoader.JavaClassLoaderObject {
+    var stackTrace = thread.getStackTrace(), i: number,
+      bsCl = thread.getBsCl(), loader: ClassLoader.ClassLoader;
+    for (i = 0; i < stackTrace.length; i++) {
+      loader = stackTrace[i].method.cls.getLoader();
+      if (loader !== bsCl) {
+        return (<ClassLoader.CustomClassLoader> loader).getLoaderObject();
+      }
+    }
+    return null;
   }
 
 }

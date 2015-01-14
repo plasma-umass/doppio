@@ -112,7 +112,8 @@ class DoppioTest {
       classpath: [this.opts.doppioDir],
       javaHomePath: this.opts.javaHomePath,
       extractionPath: this.opts.extractionPath,
-      nativeClasspath: this.opts.nativeClasspath
+      nativeClasspath: this.opts.nativeClasspath,
+      assertionsEnabled: false
     }, cb);
   }
 
@@ -193,7 +194,7 @@ export function runTests(opts: TestOptions, cb: (result: boolean) => void): void
     tests = testClasses.map((testClass: string): DoppioTest => {
       return new DoppioTest(opts, testClass);
     });
-    util.async_foreach(tests, (test: DoppioTest, nextItem: (err?: any) => void): void => {
+    util.asyncForEach(tests, (test: DoppioTest, nextItem: (err?: any) => void): void => {
       test.run((success: boolean) => {
         if (success || opts.keepGoing) {
           nextItem();

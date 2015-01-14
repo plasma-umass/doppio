@@ -44,7 +44,7 @@ class sun_management_VMManagementImpl {
     // set everything to false
     for (i = 0; i < field_names.length; i++) {
       var name = field_names[i];
-      vm_management_impl.static_put(thread, name, 0);
+      vm_management_impl.staticPut(thread, name, 0);
     }
   }
 

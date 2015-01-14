@@ -1,6 +1,7 @@
 ///<reference path='../vendor/DefinitelyTyped/node/node.d.ts' />
 import ClassData = require('./ClassData');
 import threading = require('./threading');
+import ClassLock = require('./ClassLock');
 import enums = require('./enums');
 import util = require('./util');
 import java_object = require('./java_object');
@@ -14,13 +15,13 @@ var debug = logging.debug;
 declare var BrowserFS;
 
 /**
- * Used to lock classes for loading/initialization.
+ * Used to lock classes for loading.
  */
 class ClassLocks {
   /**
    * typrStr => array of callbacks to trigger when operation completes.
    */
-  private locks: { [typeStr: string]: { thread: threading.JVMThread; cb: (cdata: ClassData.ClassData) => void }[] } = {};
+  private locks: { [typeStr: string]: ClassLock } = {};
 
   constructor() {}
 
@@ -31,23 +32,17 @@ class ClassLocks {
    */
   public tryLock(typeStr: string, thread: threading.JVMThread, cb: (cdata: ClassData.ClassData) => void): boolean {
     if (typeof this.locks[typeStr] === 'undefined') {
-      this.locks[typeStr] = [{cb: cb, thread: thread}];
-      return true;
-    } else {
-      this.locks[typeStr].push({cb: cb, thread: thread});
-      return false;
+      this.locks[typeStr] = new ClassLock();
     }
+    return this.locks[typeStr].tryLock(thread, cb);
   }
 
   /**
    * Releases the lock on the given string.
    */
   public unlock(typeStr: string, cdata: ClassData.ClassData): void {
-    var cbs = this.locks[typeStr], i: number;
-    // Trigger each of the callbacks.
-    for (i = 0; i < cbs.length; i++) {
-      cbs[i].cb(cdata);
-    }
+    this.locks[typeStr].unlock(cdata);
+    // No need for this lock to remain.
     delete this.locks[typeStr];
   }
 
@@ -57,7 +52,7 @@ class ClassLocks {
    */
   public getOwner(typeStr: string): threading.JVMThread {
     if (this.locks[typeStr]) {
-      return this.locks[typeStr][0].thread;
+      return this.locks[typeStr].getOwner();
     }
     return null;
   }
@@ -77,11 +72,6 @@ export class ClassLoader {
    * the specified class.
    */
   private loadClassLocks: ClassLocks = new ClassLocks();
-  /**
-   * Stores callbacks that are waiting for another thread to finish initializing
-   * the specified class.
-   */
-  private initializeClassLocks: ClassLocks = new ClassLocks();
 
   /**
    * @param bootstrap The JVM's bootstrap classloader. ClassLoaders use it
@@ -121,7 +111,7 @@ export class ClassLoader {
    *
    * Should only be used internally by ClassLoader subclasses.
    */
-  public getClass(typeStr: string): ClassData.ClassData {
+  protected getClass(typeStr: string): ClassData.ClassData {
     return this.loadedClasses[typeStr];
   }
 
@@ -149,6 +139,7 @@ export class ClassLoader {
         // This will only happen when we're loading java/lang/Thread for
         // the very first time.
         logging.error('JVM initialization failed: ' + e);
+        logging.error(e.stack);
       } else {
         thread.throwNewException('Ljava/lang/ClassFormatError;', e);
       }
@@ -159,7 +150,7 @@ export class ClassLoader {
   /**
    * Defines a new array class with this loader.
    */
-  public defineArrayClass(typeStr: string): ClassData.ArrayClassData {
+  protected defineArrayClass(typeStr: string): ClassData.ArrayClassData {
     assert(this.getLoadedClass(util.get_component_type(typeStr)) != null);
     var arrayClass = new ClassData.ArrayClassData(util.get_component_type(typeStr), this);
     this.addClass(typeStr, arrayClass);
@@ -186,7 +177,7 @@ export class ClassLoader {
         // with the component class's loader.
         var component = this.getLoadedClass(util.get_component_type(typeStr));
         if (component != null) {
-          var componentCl = component.get_class_loader();
+          var componentCl = component.getLoader();
           if (componentCl === this) {
             // We're responsible for defining the array class.
             return this.defineArrayClass(typeStr);
@@ -212,25 +203,13 @@ export class ClassLoader {
   public getResolvedClass(typeStr: string): ClassData.ClassData {
     var cls = this.getLoadedClass(typeStr);
     if (cls !== null) {
-      var state = cls.get_state();
-      switch (state) {
-        case enums.ClassState.RESOLVED:
-        case enums.ClassState.INITIALIZED:
-          // An initialized class is already resolved.
-          return cls;
-        case enums.ClassState.LOADED:
-          // See if we can promote this to resolved.
-          if (cls.tryToResolve()) {
-            return cls;
-          } else {
-            return null;
-          }
-        default:
-          // Class is not resolved.
-          return null;
+      if (cls.isResolved() || cls.tryToResolve()) {
+        return cls;
+      } else {
+        return null;
       }
     } else {
-      return cls;
+      return null;
     }
   }
 
@@ -243,16 +222,9 @@ export class ClassLoader {
   public getInitializedClass(thread: threading.JVMThread, typeStr: string): ClassData.ClassData {
     var cls = this.getLoadedClass(typeStr);
     if (cls !== null) {
-      if (cls.get_state() === enums.ClassState.INITIALIZED) {
-        return cls;
-      } else if (cls.tryToInitialize()) {
+      if (cls.isInitialized(thread) || cls.tryToInitialize()) {
         return cls;
       } else {
-        // Check if the thread owns the initialized lock. If so, that thread
-        // can treat the class as already initialized.
-        if (this.initializeClassLocks.getOwner(typeStr) === thread) {
-          return cls;
-        }
         return null;
       }
     } else {
@@ -297,7 +269,7 @@ export class ClassLoader {
    *
    * Should never be invoked directly! Use loadClass.
    */
-  public _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit?: boolean): void {
+  protected _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit?: boolean): void {
     throw new Error("Abstract method!");
   }
 
@@ -307,7 +279,7 @@ export class ClassLoader {
    */
   public resolveClasses(thread: threading.JVMThread, typeStrs: string[], cb: (classes: { [typeStr: string]: ClassData.ClassData }) => void) {
     var classes: { [typeStr: string]: ClassData.ClassData } = {};
-    util.async_foreach<string>(typeStrs, (typeStr: string, next_item: (err?: any) => void) => {
+    util.asyncForEach<string>(typeStrs, (typeStr: string, next_item: (err?: any) => void) => {
       this.resolveClass(thread, typeStr, (cdata) => {
         if (cdata === null) {
           next_item("Error resolving class: " + typeStr);
@@ -331,45 +303,12 @@ export class ClassLoader {
    */
   public resolveClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
     this.loadClass(thread, typeStr, (cdata: ClassData.ClassData) => {
-      if (cdata === null || cdata.is_resolved()) {
+      if (cdata === null || cdata.isResolved()) {
         // Nothing to do! Either cdata is null, an exception triggered, and we
         // failed, or cdata is already resolved.
         setImmediate(() => { cb(cdata); });
       } else {
-        assert(!util.is_primitive_type(typeStr));
-        var toResolve: string[] = [cdata.get_super_class_type()];
-        if (util.is_array_type(typeStr)) {
-          // Array: Super class + component type.
-          toResolve.push((<ClassData.ArrayClassData>cdata).get_component_type());
-        } else {
-          // Reference: interface types + super class.
-          toResolve = cdata.get_interface_types().concat(toResolve);
-        }
-        // Gotta resolve 'em all!
-        util.async_foreach<string>(toResolve, (aTypeStr: string, next: (err?: any) => void): void => {
-          // SPECIAL CASE: super class was null (java/lang/Object).
-          if (aTypeStr == null) {
-            return next();
-          }
-          this.resolveClass(thread, aTypeStr, (aCdata: ClassData.ClassData) => {
-            if (aCdata === null) {
-              next('Failed to resolve ' + aTypeStr);
-            } else {
-              next();
-            }
-          }, explicit);
-        }, (err?: any) => {
-          if (err) {
-            // An exception has already been thrown when one of the classes
-            // failed to load.
-            cb(null);
-          } else {
-            // Success! This synchronous resolution should succeed now.
-            cdata.tryToResolve();
-            assert(cdata.is_resolved());
-            cb(cdata);
-          }
-        });
+        cdata.resolve(thread, cb, explicit);
       }
     }, explicit);
   }
@@ -380,99 +319,18 @@ export class ClassLoader {
   public initializeClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
     // Get the resolved class.
     this.resolveClass(thread, typeStr, (cdata: ClassData.ClassData) => {
-      if (cdata === null || cdata.is_initialized(thread)) {
+      if (cdata === null || cdata.isInitialized(thread)) {
         // Nothing to do! Either resolution failed and an exception has already
         // been thrown, cdata is already initialized, or the current thread is
         // initializing the class.
         setImmediate(() => {
           cb(cdata);
         });
-      } else if (this.initializeClassLocks.tryLock(typeStr, thread, cb)) {
-        // Initialize the super class, and then this class.
-        // Must be a reference type.
+      } else {
         assert(util.is_reference_type(typeStr));
-        var superClassType = cdata.get_super_class_type();
-        if (superClassType != null) {
-          this.initializeClass(thread, superClassType, (superCdata: ClassData.ClassData) => {
-            if (superCdata == null) {
-              // Nothing to do. Initializing the super class failed.
-              this.initializeClassLocks.unlock(typeStr, null);
-            } else {
-              // Initialize myself.
-              this._initializeClass(thread, typeStr, <ClassData.ReferenceClassData> cdata, (cdata) => {
-                this.initializeClassLocks.unlock(typeStr, cdata);
-              });
-            }
-          });
-        } else {
-          // java/lang/Object's parent is NULL.
-          // Continue initializing this class.
-          this._initializeClass(thread, typeStr, <ClassData.ReferenceClassData> cdata, (cdata) => {
-            this.initializeClassLocks.unlock(typeStr, cdata);
-          });
-        }
+        (<ClassData.ReferenceClassData> cdata).initialize(thread, cb, explicit);
       }
     }, explicit);
-  }
-
-  /**
-   * Helper function. Initializes the specified class alone. Assumes super
-   * class is already initialized.
-   */
-  private _initializeClass(thread: threading.JVMThread, typeStr: string, cdata: ClassData.ReferenceClassData, cb: (cdata: ClassData.ClassData) => void): void {
-    var clinit = cdata.get_method('<clinit>()V');
-    // We'll reset it if it fails.
-    if (clinit != null) {
-      debug("T" + thread.ref + " Running static initialization for class " + typeStr + "...");
-      thread.runMethod(clinit, [], (e?: java_object.JavaObject, rv?: any) => {
-        if (e) {
-          debug("Initialization of class " + typeStr + " failed.");
-          cdata.set_state(enums.ClassState.RESOLVED);
-          /**
-           * "The class or interface initialization method must have completed
-           *  abruptly by throwing some exception E. If the class of E is not
-           *  Error or one of its subclasses, then create a new instance of the
-           *  class ExceptionInInitializerError with E as the argument, and use
-           *  this object in place of E."
-           * @url http://docs.oracle.com/javase/specs/jvms/se7/html/jvms-5.html#jvms-5.5
-           */
-          if (e.cls.is_castable(this.bootstrap.getResolvedClass('Ljava/lang/Error;'))) {
-            // 'e' is 'Error or one of its subclasses'.
-            thread.throwException(e);
-            cb(null);
-          } else {
-            // Wrap the error.
-            this.initializeClass(thread, 'Ljava/lang/ExceptionInInitializerError;', (cdata: ClassData.ReferenceClassData) => {
-              if (cdata == null) {
-                // Exceptional failure right here: *We failed to construct ExceptionInInitializerError*!
-                // initializeClass will throw an exception on our behalf;
-                // nothing to do.
-                cb(null);
-              } else {
-                // Construct the object!
-                var e2 = new java_object.JavaObject(cdata),
-                  cnstrctr = cdata.get_method('<init>(Ljava/lang/Throwable;)V');
-                // Construct the ExceptionInInitializerError!
-                thread.runMethod(cnstrctr, [e2, e], (e?: java_object.JavaObject, rv?: any) => {
-                  // Throw the newly-constructed error!
-                  thread.throwException(e2);
-                  cb(null);
-                });
-              }
-            });
-          }
-        } else {
-          cdata.set_state(enums.ClassState.INITIALIZED);
-          debug("Initialization of class " + typeStr + " succeeded.");
-          // Normal case! Initialization succeeded.
-          cb(cdata);
-        }
-      });
-    } else {
-      // Class doesn't have a static initializer.
-      cdata.set_state(enums.ClassState.INITIALIZED);
-      cb(cdata);
-    }
   }
 
   /**
@@ -480,7 +338,7 @@ export class ClassLoader {
    * If loading was implicitly triggered by the JVM, we call NoClassDefFoundError.
    * If the program explicitly called loadClass, then we throw the ClassNotFoundException.
    */
-  public throwClassNotFoundException(thread: threading.JVMThread, typeStr: string, explicit: boolean): void {
+  protected throwClassNotFoundException(thread: threading.JVMThread, typeStr: string, explicit: boolean): void {
     thread.throwNewException(explicit ? 'Ljava/lang/ClassNotFoundException;' : 'Ljava/lang/NoClassDefFoundError;', 'Cannot load class: ' + util.ext_classname(typeStr));
   }
 
@@ -538,7 +396,7 @@ export class BootstrapClassLoader extends ClassLoader {
 
     // Checks all of the classpaths. Add only those that exist.
     var checkClasspaths = (cb: (e?: any) => void) => {
-      util.async_foreach<string>(classPath, (p: string, next_item: (err?: any) => void) => {
+      util.asyncForEach<string>(classPath, (p: string, next_item: (err?: any) => void) => {
         this.addClassPathItem(p, (success: boolean) => {
           // Ignore the success condition. It's not an error to pass an invalid
           // classpath to the JVM.
@@ -669,13 +527,13 @@ export class BootstrapClassLoader extends ClassLoader {
    *
    * SHOULD ONLY BE INVOKED INTERNALLY BY THE CLASSLOADER.
    */
-  public _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
+  protected _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
     debug('[BOOTSTRAP] Loading class ' + typeStr);
     // This method is only valid for reference types!
     assert(util.is_reference_type(typeStr));
     // Search the class path for the class.
     var clsFilePath = util.descriptor2typestr(typeStr);
-    util.async_find<string>(this.classPath, (p: string, callback: (success: boolean) => void): void => {
+    util.asyncFind<string>(this.classPath, (p: string, callback: (success: boolean) => void): void => {
       fs.exists(path.join(p, clsFilePath + ".class"), callback);
     }, (foundPath?: string): void => {
       if (foundPath) {
@@ -788,11 +646,11 @@ export class BootstrapClassLoader extends ClassLoader {
   public getLoadedClassFiles(cb: (files: string[]) => void): void {
     var loadedClasses = this.getLoadedClassNames(),
       loadedClassFiles = [];
-    util.async_foreach<string>(loadedClasses, (className: string, next_item: (err?: any) => void) => {
+    util.asyncForEach<string>(loadedClasses, (className: string, next_item: (err?: any) => void) => {
       if (util.is_reference_type(className)) {
         var classFileName = util.descriptor2typestr(className) + ".class";
         // Figure out from whence it came.
-        util.async_foreach<string>(this.classPath, (cPath: string, next_cpath: (err?: any) => void) => {
+        util.asyncForEach<string>(this.classPath, (cPath: string, next_cpath: (err?: any) => void) => {
           var pathToClass = path.resolve(cPath, classFileName);
           fs.exists(pathToClass, (exists: boolean) => {
             if (exists) {
@@ -852,7 +710,7 @@ export class CustomClassLoader extends ClassLoader {
     } else {
       // This will trigger an exception on the JVM thread if the method does
       // not exist.
-      return this.loadClassMethod = this.loaderObj.cls.method_lookup(thread, 'loadClass(Ljava/lang/String;)Ljava/lang/Class;');
+      return this.loadClassMethod = this.loaderObj.cls.methodLookup(thread, 'loadClass(Ljava/lang/String;)Ljava/lang/Class;');
     }
   }
 
@@ -870,7 +728,7 @@ export class CustomClassLoader extends ClassLoader {
    * @param explicit 'True' if loadClass was explicitly invoked by the program,
    *   false otherwise. This changes the exception/error that we throw.
    */
-  public _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
+  protected _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
     debug('[CUSTOM] Loading class ' + typeStr);
     // This method is only valid for reference types!
     assert(util.is_reference_type(typeStr));
@@ -915,35 +773,5 @@ export class JavaClassLoaderObject extends java_object.JavaObject {
   constructor(thread: threading.JVMThread, cls: any) {
     super(cls);
     this.$loader = new CustomClassLoader(thread.getBsCl(), this);
-  }
-
-  /**
-   * @todo Remove or refactor.
-   */
-  public serialize(visited: any): any {
-    if (visited[this.ref]) {
-      return "<*" + this.ref + ">";
-    }
-    visited[this.ref] = true;
-    var fields = {};
-    for (var k in this.fields) {
-      var f = this.fields[k];
-      if (!f || (typeof f.serialize !== "function"))
-        fields[k] = f;
-      else
-        fields[k] = f.serialize(visited);
-    }
-    var loaded = {},
-      loadedClasses = this.$loader.getLoadedClassNames();
-    loadedClasses.forEach((type: string) => {
-      var vcls = this.$loader.getLoadedClass(type);
-      //loaded[type + "(" + enums.ClassState[vcls.get_state()] + ")"] = vcls.loader.serialize(visited);
-    });
-    return {
-      type: this.cls.get_type(),
-      ref: this.ref,
-      fields: fields,
-      loaded: loaded
-    };
   }
 }
