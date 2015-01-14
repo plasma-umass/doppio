@@ -147,7 +147,7 @@ class sun_reflect_NativeMethodAccessorImpl {
   public static 'invoke0(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;'(thread: threading.JVMThread, mObj: java_object.JavaObject, obj: java_object.JavaObject, params: java_object.JavaArray): void {
     var cls = <ClassData.ReferenceClassData> (<java_object.JavaClassObject> mObj.get_field(thread, 'Ljava/lang/reflect/Method;clazz')).$cls,
       slot: number = mObj.get_field(thread, 'Ljava/lang/reflect/Method;slot'),
-      ret_type = mObj.get_field(thread, 'Ljava/lang/reflect/Method;returnType'),
+      ret_type = <java_object.JavaClassObject> mObj.get_field(thread, 'Ljava/lang/reflect/Method;returnType'),
       m: methods.Method = cls.getMethodFromSlot(slot),
       args: any[] = [], i: number;
 
@@ -188,7 +188,7 @@ class sun_reflect_NativeMethodAccessorImpl {
             thread.asyncReturn(null);
           } else {
             // wrap up primitives in their Object box
-            thread.asyncReturn(ret_type.$cls.create_wrapper_object(thread, rv));
+            thread.asyncReturn((<ClassData.PrimitiveClassData> ret_type.$cls).createWrapperObject(thread, rv));
           }
         } else {
           thread.asyncReturn(rv);
