@@ -61,6 +61,14 @@ export function initializeClassFromClass(thread: threading.JVMThread, frame: thr
  * Helper function: Pauses the thread and initializes a class.
  */
 export function initializeClass(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, clsRef: ConstantPool.ClassReference): void {
+  // Because of Java 8 anonymous classes, THIS CHECK IS REQUIRED FOR CORRECTNESS.
+  // (ClassLoaders do not know about anonymous classes, hence they are
+  //  'anonymous')
+  // (Anonymous classes are an 'Unsafe' feature, and are not part of the standard,
+  //  but they are employed for lambdas and such.)
+  if (clsRef.name === frame.method.cls.getInternalName()) {
+    clsRef.cls = frame.method.cls;
+  }
   thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
   clsRef.getClass(thread, frame.getLoader(), (cdata: ClassData.ClassData) => {
     if (cdata != null) {
