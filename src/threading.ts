@@ -463,6 +463,20 @@ export class ThreadPool {
     }
   }
 
+  /**
+   * Checks if the remaining threads are all daemons. If they are, we can
+   * terminate execution.
+   */
+  private areAllRemainingThreadsDaemons(thread: JVMThread): boolean {
+    var i: number;
+    for (i = 0; i < this.threads.length; i++) {
+      if (this.threads[i].get_field(thread, 'Ljava/lang/Thread;daemon') === 0) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   public threadTerminated(thread: JVMThread): void {
     var idx: number = this.threads.indexOf(thread);
     assert(idx >= 0);
@@ -475,7 +489,7 @@ export class ThreadPool {
       // The runningThreadIndex is currently pointing to the *next* thread we
       // should schedule, so take it back by one.
       this.runningThreadIndex = this.runningThreadIndex - 1;
-      if (this.threads.length > 0) {
+      if (this.threads.length > 0 && !this.areAllRemainingThreadsDaemons(thread)) {
         this.scheduleNextThread();
       } else {
         // Tell the JVM that execution is over.
