@@ -9,7 +9,7 @@ commit_hash=${head_info[1]}
 
 pushd "`dirname $0`/.." >/dev/null
 
-make --quiet release-cli
+grunt release-cli >/dev/null
 
 declare -a files
 files=(classes/test/*.java)
