@@ -452,7 +452,8 @@ export class ThreadPool {
             break;
           }
         }
-        assert(this.runningThread != null);
+        // This search is allowed to fail. In fact, it _must_ fail to allow
+        // async events to occur outside the JVM.
       }
     });
   }
@@ -465,15 +466,19 @@ export class ThreadPool {
   }
 
   /**
-   * Checks if any of the remaining threads are runnable and non-daemonic.
+   * Checks if any remaining threads are non-daemonic and could be runnable.
    * If not, we can terminate execution.
    */
   private anySchedulableThreads(thread: JVMThread): boolean {
-    var i: number, t: JVMThread;
+    var i: number, t: JVMThread, status: enums.ThreadStatus;
     for (i = 0; i < this.threads.length; i++) {
       t = this.threads[i];
-      if (t.getStatus() === enums.ThreadStatus.RUNNABLE &&
-          t.get_field(thread, 'Ljava/lang/Thread;daemon') === 0) {
+      if (t.get_field(thread, 'Ljava/lang/Thread;daemon') != 0) {
+        continue;
+      }
+      status = t.getStatus();
+      if (status != enums.ThreadStatus.NEW &&
+          status != enums.ThreadStatus.TERMINATED) {
         return true;
       }
     }
