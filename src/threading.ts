@@ -396,6 +396,7 @@ export class ThreadPool {
   private emptyCallback: () => void;
   private jvm: JVM;
   private bsCl: ClassLoader.BootstrapClassLoader;
+  private inShutdownSequence: boolean;
 
   constructor(jvm: JVM, bsCl: ClassLoader.BootstrapClassLoader,
     emptyCallback: () => void) {
@@ -499,6 +500,12 @@ export class ThreadPool {
       this.runningThreadIndex = this.runningThreadIndex - 1;
       if (this.anySchedulableThreads(thread)) {
         this.scheduleNextThread();
+      } else if (!this.jvm.isShutdown()) {
+        // Start the manual shutdown sequence.
+        // XXX: we're co-opting the last thread for shutdown.
+        var cdata = this.bsCl.getInitializedClass(thread, "Ljava/lang/System;");
+        var method = cdata.methodLookup(thread, 'exit(I)V');
+        thread.runMethod(method, [0]);
       } else {
         // Tell the JVM that execution is over.
         this.emptyCallback();

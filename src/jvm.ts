@@ -55,6 +55,7 @@ class JVM {
   // The initial JVM thread used to kick off execution.
   private firstThread: threading.JVMThread;
   private assertionsEnabled: boolean;
+  private shutdown: boolean;
 
   /**
    * (Async) Construct a new instance of the Java Virtual Machine.
@@ -475,6 +476,7 @@ class JVM {
    */
   public abort(): void {
     var threads = this.threadPool.getThreads(), i: number;
+    this.shutdown = true;
     for (i = 0; i < threads.length; i++) {
       threads[i].setStatus(enums.ThreadStatus.TERMINATED);
     }
@@ -496,6 +498,10 @@ class JVM {
    */
   public areAssertionsEnabled(): boolean {
     return this.assertionsEnabled;
+  }
+
+  public isShutdown(): boolean {
+    return this.shutdown;
   }
 }
 
