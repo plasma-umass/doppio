@@ -473,7 +473,7 @@ export class ThreadPool {
     for (i = 0; i < this.threads.length; i++) {
       t = this.threads[i];
       if (t.getStatus() === enums.ThreadStatus.RUNNABLE &&
-          t.get_field(thread, 'Ljava/lang/Thread;daemon') != 0) {
+          t.get_field(thread, 'Ljava/lang/Thread;daemon') === 0) {
         return true;
       }
     }
