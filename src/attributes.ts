@@ -601,6 +601,21 @@ export class BootstrapMethods implements IAttribute {
   }
 }
 
+export class RuntimeVisibleParameterAnnotations implements IAttribute {
+  public rawBytes: number[];
+  constructor(rawBytes: number[]) {
+    this.rawBytes = rawBytes;
+  }
+
+  public getName() {
+    return 'RuntimeVisibleParameterAnnotations';
+  }
+
+  public static parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool, attrLen: number): IAttribute {
+    return new this(byteStream.read(attrLen));
+  }
+}
+
 export function makeAttributes(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool): IAttribute[]{
   var attrTypes: { [name: string]: IAttributeClass } = {
     'Code': Code,
@@ -618,7 +633,8 @@ export function makeAttributes(byteStream: ByteStream, constantPool: ConstantPoo
     'RuntimeVisibleAnnotations': RuntimeVisibleAnnotations,
     'AnnotationDefault': AnnotationDefault,
     'EnclosingMethod': EnclosingMethod,
-    'BootstrapMethods': BootstrapMethods
+    'BootstrapMethods': BootstrapMethods,
+    'RuntimeVisibleParameterAnnotations': RuntimeVisibleParameterAnnotations
   };
   var numAttrs = byteStream.getUint16();
   var attrs : IAttribute[] = [];

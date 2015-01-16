@@ -289,7 +289,8 @@ export class Method extends AbstractMethodField {
       bsCl: ClassLoader.BootstrapClassLoader = thread.getBsCl(),
       jvm = thread.getThreadPool().getJVM(),
       loader = this.cls.getLoader(),
-      hasCode = (!this.accessFlags.isNative() && !this.accessFlags.isAbstract());
+      hasCode = (!this.accessFlags.isNative() && !this.accessFlags.isAbstract()),
+      parameterAnnotations = <attributes.RuntimeVisibleParameterAnnotations> this.get_attribute('RuntimeVisibleParameterAnnotations');
 
     // Resolve the return type.
     toResolve.push(this.return_type);
@@ -316,7 +317,6 @@ export class Method extends AbstractMethodField {
         // FAILED. An exception has been thrown.
         cb(null);
       } else {
-        // XXX: missing parameterAnnotations
         var jco_arr_cls = <ClassData.ArrayClassData> bsCl.getInitializedClass(thread, '[Ljava/lang/Class;');
         var byte_arr_cls = <ClassData.ArrayClassData> bsCl.getInitializedClass(thread, '[B');
         var cls = <ClassData.ReferenceClassData> bsCl.getInitializedClass(thread, typestr);
@@ -341,6 +341,7 @@ export class Method extends AbstractMethodField {
         obj[typestr + 'signature'] = sigAttr != null ? jvm.internString(sigAttr.sig) : null;
         obj[typestr + 'annotations'] = annAttr != null ? new JavaArray(byte_arr_cls, annAttr.rawBytes) : null;
         obj[typestr + 'annotationDefault'] = annDefaultAttr != null ? new JavaArray(byte_arr_cls, annDefaultAttr.rawBytes) : null;
+        obj[typestr + 'parameterAnnotations'] = parameterAnnotations != null ? new JavaArray(byte_arr_cls, parameterAnnotations.rawBytes) : null;
         cb(new JavaObject(cls, obj));
       }
     });
