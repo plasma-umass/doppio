@@ -3,6 +3,7 @@ package classes.test;
 
 import java.lang.annotation.*;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 
 @Deprecated
 class Annotations {
@@ -13,7 +14,12 @@ class Annotations {
 
   public static boolean noAnnotationsField;
 
-  public static void main(String[] args) throws NoSuchFieldException {
+  @Option(
+      name = "main",
+      usage = "nope",
+      required = true
+  )
+  public static void main(String[] args) throws NoSuchFieldException, NoSuchMethodException {
     System.out.println("Annotations on Annotations Class");
     for (Annotation a : Annotations.class.getAnnotations()) {
       System.out.println(a);
@@ -28,6 +34,12 @@ class Annotations {
     System.out.println("Annotations on NoAnnotationsField");
     Field naf = Annotations.class.getField("noAnnotationsField");
     for (Annotation a : naf.getAnnotations()) {
+      System.out.println(a);
+    }
+
+    System.out.println("Annotations on main method");
+    Method main = Annotations.class.getMethod("main", String[].class);
+    for (Annotation a : main.getAnnotations()) {
       System.out.println(a);
     }
 
