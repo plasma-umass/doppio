@@ -58,13 +58,13 @@ export class SequenceMatcher {
 	constructor(a: string[], b: string[]) {
 		this.a = a;
 		this.b = b;
-		var b2j = this.b2j = {};
+		this.b2j = {};
 		for (var i = 0; i < b.length; i++) {
 			var elt = b[i];
-			if (b2j.hasOwnProperty(elt)) {
-				b2j[elt].push(i);
+			if (this.b2j.hasOwnProperty(elt)) {
+				this.b2j[elt].push(i);
 			} else {
-				b2j[elt] = [i];
+				this.b2j[elt] = [i];
 			}
 		}
 	}
