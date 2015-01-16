@@ -462,7 +462,7 @@ export class RuntimeVisibleAnnotations implements IAttribute {
     return 'RuntimeVisibleAnnotations';
   }
 
-  public static parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool, attrLen?: number): IAttribute {
+  public static parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool, attrLen: number): IAttribute {
     // No need to parse; OpenJDK parses these from within Java code from
     // the raw bytes.
     // ...but we need to look for the 'Hidden' annotation, which specifies if

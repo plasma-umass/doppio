@@ -180,7 +180,9 @@ export function java(args: string[], opts: JVMCLIOptions,
   }
 
   // User-supplied classpath items.
-  if (argv.standard.classpath != null) {
+  if (argv.standard.jar != null) {
+    opts.classpath = opts.classpath.concat([argv.standard.jar]);
+  } else if (argv.standard.classpath != null) {
     opts.classpath = opts.classpath.concat(argv.standard.classpath.split(':'));
   } else {
     // DEFAULT: If no user-supplied classpath, add the current directory to
@@ -215,7 +217,7 @@ function launch_jvm(argv: any, opts: JVMCLIOptions, jvm_state: JVM, done_cb: (re
                     jvm_started: (jvm_state: JVM) => void): void {
   var main_args = argv._,
       cname = argv.className,
-      jar_file = argv.standard.jar;
+      isJar = argv.standard.jar != null;
 
   if (cname != null) {
     // Class specified.
@@ -227,8 +229,8 @@ function launch_jvm(argv: any, opts: JVMCLIOptions, jvm_state: JVM, done_cb: (re
       cname = util.descriptor2typestr(util.int_classname(cname));
     }
     jvm_state.runClass(cname, main_args, done_cb);
-  } else if (jar_file != null) {
-    jvm_state.runJar(jar_file, main_args, done_cb);
+  } else if (isJar) {
+    jvm_state.runJar(main_args, done_cb);
   } else {
     // No class specified, no jar specified!
     return print_help(opts.launcherName, optparse.show_help(), done_cb, true);

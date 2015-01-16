@@ -60,10 +60,24 @@ class sun_misc_Perf {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'createLong(Ljava/lang/String;IIJ)Ljava/nio/ByteBuffer;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: number, arg2: number, arg3: gLong): java_object.JavaObject {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    // Satisfy TypeScript return type.
-    return null;
+  public static 'createLong(Ljava/lang/String;IIJ)Ljava/nio/ByteBuffer;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, name: java_object.JavaObject, variability: number, units: number, value: gLong): void {
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.getBsCl().initializeClass(thread, 'Ljava/nio/DirectByteBuffer;', (cdata: ClassData.ReferenceClassData) => {
+      if (cdata !== null) {
+        var buff = new java_object.JavaObject(cdata),
+          heap = thread.getThreadPool().getJVM().getHeap(),
+          addr = heap.malloc(8);
+        thread.runMethod(cdata.methodLookup(thread, '<init>(JI)V'), [buff, gLong.fromNumber(addr), null, 8], (e?, rv?) => {
+          if (e) {
+            thread.throwException(e);
+          } else {
+            heap.store_word(addr, value.getLowBits());
+            heap.store_word(addr + 4, value.getHighBits());
+            thread.asyncReturn(buff);
+          }
+        });
+      }
+    });
   }
 
   public static 'createByteArray(Ljava/lang/String;II[BI)Ljava/nio/ByteBuffer;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: number, arg2: number, arg3: java_object.JavaArray, arg4: number): java_object.JavaObject {
@@ -223,10 +237,10 @@ class sun_misc_Unsafe {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'getLong(J)J'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: gLong): gLong {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    // Satisfy TypeScript return type.
-    return null;
+  public static 'getLong(J)J'(thread: threading.JVMThread, javaThis: java_object.JavaObject, address: gLong): gLong {
+    var heap = thread.getThreadPool().getJVM().getHeap(),
+     addr = address.toNumber();
+    return new gLong(heap.get_word(addr), heap.get_word(addr + 4));
   }
 
   public static 'putLong(JJ)V'(thread: threading.JVMThread, javaThis: java_object.JavaObject, address: gLong, value: gLong): void {

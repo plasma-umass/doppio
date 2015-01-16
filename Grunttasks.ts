@@ -124,7 +124,7 @@ export function setup(grunt: IGrunt) {
     // Downloads files.
     'curl-dir': {
       long: {
-        src: 'https://github.com/plasma-umass/doppio_jcl/releases/download/8v1.0/java_home.tar.gz',
+        src: 'https://github.com/plasma-umass/doppio_jcl/releases/download/v2.0/java_home.tar.gz',
         dest: "<%= build.vendor_dir %>"
       }
     },

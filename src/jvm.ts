@@ -56,6 +56,7 @@ class JVM {
   private firstThread: threading.JVMThread;
   private assertionsEnabled: boolean;
   private shutdown: boolean;
+  private systemClassLoader: ClassLoader.ClassLoader = null;
 
   /**
    * (Async) Construct a new instance of the Java Virtual Machine.
@@ -84,7 +85,7 @@ class JVM {
      */
     bootupTasks.push((next: (err?: any) => void): void => {
       this.bsCl =
-        new ClassLoader.BootstrapClassLoader(bootstrapClasspath.concat(opts.classpath),
+        new ClassLoader.BootstrapClassLoader(bootstrapClasspath,
           opts.extractionPath, next);
     });
 
@@ -162,6 +163,21 @@ class JVM {
       firstThread.runMethod(sysInit, [], next);
     });
 
+    /**
+     * Task #6: Initialize the application's classloader.
+     */
+    bootupTasks.push((next: (err?: any) => void) => {
+      firstThread.runMethod(this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/ClassLoader;').getMethod('getSystemClassLoader()Ljava/lang/ClassLoader;'), [], (e?, rv?: ClassLoader.JavaClassLoaderObject) => {
+        if (e) {
+          next(e);
+        } else {
+          this.systemClassLoader = rv.$loader;
+          firstThread.set_field(firstThread, 'Ljava/lang/Thread;contextClassLoader', rv);
+          next();
+        }
+      });
+    });
+
     // Perform bootup tasks, and then trigger the callback function.
     util.asyncSeries(bootupTasks, (err?: any): void => {
       if (err) {
@@ -175,6 +191,10 @@ class JVM {
         });
       }
     });
+  }
+
+  public getSystemClassLoader(): ClassLoader.ClassLoader {
+    return this.systemClassLoader;
   }
 
   /**
@@ -191,7 +211,7 @@ class JVM {
     // Convert foo.bar.Baz => Lfoo/bar/Baz;
     className = "L" + className.replace(/\./g, '/') + ";";
     // Initialize the class.
-    this.bsCl.initializeClass(thread, className, (cdata: ClassData.ReferenceClassData) => {
+    this.systemClassLoader.initializeClass(thread, className, (cdata: ClassData.ReferenceClassData) => {
       if (cdata != null) {
         // Convert the arguments.
         var strArrCls = <ClassData.ArrayClassData> this.bsCl.getInitializedClass(thread, '[Ljava/lang/String;'),
@@ -213,21 +233,12 @@ class JVM {
 
   /**
    * Run the specified JAR file on this JVM instance.
-   * @param jarFilePath Path to the JAR file.
    * @param args Command line arguments passed to the class.
    * @param cb Called when the JVM finishes executing. Called with 'true' if
    *   the JVM exited normally, 'false' if there was an error.
    */
-  public runJar(jarFilePath: string, args: string[], cb: (result: boolean) => void): void {
-    this.bsCl.addClassPathItem(jarFilePath, (success: boolean) => {
-      if (!success) {
-        cb(success);
-      } else {
-        // Find the jar file's main class in its manifest.
-        var jarFile = this.bsCl.getJar(jarFilePath);
-        this.runClass(jarFile.getAttribute('Main-Class'), args, cb);
-      }
-    });
+  public runJar(args: string[], cb: (result: boolean) => void): void {
+    this.runClass('doppio.JarLauncher', args, cb);
   }
 
   /**

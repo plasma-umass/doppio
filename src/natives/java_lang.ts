@@ -219,22 +219,16 @@ class java_lang_Class {
     }
   }
 
+  /**
+   * Returns RuntimeVisibleAnnotations defined on the class.
+   */
   public static 'getRawAnnotations()[B'(thread: threading.JVMThread, javaThis: java_object.JavaClassObject): java_object.JavaArray {
     var cls = <ClassData.ReferenceClassData> javaThis.$cls,
-      annotations = <attributes.RuntimeVisibleAnnotations> cls.getAttribute('RuntimeVisibleAnnotations'),
+      annotationsVisible = <attributes.RuntimeVisibleAnnotations> cls.getAttribute('RuntimeVisibleAnnotations'),
       methods: methods.Method[], i: number, m: methods.Method;
-    if (annotations !== null) {
-      return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[B'), annotations.rawBytes);
-    }
 
-    // See if any methods have runtime visible annotations.
-    methods = cls.getMethods();
-    for (i = 0; i < methods.length; i++) {
-      m = methods[i];
-      annotations = <attributes.RuntimeVisibleAnnotations> m.get_attribute('RuntimeVisibleAnnotations');
-      if (annotations !== null) {
-        return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[B'), annotations.rawBytes);
-      }
+    if (annotationsVisible !== null) {
+      return new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[B'), annotationsVisible.rawBytes);
     }
     return null;
   }
@@ -1006,12 +1000,6 @@ class java_lang_System {
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     util.asyncForEach(properties, (propertyName: string, next_item: (err?: any) => void) => {
       var propertyVal = jvm.getSystemProperty(propertyName);
-      if (propertyName === 'java.class.path') {
-        // Fetch from bootstrap classloader instead.
-        // the first path is actually the bootclasspath (vendor/classes/)
-        // XXX: Not robust to multiple bootstrap paths.
-        propertyVal = thread.getBsCl().getClassPath().slice(1).join(':');
-      }
       thread.runMethod(setProperty, [props, jvm.internString(propertyName), jvm.internString(propertyVal)], (e?, rv?) => {
         next_item(e);
       });
@@ -1275,6 +1263,7 @@ class java_lang_Throwable {
     }
     strace = new java_object.JavaArray(<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/StackTraceElement;'), stacktrace.reverse());
     javaThis.set_field(thread, 'Ljava/lang/Throwable;backtrace', strace);
+
     return javaThis;
   }
 

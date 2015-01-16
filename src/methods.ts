@@ -142,15 +142,16 @@ export class Field extends AbstractMethodField {
     var jvm = thread.getThreadPool().getJVM();
     var bsCl = thread.getBsCl();
     var create_obj = (clazz_obj: java_object.JavaClassObject, type_obj: java_object.JavaObject) => {
-      var field_cls = <ClassData.ReferenceClassData> bsCl.getInitializedClass(thread, 'Ljava/lang/reflect/Field;');
+      var field_cls = <ClassData.ReferenceClassData> bsCl.getInitializedClass(thread, 'Ljava/lang/reflect/Field;'),
+        annotations: attributes.RuntimeVisibleAnnotations = <any> this.get_attribute('RuntimeVisibleAnnotations');
       return new java_object.JavaObject(field_cls, {
-        // XXX this leaves out 'annotations'
         'Ljava/lang/reflect/Field;clazz': clazz_obj,
         'Ljava/lang/reflect/Field;name': jvm.internString(this.name),
         'Ljava/lang/reflect/Field;type': type_obj,
         'Ljava/lang/reflect/Field;modifiers': this.accessFlags.getRawByte(),
         'Ljava/lang/reflect/Field;slot': this.slot,
-        'Ljava/lang/reflect/Field;signature': sig != null ? java_object.initString(bsCl, sig) : null
+        'Ljava/lang/reflect/Field;signature': sig != null ? java_object.initString(bsCl, sig) : null,
+        'Ljava/lang/reflect/Field;annotations': annotations != null ? (<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[B')).create(annotations.rawBytes) : null
       });
     };
     var clazz_obj = this.cls.getClassObject(thread);
