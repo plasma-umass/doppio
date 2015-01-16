@@ -50,16 +50,8 @@ export function setup(grunt: IGrunt) {
     },
     listings: {
       options: {
-        output: "<%= resolve(build.build_dir, 'browser', 'listings.json') %>",
+        output: "<%= resolve(build.build_dir, 'listings.json') %>",
         cwd: "<%= build.build_dir %>"
-      },
-      default: {}
-    },
-    'mini-rt': {
-      options: {
-        output: "<%= resolve(build.build_dir, 'browser', 'mini-rt.tar') %>",
-        run_class: 'classes/util/Javac',
-        run_args: ["./classes/test/FileOps.java"]
       },
       default: {}
     },
@@ -113,8 +105,8 @@ export function setup(grunt: IGrunt) {
         }
       },
       dev: {
-        src: ["browser/frontend.ts", "src/**/*.ts"],
-        outDir: 'build/dev',
+        src: ["src/**/*.ts"],
+        outDir: 'build/dev/src',
         options: {
           module: 'amd',
           sourceRoot: '..'
@@ -174,11 +166,9 @@ export function setup(grunt: IGrunt) {
       build: {
         files: [{
           expand: true,
-          src: ['browser/*.svg', 'browser/*.png', 'browser/[^build]*.js',
-                'browser/core_viewer/*.css', 'browser/mini-rt.tar'],
+          src: ['browser/[^build]*.js'],
           dest: '<%= build.build_dir %>'
-        }, { expand: true, flatten: true, src: ['browser/core_viewer.html', 'browser/favicon.ico'], dest: '<%= build.build_dir %>'},
-        {expand: true, src: '+(browser|src)/*.ts', dest: '<%= build.build_dir %>' }]
+        }, {expand: true, src: '+(browser|src)/*.ts', dest: '<%= build.build_dir %>' }]
       }
     },
     javac: {
@@ -194,50 +184,6 @@ export function setup(grunt: IGrunt) {
         expand: true,
         src: 'classes/test/*.java',
         ext: '.runout'
-      }
-    },
-    render: {
-      dev: {
-        files: [{
-          expand: true,
-          flatten: true,
-          src: "browser/!(_)*.mustache",
-          dest: "<%= build.build_dir %>",
-          ext: '.html'
-        }]
-      },
-      release: {
-        options: {
-          args: ["--release"]
-        },
-        files: [{
-          expand: true,
-          flatten: true,
-          src: "browser/!(_)*.mustache",
-          dest: "<%= build.build_dir %>",
-          ext: '.html'
-        }]
-      }
-    },
-    concat: {
-      default: {
-        src: ['vendor/bootstrap/docs/assets/css/bootstrap.css', 'browser/style.css'],
-        dest: '<%= resolve(build.build_dir, "browser/style.css") %>',
-      }
-    },
-    coffee: {
-      options: {
-        sourcemap: true
-      },
-      dev: {
-        files: {
-          'build/dev/browser/core_viewer/core_viewer.js': 'browser/core_viewer/core_viewer.coffee'
-        }
-      },
-      release: {
-        files: {
-          'build/release/browser/core_viewer/core_viewer.js': 'browser/core_viewer/core_viewer.coffee'
-        }
       }
     },
     lineending: {
@@ -270,20 +216,6 @@ export function setup(grunt: IGrunt) {
                 RELEASE: true
               }
             }
-          }
-        }
-      },
-      'release-frontend': {
-        options: {
-          baseUrl: 'build/dev',
-          name: 'browser/frontend',
-          out: 'build/release/browser/frontend.js',
-          mainConfigFile: 'browser/require_config.js',
-          paths: {
-            'src/doppio': '../../browser/doppio_stub',
-            // XXX: We only included it for type definitions, but it still
-            // tries to pull it in for some reason :(
-            'src/jvm': '../../browser/jvm_stub'
           }
         }
       }
@@ -320,22 +252,7 @@ export function setup(grunt: IGrunt) {
                 // Rebuild release
                 'setup:release',
                 'ice-cream:release',
-                'requirejs:release',
-                'requirejs:release-frontend']
-      },
-      'mustache-templates': {
-        files: ['browser/*.mustache'],
-        tasks: ['setup:dev',
-                'render:dev',
-                'setup:release',
-                'render:release']
-      },
-      css: {
-        files: ['browser/*.css'],
-        tasks: ['setup:dev',
-                'concat',
-                'setup:release',
-                'concat']
+                'requirejs:release']
       },
       java: {
         files: ['classes/test/*.java'],
@@ -346,10 +263,8 @@ export function setup(grunt: IGrunt) {
 
   grunt.loadNpmTasks('grunt-ts');
   grunt.loadNpmTasks('grunt-contrib-uglify');
-  grunt.loadNpmTasks('grunt-contrib-copy');
-  grunt.loadNpmTasks('grunt-contrib-concat');
-  grunt.loadNpmTasks('grunt-contrib-coffee');
   grunt.loadNpmTasks('grunt-contrib-requirejs');
+  grunt.loadNpmTasks('grunt-contrib-copy');
   grunt.loadNpmTasks('grunt-contrib-watch');
   grunt.loadNpmTasks('grunt-lineending');
   grunt.loadNpmTasks('grunt-curl');
@@ -422,16 +337,9 @@ export function setup(grunt: IGrunt) {
      'launcher:doppio',
      'launcher:doppioh']);
   grunt.registerTask('dev',
-    [// We need release-cli for mini-rt, and we must run it first as it mutates
-     // build variables (e.g. build.build_type).
-     'release-cli',
-     'setup:dev',
+    ['setup:dev',
      'java',
      'make_build_dir',
-     'render:dev',
-     'coffee:dev',
-     'concat',
-     'mini-rt',
      'copy:build',
      'listings',
      'ts:dev']);
@@ -439,16 +347,11 @@ export function setup(grunt: IGrunt) {
     ['dev',
      'setup:release',
      'make_build_dir',
-     'render:release',
-     'coffee:release',
-     'concat',
-     'mini-rt',
      'copy:build',
      'ice-cream:release',
      'uglify:natives-browser',
      'listings',
-     'requirejs:release',
-     'requirejs:release-frontend']);
+     'requirejs:release']);
   grunt.registerTask('test',
     ['release-cli',
      'java',
