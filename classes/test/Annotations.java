@@ -19,7 +19,8 @@ class Annotations {
       usage = "nope",
       required = true
   )
-  public static void main(String[] args) throws NoSuchFieldException, NoSuchMethodException {
+  public static void main(
+      @Option( name="args" ) String[] args) throws NoSuchFieldException, NoSuchMethodException {
     System.out.println("Annotations on Annotations Class");
     for (Annotation a : Annotations.class.getAnnotations()) {
       System.out.println(a);
@@ -41,6 +42,13 @@ class Annotations {
     Method main = Annotations.class.getMethod("main", String[].class);
     for (Annotation a : main.getAnnotations()) {
       System.out.println(a);
+    }
+
+    System.out.println("Annotations on main method parameters");
+    for(Annotation[] annotations : main.getParameterAnnotations()) {
+      for (Annotation a : annotations) {
+        System.out.println(a);
+      }
     }
 
     System.out.println("Annotations on Option");
