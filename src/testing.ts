@@ -73,6 +73,14 @@ export interface TestOptions extends interfaces.JVMOptions {
    * failure.
    */
   keepGoing: boolean;
+  /**
+   * If set, called with the name of a now-starting test.
+   */
+  preTestHook?: (testName: string) => void;
+  /**
+   * If set, called with the result of each test.
+   */
+  postTestHook?: (testName: string, hasPassed: boolean) => void;
 }
 
 /**
@@ -87,7 +95,7 @@ class DoppioTest {
   /**
    * The class to test.
    */
-  private cls: string;
+  public cls: string;
   /**
    * Path to the file recording the output from the native JVM.
    */
@@ -195,7 +203,13 @@ export function runTests(opts: TestOptions, cb: (result: boolean) => void): void
       return new DoppioTest(opts, testClass);
     });
     util.asyncForEach(tests, (test: DoppioTest, nextItem: (err?: any) => void): void => {
+      if (typeof opts.preTestHook === 'function') {
+        opts.preTestHook(test.cls);
+      }
       test.run((success: boolean) => {
+        if (typeof opts.postTestHook === 'function') {
+          opts.postTestHook(test.cls, success);
+        }
         if (success || opts.keepGoing) {
           nextItem();
         } else {

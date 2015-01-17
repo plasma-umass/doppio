@@ -111,6 +111,11 @@ export function setup(grunt: IGrunt) {
           module: 'amd',
           sourceRoot: '..'
         }
+      },
+      test: {
+        // No module type for these files.
+        src: ["tasks/test/**/*.ts"],
+        outDir: ["tasks/test"]
       }
     },
     // Downloads files.
@@ -258,6 +263,44 @@ export function setup(grunt: IGrunt) {
         files: ['classes/test/*.java'],
         tasks: ['java']
       }
+    },
+    connect: {
+      server: {
+        options: {
+          keepalive: false
+        }
+      }
+    },
+    karma: {
+      options: {
+        // base path, that will be used to resolve files and exclude
+        basePath: '.',
+        frameworks: ['jasmine'],
+        exclude: [],
+        reporters: ['progress'],
+        port: 9876,
+        runnerPort: 9100,
+        colors: true,
+        logLevel: 'INFO',
+        autoWatch: true,
+        browsers: ['Chrome'],
+        captureTimeout: 60000,
+        // Avoid hardcoding and cross-origin issues.
+        proxies: {
+          '/': 'http://localhost:8000/'
+        },
+        singleRun: false,
+        urlRoot: '/karma/'
+      },
+      test: {
+        files: [
+          // NEED TAPREPORTER
+          {src: ['vendor/browserfs/dist/browserfs.js'] },
+          {src: ['build/release/doppio.js'] },
+          {src: ['tasks/test/harness.js'] }
+        ]
+      },
+      'test-dev': {}
     }
   });
 
@@ -266,6 +309,8 @@ export function setup(grunt: IGrunt) {
   grunt.loadNpmTasks('grunt-contrib-requirejs');
   grunt.loadNpmTasks('grunt-contrib-copy');
   grunt.loadNpmTasks('grunt-contrib-watch');
+  grunt.loadNpmTasks('grunt-contrib-connect');
+  grunt.loadNpmTasks('grunt-karma');
   grunt.loadNpmTasks('grunt-lineending');
   grunt.loadNpmTasks('grunt-curl');
   grunt.loadNpmTasks('grunt-untar');
@@ -356,6 +401,11 @@ export function setup(grunt: IGrunt) {
     ['release-cli',
      'java',
      'unit_test']);
+  grunt.registerTask('test-browser',
+    ['release',
+     'ts:test',
+     'connect:server',
+     'karma:test']);
   grunt.registerTask('clean', 'Deletes built files.', function() {
     ['build', 'doppio', 'doppio-dev', 'tscommand.tmp.txt'].concat(grunt.file.expand(['classes/*/*.+(class|runout)'])).forEach(function (path: string) {
       if (grunt.file.exists(path)) {
