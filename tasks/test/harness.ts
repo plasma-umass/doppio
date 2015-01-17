@@ -17,13 +17,50 @@ declare var BrowserFS;
     fs = BrowserFS.BFSRequire('fs'),
     stdoutput = '';
 
+  // dev version of doppio expects Buffer, process as globals.
+  window['Buffer'] = BrowserFS.BFSRequire('buffer').Buffer;
+  window['process'] = process;
+
+
   function getBuildPath(): string {
     return '../build/' + (isRelease ? 'release' : 'dev') + '/';
   }
 
-  if (typeof doppio === undefined) {
+  if (typeof doppio === 'undefined') {
     // Testing with dev version.
     isRelease = false;
+    window['require'].config({
+      // Karma serves files under /base, which is the basePath from your config file
+      baseUrl: '/base/build/dev',
+      // XXX: Copied from browser/require_config.js
+      shim: {
+        'vendor/underscore/underscore': {
+          exports: '_'
+        },
+        'vendor/jquery/dist/jquery.min': {
+          exports: '$'
+        },
+        'vendor/jquery-migrate/jquery-migrate.min': {
+          deps: ['vendor/jquery/dist/jquery.min']
+        },
+        'vendor/jquery.console': {
+          deps: ['vendor/jquery/dist/jquery.min']
+        }
+      },
+      paths: {
+        fs: 'browser/fs',
+        path: 'browser/path'
+      },
+      // dynamically load all test files
+      deps: ['src/doppio'],
+      // we have to kickoff jasmine, as it is asynchronous
+      callback: (doppio) => {
+        window['doppio'] = doppio;
+        runTests();
+        // RequireJS mode: Tests begin asynchronously.
+        __karma__.start();
+      }
+    });
   } else {
     // Testing with release version.
     runTests();

@@ -294,13 +294,19 @@ export function setup(grunt: IGrunt) {
       },
       test: {
         files: [
-          // NEED TAPREPORTER
           {src: ['vendor/browserfs/dist/browserfs.js'] },
           {src: ['build/release/doppio.js'] },
           {src: ['tasks/test/harness.js'] }
         ]
       },
-      'test-dev': {}
+      'test-dev': {
+        frameworks: ['jasmine', 'requirejs'],
+        files: [
+          {src: ['vendor/browserfs/dist/browserfs.js'] },
+          {src: ['build/dev/**/*.js'], included: false },
+          {src: ['tasks/test/harness.js'] }
+        ]
+      }
     }
   });
 
@@ -406,6 +412,11 @@ export function setup(grunt: IGrunt) {
      'ts:test',
      'connect:server',
      'karma:test']);
+ grunt.registerTask('test-dev-browser',
+     ['dev',
+     'ts:test',
+     'connect:server',
+     'karma:test-dev']);
   grunt.registerTask('clean', 'Deletes built files.', function() {
     ['build', 'doppio', 'doppio-dev', 'tscommand.tmp.txt'].concat(grunt.file.expand(['classes/*/*.+(class|runout)'])).forEach(function (path: string) {
       if (grunt.file.exists(path)) {

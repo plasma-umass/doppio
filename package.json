@@ -25,6 +25,7 @@
     "grunt-contrib-connect": "*",
     "grunt-karma": "*",
     "karma-jasmine": "*",
+    "karma-requirejs": "*",
     "karma-chrome-launcher": "*",
     "karma-opera-launcher": "*",
     "karma-safari-launcher": "*",
