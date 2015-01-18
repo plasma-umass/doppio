@@ -10,6 +10,13 @@ declare var __numWaiting: number;
 declare var doppio;
 declare var BrowserFS;
 
+// Extend the DefinitelyTyped module with the extra matcher function we add.
+declare module jasmine {
+  interface Matchers {
+    toPass(): void;
+  }
+}
+
 (function() {
   var isRelease: boolean = true,
     finishTest: (result: boolean) => void,
@@ -69,20 +76,34 @@ declare var BrowserFS;
   function configureJasmine(tests: string[]): void  {
     jasmine.DEFAULT_TIMEOUT_INTERVAL = 300000;
 
+    // Spruce up Jasmine output by adding a custom matcher.
+    beforeEach(() => {
+      jasmine.addMatchers({
+        toPass: () => {
+          return {
+            compare: (testResult: boolean) => {
+              var result = { pass: testResult, message: "" };
+              if (result.pass) {
+                // Apparently you can negate tests? We'll never see this string.
+                result.message =  "Expected test to fail.";
+              } else {
+                // Print out the diff.
+                result.message =  "Doppio's output does not match native JVM.\n" + stdoutput;
+              }
+              return result;
+            }
+          }
+        }
+      });
+    });
+
     describe("Unit Tests", function() {
       tests.forEach((test: string) => {
         it(test, function(done: () => void) {
           stdoutput = "";
           finishTest = (result: boolean) => {
-            if (result) {
-              // Pass.
-              done();
-            } else {
-              // Fail.
-              console.log(stdoutput);
-              expect(false).toBe(true);
-              done();
-            }
+            expect(result).toPass();
+            done();
           };
         });
       });
