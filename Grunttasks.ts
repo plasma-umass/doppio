@@ -239,10 +239,9 @@ export function setup(grunt: IGrunt) {
         // appropriate 'build' variables.
         spawn: false
       },
-      // Monitors TypeScript source in browser/ and src/ folders. Rebuilds
-      // CLI and browser builds.
+      // Monitors TypeScript source in src/. Rebuilds CLI and browser builds.
       'ts-source': {
-        files: ['+(browser|src)/*.ts'],
+        files: ['src/*.ts'],
         tasks: [// Rebuild dev-cli
                 'setup:dev-cli',
                 'ts:dev-cli',
