@@ -645,7 +645,7 @@ export function makeAttributes(byteStream: ByteStream, constantPool: ConstantPoo
       var oldLen = byteStream.size();
       var attr = attrTypes[name].parse(byteStream, constantPool, attrLen, name);
       var newLen = byteStream.size();
-      assert((oldLen - newLen) <= attrLen, "A parsed attribute read beyond its data! " + name);
+      assert((oldLen - newLen) <= attrLen, `A parsed attribute read beyond its data! ${name}`);
       if (oldLen - newLen !== attrLen) {
         byteStream.skip(attrLen - oldLen + newLen);
       }

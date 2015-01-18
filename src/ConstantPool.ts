@@ -958,15 +958,13 @@ export interface IConstantPoolReference extends IConstantPoolItem {
  * ```
  */
 export class MethodHandle implements IConstantPoolItem {
-  // @todo Use a union type here:
-  //   FieldReference|MethodReference|InterfaceMethodReference
-  public reference: IConstantPoolReference;
+  public reference: FieldReference | MethodReference | InterfaceMethodReference;
   public referenceType: enums.MethodHandleReferenceKind;
   /**
    * Java object representing this particular method handle.
    */
   public methodHandle: java_object.JavaObject = null;
-  constructor(reference: IConstantPoolReference, referenceType: enums.MethodHandleReferenceKind) {
+  constructor(reference: FieldReference | MethodReference | InterfaceMethodReference, referenceType: enums.MethodHandleReferenceKind) {
     this.reference = reference;
     this.referenceType = referenceType;
   }
@@ -1031,7 +1029,7 @@ export class MethodHandle implements IConstantPoolItem {
   public static fromBytes(byteStream: ByteStream, constantPool: ConstantPool): IConstantPoolItem {
     var referenceKind: enums.MethodHandleReferenceKind = byteStream.getUint8(),
       referenceIndex = byteStream.getUint16(),
-      reference: IConstantPoolItem = constantPool.get(referenceIndex);
+      reference: FieldReference | MethodReference | InterfaceMethodReference = <any> constantPool.get(referenceIndex);
 
     assert(0 < referenceKind && referenceKind < 10,
       'ConstantPool MethodHandle invalid referenceKind: ' + referenceKind);
@@ -1061,7 +1059,7 @@ export class MethodHandle implements IConstantPoolItem {
       return true;
     })(), "Invalid constant pool reference for method handle reference type: " + enums.MethodHandleReferenceKind[referenceKind]);
 
-    return new this(<any> reference, referenceKind);
+    return new this(reference, referenceKind);
   }
 }
 CP_CLASSES[enums.ConstantPoolItemType.METHOD_HANDLE] = MethodHandle;

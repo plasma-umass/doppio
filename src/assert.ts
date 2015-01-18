@@ -3,7 +3,7 @@
  */
 function assert(assertion: boolean, msg?: string) {
   if (!assertion) {
-    throw new Error("Assertion failed: " + msg);
+    throw new Error(`Assertion failed: ${msg}`);
   }
 }
 

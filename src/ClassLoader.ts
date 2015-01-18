@@ -129,16 +129,16 @@ export class ClassLoader {
       var classData = new ClassData.ReferenceClassData(data, this);
       this.addClass(typeStr, classData);
       if (this instanceof BootstrapClassLoader) {
-        debug("[BOOTSTRAP] Defining class " + typeStr);
+        debug(`[BOOTSTRAP] Defining class ${typeStr}`);
       } else {
-        debug("[CUSTOM] Defining class " + typeStr);
+        debug(`[CUSTOM] Defining class ${typeStr}`);
       }
       return classData;
     } catch (e) {
       if (thread === null) {
         // This will only happen when we're loading java/lang/Thread for
         // the very first time.
-        logging.error('JVM initialization failed: ' + e);
+        logging.error(`JVM initialization failed: ${e}`);
         logging.error(e.stack);
       } else {
         thread.throwNewException('Ljava/lang/ClassFormatError;', e);
@@ -282,7 +282,7 @@ export class ClassLoader {
     util.asyncForEach<string>(typeStrs, (typeStr: string, next_item: (err?: any) => void) => {
       this.resolveClass(thread, typeStr, (cdata) => {
         if (cdata === null) {
-          next_item("Error resolving class: " + typeStr);
+          next_item(`Error resolving class: ${typeStr}`);
         } else {
           classes[typeStr] = cdata;
           next_item();
@@ -339,7 +339,7 @@ export class ClassLoader {
    * If the program explicitly called loadClass, then we throw the ClassNotFoundException.
    */
   protected throwClassNotFoundException(thread: threading.JVMThread, typeStr: string, explicit: boolean): void {
-    thread.throwNewException(explicit ? 'Ljava/lang/ClassNotFoundException;' : 'Ljava/lang/NoClassDefFoundError;', 'Cannot load class: ' + util.ext_classname(typeStr));
+    thread.throwNewException(explicit ? 'Ljava/lang/ClassNotFoundException;' : 'Ljava/lang/NoClassDefFoundError;', `Cannot load class: ${util.ext_classname(typeStr)}`);
   }
 
   /**
@@ -410,7 +410,7 @@ export class BootstrapClassLoader extends ClassLoader {
       if (!exists) {
         fs.mkdir(this.extractionPath, (err?) => {
           if (err) {
-            cb(new Error("Unable to create JAR file directory " + this.extractionPath + ": " + err));
+            cb(new Error(`Unable to create JAR file directory ${this.extractionPath}: ${err}`));
           } else {
             checkClasspaths(cb);
           }
@@ -528,7 +528,7 @@ export class BootstrapClassLoader extends ClassLoader {
    * SHOULD ONLY BE INVOKED INTERNALLY BY THE CLASSLOADER.
    */
   protected _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
-    debug('[BOOTSTRAP] Loading class ' + typeStr);
+    debug(`[BOOTSTRAP] Loading class ${typeStr}`);
     // This method is only valid for reference types!
     assert(util.is_reference_type(typeStr));
     // Search the class path for the class.
@@ -541,7 +541,7 @@ export class BootstrapClassLoader extends ClassLoader {
         var clsPath = path.join(foundPath, clsFilePath + ".class");
         fs.readFile(clsPath, (err, data: NodeBuffer) => {
           if (err) {
-            debug("Failed to load class " + typeStr + ": " + err);
+            debug(`Failed to load class ${typeStr}: ${err}`);
             this.throwClassNotFoundException(thread, typeStr, explicit);
             cb(null);
           } else {
@@ -551,7 +551,7 @@ export class BootstrapClassLoader extends ClassLoader {
         });
       } else {
         // No such class.
-        debug("Could not find class " + typeStr);
+        debug(`Could not find class ${typeStr}`);
         this.throwClassNotFoundException(thread, typeStr, explicit);
         cb(null);
       }
@@ -648,7 +648,7 @@ export class BootstrapClassLoader extends ClassLoader {
       loadedClassFiles = [];
     util.asyncForEach<string>(loadedClasses, (className: string, next_item: (err?: any) => void) => {
       if (util.is_reference_type(className)) {
-        var classFileName = util.descriptor2typestr(className) + ".class";
+        var classFileName = `${util.descriptor2typestr(className)}.class`;
         // Figure out from whence it came.
         util.asyncForEach<string>(this.classPath, (cPath: string, next_cpath: (err?: any) => void) => {
           var pathToClass = path.resolve(cPath, classFileName);
@@ -729,7 +729,7 @@ export class CustomClassLoader extends ClassLoader {
    *   false otherwise. This changes the exception/error that we throw.
    */
   protected _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
-    debug('[CUSTOM] Loading class ' + typeStr);
+    debug(`[CUSTOM] Loading class ${typeStr}`);
     // This method is only valid for reference types!
     assert(util.is_reference_type(typeStr));
     // Invoke the custom class loader.

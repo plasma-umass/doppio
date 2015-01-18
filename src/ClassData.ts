@@ -115,12 +115,12 @@ export class ClassData {
   }
 
   public methodLookup(thread: threading.JVMThread, sig: string): methods.Method {
-    thread.throwNewException('Ljava/lang/NoSuchMethodError;', "No such method found in " + this.getExternalName() + "::" + sig);
+    thread.throwNewException('Ljava/lang/NoSuchMethodError;', `No such method found in ${this.getExternalName()}::${sig}`);
     return null;
   }
 
   public fieldLookup(thread: threading.JVMThread, name: string): methods.Field {
-    thread.throwNewException('Ljava/lang/NoSuchFieldError;', "No such field found in " + this.getExternalName() + "::" + name);
+    thread.throwNewException('Ljava/lang/NoSuchFieldError;', `No such field found in ${this.getExternalName()}::${name}`);
     return null;
   }
 
@@ -250,7 +250,7 @@ export class PrimitiveClassData extends ClassData {
       case 'V':
         return 'Ljava/lang/Void;';
       default:
-        throw new Error("Tried to box a non-primitive class: " + this.className);
+        throw new Error(`Tried to box a non-primitive class: ${this.className}`);
     }
   }
 
@@ -291,7 +291,7 @@ export class ArrayClassData extends ClassData {
 
   constructor(component_type: string, loader: ClassLoader.ClassLoader) {
     super(loader);
-    this.className = "[" + component_type;
+    this.className = `[${component_type}`;
     // ArrayClassData objects are ABSTRACT, FINAL, and PUBLIC.
     this.accessFlags = new util.Flags(0x411);
     this.componentClassName = component_type;
@@ -513,7 +513,7 @@ export class ReferenceClassData extends ClassData {
     // class attributes
     this.attrs = attributes.makeAttributes(byteStream, this.constantPool);
     if (byteStream.hasBytes()) {
-      throw "Leftover bytes in classfile: " + byteStream;
+      throw `Leftover bytes in classfile: ${byteStream}`;
     }
     // Contains the value of all static fields.
     this.staticFields = Object.create(null);
@@ -672,7 +672,7 @@ export class ReferenceClassData extends ClassData {
       f.slot = this.slotFieldBase + i;
     });
 
-    trace("Class " + (this.getInternalName()) + " is now resolved.");
+    trace(`Class ${this.getInternalName()} is now resolved.`);
     this.interfaceClasses = interface_cdatas;
     // TODO: Assert we are not already resolved or initialized?
     this.setState(ClassState.RESOLVED);
@@ -804,7 +804,7 @@ export class ReferenceClassData extends ClassData {
       this.fieldLookupCache[name] = field;
       return field;
     }
-    thread.throwNewException('Ljava/lang/NoSuchFieldError;', "No such field found in " + this.getExternalName() + "::" + name);
+    thread.throwNewException('Ljava/lang/NoSuchFieldError;', `No such field found in ${this.getExternalName()}::${name}`);
   }
 
   private _fieldLookup(thread: threading.JVMThread, name: string): methods.Field {
@@ -844,7 +844,7 @@ export class ReferenceClassData extends ClassData {
     }
     var method = this._methodLookup(sig);
     if (method == null) {
-      thread.throwNewException('Ljava/lang/NoSuchMethodError;', "No such method found in " + this.getExternalName() + "::" + sig);
+      thread.throwNewException('Ljava/lang/NoSuchMethodError;', `No such method found in ${this.getExternalName()}::${sig}`);
       return null;
     } else {
       return method;
@@ -879,7 +879,7 @@ export class ReferenceClassData extends ClassData {
       // * It has a single formal parameter of type Object[].
       // * It has a return type of Object.
       // * It has the ACC_VARARGS and ACC_NATIVE flags set.
-      var polySig = sig.slice(0, sig.indexOf('(')) + "([Ljava/lang/Object;)Ljava/lang/Object;",
+      var polySig = `${sig.slice(0, sig.indexOf('('))}([Ljava/lang/Object;)Ljava/lang/Object;`,
         m = this.methodLookupCache[polySig];
       if (m != null && m.accessFlags.isNative() && m.accessFlags.isVarArgs() && m.cls === this) {
         return this.methodLookupCache[sig] = m;
@@ -999,10 +999,10 @@ export class ReferenceClassData extends ClassData {
     var clinit = this.getMethod('<clinit>()V');
     // We'll reset it if it fails.
     if (clinit != null) {
-      debug("T" + thread.ref + " Running static initialization for class " + this.className + "...");
+      debug(`T${thread.ref} Running static initialization for class ${this.className}...`);
       thread.runMethod(clinit, [], (e?: java_object.JavaObject, rv?: any) => {
         if (e) {
-          debug("Initialization of class " + this.className + " failed.");
+          debug(`Initialization of class ${this.className} failed.`);
           this.setState(enums.ClassState.RESOLVED);
           /**
            * "The class or interface initialization method must have completed
@@ -1039,7 +1039,7 @@ export class ReferenceClassData extends ClassData {
           }
         } else {
           this.setState(enums.ClassState.INITIALIZED);
-          debug("Initialization of class " + this.className + " succeeded.");
+          debug(`Initialization of class ${this.className} succeeded.`);
           // Normal case! Initialization succeeded.
           cb(this);
         }

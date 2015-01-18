@@ -84,11 +84,11 @@ export class BytecodeStackFrame implements IStackFrame {
     var method = this.method, code = this.method.getCodeAttribute().getCode(),
       opcodeTable = opcodes.LookupTable;
     if (this.pc === 0) {
-      vtrace("\nT" + thread.ref + " D" + thread.getStackTrace().length + " Running " + this.method.full_signature() + " [Bytecode]:");
+      vtrace(`\nT${thread.ref} D${thread.getStackTrace().length} Running ${this.method.full_signature()} [Bytecode]:`);
     } else {
-      vtrace("\nT" + thread.ref + " D" + thread.getStackTrace().length + " Resuming " + this.method.full_signature() + ":" + this.pc + " [Bytecode]:");
+      vtrace(`\nT${thread.ref} D${thread.getStackTrace().length} Resuming ${this.method.full_signature()}:${this.pc} [Bytecode]:`);
     }
-    vtrace("  S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "]");
+    vtrace(`  S: [${logging.debug_vars(this.stack)}], L: [${logging.debug_vars(this.locals)}]`);
 
     if (method.accessFlags.isSynchronized() && !this.lockedMethodLock) {
       // We are starting a synchronized method! These must implicitly enter
@@ -112,10 +112,10 @@ export class BytecodeStackFrame implements IStackFrame {
     // Run until we get the signal to return to the thread loop.
     while (!this.returnToThreadLoop) {
       var op = code.readUInt8(this.pc);
-      vtrace("  " + this.pc + " " + annotateOpcode(op, this, code, this.pc) + " [" + op + "]");
+      vtrace(`  ${this.pc} ${annotateOpcode(op, this, code, this.pc)} [${op}]`);
       opcodeTable[op](thread, this, code, this.pc);
       if (!this.returnToThreadLoop) {
-        vtrace("    S: [" + logging.debug_vars(this.stack) + "], L: [" + logging.debug_vars(this.locals) + "]");
+        vtrace(`    S: [${logging.debug_vars(this.stack)}], L: [${logging.debug_vars(this.locals)}]`);
       }
     }
   }
@@ -145,7 +145,7 @@ export class BytecodeStackFrame implements IStackFrame {
         break;
       default:
         // Should be impossible.
-        assert(false, "Resuming from a non-invoke opcode! Opcode: " + enums.OpCode[prevOp] + " [" + prevOp + "]");
+        assert(false, `Resuming from a non-invoke opcode! Opcode: ${enums.OpCode[prevOp]} [${prevOp}]`);
         break;
     }
 
@@ -186,7 +186,7 @@ export class BytecodeStackFrame implements IStackFrame {
             }
           } else {
             // ASYNC PATH: We'll need to asynchronously resolve these handlers.
-            debug(method.full_signature() + " needs to resolve some exception types...");
+            debug(`${method.full_signature()} needs to resolve some exception types...`);
             var handlerClasses: string[] = [];
             exceptionHandlers.forEach((handler: attributes.ExceptionHandler) => {
               if (handler.catchType !== "<any>") {
@@ -213,13 +213,13 @@ export class BytecodeStackFrame implements IStackFrame {
     // or set up the stack for appropriate resumption.
     if (handler != null) {
       // Found the handler.
-      debug("{BOLD}{YELLOW}" + method.full_signature() + "{/YELLOW}{/BOLD}: Caught {GREEN}" + e.cls.getInternalName() + "{/GREEN} as subclass of {GREEN}" + handler.catchType + "{/GREEN}");
+      debug(`{BOLD}{YELLOW}${method.full_signature()}{/YELLOW}{/BOLD}: Caught {GREEN}${e.cls.getInternalName()}{/GREEN} as subclass of {GREEN}${handler.catchType}{/GREEN}`);
       this.stack = [e]; // clear out anything on the stack; it was made during the try block
       this.pc = handler.handlerPC;
       return true;
     } else {
       // abrupt method invocation completion
-      debug("{BOLD}{YELLOW}" + method.full_signature() + "{/YELLOW}{/BOLD}: Did not catch {GREEN}" + e.cls.getInternalName() + "{/GREEN}.");
+      debug(`{BOLD}{YELLOW}${method.full_signature()}{/YELLOW}{/BOLD}: Did not catch {GREEN}${e.cls.getInternalName()}{/GREEN}.`);
       // STEP 3: Synchronized method? Exit from the method's monitor.
       if (method.accessFlags.isSynchronized()) {
         method.method_lock(thread, this).exit(thread);
@@ -275,7 +275,7 @@ class NativeStackFrame implements IStackFrame {
    * NOTE: Should only be called once.
    */
   public run(thread: JVMThread): void {
-    vtrace("\nT" + thread.ref + " D" + thread.getStackTrace().length + " Running " + this.method.full_signature() + " [Native]:");
+    vtrace(`\nT${thread.ref} D${thread.getStackTrace().length} Running ${this.method.full_signature()} [Native]:`);
     var rv: any = this.nativeMethod.apply(null, this.method.convertArgs(thread, this.args));
     // Ensure thread is running, and we are the running method.
     if (thread.getStatus() === enums.ThreadStatus.RUNNING && thread.currentMethod() === this.method) {
@@ -661,7 +661,7 @@ export class JVMThread extends java_object.JavaObject {
   public getPrintableStackTrace(): string {
     var rv: string = "";
     this.getStackTrace().reverse().forEach((trace: IStackTraceFrame) => {
-      rv += "\tat " + util.ext_classname(trace.method.cls.getInternalName()) + "." + trace.method.name + "(";
+      rv += `\tat ${util.ext_classname(trace.method.cls.getInternalName())}::${trace.method.name}(`;
       if (trace.pc >= 0) {
         // Bytecode method
         var code = trace.method.getCodeAttribute();
@@ -674,8 +674,8 @@ export class JVMThread extends java_object.JavaObject {
         }
         if (table != null) {
           var lineNumber = table.getLineNumber(trace.pc);
-          rv += ":" + lineNumber;
-          rv += " Bytecode offset: " + trace.pc;
+          rv += `:${lineNumber}`;
+          rv += ` Bytecode offset: ${trace.pc}`;
         }
       } else {
         // Native method.
@@ -794,14 +794,14 @@ export class JVMThread extends java_object.JavaObject {
    */
   public setStatus(status: enums.ThreadStatus, monitor?: java_object.Monitor): void {
     function invalidTransition() {
-      throw new Error("Invalid state transition: " + enums.ThreadStatus[oldStatus] + " => " + enums.ThreadStatus[status]);
+      throw new Error(`Invalid state transition: ${enums.ThreadStatus[oldStatus]} => ${enums.ThreadStatus[status]}`);
     }
 
     // Ignore RUNNING => RUNNABLE transitions.
     if (this.status !== status && !(this.status === enums.ThreadStatus.RUNNING && status === enums.ThreadStatus.RUNNABLE)) {
       var oldStatus = this.status;
-      vtrace("\nT" + this.ref + " " + enums.ThreadStatus[oldStatus] + " => " + enums.ThreadStatus[status]);
-      assert(validateThreadTransition(oldStatus, status), "Invalid thread transition: " + enums.ThreadStatus[oldStatus] + " => " + enums.ThreadStatus[status]);
+      vtrace(`\nT${this.ref} ${enums.ThreadStatus[oldStatus]} => ${enums.ThreadStatus[status]}`);
+      assert(validateThreadTransition(oldStatus, status), `Invalid thread transition: ${enums.ThreadStatus[oldStatus]} => ${enums.ThreadStatus[status]}`);
 
       // Optimistically change state.
       this.rawSetStatus(status);
@@ -904,7 +904,7 @@ export class JVMThread extends java_object.JavaObject {
       this.status === enums.ThreadStatus.RUNNING ||
       this.status === enums.ThreadStatus.RUNNABLE ||
       this.status === enums.ThreadStatus.ASYNC_WAITING ||
-      this.status === enums.ThreadStatus.TERMINATED, "T " + this.ref + ": Tried to run method while thread was in state " + enums.ThreadStatus[this.status]);
+      this.status === enums.ThreadStatus.TERMINATED, `T ${this.ref}: Tried to run method while thread was in state ${enums.ThreadStatus[this.status]}`);
     if (cb) {
       // Callback specified. Need to add an internal stack frame that will handle
       // calling back into JavaScript land.
@@ -950,19 +950,19 @@ export class JVMThread extends java_object.JavaObject {
       if (frame.type === enums.StackFrameType.BYTECODE) {
         // This line will be preceded by a line that prints the method, so can be short n' sweet.
         if (frameCast.method.return_type !== 'V') {
-          vtrace("  Returning: " + logging.debug_var(rv));
+          vtrace(`  Returning: ${logging.debug_var(rv)}`);
         }
       } else {
         // Native methods can asyncReturn at any point, so print more information.
-        vtrace("T" + this.ref + " D" + (this.getStackTrace().length + 1) + " Returning value from " + frameCast.method.full_signature() + " [Native]: " + (frameCast.method.return_type === 'V' ? 'void' : logging.debug_var(rv)));
+        vtrace(`T${this.ref} D${this.getStackTrace().length + 1} Returning value from ${frameCast.method.full_signature()} [Native]: ${frameCast.method.return_type === 'V' ? 'void' : logging.debug_var(rv)}`);
       }
 
       if (frameCast.method.return_type !== 'V') {
-        vtrace("\nT" + this.ref + " D" + (this.getStackTrace().length + 1) + " Returning value from " + frameCast.method.full_signature() + " [" + (frameCast.method.accessFlags.isNative() ? 'Native' : 'Bytecode') + "]: " + logging.debug_var(rv));
+        vtrace(`\nT${this.ref} D${this.getStackTrace().length + 1} Returning value from ${frameCast.method.full_signature()} [${frameCast.method.accessFlags.isNative() ? 'Native' : 'Bytecode'}]: ${logging.debug_var(rv)}`);
       }
       assert(validateReturnValue(this, frameCast.method,
         frameCast.method.return_type, this.bsCl,
-        frameCast.method.cls.getLoader(), rv, rv2), "Invalid return value for method " + frameCast.method.full_signature());
+        frameCast.method.cls.getLoader(), rv, rv2), `Invalid return value for method ${frameCast.method.full_signature()}`);
     }
     // Tell the top of the stack that this RV is waiting for it.
     var idx: number = stack.length - 1;
@@ -1002,7 +1002,7 @@ export class JVMThread extends java_object.JavaObject {
    */
   public throwException(exception: java_object.JavaObject): void {
     assert(this.status === enums.ThreadStatus.RUNNING || this.status === enums.ThreadStatus.RUNNABLE || this.status === enums.ThreadStatus.ASYNC_WAITING,
-      "Tried to throw exception while thread was in state " + enums.ThreadStatus[this.status]);
+      `Tried to throw exception while thread was in state ${enums.ThreadStatus[this.status]}`);
     var stack = this.stack, idx: number = stack.length - 1;
 
     // Stack may actually be empty, so guard against this.

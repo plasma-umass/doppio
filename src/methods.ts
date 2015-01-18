@@ -25,7 +25,7 @@ var trapped_methods = {
     'loadLibrary(Ljava/lang/String;)V': function (thread: threading.JVMThread, lib_name: java_object.JavaObject): void {
       var lib = lib_name.jvm2js_str();
       if (lib !== 'zip' && lib !== 'net' && lib !== 'nio' && lib !== 'awt' && lib !== 'fontmanager') {
-        thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', "no " + lib + " in java.library.path");
+        thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', `no ${lib} in java.library.path`);
       }
     }
   },
@@ -258,7 +258,7 @@ export class Method extends AbstractMethodField {
           var jvm = thread.getThreadPool().getJVM(),
             c = jvm.getNative(clsName, methSig);
           if (c == null) {
-            thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', "Native method '" + sig + "' not implemented.\nPlease fix or file a bug at https://github.com/plasma-umass/doppio/issues");
+            thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', `Native method '${sig}' not implemented.\nPlease fix or file a bug at https://github.com/plasma-umass/doppio/issues`);
           } else {
             this.code = c;
             return c.apply(this, arguments);

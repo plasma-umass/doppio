@@ -126,7 +126,7 @@ export class Opcodes {
     if (!isNull(thread, frame, obj)) {
       var len = obj.array.length;
       if (idx < 0 || idx >= len) {
-        throwException(thread, frame, 'Ljava/lang/ArrayIndexOutOfBoundsException;', idx + " not in length " + len + " array of type " + obj.cls.getInternalName());
+        throwException(thread, frame, 'Ljava/lang/ArrayIndexOutOfBoundsException;', `${idx} not in length ${len} array of type ${obj.cls.getInternalName()}`);
       } else {
         stack.push(obj.array[idx]);
         frame.pc++;
@@ -154,7 +154,7 @@ export class Opcodes {
     if (!isNull(thread, frame, obj)) {
       var len = obj.array.length;
       if (idx < 0 || idx >= len) {
-        throwException(thread, frame, 'Ljava/lang/ArrayIndexOutOfBoundsException;', idx + " not in length " + len + " array of type " + obj.cls.getInternalName());
+        throwException(thread, frame, 'Ljava/lang/ArrayIndexOutOfBoundsException;', `${idx} not in length ${len} array of type ${obj.cls.getInternalName()}`);
       } else {
         stack.push(obj.array[idx]);
         // 64-bit value.
@@ -182,7 +182,7 @@ export class Opcodes {
     if (!isNull(thread, frame, obj)) {
       var len = obj.array.length;
       if (idx < 0 || idx >= len) {
-        throwException(thread, frame, 'Ljava/lang/ArrayIndexOutOfBoundsException;', idx + " not in length " + len + " array of type " + obj.cls.getInternalName());
+        throwException(thread, frame, 'Ljava/lang/ArrayIndexOutOfBoundsException;', `${idx} not in length ${len} array of type ${obj.cls.getInternalName()}`);
       } else {
         obj.array[idx] = value;
         frame.pc++;
@@ -212,7 +212,7 @@ export class Opcodes {
     if (!isNull(thread, frame, obj)) {
       var len = obj.array.length;
       if (idx < 0 || idx >= len) {
-        throwException(thread, frame, 'Ljava/lang/ArrayIndexOutOfBoundsException;', idx + " not in length " + len + " array of type " + obj.cls.getInternalName());
+        throwException(thread, frame, 'Ljava/lang/ArrayIndexOutOfBoundsException;', `${idx} not in length ${len} array of type ${obj.cls.getInternalName()}`);
       } else {
         obj.array[idx] = value;
         frame.pc++;
@@ -1491,7 +1491,7 @@ export class Opcodes {
                 }
                 break;
               default:
-                throwException(thread, frame, 'Ljava/lang/AbstractMethodError;', 'Invalid signature polymorphic method: ' + m.full_signature);
+                throwException(thread, frame, 'Ljava/lang/AbstractMethodError;', `Invalid signature polymorphic method: ${m.full_signature}`);
                 break;
             }
           } else {
@@ -1921,7 +1921,7 @@ export class Opcodes {
     if ((o != null) && !o.cls.isCastable(cls)) {
       var target_class = cls.getExternalName();
       var candidate_class = o.cls.getExternalName();
-      throwException(thread, frame, 'Ljava/lang/ClassCastException;', candidate_class + " cannot be cast to " + target_class);
+      throwException(thread, frame, 'Ljava/lang/ClassCastException;', `${candidate_class} cannot be cast to ${target_class}`);
     } else {
       // Success!
       frame.pc += 3;
@@ -2099,7 +2099,7 @@ export class Opcodes {
         frame.pc += 2;
         break;
       default:
-        assert(false, "Invalid CP Item: " + enums.ConstantPoolItemType[constant.getType()]);
+        assert(false, `Invalid CP Item: ${enums.ConstantPoolItemType[constant.getType()]}`);
         break;
     }
   }
@@ -2170,7 +2170,7 @@ export class Opcodes {
         frame.pc += 3;
         break;
       default:
-        assert(false, "Invalid CP Item: " + enums.ConstantPoolItemType[constant.getType()]);
+        assert(false, `Invalid CP Item: ${enums.ConstantPoolItemType[constant.getType()]}`);
         break;
     }
   }
@@ -2179,7 +2179,7 @@ export class Opcodes {
     var constant = frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     assert(constant.getType() === enums.ConstantPoolItemType.LONG
       || constant.getType() === enums.ConstantPoolItemType.DOUBLE,
-      'Invalid ldc_w constant pool type: ' + enums.ConstantPoolItemType[constant.getType()]);
+      `Invalid ldc_w constant pool type: ${enums.ConstantPoolItemType[constant.getType()]}`);
     frame.stack.push((<any> constant).value, null);
     frame.pc += 3;
   }
@@ -2230,7 +2230,7 @@ export var LookupTable: IOpcodeImplementation[] = new Array(0xff);
   for (var i = 0; i < 0xff; i++) {
     if (enums.OpCode.hasOwnProperty("" + i)) {
       LookupTable[i] = Opcodes[enums.OpCode[i].toLowerCase()];
-      assert(LookupTable[i] != null, "Missing implementation of opcode " + enums.OpCode[i]);
+      assert(LookupTable[i] != null, `Missing implementation of opcode ${enums.OpCode[i]}`);
     }
   }
 })();
