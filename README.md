@@ -16,7 +16,9 @@ You can also get in touch via our [mailing list][mail] or via the IRC channel
 Integrating Into Your Site
 --------------------------
 
-Check out our [Developer Guide](https://github.com/plasma-umass/doppio/wiki/Doppio-Developer-Guide) for information on how you can integrate doppio into your website!
+Check out our
+[Developer Guide](https://github.com/plasma-umass/doppio/wiki/Doppio-Developer-Guide)
+for information on how you can integrate doppio into your website!
 
 Getting & Building the Code
 ---------------------------
@@ -38,52 +40,32 @@ Run the following commands to build doppio. Note that your first time building m
     cd doppio
     npm install
     bower install
-    grunt release
+    grunt release      # For browser integration.
+    grunt release-cli  # For command-line use.
 
-Usage
------
+Testing
+-------
 
-To run doppio on localhost:
+Run the full test suite using node.js:
 
-    grunt dev
-    tools/server.coffee --dev
+    grunt test
 
-To get the optimized release version:
+Run the full test suite in a web browser:
 
-    grunt release
-    tools/server.coffee --release
+    grunt test-browser
 
-Then point your browser to [http://localhost:8000/](http://localhost:8000/).
+Run a specific test by invoking the test runner manually:
 
-To include your own code in the browser without manually uploading each file,
-place your `.class` files in a directory under `classes/`,
-then re-run `grunt dev` or `grunt release` to re-generate
-the `listings.json` file.
+    node build/dev-cli/console/test_runner.js classes/test/Strings
 
-For example:
+Command-line Usage
+------------------
 
-    #in shell
-    cp -ivR /path/to/my/class/files/ classes/my-classes/
+Run doppio with node.js (after `grunt release-cli`):
 
-    #in browser
-    java -cp /sys/classes/my-classes my/package/MyClass
-
-You can also run JAR files in the browser, e.g.:
-
-    java -jar /path/to/jar.jar
-    # Or if you don't want to run the JAR file's main class...
-    java -cp /path/to/jar.jar package.MyClass
-
-doppio can also be run from the console. For example:
-
-    grunt dev-cli
-    # doppio-dev -> node build/dev/console/runner.js
-    ./doppio-dev classes/demo/Fib
-    ./doppio-dev classes/demo/Fib 7        # pass an argument to the JVM
-    ./doppio-dev -jar my_application.jar   # extract and run a JAR
-
-To get the optimized version, use `grunt release-cli`. The build products can be
-found in `build/release-cli`, and the runtime can be invoked via `./doppio`.
+    ./doppio classes.demo.Fib 7
+    ./doppio -jar my_application.jar
+    ./doppio -cp my/class/path SomeClass
 
 Automated Rebuilding
 --------------------
@@ -93,16 +75,3 @@ To automatically rebuild doppio while you modify files, run the following comman
     grunt release watch
 
 This will perform a complete build of doppio, and then will watch files to trigger partial rebuilds.
-
-Running Tests
--------------
-
-Run all tests:
-
-    grunt test
-
-Run a specific test, or test with different options:
-
-    node build/dev-cli/console/test_runner.js -h
-    node build/dev-cli/console/test_runner.js classes/test/Strings
-
