@@ -14,10 +14,10 @@ var Grunttasks, glob = require('glob'), ts_files = [], ts_files_to_compile = [],
  * modification time.
  */
 function shouldRecompile(file) {
-  var jsFile = file.split(0, -2) + '.js';
+  var jsFile = file.slice(0, file.length - 2) + 'js';
   // Recompile if a JS version doesn't exist, OR if the TS version has a
   // greater modification time.
-  return !fs.existsSync(jsFile) || fs.statSync(file) > fs.statSync(jsFile);
+  return !fs.existsSync(jsFile) || fs.statSync(file).mtime.getTime() > fs.statSync(jsFile).mtime.getTime();
 }
 
 ts_files = glob.sync('tasks/*.ts');
@@ -28,13 +28,18 @@ ts_files.push('Grunttasks.ts');
 // separators.
 ts_files.forEach(function(e, i) {
   e = path.resolve(e);
-  if (shouldRecompile(e)) ts_files_to_compile.push(e);
+  if (shouldRecompile(e)) {
+    ts_files_to_compile.push(e);
+    console.log("Recompiling " + e + "...");
+  }
 });
 
 // Run!
-result = execSync.exec(ts_path + ' --noImplicitAny --module commonjs ' + ts_files_to_compile.join(' '));
-if (result.code !== 0) {
-  throw new Error("Compilation error: " + result.stdout + "\n" + result.stderr);
+if (ts_files_to_compile.length > 0) {
+  result = execSync.exec(ts_path + ' --noImplicitAny --module commonjs ' + ts_files_to_compile.join(' '));
+  if (result.code !== 0) {
+    throw new Error("Compilation error: " + result.stdout + "\n" + result.stderr);
+  }
 }
 
 Grunttasks = require('./Grunttasks');
