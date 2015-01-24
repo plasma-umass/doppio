@@ -387,10 +387,36 @@ class java_io_RandomAccessFile {
     });
   }
 
-  public static 'read0()I'(thread: threading.JVMThread, javaThis: java_object.JavaObject): number {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    // Satisfy TypeScript return type.
-    return 0;
+  /**
+   * Reads a byte of data from this file. The byte is returned as an
+   * integer in the range 0 to 255 ({@code 0x00-0x0ff}). This
+   * method blocks if no input is yet available.
+   * <p>
+   * Although {@code RandomAccessFile} is not a subclass of
+   * {@code InputStream}, this method behaves in exactly the same
+   * way as the {@link InputStream#read()} method of
+   * {@code InputStream}.
+   *
+   * @return     the next byte of data, or {@code -1} if the end of the
+   *             file has been reached.
+   * @exception  IOException  if an I/O error occurs. Not thrown if
+   *                          end-of-file has been reached.
+   */
+  public static 'read0()I'(thread: threading.JVMThread, javaThis: java_object.JavaObject): void {
+    var fd_obj = javaThis.get_field(thread, "Ljava/io/RandomAccessFile;fd"),
+      fd = fd_obj.get_field(thread, "Ljava/io/FileDescriptor;fd"),
+      buf = new Buffer(1);
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    fs.read(fd, buf, 0, 1, javaThis.$pos, function (err, bytesRead) {
+      var i: number;
+      if (err != null) {
+        thread.throwNewException('Ljava/io/IOException;', 'Erorr reading file: ' + err);
+      } else {
+        javaThis.$pos += bytesRead;
+        // Read as uint, since return value is unsigned.
+        thread.asyncReturn(bytesRead === 0 ? -1 : buf.readUInt8(0));
+      }
+    });
   }
 
   public static 'readBytes([BII)I'(thread: threading.JVMThread, javaThis: java_object.JavaObject, byte_arr: java_object.JavaArray, offset: number, len: number): void {

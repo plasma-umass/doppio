@@ -93,7 +93,8 @@ export function setup(grunt: IGrunt) {
       options: {
         sourcemap: true,
         comments: true,
-        declaration: true
+        declaration: true,
+        target: 'es3'
         // noImplicitAny: true
       },
       'dev-cli': {
