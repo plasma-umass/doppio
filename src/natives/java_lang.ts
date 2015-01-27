@@ -1615,6 +1615,10 @@ class java_lang_invoke_MethodHandleNatives {
       (vmtarget instanceof methods.Field) ? vmtarget.cls.getClassObject(thread) : mname
     ]);
   }
+
+  public static 'setCallSiteTargetNormal(Ljava/lang/invoke/CallSite;Ljava/lang/invoke/MethodHandle;)V'(thread: threading.JVMThread, callSite: java_object.JavaObject, methodHandle: java_object.JavaObject): void {
+    callSite.set_field(thread, 'Ljava/lang/invoke/CallSite;target', methodHandle);
+  }
 }
 
 class java_lang_invoke_MethodHandle {

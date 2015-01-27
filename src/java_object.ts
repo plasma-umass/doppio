@@ -15,6 +15,7 @@ export class JavaArray {
   public cls: ClassData.ArrayClassData;
   public array: any[];
   public ref: number = ref++;
+  private $monitor: Monitor = null;
 
   constructor(cls: ClassData.ArrayClassData, obj: any[]) {
     this.cls = cls;
@@ -34,6 +35,14 @@ export class JavaArray {
     this.array[offset.toInt()] = value;
   }
 
+  public getMonitor(): Monitor {
+    if (this.$monitor !== null) {
+      return this.$monitor;
+    } else {
+      return this.$monitor = new Monitor();
+    }
+  }
+
   public toString(): string {
     if (this.array.length <= 10) {
       return "<" + this.cls.getInternalName() + " [" + this.array + "] (*" + this.ref + ")>";
@@ -49,7 +58,7 @@ export class JavaObject {
   public $pos: number; // XXX: For file descriptors.
   public $ws: IWebsock; // XXX: For sockets.
   public $is_shutdown: boolean; // XXX: For sockets.
-  private $monitor: Monitor;
+  private $monitor: Monitor = null;
   public vmtarget: methods.AbstractMethodField; // XXX: For MemberName.
 
   constructor(cls: ClassData.ReferenceClassData, obj: any = {}) {
@@ -88,7 +97,7 @@ export class JavaObject {
   }
 
   public getMonitor(): Monitor {
-    if (this.$monitor != null) {
+    if (this.$monitor !== null) {
       return this.$monitor;
     } else {
       return this.$monitor = new Monitor();

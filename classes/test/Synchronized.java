@@ -38,6 +38,9 @@ class Synchronized {
   }
 
   public static void main(String[] args) {
+    synchronized(args) {
+      System.out.println("You can use an array as a monitor!");
+    }
     Thread a = new Thread(new BarRunner());
     Thread b = new Thread(new BazRunner());
     a.start();
