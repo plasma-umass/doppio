@@ -849,16 +849,16 @@ export class InvokeDynamic implements IConstantPoolItem {
             nextItem();
             break;
           case enums.ConstantPoolItemType.INTEGER:
-            rv.push((<ClassData.PrimitiveClassData> cl.getInitializedClass(thread, 'Ljava/lang/Integer;')).createWrapperObject(thread, (<ConstInt32> cpItem).value));
+            rv.push((<ClassData.PrimitiveClassData> cl.getInitializedClass(thread, 'I')).createWrapperObject(thread, (<ConstInt32> cpItem).value));
             break;
           case enums.ConstantPoolItemType.LONG:
-            rv.push((<ClassData.PrimitiveClassData> cl.getInitializedClass(thread, 'Ljava/lang/Long;')).createWrapperObject(thread, (<ConstLong> cpItem).value));
+            rv.push((<ClassData.PrimitiveClassData> cl.getInitializedClass(thread, 'J')).createWrapperObject(thread, (<ConstLong> cpItem).value));
             break;
           case enums.ConstantPoolItemType.FLOAT:
-            rv.push((<ClassData.PrimitiveClassData> cl.getInitializedClass(thread, 'Ljava/lang/Float;')).createWrapperObject(thread, (<ConstFloat> cpItem).value));
+            rv.push((<ClassData.PrimitiveClassData> cl.getInitializedClass(thread, 'F')).createWrapperObject(thread, (<ConstFloat> cpItem).value));
             break;
           case enums.ConstantPoolItemType.DOUBLE:
-            rv.push((<ClassData.PrimitiveClassData> cl.getInitializedClass(thread, 'Ljava/lang/Double;')).createWrapperObject(thread, (<ConstDouble> cpItem).value));
+            rv.push((<ClassData.PrimitiveClassData> cl.getInitializedClass(thread, 'D')).createWrapperObject(thread, (<ConstDouble> cpItem).value));
             break;
           default:
             assert(false, "Invalid CPItem for static args: " + enums.ConstantPoolItemType[cpItem.getType()]);
