@@ -127,6 +127,8 @@ export class JavaObject {
 export class JavaClassObject extends JavaObject {
   constructor(thread: threading.JVMThread, public $cls: ClassData.ClassData) {
     super(<ClassData.ReferenceClassData> thread.getBsCl().getResolvedClass('Ljava/lang/Class;'));
+    // Apparently our JCL requires this set.
+    this.set_field(thread, 'Ljava/lang/Class;classLoader', this.$cls.getLoader().getLoaderObject());
   }
 
   public toString() {

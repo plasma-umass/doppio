@@ -694,7 +694,7 @@ class sun_misc_VM {
   public static 'latestUserDefinedLoader()Ljava/lang/ClassLoader;'(thread: threading.JVMThread): ClassLoader.JavaClassLoaderObject {
     var stackTrace = thread.getStackTrace(), i: number,
       bsCl = thread.getBsCl(), loader: ClassLoader.ClassLoader;
-    for (i = 0; i < stackTrace.length; i++) {
+    for (i = stackTrace.length - 1; i >= 0; i--) {
       loader = stackTrace[i].method.cls.getLoader();
       if (loader !== bsCl) {
         return (<ClassLoader.CustomClassLoader> loader).getLoaderObject();
