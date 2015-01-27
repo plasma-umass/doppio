@@ -60,10 +60,8 @@ class sun_reflect_ConstantPool {
     return null;
   }
 
-  public static 'getIntAt0(Ljava/lang/Object;I)I'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: number): number {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    // Satisfy TypeScript return type.
-    return 0;
+  public static 'getIntAt0(Ljava/lang/Object;I)I'(thread: threading.JVMThread, javaThis: java_object.JavaObject, cp: ConstantPool.ConstantPool, idx: number): number {
+    return (<ConstantPool.ConstInt32> cp.get(idx)).value;
   }
 
   public static 'getLongAt0(Ljava/lang/Object;I)J'(thread: threading.JVMThread, javaThis: java_object.JavaObject, cpo: java_object.JavaObject, idx: number): gLong {
