@@ -12,6 +12,16 @@ export function are_in_browser(): boolean {
   return process.platform === 'browser';
 }
 
+/**
+ * Converts JVM internal names into JS-safe names.
+ * Ljava/lang/Object; => Ljava_lang_Object
+ * [B = AB
+ * [Ljava/lang/Object; => ALjava_lang_Object
+ */
+export function jvmName2JSName(jvmName: string): string {
+  return jvmName.replace(/\//g, '_').replace(/;/g, '').replace(/\[/g, 'A');
+}
+
 // Applies an async function to each element of a list, in order.
 export function asyncForEach<T>(
       lst: Array<T>,

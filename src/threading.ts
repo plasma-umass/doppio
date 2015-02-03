@@ -253,7 +253,7 @@ export class BytecodeStackFrame implements IStackFrame {
 /**
  * Represents a native method's stack frame.
  */
-class NativeStackFrame implements IStackFrame {
+export class NativeStackFrame implements IStackFrame {
   private nativeMethod: Function;
   public method: methods.Method;
   private args: any[];
@@ -330,7 +330,7 @@ class NativeStackFrame implements IStackFrame {
  * eventually call back into JavaScript code when they complete or throw a
  * fatal exception.
  */
-class InternalStackFrame implements IStackFrame {
+export class InternalStackFrame implements IStackFrame {
   private isException: boolean = false;
   private val: any;
   private cb: (e?: java_object.JavaObject, rv?: any) => void;

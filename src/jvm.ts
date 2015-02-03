@@ -57,6 +57,7 @@ class JVM {
   private assertionsEnabled: boolean;
   private shutdown: boolean;
   private systemClassLoader: ClassLoader.ClassLoader = null;
+  private nextRef: number = 0;
 
   /**
    * (Async) Construct a new instance of the Java Virtual Machine.
@@ -195,6 +196,13 @@ class JVM {
 
   public getSystemClassLoader(): ClassLoader.ClassLoader {
     return this.systemClassLoader;
+  }
+
+  /**
+   * Get the next "ref" number for JVM objects.
+   */
+  public getNextRef(): number {
+    return this.nextRef++;
   }
 
   /**

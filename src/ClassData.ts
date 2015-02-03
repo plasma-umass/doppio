@@ -10,6 +10,7 @@ import methods = require('./methods');
 import ClassLoader = require('./ClassLoader');
 import enums = require('./enums');
 import ClassLock = require('./ClassLock');
+import assert = require('./assert');
 var JavaObject = java_object.JavaObject;
 var JavaClassObject = java_object.JavaClassObject;
 var ClassState = enums.ClassState;
@@ -17,9 +18,26 @@ var trace = logging.trace;
 var debug = logging.debug;
 
 /**
+ * Extends a JVM class by making its prototype a blank instantiation of an
+ * object with the super class's prototype as its prototype. Inspired from
+ * TypeScript's __extend function.
+ */
+function extendClass(cls, superCls) {
+  // for (var p in superCls) if (superCls.hasOwnProperty(p)) cls[p] = superCls[p];
+  function __() { this.constructor = cls; }
+  __.prototype = superCls.prototype;
+  cls.prototype = new __();
+}
+
+/**
  * Represents a single class in the JVM.
  */
 export class ClassData {
+  /**
+   * Stores the JavaScript prototype for this JVM class. Created once the
+   * class is resolved.
+   */
+  private _proto: any = null;
   protected loader: ClassLoader.ClassLoader;
   public accessFlags: util.Flags = null;
   /**
@@ -206,6 +224,22 @@ export class ClassData {
   public getMethodFromSlot(slot: number): methods.Method {
     return null;
   }
+
+  /**
+   * Constructs a prototype for this particular class. Called *once* during
+   * class resolution.
+   */
+  protected _constructPrototype(): any {
+    throw new Error("Unimplemented abstract method.");
+  }
+
+  public getPrototype() {
+    assert(this.state === enums.ClassState.RESOLVED || this.state === enums.ClassState.INITIALIZED, "Class must be initialized or resolved before its prototype can be retrieved...");
+    if (this._proto === null) {
+      this._proto = this._constructPrototype();
+    }
+    return this._proto;
+  }
 }
 
 export class PrimitiveClassData extends ClassData {
@@ -282,6 +316,11 @@ export class PrimitiveClassData extends ClassData {
    */
   public resolve(thread: threading.JVMThread, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
     setImmediate(() => cb(this));
+  }
+
+  protected _constructPrototype(): any {
+    // Irrelevant. NOP.
+    return null;
   }
 }
 
@@ -409,6 +448,27 @@ export class ArrayClassData extends ClassData {
   public initialize(thread: threading.JVMThread, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
     this.resolve(thread, cb, explicit);
   }
+
+  protected _constructPrototype(): any {
+    var jsClassName = util.jvmName2JSName(this.getInternalName()),
+      template = `function _create(extendClass, cls) {
+  extendClass(${jsClassName}, cls.super.getPrototype());
+  function ${jsClassName}(jvm, length) {
+    this.ref = jvm.getNextRef();
+    this.array = new Array(length);
+  }
+
+  // Static values.
+  ${jsClassName}.cls = cls;
+
+  return ${jsClassName};
+}
+// Last statement is return value of eval.
+_create;`;
+    // All arrays extend java/lang/Object
+    var p = eval(template)(extendClass, this);
+    return p;
+  }
 }
 
 /**
@@ -419,6 +479,7 @@ export class ReferenceClassData extends ClassData {
   private minorVersion: number;
   public majorVersion: number;
   public constantPool: ConstantPool.ConstantPool;
+  private defaultFields: { [name: string]: any };
   private fields: methods.Field[];
   /**
    * Maps a field's full name, including owning class, to its field object.
@@ -436,7 +497,6 @@ export class ReferenceClassData extends ClassData {
   private attrs: attributes.IAttribute[];
   public staticFields: { [name: string]: any };
   private interfaceClasses: ReferenceClassData[] = null;
-  private defaultFields: { [name: string]: any };
   private superClassRef: ConstantPool.ClassReference = null;
   private interfaceRefs: ConstantPool.ClassReference[];
   /**
@@ -1089,5 +1149,75 @@ export class ReferenceClassData extends ClassData {
         cb(null);
       }
     });
+  }
+
+  protected _constructPrototype(): any {
+    var jsClassName = util.jvmName2JSName(this.getInternalName());
+
+    function getDefaultFieldValue(desc: string): string {
+      if (desc === 'J') return 'gLongZero';
+      var c = desc[0];
+      if (c === '[' || c === 'L') return 'null';
+      return '0';
+    }
+
+    function getFieldAssignments(cls: ReferenceClassData): string {
+      var superClass = cls.getSuperClass(),
+        prefix = superClass !== null ? getFieldAssignments(superClass) : "";
+      return prefix + cls.getFields().map((field: methods.Field) =>
+        `this[${cls.getInternalName()}${field.name}] = ${getDefaultFieldValue(field.raw_descriptor)};\n`
+      ).join("");
+    }
+
+    function getMethodPrototypeAssignments(cls: ReferenceClassData): string {
+      var clsName = util.jvmName2JSName(cls.getInternalName()),
+        clsBase = util.descriptor2typestr(cls.getInternalName()),
+        methodAssignments: string = cls.getMethods().map((m: methods.Method, i: number) =>
+          `${clsName}.prototype[${clsBase}/${m.name}${m.raw_descriptor}] = ${clsName}.prototype[${m.name}${m.raw_descriptor}] = (function(method) {
+            return function(thread, args, cb) {
+              if (cb) {
+                thread.stack.push(new InternalStackFrame(cb));
+              }
+              thread.stack.push(new ${m.accessFlags.isNative() ? "NativeStackFrame" : "BytecodeStackFrame"}(method, args));
+              thread.setStatus(${enums.ThreadStatus.RUNNABLE});
+            };
+          })(cls.getMethods()[${i}]);\n`
+        ).join("");
+
+      // Install default methods.
+      return methodAssignments + cls.getInterfaces().map((i: ReferenceClassData, intIdx: number) => i.getMethods().map((m: methods.Method, i: number) => {
+        if (m.accessFlags.isAbstract() || m.getCodeAttribute() == null) {
+          return ""
+        } else {
+          return `if (!${clsName}.prototype[${m.name}${m.raw_descriptor}]) {
+              ${clsName}.prototype[${m.name}${m.raw_descriptor}] = (function(method) {
+              return function(thread, args, cb) {
+                if (cb) {
+                  thread.stack.push(new InternalStackFrame(cb));
+                }
+                thread.stack.push(new ${m.accessFlags.isNative() ? "NativeStackFrame" : "BytecodeStackFrame"}(method, args));
+                thread.setStatus(${enums.ThreadStatus.RUNNABLE});
+              };
+            })(cls.getInterfaces()[${intIdx}].getMethods()[${i}]);
+          }\n`;
+        }
+      }).join("")).join("");
+    }
+
+    return eval(`function _create(extendClass, cls, InternalStackFrame, NativeStackFrame, BytecodeStackFrame) {
+      if (cls.super !== null) {
+        extendClass(${jsClassName}, cls.super.getPrototype());
+      }
+      function ${jsClassName}(jvm) {
+        this.ref = jvm.getNextRef();
+        ${getFieldAssignments(this)}
+      }
+
+      // Static values.
+      ${jsClassName}.cls = cls;
+
+      ${getMethodPrototypeAssignments(this)}
+    }
+    _create;`)(extendClass, this, threading.InternalStackFrame, threading.NativeStackFrame, threading.BytecodeStackFrame);
   }
 }
