@@ -11,6 +11,7 @@ import ClassLoader = require('./ClassLoader');
 import enums = require('./enums');
 import ClassLock = require('./ClassLock');
 import assert = require('./assert');
+import gLong = require('./gLong');
 var JavaObject = java_object.JavaObject;
 var JavaClassObject = java_object.JavaClassObject;
 var ClassState = enums.ClassState;
@@ -452,7 +453,7 @@ export class ArrayClassData extends ClassData {
   protected _constructPrototype(): any {
     var jsClassName = util.jvmName2JSName(this.getInternalName()),
       template = `function _create(extendClass, cls) {
-  extendClass(${jsClassName}, cls.super.getPrototype());
+  extendClass(${jsClassName}, cls.superClass.getPrototype());
   function ${jsClassName}(jvm, length) {
     this.ref = jvm.getNextRef();
     this.array = new Array(length);
@@ -464,7 +465,7 @@ export class ArrayClassData extends ClassData {
   return ${jsClassName};
 }
 // Last statement is return value of eval.
-_create;`;
+_create`;
     // All arrays extend java/lang/Object
     var p = eval(template)(extendClass, this);
     return p;
@@ -1163,9 +1164,10 @@ export class ReferenceClassData extends ClassData {
 
     function getFieldAssignments(cls: ReferenceClassData): string {
       var superClass = cls.getSuperClass(),
-        prefix = superClass !== null ? getFieldAssignments(superClass) : "";
+        prefix = superClass !== null ? getFieldAssignments(superClass) : "",
+        clsBase = util.descriptor2typestr(cls.getInternalName());
       return prefix + cls.getFields().map((field: methods.Field) =>
-        `this[${cls.getInternalName()}${field.name}] = ${getDefaultFieldValue(field.raw_descriptor)};\n`
+        `this["${clsBase}/${field.name}"] = ${getDefaultFieldValue(field.raw_descriptor)};\n`
       ).join("");
     }
 
@@ -1173,7 +1175,7 @@ export class ReferenceClassData extends ClassData {
       var clsName = util.jvmName2JSName(cls.getInternalName()),
         clsBase = util.descriptor2typestr(cls.getInternalName()),
         methodAssignments: string = cls.getMethods().map((m: methods.Method, i: number) =>
-          `${clsName}.prototype[${clsBase}/${m.name}${m.raw_descriptor}] = ${clsName}.prototype[${m.name}${m.raw_descriptor}] = (function(method) {
+          `${clsName}.prototype["${clsBase}/${m.name}${m.raw_descriptor}"] = ${clsName}.prototype["${m.name}${m.raw_descriptor}"] = (function(method) {
             return function(thread, args, cb) {
               if (cb) {
                 thread.stack.push(new InternalStackFrame(cb));
@@ -1190,7 +1192,7 @@ export class ReferenceClassData extends ClassData {
           return ""
         } else {
           return `if (!${clsName}.prototype[${m.name}${m.raw_descriptor}]) {
-              ${clsName}.prototype[${m.name}${m.raw_descriptor}] = (function(method) {
+              ${clsName}.prototype["${m.name}${m.raw_descriptor}"] = (function(method) {
               return function(thread, args, cb) {
                 if (cb) {
                   thread.stack.push(new InternalStackFrame(cb));
@@ -1204,9 +1206,9 @@ export class ReferenceClassData extends ClassData {
       }).join("")).join("");
     }
 
-    return eval(`function _create(extendClass, cls, InternalStackFrame, NativeStackFrame, BytecodeStackFrame) {
-      if (cls.super !== null) {
-        extendClass(${jsClassName}, cls.super.getPrototype());
+    return eval(`function _create(extendClass, cls, InternalStackFrame, NativeStackFrame, BytecodeStackFrame, gLongZero) {
+      if (cls.superClass !== null) {
+        extendClass(${jsClassName}, cls.superClass.getPrototype());
       }
       function ${jsClassName}(jvm) {
         this.ref = jvm.getNextRef();
@@ -1217,7 +1219,9 @@ export class ReferenceClassData extends ClassData {
       ${jsClassName}.cls = cls;
 
       ${getMethodPrototypeAssignments(this)}
+
+      return ${jsClassName};
     }
-    _create;`)(extendClass, this, threading.InternalStackFrame, threading.NativeStackFrame, threading.BytecodeStackFrame);
+    _create`)(extendClass, this, threading.InternalStackFrame, threading.NativeStackFrame, threading.BytecodeStackFrame, gLong.ZERO);
   }
 }
