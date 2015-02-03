@@ -35,10 +35,9 @@ function extendClass(cls, superCls) {
  */
 export class ClassData {
   /**
-   * Stores the JavaScript prototype for this JVM class. Created once the
-   * class is resolved.
+   * Stores the JavaScript constructor for this JVM class.
    */
-  private _proto: any = null;
+  private _constructor: Function = null;
   protected loader: ClassLoader.ClassLoader;
   public accessFlags: util.Flags = null;
   /**
@@ -227,19 +226,23 @@ export class ClassData {
   }
 
   /**
-   * Constructs a prototype for this particular class. Called *once* during
-   * class resolution.
+   * Constructs a JavaScript constructor for this particular class. Called
+   * *once* lazily during first object construction.
    */
-  protected _constructPrototype(): any {
+  protected _constructConstructor(): Function {
     throw new Error("Unimplemented abstract method.");
   }
 
-  public getPrototype() {
-    assert(this.state === enums.ClassState.RESOLVED || this.state === enums.ClassState.INITIALIZED, "Class must be initialized or resolved before its prototype can be retrieved...");
-    if (this._proto === null) {
-      this._proto = this._constructPrototype();
+  /**
+   * Get the JavaScript constructor for this class. Can only be called if
+   * class is resolved.
+   */
+  public getConstructor(): Function {
+    assert(this.state === enums.ClassState.RESOLVED || this.state === enums.ClassState.INITIALIZED, "Class must be initialized or resolved before its JS constructor can be retrieved...");
+    if (this._constructor === null) {
+      this._constructor = this._constructConstructor();
     }
-    return this._proto;
+    return this._constructor;
   }
 }
 
@@ -319,7 +322,7 @@ export class PrimitiveClassData extends ClassData {
     setImmediate(() => cb(this));
   }
 
-  protected _constructPrototype(): any {
+  protected _constructConstructor(): Function {
     // Irrelevant. NOP.
     return null;
   }
@@ -450,10 +453,10 @@ export class ArrayClassData extends ClassData {
     this.resolve(thread, cb, explicit);
   }
 
-  protected _constructPrototype(): any {
+  protected _constructConstructor(): Function {
     var jsClassName = util.jvmName2JSName(this.getInternalName()),
       template = `function _create(extendClass, cls) {
-  extendClass(${jsClassName}, cls.superClass.getPrototype());
+  extendClass(${jsClassName}, cls.superClass.getConstructor());
   function ${jsClassName}(jvm, length) {
     this.ref = jvm.getNextRef();
     this.array = new Array(length);
@@ -1152,7 +1155,7 @@ export class ReferenceClassData extends ClassData {
     });
   }
 
-  protected _constructPrototype(): any {
+  protected _constructConstructor(): Function {
     var jsClassName = util.jvmName2JSName(this.getInternalName());
 
     function getDefaultFieldValue(desc: string): string {
@@ -1208,7 +1211,7 @@ export class ReferenceClassData extends ClassData {
 
     return eval(`function _create(extendClass, cls, InternalStackFrame, NativeStackFrame, BytecodeStackFrame, gLongZero) {
       if (cls.superClass !== null) {
-        extendClass(${jsClassName}, cls.superClass.getPrototype());
+        extendClass(${jsClassName}, cls.superClass.getConstructor());
       }
       function ${jsClassName}(jvm) {
         this.ref = jvm.getNextRef();
