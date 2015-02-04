@@ -1170,24 +1170,34 @@ export class ReferenceClassData extends ClassData {
         prefix = superClass !== null ? getFieldAssignments(superClass) : "",
         clsBase = util.descriptor2typestr(cls.getInternalName());
       return prefix + cls.getFields().map((field: methods.Field) =>
-        `this["${clsBase}/${field.name}"] = ${getDefaultFieldValue(field.raw_descriptor)};\n`
+        field.accessFlags.isStatic() ? "" :
+          `this["${clsBase}/${field.name}"] = ${getDefaultFieldValue(field.raw_descriptor)};\n`
       ).join("");
     }
 
-    // XXX Static methods!!!
+    function getStaticFieldAssignments(cls: ReferenceClassData): string {
+      var clsBase = util.descriptor2typestr(cls.getInternalName()),
+        clsName = util.jvmName2JSName(cls.getInternalName());
+      return cls.getFields().map((field: methods.Field) =>
+        field.accessFlags.isStatic() ?
+          `${clsName}["${clsBase}/${field.name}"] = ${getDefaultFieldValue(field.raw_descriptor)};\n` : ""
+      ).join("");
+    }
+
     function getMethodPrototypeAssignments(cls: ReferenceClassData): string {
       var clsName = util.jvmName2JSName(cls.getInternalName()),
         clsBase = util.descriptor2typestr(cls.getInternalName()),
         methodAssignments: string = cls.getMethods().map((m: methods.Method, i: number) =>
-          `${clsName}.prototype["${clsBase}/${m.name}${m.raw_descriptor}"] = ${clsName}.prototype["${m.name}${m.raw_descriptor}"] = (function(method) {
-            return function(thread, args, cb) {
-              if (cb) {
-                thread.stack.push(new InternalStackFrame(cb));
-              }
-              thread.stack.push(new ${m.accessFlags.isNative() ? "NativeStackFrame" : "BytecodeStackFrame"}(method, args));
-              thread.setStatus(${enums.ThreadStatus.RUNNABLE});
-            };
-          })(cls.getMethods()[${i}]);\n`
+          m.accessFlags.isStatic() ? "" :
+            `${clsName}.prototype["${clsBase}/${m.name}${m.raw_descriptor}"] = ${clsName}.prototype["${m.name}${m.raw_descriptor}"] = (function(method) {
+              return function(thread, args, cb) {
+                if (cb) {
+                  thread.stack.push(new InternalStackFrame(cb));
+                }
+                thread.stack.push(new ${m.accessFlags.isNative() ? "NativeStackFrame" : "BytecodeStackFrame"}(method, args));
+                thread.setStatus(${enums.ThreadStatus.RUNNABLE});
+              };
+            })(cls.getMethods()[${i}]);\n`
         ).join("");
 
       // Install default methods.
@@ -1210,6 +1220,22 @@ export class ReferenceClassData extends ClassData {
       }).join("")).join("");
     }
 
+    function getStaticMethodAssignments(cls: ReferenceClassData): string {
+      var clsBase = util.descriptor2typestr(cls.getInternalName()),
+        clsName = util.jvmName2JSName(cls.getInternalName());
+      return cls.getMethods().map((m: methods.Method, i: number) =>
+        m.accessFlags.isStatic() ? `${clsName}["${clsBase}/${m.name}${m.raw_descriptor}"] = (function(method) {
+          return function(thread, args, cb) {
+            if (cb) {
+              thread.stack.push(new InternalStackFrame(cb));
+            }
+            thread.stack.push(new ${m.accessFlags.isNative() ? "NativeStackFrame" : "BytecodeStackFrame"}(method, args));
+            thread.setStatus(${enums.ThreadStatus.RUNNABLE});
+          };
+        })(cls.getMethods()[${i}]);\n` : ""
+      ).join("");
+    }
+
     return eval(`function _create(extendClass, cls, InternalStackFrame, NativeStackFrame, BytecodeStackFrame, gLongZero) {
       if (cls.superClass !== null) {
         extendClass(${jsClassName}, cls.superClass.getConstructor());
@@ -1223,6 +1249,10 @@ export class ReferenceClassData extends ClassData {
       ${jsClassName}.cls = cls;
 
       ${getMethodPrototypeAssignments(this)}
+
+      ${getStaticFieldAssignments(this)}
+
+      ${getStaticMethodAssignments(this)}
 
       return ${jsClassName};
     }
