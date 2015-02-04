@@ -1174,6 +1174,7 @@ export class ReferenceClassData extends ClassData {
       ).join("");
     }
 
+    // XXX Static methods!!!
     function getMethodPrototypeAssignments(cls: ReferenceClassData): string {
       var clsName = util.jvmName2JSName(cls.getInternalName()),
         clsBase = util.descriptor2typestr(cls.getInternalName()),

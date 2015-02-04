@@ -20,6 +20,11 @@ import util = require('../src/util');
 import ClassData = require('../src/ClassData');
 
 /**
+ * Stores TypeScript class declaration definitions.
+ */
+var headerMap: { [clsName: string]: string} = {};
+
+/**
  * Initializes the option parser with the options for the `doppioh` command.
  */
 function setupOptparse() {
@@ -44,6 +49,11 @@ function setupOptparse() {
         alias: 'ts',
         description: 'Generate TypeScript templates, -ts path/to/doppio/interfaces',
         has_value: true
+      },
+      force_headers: {
+        alias: 'f',
+        description: '[TypeScript only] Forces doppioh to generate TypeScript headers for specified JVM classes, e.g. -f java.lang.String:java.lang.Object',
+        has_value: true
       }
     }
   });
@@ -51,6 +61,51 @@ function setupOptparse() {
 
 function printHelp(): void {
   process.stdout.write("Usage: doppioh [flags] class_or_package_name\n" + optparse.show_help() + "\n");
+}
+
+/**
+ * Converts a typestring to its equivalent TypeScript type.
+ */
+function typestr2tsClass(desc: string): string {
+  switch(desc[0]) {
+    case '[':
+      return `JVMArray<${typestr2tsClass(desc.slice(1))}>`;
+    case 'L':
+      return util.descriptor2typestr(desc).replace(/\//g, '_');
+    case 'J':
+      return 'gLong';
+    default:
+      // Primitives.
+      return 'number';
+  }
+}
+
+/**
+ * Generates a TypeScript class definition for the given class object.
+ */
+function generateClassDefinition(cls: ClassData.ClassData): void {
+  var desc = cls.getInternalName();
+  if (headerMap[desc] || util.is_primitive_type(desc)) {
+    // Already generated, or is a primitive.
+    return;
+  } else if (desc[0] === '[') {
+    // Ensure component type is created.
+    // XXX: Class needs to be resolved?!
+    // return generateClassDefinition((<ClassData.ArrayClassData> cls).getComponentType());
+  }
+
+  function generateMethodSignatures(cls: ClassData.ClassData): string {
+    return "";
+  }
+  function generateTypedFields(cls: ClassData.ClassData): string {
+    return "";
+  }
+
+  // Un-generated reference type.
+  // XXX: Injected types?
+  headerMap[desc] = `class ${typestr2tsClass(desc)} {
+
+  }`;
 }
 
 setupOptparse();

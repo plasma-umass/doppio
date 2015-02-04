@@ -5,6 +5,7 @@ vendor
 !vendor/gLong.js
 !vendor/jquery.console.js
 !vendor/browserfs.min.js
+includes
 
 *.swp
 *.un~
