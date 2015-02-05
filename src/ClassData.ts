@@ -583,6 +583,14 @@ export class ReferenceClassData extends ClassData {
     this.staticFields = Object.create(null);
   }
 
+  public getSuperClassReference(): ConstantPool.ClassReference {
+    return this.superClassRef;
+  }
+
+  public getInterfaceClassReferences(): ConstantPool.ClassReference[] {
+    return this.interfaceRefs.slice(0);
+  }
+
   /**
    * Retrieve the set of interfaces that this class implements.
    * DO NOT MUTATE!

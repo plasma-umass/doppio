@@ -18,11 +18,8 @@ import path = require('path');
 import fs = require('fs');
 import util = require('../src/util');
 import ClassData = require('../src/ClassData');
-
-/**
- * Stores TypeScript class declaration definitions.
- */
-var headerMap: { [clsName: string]: string} = {};
+import ConstantPool = require('../src/ConstantPool');
+import methods = require('../src/methods');
 
 /**
  * Initializes the option parser with the options for the `doppioh` command.
@@ -63,51 +60,6 @@ function printHelp(): void {
   process.stdout.write("Usage: doppioh [flags] class_or_package_name\n" + optparse.show_help() + "\n");
 }
 
-/**
- * Converts a typestring to its equivalent TypeScript type.
- */
-function typestr2tsClass(desc: string): string {
-  switch(desc[0]) {
-    case '[':
-      return `JVMArray<${typestr2tsClass(desc.slice(1))}>`;
-    case 'L':
-      return util.descriptor2typestr(desc).replace(/\//g, '_');
-    case 'J':
-      return 'gLong';
-    default:
-      // Primitives.
-      return 'number';
-  }
-}
-
-/**
- * Generates a TypeScript class definition for the given class object.
- */
-function generateClassDefinition(cls: ClassData.ClassData): void {
-  var desc = cls.getInternalName();
-  if (headerMap[desc] || util.is_primitive_type(desc)) {
-    // Already generated, or is a primitive.
-    return;
-  } else if (desc[0] === '[') {
-    // Ensure component type is created.
-    // XXX: Class needs to be resolved?!
-    // return generateClassDefinition((<ClassData.ArrayClassData> cls).getComponentType());
-  }
-
-  function generateMethodSignatures(cls: ClassData.ClassData): string {
-    return "";
-  }
-  function generateTypedFields(cls: ClassData.ClassData): string {
-    return "";
-  }
-
-  // Un-generated reference type.
-  // XXX: Injected types?
-  headerMap[desc] = `class ${typestr2tsClass(desc)} {
-
-  }`;
-}
-
 setupOptparse();
 
 // Remove "node" and "path/to/doppioh.js".
@@ -131,6 +83,21 @@ function findFile(fileName: string): string {
   }
 }
 
+var primCache: {[desc: string]: ClassData.PrimitiveClassData} = {};
+function findClass(descriptor: string): ClassData.ClassData {
+  switch(descriptor[0]) {
+    case 'L':
+      return new ClassData.ReferenceClassData(fs.readFileSync(findFile(util.descriptor2typestr(descriptor))));
+    case '[':
+      return new ClassData.ArrayClassData(descriptor.slice(1), null);
+    default:
+      if (!primCache[descriptor]) {
+        primCache[descriptor] = new ClassData.PrimitiveClassData(descriptor, null);
+      }
+      return primCache[descriptor];
+  }
+}
+
 function getFiles(dirName: string): string[] {
   var rv: string[] = [], files = fs.readdirSync(dirName), i: number, file: string;
   for (i = 0; i < files.length; i++) {
@@ -151,18 +118,15 @@ function processClassData(stream: NodeJS.WritableStream, template: ITemplate, cl
   fixedClassName = fixedClassName.substring(1, fixedClassName.length - 1);
 
   var methods = classData.getMethods();
-  for (var mname in methods) {
-    if (methods.hasOwnProperty(mname)) {
-      if (methods[mname].accessFlags.isNative()) {
-        if (!nativeFound) {
-          template.classStart(stream, fixedClassName);
-          nativeFound = true;
-        }
-        var method = methods[mname];
-        template.method(stream, mname, method.accessFlags.isStatic(), method.param_types, method.return_type);
+  methods.forEach((method: methods.Method) => {
+    if (method.accessFlags.isNative()) {
+      if (!nativeFound) {
+        template.classStart(stream, fixedClassName);
+        nativeFound = true;
       }
+      template.method(stream, classData.getInternalName(), method.name + method.raw_descriptor, method.accessFlags.isStatic(), method.param_types, method.return_type);
     }
-  }
+  });
 
   if (nativeFound) {
     template.classEnd(stream, fixedClassName);
@@ -178,7 +142,7 @@ interface ITemplate {
   fileEnd(stream: NodeJS.WritableStream): void;
   classStart(stream: NodeJS.WritableStream, className: string): void;
   classEnd(stream: NodeJS.WritableStream, className: string): void;
-  method(stream: NodeJS.WritableStream, methodName: string, isStatic: boolean, argTypes: string[], rv: string): void;
+  method(stream: NodeJS.WritableStream, classDesc: string, methodName: string, isStatic: boolean, argTypes: string[], rv: string): void;
 }
 
 /**
@@ -186,9 +150,34 @@ interface ITemplate {
  */
 class TSTemplate implements ITemplate {
   private relativeInterfacePath: string;
+  private headerMap: { [clsName: string]: string} = {};
+  private staticHeaderMap: { [clsName: string]: string} = {};
   private classesSeen: string[] = [];
+  private headerPath: string = path.resolve(argv.standard.directory, "JVMTypes.d.ts");
   constructor(outputPath: string, private interfacePath: string) {
     this.relativeInterfacePath = path.relative(outputPath, interfacePath);
+
+    // Generate required types.
+    this.generateArrayDefinition();
+    this.generateClassDefinition(findClass('Ljava/lang/Throwable;'));
+    if (argv.standard.force_headers) {
+      var clses = argv.standard.force_headers.split(':');
+      clses.forEach((clsName: string) => {
+        this.generateClassDefinition(findClass(util.int_classname(clsName)));
+      });
+    }
+
+    // Parse existing types file for existing definitions. We'll remake them.
+    try {
+      var existingHeaders = fs.readFileSync(this.headerPath).toString();
+      existingHeaders.match(/interface JVMClasses\.[^{\s]+ {/g).forEach((m: string) => {
+        var iName = m.split(' ')[1];
+        console.log(`L${iName.replace(/_/g, "/")};`)
+        this.generateClassDefinition(findClass(`L${iName.replace(/_/g, "/")};`));
+      });
+    } catch (e) {
+      // Ignore.
+    }
   }
   public getExtension(): string { return 'ts'; }
   public fileStart(stream: NodeJS.WritableStream): void {
@@ -196,6 +185,7 @@ class TSTemplate implements ITemplate {
     var srcInterfacePath: string = path.join(this.interfacePath, 'src'),
       files = fs.readdirSync(srcInterfacePath),
       i: number, file: string;
+    stream.write(`/// <reference path="JVMTypes.d.ts" />\n`);
     for (i = 0; i < files.length; i++) {
       file = files[i];
       if (file.substring(file.length - 4) === 'd.ts') {
@@ -216,6 +206,29 @@ class TSTemplate implements ITemplate {
     }
     stream.write("\n});\n");
   }
+  /**
+   * Emits TypeScript type declarations. Separated from fileEnd, since one can
+   * use doppioh to emit headers only.
+   */
+  public emitHeaders(): void {
+    fs.writeFileSync(this.headerPath, `// TypeScript declaration file for JVM types. Automatically generated by doppioh.
+// http://github.com/plasma-umass/doppio
+
+/**
+ * Namespace for JVM class definitions. Does not include static fields and methods.
+ */
+declare module JVMClasses {
+${Object.keys(this.headerMap).map((clsName: string) => this.headerMap[clsName]).join("")}
+}
+
+/**
+ * Namespace for static JVM fields and methods.
+ */
+declare module JVMStatics{
+${Object.keys(this.staticHeaderMap).map((clsName: string) => this.staticHeaderMap[clsName]).join("")}
+}
+`);
+  }
   public classStart(stream: NodeJS.WritableStream, className: string): void {
     stream.write("\nclass " + className + " {\n");
     this.classesSeen.push(className);
@@ -223,60 +236,112 @@ class TSTemplate implements ITemplate {
   public classEnd(stream: NodeJS.WritableStream, className: string): void {
     stream.write("\n}\n");
   }
-  public method(stream: NodeJS.WritableStream, methodName: string, isStatic: boolean, argTypes: string[], rType: string): void {
-    // Construct the argument signature, figured out from the methodName.
-    var argSig: string = 'thread: threading.JVMThread', i: number;
-    if (!isStatic) {
-      argSig += ', javaThis: java_object.JavaObject';
+  public method(stream: NodeJS.WritableStream, classDesc: string, methodName: string, isStatic: boolean, argTypes: string[], rType: string): void {
+    var trueRtype = this.jvmtype2tstype(rType), rval = "";
+    if (trueRtype === 'number') {
+      rval = "number";
+    } else if (trueRtype !== 'void') {
+      rval = "null";
     }
-    for (i = 0; i < argTypes.length; i++) {
-      argSig += ', arg' + i + ': ' + this.jvmtype2tstype(argTypes[i]);
-    }
-    stream.write("\n  public static '" + methodName + "'(" + argSig + "): " + this.jvmtype2tstype(rType) + " {\n");
-    stream.write("    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');\n");
 
-    var trueRtype = this.jvmtype2tstype(rType);
-    if (trueRtype.indexOf('java_object') === 0 || trueRtype === 'gLong') {
-      stream.write("    // Satisfy TypeScript return type.\n    return null;\n");
-    } else if (trueRtype === 'number') {
-      stream.write("    // Satisfy TypeScript return type.\n    return 0;\n");
-    }
-    stream.write("  }\n");
+    argTypes.concat(rType).forEach((type: string) => {
+      this.generateClassDefinition(findClass(type));
+    });
+
+    stream.write(`
+  public static '${methodName}'(thread: threading.JVMThread${isStatic ? '' : `, javaThis: ${this.jvmtype2tstype(classDesc)}`}${argTypes.length === 0 ? '' : ', ' + argTypes.map((type: string, i: number) => `arg${i}: ${this.jvmtype2tstype(type)}`).join(", ")}): ${this.jvmtype2tstype(rType)} {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');${rval !== '' ? `\n    return ${rval};` : ''}
+  }\n`);
   }
 
-  private jvmtype2tstype(jvmType: string): string {
-    if (util.is_array_type(jvmType)) {
-      return 'java_object.JavaArray';
-    } else if (util.is_reference_type(jvmType)) {
-      switch (jvmType) {
-        case 'Ljava/lang/ClassLoader;':
-          return 'java_object.JavaClassLoaderObject';
-        case 'Ljava/lang/Class;':
-          return 'java_object.JavaClassObject';
-        default:
-          return 'java_object.JavaObject';
-      }
-    } else {
-      // Primitive type.
-      switch (jvmType) {
-        case 'B':
-        case 'C':
-        case 'D':
-        case 'F':
-        case 'I':
-        case 'S':
-          return 'number';
-        case 'J':
-          return 'gLong';
-        case 'V':
-          return 'void';
-        case 'Z':
-          // XXX: We should really probably use a boolean type at some point.
-          return 'number';
-        default:
-          throw new Error('Invalid JVM primitive type: ' + jvmType);
-      }
+  /**
+   * Converts a typestring to its equivalent TypeScript type.
+   */
+  private jvmtype2tstype(desc: string, prefix: boolean = true): string {
+    switch(desc[0]) {
+      case '[':
+      return `JVMClasses.JVMArray<${this.jvmtype2tstype(desc.slice(1))}>`;
+      case 'L':
+      return  (prefix ? 'JVMClasses.' : '') + util.descriptor2typestr(desc).replace(/\//g, '_');
+      case 'J':
+      return 'gLong';
+      case 'V':
+      return 'void';
+      default:
+      // Primitives.
+      return 'number';
     }
+  }
+
+  /**
+   * Generates a TypeScript class definition for the given class object.
+   */
+  private generateClassDefinition(cls: ClassData.ClassData): void {
+    var desc = cls.getInternalName();
+    if (this.headerMap[desc] || util.is_primitive_type(desc)) {
+      // Already generated, or is a primitive.
+      return;
+    } else if (desc[0] === '[') {
+      // Ensure component type is created.
+      return this.generateClassDefinition(findClass(cls.getInternalName().slice(1)));
+    } else if (cls instanceof ClassData.ReferenceClassData) {
+      // TODO: Get super class / interfaces. Extends / implements them.
+      // TODO2: Still need to load interfaces. :/
+      var interfaces = cls.getInterfaceClassReferences().map((iface: ConstantPool.ClassReference) => findClass(iface.name)),
+      superClass = cls.getSuperClassReference();
+      interfaces.forEach((iface) => this.generateClassDefinition(iface));
+      if (superClass !== null) {
+        this.generateClassDefinition(findClass(superClass.name));
+      }
+
+      // Use a function expression so we can use 'this'.
+      var generateMethodSignatures = (cls: ClassData.ClassData, isStatic: boolean = false): string => {
+        return cls.getMethods().map((m: methods.Method) => {
+          if (m.accessFlags.isStatic() === !isStatic) {
+            return "";
+          }
+          var types = util.getTypes(m.raw_descriptor),
+            typeSig = `(${types.slice(0, types.length - 1).map((type, i: number) => `arg${i}: ${this.jvmtype2tstype(type)}`).join(", ")}${types.length > 1 ? ', ' : ''}cb?: (e: JVMClasses.java_lang_Throwable${types[types.length - 1] === 'V' ? '' : `, rv: ${this.jvmtype2tstype(types[types.length - 1])}`}) => void): void`;
+
+          // Virtual and non-virtual method properties.
+          return `${m.accessFlags.isStatic() ? '' : `    "${m.name}${m.raw_descriptor}"${typeSig};\n`}    "${util.descriptor2typestr(cls.getInternalName())}/${m.name}${m.raw_descriptor}"${typeSig};\n`;
+        }).join("");
+      }, generateTypedFields = (cls: ClassData.ClassData, isStatic: boolean = false): string => {
+        return cls.getFields().map((f: methods.Field) => {
+          if (f.accessFlags.isStatic() === !isStatic) {
+            return "";
+          }
+          return `    "${util.descriptor2typestr(cls.getInternalName())}/${f.name}": ${this.jvmtype2tstype(f.raw_descriptor)};\n`;
+        }).join("");
+      };
+
+      function generateTypedStaticFields(cls: ClassData.ClassData): string {
+        return generateTypedFields(cls, true);
+      }
+      function generateStaticMethodSignatures(cls: ClassData.ClassData): string {
+        return generateMethodSignatures(cls, true);
+      }
+
+      // Un-generated reference type.
+      this.headerMap[desc] = `  interface ${this.jvmtype2tstype(desc, false)} ${superClass !== null ? `extends ${this.jvmtype2tstype(superClass.name)}` : ''} {
+    constructor: JVMStatics.${this.jvmtype2tstype(desc, false)};
+${generateTypedFields(cls)}
+${generateMethodSignatures(cls)}
+  }\n`;
+      this.staticHeaderMap[desc] = `  interface ${this.jvmtype2tstype(desc, false)} {
+${generateTypedStaticFields(cls)}
+${generateStaticMethodSignatures(cls)}
+  }\n`;
+    }
+  }
+
+  /**
+  * Generates the generic JVM array type definition.
+  */
+  private generateArrayDefinition(): void {
+    this.headerMap['['] = `  interface JVMArray<T> extends java_lang_Object {
+    array: T[];
+  }\n`;
   }
 }
 
@@ -305,7 +370,7 @@ class JSTemplate implements ITemplate {
   public classEnd(stream: NodeJS.WritableStream, className: string): void {
     stream.write("\n\n  }");
   }
-  public method(stream: NodeJS.WritableStream, methodName: string, isStatic: boolean, argTypes: string[], rType: string): void {
+  public method(stream: NodeJS.WritableStream, classDesc: string, methodName: string, isStatic: boolean, argTypes: string[], rType: string): void {
     // Construct the argument signature, figured out from the methodName.
     var argSig: string = 'thread', i: number;
     if (!isStatic) {
@@ -337,7 +402,6 @@ var classpath: string[] = argv.standard.classpath.split(':'),
   stream: NodeJS.WritableStream = fs.createWriteStream(path.join(argv.standard.directory, targetName + '.' + template.getExtension())),
   targetLocation: string;
 
-
 targetLocation = findFile(className);
 if (typeof targetLocation !== 'string') {
   console.error('Unable to find location: ' + className);
@@ -353,6 +417,9 @@ if (fs.statSync(targetLocation).isDirectory()) {
   processClassData(stream, template, new ClassData.ReferenceClassData(fs.readFileSync(targetLocation)));
 }
 template.fileEnd(stream);
+if (argv.standard.typescript) {
+  (<TSTemplate> template).emitHeaders();
+}
 stream.end(new Buffer(''), () => {
   process.exit(0);
 });
