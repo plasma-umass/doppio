@@ -180,7 +180,7 @@ class TSTemplate implements ITemplate {
         searchIdx++;
       }
       searchIdx = 0;
-      // Pass 2: Intefaces.
+      // Pass 2: Interfaces.
       while ((searchIdx = existingHeaders.indexOf("export interface ", searchIdx)) > -1) {
         clsName = existingHeaders.slice(searchIdx + 17, existingHeaders.indexOf(" ", searchIdx + 17));
         this.generateClassDefinition(`L${clsName.replace(/_/g, '/')};`);
