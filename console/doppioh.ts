@@ -336,9 +336,42 @@ export = JVMTypes;\n`, () => {});
         } else {
           // Classes can implement multiple interfaces.
           this.headerStream.write(` implements `);
+          // Quick scan for default methods.
+          var defaultMethods: { [sig: string]: methods.Method } = {};
+          interfaces.forEach((iface: ClassData.ReferenceClassData) => {
+            // Search iface and its superinterfaces.
+            function processIface(iface: ClassData.ReferenceClassData) {
+              iface.getInterfaceClassReferences().forEach((ifaceRef) => {
+                processIface(<ClassData.ReferenceClassData> findClass(ifaceRef.name));
+              });
+              iface.getMethods().forEach((m: methods.Method) => {
+                if (!m.accessFlags.isAbstract()) {
+                  if (m.getCodeAttribute() != null) {
+                    defaultMethods[m.name + m.raw_descriptor] = m;
+                  }
+                }
+              });
+            }
+            processIface(iface);
+          });
+          // Remove any default methods with concrete instantiations in this
+          // class or the super classes.
+          function checkClass(cls: ClassData.ReferenceClassData) {
+            cls.getMethods().forEach((m: methods.Method) => {
+              var fullName = m.name + m.raw_descriptor;
+              if (defaultMethods[fullName]) {
+                delete defaultMethods[fullName];
+              }
+            });
+            if (cls.getSuperClassReference() !== null) {
+              checkClass(<ClassData.ReferenceClassData> findClass(cls.getSuperClassReference().name));
+            }
+          }
+          checkClass(cls);
+          // Append remaining default methods to the list of methods to output.
+          methods = methods.concat(Object.keys(defaultMethods).map((key: string) => defaultMethods[key]));
         }
         this.headerStream.write(`${interfaces.map((iface: ClassData.ClassData) => this.jvmtype2tstype(iface.getInternalName(), false)).join(", ")}`);
-        // TODO: Find any default methods.
       }
 
       this.headerStream.write(` {\n`);
