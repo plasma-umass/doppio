@@ -19,6 +19,15 @@ var trace = logging.trace;
 var debug = logging.debug;
 
 /**
+ * Defines special JVM-injected fields. The map stores the TypeScript type of
+ * the field and the default value for the field, which will be assigned in the
+ * JavaScript constructor for the class.
+ */
+var injectedFields: {[className: string]: {
+  {[fieldName: string]: [string, any]}
+}} = {};
+
+/**
  * Extends a JVM class by making its prototype a blank instantiation of an
  * object with the super class's prototype as its prototype. Inspired from
  * TypeScript's __extend function.
@@ -97,6 +106,21 @@ export class ClassData {
    */
   public getInterfaces(): ReferenceClassData[] {
     return [];
+  }
+
+  /**
+   * Get all of the injected fields for this class. The value for each field
+   * in the returned map is its type.
+   */
+  public getInjectedFields(): { [fieldName: string]: string } {
+    var rv: { [fieldName: string]: string } = {};
+    if (injectedFields[this.getInternalName()] !== undefined) {
+      var fields = injectedFields[this.getInternalName()];
+      Object.keys(fields).forEach((fieldName: string) => {
+        rv[fieldName] = fields[fieldName][0];
+      });
+    }
+    return rv;
   }
 
   /**
@@ -1173,6 +1197,7 @@ export class ReferenceClassData extends ClassData {
       return '0';
     }
 
+    // TODO: Injected fields.
     function getFieldAssignments(cls: ReferenceClassData): string {
       var superClass = cls.getSuperClass(),
         prefix = superClass !== null ? getFieldAssignments(superClass) : "",
@@ -1209,6 +1234,8 @@ export class ReferenceClassData extends ClassData {
         ).join("");
 
       // Install default methods.
+      // TODO: Search superinterfaces.
+      // TODO: Miranda methods.
       return methodAssignments + cls.getInterfaces().map((i: ReferenceClassData, intIdx: number) => i.getMethods().map((m: methods.Method, i: number) => {
         if (m.accessFlags.isAbstract() || m.getCodeAttribute() == null) {
           return ""
