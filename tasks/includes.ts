@@ -17,7 +17,7 @@ function includes(grunt: IGrunt) {
         dest: string = options.dest,
         done: (status?: boolean) => void = this.async(),
         i: number, tasks: Function[] = [];
-    console.log(packages.length);
+
     for (i = 0; i < packages.length; i++) {
       // Closure to capture 'file'.
       (function(package: string) {

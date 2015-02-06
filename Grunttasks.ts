@@ -364,6 +364,13 @@ export function setup(grunt: IGrunt) {
       grunt.log.writeln("Running one-time java_home setup; this could take a few minutes!");
       grunt.task.run(['curl-dir', 'untar', 'delete_jh_tar']);
     }
+    // Ignore dev-cli compilation errors if the JVMTypes aren't defined yet.
+    grunt.config.set('ts.options.failOnTypeErrors', grunt.file.exists("includes/JVMTypes.d.ts"));
+  });
+  grunt.registerTask("includecheck", "Checks if includes need to be generated.", function() {
+    if (!grunt.file.exists("includes/JVMTypes.d.ts")) {
+      grunt.task.run(['includes:default']);
+    }
   });
   grunt.registerTask('java',
     ['find_native_java',
@@ -383,6 +390,7 @@ export function setup(grunt: IGrunt) {
     ['setup:dev-cli',
      'make_build_dir',
      'ts:dev-cli',
+     'includecheck',
      'launcher:doppio-dev']);
   grunt.registerTask('release-cli',
     ['dev-cli',
