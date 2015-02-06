@@ -23,9 +23,7 @@ var debug = logging.debug;
  * the field and the default value for the field, which will be assigned in the
  * JavaScript constructor for the class.
  */
-var injectedFields: {[className: string]: {
-  {[fieldName: string]: [string, any]}
-}} = {};
+var injectedFields: {[className: string]: {[fieldName: string]: [string, any]}} = {};
 
 /**
  * Extends a JVM class by making its prototype a blank instantiation of an
