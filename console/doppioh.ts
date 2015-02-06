@@ -97,17 +97,13 @@ function findClass(descriptor: string): ClassData.ClassData {
     return cache[descriptor];
   }
 
-  try {
-    switch(descriptor[0]) {
-      case 'L':
-        return cache[descriptor] = new ClassData.ReferenceClassData(fs.readFileSync(findFile(util.descriptor2typestr(descriptor))));
-      case '[':
-        return cache[descriptor] = new ClassData.ArrayClassData(descriptor.slice(1), null);
-      default:
-        return cache[descriptor] = new ClassData.PrimitiveClassData(descriptor, null);
-    }
-  } catch (e) {
-    console.log("Issue finding class for " + descriptor);
+  switch(descriptor[0]) {
+    case 'L':
+      return cache[descriptor] = new ClassData.ReferenceClassData(fs.readFileSync(findFile(util.descriptor2typestr(descriptor))));
+    case '[':
+      return cache[descriptor] = new ClassData.ArrayClassData(descriptor.slice(1), null);
+    default:
+      return cache[descriptor] = new ClassData.PrimitiveClassData(descriptor, null);
   }
 }
 
@@ -174,16 +170,27 @@ class TSTemplate implements ITemplate {
 
     // Parse existing types file for existing definitions. We'll remake them.
     // TODO: Revisit.
-    /*try {
-      var existingHeaders = fs.readFileSync(this.headerPath).toString();
-      existingHeaders.match(/interface JVMClasses\.[^{\s]+ {/g).forEach((m: string) => {
-        var iName = m.split(' ')[1].slice(11);
-        console.log(`L${iName.replace(/_/g, "/")};`)
-        this.generateClassDefinition(findClass(`L${iName.replace(/_/g, "/")};`));
-      });
+    try {
+      var existingHeaders = fs.readFileSync(this.headerPath).toString(),
+        searchIdx = 0, clsName: string;
+      // Pass 1: Classes.
+      while ((searchIdx = existingHeaders.indexOf("export class ", searchIdx)) > -1) {
+        clsName = existingHeaders.slice(searchIdx + 13, existingHeaders.indexOf(" ", searchIdx + 13));
+        if (clsName.indexOf("JVMArray") !== 0) {
+          this.generateClassDefinition(`L${clsName.replace(/_/g, '/')};`);
+        }
+        searchIdx++;
+      }
+      searchIdx = 0;
+      // Pass 2: Intefaces.
+      while ((searchIdx = existingHeaders.indexOf("export interface ", searchIdx)) > -1) {
+        clsName = existingHeaders.slice(searchIdx + 17, existingHeaders.indexOf(" ", searchIdx + 17));
+        this.generateClassDefinition(`L${clsName.replace(/_/g, '/')};`);
+        searchIdx++;
+      }
     } catch (e) {
       // Ignore.
-    }*/
+    }
 
     this.headerStream = fs.createWriteStream(this.headerPath);
     this.headersStart();
@@ -221,6 +228,7 @@ declare module JVMTypes {\n`);
         stream.write('import ' + modName + ' = require("' + path.join(this.relativeInterfacePath, 'src', modName).replace(/\\/g, '/') + '");\n');
       }
     }
+    stream.write(`\ndeclare var registerNatives: (natives: any) => void;\n`);
   }
   public fileEnd(stream: NodeJS.WritableStream): void {
     var i: number;
@@ -457,7 +465,7 @@ export = JVMTypes;\n`, () => {});
    * Generates the generic JVM array type definition.
    */
   private generateArrayDefinition(): void {
-    this.headerStream.write(`  export interface JVMArray<T> extends java_lang_Object {
+    this.headerStream.write(`  export class JVMArray<T> extends java_lang_Object {
     array: T[];
   }\n`);
   }
