@@ -55,6 +55,13 @@ export function setup(grunt: IGrunt) {
       },
       default: {}
     },
+    includes: {
+      options: {
+        packages: fs.readdirSync('src/natives').filter((item: string) => item.indexOf(".ts") !== -1).map((item: string) => item.slice(0, item.indexOf('.')).replace(/_/g, '.')),
+        dest: "includes"
+      },
+      default: {}
+    },
     'ice-cream': {
       'release-cli': {
         files: [{

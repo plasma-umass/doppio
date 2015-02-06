@@ -58,9 +58,11 @@ function setupOptparse() {
 
 function printEraseableLine(line: string): void {
   // Undocumented functions.
-  (<any> process.stdout).clearLine();
-  (<any> process.stdout).cursorTo(0);
-  process.stdout.write(line);
+  if (process.stdout['clearLine']) {
+    (<any> process.stdout).clearLine();
+    (<any> process.stdout).cursorTo(0);
+    process.stdout.write(line);
+  }
 }
 
 function printHelp(): void {
@@ -96,13 +98,17 @@ function findClass(descriptor: string): ClassData.ClassData {
     return cache[descriptor];
   }
 
-  switch(descriptor[0]) {
-    case 'L':
-      return cache[descriptor] = new ClassData.ReferenceClassData(fs.readFileSync(findFile(util.descriptor2typestr(descriptor))));
-    case '[':
-      return cache[descriptor] = new ClassData.ArrayClassData(descriptor.slice(1), null);
-    default:
-      return cache[descriptor] = new ClassData.PrimitiveClassData(descriptor, null);
+  try {
+    switch(descriptor[0]) {
+      case 'L':
+        return cache[descriptor] = new ClassData.ReferenceClassData(fs.readFileSync(findFile(util.descriptor2typestr(descriptor) + ".class")));
+      case '[':
+        return cache[descriptor] = new ClassData.ArrayClassData(descriptor.slice(1), null);
+      default:
+        return cache[descriptor] = new ClassData.PrimitiveClassData(descriptor, null);
+    }
+  } catch (e) {
+    throw new Error(`Unable to read class file for ${descriptor}: ${e}\n${e.stack}`);
   }
 }
 
