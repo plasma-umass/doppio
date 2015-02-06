@@ -410,7 +410,8 @@ export = JVMTypes;\n`, () => {});
       methodSig: string;
 
     if (argTypes.length > 0) {
-      args = argTypes.map((type: string, i: number) => `arg${i}: ${this.jvmtype2tstype(type, false)}`).join(", ") + ", ";
+      // Arguments are a giant tuple type.
+      args = "args: [" + argTypes.map((type: string, i: number) => `${this.jvmtype2tstype(type, false)}`).join(", ") + "], ";
     }
 
     methodSig = `(thread: threading.JVMThread, ${args}cb: (${cbSig}) => void): ${this.jvmtype2tstype(rType, false)}`;
