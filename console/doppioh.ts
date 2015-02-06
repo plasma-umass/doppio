@@ -337,6 +337,9 @@ export = JVMTypes;\n`, () => {});
           // Classes can implement multiple interfaces.
           this.headerStream.write(` implements `);
           // Quick scan for default methods.
+          // NOTE: If we are processing an abstract class, then we also use this
+          // to search for Miranda methods.
+          // http://grepcode.com/file/repository.grepcode.com/java/root/jdk/openjdk/6-b14/sun/tools/java/ClassDefinition.java#1609
           var defaultMethods: { [sig: string]: methods.Method } = {};
           interfaces.forEach((iface: ClassData.ReferenceClassData) => {
             // Search iface and its superinterfaces.
@@ -345,7 +348,15 @@ export = JVMTypes;\n`, () => {});
                 processIface(<ClassData.ReferenceClassData> findClass(ifaceRef.name));
               });
               iface.getMethods().forEach((m: methods.Method) => {
-                if (!m.accessFlags.isAbstract()) {
+                if (cls.accessFlags.isAbstract()) {
+                  // Hack: If the class implementing the interface is abstract,
+                  // we need to check for missing interface methods in the
+                  // class. If they are missing, the JVM will add a stub method
+                  // that throws an exception, thus it must be included in the
+                  // type to satisfy the TypeScript interface. These are
+                  // Miranda methods.
+                  defaultMethods[m.name + m.raw_descriptor] = m;
+                } else if (!m.accessFlags.isAbstract()) {
                   if (m.getCodeAttribute() != null) {
                     defaultMethods[m.name + m.raw_descriptor] = m;
                   }
