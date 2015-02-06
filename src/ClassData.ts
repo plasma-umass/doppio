@@ -26,6 +26,16 @@ var debug = logging.debug;
 var injectedFields: {[className: string]: {[fieldName: string]: [string, string]}} = {
   'Ljava/lang/invoke/MemberName;': {
     vmtarget: ["methods.AbstractMethodField", "null"]
+  },
+  'Ljava/lang/Object;': {
+    '$monitor': ["java_object.Monitor", "null"]
+  },
+  'Ljava/net/PlainSocketImpl;': {
+    '$is_shutdown': ['boolean', 'false'],
+    '$ws': ['java_object.IWebsock', 'null']
+  },
+  'Ljava/io/FileDescriptor;': {
+    '$pos': ['number', '-1']
   }
 };
 

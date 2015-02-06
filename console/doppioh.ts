@@ -214,6 +214,7 @@ class TSTemplate implements ITemplate {
 import gLong = require("${path.join(this.relativeInterfacePath, 'src', 'gLong')}");
 import threading = require("${path.join(this.relativeInterfacePath, 'src', 'threading')}");
 import methods = require("${path.join(this.relativeInterfacePath, 'src', 'methods')}");
+import java_object = require("${path.join(this.relativeInterfacePath, 'src', 'java_object')}");
 
 declare module JVMTypes {\n`);
   }
