@@ -181,7 +181,7 @@ class TSTemplate implements ITemplate {
       while ((searchIdx = existingHeaders.indexOf("export class ", searchIdx)) > -1) {
         clsName = existingHeaders.slice(searchIdx + 13, existingHeaders.indexOf(" ", searchIdx + 13));
         if (clsName.indexOf("JVMArray") !== 0) {
-          this.generateClassDefinition(`L${clsName.replace(/_/g, '/')};`);
+          this.generateClassDefinition(this.tstype2jvmtype(clsName));
         }
         searchIdx++;
       }
@@ -189,11 +189,12 @@ class TSTemplate implements ITemplate {
       // Pass 2: Interfaces.
       while ((searchIdx = existingHeaders.indexOf("export interface ", searchIdx)) > -1) {
         clsName = existingHeaders.slice(searchIdx + 17, existingHeaders.indexOf(" ", searchIdx + 17));
-        this.generateClassDefinition(`L${clsName.replace(/_/g, '/')};`);
+        this.generateClassDefinition(this.tstype2jvmtype(clsName));
         searchIdx++;
       }
     } catch (e) {
       // Ignore.
+      console.log("Error parsing exiting file: " + e);
     }
 
     this.headerStream = fs.createWriteStream(this.headerPath);
@@ -294,7 +295,7 @@ export = JVMTypes;\n`, () => {});
       case 'L':
       // Ensure all converted reference types get generated headers.
       this.generateClassDefinition(desc);
-      return  (prefix ? 'JVMTypes.' : '') + util.descriptor2typestr(desc).replace(/\//g, '_');
+      return  (prefix ? 'JVMTypes.' : '') + util.descriptor2typestr(desc).replace(/_/g, '__').replace(/\//g, '_');
       case 'J':
       return 'gLong';
       case 'V':
@@ -302,6 +303,22 @@ export = JVMTypes;\n`, () => {});
       default:
       // Primitives.
       return 'number';
+    }
+  }
+
+  /**
+   * Converts a TypeScript type into its equivalent JVM type.
+   */
+  private tstype2jvmtype(tsType: string): string {
+    if (tsType.indexOf('JVMArray') === 0) {
+      return `[${this.tstype2jvmtype(tsType.slice(9, tsType.length - 1))}`;
+    } else if (tsType === 'number') {
+      throw new Error("Ambiguous.");
+    } else if (tsType === 'void') {
+      return 'V';
+    } else {
+      // _ => /, and // => _ since we encode underscores as double underscores.
+      return `L${tsType.replace(/_/g, '/').replace(/\/\//g, '_')};`;
     }
   }
 
@@ -540,8 +557,8 @@ if (!fs.existsSync(argv.standard.directory)) {
 var classpath: string[] = argv.standard.classpath.split(':'),
   targetName: string = argv.className.replace(/\//g, '_').replace(/\./g, '_'),
   className: string = argv.className.replace(/\./g, '/'),
-  template: ITemplate = argv.standard.typescript ? new TSTemplate(argv.standard.directory, argv.standard.typescript) : new JSTemplate(),
-  stream: NodeJS.WritableStream = fs.createWriteStream(path.join(argv.standard.directory, targetName + '.' + template.getExtension())),
+  template: ITemplate,
+  stream: NodeJS.WritableStream,
   targetLocation: string;
 
 targetLocation = findFile(className);
@@ -549,6 +566,9 @@ if (typeof targetLocation !== 'string') {
   console.error('Unable to find location: ' + className);
   process.exit(0);
 }
+
+template = argv.standard.typescript ? new TSTemplate(argv.standard.directory, argv.standard.typescript) : new JSTemplate();
+stream = fs.createWriteStream(path.join(argv.standard.directory, targetName + '.' + template.getExtension()));
 
 template.fileStart(stream);
 if (fs.statSync(targetLocation).isDirectory()) {
