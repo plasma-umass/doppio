@@ -61,7 +61,6 @@ function printEraseableLine(line: string): void {
   (<any> process.stdout).clearLine();
   (<any> process.stdout).cursorTo(0);
   process.stdout.write(line);
-  // (<any> process.stdout).flush();
 }
 
 function printHelp(): void {
@@ -169,7 +168,6 @@ class TSTemplate implements ITemplate {
     this.relativeInterfacePath = path.relative(outputPath, interfacePath);
 
     // Parse existing types file for existing definitions. We'll remake them.
-    // TODO: Revisit.
     try {
       var existingHeaders = fs.readFileSync(this.headerPath).toString(),
         searchIdx = 0, clsName: string;
