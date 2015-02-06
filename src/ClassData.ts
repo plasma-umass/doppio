@@ -23,7 +23,11 @@ var debug = logging.debug;
  * the field and the default value for the field, which will be assigned in the
  * JavaScript constructor for the class.
  */
-var injectedFields: {[className: string]: {[fieldName: string]: [string, any]}} = {};
+var injectedFields: {[className: string]: {[fieldName: string]: [string, string]}} = {
+  'Ljava/lang/invoke/MemberName;': {
+    vmtarget: ["methods.AbstractMethodField", "null"]
+  }
+};
 
 /**
  * Extends a JVM class by making its prototype a blank instantiation of an
@@ -1195,11 +1199,20 @@ export class ReferenceClassData extends ClassData {
       return '0';
     }
 
-    // TODO: Injected fields.
     function getFieldAssignments(cls: ReferenceClassData): string {
       var superClass = cls.getSuperClass(),
         prefix = superClass !== null ? getFieldAssignments(superClass) : "",
-        clsBase = util.descriptor2typestr(cls.getInternalName());
+        clsBase = util.descriptor2typestr(cls.getInternalName()),
+        injected = injectedFields[cls.getInternalName()];
+
+      // Injected fields.
+      if (injected !== undefined) {
+        prefix += Object.keys(injected).map((name: string) => {
+          var field: [string, any] = injected[name];
+          return `this["${name}"] = ${field[1]};\n`;
+        }).join("");
+      }
+
       return prefix + cls.getFields().map((field: methods.Field) =>
         field.accessFlags.isStatic() ? "" :
           `this["${clsBase}/${field.name}"] = ${getDefaultFieldValue(field.raw_descriptor)};\n`

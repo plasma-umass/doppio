@@ -213,6 +213,7 @@ class TSTemplate implements ITemplate {
 // http://github.com/plasma-umass/doppio
 import gLong = require("${path.join(this.relativeInterfacePath, 'src', 'gLong')}");
 import threading = require("${path.join(this.relativeInterfacePath, 'src', 'threading')}");
+import methods = require("${path.join(this.relativeInterfacePath, 'src', 'methods')}");
 
 declare module JVMTypes {\n`);
   }
@@ -327,7 +328,8 @@ export = JVMTypes;\n`, () => {});
         superClass = cls.getSuperClassReference(),
         methods = cls.getMethods(),
         fields = cls.getFields(),
-        methodsSeen: { [name: string]: boolean } = {};
+        methodsSeen: { [name: string]: boolean } = {},
+        injectedFields = cls.getInjectedFields();
       printEraseableLine(`[${this.headerCount++}] Processing header for ${util.descriptor2typestr(desc)}...`);
 
       if (cls.accessFlags.isInterface()) {
@@ -398,6 +400,7 @@ export = JVMTypes;\n`, () => {});
       }
 
       this.headerStream.write(` {\n`);
+      Object.keys(injectedFields).forEach((name: string) => this._outputInjectedField(name, injectedFields[name], this.headerStream));
       fields.forEach((f) => this._outputField(f, this.headerStream));
       methods.forEach((m) => this._outputMethod(cls, m, this.headerStream));
       this.headerStream.write(`  }\n`);
@@ -458,6 +461,13 @@ export = JVMTypes;\n`, () => {});
     } else {
       stream.write(`    public "${util.descriptor2typestr(cls.getInternalName())}/${f.name}": ${this.jvmtype2tstype(fieldType, false)};\n`);
     }
+  }
+
+  /**
+   * Outputs information on a field injected by the JVM.
+   */
+  private _outputInjectedField(name: string, type: string, stream: NodeJS.WritableStream) {
+    stream.write(`    public ${name}: ${type};\n`);
   }
 
   private _processGenerateQueue(): void {
