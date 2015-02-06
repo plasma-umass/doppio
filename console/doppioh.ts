@@ -216,6 +216,8 @@ import gLong = require("${path.join(this.relativeInterfacePath, 'src', 'gLong')}
 import threading = require("${path.join(this.relativeInterfacePath, 'src', 'threading')}");
 import methods = require("${path.join(this.relativeInterfacePath, 'src', 'methods')}");
 import java_object = require("${path.join(this.relativeInterfacePath, 'src', 'java_object')}");
+import ClassLoader = require("${path.join(this.relativeInterfacePath, 'src', 'ClassLoader')}");
+import ClassData = require("${path.join(this.relativeInterfacePath, 'src', 'ClassData')}");
 
 declare module JVMTypes {\n`);
   }

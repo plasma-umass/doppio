@@ -36,6 +36,12 @@ var injectedFields: {[className: string]: {[fieldName: string]: [string, string]
   },
   'Ljava/io/FileDescriptor;': {
     '$pos': ['number', '-1']
+  },
+  'Ljava/lang/Class;': {
+    '$cls': ['ClassData.ClassData', 'null']
+  },
+  'Ljava/lang/ClassLoader;': {
+    '$loader': ['ClassLoader.ClassLoader', 'null']
   }
 };
 
