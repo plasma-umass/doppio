@@ -99,15 +99,33 @@ function findClass(descriptor: string): ClassData.ClassData {
     return cache[descriptor];
   }
 
+  var rv: ClassData.ClassData;
   try {
     switch(descriptor[0]) {
       case 'L':
-        return cache[descriptor] = new ClassData.ReferenceClassData(fs.readFileSync(findFile(util.descriptor2typestr(descriptor) + ".class")));
+        rv = new ClassData.ReferenceClassData(fs.readFileSync(findFile(util.descriptor2typestr(descriptor) + ".class")));
+        // Resolve the class.
+        var superClassRef = (<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> rv).getSuperClassReference(),
+          interfaceClassRefs = (<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> rv).getInterfaceClassReferences(),
+          superClass: ClassData.ReferenceClassData<JVMTypes.java_lang_Object> = null,
+          interfaceClasses: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>[] = [];
+        if (superClassRef !== null) {
+          superClass = <ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> findClass(superClassRef.name);
+        }
+        if (interfaceClassRefs.length > 0) {
+          interfaceClasses = interfaceClassRefs.map((iface: ConstantPool.ClassReference) => <ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> findClass(iface.name));
+        }
+        (<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> rv).setResolved(superClass, interfaceClasses);
+        break;
       case '[':
-        return cache[descriptor] = new ClassData.ArrayClassData(descriptor.slice(1), null);
+        rv = new ClassData.ArrayClassData(descriptor.slice(1), null);
+        break;
       default:
-        return cache[descriptor] = new ClassData.PrimitiveClassData(descriptor, null);
+        rv = new ClassData.PrimitiveClassData(descriptor, null);
+        break;
     }
+    cache[descriptor] = rv;
+    return rv;
   } catch (e) {
     throw new Error(`Unable to read class file for ${descriptor}: ${e}\n${e.stack}`);
   }
@@ -340,11 +358,21 @@ export = JVMTypes;\n`, () => {});
     }
   }
 
+  /**
+   * Find Miranda and default interface methods in the given class. These
+   * methods manifest as new slots in the virtual method table compared with
+   * the class's superclass that are not defined in the class itself.
+   */
+  private _getMirandaAndDefaultMethods(cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>): methods.Method[] {
+    var superClsMethodTable: methods.Method[] = cls.getSuperClass() !== null ? cls.getSuperClass().getMethodSlots() : [];
+    return cls.getMethodSlots().slice(superClsMethodTable.length).filter((method: methods.Method) => method.cls !== cls);
+  }
+
   private _processHeader(cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>): void {
       var desc = cls.getInternalName(),
-        interfaces = cls.getInterfaceClassReferences().map((iface: ConstantPool.ClassReference) => findClass(iface.name)),
+        interfaces = cls.getInterfaceClassReferences().map((iface: ConstantPool.ClassReference) => iface.name),
         superClass = cls.getSuperClassReference(),
-        methods = cls.getMethods(),
+        methods = cls.getMethods().concat(this._getMirandaAndDefaultMethods(cls)),
         fields = cls.getFields(),
         methodsSeen: { [name: string]: boolean } = {},
         injectedFields = cls.getInjectedFields(),
@@ -358,64 +386,24 @@ export = JVMTypes;\n`, () => {});
         this.headerStream.write(`  export class ${this.jvmtype2tstype(desc, false)}`);
       }
 
-      if (!cls.accessFlags.isInterface() && superClass !== null) {
+      // Note: Interface classes have java.lang.Object as a superclass.
+      // While java_lang_Object is a class, TypeScript will extract an interface
+      // for the class under-the-covers and extract it, correctly providing us
+      // with injected JVM methods on interface types (e.g. getClass()).
+      if (superClass !== null) {
         this.headerStream.write(` extends ${this.jvmtype2tstype(superClass.name, false)}`);
       }
 
       if (interfaces.length > 0) {
         if (cls.accessFlags.isInterface()) {
-          // Interfaces can extend multiple interfaces.
-          this.headerStream.write(` extends `);
+          // Interfaces can extend multiple interfaces, and can extend classes!
+          // Add a comma after the guaranteed "java_lang_Object".
+          this.headerStream.write(`, `);
         } else {
           // Classes can implement multiple interfaces.
           this.headerStream.write(` implements `);
-          // Quick scan for default methods.
-          // NOTE: If we are processing an abstract class, then we also use this
-          // to search for Miranda methods.
-          // http://grepcode.com/file/repository.grepcode.com/java/root/jdk/openjdk/6-b14/sun/tools/java/ClassDefinition.java#1609
-          var defaultMethods: { [sig: string]: methods.Method } = {};
-          interfaces.forEach((iface: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>) => {
-            // Search iface and its superinterfaces.
-            function processIface(iface: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>) {
-              iface.getInterfaceClassReferences().forEach((ifaceRef: ConstantPool.ClassReference) => {
-                processIface(<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> findClass(ifaceRef.name));
-              });
-              iface.getMethods().forEach((m: methods.Method) => {
-                if (cls.accessFlags.isAbstract()) {
-                  // Hack: If the class implementing the interface is abstract,
-                  // we need to check for missing interface methods in the
-                  // class. If they are missing, the JVM will add a stub method
-                  // that throws an exception, thus it must be included in the
-                  // type to satisfy the TypeScript interface. These are
-                  // Miranda methods.
-                  defaultMethods[m.signature] = m;
-                } else if (!m.accessFlags.isAbstract()) {
-                  if (m.getCodeAttribute() != null) {
-                    defaultMethods[m.signature] = m;
-                  }
-                }
-              });
-            }
-            processIface(iface);
-          });
-          // Remove any default methods with concrete instantiations in this
-          // class or the super classes.
-          function checkClass(cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>) {
-            cls.getMethods().forEach((m: methods.Method) => {
-              var fullName = m.signature;
-              if (defaultMethods[fullName]) {
-                delete defaultMethods[fullName];
-              }
-            });
-            if (cls.getSuperClassReference() !== null) {
-              checkClass(<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> findClass(cls.getSuperClassReference().name));
-            }
-          }
-          checkClass(cls);
-          // Append remaining default methods to the list of methods to output.
-          methods = methods.concat(Object.keys(defaultMethods).map((key: string) => defaultMethods[key]));
         }
-        this.headerStream.write(`${interfaces.map((iface: ClassData.ClassData) => this.jvmtype2tstype(iface.getInternalName(), false)).join(", ")}`);
+        this.headerStream.write(`${interfaces.map((ifaceName: string) => this.jvmtype2tstype(ifaceName, false)).join(", ")}`);
       }
 
       this.headerStream.write(` {\n`);
@@ -435,7 +423,7 @@ export = JVMTypes;\n`, () => {});
     var argTypes = m.parameterTypes,
       rType = m.returnType, args: string = "",
       cbSig = `e?: java_lang_Throwable${rType === 'V' ? "" : `, rv?: ${this.jvmtype2tstype(rType, false)}`}`,
-      methodSig: string;
+      methodSig: string, methodFlags = `public${m.accessFlags.isStatic() ? ' static' : ''}`;
 
     if (argTypes.length > 0) {
       // Arguments are a giant tuple type.
@@ -444,6 +432,9 @@ export = JVMTypes;\n`, () => {});
 
     methodSig = `(thread: threading.JVMThread, ${args}cb?: (${cbSig}) => void): ${this.jvmtype2tstype(rType, false)}`;
 
+    // A quick note about methods: It's illegal to have two methods with the
+    // same signature in the same class, even if one is static and the other
+    // isn't.
     if (cls.accessFlags.isInterface()) {
       if (m.accessFlags.isStatic()) {
         // XXX: We ignore static interface methods right now, as reconciling them with TypeScript's
@@ -453,14 +444,8 @@ export = JVMTypes;\n`, () => {});
         stream.write(`    "${m.signature}"${methodSig};\n`);
       }
     } else {
-      if (m.accessFlags.isStatic()) {
-        // Nonvirtual only.
-        stream.write(`    public static "${util.descriptor2typestr(cls.getInternalName())}/${m.signature}"${methodSig};\n`);
-      } else {
-        // Virtual and nonvirtual.
-        stream.write(`    public "${util.descriptor2typestr(cls.getInternalName())}/${m.signature}"${methodSig};
-    public "${m.signature}"${methodSig};\n`);
-      }
+      stream.write(`    ${methodFlags} "${util.descriptor2typestr(cls.getInternalName())}/${m.signature}"${methodSig};
+    ${methodFlags} "${m.signature}"${methodSig};\n`);
     }
   }
 

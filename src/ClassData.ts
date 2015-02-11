@@ -564,7 +564,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    */
   private _constructor: IJVMConstructor<T> = null;
   /**
-   * Virtual lookup table for fields.
+   * Virtual field table
    */
   private _fieldLookup: { [name: string]: methods.Field } = {};
   /**
@@ -576,7 +576,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    */
   protected _staticFieldSlots: methods.Field[] = [];
   /**
-   * Virtual lookup table for methods.
+   * Virtual method table.
    */
   private _methodLookup: { [name: string]: methods.Method } = {};
   /**
@@ -655,6 +655,14 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    */
   public getFields(): methods.Field[] {
     return this.fields;
+  }
+
+  /**
+   * The virtual method table for this class. The method's index in the table
+   * is its slot.
+   */
+  public getMethodSlots(): methods.Method[] {
+    return this._methodSlots;
   }
 
   /**
@@ -877,6 +885,8 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
     trace(`Class ${this.getInternalName()} is now resolved.`);
     this.interfaceClasses = interfaceClazzes;
     // TODO: Assert we are not already resolved or initialized?
+    this._resolveMethods();
+    this._resolveFields();
     this.setState(ClassState.RESOLVED);
   }
 
