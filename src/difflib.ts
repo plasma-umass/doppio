@@ -80,7 +80,7 @@ export class SequenceMatcher {
 
 		var j2len = {};
 		for (var i = alo; i < ahi; i++) {
-			var newj2len = {};
+			var newj2len: any = {};
 			var jdict = __dictget(b2j, a[i], []);
 			for (var jkey in jdict) {
 				if (jdict.hasOwnProperty(jkey)) {

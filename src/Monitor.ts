@@ -1,235 +1,11 @@
-/// <amd-dependency path="../vendor/underscore/underscore" />
-"use strict";
-var underscore = require('../vendor/underscore/underscore');
-import gLong = require('./gLong');
-import util = require('./util');
-import ClassData = require('./ClassData');
-import ClassLoader = require('./ClassLoader');
+import threading = require('./threading');
 import enums = require('./enums');
 import assert = require('./assert');
-import threading = require('./threading');
-import methods = require('./methods');
-var ref: number = 0;
-
-export class JavaArray {
-  public cls: ClassData.ArrayClassData;
-  public array: any[];
-  public ref: number = ref++;
-  private $monitor: Monitor = null;
-
-  constructor(cls: ClassData.ArrayClassData, obj: any[]) {
-    this.cls = cls;
-    this.array = obj;
-  }
-
-  public clone(): JavaArray {
-    // note: we don't clone the type, because they're effectively immutable
-    return new JavaArray(this.cls, underscore.clone(this.array));
-  }
-
-  public getFieldFromSlot(thread: threading.JVMThread, offset: gLong): any {
-    return this.array[offset.toInt()];
-  }
-
-  public setFieldFromSlot(thread: threading.JVMThread, offset: gLong, value: any): void {
-    this.array[offset.toInt()] = value;
-  }
-
-  public getMonitor(): Monitor {
-    if (this.$monitor !== null) {
-      return this.$monitor;
-    } else {
-      return this.$monitor = new Monitor();
-    }
-  }
-
-  public toString(): string {
-    if (this.array.length <= 10) {
-      return "<" + this.cls.getInternalName() + " [" + this.array + "] (*" + this.ref + ")>";
-    }
-    return "<" + this.cls.getInternalName() + " of length " + this.array.length + " (*" + this.ref + ")>";
-  }
-}
-
-export class JavaObject {
-  public cls: ClassData.ReferenceClassData;
-  public fields: any;
-  public ref: number = ref++;
-  public $pos: number; // XXX: For file descriptors.
-  public $ws: IWebsock; // XXX: For sockets.
-  public $is_shutdown: boolean; // XXX: For sockets.
-  private $monitor: Monitor = null;
-  public vmtarget: methods.AbstractMethodField; // XXX: For MemberName.
-
-  constructor(cls: ClassData.ReferenceClassData, obj: any = {}) {
-    this.cls = cls;
-    // Use default fields as a prototype.
-    this.fields = Object.create(this.cls.getDefaultFields());
-    for (var field in obj) {
-      if (obj.hasOwnProperty(field)) {
-        this.fields[field] = obj[field];
-      }
-    }
-  }
-
-  public clone(): JavaObject {
-    // note: we don't clone the type, because they're effectively immutable
-    return new JavaObject(this.cls, underscore.clone(this.fields));
-  }
-
-  public set_field(thread: threading.JVMThread, name: string, val: any): boolean {
-    if (this.fields[name] !== undefined) {
-      this.fields[name] = val;
-      return true;
-    } else {
-      thread.throwNewException('Ljava/lang/NoSuchFieldError;',
-        'Cannot set field ' + name + ' on class ' + this.cls.getInternalName());
-      return false;
-    }
-  }
-
-  public get_field(thread: threading.JVMThread, name: string): any {
-    if (this.fields[name] !== undefined) {
-      return this.fields[name];
-    }
-    thread.throwNewException('Ljava/lang/NoSuchFieldError;',
-      'Cannot get field ' + name + ' from class ' + this.cls.getInternalName());
-  }
-
-  public getMonitor(): Monitor {
-    if (this.$monitor !== null) {
-      return this.$monitor;
-    } else {
-      return this.$monitor = new Monitor();
-    }
-  }
-
-  public getFieldFromSlot(thread: threading.JVMThread, slot: gLong): any {
-    var f = this.cls.getFieldFromSlot(slot.toNumber());
-    if (f.accessFlags.isStatic()) {
-      return f.cls.staticGet(thread, f.name);
-    }
-    return this.get_field(thread, f.cls.getInternalName() + f.name);
-  }
-
-  public setFieldFromSlot(thread: threading.JVMThread, slot: gLong, value: any): void {
-    var f = this.cls.getFieldFromSlot(slot.toNumber());
-    if (f.accessFlags.isStatic()) {
-      f.cls.staticPut(thread, f.name, value);
-    } else {
-      this.set_field(thread, f.cls.getInternalName() + f.name, value);
-    }
-  }
-
-  public toString(): string {
-    if (this.cls.getInternalName() === 'Ljava/lang/String;')
-      return "<" + this.cls.getInternalName() + " '" + (this.jvm2js_str()) + "' (*" + this.ref + ")>";
-    return "<" + this.cls.getInternalName() + " (*" + this.ref + ")>";
-  }
-
-  // Convert a Java String object into an equivalent JS one.
-  public jvm2js_str(): string {
-    return util.chars2jsStr(this.fields['Ljava/lang/String;value'], this.fields['Ljava/lang/String;offset'], this.fields['Ljava/lang/String;count']);
-  }
-}
-
-export class JavaClassObject extends JavaObject {
-  constructor(thread: threading.JVMThread, public $cls: ClassData.ClassData) {
-    super(<ClassData.ReferenceClassData> thread.getBsCl().getResolvedClass('Ljava/lang/Class;'));
-    // Apparently our JCL requires this set.
-    this.set_field(thread, 'Ljava/lang/Class;classLoader', this.$cls.getLoader().getLoaderObject());
-  }
-
-  public toString() {
-    return "<Class " + this.$cls.getInternalName() + " (*" + this.ref + ")>";
-  }
-}
-
-// XXX: Temporarily moved from natives.
-
-// Have a JavaClassLoaderObject and need its ClassLoader object? Use this method!
-export function get_cl_from_jclo(thread: threading.JVMThread, jclo: ClassLoader.JavaClassLoaderObject): ClassLoader.ClassLoader {
-  if ((jclo != null) && (jclo.$loader != null)) {
-    return jclo.$loader;
-  }
-  return thread.getBsCl();
-}
-
-/**
- * "Fast" array copy; does not have to check every element for illegal
- * assignments. You can do tricks here (if possible) to copy chunks of the array
- * at a time rather than element-by-element.
- * This function *cannot* access any attribute other than 'array' on src due to
- * the special case when src == dest (see code for System.arraycopy below).
- * TODO: Potentially use ParallelArray if available.
- */
-export function arraycopy_no_check(src: JavaArray, src_pos: number, dest: JavaArray, dest_pos: number, length: number): void {
-  var j = dest_pos;
-  var end = src_pos + length;
-  for (var i = src_pos; i < end; i++) {
-    dest.array[j++] = src.array[i];
-  }
-}
-
-/**
- * "Slow" array copy; has to check every element for illegal assignments.
- * You cannot do any tricks here; you must copy element by element until you
- * have either copied everything, or encountered an element that cannot be
- * assigned (which causes an exception).
- * Guarantees: src and dest are two different reference types. They cannot be
- *             primitive arrays.
- */
-export function arraycopy_check(thread: threading.JVMThread, src: JavaArray, src_pos: number, dest: JavaArray, dest_pos: number, length: number): void {
-  var j = dest_pos;
-  var end = src_pos + length;
-  var dest_comp_cls = dest.cls.getComponentClass();
-  for (var i = src_pos; i < end; i++) {
-    // Check if null or castable.
-    if (src.array[i] === null || (<JavaObject> src.array[i]).cls.isCastable(dest_comp_cls)) {
-      dest.array[j] = src.array[i];
-    } else {
-      thread.throwNewException('Ljava/lang/ArrayStoreException;', 'Array element in src cannot be cast to dest array type.');
-      return;
-    }
-    j++;
-  }
-}
-
-/**
- * Partial typing for Websockify WebSockets.
- */
-export interface IWebsock {
-  rQlen(): number;
-  rQshiftBytes(len: number): number[];
-  on(eventName: string, cb: Function): void;
-  open(uri: string): void;
-  close(): void;
-  send(data: number): void;
-  send(data: number[]): void;
-}
-
-export function initString(cl: ClassLoader.ClassLoader, str: string): JavaObject {
-  var carr = initCarr(cl, str);
-  var str_cls = <ClassData.ReferenceClassData> cl.getInitializedClass(null, 'Ljava/lang/String;');
-  return new JavaObject(str_cls, {
-    'Ljava/lang/String;value': carr,
-    'Ljava/lang/String;count': str.length
-  });
-}
-
-export function initCarr(cl: ClassLoader.ClassLoader, str: string): JavaArray {
-  var carr = new Array(str.length);
-  for (var i = 0; i < str.length; i++) {
-    carr[i] = str.charCodeAt(i);
-  }
-  var arr_cls = <ClassData.ArrayClassData> cl.getLoadedClass('[C');
-  return new JavaArray(arr_cls, carr);
-}
 
 /**
  * Represents a JVM monitor.
  */
-export class Monitor {
+class Monitor {
   /**
    * The owner of the monitor.
    */
@@ -342,7 +118,7 @@ export class Monitor {
        * @from http://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.monitorenter
        */
       thread.setStatus(blockStatus, this);
-      this.blocked[thread.ref] = { thread: thread, cb: cb, count: count };
+      this.blocked[thread.getRef()] = { thread: thread, cb: cb, count: count };
       return false;
     }
   }
@@ -416,7 +192,7 @@ export class Monitor {
     if (this.getOwner() === thread) {
       // INVARIANT: Thread shouldn't currently be blocked on a monitor.
       assert(thread.getStatus() !== enums.ThreadStatus.BLOCKED);
-      this.waiting[thread.ref] = {
+      this.waiting[thread.getRef()] = {
         thread: thread,
         cb: cb,
         count: this.count,
@@ -430,7 +206,7 @@ export class Monitor {
       if (timeoutMs != null && timeoutMs !== 0) {
         // Scheduler a timer that wakes up the thread.
         // XXX: Casting to 'number', since NodeJS typings specify a Timer.
-        this.waiting[thread.ref].timer = <number><any> setTimeout(() => {
+        this.waiting[thread.getRef()].timer = <number><any> setTimeout(() => {
           this.unwait(thread, true);
         }, timeoutMs);
         thread.setStatus(enums.ThreadStatus.TIMED_WAITING, this);
@@ -467,7 +243,7 @@ export class Monitor {
    */
   public unwait(thread: threading.JVMThread, fromTimer: boolean, interrupting: boolean = false, unwaitCb: () => void = null): void {
     // Step 1: Remove the thread from the waiting set.
-    var waitEntry = this.waiting[thread.ref],
+    var waitEntry = this.waiting[thread.getRef()],
       // Interrupting a previously-waiting thread before it acquires a lock
       // makes no semantic sense, as the thread is currently suspended in a
       // synchronized block that requires ownership of the monitor.
@@ -482,7 +258,7 @@ export class Monitor {
         }
       };
     assert(waitEntry != null);
-    delete this.waiting[thread.ref];
+    delete this.waiting[thread.getRef()];
     // Step 2: Remove the timer if the timer did not trigger this event.
     if (thread.getStatus() === enums.ThreadStatus.TIMED_WAITING && !fromTimer) {
       var timerId = waitEntry.timer;
@@ -506,15 +282,15 @@ export class Monitor {
    *   be triggered.
    */
   public unblock(thread: threading.JVMThread, interrupting: boolean = false): void {
-    var blockEntry = this.blocked[thread.ref];
+    var blockEntry = this.blocked[thread.getRef()];
     // Cannot interrupt an uninterruptibly blocked thread.
     assert(interrupting ? thread.getStatus() === enums.ThreadStatus.BLOCKED : true);
     if (blockEntry != null) {
-      delete this.blocked[thread.ref];
+      delete this.blocked[thread.getRef()];
       thread.setStatus(enums.ThreadStatus.RUNNABLE);
       if (!interrupting) {
         // No one else can own the monitor.
-        assert(this.owner == null && this.count === 0, "T" + thread.ref + ": We're not interrupting a block, but someone else owns the monitor?! Owned by " + (this.owner == null ? "[no one]" : "" + this.owner.ref) + " Count: " + this.count);
+        assert(this.owner == null && this.count === 0, "T" + thread.getRef() + ": We're not interrupting a block, but someone else owns the monitor?! Owned by " + (this.owner == null ? "[no one]" : "" + this.owner.getRef()) + " Count: " + this.count);
         // Assign this thread as the monitor owner.
         this.owner = thread;
         this.count = blockEntry.count;
@@ -575,63 +351,18 @@ export class Monitor {
 
   public isWaiting(thread: threading.JVMThread): boolean {
     // Waiting, but *not* timed waiting.
-    return this.waiting[thread.ref] != null && !this.waiting[thread.ref].isTimed;
+    return this.waiting[thread.getRef()] != null && !this.waiting[thread.getRef()].isTimed;
   }
 
   public isTimedWaiting(thread: threading.JVMThread): boolean {
     // Timed waiting, *not* waiting.
-    return this.waiting[thread.ref] != null && this.waiting[thread.ref].isTimed;
+    return this.waiting[thread.getRef()] != null && this.waiting[thread.getRef()].isTimed;
   }
 
   public isBlocked(thread: threading.JVMThread): boolean {
     // Blocked.
-    return this.blocked[thread.ref] != null;
+    return this.blocked[thread.getRef()] != null;
   }
 }
 
-export function heapNewArray(thread: threading.JVMThread, cls: ClassData.ArrayClassData, len: number): JavaArray {
-  var type: string = cls.getInternalName().slice(1);
-  if (len < 0) {
-    thread.throwNewException('Ljava/lang/NegativeArraySizeException;', "Tried to init [" + type + " array with length " + len);
-  } else {
-    // Gives the JavaScript engine a size hint.
-    if (type === 'J') {
-      return new JavaArray(cls, util.arrayset<gLong>(len, gLong.ZERO));
-    } else if (type[0] === 'L' || type[0] === '[') { // array of objects or other arrays
-      return new JavaArray(cls, util.arrayset<any>(len, null));
-    } else { // numeric array
-      return new JavaArray(cls, util.arrayset<number>(len, 0));
-    }
-  }
-}
-
-export function heapMultiNewArray(thread: threading.JVMThread, loader: ClassLoader.ClassLoader, type: string, counts: number[]): JavaArray {
-  var dim = counts.length;
-  function init_arr(curr_dim: number, type: string): JavaArray {
-    var len = counts[curr_dim];
-    if (len < 0) {
-      thread.throwNewException('Ljava/lang/NegativeArraySizeException;', "Tried to init dimension " + curr_dim + " of a " + dim + " dimensional " + type + " array with length " + len);
-    } else {
-      // Gives the JS engine a size hint.
-      var array = new Array(len);
-      if (curr_dim + 1 === dim) {
-        var default_val = util.initialValue(type);
-        for (var i = 0; i < len; i++) {
-          array[i] = default_val;
-        }
-      } else {
-        var next_dim = curr_dim + 1;
-        var comp_type = type.slice(1);
-        for (var i = 0; i < len; i++) {
-          if ((array[i] = init_arr(next_dim, comp_type)) == null) {
-            // Exception occurred.
-            return undefined;
-          }
-        }
-      }
-      var arr_cls = <ClassData.ArrayClassData> loader.getInitializedClass(thread, type);
-      return new JavaArray(arr_cls, array);
-    }
-  }
-  return init_arr(0, type);
-}
+export = Monitor;

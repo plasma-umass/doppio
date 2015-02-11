@@ -58,7 +58,10 @@ export function setup(grunt: IGrunt) {
     includes: {
       options: {
         packages: fs.readdirSync('src/natives').filter((item: string) => item.indexOf(".ts") !== -1).map((item: string) => item.slice(0, item.indexOf('.')).replace(/_/g, '.')),
-        dest: "includes"
+        dest: "includes",
+        // The following classes are referenced by DoppioJVM code, but aren't
+        // referenced by any JVM classes directly for some reason.
+        force: ['java.lang.ExceptionInInitializerError', 'java.nio.charset.Charset$3']
       },
       default: {}
     },
@@ -101,8 +104,8 @@ export function setup(grunt: IGrunt) {
         sourcemap: true,
         comments: true,
         declaration: true,
-        target: 'es3'
-        // noImplicitAny: true
+        target: 'es3',
+        noImplicitAny: true
       },
       'dev-cli': {
         src: ["console/*.ts", "src/**/*.ts"],
@@ -369,7 +372,9 @@ export function setup(grunt: IGrunt) {
   });
   grunt.registerTask("includecheck", "Checks if includes need to be generated.", function() {
     if (!grunt.file.exists("includes/JVMTypes.d.ts")) {
-      grunt.task.run(['includes:default']);
+      // Switch errors back on and recompile to catch any type errors / errors in include generation.
+      grunt.config.set('ts.options.failOnTypeErrors', true);
+      grunt.task.run(['includes:default', 'ts:dev-cli']);
     }
   });
   grunt.registerTask('java',

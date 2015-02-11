@@ -1,6 +1,5 @@
 import ClassData = require('./ClassData');
 import ClassLoader = require('./ClassLoader');
-import java_object = require('./java_object');
 import methods = require('./methods');
 import enums = require('./enums');
 import assert = require('./assert');
@@ -11,6 +10,8 @@ import logging = require('./logging');
 import JVM = require('./jvm');
 import util = require('./util');
 import ConstantPool = require('./ConstantPool');
+import JVMTypes = require('../includes/JVMTypes');
+import Monitor = require('./Monitor');
 
 var debug = logging.debug, vtrace = logging.vtrace,
   // The number of method resumes we should allow before yielding for
@@ -43,7 +44,7 @@ export interface IStackFrame {
    * configures the stack frame to handle the exception.
    * @return True if the method can handle the exception.
    */
-  scheduleException: (thread: JVMThread, e: java_object.JavaObject) => boolean;
+  scheduleException: (thread: JVMThread, e: JVMTypes.java_lang_Throwable) => boolean;
   /**
    * This stack frame's type.
    */
@@ -84,16 +85,16 @@ export class BytecodeStackFrame implements IStackFrame {
     var method = this.method, code = this.method.getCodeAttribute().getCode(),
       opcodeTable = opcodes.LookupTable;
     if (this.pc === 0) {
-      vtrace(`\nT${thread.ref} D${thread.getStackTrace().length} Running ${this.method.full_signature()} [Bytecode]:`);
+      vtrace(`\nT${thread.getRef()} D${thread.getStackTrace().length} Running ${this.method.getFullSignature()} [Bytecode]:`);
     } else {
-      vtrace(`\nT${thread.ref} D${thread.getStackTrace().length} Resuming ${this.method.full_signature()}:${this.pc} [Bytecode]:`);
+      vtrace(`\nT${thread.getRef()} D${thread.getStackTrace().length} Resuming ${this.method.getFullSignature()}:${this.pc} [Bytecode]:`);
     }
     vtrace(`  S: [${logging.debug_vars(this.stack)}], L: [${logging.debug_vars(this.locals)}]`);
 
     if (method.accessFlags.isSynchronized() && !this.lockedMethodLock) {
       // We are starting a synchronized method! These must implicitly enter
       // their respective locks.
-      this.lockedMethodLock = method.method_lock(thread, this).enter(thread, () => {
+      this.lockedMethodLock = method.methodLock(thread, this).enter(thread, () => {
         // Lock succeeded. Set the flag so we don't attempt to reacquire it
         // when this method reruns.
         this.lockedMethodLock = true;
@@ -132,11 +133,10 @@ export class BytecodeStackFrame implements IStackFrame {
       case enums.OpCode.INVOKESTATIC:
       case enums.OpCode.INVOKEVIRTUAL:
       case enums.OpCode.INVOKESTATIC_FAST:
-      case enums.OpCode.INVOKESPECIAL_FAST:
+      case enums.OpCode.INVOKENONVIRTUAL_FAST:
       case enums.OpCode.INVOKEVIRTUAL_FAST:
       case enums.OpCode.INVOKEHANDLE:
       case enums.OpCode.INVOKEBASIC:
-      case enums.OpCode.LINKTOINTERFACE:
       case enums.OpCode.LINKTOSPECIAL:
       case enums.OpCode.LINKTOVIRTUAL:
       case enums.OpCode.INVOKEDYNAMIC:
@@ -165,12 +165,12 @@ export class BytecodeStackFrame implements IStackFrame {
    * In the latter case, scheduleException will handle rethrowing the exception
    * in the event that it can't actually handle it.
    */
-  public scheduleException(thread: JVMThread, e: java_object.JavaObject): boolean {
+  public scheduleException(thread: JVMThread, e: JVMTypes.java_lang_Throwable): boolean {
     var codeAttr = this.method.getCodeAttribute(),
       pc = this.pc, method = this.method,
       // STEP 1: See if we can find an appropriate handler for this exception!
       exceptionHandlers = codeAttr.exceptionHandlers,
-      ecls = e.cls, handler: attributes.ExceptionHandler, i: number;
+      ecls = e.getClass(), handler: attributes.ExceptionHandler, i: number;
     for (i = 0; i < exceptionHandlers.length; i++) {
       var eh = exceptionHandlers[i];
       if (eh.startPC <= pc && pc < eh.endPC) {
@@ -186,7 +186,7 @@ export class BytecodeStackFrame implements IStackFrame {
             }
           } else {
             // ASYNC PATH: We'll need to asynchronously resolve these handlers.
-            debug(`${method.full_signature()} needs to resolve some exception types...`);
+            debug(`${method.getFullSignature()} needs to resolve some exception types...`);
             var handlerClasses: string[] = [];
             exceptionHandlers.forEach((handler: attributes.ExceptionHandler) => {
               if (handler.catchType !== "<any>") {
@@ -213,16 +213,16 @@ export class BytecodeStackFrame implements IStackFrame {
     // or set up the stack for appropriate resumption.
     if (handler != null) {
       // Found the handler.
-      debug(`{BOLD}{YELLOW}${method.full_signature()}{/YELLOW}{/BOLD}: Caught {GREEN}${e.cls.getInternalName()}{/GREEN} as subclass of {GREEN}${handler.catchType}{/GREEN}`);
+      debug(`{BOLD}{YELLOW}${method.getFullSignature()}{/YELLOW}{/BOLD}: Caught {GREEN}${e.getClass().getInternalName()}{/GREEN} as subclass of {GREEN}${handler.catchType}{/GREEN}`);
       this.stack = [e]; // clear out anything on the stack; it was made during the try block
       this.pc = handler.handlerPC;
       return true;
     } else {
       // abrupt method invocation completion
-      debug(`{BOLD}{YELLOW}${method.full_signature()}{/YELLOW}{/BOLD}: Did not catch {GREEN}${e.cls.getInternalName()}{/GREEN}.`);
+      debug(`{BOLD}{YELLOW}${method.getFullSignature()}{/YELLOW}{/BOLD}: Did not catch {GREEN}${e.getClass().getInternalName()}{/GREEN}.`);
       // STEP 3: Synchronized method? Exit from the method's monitor.
       if (method.accessFlags.isSynchronized()) {
-        method.method_lock(thread, this).exit(thread);
+        method.methodLock(thread, this).exit(thread);
       }
       return false;
     }
@@ -275,12 +275,12 @@ export class NativeStackFrame implements IStackFrame {
    * NOTE: Should only be called once.
    */
   public run(thread: JVMThread): void {
-    vtrace(`\nT${thread.ref} D${thread.getStackTrace().length} Running ${this.method.full_signature()} [Native]:`);
+    vtrace(`\nT${thread.getRef()} D${thread.getStackTrace().length} Running ${this.method.getFullSignature()} [Native]:`);
     var rv: any = this.nativeMethod.apply(null, this.method.convertArgs(thread, this.args));
     // Ensure thread is running, and we are the running method.
     if (thread.getStatus() === enums.ThreadStatus.RUNNING && thread.currentMethod() === this.method) {
       // Normal native method exit.
-      var returnType = this.method.return_type;
+      var returnType = this.method.returnType;
       switch (returnType) {
         case 'J':
         case 'D':
@@ -309,7 +309,7 @@ export class NativeStackFrame implements IStackFrame {
    * Not relevant; the first execution block of a native method will never
    * receive an exception.
    */
-  public scheduleException(thread: JVMThread, e: java_object.JavaObject): boolean {
+  public scheduleException(thread: JVMThread, e: JVMTypes.java_lang_Throwable): boolean {
     return false;
   }
 
@@ -333,13 +333,13 @@ export class NativeStackFrame implements IStackFrame {
 export class InternalStackFrame implements IStackFrame {
   private isException: boolean = false;
   private val: any;
-  private cb: (e?: java_object.JavaObject, rv?: any) => void;
+  private cb: (e?: JVMTypes.java_lang_Throwable, rv?: any) => void;
 
   /**
    * @param cb Callback function. Called with an exception if one occurs, or
    *   the return value from the called method, if relevant.
    */
-  constructor(cb: (e?: java_object.JavaObject, rv?: any) => void) {
+  constructor(cb: (e?: JVMTypes.java_lang_Throwable, rv?: any) => void) {
     this.cb = cb;
   }
 
@@ -367,7 +367,7 @@ export class InternalStackFrame implements IStackFrame {
    * Resumes the JavaScript code that created this stack frame with the given
    * exception.
    */
-  public scheduleException(thread: JVMThread, e: java_object.JavaObject): boolean {
+  public scheduleException(thread: JVMThread, e: JVMTypes.java_lang_Throwable): boolean {
     this.isException = true;
     this.val = e;
     return true;
@@ -416,8 +416,8 @@ export class ThreadPool {
     }
   }
 
-  public newThread(cls: ClassData.ReferenceClassData): JVMThread {
-    var thread = new JVMThread(this.bsCl, this, cls);
+  public newThread(threadObj: JVMTypes.java_lang_Thread): JVMThread {
+    var thread = new JVMThread(this.bsCl, this, threadObj);
     this.addThread(thread);
     return thread;
   }
@@ -474,7 +474,7 @@ export class ThreadPool {
     var i: number, t: JVMThread, status: enums.ThreadStatus;
     for (i = 0; i < this.threads.length; i++) {
       t = this.threads[i];
-      if (t.get_field(thread, 'Ljava/lang/Thread;daemon') != 0) {
+      if (t.getJVMObject()['java/lang/Thread/daemon'] != 0) {
         continue;
       }
       status = t.getStatus();
@@ -503,9 +503,9 @@ export class ThreadPool {
       } else if (!this.jvm.isShutdown()) {
         // Start the manual shutdown sequence.
         // XXX: we're co-opting the last thread for shutdown.
-        var cdata = this.bsCl.getInitializedClass(thread, "Ljava/lang/System;");
-        var method = cdata.methodLookup(thread, 'exit(I)V');
-        thread.runMethod(method, [0]);
+        var cdata = <ClassData.ReferenceClassData<JVMTypes.java_lang_System>> this.bsCl.getInitializedClass(thread, "Ljava/lang/System;"),
+          systemCons = <typeof JVMTypes.java_lang_System> cdata.getConstructor();
+        systemCons['java/lang/System/exit(I)V'](thread, [0]);
       } else {
         // Tell the JVM that execution is over.
         this.emptyCallback();
@@ -525,32 +525,32 @@ export class ThreadPool {
   }
 
   public park(thread: JVMThread): void {
-    if (!this.parkCounts.hasOwnProperty("" + thread.ref)) {
-      this.parkCounts[thread.ref] = 0;
+    if (!this.parkCounts.hasOwnProperty("" + thread.getRef())) {
+      this.parkCounts[thread.getRef()] = 0;
     }
 
-    if (++this.parkCounts[thread.ref] > 0) {
+    if (++this.parkCounts[thread.getRef()] > 0) {
       thread.setStatus(enums.ThreadStatus.PARKED);
     }
   }
 
   public unpark(thread: JVMThread): void {
-    if (!this.parkCounts.hasOwnProperty("" + thread.ref)) {
-      this.parkCounts[thread.ref] = 0;
+    if (!this.parkCounts.hasOwnProperty("" + thread.getRef())) {
+      this.parkCounts[thread.getRef()] = 0;
     }
 
-    if (--this.parkCounts[thread.ref] <= 0) {
+    if (--this.parkCounts[thread.getRef()] <= 0) {
       thread.setStatus(enums.ThreadStatus.RUNNABLE);
     }
   }
 
   public completelyUnpark(thread: JVMThread): void {
-    this.parkCounts[thread.ref] = 0;
+    this.parkCounts[thread.getRef()] = 0;
     thread.setStatus(enums.ThreadStatus.RUNNABLE);
   }
 
   public isParked(thread: JVMThread): boolean {
-    return this.parkCounts[thread.ref] > 0;
+    return this.parkCounts[thread.getRef()] > 0;
   }
 }
 
@@ -564,7 +564,7 @@ export interface IStackTraceFrame {
 /**
  * Represents a single JVM thread.
  */
-export class JVMThread extends java_object.JavaObject {
+export class JVMThread {
   /**
    * The current state of this thread, from the JVM level.
    */
@@ -584,18 +584,41 @@ export class JVMThread extends java_object.JavaObject {
    * If the thread is WAITING, BLOCKED, or TIMED_WAITING, this field holds the
    * monitor that is involved.
    */
-  private monitor: java_object.Monitor = null;
+  private monitor: Monitor = null;
   private bsCl: ClassLoader.BootstrapClassLoader;
   private tpool: ThreadPool;
+  private jvmThreadObj: JVMTypes.java_lang_Thread;
 
   /**
    * Initializes a new JVM thread. Starts the thread in the NEW state.
    */
-  constructor(bsCl: ClassLoader.BootstrapClassLoader, tpool: ThreadPool,
-    cls: ClassData.ReferenceClassData, obj?: any) {
-    super(cls, obj);
+  constructor(bsCl: ClassLoader.BootstrapClassLoader, tpool: ThreadPool, threadObj: JVMTypes.java_lang_Thread) {
     this.bsCl = bsCl;
     this.tpool = tpool;
+    this.jvmThreadObj = threadObj;
+  }
+
+  /**
+   * Get the JVM thread object that represents this thread.
+   */
+  public getJVMObject(): JVMTypes.java_lang_Thread {
+    return this.jvmThreadObj;
+  }
+
+  /**
+   * XXX: Used during bootstrapping to set the first thread's Thread object.
+   */
+  public setJVMObject(obj: JVMTypes.java_lang_Thread): void {
+    if (this.jvmThreadObj === null) {
+      this.jvmThreadObj = obj;
+    }
+  }
+
+  /**
+   * Return the reference number for this thread.
+   */
+  public getRef(): number {
+    return this.jvmThreadObj.ref;
   }
 
   /**
@@ -786,13 +809,13 @@ export class JVMThread extends java_object.JavaObject {
         break;
     }
 
-    this.set_field(this, 'Ljava/lang/Thread;threadStatus', jvmNewStatus);
+    this.jvmThreadObj['java/lang/Thread/threadStatus'] = jvmNewStatus;
   }
 
   /**
    * Transitions the thread from one state to the next.
    */
-  public setStatus(status: enums.ThreadStatus, monitor?: java_object.Monitor): void {
+  public setStatus(status: enums.ThreadStatus, monitor?: Monitor): void {
     function invalidTransition() {
       throw new Error(`Invalid state transition: ${enums.ThreadStatus[oldStatus]} => ${enums.ThreadStatus[status]}`);
     }
@@ -800,7 +823,7 @@ export class JVMThread extends java_object.JavaObject {
     // Ignore RUNNING => RUNNABLE transitions.
     if (this.status !== status && !(this.status === enums.ThreadStatus.RUNNING && status === enums.ThreadStatus.RUNNABLE)) {
       var oldStatus = this.status;
-      vtrace(`\nT${this.ref} ${enums.ThreadStatus[oldStatus]} => ${enums.ThreadStatus[status]}`);
+      vtrace(`\nT${this.jvmThreadObj.ref} ${enums.ThreadStatus[oldStatus]} => ${enums.ThreadStatus[status]}`);
       assert(validateThreadTransition(oldStatus, status), `Invalid thread transition: ${enums.ThreadStatus[oldStatus]} => ${enums.ThreadStatus[status]}`);
 
       // Optimistically change state.
@@ -850,7 +873,7 @@ export class JVMThread extends java_object.JavaObject {
    * Called when a thread finishes executing.
    */
   private exit(): void {
-    var monitor: java_object.Monitor = this.getMonitor(),
+    var monitor: Monitor = this.jvmThreadObj.getMonitor(),
       phase2 = () => {
         // Notify everyone.
         monitor.notifyAll(this);
@@ -873,7 +896,7 @@ export class JVMThread extends java_object.JavaObject {
   /**
    * Get the monitor that this thread is waiting or blocked on.
    */
-  public getMonitorBlock(): java_object.Monitor {
+  public getMonitorBlock(): Monitor {
     return this.monitor;
   }
 
@@ -899,12 +922,12 @@ export class JVMThread extends java_object.JavaObject {
    *
    * It is not valid to call this method if the thread is in any other state.
    */
-  public runMethod(method: methods.Method, args: any[], cb?: (e?: java_object.JavaObject, rv?: any) => void): void {
+  /*public runMethod(method: methods.Method, args: any[], cb?: (e?: JVMTypes.java_lang_Throwable, rv?: any) => void): void {
     assert(this.status === enums.ThreadStatus.NEW ||
       this.status === enums.ThreadStatus.RUNNING ||
       this.status === enums.ThreadStatus.RUNNABLE ||
       this.status === enums.ThreadStatus.ASYNC_WAITING ||
-      this.status === enums.ThreadStatus.TERMINATED, `T ${this.ref}: Tried to run method while thread was in state ${enums.ThreadStatus[this.status]}`);
+      this.status === enums.ThreadStatus.TERMINATED, `T ${this.jvmThreadObj.ref}: Tried to run method while thread was in state ${enums.ThreadStatus[this.status]}`);
     if (cb) {
       // Callback specified. Need to add an internal stack frame that will handle
       // calling back into JavaScript land.
@@ -920,7 +943,7 @@ export class JVMThread extends java_object.JavaObject {
 
     // Thread state transition.
     this.setStatus(enums.ThreadStatus.RUNNABLE);
-  }
+  }*/
 
   /**
    * Returns from the currently executing method with the given return value.
@@ -935,8 +958,7 @@ export class JVMThread extends java_object.JavaObject {
    */
   public asyncReturn(): void;
   public asyncReturn(rv: number): void;
-  public asyncReturn(rv: java_object.JavaObject): void;
-  public asyncReturn(rv: java_object.JavaArray): void;
+  public asyncReturn(rv: JVMTypes.java_lang_Object): void;
   public asyncReturn(rv: number, rv2: any): void;
   public asyncReturn(rv: gLong, rv2: any): void;
   public asyncReturn(rv?: any, rv2?: any): void {
@@ -949,20 +971,20 @@ export class JVMThread extends java_object.JavaObject {
       var frameCast = <BytecodeStackFrame> frame;
       if (frame.type === enums.StackFrameType.BYTECODE) {
         // This line will be preceded by a line that prints the method, so can be short n' sweet.
-        if (frameCast.method.return_type !== 'V') {
+        if (frameCast.method.returnType !== 'V') {
           vtrace(`  Returning: ${logging.debug_var(rv)}`);
         }
       } else {
         // Native methods can asyncReturn at any point, so print more information.
-        vtrace(`T${this.ref} D${this.getStackTrace().length + 1} Returning value from ${frameCast.method.full_signature()} [Native]: ${frameCast.method.return_type === 'V' ? 'void' : logging.debug_var(rv)}`);
+        vtrace(`T${this.jvmThreadObj.ref} D${this.getStackTrace().length + 1} Returning value from ${frameCast.method.getFullSignature()} [Native]: ${frameCast.method.returnType === 'V' ? 'void' : logging.debug_var(rv)}`);
       }
 
-      if (frameCast.method.return_type !== 'V') {
-        vtrace(`\nT${this.ref} D${this.getStackTrace().length + 1} Returning value from ${frameCast.method.full_signature()} [${frameCast.method.accessFlags.isNative() ? 'Native' : 'Bytecode'}]: ${logging.debug_var(rv)}`);
+      if (frameCast.method.returnType !== 'V') {
+        vtrace(`\nT${this.jvmThreadObj.ref} D${this.getStackTrace().length + 1} Returning value from ${frameCast.method.getFullSignature()} [${frameCast.method.accessFlags.isNative() ? 'Native' : 'Bytecode'}]: ${logging.debug_var(rv)}`);
       }
       assert(validateReturnValue(this, frameCast.method,
-        frameCast.method.return_type, this.bsCl,
-        frameCast.method.cls.getLoader(), rv, rv2), `Invalid return value for method ${frameCast.method.full_signature()}`);
+        frameCast.method.returnType, this.bsCl,
+        frameCast.method.cls.getLoader(), rv, rv2), `Invalid return value for method ${frameCast.method.getFullSignature()}`);
     }
     // Tell the top of the stack that this RV is waiting for it.
     var idx: number = stack.length - 1;
@@ -1000,7 +1022,7 @@ export class JVMThread extends java_object.JavaObject {
    *
    * It is not valid to call this method if the thread is in any other state.
    */
-  public throwException(exception: java_object.JavaObject): void {
+  public throwException(exception: JVMTypes.java_lang_Throwable): void {
     assert(this.status === enums.ThreadStatus.RUNNING || this.status === enums.ThreadStatus.RUNNABLE || this.status === enums.ThreadStatus.ASYNC_WAITING,
       `Tried to throw exception while thread was in state ${enums.ThreadStatus[this.status]}`);
     var stack = this.stack, idx: number = stack.length - 1;
@@ -1035,14 +1057,14 @@ export class JVMThread extends java_object.JavaObject {
    * @param clsName Name of the class (e.g. "Ljava/lang/Throwable;")
    * @param msg The message to include with the exception.
    */
-  public throwNewException(clsName: string, msg: string) {
-    var cls = <ClassData.ReferenceClassData> this.bsCl.getInitializedClass(this, clsName),
+  public throwNewException<T extends JVMTypes.java_lang_Throwable>(clsName: string, msg: string) {
+    var cls = <ClassData.ReferenceClassData<T>> this.bsCl.getInitializedClass(this, clsName),
       throwException = () => {
-        var e = new java_object.JavaObject(cls),
-          cnstrctr = cls.methodLookup(this, '<init>(Ljava/lang/String;)V');
+        var eCons = cls.getConstructor(),
+          e = new eCons(this);
 
         // Construct the exception, and throw it when done.
-        this.runMethod(cnstrctr, [e, java_object.initString(this.bsCl, msg)], (err?: java_object.JavaObject, rv?: any) => {
+        e['<init>(Ljava/lang/String;)V'](this, [util.initString(this.bsCl, msg)], (err?: JVMTypes.java_lang_Throwable) => {
           if (err) {
             this.throwException(err);
           } else {
@@ -1056,7 +1078,7 @@ export class JVMThread extends java_object.JavaObject {
     } else {
       // Initialization required.
       this.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-      this.bsCl.initializeClass(this, clsName, (cdata: ClassData.ReferenceClassData) => {
+      this.bsCl.initializeClass(this, clsName, (cdata: ClassData.ReferenceClassData<T>) => {
         if (cdata != null) {
           cls = cdata;
           throwException();
@@ -1068,11 +1090,8 @@ export class JVMThread extends java_object.JavaObject {
   /**
    * Handles an uncaught exception on a thread.
    */
-  public handleUncaughtException(exception: java_object.JavaObject) {
-    var threadCls = <ClassData.ReferenceClassData> this.bsCl.getResolvedClass('Ljava/lang/Thread;'),
-      dispatchMethod = threadCls.methodLookup(this, 'dispatchUncaughtException(Ljava/lang/Throwable;)V');
-    assert(dispatchMethod != null);
-    this.runMethod(dispatchMethod, [this, exception]);
+  public handleUncaughtException(exception: JVMTypes.java_lang_Throwable) {
+    this.jvmThreadObj['dispatchUncaughtException(Ljava/lang/Throwable;)V'](this, [exception]);
   }
 }
 
@@ -1173,7 +1192,8 @@ function validateReturnValue(thread: JVMThread, method: methods.Method, returnTy
       }
     } else if (util.is_array_type(returnType)) {
       assert(rv2 === undefined);
-      assert(rv1 === null || rv1 instanceof java_object.JavaArray);
+      // Note: All array constructors are the same at the moment.
+      assert(rv1 === null || rv1 instanceof (<ClassData.ArrayClassData<number>> bsCl.getInitializedClass(thread, '[I')).getConstructor());
       if (rv1 != null) {
         cls = cl.getInitializedClass(thread, returnType);
         if (cls === null) {
@@ -1185,7 +1205,8 @@ function validateReturnValue(thread: JVMThread, method: methods.Method, returnTy
     } else {
       assert(util.is_reference_type(returnType));
       assert(rv2 === undefined);
-      assert(rv1 === null || rv1 instanceof java_object.JavaObject || rv1 instanceof java_object.JavaArray);
+      // All objects and arrays are instances of java/lang/Object.
+      assert(rv1 === null || rv1 instanceof (<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> bsCl.getInitializedClass(thread, 'Ljava/lang/Object;')).getConstructor());
       if (rv1 != null) {
         cls = cl.getResolvedClass(returnType);
         if (cls === null) {
@@ -1214,13 +1235,13 @@ function printConstantPoolItem(cpi: ConstantPool.IConstantPoolItem): string {
   switch (cpi.getType()) {
     case enums.ConstantPoolItemType.METHODREF:
       var cpiMR = <ConstantPool.MethodReference> cpi;
-      return util.ext_classname(cpiMR.classInfo.name) + "." + cpiMR.methodSignature;
+      return util.ext_classname(cpiMR.classInfo.name) + "." + cpiMR.signature;
     case enums.ConstantPoolItemType.INTERFACE_METHODREF:
       var cpiIM = <ConstantPool.InterfaceMethodReference> cpi;
-      return util.ext_classname(cpiIM.classInfo.name) + "." + cpiIM.methodSignature;
+      return util.ext_classname(cpiIM.classInfo.name) + "." + cpiIM.signature;
     case enums.ConstantPoolItemType.FIELDREF:
       var cpiFR = <ConstantPool.FieldReference> cpi;
-      return util.ext_classname(cpiFR.classInfo.name) + "." + cpiFR.fieldName + ":" + util.ext_classname(cpiFR.nameAndTypeInfo.descriptor);
+      return util.ext_classname(cpiFR.classInfo.name) + "." + cpiFR.nameAndTypeInfo.name + ":" + util.ext_classname(cpiFR.nameAndTypeInfo.descriptor);
     case enums.ConstantPoolItemType.NAME_AND_TYPE:
       var cpiNAT = <ConstantPool.NameAndTypeInfo> cpi;
       return cpiNAT.name + ":" + cpiNAT.descriptor;

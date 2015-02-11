@@ -1,8 +1,8 @@
 "use strict";
 import gLong = require('./gLong');
-import java_object = require('./java_object');
 import threading = require('./threading');
 import enums = require('./enums');
+import JVMTypes = require('../includes/JVMTypes');
 
 // For type information
 import ClassLoader = require('./ClassLoader');
@@ -13,16 +13,18 @@ export function are_in_browser(): boolean {
 }
 
 /**
- * Converts JVM internal names into JS-safe names.
- * Ljava/lang/Object; => Ljava_lang_Object
- * [B = AB
- * [Ljava/lang/Object; => ALjava_lang_Object
+ * Converts JVM internal names into JS-safe names. Only for use with reference
+ * types.
+ * Ljava/lang/Object; => java_lang_Object
+ * Lfoo/Bar_baz; => foo_Bar__baz
  */
 export function jvmName2JSName(jvmName: string): string {
-  return jvmName.replace(/\//g, '_').replace(/;/g, '').replace(/\[/g, 'A');
+  return jvmName.slice(1).replace(/_/g, '__').replace(/\//g, '_').replace(/;/g, '');
 }
 
-// Applies an async function to each element of a list, in order.
+/**
+ * Applies an async function to each element of a list, in order.
+ */
 export function asyncForEach<T>(
       lst: Array<T>,
       fn: (elem: T, next_item: (err?: any) => void) => void,
@@ -93,8 +95,8 @@ export function asyncFind<T>(
   process(false);
 }
 
-if (Math['imul'] == null) {
-  Math['imul'] = function(a: number, b: number) {
+if ((<any> Math)['imul'] == null) {
+  (<any> Math)['imul'] = function(a: number, b: number) {
     // polyfill from https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Global_Objects/Math/imul
     var ah = (a >>> 16) & 0xffff;
     var al = a & 0xffff;
@@ -139,16 +141,38 @@ if (!Array.prototype.indexOf) {
   };
 }
 
-// Creates and initializes *JavaScript* array to *val* in each element slot.
-// Like memset, but for arrays.
-export function arrayset<T>(len: number, val : T): T[] {
-  var array = new Array(len);
-  for (var i = 0; i < len; i++) {
-    array[i] = val;
+/**
+ * Checks if accessingCls has permission to a field or method with the given
+ * flags on owningCls.
+ *
+ * Modifier    | Class | Package | Subclass | World
+ * ————————————+———————+—————————+——————————+———————
+ * public      |  y    |    y    |    y     |   y
+ * ————————————+———————+—————————+——————————+———————
+ * protected   |  y    |    y    |    y     |   n
+ * ————————————+———————+—————————+——————————+———————
+ * no modifier |  y    |    y    |    n     |   n
+ * ————————————+———————+—————————+——————————+———————
+ * private     |  y    |    n    |    n     |   n
+ *
+ * y: accessible
+ * n: not accessible
+ */
+export function checkAccess(accessingCls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, owningCls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, accessFlags: Flags): boolean {
+  if (accessFlags.isPublic()) {
+    return true;
+  } else if (accessFlags.isProtected()) {
+    return accessingCls.getPackageName() === owningCls.getPackageName() || accessingCls.isSubclass(owningCls);
+  } else if (accessFlags.isPrivate()) {
+    return accessingCls === owningCls;
+  } else {
+    return accessingCls.getPackageName() === owningCls.getPackageName();
   }
-  return array;
 }
 
+/**
+ * Truncates a floating point into an integer.
+ */
 export function float2int(a: number): number {
   if (a > enums.Constants.INT_MAX) {
     return enums.Constants.INT_MAX;
@@ -187,8 +211,12 @@ export function wrapFloat(a: number): number {
   return a;
 }
 
+export function jvm2jsStr(jvmStr: JVMTypes.java_lang_String): string {
+  return chars2jsStr(jvmStr['java/lang/String/value']);
+}
+
 // Convert :count chars starting from :offset in a Java character array into a JS string
-export function chars2jsStr(jvmCarr: java_object.JavaArray, offset?: number, count?: number): string {
+export function chars2jsStr(jvmCarr: JVMTypes.JVMArray<number>, offset?: number, count?: number): string {
   var off = offset || 0;
   return bytes2str(jvmCarr.array).substr(off, count);
 }
@@ -362,7 +390,7 @@ export function verify_int_classname(str: string): boolean {
   return true;
 }
 
-export var internal2external = {
+export var internal2external: { [internalType: string]: string } = {
   B: 'byte',
   C: 'char',
   D: 'double',
@@ -374,7 +402,7 @@ export var internal2external = {
   Z: 'boolean'
 };
 
-export var external2internal = {};
+export var external2internal: { [externalType: string]: string } = {};
 for (var k in internal2external) {
   external2internal[internal2external[k]] = k;
 }
@@ -511,14 +539,15 @@ export function bytes2str(bytes: number[], null_terminate?: boolean): string {
  * Note that this includes padding category 2 primitives, which consume two
  * slots in the array (doubles/longs).
  */
-export function unboxArguments(thread: threading.JVMThread, paramTypes: string[], args: java_object.JavaObject[]): any[] {
-  var rv: any[] = [], i: number, type: string, arg: java_object.JavaObject;
+export function unboxArguments(thread: threading.JVMThread, paramTypes: string[], args: JVMTypes.java_lang_Object[]): any[] {
+  var rv: any[] = [], i: number, type: string, arg: JVMTypes.java_lang_Object;
   for (i = 0; i < paramTypes.length; i++) {
     type = paramTypes[i];
     arg = args[i];
     if (is_primitive_type(type)) {
       // Unbox the primitive type.
-      rv.push(arg.get_field(thread, arg.cls.getInternalName() + 'value'));
+      // TODO: Precisely type this.
+      rv.push((<any> arg)[jvmName2JSName(arg.getClass().getInternalName()) + 'value']);
       if (type === 'J' || type === 'D') {
         // 64-bit primitives take up two argument slots. Doppio uses a NULL for the second slot.
         rv.push(null);
@@ -535,41 +564,131 @@ export function unboxArguments(thread: threading.JVMThread, paramTypes: string[]
  * Given a method descriptor as a JS string, returns a corresponding MethodType
  * object.
  */
-export function createMethodType(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, descriptor: string, cb: (e: any, type: java_object.JavaObject) => void) {
-  cl.initializeClass(thread, 'Ljava/lang/invoke/MethodHandleNatives;', (cdata: ClassData.ClassData) => {
+export function createMethodType(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, descriptor: string, cb: (e: JVMTypes.java_lang_Throwable, type: JVMTypes.java_lang_invoke_MethodType) => void) {
+  cl.initializeClass(thread, 'Ljava/lang/invoke/MethodHandleNatives;', (cdata: ClassData.ReferenceClassData<JVMTypes.java_lang_invoke_MethodHandleNatives>) => {
     if (cdata !== null) {
-      var makeImpl = cdata.methodLookup(thread, 'findMethodHandleType(Ljava/lang/Class;[Ljava/lang/Class;)Ljava/lang/invoke/MethodType;'),
-      classes = getTypes(descriptor);
+      var jsCons = <typeof JVMTypes.java_lang_invoke_MethodHandleNatives> cdata.getConstructor(), classes = getTypes(descriptor);
       classes.push('[Ljava/lang/Class;');
       // Need the return type and parameter types.
       cl.resolveClasses(thread, classes, (classMap: { [name: string]: ClassData.ClassData }) => {
         var types = classes.map((cls: string) => classMap[cls].getClassObject(thread));
         types.pop(); // Discard '[Ljava/lang/Class;'
         var rtype = types.pop(), // Return type.
-          ptypes = (<ClassData.ArrayClassData> classMap['[Ljava/lang/Class;']).create(types);
-        thread.runMethod(makeImpl, [rtype, ptypes], (e?: java_object.JavaObject, methodTypeObj?: java_object.JavaObject) => {
-          if (e) {
-            thread.throwException(e);
-          } else {
-            cb(null, methodTypeObj);
-          }
-        });
+          clsArrCons = (<ClassData.ArrayClassData<JVMTypes.java_lang_Class>> classMap['[Ljava/lang/Class;']).getConstructor(),
+          ptypes = new clsArrCons(thread, types.length);
+        ptypes.array = types;
+
+        jsCons['java/lang/invoke/MethodHandleNatives/findMethodHandleType(Ljava/lang/Class;[Ljava/lang/Class;)Ljava/lang/invoke/MethodType;'](thread, [rtype, ptypes], cb);
       });
     }
   });
 }
 
 /**
+ * Given a method descriptor, returns the number of words required to store
+ * its arguments.
+ * Does not include considerations for e.g. the 'this' argument, since the
+ * descriptor does not specify if the method is static or not.
+ */
+export function getMethodDescriptorWordSize(descriptor: string): number {
+  var parsedDescriptor = getTypes(descriptor),
+    words = parsedDescriptor.length, i: number, p: string;
+  // Remove return type.
+  parsedDescriptor.pop();
+
+  // Double count doubles / longs.
+  for (i = 0; i < parsedDescriptor.length; i++) {
+    p = parsedDescriptor[i];
+    if (p === 'D' || p === 'J') {
+      words++;
+    }
+  }
+
+  return words;
+}
+
+/**
  * Given a return type as a Class object, and an array of class objects for
  * parameter types, returns the descriptor string for the method type.
  */
-export function getDescriptorString(rtype: java_object.JavaClassObject, ptypes?: java_object.JavaArray): string {
+export function getDescriptorString(rtype: JVMTypes.java_lang_Class, ptypes?: JVMTypes.JVMArray<JVMTypes.java_lang_Class>): string {
   var rv = "(";
   if (ptypes !== undefined && ptypes !== null) {
-    ptypes.array.forEach((ptype: java_object.JavaClassObject) => {
+    ptypes.array.forEach((ptype: JVMTypes.java_lang_Class) => {
       rv += ptype.$cls.getInternalName();
     });
   }
   rv += ")" + rtype.$cls.getInternalName();
   return rv;
+}
+
+
+/**
+ * Have a JavaClassLoaderObject and need its ClassLoader object? Use this method!
+ * @todo Install on Java ClassLoader objects.
+ */
+export function getLoader(thread: threading.JVMThread, jclo: JVMTypes.java_lang_ClassLoader): ClassLoader.ClassLoader {
+  if ((jclo != null) && (jclo.$loader != null)) {
+    return jclo.$loader;
+  }
+  return thread.getBsCl();
+}
+
+/**
+ * "Fast" array copy; does not have to check every element for illegal
+ * assignments. You can do tricks here (if possible) to copy chunks of the array
+ * at a time rather than element-by-element.
+ * This function *cannot* access any attribute other than 'array' on src due to
+ * the special case when src == dest (see code for System.arraycopy below).
+ */
+export function arraycopyNoCheck(src: JVMTypes.JVMArray<any>, srcPos: number, dest: JVMTypes.JVMArray<any>, destPos: number, length: number): void {
+  var j = destPos;
+  var end = srcPos + length;
+  for (var i = srcPos; i < end; i++) {
+    dest.array[j++] = src.array[i];
+  }
+}
+
+/**
+ * "Slow" array copy; has to check every element for illegal assignments.
+ * You cannot do any tricks here; you must copy element by element until you
+ * have either copied everything, or encountered an element that cannot be
+ * assigned (which causes an exception).
+ * Guarantees: src and dest are two different reference types. They cannot be
+ *             primitive arrays.
+ */
+export function arraycopyCheck(thread: threading.JVMThread, src: JVMTypes.JVMArray<JVMTypes.java_lang_Object>, srcPos: number, dest: JVMTypes.JVMArray<JVMTypes.java_lang_Object>, destPos: number, length: number): void {
+  var j = destPos;
+  var end = srcPos + length;
+  var destCompCls = dest.getClass().getComponentClass();
+  for (var i = srcPos; i < end; i++) {
+    // Check if null or castable.
+    if (src.array[i] === null || src.array[i].getClass().isCastable(destCompCls)) {
+      dest.array[j] = src.array[i];
+    } else {
+      thread.throwNewException('Ljava/lang/ArrayStoreException;', 'Array element in src cannot be cast to dest array type.');
+      return;
+    }
+    j++;
+  }
+}
+
+export function initString(cl: ClassLoader.ClassLoader, str: string): JVMTypes.java_lang_String {
+  var carr = initCarr(cl, str);
+  var strCons = (<ClassData.ReferenceClassData<JVMTypes.java_lang_String>> cl.getInitializedClass(null, 'Ljava/lang/String;')).getConstructor();
+  var strObj = new strCons(null);
+  strObj['java/lang/String/value'] = carr;
+  return strObj;
+}
+
+export function initCarr(cl: ClassLoader.ClassLoader, str: string): JVMTypes.JVMArray<number> {
+  var arrClsCons = (<ClassData.ArrayClassData<number>> cl.getLoadedClass('[C')).getConstructor(),
+    carr = new arrClsCons(null, str.length),
+    carrArray = carr.array;
+
+  for (var i = 0; i < str.length; i++) {
+    carrArray[i] = str.charCodeAt(i);
+  }
+
+  return carr;
 }

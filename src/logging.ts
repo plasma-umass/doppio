@@ -47,7 +47,7 @@ function formatMessage(msg: string): string {
       // Starting tag.
       if (enums.FormatChars.hasOwnProperty(tag)) {
         tagStack.push(tag);
-        msgParts.push(enums.FormatChars[tag][0]);
+        msgParts.push((<any> enums.FormatChars)[tag][0]);
       }
     } else {
       // Ending tag.
@@ -55,7 +55,7 @@ function formatMessage(msg: string): string {
       stackIdx = tagStack.indexOf(tag);
       if (stackIdx !== -1) {
         tagStack.splice(stackIdx, 1);
-        msgParts.push(enums.FormatChars[tag][1]);
+        msgParts.push((<any> enums.FormatChars)[tag][1]);
       }
     }
   }
@@ -66,7 +66,7 @@ function formatMessage(msg: string): string {
 
   // Emit ending tags for any unclosed tags.
   for (i = 0; i < tagStack.length; i++) {
-    msgParts.push(enums.FormatChars[tagStack[i]][1]);
+    msgParts.push((<any> enums.FormatChars)[tagStack[i]][1]);
   }
 
   return msgParts.join("");

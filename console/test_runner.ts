@@ -33,7 +33,7 @@ if (process.platform.match(/win32/i)) {
   failChar = '✗';
 }
 
-function makefileTest(argv): void {
+function makefileTest(argv: any): void {
   var failpath = path.resolve(__dirname, '../classes/test/failures.txt'),
       old_write = process.stdout.write,
       outfile = fs.openSync(failpath, 'a');
@@ -66,7 +66,7 @@ function makefileTest(argv): void {
     process.exit(success ? 0 : 1);
   }
 
-  d.on('error', (err) => {
+  d.on('error', (err: any) => {
     // Make sure we write to the file. The test runner patches stdout.write, too.
     // XXX: Assuming a single test class.
     newWrite("Test " + opts.testClasses[0] + " failed.\n");
@@ -79,7 +79,7 @@ function makefileTest(argv): void {
   });
 }
 
-function regularTest(argv): void {
+function regularTest(argv: any): void {
   opts.testClasses = argv._;
   opts.hideDiffs = !argv.diff;
   opts.quiet = argv.q;
@@ -90,7 +90,7 @@ function regularTest(argv): void {
     // Enter a domain so we are robust to uncaught errors.
     d = domain.create();
 
-  d.on('error', (err) => {
+  d.on('error', (err: any) => {
     process.stdout.write = stdoutW;
     process.stderr.write = stderrW;
     console.log("failed.\nUncaught error:\n" + err + "\n" + (err['stack'] != null ? err.stack : ""));

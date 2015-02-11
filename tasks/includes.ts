@@ -16,7 +16,13 @@ function includes(grunt: IGrunt) {
         packages: string[] = options.packages,
         dest: string = options.dest,
         done: (status?: boolean) => void = this.async(),
-        i: number, tasks: Function[] = [];
+        i: number, tasks: Function[] = [],
+        force: string[] = options.force,
+        standardArgPrefix = [doppiohPath, '-d', dest, '-cp', 'vendor/java_home/classes', '-ts', '.'];
+
+    if (force != null && force.length > 0) {
+      standardArgPrefix.push('-f', force.join(":"));
+    }
 
     for (i = 0; i < packages.length; i++) {
       // Closure to capture 'file'.
@@ -24,7 +30,7 @@ function includes(grunt: IGrunt) {
         tasks.push(function(cb: (err?: any) => void): void {
           grunt.util.spawn({
             cmd: 'node',
-            args: [doppiohPath, '-d', dest, '-cp', 'vendor/java_home/classes', '-ts', '.', package]
+            args: standardArgPrefix.concat(package)
           }, function(error: Error, result: grunt.util.ISpawnResult, code: number) {
             if (code !== 0 || error) {
               grunt.fail.fatal("Could not run doppioh on package " + package + ": " + result.stdout + "\n" + result.stderr);

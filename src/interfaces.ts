@@ -21,3 +21,16 @@ export interface JVMOptions {
   // True if assertions are enabled, false otherwise.
   assertionsEnabled: boolean;
 }
+
+/**
+ * Partial typing for Websockify WebSockets.
+ */
+export interface IWebsock {
+  rQlen(): number;
+  rQshiftBytes(len: number): number[];
+  on(eventName: string, cb: Function): void;
+  open(uri: string): void;
+  close(): void;
+  send(data: number): void;
+  send(data: number[]): void;
+}

@@ -7,12 +7,12 @@ import ClassData = require('./ClassData');
 import ClassLoader = require('./ClassLoader');
 import fs = require('fs');
 import path = require('path');
-import java_object = require('./java_object');
 import threading = require('./threading');
 import enums = require('./enums');
 import Heap = require('./heap');
 import assert = require('./assert');
 import interfaces = require('./interfaces');
+import JVMTypes = require('../includes/JVMTypes');
 declare var requirejs: any;
 
 // XXX: We currently initialize these classes at JVM bootup. This is expensive.
@@ -42,7 +42,7 @@ var coreClasses = [
  */
 class JVM {
   private systemProperties: {[prop: string]: string};
-  private internedStrings: SafeMap<java_object.JavaObject> = new SafeMap<java_object.JavaObject>();
+  private internedStrings: SafeMap<JVMTypes.java_lang_String> = new SafeMap<JVMTypes.java_lang_String>();
   private bsCl: ClassLoader.BootstrapClassLoader;
   private threadPool: threading.ThreadPool;
   private natives: { [clsName: string]: { [methSig: string]: Function } } = {};
@@ -68,7 +68,8 @@ class JVM {
       javaHomePath = path.resolve(opts.javaHomePath),
       // JVM bootup tasks, from first to last task.
       bootupTasks: {(next: (err?: any) => void): void}[] = [],
-      firstThread: threading.JVMThread;
+      firstThread: threading.JVMThread,
+      firstThreadObj: JVMTypes.java_lang_Thread;
     // @todo Resolve these, and integrate it into the ClassLoader?
     this.nativeClasspath = opts.nativeClasspath;
     this.assertionsEnabled = opts.assertionsEnabled;
@@ -101,13 +102,13 @@ class JVM {
       // Resolve Ljava/lang/Thread so we can fake a thread.
       // NOTE: This should never actually use the Thread object unless
       // there's an error loading java/lang/Thread and associated classes.
-      this.bsCl.resolveClass(null, 'Ljava/lang/Thread;', (cdata: ClassData.ReferenceClassData) => {
+      this.bsCl.resolveClass(null, 'Ljava/lang/Thread;', (cdata: ClassData.ReferenceClassData<JVMTypes.java_lang_Thread>) => {
         if (cdata == null) {
           // Failed.
           next("Failed to resolve java/lang/Thread.");
         } else {
           // Fake a thread.
-          firstThread = this.firstThread = this.threadPool.newThread(cdata);
+          firstThread = this.firstThread = this.threadPool.newThread(null);
           next();
         }
       });
@@ -118,37 +119,36 @@ class JVM {
      * JVM's ThreadGroup once that class is initialized.
      */
     bootupTasks.push((next: (err?: any) => void): void => {
-      util.asyncForEach<string>(coreClasses, (coreClass: string, next_item: (err?: any) => void) => {
+      util.asyncForEach<string>(coreClasses, (coreClass: string, nextItem: (err?: any) => void) => {
         this.bsCl.initializeClass(firstThread, coreClass, (cdata: ClassData.ClassData) => {
-          var cnstrctr: methods.Method;
           if (cdata == null) {
-            next_item("Failed to initialize " + coreClass);
+            nextItem(`Failed to initialize ${coreClass}`);
           } else {
             // One of the later preinitialized classes references Thread.group.
             // Initialize the system's ThreadGroup now.
             if (coreClass === 'Ljava/lang/ThreadGroup;') {
               // Construct a ThreadGroup object for the first thread.
-              var threadGroupCls = <ClassData.ReferenceClassData> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/ThreadGroup;'),
-                groupObj = new java_object.JavaObject(threadGroupCls);
-              cnstrctr = threadGroupCls.methodLookup(firstThread, '<init>()V');
-              firstThread.runMethod(cnstrctr, [groupObj], (e?: java_object.JavaObject, rv?: any) => {
+              var threadGroupCons = (<ClassData.ReferenceClassData<JVMTypes.java_lang_ThreadGroup>> cdata).getConstructor(),
+                groupObj = new threadGroupCons(firstThread);
+              groupObj['<init>()V'](firstThread, (e?: JVMTypes.java_lang_Throwable) => {
                 // Initialize the fields of our firstThread to make it real.
-                firstThread.set_field(firstThread, 'Ljava/lang/Thread;name', java_object.initCarr(this.bsCl, 'main'));
-                firstThread.set_field(firstThread, 'Ljava/lang/Thread;priority', 1);
-                firstThread.set_field(firstThread, 'Ljava/lang/Thread;group', groupObj);
-                firstThread.set_field(firstThread, 'Ljava/lang/Thread;threadLocals', null);
-                firstThread.set_field(firstThread, 'Ljava/lang/Thread;blockerLock', new java_object.JavaObject(<ClassData.ReferenceClassData> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/Object;')));
-                next_item();
+                firstThreadObj['java/lang/Thread/name'] = util.initCarr(this.bsCl, 'main');
+                firstThreadObj['java/lang/Thread/priority'] = 1;
+                firstThreadObj['java/lang/Thread/group'] = groupObj;
+                firstThreadObj['java/lang/Thread/threadLocals'] = null;
+                firstThreadObj['java/lang/Thread/blockerLock'] = new ((<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/Object;')).getConstructor())(firstThread);
+                nextItem();
               });
             } else if (coreClass === 'Ljava/lang/Thread;') {
               // Make firstThread a *real* thread.
-              var threadCls = <ClassData.ReferenceClassData> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/Thread;');
-              cnstrctr = threadCls.methodLookup(firstThread, '<init>()V');
-              firstThread.runMethod(cnstrctr, [firstThread], (e?: java_object.JavaObject, rv?: any) => {
-                next_item();
+              var threadCons = (<ClassData.ReferenceClassData<JVMTypes.java_lang_Thread>> cdata).getConstructor();
+              firstThreadObj = new threadCons(firstThread);
+              firstThreadObj['<init>()V'](firstThread, (e?: JVMTypes.java_lang_Throwable) => {
+                firstThread.setJVMObject(firstThreadObj);
+                nextItem();
               });
             } else {
-              next_item();
+              nextItem();
             }
           }
         });
@@ -160,20 +160,21 @@ class JVM {
      */
     bootupTasks.push((next: (err?: any) => void): void => {
       // Initialize the system class (initializes things like println/etc).
-      var sysInit = this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/System;').getMethod('initializeSystemClass()V');
-      firstThread.runMethod(sysInit, [], next);
+      var sysInit = <typeof JVMTypes.java_lang_System> (<ClassData.ReferenceClassData<JVMTypes.java_lang_System>> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/System;')).getConstructor();
+      sysInit['java/lang/System/initializeSystemClass()V'](firstThread, next);;
     });
 
     /**
      * Task #6: Initialize the application's classloader.
      */
     bootupTasks.push((next: (err?: any) => void) => {
-      firstThread.runMethod(this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/ClassLoader;').getMethod('getSystemClassLoader()Ljava/lang/ClassLoader;'), [], (e?, rv?: ClassLoader.JavaClassLoaderObject) => {
+      var clCons = <typeof JVMTypes.java_lang_ClassLoader> (<ClassData.ReferenceClassData<JVMTypes.java_lang_ClassLoader>> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/ClassLoader;')).getConstructor();
+      clCons['java/lang/ClassLoader/getSystemClassLoader()Ljava/lang/ClassLoader;'](firstThread, (e?: JVMTypes.java_lang_Throwable, rv?: JVMTypes.java_lang_ClassLoader) => {
         if (e) {
           next(e);
         } else {
           this.systemClassLoader = rv.$loader;
-          firstThread.set_field(firstThread, 'Ljava/lang/Thread;contextClassLoader', rv);
+          firstThreadObj['java/lang/Thread/contextClassLoader'] = rv;
           next();
         }
       });
@@ -219,19 +220,28 @@ class JVM {
     // Convert foo.bar.Baz => Lfoo/bar/Baz;
     className = "L" + className.replace(/\./g, '/') + ";";
     // Initialize the class.
-    this.systemClassLoader.initializeClass(thread, className, (cdata: ClassData.ReferenceClassData) => {
+    this.systemClassLoader.initializeClass(thread, className, (cdata: ClassData.ReferenceClassData<any>) => {
       if (cdata != null) {
         // Convert the arguments.
-        var strArrCls = <ClassData.ArrayClassData> this.bsCl.getInitializedClass(thread, '[Ljava/lang/String;'),
-          jvmifiedArgs = new java_object.JavaArray(strArrCls, args.map((a: string): java_object.JavaObject => java_object.initString(this.bsCl, a)));
+        var strArrCons = (<ClassData.ArrayClassData<JVMTypes.java_lang_String>> this.bsCl.getInitializedClass(thread, '[Ljava/lang/String;')).getConstructor(),
+          jvmifiedArgs = new strArrCons(thread, args.length), i: number;
 
-        // Find the main method, and run it.
-        var method = cdata.methodLookup(thread, 'main([Ljava/lang/String;)V');
+        for (i = 0; i < args.length; i++) {
+          jvmifiedArgs.array[i] = util.initString(this.bsCl, args[i]);
+        }
 
         // Set the terminationCb here. The JVM will now terminate once all
         // threads have finished executing.
         this.terminationCb = cb;
-        thread.runMethod(method, [jvmifiedArgs]);
+
+        // Find the main method, and run it.
+        // TODO: Error checking!
+        var cdataStatics = <any> cdata.getConstructor();
+        if (cdataStatics['main([Ljava/lang/String;)V']) {
+          cdataStatics['main([Ljava/lang/String;)V'](thread, [jvmifiedArgs]);
+        } else {
+          thread.throwNewException("Ljava/lang/NoSuchMethodError;", `Could not find main method in class ${cdata.getExternalName()}.`);
+        }
       } else {
         // There was an error.
         this.terminationCb = cb;
@@ -289,12 +299,12 @@ class JVM {
   /**
    * Interns the given JavaScript string. Returns the interned string.
    */
-  public internString(str: string, javaObj?: java_object.JavaObject): java_object.JavaObject {
+  public internString(str: string, javaObj?: JVMTypes.java_lang_String): JVMTypes.java_lang_String {
     if (this.internedStrings.has(str)) {
       return this.internedStrings.get(str);
     } else {
       if (!javaObj) {
-        javaObj = java_object.initString(this.bsCl, str);
+        javaObj = util.initString(this.bsCl, str);
       }
       this.internedStrings.set(str, javaObj);
       return javaObj;

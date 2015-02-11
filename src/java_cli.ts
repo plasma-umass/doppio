@@ -104,7 +104,7 @@ export function java(args: string[], opts: JVMCLIOptions,
   if (/[0-9]+/.test(argv.non_standard.log)) {
     logging.log_level = argv.non_standard.log + 0;
   } else {
-    var level = logging[argv.non_standard.log.toUpperCase()];
+    var level = (<any> logging)[argv.non_standard.log.toUpperCase()];
     if (level == null) {
       process.stderr.write('Unrecognized log level.');
       return print_help(opts.launcherName, optparse.show_help(), done_cb, false);

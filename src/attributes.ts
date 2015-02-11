@@ -75,9 +75,9 @@ export class Code implements IAttribute {
     }
     var code = byteStream.slice(codeLen).getBuffer(),
       exceptLen = byteStream.getUint16(),
-      exceptionHandlers = [];
+      exceptionHandlers: ExceptionHandler[] = [];
     for (var i = 0; i < exceptLen; i++) {
-      exceptionHandlers.push(ExceptionHandler.parse(byteStream, constantPool));
+      exceptionHandlers.push(<ExceptionHandler> ExceptionHandler.parse(byteStream, constantPool));
     }
     // yes, there are even attrs on attrs. BWOM... BWOM...
     var attrs = makeAttributes(byteStream, constantPool);
@@ -183,7 +183,7 @@ export class StackMapTable implements IAttribute {
 
   public static parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool): IAttribute {
     var numEntries = byteStream.getUint16(),
-      entries = [];
+      entries: IStackMapTableEntry[] = [];
     for (var i = 0; i < numEntries; i++) {
       entries.push(this.parseEntry(byteStream, constantPool));
     }
@@ -292,7 +292,7 @@ export class LocalVariableTable implements IAttribute {
 
   public static parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool): IAttribute {
     var numEntries = byteStream.getUint16(),
-      entries = [];
+      entries: ILocalVariableTableEntry[] = [];
     for (var i = 0; i < numEntries; i++) {
       entries.push(this.parseEntries(byteStream, constantPool));
     }
@@ -381,7 +381,7 @@ export class InnerClasses implements IAttribute {
 
   public static parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): IAttribute {
     var numClasses = bytes_array.getUint16(),
-      classes = [];
+      classes: IInnerClassInfo[] = [];
     for (var i = 0; i < numClasses; i++) {
       classes.push(this.parseClass(bytes_array, constant_pool));
     }

@@ -3,27 +3,24 @@ import util = require('./util');
 import ByteStream = require('./ByteStream');
 import attributes = require('./attributes');
 import JVM = require('./jvm');
-import java_object = require('./java_object');
 import ConstantPool = require('./ConstantPool');
 import ClassData = require('./ClassData');
 import threading = require('./threading');
 import gLong = require('./gLong');
 import ClassLoader = require('./ClassLoader');
 import assert = require('./assert');
+import enums = require('./enums');
+import Monitor = require('./Monitor');
+import JVMTypes = require('../includes/JVMTypes');
 
-var JavaArray = java_object.JavaArray;
-var JavaObject = java_object.JavaObject;
-
-
-
-var trapped_methods = {
+var trapped_methods: { [clsName: string]: { [methodName: string]: Function } } = {
   'java/lang/ref/Reference': {
     // NOP, because we don't do our own GC and also this starts a thread?!?!?!
     '<clinit>()V': function (thread: threading.JVMThread): void { }
   },
   'java/lang/System': {
-    'loadLibrary(Ljava/lang/String;)V': function (thread: threading.JVMThread, lib_name: java_object.JavaObject): void {
-      var lib = lib_name.jvm2js_str();
+    'loadLibrary(Ljava/lang/String;)V': function (thread: threading.JVMThread, lib_name: JVMTypes.java_lang_String): void {
+      var lib = util.jvm2jsStr(lib_name);
       if (lib !== 'zip' && lib !== 'net' && lib !== 'nio' && lib !== 'awt' && lib !== 'fontmanager') {
         thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', `no ${lib} in java.library.path`);
       }
@@ -36,19 +33,20 @@ var trapped_methods = {
     }
   },
   'java/util/concurrent/atomic/AtomicInteger': {
-    'compareAndSet(II)Z': function (thread: threading.JVMThread, javaThis: java_object.JavaObject, expect: number, update: number): boolean {
-      javaThis.set_field(thread, 'Ljava/util/concurrent/atomic/AtomicInteger;value', update);
+    'compareAndSet(II)Z': function (thread: threading.JVMThread, javaThis: JVMTypes.java_util_concurrent_atomic_AtomicInteger, expect: number, update: number): boolean {
+      javaThis['java/util/concurrent/atomic/AtomicInteger/value'] = update;
       // always true, because we only have one thread of execution
       // @todo Fix: Actually check expected value!
       return true;
     }
   },
   'java/nio/Bits': {
-    'byteOrder()Ljava/nio/ByteOrder;': function (thread: threading.JVMThread): java_object.JavaObject {
-      var cls = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass(thread, 'Ljava/nio/ByteOrder;');
-      return cls.staticGet(thread, 'LITTLE_ENDIAN');
+    'byteOrder()Ljava/nio/ByteOrder;': function (thread: threading.JVMThread): JVMTypes.java_nio_ByteOrder {
+      var cls = <ClassData.ReferenceClassData<JVMTypes.java_nio_ByteOrder>> thread.getBsCl().getInitializedClass(thread, 'Ljava/nio/ByteOrder;'),
+        cons = <typeof JVMTypes.java_nio_ByteOrder> cls.getConstructor();
+      return cons['java/nio/ByteOrder/LITTLE_ENDIAN'];
     },
-    'copyToByteArray(JLjava/lang/Object;JJ)V': function (thread: threading.JVMThread, srcAddr: gLong, dst: java_object.JavaArray, dstPos: gLong, length: gLong): void {
+    'copyToByteArray(JLjava/lang/Object;JJ)V': function (thread: threading.JVMThread, srcAddr: gLong, dst: JVMTypes.JVMArray<any>, dstPos: gLong, length: gLong): void {
       var heap = thread.getThreadPool().getJVM().getHeap(),
         srcStart = srcAddr.toNumber(),
         dstStart: number = dstPos.toNumber(),
@@ -62,7 +60,7 @@ var trapped_methods = {
   },
   'java/nio/charset/Charset$3': {
     // this is trapped and NOP'ed for speed
-    'run()Ljava/lang/Object;': function (thread: threading.JVMThread, javaThis: java_object.JavaObject): java_object.JavaObject {
+    'run()Ljava/lang/Object;': function (thread: threading.JVMThread, javaThis: JVMTypes.java_nio_charset_Charset$3): JVMTypes.java_lang_Object {
       return null;
     }
   }
@@ -76,24 +74,48 @@ function getTrappedMethod(clsName: string, methSig: string): Function {
   return null;
 }
 
+/**
+ * Shared functionality between Method and Field objects, as they are
+ * represented similarly in class files.
+ */
 export class AbstractMethodField {
-  public cls: ClassData.ReferenceClassData;
+  /**
+   * The declaring class of this method or field.
+   */
+  public cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>;
+  /**
+   * The method / field's slot in the virtual lookup table.
+   */
   public slot: number = -1;
+  /**
+   * The method / field's flags (e.g. static).
+   */
   public accessFlags: util.Flags;
+  /**
+   * The name of the field, without the descriptor or owning class.
+   */
   public name: string;
-  public raw_descriptor: string;
+  /**
+   * The method/field's type descriptor.
+   * e.g.:
+   * public String foo; => Ljava/lang/String;
+   * public void foo(String bar); => (Ljava/lang/String;)V
+   */
+  public rawDescriptor: string;
+  /**
+   * Any attributes on this method or field.
+   */
   public attrs: attributes.IAttribute[];
 
-  constructor(cls: ClassData.ReferenceClassData) {
+  /**
+   * Constructs a field or method object from raw class data.
+   */
+  constructor(cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, constantPool: ConstantPool.ConstantPool, byteStream: ByteStream) {
     this.cls = cls;
-  }
-
-  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): void {
-    this.accessFlags = new util.Flags(bytes_array.getUint16());
-    this.name = (<ConstantPool.ConstUTF8> constant_pool.get(bytes_array.getUint16())).value;
-    this.raw_descriptor = (<ConstantPool.ConstUTF8> constant_pool.get(bytes_array.getUint16())).value;
-    this.parse_descriptor(this.raw_descriptor);
-    this.attrs = attributes.makeAttributes(bytes_array, constant_pool);
+    this.accessFlags = new util.Flags(byteStream.getUint16());
+    this.name = (<ConstantPool.ConstUTF8> constantPool.get(byteStream.getUint16())).value;
+    this.rawDescriptor = (<ConstantPool.ConstUTF8> constantPool.get(byteStream.getUint16())).value;
+    this.attrs = attributes.makeAttributes(byteStream, constantPool);
   }
 
   /**
@@ -103,7 +125,7 @@ export class AbstractMethodField {
     this.slot = slot;
   }
 
-  public get_attribute(name: string): attributes.IAttribute {
+  public getAttribute(name: string): attributes.IAttribute {
     for (var i = 0; i < this.attrs.length; i++) {
       var attr = this.attrs[i];
       if (attr.getName() === name) {
@@ -113,56 +135,71 @@ export class AbstractMethodField {
     return null;
   }
 
-  public get_attributes(name: string): attributes.IAttribute[] {
+  public getAttributes(name: string): attributes.IAttribute[] {
     return this.attrs.filter((attr) => attr.getName() === name);
   }
 
+  /**
+   * Get the particular type of annotation as a JVM byte array. Returns null
+   * if the annotation does not exist.
+   */
+  protected getAnnotationType(thread: threading.JVMThread, name: string): JVMTypes.JVMArray<number> {
+    var annotation = <{ rawBytes: number[] }> <any> this.getAttribute(name);
+    if (annotation === null) {
+      return null;
+    }
+    var byteArrCons = (<ClassData.ArrayClassData<number>> thread.getBsCl().getInitializedClass(thread, '[B')).getConstructor(),
+      rv = new byteArrCons(thread, 0);
+    rv.array = annotation.rawBytes;
+    return rv;
+  }
+
   // To satiate TypeScript. Consider it an 'abstract' method.
-  public parse_descriptor(raw_descriptor: string): void {
+  public parseDescriptor(raw_descriptor: string): void {
     throw new Error("Unimplemented error.");
   }
 }
 
 export class Field extends AbstractMethodField {
-  public type: string;
+  /**
+   * The field's full name, which includes the defining class
+   * (e.g. java/lang/String/value).
+   */
+  public fullName: string;
 
-  public parse_descriptor(raw_descriptor: string): void {
-    this.type = raw_descriptor;
+  constructor(cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, constantPool: ConstantPool.ConstantPool, byteStream: ByteStream) {
+    super(cls, constantPool, byteStream);
+    this.fullName = `${util.descriptor2typestr(cls.getInternalName())}/${this.name}`;
   }
 
   /**
    * Calls cb with the reflectedField if it succeeds. Calls cb with null if it
    * fails.
    */
-  public reflector(thread: threading.JVMThread, cb: (reflectedField: java_object.JavaObject) => void): void {
-    var found = <attributes.Signature> this.get_attribute("Signature");
-    // note: sig is the generic type parameter (if one exists), not the full
-    // field type.
-    var sig = (found != null) ? found.sig : null;
-    var jvm = thread.getThreadPool().getJVM();
-    var bsCl = thread.getBsCl();
-    var create_obj = (clazz_obj: java_object.JavaClassObject, type_obj: java_object.JavaObject) => {
-      var field_cls = <ClassData.ReferenceClassData> bsCl.getInitializedClass(thread, 'Ljava/lang/reflect/Field;'),
-        annotations: attributes.RuntimeVisibleAnnotations = <any> this.get_attribute('RuntimeVisibleAnnotations');
-      return new java_object.JavaObject(field_cls, {
-        'Ljava/lang/reflect/Field;clazz': clazz_obj,
-        'Ljava/lang/reflect/Field;name': jvm.internString(this.name),
-        'Ljava/lang/reflect/Field;type': type_obj,
-        'Ljava/lang/reflect/Field;modifiers': this.accessFlags.getRawByte(),
-        'Ljava/lang/reflect/Field;slot': this.slot,
-        'Ljava/lang/reflect/Field;signature': sig != null ? java_object.initString(bsCl, sig) : null,
-        'Ljava/lang/reflect/Field;annotations': annotations != null ? (<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[B')).create(annotations.rawBytes) : null
-      });
+  public reflector(thread: threading.JVMThread, cb: (reflectedField: JVMTypes.java_lang_reflect_Field) => void): void {
+    var signatureAttr = <attributes.Signature> this.getAttribute("Signature"),
+      jvm = thread.getThreadPool().getJVM(),
+      bsCl = thread.getBsCl();
+    var createObj = (typeObj: JVMTypes.java_lang_Class): JVMTypes.java_lang_reflect_Field => {
+      var fieldCls = <ClassData.ReferenceClassData<JVMTypes.java_lang_reflect_Field>> bsCl.getInitializedClass(thread, 'Ljava/lang/reflect/Field;'),
+        fieldObj = new (fieldCls.getConstructor())(thread);
+
+      fieldObj['java/lang/reflect/Field/clazz'] = this.cls.getClassObject(thread);
+      fieldObj['java/lang/reflect/Field/name'] = jvm.internString(this.name);
+      fieldObj['java/lang/reflect/Field/type'] = typeObj;
+      fieldObj['java/lang/reflect/Field/modifiers'] = this.accessFlags.getRawByte();
+      fieldObj['java/lang/reflect/Field/slot'] = this.slot;
+      fieldObj['java/lang/reflect/Field/signature'] = signatureAttr !== null ? util.initString(bsCl, signatureAttr.sig) : null;
+      fieldObj['java/lang/reflect/Field/annotations'] = this.getAnnotationType(thread, 'RuntimeVisibleAnnotations');
+
+      return fieldObj;
     };
-    var clazz_obj = this.cls.getClassObject(thread);
-    // type_obj may not be loaded, so we asynchronously load it here.
+    // Our field's type may not be loaded, so we asynchronously load it here.
     // In the future, we can speed up reflection by having a synchronous_reflector
     // method that we can try first, and which may fail.
-    this.cls.getLoader().resolveClass(thread, this.type, (cdata: ClassData.ClassData) => {
+    this.cls.getLoader().resolveClass(thread, this.rawDescriptor, (cdata: ClassData.ClassData) => {
       if (cdata != null) {
-        var type_obj = cdata.getClassObject(thread),
-          rv = create_obj(clazz_obj, type_obj);
-        cb(rv);
+        cb(createObj(cdata.getClassObject(thread)));
       } else {
         cb(null);
       }
@@ -171,47 +208,94 @@ export class Field extends AbstractMethodField {
 }
 
 export class Method extends AbstractMethodField {
-  public param_types: string[];
-  private param_bytes: number;
-  private num_args: number;
-  public return_type: string;
-  // Code is either a function, or a CodeAttribute. We should have a factory method
-  // that constructs NativeMethod objects and BytecodeMethod objects.
+  /**
+   * The method's parameters, if any, in descriptor form.
+   */
+  public parameterTypes: string[];
+  /**
+   * The method's return type in descriptor form.
+   */
+  public returnType: string;
+  /**
+   * The method's signature, e.g. bar()V
+   */
+  public signature: string;
+  /**
+   * The method's signature, including defining class; e.g. java/lang/String/bar()V
+   */
+  public fullSignature: string;
+  /**
+   * The number of JVM words required to store the parameters (e.g. longs/doubles take up 2 words).
+   * Does not include the "this" argument to non-static functions.
+   */
+  private parameterWords: number;
+  /**
+   * Code is either a function, or a CodeAttribute.
+   * TODO: Differentiate between NativeMethod objects and BytecodeMethod objects.
+   */
   private code: any;
 
-  public parse_descriptor(raw_descriptor: string): void {
-    var match = /\(([^)]*)\)(.*)/.exec(raw_descriptor);
-    var param_str = match[1];
-    var return_str = match[2];
-    var param_carr = param_str.split('');
-    this.param_types = [];
-    var field: string;
-    while (field = util.carr2descriptor(param_carr)) {
-      this.param_types.push(field);
+  constructor(cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, constantPool: ConstantPool.ConstantPool, byteStream: ByteStream) {
+    super(cls, constantPool, byteStream);
+    var parsedDescriptor = util.getTypes(this.rawDescriptor), i: number,
+      p: string;
+    this.signature = this.name + this.rawDescriptor;
+    this.fullSignature = `${util.descriptor2typestr(this.cls.getInternalName())}/${this.signature}}`;
+    this.returnType = parsedDescriptor.pop();
+    this.parameterTypes = parsedDescriptor;
+    this.parameterWords = parsedDescriptor.length;
+
+    // Double count doubles / longs.
+    for (i = 0; i < this.parameterTypes.length; i++) {
+      p = this.parameterTypes[i];
+      if (p === 'D' || p === 'J') {
+        this.parameterWords++;
+      }
     }
-    this.param_bytes = 0;
-    for (var i = 0; i < this.param_types.length; i++) {
-      var p = this.param_types[i];
-      this.param_bytes += (p === 'D' || p === 'J') ? 2 : 1;
+
+    // Initialize 'code' property.
+    var clsName = this.cls.getInternalName(),
+      methSig = this.name + this.rawDescriptor;
+
+    if (getTrappedMethod(clsName, methSig) !== null) {
+      this.code = getTrappedMethod(clsName, methSig);
+      this.accessFlags.setNative(true);
+    } else if (this.accessFlags.isNative()) {
+      if (methSig.indexOf('registerNatives()V', 1) < 0 && methSig.indexOf('initIDs()V', 1) < 0) {
+        // The first version of the native method attempts to fetch itself and
+        // rewrite itself.
+        this.code = (thread: threading.JVMThread) => {
+          // Try to fetch the native method.
+          var jvm = thread.getThreadPool().getJVM(),
+            c = jvm.getNative(clsName, methSig);
+          if (c == null) {
+            thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', `Native method '${this.getFullSignature()}' not implemented.\nPlease fix or file a bug at https://github.com/plasma-umass/doppio/issues`);
+          } else {
+            this.code = c;
+            return c.apply(this, arguments);
+          }
+        };
+      } else {
+        // Stub out initIDs and registerNatives.
+        // TODO: Use registerNatives to trigger dynamic native method loading.
+        this.code = () => { };
+      }
+    } else if (!this.accessFlags.isAbstract()) {
+      this.code = this.getAttribute('Code');
     }
-    if (!this.accessFlags.isStatic()) {
-      this.param_bytes++;
-    }
-    this.num_args = this.param_types.length;
-    if (!this.accessFlags.isStatic()) {
-      // nonstatic methods get 'this'
-      this.num_args++;
-    }
-    this.return_type = return_str;
   }
 
+  public getFullSignature(): string {
+    return `${this.cls.getExternalName()}.${this.name}${this.rawDescriptor}`;
+  }
+
+  /**
+   * Checks if this particular method should be hidden in stack frames.
+   * Used by OpenJDK's lambda implementation to hide lambda boilerplate.
+   */
   public isHidden(): boolean {
-    var rva: attributes.RuntimeVisibleAnnotations = <any> this.get_attribute('RuntimeVisibleAnnotations');
+    var rva: attributes.RuntimeVisibleAnnotations = <any> this.getAttribute('RuntimeVisibleAnnotations');
     return rva !== null && rva.isHidden;
-  }
-
-  public full_signature(): string {
-    return util.ext_classname(this.cls.getInternalName()) + "::" + this.name + this.raw_descriptor;
   }
 
   /**
@@ -220,16 +304,7 @@ export class Method extends AbstractMethodField {
    * for non-static functions.
    */
   public getParamWordSize(): number {
-    return this.param_bytes;
-  }
-
-  /**
-   * Get the number of parameters required for this function. Distinct from
-   * `getParamWordSize()`, since in this function, 64-bit values are counted
-   * once.
-   */
-  public getNumberOfParameters(): number {
-    return this.num_args;
+    return this.parameterWords;
   }
 
   public getCodeAttribute(): attributes.Code {
@@ -242,107 +317,91 @@ export class Method extends AbstractMethodField {
     return this.code;
   }
 
-  public parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): void {
-    super.parse(bytes_array, constant_pool);
-    var sig = this.full_signature(),
-      clsName = this.cls.getInternalName(),
-      methSig = this.name + this.raw_descriptor;
-
-    if (getTrappedMethod(clsName, methSig) != null) {
-      this.code = getTrappedMethod(clsName, methSig);
-      this.accessFlags.setNative(true);
-    } else if (this.accessFlags.isNative()) {
-      if (sig.indexOf('::registerNatives()V', 1) < 0 && sig.indexOf('::initIDs()V', 1) < 0) {
-        this.code = (thread: threading.JVMThread) => {
-          // Try to fetch the native method.
-          var jvm = thread.getThreadPool().getJVM(),
-            c = jvm.getNative(clsName, methSig);
-          if (c == null) {
-            thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', `Native method '${sig}' not implemented.\nPlease fix or file a bug at https://github.com/plasma-umass/doppio/issues`);
-          } else {
-            this.code = c;
-            return c.apply(this, arguments);
-          }
-        };
-      } else {
-        // NOP.
-        this.code = () => { };
-      }
-    } else if (!this.accessFlags.isAbstract()) {
-      this.code = this.get_attribute('Code');
+  /**
+   * Resolves all of the classes referenced through this method. Required in
+   * order to create its reflection object.
+   */
+  private _resolveReferencedClasses(thread: threading.JVMThread, cb: (classes: {[ className: string ]: ClassData.ClassData}) => void): void {
+    // Start with the return type + parameter types + reflection object types.
+    var toResolve: string[] = this.parameterTypes.concat(this.returnType, 'Ljava/lang/reflect/Method;', 'Ljava/lang/reflect/Constructor;'),
+      code: attributes.Code = this.code,
+      exceptionAttribute = <attributes.Exceptions> this.getAttribute("Exceptions");
+    // Exception handler types.
+    if (!this.accessFlags.isNative() && !this.accessFlags.isAbstract() && code.exceptionHandlers.length > 0) {
+      toResolve.push('Ljava/lang/Throwable;'); // Mimic native Java (in case <any> is the only handler).
+      // Filter out the <any> handlers.
+      toResolve = toResolve.concat(code.exceptionHandlers.filter((handler) => handler.catchType !== '<any>').map((handler) => handler.catchType));
     }
+    // Resolve checked exception types.
+    if (exceptionAttribute !== null) {
+      toResolve = toResolve.concat(exceptionAttribute.exceptions);
+    }
+
+    this.cls.getLoader().resolveClasses(thread, toResolve, cb);
   }
 
-  public reflector(thread: threading.JVMThread, is_constructor: boolean, cb: (reflectedMethod: java_object.JavaObject) => void): void {
-    if (is_constructor == null) {
-      is_constructor = false;
-    }
-
-    var typestr = is_constructor ? 'Ljava/lang/reflect/Constructor;' : 'Ljava/lang/reflect/Method;',
-      exceptionAttr = <attributes.Exceptions> this.get_attribute("Exceptions"),
-      annAttr = <attributes.RuntimeVisibleAnnotations> this.get_attribute("RuntimeVisibleAnnotations"),
-      annDefaultAttr = <attributes.AnnotationDefault> this.get_attribute("AnnotationDefault"),
-      sigAttr = <attributes.Signature> this.get_attribute("Signature"),
-      obj = {},
-      clazz_obj = this.cls.getClassObject(thread),
-      toResolve: string[] = [],
-      bsCl: ClassLoader.BootstrapClassLoader = thread.getBsCl(),
+  /**
+   * Get a reflection object representing this method.
+   */
+  public reflector(thread: threading.JVMThread, cb: (reflectedMethod: JVMTypes.java_lang_reflect_Executable) => void): void {
+    var bsCl = thread.getBsCl(),
+      // Grab the classes required to construct the needed arrays.
+      clazzArray = (<ClassData.ArrayClassData<JVMTypes.java_lang_Class>> bsCl.getInitializedClass(thread, '[Ljava/lang/Class;')).getConstructor(),
       jvm = thread.getThreadPool().getJVM(),
-      loader = this.cls.getLoader(),
-      hasCode = (!this.accessFlags.isNative() && !this.accessFlags.isAbstract()),
-      parameterAnnotations = <attributes.RuntimeVisibleParameterAnnotations> this.get_attribute('RuntimeVisibleParameterAnnotations');
+      // Grab the needed attributes.
+      signatureAttr = <attributes.Signature> this.getAttribute("Signature"),
+      exceptionAttr = <attributes.Exceptions> this.getAttribute("Exceptions");
 
-    // Resolve the return type.
-    toResolve.push(this.return_type);
-    // Resolve exception handler types.
-    var code: attributes.Code = this.code;
-    if (hasCode && code.exceptionHandlers.length > 0) {
-      toResolve.push('Ljava/lang/Throwable;');  // Mimic native java.
-      var eh = code.exceptionHandlers;
-      for (var i = 0; i < eh.length; i++) {
-        if (eh[i].catchType !== '<any>') {
-          toResolve.push(eh[i].catchType);
-        }
-      }
-    }
-    // Resolve parameter types.
-    toResolve.push.apply(toResolve, this.param_types);
-    // Resolve checked exception types.
-    if (exceptionAttr != null) {
-      toResolve.push.apply(toResolve, exceptionAttr.exceptions);
-    }
-
-    loader.resolveClasses(thread, toResolve, (classes) => {
+    // Retrieve all of the required class references.
+    this._resolveReferencedClasses(thread, (classes: { [className: string ]: ClassData.ClassData }) => {
       if (classes === null) {
-        // FAILED. An exception has been thrown.
-        cb(null);
+        return cb(null);
+      }
+
+      // Construct the needed objects for the reflection object.
+      var clazz = this.cls.getClassObject(thread),
+        name = jvm.internString(this.name),
+        parameterTypes = new clazzArray(thread, 0),
+        returnType = classes[this.returnType].getClassObject(thread),
+        exceptionTypes: JVMTypes.JVMArray<JVMTypes.java_lang_Class>,
+        modifiers = this.accessFlags.getRawByte(),
+        signature = signatureAttr !== null ? jvm.internString(signatureAttr.sig) : null;
+
+      // Prepare the class arrays.
+      parameterTypes.array = this.parameterTypes.map((ptype: string) => classes[ptype].getClassObject(thread));
+      if (exceptionAttr !== null) {
+        exceptionTypes = new clazzArray(thread, 0);
+        exceptionTypes.array = exceptionAttr.exceptions.map((eType: string) => classes[eType].getClassObject(thread));
+      }
+
+      if (this.name === '<init>') {
+        // Constructor object.
+        var consCons = (<ClassData.ReferenceClassData<JVMTypes.java_lang_reflect_Constructor>> classes['Ljava/lang/reflect/Constructor;']).getConstructor(),
+          consObj = new consCons(thread);
+        consObj['java/lang/reflect/Constructor/clazz'] = clazz;
+        consObj['java/lang/reflect/Constructor/parameterTypes'] = parameterTypes;
+        consObj['java/lang/reflect/Constructor/exceptionTypes'] = exceptionTypes;
+        consObj['java/lang/reflect/Constructor/modifiers'] = modifiers;
+        consObj['java/lang/reflect/Constructor/slot'] = this.slot;
+        consObj['java/lang/reflect/Constructor/signature'] = signature;
+        consObj['java/lang/reflect/Constructor/annotations'] = this.getAnnotationType(thread, 'RuntimeVisibleAnnotations');
+        consObj['java/lang/reflect/Constructor/parameterAnnotations'] = this.getAnnotationType(thread, 'ParameterAnnotations');
       } else {
-        var jco_arr_cls = <ClassData.ArrayClassData> bsCl.getInitializedClass(thread, '[Ljava/lang/Class;');
-        var byte_arr_cls = <ClassData.ArrayClassData> bsCl.getInitializedClass(thread, '[B');
-        var cls = <ClassData.ReferenceClassData> bsCl.getInitializedClass(thread, typestr);
-        var param_type_objs: java_object.JavaClassObject[] = [];
-        var i: number;
-        for (i = 0; i < this.param_types.length; i++) {
-          param_type_objs.push(classes[this.param_types[i]].getClassObject(thread));
-        }
-        var etype_objs: java_object.JavaClassObject[] = [];
-        if (exceptionAttr != null) {
-          for (i = 0; i < exceptionAttr.exceptions.length; i++) {
-            etype_objs.push(classes[<string> exceptionAttr.exceptions[i]].getClassObject(thread));
-          }
-        }
-        obj[typestr + 'clazz'] = clazz_obj;
-        obj[typestr + 'name'] = jvm.internString(this.name);
-        obj[typestr + 'parameterTypes'] = new JavaArray(jco_arr_cls, param_type_objs);
-        obj[typestr + 'returnType'] = classes[this.return_type].getClassObject(thread);
-        obj[typestr + 'exceptionTypes'] = new JavaArray(jco_arr_cls, etype_objs);
-        obj[typestr + 'modifiers'] = this.accessFlags.getRawByte();
-        obj[typestr + 'slot'] = this.slot;
-        obj[typestr + 'signature'] = sigAttr != null ? jvm.internString(sigAttr.sig) : null;
-        obj[typestr + 'annotations'] = annAttr != null ? new JavaArray(byte_arr_cls, annAttr.rawBytes) : null;
-        obj[typestr + 'annotationDefault'] = annDefaultAttr != null ? new JavaArray(byte_arr_cls, annDefaultAttr.rawBytes) : null;
-        obj[typestr + 'parameterAnnotations'] = parameterAnnotations != null ? new JavaArray(byte_arr_cls, parameterAnnotations.rawBytes) : null;
-        cb(new JavaObject(cls, obj));
+        // Method object.
+        var methodCons = (<ClassData.ReferenceClassData<JVMTypes.java_lang_reflect_Method>>  classes['Ljava/lang/reflect/Method;']).getConstructor(),
+          methodObj = new methodCons(thread);
+        methodObj['java/lang/reflect/Method/clazz'] = clazz;
+        methodObj['java/lang/reflect/Method/name'] = name;
+        methodObj['java/lang/reflect/Method/parameterTypes'] = parameterTypes;
+        methodObj['java/lang/reflect/Method/returnType'] = returnType;
+        methodObj['java/lang/reflect/Method/exceptionTypes'] = exceptionTypes;
+        methodObj['java/lang/reflect/Method/modifiers'] = modifiers;
+        methodObj['java/lang/reflect/Method/slot'] = this.slot;
+        methodObj['java/lang/reflect/Method/signature'] = signature;
+        methodObj['java/lang/reflect/Method/annotations'] = this.getAnnotationType(thread, 'RuntimeVisibleAnnotations');
+        methodObj['java/lang/reflect/Method/annotationDefault'] = this.getAnnotationType(thread, 'AnnotationDefault');
+        methodObj['java/lang/reflect/Method/parameterAnnotations'] = this.getAnnotationType(thread, 'ParameterAnnotations');
+        cb(methodObj);
       }
     });
   }
@@ -372,8 +431,8 @@ export class Method extends AbstractMethodField {
       convertedArgs.push(params[0]);
       argIdx = 1;
     }
-    for (i = 0; i < this.param_types.length; i++) {
-      var p = this.param_types[i];
+    for (i = 0; i < this.parameterTypes.length; i++) {
+      var p = this.parameterTypes[i];
       convertedArgs.push(params[argIdx]);
       argIdx += (p === 'J' || p === 'D') ? 2 : 1;
     }
@@ -381,24 +440,15 @@ export class Method extends AbstractMethodField {
   }
 
   /**
-   * Takes the arguments to this function from the top of the input stack,
-   * and returns them as a new array.
+   * Lock this particular method.
    */
-  public takeArgs(caller_stack: any[]): any[] {
-    var start = caller_stack.length - this.param_bytes;
-    var params = caller_stack.slice(start);
-    // this is faster than splice()
-    caller_stack.length -= this.param_bytes;
-    return params;
-  }
-
-  public method_lock(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): java_object.Monitor {
+  public methodLock(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): Monitor {
     if (this.accessFlags.isStatic()) {
       // Static methods lock the class.
       return this.cls.getClassObject(thread).getMonitor();
     } else {
       // Non-static methods lock the instance.
-      return (<java_object.JavaObject> frame.locals[0]).getMonitor();
+      return (<JVMTypes.java_lang_Object> frame.locals[0]).getMonitor();
     }
   }
 
@@ -414,6 +464,24 @@ export class Method extends AbstractMethodField {
   public isSignaturePolymorphic(): boolean {
     return this.cls.getInternalName() === 'Ljava/lang/invoke/MethodHandle;' &&
       this.accessFlags.isNative() && this.accessFlags.isVarArgs() &&
-      this.raw_descriptor === '([Ljava/lang/Object;)Ljava/lang/Object;';
+      this.rawDescriptor === '([Ljava/lang/Object;)Ljava/lang/Object;';
+  }
+
+  /**
+   * Returns the string template for turning this method into a JavaScript
+   * function.
+   * TODO: Move lock logic and such into this function! And other specialization.
+   * TODO: J and D take up *two* slots!
+   * TODO: Signature polymorphic functions...?
+   */
+  public getJavaScriptFunctionTemplate(): string {
+    return `function(thread, args, cb) {
+      if (cb) {
+        thread.stack.push(new InternalStackFrame(cb));
+      }
+      ${this.accessFlags.isStatic() ? "" : "args.unshift(this);"}
+      thread.stack.push(new ${this.accessFlags.isNative() ? "NativeStackFrame" : "BytecodeStackFrame"}(method, args));
+      thread.setStatus(${enums.ThreadStatus.RUNNABLE});
+    }`;
   }
 }

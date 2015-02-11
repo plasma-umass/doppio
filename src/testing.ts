@@ -145,7 +145,7 @@ class DoppioTest {
         startRecordingOutput();
         jvm.runClass(this.cls, [], (success: boolean) => {
           var output = stopRecordingOutput();
-          fs.readFile(this.outFile, { encoding: 'utf8' }, (err, data?: string) => {
+          fs.readFile(this.outFile, { encoding: 'utf8' }, (err: any, data?: string) => {
             var diffStr: string;
             if (err) {
               this.print("fail.\n\tCould not read runout file:\n" + err);

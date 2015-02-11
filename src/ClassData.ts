@@ -3,7 +3,6 @@ import util = require('./util');
 import ByteStream = require('./ByteStream');
 import ConstantPool = require('./ConstantPool');
 import attributes = require('./attributes');
-import java_object = require('./java_object');
 import threading = require('./threading');
 import logging = require('./logging');
 import methods = require('./methods');
@@ -12,11 +11,13 @@ import enums = require('./enums');
 import ClassLock = require('./ClassLock');
 import assert = require('./assert');
 import gLong = require('./gLong');
-var JavaObject = java_object.JavaObject;
-var JavaClassObject = java_object.JavaClassObject;
+import JVM = require('./jvm');
+import JVMTypes = require('../includes/JVMTypes');
 var ClassState = enums.ClassState;
 var trace = logging.trace;
 var debug = logging.debug;
+
+var ref: number = 0;
 
 /**
  * Defines special JVM-injected fields. The map stores the TypeScript type of
@@ -28,11 +29,12 @@ var injectedFields: {[className: string]: {[fieldName: string]: [string, string]
     vmtarget: ["methods.AbstractMethodField", "null"]
   },
   'Ljava/lang/Object;': {
-    '$monitor': ["java_object.Monitor", "null"]
+    'ref': ["number", "ref++"],
+    '$monitor': ["Monitor", "null"]
   },
   'Ljava/net/PlainSocketImpl;': {
     '$is_shutdown': ['boolean', 'false'],
-    '$ws': ['java_object.IWebsock', 'null']
+    '$ws': ['interfaces.IWebsock', 'null']
   },
   'Ljava/io/FileDescriptor;': {
     '$pos': ['number', '-1']
@@ -41,30 +43,55 @@ var injectedFields: {[className: string]: {[fieldName: string]: [string, string]
     '$cls': ['ClassData.ClassData', 'null']
   },
   'Ljava/lang/ClassLoader;': {
-    '$loader': ['ClassLoader.ClassLoader', 'null']
+    '$loader': ['ClassLoader.ClassLoader', 'new ClassLoader.CustomClassLoader(thread.getBsCl(), this);']
+  },
+  'Ljava/lang/Thread;': {
+    '$thread': ['threading.JVMThread', 'thread.getThreadPool().newThread(this))']
   }
 };
+
+/**
+ * Defines special JVM-injected method. The map stores the TypeScript type
+ * signature of the method and the JavaScript body of the method, keyed on the
+ * method's name. These are all instance methods (e.g. non-static).
+ */
+var injectedMethods: {[className: string]: {[methodName: string]: [string, string]}} = {
+  'Ljava/lang/Object;': {
+    'getClass': ["(): ClassData.ClassData", `function() { return this.constructor.cls }`],
+    'getMonitor': ["(): Monitor", `function() {
+  if (this.$monitor === null) {
+    this.$monitor = new Monitor();
+  }
+  return this.$monitor;
+}`]
+  }
+};
+
+export interface IJVMConstructor<T extends JVMTypes.java_lang_Object> {
+  /**
+   * Constructs a new object in the same manner as the JVM's "new" opcode.
+   * Does *NOT* run the JVM constructor!
+   * @param jvm The thread that is constructing the object.
+   * @param lengths... If this is an array type, the length of each dimension of the array. (Required if an array type.)
+   */
+  new(thread: threading.JVMThread, lengths?: number[] | number): T;
+}
 
 /**
  * Extends a JVM class by making its prototype a blank instantiation of an
  * object with the super class's prototype as its prototype. Inspired from
  * TypeScript's __extend function.
  */
-function extendClass(cls, superCls) {
-  // for (var p in superCls) if (superCls.hasOwnProperty(p)) cls[p] = superCls[p];
+function extendClass(cls: any, superCls: any) {
   function __() { this.constructor = cls; }
   __.prototype = superCls.prototype;
-  cls.prototype = new __();
+  cls.prototype = new (<any> __)();
 }
 
 /**
  * Represents a single class in the JVM.
  */
 export class ClassData {
-  /**
-   * Stores the JavaScript constructor for this JVM class.
-   */
-  private _constructor: Function = null;
   protected loader: ClassLoader.ClassLoader;
   public accessFlags: util.Flags = null;
   /**
@@ -73,13 +100,13 @@ export class ClassData {
    * parents do not inform their children when they change state.
    */
   private state: enums.ClassState = enums.ClassState.LOADED;
-  private jco: java_object.JavaClassObject = null;
+  private jco: JVMTypes.java_lang_Class = null;
   /**
    * The class's canonical name, in internal form.
    * Ljava/lang/Foo;
    */
   protected className: string;
-  protected superClass: ReferenceClassData = null;
+  protected superClass: ReferenceClassData<JVMTypes.java_lang_Object> = null;
 
   /**
    * Responsible for setting up all of the fields that are guaranteed to be
@@ -104,6 +131,20 @@ export class ClassData {
   }
 
   /**
+   * Get the name of the package that this class belongs to (e.g. java.lang).
+   */
+  public getPackageName(): string {
+    var extName = this.getExternalName(), i: number;
+    // Find the index of the last '.' in the name.
+    for (i = extName.length - 1; i >= 0 && extName[i] !== '.'; i--) {}
+    if (i >= 0) {
+      return extName.slice(0, i);
+    } else {
+      return "";
+    }
+  }
+
+  /**
    * Returns the ClassLoader object of the classloader that initialized this
    * class. Returns null for the default classloader.
    */
@@ -115,14 +156,14 @@ export class ClassData {
    * Get the class's super class, which is always going to be a reference
    * class.
    */
-  public getSuperClass(): ReferenceClassData {
+  public getSuperClass(): ReferenceClassData<JVMTypes.java_lang_Object> {
     return this.superClass;
   }
 
   /**
    * Get all of the interfaces that the class implements.
    */
-  public getInterfaces(): ReferenceClassData[] {
+  public getInterfaces(): ReferenceClassData<JVMTypes.java_lang_Object>[] {
     return [];
   }
 
@@ -142,11 +183,26 @@ export class ClassData {
   }
 
   /**
+   * Get all of the injected methods for this class. The value for each method
+   * in the returned map is its type.
+   */
+  public getInjectedMethods(): { [methodName: string]: string } {
+    var rv: { [methodName: string]: string } = {};
+    if (injectedMethods[this.getInternalName()] !== undefined) {
+      var methods = injectedMethods[this.getInternalName()];
+      Object.keys(methods).forEach((methodName: string) => {
+        rv[methodName] = methods[methodName][0];
+      });
+    }
+    return rv;
+  }
+
+  /**
    * Get a java.lang.Class object corresponding to this class.
    */
-  public getClassObject(thread: threading.JVMThread): java_object.JavaClassObject {
+  public getClassObject(thread: threading.JVMThread): JVMTypes.java_lang_Class {
     if (this.jco === null) {
-      this.jco = new JavaClassObject(thread, this);
+      // this.jco = new JavaClassObject(thread, this);
     }
     return this.jco;
   }
@@ -172,16 +228,6 @@ export class ClassData {
    */
   public getFields(): methods.Field[] {
     return [];
-  }
-
-  public methodLookup(thread: threading.JVMThread, sig: string): methods.Method {
-    thread.throwNewException('Ljava/lang/NoSuchMethodError;', `No such method found in ${this.getExternalName()}::${sig}`);
-    return null;
-  }
-
-  public fieldLookup(thread: threading.JVMThread, name: string): methods.Field {
-    thread.throwNewException('Ljava/lang/NoSuchFieldError;', `No such field found in ${this.getExternalName()}::${name}`);
-    return null;
   }
 
   /**
@@ -266,26 +312,6 @@ export class ClassData {
   public getMethodFromSlot(slot: number): methods.Method {
     return null;
   }
-
-  /**
-   * Constructs a JavaScript constructor for this particular class. Called
-   * *once* lazily during first object construction.
-   */
-  protected _constructConstructor(): Function {
-    throw new Error("Unimplemented abstract method.");
-  }
-
-  /**
-   * Get the JavaScript constructor for this class. Can only be called if
-   * class is resolved.
-   */
-  public getConstructor(): Function {
-    assert(this.state === enums.ClassState.RESOLVED || this.state === enums.ClassState.INITIALIZED, "Class must be initialized or resolved before its JS constructor can be retrieved...");
-    if (this._constructor === null) {
-      this._constructor = this._constructConstructor();
-    }
-    return this._constructor;
-  }
 }
 
 export class PrimitiveClassData extends ClassData {
@@ -337,14 +363,15 @@ export class PrimitiveClassData extends ClassData {
   /**
    * Returns a boxed version of the given primitive.
    */
-  public createWrapperObject(thread: threading.JVMThread, value: any): java_object.JavaObject {
+  public createWrapperObject(thread: threading.JVMThread, value: any): JVMTypes.java_lang_Object {
     var boxName = this.boxClassName();
-    var boxCls = <ReferenceClassData> thread.getBsCl().getInitializedClass(thread, boxName);
+    var boxCls = <ReferenceClassData<JVMTypes.java_lang_Object>> thread.getBsCl().getInitializedClass(thread, boxName);
     // these are all initialized in preinit (for the BSCL, at least)
-    var wrapped = new JavaObject(boxCls);
+    var boxCons = boxCls.getConstructor();
+    var wrapped = new boxCons(thread);
     if (boxName !== 'V') {
       // XXX: all primitive wrappers store their value in a private static final field named 'value'
-      wrapped.fields[boxName + 'value'] = value;
+      (<any> wrapped)[util.jvmName2JSName(boxName) + '/value'] = value;
     }
     return wrapped;
   }
@@ -363,16 +390,15 @@ export class PrimitiveClassData extends ClassData {
   public resolve(thread: threading.JVMThread, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
     setImmediate(() => cb(this));
   }
-
-  protected _constructConstructor(): Function {
-    // Irrelevant. NOP.
-    return null;
-  }
 }
 
-export class ArrayClassData extends ClassData {
+export class ArrayClassData<T> extends ClassData {
   private componentClassName: string;
   private componentClass: ClassData;
+  /**
+   * All JVM arrays stem from the same JavaScript prototype.
+   */
+  private static arrayProto: IJVMConstructor<JVMTypes.JVMArray<any>> = null;
 
   constructor(component_type: string, loader: ClassLoader.ClassLoader) {
     super(loader);
@@ -382,12 +408,16 @@ export class ArrayClassData extends ClassData {
     this.componentClassName = component_type;
   }
 
-  public getFieldFromSlot(slot: number): methods.Field {
-    return this.superClass.getFieldFromSlot(slot);
+  /**
+   * Looks up a method with the given signature. Returns null if no method
+   * found.
+   */
+  public methodLookup(signature: string): methods.Method {
+    return this.superClass.methodLookup(signature);
   }
 
-  public getMethodFromSlot(slot: number): methods.Method {
-    return this.superClass.getMethodFromSlot(slot);
+  public fieldLookup(name: string): methods.Field {
+    return this.superClass.fieldLookup(name);
   }
 
   /**
@@ -409,7 +439,7 @@ export class ArrayClassData extends ClassData {
       });
     }, (err?: any) => {
       if (!err) {
-        this.setResolved(<ReferenceClassData> this.loader.getResolvedClass("Ljava/lang/Object;"), this.loader.getResolvedClass(this.componentClassName));
+        this.setResolved(<ReferenceClassData<JVMTypes.java_lang_Object>> this.loader.getResolvedClass("Ljava/lang/Object;"), this.loader.getResolvedClass(this.componentClassName));
         cb(this);
       } else {
         cb(null);
@@ -417,32 +447,14 @@ export class ArrayClassData extends ClassData {
     });
   }
 
-  /**
-   * XXX: Avoid a circular reference in constantpool, for now.
-   */
-  public create(obj: any[]): java_object.JavaArray {
-    return new java_object.JavaArray(this, obj);
-  }
-
   public getComponentClass(): ClassData {
     return this.componentClass;
   }
 
   /**
-   * This class itself has no fields/methods, but java/lang/Object does.
-   */
-  public fieldLookup(thread: threading.JVMThread, name: string): methods.Field {
-    return this.superClass.fieldLookup(thread, name);
-  }
-
-  public methodLookup(thread: threading.JVMThread, sig: string): methods.Method {
-    return this.superClass.methodLookup(thread, sig);
-  }
-
-  /**
    * Resolved and initialized are the same for array types.
    */
-  public setResolved(super_class_cdata: ReferenceClassData, component_class_cdata: ClassData): void {
+  public setResolved<T extends JVMTypes.java_lang_Object>(super_class_cdata: ReferenceClassData<T>, component_class_cdata: ClassData): void {
     this.superClass = super_class_cdata;
     this.componentClass = component_class_cdata;
     this.setState(ClassState.INITIALIZED);
@@ -450,7 +462,7 @@ export class ArrayClassData extends ClassData {
 
   public tryToResolve(): boolean {
     var loader = this.loader,
-      superClassCdata = <ReferenceClassData> loader.getResolvedClass("Ljava/lang/Object;"),
+      superClassCdata = <ReferenceClassData<JVMTypes.java_lang_Object>> loader.getResolvedClass("Ljava/lang/Object;"),
       componentClassCdata = loader.getResolvedClass(this.componentClassName);
 
     if (superClassCdata === null || componentClassCdata === null) {
@@ -488,32 +500,38 @@ export class ArrayClassData extends ClassData {
     }
     // We are both array types, so it only matters if my component type can be
     // cast to its component type.
-    return this.getComponentClass().isCastable((<ArrayClassData> target).getComponentClass());
+    return this.getComponentClass().isCastable((<ArrayClassData<any>> target).getComponentClass());
   }
 
   public initialize(thread: threading.JVMThread, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
     this.resolve(thread, cb, explicit);
   }
 
-  protected _constructConstructor(): Function {
-    var jsClassName = util.jvmName2JSName(this.getInternalName()),
-      template = `function _create(extendClass, cls) {
-  extendClass(${jsClassName}, cls.superClass.getConstructor());
-  function ${jsClassName}(jvm, length) {
-    this.ref = jvm.getNextRef();
+  private static _constructSharedConstructor<T extends JVMTypes.java_lang_Object>(superCls: ReferenceClassData<T>): void {
+    var template = `function _create(extendClass, superCls) {
+  extendClass(JVMArray, superCls);
+  function JVMArray(thread, length) {
     this.array = new Array(length);
   }
 
   // Static values.
-  ${jsClassName}.cls = cls;
+  JVMArray.cls = cls;
 
-  return ${jsClassName};
+  return JVMArray;
 }
 // Last statement is return value of eval.
 _create`;
     // All arrays extend java/lang/Object
-    var p = eval(template)(extendClass, this);
+    var p = eval(template)(extendClass, superCls);
     return p;
+  }
+
+  public getConstructor(): IJVMConstructor<JVMTypes.JVMArray<T>> {
+    if (ArrayClassData.arrayProto === null) {
+      // Create the proto for the first time.
+      ArrayClassData._constructSharedConstructor(this.superClass);
+    }
+    return ArrayClassData.arrayProto;
   }
 }
 
@@ -521,50 +539,52 @@ _create`;
  * Represents a "reference" Class -- that is, a class that neither represents a
  * primitive nor an array.
  */
-export class ReferenceClassData extends ClassData {
+export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends ClassData {
   private minorVersion: number;
   public majorVersion: number;
   public constantPool: ConstantPool.ConstantPool;
-  private defaultFields: { [name: string]: any };
+  /**
+   * All of the fields directly defined by this class.
+   */
   private fields: methods.Field[];
   /**
-   * Maps a field's full name, including owning class, to its field object.
-   * Lazily populated.
+   * All of the methods directly defined by this class.
    */
-  private fieldLookupCache: { [name: string]: methods.Field };
   private methods: methods.Method[];
-  /**
-   * Maps a method's full name to its method object. Contains methods declared
-   * in other classes.
-   * Lazily populated. Does not contain overridden methods. Used for virtual
-   * dispatch.
-   */
-  private methodLookupCache: { [name: string]: methods.Method };
   private attrs: attributes.IAttribute[];
-  public staticFields: { [name: string]: any };
-  private interfaceClasses: ReferenceClassData[] = null;
+  private interfaceClasses: ReferenceClassData<JVMTypes.java_lang_Object>[] = null;
   private superClassRef: ConstantPool.ClassReference = null;
   private interfaceRefs: ConstantPool.ClassReference[];
-  /**
-   * Base number for slot lookups for methods. Equal to the total number of
-   * methods in parent classes.
-   *
-   * Initialized once the class is resolved.
-   */
-  private slotMethodBase: number = -1;
-  /**
-   * Base number of slot lookups for fields. Equal to the total number of
-   * fields in parent classes.
-   *
-   * Initialized once the class is resolved.
-   */
-  private slotFieldBase: number = -1;
   /**
    * Initialization lock.
    */
   private initLock: ClassLock = new ClassLock();
+  /**
+   * Stores the JavaScript constructor for this class.
+   */
+  private _constructor: IJVMConstructor<T> = null;
+  /**
+   * Virtual lookup table for fields.
+   */
+  private _fieldLookup: { [name: string]: methods.Field } = {};
+  /**
+   * All fields in object instantiations. The field's index is its slot.
+   */
+  protected _fieldSlots: methods.Field[] = [];
+  /**
+   * All static fields in the class. The field's index is its slot.
+   */
+  protected _staticFieldSlots: methods.Field[] = [];
+  /**
+   * Virtual lookup table for methods.
+   */
+  private _methodLookup: { [name: string]: methods.Method } = {};
+  /**
+   * All methods in object instantiations. The method's index is its slot.
+   */
+  protected _methodSlots: methods.Method[] = [];
 
-  constructor(buffer: NodeBuffer, loader?: ClassLoader.ClassLoader, cpPatches?: java_object.JavaArray) {
+  constructor(buffer: NodeBuffer, loader?: ClassLoader.ClassLoader, cpPatches?: JVMTypes.JVMArray<JVMTypes.java_lang_Object>) {
     super(loader);
     var byteStream = new ByteStream(buffer),
       i: number = 0;
@@ -597,23 +617,13 @@ export class ReferenceClassData extends ClassData {
     var numFields = byteStream.getUint16();
     this.fields = new Array<methods.Field>(numFields);
     for (i = 0; i < numFields; ++i) {
-      this.fields[i] = new methods.Field(this);
-    }
-    this.fieldLookupCache = {};
-    for (i = 0; i < this.fields.length; ++i) {
-      var f = this.fields[i];
-      f.parse(byteStream, this.constantPool);
-      this.fieldLookupCache[f.name] = f;
+      this.fields[i] = new methods.Field(this, this.constantPool, byteStream);
     }
     // class methods
     var numMethods = byteStream.getUint16();
     this.methods = new Array<methods.Method>(numMethods);
-    this.methodLookupCache = {};
     for (i = 0; i < numMethods; i++) {
-      var m = new methods.Method(this);
-      m.parse(byteStream, this.constantPool);
-      var mkey = m.name + m.raw_descriptor;
-      this.methodLookupCache[mkey] = m;
+      var m = new methods.Method(this, this.constantPool, byteStream);
       this.methods[i] = m;
     }
     // class attributes
@@ -621,8 +631,6 @@ export class ReferenceClassData extends ClassData {
     if (byteStream.hasBytes()) {
       throw `Leftover bytes in classfile: ${byteStream}`;
     }
-    // Contains the value of all static fields.
-    this.staticFields = Object.create(null);
   }
 
   public getSuperClassReference(): ConstantPool.ClassReference {
@@ -637,7 +645,7 @@ export class ReferenceClassData extends ClassData {
    * Retrieve the set of interfaces that this class implements.
    * DO NOT MUTATE!
    */
-  public getInterfaces(): ReferenceClassData[] {
+  public getInterfaces(): ReferenceClassData<JVMTypes.java_lang_Object>[] {
     return this.interfaceClasses;
   }
 
@@ -651,16 +659,17 @@ export class ReferenceClassData extends ClassData {
 
   /**
    * Retrieve a method with the given signature from this particular class.
+   * Does not search superclasses / interfaces.
    */
   public getMethod(sig: string): methods.Method {
-    // Method lookup cache is guaranteed to have this particular method's
-    // methods, but it may have methods created by parent classes and such.
-    var m = this.methodLookupCache[sig];
-    if (m !== undefined && m.cls === this) {
-      return m;
-    } else {
-      return null;
+    var i: number, m: methods.Method;
+    for (i = 0; i < this.methods.length; i++) {
+      m = this.methods[i];
+      if (m.name + m.rawDescriptor === sig) {
+        return m;
+      }
     }
+    return null;
   }
 
   /**
@@ -669,6 +678,137 @@ export class ReferenceClassData extends ClassData {
    */
   public getMethods(): methods.Method[] {
     return this.methods;
+  }
+
+  /**
+   * Resolves this class's virtual method table according to the JVM
+   * specification:
+   * http://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.4.3.3
+   */
+  private _resolveMethods(): void {
+    if (this.superClass !== null) {
+      // Start off with my parents' table / slots.
+      this._methodSlots = this._methodSlots.concat(this.superClass._methodSlots);
+      Object.keys(this.superClass._methodLookup).forEach((m: string) => {
+        this._methodLookup[m] = this.superClass._methodLookup[m];
+      });
+    }
+
+    // My methods override my super class'.
+    this.methods.forEach((m: methods.Method) => {
+      var superM = this._methodLookup[m.signature];
+      if (!m.accessFlags.isStatic() && m.name !== "<init>") {
+        // Slots only matter to non-static non-constructor methods.
+        if (superM === undefined) {
+          // New slot.
+          m.slot = this._methodSlots.push(m) - 1;
+        } else {
+          // Old slot. Inherit the super class method's slot.
+          m.slot = superM.slot;
+          this._methodSlots[m.slot] = m;
+        }
+      }
+      this._methodLookup[m.signature] = m;
+    });
+
+    // Root out any miranda / default / static interface methods. Only install
+    // them if there are no alternatives already in the table.
+    this.interfaceClasses.forEach((iface: ReferenceClassData<JVMTypes.java_lang_Object>) => {
+      Object.keys(iface._methodLookup).forEach((ifaceMethodSig: string) => {
+        if (this._methodLookup[ifaceMethodSig] === undefined) {
+          // New slot.
+          var ifaceM = iface._methodLookup[ifaceMethodSig];
+          // TODO: How do interface slots work? Can't be fixed... I'm not
+          // setting it here. Then again, maybe it's the slot in the interface?
+          // TODO: I think I'll need to support multiple slots per method?
+          // TODO: invoke tests w/ interfaces.
+          this._methodSlots.push(ifaceM);
+          this._methodLookup[ifaceMethodSig] = ifaceM;
+        }
+      });
+    });
+  }
+
+  /**
+   * Resolves all of the fields for this class according to the JVM
+   * specification:
+   * http://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.4.3.2
+   */
+  private _resolveFields(): void {
+    if (this.superClass !== null) {
+      // Start off w/ my parent class' fields.
+      this._fieldSlots = this._fieldSlots.concat(this.superClass._fieldSlots);
+      this._staticFieldSlots = this._staticFieldSlots.concat(this.superClass._staticFieldSlots);
+      Object.keys(this.superClass._fieldLookup).forEach((f: string) => {
+        this._fieldLookup[f] = this.superClass._fieldLookup[f];
+      });
+    }
+
+    // Superinterface fields trump superclass fields.
+    this.interfaceClasses.forEach((iface: ReferenceClassData<JVMTypes.java_lang_Object>) => {
+      Object.keys(iface._fieldLookup).forEach((ifaceFieldName: string) => {
+        var ifaceF = iface._fieldLookup[ifaceFieldName];
+        assert(ifaceF.accessFlags.isStatic(), "Interface fields must be static.");
+        this._fieldLookup[ifaceFieldName] = ifaceF;
+        // TODO: How do interface field slots work...?
+        this._staticFieldSlots.push(ifaceF);
+      });
+    });
+
+    // My fields override all other fields.
+    this.fields.forEach((f: methods.Field) => {
+      this._fieldLookup[f.name] = f;
+      f.slot = (f.accessFlags.isStatic() ? this._staticFieldSlots.push(f) : this._fieldSlots.push(f)) - 1;
+    });
+  }
+
+  /**
+   * Looks up a method with the given signature. Returns null if no method
+   * found.
+   */
+  public methodLookup(signature: string): methods.Method {
+    var m = this._methodLookup[signature];
+    if (m !== undefined) {
+      return m;
+    } else {
+      return null;
+    }
+  }
+
+  /**
+   * Checks if the signature belongs to a signature polymorphic function.
+   * Returns null if not true.
+   */
+  public signaturePolymorphicMethodLookup(signature: string): methods.Method {
+    if (this.className === 'Ljava/lang/invoke/MethodHandle;') {
+      // Check if this is a signature polymorphic method.
+      // From S2.9:
+      // A method is signature polymorphic if and only if all of the following conditions hold :
+      // * It is declared in the java.lang.invoke.MethodHandle class.
+      // * It has a single formal parameter of type Object[].
+      // * It has a return type of Object.
+      // * It has the ACC_VARARGS and ACC_NATIVE flags set.
+      var polySig = `${signature.slice(0, signature.indexOf('('))}([Ljava/lang/Object;)Ljava/lang/Object;`,
+        m = this._methodLookup[polySig];
+      if (m !== undefined && m.accessFlags.isNative() && m.accessFlags.isVarArgs() && m.cls === this) {
+        return m;
+      }
+    } else if (this.superClass !== null) {
+      return this.superClass.signaturePolymorphicMethodLookup(signature);
+    }
+    return null;
+  }
+
+  /**
+   * Looks up a field with the given name. Returns null if no method found.
+   */
+  public fieldLookup(name: string): methods.Field {
+    var f = this._fieldLookup[name];
+    if (f !== undefined) {
+      return f;
+    } else {
+      return null;
+    }
   }
 
   public getAttribute(name: string): attributes.IAttribute {
@@ -702,152 +842,63 @@ export class ReferenceClassData extends ClassData {
     return bms.bootstrapMethods[idx];
   }
 
-  public getDefaultFields(): { [name: string]: any } {
-    if (this.defaultFields) {
-      return this.defaultFields;
-    }
-    this.constructDefaultFields();
-    return this.defaultFields;
-  }
-
   /**
-   * Handles static fields. We lazily create them, since we cannot initialize static
-   * default String values before Ljava/lang/String; is initialized.
+   * Returns the initial value for a given static field in the class. Should
+   * only be called when the constructor is created.
    */
-  private _initializeStaticField(thread: threading.JVMThread, name: string): boolean {
-    var f = this.fieldLookupCache[name];
-    if (f != null && f.accessFlags.isStatic()) {
-      var cva = <attributes.ConstantValue> f.get_attribute('ConstantValue'),
-        cv: any = null;
-      if (cva != null) {
-        switch (cva.value.getType()) {
-          case enums.ConstantPoolItemType.STRING:
-            var stringCPI = <ConstantPool.ConstString> cva.value;
-            if (stringCPI.value === null) {
-              stringCPI.value = thread.getThreadPool().getJVM().internString(stringCPI.stringValue);
-            }
-            cv = stringCPI.value;
-            break;
-          default:
-            // TODO: Type better.
-            cv = (<any> cva.value).value;
-            break;
+  private _getInitialStaticFieldValue(thread: threading.JVMThread, name: string): any {
+    var i: number, f: methods.Field;
+    for (i = 0; i < this.fields.length; i++) {
+      f = this.fields[i];
+      if (f.name === name && f.accessFlags.isStatic()) {
+        var cva = <attributes.ConstantValue> f.getAttribute('ConstantValue');
+        if (cva !== null) {
+          switch (cva.value.getType()) {
+            case enums.ConstantPoolItemType.STRING:
+              var stringCPI = <ConstantPool.ConstString> cva.value;
+              if (stringCPI.value === null) {
+                stringCPI.value = thread.getThreadPool().getJVM().internString(stringCPI.stringValue);
+              }
+              return stringCPI.value;
+            default:
+              // TODO: Type better.
+              return (<any> cva.value).value;
+          }
+        } else {
+          return util.initialValue(f.rawDescriptor);
         }
       }
-      this.staticFields[name] = cv !== null ? cv : util.initialValue(f.raw_descriptor);
-      return true;
-    } else {
-      thread.throwNewException('Ljava/lang/NoSuchFieldError;', name);
-      return false;
     }
+    assert(false, `Tried to construct a static field value that doesn't exist: ${this.getInternalName()} ${name}`);
   }
 
-  public staticGet(thread: threading.JVMThread, name: string): any {
-    if (this.staticFields[name] !== void 0) {
-      return this.staticFields[name];
-    }
-    if (this._initializeStaticField(thread, name)) {
-      return this.staticGet(thread, name);
-    } else {
-      return undefined;
-    }
-  }
-
-  public staticPut(thread: threading.JVMThread, name: string, val: any): boolean {
-    if (this.staticFields[name] !== void 0) {
-      this.staticFields[name] = val;
-      return true;
-    } else {
-      if (this._initializeStaticField(thread, name)) {
-        return this.staticPut(thread, name, val);
-      }
-    }
-    return false;
-  }
-
-  protected getSlotMethodBase(): number { return this.slotMethodBase; }
-  protected getSlotFieldBase(): number { return this.slotFieldBase; }
-
-  public setResolved(super_class_cdata: ReferenceClassData, interface_cdatas: ReferenceClassData[]): void {
-    this.superClass = super_class_cdata;
-    if (super_class_cdata !== null) {
-      this.slotMethodBase = this.superClass.getSlotMethodBase() + this.superClass.getMethods().length;
-      this.slotFieldBase = this.superClass.getSlotFieldBase() + this.superClass.getFields().length;
-    } else {
-      this.slotMethodBase = 0;
-      this.slotFieldBase = 0;
-    }
-    // Populate method / field slots.
-    // TODO: Interface methods and fields???
-    this.methods.forEach((m: methods.Method, i: number) => {
-      m.slot = this.slotMethodBase + i;
-    });
-    this.fields.forEach((f: methods.Field, i: number) => {
-      f.slot = this.slotFieldBase + i;
-    });
-
+  public setResolved(superClazz: ReferenceClassData<JVMTypes.java_lang_Object>, interfaceClazzes: ReferenceClassData<JVMTypes.java_lang_Object>[]): void {
+    this.superClass = superClazz;
     trace(`Class ${this.getInternalName()} is now resolved.`);
-    this.interfaceClasses = interface_cdatas;
+    this.interfaceClasses = interfaceClazzes;
     // TODO: Assert we are not already resolved or initialized?
     this.setState(ClassState.RESOLVED);
-  }
-
-  public getFieldFromSlot(slot: number): methods.Field {
-    if (slot >= this.slotFieldBase) {
-      var f = this.fields[slot - this.slotFieldBase];
-      if (f !== undefined) {
-        return f;
-      } else {
-        return null;
-      }
-    } else {
-      if (this.superClass !== null) {
-        return this.superClass.getFieldFromSlot(slot);
-      } else {
-        return null;
-      }
-    }
-  }
-
-  public getMethodFromSlot(slot: number): methods.Method {
-    if (slot >= this.slotMethodBase) {
-      var m = this.methods[slot - this.slotMethodBase];
-      if (m !== undefined) {
-        return m;
-      } else {
-        return null;
-      }
-    } else {
-      if (this.superClass !== null) {
-        return this.superClass.getMethodFromSlot(slot);
-      } else {
-        return null;
-      }
-    }
   }
 
   public tryToResolve(): boolean {
     if (this.getState() === ClassState.LOADED) {
       // Need to grab the super class, and interfaces.
       var loader = this.loader,
-        // NOTE: The super_class of java/lang/Object is null.
-        superClassCdata = <ReferenceClassData> (this.superClassRef !== null ? this.superClassRef.tryGetClass(loader) : null),
-        interfaceCdatas: ReferenceClassData[] = [], i: number;
-
-      if (superClassCdata === null && this.superClassRef !== null) {
-        return false;
-      }
-
-      for (i = 0; i < this.interfaceRefs.length; i++) {
-        var icls = <ReferenceClassData> this.interfaceRefs[i].tryGetClass(loader);
-        if (icls === null) {
+        toResolve = this.superClassRef !== null ? this.interfaceRefs.concat(this.superClassRef) : this.interfaceRefs,
+        allGood = true,
+        resolvedItems: ReferenceClassData<JVMTypes.java_lang_Object>[] = [], i: number,
+        item: ConstantPool.ClassReference;
+      for (i = 0; i < toResolve.length; i++) {
+        item = toResolve[i];
+        if (item.tryResolve(loader)) {
+          resolvedItems.push(<ReferenceClassData<JVMTypes.java_lang_Object>> item.cls);
+        } else {
           return false;
         }
-        interfaceCdatas.push(icls);
       }
 
       // It worked!
-      this.setResolved(superClassCdata, interfaceCdatas);
+      this.setResolved(this.superClassRef !== null ? resolvedItems.pop() : null, resolvedItems);
     }
     return true;
   }
@@ -883,123 +934,6 @@ export class ReferenceClassData extends ClassData {
 
     // This class is not resolved.
     return false;
-  }
-
-  public constructDefaultFields(): void {
-    // init fields from this and inherited ClassDatas
-    var cls = this;
-    // Object.create(null) avoids interference with Object.prototype's properties
-    this.defaultFields = Object.create(null);
-    while (cls !== null) {
-      var fields = cls.fields;
-      for (var i = 0; i < fields.length; i++) {
-        var f = fields[i];
-        if (f.accessFlags.isStatic()) {
-          continue;
-        }
-        var val = util.initialValue(f.raw_descriptor);
-        this.defaultFields[cls.getInternalName() + f.name] = val;
-      }
-      cls = <ReferenceClassData> cls.getSuperClass();
-    }
-  }
-
-  /**
-   * Spec [5.4.3.2][1].
-   * [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#77678
-   */
-  public fieldLookup(thread: threading.JVMThread, name: string, null_handled?: boolean): methods.Field {
-    var field = this.fieldLookupCache[name];
-    if (field != null) {
-      return field;
-    }
-    field = this._fieldLookup(thread, name);
-    if ((field != null) || null_handled === true) {
-      this.fieldLookupCache[name] = field;
-      return field;
-    }
-    thread.throwNewException('Ljava/lang/NoSuchFieldError;', `No such field found in ${this.getExternalName()}::${name}`);
-  }
-
-  private _fieldLookup(thread: threading.JVMThread, name: string): methods.Field {
-    var i: number = 0, field: methods.Field;
-    for (i = 0; i < this.fields.length; i++) {
-      field = this.fields[i];
-      if (field.name === name) {
-        return field;
-      }
-    }
-    // These may not be initialized! But we have them loaded.
-    var ifaces = this.getInterfaces();
-    for (i = 0; i < ifaces.length; i++) {
-      field = ifaces[i].fieldLookup(thread, name, true);
-      if (field != null) {
-        return field;
-      }
-    }
-    var sc = <ReferenceClassData> this.getSuperClass();
-    if (sc != null) {
-      field = sc.fieldLookup(thread, name, true);
-      if (field != null) {
-        return field;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Spec [5.4.3.3][1], [5.4.3.4][2].
-   * [1]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#79473
-   * [2]: http://docs.oracle.com/javase/specs/jvms/se5.0/html/ConstantPool.doc.html#78621
-   */
-  public methodLookup(thread: threading.JVMThread, sig: string): methods.Method {
-    if (this.methodLookupCache[sig] != null) {
-      return this.methodLookupCache[sig];
-    }
-    var method = this._methodLookup(sig);
-    if (method == null) {
-      thread.throwNewException('Ljava/lang/NoSuchMethodError;', `No such method found in ${this.getExternalName()}::${sig}`);
-      return null;
-    } else {
-      return method;
-    }
-  }
-
-  private _methodLookup(sig: string): methods.Method {
-    if (sig in this.methodLookupCache) {
-      return this.methodLookupCache[sig];
-    }
-    var parent = <ReferenceClassData> this.getSuperClass();
-    if (parent != null) {
-      this.methodLookupCache[sig] = parent._methodLookup(sig);
-      if (this.methodLookupCache[sig] != null) {
-        return this.methodLookupCache[sig];
-      }
-    }
-    var ifaces = this.getInterfaces();
-    for (var i = 0; i < ifaces.length; i++) {
-      var ifc = ifaces[i];
-      this.methodLookupCache[sig] = ifc._methodLookup(sig);
-      if (this.methodLookupCache[sig] != null) {
-        return this.methodLookupCache[sig];
-      }
-    }
-
-    if (this.className === 'Ljava/lang/invoke/MethodHandle;') {
-      // Check if this is a signature polymorphic method.
-      // From S2.9:
-      // A method is signature polymorphic if and only if all of the following conditions hold :
-      // * It is declared in the java.lang.invoke.MethodHandle class.
-      // * It has a single formal parameter of type Object[].
-      // * It has a return type of Object.
-      // * It has the ACC_VARARGS and ACC_NATIVE flags set.
-      var polySig = `${sig.slice(0, sig.indexOf('('))}([Ljava/lang/Object;)Ljava/lang/Object;`,
-        m = this.methodLookupCache[polySig];
-      if (m != null && m.accessFlags.isNative() && m.accessFlags.isVarArgs() && m.cls === this) {
-        return this.methodLookupCache[sig] = m;
-      }
-    }
-    return this.methodLookupCache[sig] = null;
   }
 
   /**
@@ -1110,11 +1044,10 @@ export class ReferenceClassData extends ClassData {
    * already initialized.
    */
   private _initialize(thread: threading.JVMThread, cb: (cdata: ClassData) => void): void {
-    var clinit = this.getMethod('<clinit>()V');
-    // We'll reset it if it fails.
-    if (clinit != null) {
-      debug(`T${thread.ref} Running static initialization for class ${this.className}...`);
-      thread.runMethod(clinit, [], (e?: java_object.JavaObject, rv?: any) => {
+    var cons = <any> this.getConstructor();
+    if (cons['<clinit>()V'] !== undefined) {
+      debug(`T${thread.getRef()} Running static initialization for class ${this.className}...`);
+      cons['<clinit>()V'](thread, [], (e?: JVMTypes.java_lang_Throwable) => {
         if (e) {
           debug(`Initialization of class ${this.className} failed.`);
           this.setState(enums.ClassState.RESOLVED);
@@ -1126,13 +1059,13 @@ export class ReferenceClassData extends ClassData {
            *  this object in place of E."
            * @url http://docs.oracle.com/javase/specs/jvms/se7/html/jvms-5.html#jvms-5.5
            */
-          if (e.cls.isCastable(thread.getBsCl().getResolvedClass('Ljava/lang/Error;'))) {
+          if (e.getClass().isCastable(thread.getBsCl().getResolvedClass('Ljava/lang/Error;'))) {
             // 'e' is 'Error or one of its subclasses'.
             thread.throwException(e);
             cb(null);
           } else {
             // Wrap the error.
-            thread.getBsCl().initializeClass(thread, 'Ljava/lang/ExceptionInInitializerError;', (cdata: ReferenceClassData) => {
+            thread.getBsCl().initializeClass(thread, 'Ljava/lang/ExceptionInInitializerError;', (cdata: ReferenceClassData<JVMTypes.java_lang_ExceptionInInitializerError>) => {
               if (cdata == null) {
                 // Exceptional failure right here: *We failed to construct ExceptionInInitializerError*!
                 // initializeClass will throw an exception on our behalf;
@@ -1140,10 +1073,12 @@ export class ReferenceClassData extends ClassData {
                 cb(null);
               } else {
                 // Construct the object!
-                var e2 = new java_object.JavaObject(cdata),
-                  cnstrctr = cdata.getMethod('<init>(Ljava/lang/Throwable;)V');
+                var eCons = cdata.getConstructor(),
+                  e2 = new eCons(thread);
+                  //,
+                  //cnstrctr = cdata.getMethod('<init>(Ljava/lang/Throwable;)V');
                 // Construct the ExceptionInInitializerError!
-                thread.runMethod(cnstrctr, [e2, e], (e?: java_object.JavaObject, rv?: any) => {
+                e2["<init>(Ljava/lang/Throwable;)V"](thread, [e], (e?: JVMTypes.java_lang_Throwable) => {
                   // Throw the newly-constructed error!
                   thread.throwException(e2);
                   cb(null);
@@ -1177,27 +1112,22 @@ export class ReferenceClassData extends ClassData {
    * Resolve the class.
    */
   public resolve(thread: threading.JVMThread, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
-    var toResolve: ConstantPool.ClassReference[] = this.interfaceRefs.slice(0),
-      interfaceClasses: ReferenceClassData[] = [], superClass: ReferenceClassData = null;
+    var toResolve: ConstantPool.ClassReference[] = this.interfaceRefs.slice(0);
     if (this.superClassRef !== null) {
       toResolve.push(this.superClassRef);
     }
+    toResolve = toResolve.filter((item: ConstantPool.ClassReference) => !item.isResolved());
     util.asyncForEach(toResolve, (clsRef: ConstantPool.ClassReference, nextItem: (err?: any) => void) => {
-      clsRef.getClass(thread, this.loader, (cdata: ClassData) => {
-        if (cdata === null) {
+      clsRef.resolve(thread, this.loader, this, (status: boolean) => {
+        if (!status) {
           nextItem("Failed.");
         } else {
-          if (interfaceClasses.length < this.interfaceRefs.length) {
-            interfaceClasses.push(<ReferenceClassData> cdata);
-          } else {
-            superClass = <ReferenceClassData> cdata;
-          }
           nextItem();
         }
       }, explicit);
     }, (err?: any) => {
       if (!err) {
-        this.setResolved(superClass, interfaceClasses);
+        this.setResolved(this.superClassRef !== null ? <ReferenceClassData<JVMTypes.java_lang_Object>> this.superClassRef.cls : null, this.interfaceRefs.map((ref: ConstantPool.ClassReference) => <ReferenceClassData<JVMTypes.java_lang_Object>> ref.cls));
         cb(this);
       } else {
         cb(null);
@@ -1205,7 +1135,7 @@ export class ReferenceClassData extends ClassData {
     });
   }
 
-  protected _constructConstructor(): Function {
+  protected _constructConstructor(): IJVMConstructor<T> {
     var jsClassName = util.jvmName2JSName(this.getInternalName());
 
     function getDefaultFieldValue(desc: string): string {
@@ -1215,7 +1145,7 @@ export class ReferenceClassData extends ClassData {
       return '0';
     }
 
-    function getFieldAssignments(cls: ReferenceClassData): string {
+    function getFieldAssignments(cls: ReferenceClassData<JVMTypes.java_lang_Object>): string {
       var superClass = cls.getSuperClass(),
         prefix = superClass !== null ? getFieldAssignments(superClass) : "",
         clsBase = util.descriptor2typestr(cls.getInternalName()),
@@ -1231,25 +1161,25 @@ export class ReferenceClassData extends ClassData {
 
       return prefix + cls.getFields().map((field: methods.Field) =>
         field.accessFlags.isStatic() ? "" :
-          `this["${clsBase}/${field.name}"] = ${getDefaultFieldValue(field.raw_descriptor)};\n`
+          `this["${clsBase}/${field.name}"] = ${getDefaultFieldValue(field.rawDescriptor)};\n`
       ).join("");
     }
 
-    function getStaticFieldAssignments(cls: ReferenceClassData): string {
+    function getStaticFieldAssignments(cls: ReferenceClassData<JVMTypes.java_lang_Object>): string {
       var clsBase = util.descriptor2typestr(cls.getInternalName()),
         clsName = util.jvmName2JSName(cls.getInternalName());
       return cls.getFields().map((field: methods.Field) =>
         field.accessFlags.isStatic() ?
-          `${clsName}["${clsBase}/${field.name}"] = ${getDefaultFieldValue(field.raw_descriptor)};\n` : ""
+          `${clsName}["${clsBase}/${field.name}"] = ${getDefaultFieldValue(field.rawDescriptor)};\n` : ""
       ).join("");
     }
 
-    function getMethodPrototypeAssignments(cls: ReferenceClassData): string {
+    function getMethodPrototypeAssignments(cls: ReferenceClassData<JVMTypes.java_lang_Object>): string {
       var clsName = util.jvmName2JSName(cls.getInternalName()),
         clsBase = util.descriptor2typestr(cls.getInternalName()),
         methodAssignments: string = cls.getMethods().map((m: methods.Method, i: number) =>
           m.accessFlags.isStatic() ? "" :
-            `${clsName}.prototype["${clsBase}/${m.name}${m.raw_descriptor}"] = ${clsName}.prototype["${m.name}${m.raw_descriptor}"] = (function(method) {
+            `${clsName}.prototype["${clsBase}/${m.name}${m.rawDescriptor}"] = ${clsName}.prototype["${m.name}${m.rawDescriptor}"] = (function(method) {
               return function(thread, args, cb) {
                 if (cb) {
                   thread.stack.push(new InternalStackFrame(cb));
@@ -1263,12 +1193,12 @@ export class ReferenceClassData extends ClassData {
       // Install default methods.
       // TODO: Search superinterfaces.
       // TODO: Miranda methods.
-      return methodAssignments + cls.getInterfaces().map((i: ReferenceClassData, intIdx: number) => i.getMethods().map((m: methods.Method, i: number) => {
+      return methodAssignments + cls.getInterfaces().map((i: ReferenceClassData<JVMTypes.java_lang_Object>, intIdx: number) => i.getMethods().map((m: methods.Method, i: number) => {
         if (m.accessFlags.isAbstract() || m.getCodeAttribute() == null) {
           return ""
         } else {
-          return `if (!${clsName}.prototype[${m.name}${m.raw_descriptor}]) {
-              ${clsName}.prototype["${m.name}${m.raw_descriptor}"] = (function(method) {
+          return `if (!${clsName}.prototype[${m.name}${m.rawDescriptor}]) {
+              ${clsName}.prototype["${m.name}${m.rawDescriptor}"] = (function(method) {
               return function(thread, args, cb) {
                 if (cb) {
                   thread.stack.push(new InternalStackFrame(cb));
@@ -1282,11 +1212,11 @@ export class ReferenceClassData extends ClassData {
       }).join("")).join("");
     }
 
-    function getStaticMethodAssignments(cls: ReferenceClassData): string {
+    function getStaticMethodAssignments(cls: ReferenceClassData<JVMTypes.java_lang_Object>): string {
       var clsBase = util.descriptor2typestr(cls.getInternalName()),
         clsName = util.jvmName2JSName(cls.getInternalName());
       return cls.getMethods().map((m: methods.Method, i: number) =>
-        m.accessFlags.isStatic() ? `${clsName}["${clsBase}/${m.name}${m.raw_descriptor}"] = (function(method) {
+        m.accessFlags.isStatic() ? `${clsName}["${clsBase}/${m.name}${m.rawDescriptor}"] = (function(method) {
           return function(thread, args, cb) {
             if (cb) {
               thread.stack.push(new InternalStackFrame(cb));
@@ -1298,17 +1228,29 @@ export class ReferenceClassData extends ClassData {
       ).join("");
     }
 
-    return eval(`function _create(extendClass, cls, InternalStackFrame, NativeStackFrame, BytecodeStackFrame, gLongZero) {
+    return eval(`function _create(extendClass, cls, InternalStackFrame, NativeStackFrame, BytecodeStackFrame, gLongZero, ClassLoader, java_object) {
       if (cls.superClass !== null) {
         extendClass(${jsClassName}, cls.superClass.getConstructor());
       }
-      function ${jsClassName}(jvm) {
-        this.ref = jvm.getNextRef();
+      function ${jsClassName}(thread) {
         ${getFieldAssignments(this)}
       }
 
       // Static values.
       ${jsClassName}.cls = cls;
+
+      if (${jsClassName} === 'java_lang_Object') {
+        // Injected functions.
+        ${jsClassName}.prototype.getClass = function() {
+          return this.constructor.cls;
+        };
+        ${jsClassName}.prototype.getMonitor = function() {
+          if (this.$monitor === null) {
+            this.$monitor = new Monitor();
+          }
+          return this.$monitor;
+        };
+      }
 
       ${getMethodPrototypeAssignments(this)}
 
@@ -1318,6 +1260,13 @@ export class ReferenceClassData extends ClassData {
 
       return ${jsClassName};
     }
-    _create`)(extendClass, this, threading.InternalStackFrame, threading.NativeStackFrame, threading.BytecodeStackFrame, gLong.ZERO);
+    _create`)(extendClass, this, threading.InternalStackFrame, threading.NativeStackFrame, threading.BytecodeStackFrame, gLong.ZERO, require('./ClassLoader'), require('./java_object'));
+  }
+
+  public getConstructor(): IJVMConstructor<T> {
+    if (this._constructor == null) {
+      this._constructor = this._constructConstructor();
+    }
+    return this._constructor;
   }
 }

@@ -22,7 +22,7 @@ class gLong {
   private low_ : number
   private high_ : number
   // A cache of the Long representations of small integer values.
-  private static IntCache_ = {}
+  private static IntCache_: { [val: number]: gLong } = {}
   // Commonly used constant values.
   private static TWO_PWR_16_DBL_ = 1 << 16;
   private static TWO_PWR_24_DBL_ = 1 << 24;

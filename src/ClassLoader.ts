@@ -4,15 +4,15 @@ import threading = require('./threading');
 import ClassLock = require('./ClassLock');
 import enums = require('./enums');
 import util = require('./util');
-import java_object = require('./java_object');
 import methods = require('./methods');
 import logging = require('./logging');
 import assert = require('./assert');
 import JAR = require('./jar');
 import path = require('path');
 import fs = require('fs');
+import JVMTypes = require('../includes/JVMTypes');
 var debug = logging.debug;
-declare var BrowserFS;
+declare var BrowserFS: any;
 
 /**
  * Used to lock classes for loading.
@@ -124,9 +124,9 @@ export class ClassLoader {
    * @param data The data associated with the class as a binary blob.
    * @return The defined class, or null if there was an issue.
    */
-  public defineClass(thread: threading.JVMThread, typeStr: string, data: NodeBuffer): ClassData.ReferenceClassData {
+  public defineClass<T extends JVMTypes.java_lang_Object>(thread: threading.JVMThread, typeStr: string, data: NodeBuffer): ClassData.ReferenceClassData<T> {
     try {
-      var classData = new ClassData.ReferenceClassData(data, this);
+      var classData = new ClassData.ReferenceClassData<T>(data, this);
       this.addClass(typeStr, classData);
       if (this instanceof BootstrapClassLoader) {
         debug(`[BOOTSTRAP] Defining class ${typeStr}`);
@@ -150,9 +150,9 @@ export class ClassLoader {
   /**
    * Defines a new array class with this loader.
    */
-  protected defineArrayClass(typeStr: string): ClassData.ArrayClassData {
+  protected defineArrayClass<T>(typeStr: string): ClassData.ArrayClassData<T> {
     assert(this.getLoadedClass(util.get_component_type(typeStr)) != null);
-    var arrayClass = new ClassData.ArrayClassData(util.get_component_type(typeStr), this);
+    var arrayClass = new ClassData.ArrayClassData<T>(util.get_component_type(typeStr), this);
     this.addClass(typeStr, arrayClass);
     return arrayClass;
   }
@@ -328,7 +328,7 @@ export class ClassLoader {
         });
       } else {
         assert(util.is_reference_type(typeStr));
-        (<ClassData.ReferenceClassData> cdata).initialize(thread, cb, explicit);
+        (<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> cdata).initialize(thread, cb, explicit);
       }
     }, explicit);
   }
@@ -345,7 +345,7 @@ export class ClassLoader {
   /**
    * Returns the JVM object corresponding to this ClassLoader.
    */
-  public getLoaderObject(): JavaClassLoaderObject {
+  public getLoaderObject(): JVMTypes.java_lang_ClassLoader {
     throw new Error('Abstract method');
   }
 }
@@ -450,13 +450,13 @@ export class BootstrapClassLoader extends ClassLoader {
     p = path.resolve(p);
 
     // Check if the item exists.
-    fs.stat(p, (err, stats: fs.Stats) => {
+    fs.stat(p, (err: any, stats: fs.Stats) => {
       if (err) {
         cb(false);
       } else {
         if (stats.isFile()) {
           // JAR file. Extract first.
-          this.unzipJar(p, (err, unzipPath?: string) => {
+          this.unzipJar(p, (err: any, unzipPath?: string) => {
             if (err) {
               cb(false);
             } else {
@@ -539,7 +539,7 @@ export class BootstrapClassLoader extends ClassLoader {
       if (foundPath) {
         // Read the class file, define the class!
         var clsPath = path.join(foundPath, clsFilePath + ".class");
-        fs.readFile(clsPath, (err, data: NodeBuffer) => {
+        fs.readFile(clsPath, (err: any, data: NodeBuffer) => {
           if (err) {
             debug(`Failed to load class ${typeStr}: ${err}`);
             this.throwClassNotFoundException(thread, typeStr, explicit);
@@ -574,7 +574,7 @@ export class BootstrapClassLoader extends ClassLoader {
 
     // Grab the file.
     fs.readFile(jarPath, function (err: any, data: Buffer) {
-      var jarFS;
+      var jarFS: any;
       if (err) {
         // File might not have existed, or there was an error reading it.
         return cb(err);
@@ -645,7 +645,7 @@ export class BootstrapClassLoader extends ClassLoader {
    */
   public getLoadedClassFiles(cb: (files: string[]) => void): void {
     var loadedClasses = this.getLoadedClassNames(),
-      loadedClassFiles = [];
+      loadedClassFiles: string[] = [];
     util.asyncForEach<string>(loadedClasses, (className: string, next_item: (err?: any) => void) => {
       if (util.is_reference_type(className)) {
         var classFileName = `${util.descriptor2typestr(className)}.class`;
@@ -680,7 +680,7 @@ export class BootstrapClassLoader extends ClassLoader {
    * @todo Represent the bootstrap by something other than 'null'.
    * @todo These should be one-in-the-same.
    */
-  public getLoaderObject(): JavaClassLoaderObject {
+  public getLoaderObject(): JVMTypes.java_lang_ClassLoader {
     return null;
   }
 
@@ -699,19 +699,8 @@ export class BootstrapClassLoader extends ClassLoader {
  */
 export class CustomClassLoader extends ClassLoader {
   constructor(bootstrap: BootstrapClassLoader,
-    private loaderObj: JavaClassLoaderObject) {
+    private loaderObj: JVMTypes.java_lang_ClassLoader) {
     super(bootstrap);
-  }
-
-  private loadClassMethod: methods.Method;
-  private getLoadClassMethod(thread: threading.JVMThread): methods.Method {
-    if (this.loadClassMethod) {
-      return this.loadClassMethod;
-    } else {
-      // This will trigger an exception on the JVM thread if the method does
-      // not exist.
-      return this.loadClassMethod = this.loaderObj.cls.methodLookup(thread, 'loadClass(Ljava/lang/String;)Ljava/lang/Class;');
-    }
   }
 
   /**
@@ -733,45 +722,26 @@ export class CustomClassLoader extends ClassLoader {
     // This method is only valid for reference types!
     assert(util.is_reference_type(typeStr));
     // Invoke the custom class loader.
-    var loadClassMethod = this.getLoadClassMethod(thread);
-    if (loadClassMethod) {
-      thread.runMethod(loadClassMethod, [this.loaderObj, java_object.initString(this.bootstrap, util.ext_classname(typeStr))],
-        (e?: java_object.JavaObject, jco?: java_object.JavaClassObject): void => {
-          if (e) {
-            // Exception! There was an issue defining the class.
-            this.throwClassNotFoundException(thread, typeStr, explicit);
-            cb(null);
-          } else {
-            // Add the class returned by loadClass, in case the classloader
-            // proxied loading to another classloader.
-            var cls = jco.$cls;
-            this.addClass(typeStr, cls);
-            cb(cls);
-          }
-        });
-    } else {
-      // loadClassMethod doesn't exist, and we already threw an exception on
-      // the thread... nothing to do!
-      setImmediate(() => {
+    this.loaderObj['loadClass(Ljava/lang/String;)Ljava/lang/Class;'](thread, [util.initString(this.bootstrap, util.ext_classname(typeStr))], (e?: JVMTypes.java_lang_Throwable, jco?: JVMTypes.java_lang_Class) => {
+      if (e) {
+        // Exception! There was an issue defining the class.
+        this.throwClassNotFoundException(thread, typeStr, explicit);
         cb(null);
-      });
-    }
+      } else {
+        // Add the class returned by loadClass, in case the classloader
+        // proxied loading to another classloader.
+        var cls = jco.$cls;
+        this.addClass(typeStr, cls);
+        cb(cls);
+      }
+    });
   }
 
   /**
    * Returns the JVM object corresponding to this ClassLoader.
    * @todo These should be one-in-the-same.
    */
-  public getLoaderObject(): JavaClassLoaderObject {
+  public getLoaderObject(): JVMTypes.java_lang_ClassLoader {
     return this.loaderObj;
-  }
-}
-
-// Each JavaClassLoaderObject is a unique ClassLoader.
-export class JavaClassLoaderObject extends java_object.JavaObject {
-  public $loader: ClassLoader;
-  constructor(thread: threading.JVMThread, cls: any) {
-    super(cls);
-    this.$loader = new CustomClassLoader(thread.getBsCl(), this);
   }
 }
