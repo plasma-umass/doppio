@@ -211,16 +211,14 @@ export function wrapFloat(a: number): number {
   return a;
 }
 
-export function jvm2jsStr(jvmStr: JVMTypes.java_lang_String): string {
-  return chars2jsStr(jvmStr['java/lang/String/value']);
-}
-
 // Convert :count chars starting from :offset in a Java character array into a JS string
 export function chars2jsStr(jvmCarr: JVMTypes.JVMArray<number>, offset?: number, count?: number): string {
   var off = offset || 0;
   return bytes2str(jvmCarr.array).substr(off, count);
 }
 
+// TODO: Is this used anywhere where we are *not* inserting the bytestr into
+// a JVMArray object?
 export function bytestr2Array(byteStr: string): number[] {
   var rv : number[] = [];
   for (var i = 0; i < byteStr.length; i++) {
@@ -691,4 +689,26 @@ export function initCarr(cl: ClassLoader.ClassLoader, str: string): JVMTypes.JVM
   }
 
   return carr;
+}
+
+export function newArrayFromClass<T>(thread: threading.JVMThread, clazz: ClassData.ArrayClassData<T>, length: number | number[]): JVMTypes.JVMArray<T> {
+  return new (clazz.getConstructor(thread))(thread, length);
+}
+
+export function newArray<T>(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, desc: string, length: number | number[]): JVMTypes.JVMArray<T> {
+  var cls = <ClassData.ArrayClassData<T>> cl.getInitializedClass(thread, desc);
+  return newArrayFromClass(thread, cls, length);
+}
+
+export function newObjectFromClass<T extends JVMTypes.java_lang_Object>(thread: threading.JVMThread, clazz: ClassData.ReferenceClassData<T>) {
+  return new (clazz.getConstructor(thread))(thread);
+}
+
+export function newObject<T extends JVMTypes.java_lang_Object>(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, desc: string): T {
+  var cls = <ClassData.ReferenceClassData<T>> cl.getInitializedClass(thread, desc);
+  return newObjectFromClass(thread, cls);
+}
+
+export function getStaticFields<T>(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, desc: string): T {
+  return <T> <any> (<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> cl.getInitializedClass(thread, desc)).getConstructor(thread);
 }

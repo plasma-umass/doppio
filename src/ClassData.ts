@@ -18,7 +18,11 @@ var ClassState = enums.ClassState;
 var trace = logging.trace;
 var debug = logging.debug;
 
-var ref: number = 0;
+/**
+ * Auto-incrementing reference number. Uniquely identifies each object allocated
+ * by the JVM. Started at 1 because we use 0 to identify NULL.
+ */
+var ref: number = 1;
 
 /**
  * Defines special JVM-injected fields. The map stores the TypeScript type of
@@ -65,7 +69,12 @@ var injectedMethods: {[className: string]: {[methodName: string]: [string, strin
   }
   return this.$monitor;
 }`]
+  },
+  'Ljava/lang/String;': {
+    'toString': ["(): string", `function() { return util.chars2jsStr(this['java/lang/String/value']); }`]
   }
+  // XXX: Clone()!
+  // XXX: Differentiate between toString for debugging and toJSString!
 };
 
 export interface IJVMConstructor<T extends JVMTypes.java_lang_Object> {

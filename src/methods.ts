@@ -20,8 +20,8 @@ var trapped_methods: { [clsName: string]: { [methodName: string]: Function } } =
     '<clinit>()V': function (thread: threading.JVMThread): void { }
   },
   'java/lang/System': {
-    'loadLibrary(Ljava/lang/String;)V': function (thread: threading.JVMThread, lib_name: JVMTypes.java_lang_String): void {
-      var lib = util.jvm2jsStr(lib_name);
+    'loadLibrary(Ljava/lang/String;)V': function (thread: threading.JVMThread, libName: JVMTypes.java_lang_String): void {
+      var lib = libName.toString();
       if (lib !== 'zip' && lib !== 'net' && lib !== 'nio' && lib !== 'awt' && lib !== 'fontmanager') {
         thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', `no ${lib} in java.library.path`);
       }

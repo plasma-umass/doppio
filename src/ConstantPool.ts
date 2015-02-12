@@ -270,13 +270,27 @@ export class ClassReference implements IConstantPoolItem {
    * class initialization.
    */
   public resolve(thread: threading.JVMThread, loader: ClassLoader.ClassLoader, caller: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, cb: (status: boolean) => void, explicit: boolean = true) {
+    // Because of Java 8 anonymous classes, THIS CHECK IS REQUIRED FOR CORRECTNESS.
+    // (ClassLoaders do not know about anonymous classes, hence they are
+    //  'anonymous')
+    // (Anonymous classes are an 'Unsafe' feature, and are not part of the standard,
+    //  but they are employed for lambdas and such.)
+    if (this.name === thread.currentMethod().cls.getInternalName()) {
+      this.setResolved(thread, thread.currentMethod().cls);
+      return cb(true);
+    }
+
     loader.resolveClass(thread, this.name, (cdata: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>) => {
-      this.cls = cdata;
-      if (cdata !== null) {
-        this.clsConstructor = cdata.getConstructor(thread);
-      }
+      this.setResolved(thread, cdata);
       cb(cdata !== null);
     }, explicit);
+  }
+
+  private setResolved(thread: threading.JVMThread, cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>) {
+    this.cls = cls;
+    if (cls !== null) {
+      this.clsConstructor = cls.getConstructor(thread);
+    }
   }
 
   public getType(): enums.ConstantPoolItemType {
@@ -556,7 +570,6 @@ export class MethodReference implements IConstantPoolItem {
     } else {
       var cls = this.classInfo.cls,
         method = cls.methodLookup(this.signature);
-      this.paramWordSize = util.getMethodDescriptorWordSize(this.signature);
       if (method === null) {
         if (util.is_reference_type(cls.getInternalName())) {
           // Signature polymorphic lookup.
@@ -566,7 +579,7 @@ export class MethodReference implements IConstantPoolItem {
             // we need to resolve its MemberName object and Appendix.
             return this.resolveMemberName(method, thread, loader, caller, (status: boolean) => {
               if (status === true) {
-                this._finishResolving(thread, method);
+                this.setResolved(thread, method);
               } else {
                 thread.throwNewException('Ljava/lang/NoSuchMethodError;', `Method ${this.signature} does not exist in class ${this.classInfo.cls.getExternalName()}.`);
               }
@@ -576,7 +589,7 @@ export class MethodReference implements IConstantPoolItem {
         }
       }
       if (method !== null) {
-        this._finishResolving(thread, method);
+        this.setResolved(thread, method);
         cb(true);
       } else {
         thread.throwNewException('Ljava/lang/NoSuchMethodError;', `Method ${this.signature} does not exist in class ${this.classInfo.cls.getExternalName()}.`);
@@ -585,8 +598,9 @@ export class MethodReference implements IConstantPoolItem {
     }
   }
 
-  private _finishResolving(thread: threading.JVMThread, method: methods.Method): void {
+  public setResolved(thread: threading.JVMThread, method: methods.Method): void {
     this.method = method;
+    this.paramWordSize = util.getMethodDescriptorWordSize(this.signature);
     this.fullSignature = `${util.descriptor2typestr(this.method.cls.getInternalName())}/${this.signature}`;
     this.jsConstructor = this.method.cls.getConstructor(thread);
   }
@@ -1303,7 +1317,7 @@ export class ConstantPool {
               break;
             case 'Ljava/lang/String;':
               assert(tag === enums.ConstantPoolItemType.UTF8);
-              (<ConstUTF8> this.constantPool[item.index]).value = util.jvm2jsStr(<JVMTypes.java_lang_String> patchObj);
+              (<ConstUTF8> this.constantPool[item.index]).value = (<JVMTypes.java_lang_String> patchObj).toString();
               break;
             case 'Ljava/lang/Class;':
               assert(tag === enums.ConstantPoolItemType.CLASS);
