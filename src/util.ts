@@ -567,14 +567,14 @@ export function unboxArguments(thread: threading.JVMThread, paramTypes: string[]
 export function createMethodType(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, descriptor: string, cb: (e: JVMTypes.java_lang_Throwable, type: JVMTypes.java_lang_invoke_MethodType) => void) {
   cl.initializeClass(thread, 'Ljava/lang/invoke/MethodHandleNatives;', (cdata: ClassData.ReferenceClassData<JVMTypes.java_lang_invoke_MethodHandleNatives>) => {
     if (cdata !== null) {
-      var jsCons = <typeof JVMTypes.java_lang_invoke_MethodHandleNatives> cdata.getConstructor(), classes = getTypes(descriptor);
+      var jsCons = <typeof JVMTypes.java_lang_invoke_MethodHandleNatives> cdata.getConstructor(thread), classes = getTypes(descriptor);
       classes.push('[Ljava/lang/Class;');
       // Need the return type and parameter types.
       cl.resolveClasses(thread, classes, (classMap: { [name: string]: ClassData.ClassData }) => {
         var types = classes.map((cls: string) => classMap[cls].getClassObject(thread));
         types.pop(); // Discard '[Ljava/lang/Class;'
         var rtype = types.pop(), // Return type.
-          clsArrCons = (<ClassData.ArrayClassData<JVMTypes.java_lang_Class>> classMap['[Ljava/lang/Class;']).getConstructor(),
+          clsArrCons = (<ClassData.ArrayClassData<JVMTypes.java_lang_Class>> classMap['[Ljava/lang/Class;']).getConstructor(thread),
           ptypes = new clsArrCons(thread, types.length);
         ptypes.array = types;
 
@@ -675,14 +675,14 @@ export function arraycopyCheck(thread: threading.JVMThread, src: JVMTypes.JVMArr
 
 export function initString(cl: ClassLoader.ClassLoader, str: string): JVMTypes.java_lang_String {
   var carr = initCarr(cl, str);
-  var strCons = (<ClassData.ReferenceClassData<JVMTypes.java_lang_String>> cl.getInitializedClass(null, 'Ljava/lang/String;')).getConstructor();
+  var strCons = (<ClassData.ReferenceClassData<JVMTypes.java_lang_String>> cl.getInitializedClass(null, 'Ljava/lang/String;')).getConstructor(null);
   var strObj = new strCons(null);
   strObj['java/lang/String/value'] = carr;
   return strObj;
 }
 
 export function initCarr(cl: ClassLoader.ClassLoader, str: string): JVMTypes.JVMArray<number> {
-  var arrClsCons = (<ClassData.ArrayClassData<number>> cl.getLoadedClass('[C')).getConstructor(),
+  var arrClsCons = (<ClassData.ArrayClassData<number>> cl.getLoadedClass('[C')).getConstructor(null),
     carr = new arrClsCons(null, str.length),
     carrArray = carr.array;
 

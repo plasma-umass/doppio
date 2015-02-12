@@ -273,7 +273,7 @@ export class ClassReference implements IConstantPoolItem {
     loader.resolveClass(thread, this.name, (cdata: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>) => {
       this.cls = cdata;
       if (cdata !== null) {
-        this.clsConstructor = cdata.getConstructor();
+        this.clsConstructor = cdata.getConstructor(thread);
       }
       cb(cdata !== null);
     }, explicit);
@@ -507,8 +507,8 @@ export class MethodReference implements IConstantPoolItem {
   }
 
   private resolveMemberName(method: methods.Method, thread: threading.JVMThread, cl: ClassLoader.ClassLoader, caller: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, cb: (status: boolean) => void): void {
-    var memberHandleNatives = <typeof JVMTypes.java_lang_invoke_MethodHandleNatives>  (<ClassData.ReferenceClassData<JVMTypes.java_lang_invoke_MethodHandleNatives>> thread.getBsCl().getInitializedClass(thread, 'Ljava/lang/invoke/MethodHandleNatives;')).getConstructor(),
-      appendix = new ((<ClassData.ArrayClassData<JVMTypes.java_lang_Object>> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/Object;')).getConstructor())(thread, 1);
+    var memberHandleNatives = <typeof JVMTypes.java_lang_invoke_MethodHandleNatives>  (<ClassData.ReferenceClassData<JVMTypes.java_lang_invoke_MethodHandleNatives>> thread.getBsCl().getInitializedClass(thread, 'Ljava/lang/invoke/MethodHandleNatives;')).getConstructor(thread),
+      appendix = new ((<ClassData.ArrayClassData<JVMTypes.java_lang_Object>> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/Object;')).getConstructor(thread))(thread, 1);
 
     util.createMethodType(thread, cl, this.nameAndTypeInfo.descriptor, (e: JVMTypes.java_lang_Throwable, type: JVMTypes.java_lang_invoke_MethodType) => {
       if (e) {
@@ -566,7 +566,7 @@ export class MethodReference implements IConstantPoolItem {
             // we need to resolve its MemberName object and Appendix.
             return this.resolveMemberName(method, thread, loader, caller, (status: boolean) => {
               if (status === true) {
-                this._finishResolving(method);
+                this._finishResolving(thread, method);
               } else {
                 thread.throwNewException('Ljava/lang/NoSuchMethodError;', `Method ${this.signature} does not exist in class ${this.classInfo.cls.getExternalName()}.`);
               }
@@ -576,7 +576,7 @@ export class MethodReference implements IConstantPoolItem {
         }
       }
       if (method !== null) {
-        this._finishResolving(method);
+        this._finishResolving(thread, method);
         cb(true);
       } else {
         thread.throwNewException('Ljava/lang/NoSuchMethodError;', `Method ${this.signature} does not exist in class ${this.classInfo.cls.getExternalName()}.`);
@@ -585,10 +585,10 @@ export class MethodReference implements IConstantPoolItem {
     }
   }
 
-  private _finishResolving(method: methods.Method): void {
+  private _finishResolving(thread: threading.JVMThread, method: methods.Method): void {
     this.method = method;
     this.fullSignature = `${util.descriptor2typestr(this.method.cls.getInternalName())}/${this.signature}`;
-    this.jsConstructor = this.method.cls.getConstructor();
+    this.jsConstructor = this.method.cls.getConstructor(thread);
   }
 
   public isResolved() { return this.method !== null; }
@@ -926,7 +926,7 @@ export class InvokeDynamic implements IConstantPoolItem {
     function getArguments(): JVMTypes.JVMArray<JVMTypes.java_lang_Object> {
       var cpItems = bootstrapMethod[1],
         i: number, cpItem: IConstantPoolItem,
-        rvObj = new ((<ClassData.ArrayClassData<JVMTypes.java_lang_Object>> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/Object;')).getConstructor())(thread, cpItems.length),
+        rvObj = new ((<ClassData.ArrayClassData<JVMTypes.java_lang_Object>> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/Object;')).getConstructor(thread))(thread, cpItems.length),
         rv = rvObj.array;
       for (i = 0; i < cpItems.length; i++) {
         cpItem = cpItems[i];
@@ -996,9 +996,9 @@ export class InvokeDynamic implements IConstantPoolItem {
      * - A 1-length appendix box.
      */
     var methodName = thread.getThreadPool().getJVM().internString(this.nameAndTypeInfo.name),
-      appendixArr = new ((<ClassData.ArrayClassData<JVMTypes.java_lang_Object>> cl.getInitializedClass(thread, '[Ljava/lang/Object;')).getConstructor())(thread, 1),
+      appendixArr = new ((<ClassData.ArrayClassData<JVMTypes.java_lang_Object>> cl.getInitializedClass(thread, '[Ljava/lang/Object;')).getConstructor(thread))(thread, 1),
       staticArgs = getArguments(),
-      mhn = <typeof JVMTypes.java_lang_invoke_MethodHandleNatives> (<ClassData.ReferenceClassData<JVMTypes.java_lang_invoke_MethodHandleNatives>> cl.getInitializedClass(thread, 'Ljava/lang/invoke/MethodHandleNatives;')).getConstructor();
+      mhn = <typeof JVMTypes.java_lang_invoke_MethodHandleNatives> (<ClassData.ReferenceClassData<JVMTypes.java_lang_invoke_MethodHandleNatives>> cl.getInitializedClass(thread, 'Ljava/lang/invoke/MethodHandleNatives;')).getConstructor(thread);
 
 
     mhn['java/lang/invoke/MethodHandleNatives/linkCallSite(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/invoke/MemberName;'](thread,
@@ -1092,8 +1092,8 @@ export class MethodHandle implements IConstantPoolItem {
       if (type === null) {
         cb(false);
       } else {
-        var methodHandleNatives = <typeof JVMTypes.java_lang_invoke_MethodHandleNatives> (<ClassData.ReferenceClassData<JVMTypes.java_lang_invoke_MethodHandleNatives>> cl.getInitializedClass(thread, 'Ljava/lang/invoke/MethodHandleNatives;')).getConstructor();
-        methodHandleNatives['java/lang/invoke/MethodHandleNatives/linkMethodHandleConstant(Ljava/lang/Class;ILjava/lang/Class;Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/invoke/MethodHandle;'](
+        var methodHandleNatives = <typeof JVMTypes.java_lang_invoke_MethodHandleNatives> (<ClassData.ReferenceClassData<JVMTypes.java_lang_invoke_MethodHandleNatives>> cl.getInitializedClass(thread, 'Ljava/lang/invoke/MethodHandleNatives;')).getConstructor(thread);
+        methodHandleNatives['linkMethodHandleConstant(Ljava/lang/Class;ILjava/lang/Class;Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/invoke/MethodHandle;'](
           thread,
           [caller.getClassObject(thread), this.referenceType, this.getDefiningClassObj(thread), thread.getThreadPool().getJVM().internString(this.reference.nameAndTypeInfo.name), type], (e?: JVMTypes.java_lang_Throwable, methodHandle?: JVMTypes.java_lang_invoke_MethodHandle) => {
           if (e) {

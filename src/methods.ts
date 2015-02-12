@@ -11,6 +11,7 @@ import ClassLoader = require('./ClassLoader');
 import assert = require('./assert');
 import enums = require('./enums');
 import Monitor = require('./Monitor');
+import StringOutputStream = require('./StringOutputStream');
 import JVMTypes = require('../includes/JVMTypes');
 
 var trapped_methods: { [clsName: string]: { [methodName: string]: Function } } = {
@@ -43,7 +44,7 @@ var trapped_methods: { [clsName: string]: { [methodName: string]: Function } } =
   'java/nio/Bits': {
     'byteOrder()Ljava/nio/ByteOrder;': function (thread: threading.JVMThread): JVMTypes.java_nio_ByteOrder {
       var cls = <ClassData.ReferenceClassData<JVMTypes.java_nio_ByteOrder>> thread.getBsCl().getInitializedClass(thread, 'Ljava/nio/ByteOrder;'),
-        cons = <typeof JVMTypes.java_nio_ByteOrder> cls.getConstructor();
+        cons = <typeof JVMTypes.java_nio_ByteOrder> cls.getConstructor(thread);
       return cons['java/nio/ByteOrder/LITTLE_ENDIAN'];
     },
     'copyToByteArray(JLjava/lang/Object;JJ)V': function (thread: threading.JVMThread, srcAddr: gLong, dst: JVMTypes.JVMArray<any>, dstPos: gLong, length: gLong): void {
@@ -148,7 +149,7 @@ export class AbstractMethodField {
     if (annotation === null) {
       return null;
     }
-    var byteArrCons = (<ClassData.ArrayClassData<number>> thread.getBsCl().getInitializedClass(thread, '[B')).getConstructor(),
+    var byteArrCons = (<ClassData.ArrayClassData<number>> thread.getBsCl().getInitializedClass(thread, '[B')).getConstructor(thread),
       rv = new byteArrCons(thread, 0);
     rv.array = annotation.rawBytes;
     return rv;
@@ -182,7 +183,7 @@ export class Field extends AbstractMethodField {
       bsCl = thread.getBsCl();
     var createObj = (typeObj: JVMTypes.java_lang_Class): JVMTypes.java_lang_reflect_Field => {
       var fieldCls = <ClassData.ReferenceClassData<JVMTypes.java_lang_reflect_Field>> bsCl.getInitializedClass(thread, 'Ljava/lang/reflect/Field;'),
-        fieldObj = new (fieldCls.getConstructor())(thread);
+        fieldObj = new (fieldCls.getConstructor(thread))(thread);
 
       fieldObj['java/lang/reflect/Field/clazz'] = this.cls.getClassObject(thread);
       fieldObj['java/lang/reflect/Field/name'] = jvm.internString(this.name);
@@ -204,6 +205,25 @@ export class Field extends AbstractMethodField {
         cb(null);
       }
     });
+  }
+
+  private getDefaultFieldValue(): string {
+    var desc = this.rawDescriptor;
+    if (desc === 'J') return 'gLongZero';
+    var c = desc[0];
+    if (c === '[' || c === 'L') return 'null';
+    return '0';
+  }
+
+  /**
+   * Outputs a JavaScript field assignment for this field.
+   */
+  public outputJavaScriptField(jsConsName: string, outputStream: StringOutputStream): void {
+    if (this.accessFlags.isStatic()) {
+      outputStream.write(`${jsConsName}["${this.fullName}"] = cls._getInitialStaticFieldValue(thread, "${this.name}");\n`);
+    } else {
+      outputStream.write(`this["${this.fullName}"] = ${this.getDefaultFieldValue()};\n`);
+    }
   }
 }
 
@@ -346,7 +366,7 @@ export class Method extends AbstractMethodField {
   public reflector(thread: threading.JVMThread, cb: (reflectedMethod: JVMTypes.java_lang_reflect_Executable) => void): void {
     var bsCl = thread.getBsCl(),
       // Grab the classes required to construct the needed arrays.
-      clazzArray = (<ClassData.ArrayClassData<JVMTypes.java_lang_Class>> bsCl.getInitializedClass(thread, '[Ljava/lang/Class;')).getConstructor(),
+      clazzArray = (<ClassData.ArrayClassData<JVMTypes.java_lang_Class>> bsCl.getInitializedClass(thread, '[Ljava/lang/Class;')).getConstructor(thread),
       jvm = thread.getThreadPool().getJVM(),
       // Grab the needed attributes.
       signatureAttr = <attributes.Signature> this.getAttribute("Signature"),
@@ -376,7 +396,7 @@ export class Method extends AbstractMethodField {
 
       if (this.name === '<init>') {
         // Constructor object.
-        var consCons = (<ClassData.ReferenceClassData<JVMTypes.java_lang_reflect_Constructor>> classes['Ljava/lang/reflect/Constructor;']).getConstructor(),
+        var consCons = (<ClassData.ReferenceClassData<JVMTypes.java_lang_reflect_Constructor>> classes['Ljava/lang/reflect/Constructor;']).getConstructor(thread),
           consObj = new consCons(thread);
         consObj['java/lang/reflect/Constructor/clazz'] = clazz;
         consObj['java/lang/reflect/Constructor/parameterTypes'] = parameterTypes;
@@ -388,7 +408,7 @@ export class Method extends AbstractMethodField {
         consObj['java/lang/reflect/Constructor/parameterAnnotations'] = this.getAnnotationType(thread, 'ParameterAnnotations');
       } else {
         // Method object.
-        var methodCons = (<ClassData.ReferenceClassData<JVMTypes.java_lang_reflect_Method>>  classes['Ljava/lang/reflect/Method;']).getConstructor(),
+        var methodCons = (<ClassData.ReferenceClassData<JVMTypes.java_lang_reflect_Method>>  classes['Ljava/lang/reflect/Method;']).getConstructor(thread),
           methodObj = new methodCons(thread);
         methodObj['java/lang/reflect/Method/clazz'] = clazz;
         methodObj['java/lang/reflect/Method/name'] = name;
@@ -468,20 +488,47 @@ export class Method extends AbstractMethodField {
   }
 
   /**
-   * Returns the string template for turning this method into a JavaScript
-   * function.
+   * Generates JavaScript code for this particular method.
    * TODO: Move lock logic and such into this function! And other specialization.
-   * TODO: J and D take up *two* slots!
    * TODO: Signature polymorphic functions...?
    */
-  public getJavaScriptFunctionTemplate(): string {
-    return `function(thread, args, cb) {
-      if (cb) {
-        thread.stack.push(new InternalStackFrame(cb));
+  public outputJavaScriptFunction(jsConsName: string, outStream: StringOutputStream): void {
+    var i: number;
+    if (this.accessFlags.isStatic()) {
+      outStream.write(`${jsConsName}["${this.fullSignature}"] = ${jsConsName}["${this.signature}"] = `);
+    } else {
+      outStream.write(`${jsConsName}.prototype["${this.fullSignature}"] = ${jsConsName}.prototype["${this.signature}"] = `);
+    }
+    outStream.write(`(function(method) {
+  return function(thread, `);
+    // No args argument for 0-parameter functions.
+    if (this.parameterWords > 0) {
+      outStream.write(`args, `);
+    }
+    // Boilerplate: Required for JS to call into JVM code.
+    // XXX: Need to get 'method' somehow. methodLookup??
+    outStream.write(`cb) {
+    if (typeof cb === 'function') {
+      thread.stack.push(new InternalStackFrame(cb));
+    }
+    thread.stack.push(${this.accessFlags.isNative() ? "NativeStackFrame" : "BytecodeStackFrame"}(method, `);
+    if (!this.accessFlags.isStatic()) {
+      // Non-static functions need to add the implicit 'this' variable to the
+      // local variables.
+      outStream.write(`[this`);
+      // Give the JS engine hints about the size, type, and contents of the array
+      // by making it a literal.
+      for (i = 0; i < this.parameterWords; i++) {
+        outStream.write(`, args[${i}]`);
       }
-      ${this.accessFlags.isStatic() ? "" : "args.unshift(this);"}
-      thread.stack.push(new ${this.accessFlags.isNative() ? "NativeStackFrame" : "BytecodeStackFrame"}(method, args));
-      thread.setStatus(${enums.ThreadStatus.RUNNABLE});
-    }`;
+      outStream.write(`]`);
+    } else {
+      // Static function doesn't need to mutate the arguments.
+      outStream.write(`args`);
+    }
+    outStream.write(`));
+    thread.setStatus(${enums.ThreadStatus.RUNNABLE});
+  };
+})(cls.methodLookup("${this.signature}"));\n`);
   }
 }

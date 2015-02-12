@@ -1244,7 +1244,7 @@ export class Opcodes {
           code.writeUInt8(enums.OpCode.GETSTATIC_FAST32, pc);
         }
         // Stash the result of field lookup.
-        fieldInfo.fieldOwnerConstructor = fieldOwnerCls.getConstructor();
+        fieldInfo.fieldOwnerConstructor = fieldOwnerCls.getConstructor(thread);
       } else {
         // Initialize class and rerun opcode
         initializeClassFromClass(thread, frame, fieldOwnerCls);
@@ -1296,7 +1296,7 @@ export class Opcodes {
           code.writeUInt8(enums.OpCode.PUTSTATIC_FAST32, pc);
         }
         // Stash the result of field lookup.
-        fieldInfo.fieldOwnerConstructor = fieldOwnerCls.getConstructor();
+        fieldInfo.fieldOwnerConstructor = fieldOwnerCls.getConstructor(thread);
       } else {
         // Initialize class and rerun opcode
         initializeClassFromClass(thread, frame, fieldOwnerCls);
@@ -1592,7 +1592,7 @@ export class Opcodes {
     // TODO: Split into invokehandle static / nonstatic.
     if (m.accessFlags.isStatic()) {
       stack.length -= paramSize;
-      (<any> m.cls.getConstructor())[m.fullSignature](thread, args);
+      (<any> m.cls.getConstructor(thread))[m.fullSignature](thread, args);
       frame.returnToThreadLoop = true;
     } else {
       // XXX: Assuming invokevirtual semantics.
@@ -1623,7 +1623,7 @@ export class Opcodes {
     // TODO: Split into invokehandle static / nonstatic.
     if (m.accessFlags.isStatic()) {
       stack.length -= paramSize;
-      (<any> m.cls.getConstructor())[m.fullSignature](thread, args);
+      (<any> m.cls.getConstructor(thread))[m.fullSignature](thread, args);
       frame.returnToThreadLoop = true;
     } else {
       // XXX: Assuming invokevirtual semantics.
@@ -1663,7 +1663,7 @@ export class Opcodes {
       if (m.accessFlags.isStatic()) {
         assert(paramSize === m.getParamWordSize(), "vmtarget must have same argument size as method reference.");
         stack.length -= paramSize + 1;
-        (<any> m.cls.getConstructor())[m.fullSignature](thread, args);
+        (<any> m.cls.getConstructor(thread))[m.fullSignature](thread, args);
         frame.returnToThreadLoop = true;
       } else {
         // XXX: Assuming invokevirtual semantics. Is this correct?
@@ -1698,7 +1698,7 @@ export class Opcodes {
       if (vmtarget.accessFlags.isStatic()) {
         assert(vmtarget.getParamWordSize() === paramSize - 1, "vmtarget must have same argument size as method reference.");
         stack.length -= paramSize - 1;
-        (<any> vmtarget.cls.getConstructor())[vmtarget.fullSignature](thread, args);
+        (<any> vmtarget.cls.getConstructor(thread))[vmtarget.fullSignature](thread, args);
         frame.returnToThreadLoop = true;
       } else {
         assert(vmtarget.getParamWordSize() === paramSize - 2, "vmtarget must have same argument size as method reference.");
@@ -1774,7 +1774,7 @@ export class Opcodes {
       cls = <ClassData.ArrayClassData<any>> frame.getLoader().getInitializedClass(thread, type),
       length = stack.pop();
     if (length >= 0) {
-      stack.push(new (cls.getConstructor())(thread, length));
+      stack.push(new (cls.getConstructor(thread))(thread, length));
       frame.pc += 2;
     } else {
       throwException(thread, frame, 'Ljava/lang/NegativeArraySizeException;', `Tried to init ${type} array with length ${length}`);
@@ -1787,7 +1787,7 @@ export class Opcodes {
       // Rewrite and rerun.
       code.writeUInt8(enums.OpCode.ANEWARRAY_FAST, pc);
       classRef.arrayClass = <ClassData.ArrayClassData<any>> frame.getLoader().getInitializedClass(thread, `[${classRef.cls.getInternalName()}`);
-      classRef.arrayClassConstructor = classRef.arrayClass.getConstructor();
+      classRef.arrayClassConstructor = classRef.arrayClass.getConstructor(thread);
     } else {
       resolveCPItem(thread, frame, classRef);
     }
@@ -1919,7 +1919,7 @@ export class Opcodes {
         return;
       }
     }
-    stack.push(new (classRef.cls.getConstructor())(thread, args));
+    stack.push(new (classRef.cls.getConstructor(thread))(thread, args));
     frame.pc += 4;
   }
 

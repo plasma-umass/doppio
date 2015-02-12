@@ -504,7 +504,7 @@ export class ThreadPool {
         // Start the manual shutdown sequence.
         // XXX: we're co-opting the last thread for shutdown.
         var cdata = <ClassData.ReferenceClassData<JVMTypes.java_lang_System>> this.bsCl.getInitializedClass(thread, "Ljava/lang/System;"),
-          systemCons = <typeof JVMTypes.java_lang_System> cdata.getConstructor();
+          systemCons = <typeof JVMTypes.java_lang_System> cdata.getConstructor(thread);
         systemCons['java/lang/System/exit(I)V'](thread, [0]);
       } else {
         // Tell the JVM that execution is over.
@@ -908,44 +908,6 @@ export class JVMThread {
   }
 
   /**
-   * Runs the given method on the thread. Calls the callback with its return
-   * value, or an exception if one has occurred.
-   *
-   * The method can be a bytecode method or a native method.
-   *
-   * Causes the following state transitions:
-   * * NEW => RUNNABLE
-   * * RUNNING => RUNNABLE
-   * * RUNNABLE => RUNNABLE
-   * * ASYNC_WAITING => RUNNABLE
-   * * [XXX: JVM bootup hack] TERMINATED => RUNNABLE
-   *
-   * It is not valid to call this method if the thread is in any other state.
-   */
-  /*public runMethod(method: methods.Method, args: any[], cb?: (e?: JVMTypes.java_lang_Throwable, rv?: any) => void): void {
-    assert(this.status === enums.ThreadStatus.NEW ||
-      this.status === enums.ThreadStatus.RUNNING ||
-      this.status === enums.ThreadStatus.RUNNABLE ||
-      this.status === enums.ThreadStatus.ASYNC_WAITING ||
-      this.status === enums.ThreadStatus.TERMINATED, `T ${this.jvmThreadObj.ref}: Tried to run method while thread was in state ${enums.ThreadStatus[this.status]}`);
-    if (cb) {
-      // Callback specified. Need to add an internal stack frame that will handle
-      // calling back into JavaScript land.
-      this.stack.push(new InternalStackFrame(cb));
-    }
-
-    // Add a new stack frame for the method.
-    if (method.accessFlags.isNative()) {
-      this.stack.push(new NativeStackFrame(method, args));
-    } else {
-      this.stack.push(new BytecodeStackFrame(method, args));
-    }
-
-    // Thread state transition.
-    this.setStatus(enums.ThreadStatus.RUNNABLE);
-  }*/
-
-  /**
    * Returns from the currently executing method with the given return value.
    * Used by asynchronous native methods.
    *
@@ -1060,7 +1022,7 @@ export class JVMThread {
   public throwNewException<T extends JVMTypes.java_lang_Throwable>(clsName: string, msg: string) {
     var cls = <ClassData.ReferenceClassData<T>> this.bsCl.getInitializedClass(this, clsName),
       throwException = () => {
-        var eCons = cls.getConstructor(),
+        var eCons = cls.getConstructor(this),
           e = new eCons(this);
 
         // Construct the exception, and throw it when done.
@@ -1193,7 +1155,7 @@ function validateReturnValue(thread: JVMThread, method: methods.Method, returnTy
     } else if (util.is_array_type(returnType)) {
       assert(rv2 === undefined);
       // Note: All array constructors are the same at the moment.
-      assert(rv1 === null || rv1 instanceof (<ClassData.ArrayClassData<number>> bsCl.getInitializedClass(thread, '[I')).getConstructor());
+      assert(rv1 === null || rv1 instanceof (<ClassData.ArrayClassData<number>> bsCl.getInitializedClass(thread, '[I')).getConstructor(thread));
       if (rv1 != null) {
         cls = cl.getInitializedClass(thread, returnType);
         if (cls === null) {
@@ -1206,7 +1168,7 @@ function validateReturnValue(thread: JVMThread, method: methods.Method, returnTy
       assert(util.is_reference_type(returnType));
       assert(rv2 === undefined);
       // All objects and arrays are instances of java/lang/Object.
-      assert(rv1 === null || rv1 instanceof (<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> bsCl.getInitializedClass(thread, 'Ljava/lang/Object;')).getConstructor());
+      assert(rv1 === null || rv1 instanceof (<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> bsCl.getInitializedClass(thread, 'Ljava/lang/Object;')).getConstructor(thread));
       if (rv1 != null) {
         cls = cl.getResolvedClass(returnType);
         if (cls === null) {

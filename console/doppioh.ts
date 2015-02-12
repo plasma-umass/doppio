@@ -358,21 +358,11 @@ export = JVMTypes;\n`, () => {});
     }
   }
 
-  /**
-   * Find Miranda and default interface methods in the given class. These
-   * methods manifest as new slots in the virtual method table compared with
-   * the class's superclass that are not defined in the class itself.
-   */
-  private _getMirandaAndDefaultMethods(cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>): methods.Method[] {
-    var superClsMethodTable: methods.Method[] = cls.getSuperClass() !== null ? cls.getSuperClass().getMethodSlots() : [];
-    return cls.getMethodSlots().slice(superClsMethodTable.length).filter((method: methods.Method) => method.cls !== cls);
-  }
-
   private _processHeader(cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>): void {
       var desc = cls.getInternalName(),
         interfaces = cls.getInterfaceClassReferences().map((iface: ConstantPool.ClassReference) => iface.name),
         superClass = cls.getSuperClassReference(),
-        methods = cls.getMethods().concat(this._getMirandaAndDefaultMethods(cls)),
+        methods = cls.getMethods().concat(cls.getMirandaAndDefaultMethods()),
         fields = cls.getFields(),
         methodsSeen: { [name: string]: boolean } = {},
         injectedFields = cls.getInjectedFields(),
@@ -427,7 +417,8 @@ export = JVMTypes;\n`, () => {});
 
     if (argTypes.length > 0) {
       // Arguments are a giant tuple type.
-      args = "args: [" + argTypes.map((type: string, i: number) => `${this.jvmtype2tstype(type, false)}`).join(", ") + "], ";
+      // NOTE: Long / doubles take up two argument slots. The second argument is always NULL.
+      args = "args: [" + argTypes.map((type: string, i: number) => `${this.jvmtype2tstype(type, false)}${(type === "J" || type === "D") ? ', any' : ''}`).join(", ") + "], ";
     }
 
     methodSig = `(thread: threading.JVMThread, ${args}cb?: (${cbSig}) => void): ${this.jvmtype2tstype(rType, false)}`;

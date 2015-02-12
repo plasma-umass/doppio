@@ -12,6 +12,7 @@ import ClassLock = require('./ClassLock');
 import assert = require('./assert');
 import gLong = require('./gLong');
 import JVM = require('./jvm');
+import StringOutputStream = require('./StringOutputStream');
 import JVMTypes = require('../includes/JVMTypes');
 var ClassState = enums.ClassState;
 var trace = logging.trace;
@@ -367,7 +368,7 @@ export class PrimitiveClassData extends ClassData {
     var boxName = this.boxClassName();
     var boxCls = <ReferenceClassData<JVMTypes.java_lang_Object>> thread.getBsCl().getInitializedClass(thread, boxName);
     // these are all initialized in preinit (for the BSCL, at least)
-    var boxCons = boxCls.getConstructor();
+    var boxCons = boxCls.getConstructor(thread);
     var wrapped = new boxCons(thread);
     if (boxName !== 'V') {
       // XXX: all primitive wrappers store their value in a private static final field named 'value'
@@ -395,17 +396,14 @@ export class PrimitiveClassData extends ClassData {
 export class ArrayClassData<T> extends ClassData {
   private componentClassName: string;
   private componentClass: ClassData;
-  /**
-   * All JVM arrays stem from the same JavaScript prototype.
-   */
-  private static arrayProto: IJVMConstructor<JVMTypes.JVMArray<any>> = null;
+  private _constructor: IJVMConstructor<JVMTypes.JVMArray<T>> = null;
 
-  constructor(component_type: string, loader: ClassLoader.ClassLoader) {
+  constructor(componentType: string, loader: ClassLoader.ClassLoader) {
     super(loader);
-    this.className = `[${component_type}`;
+    this.className = `[${componentType}`;
     // ArrayClassData objects are ABSTRACT, FINAL, and PUBLIC.
     this.accessFlags = new util.Flags(0x411);
-    this.componentClassName = component_type;
+    this.componentClassName = componentType;
   }
 
   /**
@@ -507,31 +505,91 @@ export class ArrayClassData<T> extends ClassData {
     this.resolve(thread, cb, explicit);
   }
 
-  private static _constructSharedConstructor<T extends JVMTypes.java_lang_Object>(superCls: ReferenceClassData<T>): void {
-    var template = `function _create(extendClass, superCls) {
-  extendClass(JVMArray, superCls);
-  function JVMArray(thread, length) {
-    this.array = new Array(length);
+  private static typedArraysSupported = typeof ArrayBuffer !== "undefined";
+
+  /**
+   * Get the array constructor for this particular JVM array class.
+   * Uses typed arrays when available for primitive arrays.
+   */
+  private getJSArrayConstructor(): string {
+    if (!ArrayClassData.typedArraysSupported) {
+      return 'Array';
+    }
+    switch (this.componentClassName) {
+      case 'B':
+        return 'Int8Array';
+      case 'C':
+        return 'Uint8Array';
+      case 'I':
+        return 'Int32Array';
+      case 'F':
+        return 'Float32Array';
+      case 'D':
+        return 'Float64Array';
+      default:
+        return 'Array';
+    }
   }
 
-  // Static values.
+  /**
+   * Get the initial value placed into each array element.
+   */
+  private getJSDefaultArrayElement(): string {
+    switch(this.componentClassName[0]) {
+      case '[':
+        return `new (cls.getComponentClass().getConstructor())(otherLengths)`;
+      case 'L':
+        return "null";
+      case 'J':
+        return "gLongZero";
+      default:
+        return "0";
+    }
+  }
+
+  private _constructConstructor(thread: threading.JVMThread): IJVMConstructor<JVMTypes.JVMArray<T>> {
+    assert(this._constructor === null, `Tried to construct constructor twice for ${this.getExternalName()}!`);
+    var outputStream = new StringOutputStream();
+    outputStream.write(`function _create(extendClass, superCls, gLongZero, thread) {
+  extendClass(JVMArray, superCls.getConstructor());
+  function JVMArray(thread, lengths) {\n`);
+    this.superClass.outputInjectedFields(outputStream);
+    // Initialize array.
+    if (this.componentClassName[0] !== '[') {
+      // Array elements are a non-array type.
+      outputStream.write(`    this.array = new ${this.getJSArrayConstructor()}(lengths);\n`)
+      if (this.getJSArrayConstructor() === 'Array') {
+        // TypedArrays are already initialized to 0, so this check skips array
+        // initialization in that case.
+        outputStream.write(`    for (var i = 0; i < lengths; i++) {
+      this.array[i] = ${this.getJSDefaultArrayElement};
+    }\n`)
+      }
+    } else {
+      // Multi-dimensional array.
+      outputStream.write(`    var length = lengths[0], otherLengths = lengths.slice(1);
+    this.array = new ${this.getJSArrayConstructor()}(length);
+    for (var i = 0; i < length; i++) {
+      this.array[i] = ${this.getJSDefaultArrayElement()};
+    }\n`)
+    }
+    outputStream.write(`  }
+
   JVMArray.cls = cls;
 
   return JVMArray;
 }
 // Last statement is return value of eval.
-_create`;
+_create`);
     // All arrays extend java/lang/Object
-    var p = eval(template)(extendClass, superCls);
-    return p;
+    return eval(outputStream.flush())(extendClass, this.superClass, gLong.ZERO, thread);
   }
 
-  public getConstructor(): IJVMConstructor<JVMTypes.JVMArray<T>> {
-    if (ArrayClassData.arrayProto === null) {
-      // Create the proto for the first time.
-      ArrayClassData._constructSharedConstructor(this.superClass);
+  public getConstructor(thread: threading.JVMThread): IJVMConstructor<JVMTypes.JVMArray<T>> {
+    if (this._constructor === null) {
+      this._constructor = this._constructConstructor(thread);
     }
-    return ArrayClassData.arrayProto;
+    return this._constructor;
   }
 }
 
@@ -855,26 +913,23 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    * only be called when the constructor is created.
    */
   private _getInitialStaticFieldValue(thread: threading.JVMThread, name: string): any {
-    var i: number, f: methods.Field;
-    for (i = 0; i < this.fields.length; i++) {
-      f = this.fields[i];
-      if (f.name === name && f.accessFlags.isStatic()) {
-        var cva = <attributes.ConstantValue> f.getAttribute('ConstantValue');
-        if (cva !== null) {
-          switch (cva.value.getType()) {
-            case enums.ConstantPoolItemType.STRING:
-              var stringCPI = <ConstantPool.ConstString> cva.value;
-              if (stringCPI.value === null) {
-                stringCPI.value = thread.getThreadPool().getJVM().internString(stringCPI.stringValue);
-              }
-              return stringCPI.value;
-            default:
-              // TODO: Type better.
-              return (<any> cva.value).value;
-          }
-        } else {
-          return util.initialValue(f.rawDescriptor);
+    var f: methods.Field = this.fieldLookup(name);
+    if (f !== null && f.accessFlags.isStatic()) {
+      var cva = <attributes.ConstantValue> f.getAttribute('ConstantValue');
+      if (cva !== null) {
+        switch (cva.value.getType()) {
+          case enums.ConstantPoolItemType.STRING:
+            var stringCPI = <ConstantPool.ConstString> cva.value;
+            if (stringCPI.value === null) {
+              stringCPI.value = thread.getThreadPool().getJVM().internString(stringCPI.stringValue);
+            }
+            return stringCPI.value;
+          default:
+            // TODO: Type better.
+            return (<any> cva.value).value;
         }
+      } else {
+        return util.initialValue(f.rawDescriptor);
       }
     }
     assert(false, `Tried to construct a static field value that doesn't exist: ${this.getInternalName()} ${name}`);
@@ -1054,7 +1109,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    * already initialized.
    */
   private _initialize(thread: threading.JVMThread, cb: (cdata: ClassData) => void): void {
-    var cons = <any> this.getConstructor();
+    var cons = <any> this.getConstructor(thread);
     if (cons['<clinit>()V'] !== undefined) {
       debug(`T${thread.getRef()} Running static initialization for class ${this.className}...`);
       cons['<clinit>()V'](thread, [], (e?: JVMTypes.java_lang_Throwable) => {
@@ -1083,10 +1138,8 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
                 cb(null);
               } else {
                 // Construct the object!
-                var eCons = cdata.getConstructor(),
+                var eCons = cdata.getConstructor(thread),
                   e2 = new eCons(thread);
-                  //,
-                  //cnstrctr = cdata.getMethod('<init>(Ljava/lang/Throwable;)V');
                 // Construct the ExceptionInInitializerError!
                 e2["<init>(Ljava/lang/Throwable;)V"](thread, [e], (e?: JVMTypes.java_lang_Throwable) => {
                   // Throw the newly-constructed error!
@@ -1145,137 +1198,66 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
     });
   }
 
-  protected _constructConstructor(): IJVMConstructor<T> {
-    var jsClassName = util.jvmName2JSName(this.getInternalName());
-
-    function getDefaultFieldValue(desc: string): string {
-      if (desc === 'J') return 'gLongZero';
-      var c = desc[0];
-      if (c === '[' || c === 'L') return 'null';
-      return '0';
-    }
-
-    function getFieldAssignments(cls: ReferenceClassData<JVMTypes.java_lang_Object>): string {
-      var superClass = cls.getSuperClass(),
-        prefix = superClass !== null ? getFieldAssignments(superClass) : "",
-        clsBase = util.descriptor2typestr(cls.getInternalName()),
-        injected = injectedFields[cls.getInternalName()];
-
-      // Injected fields.
-      if (injected !== undefined) {
-        prefix += Object.keys(injected).map((name: string) => {
-          var field: [string, any] = injected[name];
-          return `this["${name}"] = ${field[1]};\n`;
-        }).join("");
-      }
-
-      return prefix + cls.getFields().map((field: methods.Field) =>
-        field.accessFlags.isStatic() ? "" :
-          `this["${clsBase}/${field.name}"] = ${getDefaultFieldValue(field.rawDescriptor)};\n`
-      ).join("");
-    }
-
-    function getStaticFieldAssignments(cls: ReferenceClassData<JVMTypes.java_lang_Object>): string {
-      var clsBase = util.descriptor2typestr(cls.getInternalName()),
-        clsName = util.jvmName2JSName(cls.getInternalName());
-      return cls.getFields().map((field: methods.Field) =>
-        field.accessFlags.isStatic() ?
-          `${clsName}["${clsBase}/${field.name}"] = ${getDefaultFieldValue(field.rawDescriptor)};\n` : ""
-      ).join("");
-    }
-
-    function getMethodPrototypeAssignments(cls: ReferenceClassData<JVMTypes.java_lang_Object>): string {
-      var clsName = util.jvmName2JSName(cls.getInternalName()),
-        clsBase = util.descriptor2typestr(cls.getInternalName()),
-        methodAssignments: string = cls.getMethods().map((m: methods.Method, i: number) =>
-          m.accessFlags.isStatic() ? "" :
-            `${clsName}.prototype["${clsBase}/${m.name}${m.rawDescriptor}"] = ${clsName}.prototype["${m.name}${m.rawDescriptor}"] = (function(method) {
-              return function(thread, args, cb) {
-                if (cb) {
-                  thread.stack.push(new InternalStackFrame(cb));
-                }
-                thread.stack.push(new ${m.accessFlags.isNative() ? "NativeStackFrame" : "BytecodeStackFrame"}(method, args));
-                thread.setStatus(${enums.ThreadStatus.RUNNABLE});
-              };
-            })(cls.getMethods()[${i}]);\n`
-        ).join("");
-
-      // Install default methods.
-      // TODO: Search superinterfaces.
-      // TODO: Miranda methods.
-      return methodAssignments + cls.getInterfaces().map((i: ReferenceClassData<JVMTypes.java_lang_Object>, intIdx: number) => i.getMethods().map((m: methods.Method, i: number) => {
-        if (m.accessFlags.isAbstract() || m.getCodeAttribute() == null) {
-          return ""
-        } else {
-          return `if (!${clsName}.prototype[${m.name}${m.rawDescriptor}]) {
-              ${clsName}.prototype["${m.name}${m.rawDescriptor}"] = (function(method) {
-              return function(thread, args, cb) {
-                if (cb) {
-                  thread.stack.push(new InternalStackFrame(cb));
-                }
-                thread.stack.push(new ${m.accessFlags.isNative() ? "NativeStackFrame" : "BytecodeStackFrame"}(method, args));
-                thread.setStatus(${enums.ThreadStatus.RUNNABLE});
-              };
-            })(cls.getInterfaces()[${intIdx}].getMethods()[${i}]);
-          }\n`;
-        }
-      }).join("")).join("");
-    }
-
-    function getStaticMethodAssignments(cls: ReferenceClassData<JVMTypes.java_lang_Object>): string {
-      var clsBase = util.descriptor2typestr(cls.getInternalName()),
-        clsName = util.jvmName2JSName(cls.getInternalName());
-      return cls.getMethods().map((m: methods.Method, i: number) =>
-        m.accessFlags.isStatic() ? `${clsName}["${clsBase}/${m.name}${m.rawDescriptor}"] = (function(method) {
-          return function(thread, args, cb) {
-            if (cb) {
-              thread.stack.push(new InternalStackFrame(cb));
-            }
-            thread.stack.push(new ${m.accessFlags.isNative() ? "NativeStackFrame" : "BytecodeStackFrame"}(method, args));
-            thread.setStatus(${enums.ThreadStatus.RUNNABLE});
-          };
-        })(cls.getMethods()[${i}]);\n` : ""
-      ).join("");
-    }
-
-    return eval(`function _create(extendClass, cls, InternalStackFrame, NativeStackFrame, BytecodeStackFrame, gLongZero, ClassLoader, java_object) {
-      if (cls.superClass !== null) {
-        extendClass(${jsClassName}, cls.superClass.getConstructor());
-      }
-      function ${jsClassName}(thread) {
-        ${getFieldAssignments(this)}
-      }
-
-      // Static values.
-      ${jsClassName}.cls = cls;
-
-      if (${jsClassName} === 'java_lang_Object') {
-        // Injected functions.
-        ${jsClassName}.prototype.getClass = function() {
-          return this.constructor.cls;
-        };
-        ${jsClassName}.prototype.getMonitor = function() {
-          if (this.$monitor === null) {
-            this.$monitor = new Monitor();
-          }
-          return this.$monitor;
-        };
-      }
-
-      ${getMethodPrototypeAssignments(this)}
-
-      ${getStaticFieldAssignments(this)}
-
-      ${getStaticMethodAssignments(this)}
-
-      return ${jsClassName};
-    }
-    _create`)(extendClass, this, threading.InternalStackFrame, threading.NativeStackFrame, threading.BytecodeStackFrame, gLong.ZERO, require('./ClassLoader'), require('./java_object'));
+  /**
+   * Find Miranda and default interface methods in this class. These
+   * methods manifest as new slots in the virtual method table compared with
+   * the superclass, and are not defined in this class itself.
+   */
+  public getMirandaAndDefaultMethods(): methods.Method[] {
+    var superClsMethodTable: methods.Method[] = this.superClass !== null ? this.superClass.getMethodSlots() : [];
+    return this.getMethodSlots().slice(superClsMethodTable.length).filter((method: methods.Method) => method.cls !== this);
   }
 
-  public getConstructor(): IJVMConstructor<T> {
+  public outputInjectedFields(outputStream: StringOutputStream) {
+    if (this.superClass !== null) {
+      this.superClass.outputInjectedFields(outputStream);
+    }
+    var injected = injectedFields[this.getInternalName()];
+    if (injected !== undefined) {
+      Object.keys(injected).forEach((fieldName: string) => {
+        outputStream.write(`this.${fieldName} = ${injected[fieldName][1]};\n`);
+      });
+    }
+  }
+
+  protected _constructConstructor(thread: threading.JVMThread): IJVMConstructor<T> {
+    assert(this._constructor === null, `Attempted to construct constructor twice for class ${this.getExternalName()}!`);
+
+    var jsClassName = util.jvmName2JSName(this.getInternalName()),
+      outputStream = new StringOutputStream();
+
+    outputStream.write(`function _create(extendClass, cls, InternalStackFrame, NativeStackFrame, BytecodeStackFrame, gLongZero, ClassLoader, Monitor, thread) {
+  if (cls.superClass !== null) {
+    extendClass(${jsClassName}, cls.superClass.getConstructor());
+  }
+  function ${jsClassName}(thread) {\n`);
+    // Injected fields.
+    this.outputInjectedFields(outputStream);
+
+    // Output instance field assignments.
+    this._fieldSlots.forEach((f: methods.Field) => f.outputJavaScriptField(jsClassName, outputStream));
+    outputStream.write(`  }
+  ${jsClassName}.cls = cls;\n`);
+
+    // Static fields.
+    this._staticFieldSlots.forEach((f: methods.Field) => f.outputJavaScriptField(jsClassName, outputStream));
+
+    // Static and instance methods.
+    this.getMethods().forEach((m: methods.Method) => m.outputJavaScriptFunction(jsClassName, outputStream));
+
+    // Miranda and default interface methods.
+    this.getMirandaAndDefaultMethods().forEach((m: methods.Method) => m.outputJavaScriptFunction(jsClassName, outputStream));
+
+    outputStream.write(`  return ${jsClassName};
+}
+_create`);
+
+    return eval(outputStream.flush())(extendClass, this, threading.InternalStackFrame, threading.NativeStackFrame, threading.BytecodeStackFrame, gLong.ZERO, require('./ClassLoader'), require('./Monitor'), thread);
+  }
+
+  public getConstructor(thread: threading.JVMThread): IJVMConstructor<T> {
     if (this._constructor == null) {
-      this._constructor = this._constructConstructor();
+      this._constructor = this._constructConstructor(thread);
     }
     return this._constructor;
   }

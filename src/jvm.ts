@@ -128,7 +128,7 @@ class JVM {
             // Initialize the system's ThreadGroup now.
             if (coreClass === 'Ljava/lang/ThreadGroup;') {
               // Construct a ThreadGroup object for the first thread.
-              var threadGroupCons = (<ClassData.ReferenceClassData<JVMTypes.java_lang_ThreadGroup>> cdata).getConstructor(),
+              var threadGroupCons = (<ClassData.ReferenceClassData<JVMTypes.java_lang_ThreadGroup>> cdata).getConstructor(firstThread),
                 groupObj = new threadGroupCons(firstThread);
               groupObj['<init>()V'](firstThread, (e?: JVMTypes.java_lang_Throwable) => {
                 // Initialize the fields of our firstThread to make it real.
@@ -136,12 +136,12 @@ class JVM {
                 firstThreadObj['java/lang/Thread/priority'] = 1;
                 firstThreadObj['java/lang/Thread/group'] = groupObj;
                 firstThreadObj['java/lang/Thread/threadLocals'] = null;
-                firstThreadObj['java/lang/Thread/blockerLock'] = new ((<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/Object;')).getConstructor())(firstThread);
+                firstThreadObj['java/lang/Thread/blockerLock'] = new ((<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/Object;')).getConstructor(firstThread))(firstThread);
                 nextItem();
               });
             } else if (coreClass === 'Ljava/lang/Thread;') {
               // Make firstThread a *real* thread.
-              var threadCons = (<ClassData.ReferenceClassData<JVMTypes.java_lang_Thread>> cdata).getConstructor();
+              var threadCons = (<ClassData.ReferenceClassData<JVMTypes.java_lang_Thread>> cdata).getConstructor(firstThread);
               firstThreadObj = new threadCons(firstThread);
               firstThreadObj['<init>()V'](firstThread, (e?: JVMTypes.java_lang_Throwable) => {
                 firstThread.setJVMObject(firstThreadObj);
@@ -160,7 +160,7 @@ class JVM {
      */
     bootupTasks.push((next: (err?: any) => void): void => {
       // Initialize the system class (initializes things like println/etc).
-      var sysInit = <typeof JVMTypes.java_lang_System> (<ClassData.ReferenceClassData<JVMTypes.java_lang_System>> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/System;')).getConstructor();
+      var sysInit = <typeof JVMTypes.java_lang_System> (<ClassData.ReferenceClassData<JVMTypes.java_lang_System>> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/System;')).getConstructor(firstThread);
       sysInit['java/lang/System/initializeSystemClass()V'](firstThread, next);;
     });
 
@@ -168,7 +168,7 @@ class JVM {
      * Task #6: Initialize the application's classloader.
      */
     bootupTasks.push((next: (err?: any) => void) => {
-      var clCons = <typeof JVMTypes.java_lang_ClassLoader> (<ClassData.ReferenceClassData<JVMTypes.java_lang_ClassLoader>> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/ClassLoader;')).getConstructor();
+      var clCons = <typeof JVMTypes.java_lang_ClassLoader> (<ClassData.ReferenceClassData<JVMTypes.java_lang_ClassLoader>> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/ClassLoader;')).getConstructor(firstThread);
       clCons['java/lang/ClassLoader/getSystemClassLoader()Ljava/lang/ClassLoader;'](firstThread, (e?: JVMTypes.java_lang_Throwable, rv?: JVMTypes.java_lang_ClassLoader) => {
         if (e) {
           next(e);
@@ -223,7 +223,7 @@ class JVM {
     this.systemClassLoader.initializeClass(thread, className, (cdata: ClassData.ReferenceClassData<any>) => {
       if (cdata != null) {
         // Convert the arguments.
-        var strArrCons = (<ClassData.ArrayClassData<JVMTypes.java_lang_String>> this.bsCl.getInitializedClass(thread, '[Ljava/lang/String;')).getConstructor(),
+        var strArrCons = (<ClassData.ArrayClassData<JVMTypes.java_lang_String>> this.bsCl.getInitializedClass(thread, '[Ljava/lang/String;')).getConstructor(thread),
           jvmifiedArgs = new strArrCons(thread, args.length), i: number;
 
         for (i = 0; i < args.length; i++) {
@@ -236,7 +236,7 @@ class JVM {
 
         // Find the main method, and run it.
         // TODO: Error checking!
-        var cdataStatics = <any> cdata.getConstructor();
+        var cdataStatics = <any> cdata.getConstructor(thread);
         if (cdataStatics['main([Ljava/lang/String;)V']) {
           cdataStatics['main([Ljava/lang/String;)V'](thread, [jvmifiedArgs]);
         } else {
