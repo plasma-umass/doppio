@@ -113,12 +113,7 @@ class java_lang_Class {
   }
 
   public static 'getInterfaces0()[Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.JVMArray<JVMTypes.java_lang_Class> {
-    var cls = javaThis.$cls,
-      ifaces = cls.getInterfaces(),
-      consArr = util.newArray<JVMTypes.java_lang_Class>(thread, thread.getBsCl(), '[Ljava/lang/Class;', ifaces.length);
-
-    consArr.array = ifaces.map((iface) => iface.getClassObject(thread));
-    return consArr;
+    return util.newArrayFromData<JVMTypes.java_lang_Class>(thread, thread.getBsCl(), '[Ljava/lang/Class;', javaThis.$cls.getInterfaces().map((iface) => iface.getClassObject(thread)));
   }
 
   public static 'getComponentType()Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.java_lang_Class {
@@ -250,9 +245,7 @@ class java_lang_Class {
       methods: methods.Method[], i: number, m: methods.Method;
 
     if (annotationsVisible !== null) {
-      var arr = util.newArray<number>(thread, thread.getBsCl(), '[B', annotationsVisible.rawBytes.length);
-      arr.array = annotationsVisible.rawBytes;
-      return arr;
+      return util.newArray<number>(thread, thread.getBsCl(), '[B', annotationsVisible.rawBytes);
     }
     return null;
   }
@@ -576,12 +569,8 @@ class java_lang_Package {
   }
 
   public static 'getSystemPackages0()[Ljava/lang/String;'(thread: threading.JVMThread): JVMTypes.JVMArray<JVMTypes.java_lang_String> {
-    var rv = util.newArray<JVMTypes.java_lang_String>(thread, thread.getBsCl(), '[Ljava/lang/String;', 0),
-      pkgNames = thread.getBsCl().getPackageNames(), i: number;
-    for (i = 0; i < pkgNames.length; i++) {
-      rv.array.push(util.initString(thread.getBsCl(), pkgNames[i]));
-    }
-    return rv;
+    var pkgNames = thread.getBsCl().getPackageNames();
+    return util.newArrayFromData<JVMTypes.java_lang_String>(thread, thread.getBsCl(), '[Ljava/lang/String;', pkgNames.map((pkgName) => util.initString(thread.getBsCl(), pkgName)));
   }
 }
 
@@ -787,12 +776,7 @@ class java_lang_SecurityManager {
   public static 'getClassContext()[Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_SecurityManager): JVMTypes.JVMArray<JVMTypes.java_lang_Class> {
     // return an array of classes for each method on the stack
     // starting with the current method and going up the call chain
-    var stack = thread.getStackTrace(),
-      i: number, classes = util.newArray<JVMTypes.java_lang_Class>(thread, thread.getBsCl(), '[Ljava/lang/Class;', stack.length);
-    for (i = stack.length - 1; i >= 0; i--) {
-      classes.array[i] = stack[i].method.cls.getClassObject(thread);
-    }
-    return classes;
+    return util.newArrayFromData<JVMTypes.java_lang_Class>(thread, thread.getBsCl(), '[Ljava/lang/Class;', thread.getStackTrace().map((item) => item.method.cls.getClassObject(thread)));;
   }
 
   public static 'currentClassLoader0()Ljava/lang/ClassLoader;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_SecurityManager): JVMTypes.java_lang_ClassLoader {
@@ -1107,9 +1091,7 @@ class java_lang_Thread {
   }
 
   public static 'getThreads()[Ljava/lang/Thread;'(thread: threading.JVMThread): JVMTypes.JVMArray<JVMTypes.java_lang_Thread> {
-    var threadArr = util.newArray<JVMTypes.java_lang_Thread>(thread, thread.getBsCl(), '[Ljava/lang/Thread;', 0);
-    threadArr.array = thread.getThreadPool().getThreads().map((thread: threading.JVMThread) => thread.getJVMObject());
-    return threadArr;
+    return util.newArrayFromData<JVMTypes.java_lang_Thread>(thread, thread.getBsCl(), '[Ljava/lang/Thread;', thread.getThreadPool().getThreads().map((thread: threading.JVMThread) => thread.getJVMObject()));
   }
 
   public static 'setPriority0(I)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Thread, arg0: number): void {

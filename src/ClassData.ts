@@ -61,6 +61,15 @@ var injectedFields: {[className: string]: {[fieldName: string]: [string, string]
  * method's name. These are all instance methods (e.g. non-static).
  */
 var injectedMethods: {[className: string]: {[methodName: string]: [string, string]}} = {
+  // NOTE: '[' represents any JVM array class.
+  '[': {
+    'getFieldFromSlot': ['(offset: gLong): T', `function(offset) {
+  return this.array[offset.toInt()];
+}`],
+    'setFieldFromSlot': ['(offset: gLong, value: T): void', `function(offset, value) {
+  this[offset.toInt()] = value;
+}`]
+  },
   'Ljava/lang/Object;': {
     'getClass': ["(): ClassData.ClassData", `function() { return this.constructor.cls }`],
     'getMonitor': ["(): Monitor", `function() {
@@ -68,13 +77,17 @@ var injectedMethods: {[className: string]: {[methodName: string]: [string, strin
     this.$monitor = new Monitor();
   }
   return this.$monitor;
+}`],
+    'getFieldFromSlot': ['(offset: gLong): any', `function(offset) {
+  return this[this.getClass().getFieldFromSlot(offset.toInt()).fullSignature];
+}`],
+    'setFieldFromSlot': ['(offset: gLong, value: any): void', `function(offset, value) {
+  this[this.getClass().getFieldFromSlot(offset.toInt()).fullSignature] = value;
 }`]
   },
   'Ljava/lang/String;': {
     'toString': ["(): string", `function() { return util.chars2jsStr(this['java/lang/String/value']); }`]
   }
-  // XXX: Clone()!
-  // XXX: Differentiate between toString for debugging and toJSString!
 };
 
 export interface IJVMConstructor<T extends JVMTypes.java_lang_Object> {
@@ -197,9 +210,15 @@ export class ClassData {
    * in the returned map is its type.
    */
   public getInjectedMethods(): { [methodName: string]: string } {
-    var rv: { [methodName: string]: string } = {};
-    if (injectedMethods[this.getInternalName()] !== undefined) {
-      var methods = injectedMethods[this.getInternalName()];
+    var rv: { [methodName: string]: string } = {},
+      lookupName = this.getInternalName();
+    // All array classes share the same injected methods.
+    if (lookupName[0] === '[') {
+      lookupName = '[';
+    }
+
+    if (injectedMethods[lookupName] !== undefined) {
+      var methods = injectedMethods[lookupName];
       Object.keys(methods).forEach((methodName: string) => {
         rv[methodName] = methods[methodName][0];
       });
@@ -321,6 +340,19 @@ export class ClassData {
 
   public getMethodFromSlot(slot: number): methods.Method {
     return null;
+  }
+
+  protected outputInjectedMethods(jsClassName: string, outputStream: StringOutputStream) {
+    var lookupName = this.getInternalName();
+    if (lookupName[0] === '[') {
+      lookupName = '[';
+    }
+    if (injectedMethods[lookupName] !== undefined) {
+      var methods = injectedMethods[lookupName];
+      Object.keys(methods).forEach((methodName: string) => {
+        outputStream.write(`  ${jsClassName}.prototype.${methodName} = ${methods[methodName][1]};\n`);
+      });
+    }
   }
 }
 
@@ -558,10 +590,11 @@ export class ArrayClassData<T> extends ClassData {
 
   private _constructConstructor(thread: threading.JVMThread): IJVMConstructor<JVMTypes.JVMArray<T>> {
     assert(this._constructor === null, `Tried to construct constructor twice for ${this.getExternalName()}!`);
-    var outputStream = new StringOutputStream();
+    var outputStream = new StringOutputStream(),
+      jsClassName = util.jvmName2JSName(this.getInternalName());
     outputStream.write(`function _create(extendClass, superCls, gLongZero, thread) {
-  extendClass(JVMArray, superCls.getConstructor());
-  function JVMArray(thread, lengths) {\n`);
+  extendClass(${jsClassName}, superCls.getConstructor());
+  function ${jsClassName}(thread, lengths) {\n`);
     this.superClass.outputInjectedFields(outputStream);
     // Initialize array.
     if (this.componentClassName[0] !== '[') {
@@ -584,8 +617,9 @@ export class ArrayClassData<T> extends ClassData {
     }
     outputStream.write(`  }
 
-  JVMArray.cls = cls;
-
+  ${jsClassName}.cls = cls;\n`);
+    this.outputInjectedMethods(jsClassName, outputStream);
+    outputStream.write(`
   return JVMArray;
 }
 // Last statement is return value of eval.
@@ -1247,6 +1281,9 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
     this._fieldSlots.forEach((f: methods.Field) => f.outputJavaScriptField(jsClassName, outputStream));
     outputStream.write(`  }
   ${jsClassName}.cls = cls;\n`);
+
+    // Injected methods.
+    this.outputInjectedMethods(jsClassName, outputStream);
 
     // Static fields.
     this._staticFieldSlots.forEach((f: methods.Field) => f.outputJavaScriptField(jsClassName, outputStream));

@@ -8,6 +8,12 @@ import JVMTypes = require('../includes/JVMTypes');
 import ClassLoader = require('./ClassLoader');
 import ClassData = require('./ClassData');
 
+/**
+ * util contains stateless utility functions that are used around Doppio's
+ * codebase.
+ * TODO: Separate general JS utility methods from JVM utility methods.
+ */
+
 export function are_in_browser(): boolean {
   return process.platform === 'browser';
 }
@@ -711,4 +717,10 @@ export function newObject<T extends JVMTypes.java_lang_Object>(thread: threading
 
 export function getStaticFields<T>(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, desc: string): T {
   return <T> <any> (<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> cl.getInitializedClass(thread, desc)).getConstructor(thread);
+}
+
+export function newArrayFromData<T>(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, desc: string, data: T[]): JVMTypes.JVMArray<T> {
+  var arr = newArray<T>(thread, cl, desc, 0);
+  arr.array = data;
+  return arr;
 }

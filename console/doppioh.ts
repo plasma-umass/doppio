@@ -421,7 +421,7 @@ export = JVMTypes;\n`, () => {});
       args = "args: [" + argTypes.map((type: string, i: number) => `${this.jvmtype2tstype(type, false)}${(type === "J" || type === "D") ? ', any' : ''}`).join(", ") + "], ";
     }
 
-    methodSig = `(thread: threading.JVMThread, ${args}cb?: (${cbSig}) => void): ${this.jvmtype2tstype(rType, false)}`;
+    methodSig = `(thread: threading.JVMThread, ${args}cb?: (${cbSig}) => void): void`;
 
     // A quick note about methods: It's illegal to have two methods with the
     // same signature in the same class, even if one is static and the other
