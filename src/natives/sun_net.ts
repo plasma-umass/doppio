@@ -1,9 +1,9 @@
 import threading = require('../threading');
-import java_object = require('../java_object');
 import logging = require('../logging');
 import ClassData = require('../ClassData');
 import gLong = require('../gLong');
 import util = require('../util');
+import JVMTypes = require('../../includes/JVMTypes');
 declare var registerNatives: (defs: any) => void;
 
 class sun_net_spi_DefaultProxySelector {
@@ -12,7 +12,7 @@ class sun_net_spi_DefaultProxySelector {
     return true;
   }
 
-  public static 'getSystemProxy(Ljava/lang/String;Ljava/lang/String;)Ljava/net/Proxy;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: java_object.JavaObject): java_object.JavaObject {
+  public static 'getSystemProxy(Ljava/lang/String;Ljava/lang/String;)Ljava/net/Proxy;'(thread: threading.JVMThread, javaThis: JVMTypes.sun_net_spi_DefaultProxySelector, arg0: JVMTypes.java_lang_String, arg1: JVMTypes.java_lang_String): JVMTypes.java_net_Proxy {
     return null;
   }
 

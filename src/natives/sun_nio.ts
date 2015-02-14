@@ -1,16 +1,16 @@
 import threading = require('../threading');
-import java_object = require('../java_object');
 import logging = require('../logging');
 import ClassData = require('../ClassData');
 import gLong = require('../gLong');
 import util = require('../util');
 import enums = require('../enums');
 import fs = require('fs');
+import JVMTypes = require('../../includes/JVMTypes');
 declare var registerNatives: (defs: any) => void;
 
 class sun_nio_ch_FileChannelImpl {
 
-  public static 'map0(IJJ)J'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: number, arg1: gLong, arg2: gLong): gLong {
+  public static 'map0(IJJ)J'(thread: threading.JVMThread, javaThis: JVMTypes.sun_nio_ch_FileChannelImpl, arg0: number, arg1: gLong, arg2: gLong): gLong {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
@@ -22,15 +22,14 @@ class sun_nio_ch_FileChannelImpl {
     return 0;
   }
 
-  public static 'transferTo0(IJJI)J'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: number, arg1: gLong, arg2: gLong, arg3: number): gLong {
+  public static 'transferTo0(IJJI)J'(thread: threading.JVMThread, javaThis: JVMTypes.sun_nio_ch_FileChannelImpl, arg0: number, arg1: gLong, arg2: gLong, arg3: number): gLong {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'position0(Ljava/io/FileDescriptor;J)J'(thread: threading.JVMThread, javaThis: java_object.JavaObject, fd: java_object.JavaObject, offset: gLong): gLong {
-    var parent = javaThis.get_field(thread, 'Lsun/nio/ch/FileChannelImpl;parent');
-    return gLong.fromNumber(offset.equals(gLong.NEG_ONE) ? parent.$pos : parent.$pos = offset.toNumber());
+  public static 'position0(Ljava/io/FileDescriptor;J)J'(thread: threading.JVMThread, javaThis: JVMTypes.sun_nio_ch_FileChannelImpl, fd: JVMTypes.java_io_FileDescriptor, offset: gLong): gLong {
+    return gLong.fromNumber(offset.equals(gLong.NEG_ONE) ? fd.$pos : fd.$pos = offset.toNumber());
   }
 
   /**
@@ -78,26 +77,26 @@ class sun_nio_ch_FileDispatcherImpl {
 
   }
 
-  public static 'read0(Ljava/io/FileDescriptor;JI)I'(thread: threading.JVMThread, fd_obj: java_object.JavaObject, address: gLong, len: number): void {
-    var fd = fd_obj.get_field(thread, "Ljava/io/FileDescriptor;fd"),
+  public static 'read0(Ljava/io/FileDescriptor;JI)I'(thread: threading.JVMThread, fdObj: JVMTypes.java_io_FileDescriptor, address: gLong, len: number): void {
+    var fd = fdObj["java/io/FileDescriptor/fd"],
       // read upto len bytes and store into mmap'd buffer at address
       addr = address.toNumber(),
       buf = new Buffer(len);
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    fs.read(fd, buf, 0, len, 0, (err, bytes_read) => {
+    fs.read(fd, buf, 0, len, 0, (err, bytesRead) => {
       if (err) {
         thread.throwNewException("Ljava/io/IOException;", 'Error reading file: ' + err);
       } else {
         var i: number, heap = thread.getThreadPool().getJVM().getHeap();
-        for (i = 0; i < bytes_read; i++) {
+        for (i = 0; i < bytesRead; i++) {
           heap.set_byte(addr + i, buf.readUInt8(i));
         }
-        thread.asyncReturn(bytes_read);
+        thread.asyncReturn(bytesRead);
       }
     });
   }
 
-  public static 'preClose0(Ljava/io/FileDescriptor;)V'(thread: threading.JVMThread, arg0: java_object.JavaObject): void {
+  public static 'preClose0(Ljava/io/FileDescriptor;)V'(thread: threading.JVMThread, arg0: JVMTypes.java_io_FileDescriptor): void {
     // NOP, I think the actual fs.close is called later. If not, NBD.
   }
 
