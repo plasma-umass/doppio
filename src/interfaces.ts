@@ -33,4 +33,6 @@ export interface IWebsock {
   close(): void;
   send(data: number): void;
   send(data: number[]): void;
+  // XXX: Did we add this to the library? I think we did.
+  get_raw_state(): number;
 }
