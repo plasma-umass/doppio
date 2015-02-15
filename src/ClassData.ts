@@ -592,8 +592,8 @@ export class ArrayClassData<T> extends ClassData {
     assert(this._constructor === null, `Tried to construct constructor twice for ${this.getExternalName()}!`);
     var outputStream = new StringOutputStream(),
       jsClassName = util.jvmName2JSName(this.getInternalName());
-    outputStream.write(`function _create(extendClass, superCls, gLongZero, thread) {
-  extendClass(${jsClassName}, superCls.getConstructor());
+    outputStream.write(`function _create(extendClass, cls, superCls, gLongZero, thread) {
+  extendClass(${jsClassName}, superCls.getConstructor(thread));
   function ${jsClassName}(thread, lengths) {\n`);
     this.superClass.outputInjectedFields(outputStream);
     // Initialize array.
@@ -620,15 +620,16 @@ export class ArrayClassData<T> extends ClassData {
   ${jsClassName}.cls = cls;\n`);
     this.outputInjectedMethods(jsClassName, outputStream);
     outputStream.write(`
-  return JVMArray;
+  return ${jsClassName};
 }
 // Last statement is return value of eval.
 _create`);
     // All arrays extend java/lang/Object
-    return eval(outputStream.flush())(extendClass, this.superClass, gLong.ZERO, thread);
+    return eval(outputStream.flush())(extendClass, this, this.superClass, gLong.ZERO, thread);
   }
 
   public getConstructor(thread: threading.JVMThread): IJVMConstructor<JVMTypes.JVMArray<T>> {
+    assert(this.isResolved(), `Tried to get constructor for class ${this.getInternalName()} before it was resolved.`);
     if (this._constructor === null) {
       this._constructor = this._constructConstructor(thread);
     }
@@ -1271,7 +1272,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
 
     outputStream.write(`function _create(extendClass, cls, InternalStackFrame, NativeStackFrame, BytecodeStackFrame, gLongZero, ClassLoader, Monitor, thread) {
   if (cls.superClass !== null) {
-    extendClass(${jsClassName}, cls.superClass.getConstructor());
+    extendClass(${jsClassName}, cls.superClass.getConstructor(thread));
   }
   function ${jsClassName}(thread) {\n`);
     // Injected fields.

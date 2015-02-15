@@ -679,14 +679,14 @@ export function arraycopyCheck(thread: threading.JVMThread, src: JVMTypes.JVMArr
 
 export function initString(cl: ClassLoader.ClassLoader, str: string): JVMTypes.java_lang_String {
   var carr = initCarr(cl, str);
-  var strCons = (<ClassData.ReferenceClassData<JVMTypes.java_lang_String>> cl.getInitializedClass(null, 'Ljava/lang/String;')).getConstructor(null);
+  var strCons = (<ClassData.ReferenceClassData<JVMTypes.java_lang_String>> cl.getResolvedClass('Ljava/lang/String;')).getConstructor(null);
   var strObj = new strCons(null);
   strObj['java/lang/String/value'] = carr;
   return strObj;
 }
 
 export function initCarr(cl: ClassLoader.ClassLoader, str: string): JVMTypes.JVMArray<number> {
-  var arrClsCons = (<ClassData.ArrayClassData<number>> cl.getLoadedClass('[C')).getConstructor(null),
+  var arrClsCons = (<ClassData.ArrayClassData<number>> cl.getInitializedClass(null, '[C')).getConstructor(null),
     carr = new arrClsCons(null, str.length),
     carrArray = carr.array;
 

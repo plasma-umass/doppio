@@ -260,7 +260,7 @@ export class Method extends AbstractMethodField {
     var parsedDescriptor = util.getTypes(this.rawDescriptor), i: number,
       p: string;
     this.signature = this.name + this.rawDescriptor;
-    this.fullSignature = `${util.descriptor2typestr(this.cls.getInternalName())}/${this.signature}}`;
+    this.fullSignature = `${util.descriptor2typestr(this.cls.getInternalName())}/${this.signature}`;
     this.returnType = parsedDescriptor.pop();
     this.parameterTypes = parsedDescriptor;
     this.parameterWords = parsedDescriptor.length;

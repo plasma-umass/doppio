@@ -53,6 +53,7 @@ export function resolveCPItem(thread: threading.JVMThread, frame: threading.Byte
       thread.setStatus(enums.ThreadStatus.RUNNABLE);
     }
   }, false);
+  frame.returnToThreadLoop = true;
 }
 
 export function initializeClassFromClass(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, cls: ClassData.ClassData): void {
