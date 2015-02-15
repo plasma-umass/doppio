@@ -596,7 +596,7 @@ export function createMethodType(thread: threading.JVMThread, cl: ClassLoader.Cl
  */
 export function getMethodDescriptorWordSize(descriptor: string): number {
   var parsedDescriptor = getTypes(descriptor),
-    words = parsedDescriptor.length, i: number, p: string;
+    words = parsedDescriptor.length - 1, i: number, p: string;
   // Remove return type.
   parsedDescriptor.pop();
 

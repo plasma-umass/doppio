@@ -605,7 +605,7 @@ export class MethodReference implements IConstantPoolItem {
 
   public setResolved(thread: threading.JVMThread, method: methods.Method): void {
     this.method = method;
-    this.paramWordSize = util.getMethodDescriptorWordSize(this.signature);
+    this.paramWordSize = util.getMethodDescriptorWordSize(this.nameAndTypeInfo.descriptor);
     this.fullSignature = `${util.descriptor2typestr(this.method.cls.getInternalName())}/${this.signature}`;
     this.jsConstructor = this.method.cls.getConstructor(thread);
   }
@@ -703,7 +703,7 @@ export class InterfaceMethodReference implements IConstantPoolItem {
     } else {
       var cls = this.classInfo.cls,
         method = cls.methodLookup(this.signature);
-      this.paramWordSize = util.getMethodDescriptorWordSize(this.signature);
+      this.paramWordSize = util.getMethodDescriptorWordSize(this.nameAndTypeInfo.descriptor);
       if (method !== null) {
         this.fullSignature = `${util.descriptor2typestr(this.method.cls.getInternalName())}/${this.signature}`;
         this.method = method;
