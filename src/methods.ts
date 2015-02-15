@@ -501,7 +501,7 @@ export class Method extends AbstractMethodField {
     }
     outStream.write(`(function(method) {
   return function(thread, `);
-    // No args argument for 0-parameter functions.
+    // No argfs argument for 0-parameter functions.
     if (this.parameterWords > 0) {
       outStream.write(`args, `);
     }
@@ -511,7 +511,7 @@ export class Method extends AbstractMethodField {
     if (typeof cb === 'function') {
       thread.stack.push(new InternalStackFrame(cb));
     }
-    thread.stack.push(${this.accessFlags.isNative() ? "NativeStackFrame" : "BytecodeStackFrame"}(method, `);
+    thread.stack.push(new ${this.accessFlags.isNative() ? "NativeStackFrame" : "BytecodeStackFrame"}(method, `);
     if (!this.accessFlags.isStatic()) {
       // Non-static functions need to add the implicit 'this' variable to the
       // local variables.
@@ -524,7 +524,11 @@ export class Method extends AbstractMethodField {
       outStream.write(`]`);
     } else {
       // Static function doesn't need to mutate the arguments.
-      outStream.write(`args`);
+      if (this.parameterWords > 0) {
+        outStream.write(`args`);
+      } else {
+        outStream.write(`[]`);
+      }
     }
     outStream.write(`));
     thread.setStatus(${enums.ThreadStatus.RUNNABLE});

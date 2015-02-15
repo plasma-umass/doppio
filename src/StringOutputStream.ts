@@ -7,6 +7,7 @@ class StringOutputStream {
   public flush(): string {
     var rv = this._data.join("");
     this._data = [];
+    console.log(rv);
     return rv;
   }
 

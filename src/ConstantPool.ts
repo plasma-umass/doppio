@@ -275,9 +275,14 @@ export class ClassReference implements IConstantPoolItem {
     //  'anonymous')
     // (Anonymous classes are an 'Unsafe' feature, and are not part of the standard,
     //  but they are employed for lambdas and such.)
-    if (this.name === thread.currentMethod().cls.getInternalName()) {
-      this.setResolved(thread, thread.currentMethod().cls);
-      return cb(true);
+    // NOTE: Thread is 'null' during JVM bootstrapping.
+    if (thread !== null) {
+      var currentMethod = thread.currentMethod();
+      // The stack might be empty during resolution, which occurs during JVM bootup.
+      if (currentMethod !== null && this.name === thread.currentMethod().cls.getInternalName()) {
+        this.setResolved(thread, thread.currentMethod().cls);
+        return cb(true);
+      }
     }
 
     loader.resolveClass(thread, this.name, (cdata: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>) => {

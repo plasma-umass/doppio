@@ -25,7 +25,7 @@ export function are_in_browser(): boolean {
  * Lfoo/Bar_baz; => foo_Bar__baz
  */
 export function jvmName2JSName(jvmName: string): string {
-  return jvmName.slice(1).replace(/_/g, '__').replace(/\//g, '_').replace(/;/g, '');
+  return jvmName.slice(1).replace(/_/g, '__').replace(/\//g, '_').replace(/;/g, '').replace(/\[/g, 'ARR_');
 }
 
 /**

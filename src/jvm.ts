@@ -108,7 +108,10 @@ class JVM {
           next("Failed to resolve java/lang/Thread.");
         } else {
           // Fake a thread.
-          firstThread = this.firstThread = this.threadPool.newThread(null);
+          firstThread = this.firstThread = this.threadPool.newThread(<any> {
+            'java/lang/Thread/threadStatus': 0,
+            'ref': 1
+          });
           next();
         }
       });

@@ -609,9 +609,8 @@ export class JVMThread {
    * XXX: Used during bootstrapping to set the first thread's Thread object.
    */
   public setJVMObject(obj: JVMTypes.java_lang_Thread): void {
-    if (this.jvmThreadObj === null) {
-      this.jvmThreadObj = obj;
-    }
+    obj['java/lang/Thread/threadStatus'] = this.jvmThreadObj['java/lang/Thread/threadStatus'];
+    this.jvmThreadObj = obj;
   }
 
   /**
@@ -823,7 +822,7 @@ export class JVMThread {
     // Ignore RUNNING => RUNNABLE transitions.
     if (this.status !== status && !(this.status === enums.ThreadStatus.RUNNING && status === enums.ThreadStatus.RUNNABLE)) {
       var oldStatus = this.status;
-      vtrace(`\nT${this.jvmThreadObj.ref} ${enums.ThreadStatus[oldStatus]} => ${enums.ThreadStatus[status]}`);
+      vtrace(`\nT${this.getRef()} ${enums.ThreadStatus[oldStatus]} => ${enums.ThreadStatus[status]}`);
       assert(validateThreadTransition(oldStatus, status), `Invalid thread transition: ${enums.ThreadStatus[oldStatus]} => ${enums.ThreadStatus[status]}`);
 
       // Optimistically change state.
@@ -938,11 +937,11 @@ export class JVMThread {
         }
       } else {
         // Native methods can asyncReturn at any point, so print more information.
-        vtrace(`T${this.jvmThreadObj.ref} D${this.getStackTrace().length + 1} Returning value from ${frameCast.method.getFullSignature()} [Native]: ${frameCast.method.returnType === 'V' ? 'void' : logging.debug_var(rv)}`);
+        vtrace(`T${this.getRef()} D${this.getStackTrace().length + 1} Returning value from ${frameCast.method.getFullSignature()} [Native]: ${frameCast.method.returnType === 'V' ? 'void' : logging.debug_var(rv)}`);
       }
 
       if (frameCast.method.returnType !== 'V') {
-        vtrace(`\nT${this.jvmThreadObj.ref} D${this.getStackTrace().length + 1} Returning value from ${frameCast.method.getFullSignature()} [${frameCast.method.accessFlags.isNative() ? 'Native' : 'Bytecode'}]: ${logging.debug_var(rv)}`);
+        vtrace(`\nT${this.getRef()} D${this.getStackTrace().length + 1} Returning value from ${frameCast.method.getFullSignature()} [${frameCast.method.accessFlags.isNative() ? 'Native' : 'Bytecode'}]: ${logging.debug_var(rv)}`);
       }
       assert(validateReturnValue(this, frameCast.method,
         frameCast.method.returnType, this.bsCl,
