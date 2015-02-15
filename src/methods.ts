@@ -281,7 +281,7 @@ export class Method extends AbstractMethodField {
       this.code = getTrappedMethod(clsName, methSig);
       this.accessFlags.setNative(true);
     } else if (this.accessFlags.isNative()) {
-      if (methSig.indexOf('registerNatives()V', 1) < 0 && methSig.indexOf('initIDs()V', 1) < 0) {
+      if (methSig.indexOf('registerNatives()V', 0) < 0 && methSig.indexOf('initIDs()V', 0) < 0) {
         // The first version of the native method attempts to fetch itself and
         // rewrite itself.
         this.code = (thread: threading.JVMThread) => {
@@ -297,7 +297,6 @@ export class Method extends AbstractMethodField {
         };
       } else {
         // Stub out initIDs and registerNatives.
-        // TODO: Use registerNatives to trigger dynamic native method loading.
         this.code = () => { };
       }
     } else if (!this.accessFlags.isAbstract()) {
