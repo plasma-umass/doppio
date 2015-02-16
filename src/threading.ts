@@ -581,6 +581,13 @@ export class JVMThread {
   private interrupted: boolean = false;
 
   /**
+   * Immortal threads cannot be terminated. Used by the JVM during bootup
+   * class initialization, before the program runs, to prevent premature
+   * JVM termination.
+   */
+  public immortal: boolean = false;
+
+  /**
    * If the thread is WAITING, BLOCKED, or TIMED_WAITING, this field holds the
    * monitor that is involved.
    */
@@ -822,6 +829,11 @@ export class JVMThread {
     // Ignore RUNNING => RUNNABLE transitions.
     if (this.status !== status && !(this.status === enums.ThreadStatus.RUNNING && status === enums.ThreadStatus.RUNNABLE)) {
       var oldStatus = this.status;
+      // Prevent termination if immortal.
+      if (this.immortal && status === enums.ThreadStatus.TERMINATED) {
+        return;
+      }
+
       vtrace(`\nT${this.getRef()} ${enums.ThreadStatus[oldStatus]} => ${enums.ThreadStatus[status]}`);
       assert(validateThreadTransition(oldStatus, status), `Invalid thread transition: ${enums.ThreadStatus[oldStatus]} => ${enums.ThreadStatus[status]}`);
 

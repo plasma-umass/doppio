@@ -361,6 +361,9 @@ export function ext_classname(str: string): string {
   return descriptor2typestr(str).replace(/\//g, '.');
 }
 
+/**
+ * java.lang.Class => Ljava/lang/Class;
+ */
 export function int_classname(str: string): string {
   return typestr2descriptor(str.replace(/\./g, '/'));
 }

@@ -1518,7 +1518,7 @@ export class Opcodes {
       obj: JVMTypes.java_lang_Object = stack[stack.length - paramSize - 1],
       args = stack.slice(stack.length - paramSize);
 
-    if (isNull(thread, frame, obj)) {
+    if (!isNull(thread, frame, obj)) {
       stack.length -= paramSize + 1;
       assert(typeof (<any> obj)[methodReference.fullSignature] === 'function', "Resolved method isn't defined?!");
       (<any> obj)[methodReference.fullSignature](thread, args);

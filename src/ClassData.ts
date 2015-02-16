@@ -1156,7 +1156,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
     var cons = <any> this.getConstructor(thread);
     if (cons['<clinit>()V'] !== undefined) {
       debug(`T${thread.getRef()} Running static initialization for class ${this.className}...`);
-      cons['<clinit>()V'](thread, [], (e?: JVMTypes.java_lang_Throwable) => {
+      cons['<clinit>()V'](thread, (e?: JVMTypes.java_lang_Throwable) => {
         if (e) {
           debug(`Initialization of class ${this.className} failed.`);
           this.setState(enums.ClassState.RESOLVED);

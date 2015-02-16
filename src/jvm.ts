@@ -112,6 +112,7 @@ class JVM {
             'java/lang/Thread/threadStatus': 0,
             'ref': 1
           });
+          firstThread.immortal = true;
           next();
         }
       });
@@ -219,9 +220,11 @@ class JVM {
    */
   public runClass(className: string, args: string[], cb: (result: boolean) => void): void {
     var thread = this.firstThread;
+    // Disable immortal status from JVM bootup.
+    thread.immortal = false;
     assert(thread != null && thread.getStatus() === enums.ThreadStatus.TERMINATED);
     // Convert foo.bar.Baz => Lfoo/bar/Baz;
-    className = "L" + className.replace(/\./g, '/') + ";";
+    className = util.int_classname(className);
     // Initialize the class.
     this.systemClassLoader.initializeClass(thread, className, (cdata: ClassData.ReferenceClassData<any>) => {
       if (cdata != null) {
