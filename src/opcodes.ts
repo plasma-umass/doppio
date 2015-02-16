@@ -1776,7 +1776,7 @@ export class Opcodes {
 
     if (length >= 0) {
       stack.push(new classRef.arrayClassConstructor(thread, length));
-      frame.pc += 2;
+      frame.pc += 3;
     } else {
       throwException(thread, frame, 'Ljava/lang/NegativeArraySizeException;', `Tried to init ${classRef.arrayClass.getInternalName()} array with length ${length}`);
     }

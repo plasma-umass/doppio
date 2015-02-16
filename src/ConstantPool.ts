@@ -370,7 +370,7 @@ CP_CLASSES[enums.ConstantPoolItemType.NAME_AND_TYPE] = NameAndTypeInfo;
  */
 export class ConstString implements IConstantPoolItem {
   public stringValue: string;
-  public value: JVMTypes.java_lang_String;
+  public value: JVMTypes.java_lang_String = null;
   constructor(stringValue: string) {
     this.stringValue = stringValue;
   }

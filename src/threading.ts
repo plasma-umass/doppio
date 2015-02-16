@@ -1173,7 +1173,7 @@ function validateReturnValue(thread: JVMThread, method: methods.Method, returnTy
           cls = bsCl.getInitializedClass(thread, returnType);
         }
         assert(cls != null);
-        assert(rv1.cls.isCastable(cls));
+        assert(rv1.getClass().isCastable(cls));
       }
     } else {
       assert(util.is_reference_type(returnType));
@@ -1195,7 +1195,7 @@ function validateReturnValue(thread: JVMThread, method: methods.Method, returnTy
           // initialized. getInitializedClass handles this subtlety.
           assert(cl.getInitializedClass(thread, returnType) != null || bsCl.getInitializedClass(thread, returnType) != null);
         }
-        assert(rv1.cls.isCastable(cls));
+        assert(rv1.getClass().isCastable(cls));
       }
     }
   } catch (e) {
