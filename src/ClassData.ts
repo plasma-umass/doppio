@@ -51,7 +51,7 @@ var injectedFields: {[className: string]: {[fieldName: string]: [string, string]
     '$loader': ['ClassLoader.ClassLoader', 'new ClassLoader.CustomClassLoader(thread.getBsCl(), this);']
   },
   'Ljava/lang/Thread;': {
-    '$thread': ['threading.JVMThread', 'thread.getThreadPool().newThread(this))']
+    '$thread': ['threading.JVMThread', 'thread.getThreadPool().newThread(this)']
   }
 };
 
