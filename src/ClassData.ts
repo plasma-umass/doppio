@@ -231,7 +231,9 @@ export class ClassData {
    */
   public getClassObject(thread: threading.JVMThread): JVMTypes.java_lang_Class {
     if (this.jco === null) {
-      // this.jco = new JavaClassObject(thread, this);
+      this.jco = new ((<ReferenceClassData<JVMTypes.java_lang_Class>> thread.getBsCl().getResolvedClass('Ljava/lang/Class;')).getConstructor(thread))(thread);
+      this.jco.$cls = this;
+      this.jco['java/lang/Class/classLoader'] = this.getLoader().getLoaderObject();
     }
     return this.jco;
   }
