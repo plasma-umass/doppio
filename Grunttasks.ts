@@ -78,7 +78,7 @@ export function setup(grunt: IGrunt) {
         files: [{
           expand: true,
           cwd: 'build/dev',
-          src: ['+(src|browser)/**/*.js', 'vendor/underscore/underscore.js', 'vendor/almond/almond.js'],
+          src: ['+(src|browser)/**/*.js', 'vendor/almond/almond.js'],
           dest: '<%= resolve(build.scratch_dir, "tmp_release") %>'
         }]
       }

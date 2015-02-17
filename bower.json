@@ -9,7 +9,6 @@
     "tests"
   ],
   "dependencies": {
-    "underscore": "~1.5.1",
     "browserfs": "0.3.5",
     "DefinitelyTyped": "latest",
     "almond": "*",

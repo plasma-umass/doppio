@@ -483,8 +483,17 @@ export = JVMTypes;\n`, () => {});
    */
   private generateArrayDefinition(): void {
     this.headerStream.write(`  export class JVMArray<T> extends java_lang_Object {
+    /**
+     * NOTE: Our arrays are either JS arrays, or TypedArrays for primitive
+     * types.
+     */
     public array: T[];
     public getClass(): ClassData.ArrayClassData<T>;
+    /**
+     * Create a new JVM array of this type that starts at start, and ends at
+     * end. End defaults to the end of the array.
+     */
+    public slice(start: number, end?: number): JVMArray<T>;
   }\n`);
   }
 }

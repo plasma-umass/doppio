@@ -539,6 +539,8 @@ export class ArrayClassData<T> extends ClassData {
         return 'Int8Array';
       case 'C':
         return 'Uint8Array';
+      case 'S':
+        return 'Int16Array';
       case 'I':
         return 'Int32Array';
       case 'F':
@@ -564,6 +566,47 @@ export class ArrayClassData<T> extends ClassData {
       default:
         return "0";
     }
+  }
+
+  /**
+   * Creates a specialized `slice` method that creates a shallow slice of this
+   * array. Specialized to the type of array (JS or Typed).
+   */
+  private _getSliceMethod(): string {
+    var output = new StringOutputStream();
+    output.write(`function(start, end) {
+    var newObj = new this.constructor(null, 0);\n`);
+    if (this.getJSArrayConstructor() === 'Array') {
+      output.write(`    newObj.array = this.array.slice(start, end);\n`);
+    } else {
+      var elementSize: number;
+      switch (this.getJSArrayConstructor()) {
+        case 'Int8Array':
+        case 'Uint8Array':
+          elementSize = 1;
+          break;
+        case 'Int16Array':
+          elementSize = 2;
+          break;
+        case 'Int32Array':
+        case 'Float32Array':
+          elementSize = 4;
+          break;
+        case 'Float64Array':
+          elementSize = 8;
+          break;
+        default:
+          assert(false, "Illegal array type returned??");
+      }
+      // Although ArrayBuffer.slice has an optional end argument, we need to
+      // multiply it if it does exist.
+      output.write(`    if (end === undefined) end = this.array.length;
+      ${elementSize > 1 ? `start *= ${elementSize};\nend *= ${elementSize};` : ''}
+      newObj.array = this.array.buffer.slice(start, end);\n`);
+    }
+    output.write(`    return newObj;
+  }`);
+    return output.flush();
   }
 
   private _constructConstructor(thread: threading.JVMThread): IJVMConstructor<JVMTypes.JVMArray<T>> {
@@ -602,6 +645,7 @@ export class ArrayClassData<T> extends ClassData {
     }
     outputStream.write(`  }
 
+  ${jsClassName}.prototype.slice = ${this._getSliceMethod()};
   ${jsClassName}.cls = cls;\n`);
     this.outputInjectedMethods(jsClassName, outputStream);
     outputStream.write(`
@@ -1094,6 +1138,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    * "target" is a ClassData object.
    * The ClassData objects do not need to be initialized; just loaded.
    * See §2.6.7 for casting rules.
+   * @todo Determine this statically to make this a constant time operation.
    */
   public isCastable(target: ClassData): boolean {
     if (!(target instanceof ReferenceClassData)) {

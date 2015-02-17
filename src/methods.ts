@@ -376,14 +376,13 @@ export class Method extends AbstractMethodField {
         name = jvm.internString(this.name),
         parameterTypes = new clazzArray(thread, 0),
         returnType = classes[this.returnType].getClassObject(thread),
-        exceptionTypes: JVMTypes.JVMArray<JVMTypes.java_lang_Class>,
+        exceptionTypes: JVMTypes.JVMArray<JVMTypes.java_lang_Class> = new clazzArray(thread, 0),
         modifiers = this.accessFlags.getRawByte(),
         signature = signatureAttr !== null ? jvm.internString(signatureAttr.sig) : null;
 
       // Prepare the class arrays.
       parameterTypes.array = this.parameterTypes.map((ptype: string) => classes[ptype].getClassObject(thread));
       if (exceptionAttr !== null) {
-        exceptionTypes = new clazzArray(thread, 0);
         exceptionTypes.array = exceptionAttr.exceptions.map((eType: string) => classes[eType].getClassObject(thread));
       }
 

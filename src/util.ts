@@ -709,13 +709,21 @@ export function initCarr(cl: ClassLoader.ClassLoader, str: string): JVMTypes.JVM
   return carr;
 }
 
-export function newArrayFromClass<T>(thread: threading.JVMThread, clazz: ClassData.ArrayClassData<T>, length: number | number[]): JVMTypes.JVMArray<T> {
+export function newArrayFromClass<T>(thread: threading.JVMThread, clazz: ClassData.ArrayClassData<T>, length: number): JVMTypes.JVMArray<T> {
   return new (clazz.getConstructor(thread))(thread, length);
 }
 
-export function newArray<T>(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, desc: string, length: number | number[]): JVMTypes.JVMArray<T> {
+export function newArray<T>(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, desc: string, length: number): JVMTypes.JVMArray<T> {
   var cls = <ClassData.ArrayClassData<T>> cl.getInitializedClass(thread, desc);
   return newArrayFromClass(thread, cls, length);
+}
+
+/**
+ * Separate from newArray to avoid programming mistakes where newArray and newArrayFromData are conflated.
+ */
+export function multiNewArray<T>(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, desc: string, lengths: number[]): JVMTypes.JVMArray<T> {
+  var cls = <ClassData.ArrayClassData<T>> cl.getInitializedClass(thread, desc);
+  return new (cls.getConstructor(thread))(thread, lengths);
 }
 
 export function newObjectFromClass<T extends JVMTypes.java_lang_Object>(thread: threading.JVMThread, clazz: ClassData.ReferenceClassData<T>) {

@@ -245,7 +245,7 @@ class java_lang_Class {
       methods: methods.Method[], i: number, m: methods.Method;
 
     if (annotationsVisible !== null) {
-      return util.newArray<number>(thread, thread.getBsCl(), '[B', annotationsVisible.rawBytes);
+      return util.newArrayFromData<number>(thread, thread.getBsCl(), '[B', annotationsVisible.rawBytes);
     }
     return null;
   }
@@ -426,6 +426,7 @@ class java_lang_ClassLoader {
     var type = util.int_classname(name.toString());
     // This returns null in OpenJDK7, but actually can throw an exception
     // in OpenJDK6.
+    // TODO: Fix currently incorrect behavior for our JDK. Should return null, not throw an exception on failure.
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     thread.getBsCl().resolveClass(thread, type, (cls) => {
       if (cls != null) {
@@ -531,11 +532,17 @@ class java_lang_Object {
   }
 
   public static 'clone()Ljava/lang/Object;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Object): JVMTypes.java_lang_Object {
-    var clonedObj = util.newObjectFromClass<JVMTypes.java_lang_Object>(thread, <ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> javaThis.getClass());
-    Object.keys(javaThis).forEach((fieldName: string) => {
-      (<any> clonedObj)[fieldName] = (<any> javaThis)[fieldName];
-    });
-    return clonedObj;
+    var cls = javaThis.getClass();
+    if (cls.getInternalName()[0] === '[') {
+      // Array clone. It's always a shallow clone.
+      return (<JVMTypes.JVMArray<any>> javaThis).slice(0);
+    } else {
+      var clonedObj = util.newObjectFromClass<JVMTypes.java_lang_Object>(thread, <ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> javaThis.getClass());
+      Object.keys(javaThis).forEach((fieldName: string) => {
+        (<any> clonedObj)[fieldName] = (<any> javaThis)[fieldName];
+      });
+      return clonedObj;
+    }
   }
 
   public static 'notify()V'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Object): void {
@@ -692,11 +699,11 @@ class java_lang_reflect_Array {
   public static 'multiNewArray(Ljava/lang/Class;[I)Ljava/lang/Object;'(thread: threading.JVMThread, jco: JVMTypes.java_lang_Class, lens: JVMTypes.JVMArray<number>): JVMTypes.JVMArray<any> {
     var typeStr = (new Array(lens.array.length + 1)).join('[') + jco.$cls.getInternalName();
     if (jco.$cls.isInitialized(thread)) {
-      return util.newArray<any>(thread, jco.$cls.getLoader(), typeStr, lens.array);
+      return util.multiNewArray<any>(thread, jco.$cls.getLoader(), typeStr, lens.array);
     } else {
       thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
       jco.$cls.initialize(thread, (cls) => {
-        thread.asyncReturn(util.newArray<any>(thread, jco.$cls.getLoader(), typeStr, lens.array));
+        thread.asyncReturn(util.multiNewArray<any>(thread, jco.$cls.getLoader(), typeStr, lens.array));
       });
     }
   }
@@ -1486,7 +1493,7 @@ class java_lang_invoke_MethodHandleNatives {
               initializeMemberName(thread, memberName, vmtarget);
               thread.asyncReturn(memberName);
             } else {
-              thread.throwNewException('Ljava/lang/NoSuchMethodErr;', `Invalid method ${name + str.toString()} in class ${clazz.getExternalName()}.`);
+              thread.throwNewException('Ljava/lang/NoSuchMethodError;', `Invalid method ${name + str.toString()} in class ${clazz.getExternalName()}.`);
             }
           }
         });
@@ -1497,7 +1504,7 @@ class java_lang_invoke_MethodHandleNatives {
           initializeMemberName(thread, memberName, vmtarget);
           return memberName;
         } else {
-          thread.throwNewException('Ljava/lang/NoSuchFieldErr;', `Invalid method ${name} in class ${clazz.getExternalName()}.`);
+          thread.throwNewException('Ljava/lang/NoSuchFieldError;', `Invalid method ${name} in class ${clazz.getExternalName()}.`);
         }
         break;
       default:
