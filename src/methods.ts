@@ -85,9 +85,9 @@ export class AbstractMethodField {
    */
   public cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>;
   /**
-   * The method / field's slot in the virtual lookup table.
+   * The method / field's index in its defining class's method/field array.
    */
-  public slot: number = -1;
+  public slot: number;
   /**
    * The method / field's flags (e.g. static).
    */
@@ -111,19 +111,13 @@ export class AbstractMethodField {
   /**
    * Constructs a field or method object from raw class data.
    */
-  constructor(cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, constantPool: ConstantPool.ConstantPool, byteStream: ByteStream) {
+  constructor(cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, constantPool: ConstantPool.ConstantPool, slot: number, byteStream: ByteStream) {
     this.cls = cls;
+    this.slot = slot;
     this.accessFlags = new util.Flags(byteStream.getUint16());
     this.name = (<ConstantPool.ConstUTF8> constantPool.get(byteStream.getUint16())).value;
     this.rawDescriptor = (<ConstantPool.ConstUTF8> constantPool.get(byteStream.getUint16())).value;
     this.attrs = attributes.makeAttributes(byteStream, constantPool);
-  }
-
-  /**
-   * Sets the field or method's slot. Called once its class is resolved.
-   */
-  public setSlot(slot: number): void {
-    this.slot = slot;
   }
 
   public getAttribute(name: string): attributes.IAttribute {
@@ -168,8 +162,8 @@ export class Field extends AbstractMethodField {
    */
   public fullName: string;
 
-  constructor(cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, constantPool: ConstantPool.ConstantPool, byteStream: ByteStream) {
-    super(cls, constantPool, byteStream);
+  constructor(cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, constantPool: ConstantPool.ConstantPool, slot: number, byteStream: ByteStream) {
+    super(cls, constantPool, slot, byteStream);
     this.fullName = `${util.descriptor2typestr(cls.getInternalName())}/${this.name}`;
   }
 
@@ -255,8 +249,8 @@ export class Method extends AbstractMethodField {
    */
   private code: any;
 
-  constructor(cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, constantPool: ConstantPool.ConstantPool, byteStream: ByteStream) {
-    super(cls, constantPool, byteStream);
+  constructor(cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, constantPool: ConstantPool.ConstantPool, slot: number, byteStream: ByteStream) {
+    super(cls, constantPool, slot, byteStream);
     var parsedDescriptor = util.getTypes(this.rawDescriptor), i: number,
       p: string;
     this.signature = this.name + this.rawDescriptor;
@@ -485,6 +479,34 @@ export class Method extends AbstractMethodField {
     return this.cls.getInternalName() === 'Ljava/lang/invoke/MethodHandle;' &&
       this.accessFlags.isNative() && this.accessFlags.isVarArgs() &&
       this.rawDescriptor === '([Ljava/lang/Object;)Ljava/lang/Object;';
+  }
+
+  /**
+   * Retrieve the MemberName/invokedynamic JavaScript "bridge method" that
+   * encapsulates the logic required to call this particular method.
+   */
+  public getVMTargetBridgeMethod(thread: threading.JVMThread): (thread: threading.JVMThread, args: any[], cb?: (e?: JVMTypes.java_lang_Throwable, rv?: any) => void) => void {
+    // TODO: Could cache these in the Method object if desired.
+    var outStream = new StringOutputStream(),
+      virtualDispatch = !(this.accessFlags.isStatic() || this.name === '<init>');
+    outStream.write(`function _create(thread, cls) {\n`);
+    if (this.accessFlags.isStatic()) {
+      assert(!virtualDispatch, "Can't have static virtual dispatch.");
+      outStream.write(`  var jsCons = cls.getConstructor(thread);\n`);
+    }
+    outStream.write(`  function bridgeMethod(thread, args, cb) {\n`);
+    if (!this.accessFlags.isStatic()) {
+      outStream.write(`    var obj = args.shift();\n`);
+      outStream.write(`    if (obj === null) { return thread.throwNewException('Ljava/lang/NullPointerException;', ''); }\n`);
+      outStream.write(`    obj[${virtualDispatch ? this.signature : this.fullSignature}](thread, args, cb);\n`);
+    } else {
+      outStream.write(`    jsCons[${this.fullSignature}](thread, args, cb);\n`);
+    }
+    outStream.write(`  }
+  return bridgeMethod;
+}
+_create`);
+    return eval(outStream.flush())(thread, this.cls);
   }
 
   /**

@@ -902,7 +902,6 @@ export class InvokeDynamic implements IConstantPoolItem {
   }
 
   public constructCallSiteObject(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, clazz: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, pc: number, cb: (status: boolean) => void, explicit: boolean = true): void {
-    assert(this.callSiteObjects[pc] === undefined, 'Should be impossible to construct same callsite object twice.');
     /**
      * A call site specifier gives a symbolic reference to a method handle which
      * is to serve as the bootstrap method for a dynamic call site (§4.7.23).
@@ -1026,10 +1025,18 @@ export class InvokeDynamic implements IConstantPoolItem {
         thread.throwException(e);
         cb(false);
       } else {
-        this.callSiteObjects[pc] = [rv, appendixArr.array[0]];
+        this.setResolved(pc, [rv, appendixArr.array[0]]);
         cb(true);
       }
     });
+  }
+
+  private setResolved(pc: number, cso: [JVMTypes.java_lang_invoke_MemberName, JVMTypes.java_lang_Object]) {
+    // Prevent resolution races. It's OK to create multiple CSOs, but only one
+    // should ever be used!
+    if (this.callSiteObjects[pc] === undefined) {
+      this.callSiteObjects[pc] = cso;
+    }
   }
 
   public static size: number = 1;

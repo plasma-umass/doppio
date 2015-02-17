@@ -31,7 +31,8 @@ var ref: number = 1;
  */
 var injectedFields: {[className: string]: {[fieldName: string]: [string, string]}} = {
   'Ljava/lang/invoke/MemberName;': {
-    vmtarget: ["methods.AbstractMethodField", "null"]
+    vmtarget: ["(thread: threading.JVMThread, args: any[], cb?: (e?: JVMTypes.java_lang_Throwable, rv?: any) => void) => void", "null"],
+    vmindex: ["number", "-1"]
   },
   'Ljava/lang/Object;': {
     'ref': ["number", "ref++"],
@@ -61,15 +62,6 @@ var injectedFields: {[className: string]: {[fieldName: string]: [string, string]
  * method's name. These are all instance methods (e.g. non-static).
  */
 var injectedMethods: {[className: string]: {[methodName: string]: [string, string]}} = {
-  // NOTE: '[' represents any JVM array class.
-  '[': {
-    'getFieldFromSlot': ['(offset: gLong): T', `function(offset) {
-  return this.array[offset.toInt()];
-}`],
-    'setFieldFromSlot': ['(offset: gLong, value: T): void', `function(offset, value) {
-  this[offset.toInt()] = value;
-}`]
-  },
   'Ljava/lang/Object;': {
     'getClass': ["(): ClassData.ClassData", `function() { return this.constructor.cls }`],
     'getMonitor': ["(): Monitor", `function() {
@@ -77,12 +69,6 @@ var injectedMethods: {[className: string]: {[methodName: string]: [string, strin
     this.$monitor = new Monitor();
   }
   return this.$monitor;
-}`],
-    'getFieldFromSlot': ['(offset: gLong): any', `function(offset) {
-  return this[this.getClass().getFieldFromSlot(offset.toInt()).fullName];
-}`],
-    'setFieldFromSlot': ['(offset: gLong, value: any): void', `function(offset, value) {
-  this[this.getClass().getFieldFromSlot(offset.toInt()).fullName] = value;
 }`]
   },
   'Ljava/lang/String;': {
@@ -664,21 +650,26 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    */
   private _fieldLookup: { [name: string]: methods.Field } = {};
   /**
-   * All fields in object instantiations. The field's index is its slot.
+   * All fields in object instantiations. Fields from super classes are in front
+   * of fields from this class. A field's offset in the array is its *vmindex*.
    */
-  protected _fieldSlots: methods.Field[] = [];
+  protected _objectFields: methods.Field[] = [];
   /**
-   * All static fields in the class. The field's index is its slot.
+   * All static fields in this particular class. The field's offset in this
+   * array is its *vmindex*.
    */
-  protected _staticFieldSlots: methods.Field[] = [];
+  protected _staticFields: methods.Field[] = [];
   /**
-   * Virtual method table.
+   * Virtual method table, keyed by method signature. Unlike _vmTable,
+   * _methodLookup contains static methods and constructors, too.
    */
-  private _methodLookup: { [name: string]: methods.Method } = {};
+  private _methodLookup: { [signature: string]: methods.Method } = {};
   /**
-   * All methods in object instantiations. The method's index is its slot.
+   * Virtual method table, keyed by vmindex. Methods originally defined by
+   * super classes are in front of methods defined in this class. Overriding
+   * methods are placed into the vmindex of the originating method.
    */
-  protected _methodSlots: methods.Method[] = [];
+  protected _vmTable: methods.Method[] = [];
 
   constructor(buffer: NodeBuffer, loader?: ClassLoader.ClassLoader, cpPatches?: JVMTypes.JVMArray<JVMTypes.java_lang_Object>) {
     super(loader);
@@ -713,13 +704,13 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
     var numFields = byteStream.getUint16();
     this.fields = new Array<methods.Field>(numFields);
     for (i = 0; i < numFields; ++i) {
-      this.fields[i] = new methods.Field(this, this.constantPool, byteStream);
+      this.fields[i] = new methods.Field(this, this.constantPool, i, byteStream);
     }
     // class methods
     var numMethods = byteStream.getUint16();
     this.methods = new Array<methods.Method>(numMethods);
     for (i = 0; i < numMethods; i++) {
-      var m = new methods.Method(this, this.constantPool, byteStream);
+      var m = new methods.Method(this, this.constantPool, i, byteStream);
       this.methods[i] = m;
     }
     // class attributes
@@ -754,19 +745,66 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
   }
 
   /**
-   * The virtual method table for this class. The method's index in the table
-   * is its slot.
+   * Get the Virtual Method table for this class.
    */
-  public getMethodSlots(): methods.Method[] {
-    return this._methodSlots;
+  public getVMTable(): methods.Method[] {
+    return this._vmTable;
   }
 
+  /**
+   * Returns the VM index for the given method. Returns -1 if not present in the
+   * virtual method table (e.g. is static or a constructor).
+   */
+  public getVMIndexForMethod(m: methods.Method): number {
+    // Use M's signature, as we might override the method and use a different
+    // method object in the table for its vmindex.
+    return this._vmTable.indexOf(this.methodLookup(m.signature));
+  }
+
+  /**
+   * Get the VM index for the given field
+   * NOTE: A static and non-static field can have the same vmindex! Caller must
+   * be able to differentiate between static and non-static behavior!
+   */
+  public getVMIndexForField(f: methods.Field): number {
+    if (f.accessFlags.isStatic()) {
+      assert(f.cls === this, "Looks like we actually need to support static field lookups!");
+      return this._staticFields.indexOf(f);
+    } else {
+      return this._objectFields.indexOf(f);
+    }
+  }
+
+  public getStaticFieldFromVMIndex(index: number): methods.Field {
+    var f = this._staticFields[index];
+    if (f !== undefined) {
+      return f;
+    }
+    return null;
+  }
+
+  public getObjectFieldFromVMIndex(index: number): methods.Field {
+    var f = this._objectFields[index];
+    if (f !== undefined) {
+      return f;
+    }
+    return null;
+  }
+
+  /**
+   * Get a field from its "slot". A "slot" is just the field's index in its
+   * defining class's field array.
+   */
   public getFieldFromSlot(slot: number): methods.Field {
-    return this._fieldSlots[slot];
+    return this.fields[slot];
   }
 
+  /**
+   * Get a method from its "slot". A "slot" is just the method's index in its
+   * defining class's method array.
+   */
   public getMethodFromSlot(slot: number): methods.Method {
-    return this._methodSlots[slot];
+    return this.methods[slot];
   }
 
   /**
@@ -799,8 +837,8 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    */
   private _resolveMethods(): void {
     if (this.superClass !== null) {
-      // Start off with my parents' table / slots.
-      this._methodSlots = this._methodSlots.concat(this.superClass._methodSlots);
+      // Start off with my parents' method table.
+      this._vmTable = this._vmTable.concat(this.superClass._vmTable);
       Object.keys(this.superClass._methodLookup).forEach((m: string) => {
         this._methodLookup[m] = this.superClass._methodLookup[m];
       });
@@ -810,14 +848,14 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
     this.methods.forEach((m: methods.Method) => {
       var superM = this._methodLookup[m.signature];
       if (!m.accessFlags.isStatic() && m.name !== "<init>") {
-        // Slots only matter to non-static non-constructor methods.
+        // Only non-static non-constructor methods are placed into the virtual
+        // method table.
         if (superM === undefined) {
-          // New slot.
-          m.slot = this._methodSlots.push(m) - 1;
+          // New vmindex.
+          this._vmTable.push(m);
         } else {
-          // Old slot. Inherit the super class method's slot.
-          m.slot = superM.slot;
-          this._methodSlots[m.slot] = m;
+          // Old vmindex. Inherit the super class method's vmindex.
+          this._vmTable[this._vmTable.indexOf(superM)] = m;
         }
       }
       this._methodLookup[m.signature] = m;
@@ -828,13 +866,9 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
     this.interfaceClasses.forEach((iface: ReferenceClassData<JVMTypes.java_lang_Object>) => {
       Object.keys(iface._methodLookup).forEach((ifaceMethodSig: string) => {
         if (this._methodLookup[ifaceMethodSig] === undefined) {
-          // New slot.
+          // New vmindex.
           var ifaceM = iface._methodLookup[ifaceMethodSig];
-          // TODO: How do interface slots work? Can't be fixed... I'm not
-          // setting it here. Then again, maybe it's the slot in the interface?
-          // TODO: I think I'll need to support multiple slots per method?
-          // TODO: invoke tests w/ interfaces.
-          this._methodSlots.push(ifaceM);
+          this._vmTable.push(ifaceM);
           this._methodLookup[ifaceMethodSig] = ifaceM;
         }
       });
@@ -849,8 +883,8 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
   private _resolveFields(): void {
     if (this.superClass !== null) {
       // Start off w/ my parent class' fields.
-      this._fieldSlots = this._fieldSlots.concat(this.superClass._fieldSlots);
-      this._staticFieldSlots = this._staticFieldSlots.concat(this.superClass._staticFieldSlots);
+      this._objectFields = this._objectFields.concat(this.superClass._objectFields);
+      this._staticFields = this._staticFields.concat(this.superClass._staticFields);
       Object.keys(this.superClass._fieldLookup).forEach((f: string) => {
         this._fieldLookup[f] = this.superClass._fieldLookup[f];
       });
@@ -862,15 +896,18 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
         var ifaceF = iface._fieldLookup[ifaceFieldName];
         assert(ifaceF.accessFlags.isStatic(), "Interface fields must be static.");
         this._fieldLookup[ifaceFieldName] = ifaceF;
-        // TODO: How do interface field slots work...?
-        this._staticFieldSlots.push(ifaceF);
+        this._staticFields.push(ifaceF);
       });
     });
 
     // My fields override all other fields.
     this.fields.forEach((f: methods.Field) => {
       this._fieldLookup[f.name] = f;
-      f.slot = (f.accessFlags.isStatic() ? this._staticFieldSlots.push(f) : this._fieldSlots.push(f)) - 1;
+      if (f.accessFlags.isStatic()) {
+        this._staticFields.push(f);
+      } else {
+        this._objectFields.push(f);
+      }
     });
   }
 
@@ -1246,12 +1283,12 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
 
   /**
    * Find Miranda and default interface methods in this class. These
-   * methods manifest as new slots in the virtual method table compared with
+   * methods manifest as new vmindices in the virtual method table compared with
    * the superclass, and are not defined in this class itself.
    */
   public getMirandaAndDefaultMethods(): methods.Method[] {
-    var superClsMethodTable: methods.Method[] = this.superClass !== null ? this.superClass.getMethodSlots() : [];
-    return this.getMethodSlots().slice(superClsMethodTable.length).filter((method: methods.Method) => method.cls !== this);
+    var superClsMethodTable: methods.Method[] = this.superClass !== null ? this.superClass.getVMTable() : [];
+    return this.getVMTable().slice(superClsMethodTable.length).filter((method: methods.Method) => method.cls !== this);
   }
 
   public outputInjectedFields(outputStream: StringOutputStream) {
@@ -1281,7 +1318,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
     this.outputInjectedFields(outputStream);
 
     // Output instance field assignments.
-    this._fieldSlots.forEach((f: methods.Field) => f.outputJavaScriptField(jsClassName, outputStream));
+    this._objectFields.forEach((f: methods.Field) => f.outputJavaScriptField(jsClassName, outputStream));
     outputStream.write(`  }
   ${jsClassName}.cls = cls;\n`);
 
@@ -1289,7 +1326,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
     this.outputInjectedMethods(jsClassName, outputStream);
 
     // Static fields.
-    this._staticFieldSlots.forEach((f: methods.Field) => f.outputJavaScriptField(jsClassName, outputStream));
+    this._staticFields.forEach((f: methods.Field) => f.outputJavaScriptField(jsClassName, outputStream));
 
     // Static and instance methods.
     this.getMethods().forEach((m: methods.Method) => m.outputJavaScriptFunction(jsClassName, outputStream));

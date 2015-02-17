@@ -1351,6 +1351,8 @@ function initializeMemberName(thread: threading.JVMThread, mn: JVMTypes.java_lan
        } else {
          refKind = enums.MethodHandleReferenceKind.INVOKEVIRTUAL;
        }
+       mn.vmtarget = ref.getVMTargetBridgeMethod(thread);
+       mn.vmindex = ref.cls.getVMIndexForMethod(ref);
     } else {
       flags = MemberNameConstants.IS_FIELD;
       // Assume a GET.
@@ -1359,6 +1361,7 @@ function initializeMemberName(thread: threading.JVMThread, mn: JVMTypes.java_lan
       } else {
         refKind = enums.MethodHandleReferenceKind.GETFIELD;
       }
+      mn.vmindex = ref.cls.getVMIndexForField(<methods.Field> ref);
     }
     flags |= refKind << MemberNameConstants.REFERENCE_KIND_SHIFT;
   }
@@ -1375,7 +1378,6 @@ function initializeMemberName(thread: threading.JVMThread, mn: JVMTypes.java_lan
   mn['java/lang/invoke/MemberName/flags'] = flags;
   mn['java/lang/invoke/MemberName/type'] = type;
   mn['java/lang/invoke/MemberName/name'] = name;
-  mn.vmtarget = ref;
 }
 
 class java_lang_invoke_MethodHandleNatives {
@@ -1403,8 +1405,9 @@ class java_lang_invoke_MethodHandleNatives {
       clazzData = <ClassData.ReferenceClassData<JVMTypes.java_lang_Class>> clazz.$cls,
       flags: number = (<any> ref)[util.descriptor2typestr(ref.getClass().getInternalName()) + "modifiers"],
       flagsParsed: util.Flags = new util.Flags(flags),
-      refKind: number,
-      vmtarget: methods.AbstractMethodField;
+      refKind: number, m: methods.Method,
+      vmtarget: (thread: threading.JVMThread, args: any[], cb?: (e?: java_lang_Throwable, rv?: any) => void) => void = null,
+      vmindex: number = -1;
     self['java/lang/invoke/MemberName/clazz'] = clazz;
     switch (ref.getClass().getInternalName()) {
       case "Ljava/lang/reflect/Method;":
@@ -1416,20 +1419,22 @@ class java_lang_invoke_MethodHandleNatives {
         } else {
           refKind = enums.MethodHandleReferenceKind.INVOKEVIRTUAL;
         }
-        vmtarget = clazzData.getMethodFromSlot((<JVMTypes.java_lang_reflect_Method> ref)['java/lang/reflect/Method/slot']);
+        m = clazzData.getMethodFromSlot((<JVMTypes.java_lang_reflect_Method> ref)['java/lang/reflect/Method/slot']);
+        vmtarget = m.getVMTargetBridgeMethod(thread);
+        vmindex = clazzData.getVMIndexForMethod(m);
         // TODO: Is the @CallerSensitive annotation present on the method? Requires a slot->method lookup function.
         break;
       case "Ljava/lang/reflect/Constructor;":
         flags |= MemberNameConstants.IS_CONSTRUCTOR;
         refKind = enums.MethodHandleReferenceKind.INVOKESPECIAL;
         // TODO: Is the @CallerSensitive annotation present on the method? Requires a slot->method lookup function.
-        vmtarget = clazzData.getMethodFromSlot((<JVMTypes.java_lang_reflect_Constructor> ref)['java/lang/reflect/Constructor/slot']);
+        m = clazzData.getMethodFromSlot((<JVMTypes.java_lang_reflect_Constructor> ref)['java/lang/reflect/Constructor/slot']);
+        vmtarget = m.getVMTargetBridgeMethod(thread);
         break;
       case "Ljava/lang/reflect/Field;":
         flags |= MemberNameConstants.IS_FIELD;
         refKind = flagsParsed.isStatic() ? enums.MethodHandleReferenceKind.GETSTATIC : enums.MethodHandleReferenceKind.GETFIELD;
-        // Set vmtarget to the field.
-        vmtarget = clazzData.getFieldFromSlot((<JVMTypes.java_lang_reflect_Field> ref)['java/lang/reflect/Field/slot']);
+        vmindex = clazzData.getVMIndexForField(clazzData.getFieldFromSlot((<JVMTypes.java_lang_reflect_Field> ref)['java/lang/reflect/Field/slot']));
         break;
       default:
         thread.throwNewException("Ljava/lang/InternalError;", "init: Invalid target.");
@@ -1438,6 +1443,7 @@ class java_lang_invoke_MethodHandleNatives {
     flags |= refKind << MemberNameConstants.REFERENCE_KIND_SHIFT;
     self['java/lang/invoke/MemberName/flags'] = flags;
     self.vmtarget = vmtarget;
+    self.vmindex = vmindex;
   }
 
   public static 'getConstant(I)I'(thread: threading.JVMThread, arg0: number): number {
@@ -1504,10 +1510,10 @@ class java_lang_invoke_MethodHandleNatives {
    * Follows the same logic as sun.misc.Unsafe's objectFieldOffset.
    */
   public static 'objectFieldOffset(Ljava/lang/invoke/MemberName;)J'(thread: threading.JVMThread, memberName: JVMTypes.java_lang_invoke_MemberName): gLong {
-    if (memberName['vmtarget'] === undefined) {
-      thread.throwNewException("Ljava/lang/IllegalStateException;", "Attempted to retrieve the offset for an unresolved MemberName.");
+    if (memberName['vmindex'] === -1) {
+      thread.throwNewException("Ljava/lang/IllegalStateException;", "Attempted to retrieve the object offset for an unresolved or non-object MemberName.");
     } else {
-      return gLong.fromNumber(memberName.vmtarget.slot);
+      return gLong.fromNumber(memberName.vmindex);
     }
   }
 
@@ -1606,15 +1612,13 @@ class java_lang_invoke_MethodHandleNatives {
   }
 
   public static 'getMemberVMInfo(Ljava/lang/invoke/MemberName;)Ljava/lang/Object;'(thread: threading.JVMThread, mname: JVMTypes.java_lang_invoke_MemberName): JVMTypes.java_lang_Object {
-    // Return an array.
-    var vmtarget = mname.vmtarget,
-      refKind = mname['java/lang/invoke/MemberName/flags'] >>> MemberNameConstants.REFERENCE_KIND_SHIFT,
+    var refKind = mname['java/lang/invoke/MemberName/flags'] >>> MemberNameConstants.REFERENCE_KIND_SHIFT,
       rv = util.newArray(thread, thread.getBsCl(), '[Ljava/lang/Object;', 2);
 
-    // Slot object. If no slot (e.g. no virtual dispatch or not a field), slot should be -1.
-    rv.array[0] = (<ClassData.PrimitiveClassData> thread.getBsCl().getInitializedClass(thread, 'J')).createWrapperObject(thread, gLong.fromNumber(vmtarget.slot));
+    // VMIndex of the member. Only relevant for fields and virtually dispatched methods.
+    rv.array[0] = (<ClassData.PrimitiveClassData> thread.getBsCl().getInitializedClass(thread, 'J')).createWrapperObject(thread, gLong.fromNumber(mname.vmindex));
     // Class if field, membername if method
-    rv.array[1] = (vmtarget instanceof methods.Field) ? vmtarget.cls.getClassObject(thread) : mname;
+    rv.array[1] = (((refKind & MemberNameConstants.ALL_KINDS) & MemberNameConstants.IS_FIELD) > 0) ? mname['java/lang/invoke/MemberName/clazz'] : mname;
     return rv;
   }
 
@@ -1654,29 +1658,19 @@ class java_lang_invoke_MethodHandle {
    * and thus can only be invoked by trusted OpenJDK code.
    */
   public static 'invokeBasic([Ljava/lang/Object;)Ljava/lang/Object;'(thread: threading.JVMThread, ...args: any[]): void {
-    var mh: JVMTypes.java_lang_invoke_MethodHandle = args[0],
+    var mh: JVMTypes.java_lang_invoke_MethodHandle = args.shift(),
       lmbdaForm = mh['java/lang/invoke/MethodHandle/form'],
-      mn = lmbdaForm['java/lang/invoke/LambdaForm/vmentry'],
-      m: methods.Method;
+      mn = lmbdaForm['java/lang/invoke/LambdaForm/vmentry'];
 
     assert(mn.vmtarget !== null && mn.vmtarget !== undefined, "vmtarget must be defined");
-    m = <methods.Method> mn.vmtarget;
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    var cb = (e: JVMTypes.java_lang_Throwable, rv: JVMTypes.java_lang_Object) => {
+    mn.vmtarget(thread, args, (e: JVMTypes.java_lang_Throwable, rv: JVMTypes.java_lang_Object) => {
       if (e) {
         thread.throwException(e);
       } else {
         thread.asyncReturn(rv);
       }
-    };
-    if (m.accessFlags.isStatic()) {
-      assert(args.length === m.getParamWordSize(), "vmtarget must have same argument size as method reference.");
-      (<any> mh).constructor[m.fullSignature](thread, args, cb);
-    } else {
-      // XXX: Assuming virtual method dispatch.
-      assert(args.length === m.getParamWordSize() + 1, "vmtarget must have same argument size as method reference.");
-      (<any> mh)[m.signature](thread, args.slice(1), cb);
-    }
+    });
   }
 }
 

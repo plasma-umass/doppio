@@ -1557,28 +1557,16 @@ export class Opcodes {
     var callSiteSpecifier = <ConstantPool.InvokeDynamic> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       cso = callSiteSpecifier.getCallSiteObject(pc),
       appendix = cso[1],
-      m: methods.Method = <methods.Method> cso[0].vmtarget,
+      fcn = cso[0].vmtarget,
       stack = frame.stack, paramSize = callSiteSpecifier.paramWordSize,
       args = stack.slice(stack.length - paramSize);
 
+    stack.length -= paramSize;
     if (appendix !== null) {
       args.push(appendix);
     }
-
-    // TODO: Split into invokehandle static / nonstatic.
-    if (m.accessFlags.isStatic()) {
-      stack.length -= paramSize;
-      (<any> m.cls.getConstructor(thread))[m.fullSignature](thread, args);
-      frame.returnToThreadLoop = true;
-    } else {
-      // XXX: Assuming invokevirtual semantics.
-      var obj: JVMTypes.java_lang_Object = stack[stack.length - paramSize - 1];
-      if (!isNull(thread, frame, obj)) {
-        stack.length -= paramSize + 1;
-        (<any> obj)[m.signature](thread, args);
-        frame.returnToThreadLoop = true;
-      }
-    }
+    fcn(thread, args);
+    frame.returnToThreadLoop = true;
   }
 
   /**
@@ -1587,8 +1575,9 @@ export class Opcodes {
   public static invokehandle(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
     var methodReference = <ConstantPool.MethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       stack = frame.stack,
-      m: methods.Method = <methods.Method> methodReference.memberName.vmtarget,
-      paramSize = methodReference.paramWordSize,
+      fcn = methodReference.memberName.vmtarget,
+      // Add in 1 for the method handle itself.
+      paramSize = methodReference.paramWordSize + 1,
       appendix = methodReference.appendix,
       args = stack.slice(stack.length - paramSize);
 
@@ -1596,19 +1585,11 @@ export class Opcodes {
       args.push(appendix);
     }
 
-    // TODO: Split into invokehandle static / nonstatic.
-    if (m.accessFlags.isStatic()) {
+    if (!isNull(thread, frame, args[0])) {
       stack.length -= paramSize;
-      (<any> m.cls.getConstructor(thread))[m.fullSignature](thread, args);
+      // fcn will handle invoking 'this' and such.
+      fcn(thread, args);
       frame.returnToThreadLoop = true;
-    } else {
-      // XXX: Assuming invokevirtual semantics.
-      var obj: JVMTypes.java_lang_Object = stack[stack.length - paramSize - 1];
-      if (!isNull(thread, frame, obj)) {
-        stack.length -= paramSize + 1;
-        (<any> obj)[methodReference.signature](thread, args);
-        frame.returnToThreadLoop = true;
-      }
     }
   }
 
@@ -1631,26 +1612,12 @@ export class Opcodes {
 
     // obj is a MethodHandle.
     if (!isNull(thread, frame, obj)) {
+      stack.length -= paramSize + 1;
       lmbdaForm = obj['java/lang/invoke/MethodHandle/form'];
       mn = lmbdaForm['java/lang/invoke/LambdaForm/vmentry'];
       assert(mn.vmtarget !== null && mn.vmtarget !== undefined, "vmtarget must be defined");
-      m = <methods.Method> mn.vmtarget;
-
-      if (m.accessFlags.isStatic()) {
-        assert(paramSize === m.getParamWordSize(), "vmtarget must have same argument size as method reference.");
-        stack.length -= paramSize + 1;
-        (<any> m.cls.getConstructor(thread))[m.fullSignature](thread, args);
-        frame.returnToThreadLoop = true;
-      } else {
-        // XXX: Assuming invokevirtual semantics. Is this correct?
-        var obj2: JVMTypes.java_lang_Object = args.shift();
-        assert(paramSize - 1 === m.getParamWordSize(), "vmtarget must have same argument size as method reference.");
-        if (!isNull(thread, frame, obj2)) {
-          stack.length -= paramSize + 1;
-          (<any> obj2)[m.signature](thread, args);
-          frame.returnToThreadLoop = true;
-        }
-      }
+      mn.vmtarget(thread, args);
+      frame.returnToThreadLoop = true;
     }
   }
 
@@ -1661,31 +1628,17 @@ export class Opcodes {
   public static linktospecial(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
     var methodReference = <ConstantPool.MethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       stack = frame.stack, paramSize = methodReference.paramWordSize,
+      args = stack.slice(stack.length - paramSize),
       // Final argument is the relevant MemberName. Function args are right
       // before it.
-      memberName: JVMTypes.java_lang_invoke_MemberName = stack.pop(),
-      args = stack.slice(stack.length - paramSize + 1),
+      memberName: JVMTypes.java_lang_invoke_MemberName = args.pop(),
       vmtarget: methods.Method;
 
     if (!isNull(thread, frame, memberName)) {
+      stack.length -= paramSize;
       assert(memberName.getClass().getInternalName() === "Ljava/lang/invoke/MemberName;");
-      vmtarget = <methods.Method> memberName.vmtarget;
-
-      if (vmtarget.accessFlags.isStatic()) {
-        assert(vmtarget.getParamWordSize() === paramSize - 1, "vmtarget must have same argument size as method reference.");
-        stack.length -= paramSize - 1;
-        (<any> vmtarget.cls.getConstructor(thread))[vmtarget.fullSignature](thread, args);
-        frame.returnToThreadLoop = true;
-      } else {
-        assert(vmtarget.getParamWordSize() === paramSize - 2, "vmtarget must have same argument size as method reference.");
-        var obj: JVMTypes.java_lang_Object = args.shift();
-        if (!isNull(thread, frame, obj)) {
-          // invokespecial semantics
-          stack.length -= paramSize - 1;
-          (<any> obj)[vmtarget.fullSignature](thread, args);
-          frame.returnToThreadLoop = true;
-        }
-      }
+      memberName.vmtarget(thread, args);
+      frame.returnToThreadLoop = true;
     }
   }
 
@@ -1693,28 +1646,15 @@ export class Opcodes {
     var methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       paramSize = methodReference.paramWordSize,
       stack = frame.stack,
-      obj: JVMTypes.java_lang_Object = stack[stack.length - paramSize],
+      args = stack.slice(stack.length - paramSize),
       // Final argument is the relevant MemberName. Function args are right
       // before it.
-      memberName: JVMTypes.java_lang_invoke_MemberName = stack.pop(),
-      args = stack.slice(stack.length - paramSize + 2),
-      vmtarget: methods.Method;
+      memberName: JVMTypes.java_lang_invoke_MemberName = args.pop();
 
     if (!isNull(thread, frame, memberName)) {
       assert(memberName.getClass().getInternalName() === "Ljava/lang/invoke/MemberName;");
-      vmtarget = <methods.Method> memberName.vmtarget;
-      // Dynamically look up the method on the class of the object.
-      if (!isNull(thread, frame, obj)) {
-        stack.length -= paramSize - 1;
-        if ((<any> obj)[vmtarget.signature] !== undefined) {
-          (<any> obj)[vmtarget.signature](thread, args);
-        } else {
-          // It's a signature polymorphic function.
-          vmtarget = (<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> obj.getClass()).signaturePolymorphicMethodLookup(vmtarget.signature);
-          (<any> obj)[vmtarget.signature](thread, args);
-        }
-        frame.returnToThreadLoop = true;
-      }
+      memberName.vmtarget(thread, args);
+      frame.returnToThreadLoop = true;
     }
   }
 
