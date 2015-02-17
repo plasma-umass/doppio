@@ -147,8 +147,8 @@ class JVM {
               // Make firstThread a *real* thread.
               var threadCons = (<ClassData.ReferenceClassData<JVMTypes.java_lang_Thread>> cdata).getConstructor(firstThread);
               firstThreadObj = new threadCons(firstThread);
+              firstThread.setJVMObject(firstThreadObj);
               firstThreadObj['<init>()V'](firstThread, (e?: JVMTypes.java_lang_Throwable) => {
-                firstThread.setJVMObject(firstThreadObj);
                 nextItem();
               });
             } else {

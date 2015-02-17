@@ -606,7 +606,7 @@ export class ArrayClassData<T> extends ClassData {
         // TypedArrays are already initialized to 0, so this check skips array
         // initialization in that case.
         outputStream.write(`    for (var i = 0; i < lengths; i++) {
-      this.array[i] = ${this.getJSDefaultArrayElement};
+      this.array[i] = ${this.getJSDefaultArrayElement()};
     }\n`)
       }
     } else {

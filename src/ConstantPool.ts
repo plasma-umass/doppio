@@ -705,8 +705,8 @@ export class InterfaceMethodReference implements IConstantPoolItem {
         method = cls.methodLookup(this.signature);
       this.paramWordSize = util.getMethodDescriptorWordSize(this.nameAndTypeInfo.descriptor);
       if (method !== null) {
-        this.fullSignature = `${util.descriptor2typestr(this.method.cls.getInternalName())}/${this.signature}`;
         this.method = method;
+        this.fullSignature = `${util.descriptor2typestr(this.method.cls.getInternalName())}/${this.signature}`;
         cb(true);
       } else {
         thread.throwNewException('Ljava/lang/NoSuchMethodError;', `Method ${this.signature} does not exist in class ${this.classInfo.cls.getExternalName()}.`);

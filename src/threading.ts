@@ -1165,8 +1165,7 @@ function validateReturnValue(thread: JVMThread, method: methods.Method, returnTy
       }
     } else if (util.is_array_type(returnType)) {
       assert(rv2 === undefined);
-      // Note: All array constructors are the same at the moment.
-      assert(rv1 === null || rv1 instanceof (<ClassData.ArrayClassData<number>> bsCl.getInitializedClass(thread, '[I')).getConstructor(thread));
+      assert(rv1 === null || (typeof rv1 === 'object' && typeof rv1['getClass'] === 'function'));
       if (rv1 != null) {
         cls = cl.getInitializedClass(thread, returnType);
         if (cls === null) {
@@ -1199,6 +1198,7 @@ function validateReturnValue(thread: JVMThread, method: methods.Method, returnTy
       }
     }
   } catch (e) {
+    console.log(`${e} ${e.stack}`);
     return false;
   }
   return true;
