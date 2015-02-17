@@ -1400,6 +1400,7 @@ class java_lang_invoke_MethodHandleNatives {
    */
   public static 'init(Ljava/lang/invoke/MemberName;Ljava/lang/Object;)V'(thread: threading.JVMThread, self: JVMTypes.java_lang_invoke_MemberName, ref: JVMTypes.java_lang_Object): void {
     var clazz: JVMTypes.java_lang_Class = (<any> ref)[util.descriptor2typestr(ref.getClass().getInternalName()) + "clazz"],
+      clazzData = <ClassData.ReferenceClassData<JVMTypes.java_lang_Class>> clazz.$cls,
       flags: number = (<any> ref)[util.descriptor2typestr(ref.getClass().getInternalName()) + "modifiers"],
       flagsParsed: util.Flags = new util.Flags(flags),
       refKind: number,
@@ -1415,20 +1416,20 @@ class java_lang_invoke_MethodHandleNatives {
         } else {
           refKind = enums.MethodHandleReferenceKind.INVOKEVIRTUAL;
         }
-        vmtarget = clazz.$cls.getMethodFromSlot((<JVMTypes.java_lang_reflect_Method> ref)['java/lang/reflect/Method/slot']);
+        vmtarget = clazzData.getMethodFromSlot((<JVMTypes.java_lang_reflect_Method> ref)['java/lang/reflect/Method/slot']);
         // TODO: Is the @CallerSensitive annotation present on the method? Requires a slot->method lookup function.
         break;
       case "Ljava/lang/reflect/Constructor;":
         flags |= MemberNameConstants.IS_CONSTRUCTOR;
         refKind = enums.MethodHandleReferenceKind.INVOKESPECIAL;
         // TODO: Is the @CallerSensitive annotation present on the method? Requires a slot->method lookup function.
-        vmtarget = clazz.$cls.getMethodFromSlot((<JVMTypes.java_lang_reflect_Constructor> ref)['java/lang/reflect/Constructor/slot']);
+        vmtarget = clazzData.getMethodFromSlot((<JVMTypes.java_lang_reflect_Constructor> ref)['java/lang/reflect/Constructor/slot']);
         break;
       case "Ljava/lang/reflect/Field;":
         flags |= MemberNameConstants.IS_FIELD;
         refKind = flagsParsed.isStatic() ? enums.MethodHandleReferenceKind.GETSTATIC : enums.MethodHandleReferenceKind.GETFIELD;
         // Set vmtarget to the field.
-        vmtarget = clazz.$cls.getFieldFromSlot((<JVMTypes.java_lang_reflect_Field> ref)['java/lang/reflect/Field/slot']);
+        vmtarget = clazzData.getFieldFromSlot((<JVMTypes.java_lang_reflect_Field> ref)['java/lang/reflect/Field/slot']);
         break;
       default:
         thread.throwNewException("Ljava/lang/InternalError;", "init: Invalid target.");

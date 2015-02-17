@@ -79,10 +79,10 @@ var injectedMethods: {[className: string]: {[methodName: string]: [string, strin
   return this.$monitor;
 }`],
     'getFieldFromSlot': ['(offset: gLong): any', `function(offset) {
-  return this[this.getClass().getFieldFromSlot(offset.toInt()).fullSignature];
+  return this[this.getClass().getFieldFromSlot(offset.toInt()).fullName];
 }`],
     'setFieldFromSlot': ['(offset: gLong, value: any): void', `function(offset, value) {
-  this[this.getClass().getFieldFromSlot(offset.toInt()).fullSignature] = value;
+  this[this.getClass().getFieldFromSlot(offset.toInt()).fullName] = value;
 }`]
   },
   'Ljava/lang/String;': {
@@ -334,14 +334,6 @@ export class ClassData {
 
   public initialize(thread: threading.JVMThread, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
     throw new Error("Unimplemented.");
-  }
-
-  public getFieldFromSlot(slot: number): methods.Field {
-    return null;
-  }
-
-  public getMethodFromSlot(slot: number): methods.Method {
-    return null;
   }
 
   protected outputInjectedMethods(jsClassName: string, outputStream: StringOutputStream) {
@@ -767,6 +759,14 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    */
   public getMethodSlots(): methods.Method[] {
     return this._methodSlots;
+  }
+
+  public getFieldFromSlot(slot: number): methods.Field {
+    return this._fieldSlots[slot];
+  }
+
+  public getMethodFromSlot(slot: number): methods.Method {
+    return this._methodSlots[slot];
   }
 
   /**
