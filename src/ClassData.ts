@@ -526,14 +526,12 @@ export class ArrayClassData<T> extends ClassData {
     this.resolve(thread, cb, explicit);
   }
 
-  private static typedArraysSupported = typeof ArrayBuffer !== "undefined";
-
   /**
    * Get the array constructor for this particular JVM array class.
    * Uses typed arrays when available for primitive arrays.
    */
   private getJSArrayConstructor(): string {
-    if (!ArrayClassData.typedArraysSupported) {
+    if (!util.typedArraysSupported) {
       return 'Array';
     }
     switch (this.componentClassName) {
@@ -589,11 +587,18 @@ export class ArrayClassData<T> extends ClassData {
       }
     } else {
       // Multi-dimensional array.
-      outputStream.write(`    var length = lengths[0], otherLengths = lengths.slice(1);
-    this.array = new ${this.getJSArrayConstructor()}(length);
-    for (var i = 0; i < length; i++) {
-      this.array[i] = ${this.getJSDefaultArrayElement()};
-    }\n`)
+      outputStream.write(`    if (typeof lengths === 'number') {
+        this.array = new ${this.getJSArrayConstructor()}(lengths);
+        for (var i = 0; i < length; i++) {
+          this.array[i] = null;
+        }
+      } else {
+        var length = lengths[0], otherLengths = lengths.length > 2 ? lengths.slice(1) : lengths[1];
+        this.array = new ${this.getJSArrayConstructor()}(length);
+        for (var i = 0; i < length; i++) {
+          this.array[i] = ${this.getJSDefaultArrayElement()};
+        }
+      }\n`)
     }
     outputStream.write(`  }
 
