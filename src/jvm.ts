@@ -222,7 +222,7 @@ class JVM {
     var thread = this.firstThread;
     // Disable immortal status from JVM bootup.
     thread.immortal = false;
-    assert(thread != null && thread.getStatus() === enums.ThreadStatus.TERMINATED);
+    assert(thread != null);
     // Convert foo.bar.Baz => Lfoo/bar/Baz;
     className = util.int_classname(className);
     // Initialize the class.

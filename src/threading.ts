@@ -1077,6 +1077,7 @@ export var validTransitions: { [oldStatus: number]: { [newStatus: number]: strin
 validTransitions[enums.ThreadStatus.NEW] = {};
 validTransitions[enums.ThreadStatus.NEW][enums.ThreadStatus.RUNNABLE] = "RunMethod invoked on new thread";
 validTransitions[enums.ThreadStatus.NEW][enums.ThreadStatus.ASYNC_WAITING] = "[JVM bootup only] Internal operation occurs on new thread";
+validTransitions[enums.ThreadStatus.NEW][enums.ThreadStatus.TERMINATED] = "[JVM halt0 only] When the JVM shuts down, it terminates all threads, including those that have never been run.";
 validTransitions[enums.ThreadStatus.ASYNC_WAITING] = {};
 validTransitions[enums.ThreadStatus.ASYNC_WAITING][enums.ThreadStatus.RUNNABLE] = "Async operation completes";
 validTransitions[enums.ThreadStatus.ASYNC_WAITING][enums.ThreadStatus.TERMINATED] = "RunMethod completes and callstack is empty";

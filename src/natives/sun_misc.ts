@@ -18,7 +18,7 @@ function getFieldInfo(thread: threading.JVMThread, obj: JVMTypes.java_lang_Objec
     objBase = <any> cls.getConstructor(thread);
     fieldName = cls.getStaticFieldFromVMIndex(offset.toInt()).fullName;
   } else if (obj.getClass().getInternalName()[0] === '[') {
-    objBase = obj;
+    objBase = (<JVMTypes.JVMArray<any>> obj).array;
     fieldName = "" + offset.toInt();
   } else {
     cls = <ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> obj.getClass();
