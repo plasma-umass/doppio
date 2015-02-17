@@ -405,6 +405,7 @@ export class Method extends AbstractMethodField {
         consObj['java/lang/reflect/Constructor/signature'] = signature;
         consObj['java/lang/reflect/Constructor/annotations'] = this.getAnnotationType(thread, 'RuntimeVisibleAnnotations');
         consObj['java/lang/reflect/Constructor/parameterAnnotations'] = this.getAnnotationType(thread, 'ParameterAnnotations');
+        cb(consObj);
       } else {
         // Method object.
         var methodCons = (<ClassData.ReferenceClassData<JVMTypes.java_lang_reflect_Method>>  classes['Ljava/lang/reflect/Method;']).getConstructor(thread),
