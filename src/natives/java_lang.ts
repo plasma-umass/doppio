@@ -981,8 +981,7 @@ class java_lang_System {
       var srcClass = src.getClass(), destClass = dest.getClass();
       // Special case; need to copy the section of src that is being copied into a temporary array before actually doing the copy.
       if (src === dest) {
-        src = util.newArrayFromClass<any>(thread, srcClass, 0);
-        src.array = dest.array.slice(srcPos, srcPos + length)
+        src = dest.slice(srcPos, srcPos + length)
         srcPos = 0;
       }
       if (srcClass.isCastable(destClass)) {

@@ -573,14 +573,15 @@ export class ArrayClassData<T> extends ClassData {
    * array. Specialized to the type of array (JS or Typed).
    */
   private _getSliceMethod(): string {
-    var output = new StringOutputStream();
+    var output = new StringOutputStream(),
+      jsArrCons = this.getJSArrayConstructor();
     output.write(`function(start, end) {
     var newObj = new this.constructor(null, 0);\n`);
-    if (this.getJSArrayConstructor() === 'Array') {
+    if (jsArrCons === 'Array') {
       output.write(`    newObj.array = this.array.slice(start, end);\n`);
     } else {
       var elementSize: number;
-      switch (this.getJSArrayConstructor()) {
+      switch (jsArrCons) {
         case 'Int8Array':
         case 'Uint8Array':
           elementSize = 1;
@@ -602,7 +603,7 @@ export class ArrayClassData<T> extends ClassData {
       // multiply it if it does exist.
       output.write(`    if (end === undefined) end = this.array.length;
       ${elementSize > 1 ? `start *= ${elementSize};\nend *= ${elementSize};` : ''}
-      newObj.array = this.array.buffer.slice(start, end);\n`);
+      newObj.array = new ${jsArrCons}(this.array.buffer.slice(start, end));\n`);
     }
     output.write(`    return newObj;
   }`);

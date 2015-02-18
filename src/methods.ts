@@ -376,7 +376,7 @@ export class Method extends AbstractMethodField {
         name = jvm.internString(this.name),
         parameterTypes = new clazzArray(thread, 0),
         returnType = classes[this.returnType].getClassObject(thread),
-        exceptionTypes: JVMTypes.JVMArray<JVMTypes.java_lang_Class> = new clazzArray(thread, 0),
+        exceptionTypes = new clazzArray(thread, 0),
         modifiers = this.accessFlags.getRawByte(),
         signature = signatureAttr !== null ? jvm.internString(signatureAttr.sig) : null;
 
@@ -397,7 +397,7 @@ export class Method extends AbstractMethodField {
         consObj['java/lang/reflect/Constructor/slot'] = this.slot;
         consObj['java/lang/reflect/Constructor/signature'] = signature;
         consObj['java/lang/reflect/Constructor/annotations'] = this.getAnnotationType(thread, 'RuntimeVisibleAnnotations');
-        consObj['java/lang/reflect/Constructor/parameterAnnotations'] = this.getAnnotationType(thread, 'ParameterAnnotations');
+        consObj['java/lang/reflect/Constructor/parameterAnnotations'] = this.getAnnotationType(thread, 'RuntimeVisibleParameterAnnotations');
         cb(consObj);
       } else {
         // Method object.
@@ -413,7 +413,7 @@ export class Method extends AbstractMethodField {
         methodObj['java/lang/reflect/Method/signature'] = signature;
         methodObj['java/lang/reflect/Method/annotations'] = this.getAnnotationType(thread, 'RuntimeVisibleAnnotations');
         methodObj['java/lang/reflect/Method/annotationDefault'] = this.getAnnotationType(thread, 'AnnotationDefault');
-        methodObj['java/lang/reflect/Method/parameterAnnotations'] = this.getAnnotationType(thread, 'ParameterAnnotations');
+        methodObj['java/lang/reflect/Method/parameterAnnotations'] = this.getAnnotationType(thread, 'RuntimeVisibleParameterAnnotations');
         cb(methodObj);
       }
     });
