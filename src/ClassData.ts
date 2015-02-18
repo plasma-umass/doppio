@@ -558,7 +558,7 @@ export class ArrayClassData<T> extends ClassData {
   private getJSDefaultArrayElement(): string {
     switch(this.componentClassName[0]) {
       case '[':
-        return `new (cls.getComponentClass().getConstructor())(otherLengths)`;
+        return `new (cls.getComponentClass().getConstructor())(thread, otherLengths)`;
       case 'L':
         return "null";
       case 'J':
