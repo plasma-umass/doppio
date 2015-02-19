@@ -16,6 +16,7 @@ function doPrivileged(thread: threading.JVMThread, action: JVMTypes.java_securit
       thread.getBsCl().initializeClass(thread, 'Ljava/security/PrivilegedActionException;', (cdata: ClassData.ReferenceClassData<JVMTypes.java_security_PrivilegedActionException>) => {
         if (cdata != null) {
           var eobj = new (cdata.getConstructor(thread))(thread);
+          thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
           eobj['<init>(Ljava/lang/Exception;)V'](thread, [<JVMTypes.java_lang_Exception> e], (e?: JVMTypes.java_lang_Throwable) => {
             if (e) {
               // Failed to construct a PrivilegedActionException? Dang.

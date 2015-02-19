@@ -1199,7 +1199,6 @@ function validateReturnValue(thread: JVMThread, method: methods.Method, returnTy
       }
     }
   } catch (e) {
-    console.log(`${e} ${e.stack}`);
     return false;
   }
   return true;

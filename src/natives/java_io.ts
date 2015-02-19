@@ -47,7 +47,7 @@ function async_input(n_bytes: number, resume: (data: Buffer) => void): void {
   }
 }
 
-function stat_file(fname: string, cb: (stat: fs.Stats) => void): void {
+function statFile(fname: string, cb: (stat: fs.Stats) => void): void {
   fs.stat(fname, (err, stat) => {
     if (err != null) {
       cb(null);
@@ -506,8 +506,10 @@ class java_io_UnixFileSystem {
   public static 'getBooleanAttributes0(Ljava/io/File;)I'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, file: JVMTypes.java_io_File): void {
     var filepath = file['java/io/File/path'],
       fileSystem = <typeof JVMTypes.java_io_FileSystem> (<ClassData.ReferenceClassData<JVMTypes.java_io_FileSystem>> thread.getBsCl().getInitializedClass(thread, 'Ljava/io/FileSystem;')).getConstructor(thread);
+
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    stat_file(filepath.toString(), (stats) => {
+    statFile(filepath.toString(), (stats) => {
+      // Returns 0 if file does not exist, or any other error occurs.
       var rv: number = 0;
       if (stats !== null) {
         rv |= fileSystem['java/io/FileSystem/BA_EXISTS'];
@@ -524,7 +526,7 @@ class java_io_UnixFileSystem {
   public static 'checkAccess(Ljava/io/File;I)Z'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, file: JVMTypes.java_io_File, access: number): void {
     var filepath = file['java/io/File/path'];
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    stat_file(filepath.toString(), (stats) => {
+    statFile(filepath.toString(), (stats) => {
       if (stats == null) {
         thread.asyncReturn(0);
       } else {
@@ -542,7 +544,7 @@ class java_io_UnixFileSystem {
   public static 'getLastModifiedTime(Ljava/io/File;)J'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, file: JVMTypes.java_io_File): void {
     var filepath = file['java/io/File/path'];
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    stat_file(filepath.toString(), function (stats) {
+    statFile(filepath.toString(), function (stats) {
       if (stats == null) {
         thread.asyncReturn(gLong.ZERO, null);
       } else {
@@ -582,7 +584,7 @@ class java_io_UnixFileSystem {
     // Returns true on success, false on failure.
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     // Fetch existing permissions on file.
-    stat_file(filepath, (stats: fs.Stats) => {
+    statFile(filepath, (stats: fs.Stats) => {
       if (stats == null) {
         thread.asyncReturn(0);
       } else {
@@ -600,7 +602,7 @@ class java_io_UnixFileSystem {
   public static 'createFileExclusively(Ljava/lang/String;)Z'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, path: JVMTypes.java_lang_String): void {
     var filepath = path.toString();
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    stat_file(filepath, (stat) => {
+    statFile(filepath, (stat) => {
       if (stat != null) {
         thread.asyncReturn(0);
       } else {
@@ -627,7 +629,7 @@ class java_io_UnixFileSystem {
     // If file is a directory, it must be empty.
     var filepath = file['java/io/File/path'].toString();
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    stat_file(filepath, (stats) => {
+    statFile(filepath, (stats) => {
       if (stats == null) {
         thread.asyncReturn(0);
       } else if (stats.isDirectory()) {
@@ -665,7 +667,7 @@ class java_io_UnixFileSystem {
     var filepath = file['java/io/File/path'].toString();
     // Already exists.
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    stat_file(filepath, (stat) => {
+    statFile(filepath, (stat) => {
       if (stat != null) {
         thread.asyncReturn(0);
       } else {
@@ -701,7 +703,7 @@ class java_io_UnixFileSystem {
     var filepath = file['java/io/File/path'].toString(),
       mask = ~0x92;
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    stat_file(filepath, (stats) => {
+    statFile(filepath, (stats) => {
       if (stats == null) {
         thread.asyncReturn(0);
       } else {
