@@ -496,8 +496,8 @@ class sun_misc_Unsafe {
    * Unblock the given thread blocked on park, or, if it is not blocked, cause
    * the subsequent call to park not to block.
    */
-  public static 'unpark(Ljava/lang/Object;)V'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, theThread: threading.JVMThread): void {
-    theThread.getThreadPool().unpark(theThread);
+  public static 'unpark(Ljava/lang/Object;)V'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, theThread: JVMTypes.java_lang_Thread): void {
+    theThread.$thread.getThreadPool().unpark(theThread.$thread);
   }
 
   /**

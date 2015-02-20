@@ -658,7 +658,7 @@ class java_io_UnixFileSystem {
       if (err != null) {
         thread.asyncReturn(null);
       } else {
-        thread.asyncReturn(util.newArrayFromData<JVMTypes.java_lang_String>(thread, thread.getBsCl(), '[java/lang/String;', files.map((file: string) => util.initString(thread.getBsCl(), file))));
+        thread.asyncReturn(util.newArrayFromData<JVMTypes.java_lang_String>(thread, thread.getBsCl(), '[Ljava/lang/String;', files.map((file: string) => util.initString(thread.getBsCl(), file))));
       }
     });
   }

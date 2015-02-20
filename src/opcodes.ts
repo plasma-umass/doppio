@@ -1832,7 +1832,7 @@ export class Opcodes {
       dimSize = stack.pop();
       args[dim - i - 1] = dimSize;
       if (dimSize < 0) {
-        throwException(thread, frame, 'Ljava/lang/NegativeArraySizeException;', `Tried to init ${classRef.cls.getInternalName()} array with a dimension of length ${length}`);
+        throwException(thread, frame, 'Ljava/lang/NegativeArraySizeException;', `Tried to init ${classRef.cls.getInternalName()} array with a dimension of length ${dimSize}`);
         return;
       }
     }
