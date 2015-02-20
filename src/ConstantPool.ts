@@ -606,7 +606,7 @@ export class MethodReference implements IConstantPoolItem {
   public setResolved(thread: threading.JVMThread, method: methods.Method): void {
     this.method = method;
     this.paramWordSize = util.getMethodDescriptorWordSize(this.nameAndTypeInfo.descriptor);
-    this.fullSignature = `${util.descriptor2typestr(this.method.cls.getInternalName())}/${this.signature}`;
+    this.fullSignature = this.method.fullSignature;
     this.jsConstructor = this.method.cls.getConstructor(thread);
   }
 
@@ -658,6 +658,7 @@ export class InterfaceMethodReference implements IConstantPoolItem {
   public fullSignature: string = null;
   public method: methods.Method = null;
   public paramWordSize: number = -1;
+  public jsConstructor: any = null;
   constructor(classInfo: ClassReference, nameAndTypeInfo: NameAndTypeInfo) {
     this.classInfo = classInfo;
     this.nameAndTypeInfo = nameAndTypeInfo;
@@ -705,14 +706,20 @@ export class InterfaceMethodReference implements IConstantPoolItem {
         method = cls.methodLookup(this.signature);
       this.paramWordSize = util.getMethodDescriptorWordSize(this.nameAndTypeInfo.descriptor);
       if (method !== null) {
-        this.method = method;
-        this.fullSignature = `${util.descriptor2typestr(this.method.cls.getInternalName())}/${this.signature}`;
+        this.setResolved(thread, method);
         cb(true);
       } else {
         thread.throwNewException('Ljava/lang/NoSuchMethodError;', `Method ${this.signature} does not exist in class ${this.classInfo.cls.getExternalName()}.`);
         cb(false);
       }
     }
+  }
+
+  public setResolved(thread: threading.JVMThread, method: methods.Method): void {
+    this.method = method;
+    this.paramWordSize = util.getMethodDescriptorWordSize(this.nameAndTypeInfo.descriptor);
+    this.fullSignature = this.method.fullSignature;
+    this.jsConstructor = this.method.cls.getConstructor(thread);
   }
 
   public getParamWordSize(): number {

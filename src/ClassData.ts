@@ -720,6 +720,12 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    * methods are placed into the vmindex of the originating method.
    */
   protected _vmTable: methods.Method[] = [];
+  /**
+   * Default method implementations that this class did *not* inherit, but are
+   * still invocable in the class via their full name (e.g. through an
+   * invokespecial bytecode).
+   */
+  protected _uninheritedDefaultMethods: methods.Method[] = [];
 
   constructor(buffer: NodeBuffer, loader?: ClassLoader.ClassLoader, cpPatches?: JVMTypes.JVMArray<JVMTypes.java_lang_Object>) {
     super(loader);
@@ -862,10 +868,23 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    * Does not search superclasses / interfaces.
    */
   public getMethod(sig: string): methods.Method {
-    var i: number, m: methods.Method;
-    for (i = 0; i < this.methods.length; i++) {
-      m = this.methods[i];
-      if (m.name + m.rawDescriptor === sig) {
+    var m = this._methodLookup[sig];
+    if (m.cls === this) {
+      return m;
+    }
+    return null;
+  }
+
+  public getSpecificMethod(definingCls: string, sig: string): methods.Method {
+    if (this.getInternalName() === definingCls) {
+      return this.getMethod(sig);
+    }
+    var searchClasses = this.interfaceClasses.slice(0), m: methods.Method;
+    if (this.superClass) {
+      searchClasses.push(this.superClass);
+    }
+    for (var i = 0; i < searchClasses.length; i++) {
+      if (null !== (m = searchClasses[i].getSpecificMethod(definingCls, sig))) {
         return m;
       }
     }
@@ -878,6 +897,15 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    */
   public getMethods(): methods.Method[] {
     return this.methods;
+  }
+
+  /**
+   * Get the set of default methods that are invocable on this object, but were
+   * not inherited in the virtual method table.
+   * DO NOT MUTATE!
+   */
+  public getUninheritedDefaultMethods(): methods.Method[] {
+    return this._uninheritedDefaultMethods;
   }
 
   /**
@@ -915,11 +943,14 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
     // them if there are no alternatives already in the table.
     this.interfaceClasses.forEach((iface: ReferenceClassData<JVMTypes.java_lang_Object>) => {
       Object.keys(iface._methodLookup).forEach((ifaceMethodSig: string) => {
+        var ifaceM = iface._methodLookup[ifaceMethodSig];
         if (this._methodLookup[ifaceMethodSig] === undefined) {
           // New vmindex.
-          var ifaceM = iface._methodLookup[ifaceMethodSig];
           this._vmTable.push(ifaceM);
           this._methodLookup[ifaceMethodSig] = ifaceM;
+        } else if (ifaceM.isDefault()) {
+          // Default method; uninherited, but still callable via full signature.
+          this._uninheritedDefaultMethods.push(ifaceM);
         }
       });
     });
@@ -1384,6 +1415,9 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
 
     // Miranda and default interface methods.
     this.getMirandaAndDefaultMethods().forEach((m: methods.Method) => m.outputJavaScriptFunction(jsClassName, outputStream));
+
+    // Uninherited default methods.
+    this.getUninheritedDefaultMethods().forEach((m: methods.Method) => m.outputJavaScriptFunction(jsClassName, outputStream, true));
 
     outputStream.write(`  return ${jsClassName};
 }

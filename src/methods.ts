@@ -298,6 +298,16 @@ export class Method extends AbstractMethodField {
     }
   }
 
+  /**
+   * Checks if the method is a default method.
+   * A default method is a public non-abstract instance method, that
+   * is, a non-static method with a body, declared in an interface
+   * type.
+   */
+  public isDefault(): boolean {
+    return (this.accessFlags.isPublic() && !this.accessFlags.isAbstract() && !this.accessFlags.isStatic() && this.cls.accessFlags.isInterface());
+  }
+
   public getFullSignature(): string {
     return `${this.cls.getExternalName()}.${this.name}${this.rawDescriptor}`;
   }
@@ -513,12 +523,15 @@ _create`);
    * TODO: Move lock logic and such into this function! And other specialization.
    * TODO: Signature polymorphic functions...?
    */
-  public outputJavaScriptFunction(jsConsName: string, outStream: StringOutputStream): void {
+  public outputJavaScriptFunction(jsConsName: string, outStream: StringOutputStream, nonVirtualOnly: boolean = false): void {
     var i: number;
     if (this.accessFlags.isStatic()) {
       outStream.write(`${jsConsName}["${this.fullSignature}"] = ${jsConsName}["${this.signature}"] = `);
     } else {
-      outStream.write(`${jsConsName}.prototype["${this.fullSignature}"] = ${jsConsName}.prototype["${this.signature}"] = `);
+      if (!nonVirtualOnly) {
+        outStream.write(`${jsConsName}.prototype["${this.signature}"] = `);
+      }
+      outStream.write(`${jsConsName}.prototype["${this.fullSignature}"] = `);
     }
     outStream.write(`(function(method) {
   return function(thread, `);
@@ -554,6 +567,6 @@ _create`);
     outStream.write(`));
     thread.setStatus(${enums.ThreadStatus.RUNNABLE});
   };
-})(cls.methodLookup("${this.signature}"));\n`);
+})(cls.getSpecificMethod("${this.cls.getInternalName()}", "${this.signature}"));\n`);
   }
 }

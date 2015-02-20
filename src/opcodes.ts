@@ -1470,7 +1470,7 @@ export class Opcodes {
    * XXX: Actually perform superclass method lookup.
    */
   public static invokespecial(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    var methodReference = <ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
+    var methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     if (methodReference.isResolved()) {
       // Rewrite and rerun.
       code.writeUInt8(enums.OpCode.INVOKENONVIRTUAL_FAST, pc);
@@ -1480,7 +1480,7 @@ export class Opcodes {
   }
 
   public static invokestatic(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    var methodReference = <ConstantPool.MethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
+    var methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     if (methodReference.isResolved()) {
       var m = methodReference.method;
       if (m.cls.isInitialized(thread)) {
@@ -1520,18 +1520,19 @@ export class Opcodes {
 
     if (!isNull(thread, frame, obj)) {
       stack.length -= paramSize + 1;
-      assert(typeof (<any> obj)[methodReference.fullSignature] === 'function', "Resolved method isn't defined?!");
+      assert(typeof (<any> obj)[methodReference.fullSignature] === 'function', `Resolved method ${methodReference.fullSignature} isn't defined?!`, thread);
       (<any> obj)[methodReference.fullSignature](thread, args);
       frame.returnToThreadLoop = true;
     }
   }
 
   public static invokestatic_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    var methodReference = <ConstantPool.MethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
+    var methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       stack = frame.stack, paramSize = methodReference.paramWordSize,
       args = stack.slice(stack.length - paramSize);
     stack.length -= paramSize;
-    assert(typeof methodReference.jsConstructor[methodReference.fullSignature] === 'function', "Resolved method isn't defined?!");
+    assert(methodReference.jsConstructor != null, "jsConsteuctor is missing?!");
+    assert(typeof(methodReference.jsConstructor[methodReference.fullSignature]) === 'function', "Resolved method isn't defined?!");
     methodReference.jsConstructor[methodReference.fullSignature](thread, args);
     frame.returnToThreadLoop = true;
   }
@@ -1543,7 +1544,7 @@ export class Opcodes {
       obj: JVMTypes.java_lang_Object = stack[stack.length - count - 1];
     if (!isNull(thread, frame, obj)) {
       // Use the class of the *object*.
-      assert(typeof (<any> obj)[methodReference.signature] === 'function', "Resolved method isn't defined?!");
+      assert(typeof (<any> obj)[methodReference.signature] === 'function', `Resolved method ${methodReference.signature} isn't defined?!`);
       (<any> obj)[methodReference.signature](thread, stack.slice(stack.length - count));
       stack.length -= count + 1;
       frame.returnToThreadLoop = true;

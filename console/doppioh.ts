@@ -400,7 +400,8 @@ export = JVMTypes;\n`, () => {});
       Object.keys(injectedFields).forEach((name: string) => this._outputInjectedField(name, injectedFields[name], this.headerStream));
       Object.keys(injectedMethods).forEach((name: string) => this._outputInjectedMethod(name, injectedMethods[name], this.headerStream));
       fields.forEach((f) => this._outputField(f, this.headerStream));
-      methods.forEach((m) => this._outputMethod(cls, m, this.headerStream));
+      methods.forEach((m) => this._outputMethod(m, this.headerStream));
+      cls.getUninheritedDefaultMethods().forEach((m) => this._outputMethod(m, this.headerStream));
       this.headerStream.write(`  }\n`);
   }
 
@@ -409,7 +410,7 @@ export = JVMTypes;\n`, () => {});
    * NOTE: We require a class argument because default interface methods are
    * defined on classes, not on the interfaces they belong to.
    */
-  private _outputMethod(cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, m: methods.Method, stream: NodeJS.WritableStream) {
+  private _outputMethod(m: methods.Method, stream: NodeJS.WritableStream, nonVirtualOnly: boolean = false) {
     var argTypes = m.parameterTypes,
       rType = m.returnType, args: string = "",
       cbSig = `e?: java_lang_Throwable${rType === 'V' ? "" : `, rv?: ${this.jvmtype2tstype(rType, false)}`}`,
@@ -426,7 +427,7 @@ export = JVMTypes;\n`, () => {});
     // A quick note about methods: It's illegal to have two methods with the
     // same signature in the same class, even if one is static and the other
     // isn't.
-    if (cls.accessFlags.isInterface()) {
+    if (m.cls.accessFlags.isInterface()) {
       if (m.accessFlags.isStatic()) {
         // XXX: We ignore static interface methods right now, as reconciling them with TypeScript's
         // type system would be messy. Also, they are brand new in Java 8.
@@ -435,8 +436,10 @@ export = JVMTypes;\n`, () => {});
         stream.write(`    "${m.signature}"${methodSig};\n`);
       }
     } else {
-      stream.write(`    ${methodFlags} "${util.descriptor2typestr(cls.getInternalName())}/${m.signature}"${methodSig};
-    ${methodFlags} "${m.signature}"${methodSig};\n`);
+      if (!nonVirtualOnly) {
+        stream.write(`    ${methodFlags} "${m.signature}"${methodSig};\n`);
+      }
+      stream.write(`    ${methodFlags} "${m.fullSignature}"${methodSig};\n`);
     }
   }
 
