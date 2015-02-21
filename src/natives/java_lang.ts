@@ -1341,35 +1341,38 @@ function initializeMemberName(thread: threading.JVMThread, mn: JVMTypes.java_lan
     type = mn['java/lang/invoke/MemberName/type'],
     name = mn['java/lang/invoke/MemberName/name'],
     refKind: number;
+
+  // Determine the reference type.
+  if (ref instanceof methods.Method) {
+     flags = MemberNameConstants.IS_METHOD;
+     if (ref.cls.accessFlags.isInterface()) {
+       refKind = enums.MethodHandleReferenceKind.INVOKEINTERFACE;
+     } else if (ref.accessFlags.isStatic()) {
+       refKind = enums.MethodHandleReferenceKind.INVOKESTATIC;
+     } else if (ref.name[0] === '<') {
+       flags = MemberNameConstants.IS_CONSTRUCTOR;
+       refKind = enums.MethodHandleReferenceKind.INVOKESPECIAL;
+     } else {
+       refKind = enums.MethodHandleReferenceKind.INVOKEVIRTUAL;
+     }
+     mn.vmtarget = ref.getVMTargetBridgeMethod(thread);
+     mn.vmindex = ref.cls.getVMIndexForMethod(ref);
+  } else {
+    flags = MemberNameConstants.IS_FIELD;
+    // Assume a GET.
+    if (ref.accessFlags.isStatic()) {
+      refKind = enums.MethodHandleReferenceKind.GETSTATIC;
+    } else {
+      refKind = enums.MethodHandleReferenceKind.GETFIELD;
+    }
+    mn.vmindex = ref.cls.getVMIndexForField(<methods.Field> ref);
+  }
+  flags |= refKind << MemberNameConstants.REFERENCE_KIND_SHIFT;
+
   // Sometimes, we'll get an unresolved MN with partial info. Don't mess with
   // their flags, since they have an operation defined already (e.g. SETFIELD).
-  if (flags === 0) {
-    // Determine the reference type.
-    if (ref instanceof methods.Method) {
-       flags = MemberNameConstants.IS_METHOD;
-       if (ref.cls.accessFlags.isInterface()) {
-         refKind = enums.MethodHandleReferenceKind.INVOKEINTERFACE;
-       } else if (ref.accessFlags.isStatic()) {
-         refKind = enums.MethodHandleReferenceKind.INVOKESTATIC;
-       } else if (ref.name[0] === '<') {
-         flags = MemberNameConstants.IS_CONSTRUCTOR;
-         refKind = enums.MethodHandleReferenceKind.INVOKESPECIAL;
-       } else {
-         refKind = enums.MethodHandleReferenceKind.INVOKEVIRTUAL;
-       }
-       mn.vmtarget = ref.getVMTargetBridgeMethod(thread);
-       mn.vmindex = ref.cls.getVMIndexForMethod(ref);
-    } else {
-      flags = MemberNameConstants.IS_FIELD;
-      // Assume a GET.
-      if (ref.accessFlags.isStatic()) {
-        refKind = enums.MethodHandleReferenceKind.GETSTATIC;
-      } else {
-        refKind = enums.MethodHandleReferenceKind.GETFIELD;
-      }
-      mn.vmindex = ref.cls.getVMIndexForField(<methods.Field> ref);
-    }
-    flags |= refKind << MemberNameConstants.REFERENCE_KIND_SHIFT;
+  if (mn['java/lang/invoke/MemberName/flags'] !== 0) {
+    flags = mn['java/lang/invoke/MemberName/flags'];
   }
   flags |= ref.accessFlags.getRawByte();
   // Initialize type if we need to.
@@ -1407,9 +1410,9 @@ class java_lang_invoke_MethodHandleNatives {
    * Note: Don't need to set 'type' in this case.
    */
   public static 'init(Ljava/lang/invoke/MemberName;Ljava/lang/Object;)V'(thread: threading.JVMThread, self: JVMTypes.java_lang_invoke_MemberName, ref: JVMTypes.java_lang_Object): void {
-    var clazz: JVMTypes.java_lang_Class = (<any> ref)[util.descriptor2typestr(ref.getClass().getInternalName()) + "clazz"],
+    var clazz: JVMTypes.java_lang_Class = (<any> ref)[util.descriptor2typestr(ref.getClass().getInternalName()) + "/clazz"],
       clazzData = <ClassData.ReferenceClassData<JVMTypes.java_lang_Class>> clazz.$cls,
-      flags: number = (<any> ref)[util.descriptor2typestr(ref.getClass().getInternalName()) + "modifiers"],
+      flags: number = (<any> ref)[util.descriptor2typestr(ref.getClass().getInternalName()) + "/modifiers"],
       flagsParsed: util.Flags = new util.Flags(flags),
       refKind: number, m: methods.Method,
       vmtarget: (thread: threading.JVMThread, args: any[], cb?: (e?: java_lang_Throwable, rv?: any) => void) => void = null,
@@ -1487,7 +1490,7 @@ class java_lang_invoke_MethodHandleNatives {
           if (e) {
             thread.throwException(e);
           } else {
-            vmtarget = clazz.methodLookup(name + str.toString());
+            vmtarget = clazz.signaturePolymorphicAwareMethodLookup(name + str.toString());
             if (vmtarget !== null) {
               initializeMemberName(thread, memberName, vmtarget);
               thread.asyncReturn(memberName);
@@ -1611,20 +1614,20 @@ class java_lang_invoke_MethodHandleNatives {
       if (fieldNum < constants.length) {
         var field = constants[fieldNum];
         args.array[0] = util.initString(thread.getBsCl(), field.name);
-        thread.asyncReturn((<any> constantsCls.getConstructor(thread))[field.name]);
+        thread.asyncReturn((<any> constantsCls.getConstructor(thread))[field.fullName]);
+      } else {
+        thread.asyncReturn(-1);
       }
-      thread.asyncReturn(-1);
     });
   }
 
   public static 'getMemberVMInfo(Ljava/lang/invoke/MemberName;)Ljava/lang/Object;'(thread: threading.JVMThread, mname: JVMTypes.java_lang_invoke_MemberName): JVMTypes.java_lang_Object {
-    var refKind = mname['java/lang/invoke/MemberName/flags'] >>> MemberNameConstants.REFERENCE_KIND_SHIFT,
-      rv = util.newArray(thread, thread.getBsCl(), '[Ljava/lang/Object;', 2);
+    var rv = util.newArray(thread, thread.getBsCl(), '[Ljava/lang/Object;', 2);
 
     // VMIndex of the member. Only relevant for fields and virtually dispatched methods.
     rv.array[0] = (<ClassData.PrimitiveClassData> thread.getBsCl().getInitializedClass(thread, 'J')).createWrapperObject(thread, gLong.fromNumber(mname.vmindex));
     // Class if field, membername if method
-    rv.array[1] = (((refKind & MemberNameConstants.ALL_KINDS) & MemberNameConstants.IS_FIELD) > 0) ? mname['java/lang/invoke/MemberName/clazz'] : mname;
+    rv.array[1] = (((mname['java/lang/invoke/MemberName/flags'] & MemberNameConstants.ALL_KINDS) & MemberNameConstants.IS_FIELD) > 0) ? mname['java/lang/invoke/MemberName/clazz'] : mname;
     return rv;
   }
 

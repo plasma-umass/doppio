@@ -507,9 +507,9 @@ export class Method extends AbstractMethodField {
     if (!this.accessFlags.isStatic()) {
       outStream.write(`    var obj = args.shift();\n`);
       outStream.write(`    if (obj === null) { return thread.throwNewException('Ljava/lang/NullPointerException;', ''); }\n`);
-      outStream.write(`    obj[${virtualDispatch ? this.signature : this.fullSignature}](thread, args, cb);\n`);
+      outStream.write(`    obj["${virtualDispatch ? this.signature : this.fullSignature}"](thread, args, cb);\n`);
     } else {
-      outStream.write(`    jsCons[${this.fullSignature}](thread, args, cb);\n`);
+      outStream.write(`    jsCons["${this.fullSignature}"](thread, args, cb);\n`);
     }
     outStream.write(`  }
   return bridgeMethod;

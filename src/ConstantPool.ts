@@ -578,7 +578,7 @@ export class MethodReference implements IConstantPoolItem {
       if (method === null) {
         if (util.is_reference_type(cls.getInternalName())) {
           // Signature polymorphic lookup.
-          method = (<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> cls).signaturePolymorphicMethodLookup(this.signature);
+          method = (<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> cls).signaturePolymorphicAwareMethodLookup(this.signature);
           if (method !== null) {
             // In order to completely resolve the signature polymorphic function,
             // we need to resolve its MemberName object and Appendix.

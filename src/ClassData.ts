@@ -393,7 +393,7 @@ export class PrimitiveClassData extends ClassData {
     var wrapped = new boxCons(thread);
     if (boxName !== 'V') {
       // XXX: all primitive wrappers store their value in a private static final field named 'value'
-      (<any> wrapped)[util.jvmName2JSName(boxName) + '/value'] = value;
+      (<any> wrapped)[util.descriptor2typestr(boxName) + '/value'] = value;
     }
     return wrapped;
   }
@@ -1006,11 +1006,14 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
   }
 
   /**
-   * Checks if the signature belongs to a signature polymorphic function.
-   * Returns null if not true.
+   * Performs method lookup, and includes signature polymorphic results if
+   * the method is signature polymorphic.
    */
-  public signaturePolymorphicMethodLookup(signature: string): methods.Method {
-    if (this.className === 'Ljava/lang/invoke/MethodHandle;') {
+  public signaturePolymorphicAwareMethodLookup(signature: string): methods.Method {
+    var m: methods.Method;
+    if (null !== (m = this.methodLookup(signature))) {
+      return m;
+    } else if (this.className === 'Ljava/lang/invoke/MethodHandle;') {
       // Check if this is a signature polymorphic method.
       // From S2.9:
       // A method is signature polymorphic if and only if all of the following conditions hold :
@@ -1024,7 +1027,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
         return m;
       }
     } else if (this.superClass !== null) {
-      return this.superClass.signaturePolymorphicMethodLookup(signature);
+      return this.superClass.signaturePolymorphicAwareMethodLookup(signature);
     }
     return null;
   }
