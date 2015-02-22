@@ -28,6 +28,9 @@ public class IntMath {
     runOps(Integer.MIN_VALUE, Integer.MIN_VALUE);
 
     extremeValues();  // Not just ints, but it's close enough.
+
+    // Edge-case conversion that caused an issue before.
+    System.out.println("Character.digit(48, 10): " + Character.digit((char) 48, 10));
   }
 
   public static void runOps(int a, int b) {
