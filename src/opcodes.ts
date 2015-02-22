@@ -1606,7 +1606,9 @@ export class Opcodes {
       paramSize = methodReference.getParamWordSize(),
       stack = frame.stack,
       obj: JVMTypes.java_lang_invoke_MethodHandle = stack[stack.length - paramSize - 1],
-      args = stack.slice(stack.length - paramSize),
+      // Need to include the MethodHandle in the arguments to vmtarget. vmtarget
+      // will appropriately invoke it.
+      args = stack.slice(stack.length - paramSize - 1),
       lmbdaForm: JVMTypes.java_lang_invoke_LambdaForm,
       mn: JVMTypes.java_lang_invoke_MemberName,
       m: methods.Method;
