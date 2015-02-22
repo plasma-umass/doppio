@@ -58,6 +58,9 @@ class JVM {
   private shutdown: boolean;
   private systemClassLoader: ClassLoader.ClassLoader = null;
   private nextRef: number = 0;
+  // Set of all of the methods we want vtrace to be enabled on.
+  // DEBUG builds only.
+  private vtraceMethods: {[fullSig: string]: boolean} = {};
 
   /**
    * (Async) Construct a new instance of the Java Virtual Machine.
@@ -253,6 +256,20 @@ class JVM {
         this.terminationCb = cb;
       }
     });
+  }
+
+  /**
+   * [DEBUG] Returns 'true' if the specified method should be vtraced.
+   */
+  public shouldVtrace(sig: string): boolean {
+    return this.vtraceMethods[sig] === true;
+  }
+
+  /**
+   * [DEBUG] Specify a method to vtrace.
+   */
+  public vtraceMethod(sig: string): void {
+    this.vtraceMethods[sig] = true;
   }
 
   /**

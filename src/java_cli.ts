@@ -31,6 +31,10 @@ function setupOptparse() {
         description: 'log level, [0-10]|vtrace|trace|debug|error',
         has_value: true, default: logging.ERROR
       },
+      'vtrace-methods': {
+        description: 'specify particular methods to vtrace separated by colons, e.g. java/lang/Object/getHashCode()I:java/lang/String/charAt(I)C',
+        has_value: true
+      },
       'count-logs': { description: 'count log messages instead of printing them' },
       'skip-logs': {
         description: 'number of log messages to skip before printing',
@@ -40,12 +44,13 @@ function setupOptparse() {
       'show-nyi-natives': { description: 'list any NYI native functions in loaded classes' },
       'dump-state': { description: 'write a "core dump" on unusual termination' },
       benchmark: { description: 'time execution, both hot and cold' },
+      // TODO: Use -Djava.library.path
       'native-classpath': {
         description: 'directories where package-based native methods can be found',
         has_value: true
       },
       'bootclasspath/a': {
-        description: '\'boot\' classpath items; doppio simply appends these to the classpath',
+        description: '\'boot\' classpath items',
         has_value: true
       }
     }
@@ -85,6 +90,8 @@ export function java(args: string[], opts: JVMCLIOptions,
   var argv = optparse.parse(args), jvm_state: JVM;
 
   // Default options
+  // TODO: Collect these into a 'default option' object, merge w/ user supplied
+  // options.
   if (!opts.launcherName) {
     opts.launcherName = 'java';
   }
@@ -206,6 +213,10 @@ export function java(args: string[], opts: JVMCLIOptions,
       launch_jvm(argv, opts, jvm_state, done_cb, jvm_started);
     }
   });
+
+  if (typeof argv.non_standard['vtrace-methods'] === 'string') {
+    argv.non_standard['vtrace-methods'].split(':').forEach((m: string) => jvm_state.vtraceMethod(m));
+  }
 }
 
 /**

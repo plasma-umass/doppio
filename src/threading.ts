@@ -13,6 +13,8 @@ import ConstantPool = require('./ConstantPool');
 import JVMTypes = require('../includes/JVMTypes');
 import Monitor = require('./Monitor');
 
+declare var RELEASE: boolean;
+
 var debug = logging.debug, vtrace = logging.vtrace,
   // The number of method resumes we should allow before yielding for
   // responsiveness. Updated using a cumulative moving average to ensure
@@ -728,7 +730,19 @@ export class JVMThread {
     // Reset counter. Threads always start from a fresh stack / yield.
     methodResumesLeft = maxMethodResumes;
     while (this.status === enums.ThreadStatus.RUNNING && stack.length > 0) {
-      stack[stack.length - 1].run(this);
+      if (typeof RELEASE === 'undefined') {
+        var sf = stack[stack.length - 1];
+        if (sf.type === enums.StackFrameType.BYTECODE && this.tpool.getJVM().shouldVtrace((<BytecodeStackFrame> sf).method.fullSignature)) {
+          var oldLevel = logging.log_level;
+          logging.log_level = logging.VTRACE;
+          stack[stack.length - 1].run(this);
+          logging.log_level = oldLevel;
+        } else {
+          stack[stack.length - 1].run(this);
+        }
+      } else {
+        stack[stack.length - 1].run(this);
+      }
       if (--methodResumesLeft === 0) {
         endTime = (new Date()).getTime();
         duration = endTime - startTime;

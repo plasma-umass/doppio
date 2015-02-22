@@ -268,20 +268,18 @@ export class Method extends AbstractMethodField {
     }
 
     // Initialize 'code' property.
-    var clsName = this.cls.getInternalName(),
-      methSig = this.name + this.rawDescriptor;
-
-    if (getTrappedMethod(clsName, methSig) !== null) {
-      this.code = getTrappedMethod(clsName, methSig);
+    var clsName = this.cls.getInternalName();
+    if (getTrappedMethod(clsName, this.signature) !== null) {
+      this.code = getTrappedMethod(clsName, this.signature);
       this.accessFlags.setNative(true);
     } else if (this.accessFlags.isNative()) {
-      if (methSig.indexOf('registerNatives()V', 0) < 0 && methSig.indexOf('initIDs()V', 0) < 0) {
+      if (this.signature.indexOf('registerNatives()V', 0) < 0 && this.signature.indexOf('initIDs()V', 0) < 0) {
         // The first version of the native method attempts to fetch itself and
         // rewrite itself.
         this.code = (thread: threading.JVMThread) => {
           // Try to fetch the native method.
           var jvm = thread.getThreadPool().getJVM(),
-            c = jvm.getNative(clsName, methSig);
+            c = jvm.getNative(clsName, this.signature);
           if (c == null) {
             thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', `Native method '${this.getFullSignature()}' not implemented.\nPlease fix or file a bug at https://github.com/plasma-umass/doppio/issues`);
           } else {
