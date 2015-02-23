@@ -227,17 +227,21 @@ export function wrapFloat(a: number): number {
 }
 
 // Convert :count chars starting from :offset in a Java character array into a JS string
-export function chars2jsStr(jvmCarr: JVMTypes.JVMArray<number>, offset?: number, count?: number): string {
-  var off = offset || 0;
-  return bytes2str(jvmCarr.array).substr(off, count);
+export function chars2jsStr(jvmCarr: JVMTypes.JVMArray<number>, offset: number = 0, count: number = jvmCarr.array.length): string {
+  var i : number, carrArray = jvmCarr.array, rv = "", endOffset = offset + count;
+  for (i = offset; i < endOffset; i++) {
+    rv += String.fromCharCode(carrArray[i]);
+  }
+  return rv;
 }
 
 // TODO: Is this used anywhere where we are *not* inserting the bytestr into
 // a JVMArray object?
+// TODO: Could inject this as a static String method...
 export function bytestr2Array(byteStr: string): number[] {
   var rv : number[] = [];
   for (var i = 0; i < byteStr.length; i++) {
-    rv.push(byteStr.charCodeAt(i) & 0xFF);
+    rv.push(byteStr.charCodeAt(i));
   }
   return rv;
 }
@@ -529,30 +533,6 @@ export function typestr2descriptor(type_str: string): string {
   } else {
     return "L" + type_str + ";";
   }
-}
-
-// Parse Java's pseudo-UTF-8 strings. (spec 4.4.7)
-export function bytes2str(bytes: number[], null_terminate?: boolean): string {
-  var y: number;
-  var z: number;
-  var v: number;
-  var w: number;
-
-  var idx = 0;
-  var rv = '';
-  while (idx < bytes.length) {
-    var x = bytes[idx++] & 0xff;
-    if (null_terminate && x == 0) {
-      break;
-    }
-    rv += String.fromCharCode(
-      x <= 0x7f ? x :
-      x <= 0xdf ? (y = bytes[idx++], ((x & 0x1f) << 6) + (y & 0x3f)) :
-      x === 0xED ? (v = bytes[idx++], w = bytes[idx++], x = bytes[idx++], y = bytes[idx++], z = bytes[idx++], (0x10000 + ((v & 0x0f) << 16) + ((w & 0x3f) << 10) +
-((y & 0x0f) << 6) + (z & 0x3f))) :
-      (y = bytes[idx++], z = bytes[idx++], ((x & 0xf) << 12) + ((y & 0x3f) << 6) + (z & 0x3f)));
-  }
-  return rv;
 }
 
 /**

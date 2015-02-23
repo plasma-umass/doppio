@@ -538,7 +538,7 @@ export class ArrayClassData<T> extends ClassData {
       case 'B':
         return 'Int8Array';
       case 'C':
-        return 'Uint8Array';
+        return 'Uint16Array';
       case 'S':
         return 'Int16Array';
       case 'I':
@@ -583,10 +583,10 @@ export class ArrayClassData<T> extends ClassData {
       var elementSize: number;
       switch (jsArrCons) {
         case 'Int8Array':
-        case 'Uint8Array':
           elementSize = 1;
           break;
         case 'Int16Array':
+        case 'Uint16Array':
           elementSize = 2;
           break;
         case 'Int32Array':

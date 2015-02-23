@@ -67,8 +67,49 @@ var CP_CLASSES: { [n: number]: IConstantPoolType } = {};
  */
 export class ConstUTF8 implements IConstantPoolItem {
   public value: string;
-  constructor(value: string) {
-    this.value = value;
+  constructor(rawBytes: number[]) {
+    this.value = this.bytes2str(rawBytes);
+  }
+
+  /**
+   * Parse Java's pseudo-UTF-8 strings into valid UTF-16 codepoints (spec 4.4.7)
+   * Note that Java uses UTF-16 internally by default for string representation,
+   * and the pseudo-UTF-8 strings are *only* used for serialization purposes.
+   * Thus, there is no reason for other parts of the code to call this routine!
+   * TODO: To avoid copying, create a character array for this data.
+   * http://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.4.7
+   */
+  private bytes2str(bytes: number[]): string {
+    var y: number;
+    var z: number;
+    var v: number;
+    var w: number;
+    var x: number;
+
+    var idx = 0;
+    var rv = '';
+    while (idx < bytes.length) {
+      x = bytes[idx++] & 0xff;
+      if (x === 0xed) {
+        // Special: UTF-16 surrogate pairs
+        v = bytes[idx++];
+        w = bytes[idx++];
+        idx++; // Skip padding character.
+        y = bytes[idx++];
+        z = bytes[idx++];
+        // Use X as temporary storage for 32-bit result.
+        x = (0x10000 + ((v & 0x0f) << 16) + ((w & 0x3f) << 10) + ((y & 0x0f) << 6) + (z & 0x3f));
+        // Store as two character codes. High bits first.
+        rv += String.fromCharCode(x >>> 16, x & 0xFFFF);
+      } else {
+        rv += String.fromCharCode(
+          x <= 0x7f ? x :
+          (x <= 0xdf ? (y = bytes[idx++], ((x & 0x1f) << 6) + (y & 0x3f)) :
+          (y = bytes[idx++], z = bytes[idx++], ((x & 0xf) << 12) + ((y & 0x3f) << 6) + (z & 0x3f))));
+      }
+    }
+
+    return rv;
   }
 
   public getType(): enums.ConstantPoolItemType {
@@ -84,7 +125,7 @@ export class ConstUTF8 implements IConstantPoolItem {
   public static infoByteSize: number = 0;
   public static fromBytes(byteStream: ByteStream, constantPool: ConstantPool): IConstantPoolItem {
     var strlen = byteStream.getUint16();
-    return new this(util.bytes2str(byteStream.read(strlen)));
+    return new this(byteStream.read(strlen));
   }
 }
 CP_CLASSES[enums.ConstantPoolItemType.UTF8] = ConstUTF8;
