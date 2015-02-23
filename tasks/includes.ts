@@ -16,7 +16,7 @@ function includes(grunt: IGrunt) {
         packages: string[] = options.packages,
         dest: string = options.dest,
         done: (status?: boolean) => void = this.async(),
-        i: number, tasks: Function[] = [],
+        i: number, tasks: Array<AsyncFunction<void>> = [],
         force: string[] = options.force,
         standardArgPrefix = [doppiohPath, '-d', dest, '-cp', 'vendor/java_home/classes:.', '-ts', '.'];
 

@@ -9,7 +9,7 @@ function unitTest(grunt: IGrunt) {
 	grunt.registerMultiTask('unit_test', 'Run doppio unit tests.', function() {
     var files: { src: string[]; dest: string }[] = this.files,
       done: (status?: boolean) => void = this.async(),
-      tasks: Function[] = [], testFailed = false;
+      tasks: Array<AsyncFunction<void>> = [], testFailed = false;
     // Delete failures.txt if it exists.
     if (grunt.file.exists('classes/test/failures.txt')) {
       grunt.file.delete('classes/test/failures.txt');
