@@ -29,6 +29,21 @@ public class Strings {
     // sans newlines
     System.out.print(1); System.out.print(2); System.out.println(3);
     System.out.println(String.valueOf(1.5));
-    System.out.format("%s is asdf", "asdf");
+    System.out.format("%s is asdf\n", "asdf");
+
+    // Pseudo-UTF-8 strings. Testing boundaries between char classes.
+    // There are 4 different char classes:
+    // - 0x01 -> 0x7F
+    // - 0x00 and 0x80 -> 0x07FF
+    // - 0x0800 -> 0xFFFF
+    // Numbers over 0xFFFF [new in JVMSE7+]
+    // The JDK now generates CharacterData classes using giant unicode strings that
+    // abuse ALL of these character classes. These CharacterData classes handle e.g.
+    // parseInt and many other required APIs.
+    String DATA = "\u0001\u007F\u0000\u0080\u07FF\u0800\uFFFF\u4800\u100FA";
+    for (int i = 0; i < DATA.length(); i++) {
+      System.out.print("" + ((int) DATA.charAt(i)) + ",");
+    }
+    System.out.println("");
   }
 }

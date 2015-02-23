@@ -533,8 +533,10 @@ export function typestr2descriptor(type_str: string): string {
 
 // Parse Java's pseudo-UTF-8 strings. (spec 4.4.7)
 export function bytes2str(bytes: number[], null_terminate?: boolean): string {
-  var y : number;
-  var z : number;
+  var y: number;
+  var z: number;
+  var v: number;
+  var w: number;
 
   var idx = 0;
   var rv = '';
@@ -543,7 +545,12 @@ export function bytes2str(bytes: number[], null_terminate?: boolean): string {
     if (null_terminate && x == 0) {
       break;
     }
-    rv += String.fromCharCode(x <= 0x7f ? x : x <= 0xdf ? (y = bytes[idx++], ((x & 0x1f) << 6) + (y & 0x3f)) : (y = bytes[idx++], z = bytes[idx++], ((x & 0xf) << 12) + ((y & 0x3f) << 6) + (z & 0x3f)));
+    rv += String.fromCharCode(
+      x <= 0x7f ? x :
+      x <= 0xdf ? (y = bytes[idx++], ((x & 0x1f) << 6) + (y & 0x3f)) :
+      x === 0xED ? (v = bytes[idx++], w = bytes[idx++], x = bytes[idx++], y = bytes[idx++], z = bytes[idx++], (0x10000 + ((v & 0x0f) << 16) + ((w & 0x3f) << 10) +
+((y & 0x0f) << 6) + (z & 0x3f))) :
+      (y = bytes[idx++], z = bytes[idx++], ((x & 0xf) << 12) + ((y & 0x3f) << 6) + (z & 0x3f)));
   }
   return rv;
 }
