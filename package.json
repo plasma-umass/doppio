@@ -1,7 +1,7 @@
 {
   "name": "doppio",
   "version": "0.3.0",
-  "engine": "node >= 0.10.0",
+  "engine": "node >= 0.12.0",
   "dependencies": {
     "optimist": "~0.3.5",
     "async": "*",
@@ -13,7 +13,6 @@
     "bower": "*",
     "coffee-script": "1.6",
     "docco": "*",
-    "execSync": "*",
     "express": "3.x",
     "fstream": "*",
     "glob": "*",
@@ -49,6 +48,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "http://github.com/int3/doppio.git"
+    "url": "http://github.com/plasma-umass/doppio.git"
   }
 }

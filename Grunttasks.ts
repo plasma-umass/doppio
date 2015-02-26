@@ -374,7 +374,7 @@ export function setup(grunt: IGrunt) {
     if (!grunt.file.exists("includes/JVMTypes.d.ts")) {
       // Switch errors back on and recompile to catch any type errors / errors in include generation.
       grunt.config.set('ts.options.failOnTypeErrors', true);
-      grunt.task.run(['javac:default', 'includes:default', 'ts:dev-cli']);
+      grunt.task.run(['find_native_java', 'javac:default', 'includes:default', 'ts:dev-cli']);
     }
   });
   grunt.registerTask('java',
