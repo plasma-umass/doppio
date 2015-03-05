@@ -1627,13 +1627,14 @@ export class Opcodes {
   /**
    * Also used for linkToStatic.
    * TODO: De-conflate the two.
+   * TODO: Varargs functions.
    */
   public static linktospecial(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
     var methodReference = <ConstantPool.MethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       stack = frame.stack, paramSize = methodReference.paramWordSize,
-      args = stack.slice(stack.length - paramSize),
       // Final argument is the relevant MemberName. Function args are right
       // before it.
+      args = stack.slice(stack.length - paramSize),
       memberName: JVMTypes.java_lang_invoke_MemberName = args.pop(),
       vmtarget: methods.Method;
 
@@ -1645,6 +1646,7 @@ export class Opcodes {
     }
   }
 
+  // XXX: Varargs functions. We're supposed to box args if target is varargs.
   public static linktovirtual(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
     var methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       paramSize = methodReference.paramWordSize,

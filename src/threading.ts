@@ -15,7 +15,7 @@ import Monitor = require('./Monitor');
 
 declare var RELEASE: boolean;
 
-var debug = logging.debug, vtrace = logging.vtrace,
+var debug = logging.debug, vtrace = logging.vtrace, trace = logging.trace,
   // The number of method resumes we should allow before yielding for
   // responsiveness. Updated using a cumulative moving average to ensure
   // Doppio is responsive.
@@ -87,9 +87,9 @@ export class BytecodeStackFrame implements IStackFrame {
     var method = this.method, code = this.method.getCodeAttribute().getCode(),
       opcodeTable = opcodes.LookupTable;
     if (this.pc === 0) {
-      vtrace(`\nT${thread.getRef()} D${thread.getStackTrace().length} Running ${this.method.getFullSignature()} [Bytecode]:`);
+      trace(`\nT${thread.getRef()} D${thread.getStackTrace().length} Running ${this.method.getFullSignature()} [Bytecode]:`);
     } else {
-      vtrace(`\nT${thread.getRef()} D${thread.getStackTrace().length} Resuming ${this.method.getFullSignature()}:${this.pc} [Bytecode]:`);
+      trace(`\nT${thread.getRef()} D${thread.getStackTrace().length} Resuming ${this.method.getFullSignature()}:${this.pc} [Bytecode]:`);
     }
     vtrace(`  S: [${logging.debug_vars(this.stack)}], L: [${logging.debug_vars(this.locals)}]`);
 
@@ -277,7 +277,7 @@ export class NativeStackFrame implements IStackFrame {
    * NOTE: Should only be called once.
    */
   public run(thread: JVMThread): void {
-    vtrace(`\nT${thread.getRef()} D${thread.getStackTrace().length} Running ${this.method.getFullSignature()} [Native]:`);
+    trace(`\nT${thread.getRef()} D${thread.getStackTrace().length} Running ${this.method.getFullSignature()} [Native]:`);
     var rv: any = this.nativeMethod.apply(null, this.method.convertArgs(thread, this.args));
     // Ensure thread is running, and we are the running method.
     if (thread.getStatus() === enums.ThreadStatus.RUNNING && thread.currentMethod() === this.method) {
@@ -959,15 +959,15 @@ export class JVMThread {
       if (frame.type === enums.StackFrameType.BYTECODE) {
         // This line will be preceded by a line that prints the method, so can be short n' sweet.
         if (frameCast.method.returnType !== 'V') {
-          vtrace(`  Returning: ${logging.debug_var(rv)}`);
+          trace(`  Returning: ${logging.debug_var(rv)}`);
         }
       } else {
         // Native methods can asyncReturn at any point, so print more information.
-        vtrace(`T${this.getRef()} D${this.getStackTrace().length + 1} Returning value from ${frameCast.method.getFullSignature()} [Native]: ${frameCast.method.returnType === 'V' ? 'void' : logging.debug_var(rv)}`);
+        trace(`T${this.getRef()} D${this.getStackTrace().length + 1} Returning value from ${frameCast.method.getFullSignature()} [Native]: ${frameCast.method.returnType === 'V' ? 'void' : logging.debug_var(rv)}`);
       }
 
       if (frameCast.method.returnType !== 'V') {
-        vtrace(`\nT${this.getRef()} D${this.getStackTrace().length + 1} Returning value from ${frameCast.method.getFullSignature()} [${frameCast.method.accessFlags.isNative() ? 'Native' : 'Bytecode'}]: ${logging.debug_var(rv)}`);
+        trace(`\nT${this.getRef()} D${this.getStackTrace().length + 1} Returning value from ${frameCast.method.getFullSignature()} [${frameCast.method.accessFlags.isNative() ? 'Native' : 'Bytecode'}]: ${logging.debug_var(rv)}`);
       }
       assert(validateReturnValue(this, frameCast.method,
         frameCast.method.returnType, this.bsCl,

@@ -533,27 +533,31 @@ _create`);
     }
     outStream.write(`(function(method) {
   return function(thread, `);
-    // No argfs argument for 0-parameter functions.
+    // No args argument for 0-parameter functions.
     if (this.parameterWords > 0) {
       outStream.write(`args, `);
     }
     // Boilerplate: Required for JS to call into JVM code.
-    // XXX: Need to get 'method' somehow. methodLookup??
     outStream.write(`cb) {
     if (typeof cb === 'function') {
       thread.stack.push(new InternalStackFrame(cb));
     }
     thread.stack.push(new ${this.accessFlags.isNative() ? "NativeStackFrame" : "BytecodeStackFrame"}(method, `);
     if (!this.accessFlags.isStatic()) {
-      // Non-static functions need to add the implicit 'this' variable to the
-      // local variables.
-      outStream.write(`[this`);
-      // Give the JS engine hints about the size, type, and contents of the array
-      // by making it a literal.
-      for (i = 0; i < this.parameterWords; i++) {
-        outStream.write(`, args[${i}]`);
+      if (this.isSignaturePolymorphic()) {
+        // XXX: linktovirtual calls invokebasic, and it doesn't box the arguments.
+        outStream.write(`[this].concat(Array.prototype.slice.call(arguments))`);
+      } else {
+        // Non-static functions need to add the implicit 'this' variable to the
+        // local variables.
+        outStream.write(`[this`);
+        // Give the JS engine hints about the size, type, and contents of the array
+        // by making it a literal.
+        for (i = 0; i < this.parameterWords; i++) {
+          outStream.write(`, args[${i}]`);
+        }
+        outStream.write(`]`);
       }
-      outStream.write(`]`);
     } else {
       // Static function doesn't need to mutate the arguments.
       if (this.parameterWords > 0) {
