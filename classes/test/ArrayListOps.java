@@ -12,5 +12,8 @@ public class ArrayListOps {
     lst.addAll(another_lst);
     for (Integer i : lst) 
       System.out.println(i);
+    double a = 2.0;
+    double b = 3.0;
+    double c = Math.hypot(a,b);
   }
 }
