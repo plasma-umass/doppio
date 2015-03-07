@@ -909,9 +909,7 @@ class java_lang_StrictMath {
   }
 
   public static 'hypot(DD)D'(thread: threading.JVMThread, arg0: number, arg1: number): number {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    // Satisfy TypeScript return type.
-    return 0;
+    return Math.sqrt(Math.pow(arg0, 2) + Math.pow(arg1, 2));
   }
 
   public static 'expm1(D)D'(thread: threading.JVMThread, d_val: number): number {
