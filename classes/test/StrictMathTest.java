@@ -160,9 +160,6 @@ public class StrictMathTest {
     }
     results("double floor(double a)", d_results);
 
-    // static double hypot(double x, double y)
-    // Returns sqrt(x2 +y2) without intermediate overflow or underflow.
-
     // static double IEEEremainder(double f1, double f2)
     // Computes the remainder operation on two arguments as prescribed by the IEEE 754 standard.
 
