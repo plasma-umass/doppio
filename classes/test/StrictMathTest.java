@@ -162,6 +162,12 @@ public class StrictMathTest {
 
     // static double IEEEremainder(double f1, double f2)
     // Computes the remainder operation on two arguments as prescribed by the IEEE 754 standard.
+    for (i=0; i < d_vals.length; i++) {
+      for (j=0; j < d_vals.length; j++) {
+        d_results[i] = StrictMath.IEEEremainder(d_vals[i], d_vals[j]);
+      }
+    }
+    results("double IEEEremainder(double a, double b)", d_results_2d);
 
     // static double log(double a)
     // Returns the natural logarithm (base e) of a double value.
