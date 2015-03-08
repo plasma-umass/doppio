@@ -877,9 +877,7 @@ class java_lang_StrictMath {
   }
 
   public static 'IEEEremainder(DD)D'(thread: threading.JVMThread, arg0: number, arg1: number): number {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    // Satisfy TypeScript return type.
-    return 0;
+    return Math.IEEEremainder(arg0, arg1);
   }
 
   public static 'atan2(DD)D'(thread: threading.JVMThread, y: number, x: number): number {
