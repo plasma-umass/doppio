@@ -162,6 +162,12 @@ public class StrictMathTest {
 
     // static double hypot(double x, double y)
     // Returns sqrt(x2 +y2) without intermediate overflow or underflow.
+    for (i=0; i < d_vals.length; i++) {		
+      for (j=0; j < d_vals.length; j++) {		
+        d_results[i] = StrictMath.hypot(d_vals[i], d_vals[j]);		
+      }		
+    }		
+    results("double hypot(double a, double b)", d_results_2d);
 
     // static double IEEEremainder(double f1, double f2)
     // Computes the remainder operation on two arguments as prescribed by the IEEE 754 standard.

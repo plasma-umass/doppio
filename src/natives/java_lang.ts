@@ -919,7 +919,7 @@ class java_lang_StrictMath {
   }
 
   public static 'log1p(D)D'(thread: threading.JVMThread, d_val: number): number {
-    return Math.log1p(1);
+    return Math.log1p(d_val);
   }
 
 }
