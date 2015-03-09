@@ -37,7 +37,7 @@ public class StrictMathTest {
   public static void main(String[] args) {
     double[] d_vals = { 2.12345,
                         -3.256,
-                        0,3,4,
+                        0,
                         Double.MAX_VALUE,
                         Double.MIN_VALUE,
                         Double.MIN_NORMAL,
@@ -160,14 +160,11 @@ public class StrictMathTest {
     }
     results("double floor(double a)", d_results);
 
+    // static double hypot(double x, double y)
+    // Returns sqrt(x2 +y2) without intermediate overflow or underflow.
+
     // static double IEEEremainder(double f1, double f2)
     // Computes the remainder operation on two arguments as prescribed by the IEEE 754 standard.
-    for (i=0; i < d_vals.length; i++) {
-      for (j=0; j < d_vals.length; j++) {
-        d_results[i] = StrictMath.IEEEremainder(d_vals[i], d_vals[j]);
-      }
-    }
-    results("double IEEEremainder(double a, double b)", d_results_2d);
 
     // static double log(double a)
     // Returns the natural logarithm (base e) of a double value.
@@ -185,6 +182,10 @@ public class StrictMathTest {
 
     // static double log1p(double x)
     // Returns the natural logarithm of the sum of the argument and 1.
+    for (i=0; i < d_vals.length; i++) {
+      d_results[i] = StrictMath.log1p(d_vals[i]);
+    }
+    results("double log1p(double a)", d_results);
 
     // static double max(double a, double b)
     // Returns the greater of two double values.
@@ -266,15 +267,6 @@ public class StrictMathTest {
       }
     }
     results("double pow(double a, double b)", d_results_2d);
-
-    // static double hypot(double a, double b)
-    // Returns the value of the first argument raised to the power of 2 + second argument raised to the power of .
-    for (i=0; i < d_vals.length; i++) {
-      for (j=0; j < d_vals.length; j++) {
-        d_results[i] = StrictMath.hypot(d_vals[i], d_vals[j]);
-      }
-    }
-    results("double hypot(double a, double b)", d_results_2d);
 
     // static double random()
     // Returns a double value with a positive sign, greater than or equal to 0.0 and less than 1.0.
