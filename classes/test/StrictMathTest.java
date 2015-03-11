@@ -179,6 +179,10 @@ public class StrictMathTest {
 
     // static double log1p(double x)
     // Returns the natural logarithm of the sum of the argument and 1.
+    for (i=0; i < d_vals.length; i++) {
+      d_results[i] = StrictMath.log1p(d_vals[i]);
+    }
+    results("double log1p(double a)", d_results);
 
     // static double max(double a, double b)
     // Returns the greater of two double values.
