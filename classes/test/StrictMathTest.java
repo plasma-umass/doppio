@@ -122,7 +122,7 @@ public class StrictMathTest {
 
     // static double atan2(double y, double x)
     // Returns the angle theta from the conversion of rectangular coordinates (x, y) to polar coordinates (r, theta).
-
+    
     // static double cbrt(double a)
     // Returns the cube root of a double value.
     for (i=0; i < d_vals.length; i++) {
@@ -139,6 +139,10 @@ public class StrictMathTest {
 
     // static double cos(double a)
     // Returns the trigonometric cosine of an angle.
+    for (i=0; i < d_vals.length; i++) {
+        d_results[i] = StrictMath.cos(d_vals[i]);
+    }
+    results("double cos(double a)", d_results);
 
     // static double cosh(double x)
     // Returns the hyperbolic cosine of a double value.
@@ -179,7 +183,7 @@ public class StrictMathTest {
 
     // static double log1p(double x)
     // Returns the natural logarithm of the sum of the argument and 1.
-
+    
     // static double max(double a, double b)
     // Returns the greater of two double values.
     for (i=0; i < d_vals.length; i++) {
@@ -304,9 +308,14 @@ public class StrictMathTest {
 
     // static double sin(double a)
     // Returns the trigonometric sine of an angle.
+    for (i=0; i < d_vals.length; i++) {
+        d_results[i] = StrictMath.sin(d_vals[i]);
+    }
+    results("double sin(double a)", d_results);
+
     // static double sinh(double x)
     // Returns the hyperbolic sine of a double value.
-
+    
     // static double sqrt(double a)
     // Returns the correctly rounded positive square root of a double value.
     for (i=0; i < d_vals.length; i++) {
@@ -316,6 +325,10 @@ public class StrictMathTest {
 
     // static double tan(double a)
     // Returns the trigonometric tangent of an angle.
+    for (i=0; i < d_vals.length; i++) {
+        d_results[i] = StrictMath.tan(d_vals[i]);
+    }
+    results("double tan(double a)", d_results);
 
     // static double tanh(double x)
     // Returns the hyperbolic tangent of a double value.

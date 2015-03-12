@@ -123,6 +123,13 @@ if ((<any> Math)['imul'] == null) {
   };
 }
 
+if ((<any> Math)['log1p'] == null) {
+  (<any> Math)['log1p'] = function(x: number) {
+    // polyfill from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/log1p
+    return Math.log(1 + x);
+  };
+}
+
 if (!Array.prototype.indexOf) {
   Array.prototype.indexOf = function (searchElement, fromIndex?) {
     if (this == null) {
