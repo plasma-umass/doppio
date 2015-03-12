@@ -919,14 +919,9 @@ class java_lang_StrictMath {
   }
 
   public static 'log1p(D)D'(thread: threading.JVMThread, d_val: number): number {
-    if(d_val < -1 || isNaN(d_val))
-      return Number.NaN;
-    else if(d_val == -1)
-      return Number.NEGATIVE_INFINITY;
-    else if(d_val == 0)
-      return d_val;
-    else
-     return Math.log1p(d_val);
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+    // Satisfy TypeScript return type.
+    return 0;
   }
 
 }
