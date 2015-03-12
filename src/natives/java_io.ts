@@ -63,14 +63,14 @@ class java_io_Console {
     return null;
   }
 
-  public static 'echo(Z)Z'(thread: threading.JVMThread, arg0: number): number {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    // Satisfy TypeScript return type.
-    return 0;
+  public static 'echo(Z)Z'(thread: threading.JVMThread, echoOn: boolean): boolean {
+    var echoOff: boolean = !echoOn;
+    process.stdin.setRawMode(echoOff);
+    return echoOff;
   }
 
   public static 'istty()Z'(thread: threading.JVMThread): boolean {
-    return true;
+    return process.stdout.isTTY;
   }
 
 }
