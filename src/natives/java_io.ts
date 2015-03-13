@@ -65,12 +65,12 @@ class java_io_Console {
 
   public static 'echo(Z)Z'(thread: threading.JVMThread, echoOn: boolean): boolean {
     var echoOff: boolean = !echoOn;
-    process.stdin.setRawMode(echoOff);
+    (<any> process.stdin).setRawMode(echoOff);
     return echoOff;
   }
 
   public static 'istty()Z'(thread: threading.JVMThread): boolean {
-    return process.stdout.isTTY;
+    return (<any> process.stdout).isTTY;
   }
 
 }
