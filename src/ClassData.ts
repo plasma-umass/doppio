@@ -14,9 +14,12 @@ import gLong = require('./gLong');
 import JVM = require('./jvm');
 import StringOutputStream = require('./StringOutputStream');
 import JVMTypes = require('../includes/JVMTypes');
-var ClassState = enums.ClassState;
-var trace = logging.trace;
-var debug = logging.debug;
+import ClassState = enums.ClassState;
+
+import trace = logging.trace;
+import debug = logging.debug;
+
+declare var RELEASE: boolean;
 
 /**
  * Auto-incrementing reference number. Uniquely identifies each object allocated
@@ -965,7 +968,6 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
     if (this.superClass !== null) {
       // Start off w/ my parent class' fields.
       this._objectFields = this._objectFields.concat(this.superClass._objectFields);
-      this._staticFields = this._staticFields.concat(this.superClass._staticFields);
       Object.keys(this.superClass._fieldLookup).forEach((f: string) => {
         this._fieldLookup[f] = this.superClass._fieldLookup[f];
       });
@@ -977,7 +979,6 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
         var ifaceF = iface._fieldLookup[ifaceFieldName];
         assert(ifaceF.accessFlags.isStatic(), "Interface fields must be static.");
         this._fieldLookup[ifaceFieldName] = ifaceF;
-        this._staticFields.push(ifaceF);
       });
     });
 
@@ -1099,7 +1100,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
         return util.initialValue(f.rawDescriptor);
       }
     }
-    assert(false, `Tried to construct a static field value that doesn't exist: ${this.getInternalName()} ${name}`);
+    assert(false, `Tried to construct a static field value that ${f !== null ? "isn't static" : "doesn't exist"}: ${f !== null ? f.cls.getInternalName() : this.getInternalName()} ${name}`);
   }
 
   public setResolved(superClazz: ReferenceClassData<JVMTypes.java_lang_Object>, interfaceClazzes: ReferenceClassData<JVMTypes.java_lang_Object>[]): void {
@@ -1426,7 +1427,13 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
 }
 _create`);
 
-    return eval(outputStream.flush())(extendClass, this, threading.InternalStackFrame, threading.NativeStackFrame, threading.BytecodeStackFrame, gLong.ZERO, require('./ClassLoader'), require('./Monitor'), thread);
+
+    var evalText = outputStream.flush();
+    // NOTE: Thread will be null during system bootstrapping.
+    if (typeof RELEASE === 'undefined' && thread !== null && thread.getThreadPool().getJVM().shouldDumpCompiledCode()) {
+      thread.getThreadPool().getJVM().dumpObjectDefinition(this, evalText);
+    }
+    return eval(evalText)(extendClass, this, threading.InternalStackFrame, threading.NativeStackFrame, threading.BytecodeStackFrame, gLong.ZERO, require('./ClassLoader'), require('./Monitor'), thread);
   }
 
   public getConstructor(thread: threading.JVMThread): IJVMConstructor<T> {

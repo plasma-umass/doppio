@@ -61,6 +61,8 @@ class JVM {
   // Set of all of the methods we want vtrace to be enabled on.
   // DEBUG builds only.
   private vtraceMethods: {[fullSig: string]: boolean} = {};
+  // [DEBUG] directory to dump compiled code to.
+  private dumpCompiledCodeDir: string = null;
 
   /**
    * (Async) Construct a new instance of the Java Virtual Machine.
@@ -554,6 +556,23 @@ class JVM {
 
   public isShutdown(): boolean {
     return this.shutdown;
+  }
+
+  /**
+   * Specifies a directory to dump compiled code to.
+   */
+  public dumpCompiledCode(dir: string): void {
+    this.dumpCompiledCodeDir = dir;
+  }
+
+  public shouldDumpCompiledCode(): boolean {
+    return this.dumpCompiledCodeDir !== null;
+  }
+
+  public dumpObjectDefinition(cls: ClassData.ClassData, evalText: string): void {
+    if (this.dumpCompiledCodeDir !== null) {
+      fs.writeFile(path.resolve(this.dumpCompiledCodeDir, cls.getExternalName() + "_object.dump"), evalText, () => {});
+    }
   }
 }
 

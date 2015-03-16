@@ -44,6 +44,7 @@ function setupOptparse() {
       'show-nyi-natives': { description: 'list any NYI native functions in loaded classes' },
       'dump-state': { description: 'write a "core dump" on unusual termination' },
       benchmark: { description: 'time execution, both hot and cold' },
+      'dump-compiled-code': { description: 'directory to dump compiled object definitions', has_value: true },
       // TODO: Use -Djava.library.path
       'native-classpath': {
         description: 'directories where package-based native methods can be found',
@@ -216,6 +217,10 @@ export function java(args: string[], opts: JVMCLIOptions,
 
   if (typeof argv.non_standard['vtrace-methods'] === 'string') {
     argv.non_standard['vtrace-methods'].split(':').forEach((m: string) => jvm_state.vtraceMethod(m));
+  }
+
+  if (typeof argv.non_standard['dump-compiled-code'] === 'string') {
+    jvm_state.dumpCompiledCode(argv.non_standard['dump-compiled-code']);
   }
 }
 
