@@ -115,7 +115,7 @@ export class BytecodeStackFrame implements IStackFrame {
     // Run until we get the signal to return to the thread loop.
     while (!this.returnToThreadLoop) {
       var op = code.readUInt8(this.pc);
-      vtrace(`  ${this.pc} ${annotateOpcode(op, this, code, this.pc)} [${op}]`);
+      vtrace(`  ${this.pc} ${annotateOpcode(op, this, code, this.pc)}`);
       opcodeTable[op](thread, this, code, this.pc);
       if (!this.returnToThreadLoop) {
         vtrace(`    S: [${logging.debug_vars(this.stack)}], L: [${logging.debug_vars(this.locals)}]`);

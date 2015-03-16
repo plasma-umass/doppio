@@ -546,7 +546,8 @@ _create`);
     if (!this.accessFlags.isStatic()) {
       if (this.isSignaturePolymorphic()) {
         // XXX: linktovirtual calls invokebasic, and it doesn't box the arguments.
-        outStream.write(`[this].concat(Array.prototype.slice.call(arguments))`);
+        // Could probably generalize this for variable arg functions.
+        outStream.write(`[this].concat(args)`);
       } else {
         // Non-static functions need to add the implicit 'this' variable to the
         // local variables.
