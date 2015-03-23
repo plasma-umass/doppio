@@ -1566,7 +1566,7 @@ export class Opcodes {
     if (appendix !== null) {
       args.push(appendix);
     }
-    fcn(thread, args);
+    fcn(thread, null, args);
     frame.returnToThreadLoop = true;
   }
 
@@ -1589,7 +1589,8 @@ export class Opcodes {
     if (!isNull(thread, frame, args[0])) {
       stack.length -= paramSize;
       // fcn will handle invoking 'this' and such.
-      fcn(thread, args);
+      // TODO: If this can be varargs, pass in parameter types to the function.
+      fcn(thread, null, args);
       frame.returnToThreadLoop = true;
     }
   }
@@ -1619,7 +1620,7 @@ export class Opcodes {
       lmbdaForm = obj['java/lang/invoke/MethodHandle/form'];
       mn = lmbdaForm['java/lang/invoke/LambdaForm/vmentry'];
       assert(mn.vmtarget !== null && mn.vmtarget !== undefined, "vmtarget must be defined");
-      mn.vmtarget(thread, args);
+      mn.vmtarget(thread, methodReference.nameAndTypeInfo.descriptor, args);
       frame.returnToThreadLoop = true;
     }
   }
@@ -1636,12 +1637,13 @@ export class Opcodes {
       // before it.
       args = stack.slice(stack.length - paramSize),
       memberName: JVMTypes.java_lang_invoke_MemberName = args.pop(),
-      vmtarget: methods.Method;
+      desc = methodReference.nameAndTypeInfo.descriptor;
 
     if (!isNull(thread, frame, memberName)) {
       stack.length -= paramSize;
       assert(memberName.getClass().getInternalName() === "Ljava/lang/invoke/MemberName;");
-      memberName.vmtarget(thread, args);
+      // parameterTypes for function are the same as the method reference, but without the trailing MemberName.
+      memberName.vmtarget(thread, desc.replace("Ljava/lang/invoke/MemberName;)", ")"), args);
       frame.returnToThreadLoop = true;
     }
   }
@@ -1654,11 +1656,14 @@ export class Opcodes {
       args = stack.slice(stack.length - paramSize),
       // Final argument is the relevant MemberName. Function args are right
       // before it.
-      memberName: JVMTypes.java_lang_invoke_MemberName = args.pop();
+      memberName: JVMTypes.java_lang_invoke_MemberName = args.pop(),
+      desc = methodReference.nameAndTypeInfo.descriptor;
 
     if (!isNull(thread, frame, memberName)) {
+      stack.length -= paramSize;
       assert(memberName.getClass().getInternalName() === "Ljava/lang/invoke/MemberName;");
-      memberName.vmtarget(thread, args);
+      // parameterTypes for function are the same as the method reference, but without the trailing MemberName.
+      memberName.vmtarget(thread, desc.replace("Ljava/lang/invoke/MemberName;)", ")"), args);
       frame.returnToThreadLoop = true;
     }
   }

@@ -366,7 +366,8 @@ export = JVMTypes;\n`, () => {});
         fields = cls.getFields(),
         methodsSeen: { [name: string]: boolean } = {},
         injectedFields = cls.getInjectedFields(),
-        injectedMethods = cls.getInjectedMethods();
+        injectedMethods = cls.getInjectedMethods(),
+        injectedStaticMethods = cls.getInjectedStaticMethods();
       printEraseableLine(`[${this.headerCount++}] Processing header for ${util.descriptor2typestr(desc)}...`);
 
       if (cls.accessFlags.isInterface()) {
@@ -399,6 +400,7 @@ export = JVMTypes;\n`, () => {});
       this.headerStream.write(` {\n`);
       Object.keys(injectedFields).forEach((name: string) => this._outputInjectedField(name, injectedFields[name], this.headerStream));
       Object.keys(injectedMethods).forEach((name: string) => this._outputInjectedMethod(name, injectedMethods[name], this.headerStream));
+      Object.keys(injectedStaticMethods).forEach((name: string) => this._outputInjectedStaticMethod(name, injectedStaticMethods[name], this.headerStream));
       fields.forEach((f) => this._outputField(f, this.headerStream));
       methods.forEach((m) => this._outputMethod(m, this.headerStream));
       cls.getUninheritedDefaultMethods().forEach((m) => this._outputMethod(m, this.headerStream));
@@ -473,6 +475,13 @@ export = JVMTypes;\n`, () => {});
    */
   private _outputInjectedMethod(name: string, type: string, stream: NodeJS.WritableStream) {
     stream.write(`    public ${name}${type};\n`);
+  }
+
+  /**
+   * Output information on a static method injected by the JVM.
+   */
+  private _outputInjectedStaticMethod(name: string, type: string, stream: NodeJS.WritableStream) {
+    stream.write(`    public static ${name}${type};\n`);
   }
 
   private _processGenerateQueue(): void {

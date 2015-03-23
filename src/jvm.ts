@@ -570,8 +570,14 @@ class JVM {
   }
 
   public dumpObjectDefinition(cls: ClassData.ClassData, evalText: string): void {
-    if (this.dumpCompiledCodeDir !== null) {
+    if (this.shouldDumpCompiledCode()) {
       fs.writeFile(path.resolve(this.dumpCompiledCodeDir, cls.getExternalName() + "_object.dump"), evalText, () => {});
+    }
+  }
+
+  public dumpBridgeMethod(methodSig: string, evalText: string): void {
+    if (this.shouldDumpCompiledCode()) {
+      fs.appendFile(path.resolve(this.dumpCompiledCodeDir, "vmtarget_bridge_methods.dump"), `${methodSig}:\n${evalText}\n\n`, () => {});
     }
   }
 }

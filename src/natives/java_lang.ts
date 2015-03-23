@@ -1413,7 +1413,7 @@ class java_lang_invoke_MethodHandleNatives {
       flags: number = (<any> ref)[util.descriptor2typestr(ref.getClass().getInternalName()) + "/modifiers"],
       flagsParsed: util.Flags = new util.Flags(flags),
       refKind: number, m: methods.Method,
-      vmtarget: (thread: threading.JVMThread, args: any[], cb?: (e?: java_lang_Throwable, rv?: any) => void) => void = null,
+      vmtarget: (thread: threading.JVMThread, descriptor: string, args: any[], cb?: (e?: java_lang_Throwable, rv?: any) => void) => void = null,
       vmindex: number = -1;
     self['java/lang/invoke/MemberName/clazz'] = clazz;
     switch (ref.getClass().getInternalName()) {
@@ -1663,15 +1663,28 @@ class java_lang_invoke_MethodHandle {
    * Unlike invoke and invokeExact, invokeBasic *can* be invoked reflectively,
    * and thus it has an implementation here. Note that invokeBasic is private,
    * and thus can only be invoked by trusted OpenJDK code.
+   *
+   * When invoked reflectively, arguments to invokeBasic will be boxed.
    */
-  public static 'invokeBasic([Ljava/lang/Object;)Ljava/lang/Object;'(thread: threading.JVMThread, ...args: any[]): void {
-    var mh: JVMTypes.java_lang_invoke_MethodHandle = args.shift(),
-      lmbdaForm = mh['java/lang/invoke/MethodHandle/form'],
-      mn = lmbdaForm['java/lang/invoke/LambdaForm/vmentry'];
+  public static 'invokeBasic([Ljava/lang/Object;)Ljava/lang/Object;'(thread: threading.JVMThread, mh: JVMTypes.java_lang_invoke_MethodHandle, argsBoxed: JVMTypes.JVMArray<JVMTypes.java_lang_Object>): void {
+    var lmbdaForm = mh['java/lang/invoke/MethodHandle/form'],
+      mn = lmbdaForm['java/lang/invoke/LambdaForm/vmentry'],
+      descriptor: string, paramTypes: string[];
 
+    assert(mh.getClass().isCastable(thread.getBsCl().getInitializedClass(thread, 'Ljava/lang/invoke/MethodHandle;')), "First argument to invokeBasic must be a method handle.");
     assert(mn.vmtarget !== null && mn.vmtarget !== undefined, "vmtarget must be defined");
+
+    assert(mn['java/lang/invoke/MemberName/type'].getClass().getInternalName() === 'Ljava/lang/invoke/MethodType;', "Expected a MethodType object.");
+    descriptor = (<JVMTypes.java_lang_invoke_MethodType> mn['java/lang/invoke/MemberName/type']).toString();
+    paramTypes = util.getTypes(descriptor);
+    // Remove return value.
+    paramTypes.pop();
+    // Remove method handle; it's not boxed.
+    paramTypes.shift();
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    mn.vmtarget(thread, args, (e: JVMTypes.java_lang_Throwable, rv: JVMTypes.java_lang_Object) => {
+    // Need to include methodhandle in the arguments to vmtarget, which handles
+    // invoking it appropriately.
+    mn.vmtarget(thread, descriptor, [mh].concat(util.unboxArguments(thread, paramTypes, argsBoxed.array)), (e: JVMTypes.java_lang_Throwable, rv: JVMTypes.java_lang_Object) => {
       if (e) {
         thread.throwException(e);
       } else {

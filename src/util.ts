@@ -549,8 +549,9 @@ export function unboxArguments(thread: threading.JVMThread, paramTypes: string[]
     arg = args[i];
     if (is_primitive_type(type)) {
       // Unbox the primitive type.
-      // TODO: Precisely type this.
-      rv.push((<any> arg)[descriptor2typestr(arg.getClass().getInternalName()) + '/value']);
+      // TODO: Precisely type this better. Once TypeScript lets you import
+      // union types, we can define a "JVMPrimitive" type...
+      rv.push((<JVMTypes.java_lang_Integer> arg).unbox());
       if (type === 'J' || type === 'D') {
         // 64-bit primitives take up two argument slots. Doppio uses a NULL for the second slot.
         rv.push(null);
@@ -726,8 +727,90 @@ export function getStaticFields<T>(thread: threading.JVMThread, cl: ClassLoader.
   return <T> <any> (<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> cl.getInitializedClass(thread, desc)).getConstructor(thread);
 }
 
+export function newArrayFromDataWithClass<T>(thread: threading.JVMThread, cls: ClassData.ArrayClassData<T>, data: T[]): JVMTypes.JVMArray<T> {
+  var arr = newArrayFromClass<T>(thread, cls, 0);
+  arr.array = data;
+  return arr;
+}
+
 export function newArrayFromData<T>(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, desc: string, data: T[]): JVMTypes.JVMArray<T> {
   var arr = newArray<T>(thread, cl, desc, 0);
   arr.array = data;
   return arr;
+}
+
+/**
+ * Returns the boxed class name of the given primitive type.
+ */
+export function boxClassName(primType: string): string {
+  switch (primType) {
+    case 'B':
+      return 'Ljava/lang/Byte;';
+    case 'C':
+      return 'Ljava/lang/Character;';
+    case 'D':
+      return 'Ljava/lang/Double;';
+    case 'F':
+      return 'Ljava/lang/Float;';
+    case 'I':
+      return 'Ljava/lang/Integer;';
+    case 'J':
+      return 'Ljava/lang/Long;';
+    case 'S':
+      return 'Ljava/lang/Short;';
+    case 'Z':
+      return 'Ljava/lang/Boolean;';
+    case 'V':
+      return 'Ljava/lang/Void;';
+    default:
+      throw new Error(`Tried to box a non-primitive class: ${this.className}`);
+  }
+}
+
+function boxPrimitiveArg(thread: threading.JVMThread, type: string, val: any): JVMTypes.java_lang_Integer {
+  // XXX: We assume Integer for typing purposes only; avoids a huge union type.
+  var primCls = <ClassData.ReferenceClassData<JVMTypes.java_lang_Integer>> thread.getBsCl().getInitializedClass(thread, boxClassName(type)),
+   primClsCons = <typeof JVMTypes.java_lang_Integer> primCls.getConstructor(thread);
+  return primClsCons.box(val);
+}
+
+/**
+ * Boxes the given arguments into an Object[].
+ * @param descriptor The descriptor at the *call site*.
+ * @param data The actual arguments for this function call.
+ * @param isVirtual If true, disregard the first type in the descriptor, as it is the 'this' argument.
+ */
+export function boxArguments(thread: threading.JVMThread, objArrCls: ClassData.ArrayClassData<JVMTypes.java_lang_Object>, descriptor: string, data: any[], isVirtual: boolean): JVMTypes.JVMArray<JVMTypes.java_lang_Object> {
+  var paramTypes = getTypes(descriptor),
+    boxedArgs = newArrayFromClass(thread, objArrCls, paramTypes.length - (isVirtual ? 2 : 1)),
+    i: number, j: number = 0, boxedArgsArr = boxedArgs.array, type: string;
+
+  // Ignore return value.
+  paramTypes.pop();
+  if (isVirtual) {
+    // Ignore 'this' argument.
+    paramTypes.shift();
+  }
+
+  for (i = 0; i < paramTypes.length; i++) {
+    type = paramTypes[i];
+    switch(type[0]) {
+      case '[':
+      case 'L':
+        // Single argument slot, no boxing required.
+        boxedArgsArr[i] = data[j];
+        break;
+      case 'J':
+      case 'D':
+        boxedArgsArr[i] = boxPrimitiveArg(thread, type, data[j]);
+        j++;
+        break;
+      default:
+        boxedArgsArr[i] = boxPrimitiveArg(thread, type, data[j]);
+        break;
+    }
+    j++;
+  }
+
+  return boxedArgs;
 }

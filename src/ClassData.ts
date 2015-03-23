@@ -34,7 +34,7 @@ var ref: number = 1;
  */
 var injectedFields: {[className: string]: {[fieldName: string]: [string, string]}} = {
   'Ljava/lang/invoke/MemberName;': {
-    vmtarget: ["(thread: threading.JVMThread, args: any[], cb?: (e?: JVMTypes.java_lang_Throwable, rv?: any) => void) => void", "null"],
+    vmtarget: ["(thread: threading.JVMThread, descriptor: string, args: any[], cb?: (e?: JVMTypes.java_lang_Throwable, rv?: any) => void) => void", "null"],
     vmindex: ["number", "-1"]
   },
   'Ljava/lang/Object;': {
@@ -76,6 +76,70 @@ var injectedMethods: {[className: string]: {[methodName: string]: [string, strin
   },
   'Ljava/lang/String;': {
     'toString': ["(): string", `function() { return util.chars2jsStr(this['java/lang/String/value']); }`]
+  },
+  'Ljava/lang/Byte;': {
+    'unbox': ["(): number", `function() { return this['java/lang/Byte/value']; }`]
+  },
+  'Ljava/lang/Character;': {
+    'unbox': ["(): number", `function() { return this['java/lang/Character/value']; }`]
+  },
+  'Ljava/lang/Double;': {
+    'unbox': ["(): number", `function() { return this['java/lang/Double/value']; }`]
+  },
+  'Ljava/lang/Float;': {
+    'unbox': ["(): number", `function() { return this['java/lang/Float/value']; }`]
+  },
+  'Ljava/lang/Integer;': {
+    'unbox': ["(): number", `function() { return this['java/lang/Integer/value']; }`]
+  },
+  'Ljava/lang/Long;': {
+    'unbox': ["(): gLong", `function() { return this['java/lang/Long/value']; }`]
+  },
+  'Ljava/lang/Short;': {
+    'unbox': ["(): number", `function() { return this['java/lang/Short/value']; }`]
+  },
+  'Ljava/lang/Boolean;': {
+    'unbox': ["(): number", `function() { return this['java/lang/Boolean/value']; }`]
+  },
+  // To catch any errors. Should never actually happen; Voids don't show up in arg lists.
+  'Ljava/lang/Void;': {
+    'unbox': ["(): number", `function() { throw new Error("Cannot unbox a Void type."); }`]
+  },
+  'Ljava/lang/invoke/MethodType;': {
+    'toString': ["(): string", `function() { return "(" + this['java/lang/invoke/MethodType/ptypes'].array.map(function (type) { return type.$cls.getInternalName(); }).join("") + ")" + this['java/lang/invoke/MethodType/rtype'].$cls.getInternalName(); }`]
+  }
+};
+
+/**
+ * Same as injected methods, but these are static.
+ */
+var injectedStaticMethods: {[className: string]: {[methodName: string]: [string, string]}} = {
+  'Ljava/lang/Byte;': {
+    'box': ["(val: number): java_lang_Byte", `function(val) { var rv = new this(null); rv['java/lang/Byte/value'] = val; return rv; }`]
+  },
+  'Ljava/lang/Character;': {
+    'box': ["(val: number): java_lang_Character", `function(val) { var rv = new this(null); rv['java/lang/Character/value'] = val; return rv; }`]
+  },
+  'Ljava/lang/Double;': {
+    'box': ["(val: number): java_lang_Double", `function(val) { var rv = new this(null); rv['java/lang/Double/value'] = val; return rv; }`]
+  },
+  'Ljava/lang/Float;': {
+    'box': ["(val: number): java_lang_Float", `function(val) { var rv = new this(null); rv['java/lang/Float/value'] = val; return rv; }`]
+  },
+  'Ljava/lang/Integer;': {
+    'box': ["(val: number): java_lang_Integer", `function(val) { var rv = new this(null); rv['java/lang/Integer/value'] = val; return rv; }`]
+  },
+  'Ljava/lang/Long;': {
+    'box': ["(val: gLong): java_lang_Long", `function(val) { var rv = new this(null); rv['java/lang/Long/value'] = val; return rv; }`]
+  },
+  'Ljava/lang/Short;': {
+    'box': ["(val: number): java_lang_Short", `function(val) { var rv = new this(null); rv['java/lang/Short/value'] = val; return rv; }`]
+  },
+  'Ljava/lang/Boolean;': {
+    'box': ["(val: number): java_lang_Boolean", `function(val) { var rv = new this(null); rv['java/lang/Boolean/value'] = val; return rv; }`]
+  },
+  'Ljava/lang/Void;': {
+    'box': ["(): java_lang_Void", `function() { return new this(null); }`]
   }
 };
 
@@ -216,6 +280,27 @@ export class ClassData {
   }
 
   /**
+   * Get all of the injected static methods for this class. The value for each
+   * method in the returned map is its type.
+   */
+  public getInjectedStaticMethods(): { [methodName: string]: string } {
+    var rv: { [methodName: string]: string } = {},
+      lookupName = this.getInternalName();
+    // All array classes share the same injected methods.
+    if (lookupName[0] === '[') {
+      lookupName = '[';
+    }
+
+    if (injectedStaticMethods[lookupName] !== undefined) {
+      var methods = injectedStaticMethods[lookupName];
+      Object.keys(methods).forEach((methodName: string) => {
+        rv[methodName] = methods[methodName][0];
+      });
+    }
+    return rv;
+  }
+
+  /**
    * Get a java.lang.Class object corresponding to this class.
    */
   public getClassObject(thread: threading.JVMThread): JVMTypes.java_lang_Class {
@@ -336,6 +421,13 @@ export class ClassData {
         outputStream.write(`  ${jsClassName}.prototype.${methodName} = ${methods[methodName][1]};\n`);
       });
     }
+
+    if (injectedStaticMethods[lookupName] !== undefined) {
+      var staticMethods = injectedStaticMethods[lookupName];
+      Object.keys(staticMethods).forEach((methodName: string) => {
+        outputStream.write(`  ${jsClassName}.${methodName} = ${staticMethods[methodName][1]};\n`);
+      });
+    }
   }
 }
 
@@ -361,28 +453,7 @@ export class PrimitiveClassData extends ClassData {
    * Returns the internal class name for the corresponding boxed type.
    */
   public boxClassName(): string {
-    switch (this.className) {
-      case 'B':
-        return 'Ljava/lang/Byte;';
-      case 'C':
-        return 'Ljava/lang/Character;';
-      case 'D':
-        return 'Ljava/lang/Double;';
-      case 'F':
-        return 'Ljava/lang/Float;';
-      case 'I':
-        return 'Ljava/lang/Integer;';
-      case 'J':
-        return 'Ljava/lang/Long;';
-      case 'S':
-        return 'Ljava/lang/Short;';
-      case 'Z':
-        return 'Ljava/lang/Boolean;';
-      case 'V':
-        return 'Ljava/lang/Void;';
-      default:
-        throw new Error(`Tried to box a non-primitive class: ${this.className}`);
-    }
+    return util.boxClassName(this.className);
   }
 
   /**
@@ -818,6 +889,16 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
     // Use M's signature, as we might override the method and use a different
     // method object in the table for its vmindex.
     return this._vmTable.indexOf(this.methodLookup(m.signature));
+  }
+
+  /**
+   * Returns the method corresponding to the given VMIndex.
+   */
+  public getMethodFromVMIndex(i: number): methods.Method {
+    if (this._vmTable[i] !== undefined) {
+      return this._vmTable[i];
+    }
+    return null;
   }
 
   /**

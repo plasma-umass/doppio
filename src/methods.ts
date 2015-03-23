@@ -14,6 +14,8 @@ import Monitor = require('./Monitor');
 import StringOutputStream = require('./StringOutputStream');
 import JVMTypes = require('../includes/JVMTypes');
 
+declare var RELEASE: boolean;
+
 var trapped_methods: { [clsName: string]: { [methodName: string]: Function } } = {
   'java/lang/ref/Reference': {
     // NOP, because we don't do our own GC and also this starts a thread?!?!?!
@@ -492,28 +494,42 @@ export class Method extends AbstractMethodField {
    * Retrieve the MemberName/invokedynamic JavaScript "bridge method" that
    * encapsulates the logic required to call this particular method.
    */
-  public getVMTargetBridgeMethod(thread: threading.JVMThread): (thread: threading.JVMThread, args: any[], cb?: (e?: JVMTypes.java_lang_Throwable, rv?: any) => void) => void {
+  public getVMTargetBridgeMethod(thread: threading.JVMThread): (thread: threading.JVMThread, descriptor: string, args: any[], cb?: (e?: JVMTypes.java_lang_Throwable, rv?: any) => void) => void {
     // TODO: Could cache these in the Method object if desired.
     var outStream = new StringOutputStream(),
       virtualDispatch = !(this.accessFlags.isStatic() || this.name === '<init>');
-    outStream.write(`function _create(thread, cls) {\n`);
+    outStream.write(`function _create(thread, cls, util) {\n`);
     if (this.accessFlags.isStatic()) {
       assert(!virtualDispatch, "Can't have static virtual dispatch.");
       outStream.write(`  var jsCons = cls.getConstructor(thread);\n`);
     }
-    outStream.write(`  function bridgeMethod(thread, args, cb) {\n`);
+    outStream.write(`  function bridgeMethod(thread, descriptor, args, cb) {\n`);
     if (!this.accessFlags.isStatic()) {
       outStream.write(`    var obj = args.shift();\n`);
       outStream.write(`    if (obj === null) { return thread.throwNewException('Ljava/lang/NullPointerException;', ''); }\n`);
-      outStream.write(`    obj["${virtualDispatch ? this.signature : this.fullSignature}"](thread, args, cb);\n`);
+      outStream.write(`    obj["${virtualDispatch ? this.signature : this.fullSignature}"](thread, `);
     } else {
-      outStream.write(`    jsCons["${this.fullSignature}"](thread, args, cb);\n`);
+      outStream.write(`    jsCons["${this.fullSignature}"](thread, `);
     }
-    outStream.write(`  }
+
+    // Box args in an Object[] array if it's a varargs function.
+    if (this.accessFlags.isVarArgs()) {
+      // Need to cut 'this' out of paramTypes before boxing.
+      outStream.write(`[util.boxArguments(thread, thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/Object;'), descriptor, args, ${virtualDispatch})]`);
+    } else {
+      outStream.write(`args`);
+    }
+    outStream.write(`, cb);
+  }
   return bridgeMethod;
 }
 _create`);
-    return eval(outStream.flush())(thread, this.cls);
+
+    var evalText = outStream.flush();
+    if (typeof RELEASE === 'undefined' && thread !== null && thread.getThreadPool().getJVM().shouldDumpCompiledCode()) {
+      thread.getThreadPool().getJVM().dumpBridgeMethod(this.fullSignature, evalText);
+    }
+    return eval(evalText)(thread, this.cls, util);
   }
 
   /**
@@ -544,21 +560,15 @@ _create`);
     }
     thread.stack.push(new ${this.accessFlags.isNative() ? "NativeStackFrame" : "BytecodeStackFrame"}(method, `);
     if (!this.accessFlags.isStatic()) {
-      if (this.isSignaturePolymorphic()) {
-        // XXX: linktovirtual calls invokebasic, and it doesn't box the arguments.
-        // Could probably generalize this for variable arg functions.
-        outStream.write(`[this].concat(args)`);
-      } else {
-        // Non-static functions need to add the implicit 'this' variable to the
-        // local variables.
-        outStream.write(`[this`);
-        // Give the JS engine hints about the size, type, and contents of the array
-        // by making it a literal.
-        for (i = 0; i < this.parameterWords; i++) {
-          outStream.write(`, args[${i}]`);
-        }
-        outStream.write(`]`);
+      // Non-static functions need to add the implicit 'this' variable to the
+      // local variables.
+      outStream.write(`[this`);
+      // Give the JS engine hints about the size, type, and contents of the array
+      // by making it a literal.
+      for (i = 0; i < this.parameterWords; i++) {
+        outStream.write(`, args[${i}]`);
       }
+      outStream.write(`]`);
     } else {
       // Static function doesn't need to mutate the arguments.
       if (this.parameterWords > 0) {
