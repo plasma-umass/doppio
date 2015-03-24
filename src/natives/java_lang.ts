@@ -1234,7 +1234,9 @@ class java_lang_Throwable {
       cstack.pop();
     }
 
-    for (i = 0; i < cstack.length; i++) {
+    // Construct the stack such that the method on top of the stack is at index
+    // 0.
+    for (i = cstack.length - 1; i >= 0; i--) {
       var sf = cstack[i],
         cls = sf.method.cls,
         ln = -1,
