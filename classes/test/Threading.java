@@ -16,6 +16,7 @@ public class Threading extends Thread {
     lock.unlock();
   }
   public static void main(String[] args) throws java.lang.InterruptedException {
+    System.out.println(Thread.currentThread().getState()); 
     Thread.currentThread().interrupt();
     System.out.println("main thread was interrupted: " + Thread.currentThread().interrupted());
 

@@ -152,6 +152,10 @@ class JVM {
               // Make firstThread a *real* thread.
               var threadCons = (<ClassData.ReferenceClassData<JVMTypes.java_lang_Thread>> cdata).getConstructor(firstThread);
               firstThreadObj = new threadCons(firstThread);
+              // Destroy the incorrectly created new thread, replace with
+              // our bootup thread.
+              firstThreadObj.$thread.setStatus(enums.ThreadStatus.TERMINATED);
+              firstThreadObj.$thread = firstThread;
               firstThread.setJVMObject(firstThreadObj);
               firstThreadObj['<init>()V'](firstThread, (e?: JVMTypes.java_lang_Throwable) => {
                 nextItem();
