@@ -580,6 +580,14 @@ class JVM {
       fs.appendFile(path.resolve(this.dumpCompiledCodeDir, "vmtarget_bridge_methods.dump"), `${methodSig}:\n${evalText}\n\n`, () => {});
     }
   }
+
+  /**
+   * Asynchronously dumps JVM state to a file. Currently limited to thread
+   * state.
+   */
+  public dumpState(filename: string, cb: (er: any) => void): void {
+    fs.appendFile(filename, this.threadPool.getThreads().map((t: threading.JVMThread) => `Thread ${t.getRef()}:\n` + t.getPrintableStackTrace()).join("\n\n"), cb);
+  }
 }
 
 // Causes `require('jvm')` to be the JVM constructor itself
