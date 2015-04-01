@@ -346,7 +346,7 @@ export class Method extends AbstractMethodField {
    */
   private _resolveReferencedClasses(thread: threading.JVMThread, cb: (classes: {[ className: string ]: ClassData.ClassData}) => void): void {
     // Start with the return type + parameter types + reflection object types.
-    var toResolve: string[] = this.parameterTypes.concat(this.returnType, 'Ljava/lang/reflect/Method;', 'Ljava/lang/reflect/Constructor;'),
+    var toResolve: string[] = this.parameterTypes.concat(this.returnType),
       code: attributes.Code = this.code,
       exceptionAttribute = <attributes.Exceptions> this.getAttribute("Exceptions");
     // Exception handler types.
@@ -360,7 +360,18 @@ export class Method extends AbstractMethodField {
       toResolve = toResolve.concat(exceptionAttribute.exceptions);
     }
 
-    this.cls.getLoader().resolveClasses(thread, toResolve, cb);
+    this.cls.getLoader().resolveClasses(thread, toResolve, (classes: {[className: string]: ClassData.ClassData}) => {
+      // Use bootstrap classloader for reflection classes.
+      thread.getBsCl().resolveClasses(thread, ['Ljava/lang/reflect/Method;', 'Ljava/lang/reflect/Constructor;'], (classes2: {[className: string]: ClassData.ClassData}) => {
+        if (classes === null || classes2 === null) {
+          cb(null);
+        } else {
+          classes['Ljava/lang/reflect/Method;'] = classes2['Ljava/lang/reflect/Method;'];
+          classes['Ljava/lang/reflect/Constructor;'] = classes2['Ljava/lang/reflect/Constructor;'];
+          cb(classes);
+        }
+      });
+    });
   }
 
   /**
