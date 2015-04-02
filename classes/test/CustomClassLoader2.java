@@ -43,17 +43,31 @@ public class CustomClassLoader2 extends ClassLoader {
   }
 
   public Class loadClass(String className) throws ClassNotFoundException {
-    System.out.println("Loading class " + className);
+    if (!className.equals("java.lang.Character"))
+      System.out.println("Loading class " + className);
     return findClass(className);
   }
 
-  public Class findClass(String className){
-    System.out.println("Finding class " + className);
+  public Class findClass(String className) {
+    // JV: See note below.
+    if (!className.equals("java.lang.Character"))
+      System.out.println("Finding class " + className);
     byte classByte[];
     Class result=null;
     result = (Class)classes.get(className);
     if(result != null){
       return result;
+    }
+
+    // JV: Fixing flaky test. Doppio resolves this class when constructing a
+    // reflection object at Runtime. The JVM does so at a later time, resulting
+    // in divergent output.
+    if (className.equals("java.lang.Character")) {
+      try{
+        return findSystemClass(className);
+      } catch(Exception e){
+        return null;
+      }
     }
 
     // Get it ourselves before the system classloader.
