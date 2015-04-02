@@ -1137,83 +1137,79 @@ function validateThreadTransition(oldStatus: enums.ThreadStatus, newStatus: enum
  * checks.
  */
 function validateReturnValue(thread: JVMThread, method: methods.Method, returnType: string, bsCl: ClassLoader.BootstrapClassLoader, cl: ClassLoader.ClassLoader, rv1: any, rv2: any): boolean {
-  try {
-    var cls: ClassData.ClassData;
-    if (util.is_primitive_type(returnType)) {
-      switch (returnType) {
-        case 'Z': // Boolean
-          assert(rv2 === undefined);
-          assert(rv1 === 1 || rv1 === 0);
-          break;
-        case 'B': // Byte
-          assert(rv2 === undefined);
-          assert(rv1 <= 127 && rv1 >= -128);
-          break;
-        case 'C':
-          assert(rv2 === undefined);
-          assert(rv1 <= 65535 && rv1 >= 0);
-          break;
-        case 'S':
-          assert(rv2 === undefined);
-          assert(rv1 <= 32767 && rv1 >= -32768);
-          break;
-        case 'I': // int
-          assert(rv2 === undefined);
-          assert(rv1 <= 2147483647 && rv1 >= -2147483648);
-          break;
-        case 'J': // long //-9223372036854775808 to 9223372036854775807
-          assert(rv2 === null);
-          assert((<gLong> rv1).lessThanOrEqual(gLong.MAX_VALUE) && (<gLong> rv1).greaterThanOrEqual(gLong.MIN_VALUE));
-          break;
-        case 'F': // Float
-          assert(rv2 === undefined);
-          // NaN !== NaN, so we have to have a special case here.
-          assert(util.wrapFloat(rv1) === rv1 || (isNaN(rv1) && isNaN(util.wrapFloat(rv1))));
-          break;
-        case 'D': // Double
-          assert(rv2 === null);
-          assert(typeof rv1 === 'number');
-          break;
-        case 'V':
-          assert(rv1 === undefined && rv2 === undefined);
-          break;
-      }
-    } else if (util.is_array_type(returnType)) {
-      assert(rv2 === undefined);
-      assert(rv1 === null || (typeof rv1 === 'object' && typeof rv1['getClass'] === 'function'));
-      if (rv1 != null) {
-        cls = cl.getInitializedClass(thread, returnType);
-        if (cls === null) {
-          cls = bsCl.getInitializedClass(thread, returnType);
-        }
-        assert(cls != null);
-        assert(rv1.getClass().isCastable(cls));
-      }
-    } else {
-      assert(util.is_reference_type(returnType));
-      assert(rv2 === undefined);
-      // All objects and arrays are instances of java/lang/Object.
-      assert(rv1 === null || rv1 instanceof (<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> bsCl.getInitializedClass(thread, 'Ljava/lang/Object;')).getConstructor(thread));
-      if (rv1 != null) {
-        cls = cl.getResolvedClass(returnType);
-        if (cls === null) {
-          cls = bsCl.getResolvedClass(returnType);
-        }
-        assert(cls != null);
-        if (!cls.accessFlags.isInterface()) {
-          // You can return an interface type without initializing it,
-          // since they don't need to be initialized until you try to
-          // invoke one of their methods.
-          // NOTE: We don't check if the class is in the INITIALIZED state,
-          // since it is possible that it is currently in th process of being
-          // initialized. getInitializedClass handles this subtlety.
-          assert(cl.getInitializedClass(thread, returnType) != null || bsCl.getInitializedClass(thread, returnType) != null);
-        }
-        assert(rv1.getClass().isCastable(cls));
-      }
+  var cls: ClassData.ClassData;
+  if (util.is_primitive_type(returnType)) {
+    switch (returnType) {
+      case 'Z': // Boolean
+        assert(rv2 === undefined, "Second return value must be undefined for Boolean type.");
+        assert(rv1 === 1 || rv1 === 0, "Booleans must be 0 or 1.");
+        break;
+      case 'B': // Byte
+        assert(rv2 === undefined, "Second return value must be undefined for Byte type.");
+        assert(rv1 <= 127 && rv1 >= -128, `Byte value is out of bounds: ${rv1}`);
+        break;
+      case 'C':
+        assert(rv2 === undefined, "Second return value must be undefined for Character type.");
+        assert(rv1 <= 65535 && rv1 >= 0, `Character value is out of bounds: ${rv1}`);
+        break;
+      case 'S':
+        assert(rv2 === undefined, "Second return value must be undefined for Short type.");
+        assert(rv1 <= 32767 && rv1 >= -32768, `Short value is out of bounds: ${rv1}`);
+        break;
+      case 'I': // int
+        assert(rv2 === undefined, "Second return value must be undefined for Int type.");
+        assert(rv1 <= 2147483647 && rv1 >= -2147483648, `Int value is out of bounds: ${rv1}`);
+        break;
+      case 'J': // long //-9223372036854775808 to 9223372036854775807
+        assert(rv2 === null, "Second return value must be NULL for Long type.");
+        assert((<gLong> rv1).lessThanOrEqual(gLong.MAX_VALUE) && (<gLong> rv1).greaterThanOrEqual(gLong.MIN_VALUE), `Long value is out of bounds: ${rv1}`);
+        break;
+      case 'F': // Float
+        assert(rv2 === undefined, "Second return value must be undefined for Float type.");
+        // NaN !== NaN, so we have to have a special case here.
+        assert(util.wrapFloat(rv1) === rv1 || (isNaN(rv1) && isNaN(util.wrapFloat(rv1))), `Float value is out of bounds: ${rv1}`);
+        break;
+      case 'D': // Double
+        assert(rv2 === null, "Second return value must be NULL for Double type.");
+        assert(typeof rv1 === 'number', `Invalid double value: ${rv1}`);
+        break;
+      case 'V':
+        assert(rv1 === undefined && rv2 === undefined, "Return values must be undefined for Void type");
+        break;
     }
-  } catch (e) {
-    return false;
+  } else if (util.is_array_type(returnType)) {
+    assert(rv2 === undefined, "Second return value must be undefined for array type.");
+    assert(rv1 === null || (typeof rv1 === 'object' && typeof rv1['getClass'] === 'function'), `Invalid array object: ${rv1}`);
+    if (rv1 != null) {
+      cls = cl.getInitializedClass(thread, returnType);
+      if (cls === null) {
+        cls = bsCl.getInitializedClass(thread, returnType);
+      }
+      assert(cls != null, `Unable to get class for ${returnType}.`);
+      assert(rv1.getClass().isCastable(cls), `Return value of type ${rv1.getClass().getInternalName()} unable to be cast to return type ${returnType}.`);
+    }
+  } else {
+    assert(util.is_reference_type(returnType), `Invalid reference type: ${returnType}`);
+    assert(rv2 === undefined, `Second return value must be undefined for reference type.`);
+    // All objects and arrays are instances of java/lang/Object.
+    assert(rv1 === null || rv1 instanceof (<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> bsCl.getInitializedClass(thread, 'Ljava/lang/Object;')).getConstructor(thread), `Reference return type must be an instance of Object; value: ${rv1}`);
+    if (rv1 != null) {
+      cls = cl.getResolvedClass(returnType);
+      if (cls === null) {
+        cls = bsCl.getResolvedClass(returnType);
+      }
+      assert(cls != null, `Unable to get resolved class for type ${returnType}.`);
+      if (!cls.accessFlags.isInterface()) {
+        // You can return an interface type without initializing it,
+        // since they don't need to be initialized until you try to
+        // invoke one of their methods.
+        // NOTE: We don't check if the class is in the INITIALIZED state,
+        // since it is possible that it is currently in th process of being
+        // initialized. getInitializedClass handles this subtlety.
+        assert(cl.getInitializedClass(thread, returnType) != null || bsCl.getInitializedClass(thread, returnType) != null, `Unable to get initialized class for type ${returnType}.`);
+      }
+      assert(rv1.getClass().isCastable(cls), `Unable to cast ${rv1.getClass().getInternalName()} to ${returnType}.`);
+    }
   }
   return true;
 }
