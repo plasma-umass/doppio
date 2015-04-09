@@ -18,12 +18,13 @@ declare var registerNatives: (defs: any) => void;
  */
 function async_input(n_bytes: number, resume: (data: Buffer) => void): void {
   // Try to read n_bytes from stdin's buffer.
-  var read = function (n_bytes: number): NodeBuffer {
-    var bytes = process.stdin.read(n_bytes);
+  var read = function (nBytes: number): NodeBuffer {
+    // XXX: Returns a Buffer, but DefinitelyTyped says string|Buffer.
+    var bytes = <Buffer> <any> process.stdin.read(nBytes);
     if (bytes === null) {
       // We might have asked for too many bytes. Retrieve the entire stream
       // buffer.
-      bytes = process.stdin.read();
+      bytes = <Buffer> <any> process.stdin.read();
     }
     // \0 => EOF.
     if (bytes !== null && bytes.length === 1 && bytes.readUInt8(0) === 0) {
