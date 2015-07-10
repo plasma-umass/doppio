@@ -24,7 +24,7 @@ Getting & Building the Code
 ---------------------------
 
 Before attempting to build doppio, you must have the following installed:
-* Node v0.10 or higher
+* Node v0.12 or higher
 * NPM packages `grunt-cli` and `bower` installed globally
   * `npm install -g grunt-cli bower`
 * Java 8 JDK
