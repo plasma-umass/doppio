@@ -18,6 +18,7 @@
     "fstream": "*",
     "glob": "*",
     "grunt": "*",
+    "grunt-cli": "*",
     "grunt-contrib-requirejs": "*",
     "grunt-contrib-uglify": "*",
     "grunt-contrib-copy": "*",

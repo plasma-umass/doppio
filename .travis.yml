@@ -3,9 +3,7 @@ node_js:
   - "0.12"
   - "iojs"
 install:
-  - npm update
-  - bower update
   - npm install
   - bower install
-  - grunt release-cli
-script: grunt test
+  - ./node_modules/grunt-cli/bin/grunt release-cli
+script: ./node_modules/grunt-cli/bin/grunt test
