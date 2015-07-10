@@ -1,0 +1,11 @@
+language: node_js
+node_js:
+  - "0.12"
+  - "iojs"
+install:
+  - npm update
+  - bower update
+  - npm install
+  - bower install
+  - grunt release-cli
+script: grunt test
