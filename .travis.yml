@@ -13,4 +13,4 @@ install:
   - node Gruntfile.js || node Gruntfile.js  # Hack around tsc warnings
   - ./node_modules/.bin/grunt clean
 
-script: ./node_modules/.bin/grunt --force test
+script: ./node_modules/.bin/grunt test
