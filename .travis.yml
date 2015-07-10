@@ -8,5 +8,10 @@ install:
   - sudo apt-get install -y openjdk-8-jdk
   - npm install
   - bower install
-  - ./node_modules/.bin/grunt release-cli
+  - ./node_modules/.bin/tsc --version
+  - ./node_modules/.bin/grunt --version
+  - node Gruntfile.js || node Gruntfile.js  # Hack around tsc warnings
+  - ./node_modules/.bin/grunt clean
+  - ./node_modules/.bin/grunt dev-cli
+
 script: ./node_modules/.bin/grunt test
