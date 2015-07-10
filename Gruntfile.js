@@ -3,11 +3,15 @@
  * Bootstraps ourselves from JavaScript into TypeScript.
  */
 var Grunttasks, glob = require('glob'), ts_files = [], ts_files_to_compile = [],
-    execSync = require('execSync'),
+    execSync = require('child_process').execSync,
     fs = require('fs'),
     path = require('path'),
     ts_path = path.resolve('node_modules', '.bin', 'tsc'),
     result;
+// Fallback for older node versions.
+if (!execSync) {
+  execSync = require('execSync');
+}
 
 /**
  * For a given TypeScript file, checks if we should recompile it based on
