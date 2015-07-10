@@ -10,7 +10,7 @@ var Grunttasks, glob = require('glob'), ts_files = [], ts_files_to_compile = [],
     result;
 // Fallback for older node versions.
 if (!execSync) {
-  execSync = require('execSync');
+  execSync = require('execSync').exec;
 }
 
 /**
@@ -40,7 +40,7 @@ ts_files.forEach(function(e, i) {
 
 // Run!
 if (ts_files_to_compile.length > 0) {
-  result = execSync.exec(ts_path + ' --noImplicitAny --module commonjs ' + ts_files_to_compile.join(' '));
+  result = execSync(ts_path + ' --noImplicitAny --module commonjs ' + ts_files_to_compile.join(' '));
   if (result.code !== 0) {
     throw new Error("Compilation error: " + result.stdout + "\n" + result.stderr);
   }
