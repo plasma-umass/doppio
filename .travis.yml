@@ -3,9 +3,14 @@ node_js:
   - "0.12"
   - "iojs"
 install:
-  - npm update
-  - bower update
+  - sudo add-apt-repository -y ppa:openjdk-r/ppa
+  - sudo apt-get update
+  - sudo apt-get install -y openjdk-8-jdk
   - npm install
   - bower install
-  - grunt release-cli
-script: grunt test
+  - ./node_modules/.bin/tsc --version
+  - ./node_modules/.bin/grunt --version
+  - node Gruntfile.js || node Gruntfile.js  # Hack around tsc warnings
+  - ./node_modules/.bin/grunt clean
+
+script: ./node_modules/.bin/grunt test
