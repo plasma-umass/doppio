@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/plasma-umass/doppio.svg?branch=new-objects)](https://travis-ci.org/plasma-umass/doppio)
+
 doppio: A JVM in TypeScript
 =================================
 
