@@ -10,13 +10,8 @@
     "source-map-support": "*"
   },
   "devDependencies": {
-    "adm-zip": "*",
     "bower": "*",
     "coffee-script": "1.6",
-    "docco": "*",
-    "express": "3.x",
-    "fstream": "*",
-    "glob": "*",
     "grunt": "*",
     "grunt-cli": "*",
     "grunt-contrib-connect": "*",
@@ -39,14 +34,10 @@
     "karma-requirejs": "*",
     "karma-safari-launcher": "*",
     "marked": "*",
-    "mustache": "*",
-    "ncp": "*",
     "npm": "*",
     "request": "*",
     "requirejs": "*",
-    "rimraf": "*",
     "semver": "*",
-    "tar": "*",
     "typescript": "1.5",
     "uglify-js": "2"
   },
