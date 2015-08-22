@@ -12,6 +12,7 @@
   "devDependencies": {
     "bower": "*",
     "coffee-script": "1.6",
+    "glob": "^5.0.14",
     "grunt": "*",
     "grunt-cli": "*",
     "grunt-contrib-connect": "*",
