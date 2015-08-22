@@ -767,7 +767,7 @@ export function boxClassName(primType: string): string {
   }
 }
 
-function boxPrimitiveArg(thread: threading.JVMThread, type: string, val: any): JVMTypes.java_lang_Integer {
+export function boxPrimitiveValue(thread: threading.JVMThread, type: string, val: any): JVMTypes.java_lang_Integer {
   // XXX: We assume Integer for typing purposes only; avoids a huge union type.
   var primCls = <ClassData.ReferenceClassData<JVMTypes.java_lang_Integer>> thread.getBsCl().getInitializedClass(thread, boxClassName(type)),
    primClsCons = <typeof JVMTypes.java_lang_Integer> primCls.getConstructor(thread);
@@ -802,11 +802,11 @@ export function boxArguments(thread: threading.JVMThread, objArrCls: ClassData.A
         break;
       case 'J':
       case 'D':
-        boxedArgsArr[i] = boxPrimitiveArg(thread, type, data[j]);
+        boxedArgsArr[i] = boxPrimitiveValue(thread, type, data[j]);
         j++;
         break;
       default:
-        boxedArgsArr[i] = boxPrimitiveArg(thread, type, data[j]);
+        boxedArgsArr[i] = boxPrimitiveValue(thread, type, data[j]);
         break;
     }
     j++;

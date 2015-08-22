@@ -1137,6 +1137,12 @@ function validateThreadTransition(oldStatus: enums.ThreadStatus, newStatus: enum
  * checks.
  */
 function validateReturnValue(thread: JVMThread, method: methods.Method, returnType: string, bsCl: ClassLoader.BootstrapClassLoader, cl: ClassLoader.ClassLoader, rv1: any, rv2: any): boolean {
+  // invokeBasic is typed with an Object return value, but it can return any
+  // damn type it wants, primitive or no.
+  if (method.fullSignature === "java/lang/invoke/MethodHandle/invokeBasic([Ljava/lang/Object;)Ljava/lang/Object;") {
+    return true;
+  }
+  
   var cls: ClassData.ClassData;
   if (util.is_primitive_type(returnType)) {
     switch (returnType) {

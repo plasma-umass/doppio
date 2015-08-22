@@ -1667,6 +1667,9 @@ class java_lang_invoke_MethodHandle {
    * and thus can only be invoked by trusted OpenJDK code.
    *
    * When invoked reflectively, arguments to invokeBasic will be boxed.
+   * 
+   * The return value is *never* boxed. Yes, this is weird. It's only called by
+   * trusted code, though.
    */
   public static 'invokeBasic([Ljava/lang/Object;)Ljava/lang/Object;'(thread: threading.JVMThread, mh: JVMTypes.java_lang_invoke_MethodHandle, argsBoxed: JVMTypes.JVMArray<JVMTypes.java_lang_Object>): void {
     var lmbdaForm = mh['java/lang/invoke/MethodHandle/form'],
@@ -1686,7 +1689,7 @@ class java_lang_invoke_MethodHandle {
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     // Need to include methodhandle in the arguments to vmtarget, which handles
     // invoking it appropriately.
-    mn.vmtarget(thread, descriptor, [mh].concat(util.unboxArguments(thread, paramTypes, argsBoxed.array)), (e: JVMTypes.java_lang_Throwable, rv: JVMTypes.java_lang_Object) => {
+    mn.vmtarget(thread, descriptor, [mh].concat(util.unboxArguments(thread, paramTypes, argsBoxed.array)), (e: JVMTypes.java_lang_Throwable, rv: any) => {
       if (e) {
         thread.throwException(e);
       } else {
