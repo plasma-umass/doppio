@@ -278,15 +278,16 @@ export class Method extends AbstractMethodField {
       if (this.signature.indexOf('registerNatives()V', 0) < 0 && this.signature.indexOf('initIDs()V', 0) < 0) {
         // The first version of the native method attempts to fetch itself and
         // rewrite itself.
-        this.code = (thread: threading.JVMThread) => {
+        var self = this;
+        this.code = function(thread: threading.JVMThread) {
           // Try to fetch the native method.
           var jvm = thread.getThreadPool().getJVM(),
-            c = jvm.getNative(clsName, this.signature);
+            c = jvm.getNative(clsName, self.signature);
           if (c == null) {
             thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', `Native method '${this.getFullSignature()}' not implemented.\nPlease fix or file a bug at https://github.com/plasma-umass/doppio/issues`);
           } else {
-            this.code = c;
-            return c.apply(this, arguments);
+            self.code = c;
+            return c.apply(self, arguments);
           }
         };
       } else {

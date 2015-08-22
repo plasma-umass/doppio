@@ -33,9 +33,6 @@ classes/test/failures.txt
 *.iml
 .idea
 
-# The concatenated native methods
-src/natives.coffee
-
 # Log files
 *.log
 

@@ -11,7 +11,7 @@ var exec = child_process.exec,
  * Grunt task that does the following:
  * - Locates location of java_home on your computer.
  * - Sets location of java/javac/javap in Grunt config.
- * - Ensures version we found is actually Java 6.
+ * - Ensures version we found is actually Java 8.
  */
 function findNativeJava(grunt: IGrunt) {
   grunt.registerTask('find_native_java', 'Finds your Java installation.', function (): void {
@@ -31,7 +31,7 @@ function findNativeJava(grunt: IGrunt) {
         } else {
           grunt.fail.fatal("Could not find the JDK. " +
             "Please ensure that you have a version of the Java JDK, " +
-            "preferably for Java 6, installed on your computer.");
+            "preferably for Java 8, installed on your computer.");
         }
         // Finally, check Java's version before quitting.
         checkJavaVersion(grunt, (isJava8: boolean, javaVersion: string) => {
@@ -56,7 +56,7 @@ function findNativeJava(grunt: IGrunt) {
 };
 
 /**
- * Checks if the version of Java we found was Java 6.
+ * Checks if the version of Java we found was Java 8.
  */
 function checkJavaVersion(grunt: IGrunt, cb: (is_java_8: boolean, java_version: string) => void): void {
   exec('"' + grunt.config('build.javac') + '" -version', function (err: Error, stdout: Buffer, stderr: Buffer) {
