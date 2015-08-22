@@ -284,7 +284,7 @@ export class Method extends AbstractMethodField {
           var jvm = thread.getThreadPool().getJVM(),
             c = jvm.getNative(clsName, self.signature);
           if (c == null) {
-            thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', `Native method '${this.getFullSignature()}' not implemented.\nPlease fix or file a bug at https://github.com/plasma-umass/doppio/issues`);
+            thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', `Native method '${self.getFullSignature()}' not implemented.\nPlease fix or file a bug at https://github.com/plasma-umass/doppio/issues`);
           } else {
             self.code = c;
             return c.apply(self, arguments);
