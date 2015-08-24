@@ -100,6 +100,9 @@ export function java(args: string[], opts: JVMCLIOptions,
   if (!opts.classpath) {
     opts.classpath = [];
   }
+  
+  // System properties.
+  opts.properties = argv.properties;
 
   if (argv.standard.help) {
     return print_help(opts.launcherName, optparse.show_help(), done_cb, true);
@@ -205,12 +208,6 @@ export function java(args: string[], opts: JVMCLIOptions,
       process.stderr.write(err.toString() + "\n");
       done_cb(false);
     } else {
-      if (argv.properties != null) {
-        var propName: string;
-        for (propName in argv.properties) {
-          jvm_state.setSystemProperty(propName, argv.properties[propName]);
-        }
-      }
       launch_jvm(argv, opts, jvm_state, done_cb, jvm_started);
     }
   });

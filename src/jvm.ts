@@ -78,7 +78,7 @@ class JVM {
     // @todo Resolve these, and integrate it into the ClassLoader?
     this.nativeClasspath = opts.nativeClasspath;
     this.assertionsEnabled = opts.assertionsEnabled;
-    this._initSystemProperties(bootstrapClasspath, javaClassPath, javaHomePath);
+    this._initSystemProperties(bootstrapClasspath, javaClassPath, javaHomePath, opts.properties);
 
     /**
      * Task #1: Initialize native methods.
@@ -312,13 +312,6 @@ class JVM {
   }
 
   /**
-   * Sets the given system property.
-   */
-  public setSystemProperty(prop: string, val: string): void {
-    this.systemProperties[prop] = val;
-  }
-
-  /**
    * Retrieve the unmanaged heap.
    */
   public getHeap(): Heap {
@@ -500,7 +493,7 @@ class JVM {
   /**
    * [Private] Same as reset_system_properties, but called by the constructor.
    */
-  private _initSystemProperties(bootstrapClasspath: string[], javaClassPath: string[], javaHomePath: string): void {
+  private _initSystemProperties(bootstrapClasspath: string[], javaClassPath: string[], javaHomePath: string, opts: {[name: string]: string}): void {
     this.systemProperties = {
       'java.class.path': javaClassPath.join(':'),
       'java.home': javaHomePath,
@@ -527,6 +520,15 @@ class JVM {
       'useJavaUtilZip': 'true', // hack for sun6javac, avoid ZipFileIndex shenanigans
       'jline.terminal': 'jline.UnsupportedTerminal' // we can't shell out to `stty`
     };
+    
+    if (opts) {
+      var name: string;
+      for (name in opts) {
+        if (opts.hasOwnProperty(name)) {
+          this.systemProperties[name] = opts[name];
+        }
+      } 
+    }    
   }
 
   /**

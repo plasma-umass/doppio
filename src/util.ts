@@ -767,6 +767,9 @@ export function boxClassName(primType: string): string {
   }
 }
 
+/**
+ * Boxes the given primitive value.
+ */
 export function boxPrimitiveValue(thread: threading.JVMThread, type: string, val: any): JVMTypes.java_lang_Integer {
   // XXX: We assume Integer for typing purposes only; avoids a huge union type.
   var primCls = <ClassData.ReferenceClassData<JVMTypes.java_lang_Integer>> thread.getBsCl().getInitializedClass(thread, boxClassName(type)),
@@ -776,6 +779,7 @@ export function boxPrimitiveValue(thread: threading.JVMThread, type: string, val
 
 /**
  * Boxes the given arguments into an Object[].
+ * 
  * @param descriptor The descriptor at the *call site*.
  * @param data The actual arguments for this function call.
  * @param isVirtual If true, disregard the first type in the descriptor, as it is the 'this' argument.

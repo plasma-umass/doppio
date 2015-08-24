@@ -20,6 +20,8 @@ export interface JVMOptions {
   nativeClasspath: string[];
   // True if assertions are enabled, false otherwise.
   assertionsEnabled: boolean;
+  // System properties for the JVM.
+  properties?: {[name: string]: string};
 }
 
 /**
