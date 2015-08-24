@@ -738,3 +738,5 @@ registerNatives({
   'java/io/RandomAccessFile': java_io_RandomAccessFile,
   'java/io/UnixFileSystem': java_io_UnixFileSystem
 });
+
+//@ sourceURL=natives/java_io.js

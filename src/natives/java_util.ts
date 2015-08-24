@@ -53,3 +53,5 @@ registerNatives({
   'java/util/logging/FileHandler': java_util_logging_FileHandler,
   'java/util/TimeZone': java_util_TimeZone
 });
+
+//@ sourceURL=natives/java_util.js

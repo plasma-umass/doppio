@@ -200,3 +200,5 @@ registerNatives({
   'sun/management/MemoryImpl': sun_management_MemoryImpl,
   'sun/management/VMManagementImpl': sun_management_VMManagementImpl
 });
+
+//@ sourceURL=natives/sun_management.js

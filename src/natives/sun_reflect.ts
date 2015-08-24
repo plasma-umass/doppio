@@ -233,3 +233,5 @@ registerNatives({
   'sun/reflect/NativeMethodAccessorImpl': sun_reflect_NativeMethodAccessorImpl,
   'sun/reflect/Reflection': sun_reflect_Reflection
 });
+
+//@ sourceURL=natives/sun_reflect.js

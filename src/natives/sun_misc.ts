@@ -681,3 +681,5 @@ registerNatives({
   'sun/misc/VMSupport': sun_misc_VMSupport,
   'sun/misc/URLClassPath': sun_misc_URLClassPath
 });
+
+//@ sourceURL=natives/sun_misc.js

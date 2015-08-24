@@ -108,3 +108,5 @@ registerNatives({
   'sun/nio/ch/IOUtil': sun_nio_ch_IOUtil,
   'sun/nio/ch/FileDispatcherImpl': sun_nio_ch_FileDispatcherImpl
 });
+
+//@ sourceURL=natives/sun_nio.js

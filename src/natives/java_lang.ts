@@ -1723,3 +1723,5 @@ registerNatives({
   'java/lang/invoke/MethodHandleNatives': java_lang_invoke_MethodHandleNatives,
   'java/lang/invoke/MethodHandle': java_lang_invoke_MethodHandle
 });
+
+//@ sourceURL=natives/java_lang.js

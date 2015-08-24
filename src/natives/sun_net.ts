@@ -21,3 +21,5 @@ class sun_net_spi_DefaultProxySelector {
 registerNatives({
   'sun/net/spi/DefaultProxySelector': sun_net_spi_DefaultProxySelector
 });
+
+//@ sourceURL=natives/sun_net.js
