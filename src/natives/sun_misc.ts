@@ -649,6 +649,26 @@ class sun_misc_VMSupport {
 
 }
 
+/**
+ * URLClassPath has optional support for a lookupcache, which we do not support.
+ */
+class sun_misc_URLClassPath {
+  
+  public static 'getLookupCacheURLs(Ljava/lang/ClassLoader;)[Ljava/net/URL;'(thread: threading.JVMThread, loader: JVMTypes.java_lang_ClassLoader): JVMTypes.JVMArray<JVMTypes.java_net_URL> {
+    return null;
+  }
+ 
+ 
+  public static 'getLookupCacheForClassLoader(Ljava/lang/ClassLoader;Ljava/lang/String;)[I'(thread: threading.JVMThread, loader: JVMTypes.java_lang_ClassLoader, name: JVMTypes.java_lang_String): JVMTypes.JVMArray<number> {
+    return null;
+  }
+  
+  public static 'knownToNotExist0(Ljava/lang/ClassLoader;Ljava/lang/String;)Z'(thread: threading.JVMThread, loader: JVMTypes.java_lang_ClassLoader, name: JVMTypes.java_lang_String): boolean {
+    return false;
+  }
+  
+}
+
 registerNatives({
   'sun/misc/GC': sun_misc_GC,
   'sun/misc/MessageUtils': sun_misc_MessageUtils,
@@ -658,5 +678,6 @@ registerNatives({
   'sun/misc/Unsafe': sun_misc_Unsafe,
   'sun/misc/Version': sun_misc_Version,
   'sun/misc/VM': sun_misc_VM,
-  'sun/misc/VMSupport': sun_misc_VMSupport
+  'sun/misc/VMSupport': sun_misc_VMSupport,
+  'sun/misc/URLClassPath': sun_misc_URLClassPath
 });
