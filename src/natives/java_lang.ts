@@ -396,8 +396,11 @@ class java_lang_ClassLoader {
     }
     // Ensure that this class is resolved.
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    cls.resolve(thread, () => {
-      thread.asyncReturn(cls.getClassObject(thread));
+    cls.resolve(thread, (status) => {
+      // NULL status means resolution failed.
+      if (status !== null) {
+        thread.asyncReturn(cls.getClassObject(thread));
+      }
     }, true);
   }
 

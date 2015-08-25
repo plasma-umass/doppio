@@ -195,12 +195,15 @@ export class BytecodeStackFrame implements IStackFrame {
                 handlerClasses.push(handler.catchType);
               }
             });
+            debug(`${method.getFullSignature()}: Has to resolve exception classes. Deferring scheduling...`);
             thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
             method.cls.getLoader().resolveClasses(thread, handlerClasses, (classes: { [name: string]: ClassData.ClassData; }) => {
               if (classes !== null) {
+                debug(`${method.getFullSignature()}: Rethrowing exception to handle!`);
                 // Rethrow the exception to trigger scheduleException again.
                 // @todo If the ClassLoader throws an exception during resolution,
-                // this could result in an infinite loop.
+                // this could result in an infinite loop. Fix would be to sync check
+                // if class failed to load previously.
                 thread.throwException(e);
               }
             });
@@ -215,13 +218,13 @@ export class BytecodeStackFrame implements IStackFrame {
     // or set up the stack for appropriate resumption.
     if (handler != null) {
       // Found the handler.
-      debug(`{BOLD}{YELLOW}${method.getFullSignature()}{/YELLOW}{/BOLD}: Caught {GREEN}${e.getClass().getInternalName()}{/GREEN} as subclass of {GREEN}${handler.catchType}{/GREEN}`);
+      debug(`${method.getFullSignature()}: Caught ${e.getClass().getInternalName()} as subclass of ${handler.catchType}`);
       this.stack = [e]; // clear out anything on the stack; it was made during the try block
       this.pc = handler.handlerPC;
       return true;
     } else {
       // abrupt method invocation completion
-      debug(`{BOLD}{YELLOW}${method.getFullSignature()}{/YELLOW}{/BOLD}: Did not catch {GREEN}${e.getClass().getInternalName()}{/GREEN}.`);
+      debug(`${method.getFullSignature()}: Did not catch ${e.getClass().getInternalName()}.`);
       // STEP 3: Synchronized method? Exit from the method's monitor.
       if (method.accessFlags.isSynchronized()) {
         method.methodLock(thread, this).exit(thread);
@@ -751,9 +754,14 @@ export class JVMThread {
         // Update CMA.
         maxMethodResumes = (estMaxMethodResumes + numSamples * maxMethodResumes) / (numSamples + 1);
         numSamples++;
-        // Yield.
-        this.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-        setImmediate(() => { this.setStatus(enums.ThreadStatus.RUNNABLE); });
+        // If we're still scheduled to run, yield to the browser loop.
+        // (Otherwise, we're going to yield anyway, and something else is
+        // responsible for resuming us.)
+        if (this.status === enums.ThreadStatus.RUNNING) {
+          // Yield.
+          this.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+          setImmediate(() => { this.setStatus(enums.ThreadStatus.RUNNABLE); });
+        }
       }
     }
 
@@ -958,17 +966,10 @@ export class JVMThread {
       var frameCast = <BytecodeStackFrame> frame;
       if (frame.type === enums.StackFrameType.BYTECODE) {
         // This line will be preceded by a line that prints the method, so can be short n' sweet.
-        if (frameCast.method.returnType !== 'V') {
-          trace(`  Returning: ${logging.debug_var(rv)}`);
-        }
-      } else {
-        // Native methods can asyncReturn at any point, so print more information.
-        trace(`T${this.getRef()} D${this.getStackTrace().length + 1} Returning value from ${frameCast.method.getFullSignature()} [Native]: ${frameCast.method.returnType === 'V' ? 'void' : logging.debug_var(rv)}`);
+        trace(`  Returning: ${logging.debug_var(rv)}`);
       }
 
-      if (frameCast.method.returnType !== 'V') {
-        trace(`\nT${this.getRef()} D${this.getStackTrace().length + 1} Returning value from ${frameCast.method.getFullSignature()} [${frameCast.method.accessFlags.isNative() ? 'Native' : 'Bytecode'}]: ${logging.debug_var(rv)}`);
-      }
+      trace(`\nT${this.getRef()} D${this.getStackTrace().length + 1} Returning value from ${frameCast.method.getFullSignature()} [${frameCast.method.accessFlags.isNative() ? 'Native' : 'Bytecode'}]: ${logging.debug_var(rv)}`);
       assert(validateReturnValue(this, frameCast.method,
         frameCast.method.returnType, this.bsCl,
         frameCast.method.cls.getLoader(), rv, rv2), `Invalid return value for method ${frameCast.method.getFullSignature()}`);
