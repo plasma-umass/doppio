@@ -41,9 +41,6 @@ ts_files.forEach(function(e, i) {
 // Run!
 if (ts_files_to_compile.length > 0) {
   result = execSync(ts_path + ' --noImplicitAny --module commonjs ' + ts_files_to_compile.join(' '));
-  if (result.code !== 0) {
-    throw new Error("Compilation error: " + result.stdout + "\n" + result.stderr);
-  }
 }
 
 Grunttasks = require('./Grunttasks');

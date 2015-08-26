@@ -11,7 +11,7 @@ function iceCream(grunt: IGrunt) {
     var iceCreamPath: string = 'node_modules/ice-cream/dessert.js',
         files: {src: string[]; dest: string}[] = this.files,
         done: (status?: boolean) => void = this.async(),
-        i: number, tasks: Function[] = [];
+        i: number, tasks: ((cb: (err?: any) => void) => void)[] = [];
     for (i = 0; i < files.length; i++) {
       // Closure to capture 'file'.
       (function(file: {src: string[]; dest: string}) {

@@ -11,8 +11,11 @@
   "dependencies": {
     "underscore": "~1.5.1",
     "browserfs": "0.3.5",
-    "DefinitelyTyped": "latest",
+    "DefinitelyTyped": "1.4.1",
     "almond": "*",
     "jasmine": "*"
+  },
+  "resolutions": {
+    "DefinitelyTyped": "1.4.1"
   }
 }

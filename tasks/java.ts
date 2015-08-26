@@ -44,7 +44,7 @@ function java(grunt: IGrunt) {
   grunt.registerMultiTask('run_java', 'Run java on input files.', function() {
     var files: {src: string[]; dest: string}[] = this.files,
         done: (status?: boolean) => void = this.async(),
-        tasks: Function[] = [];
+        tasks: ((cb: (err?: any) => void) => void)[] = [];
     grunt.config.requires('build.java');
     files.forEach(function(file: {src: string[]; dest: string}) {
       if (fs.existsSync(file.dest) && fs.statSync(file.dest).mtime > fs.statSync(file.src[0]).mtime) {
