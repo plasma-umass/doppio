@@ -126,7 +126,7 @@ export function setup(grunt: IGrunt) {
       test: {
         // No module type for these files.
         src: ["tasks/test/**/*.ts"],
-        outDir: ["tasks/test"]
+        outDir: "tasks/test"
       }
     },
     // Downloads files.

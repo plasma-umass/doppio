@@ -1,3 +1,7 @@
+///<amd-dependency path="./Monitor" />
+// We need to force an include of monitor in the browser setting
+// so we can synchronously load the module for the eval() below.
+// Yes, this is ugly. :(
 "use strict";
 import util = require('./util');
 import ByteStream = require('./ByteStream');

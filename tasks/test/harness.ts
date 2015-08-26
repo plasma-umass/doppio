@@ -5,10 +5,10 @@
 * NOTE: Do not import or export anything from this file, as that will trigger
 * TypeScript to generate an AMD module. This is meant to execute at load time.
 */
-declare var __karma__;
+declare var __karma__: any;
 declare var __numWaiting: number;
-declare var doppio;
-declare var BrowserFS;
+declare var doppio: any;
+declare var BrowserFS: any;
 
 // Extend the DefinitelyTyped module with the extra matcher function we add.
 declare module jasmine {
@@ -25,8 +25,8 @@ declare module jasmine {
     stdoutput = '';
 
   // dev version of doppio expects Buffer, process as globals.
-  window['Buffer'] = BrowserFS.BFSRequire('buffer').Buffer;
-  window['process'] = process;
+  (<any> window)['Buffer'] = BrowserFS.BFSRequire('buffer').Buffer;
+  (<any> window)['process'] = process;
 
 
   function getBuildPath(): string {
@@ -36,7 +36,7 @@ declare module jasmine {
   if (typeof doppio === 'undefined') {
     // Testing with dev version.
     isRelease = false;
-    window['require'].config({
+    (<any> window)['require'].config({
       // Karma serves files under /base, which is the basePath from your config file
       baseUrl: '/base/build/dev',
       // XXX: Copied from browser/require_config.js
@@ -61,8 +61,8 @@ declare module jasmine {
       // dynamically load all test files
       deps: ['src/doppio'],
       // we have to kickoff jasmine, as it is asynchronous
-      callback: (doppio) => {
-        window['doppio'] = doppio;
+      callback: (doppio: any) => {
+        (<any> window)['doppio'] = doppio;
         runTests();
         // RequireJS mode: Tests begin asynchronously.
         __karma__.start();
