@@ -67,6 +67,9 @@ export function setup(grunt: IGrunt) {
     },
     'ice-cream': {
       'release-cli': {
+        options: {
+          remove: ['assert', 'trace', 'vtrace', 'debug'] 
+        },
         files: [{
           expand: true,
           cwd: 'build/dev-cli',
@@ -74,7 +77,21 @@ export function setup(grunt: IGrunt) {
           dest: 'build/release-cli'
         }]
       },
+      'fast-dev-cli': {
+        options: {
+          remove: ['debug', 'trace', 'vtrace'] 
+        },
+        files: [{
+          expand: true,
+          cwd: 'build/dev-cli',
+          src: '+(console|src)/**/*.js',
+          dest: 'build/fast-dev-cli'
+        }]
+      },
       release: {
+        options: {
+          remove: ['assert', 'trace', 'vtrace', 'debug'] 
+        },
         files: [{
           expand: true,
           cwd: 'build/dev',
@@ -87,6 +104,9 @@ export function setup(grunt: IGrunt) {
       options: { src: '<%= resolve(build.build_dir, "console", "runner.js") %>' },
       'doppio-dev': {
         options: { dest: '<%= resolve(build.doppio_dir, "doppio-dev") %>' }
+      },
+      'doppio-fast-dev': {
+        options: { dest: '<%= resolve(build.doppio_dir, "doppio-fast-dev") %>' }
       },
       'doppio': {
         options: { dest: '<%= resolve(build.doppio_dir, "doppio") %>' }
@@ -397,6 +417,12 @@ export function setup(grunt: IGrunt) {
      'ts:dev-cli',
      'includecheck',
      'launcher:doppio-dev']);
+  grunt.registerTask('fast-dev-cli',
+    ['dev-cli',
+     'setup:fast-dev-cli',
+     'make_build_dir',
+     'ice-cream:fast-dev-cli',
+     'launcher:doppio-fast-dev']);
   grunt.registerTask('release-cli',
     ['dev-cli',
      // Do setup *after* dev-cli, as it has side effects (sets 'build.build_type').

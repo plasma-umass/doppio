@@ -12,6 +12,9 @@
   "devDependencies": {
     "bower": "*",
     "coffee-script": "1.6",
+    "escodegen": "^1.7.0",
+    "esprima": "^2.6.0",
+    "estraverse": "^4.1.0",
     "glob": "^5.0.14",
     "grunt": "*",
     "grunt-cli": "*",
@@ -25,7 +28,6 @@
     "grunt-lineending": "*",
     "grunt-ts": "*",
     "grunt-untar": "0.0.1",
-    "ice-cream": "*",
     "jasmine-core": "^2.3.4",
     "karma": "^0.13.9",
     "karma-chrome-launcher": "*",

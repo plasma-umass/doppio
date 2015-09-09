@@ -190,8 +190,9 @@ class sun_misc_Unsafe {
     return heap.get_signed_byte(address.toNumber());
   }
 
-  public static 'putByte(JB)V'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: gLong, arg1: number): void {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+  public static 'putByte(JB)V'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, address: gLong, val: number): void {
+    var heap = thread.getThreadPool().getJVM().getHeap();
+    heap.set_signed_byte(address.toNumber(), val);
   }
 
   public static 'getShort(J)S'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: gLong): number {
