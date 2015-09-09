@@ -15,14 +15,7 @@ function iceCream(grunt: IGrunt) {
   grunt.registerMultiTask('ice-cream', 'Removes debug statements from code.', function() {
     var iceCreamPath: string = 'node_modules/ice-cream/dessert.js',
         files: {src: string[]; dest: string}[] = this.files,
-        remove: string[] = this.options().remove,
-        done: (status?: boolean) => void = this.async(),
-        i: number, tasks: Array<AsyncFunction<void>> = [],
-        removalArgs: string[] = [];
-    
-    remove.forEach((name: string) => {
-      removalArgs.push('--remove', name);
-    });
+        remove: string[] = this.options().remove;
     
     files.forEach((file: {src: string[]; dest: string}) => {
       var ast = esprima.parse(fs.readFileSync(file.src[0]).toString());
@@ -40,7 +33,6 @@ function iceCream(grunt: IGrunt) {
         }
       })));
     });
-    done();
   });
 }
 
