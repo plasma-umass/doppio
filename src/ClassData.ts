@@ -1033,8 +1033,10 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
       Object.keys(iface._methodLookup).forEach((ifaceMethodSig: string) => {
         var ifaceM = iface._methodLookup[ifaceMethodSig];
         if (this._methodLookup[ifaceMethodSig] === undefined) {
-          // New vmindex.
-          this._vmTable.push(ifaceM);
+          if (!ifaceM.accessFlags.isStatic()) {
+            // New vmindex.
+            this._vmTable.push(ifaceM);
+          }
           this._methodLookup[ifaceMethodSig] = ifaceM;
         } else if (ifaceM.isDefault()) {
           // Default method; uninherited, but still callable via full signature.

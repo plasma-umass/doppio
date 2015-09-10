@@ -1348,7 +1348,8 @@ function initializeMemberName(thread: threading.JVMThread, mn: JVMTypes.java_lan
   var flags = mn['java/lang/invoke/MemberName/flags'],
     type = mn['java/lang/invoke/MemberName/type'],
     name = mn['java/lang/invoke/MemberName/name'],
-    refKind: number;
+    refKind: number,
+    existingRefKind = flags >>> MemberNameConstants.REFERENCE_KIND_SHIFT;
 
   // Determine the reference type.
   if (ref instanceof methods.Method) {
@@ -1363,7 +1364,7 @@ function initializeMemberName(thread: threading.JVMThread, mn: JVMTypes.java_lan
      } else {
        refKind = enums.MethodHandleReferenceKind.INVOKEVIRTUAL;
      }
-     mn.vmtarget = ref.getVMTargetBridgeMethod(thread);
+     mn.vmtarget = ref.getVMTargetBridgeMethod(thread, existingRefKind ? existingRefKind : refKind);
      mn.vmindex = ref.cls.getVMIndexForMethod(ref);
   } else {
     flags = MemberNameConstants.IS_FIELD;
@@ -1376,11 +1377,15 @@ function initializeMemberName(thread: threading.JVMThread, mn: JVMTypes.java_lan
     mn.vmindex = ref.cls.getVMIndexForField(<methods.Field> ref);
   }
   flags |= refKind << MemberNameConstants.REFERENCE_KIND_SHIFT;
-
+  
   // Sometimes, we'll get an unresolved MN with partial info. Don't mess with
   // their flags, since they have an operation defined already (e.g. SETFIELD).
   if (mn['java/lang/invoke/MemberName/flags'] !== 0) {
     flags = mn['java/lang/invoke/MemberName/flags'];
+    // Furthermore, unset vmindex if it's nonvirtual method dispatch.
+    if (existingRefKind === enums.MethodHandleReferenceKind.INVOKESPECIAL) {
+      mn.vmindex = -1;
+    }
   }
   flags |= ref.accessFlags.getRawByte();
   // Initialize type if we need to.
@@ -1437,7 +1442,7 @@ class java_lang_invoke_MethodHandleNatives {
           refKind = enums.MethodHandleReferenceKind.INVOKEVIRTUAL;
         }
         m = clazzData.getMethodFromSlot((<JVMTypes.java_lang_reflect_Method> ref)['java/lang/reflect/Method/slot']);
-        vmtarget = m.getVMTargetBridgeMethod(thread);
+        vmtarget = m.getVMTargetBridgeMethod(thread, refKind);
         vmindex = clazzData.getVMIndexForMethod(m);
         // TODO: Is the @CallerSensitive annotation present on the method? Requires a slot->method lookup function.
         break;
@@ -1446,7 +1451,7 @@ class java_lang_invoke_MethodHandleNatives {
         refKind = enums.MethodHandleReferenceKind.INVOKESPECIAL;
         // TODO: Is the @CallerSensitive annotation present on the method? Requires a slot->method lookup function.
         m = clazzData.getMethodFromSlot((<JVMTypes.java_lang_reflect_Constructor> ref)['java/lang/reflect/Constructor/slot']);
-        vmtarget = m.getVMTargetBridgeMethod(thread);
+        vmtarget = m.getVMTargetBridgeMethod(thread, refKind);
         break;
       case "Ljava/lang/reflect/Field;":
         flags |= MemberNameConstants.IS_FIELD;
@@ -1630,12 +1635,15 @@ class java_lang_invoke_MethodHandleNatives {
   }
 
   public static 'getMemberVMInfo(Ljava/lang/invoke/MemberName;)Ljava/lang/Object;'(thread: threading.JVMThread, mname: JVMTypes.java_lang_invoke_MemberName): JVMTypes.java_lang_Object {
-    var rv = util.newArray(thread, thread.getBsCl(), '[Ljava/lang/Object;', 2);
+    var rv = util.newArray(thread, thread.getBsCl(), '[Ljava/lang/Object;', 2),
+      flags = mname['java/lang/invoke/MemberName/flags'],
+      refKind = flags >>> MemberNameConstants.REFERENCE_KIND_SHIFT,
+      longCls = (<ClassData.PrimitiveClassData> thread.getBsCl().getInitializedClass(thread, 'J'));
 
-    // VMIndex of the member. Only relevant for fields and virtually dispatched methods.
-    rv.array[0] = (<ClassData.PrimitiveClassData> thread.getBsCl().getInitializedClass(thread, 'J')).createWrapperObject(thread, gLong.fromNumber(mname.vmindex));
+    // VMIndex of the target.
+    rv.array[0] = longCls.createWrapperObject(thread, gLong.fromNumber(mname.vmindex));
     // Class if field, membername if method
-    rv.array[1] = (((mname['java/lang/invoke/MemberName/flags'] & MemberNameConstants.ALL_KINDS) & MemberNameConstants.IS_FIELD) > 0) ? mname['java/lang/invoke/MemberName/clazz'] : mname;
+    rv.array[1] = (((flags & MemberNameConstants.ALL_KINDS) & MemberNameConstants.IS_FIELD) > 0) ? mname['java/lang/invoke/MemberName/clazz'] : mname;
     return rv;
   }
 

@@ -506,10 +506,10 @@ export class Method extends AbstractMethodField {
    * Retrieve the MemberName/invokedynamic JavaScript "bridge method" that
    * encapsulates the logic required to call this particular method.
    */
-  public getVMTargetBridgeMethod(thread: threading.JVMThread): (thread: threading.JVMThread, descriptor: string, args: any[], cb?: (e?: JVMTypes.java_lang_Throwable, rv?: any) => void) => void {
+  public getVMTargetBridgeMethod(thread: threading.JVMThread, refKind: number): (thread: threading.JVMThread, descriptor: string, args: any[], cb?: (e?: JVMTypes.java_lang_Throwable, rv?: any) => void) => void {
     // TODO: Could cache these in the Method object if desired.
     var outStream = new StringOutputStream(),
-      virtualDispatch = !(this.accessFlags.isStatic() || this.name === '<init>');
+      virtualDispatch = !(refKind === enums.MethodHandleReferenceKind.INVOKESTATIC || refKind === enums.MethodHandleReferenceKind.INVOKESPECIAL);
     outStream.write(`function _create(thread, cls, util) {\n`);
     if (this.accessFlags.isStatic()) {
       assert(!virtualDispatch, "Can't have static virtual dispatch.");
@@ -526,8 +526,14 @@ export class Method extends AbstractMethodField {
 
     // Box args in an Object[] array if it's a varargs function.
     if (this.accessFlags.isVarArgs()) {
+      // How many regular args come before the boxed args?
+      var regularArgs = this.parameterTypes.length - 1;
       // Need to cut 'this' out of paramTypes before boxing.
-      outStream.write(`[util.boxArguments(thread, thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/Object;'), descriptor, args, ${virtualDispatch})]`);
+      outStream.write(`[`);
+      for (var i = 0; i < regularArgs; i++) {
+        outStream.write(`args[${i}],`);
+      }
+      outStream.write(`util.boxArguments(thread, thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/Object;'), descriptor, args, ${virtualDispatch}, ${regularArgs})]`);
     } else {
       outStream.write(`args`);
     }
