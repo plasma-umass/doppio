@@ -1153,7 +1153,7 @@ function validateReturnValue(thread: JVMThread, method: methods.Method, returnTy
         break;
       case 'B': // Byte
         assert(rv2 === undefined, "Second return value must be undefined for Byte type.");
-        assert(rv1 <= 127 && rv1 >= -128, `Byte value is out of bounds: ${rv1}`);
+        assert(rv1 <= 127 && rv1 >= -128, `Byte value for method ${method.name} is out of bounds: ${rv1}`);
         break;
       case 'C':
         assert(rv2 === undefined, "Second return value must be undefined for Character type.");

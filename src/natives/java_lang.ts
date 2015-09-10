@@ -245,7 +245,12 @@ class java_lang_Class {
       methods: methods.Method[], i: number, m: methods.Method;
 
     if (annotationsVisible !== null) {
-      return util.newArrayFromData<number>(thread, thread.getBsCl(), '[B', annotationsVisible.rawBytes);
+      // TODO: Use a typed array?
+      var bytes = annotationsVisible.rawBytes, data: number[] = new Array(bytes.length);
+      for (var i = 0; i < bytes.length; i++) {
+        data[i] = bytes.readInt8(i);
+      }
+      return util.newArrayFromData<number>(thread, thread.getBsCl(), '[B', data);
     }
     return null;
   }

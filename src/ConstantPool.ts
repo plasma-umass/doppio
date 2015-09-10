@@ -67,7 +67,7 @@ var CP_CLASSES: { [n: number]: IConstantPoolType } = {};
  */
 export class ConstUTF8 implements IConstantPoolItem {
   public value: string;
-  constructor(rawBytes: number[]) {
+  constructor(rawBytes: Buffer) {
     this.value = this.bytes2str(rawBytes);
   }
 
@@ -79,7 +79,7 @@ export class ConstUTF8 implements IConstantPoolItem {
    * TODO: To avoid copying, create a character array for this data.
    * http://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.4.7
    */
-  private bytes2str(bytes: number[]): string {
+  private bytes2str(bytes: Buffer): string {
     var y: number;
     var z: number;
     var v: number;
@@ -89,14 +89,14 @@ export class ConstUTF8 implements IConstantPoolItem {
     var idx = 0;
     var rv = '';
     while (idx < bytes.length) {
-      x = bytes[idx++] & 0xff;
+      x = bytes.readUInt8(idx++) & 0xff;
       if (x === 0xed) {
         // Special: UTF-16 surrogate pairs
-        v = bytes[idx++];
-        w = bytes[idx++];
+        v = bytes.readUInt8(idx++);
+        w = bytes.readUInt8(idx++);
         idx++; // Skip padding character.
-        y = bytes[idx++];
-        z = bytes[idx++];
+        y = bytes.readUInt8(idx++);
+        z = bytes.readUInt8(idx++);
         // Use X as temporary storage for 32-bit result.
         x = (0x10000 + ((v & 0x0f) << 16) + ((w & 0x3f) << 10) + ((y & 0x0f) << 6) + (z & 0x3f));
         // Store as two character codes. High bits first.
@@ -104,8 +104,8 @@ export class ConstUTF8 implements IConstantPoolItem {
       } else {
         rv += String.fromCharCode(
           x <= 0x7f ? x :
-          (x <= 0xdf ? (y = bytes[idx++], ((x & 0x1f) << 6) + (y & 0x3f)) :
-          (y = bytes[idx++], z = bytes[idx++], ((x & 0xf) << 12) + ((y & 0x3f) << 6) + (z & 0x3f))));
+          (x <= 0xdf ? (y = bytes.readUInt8(idx++), ((x & 0x1f) << 6) + (y & 0x3f)) :
+          (y = bytes.readUInt8(idx++), z = bytes.readUInt8(idx++), ((x & 0xf) << 12) + ((y & 0x3f) << 6) + (z & 0x3f))));
       }
     }
 

@@ -106,14 +106,8 @@ class ByteStream {
     return gLong.fromBits(low, high);
   }
 
-  /**
-   * @todo Remove this entirely, and use a Node buffer.
-   */
-  public read(bytesCount: number): number[] {
-    var rv: number[] = [], end = this._index + bytesCount;
-    for (var i = this._index; i < end; i++) {
-      rv.push(this.buffer.readUInt8(i));
-    }
+  public read(bytesCount: number): Buffer {
+    var rv = this.buffer.slice(this._index, this._index + bytesCount);
     this._index += bytesCount;
     return rv;
   }

@@ -450,10 +450,10 @@ export class Signature implements IAttribute {
 }
 
 export class RuntimeVisibleAnnotations implements IAttribute {
-  public rawBytes: number[];
+  public rawBytes: Buffer;
   public isHidden: boolean;
 
-  constructor(rawBytes: number[], isHidden: boolean) {
+  constructor(rawBytes: Buffer, isHidden: boolean) {
     this.rawBytes = rawBytes;
     this.isHidden = isHidden;
   }
@@ -535,8 +535,8 @@ export class RuntimeVisibleAnnotations implements IAttribute {
 }
 
 export class AnnotationDefault implements IAttribute {
-  public rawBytes: number[];
-  constructor(rawBytes: number[]) {
+  public rawBytes: Buffer;
+  constructor(rawBytes: Buffer) {
     this.rawBytes = rawBytes;
   }
 
@@ -602,8 +602,8 @@ export class BootstrapMethods implements IAttribute {
 }
 
 export class RuntimeVisibleParameterAnnotations implements IAttribute {
-  public rawBytes: number[];
-  constructor(rawBytes: number[]) {
+  public rawBytes: Buffer;
+  constructor(rawBytes: Buffer) {
     this.rawBytes = rawBytes;
   }
 

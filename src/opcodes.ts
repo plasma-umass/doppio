@@ -1531,7 +1531,7 @@ export class Opcodes {
       stack = frame.stack, paramSize = methodReference.paramWordSize,
       args = stack.slice(stack.length - paramSize);
     stack.length -= paramSize;
-    assert(methodReference.jsConstructor != null, "jsConsteuctor is missing?!");
+    assert(methodReference.jsConstructor != null, "jsConstructor is missing?!");
     assert(typeof(methodReference.jsConstructor[methodReference.fullSignature]) === 'function', "Resolved method isn't defined?!");
     methodReference.jsConstructor[methodReference.fullSignature](thread, args);
     frame.returnToThreadLoop = true;

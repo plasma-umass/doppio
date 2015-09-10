@@ -331,7 +331,7 @@ class sun_misc_Unsafe {
         switch (destArray.getClass().getComponentClass().getInternalName()) {
           case 'B':
             for (i = 0; i < length; i++) {
-              destArray.array[destAddr + i] = heap.get_byte(srcAddr + i);
+              destArray.array[destAddr + i] = heap.get_signed_byte(srcAddr + i);
             }
             break;
           /*case 'C':
