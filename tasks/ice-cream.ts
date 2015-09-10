@@ -13,8 +13,7 @@ var escodegen = require('escodegen');
 
 function iceCream(grunt: IGrunt) {
   grunt.registerMultiTask('ice-cream', 'Removes debug statements from code.', function() {
-    var iceCreamPath: string = 'node_modules/ice-cream/dessert.js',
-        files: {src: string[]; dest: string}[] = this.files,
+    var files: {src: string[]; dest: string}[] = this.files,
         remove: string[] = this.options().remove;
     
     files.forEach((file: {src: string[]; dest: string}) => {
