@@ -472,6 +472,7 @@ export class PrimitiveClassData extends ClassData {
     if (boxName !== 'V') {
       // XXX: all primitive wrappers store their value in a private static final field named 'value'
       (<any> wrapped)[util.descriptor2typestr(boxName) + '/value'] = value;
+      assert(typeof value === "number" || typeof value === "boolean" || typeof value.low_ === "number", `Invalid primitive value: ${value}`);
     }
     return wrapped;
   }

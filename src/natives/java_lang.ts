@@ -622,9 +622,10 @@ class java_lang_reflect_Array {
   public static 'get(Ljava/lang/Object;I)Ljava/lang/Object;'(thread: threading.JVMThread, arr: JVMTypes.JVMArray<any>, idx: number): any {
     var val = arrayGet(thread, arr, idx);
     if (val != null) {
-      // Box primitive values.
-      if (val.ref == null) {
-        return (<ClassData.PrimitiveClassData> arr.getClass().getComponentClass()).createWrapperObject(thread, val);
+      var component = arr.getClass().getComponentClass();
+      if (util.is_primitive_type(component.getInternalName())) {
+        // Box primitive values.
+        return (<ClassData.PrimitiveClassData> component).createWrapperObject(thread, val);
       }
     }
     return val;
