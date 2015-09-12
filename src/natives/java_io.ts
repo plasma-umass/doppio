@@ -272,22 +272,21 @@ class java_io_FileOutputStream {
    * @exception IOException If an I/O error has occurred.
    */
   public static 'writeBytes([BIIZ)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_FileOutputStream, bytes: JVMTypes.JVMArray<number>, offset: number, len: number, append: number): void {
-    var buf: Buffer,
+    var buf: Buffer = new Buffer(bytes.array),
       fdObj = javaThis['java/io/FileOutputStream/fd'],
       fd = fdObj['java/io/FileDescriptor/fd'];
     if (fd === -1) {
       thread.throwNewException('Ljava/io/IOException;', "Bad file descriptor");
     } else if (fd !== 1 && fd !== 2) {
       // normal file
-      buf = new Buffer(bytes.array);
       thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
       fs.write(fd, buf, offset, len, fdObj.$pos, (err, numBytes) => {
         fdObj.$pos += numBytes;
         thread.asyncReturn();
       });
     } else {
-      // stdout or stderr
-      var output: string = util.chars2jsStr(bytes, offset, len);
+      // The string is in UTF-8 format. But now we need to convert them to UTF-16 to print 'em out. :(
+      var output: string = buf.toString("utf8", offset, offset + len);
       if (fd === 1) {
         process.stdout.write(output);
       } else if (fd === 2) {

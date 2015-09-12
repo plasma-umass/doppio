@@ -80,35 +80,30 @@ export class ConstUTF8 implements IConstantPoolItem {
    * http://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.4.7
    */
   private bytes2str(bytes: Buffer): string {
-    var y: number;
-    var z: number;
-    var v: number;
-    var w: number;
-    var x: number;
-
-    var idx = 0;
-    var rv = '';
+    var y: number, z: number, v: number, w: number, x: number, charCode: number, idx = 0, rv = '';
     while (idx < bytes.length) {
       x = bytes.readUInt8(idx++) & 0xff;
-      if (x === 0xed) {
-        // Special: UTF-16 surrogate pairs
-        v = bytes.readUInt8(idx++);
-        w = bytes.readUInt8(idx++);
-        idx++; // Skip padding character.
+      // While the standard specifies that surrogate pairs should be handled, it seems like
+      // they are by default with the three byte format. See parsing code here:
+      // http://hg.openjdk.java.net/jdk8u/jdk8u-dev/jdk/file/3623f1b29b58/src/share/classes/java/io/DataInputStream.java#l618
+      
+      // One UTF-16 character.
+      if (x <= 0x7f) {
+        // One character, one byte.
+        charCode = x;
+      } else if (x <= 0xdf) {
+        // One character, two bytes.
+        y = bytes.readUInt8(idx++); 
+        charCode = ((x & 0x1f) << 6) + (y & 0x3f);
+      } else {
+        // One character, three bytes.
         y = bytes.readUInt8(idx++);
         z = bytes.readUInt8(idx++);
-        // Use X as temporary storage for 32-bit result.
-        x = (0x10000 + ((v & 0x0f) << 16) + ((w & 0x3f) << 10) + ((y & 0x0f) << 6) + (z & 0x3f));
-        // Store as two character codes. High bits first.
-        rv += String.fromCharCode(x >>> 16, x & 0xFFFF);
-      } else {
-        rv += String.fromCharCode(
-          x <= 0x7f ? x :
-          (x <= 0xdf ? (y = bytes.readUInt8(idx++), ((x & 0x1f) << 6) + (y & 0x3f)) :
-          (y = bytes.readUInt8(idx++), z = bytes.readUInt8(idx++), ((x & 0xf) << 12) + ((y & 0x3f) << 6) + (z & 0x3f))));
+        charCode = ((x & 0xf) << 12) + ((y & 0x3f) << 6) + (z & 0x3f);
       }
+      rv += String.fromCharCode(charCode);
     }
-
+    
     return rv;
   }
 
