@@ -6,12 +6,12 @@
   "dependencies": {
     "async": "*",
     "node-zip": "*",
-    "optimist": "~0.3.5",
+    "optimist": "~0.6",
     "source-map-support": "*"
   },
   "devDependencies": {
     "bower": "*",
-    "coffee-script": "1.6",
+    "coffee-script": "~1.10",
     "escodegen": "^1.7.0",
     "esprima": "^2.6.0",
     "estraverse": "^4.1.0",
@@ -36,13 +36,13 @@
     "karma-opera-launcher": "*",
     "karma-requirejs": "*",
     "karma-safari-launcher": "*",
-    "marked": "*",
+    "marked": "~0.3.5",
     "npm": "*",
     "request": "*",
     "requirejs": "*",
-    "semver": "*",
+    "semver": "~5.0",
     "typescript": "1.5",
-    "uglify-js": "2"
+    "uglify-js": "~2.4"
   },
   "repository": {
     "type": "git",
