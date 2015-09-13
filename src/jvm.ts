@@ -513,12 +513,13 @@ class JVM {
       'os.name': 'doppio',
       'os.arch': 'js',
       'os.version': '0',
-      'java.vm.name': 'Doppio 64-bit VM',
+      'java.vm.name': 'Doppio 32-bit VM',
       'java.vm.vendor': 'Doppio Inc.',
       'java.awt.headless': (util.are_in_browser()).toString(), // true if we're using the console frontend
       'java.awt.graphicsenv': 'classes.awt.CanvasGraphicsEnvironment',
       'useJavaUtilZip': 'true', // hack for sun6javac, avoid ZipFileIndex shenanigans
-      'jline.terminal': 'jline.UnsupportedTerminal' // we can't shell out to `stty`
+      'jline.terminal': 'jline.UnsupportedTerminal', // we can't shell out to `stty`,
+      'sun.arch.data.model': '32' // Identify as 32-bit, because that's how we act.
     };
     
     if (opts) {

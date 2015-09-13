@@ -228,12 +228,15 @@ class java_lang_Class {
   }
 
   public static 'getGenericSignature0()Ljava/lang/String;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.java_lang_String {
-    var sigAttr = <attributes.Signature> (<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> javaThis.$cls).getAttribute('Signature');
-    if (sigAttr != null && sigAttr.sig != null) {
-      return util.initString(thread.getBsCl(), sigAttr.sig);
-    } else {
-      return null;
+    var cls = javaThis.$cls;
+    // TODO: What if it is a primitive type? What do I return?
+    if (!util.is_primitive_type(cls.getInternalName())) {
+      var sigAttr = <attributes.Signature> (<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> cls).getAttribute('Signature');
+      if (sigAttr != null && sigAttr.sig != null) {
+        return util.initString(thread.getBsCl(), sigAttr.sig);
+      } 
     }
+    return null;
   }
 
   /**
