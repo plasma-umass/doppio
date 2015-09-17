@@ -234,7 +234,7 @@ class java_lang_Class {
       var sigAttr = <attributes.Signature> (<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> cls).getAttribute('Signature');
       if (sigAttr != null && sigAttr.sig != null) {
         return util.initString(thread.getBsCl(), sigAttr.sig);
-      } 
+      }
     }
     return null;
   }
@@ -1340,9 +1340,9 @@ enum MemberNameConstants {
 
 /**
  * Given a MemberName object and a reflective field/method/constructor,
- * initialize the member name:
+ * initializes the member name:
  * - name: Name of the field/method.
- * - clazz: Class that owns the member.
+ * - clazz: Referenced class that contains the method.
  * - flags: Encodes the reference type of the member and the member's access flags.
  * - type: String encoding of the type (method descriptor, or class name of field type in descriptor form)
  * - vmtarget: Contains the VM-specific pointer to the member (in our case, a Method or Field object)
@@ -1369,7 +1369,11 @@ function initializeMemberName(thread: threading.JVMThread, mn: JVMTypes.java_lan
        refKind = enums.MethodHandleReferenceKind.INVOKEVIRTUAL;
      }
      mn.vmtarget = ref.getVMTargetBridgeMethod(thread, existingRefKind ? existingRefKind : refKind);
-     mn.vmindex = ref.cls.getVMIndexForMethod(ref);
+     if (refKind === enums.MethodHandleReferenceKind.INVOKEINTERFACE ||
+       refKind === enums.MethodHandleReferenceKind.INVOKEVIRTUAL) {
+       mn.vmindex = ref.cls.getVMIndexForMethod(ref);
+     }
+     flags |= (refKind << MemberNameConstants.REFERENCE_KIND_SHIFT) | methodFlags(ref);
   } else {
     flags = MemberNameConstants.IS_FIELD;
     // Assume a GET.
@@ -1379,19 +1383,8 @@ function initializeMemberName(thread: threading.JVMThread, mn: JVMTypes.java_lan
       refKind = enums.MethodHandleReferenceKind.GETFIELD;
     }
     mn.vmindex = ref.cls.getVMIndexForField(<methods.Field> ref);
+    flags |= (refKind << MemberNameConstants.REFERENCE_KIND_SHIFT) | ref.accessFlags.getRawByte();
   }
-  flags |= refKind << MemberNameConstants.REFERENCE_KIND_SHIFT;
-  
-  // Sometimes, we'll get an unresolved MN with partial info. Don't mess with
-  // their flags, since they have an operation defined already (e.g. SETFIELD).
-  if (mn['java/lang/invoke/MemberName/flags'] !== 0) {
-    flags = mn['java/lang/invoke/MemberName/flags'];
-    // Furthermore, unset vmindex if it's nonvirtual method dispatch.
-    if (existingRefKind === enums.MethodHandleReferenceKind.INVOKESPECIAL) {
-      mn.vmindex = -1;
-    }
-  }
-  flags |= ref.accessFlags.getRawByte();
   // Initialize type if we need to.
   if (type === null) {
     type = thread.getThreadPool().getJVM().internString(ref.rawDescriptor);
@@ -1404,6 +1397,17 @@ function initializeMemberName(thread: threading.JVMThread, mn: JVMTypes.java_lan
   mn['java/lang/invoke/MemberName/flags'] = flags;
   mn['java/lang/invoke/MemberName/type'] = type;
   mn['java/lang/invoke/MemberName/name'] = name;
+}
+
+/**
+ * Returns the MemberName flags for the given method.
+ */
+function methodFlags(method: methods.Method): number {
+  var flags = method.accessFlags.getRawByte();
+  if (method.isCallerSensitive()) {
+    flags |= MemberNameConstants.CALLER_SENSITIVE;
+  }
+  return flags;
 }
 
 class java_lang_invoke_MethodHandleNatives {
@@ -1419,57 +1423,69 @@ class java_lang_invoke_MethodHandleNatives {
    * * Set "clazz" field to item's declaring class in the reflection object.
    * * Set "flags" field to items's flags, OR'd with its type (method/field/
    *   constructor), and OR'd with its reference kind shifted up by 24.
-   * * Set "vmtarget" to the relevant Field or Method object.
+   * * Set "vmtarget" if relevant.
+   * * Set "vmindex" if relevant.
    *
    * This method "resolves" the MemberName unambiguously using the provided
    * reflection object.
    *
-   * Note: Don't need to set 'type' in this case.
    */
   public static 'init(Ljava/lang/invoke/MemberName;Ljava/lang/Object;)V'(thread: threading.JVMThread, self: JVMTypes.java_lang_invoke_MemberName, ref: JVMTypes.java_lang_Object): void {
-    var clazz: JVMTypes.java_lang_Class = (<any> ref)[util.descriptor2typestr(ref.getClass().getInternalName()) + "/clazz"],
-      clazzData = <ClassData.ReferenceClassData<JVMTypes.java_lang_Class>> clazz.$cls,
-      flags: number = (<any> ref)[util.descriptor2typestr(ref.getClass().getInternalName()) + "/modifiers"],
-      flagsParsed: util.Flags = new util.Flags(flags),
-      refKind: number, m: methods.Method,
-      vmtarget: (thread: threading.JVMThread, descriptor: string, args: any[], cb?: (e?: java_lang_Throwable, rv?: any) => void) => void = null,
-      vmindex: number = -1;
-    self['java/lang/invoke/MemberName/clazz'] = clazz;
+    var clazz: JVMTypes.java_lang_Class,
+      clazzData: ClassData.ReferenceClassData<JVMTypes.java_lang_Class>,
+      flags: number, m: methods.Method, f: methods.Field;
     switch (ref.getClass().getInternalName()) {
       case "Ljava/lang/reflect/Method;":
-        flags |= MemberNameConstants.IS_METHOD;
-        if (flagsParsed.isStatic()) {
+        var methodObj = <JVMTypes.java_lang_reflect_Method> ref, refKind:  number;
+        clazz = methodObj['java/lang/reflect/Method/clazz'];
+        clazzData = (<ClassData.ReferenceClassData<JVMTypes.java_lang_Class>> clazz.$cls);
+        m = clazzData.getMethodFromSlot(methodObj['java/lang/reflect/Method/slot']);
+        flags = methodFlags(m) | MemberNameConstants.IS_METHOD;
+        if (m.accessFlags.isStatic()) {
           refKind = enums.MethodHandleReferenceKind.INVOKESTATIC;
-        } else if (clazz.$cls.accessFlags.isInterface()) {
+        } else if (clazzData.accessFlags.isInterface()) {
           refKind = enums.MethodHandleReferenceKind.INVOKEINTERFACE;
         } else {
           refKind = enums.MethodHandleReferenceKind.INVOKEVIRTUAL;
         }
-        m = clazzData.getMethodFromSlot((<JVMTypes.java_lang_reflect_Method> ref)['java/lang/reflect/Method/slot']);
-        vmtarget = m.getVMTargetBridgeMethod(thread, refKind);
-        vmindex = clazzData.getVMIndexForMethod(m);
-        // TODO: Is the @CallerSensitive annotation present on the method? Requires a slot->method lookup function.
+        flags |= refKind << MemberNameConstants.REFERENCE_KIND_SHIFT;
+
+        self['java/lang/invoke/MemberName/clazz'] = clazz;
+        self['java/lang/invoke/MemberName/flags'] = flags;
+        self.vmtarget = m.getVMTargetBridgeMethod(thread, refKind);
+        // Only set vmindex for virtual dispatch.
+        if (refKind === enums.MethodHandleReferenceKind.INVOKEVIRTUAL || refKind === enums.MethodHandleReferenceKind.INVOKEINTERFACE) {
+          self.vmindex = clazzData.getVMIndexForMethod(m);
+        }
         break;
       case "Ljava/lang/reflect/Constructor;":
-        flags |= MemberNameConstants.IS_CONSTRUCTOR;
-        refKind = enums.MethodHandleReferenceKind.INVOKESPECIAL;
-        // TODO: Is the @CallerSensitive annotation present on the method? Requires a slot->method lookup function.
-        m = clazzData.getMethodFromSlot((<JVMTypes.java_lang_reflect_Constructor> ref)['java/lang/reflect/Constructor/slot']);
-        vmtarget = m.getVMTargetBridgeMethod(thread, refKind);
+        var consObj = <JVMTypes.java_lang_reflect_Constructor> ref;
+        clazz = consObj['java/lang/reflect/Constructor/clazz'];
+        clazzData = (<ClassData.ReferenceClassData<JVMTypes.java_lang_Class>> clazz.$cls);
+        m = clazzData.getMethodFromSlot(consObj['java/lang/reflect/Constructor/slot']);
+        flags = methodFlags(m) | MemberNameConstants.IS_CONSTRUCTOR | (enums.MethodHandleReferenceKind.INVOKESPECIAL << MemberNameConstants.REFERENCE_KIND_SHIFT);
+        self['java/lang/invoke/MemberName/clazz'] = clazz;
+        self['java/lang/invoke/MemberName/flags'] = flags;
+        self.vmtarget = m.getVMTargetBridgeMethod(thread, refKind);
+        // vmindex not relevant; nonvirtual dispatch.
         break;
       case "Ljava/lang/reflect/Field;":
-        flags |= MemberNameConstants.IS_FIELD;
-        refKind = flagsParsed.isStatic() ? enums.MethodHandleReferenceKind.GETSTATIC : enums.MethodHandleReferenceKind.GETFIELD;
-        vmindex = clazzData.getVMIndexForField(clazzData.getFieldFromSlot((<JVMTypes.java_lang_reflect_Field> ref)['java/lang/reflect/Field/slot']));
+        var fieldObj = <JVMTypes.java_lang_reflect_Field> ref;
+        clazz = fieldObj['java/lang/reflect/Field/clazz'];
+        clazzData = (<ClassData.ReferenceClassData<JVMTypes.java_lang_Class>> clazz.$cls);
+        f = clazzData.getFieldFromSlot(fieldObj['java/lang/reflect/Field/slot']);
+        flags = f.accessFlags.getRawByte() | MemberNameConstants.IS_FIELD;
+        flags |= (f.accessFlags.isStatic() ? enums.MethodHandleReferenceKind.GETSTATIC : enums.MethodHandleReferenceKind.GETFIELD) << MemberNameConstants.REFERENCE_KIND_SHIFT;
+
+        self['java/lang/invoke/MemberName/clazz'] = clazz;
+        self['java/lang/invoke/MemberName/flags'] = flags;
+        self.vmindex = clazzData.getVMIndexForField(f);
+        // vmtarget not relevant.
         break;
       default:
         thread.throwNewException("Ljava/lang/InternalError;", "init: Invalid target.");
         break;
     }
-    flags |= refKind << MemberNameConstants.REFERENCE_KIND_SHIFT;
-    self['java/lang/invoke/MemberName/flags'] = flags;
-    self.vmtarget = vmtarget;
-    self.vmindex = vmindex;
   }
 
   public static 'getConstant(I)I'(thread: threading.JVMThread, arg0: number): number {
@@ -1482,14 +1498,16 @@ class java_lang_invoke_MethodHandleNatives {
    * http://sourceforge.net/p/jamvm/code/ci/master/tree/src/classlib/openjdk/mh.c#l1266
    * @todo It doesn't do anything with the lookupClass... is that for permission checks?
    *
-   * Resolve performs dynamic lookup, updates flags, and sets "vmtarget".
+   * Input: A MemberName object that already has a name, reference kind, and class set.
+   * Uses that info to resolve a concrete method, and then updates the MemberName's flags,
+   * sets "vmtarget", and sets "vmindex".
    */
   public static 'resolve(Ljava/lang/invoke/MemberName;Ljava/lang/Class;)Ljava/lang/invoke/MemberName;'(thread: threading.JVMThread, memberName: JVMTypes.java_lang_invoke_MemberName, lookupClass: JVMTypes.java_lang_Class): JVMTypes.java_lang_invoke_MemberName {
     var type = memberName['java/lang/invoke/MemberName/type'],
       name = memberName['java/lang/invoke/MemberName/name'].toString(),
       clazz = <ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> memberName['java/lang/invoke/MemberName/clazz'].$cls,
       flags = memberName['java/lang/invoke/MemberName/flags'],
-      vmtarget: methods.AbstractMethodField;
+      refKind = flags >>> MemberNameConstants.REFERENCE_KIND_SHIFT;
 
     if (clazz == null || name == null || type == null) {
       thread.throwNewException("Ljava/lang/IllegalArgumentException;", "Invalid MemberName.");
@@ -1501,26 +1519,26 @@ class java_lang_invoke_MethodHandleNatives {
       case MemberNameConstants.IS_CONSTRUCTOR:
       case MemberNameConstants.IS_METHOD:
         // Need to perform method lookup.
-        // XXX: Should have a better way than this! >_<
-        thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-        (<JVMTypes.java_lang_invoke_MethodType> type)['toMethodDescriptorString()Ljava/lang/String;'](thread, (e?: JVMTypes.java_lang_Throwable, str?: JVMTypes.java_lang_String) => {
-          if (e) {
-            thread.throwException(e);
-          } else {
-            vmtarget = clazz.signaturePolymorphicAwareMethodLookup(name + str.toString());
-            if (vmtarget !== null) {
-              initializeMemberName(thread, memberName, vmtarget);
-              thread.asyncReturn(memberName);
-            } else {
-              thread.throwNewException('Ljava/lang/NoSuchMethodError;', `Invalid method ${name + str.toString()} in class ${clazz.getExternalName()}.`);
-            }
+        var methodTarget = clazz.signaturePolymorphicAwareMethodLookup(name + (<JVMTypes.java_lang_invoke_MethodType> type).toString());
+        if (methodTarget !== null) {
+          flags |= methodFlags(methodTarget);
+          memberName['java/lang/invoke/MemberName/flags'] = flags;
+          memberName.vmtarget = methodTarget.getVMTargetBridgeMethod(thread, flags >>> MemberNameConstants.REFERENCE_KIND_SHIFT);
+          // vmindex is only relevant for virtual dispatch.
+          if (refKind === enums.MethodHandleReferenceKind.INVOKEINTERFACE || refKind === enums.MethodHandleReferenceKind.INVOKEVIRTUAL) {
+            memberName.vmindex = clazz.getVMIndexForMethod(methodTarget);
           }
-        });
+          return memberName;
+        } else {
+          thread.throwNewException('Ljava/lang/NoSuchMethodError;', `Invalid method ${name + (<JVMTypes.java_lang_invoke_MethodType> type).toString()} in class ${clazz.getExternalName()}.`);
+        }
         break;
       case MemberNameConstants.IS_FIELD:
-        vmtarget = clazz.fieldLookup(name);
-        if (vmtarget !== null) {
-          initializeMemberName(thread, memberName, vmtarget);
+        var fieldTarget = clazz.fieldLookup(name);
+        if (fieldTarget !== null) {
+          flags |= fieldTarget.accessFlags.getRawByte();
+          memberName['java/lang/invoke/MemberName/flags'] = flags;
+          memberName.vmindex = clazz.getVMIndexForField(fieldTarget);
           return memberName;
         } else {
           thread.throwNewException('Ljava/lang/NoSuchFieldError;', `Invalid method ${name} in class ${clazz.getExternalName()}.`);
@@ -1687,7 +1705,7 @@ class java_lang_invoke_MethodHandle {
    * and thus can only be invoked by trusted OpenJDK code.
    *
    * When invoked reflectively, arguments to invokeBasic will be boxed.
-   * 
+   *
    * The return value is *never* boxed. Yes, this is weird. It's only called by
    * trusted code, though.
    */

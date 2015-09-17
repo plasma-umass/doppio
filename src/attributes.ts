@@ -452,10 +452,14 @@ export class Signature implements IAttribute {
 export class RuntimeVisibleAnnotations implements IAttribute {
   public rawBytes: Buffer;
   public isHidden: boolean;
+  public isCallerSensitive: boolean;
+  public isCompiled: boolean;
 
-  constructor(rawBytes: Buffer, isHidden: boolean) {
+  constructor(rawBytes: Buffer, isHidden: boolean, isCallerSensitive: boolean, isCompiled: boolean) {
     this.rawBytes = rawBytes;
     this.isHidden = isHidden;
+    this.isCallerSensitive = isCallerSensitive;
+    this.isCompiled = isCompiled;
   }
 
   public getName() {
@@ -467,6 +471,10 @@ export class RuntimeVisibleAnnotations implements IAttribute {
     // the raw bytes.
     // ...but we need to look for the 'Hidden' annotation, which specifies if
     // the method should be omitted from stack frames.
+    // And the 'compiled' annotation, which specifies if the method was
+    // compiled.
+    // And the 'CallerSensitive' annotation, which specifies that the function's
+    // behavior differs depending on the caller.
 
     /**
      * Skip the current RuntimeVisibleAnnotation.
@@ -516,7 +524,7 @@ export class RuntimeVisibleAnnotations implements IAttribute {
     }
 
     var rawBytes = byteStream.read(attrLen),
-      isHidden = false;
+      isHidden = false, isCompiled = false, isCallerSensitive = false;
     byteStream.seek(byteStream.pos() - rawBytes.length);
     var numAttributes = byteStream.getUint16(), i: number;
     for (i = 0; i < numAttributes; i++) {
@@ -524,13 +532,20 @@ export class RuntimeVisibleAnnotations implements IAttribute {
       // Rewind.
       byteStream.seek(byteStream.pos() - 2);
       skipAnnotation();
-      if (typeName.value === 'Ljava/lang/invoke/LambdaForm$Hidden;') {
-        isHidden = true;
-        break;
+      switch (typeName.value) {
+        case 'Ljava/lang/invoke/LambdaForm$Hidden;':
+          isHidden = true;
+          break;
+        case 'Lsig/sun/reflect/CallerSensitive;':
+          isCallerSensitive = true;
+          break;
+        case 'Lsig/java/lang/invoke/LambdaForm$Compiled':
+          isCompiled = true;
+          break;
       }
     }
 
-    return new this(rawBytes, isHidden);
+    return new this(rawBytes, isHidden, isCallerSensitive, isCompiled);
   }
 }
 

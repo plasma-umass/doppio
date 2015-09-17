@@ -323,6 +323,14 @@ export class Method extends AbstractMethodField {
   }
 
   /**
+   * Checks if this particular method has the CallerSensitive annotation.
+   */
+  public isCallerSensitive(): boolean {
+    var rva: attributes.RuntimeVisibleAnnotations = <any> this.getAttribute('RuntimeVisibleAnnotations');
+    return rva !== null && rva.isCallerSensitive;
+  }
+
+  /**
    * Get the number of machine words (32-bit words) required to store the
    * parameters to this function. Includes adding in a machine word for 'this'
    * for non-static functions.
