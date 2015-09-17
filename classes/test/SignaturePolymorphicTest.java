@@ -9,7 +9,24 @@ import java.lang.invoke.*;
  */
 public class SignaturePolymorphicTest {
   private static void assertEquals(Object a, Object b) {
-    assert(a == b);
+    assert(a.equals(b));
+  }
+  
+  static class SomeClass {
+    public String varArgsCombo(int i, int j, String... args) {
+      System.out.print("I: ");
+      System.out.print(i);
+      System.out.print(" J: ");
+      System.out.println(j);
+      for (int z = 0; z < args.length; z++) {
+        System.out.println(args[z]);
+      }
+      if (args.length > 0) {
+        return args[0];
+      } else {
+        return "None";
+      }
+    }
   }
 
   public static void main(String[] args) throws NoSuchMethodException, IllegalAccessException, Throwable {
@@ -49,5 +66,13 @@ public class SignaturePolymorphicTest {
     mh = lookup.findVirtual(java.io.PrintStream.class, "println", mt);
     mh.invokeExact(System.out, "Hello, world.");
     // invokeExact(Ljava/io/PrintStream;Ljava/lang/String;)V
+    
+    SomeClass sc = new SomeClass();
+    mt = MethodType.methodType(String.class, int.class, int.class, String[].class);
+    mh = lookup.findVirtual(SomeClass.class, "varArgsCombo", mt);
+    System.out.println(mh.invoke(sc, 1, 2, "r", "lol", "zla"));
+    String[] strArgs = {"r", "lol", "zla"};
+    System.out.println(mh.invoke(sc, 1, 2, strArgs));
+    System.out.println(mh.invoke(sc, 1, 2));
   }
 }
