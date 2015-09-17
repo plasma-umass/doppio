@@ -1515,7 +1515,6 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
 }
 _create`);
 
-
     var evalText = outputStream.flush();
     // NOTE: Thread will be null during system bootstrapping.
     if (typeof RELEASE === 'undefined' && thread !== null && thread.getThreadPool().getJVM().shouldDumpCompiledCode()) {
@@ -1526,6 +1525,7 @@ _create`);
 
   public getConstructor(thread: threading.JVMThread): IJVMConstructor<T> {
     if (this._constructor == null) {
+      assert(this.isResolved(), `Cannot construct ${this.getInternalName()}'s constructor until it is resolved.`);
       this._constructor = this._constructConstructor(thread);
     }
     return this._constructor;

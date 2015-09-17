@@ -25,16 +25,30 @@ export var typedArraysSupported: boolean = typeof ArrayBuffer !== "undefined";
  * types.
  * Ljava/lang/Object; => java_lang_Object
  * Lfoo/Bar_baz; => foo_Bar__baz
+ *
+ * Is NOT meant to be unambiguous!
+ *
+ * Also handles the special characters described here:
+ * https://blogs.oracle.com/jrose/entry/symbolic_freedom_in_the_vm
  */
 export function jvmName2JSName(jvmName: string): string {
   switch (jvmName[0]) {
     case 'L':
-      return jvmName.slice(1).replace(/_/g, '__').replace(/\//g, '_').replace(/;/g, '');
+      return jvmName.slice(1, jvmName.length - 1).replace(/_/g, '__')
+        // Remove / replace characters that are invalid for JS symbols.
+        .replace(/[\/.;$<>\[\]:\\=^]/g, '_');
     case '[':
       return `ARR_${jvmName2JSName(jvmName.slice(1))}`;
     default:
       return jvmName;
   }
+}
+
+/**
+ * Re-escapes JVM names for eval'd code. Otherwise, JavaScript removes the escapes.
+ */
+export function reescapeJVMName(jvmName: string): string {
+  return jvmName.replace(/\\/g, '\\\\');
 }
 
 /**
@@ -779,7 +793,7 @@ export function boxPrimitiveValue(thread: threading.JVMThread, type: string, val
 
 /**
  * Boxes the given arguments into an Object[].
- * 
+ *
  * @param descriptor The descriptor at the *call site*.
  * @param data The actual arguments for this function call.
  * @param isStatic If false, disregard the first type in the descriptor, as it is the 'this' argument.
@@ -795,7 +809,7 @@ export function boxArguments(thread: threading.JVMThread, objArrCls: ClassData.A
     // Ignore 'this' argument.
     paramTypes.shift();
   }
-  
+
   if (skipArgs > 0) {
     // Ignore regular arguments
     paramTypes = paramTypes.slice(skipArgs);

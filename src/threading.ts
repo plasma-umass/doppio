@@ -917,10 +917,10 @@ export class JVMThread {
         // Remove ourselves from the thread pool.
         this.tpool.threadTerminated(this);
       };
-    
+
     // Revert our status to ASYNC_WAITING so we can acquire a monitor.
     this.rawSetStatus(enums.ThreadStatus.ASYNC_WAITING);
-    
+
     // Acquire the monitor associated with our JavaObject.
     if (monitor.enter(this, phase2)) {
       phase2();
@@ -1144,7 +1144,7 @@ function validateReturnValue(thread: JVMThread, method: methods.Method, returnTy
   if (method.fullSignature === "java/lang/invoke/MethodHandle/invokeBasic([Ljava/lang/Object;)Ljava/lang/Object;") {
     return true;
   }
-  
+
   var cls: ClassData.ClassData;
   if (util.is_primitive_type(returnType)) {
     switch (returnType) {
@@ -1202,11 +1202,21 @@ function validateReturnValue(thread: JVMThread, method: methods.Method, returnTy
     // All objects and arrays are instances of java/lang/Object.
     assert(rv1 === null || rv1 instanceof (<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> bsCl.getInitializedClass(thread, 'Ljava/lang/Object;')).getConstructor(thread), `Reference return type must be an instance of Object; value: ${rv1}`);
     if (rv1 != null) {
-      cls = cl.getResolvedClass(returnType);
-      if (cls === null) {
-        cls = bsCl.getResolvedClass(returnType);
+      cls = null;
+      var tempCl: ClassLoader.ClassLoader = cl;
+      // Search classloader hierarchy for class; ensure it is resolved.
+      while (cls === null) {
+        cls = tempCl.getResolvedClass(returnType);
+        if (tempCl.getLoaderObject() !== null) {
+          if (tempCl.getLoaderObject()['java/lang/ClassLoader/parent'] === null) {
+            tempCl = bsCl;
+          } else {
+            tempCl = tempCl.getLoaderObject()['java/lang/ClassLoader/parent'].$loader;
+          }
+        } else {
+          assert(cls !== null, `Unable to get resolved class for type ${returnType}.`);
+        }
       }
-      assert(cls != null, `Unable to get resolved class for type ${returnType}.`);
       if (!cls.accessFlags.isInterface()) {
         // You can return an interface type without initializing it,
         // since they don't need to be initialized until you try to
@@ -1214,7 +1224,20 @@ function validateReturnValue(thread: JVMThread, method: methods.Method, returnTy
         // NOTE: We don't check if the class is in the INITIALIZED state,
         // since it is possible that it is currently in th process of being
         // initialized. getInitializedClass handles this subtlety.
-        assert(cl.getInitializedClass(thread, returnType) != null || bsCl.getInitializedClass(thread, returnType) != null, `Unable to get initialized class for type ${returnType}.`);
+        tempCl = cl;
+        cls = null;
+        while (cls === null) {
+          cls = tempCl.getInitializedClass(thread, returnType);
+          if (tempCl.getLoaderObject() !== null) {
+            if (tempCl.getLoaderObject()['java/lang/ClassLoader/parent'] === null) {
+              tempCl = bsCl;
+            } else {
+              tempCl = tempCl.getLoaderObject()['java/lang/ClassLoader/parent'].$loader;
+            }
+          } else {
+            assert(cls !== null, `Unable to get initialized class for type ${returnType}.`);
+          }
+        }
       }
       assert(rv1.getClass().isCastable(cls), `Unable to cast ${rv1.getClass().getInternalName()} to ${returnType}.`);
     }

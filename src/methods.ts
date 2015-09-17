@@ -216,9 +216,9 @@ export class Field extends AbstractMethodField {
    */
   public outputJavaScriptField(jsConsName: string, outputStream: StringOutputStream): void {
     if (this.accessFlags.isStatic()) {
-      outputStream.write(`${jsConsName}["${this.fullName}"] = cls._getInitialStaticFieldValue(thread, "${this.name}");\n`);
+      outputStream.write(`${jsConsName}["${util.reescapeJVMName(this.fullName)}"] = cls._getInitialStaticFieldValue(thread, "${util.reescapeJVMName(this.name)}");\n`);
     } else {
-      outputStream.write(`this["${this.fullName}"] = ${this.getDefaultFieldValue()};\n`);
+      outputStream.write(`this["${util.reescapeJVMName(this.fullName)}"] = ${this.getDefaultFieldValue()};\n`);
     }
   }
 }
@@ -527,9 +527,9 @@ export class Method extends AbstractMethodField {
     if (!this.accessFlags.isStatic()) {
       outStream.write(`    var obj = args.shift();\n`);
       outStream.write(`    if (obj === null) { return thread.throwNewException('Ljava/lang/NullPointerException;', ''); }\n`);
-      outStream.write(`    obj["${virtualDispatch ? this.signature : this.fullSignature}"](thread, `);
+      outStream.write(`    obj["${util.reescapeJVMName(virtualDispatch ? this.signature : this.fullSignature)}"](thread, `);
     } else {
-      outStream.write(`    jsCons["${this.fullSignature}"](thread, `);
+      outStream.write(`    jsCons["${util.reescapeJVMName(this.fullSignature)}"](thread, `);
     }
     // TODO: Is it ever appropriate to box arguments for varargs functions? It appears not.
     outStream.write(`args`);
@@ -554,12 +554,12 @@ _create`);
   public outputJavaScriptFunction(jsConsName: string, outStream: StringOutputStream, nonVirtualOnly: boolean = false): void {
     var i: number;
     if (this.accessFlags.isStatic()) {
-      outStream.write(`${jsConsName}["${this.fullSignature}"] = ${jsConsName}["${this.signature}"] = `);
+      outStream.write(`${jsConsName}["${util.reescapeJVMName(this.fullSignature)}"] = ${jsConsName}["${util.reescapeJVMName(this.signature)}"] = `);
     } else {
       if (!nonVirtualOnly) {
-        outStream.write(`${jsConsName}.prototype["${this.signature}"] = `);
+        outStream.write(`${jsConsName}.prototype["${util.reescapeJVMName(this.signature)}"] = `);
       }
-      outStream.write(`${jsConsName}.prototype["${this.fullSignature}"] = `);
+      outStream.write(`${jsConsName}.prototype["${util.reescapeJVMName(this.fullSignature)}"] = `);
     }
     outStream.write(`(function(method) {
   return function(thread, `);
@@ -594,6 +594,6 @@ _create`);
     outStream.write(`));
     thread.setStatus(${enums.ThreadStatus.RUNNABLE});
   };
-})(cls.getSpecificMethod("${this.cls.getInternalName()}", "${this.signature}"));\n`);
+})(cls.getSpecificMethod("${util.reescapeJVMName(this.cls.getInternalName())}", "${util.reescapeJVMName(this.signature)}"));\n`);
   }
 }

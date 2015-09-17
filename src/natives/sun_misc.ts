@@ -571,6 +571,33 @@ class sun_misc_Unsafe {
   public static 'defineAnonymousClass(Ljava/lang/Class;[B[Ljava/lang/Object;)Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, hostClass: JVMTypes.java_lang_Class, data: JVMTypes.JVMArray<number>, cpPatches: JVMTypes.JVMArray<JVMTypes.java_lang_Object>): JVMTypes.java_lang_Class {
     return new ClassData.ReferenceClassData(new Buffer(data.array), hostClass.$cls.getLoader(), cpPatches).getClassObject(thread);
   }
+
+  /**
+   * Ensures lack of reordering of loads before the fence
+   * with loads or stores after the fence.
+   * @since 1.8
+   */
+  public static 'loadFence()V'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe): void {
+    // NOP
+  }
+
+  /**
+   * Ensures lack of reordering of stores before the fence
+   * with loads or stores after the fence.
+   * @since 1.8
+   */
+  public static 'storeFence()V'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe): void {
+    // NOP
+  }
+
+  /**
+   * Ensures lack of reordering of loads or stores before the fence
+   * with loads or stores after the fence.
+   * @since 1.8
+   */
+  public static 'fullFence()V'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe): void {
+    // NOP
+  }
 }
 
 class sun_misc_Version {
@@ -654,20 +681,20 @@ class sun_misc_VMSupport {
  * URLClassPath has optional support for a lookupcache, which we do not support.
  */
 class sun_misc_URLClassPath {
-  
+
   public static 'getLookupCacheURLs(Ljava/lang/ClassLoader;)[Ljava/net/URL;'(thread: threading.JVMThread, loader: JVMTypes.java_lang_ClassLoader): JVMTypes.JVMArray<JVMTypes.java_net_URL> {
     return null;
   }
- 
- 
+
+
   public static 'getLookupCacheForClassLoader(Ljava/lang/ClassLoader;Ljava/lang/String;)[I'(thread: threading.JVMThread, loader: JVMTypes.java_lang_ClassLoader, name: JVMTypes.java_lang_String): JVMTypes.JVMArray<number> {
     return null;
   }
-  
+
   public static 'knownToNotExist0(Ljava/lang/ClassLoader;Ljava/lang/String;)Z'(thread: threading.JVMThread, loader: JVMTypes.java_lang_ClassLoader, name: JVMTypes.java_lang_String): boolean {
     return false;
   }
-  
+
 }
 
 registerNatives({
