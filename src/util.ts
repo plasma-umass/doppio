@@ -782,16 +782,16 @@ export function boxPrimitiveValue(thread: threading.JVMThread, type: string, val
  * 
  * @param descriptor The descriptor at the *call site*.
  * @param data The actual arguments for this function call.
- * @param isVirtual If true, disregard the first type in the descriptor, as it is the 'this' argument.
+ * @param isStatic If false, disregard the first type in the descriptor, as it is the 'this' argument.
  */
-export function boxArguments(thread: threading.JVMThread, objArrCls: ClassData.ArrayClassData<JVMTypes.java_lang_Object>, descriptor: string, data: any[], isVirtual: boolean, skipArgs: number = 0): JVMTypes.JVMArray<JVMTypes.java_lang_Object> {
+export function boxArguments(thread: threading.JVMThread, objArrCls: ClassData.ArrayClassData<JVMTypes.java_lang_Object>, descriptor: string, data: any[], isStatic: boolean, skipArgs: number = 0): JVMTypes.JVMArray<JVMTypes.java_lang_Object> {
   var paramTypes = getTypes(descriptor),
-    boxedArgs = newArrayFromClass(thread, objArrCls, paramTypes.length - (isVirtual ? 2 : 1) - skipArgs),
+    boxedArgs = newArrayFromClass(thread, objArrCls, paramTypes.length - (isStatic ? 1 : 2) - skipArgs),
     i: number, j: number = 0, boxedArgsArr = boxedArgs.array, type: string;
 
   // Ignore return value.
   paramTypes.pop();
-  if (isVirtual) {
+  if (!isStatic) {
     // Ignore 'this' argument.
     paramTypes.shift();
   }

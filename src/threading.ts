@@ -917,9 +917,10 @@ export class JVMThread {
         // Remove ourselves from the thread pool.
         this.tpool.threadTerminated(this);
       };
+    
     // Revert our status to ASYNC_WAITING so we can acquire a monitor.
     this.rawSetStatus(enums.ThreadStatus.ASYNC_WAITING);
-
+    
     // Acquire the monitor associated with our JavaObject.
     if (monitor.enter(this, phase2)) {
       phase2();

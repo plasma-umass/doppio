@@ -533,7 +533,7 @@ export class Method extends AbstractMethodField {
       for (var i = 0; i < regularArgs; i++) {
         outStream.write(`args[${i}],`);
       }
-      outStream.write(`util.boxArguments(thread, thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/Object;'), descriptor, args, ${virtualDispatch}, ${regularArgs})]`);
+      outStream.write(`util.boxArguments(thread, thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/Object;'), descriptor, args, ${this.accessFlags.isStatic()}, ${regularArgs})]`);
     } else {
       outStream.write(`args`);
     }

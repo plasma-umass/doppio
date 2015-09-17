@@ -1637,12 +1637,14 @@ export class Opcodes {
       // before it.
       args = stack.slice(stack.length - paramSize),
       memberName: JVMTypes.java_lang_invoke_MemberName = args.pop(),
+      // TODO: Use parsed descriptor.
       desc = methodReference.nameAndTypeInfo.descriptor;
 
     if (!isNull(thread, frame, memberName)) {
       stack.length -= paramSize;
       assert(memberName.getClass().getInternalName() === "Ljava/lang/invoke/MemberName;");
       // parameterTypes for function are the same as the method reference, but without the trailing MemberName.
+      // TODO: Use parsed descriptor, avoid re-doing work here.
       memberName.vmtarget(thread, desc.replace("Ljava/lang/invoke/MemberName;)", ")"), args);
       frame.returnToThreadLoop = true;
     }
