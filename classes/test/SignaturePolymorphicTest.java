@@ -9,6 +9,8 @@ import java.lang.invoke.*;
  */
 public class SignaturePolymorphicTest {
   private static void assertEquals(Object a, Object b) {
+    System.out.println(a);
+    System.out.println(b);
     assert(a.equals(b));
   }
   

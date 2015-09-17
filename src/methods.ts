@@ -523,20 +523,8 @@ export class Method extends AbstractMethodField {
     } else {
       outStream.write(`    jsCons["${this.fullSignature}"](thread, `);
     }
-
-    // Box args in an Object[] array if it's a varargs function.
-    if (this.accessFlags.isVarArgs()) {
-      // How many regular args come before the boxed args?
-      var regularArgs = this.parameterTypes.length - 1;
-      // Need to cut 'this' out of paramTypes before boxing.
-      outStream.write(`[`);
-      for (var i = 0; i < regularArgs; i++) {
-        outStream.write(`args[${i}],`);
-      }
-      outStream.write(`util.boxArguments(thread, thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/Object;'), descriptor, args, ${this.accessFlags.isStatic()}, ${regularArgs})]`);
-    } else {
-      outStream.write(`args`);
-    }
+    // TODO: Is it ever appropriate to box arguments for varargs functions? It appears not.
+    outStream.write(`args`);
     outStream.write(`, cb);
   }
   return bridgeMethod;
