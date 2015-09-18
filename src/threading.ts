@@ -1189,11 +1189,7 @@ function validateReturnValue(thread: JVMThread, method: methods.Method, returnTy
     assert(rv2 === undefined, "Second return value must be undefined for array type.");
     assert(rv1 === null || (typeof rv1 === 'object' && typeof rv1['getClass'] === 'function'), `Invalid array object: ${rv1}`);
     if (rv1 != null) {
-      cls = cl.getInitializedClass(thread, returnType);
-      if (cls === null) {
-        cls = bsCl.getInitializedClass(thread, returnType);
-      }
-      assert(cls != null, `Unable to get class for ${returnType}.`);
+      cls = assertClassInitializedOrResolved(thread, cl, returnType, true);
       assert(rv1.getClass().isCastable(cls), `Return value of type ${rv1.getClass().getInternalName()} unable to be cast to return type ${returnType}.`);
     }
   } else {
@@ -1202,47 +1198,39 @@ function validateReturnValue(thread: JVMThread, method: methods.Method, returnTy
     // All objects and arrays are instances of java/lang/Object.
     assert(rv1 === null || rv1 instanceof (<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> bsCl.getInitializedClass(thread, 'Ljava/lang/Object;')).getConstructor(thread), `Reference return type must be an instance of Object; value: ${rv1}`);
     if (rv1 != null) {
-      cls = null;
-      var tempCl: ClassLoader.ClassLoader = cl;
-      // Search classloader hierarchy for class; ensure it is resolved.
-      while (cls === null) {
-        cls = tempCl.getResolvedClass(returnType);
-        if (tempCl.getLoaderObject() !== null) {
-          if (tempCl.getLoaderObject()['java/lang/ClassLoader/parent'] === null) {
-            tempCl = bsCl;
-          } else {
-            tempCl = tempCl.getLoaderObject()['java/lang/ClassLoader/parent'].$loader;
-          }
-        } else {
-          assert(cls !== null, `Unable to get resolved class for type ${returnType}.`);
-        }
-      }
+      cls = assertClassInitializedOrResolved(thread, cl, returnType, false);
       if (!cls.accessFlags.isInterface()) {
         // You can return an interface type without initializing it,
         // since they don't need to be initialized until you try to
         // invoke one of their methods.
         // NOTE: We don't check if the class is in the INITIALIZED state,
-        // since it is possible that it is currently in th process of being
+        // since it is possible that it is currently in the process of being
         // initialized. getInitializedClass handles this subtlety.
-        tempCl = cl;
-        cls = null;
-        while (cls === null) {
-          cls = tempCl.getInitializedClass(thread, returnType);
-          if (tempCl.getLoaderObject() !== null) {
-            if (tempCl.getLoaderObject()['java/lang/ClassLoader/parent'] === null) {
-              tempCl = bsCl;
-            } else {
-              tempCl = tempCl.getLoaderObject()['java/lang/ClassLoader/parent'].$loader;
-            }
-          } else {
-            assert(cls !== null, `Unable to get initialized class for type ${returnType}.`);
-          }
-        }
+        assertClassInitializedOrResolved(thread, cl, returnType, true);
       }
       assert(rv1.getClass().isCastable(cls), `Unable to cast ${rv1.getClass().getInternalName()} to ${returnType}.`);
     }
   }
   return true;
+}
+
+function assertClassInitializedOrResolved(thread: JVMThread, cl: ClassLoader.ClassLoader, type: string, initialized: boolean): ClassData.ClassData {
+  var cls: ClassData.ClassData = null;
+  // Break out of loop once class is found.
+  while (cls === null) {
+    cls = initialized ? cl.getInitializedClass(thread, type) : cl.getResolvedClass(type);
+    if (cl.getLoaderObject() !== null) {
+      if (cl.getLoaderObject()['java/lang/ClassLoader/parent'] === null) {
+        cl = thread.getBsCl();
+      } else {
+        cl = cl.getLoaderObject()['java/lang/ClassLoader/parent'].$loader;
+      }
+    } else {
+      // We just checked the bootstrap classloader, so we reached the root.
+      assert(cls !== null, `Unable to get initialized class for type ${type}.`);
+    }
+  }
+  return cls;
 }
 
 function printConstantPoolItem(cpi: ConstantPool.IConstantPoolItem): string {

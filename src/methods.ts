@@ -141,13 +141,19 @@ export class AbstractMethodField {
    * if the annotation does not exist.
    */
   protected getAnnotationType(thread: threading.JVMThread, name: string): JVMTypes.JVMArray<number> {
-    var annotation = <{ rawBytes: number[] }> <any> this.getAttribute(name);
+    var annotation = <{ rawBytes: Buffer }> <any> this.getAttribute(name);
     if (annotation === null) {
       return null;
     }
     var byteArrCons = (<ClassData.ArrayClassData<number>> thread.getBsCl().getInitializedClass(thread, '[B')).getConstructor(thread),
       rv = new byteArrCons(thread, 0);
-    rv.array = annotation.rawBytes;
+
+    // TODO: Convert to typed array.
+    var i: number, len = annotation.rawBytes.length, arr = new Array(len);
+    for (i = 0; i < len; i++) {
+      arr[i] = annotation.rawBytes.readInt8(i);
+    }
+    rv.array = arr;
     return rv;
   }
 
