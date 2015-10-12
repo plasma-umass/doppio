@@ -152,6 +152,10 @@ public class StrictMathTest {
 
     // static double cosh(double x)
     // Returns the hyperbolic cosine of a double value.
+    for (i=0; i < d_vals.length; i++) {
+        d_results[i] = StrictMath.cosh(d_vals[i]);
+    }
+    results("double cosh(double a)", d_results);
 
     // static double exp(double a)
     // Returns Euler's number e raised to the power of a double value.
