@@ -10,7 +10,6 @@
   ],
   "dependencies": {
     "browserfs": "0.3.5",
-    "DefinitelyTyped": "latest",
     "almond": "*",
     "jasmine": "*"
   }

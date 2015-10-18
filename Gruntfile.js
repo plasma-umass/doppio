@@ -36,6 +36,7 @@ ts_files.forEach(function(e, i) {
 
 // Run!
 if (ts_files_to_compile.length > 0) {
+  ts_files_to_compile.push('typings/tsd.d.ts');
   result = child_process.spawnSync(ts_path, ['--noImplicitAny', '--module', 'commonjs'].concat(ts_files_to_compile));
   if (result.status !== 0) {
     throw new Error("Compilation error: " + result.stdout + "\n" + result.stderr);

@@ -1,4 +1,3 @@
-///<reference path='../vendor/DefinitelyTyped/node/node.d.ts' />
 import ClassData = require('./ClassData');
 import threading = require('./threading');
 import ClassLock = require('./ClassLock');

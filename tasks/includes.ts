@@ -1,6 +1,3 @@
-/// <reference path="../vendor/DefinitelyTyped/node/node.d.ts" />
-/// <reference path="../vendor/DefinitelyTyped/gruntjs/gruntjs.d.ts" />
-/// <reference path="../vendor/DefinitelyTyped/async/async.d.ts" />
 import os = require('os');
 import fs = require('fs');
 import path = require('path');
@@ -26,14 +23,14 @@ function includes(grunt: IGrunt) {
 
     for (i = 0; i < packages.length; i++) {
       // Closure to capture 'file'.
-      (function(package: string) {
+      (function(pkg: string) {
         tasks.push(function(cb: (err?: any) => void): void {
           grunt.util.spawn({
             cmd: 'node',
-            args: standardArgPrefix.concat(package)
+            args: standardArgPrefix.concat(pkg)
           }, function(error: Error, result: grunt.util.ISpawnResult, code: number) {
             if (code !== 0 || error) {
-              grunt.fail.fatal("Could not run doppioh on package " + package + ": " + result.stdout + "\n" + result.stderr);
+              grunt.fail.fatal("Could not run doppioh on package " + pkg + ": " + result.stdout + "\n" + result.stderr);
             }
             cb(error);
           });

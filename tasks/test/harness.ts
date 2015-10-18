@@ -1,5 +1,3 @@
-/// <reference path="../../vendor/DefinitelyTyped/node/node.d.ts" />
-/// <reference path="../../vendor/DefinitelyTyped/jasmine/jasmine.d.ts" />
 /**
 * Sets up the test environment, and launches everything.
 * NOTE: Do not import or export anything from this file, as that will trigger

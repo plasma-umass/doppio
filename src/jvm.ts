@@ -1,4 +1,3 @@
-///<reference path='../vendor/DefinitelyTyped/node/node.d.ts' />
 "use strict";
 import util = require('./util');
 import SafeMap = require('./SafeMap');
@@ -521,15 +520,15 @@ class JVM {
       'jline.terminal': 'jline.UnsupportedTerminal', // we can't shell out to `stty`,
       'sun.arch.data.model': '32' // Identify as 32-bit, because that's how we act.
     };
-    
+
     if (opts) {
       var name: string;
       for (name in opts) {
         if (opts.hasOwnProperty(name)) {
           this.systemProperties[name] = opts[name];
         }
-      } 
-    }    
+      }
+    }
   }
 
   /**

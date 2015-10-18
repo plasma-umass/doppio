@@ -1,4 +1,3 @@
-/// <reference path="../vendor/DefinitelyTyped/node/node.d.ts" />
 "use strict";
 /**
  * Option parser for Java-compatible flags.

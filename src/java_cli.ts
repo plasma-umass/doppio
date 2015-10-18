@@ -29,7 +29,8 @@ function setupOptparse() {
     non_standard: {
       log: {
         description: 'log level, [0-10]|vtrace|trace|debug|error',
-        has_value: true, default: logging.ERROR
+        has_value: true,
+        default: "" + logging.ERROR
       },
       'vtrace-methods': {
         description: 'specify particular methods to vtrace separated by colons, e.g. java/lang/Object/getHashCode()I:java/lang/String/charAt(I)C',
@@ -100,7 +101,7 @@ export function java(args: string[], opts: JVMCLIOptions,
   if (!opts.classpath) {
     opts.classpath = [];
   }
-  
+
   // System properties.
   opts.properties = argv.properties;
 
@@ -199,6 +200,11 @@ export function java(args: string[], opts: JVMCLIOptions,
     // DEFAULT: If no user-supplied classpath, add the current directory to
     // the class path.
     opts.classpath.push(process.cwd());
+  }
+
+  // User-supplied native classpath.
+  if (argv.non_standard['native-classpath']) {
+    opts.nativeClasspath = opts.nativeClasspath.concat(argv.non_standard['native-classpath'].split(':'));
   }
 
   // Construct the JVM.

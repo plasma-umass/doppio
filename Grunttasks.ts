@@ -1,5 +1,3 @@
-/// <reference path="vendor/DefinitelyTyped/node/node.d.ts" />
-/// <reference path="vendor/DefinitelyTyped/gruntjs/gruntjs.d.ts" />
 /**
  * Contains all of doppio's grunt build tasks in TypeScript.
  */
@@ -41,7 +39,7 @@ export function setup(grunt: IGrunt) {
       jcl_dir: '<%= resolve(build.java_home_dir, "classes") %>',
       build_dir: '<%= resolve(build.doppio_dir, "build", build.build_type) %>',
       // TODO: Maybe fix this to prevent us from using too much scratch space?
-      scratch_dir: path.resolve(os.tmpdir(), "jdk-download" + Math.floor(Math.random() * 100000))
+      scratch_dir: path.resolve(os.tmpdir(), "doppio-temp" + Math.floor(Math.random() * 100000))
     },
     make_build_dir: {
       options: { build_dir: "<%= build.build_dir %>" },
@@ -68,18 +66,18 @@ export function setup(grunt: IGrunt) {
     'ice-cream': {
       'release-cli': {
         options: {
-          remove: ['assert', 'trace', 'vtrace', 'debug'] 
+          remove: ['assert', 'trace', 'vtrace', 'debug']
         },
         files: [{
           expand: true,
           cwd: 'build/dev-cli',
           src: '+(console|src)/**/*.js',
-          dest: 'build/release-cli'
+          dest: '<%= resolve(build.scratch_dir, "tmp_release") %>'
         }]
       },
       'fast-dev-cli': {
         options: {
-          remove: ['debug', 'trace', 'vtrace'] 
+          remove: ['debug', 'trace', 'vtrace']
         },
         files: [{
           expand: true,
@@ -88,9 +86,20 @@ export function setup(grunt: IGrunt) {
           dest: 'build/fast-dev-cli'
         }]
       },
+      'fast-dev': {
+        options: {
+          remove: ['trace', 'vtrace', 'debug']
+        },
+        files: [{
+          expand: true,
+          cwd: 'build/dev',
+          src: ['+(src|browser)/**/*.js', 'vendor/almond/almond.js'],
+          dest: '<%= resolve(build.scratch_dir, "tmp_release") %>'
+        }]
+      },
       release: {
         options: {
-          remove: ['assert', 'trace', 'vtrace', 'debug'] 
+          remove: ['assert', 'trace', 'vtrace', 'debug']
         },
         files: [{
           expand: true,
@@ -121,31 +130,31 @@ export function setup(grunt: IGrunt) {
     // Compiles TypeScript files.
     ts: {
       options: {
-        sourcemap: true,
+        sourceMap: true,
         comments: true,
         declaration: true,
         target: 'es3',
-        noImplicitAny: true
+        noImplicitAny: true,
+        inlineSourceMap: true,
+        inlineSources: true
       },
       'dev-cli': {
-        src: ["console/*.ts", "src/**/*.ts"],
+        src: ["console/*.ts", "src/**/*.ts", "typings/tsd.d.ts"],
         outDir: 'build/dev-cli',
         options: {
-          module: 'commonjs',
-          sourceRoot: '..'
+          module: 'commonjs'
         }
       },
       dev: {
-        src: ["src/**/*.ts"],
+        src: ["src/**/*.ts", "typings/tsd.d.ts"],
         outDir: 'build/dev/src',
         options: {
-          module: 'amd',
-          sourceRoot: '..'
+          module: 'amd'
         }
       },
       test: {
         // No module type for these files.
-        src: ["tasks/test/**/*.ts"],
+        src: ["tasks/test/**/*.ts", "typings/tsd.d.ts"],
         outDir: "tasks/test"
       }
     },
@@ -171,12 +180,13 @@ export function setup(grunt: IGrunt) {
           global_defs: {
             RELEASE: true
           }
-        }
+        },
+        sourceMap: true
       },
       'release-cli': {
         files: [{
           expand: true,
-          cwd: 'build/release-cli',
+          cwd: '<%= resolve(build.scratch_dir, "tmp_release") %>',
           src: '+(console|src)/*.js',
           dest: 'build/release-cli'
         }]
@@ -184,7 +194,7 @@ export function setup(grunt: IGrunt) {
       natives: {
         files: [{
           expand: true,
-          cwd: '<%= build.build_dir %>',
+          cwd: '<%= resolve(build.scratch_dir, "tmp_release") %>',
           src: 'src/natives/*.js',
           dest: '<%= build.build_dir %>'
         }]
@@ -204,7 +214,15 @@ export function setup(grunt: IGrunt) {
           expand: true,
           src: ['browser/[^build]*.js'],
           dest: '<%= build.build_dir %>'
-        }, {expand: true, src: '+(browser|src)/*.ts', dest: '<%= build.build_dir %>' }]
+        }]
+      },
+      'fast-dev-natives': {
+        files: [{
+          expand: true,
+          cwd: '<%= resolve(build.scratch_dir, "tmp_release") %>',
+          src: 'src/natives/*.js',
+          dest: '<%= build.build_dir %>'
+        }]
       }
     },
     javac: {
@@ -231,6 +249,23 @@ export function setup(grunt: IGrunt) {
       }
     },
     requirejs: {
+      'fast-dev': {
+        options: {
+          // Consume the ice-cream-processed files.
+          baseUrl: '<%= resolve(build.scratch_dir, "tmp_release") %>',
+          name: 'vendor/almond/almond',
+          wrap: {
+            start: '(function(){var process=BrowserFS.BFSRequire("process"),Buffer=BrowserFS.BFSRequire("buffer").Buffer;',
+            end: 'window["doppio"]=require("./src/doppio");})();'
+          },
+          mainConfigFile: 'browser/require_config.js',
+          out: '<%= resolve(build.build_dir, "doppio.js") %>',
+          // These aren't referenced from runtime. We may want to decouple them
+          // at some point.
+          include: ['src/doppio', 'src/testing'],
+          optimize: 'none'
+        }
+      },
       release: {
         options: {
           // Consume the ice-cream-processed files.
@@ -241,7 +276,7 @@ export function setup(grunt: IGrunt) {
             end: 'window["doppio"]=require("./src/doppio");})();'
           },
           mainConfigFile: 'browser/require_config.js',
-          out: 'build/release/doppio.js',
+          out: '<%= resolve(build.build_dir, "doppio.js") %>',
           // These aren't referenced from runtime. We may want to decouple them
           // at some point.
           include: ['src/doppio', 'src/testing'],
@@ -337,6 +372,31 @@ export function setup(grunt: IGrunt) {
           {src: ['tasks/test/harness.js'] }
         ]
       }
+    },
+    "merge-source-maps": {
+      "build": {
+        options: {
+          inlineSources: true
+        },
+        files: [
+          {
+            expand: true,
+            cwd: "<%= build.build_dir %>",
+            // Ignore vendor files!
+            src: ['./*.js', 'src/**/*.js', 'console/**/*.js'],
+            dest: "<%= build.build_dir %>",
+            ext: '.js.map'
+          }
+        ]
+      }
+    },
+    tsd: {
+      doppio: {
+        options: {
+          command: "reinstall",
+          config: "tsd.json"
+        }
+      }
     }
   });
 
@@ -350,6 +410,8 @@ export function setup(grunt: IGrunt) {
   grunt.loadNpmTasks('grunt-lineending');
   grunt.loadNpmTasks('grunt-curl');
   grunt.loadNpmTasks('grunt-untar');
+  grunt.loadNpmTasks('grunt-merge-source-maps');
+  grunt.loadNpmTasks('grunt-tsd');
   // Load our custom tasks.
   grunt.loadTasks('tasks');
 
@@ -412,7 +474,8 @@ export function setup(grunt: IGrunt) {
    */
 
   grunt.registerTask('dev-cli',
-    ['setup:dev-cli',
+    ['tsd:doppio',
+     'setup:dev-cli',
      'make_build_dir',
      'ts:dev-cli',
      'includecheck',
@@ -422,6 +485,7 @@ export function setup(grunt: IGrunt) {
      'setup:fast-dev-cli',
      'make_build_dir',
      'ice-cream:fast-dev-cli',
+     'merge-source-maps:build',
      'launcher:doppio-fast-dev']);
   grunt.registerTask('release-cli',
     ['dev-cli',
@@ -431,15 +495,26 @@ export function setup(grunt: IGrunt) {
      'ice-cream:release-cli',
      'uglify:release-cli',
      'uglify:natives',
+     'merge-source-maps:build',
      'launcher:doppio',
      'launcher:doppioh']);
   grunt.registerTask('dev',
-    ['setup:dev',
+    ['tsd:doppio',
+     'setup:dev',
      'java',
      'make_build_dir',
      'copy:build',
      'listings',
      'ts:dev']);
+  grunt.registerTask('fast-dev',
+    ['dev',
+     'setup:fast-dev',
+     'make_build_dir',
+     'copy:build',
+     'ice-cream:fast-dev',
+     'copy:fast-dev-natives',
+     'listings',
+     'requirejs:fast-dev']);
   grunt.registerTask('release',
     ['dev',
      'setup:release',
@@ -464,7 +539,7 @@ export function setup(grunt: IGrunt) {
      'connect:server',
      'karma:test-dev']);
   grunt.registerTask('clean', 'Deletes built files.', function() {
-    ['build', 'doppio', 'doppio-dev', 'tscommand.tmp.txt'].concat(grunt.file.expand(['classes/*/*.+(class|runout)'])).forEach(function (path: string) {
+    ['build', 'doppio', 'doppio-dev'].concat(grunt.file.expand(['tscommand*.txt'])).concat(grunt.file.expand(['classes/*/*.+(class|runout)'])).forEach(function (path: string) {
       if (grunt.file.exists(path)) {
         grunt.file.delete(path);
       }

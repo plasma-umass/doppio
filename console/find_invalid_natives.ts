@@ -1,4 +1,3 @@
-/// <reference path="../vendor/DefinitelyTyped/node/node.d.ts" />
 /**
  * Checks which Doppio Native Methods are actually used in the version of the
  * Java Class Library that Doppio is using.

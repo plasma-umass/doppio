@@ -19,11 +19,15 @@ build
 index.html
 about.html
 .DS_store
+# Command-line tools
 doppio
 doppioh
+doppio-dev
+doppio-fast-dev
+# Error log
+doppio.err
 # But we want to allow classes/doppio
 !classes/doppio
-doppio-dev
 core-*
 browser/_about.html
 tools/preload
@@ -37,5 +41,10 @@ classes/test/failures.txt
 *.log
 
 # grunt-ts command file
-tscommand.tmp.txt
+tscommand-*.txt
 .tscache
+.baseDir*.ts
+
+#tsd
+typings
+

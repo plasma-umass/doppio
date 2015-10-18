@@ -86,12 +86,14 @@ export class BytecodeStackFrame implements IStackFrame {
   public run(thread: JVMThread): void {
     var method = this.method, code = this.method.getCodeAttribute().getCode(),
       opcodeTable = opcodes.LookupTable;
-    if (this.pc === 0) {
-      trace(`\nT${thread.getRef()} D${thread.getStackTrace().length} Running ${this.method.getFullSignature()} [Bytecode]:`);
-    } else {
-      trace(`\nT${thread.getRef()} D${thread.getStackTrace().length} Resuming ${this.method.getFullSignature()}:${this.pc} [Bytecode]:`);
+    if (logging.log_level >= logging.TRACE) {
+      if (this.pc === 0) {
+        trace(`\nT${thread.getRef()} D${thread.getStackTrace().length} Running ${this.method.getFullSignature()} [Bytecode]:`);
+      } else {
+        trace(`\nT${thread.getRef()} D${thread.getStackTrace().length} Resuming ${this.method.getFullSignature()}:${this.pc} [Bytecode]:`);
+      }
+      vtrace(`  S: [${logging.debug_vars(this.stack)}], L: [${logging.debug_vars(this.locals)}]`);
     }
-    vtrace(`  S: [${logging.debug_vars(this.stack)}], L: [${logging.debug_vars(this.locals)}]`);
 
     if (method.accessFlags.isSynchronized() && !this.lockedMethodLock) {
       // We are starting a synchronized method! These must implicitly enter
@@ -115,9 +117,11 @@ export class BytecodeStackFrame implements IStackFrame {
     // Run until we get the signal to return to the thread loop.
     while (!this.returnToThreadLoop) {
       var op = code.readUInt8(this.pc);
-      vtrace(`  ${this.pc} ${annotateOpcode(op, this, code, this.pc)}`);
+      if (logging.log_level === logging.VTRACE) {
+        vtrace(`  ${this.pc} ${annotateOpcode(op, this, code, this.pc)}`);
+      }
       opcodeTable[op](thread, this, code, this.pc);
-      if (!this.returnToThreadLoop) {
+      if (!this.returnToThreadLoop && logging.log_level === logging.VTRACE) {
         vtrace(`    S: [${logging.debug_vars(this.stack)}], L: [${logging.debug_vars(this.locals)}]`);
       }
     }
@@ -856,7 +860,9 @@ export class JVMThread {
         return;
       }
 
-      vtrace(`\nT${this.getRef()} ${enums.ThreadStatus[oldStatus]} => ${enums.ThreadStatus[status]}`);
+      if (logging.log_level === logging.VTRACE) {
+        vtrace(`\nT${this.getRef()} ${enums.ThreadStatus[oldStatus]} => ${enums.ThreadStatus[status]}`);
+      }
       assert(validateThreadTransition(oldStatus, status), `Invalid thread transition: ${enums.ThreadStatus[oldStatus]} => ${enums.ThreadStatus[status]}`);
 
       // Optimistically change state.

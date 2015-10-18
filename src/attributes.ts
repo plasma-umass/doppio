@@ -168,6 +168,11 @@ export class SourceFile implements IAttribute {
 export interface IStackMapTableEntry {
   type: enums.StackMapTableEntryType;
   offsetDelta: number;
+  numLocals?: number;
+  locals?: string[];
+  numStackItems?: number;
+  stack?: string[];
+  k?: number;
 }
 
 export class StackMapTable implements IAttribute {

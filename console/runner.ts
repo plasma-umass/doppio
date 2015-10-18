@@ -1,4 +1,3 @@
-/// <reference path="../vendor/DefinitelyTyped/node/node.d.ts" />
 "use strict";
 import java_cli = require('../src/java_cli');
 import JVM = require('../src/jvm');

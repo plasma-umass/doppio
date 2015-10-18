@@ -1457,7 +1457,7 @@ export class Opcodes {
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     callSiteSpecifier.constructCallSiteObject(thread, frame.getLoader(), frame.method.cls, pc, (status: boolean) => {
       if (status) {
-        assert(callSiteSpecifier.getCallSiteObject(pc)[0].vmtarget instanceof methods.Method, "MethodName should be resolved...");
+        assert(typeof(callSiteSpecifier.getCallSiteObject(pc)[0].vmtarget) === 'function', "MethodName should be resolved...");
         code.writeUInt8(enums.OpCode.INVOKEDYNAMIC_FAST, pc);
         // Resume and rerun fast opcode.
         thread.setStatus(enums.ThreadStatus.RUNNABLE);

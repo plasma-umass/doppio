@@ -68,7 +68,7 @@ var injectedFields: {[className: string]: {[fieldName: string]: [string, string]
  * signature of the method and the JavaScript body of the method, keyed on the
  * method's name. These are all instance methods (e.g. non-static).
  */
-var injectedMethods: {[className: string]: {[methodName: string]: [string, string]}} = {
+var injectedMethods: {[className: string]: {[methodName: string]: string[]}} = {
   'Ljava/lang/Object;': {
     'getClass': ["(): ClassData.ClassData", `function() { return this.constructor.cls }`],
     'getMonitor': ["(): Monitor", `function() {
@@ -806,7 +806,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    */
   protected _uninheritedDefaultMethods: methods.Method[] = [];
 
-  constructor(buffer: NodeBuffer, loader?: ClassLoader.ClassLoader, cpPatches?: JVMTypes.JVMArray<JVMTypes.java_lang_Object>) {
+  constructor(buffer: Buffer, loader?: ClassLoader.ClassLoader, cpPatches?: JVMTypes.JVMArray<JVMTypes.java_lang_Object>) {
     super(loader);
     var byteStream = new ByteStream(buffer),
       i: number = 0;

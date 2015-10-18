@@ -1,5 +1,3 @@
-/// <reference path="../vendor/DefinitelyTyped/node/node.d.ts" />
-/// <reference path="../vendor/DefinitelyTyped/gruntjs/gruntjs.d.ts" />
 import fs = require('fs');
 
 function listings(grunt: IGrunt) {

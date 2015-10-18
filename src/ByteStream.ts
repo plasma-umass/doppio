@@ -1,5 +1,4 @@
-﻿/// <reference path="../vendor/DefinitelyTyped/node/node.d.ts" />
-"use strict";
+﻿"use strict";
 import gLong = require('./gLong');
 import assert = require('./assert');
 

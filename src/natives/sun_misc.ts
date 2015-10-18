@@ -138,9 +138,8 @@ class sun_misc_Perf {
 class sun_misc_Signal {
 
   public static 'findSignal(Ljava/lang/String;)I'(thread: threading.JVMThread, arg0: JVMTypes.java_lang_String): number {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    // Satisfy TypeScript return type.
-    return 0;
+    // Signifies that we don't know the signal.
+    return -1;
   }
 
   public static 'handle0(IJ)J'(thread: threading.JVMThread, arg0: number, arg1: gLong): gLong {

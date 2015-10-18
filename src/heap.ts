@@ -1,5 +1,3 @@
-///<reference path='../vendor/DefinitelyTyped/node/node.d.ts' />
-
 // A power-of-two segregated freelist "heap",
 // for explicit memory management into a buffer.
 // by Emery Berger, www.cs.umass.edu/~emery

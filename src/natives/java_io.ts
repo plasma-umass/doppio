@@ -1,4 +1,3 @@
-/// <reference path="../../vendor/DefinitelyTyped/node/node.d.ts" />
 import threading = require('../threading');
 import logging = require('../logging');
 import ClassData = require('../ClassData');

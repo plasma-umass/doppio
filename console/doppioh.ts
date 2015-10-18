@@ -1,4 +1,3 @@
-/// <reference path="../vendor/DefinitelyTyped/node/node.d.ts" />
 /*
  * Doppioh is DoppioJVM's answer to javah, although we realize the 'h' no longer
  * has a meaning.
