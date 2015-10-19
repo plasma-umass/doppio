@@ -439,8 +439,20 @@ class java_io_RandomAccessFile {
     });
   }
 
-  public static 'write0(I)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_RandomAccessFile, arg0: number): void {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+  public static 'write0(I)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_RandomAccessFile, value: number): void {
+    var fdObj = javaThis["java/io/RandomAccessFile/fd"];
+    var fd = fdObj["java/io/FileDescriptor/fd"];
+
+    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    fs.write(fd, String.fromCharCode(value), fdObj.$pos, (err, numBytes) => {
+      if (err != null) {
+        thread.throwNewException('Ljava/io/IOException;', 'Erorr reading file: ' + err);
+      }
+
+      fdObj.$pos += numBytes;
+      thread.asyncReturn();
+    });
+
   }
 
   public static 'writeBytes([BII)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_RandomAccessFile, byteArr: JVMTypes.JVMArray<number>, offset: number, len: number): void {
