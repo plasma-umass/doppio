@@ -56,6 +56,10 @@ export interface IStackFrame {
    * should not be language-visible, return null.
    */
   getStackTraceFrame(): IStackTraceFrame;
+  /**
+   * Retrieve the classloader for this method.
+   */
+  getLoader(): ClassLoader.ClassLoader;
 }
 
 /**
@@ -332,6 +336,13 @@ export class NativeStackFrame implements IStackFrame {
       locals: []
     };
   }
+
+  /**
+   * Returns the classloader for the stack frame.
+   */
+  public getLoader(): ClassLoader.ClassLoader {
+    return this.method.cls.getLoader();
+  }
 }
 
 /**
@@ -387,6 +398,10 @@ export class InternalStackFrame implements IStackFrame {
   public getStackTraceFrame(): IStackTraceFrame {
     // These should not be language visible.
     return null;
+  }
+
+  public getLoader(): ClassLoader.ClassLoader {
+    throw new Error("Internal stack frames have no loader.");
   }
 }
 

@@ -1,34 +1,38 @@
-import threading = require('../threading');
-import logging = require('../logging');
-import ClassData = require('../ClassData');
-import gLong = require('../gLong');
-import util = require('../util');
-import enums = require('../enums');
-import ClassLoader = require('../ClassLoader');
 import JVMTypes = require('../../includes/JVMTypes');
+import * as Doppio from '../doppiojvm';
+import JVMThread = Doppio.VM.Threading.JVMThread;
+import ReferenceClassData = Doppio.VM.ClassFile.ReferenceClassData;
+import ArrayClassData = Doppio.VM.ClassFile.ArrayClassData;
+import ClassData = Doppio.VM.ClassFile.ClassData;
+import logging = Doppio.Debug.Logging;
+import util = Doppio.VM.Util;
+import Long = Doppio.VM.Long;
+import ThreadStatus = Doppio.VM.Enums.ThreadStatus;
+import ClassLoader = Doppio.VM.ClassFile.ClassLoader;
+import CustomClassLoader = Doppio.VM.ClassFile.CustomClassLoader;
 declare var registerNatives: (defs: any) => void;
 
-function getFieldInfo(thread: threading.JVMThread, obj: JVMTypes.java_lang_Object, offset: gLong): [any, string] {
-  var fieldName: string, objBase: any, cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>;
+function getFieldInfo(thread: JVMThread, obj: JVMTypes.java_lang_Object, offset: Long): [any, string] {
+  var fieldName: string, objBase: any, cls: ReferenceClassData<JVMTypes.java_lang_Object>;
   if (obj.getClass().getInternalName() === "Ljava/lang/Object;") {
     // Static field. The staticFieldBase is always a pure Object that has a
     // class reference on it.
     // There's no reason to get the field on an Object, as they have no fields.
-    cls = <ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> (<any> obj).$staticFieldBase;
+    cls = <ReferenceClassData<JVMTypes.java_lang_Object>> (<any> obj).$staticFieldBase;
     objBase = <any> cls.getConstructor(thread);
     fieldName = cls.getStaticFieldFromVMIndex(offset.toInt()).fullName;
   } else if (obj.getClass().getInternalName()[0] === '[') {
     objBase = (<JVMTypes.JVMArray<any>> obj).array;
     fieldName = "" + offset.toInt();
   } else {
-    cls = <ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> obj.getClass();
+    cls = <ReferenceClassData<JVMTypes.java_lang_Object>> obj.getClass();
     objBase = obj;
     fieldName = cls.getObjectFieldFromVMIndex(offset.toInt()).fullName;
   }
   return [objBase, fieldName];
 }
 
-function unsafeCompareAndSwap<T>(thread: threading.JVMThread, _this: JVMTypes.java_lang_Object, obj: JVMTypes.java_lang_Object, offset: gLong, expected: T, x: T): boolean {
+function unsafeCompareAndSwap<T>(thread: JVMThread, _this: JVMTypes.java_lang_Object, obj: JVMTypes.java_lang_Object, offset: Long, expected: T, x: T): boolean {
   var fi = getFieldInfo(thread, obj, offset),
     actual = fi[0][fi[1]];
   if (actual === expected) {
@@ -39,19 +43,19 @@ function unsafeCompareAndSwap<T>(thread: threading.JVMThread, _this: JVMTypes.ja
   }
 }
 
-function getFromVMIndex<T>(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong): T {
+function getFromVMIndex<T>(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long): T {
   var fi = getFieldInfo(thread, obj, offset);
   return fi[0][fi[1]];
 }
 
-function setFromVMIndex<T>(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong, val: T): void {
+function setFromVMIndex<T>(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long, val: T): void {
   var fi = getFieldInfo(thread, obj, offset);
   fi[0][fi[1]] = val;
 }
 
 class sun_misc_GC {
 
-  public static 'maxObjectInspectionAge()J'(thread: threading.JVMThread): gLong {
+  public static 'maxObjectInspectionAge()J'(thread: JVMThread): Long {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
@@ -61,11 +65,11 @@ class sun_misc_GC {
 
 class sun_misc_MessageUtils {
 
-  public static 'toStderr(Ljava/lang/String;)V'(thread: threading.JVMThread, str: JVMTypes.java_lang_String): void {
+  public static 'toStderr(Ljava/lang/String;)V'(thread: JVMThread, str: JVMTypes.java_lang_String): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'toStdout(Ljava/lang/String;)V'(thread: threading.JVMThread, str: JVMTypes.java_lang_String): void {
+  public static 'toStdout(Ljava/lang/String;)V'(thread: JVMThread, str: JVMTypes.java_lang_String): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
@@ -73,7 +77,7 @@ class sun_misc_MessageUtils {
 
 class sun_misc_NativeSignalHandler {
 
-  public static 'handle0(IJ)V'(thread: threading.JVMThread, arg0: number, arg1: gLong): void {
+  public static 'handle0(IJ)V'(thread: JVMThread, arg0: number, arg1: Long): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
@@ -81,24 +85,24 @@ class sun_misc_NativeSignalHandler {
 
 class sun_misc_Perf {
 
-  public static 'attach(Ljava/lang/String;II)Ljava/nio/ByteBuffer;'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Perf, arg0: JVMTypes.java_lang_String, arg1: number, arg2: number): JVMTypes.java_nio_ByteBuffer {
+  public static 'attach(Ljava/lang/String;II)Ljava/nio/ByteBuffer;'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Perf, arg0: JVMTypes.java_lang_String, arg1: number, arg2: number): JVMTypes.java_nio_ByteBuffer {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'detach(Ljava/nio/ByteBuffer;)V'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Perf, arg0: JVMTypes.java_nio_ByteBuffer): void {
+  public static 'detach(Ljava/nio/ByteBuffer;)V'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Perf, arg0: JVMTypes.java_nio_ByteBuffer): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'createLong(Ljava/lang/String;IIJ)Ljava/nio/ByteBuffer;'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Perf, name: JVMTypes.java_lang_String, variability: number, units: number, value: gLong): void {
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    thread.getBsCl().initializeClass(thread, 'Ljava/nio/DirectByteBuffer;', (cdata: ClassData.ReferenceClassData<JVMTypes.java_nio_DirectByteBuffer>) => {
+  public static 'createLong(Ljava/lang/String;IIJ)Ljava/nio/ByteBuffer;'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Perf, name: JVMTypes.java_lang_String, variability: number, units: number, value: Long): void {
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
+    thread.getBsCl().initializeClass(thread, 'Ljava/nio/DirectByteBuffer;', (cdata: ReferenceClassData<JVMTypes.java_nio_DirectByteBuffer>) => {
       if (cdata !== null) {
         var buff = new (cdata.getConstructor(thread))(thread),
           heap = thread.getThreadPool().getJVM().getHeap(),
           addr = heap.malloc(8);
-        buff['<init>(JI)V'](thread, [gLong.fromNumber(addr), null, 8], (e?: JVMTypes.java_lang_Throwable) => {
+        buff['<init>(JI)V'](thread, [Long.fromNumber(addr), null, 8], (e?: JVMTypes.java_lang_Throwable) => {
           if (e) {
             thread.throwException(e);
           } else {
@@ -111,25 +115,25 @@ class sun_misc_Perf {
     });
   }
 
-  public static 'createByteArray(Ljava/lang/String;II[BI)Ljava/nio/ByteBuffer;'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Perf, arg0: JVMTypes.java_lang_String, arg1: number, arg2: number, arg3: JVMTypes.JVMArray<number>, arg4: number): JVMTypes.java_nio_ByteBuffer {
+  public static 'createByteArray(Ljava/lang/String;II[BI)Ljava/nio/ByteBuffer;'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Perf, arg0: JVMTypes.java_lang_String, arg1: number, arg2: number, arg3: JVMTypes.JVMArray<number>, arg4: number): JVMTypes.java_nio_ByteBuffer {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'highResCounter()J'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Perf): gLong {
+  public static 'highResCounter()J'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Perf): Long {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'highResFrequency()J'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Perf): gLong {
+  public static 'highResFrequency()J'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Perf): Long {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'registerNatives()V'(thread: threading.JVMThread): void {
+  public static 'registerNatives()V'(thread: JVMThread): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
@@ -137,18 +141,18 @@ class sun_misc_Perf {
 
 class sun_misc_Signal {
 
-  public static 'findSignal(Ljava/lang/String;)I'(thread: threading.JVMThread, arg0: JVMTypes.java_lang_String): number {
+  public static 'findSignal(Ljava/lang/String;)I'(thread: JVMThread, arg0: JVMTypes.java_lang_String): number {
     // Signifies that we don't know the signal.
     return -1;
   }
 
-  public static 'handle0(IJ)J'(thread: threading.JVMThread, arg0: number, arg1: gLong): gLong {
+  public static 'handle0(IJ)J'(thread: JVMThread, arg0: number, arg1: Long): Long {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'raise0(I)V'(thread: threading.JVMThread, arg0: number): void {
+  public static 'raise0(I)V'(thread: JVMThread, arg0: number): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
@@ -156,81 +160,81 @@ class sun_misc_Signal {
 
 class sun_misc_Unsafe {
 
-  public static 'getInt(Ljava/lang/Object;J)I': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong) => number = getFromVMIndex;
-  public static 'putInt(Ljava/lang/Object;JI)V': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong, newValue: number) => void = setFromVMIndex;
+  public static 'getInt(Ljava/lang/Object;J)I': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long) => number = getFromVMIndex;
+  public static 'putInt(Ljava/lang/Object;JI)V': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long, newValue: number) => void = setFromVMIndex;
 
-  public static 'getObject(Ljava/lang/Object;J)Ljava/lang/Object;': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong) => JVMTypes.java_lang_Object = getFromVMIndex;
-  public static 'putObject(Ljava/lang/Object;JLjava/lang/Object;)V': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong, new_obj: JVMTypes.java_lang_Object) => void = setFromVMIndex;
+  public static 'getObject(Ljava/lang/Object;J)Ljava/lang/Object;': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long) => JVMTypes.java_lang_Object = getFromVMIndex;
+  public static 'putObject(Ljava/lang/Object;JLjava/lang/Object;)V': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long, new_obj: JVMTypes.java_lang_Object) => void = setFromVMIndex;
 
-  public static 'getBoolean(Ljava/lang/Object;J)Z': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong) => number = getFromVMIndex;
-  public static 'putBoolean(Ljava/lang/Object;JZ)V': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong, newValue: number) => void = setFromVMIndex;
+  public static 'getBoolean(Ljava/lang/Object;J)Z': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long) => number = getFromVMIndex;
+  public static 'putBoolean(Ljava/lang/Object;JZ)V': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long, newValue: number) => void = setFromVMIndex;
 
-  public static 'getByte(Ljava/lang/Object;J)B': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong) => number = getFromVMIndex;
-  public static 'putByte(Ljava/lang/Object;JB)V': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong, newValue: number) => void = setFromVMIndex;
+  public static 'getByte(Ljava/lang/Object;J)B': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long) => number = getFromVMIndex;
+  public static 'putByte(Ljava/lang/Object;JB)V': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long, newValue: number) => void = setFromVMIndex;
 
-  public static 'getShort(Ljava/lang/Object;J)S': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong) => number = getFromVMIndex;
-  public static 'putShort(Ljava/lang/Object;JS)V': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong, newValue: number) => void = setFromVMIndex;
+  public static 'getShort(Ljava/lang/Object;J)S': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long) => number = getFromVMIndex;
+  public static 'putShort(Ljava/lang/Object;JS)V': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long, newValue: number) => void = setFromVMIndex;
 
-  public static 'getChar(Ljava/lang/Object;J)C': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong) => number = getFromVMIndex;
-  public static 'putChar(Ljava/lang/Object;JC)V': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong, newValue: number) => void = setFromVMIndex;
+  public static 'getChar(Ljava/lang/Object;J)C': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long) => number = getFromVMIndex;
+  public static 'putChar(Ljava/lang/Object;JC)V': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long, newValue: number) => void = setFromVMIndex;
 
-  public static 'getLong(Ljava/lang/Object;J)J': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong) => gLong = getFromVMIndex;
-  public static 'putLong(Ljava/lang/Object;JJ)V': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong, x: gLong) => void = setFromVMIndex;
+  public static 'getLong(Ljava/lang/Object;J)J': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long) => Long = getFromVMIndex;
+  public static 'putLong(Ljava/lang/Object;JJ)V': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long, x: Long) => void = setFromVMIndex;
 
-  public static 'getFloat(Ljava/lang/Object;J)F': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong) => number = getFromVMIndex;
-  public static 'putFloat(Ljava/lang/Object;JF)V': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong, newValue: number) => void = setFromVMIndex;
+  public static 'getFloat(Ljava/lang/Object;J)F': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long) => number = getFromVMIndex;
+  public static 'putFloat(Ljava/lang/Object;JF)V': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long, newValue: number) => void = setFromVMIndex;
 
-  public static 'getDouble(Ljava/lang/Object;J)D': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong) => number = getFromVMIndex;
+  public static 'getDouble(Ljava/lang/Object;J)D': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long) => number = getFromVMIndex;
 
-  public static 'putDouble(Ljava/lang/Object;JD)V': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong, newValue: number) => void = setFromVMIndex;
+  public static 'putDouble(Ljava/lang/Object;JD)V': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long, newValue: number) => void = setFromVMIndex;
 
-  public static 'getByte(J)B'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, address: gLong): number {
+  public static 'getByte(J)B'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, address: Long): number {
     var heap = thread.getThreadPool().getJVM().getHeap();
     return heap.get_signed_byte(address.toNumber());
   }
 
-  public static 'putByte(JB)V'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, address: gLong, val: number): void {
+  public static 'putByte(JB)V'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, address: Long, val: number): void {
     var heap = thread.getThreadPool().getJVM().getHeap();
     heap.set_signed_byte(address.toNumber(), val);
   }
 
-  public static 'getShort(J)S'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: gLong): number {
+  public static 'getShort(J)S'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: Long): number {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'putShort(JS)V'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: gLong, arg1: number): void {
+  public static 'putShort(JS)V'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: Long, arg1: number): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'getChar(J)C'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: gLong): number {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    // Satisfy TypeScript return type.
-    return 0;
-  }
-
-  public static 'putChar(JC)V'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: gLong, arg1: number): void {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-  }
-
-  public static 'getInt(J)I'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: gLong): number {
+  public static 'getChar(J)C'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: Long): number {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'putInt(JI)V'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: gLong, arg1: number): void {
+  public static 'putChar(JC)V'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: Long, arg1: number): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'getLong(J)J'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, address: gLong): gLong {
+  public static 'getInt(J)I'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: Long): number {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+    // Satisfy TypeScript return type.
+    return 0;
+  }
+
+  public static 'putInt(JI)V'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: Long, arg1: number): void {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+  }
+
+  public static 'getLong(J)J'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, address: Long): Long {
     var heap = thread.getThreadPool().getJVM().getHeap(),
      addr = address.toNumber();
-    return new gLong(heap.get_word(addr), heap.get_word(addr + 4));
+    return new Long(heap.get_word(addr), heap.get_word(addr + 4));
   }
 
-  public static 'putLong(JJ)V'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, address: gLong, value: gLong): void {
+  public static 'putLong(JJ)V'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, address: Long, value: Long): void {
     var heap = thread.getThreadPool().getJVM().getHeap(),
       addr = address.toNumber();
 
@@ -239,48 +243,48 @@ class sun_misc_Unsafe {
     heap.store_word(addr + 4, value.getHighBits());
   }
 
-  public static 'getFloat(J)F'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: gLong): number {
+  public static 'getFloat(J)F'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: Long): number {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'putFloat(JF)V'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: gLong, arg1: number): void {
+  public static 'putFloat(JF)V'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: Long, arg1: number): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'getDouble(J)D'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: gLong): number {
+  public static 'getDouble(J)D'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: Long): number {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'putDouble(JD)V'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: gLong, arg1: number): void {
+  public static 'putDouble(JD)V'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: Long, arg1: number): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'getAddress(J)J'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: gLong): gLong {
+  public static 'getAddress(J)J'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: Long): Long {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'putAddress(JJ)V'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: gLong, arg1: gLong): void {
+  public static 'putAddress(JJ)V'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: Long, arg1: Long): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'allocateMemory(J)J'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, size: gLong): gLong {
+  public static 'allocateMemory(J)J'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, size: Long): Long {
     var heap = thread.getThreadPool().getJVM().getHeap();
-    return gLong.fromNumber(heap.malloc(size.toNumber()));
+    return Long.fromNumber(heap.malloc(size.toNumber()));
   }
 
-  public static 'reallocateMemory(JJ)J'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: gLong, arg1: gLong): gLong {
+  public static 'reallocateMemory(JJ)J'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: Long, arg1: Long): Long {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'setMemory(Ljava/lang/Object;JJB)V'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, address: gLong, bytes: gLong, value: number): void {
+  public static 'setMemory(Ljava/lang/Object;JJB)V'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, address: Long, bytes: Long, value: number): void {
     if (obj === null) {
       // Address is absolute.
       var i: number, addr = address.toNumber(),
@@ -314,7 +318,7 @@ class sun_misc_Unsafe {
    *
    * @since 1.7
    */
-  public static 'copyMemory(Ljava/lang/Object;JLjava/lang/Object;JJ)V'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, srcBase: JVMTypes.java_lang_Object, srcOffset: gLong, destBase: JVMTypes.java_lang_Object, destOffset: gLong, bytes: gLong): void {
+  public static 'copyMemory(Ljava/lang/Object;JLjava/lang/Object;JJ)V'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, srcBase: JVMTypes.java_lang_Object, srcOffset: Long, destBase: JVMTypes.java_lang_Object, destOffset: Long, bytes: Long): void {
     var heap = thread.getThreadPool().getJVM().getHeap(),
       srcAddr = srcOffset.toNumber(),
       destAddr = destOffset.toNumber(),
@@ -325,7 +329,7 @@ class sun_misc_Unsafe {
     } else if (srcBase === null && destBase !== null) {
       // OK, so... destBase is an array, destOffset is a byte offset from the
       // start of the array. Need to copy data from the heap directly into the array.
-      if (util.is_array_type(destBase.getClass().getInternalName()) && util.is_primitive_type((<ClassData.ArrayClassData<any>> destBase.getClass()).getComponentClass().getInternalName())) {
+      if (util.is_array_type(destBase.getClass().getInternalName()) && util.is_primitive_type((<ArrayClassData<any>> destBase.getClass()).getComponentClass().getInternalName())) {
         var destArray: JVMTypes.JVMArray<any> = <any> destBase, i: number;
         switch (destArray.getClass().getComponentClass().getInternalName()) {
           case 'B':
@@ -362,62 +366,62 @@ class sun_misc_Unsafe {
     }
   }
 
-  public static 'freeMemory(J)V'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, address: gLong): void {
+  public static 'freeMemory(J)V'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, address: Long): void {
     var heap = thread.getThreadPool().getJVM().getHeap();
     heap.free(address.toNumber());
   }
 
-  public static 'staticFieldOffset(Ljava/lang/reflect/Field;)J'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, field: JVMTypes.java_lang_reflect_Field): gLong {
-    var cls = <ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> field['java/lang/reflect/Field/clazz'].$cls;
-    return gLong.fromNumber(cls.getVMIndexForField(cls.getFieldFromSlot(field['java/lang/reflect/Field/slot'])));
+  public static 'staticFieldOffset(Ljava/lang/reflect/Field;)J'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, field: JVMTypes.java_lang_reflect_Field): Long {
+    var cls = <ReferenceClassData<JVMTypes.java_lang_Object>> field['java/lang/reflect/Field/clazz'].$cls;
+    return Long.fromNumber(cls.getVMIndexForField(cls.getFieldFromSlot(field['java/lang/reflect/Field/slot'])));
   }
 
-  public static 'objectFieldOffset(Ljava/lang/reflect/Field;)J'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, field: JVMTypes.java_lang_reflect_Field): gLong {
-    var cls = <ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> field['java/lang/reflect/Field/clazz'].$cls;
-    return gLong.fromNumber(cls.getVMIndexForField(cls.getFieldFromSlot(field['java/lang/reflect/Field/slot'])));
+  public static 'objectFieldOffset(Ljava/lang/reflect/Field;)J'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, field: JVMTypes.java_lang_reflect_Field): Long {
+    var cls = <ReferenceClassData<JVMTypes.java_lang_Object>> field['java/lang/reflect/Field/clazz'].$cls;
+    return Long.fromNumber(cls.getVMIndexForField(cls.getFieldFromSlot(field['java/lang/reflect/Field/slot'])));
   }
 
-  public static 'staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, field: JVMTypes.java_lang_reflect_Field): JVMTypes.java_lang_Object {
+  public static 'staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, field: JVMTypes.java_lang_reflect_Field): JVMTypes.java_lang_Object {
     // Return a special JVM object.
     // TODO: Actually create a special DoppioJVM class for this.
-    var rv = new ((<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> thread.getBsCl().getInitializedClass(thread, 'Ljava/lang/Object;')).getConstructor(thread))(thread);
+    var rv = new ((<ReferenceClassData<JVMTypes.java_lang_Object>> thread.getBsCl().getInitializedClass(thread, 'Ljava/lang/Object;')).getConstructor(thread))(thread);
     (<any> rv).$staticFieldBase = field['java/lang/reflect/Field/clazz'].$cls;
     return rv;
   }
 
-  public static 'ensureClassInitialized(Ljava/lang/Class;)V'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, cls: JVMTypes.java_lang_Class): void {
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    cls.$cls.initialize(thread, (cdata: ClassData.ClassData) => {
+  public static 'ensureClassInitialized(Ljava/lang/Class;)V'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, cls: JVMTypes.java_lang_Class): void {
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
+    cls.$cls.initialize(thread, (cdata: ClassData) => {
       if (cdata != null) {
         thread.asyncReturn();
       }
     }, true);
   }
 
-  public static 'arrayBaseOffset(Ljava/lang/Class;)I'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: JVMTypes.java_lang_Class): number {
+  public static 'arrayBaseOffset(Ljava/lang/Class;)I'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: JVMTypes.java_lang_Class): number {
     return 0;
   }
 
-  public static 'arrayIndexScale(Ljava/lang/Class;)I'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: JVMTypes.java_lang_Class): number {
+  public static 'arrayIndexScale(Ljava/lang/Class;)I'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: JVMTypes.java_lang_Class): number {
     return 1;
   }
 
-  public static 'addressSize()I'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe): number {
+  public static 'addressSize()I'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe): number {
     return 4;
   }
 
-  public static 'pageSize()I'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe): number {
+  public static 'pageSize()I'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe): number {
     return 1024;
   }
 
-  public static 'defineClass(Ljava/lang/String;[BIILjava/lang/ClassLoader;Ljava/security/ProtectionDomain;)Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, name: JVMTypes.java_lang_String, bytes: JVMTypes.JVMArray<number>, offset: number, len: number, loaderObj: JVMTypes.java_lang_ClassLoader, pd: JVMTypes.java_security_ProtectionDomain): void {
+  public static 'defineClass(Ljava/lang/String;[BIILjava/lang/ClassLoader;Ljava/security/ProtectionDomain;)Ljava/lang/Class;'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, name: JVMTypes.java_lang_String, bytes: JVMTypes.JVMArray<number>, offset: number, len: number, loaderObj: JVMTypes.java_lang_ClassLoader, pd: JVMTypes.java_security_ProtectionDomain): void {
     var loader = util.getLoader(thread, loaderObj),
-      cdata: ClassData.ClassData = loader.defineClass(thread, util.int_classname(name.toString()), util.byteArray2Buffer(bytes.array, offset, len));
+      cdata: ClassData = loader.defineClass(thread, util.int_classname(name.toString()), util.byteArray2Buffer(bytes.array, offset, len));
     if (cdata !== null) {
-      thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+      thread.setStatus(ThreadStatus.ASYNC_WAITING);
       // Resolve the class, since we're handing it back to the application
       // and we expect these things to be resolved.
-      cdata.resolve(thread, (cdata: ClassData.ClassData) => {
+      cdata.resolve(thread, (cdata: ClassData) => {
         if (cdata !== null) {
           thread.asyncReturn(cdata.getClassObject(thread));
         }
@@ -425,78 +429,78 @@ class sun_misc_Unsafe {
     }
   }
 
-  public static 'allocateInstance(Ljava/lang/Class;)Ljava/lang/Object;'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, jco: JVMTypes.java_lang_Class): JVMTypes.java_lang_Object {
+  public static 'allocateInstance(Ljava/lang/Class;)Ljava/lang/Object;'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, jco: JVMTypes.java_lang_Class): JVMTypes.java_lang_Object {
     // This can trigger class initialization, so check if the class is
     // initialized.
-    var cls = <ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> jco.$cls;
+    var cls = <ReferenceClassData<JVMTypes.java_lang_Object>> jco.$cls;
     if (cls.isInitialized(thread)) {
       return new (cls.getConstructor(thread))(thread);
     } else {
-      thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+      thread.setStatus(ThreadStatus.ASYNC_WAITING);
       cls.initialize(thread, () => {
         thread.asyncReturn(new (cls.getConstructor(thread))(thread));
       });
     }
   }
 
-  public static 'monitorEnter(Ljava/lang/Object;)V'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: JVMTypes.java_lang_Object): void {
+  public static 'monitorEnter(Ljava/lang/Object;)V'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: JVMTypes.java_lang_Object): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'monitorExit(Ljava/lang/Object;)V'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: JVMTypes.java_lang_Object): void {
+  public static 'monitorExit(Ljava/lang/Object;)V'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: JVMTypes.java_lang_Object): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'tryMonitorEnter(Ljava/lang/Object;)Z'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: JVMTypes.java_lang_Object): number {
+  public static 'tryMonitorEnter(Ljava/lang/Object;)Z'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: JVMTypes.java_lang_Object): number {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'throwException(Ljava/lang/Throwable;)V'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, exception: JVMTypes.java_lang_Throwable): void {
+  public static 'throwException(Ljava/lang/Throwable;)V'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, exception: JVMTypes.java_lang_Throwable): void {
     thread.throwException(exception);
   }
 
-  public static 'compareAndSwapObject(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: JVMTypes.java_lang_Object, arg1: gLong, arg2: JVMTypes.java_lang_Object, arg3: JVMTypes.java_lang_Object) => boolean = unsafeCompareAndSwap;
-  public static 'compareAndSwapInt(Ljava/lang/Object;JII)Z': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: JVMTypes.java_lang_Object, arg1: gLong, arg2: number, arg3: number) => boolean = unsafeCompareAndSwap;
-  public static 'compareAndSwapLong(Ljava/lang/Object;JJJ)Z': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: JVMTypes.java_lang_Object, arg1: gLong, arg2: gLong, arg3: gLong) => boolean = unsafeCompareAndSwap;
+  public static 'compareAndSwapObject(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: JVMTypes.java_lang_Object, arg1: Long, arg2: JVMTypes.java_lang_Object, arg3: JVMTypes.java_lang_Object) => boolean = unsafeCompareAndSwap;
+  public static 'compareAndSwapInt(Ljava/lang/Object;JII)Z': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: JVMTypes.java_lang_Object, arg1: Long, arg2: number, arg3: number) => boolean = unsafeCompareAndSwap;
+  public static 'compareAndSwapLong(Ljava/lang/Object;JJJ)Z': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: JVMTypes.java_lang_Object, arg1: Long, arg2: Long, arg3: Long) => boolean = unsafeCompareAndSwap;
 
-  public static 'getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong) => JVMTypes.java_lang_Object = getFromVMIndex;
-  public static 'putObjectVolatile(Ljava/lang/Object;JLjava/lang/Object;)V': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong, newValue: JVMTypes.java_lang_Object) => void  = setFromVMIndex;
+  public static 'getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long) => JVMTypes.java_lang_Object = getFromVMIndex;
+  public static 'putObjectVolatile(Ljava/lang/Object;JLjava/lang/Object;)V': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long, newValue: JVMTypes.java_lang_Object) => void  = setFromVMIndex;
 
-  public static 'getIntVolatile(Ljava/lang/Object;J)I': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong) => number = getFromVMIndex;
-  public static 'putIntVolatile(Ljava/lang/Object;JI)V': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong, newValue: number) => void = setFromVMIndex;
+  public static 'getIntVolatile(Ljava/lang/Object;J)I': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long) => number = getFromVMIndex;
+  public static 'putIntVolatile(Ljava/lang/Object;JI)V': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long, newValue: number) => void = setFromVMIndex;
 
-  public static 'getBooleanVolatile(Ljava/lang/Object;J)Z': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong) => number = getFromVMIndex;
-  public static 'putBooleanVolatile(Ljava/lang/Object;JZ)V': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong, newValue: number) => void = setFromVMIndex;
+  public static 'getBooleanVolatile(Ljava/lang/Object;J)Z': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long) => number = getFromVMIndex;
+  public static 'putBooleanVolatile(Ljava/lang/Object;JZ)V': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long, newValue: number) => void = setFromVMIndex;
 
-  public static 'getByteVolatile(Ljava/lang/Object;J)B': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong) => number = getFromVMIndex;
-  public static 'putByteVolatile(Ljava/lang/Object;JB)V': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong, newValue: number) => void = setFromVMIndex;
+  public static 'getByteVolatile(Ljava/lang/Object;J)B': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long) => number = getFromVMIndex;
+  public static 'putByteVolatile(Ljava/lang/Object;JB)V': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long, newValue: number) => void = setFromVMIndex;
 
-  public static 'getShortVolatile(Ljava/lang/Object;J)S': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong) => number = getFromVMIndex;
-  public static 'putShortVolatile(Ljava/lang/Object;JS)V': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong, newValue: number) => void = setFromVMIndex;
+  public static 'getShortVolatile(Ljava/lang/Object;J)S': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long) => number = getFromVMIndex;
+  public static 'putShortVolatile(Ljava/lang/Object;JS)V': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long, newValue: number) => void = setFromVMIndex;
 
-  public static 'getCharVolatile(Ljava/lang/Object;J)C': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong) => number = getFromVMIndex;
-  public static 'putCharVolatile(Ljava/lang/Object;JC)V': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong, newValue: number) => void = setFromVMIndex;
+  public static 'getCharVolatile(Ljava/lang/Object;J)C': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long) => number = getFromVMIndex;
+  public static 'putCharVolatile(Ljava/lang/Object;JC)V': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long, newValue: number) => void = setFromVMIndex;
 
-  public static 'getLongVolatile(Ljava/lang/Object;J)J': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong) => gLong = getFromVMIndex;
-  public static 'putLongVolatile(Ljava/lang/Object;JJ)V': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong, newValue: gLong) => void = setFromVMIndex;
+  public static 'getLongVolatile(Ljava/lang/Object;J)J': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long) => Long = getFromVMIndex;
+  public static 'putLongVolatile(Ljava/lang/Object;JJ)V': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long, newValue: Long) => void = setFromVMIndex;
 
-  public static 'getFloatVolatile(Ljava/lang/Object;J)F': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong) => number = getFromVMIndex;
-  public static 'putFloatVolatile(Ljava/lang/Object;JF)V': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong, newValue: number) => void = setFromVMIndex;
+  public static 'getFloatVolatile(Ljava/lang/Object;J)F': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long) => number = getFromVMIndex;
+  public static 'putFloatVolatile(Ljava/lang/Object;JF)V': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long, newValue: number) => void = setFromVMIndex;
 
-  public static 'getDoubleVolatile(Ljava/lang/Object;J)D': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong) => number = getFromVMIndex;
-  public static 'putDoubleVolatile(Ljava/lang/Object;JD)V': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong, newValue: number) => void = setFromVMIndex;
+  public static 'getDoubleVolatile(Ljava/lang/Object;J)D': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long) => number = getFromVMIndex;
+  public static 'putDoubleVolatile(Ljava/lang/Object;JD)V': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long, newValue: number) => void = setFromVMIndex;
 
-  public static 'putOrderedObject(Ljava/lang/Object;JLjava/lang/Object;)V': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong, newObj: JVMTypes.java_lang_Object) => void = setFromVMIndex;
-  public static 'putOrderedInt(Ljava/lang/Object;JI)V': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong, newValue: number) => void = setFromVMIndex;
-  public static 'putOrderedLong(Ljava/lang/Object;JJ)V': (thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: gLong, newValue: gLong) => void = setFromVMIndex;
+  public static 'putOrderedObject(Ljava/lang/Object;JLjava/lang/Object;)V': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long, newObj: JVMTypes.java_lang_Object) => void = setFromVMIndex;
+  public static 'putOrderedInt(Ljava/lang/Object;JI)V': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long, newValue: number) => void = setFromVMIndex;
+  public static 'putOrderedLong(Ljava/lang/Object;JJ)V': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long, newValue: Long) => void = setFromVMIndex;
 
   /**
    * Unblock the given thread blocked on park, or, if it is not blocked, cause
    * the subsequent call to park not to block.
    */
-  public static 'unpark(Ljava/lang/Object;)V'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, theThread: JVMTypes.java_lang_Thread): void {
+  public static 'unpark(Ljava/lang/Object;)V'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, theThread: JVMTypes.java_lang_Thread): void {
     theThread.$thread.getThreadPool().unpark(theThread.$thread);
   }
 
@@ -507,7 +511,7 @@ class sun_misc_Unsafe {
    * elapsed, or if absolute, the given deadline in milliseconds since Epoch
    * has passed, or spuriously (i.e., returning for no "reason").
    */
-  public static 'park(ZJ)V'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, absolute: number, time: gLong): void {
+  public static 'park(ZJ)V'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, absolute: number, time: Long): void {
     var timeout = Infinity;
     if (absolute) {
       // Time is an absolute time (milliseconds since Epoch).
@@ -535,7 +539,7 @@ class sun_misc_Unsafe {
     }
   }
 
-  public static 'getLoadAverage([DI)I'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: JVMTypes.JVMArray<number>, arg1: number): number {
+  public static 'getLoadAverage([DI)I'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: JVMTypes.JVMArray<number>, arg1: number): number {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
@@ -547,7 +551,7 @@ class sun_misc_Unsafe {
    * class.
    * @return false only if a call to {@code ensureClassInitialized} would have no effect
    */
-  public static 'shouldBeInitialized(Ljava/lang/Class;)Z'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, cls: JVMTypes.java_lang_Class): number {
+  public static 'shouldBeInitialized(Ljava/lang/Class;)Z'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, cls: JVMTypes.java_lang_Class): number {
     return !cls.$cls.isInitialized(thread) ? 1 : 0;
   }
 
@@ -567,8 +571,8 @@ class sun_misc_Unsafe {
    * @params data      bytes of a class file
    * @params cpPatches where non-null entries exist, they replace corresponding CP entries in data
    */
-  public static 'defineAnonymousClass(Ljava/lang/Class;[B[Ljava/lang/Object;)Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, hostClass: JVMTypes.java_lang_Class, data: JVMTypes.JVMArray<number>, cpPatches: JVMTypes.JVMArray<JVMTypes.java_lang_Object>): JVMTypes.java_lang_Class {
-    return new ClassData.ReferenceClassData(new Buffer(data.array), hostClass.$cls.getLoader(), cpPatches).getClassObject(thread);
+  public static 'defineAnonymousClass(Ljava/lang/Class;[B[Ljava/lang/Object;)Ljava/lang/Class;'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, hostClass: JVMTypes.java_lang_Class, data: JVMTypes.JVMArray<number>, cpPatches: JVMTypes.JVMArray<JVMTypes.java_lang_Object>): JVMTypes.java_lang_Class {
+    return new ReferenceClassData(new Buffer(data.array), hostClass.$cls.getLoader(), cpPatches).getClassObject(thread);
   }
 
   /**
@@ -576,7 +580,7 @@ class sun_misc_Unsafe {
    * with loads or stores after the fence.
    * @since 1.8
    */
-  public static 'loadFence()V'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe): void {
+  public static 'loadFence()V'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe): void {
     // NOP
   }
 
@@ -585,7 +589,7 @@ class sun_misc_Unsafe {
    * with loads or stores after the fence.
    * @since 1.8
    */
-  public static 'storeFence()V'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe): void {
+  public static 'storeFence()V'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe): void {
     // NOP
   }
 
@@ -594,32 +598,32 @@ class sun_misc_Unsafe {
    * with loads or stores after the fence.
    * @since 1.8
    */
-  public static 'fullFence()V'(thread: threading.JVMThread, javaThis: JVMTypes.sun_misc_Unsafe): void {
+  public static 'fullFence()V'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe): void {
     // NOP
   }
 }
 
 class sun_misc_Version {
 
-  public static 'getJvmSpecialVersion()Ljava/lang/String;'(thread: threading.JVMThread): JVMTypes.java_lang_String {
+  public static 'getJvmSpecialVersion()Ljava/lang/String;'(thread: JVMThread): JVMTypes.java_lang_String {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'getJdkSpecialVersion()Ljava/lang/String;'(thread: threading.JVMThread): JVMTypes.java_lang_String {
+  public static 'getJdkSpecialVersion()Ljava/lang/String;'(thread: JVMThread): JVMTypes.java_lang_String {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'getJvmVersionInfo()Z'(thread: threading.JVMThread): number {
+  public static 'getJvmVersionInfo()Z'(thread: JVMThread): number {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'getJdkVersionInfo()V'(thread: threading.JVMThread): void {
+  public static 'getJdkVersionInfo()V'(thread: JVMThread): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
@@ -627,16 +631,16 @@ class sun_misc_Version {
 
 class sun_misc_VM {
 
-  public static 'initialize()V'(thread: threading.JVMThread): void {
-    var vmCls = <ClassData.ReferenceClassData<JVMTypes.sun_misc_VM>> thread.getBsCl().getInitializedClass(thread, 'Lsun/misc/VM;');
+  public static 'initialize()V'(thread: JVMThread): void {
+    var vmCls = <ReferenceClassData<JVMTypes.sun_misc_VM>> thread.getBsCl().getInitializedClass(thread, 'Lsun/misc/VM;');
     // this only applies to Java 7
     if (vmCls.majorVersion < 51) {
       return;
     }
     // Hack: make an empty savedProps
-    var propsCls = <ClassData.ReferenceClassData<JVMTypes.java_util_Properties>> thread.getBsCl().getInitializedClass(thread, 'Ljava/util/Properties;');
+    var propsCls = <ReferenceClassData<JVMTypes.java_util_Properties>> thread.getBsCl().getInitializedClass(thread, 'Ljava/util/Properties;');
     var props = new (propsCls.getConstructor(thread))(thread);
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     props['<init>()V'](thread, (e?: JVMTypes.java_lang_Throwable) => {
       if (e) {
         thread.throwException(e);
@@ -652,13 +656,13 @@ class sun_misc_VM {
    * of generated reflection implementation classes) up the execution stack,
    * or null if only code from the null class loader is on the stack.
    */
-  public static 'latestUserDefinedLoader()Ljava/lang/ClassLoader;'(thread: threading.JVMThread): JVMTypes.java_lang_ClassLoader {
+  public static 'latestUserDefinedLoader()Ljava/lang/ClassLoader;'(thread: JVMThread): JVMTypes.java_lang_ClassLoader {
     var stackTrace = thread.getStackTrace(), i: number,
-      bsCl = thread.getBsCl(), loader: ClassLoader.ClassLoader;
+      bsCl = thread.getBsCl(), loader: ClassLoader;
     for (i = stackTrace.length - 1; i >= 0; i--) {
       loader = stackTrace[i].method.cls.getLoader();
       if (loader !== bsCl) {
-        return (<ClassLoader.CustomClassLoader> loader).getLoaderObject();
+        return (<CustomClassLoader> loader).getLoaderObject();
       }
     }
     return null;
@@ -668,7 +672,7 @@ class sun_misc_VM {
 
 class sun_misc_VMSupport {
 
-  public static 'initAgentProperties(Ljava/util/Properties;)Ljava/util/Properties;'(thread: threading.JVMThread, arg0: JVMTypes.java_util_Properties): JVMTypes.java_util_Properties {
+  public static 'initAgentProperties(Ljava/util/Properties;)Ljava/util/Properties;'(thread: JVMThread, arg0: JVMTypes.java_util_Properties): JVMTypes.java_util_Properties {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
@@ -681,16 +685,16 @@ class sun_misc_VMSupport {
  */
 class sun_misc_URLClassPath {
 
-  public static 'getLookupCacheURLs(Ljava/lang/ClassLoader;)[Ljava/net/URL;'(thread: threading.JVMThread, loader: JVMTypes.java_lang_ClassLoader): JVMTypes.JVMArray<JVMTypes.java_net_URL> {
+  public static 'getLookupCacheURLs(Ljava/lang/ClassLoader;)[Ljava/net/URL;'(thread: JVMThread, loader: JVMTypes.java_lang_ClassLoader): JVMTypes.JVMArray<JVMTypes.java_net_URL> {
     return null;
   }
 
 
-  public static 'getLookupCacheForClassLoader(Ljava/lang/ClassLoader;Ljava/lang/String;)[I'(thread: threading.JVMThread, loader: JVMTypes.java_lang_ClassLoader, name: JVMTypes.java_lang_String): JVMTypes.JVMArray<number> {
+  public static 'getLookupCacheForClassLoader(Ljava/lang/ClassLoader;Ljava/lang/String;)[I'(thread: JVMThread, loader: JVMTypes.java_lang_ClassLoader, name: JVMTypes.java_lang_String): JVMTypes.JVMArray<number> {
     return null;
   }
 
-  public static 'knownToNotExist0(Ljava/lang/ClassLoader;Ljava/lang/String;)Z'(thread: threading.JVMThread, loader: JVMTypes.java_lang_ClassLoader, name: JVMTypes.java_lang_String): boolean {
+  public static 'knownToNotExist0(Ljava/lang/ClassLoader;Ljava/lang/String;)Z'(thread: JVMThread, loader: JVMTypes.java_lang_ClassLoader, name: JVMTypes.java_lang_String): boolean {
     return false;
   }
 

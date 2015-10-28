@@ -8,9 +8,5 @@
     "test",
     "tests"
   ],
-  "dependencies": {
-    "browserfs": "0.3.5",
-    "almond": "*",
-    "jasmine": "*"
-  }
+  "dependencies": {}
 }

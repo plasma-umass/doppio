@@ -6,13 +6,13 @@ import ClassData = require('./ClassData');
 import ClassLoader = require('./ClassLoader');
 import fs = require('fs');
 import path = require('path');
+import buffer = require('buffer');
 import threading = require('./threading');
 import enums = require('./enums');
 import Heap = require('./heap');
 import assert = require('./assert');
 import interfaces = require('./interfaces');
 import JVMTypes = require('../includes/JVMTypes');
-declare var requirejs: any;
 
 // XXX: We currently initialize these classes at JVM bootup. This is expensive.
 // We should attempt to prune this list as much as possible.
@@ -333,19 +333,18 @@ class JVM {
   }
 
   /**
-   * XXX: Hack to evaluate native modules in an environment with
-   * java_object and ClassData defined.
+   * Evaluate native modules. Emulates CommonJS functionality.
    */
   private evalNativeModule(mod: string): any {
     "use strict"; // Prevent eval from being terrible.
-    var rv: any, savedRequire = typeof require !== 'undefined' ? require : function(moduleName: string): any {
-      // require isn't defined in the browser for some reason? but requirejs works; it just
-      // requires an absolute module name.
-      if (moduleName.charAt(0) === '.') {
-        moduleName = './src' + moduleName.slice(1);
-      }
-      return requirejs(moduleName);
-    };
+    var rv: any,
+      // Provide the natives with the Doppio API, if needed.
+      DoppioJVM = require('./doppiojvm'),
+      Buffer = (<any> buffer).Buffer,
+      process2 = process,
+      savedRequire = typeof require !== 'undefined' ? require : function(moduleName: string): any {
+        throw new Error(`Cannot find module ${moduleName}`);
+      };
     (() => {
       /* tslint:disable:no-unused-variable */
       /**
@@ -356,38 +355,49 @@ class JVM {
         rv = defs;
       }
       /**
-       * Emulate the CommonJS 'require' function for natives compiled as CommonJS
-       * modules.
-       *
-       * Redirects module requests for "../<module>.js" to "./<module>.js", as
-       * the JVM lives in a separate directory from natives.
-       *
-       * @todo This is not robust to arbitrary native definition locations!
+       * Emulates CommonJS require().
+       * Placed into an eval() call to avoid browserify-dereq from
+       * fucking renaming the goddamn thing to _dereq_.
        */
-      function require(moduleName: string): any {
-        return savedRequire(moduleName.replace(/..\/([a-zA-Z_0-9]*)/g, './$1'));
-      }
-      /**
-       * Emulate AMD module 'define' function for natives compiled as AMD modules.
-       */
-      function define(resources: string[], module: Function) {
-        var args: any[] = [];
-        resources.forEach((resource: string) => {
-          switch (resource) {
-            case 'require':
-              args.push(require);
-              break;
-            case 'exports':
-              args.push({});
-              break;
-            default:
-              args.push(require(resource));
-              break;
-          }
-        });
-        module.apply(null, args);
-      }
-      eval(mod);
+      eval(`
+var process = process2;
+function require(name) {
+  switch(name) {
+    case 'doppiojvm':
+    case '../doppiojvm':
+      return DoppioJVM;
+    case 'fs':
+      return fs;
+    case 'path':
+      return path;
+    case 'buffer':
+      return buffer;
+    default:
+      return savedRequire(name);
+  }
+}
+/**
+ * Emulate AMD module 'define' function for natives compiled as AMD modules.
+ */
+function define(resources, module) {
+  var args = [];
+  resources.forEach(function(resource) {
+    switch (resource) {
+      case 'require':
+        args.push(require);
+        break;
+      case 'exports':
+        args.push({});
+        break;
+      default:
+        args.push(require(resource));
+        break;
+    }
+  });
+  module.apply(null, args);
+}
+eval(mod);
+`);
       /* tslint:enable:no-unused-variable */
     })();
     return rv;
@@ -596,5 +606,4 @@ class JVM {
   }
 }
 
-// Causes `require('jvm')` to be the JVM constructor itself
 export = JVM;

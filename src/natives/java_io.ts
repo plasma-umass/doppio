@@ -1,13 +1,12 @@
-import threading = require('../threading');
-import logging = require('../logging');
-import ClassData = require('../ClassData');
-import ClassLoader = require('../ClassLoader');
-import gLong = require('../gLong');
-import util = require('../util');
-import enums = require('../enums');
-import methods = require('../methods');
 import fs = require('fs');
 import path = require('path');
+import * as Doppio from '../doppiojvm';
+import JVMThread = Doppio.VM.Threading.JVMThread;
+import ReferenceClassData = Doppio.VM.ClassFile.ReferenceClassData;
+import logging = Doppio.Debug.Logging;
+import util = Doppio.VM.Util;
+import ThreadStatus = Doppio.VM.Enums.ThreadStatus;
+import Long = Doppio.VM.Long;
 import JVMTypes = require('../../includes/JVMTypes');
 declare var registerNatives: (defs: any) => void;
 
@@ -59,17 +58,17 @@ function statFile(fname: string, cb: (stat: fs.Stats) => void): void {
 
 class java_io_Console {
 
-  public static 'encoding()Ljava/lang/String;'(thread: threading.JVMThread): JVMTypes.java_lang_String {
+  public static 'encoding()Ljava/lang/String;'(thread: JVMThread): JVMTypes.java_lang_String {
     return null;
   }
 
-  public static 'echo(Z)Z'(thread: threading.JVMThread, echoOn: boolean): boolean {
+  public static 'echo(Z)Z'(thread: JVMThread, echoOn: boolean): boolean {
     var echoOff: boolean = !echoOn;
     (<any> process.stdin).setRawMode(echoOff);
     return echoOff;
   }
 
-  public static 'istty()Z'(thread: threading.JVMThread): boolean {
+  public static 'istty()Z'(thread: JVMThread): boolean {
     return (<any> process.stdout).isTTY;
   }
 
@@ -77,11 +76,11 @@ class java_io_Console {
 
 class java_io_FileDescriptor {
 
-  public static 'sync()V'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_FileDescriptor): void {
+  public static 'sync()V'(thread: JVMThread, javaThis: JVMTypes.java_io_FileDescriptor): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'initIDs()V'(thread: threading.JVMThread): void {
+  public static 'initIDs()V'(thread: JVMThread): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
@@ -89,10 +88,10 @@ class java_io_FileDescriptor {
 
 class java_io_FileInputStream {
 
-  public static 'open0(Ljava/lang/String;)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_FileInputStream, filename: JVMTypes.java_lang_String): void {
+  public static 'open0(Ljava/lang/String;)V'(thread: JVMThread, javaThis: JVMTypes.java_io_FileInputStream, filename: JVMTypes.java_lang_String): void {
     var filepath = filename.toString();
     // TODO: actually look at the mode
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     fs.open(filepath, 'r', function (e, fd) {
       if (e != null) {
         if (e.code === 'ENOENT') {
@@ -109,14 +108,14 @@ class java_io_FileInputStream {
     });
   }
 
-  public static 'read0()I'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_FileInputStream): void {
+  public static 'read0()I'(thread: JVMThread, javaThis: JVMTypes.java_io_FileInputStream): void {
     var fdObj = javaThis["java/io/FileInputStream/fd"],
       fd = fdObj["java/io/FileDescriptor/fd"];
     if (-1 === fd) {
       thread.throwNewException("Ljava/io/IOException;", "Bad file descriptor");
     } else if (0 !== fd) {
       // this is a real file that we've already opened
-      thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+      thread.setStatus(ThreadStatus.ASYNC_WAITING);
       fs.fstat(fd, (err, stats) => {
         var buf = new Buffer(stats.size);
         fs.read(fd, buf, 0, 1, fdObj.$pos, (err, bytes_read) => {
@@ -126,14 +125,14 @@ class java_io_FileInputStream {
       });
     } else {
       // reading from System.in, do it async
-      thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+      thread.setStatus(ThreadStatus.ASYNC_WAITING);
       async_input(1, (byte: NodeBuffer) => {
         thread.asyncReturn(0 === byte.length ? -1 : byte.readUInt8(0));
       });
     }
   }
 
-  public static 'readBytes([BII)I'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_FileInputStream, byteArr: JVMTypes.JVMArray<number>, offset: number, nBytes: number): void {
+  public static 'readBytes([BII)I'(thread: JVMThread, javaThis: JVMTypes.java_io_FileInputStream, byteArr: JVMTypes.JVMArray<number>, offset: number, nBytes: number): void {
     var buf: Buffer, pos: number,
       fdObj = javaThis["java/io/FileInputStream/fd"],
       fd = fdObj["java/io/FileDescriptor/fd"];
@@ -143,7 +142,7 @@ class java_io_FileInputStream {
       // this is a real file that we've already opened
       pos = fdObj.$pos;
       buf = new Buffer(nBytes);
-      thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+      thread.setStatus(ThreadStatus.ASYNC_WAITING);
       fs.read(fd, buf, 0, nBytes, pos, (err, bytesRead) => {
         var i: number;
         if (null != err) {
@@ -160,7 +159,7 @@ class java_io_FileInputStream {
       });
     } else {
       // reading from System.in, do it async
-      thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+      thread.setStatus(ThreadStatus.ASYNC_WAITING);
       async_input(nBytes, (bytes: NodeBuffer) => {
         var b: number, idx: number;
         for (idx = 0; idx < bytes.length; idx++) {
@@ -172,30 +171,30 @@ class java_io_FileInputStream {
     }
   }
 
-  public static 'skip(J)J'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_FileInputStream, nBytes: gLong): void {
+  public static 'skip(J)J'(thread: JVMThread, javaThis: JVMTypes.java_io_FileInputStream, nBytes: Long): void {
     var fdObj = javaThis["java/io/FileInputStream/fd"];
     var fd = fdObj["java/io/FileDescriptor/fd"];
     if (-1 === fd) {
       thread.throwNewException("Ljava/io/IOException;", "Bad file descriptor");
     } else if (0 !== fd) {
-      thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+      thread.setStatus(ThreadStatus.ASYNC_WAITING);
       fs.fstat(fd, (err, stats) => {
         var bytesLeft = stats.size - fdObj.$pos,
           toSkip = Math.min(nBytes.toNumber(), bytesLeft);
         fdObj.$pos += toSkip;
-        thread.asyncReturn(gLong.fromNumber(toSkip), null);
+        thread.asyncReturn(Long.fromNumber(toSkip), null);
       });
     } else {
       // reading from System.in, do it async
-      thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+      thread.setStatus(ThreadStatus.ASYNC_WAITING);
       async_input(nBytes.toNumber(), (bytes) => {
         // we don't care about what the input actually was
-        thread.asyncReturn(gLong.fromNumber(bytes.length), null);
+        thread.asyncReturn(Long.fromNumber(bytes.length), null);
       });
     }
   }
 
-  public static 'available()I'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_FileInputStream): number {
+  public static 'available()I'(thread: JVMThread, javaThis: JVMTypes.java_io_FileInputStream): number {
     var fdObj = javaThis["java/io/FileInputStream/fd"],
       fd = fdObj["java/io/FileDescriptor/fd"];
 
@@ -205,21 +204,21 @@ class java_io_FileInputStream {
       // no buffering for stdin (if fd is 0)
       return 0;
     } else {
-      thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+      thread.setStatus(ThreadStatus.ASYNC_WAITING);
       fs.fstat(fd, (err, stats) => {
         thread.asyncReturn(stats.size - fdObj.$pos);
       });
     }
   }
 
-  public static 'initIDs()V'(thread: threading.JVMThread): void {
+  public static 'initIDs()V'(thread: JVMThread): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'close0()V'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_FileInputStream): void {
+  public static 'close0()V'(thread: JVMThread, javaThis: JVMTypes.java_io_FileInputStream): void {
     var fdObj = javaThis['java/io/FileInputStream/fd'],
       fd = fdObj['java/io/FileDescriptor/fd'];
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     fs.close(fd, (err?: NodeJS.ErrnoException) => {
       if (err) {
         thread.throwNewException('Ljava/io/IOException;', err.message);
@@ -238,8 +237,8 @@ class java_io_FileOutputStream {
    * @param name name of file to be opened
    * @param append whether the file is to be opened in append mode
    */
-  public static 'open0(Ljava/lang/String;Z)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_FileOutputStream, name: JVMTypes.java_lang_String, append: number): void {
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+  public static 'open0(Ljava/lang/String;Z)V'(thread: JVMThread, javaThis: JVMTypes.java_io_FileOutputStream, name: JVMTypes.java_lang_String, append: number): void {
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     fs.open(name.toString(), append ? 'a' : 'w', (err, fd) => {
       var fdObj = javaThis['java/io/FileOutputStream/fd'];
       fdObj['java/io/FileDescriptor/fd'] = fd;
@@ -257,7 +256,7 @@ class java_io_FileOutputStream {
    * @param   append   {@code true} if the write operation first
    *     advances the position to the end of file
    */
-  public static 'write(IZ)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_FileOutputStream, b: number, append: number): void {
+  public static 'write(IZ)V'(thread: JVMThread, javaThis: JVMTypes.java_io_FileOutputStream, b: number, append: number): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
@@ -270,7 +269,7 @@ class java_io_FileOutputStream {
    *     end of file
    * @exception IOException If an I/O error has occurred.
    */
-  public static 'writeBytes([BIIZ)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_FileOutputStream, bytes: JVMTypes.JVMArray<number>, offset: number, len: number, append: number): void {
+  public static 'writeBytes([BIIZ)V'(thread: JVMThread, javaThis: JVMTypes.java_io_FileOutputStream, bytes: JVMTypes.JVMArray<number>, offset: number, len: number, append: number): void {
     var buf: Buffer = new Buffer(bytes.array),
       fdObj = javaThis['java/io/FileOutputStream/fd'],
       fd = fdObj['java/io/FileDescriptor/fd'];
@@ -278,7 +277,7 @@ class java_io_FileOutputStream {
       thread.throwNewException('Ljava/io/IOException;', "Bad file descriptor");
     } else if (fd !== 1 && fd !== 2) {
       // normal file
-      thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+      thread.setStatus(ThreadStatus.ASYNC_WAITING);
       fs.write(fd, buf, offset, len, fdObj.$pos, (err, numBytes) => {
         fdObj.$pos += numBytes;
         thread.asyncReturn();
@@ -294,16 +293,16 @@ class java_io_FileOutputStream {
       if (util.are_in_browser()) {
         // For the browser implementation -- the DOM doesn't get repainted
         // unless we give the event loop a chance to spin.
-        thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+        thread.setStatus(ThreadStatus.ASYNC_WAITING);
         setImmediate(() => thread.asyncReturn());
       }
     }
   }
 
-  public static 'close0()V'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_FileOutputStream): void {
+  public static 'close0()V'(thread: JVMThread, javaThis: JVMTypes.java_io_FileOutputStream): void {
     var fdObj = javaThis['java/io/FileOutputStream/fd'],
       fd = fdObj['java/io/FileDescriptor/fd'];
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     fs.close(fd, (err?: NodeJS.ErrnoException) => {
       if (err) {
         thread.throwNewException('Ljava/io/IOException;', err.message);
@@ -314,7 +313,7 @@ class java_io_FileOutputStream {
     });
   }
 
-  public static 'initIDs()V'(thread: threading.JVMThread): void {
+  public static 'initIDs()V'(thread: JVMThread): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
@@ -322,11 +321,11 @@ class java_io_FileOutputStream {
 
 class java_io_ObjectInputStream {
 
-  public static 'bytesToFloats([BI[FII)V'(thread: threading.JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number, arg2: JVMTypes.JVMArray<number>, arg3: number, arg4: number): void {
+  public static 'bytesToFloats([BI[FII)V'(thread: JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number, arg2: JVMTypes.JVMArray<number>, arg3: number, arg4: number): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'bytesToDoubles([BI[DII)V'(thread: threading.JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number, arg2: JVMTypes.JVMArray<number>, arg3: number, arg4: number): void {
+  public static 'bytesToDoubles([BI[DII)V'(thread: JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number, arg2: JVMTypes.JVMArray<number>, arg3: number, arg4: number): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
@@ -334,11 +333,11 @@ class java_io_ObjectInputStream {
 
 class java_io_ObjectOutputStream {
 
-  public static 'floatsToBytes([FI[BII)V'(thread: threading.JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number, arg2: JVMTypes.JVMArray<number>, arg3: number, arg4: number): void {
+  public static 'floatsToBytes([FI[BII)V'(thread: JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number, arg2: JVMTypes.JVMArray<number>, arg3: number, arg4: number): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'doublesToBytes([DI[BII)V'(thread: threading.JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number, arg2: JVMTypes.JVMArray<number>, arg3: number, arg4: number): void {
+  public static 'doublesToBytes([DI[BII)V'(thread: JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number, arg2: JVMTypes.JVMArray<number>, arg3: number, arg4: number): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
@@ -346,11 +345,11 @@ class java_io_ObjectOutputStream {
 
 class java_io_ObjectStreamClass {
 
-  public static 'initNative()V'(thread: threading.JVMThread): void {
+  public static 'initNative()V'(thread: JVMThread): void {
     // NOP
   }
 
-  public static 'hasStaticInitializer(Ljava/lang/Class;)Z'(thread: threading.JVMThread, jco: JVMTypes.java_lang_Class): boolean {
+  public static 'hasStaticInitializer(Ljava/lang/Class;)Z'(thread: JVMThread, jco: JVMTypes.java_lang_Class): boolean {
     // check if cls has a <clinit> method
     return jco.$cls.getMethod('<clinit>()V') !== null;
   }
@@ -359,9 +358,9 @@ class java_io_ObjectStreamClass {
 
 class java_io_RandomAccessFile {
 
-  public static 'open0(Ljava/lang/String;I)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_RandomAccessFile, filename: JVMTypes.java_lang_String, mode: number): void {
+  public static 'open0(Ljava/lang/String;I)V'(thread: JVMThread, javaThis: JVMTypes.java_io_RandomAccessFile, filename: JVMTypes.java_lang_String, mode: number): void {
     var filepath = filename.toString(),
-      rafStatics = <typeof JVMTypes.java_io_RandomAccessFile> (<ClassData.ReferenceClassData<JVMTypes.java_io_RandomAccessFile>> javaThis.getClass()).getConstructor(thread),
+      rafStatics = <typeof JVMTypes.java_io_RandomAccessFile> (<ReferenceClassData<JVMTypes.java_io_RandomAccessFile>> javaThis.getClass()).getConstructor(thread),
       modeStr: string;
     switch (mode) {
       case rafStatics["java/io/RandomAccessFile/O_RDONLY"]:
@@ -375,7 +374,7 @@ class java_io_RandomAccessFile {
         modeStr = 'rs+';
         break;
     }
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     fs.open(filepath, modeStr, (e, fd) => {
       if (e != null) {
         thread.throwNewException('Ljava/io/FileNotFoundException;', "Could not open file " + filepath + ": " + e);
@@ -403,11 +402,11 @@ class java_io_RandomAccessFile {
    * @exception  IOException  if an I/O error occurs. Not thrown if
    *                          end-of-file has been reached.
    */
-  public static 'read0()I'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_RandomAccessFile): void {
+  public static 'read0()I'(thread: JVMThread, javaThis: JVMTypes.java_io_RandomAccessFile): void {
     var fdObj = javaThis["java/io/RandomAccessFile/fd"],
       fd = fdObj["java/io/FileDescriptor/fd"],
       buf = new Buffer(1);
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     fs.read(fd, buf, 0, 1, fdObj.$pos, function (err, bytesRead) {
       var i: number;
       if (err != null) {
@@ -420,11 +419,11 @@ class java_io_RandomAccessFile {
     });
   }
 
-  public static 'readBytes([BII)I'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_RandomAccessFile, byte_arr: JVMTypes.JVMArray<number>, offset: number, len: number): void {
+  public static 'readBytes([BII)I'(thread: JVMThread, javaThis: JVMTypes.java_io_RandomAccessFile, byte_arr: JVMTypes.JVMArray<number>, offset: number, len: number): void {
     var fdObj = javaThis["java/io/RandomAccessFile/fd"],
       fd = fdObj["java/io/FileDescriptor/fd"],
       buf = new Buffer(len);
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     fs.read(fd, buf, 0, len, fdObj.$pos, function (err, bytesRead) {
       var i: number;
       if (err != null) {
@@ -439,50 +438,50 @@ class java_io_RandomAccessFile {
     });
   }
 
-  public static 'write0(I)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_RandomAccessFile, arg0: number): void {
+  public static 'write0(I)V'(thread: JVMThread, javaThis: JVMTypes.java_io_RandomAccessFile, arg0: number): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'writeBytes([BII)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_RandomAccessFile, byteArr: JVMTypes.JVMArray<number>, offset: number, len: number): void {
+  public static 'writeBytes([BII)V'(thread: JVMThread, javaThis: JVMTypes.java_io_RandomAccessFile, byteArr: JVMTypes.JVMArray<number>, offset: number, len: number): void {
     var fdObj = javaThis["java/io/RandomAccessFile/fd"],
       fd = fdObj["java/io/FileDescriptor/fd"],
       buf = new Buffer(byteArr.array);
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     fs.write(fd, buf, offset, len, fdObj.$pos, (err, numBytes) => {
       fdObj.$pos += numBytes;
       thread.asyncReturn();
     });
   }
 
-  public static 'getFilePointer()J'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_RandomAccessFile): gLong {
-    return gLong.fromNumber(javaThis['java/io/RandomAccessFile/fd'].$pos);
+  public static 'getFilePointer()J'(thread: JVMThread, javaThis: JVMTypes.java_io_RandomAccessFile): Long {
+    return Long.fromNumber(javaThis['java/io/RandomAccessFile/fd'].$pos);
   }
 
-  public static 'seek0(J)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_RandomAccessFile, pos: gLong): void {
+  public static 'seek0(J)V'(thread: JVMThread, javaThis: JVMTypes.java_io_RandomAccessFile, pos: Long): void {
     javaThis['java/io/RandomAccessFile/fd'].$pos = pos.toNumber();
   }
 
-  public static 'length()J'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_RandomAccessFile): void {
+  public static 'length()J'(thread: JVMThread, javaThis: JVMTypes.java_io_RandomAccessFile): void {
     var fdObj = javaThis['java/io/RandomAccessFile/fd'],
       fd = fdObj['java/io/FileDescriptor/fd'];
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     fs.fstat(fd, (err, stats) => {
-      thread.asyncReturn(gLong.fromNumber(stats.size), null);
+      thread.asyncReturn(Long.fromNumber(stats.size), null);
     });
   }
 
-  public static 'setLength(J)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_RandomAccessFile, arg0: gLong): void {
+  public static 'setLength(J)V'(thread: JVMThread, javaThis: JVMTypes.java_io_RandomAccessFile, arg0: Long): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'initIDs()V'(thread: threading.JVMThread): void {
+  public static 'initIDs()V'(thread: JVMThread): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'close0()V'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_RandomAccessFile): void {
+  public static 'close0()V'(thread: JVMThread, javaThis: JVMTypes.java_io_RandomAccessFile): void {
     var fdObj = javaThis['java/io/RandomAccessFile/fd'],
       fd = fdObj['java/io/FileDescriptor/fd'];
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     fs.close(fd, (err?: NodeJS.ErrnoException) => {
       if (err) {
         thread.throwNewException('Ljava/io/IOException;', err.message);
@@ -497,16 +496,16 @@ class java_io_RandomAccessFile {
 
 class java_io_UnixFileSystem {
 
-  public static 'canonicalize0(Ljava/lang/String;)Ljava/lang/String;'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, jvmPathStr: JVMTypes.java_lang_String): JVMTypes.java_lang_String {
+  public static 'canonicalize0(Ljava/lang/String;)Ljava/lang/String;'(thread: JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, jvmPathStr: JVMTypes.java_lang_String): JVMTypes.java_lang_String {
     var jsStr = jvmPathStr.toString();
     return util.initString(thread.getBsCl(), path.resolve(path.normalize(jsStr)));
   }
 
-  public static 'getBooleanAttributes0(Ljava/io/File;)I'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, file: JVMTypes.java_io_File): void {
+  public static 'getBooleanAttributes0(Ljava/io/File;)I'(thread: JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, file: JVMTypes.java_io_File): void {
     var filepath = file['java/io/File/path'],
-      fileSystem = <typeof JVMTypes.java_io_FileSystem> (<ClassData.ReferenceClassData<JVMTypes.java_io_FileSystem>> thread.getBsCl().getInitializedClass(thread, 'Ljava/io/FileSystem;')).getConstructor(thread);
+      fileSystem = <typeof JVMTypes.java_io_FileSystem> (<ReferenceClassData<JVMTypes.java_io_FileSystem>> thread.getBsCl().getInitializedClass(thread, 'Ljava/io/FileSystem;')).getConstructor(thread);
 
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     statFile(filepath.toString(), (stats) => {
       // Returns 0 if file does not exist, or any other error occurs.
       var rv: number = 0;
@@ -522,9 +521,9 @@ class java_io_UnixFileSystem {
     });
   }
 
-  public static 'checkAccess(Ljava/io/File;I)Z'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, file: JVMTypes.java_io_File, access: number): void {
+  public static 'checkAccess(Ljava/io/File;I)Z'(thread: JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, file: JVMTypes.java_io_File, access: number): void {
     var filepath = file['java/io/File/path'];
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     statFile(filepath.toString(), (stats) => {
       if (stats == null) {
         thread.asyncReturn(0);
@@ -540,27 +539,27 @@ class java_io_UnixFileSystem {
     });
   }
 
-  public static 'getLastModifiedTime(Ljava/io/File;)J'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, file: JVMTypes.java_io_File): void {
+  public static 'getLastModifiedTime(Ljava/io/File;)J'(thread: JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, file: JVMTypes.java_io_File): void {
     var filepath = file['java/io/File/path'];
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     statFile(filepath.toString(), function (stats) {
       if (stats == null) {
-        thread.asyncReturn(gLong.ZERO, null);
+        thread.asyncReturn(Long.ZERO, null);
       } else {
-        thread.asyncReturn(gLong.fromNumber(stats.mtime.getTime()), null);
+        thread.asyncReturn(Long.fromNumber(stats.mtime.getTime()), null);
       }
     });
   }
 
-  public static 'getLength(Ljava/io/File;)J'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, file: JVMTypes.java_io_File): void {
+  public static 'getLength(Ljava/io/File;)J'(thread: JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, file: JVMTypes.java_io_File): void {
     var filepath = file['java/io/File/path'];
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     fs.stat(filepath.toString(), (err, stat) => {
-      thread.asyncReturn(gLong.fromNumber(err != null ? 0 : stat.size), null);
+      thread.asyncReturn(Long.fromNumber(err != null ? 0 : stat.size), null);
     });
   }
 
-  public static 'setPermission(Ljava/io/File;IZZ)Z'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, file: JVMTypes.java_io_File, access: number, enable: number, owneronly: number): void {
+  public static 'setPermission(Ljava/io/File;IZZ)Z'(thread: JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, file: JVMTypes.java_io_File, access: number, enable: number, owneronly: number): void {
     // Access is equal to one of the following static fields:
     // * FileSystem.ACCESS_READ (0x04)
     // * FileSystem.ACCESS_WRITE (0x02)
@@ -581,7 +580,7 @@ class java_io_UnixFileSystem {
       access = ~access;
     }
     // Returns true on success, false on failure.
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     // Fetch existing permissions on file.
     statFile(filepath, (stats: fs.Stats) => {
       if (stats == null) {
@@ -598,9 +597,9 @@ class java_io_UnixFileSystem {
     });
   }
 
-  public static 'createFileExclusively(Ljava/lang/String;)Z'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, path: JVMTypes.java_lang_String): void {
+  public static 'createFileExclusively(Ljava/lang/String;)Z'(thread: JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, path: JVMTypes.java_lang_String): void {
     var filepath = path.toString();
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     statFile(filepath, (stat) => {
       if (stat != null) {
         thread.asyncReturn(0);
@@ -622,12 +621,12 @@ class java_io_UnixFileSystem {
     });
   }
 
-  public static 'delete0(Ljava/io/File;)Z'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, file: JVMTypes.java_io_File): void {
+  public static 'delete0(Ljava/io/File;)Z'(thread: JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, file: JVMTypes.java_io_File): void {
     // Delete the file or directory denoted by the given abstract
     // pathname, returning true if and only if the operation succeeds.
     // If file is a directory, it must be empty.
     var filepath = file['java/io/File/path'].toString();
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     statFile(filepath, (stats) => {
       if (stats == null) {
         thread.asyncReturn(0);
@@ -649,10 +648,10 @@ class java_io_UnixFileSystem {
     });
   }
 
-  public static 'list(Ljava/io/File;)[Ljava/lang/String;'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, file: JVMTypes.java_io_File): void {
+  public static 'list(Ljava/io/File;)[Ljava/lang/String;'(thread: JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, file: JVMTypes.java_io_File): void {
     var filepath = file['java/io/File/path'],
       bsCl = thread.getBsCl();
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     fs.readdir(filepath.toString(), (err, files) => {
       if (err != null) {
         thread.asyncReturn(null);
@@ -662,10 +661,10 @@ class java_io_UnixFileSystem {
     });
   }
 
-  public static 'createDirectory(Ljava/io/File;)Z'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, file: JVMTypes.java_io_File): void {
+  public static 'createDirectory(Ljava/io/File;)Z'(thread: JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, file: JVMTypes.java_io_File): void {
     var filepath = file['java/io/File/path'].toString();
     // Already exists.
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     statFile(filepath, (stat) => {
       if (stat != null) {
         thread.asyncReturn(0);
@@ -677,31 +676,31 @@ class java_io_UnixFileSystem {
     });
   }
 
-  public static 'rename0(Ljava/io/File;Ljava/io/File;)Z'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, file1: JVMTypes.java_io_File, file2: JVMTypes.java_io_File): void {
+  public static 'rename0(Ljava/io/File;Ljava/io/File;)Z'(thread: JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, file1: JVMTypes.java_io_File, file2: JVMTypes.java_io_File): void {
     var file1path = file1['java/io/File/path'].toString(),
       file2path = file2['java/io/File/path'].toString();
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     fs.rename(file1path, file2path, (err?: NodeJS.ErrnoException) => {
       thread.asyncReturn(err != null ? 0 : 1);
     });
   }
 
-  public static 'setLastModifiedTime(Ljava/io/File;J)Z'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, file: JVMTypes.java_io_File, time: gLong): void {
+  public static 'setLastModifiedTime(Ljava/io/File;J)Z'(thread: JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, file: JVMTypes.java_io_File, time: Long): void {
     var mtime = time.toNumber(),
       atime = (new Date).getTime(),
       filepath = file['java/io/File/path'].toString();
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     fs.utimes(filepath, atime, mtime, (err?: NodeJS.ErrnoException) => {
       thread.asyncReturn(1);
     });
   }
 
-  public static 'setReadOnly(Ljava/io/File;)Z'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, file: JVMTypes.java_io_File): void {
+  public static 'setReadOnly(Ljava/io/File;)Z'(thread: JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, file: JVMTypes.java_io_File): void {
     // We'll be unsetting write permissions.
     // Leading 0o indicates octal.
     var filepath = file['java/io/File/path'].toString(),
       mask = ~0x92;
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     statFile(filepath, (stats) => {
       if (stats == null) {
         thread.asyncReturn(0);
@@ -713,13 +712,13 @@ class java_io_UnixFileSystem {
     });
   }
 
-  public static 'getSpace(Ljava/io/File;I)J'(thread: threading.JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, file: JVMTypes.java_io_File, arg1: number): gLong {
+  public static 'getSpace(Ljava/io/File;I)J'(thread: JVMThread, javaThis: JVMTypes.java_io_UnixFileSystem, file: JVMTypes.java_io_File, arg1: number): Long {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'initIDs()V'(thread: threading.JVMThread): void {
+  public static 'initIDs()V'(thread: JVMThread): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 

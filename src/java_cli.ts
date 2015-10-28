@@ -2,7 +2,7 @@ import optparse = require('./option_parser');
 import JVM = require('./jvm');
 import util = require('./util');
 import logging = require('./logging');
-import interfaces = require('./interfaces');
+import {JVMCLIOptions} from './interfaces';
 
 /**
  * Initializes the option parser with the options for the `java` command.
@@ -60,15 +60,6 @@ function setupOptparse() {
 }
 
 /**
- * Doppio-specific configuration options passed to this Java interface.
- */
-export interface JVMCLIOptions extends interfaces.JVMOptions {
-  // Name of the command used to launch `java`. Used in the 'usage' portion of
-  // the help message.
-  launcherName?: string;
-}
-
-/**
  * Consumes a `java` command line string. Constructs a JVM, launches the command, and
  * returns the JVM object.
  *
@@ -85,7 +76,7 @@ export interface JVMCLIOptions extends interfaces.JVMOptions {
  *     // Resume whatever your frontend is doing.
  *   });
  */
-export function java(args: string[], opts: JVMCLIOptions,
+function java(args: string[], opts: JVMCLIOptions,
                      done_cb: (arg: boolean) => void,
                      jvm_started: (jvm: JVM) => void = function(jvm: JVM): void {}): void {
   setupOptparse();
@@ -262,3 +253,5 @@ function print_help(launcherName: string, str: string, done_cb: (arg: boolean) =
     " [flags]  /path/to/classfile [args for main()]\n" + str + "\n");
   return done_cb(rv);
 }
+
+export = java;

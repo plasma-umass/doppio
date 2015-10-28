@@ -38,7 +38,7 @@ doppioDomain.on('error', (er: any) => {
 });
 doppioDomain.run(() => {
   // Run the JVM. Remove node runner.js from the args.
-  java_cli.java(process.argv.slice(2), {
+  java_cli(process.argv.slice(2), {
     bootstrapClasspath: [path.resolve(__dirname, '../vendor/java_home/classes')],
     javaHomePath: path.resolve(__dirname, '../vendor/java_home'),
     extractionPath: path.resolve(os.tmpdir(), 'doppio_jars'),

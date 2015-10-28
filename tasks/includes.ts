@@ -15,7 +15,7 @@ function includes(grunt: IGrunt) {
         done: (status?: boolean) => void = this.async(),
         i: number, tasks: Array<AsyncFunction<void>> = [],
         force: string[] = options.force,
-        standardArgPrefix = [doppiohPath, '-d', dest, '-cp', 'vendor/java_home/classes:.', '-ts', '.'];
+        standardArgPrefix = [doppiohPath, '-d', dest, '-cp', 'vendor/java_home/classes:.', '-ts', '-dpath', './src/doppiojvm'];
 
     if (force != null && force.length > 0) {
       standardArgPrefix.push('-f', force.join(":"));

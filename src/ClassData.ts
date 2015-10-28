@@ -1,7 +1,3 @@
-///<amd-dependency path="./Monitor" />
-// We need to force an include of monitor in the browser setting
-// so we can synchronously load the module for the eval() below.
-// Yes, this is ugly. :(
 "use strict";
 import util = require('./util');
 import ByteStream = require('./ByteStream');
@@ -38,7 +34,7 @@ var ref: number = 1;
  */
 var injectedFields: {[className: string]: {[fieldName: string]: [string, string]}} = {
   'Ljava/lang/invoke/MemberName;': {
-    vmtarget: ["(thread: threading.JVMThread, descriptor: string, args: any[], cb?: (e?: JVMTypes.java_lang_Throwable, rv?: any) => void) => void", "null"],
+    vmtarget: ["(thread: JVMThread, descriptor: string, args: any[], cb?: (e?: JVMTypes.java_lang_Throwable, rv?: any) => void) => void", "null"],
     vmindex: ["number", "-1"]
   },
   'Ljava/lang/Object;': {
@@ -47,19 +43,19 @@ var injectedFields: {[className: string]: {[fieldName: string]: [string, string]
   },
   'Ljava/net/PlainSocketImpl;': {
     '$is_shutdown': ['boolean', 'false'],
-    '$ws': ['interfaces.IWebsock', 'null']
+    '$ws': ['Interfaces.IWebsock', 'null']
   },
   'Ljava/io/FileDescriptor;': {
     '$pos': ['number', '-1']
   },
   'Ljava/lang/Class;': {
-    '$cls': ['ClassData.ClassData', 'null']
+    '$cls': ['ClassData', 'null']
   },
   'Ljava/lang/ClassLoader;': {
-    '$loader': ['ClassLoader.ClassLoader', 'new ClassLoader.CustomClassLoader(thread.getBsCl(), this);']
+    '$loader': ['ClassLoader', 'new ClassLoader.CustomClassLoader(thread.getBsCl(), this);']
   },
   'Ljava/lang/Thread;': {
-    '$thread': ['threading.JVMThread', 'thread.getThreadPool().newThread(this)']
+    '$thread': ['JVMThread', 'thread.getThreadPool().newThread(this)']
   }
 };
 
@@ -70,7 +66,7 @@ var injectedFields: {[className: string]: {[fieldName: string]: [string, string]
  */
 var injectedMethods: {[className: string]: {[methodName: string]: string[]}} = {
   'Ljava/lang/Object;': {
-    'getClass': ["(): ClassData.ClassData", `function() { return this.constructor.cls }`],
+    'getClass': ["(): ClassData", `function() { return this.constructor.cls }`],
     'getMonitor': ["(): Monitor", `function() {
   if (this.$monitor === null) {
     this.$monitor = new Monitor();
@@ -97,7 +93,7 @@ var injectedMethods: {[className: string]: {[methodName: string]: string[]}} = {
     'unbox': ["(): number", `function() { return this['java/lang/Integer/value']; }`]
   },
   'Ljava/lang/Long;': {
-    'unbox': ["(): gLong", `function() { return this['java/lang/Long/value']; }`]
+    'unbox': ["(): Long", `function() { return this['java/lang/Long/value']; }`]
   },
   'Ljava/lang/Short;': {
     'unbox': ["(): number", `function() { return this['java/lang/Short/value']; }`]
@@ -134,7 +130,7 @@ var injectedStaticMethods: {[className: string]: {[methodName: string]: [string,
     'box': ["(val: number): java_lang_Integer", `function(val) { var rv = new this(null); rv['java/lang/Integer/value'] = val; return rv; }`]
   },
   'Ljava/lang/Long;': {
-    'box': ["(val: gLong): java_lang_Long", `function(val) { var rv = new this(null); rv['java/lang/Long/value'] = val; return rv; }`]
+    'box': ["(val: Long): java_lang_Long", `function(val) { var rv = new this(null); rv['java/lang/Long/value'] = val; return rv; }`]
   },
   'Ljava/lang/Short;': {
     'box': ["(val: number): java_lang_Short", `function(val) { var rv = new this(null); rv['java/lang/Short/value'] = val; return rv; }`]
@@ -171,7 +167,7 @@ function extendClass(cls: any, superCls: any) {
 /**
  * Represents a single class in the JVM.
  */
-export class ClassData {
+export abstract class ClassData {
   protected loader: ClassLoader.ClassLoader;
   public accessFlags: util.Flags = null;
   /**
@@ -343,16 +339,12 @@ export class ClassData {
    * Attempt to synchronously resolve this class using its loader. Should only
    * be called on ClassData in the LOADED state.
    */
-  public tryToResolve(): boolean {
-    throw new Error("Abstract method.");
-  }
+  public abstract tryToResolve(): boolean;
 
   /**
    * Attempt to synchronously initialize this class.
    */
-  public tryToInitialize(): boolean {
-    throw new Error("Abstract method.");
-  }
+  public abstract tryToInitialize(): boolean;
 
   /**
    * Set the state of this particular class to LOADED/RESOLVED/INITIALIZED.
@@ -402,9 +394,7 @@ export class ClassData {
     return this.getSuperClass().isSubclass(target);
   }
 
-  public isCastable(target: ClassData): boolean {
-    throw new Error("Unimplemented.");
-  }
+  public abstract isCastable(target: ClassData): boolean;
 
   public resolve(thread: threading.JVMThread, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
     throw new Error("Unimplemented.");

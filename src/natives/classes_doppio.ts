@@ -1,18 +1,19 @@
-import threading = require('../threading');
-import logging = require('../logging');
-import ClassData = require('../ClassData');
-import util = require('../util');
 import JVMTypes = require('../../includes/JVMTypes');
+import * as Doppio from '../doppiojvm';
+import JVMThread = Doppio.VM.Threading.JVMThread;
+import ReferenceClassData = Doppio.VM.ClassFile.ReferenceClassData;
+import logging = Doppio.Debug.Logging;
+import util = Doppio.VM.Util;
 declare var registerNatives: (defs: any) => void;
 
 class classes_doppio_Debug {
 
-  public static 'SetLogLevel(Lclasses/doppio/Debug$LogLevel;)V'(thread: threading.JVMThread, loglevel: JVMTypes.classes_doppio_Debug$LogLevel): void {
+  public static 'SetLogLevel(Lclasses/doppio/Debug$LogLevel;)V'(thread: JVMThread, loglevel: JVMTypes.classes_doppio_Debug$LogLevel): void {
     logging.log_level = loglevel['classes/doppio/Debug$LogLevel/level'];
   }
 
-  public static 'GetLogLevel()Lclasses/doppio/Debug$LogLevel;'(thread: threading.JVMThread): JVMTypes.classes_doppio_Debug$LogLevel {
-    var ll_cls = <typeof JVMTypes.classes_doppio_Debug$LogLevel> (<ClassData.ReferenceClassData<JVMTypes.classes_doppio_Debug$LogLevel>> thread.getBsCl().getInitializedClass(thread, 'Lclasses/doppio/Debug$LogLevel;')).getConstructor(thread);
+  public static 'GetLogLevel()Lclasses/doppio/Debug$LogLevel;'(thread: JVMThread): JVMTypes.classes_doppio_Debug$LogLevel {
+    var ll_cls = <typeof JVMTypes.classes_doppio_Debug$LogLevel> (<ReferenceClassData<JVMTypes.classes_doppio_Debug$LogLevel>> thread.getBsCl().getInitializedClass(thread, 'Lclasses/doppio/Debug$LogLevel;')).getConstructor(thread);
     switch (logging.log_level) {
       case 10:
         return ll_cls['classes/doppio/Debug$LogLevel/VTRACE'];
@@ -29,7 +30,7 @@ class classes_doppio_Debug {
 
 class classes_doppio_JavaScript {
 
-  public static 'eval(Ljava/lang/String;)Ljava/lang/String;'(thread: threading.JVMThread, to_eval: JVMTypes.java_lang_String): JVMTypes.java_lang_String {
+  public static 'eval(Ljava/lang/String;)Ljava/lang/String;'(thread: JVMThread, to_eval: JVMTypes.java_lang_String): JVMTypes.java_lang_String {
     try {
       var rv = eval(to_eval.toString());
       // Coerce to string, if possible.

@@ -7,7 +7,8 @@ var Grunttasks, glob = require('glob'), ts_files = [], ts_files_to_compile = [],
     child_process = require('child_process'),
     path = require('path'),
     ts_path = path.resolve('node_modules', '.bin', 'tsc'),
-    result;
+    result,
+    ignoreCompileErrors = process.argv.indexOf('--grunt-ignore-compile-errors') !== -1;
 
 /**
  * For a given TypeScript file, checks if we should recompile it based on
@@ -38,7 +39,7 @@ ts_files.forEach(function(e, i) {
 if (ts_files_to_compile.length > 0) {
   ts_files_to_compile.push('typings/tsd.d.ts');
   result = child_process.spawnSync(ts_path, ['--noImplicitAny', '--module', 'commonjs'].concat(ts_files_to_compile));
-  if (result.status !== 0) {
+  if (!ignoreCompileErrors && result.status !== 0) {
     throw new Error("Compilation error: " + result.stdout + "\n" + result.stderr);
   }
 }

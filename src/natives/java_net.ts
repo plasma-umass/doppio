@@ -1,14 +1,13 @@
-import interfaces = require('../interfaces');
-import logging = require('../logging');
-import ClassData = require('../ClassData');
-import gLong = require('../gLong');
-import util = require('../util');
-import threading = require('../threading');
-import enums = require('../enums');
+import * as Doppio from '../doppiojvm';
+import JVMThread = Doppio.VM.Threading.JVMThread;
+import ReferenceClassData = Doppio.VM.ClassFile.ReferenceClassData;
+import logging = Doppio.Debug.Logging;
+import util = Doppio.VM.Util;
+import ThreadStatus = Doppio.VM.Enums.ThreadStatus;
+import debug = logging.debug;
+import interfaces = Doppio.VM.Interfaces;
 import JVMTypes = require('../../includes/JVMTypes');
 declare var registerNatives: (defs: any) => void;
-
-var debug = logging.debug;
 
 declare var Websock: {
   new (): interfaces.IWebsock;
@@ -78,7 +77,7 @@ function socket_read_async(impl: JVMTypes.java_net_PlainSocketImpl, b: JVMTypes.
 
 class java_net_Inet4Address {
 
-  public static 'init()V'(thread: threading.JVMThread): void {
+  public static 'init()V'(thread: JVMThread): void {
     // NOP
   }
 
@@ -86,11 +85,11 @@ class java_net_Inet4Address {
 
 class java_net_Inet4AddressImpl {
 
-  public static 'getLocalHostName()Ljava/lang/String;'(thread: threading.JVMThread, javaThis: JVMTypes.java_net_Inet4AddressImpl): JVMTypes.java_lang_String {
+  public static 'getLocalHostName()Ljava/lang/String;'(thread: JVMThread, javaThis: JVMTypes.java_net_Inet4AddressImpl): JVMTypes.java_lang_String {
     return thread.getThreadPool().getJVM().internString('localhost');
   }
 
-  public static 'lookupAllHostAddr(Ljava/lang/String;)[Ljava/net/InetAddress;'(thread: threading.JVMThread, javaThis: JVMTypes.java_net_Inet4AddressImpl, hostname: JVMTypes.java_lang_String): void {
+  public static 'lookupAllHostAddr(Ljava/lang/String;)[Ljava/net/InetAddress;'(thread: JVMThread, javaThis: JVMTypes.java_net_Inet4AddressImpl, hostname: JVMTypes.java_lang_String): void {
     var rv = util.newObject<JVMTypes.java_net_Inet4Address>(thread, thread.getBsCl(), 'Ljava/net/Inet4Address;');
     rv['<init>(Ljava/lang/String;I)V'](thread, [hostname, host_allocate_address(hostname.toString())], (e?: JVMTypes.java_lang_Throwable) => {
       if (e) {
@@ -101,7 +100,7 @@ class java_net_Inet4AddressImpl {
     });
   }
 
-  public static 'getHostByAddr([B)Ljava/lang/String;'(thread: threading.JVMThread, javaThis: JVMTypes.java_net_Inet4AddressImpl, addr: JVMTypes.JVMArray<number>): JVMTypes.java_lang_String {
+  public static 'getHostByAddr([B)Ljava/lang/String;'(thread: JVMThread, javaThis: JVMTypes.java_net_Inet4AddressImpl, addr: JVMTypes.JVMArray<number>): JVMTypes.java_lang_String {
     var ret = host_reverse_lookup[pack_address(addr.array)];
     if (ret == null) {
       return null;
@@ -109,7 +108,7 @@ class java_net_Inet4AddressImpl {
     return util.initString(thread.getBsCl(), "" + ret);
   }
 
-  public static 'isReachable0([BI[BI)Z'(thread: threading.JVMThread, javaThis: JVMTypes.java_net_Inet4AddressImpl, arg0: JVMTypes.JVMArray<number>, arg1: number, arg2: JVMTypes.JVMArray<number>, arg3: number): boolean {
+  public static 'isReachable0([BI[BI)Z'(thread: JVMThread, javaThis: JVMTypes.java_net_Inet4AddressImpl, arg0: JVMTypes.JVMArray<number>, arg1: number, arg2: JVMTypes.JVMArray<number>, arg3: number): boolean {
     return false;
   }
 
@@ -117,7 +116,7 @@ class java_net_Inet4AddressImpl {
 
 class java_net_Inet6Address {
 
-  public static 'init()V'(thread: threading.JVMThread): void {
+  public static 'init()V'(thread: JVMThread): void {
     // NOP
   }
 
@@ -125,7 +124,7 @@ class java_net_Inet6Address {
 
 class java_net_InetAddress {
 
-  public static 'init()V'(thread: threading.JVMThread): void {
+  public static 'init()V'(thread: JVMThread): void {
     // NOP
   }
 
@@ -133,7 +132,7 @@ class java_net_InetAddress {
 
 class java_net_InetAddressImplFactory {
 
-  public static 'isIPv6Supported()Z'(thread: threading.JVMThread): boolean {
+  public static 'isIPv6Supported()Z'(thread: JVMThread): boolean {
     return false;
   }
 
@@ -141,7 +140,7 @@ class java_net_InetAddressImplFactory {
 
 class java_net_PlainSocketImpl {
 
-  public static 'socketCreate(Z)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl, isServer: number): void {
+  public static 'socketCreate(Z)V'(thread: JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl, isServer: number): void {
     // Check to make sure we're in a browser and the websocket libraries are present
     if (!util.are_in_browser()) {
       thread.throwNewException('Ljava/io/IOException;', 'WebSockets are disabled');
@@ -155,7 +154,7 @@ class java_net_PlainSocketImpl {
     }
   }
 
-  public static 'socketConnect(Ljava/net/InetAddress;II)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl, address: JVMTypes.java_net_InetAddress, port: number, timeout: number): void {
+  public static 'socketConnect(Ljava/net/InetAddress;II)V'(thread: JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl, address: JVMTypes.java_net_InetAddress, port: number, timeout: number): void {
     var i: number,
       // The IPv4 case
       holder = address['java/net/InetAddress/holder'],
@@ -176,7 +175,7 @@ class java_net_PlainSocketImpl {
     // Add port
     host += ":" + port;
     debug("Connecting to " + host + " with timeout = " + timeout + " ms");
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     var id = 0,
       clear_state = () => {
         window.clearTimeout(id);
@@ -219,48 +218,48 @@ class java_net_PlainSocketImpl {
     }
   }
 
-  public static 'socketBind(Ljava/net/InetAddress;I)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl, arg0: JVMTypes.java_net_InetAddress, arg1: number): void {
+  public static 'socketBind(Ljava/net/InetAddress;I)V'(thread: JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl, arg0: JVMTypes.java_net_InetAddress, arg1: number): void {
     thread.throwNewException('Ljava/io/IOException;', 'WebSockets doesn\'t know how to bind');
   }
 
-  public static 'socketListen(I)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl, arg0: number): void {
+  public static 'socketListen(I)V'(thread: JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl, arg0: number): void {
     thread.throwNewException('Ljava/io/IOException;', 'WebSockets doesn\'t know how to listen');
   }
 
-  public static 'socketAccept(Ljava/net/SocketImpl;)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl, arg0: JVMTypes.java_net_SocketImpl): void {
+  public static 'socketAccept(Ljava/net/SocketImpl;)V'(thread: JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl, arg0: JVMTypes.java_net_SocketImpl): void {
     thread.throwNewException('Ljava/io/IOException;', 'WebSockets doesn\'t know how to accept');
   }
 
-  public static 'socketAvailable()I'(thread: threading.JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl): void {
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+  public static 'socketAvailable()I'(thread: JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl): void {
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     setImmediate(() => {
       thread.asyncReturn(javaThis.$ws.rQlen());
     });
   }
 
-  public static 'socketClose0(Z)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl, arg0: number): void {
+  public static 'socketClose0(Z)V'(thread: JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl, arg0: number): void {
     // TODO: Something isn't working here
     javaThis.$ws.close();
   }
 
-  public static 'socketShutdown(I)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl, arg0: number): void {
+  public static 'socketShutdown(I)V'(thread: JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl, arg0: number): void {
     javaThis.$is_shutdown = true;
   }
 
-  public static 'initProto()V'(thread: threading.JVMThread): void {
+  public static 'initProto()V'(thread: JVMThread): void {
     // NOP
   }
 
-  public static 'socketSetOption(IZLjava/lang/Object;)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl, arg0: number, arg1: number, arg2: JVMTypes.java_lang_Object): void {
+  public static 'socketSetOption(IZLjava/lang/Object;)V'(thread: JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl, arg0: number, arg1: number, arg2: JVMTypes.java_lang_Object): void {
     // NOP
   }
 
-  public static 'socketGetOption(ILjava/lang/Object;)I'(thread: threading.JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl, arg0: number, arg1: JVMTypes.java_lang_Object): number {
+  public static 'socketGetOption(ILjava/lang/Object;)I'(thread: JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl, arg0: number, arg1: JVMTypes.java_lang_Object): number {
     // NOP
     return 0;
   }
 
-  public static 'socketSendUrgentData(I)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl, data: number): void {
+  public static 'socketSendUrgentData(I)V'(thread: JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl, data: number): void {
     // Urgent data is meant to jump ahead of the
     // outbound stream. We keep no notion of this,
     // so queue up the byte like normal
@@ -271,12 +270,12 @@ class java_net_PlainSocketImpl {
 
 class java_net_SocketInputStream {
 
-  public static 'socketRead0(Ljava/io/FileDescriptor;[BIII)I'(thread: threading.JVMThread, javaThis: JVMTypes.java_net_SocketInputStream, fd: JVMTypes.java_io_FileDescriptor, b: JVMTypes.JVMArray<number>, offset: number, len: number, timeout: number): void {
+  public static 'socketRead0(Ljava/io/FileDescriptor;[BIII)I'(thread: JVMThread, javaThis: JVMTypes.java_net_SocketInputStream, fd: JVMTypes.java_io_FileDescriptor, b: JVMTypes.JVMArray<number>, offset: number, len: number, timeout: number): void {
     var impl = <JVMTypes.java_net_PlainSocketImpl> javaThis['java/net/SocketInputStream/impl'];
     if (impl.$is_shutdown === true) {
       thread.throwNewException('Ljava/io/IOException;', 'Socket is shutdown.');
     } else {
-      thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+      thread.setStatus(ThreadStatus.ASYNC_WAITING);
       setTimeout(() => {
         socket_read_async(impl, b, offset, len, (arg: number) => {
           thread.asyncReturn(arg);
@@ -285,7 +284,7 @@ class java_net_SocketInputStream {
     }
   }
 
-  public static 'init()V'(thread: threading.JVMThread): void {
+  public static 'init()V'(thread: JVMThread): void {
     // NOP
   }
 
@@ -293,7 +292,7 @@ class java_net_SocketInputStream {
 
 class java_net_SocketOutputStream {
 
-  public static 'socketWrite0(Ljava/io/FileDescriptor;[BII)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_net_SocketOutputStream, fd: JVMTypes.java_io_FileDescriptor, b: JVMTypes.JVMArray<number>, offset: number, len: number): void {
+  public static 'socketWrite0(Ljava/io/FileDescriptor;[BII)V'(thread: JVMThread, javaThis: JVMTypes.java_net_SocketOutputStream, fd: JVMTypes.java_io_FileDescriptor, b: JVMTypes.JVMArray<number>, offset: number, len: number): void {
     var impl = <JVMTypes.java_net_PlainSocketImpl> javaThis['java/net/SocketOutputStream/impl'];
     if (impl.$is_shutdown === true) {
       thread.throwNewException('Ljava/io/IOException;', 'Socket is shutdown.');
@@ -303,31 +302,31 @@ class java_net_SocketOutputStream {
       // TODO: This can be optimized by accessing the 'Q' directly
       impl.$ws.send(b.array.slice(offset, offset + len));
       // Let the browser write it out
-      thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+      thread.setStatus(ThreadStatus.ASYNC_WAITING);
       setImmediate(() => {
         thread.asyncReturn();
       });
     }
   }
 
-  public static 'init()V'(thread: threading.JVMThread): void {
+  public static 'init()V'(thread: JVMThread): void {
     // NOP
   }
 
 }
 
 class java_net_NetworkInterface {
-  public static 'init()V'(thread: threading.JVMThread): void {
+  public static 'init()V'(thread: JVMThread): void {
     // NOP
   }
 
-  public static 'getAll()[Ljava/net/NetworkInterface;'(thread: threading.JVMThread): void {
+  public static 'getAll()[Ljava/net/NetworkInterface;'(thread: JVMThread): void {
     // Create a fake network interface bound to 127.1.1.1.
     var bsCl = thread.getBsCl();
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    bsCl.initializeClass(thread, 'Ljava/net/NetworkInterface;', (niCls: ClassData.ReferenceClassData<JVMTypes.java_net_NetworkInterface>) => {
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
+    bsCl.initializeClass(thread, 'Ljava/net/NetworkInterface;', (niCls: ReferenceClassData<JVMTypes.java_net_NetworkInterface>) => {
       if (niCls !== null) {
-        bsCl.initializeClass(thread, 'Ljava/net/InetAddress;', (inetCls: ClassData.ReferenceClassData<JVMTypes.java_net_InetAddress>) => {
+        bsCl.initializeClass(thread, 'Ljava/net/InetAddress;', (inetCls: ReferenceClassData<JVMTypes.java_net_InetAddress>) => {
           if (inetCls !== null) {
             var iName = thread.getThreadPool().getJVM().internString('doppio1'),
               inetStatics = <typeof JVMTypes.java_net_InetAddress> (inetCls.getConstructor(thread));
@@ -352,7 +351,7 @@ class java_net_NetworkInterface {
     });
   }
 
-  public static 'getMacAddr0([BLjava/lang/String;I)[B'(thread: threading.JVMThread, inAddr: JVMTypes.JVMArray<number>, name: JVMTypes.JVMArray<number>, ind: number): JVMTypes.JVMArray<number> {
+  public static 'getMacAddr0([BLjava/lang/String;I)[B'(thread: JVMThread, inAddr: JVMTypes.JVMArray<number>, name: JVMTypes.JVMArray<number>, ind: number): JVMTypes.JVMArray<number> {
     return util.newArrayFromData<number>(thread, thread.getBsCl(), '[B', [1,1,1,1,1,1]);
   }
 }

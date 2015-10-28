@@ -1,35 +1,36 @@
-import threading = require('../threading');
-import logging = require('../logging');
-import ClassData = require('../ClassData');
-import gLong = require('../gLong');
-import util = require('../util');
-import enums = require('../enums');
-import fs = require('fs');
 import JVMTypes = require('../../includes/JVMTypes');
+import * as Doppio from '../doppiojvm';
+import JVMThread = Doppio.VM.Threading.JVMThread;
+import ReferenceClassData = Doppio.VM.ClassFile.ReferenceClassData;
+import logging = Doppio.Debug.Logging;
+import util = Doppio.VM.Util;
+import Long = Doppio.VM.Long;
+import ThreadStatus = Doppio.VM.Enums.ThreadStatus;
+import fs = require('fs');
 declare var registerNatives: (defs: any) => void;
 
 class sun_nio_ch_FileChannelImpl {
 
-  public static 'map0(IJJ)J'(thread: threading.JVMThread, javaThis: JVMTypes.sun_nio_ch_FileChannelImpl, arg0: number, arg1: gLong, arg2: gLong): gLong {
+  public static 'map0(IJJ)J'(thread: JVMThread, javaThis: JVMTypes.sun_nio_ch_FileChannelImpl, arg0: number, arg1: Long, arg2: Long): Long {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'unmap0(JJ)I'(thread: threading.JVMThread, arg0: gLong, arg1: gLong): number {
+  public static 'unmap0(JJ)I'(thread: JVMThread, arg0: Long, arg1: Long): number {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'transferTo0(IJJI)J'(thread: threading.JVMThread, javaThis: JVMTypes.sun_nio_ch_FileChannelImpl, arg0: number, arg1: gLong, arg2: gLong, arg3: number): gLong {
+  public static 'transferTo0(IJJI)J'(thread: JVMThread, javaThis: JVMTypes.sun_nio_ch_FileChannelImpl, arg0: number, arg1: Long, arg2: Long, arg3: number): Long {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'position0(Ljava/io/FileDescriptor;J)J'(thread: threading.JVMThread, javaThis: JVMTypes.sun_nio_ch_FileChannelImpl, fd: JVMTypes.java_io_FileDescriptor, offset: gLong): gLong {
-    return gLong.fromNumber(offset.equals(gLong.NEG_ONE) ? fd.$pos : fd.$pos = offset.toNumber());
+  public static 'position0(Ljava/io/FileDescriptor;J)J'(thread: JVMThread, javaThis: JVMTypes.sun_nio_ch_FileChannelImpl, fd: JVMTypes.java_io_FileDescriptor, offset: Long): Long {
+    return Long.fromNumber(offset.equals(Long.NEG_ONE) ? fd.$pos : fd.$pos = offset.toNumber());
   }
 
   /**
@@ -37,26 +38,26 @@ class sun_nio_ch_FileChannelImpl {
    * This is the Mac name for sun/misc/Unsafe::pageSize. Apparently they
    * wanted to ensure page sizes can be > 2GB...
    */
-  public static 'initIDs()J'(thread: threading.JVMThread): gLong {
+  public static 'initIDs()J'(thread: JVMThread): Long {
     // arbitrary
-    return gLong.fromNumber(1024);
+    return Long.fromNumber(1024);
   }
 
 }
 
 class sun_nio_ch_NativeThread {
 
-  public static 'current()J'(thread: threading.JVMThread): gLong {
+  public static 'current()J'(thread: JVMThread): Long {
     // -1 means that we do not require signaling according to the
     // docs.
-    return gLong.fromNumber(-1);
+    return Long.fromNumber(-1);
   }
 
-  public static 'signal(J)V'(thread: threading.JVMThread, arg0: gLong): void {
+  public static 'signal(J)V'(thread: JVMThread, arg0: Long): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'init()V'(thread: threading.JVMThread): void {
+  public static 'init()V'(thread: JVMThread): void {
     // NOP
   }
 
@@ -64,7 +65,7 @@ class sun_nio_ch_NativeThread {
 
 class sun_nio_ch_IOUtil {
 
-  public static 'iovMax()I'(thread: threading.JVMThread): number {
+  public static 'iovMax()I'(thread: JVMThread): number {
     // Maximum number of IOVectors supported. Let's punt and say zero.
     return 0;
   }
@@ -73,16 +74,16 @@ class sun_nio_ch_IOUtil {
 
 class sun_nio_ch_FileDispatcherImpl {
 
-  public static 'init()V'(thread: threading.JVMThread): void {
+  public static 'init()V'(thread: JVMThread): void {
 
   }
 
-  public static 'read0(Ljava/io/FileDescriptor;JI)I'(thread: threading.JVMThread, fdObj: JVMTypes.java_io_FileDescriptor, address: gLong, len: number): void {
+  public static 'read0(Ljava/io/FileDescriptor;JI)I'(thread: JVMThread, fdObj: JVMTypes.java_io_FileDescriptor, address: Long, len: number): void {
     var fd = fdObj["java/io/FileDescriptor/fd"],
       // read upto len bytes and store into mmap'd buffer at address
       addr = address.toNumber(),
       buf = new Buffer(len);
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     fs.read(fd, buf, 0, len, 0, (err, bytesRead) => {
       if (err) {
         thread.throwNewException("Ljava/io/IOException;", 'Error reading file: ' + err);
@@ -96,7 +97,7 @@ class sun_nio_ch_FileDispatcherImpl {
     });
   }
 
-  public static 'preClose0(Ljava/io/FileDescriptor;)V'(thread: threading.JVMThread, arg0: JVMTypes.java_io_FileDescriptor): void {
+  public static 'preClose0(Ljava/io/FileDescriptor;)V'(thread: JVMThread, arg0: JVMTypes.java_io_FileDescriptor): void {
     // NOP, I think the actual fs.close is called later. If not, NBD.
   }
 

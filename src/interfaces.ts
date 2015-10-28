@@ -38,3 +38,13 @@ export interface IWebsock {
   // XXX: Did we add this to the library? I think we did.
   get_raw_state(): number;
 }
+
+/**
+ * Doppio-specific configuration options passed to this Java interface.
+ */
+export interface JVMCLIOptions extends JVMOptions {
+  // Name of the command used to launch `java`. Used in the 'usage' portion of
+  // the help message.
+  launcherName?: string;
+}
+

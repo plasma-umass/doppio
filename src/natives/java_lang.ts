@@ -1,20 +1,26 @@
-import logging = require('../logging');
-import ClassData = require('../ClassData');
-import gLong = require('../gLong');
-import util = require('../util');
-import attributes = require('../attributes');
-import methods = require('../methods');
-import threading = require('../threading');
-import ClassLoader = require('../ClassLoader');
-import enums = require('../enums');
-import assert = require('../assert');
-import ConstantPool = require('../ConstantPool');
+import * as Doppio from '../doppiojvm';
+import JVMThread = Doppio.VM.Threading.JVMThread;
+import ReferenceClassData = Doppio.VM.ClassFile.ReferenceClassData;
+import logging = Doppio.Debug.Logging;
+import util = Doppio.VM.Util;
+import ArrayClassData = Doppio.VM.ClassFile.ArrayClassData;
+import ThreadStatus = Doppio.VM.Enums.ThreadStatus;
+import Method = Doppio.VM.ClassFile.Method;
+import Field = Doppio.VM.ClassFile.Field;
+import AbstractMethodField = Doppio.VM.ClassFile.AbstractMethodField;
+import Long = Doppio.VM.Long;
+import assert = Doppio.Debug.Assert;
+import ConstantPool = Doppio.VM.ClassFile.ConstantPool;
+import PrimitiveClassData = Doppio.VM.ClassFile.PrimitiveClassData;
+import MethodHandleReferenceKind = Doppio.VM.Enums.MethodHandleReferenceKind;
+import attributes = Doppio.VM.ClassFile.Attributes;
+import ClassData = Doppio.VM.ClassFile.ClassData;
 import JVMTypes = require('../../includes/JVMTypes');
 declare var registerNatives: (defs: any) => void;
 
 var debug = logging.debug;
 
-function arrayGet(thread: threading.JVMThread, arr: JVMTypes.JVMArray<any>, idx: number): any {
+function arrayGet(thread: JVMThread, arr: JVMTypes.JVMArray<any>, idx: number): any {
   if (arr == null) {
     thread.throwNewException('Ljava/lang/NullPointerException;', '');
   } else {
@@ -27,7 +33,7 @@ function arrayGet(thread: threading.JVMThread, arr: JVMTypes.JVMArray<any>, idx:
   }
 }
 
-function isNotNull(thread: threading.JVMThread, obj: JVMTypes.java_lang_Object): boolean {
+function isNotNull(thread: JVMThread, obj: JVMTypes.java_lang_Object): boolean {
   if (obj == null) {
     thread.throwNewException('Ljava/lang/NullPointerException;', '');
     return false;
@@ -36,8 +42,8 @@ function isNotNull(thread: threading.JVMThread, obj: JVMTypes.java_lang_Object):
   }
 }
 
-function verifyArray(thread: threading.JVMThread, obj: JVMTypes.JVMArray<any>): boolean {
-  if (!(obj.getClass() instanceof ClassData.ArrayClassData)) {
+function verifyArray(thread: JVMThread, obj: JVMTypes.JVMArray<any>): boolean {
+  if (!(obj.getClass() instanceof ArrayClassData)) {
     thread.throwNewException('Ljava/lang/IllegalArgumentException;', 'Object is not an array.');
     return false;
   } else {
@@ -47,21 +53,21 @@ function verifyArray(thread: threading.JVMThread, obj: JVMTypes.JVMArray<any>): 
 
 class java_lang_Class {
 
-  public static 'forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;Ljava/lang/Class;)Ljava/lang/Class;'(thread: threading.JVMThread, jvmStr: JVMTypes.java_lang_String, initialize: number, jclo: JVMTypes.java_lang_ClassLoader, caller: JVMTypes.java_lang_Class): void {
+  public static 'forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;Ljava/lang/Class;)Ljava/lang/Class;'(thread: JVMThread, jvmStr: JVMTypes.java_lang_String, initialize: number, jclo: JVMTypes.java_lang_ClassLoader, caller: JVMTypes.java_lang_Class): void {
     var classname = util.int_classname(jvmStr.toString());
     if (!util.verify_int_classname(classname)) {
       thread.throwNewException('Ljava/lang/ClassNotFoundException;', classname);
     } else {
       var loader = util.getLoader(thread, jclo);
-      thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+      thread.setStatus(ThreadStatus.ASYNC_WAITING);
       if (initialize) {
-        loader.initializeClass(thread, classname, (cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>) => {
+        loader.initializeClass(thread, classname, (cls: ReferenceClassData<JVMTypes.java_lang_Object>) => {
           if (cls != null) {
             thread.asyncReturn(cls.getClassObject(thread));
           }
         });
       } else {
-        loader.resolveClass(thread, classname, (cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>) => {
+        loader.resolveClass(thread, classname, (cls: ReferenceClassData<JVMTypes.java_lang_Object>) => {
           if (cls != null) {
             thread.asyncReturn(cls.getClassObject(thread));
           }
@@ -70,7 +76,7 @@ class java_lang_Class {
     }
   }
 
-  public static 'isInstance(Ljava/lang/Object;)Z'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Class, obj: JVMTypes.java_lang_Object): boolean {
+  public static 'isInstance(Ljava/lang/Object;)Z'(thread: JVMThread, javaThis: JVMTypes.java_lang_Class, obj: JVMTypes.java_lang_Object): boolean {
     if (obj !== null) {
       return obj.getClass().isCastable(javaThis.$cls);
     } else {
@@ -78,31 +84,31 @@ class java_lang_Class {
     }
   }
 
-  public static 'isAssignableFrom(Ljava/lang/Class;)Z'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Class, cls: JVMTypes.java_lang_Class): boolean {
+  public static 'isAssignableFrom(Ljava/lang/Class;)Z'(thread: JVMThread, javaThis: JVMTypes.java_lang_Class, cls: JVMTypes.java_lang_Class): boolean {
     return cls.$cls.isCastable(javaThis.$cls);
   }
 
-  public static 'isInterface()Z'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Class): boolean {
-    if (!(javaThis.$cls instanceof ClassData.ReferenceClassData)) {
+  public static 'isInterface()Z'(thread: JVMThread, javaThis: JVMTypes.java_lang_Class): boolean {
+    if (!(javaThis.$cls instanceof ReferenceClassData)) {
       return false;
     }
     return javaThis.$cls.accessFlags.isInterface();
   }
 
-  public static 'isArray()Z'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Class): boolean {
-    return javaThis.$cls instanceof ClassData.ArrayClassData;
+  public static 'isArray()Z'(thread: JVMThread, javaThis: JVMTypes.java_lang_Class): boolean {
+    return javaThis.$cls instanceof ArrayClassData;
   }
 
-  public static 'isPrimitive()Z'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Class): boolean {
-    return javaThis.$cls instanceof ClassData.PrimitiveClassData;
+  public static 'isPrimitive()Z'(thread: JVMThread, javaThis: JVMTypes.java_lang_Class): boolean {
+    return javaThis.$cls instanceof PrimitiveClassData;
   }
 
-  public static 'getName0()Ljava/lang/String;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.java_lang_String {
+  public static 'getName0()Ljava/lang/String;'(thread: JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.java_lang_String {
     return util.initString(thread.getBsCl(), javaThis.$cls.getExternalName());
   }
 
-  public static 'getSuperclass()Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.java_lang_Class {
-    if (javaThis.$cls instanceof ClassData.PrimitiveClassData) {
+  public static 'getSuperclass()Ljava/lang/Class;'(thread: JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.java_lang_Class {
+    if (javaThis.$cls instanceof PrimitiveClassData) {
       return null;
     }
     var cls = javaThis.$cls;
@@ -112,40 +118,40 @@ class java_lang_Class {
     return cls.getSuperClass().getClassObject(thread);
   }
 
-  public static 'getInterfaces0()[Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.JVMArray<JVMTypes.java_lang_Class> {
+  public static 'getInterfaces0()[Ljava/lang/Class;'(thread: JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.JVMArray<JVMTypes.java_lang_Class> {
     return util.newArrayFromData<JVMTypes.java_lang_Class>(thread, thread.getBsCl(), '[Ljava/lang/Class;', javaThis.$cls.getInterfaces().map((iface) => iface.getClassObject(thread)));
   }
 
-  public static 'getComponentType()Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.java_lang_Class {
-    if (!(javaThis.$cls instanceof ClassData.ArrayClassData)) {
+  public static 'getComponentType()Ljava/lang/Class;'(thread: JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.java_lang_Class {
+    if (!(javaThis.$cls instanceof ArrayClassData)) {
       return null;
     }
     // As this array type is loaded, the component type is guaranteed
     // to be loaded as well. No need for asynchronicity.
-    return (<ClassData.ArrayClassData<any>> javaThis.$cls).getComponentClass().getClassObject(thread);
+    return (<ArrayClassData<any>> javaThis.$cls).getComponentClass().getClassObject(thread);
   }
 
-  public static 'getModifiers()I'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Class): number {
+  public static 'getModifiers()I'(thread: JVMThread, javaThis: JVMTypes.java_lang_Class): number {
     return javaThis.$cls.accessFlags.getRawByte();
   }
 
-  public static 'getSigners()[Ljava/lang/Object;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.JVMArray<JVMTypes.java_lang_Object> {
+  public static 'getSigners()[Ljava/lang/Object;'(thread: JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.JVMArray<JVMTypes.java_lang_Object> {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'setSigners([Ljava/lang/Object;)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Class, arg0: JVMTypes.JVMArray<JVMTypes.java_lang_Object>): void {
+  public static 'setSigners([Ljava/lang/Object;)V'(thread: JVMThread, javaThis: JVMTypes.java_lang_Class, arg0: JVMTypes.JVMArray<JVMTypes.java_lang_Object>): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'getEnclosingMethod0()[Ljava/lang/Object;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.JVMArray<JVMTypes.java_lang_Object> {
+  public static 'getEnclosingMethod0()[Ljava/lang/Object;'(thread: JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.JVMArray<JVMTypes.java_lang_Object> {
     var encDesc: JVMTypes.java_lang_String = null,
       enc_name: JVMTypes.java_lang_String = null,
       bsCl = thread.getBsCl();
 
-    if (javaThis.$cls instanceof ClassData.ReferenceClassData) {
-      var cls = <ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> javaThis.$cls,
+    if (javaThis.$cls instanceof ReferenceClassData) {
+      var cls = <ReferenceClassData<JVMTypes.java_lang_Object>> javaThis.$cls,
         em: attributes.EnclosingMethod = <attributes.EnclosingMethod> cls.getAttribute('EnclosingMethod');
       if (em == null) {
         return null;
@@ -166,7 +172,7 @@ class java_lang_Class {
         rv.array[0] = encClassRef.cls.getClassObject(thread);
         return rv;
       } else {
-        thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+        thread.setStatus(ThreadStatus.ASYNC_WAITING);
         encClassRef.resolve(thread, cls.getLoader(), cls, (status: boolean) => {
           if (status) {
             rv.array[0] = encClassRef.cls.getClassObject(thread);
@@ -178,11 +184,11 @@ class java_lang_Class {
     return null;
   }
 
-  public static 'getDeclaringClass0()Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.java_lang_Class {
+  public static 'getDeclaringClass0()Ljava/lang/Class;'(thread: JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.java_lang_Class {
     var declaringName: ConstantPool.ClassReference, entry: attributes.IInnerClassInfo,
       name: string, i: number, len: number;
-    if (javaThis.$cls instanceof ClassData.ReferenceClassData) {
-      var cls = <ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> javaThis.$cls,
+    if (javaThis.$cls instanceof ReferenceClassData) {
+      var cls = <ReferenceClassData<JVMTypes.java_lang_Object>> javaThis.$cls,
         icls = <attributes.InnerClasses> cls.getAttribute('InnerClasses');
       if (icls == null) {
         return null;
@@ -205,7 +211,7 @@ class java_lang_Class {
         if (declaringName.isResolved()) {
           return declaringName.cls.getClassObject(thread);
         } else {
-          thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+          thread.setStatus(ThreadStatus.ASYNC_WAITING);
           declaringName.resolve(thread, cls.getLoader(), cls, (status: boolean) => {
             if (status) {
               thread.asyncReturn(declaringName.cls.getClassObject(thread));
@@ -217,21 +223,21 @@ class java_lang_Class {
     return null;
   }
 
-  public static 'getProtectionDomain0()Ljava/security/ProtectionDomain;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.java_security_ProtectionDomain {
+  public static 'getProtectionDomain0()Ljava/security/ProtectionDomain;'(thread: JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.java_security_ProtectionDomain {
     return null;
   }
 
-  public static 'getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;'(thread: threading.JVMThread, jvmStr: JVMTypes.java_lang_String): JVMTypes.java_lang_Class {
+  public static 'getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;'(thread: JVMThread, jvmStr: JVMTypes.java_lang_String): JVMTypes.java_lang_Class {
     var type_desc = util.typestr2descriptor(jvmStr.toString()),
       prim_cls = thread.getBsCl().getInitializedClass(thread, type_desc);
     return prim_cls.getClassObject(thread);
   }
 
-  public static 'getGenericSignature0()Ljava/lang/String;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.java_lang_String {
+  public static 'getGenericSignature0()Ljava/lang/String;'(thread: JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.java_lang_String {
     var cls = javaThis.$cls;
     // TODO: What if it is a primitive type? What do I return?
     if (!util.is_primitive_type(cls.getInternalName())) {
-      var sigAttr = <attributes.Signature> (<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> cls).getAttribute('Signature');
+      var sigAttr = <attributes.Signature> (<ReferenceClassData<JVMTypes.java_lang_Object>> cls).getAttribute('Signature');
       if (sigAttr != null && sigAttr.sig != null) {
         return util.initString(thread.getBsCl(), sigAttr.sig);
       }
@@ -242,10 +248,10 @@ class java_lang_Class {
   /**
    * Returns RuntimeVisibleAnnotations defined on the class.
    */
-  public static 'getRawAnnotations()[B'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.JVMArray<number> {
-    var cls = <ClassData.ReferenceClassData<JVMTypes.java_lang_Class>> javaThis.$cls,
+  public static 'getRawAnnotations()[B'(thread: JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.JVMArray<number> {
+    var cls = <ReferenceClassData<JVMTypes.java_lang_Class>> javaThis.$cls,
       annotationsVisible = <attributes.RuntimeVisibleAnnotations> cls.getAttribute('RuntimeVisibleAnnotations'),
-      methods: methods.Method[], i: number, m: methods.Method;
+      methods: Method[], i: number, m: Method;
 
     if (annotationsVisible !== null) {
       // TODO: Use a typed array?
@@ -258,8 +264,8 @@ class java_lang_Class {
     return null;
   }
 
-  public static 'getConstantPool()Lsun/reflect/ConstantPool;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.sun_reflect_ConstantPool {
-    var cls = <ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> javaThis.$cls,
+  public static 'getConstantPool()Lsun/reflect/ConstantPool;'(thread: JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.sun_reflect_ConstantPool {
+    var cls = <ReferenceClassData<JVMTypes.java_lang_Object>> javaThis.$cls,
       cpObj = util.newObject<JVMTypes.sun_reflect_ConstantPool>(thread, thread.getBsCl(), 'Lsun/reflect/ConstantPool;');
     // @todo Make this a proper JavaObject. I don't think the JCL uses it as such,
     // but right now this function fails any automated sanity checks on return values.
@@ -267,14 +273,14 @@ class java_lang_Class {
     return cpObj;
   }
 
-  public static 'getDeclaredFields0(Z)[Ljava/lang/reflect/Field;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Class, publicOnly: number): void {
+  public static 'getDeclaredFields0(Z)[Ljava/lang/reflect/Field;'(thread: JVMThread, javaThis: JVMTypes.java_lang_Class, publicOnly: number): void {
     var fields = javaThis.$cls.getFields();
     if (publicOnly) {
       fields = fields.filter((f) => f.accessFlags.isPublic());
     }
     var rv = util.newArray<JVMTypes.java_lang_reflect_Field>(thread, thread.getBsCl(), '[Ljava/lang/reflect/Field;', fields.length),
       i: number = 0;
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     util.asyncForEach(fields,
       (f, nextItem) => {
         f.reflector(thread, (fieldObj: JVMTypes.java_lang_reflect_Field) => {
@@ -288,12 +294,12 @@ class java_lang_Class {
       });
   }
 
-  public static 'getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Class, publicOnly: number): void {
-    var methods: methods.Method[] = javaThis.$cls.getMethods().filter((m: methods.Method) => {
+  public static 'getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;'(thread: JVMThread, javaThis: JVMTypes.java_lang_Class, publicOnly: number): void {
+    var methods: Method[] = javaThis.$cls.getMethods().filter((m: Method) => {
       return m.name[0] !== '<' && (m.accessFlags.isPublic() || !publicOnly);
     }), rv = util.newArray<JVMTypes.java_lang_reflect_Method>(thread, thread.getBsCl(), '[Ljava/lang/reflect/Method;', methods.length),
       i = 0;
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     util.asyncForEach(methods,
       (m, nextItem) => {
         m.reflector(thread, (methodObj) => {
@@ -307,14 +313,14 @@ class java_lang_Class {
       });
   }
 
-  public static 'getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Class, publicOnly: number): void {
-    var methods: methods.Method[] = javaThis.$cls.getMethods().filter((m: methods.Method) => {
+  public static 'getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;'(thread: JVMThread, javaThis: JVMTypes.java_lang_Class, publicOnly: number): void {
+    var methods: Method[] = javaThis.$cls.getMethods().filter((m: Method) => {
       return m.name === '<init>' && (!publicOnly || m.accessFlags.isPublic());
     }), rv = util.newArray<JVMTypes.java_lang_reflect_Constructor>(thread, thread.getBsCl(), '[Ljava/lang/reflect/Constructor;', methods.length),
       i = 0;
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     util.asyncForEach(methods,
-      (m: methods.Method, nextItem: (err?: any) => void) => {
+      (m: Method, nextItem: (err?: any) => void) => {
         m.reflector(thread, (methodObj) => {
           if (methodObj !== null) {
             rv.array[i++] = <JVMTypes.java_lang_reflect_Constructor> methodObj;
@@ -326,10 +332,10 @@ class java_lang_Class {
       });
   }
 
-  public static 'getDeclaredClasses0()[Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.JVMArray<JVMTypes.java_lang_Class> {
+  public static 'getDeclaredClasses0()[Ljava/lang/Class;'(thread: JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.JVMArray<JVMTypes.java_lang_Class> {
     var ret = util.newArray<JVMTypes.java_lang_Class>(thread, thread.getBsCl(), '[Ljava/lang/Class;', 0),
       cls = javaThis.$cls;
-    if (cls instanceof ClassData.ReferenceClassData) {
+    if (cls instanceof ReferenceClassData) {
       var myClass = cls.getInternalName(),
         iclses = <attributes.InnerClasses[]> cls.getAttributes('InnerClasses'),
         flatNames: ConstantPool.ClassReference[] = [];
@@ -342,14 +348,14 @@ class java_lang_Class {
           c.outerInfoIndex > 0 && (<ConstantPool.ClassReference> cls.constantPool.get(c.outerInfoIndex)).name === myClass)
           .map((c: attributes.IInnerClassInfo) => (<ConstantPool.ClassReference> cls.constantPool.get(c.innerInfoIndex))));
       }
-      thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+      thread.setStatus(ThreadStatus.ASYNC_WAITING);
       util.asyncForEach(flatNames,
         (clsRef: ConstantPool.ClassReference, nextItem: () => void) => {
           if (clsRef.isResolved()) {
             ret.array.push(clsRef.cls.getClassObject(thread));
             nextItem();
           } else {
-            clsRef.resolve(thread, cls.getLoader(), <ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> javaThis.getClass(), (status) => {
+            clsRef.resolve(thread, cls.getLoader(), <ReferenceClassData<JVMTypes.java_lang_Object>> javaThis.getClass(), (status) => {
               if (status) {
                 ret.array.push(clsRef.cls.getClassObject(thread));
                 nextItem();
@@ -362,7 +368,7 @@ class java_lang_Class {
     }
   }
 
-  public static 'desiredAssertionStatus0(Ljava/lang/Class;)Z'(thread: threading.JVMThread, arg0: JVMTypes.java_lang_Class): boolean {
+  public static 'desiredAssertionStatus0(Ljava/lang/Class;)Z'(thread: JVMThread, arg0: JVMTypes.java_lang_Class): boolean {
     return thread.getThreadPool().getJVM().areAssertionsEnabled();
   }
 
@@ -370,17 +376,17 @@ class java_lang_Class {
 
 class java_lang_ClassLoader$NativeLibrary {
 
-  public static 'load(Ljava/lang/String;Z)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_ClassLoader$NativeLibrary, name: JVMTypes.java_lang_String, isBuiltIn: number): void {
+  public static 'load(Ljava/lang/String;Z)V'(thread: JVMThread, javaThis: JVMTypes.java_lang_ClassLoader$NativeLibrary, name: JVMTypes.java_lang_String, isBuiltIn: number): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'find(Ljava/lang/String;)J'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_ClassLoader$NativeLibrary, arg0: JVMTypes.java_lang_String): gLong {
+  public static 'find(Ljava/lang/String;)J'(thread: JVMThread, javaThis: JVMTypes.java_lang_ClassLoader$NativeLibrary, arg0: JVMTypes.java_lang_String): Long {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'unload(Ljava/lang/String;)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_ClassLoader$NativeLibrary, name: JVMTypes.java_lang_String): void {
+  public static 'unload(Ljava/lang/String;)V'(thread: JVMThread, javaThis: JVMTypes.java_lang_ClassLoader$NativeLibrary, name: JVMTypes.java_lang_String): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
@@ -389,13 +395,13 @@ class java_lang_ClassLoader$NativeLibrary {
 // Fun Note: The bootstrap classloader object is represented by null.
 class java_lang_ClassLoader {
 
-  public static 'defineClass0(Ljava/lang/String;[BIILjava/security/ProtectionDomain;)Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_ClassLoader, arg0: JVMTypes.java_lang_String, arg1: JVMTypes.JVMArray<number>, arg2: number, arg3: number, arg4: JVMTypes.java_security_ProtectionDomain): JVMTypes.java_lang_Class {
+  public static 'defineClass0(Ljava/lang/String;[BIILjava/security/ProtectionDomain;)Ljava/lang/Class;'(thread: JVMThread, javaThis: JVMTypes.java_lang_ClassLoader, arg0: JVMTypes.java_lang_String, arg1: JVMTypes.JVMArray<number>, arg2: number, arg3: number, arg4: JVMTypes.java_security_ProtectionDomain): JVMTypes.java_lang_Class {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'defineClass1(Ljava/lang/String;[BIILjava/security/ProtectionDomain;Ljava/lang/String;)Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_ClassLoader, name: JVMTypes.java_lang_String, bytes: JVMTypes.JVMArray<number>, offset: number, len: number, pd: gLong, source: JVMTypes.java_lang_String): JVMTypes.java_lang_Class {
+  public static 'defineClass1(Ljava/lang/String;[BIILjava/security/ProtectionDomain;Ljava/lang/String;)Ljava/lang/Class;'(thread: JVMThread, javaThis: JVMTypes.java_lang_ClassLoader, name: JVMTypes.java_lang_String, bytes: JVMTypes.JVMArray<number>, offset: number, len: number, pd: Long, source: JVMTypes.java_lang_String): JVMTypes.java_lang_Class {
     var loader = util.getLoader(thread, javaThis),
       type = util.int_classname(name.toString()),
       cls = loader.defineClass(thread, type, util.byteArray2Buffer(bytes.array, offset, len));
@@ -403,7 +409,7 @@ class java_lang_ClassLoader {
       return null;
     }
     // Ensure that this class is resolved.
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     cls.resolve(thread, (status) => {
       // NULL status means resolution failed.
       if (status !== null) {
@@ -412,20 +418,20 @@ class java_lang_ClassLoader {
     }, true);
   }
 
-  public static 'defineClass2(Ljava/lang/String;Ljava/nio/ByteBuffer;IILjava/security/ProtectionDomain;Ljava/lang/String;)Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_ClassLoader, arg0: JVMTypes.java_lang_String, arg1: JVMTypes.java_nio_ByteBuffer, arg2: number, arg3: number, arg4: JVMTypes.java_security_ProtectionDomain, arg5: JVMTypes.java_lang_String): JVMTypes.java_lang_Class {
+  public static 'defineClass2(Ljava/lang/String;Ljava/nio/ByteBuffer;IILjava/security/ProtectionDomain;Ljava/lang/String;)Ljava/lang/Class;'(thread: JVMThread, javaThis: JVMTypes.java_lang_ClassLoader, arg0: JVMTypes.java_lang_String, arg1: JVMTypes.java_nio_ByteBuffer, arg2: number, arg3: number, arg4: JVMTypes.java_security_ProtectionDomain, arg5: JVMTypes.java_lang_String): JVMTypes.java_lang_Class {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'resolveClass0(Ljava/lang/Class;)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_ClassLoader, cls: JVMTypes.java_lang_Class): void {
+  public static 'resolveClass0(Ljava/lang/Class;)V'(thread: JVMThread, javaThis: JVMTypes.java_lang_ClassLoader, cls: JVMTypes.java_lang_Class): void {
     var loader = util.getLoader(thread, javaThis);
     if (cls.$cls.isResolved()) {
       return;
     }
     // Ensure that this class is resolved.
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    cls.$cls.resolve(thread, (cdata: ClassData.ClassData) => {
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
+    cls.$cls.resolve(thread, (cdata: ClassData) => {
       if (cdata !== null) {
         thread.asyncReturn();
       }
@@ -433,12 +439,12 @@ class java_lang_ClassLoader {
     }, true);
   }
 
-  public static 'findBootstrapClass(Ljava/lang/String;)Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_ClassLoader, name: JVMTypes.java_lang_String): void {
+  public static 'findBootstrapClass(Ljava/lang/String;)Ljava/lang/Class;'(thread: JVMThread, javaThis: JVMTypes.java_lang_ClassLoader, name: JVMTypes.java_lang_String): void {
     var type = util.int_classname(name.toString());
     // This returns null in OpenJDK7, but actually can throw an exception
     // in OpenJDK6.
     // TODO: Fix currently incorrect behavior for our JDK. Should return null, not throw an exception on failure.
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     thread.getBsCl().resolveClass(thread, type, (cls) => {
       if (cls != null) {
         thread.asyncReturn(cls.getClassObject(thread));
@@ -446,7 +452,7 @@ class java_lang_ClassLoader {
     }, true);
   }
 
-  public static 'findLoadedClass0(Ljava/lang/String;)Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_ClassLoader, name: JVMTypes.java_lang_String): JVMTypes.java_lang_Class {
+  public static 'findLoadedClass0(Ljava/lang/String;)Ljava/lang/Class;'(thread: JVMThread, javaThis: JVMTypes.java_lang_ClassLoader, name: JVMTypes.java_lang_String): JVMTypes.java_lang_Class {
     var loader = util.getLoader(thread, javaThis),
       type = util.int_classname(name.toString()),
       // Return JavaClassObject if loaded, or null otherwise.
@@ -458,7 +464,7 @@ class java_lang_ClassLoader {
     }
   }
 
-  public static 'retrieveDirectives()Ljava/lang/AssertionStatusDirectives;'(thread: threading.JVMThread): JVMTypes.java_lang_AssertionStatusDirectives {
+  public static 'retrieveDirectives()Ljava/lang/AssertionStatusDirectives;'(thread: JVMThread): JVMTypes.java_lang_AssertionStatusDirectives {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
@@ -468,35 +474,35 @@ class java_lang_ClassLoader {
 
 class java_lang_Compiler {
 
-  public static 'initialize()V'(thread: threading.JVMThread): void {
+  public static 'initialize()V'(thread: JVMThread): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'registerNatives()V'(thread: threading.JVMThread): void {
+  public static 'registerNatives()V'(thread: JVMThread): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'compileClass(Ljava/lang/Class;)Z'(thread: threading.JVMThread, arg0: JVMTypes.java_lang_Class): number {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    // Satisfy TypeScript return type.
-    return 0;
-  }
-
-  public static 'compileClasses(Ljava/lang/String;)Z'(thread: threading.JVMThread, arg0: JVMTypes.java_lang_String): number {
+  public static 'compileClass(Ljava/lang/Class;)Z'(thread: JVMThread, arg0: JVMTypes.java_lang_Class): number {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'command(Ljava/lang/Object;)Ljava/lang/Object;'(thread: threading.JVMThread, arg0: JVMTypes.java_lang_Object): JVMTypes.java_lang_Object {
+  public static 'compileClasses(Ljava/lang/String;)Z'(thread: JVMThread, arg0: JVMTypes.java_lang_String): number {
+    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+    // Satisfy TypeScript return type.
+    return 0;
+  }
+
+  public static 'command(Ljava/lang/Object;)Ljava/lang/Object;'(thread: JVMThread, arg0: JVMTypes.java_lang_Object): JVMTypes.java_lang_Object {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
   // NOP'd.
-  public static 'enable()V'(thread: threading.JVMThread): void {}
-  public static 'disable()V'(thread: threading.JVMThread): void {}
+  public static 'enable()V'(thread: JVMThread): void {}
+  public static 'disable()V'(thread: JVMThread): void {}
 
 }
 
@@ -505,12 +511,12 @@ var conversionBuffer = new Buffer(8);
 
 class java_lang_Double {
 
-  public static 'doubleToRawLongBits(D)J'(thread: threading.JVMThread, num: number): gLong {
+  public static 'doubleToRawLongBits(D)J'(thread: JVMThread, num: number): Long {
     conversionBuffer.writeDoubleLE(num, 0);
-    return gLong.fromBits(conversionBuffer.readUInt32LE(0), conversionBuffer.readUInt32LE(4));
+    return Long.fromBits(conversionBuffer.readUInt32LE(0), conversionBuffer.readUInt32LE(4));
   }
 
-  public static 'longBitsToDouble(J)D'(thread: threading.JVMThread, num: gLong): number {
+  public static 'longBitsToDouble(J)D'(thread: JVMThread, num: Long): number {
     conversionBuffer.writeInt32LE(num.getLowBits(), 0);
     conversionBuffer.writeInt32LE(num.getHighBits(), 4);
     return conversionBuffer.readDoubleLE(0);
@@ -520,12 +526,12 @@ class java_lang_Double {
 
 class java_lang_Float {
 
-  public static 'floatToRawIntBits(F)I'(thread: threading.JVMThread, num: number): number {
+  public static 'floatToRawIntBits(F)I'(thread: JVMThread, num: number): number {
     conversionBuffer.writeFloatLE(num, 0);
     return conversionBuffer.readInt32LE(0);
   }
 
-  public static 'intBitsToFloat(I)F'(thread: threading.JVMThread, num: number): number {
+  public static 'intBitsToFloat(I)F'(thread: JVMThread, num: number): number {
     conversionBuffer.writeInt32LE(num, 0);
     return conversionBuffer.readFloatLE(0);
   }
@@ -534,21 +540,21 @@ class java_lang_Float {
 
 class java_lang_Object {
 
-  public static 'getClass()Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Object): JVMTypes.java_lang_Class {
+  public static 'getClass()Ljava/lang/Class;'(thread: JVMThread, javaThis: JVMTypes.java_lang_Object): JVMTypes.java_lang_Class {
     return javaThis.getClass().getClassObject(thread);
   }
 
-  public static 'hashCode()I'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Object): number {
+  public static 'hashCode()I'(thread: JVMThread, javaThis: JVMTypes.java_lang_Object): number {
     return javaThis.ref;
   }
 
-  public static 'clone()Ljava/lang/Object;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Object): JVMTypes.java_lang_Object {
+  public static 'clone()Ljava/lang/Object;'(thread: JVMThread, javaThis: JVMTypes.java_lang_Object): JVMTypes.java_lang_Object {
     var cls = javaThis.getClass();
     if (cls.getInternalName()[0] === '[') {
       // Array clone. It's always a shallow clone.
       return (<JVMTypes.JVMArray<any>> javaThis).slice(0);
     } else {
-      var clonedObj = util.newObjectFromClass<JVMTypes.java_lang_Object>(thread, <ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> javaThis.getClass());
+      var clonedObj = util.newObjectFromClass<JVMTypes.java_lang_Object>(thread, <ReferenceClassData<JVMTypes.java_lang_Object>> javaThis.getClass());
       Object.keys(javaThis).forEach((fieldName: string) => {
         (<any> clonedObj)[fieldName] = (<any> javaThis)[fieldName];
       });
@@ -556,17 +562,17 @@ class java_lang_Object {
     }
   }
 
-  public static 'notify()V'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Object): void {
+  public static 'notify()V'(thread: JVMThread, javaThis: JVMTypes.java_lang_Object): void {
     debug("TE(notify): on lock *" + javaThis.ref);
     javaThis.getMonitor().notify(thread);
   }
 
-  public static 'notifyAll()V'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Object): void {
+  public static 'notifyAll()V'(thread: JVMThread, javaThis: JVMTypes.java_lang_Object): void {
     debug("TE(notifyAll): on lock *" + javaThis.ref);
     javaThis.getMonitor().notifyAll(thread);
   }
 
-  public static 'wait(J)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Object, timeout: gLong): void {
+  public static 'wait(J)V'(thread: JVMThread, javaThis: JVMTypes.java_lang_Object, timeout: Long): void {
     debug("TE(wait): on lock *" + javaThis.ref);
     javaThis.getMonitor().wait(thread, (fromTimer: boolean) => {
       thread.asyncReturn();
@@ -577,7 +583,7 @@ class java_lang_Object {
 
 class java_lang_Package {
 
-  public static 'getSystemPackage0(Ljava/lang/String;)Ljava/lang/String;'(thread: threading.JVMThread, pkgNameObj: JVMTypes.java_lang_String): JVMTypes.java_lang_String {
+  public static 'getSystemPackage0(Ljava/lang/String;)Ljava/lang/String;'(thread: JVMThread, pkgNameObj: JVMTypes.java_lang_String): JVMTypes.java_lang_String {
     var pkgName = pkgNameObj.toString();
     if (thread.getBsCl().getPackageNames().indexOf(pkgName) >= 0) {
       return pkgNameObj;
@@ -586,7 +592,7 @@ class java_lang_Package {
     }
   }
 
-  public static 'getSystemPackages0()[Ljava/lang/String;'(thread: threading.JVMThread): JVMTypes.JVMArray<JVMTypes.java_lang_String> {
+  public static 'getSystemPackages0()[Ljava/lang/String;'(thread: JVMThread): JVMTypes.JVMArray<JVMTypes.java_lang_String> {
     var pkgNames = thread.getBsCl().getPackageNames();
     return util.newArrayFromData<JVMTypes.java_lang_String>(thread, thread.getBsCl(), '[Ljava/lang/String;', pkgNames.map((pkgName) => util.initString(thread.getBsCl(), pkgName)));
   }
@@ -594,7 +600,7 @@ class java_lang_Package {
 
 class java_lang_ProcessEnvironment {
 
-  public static 'environ()[[B'(thread: threading.JVMThread): JVMTypes.JVMArray<JVMTypes.JVMArray<number>> {
+  public static 'environ()[[B'(thread: JVMThread): JVMTypes.JVMArray<JVMTypes.JVMArray<number>> {
     var envArr = util.newArray<JVMTypes.JVMArray<number>>(thread, thread.getBsCl(), '[[B', 0),
       env = process.env, key: string, v: string, bArr: JVMTypes.JVMArray<number>;
     // convert to an array of strings of the form [key, value, key, value ...]
@@ -614,7 +620,7 @@ class java_lang_ProcessEnvironment {
 
 class java_lang_reflect_Array {
 
-  public static 'getLength(Ljava/lang/Object;)I'(thread: threading.JVMThread, arr: JVMTypes.JVMArray<JVMTypes.java_lang_Object>): number {
+  public static 'getLength(Ljava/lang/Object;)I'(thread: JVMThread, arr: JVMTypes.JVMArray<JVMTypes.java_lang_Object>): number {
     if (verifyArray(thread, arr)) {
       if (isNotNull(thread, arr)) {
         return arr.array.length;
@@ -622,35 +628,35 @@ class java_lang_reflect_Array {
     }
   }
 
-  public static 'get(Ljava/lang/Object;I)Ljava/lang/Object;'(thread: threading.JVMThread, arr: JVMTypes.JVMArray<any>, idx: number): any {
+  public static 'get(Ljava/lang/Object;I)Ljava/lang/Object;'(thread: JVMThread, arr: JVMTypes.JVMArray<any>, idx: number): any {
     var val = arrayGet(thread, arr, idx);
     if (val != null) {
       var component = arr.getClass().getComponentClass();
       if (util.is_primitive_type(component.getInternalName())) {
         // Box primitive values.
-        return (<ClassData.PrimitiveClassData> component).createWrapperObject(thread, val);
+        return (<PrimitiveClassData> component).createWrapperObject(thread, val);
       }
     }
     return val;
   }
 
-  public static 'getBoolean(Ljava/lang/Object;I)Z': (thread: threading.JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number) => number = arrayGet;
-  public static 'getByte(Ljava/lang/Object;I)B': (thread: threading.JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number) => number = arrayGet;
-  public static 'getChar(Ljava/lang/Object;I)C': (thread: threading.JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number) => number = arrayGet;
-  public static 'getShort(Ljava/lang/Object;I)S': (thread: threading.JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number) => number = arrayGet;
-  public static 'getInt(Ljava/lang/Object;I)I': (thread: threading.JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number) => number = arrayGet;
-  public static 'getLong(Ljava/lang/Object;I)J': (thread: threading.JVMThread, arg0: JVMTypes.JVMArray<gLong>, arg1: number) => gLong = arrayGet;
-  public static 'getFloat(Ljava/lang/Object;I)F': (thread: threading.JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number) => number = arrayGet;
-  public static 'getDouble(Ljava/lang/Object;I)D': (thread: threading.JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number) => number = arrayGet;
+  public static 'getBoolean(Ljava/lang/Object;I)Z': (thread: JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number) => number = arrayGet;
+  public static 'getByte(Ljava/lang/Object;I)B': (thread: JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number) => number = arrayGet;
+  public static 'getChar(Ljava/lang/Object;I)C': (thread: JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number) => number = arrayGet;
+  public static 'getShort(Ljava/lang/Object;I)S': (thread: JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number) => number = arrayGet;
+  public static 'getInt(Ljava/lang/Object;I)I': (thread: JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number) => number = arrayGet;
+  public static 'getLong(Ljava/lang/Object;I)J': (thread: JVMThread, arg0: JVMTypes.JVMArray<Long>, arg1: number) => Long = arrayGet;
+  public static 'getFloat(Ljava/lang/Object;I)F': (thread: JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number) => number = arrayGet;
+  public static 'getDouble(Ljava/lang/Object;I)D': (thread: JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number) => number = arrayGet;
 
-  public static 'set(Ljava/lang/Object;ILjava/lang/Object;)V'(thread: threading.JVMThread, arr: JVMTypes.JVMArray<any>, idx: number, val: JVMTypes.java_lang_Object): void {
+  public static 'set(Ljava/lang/Object;ILjava/lang/Object;)V'(thread: JVMThread, arr: JVMTypes.JVMArray<any>, idx: number, val: JVMTypes.java_lang_Object): void {
     if (verifyArray(thread, arr) && isNotNull(thread, arr)) {
       if (idx < 0 || idx >= arr.array.length) {
         thread.throwNewException('Ljava/lang/ArrayIndexOutOfBoundsException;', 'Tried to write to an illegal index in an array.');
       } else {
         var ccls = arr.getClass().getComponentClass();
-        if (ccls instanceof ClassData.PrimitiveClassData) {
-          if (val.getClass().isSubclass(thread.getBsCl().getInitializedClass(thread, (<ClassData.PrimitiveClassData> ccls).boxClassName()))) {
+        if (ccls instanceof PrimitiveClassData) {
+          if (val.getClass().isSubclass(thread.getBsCl().getInitializedClass(thread, (<PrimitiveClassData> ccls).boxClassName()))) {
             var ccname = ccls.getInternalName();
             (<any> val)[`${util.internal2external[ccname]}Value()${ccname}`](thread, (e?: JVMTypes.java_lang_Throwable, rv?: any) => {
               if (e) {
@@ -672,48 +678,48 @@ class java_lang_reflect_Array {
     }
   }
 
-  public static 'setBoolean(Ljava/lang/Object;IZ)V'(thread: threading.JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number, arg2: number): void {
+  public static 'setBoolean(Ljava/lang/Object;IZ)V'(thread: JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number, arg2: number): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'setByte(Ljava/lang/Object;IB)V'(thread: threading.JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number, arg2: number): void {
+  public static 'setByte(Ljava/lang/Object;IB)V'(thread: JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number, arg2: number): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'setChar(Ljava/lang/Object;IC)V'(thread: threading.JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number, arg2: number): void {
+  public static 'setChar(Ljava/lang/Object;IC)V'(thread: JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number, arg2: number): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'setShort(Ljava/lang/Object;IS)V'(thread: threading.JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number, arg2: number): void {
+  public static 'setShort(Ljava/lang/Object;IS)V'(thread: JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number, arg2: number): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'setInt(Ljava/lang/Object;II)V'(thread: threading.JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number, arg2: number): void {
+  public static 'setInt(Ljava/lang/Object;II)V'(thread: JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number, arg2: number): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'setLong(Ljava/lang/Object;IJ)V'(thread: threading.JVMThread, arg0: JVMTypes.JVMArray<gLong>, arg1: number, arg2: gLong): void {
+  public static 'setLong(Ljava/lang/Object;IJ)V'(thread: JVMThread, arg0: JVMTypes.JVMArray<Long>, arg1: number, arg2: Long): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'setFloat(Ljava/lang/Object;IF)V'(thread: threading.JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number, arg2: number): void {
+  public static 'setFloat(Ljava/lang/Object;IF)V'(thread: JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number, arg2: number): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'setDouble(Ljava/lang/Object;ID)V'(thread: threading.JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number, arg2: number): void {
+  public static 'setDouble(Ljava/lang/Object;ID)V'(thread: JVMThread, arg0: JVMTypes.JVMArray<number>, arg1: number, arg2: number): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'newArray(Ljava/lang/Class;I)Ljava/lang/Object;'(thread: threading.JVMThread, cls: JVMTypes.java_lang_Class, len: number): JVMTypes.JVMArray<any> {
+  public static 'newArray(Ljava/lang/Class;I)Ljava/lang/Object;'(thread: JVMThread, cls: JVMTypes.java_lang_Class, len: number): JVMTypes.JVMArray<any> {
     return util.newArray<any>(thread, cls.$cls.getLoader(), `[${cls.$cls.getInternalName()}`, len);
   }
 
-  public static 'multiNewArray(Ljava/lang/Class;[I)Ljava/lang/Object;'(thread: threading.JVMThread, jco: JVMTypes.java_lang_Class, lens: JVMTypes.JVMArray<number>): JVMTypes.JVMArray<any> {
+  public static 'multiNewArray(Ljava/lang/Class;[I)Ljava/lang/Object;'(thread: JVMThread, jco: JVMTypes.java_lang_Class, lens: JVMTypes.JVMArray<number>): JVMTypes.JVMArray<any> {
     var typeStr = (new Array(lens.array.length + 1)).join('[') + jco.$cls.getInternalName();
     if (jco.$cls.isInitialized(thread)) {
       return util.multiNewArray<any>(thread, jco.$cls.getLoader(), typeStr, lens.array);
     } else {
-      thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+      thread.setStatus(ThreadStatus.ASYNC_WAITING);
       jco.$cls.initialize(thread, (cls) => {
         thread.asyncReturn(util.multiNewArray<any>(thread, jco.$cls.getLoader(), typeStr, lens.array));
       });
@@ -724,7 +730,7 @@ class java_lang_reflect_Array {
 
 class java_lang_reflect_Proxy {
 
-  public static 'defineClass0(Ljava/lang/ClassLoader;Ljava/lang/String;[BII)Ljava/lang/Class;'(thread: threading.JVMThread, cl: JVMTypes.java_lang_ClassLoader, name: JVMTypes.java_lang_String, bytes: JVMTypes.JVMArray<number>, offset: number, len: number): JVMTypes.java_lang_Class {
+  public static 'defineClass0(Ljava/lang/ClassLoader;Ljava/lang/String;[BII)Ljava/lang/Class;'(thread: JVMThread, cl: JVMTypes.java_lang_ClassLoader, name: JVMTypes.java_lang_String, bytes: JVMTypes.JVMArray<number>, offset: number, len: number): JVMTypes.java_lang_Class {
     var loader = util.getLoader(thread, cl),
       cls = loader.defineClass(thread, util.int_classname(name.toString()), util.byteArray2Buffer(bytes.array, offset, len));
     if (cls != null) {
@@ -736,17 +742,17 @@ class java_lang_reflect_Proxy {
 
 class java_lang_Runtime {
 
-  public static 'availableProcessors()I'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Runtime): number {
+  public static 'availableProcessors()I'(thread: JVMThread, javaThis: JVMTypes.java_lang_Runtime): number {
     return 1;
   }
 
-  public static 'freeMemory()J'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Runtime): gLong {
+  public static 'freeMemory()J'(thread: JVMThread, javaThis: JVMTypes.java_lang_Runtime): Long {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'totalMemory()J'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Runtime): gLong {
+  public static 'totalMemory()J'(thread: JVMThread, javaThis: JVMTypes.java_lang_Runtime): Long {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
@@ -760,31 +766,31 @@ class java_lang_Runtime {
    * Currently returns Long.MAX_VALUE because unlike other JVMs Doppio has no
    * hard limit on the heap size.
    */
-  public static 'maxMemory()J'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Runtime): gLong {
+  public static 'maxMemory()J'(thread: JVMThread, javaThis: JVMTypes.java_lang_Runtime): Long {
     debug("Warning: maxMemory has no meaningful value in Doppio -- there is no hard memory limit.");
-    return gLong.MAX_VALUE;
+    return Long.MAX_VALUE;
   }
 
   /**
    * No universal way of forcing browser to GC, so we yield in hopes
    * that the browser will use it as an opportunity to GC.
    */
-  public static 'gc()V'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Runtime): void {
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+  public static 'gc()V'(thread: JVMThread, javaThis: JVMTypes.java_lang_Runtime): void {
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     setImmediate(() => {
       thread.asyncReturn();
     });
   }
 
-  public static 'runFinalization0()V'(thread: threading.JVMThread): void {
+  public static 'runFinalization0()V'(thread: JVMThread): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'traceInstructions(Z)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Runtime, arg0: number): void {
+  public static 'traceInstructions(Z)V'(thread: JVMThread, javaThis: JVMTypes.java_lang_Runtime, arg0: number): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'traceMethodCalls(Z)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Runtime, arg0: number): void {
+  public static 'traceMethodCalls(Z)V'(thread: JVMThread, javaThis: JVMTypes.java_lang_Runtime, arg0: number): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
@@ -792,31 +798,31 @@ class java_lang_Runtime {
 
 class java_lang_SecurityManager {
 
-  public static 'getClassContext()[Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_SecurityManager): JVMTypes.JVMArray<JVMTypes.java_lang_Class> {
+  public static 'getClassContext()[Ljava/lang/Class;'(thread: JVMThread, javaThis: JVMTypes.java_lang_SecurityManager): JVMTypes.JVMArray<JVMTypes.java_lang_Class> {
     // return an array of classes for each method on the stack
     // starting with the current method and going up the call chain
     return util.newArrayFromData<JVMTypes.java_lang_Class>(thread, thread.getBsCl(), '[Ljava/lang/Class;', thread.getStackTrace().map((item) => item.method.cls.getClassObject(thread)));;
   }
 
-  public static 'currentClassLoader0()Ljava/lang/ClassLoader;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_SecurityManager): JVMTypes.java_lang_ClassLoader {
+  public static 'currentClassLoader0()Ljava/lang/ClassLoader;'(thread: JVMThread, javaThis: JVMTypes.java_lang_SecurityManager): JVMTypes.java_lang_ClassLoader {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'classDepth(Ljava/lang/String;)I'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_SecurityManager, arg0: JVMTypes.java_lang_SecurityManager): number {
+  public static 'classDepth(Ljava/lang/String;)I'(thread: JVMThread, javaThis: JVMTypes.java_lang_SecurityManager, arg0: JVMTypes.java_lang_SecurityManager): number {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'classLoaderDepth0()I'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_SecurityManager): number {
+  public static 'classLoaderDepth0()I'(thread: JVMThread, javaThis: JVMTypes.java_lang_SecurityManager): number {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'currentLoadedClass0()Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_SecurityManager): JVMTypes.java_lang_Class {
+  public static 'currentLoadedClass0()Ljava/lang/Class;'(thread: JVMThread, javaThis: JVMTypes.java_lang_SecurityManager): JVMTypes.java_lang_Class {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
@@ -826,12 +832,12 @@ class java_lang_SecurityManager {
 
 class java_lang_Shutdown {
 
-  public static 'halt0(I)V'(thread: threading.JVMThread, status: number): void {
+  public static 'halt0(I)V'(thread: JVMThread, status: number): void {
     // @todo Actually add a mechanism to abort with a code.
     thread.getThreadPool().getJVM().abort();
   }
 
-  public static 'runAllFinalizers()V'(thread: threading.JVMThread): void {
+  public static 'runAllFinalizers()V'(thread: JVMThread): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
@@ -839,47 +845,47 @@ class java_lang_Shutdown {
 
 class java_lang_StrictMath {
 
-  public static 'sin(D)D'(thread: threading.JVMThread, d_val: number): number {
+  public static 'sin(D)D'(thread: JVMThread, d_val: number): number {
     return Math.sin(d_val);
   }
 
-  public static 'cos(D)D'(thread: threading.JVMThread, d_val: number): number {
+  public static 'cos(D)D'(thread: JVMThread, d_val: number): number {
     return Math.cos(d_val);
   }
 
-  public static 'tan(D)D'(thread: threading.JVMThread, d_val: number): number {
+  public static 'tan(D)D'(thread: JVMThread, d_val: number): number {
     return Math.tan(d_val);
   }
 
-  public static 'asin(D)D'(thread: threading.JVMThread, d_val: number): number {
+  public static 'asin(D)D'(thread: JVMThread, d_val: number): number {
     return Math.asin(d_val);
   }
 
-  public static 'acos(D)D'(thread: threading.JVMThread, d_val: number): number {
+  public static 'acos(D)D'(thread: JVMThread, d_val: number): number {
     return Math.acos(d_val);
   }
 
-  public static 'atan(D)D'(thread: threading.JVMThread, d_val: number): number {
+  public static 'atan(D)D'(thread: JVMThread, d_val: number): number {
     return Math.atan(d_val);
   }
 
-  public static 'exp(D)D'(thread: threading.JVMThread, d_val: number): number {
+  public static 'exp(D)D'(thread: JVMThread, d_val: number): number {
     return Math.exp(d_val);
   }
 
-  public static 'log(D)D'(thread: threading.JVMThread, d_val: number): number {
+  public static 'log(D)D'(thread: JVMThread, d_val: number): number {
     return Math.log(d_val);
   }
 
-  public static 'log10(D)D'(thread: threading.JVMThread, d_val: number): number {
+  public static 'log10(D)D'(thread: JVMThread, d_val: number): number {
     return Math.log(d_val) / Math.LN10;
   }
 
-  public static 'sqrt(D)D'(thread: threading.JVMThread, d_val: number): number {
+  public static 'sqrt(D)D'(thread: JVMThread, d_val: number): number {
     return Math.sqrt(d_val);
   }
 
-  public static 'cbrt(D)D'(thread: threading.JVMThread, d_val: number): number {
+  public static 'cbrt(D)D'(thread: JVMThread, d_val: number): number {
     var is_neg = d_val < 0;
     if (is_neg) {
       return -Math.pow(-d_val, 1 / 3);
@@ -888,48 +894,48 @@ class java_lang_StrictMath {
     }
   }
 
-  public static 'IEEEremainder(DD)D'(thread: threading.JVMThread, arg0: number, arg1: number): number {
+  public static 'IEEEremainder(DD)D'(thread: JVMThread, arg0: number, arg1: number): number {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'atan2(DD)D'(thread: threading.JVMThread, y: number, x: number): number {
+  public static 'atan2(DD)D'(thread: JVMThread, y: number, x: number): number {
     return Math.atan2(y, x);
   }
 
-  public static 'pow(DD)D'(thread: threading.JVMThread, base: number, exp: number): number {
+  public static 'pow(DD)D'(thread: JVMThread, base: number, exp: number): number {
     return Math.pow(base, exp);
   }
 
-  public static 'sinh(D)D'(thread: threading.JVMThread, d_val: number): number {
+  public static 'sinh(D)D'(thread: JVMThread, d_val: number): number {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'cosh(D)D'(thread: threading.JVMThread, d_val: number): number {
+  public static 'cosh(D)D'(thread: JVMThread, d_val: number): number {
     var exp = Math.exp(d_val);
     return (exp + 1 / exp) / 2;
   }
 
-  public static 'tanh(D)D'(thread: threading.JVMThread, d_val: number): number {
+  public static 'tanh(D)D'(thread: JVMThread, d_val: number): number {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'hypot(DD)D'(thread: threading.JVMThread, arg0: number, arg1: number): number {
+  public static 'hypot(DD)D'(thread: JVMThread, arg0: number, arg1: number): number {
     return Math.sqrt(Math.pow(arg0, 2) + Math.pow(arg1, 2));
   }
 
-  public static 'expm1(D)D'(thread: threading.JVMThread, d_val: number): number {
+  public static 'expm1(D)D'(thread: JVMThread, d_val: number): number {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'log1p(D)D'(thread: threading.JVMThread, d_val: number): number {
+  public static 'log1p(D)D'(thread: JVMThread, d_val: number): number {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
@@ -939,7 +945,7 @@ class java_lang_StrictMath {
 
 class java_lang_String {
 
-  public static 'intern()Ljava/lang/String;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_String): JVMTypes.java_lang_String {
+  public static 'intern()Ljava/lang/String;'(thread: JVMThread, javaThis: JVMTypes.java_lang_String): JVMTypes.java_lang_String {
     return thread.getThreadPool().getJVM().internString(javaThis.toString(), javaThis);
   }
 
@@ -947,39 +953,39 @@ class java_lang_String {
 
 class java_lang_System {
 
-  public static 'setIn0(Ljava/io/InputStream;)V'(thread: threading.JVMThread, stream: JVMTypes.java_io_InputStream): void {
+  public static 'setIn0(Ljava/io/InputStream;)V'(thread: JVMThread, stream: JVMTypes.java_io_InputStream): void {
     var sys = util.getStaticFields<typeof JVMTypes.java_lang_System>(thread, thread.getBsCl(), 'Ljava/lang/System;');
     sys['java/lang/System/in'] = stream;
   }
 
-  public static 'setOut0(Ljava/io/PrintStream;)V'(thread: threading.JVMThread, stream: JVMTypes.java_io_PrintStream): void {
+  public static 'setOut0(Ljava/io/PrintStream;)V'(thread: JVMThread, stream: JVMTypes.java_io_PrintStream): void {
     var sys = util.getStaticFields<typeof JVMTypes.java_lang_System>(thread, thread.getBsCl(), 'Ljava/lang/System;');
     sys['java/lang/System/out'] = stream;
   }
 
-  public static 'setErr0(Ljava/io/PrintStream;)V'(thread: threading.JVMThread, stream: JVMTypes.java_io_PrintStream): void {
+  public static 'setErr0(Ljava/io/PrintStream;)V'(thread: JVMThread, stream: JVMTypes.java_io_PrintStream): void {
     var sys = util.getStaticFields<typeof JVMTypes.java_lang_System>(thread, thread.getBsCl(), 'Ljava/lang/System;');
     sys['java/lang/System/err'] = stream;
   }
 
-  public static 'currentTimeMillis()J'(thread: threading.JVMThread): gLong {
-    return gLong.fromNumber((new Date).getTime());
+  public static 'currentTimeMillis()J'(thread: JVMThread): Long {
+    return Long.fromNumber((new Date).getTime());
   }
 
   /**
    * @todo Use performance.now() if available.
    */
-  public static 'nanoTime()J'(thread: threading.JVMThread): gLong {
-    return gLong.fromNumber((new Date).getTime()).multiply(gLong.fromNumber(1000000));
+  public static 'nanoTime()J'(thread: JVMThread): Long {
+    return Long.fromNumber((new Date).getTime()).multiply(Long.fromNumber(1000000));
   }
 
-  public static 'arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V'(thread: threading.JVMThread, src: JVMTypes.JVMArray<any>, srcPos: number, dest: JVMTypes.JVMArray<any>, destPos: number, length: number): void {
+  public static 'arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V'(thread: JVMThread, src: JVMTypes.JVMArray<any>, srcPos: number, dest: JVMTypes.JVMArray<any>, destPos: number, length: number): void {
     // Needs to be checked *even if length is 0*.
     if ((src == null) || (dest == null)) {
       thread.throwNewException('Ljava/lang/NullPointerException;', 'Cannot copy to/from a null array.');
     }
     // Can't do this on non-array types. Need to check before I check bounds below, or else I'll get an exception.
-    else if (!(src.getClass() instanceof ClassData.ArrayClassData) || !(dest.getClass() instanceof ClassData.ArrayClassData)) {
+    else if (!(src.getClass() instanceof ArrayClassData) || !(dest.getClass() instanceof ArrayClassData)) {
       thread.throwNewException('Ljava/lang/ArrayStoreException;', 'src and dest arguments must be of array type.');
     }
     // Also needs to be checked *even if length is 0*.
@@ -1001,7 +1007,7 @@ class java_lang_System {
         // Absolutely cannot do this when two different primitive types, or a primitive type and a reference type.
         var srcCompCls = src.getClass().getComponentClass(),
           destCompCls = dest.getClass().getComponentClass();
-        if ((srcCompCls instanceof ClassData.PrimitiveClassData) || (destCompCls instanceof ClassData.PrimitiveClassData)) {
+        if ((srcCompCls instanceof PrimitiveClassData) || (destCompCls instanceof PrimitiveClassData)) {
           thread.throwNewException('Ljava/lang/ArrayStoreException;', 'If calling arraycopy with a primitive array, both src and dest must be of the same primitive type.');
         } else {
           // Must be two reference types.
@@ -1011,17 +1017,17 @@ class java_lang_System {
     }
   }
 
-  public static 'identityHashCode(Ljava/lang/Object;)I'(thread: threading.JVMThread, x: JVMTypes.java_lang_Object): number {
+  public static 'identityHashCode(Ljava/lang/Object;)I'(thread: JVMThread, x: JVMTypes.java_lang_Object): number {
     if (x != null && x.ref != null) {
       return x.ref;
     }
     return 0;
   }
 
-  public static 'initProperties(Ljava/util/Properties;)Ljava/util/Properties;'(thread: threading.JVMThread, props: JVMTypes.java_util_Properties): void {
+  public static 'initProperties(Ljava/util/Properties;)Ljava/util/Properties;'(thread: JVMThread, props: JVMTypes.java_util_Properties): void {
     var jvm = thread.getThreadPool().getJVM(),
       properties = jvm.getSystemPropertyNames();
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     util.asyncForEach(properties, (propertyName: string, nextItem: (err?: JVMTypes.java_lang_Throwable) => void) => {
       var propertyVal = jvm.getSystemProperty(propertyName);
       props["setProperty(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;"](thread, [jvm.internString(propertyName), jvm.internString(propertyVal)], nextItem);
@@ -1034,7 +1040,7 @@ class java_lang_System {
     });
   }
 
-  public static 'mapLibraryName(Ljava/lang/String;)Ljava/lang/String;'(thread: threading.JVMThread, arg0: JVMTypes.java_lang_String): JVMTypes.java_lang_String {
+  public static 'mapLibraryName(Ljava/lang/String;)Ljava/lang/String;'(thread: JVMThread, arg0: JVMTypes.java_lang_String): JVMTypes.java_lang_String {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
@@ -1044,40 +1050,40 @@ class java_lang_System {
 
 class java_lang_Thread {
 
-  public static 'currentThread()Ljava/lang/Thread;'(thread: threading.JVMThread): JVMTypes.java_lang_Thread {
+  public static 'currentThread()Ljava/lang/Thread;'(thread: JVMThread): JVMTypes.java_lang_Thread {
     return thread.getJVMObject();
   }
 
-  public static 'yield()V'(thread: threading.JVMThread): void {
+  public static 'yield()V'(thread: JVMThread): void {
     // Force the thread scheduler to pick another thread by waiting for a short
     // amount of time.
     // @todo Build this into the scheduler?
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     setImmediate(() => {
-      thread.setStatus(enums.ThreadStatus.RUNNABLE);
+      thread.setStatus(ThreadStatus.RUNNABLE);
       thread.asyncReturn();
     });
   }
 
-  public static 'sleep(J)V'(thread: threading.JVMThread, millis: gLong): void {
+  public static 'sleep(J)V'(thread: JVMThread, millis: Long): void {
     var beforeMethod = thread.currentMethod();
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     setTimeout(() => {
       // Check if the thread was interrupted during our sleep. Interrupting
       // sleep causes an exception, so we need to ignore the setTimeout
       // callback in this case.
       if (beforeMethod === thread.currentMethod()) {
-        thread.setStatus(enums.ThreadStatus.RUNNABLE);
+        thread.setStatus(ThreadStatus.RUNNABLE);
         thread.asyncReturn();
       }
     }, millis.toNumber());
   }
 
-  public static 'start0()V'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Thread): void {
+  public static 'start0()V'(thread: JVMThread, javaThis: JVMTypes.java_lang_Thread): void {
     javaThis['run()V'](javaThis.$thread);
   }
 
-  public static 'isInterrupted(Z)Z'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Thread, clearFlag: number): boolean {
+  public static 'isInterrupted(Z)Z'(thread: JVMThread, javaThis: JVMTypes.java_lang_Thread, clearFlag: number): boolean {
     var isInterrupted = javaThis.$thread.isInterrupted();
     if (clearFlag) {
       javaThis.$thread.setInterrupted(false);
@@ -1085,43 +1091,43 @@ class java_lang_Thread {
     return isInterrupted;
   }
 
-  public static 'isAlive()Z'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Thread): boolean {
+  public static 'isAlive()Z'(thread: JVMThread, javaThis: JVMTypes.java_lang_Thread): boolean {
     var state = javaThis.$thread.getStatus();
-    return state !== enums.ThreadStatus.TERMINATED && state !== enums.ThreadStatus.NEW;
+    return state !== ThreadStatus.TERMINATED && state !== ThreadStatus.NEW;
   }
 
-  public static 'countStackFrames()I'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Thread): number {
+  public static 'countStackFrames()I'(thread: JVMThread, javaThis: JVMTypes.java_lang_Thread): number {
     return javaThis.$thread.getStackTrace().length;
   }
 
-  public static 'holdsLock(Ljava/lang/Object;)Z'(thread: threading.JVMThread, obj: JVMTypes.java_lang_Object): boolean {
+  public static 'holdsLock(Ljava/lang/Object;)Z'(thread: JVMThread, obj: JVMTypes.java_lang_Object): boolean {
     var mon = obj.getMonitor();
     return mon.getOwner() === thread;
   }
 
-  public static 'dumpThreads([Ljava/lang/Thread;)[[Ljava/lang/StackTraceElement;'(thread: threading.JVMThread, arg0: JVMTypes.JVMArray<JVMTypes.java_lang_Thread>): JVMTypes.JVMArray<JVMTypes.JVMArray<JVMTypes.java_lang_StackTraceElement>> {
+  public static 'dumpThreads([Ljava/lang/Thread;)[[Ljava/lang/StackTraceElement;'(thread: JVMThread, arg0: JVMTypes.JVMArray<JVMTypes.java_lang_Thread>): JVMTypes.JVMArray<JVMTypes.JVMArray<JVMTypes.java_lang_StackTraceElement>> {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'getThreads()[Ljava/lang/Thread;'(thread: threading.JVMThread): JVMTypes.JVMArray<JVMTypes.java_lang_Thread> {
-    return util.newArrayFromData<JVMTypes.java_lang_Thread>(thread, thread.getBsCl(), '[Ljava/lang/Thread;', thread.getThreadPool().getThreads().map((thread: threading.JVMThread) => thread.getJVMObject()));
+  public static 'getThreads()[Ljava/lang/Thread;'(thread: JVMThread): JVMTypes.JVMArray<JVMTypes.java_lang_Thread> {
+    return util.newArrayFromData<JVMTypes.java_lang_Thread>(thread, thread.getBsCl(), '[Ljava/lang/Thread;', thread.getThreadPool().getThreads().map((thread: JVMThread) => thread.getJVMObject()));
   }
 
-  public static 'setPriority0(I)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Thread, arg0: number): void {
+  public static 'setPriority0(I)V'(thread: JVMThread, javaThis: JVMTypes.java_lang_Thread, arg0: number): void {
     // NOP
   }
 
-  public static 'stop0(Ljava/lang/Object;)V'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Thread, arg0: JVMTypes.java_lang_Object): void {
+  public static 'stop0(Ljava/lang/Object;)V'(thread: JVMThread, javaThis: JVMTypes.java_lang_Thread, arg0: JVMTypes.java_lang_Object): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'suspend0()V'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Thread): void {
+  public static 'suspend0()V'(thread: JVMThread, javaThis: JVMTypes.java_lang_Thread): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'resume0()V'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Thread): void {
+  public static 'resume0()V'(thread: JVMThread, javaThis: JVMTypes.java_lang_Thread): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
@@ -1153,7 +1159,7 @@ class java_lang_Thread {
    *
    * Interrupting a thread that is not alive need not have any effect.
    */
-  public static 'interrupt0()V'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Thread): void {
+  public static 'interrupt0()V'(thread: JVMThread, javaThis: JVMTypes.java_lang_Thread): void {
     function throwInterruptedException() {
       javaThis.$thread.throwNewException('Ljava/lang/InterruptedException;', 'interrupt0 called');
     }
@@ -1168,33 +1174,33 @@ class java_lang_Thread {
         // Check if thread is alive.
         var status = nativeThreadObj.getStatus();
         switch (status) {
-          case enums.ThreadStatus.NEW:
-          case enums.ThreadStatus.TERMINATED:
+          case ThreadStatus.NEW:
+          case ThreadStatus.TERMINATED:
             // Thread is not alive. NOP.
             return thread.asyncReturn();
-          case enums.ThreadStatus.BLOCKED:
-          case enums.ThreadStatus.WAITING:
-          case enums.ThreadStatus.TIMED_WAITING:
+          case ThreadStatus.BLOCKED:
+          case ThreadStatus.WAITING:
+          case ThreadStatus.TIMED_WAITING:
             // Thread is waiting or blocked on a monitor. Clear interrupted
             // status, and throw an interrupted exception.
             nativeThreadObj.setInterrupted(false);
             // Exit the monitor.
             var monitor = nativeThreadObj.getMonitorBlock();
-            if (status === enums.ThreadStatus.BLOCKED) {
+            if (status === ThreadStatus.BLOCKED) {
               monitor.unblock(nativeThreadObj, true);
               throwInterruptedException();
             } else {
               monitor.unwait(nativeThreadObj, false, true, throwInterruptedException);
             }
             return thread.asyncReturn();
-          case enums.ThreadStatus.PARKED:
+          case ThreadStatus.PARKED:
             // Parked threads become unparked when interrupted.
             javaThis.$thread.getThreadPool().completelyUnpark(nativeThreadObj);
             // FALL-THROUGH
           default:
-            var threadCls = <ClassData.ReferenceClassData<JVMTypes.java_lang_Thread>> thread.getBsCl().getInitializedClass(thread, 'Ljava/lang/Thread;'),
+            var threadCls = <ReferenceClassData<JVMTypes.java_lang_Thread>> thread.getBsCl().getInitializedClass(thread, 'Ljava/lang/Thread;'),
               // If we are in the following methods, we throw an InterruptedException:
-              interruptMethods: methods.Method[] = [
+              interruptMethods: Method[] = [
                 threadCls.methodLookup('join()V'),   // * Thread.join()
                 threadCls.methodLookup('join(J)V'),  // * Thread.join(long)
                 threadCls.methodLookup('join(JI)V'), // * Thread.join(long, int)
@@ -1224,8 +1230,8 @@ class java_lang_Throwable {
   /**
    * NOTE: Integer is only there to distinguish this function from non-native fillInStackTrace()V.
    */
-  public static 'fillInStackTrace(I)Ljava/lang/Throwable;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Throwable, dummy: number): JVMTypes.java_lang_Throwable {
-    var stackTraceElementCls = <ClassData.ReferenceClassData<JVMTypes.java_lang_StackTraceElement>> thread.getBsCl().getInitializedClass(thread, 'Ljava/lang/StackTraceElement;'),
+  public static 'fillInStackTrace(I)Ljava/lang/Throwable;'(thread: JVMThread, javaThis: JVMTypes.java_lang_Throwable, dummy: number): JVMTypes.java_lang_Throwable {
+    var stackTraceElementCls = <ReferenceClassData<JVMTypes.java_lang_StackTraceElement>> thread.getBsCl().getInitializedClass(thread, 'Ljava/lang/StackTraceElement;'),
       stacktrace = util.newArray<JVMTypes.java_lang_StackTraceElement>(thread, thread.getBsCl(), '[Ljava/lang/StackTraceElement;', 0),
       cstack = thread.getStackTrace(),
       i: number, j: number, bsCl = thread.getBsCl();
@@ -1284,13 +1290,13 @@ class java_lang_Throwable {
     return javaThis;
   }
 
-  public static 'getStackTraceDepth()I'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Throwable): number {
+  public static 'getStackTraceDepth()I'(thread: JVMThread, javaThis: JVMTypes.java_lang_Throwable): number {
     // 'backtrace' is typed as an Object so JVMs have flexibility in what to store there.
     // We simply store the stack trace element array.
     return (<JVMTypes.JVMArray<JVMTypes.java_lang_StackTraceElement>> javaThis['java/lang/Throwable/backtrace']).array.length;
   }
 
-  public static 'getStackTraceElement(I)Ljava/lang/StackTraceElement;'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_Throwable, depth: number): JVMTypes.java_lang_StackTraceElement {
+  public static 'getStackTraceElement(I)Ljava/lang/StackTraceElement;'(thread: JVMThread, javaThis: JVMTypes.java_lang_Throwable, depth: number): JVMTypes.java_lang_StackTraceElement {
     return (<JVMTypes.JVMArray<JVMTypes.java_lang_StackTraceElement>> javaThis['java/lang/Throwable/backtrace']).array[depth];
   }
 
@@ -1298,21 +1304,21 @@ class java_lang_Throwable {
 
 class java_lang_UNIXProcess {
 
-  public static 'waitForProcessExit(I)I'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_UNIXProcess, arg0: number): number {
+  public static 'waitForProcessExit(I)I'(thread: JVMThread, javaThis: JVMTypes.java_lang_UNIXProcess, arg0: number): number {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'forkAndExec(I[B[B[BI[BI[B[IZ)I'(thread: threading.JVMThread, javaThis: JVMTypes.java_lang_UNIXProcess): void {
+  public static 'forkAndExec(I[B[B[BI[BI[B[IZ)I'(thread: JVMThread, javaThis: JVMTypes.java_lang_UNIXProcess): void {
     thread.throwNewException('Ljava/lang/Error;', "Doppio doesn't support forking processes.");
   }
 
-  public static 'destroyProcess(IZ)V'(thread: threading.JVMThread, arg0: number): void {
+  public static 'destroyProcess(IZ)V'(thread: JVMThread, arg0: number): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'init()V'(thread: threading.JVMThread): void {
+  public static 'init()V'(thread: JVMThread): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
@@ -1347,7 +1353,7 @@ enum MemberNameConstants {
  * - vmtarget: Contains the VM-specific pointer to the member (in our case, a Method or Field object)
  * (set clazz, updates flags, sets vmtarget).
  */
-function initializeMemberName(thread: threading.JVMThread, mn: JVMTypes.java_lang_invoke_MemberName, ref: methods.AbstractMethodField) {
+function initializeMemberName(thread: JVMThread, mn: JVMTypes.java_lang_invoke_MemberName, ref: AbstractMethodField) {
   var flags = mn['java/lang/invoke/MemberName/flags'],
     type = mn['java/lang/invoke/MemberName/type'],
     name = mn['java/lang/invoke/MemberName/name'],
@@ -1355,21 +1361,21 @@ function initializeMemberName(thread: threading.JVMThread, mn: JVMTypes.java_lan
     existingRefKind = flags >>> MemberNameConstants.REFERENCE_KIND_SHIFT;
 
   // Determine the reference type.
-  if (ref instanceof methods.Method) {
+  if (ref instanceof Method) {
      flags = MemberNameConstants.IS_METHOD;
      if (ref.cls.accessFlags.isInterface()) {
-       refKind = enums.MethodHandleReferenceKind.INVOKEINTERFACE;
+       refKind = MethodHandleReferenceKind.INVOKEINTERFACE;
      } else if (ref.accessFlags.isStatic()) {
-       refKind = enums.MethodHandleReferenceKind.INVOKESTATIC;
+       refKind = MethodHandleReferenceKind.INVOKESTATIC;
      } else if (ref.name[0] === '<') {
        flags = MemberNameConstants.IS_CONSTRUCTOR;
-       refKind = enums.MethodHandleReferenceKind.INVOKESPECIAL;
+       refKind = MethodHandleReferenceKind.INVOKESPECIAL;
      } else {
-       refKind = enums.MethodHandleReferenceKind.INVOKEVIRTUAL;
+       refKind = MethodHandleReferenceKind.INVOKEVIRTUAL;
      }
      mn.vmtarget = ref.getVMTargetBridgeMethod(thread, existingRefKind ? existingRefKind : refKind);
-     if (refKind === enums.MethodHandleReferenceKind.INVOKEINTERFACE ||
-       refKind === enums.MethodHandleReferenceKind.INVOKEVIRTUAL) {
+     if (refKind === MethodHandleReferenceKind.INVOKEINTERFACE ||
+       refKind === MethodHandleReferenceKind.INVOKEVIRTUAL) {
        mn.vmindex = ref.cls.getVMIndexForMethod(ref);
      }
      flags |= (refKind << MemberNameConstants.REFERENCE_KIND_SHIFT) | methodFlags(ref);
@@ -1377,11 +1383,11 @@ function initializeMemberName(thread: threading.JVMThread, mn: JVMTypes.java_lan
     flags = MemberNameConstants.IS_FIELD;
     // Assume a GET.
     if (ref.accessFlags.isStatic()) {
-      refKind = enums.MethodHandleReferenceKind.GETSTATIC;
+      refKind = MethodHandleReferenceKind.GETSTATIC;
     } else {
-      refKind = enums.MethodHandleReferenceKind.GETFIELD;
+      refKind = MethodHandleReferenceKind.GETFIELD;
     }
-    mn.vmindex = ref.cls.getVMIndexForField(<methods.Field> ref);
+    mn.vmindex = ref.cls.getVMIndexForField(<Field> ref);
     flags |= (refKind << MemberNameConstants.REFERENCE_KIND_SHIFT) | ref.accessFlags.getRawByte();
   }
   // Initialize type if we need to.
@@ -1401,7 +1407,7 @@ function initializeMemberName(thread: threading.JVMThread, mn: JVMTypes.java_lan
 /**
  * Returns the MemberName flags for the given method.
  */
-function methodFlags(method: methods.Method): number {
+function methodFlags(method: Method): number {
   var flags = method.accessFlags.getRawByte();
   if (method.isCallerSensitive()) {
     flags |= MemberNameConstants.CALLER_SENSITIVE;
@@ -1429,23 +1435,23 @@ class java_lang_invoke_MethodHandleNatives {
    * reflection object.
    *
    */
-  public static 'init(Ljava/lang/invoke/MemberName;Ljava/lang/Object;)V'(thread: threading.JVMThread, self: JVMTypes.java_lang_invoke_MemberName, ref: JVMTypes.java_lang_Object): void {
+  public static 'init(Ljava/lang/invoke/MemberName;Ljava/lang/Object;)V'(thread: JVMThread, self: JVMTypes.java_lang_invoke_MemberName, ref: JVMTypes.java_lang_Object): void {
     var clazz: JVMTypes.java_lang_Class,
-      clazzData: ClassData.ReferenceClassData<JVMTypes.java_lang_Class>,
-      flags: number, m: methods.Method, f: methods.Field;
+      clazzData: ReferenceClassData<JVMTypes.java_lang_Class>,
+      flags: number, m: Method, f: Field;
     switch (ref.getClass().getInternalName()) {
       case "Ljava/lang/reflect/Method;":
         var methodObj = <JVMTypes.java_lang_reflect_Method> ref, refKind:  number;
         clazz = methodObj['java/lang/reflect/Method/clazz'];
-        clazzData = (<ClassData.ReferenceClassData<JVMTypes.java_lang_Class>> clazz.$cls);
+        clazzData = (<ReferenceClassData<JVMTypes.java_lang_Class>> clazz.$cls);
         m = clazzData.getMethodFromSlot(methodObj['java/lang/reflect/Method/slot']);
         flags = methodFlags(m) | MemberNameConstants.IS_METHOD;
         if (m.accessFlags.isStatic()) {
-          refKind = enums.MethodHandleReferenceKind.INVOKESTATIC;
+          refKind = MethodHandleReferenceKind.INVOKESTATIC;
         } else if (clazzData.accessFlags.isInterface()) {
-          refKind = enums.MethodHandleReferenceKind.INVOKEINTERFACE;
+          refKind = MethodHandleReferenceKind.INVOKEINTERFACE;
         } else {
-          refKind = enums.MethodHandleReferenceKind.INVOKEVIRTUAL;
+          refKind = MethodHandleReferenceKind.INVOKEVIRTUAL;
         }
         flags |= refKind << MemberNameConstants.REFERENCE_KIND_SHIFT;
 
@@ -1453,16 +1459,16 @@ class java_lang_invoke_MethodHandleNatives {
         self['java/lang/invoke/MemberName/flags'] = flags;
         self.vmtarget = m.getVMTargetBridgeMethod(thread, refKind);
         // Only set vmindex for virtual dispatch.
-        if (refKind === enums.MethodHandleReferenceKind.INVOKEVIRTUAL || refKind === enums.MethodHandleReferenceKind.INVOKEINTERFACE) {
+        if (refKind === MethodHandleReferenceKind.INVOKEVIRTUAL || refKind === MethodHandleReferenceKind.INVOKEINTERFACE) {
           self.vmindex = clazzData.getVMIndexForMethod(m);
         }
         break;
       case "Ljava/lang/reflect/Constructor;":
         var consObj = <JVMTypes.java_lang_reflect_Constructor> ref;
         clazz = consObj['java/lang/reflect/Constructor/clazz'];
-        clazzData = (<ClassData.ReferenceClassData<JVMTypes.java_lang_Class>> clazz.$cls);
+        clazzData = (<ReferenceClassData<JVMTypes.java_lang_Class>> clazz.$cls);
         m = clazzData.getMethodFromSlot(consObj['java/lang/reflect/Constructor/slot']);
-        flags = methodFlags(m) | MemberNameConstants.IS_CONSTRUCTOR | (enums.MethodHandleReferenceKind.INVOKESPECIAL << MemberNameConstants.REFERENCE_KIND_SHIFT);
+        flags = methodFlags(m) | MemberNameConstants.IS_CONSTRUCTOR | (MethodHandleReferenceKind.INVOKESPECIAL << MemberNameConstants.REFERENCE_KIND_SHIFT);
         self['java/lang/invoke/MemberName/clazz'] = clazz;
         self['java/lang/invoke/MemberName/flags'] = flags;
         self.vmtarget = m.getVMTargetBridgeMethod(thread, refKind);
@@ -1471,10 +1477,10 @@ class java_lang_invoke_MethodHandleNatives {
       case "Ljava/lang/reflect/Field;":
         var fieldObj = <JVMTypes.java_lang_reflect_Field> ref;
         clazz = fieldObj['java/lang/reflect/Field/clazz'];
-        clazzData = (<ClassData.ReferenceClassData<JVMTypes.java_lang_Class>> clazz.$cls);
+        clazzData = (<ReferenceClassData<JVMTypes.java_lang_Class>> clazz.$cls);
         f = clazzData.getFieldFromSlot(fieldObj['java/lang/reflect/Field/slot']);
         flags = f.accessFlags.getRawByte() | MemberNameConstants.IS_FIELD;
-        flags |= (f.accessFlags.isStatic() ? enums.MethodHandleReferenceKind.GETSTATIC : enums.MethodHandleReferenceKind.GETFIELD) << MemberNameConstants.REFERENCE_KIND_SHIFT;
+        flags |= (f.accessFlags.isStatic() ? MethodHandleReferenceKind.GETSTATIC : MethodHandleReferenceKind.GETFIELD) << MemberNameConstants.REFERENCE_KIND_SHIFT;
 
         self['java/lang/invoke/MemberName/clazz'] = clazz;
         self['java/lang/invoke/MemberName/flags'] = flags;
@@ -1487,7 +1493,7 @@ class java_lang_invoke_MethodHandleNatives {
     }
   }
 
-  public static 'getConstant(I)I'(thread: threading.JVMThread, arg0: number): number {
+  public static 'getConstant(I)I'(thread: JVMThread, arg0: number): number {
     // I have no idea what the semantics are, but returning 0 disables some internal MH-related counting.
     return 0;
   }
@@ -1501,10 +1507,10 @@ class java_lang_invoke_MethodHandleNatives {
    * Uses that info to resolve a concrete method, and then updates the MemberName's flags,
    * sets "vmtarget", and sets "vmindex".
    */
-  public static 'resolve(Ljava/lang/invoke/MemberName;Ljava/lang/Class;)Ljava/lang/invoke/MemberName;'(thread: threading.JVMThread, memberName: JVMTypes.java_lang_invoke_MemberName, lookupClass: JVMTypes.java_lang_Class): JVMTypes.java_lang_invoke_MemberName {
+  public static 'resolve(Ljava/lang/invoke/MemberName;Ljava/lang/Class;)Ljava/lang/invoke/MemberName;'(thread: JVMThread, memberName: JVMTypes.java_lang_invoke_MemberName, lookupClass: JVMTypes.java_lang_Class): JVMTypes.java_lang_invoke_MemberName {
     var type = memberName['java/lang/invoke/MemberName/type'],
       name = memberName['java/lang/invoke/MemberName/name'].toString(),
-      clazz = <ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> memberName['java/lang/invoke/MemberName/clazz'].$cls,
+      clazz = <ReferenceClassData<JVMTypes.java_lang_Object>> memberName['java/lang/invoke/MemberName/clazz'].$cls,
       flags = memberName['java/lang/invoke/MemberName/flags'],
       refKind = flags >>> MemberNameConstants.REFERENCE_KIND_SHIFT;
 
@@ -1524,7 +1530,7 @@ class java_lang_invoke_MethodHandleNatives {
           memberName['java/lang/invoke/MemberName/flags'] = flags;
           memberName.vmtarget = methodTarget.getVMTargetBridgeMethod(thread, flags >>> MemberNameConstants.REFERENCE_KIND_SHIFT);
           // vmindex is only relevant for virtual dispatch.
-          if (refKind === enums.MethodHandleReferenceKind.INVOKEINTERFACE || refKind === enums.MethodHandleReferenceKind.INVOKEVIRTUAL) {
+          if (refKind === MethodHandleReferenceKind.INVOKEINTERFACE || refKind === MethodHandleReferenceKind.INVOKEVIRTUAL) {
             memberName.vmindex = clazz.getVMIndexForMethod(methodTarget);
           }
           return memberName;
@@ -1552,11 +1558,11 @@ class java_lang_invoke_MethodHandleNatives {
   /**
    * Follows the same logic as sun.misc.Unsafe's objectFieldOffset.
    */
-  public static 'objectFieldOffset(Ljava/lang/invoke/MemberName;)J'(thread: threading.JVMThread, memberName: JVMTypes.java_lang_invoke_MemberName): gLong {
+  public static 'objectFieldOffset(Ljava/lang/invoke/MemberName;)J'(thread: JVMThread, memberName: JVMTypes.java_lang_invoke_MemberName): Long {
     if (memberName['vmindex'] === -1) {
       thread.throwNewException("Ljava/lang/IllegalStateException;", "Attempted to retrieve the object offset for an unresolved or non-object MemberName.");
     } else {
-      return gLong.fromNumber(memberName.vmindex);
+      return Long.fromNumber(memberName.vmindex);
     }
   }
 
@@ -1569,7 +1575,7 @@ class java_lang_invoke_MethodHandleNatives {
    * TODO: Access checks?
    */
   public static 'getMembers(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Class;I[Ljava/lang/invoke/MemberName;)I'(
-    thread: threading.JVMThread, defc: JVMTypes.java_lang_Class,
+    thread: JVMThread, defc: JVMTypes.java_lang_Class,
     matchName: JVMTypes.java_lang_String, matchSig: JVMTypes.java_lang_String,
     matchFlags: number, caller: JVMTypes.java_lang_Class, skip: number,
     results: JVMTypes.JVMArray<JVMTypes.java_lang_invoke_MemberName>
@@ -1577,8 +1583,8 @@ class java_lang_invoke_MethodHandleNatives {
     // General search flags.
     var searchSuperclasses = 0 !== (matchFlags & MemberNameConstants.SEARCH_SUPERCLASSES),
       searchInterfaces = 0 !== (matchFlags & MemberNameConstants.SEARCH_INTERFACES),
-      matched = 0, targetClass = defc.$cls, methods: methods.Method[],
-      fields: methods.Field[], matchArray = results.array,
+      matched = 0, targetClass = defc.$cls, methods: Method[],
+      fields: Field[], matchArray = results.array,
       name: string = matchName !== null ? matchName.toString() : null,
       sig: string = matchSig !== null ? matchSig.toString() : null;
 
@@ -1586,7 +1592,7 @@ class java_lang_invoke_MethodHandleNatives {
      * Helper function: Adds matched items to the array once we've skipped
      * enough.
      */
-    function addMatch(item: methods.AbstractMethodField) {
+    function addMatch(item: AbstractMethodField) {
       if (skip >= 0) {
         if (matched < matchArray.length) {
           initializeMemberName(thread, matchArray[matched], item);
@@ -1603,7 +1609,7 @@ class java_lang_invoke_MethodHandleNatives {
     // Constructors
     if (0 !== (matchFlags & MemberNameConstants.IS_CONSTRUCTOR) && (name === null || name === "<init>")) {
       methods = targetClass.getMethods();
-      methods.forEach((m: methods.Method) => {
+      methods.forEach((m: Method) => {
         if (m.name === "<init>" && (sig === null || sig === m.rawDescriptor)) {
           addMatch(m);
         }
@@ -1613,7 +1619,7 @@ class java_lang_invoke_MethodHandleNatives {
     // Methods
     if (0 !== (matchFlags & MemberNameConstants.IS_METHOD)) {
       methods = targetClass.getMethods();
-      methods.forEach((m: methods.Method) => {
+      methods.forEach((m: Method) => {
         if (m.name !== "<init>" && (name === null || name === m.name) && (sig === null || sig === m.rawDescriptor)) {
           addMatch(m);
         }
@@ -1623,7 +1629,7 @@ class java_lang_invoke_MethodHandleNatives {
     // Fields
     if (0 !== (matchFlags & MemberNameConstants.IS_FIELD) && sig === null) {
       fields = targetClass.getFields();
-      fields.forEach((f: methods.Field) => {
+      fields.forEach((f: Field) => {
         if (name === null || name === f.name) {
           addMatch(f);
         }
@@ -1638,13 +1644,13 @@ class java_lang_invoke_MethodHandleNatives {
   /**
    * Debug native in the JDK: Gets a named constant from MethodHandleNatives.Constants.
    */
-  public static 'getNamedCon(I[Ljava/lang/Object;)I'(thread: threading.JVMThread, fieldNum: number, args: JVMTypes.JVMArray<JVMTypes.java_lang_Object>): void {
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    thread.getBsCl().initializeClass(thread, "Ljava/lang/invoke/MethodHandleNatives$Constants;", (constantsCls: ClassData.ReferenceClassData<JVMTypes.java_lang_invoke_MethodHandleNatives$Constants>) => {
+  public static 'getNamedCon(I[Ljava/lang/Object;)I'(thread: JVMThread, fieldNum: number, args: JVMTypes.JVMArray<JVMTypes.java_lang_Object>): void {
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
+    thread.getBsCl().initializeClass(thread, "Ljava/lang/invoke/MethodHandleNatives$Constants;", (constantsCls: ReferenceClassData<JVMTypes.java_lang_invoke_MethodHandleNatives$Constants>) => {
       if (constantsCls === null) {
         return;
       }
-      var constants = constantsCls.getFields().filter((field: methods.Field) => field.accessFlags.isStatic() && field.accessFlags.isFinal());
+      var constants = constantsCls.getFields().filter((field: Field) => field.accessFlags.isStatic() && field.accessFlags.isFinal());
       if (fieldNum < constants.length) {
         var field = constants[fieldNum];
         args.array[0] = util.initString(thread.getBsCl(), field.name);
@@ -1655,20 +1661,20 @@ class java_lang_invoke_MethodHandleNatives {
     });
   }
 
-  public static 'getMemberVMInfo(Ljava/lang/invoke/MemberName;)Ljava/lang/Object;'(thread: threading.JVMThread, mname: JVMTypes.java_lang_invoke_MemberName): JVMTypes.java_lang_Object {
+  public static 'getMemberVMInfo(Ljava/lang/invoke/MemberName;)Ljava/lang/Object;'(thread: JVMThread, mname: JVMTypes.java_lang_invoke_MemberName): JVMTypes.java_lang_Object {
     var rv = util.newArray(thread, thread.getBsCl(), '[Ljava/lang/Object;', 2),
       flags = mname['java/lang/invoke/MemberName/flags'],
       refKind = flags >>> MemberNameConstants.REFERENCE_KIND_SHIFT,
-      longCls = (<ClassData.PrimitiveClassData> thread.getBsCl().getInitializedClass(thread, 'J'));
+      longCls = (<PrimitiveClassData> thread.getBsCl().getInitializedClass(thread, 'J'));
 
     // VMIndex of the target.
-    rv.array[0] = longCls.createWrapperObject(thread, gLong.fromNumber(mname.vmindex));
+    rv.array[0] = longCls.createWrapperObject(thread, Long.fromNumber(mname.vmindex));
     // Class if field, membername if method
     rv.array[1] = (((flags & MemberNameConstants.ALL_KINDS) & MemberNameConstants.IS_FIELD) > 0) ? mname['java/lang/invoke/MemberName/clazz'] : mname;
     return rv;
   }
 
-  public static 'setCallSiteTargetNormal(Ljava/lang/invoke/CallSite;Ljava/lang/invoke/MethodHandle;)V'(thread: threading.JVMThread, callSite: JVMTypes.java_lang_invoke_CallSite, methodHandle: JVMTypes.java_lang_invoke_MethodHandle): void {
+  public static 'setCallSiteTargetNormal(Ljava/lang/invoke/CallSite;Ljava/lang/invoke/MethodHandle;)V'(thread: JVMThread, callSite: JVMTypes.java_lang_invoke_CallSite, methodHandle: JVMTypes.java_lang_invoke_MethodHandle): void {
     callSite['java/lang/invoke/CallSite/target'] = methodHandle;
   }
 }
@@ -1684,14 +1690,14 @@ class java_lang_invoke_MethodHandle {
    * @throws WrongMethodTypeException if the target's type is not identical with the caller's symbolic type descriptor
    * @throws Throwable anything thrown by the underlying method propagates unchanged through the method handle call
    */
-  public static 'invokeExact([Ljava/lang/Object;)Ljava/lang/Object;'(thread: threading.JVMThread, mh: JVMTypes.java_lang_invoke_MethodHandle, args: JVMTypes.JVMArray<JVMTypes.java_lang_Object>): void {
+  public static 'invokeExact([Ljava/lang/Object;)Ljava/lang/Object;'(thread: JVMThread, mh: JVMTypes.java_lang_invoke_MethodHandle, args: JVMTypes.JVMArray<JVMTypes.java_lang_Object>): void {
     // Like other JVMs, we bake the semantics of invoke/invokeExact directly
     // into the bytecode. Thus, this version of the method will *only* be
     // invoked via reflection, causing this exception.
     thread.throwNewException("Ljava/lang/UnsupportedOperationException;", "MethodHandle.invokeExact cannot be invoked reflectively");
   }
 
-  public static 'invoke([Ljava/lang/Object;)Ljava/lang/Object;'(thread: threading.JVMThread, mh: JVMTypes.java_lang_invoke_MethodHandle, args: JVMTypes.JVMArray<JVMTypes.java_lang_Object>): void {
+  public static 'invoke([Ljava/lang/Object;)Ljava/lang/Object;'(thread: JVMThread, mh: JVMTypes.java_lang_invoke_MethodHandle, args: JVMTypes.JVMArray<JVMTypes.java_lang_Object>): void {
     // Like other JVMs, we bake the semantics of invoke/invokeExact directly
     // into the bytecode. Thus, this version of the method will *only* be
     // invoked via reflection, causing this exception.
@@ -1708,7 +1714,7 @@ class java_lang_invoke_MethodHandle {
    * The return value is *never* boxed. Yes, this is weird. It's only called by
    * trusted code, though.
    */
-  public static 'invokeBasic([Ljava/lang/Object;)Ljava/lang/Object;'(thread: threading.JVMThread, mh: JVMTypes.java_lang_invoke_MethodHandle, argsBoxed: JVMTypes.JVMArray<JVMTypes.java_lang_Object>): void {
+  public static 'invokeBasic([Ljava/lang/Object;)Ljava/lang/Object;'(thread: JVMThread, mh: JVMTypes.java_lang_invoke_MethodHandle, argsBoxed: JVMTypes.JVMArray<JVMTypes.java_lang_Object>): void {
     var lmbdaForm = mh['java/lang/invoke/MethodHandle/form'],
       mn = lmbdaForm['java/lang/invoke/LambdaForm/vmentry'],
       descriptor: string, paramTypes: string[];
@@ -1723,7 +1729,7 @@ class java_lang_invoke_MethodHandle {
     paramTypes.pop();
     // Remove method handle; it's not boxed.
     paramTypes.shift();
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     // Need to include methodhandle in the arguments to vmtarget, which handles
     // invoking it appropriately.
     mn.vmtarget(thread, descriptor, [mh].concat(util.unboxArguments(thread, paramTypes, argsBoxed.array)), (e: JVMTypes.java_lang_Throwable, rv: any) => {
