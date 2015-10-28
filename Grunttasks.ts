@@ -470,15 +470,16 @@ export function setup(grunt: IGrunt) {
       grunt.log.writeln("Running one-time java_home setup; this could take a few minutes!");
       grunt.task.run(['curl-dir', 'untar', 'delete_jh_tar']);
     }
-    // Ignore dev-cli compilation errors if the JVMTypes aren't defined yet.
-    grunt.config.set('ts.options.failOnTypeErrors', grunt.file.exists("includes/JVMTypes.d.ts"));
   });
   grunt.registerTask("includecheck", "Checks if includes need to be generated.", function() {
     if (!grunt.file.exists("includes/JVMTypes.d.ts")) {
-      // Switch errors back on and recompile to catch any type errors / errors in include generation.
-      grunt.config.set('ts.options.failOnTypeErrors', true);
-      grunt.task.run(['find_native_java', 'javac:default', 'includes:default', 'ts:dev-cli']);
+      // Ignore dev-cli compilation errors if the JVMTypes aren't defined yet.
+      grunt.config.set('ts.options.failOnTypeErrors', false);
+      grunt.task.run(['find_native_java', 'javac:default', 'includes:default', 'ts:dev-cli', 'enable_type_errors']);
     }
+  });
+  grunt.registerTask("enable_type_errors", "Enables TypeScript type errors after include file generation.", function() {
+    grunt.config.set('ts.options.failOnTypeErrors', true);
   });
   grunt.registerTask('java',
     ['find_native_java',
@@ -505,8 +506,8 @@ export function setup(grunt: IGrunt) {
     ['tsd:doppio',
      'setup:dev-cli',
      'make_build_dir',
-     'ts:dev-cli',
      'includecheck',
+     'ts:dev-cli',
      'copy:includes',
      'launcher:doppio-dev']);
   grunt.registerTask('fast-dev-cli',
