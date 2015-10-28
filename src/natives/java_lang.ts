@@ -890,8 +890,8 @@ class java_lang_StrictMath {
 
   public static 'IEEEremainder(DD)D'(thread: threading.JVMThread, x: number, y: number): number {
     // Purge off exception values.
-    if (x == Number.NEGATIVE_INFINITY || ! (x < Number.POSITIVE_INFINITY)
-	|| y == 0 || y != y)
+    if (x == Number.NEGATIVE_INFINITY || !(x < Number.POSITIVE_INFINITY)
+        || y == 0 || y != y)
       return Number.NaN;
 
     var TWO_1023 = 8.98846567431158e307; // Long bits 0x7fe0000000000000L.
@@ -907,25 +907,20 @@ class java_lang_StrictMath {
       x %= y + y;
 
     // Now adjust x to get correct precision.
-    if (y < 4 / TWO_1023)
-      {
-        if (x + x > y)
-          {
-            x -= y;
-            if (x + x >= y)
-              x -= y;
-          }
+    if (y < 4 / TWO_1023) {
+      if (x + x > y) {
+        x -= y;
+        if (x + x >= y)
+          x -= y;
       }
-    else
-      {
-        y *= 0.5;
-        if (x > y)
-          {
-            x -= y;
-            if (x >= y)
-              x -= y;
-          }
+    } else {
+      y *= 0.5;
+      if (x > y) {
+        x -= y;
+        if (x >= y)
+          x -= y;
       }
+    }
     return negative ? -x : x;
   }
 
