@@ -503,8 +503,8 @@ export function setup(grunt: IGrunt) {
 
   grunt.registerTask('dev-cli',
     ['tsd:doppio',
-     'includecheck',
      'setup:dev-cli',
+     'includecheck',
      'make_build_dir',
      'copy:includes',
      'ts:dev-cli',
