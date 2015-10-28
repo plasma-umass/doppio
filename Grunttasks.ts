@@ -504,10 +504,10 @@ export function setup(grunt: IGrunt) {
   grunt.registerTask('dev-cli',
     ['tsd:doppio',
      'setup:dev-cli',
-     'includecheck',
      'make_build_dir',
-     'copy:includes',
      'ts:dev-cli',
+     'includecheck',
+     'copy:includes',
      'launcher:doppio-dev']);
   grunt.registerTask('fast-dev-cli',
     ['dev-cli',
