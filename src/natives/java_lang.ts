@@ -894,10 +894,40 @@ class java_lang_StrictMath {
     }
   }
 
-  public static 'IEEEremainder(DD)D'(thread: JVMThread, arg0: number, arg1: number): number {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    // Satisfy TypeScript return type.
-    return 0;
+  public static 'IEEEremainder(DD)D'(thread: JVMThread, x: number, y: number): number {
+    // Purge off exception values.
+    if (x == Number.NEGATIVE_INFINITY || !(x < Number.POSITIVE_INFINITY)
+        || y == 0 || y != y)
+      return Number.NaN;
+
+    var TWO_1023 = 8.98846567431158e307; // Long bits 0x7fe0000000000000L.
+
+    var negative = x < 0;
+    x = Math.abs(x);
+    y = Math.abs(y);
+    if (x == y || x == 0)
+      return 0 * x; // Get correct sign.
+
+    // Achieve x < 2y, then take first shot at remainder.
+    if (y < TWO_1023)
+      x %= y + y;
+
+    // Now adjust x to get correct precision.
+    if (y < 4 / TWO_1023) {
+      if (x + x > y) {
+        x -= y;
+        if (x + x >= y)
+          x -= y;
+      }
+    } else {
+      y *= 0.5;
+      if (x > y) {
+        x -= y;
+        if (x >= y)
+          x -= y;
+      }
+    }
+    return negative ? -x : x;
   }
 
   public static 'atan2(DD)D'(thread: JVMThread, y: number, x: number): number {
