@@ -9,68 +9,17 @@ import DoppioJVM = require('../../src/doppiojvm');
 import BrowserFS = require('browserfs');
 import fs = require('fs');
 
-// Extend the DefinitelyTyped module with the extra matcher function we add.
-declare module jasmine {
-  interface Matchers {
-    toPass(): void;
-  }
-}
-
-var finishTest: {[testName: string]: (result: boolean) => void} = {},
-  stdoutput = '',
-  hasFinished: boolean = false;
+// HACK: Delay test execution until backends load.
+// https://zerokspot.com/weblog/2013/07/12/delay-test-execution-in-karma/
+__karma__.loaded = function() {};
 
 function getBuildPath(isRelease: boolean): string {
   return '../build/' + (isRelease ? 'release' : 'dev') + '/';
 }
 
-function configureJasmine(tests: string[]): void  {
-  jasmine.DEFAULT_TIMEOUT_INTERVAL = 300000;
-
-  // Spruce up Jasmine output by adding a custom matcher.
-  beforeEach(() => {
-    jasmine.addMatchers({
-      toPass: () => {
-        return {
-          compare: (testResult: boolean) => {
-            var result = { pass: testResult, message: "" };
-            if (result.pass) {
-              // Apparently you can negate tests? We'll never see this string.
-              result.message =  "Expected test to fail.";
-            } else {
-              // Print out the diff.
-              result.message =  "Doppio's output does not match native JVM.\n" + stdoutput;
-            }
-            return result;
-          }
-        }
-      }
-    });
-  });
-
-  describe("Unit Tests", function() {
-    tests.forEach((test: string) => {
-      it(test, function(done: () => void) {
-        stdoutput = "";
-        hasFinished = false;
-        console.log("Registering " + test);
-        finishTest[test] = (result: boolean) => {
-          console.log(test);
-          // ????
-          (<jasmine.Matchers> <any> expect(result)).toPass();
-          // If fails, test finished twice.
-          expect(hasFinished).toBe(false);
-          hasFinished = true;
-          done();
-        };
-      });
-    });
-  });
-}
-
 /**
-  * Set up BrowserFS.
-  */
+ * Set up BrowserFS.
+ */
 function configureFS(isRelease: boolean): void {
   var xhr = new BrowserFS.FileSystem.XmlHttpRequest('listings.json', getBuildPath(isRelease)),
     mfs = new BrowserFS.FileSystem.MountableFileSystem();
@@ -79,44 +28,53 @@ function configureFS(isRelease: boolean): void {
   BrowserFS.initialize(mfs);
 }
 
+var globalErrorTrap: (err: Error) => void = null
+window.onerror = function(err) {
+  if (globalErrorTrap) {
+    globalErrorTrap(new Error(err));
+  }
+};
+
+function registerGlobalErrorTrap(cb: (err: Error) => void): void {
+  globalErrorTrap = cb;
+}
+
 /**
-  * Once DoppioJVM is properly set up, this function runs tests.
-  */
+ * Once DoppioJVM is properly set up, this function runs tests.
+ */
 export default function runTests(isRelease: boolean) {
   configureFS(isRelease);
   // Tests expect to be run from the system path.
   process.chdir('/sys');
-  // XXX testing.findTestClasses;
-  var tests = fs.readdirSync('/sys/classes/test').filter((p: string) => p.indexOf('.java') !== -1);
 
-  // Collect output in a string, print if failure.
-  function stdout(data: Buffer) {
-    stdoutput += data.toString();
-  }
-  process.stdout.on('data', stdout);
-  process.stderr.on('data', stdout);
-
-  configureJasmine(tests);
-
-  // LAUNCH THE TESTS!
-  DoppioJVM.Testing.runTests({
+  DoppioJVM.Testing.getTests({
     bootstrapClasspath: ['/sys/vendor/java_home/classes'],
     doppioDir: '/sys',
     testClasses: null,
-    hideDiffs: false,
-    quiet: true,
-    keepGoing: true,
     classpath: [],
     javaHomePath: '/sys/vendor/java_home',
     extractionPath: '/tmp',
     nativeClasspath: ['/sys/natives'],
-    assertionsEnabled: false,
-    postTestHook: (testName: string, result: boolean) => {
-      var test = testName.slice(testName.lastIndexOf('/') + 1) + ".java";
-      console.log("Finishing " + test);
-      finishTest[test](result);
-    }
-  }, () => {
-    // NOP.
+    assertionsEnabled: false
+  }, (tests: DoppioJVM.Testing.DoppioTest[]): void => {
+    // Set up Jasmine unit tests.
+    jasmine.DEFAULT_TIMEOUT_INTERVAL = 300000;
+
+    describe("Unit Tests", function() {
+      tests.forEach((test) => {
+        it(test.cls, function(done: () => void) {
+          test.run(registerGlobalErrorTrap, (err: Error, actual?: string, expected?: string, diff?: string) => {
+            if (err) {
+              fail(`DoppioJVM Error:\n\t${err}${err.stack ? `\n${err.stack}` : ''}`);
+            }
+            expect(actual).toBe(expected);
+            done();
+          });
+        });
+      });
+    });
+
+    // Launch the tests!
+    __karma__.start();
   });
 }

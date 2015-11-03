@@ -6,43 +6,77 @@ import path = require('path');
 import fs = require('fs');
 import interfaces = require('./interfaces');
 
-/**
- * Variables and code for hooking into standard output.
- */
-var testOutput: string = '',
-  stdoutWrite: typeof process.stdout.write,
-  stderrWrite: typeof process.stderr.write,
-  newWrite = function(data: any, arg2?: any, arg3?: any): boolean {
-    if (typeof(data) !== 'string') {
-      // Buffer.
-      data = data.toString();
-    }
-    testOutput += data;
-    return true;
-  };
+export interface TestingError extends Error {
+  originalError?: any;
+  fatal?: boolean;
+}
 
-/**
- * Starts recording Doppio's output streams.
- */
-function startRecordingOutput(): void {
-  stdoutWrite = process.stdout.write;
-  stderrWrite = process.stderr.write;
-  // Reset previous output.
-  testOutput = '';
-  // Patch up standard output.
-  process.stdout.write = newWrite;
-  process.stderr.write = newWrite;
+function makeTestingError(msg: string, origErr?: any, fatal?: boolean): TestingError {
+  var err = <TestingError> new Error(msg);
+  err.originalError = origErr;
+  err.fatal = fatal;
+  return err;
 }
 
 /**
- * Stops recording Doppio's output streams.
- * @return The recorded output.
+ * Captures stdout/stderr.
+ * @todo Do this the proper Node way once BFS is more compliant.
  */
-function stopRecordingOutput(): string {
-  // Unpatch standard output.
-  process.stdout.write = stdoutWrite;
-  process.stderr.write = stderrWrite;
-  return testOutput;
+class OutputCapturer {
+  private _stdoutWrite = process.stdout.write;
+  private _stderrWrite = process.stderr.write;
+  private _data: string = "";
+  private _isCapturing = false;
+
+  private debugWrite(str: string): void {
+    this._stdoutWrite.apply(process.stdout, [str, 'utf8']);
+  }
+
+  /**
+   * Begin capturing output.
+   */
+  public start(clear?: boolean): void {
+    if (this._isCapturing) {
+      throw new Error(`Already capturing.`);
+    }
+    this._isCapturing = true;
+    if (clear) {
+      this._data = "";
+    }
+    process.stderr.write = process.stdout.write = (data: any, arg2?: any, arg3?: any): boolean => {
+      if (typeof(data) !== 'string') {
+        // Buffer.
+        data = data.toString();
+      }
+      this._data += data;
+      return true;
+    };
+  }
+
+  /**
+   * Stop capturing output.
+   */
+  public stop(): void {
+    if (!this._isCapturing) {
+      // May be called twice when there's a catastrophic error.
+      return;
+    }
+    this._isCapturing = false;
+    process.stderr.write = this._stderrWrite;
+    process.stdout.write = this._stdoutWrite;
+  }
+
+  /**
+   * Retrieve the captured output.
+   * @param clear Clear the captured output.
+   */
+  public getOutput(clear?: boolean): string {
+    var data = this._data;
+    if (clear) {
+      this._data = "";
+    }
+    return data;
+  }
 }
 
 /**
@@ -59,35 +93,13 @@ export interface TestOptions extends interfaces.JVMOptions {
    * - foo/bar/Baz
    */
   testClasses?: string[];
-  /**
-   * If 'true', then the test runner will not print the output diff of a failing
-   * test to the console.
-   */
-  hideDiffs: boolean;
-  /**
-   * If 'true', the runner will not print status messages to the console.
-   */
-  quiet: boolean;
-  /**
-   * If 'true', the test runner will continue executing in the face of a
-   * failure.
-   */
-  keepGoing: boolean;
-  /**
-   * If set, called with the name of a now-starting test.
-   */
-  preTestHook?: (testName: string) => void;
-  /**
-   * If set, called with the result of each test.
-   */
-  postTestHook?: (testName: string, hasPassed: boolean) => void;
 }
 
 /**
  * Represents a single unit test, where we compare Doppio's output to the native
  * JVM.
  */
-class DoppioTest {
+export class DoppioTest {
   /**
    * Test runner options.
    */
@@ -100,6 +112,10 @@ class DoppioTest {
    * Path to the file recording the output from the native JVM.
    */
   private outFile: string;
+  /**
+   * The output capturer for this test.
+   */
+  private outputCapturer: OutputCapturer = new OutputCapturer();
 
   constructor(opts: TestOptions, cls: string) {
     this.opts = opts;
@@ -126,43 +142,55 @@ class DoppioTest {
   }
 
   /**
-   * Print the given message. NOP if the 'quiet' flag is supplied'
-   */
-  private print(msg: string): void {
-    this.opts.quiet || process.stdout.write(msg);
-  }
-
-  /**
    * Runs the unit test.
    */
-  public run(cb: (success: boolean) => void) {
-    this.print("[" + this.cls + "]: Running... ");
+  public run(registerGlobalErrorTrap: (cb: (err: Error) => void) => void, cb: (err: Error, actual?: string, expected?: string, diff?: string) => void) {
+    var outputCapturer = this.outputCapturer, _jvm: JVM = null, terminated: boolean = false, jvmConstructHasFinished: boolean = false,
+      hasFinished: boolean = false;
+    registerGlobalErrorTrap((err) => {
+      if (_jvm) {
+        _jvm.abort();
+      }
+      outputCapturer.stop();
+      cb(makeTestingError(`Uncaught error. Aborting further tests.\n\t${err}${err.stack ? `\n\n${err.stack}` : ``}`, err, true));
+    });
+
     this.constructJVM((err: any, jvm?: JVM) => {
+      _jvm = jvm;
+      if (terminated) {
+        // Already handled.
+        return;
+      }
+      if (jvmConstructHasFinished) {
+        return cb(makeTestingError(`constructJVM returned twice. Aborting further tests.`, null, true));
+      }
+      jvmConstructHasFinished = true;
+
       if (err) {
-        this.print("fail.\n\tCould not construct JVM:\n" + err);
-        cb(false);
+        cb(makeTestingError(`Could not construct JVM:\n${err}`, err));
       } else {
-        startRecordingOutput();
+        outputCapturer.start(true);
         jvm.runClass(this.cls, [], (success: boolean) => {
-          var output = stopRecordingOutput();
-          fs.readFile(this.outFile, { encoding: 'utf8' }, (err: any, data?: string) => {
-            var diffStr: string;
+          if (terminated) {
+            // Already handled.
+            return;
+          }
+          outputCapturer.stop();
+          if(hasFinished) {
+            return cb(makeTestingError(`JVM triggered completion callback twice. Aborting further tests.`, null, true));
+          }
+          hasFinished = true;
+
+          var actual = outputCapturer.getOutput(true);
+          fs.readFile(this.outFile, { encoding: 'utf8' }, (err: any, expected?: string) => {
             if (err) {
-              this.print("fail.\n\tCould not read runout file:\n" + err);
-              cb(false);
+              cb(makeTestingError(`Could not read runout file:\n${err}`, err));
             } else {
-              diffStr = diff(output, data);
-              if (diffStr == null) {
-                this.print('pass.\n');
-                cb(true);
-              } else {
-                this.print('fail.\n\tOutput does not match native JVM.\n');
-                // Print diff.
-                if (!this.opts.hideDiffs) {
-                  process.stdout.write(this.cls + ": " + diffStr + "\n");
-                }
-                cb(false);
+              var diffText = diff(actual, expected), errMsg: string = null;
+              if (diffText !== null) {
+                errMsg = `Output does not match native JVM.`;
               }
+              cb(errMsg ? makeTestingError(errMsg) : null, actual, expected, diffText);
             }
           });
         });
@@ -174,7 +202,7 @@ class DoppioTest {
 /**
  * Locate all of Doppio's test classes, and pass them to the callback.
  */
-export function findTestClasses(doppioDir: string, cb: (files: string[]) => void): void {
+function findTestClasses(doppioDir: string, cb: (files: string[]) => void): void {
   var testDir = path.resolve(doppioDir, path.join('classes', 'test'));
   fs.readdir(testDir, (err, files) => {
     if (err) {
@@ -187,38 +215,21 @@ export function findTestClasses(doppioDir: string, cb: (files: string[]) => void
 }
 
 /**
- * Run a series of tests.
+ * Retrieve all of the unit tests.
  */
-export function runTests(opts: TestOptions, cb: (result: boolean) => void): void {
+export function getTests(opts: TestOptions, cb: (tests: DoppioTest[]) => void): void {
   var testClasses = opts.testClasses,
     tests: DoppioTest[];
   if (testClasses == null || testClasses.length === 0) {
-    // If no test classes are specified, run ALL the tests!
+    // If no test classes are specified, get ALL the tests!
     findTestClasses(opts.doppioDir, (testClasses) => {
       opts.testClasses = testClasses;
-      runTests(opts, cb);
+      getTests(opts, cb);
     });
   } else {
-    tests = testClasses.map((testClass: string): DoppioTest => {
+    cb(testClasses.map((testClass: string): DoppioTest => {
       return new DoppioTest(opts, testClass);
-    });
-    util.asyncForEach(tests, (test: DoppioTest, nextItem: (err?: any) => void): void => {
-      if (typeof opts.preTestHook === 'function') {
-        opts.preTestHook(test.cls);
-      }
-      test.run((success: boolean) => {
-        if (typeof opts.postTestHook === 'function') {
-          opts.postTestHook(test.cls, success);
-        }
-        if (success || opts.keepGoing) {
-          nextItem();
-        } else {
-          nextItem("Test failed.");
-        }
-      });
-    }, (err?: any): void => {
-      cb(err == null);
-    });
+    }));
   }
 }
 
@@ -226,7 +237,7 @@ export function runTests(opts: TestOptions, cb: (result: boolean) => void): void
  * Returns a formatted diff between doppioOut and nativeOut.
  * Returns NULL if the strings are identical.
  */
-function diff(doppioOut: string, nativeOut: string): string {
+export function diff(doppioOut: string, nativeOut: string): string {
   // @todo Robust to Windows line breaks!
   var doppioLines = doppioOut.split(/\n/),
     jvmLines = nativeOut.split(/\n/),
@@ -235,4 +246,43 @@ function diff(doppioOut: string, nativeOut: string): string {
     return 'Doppio | Java\n' + diff.join('\n');
   }
   return null;
+}
+
+/**
+ * Run the specified tests.
+ */
+export function runTests(opts: TestOptions, quiet: boolean, continueAfterFailure: boolean, hideDiffs: boolean,
+  registerGlobalErrorTrap: (cb: (err: Error) => void) => void, cb: (err?: TestingError) => void): void {
+  function print(str: string): void {
+    if (!quiet) {
+      process.stdout.write(str);
+    }
+  }
+
+  getTests(opts, (tests) => {
+    util.asyncForEach(tests, (test: DoppioTest, nextTest: (err?: any) => void) => {
+      var hasFinished = false;
+      print(`[${test.cls}]: Running... `);
+      test.run(registerGlobalErrorTrap, (err: TestingError, actual?: string, expected?: string, diff?: string): void => {
+        if (err && !hideDiffs && diff) {
+          err.message += `\n${diff}`
+        }
+
+        if (err) {
+          print(`fail.\n\t${err.message}\n`);
+          if (err.originalError && err.originalError.stack) {
+            print(`${err.stack}\n`);
+          }
+          if (!continueAfterFailure || (<TestingError> err)['fatal']) {
+            nextTest(err);
+          } else {
+            nextTest();
+          }
+        } else {
+          print(`pass.\n`);
+          nextTest();
+        }
+      });
+    }, cb);
+  });
 }

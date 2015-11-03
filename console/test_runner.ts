@@ -18,9 +18,6 @@ var opts: testing.TestOptions = {
   classpath: null,
   nativeClasspath: [path.resolve(__dirname, path.join('..', 'src', 'natives'))],
   doppioDir: path.dirname(__dirname),
-  hideDiffs: false,
-  quiet: false,
-  keepGoing: false,
   assertionsEnabled: false
 }, passChar: string, failChar: string;
 
@@ -33,57 +30,50 @@ if (process.platform.match(/win32/i)) {
   failChar = '✗';
 }
 
+/**
+ * Makefile tests are only relevant to the native runner.
+ */
 function makefileTest(argv: any): void {
   var failpath = path.resolve(__dirname, '../classes/test/failures.txt'),
-      old_write = process.stdout.write,
-      outfile = fs.openSync(failpath, 'a');
-
-  function newWrite(str: any, arg2?: any, arg3?: any): boolean {
-    var buff = new Buffer(str);
-    fs.writeSync(outfile, buff, 0, buff.length, null);
-    return true;
-  }
-
-  process.stdout.write = newWrite;
-  process.stderr.write = newWrite;
+      keepGoing = argv.c;
 
   opts.testClasses = argv._;
-  opts.quiet = true;
-  opts.keepGoing = argv.c;
 
   // Enter a domain so we are robust to uncaught errors.
-  var d = domain.create();
-
-  function finish(success: boolean) {
-    // Patch stdout back up.
-    process.stdout.write = old_write;
-    process.stdout.write(success ? passChar : failChar);
-    if (!success) {
-      fs.writeSync(outfile, new Buffer('\n'), 0, 1, null);
+  var d = domain.create(), errCallback: (err: any) => void = null;
+  function finish(err?: testing.TestingError) {
+    // Print out the status of this test.
+    process.stdout.write(err ? failChar : passChar);
+    if (err) {
+      var buff = new Buffer(`${err.message}\n`);
+      fs.appendFileSync(failpath, buff, {
+        flag: 'a'
+      });
     }
-    fs.closeSync(outfile);
     // Error code in the event of a failed test.
-    process.exit(success ? 0 : 1);
+    process.exit(err ? 0 : 1);
   }
 
   d.on('error', (err: any) => {
-    // Make sure we write to the file. The test runner patches stdout.write, too.
-    // XXX: Assuming a single test class.
-    newWrite("Test " + opts.testClasses[0] + " failed.\n");
-    newWrite("Uncaught error:\n" + err + "\n" + (err['stack'] != null ? err.stack : "") + "\n");
-    finish(false);
+    if (errCallback) {
+      errCallback(err);
+    }
   });
 
   d.run(() => {
-    testing.runTests(opts, finish);
+    testing.runTests(opts, true, keepGoing, false, (cb: (err: Error) => void) => {
+      errCallback = cb;
+    }, finish);
   });
 }
 
 function regularTest(argv: any): void {
+  var hideDiffs = !argv.diff,
+    quiet = argv.q,
+    keepGoing = argv.c,
+    errCallback: (err: any) => void = null;
+
   opts.testClasses = argv._;
-  opts.hideDiffs = !argv.diff;
-  opts.quiet = argv.q;
-  opts.keepGoing = argv.c;
 
   var stdoutW = process.stdout.write,
     stderrW = process.stderr.write,
@@ -91,15 +81,16 @@ function regularTest(argv: any): void {
     d = domain.create();
 
   d.on('error', (err: any) => {
-    process.stdout.write = stdoutW;
-    process.stderr.write = stderrW;
-    console.log("failed.\nUncaught error:\n" + err + "\n" + (err['stack'] != null ? err.stack : ""));
-    process.exit(1);
+    if (errCallback) {
+      errCallback(err);
+    }
   });
 
   d.run(() => {
-    testing.runTests(opts, (result: boolean): void => {
-      process.exit(result ? 0 : 1);
+    testing.runTests(opts, quiet, keepGoing, hideDiffs, (cb: (err: Error) => void) => {
+      errCallback = cb;
+    }, (err?: testing.TestingError) => {
+      process.exit(err ? 1 : 0);
     });
   });
 }

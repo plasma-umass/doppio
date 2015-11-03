@@ -1,13 +1,17 @@
-// read a local file
+/**
+ * Writes a temporary file, and reads it back.
+ */
 package classes.test;
 import java.io.*;
 public class FileWrite {
   public static void main(String[] args) {
     try {
       StringWriter stringWriter = new StringWriter();
-
-      // replace by createTempFile when we get around to supporting it
-      RandomAccessFile file = new RandomAccessFile("/tmp/Doppio-FileWriteTest", "rw");
+      File tmpFile = File.createTempFile("Doppio-FileWriteTest", null);
+      RandomAccessFile file = new RandomAccessFile(tmpFile, "rw");
+      // Should be "Doppio-FileWriteTest[random numbers].tmp"
+      String fileName = tmpFile.getName();
+      System.out.println(fileName.substring(fileName.indexOf('.')));
       int[] arr = {89, 69, 83};
       for(int byteValue : arr) {
           file.write(byteValue);
@@ -16,10 +20,10 @@ public class FileWrite {
       file.seek(0);
 
       for(int byteValue : arr) {
-        if (file.read() != byteValue) {
-          throw new RuntimeException("RandomAccessFile byte write method failed.");
-        }
+        System.out.print(byteValue);
       }
+      System.out.print("\n");
+      file.close();
     } catch (IOException e) {
       System.err.println(e.getMessage());
     }
