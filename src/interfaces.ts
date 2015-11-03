@@ -22,6 +22,8 @@ export interface JVMOptions {
   assertionsEnabled: boolean;
   // System properties for the JVM.
   properties?: {[name: string]: string};
+  // Path where DoppioJVM can store temporary files. Defaults to /tmp.
+  tmpDir?: string;
 }
 
 /**

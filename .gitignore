@@ -1,10 +1,7 @@
 *.bat
 *.js
 *.js.map
-vendor
-!vendor/gLong.js
-!vendor/jquery.console.js
-!vendor/browserfs.min.js
+vendor/java_home
 includes
 
 *.swp
@@ -16,8 +13,6 @@ includes
 *.tar.gz
 node_modules
 build
-index.html
-about.html
 .DS_store
 # Command-line tools
 doppio
@@ -28,9 +23,6 @@ doppio-fast-dev
 doppio.err
 # But we want to allow classes/doppio
 !classes/doppio
-core-*
-browser/_about.html
-tools/preload
 classes/test/failures.txt
 
 # IntelliJ metadata
@@ -48,3 +40,5 @@ tscommand-*.txt
 #tsd
 typings
 
+# harness
+tasks/test/*.d.ts

@@ -14,6 +14,19 @@ import ClassData = require('./ClassData');
  * TODO: Separate general JS utility methods from JVM utility methods.
  */
 
+/**
+ * Merges object literals together into a new object. Emulates underscore's merge function.
+ */
+export function merge(...literals: {[prop: string]: any}[]): {[prop: string]: any} {
+  var newObject: {[prop: string]: any} = {};
+  literals.forEach((literal) => {
+    Object.keys(literal).forEach((key) => {
+      newObject[key] = literal[key];
+    });
+  });
+  return newObject;
+}
+
 export function are_in_browser(): boolean {
   return process.platform === 'browser';
 }

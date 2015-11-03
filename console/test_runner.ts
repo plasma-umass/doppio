@@ -18,7 +18,8 @@ var opts: testing.TestOptions = {
   classpath: null,
   nativeClasspath: [path.resolve(__dirname, path.join('..', 'src', 'natives'))],
   doppioDir: path.dirname(__dirname),
-  assertionsEnabled: false
+  assertionsEnabled: false,
+  tmpDir: os.tmpdir()
 }, passChar: string, failChar: string;
 
 if (process.platform.match(/win32/i)) {
@@ -51,7 +52,7 @@ function makefileTest(argv: any): void {
       });
     }
     // Error code in the event of a failed test.
-    process.exit(err ? 0 : 1);
+    process.exit(err ? 1 : 0);
   }
 
   d.on('error', (err: any) => {

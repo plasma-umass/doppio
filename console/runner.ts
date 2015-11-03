@@ -45,7 +45,8 @@ doppioDomain.run(() => {
     classpath: null,
     nativeClasspath: [path.resolve(__dirname, '../src/natives')],
     launcherName: process.argv[0] + " " + path.relative(process.cwd(), process.argv[1]),
-    assertionsEnabled: false
+    assertionsEnabled: false,
+    tmpDir: os.tmpdir()
   }, done_cb, function(jvm: JVM): void {
     jvm_state = jvm;
   });

@@ -35,7 +35,6 @@ var coreClasses = [
   '[Lsun/management/MemoryPoolImpl;'
 ];
 
-
 /**
  * Encapsulates a single JVM instance.
  */
@@ -68,16 +67,39 @@ class JVM {
    */
   constructor(opts: interfaces.JVMOptions, cb: (e: any, jvm?: JVM) => void) {
     var bootstrapClasspath: string[] = opts.bootstrapClasspath.map((p: string): string => path.resolve(p)),
-      javaClassPath: string[] = opts.classpath.map((p: string): string => path.resolve(p)),
-      javaHomePath = path.resolve(opts.javaHomePath),
       // JVM bootup tasks, from first to last task.
       bootupTasks: {(next: (err?: any) => void): void}[] = [],
       firstThread: threading.JVMThread,
-      firstThreadObj: JVMTypes.java_lang_Thread;
-    // @todo Resolve these, and integrate it into the ClassLoader?
+      firstThreadObj: JVMTypes.java_lang_Thread,
+      opts = <interfaces.JVMOptions> util.merge({
+        assertionsEnabled: false,
+        properties: {},
+        classpath: ['.'],
+        tmpDir: '/tmp'
+      }, opts);
+
+    // Sanity checks.
+    if (!Array.isArray(opts.bootstrapClasspath) || opts.bootstrapClasspath.length === 0) {
+      throw new TypeError("opts.bootstrapClasspath must be specified as an array of file paths.");
+    }
+    if (!Array.isArray(opts.classpath)) {
+      throw new TypeError("opts.classpath must be specified as an array of file paths.");
+    }
+    if(typeof(opts.javaHomePath) !== 'string') {
+      throw new TypeError("opts.javaHomePath must be specified.");
+    }
+    if (!Array.isArray(opts.nativeClasspath) || opts.nativeClasspath.length === 0) {
+      throw new TypeError("opts.nativeClasspath must be specified as an array of file paths.");
+    }
+
+
     this.nativeClasspath = opts.nativeClasspath;
     this.assertionsEnabled = opts.assertionsEnabled;
-    this._initSystemProperties(bootstrapClasspath, javaClassPath, javaHomePath, opts.properties);
+    this._initSystemProperties(bootstrapClasspath,
+      opts.classpath.map((p: string): string => path.resolve(p)),
+      path.resolve(opts.javaHomePath),
+      path.resolve(opts.tmpDir),
+      opts.properties);
 
     /**
      * Task #1: Initialize native methods.
@@ -502,10 +524,11 @@ eval(mod);
   /**
    * [Private] Same as reset_system_properties, but called by the constructor.
    */
-  private _initSystemProperties(bootstrapClasspath: string[], javaClassPath: string[], javaHomePath: string, opts: {[name: string]: string}): void {
-    this.systemProperties = {
+  private _initSystemProperties(bootstrapClasspath: string[], javaClassPath: string[], javaHomePath: string, tmpDir: string, opts: {[name: string]: string}): void {
+    this.systemProperties = util.merge({
       'java.class.path': javaClassPath.join(':'),
       'java.home': javaHomePath,
+      'java.io.tmpdir': tmpDir,
       'sun.boot.class.path': bootstrapClasspath.join(':'),
       'file.encoding': 'UTF-8',
       'java.vendor': 'Doppio',
@@ -529,16 +552,7 @@ eval(mod);
       'useJavaUtilZip': 'true', // hack for sun6javac, avoid ZipFileIndex shenanigans
       'jline.terminal': 'jline.UnsupportedTerminal', // we can't shell out to `stty`,
       'sun.arch.data.model': '32' // Identify as 32-bit, because that's how we act.
-    };
-
-    if (opts) {
-      var name: string;
-      for (name in opts) {
-        if (opts.hasOwnProperty(name)) {
-          this.systemProperties[name] = opts[name];
-        }
-      }
-    }
+    }, opts);
   }
 
   /**
