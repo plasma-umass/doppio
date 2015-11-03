@@ -551,7 +551,8 @@ eval(mod);
       'java.awt.graphicsenv': 'classes.awt.CanvasGraphicsEnvironment',
       'useJavaUtilZip': 'true', // hack for sun6javac, avoid ZipFileIndex shenanigans
       'jline.terminal': 'jline.UnsupportedTerminal', // we can't shell out to `stty`,
-      'sun.arch.data.model': '32' // Identify as 32-bit, because that's how we act.
+      'sun.arch.data.model': '32', // Identify as 32-bit, because that's how we act.
+      'sun.jnu.encoding': "UTF-8" // Determines how Java parses command line options.
     }, opts);
   }
 

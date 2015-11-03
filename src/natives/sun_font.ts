@@ -131,5 +131,3 @@ registerNatives({
   'sun/font/FreetypeFontScaler': sun_font_FreetypeFontScaler,
   'sun/font/StrikeCache': sun_font_StrikeCache
 });
-
-//@ sourceURL=natives/sun_font.js

@@ -56,5 +56,3 @@ class java_security_AccessController {
 registerNatives({
   'java/security/AccessController': java_security_AccessController
 });
-
-//@ sourceURL=natives/java_security.js

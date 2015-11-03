@@ -89,6 +89,9 @@ if (argv.standard.help || process.argv.length === 2) {
 if (!argv.standard.classpath) argv.standard.classpath = '.';
 if (!argv.standard.directory) argv.standard.directory = '.';
 
+// Append bootstrap classpath.
+argv.standard.classpath = `${path.resolve(__dirname, '../vendor/java_home/classes')}:${argv.standard.classpath}`;
+
 function findFile(fileName: string): string {
   var i: number;
   for (i = 0; i < classpath.length; i++) {
@@ -218,7 +221,6 @@ class TSTemplate implements ITemplate {
       }
     } catch (e) {
       // Ignore.
-      console.log("Error parsing exiting file: " + e);
     }
 
     this.doppiojvmPath = path.relative(outputPath, doppiojvmPath);

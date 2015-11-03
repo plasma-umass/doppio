@@ -35,36 +35,19 @@ var trapped_methods: { [clsName: string]: { [methodName: string]: Function } } =
       // Historically: NOP'd because we didn't support threads.
     }
   },
-  'java/util/concurrent/atomic/AtomicInteger': {
-    'compareAndSet(II)Z': function (thread: threading.JVMThread, javaThis: JVMTypes.java_util_concurrent_atomic_AtomicInteger, expect: number, update: number): boolean {
-      javaThis['java/util/concurrent/atomic/AtomicInteger/value'] = update;
-      // always true, because we only have one thread of execution
-      // @todo Fix: Actually check expected value!
-      return true;
-    }
-  },
-  'java/nio/Bits': {
-    'byteOrder()Ljava/nio/ByteOrder;': function (thread: threading.JVMThread): JVMTypes.java_nio_ByteOrder {
-      var cls = <ClassData.ReferenceClassData<JVMTypes.java_nio_ByteOrder>> thread.getBsCl().getInitializedClass(thread, 'Ljava/nio/ByteOrder;'),
-        cons = <typeof JVMTypes.java_nio_ByteOrder> cls.getConstructor(thread);
-      return cons['java/nio/ByteOrder/LITTLE_ENDIAN'];
-    },
-    'copyToByteArray(JLjava/lang/Object;JJ)V': function (thread: threading.JVMThread, srcAddr: gLong, dst: JVMTypes.JVMArray<any>, dstPos: gLong, length: gLong): void {
-      var heap = thread.getThreadPool().getJVM().getHeap(),
-        srcStart = srcAddr.toNumber(),
-        dstStart: number = dstPos.toNumber(),
-        len: number = length.toNumber(),
-        i: number,
-        arr = dst.array;
-      for (i = 0; i < len; i++) {
-        arr[dstStart + i] = heap.get_byte(srcStart + i);
-      }
-    }
-  },
   'java/nio/charset/Charset$3': {
     // this is trapped and NOP'ed for speed
     'run()Ljava/lang/Object;': function (thread: threading.JVMThread, javaThis: JVMTypes.java_nio_charset_Charset$3): JVMTypes.java_lang_Object {
       return null;
+    }
+  },
+  'sun/nio/fs/DefaultFileSystemProvider': {
+    // OpenJDK doesn't know what the "Doppio" platform is. Tell it to use the Linux file system.
+    'create()Ljava/nio/file/spi/FileSystemProvider;': function(thread: threading.JVMThread): void {
+      thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+      var dfsp: ClassData.ReferenceClassData<JVMTypes.sun_nio_fs_DefaultFileSystemProvider> = <any> thread.getBsCl().getInitializedClass(thread, 'Lsun/nio/fs/DefaultFileSystemProvider;'),
+       dfspCls: typeof JVMTypes.sun_nio_fs_DefaultFileSystemProvider = <any> dfsp.getConstructor(thread);
+      dfspCls['createProvider(Ljava/lang/String;)Ljava/nio/file/spi/FileSystemProvider;'](thread, [thread.getThreadPool().getJVM().internString('sun.nio.fs.LinuxFileSystemProvider')], util.forwardResult(thread));
     }
   }
 };

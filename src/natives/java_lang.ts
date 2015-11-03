@@ -747,15 +747,11 @@ class java_lang_Runtime {
   }
 
   public static 'freeMemory()J'(thread: JVMThread, javaThis: JVMTypes.java_lang_Runtime): Long {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    // Satisfy TypeScript return type.
-    return null;
+    return Long.MAX_VALUE;
   }
 
   public static 'totalMemory()J'(thread: JVMThread, javaThis: JVMTypes.java_lang_Runtime): Long {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    // Satisfy TypeScript return type.
-    return null;
+    return Long.MAX_VALUE;
   }
 
   /**
@@ -767,7 +763,6 @@ class java_lang_Runtime {
    * hard limit on the heap size.
    */
   public static 'maxMemory()J'(thread: JVMThread, javaThis: JVMTypes.java_lang_Runtime): Long {
-    debug("Warning: maxMemory has no meaningful value in Doppio -- there is no hard memory limit.");
     return Long.MAX_VALUE;
   }
 
@@ -1796,5 +1791,3 @@ registerNatives({
   'java/lang/invoke/MethodHandleNatives': java_lang_invoke_MethodHandleNatives,
   'java/lang/invoke/MethodHandle': java_lang_invoke_MethodHandle
 });
-
-//@ sourceURL=natives/java_lang.js

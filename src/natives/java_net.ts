@@ -367,5 +367,3 @@ registerNatives({
   'java/net/SocketOutputStream': java_net_SocketOutputStream,
   'java/net/NetworkInterface': java_net_NetworkInterface
 });
-
-//@ sourceURL=natives/java_net.js

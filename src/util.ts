@@ -851,3 +851,13 @@ export function boxArguments(thread: threading.JVMThread, objArrCls: ClassData.A
 
   return boxedArgs;
 }
+
+export function forwardResult<T extends JVMTypes.java_lang_Object>(thread: threading.JVMThread): (e?: JVMTypes.java_lang_Throwable, rv?: T) => void {
+  return (e?: JVMTypes.java_lang_Throwable, rv?: T): void => {
+    if (e) {
+      thread.throwException(e);
+    } else {
+      thread.asyncReturn(rv);
+    }
+  };
+}

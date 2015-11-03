@@ -10,20 +10,34 @@ import Long = Doppio.VM.Long;
 import ThreadStatus = Doppio.VM.Enums.ThreadStatus;
 import ClassLoader = Doppio.VM.ClassFile.ClassLoader;
 import CustomClassLoader = Doppio.VM.ClassFile.CustomClassLoader;
+import assert = Doppio.Debug.Assert;
 declare var registerNatives: (defs: any) => void;
 
-function getFieldInfo(thread: JVMThread, obj: JVMTypes.java_lang_Object, offset: Long): [any, string] {
-  var fieldName: string, objBase: any, cls: ReferenceClassData<JVMTypes.java_lang_Object>;
-  if (obj.getClass().getInternalName() === "Ljava/lang/Object;") {
+function getFieldInfo(thread: JVMThread, unsafe: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long): [any, string] {
+  var fieldName: string, objBase: any, objCls = obj.getClass(), cls: ReferenceClassData<JVMTypes.java_lang_Object>, compName: string,
+    unsafeCons: typeof JVMTypes.sun_misc_Unsafe = <any> (<ReferenceClassData<JVMTypes.sun_misc_Unsafe>> unsafe.getClass()).getConstructor(thread),
+    stride = 1;
+  if (objCls.getInternalName() === "Ljava/lang/Object;") {
     // Static field. The staticFieldBase is always a pure Object that has a
     // class reference on it.
     // There's no reason to get the field on an Object, as they have no fields.
     cls = <ReferenceClassData<JVMTypes.java_lang_Object>> (<any> obj).$staticFieldBase;
     objBase = <any> cls.getConstructor(thread);
     fieldName = cls.getStaticFieldFromVMIndex(offset.toInt()).fullName;
-  } else if (obj.getClass().getInternalName()[0] === '[') {
+  } else if (objCls instanceof ArrayClassData) {
+    compName = util.internal2external[objCls.getInternalName()[1]];
+    if (!compName) {
+      compName = "OBJECT";
+    }
+    compName = compName.toUpperCase();
+    stride = (<any> unsafeCons)[`sun/misc/Unsafe/ARRAY_${compName}_INDEX_SCALE`];
+    if (!stride) {
+      stride = 1;
+    }
+
     objBase = (<JVMTypes.JVMArray<any>> obj).array;
-    fieldName = "" + offset.toInt();
+    assert(offset.toInt() % stride === 0, `Invalid offset for stride ${stride}: ${offset.toInt()}`);
+    fieldName = "" + (offset.toInt() / stride);
   } else {
     cls = <ReferenceClassData<JVMTypes.java_lang_Object>> obj.getClass();
     objBase = obj;
@@ -32,8 +46,8 @@ function getFieldInfo(thread: JVMThread, obj: JVMTypes.java_lang_Object, offset:
   return [objBase, fieldName];
 }
 
-function unsafeCompareAndSwap<T>(thread: JVMThread, _this: JVMTypes.java_lang_Object, obj: JVMTypes.java_lang_Object, offset: Long, expected: T, x: T): boolean {
-  var fi = getFieldInfo(thread, obj, offset),
+function unsafeCompareAndSwap<T>(thread: JVMThread, unsafe: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long, expected: T, x: T): boolean {
+  var fi = getFieldInfo(thread, unsafe, obj, offset),
     actual = fi[0][fi[1]];
   if (actual === expected) {
     fi[0][fi[1]] = x;
@@ -43,13 +57,13 @@ function unsafeCompareAndSwap<T>(thread: JVMThread, _this: JVMTypes.java_lang_Ob
   }
 }
 
-function getFromVMIndex<T>(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long): T {
-  var fi = getFieldInfo(thread, obj, offset);
+function getFromVMIndex<T>(thread: JVMThread, unsafe: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long): T {
+  var fi = getFieldInfo(thread, unsafe, obj, offset);
   return fi[0][fi[1]];
 }
 
-function setFromVMIndex<T>(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long, val: T): void {
-  var fi = getFieldInfo(thread, obj, offset);
+function setFromVMIndex<T>(thread: JVMThread, unsafe: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long, val: T): void {
+  var fi = getFieldInfo(thread, unsafe, obj, offset);
   fi[0][fi[1]] = val;
 }
 
@@ -360,6 +374,25 @@ class sun_misc_Unsafe {
         // I have no idea what the appropriate semantics are for this.
         thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
       }
+    } else if (srcBase !== null && destBase === null) {
+      // srcBase is an array, destOffset is an address where the contents of srcBase should be copied.
+      if (util.is_array_type(srcBase.getClass().getInternalName()) && util.is_primitive_type((<ArrayClassData<any>> srcBase.getClass()).getComponentClass().getInternalName())) {
+        var srcArray: JVMTypes.JVMArray<any> = <any> srcBase, i: number;
+        switch (srcArray.getClass().getComponentClass().getInternalName()) {
+          case 'B':
+            for (i = 0; i < length; i++) {
+              heap.set_signed_byte(destAddr + i, srcArray.array[srcAddr + i]);
+            }
+            break;
+          default:
+            // I have no idea what the appropriate semantics are for this.
+            thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+            break;
+        }
+      } else {
+        // I have no idea what the appropriate semantics are for this.
+        thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+      }
     } else {
       // I have no idea what the appropriate semantics are for this.
       thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
@@ -402,8 +435,41 @@ class sun_misc_Unsafe {
     return 0;
   }
 
+  /**
+   * Determines the size of elements in an array.
+   * e.g. if the array index scale of something is *4*, then each element is 4*minimal addressable unit large.
+   * Doppio emulates byte-addressable memory, so a return value of 4 indicates 4 bytes/32-bit large elements.
+   */
   public static 'arrayIndexScale(Ljava/lang/Class;)I'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: JVMTypes.java_lang_Class): number {
-    return 1;
+    var cls = arg0.$cls;
+    if (cls instanceof ArrayClassData) {
+      switch(cls.getComponentClass().getInternalName()[0]) {
+        case 'L':
+        case '[':
+        case 'F':
+        case 'I':
+          // 32-bits
+          return 4;
+        case 'B':
+        case 'Z':
+          // 8 bit
+          return 1;
+        case 'C':
+        case 'S':
+          // 16-bit
+          return 2;
+        case 'D':
+        case 'J':
+          // 64-bit
+          return 8;
+        default:
+          // Erroneous input.
+          return -1;
+      }
+    } else {
+      // Erroneous input.
+      return -1;
+    }
   }
 
   public static 'addressSize()I'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe): number {
@@ -411,7 +477,8 @@ class sun_misc_Unsafe {
   }
 
   public static 'pageSize()I'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe): number {
-    return 1024;
+    // Matches the heap.
+    return 4096;
   }
 
   public static 'defineClass(Ljava/lang/String;[BIILjava/lang/ClassLoader;Ljava/security/ProtectionDomain;)Ljava/lang/Class;'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, name: JVMTypes.java_lang_String, bytes: JVMTypes.JVMArray<number>, offset: number, len: number, loaderObj: JVMTypes.java_lang_ClassLoader, pd: JVMTypes.java_security_ProtectionDomain): void {
@@ -632,23 +699,7 @@ class sun_misc_Version {
 class sun_misc_VM {
 
   public static 'initialize()V'(thread: JVMThread): void {
-    var vmCls = <ReferenceClassData<JVMTypes.sun_misc_VM>> thread.getBsCl().getInitializedClass(thread, 'Lsun/misc/VM;');
-    // this only applies to Java 7
-    if (vmCls.majorVersion < 51) {
-      return;
-    }
-    // Hack: make an empty savedProps
-    var propsCls = <ReferenceClassData<JVMTypes.java_util_Properties>> thread.getBsCl().getInitializedClass(thread, 'Ljava/util/Properties;');
-    var props = new (propsCls.getConstructor(thread))(thread);
-    thread.setStatus(ThreadStatus.ASYNC_WAITING);
-    props['<init>()V'](thread, (e?: JVMTypes.java_lang_Throwable) => {
-      if (e) {
-        thread.throwException(e);
-      } else {
-        (<typeof JVMTypes.sun_misc_VM> vmCls.getConstructor(thread))['sun/misc/VM/savedProps'] = props;
-        thread.asyncReturn();
-      }
-    });
+    return;
   }
 
   /**
@@ -712,5 +763,3 @@ registerNatives({
   'sun/misc/VMSupport': sun_misc_VMSupport,
   'sun/misc/URLClassPath': sun_misc_URLClassPath
 });
-
-//@ sourceURL=natives/sun_misc.js

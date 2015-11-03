@@ -25,8 +25,6 @@ var browserifyConfigFcn = function(bundle: BrowserifyObject) {
   noParse: [
     require.resolve('async')
   ],
-  browserNoActivityTimeout: 30000,
-  browserDisconnectTimeout: 10000,
   debug: true,
   plugin: [
     'tsify'
@@ -72,7 +70,9 @@ transformConfig = function(toRemove: string[]) {
   // start our tests.
   browserify: _.extend({}, browserifyOptions, {
     standalone: undefined
-  })
+  }),
+  browserNoActivityTimeout: 180000,
+  browserDisconnectTimeout: 180000
 };
 
 export function setup(grunt: IGrunt) {
@@ -129,7 +129,7 @@ export function setup(grunt: IGrunt) {
         dest: "includes",
         // The following classes are referenced by DoppioJVM code, but aren't
         // referenced by any JVM classes directly for some reason.
-        force: ['java.lang.ExceptionInInitializerError', 'java.nio.charset.Charset$3', 'java.lang.invoke.MethodHandleNatives$Constants', 'java.lang.reflect.InvocationTargetException', 'java.nio.DirectByteBuffer', 'java.security.PrivilegedActionException']
+        force: ['sun.nio.fs.UnixConstants', 'sun.nio.fs.DefaultFileSystemProvider', 'sun.nio.fs.UnixException', 'java.lang.ExceptionInInitializerError', 'java.nio.charset.Charset$3', 'java.lang.invoke.MethodHandleNatives$Constants', 'java.lang.reflect.InvocationTargetException', 'java.nio.DirectByteBuffer', 'java.security.PrivilegedActionException']
       },
       default: {}
     },
@@ -397,7 +397,8 @@ export function setup(grunt: IGrunt) {
     "merge-source-maps": {
       "build": {
         options: {
-          inlineSources: true
+          inlineSources: true,
+          inlineSourceMap: true
         },
         files: [
           {

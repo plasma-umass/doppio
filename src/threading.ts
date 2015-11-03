@@ -12,6 +12,7 @@ import util = require('./util');
 import ConstantPool = require('./ConstantPool');
 import JVMTypes = require('../includes/JVMTypes');
 import Monitor = require('./Monitor');
+import ThreadStatus = enums.ThreadStatus;
 
 declare var RELEASE: boolean;
 
@@ -109,7 +110,7 @@ export class BytecodeStackFrame implements IStackFrame {
       });
       if (!this.lockedMethodLock) {
         // Failed. Thread is automatically blocked. Return.
-        assert(thread.getStatus() === enums.ThreadStatus.BLOCKED, "Failed to enter a monitor. Thread must be BLOCKED.");
+        assert(thread.getStatus() === ThreadStatus.BLOCKED, "Failed to enter a monitor. Thread must be BLOCKED.");
         return;
       }
     }
@@ -204,7 +205,7 @@ export class BytecodeStackFrame implements IStackFrame {
               }
             });
             debug(`${method.getFullSignature()}: Has to resolve exception classes. Deferring scheduling...`);
-            thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+            thread.setStatus(ThreadStatus.ASYNC_WAITING);
             method.cls.getLoader().resolveClasses(thread, handlerClasses, (classes: { [name: string]: ClassData.ClassData; }) => {
               if (classes !== null) {
                 debug(`${method.getFullSignature()}: Rethrowing exception to handle!`);
@@ -291,7 +292,7 @@ export class NativeStackFrame implements IStackFrame {
     trace(`\nT${thread.getRef()} D${thread.getStackTrace().length} Running ${this.method.getFullSignature()} [Native]:`);
     var rv: any = this.nativeMethod.apply(null, this.method.convertArgs(thread, this.args));
     // Ensure thread is running, and we are the running method.
-    if (thread.getStatus() === enums.ThreadStatus.RUNNING && thread.currentMethod() === this.method) {
+    if (thread.getStatus() === ThreadStatus.RUNNING && thread.currentMethod() === this.method) {
       // Normal native method exit.
       var returnType = this.method.returnType;
       switch (returnType) {
@@ -367,7 +368,7 @@ export class InternalStackFrame implements IStackFrame {
     // Pop myself off of the stack.
     thread.framePop();
     // Pause the thread before returning into native JavaScript code.
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
     if (this.isException) {
       this.cb(this.val);
     } else {
@@ -468,12 +469,13 @@ export class ThreadPool {
         for (i = 0; i < threads.length; i++) {
           // Cycle through the threads, starting at the thread just past the
           // previously-run thread. (Round Robin scheduling algorithm)
+          // Cycle *backwards* so new threads are run only after existing threads.
           iFixed = (this.runningThreadIndex + 1 + i) % threads.length;
           thread = threads[iFixed];
-          if (thread.getStatus() === enums.ThreadStatus.RUNNABLE) {
+          if (thread.getStatus() === ThreadStatus.RUNNABLE) {
             this.runningThread = thread;
             this.runningThreadIndex = iFixed;
-            thread.setStatus(enums.ThreadStatus.RUNNING);
+            thread.setStatus(ThreadStatus.RUNNING);
             break;
           }
         }
@@ -495,15 +497,15 @@ export class ThreadPool {
    * If not, we can terminate execution.
    */
   private anySchedulableThreads(thread: JVMThread): boolean {
-    var i: number, t: JVMThread, status: enums.ThreadStatus;
+    var i: number, t: JVMThread, status: ThreadStatus;
     for (i = 0; i < this.threads.length; i++) {
       t = this.threads[i];
       if (t.getJVMObject()['java/lang/Thread/daemon'] != 0) {
         continue;
       }
       status = t.getStatus();
-      if (status != enums.ThreadStatus.NEW &&
-          status != enums.ThreadStatus.TERMINATED) {
+      if (status != ThreadStatus.NEW &&
+          status != ThreadStatus.TERMINATED) {
         return true;
       }
     }
@@ -548,29 +550,36 @@ export class ThreadPool {
     }
   }
 
+  /**
+   * Called when a thread's status changes.
+   */
+  public statusChange(thread: JVMThread) {
+
+  }
+
   public park(thread: JVMThread): void {
-    if (!this.parkCounts.hasOwnProperty("" + thread.getRef())) {
+    if (!this.parkCounts[thread.getRef()]) {
       this.parkCounts[thread.getRef()] = 0;
     }
 
     if (++this.parkCounts[thread.getRef()] > 0) {
-      thread.setStatus(enums.ThreadStatus.PARKED);
+      thread.setStatus(ThreadStatus.PARKED);
     }
   }
 
   public unpark(thread: JVMThread): void {
-    if (!this.parkCounts.hasOwnProperty("" + thread.getRef())) {
+    if (!this.parkCounts[thread.getRef()]) {
       this.parkCounts[thread.getRef()] = 0;
     }
 
     if (--this.parkCounts[thread.getRef()] <= 0) {
-      thread.setStatus(enums.ThreadStatus.RUNNABLE);
+      thread.setStatus(ThreadStatus.RUNNABLE);
     }
   }
 
   public completelyUnpark(thread: JVMThread): void {
     this.parkCounts[thread.getRef()] = 0;
-    thread.setStatus(enums.ThreadStatus.RUNNABLE);
+    thread.setStatus(ThreadStatus.RUNNABLE);
   }
 
   public isParked(thread: JVMThread): boolean {
@@ -592,7 +601,7 @@ export class JVMThread {
   /**
    * The current state of this thread, from the JVM level.
    */
-  private status: enums.ThreadStatus = enums.ThreadStatus.NEW;
+  private status: ThreadStatus = ThreadStatus.NEW;
 
   /**
    * The call stack.
@@ -634,6 +643,13 @@ export class JVMThread {
    */
   public getJVMObject(): JVMTypes.java_lang_Thread {
     return this.jvmThreadObj;
+  }
+
+  /**
+   * Get the priority of this thread.
+   */
+  public getPriority(): number {
+    return this.jvmThreadObj ? this.jvmThreadObj['java/lang/Thread/priority'] : 5;
   }
 
   /**
@@ -751,7 +767,7 @@ export class JVMThread {
 
     // Reset counter. Threads always start from a fresh stack / yield.
     methodResumesLeft = maxMethodResumes;
-    while (this.status === enums.ThreadStatus.RUNNING && stack.length > 0) {
+    while (this.status === ThreadStatus.RUNNING && stack.length > 0) {
       if (typeof RELEASE === 'undefined') {
         var sf = stack[stack.length - 1];
         if (sf.type === enums.StackFrameType.BYTECODE && this.tpool.getJVM().shouldVtrace((<BytecodeStackFrame> sf).method.fullSignature)) {
@@ -776,17 +792,17 @@ export class JVMThread {
         // If we're still scheduled to run, yield to the browser loop.
         // (Otherwise, we're going to yield anyway, and something else is
         // responsible for resuming us.)
-        if (this.status === enums.ThreadStatus.RUNNING) {
+        if (this.status === ThreadStatus.RUNNING) {
           // Yield.
-          this.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-          setImmediate(() => { this.setStatus(enums.ThreadStatus.RUNNABLE); });
+          this.setStatus(ThreadStatus.ASYNC_WAITING);
+          setImmediate(() => { this.setStatus(ThreadStatus.RUNNABLE); });
         }
       }
     }
 
     if (stack.length === 0) {
       // This thread has finished!
-      this.setStatus(enums.ThreadStatus.TERMINATED);
+      this.setStatus(ThreadStatus.TERMINATED);
     }
   }
 
@@ -795,23 +811,23 @@ export class JVMThread {
    */
   private sanityCheck(): boolean {
     switch (this.status) {
-      case enums.ThreadStatus.NEW:
+      case ThreadStatus.NEW:
         return true;
-      case enums.ThreadStatus.RUNNING:
+      case ThreadStatus.RUNNING:
         return this.stack.length > 0;
-      case enums.ThreadStatus.RUNNABLE:
+      case ThreadStatus.RUNNABLE:
         return this.stack.length > 0;
-      case enums.ThreadStatus.TIMED_WAITING:
+      case ThreadStatus.TIMED_WAITING:
         return this.monitor != null && this.monitor.isTimedWaiting(this);
-      case enums.ThreadStatus.WAITING:
+      case ThreadStatus.WAITING:
         return this.monitor != null && this.monitor.isWaiting(this);
-      case enums.ThreadStatus.BLOCKED:
+      case ThreadStatus.BLOCKED:
         return this.monitor != null && this.monitor.isBlocked(this);
-      case enums.ThreadStatus.ASYNC_WAITING:
+      case ThreadStatus.ASYNC_WAITING:
         return true;
-      case enums.ThreadStatus.TERMINATED:
+      case ThreadStatus.TERMINATED:
         return true;
-      case enums.ThreadStatus.PARKED:
+      case ThreadStatus.PARKED:
         return this.getThreadPool().isParked(this);
       default:
         // Invalid ThreadStatus.
@@ -823,32 +839,32 @@ export class JVMThread {
    * Should only be called by setStatus.
    * Updates both the JVMThread object and this object.
    */
-  private rawSetStatus(newStatus: enums.ThreadStatus): void {
+  private rawSetStatus(newStatus: ThreadStatus): void {
     var jvmNewStatus: number = 0;
     this.status = newStatus;
     // Map our status value back to JVM's threadStatus value.
     // Ensures that JVM code can introspect on our threads.
     switch (newStatus) {
-      case enums.ThreadStatus.NEW:
+      case ThreadStatus.NEW:
         jvmNewStatus |= enums.JVMTIThreadState.ALIVE;
         break;
-      case enums.ThreadStatus.RUNNING:
-      case enums.ThreadStatus.RUNNABLE:
+      case ThreadStatus.RUNNING:
+      case ThreadStatus.RUNNABLE:
         jvmNewStatus |= enums.JVMTIThreadState.RUNNABLE;
         break;
-      case enums.ThreadStatus.BLOCKED:
-      case enums.ThreadStatus.UNINTERRUPTABLY_BLOCKED:
+      case ThreadStatus.BLOCKED:
+      case ThreadStatus.UNINTERRUPTABLY_BLOCKED:
         jvmNewStatus |= enums.JVMTIThreadState.BLOCKED_ON_MONITOR_ENTER;
         break;
-      case enums.ThreadStatus.WAITING:
-      case enums.ThreadStatus.ASYNC_WAITING:
-      case enums.ThreadStatus.PARKED:
+      case ThreadStatus.WAITING:
+      case ThreadStatus.ASYNC_WAITING:
+      case ThreadStatus.PARKED:
         jvmNewStatus |= enums.JVMTIThreadState.WAITING_INDEFINITELY;
         break;
-      case enums.ThreadStatus.TIMED_WAITING:
+      case ThreadStatus.TIMED_WAITING:
         jvmNewStatus |= enums.JVMTIThreadState.WAITING_WITH_TIMEOUT;
         break;
-      case enums.ThreadStatus.TERMINATED:
+      case ThreadStatus.TERMINATED:
         jvmNewStatus |= enums.JVMTIThreadState.TERMINATED;
         break;
       default:
@@ -862,23 +878,23 @@ export class JVMThread {
   /**
    * Transitions the thread from one state to the next.
    */
-  public setStatus(status: enums.ThreadStatus, monitor?: Monitor): void {
+  public setStatus(status: ThreadStatus, monitor?: Monitor): void {
     function invalidTransition() {
-      throw new Error(`Invalid state transition: ${enums.ThreadStatus[oldStatus]} => ${enums.ThreadStatus[status]}`);
+      throw new Error(`Invalid state transition: ${ThreadStatus[oldStatus]} => ${ThreadStatus[status]}`);
     }
 
     // Ignore RUNNING => RUNNABLE transitions.
-    if (this.status !== status && !(this.status === enums.ThreadStatus.RUNNING && status === enums.ThreadStatus.RUNNABLE)) {
+    if (this.status !== status && !(this.status === ThreadStatus.RUNNING && status === ThreadStatus.RUNNABLE)) {
       var oldStatus = this.status;
       // Prevent termination if immortal.
-      if (this.immortal && status === enums.ThreadStatus.TERMINATED) {
+      if (this.immortal && status === ThreadStatus.TERMINATED) {
         return;
       }
 
       if (logging.log_level === logging.VTRACE) {
-        vtrace(`\nT${this.getRef()} ${enums.ThreadStatus[oldStatus]} => ${enums.ThreadStatus[status]}`);
+        vtrace(`\nT${this.getRef()} ${ThreadStatus[oldStatus]} => ${ThreadStatus[status]}`);
       }
-      assert(validateThreadTransition(oldStatus, status), `Invalid thread transition: ${enums.ThreadStatus[oldStatus]} => ${enums.ThreadStatus[status]}`);
+      assert(validateThreadTransition(oldStatus, status), `Invalid thread transition: ${ThreadStatus[oldStatus]} => ${ThreadStatus[status]}`);
 
       // Optimistically change state.
       this.rawSetStatus(status);
@@ -886,11 +902,11 @@ export class JVMThread {
 
       /* Pre-transition actions */
       switch (oldStatus) {
-        case enums.ThreadStatus.TERMINATED:
+        case ThreadStatus.TERMINATED:
           // Resurrect thread.
           this.tpool.resurrectThread(this);
           break;
-        case enums.ThreadStatus.PARKED:
+        case ThreadStatus.PARKED:
           // XXX: Return from sun.misc.Unsafe.park
           this.asyncReturn();
           break;
@@ -898,21 +914,21 @@ export class JVMThread {
 
       /* Post-transition actions */
       switch (this.status) {
-        case enums.ThreadStatus.RUNNABLE:
+        case ThreadStatus.RUNNABLE:
           // Tell the threadpool we're ready to run.
           this.tpool.threadRunnable(this);
           break;
-        case enums.ThreadStatus.RUNNING:
+        case ThreadStatus.RUNNING:
           // I'm scheduled to run!
           this.run();
           break;
-        case enums.ThreadStatus.TERMINATED:
+        case ThreadStatus.TERMINATED:
           this.exit();
           break;
-        case enums.ThreadStatus.BLOCKED:
-        case enums.ThreadStatus.UNINTERRUPTABLY_BLOCKED:
-        case enums.ThreadStatus.WAITING:
-        case enums.ThreadStatus.TIMED_WAITING:
+        case ThreadStatus.BLOCKED:
+        case ThreadStatus.UNINTERRUPTABLY_BLOCKED:
+        case ThreadStatus.WAITING:
+        case ThreadStatus.TIMED_WAITING:
           assert(monitor != null);
           this.monitor = monitor;
           // FALL-THROUGH
@@ -934,13 +950,13 @@ export class JVMThread {
         // Exit monitor.
         monitor.exit(this);
         // Become terminated before the other threads start running.
-        this.rawSetStatus(enums.ThreadStatus.TERMINATED);
+        this.rawSetStatus(ThreadStatus.TERMINATED);
         // Remove ourselves from the thread pool.
         this.tpool.threadTerminated(this);
       };
 
     // Revert our status to ASYNC_WAITING so we can acquire a monitor.
-    this.rawSetStatus(enums.ThreadStatus.ASYNC_WAITING);
+    this.rawSetStatus(ThreadStatus.ASYNC_WAITING);
 
     // Acquire the monitor associated with our JavaObject.
     if (monitor.enter(this, phase2)) {
@@ -958,7 +974,7 @@ export class JVMThread {
   /**
    * Get the thread's current state.
    */
-  public getStatus(): enums.ThreadStatus {
+  public getStatus(): ThreadStatus {
     return this.status;
   }
 
@@ -980,7 +996,7 @@ export class JVMThread {
   public asyncReturn(rv: gLong, rv2: any): void;
   public asyncReturn(rv?: any, rv2?: any): void {
     var stack = this.stack;
-    assert(this.status === enums.ThreadStatus.RUNNING || this.status === enums.ThreadStatus.RUNNABLE || this.status === enums.ThreadStatus.ASYNC_WAITING);
+    assert(this.status === ThreadStatus.RUNNING || this.status === ThreadStatus.RUNNABLE || this.status === ThreadStatus.ASYNC_WAITING);
     assert(typeof (rv) !== 'boolean' && rv2 == null);
     // Pop off the current method.
     var frame = stack.pop();
@@ -1005,7 +1021,7 @@ export class JVMThread {
     }
 
     // Thread state transition.
-    this.setStatus(enums.ThreadStatus.RUNNABLE);
+    this.setStatus(ThreadStatus.RUNNABLE);
   }
 
   /**
@@ -1033,8 +1049,8 @@ export class JVMThread {
    * It is not valid to call this method if the thread is in any other state.
    */
   public throwException(exception: JVMTypes.java_lang_Throwable): void {
-    assert(this.status === enums.ThreadStatus.RUNNING || this.status === enums.ThreadStatus.RUNNABLE || this.status === enums.ThreadStatus.ASYNC_WAITING,
-      `Tried to throw exception while thread was in state ${enums.ThreadStatus[this.status]}`);
+    assert(this.status === ThreadStatus.RUNNING || this.status === ThreadStatus.RUNNABLE || this.status === ThreadStatus.ASYNC_WAITING,
+      `Tried to throw exception while thread was in state ${ThreadStatus[this.status]}`);
     var stack = this.stack, idx: number = stack.length - 1;
 
     // Stack may actually be empty, so guard against this.
@@ -1048,7 +1064,7 @@ export class JVMThread {
       // Find a stack frame that can handle the exception.
       // Set our status *before* scheduling the exception. Some exception handlers
       // may want to do something asynchronous before resuming execution.
-      this.setStatus(enums.ThreadStatus.RUNNABLE);
+      this.setStatus(ThreadStatus.RUNNABLE);
       while (stack.length > 0 && !stack[idx].scheduleException(this, exception)) {
         stack.pop();
         idx--;
@@ -1087,7 +1103,7 @@ export class JVMThread {
       throwException();
     } else {
       // Initialization required.
-      this.setStatus(enums.ThreadStatus.ASYNC_WAITING);
+      this.setStatus(ThreadStatus.ASYNC_WAITING);
       this.bsCl.initializeClass(this, clsName, (cdata: ClassData.ReferenceClassData<T>) => {
         if (cdata != null) {
           cls = cdata;
@@ -1111,45 +1127,45 @@ export class JVMThread {
  * @todo Move into 'debug' module that we NOP out in release builds.
  */
 export var validTransitions: { [oldStatus: number]: { [newStatus: number]: string } } = {};
-validTransitions[enums.ThreadStatus.NEW] = {};
-validTransitions[enums.ThreadStatus.NEW][enums.ThreadStatus.RUNNABLE] = "RunMethod invoked on new thread";
-validTransitions[enums.ThreadStatus.NEW][enums.ThreadStatus.ASYNC_WAITING] = "[JVM bootup only] Internal operation occurs on new thread";
-validTransitions[enums.ThreadStatus.NEW][enums.ThreadStatus.TERMINATED] = "[JVM halt0 only] When the JVM shuts down, it terminates all threads, including those that have never been run.";
-validTransitions[enums.ThreadStatus.ASYNC_WAITING] = {};
-validTransitions[enums.ThreadStatus.ASYNC_WAITING][enums.ThreadStatus.RUNNABLE] = "Async operation completes";
-validTransitions[enums.ThreadStatus.ASYNC_WAITING][enums.ThreadStatus.TERMINATED] = "RunMethod completes and callstack is empty";
-validTransitions[enums.ThreadStatus.BLOCKED] = {};
-validTransitions[enums.ThreadStatus.BLOCKED][enums.ThreadStatus.RUNNABLE] = "Acquires monitor, or is interrupted";
-validTransitions[enums.ThreadStatus.PARKED] = {};
-validTransitions[enums.ThreadStatus.PARKED][enums.ThreadStatus.RUNNABLE] = "Balancing unpark, or is interrupted";
-validTransitions[enums.ThreadStatus.RUNNABLE] = {};
-validTransitions[enums.ThreadStatus.RUNNABLE][enums.ThreadStatus.RUNNING] = "Scheduled to run";
-validTransitions[enums.ThreadStatus.RUNNABLE][enums.ThreadStatus.ASYNC_WAITING] = "Scheduled to run thread performs an asynchronous JavaScript operation";
-validTransitions[enums.ThreadStatus.RUNNING] = {};
-validTransitions[enums.ThreadStatus.RUNNING][enums.ThreadStatus.RUNNABLE] = "[Ignored transition; stays RUNNING]";
-validTransitions[enums.ThreadStatus.RUNNING][enums.ThreadStatus.ASYNC_WAITING] = "Thread performs an asynchronous JavaScript operation";
-validTransitions[enums.ThreadStatus.RUNNING][enums.ThreadStatus.TERMINATED] = "Callstack is empty";
-validTransitions[enums.ThreadStatus.RUNNING][enums.ThreadStatus.BLOCKED] = "Thread waits to acquire monitor";
-validTransitions[enums.ThreadStatus.RUNNING][enums.ThreadStatus.WAITING] = "Thread waits on monitor (Object.wait)";
-validTransitions[enums.ThreadStatus.RUNNING][enums.ThreadStatus.TIMED_WAITING] = "Thread waits on monitor with timeout (Object.wait)";
-validTransitions[enums.ThreadStatus.RUNNING][enums.ThreadStatus.PARKED] = "Thread parks itself";
-validTransitions[enums.ThreadStatus.TERMINATED] = {};
-validTransitions[enums.ThreadStatus.TERMINATED][enums.ThreadStatus.NEW] = "Thread is resurrected for re-use";
-validTransitions[enums.ThreadStatus.TERMINATED][enums.ThreadStatus.RUNNABLE] = "Thread is resurrected for re-use";
-validTransitions[enums.ThreadStatus.TERMINATED][enums.ThreadStatus.ASYNC_WAITING] = "[JVM Bootup] Thread is resurrected for internal operation";
-validTransitions[enums.ThreadStatus.TIMED_WAITING] = {};
-validTransitions[enums.ThreadStatus.TIMED_WAITING][enums.ThreadStatus.RUNNABLE] = "Timer expires, or thread is interrupted, and thread immediately acquires lock";
-validTransitions[enums.ThreadStatus.TIMED_WAITING][enums.ThreadStatus.UNINTERRUPTABLY_BLOCKED] = "Thread is interrupted or notified, or timer expires, and lock already owned";
-validTransitions[enums.ThreadStatus.UNINTERRUPTABLY_BLOCKED] = {};
-validTransitions[enums.ThreadStatus.UNINTERRUPTABLY_BLOCKED][enums.ThreadStatus.RUNNABLE] = "Thread acquires monitor";
-validTransitions[enums.ThreadStatus.WAITING] = {};
-validTransitions[enums.ThreadStatus.WAITING][enums.ThreadStatus.RUNNABLE] = "Thread is interrupted, and immediately acquires lock";
-validTransitions[enums.ThreadStatus.WAITING][enums.ThreadStatus.UNINTERRUPTABLY_BLOCKED] = "Thread is notified or interrupted, and does not immediately acquire lock";
+validTransitions[ThreadStatus.NEW] = {};
+validTransitions[ThreadStatus.NEW][ThreadStatus.RUNNABLE] = "RunMethod invoked on new thread";
+validTransitions[ThreadStatus.NEW][ThreadStatus.ASYNC_WAITING] = "[JVM bootup only] Internal operation occurs on new thread";
+validTransitions[ThreadStatus.NEW][ThreadStatus.TERMINATED] = "[JVM halt0 only] When the JVM shuts down, it terminates all threads, including those that have never been run.";
+validTransitions[ThreadStatus.ASYNC_WAITING] = {};
+validTransitions[ThreadStatus.ASYNC_WAITING][ThreadStatus.RUNNABLE] = "Async operation completes";
+validTransitions[ThreadStatus.ASYNC_WAITING][ThreadStatus.TERMINATED] = "RunMethod completes and callstack is empty";
+validTransitions[ThreadStatus.BLOCKED] = {};
+validTransitions[ThreadStatus.BLOCKED][ThreadStatus.RUNNABLE] = "Acquires monitor, or is interrupted";
+validTransitions[ThreadStatus.PARKED] = {};
+validTransitions[ThreadStatus.PARKED][ThreadStatus.RUNNABLE] = "Balancing unpark, or is interrupted";
+validTransitions[ThreadStatus.RUNNABLE] = {};
+validTransitions[ThreadStatus.RUNNABLE][ThreadStatus.RUNNING] = "Scheduled to run";
+validTransitions[ThreadStatus.RUNNABLE][ThreadStatus.ASYNC_WAITING] = "Scheduled to run thread performs an asynchronous JavaScript operation";
+validTransitions[ThreadStatus.RUNNING] = {};
+validTransitions[ThreadStatus.RUNNING][ThreadStatus.RUNNABLE] = "[Ignored transition; stays RUNNING]";
+validTransitions[ThreadStatus.RUNNING][ThreadStatus.ASYNC_WAITING] = "Thread performs an asynchronous JavaScript operation";
+validTransitions[ThreadStatus.RUNNING][ThreadStatus.TERMINATED] = "Callstack is empty";
+validTransitions[ThreadStatus.RUNNING][ThreadStatus.BLOCKED] = "Thread waits to acquire monitor";
+validTransitions[ThreadStatus.RUNNING][ThreadStatus.WAITING] = "Thread waits on monitor (Object.wait)";
+validTransitions[ThreadStatus.RUNNING][ThreadStatus.TIMED_WAITING] = "Thread waits on monitor with timeout (Object.wait)";
+validTransitions[ThreadStatus.RUNNING][ThreadStatus.PARKED] = "Thread parks itself";
+validTransitions[ThreadStatus.TERMINATED] = {};
+validTransitions[ThreadStatus.TERMINATED][ThreadStatus.NEW] = "Thread is resurrected for re-use";
+validTransitions[ThreadStatus.TERMINATED][ThreadStatus.RUNNABLE] = "Thread is resurrected for re-use";
+validTransitions[ThreadStatus.TERMINATED][ThreadStatus.ASYNC_WAITING] = "[JVM Bootup] Thread is resurrected for internal operation";
+validTransitions[ThreadStatus.TIMED_WAITING] = {};
+validTransitions[ThreadStatus.TIMED_WAITING][ThreadStatus.RUNNABLE] = "Timer expires, or thread is interrupted, and thread immediately acquires lock";
+validTransitions[ThreadStatus.TIMED_WAITING][ThreadStatus.UNINTERRUPTABLY_BLOCKED] = "Thread is interrupted or notified, or timer expires, and lock already owned";
+validTransitions[ThreadStatus.UNINTERRUPTABLY_BLOCKED] = {};
+validTransitions[ThreadStatus.UNINTERRUPTABLY_BLOCKED][ThreadStatus.RUNNABLE] = "Thread acquires monitor";
+validTransitions[ThreadStatus.WAITING] = {};
+validTransitions[ThreadStatus.WAITING][ThreadStatus.RUNNABLE] = "Thread is interrupted, and immediately acquires lock";
+validTransitions[ThreadStatus.WAITING][ThreadStatus.UNINTERRUPTABLY_BLOCKED] = "Thread is notified or interrupted, and does not immediately acquire lock";
 
 /**
  * [DEBUG] Ensures that a thread transition is legal.
  */
-function validateThreadTransition(oldStatus: enums.ThreadStatus, newStatus: enums.ThreadStatus): boolean {
+function validateThreadTransition(oldStatus: ThreadStatus, newStatus: ThreadStatus): boolean {
   var rv = validTransitions.hasOwnProperty("" + oldStatus) &&
     validTransitions[oldStatus].hasOwnProperty("" + newStatus);
   return rv;

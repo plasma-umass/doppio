@@ -50,5 +50,3 @@ registerNatives({
   'classes/doppio/Debug': classes_doppio_Debug,
   'classes/doppio/JavaScript': classes_doppio_JavaScript
 });
-
-//@ sourceURL=natives/classes_doppio.js

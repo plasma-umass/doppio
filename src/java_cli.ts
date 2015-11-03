@@ -36,11 +36,6 @@ function setupOptparse() {
         description: 'specify particular methods to vtrace separated by colons, e.g. java/lang/Object/getHashCode()I:java/lang/String/charAt(I)C',
         has_value: true
       },
-      'count-logs': { description: 'count log messages instead of printing them' },
-      'skip-logs': {
-        description: 'number of log messages to skip before printing',
-        has_value: true
-      },
       'list-class-cache': { description: 'list all of the loaded classes after execution' },
       'show-nyi-natives': { description: 'list any NYI native functions in loaded classes' },
       'dump-state': { description: 'write a "core dump" on unusual termination' },
@@ -123,36 +118,6 @@ function java(args: string[], opts: JVMCLIOptions,
           process.stdout.write(fpaths.join('\n') + '\n');
           old_done_cb(result);
         });
-      };
-    })(done_cb);
-  } else if (argv.non_standard['count-logs']) {
-    // Redefine done_cb so we print the number of times `console.log` was called on
-    // JVM exit.
-    done_cb = ((old_done_cb: (result: boolean) => void): (result: boolean) => void => {
-      var count = 0,
-        old_log = console.log,
-        new_log = function () { ++count; };
-      console.log = new_log;
-      return function(result: boolean): void {
-        console.log = old_log;
-        process.stdout.write("console.log was called a total of " + count + " times.");
-        old_done_cb(result);
-      };
-    })(done_cb);
-  } else if (argv.non_standard['skip-logs'] != null) {
-    // avoid generating unnecessary log data
-    done_cb = ((old_done_cb: (result: boolean) => void): (result: boolean) => void => {
-      var count = parseInt(argv.non_standard['skip-logs'], 10),
-          old_log = console.log;
-      console.log = function () {
-        if (--count === 0) {
-          console.log = old_log;
-        }
-      };
-      return (result: boolean): void => {
-        // Ensure we replace log, even if count didn't decrement to 0.
-        console.log = old_log;
-        old_done_cb(result);
       };
     })(done_cb);
   } else if (argv.non_standard['benchmark']) {

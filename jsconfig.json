@@ -1,5 +1,3 @@
 {
-    // Tell Visual Studio Code to *not* process JS files.
-    // Otherwise, it decides to dive into node_modules and tax the CPU.
     "files": []
 }
