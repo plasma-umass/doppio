@@ -114,7 +114,7 @@ class sun_misc_Perf {
     thread.getBsCl().initializeClass(thread, 'Ljava/nio/DirectByteBuffer;', (cdata: ReferenceClassData<JVMTypes.java_nio_DirectByteBuffer>) => {
       if (cdata !== null) {
         var buff = new (cdata.getConstructor(thread))(thread),
-          heap = thread.getThreadPool().getJVM().getHeap(),
+          heap = thread.getJVM().getHeap(),
           addr = heap.malloc(8);
         buff['<init>(JI)V'](thread, [Long.fromNumber(addr), null, 8], (e?: JVMTypes.java_lang_Throwable) => {
           if (e) {
@@ -203,12 +203,12 @@ class sun_misc_Unsafe {
   public static 'putDouble(Ljava/lang/Object;JD)V': (thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, obj: JVMTypes.java_lang_Object, offset: Long, newValue: number) => void = setFromVMIndex;
 
   public static 'getByte(J)B'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, address: Long): number {
-    var heap = thread.getThreadPool().getJVM().getHeap();
+    var heap = thread.getJVM().getHeap();
     return heap.get_signed_byte(address.toNumber());
   }
 
   public static 'putByte(JB)V'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, address: Long, val: number): void {
-    var heap = thread.getThreadPool().getJVM().getHeap();
+    var heap = thread.getJVM().getHeap();
     heap.set_signed_byte(address.toNumber(), val);
   }
 
@@ -243,13 +243,13 @@ class sun_misc_Unsafe {
   }
 
   public static 'getLong(J)J'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, address: Long): Long {
-    var heap = thread.getThreadPool().getJVM().getHeap(),
+    var heap = thread.getJVM().getHeap(),
      addr = address.toNumber();
     return new Long(heap.get_word(addr), heap.get_word(addr + 4));
   }
 
   public static 'putLong(JJ)V'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, address: Long, value: Long): void {
-    var heap = thread.getThreadPool().getJVM().getHeap(),
+    var heap = thread.getJVM().getHeap(),
       addr = address.toNumber();
 
     // LE
@@ -288,7 +288,7 @@ class sun_misc_Unsafe {
   }
 
   public static 'allocateMemory(J)J'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, size: Long): Long {
-    var heap = thread.getThreadPool().getJVM().getHeap();
+    var heap = thread.getJVM().getHeap();
     return Long.fromNumber(heap.malloc(size.toNumber()));
   }
 
@@ -303,7 +303,7 @@ class sun_misc_Unsafe {
       // Address is absolute.
       var i: number, addr = address.toNumber(),
         bytesNum: number = bytes.toNumber(),
-        heap = thread.getThreadPool().getJVM().getHeap();
+        heap = thread.getJVM().getHeap();
       for (i = 0; i < bytesNum; i++) {
         heap.set_signed_byte(addr + i, value);
       }
@@ -333,7 +333,7 @@ class sun_misc_Unsafe {
    * @since 1.7
    */
   public static 'copyMemory(Ljava/lang/Object;JLjava/lang/Object;JJ)V'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, srcBase: JVMTypes.java_lang_Object, srcOffset: Long, destBase: JVMTypes.java_lang_Object, destOffset: Long, bytes: Long): void {
-    var heap = thread.getThreadPool().getJVM().getHeap(),
+    var heap = thread.getJVM().getHeap(),
       srcAddr = srcOffset.toNumber(),
       destAddr = destOffset.toNumber(),
       length = bytes.toNumber();
@@ -400,7 +400,7 @@ class sun_misc_Unsafe {
   }
 
   public static 'freeMemory(J)V'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, address: Long): void {
-    var heap = thread.getThreadPool().getJVM().getHeap();
+    var heap = thread.getJVM().getHeap();
     heap.free(address.toNumber());
   }
 
@@ -568,7 +568,7 @@ class sun_misc_Unsafe {
    * the subsequent call to park not to block.
    */
   public static 'unpark(Ljava/lang/Object;)V'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, theThread: JVMTypes.java_lang_Thread): void {
-    theThread.$thread.getThreadPool().unpark(theThread.$thread);
+    thread.getJVM().getParker().unpark(theThread.$thread);
   }
 
   /**
@@ -579,7 +579,7 @@ class sun_misc_Unsafe {
    * has passed, or spuriously (i.e., returning for no "reason").
    */
   public static 'park(ZJ)V'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, absolute: number, time: Long): void {
-    var timeout = Infinity;
+    var timeout = Infinity, parker = thread.getJVM().getParker();
     if (absolute) {
       // Time is an absolute time (milliseconds since Epoch).
       // Calculate the timeout from the current time.
@@ -595,15 +595,19 @@ class sun_misc_Unsafe {
         timeout = time.toNumber() / 1000000;
       }
     }
-    thread.getThreadPool().park(thread);
-    // @todo Cancel timeout if thread is unparked.
-    if (timeout !== Infinity && thread.getThreadPool().isParked(thread)) {
-      setTimeout(() => {
-        if (thread.getThreadPool().isParked(thread)) {
-          thread.getThreadPool().completelyUnpark(thread);
-        }
+
+    // Typed as any due to type discrepency between browser and node.
+    var timer: any;
+    if (timeout !== Infinity) {
+      timer = setTimeout(() => {
+        parker.completelyUnpark(thread);
       }, timeout);
     }
+
+    parker.park(thread, () => {
+      clearTimeout(timer);
+      thread.asyncReturn();
+    });
   }
 
   public static 'getLoadAverage([DI)I'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, arg0: JVMTypes.JVMArray<number>, arg1: number): number {

@@ -88,7 +88,7 @@ class sun_nio_ch_FileDispatcherImpl {
       if (err) {
         thread.throwNewException("Ljava/io/IOException;", 'Error reading file: ' + err);
       } else {
-        var i: number, heap = thread.getThreadPool().getJVM().getHeap();
+        var i: number, heap = thread.getJVM().getHeap();
         for (i = 0; i < bytesRead; i++) {
           heap.set_byte(addr + i, buf.readUInt8(i));
         }
@@ -152,7 +152,7 @@ var dirMap = new FDMap<DirFd>(),
   fileMap = new FDMap<number>();
 
 function getStringFromHeap(thread: JVMThread, ptrLong: Long): string {
-  var heap = thread.getThreadPool().getJVM().getHeap(),
+  var heap = thread.getJVM().getHeap(),
       ptr = ptrLong.toNumber(),
       len = 0;
   while (heap.get_signed_byte(ptr + len) !== 0) {

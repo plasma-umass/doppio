@@ -86,7 +86,7 @@ class java_net_Inet4Address {
 class java_net_Inet4AddressImpl {
 
   public static 'getLocalHostName()Ljava/lang/String;'(thread: JVMThread, javaThis: JVMTypes.java_net_Inet4AddressImpl): JVMTypes.java_lang_String {
-    return thread.getThreadPool().getJVM().internString('localhost');
+    return thread.getJVM().internString('localhost');
   }
 
   public static 'lookupAllHostAddr(Ljava/lang/String;)[Ljava/net/InetAddress;'(thread: JVMThread, javaThis: JVMTypes.java_net_Inet4AddressImpl, hostname: JVMTypes.java_lang_String): void {
@@ -328,7 +328,7 @@ class java_net_NetworkInterface {
       if (niCls !== null) {
         bsCl.initializeClass(thread, 'Ljava/net/InetAddress;', (inetCls: ReferenceClassData<JVMTypes.java_net_InetAddress>) => {
           if (inetCls !== null) {
-            var iName = thread.getThreadPool().getJVM().internString('doppio1'),
+            var iName = thread.getJVM().internString('doppio1'),
               inetStatics = <typeof JVMTypes.java_net_InetAddress> (inetCls.getConstructor(thread));
             inetStatics['getByAddress(Ljava/lang/String;[B)Ljava/net/InetAddress;'](thread,
               [iName, util.newArrayFromData<number>(thread, thread.getBsCl(), '[B', [127,1,1,1])], (e?: JVMTypes.java_lang_Throwable, rv?: JVMTypes.java_net_InetAddress) => {

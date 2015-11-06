@@ -7,6 +7,7 @@ import logging = Doppio.Debug.Logging;
 import util = Doppio.VM.Util;
 import ThreadStatus = Doppio.VM.Enums.ThreadStatus;
 import Long = Doppio.VM.Long;
+import assert = Doppio.Debug.Assert;
 import JVMTypes = require('../../includes/JVMTypes');
 declare var registerNatives: (defs: any) => void;
 
@@ -290,12 +291,12 @@ class java_io_FileOutputStream {
       } else if (fd === 2) {
         process.stderr.write(output);
       }
-      if (util.are_in_browser()) {
-        // For the browser implementation -- the DOM doesn't get repainted
-        // unless we give the event loop a chance to spin.
-        thread.setStatus(ThreadStatus.ASYNC_WAITING);
-        setImmediate(() => thread.asyncReturn());
-      }
+      // For the browser implementation -- the DOM doesn't get repainted
+      // unless we give the event loop a chance to spin.
+      thread.setStatus(ThreadStatus.ASYNC_WAITING);
+      setImmediate(() => {
+        thread.asyncReturn();
+      });
     }
   }
 
@@ -410,7 +411,7 @@ class java_io_RandomAccessFile {
     fs.read(fd, buf, 0, 1, fdObj.$pos, function (err, bytesRead) {
       var i: number;
       if (err != null) {
-        thread.throwNewException('Ljava/io/IOException;', 'Erorr reading file: ' + err);
+        thread.throwNewException('Ljava/io/IOException;', 'Error reading file: ' + err);
       } else {
         fdObj.$pos += bytesRead;
         // Read as uint, since return value is unsigned.
@@ -425,11 +426,10 @@ class java_io_RandomAccessFile {
       buf = new Buffer(len);
     thread.setStatus(ThreadStatus.ASYNC_WAITING);
     fs.read(fd, buf, 0, len, fdObj.$pos, function (err, bytesRead) {
-      var i: number;
-      if (err != null) {
-        thread.throwNewException('Ljava/io/IOException;', 'Erorr reading file: ' + err);
+      if (err) {
+        thread.throwNewException('Ljava/io/IOException;', 'Error reading file: ' + err);
       } else {
-        for (i = 0; i < bytesRead; i++) {
+        for (let i = 0; i < bytesRead; i++) {
           byte_arr.array[offset + i] = buf.readInt8(i);
         }
         fdObj.$pos += bytesRead;
@@ -439,13 +439,15 @@ class java_io_RandomAccessFile {
   }
 
   public static 'write0(I)V'(thread: JVMThread, javaThis: JVMTypes.java_io_RandomAccessFile, value: number): void {
-    var fdObj = javaThis["java/io/RandomAccessFile/fd"];
-    var fd = fdObj["java/io/FileDescriptor/fd"];
+    let fdObj = javaThis["java/io/RandomAccessFile/fd"];
+    let fd = fdObj["java/io/FileDescriptor/fd"];
+    let data = new Buffer(1);
+    data.writeInt8(value, 0);
 
     thread.setStatus(ThreadStatus.ASYNC_WAITING);
-    fs.write(fd, String.fromCharCode(value), fdObj.$pos, (err, numBytes) => {
-      if (err != null) {
-        thread.throwNewException('Ljava/io/IOException;', 'Erorr reading file: ' + err);
+    fs.write(fd, data, 0, 1, fdObj.$pos, (err, numBytes) => {
+      if (err) {
+        thread.throwNewException('Ljava/io/IOException;', 'Error reading file: ' + err);
       }
 
       fdObj.$pos += numBytes;

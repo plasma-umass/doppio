@@ -3,7 +3,6 @@ import testing = require('../src/testing');
 import os = require('os');
 import fs = require('fs');
 import path = require('path');
-import domain = require('domain');
 
 // Makes our stack traces point to the TypeScript source code lines.
 require('source-map-support').install({
@@ -41,12 +40,12 @@ function makefileTest(argv: any): void {
   opts.testClasses = argv._;
 
   // Enter a domain so we are robust to uncaught errors.
-  var d = domain.create(), errCallback: (err: any) => void = null;
+  var errCallback: (err: any) => void = null;
   function finish(err?: testing.TestingError) {
     // Print out the status of this test.
     process.stdout.write(err ? failChar : passChar);
     if (err) {
-      var buff = new Buffer(`${err.message}\n`);
+      var buff = new Buffer(`\n${err.message}\n`);
       fs.appendFileSync(failpath, buff, {
         flag: 'a'
       });
@@ -55,17 +54,22 @@ function makefileTest(argv: any): void {
     process.exit(err ? 1 : 0);
   }
 
-  d.on('error', (err: any) => {
+  // This handler should not run when the test exits normally (process.exit() in finish handler circumvents it).
+  process.on('beforeExit', () => {
+    if (errCallback) {
+      errCallback(new Error('Finish callback never triggered.'));
+    }
+  });
+
+  process.on('uncaughtException', (err: any) => {
     if (errCallback) {
       errCallback(err);
     }
   });
 
-  d.run(() => {
-    testing.runTests(opts, true, keepGoing, false, (cb: (err: Error) => void) => {
-      errCallback = cb;
-    }, finish);
-  });
+  testing.runTests(opts, true, keepGoing, false, (cb: (err: Error) => void) => {
+    errCallback = cb;
+  }, finish);
 }
 
 function regularTest(argv: any): void {
@@ -77,22 +81,25 @@ function regularTest(argv: any): void {
   opts.testClasses = argv._;
 
   var stdoutW = process.stdout.write,
-    stderrW = process.stderr.write,
-    // Enter a domain so we are robust to uncaught errors.
-    d = domain.create();
+    stderrW = process.stderr.write;
 
-  d.on('error', (err: any) => {
+  process.on('uncaughtException', (err: any) => {
     if (errCallback) {
       errCallback(err);
     }
   });
 
-  d.run(() => {
-    testing.runTests(opts, quiet, keepGoing, hideDiffs, (cb: (err: Error) => void) => {
-      errCallback = cb;
-    }, (err?: testing.TestingError) => {
-      process.exit(err ? 1 : 0);
-    });
+  // This handler should not run when the test exits normally (process.exit() in finish handler circumvents it).
+  process.on('beforeExit', () => {
+    if (errCallback) {
+      errCallback(new Error('Finish callback never triggered.'));
+    }
+  });
+
+  testing.runTests(opts, quiet, keepGoing, hideDiffs, (cb: (err: Error) => void) => {
+    errCallback = cb;
+  }, (err?: testing.TestingError) => {
+    process.exit(err ? 1 : 0);
   });
 }
 

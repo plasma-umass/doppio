@@ -3,14 +3,15 @@ import java_cli = require('../src/java_cli');
 import JVM = require('../src/jvm');
 import path = require('path');
 import os = require('os');
-import domain = require('domain');
 import fs = require('fs');
 // Makes our stack traces point to the TypeScript source code lines.
 require('source-map-support').install({
   handleUncaughtExceptions: true
 });
 
-function done_cb(success:boolean): void { process.exit(success ? 0 : 1); }
+function done_cb(status: number): void {
+  process.exit(status);
+}
 
 var jvm_state: JVM;
 
@@ -19,8 +20,7 @@ process.on('SIGINT', function () {
   process.exit(0);
 });
 
-var doppioDomain = domain.create();
-doppioDomain.on('error', (er: any) => {
+process.on('uncaughtException', (er: any) => {
   console.log(`Encountered error: ${er}\n${er.stack}`);
   fs.appendFileSync('doppio.err', `\n--------------------------------------\n${er}\n${er.stack}\n`);
   if (jvm_state) {
@@ -35,19 +35,19 @@ doppioDomain.on('error', (er: any) => {
   } else {
     console.log("JVM state undefined; unable to print debug information.");
   }
+  process.exit(1);
 });
-doppioDomain.run(() => {
-  // Run the JVM. Remove node runner.js from the args.
-  java_cli(process.argv.slice(2), {
-    bootstrapClasspath: [path.resolve(__dirname, '../vendor/java_home/classes')],
-    javaHomePath: path.resolve(__dirname, '../vendor/java_home'),
-    extractionPath: path.resolve(os.tmpdir(), 'doppio_jars'),
-    classpath: null,
-    nativeClasspath: [path.resolve(__dirname, '../src/natives')],
-    launcherName: process.argv[0] + " " + path.relative(process.cwd(), process.argv[1]),
-    assertionsEnabled: false,
-    tmpDir: os.tmpdir()
-  }, done_cb, function(jvm: JVM): void {
-    jvm_state = jvm;
-  });
+
+// Run the JVM. Remove node runner.js from the args.
+java_cli(process.argv.slice(2), {
+  bootstrapClasspath: [path.resolve(__dirname, '../vendor/java_home/classes')],
+  javaHomePath: path.resolve(__dirname, '../vendor/java_home'),
+  extractionPath: path.resolve(os.tmpdir(), 'doppio_jars'),
+  classpath: null,
+  nativeClasspath: [path.resolve(__dirname, '../src/natives')],
+  launcherName: process.argv[0] + " " + path.relative(process.cwd(), process.argv[1]),
+  assertionsEnabled: false,
+  tmpDir: os.tmpdir()
+}, done_cb, function(jvm: JVM): void {
+  jvm_state = jvm;
 });

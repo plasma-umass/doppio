@@ -1971,6 +1971,9 @@ export class Opcodes {
         // wide iinc has 2 extra bytes.
         frame.pc += 2;
         break;
+      default:
+        assert(false, `Unknown wide opcode: ${code.readUInt8(pc + 1)}`);
+        break;
     }
   }
 }

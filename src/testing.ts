@@ -5,6 +5,7 @@ import difflib = require('./difflib');
 import path = require('path');
 import fs = require('fs');
 import interfaces = require('./interfaces');
+import logging = require('./logging');
 
 export interface TestingError extends Error {
   originalError?: any;
@@ -149,7 +150,11 @@ export class DoppioTest {
       hasFinished: boolean = false;
     registerGlobalErrorTrap((err) => {
       if (_jvm) {
-        _jvm.abort();
+        try {
+          _jvm.halt(1);
+        } catch (e) {
+          err.message += `\n\nAdditionally, test runner received the following error while trying to halt the JVM: ${e}${e.stack ? `\n\n${e.stack}` : ''}\n\nOriginal error's stack trace:`;
+        }
       }
       outputCapturer.stop();
       cb(makeTestingError(`Uncaught error. Aborting further tests.\n\t${err}${err.stack ? `\n\n${err.stack}` : ``}`, err, true));
@@ -170,7 +175,7 @@ export class DoppioTest {
         cb(makeTestingError(`Could not construct JVM:\n${err}`, err));
       } else {
         outputCapturer.start(true);
-        jvm.runClass(this.cls, [], (success: boolean) => {
+        jvm.runClass(this.cls, [], (status: number) => {
           if (terminated) {
             // Already handled.
             return;
@@ -274,6 +279,7 @@ export function runTests(opts: TestOptions, quiet: boolean, continueAfterFailure
             print(`${err.stack}\n`);
           }
           if (!continueAfterFailure || (<TestingError> err)['fatal']) {
+            err.message = `Failed ${test.cls}: ${err.message}`;
             nextTest(err);
           } else {
             nextTest();

@@ -34,7 +34,7 @@ class sun_management_MemoryImpl {
 class sun_management_VMManagementImpl {
 
   public static 'getVersion0()Ljava/lang/String;'(thread: JVMThread): JVMTypes.java_lang_String {
-    return thread.getThreadPool().getJVM().internString("1.2");
+    return thread.getJVM().internString("1.2");
   }
 
   public static 'initOptionalSupportFields()V'(thread: JVMThread): void {
@@ -91,7 +91,7 @@ class sun_management_VMManagementImpl {
   }
 
   public static 'getStartupTime()J'(thread: JVMThread, javaThis: JVMTypes.sun_management_VMManagementImpl): Long {
-    return Long.fromNumber(thread.getThreadPool().getJVM().getStartupTime().getTime());
+    return Long.fromNumber(thread.getJVM().getStartupTime().getTime());
   }
 
   public static 'getAvailableProcessors()I'(thread: JVMThread, javaThis: JVMTypes.sun_management_VMManagementImpl): number {

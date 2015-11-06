@@ -3,7 +3,7 @@ import util = require('./util');
 import ByteStream = require('./ByteStream');
 import ConstantPool = require('./ConstantPool');
 import attributes = require('./attributes');
-import threading = require('./threading');
+import {JVMThread, InternalStackFrame, NativeStackFrame, BytecodeStackFrame} from './threading';
 import logging = require('./logging');
 import methods = require('./methods');
 import ClassLoader = require('./ClassLoader');
@@ -55,7 +55,8 @@ var injectedFields: {[className: string]: {[fieldName: string]: [string, string]
     '$loader': ['ClassLoader', 'new ClassLoader.CustomClassLoader(thread.getBsCl(), this);']
   },
   'Ljava/lang/Thread;': {
-    '$thread': ['JVMThread', 'thread.getThreadPool().newThread(this)']
+    // Note: Need to handle initial case when thread is NULL.
+    '$thread': ['JVMThread', 'thread ? new thread.constructor(thread.getJVM(), thread.getThreadPool(), this) : null']
   }
 };
 
@@ -150,7 +151,7 @@ export interface IJVMConstructor<T extends JVMTypes.java_lang_Object> {
    * @param jvm The thread that is constructing the object.
    * @param lengths... If this is an array type, the length of each dimension of the array. (Required if an array type.)
    */
-  new(thread: threading.JVMThread, lengths?: number[] | number): T;
+  new(thread: JVMThread, lengths?: number[] | number): T;
 }
 
 /**
@@ -303,7 +304,7 @@ export abstract class ClassData {
   /**
    * Get a java.lang.Class object corresponding to this class.
    */
-  public getClassObject(thread: threading.JVMThread): JVMTypes.java_lang_Class {
+  public getClassObject(thread: JVMThread): JVMTypes.java_lang_Class {
     if (this.jco === null) {
       this.jco = new ((<ReferenceClassData<JVMTypes.java_lang_Class>> thread.getBsCl().getResolvedClass('Ljava/lang/Class;')).getConstructor(thread))(thread);
       this.jco.$cls = this;
@@ -374,7 +375,7 @@ export abstract class ClassData {
    *   is in progress on that thread, then the class is, for all intents and
    *   purposes, initialized.
    */
-  public isInitialized(thread: threading.JVMThread): boolean {
+  public isInitialized(thread: JVMThread): boolean {
     return this.getState() === ClassState.INITIALIZED;
   }
   // Convenience function.
@@ -396,11 +397,11 @@ export abstract class ClassData {
 
   public abstract isCastable(target: ClassData): boolean;
 
-  public resolve(thread: threading.JVMThread, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
+  public resolve(thread: JVMThread, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
     throw new Error("Unimplemented.");
   }
 
-  public initialize(thread: threading.JVMThread, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
+  public initialize(thread: JVMThread, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
     throw new Error("Unimplemented.");
   }
 
@@ -453,7 +454,7 @@ export class PrimitiveClassData extends ClassData {
   /**
    * Returns a boxed version of the given primitive.
    */
-  public createWrapperObject(thread: threading.JVMThread, value: any): JVMTypes.java_lang_Object {
+  public createWrapperObject(thread: JVMThread, value: any): JVMTypes.java_lang_Object {
     var boxName = this.boxClassName();
     var boxCls = <ReferenceClassData<JVMTypes.java_lang_Object>> thread.getBsCl().getInitializedClass(thread, boxName);
     // these are all initialized in preinit (for the BSCL, at least)
@@ -478,7 +479,7 @@ export class PrimitiveClassData extends ClassData {
   /**
    * Primitive classes are already resolved.
    */
-  public resolve(thread: threading.JVMThread, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
+  public resolve(thread: JVMThread, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
     setImmediate(() => cb(this));
   }
 }
@@ -511,7 +512,7 @@ export class ArrayClassData<T> extends ClassData {
   /**
    * Resolve the class.
    */
-  public resolve(thread: threading.JVMThread, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
+  public resolve(thread: JVMThread, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
     if (this.isResolved()) {
       // Short circuit.
       setImmediate(() => cb(this));
@@ -591,7 +592,7 @@ export class ArrayClassData<T> extends ClassData {
     return this.getComponentClass().isCastable((<ArrayClassData<any>> target).getComponentClass());
   }
 
-  public initialize(thread: threading.JVMThread, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
+  public initialize(thread: JVMThread, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
     this.resolve(thread, cb, explicit);
   }
 
@@ -679,7 +680,7 @@ export class ArrayClassData<T> extends ClassData {
     return output.flush();
   }
 
-  private _constructConstructor(thread: threading.JVMThread): IJVMConstructor<JVMTypes.JVMArray<T>> {
+  private _constructConstructor(thread: JVMThread): IJVMConstructor<JVMTypes.JVMArray<T>> {
     assert(this._constructor === null, `Tried to construct constructor twice for ${this.getExternalName()}!`);
     var outputStream = new StringOutputStream(),
       jsClassName = util.jvmName2JSName(this.getInternalName());
@@ -727,7 +728,7 @@ _create`);
     return eval(outputStream.flush())(extendClass, this, this.superClass, gLong.ZERO, thread);
   }
 
-  public getConstructor(thread: threading.JVMThread): IJVMConstructor<JVMTypes.JVMArray<T>> {
+  public getConstructor(thread: JVMThread): IJVMConstructor<JVMTypes.JVMArray<T>> {
     assert(this.isResolved(), `Tried to get constructor for class ${this.getInternalName()} before it was resolved.`);
     if (this._constructor === null) {
       this._constructor = this._constructConstructor(thread);
@@ -1158,7 +1159,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    * Returns the initial value for a given static field in the class. Should
    * only be called when the constructor is created.
    */
-  private _getInitialStaticFieldValue(thread: threading.JVMThread, name: string): any {
+  private _getInitialStaticFieldValue(thread: JVMThread, name: string): any {
     var f: methods.Field = this.fieldLookup(name);
     if (f !== null && f.accessFlags.isStatic()) {
       var cva = <attributes.ConstantValue> f.getAttribute('ConstantValue');
@@ -1167,7 +1168,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
           case enums.ConstantPoolItemType.STRING:
             var stringCPI = <ConstantPool.ConstString> cva.value;
             if (stringCPI.value === null) {
-              stringCPI.value = thread.getThreadPool().getJVM().internString(stringCPI.stringValue);
+              stringCPI.value = thread.getJVM().internString(stringCPI.stringValue);
             }
             return stringCPI.value;
           default:
@@ -1307,7 +1308,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    *   *explicitly* initialized by a user. If false, the JVM is implicitly
    *   initializing the class.
    */
-  public initialize(thread: threading.JVMThread, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
+  public initialize(thread: JVMThread, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
     if (this.isResolved()) {
       if (this.isInitialized(thread)) {
         // Nothing to do! Either resolution failed and an exception has already
@@ -1355,7 +1356,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    * Helper function. Initializes this class alone. Assumes super class is
    * already initialized.
    */
-  private _initialize(thread: threading.JVMThread, cb: (cdata: ClassData) => void): void {
+  private _initialize(thread: JVMThread, cb: (cdata: ClassData) => void): void {
     var cons = <any> this.getConstructor(thread);
     if (cons['<clinit>()V'] !== undefined) {
       debug(`T${thread.getRef()} Running static initialization for class ${this.className}...`);
@@ -1414,14 +1415,14 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    * A reference class can be treated as initialized in a thread if that thread
    * is in the process of initializing it.
    */
-  public isInitialized(thread: threading.JVMThread): boolean {
+  public isInitialized(thread: JVMThread): boolean {
     return this.getState() === ClassState.INITIALIZED || this.initLock.getOwner() === thread;
   }
 
   /**
    * Resolve the class.
    */
-  public resolve(thread: threading.JVMThread, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
+  public resolve(thread: JVMThread, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
     var toResolve: ConstantPool.ClassReference[] = this.interfaceRefs.slice(0);
     if (this.superClassRef !== null) {
       toResolve.push(this.superClassRef);
@@ -1467,7 +1468,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
     }
   }
 
-  protected _constructConstructor(thread: threading.JVMThread): IJVMConstructor<T> {
+  protected _constructConstructor(thread: JVMThread): IJVMConstructor<T> {
     assert(this._constructor === null, `Attempted to construct constructor twice for class ${this.getExternalName()}!`);
 
     var jsClassName = util.jvmName2JSName(this.getInternalName()),
@@ -1507,13 +1508,13 @@ _create`);
 
     var evalText = outputStream.flush();
     // NOTE: Thread will be null during system bootstrapping.
-    if (typeof RELEASE === 'undefined' && thread !== null && thread.getThreadPool().getJVM().shouldDumpCompiledCode()) {
-      thread.getThreadPool().getJVM().dumpObjectDefinition(this, evalText);
+    if (typeof RELEASE === 'undefined' && thread !== null && thread.getJVM().shouldDumpCompiledCode()) {
+      thread.getJVM().dumpObjectDefinition(this, evalText);
     }
-    return eval(evalText)(extendClass, this, threading.InternalStackFrame, threading.NativeStackFrame, threading.BytecodeStackFrame, gLong.ZERO, require('./ClassLoader'), require('./Monitor'), thread);
+    return eval(evalText)(extendClass, this, InternalStackFrame, NativeStackFrame, BytecodeStackFrame, gLong.ZERO, require('./ClassLoader'), require('./Monitor'), thread);
   }
 
-  public getConstructor(thread: threading.JVMThread): IJVMConstructor<T> {
+  public getConstructor(thread: JVMThread): IJVMConstructor<T> {
     if (this._constructor == null) {
       assert(this.isResolved(), `Cannot construct ${this.getInternalName()}'s constructor until it is resolved.`);
       this._constructor = this._constructConstructor(thread);

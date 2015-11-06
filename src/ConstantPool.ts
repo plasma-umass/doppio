@@ -86,14 +86,14 @@ export class ConstUTF8 implements IConstantPoolItem {
       // While the standard specifies that surrogate pairs should be handled, it seems like
       // they are by default with the three byte format. See parsing code here:
       // http://hg.openjdk.java.net/jdk8u/jdk8u-dev/jdk/file/3623f1b29b58/src/share/classes/java/io/DataInputStream.java#l618
-      
+
       // One UTF-16 character.
       if (x <= 0x7f) {
         // One character, one byte.
         charCode = x;
       } else if (x <= 0xdf) {
         // One character, two bytes.
-        y = bytes.readUInt8(idx++); 
+        y = bytes.readUInt8(idx++);
         charCode = ((x & 0x1f) << 6) + (y & 0x3f);
       } else {
         // One character, three bytes.
@@ -103,7 +103,7 @@ export class ConstUTF8 implements IConstantPoolItem {
       }
       rv += String.fromCharCode(charCode);
     }
-    
+
     return rv;
   }
 
@@ -416,7 +416,7 @@ export class ConstString implements IConstantPoolItem {
   }
 
   public resolve(thread: threading.JVMThread, loader: ClassLoader.ClassLoader, caller: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, cb: (status: boolean) => void) {
-    this.value = thread.getThreadPool().getJVM().internString(this.stringValue);
+    this.value = thread.getJVM().internString(this.stringValue);
     setImmediate(() => cb(true));
   }
 
@@ -582,7 +582,7 @@ export class MethodReference implements IConstantPoolItem {
           // Class defc
            this.classInfo.cls.getClassObject(thread),
           // String name
-           thread.getThreadPool().getJVM().internString(this.nameAndTypeInfo.name),
+           thread.getJVM().internString(this.nameAndTypeInfo.name),
           // Object type, Object[] appendixResult
            type, appendix],
         (e?: JVMTypes.java_lang_Throwable, rv?: JVMTypes.java_lang_invoke_MemberName) => {
@@ -1005,7 +1005,7 @@ export class InvokeDynamic implements IConstantPoolItem {
             rv[i] = (<ConstString> cpItem).value;
             break;
           case enums.ConstantPoolItemType.UTF8:
-            rv[i] = thread.getThreadPool().getJVM().internString((<ConstUTF8> cpItem).value);
+            rv[i] = thread.getJVM().internString((<ConstUTF8> cpItem).value);
             break;
           case enums.ConstantPoolItemType.INTEGER:
             rv[i] = (<ClassData.PrimitiveClassData> cl.getInitializedClass(thread, 'I')).createWrapperObject(thread, (<ConstInt32> cpItem).value);
@@ -1056,7 +1056,7 @@ export class InvokeDynamic implements IConstantPoolItem {
      * - The static arguments from the bootstrap method.
      * - A 1-length appendix box.
      */
-    var methodName = thread.getThreadPool().getJVM().internString(this.nameAndTypeInfo.name),
+    var methodName = thread.getJVM().internString(this.nameAndTypeInfo.name),
       appendixArr = new ((<ClassData.ArrayClassData<JVMTypes.java_lang_Object>> cl.getInitializedClass(thread, '[Ljava/lang/Object;')).getConstructor(thread))(thread, 1),
       staticArgs = getArguments(),
       mhn = <typeof JVMTypes.java_lang_invoke_MethodHandleNatives> (<ClassData.ReferenceClassData<JVMTypes.java_lang_invoke_MethodHandleNatives>> cl.getInitializedClass(thread, 'Ljava/lang/invoke/MethodHandleNatives;')).getConstructor(thread);
@@ -1164,7 +1164,7 @@ export class MethodHandle implements IConstantPoolItem {
         var methodHandleNatives = <typeof JVMTypes.java_lang_invoke_MethodHandleNatives> (<ClassData.ReferenceClassData<JVMTypes.java_lang_invoke_MethodHandleNatives>> cl.getInitializedClass(thread, 'Ljava/lang/invoke/MethodHandleNatives;')).getConstructor(thread);
         methodHandleNatives['linkMethodHandleConstant(Ljava/lang/Class;ILjava/lang/Class;Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/invoke/MethodHandle;'](
           thread,
-          [caller.getClassObject(thread), this.referenceType, this.getDefiningClassObj(thread), thread.getThreadPool().getJVM().internString(this.reference.nameAndTypeInfo.name), type], (e?: JVMTypes.java_lang_Throwable, methodHandle?: JVMTypes.java_lang_invoke_MethodHandle) => {
+          [caller.getClassObject(thread), this.referenceType, this.getDefiningClassObj(thread), thread.getJVM().internString(this.reference.nameAndTypeInfo.name), type], (e?: JVMTypes.java_lang_Throwable, methodHandle?: JVMTypes.java_lang_invoke_MethodHandle) => {
           if (e) {
             thread.throwException(e);
             cb(false);

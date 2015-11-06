@@ -117,8 +117,8 @@ class Monitor {
        *  again to gain ownership."
        * @from http://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.monitorenter
        */
-      thread.setStatus(blockStatus, this);
       this.blocked[thread.getRef()] = { thread: thread, cb: cb, count: count };
+      thread.setStatus(blockStatus, this);
       return false;
     }
   }

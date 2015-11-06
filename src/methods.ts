@@ -47,7 +47,7 @@ var trapped_methods: { [clsName: string]: { [methodName: string]: Function } } =
       thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
       var dfsp: ClassData.ReferenceClassData<JVMTypes.sun_nio_fs_DefaultFileSystemProvider> = <any> thread.getBsCl().getInitializedClass(thread, 'Lsun/nio/fs/DefaultFileSystemProvider;'),
        dfspCls: typeof JVMTypes.sun_nio_fs_DefaultFileSystemProvider = <any> dfsp.getConstructor(thread);
-      dfspCls['createProvider(Ljava/lang/String;)Ljava/nio/file/spi/FileSystemProvider;'](thread, [thread.getThreadPool().getJVM().internString('sun.nio.fs.LinuxFileSystemProvider')], util.forwardResult(thread));
+      dfspCls['createProvider(Ljava/lang/String;)Ljava/nio/file/spi/FileSystemProvider;'](thread, [thread.getJVM().internString('sun.nio.fs.LinuxFileSystemProvider')], util.forwardResult(thread));
     }
   }
 };
@@ -164,7 +164,7 @@ export class Field extends AbstractMethodField {
    */
   public reflector(thread: threading.JVMThread, cb: (reflectedField: JVMTypes.java_lang_reflect_Field) => void): void {
     var signatureAttr = <attributes.Signature> this.getAttribute("Signature"),
-      jvm = thread.getThreadPool().getJVM(),
+      jvm = thread.getJVM(),
       bsCl = thread.getBsCl();
     var createObj = (typeObj: JVMTypes.java_lang_Class): JVMTypes.java_lang_reflect_Field => {
       var fieldCls = <ClassData.ReferenceClassData<JVMTypes.java_lang_reflect_Field>> bsCl.getInitializedClass(thread, 'Ljava/lang/reflect/Field;'),
@@ -270,7 +270,7 @@ export class Method extends AbstractMethodField {
         var self = this;
         this.code = function(thread: threading.JVMThread) {
           // Try to fetch the native method.
-          var jvm = thread.getThreadPool().getJVM(),
+          var jvm = thread.getJVM(),
             c = jvm.getNative(clsName, self.signature);
           if (c == null) {
             thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', `Native method '${self.getFullSignature()}' not implemented.\nPlease fix or file a bug at https://github.com/plasma-umass/doppio/issues`);
@@ -379,7 +379,7 @@ export class Method extends AbstractMethodField {
     var bsCl = thread.getBsCl(),
       // Grab the classes required to construct the needed arrays.
       clazzArray = (<ClassData.ArrayClassData<JVMTypes.java_lang_Class>> bsCl.getInitializedClass(thread, '[Ljava/lang/Class;')).getConstructor(thread),
-      jvm = thread.getThreadPool().getJVM(),
+      jvm = thread.getJVM(),
       // Grab the needed attributes.
       signatureAttr = <attributes.Signature> this.getAttribute("Signature"),
       exceptionAttr = <attributes.Exceptions> this.getAttribute("Exceptions");
@@ -529,8 +529,8 @@ export class Method extends AbstractMethodField {
 _create`);
 
     var evalText = outStream.flush();
-    if (typeof RELEASE === 'undefined' && thread !== null && thread.getThreadPool().getJVM().shouldDumpCompiledCode()) {
-      thread.getThreadPool().getJVM().dumpBridgeMethod(this.fullSignature, evalText);
+    if (typeof RELEASE === 'undefined' && thread !== null && thread.getJVM().shouldDumpCompiledCode()) {
+      thread.getJVM().dumpBridgeMethod(this.fullSignature, evalText);
     }
     return eval(evalText)(thread, this.cls, util);
   }

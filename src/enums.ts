@@ -29,9 +29,8 @@ export enum ClassState {
 export enum ThreadStatus {
   // A thread that has not yet started is in this state.
   NEW,
-  // A thread that is actively running. Only one thread can be running at once.
-  RUNNING,
-  // A thread that is not actively running, but is ready to run.
+  // A thread that is able to be run. The thread may actually be running.
+  // Query the ThreadPool to determine if this is the case.
   RUNNABLE,
   // A thread that is blocked waiting for a monitor lock is in this state.
   BLOCKED,
@@ -64,6 +63,22 @@ export enum JVMTIThreadState {
   BLOCKED_ON_MONITOR_ENTER = 0x0400,
   WAITING_INDEFINITELY = 0x0010,
   WAITING_WITH_TIMEOUT = 0x0020
+}
+
+/**
+ * The current status of the JVM.
+ */
+export enum JVMStatus {
+  // The JVM is booting up.
+  BOOTING,
+  // The JVM is booted, and waiting for a class to run.
+  BOOTED,
+  // The JVM is running.
+  RUNNING,
+  // The JVM has completed running, and is performing termination steps.
+  TERMINATING,
+  // The JVM is completely finished executing.
+  TERMINATED
 }
 
 /**

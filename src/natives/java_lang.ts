@@ -281,7 +281,7 @@ class java_lang_Class {
     var rv = util.newArray<JVMTypes.java_lang_reflect_Field>(thread, thread.getBsCl(), '[Ljava/lang/reflect/Field;', fields.length),
       i: number = 0;
     thread.setStatus(ThreadStatus.ASYNC_WAITING);
-    util.asyncForEach(fields,
+    util.asyncForEach<Field>(fields,
       (f, nextItem) => {
         f.reflector(thread, (fieldObj: JVMTypes.java_lang_reflect_Field) => {
           if (fieldObj !== null) {
@@ -300,7 +300,7 @@ class java_lang_Class {
     }), rv = util.newArray<JVMTypes.java_lang_reflect_Method>(thread, thread.getBsCl(), '[Ljava/lang/reflect/Method;', methods.length),
       i = 0;
     thread.setStatus(ThreadStatus.ASYNC_WAITING);
-    util.asyncForEach(methods,
+    util.asyncForEach<Method>(methods,
       (m, nextItem) => {
         m.reflector(thread, (methodObj) => {
           if (methodObj !== null) {
@@ -369,7 +369,7 @@ class java_lang_Class {
   }
 
   public static 'desiredAssertionStatus0(Ljava/lang/Class;)Z'(thread: JVMThread, arg0: JVMTypes.java_lang_Class): boolean {
-    return thread.getThreadPool().getJVM().areAssertionsEnabled();
+    return thread.getJVM().areAssertionsEnabled();
   }
 
 }
@@ -828,8 +828,7 @@ class java_lang_SecurityManager {
 class java_lang_Shutdown {
 
   public static 'halt0(I)V'(thread: JVMThread, status: number): void {
-    // @todo Actually add a mechanism to abort with a code.
-    thread.getThreadPool().getJVM().abort();
+    thread.getJVM().halt(status);
   }
 
   public static 'runAllFinalizers()V'(thread: JVMThread): void {
@@ -971,7 +970,7 @@ class java_lang_StrictMath {
 class java_lang_String {
 
   public static 'intern()Ljava/lang/String;'(thread: JVMThread, javaThis: JVMTypes.java_lang_String): JVMTypes.java_lang_String {
-    return thread.getThreadPool().getJVM().internString(javaThis.toString(), javaThis);
+    return thread.getJVM().internString(javaThis.toString(), javaThis);
   }
 
 }
@@ -1050,7 +1049,7 @@ class java_lang_System {
   }
 
   public static 'initProperties(Ljava/util/Properties;)Ljava/util/Properties;'(thread: JVMThread, props: JVMTypes.java_util_Properties): void {
-    var jvm = thread.getThreadPool().getJVM(),
+    var jvm = thread.getJVM(),
       properties = jvm.getSystemPropertyNames();
     thread.setStatus(ThreadStatus.ASYNC_WAITING);
     util.asyncForEach(properties, (propertyName: string, nextItem: (err?: JVMTypes.java_lang_Throwable) => void) => {
@@ -1082,7 +1081,6 @@ class java_lang_Thread {
   public static 'yield()V'(thread: JVMThread): void {
     // Force the thread scheduler to pick another thread by waiting for a short
     // amount of time.
-    // @todo Build this into the scheduler?
     thread.setStatus(ThreadStatus.ASYNC_WAITING);
     setImmediate(() => {
       thread.setStatus(ThreadStatus.RUNNABLE);
@@ -1141,7 +1139,7 @@ class java_lang_Thread {
   }
 
   public static 'setPriority0(I)V'(thread: JVMThread, javaThis: JVMTypes.java_lang_Thread, arg0: number): void {
-    // NOP
+    thread.signalPriorityChange();
   }
 
   public static 'stop0(Ljava/lang/Object;)V'(thread: JVMThread, javaThis: JVMTypes.java_lang_Thread, arg0: JVMTypes.java_lang_Object): void {
@@ -1220,7 +1218,7 @@ class java_lang_Thread {
             return thread.asyncReturn();
           case ThreadStatus.PARKED:
             // Parked threads become unparked when interrupted.
-            javaThis.$thread.getThreadPool().completelyUnpark(nativeThreadObj);
+            thread.getJVM().getParker().completelyUnpark(nativeThreadObj);
             // FALL-THROUGH
           default:
             var threadCls = <ReferenceClassData<JVMTypes.java_lang_Thread>> thread.getBsCl().getInitializedClass(thread, 'Ljava/lang/Thread;'),
@@ -1417,11 +1415,11 @@ function initializeMemberName(thread: JVMThread, mn: JVMTypes.java_lang_invoke_M
   }
   // Initialize type if we need to.
   if (type === null) {
-    type = thread.getThreadPool().getJVM().internString(ref.rawDescriptor);
+    type = thread.getJVM().internString(ref.rawDescriptor);
   }
   // Initialize name if we need to.
   if (name === null) {
-    name = thread.getThreadPool().getJVM().internString(ref.name);
+    name = thread.getJVM().internString(ref.name);
   }
   mn['java/lang/invoke/MemberName/clazz'] = ref.cls.getClassObject(thread);
   mn['java/lang/invoke/MemberName/flags'] = flags;

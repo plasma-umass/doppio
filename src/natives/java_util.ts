@@ -36,7 +36,7 @@ class java_util_TimeZone {
 
   public static 'getSystemTimeZoneID(Ljava/lang/String;)Ljava/lang/String;'(thread: JVMThread, arg0: JVMTypes.java_lang_String): JVMTypes.java_lang_String {
     // XXX not sure what the local value is
-    return thread.getThreadPool().getJVM().internString('GMT');
+    return thread.getJVM().internString('GMT');
   }
 
   public static 'getSystemGMTOffsetID()Ljava/lang/String;'(thread: JVMThread): JVMTypes.java_lang_String {
