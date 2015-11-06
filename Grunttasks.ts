@@ -577,4 +577,9 @@ export function setup(grunt: IGrunt) {
     });
     grunt.log.writeln('All built files have been deleted, except for Grunt-related tasks (e.g. tasks/*.js and Grunttasks.js).');
   });
+  grunt.registerTask('test-browser-travis', 'Tests DoppioJVM in the browser in Travis.', function() {
+    // Only test in Firefox.
+    karmaOptions.browsers = ['Firefox'];
+    grunt.task.run(['test-browser']);
+  });
 };
