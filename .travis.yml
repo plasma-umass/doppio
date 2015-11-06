@@ -15,7 +15,7 @@ install:
   - ./node_modules/.bin/grunt clean
 
 addons:
-  - firefox: "latest"
+  firefox: "latest"
 
 before_script:
   - export DISPLAY=:99.0
