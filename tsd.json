@@ -43,6 +43,9 @@
     },
     "dropboxjs/dropboxjs.d.ts": {
       "commit": "a9ded5b70ede34486731ef6c2e6865f5e9911fc3"
+    },
+    "rimraf/rimraf.d.ts": {
+      "commit": "35989a3ab4834b8e8b2b56788f1d4fc46a25dc8d"
     }
   }
 }

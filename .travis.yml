@@ -1,7 +1,9 @@
 language: node_js
+
 node_js:
   - "0.12"
   - "stable"
+
 install:
   - sudo add-apt-repository -y ppa:openjdk-r/ppa
   - sudo apt-get update
@@ -11,6 +13,9 @@ install:
   - ./node_modules/.bin/grunt --version
   - node Gruntfile.js || node Gruntfile.js  # Hack around tsc warnings
   - ./node_modules/.bin/grunt clean
+
+addons:
+  - firefox: "latest"
 
 before_script:
   - export DISPLAY=:99.0

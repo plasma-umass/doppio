@@ -69,6 +69,7 @@
         "console/find_invalid_natives.ts",
         "console/generate_thread_transition_graph.ts",
         "console/runner.ts",
-        "console/test_runner.ts"
+        "console/test_runner.ts",
+        "console/download_jdk.ts"
     ]
 }

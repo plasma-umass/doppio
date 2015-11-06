@@ -194,20 +194,6 @@ export function setup(grunt: IGrunt) {
         }
       }
     },
-    // Downloads files.
-    'curl-dir': {
-      long: {
-        src: 'https://github.com/plasma-umass/doppio_jcl/releases/download/v2.1/java_home.tar.gz',
-        dest: "<%= build.vendor_dir %>"
-      }
-    },
-    untar: {
-      java_home: {
-        files: {
-          "<%= build.vendor_dir %>": "<%= resolve(build.vendor_dir, 'java_home.tar.gz') %>"
-        }
-      }
-    },
     uglify: {
       options: {
         warnings: false,
@@ -428,8 +414,6 @@ export function setup(grunt: IGrunt) {
   grunt.loadNpmTasks('grunt-contrib-connect');
   grunt.loadNpmTasks('grunt-karma');
   grunt.loadNpmTasks('grunt-lineending');
-  grunt.loadNpmTasks('grunt-curl');
-  grunt.loadNpmTasks('grunt-untar');
   grunt.loadNpmTasks('grunt-merge-source-maps');
   grunt.loadNpmTasks('grunt-tsd');
   grunt.loadNpmTasks('grunt-browserify');
@@ -459,18 +443,25 @@ export function setup(grunt: IGrunt) {
     }
   });
 
+  grunt.registerTask("check_jdk", "Checks the status of the JDK. Downloads if needed.", function() {
+    let done: (status?: boolean) => void = this.async();
+    let child = grunt.util.spawn({
+      cmd: 'node',
+      args: ['build/dev-cli/console/download_jdk.js']
+    }, (err, result, code) => {
+      done(code === 0);
+    });
+    (<NodeJS.ReadableStream> (<any> child).stdout).on('data', function(d: Buffer) {
+      grunt.log.write(d.toString());
+    });
+  });
+
   grunt.registerTask('setup', "Sets up doppio's environment prior to building.", function(buildType: string) {
     if (!buildType) {
       grunt.fail.fatal("setup build task needs to know the build type.");
     }
     // (Required) Sets the build_type so other directories can resolve properly.
     grunt.config.set('build.build_type', buildType);
-
-    // Fetch java_home files if it's missing.
-    if (!grunt.file.exists(<string> grunt.config.get('build.java_home_dir'))) {
-      grunt.log.writeln("Running one-time java_home setup; this could take a few minutes!");
-      grunt.task.run(['curl-dir', 'untar', 'delete_jh_tar']);
-    }
   });
   grunt.registerTask("includecheck", "Checks if includes need to be generated.", function() {
     if (!grunt.file.exists("includes/JVMTypes.d.ts")) {
@@ -488,9 +479,6 @@ export function setup(grunt: IGrunt) {
      'run_java',
      // Windows: Convert CRLF to LF.
      'lineending']);
-  grunt.registerTask('delete_jh_tar', "Deletes java_home.tar.gz post-extraction.", function () {
-    grunt.file.delete(path.resolve('vendor', 'java_home.tar.gz'));
-  });
   grunt.registerTask('clean_dist', "Deletes the dist and build directories.", function() {
     ['dist', 'build'].forEach((p: string) => {
       if (grunt.file.exists(p)) {
@@ -510,6 +498,7 @@ export function setup(grunt: IGrunt) {
      'includecheck',
      'ts:dev-cli',
      'copy:includes',
+     'check_jdk',
      'launcher:doppio-dev']);
   grunt.registerTask('fast-dev-cli',
     ['dev-cli',
@@ -580,6 +569,7 @@ export function setup(grunt: IGrunt) {
   grunt.registerTask('test-browser-travis', 'Tests DoppioJVM in the browser in Travis.', function() {
     // Only test in Firefox.
     karmaOptions.browsers = ['Firefox'];
+    karmaOptions.singleRun = true;
     grunt.task.run(['test-browser']);
   });
 };
