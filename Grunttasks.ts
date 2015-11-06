@@ -467,7 +467,7 @@ export function setup(grunt: IGrunt) {
     if (!grunt.file.exists("includes/JVMTypes.d.ts")) {
       // Ignore dev-cli compilation errors if the JVMTypes aren't defined yet.
       grunt.config.set('ts.options.failOnTypeErrors', false);
-      grunt.task.run(['find_native_java', 'javac:default', 'ts:dev-cli', 'includes:default', 'enable_type_errors']);
+      grunt.task.run(['check_jdk', 'find_native_java', 'javac:default', 'ts:dev-cli', 'includes:default', 'enable_type_errors']);
     }
   });
   grunt.registerTask("enable_type_errors", "Enables TypeScript type errors after include file generation.", function() {
