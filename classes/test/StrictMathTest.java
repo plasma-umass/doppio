@@ -146,6 +146,11 @@ public class StrictMathTest {
     // static double cos(double a)
     // Returns the trigonometric cosine of an angle.
     for (i=0; i < d_vals.length; i++) {
+        // Some browsers don't return consistent values for this operation
+        // (e.g. Firefox on Travis-CI)
+        if (d_vals[i] == Double.MAX_VALUE) {
+            continue;
+        }
         d_results[i] = StrictMath.cos(d_vals[i]);
     }
     results("double cos(double a)", d_results);
@@ -325,6 +330,11 @@ public class StrictMathTest {
     // static double sin(double a)
     // Returns the trigonometric sine of an angle.
     for (i=0; i < d_vals.length; i++) {
+        // Some browsers don't return consistent values for this operation
+        // (e.g. Firefox on Travis-CI)
+        if (d_vals[i] == Double.MAX_VALUE) {
+            continue;
+        }
         d_results[i] = StrictMath.sin(d_vals[i]);
     }
     results("double sin(double a)", d_results);
@@ -342,6 +352,11 @@ public class StrictMathTest {
     // static double tan(double a)
     // Returns the trigonometric tangent of an angle.
     for (i=0; i < d_vals.length; i++) {
+        // Some browsers don't return consistent values for this operation
+        // (e.g. Firefox on Travis-CI)
+        if (d_vals[i] == Double.MAX_VALUE) {
+            continue;
+        }
         d_results[i] = StrictMath.tan(d_vals[i]);
     }
     results("double tan(double a)", d_results);

@@ -20,6 +20,7 @@
     "bfs-path": "0.0.1",
     "bfs-process": "0.0.1",
     "browserfs": "^0.4.6",
+    "browserify": "^12.0.1",
     "browserify-derequire": "^0.9.4",
     "browserify-shim": "^3.8.11",
     "escodegen": "^1.7.0",

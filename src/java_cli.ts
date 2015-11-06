@@ -100,7 +100,7 @@ function java(args: string[], opts: JVMCLIOptions,
   // GLOBAL CONFIGURATION
 
   if (/[0-9]+/.test(argv.non_standard.log)) {
-    logging.log_level = (+argv.non_standard.log) + 0;
+    logging.log_level = parseInt(argv.non_standard.log, 10) + 0;
   } else {
     var level = (<any> logging)[argv.non_standard.log.toUpperCase()];
     if (level == null) {
