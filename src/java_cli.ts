@@ -47,7 +47,15 @@ function setupOptparse() {
         has_value: true
       },
       'bootclasspath/a': {
-        description: '\'boot\' classpath items',
+        description: 'append to end of bootstrap class path; separate with :',
+        has_value: true
+      },
+      'bootclasspath/p': {
+        description: 'prepend to end of bootstrap class path; separate with :',
+        has_value: true
+      },
+      'bootclasspath': {
+        description: 'set the bootstrap classpath',
         has_value: true
       }
     }
@@ -143,8 +151,14 @@ function java(args: string[], opts: JVMCLIOptions,
   }
 
   // Bootstrap classpath items.
+  if (argv.non_standard['bootclasspath']) {
+    opts.bootstrapClasspath = argv.non_standard['bootclasspath'].split(':');
+  }
   if (argv.non_standard['bootclasspath/a']) {
     opts.bootstrapClasspath = opts.bootstrapClasspath.concat(argv.non_standard['bootclasspath/a'].split(':'));
+  }
+  if (argv.non_standard['bootclasspath/p']) {
+    opts.bootstrapClasspath = argv.non_standard['bootclasspath/p'].split(':').concat(opts.bootstrapClasspath);
   }
 
   // User-supplied classpath items.

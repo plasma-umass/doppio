@@ -237,7 +237,7 @@ export function setup(grunt: IGrunt) {
         files: [{
           expand: true,
           cwd: "build",
-          src: "**/*.+(js|swf)*",
+          src: ["*/!(vendor)/**/*.js*", "*/*.js*"],
           dest: "dist"
         }, {
           expand: true,
@@ -486,6 +486,23 @@ export function setup(grunt: IGrunt) {
       }
     });
   });
+  grunt.registerTask('clean_natives', "Deletes already-inlined sourcemaps from natives.", function() {
+    let done: (success?: boolean) => void = this.async();
+    grunt.file.glob("build/*/src/natives/*.js.map", (err: Error, files: string[]) => {
+      if (err) {
+        grunt.log.error("" + err);
+        return done(false);
+      }
+      grunt.file.glob("build/*/natives/*.js.map", (err: Error, files2: string[]) => {
+        if (err) {
+          grunt.log.error("" + err);
+          return done(false);
+        }
+        files.concat(files2).forEach((file) => grunt.file.delete(file));
+        done(true);
+      });
+    });
+  });
 
   /**
    * PUBLIC-FACING TARGETS BELOW.
@@ -544,7 +561,7 @@ export function setup(grunt: IGrunt) {
      'listings']);
   grunt.registerTask('dist',
     [
-      'clean_dist', 'release', 'fast-dev', 'copy:dist'
+      'clean_dist', 'release', 'fast-dev', 'dev', 'clean_natives', 'copy:dist'
     ]);
   grunt.registerTask('test',
     ['release-cli',

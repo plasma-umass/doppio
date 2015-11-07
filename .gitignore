@@ -42,3 +42,6 @@ typings
 
 # harness
 tasks/test/*.d.ts
+
+# Generated for published modules.
+bin

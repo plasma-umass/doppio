@@ -1,12 +1,12 @@
 {
-  "name": "doppio",
-  "version": "0.0.1",
+  "name": "doppiojvm",
+  "version": "0.3.0",
   "ignore": [
     "**/.*",
     "node_modules",
-    "bower_components",
-    "test",
-    "tests"
+    "vendor/java_home",
+    "typings",
+    "build"
   ],
   "dependencies": {}
 }

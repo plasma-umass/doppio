@@ -57,7 +57,9 @@
     "underscore": "^1.8.3"
   },
   "scripts": {
-    "test": "./node_modules/.bin/grunt test"
+    "test": "./node_modules/.bin/grunt test",
+    "prepublish": "node ./prepublish.js",
+    "install": "node ./install.js"
   },
   "browserify-shim": {
     "browserfs": "global:BrowserFS"
@@ -65,5 +67,11 @@
   "repository": {
     "type": "git",
     "url": "http://github.com/plasma-umass/doppio.git"
+  },
+  "bin": {
+    "doppio": "./bin/doppio",
+    "doppioh": "./bin/doppioh",
+    "doppio-dev": "./bin/doppio-dev",
+    "doppio-fast-dev": "./bin/doppio-fast-dev"
   }
 }

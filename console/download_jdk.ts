@@ -12,7 +12,7 @@ let tarFs: {
 } = require('tar-fs');
 
 const JDK_URL = "https://github.com/plasma-umass/doppio_jcl/releases/download/v2.1/java_home.tar.gz";
-const JDK_PATH = path.resolve(__dirname, "..", "vendor");
+const JDK_PATH = path.resolve(__dirname, "..", "..", "..", "vendor");
 const JDK_FOLDER = "java_home";
 
 /**
