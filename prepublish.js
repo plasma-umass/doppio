@@ -3,6 +3,11 @@ var path = require('path'),
   fs = require('fs'),
   child_process = require('child_process');
 
+// Circumvent on Travis-CI.
+if (process.env['TRAVIS']) {
+  process.exit(0);
+}
+
 function checkCode(code) {
   if (code != 0) {
     throw new Error("Program exited with code " + code);
