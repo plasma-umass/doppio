@@ -570,11 +570,13 @@ export function setup(grunt: IGrunt) {
   grunt.registerTask('test-browser',
     ['release',
      'java',
+     'listings',
      'connect:server',
      'karma:test']);
  grunt.registerTask('test-dev-browser',
      ['dev',
       'java',
+      'listings',
       'connect:server',
       'karma:test-dev']);
   grunt.registerTask('clean', 'Deletes built files.', function() {

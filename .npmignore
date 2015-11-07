@@ -3,3 +3,12 @@ vendor/java_home
 typings
 tools
 tasks
+.tsdrc
+.travis.yml
+*.class
+*.runout
+.tscache
+tscommand*
+doppio.err
+tasks
+./Grunt*
