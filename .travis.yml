@@ -24,3 +24,4 @@ before_script:
 script:
   - ./node_modules/.bin/grunt test --grunt-ignore-compile-errors
   - ./node_modules/.bin/grunt test-browser-travis
+
