@@ -1,9 +1,9 @@
 doppio: A JVM in TypeScript
 =================================
 
-[![Build Status](https://travis-ci.org/plasma-umass/doppio.svg?branch=new-objects)](https://travis-ci.org/plasma-umass/doppio)
-[![david-dm-status-badge](https://david-dm.org/plasma-umass/doppio/new-objects.svg)](https://david-dm.org/plasma-umass/doppio/new-objects#info=dependencies&view=table)
-[![david-dm-status-badge](https://david-dm.org/plasma-umass/doppio/new-objects/dev-status.svg)](https://david-dm.org/plasma-umass/doppio/new-objects#info=devDependencies&view=table)
+[![Build Status](https://travis-ci.org/plasma-umass/doppio.svg?branch=master)](https://travis-ci.org/plasma-umass/doppio)
+[![david-dm-status-badge](https://david-dm.org/plasma-umass/doppio/master.svg)](https://david-dm.org/plasma-umass/doppio/master#info=dependencies&view=table)
+[![david-dm-status-badge](https://david-dm.org/plasma-umass/doppio/master/dev-status.svg)](https://david-dm.org/plasma-umass/doppio/master#info=devDependencies&view=table)
 
 _doppio_ is a double shot of espresso.
 In this case it's also a JVM written in [TypeScript](http://www.typescriptlang.org/).
