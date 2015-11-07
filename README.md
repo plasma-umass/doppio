@@ -1,4 +1,4 @@
-doppio: A JVM in TypeScript v0.3.0
+doppio: A JVM in TypeScript v0.3.1
 ==================================
 
 [![Build Status](https://travis-ci.org/plasma-umass/doppio.svg?branch=master)](https://travis-ci.org/plasma-umass/doppio)

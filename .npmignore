@@ -1,6 +1,6 @@
 build
 vendor/java_home
-typings
+./typings
 tools
 tasks
 .tsdrc
