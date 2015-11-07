@@ -27,7 +27,7 @@ function makeBinScript(name, target) {
   // Node modules use unix dir separators.
   relPath = relPath.replace(/\\/g, "/");
   fs.writeFileSync(path.resolve('bin', name),
-    new Buffer("#!/usr/bin/env node\nrequire('" +  + "');\n", "utf8"), {
+    new Buffer("#!/usr/bin/env node\nrequire('" + relPath + "');\n", "utf8"), {
     mode: 493
   });
 }

@@ -1,6 +1,10 @@
 {
   "name": "doppiojvm",
   "version": "0.3.0",
+  "main": [
+    "dist/release/doppio.js",
+    "dist/release/doppio.js.map"
+  ],
   "ignore": [
     "**/.*",
     "node_modules",
