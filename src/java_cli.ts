@@ -118,6 +118,9 @@ function java(args: string[], opts: JVMCLIOptions,
       }
       logging.log_level = level;
     }
+  } else {
+    // Reset back to default.
+    logging.log_level = logging.ERROR;
   }
 
   if (argv.non_standard['list-class-cache']) {
