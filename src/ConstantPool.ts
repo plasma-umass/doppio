@@ -5,17 +5,33 @@ import util = require('./util');
 import enums = require('./enums');
 import assert = require('./assert');
 import ClassData = require('./ClassData');
-import java_object = require('./java_object');
 import methods = require('./methods');
 import ClassLoader = require('./ClassLoader');
 // For type information.
 import threading = require('./threading');
+import JVMTypes = require('../includes/JVMTypes');
 
 /**
  * Represents a constant pool item. Use the item's type to discriminate among them.
  */
 export interface IConstantPoolItem {
   getType(): enums.ConstantPoolItemType;
+  /**
+   * Is this constant pool item resolved? Use to discriminate among resolved
+   * and unresolved reference types.
+   */
+  isResolved(): boolean;
+  /**
+   * Returns the constant associated with the constant pool item. The item *must*
+   * be resolved.
+   * Only defined on constant pool items that return values through LDC.
+   */
+  getConstant?(thread: threading.JVMThread): any;
+  /**
+   * Resolves an unresolved constant pool item. Can only be called if
+   * isResolved() returns false.
+   */
+  resolve?(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, caller: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, cb: (status: boolean) => void, explicit?: boolean): void;
 }
 
 /**
@@ -48,25 +64,63 @@ var CP_CLASSES: { [n: number]: IConstantPoolType } = {};
  *   u1 bytes[length];
  * }
  * ```
- * TODO: Avoid decoding into a string if possible, as the JVM represents them
- * as char arrays.
  */
 export class ConstUTF8 implements IConstantPoolItem {
   public value: string;
-  constructor(value: string) {
-    this.value = value;
+  constructor(rawBytes: Buffer) {
+    this.value = this.bytes2str(rawBytes);
+  }
+
+  /**
+   * Parse Java's pseudo-UTF-8 strings into valid UTF-16 codepoints (spec 4.4.7)
+   * Note that Java uses UTF-16 internally by default for string representation,
+   * and the pseudo-UTF-8 strings are *only* used for serialization purposes.
+   * Thus, there is no reason for other parts of the code to call this routine!
+   * TODO: To avoid copying, create a character array for this data.
+   * http://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.4.7
+   */
+  private bytes2str(bytes: Buffer): string {
+    var y: number, z: number, v: number, w: number, x: number, charCode: number, idx = 0, rv = '';
+    while (idx < bytes.length) {
+      x = bytes.readUInt8(idx++) & 0xff;
+      // While the standard specifies that surrogate pairs should be handled, it seems like
+      // they are by default with the three byte format. See parsing code here:
+      // http://hg.openjdk.java.net/jdk8u/jdk8u-dev/jdk/file/3623f1b29b58/src/share/classes/java/io/DataInputStream.java#l618
+
+      // One UTF-16 character.
+      if (x <= 0x7f) {
+        // One character, one byte.
+        charCode = x;
+      } else if (x <= 0xdf) {
+        // One character, two bytes.
+        y = bytes.readUInt8(idx++);
+        charCode = ((x & 0x1f) << 6) + (y & 0x3f);
+      } else {
+        // One character, three bytes.
+        y = bytes.readUInt8(idx++);
+        z = bytes.readUInt8(idx++);
+        charCode = ((x & 0xf) << 12) + ((y & 0x3f) << 6) + (z & 0x3f);
+      }
+      rv += String.fromCharCode(charCode);
+    }
+
+    return rv;
   }
 
   public getType(): enums.ConstantPoolItemType {
     return enums.ConstantPoolItemType.UTF8;
   }
 
+  public getConstant(thread: threading.JVMThread) { return this.value; }
+
+  public isResolved() { return true; }
+
   public static size: number = 1;
   // Variable-size.
   public static infoByteSize: number = 0;
   public static fromBytes(byteStream: ByteStream, constantPool: ConstantPool): IConstantPoolItem {
     var strlen = byteStream.getUint16();
-    return new this(util.bytes2str(byteStream.read(strlen)));
+    return new this(byteStream.read(strlen));
   }
 }
 CP_CLASSES[enums.ConstantPoolItemType.UTF8] = ConstUTF8;
@@ -89,6 +143,10 @@ export class ConstInt32 implements IConstantPoolItem {
   public getType(): enums.ConstantPoolItemType {
     return enums.ConstantPoolItemType.INTEGER;
   }
+
+  public getConstant(thread: threading.JVMThread) { return this.value; }
+
+  public isResolved() { return true; }
 
   public static size: number = 1;
   public static infoByteSize: number = 4;
@@ -116,6 +174,10 @@ export class ConstFloat implements IConstantPoolItem {
   public getType(): enums.ConstantPoolItemType {
     return enums.ConstantPoolItemType.FLOAT;
   }
+
+  public getConstant(thread: threading.JVMThread) { return this.value; }
+
+  public isResolved() { return true; }
 
   public static size: number = 1;
   public static infoByteSize: number = 4;
@@ -145,6 +207,10 @@ export class ConstLong implements IConstantPoolItem {
     return enums.ConstantPoolItemType.LONG;
   }
 
+  public getConstant(thread: threading.JVMThread) { return this.value; }
+
+  public isResolved() { return true; }
+
   public static size: number = 2;
   public static infoByteSize: number = 8;
   public static fromBytes(byteStream: ByteStream, constantPool: ConstantPool): IConstantPoolItem {
@@ -172,6 +238,10 @@ export class ConstDouble implements IConstantPoolItem {
   public getType(): enums.ConstantPoolItemType {
     return enums.ConstantPoolItemType.DOUBLE;
   }
+
+  public getConstant(thread: threading.JVMThread) { return this.value; }
+
+  public isResolved() { return true; }
 
   public static size: number = 2;
   public static infoByteSize: number = 8;
@@ -202,60 +272,75 @@ export class ClassReference implements IConstantPoolItem {
    */
   public name: string;
   /**
-   * Contains a stashed ClassData object for this class. Can be an array
-   * or a reference class.
+   * The resolved class reference.
    */
-  public cls: ClassData.ClassData = null;
+  public cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object> | ClassData.ArrayClassData<any> = null;
   /**
-   * Contains a stashed *Array*ClassData for the array version of this class
-   * (i.e. '[' + name).
+   * The JavaScript constructor for the referenced class.
    */
-  public arrayClass: ClassData.ArrayClassData = null;
+  public clsConstructor: ClassData.IJVMConstructor<JVMTypes.java_lang_Object> = null;
+  /**
+   * The array class for the resolved class reference.
+   */
+  public arrayClass: ClassData.ArrayClassData<any> = null;
+  /**
+   * The JavaScript constructor for the array class.
+   */
+  public arrayClassConstructor: ClassData.IJVMConstructor<JVMTypes.JVMArray<any>> = null;
   constructor(name: string) {
     this.name = name;
+  }
+
+  /**
+   * Attempt to synchronously resolve.
+   */
+  public tryResolve(loader: ClassLoader.ClassLoader): boolean {
+    if (this.cls === null) {
+      this.cls = <ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> loader.getResolvedClass(this.name);
+    }
+    return this.cls !== null;
+  }
+
+  /**
+   * Resolves the class reference by resolving the class. Does not run
+   * class initialization.
+   */
+  public resolve(thread: threading.JVMThread, loader: ClassLoader.ClassLoader, caller: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, cb: (status: boolean) => void, explicit: boolean = true) {
+    // Because of Java 8 anonymous classes, THIS CHECK IS REQUIRED FOR CORRECTNESS.
+    // (ClassLoaders do not know about anonymous classes, hence they are
+    //  'anonymous')
+    // (Anonymous classes are an 'Unsafe' feature, and are not part of the standard,
+    //  but they are employed for lambdas and such.)
+    // NOTE: Thread is 'null' during JVM bootstrapping.
+    if (thread !== null) {
+      var currentMethod = thread.currentMethod();
+      // The stack might be empty during resolution, which occurs during JVM bootup.
+      if (currentMethod !== null && this.name === thread.currentMethod().cls.getInternalName()) {
+        this.setResolved(thread, thread.currentMethod().cls);
+        return cb(true);
+      }
+    }
+
+    loader.resolveClass(thread, this.name, (cdata: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>) => {
+      this.setResolved(thread, cdata);
+      cb(cdata !== null);
+    }, explicit);
+  }
+
+  private setResolved(thread: threading.JVMThread, cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>) {
+    this.cls = cls;
+    if (cls !== null) {
+      this.clsConstructor = cls.getConstructor(thread);
+    }
   }
 
   public getType(): enums.ConstantPoolItemType {
     return enums.ConstantPoolItemType.CLASS;
   }
 
-  /**
-   * Attempt to retrieve this class synchronously.
-   * Returns null if the class needs to be asynchronously loaded.
-   * @note Does not check for initialization!
-   */
-  public tryGetClass(cl: ClassLoader.ClassLoader): ClassData.ClassData {
-    if (this.cls === null) {
-      this.cls = cl.getResolvedClass(this.name);
-    }
-    return this.cls;
-  }
+  public getConstant(thread: threading.JVMThread) { return this.cls.getClassObject(thread); }
 
-  /**
-   * Asynchronously resolves the class.
-   */
-  public getClass(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
-    if (this.cls !== null) {
-      // Short circuit.
-      setImmediate(() => cb(this.cls));
-      return;
-    }
-
-    cl.resolveClass(thread, this.name, (cdata: ClassData.ClassData) => {
-      this.cls = cdata;
-      cb(cdata);
-    }, explicit);
-  }
-
-  /**
-   * Retrieves an array version of this class.
-   */
-  public getArrayClass(cl: ClassLoader.ClassLoader): ClassData.ArrayClassData {
-    if (this.arrayClass === null) {
-      this.arrayClass = <ClassData.ArrayClassData> cl.getResolvedClass("[" + this.name);
-    }
-    return this.arrayClass;
-  }
+  public isResolved() { return this.cls !== null; }
 
   public static size: number = 1;
   public static infoByteSize: number = 2;
@@ -284,9 +369,6 @@ CP_CLASSES[enums.ConstantPoolItemType.CLASS] = ClassReference;
 export class NameAndTypeInfo implements IConstantPoolItem {
   public name: string;
   public descriptor: string;
-  // Stores a MethodType if NameAndTypeInfo is a method descriptor, or the
-  // class of a field if NameAndTypeInfo is a field descriptor.
-  public type: java_object.JavaObject = null;
   constructor(name: string, descriptor: string) {
     this.name = name;
     this.descriptor = descriptor;
@@ -296,35 +378,7 @@ export class NameAndTypeInfo implements IConstantPoolItem {
     return enums.ConstantPoolItemType.NAME_AND_TYPE;
   }
 
-  /**
-   * Construct or retrieve the MethodType object corresponding to this
-   * NameAndTypeInfo entry.
-   */
-  public getMethodType(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, cb: (e: any, type: java_object.JavaObject) => void) {
-    assert(this.descriptor[0] === '(', "Must be a method type.");
-    if (this.type !== null) {
-      cb(null, this.type);
-    } else {
-      util.createMethodType(thread, cl, this.descriptor, (e: any, type: java_object.JavaObject) => {
-        this.type = type;
-        cb(e, type);
-      });
-    }
-  }
-
-  public getFieldType(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, cb: (e: any, type: java_object.JavaObject) => void) {
-    assert(this.descriptor[0] !== '(', 'Must be a field type.');
-    if (this.type !== null) {
-      cb(null, this.type);
-    } else {
-      // Fetch the class associated with the descriptor.
-      cl.initializeClass(thread, this.descriptor, (cdata: ClassData.ClassData) => {
-        if (cdata !== null) {
-          cb(null, cdata.getClassObject(thread));
-        }
-      });
-    }
-  }
+  public isResolved() { return true; }
 
   public static size: number = 1;
   public static infoByteSize: number = 4;
@@ -351,15 +405,8 @@ CP_CLASSES[enums.ConstantPoolItemType.NAME_AND_TYPE] = NameAndTypeInfo;
  * ```
  */
 export class ConstString implements IConstantPoolItem {
-  /**
-   * The constant JVM string. If null, it should be created and interned.
-   * We don't do that here to avoid circular references.
-   */
-  public value: java_object.JavaObject = null;
-  /**
-   * The JavaScript string value for this string.
-   */
   public stringValue: string;
+  public value: JVMTypes.java_lang_String = null;
   constructor(stringValue: string) {
     this.stringValue = stringValue;
   }
@@ -367,6 +414,15 @@ export class ConstString implements IConstantPoolItem {
   public getType(): enums.ConstantPoolItemType {
     return enums.ConstantPoolItemType.STRING;
   }
+
+  public resolve(thread: threading.JVMThread, loader: ClassLoader.ClassLoader, caller: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, cb: (status: boolean) => void) {
+    this.value = thread.getJVM().internString(this.stringValue);
+    setImmediate(() => cb(true));
+  }
+
+  public getConstant(thread: threading.JVMThread) { return this.value; }
+
+  public isResolved() { return this.value !== null; }
 
   public static size: number = 1;
   public static infoByteSize: number = 2;
@@ -390,29 +446,31 @@ CP_CLASSES[enums.ConstantPoolItemType.STRING] = ConstString;
  * ```
  */
 export class MethodType implements IConstantPoolItem {
-  public descriptor: string;
-  /**
-   * A MethodType object for this constant pool item.
-   */
-  public type: java_object.JavaObject = null;
+  private descriptor: string;
+  public methodType: JVMTypes.java_lang_invoke_MethodType = null;
   constructor(descriptor: string) {
     this.descriptor = descriptor;
   }
+
+  public resolve(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, caller: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, cb: (status: boolean) => void) {
+    util.createMethodType(thread, cl, this.descriptor, (e: JVMTypes.java_lang_Throwable, type: JVMTypes.java_lang_invoke_MethodType) => {
+      if (e) {
+        thread.throwException(e);
+        cb(false);
+      } else {
+        this.methodType = type;
+        cb(true);
+      }
+    });
+  }
+
+  public getConstant(thread: threading.JVMThread) { return this.methodType; }
 
   public getType(): enums.ConstantPoolItemType {
     return enums.ConstantPoolItemType.METHOD_TYPE;
   }
 
-  public getMethodType(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, cb: (e: any, type: java_object.JavaObject) => void) {
-    if (this.type !== null) {
-      cb(null, this.type);
-    } else {
-      util.createMethodType(thread, cl, this.descriptor, (e: any, type: java_object.JavaObject) => {
-        this.type = type;
-        cb(e, type);
-      });
-    }
-  }
+  public isResolved() { return this.methodType !== null; }
 
   public static size: number = 1;
   public static infoByteSize: number = 2;
@@ -430,46 +488,6 @@ CP_CLASSES[enums.ConstantPoolItemType.METHOD_TYPE] = MethodType;
 
 // #region Tier 2
 
-function _getParamWordSize(signature: string): number {
-  var state = 'name', size = 0;
-  for (var i = 0; i < signature.length; i++) {
-    var c = signature[i];
-    switch (state) {
-      case 'name':
-        if (c === '(') {
-          state = 'type';
-        }
-        break;
-      case 'type':
-        if (c === ')') {
-          return size;
-        }
-        if (c === 'J' || c === 'D') {
-          size += 2;
-        } else {
-          ++size;
-        }
-        if (c === 'L') {
-          state = 'class';
-        } else if (c === '[') {
-          state = 'array';
-        }
-        break;
-      case 'class':
-        if (c === ';') {
-          state = 'type';
-        }
-        break;
-      case 'array':
-        if (c === 'L') {
-          state = 'class';
-        } else if (c !== '[') {
-          state = 'type';
-        }
-    }
-  }
-}
-
 /**
  * Represents a particular method.
  * ```
@@ -481,99 +499,159 @@ function _getParamWordSize(signature: string): number {
  * ```
  */
 export class MethodReference implements IConstantPoolItem {
-  /**
-   * The signature of the method, e.g. foo()V.
-   */
-  public methodSignature: string;
-  /**
-   * The actual method.
-   */
-  public method: methods.Method = null;
   public classInfo: ClassReference;
   public nameAndTypeInfo: NameAndTypeInfo;
-  private paramWordSize: number = -1;
+  public method: methods.Method = null;
   /**
-   * For signature polymorphic functions, contains a reference to the MemberName
-   * object for the method that invokes the desired function.
+   * The signature of the method, without the owning class.
+   * e.g. foo(IJ)V
    */
-  public memberName: java_object.JavaObject = null;
+  public signature: string;
   /**
-   * For signature polymorphic functions, contains an object that needs to be
-   * pushed onto the stack before invoking memberName.
+   * The signature of the method, including the owning class.
+   * e.g. bar/Baz/foo(IJ)V
    */
-  public appendix: java_object.JavaObject = null;
+  public fullSignature: string = null;
+  public paramWordSize: number = -1;
+  /**
+   * Contains a reference to the MemberName object for the method that invokes
+   * the desired function.
+   */
+  public memberName: JVMTypes.java_lang_invoke_MemberName = null;
+  /**
+   * Contains an object that needs to be pushed onto the stack before invoking
+   * memberName.
+   */
+  public appendix: JVMTypes.java_lang_Object = null;
+  /**
+   * The JavaScript constructor for the class that the method belongs to.
+   */
+  public jsConstructor: any = null;
+
   constructor(classInfo: ClassReference, nameAndTypeInfo: NameAndTypeInfo) {
     this.classInfo = classInfo;
-    this.methodSignature = nameAndTypeInfo.name + nameAndTypeInfo.descriptor;
     this.nameAndTypeInfo = nameAndTypeInfo;
+    this.signature = this.nameAndTypeInfo.name + this.nameAndTypeInfo.descriptor;
   }
 
   public getType(): enums.ConstantPoolItemType {
     return enums.ConstantPoolItemType.METHODREF;
   }
 
-  public getMethodHandleType(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, cb: (e: any, type: java_object.JavaObject) => void): void {
-    this.nameAndTypeInfo.getMethodType(thread, cl, cb);
-  }
-
   /**
-   * Ensures that this.method is set.
+   * Checks the method referenced by this constant pool item in the specified
+   * bytecode context.
+   * Returns null if an error occurs.
+   * - Throws a NoSuchFieldError if missing.
+   * - Throws an IllegalAccessError if field is inaccessible.
+   * - Throws an IncompatibleClassChangeError if the field is an incorrect type
+   *   for the field access.
    */
-  public ensureMethodSet(thread: threading.JVMThread): boolean {
-    if (this.method !== null) {
-      return true;
+  public hasAccess(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, isStatic: boolean): boolean {
+    var method = this.method, accessingCls = frame.method.cls;
+    if (method.accessFlags.isStatic() !== isStatic) {
+      thread.throwNewException('Ljava/lang/IncompatibleClassChangeError;', `Method ${method.name} from class ${method.cls.getExternalName()} is ${isStatic ? 'not ' : ''}static.`);
+      frame.returnToThreadLoop = true;
+      return false;
+    } else if (!util.checkAccess(accessingCls, method.cls, method.accessFlags)) {
+      thread.throwNewException('Ljava/lang/IllegalAccessError;', `${accessingCls.getExternalName()} cannot access ${method.cls.getExternalName()}.${method.name}`);
+      frame.returnToThreadLoop = true;
+      return false;
     }
-
-    if (this.classInfo.cls !== null) {
-      this.method = this.classInfo.cls.methodLookup(thread, this.nameAndTypeInfo.name + this.nameAndTypeInfo.descriptor);
-    }
-
-    return this.method !== null;
+    return true;
   }
 
-  public resolveMemberName(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, accessingClazz: ClassData.ReferenceClassData, cb: (e: java_object.JavaObject) => void): void {
-    if (this.memberName) {
-      setImmediate(() => cb(null));
-      return;
-    }
+  private resolveMemberName(method: methods.Method, thread: threading.JVMThread, cl: ClassLoader.ClassLoader, caller: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, cb: (status: boolean) => void): void {
+    var memberHandleNatives = <typeof JVMTypes.java_lang_invoke_MethodHandleNatives>  (<ClassData.ReferenceClassData<JVMTypes.java_lang_invoke_MethodHandleNatives>> thread.getBsCl().getInitializedClass(thread, 'Ljava/lang/invoke/MethodHandleNatives;')).getConstructor(thread),
+      appendix = new ((<ClassData.ArrayClassData<JVMTypes.java_lang_Object>> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/Object;')).getConstructor(thread))(thread, 1);
 
-    var linkMethod: methods.Method = thread.getBsCl()
-      .getInitializedClass(thread, 'Ljava/lang/invoke/MethodHandleNatives;')
-      /* MemberName linkMethod(Class<?> callerClass, int refKind, Class<?> defc,
-         String name, Object type,
-         Object[] appendixResult) */
-      .methodLookup(thread, 'linkMethod(Ljava/lang/Class;ILjava/lang/Class;Ljava/lang/String;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/invoke/MemberName;'),
-      appendix: java_object.JavaArray = (<ClassData.ArrayClassData> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/Object;')).create([null]),
-      type: java_object.JavaObject,
-      finishLinkingMethod = () => {
-        thread.runMethod(linkMethod, [accessingClazz.getClassObject(thread),
-          enums.MethodHandleReferenceKind.INVOKEVIRTUAL,
-          this.classInfo.cls.getClassObject(thread),
-          thread.getThreadPool().getJVM().internString(this.nameAndTypeInfo.name),
-          this.nameAndTypeInfo.type, appendix],
-          (e?: java_object.JavaObject, rv?: java_object.JavaObject) => {
-            if (e !== null) {
-              cb(e);
-            } else {
-              this.appendix = appendix.array[0];
-              this.memberName = rv;
-              cb(null);
-            }
-          });
-        };
+    util.createMethodType(thread, cl, this.nameAndTypeInfo.descriptor, (e: JVMTypes.java_lang_Throwable, type: JVMTypes.java_lang_invoke_MethodType) => {
+      if (e) {
+        thread.throwException(e);
+        cb(false);
+      } else {
+        /* MemberName linkMethod( int refKind, Class<?> defc,
+           String name, Object type,
+           Object[] appendixResult) */
+        memberHandleNatives['java/lang/invoke/MethodHandleNatives/linkMethod(Ljava/lang/Class;ILjava/lang/Class;Ljava/lang/String;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/invoke/MemberName;'](
+          thread,
+          // Class callerClass
+          [caller.getClassObject(thread),
+          // int refKind
+           enums.MethodHandleReferenceKind.INVOKEVIRTUAL,
+          // Class defc
+           this.classInfo.cls.getClassObject(thread),
+          // String name
+           thread.getJVM().internString(this.nameAndTypeInfo.name),
+          // Object type, Object[] appendixResult
+           type, appendix],
+        (e?: JVMTypes.java_lang_Throwable, rv?: JVMTypes.java_lang_invoke_MemberName) => {
+          if (e !== null) {
+            thread.throwException(e);
+            cb(false);
+          } else {
+            this.appendix = appendix.array[0];
+            this.memberName = rv;
+            cb(true);
+          }
+        });
+      }
+    });
+  }
 
-    // Get the method's type.
-    if (this.nameAndTypeInfo.type !== null) {
-      finishLinkingMethod();
-    } else {
-      this.nameAndTypeInfo.getMethodType(thread, cl, (e: java_object.JavaObject, mt: java_object.JavaObject) => {
-        if (e) {
-          cb(e);
+  public resolve(thread: threading.JVMThread, loader: ClassLoader.ClassLoader, caller: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, cb: (status: boolean) => void, explicit: boolean = true) {
+    if (!this.classInfo.isResolved()) {
+      this.classInfo.resolve(thread, loader, caller, (status: boolean) => {
+        if (!status) {
+          cb(false);
         } else {
-          finishLinkingMethod();
+          this.resolve(thread, loader, caller, cb, explicit);
         }
-      });
+      }, explicit);
+    } else {
+      var cls = this.classInfo.cls,
+        method = cls.methodLookup(this.signature);
+      if (method === null) {
+        if (util.is_reference_type(cls.getInternalName())) {
+          // Signature polymorphic lookup.
+          method = (<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> cls).signaturePolymorphicAwareMethodLookup(this.signature);
+          if (method !== null && (method.name === 'invoke' || method.name === 'invokeExact')) {
+            // In order to completely resolve the signature polymorphic function,
+            // we need to resolve its MemberName object and Appendix.
+            return this.resolveMemberName(method, thread, loader, caller, (status: boolean) => {
+              if (status === true) {
+                this.setResolved(thread, method);
+              } else {
+                thread.throwNewException('Ljava/lang/NoSuchMethodError;', `Method ${this.signature} does not exist in class ${this.classInfo.cls.getExternalName()}.`);
+              }
+              cb(status);
+            });
+          }
+        }
+      }
+      if (method !== null) {
+        this.setResolved(thread, method);
+        cb(true);
+      } else {
+        thread.throwNewException('Ljava/lang/NoSuchMethodError;', `Method ${this.signature} does not exist in class ${this.classInfo.cls.getExternalName()}.`);
+        cb(false);
+      }
     }
+  }
+
+  public setResolved(thread: threading.JVMThread, method: methods.Method): void {
+    this.method = method;
+    this.paramWordSize = util.getMethodDescriptorWordSize(this.nameAndTypeInfo.descriptor);
+    this.fullSignature = this.method.fullSignature;
+    this.jsConstructor = this.method.cls.getConstructor(thread);
+  }
+
+  public isResolved() { return this.method !== null; }
+  public getParamWordSize(): number {
+    if (this.paramWordSize === -1) {
+      this.paramWordSize = util.getMethodDescriptorWordSize(this.nameAndTypeInfo.descriptor);
+    }
+    return this.paramWordSize;
   }
 
   public static size: number = 1;
@@ -587,19 +665,6 @@ export class MethodReference implements IConstantPoolItem {
       nameAndTypeInfo.getType() === enums.ConstantPoolItemType.NAME_AND_TYPE,
       'ConstantPool MethodReference types mismatch');
     return new this(classInfo, nameAndTypeInfo);
-  }
-
-  /**
-   * In the JVM, 64-bit parameters are two words long. Everything else is 1.
-   * This method parses a method descriptor, and returns the length of the
-   * parameters in terms of machine words.
-   */
-  public getParamWordSize(): number {
-    if (this.paramWordSize >= 0) {
-      return this.paramWordSize;
-    } else {
-      return this.paramWordSize = _getParamWordSize(this.methodSignature);
-    }
   }
 }
 CP_CLASSES[enums.ConstantPoolItemType.METHODREF] = MethodReference;
@@ -615,39 +680,92 @@ CP_CLASSES[enums.ConstantPoolItemType.METHODREF] = MethodReference;
  * ```
  */
 export class InterfaceMethodReference implements IConstantPoolItem {
-  /**
-   * The specific interface method referenced.
-   */
-  public method: methods.Method = null;
   public classInfo: ClassReference;
-  public methodSignature: string;
   public nameAndTypeInfo: NameAndTypeInfo;
-  private methodTypeObject: java_object.JavaObject = null;
+  /**
+   * The signature of the method, without the owning class.
+   * e.g. foo(IJ)V
+   */
+  public signature: string;
+  /**
+   * The signature of the method, including the owning class.
+   * e.g. bar/Baz/foo(IJ)V
+   */
+  public fullSignature: string = null;
+  public method: methods.Method = null;
+  public paramWordSize: number = -1;
+  public jsConstructor: any = null;
   constructor(classInfo: ClassReference, nameAndTypeInfo: NameAndTypeInfo) {
     this.classInfo = classInfo;
-    this.methodSignature = nameAndTypeInfo.name + nameAndTypeInfo.descriptor;
     this.nameAndTypeInfo = nameAndTypeInfo;
+    this.signature = this.nameAndTypeInfo.name + this.nameAndTypeInfo.descriptor;
   }
 
   public getType(): enums.ConstantPoolItemType {
     return enums.ConstantPoolItemType.INTERFACE_METHODREF;
   }
 
-  public ensureMethodSet(thread: threading.JVMThread): boolean {
-    if (this.method !== null) {
-      return true;
+  /**
+   * Checks the method referenced by this constant pool item in the specified
+   * bytecode context.
+   * Returns null if an error occurs.
+   * - Throws a NoSuchFieldError if missing.
+   * - Throws an IllegalAccessError if field is inaccessible.
+   * - Throws an IncompatibleClassChangeError if the field is an incorrect type
+   *   for the field access.
+   */
+  public hasAccess(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, isStatic: boolean): boolean {
+    var method = this.method, accessingCls = frame.method.cls;
+    if (method.accessFlags.isStatic() !== isStatic) {
+      thread.throwNewException('Ljava/lang/IncompatibleClassChangeError;', `Method ${method.name} from class ${method.cls.getExternalName()} is ${isStatic ? 'not ' : ''}static.`);
+      frame.returnToThreadLoop = true;
+      return false;
+    } else if (!util.checkAccess(accessingCls, method.cls, method.accessFlags)) {
+      thread.throwNewException('Ljava/lang/IllegalAccessError;', `${accessingCls.getExternalName()} cannot access ${method.cls.getExternalName()}.${method.name}`);
+      frame.returnToThreadLoop = true;
+      return false;
     }
-
-    if (this.classInfo.cls !== null) {
-      this.method = this.classInfo.cls.methodLookup(thread, this.nameAndTypeInfo.name + this.nameAndTypeInfo.descriptor);
-    }
-
-    return this.method !== null;
+    return true;
   }
 
-  public getMethodHandleType(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, cb: (e: any, type: java_object.JavaObject) => void): void {
-    this.nameAndTypeInfo.getMethodType(thread, cl, cb);
+  public resolve(thread: threading.JVMThread, loader: ClassLoader.ClassLoader, caller: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, cb: (status: boolean) => void, explicit: boolean = true) {
+    if (!this.classInfo.isResolved()) {
+      this.classInfo.resolve(thread, loader, caller, (status: boolean) => {
+        if (!status) {
+          cb(false);
+        } else {
+          this.resolve(thread, loader, caller, cb, explicit);
+        }
+      }, explicit);
+    } else {
+      var cls = this.classInfo.cls,
+        method = cls.methodLookup(this.signature);
+      this.paramWordSize = util.getMethodDescriptorWordSize(this.nameAndTypeInfo.descriptor);
+      if (method !== null) {
+        this.setResolved(thread, method);
+        cb(true);
+      } else {
+        thread.throwNewException('Ljava/lang/NoSuchMethodError;', `Method ${this.signature} does not exist in class ${this.classInfo.cls.getExternalName()}.`);
+        cb(false);
+      }
+    }
   }
+
+  public setResolved(thread: threading.JVMThread, method: methods.Method): void {
+    this.method = method;
+    this.paramWordSize = util.getMethodDescriptorWordSize(this.nameAndTypeInfo.descriptor);
+    this.fullSignature = this.method.fullSignature;
+    this.jsConstructor = this.method.cls.getConstructor(thread);
+  }
+
+  public getParamWordSize(): number {
+    if (this.paramWordSize === -1) {
+      this.paramWordSize = util.getMethodDescriptorWordSize(this.nameAndTypeInfo.descriptor);
+    }
+    return this.paramWordSize;
+  }
+
+  public isResolved() { return this.method !== null; }
 
   public static size: number = 1;
   public static infoByteSize: number = 4;
@@ -675,25 +793,20 @@ CP_CLASSES[enums.ConstantPoolItemType.INTERFACE_METHODREF] = InterfaceMethodRefe
  * ```
  */
 export class FieldReference implements IConstantPoolItem {
-  /**
-   * Name of the field. Primarily needed for static fields.
-   */
-  public fieldName: string;
-  /**
-   * The name of the class that the field belongs to + its name. Needed
-   * primarily for object fields.
-   * e.g.:
-   * Lfoo/bar/Baz;value
-   * We don't know this value until the referenced class is resolved and we
-   * perform field resolution.
-   */
-  public fullFieldName: string = null;
   public classInfo: ClassReference;
   public nameAndTypeInfo: NameAndTypeInfo;
-  public owningClass: ClassData.ReferenceClassData = null;
+  public field: methods.Field = null;
+  /**
+   * The full name of the field, including the owning class.
+   * e.g. java/lang/String/value
+   */
+  public fullFieldName: string = null;
+  /**
+   * The constructor for the field owner. Used for static fields.
+   */
+  public fieldOwnerConstructor: any = null;
   constructor(classInfo: ClassReference, nameAndTypeInfo: NameAndTypeInfo) {
     this.classInfo = classInfo;
-    this.fieldName = nameAndTypeInfo.name;
     this.nameAndTypeInfo = nameAndTypeInfo;
   }
 
@@ -702,12 +815,52 @@ export class FieldReference implements IConstantPoolItem {
   }
 
   /**
-   * Returns the `type` argument needed for constructing a method handle to this
-   * field reference. In this case, it's the class of the field's type.
+   * Checks the field referenced by this constant pool item in the specified
+   * bytecode context.
+   * Returns null if an error occurs.
+   * - Throws a NoSuchFieldError if missing.
+   * - Throws an IllegalAccessError if field is inaccessible.
+   * - Throws an IncompatibleClassChangeError if the field is an incorrect type
+   *   for the field access.
    */
-  public getMethodHandleType(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, cb: (e: any, type: java_object.JavaObject) => void): void {
-    this.nameAndTypeInfo.getFieldType(thread, cl, cb);
+  public hasAccess(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, isStatic: boolean): boolean {
+    var field = this.field, accessingCls = frame.method.cls;
+    if (field.accessFlags.isStatic() !== isStatic) {
+      thread.throwNewException('Ljava/lang/IncompatibleClassChangeError;', `Field ${name} from class ${field.cls.getExternalName()} is ${isStatic ? 'not ' : ''}static.`);
+      frame.returnToThreadLoop = true;
+      return false;
+    } else if (!util.checkAccess(accessingCls, field.cls, field.accessFlags)) {
+      thread.throwNewException('Ljava/lang/IllegalAccessError;', `${accessingCls.getExternalName()} cannot access ${field.cls.getExternalName()}.${name}`);
+      frame.returnToThreadLoop = true;
+      return false;
+    }
+    return true;
   }
+
+  public resolve(thread: threading.JVMThread, loader: ClassLoader.ClassLoader, caller: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, cb: (status: boolean) => void, explicit: boolean = true) {
+    if (!this.classInfo.isResolved()) {
+      this.classInfo.resolve(thread, loader, caller, (status: boolean) => {
+        if (!status) {
+          cb(false);
+        } else {
+          this.resolve(thread, loader, caller, cb, explicit);
+        }
+      }, explicit);
+    } else {
+      var cls = this.classInfo.cls,
+        field = cls.fieldLookup(this.nameAndTypeInfo.name);
+      if (field !== null) {
+        this.fullFieldName = `${util.descriptor2typestr(field.cls.getInternalName())}/${field.name}`;
+        this.field = field;
+        cb(true);
+      } else {
+        thread.throwNewException('Ljava/lang/NoSuchFieldError;', `Field ${this.nameAndTypeInfo.name} does not exist in class ${this.classInfo.cls.getExternalName()}.`);
+        cb(false);
+      }
+    }
+  }
+
+  public isResolved() { return this.field !== null; }
 
   public static size: number = 1;
   public static infoByteSize: number = 4;
@@ -740,7 +893,11 @@ CP_CLASSES[enums.ConstantPoolItemType.FIELDREF] = FieldReference;
 export class InvokeDynamic implements IConstantPoolItem {
   public bootstrapMethodAttrIndex: number;
   public nameAndTypeInfo: NameAndTypeInfo;
-  public bootstrapMethod: [MethodHandle, IConstantPoolItem[]] = null;
+  /**
+   * The parameter word size of the nameAndTypeInfo's descriptor.
+   * Does not take appendix into account; this is the static paramWordSize.
+   */
+  public paramWordSize: number;
   /**
    * Once a CallSite is defined for a particular lexical occurrence of
    * InvokeDynamic, the CallSite will be reused for each future execution
@@ -749,18 +906,36 @@ export class InvokeDynamic implements IConstantPoolItem {
    * We store the CallSite objects here for future retrieval, along with an
    * optional 'appendix' argument.
    */
-  private callSiteObjects: { [pc: number]: [java_object.JavaObject, java_object.JavaObject] } = {};
+  private callSiteObjects: { [pc: number]: [JVMTypes.java_lang_invoke_MemberName, JVMTypes.java_lang_Object] } = {};
+  /**
+   * A MethodType object corresponding to this InvokeDynamic call's
+   * method descriptor.
+   */
+  private methodType: JVMTypes.java_lang_invoke_MethodType = null;
 
   constructor(bootstrapMethodAttrIndex: number, nameAndTypeInfo: NameAndTypeInfo) {
     this.bootstrapMethodAttrIndex = bootstrapMethodAttrIndex;
     this.nameAndTypeInfo = nameAndTypeInfo;
+    this.paramWordSize = util.getMethodDescriptorWordSize(this.nameAndTypeInfo.descriptor);
   }
 
   public getType(): enums.ConstantPoolItemType {
     return enums.ConstantPoolItemType.INVOKE_DYNAMIC;
   }
+  public isResolved(): boolean { return this.methodType !== null; }
+  public resolve(thread: threading.JVMThread, loader: ClassLoader.ClassLoader, caller: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, cb: (status: boolean) => void) {
+    util.createMethodType(thread, loader, this.nameAndTypeInfo.descriptor, (e: JVMTypes.java_lang_Throwable, rv: JVMTypes.java_lang_invoke_MethodType) => {
+      if (e) {
+        thread.throwException(e);
+        cb(false);
+      } else {
+        this.methodType = rv;
+        cb(true);
+      }
+    });
+  }
 
-  public getCallSiteObject(pc: number): [java_object.JavaObject, java_object.JavaObject] {
+  public getCallSiteObject(pc: number): [JVMTypes.java_lang_invoke_MemberName, JVMTypes.java_lang_Object] {
     var cso = this.callSiteObjects[pc]
     if (cso) {
       return cso;
@@ -769,23 +944,34 @@ export class InvokeDynamic implements IConstantPoolItem {
     }
   }
 
-  public constructCallSiteObject(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, clazz: ClassData.ReferenceClassData, pc: number, cb: (cso: java_object.JavaObject) => void): void {
-    assert(this.callSiteObjects[pc] === undefined, 'Should be impossible to construct same callsite object twice.');
-    var bootstrapMethod = clazz.getBootstrapMethod(this.bootstrapMethodAttrIndex);
+  public constructCallSiteObject(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, clazz: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, pc: number, cb: (status: boolean) => void, explicit: boolean = true): void {
     /**
      * A call site specifier gives a symbolic reference to a method handle which
      * is to serve as the bootstrap method for a dynamic call site (§4.7.23).
      * The method handle is resolved to obtain a reference to an instance of
      * java.lang.invoke.MethodHandle (§5.4.3.5).
      */
-    function getMethodHandle(cb: (mh: java_object.JavaObject) => void): void {
-      if (bootstrapMethod[0].methodHandle !== null) {
-        cb(bootstrapMethod[0].methodHandle);
-      } else {
-        bootstrapMethod[0].constructMethodHandle(thread, clazz, cl, () => {
-          cb(bootstrapMethod[0].methodHandle);
-        });
-      }
+    var bootstrapMethod = clazz.getBootstrapMethod(this.bootstrapMethodAttrIndex),
+      unresolvedItems: IConstantPoolItem[] = bootstrapMethod[1].concat(bootstrapMethod[0], this).filter((item: IConstantPoolItem) => !item.isResolved());
+
+    if (unresolvedItems.length > 0) {
+      // Resolve all needed constant pool items (including this one).
+      return util.asyncForEach(unresolvedItems, (cpItem: IConstantPoolItem, nextItem: (err?: any) => void) => {
+        cpItem.resolve(thread, cl, clazz, (status: boolean) => {
+          if (!status) {
+            nextItem("Failed.");
+          } else {
+            nextItem();
+          }
+        }, explicit);
+      }, (err?: any) => {
+        if (err) {
+          cb(false);
+        } else {
+          // Rerun. This time, all items are resolved.
+          this.constructCallSiteObject(thread, cl, clazz, pc, cb, explicit);
+        }
+      });
     }
 
     /**
@@ -797,90 +983,62 @@ export class InvokeDynamic implements IConstantPoolItem {
      * java.lang.invoke.MethodHandle objects, and java.lang.invoke.MethodType
      * objects respectively. Any static arguments that are string literals are
      * used to obtain references to String objects.
-     *
-     * TODO: Cache objects on bootstrapMethods!
      */
-    function getArguments(cb: (args: java_object.JavaObject[]) => void): void {
-      var cpItems = bootstrapMethod[1], rv: java_object.JavaObject[] = [];
-      util.asyncForEach(cpItems, (cpItem: IConstantPoolItem, nextItem: (err?: any) => void) => {
+    function getArguments(): JVMTypes.JVMArray<JVMTypes.java_lang_Object> {
+      var cpItems = bootstrapMethod[1],
+        i: number, cpItem: IConstantPoolItem,
+        rvObj = new ((<ClassData.ArrayClassData<JVMTypes.java_lang_Object>> thread.getBsCl().getInitializedClass(thread, '[Ljava/lang/Object;')).getConstructor(thread))(thread, cpItems.length),
+        rv = rvObj.array;
+      for (i = 0; i < cpItems.length; i++) {
+        cpItem = cpItems[i];
         switch (cpItem.getType()) {
           case enums.ConstantPoolItemType.CLASS:
-            (<ClassReference> cpItem).getClass(thread, cl, (cdata: ClassData.ClassData) => {
-              assert(cdata !== null, "TODO: Figure out what to do when this fails...");
-              rv.push(cdata.getClassObject(thread));
-              nextItem();
-            }, false);
+            rv[i] = (<ClassReference> cpItem).cls.getClassObject(thread);
             break;
           case enums.ConstantPoolItemType.METHOD_HANDLE:
-            var mh = <MethodHandle> cpItem;
-            if (mh.methodHandle !== null) {
-              rv.push(mh.methodHandle);
-              nextItem();
-            } else {
-              mh.constructMethodHandle(thread, clazz, cl, (err: any, methodHandle: java_object.JavaObject) => {
-                if (err) {
-                  assert(false, "TODO: Figure out what to do here...");
-                }
-                rv.push(methodHandle);
-                nextItem();
-              });
-            }
+            rv[i] = (<MethodHandle> cpItem).methodHandle;
             break;
           case enums.ConstantPoolItemType.METHOD_TYPE:
-            (<MethodType> cpItem).getMethodType(thread, cl, (e: any, mt: java_object.JavaObject) => {
-              if (e) {
-                assert(false, "TODO: Figure out what to do here...");
-              }
-              rv.push(mt);
-              nextItem();
-            });
+            rv[i] = (<MethodType> cpItem).methodType;
             break;
           case enums.ConstantPoolItemType.STRING:
-            // TODO: Bake this into the CP item.
-            var cString = <ConstString> cpItem;
-            if (cString.value === null) {
-              cString.value = thread.getThreadPool().getJVM().internString(cString.stringValue);
-            }
-            rv.push(cString.value);
-            nextItem();
+            rv[i] = (<ConstString> cpItem).value;
             break;
           case enums.ConstantPoolItemType.UTF8:
-            rv.push(thread.getThreadPool().getJVM().internString((<ConstUTF8> cpItem).value));
-            nextItem();
+            rv[i] = thread.getJVM().internString((<ConstUTF8> cpItem).value);
             break;
           case enums.ConstantPoolItemType.INTEGER:
-            rv.push((<ClassData.PrimitiveClassData> cl.getInitializedClass(thread, 'I')).createWrapperObject(thread, (<ConstInt32> cpItem).value));
+            rv[i] = (<ClassData.PrimitiveClassData> cl.getInitializedClass(thread, 'I')).createWrapperObject(thread, (<ConstInt32> cpItem).value);
             break;
           case enums.ConstantPoolItemType.LONG:
-            rv.push((<ClassData.PrimitiveClassData> cl.getInitializedClass(thread, 'J')).createWrapperObject(thread, (<ConstLong> cpItem).value));
+            rv[i] = (<ClassData.PrimitiveClassData> cl.getInitializedClass(thread, 'J')).createWrapperObject(thread, (<ConstLong> cpItem).value);
             break;
           case enums.ConstantPoolItemType.FLOAT:
-            rv.push((<ClassData.PrimitiveClassData> cl.getInitializedClass(thread, 'F')).createWrapperObject(thread, (<ConstFloat> cpItem).value));
+            rv[i] = (<ClassData.PrimitiveClassData> cl.getInitializedClass(thread, 'F')).createWrapperObject(thread, (<ConstFloat> cpItem).value);
             break;
           case enums.ConstantPoolItemType.DOUBLE:
-            rv.push((<ClassData.PrimitiveClassData> cl.getInitializedClass(thread, 'D')).createWrapperObject(thread, (<ConstDouble> cpItem).value));
+            rv[i] = (<ClassData.PrimitiveClassData> cl.getInitializedClass(thread, 'D')).createWrapperObject(thread, (<ConstDouble> cpItem).value);
             break;
           default:
             assert(false, "Invalid CPItem for static args: " + enums.ConstantPoolItemType[cpItem.getType()]);
             break;
         }
-      }, (err?: any) => {
-        assert(rv.length === cpItems.length, "Must have all args prepared.");
-        assert((() => {
-          var status = true;
-          cpItems.forEach((cpItem: IConstantPoolItem, i: number) => {
-            if (rv[i] === undefined) {
-              console.log("Undefined item at arg " + i + ": " + enums.ConstantPoolItemType[cpItem.getType()]);
-              status = false;
-            } else if (rv[i] === null) {
-              console.log("Null item at arg " + i + ": " + enums.ConstantPoolItemType[cpItem.getType()]);
-              status = false;
-            }
-          });
-          return status;
-        })(), "Arguments cannot be undefined or null.");
-        cb(rv);
-      });
+      }
+      assert((() => {
+        var status = true;
+        cpItems.forEach((cpItem: IConstantPoolItem, i: number) => {
+          if (rv[i] === undefined) {
+            console.log("Undefined item at arg " + i + ": " + enums.ConstantPoolItemType[cpItem.getType()]);
+            status = false;
+          } else if (rv[i] === null) {
+            console.log("Null item at arg " + i + ": " + enums.ConstantPoolItemType[cpItem.getType()]);
+            status = false;
+          }
+        });
+        return status;
+      })(), "Arguments cannot be undefined or null.");
+
+      return rvObj;
     }
 
     /**
@@ -888,40 +1046,40 @@ export class InvokeDynamic implements IConstantPoolItem {
      * instance of java.lang.invoke.MethodType is obtained as if by resolution
      * of a symbolic reference to a method type with the same parameter and
      * return types as TD (§5.4.3.5).
+     *
+     * Do what all OpenJDK-based JVMs do: Call
+     * MethodHandleNatives.linkCallSite with:
+     * - The class w/ the invokedynamic instruction
+     * - The bootstrap method
+     * - The name string from the nameAndTypeInfo
+     * - The methodType object from the nameAndTypeInfo
+     * - The static arguments from the bootstrap method.
+     * - A 1-length appendix box.
      */
-    this.nameAndTypeInfo.getMethodType(thread, cl, (e: any, mt: java_object.JavaObject) => {
+    var methodName = thread.getJVM().internString(this.nameAndTypeInfo.name),
+      appendixArr = new ((<ClassData.ArrayClassData<JVMTypes.java_lang_Object>> cl.getInitializedClass(thread, '[Ljava/lang/Object;')).getConstructor(thread))(thread, 1),
+      staticArgs = getArguments(),
+      mhn = <typeof JVMTypes.java_lang_invoke_MethodHandleNatives> (<ClassData.ReferenceClassData<JVMTypes.java_lang_invoke_MethodHandleNatives>> cl.getInitializedClass(thread, 'Ljava/lang/invoke/MethodHandleNatives;')).getConstructor(thread);
+
+
+    mhn['java/lang/invoke/MethodHandleNatives/linkCallSite(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/invoke/MemberName;'](thread,
+      [clazz.getClassObject(thread), bootstrapMethod[0].methodHandle, methodName, this.methodType, staticArgs, appendixArr], (e?: JVMTypes.java_lang_Throwable, rv?: JVMTypes.java_lang_invoke_MemberName) => {
       if (e) {
         thread.throwException(e);
+        cb(false);
       } else {
-        getMethodHandle((mh: java_object.JavaObject) => {
-          getArguments((args: java_object.JavaObject[]) => {
-            /**
-             * Do what all OpenJDK-based JVMs do: Call
-             * MethodHandleNatives.linkCallSite with:
-             * - The class w/ the invokedynamic instruction
-             * - The bootstrap method
-             * - The name string from the nameAndTypeInfo
-             * - The methodType object from the nameAndTypeInfo
-             * - The static arguments from the bootstrap method.
-             * - A 1-length appendix box.
-             */
-            var methodName = thread.getThreadPool().getJVM().internString(this.nameAndTypeInfo.name),
-              appendixArr = (<ClassData.ArrayClassData> cl.getInitializedClass(thread, '[Ljava/lang/Object;')).create([null]),
-              staticArgs = (<ClassData.ArrayClassData> cl.getInitializedClass(thread, '[Ljava/lang/Object;')).create(args),
-              mhn = cl.getInitializedClass(thread, 'Ljava/lang/invoke/MethodHandleNatives;');
-            thread.runMethod(mhn.methodLookup(thread, 'linkCallSite(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/invoke/MemberName;'),
-              [clazz.getClassObject(thread), mh, methodName, mt, staticArgs, appendixArr], (e?: any, rv?: any) => {
-              if (e) {
-                thread.throwException(e);
-              } else {
-                this.callSiteObjects[pc] = [rv, appendixArr.array[0]];
-                cb(rv);
-              }
-            });
-          });
-        });
+        this.setResolved(pc, [rv, appendixArr.array[0]]);
+        cb(true);
       }
     });
+  }
+
+  private setResolved(pc: number, cso: [JVMTypes.java_lang_invoke_MemberName, JVMTypes.java_lang_Object]) {
+    // Prevent resolution races. It's OK to create multiple CSOs, but only one
+    // should ever be used!
+    if (this.callSiteObjects[pc] === undefined) {
+      this.callSiteObjects[pc] = cso;
+    }
   }
 
   public static size: number = 1;
@@ -944,7 +1102,7 @@ CP_CLASSES[enums.ConstantPoolItemType.INVOKE_DYNAMIC] = InvokeDynamic;
 export interface IConstantPoolReference extends IConstantPoolItem {
   classInfo: ClassReference;
   nameAndTypeInfo: NameAndTypeInfo;
-  getMethodHandleType(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, cb: (e: any, type: java_object.JavaObject) => void): void;
+  getMethodHandleType(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, cb: (e: any, type: JVMTypes.java_lang_Object) => void): void;
 }
 
 /**
@@ -958,12 +1116,12 @@ export interface IConstantPoolReference extends IConstantPoolItem {
  * ```
  */
 export class MethodHandle implements IConstantPoolItem {
-  public reference: FieldReference | MethodReference | InterfaceMethodReference;
-  public referenceType: enums.MethodHandleReferenceKind;
+  private reference: FieldReference | MethodReference | InterfaceMethodReference;
+  private referenceType: enums.MethodHandleReferenceKind;
   /**
-   * Java object representing this particular method handle.
+   * The resolved MethodHandle object.
    */
-  public methodHandle: java_object.JavaObject = null;
+  public methodHandle: JVMTypes.java_lang_invoke_MethodHandle = null;
   constructor(reference: FieldReference | MethodReference | InterfaceMethodReference, referenceType: enums.MethodHandleReferenceKind) {
     this.reference = reference;
     this.referenceType = referenceType;
@@ -972,6 +1130,8 @@ export class MethodHandle implements IConstantPoolItem {
   public getType(): enums.ConstantPoolItemType {
     return enums.ConstantPoolItemType.METHOD_HANDLE;
   }
+  public isResolved(): boolean { return this.methodHandle !== null; }
+  public getConstant(thread: threading.JVMThread) { return this.methodHandle; }
 
   /**
    * Asynchronously constructs a JVM-visible MethodHandle object for this
@@ -986,41 +1146,64 @@ export class MethodHandle implements IConstantPoolItem {
    *
    * If needed, this function will resolve needed classes.
    */
-  public constructMethodHandle(thread: threading.JVMThread, caller: ClassData.ClassData, cl: ClassLoader.ClassLoader, cb: (err: any, methodHandle: java_object.JavaObject) => void): void {
-    var definingClassRef: ClassReference = this.reference.classInfo,
-      nameAndTypeInfo: NameAndTypeInfo = this.reference.nameAndTypeInfo,
-      isMethod: boolean = this.reference.getType() === enums.ConstantPoolItemType.FIELDREF ? false : true,
-      definingClass: ClassData.ClassData = definingClassRef.tryGetClass(cl),
-      definingClassObject: java_object.JavaClassObject,
-      name: java_object.JavaObject = thread.getThreadPool().getJVM().internString(nameAndTypeInfo.name),
-      getType = () => {
-        this.reference.getMethodHandleType(thread, cl, (e: any, type: java_object.JavaObject) => {
-          if (!e) {
-            // Construct the method handle!
-            var methodHandleNatives = cl.getInitializedClass(thread, 'Ljava/lang/invoke/MethodHandleNatives;'),
-              linkMethodHandleConstant = methodHandleNatives.methodLookup(thread, 'linkMethodHandleConstant(Ljava/lang/Class;ILjava/lang/Class;Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/invoke/MethodHandle;');
-            thread.runMethod(linkMethodHandleConstant, [caller.getClassObject(thread), this.referenceType, definingClassObject, name, type], (e?: java_object.JavaObject, methodHandle?: java_object.JavaObject) => {
-              if (e) {
-                thread.throwException(e);
-              } else {
-                this.methodHandle = methodHandle;
-                cb(null, methodHandle);
-              }
-            });
+  public resolve(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, caller: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, cb: (status: boolean) => void, explicit: boolean) {
+    if (!this.reference.isResolved()) {
+      return this.reference.resolve(thread, cl, caller, (status: boolean) => {
+        if (!status) {
+          cb(false);
+        } else {
+          this.resolve(thread, cl, caller, cb, explicit);
+        }
+      }, explicit);
+    }
+
+    this.constructMethodHandleType(thread, cl, (type: JVMTypes.java_lang_Object) => {
+      if (type === null) {
+        cb(false);
+      } else {
+        var methodHandleNatives = <typeof JVMTypes.java_lang_invoke_MethodHandleNatives> (<ClassData.ReferenceClassData<JVMTypes.java_lang_invoke_MethodHandleNatives>> cl.getInitializedClass(thread, 'Ljava/lang/invoke/MethodHandleNatives;')).getConstructor(thread);
+        methodHandleNatives['linkMethodHandleConstant(Ljava/lang/Class;ILjava/lang/Class;Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/invoke/MethodHandle;'](
+          thread,
+          [caller.getClassObject(thread), this.referenceType, this.getDefiningClassObj(thread), thread.getJVM().internString(this.reference.nameAndTypeInfo.name), type], (e?: JVMTypes.java_lang_Throwable, methodHandle?: JVMTypes.java_lang_invoke_MethodHandle) => {
+          if (e) {
+            thread.throwException(e);
+            cb(false);
+          } else {
+            this.methodHandle = methodHandle;
+            cb(true);
           }
         });
-      };
+      }
+    });
+  }
 
-    assert(this.methodHandle === null, "Should not be constructing the same MethodHandle twice!");
+  private getDefiningClassObj(thread: threading.JVMThread): JVMTypes.java_lang_Class {
+    if (this.reference.getType() === enums.ConstantPoolItemType.FIELDREF) {
+      return (<FieldReference> this.reference).field.cls.getClassObject(thread);
+    } else {
+      return (<MethodReference> this.reference).method.cls.getClassObject(thread);
+    }
+  }
 
-    if (definingClass === null) {
-      definingClassRef.getClass(thread, cl, (cdata: ClassData.ClassData) => {
-        definingClassObject = cdata.getClassObject(thread);
-        getType();
+  private constructMethodHandleType(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, cb: (type: JVMTypes.java_lang_Object) => void): void {
+    if (this.reference.getType() === enums.ConstantPoolItemType.FIELDREF) {
+      var resolveObj: string = this.reference.nameAndTypeInfo.descriptor;
+      cl.resolveClass(thread, resolveObj, (cdata: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>) => {
+        if (cdata !== null) {
+          cb(cdata.getClassObject(thread));
+        } else {
+          cb(null);
+        }
       });
     } else {
-      definingClassObject = definingClass.getClassObject(thread);
-      getType();
+      util.createMethodType(thread, cl, this.reference.nameAndTypeInfo.descriptor, (e: JVMTypes.java_lang_Throwable, rv: JVMTypes.java_lang_invoke_MethodType) => {
+        if (e) {
+          thread.throwException(e);
+          cb(null);
+        } else {
+          cb(rv);
+        }
+      });
     }
   }
 
@@ -1121,7 +1304,7 @@ export class ConstantPool {
    */
   private constantPool: IConstantPoolItem[];
 
-  public parse(byteStream: ByteStream, cpPatches: java_object.JavaArray = null): ByteStream {
+  public parse(byteStream: ByteStream, cpPatches: JVMTypes.JVMArray<JVMTypes.java_lang_Object> = null): ByteStream {
     var cpCount = byteStream.getUint16(),
       // First key is the tier.
       deferredQueue: { offset: number; index: number }[][] = [[], [], []],
@@ -1169,37 +1352,38 @@ export class ConstantPool {
            * * String: any object (not just a java.lang.String)
            * * InterfaceMethodRef: (NYI) a method handle to invoke on that call site's arguments
            */
-          var patchObj: java_object.JavaObject = cpPatches.array[item.index];
-          switch (patchObj.cls.getInternalName()) {
+          var patchObj: JVMTypes.java_lang_Object = cpPatches.array[item.index];
+          switch (patchObj.getClass().getInternalName()) {
             case 'Ljava/lang/Integer;':
               assert(tag === enums.ConstantPoolItemType.INTEGER);
-              (<ConstInt32> this.constantPool[item.index]).value = patchObj.get_field(null, 'Ljava/lang/Integer;value');
+              (<ConstInt32> this.constantPool[item.index]).value = (<JVMTypes.java_lang_Integer> patchObj)['java/lang/Integer/value'];
               break;
             case 'Ljava/lang/Long;':
               assert(tag === enums.ConstantPoolItemType.LONG);
-              (<ConstLong> this.constantPool[item.index]).value = patchObj.get_field(null, 'Ljava/lang/Long;value');
+              (<ConstLong> this.constantPool[item.index]).value = (<JVMTypes.java_lang_Long> patchObj)['java/lang/Long/value'];
               break;
             case 'Ljava/lang/Float;':
               assert(tag === enums.ConstantPoolItemType.FLOAT);
-              (<ConstFloat> this.constantPool[item.index]).value = patchObj.get_field(null, 'Ljava/lang/Float;value');
+              (<ConstFloat> this.constantPool[item.index]).value = (<JVMTypes.java_lang_Float> patchObj)['java/lang/Float/value'];
               break;
             case 'Ljava/lang/Double;':
               assert(tag === enums.ConstantPoolItemType.DOUBLE);
-              (<ConstDouble> this.constantPool[item.index]).value = patchObj.get_field(null, 'Ljava/lang/Double;value');
+              (<ConstDouble> this.constantPool[item.index]).value = (<JVMTypes.java_lang_Double> patchObj)['java/lang/Double/value'];
               break;
             case 'Ljava/lang/String;':
               assert(tag === enums.ConstantPoolItemType.UTF8);
-              (<ConstUTF8> this.constantPool[item.index]).value = patchObj.jvm2js_str();
+              (<ConstUTF8> this.constantPool[item.index]).value = (<JVMTypes.java_lang_String> patchObj).toString();
               break;
             case 'Ljava/lang/Class;':
               assert(tag === enums.ConstantPoolItemType.CLASS);
-              (<ClassReference> this.constantPool[item.index]).name = (<java_object.JavaClassObject> patchObj).$cls.getInternalName();
-              (<ClassReference> this.constantPool[item.index]).cls = (<java_object.JavaClassObject> patchObj).$cls;
+              (<ClassReference> this.constantPool[item.index]).name = (<JVMTypes.java_lang_Class> patchObj).$cls.getInternalName();
+              (<ClassReference> this.constantPool[item.index]).cls = <ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> (<JVMTypes.java_lang_Class> patchObj).$cls;
               break;
             default:
               assert(tag === enums.ConstantPoolItemType.STRING);
               (<ConstString> this.constantPool[item.index]).stringValue = "";
-              (<ConstString> this.constantPool[item.index]).value = patchObj;
+              // XXX: Not actually a string, but the JVM does this.
+              (<ConstString> this.constantPool[item.index]).value = <JVMTypes.java_lang_String> patchObj;
               break;
           }
         }
@@ -1224,3 +1408,5 @@ export class ConstantPool {
     });
   }
 }
+
+/// Resolved forms of constant pool items.

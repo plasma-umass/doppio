@@ -1,5 +1,3 @@
-///<reference path='../vendor/DefinitelyTyped/node/node.d.ts' />
-
 // A power-of-two segregated freelist "heap",
 // for explicit memory management into a buffer.
 // by Emery Berger, www.cs.umass.edu/~emery
@@ -77,6 +75,10 @@ class Heap {
     return this._buffer.readInt32LE(addr);
   }
 
+  get_buffer(addr: number, len: number): Buffer {
+    return this._buffer.slice(addr, addr + len);
+  }
+
   get_signed_byte(addr: number): number {
     return this._buffer.readInt8(addr);
   }
@@ -93,15 +95,7 @@ class Heap {
    * Copy len bytes from srcAddr to dstAddr.
    */
   memcpy(srcAddr: number, dstAddr: number, len: number) {
-    var len8 = len % 4, i: number, len32 = len - len8;
-    // Optimization: 32 bits at a time, when possible, from [0, len32)
-    for (i = 0; i < len32; i += 4) {
-      this._buffer.writeUInt32LE(this._buffer.readUInt32LE(srcAddr + i), dstAddr + i);
-    }
-    // Copy the remaining bytes, from [len32, len).
-    for (i = len32; i < len; i++) {
-      this._buffer.writeUInt8(this._buffer.readUInt8(srcAddr + i), dstAddr + i);
-    }
+    this._buffer.copy(this._buffer, dstAddr, srcAddr, srcAddr + len);
   }
 
   // Get more memory for a particular size class.

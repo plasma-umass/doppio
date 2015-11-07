@@ -1,10 +1,8 @@
 *.bat
 *.js
 *.js.map
-vendor
-!vendor/gLong.js
-!vendor/jquery.console.js
-!vendor/browserfs.min.js
+vendor/java_home
+includes
 
 *.swp
 *.un~
@@ -15,29 +13,32 @@ vendor
 *.tar.gz
 node_modules
 build
-index.html
-about.html
 .DS_store
+# Command-line tools
 doppio
 doppioh
+doppio-dev
+doppio-fast-dev
+# Error log
+doppio.err
 # But we want to allow classes/doppio
 !classes/doppio
-doppio-dev
-core-*
-browser/_about.html
-tools/preload
 classes/test/failures.txt
 
 # IntelliJ metadata
 *.iml
 .idea
 
-# The concatenated native methods
-src/natives.coffee
-
 # Log files
 *.log
 
 # grunt-ts command file
-tscommand.tmp.txt
+tscommand-*.txt
 .tscache
+.baseDir*.ts
+
+#tsd
+typings
+
+# harness
+tasks/test/*.d.ts

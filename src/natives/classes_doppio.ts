@@ -1,26 +1,28 @@
-import threading = require('../threading');
-import java_object = require('../java_object');
-import logging = require('../logging');
-import ClassData = require('../ClassData');
+import JVMTypes = require('../../includes/JVMTypes');
+import * as Doppio from '../doppiojvm';
+import JVMThread = Doppio.VM.Threading.JVMThread;
+import ReferenceClassData = Doppio.VM.ClassFile.ReferenceClassData;
+import logging = Doppio.Debug.Logging;
+import util = Doppio.VM.Util;
 declare var registerNatives: (defs: any) => void;
 
 class classes_doppio_Debug {
 
-  public static 'SetLogLevel(Lclasses/doppio/Debug$LogLevel;)V'(thread: threading.JVMThread, loglevel: java_object.JavaObject): void {
-    logging.log_level = loglevel.get_field(thread, 'Lclasses/doppio/Debug$LogLevel;level');
+  public static 'SetLogLevel(Lclasses/doppio/Debug$LogLevel;)V'(thread: JVMThread, loglevel: JVMTypes.classes_doppio_Debug$LogLevel): void {
+    logging.log_level = loglevel['classes/doppio/Debug$LogLevel/level'];
   }
 
-  public static 'GetLogLevel()Lclasses/doppio/Debug$LogLevel;'(thread: threading.JVMThread): java_object.JavaObject {
-    var ll_cls = <ClassData.ReferenceClassData> thread.getBsCl().getInitializedClass(thread, 'Lclasses/doppio/Debug$LogLevel;');
+  public static 'GetLogLevel()Lclasses/doppio/Debug$LogLevel;'(thread: JVMThread): JVMTypes.classes_doppio_Debug$LogLevel {
+    var ll_cls = <typeof JVMTypes.classes_doppio_Debug$LogLevel> (<ReferenceClassData<JVMTypes.classes_doppio_Debug$LogLevel>> thread.getBsCl().getInitializedClass(thread, 'Lclasses/doppio/Debug$LogLevel;')).getConstructor(thread);
     switch (logging.log_level) {
       case 10:
-        return ll_cls.staticGet(thread, 'VTRACE');
+        return ll_cls['classes/doppio/Debug$LogLevel/VTRACE'];
       case 9:
-        return ll_cls.staticGet(thread, 'TRACE');
+        return ll_cls['classes/doppio/Debug$LogLevel/TRACE'];
       case 5:
-        return ll_cls.staticGet(thread, 'DEBUG');
+        return ll_cls['classes/doppio/Debug$LogLevel/DEBUG'];
       default:
-        return ll_cls.staticGet(thread, 'ERROR');
+        return ll_cls['classes/doppio/Debug$LogLevel/ERROR'];
     }
   }
 
@@ -28,13 +30,17 @@ class classes_doppio_Debug {
 
 class classes_doppio_JavaScript {
 
-  public static 'eval(Ljava/lang/String;)Ljava/lang/String;'(thread: threading.JVMThread, to_eval: java_object.JavaObject): java_object.JavaObject {
-    var rv = eval(to_eval.jvm2js_str());
-    // Coerce to string, if possible.
-    if (rv != null) {
-      return java_object.initString(thread.getBsCl(), "" + rv);
-    } else {
-      return null;
+  public static 'eval(Ljava/lang/String;)Ljava/lang/String;'(thread: JVMThread, to_eval: JVMTypes.java_lang_String): JVMTypes.java_lang_String {
+    try {
+      var rv = eval(to_eval.toString());
+      // Coerce to string, if possible.
+      if (rv != null) {
+        return util.initString(thread.getBsCl(), "" + rv);
+      } else {
+        return null;
+      }
+    } catch (e) {
+      thread.throwNewException('Ljava/lang/Exception;', `Error evaluating string: ${e}`);
     }
   }
 

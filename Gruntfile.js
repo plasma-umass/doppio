@@ -3,15 +3,12 @@
  * Bootstraps ourselves from JavaScript into TypeScript.
  */
 var Grunttasks, glob = require('glob'), ts_files = [], ts_files_to_compile = [],
-    execSync = require('child_process').execSync,
     fs = require('fs'),
+    child_process = require('child_process'),
     path = require('path'),
     ts_path = path.resolve('node_modules', '.bin', 'tsc'),
-    result;
-// Fallback for older node versions.
-if (!execSync) {
-  execSync = require('execSync').exec;
-}
+    result,
+    ignoreCompileErrors = process.argv.indexOf('--grunt-ignore-compile-errors') !== -1;
 
 /**
  * For a given TypeScript file, checks if we should recompile it based on
@@ -40,7 +37,11 @@ ts_files.forEach(function(e, i) {
 
 // Run!
 if (ts_files_to_compile.length > 0) {
-  result = execSync(ts_path + ' --noImplicitAny --module commonjs ' + ts_files_to_compile.join(' '));
+  ts_files_to_compile.push('typings/tsd.d.ts');
+  result = child_process.spawnSync(ts_path, ['--noImplicitAny', '--module', 'commonjs'].concat(ts_files_to_compile));
+  if (!ignoreCompileErrors && result.status !== 0) {
+    throw new Error("Compilation error: " + result.stdout + "\n" + result.stderr);
+  }
 }
 
 Grunttasks = require('./Grunttasks');

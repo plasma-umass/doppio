@@ -1,6 +1,7 @@
 package classes.test;
 
 import java.io.*;
+import java.util.Arrays;
 
 class FileOps {
   static void printFile(File f) throws IOException {
@@ -39,7 +40,10 @@ class FileOps {
       System.out.println("Can you write to ''?: " + f.canWrite());
     }
 
-    for (File child : new File(testDir).listFiles()) {
+    File[] children = new File(testDir).listFiles();
+    // Sort by name to avoid nondeterministic file orderings.
+    Arrays.sort(children);
+    for (File child : children) {
       System.out.println(child.getName());
     }
 

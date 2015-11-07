@@ -1,4 +1,3 @@
-/// <reference path="../vendor/DefinitelyTyped/node/node.d.ts" />
 /**
  * Checks which Doppio Native Methods are actually used in the version of the
  * Java Class Library that Doppio is using.
@@ -12,6 +11,7 @@ import path = require('path');
 import class_data = require('../src/ClassData');
 import methods = require('../src/methods');
 import JVM = require('../src/jvm');
+import JVMTypes = require('../includes/JVMTypes');
 import os = require('os');
 var ReferenceClassData = class_data.ReferenceClassData,
     classpath: string[] = [path.resolve(__dirname, '..', 'vendor', 'java_home', 'classes'),
@@ -61,7 +61,7 @@ function getEditDistance(a: string, b: string): number {
 function getNativeSigs(className: string): string[] {
   var rv: string[] = [], i: number;
   for (i = 0; i < classpath.length; i++) {
-    var klass: class_data.ReferenceClassData,
+    var klass: class_data.ReferenceClassData<JVMTypes.java_lang_Object>,
         klass_path: string = path.resolve(classpath[i], className + ".class"),
         methods: methods.Method[],
         method_name: string;
@@ -70,7 +70,7 @@ function getNativeSigs(className: string): string[] {
       methods = klass.getMethods();
       methods.forEach((m: methods.Method) => {
         if (m.accessFlags.isNative()) {
-          rv.push(m.name + m.raw_descriptor);
+          rv.push(m.signature);
         }
       });
     }

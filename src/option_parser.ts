@@ -1,4 +1,3 @@
-/// <reference path="../vendor/DefinitelyTyped/node/node.d.ts" />
 "use strict";
 /**
  * Option parser for Java-compatible flags.
@@ -52,7 +51,7 @@ function parse_flag(args: string[], full_key: string, key: string,
 }
 
 export function parse(argv: string[]): any {
-  var result = {
+  var result: any = {
     standard: {},
     non_standard: {},
     properties: {},

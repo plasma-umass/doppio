@@ -1,14 +1,22 @@
 package classes.test;
 import java.lang.Thread;
+import java.util.concurrent.locks.*;
 
 public class Threading extends Thread {
+  private static Lock lock = new ReentrantLock();
+
   public Threading(String name) {
     super(name);
   }
   public void run() {
+    while (!lock.tryLock()) {
+      // Busy-wait for lock. Keeps us in RUNNABLE state for the test.
+    }
     System.out.println("hello from "+Thread.currentThread().getName());
+    lock.unlock();
   }
   public static void main(String[] args) throws java.lang.InterruptedException {
+    System.out.println(Thread.currentThread().getState()); 
     Thread.currentThread().interrupt();
     System.out.println("main thread was interrupted: " + Thread.currentThread().interrupted());
 
@@ -19,12 +27,14 @@ public class Threading extends Thread {
       System.out.println(t.holdsLock(t));  // should be true
     }
     System.out.println(t.isInterrupted());  // should be false
-	System.out.println(t.getState()); // should be NEW.
+	  System.out.println(t.getState()); // should be NEW.
+    lock.lock();
     t.run();
     t.start();
-	System.out.println(t.getState()); // should be RUNNABLE.
+    System.out.println(t.getState()); // should be RUNNABLE.
+    lock.unlock();
     t.join();
-	System.out.println(t.getState()); // should be TERMINATED.
+	  System.out.println(t.getState()); // should be TERMINATED.
     System.out.println("joined in "+Thread.currentThread().getName());
     Q q = new Q();
     new Producer(q);

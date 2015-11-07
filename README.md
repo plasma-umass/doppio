@@ -1,6 +1,10 @@
 doppio: A JVM in TypeScript
 =================================
 
+[![Build Status](https://travis-ci.org/plasma-umass/doppio.svg?branch=new-objects)](https://travis-ci.org/plasma-umass/doppio)
+[![david-dm-status-badge](https://david-dm.org/plasma-umass/doppio/new-objects.svg)](https://david-dm.org/plasma-umass/doppio/new-objects#info=dependencies&view=table)
+[![david-dm-status-badge](https://david-dm.org/plasma-umass/doppio/new-objects/dev-status.svg)](https://david-dm.org/plasma-umass/doppio/new-objects#info=devDependencies&view=table)
+
 _doppio_ is a double shot of espresso.
 In this case it's also a JVM written in [TypeScript](http://www.typescriptlang.org/).
 
@@ -13,20 +17,13 @@ You can also get in touch via our [mailing list][mail] or via the IRC channel
 
 [mail]: https://groups.google.com/forum/?fromgroups#!forum/plasma-umass-gsoc
 
-Integrating Into Your Site
---------------------------
-
-Check out our
-[Developer Guide](https://github.com/plasma-umass/doppio/wiki/Doppio-Developer-Guide)
-for information on how you can integrate doppio into your website!
-
 Getting & Building the Code
 ---------------------------
 
 Before attempting to build doppio, you must have the following installed:
-* Node v0.10 or higher
-* NPM packages `grunt-cli` and `bower` installed globally
-  * `npm install -g grunt-cli bower`
+* Node v0.12 or higher
+* NPM package `grunt-cli` and `tsd` installed globally
+  * `npm install -g grunt-cli tsd`
 * Java 8 JDK
 
 If you are on Windows, you will need the following installed:
@@ -39,7 +36,7 @@ Run the following commands to build doppio. Note that your first time building m
     git clone https://github.com/plasma-umass/doppio.git
     cd doppio
     npm install
-    bower install
+    tsd install
     grunt release      # For browser integration.
     grunt release-cli  # For command-line use.
 
@@ -67,11 +64,9 @@ Run doppio with node.js (after `grunt release-cli`):
     ./doppio -jar my_application.jar
     ./doppio -cp my/class/path SomeClass
 
-Automated Rebuilding
---------------------
+Integrating Into Your Site
+--------------------------
 
-To automatically rebuild doppio while you modify files, run the following command:
-
-    grunt release watch
-
-This will perform a complete build of doppio, and then will watch files to trigger partial rebuilds.
+Check out our
+[Developer Guide](https://github.com/plasma-umass/doppio/wiki/Doppio-Developer-Guide)
+for information on how you can integrate doppio into your website!

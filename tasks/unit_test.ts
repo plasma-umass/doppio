@@ -1,6 +1,3 @@
-/// <reference path="../vendor/DefinitelyTyped/node/node.d.ts" />
-/// <reference path="../vendor/DefinitelyTyped/gruntjs/gruntjs.d.ts" />
-/// <reference path="../vendor/DefinitelyTyped/async/async.d.ts" />
 import child_process = require('child_process');
 import os = require('os');
 import async = require('async');
@@ -9,7 +6,7 @@ function unitTest(grunt: IGrunt) {
 	grunt.registerMultiTask('unit_test', 'Run doppio unit tests.', function() {
     var files: { src: string[]; dest: string }[] = this.files,
       done: (status?: boolean) => void = this.async(),
-      tasks: ((cb: (err?: any) => void) => void)[] = [], testFailed = false;
+      tasks: Array<AsyncFunction<void>> = [], testFailed = false;
     // Delete failures.txt if it exists.
     if (grunt.file.exists('classes/test/failures.txt')) {
       grunt.file.delete('classes/test/failures.txt');

@@ -75,9 +75,9 @@ export class Code implements IAttribute {
     }
     var code = byteStream.slice(codeLen).getBuffer(),
       exceptLen = byteStream.getUint16(),
-      exceptionHandlers = [];
+      exceptionHandlers: ExceptionHandler[] = [];
     for (var i = 0; i < exceptLen; i++) {
-      exceptionHandlers.push(ExceptionHandler.parse(byteStream, constantPool));
+      exceptionHandlers.push(<ExceptionHandler> ExceptionHandler.parse(byteStream, constantPool));
     }
     // yes, there are even attrs on attrs. BWOM... BWOM...
     var attrs = makeAttributes(byteStream, constantPool);
@@ -168,6 +168,11 @@ export class SourceFile implements IAttribute {
 export interface IStackMapTableEntry {
   type: enums.StackMapTableEntryType;
   offsetDelta: number;
+  numLocals?: number;
+  locals?: string[];
+  numStackItems?: number;
+  stack?: string[];
+  k?: number;
 }
 
 export class StackMapTable implements IAttribute {
@@ -183,7 +188,7 @@ export class StackMapTable implements IAttribute {
 
   public static parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool): IAttribute {
     var numEntries = byteStream.getUint16(),
-      entries = [];
+      entries: IStackMapTableEntry[] = [];
     for (var i = 0; i < numEntries; i++) {
       entries.push(this.parseEntry(byteStream, constantPool));
     }
@@ -292,7 +297,7 @@ export class LocalVariableTable implements IAttribute {
 
   public static parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool): IAttribute {
     var numEntries = byteStream.getUint16(),
-      entries = [];
+      entries: ILocalVariableTableEntry[] = [];
     for (var i = 0; i < numEntries; i++) {
       entries.push(this.parseEntries(byteStream, constantPool));
     }
@@ -381,7 +386,7 @@ export class InnerClasses implements IAttribute {
 
   public static parse(bytes_array: ByteStream, constant_pool: ConstantPool.ConstantPool): IAttribute {
     var numClasses = bytes_array.getUint16(),
-      classes = [];
+      classes: IInnerClassInfo[] = [];
     for (var i = 0; i < numClasses; i++) {
       classes.push(this.parseClass(bytes_array, constant_pool));
     }
@@ -450,12 +455,16 @@ export class Signature implements IAttribute {
 }
 
 export class RuntimeVisibleAnnotations implements IAttribute {
-  public rawBytes: number[];
+  public rawBytes: Buffer;
   public isHidden: boolean;
+  public isCallerSensitive: boolean;
+  public isCompiled: boolean;
 
-  constructor(rawBytes: number[], isHidden: boolean) {
+  constructor(rawBytes: Buffer, isHidden: boolean, isCallerSensitive: boolean, isCompiled: boolean) {
     this.rawBytes = rawBytes;
     this.isHidden = isHidden;
+    this.isCallerSensitive = isCallerSensitive;
+    this.isCompiled = isCompiled;
   }
 
   public getName() {
@@ -467,6 +476,10 @@ export class RuntimeVisibleAnnotations implements IAttribute {
     // the raw bytes.
     // ...but we need to look for the 'Hidden' annotation, which specifies if
     // the method should be omitted from stack frames.
+    // And the 'compiled' annotation, which specifies if the method was
+    // compiled.
+    // And the 'CallerSensitive' annotation, which specifies that the function's
+    // behavior differs depending on the caller.
 
     /**
      * Skip the current RuntimeVisibleAnnotation.
@@ -516,7 +529,7 @@ export class RuntimeVisibleAnnotations implements IAttribute {
     }
 
     var rawBytes = byteStream.read(attrLen),
-      isHidden = false;
+      isHidden = false, isCompiled = false, isCallerSensitive = false;
     byteStream.seek(byteStream.pos() - rawBytes.length);
     var numAttributes = byteStream.getUint16(), i: number;
     for (i = 0; i < numAttributes; i++) {
@@ -524,19 +537,26 @@ export class RuntimeVisibleAnnotations implements IAttribute {
       // Rewind.
       byteStream.seek(byteStream.pos() - 2);
       skipAnnotation();
-      if (typeName.value === 'Ljava/lang/invoke/LambdaForm$Hidden;') {
-        isHidden = true;
-        break;
+      switch (typeName.value) {
+        case 'Ljava/lang/invoke/LambdaForm$Hidden;':
+          isHidden = true;
+          break;
+        case 'Lsig/sun/reflect/CallerSensitive;':
+          isCallerSensitive = true;
+          break;
+        case 'Lsig/java/lang/invoke/LambdaForm$Compiled':
+          isCompiled = true;
+          break;
       }
     }
 
-    return new this(rawBytes, isHidden);
+    return new this(rawBytes, isHidden, isCallerSensitive, isCompiled);
   }
 }
 
 export class AnnotationDefault implements IAttribute {
-  public rawBytes: number[];
-  constructor(rawBytes: number[]) {
+  public rawBytes: Buffer;
+  constructor(rawBytes: Buffer) {
     this.rawBytes = rawBytes;
   }
 
@@ -602,8 +622,8 @@ export class BootstrapMethods implements IAttribute {
 }
 
 export class RuntimeVisibleParameterAnnotations implements IAttribute {
-  public rawBytes: number[];
-  constructor(rawBytes: number[]) {
+  public rawBytes: Buffer;
+  constructor(rawBytes: Buffer) {
     this.rawBytes = rawBytes;
   }
 

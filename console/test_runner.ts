@@ -3,7 +3,6 @@ import testing = require('../src/testing');
 import os = require('os');
 import fs = require('fs');
 import path = require('path');
-import domain = require('domain');
 
 // Makes our stack traces point to the TypeScript source code lines.
 require('source-map-support').install({
@@ -18,10 +17,8 @@ var opts: testing.TestOptions = {
   classpath: null,
   nativeClasspath: [path.resolve(__dirname, path.join('..', 'src', 'natives'))],
   doppioDir: path.dirname(__dirname),
-  hideDiffs: false,
-  quiet: false,
-  keepGoing: false,
-  assertionsEnabled: false
+  assertionsEnabled: true,
+  tmpDir: os.tmpdir()
 }, passChar: string, failChar: string;
 
 if (process.platform.match(/win32/i)) {
@@ -33,74 +30,76 @@ if (process.platform.match(/win32/i)) {
   failChar = '✗';
 }
 
-function makefileTest(argv): void {
+/**
+ * Makefile tests are only relevant to the native runner.
+ */
+function makefileTest(argv: any): void {
   var failpath = path.resolve(__dirname, '../classes/test/failures.txt'),
-      old_write = process.stdout.write,
-      outfile = fs.openSync(failpath, 'a');
-
-  function newWrite(str: any, arg2?: any, arg3?: any): boolean {
-    var buff = new Buffer(str);
-    fs.writeSync(outfile, buff, 0, buff.length, null);
-    return true;
-  }
-
-  process.stdout.write = newWrite;
-  process.stderr.write = newWrite;
+      keepGoing = argv.c;
 
   opts.testClasses = argv._;
-  opts.quiet = true;
-  opts.keepGoing = argv.c;
 
   // Enter a domain so we are robust to uncaught errors.
-  var d = domain.create();
-
-  function finish(success: boolean) {
-    // Patch stdout back up.
-    process.stdout.write = old_write;
-    process.stdout.write(success ? passChar : failChar);
-    if (!success) {
-      fs.writeSync(outfile, new Buffer('\n'), 0, 1, null);
+  var errCallback: (err: any) => void = null;
+  function finish(err?: testing.TestingError) {
+    // Print out the status of this test.
+    process.stdout.write(err ? failChar : passChar);
+    if (err) {
+      var buff = new Buffer(`\n${err.message}\n`);
+      fs.appendFileSync(failpath, buff, {
+        flag: 'a'
+      });
     }
-    fs.closeSync(outfile);
     // Error code in the event of a failed test.
-    process.exit(success ? 0 : 1);
+    process.exit(err ? 1 : 0);
   }
 
-  d.on('error', (err) => {
-    // Make sure we write to the file. The test runner patches stdout.write, too.
-    // XXX: Assuming a single test class.
-    newWrite("Test " + opts.testClasses[0] + " failed.\n");
-    newWrite("Uncaught error:\n" + err + "\n" + (err['stack'] != null ? err.stack : "") + "\n");
-    finish(false);
+  // This handler should not run when the test exits normally (process.exit() in finish handler circumvents it).
+  process.on('beforeExit', () => {
+    if (errCallback) {
+      errCallback(new Error('Finish callback never triggered.'));
+    }
   });
 
-  d.run(() => {
-    testing.runTests(opts, finish);
+  process.on('uncaughtException', (err: any) => {
+    if (errCallback) {
+      errCallback(err);
+    }
   });
+
+  testing.runTests(opts, true, keepGoing, false, (cb: (err: Error) => void) => {
+    errCallback = cb;
+  }, finish);
 }
 
-function regularTest(argv): void {
+function regularTest(argv: any): void {
+  var hideDiffs = !argv.diff,
+    quiet = argv.q,
+    keepGoing = argv.c,
+    errCallback: (err: any) => void = null;
+
   opts.testClasses = argv._;
-  opts.hideDiffs = !argv.diff;
-  opts.quiet = argv.q;
-  opts.keepGoing = argv.c;
 
   var stdoutW = process.stdout.write,
-    stderrW = process.stderr.write,
-    // Enter a domain so we are robust to uncaught errors.
-    d = domain.create();
+    stderrW = process.stderr.write;
 
-  d.on('error', (err) => {
-    process.stdout.write = stdoutW;
-    process.stderr.write = stderrW;
-    console.log("failed.\nUncaught error:\n" + err + "\n" + (err['stack'] != null ? err.stack : ""));
-    process.exit(1);
+  process.on('uncaughtException', (err: any) => {
+    if (errCallback) {
+      errCallback(err);
+    }
   });
 
-  d.run(() => {
-    testing.runTests(opts, (result: boolean): void => {
-      process.exit(result ? 0 : 1);
-    });
+  // This handler should not run when the test exits normally (process.exit() in finish handler circumvents it).
+  process.on('beforeExit', () => {
+    if (errCallback) {
+      errCallback(new Error('Finish callback never triggered.'));
+    }
+  });
+
+  testing.runTests(opts, quiet, keepGoing, hideDiffs, (cb: (err: Error) => void) => {
+    errCallback = cb;
+  }, (err?: testing.TestingError) => {
+    process.exit(err ? 1 : 0);
   });
 }
 

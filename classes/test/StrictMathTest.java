@@ -37,7 +37,7 @@ public class StrictMathTest {
   public static void main(String[] args) {
     double[] d_vals = { 2.12345,
                         -3.256,
-                        0,
+                        0,3,4,
                         Double.MAX_VALUE,
                         Double.MIN_VALUE,
                         Double.MIN_NORMAL,
@@ -122,6 +122,12 @@ public class StrictMathTest {
 
     // static double atan2(double y, double x)
     // Returns the angle theta from the conversion of rectangular coordinates (x, y) to polar coordinates (r, theta).
+    for (i=0; i < d_vals.length; i++) {
+      for (j = 0; j < d_vals.length; j++) {
+        d_results_2d[i] = StrictMath.atan2(d_vals[i], d_vals[j]);
+      }
+    }
+    results("double atan2(double a, double b)", d_results_2d);
 
     // static double cbrt(double a)
     // Returns the cube root of a double value.
@@ -139,9 +145,22 @@ public class StrictMathTest {
 
     // static double cos(double a)
     // Returns the trigonometric cosine of an angle.
+    for (i=0; i < d_vals.length; i++) {
+        // Some browsers don't return consistent values for this operation
+        // (e.g. Firefox on Travis-CI)
+        if (d_vals[i] == Double.MAX_VALUE) {
+            continue;
+        }
+        d_results[i] = StrictMath.cos(d_vals[i]);
+    }
+    results("double cos(double a)", d_results);
 
     // static double cosh(double x)
     // Returns the hyperbolic cosine of a double value.
+    for (i=0; i < d_vals.length; i++) {
+        d_results[i] = StrictMath.cosh(d_vals[i]);
+    }
+    results("double cosh(double a)", d_results);
 
     // static double exp(double a)
     // Returns Euler's number e raised to the power of a double value.
@@ -160,11 +179,14 @@ public class StrictMathTest {
     }
     results("double floor(double a)", d_results);
 
-    // static double hypot(double x, double y)
-    // Returns sqrt(x2 +y2) without intermediate overflow or underflow.
-
     // static double IEEEremainder(double f1, double f2)
     // Computes the remainder operation on two arguments as prescribed by the IEEE 754 standard.
+    for (i=0; i < d_vals.length; i++) {
+      for (j=0; j < d_vals.length; j++) {
+        d_results_2d[i] = StrictMath.IEEEremainder(d_vals[i], d_vals[j]);
+      }
+    }
+    results("double IEEEremainder(double a, double b)", d_results_2d);
 
     // static double log(double a)
     // Returns the natural logarithm (base e) of a double value.
@@ -264,6 +286,15 @@ public class StrictMathTest {
     }
     results("double pow(double a, double b)", d_results_2d);
 
+    // static double hypot(double a, double b)
+    // Returns the value of the first argument raised to the power of 2 + second argument raised to the power of .
+    for (i=0; i < d_vals.length; i++) {
+      for (j=0; j < d_vals.length; j++) {
+        d_results[i] = StrictMath.hypot(d_vals[i], d_vals[j]);
+      }
+    }
+    results("double hypot(double a, double b)", d_results_2d);
+
     // static double random()
     // Returns a double value with a positive sign, greater than or equal to 0.0 and less than 1.0.
     for (i = 0; i < 10; i++) {
@@ -298,6 +329,16 @@ public class StrictMathTest {
 
     // static double sin(double a)
     // Returns the trigonometric sine of an angle.
+    for (i=0; i < d_vals.length; i++) {
+        // Some browsers don't return consistent values for this operation
+        // (e.g. Firefox on Travis-CI)
+        if (d_vals[i] == Double.MAX_VALUE) {
+            continue;
+        }
+        d_results[i] = StrictMath.sin(d_vals[i]);
+    }
+    results("double sin(double a)", d_results);
+
     // static double sinh(double x)
     // Returns the hyperbolic sine of a double value.
 
@@ -310,6 +351,15 @@ public class StrictMathTest {
 
     // static double tan(double a)
     // Returns the trigonometric tangent of an angle.
+    for (i=0; i < d_vals.length; i++) {
+        // Some browsers don't return consistent values for this operation
+        // (e.g. Firefox on Travis-CI)
+        if (d_vals[i] == Double.MAX_VALUE) {
+            continue;
+        }
+        d_results[i] = StrictMath.tan(d_vals[i]);
+    }
+    results("double tan(double a)", d_results);
 
     // static double tanh(double x)
     // Returns the hyperbolic tangent of a double value.

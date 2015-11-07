@@ -1,2 +1,0 @@
-window['doppio'] = require('./src/doppio');
-})();

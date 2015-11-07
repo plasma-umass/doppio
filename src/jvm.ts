@@ -1,19 +1,20 @@
-///<reference path='../vendor/DefinitelyTyped/node/node.d.ts' />
 "use strict";
 import util = require('./util');
 import SafeMap = require('./SafeMap');
 import methods = require('./methods');
-import ClassData = require('./ClassData');
+import {ClassData, ReferenceClassData, ArrayClassData} from './ClassData';
 import ClassLoader = require('./ClassLoader');
 import fs = require('fs');
 import path = require('path');
-import java_object = require('./java_object');
-import threading = require('./threading');
-import enums = require('./enums');
+import buffer = require('buffer');
+import {JVMThread} from './threading';
+import {ThreadStatus, JVMStatus} from './enums';
 import Heap = require('./heap');
 import assert = require('./assert');
 import interfaces = require('./interfaces');
-declare var requirejs: any;
+import JVMTypes = require('../includes/JVMTypes');
+import Parker = require('./parker');
+import ThreadPool from './threadpool';
 
 // XXX: We currently initialize these classes at JVM bootup. This is expensive.
 // We should attempt to prune this list as much as possible.
@@ -36,42 +37,75 @@ var coreClasses = [
   '[Lsun/management/MemoryPoolImpl;'
 ];
 
-
 /**
  * Encapsulates a single JVM instance.
  */
 class JVM {
-  private systemProperties: {[prop: string]: string};
-  private internedStrings: SafeMap<java_object.JavaObject> = new SafeMap<java_object.JavaObject>();
-  private bsCl: ClassLoader.BootstrapClassLoader;
-  private threadPool: threading.ThreadPool;
+  private systemProperties: {[prop: string]: string} = null;
+  private internedStrings: SafeMap<JVMTypes.java_lang_String> = new SafeMap<JVMTypes.java_lang_String>();
+  private bsCl: ClassLoader.BootstrapClassLoader = null;
+  private threadPool: ThreadPool<JVMThread> = null;
   private natives: { [clsName: string]: { [methSig: string]: Function } } = {};
   // 20MB heap
   // @todo Make heap resizeable.
   private heap: Heap = new Heap(20 * 1024 * 1024);
-  private nativeClasspath: string[];
+  private nativeClasspath: string[] = null;
   private startupTime: Date = new Date();
-  private terminationCb: (success: boolean) => void = null;
+  private terminationCb: (code: number) => void = null;
   // The initial JVM thread used to kick off execution.
-  private firstThread: threading.JVMThread;
-  private assertionsEnabled: boolean;
-  private shutdown: boolean;
+  private firstThread: JVMThread = null;
+  private assertionsEnabled: boolean = false;
   private systemClassLoader: ClassLoader.ClassLoader = null;
+  private nextRef: number = 0;
+  // Set of all of the methods we want vtrace to be enabled on.
+  // DEBUG builds only.
+  private vtraceMethods: {[fullSig: string]: boolean} = {};
+  // [DEBUG] directory to dump compiled code to.
+  private dumpCompiledCodeDir: string = null;
+  // Handles parking/unparking threads.
+  private parker = new Parker();
+  // The current status of the JVM.
+  private status: JVMStatus = JVMStatus.BOOTING;
+  // The JVM's planned exit code.
+  private exitCode: number = 0;
 
   /**
    * (Async) Construct a new instance of the Java Virtual Machine.
    */
   constructor(opts: interfaces.JVMOptions, cb: (e: any, jvm?: JVM) => void) {
     var bootstrapClasspath: string[] = opts.bootstrapClasspath.map((p: string): string => path.resolve(p)),
-      javaClassPath: string[] = opts.classpath.map((p: string): string => path.resolve(p)),
-      javaHomePath = path.resolve(opts.javaHomePath),
       // JVM bootup tasks, from first to last task.
       bootupTasks: {(next: (err?: any) => void): void}[] = [],
-      firstThread: threading.JVMThread;
-    // @todo Resolve these, and integrate it into the ClassLoader?
+      firstThread: JVMThread,
+      firstThreadObj: JVMTypes.java_lang_Thread,
+      opts = <interfaces.JVMOptions> util.merge({
+        assertionsEnabled: false,
+        properties: {},
+        classpath: ['.'],
+        tmpDir: '/tmp'
+      }, opts);
+
+    // Sanity checks.
+    if (!Array.isArray(opts.bootstrapClasspath) || opts.bootstrapClasspath.length === 0) {
+      throw new TypeError("opts.bootstrapClasspath must be specified as an array of file paths.");
+    }
+    if (!Array.isArray(opts.classpath)) {
+      throw new TypeError("opts.classpath must be specified as an array of file paths.");
+    }
+    if(typeof(opts.javaHomePath) !== 'string') {
+      throw new TypeError("opts.javaHomePath must be specified.");
+    }
+    if (!Array.isArray(opts.nativeClasspath) || opts.nativeClasspath.length === 0) {
+      throw new TypeError("opts.nativeClasspath must be specified as an array of file paths.");
+    }
+
     this.nativeClasspath = opts.nativeClasspath;
     this.assertionsEnabled = opts.assertionsEnabled;
-    this._initSystemProperties(bootstrapClasspath, javaClassPath, javaHomePath);
+    this._initSystemProperties(bootstrapClasspath,
+      opts.classpath.map((p: string): string => path.resolve(p)),
+      path.resolve(opts.javaHomePath),
+      path.resolve(opts.tmpDir),
+      opts.properties);
 
     /**
      * Task #1: Initialize native methods.
@@ -94,19 +128,22 @@ class JVM {
      * the first thread.
      */
     bootupTasks.push((next: (err?: any) => void): void => {
-      this.threadPool = new threading.ThreadPool(this, this.bsCl, (): void => {
-        this.emptyThreadPool();
-      });
+      this.threadPool = new ThreadPool<JVMThread>((): void => { this.threadPoolIsEmpty(); });
       // Resolve Ljava/lang/Thread so we can fake a thread.
       // NOTE: This should never actually use the Thread object unless
       // there's an error loading java/lang/Thread and associated classes.
-      this.bsCl.resolveClass(null, 'Ljava/lang/Thread;', (cdata: ClassData.ReferenceClassData) => {
-        if (cdata == null) {
+      this.bsCl.resolveClass(null, 'Ljava/lang/Thread;', (threadCdata: ReferenceClassData<JVMTypes.java_lang_Thread>) => {
+        if (threadCdata == null) {
           // Failed.
           next("Failed to resolve java/lang/Thread.");
         } else {
-          // Fake a thread.
-          firstThread = this.firstThread = this.threadPool.newThread(cdata);
+          // Construct a thread.
+          firstThreadObj = new (threadCdata.getConstructor(null))(null);
+          firstThreadObj.$thread = firstThread = this.firstThread = new JVMThread(this, this.threadPool, firstThreadObj);
+          firstThreadObj.ref = 1;
+          firstThreadObj['java/lang/Thread/priority'] = 5;
+          firstThreadObj['java/lang/Thread/name'] = util.initCarr(this.bsCl, 'main');
+          firstThreadObj['java/lang/Thread/blockerLock'] = new ((<ReferenceClassData<JVMTypes.java_lang_Object>> this.bsCl.getResolvedClass('Ljava/lang/Object;')).getConstructor(firstThread))(firstThread);
           next();
         }
       });
@@ -117,37 +154,24 @@ class JVM {
      * JVM's ThreadGroup once that class is initialized.
      */
     bootupTasks.push((next: (err?: any) => void): void => {
-      util.asyncForEach<string>(coreClasses, (coreClass: string, next_item: (err?: any) => void) => {
-        this.bsCl.initializeClass(firstThread, coreClass, (cdata: ClassData.ClassData) => {
-          var cnstrctr: methods.Method;
+      util.asyncForEach<string>(coreClasses, (coreClass: string, nextItem: (err?: any) => void) => {
+        this.bsCl.initializeClass(firstThread, coreClass, (cdata: ClassData) => {
           if (cdata == null) {
-            next_item("Failed to initialize " + coreClass);
+            nextItem(`Failed to initialize ${coreClass}`);
           } else {
             // One of the later preinitialized classes references Thread.group.
             // Initialize the system's ThreadGroup now.
             if (coreClass === 'Ljava/lang/ThreadGroup;') {
               // Construct a ThreadGroup object for the first thread.
-              var threadGroupCls = <ClassData.ReferenceClassData> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/ThreadGroup;'),
-                groupObj = new java_object.JavaObject(threadGroupCls);
-              cnstrctr = threadGroupCls.methodLookup(firstThread, '<init>()V');
-              firstThread.runMethod(cnstrctr, [groupObj], (e?: java_object.JavaObject, rv?: any) => {
-                // Initialize the fields of our firstThread to make it real.
-                firstThread.set_field(firstThread, 'Ljava/lang/Thread;name', java_object.initCarr(this.bsCl, 'main'));
-                firstThread.set_field(firstThread, 'Ljava/lang/Thread;priority', 1);
-                firstThread.set_field(firstThread, 'Ljava/lang/Thread;group', groupObj);
-                firstThread.set_field(firstThread, 'Ljava/lang/Thread;threadLocals', null);
-                firstThread.set_field(firstThread, 'Ljava/lang/Thread;blockerLock', new java_object.JavaObject(<ClassData.ReferenceClassData> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/Object;')));
-                next_item();
-              });
-            } else if (coreClass === 'Ljava/lang/Thread;') {
-              // Make firstThread a *real* thread.
-              var threadCls = <ClassData.ReferenceClassData> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/Thread;');
-              cnstrctr = threadCls.methodLookup(firstThread, '<init>()V');
-              firstThread.runMethod(cnstrctr, [firstThread], (e?: java_object.JavaObject, rv?: any) => {
-                next_item();
+              var threadGroupCons = (<ReferenceClassData<JVMTypes.java_lang_ThreadGroup>> cdata).getConstructor(firstThread),
+                groupObj = new threadGroupCons(firstThread);
+              groupObj['<init>()V'](firstThread, (e?: JVMTypes.java_lang_Throwable) => {
+                // Tell the initial thread to use this group.
+                firstThreadObj['java/lang/Thread/group'] = groupObj;
+                nextItem(e);
               });
             } else {
-              next_item();
+              nextItem();
             }
           }
         });
@@ -159,20 +183,21 @@ class JVM {
      */
     bootupTasks.push((next: (err?: any) => void): void => {
       // Initialize the system class (initializes things like println/etc).
-      var sysInit = this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/System;').getMethod('initializeSystemClass()V');
-      firstThread.runMethod(sysInit, [], next);
+      var sysInit = <typeof JVMTypes.java_lang_System> (<ReferenceClassData<JVMTypes.java_lang_System>> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/System;')).getConstructor(firstThread);
+      sysInit['java/lang/System/initializeSystemClass()V'](firstThread, next);;
     });
 
     /**
      * Task #6: Initialize the application's classloader.
      */
     bootupTasks.push((next: (err?: any) => void) => {
-      firstThread.runMethod(this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/ClassLoader;').getMethod('getSystemClassLoader()Ljava/lang/ClassLoader;'), [], (e?, rv?: ClassLoader.JavaClassLoaderObject) => {
+      var clCons = <typeof JVMTypes.java_lang_ClassLoader> (<ReferenceClassData<JVMTypes.java_lang_ClassLoader>> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/ClassLoader;')).getConstructor(firstThread);
+      clCons['java/lang/ClassLoader/getSystemClassLoader()Ljava/lang/ClassLoader;'](firstThread, (e?: JVMTypes.java_lang_Throwable, rv?: JVMTypes.java_lang_ClassLoader) => {
         if (e) {
           next(e);
         } else {
           this.systemClassLoader = rv.$loader;
-          firstThread.set_field(firstThread, 'Ljava/lang/Thread;contextClassLoader', rv);
+          firstThreadObj['java/lang/Thread/contextClassLoader'] = rv;
           next();
         }
       });
@@ -180,21 +205,37 @@ class JVM {
 
     // Perform bootup tasks, and then trigger the callback function.
     util.asyncSeries(bootupTasks, (err?: any): void => {
-      if (err) {
-        cb(err);
-      } else {
-        // XXX: Without setImmediate, the firstThread won't clear out the stack
-        // frame that triggered us, and the firstThread won't transition to a
-        // 'terminated' status.
-        setImmediate(() => {
+      // XXX: Without setImmediate, the firstThread won't clear out the stack
+      // frame that triggered us, and the firstThread won't transition to a
+      // 'terminated' status.
+      setImmediate(() => {
+        if (err) {
+          this.status = JVMStatus.TERMINATED;
+          cb(err);
+        } else {
+          this.status = JVMStatus.BOOTED;
           cb(null, this);
-        });
-      }
+        }
+      });
     });
   }
 
   public getSystemClassLoader(): ClassLoader.ClassLoader {
     return this.systemClassLoader;
+  }
+
+  /**
+   * Get the next "ref" number for JVM objects.
+   */
+  public getNextRef(): number {
+    return this.nextRef++;
+  }
+
+  /**
+   * Retrieve the JVM's parker. Handles parking/unparking threads.
+   */
+  public getParker(): Parker {
+    return this.parker;
   }
 
   /**
@@ -205,30 +246,65 @@ class JVM {
    * @param cb Called when the JVM finishes executing. Called with 'true' if
    *   the JVM exited normally, 'false' if there was an error.
    */
-  public runClass(className: string, args: string[], cb: (result: boolean) => void): void {
+  public runClass(className: string, args: string[], cb: (code: number) => void): void {
+    if (this.status !== JVMStatus.BOOTED) {
+      switch (this.status) {
+        case JVMStatus.BOOTING:
+          throw new Error(`JVM is currently booting up. Please wait for it to call the bootup callback, which you passed to the constructor.`);
+        case JVMStatus.RUNNING:
+          throw new Error(`JVM is already running.`);
+        case JVMStatus.TERMINATED:
+          throw new Error(`This JVM has already terminated. Please create a new JVM.`);
+        case JVMStatus.TERMINATING:
+          throw new Error(`This JVM is currently terminating. You should create a new JVM for each class you wish to run.`);
+      }
+    }
+    this.terminationCb = cb;
+
     var thread = this.firstThread;
-    assert(thread != null && thread.getStatus() === enums.ThreadStatus.TERMINATED);
+    assert(thread != null, `Thread isn't created yet?`);
     // Convert foo.bar.Baz => Lfoo/bar/Baz;
-    className = "L" + className.replace(/\./g, '/') + ";";
+    className = util.int_classname(className);
+
     // Initialize the class.
-    this.systemClassLoader.initializeClass(thread, className, (cdata: ClassData.ReferenceClassData) => {
+    this.systemClassLoader.initializeClass(thread, className, (cdata: ReferenceClassData<any>) => {
+      // If cdata is null, there was an error that ended execution.
       if (cdata != null) {
         // Convert the arguments.
-        var strArrCls = <ClassData.ArrayClassData> this.bsCl.getInitializedClass(thread, '[Ljava/lang/String;'),
-          jvmifiedArgs = new java_object.JavaArray(strArrCls, args.map((a: string): java_object.JavaObject => java_object.initString(this.bsCl, a)));
+        var strArrCons = (<ArrayClassData<JVMTypes.java_lang_String>> this.bsCl.getInitializedClass(thread, '[Ljava/lang/String;')).getConstructor(thread),
+          jvmifiedArgs = new strArrCons(thread, args.length), i: number;
+
+        for (i = 0; i < args.length; i++) {
+          jvmifiedArgs.array[i] = util.initString(this.bsCl, args[i]);
+        }
 
         // Find the main method, and run it.
-        var method = cdata.methodLookup(thread, 'main([Ljava/lang/String;)V');
-
-        // Set the terminationCb here. The JVM will now terminate once all
-        // threads have finished executing.
-        this.terminationCb = cb;
-        thread.runMethod(method, [jvmifiedArgs]);
+        this.status = JVMStatus.RUNNING;
+        var cdataStatics = <any> cdata.getConstructor(thread);
+        if (cdataStatics['main([Ljava/lang/String;)V']) {
+          cdataStatics['main([Ljava/lang/String;)V'](thread, [jvmifiedArgs]);
+        } else {
+          thread.throwNewException("Ljava/lang/NoSuchMethodError;", `Could not find main method in class ${cdata.getExternalName()}.`);
+        }
       } else {
-        // There was an error.
-        this.terminationCb = cb;
+        // Erroneous exit.
+        this.terminationCb(1);
       }
     });
+  }
+
+  /**
+   * [DEBUG] Returns 'true' if the specified method should be vtraced.
+   */
+  public shouldVtrace(sig: string): boolean {
+    return this.vtraceMethods[sig] === true;
+  }
+
+  /**
+   * [DEBUG] Specify a method to vtrace.
+   */
+  public vtraceMethod(sig: string): void {
+    this.vtraceMethods[sig] = true;
   }
 
   /**
@@ -237,17 +313,59 @@ class JVM {
    * @param cb Called when the JVM finishes executing. Called with 'true' if
    *   the JVM exited normally, 'false' if there was an error.
    */
-  public runJar(args: string[], cb: (result: boolean) => void): void {
+  public runJar(args: string[], cb: (code: number) => void): void {
     this.runClass('doppio.JarLauncher', args, cb);
   }
 
   /**
    * Called when the ThreadPool is empty.
    */
-  private emptyThreadPool() {
-    if (this.terminationCb != null) {
-      this.terminationCb(true);
+  private threadPoolIsEmpty() {
+    var systemClass: ReferenceClassData<JVMTypes.java_lang_System>,
+      systemCons: typeof JVMTypes.java_lang_System;
+    switch (this.status) {
+      case JVMStatus.BOOTING:
+        // Ignore empty thread pools during boot process.
+        return;
+      case JVMStatus.BOOTED:
+        assert(false, `Thread pool should not become empty after JVM is booted, but before it begins to run.`);
+        return;
+      case JVMStatus.RUNNING:
+        this.status = JVMStatus.TERMINATING;
+        systemClass = <any> this.bsCl.getInitializedClass(this.firstThread, 'Ljava/lang/System;');
+        assert(systemClass !== null, `Invariant failure: System class must be initialized when JVM is in RUNNING state.`);
+        systemCons = <any> systemClass.getConstructor(this.firstThread);
+        // This is a normal, non-erroneous exit. When this function completes, threadPoolIsEmpty() will be invoked again.
+        systemCons['java/lang/System/exit(I)V'](this.firstThread, [0]);
+        return;
+      case JVMStatus.TERMINATED:
+        assert(false, `Invariant failure: Thread pool cannot be emptied post-JVM termination.`);
+        return;
+      case JVMStatus.TERMINATING:
+        this.status = JVMStatus.TERMINATED;
+        if (this.terminationCb) {
+          this.terminationCb(this.exitCode);
+        }
+        return;
     }
+  }
+
+  /**
+   * Check if the JVM has started running the main class.
+   */
+  public hasVMBooted(): boolean {
+    return !(this.status === JVMStatus.BOOTING || this.status === JVMStatus.BOOTED);
+  }
+
+  /**
+   * Completely halt the JVM.
+   */
+  public halt(status: number): void {
+    this.exitCode = status;
+    this.status = JVMStatus.TERMINATING;
+    this.threadPool.getThreads().forEach((t) => {
+      t.setStatus(ThreadStatus.TERMINATED);
+    });
   }
 
   /**
@@ -265,13 +383,6 @@ class JVM {
   }
 
   /**
-   * Sets the given system property.
-   */
-  public setSystemProperty(prop: string, val: string): void {
-    this.systemProperties[prop] = val;
-  }
-
-  /**
    * Retrieve the unmanaged heap.
    */
   public getHeap(): Heap {
@@ -281,12 +392,12 @@ class JVM {
   /**
    * Interns the given JavaScript string. Returns the interned string.
    */
-  public internString(str: string, javaObj?: java_object.JavaObject): java_object.JavaObject {
+  public internString(str: string, javaObj?: JVMTypes.java_lang_String): JVMTypes.java_lang_String {
     if (this.internedStrings.has(str)) {
       return this.internedStrings.get(str);
     } else {
       if (!javaObj) {
-        javaObj = java_object.initString(this.bsCl, str);
+        javaObj = util.initString(this.bsCl, str);
       }
       this.internedStrings.set(str, javaObj);
       return javaObj;
@@ -294,19 +405,18 @@ class JVM {
   }
 
   /**
-   * XXX: Hack to evaluate native modules in an environment with
-   * java_object and ClassData defined.
+   * Evaluate native modules. Emulates CommonJS functionality.
    */
   private evalNativeModule(mod: string): any {
     "use strict"; // Prevent eval from being terrible.
-    var rv: any, savedRequire = typeof require !== 'undefined' ? require : function(moduleName: string): any {
-      // require isn't defined in the browser for some reason? but requirejs works; it just
-      // requires an absolute module name.
-      if (moduleName.charAt(0) === '.') {
-        moduleName = './src' + moduleName.slice(1);
-      }
-      return requirejs(moduleName);
-    };
+    var rv: any,
+      // Provide the natives with the Doppio API, if needed.
+      DoppioJVM = require('./doppiojvm'),
+      Buffer = (<any> buffer).Buffer,
+      process2 = process,
+      savedRequire = typeof require !== 'undefined' ? require : function(moduleName: string): any {
+        throw new Error(`Cannot find module ${moduleName}`);
+      };
     (() => {
       /* tslint:disable:no-unused-variable */
       /**
@@ -317,38 +427,49 @@ class JVM {
         rv = defs;
       }
       /**
-       * Emulate the CommonJS 'require' function for natives compiled as CommonJS
-       * modules.
-       *
-       * Redirects module requests for "../<module>.js" to "./<module>.js", as
-       * the JVM lives in a separate directory from natives.
-       *
-       * @todo This is not robust to arbitrary native definition locations!
+       * Emulates CommonJS require().
+       * Placed into an eval() call to avoid browserify-dereq from
+       * fucking renaming the goddamn thing to _dereq_.
        */
-      function require(moduleName: string): any {
-        return savedRequire(moduleName.replace(/..\/([a-zA-Z_0-9]*)/g, './$1'));
-      }
-      /**
-       * Emulate AMD module 'define' function for natives compiled as AMD modules.
-       */
-      function define(resources: string[], module: Function) {
-        var args: any[] = [];
-        resources.forEach((resource: string) => {
-          switch (resource) {
-            case 'require':
-              args.push(require);
-              break;
-            case 'exports':
-              args.push({});
-              break;
-            default:
-              args.push(require(resource));
-              break;
-          }
-        });
-        module.apply(null, args);
-      }
-      eval(mod);
+      eval(`
+var process = process2;
+function require(name) {
+  switch(name) {
+    case 'doppiojvm':
+    case '../doppiojvm':
+      return DoppioJVM;
+    case 'fs':
+      return fs;
+    case 'path':
+      return path;
+    case 'buffer':
+      return buffer;
+    default:
+      return savedRequire(name);
+  }
+}
+/**
+ * Emulate AMD module 'define' function for natives compiled as AMD modules.
+ */
+function define(resources, module) {
+  var args = [];
+  resources.forEach(function(resource) {
+    switch (resource) {
+      case 'require':
+        args.push(require);
+        break;
+      case 'exports':
+        args.push({});
+        break;
+      default:
+        args.push(require(resource));
+        break;
+    }
+  });
+  module.apply(null, args);
+}
+eval(mod);
+`);
       /* tslint:enable:no-unused-variable */
     })();
     return rv;
@@ -453,10 +574,11 @@ class JVM {
   /**
    * [Private] Same as reset_system_properties, but called by the constructor.
    */
-  private _initSystemProperties(bootstrapClasspath: string[], javaClassPath: string[], javaHomePath: string): void {
-    this.systemProperties = {
+  private _initSystemProperties(bootstrapClasspath: string[], javaClassPath: string[], javaHomePath: string, tmpDir: string, opts: {[name: string]: string}): void {
+    this.systemProperties = util.merge({
       'java.class.path': javaClassPath.join(':'),
       'java.home': javaHomePath,
+      'java.io.tmpdir': tmpDir,
       'sun.boot.class.path': bootstrapClasspath.join(':'),
       'file.encoding': 'UTF-8',
       'java.vendor': 'Doppio',
@@ -473,24 +595,15 @@ class JVM {
       'os.name': 'doppio',
       'os.arch': 'js',
       'os.version': '0',
-      'java.vm.name': 'Doppio 64-bit VM',
+      'java.vm.name': 'Doppio 32-bit VM',
       'java.vm.vendor': 'Doppio Inc.',
       'java.awt.headless': (util.are_in_browser()).toString(), // true if we're using the console frontend
       'java.awt.graphicsenv': 'classes.awt.CanvasGraphicsEnvironment',
       'useJavaUtilZip': 'true', // hack for sun6javac, avoid ZipFileIndex shenanigans
-      'jline.terminal': 'jline.UnsupportedTerminal' // we can't shell out to `stty`
-    };
-  }
-
-  /**
-   * Proxies abort request to runtime state to halt the JVM.
-   */
-  public abort(): void {
-    var threads = this.threadPool.getThreads(), i: number;
-    this.shutdown = true;
-    for (i = 0; i < threads.length; i++) {
-      threads[i].setStatus(enums.ThreadStatus.TERMINATED);
-    }
+      'jline.terminal': 'jline.UnsupportedTerminal', // we can't shell out to `stty`,
+      'sun.arch.data.model': '32', // Identify as 32-bit, because that's how we act.
+      'sun.jnu.encoding': "UTF-8" // Determines how Java parses command line options.
+    }, opts);
   }
 
   /**
@@ -511,10 +624,36 @@ class JVM {
     return this.assertionsEnabled;
   }
 
-  public isShutdown(): boolean {
-    return this.shutdown;
+  /**
+   * Specifies a directory to dump compiled code to.
+   */
+  public dumpCompiledCode(dir: string): void {
+    this.dumpCompiledCodeDir = dir;
+  }
+
+  public shouldDumpCompiledCode(): boolean {
+    return this.dumpCompiledCodeDir !== null;
+  }
+
+  public dumpObjectDefinition(cls: ClassData, evalText: string): void {
+    if (this.shouldDumpCompiledCode()) {
+      fs.writeFile(path.resolve(this.dumpCompiledCodeDir, cls.getExternalName() + "_object.dump"), evalText, () => {});
+    }
+  }
+
+  public dumpBridgeMethod(methodSig: string, evalText: string): void {
+    if (this.shouldDumpCompiledCode()) {
+      fs.appendFile(path.resolve(this.dumpCompiledCodeDir, "vmtarget_bridge_methods.dump"), `${methodSig}:\n${evalText}\n\n`, () => {});
+    }
+  }
+
+  /**
+   * Asynchronously dumps JVM state to a file. Currently limited to thread
+   * state.
+   */
+  public dumpState(filename: string, cb: (er: any) => void): void {
+    fs.appendFile(filename, this.threadPool.getThreads().map((t: JVMThread) => `Thread ${t.getRef()}:\n` + t.getPrintableStackTrace()).join("\n\n"), cb);
   }
 }
 
-// Causes `require('jvm')` to be the JVM constructor itself
 export = JVM;

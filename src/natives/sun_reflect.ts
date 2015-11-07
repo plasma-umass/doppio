@@ -1,135 +1,135 @@
-import threading = require('../threading');
-import java_object = require('../java_object');
-import logging = require('../logging');
-import ClassData = require('../ClassData');
-import gLong = require('../gLong');
-import util = require('../util');
-import methods = require('../methods');
-import ConstantPool = require('../ConstantPool');
-import enums = require('../enums');
-import assert = require('../assert');
+import JVMTypes = require('../../includes/JVMTypes');
+import * as Doppio from '../doppiojvm';
+import JVMThread = Doppio.VM.Threading.JVMThread;
+import ReferenceClassData = Doppio.VM.ClassFile.ReferenceClassData;
+import logging = Doppio.Debug.Logging;
+import util = Doppio.VM.Util;
+import ConstantPool = Doppio.VM.ClassFile.ConstantPool;
+import Long = Doppio.VM.Long;
+import Method = Doppio.VM.ClassFile.Method;
+import ThreadStatus = Doppio.VM.Enums.ThreadStatus;
+import assert = Doppio.Debug.Assert;
+import PrimitiveClassData = Doppio.VM.ClassFile.PrimitiveClassData;
+import IStackTraceFrame = Doppio.VM.Threading.IStackTraceFrame;
 declare var registerNatives: (defs: any) => void;
 
 class sun_reflect_ConstantPool {
 
-  public static 'getSize0(Ljava/lang/Object;)I'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject): number {
+  public static 'getSize0(Ljava/lang/Object;)I'(thread: JVMThread, javaThis: JVMTypes.sun_reflect_ConstantPool, cp: ConstantPool.ConstantPool): number {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'getClassAt0(Ljava/lang/Object;I)Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: number): java_object.JavaClassObject {
+  public static 'getClassAt0(Ljava/lang/Object;I)Ljava/lang/Class;'(thread: JVMThread, javaThis: JVMTypes.sun_reflect_ConstantPool, cp: ConstantPool.ConstantPool, arg1: number): JVMTypes.java_lang_Class {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'getClassAtIfLoaded0(Ljava/lang/Object;I)Ljava/lang/Class;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: number): java_object.JavaClassObject {
+  public static 'getClassAtIfLoaded0(Ljava/lang/Object;I)Ljava/lang/Class;'(thread: JVMThread, javaThis: JVMTypes.sun_reflect_ConstantPool, cp: ConstantPool.ConstantPool, arg1: number): JVMTypes.java_lang_Class {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'getMethodAt0(Ljava/lang/Object;I)Ljava/lang/reflect/Member;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: number): java_object.JavaObject {
+  public static 'getMethodAt0(Ljava/lang/Object;I)Ljava/lang/reflect/Member;'(thread: JVMThread, javaThis: JVMTypes.sun_reflect_ConstantPool, cp: ConstantPool.ConstantPool, arg1: number): JVMTypes.java_lang_reflect_Member {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'getMethodAtIfLoaded0(Ljava/lang/Object;I)Ljava/lang/reflect/Member;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: number): java_object.JavaObject {
+  public static 'getMethodAtIfLoaded0(Ljava/lang/Object;I)Ljava/lang/reflect/Member;'(thread: JVMThread, javaThis: JVMTypes.sun_reflect_ConstantPool, cp: ConstantPool.ConstantPool, arg1: number): JVMTypes.java_lang_reflect_Member {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'getFieldAt0(Ljava/lang/Object;I)Ljava/lang/reflect/Field;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: number): java_object.JavaObject {
+  public static 'getFieldAt0(Ljava/lang/Object;I)Ljava/lang/reflect/Field;'(thread: JVMThread, javaThis: JVMTypes.sun_reflect_ConstantPool, cp: ConstantPool.ConstantPool, arg1: number): JVMTypes.java_lang_reflect_Field {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'getFieldAtIfLoaded0(Ljava/lang/Object;I)Ljava/lang/reflect/Field;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: number): java_object.JavaObject {
+  public static 'getFieldAtIfLoaded0(Ljava/lang/Object;I)Ljava/lang/reflect/Field;'(thread: JVMThread, javaThis: JVMTypes.sun_reflect_ConstantPool, cp: ConstantPool.ConstantPool, arg1: number): JVMTypes.java_lang_reflect_Field {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'getMemberRefInfoAt0(Ljava/lang/Object;I)[Ljava/lang/String;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: number): java_object.JavaArray {
+  public static 'getMemberRefInfoAt0(Ljava/lang/Object;I)[Ljava/lang/String;'(thread: JVMThread, javaThis: JVMTypes.sun_reflect_ConstantPool, cp: ConstantPool.ConstantPool, arg1: number): JVMTypes.JVMArray<JVMTypes.java_lang_String> {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'getIntAt0(Ljava/lang/Object;I)I'(thread: threading.JVMThread, javaThis: java_object.JavaObject, cp: ConstantPool.ConstantPool, idx: number): number {
+  public static 'getIntAt0(Ljava/lang/Object;I)I'(thread: JVMThread, javaThis: JVMTypes.sun_reflect_ConstantPool, cp: ConstantPool.ConstantPool, idx: number): number {
     return (<ConstantPool.ConstInt32> cp.get(idx)).value;
   }
 
-  public static 'getLongAt0(Ljava/lang/Object;I)J'(thread: threading.JVMThread, javaThis: java_object.JavaObject, cpo: java_object.JavaObject, idx: number): gLong {
-    var cp = <ConstantPool.ConstantPool> cpo.get_field(thread, 'Lsun/reflect/ConstantPool;constantPoolOop');
+  public static 'getLongAt0(Ljava/lang/Object;I)J'(thread: JVMThread, javaThis: JVMTypes.sun_reflect_ConstantPool, cp: ConstantPool.ConstantPool, idx: number): Long {
     return (<ConstantPool.ConstLong> cp.get(idx)).value;
   }
 
-  public static 'getFloatAt0(Ljava/lang/Object;I)F'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: number): number {
+  public static 'getFloatAt0(Ljava/lang/Object;I)F'(thread: JVMThread, javaThis: JVMTypes.sun_reflect_ConstantPool, cp: ConstantPool.ConstantPool, arg1: number): number {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'getDoubleAt0(Ljava/lang/Object;I)D'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: number): number {
+  public static 'getDoubleAt0(Ljava/lang/Object;I)D'(thread: JVMThread, javaThis: JVMTypes.sun_reflect_ConstantPool, cp: ConstantPool.ConstantPool, arg1: number): number {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return 0;
   }
 
-  public static 'getStringAt0(Ljava/lang/Object;I)Ljava/lang/String;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, arg0: java_object.JavaObject, arg1: number): java_object.JavaObject {
+  public static 'getStringAt0(Ljava/lang/Object;I)Ljava/lang/String;'(thread: JVMThread, javaThis: JVMTypes.sun_reflect_ConstantPool, cp: ConstantPool.ConstantPool, arg1: number): JVMTypes.java_lang_String {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
   }
 
-  public static 'getUTF8At0(Ljava/lang/Object;I)Ljava/lang/String;'(thread: threading.JVMThread, javaThis: java_object.JavaObject, cp: ConstantPool.ConstantPool, idx: number): java_object.JavaObject {
-    return java_object.initString(thread.getBsCl(), (<ConstantPool.ConstUTF8> cp.get(idx)).value);
+  public static 'getUTF8At0(Ljava/lang/Object;I)Ljava/lang/String;'(thread: JVMThread, javaThis: JVMTypes.sun_reflect_ConstantPool, cp: ConstantPool.ConstantPool, idx: number): JVMTypes.java_lang_String {
+    return util.initString(thread.getBsCl(), (<ConstantPool.ConstUTF8> cp.get(idx)).value);
   }
 
 }
 
 class sun_reflect_NativeConstructorAccessorImpl {
 
-  public static 'newInstance0(Ljava/lang/reflect/Constructor;[Ljava/lang/Object;)Ljava/lang/Object;'(thread: threading.JVMThread, m: java_object.JavaObject, params: java_object.JavaArray): void {
-    var cls = <java_object.JavaClassObject> m.get_field(thread, 'Ljava/lang/reflect/Constructor;clazz'),
-      slot = m.get_field(thread, 'Ljava/lang/reflect/Constructor;slot');
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    cls.$cls.initialize(thread, (cls_obj: ClassData.ReferenceClassData) => {
-      if (cls_obj !== null) {
-        var method: methods.Method = cls_obj.getMethodFromSlot(slot),
-          obj = new java_object.JavaObject(cls_obj),
-          args: any[] = [obj], i: number;
+  public static 'newInstance0(Ljava/lang/reflect/Constructor;[Ljava/lang/Object;)Ljava/lang/Object;'(thread: JVMThread, m: JVMTypes.java_lang_reflect_Constructor, params: JVMTypes.JVMArray<JVMTypes.java_lang_Object>): void {
+    var cls = m['java/lang/reflect/Constructor/clazz'],
+      slot = m['java/lang/reflect/Constructor/slot'];
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
+    cls.$cls.initialize(thread, (cls: ReferenceClassData<JVMTypes.java_lang_Object>) => {
+      if (cls !== null) {
+        var method: Method = cls.getMethodFromSlot(slot),
+          obj = new (cls.getConstructor(thread))(thread), i: number,
+          cb = (e?: JVMTypes.java_lang_Throwable) => {
+            if (e) {
+              // Wrap in a java.lang.reflect.InvocationTargetException
+              thread.getBsCl().initializeClass(thread, 'Ljava/lang/reflect/InvocationTargetException;', (cdata: ReferenceClassData<JVMTypes.java_lang_reflect_InvocationTargetException>) => {
+                if (cdata !== null) {
+                  var wrappedE = new (cdata.getConstructor(thread))(thread);
+                  wrappedE['<init>(Ljava/lang/Throwable;)V'](thread, [e], (e?: JVMTypes.java_lang_Throwable) => {
+                    thread.throwException(e ? e : wrappedE);
+                  });
+                }
+              });
+            } else {
+              // rv is not defined, since constructors do not return a value.
+              // Return the object we passed to the constructor.
+              thread.asyncReturn(obj);
+            }
+          };
 
-        if (slot === -1) {
-          // HACK: Need to manually look up. :|
-          method = cls_obj.methodLookup(thread, "<init>" + util.getDescriptorString(thread.getBsCl().getInitializedClass(thread, 'V').getClassObject(thread), m.get_field(thread, 'Ljava/lang/reflect/Constructor;parameterTypes')));
-        }
+        assert(slot >= 0, "Found a constructor without a slot?!");
 
-        if (params !== null) {
-          args = args.concat(params.array);
+        if (method.parameterTypes.length > 0) {
+          (<any> obj)[method.signature](thread, params.array, cb);
+        } else {
+          (<any> obj)[method.signature](thread, cb);
         }
-        thread.runMethod(method, args, (e?, rv?) => {
-          if (e) {
-            // Wrap in a java.lang.reflect.InvocationTargetException
-            thread.getBsCl().initializeClass(thread, 'Ljava/lang/reflect/InvocationTargetException;', (cdata: ClassData.ReferenceClassData) => {
-              if (cdata !== null) {
-                var wrappedE = new java_object.JavaObject(cdata);
-                thread.runMethod(cdata.methodLookup(thread, '<init>(Ljava/lang/Throwable;)V'), [wrappedE, e], (e?, rv?) => {
-                  thread.throwException(e ? e : wrappedE);
-                });
-              }
-            });
-          } else {
-            // rv is not defined, since constructors do not return a value.
-            // Return the object we passed to the constructor.
-            thread.asyncReturn(obj);
-          }
-        });
       }
     }, true);
   }
@@ -142,59 +142,50 @@ class sun_reflect_NativeMethodAccessorImpl {
    * Invoke the specified method on the given object with the given parameters.
    * If the method is an interface method, perform a virtual method dispatch.
    */
-  public static 'invoke0(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;'(thread: threading.JVMThread, mObj: java_object.JavaObject, obj: java_object.JavaObject, params: java_object.JavaArray): void {
-    var cls = <ClassData.ReferenceClassData> (<java_object.JavaClassObject> mObj.get_field(thread, 'Ljava/lang/reflect/Method;clazz')).$cls,
-      slot: number = mObj.get_field(thread, 'Ljava/lang/reflect/Method;slot'),
-      ret_type = <java_object.JavaClassObject> mObj.get_field(thread, 'Ljava/lang/reflect/Method;returnType'),
-      m: methods.Method = cls.getMethodFromSlot(slot),
-      args: any[] = [], i: number;
-
-    if (cls.accessFlags.isInterface()) {
-      // It's an interface method. Look up the implementation in the object.
-      m = obj.cls.methodLookup(thread, m.name + m.raw_descriptor);
-      if (m == null) {
-        // Method not found, exception thrown. Return.
-        return;
-      }
-    }
-
-    if (!m.accessFlags.isStatic()) {
-      args.push(obj);
-    }
-    if (params != null) {
-      // Unbox any primitives in the arguments array, and pad them if they are 64-bit.
-      args = args.concat(util.unboxArguments(thread, m.param_types, params.array));
-    }
-
-    thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-    thread.runMethod(m, args, (e?, rv?) => {
-      if (e) {
-        // Wrap in a java.lang.reflect.InvocationTargetException
-        thread.getBsCl().initializeClass(thread, 'Ljava/lang/reflect/InvocationTargetException;', (cdata: ClassData.ReferenceClassData) => {
-          if (cdata !== null) {
-            var wrappedE = new java_object.JavaObject(cdata);
-            thread.runMethod(cdata.methodLookup(thread, '<init>(Ljava/lang/Throwable;)V'), [wrappedE, e], (e?, rv?) => {
-              thread.throwException(e ? e : wrappedE);
-            });
-          }
-        });
-      } else {
-        if (util.is_primitive_type(m.return_type)) {
-          if (m.return_type === 'V') {
-            // apparently the JVM returns NULL when there's a void return value,
-            // rather than autoboxing a Void object. Go figure!
-            thread.asyncReturn(null);
-          } else {
-            // wrap up primitives in their Object box
-            thread.asyncReturn((<ClassData.PrimitiveClassData> ret_type.$cls).createWrapperObject(thread, rv));
-          }
+  public static 'invoke0(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;'(thread: JVMThread, mObj: JVMTypes.java_lang_reflect_Method, obj: JVMTypes.java_lang_Object, params: JVMTypes.JVMArray<JVMTypes.java_lang_Object>): void {
+    var cls = <ReferenceClassData<JVMTypes.java_lang_Object>> mObj['java/lang/reflect/Method/clazz'].$cls,
+      slot: number = mObj['java/lang/reflect/Method/slot'],
+      retType = mObj['java/lang/reflect/Method/returnType'],
+      m: Method = cls.getMethodFromSlot(slot),
+      args: any[] = [],
+      cb = (e?: JVMTypes.java_lang_Throwable, rv?: any) => {
+        if (e) {
+          // Wrap in a java.lang.reflect.InvocationTargetException
+          thread.getBsCl().initializeClass(thread, 'Ljava/lang/reflect/InvocationTargetException;', (cdata: ReferenceClassData<JVMTypes.java_lang_reflect_InvocationTargetException>) => {
+            if (cdata !== null) {
+              var wrappedE = new (cdata.getConstructor(thread))(thread);
+              wrappedE['<init>(Ljava/lang/Throwable;)V'](thread, [e], (e?: JVMTypes.java_lang_Throwable) => {
+                thread.throwException(e ? e : wrappedE);
+              });
+            }
+          });
         } else {
-          thread.asyncReturn(rv);
+          if (util.is_primitive_type(m.returnType)) {
+            if (m.returnType === 'V') {
+              // apparently the JVM returns NULL when there's a void return value,
+              // rather than autoboxing a Void object. Go figure!
+              thread.asyncReturn(null);
+            } else {
+              // wrap up primitives in their Object box
+              thread.asyncReturn((<PrimitiveClassData> retType.$cls).createWrapperObject(thread, rv));
+            }
+          } else {
+            thread.asyncReturn(rv);
+          }
         }
-      }
-    });
-  }
+      };
 
+    if (params !== null && params.array.length > 0) {
+      args = util.unboxArguments(thread, m.parameterTypes, params.array)
+    }
+
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
+    if (m.accessFlags.isStatic()) {
+      (<any> cls.getConstructor(thread))[m.fullSignature](thread, (args.length > 0 ? args : cb), cb);
+    } else {
+      (<any> obj)[m.signature](thread, args.length > 0 ? args : cb, cb);
+    }
+  }
 }
 
 /**
@@ -207,11 +198,11 @@ class sun_reflect_NativeMethodAccessorImpl {
  *   java.lang.reflect.Method.invoke() and its implementation are completely
  *   ignored and do not count toward the number of "real" frames skipped.
  */
-function get_caller_class(thread: threading.JVMThread, framesToSkip: number): java_object.JavaClassObject {
+function getCallerClass(thread: JVMThread, framesToSkip: number): JVMTypes.java_lang_Class {
   var caller = thread.getStackTrace(),
     idx = caller.length - 1 - framesToSkip,
-    frame: threading.IStackTraceFrame = caller[idx];
-  while (frame.method.full_signature().indexOf('Ljava/lang/reflect/Method;::invoke') === 0) {
+    frame: IStackTraceFrame = caller[idx];
+  while (frame.method.fullSignature.indexOf('java/lang/reflect/Method/invoke') === 0) {
     if (idx === 0) {
       // No more stack to search!
       // XXX: What does the JDK do here, throw an exception?
@@ -225,16 +216,16 @@ function get_caller_class(thread: threading.JVMThread, framesToSkip: number): ja
 
 class sun_reflect_Reflection {
 
-  public static 'getCallerClass()Ljava/lang/Class;'(thread: threading.JVMThread): java_object.JavaClassObject {
+  public static 'getCallerClass()Ljava/lang/Class;'(thread: JVMThread): JVMTypes.java_lang_Class {
     // 0th item is Reflection class, 1st item is the class that called us,
     // and 2nd item is the caller of our caller, which is correct.
-    return get_caller_class(thread, 2);
+    return getCallerClass(thread, 2);
   }
 
-  public static 'getCallerClass(I)Ljava/lang/Class;': (thread: threading.JVMThread, frames_to_skip: number) => java_object.JavaClassObject = get_caller_class;
+  public static 'getCallerClass(I)Ljava/lang/Class;': (thread: JVMThread, framesToSkip: number) => JVMTypes.java_lang_Class = getCallerClass;
 
-  public static 'getClassAccessFlags(Ljava/lang/Class;)I'(thread: threading.JVMThread, class_obj: java_object.JavaClassObject): number {
-    return (<ClassData.ReferenceClassData> class_obj.$cls).accessFlags.getRawByte();
+  public static 'getClassAccessFlags(Ljava/lang/Class;)I'(thread: JVMThread, classObj: JVMTypes.java_lang_Class): number {
+    return (<ReferenceClassData<JVMTypes.java_lang_Object>> classObj.$cls).accessFlags.getRawByte();
   }
 
 }

@@ -29,9 +29,8 @@ export enum ClassState {
 export enum ThreadStatus {
   // A thread that has not yet started is in this state.
   NEW,
-  // A thread that is actively running. Only one thread can be running at once.
-  RUNNING,
-  // A thread that is not actively running, but is ready to run.
+  // A thread that is able to be run. The thread may actually be running.
+  // Query the ThreadPool to determine if this is the case.
   RUNNABLE,
   // A thread that is blocked waiting for a monitor lock is in this state.
   BLOCKED,
@@ -64,6 +63,22 @@ export enum JVMTIThreadState {
   BLOCKED_ON_MONITOR_ENTER = 0x0400,
   WAITING_INDEFINITELY = 0x0010,
   WAITING_WITH_TIMEOUT = 0x0020
+}
+
+/**
+ * The current status of the JVM.
+ */
+export enum JVMStatus {
+  // The JVM is booting up.
+  BOOTING,
+  // The JVM is booted, and waiting for a class to run.
+  BOOTED,
+  // The JVM is running.
+  RUNNING,
+  // The JVM has completed running, and is performing termination steps.
+  TERMINATING,
+  // The JVM is completely finished executing.
+  TERMINATED
 }
 
 /**
@@ -153,47 +168,6 @@ export enum MethodHandleReferenceKind {
   NEWINVOKESPECIAL = 8,
   INVOKEINTERFACE = 9
 }
-
-/**
- * Characters used on the terminal to format output.
- * Maps each type of formatting to its [beginning, end] characters as an array.
- *
- * Modified from colors.js.
- * @url https://github.com/Marak/colors.js
- */
-export var FormatChars = {
-  // styles
-  BOLD: ['\x1B[1m', '\x1B[22m'],
-  ITALICS: ['\x1B[3m', '\x1B[23m'],
-  UNDERLINE: ['\x1B[4m', '\x1B[24m'],
-  INVERSE: ['\x1B[7m', '\x1B[27m'],
-  STRIKETHROUGH: ['\x1B[9m', '\x1B[29m'],
-  // text colors
-  // grayscale
-  WHITE: ['\x1B[37m', '\x1B[39m'],
-  GREY: ['\x1B[90m', '\x1B[39m'],
-  BLACK: ['\x1B[30m', '\x1B[39m'],
-
-  // colors
-  BLUE: ['\x1B[34m', '\x1B[39m'],
-  CYAN: ['\x1B[36m', '\x1B[39m'],
-  GREEN: ['\x1B[32m', '\x1B[39m'],
-  MAGENTA: ['\x1B[35m', '\x1B[39m'],
-  RED: ['\x1B[31m', '\x1B[39m'],
-  YELLOW: ['\x1B[33m', '\x1B[39m'],
-  // background colors
-  // grayscale
-  WHITE_BG: ['\x1B[47m', '\x1B[49m'],
-  GREY_BG: ['\x1B[49;5;8m', '\x1B[49m'],
-  BLACK_BG: ['\x1B[40m', '\x1B[49m'],
-  // colors
-  BLUE_BG: ['\x1B[44m', '\x1B[49m'],
-  CYAN_BG: ['\x1B[46m', '\x1B[49m'],
-  GREEN_BG: ['\x1B[42m', '\x1B[49m'],
-  MAGENTA_BG: ['\x1B[45m', '\x1B[49m'],
-  RED_BG: ['\x1B[41m', '\x1B[49m'],
-  YELLOW_BG: ['\x1B[43m', '\x1B[49m']
-};
 
 /**
  * JVM op codes. The enum value corresponds to that opcode's value.
@@ -409,8 +383,6 @@ export enum OpCode {
   GETSTATIC_FAST32 = 0xd0,
   GETSTATIC_FAST64 = 0xd1,
   NEW_FAST = 0xd2,
-  NEW_CL_FAST = 0xd3,
-  NEW_THREAD_FAST = 0xd4,
   ANEWARRAY_FAST = 0xd5,
   CHECKCAST_FAST = 0xd6,
   INSTANCEOF_FAST = 0xd7,
@@ -421,14 +393,13 @@ export enum OpCode {
   GETFIELD_FAST64 = 0xdc,
   PUTFIELD_FAST32 = 0xdd,
   PUTFIELD_FAST64 = 0xde,
-  INVOKESPECIAL_FAST = 0xdf,
+  INVOKENONVIRTUAL_FAST = 0xdf,
   INVOKESTATIC_FAST = 0xf0,
   INVOKEVIRTUAL_FAST = 0xf1,
   INVOKEINTERFACE_FAST = 0xf2,
   INVOKEHANDLE = 0xf3,
   INVOKEBASIC = 0xf4,
   LINKTOSPECIAL = 0xf5,
-  LINKTOINTERFACE = 0xf6,
   LINKTOVIRTUAL = 0xf7,
   INVOKEDYNAMIC_FAST = 0xf8
 }
@@ -475,15 +446,15 @@ assignOpcodeLayout(OpcodeLayoutType.CONSTANT_POOL,
    OpCode.GETSTATIC, OpCode.INSTANCEOF, OpCode.INVOKEDYNAMIC,
    OpCode.INVOKESPECIAL, OpCode.INVOKESTATIC, OpCode.INVOKEVIRTUAL,
    OpCode.NEW, OpCode.PUTFIELD, OpCode.PUTSTATIC, OpCode.MULTIANEWARRAY_FAST,
-   OpCode.INVOKESPECIAL_FAST, OpCode.INVOKESTATIC_FAST, OpCode.CHECKCAST_FAST,
-   OpCode.NEW_FAST, OpCode.NEW_CL_FAST, OpCode.NEW_THREAD_FAST,
+   OpCode.INVOKENONVIRTUAL_FAST, OpCode.INVOKESTATIC_FAST, OpCode.CHECKCAST_FAST,
+   OpCode.NEW_FAST,
    OpCode.ANEWARRAY_FAST, OpCode.INSTANCEOF_FAST, OpCode.GETSTATIC_FAST32,
    OpCode.GETSTATIC_FAST64, OpCode.PUTSTATIC_FAST32, OpCode.PUTSTATIC_FAST64,
    OpCode.PUTFIELD_FAST32, OpCode.PUTFIELD_FAST64,
    OpCode.GETFIELD_FAST32, OpCode.GETFIELD_FAST64, OpCode.INVOKEVIRTUAL_FAST
 ]);
 assignOpcodeLayout(OpcodeLayoutType.CONSTANT_POOL_AND_UINT8_VALUE,
-  [OpCode.INVOKEINTERFACE, OpCode.MULTIANEWARRAY, OpCode.INVOKEINTERFACE_FAST]);
+  [OpCode.INVOKEINTERFACE, OpCode.INVOKEINTERFACE_FAST, OpCode.MULTIANEWARRAY]);
 assignOpcodeLayout(OpcodeLayoutType.INT8_VALUE, [OpCode.BIPUSH]);
 assignOpcodeLayout(OpcodeLayoutType.INT16_VALUE,
   [OpCode.SIPUSH, OpCode.GOTO, OpCode.IFGT, OpCode.IFEQ, OpCode.IFGE, OpCode.IFLE,

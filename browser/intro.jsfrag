@@ -1,3 +1,0 @@
-(function() {
-  var process = BrowserFS.BFSRequire('process'),
-      Buffer = BrowserFS.BFSRequire('buffer').Buffer;

@@ -1,5 +1,3 @@
-/// <reference path="../vendor/DefinitelyTyped/node/node.d.ts" />
-/// <reference path="../vendor/DefinitelyTyped/gruntjs/gruntjs.d.ts" />
 import path = require('path');
 import fs = require('fs');
 /**

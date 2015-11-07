@@ -1,6 +1,3 @@
-/// <reference path="../vendor/DefinitelyTyped/node/node.d.ts" />
-/// <reference path="../vendor/DefinitelyTyped/gruntjs/gruntjs.d.ts" />
-/// <reference path="../vendor/DefinitelyTyped/async/async.d.ts" />
 import child_process = require('child_process');
 import os = require('os');
 import fs = require('fs');
@@ -44,7 +41,7 @@ function java(grunt: IGrunt) {
   grunt.registerMultiTask('run_java', 'Run java on input files.', function() {
     var files: {src: string[]; dest: string}[] = this.files,
         done: (status?: boolean) => void = this.async(),
-        tasks: ((cb: (err?: any) => void) => void)[] = [];
+        tasks: Array<AsyncFunction<void>> = [];
     grunt.config.requires('build.java');
     files.forEach(function(file: {src: string[]; dest: string}) {
       if (fs.existsSync(file.dest) && fs.statSync(file.dest).mtime > fs.statSync(file.src[0]).mtime) {
@@ -54,7 +51,8 @@ function java(grunt: IGrunt) {
       tasks.push(function(cb: (err?: any) => void) {
         // Trim '.java' from filename to get the class name.
         var className = file.src[0].slice(0, -5);
-        child_process.exec(shellEscape(grunt.config('build.java')) + ' -Xbootclasspath/a:' + grunt.config('build.jcl_dir') + ' ' + className, function(err?: any, stdout?: NodeBuffer, stderr?: NodeBuffer) {
+        // NOTE: -ea is to enable assert() statements, which are used in some test cases.
+        child_process.exec(shellEscape(grunt.config('build.java')) + ' -ea -Xbootclasspath/a:' + grunt.config('build.jcl_dir') + ' ' + className, function(err?: any, stdout?: NodeBuffer, stderr?: NodeBuffer) {
           fs.writeFileSync(file.dest, stdout.toString() + stderr.toString());
           cb();
         });
