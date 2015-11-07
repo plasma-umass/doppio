@@ -569,12 +569,14 @@ export function setup(grunt: IGrunt) {
      'unit_test']);
   grunt.registerTask('test-browser',
     ['release',
+     'java',
      'connect:server',
      'karma:test']);
  grunt.registerTask('test-dev-browser',
      ['dev',
-     'connect:server',
-     'karma:test-dev']);
+      'java',
+      'connect:server',
+      'karma:test-dev']);
   grunt.registerTask('clean', 'Deletes built files.', function() {
     ['build', 'doppio', 'doppio-dev'].concat(grunt.file.expand(['tscommand*.txt'])).concat(grunt.file.expand(['classes/*/*.+(class|runout)'])).forEach(function (path: string) {
       if (grunt.file.exists(path)) {

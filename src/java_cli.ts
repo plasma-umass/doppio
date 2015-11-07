@@ -107,15 +107,17 @@ function java(args: string[], opts: JVMCLIOptions,
 
   // GLOBAL CONFIGURATION
 
-  if (/[0-9]+/.test(argv.non_standard.log)) {
-    logging.log_level = parseInt(argv.non_standard.log, 10) + 0;
-  } else {
-    var level = (<any> logging)[argv.non_standard.log.toUpperCase()];
-    if (level == null) {
-      process.stderr.write('Unrecognized log level.');
-      return print_help(opts.launcherName, optparse.show_help(), done_cb, 1);
+  if (typeof(argv.non_standard.log) !== 'undefined') {
+    if (/^[0-9]+$/.test(argv.non_standard.log)) {
+      logging.log_level = parseInt(argv.non_standard.log, 10);
+    } else {
+      var level = (<any> logging)[argv.non_standard.log.toUpperCase()];
+      if (level == null) {
+        process.stderr.write('Unrecognized log level.');
+        return print_help(opts.launcherName, optparse.show_help(), done_cb, 1);
+      }
+      logging.log_level = level;
     }
-    logging.log_level = level;
   }
 
   if (argv.non_standard['list-class-cache']) {
