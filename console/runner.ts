@@ -40,9 +40,8 @@ process.on('uncaughtException', (er: any) => {
 
 // Run the JVM. Remove node runner.js from the args.
 java_cli(process.argv.slice(2), {
-  bootstrapClasspath: [path.resolve(__dirname, '../vendor/java_home/classes')],
+  bootstrapClasspath: ['resources.jar', 'rt.jar', 'jsse.jar', 'jce.jar', 'charsets.jar', 'jfr.jar', 'tools.jar', 'jazzlib.jar'].map((item: string) => path.resolve(__dirname, '../vendor/java_home/lib/', item)),
   javaHomePath: path.resolve(__dirname, '../vendor/java_home'),
-  extractionPath: path.resolve(os.tmpdir(), 'doppio_jars'),
   classpath: null,
   nativeClasspath: [path.resolve(__dirname, '../src/natives')],
   launcherName: process.argv[0] + " " + path.relative(process.cwd(), process.argv[1]),

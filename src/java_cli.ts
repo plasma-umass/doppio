@@ -127,10 +127,9 @@ function java(args: string[], opts: JVMCLIOptions,
     // Redefine done_cb so we print the loaded class files on JVM exit.
     done_cb = ((old_done_cb: (arg: number) => void): (arg: number) => void => {
       return (result: number): void => {
-        jvm_state.getBootstrapClassLoader().getLoadedClassFiles((fpaths: string[]) => {
-          process.stdout.write(fpaths.join('\n') + '\n');
-          old_done_cb(result);
-        });
+        let fpaths = jvm_state.getBootstrapClassLoader().getLoadedClassFiles();
+        process.stdout.write(fpaths.join('\n') + '\n');
+        old_done_cb(result);
       };
     })(done_cb);
   } else if (argv.non_standard['benchmark']) {

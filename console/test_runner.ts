@@ -11,9 +11,8 @@ require('source-map-support').install({
 
 // Default options.
 var opts: testing.TestOptions = {
-  bootstrapClasspath: [path.resolve(__dirname, path.join('..', 'vendor', 'java_home', 'classes'))],
+  bootstrapClasspath: ['resources.jar', 'rt.jar', 'jsse.jar', 'jce.jar', 'charsets.jar', 'jfr.jar', 'tools.jar', 'jazzlib.jar'].map((item: string) => path.resolve(__dirname, '../vendor/java_home/lib/', item)),
   javaHomePath: path.resolve(__dirname, path.join('..', 'vendor', 'java_home')),
-  extractionPath: path.resolve(os.tmpdir(), 'doppio_jars'),
   classpath: null,
   nativeClasspath: [path.resolve(__dirname, path.join('..', 'src', 'natives'))],
   doppioDir: path.dirname(__dirname),

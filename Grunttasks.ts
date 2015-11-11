@@ -5,21 +5,28 @@ import path = require('path');
 import fs = require('fs');
 import os = require('os');
 import _ = require('underscore');
+
+// Create shims.
+if (!fs.existsSync('shims')) {
+  fs.mkdirSync('shims');
+}
+['fs', 'path', 'buffer'].forEach((mod) => {
+  fs.writeFileSync(`shims/${mod}.js`, `module.exports=BrowserFS.BFSRequire('${mod}');\n`, { encoding: 'utf8'});
+});
+
 var browserifyConfigFcn = function(bundle: BrowserifyObject) {
-  // Exclusions must be specified here for karma-browserify.
-  (<any> bundle).exclude('node-zip');
   bundle.transform('browserify-shim', { global: true });
   // De-require after shim.
   bundle.plugin('browserify-derequire');
 }, browserifyOptions = {
-  builtins: {
-    "buffer": require.resolve('bfs-buffer'),
-    "path": require.resolve('bfs-path'),
-    "fs": require.resolve('bfs-fs')
-  },
+  builtins: _.extend({}, require('browserify/lib/builtins'), {
+    'buffer': require.resolve('./shims/buffer.js'),
+    'path': require.resolve('./shims/path.js'),
+    'fs': require.resolve('./shims/fs.js')
+  }),
   insertGlobalVars: {
-    "Buffer": () => "require('bfs-buffer').Buffer",
-    "process": () => "require('bfs-process')"
+    "Buffer": () => "BrowserFS.BFSRequire('buffer').Buffer",
+    "process": () => "BrowserFS.BFSRequire('process')"
   },
   detectGlobals: true,
   noParse: [

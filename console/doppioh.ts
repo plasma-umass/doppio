@@ -16,7 +16,8 @@ import optparse = require('../src/option_parser');
 import path = require('path');
 import fs = require('fs');
 import util = require('../src/util');
-import ClassData = require('../src/ClassData');
+import {IClasspathItem, ClasspathFactory} from '../src/classpath';
+import {ReferenceClassData, ClassData, ArrayClassData, PrimitiveClassData} from '../src/ClassData';
 import ConstantPool = require('../src/ConstantPool');
 import methods = require('../src/methods');
 import JVMTypes = require('../includes/JVMTypes');
@@ -24,6 +25,8 @@ import JVMTypes = require('../includes/JVMTypes');
 require('source-map-support').install({
   handleUncaughtExceptions: true
 });
+
+let classpath: IClasspathItem[] = null;
 
 /**
  * Initializes the option parser with the options for the `doppioh` command.
@@ -77,10 +80,11 @@ function printHelp(): void {
   process.stdout.write("Usage: doppioh [flags] class_or_package_name\n" + optparse.show_help() + "\n");
 }
 
+
 setupOptparse();
 
 // Remove "node" and "path/to/doppioh.js".
-var argv = optparse.parse(process.argv.slice(2));
+let argv = optparse.parse(process.argv.slice(2));
 
 if (argv.standard.help || process.argv.length === 2) {
   printHelp();
@@ -90,48 +94,117 @@ if (!argv.standard.classpath) argv.standard.classpath = '.';
 if (!argv.standard.directory) argv.standard.directory = '.';
 
 // Append bootstrap classpath.
-argv.standard.classpath = `${path.resolve(__dirname, '../vendor/java_home/classes')}:${argv.standard.classpath}`;
+argv.standard.classpath = `${['resources.jar', 'rt.jar', 'jsse.jar', 'jce.jar', 'charsets.jar', 'jfr.jar', 'tools.jar', 'jazzlib.jar'].map((item: string) => path.resolve(__dirname, '../vendor/java_home/lib/', item)).join(':')}:${argv.standard.classpath}`;
 
-function findFile(fileName: string): string {
-  var i: number;
-  for (i = 0; i < classpath.length; i++) {
-    if (fs.existsSync(path.join(classpath[i], fileName))) {
-      return path.join(classpath[i], fileName);
-    } else if (fs.existsSync(path.join(classpath[i], fileName + '.class'))) {
-      return path.join(classpath[i], fileName + '.class');
-    }
-  }
+if (!argv.standard['doppiojvm-path']) {
+  argv.standard['doppiojvm-path'] = "doppiojvm";
 }
 
-var cache: {[desc: string]: ClassData.ClassData} = {};
-function findClass(descriptor: string): ClassData.ClassData {
+if (!fs.existsSync(argv.standard.directory)) {
+  fs.mkdirSync(argv.standard.directory);
+}
+
+/**
+ * java/lang/String.class => Ljava/lang/String;
+ */
+function file2desc(fname: string): string {
+  return `L${fname.slice(0, fname.length - 6)};`;
+}
+
+let cache: {[desc: string]: ClassData} = {};
+/**
+ * Returns the classes in the given directory in descriptor format.
+ */
+function getClasses(item: string): string[] {
+  let rv: string[] = [];
+  // Find classpath items that contains this item.
+  let cpItems: IClasspathItem[] = [], isDir: boolean;
+  for (let i = 0; i < classpath.length; i++) {
+    let stat = classpath[i].tryStatSync(item);
+    if (!stat) {
+      stat = classpath[i].tryStatSync(`${item}.class`);
+    }
+    if (!stat) {
+      continue;
+    } else {
+      isDir = stat.isDirectory();
+      cpItems.push(classpath[i]);
+    }
+  }
+  if (cpItems.length === 0) {
+    throw new Error(`Unable to find resource ${item}.`);
+  }
+
+  if (isDir) {
+    // Recursively process.
+    let dirStack: string[] = [item];
+    while (dirStack.length > 0) {
+      let dir = dirStack.pop();
+      for (let i = 0; i < cpItems.length; i++) {
+       let dirListing = cpItems[i].tryReaddirSync(dir);
+        if (dirListing === null) {
+          continue;
+        } else {
+          for (let i = 0; i < dirListing.length; i++) {
+            let item = dirListing[i];
+            let itemPath = path.join(dir, item);
+            if (path.extname(itemPath) === ".class") {
+              rv.push(file2desc(itemPath));
+            } else {
+              dirStack.push(itemPath);
+            }
+          }
+        }
+      }
+    }
+  } else {
+    rv.push(path.extname(item) === ".class" ? file2desc(item) : `L${item};`);
+  }
+  return rv;
+}
+
+function doSyncOpOverCP<T>(opName: string, arg1: string, err: string): T {
+  for (let i = 0; i < classpath.length; i++) {
+    let rv = (<(arg1: string) => T> (<any> classpath[i])[opName])(arg1);
+    if (rv !== null) {
+      return rv;
+    }
+  }
+  throw new Error(err);
+}
+
+function loadClass(type: string): Buffer {
+  return doSyncOpOverCP<Buffer>('tryLoadClassSync', type, `Unable to find class ${type}`);
+}
+
+function findClass(descriptor: string): ClassData {
   if (cache[descriptor] !== undefined) {
     return cache[descriptor];
   }
 
-  var rv: ClassData.ClassData;
+  var rv: ClassData;
   try {
     switch(descriptor[0]) {
       case 'L':
-        rv = new ClassData.ReferenceClassData(fs.readFileSync(findFile(util.descriptor2typestr(descriptor) + ".class")));
+        rv = new ReferenceClassData(loadClass(util.descriptor2typestr(descriptor)));
         // Resolve the class.
-        var superClassRef = (<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> rv).getSuperClassReference(),
-          interfaceClassRefs = (<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> rv).getInterfaceClassReferences(),
-          superClass: ClassData.ReferenceClassData<JVMTypes.java_lang_Object> = null,
-          interfaceClasses: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>[] = [];
+        var superClassRef = (<ReferenceClassData<JVMTypes.java_lang_Object>> rv).getSuperClassReference(),
+          interfaceClassRefs = (<ReferenceClassData<JVMTypes.java_lang_Object>> rv).getInterfaceClassReferences(),
+          superClass: ReferenceClassData<JVMTypes.java_lang_Object> = null,
+          interfaceClasses: ReferenceClassData<JVMTypes.java_lang_Object>[] = [];
         if (superClassRef !== null) {
-          superClass = <ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> findClass(superClassRef.name);
+          superClass = <ReferenceClassData<JVMTypes.java_lang_Object>> findClass(superClassRef.name);
         }
         if (interfaceClassRefs.length > 0) {
-          interfaceClasses = interfaceClassRefs.map((iface: ConstantPool.ClassReference) => <ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> findClass(iface.name));
+          interfaceClasses = interfaceClassRefs.map((iface: ConstantPool.ClassReference) => <ReferenceClassData<JVMTypes.java_lang_Object>> findClass(iface.name));
         }
-        (<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> rv).setResolved(superClass, interfaceClasses);
+        (<ReferenceClassData<JVMTypes.java_lang_Object>> rv).setResolved(superClass, interfaceClasses);
         break;
       case '[':
-        rv = new ClassData.ArrayClassData(descriptor.slice(1), null);
+        rv = new ArrayClassData(descriptor.slice(1), null);
         break;
       default:
-        rv = new ClassData.PrimitiveClassData(descriptor, null);
+        rv = new PrimitiveClassData(descriptor, null);
         break;
     }
     cache[descriptor] = rv;
@@ -141,20 +214,7 @@ function findClass(descriptor: string): ClassData.ClassData {
   }
 }
 
-function getFiles(dirName: string): string[] {
-  var rv: string[] = [], files = fs.readdirSync(dirName), i: number, file: string;
-  for (i = 0; i < files.length; i++) {
-    file = path.join(dirName, files[i]);
-    if (fs.statSync(file).isDirectory()) {
-      rv = rv.concat(getFiles(file));
-    } else if (file.indexOf('.class') === (file.length - 6)) {
-      rv.push(file);
-    }
-  }
-  return rv;
-}
-
-function processClassData(stream: NodeJS.WritableStream, template: ITemplate, classData: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>) {
+function processClassData(stream: NodeJS.WritableStream, template: ITemplate, classData: ReferenceClassData<JVMTypes.java_lang_Object>) {
   var fixedClassName: string = classData.getInternalName().replace(/\//g, '_'),
     nativeFound: boolean = false;
   // Shave off L and ;
@@ -197,7 +257,7 @@ class TSTemplate implements ITemplate {
   private classesSeen: string[] = [];
   private headerPath: string = path.resolve(argv.standard.directory, "JVMTypes.d.ts");
   private headerStream: NodeJS.WritableStream;
-  private generateQueue: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>[] = [];
+  private generateQueue: ReferenceClassData<JVMTypes.java_lang_Object>[] = [];
   private doppiojvmPath: string;
   constructor(doppiojvmPath: string, outputPath: string) {
     // Parse existing types file for existing definitions. We'll remake them.
@@ -360,11 +420,11 @@ export = JVMTypes;\n`, () => {});
       // Mark this class as queued for headerification. We use a queue instead
       // of a recursive scheme to avoid stack overflows.
       this.headerSet[desc] = true;
-      this.generateQueue.push(<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> findClass(desc));
+      this.generateQueue.push(<ReferenceClassData<JVMTypes.java_lang_Object>> findClass(desc));
     }
   }
 
-  private _processHeader(cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>): void {
+  private _processHeader(cls: ReferenceClassData<JVMTypes.java_lang_Object>): void {
       var desc = cls.getInternalName(),
         interfaces = cls.getInterfaceClassReferences().map((iface: ConstantPool.ClassReference) => iface.name),
         superClass = cls.getSuperClassReference(),
@@ -562,40 +622,23 @@ class JSTemplate implements ITemplate {
   }
 }
 
-if (!fs.existsSync(argv.standard.directory)) {
-  fs.mkdirSync(argv.standard.directory);
-}
+let targetName: string = argv.className.replace(/\//g, '_').replace(/\./g, '_'),
+  targetPath: string = argv.className.replace(/\./g, '/');
 
-var classpath: string[] = argv.standard.classpath.split(':'),
-  targetName: string = argv.className.replace(/\//g, '_').replace(/\./g, '_'),
-  className: string = argv.className.replace(/\./g, '/'),
-  template: ITemplate,
-  stream: NodeJS.WritableStream,
-  targetLocation: string;
-
-targetLocation = findFile(className);
-if (typeof targetLocation !== 'string') {
-  console.error('Unable to find location: ' + className);
-  process.exit(0);
-}
-
-if (!argv.standard['doppiojvm-path']) {
-  argv.standard['doppiojvm-path'] = "doppiojvm";
-}
-
-template = argv.standard.typescript ? new TSTemplate(argv.standard['doppiojvm-path'], argv.standard.directory) : new JSTemplate();
-stream = fs.createWriteStream(path.join(argv.standard.directory, targetName + '.' + template.getExtension()));
-
-template.fileStart(stream);
-if (fs.statSync(targetLocation).isDirectory()) {
-  getFiles(targetLocation).forEach((cname: string) => {
-    processClassData(stream, template, new ClassData.ReferenceClassData(fs.readFileSync(cname)));
-  });
-} else {
-  processClassData(stream, template, new ClassData.ReferenceClassData(fs.readFileSync(targetLocation)));
-}
-template.fileEnd(stream);
-if (argv.standard.typescript) {
-  (<TSTemplate> template).headersEnd();
-}
-stream.end(new Buffer(''), () => {});
+// Initialize classpath.
+ClasspathFactory(argv.standard.classpath.split(':'), (items: IClasspathItem[]) => {
+  classpath = items;
+  let template = argv.standard.typescript ? new TSTemplate(argv.standard['doppiojvm-path'], argv.standard.directory) : new JSTemplate();
+  let stream = fs.createWriteStream(path.join(argv.standard.directory, targetName + '.' + template.getExtension()));
+  template.fileStart(stream);
+  let classes = getClasses(targetPath);
+  for (let i = 0; i < classes.length; i++) {
+    let desc = classes[i];
+    processClassData(stream, template, <ReferenceClassData<JVMTypes.java_lang_Object>> findClass(desc));
+  }
+  template.fileEnd(stream);
+  if (argv.standard.typescript) {
+    (<TSTemplate> template).headersEnd();
+  }
+  stream.end(new Buffer(''), () => {});
+});

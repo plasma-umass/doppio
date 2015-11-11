@@ -14,8 +14,6 @@ export interface JVMOptions {
   classpath: string[];
   // Path to JAVA_HOME.
   javaHomePath: string;
-  // Path where we can extract JAR files.
-  extractionPath: string;
   // XXX: Path where native methods are located.
   nativeClasspath: string[];
   // True if assertions are enabled, false otherwise.

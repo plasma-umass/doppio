@@ -250,7 +250,7 @@ class java_net_PlainSocketImpl {
     // NOP
   }
 
-  public static 'socketSetOption(IZLjava/lang/Object;)V'(thread: JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl, arg0: number, arg1: number, arg2: JVMTypes.java_lang_Object): void {
+  public static 'socketSetOption0(IZLjava/lang/Object;)V'(thread: JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl, arg0: number, arg1: number, arg2: JVMTypes.java_lang_Object): void {
     // NOP
   }
 

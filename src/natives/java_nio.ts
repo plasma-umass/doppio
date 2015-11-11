@@ -12,24 +12,6 @@ declare var registerNatives: (natives: any) => void;
 
 class java_nio_Bits {
 
-  public static 'byteOrder()Ljava/nio/ByteOrder;'(thread: JVMThread): JVMTypes.java_nio_ByteOrder {
-    var cls = thread.getBsCl().getInitializedClass(thread, 'Ljava/nio/ByteOrder;');
-    if (cls === null) {
-      thread.setStatus(ThreadStatus.ASYNC_WAITING);
-      thread.getBsCl().initializeClass(thread, 'Ljava/nio/ByteOrder;', (cdata: ClassData) => {
-        var rcdata = <ReferenceClassData<JVMTypes.java_nio_ByteOrder>> cdata;
-        if (rcdata !== null) {
-          var cons = <typeof JVMTypes.java_nio_ByteOrder> <any> rcdata.getConstructor(thread);
-          thread.asyncReturn(cons['java/nio/ByteOrder/LITTLE_ENDIAN']);
-        }
-      });
-    } else {
-      return (<typeof JVMTypes.java_nio_ByteOrder> <any>
-        (<ReferenceClassData<JVMTypes.java_nio_ByteOrder>> cls)
-          .getConstructor(thread))['java/nio/ByteOrder/LITTLE_ENDIAN'];
-    }
-  }
-
   public static 'copyFromShortArray(Ljava/lang/Object;JJJ)V'(thread: JVMThread, arg0: JVMTypes.java_lang_Object, arg1: Long, arg2: Long, arg3: Long): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }

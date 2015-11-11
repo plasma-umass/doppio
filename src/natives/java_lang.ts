@@ -386,7 +386,7 @@ class java_lang_ClassLoader$NativeLibrary {
     return null;
   }
 
-  public static 'unload(Ljava/lang/String;)V'(thread: JVMThread, javaThis: JVMTypes.java_lang_ClassLoader$NativeLibrary, name: JVMTypes.java_lang_String): void {
+  public static 'unload(Ljava/lang/String;Z)V'(thread: JVMThread, javaThis: JVMTypes.java_lang_ClassLoader$NativeLibrary, name: JVMTypes.java_lang_String): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
@@ -585,16 +585,23 @@ class java_lang_Package {
 
   public static 'getSystemPackage0(Ljava/lang/String;)Ljava/lang/String;'(thread: JVMThread, pkgNameObj: JVMTypes.java_lang_String): JVMTypes.java_lang_String {
     var pkgName = pkgNameObj.toString();
-    if (thread.getBsCl().getPackageNames().indexOf(pkgName) >= 0) {
-      return pkgNameObj;
-    } else {
-      return null;
+    // Slice off ending /
+    pkgName = pkgName.slice(0, pkgName.length - 1);
+    let pkgs = thread.getBsCl().getPackages();
+    for (let i = 0; i < pkgs.length; i++) {
+      if (pkgs[i][0] === pkgName) {
+        // XXX: Ignore secondary load locations.
+        return util.initString(thread.getBsCl(), pkgs[i][1][0]);
+      }
     }
+    // Could not find package.
+    return null;
   }
 
   public static 'getSystemPackages0()[Ljava/lang/String;'(thread: JVMThread): JVMTypes.JVMArray<JVMTypes.java_lang_String> {
-    var pkgNames = thread.getBsCl().getPackageNames();
-    return util.newArrayFromData<JVMTypes.java_lang_String>(thread, thread.getBsCl(), '[Ljava/lang/String;', pkgNames.map((pkgName) => util.initString(thread.getBsCl(), pkgName)));
+    var pkgNames = thread.getBsCl().getPackages();
+    // Note: We add / to end of package name, since it appears that is what OpenJDK expects.
+    return util.newArrayFromData<JVMTypes.java_lang_String>(thread, thread.getBsCl(), '[Ljava/lang/String;', pkgNames.map((pkgName) => util.initString(thread.getBsCl(), pkgName[0] + "/")));
   }
 }
 

@@ -13,6 +13,7 @@
         "src/assert.ts",
         "src/attributes.ts",
         "src/ByteStream.ts",
+        "src/classpath.ts",
         "src/ClassData.ts",
         "src/ClassFile.ts",
         "src/ClassLoader.ts",

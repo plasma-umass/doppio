@@ -119,8 +119,7 @@ class JVM {
      */
     bootupTasks.push((next: (err?: any) => void): void => {
       this.bsCl =
-        new ClassLoader.BootstrapClassLoader(bootstrapClasspath,
-          opts.extractionPath, next);
+        new ClassLoader.BootstrapClassLoader(bootstrapClasspath, next);
     });
 
     /**

@@ -7,19 +7,17 @@
   "typings": "dist/typings/src/doppiojvm",
   "dependencies": {
     "async": "^1.4.2",
+    "browserfs": "^0.5.5",
     "gunzip-maybe": "^1.2.1",
-    "node-zip": "^1.1.1",
     "optimist": "~0.6",
     "rimraf": "^2.4.3",
     "source-map-support": "^0.3.2",
     "tar-fs": "^1.8.1"
   },
   "devDependencies": {
-    "bfs-buffer": "0.0.1",
-    "bfs-fs": "0.0.1",
-    "bfs-path": "0.0.1",
-    "bfs-process": "0.0.1",
-    "browserfs": "^0.4.6",
+    "bfs-buffer": "^0.1.1",
+    "bfs-path": "^0.1.1",
+    "bfs-process": "^0.1.4",
     "browserify": "^12.0.1",
     "browserify-derequire": "^0.9.4",
     "browserify-shim": "^3.8.11",
