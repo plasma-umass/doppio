@@ -95,7 +95,7 @@ if (!argv.standard.classpath) argv.standard.classpath = '.';
 if (!argv.standard.directory) argv.standard.directory = '.';
 
 // Append bootstrap classpath.
-argv.standard.classpath = `${JDKInfo.classpath.map((item) => path.resolve(__dirname, "../vendor/java_home", item))}:${argv.standard.classpath}`;
+argv.standard.classpath = `${JDKInfo.classpath.map((item) => path.resolve(__dirname, "../vendor/java_home", item)).join(":")}:${argv.standard.classpath}`;
 
 if (!argv.standard['doppiojvm-path']) {
   argv.standard['doppiojvm-path'] = "doppiojvm";
