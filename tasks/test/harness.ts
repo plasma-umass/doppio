@@ -8,6 +8,7 @@ declare var __numWaiting: number;
 import BrowserFS = require('browserfs');
 import fs = require('fs');
 import path = require('path');
+import JDKInfo = require('../../vendor/java_home/jdk.json');
 // Force initialization of standard output.
 (<any> process).initializeTTYs();
 import DoppioJVM = require('../../src/doppiojvm');
@@ -51,7 +52,7 @@ export default function runTests(isRelease: boolean) {
   process.chdir('/sys');
 
   DoppioJVM.Testing.getTests({
-    bootstrapClasspath: ['resources.jar', 'rt.jar', 'jsse.jar', 'jce.jar', 'charsets.jar', 'jfr.jar', 'tools.jar', 'jazzlib.jar'].map((item: string) => path.resolve('/sys/vendor/java_home/lib/', item)),
+    bootstrapClasspath: JDKInfo.classpath.map((item: string) => path.resolve('/sys/vendor/java_home', item)),
     doppioDir: '/sys',
     testClasses: null,
     classpath: [],

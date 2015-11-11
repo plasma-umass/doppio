@@ -3,6 +3,7 @@ import testing = require('../src/testing');
 import os = require('os');
 import fs = require('fs');
 import path = require('path');
+import JDKInfo = require('../vendor/java_home/jdk.json');
 
 // Makes our stack traces point to the TypeScript source code lines.
 require('source-map-support').install({
@@ -11,7 +12,7 @@ require('source-map-support').install({
 
 // Default options.
 var opts: testing.TestOptions = {
-  bootstrapClasspath: ['resources.jar', 'rt.jar', 'jsse.jar', 'jce.jar', 'charsets.jar', 'jfr.jar', 'tools.jar', 'jazzlib.jar'].map((item: string) => path.resolve(__dirname, '../vendor/java_home/lib/', item)),
+  bootstrapClasspath: JDKInfo.classpath.map((item: string) => path.resolve(__dirname, '../vendor/java_home', item)),
   javaHomePath: path.resolve(__dirname, path.join('..', 'vendor', 'java_home')),
   classpath: null,
   nativeClasspath: [path.resolve(__dirname, path.join('..', 'src', 'natives'))],

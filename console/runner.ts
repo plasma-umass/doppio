@@ -4,6 +4,7 @@ import JVM = require('../src/jvm');
 import path = require('path');
 import os = require('os');
 import fs = require('fs');
+import JDKInfo = require('../vendor/java_home/jdk.json')
 // Makes our stack traces point to the TypeScript source code lines.
 require('source-map-support').install({
   handleUncaughtExceptions: true
@@ -40,7 +41,7 @@ process.on('uncaughtException', (er: any) => {
 
 // Run the JVM. Remove node runner.js from the args.
 java_cli(process.argv.slice(2), {
-  bootstrapClasspath: ['resources.jar', 'rt.jar', 'jsse.jar', 'jce.jar', 'charsets.jar', 'jfr.jar', 'tools.jar', 'jazzlib.jar'].map((item: string) => path.resolve(__dirname, '../vendor/java_home/lib/', item)),
+  bootstrapClasspath: JDKInfo.classpath.map((item: string) => path.resolve(__dirname, '../vendor/java_home', item)),
   javaHomePath: path.resolve(__dirname, '../vendor/java_home'),
   classpath: null,
   nativeClasspath: [path.resolve(__dirname, '../src/natives')],

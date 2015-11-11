@@ -13,6 +13,7 @@ import methods = require('../src/methods');
 import JVM = require('../src/jvm');
 import JVMTypes = require('../includes/JVMTypes');
 import {IClasspathItem, ClasspathFactory} from '../src/classpath';
+import JDKInfo = require('../vendor/java_home/jdk.json');
 import os = require('os');
 var ReferenceClassData = class_data.ReferenceClassData,
     jvmObject: JVM,
@@ -184,7 +185,7 @@ function main() {
   printResult(similarMap);
 }
 
-let bscp = ['resources.jar', 'rt.jar', 'jsse.jar', 'jce.jar', 'charsets.jar', 'jfr.jar', 'tools.jar', 'jazzlib.jar'].map((item: string) => path.resolve(__dirname, '../vendor/java_home/lib/', item));
+let bscp = JDKInfo.classpath.map((item: string) => path.resolve(__dirname, '../vendor/java_home', item));
 new JVM({
   bootstrapClasspath: bscp,
   javaHomePath: path.resolve(__dirname, '../vendor/java_home'),

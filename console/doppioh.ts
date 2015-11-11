@@ -21,6 +21,7 @@ import {ReferenceClassData, ClassData, ArrayClassData, PrimitiveClassData} from 
 import ConstantPool = require('../src/ConstantPool');
 import methods = require('../src/methods');
 import JVMTypes = require('../includes/JVMTypes');
+import JDKInfo = require('../vendor/java_home/jdk.json');
 // Makes our stack traces point to the TypeScript source code lines.
 require('source-map-support').install({
   handleUncaughtExceptions: true
@@ -94,7 +95,7 @@ if (!argv.standard.classpath) argv.standard.classpath = '.';
 if (!argv.standard.directory) argv.standard.directory = '.';
 
 // Append bootstrap classpath.
-argv.standard.classpath = `${['resources.jar', 'rt.jar', 'jsse.jar', 'jce.jar', 'charsets.jar', 'jfr.jar', 'tools.jar', 'jazzlib.jar'].map((item: string) => path.resolve(__dirname, '../vendor/java_home/lib/', item)).join(':')}:${argv.standard.classpath}`;
+argv.standard.classpath = `${JDKInfo.classpath.map((item) => path.resolve(__dirname, "../vendor/java_home", item))}:${argv.standard.classpath}`;
 
 if (!argv.standard['doppiojvm-path']) {
   argv.standard['doppiojvm-path'] = "doppiojvm";

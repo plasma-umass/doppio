@@ -12,7 +12,8 @@
     "optimist": "~0.6",
     "rimraf": "^2.4.3",
     "source-map-support": "^0.3.2",
-    "tar-fs": "^1.8.1"
+    "tar-fs": "^1.8.1",
+    "glob": "^5.0.14"
   },
   "devDependencies": {
     "bfs-buffer": "^0.1.1",
@@ -24,7 +25,6 @@
     "escodegen": "^1.7.0",
     "esprima": "^2.6.0",
     "estraverse": "^4.1.0",
-    "glob": "^5.0.14",
     "grunt": "^0.4.5",
     "grunt-browserify": "^4.0.1",
     "grunt-cli": "^0.1.13",

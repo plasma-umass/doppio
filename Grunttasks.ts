@@ -113,7 +113,8 @@ export function setup(grunt: IGrunt) {
       build_type: "",        // Build type for doppio (dev/dev-cli/etc.) Will be set by 'setup' task.
       vendor_dir: '<%= resolve(build.doppio_dir, "vendor") %>',
       java_home_dir: '<%= resolve(build.doppio_dir, "vendor", "java_home") %>',
-      bootclasspath: ['resources.jar', 'rt.jar', 'jsse.jar', 'jce.jar', 'charsets.jar', 'jfr.jar', 'tools.jar', 'jazzlib.jar'].map((item: string) => path.resolve(__dirname, 'vendor/java_home/lib/', item)).join(":"),
+      // Will be set by JDK download task.
+      bootclasspath: null,
       build_dir: '<%= resolve(build.doppio_dir, "build", build.build_type) %>',
       // TODO: Maybe fix this to prevent us from using too much scratch space?
       scratch_dir: path.resolve(os.tmpdir(), "doppio-temp" + Math.floor(Math.random() * 100000))
@@ -456,6 +457,12 @@ export function setup(grunt: IGrunt) {
       cmd: 'node',
       args: ['build/dev-cli/console/download_jdk.js']
     }, (err, result, code) => {
+      if (code === 0) {
+        let JDKInfo = require('./vendor/java_home/jdk.json');
+        grunt.config.set("build.bootclasspath",
+          JDKInfo.classpath.map((item: string) =>
+            path.resolve(grunt.config.get<string>("build.java_home_dir"), item)).join(":"));
+      }
       done(code === 0);
     });
     (<NodeJS.ReadableStream> (<any> child).stdout).on('data', function(d: Buffer) {
@@ -474,7 +481,11 @@ export function setup(grunt: IGrunt) {
     if (!grunt.file.exists("includes/JVMTypes.d.ts")) {
       // Ignore dev-cli compilation errors if the JVMTypes aren't defined yet.
       grunt.config.set('ts.options.failOnTypeErrors', false);
-      grunt.task.run(['ts:dev-cli', 'check_jdk', 'find_native_java', 'javac:default', 'includes:default', 'enable_type_errors']);
+      grunt.task.run(['ts:dev-cli', 'check_jdk', 'java', 'includes:default', 'enable_type_errors']);
+    } else if (!grunt.file.exists("vendor/java_home/jdk.json")) {
+      // Ignore dev-cli compilation errors if jdk.json isn't defined yet.
+      grunt.config.set('ts.options.failOnTypeErrors', false);
+      grunt.task.run(['ts:dev-cli', 'check_jdk', 'java', 'enable_type_errors']);
     }
   });
   grunt.registerTask("enable_type_errors", "Enables TypeScript type errors after include file generation.", function() {
