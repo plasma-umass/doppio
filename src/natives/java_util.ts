@@ -75,7 +75,12 @@ class InflaterState {
     assert(this.bytesLeft === 0, `Pushing bytes when there are bytes remaining.`);
     this.inflater.push(arr, pako.ZlibFlushValue.Z_SYNC_FLUSH);
     this.resultOffset = 0;
-    this.bytesLeft = this.inflater.result.length;
+    if (this.inflater.result) {
+      this.bytesLeft = this.inflater.result.length;
+    } else {
+      // Error condition, typically.
+      this.bytesLeft = 0;
+    }
     return this.inflater.err;
   }
 }
@@ -411,7 +416,7 @@ class java_util_zip_Inflater {
                 javaThis['java/util/zip/Inflater/needDict'] = 1;
                 return lenRead;
               default:
-                thread.throwNewException('Ljava/util/zip/DataFormatExpression;', inflater.inflater.msg);
+                thread.throwNewException('Ljava/util/zip/DataFormatException;', inflater.inflater.msg);
                 return;
             }
           }
