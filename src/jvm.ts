@@ -15,6 +15,12 @@ import interfaces = require('./interfaces');
 import JVMTypes = require('../includes/JVMTypes');
 import Parker = require('./parker');
 import ThreadPool from './threadpool';
+// Do not import, otherwise TypeScript will prune it.
+// Referenced only in eval'd code.
+let BrowserFS = require('browserfs');
+let pako = require('pako');
+let crc32 = require('pako/lib/zlib/crc32');
+let adler32 = require('pako/lib/zlib/adler32')
 
 // XXX: We currently initialize these classes at JVM bootup. This is expensive.
 // We should attempt to prune this list as much as possible.
@@ -443,6 +449,14 @@ function require(name) {
       return path;
     case 'buffer':
       return buffer;
+    case 'browserfs':
+      return BrowserFS;
+    case 'pako':
+      return pako;
+    case 'pako/lib/zlib/crc32':
+      return crc32;
+    case 'pako/lib/zlib/adler32':
+      return adler32;
     default:
       return savedRequire(name);
   }

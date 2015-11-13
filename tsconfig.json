@@ -71,6 +71,7 @@
         "console/generate_thread_transition_graph.ts",
         "console/runner.ts",
         "console/test_runner.ts",
-        "console/download_jdk.ts"
+        "console/download_jdk.ts",
+        "vendor/pako.d.ts"
     ]
 }

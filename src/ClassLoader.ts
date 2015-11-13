@@ -492,6 +492,13 @@ export class BootstrapClassLoader extends ClassLoader {
     }
     return cpStrings;
   }
+
+  /**
+   * Returns the classpath item objects in the classpath.
+   */
+  public getClassPathItems(): IClasspathItem[] {
+    return this.classpath.slice(0);
+  }
 }
 
 /**

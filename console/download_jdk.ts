@@ -12,7 +12,7 @@ let tarFs: {
   extract: (path: string) => NodeJS.WritableStream;
 } = require('tar-fs');
 
-const JDK_URL = "https://github.com/plasma-umass/doppio_jcl/releases/download/v3.1/java_home.tar.gz";
+const JDK_URL = "https://github.com/plasma-umass/doppio_jcl/releases/download/v3.2/java_home.tar.gz";
 const JDK_PATH = path.resolve(__dirname, "..", "..", "..", "vendor");
 const JDK_FOLDER = "java_home";
 
@@ -104,30 +104,18 @@ function writeJdkJson(): void {
       console.error(`Failed to locate JDK JAR items: ${e}`);
       process.exit(1);
     }
-    let rtIndex: number = -1, jazzlibIndex = -1;
+    let rtIndex: number = -1;
     classpath = classpath.map((item, i) =>  {
       switch (path.basename(item)) {
         case "rt.jar":
           rtIndex = i;
           break;
-        case "jazzlib.jar":
-          jazzlibIndex = i;
-          break;
       }
       return path.relative(path.resolve(JDK_PATH, JDK_FOLDER), item);
     });
-    let rt = classpath[rtIndex],
-      jazzlib = classpath[jazzlibIndex];
-
-    if (rtIndex > jazzlibIndex) {
-      let swizzle = rtIndex;
-      rtIndex = jazzlibIndex;
-      jazzlibIndex = swizzle;
-    }
-    classpath.splice(jazzlibIndex, 1);
+    let rt = classpath[rtIndex];
     classpath.splice(rtIndex, 1);
     classpath.unshift(rt);
-    classpath.push(jazzlib);
 
     let jdkJson = {
       url: JDK_URL,

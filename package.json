@@ -7,13 +7,14 @@
   "typings": "dist/typings/src/doppiojvm",
   "dependencies": {
     "async": "^1.4.2",
-    "browserfs": "^0.5.5",
+    "browserfs": "^0.5.6",
+    "glob": "^5.0.14",
     "gunzip-maybe": "^1.2.1",
     "optimist": "~0.6",
+    "pako": "^0.2.8",
     "rimraf": "^2.4.3",
     "source-map-support": "^0.3.2",
-    "tar-fs": "^1.8.1",
-    "glob": "^5.0.14"
+    "tar-fs": "^1.8.1"
   },
   "devDependencies": {
     "bfs-buffer": "^0.1.1",

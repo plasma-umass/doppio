@@ -4,6 +4,8 @@ import fs = require('fs');
 import path = require('path');
 import BrowserFS = require('browserfs');
 import util = require('./util');
+// Export so it can be returned from ClasspathJar.
+export type TZipFS = BrowserFS.FileSystem.ZipFS;
 let BFSFS = BrowserFS.BFSRequire('fs');
 let ZipFS = BrowserFS.FileSystem.ZipFS;
 
@@ -250,6 +252,10 @@ export class ClasspathJar extends AbstractClasspathItem implements IClasspathIte
     return this._wrapSyncOp<fs.Stats>(() => {
       return this._fs.statSync(p);
     });
+  }
+
+  public getFS(): TZipFS {
+    return <TZipFS> this._fs.getRootFS();
   }
 }
 
