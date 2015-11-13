@@ -30,7 +30,7 @@ function includes(grunt: IGrunt) {
             args: standardArgPrefix.concat(pkg)
           }, function(error: Error, result: grunt.util.ISpawnResult, code: number) {
             if (code !== 0 || error) {
-              grunt.fail.fatal("Could not run doppioh on package " + pkg + ": " + result.stdout + "\n" + result.stderr);
+              grunt.fail.fatal(`Could not run doppioh on package ${pkg} (exit code ${code}): ${error ? `${error}\n` : ''}${result.stdout}\n${result.stderr}`);
             }
             cb(error);
           });

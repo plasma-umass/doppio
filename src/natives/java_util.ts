@@ -306,7 +306,7 @@ class java_util_zip_Adler32 {
 
   public static 'updateByteBuffer(IJII)I'(thread: JVMThread, adler: number, addr: Long, off: number, len: number): number {
     let heap = thread.getJVM().getHeap();
-    let buff = buff2i8(heap.get_buffer(addr.toNumber() + off, len));
+    let buff = <Uint8Array> BFSUtils.buffer2Arrayish(heap.get_buffer(addr.toNumber() + off, len));
     return adler32(adler, buff, buff.length, 0);
   }
 
@@ -325,7 +325,7 @@ class java_util_zip_CRC32 {
 
   public static 'updateByteBuffer(IJII)I'(thread: JVMThread, crc: number, addr: Long, off: number, len: number): number {
     let heap = thread.getJVM().getHeap();
-    let buff = buff2i8(heap.get_buffer(addr.toNumber() + off, len));
+    let buff = <Uint8Array> BFSUtils.buffer2Arrayish(heap.get_buffer(addr.toNumber() + off, len));
     return crc32(crc, buff, buff.length, 0);
   }
 
@@ -388,11 +388,12 @@ class java_util_zip_Inflater {
   }
 
   /**
-   * NOTE: inflateBytes modifies the following properties.
+   * NOTE: inflateBytes modifies the following properties on the Inflate object:
    *
-   * buf = b;
-   * this.off = off;
-   * this.len = len;
+   * - off
+   * - len
+   * - needDict
+   * - finished
    */
   public static 'inflateBytes(J[BII)I'(thread: JVMThread, javaThis: JVMTypes.java_util_zip_Inflater, addr: Long, b: JVMTypes.JVMArray<number>, off: number, len: number): number {
     let inflater = GetInflater(thread, addr.toNumber());
