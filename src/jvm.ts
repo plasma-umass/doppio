@@ -20,7 +20,15 @@ import ThreadPool from './threadpool';
 let BrowserFS = require('browserfs');
 let pako = require('pako');
 let crc32 = require('pako/lib/zlib/crc32');
-let adler32 = require('pako/lib/zlib/adler32')
+let adler32 = require('pako/lib/zlib/adler32');
+// For version information.
+let pkg: any;
+if (util.are_in_browser()) {
+  pkg = require('../package.json');
+} else {
+  pkg = require('../../../package.json');
+}
+
 
 // XXX: We currently initialize these classes at JVM bootup. This is expensive.
 // We should attempt to prune this list as much as possible.
@@ -609,11 +617,11 @@ eval(mod);
       'os.name': 'doppio',
       'os.arch': 'js',
       'os.version': '0',
-      'java.vm.name': 'Doppio 32-bit VM',
-      'java.vm.vendor': 'Doppio Inc.',
+      'java.vm.name': 'DoppioJVM 32-bit VM',
+      'java.vm.version': pkg.version,
+      'java.vm.vendor': 'PLASMA@UMass',
       'java.awt.headless': (util.are_in_browser()).toString(), // true if we're using the console frontend
       'java.awt.graphicsenv': 'classes.awt.CanvasGraphicsEnvironment',
-      'useJavaUtilZip': 'true', // hack for sun6javac, avoid ZipFileIndex shenanigans
       'jline.terminal': 'jline.UnsupportedTerminal', // we can't shell out to `stty`,
       'sun.arch.data.model': '32', // Identify as 32-bit, because that's how we act.
       'sun.jnu.encoding': "UTF-8" // Determines how Java parses command line options.

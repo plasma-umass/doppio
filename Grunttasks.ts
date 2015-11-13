@@ -15,6 +15,7 @@ if (!fs.existsSync('shims')) {
 });
 
 var browserifyConfigFcn = function(bundle: BrowserifyObject) {
+  (<any> bundle).exclude('../../../package.json');
   bundle.transform('browserify-shim', { global: true });
   // De-require after shim.
   bundle.plugin('browserify-derequire');
