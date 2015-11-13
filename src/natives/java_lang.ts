@@ -1597,6 +1597,28 @@ class java_lang_invoke_MethodHandleNatives {
   }
 
   /**
+   * Follows the same logic as sun.misc.Unsafe's staticFieldOffset.
+   */
+  public static 'staticFieldOffset(Ljava/lang/invoke/MemberName;)J'(thread: JVMThread, memberName: JVMTypes.java_lang_invoke_MemberName): Long {
+    if (memberName['vmindex'] === -1) {
+      thread.throwNewException("Ljava/lang/IllegalStateException;", "Attempted to retrieve the object offset for an unresolved or non-object MemberName.");
+    } else {
+      return Long.fromNumber(memberName.vmindex);
+    }
+  }
+
+  /**
+   * Follows the same logic as sun.misc.Unsafe's staticFieldBase.
+   */
+  public static 'staticFieldBase(Ljava/lang/invoke/MemberName;)Ljava/lang/Object;'(thread: JVMThread, memberName: JVMTypes.java_lang_invoke_MemberName): JVMTypes.java_lang_Object {
+    // Return a special JVM object.
+    // TODO: Actually create a special DoppioJVM class for this.
+    var rv = new ((<ReferenceClassData<JVMTypes.java_lang_Object>> thread.getBsCl().getInitializedClass(thread, 'Ljava/lang/Object;')).getConstructor(thread))(thread);
+    (<any> rv).$staticFieldBase = memberName['java/lang/invoke/MemberName/clazz'].$cls;
+    return rv;
+  }
+
+  /**
    * Get the members of the given class that match the specified flags, skipping
    * the specified number of members. For each non-skipped matching member,
    * fill in the fields of a MemberName objects in the results array.

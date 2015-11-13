@@ -591,6 +591,7 @@ eval(mod);
     this.systemProperties = util.merge({
       'java.class.path': javaClassPath.join(':'),
       'java.home': javaHomePath,
+      'java.ext.dirs': path.join(javaHomePath, 'lib', 'ext'),
       'java.io.tmpdir': tmpDir,
       'sun.boot.class.path': bootstrapClasspath.join(':'),
       'file.encoding': 'UTF-8',
