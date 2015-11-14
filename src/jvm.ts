@@ -48,7 +48,11 @@ var coreClasses = [
   'Ljava/lang/Integer;', 'Ljava/lang/Long;', 'Ljava/lang/Short;',
   'Ljava/lang/Void;', 'Ljava/io/FileDescriptor;',
   'Ljava/lang/Boolean;', '[Lsun/management/MemoryManagerImpl;',
-  '[Lsun/management/MemoryPoolImpl;'
+  '[Lsun/management/MemoryPoolImpl;',
+  // Contains important FS constants used by natives. These constants are
+  // inlined into JCL class files, so it typically never gets initialized
+  // implicitly by the JVM.
+  'Lsun/nio/fs/UnixConstants;'
 ];
 
 /**

@@ -61,7 +61,7 @@ class ClassLocks {
  * Base classloader class. Contains common class resolution and instantiation
  * logic.
  */
-export class ClassLoader {
+export abstract class ClassLoader {
   /**
    * Stores loaded *reference* and *array* classes.
    */
@@ -268,9 +268,7 @@ export class ClassLoader {
    *
    * Should never be invoked directly! Use loadClass.
    */
-  protected _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit?: boolean): void {
-    throw new Error("Abstract method!");
-  }
+  protected abstract _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit?: boolean): void;
 
   /**
    * Convenience function: Resolve many classes. Calls cb with null should
@@ -344,9 +342,7 @@ export class ClassLoader {
   /**
    * Returns the JVM object corresponding to this ClassLoader.
    */
-  public getLoaderObject(): JVMTypes.java_lang_ClassLoader {
-    throw new Error('Abstract method');
-  }
+  public abstract getLoaderObject(): JVMTypes.java_lang_ClassLoader;
 }
 
 /**
