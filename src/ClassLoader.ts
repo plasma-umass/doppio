@@ -431,10 +431,26 @@ export class BootstrapClassLoader extends ClassLoader {
     // This method is only valid for reference types!
     assert(util.is_reference_type(typeStr));
     // Search the class path for the class.
-    var clsFilePath = util.descriptor2typestr(typeStr),
+    let clsFilePath = util.descriptor2typestr(typeStr),
+      cPathLen = this.classpath.length,
+      toSearch: IClasspathItem[] = [],
       clsData: Buffer;
 
-    util.asyncFind<IClasspathItem>(this.classpath, (pItem: IClasspathItem, callback: (success: boolean) => void): void => {
+    searchLoop:
+    for (let i = 0; i < cPathLen; i++) {
+      let item = this.classpath[i];
+      switch (item.hasClass(clsFilePath)) {
+        case TriState.INDETERMINATE:
+          toSearch.push(item);
+          break;
+        case TriState.TRUE:
+          // Break out of the loop; TRUE paths are guaranteed to have the class.
+          toSearch.push(item);
+          break searchLoop;
+      }
+    }
+
+    util.asyncFind<IClasspathItem>(toSearch, (pItem: IClasspathItem, callback: (success: boolean) => void): void => {
       pItem.loadClass(clsFilePath, (err: Error, data?: Buffer) => {
         if (err) {
           callback(false);
