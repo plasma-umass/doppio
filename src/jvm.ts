@@ -137,7 +137,7 @@ class JVM {
      */
     bootupTasks.push((next: (err?: any) => void): void => {
       this.bsCl =
-        new ClassLoader.BootstrapClassLoader(bootstrapClasspath, next);
+        new ClassLoader.BootstrapClassLoader(this.systemProperties['java.home'], bootstrapClasspath, next);
     });
 
     /**

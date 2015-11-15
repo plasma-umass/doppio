@@ -6,7 +6,7 @@ import ReferenceClassData = DoppioJVM.VM.ClassFile.ReferenceClassData;
 import logging = DoppioJVM.Debug.Logging;
 import util = DoppioJVM.VM.Util;
 import Long = DoppioJVM.VM.Long;
-import ClasspathJar = DoppioJVM.VM.ClassFile.ClasspathJar;
+import AbstractClasspathJar = DoppioJVM.VM.ClassFile.AbstractClasspathJar;
 import BrowserFS = require('browserfs');
 import path = require('path');
 import fs = require('fs');
@@ -508,9 +508,9 @@ class java_util_zip_ZipFile {
     let cpath = thread.getBsCl().getClassPathItems();
     for (let i = 0; i < cpath.length; i++) {
       let cpathItem = cpath[i];
-      if (cpathItem instanceof ClasspathJar) {
+      if (cpathItem instanceof AbstractClasspathJar) {
         if (path.resolve(cpathItem.getPath()) === path.resolve(name)) {
-          return Long.fromNumber(OpenZipFile(cpathItem.getFS()));
+          return Long.fromNumber(OpenZipFile((<AbstractClasspathJar> <any> cpathItem).getFS()));
         }
       }
     }

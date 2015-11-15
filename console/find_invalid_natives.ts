@@ -185,7 +185,8 @@ function main() {
   printResult(similarMap);
 }
 
-let bscp = JDKInfo.classpath.map((item: string) => path.resolve(__dirname, '../vendor/java_home', item));
+const JAVA_HOME = path.resolve(__dirname, '../vendor/java_home');
+let bscp = JDKInfo.classpath.map((item: string) => path.resolve(JAVA_HOME, item));
 new JVM({
   bootstrapClasspath: bscp,
   javaHomePath: path.resolve(__dirname, '../vendor/java_home'),
@@ -197,7 +198,7 @@ new JVM({
     throw err;
   }
   jvmObject = _jvmObject;
-  ClasspathFactory(bscp, (items) => {
+  ClasspathFactory(JAVA_HOME, bscp, (items) => {
     classpath = items;
     main();
   })

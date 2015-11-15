@@ -22,6 +22,7 @@ import ConstantPool = require('../src/ConstantPool');
 import methods = require('../src/methods');
 import JVMTypes = require('../includes/JVMTypes');
 import JDKInfo = require('../vendor/java_home/jdk.json');
+import {TriState} from '../src/enums';
 // Makes our stack traces point to the TypeScript source code lines.
 require('source-map-support').install({
   handleUncaughtExceptions: true
@@ -94,8 +95,9 @@ if (argv.standard.help || process.argv.length === 2) {
 if (!argv.standard.classpath) argv.standard.classpath = '.';
 if (!argv.standard.directory) argv.standard.directory = '.';
 
+const JAVA_HOME = path.resolve(__dirname, "../vendor/java_home");
 // Append bootstrap classpath.
-argv.standard.classpath = `${JDKInfo.classpath.map((item) => path.resolve(__dirname, "../vendor/java_home", item)).join(":")}:${argv.standard.classpath}`;
+argv.standard.classpath = `${JDKInfo.classpath.map((item) => path.resolve(JAVA_HOME, item)).join(":")}:${argv.standard.classpath}`;
 
 if (!argv.standard['doppiojvm-path']) {
   argv.standard['doppiojvm-path'] = "doppiojvm";
@@ -164,18 +166,20 @@ function getClasses(item: string): string[] {
   return rv;
 }
 
-function doSyncOpOverCP<T>(opName: string, arg1: string, err: string): T {
+function loadClass(type: string): Buffer {
   for (let i = 0; i < classpath.length; i++) {
-    let rv = (<(arg1: string) => T> (<any> classpath[i])[opName])(arg1);
-    if (rv !== null) {
-      return rv;
+    let item = classpath[i];
+    switch(item.hasClass(type)) {
+      case TriState.INDETERMINATE:
+      case TriState.TRUE:
+        let buff = item.tryLoadClassSync(type);
+        if (buff !== null) {
+          return buff;
+        }
+        break;
     }
   }
-  throw new Error(err);
-}
-
-function loadClass(type: string): Buffer {
-  return doSyncOpOverCP<Buffer>('tryLoadClassSync', type, `Unable to find class ${type}`);
+  throw new Error(`Unable to find class ${type}`);
 }
 
 function findClass(descriptor: string): ClassData {
@@ -627,7 +631,7 @@ let targetName: string = argv.className.replace(/\//g, '_').replace(/\./g, '_'),
   targetPath: string = argv.className.replace(/\./g, '/');
 
 // Initialize classpath.
-ClasspathFactory(argv.standard.classpath.split(':'), (items: IClasspathItem[]) => {
+ClasspathFactory(JAVA_HOME, argv.standard.classpath.split(':'), (items: IClasspathItem[]) => {
   classpath = items;
   let template = argv.standard.typescript ? new TSTemplate(argv.standard['doppiojvm-path'], argv.standard.directory) : new JSTemplate();
   let stream = fs.createWriteStream(path.join(argv.standard.directory, targetName + '.' + template.getExtension()));

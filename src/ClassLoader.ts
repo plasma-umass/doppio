@@ -1,4 +1,4 @@
-import ClassData = require('./ClassData');
+import {ClassData, ReferenceClassData, ArrayClassData, PrimitiveClassData} from './ClassData';
 import threading = require('./threading');
 import ClassLock = require('./ClassLock');
 import {IClasspathItem, ClasspathFactory} from './classpath';
@@ -29,7 +29,7 @@ class ClassLocks {
    * the lock. If it is taken, we enqueue the callback.
    * NOTE: For convenience, will handle triggering the owner's callback as well.
    */
-  public tryLock(typeStr: string, thread: threading.JVMThread, cb: (cdata: ClassData.ClassData) => void): boolean {
+  public tryLock(typeStr: string, thread: threading.JVMThread, cb: (cdata: ClassData) => void): boolean {
     if (typeof this.locks[typeStr] === 'undefined') {
       this.locks[typeStr] = new ClassLock();
     }
@@ -39,7 +39,7 @@ class ClassLocks {
   /**
    * Releases the lock on the given string.
    */
-  public unlock(typeStr: string, cdata: ClassData.ClassData): void {
+  public unlock(typeStr: string, cdata: ClassData): void {
     this.locks[typeStr].unlock(cdata);
     // No need for this lock to remain.
     delete this.locks[typeStr];
@@ -65,7 +65,7 @@ export abstract class ClassLoader {
   /**
    * Stores loaded *reference* and *array* classes.
    */
-  private loadedClasses: { [typeStr: string]: ClassData.ClassData } = {};
+  private loadedClasses: { [typeStr: string]: ClassData } = {};
   /**
    * Stores callbacks that are waiting for another thread to finish loading
    * the specified class.
@@ -98,7 +98,7 @@ export abstract class ClassLoader {
    * @param typeStr The type string of the class.
    * @param classData The class data object representing the class.
    */
-  public addClass(typeStr: string, classData: ClassData.ClassData): void {
+  public addClass(typeStr: string, classData: ClassData): void {
     // If the class is already added, ensure it is the same class we are adding again.
     assert(this.loadedClasses[typeStr] != null ? this.loadedClasses[typeStr] === classData : true);
     this.loadedClasses[typeStr] = classData;
@@ -110,7 +110,7 @@ export abstract class ClassLoader {
    *
    * Should only be used internally by ClassLoader subclasses.
    */
-  protected getClass(typeStr: string): ClassData.ClassData {
+  protected getClass(typeStr: string): ClassData {
     return this.loadedClasses[typeStr];
   }
 
@@ -123,9 +123,9 @@ export abstract class ClassLoader {
    * @param data The data associated with the class as a binary blob.
    * @return The defined class, or null if there was an issue.
    */
-  public defineClass<T extends JVMTypes.java_lang_Object>(thread: threading.JVMThread, typeStr: string, data: Buffer): ClassData.ReferenceClassData<T> {
+  public defineClass<T extends JVMTypes.java_lang_Object>(thread: threading.JVMThread, typeStr: string, data: Buffer): ReferenceClassData<T> {
     try {
-      var classData = new ClassData.ReferenceClassData<T>(data, this);
+      var classData = new ReferenceClassData<T>(data, this);
       this.addClass(typeStr, classData);
       if (this instanceof BootstrapClassLoader) {
         debug(`[BOOTSTRAP] Defining class ${typeStr}`);
@@ -149,9 +149,9 @@ export abstract class ClassLoader {
   /**
    * Defines a new array class with this loader.
    */
-  protected defineArrayClass<T>(typeStr: string): ClassData.ArrayClassData<T> {
+  protected defineArrayClass<T>(typeStr: string): ArrayClassData<T> {
     assert(this.getLoadedClass(util.get_component_type(typeStr)) != null);
-    var arrayClass = new ClassData.ArrayClassData<T>(util.get_component_type(typeStr), this);
+    var arrayClass = new ArrayClassData<T>(util.get_component_type(typeStr), this);
     this.addClass(typeStr, arrayClass);
     return arrayClass;
   }
@@ -162,7 +162,7 @@ export abstract class ClassLoader {
    * @return Returns the loaded class, or null if no such class is currently
    *   loaded.
    */
-  public getLoadedClass(typeStr: string): ClassData.ClassData {
+  public getLoadedClass(typeStr: string): ClassData {
     var cls = this.loadedClasses[typeStr];
     if (cls != null) {
       return cls;
@@ -199,7 +199,7 @@ export abstract class ClassLoader {
    * @return Returns the class if it is both loaded and resolved. Returns null
    *   if this is not the case.
    */
-  public getResolvedClass(typeStr: string): ClassData.ClassData {
+  public getResolvedClass(typeStr: string): ClassData {
     var cls = this.getLoadedClass(typeStr);
     if (cls !== null) {
       if (cls.isResolved() || cls.tryToResolve()) {
@@ -218,7 +218,7 @@ export abstract class ClassLoader {
    * @return Returns the class if it is initialized. Returns null if this is
    *   not the case.
    */
-  public getInitializedClass(thread: threading.JVMThread, typeStr: string): ClassData.ClassData {
+  public getInitializedClass(thread: threading.JVMThread, typeStr: string): ClassData {
     var cls = this.getLoadedClass(typeStr);
     if (cls !== null) {
       if (cls.isInitialized(thread) || cls.tryToInitialize()) {
@@ -234,7 +234,7 @@ export abstract class ClassLoader {
   /**
    * Asynchronously loads the given class.
    */
-  public loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
+  public loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
     // See if we can grab this synchronously first.
     var cdata = this.getLoadedClass(typeStr);
     if (cdata) {
@@ -268,14 +268,14 @@ export abstract class ClassLoader {
    *
    * Should never be invoked directly! Use loadClass.
    */
-  protected abstract _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit?: boolean): void;
+  protected abstract _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData) => void, explicit?: boolean): void;
 
   /**
    * Convenience function: Resolve many classes. Calls cb with null should
    * an error occur.
    */
-  public resolveClasses(thread: threading.JVMThread, typeStrs: string[], cb: (classes: { [typeStr: string]: ClassData.ClassData }) => void) {
-    var classes: { [typeStr: string]: ClassData.ClassData } = {};
+  public resolveClasses(thread: threading.JVMThread, typeStrs: string[], cb: (classes: { [typeStr: string]: ClassData }) => void) {
+    var classes: { [typeStr: string]: ClassData } = {};
     util.asyncForEach<string>(typeStrs, (typeStr: string, next_item: (err?: any) => void) => {
       this.resolveClass(thread, typeStr, (cdata) => {
         if (cdata === null) {
@@ -298,8 +298,8 @@ export abstract class ClassLoader {
    * Asynchronously *resolves* the given class by loading the class and
    * resolving its super class, interfaces, and/or component classes.
    */
-  public resolveClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
-    this.loadClass(thread, typeStr, (cdata: ClassData.ClassData) => {
+  public resolveClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
+    this.loadClass(thread, typeStr, (cdata: ClassData) => {
       if (cdata === null || cdata.isResolved()) {
         // Nothing to do! Either cdata is null, an exception triggered, and we
         // failed, or cdata is already resolved.
@@ -313,9 +313,9 @@ export abstract class ClassLoader {
   /**
    * Asynchronously *initializes* the given class and its super classes.
    */
-  public initializeClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
+  public initializeClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
     // Get the resolved class.
-    this.resolveClass(thread, typeStr, (cdata: ClassData.ClassData) => {
+    this.resolveClass(thread, typeStr, (cdata: ClassData) => {
       if (cdata === null || cdata.isInitialized(thread)) {
         // Nothing to do! Either resolution failed and an exception has already
         // been thrown, cdata is already initialized, or the current thread is
@@ -325,7 +325,7 @@ export abstract class ClassLoader {
         });
       } else {
         assert(util.is_reference_type(typeStr));
-        (<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> cdata).initialize(thread, cb, explicit);
+        (<ReferenceClassData<JVMTypes.java_lang_Object>> cdata).initialize(thread, cb, explicit);
       }
     }, explicit);
   }
@@ -373,11 +373,12 @@ export class BootstrapClassLoader extends ClassLoader {
    * @param cb Called once all of the classpath items have been checked.
    *   Passes an error if one occurs.
    */
-  constructor(classpath: string[], cb: (e?: any) => void) {
+  constructor(javaHome: string, classpath: string[], cb: (e?: any) => void) {
     super(this);
     this.classpath = null;
     this.loadedPackages = {};
-    ClasspathFactory(classpath, (items) => {
+
+    ClasspathFactory(javaHome, classpath, (items) => {
       this.classpath = items.reverse();
       cb();
     });
@@ -412,10 +413,10 @@ export class BootstrapClassLoader extends ClassLoader {
   /**
    * Retrieves or defines the specified primitive class.
    */
-  public getPrimitiveClass(typeStr: string): ClassData.PrimitiveClassData {
-    var cdata = <ClassData.PrimitiveClassData> this.getClass(typeStr);
+  public getPrimitiveClass(typeStr: string): PrimitiveClassData {
+    var cdata = <PrimitiveClassData> this.getClass(typeStr);
     if (cdata == null) {
-      cdata = new ClassData.PrimitiveClassData(typeStr, this);
+      cdata = new PrimitiveClassData(typeStr, this);
       this.addClass(typeStr, cdata);
     }
     return cdata;
@@ -426,7 +427,7 @@ export class BootstrapClassLoader extends ClassLoader {
    *
    * SHOULD ONLY BE INVOKED INTERNALLY BY THE CLASSLOADER.
    */
-  protected _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
+  protected _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
     debug(`[BOOTSTRAP] Loading class ${typeStr}`);
     // This method is only valid for reference types!
     assert(util.is_reference_type(typeStr));
@@ -537,7 +538,7 @@ export class CustomClassLoader extends ClassLoader {
    * @param explicit 'True' if loadClass was explicitly invoked by the program,
    *   false otherwise. This changes the exception/error that we throw.
    */
-  protected _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
+  protected _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
     debug(`[CUSTOM] Loading class ${typeStr}`);
     // This method is only valid for reference types!
     assert(util.is_reference_type(typeStr));
