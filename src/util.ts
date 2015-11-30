@@ -49,7 +49,7 @@ export function jvmName2JSName(jvmName: string): string {
     case 'L':
       return jvmName.slice(1, jvmName.length - 1).replace(/_/g, '__')
         // Remove / replace characters that are invalid for JS symbols.
-        .replace(/[\/.;$<>\[\]:\\=^]/g, '_');
+        .replace(/[\/.;$<>\[\]:\\=^-]/g, '_');
     case '[':
       return `ARR_${jvmName2JSName(jvmName.slice(1))}`;
     default:

@@ -1113,6 +1113,10 @@ class java_lang_Thread {
     javaThis['run()V'](javaThis.$thread);
   }
 
+  public static 'setNativeName(Ljava/lang/String;)V'(thread: JVMThread, javaThis: JVMTypes.java_lang_Thread, name: JVMTypes.java_lang_String): void {
+    // NOP. No need to do anything.
+  }
+
   public static 'isInterrupted(Z)Z'(thread: JVMThread, javaThis: JVMTypes.java_lang_Thread, clearFlag: number): boolean {
     var isInterrupted = javaThis.$thread.isInterrupted();
     if (clearFlag) {

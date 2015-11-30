@@ -225,6 +225,27 @@ function convertError(thread: JVMThread, err: NodeJS.ErrnoException, cb: (err: J
   });
 }
 
+function convertStats(stats: fs.Stats, jvmStats: JVMTypes.sun_nio_fs_UnixFileAttributes): void {
+  jvmStats['sun/nio/fs/UnixFileAttributes/st_mode'] = stats.mode;
+  jvmStats['sun/nio/fs/UnixFileAttributes/st_ino'] = Long.fromNumber(stats.ino);
+  jvmStats['sun/nio/fs/UnixFileAttributes/st_dev'] = Long.fromNumber(stats.dev);
+  jvmStats['sun/nio/fs/UnixFileAttributes/st_rdev'] = Long.fromNumber(stats.rdev);
+  jvmStats['sun/nio/fs/UnixFileAttributes/st_nlink'] = stats.nlink;
+  jvmStats['sun/nio/fs/UnixFileAttributes/st_uid'] = stats.uid;
+  jvmStats['sun/nio/fs/UnixFileAttributes/st_gid'] = stats.gid;
+  jvmStats['sun/nio/fs/UnixFileAttributes/st_size'] = Long.fromNumber(stats.size);
+  let atime = date2components(stats.atime),
+    mtime = date2components(stats.mtime),
+    ctime = date2components(stats.ctime);
+  jvmStats['sun/nio/fs/UnixFileAttributes/st_atime_sec'] = Long.fromNumber(atime[0]);
+  jvmStats['sun/nio/fs/UnixFileAttributes/st_atime_nsec'] = Long.fromNumber(atime[1]);
+  jvmStats['sun/nio/fs/UnixFileAttributes/st_mtime_sec'] = Long.fromNumber(mtime[0]);
+  jvmStats['sun/nio/fs/UnixFileAttributes/st_mtime_nsec'] = Long.fromNumber(mtime[1]);
+  jvmStats['sun/nio/fs/UnixFileAttributes/st_ctime_sec'] = Long.fromNumber(ctime[0]);
+  jvmStats['sun/nio/fs/UnixFileAttributes/st_ctime_nsec'] = Long.fromNumber(ctime[1]);
+  jvmStats['sun/nio/fs/UnixFileAttributes/st_birthtime_sec'] = Long.fromNumber(Math.floor(stats.birthtime.getTime() / 1000));
+}
+
 let UnixConstants: typeof JVMTypes.sun_nio_fs_UnixConstants = null;
 function flagTest(flag: number, mask: number): boolean {
   return (flag & mask) === mask;
@@ -375,8 +396,15 @@ class sun_nio_fs_UnixNativeDispatcher {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'unlink0(J)V'(thread: JVMThread, arg0: Long): void {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+  public static 'unlink0(J)V'(thread: JVMThread, pathAddress: Long): void {
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
+    fs.unlink(getStringFromHeap(thread, pathAddress), (err) => {
+      if (err) {
+        throwNodeError(thread, err);
+      } else {
+        thread.asyncReturn();
+      }
+    });
   }
 
   public static 'unlinkat0(IJI)V'(thread: JVMThread, arg0: number, arg1: Long, arg2: number): void {
@@ -387,25 +415,52 @@ class sun_nio_fs_UnixNativeDispatcher {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'rename0(JJ)V'(thread: JVMThread, arg0: Long, arg1: Long): void {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+  public static 'rename0(JJ)V'(thread: JVMThread, oldAddr: Long, newAddr: Long): void {
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
+    fs.rename(getStringFromHeap(thread, oldAddr), getStringFromHeap(thread, newAddr), (err) => {
+      if (err) {
+        throwNodeError(thread, err);
+      } else {
+        thread.asyncReturn();
+      }
+    });
   }
 
   public static 'renameat0(IJIJ)V'(thread: JVMThread, arg0: number, arg1: Long, arg2: number, arg3: Long): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'mkdir0(JI)V'(thread: JVMThread, arg0: Long, arg1: number): void {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+  public static 'mkdir0(JI)V'(thread: JVMThread, pathAddr: Long, mode: number): void {
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
+    fs.mkdir(getStringFromHeap(thread, pathAddr), mode, (err) => {
+      if (err) {
+        throwNodeError(thread, err);
+      } else {
+        thread.asyncReturn();
+      }
+    });
   }
 
-  public static 'rmdir0(J)V'(thread: JVMThread, arg0: Long): void {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+  public static 'rmdir0(J)V'(thread: JVMThread, pathAddr: Long): void {
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
+    fs.rmdir(getStringFromHeap(thread, pathAddr), (err) => {
+      if (err) {
+        throwNodeError(thread, err);
+      } else {
+        thread.asyncReturn();
+      }
+    });
   }
 
-  public static 'readlink0(J)[B'(thread: JVMThread, arg0: Long): JVMTypes.JVMArray<number> {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    return null;
+  public static 'readlink0(J)[B'(thread: JVMThread, pathAddr: Long): void {
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
+    fs.readlink(getStringFromHeap(thread, pathAddr), (err, linkPath) => {
+      if (err) {
+        throwNodeError(thread, err);
+      } else {
+        thread.asyncReturn(util.initCarr(thread.getBsCl(), linkPath));
+      }
+    });
   }
 
   public static 'realpath0(J)[B'(thread: JVMThread, arg0: Long): JVMTypes.JVMArray<number> {
@@ -417,12 +472,28 @@ class sun_nio_fs_UnixNativeDispatcher {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'stat0(JLsun/nio/fs/UnixFileAttributes;)V'(thread: JVMThread, arg0: Long, arg1: JVMTypes.sun_nio_fs_UnixFileAttributes): void {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+  public static 'stat0(JLsun/nio/fs/UnixFileAttributes;)V'(thread: JVMThread, pathAddress: Long, jvmStats: JVMTypes.sun_nio_fs_UnixFileAttributes): void {
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
+    fs.stat(getStringFromHeap(thread, pathAddress), (err, stats) => {
+      if (err) {
+        throwNodeError(thread, err);
+      } else {
+        convertStats(stats, jvmStats);
+        thread.asyncReturn();
+      }
+    });
   }
 
-  public static 'lstat0(JLsun/nio/fs/UnixFileAttributes;)V'(thread: JVMThread, arg0: Long, arg1: JVMTypes.sun_nio_fs_UnixFileAttributes): void {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+  public static 'lstat0(JLsun/nio/fs/UnixFileAttributes;)V'(thread: JVMThread, pathAddress: Long, jvmStats: JVMTypes.sun_nio_fs_UnixFileAttributes): void {
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
+    fs.lstat(getStringFromHeap(thread, pathAddress), (err, stats) => {
+      if (err) {
+        throwNodeError(thread, err);
+      } else {
+        convertStats(stats, jvmStats);
+        thread.asyncReturn();
+      }
+    });
   }
 
   public static 'fstat(ILsun/nio/fs/UnixFileAttributes;)V'(thread: JVMThread, fd: number, jvmStats: JVMTypes.sun_nio_fs_UnixFileAttributes): void {
@@ -431,24 +502,7 @@ class sun_nio_fs_UnixNativeDispatcher {
       if (err) {
         throwNodeError(thread, err);
       } else {
-        jvmStats['sun/nio/fs/UnixFileAttributes/st_mode'] = stats.mode;
-        jvmStats['sun/nio/fs/UnixFileAttributes/st_ino'] = Long.fromNumber(stats.ino);
-        jvmStats['sun/nio/fs/UnixFileAttributes/st_dev'] = Long.fromNumber(stats.dev);
-        jvmStats['sun/nio/fs/UnixFileAttributes/st_rdev'] = Long.fromNumber(stats.rdev);
-        jvmStats['sun/nio/fs/UnixFileAttributes/st_nlink'] = stats.nlink;
-        jvmStats['sun/nio/fs/UnixFileAttributes/st_uid'] = stats.uid;
-        jvmStats['sun/nio/fs/UnixFileAttributes/st_gid'] = stats.gid;
-        jvmStats['sun/nio/fs/UnixFileAttributes/st_size'] = Long.fromNumber(stats.size);
-        let atime = date2components(stats.atime),
-         mtime = date2components(stats.mtime),
-         ctime = date2components(stats.ctime);
-        jvmStats['sun/nio/fs/UnixFileAttributes/st_atime_sec'] = Long.fromNumber(atime[0]);
-        jvmStats['sun/nio/fs/UnixFileAttributes/st_atime_nsec'] = Long.fromNumber(atime[1]);
-        jvmStats['sun/nio/fs/UnixFileAttributes/st_mtime_sec'] = Long.fromNumber(mtime[0]);
-        jvmStats['sun/nio/fs/UnixFileAttributes/st_mtime_nsec'] = Long.fromNumber(mtime[1]);
-        jvmStats['sun/nio/fs/UnixFileAttributes/st_ctime_sec'] = Long.fromNumber(ctime[0]);
-        jvmStats['sun/nio/fs/UnixFileAttributes/st_ctime_nsec'] = Long.fromNumber(ctime[1]);
-        jvmStats['sun/nio/fs/UnixFileAttributes/st_birthtime_sec'] = Long.fromNumber(Math.floor(stats.birthtime.getTime() / 1000))
+        convertStats(stats, jvmStats);
         thread.asyncReturn();
       }
     });
@@ -544,13 +598,13 @@ class sun_nio_fs_UnixNativeDispatcher {
   }
 
   public static 'getpwuid(I)[B'(thread: JVMThread, arg0: number): JVMTypes.JVMArray<number> {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    return null;
+    // Make something up.
+    return util.initCarr(thread.getBsCl(), 'doppio');
   }
 
   public static 'getgrgid(I)[B'(thread: JVMThread, arg0: number): JVMTypes.JVMArray<number> {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    return null;
+    // Make something up.
+    return util.initCarr(thread.getBsCl(), 'doppio');
   }
 
   public static 'getpwnam0(J)I'(thread: JVMThread, arg0: Long): number {
