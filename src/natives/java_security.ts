@@ -11,22 +11,32 @@ function doPrivileged(thread: JVMThread, action: JVMTypes.java_security_Privileg
   thread.setStatus(ThreadStatus.ASYNC_WAITING);
   action['run()Ljava/lang/Object;'](thread, (e?: JVMTypes.java_lang_Throwable, rv?: JVMTypes.java_lang_Object): void => {
     if (e) {
-      // Wrap exception in a PrivilegedActionException, and throw it.
-      thread.setStatus(ThreadStatus.ASYNC_WAITING);
-      thread.getBsCl().initializeClass(thread, 'Ljava/security/PrivilegedActionException;', (cdata: ReferenceClassData<JVMTypes.java_security_PrivilegedActionException>) => {
-        if (cdata != null) {
-          var eobj = new (cdata.getConstructor(thread))(thread);
-          thread.setStatus(ThreadStatus.ASYNC_WAITING);
-          eobj['<init>(Ljava/lang/Exception;)V'](thread, [<JVMTypes.java_lang_Exception> e], (e?: JVMTypes.java_lang_Throwable) => {
-            if (e) {
-              // Failed to construct a PrivilegedActionException? Dang.
-              thread.throwException(e);
-            } else {
-              thread.throwException(eobj);
-            }
-          });
-        }
-      }, false);
+      // If e is an UNCHECKED exception, re-throw it.
+      // https://docs.oracle.com/javase/tutorial/essential/exceptions/runtime.html
+      let eCls = e.getClass();
+      let bsCl = thread.getBsCl();
+      let errCls = bsCl.getInitializedClass(thread, 'Ljava/lang/Error;');
+      let reCls = bsCl.getInitializedClass(thread, 'Ljava/lang/RuntimeException;');
+      if ((errCls !== null && eCls.isCastable(errCls)) || (reCls !== null && eCls.isCastable(reCls))) {
+        thread.throwException(e);
+      } else {
+        // It is a checked exception. Wrap exception in a PrivilegedActionException, and throw it.
+        thread.setStatus(ThreadStatus.ASYNC_WAITING);
+        bsCl.initializeClass(thread, 'Ljava/security/PrivilegedActionException;', (cdata: ReferenceClassData<JVMTypes.java_security_PrivilegedActionException>) => {
+          if (cdata != null) {
+            var eobj = new (cdata.getConstructor(thread))(thread);
+            thread.setStatus(ThreadStatus.ASYNC_WAITING);
+            eobj['<init>(Ljava/lang/Exception;)V'](thread, [<JVMTypes.java_lang_Exception> e], (e?: JVMTypes.java_lang_Throwable) => {
+              if (e) {
+                // Failed to construct a PrivilegedActionException? Dang.
+                thread.throwException(e);
+              } else {
+                thread.throwException(eobj);
+              }
+            });
+          }
+        }, false);
+      }
     } else {
       // Forward return value.
       thread.asyncReturn(rv);
