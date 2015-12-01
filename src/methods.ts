@@ -23,7 +23,22 @@ var trapped_methods: { [clsName: string]: { [methodName: string]: Function } } =
   },
   'java/lang/System': {
     'loadLibrary(Ljava/lang/String;)V': function (thread: threading.JVMThread, libName: JVMTypes.java_lang_String): void {
-      // NOP for now. We eagerly load everything.
+      // Some libraries test if native libraries are available,
+      // and expect an exception if they are not.
+      // List all of the native libraries we support.
+      var lib = libName.toString();
+      switch (lib) {
+        case 'zip':
+        case 'net':
+        case 'nio':
+        case 'awt':
+        case 'fontmanager':
+        case 'management':
+          return;
+        default:
+          thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', `no ${lib} in java.library.path`);
+          break;
+      }
     }
   },
   'java/lang/Terminator': {

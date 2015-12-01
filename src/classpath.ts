@@ -82,29 +82,33 @@ export abstract class AbstractClasspathJar {
 
   public getPath(): string { return this._path; }
 
-  protected _loadJar(cb: (e?: Error) => void): void {
-    fs.readFile(this._path, (e, data) => {
-      if (e) {
-        this._jarRead = TriState.FALSE;
-        cb(e);
-      } else {
-        try {
-          this._fs.initialize(new ZipFS(data, path.basename(this._path)));
-          this._jarRead = TriState.TRUE;
-          cb();
-        } catch (e) {
+  public loadJar(cb: (e?: Error) => void): void {
+    if (this._jarRead !== TriState.TRUE) {
+      fs.readFile(this._path, (e, data) => {
+        if (e) {
           this._jarRead = TriState.FALSE;
           cb(e);
+        } else {
+          try {
+            this._fs.initialize(new ZipFS(data, path.basename(this._path)));
+            this._jarRead = TriState.TRUE;
+            cb();
+          } catch (e) {
+            this._jarRead = TriState.FALSE;
+            cb(e);
+          }
         }
-      }
-    });
+      });
+    } else {
+      setImmediate(() => cb(this._jarRead === TriState.TRUE ? null : new Error("Failed to load JAR file.")));
+    }
   }
 
   public abstract hasClass(type: string): TriState;
 
   public tryLoadClassSync(type: string): Buffer {
     if (this._jarRead === TriState.TRUE) {
-      if (this.hasClass(type) === TriState.TRUE) {
+      if (this.hasClass(type) !== TriState.FALSE) {
         try {
           // NOTE: Path must be absolute, otherwise BrowserFS
           // will try to use process.cwd().
@@ -133,7 +137,7 @@ export abstract class AbstractClasspathJar {
         setImmediate(() => failCb(new Error("Unable to load JAR file.")));
         break;
       default:
-        this._loadJar(() => {
+        this.loadJar(() => {
           this._wrapOp(op, failCb);
         });
         break;
@@ -232,7 +236,7 @@ export class UnindexedClasspathJar extends AbstractClasspathJar implements IClas
   }
 
   public initialize(cb: (e?: Error) => void): void {
-    this._loadJar((err) => {
+    this.loadJar((err) => {
       if (err) {
         cb();
       } else {

@@ -50,7 +50,7 @@
     "locate-java-home": "^0.1.4",
     "semver": "~5.0",
     "tsify": "^0.12.2",
-    "typescript": "^1.6.2",
+    "typescript": "^1.7.3",
     "uglify-js": "^2.5.0",
     "undebugify": "^0.1.0",
     "underscore": "^1.8.3"

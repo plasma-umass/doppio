@@ -16,13 +16,14 @@ import optparse = require('../src/option_parser');
 import path = require('path');
 import fs = require('fs');
 import util = require('../src/util');
-import {IClasspathItem, ClasspathFactory} from '../src/classpath';
+import {IClasspathItem, ClasspathFactory, IndexedClasspathJar, UnindexedClasspathJar} from '../src/classpath';
 import {ReferenceClassData, ClassData, ArrayClassData, PrimitiveClassData} from '../src/ClassData';
 import ConstantPool = require('../src/ConstantPool');
 import methods = require('../src/methods');
 import JVMTypes = require('../includes/JVMTypes');
 import JDKInfo = require('../vendor/java_home/jdk.json');
 import {TriState} from '../src/enums';
+import async = require('async');
 // Makes our stack traces point to the TypeScript source code lines.
 require('source-map-support').install({
   handleUncaughtExceptions: true
@@ -172,6 +173,7 @@ function loadClass(type: string): Buffer {
     switch(item.hasClass(type)) {
       case TriState.INDETERMINATE:
       case TriState.TRUE:
+        console.log("FOund an item that may work: " + item.getPath());
         let buff = item.tryLoadClassSync(type);
         if (buff !== null) {
           return buff;
@@ -632,18 +634,31 @@ let targetName: string = argv.className.replace(/\//g, '_').replace(/\./g, '_'),
 
 // Initialize classpath.
 ClasspathFactory(JAVA_HOME, argv.standard.classpath.split(':'), (items: IClasspathItem[]) => {
-  classpath = items;
-  let template = argv.standard.typescript ? new TSTemplate(argv.standard['doppiojvm-path'], argv.standard.directory) : new JSTemplate();
-  let stream = fs.createWriteStream(path.join(argv.standard.directory, targetName + '.' + template.getExtension()));
-  template.fileStart(stream);
-  let classes = getClasses(targetPath);
-  for (let i = 0; i < classes.length; i++) {
-    let desc = classes[i];
-    processClassData(stream, template, <ReferenceClassData<JVMTypes.java_lang_Object>> findClass(desc));
-  }
-  template.fileEnd(stream);
-  if (argv.standard.typescript) {
-    (<TSTemplate> template).headersEnd();
-  }
-  stream.end(new Buffer(''), () => {});
+  // Normally, JARs are loaded asynchronously. Force them to be loaded, which allows us
+  // to load classes synchronously.
+  async.each(items, (item: IClasspathItem, cb: (e?: Error) => void) => {
+    if (item instanceof UnindexedClasspathJar || item instanceof IndexedClasspathJar) {
+      item.loadJar(cb);
+    } else {
+      cb();
+    }
+  }, (e?: Error) => {
+    if (e) {
+      throw e;
+    }
+    classpath = items;
+    let template = argv.standard.typescript ? new TSTemplate(argv.standard['doppiojvm-path'], argv.standard.directory) : new JSTemplate();
+    let stream = fs.createWriteStream(path.join(argv.standard.directory, targetName + '.' + template.getExtension()));
+    template.fileStart(stream);
+    let classes = getClasses(targetPath);
+    for (let i = 0; i < classes.length; i++) {
+      let desc = classes[i];
+      processClassData(stream, template, <ReferenceClassData<JVMTypes.java_lang_Object>> findClass(desc));
+    }
+    template.fileEnd(stream);
+    if (argv.standard.typescript) {
+      (<TSTemplate> template).headersEnd();
+    }
+    stream.end(new Buffer(''), () => {});
+  });
 });
