@@ -173,7 +173,6 @@ function loadClass(type: string): Buffer {
     switch(item.hasClass(type)) {
       case TriState.INDETERMINATE:
       case TriState.TRUE:
-        console.log("FOund an item that may work: " + item.getPath());
         let buff = item.tryLoadClassSync(type);
         if (buff !== null) {
           return buff;
