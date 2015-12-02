@@ -314,6 +314,14 @@ export abstract class ClassData {
   }
 
   /**
+   * Get the protection domain of this class.
+   * This value is NULL for all but reference classes loaded by app classloaders.
+   */
+  public getProtectionDomain(): JVMTypes.java_security_ProtectionDomain {
+    return null;
+  }
+
+  /**
    * Retrieves the method defined in this particular class by the given method
    * signature *without* invoking method lookup.
    * @param methodSignature The method's full signature, e.g. <clinit>()V
@@ -796,9 +804,15 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    * invokespecial bytecode).
    */
   protected _uninheritedDefaultMethods: methods.Method[] = [];
+  /**
+   * The ProtectionDomain for this class, specified by the application class
+   * loader. NULL for bootstrap classloaded items.
+   */
+  protected _protectionDomain: JVMTypes.java_security_ProtectionDomain;
 
-  constructor(buffer: Buffer, loader?: ClassLoader.ClassLoader, cpPatches?: JVMTypes.JVMArray<JVMTypes.java_lang_Object>) {
+  constructor(buffer: Buffer, protectionDomain?: JVMTypes.java_security_ProtectionDomain, loader?: ClassLoader.ClassLoader, cpPatches?: JVMTypes.JVMArray<JVMTypes.java_lang_Object>) {
     super(loader);
+    this._protectionDomain = protectionDomain ? protectionDomain : null;
     var byteStream = new ByteStream(buffer),
       i: number = 0;
     if ((byteStream.getUint32()) !== 0xCAFEBABE) {
@@ -986,6 +1000,10 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    */
   public getUninheritedDefaultMethods(): methods.Method[] {
     return this._uninheritedDefaultMethods;
+  }
+
+  public getProtectionDomain(): JVMTypes.java_security_ProtectionDomain {
+    return this._protectionDomain;
   }
 
   /**

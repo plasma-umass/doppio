@@ -224,7 +224,7 @@ class java_lang_Class {
   }
 
   public static 'getProtectionDomain0()Ljava/security/ProtectionDomain;'(thread: JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.java_security_ProtectionDomain {
-    return null;
+    return javaThis.$cls.getProtectionDomain();
   }
 
   public static 'getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;'(thread: JVMThread, jvmStr: JVMTypes.java_lang_String): JVMTypes.java_lang_Class {
@@ -401,10 +401,10 @@ class java_lang_ClassLoader {
     return null;
   }
 
-  public static 'defineClass1(Ljava/lang/String;[BIILjava/security/ProtectionDomain;Ljava/lang/String;)Ljava/lang/Class;'(thread: JVMThread, javaThis: JVMTypes.java_lang_ClassLoader, name: JVMTypes.java_lang_String, bytes: JVMTypes.JVMArray<number>, offset: number, len: number, pd: Long, source: JVMTypes.java_lang_String): JVMTypes.java_lang_Class {
+  public static 'defineClass1(Ljava/lang/String;[BIILjava/security/ProtectionDomain;Ljava/lang/String;)Ljava/lang/Class;'(thread: JVMThread, javaThis: JVMTypes.java_lang_ClassLoader, name: JVMTypes.java_lang_String, bytes: JVMTypes.JVMArray<number>, offset: number, len: number, pd: JVMTypes.java_security_ProtectionDomain, source: JVMTypes.java_lang_String): JVMTypes.java_lang_Class {
     var loader = util.getLoader(thread, javaThis),
       type = util.int_classname(name.toString()),
-      cls = loader.defineClass(thread, type, util.byteArray2Buffer(bytes.array, offset, len));
+      cls = loader.defineClass(thread, type, util.byteArray2Buffer(bytes.array, offset, len), pd);
     if (cls == null) {
       return null;
     }
@@ -418,7 +418,7 @@ class java_lang_ClassLoader {
     }, true);
   }
 
-  public static 'defineClass2(Ljava/lang/String;Ljava/nio/ByteBuffer;IILjava/security/ProtectionDomain;Ljava/lang/String;)Ljava/lang/Class;'(thread: JVMThread, javaThis: JVMTypes.java_lang_ClassLoader, arg0: JVMTypes.java_lang_String, arg1: JVMTypes.java_nio_ByteBuffer, arg2: number, arg3: number, arg4: JVMTypes.java_security_ProtectionDomain, arg5: JVMTypes.java_lang_String): JVMTypes.java_lang_Class {
+  public static 'defineClass2(Ljava/lang/String;Ljava/nio/ByteBuffer;IILjava/security/ProtectionDomain;Ljava/lang/String;)Ljava/lang/Class;'(thread: JVMThread, javaThis: JVMTypes.java_lang_ClassLoader, name: JVMTypes.java_lang_String, b: JVMTypes.java_nio_ByteBuffer, off: number, len: number, pd: JVMTypes.java_security_ProtectionDomain, source: JVMTypes.java_lang_String): JVMTypes.java_lang_Class {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
@@ -475,28 +475,25 @@ class java_lang_ClassLoader {
 class java_lang_Compiler {
 
   public static 'initialize()V'(thread: JVMThread): void {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+    // NOP.
   }
 
   public static 'registerNatives()V'(thread: JVMThread): void {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+    // NOP.
   }
 
   public static 'compileClass(Ljava/lang/Class;)Z'(thread: JVMThread, arg0: JVMTypes.java_lang_Class): number {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    // Satisfy TypeScript return type.
+    // Return false: No compiler available.
     return 0;
   }
 
   public static 'compileClasses(Ljava/lang/String;)Z'(thread: JVMThread, arg0: JVMTypes.java_lang_String): number {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    // Satisfy TypeScript return type.
+    // Return false: No compiler available.
     return 0;
   }
 
   public static 'command(Ljava/lang/Object;)Ljava/lang/Object;'(thread: JVMThread, arg0: JVMTypes.java_lang_Object): JVMTypes.java_lang_Object {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    // Satisfy TypeScript return type.
+    // Return null; no compiler available.
     return null;
   }
 
@@ -739,7 +736,7 @@ class java_lang_reflect_Proxy {
 
   public static 'defineClass0(Ljava/lang/ClassLoader;Ljava/lang/String;[BII)Ljava/lang/Class;'(thread: JVMThread, cl: JVMTypes.java_lang_ClassLoader, name: JVMTypes.java_lang_String, bytes: JVMTypes.JVMArray<number>, offset: number, len: number): JVMTypes.java_lang_Class {
     var loader = util.getLoader(thread, cl),
-      cls = loader.defineClass(thread, util.int_classname(name.toString()), util.byteArray2Buffer(bytes.array, offset, len));
+      cls = loader.defineClass(thread, util.int_classname(name.toString()), util.byteArray2Buffer(bytes.array, offset, len), null);
     if (cls != null) {
       return cls.getClassObject(thread);
     }

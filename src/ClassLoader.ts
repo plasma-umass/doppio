@@ -121,11 +121,12 @@ export abstract class ClassLoader {
    *   the class file.
    * @param typeStr The type string of the class (e.g. "Ljava/lang/Object;")
    * @param data The data associated with the class as a binary blob.
+   * @param protectionDomain The protection domain for the class (can be NULL).
    * @return The defined class, or null if there was an issue.
    */
-  public defineClass<T extends JVMTypes.java_lang_Object>(thread: threading.JVMThread, typeStr: string, data: Buffer): ReferenceClassData<T> {
+  public defineClass<T extends JVMTypes.java_lang_Object>(thread: threading.JVMThread, typeStr: string, data: Buffer, protectionDomain: JVMTypes.java_security_ProtectionDomain): ReferenceClassData<T> {
     try {
-      var classData = new ReferenceClassData<T>(data, this);
+      var classData = new ReferenceClassData<T>(data, protectionDomain, this);
       this.addClass(typeStr, classData);
       if (this instanceof BootstrapClassLoader) {
         debug(`[BOOTSTRAP] Defining class ${typeStr}`);
@@ -462,7 +463,7 @@ export class BootstrapClassLoader extends ClassLoader {
       });
     }, (pItem?: IClasspathItem) => {
       if (pItem) {
-        let cls = this.defineClass(thread, typeStr, clsData);
+        let cls = this.defineClass(thread, typeStr, clsData, null);
         if (cls !== null) {
           this._registerLoadedClass(clsFilePath, pItem);
         }

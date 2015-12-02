@@ -205,9 +205,39 @@ class java_util_concurrent_atomic_AtomicLong {
 
 class java_util_jar_JarFile {
 
+  /**
+   * Returns an array of strings representing the names of all entries
+   * that begin with "META-INF/" (case ignored). This native method is
+   * used in JarFile as an optimization when looking up manifest and
+   * signature file entries. Returns null if no entries were found.
+   */
   public static 'getMetaInfEntryNames()[Ljava/lang/String;'(thread: JVMThread, javaThis: JVMTypes.java_util_jar_JarFile): JVMTypes.JVMArray<JVMTypes.java_lang_String> {
-    // @todo Hook up to JAR file parser.
-    return null;
+    let zip = GetZipFile(thread, javaThis['java/util/zip/ZipFile/jzfile'].toNumber());
+    if (zip) {
+      if (!zip.existsSync('/META-INF')) {
+        return null;
+      }
+
+      let explorePath: string[] = ['/META-INF'];
+      let bsCl = thread.getBsCl();
+      let foundFiles: JVMTypes.java_lang_String[] = [util.initString(bsCl, 'META-INF/')];
+      while (explorePath.length > 0) {
+        let p = explorePath.pop();
+        let dirListing = zip.readdirSync(p);
+        for (let i = 0; i < dirListing.length; i++) {
+          let newP = `${p}/${dirListing[i]}`;
+          if (zip.statSync(newP, false).isDirectory()) {
+            explorePath.push(newP);
+            // Add a final /, and strip off first /.
+            foundFiles.push(util.initString(bsCl, `${newP.slice(1)}/`));
+          } else {
+            // Strip off first /.
+            foundFiles.push(util.initString(bsCl, newP.slice(1)));
+          }
+        }
+        return util.newArrayFromData<JVMTypes.java_lang_String>(thread, bsCl, "[Ljava/lang/String;", foundFiles);
+      }
+    }
   }
 
 }

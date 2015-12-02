@@ -228,12 +228,16 @@ export function float2int(a: number): number {
 /**
  * Converts a byte array to a buffer.
  */
-export function byteArray2Buffer(bytes: number[], offset: number = 0, len: number = bytes.length): NodeBuffer {
-  var buff = new Buffer(len), i: number;
-  for (i = 0; i < len; i++) {
-    buff.writeInt8(bytes[offset + i], i);
+export function byteArray2Buffer(bytes: number[] | Int8Array, offset: number = 0, len: number = bytes.length): NodeBuffer {
+  if (typeof ArrayBuffer !== 'undefined' && ArrayBuffer.isView(bytes)) {
+    return new Buffer(<any> (<Int8Array> bytes).slice().buffer);
+  } else {
+    var buff = new Buffer(len), i: number;
+    for (i = 0; i < len; i++) {
+      buff.writeInt8(bytes[offset + i], i);
+    }
+    return buff;
   }
-  return buff;
 }
 
 // Call this ONLY on the result of two non-NaN numbers.

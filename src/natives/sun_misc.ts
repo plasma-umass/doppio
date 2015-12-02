@@ -483,7 +483,7 @@ class sun_misc_Unsafe {
 
   public static 'defineClass(Ljava/lang/String;[BIILjava/lang/ClassLoader;Ljava/security/ProtectionDomain;)Ljava/lang/Class;'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, name: JVMTypes.java_lang_String, bytes: JVMTypes.JVMArray<number>, offset: number, len: number, loaderObj: JVMTypes.java_lang_ClassLoader, pd: JVMTypes.java_security_ProtectionDomain): void {
     var loader = util.getLoader(thread, loaderObj),
-      cdata: ClassData = loader.defineClass(thread, util.int_classname(name.toString()), util.byteArray2Buffer(bytes.array, offset, len));
+      cdata: ClassData = loader.defineClass(thread, util.int_classname(name.toString()), util.byteArray2Buffer(bytes.array, offset, len), pd);
     if (cdata !== null) {
       thread.setStatus(ThreadStatus.ASYNC_WAITING);
       // Resolve the class, since we're handing it back to the application
@@ -643,7 +643,7 @@ class sun_misc_Unsafe {
    * @params cpPatches where non-null entries exist, they replace corresponding CP entries in data
    */
   public static 'defineAnonymousClass(Ljava/lang/Class;[B[Ljava/lang/Object;)Ljava/lang/Class;'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, hostClass: JVMTypes.java_lang_Class, data: JVMTypes.JVMArray<number>, cpPatches: JVMTypes.JVMArray<JVMTypes.java_lang_Object>): JVMTypes.java_lang_Class {
-    return new ReferenceClassData(new Buffer(data.array), hostClass.$cls.getLoader(), cpPatches).getClassObject(thread);
+    return new ReferenceClassData(new Buffer(data.array), null, hostClass.$cls.getLoader(), cpPatches).getClassObject(thread);
   }
 
   /**
