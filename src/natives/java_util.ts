@@ -14,76 +14,18 @@ import ThreadStatus = DoppioJVM.VM.Enums.ThreadStatus;
 import ArrayClassData = DoppioJVM.VM.ClassFile.ArrayClassData;
 import PrimitiveClassData = DoppioJVM.VM.ClassFile.PrimitiveClassData;
 import assert = DoppioJVM.Debug.Assert;
-import pako = require('pako');
-let crc32: {
-  (crc: number, buf: number[] | Uint8Array, len: number, pos: number): number;
-} = require('pako/lib/zlib/crc32');
-let adler32: {
-  (adler: number, buf: number[] | Uint8Array, len: number, pos: number): number;
-} = require('pako/lib/zlib/adler32');
-type Inflater = pako.Inflate<Uint8Array>;
+import deflate = require('pako/lib/zlib/deflate');
+import inflate = require('pako/lib/zlib/inflate');
+import crc32 = require('pako/lib/zlib/crc32');
+import adler32 = require('pako/lib/zlib/adler32');
+import ZStreamCons = require('pako/lib/zlib/zstream');
+import GZHeader = require('pako/lib/zlib/gzheader');
+
+import ZStream = Pako.ZStream;
+import ZlibReturnCode = Pako.ZlibReturnCode;
+import ZlibFlushValue = Pako.ZlibFlushValue;
 let BFSUtils = BrowserFS.BFSRequire('bfs_utils');
-
-class InflaterState {
-  public inflater: Inflater;
-  public resultOffset: number = 0;
-  public bytesLeft: number = 0;
-  constructor(inflater: Inflater) {
-    this.inflater = inflater;
-  }
-
-  public reset() {
-    this.inflater = new pako.Inflate<Uint8Array>({raw: this.inflater.options.raw});
-    this.resultOffset = 0;
-    this.bytesLeft = 0;
-  }
-
-  /**
-   * Read bytes from the inflater's existing results.
-   * Returns the number of bytes read.
-   */
-  public readBytes(arr: number[] | Int8Array, off: number, len: number): number {
-    let lenRead = len > this.bytesLeft ? this.bytesLeft : len;
-    if (lenRead === 0) {
-      return 0;
-    }
-    let result = this.inflater.result;
-    let resultOff = this.resultOffset;
-    if (isInt8Array(arr)) {
-      // Get a slice and modify it as a u8 array.
-      let u8arr = new Uint8Array(arr.buffer, arr.byteOffset + off, lenRead);
-      u8arr.set(this.inflater.result.subarray(resultOff, resultOff + lenRead), 0);
-    } else {
-      // Slow path: No typed arrays.
-      for (let i = 0; i < lenRead; i++) {
-        arr[i + off] = result[resultOff + i];
-        if (arr[i + off] > 127) {
-          // Sign extend.
-          arr[i + off] |= 0xFFFFFF80
-        }
-      }
-    }
-    this.bytesLeft -= lenRead;
-    this.resultOffset += lenRead;
-    return lenRead;
-  }
-
-  /**
-   * Feed the given bytes into the inflater.
-   */
-  public writeBytes(arr: number[] | Uint8Array): pako.ZlibReturnCodes {
-    assert(this.bytesLeft === 0, `Pushing bytes when there are bytes remaining.`);
-    this.inflater.push(arr, pako.ZlibFlushValue.Z_SYNC_FLUSH);
-    this.resultOffset = 0;
-    if (this.inflater.result) {
-      this.bytesLeft = this.inflater.result.length;
-    } else {
-      // Error condition, typically.
-      this.bytesLeft = 0;
-    }
-    return this.inflater.err;
-  }
-}
+const MAX_WBITS = 15;
 
 // For type information only.
 import {default as TZipFS, CentralDirectory as TCentralDirectory} from 'browserfs/dist/node/backend/ZipFS';
@@ -91,7 +33,7 @@ declare var registerNatives: (defs: any) => void;
 
 let ZipFiles: {[id: number]: TZipFS} = {};
 let ZipEntries: {[id: number]: TCentralDirectory} = {};
-let Inflaters: {[id: number]: InflaterState} = {};
+let ZStreams: {[id: number]: ZStream} = {};
 // Start at 1, as 0 is interpreted as an error.
 let NextId: number = 1;
 function OpenItem<T>(item: T, map: {[id: number]: T}): number {
@@ -138,14 +80,14 @@ function CloseZipEntry(id: number): void {
 function GetZipEntry(thread: JVMThread, id: number): TCentralDirectory {
   return GetItem(thread, id, ZipEntries, `Invalid ZipEntry.`);
 }
-function OpenInflater(inflaterState: InflaterState): number {
-  return OpenItem(inflaterState, Inflaters);
+function OpenZStream(inflaterState: ZStream): number {
+  return OpenItem(inflaterState, ZStreams);
 }
-function CloseInflater(id: number): void {
-  CloseItem(id, Inflaters);
+function CloseZStream(id: number): void {
+  CloseItem(id, ZStreams);
 }
-function GetInflater(thread: JVMThread, id: number): InflaterState {
-  return GetItem(thread, id, Inflaters, `Inflater not found.`);
+function GetZStream(thread: JVMThread, id: number): ZStream {
+  return GetItem(thread, id, ZStreams, `Inflater not found.`);
 }
 
 let CanUseCopyFastPath = false;
@@ -373,9 +315,22 @@ class java_util_zip_Inflater {
   }
 
   public static 'init(Z)J'(thread: JVMThread, nowrap: number): Long {
-    return Long.fromNumber(OpenInflater(new InflaterState(new pako.Inflate<Uint8Array>({
-      raw: nowrap ? true : false
-    }))));
+    // Copying logic exactly from Java's native.
+    let strm = new ZStreamCons();
+    let ret = inflate.inflateInit2(strm, nowrap ? -MAX_WBITS : MAX_WBITS);
+
+    switch(ret) {
+      case ZlibReturnCode.Z_OK:
+        let num = OpenZStream(strm);
+        return Long.fromNumber(num);
+      default:
+        let msg = (strm.msg !== null) ? strm.msg :
+                  (ret == ZlibReturnCode.Z_STREAM_ERROR) ?
+                  "inflateInit2 returned Z_STREAM_ERROR" :
+                  "unknown error initializing zlib library";
+        thread.throwNewException("Ljava/lang/InternalError;", msg);
+        break;
+    }
   }
 
   /**
@@ -396,61 +351,110 @@ class java_util_zip_Inflater {
    * - finished
    */
   public static 'inflateBytes(J[BII)I'(thread: JVMThread, javaThis: JVMTypes.java_util_zip_Inflater, addr: Long, b: JVMTypes.JVMArray<number>, off: number, len: number): number {
-    let inflater = GetInflater(thread, addr.toNumber());
-    if (inflater) {
-      // Step 1: Write what we have.
-      let arr = b.array;
-      let lenRead = inflater.readBytes(arr, off, len);
-      // Step 2: If the requester wants more, feed the buffer we have into the
-      // inflater.
-      if (lenRead !== len) {
-        // Give the entire buffer to inflate.
-        // TODO: Test performance with large zip files.
-        let inputArr = javaThis['java/util/zip/Inflater/buf'].array;
-        let inputOff = javaThis['java/util/zip/Inflater/off'];
-        let inputLen = javaThis['java/util/zip/Inflater/len'];
-        if (inputLen !== 0) {
-          let writeBytesRv = inflater.writeBytes(i82u8(inputArr, inputOff, inputLen));
-          if (writeBytesRv !== pako.ZlibReturnCodes.Z_OK) {
-            switch (writeBytesRv) {
-              case pako.ZlibReturnCodes.Z_NEED_DICT:
-                javaThis['java/util/zip/Inflater/needDict'] = 1;
-                return lenRead;
-              default:
-                thread.throwNewException('Ljava/util/zip/DataFormatException;', inflater.inflater.msg);
-                return;
-            }
-          }
-          if (inflater.inflater.ended) {
-            javaThis['java/util/zip/Inflater/finished'] = 1;
-          }
+    let strm = GetZStream(thread, addr.toNumber());
+    if (strm == null) {
+      return;
+    }
 
-          javaThis['java/util/zip/Inflater/len'] = 0;
-          javaThis['java/util/zip/Inflater/off'] = inputOff + inputLen;
+    let thisBuf = javaThis['java/util/zip/Inflater/buf'];
+    let thisOff = javaThis['java/util/zip/Inflater/off'];
+    let thisLen = javaThis['java/util/zip/Inflater/len'];
 
-          // Step 3: Read the newly inflated bytes.
-          lenRead += inflater.readBytes(arr, off + lenRead, len - lenRead);
+    // Return 0 when the buffer is empty, which tells Java to refill its buffer.
+    if (thisLen === 0 || len === 0) {
+      return 0;
+    }
+
+    let inBuf = thisBuf.array;
+    let outBuf = b.array;
+
+    // Set up the zstream.
+    strm.input = i82u8(inBuf, 0, inBuf.length);
+    strm.next_in = thisOff;
+    strm.avail_in = thisLen;
+
+    strm.output = i82u8(outBuf, 0, outBuf.length);
+    strm.next_out = off;
+    strm.avail_out = len;
+
+    // NOTE: JVM code does a partial flush, but Pako doesn't support it.
+    // Thus, we do a sync flush instead.
+    let ret = inflate.inflate(strm, ZlibFlushValue.Z_SYNC_FLUSH);
+    let lenRead = len - strm.avail_out;
+    if (!isInt8Array(outBuf)) {
+      // Slow path: No typed arrays. Copy decompressed data.
+      // u8 -> i8
+      let result = strm.output;
+      for (let i = 0; i < lenRead; i++) {
+        let byte = result[i + off];
+        if (byte > 127) {
+          // Sign extend.
+          byte |= 0xFFFFFF80
         }
+        outBuf[i + off] = byte;
       }
-      return lenRead;
+    }
+
+    switch(ret) {
+      case ZlibReturnCode.Z_STREAM_END:
+        javaThis['java/util/zip/Inflater/finished'] = 1;
+        /* fall through */
+      case ZlibReturnCode.Z_OK:
+        thisOff += thisLen - strm.avail_in;
+        javaThis['java/util/zip/Inflater/off'] = thisOff;
+        javaThis['java/util/zip/Inflater/len'] = strm.avail_in;
+        return lenRead;
+      case ZlibReturnCode.Z_NEED_DICT:
+        javaThis['java/util/zip/Inflater/needDict'] = 1;
+        /* Might have consumed some input here! */
+        thisOff += thisLen - strm.avail_in;
+        javaThis['java/util/zip/Inflater/off'] = thisOff;
+        javaThis['java/util/zip/Inflater/len'] = strm.avail_in;
+        return 0;
+      case ZlibReturnCode.Z_BUF_ERROR:
+        return 0;
+      case ZlibReturnCode.Z_DATA_ERROR:
+        thread.throwNewException('Ljava/util/zip/DataFormatException;', strm.msg);
+        return;
+      default:
+        thread.throwNewException('Ljava/lang/InternalError;', strm.msg);
+        return;
     }
   }
 
   public static 'getAdler(J)I'(thread: JVMThread, addr: Long): number {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    return 0;
+    let strm = GetZStream(thread, addr.toNumber());
+    if (strm) {
+      return strm.adler;
+    }
   }
 
   public static 'reset(J)V'(thread: JVMThread, addr: Long): void {
     let addrNum = addr.toNumber();
-    let inflaterState = GetInflater(thread, addrNum);
-    if (inflaterState) {
-      inflaterState.reset();
+    let strm = GetZStream(thread, addrNum);
+
+    if (strm) {
+      /* There's a bug in Pako that prevents reset from working.
+      if (inflate.inflateReset(strm) !== ZlibReturnCode.Z_OK) {
+        thread.throwNewException('Ljava/lang/InternalError;', '');
+      }
+      */
+      // Allocate a new stream, instead.
+      let newStrm = new ZStreamCons();
+      let ret = inflate.inflateInit2(newStrm, strm.state.wrap ? MAX_WBITS : -MAX_WBITS);
+      ZStreams[addrNum] = newStrm;
     }
   }
 
   public static 'end(J)V'(thread: JVMThread, addr: Long): void {
-    CloseInflater(addr.toNumber());
+    let strm = GetZStream(thread, addr.toNumber());
+    if (strm) {
+      if (inflate.inflateEnd(strm) === ZlibReturnCode.Z_STREAM_ERROR) {
+        thread.throwNewException('Ljava/lang/InternalError;', strm.msg);
+      } else {
+        CloseZStream(addr.toNumber());
+      }
+    }
   }
 
 }

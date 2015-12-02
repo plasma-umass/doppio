@@ -258,7 +258,8 @@ class java_io_FileOutputStream {
    *     advances the position to the end of file
    */
   public static 'write(IZ)V'(thread: JVMThread, javaThis: JVMTypes.java_io_FileOutputStream, b: number, append: number): void {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+    // HACK: Avoid reimplementing below for single byte case.
+    java_io_FileOutputStream['writeBytes([BIIZ)V'](thread, javaThis, <any> {array: [b]}, 0, 1, append);
   }
 
   /**
