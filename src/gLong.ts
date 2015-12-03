@@ -203,7 +203,7 @@ class gLong {
     // minimize the calls to the very expensive emulated div.
     var radixToPower = gLong.fromNumber(Math.pow(radix, 6));
 
-    var rem = this;
+    rem = this;
     var result = '';
     while (true) {
       var remDiv = rem.div(radixToPower);
@@ -522,7 +522,7 @@ class gLong {
     // the approximate value is less than or equal to the real value so that the
     // remainder never becomes negative.
     var res = gLong.ZERO;
-    var rem = this;
+    rem = this;
     while (rem.greaterThanOrEqual(other)) {
       // Approximate the result of division. This may be a little greater or
       // smaller than the actual value.
