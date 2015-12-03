@@ -24,7 +24,7 @@ Before attempting to build doppio, you must have the following installed:
 * Node v0.12 or higher
 * NPM package `grunt-cli` and `tsd` installed globally
   * `npm install -g grunt-cli tsd`
-* Java 8 JDK
+* Java 8 JDK. Ensure `JAVA_HOME` points to the JDK 8 base directory.
 
 If you are on Windows, you will need the following installed:
 * Git (must be on your PATH)
