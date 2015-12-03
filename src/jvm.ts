@@ -18,7 +18,9 @@ import ThreadPool from './threadpool';
 // Do not import, otherwise TypeScript will prune it.
 // Referenced only in eval'd code.
 let BrowserFS = require('browserfs');
-let pako = require('pako');
+let deflate = require('pako/lib/zlib/deflate');
+let inflate = require('pako/lib/zlib/inflate');
+let zstream = require('pako/lib/zlib/zstream');
 let crc32 = require('pako/lib/zlib/crc32');
 let adler32 = require('pako/lib/zlib/adler32');
 // For version information.
@@ -463,8 +465,12 @@ function require(name) {
       return buffer;
     case 'browserfs':
       return BrowserFS;
-    case 'pako':
-      return pako;
+    case 'pako/lib/zlib/zstream':
+      return zstream;
+    case 'pako/lib/zlib/inflate':
+      return inflate;
+    case 'pako/lib/zlib/deflate':
+      return deflate;
     case 'pako/lib/zlib/crc32':
       return crc32;
     case 'pako/lib/zlib/adler32':

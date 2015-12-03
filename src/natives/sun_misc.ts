@@ -423,6 +423,9 @@ class sun_misc_Unsafe {
   }
 
   public static 'ensureClassInitialized(Ljava/lang/Class;)V'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, cls: JVMTypes.java_lang_Class): void {
+    if (cls.$cls.isInitialized(thread)) {
+      return;
+    }
     thread.setStatus(ThreadStatus.ASYNC_WAITING);
     cls.$cls.initialize(thread, (cdata: ClassData) => {
       if (cdata != null) {

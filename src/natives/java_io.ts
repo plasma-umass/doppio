@@ -11,6 +11,14 @@ import assert = Doppio.Debug.Assert;
 import JVMTypes = require('../../includes/JVMTypes');
 declare var registerNatives: (defs: any) => void;
 
+function throwNodeError(thread: JVMThread, err: NodeJS.ErrnoException): void {
+  let type = "Ljava/io/IOException;";
+  if (err.code === "ENOENT") {
+    type = 'Ljava/io/FileNotFoundException;';
+  }
+  thread.throwNewException(type, err.message);
+}
+
 /**
  * Provide buffering for the underlying input function, returning at most
  * n_bytes of data.
@@ -19,11 +27,11 @@ function async_input(n_bytes: number, resume: (data: Buffer) => void): void {
   // Try to read n_bytes from stdin's buffer.
   var read = function (nBytes: number): NodeBuffer {
     // XXX: Returns a Buffer, but DefinitelyTyped says string|Buffer.
-    var bytes = <Buffer> <any> process.stdin.read(nBytes);
+    var bytes = <Buffer> process.stdin.read(nBytes);
     if (bytes === null) {
       // We might have asked for too many bytes. Retrieve the entire stream
       // buffer.
-      bytes = <Buffer> <any> process.stdin.read();
+      bytes = <Buffer> process.stdin.read();
     }
     // \0 => EOF.
     if (bytes !== null && bytes.length === 1 && bytes.readUInt8(0) === 0) {
@@ -98,7 +106,7 @@ class java_io_FileInputStream {
         if (e.code === 'ENOENT') {
           thread.throwNewException('Ljava/io/FileNotFoundException;', "" + filepath + " (No such file or directory)");
         } else {
-          thread.throwNewException('Ljava/lang/Error', 'Internal JVM error: ' +  e);
+          thread.throwNewException('Ljava/lang/InternalError', 'Internal JVM error: ' +  e);
         }
       } else {
         var fdObj = javaThis['java/io/FileInputStream/fd'];
@@ -117,12 +125,13 @@ class java_io_FileInputStream {
     } else if (0 !== fd) {
       // this is a real file that we've already opened
       thread.setStatus(ThreadStatus.ASYNC_WAITING);
-      fs.fstat(fd, (err, stats) => {
-        var buf = new Buffer(stats.size);
-        fs.read(fd, buf, 0, 1, fdObj.$pos, (err, bytes_read) => {
-          fdObj.$pos++;
-          thread.asyncReturn(0 === bytes_read ? -1 : buf.readUInt8(0));
-        });
+      var buf = new Buffer(1);
+      fs.read(fd, buf, 0, 1, fdObj.$pos, (err, bytes_read) => {
+        if (err) {
+          return throwNodeError(thread, err);
+        }
+        fdObj.$pos++;
+        thread.asyncReturn(0 === bytes_read ? -1 : buf.readUInt8(0));
       });
     } else {
       // reading from System.in, do it async
@@ -133,11 +142,19 @@ class java_io_FileInputStream {
     }
   }
 
-  public static 'readBytes([BII)I'(thread: JVMThread, javaThis: JVMTypes.java_io_FileInputStream, byteArr: JVMTypes.JVMArray<number>, offset: number, nBytes: number): void {
+  public static 'readBytes([BII)I'(thread: JVMThread, javaThis: JVMTypes.java_io_FileInputStream, byteArr: JVMTypes.JVMArray<number>, offset: number, nBytes: number): number {
     var buf: Buffer, pos: number,
       fdObj = javaThis["java/io/FileInputStream/fd"],
       fd = fdObj["java/io/FileDescriptor/fd"];
-    if (-1 === fd) {
+
+    if (offset + nBytes > byteArr.array.length) {
+      thread.throwNewException('Ljava/lang/IndexOutOfBoundsException;', "");
+      return;
+    }
+
+    if (nBytes === 0) {
+      return 0;
+    } else if (-1 === fd) {
       thread.throwNewException("Ljava/io/IOException;", "Bad file descriptor");
     } else if (0 !== fd) {
       // this is a real file that we've already opened
@@ -145,17 +162,16 @@ class java_io_FileInputStream {
       buf = new Buffer(nBytes);
       thread.setStatus(ThreadStatus.ASYNC_WAITING);
       fs.read(fd, buf, 0, nBytes, pos, (err, bytesRead) => {
-        var i: number;
         if (null != err) {
-          thread.asyncReturn(-1); // XXX: should check this
+          throwNodeError(thread, err);
         } else {
           // not clear why, but sometimes node doesn't move the
           // file pointer, so we do it here ourselves.
           fdObj.$pos += bytesRead;
-          for (i = 0; i < bytesRead; i++) {
+          for (let i = 0; i < bytesRead; i++) {
             byteArr.array[offset + i] = buf.readInt8(i);
           }
-          thread.asyncReturn(0 === bytesRead && 0 !== nBytes ? -1 : bytesRead);
+          thread.asyncReturn(0 === bytesRead ? -1 : bytesRead);
         }
       });
     } else {
@@ -180,6 +196,9 @@ class java_io_FileInputStream {
     } else if (0 !== fd) {
       thread.setStatus(ThreadStatus.ASYNC_WAITING);
       fs.fstat(fd, (err, stats) => {
+        if (err) {
+          return throwNodeError(thread, err);
+        }
         var bytesLeft = stats.size - fdObj.$pos,
           toSkip = Math.min(nBytes.toNumber(), bytesLeft);
         fdObj.$pos += toSkip;
@@ -207,6 +226,9 @@ class java_io_FileInputStream {
     } else {
       thread.setStatus(ThreadStatus.ASYNC_WAITING);
       fs.fstat(fd, (err, stats) => {
+        if (err) {
+          return throwNodeError(thread, err);
+        }
         thread.asyncReturn(stats.size - fdObj.$pos);
       });
     }
@@ -222,7 +244,7 @@ class java_io_FileInputStream {
     thread.setStatus(ThreadStatus.ASYNC_WAITING);
     fs.close(fd, (err?: NodeJS.ErrnoException) => {
       if (err) {
-        thread.throwNewException('Ljava/io/IOException;', err.message);
+        throwNodeError(thread, err);
       } else {
         fdObj['java/io/FileDescriptor/fd'] = -1;
         thread.asyncReturn();
@@ -241,6 +263,9 @@ class java_io_FileOutputStream {
   public static 'open0(Ljava/lang/String;Z)V'(thread: JVMThread, javaThis: JVMTypes.java_io_FileOutputStream, name: JVMTypes.java_lang_String, append: number): void {
     thread.setStatus(ThreadStatus.ASYNC_WAITING);
     fs.open(name.toString(), append ? 'a' : 'w', (err, fd) => {
+      if (err) {
+        return throwNodeError(thread, err);
+      }
       var fdObj = javaThis['java/io/FileOutputStream/fd'];
       fdObj['java/io/FileDescriptor/fd'] = fd;
       fs.fstat(fd, (err, stats) => {
@@ -281,6 +306,9 @@ class java_io_FileOutputStream {
       // normal file
       thread.setStatus(ThreadStatus.ASYNC_WAITING);
       fs.write(fd, buf, offset, len, fdObj.$pos, (err, numBytes) => {
+        if (err) {
+          return throwNodeError(thread, err);
+        }
         fdObj.$pos += numBytes;
         thread.asyncReturn();
       });
@@ -307,7 +335,7 @@ class java_io_FileOutputStream {
     thread.setStatus(ThreadStatus.ASYNC_WAITING);
     fs.close(fd, (err?: NodeJS.ErrnoException) => {
       if (err) {
-        thread.throwNewException('Ljava/io/IOException;', err.message);
+        return throwNodeError(thread, err);
       } else {
         fdObj['java/io/FileDescriptor/fd'] = -1;
         thread.asyncReturn();
@@ -378,8 +406,8 @@ class java_io_RandomAccessFile {
     }
     thread.setStatus(ThreadStatus.ASYNC_WAITING);
     fs.open(filepath, modeStr, (e, fd) => {
-      if (e != null) {
-        thread.throwNewException('Ljava/io/FileNotFoundException;', "Could not open file " + filepath + ": " + e);
+      if (e) {
+        return throwNodeError(thread, e);
       } else {
         var fdObj = javaThis['java/io/RandomAccessFile/fd'];
         fdObj['java/io/FileDescriptor/fd'] = fd;
@@ -410,9 +438,8 @@ class java_io_RandomAccessFile {
       buf = new Buffer(1);
     thread.setStatus(ThreadStatus.ASYNC_WAITING);
     fs.read(fd, buf, 0, 1, fdObj.$pos, function (err, bytesRead) {
-      var i: number;
-      if (err != null) {
-        thread.throwNewException('Ljava/io/IOException;', 'Error reading file: ' + err);
+      if (err) {
+        return throwNodeError(thread, err);
       } else {
         fdObj.$pos += bytesRead;
         // Read as uint, since return value is unsigned.
@@ -428,7 +455,7 @@ class java_io_RandomAccessFile {
     thread.setStatus(ThreadStatus.ASYNC_WAITING);
     fs.read(fd, buf, 0, len, fdObj.$pos, function (err, bytesRead) {
       if (err) {
-        thread.throwNewException('Ljava/io/IOException;', 'Error reading file: ' + err);
+        return throwNodeError(thread, err);
       } else {
         for (let i = 0; i < bytesRead; i++) {
           byte_arr.array[offset + i] = buf.readInt8(i);
@@ -448,7 +475,7 @@ class java_io_RandomAccessFile {
     thread.setStatus(ThreadStatus.ASYNC_WAITING);
     fs.write(fd, data, 0, 1, fdObj.$pos, (err, numBytes) => {
       if (err) {
-        thread.throwNewException('Ljava/io/IOException;', 'Error reading file: ' + err);
+        return throwNodeError(thread, err);
       }
 
       fdObj.$pos += numBytes;
@@ -462,6 +489,9 @@ class java_io_RandomAccessFile {
       buf = new Buffer(byteArr.array);
     thread.setStatus(ThreadStatus.ASYNC_WAITING);
     fs.write(fd, buf, offset, len, fdObj.$pos, (err, numBytes) => {
+      if (err) {
+        return throwNodeError(thread, err);
+      }
       fdObj.$pos += numBytes;
       thread.asyncReturn();
     });
@@ -480,6 +510,9 @@ class java_io_RandomAccessFile {
       fd = fdObj['java/io/FileDescriptor/fd'];
     thread.setStatus(ThreadStatus.ASYNC_WAITING);
     fs.fstat(fd, (err, stats) => {
+      if (err) {
+        return throwNodeError(thread, err);
+      }
       thread.asyncReturn(Long.fromNumber(stats.size), null);
     });
   }
@@ -498,7 +531,7 @@ class java_io_RandomAccessFile {
     thread.setStatus(ThreadStatus.ASYNC_WAITING);
     fs.close(fd, (err?: NodeJS.ErrnoException) => {
       if (err) {
-        thread.throwNewException('Ljava/io/IOException;', err.message);
+        return throwNodeError(thread, err);
       } else {
         fdObj['java/io/FileDescriptor/fd'] = -1;
         thread.asyncReturn();
@@ -569,7 +602,7 @@ class java_io_UnixFileSystem {
     var filepath = file['java/io/File/path'];
     thread.setStatus(ThreadStatus.ASYNC_WAITING);
     fs.stat(filepath.toString(), (err, stat) => {
-      thread.asyncReturn(Long.fromNumber(err != null ? 0 : stat.size), null);
+      thread.asyncReturn(err != null ? Long.ZERO : Long.fromNumber(stat.size), null);
     });
   }
 

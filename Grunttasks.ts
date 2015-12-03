@@ -69,7 +69,7 @@ transformConfig = function(toRemove: string[]) {
     '/': 'http://localhost:8000/'
   },
   files: [
-    'node_modules/browserfs/dist/browserfs.js',
+    'node_modules/browserfs/dist/browserfs.js'
   ],
   singleRun: false,
   urlRoot: '/karma/',
