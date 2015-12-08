@@ -13,6 +13,22 @@ declare var Websock: {
   new (): interfaces.IWebsock;
 }
 
+/**
+ * If an application wants to open a TCP/UDP connection to "foobar.com", the application must first perform
+ * a DNS lookup to determine the IP of that domain, and then open a socket to that IP. Doppio needs to emulate
+ * this same functionality in JavaScript.
+ * 
+ * However, the browser does not expose any DNS interfaces, as DNS lookup is provided opaquely by the browser
+ * platform. For example, an application can make a WebSocket connection directly to "https://foobar.com/", and
+ * will never know that domain's IP.
+ * 
+ * To get around this missing functionality, Doppio returns an unused private IP in the range of 240.0.0.0 to
+ * 250.0.0.0 for each unique DNS lookup. Doppio uses this IP as a token for that particular DNS lookup. When
+ * the application attempts to connect to an IP in this range, Doppio uses the IP as a key into a hash table,
+ * which returns a domain name that Doppio uses in the resulting WebSocket connection. An application will never
+ * try to connect to one of these invalid IP addresses directly, so Doppio can distinguish between connections to
+ * specific IP addresses and connections to domains.
+ */
 var host_lookup: {[addr: number]: string} = {},
   host_reverse_lookup: {[real_addr: string]: number} = {},
   // 240.0.0.0 .. 250.0.0.0 is currently unused address space
