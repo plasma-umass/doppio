@@ -254,8 +254,10 @@ class java_util_logging_FileHandler {
 class java_util_TimeZone {
 
   public static 'getSystemTimeZoneID(Ljava/lang/String;)Ljava/lang/String;'(thread: JVMThread, arg0: JVMTypes.java_lang_String): JVMTypes.java_lang_String {
-    // XXX not sure what the local value is
-    return thread.getJVM().internString('GMT');
+    // NOTE: Can be half of an hour (e.g. Newfoundland is GMT-3.5)
+    // NOTE: Is positive for negative offset.
+    let offset = new Date().getTimezoneOffset() / 60;
+    return thread.getJVM().internString(`GMT${offset > 0 ? '-' : '+'}${offset}`);
   }
 
   public static 'getSystemGMTOffsetID()Ljava/lang/String;'(thread: JVMThread): JVMTypes.java_lang_String {
